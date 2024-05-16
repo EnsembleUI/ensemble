@@ -1,6 +1,6 @@
 definitions:
   # where your page definitions are hosted ('local', 'remote' or 'ensemble')
-  from: local
+  from: ensemble
 
   # for embedding definitions locally in your Flutter App
   local:
@@ -16,31 +16,25 @@ definitions:
 
   # for hosting definitions on your own server
   remote:
+    # the path to your app on your remote server. For example - http://localhost:8000/
     path: <your_http_server_hosting_the_definitions>
     appId: helloApp
     appHome: Hello Home
+    # path to your i18n (translation files) dir. If you are not using translations, just point to the one that comes with this repo. Example - http://localhost:8000/i18n 
     i18nPath: <full_url_including_scheme_and_host_to_i18n_directory_on_your_server>
 
   # for Ensemble-hosted definitions, simply enter your Ensemble's app key
   ensemble:
-    # appId can be found on Ensemble Studio.
-    appId: <my app id on studio.ensembleui.com>
+    # appId can be found on Ensemble Studio. Navigate to your app, click the menu icon on top right, and copy your appId
+    # here is the appId for Ensemble Kitchen sink. You can view this app under demo apps in studio.
+    appId: e24402cb-75e2-404c-866c-29e6c3dd7992
     i18nPath: https://raw.githubusercontent.com/EnsembleUI/starter/main/ensemble/i18n
-
-  # for legacy Ensemble-hosted definitions, simply enter your Ensemble's app key
-  legacy:
-    # this is the Ensemble server URL. Do not change
-    path: https://pz0mwfkp5m.execute-api.us-east-1.amazonaws.com/dev
-    # appId can be found on Ensemble Studio.
-    appId: <my app id>
-    i18nPath: https://raw.githubusercontent.com/EnsembleUI/starter/main/ensemble/i18n
-    enableCache: false
 
 i18n:
   #locale string e.g. en, nl etc. If empty, user's device locale is used
-  defaultLocale: nl
+  defaultLocale: en
   #if strings in defaultLocale are not found, which locale to use instead
-  fallbackLocale: en
+  fallbackLocale: nl
   #use country code after locale code such as en_us
   useCountryCode: false
 
@@ -76,10 +70,6 @@ services:
         redirectUri: msauth.com.ensembleui.starter://auth
         redirectScheme: msauth.com.ensembleui.starter
 
-# Legacy Maps, replace with your own keys
-accounts:
-  maps:
-    mapbox_access_token: pk.eyJ1IjoiZW5zZW1ibGV1aSIsImEiOiJjbDVsYTNoeDQwaGQwM21udzhyemR3cDJrIn0.dnn3x8nZVj5ZFO3tn5l8Ww
 
 # override any environment variables on studio.ensembleui.com here
 # e.g. load local assets instead of URL
@@ -90,3 +80,23 @@ environmentVariables:
   # This asset value is empty, meaning a reference of {env.exampleAssetVariable}pic.png
   # will be loaded locally from /ensemble/assets/pic.png
   exampleAssetVariable:
+
+# uncomment the following when using firebase analytics.
+# For iOS - Make sure that GoogleService-Info.plist is placed under the ios/Runner folder AND has been added to the Xcode project. Just putting the file under Runner folder is NOT sufficient, it has to be added to the prject using Xcode.
+# For Android - Make sure that google-services.json is placed under android/app folder
+# For Web - make sure that the web config is present under account/firebase/web below.
+#analytics:
+#  provider: firebase
+#  enabled: true
+#  enableConsoleLogs: true
+# uncomment the following when using Firebase analytics for the Web and replace the values with the values from your Firebase app.
+#accounts:
+#  firebase:
+#    web:
+#      apiKey: "xxxxx"
+#      authDomain: "xxxxx"
+#      projectId: "xxxx"
+#      storageBucket: "xxxxx"
+#      messagingSenderId: "nnnnnn"
+#      appId: "n:xxxxxxx"
+#      measurementId: "G-xxxxx"

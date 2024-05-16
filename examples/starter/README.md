@@ -13,7 +13,8 @@ This starter project enables running and deploying Ensemble-powered Apps across 
 - Run `flutter create --org com.ensembleui --project-name starter --platform=ios,android,web .` (note the period at the end). If you modified the appId, make sure the org and project name match the bundle ID.
 - Run `flutter pub upgrade`. Run this occasionally when the Ensemble framework has been updated.
 - Run the App with `flutter run`. If you currently have a running iOS or Android emulator, the command will prompt for a selection, otherwise the App will be opened in the web browser.
-- This will run the `helloApp` packaged with this repo. You can package your app locally, or hosted them on your own server or on Ensemble-hosted server. 
+- This will run the `Ensemble Kitchen Sink` app. This app is available as a demo app in Ensemble Studio.
+- Optionally, you can package your app locally, or hosted them on your own server or on Ensemble-hosted server. 
 
 ### Modules
 By default, Starter does not include all the modules or capabilities (e.g. camera, location). Excluding these capabilities by default reduces the App's size and not trigger any red flags during your App Store Review (e.g. camera code is present when your app doesn't use camera). Please follow the below steps carefully if your app requires these capabilities:
@@ -58,8 +59,16 @@ Ensemble Studio includes an Online Editor for making changes with type-ahead sup
 - Follow [iOS](https://docs.flutter.dev/deployment/ios), [Android](https://docs.flutter.dev/deployment/android), [MacOS](https://docs.flutter.dev/deployment/macos), [Windows](https://docs.flutter.dev/deployment/windows) release documentation.
 
 ## Misc
-### Run with remote definition (to be continued)
+### Run with remote definition
 To take advantage of Server-driven UI (change your UI at anytime from the server), you can host these definitions on your file server.
+When hosting on your server, follow the following steps. 
+
+- in ensemble/ensemble-config.yaml - specify `from: remote` under `definitions`
+- then change the `remote:` settings to match your server's configuration
+- make sure that your server is configured to serve files with extension `.ensemble` with `text/yaml` mime-type.
+- lastly if you are running `flutter run` with web configuration locally, make sure your webserver is properly configured to avoid CORS issues. See `custom_http_server.py` for an example
+
+- You can also use the sample python server script to test it out locally, see `custom_http_server.py` and run it as `python3 custom_http_server.py` from command prompt. 
 
 ### For Flutter developers
 Use [Android Studio](https://developer.android.com/studio) to open this project and run `main.dart`.

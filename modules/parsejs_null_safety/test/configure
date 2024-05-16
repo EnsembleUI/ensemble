@@ -1,0 +1,6 @@
+base=$(dirname $0)
+pushd $base/util
+npm install
+popd
+echo "Use ./runtest to run the test suite"
+echo "Failed test outputs will be put in output/*.err"

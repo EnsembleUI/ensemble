@@ -1,0 +1,14 @@
+name: jsparser
+version: 2.0.1
+author: Khurram Mahmood (original - Anurag Vohra <Anurag Vohra>)
+description: >-
+  JavaScript parser originally written by Asger Feldthaus<asger.feldthaus@gmail.com>
+  Upgraded to Dart 2.12 with null safety.
+homepage: https://ensembleui.com
+repository: https://github.com/kmahmood74/parsejs_null_safety.dart
+
+environment:
+  sdk: '>=2.12.0 <3.0.0'
+
+dependencies:
+  unicode: '>=0.0.8 <1.0.0'

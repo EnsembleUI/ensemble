@@ -1,0 +1,50 @@
+View:
+  title: Home
+  body:
+    Column:
+      styles: { mainAxis: center }
+      children:
+        # input
+        - TextInput:
+            id: myInput
+            value: first
+        # button to take focus away from TextInput
+        - Button:
+            label: Just a button
+
+        # outputs
+        - Text:
+            text: ${myInput.value}
+        - Custom:
+            inputs:
+              txt: ${myInput.value}
+
+
+Custom:
+  inputs: [txt]
+  onLoad:
+    showToast:
+      message: Hello ${txt}
+  body:
+    Column:
+      children:
+        - Text:
+            text: "Custom Widget: ${txt}"
+        - Custom2:
+            inputs:
+              text: ${txt}
+
+
+
+Custom2:
+  inputs: [text]
+  onLoad: |-
+    setByJS.text = "Hi " + text;
+
+  body:
+    Column:
+      children:
+        - Text:
+            text: "Custom Custom Widget: ${text}"
+        - Text:
+            id: setByJS

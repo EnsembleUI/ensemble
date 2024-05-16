@@ -1,0 +1,69 @@
+set -e
+
+mkdir -p output
+mkdir -p tmp
+rm -f tmp/*
+
+RETRY=0
+
+if [ "$1" = "--retry" ]; then
+	RETRY=1
+	shift
+elif (($# == 0)); then
+	rm -f output/*
+fi
+
+BASEDIR=$(dirname $0)
+
+if (($# == 0)); then
+	FILES=$(find testcases | grep '.js')
+	BASEDIR='testcases'
+elif [[ -d $1 ]]; then
+	FILES=$(find $1 | grep '.js')
+	BASEDIR="$1"
+else
+	FILES=$*
+fi
+
+for file in $FILES
+do
+	name=$(basename $file)
+	name=${name%.js}
+	if [[ $RETRY -eq 1 ]] && ! [ -e output/$name.err ]; then
+		continue
+	fi
+
+	path=$(python -c "import os.path; print os.path.relpath('$file', '$BASEDIR')")
+	printf "%-50s" $path
+
+	if dart parser_test.dart --json $file > tmp/mine.json 2> tmp/$name.err; then
+		rm -f tmp/$name.err
+	else
+		echo "[EXCEPTION]"
+		cat $file >> tmp/$name.err
+		mv tmp/$name.err output/$name.err
+		continue
+	fi
+
+	if node util/tojson.js $file > tmp/correct.json 2> tmp/$name.esprima.err; then
+		rm -f tmp/$name.esprima.err
+	else
+		cat $file >> tmp/$name.esprima.err
+		mv tmp/$name.esprima.err output/$name.esprima.err
+		echo "[OK] [ESPRIMA EXCEPTION]"
+		continue
+	fi
+
+	util/json -f tmp/mine.json > tmp/mine1.json
+	util/json -f tmp/correct.json > tmp/correct1.json
+
+	if diff tmp/mine1.json -C 6 tmp/correct1.json > tmp/$name.err;
+	then
+		rm -f tmp/$name.err
+		echo "[OK]"
+	else
+		echo "[WRONG OUTPUT]"
+		cat $file >> tmp/$name.err
+		mv tmp/$name.err output/$name.err
+	fi
+done

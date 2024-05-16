@@ -1,4 +1,0 @@
-# melos_managed_dependency_overrides: receive_sharing_intent
-dependency_overrides:
-  receive_sharing_intent:
-    path: ..

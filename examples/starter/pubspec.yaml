@@ -19,7 +19,7 @@ version: 1.0.0+1
 
 environment:
   sdk: ">=3.0.6 <4.0.0"
-  flutter: 3.19.3
+  flutter: ">=1.17.0"
 
 # Dependencies specify other packages that your package needs in order to work.
 # To automatically upgrade your package dependencies to the latest versions
@@ -35,27 +35,66 @@ dependencies:
 
   # embed Ensemble as a sibling project
   ensemble:
-    path: ../../packages/ensemble
+    git:
+      url: https://github.com/EnsembleUI/ensemble.git
+      ref: main
+      path: modules/ensemble
 
-  # Uncomment to enable camera services
+  # Uncomment to enable camera module
   # ensemble_camera:
-  #   path: ../../packages/camera
-  # ensemble_file_manager:
-  #   path: ../../packages/file_manager
-  # ensemble_contacts:
-  #   path: ../../packages/contacts
-  # ensemble_connect:
-  #   path: ../../packages/connect
-
-  # Uncomment to enable Auth service
-  # ensemble_auth:
-  #   path: ../../packages/auth
-
-  # Uncomment to enable ensemble chat widget
-  # ensemble_chat:
   #   git:
-  #     url: https://github.com/EnsembleUI/ensemble_chat.git
+  #     url: https://github.com/EnsembleUI/ensemble.git
   #     ref: main
+  #     path: modules/camera
+
+  # Uncomment to enable file manager module
+  # ensemble_file_manager:
+  #   git:
+  #     url: https://github.com/EnsembleUI/ensemble.git
+  #     ref: main
+  #     path: modules/file_manager
+
+  # Uncomment to enable contacts module
+  # ensemble_contacts:
+  #   git:
+  #     url: https://github.com/EnsembleUI/ensemble.git
+  #     ref: main
+  #     path: modules/contacts
+
+  # Uncomment to enable connect module
+  # ensemble_connect:
+  #   git:
+  #     url: https://github.com/EnsembleUI/ensemble.git
+  #     ref: main
+  #     path: modules/connect
+
+  # Uncomment to enable location module
+  # ensemble_location:
+  #   git:
+  #     url: https://github.com/EnsembleUI/ensemble.git
+  #     ref: main
+  #     path: modules/location
+
+  # Uncomment to enable deeplink module
+  # ensemble_deeplink:
+  #   git:
+  #     url: https://github.com/EnsembleUI/ensemble.git
+  #     ref: main
+  #     path: modules/deeplink
+
+  # Uncomment to enable Auth module
+  # ensemble_auth:
+  #   git:
+  #     url: https://github.com/EnsembleUI/ensemble.git
+  #     ref: main
+  #     path: modules/auth
+
+  # Uncomment to enable firebase analytics
+  # ensemble_firebase_analytics:
+  #   git:
+  #     url: https://github.com/EnsembleUI/ensemble.git
+  #     ref: main
+  #     path: modules/firebase_analytics
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
