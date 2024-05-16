@@ -22,9 +22,11 @@ class Carousel extends StatefulWidget
         Invokable,
         HasController<MyController, CarouselState> {
   static const type = 'Carousel';
+
   Carousel({Key? key}) : super(key: key);
 
   final MyController _controller = MyController();
+
   @override
   MyController get controller => _controller;
 
@@ -262,8 +264,7 @@ class CarouselState extends WidgetState<Carousel>
           );
 
     // show indicators
-    if (widget._controller.indicatorType != null &&
-        widget._controller.indicatorType != IndicatorType.none) {
+    if (widget._controller.indicatorType != IndicatorType.none) {
       List<Widget> indicators = buildIndicators(items);
 
       List<Widget> children = [
