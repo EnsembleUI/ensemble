@@ -268,7 +268,7 @@ class EnsembleTheme {
       String key = '.$className'; // Prepend '.' to match the style keys
       var classStyle = styles[key];
       if (classStyle != null) {
-        resolvedStyles = {...resolvedStyles, ...classStyle};
+        resolvedStyles = mergeMaps(resolvedStyles, classStyle);
       }
     }
     return resolvedStyles;

@@ -1,4 +1,6 @@
+import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/error_handling.dart';
+import 'package:ensemble/framework/scope.dart';
 import 'package:flutter/cupertino.dart';
 
 class StubWidget extends StatelessWidget {
@@ -51,4 +53,18 @@ abstract class SignInWithAuth0 {
 
 class SignInWithAuth0Stub extends StubWidget implements SignInWithAuth0 {
   const SignInWithAuth0Stub({super.key}) : super(moduleName: 'Auth');
+}
+
+abstract class SignInAnonymous {
+  Future<void> signInAnonymously(BuildContext context,
+      {required SignInAnonymousAction action});
+}
+
+class SignInAnonymousStub implements SignInAnonymous {
+  @override
+  Future<void> signInAnonymously(BuildContext context,
+      {required SignInAnonymousAction action}) {
+    throw ConfigError(
+        "Auth is not enabled. Please review the Ensemble documentation.");
+  }
 }
