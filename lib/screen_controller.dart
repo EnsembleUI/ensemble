@@ -34,6 +34,7 @@ import 'package:ensemble/layout/ensemble_page_route.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/util/notification_utils.dart';
 import 'package:ensemble/util/utils.dart';
+import 'package:ensemble/widget/stub_widgets.dart';
 import 'package:ensemble_ts_interpreter/invokables/context.dart';
 import 'package:ensemble_ts_interpreter/parser/newjs_interpreter.dart';
 import 'package:flutter/foundation.dart';
@@ -465,6 +466,8 @@ class ScreenController {
           scopeManager: scopeManager);
     } else if (action is FilePickerAction) {
       GetIt.I<FileManager>().pickFiles(context, action, scopeManager);
+    } else if (action is SignInAnonymousAction) {
+      GetIt.I<SignInAnonymous>().signInAnonymously(context, action: action);
     } else if (action is WalletConnectAction) {
       //  TODO store session:  WalletConnectSession? session = await sessionStorage.getSession();
 
