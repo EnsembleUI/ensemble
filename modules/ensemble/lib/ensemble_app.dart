@@ -35,6 +35,7 @@ import 'package:yaml/yaml.dart';
 
 const String backgroundUploadTask = 'backgroundUploadTask';
 const String ensembleMethodChannelName = 'com.ensembleui.host.platform';
+GlobalKey<NavigatorState>? externalAppNavigateKey;
 
 @pragma('vm:entry-point')
 void callbackDispatcher() {
@@ -93,15 +94,19 @@ void callbackDispatcher() {
 
 /// use this as the root widget for Ensemble
 class EnsembleApp extends StatefulWidget {
-  const EnsembleApp(
-      {super.key,
-      this.screenPayload,
-      this.ensembleConfig,
-      this.externalMethods,
-      this.isPreview = false,
-      this.placeholderBackgroundColor,
-      this.onAppLoad,
-      this.forcedLocale});
+  EnsembleApp({
+    super.key,
+    this.screenPayload,
+    this.ensembleConfig,
+    this.externalMethods,
+    this.isPreview = false,
+    this.placeholderBackgroundColor,
+    this.onAppLoad,
+    this.forcedLocale,
+    GlobalKey<NavigatorState>? navigatorKey,
+  }) {
+    externalAppNavigateKey = navigatorKey;
+  }
 
   final ScreenPayload? screenPayload;
   final EnsembleConfig? ensembleConfig;
