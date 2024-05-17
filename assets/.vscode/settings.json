@@ -1,6 +1,0 @@
-{
-    "yaml.schemas": {
-        "./schema/ensemble_schema.json": "*.yaml"
-    },
-    "editor.tabSize": 2
-}

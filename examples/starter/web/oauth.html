@@ -1,0 +1,9 @@
+<!DOCTYPE html>
+<title>Authentication complete</title>
+<p>Authentication is complete. If this does not happen automatically, please close the window.</p>
+<script>
+  window.opener.postMessage({
+    'flutter-web-auth-2': window.location.href
+  }, window.location.origin);
+  window.close();
+</script>

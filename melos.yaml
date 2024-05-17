@@ -1,0 +1,5 @@
+name: Ensemble
+
+packages:
+  - packages/**
+  - examples/**

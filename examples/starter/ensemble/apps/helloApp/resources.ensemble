@@ -1,0 +1,50 @@
+Widgets:
+  # this widget can be referenced using MyCustomWidget1
+  MyCustomWidget1:
+    Import:
+      - apiUtils
+      - common
+    inputs:
+      - inputName
+    body:
+      Column:
+        children:
+          - Text:
+              text: ${inputName.first} ${inputName.last}
+          - Button:
+              label: sayHello in console
+              onTap: |-
+                saveName('Jane','Doe');
+                console.log('name:'+getName());
+          - MyCustomWidget2:
+              inputs:
+                customProperty: ${ensemble.storage.helloApp.name.first}
+  MyCustomWidget2:
+    inputs:
+      - customProperty
+    body:
+      Column:
+        children:
+          - Text:
+              text: ${customProperty}
+
+Scripts:
+  utils: |-
+    var apiUtilsCount = 0;
+    function callMockMethod() {
+      apiUtilsCount++;
+      console.log('apiUtilsCount='+apiUtilsCount);
+    }
+  common: |-
+    function sayHello(name) {
+      console.log('sayHello:'+name);
+    }
+    function saveName(first,last) {
+      ensemble.storage.helloApp = {name: {first: first, last: last}};
+    }
+    function getName() {
+      if ( ensemble.storage.helloApp != null ) {
+        return ensemble.storage.helloApp.name;
+      }
+      return null;
+    }
