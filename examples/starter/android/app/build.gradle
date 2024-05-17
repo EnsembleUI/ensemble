@@ -1,0 +1,113 @@
+def localProperties = new Properties()
+def localPropertiesFile = rootProject.file('local.properties')
+if (localPropertiesFile.exists()) {
+    localPropertiesFile.withReader('UTF-8') { reader ->
+        localProperties.load(reader)
+    }
+}
+
+// keystore for releasing this Android app
+def keystoreProperties = new Properties()
+def keystorePropertiesFile = rootProject.file('key.properties')
+if (keystorePropertiesFile.exists()) {
+    keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
+}
+
+// ensemble-configured properties
+def ensembleProperties = new Properties()
+def rootFlutterDir = rootDir.parentFile
+def ensemblePropertiesFile = new File(rootFlutterDir, 'ensemble/ensemble.properties')
+if (ensemblePropertiesFile.exists()) {
+    ensemblePropertiesFile.withReader('UTF-8') { reader -> ensembleProperties.load(reader) }
+}
+def appId = ensembleProperties.getProperty('appId')
+def appName = ensembleProperties.getProperty('appName')
+def googleMapsAPIKey = ensembleProperties.getProperty('googleMapsAPIKey')
+def androidMinSdkVersion = ensembleProperties.getProperty('android.minSdkVersion')
+def auth0Domain = ensembleProperties.getProperty("auth0Domain")
+def auth0Scheme = ensembleProperties.getProperty("auth0Scheme")
+
+def flutterRoot = localProperties.getProperty('flutter.sdk')
+if (flutterRoot == null) {
+    throw new GradleException("Flutter SDK not found. Define location with flutter.sdk in the local.properties file.")
+}
+
+def flutterVersionCode = localProperties.getProperty('flutter.versionCode')
+if (flutterVersionCode == null) {
+    flutterVersionCode = '1'
+}
+
+def flutterVersionName = localProperties.getProperty('flutter.versionName')
+if (flutterVersionName == null) {
+    flutterVersionName = '1.0'
+}
+
+apply plugin: 'com.android.application'
+apply plugin: 'kotlin-android'
+apply from: "$flutterRoot/packages/flutter_tools/gradle/flutter.gradle"
+
+android {
+    namespace appId
+    compileSdkVersion flutter.compileSdkVersion
+    ndkVersion flutter.ndkVersion
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+
+    kotlinOptions {
+        jvmTarget = '1.8'
+    }
+
+    sourceSets {
+        main.java.srcDirs += 'src/main/kotlin'
+    }
+
+    defaultConfig {
+        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
+        applicationId appId
+        // You can update the following values to match your application needs.
+        // For more information, see: https://docs.flutter.dev/deployment/android#reviewing-the-gradle-build-configuration.
+        minSdkVersion androidMinSdkVersion
+        targetSdkVersion flutter.targetSdkVersion
+        versionCode flutterVersionCode.toInteger()
+        versionName flutterVersionName
+
+        // pass properties to AndroidManifest
+        manifestPlaceholders.googleMapsAPIKey = googleMapsAPIKey
+        manifestPlaceholders.appId = appId
+        manifestPlaceholders.appName = appName
+
+        manifestPlaceholders.auth0Domain = auth0Domain
+        manifestPlaceholders.auth0Scheme = auth0Scheme
+    }
+
+    // signning configuration for your release version
+    signingConfigs {
+        release {
+            keyAlias keystoreProperties['keyAlias']
+            keyPassword keystoreProperties['keyPassword']
+            storeFile keystoreProperties['storeFile'] ? file(keystoreProperties['storeFile']) : null
+            storePassword keystoreProperties['storePassword']
+        }
+    }
+
+    buildTypes {
+        release {
+            // Use this while developing so `flutter run --release` works.
+            signingConfig signingConfigs.debug
+
+            // Use this when releasing your App. See https://docs.ensembleui.com/#/deploy/5-android-play-store
+            // signingConfig signingConfigs.release
+        }
+    }
+}
+
+flutter {
+    source '../..'
+}
+
+dependencies {
+    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
+}

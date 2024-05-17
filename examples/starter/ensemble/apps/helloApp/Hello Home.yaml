@@ -1,0 +1,47 @@
+Import:
+  - utils
+  - common
+
+View:
+  # Optional - style the screen
+  styles:
+    scrollableView: true
+
+  # Optional - set the header for the screen
+  header:
+    title: Home
+  onLoad: |
+    saveName('John','Doe');
+    console.log('name is ='+getName());
+
+  # Specify the body of the screen
+  body:
+    Column:
+      styles:
+        padding: 24
+        gap: 8
+      children:
+        - Text:
+            text: Hello ${ensemble.storage.helloApp.name.first} ${ensemble.storage.helloApp.name.last}
+        - MyCustomWidget1:
+            inputs:
+              inputName: ${ensemble.storage.helloApp.name}
+        - Button:
+            label: Call API in imported library
+            onTap: |-
+              callMockMethod();
+              console.log('name is ='+getName());  
+
+
+Global: |-
+  //var myVar = myButton.label;
+  function globalHello() {
+    console.log('hello');
+  }
+
+API:
+  mockAPI:
+    url: https://dummyjson.com/users/1
+    method: GET
+    onResponse: |-
+      saveName('Michael', 'Jordan');

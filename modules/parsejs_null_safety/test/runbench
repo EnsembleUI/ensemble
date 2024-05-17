@@ -1,0 +1,26 @@
+set -e
+
+BASEDIR=$(dirname $0)
+
+if (($# == 0)); then
+	FILES=$(find testcases/benchmarks | grep '.js')
+	BASEDIR='testcases/benchmarks'
+elif [[ -d $1 ]]; then
+	FILES=$(find $1 | grep '.js')
+	BASEDIR="$1"
+else
+	FILES=$*
+fi
+
+TOTAL=0
+
+for file in $FILES 
+do
+	name=$(basename $file)
+	name=${name%.js}
+	T=$(dart parser_test.dart --time $file)
+	printf "%-30s %4d\n" $name $T
+	TOTAL=$((TOTAL+T))
+done	
+
+printf "%-30s %4d\n" "TOTAL" $TOTAL
