@@ -1,5 +1,5 @@
 name: Ensemble
 
 packages:
-  - packages/**
-  - examples/**
+  - modules/**
+  # - examples/**

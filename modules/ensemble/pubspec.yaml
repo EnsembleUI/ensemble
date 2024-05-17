@@ -29,7 +29,7 @@ dependencies:
     git:
       url: https://github.com/EnsembleUI/ensemble.git
       ref: main
-      path: modules/flutter_device_preview/device_preview
+      path: modules/device_preview
 
   yaml: ^3.1.2
   intl: ^0.18.0
@@ -122,11 +122,11 @@ dependencies:
   app_links: ^3.4.3
   share_plus: ^7.2.2
   rate_my_app: ^2.0.0
-  # table_calendar: TODO Ask if table calendar should be public or private
-  #   git:
-  #     url: https://github.com/EnsembleUI/ensemble.git
-  #     ref: main
-  #     path: modules/table_calendar
+  table_calendar:
+    git:
+      url: https://github.com/EnsembleUI/ensemble.git
+      ref: main
+      path: modules/table_calendar
 
   flutter_app_badger: ^1.5.0
   webview_flutter_wkwebview: ^3.9.2
