@@ -124,9 +124,8 @@ dependencies:
   rate_my_app: ^2.0.0
   table_calendar:
     git:
-      url: https://github.com/EnsembleUI/ensemble.git
+      url: https://github.com/EnsembleUI/table_calendar.git
       ref: main
-      path: modules/table_calendar
 
   flutter_app_badger: ^1.5.0
   webview_flutter_wkwebview: ^3.9.2
