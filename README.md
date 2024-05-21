@@ -23,9 +23,9 @@ This monorepo contains the following modules:
 - **File Manager Module:** Manages files within the app.
 - **Firebase Analytics Module:** Integrates Firebase analytics into Ensemble apps.
 
-## Starter App
-
-The Starter App, located in the `example` folder, serves as a demonstration of how to integrate and use different packages within Ensemble. It showcases the capabilities of Ensemble and how its modules can be utilized to create powerful applications.
+## Getting Started
+- Ensemble comes bundled with the Starter (located in /starter) to run any Ensemble-powered apps.
+- First initialize the modules with `melos bootstrap`, then follow the instructions at [Starter README](/starter/README.md).
 
 ## Links
 
