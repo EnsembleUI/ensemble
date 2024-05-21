@@ -3,3 +3,4 @@ build
 pubspec.lock
 analysis_options.yaml
 pubspec_overrides.yaml
+**/android/local.properties
