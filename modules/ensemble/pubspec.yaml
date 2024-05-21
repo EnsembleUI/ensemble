@@ -91,7 +91,7 @@ dependencies:
       path: modules/js_widget
   flutter_markdown: ^0.6.10+5
   provider: ^6.0.3
-  cloud_firestore: ^4.14.0
+  cloud_firestore: 4.17.4
   get_storage: ^2.0.3
   flutter_html: ^3.0.0-beta.1 # flutter_html ^2.0.0 requires flutter_svg <1.0.0, conflicts with ours
   webview_flutter: ^4.2.0
@@ -114,8 +114,8 @@ dependencies:
   get_it: ^7.6.0
   custom_image_crop: ^0.0.10
   app_settings: ^5.0.0
-  firebase_messaging: ^14.7.10
-  firebase_core: ^2.24.2
+  firebase_messaging: 14.9.3
+  firebase_core: 2.31.1
   custom_refresh_indicator: ^2.2.1
   youtube_player_iframe: ^4.0.4
   web_socket_client: ^0.1.0
