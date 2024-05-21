@@ -12,16 +12,7 @@ dependencies:
     sdk: flutter
 
   ensemble:
-    git:
-      url: https://github.com/EnsembleUI/ensemble.git
-      ref: main
-      path: modules/ensemble
-
-  ensemble_ts_interpreter:
-    git:
-      url: https://github.com/EnsembleUI/ensemble.git
-      ref: main
-      path: modules/ensemble_ts_interpreter
+    path: ../ensemble
 
   get_it: ^7.6.0
   google_maps_flutter: ^2.6.0

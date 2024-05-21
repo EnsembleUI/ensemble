@@ -11,10 +11,7 @@ dependencies:
   flutter:
     sdk: flutter
   ensemble:
-    git:
-      url: https://github.com/EnsembleUI/ensemble.git
-      ref: main
-      path: modules/ensemble
+    path: ../ensemble
 
   flutter_branch_sdk: ^7.0.1
 

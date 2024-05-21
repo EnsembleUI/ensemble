@@ -26,10 +26,7 @@ dependencies:
     sdk: flutter
 
   device_preview:
-    git:
-      url: https://github.com/EnsembleUI/ensemble.git
-      ref: main
-      path: modules/device_preview
+    path: ../device_preview
 
   yaml: ^3.1.2
   intl: ^0.18.0
@@ -43,38 +40,29 @@ dependencies:
   signature: ^5.2.1
 
   ensemble_icons:
-    git:
-      url: https://github.com/EnsembleUI/ensemble.git
-      ref: main
-      path: modules/ensemble_icons
+    path: ../ensemble_icons
 
   ensemble_ts_interpreter:
-    git:
-      url: https://github.com/EnsembleUI/ensemble.git
-      ref: main
-      path: modules/ensemble_ts_interpreter
+    path: ../ensemble_ts_interpreter
 
   ensemble_bracket:
-    git:
-      url: https://github.com/EnsembleUI/ensemble.git
-      ref: main
-      path: modules/bracket
+    path: ../bracket
   # use our forked high_chart to fix iOS issue
   high_chart:
+    path: ../high_chart
+  otp_pin_field:
+    path: ../otp_pin_field
+  js_widget:
+    path: ../js_widget
+  table_calendar:
     git:
-      url: https://github.com/EnsembleUI/ensemble.git
-      ref: main
-      path: modules/high_chart
+      url: https://github.com/EnsembleUI/table_calendar.git
+      ref: master
 
   event_bus: ^2.0.0
   flutter_layout_grid: ^2.0.3
   email_validator: ^2.0.1
   mask_text_input_formatter: ^2.5.0
-  otp_pin_field:
-    git:
-      url: https://github.com/EnsembleUI/ensemble.git
-      ref: main
-      path: modules/otp_pin_field
   form_validator: ^2.1.1
   flutter_svg: ^2.0.7
   flutter_svg_provider: ^1.0.4
@@ -84,11 +72,6 @@ dependencies:
   fluttertoast: 8.2.2
   video_player: ^2.6.1
   lottie: ^2.3.2
-  js_widget:
-    git: 
-      url: https://github.com/EnsembleUI/ensemble.git
-      ref: main
-      path: modules/js_widget
   flutter_markdown: ^0.6.10+5
   provider: ^6.0.3
   cloud_firestore: 4.17.4
@@ -122,11 +105,6 @@ dependencies:
   app_links: ^3.4.3
   share_plus: ^7.2.2
   rate_my_app: ^2.0.0
-  table_calendar:
-    git:
-      url: https://github.com/EnsembleUI/table_calendar.git
-      ref: master
-
   flutter_app_badger: ^1.5.0
   webview_flutter_wkwebview: ^3.9.2
   webview_flutter_android: ^3.12.0
