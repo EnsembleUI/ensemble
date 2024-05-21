@@ -4,3 +4,6 @@ pubspec.lock
 analysis_options.yaml
 pubspec_overrides.yaml
 **/android/local.properties
+/starter/android/app/src/main/kotlin
+/starter/ios/Flutter
+starter/ios/Runner.xcodeproj/project.pbxproj

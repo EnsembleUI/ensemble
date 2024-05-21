@@ -264,7 +264,8 @@ class CarouselState extends WidgetState<Carousel>
           );
 
     // show indicators
-    if (widget._controller.indicatorType != IndicatorType.none) {
+    if (widget._controller.indicatorType != null &&
+        widget._controller.indicatorType != IndicatorType.none) {
       List<Widget> indicators = buildIndicators(items);
 
       List<Widget> children = [
