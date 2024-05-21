@@ -13,7 +13,15 @@ dependencies:
   camera: ^0.10.5
   # embed Ensemble as a sibling project
   ensemble:
-    path: ../ensemble
+    git:
+      url: https://github.com/EnsembleUI/ensemble.git
+      ref: main
+      path: modules/ensemble
+  ensemble_ts_interpreter:
+    git:
+      url: https://github.com/EnsembleUI/ensemble.git
+      ref: main
+      path: modules/ensemble_ts_interpreter
 
   collection: ^1.17.1
   geolocator: ^9.0.2

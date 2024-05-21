@@ -50,8 +50,10 @@ dependencies:
   #flutter_js: ^0.5.0+6
   #dartjsengine: ^1.0.1
   jsparser:
-    path: ../parsejs_null_safety
-
+    git:
+      url: https://github.com/EnsembleUI/ensemble.git
+      ref: main
+      path: modules/parsejs_null_safety
   source_span: ^1.9.1
   intl: ^0.18.0
 

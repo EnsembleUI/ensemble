@@ -35,7 +35,10 @@ dependencies:
 
   # embed Ensemble as a sibling project
   ensemble:
-    path: ../modules/ensemble
+    git:
+      url: https://github.com/EnsembleUI/ensemble.git
+      ref: main
+      path: modules/ensemble
 
   # Uncomment to enable camera module
   # ensemble_camera:
