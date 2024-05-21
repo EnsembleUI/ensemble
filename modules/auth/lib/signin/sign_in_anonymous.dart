@@ -16,10 +16,10 @@ class SignInAnonymousImpl implements SignInAnonymous {
         AuthenticatedUser? currentUser = AuthManager().getCurrentUser();
         ScreenController().executeAction(context, action.onAuthenticated!,
             event: EnsembleEvent(null, data: {'user': currentUser}));
-      } else {
-        if (action.onError != null) {
-          ScreenController().executeAction(context, action.onError!);
-        }
+      }
+    } else {
+      if (action.onError != null) {
+        ScreenController().executeAction(context, action.onError!);
       }
     }
   }
