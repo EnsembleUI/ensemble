@@ -85,7 +85,7 @@ class AuthManager with UserAuthentication {
     return null;
   }
 
-  Future<String?> signInAnonymously(
+  Future<bool?> signInAnonymously(
     BuildContext context,
   ) async {
     try {
@@ -107,7 +107,7 @@ class AuthManager with UserAuthentication {
 
       updateCurrentUser(context, user);
 
-      return userCredential.credential?.accessToken;
+      return user.isAnonymous;
     } catch (e) {
       print(e.toString());
       return null;
@@ -203,8 +203,8 @@ class AuthManager with UserAuthentication {
         if (customFirebaseApp != null) {
           await FirebaseAuth.instanceFor(app: customFirebaseApp!).signOut();
         }
-      // } else if (user.provider == SignInProvider.auth0) {
-      //   await Auth0CredentialsManager().signOut();
+        // } else if (user.provider == SignInProvider.auth0) {
+        //   await Auth0CredentialsManager().signOut();
       } else {
         // If we don't use the provider, sign out with the signIn clients
         if (user.client == SignInClient.google) {
