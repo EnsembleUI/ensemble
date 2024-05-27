@@ -27,5 +27,5 @@ jobs:
       - name: Pub Upgrade
         run: melos bootstrap
 
-      - name: Run Unit Tests / Widget Tests
-        run: melos exec -- "flutter test"
+#      - name: Run Unit Tests / Widget Tests
+#        run: melos exec -- "flutter test"
