@@ -53,6 +53,11 @@ abstract class WidgetState<W extends HasController> extends BaseWidgetState<W> {
     if (widget.controller is WidgetController) {
       WidgetController widgetController = widget.controller as WidgetController;
 
+      if (widgetController.textDirection != null) {
+        rtn = Directionality(
+            textDirection: widgetController.textDirection!, child: rtn);
+      }
+
       if (widgetController.elevation != null) {
         rtn = Material(
             elevation: widgetController.elevation?.toDouble() ?? 0,
