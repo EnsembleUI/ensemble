@@ -1,6 +1,4 @@
 /// This class contains helper controllers for our widgets.
-import 'dart:ui';
-
 import 'package:ensemble/controller/controller_mixins.dart';
 import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/framework/model.dart';
@@ -259,8 +257,7 @@ abstract class WidgetController extends Controller with HasStyles {
           stackPositionRight = Utils.optionalInt(value),
       'captureWebPointer': (value) =>
           captureWebPointer = Utils.optionalBool(value),
-      'textDirection': (value) =>
-          textDirection = TextDirection.values.from(value),
+      'textDirection': (value) => textDirection = Utils.getTextDirection(value),
       'label': (value) => label = Utils.optionalString(value),
       'classList': (value) => classList = value,
       'className': (value) => className = value
@@ -434,8 +431,7 @@ abstract class EnsembleWidgetController extends EnsembleController
       'visible': (value) => visible = Utils.getBool(value, fallback: true),
       'visibilityTransitionDuration': (value) =>
           visibilityTransitionDuration = Utils.getDuration(value),
-      'textDirection': (value) =>
-          textDirection = TextDirection.values.from(value),
+      'textDirection': (value) => textDirection = Utils.getTextDirection(value),
       'elevation': (value) =>
           elevation = Utils.optionalInt(value, min: 0, max: 24),
       'elevationShadowColor': (value) =>

@@ -167,6 +167,17 @@ class Utils {
     return null;
   }
 
+  static TextDirection? getTextDirection(dynamic value) {
+    if (value is String) {
+      if (value == "leftToRight") {
+        return TextDirection.ltr;
+      } else if (value == "rightToLeft") {
+        return TextDirection.rtl;
+      }
+    }
+    return null;
+  }
+
   static WrapAlignment? getWrapAlignment(dynamic value) {
     switch (value) {
       case 'center':
