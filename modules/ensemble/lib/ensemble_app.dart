@@ -16,6 +16,7 @@ import 'package:ensemble/framework/device.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/secrets.dart';
 import 'package:ensemble/framework/storage_manager.dart';
+import 'package:ensemble/framework/theme/theme_loader.dart';
 import 'package:ensemble/framework/theme_manager.dart';
 import 'package:ensemble/framework/widget/error_screen.dart';
 import 'package:ensemble/framework/widget/screen.dart';
@@ -281,30 +282,45 @@ class EnsembleAppState extends State<EnsembleApp> with WidgetsBindingObserver {
       notifiedAppLoad = true;
     }
 
+    Widget screen = Screen(
+      appProvider: AppProvider(definitionProvider: config.definitionProvider),
+      screenPayload: widget.screenPayload,
+      apiProviders: APIProviders.clone(config.apiProviders ?? {}),
+    );
+
+    var theme = config.getAppTheme();
+
+    // adjust for text scaling
+    var textScale =
+        theme.extension<EnsembleThemeExtension>()?.appTheme?.textScale;
+    if (textScale != null) {
+      if (textScale.enabled == false) {
+        screen = MediaQuery.withNoTextScaling(child: screen);
+      } else if (textScale.minFactor != null || textScale.maxFactor != null) {
+        screen = MediaQuery.withClampedTextScaling(
+            minScaleFactor: textScale.minFactor ?? 0.0,
+            maxScaleFactor: textScale.maxFactor ?? double.infinity,
+            child: screen);
+      }
+    }
+
     StorageManager().setIsPreview(widget.isPreview);
     Widget app = MaterialApp(
       navigatorObservers: [Ensemble.routeObserver],
       debugShowCheckedModeBanner: false,
       navigatorKey: Utils.globalAppKey,
-      theme: config.getAppTheme(),
+      theme: theme,
       localizationsDelegates: [
         config.getI18NDelegate(forcedLocale: widget.forcedLocale),
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate
       ],
       home: Scaffold(
-        // this outer scaffold is where the background image would be (if
-        // specified). We do not want it to resize on keyboard popping up.
-        // The Page's Scaffold can handle the resizing.
-        resizeToAvoidBottomInset: false,
-
-        body: Screen(
-          appProvider:
-              AppProvider(definitionProvider: config.definitionProvider),
-          screenPayload: widget.screenPayload,
-          apiProviders: APIProviders.clone(config.apiProviders ?? {}),
-        ),
-      ),
+          // this outer scaffold is where the background image would be (if
+          // specified). We do not want it to resize on keyboard popping up.
+          // The Page's Scaffold can handle the resizing.
+          resizeToAvoidBottomInset: false,
+          body: screen),
       useInheritedMediaQuery: widget.isPreview,
       builder: (context, child) {
         Locale myLocale =
