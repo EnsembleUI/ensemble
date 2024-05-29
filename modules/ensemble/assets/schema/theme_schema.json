@@ -58,6 +58,32 @@
         }
       }
     },
+    "App": {
+      "type": "object",
+      "properties": {
+        "textScale": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "description": "When enabled (default) the App's text will scale according to the device's accessibility settings.",
+              "defaultValue": true
+            },
+            "minFactor": {
+              "type": "number",
+              "description": "The minimum scale factor relative to the default of 1.0",
+              "minimum": 0
+            },
+            "maxFactor": {
+              "type": "number",
+              "description": "The maximum scale factor relative to the default of 1.0",
+              "minimum": 0
+            }
+          },
+          "description": "Control the text scaling behavior for this App."
+        }
+      }
+    },
     "Screen": {
       "type": "object",
       "properties": {
