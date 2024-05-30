@@ -205,7 +205,6 @@ class BracketsView extends StatefulWidget {
 
 class _BracketsViewState extends State<BracketsView> {
   late PageController _pageController;
-  late ScrollController _tabScrollController;
   int _currentPageIndex = 0;
   List<GlobalKey> _tabKeys = [];
 
@@ -250,7 +249,6 @@ class _BracketsViewState extends State<BracketsView> {
   void dispose() {
     _pageController.removeListener(_updatePageIndex);
     _pageController.dispose();
-    _tabScrollController.dispose();
     super.dispose();
   }
 
@@ -259,45 +257,46 @@ class _BracketsViewState extends State<BracketsView> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        SingleChildScrollView(
-          padding: EdgeInsets.zero,
-          scrollDirection: Axis.horizontal,
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.start,
-            children: List.generate(widget.data.length, (index) {
-              bool isSelected = index == _currentPageIndex;
-              String? title = widget.data.elementAt(index).title;
-              return Container(
-                padding: EdgeInsets.only(left: widget.controller.tabGap),
-                child: ElevatedButton(
-                  key: _tabKeys[index],
-                  onPressed: () {
-                    _animateToPage(index);
-                    _scrollToSelectedTab(index);
-                  },
-                  style: ElevatedButton.styleFrom(
-                    padding: widget.controller.tabPadding,
-                    shape: widget.controller.tabBorderRadius != null
-                        ? RoundedRectangleBorder(
-                            borderRadius:
-                                widget.controller.tabBorderRadius!.getValue(),
-                          )
-                        : null,
-                    backgroundColor: isSelected
-                        ? widget.controller.tabSelectedBackgroundColor
-                        : widget.controller.tabBackgroundColor,
+        if (_tabKeys.isNotEmpty)
+          SingleChildScrollView(
+            padding: EdgeInsets.zero,
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.start,
+              children: List.generate(widget.data.length, (index) {
+                bool isSelected = index == _currentPageIndex;
+                String? title = widget.data.elementAt(index).title;
+                return Container(
+                  padding: EdgeInsets.only(left: widget.controller.tabGap),
+                  child: ElevatedButton(
+                    key: _tabKeys[index],
+                    onPressed: () {
+                      _animateToPage(index);
+                      _scrollToSelectedTab(index);
+                    },
+                    style: ElevatedButton.styleFrom(
+                      padding: widget.controller.tabPadding,
+                      shape: widget.controller.tabBorderRadius != null
+                          ? RoundedRectangleBorder(
+                              borderRadius:
+                                  widget.controller.tabBorderRadius!.getValue(),
+                            )
+                          : null,
+                      backgroundColor: isSelected
+                          ? widget.controller.tabSelectedBackgroundColor
+                          : widget.controller.tabBackgroundColor,
+                    ),
+                    child: Text(
+                      title,
+                      style: isSelected
+                          ? widget.controller.tabSelectedStyle
+                          : widget.controller.tabTextStyle,
+                    ),
                   ),
-                  child: Text(
-                    title,
-                    style: isSelected
-                        ? widget.controller.tabSelectedStyle
-                        : widget.controller.tabTextStyle,
-                  ),
-                ),
-              );
-            }),
+                );
+              }),
+            ),
           ),
-        ),
         Expanded(
           child: BracketsPage(
             controller: widget.controller,
