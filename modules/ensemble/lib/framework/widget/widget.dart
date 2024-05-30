@@ -1,6 +1,4 @@
-import 'dart:io';
 
-import 'package:ensemble/framework/action.dart' as action;
 import 'package:ensemble/framework/bindings.dart';
 import 'package:ensemble/framework/config.dart';
 import 'package:ensemble/framework/error_handling.dart';
@@ -52,6 +50,11 @@ abstract class WidgetState<W extends HasController> extends BaseWidgetState<W> {
     Widget rtn = buildWidget(context);
     if (widget.controller is WidgetController) {
       WidgetController widgetController = widget.controller as WidgetController;
+
+      if (widgetController.textDirection != null) {
+        rtn = Directionality(
+            textDirection: widgetController.textDirection!, child: rtn);
+      }
 
       if (widgetController.elevation != null) {
         rtn = Material(
