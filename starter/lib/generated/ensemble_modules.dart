@@ -124,7 +124,7 @@ class EnsembleModules {
     } else {
       // GetIt.I.registerSingleton<EnsembleChat>(const EnsembleChatStub());
     }
-    if ( useFirebaseAnalytics ) {
+    if (useFirebaseAnalytics) {
       //uncomment to enable firebase analytics
       //GetIt.I.registerSingleton<LogProvider>(FirebaseAnalyticsProvider());
     } else {

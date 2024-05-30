@@ -187,6 +187,8 @@ abstract class WidgetController extends Controller with HasStyles {
   bool? visible;
   Duration? visibilityTransitionDuration; // in seconds
 
+  TextDirection? textDirection;
+
   int? elevation;
   Color? elevationShadowColor;
   EBorderRadius? elevationBorderRadius;
@@ -223,7 +225,8 @@ abstract class WidgetController extends Controller with HasStyles {
       'visible': () => visible != false,
       'className': () => className,
       'classList': () => classList,
-      'testId': () => testId
+      'testId': () => testId,
+      'textDirection': () => textDirection,
     };
   }
 
@@ -254,6 +257,7 @@ abstract class WidgetController extends Controller with HasStyles {
           stackPositionRight = Utils.optionalInt(value),
       'captureWebPointer': (value) =>
           captureWebPointer = Utils.optionalBool(value),
+      'textDirection': (value) => textDirection = Utils.getTextDirection(value),
       'label': (value) => label = Utils.optionalString(value),
       'classList': (value) => classList = value,
       'className': (value) => className = value
@@ -378,6 +382,8 @@ abstract class EnsembleWidgetController extends EnsembleController
   bool? visible;
   Duration? visibilityTransitionDuration; // in seconds
 
+  TextDirection? textDirection;
+
   int? elevation;
   Color? elevationShadowColor;
   EBorderRadius? elevationBorderRadius;
@@ -411,7 +417,8 @@ abstract class EnsembleWidgetController extends EnsembleController
       'visible': () => visible != false,
       'className': () => className,
       'classList': () => classList,
-      'testId': () => testId
+      'testId': () => testId,
+      'textDirection': () => textDirection,
     };
   }
 
@@ -424,6 +431,7 @@ abstract class EnsembleWidgetController extends EnsembleController
       'visible': (value) => visible = Utils.getBool(value, fallback: true),
       'visibilityTransitionDuration': (value) =>
           visibilityTransitionDuration = Utils.getDuration(value),
+      'textDirection': (value) => textDirection = Utils.getTextDirection(value),
       'elevation': (value) =>
           elevation = Utils.optionalInt(value, min: 0, max: 24),
       'elevationShadowColor': (value) =>
