@@ -1,5 +1,6 @@
 import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/framework/view/has_selectable_text.dart';
+import 'package:ensemble/model/TextScale.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/framework/widget/widget.dart' as framework;
 import 'package:ensemble/widget/helpers/controllers.dart';
@@ -40,7 +41,8 @@ class EnsembleText extends StatefulWidget
       'textStyle': (style) => _controller.textStyle =
           Utils.getTextStyleAsComposite(_controller, style: style),
       'selectable': (value) =>
-          _controller.selectable = Utils.optionalBool(value)
+          _controller.selectable = Utils.optionalBool(value),
+      'textScale': (value) => _controller.textScale = TextScale.from(value),
     };
   }
 
@@ -58,6 +60,7 @@ class TextController extends BoxController {
   TextAlign? textAlign;
   int? maxLines;
   bool? selectable;
+  TextScale? textScale;
 
   TextStyleComposite? _textStyle;
 
@@ -84,22 +87,33 @@ class EnsembleTextState extends framework.WidgetState<EnsembleText> {
                 null);
 
     Widget textWidget = shouldBeSelectable
-        ? SelectableText(
-            controller.text ?? '',
+        ? SelectableText(controller.text ?? '',
             textAlign: controller.textAlign,
             maxLines: controller.maxLines,
             style: controller.textStyle.getTextStyle(),
-          )
-        : Text(
-            controller.text ?? '',
+            textScaler: _getTextScaler())
+        : Text(controller.text ?? '',
             textAlign: controller.textAlign,
             maxLines: controller.maxLines,
             style: controller.textStyle.getTextStyle(),
-          );
+            textScaler: _getTextScaler());
 
     return gradientStyle != null
         ? _GradientText(gradient: gradientStyle, child: textWidget)
         : textWidget;
+  }
+
+  TextScaler? _getTextScaler() {
+    if (widget.controller.textScale?.enabled == false) {
+      return TextScaler.noScaling;
+    } else if (widget.controller.textScale?.minFactor != null ||
+        widget.controller.textScale?.maxFactor != null) {
+      return MediaQuery.of(context).textScaler.clamp(
+          minScaleFactor: widget.controller.textScale?.minFactor ?? 0,
+          maxScaleFactor:
+              widget.controller.textScale?.maxFactor ?? double.infinity);
+    }
+    return null;
   }
 }
 

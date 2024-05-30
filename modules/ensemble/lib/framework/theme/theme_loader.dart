@@ -1,6 +1,7 @@
 import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/framework/theme/default_theme.dart';
 import 'package:ensemble/framework/theme/theme_manager.dart';
+import 'package:ensemble/model/TextScale.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:flutter/material.dart';
 import 'package:yaml/yaml.dart';
@@ -114,9 +115,21 @@ mixin ThemeLoader {
           overrides?['Widgets']?['Checkbox'], customColorScheme),
     );
 
+    var appTheme = AppTheme(
+        textScale: TextScale(
+            enabled: Utils.optionalBool(
+                getProp(overrides, ['App', 'textScale', 'enabled'])),
+            minFactor: Utils.optionalDouble(
+                getProp(overrides, ['App', 'textScale', 'minFactor']),
+                min: 0),
+            maxFactor: Utils.optionalDouble(
+                getProp(overrides, ['App', 'textScale', 'maxFactor']),
+                min: 0)));
+
     // extends ThemeData
     return customTheme.copyWith(extensions: [
       EnsembleThemeExtension(
+        appTheme: appTheme,
         loadingScreenBackgroundColor:
             Utils.getColor(overrides?['Screen']?['loadingBackgroundColor']) ??
                 Utils.getColor(
@@ -126,6 +139,15 @@ mixin ThemeLoader {
         transitions: Utils.getMap(overrides?['Transitions']),
       )
     ]);
+  }
+
+  dynamic getProp(Map? root, List<String> paths) {
+    dynamic result = root;
+    for (var path in paths) {
+      if (result == null) return null;
+      result = result[path];
+    }
+    return result;
   }
 
   AppBarTheme? _getAppBarTheme(YamlMap? screenMap) {
@@ -462,10 +484,12 @@ extension CheckboxThemeDataExtension on CheckboxThemeData {
 /// extend Theme to add our own special color parameters
 class EnsembleThemeExtension extends ThemeExtension<EnsembleThemeExtension> {
   EnsembleThemeExtension(
-      {this.loadingScreenBackgroundColor,
+      {this.appTheme,
+      this.loadingScreenBackgroundColor,
       this.loadingScreenIndicatorColor,
       this.transitions});
 
+  final AppTheme? appTheme;
   final Color? loadingScreenBackgroundColor;
   final Color? loadingScreenIndicatorColor; // should deprecate this
   final Map<String, dynamic>? transitions;
@@ -495,6 +519,14 @@ class EnsembleThemeExtension extends ThemeExtension<EnsembleThemeExtension> {
     );
   }
 }
+
+class AppTheme {
+  AppTheme({this.textScale});
+
+  TextScale? textScale;
+}
+
+class ScreenTheme {}
 
 enum InputVariant { box, underline }
 
