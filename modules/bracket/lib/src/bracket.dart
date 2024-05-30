@@ -213,6 +213,11 @@ class _BracketsViewState extends State<BracketsView> {
     super.initState();
     _pageController = PageController(viewportFraction: 0.75);
     _pageController.addListener(_updatePageIndex);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
     _tabKeys =
         List<GlobalKey>.generate(widget.data.length, (index) => GlobalKey());
   }
