@@ -36,15 +36,14 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.title),
-      ),
-      body: Center(
-        child: Column(
+        appBar: AppBar(
+          title: Text(widget.title),
+        ),
+        body: Center(
+            child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             const Text('This page is written in Flutter'),
@@ -54,9 +53,7 @@ class _MyHomePageState extends State<MyHomePage> {
               onPressed: () => loadEnsemblePage(context),
             )
           ],
-        )
-      )
-    );
+        )));
   }
 
   void loadEnsemblePage(BuildContext context) {

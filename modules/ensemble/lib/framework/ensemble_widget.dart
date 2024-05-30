@@ -54,6 +54,11 @@ abstract class EnsembleWidgetState<W extends EnsembleWidget> extends State<W> {
 
       Widget rtn = buildWidget(context);
 
+      if (widgetController.textDirection != null) {
+        rtn = Directionality(
+            textDirection: widgetController.textDirection!, child: rtn);
+      }
+
       if (widgetController.elevation != null) {
         rtn = Material(
             elevation: widgetController.elevation?.toDouble() ?? 0,
