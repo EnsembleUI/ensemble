@@ -175,6 +175,7 @@ class NavigateModalScreenAction extends BaseNavigateScreenAction {
     super.initiator,
     required super.screenName,
     super.payload,
+    super.asExternal,
     this.onModalDismiss,
   }) : super(asModal: true);
   EnsembleAction? onModalDismiss;
@@ -186,11 +187,13 @@ class NavigateModalScreenAction extends BaseNavigateScreenAction {
           "${ActionType.navigateModalScreen.name} requires the 'name' of the screen to navigate to.");
     }
     return NavigateModalScreenAction(
-        initiator: initiator,
-        screenName: payload['name'].toString(),
-        payload:
-            Utils.getMap(payload['payload']) ?? Utils.getMap(payload['inputs']),
-        onModalDismiss: EnsembleAction.fromYaml(payload['onModalDismiss']));
+      initiator: initiator,
+      screenName: payload['name'].toString(),
+      payload:
+          Utils.getMap(payload['payload']) ?? Utils.getMap(payload['inputs']),
+      onModalDismiss: EnsembleAction.fromYaml(payload['onModalDismiss']),
+      asExternal: Utils.getBool(payload['asExternal'], fallback: false),
+    );
   }
 }
 
