@@ -1124,7 +1124,8 @@ enum ActionType {
   pauseAudio,
   resumeAudio,
   seekAudio,
-  logEvent
+  logEvent,
+  trackEvent,
 }
 
 /// payload representing an Action to do (navigateToScreen, InvokeAPI, ..)
@@ -1317,8 +1318,9 @@ abstract class EnsembleAction {
     } else if (actionType == ActionType.executeActionGroup) {
       return ExecuteActionGroupAction.fromYaml(
           initiator: initiator, payload: payload);
-    } else if (actionType == ActionType.logEvent) {
-      return LogEvent.from(initiator: initiator, payload: payload);
+    } else if (actionType == ActionType.trackEvent ||
+        actionType == ActionType.logEvent) {
+      return TrackEvent.from(initiator: initiator, payload: payload);
     }
 
     throw LanguageError("Invalid action.",
