@@ -83,13 +83,11 @@ class FirebaseAnalyticsProvider extends LogProvider {
     var provider = config['provider'] ?? 'firebase';
 
     if (provider == 'firebase') {
-      if (operation == 'logEvent' &&
-          config.containsKey('name') &&
-          config.containsKey('parameters')) {
+      if (operation == 'logEvent' && config.containsKey('name')) {
         await logEvent(
           config['name'],
           Map<String, dynamic>.from(config['parameters']),
-          LogLevel.info,
+          config['logLevel'] ?? LogLevel.info,
         );
       } else if (operation == 'setUserId' && config.containsKey('userId')) {
         await setUserId(config['userId']);
