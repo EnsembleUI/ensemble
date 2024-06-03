@@ -8,8 +8,7 @@ abstract class LogProvider {
   bool shouldAwait = false;
   Map? options;
   String? ensembleAppId;
-  Future<void> log(
-      String event, Map<String, dynamic> parameters, LogLevel level);
+  Future<void> log(Map<String, dynamic> config);
 
   //init function to be implemented by subclasses
   Future<void> init(

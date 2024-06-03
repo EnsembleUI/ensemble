@@ -1124,7 +1124,7 @@ enum ActionType {
   pauseAudio,
   resumeAudio,
   seekAudio,
-  logEvent
+  logEvent,
 }
 
 /// payload representing an Action to do (navigateToScreen, InvokeAPI, ..)
