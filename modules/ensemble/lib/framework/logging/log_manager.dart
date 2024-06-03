@@ -28,7 +28,7 @@ class LogManager {
 
     List<Future<void>> tasks = [];
     for (final provider in levelProviders) {
-      final task = provider.handleAnalytics(config);
+      final task = provider.log(config);
       if (provider.shouldAwait) {
         tasks.add(task);
       } else {

@@ -8,7 +8,7 @@ abstract class LogProvider {
   bool shouldAwait = false;
   Map? options;
   String? ensembleAppId;
-  Future<void> handleAnalytics(Map<String, dynamic> config);
+  Future<void> log(Map<String, dynamic> config);
 
   //init function to be implemented by subclasses
   Future<void> init(
