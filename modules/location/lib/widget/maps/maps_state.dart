@@ -356,9 +356,14 @@ class EnsembleMapState extends MapsActionableState
 
         // update overlay
         if (widget.controller.overlayTemplate != null) {
-          _overlayWidget = newSelectedMarker.scopeManager
-              .buildWidgetWithScopeFromDefinition(
-                  widget.controller.overlayTemplate);
+          // Overlay marker is smartly re-used by Flutter so if CustomWidget
+          // is used it won't dispatch onLoad. We'll just simply force it
+          // to create a brand new one on every selection to get around that.
+          _overlayWidget = Builder(
+              key: UniqueKey(),
+              builder: (context) => newSelectedMarker.scopeManager
+                  .buildWidgetWithScopeFromDefinition(
+                      widget.controller.overlayTemplate));
         }
       }
 
