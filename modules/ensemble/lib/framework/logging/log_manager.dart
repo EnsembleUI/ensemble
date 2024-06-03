@@ -18,23 +18,17 @@ class LogManager {
     }
   }
 
-  void addTrackEventProvider(LogLevel level, LogProvider provider) {
-    addProvider(LogType.appAnalytics, level, provider);
-  }
-
-  Future<void> log(LogType type, LogLevel level, String event,
-      Map<String, dynamic> parameters) async {
-    // For backward compatibility, handle logEvent operation
-    if (type == LogType.appAnalytics && event == 'logEvent') {
+  Future<void> log(LogType type, Map<String, dynamic> config) async {
+    if (type == LogType.appAnalytics) {
       type = LogType.appAnalytics;
     }
 
-    final levelProviders = _providers[type]?[level];
+    final levelProviders = _providers[type]?[config['logLevel']];
     if (levelProviders == null) return;
 
     List<Future<void>> tasks = [];
     for (final provider in levelProviders) {
-      final task = provider.log(event, parameters, level);
+      final task = provider.handleAnalytics(config);
       if (provider.shouldAwait) {
         tasks.add(task);
       } else {

@@ -67,8 +67,7 @@ class FirebaseAnalyticsProvider extends LogProvider {
     FlutterError.onError = FirebaseCrashlytics.instance.recordFlutterFatalError;
   }
 
-  @override
-  Future<void> log(
+  Future<void> logEvent(
       String event, Map<String, dynamic> parameters, LogLevel level) async {
     _analytics?.logEvent(name: event, parameters: parameters);
     print('Firebase: Logged event: $event with parameters: $parameters');
@@ -80,31 +79,20 @@ class FirebaseAnalyticsProvider extends LogProvider {
   }
 
   Future<void> handleAnalytics(Map<String, dynamic> config) async {
-    if (config.containsKey('logEvent')) {
-      var logEventConfig = config['logEvent'];
-      await log(
-        logEventConfig['name'],
-        Map<String, dynamic>.from(logEventConfig['parameters']),
-        LogLevel.info,
-      );
-    } else if (config.containsKey('trackEvent')) {
-      var trackEventConfig = config['trackEvent'];
-      var provider = trackEventConfig.containsKey('provider')
-          ? trackEventConfig['provider']
-          : 'firebase';
-      if (provider == 'firebase') {
-        var operation = trackEventConfig.containsKey('operation')
-            ? trackEventConfig['operation']
-            : 'logEvent';
-        if (operation == 'logEvent') {
-          await log(
-            trackEventConfig['name'],
-            Map<String, dynamic>.from(trackEventConfig['parameters']),
-            LogLevel.info,
-          );
-        } else if (operation == 'setUserId') {
-          await setUserId(trackEventConfig['userId']);
-        }
+    var operation = config['operation'] ?? 'logEvent';
+    var provider = config['provider'] ?? 'firebase';
+
+    if (provider == 'firebase') {
+      if (operation == 'logEvent' &&
+          config.containsKey('name') &&
+          config.containsKey('parameters')) {
+        await logEvent(
+          config['name'],
+          Map<String, dynamic>.from(config['parameters']),
+          LogLevel.info,
+        );
+      } else if (operation == 'setUserId' && config.containsKey('userId')) {
+        await setUserId(config['userId']);
       }
     }
   }
