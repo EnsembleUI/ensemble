@@ -533,7 +533,7 @@ class NativeInvokable extends ActionInvokable {
           ),
       ActionType.logEvent.name: (inputs) => ScreenController().executeAction(
             buildContext,
-            TrackEvent.from(payload: inputs),
+            LogEvent.from(payload: inputs),
           ),
       ActionType.authenticateByBiometric.name: (inputs) {
         final action =

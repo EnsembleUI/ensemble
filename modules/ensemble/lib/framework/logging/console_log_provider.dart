@@ -2,7 +2,7 @@ import 'package:ensemble/framework/logging/log_provider.dart';
 
 class ConsoleLogProvider extends LogProvider {
   @override
-  Future<void> handleAnalytics(Map<String, dynamic> config) async {
+  Future<void> log(Map<String, dynamic> config) async {
     // Construct a log message string
     var logLevel = (config['logLevel'] != null)
         ? config['logLevel'].toString().split('.').last

@@ -78,7 +78,7 @@ class FirebaseAnalyticsProvider extends LogProvider {
     print('Firebase: Set user ID: $userId');
   }
 
-  Future<void> handleAnalytics(Map<String, dynamic> config) async {
+  Future<void> log(Map<String, dynamic> config) async {
     var operation = config['operation'] ?? 'logEvent';
     var provider = config['provider'] ?? 'firebase';
 

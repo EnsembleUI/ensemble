@@ -7,7 +7,7 @@ import 'package:ensemble/util/utils.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/cupertino.dart';
 
-class TrackEvent extends EnsembleAction {
+class LogEvent extends EnsembleAction {
   final String? eventName;
   final Map<dynamic, dynamic>? parameters;
   final String? provider;
@@ -15,7 +15,7 @@ class TrackEvent extends EnsembleAction {
   final String? userId;
   final String logLevel;
 
-  TrackEvent({
+  LogEvent({
     required Invokable? initiator,
     this.eventName,
     required this.logLevel,
@@ -25,19 +25,19 @@ class TrackEvent extends EnsembleAction {
     this.parameters,
   }) : super(initiator: initiator);
 
-  factory TrackEvent.from({Invokable? initiator, Map? payload}) {
+  factory LogEvent.from({Invokable? initiator, Map? payload}) {
     payload = Utils.convertYamlToDart(payload);
     String? eventName = payload?['name'];
     String? operation = payload?['operation'];
 
     if (operation == 'logEvent' && eventName == null) {
       throw LanguageError(
-          "${ActionType.trackEvent.name} requires the event name");
+          "${ActionType.logEvent.name} requires the event name");
     } else if (operation == 'setUserId' && payload?['userId'] == null) {
-      throw LanguageError("${ActionType.trackEvent.name} requires the user id");
+      throw LanguageError("${ActionType.logEvent.name} requires the user id");
     }
 
-    return TrackEvent(
+    return LogEvent(
       initiator: initiator,
       eventName: eventName ?? '',
       parameters: payload?['parameters'] is Map ? payload!['parameters'] : null,
