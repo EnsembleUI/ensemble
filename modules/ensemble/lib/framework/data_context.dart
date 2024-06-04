@@ -71,7 +71,6 @@ class DataContext implements Context {
     }
     if (parentContext != null) {
       _contextMap[parentContextKey] = parentContext;
-      return;
     }
     AppInfo appInfo = AppInfo();
     _contextMap['app'] = AppConfig(buildContext, appInfo.appId);
