@@ -83,7 +83,7 @@ dependencies:
   carousel_slider: ^4.1.1
   fluttertoast: 8.2.2
   video_player: ^2.6.1
-  lottie: ^2.3.2
+  lottie: ^3.0.0
   js_widget:
     git: 
       url: https://github.com/EnsembleUI/ensemble.git
