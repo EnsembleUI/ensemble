@@ -1,0 +1,9 @@
+ViewGroup:
+  BottomNavBar:
+    # reload each tab on revisit (this is actually the default setting - just want to be explicit)
+    reloadView: true
+    items:
+      - label: Home
+        page: Home
+      - label: Profile
+        page: Profile

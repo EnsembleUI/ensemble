@@ -1,0 +1,6 @@
+View:
+  styles:
+    useSafeArea: true
+  body:
+    Text:
+      text: This is Profile

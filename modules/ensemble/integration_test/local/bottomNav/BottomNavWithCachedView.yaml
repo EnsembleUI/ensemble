@@ -1,0 +1,9 @@
+ViewGroup:
+  BottomNavBar:
+    # on revisit just use the previous tab and dont' re-render
+    reloadView: false
+    items:
+      - label: Home
+        page: Home
+      - label: Profile
+        page: Profile
