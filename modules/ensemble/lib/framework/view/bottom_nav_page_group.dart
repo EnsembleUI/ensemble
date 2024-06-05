@@ -240,7 +240,8 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup>
                   final screenPayload =
                       widget.screenPayload[viewGroupNotifier.viewIndex];
                   final screen = ScreenController().getScreen(
-                    key: UniqueKey(),
+                    key: ValueKey(
+                        "${viewGroupNotifier.hashCode}:${viewGroupNotifier.viewIndex}"),
                     screenName: screenPayload.screenName,
                     pageArgs:
                         viewGroupNotifier.payload ?? screenPayload.arguments,

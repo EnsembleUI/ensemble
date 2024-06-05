@@ -1,0 +1,17 @@
+View:
+  styles:
+    useSafeArea: true
+  onLoad: |-
+    ensemble.storage.name = null;
+  body:
+    Column:
+      children:
+        - Text:
+            id: name
+            text: This is Home
+        - Button:
+            label: Change Text
+            onTap: |-
+              name.text = "Hello World";
+
+        
