@@ -384,17 +384,6 @@ class EnsembleAppState extends State<EnsembleApp> with WidgetsBindingObserver {
       builder: (context, child) => widget.isPreview
           ? DevicePreview.appBuilder(context, child)
           : (child ?? SizedBox.shrink()),
-      // builder: (context, child) {
-      //   Locale languageLocale = runtimeLocale ??
-      //       widget.forcedLocale ??
-      //       Localizations.localeOf(context);
-      //   bool isRtl = Bidi.isRtlLanguage(languageLocale.languageCode);
-      //   return Directionality(
-      //       textDirection: isRtl ? ui.TextDirection.rtl : ui.TextDirection.ltr,
-      //       child: widget.isPreview
-      //           ? DevicePreview.appBuilder(context, child)
-      //           : child ?? SizedBox.shrink());
-      // },
     );
     if (EnsembleThemeManager().currentTheme() != null) {
       app = ThemeProvider(
