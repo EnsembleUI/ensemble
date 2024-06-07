@@ -14,6 +14,7 @@ import 'package:ensemble/framework/config.dart';
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/device.dart';
 import 'package:ensemble/framework/error_handling.dart';
+import 'package:ensemble/framework/event/change_locale_events.dart';
 import 'package:ensemble/framework/secrets.dart';
 import 'package:ensemble/framework/storage_manager.dart';
 import 'package:ensemble/framework/theme/theme_loader.dart';
@@ -31,6 +32,7 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_i18n/flutter_i18n.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:flutter_localized_locales/flutter_localized_locales.dart';
 import 'package:intl/intl.dart';
 import 'package:workmanager/workmanager.dart';
 import 'package:yaml/yaml.dart';
@@ -121,6 +123,7 @@ class EnsembleApp extends StatefulWidget {
   /// use this as the placeholder background while Ensemble is loading
   final Color? placeholderBackgroundColor;
 
+  /// use this if you want the App to start out with this local
   final Locale? forcedLocale;
 
   @override
@@ -130,6 +133,14 @@ class EnsembleApp extends StatefulWidget {
 class EnsembleAppState extends State<EnsembleApp> with WidgetsBindingObserver {
   bool notifiedAppLoad = false;
   late Future<EnsembleConfig> config;
+
+  // user can force the locale at runtime using this.
+  // Essentially this order: runtimeLocale ?? widget.forcedLocale ?? <system-detected locale>
+  Locale? runtimeLocale;
+
+  // our MaterialApp uses this key, so update this if we want to force
+  // the entire App to reload (e.g. change Locale at runtime)
+  Key? appKey;
 
   @override
   void initState() {
@@ -143,6 +154,20 @@ class EnsembleAppState extends State<EnsembleApp> with WidgetsBindingObserver {
     }
     AppEventBus().eventBus.on<ThemeChangeEvent>().listen((event) {
       setState(() {});
+    });
+
+    // selecting a Locale at run time
+    AppEventBus().eventBus.on<SetLocaleEvent>().listen((event) async {
+      if (runtimeLocale != event.locale) {
+        runtimeLocale = event.locale;
+        rebuildApp();
+      }
+    });
+    AppEventBus().eventBus.on<ClearLocaleEvent>().listen((event) {
+      if (runtimeLocale != null) {
+        runtimeLocale = null;
+        rebuildApp();
+      }
     });
     if (EnvConfig().isTestMode) {
       SemanticsBinding.instance.ensureSemantics();
@@ -199,6 +224,17 @@ class EnsembleAppState extends State<EnsembleApp> with WidgetsBindingObserver {
     }
   }
 
+  /**
+   * Completely rebuild our widget tree by changing the key.
+   * This is often unnecessary unless for something like changing Locale
+   * at runtime where a complete rebuild is needed.
+   */
+  void rebuildApp() {
+    setState(() {
+      appKey = UniqueKey();
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return FutureBuilder(
@@ -206,7 +242,8 @@ class EnsembleAppState extends State<EnsembleApp> with WidgetsBindingObserver {
         builder: ((context, snapshot) {
           if (snapshot.hasError) {
             return _appPlaceholderWrapper(
-                widget: ErrorScreen(LanguageError("Error loading configuration",
+                placeholderWidget: ErrorScreen(LanguageError(
+                    "Error loading configuration",
                     detailError: snapshot.error.toString())));
           }
 
@@ -268,6 +305,17 @@ class EnsembleAppState extends State<EnsembleApp> with WidgetsBindingObserver {
     EnsembleThemeManager().init(context, themes, defaultTheme);
   }
 
+  Locale? resolveLocale(Locale? systemLocale) {
+    // run sanity check on locale passed in from the outside
+    Locale? maybeLocale = runtimeLocale ?? widget.forcedLocale;
+    if (maybeLocale != null &&
+        kMaterialSupportedLanguages.contains(maybeLocale.languageCode)) {
+      // the country code can still be invalid. How do we check validity?
+      return maybeLocale;
+    }
+    return systemLocale;
+  }
+
   Widget renderApp(EnsembleConfig config) {
     //even of there is no theme passed in, we still call init as thememanager would initialize with default styles
     if (config.appBundle?.theme?['cssStyling'] != false) {
@@ -306,15 +354,26 @@ class EnsembleAppState extends State<EnsembleApp> with WidgetsBindingObserver {
 
     StorageManager().setIsPreview(widget.isPreview);
     Widget app = MaterialApp(
+      key: appKey,
       navigatorObservers: [Ensemble.routeObserver],
       debugShowCheckedModeBanner: false,
       navigatorKey: Utils.globalAppKey,
       theme: theme,
       localizationsDelegates: [
-        config.getI18NDelegate(forcedLocale: widget.forcedLocale),
+        // for translation
+        config.getI18NDelegate(
+            forcedLocale: runtimeLocale ?? widget.forcedLocale),
+        // for looking up localized names e.g. es to Spanish/Español
+        LocaleNamesLocalizationsDelegate(),
         GlobalMaterialLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate
       ],
+      // Note that we either need supportedLocales or this callback.
+      // Also note that the placeholder's MaterialApp also has the same
+      // requirement even if it is just a placeholder.
+      localeResolutionCallback: (systemLocale, _) =>
+          resolveLocale(systemLocale),
       home: Scaffold(
           // this outer scaffold is where the background image would be (if
           // specified). We do not want it to resize on keyboard popping up.
@@ -322,16 +381,9 @@ class EnsembleAppState extends State<EnsembleApp> with WidgetsBindingObserver {
           resizeToAvoidBottomInset: false,
           body: screen),
       useInheritedMediaQuery: widget.isPreview,
-      builder: (context, child) {
-        Locale myLocale =
-            widget.forcedLocale ?? Localizations.localeOf(context);
-        bool isRtl = Bidi.isRtlLanguage(myLocale.languageCode);
-        return Directionality(
-            textDirection: isRtl ? ui.TextDirection.rtl : ui.TextDirection.ltr,
-            child: widget.isPreview
-                ? DevicePreview.appBuilder(context, child)
-                : child ?? SizedBox.shrink());
-      },
+      builder: (context, child) => widget.isPreview
+          ? DevicePreview.appBuilder(context, child)
+          : (child ?? SizedBox.shrink()),
     );
     if (EnsembleThemeManager().currentTheme() != null) {
       app = ThemeProvider(
@@ -349,10 +401,16 @@ class EnsembleAppState extends State<EnsembleApp> with WidgetsBindingObserver {
   /// we are at the root here. Error/Spinner widgets need
   /// to be wrapped inside MaterialApp
   Widget _appPlaceholderWrapper(
-      {Widget? widget, Color? placeholderBackgroundColor}) {
+      {Widget? placeholderWidget, Color? placeholderBackgroundColor}) {
     return MaterialApp(
         debugShowCheckedModeBanner: false,
+        // even when this is the placeholder and will be replaced later, we still
+        // need to either set supportedLocales or handle localeResolutionCallback.
+        // Without this the system locale will be incorrect the first time.
+        localeResolutionCallback: (systemLocale, _) =>
+            resolveLocale(systemLocale),
         home: Scaffold(
-            backgroundColor: placeholderBackgroundColor, body: widget));
+            backgroundColor: placeholderBackgroundColor,
+            body: placeholderWidget));
   }
 }

@@ -6,13 +6,16 @@ import 'dart:math' as math;
 import 'package:ensemble/ensemble_app.dart';
 import 'package:ensemble/ensemble_provider.dart';
 import 'package:ensemble/framework/apiproviders/api_provider.dart';
+import 'package:ensemble/framework/bindings.dart';
 import 'package:ensemble/framework/device.dart';
 import 'package:ensemble/framework/error_handling.dart';
+import 'package:ensemble/framework/event/change_locale_events.dart';
 import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/framework/app_info.dart';
 import 'package:ensemble/framework/logging/console_log_provider.dart';
 import 'package:ensemble/framework/logging/log_manager.dart';
 import 'package:ensemble/framework/logging/log_provider.dart';
+import 'package:ensemble/framework/model/supported_language.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/secrets.dart';
 import 'package:ensemble/framework/storage_manager.dart';
@@ -276,28 +279,6 @@ class Ensemble {
       i18nProps.path = i18nPath;
       return EnsembleDefinitionProvider(appId, i18nProps);
     }
-    // legacy Ensemble-server
-    else if (definitionType == 'legacy') {
-      String? path = yamlMap['definitions']?['legacy']?['path'];
-      if (path == null || !path.startsWith('https')) {
-        throw ConfigError(
-            'Invalid URL to Ensemble legacy server. The original value should not be changed');
-      }
-      String? appId = yamlMap['definitions']?['legacy']?['appId'];
-      if (appId == null) {
-        throw ConfigError("appId is required. Your App Key can be found on "
-            "Ensemble Studio under each application");
-      }
-      String? i18nPath = yamlMap['definitions']?['legacy']?['i18nPath'];
-      if (i18nPath == null) {
-        throw ConfigError(
-            "i18nPath is required. If you don't have any changes, just leave the default as-is.");
-      }
-      bool cacheEnabled =
-          yamlMap['definitions']?['legacy']?['enableCache'] == true;
-      i18nProps.path = i18nPath;
-      return LegacyDefinitionProvider(path, appId, cacheEnabled, i18nProps);
-    }
     // local/remote Apps
     else if (definitionType == 'local' || definitionType == 'remote') {
       String? path = yamlMap['definitions']?[definitionType]?['path'];
@@ -358,6 +339,20 @@ class Ensemble {
 
   EnsembleConfig? getConfig() {
     return _config;
+  }
+
+  // users can force a specific locale while running their App. This should
+  // essentially override the App's forcedLocale, which override the system-detected locale.
+  void setLocale(Locale locale) {
+    AppEventBus().eventBus.fire(SetLocaleEvent(locale));
+  }
+
+  void clearLocale() {
+    AppEventBus().eventBus.fire(ClearLocaleEvent());
+  }
+
+  List? getSupportedLanguages(BuildContext context) {
+    return _config?.definitionProvider.getSupportedLanguages();
   }
 
   /// Navigate to an Ensemble App as configured in ensemble-config.yaml

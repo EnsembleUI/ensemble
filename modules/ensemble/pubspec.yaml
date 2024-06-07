@@ -140,6 +140,8 @@ dependencies:
   logger: ^2.2.0
   visibility_detector: ^0.4.0+2
   local_auth: ^2.2.0
+  # use this convert a language code to localized language name e.g. es => Spanish/Español
+  flutter_localized_locales: ^2.0.5
 
 
 dev_dependencies:
