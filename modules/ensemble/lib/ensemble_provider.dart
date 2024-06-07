@@ -1,14 +1,13 @@
 import 'dart:async';
 import 'dart:developer';
-import 'dart:ui' as ui;
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/i18n_loader.dart';
+import 'package:ensemble/framework/model/supported_language.dart';
 import 'package:ensemble/framework/widget/screen.dart';
-import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
-import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter_localized_locales/flutter_localized_locales.dart';
 import 'package:yaml/yaml.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:ensemble/provider.dart';
@@ -22,7 +21,6 @@ class EnsembleDefinitionProvider extends DefinitionProvider {
   }
 
   late final AppModel appModel;
-  FlutterI18nDelegate? _i18nDelegate;
 
   /// prefix for i18n in Firebase
   static const i18nPrefix = 'i18n_';
@@ -70,15 +68,18 @@ class EnsembleDefinitionProvider extends DefinitionProvider {
   @override
   FlutterI18nDelegate getI18NDelegate({Locale? forcedLocale}) {
     return FlutterI18nDelegate(
-        translationLoader: DataTranslationLoader(
-            getTranslationMap: getTranslationMap,
-            defaultLocale: Locale(appModel.defaultLocale ?? 'en'),
-            forcedLocale: forcedLocale));
+      translationLoader: DataTranslationLoader(
+          getTranslationMap: getTranslationMap,
+          defaultLocale: Locale(appModel.defaultLocale ?? 'en'),
+          forcedLocale: forcedLocale),
+      missingTranslationHandler: (key, locale) {
+        // print("--- Missing Key: $key, languageCode: ${locale.languageCode}");
+      },
+    );
   }
 
-  Map? getTranslationMap(Locale locale) {
-    return appModel.artifactCache[i18nPrefix + locale.languageCode];
-  }
+  Map? getTranslationMap(Locale locale) =>
+      appModel.artifactCache[i18nPrefix + locale.languageCode];
 
   @override
   UserAppConfig? getAppConfig() {
@@ -88,6 +89,28 @@ class EnsembleDefinitionProvider extends DefinitionProvider {
   @override
   Map<String, String> getSecrets() {
     return appModel.secrets ?? {};
+  }
+
+  @override
+  List getSupportedLanguages() {
+    List supportedLanguages = [];
+    appModel.artifactCache.forEach((key, value) {
+      if (key.startsWith(i18nPrefix)) {
+        var languageCode = key.substring(i18nPrefix.length);
+        var name = LocaleNames.of(Utils.globalAppKey.currentContext!)!
+            .nameOf(languageCode);
+        supportedLanguages.add(Map.from({
+          "languageCode": languageCode,
+          // the language name based on the current context (fr is French (in English) or Francés (in Spanish))
+          "name": name ?? 'Unknown',
+          // the language in their native name (fr is Français and en is English). These are always the same regardless of the current language.
+          "nativeName": LocaleNamesLocalizationsDelegate
+                  .nativeLocaleNames[languageCode] ??
+              'Unknown'
+        }));
+      }
+    });
+    return supportedLanguages;
   }
 }
 

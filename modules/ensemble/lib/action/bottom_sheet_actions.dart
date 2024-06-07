@@ -245,8 +245,7 @@ class DismissBottomSheetAction extends EnsembleAction {
       DismissBottomSheetAction(payload: payload?['payload']);
 
   @override
-  Future<dynamic> execute(BuildContext context, ScopeManager scopeManager,
-      {DataContext? dataContext}) {
+  Future<dynamic> execute(BuildContext context, ScopeManager scopeManager) {
     BuildContext? bottomSheetContext =
         BottomSheetScopeWidget.getRootContext(context);
     if (bottomSheetContext != null) {
