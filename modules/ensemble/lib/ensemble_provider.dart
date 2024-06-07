@@ -72,9 +72,6 @@ class EnsembleDefinitionProvider extends DefinitionProvider {
           getTranslationMap: getTranslationMap,
           defaultLocale: Locale(appModel.defaultLocale ?? 'en'),
           forcedLocale: forcedLocale),
-      missingTranslationHandler: (key, locale) {
-        // print("--- Missing Key: $key, languageCode: ${locale.languageCode}");
-      },
     );
   }
 
