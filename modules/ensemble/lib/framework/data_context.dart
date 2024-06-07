@@ -457,6 +457,9 @@ class NativeInvokable extends ActionInvokable {
     };
   }
 
+  /**
+   * TODO: refactor the Actions below to have execute() method, then move to super class's approach
+   */
   @override
   Map<String, Function> methods() {
     // see super method for Actions already exposed there
@@ -540,6 +543,7 @@ class NativeInvokable extends ActionInvokable {
         if (action == null) return null;
         return ScreenController().executeAction(buildContext, action);
       },
+      // WARNING - don't add more to this. This approach is deprecated. See ActionInvokeable
     });
     return methods;
   }

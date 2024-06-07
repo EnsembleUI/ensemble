@@ -29,6 +29,8 @@ abstract class ActionInvokable with Invokable {
       ActionType.showDialog,
       ActionType.navigateViewGroup,
       ActionType.showToast,
+      ActionType.setLocale,
+      ActionType.clearLocale,
     ]);
   }
 
