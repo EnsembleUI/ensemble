@@ -10,38 +10,39 @@ class DataTranslationLoader extends TranslationLoader {
   DataTranslationLoader(
       {required this.getTranslationMap,
       required this.defaultLocale,
-      this.forcedLocale});
+      forcedLocale}) {
+    this.forcedLocale = forcedLocale;
+  }
 
   final Map? Function(Locale) getTranslationMap;
 
-  // use this fallback locale if the user locale is not supported
+  // fallback to this defaultLocale if the current locale doesn't have the translated string
   final Locale defaultLocale;
-
-  // force to use this Locale regardless of user locale or default local
-  // This should be used for demonstration purposes only (e.g. select a locale to preview)
-  final Locale? forcedLocale;
 
   /// Note that we don't have yet the mechanism to support reloading locale
   /// so changes to translation will need to kill the app first.
   @override
   Future<Map> load() async {
-    // use this for Preview purposes only
-    if (forcedLocale != null) {
-      return getTranslationMap(forcedLocale!) ?? {};
+    this.locale = locale ?? await findDeviceLocale();
+    Map translationMap = getTranslationMap(this.locale!) ?? {};
+
+    // merge with the defaultLocale in case the current locale don't have all the strings
+    if (defaultLocale != this.locale) {
+      translationMap = _deepMergeMaps(
+          getTranslationMap(defaultLocale) ?? {}, translationMap);
     }
-    return getTranslationMap(await findDeviceLocale()) ??
-        getTranslationMap(defaultLocale) ??
-        {};
+
+    return translationMap;
   }
 
   /// copied from FileTranslationLoader
   Map<K, V> _deepMergeMaps<K, V>(
-    Map<K, V> map1,
-    Map<K, V> map2,
+    Map<K, V> fallback,
+    Map<K, V> original,
   ) {
-    var result = Map<K, V>.of(map1);
+    var result = Map<K, V>.of(fallback);
 
-    map2.forEach((key, mapValue) {
+    original.forEach((key, mapValue) {
       var p1 = result[key] as V;
       var p2 = mapValue;
 
