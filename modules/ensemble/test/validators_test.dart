@@ -23,5 +23,18 @@ void main() {
         false);
   });
 
-  test("Validate phones", () {});
+  test("Validate phones", () {
+      // Test valid phone numbers
+      expect(InputValidator.phone("1234567"), true);
+      expect(InputValidator.phone("123456789012345"), true);
+      
+      // Test invalid phone numbers
+      expect(InputValidator.phone("123"), false);
+      expect(InputValidator.phone("abcdefghi"), false);
+      expect(InputValidator.phone("12345678901234567890"), false);
+      expect(InputValidator.phone(""), false);
+      expect(InputValidator.phone("1234>567"), false);
+      expect(InputValidator.phone("<1234567"), false);
+      expect(InputValidator.phone("1234@567"), false);
+  });
 }
