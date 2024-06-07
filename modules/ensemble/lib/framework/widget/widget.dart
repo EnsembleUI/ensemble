@@ -1,4 +1,3 @@
-
 import 'package:ensemble/framework/bindings.dart';
 import 'package:ensemble/framework/config.dart';
 import 'package:ensemble/framework/error_handling.dart';
