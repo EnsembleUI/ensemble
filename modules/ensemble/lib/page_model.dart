@@ -10,7 +10,7 @@ import 'package:ensemble/framework/widget/view_util.dart';
 import 'package:ensemble/layout/app_scroller.dart';
 import 'package:ensemble/layout/box/box_layout.dart';
 import 'package:ensemble/layout/stack.dart';
-import 'package:ensemble/provider.dart';
+import 'package:ensemble/framework/definition_providers/provider.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/widget_registry.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
