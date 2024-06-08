@@ -352,6 +352,23 @@ class EnsembleAppState extends State<EnsembleApp> with WidgetsBindingObserver {
       }
     }
 
+    // resolve localization delegates depending on whether translation is enabled
+    var localizationDelegates = [
+      GlobalMaterialLocalizations.delegate,
+      GlobalCupertinoLocalizations.delegate,
+      GlobalWidgetsLocalizations.delegate
+    ];
+    var translationDelegate = config.getI18NDelegate(
+        forcedLocale: runtimeLocale ?? widget.forcedLocale);
+    if (translationDelegate != null) {
+      localizationDelegates.insertAll(0, [
+        // for translation
+        translationDelegate,
+        // for looking up localized names e.g. es to Spanish/Español
+        LocaleNamesLocalizationsDelegate()
+      ]);
+    }
+
     StorageManager().setIsPreview(widget.isPreview);
     Widget app = MaterialApp(
       key: appKey,
@@ -359,16 +376,7 @@ class EnsembleAppState extends State<EnsembleApp> with WidgetsBindingObserver {
       debugShowCheckedModeBanner: false,
       navigatorKey: Utils.globalAppKey,
       theme: theme,
-      localizationsDelegates: [
-        // for translation
-        config.getI18NDelegate(
-            forcedLocale: runtimeLocale ?? widget.forcedLocale),
-        // for looking up localized names e.g. es to Spanish/Español
-        LocaleNamesLocalizationsDelegate(),
-        GlobalMaterialLocalizations.delegate,
-        GlobalCupertinoLocalizations.delegate,
-        GlobalWidgetsLocalizations.delegate
-      ],
+      localizationsDelegates: localizationDelegates,
       // Note that we either need supportedLocales or this callback.
       // Also note that the placeholder's MaterialApp also has the same
       // requirement even if it is just a placeholder.
