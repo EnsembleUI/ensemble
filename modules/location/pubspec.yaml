@@ -27,7 +27,7 @@ dependencies:
   google_maps_flutter: ^2.6.0
   flutter_cache_manager: ^3.3.0
   geolocator: ^9.0.2
-  http: ^0.13.6
+  http: ^1.2.1
   pointer_interceptor: ^0.9.3+4
 
 dev_dependencies:
