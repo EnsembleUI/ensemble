@@ -21,7 +21,7 @@ definitions:
       # This is not a setting but rather a way to surface the list of all supported languages
       # to the users at runtime (e.g. user can change the App's language based on this list).
       # Keep this in sync with all the languages you have translations for.
-      supportedLanguages: ['en', 'es', 'nl']
+      languages: ['en', 'es', 'nl']
       # When a language is missing a translation key, we will try to look it up from this fallback translation.
       # Make sure this fallback language has all the translation keys.
       fallbackLanguage: en
@@ -44,7 +44,7 @@ definitions:
       # This is not a setting but rather a way to surface the list of all supported languages
       # to the users at runtime (e.g. user can change the App's language based on this list).
       # Keep this in sync with all the languages you have translations for.
-      supportedLanguages: [ 'en', 'es', 'nl' ]
+      languages: [ 'en', 'es', 'nl' ]
       # When a language is missing a translation key, we will try to look it up from this fallback translation.
       # Make sure this fallback language has all the translation keys.
       fallbackLanguage: en

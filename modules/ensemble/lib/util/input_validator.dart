@@ -12,6 +12,9 @@ class InputValidator {
   /// check if value is a valid phone number
   static bool phone(String value) {
     final RegExp PhoneRegExp = RegExp(r'^\d{7,15}$');
-    return null == ValidationBuilder().regExp(PhoneRegExp,"Please enter a valid Phone Number").test(value);
+    return null ==
+        ValidationBuilder()
+            .regExp(PhoneRegExp, "Please enter a valid Phone Number")
+            .test(value);
   }
 }

@@ -162,8 +162,8 @@ abstract class FileDefinitionProvider extends DefinitionProvider {
     String? path = Utils.optionalString(providerMap['i18n']?['path']);
     if (path != null && path.trim().isNotEmpty) {
       return I18nProps(path.trim(),
-          supportedLanguages: Utils.getListOfStrings(
-              providerMap['i18n']?['supportedLanguages']),
+          supportedLanguages:
+              Utils.getListOfStrings(providerMap['i18n']?['languages']),
           fallbackLanguage:
               Utils.optionalString(providerMap['i18n']?['fallbackLanguage']));
     }

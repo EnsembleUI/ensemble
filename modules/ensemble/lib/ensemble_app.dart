@@ -380,8 +380,10 @@ class EnsembleAppState extends State<EnsembleApp> with WidgetsBindingObserver {
       // Note that we either need supportedLocales or this callback.
       // Also note that the placeholder's MaterialApp also has the same
       // requirement even if it is just a placeholder.
-      localeResolutionCallback: (systemLocale, _) =>
-          resolveLocale(systemLocale),
+      localeResolutionCallback: (systemLocale, _) {
+        Ensemble().locale = resolveLocale(systemLocale);
+        return Ensemble().locale;
+      },
       home: Scaffold(
           // this outer scaffold is where the background image would be (if
           // specified). We do not want it to resize on keyboard popping up.
@@ -415,8 +417,10 @@ class EnsembleAppState extends State<EnsembleApp> with WidgetsBindingObserver {
         // even when this is the placeholder and will be replaced later, we still
         // need to either set supportedLocales or handle localeResolutionCallback.
         // Without this the system locale will be incorrect the first time.
-        localeResolutionCallback: (systemLocale, _) =>
-            resolveLocale(systemLocale),
+        localeResolutionCallback: (systemLocale, _) {
+          Ensemble().locale = resolveLocale(systemLocale);
+          return Ensemble().locale;
+        },
         home: Scaffold(
             backgroundColor: placeholderBackgroundColor,
             body: placeholderWidget));
