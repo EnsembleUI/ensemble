@@ -30,7 +30,8 @@ class AppConfig with Invokable {
           EnsembleStorage(context).getProperty(useMockResponseKey) ?? false,
       'theme': () => EnsembleThemeManager().currentThemeName,
       'themes': () => EnsembleThemeManager().getThemeNames(),
-      'supportedLanguages': () => Ensemble().getSupportedLanguages(context),
+      'languages': () => Ensemble().getSupportedLanguages(context),
+      'locale': () => Ensemble().getLocale(),
     };
   }
 

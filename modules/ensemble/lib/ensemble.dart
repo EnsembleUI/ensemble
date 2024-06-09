@@ -294,6 +294,20 @@ class Ensemble {
     AppEventBus().eventBus.fire(ClearLocaleEvent());
   }
 
+  Locale? getLocale() => locale;
+
+  /**
+   * The current locale the App is running on. This is the source of truth.
+   *
+   * Note that there are numerous ways to update the locale (setLocale(),
+   * clearLocale(), ensemble config, pass into EnsembleApp(), ... None of these
+   * are guaranteed to be accepted until the App resolves the locale.
+   * The App will then set this final locale.
+   *
+   * DO NOT update this variable from outside. Ensemble will automatically populate this.
+   */
+  Locale? locale;
+
   List? getSupportedLanguages(BuildContext context) {
     List<String>? languageCodes =
         _config?.definitionProvider.getSupportedLanguages();
