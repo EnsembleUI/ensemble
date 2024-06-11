@@ -4,6 +4,7 @@ import 'dart:developer';
 import 'dart:math' as math;
 
 import 'package:ensemble/ensemble_app.dart';
+import 'package:ensemble/firebase_options.dart';
 import 'package:ensemble/framework/apiproviders/api_provider.dart';
 import 'package:ensemble/framework/bindings.dart';
 import 'package:ensemble/framework/definition_providers/ensemble_provider.dart';
@@ -158,12 +159,9 @@ class Ensemble {
       // These are not secrets so OK to include here.
       // https://firebase.google.com/docs/projects/api-keys#api-keys-for-firebase-are-different
       ensembleFirebaseApp = await Firebase.initializeApp(
-          name: getFirebaseName,
-          options: const FirebaseOptions(
-              apiKey: 'AIzaSyBAZ7wf436RSbcXvhhfg7e4TUh6A2SKve8',
-              appId: '1:326748243798:ios:30f2a4f824dc58ea94b8f7',
-              messagingSenderId: '326748243798',
-              projectId: 'ensemble-web-studio'));
+        name: getFirebaseName,
+        options: DefaultFirebaseOptions.currentPlatform,
+      );
     }
 
     // environment variable overrides
