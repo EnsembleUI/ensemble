@@ -40,8 +40,8 @@ dependencies:
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.2
   yaml: ^3.1.0
-  http: ^0.13.4
-  json_path: ^0.5.2
+  http: ^1.2.1
+  json_path: ^0.7.2
   duration: ^3.0.11
   dart_date:
     git:

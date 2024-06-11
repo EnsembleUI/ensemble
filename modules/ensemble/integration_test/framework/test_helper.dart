@@ -1,7 +1,8 @@
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/ensemble_app.dart';
+import 'package:ensemble/framework/definition_providers/local_provider.dart';
 import 'package:ensemble/page_model.dart';
-import 'package:ensemble/provider.dart';
+import 'package:ensemble/framework/definition_providers/provider.dart';
 import 'package:ensemble/widget/input/dropdown.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -18,14 +19,13 @@ class TestHelper {
   /// subsequent tests to hang. For this reason, call this in your Test class's
   /// setupApp() once before running the tests.
   static Future<EnsembleConfig> setupApp(
-      {required String appName, String? forcedLocale}) async {
-    I18nProps i18nProps =
-        I18nProps('en', 'en', false, forcedLocale: forcedLocale);
-    i18nProps.path = 'integration_test/local/$appName/i18n';
+      {required String appName, Locale? forcedLocale}) async {
+    I18nProps i18nProps = I18nProps('integration_test/local/$appName/i18n');
 
     EnsembleConfig config = EnsembleConfig(
         definitionProvider: LocalDefinitionProvider(
-            "integration_test/local/$appName/", "", i18nProps));
+            "integration_test/local/$appName/", "",
+            i18nProps: i18nProps, initialForcedLocale: forcedLocale));
     return config.updateAppBundle();
   }
 

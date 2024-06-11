@@ -4,9 +4,10 @@ import 'dart:developer';
 import 'dart:math' as math;
 
 import 'package:ensemble/ensemble_app.dart';
-import 'package:ensemble/ensemble_provider.dart';
+import 'package:ensemble/firebase_options.dart';
 import 'package:ensemble/framework/apiproviders/api_provider.dart';
 import 'package:ensemble/framework/bindings.dart';
+import 'package:ensemble/framework/definition_providers/ensemble_provider.dart';
 import 'package:ensemble/framework/device.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/event/change_locale_events.dart';
@@ -15,14 +16,13 @@ import 'package:ensemble/framework/app_info.dart';
 import 'package:ensemble/framework/logging/console_log_provider.dart';
 import 'package:ensemble/framework/logging/log_manager.dart';
 import 'package:ensemble/framework/logging/log_provider.dart';
-import 'package:ensemble/framework/model/supported_language.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/secrets.dart';
 import 'package:ensemble/framework/storage_manager.dart';
 import 'package:ensemble/framework/stub/oauth_controller.dart';
 import 'package:ensemble/framework/theme/theme_manager.dart';
 import 'package:ensemble/page_model.dart';
-import 'package:ensemble/provider.dart';
+import 'package:ensemble/framework/definition_providers/provider.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble_ts_interpreter/parser/newjs_interpreter.dart';
@@ -30,6 +30,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_i18n/flutter_i18n_delegate.dart';
+import 'package:flutter_localized_locales/flutter_localized_locales.dart';
 import 'package:get_it/get_it.dart';
 import 'package:yaml/yaml.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -158,12 +159,9 @@ class Ensemble {
       // These are not secrets so OK to include here.
       // https://firebase.google.com/docs/projects/api-keys#api-keys-for-firebase-are-different
       ensembleFirebaseApp = await Firebase.initializeApp(
-          name: getFirebaseName,
-          options: const FirebaseOptions(
-              apiKey: 'AIzaSyBAZ7wf436RSbcXvhhfg7e4TUh6A2SKve8',
-              appId: '1:326748243798:ios:30f2a4f824dc58ea94b8f7',
-              messagingSenderId: '326748243798',
-              projectId: 'ensemble-web-studio'));
+        name: getFirebaseName,
+        options: DefaultFirebaseOptions.currentPlatform,
+      );
     }
 
     // environment variable overrides
@@ -173,7 +171,7 @@ class Ensemble {
       envOverrides = {};
       env.forEach((key, value) => envOverrides![key.toString()] = value);
     }
-    DefinitionProvider definitionProvider = _createDefinitionProvider(yamlMap);
+    DefinitionProvider definitionProvider = DefinitionProvider.from(yamlMap);
     _config = EnsembleConfig(
         definitionProvider: definitionProvider,
         appBundle: await definitionProvider.getAppBundle(),
@@ -219,7 +217,10 @@ class Ensemble {
           APIProvider? apiProvider = APIProviders.initProvider(provider);
           if (apiProvider != null) {
             await apiProvider.init(
-                config.definitionProvider.appId ?? generateRandomString(10),
+                config.definitionProvider is EnsembleDefinitionProvider
+                    ? (config.definitionProvider as EnsembleDefinitionProvider)
+                        .appId
+                    : generateRandomString(10),
                 providerConfigMap);
             providers[provider] = apiProvider;
           }
@@ -251,66 +252,6 @@ class Ensemble {
           options: accounts?[analyticsProvider], ensembleAppId: appId);
       LogManager().addProviderForAllLevels(LogType.appAnalytics, provider);
       print("$analyticsProvider analytics provider initialized");
-    }
-  }
-
-  /// return the definition provider (local, remote, or Ensemble)
-  DefinitionProvider _createDefinitionProvider(YamlMap yamlMap) {
-    // locale
-    I18nProps i18nProps = I18nProps(
-        yamlMap['i18n']?['defaultLocale'] ?? '',
-        yamlMap['i18n']?['fallbackLocale'] ?? 'en',
-        yamlMap['i18n']?['useCountryCode'] ?? false,
-        forcedLocale: yamlMap['i18n']?['forcedLocale']);
-
-    // Ensemble-powered apps
-    String? definitionType = yamlMap['definitions']?['from'];
-    if (definitionType == 'ensemble') {
-      String? appId = yamlMap['definitions']?['ensemble']?['appId'];
-      if (appId == null) {
-        throw ConfigError("appId is required. Your App Key can be found on "
-            "Ensemble Studio under each application");
-      }
-      String? i18nPath = yamlMap['definitions']?['ensemble']?['i18nPath'];
-      if (i18nPath == null) {
-        throw ConfigError(
-            "i18nPath is required. If you don't have any changes, just leave the default as-is.");
-      }
-      i18nProps.path = i18nPath;
-      return EnsembleDefinitionProvider(appId, i18nProps);
-    }
-    // local/remote Apps
-    else if (definitionType == 'local' || definitionType == 'remote') {
-      String? path = yamlMap['definitions']?[definitionType]?['path'];
-      if (path == null) {
-        throw ConfigError("Path to the root definition directory is required.");
-      }
-      String? appId = yamlMap['definitions']?[definitionType]?['appId'];
-      if (appId == null) {
-        throw ConfigError(
-            "appId is required. This is your App's directory under the root path.");
-      }
-      String? appHome = yamlMap['definitions']?[definitionType]?['appHome'];
-      if (appHome == null) {
-        throw ConfigError(
-            "appHome is required. This is the home screen's name or ID for your App");
-      }
-      String? i18nPath = yamlMap['definitions']?[definitionType]?['i18nPath'];
-      if (i18nPath == null) {
-        throw ConfigError(
-            "i18nPath is required. If you don't have any changes, just leave the default as-is.");
-      }
-      bool cacheEnabled =
-          yamlMap['definitions']?[definitionType]?['enableCache'] == true;
-      i18nProps.path = i18nPath;
-      String fullPath = concatDirectory(path, appId);
-      return (definitionType == 'local')
-          ? LocalDefinitionProvider(fullPath, appHome, i18nProps)
-          : RemoteDefinitionProvider(
-              fullPath, appHome, cacheEnabled, i18nProps);
-    } else {
-      throw ConfigError(
-          "Definitions needed to be defined as 'local', 'remote', or 'ensemble'");
     }
   }
 
@@ -351,8 +292,38 @@ class Ensemble {
     AppEventBus().eventBus.fire(ClearLocaleEvent());
   }
 
+  Locale? getLocale() => locale;
+
+  /**
+   * The current locale the App is running on. This is the source of truth.
+   *
+   * Note that there are numerous ways to update the locale (setLocale(),
+   * clearLocale(), ensemble config, pass into EnsembleApp(), ... None of these
+   * are guaranteed to be accepted until the App resolves the locale.
+   * The App will then set this final locale.
+   *
+   * DO NOT update this variable from outside. Ensemble will automatically populate this.
+   */
+  Locale? locale;
+
   List? getSupportedLanguages(BuildContext context) {
-    return _config?.definitionProvider.getSupportedLanguages();
+    List<String>? languageCodes =
+        _config?.definitionProvider.getSupportedLanguages();
+    if (languageCodes != null) {
+      var localeNames = LocaleNames.of(Utils.globalAppKey.currentContext!);
+      return languageCodes
+          .map((languageCode) => {
+                "languageCode": languageCode,
+                // the language name based on the current context (fr is French (in English) or Francés (in Spanish))
+                "name": localeNames?.nameOf(languageCode) ?? 'Unknown',
+                // the language in their native name (fr is Français and en is English). These are always the same regardless of the current language.
+                "nativeName": LocaleNamesLocalizationsDelegate
+                        .nativeLocaleNames[languageCode] ??
+                    'Unknown'
+              })
+          .toList();
+    }
+    return null;
   }
 
   /// Navigate to an Ensemble App as configured in ensemble-config.yaml
@@ -535,7 +506,7 @@ class EnsembleConfig {
     return importList;
   }
 
-  FlutterI18nDelegate getI18NDelegate({Locale? forcedLocale}) {
+  FlutterI18nDelegate? getI18NDelegate({Locale? forcedLocale}) {
     return definitionProvider.getI18NDelegate(forcedLocale: forcedLocale);
   }
 }
@@ -549,16 +520,11 @@ class ParsedCode {
 }
 
 class I18nProps {
-  // use this locale regardless of User's detected locale
-  String? forcedLocale;
+  String path;
+  List<String>? supportedLanguages;
+  String? fallbackLanguage;
 
-  String defaultLocale;
-  String fallbackLocale;
-  bool useCountryCode;
-  late String path;
-
-  I18nProps(this.defaultLocale, this.fallbackLocale, this.useCountryCode,
-      {this.forcedLocale});
+  I18nProps(this.path, {this.supportedLanguages, this.fallbackLanguage});
 }
 
 class AppBundle {

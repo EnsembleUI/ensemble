@@ -3,23 +3,25 @@ import 'dart:developer';
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/i18n_loader.dart';
-import 'package:ensemble/framework/model/supported_language.dart';
 import 'package:ensemble/framework/widget/screen.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_localized_locales/flutter_localized_locales.dart';
 import 'package:yaml/yaml.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:ensemble/provider.dart';
+import 'package:ensemble/framework/definition_providers/provider.dart';
 import 'package:flutter_i18n/flutter_i18n.dart';
 
-/// Connecting to Ensemble-hosted definitions
+/**
+ * DefinitionProvider for connecting to Ensemble-hosted apps
+ * TODO: support initialForcedLocale
+ */
 class EnsembleDefinitionProvider extends DefinitionProvider {
-  EnsembleDefinitionProvider(String appId, super.i18nProps) {
-    super.appId = appId;
+  EnsembleDefinitionProvider(this.appId, {super.initialForcedLocale}) {
     appModel = AppModel(appId);
   }
 
+  final String appId;
   late final AppModel appModel;
 
   /// prefix for i18n in Firebase
@@ -89,22 +91,11 @@ class EnsembleDefinitionProvider extends DefinitionProvider {
   }
 
   @override
-  List getSupportedLanguages() {
-    List supportedLanguages = [];
+  List<String> getSupportedLanguages() {
+    List<String> supportedLanguages = [];
     appModel.artifactCache.forEach((key, value) {
       if (key.startsWith(i18nPrefix)) {
-        var languageCode = key.substring(i18nPrefix.length);
-        var name = LocaleNames.of(Utils.globalAppKey.currentContext!)!
-            .nameOf(languageCode);
-        supportedLanguages.add(Map.from({
-          "languageCode": languageCode,
-          // the language name based on the current context (fr is French (in English) or Francés (in Spanish))
-          "name": name ?? 'Unknown',
-          // the language in their native name (fr is Français and en is English). These are always the same regardless of the current language.
-          "nativeName": LocaleNamesLocalizationsDelegate
-                  .nativeLocaleNames[languageCode] ??
-              'Unknown'
-        }));
+        supportedLanguages.add(key.substring(i18nPrefix.length));
       }
     });
     return supportedLanguages;

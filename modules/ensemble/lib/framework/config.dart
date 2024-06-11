@@ -2,6 +2,7 @@ import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/app_info.dart';
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/theme_manager.dart';
+import 'package:ensemble/model/data_context_models.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/material.dart';
 import 'config/url_parser_native.dart'
@@ -30,7 +31,8 @@ class AppConfig with Invokable {
           EnsembleStorage(context).getProperty(useMockResponseKey) ?? false,
       'theme': () => EnsembleThemeManager().currentThemeName,
       'themes': () => EnsembleThemeManager().getThemeNames(),
-      'supportedLanguages': () => Ensemble().getSupportedLanguages(context),
+      'languages': () => Ensemble().getSupportedLanguages(context),
+      'locale': () => MyLocale.from(Ensemble().getLocale()),
     };
   }
 
