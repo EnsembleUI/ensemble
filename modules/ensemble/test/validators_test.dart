@@ -27,6 +27,8 @@ void main() {
       // Test valid phone numbers
       expect(InputValidator.phone("1234567"), true);
       expect(InputValidator.phone("123456789012345"), true);
+      expect(InputValidator.phone("+1256798"), true);
+      expect(InputValidator.phone("+123456789012345"), true);
       
       // Test invalid phone numbers
       expect(InputValidator.phone("123"), false);
