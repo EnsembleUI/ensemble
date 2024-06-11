@@ -2,7 +2,7 @@ import 'dart:core';
 import 'dart:developer';
 
 import 'package:ensemble/ensemble.dart';
-import 'package:ensemble/ensemble_provider.dart';
+import 'package:ensemble/framework/definition_providers/ensemble_provider.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 

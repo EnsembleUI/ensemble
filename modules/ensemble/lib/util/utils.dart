@@ -17,6 +17,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_i18n/flutter_i18n.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:yaml/yaml.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 
 class Utils {
   /// global appKey to get the context
@@ -986,6 +987,14 @@ class Utils {
       String key = match.group(1)!;
       return dataContext.containsKey(key) ? dataContext[key]! : match.group(0)!;
     });
+  }
+
+  static Locale? getLocale(String languageCode, String? countryCode) {
+    var _countryCode = countryCode?.length == 2 ? countryCode : null;
+    if (kMaterialSupportedLanguages.contains(languageCode)) {
+      return Locale(languageCode, _countryCode);
+    }
+    return null;
   }
 
   static BoxShape? getBoxShape(data) {

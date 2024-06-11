@@ -56,6 +56,9 @@ class HTTPAPIProvider extends APIProvider {
 
     if (api['headers'] is YamlMap) {
       (api['headers'] as YamlMap).forEach((key, value) {
+        // in Web we shouldn't pass the Cookie since that is automatic
+        if (key.toString() == 'Cookie' && kIsWeb) return;
+
         if (value != null) {
           headers[key.toString()] = eContext.eval(value).toString();
         }

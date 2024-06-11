@@ -1,23 +1,20 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:ensemble/ensemble.dart';
-import 'package:ensemble/ensemble_provider.dart';
-import 'package:ensemble/framework/error_handling.dart';
+import 'package:ensemble/framework/definition_providers/ensemble_provider.dart';
 import 'package:ensemble/framework/widget/screen.dart';
-import 'package:ensemble/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:yaml/yaml.dart';
 
 /// Connecting to Ensemble-hosted definitions with a host persistent cache
 class HostCachedEnsembleProvider extends EnsembleDefinitionProvider {
-  HostCachedEnsembleProvider._create(String appId, I18nProps i18nProps)
-      : super(appId, i18nProps);
+  HostCachedEnsembleProvider._create(String appId) : super(appId);
 
   late SharedPreferences hostCache;
 
   static Future<HostCachedEnsembleProvider> create(
       String appId, I18nProps i18nProps) async {
-    final instance = HostCachedEnsembleProvider._create(appId, i18nProps);
+    final instance = HostCachedEnsembleProvider._create(appId);
     await instance._initCache();
     return instance;
   }

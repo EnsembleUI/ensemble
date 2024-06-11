@@ -1,4 +1,5 @@
 import 'package:ensemble/framework/logging/log_provider.dart';
+import 'package:ensemble/framework/notification_manager.dart';
 import 'package:ensemble/framework/stub/analytics_provider.dart';
 import 'package:ensemble/framework/stub/camera_manager.dart';
 import 'package:ensemble/framework/stub/qr_code_scanner.dart';
@@ -55,6 +56,7 @@ class EnsembleModules {
   static const useLocation = false;
   static const useDeeplink = false;
   static const useFirebaseAnalytics = false;
+  static const useNotifications = false;
 
   // widgets
   static const enableChat = false;
@@ -63,6 +65,14 @@ class EnsembleModules {
   static const useAuth = false;
 
   void init() {
+    // Note that notifications is not a module
+    if (useNotifications) {
+      // TODO: use Firebase config in ensemble-config if specified
+      // TODO: how to do notificationCallbacks in YAML
+      // Currently we need to drop the iOS/Android Firebase config into the root folder
+      NotificationManager().init();
+    }
+
     if (useCamera) {
       // Uncomment to enable camera service
       // GetIt.I.registerSingleton<CameraManager>(CameraManagerImpl());
