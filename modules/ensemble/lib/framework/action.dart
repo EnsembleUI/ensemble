@@ -9,6 +9,7 @@ import 'package:ensemble/action/haptic_action.dart';
 import 'package:ensemble/action/call_native_method.dart';
 import 'package:ensemble/action/invoke_api_action.dart';
 import 'package:ensemble/action/biometric_auth_action.dart';
+import 'package:ensemble/action/change_locale_actions.dart';
 import 'package:ensemble/action/misc_action.dart';
 import 'package:ensemble/action/navigation_action.dart';
 import 'package:ensemble/action/notification_action.dart';
@@ -1110,7 +1111,8 @@ enum ActionType {
   callNativeMethod,
   deeplinkInit,
   authenticateByBiometric,
-  setLanguage,
+  setLocale,
+  clearLocale,
   signInAnonymous,
   handleDeeplink,
   createDeeplink,
@@ -1319,6 +1321,10 @@ abstract class EnsembleAction {
           initiator: initiator, payload: payload);
     } else if (actionType == ActionType.logEvent) {
       return LogEvent.from(initiator: initiator, payload: payload);
+    } else if (actionType == ActionType.setLocale) {
+      return SetLocaleAction(languageCode: payload?['languageCode']);
+    } else if (actionType == ActionType.clearLocale) {
+      return ClearLocaleAction();
     }
 
     throw LanguageError("Invalid action.",
