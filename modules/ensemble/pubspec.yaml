@@ -143,6 +143,8 @@ dependencies:
   # use this convert a language code to localized language name e.g. es => Spanish/Español
   flutter_localized_locales: ^2.0.5
 
+dependency_overrides:
+  http: ^0.13.5
 
 dev_dependencies:
   flutter_test:
