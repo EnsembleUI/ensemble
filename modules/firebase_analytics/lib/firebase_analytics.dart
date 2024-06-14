@@ -78,6 +78,147 @@ class FirebaseAnalyticsProvider extends LogProvider {
     print('Firebase: Set user ID: $userId');
   }
 
+  Future<void> logAddToCart(
+    List<AnalyticsEventItem>? items,
+    double? value,
+    String? currency,
+    Map<String, Object?>? parameters,
+  ) async {
+    await _analytics?.logAddToCart(
+      value: value,
+      currency: currency,
+      items: items,
+      parameters: parameters,
+    );
+  }
+
+  Future<void> logViewCart(
+    String currency,
+    List<AnalyticsEventItem> items,
+    double value,
+    Map<String, Object?> parameters,
+  ) async {
+    await _analytics?.logViewCart(
+      currency: currency,
+      value: value,
+      items: items,
+      parameters: parameters,
+    );
+  }
+
+  Future<void> setUserProperty(String name, String value) async {
+    await _analytics?.setUserProperty(
+      name: name,
+      value: value,
+    );
+  }
+
+  Future<void> logAddPaymentInfo(
+      String? coupon,
+      String? currency,
+      String? paymentType,
+      double? value,
+      List<AnalyticsEventItem>? items,
+      Map<String, Object?>? parameters) async {
+    await _analytics?.logAddPaymentInfo(
+      parameters: parameters,
+      coupon: coupon,
+      currency: currency,
+      paymentType: paymentType,
+      value: value,
+      items: items,
+    );
+  }
+
+  Future<void> logAddShippingInfo(
+      String? coupon,
+      String? currency,
+      String? shippingTier,
+      double? value,
+      List<AnalyticsEventItem>? items,
+      Map<String, Object?>? parameters) async {
+    await _analytics?.logAddShippingInfo(
+      parameters: parameters,
+      coupon: coupon,
+      currency: currency,
+      shippingTier: shippingTier,
+      value: value,
+      items: items,
+    );
+  }
+
+  Future<void> logAddToWishlist(
+    List<AnalyticsEventItem>? items,
+    double? value,
+    String? currency,
+    Map<String, Object?>? parameters,
+  ) async {
+    await _analytics?.logAddToWishlist(
+      items: items,
+      parameters: parameters,
+      value: value,
+      currency: currency,
+    );
+  }
+
+  Future<void> logBeginCheckout(
+    double? value,
+    String? currency,
+    List<AnalyticsEventItem>? items,
+    String? coupon,
+    Map<String, Object?>? parameters,
+  ) async {
+    await _analytics?.logBeginCheckout(
+      value: value,
+      currency: currency,
+      items: items,
+      coupon: coupon,
+      parameters: parameters,
+    );
+  }
+
+  Future<void> logViewItem(
+    String? currency,
+    double? value,
+    List<AnalyticsEventItem>? items,
+    Map<String, Object?>? parameters,
+  ) async {
+    await _analytics?.logViewItem(
+      currency: currency,
+      value: value,
+      items: items,
+      parameters: parameters,
+    );
+  }
+
+  Future<void> logViewItemList(
+    List<AnalyticsEventItem>? items,
+    String? itemListId,
+    String? itemListName,
+    Map<String, Object?>? parameters,
+  ) async {
+    await _analytics?.logViewItemList(
+      items: items,
+      itemListId: itemListId,
+      itemListName: itemListName,
+      parameters: parameters,
+    );
+  }
+
+  Future<void> logRefund(
+    String? currency,
+    double? value,
+    List<AnalyticsEventItem>? items,
+    Map<String, Object?>? parameters,
+  ) async {
+    await _analytics?.logRefund(
+      currency: currency,
+      value: value,
+      items: items,
+      parameters: parameters,
+    );
+  }
+
   Future<void> log(Map<String, dynamic> config) async {
     var operation = config['operation'] ?? 'logEvent';
     var provider = config['provider'] ?? 'firebase';
@@ -91,6 +232,79 @@ class FirebaseAnalyticsProvider extends LogProvider {
         );
       } else if (operation == 'setUserId' && config.containsKey('userId')) {
         await setUserId(config['userId']);
+      } else if (operation == 'logAddToCart') {
+        await logAddToCart(
+          config['items'] ?? [],
+          config['value'] ?? 0.0,
+          config['currency'] ?? 'USD',
+          config['parameters'] ?? {},
+        );
+      } else if (operation == 'logViewCart') {
+        await logViewCart(
+          config['currency'] ?? 'USD',
+          config['items'] ?? [],
+          config['value'] ?? 0.0,
+          config['parameters'] ?? {},
+        );
+      } else if (operation == 'setUserProperty') {
+        await setUserProperty(
+          config['name'],
+          config['value'],
+        );
+      } else if (operation == 'logAddPaymentInfo') {
+        await logAddPaymentInfo(
+          config['coupon'],
+          config['currency'],
+          config['paymentType'],
+          config['value'],
+          config['items'],
+          config['parameters'],
+        );
+      } else if (operation == 'logAddShippingInfo') {
+        await logAddShippingInfo(
+          config['coupon'],
+          config['currency'],
+          config['shippingTier'],
+          config['value'],
+          config['items'],
+          config['parameters'],
+        );
+      } else if (operation == 'logAddToWishlist') {
+        await logAddToWishlist(
+          config['items'] ?? [],
+          config['value'] ?? 0.0,
+          config['currency'] ?? 'USD',
+          config['parameters'] ?? {},
+        );
+      } else if (operation == 'logBeginCheckout') {
+        await logBeginCheckout(
+          config['value'] ?? 0.0,
+          config['currency'] ?? 'USD',
+          config['items'] ?? [],
+          config['coupon'],
+          config['parameters'] ?? {},
+        );
+      } else if (operation == 'logViewItem') {
+        await logViewItem(
+          config['currency'] ?? 'USD',
+          config['value'] ?? 0.0,
+          config['items'] ?? [],
+          config['parameters'] ?? {},
+        );
+      } else if (operation == 'logViewItemList') {
+        await logViewItemList(
+          config['items'] ?? [],
+          config['itemListId'],
+          config['itemListName'],
+          config['parameters'] ?? {},
+        );
+      } else if (operation == 'logRefund') {
+        await logRefund(
+          config['currency'] ?? 'USD',
+          config['value'] ?? 0.0,
+          config['items'] ?? [],
+          config['parameters'] ?? {},
+        );
       }
     }
   }
