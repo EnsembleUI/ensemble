@@ -1,5 +1,6 @@
 import 'package:ensemble/action/haptic_action.dart';
 import 'package:ensemble/framework/action.dart';
+import 'package:ensemble/framework/config.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/widget/icon.dart' as ensembleLib;
@@ -71,7 +72,6 @@ class IconState extends WidgetState<EnsembleIcon> {
       throw LanguageError("Icon requires an icon name");
     }
     bool tapEnabled = widget._controller.onTap != null;
-
     Widget rtn = BoxWrapper(
         widget: ensembleLib.Icon(
             widget._controller.name ?? widget._controller.icon,
@@ -105,6 +105,15 @@ class IconState extends WidgetState<EnsembleIcon> {
       if (widget._controller.margin != null) {
         rtn = Padding(padding: widget._controller.margin!, child: rtn);
       }
+    }
+    final isTestMode = EnvConfig().isTestMode;
+    String id = widget._controller.testId ?? widget._controller.id ?? '';
+    if (isTestMode && id.isNotEmpty) {
+      rtn = Semantics(
+        label: id,
+        identifier: id,
+        child: rtn,
+      );
     }
     return rtn;
   }
