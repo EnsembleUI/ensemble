@@ -12,6 +12,7 @@ import 'package:ensemble/framework/app_info.dart';
 import 'package:ensemble/framework/bindings.dart';
 import 'package:ensemble/framework/config.dart';
 import 'package:ensemble/framework/data_context.dart';
+import 'package:ensemble/framework/definition_providers/provider.dart';
 import 'package:ensemble/framework/device.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/event/change_locale_events.dart';
@@ -305,9 +306,12 @@ class EnsembleAppState extends State<EnsembleApp> with WidgetsBindingObserver {
     EnsembleThemeManager().init(context, themes, defaultTheme);
   }
 
-  Locale? resolveLocale(Locale? systemLocale) {
+  Locale? resolveLocale(Locale? systemLocale,
+      {DefinitionProvider? definitionProvider}) {
     // run sanity check on locale passed in from the outside
-    Locale? maybeLocale = runtimeLocale ?? widget.forcedLocale;
+    Locale? maybeLocale = runtimeLocale ??
+        widget.forcedLocale ??
+        definitionProvider?.initialForcedLocale;
     if (maybeLocale != null &&
         kMaterialSupportedLanguages.contains(maybeLocale.languageCode)) {
       // the country code can still be invalid. How do we check validity?
@@ -381,7 +385,8 @@ class EnsembleAppState extends State<EnsembleApp> with WidgetsBindingObserver {
       // Also note that the placeholder's MaterialApp also has the same
       // requirement even if it is just a placeholder.
       localeResolutionCallback: (systemLocale, _) {
-        Ensemble().locale = resolveLocale(systemLocale);
+        Ensemble().locale = resolveLocale(systemLocale,
+            definitionProvider: config.definitionProvider);
         return Ensemble().locale;
       },
       home: Scaffold(
@@ -413,14 +418,25 @@ class EnsembleAppState extends State<EnsembleApp> with WidgetsBindingObserver {
   Widget _appPlaceholderWrapper(
       {Widget? placeholderWidget, Color? placeholderBackgroundColor}) {
     return MaterialApp(
-        debugShowCheckedModeBanner: false,
         // even when this is the placeholder and will be replaced later, we still
         // need to either set supportedLocales or handle localeResolutionCallback.
         // Without this the system locale will be incorrect the first time.
+        //
+        // Also note we pass in the definitionProvider. This is only needed when
+        // the EnsembleConfig is passed in directly (without fetching it) and
+        // might contain the forcedLocale. For some reason localeResolutionCallback()
+        // will only be called once here and not again when the actual App is loaded.
+        // An example is when running integration test with another locale.
         localeResolutionCallback: (systemLocale, _) {
-          Ensemble().locale = resolveLocale(systemLocale);
+          Ensemble().locale = resolveLocale(systemLocale,
+              definitionProvider: widget.ensembleConfig?.definitionProvider);
           return Ensemble().locale;
         },
+        localizationsDelegates: [
+          GlobalMaterialLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate
+        ],
         home: Scaffold(
             backgroundColor: placeholderBackgroundColor,
             body: placeholderWidget));

@@ -9,6 +9,12 @@ View:
             value: Peter
         - Text:
             text: r@home.hello ${myName.value}
+        - Text:
+            text: ${ensemble.formatter.prettyDate("2024-06-20")}
+        - Text:
+            text: ${ensemble.formatter.prettyTime("2024-06-20T14:02:13")}
+        - Text:
+            text: ${ensemble.formatter.prettyCurrency("100.12")}
         - Button:
             label: Show Toast
             onTap:
