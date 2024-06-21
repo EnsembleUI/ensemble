@@ -133,6 +133,7 @@ class JSInterpreter extends RecursiveVisitor<dynamic> {
   JSInterpreter(this.code, this.program, Context programContext) {
     contexts[program] = programContext;
     InvokableController.addGlobals(programContext.getContextMap());
+    InvokableController.updateLocale(programContext.getContextMap());
   }
   static const String parsingErrorAppendage = "Only ES5 is supported. "
       "Key words such as let, const, operators such as -> and templated strings are not yet supported. "

@@ -19,8 +19,8 @@ abstract class InvokablePrimitive {
       // find the currency symbol
       String? currencySymbol;
       if (locale != null) {
-        currencySymbol =
-            NumberFormat.simpleCurrency(locale: locale.toString()).currencySymbol;
+        currencySymbol = NumberFormat.simpleCurrency(locale: locale.toString())
+            .currencySymbol;
       }
 
       NumberFormat formatter = NumberFormat.currency(
@@ -55,6 +55,7 @@ abstract class InvokablePrimitive {
     );
   }
 
+  // output most common Jan 17, 2024 or 17 jan 2024
   static String prettyDate(dynamic input, {Locale? locale}) {
     DateTime? dateTime = parseDateTime(input)?.toLocal();
     if (dateTime != null) {
@@ -63,20 +64,20 @@ abstract class InvokablePrimitive {
     return '';
   }
 
-  static String prettyDateTime(dynamic input, {Locale? locale}) {
-    DateTime? dateTime = parseDateTime(input)?.toLocal();
-    if (dateTime != null) {
-      return DateFormat.yMMMd(locale?.toString()).format(dateTime) +
-          ' ' +
-          DateFormat.jm(locale?.toString()).format(dateTime);
-    }
-    return '';
-  }
-
+  // pretty time output as 3:14 PM or 15:14. This is the most common and user-friendly
   static String prettyTime(dynamic input, {Locale? locale}) {
     DateTime? dateTime = parseDateTime(input)?.toLocal();
     if (dateTime != null) {
       return DateFormat.jm(locale?.toString()).format(dateTime);
+    }
+    return '';
+  }
+
+  // combine prettyDate and prettyTime
+  static String prettyDateTime(dynamic input, {Locale? locale}) {
+    DateTime? dateTime = parseDateTime(input)?.toLocal();
+    if (dateTime != null) {
+      return "${prettyDate(input, locale: locale)}, ${prettyTime(input, locale: locale)}";
     }
     return '';
   }
@@ -92,7 +93,9 @@ abstract class InvokablePrimitive {
   /// try to parse the input into a DateTime.
   /// The returned DateTime is in UTC/GMT timezone (not your local DateTime)
   static DateTime? parseDateTime(dynamic input) {
-    if (input is int) {
+    if (input is DateTime) {
+      return input;
+    } else if (input is int) {
       return DateTime.fromMillisecondsSinceEpoch(input * 1000);
     } else if (input is String) {
       int? intValue = int.tryParse(input);
