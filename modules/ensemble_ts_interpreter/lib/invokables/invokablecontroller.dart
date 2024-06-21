@@ -8,6 +8,8 @@ import 'package:ensemble_ts_interpreter/invokables/invokablemath.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokableprimitives.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:json_path/json_path.dart';
+
+import 'UserLocale.dart';
 abstract class GlobalContext {
   static RegExp regExp(String regex, String options) {
     RegExp r = RegExp(regex);
@@ -79,6 +81,24 @@ abstract class GlobalContext {
 }
 
 class InvokableController {
+  // remember the last locale set to be used with locale-specific operations
+  static Locale? locale;
+  static void updateLocale(Map<String, dynamic> dataContext) {
+    if (dataContext["app"] is Invokable) {
+      var localFunc = (dataContext["app"] as Invokable).getters()["locale"];
+      if (localFunc is Function) {
+        var foundLocale = localFunc();
+        if (foundLocale is UserLocale) {
+          locale = foundLocale.toLocale();
+          return;
+        }
+      }
+    }
+    // if locale is not set, we should clear it out vs using the stale one
+    locale = null;
+  }
+
+
   static bool isPrimitive(dynamic val) {
     bool rtn = val == null;
     if (!rtn) {
