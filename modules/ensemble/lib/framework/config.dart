@@ -1,9 +1,8 @@
 import 'package:ensemble/ensemble.dart';
-import 'package:ensemble/framework/app_info.dart';
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/theme_manager.dart';
-import 'package:ensemble/model/data_context_models.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
+import 'package:ensemble_ts_interpreter/invokables/UserLocale.dart';
 import 'package:flutter/material.dart';
 import 'config/url_parser_native.dart'
     if (dart.library.html) 'config/url_parser_web.dart';
@@ -32,7 +31,9 @@ class AppConfig with Invokable {
       'theme': () => EnsembleThemeManager().currentThemeName,
       'themes': () => EnsembleThemeManager().getThemeNames(),
       'languages': () => Ensemble().getSupportedLanguages(context),
-      'locale': () => MyLocale.from(Ensemble().getLocale()),
+      // note the ts_interpreter package expects the locale at "app.locale",
+      // so if you need to move this, update the package also.
+      'locale': () => UserLocale.from(Ensemble().getLocale()),
     };
   }
 

@@ -812,31 +812,22 @@ class Formatter with Invokable {
     Locale? locale = Localizations.localeOf(Utils.globalAppKey.currentContext!);
     return {
       'now': () => UserDateTime(),
-      'prettyDate': (input) => InvokablePrimitive.prettyDate(input),
-      'prettyTime': (input) => InvokablePrimitive.prettyTime(input),
-      'prettyDateTime': (input) => InvokablePrimitive.prettyDateTime(input),
-      'prettyCurrency': (input) => InvokablePrimitive.prettyCurrency(input),
+      'prettyDate': (input) =>
+          InvokablePrimitive.prettyDate(input, locale: locale),
+      'prettyTime': (input) =>
+          InvokablePrimitive.prettyTime(input, locale: locale),
+      'prettyDateTime': (input) =>
+          InvokablePrimitive.prettyDateTime(input, locale: locale),
+      'prettyCurrency': (input) =>
+          InvokablePrimitive.prettyCurrency(input, locale: locale),
       'prettyDuration': (input) =>
           InvokablePrimitive.prettyDuration(input, locale: locale),
       'pluralize': pluralize,
-      'customDate': customDateFormat,
+      'customDateTime': (input, pattern) =>
+          InvokablePrimitive.customDateTime(input, pattern, locale: locale),
+      'customDate': (input, pattern) =>
+          InvokablePrimitive.customDateTime(input, pattern, locale: locale),
     };
-  }
-
-  customDateFormat(input, pattern) {
-    DateTime? date;
-
-    if (input is DateTime) {
-      date = input;
-    } else {
-      date = Utils.getDate(input);
-    }
-
-    if (date == null) {
-      debugPrint('Failed getting date from input');
-      return null;
-    }
-    return DateFormat(pattern).format(date);
   }
 
   @override

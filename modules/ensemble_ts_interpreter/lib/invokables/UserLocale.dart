@@ -1,16 +1,15 @@
 import 'dart:ui';
-
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 
-class MyLocale with Invokable {
-  MyLocale(this.languageCode, [this.countryCode]);
+class UserLocale with Invokable {
+  UserLocale(this.languageCode, [this.countryCode]);
 
   final String languageCode;
   final String? countryCode;
 
-  static MyLocale? from(Locale? locale) {
+  static UserLocale? from(Locale? locale) {
     return locale != null
-        ? MyLocale(locale.languageCode, locale.countryCode)
+        ? UserLocale(locale.languageCode, locale.countryCode)
         : null;
   }
 
@@ -25,6 +24,8 @@ class MyLocale with Invokable {
 
   @override
   Map<String, Function> setters() => {};
+
+  Locale toLocale() => Locale(languageCode, countryCode);
 
   @override
   String toString() =>
