@@ -13,6 +13,7 @@ import 'package:ensemble/action/navigation_action.dart';
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/all_countries.dart';
 import 'package:ensemble/framework/apiproviders/api_provider.dart';
+import 'package:ensemble/framework/apiproviders/firestore/firestore_types.dart';
 import 'package:ensemble/framework/apiproviders/http_api_provider.dart';
 import 'package:ensemble/framework/config.dart';
 import 'package:ensemble/framework/device.dart';
@@ -46,7 +47,6 @@ import 'package:intl/intl.dart';
 import 'package:mime/mime.dart';
 import 'package:source_span/source_span.dart';
 import 'package:walletconnect_dart/walletconnect_dart.dart';
-import 'package:web_socket_client/web_socket_client.dart';
 import 'package:workmanager/workmanager.dart';
 import 'package:yaml/yaml.dart';
 import 'package:collection/collection.dart';
@@ -78,6 +78,7 @@ class DataContext implements Context {
     _contextMap['secrets'] = SecretsStore();
     _contextMap['ensemble'] = NativeInvokable(buildContext);
     _contextMap['appInfo'] = appInfo;
+    _contextMap['FieldValue'] = EnsembleFieldValue();
 
     // auth can be selectively turned on
     if (GetIt.instance.isRegistered<AuthContextManager>()) {
