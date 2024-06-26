@@ -67,7 +67,7 @@ class CustomRadioTile extends StatelessWidget {
               width: controller.itemGap!.toDouble(),
               height: controller.itemGap!.toDouble()));
     }
-    if (controlPosition == ListTileControlAffinity.trailing) {
+    if (controlPosition == WidgetControlPosition.trailing) {
       parts = parts.reversed.toList();
     }
 
