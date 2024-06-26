@@ -23,6 +23,7 @@ import 'package:ensemble/widget/calendar.dart';
 import 'package:ensemble/widget/checkbox.dart';
 import 'package:ensemble/widget/countdown.dart';
 import 'package:ensemble/widget/input/radio_button.dart';
+import 'package:ensemble/widget/radio_group.dart';
 import 'package:ensemble/widget/static_map.dart';
 import 'package:ensemble/widget/shape.dart';
 import 'package:ensemble/widget/carousel.dart';
@@ -147,6 +148,7 @@ class WidgetRegistry {
         EnsembleSwitch.type: () => EnsembleSwitch(),
         EnsembleTripleSwitch.type: () => EnsembleTripleSwitch(),
         Dropdown.type: () => Dropdown(),
+        RadioGroup.type: () => RadioGroup(),
         Button.type: () => Button(),
         EnsembleIconButton.type: () => EnsembleIconButton(),
         EnsembleToggleButton.type: () => EnsembleToggleButton(),
