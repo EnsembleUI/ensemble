@@ -7,30 +7,25 @@ import 'package:flutter/material.dart';
 class BoxUtils {
   /// combine the children and templated children,
   /// plus the gap in between if specified
-  static List<Widget> buildChildrenAndGap(BaseBoxLayoutController controller,
+  static List<Widget> buildChildrenAndGap(int? gap,
       {List<Widget>? children, List<Widget>? templatedChildren}) {
     // children will be rendered before templated children
     children = [...?children, ...?templatedChildren];
+    if (gap == null) return children;
+
 
     List<Widget> items = [];
-    // if gap is specified, insert SizeBox between children
-    if (controller.gap != null) {
-      final gap = SizedBox(
-          width: controller.gap!.toDouble(),
-          height: controller.gap!.toDouble());
+    for (var i = 0; i < children.length; i++) {
+      // first add the child
+      items.add(children[i]);
 
-      for (var i = 0; i < children.length; i++) {
-        // first add the child
-        items.add(children[i]);
-
-        // then add the gap
-        final visibleChild = WidgetUtils.isVisible(children[i]);
-        if (i != children.length - 1 && visibleChild) {
-          items.add(gap);
-        }
+      // then add the gap
+      final visibleChild = WidgetUtils.isVisible(children[i]);
+      if (i != children.length - 1 && visibleChild) {
+        items.add(SizedBox(
+            width: gap.toDouble(),
+            height: gap.toDouble()));
       }
-    } else {
-      items = children;
     }
     return items;
   }
