@@ -1,7 +1,6 @@
-import 'dart:io';
-
 import 'package:ensemble/model/widget_models.dart';
 import 'package:ensemble/widget/radio_group.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 // For each radio button
@@ -26,7 +25,7 @@ class CustomRadioTile extends StatelessWidget {
     var controlPosition = controller.controlPosition;
     if (controlPosition == null ||
         controlPosition == WidgetControlPosition.platform) {
-      controlPosition = Platform.isIOS
+      controlPosition = defaultTargetPlatform == TargetPlatform.iOS
           ? WidgetControlPosition.trailing
           : WidgetControlPosition.leading;
     }
