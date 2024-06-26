@@ -9,6 +9,7 @@ import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/layout/box/base_box_layout.dart';
 import 'package:ensemble/layout/templated.dart';
 import 'package:ensemble/model/pull_to_refresh.dart';
+import 'package:ensemble/model/shared_models.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
@@ -177,7 +178,7 @@ class BoxLayoutState extends WidgetState<BoxLayout>
       templatedList = ViewUtil.addGesture(templatedList ?? [], _onItemTap);
     }
 
-    List<Widget> items = BoxUtils.buildChildrenAndGap(widget._controller,
+    List<Widget> items = BoxUtils.buildChildrenAndGap(widget._controller.gap,
         children: childrenList, templatedChildren: templatedList);
     if (items.isEmpty) {
       return const SizedBox.shrink();
