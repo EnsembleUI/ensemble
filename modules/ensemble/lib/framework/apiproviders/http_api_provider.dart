@@ -124,7 +124,7 @@ class HTTPAPIProvider extends APIProvider {
 
     bool sslPinningEnabled =
         env?['ssl_pinning_enabled']?.toLowerCase() == 'true';
-    String? sslPinningCertificate = secrets?['ssl_pinning_certificate'] ?? null;
+    String? sslPinningCertificate = secrets?['ssl_pinning_certificate'];
 
     Completer<http.Response> completer = Completer();
     http.Response response;
