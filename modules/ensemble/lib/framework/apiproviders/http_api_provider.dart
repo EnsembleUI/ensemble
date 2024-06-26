@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:ensemble/framework/apiproviders/api_provider.dart';
 import 'dart:async';
 import 'dart:convert';
@@ -13,6 +15,7 @@ import 'package:ensemble/util/utils.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
+import 'package:http/io_client.dart';
 import 'package:yaml/yaml.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter/foundation.dart' as foundation;
@@ -115,33 +118,79 @@ class HTTPAPIProvider extends APIProvider {
       log("Body(debug only): $body");
     }
 
+    final env =
+        Ensemble().getConfig()?.definitionProvider.getAppConfig()?.envVariables;
+    final secrets = Ensemble().getConfig()?.definitionProvider.getSecrets();
+
+    String sslPinningEnabled = env?['ssl_pinning_enabled'] ?? 'false';
+    String? sslPinningCertificate = secrets?['ssl_pinning_certificate'] ?? null;
+
     Completer<http.Response> completer = Completer();
     http.Response response;
-    switch (method) {
-      case 'POST':
-        response =
-            await http.post(Uri.parse(url), headers: headers, body: body);
-        break;
-      case 'PUT':
-        response = await http.put(Uri.parse(url), headers: headers, body: body);
-        break;
-      case 'PATCH':
-        response =
-            await http.patch(Uri.parse(url), headers: headers, body: body);
-        break;
-      case 'DELETE':
-        response =
-            await http.delete(Uri.parse(url), headers: headers, body: body);
-        break;
-      case 'GET':
-      default:
-        response = await http.get(Uri.parse(url), headers: headers);
-        break;
+    try {
+      if (sslPinningEnabled == 'true' && sslPinningCertificate != null) {
+        Uint8List bytes = base64.decode(sslPinningCertificate);
+        SecurityContext context = SecurityContext.defaultContext;
+        context.setTrustedCertificatesBytes(bytes);
+
+        HttpClient httpClient = HttpClient(context: context);
+        IOClient ioClient = IOClient(httpClient);
+
+        switch (method) {
+          case 'POST':
+            response = await ioClient.post(Uri.parse(url),
+                headers: headers, body: body);
+            break;
+          case 'PUT':
+            response = await ioClient.put(Uri.parse(url),
+                headers: headers, body: body);
+            break;
+          case 'PATCH':
+            response = await ioClient.patch(Uri.parse(url),
+                headers: headers, body: body);
+            break;
+          case 'DELETE':
+            response = await ioClient.delete(Uri.parse(url),
+                headers: headers, body: body);
+            break;
+          case 'GET':
+          default:
+            response = await ioClient.get(Uri.parse(url), headers: headers);
+            break;
+        }
+      } else {
+        switch (method) {
+          case 'POST':
+            response =
+                await http.post(Uri.parse(url), headers: headers, body: body);
+            break;
+          case 'PUT':
+            response =
+                await http.put(Uri.parse(url), headers: headers, body: body);
+            break;
+          case 'PATCH':
+            response =
+                await http.patch(Uri.parse(url), headers: headers, body: body);
+            break;
+          case 'DELETE':
+            response =
+                await http.delete(Uri.parse(url), headers: headers, body: body);
+            break;
+          case 'GET':
+          default:
+            response = await http.get(Uri.parse(url), headers: headers);
+            break;
+        }
+      }
+
+      final isOkay = response.statusCode >= 200 && response.statusCode <= 299;
+      log('Response: ${response.statusCode}');
+      return HttpResponse(response, isOkay ? APIState.success : APIState.error,
+          apiName: apiName);
+    } catch (e) {
+      log('Error making API call: $e');
+      return HttpResponse.updateState(apiState: APIState.error);
     }
-    final isOkay = response.statusCode >= 200 && response.statusCode <= 299;
-    log('Response: ${response.statusCode}');
-    return HttpResponse(response, isOkay ? APIState.success : APIState.error,
-        apiName: apiName);
   }
 
   @override
