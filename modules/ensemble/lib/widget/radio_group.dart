@@ -28,6 +28,9 @@ class RadioGroup extends StatefulWidget
   State<StatefulWidget> createState() => RadioGroupState();
 
   @override
+  List<String> passthroughSetters() => ['itemTemplate'];
+
+  @override
   Map<String, Function> getters() {
     return {'value': () => _controller.value};
   }
@@ -63,10 +66,10 @@ class RadioGroup extends StatefulWidget
 
   _setItemTemplate(dynamic maybeTemplate) {
     if (maybeTemplate is Map) {
-      List? data = Utils.getList(maybeTemplate['data']);
+      dynamic data = maybeTemplate['data'];
       String? name = maybeTemplate['name'];
 
-      String? value = maybeTemplate['value'];
+      dynamic value = maybeTemplate['value'];
       String? label = Utils.optionalString(maybeTemplate['label']);
       dynamic labelWidget = maybeTemplate['labelWidget'];
 
