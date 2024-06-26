@@ -170,6 +170,11 @@ class HTTPAPIProvider extends APIProvider {
     required bool sslPinningEnabled,
     String? sslPinningCertificate,
   }) async {
+    if (kIsWeb) {
+      // SSL pinning is not supported on the web
+      return http.Client();
+    }
+
     if (sslPinningEnabled && sslPinningCertificate != null) {
       Uint8List bytes = base64.decode(sslPinningCertificate);
       SecurityContext context = SecurityContext.defaultContext;
