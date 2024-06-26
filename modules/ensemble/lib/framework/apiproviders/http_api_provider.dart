@@ -122,65 +122,39 @@ class HTTPAPIProvider extends APIProvider {
         Ensemble().getConfig()?.definitionProvider.getAppConfig()?.envVariables;
     final secrets = Ensemble().getConfig()?.definitionProvider.getSecrets();
 
-    String sslPinningEnabled = env?['ssl_pinning_enabled'] ?? 'false';
+    bool sslPinningEnabled =
+        env?['ssl_pinning_enabled']?.toLowerCase() == 'true';
     String? sslPinningCertificate = secrets?['ssl_pinning_certificate'] ?? null;
 
     Completer<http.Response> completer = Completer();
     http.Response response;
+
     try {
-      if (sslPinningEnabled == 'true' && sslPinningCertificate != null) {
-        Uint8List bytes = base64.decode(sslPinningCertificate);
-        SecurityContext context = SecurityContext.defaultContext;
-        context.setTrustedCertificatesBytes(bytes);
-
-        HttpClient httpClient = HttpClient(context: context);
-        IOClient ioClient = IOClient(httpClient);
-
-        switch (method) {
-          case 'POST':
-            response = await ioClient.post(Uri.parse(url),
-                headers: headers, body: body);
-            break;
-          case 'PUT':
-            response = await ioClient.put(Uri.parse(url),
-                headers: headers, body: body);
-            break;
-          case 'PATCH':
-            response = await ioClient.patch(Uri.parse(url),
-                headers: headers, body: body);
-            break;
-          case 'DELETE':
-            response = await ioClient.delete(Uri.parse(url),
-                headers: headers, body: body);
-            break;
-          case 'GET':
-          default:
-            response = await ioClient.get(Uri.parse(url), headers: headers);
-            break;
-        }
-      } else {
-        switch (method) {
-          case 'POST':
-            response =
-                await http.post(Uri.parse(url), headers: headers, body: body);
-            break;
-          case 'PUT':
-            response =
-                await http.put(Uri.parse(url), headers: headers, body: body);
-            break;
-          case 'PATCH':
-            response =
-                await http.patch(Uri.parse(url), headers: headers, body: body);
-            break;
-          case 'DELETE':
-            response =
-                await http.delete(Uri.parse(url), headers: headers, body: body);
-            break;
-          case 'GET':
-          default:
-            response = await http.get(Uri.parse(url), headers: headers);
-            break;
-        }
+      http.Client client = await _getHttpClient(
+        sslPinningEnabled: sslPinningEnabled,
+        sslPinningCertificate: sslPinningCertificate,
+      );
+      switch (method) {
+        case 'POST':
+          response =
+              await client.post(Uri.parse(url), headers: headers, body: body);
+          break;
+        case 'PUT':
+          response =
+              await client.put(Uri.parse(url), headers: headers, body: body);
+          break;
+        case 'PATCH':
+          response =
+              await client.patch(Uri.parse(url), headers: headers, body: body);
+          break;
+        case 'DELETE':
+          response =
+              await client.delete(Uri.parse(url), headers: headers, body: body);
+          break;
+        case 'GET':
+        default:
+          response = await client.get(Uri.parse(url), headers: headers);
+          break;
       }
 
       final isOkay = response.statusCode >= 200 && response.statusCode <= 299;
@@ -188,9 +162,46 @@ class HTTPAPIProvider extends APIProvider {
       return HttpResponse(response, isOkay ? APIState.success : APIState.error,
           apiName: apiName);
     } catch (e) {
-      log('Error making API call: $e');
-      return HttpResponse.updateState(apiState: APIState.error);
+      return _handleError(e, apiName);
     }
+  }
+
+  Future<http.Client> _getHttpClient({
+    required bool sslPinningEnabled,
+    String? sslPinningCertificate,
+  }) async {
+    if (sslPinningEnabled && sslPinningCertificate != null) {
+      Uint8List bytes = base64.decode(sslPinningCertificate);
+      SecurityContext context = SecurityContext.defaultContext;
+      context.setTrustedCertificatesBytes(bytes);
+
+      HttpClient httpClient = HttpClient(context: context);
+      return IOClient(httpClient);
+    } else {
+      return http.Client();
+    }
+  }
+
+  HttpResponse _handleError(Object error, String apiName) {
+    String errorMessage;
+    if (error is HandshakeException || error is TlsException) {
+      errorMessage =
+          'SSL Pinning failed: ${error.toString()}. Please check your certificate.';
+    } else if (error is SocketException) {
+      errorMessage =
+          'Network error: ${error.message}. Please check your network connection.';
+    } else {
+      errorMessage = 'Unexpected error: ${error.toString()}.';
+    }
+
+    log(errorMessage);
+    return HttpResponse.fromBody(
+      errorMessage,
+      {'Content-Type': 'text/plain'},
+      500,
+      'Internal Server Error',
+      APIState.error,
+    );
   }
 
   @override
