@@ -274,7 +274,7 @@ class SelectOneController extends FormFieldController with HasTextPlaceholder {
 class SelectOneState extends FormFieldWidgetState<SelectOne>
     with SelectOneInputFieldAction, TemplatedWidgetState {
   FocusNode focusNode = FocusNode();
-  TextEditingController textEditingController = TextEditingController();
+  late TextEditingController textEditingController;
   List? dataList;
 
   @override
@@ -285,6 +285,8 @@ class SelectOneState extends FormFieldWidgetState<SelectOne>
         validatorKey.currentState!.validate();
       }
     });*/
+    textEditingController = TextEditingController(text: widget.getValue());
+
     super.initState();
   }
 
@@ -351,6 +353,7 @@ class SelectOneState extends FormFieldWidgetState<SelectOne>
 
     return DropdownButtonFormField2<dynamic>(
         key: validatorKey,
+        isExpanded: true,
         validator: (value) {
           if (widget._controller.required && widget.getValue() == null) {
             return Utils.translateWithFallback(
