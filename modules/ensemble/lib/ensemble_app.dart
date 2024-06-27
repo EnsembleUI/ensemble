@@ -356,23 +356,6 @@ class EnsembleAppState extends State<EnsembleApp> with WidgetsBindingObserver {
       }
     }
 
-    // resolve localization delegates depending on whether translation is enabled
-    var localizationDelegates = [
-      GlobalMaterialLocalizations.delegate,
-      GlobalCupertinoLocalizations.delegate,
-      GlobalWidgetsLocalizations.delegate
-    ];
-    var translationDelegate = config.getI18NDelegate(
-        forcedLocale: runtimeLocale ?? widget.forcedLocale);
-    if (translationDelegate != null) {
-      localizationDelegates.insertAll(0, [
-        // for translation
-        translationDelegate,
-        // for looking up localized names e.g. es to Spanish/Español
-        LocaleNamesLocalizationsDelegate()
-      ]);
-    }
-
     StorageManager().setIsPreview(widget.isPreview);
     Widget app = MaterialApp(
       key: appKey,
@@ -380,7 +363,7 @@ class EnsembleAppState extends State<EnsembleApp> with WidgetsBindingObserver {
       debugShowCheckedModeBanner: false,
       navigatorKey: Utils.globalAppKey,
       theme: theme,
-      localizationsDelegates: localizationDelegates,
+      localizationsDelegates: getLocalizationDelegates(config),
       // Note that we either need supportedLocales or this callback.
       // Also note that the placeholder's MaterialApp also has the same
       // requirement even if it is just a placeholder.
@@ -411,6 +394,33 @@ class EnsembleAppState extends State<EnsembleApp> with WidgetsBindingObserver {
     //   );
     // }
     return app;
+  }
+
+  // get the list of localization delegates
+  List<LocalizationsDelegate> getLocalizationDelegates(EnsembleConfig config) {
+    var localizationDelegates = [
+      GlobalMaterialLocalizations.delegate,
+      GlobalCupertinoLocalizations.delegate,
+      GlobalWidgetsLocalizations.delegate
+    ];
+    // add translation delegate and country name delegate
+    var translationDelegate = config.getI18NDelegate(
+        forcedLocale: runtimeLocale ?? widget.forcedLocale);
+    if (translationDelegate != null) {
+      // we support showing all language names in the native locale (English in English locale, Inglés in Spanish locale)
+      // but this means a size-able number of files to load i.e. (# of languages) x (all possible locales).
+      // To turn this off add --dart-define=useLocalizedLanguageNames=false
+      final bool useLocalizedLanguageNames = const bool.fromEnvironment(
+          'useLocalizedLanguageNames',
+          defaultValue: true);
+      if (useLocalizedLanguageNames) {
+        localizationDelegates.insert(0, LocaleNamesLocalizationsDelegate());
+      }
+
+      // add translation delegate
+      localizationDelegates.insert(0, translationDelegate);
+    }
+    return localizationDelegates;
   }
 
   /// we are at the root here. Error/Spinner widgets need
