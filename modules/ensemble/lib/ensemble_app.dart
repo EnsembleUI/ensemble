@@ -342,20 +342,6 @@ class EnsembleAppState extends State<EnsembleApp> with WidgetsBindingObserver {
 
     var theme = config.getAppTheme();
 
-    // adjust for text scaling
-    var textScale =
-        theme.extension<EnsembleThemeExtension>()?.appTheme?.textScale;
-    if (textScale != null) {
-      if (textScale.enabled == false) {
-        screen = MediaQuery.withNoTextScaling(child: screen);
-      } else if (textScale.minFactor != null || textScale.maxFactor != null) {
-        screen = MediaQuery.withClampedTextScaling(
-            minScaleFactor: textScale.minFactor ?? 0.0,
-            maxScaleFactor: textScale.maxFactor ?? double.infinity,
-            child: screen);
-      }
-    }
-
     StorageManager().setIsPreview(widget.isPreview);
     Widget app = MaterialApp(
       key: appKey,
@@ -383,6 +369,21 @@ class EnsembleAppState extends State<EnsembleApp> with WidgetsBindingObserver {
           ? DevicePreview.appBuilder(context, child)
           : (child ?? SizedBox.shrink()),
     );
+
+    // adjust for text scaling globally
+    var textScale =
+        theme.extension<EnsembleThemeExtension>()?.appTheme?.textScale;
+    if (textScale != null) {
+      if (textScale.enabled == false) {
+        app = MediaQuery.withNoTextScaling(child: app);
+      } else if (textScale.minFactor != null || textScale.maxFactor != null) {
+        app = MediaQuery.withClampedTextScaling(
+            minScaleFactor: textScale.minFactor ?? 0.0,
+            maxScaleFactor: textScale.maxFactor ?? double.infinity,
+            child: app);
+      }
+    }
+
     if (EnsembleThemeManager().currentTheme() != null) {
       app = ThemeProvider(
           theme: EnsembleThemeManager().currentTheme()!, child: app);
