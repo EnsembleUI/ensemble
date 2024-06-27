@@ -28,7 +28,7 @@ dependencies:
   device_preview:
     git:
       url: https://github.com/EnsembleUI/ensemble.git
-      ref: main
+      ref: v0.1.1
       path: modules/device_preview
 
   yaml: ^3.1.2
@@ -45,25 +45,25 @@ dependencies:
   ensemble_icons:
     git:
       url: https://github.com/EnsembleUI/ensemble.git
-      ref: main
+      ref: v0.1.1
       path: modules/ensemble_icons
 
   ensemble_ts_interpreter:
     git:
       url: https://github.com/EnsembleUI/ensemble.git
-      ref: main
+      ref: v0.1.1
       path: modules/ensemble_ts_interpreter
 
   ensemble_bracket:
     git:
       url: https://github.com/EnsembleUI/ensemble.git
-      ref: main
+      ref: v0.1.1
       path: modules/bracket
   # use our forked high_chart to fix iOS issue
   high_chart:
     git:
       url: https://github.com/EnsembleUI/ensemble.git
-      ref: main
+      ref: v0.1.1
       path: modules/high_chart
 
   event_bus: ^2.0.0
@@ -73,7 +73,7 @@ dependencies:
   otp_pin_field:
     git:
       url: https://github.com/EnsembleUI/ensemble.git
-      ref: main
+      ref: v0.1.1
       path: modules/otp_pin_field
   form_validator: ^2.1.1
   flutter_svg: ^2.0.7
@@ -85,9 +85,9 @@ dependencies:
   video_player: ^2.6.1
   lottie: ^3.0.0
   js_widget:
-    git: 
+    git:
       url: https://github.com/EnsembleUI/ensemble.git
-      ref: main
+      ref: v0.1.1
       path: modules/js_widget
   flutter_markdown: ^0.6.10+5
   provider: ^6.0.3

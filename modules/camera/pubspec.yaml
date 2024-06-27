@@ -15,12 +15,12 @@ dependencies:
   ensemble:
     git:
       url: https://github.com/EnsembleUI/ensemble.git
-      ref: main
+      ref: v0.1.1
       path: modules/ensemble
   ensemble_ts_interpreter:
     git:
       url: https://github.com/EnsembleUI/ensemble.git
-      ref: main
+      ref: v0.1.1
       path: modules/ensemble_ts_interpreter
 
   collection: ^1.17.1

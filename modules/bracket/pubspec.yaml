@@ -11,14 +11,13 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  ensemble: 
+  ensemble:
     git:
       url: https://github.com/EnsembleUI/ensemble.git
-      ref: main
+      ref: v0.1.1
       path: modules/ensemble
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^3.0.0
-
