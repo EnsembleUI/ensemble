@@ -315,7 +315,11 @@ class Ensemble {
           .map((languageCode) => {
                 "languageCode": languageCode,
                 // the language name based on the current context (fr is French (in English) or Francés (in Spanish))
-                "name": localeNames?.nameOf(languageCode) ?? 'Unknown',
+                // Note that this maybe null if the LocaleNamesLocalizationsDelegate is not loaded, in which case fallback to nativeName
+                "name": localeNames?.nameOf(languageCode) ??
+                    LocaleNamesLocalizationsDelegate
+                        .nativeLocaleNames[languageCode] ??
+                    'Unknown',
                 // the language in their native name (fr is Français and en is English). These are always the same regardless of the current language.
                 "nativeName": LocaleNamesLocalizationsDelegate
                         .nativeLocaleNames[languageCode] ??
