@@ -21,8 +21,8 @@ class PullToRefresh {
 
   static PullToRefresh? fromMap(dynamic input, Invokable initiator) {
     if (input is Map) {
-      var action = EnsembleAction.from(input['onPullToRefresh'],
-          initiator: initiator);
+      var action =
+          EnsembleAction.from(input['onPullToRefresh'], initiator: initiator);
       if (action != null) {
         return PullToRefresh(action,
             indicatorType:

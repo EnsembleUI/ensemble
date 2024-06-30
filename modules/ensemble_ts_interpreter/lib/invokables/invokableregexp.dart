@@ -14,7 +14,6 @@ class InvokableRegExp extends Object with Invokable {
     return {
       'test': (String input) => regExp.hasMatch(input),
       //'exec': (String input) => regExp.allMatches(input).toList()
-
     };
   }
 
@@ -23,5 +22,4 @@ class InvokableRegExp extends Object with Invokable {
     // TODO: implement setters
     throw UnimplementedError();
   }
-
 }

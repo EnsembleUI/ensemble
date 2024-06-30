@@ -120,8 +120,8 @@ class Countdown extends StatefulWidget
       'onComplete': (definition) => _controller.onComplete =
           EnsembleAction.from(definition, initiator: this),
       // Callback method for onStop
-      'onStop': (definition) => _controller.onStop =
-          EnsembleAction.from(definition, initiator: this),
+      'onStop': (definition) =>
+          _controller.onStop = EnsembleAction.from(definition, initiator: this),
       // Callback method for onReset
       'onReset': (definition) => _controller.onReset =
           EnsembleAction.from(definition, initiator: this),

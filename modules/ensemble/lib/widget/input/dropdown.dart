@@ -104,8 +104,7 @@ abstract class SelectOne extends StatefulWidget
 
   void _setCreateNewItem(dynamic input) {
     if (input is! Map) return;
-    _controller.onCreateItemTap =
-        framework.EnsembleAction.from(input['onTap']);
+    _controller.onCreateItemTap = framework.EnsembleAction.from(input['onTap']);
 
     _controller.createNewItemIcon = Utils.getIcon(input['icon']);
     _controller.createNewItemLabel = Utils.optionalString(input['label']);

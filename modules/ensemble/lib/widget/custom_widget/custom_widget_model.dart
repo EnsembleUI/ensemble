@@ -25,8 +25,7 @@ class CustomWidgetModel extends WidgetModel {
   }
 
   CustomWidgetLifecycle getLifecycleActions() {
-    return CustomWidgetLifecycle(
-        onLoad: EnsembleAction.from(props['onLoad']));
+    return CustomWidgetLifecycle(onLoad: EnsembleAction.from(props['onLoad']));
   }
 }
 
