@@ -87,8 +87,7 @@ class ShowDialogAction extends EnsembleAction {
       options: Utils.getMap(payload['options']),
       onDialogDismiss: payload['onDialogDismiss'] == null
           ? null
-          : EnsembleAction.from(
-              Utils.maybeYamlMap(payload['onDialogDismiss'])),
+          : EnsembleAction.from(Utils.maybeYamlMap(payload['onDialogDismiss'])),
     );
   }
 }
@@ -352,9 +351,8 @@ class StartTimerAction extends EnsembleAction {
       throw LanguageError(
           "${ActionType.startTimer.name} requires a valid 'onTimer' action.");
     }
-    EnsembleAction? onTimerComplete = EnsembleAction.from(
-        payload['onTimerComplete'],
-        initiator: initiator);
+    EnsembleAction? onTimerComplete =
+        EnsembleAction.from(payload['onTimerComplete'], initiator: initiator);
 
     return StartTimerAction(
         initiator: initiator,
@@ -406,8 +404,8 @@ class ExecuteCodeAction extends EnsembleAction {
         initiator: initiator,
         inputs: Utils.getMap(payload['inputs']),
         codeBlock: payload['body'].toString(),
-        onComplete: EnsembleAction.from(payload['onComplete'],
-            initiator: initiator),
+        onComplete:
+            EnsembleAction.from(payload['onComplete'], initiator: initiator),
         codeBlockSpan:
             ViewUtil.optDefinition((payload as YamlMap).nodes['body']));
   }

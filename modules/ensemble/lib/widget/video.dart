@@ -64,8 +64,8 @@ class Video extends StatefulWidget
           EnsembleAction.from(definition, initiator: this),
       'onStart': (definition) => _controller.onStart =
           EnsembleAction.from(definition, initiator: this),
-      'onEnd': (definition) => _controller.onEnd =
-          EnsembleAction.from(definition, initiator: this),
+      'onEnd': (definition) =>
+          _controller.onEnd = EnsembleAction.from(definition, initiator: this),
     };
   }
 }

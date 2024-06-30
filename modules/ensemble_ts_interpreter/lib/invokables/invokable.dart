@@ -7,6 +7,7 @@ mixin Invokable {
   // optional ID to identify this Invokable
   String? id;
   SourceSpan? definition;
+
   /// mark these functions as protected as we need the implementations,
   /// but discourage direct usages.
   /// Reasons:
@@ -23,27 +24,30 @@ mixin Invokable {
 
   List? getList(Object obj) {
     List? l;
-    if ( obj is List ) {
+    if (obj is List) {
       l = obj;
     }
     return l;
   }
+
   String? getString(Object obj) {
     String? str;
-    if ( obj is String ) {
+    if (obj is String) {
       str = obj;
-    } else if ( obj is Map && obj.containsKey('value') ) {
+    } else if (obj is Map && obj.containsKey('value')) {
       str = obj['value'] as String;
     }
     return str;
   }
+
   Map? getMap(Object obj) {
     Map? m;
-    if ( obj is Map ) {
+    if (obj is Map) {
       m = obj;
     }
     return m;
   }
+
   static List<String> getGettableProperties(Invokable obj) {
     try {
       List<String> rtn = obj.getters().keys.toList();
@@ -82,12 +86,15 @@ mixin Invokable {
     }
     return {};
   }
+
   bool hasSettableProperty(dynamic prop) {
     return getSettableProperties(this).contains(prop);
   }
+
   bool hasGettableProperty(dynamic prop) {
     return getGettableProperties(this).contains(prop);
   }
+
   Function? getMethod(dynamic method) {
     Map<String, Function> rtn = getMethods(this);
     if (rtn.containsKey(method)) {
@@ -95,9 +102,11 @@ mixin Invokable {
     }
     return null;
   }
+
   bool hasMethod(dynamic method) {
     return getMethods(this).containsKey(method);
   }
+
   dynamic getProperty(dynamic prop) {
     Function? func = getters()[prop];
     if (func == null && this is HasController) {
@@ -107,7 +116,8 @@ mixin Invokable {
     if (func != null) {
       return func();
     }
-    throw InvalidPropertyException('Object with id:${id??''} does not have a gettable property named $prop');
+    throw InvalidPropertyException(
+        'Object with id:${id ?? ''} does not have a gettable property named $prop');
   }
 
   /// update a property. If this is a HasController (i.e. Widget), notify it of changes
@@ -140,7 +150,8 @@ mixin MethodExecutor {
 
 /// Base Mixin for Widgets that want to participate in Ensemble widget tree.
 /// This works in conjunction with Controller and WidgetState
-mixin HasController<C extends Controller, S extends WidgetStateMixin> on StatefulWidget{
+mixin HasController<C extends Controller, S extends WidgetStateMixin>
+    on StatefulWidget {
   C get controller;
 
   /// a widget can tell the framework not to automatically evaluate its value
@@ -151,9 +162,7 @@ mixin HasController<C extends Controller, S extends WidgetStateMixin> on Statefu
   List<String> passthroughSetters() => [];
 }
 
-abstract class EnsembleController extends ChangeNotifier with Invokable {
-
-}
+abstract class EnsembleController extends ChangeNotifier with Invokable {}
 
 abstract class Controller extends ChangeNotifier {
   KeyValue? lastSetterProperty;
@@ -168,9 +177,11 @@ abstract class Controller extends ChangeNotifier {
   Map<String, Function> getBaseGetters() {
     return {};
   }
+
   Map<String, Function> getBaseSetters() {
     return {};
   }
+
   Map<String, Function> getBaseMethods() {
     return {};
   }
@@ -178,16 +189,14 @@ abstract class Controller extends ChangeNotifier {
 
 /// purely for type checking so WidgetState implementation
 /// has the correct type
-mixin WidgetStateMixin {
-}
+mixin WidgetStateMixin {}
 
 /// base state for Flutter widgets that want to be of Invokable type
-abstract class BaseWidgetState<W extends HasController> extends State<W> with WidgetStateMixin {
+abstract class BaseWidgetState<W extends HasController> extends State<W>
+    with WidgetStateMixin {
   void changeState() {
     // trigger widget to rebuild
-    setState(() {
-
-    });
+    setState(() {});
   }
 
   @override
@@ -195,19 +204,19 @@ abstract class BaseWidgetState<W extends HasController> extends State<W> with Wi
     super.initState();
     widget.controller.addListener(changeState);
   }
+
   @override
   void didUpdateWidget(covariant W oldWidget) {
     super.didUpdateWidget(oldWidget);
     oldWidget.controller.removeListener(changeState);
     widget.controller.addListener(changeState);
   }
+
   @override
   void dispose() {
     super.dispose();
     widget.controller.removeListener(changeState);
   }
-
-
 }
 
 class KeyValue {
@@ -216,8 +225,9 @@ class KeyValue {
   String key;
   dynamic value;
 }
+
 mixin SupportsPrimitiveOperations {
   //operator could be any of the primitive operators such as -, + , *, / etc
   //rhs is the right hand side
-  dynamic runOperation(String operator,dynamic rhs);
+  dynamic runOperation(String operator, dynamic rhs);
 }

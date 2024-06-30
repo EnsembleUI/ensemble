@@ -1,7 +1,6 @@
 import 'package:ensemble_auth/signin/widget/google/stub.dart';
 import 'package:flutter/material.dart';
 
-
 /// Renders a SIGN IN button that calls `handleSignIn` onclick.
 Widget buildGoogleSignInButton(
     {Widget? mobileWidget, required HandleSignInFn? onPressed}) {

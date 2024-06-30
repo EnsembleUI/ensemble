@@ -136,12 +136,10 @@ class SignInButtonController extends WidgetController {
       'height': (value) => height = Utils.getInt(value, fallback: height),
       'iconAlignment': (value) =>
           iconAlignment = IconAlignment.values.from(value) ?? iconAlignment,
-      'signInServerAPI': (action) => signInServerAPI =
-          (action == null
-              ? null
-              : SignInWithServerAPIAction.fromMap(payload: action))
+      'signInServerAPI': (action) => signInServerAPI = (action == null
+          ? null
+          : SignInWithServerAPIAction.fromMap(payload: action))
     });
     return setters;
   }
-
 }

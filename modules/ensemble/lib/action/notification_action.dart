@@ -19,8 +19,7 @@ class GetDeviceTokenAction extends EnsembleAction {
 
   factory GetDeviceTokenAction.fromMap({dynamic payload}) {
     if (payload is Map) {
-      EnsembleAction? successAction =
-          EnsembleAction.from(payload['onSuccess']);
+      EnsembleAction? successAction = EnsembleAction.from(payload['onSuccess']);
       if (successAction == null) {
         throw LanguageError("onSuccess() is required for Get Token Action");
       }

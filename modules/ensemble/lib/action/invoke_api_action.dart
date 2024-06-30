@@ -42,10 +42,9 @@ class InvokeAPIAction extends EnsembleAction {
         apiName: payload['name'],
         id: Utils.optionalString(payload['id']),
         inputs: Utils.getMap(payload['inputs']),
-        onResponse: EnsembleAction.from(payload['onResponse'],
-            initiator: initiator),
-        onError:
-            EnsembleAction.from(payload['onError'], initiator: initiator));
+        onResponse:
+            EnsembleAction.from(payload['onResponse'], initiator: initiator),
+        onError: EnsembleAction.from(payload['onError'], initiator: initiator));
   }
 
   @override

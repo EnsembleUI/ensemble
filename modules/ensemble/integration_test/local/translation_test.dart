@@ -26,7 +26,6 @@ void main() {
       await tester.tap(find.text("Show Toast"));
       await tester.pumpAndSettle();
       expect(find.text("Hello Hello Peter"), findsOneWidget);
-
     });
   });
 }

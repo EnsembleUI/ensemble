@@ -53,8 +53,8 @@ class SignInWithAppleImpl extends StatefulWidget
             EnsembleAction.from(action, initiator: this),
         'onSignedIn': (action) => _controller.onSignedIn =
             EnsembleAction.from(action, initiator: this),
-        'onError': (action) => _controller.onError =
-            EnsembleAction.from(action, initiator: this),
+        'onError': (action) =>
+            _controller.onError = EnsembleAction.from(action, initiator: this),
 
         // styles only apply to default button
         'buttonStyle': (value) => _controller.buttonStyle =

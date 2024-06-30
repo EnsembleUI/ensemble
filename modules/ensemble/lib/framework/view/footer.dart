@@ -217,8 +217,7 @@ class DragOptions {
       required this.showDragHandle,
       required this.snapSizes});
 
-  factory DragOptions.fromYaml(
-          YamlMap yamlMap, Invokable invokable) =>
+  factory DragOptions.fromYaml(YamlMap yamlMap, Invokable invokable) =>
       DragOptions(
           onMaxSize:
               action

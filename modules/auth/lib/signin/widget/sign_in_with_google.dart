@@ -65,8 +65,8 @@ class SignInWithGoogleImpl extends StatefulWidget
             EnsembleAction.from(action, initiator: this),
         'onSignedIn': (action) => _controller.onSignedIn =
             EnsembleAction.from(action, initiator: this),
-        'onError': (action) => _controller.onError =
-            EnsembleAction.from(action, initiator: this),
+        'onError': (action) =>
+            _controller.onError = EnsembleAction.from(action, initiator: this),
         'scopes': (value) => _controller.scopes =
             Utils.getListOfStrings(value) ?? _controller.scopes,
       };
@@ -119,8 +119,8 @@ class SignInWithGoogleImplState extends WidgetState<SignInWithGoogleImpl> {
     if (widget._controller.onAuthenticated != null) {
       await ScreenController().executeAction(
           context, widget._controller.onAuthenticated!,
-          event: EnsembleEvent(widget,
-              data: {'user': user, 'idToken': idToken}));
+          event:
+              EnsembleEvent(widget, data: {'user': user, 'idToken': idToken}));
     }
 
     // Sign in with a custom Server

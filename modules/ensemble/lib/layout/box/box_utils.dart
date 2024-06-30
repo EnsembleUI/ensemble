@@ -13,7 +13,6 @@ class BoxUtils {
     children = [...?children, ...?templatedChildren];
     if (gap == null) return children;
 
-
     List<Widget> items = [];
     for (var i = 0; i < children.length; i++) {
       // first add the child
@@ -22,9 +21,7 @@ class BoxUtils {
       // then add the gap
       final visibleChild = WidgetUtils.isVisible(children[i]);
       if (i != children.length - 1 && visibleChild) {
-        items.add(SizedBox(
-            width: gap.toDouble(),
-            height: gap.toDouble()));
+        items.add(SizedBox(width: gap.toDouble(), height: gap.toDouble()));
       }
     }
     return items;

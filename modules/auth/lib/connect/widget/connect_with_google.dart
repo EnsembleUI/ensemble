@@ -30,7 +30,6 @@ class ConnectWithGoogleImpl extends StatefulWidget
   @override
   State<StatefulWidget> createState() => ConnectWithGoogleState();
 
-
   @override
   Map<String, Function> getters() {
     return {};
@@ -45,23 +44,22 @@ class ConnectWithGoogleImpl extends StatefulWidget
   Map<String, Function> setters() {
     return {
       'tokenExchangeAPI': (apiAction) => _controller.tokenExchangeAPI =
-          apiAction == null ? null : InvokeAPIAction.fromYaml(
-              initiator: this, payload: apiAction),
+          apiAction == null
+              ? null
+              : InvokeAPIAction.fromYaml(initiator: this, payload: apiAction),
       'onInitiated': (action) => _controller.onInitiated =
           EnsembleAction.from(action, initiator: this),
-      'onCanceled': (action) => _controller.onCanceled =
-          EnsembleAction.from(action, initiator: this),
+      'onCanceled': (action) =>
+          _controller.onCanceled = EnsembleAction.from(action, initiator: this),
       'onAuthorized': (action) => _controller.onAuthorized =
           EnsembleAction.from(action, initiator: this),
-      'onError': (action) => _controller.onError =
-          EnsembleAction.from(action, initiator: this),
+      'onError': (action) =>
+          _controller.onError = EnsembleAction.from(action, initiator: this),
     };
   }
 }
 
-class ConnectWithGoogleController extends ConnectController {
-
-}
+class ConnectWithGoogleController extends ConnectController {}
 
 class ConnectWithGoogleState extends WidgetState<ConnectWithGoogleImpl> {
   Widget? _displayWidget;
@@ -74,7 +72,6 @@ class ConnectWithGoogleState extends WidgetState<ConnectWithGoogleImpl> {
           ?.buildWidgetFromDefinition(widget._controller.widgetDef);
     }
   }
-
 
   @override
   Widget buildWidget(BuildContext context) {
@@ -103,12 +100,11 @@ class ConnectWithGoogleState extends WidgetState<ConnectWithGoogleImpl> {
       // Server doesn't always need to return a token if they don't want to,
       // but we have code to create an empty token as needed.
       // So null token here means some error occurs along the way
-      token = await OAuthControllerImpl().authorize(
-          context,
-          OAuthService.google,
-          scope: ConnectUtils.getScopesAsString(scopes),
-          forceNewTokens: true,   // this always force the flow again
-          tokenExchangeAPI: widget._controller.tokenExchangeAPI);
+      token =
+          await OAuthControllerImpl().authorize(context, OAuthService.google,
+              scope: ConnectUtils.getScopesAsString(scopes),
+              forceNewTokens: true, // this always force the flow again
+              tokenExchangeAPI: widget._controller.tokenExchangeAPI);
 
       // dispatch success
       if (token != null && widget._controller.onAuthorized != null) {
@@ -128,9 +124,7 @@ class ConnectWithGoogleState extends WidgetState<ConnectWithGoogleImpl> {
 
     // dispatch error
     if (widget._controller.onError != null && token == null) {
-      ScreenController()
-          .executeAction(context, widget._controller.onError!);
+      ScreenController().executeAction(context, widget._controller.onError!);
     }
   }
-
 }

@@ -33,8 +33,7 @@ class DeepLinkInitAction extends EnsembleAction {
         throw LanguageError('provider is required for initDeepLink action');
       }
 
-      EnsembleAction? successAction =
-          EnsembleAction.from(payload['onSuccess']);
+      EnsembleAction? successAction = EnsembleAction.from(payload['onSuccess']);
       if (successAction == null) {
         throw LanguageError('onSuccess() is required for initDeepLink action');
       }
@@ -150,8 +149,7 @@ class CreateDeeplinkAction extends EnsembleAction {
         throw LanguageError('provider is required for createDeepLink action');
       }
 
-      EnsembleAction? successAction =
-          EnsembleAction.from(payload['onSuccess']);
+      EnsembleAction? successAction = EnsembleAction.from(payload['onSuccess']);
       if (successAction == null) {
         throw LanguageError(
             'onSuccess() is required for createDeepLink action');

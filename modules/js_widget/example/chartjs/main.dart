@@ -17,7 +17,7 @@ class MyApp extends StatelessWidget {
 
 class ExampleChart extends StatefulWidget {
   const ExampleChart({Key? key}) : super(key: key);
-  final String id="chartJs";
+  final String id = "chartJs";
   @override
   ExampleChartState createState() => ExampleChartState();
 }
@@ -97,8 +97,10 @@ class ExampleChartState extends State<ExampleChart> {
       ),
       body: JsWidget(
         id: widget.id,
-        createHtmlTag: () => ''' <div style="height:100%;width:100%;" id="${widget.id}Div"><canvas id="${widget.id}"></canvas></div>''',
-        scriptToInstantiate: (String c, [htmlId='chartJs']) => '''const myChart = new Chart(document.getElementById('${widget.id}'),$c);''',
+        createHtmlTag: () =>
+            ''' <div style="height:100%;width:100%;" id="${widget.id}Div"><canvas id="${widget.id}"></canvas></div>''',
+        scriptToInstantiate: (String c, [htmlId = 'chartJs']) =>
+            '''const myChart = new Chart(document.getElementById('${widget.id}'),$c);''',
         loader: const SizedBox(
           child: LinearProgressIndicator(),
           width: 200,
