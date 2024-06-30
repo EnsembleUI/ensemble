@@ -62,11 +62,11 @@ class SignInWithGoogleImpl extends StatefulWidget
         'provider': (value) =>
             _controller.provider = SignInProvider.values.from(value),
         'onAuthenticated': (action) => _controller.onAuthenticated =
-            EnsembleAction.fromYaml(action, initiator: this),
+            EnsembleAction.from(action, initiator: this),
         'onSignedIn': (action) => _controller.onSignedIn =
-            EnsembleAction.fromYaml(action, initiator: this),
+            EnsembleAction.from(action, initiator: this),
         'onError': (action) => _controller.onError =
-            EnsembleAction.fromYaml(action, initiator: this),
+            EnsembleAction.from(action, initiator: this),
         'scopes': (value) => _controller.scopes =
             Utils.getListOfStrings(value) ?? _controller.scopes,
       };

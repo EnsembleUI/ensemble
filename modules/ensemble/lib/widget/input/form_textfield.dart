@@ -48,7 +48,7 @@ class TextInput extends BaseTextInput {
       'inputType': (type) => _controller.inputType = Utils.optionalString(type),
       'mask': (type) => _controller.mask = Utils.optionalString(type),
       'onDelayedKeyPress': (function) => _controller.onDelayedKeyPress =
-          EnsembleAction.fromYaml(function, initiator: this),
+          EnsembleAction.from(function, initiator: this),
       'delayedKeyPressDuration': (value) =>
           _controller.delayedKeyPressDuration =
               Utils.getDurationMs(value) ?? _controller.delayedKeyPressDuration,
@@ -131,13 +131,13 @@ abstract class BaseTextInput extends StatefulWidget
               .validateOnUserInteraction =
           Utils.getBool(value, fallback: _controller.validateOnUserInteraction),
       'onKeyPress': (function) => _controller.onKeyPress =
-          EnsembleAction.fromYaml(function, initiator: this),
+          EnsembleAction.from(function, initiator: this),
       'onChange': (definition) => _controller.onChange =
-          EnsembleAction.fromYaml(definition, initiator: this),
+          EnsembleAction.from(definition, initiator: this),
       'onFocusReceived': (definition) => _controller.onFocusReceived =
-          EnsembleAction.fromYaml(definition, initiator: this),
+          EnsembleAction.from(definition, initiator: this),
       'onFocusLost': (definition) => _controller.onFocusLost =
-          EnsembleAction.fromYaml(definition, initiator: this),
+          EnsembleAction.from(definition, initiator: this),
       'validator': (value) => _controller.validator = Utils.getValidator(value),
       'enableClearText': (value) =>
           _controller.enableClearText = Utils.optionalBool(value),

@@ -66,7 +66,7 @@ abstract class FlexBoxLayout extends StatefulWidget
   Map<String, Function> setters() {
     return {
       'onTap': (funcDefinition) => _controller.onTap =
-          EnsembleAction.fromYaml(funcDefinition, initiator: this),
+          EnsembleAction.from(funcDefinition, initiator: this),
     };
   }
 

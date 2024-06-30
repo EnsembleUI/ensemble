@@ -114,7 +114,7 @@ class EnsembleHtml extends StatefulWidget
     return {
       'text': (newValue) => _controller.text = Utils.optionalString(newValue),
       'onLinkTap': (funcDefinition) => _controller.onLinkTap =
-          ensemble.EnsembleAction.fromYaml(funcDefinition, initiator: this),
+          ensemble.EnsembleAction.from(funcDefinition, initiator: this),
       'cssStyles': (value) {
         _controller.cssStyle = CSSStyle.fromYaml(
           Utils.getListOfYamlMap(value) ?? [],

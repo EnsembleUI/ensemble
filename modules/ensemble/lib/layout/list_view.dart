@@ -50,7 +50,7 @@ class ListView extends StatefulWidget
   Map<String, Function> setters() {
     return {
       'onItemTap': (funcDefinition) => _controller.onItemTap =
-          EnsembleAction.fromYaml(funcDefinition, initiator: this),
+          EnsembleAction.from(funcDefinition, initiator: this),
       'onItemTapHaptic': (value) =>
           _controller.onItemTapHaptic = Utils.optionalString(value),
       'showSeparator': (value) =>
@@ -64,11 +64,11 @@ class ListView extends StatefulWidget
       'pullToRefresh': (input) =>
           _controller.pullToRefresh = PullToRefresh.fromMap(input, this),
       'onPullToRefresh': (funcDefinition) => _controller.onPullToRefresh =
-          EnsembleAction.fromYaml(funcDefinition, initiator: this),
+          EnsembleAction.from(funcDefinition, initiator: this),
       'pullToRefreshOptions': (input) => _controller.pullToRefreshOptions =
           PullToRefreshOptions.fromMap(input),
       'onScrollEnd': (funcDefinition) => _controller.onScrollEnd =
-          EnsembleAction.fromYaml(funcDefinition, initiator: this),
+          EnsembleAction.from(funcDefinition, initiator: this),
       'reverse': (value) =>
           _controller.reverse = Utils.getBool(value, fallback: false),
       'controller': (value) {
@@ -82,7 +82,7 @@ class ListView extends StatefulWidget
       'loadingWidget': (value) => _controller.loadingWidget = value,
       'data': (value) => _controller.itemTemplate?.data = value,
       'onScroll': (value) =>
-          controller.onScroll = EnsembleAction.fromYaml(value, initiator: this),
+          controller.onScroll = EnsembleAction.from(value, initiator: this),
     };
   }
 

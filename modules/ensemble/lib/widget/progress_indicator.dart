@@ -39,7 +39,7 @@ class EnsembleProgressIndicator extends StatefulWidget
       'countdown': (seconds) =>
           _controller.countdown = Utils.optionalInt(seconds, min: 0),
       'onCountdownComplete': (action) => _controller.onCountdownComplete =
-          EnsembleAction.fromYaml(action, initiator: this),
+          EnsembleAction.from(action, initiator: this),
       'value': (value) =>
           _controller.value = Utils.getDouble(value, fallback: 0),
     };

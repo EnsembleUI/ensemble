@@ -95,9 +95,9 @@ class EnsembleMapWidget extends StatefulWidget
       'autoSelect': (value) => _controller.autoSelect =
           Utils.getBool(value, fallback: _controller.autoSelect),
       'onMapCreated': (action) => _controller.onMapCreated =
-          EnsembleAction.fromYaml(action, initiator: this),
+          EnsembleAction.from(action, initiator: this),
       'onCameraMove': (action) => _controller.onCameraMove =
-          EnsembleAction.fromYaml(action, initiator: this),
+          EnsembleAction.from(action, initiator: this),
     };
   }
 
@@ -121,9 +121,9 @@ class EnsembleMapWidget extends StatefulWidget
                 widget: markerData['selectedMarker']?['widget'],
                 icon: Utils.getMap(markerData['selectedMarker']?['icon'])),
             overlayTemplate: markerData['overlayWidget'],
-            onMarkerTap: EnsembleAction.fromYaml(markerData['onMarkerTap'],
+            onMarkerTap: EnsembleAction.from(markerData['onMarkerTap'],
                 initiator: this),
-            onMarkersUpdated: EnsembleAction.fromYaml(
+            onMarkersUpdated: EnsembleAction.from(
                 markerData['onMarkersUpdated'],
                 initiator: this));
       }

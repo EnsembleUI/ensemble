@@ -47,13 +47,13 @@ class ConnectWithMicrosoftImpl extends StatefulWidget
           apiAction == null ? null : InvokeAPIAction.fromYaml(
               initiator: this, payload: apiAction),
       'onInitiated': (action) => _controller.onInitiated =
-          EnsembleAction.fromYaml(action, initiator: this),
+          EnsembleAction.from(action, initiator: this),
       'onCanceled': (action) => _controller.onCanceled =
-          EnsembleAction.fromYaml(action, initiator: this),
+          EnsembleAction.from(action, initiator: this),
       'onAuthorized': (action) => _controller.onAuthorized =
-          EnsembleAction.fromYaml(action, initiator: this),
+          EnsembleAction.from(action, initiator: this),
       'onError': (action) => _controller.onError =
-          EnsembleAction.fromYaml(action, initiator: this),
+          EnsembleAction.from(action, initiator: this),
     };
   }
 }

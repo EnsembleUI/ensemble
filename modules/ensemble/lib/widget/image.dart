@@ -64,7 +64,7 @@ class EnsembleImage extends StatefulWidget
           _controller.placeholderColor = Utils.getColor(value),
       'fallback': (widget) => _controller.fallback = widget,
       'onTap': (funcDefinition) => _controller.onTap =
-          EnsembleAction.fromYaml(funcDefinition, initiator: this),
+          EnsembleAction.from(funcDefinition, initiator: this),
       'onTapHaptic': (value) =>
           _controller.onTapHaptic = Utils.optionalString(value),
       'pinchToZoom': (value) =>

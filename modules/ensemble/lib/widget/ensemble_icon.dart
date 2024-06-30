@@ -40,7 +40,7 @@ class EnsembleIcon extends StatefulWidget
       'color': (value) => _controller.color = Utils.getColor(value),
       'splashColor': (value) => _controller.splashColor = Utils.getColor(value),
       'onTap': (funcDefinition) => _controller.onTap =
-          EnsembleAction.fromYaml(funcDefinition, initiator: this),
+          EnsembleAction.from(funcDefinition, initiator: this),
       'onTapHaptic': (value) =>
           _controller.onTapHaptic = Utils.optionalString(value),
     };
