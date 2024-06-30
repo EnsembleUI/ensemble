@@ -3,10 +3,11 @@ import 'dart:math';
 import 'package:flutter/widgets.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 
-class InvokableText extends StatefulWidget with Invokable, HasController<TextController, InvokableTextWidgetState> {
+class InvokableText extends StatefulWidget
+    with Invokable, HasController<TextController, InvokableTextWidgetState> {
   @override
   final TextController controller;
-  InvokableText(this.controller, {Key? key}) : super(key:key);
+  InvokableText(this.controller, {Key? key}) : super(key: key);
 
   @override
   State<StatefulWidget> createState() => InvokableTextWidgetState();
@@ -14,15 +15,14 @@ class InvokableText extends StatefulWidget with Invokable, HasController<TextCon
   void toUppercase() {
     setters()['text']!(getters()['text']!().toString().toUpperCase());
   }
-  int random(int seed,int max) {
+
+  int random(int seed, int max) {
     return Random(seed).nextInt(max);
   }
 
   @override
   Map<String, Function> getters() {
-    return {
-      'text': () => controller.text
-    };
+    return {'text': () => controller.text};
   }
 
   @override
@@ -35,13 +35,15 @@ class InvokableText extends StatefulWidget with Invokable, HasController<TextCon
   @override
   Map<String, Function> methods() {
     return {
-      'random': (int seed,int max) { return random(seed,max);},
+      'random': (int seed, int max) {
+        return random(seed, max);
+      },
       'toUpperCase': () => toUppercase(),
-      'indexOf': (String str) { return controller.text.indexOf(str);}
+      'indexOf': (String str) {
+        return controller.text.indexOf(str);
+      }
     };
   }
-
-
 }
 
 class TextController extends Controller {

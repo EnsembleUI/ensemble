@@ -42,7 +42,7 @@ class EnsembleSlider extends StatefulWidget
       'max': (value) =>
           _controller.maxValue = Utils.getDouble(value, fallback: 1.0),
       'onChange': (definition) => _controller.onChange =
-          EnsembleAction.fromYaml(definition, initiator: this),
+          EnsembleAction.from(definition, initiator: this),
       'divisions': (value) => _controller.divisions = Utils.optionalInt(value),
       'thumbColor': (value) => _controller.thumbColor = Utils.getColor(value),
       'inactiveTrackColor': (value) =>

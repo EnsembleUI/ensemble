@@ -1,5 +1,6 @@
 /// This class contains helper controllers for our widgets.
 import 'package:ensemble/controller/controller_mixins.dart';
+import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/framework/model.dart';
 import 'package:ensemble/framework/theme/theme_manager.dart';
@@ -8,6 +9,8 @@ import 'package:ensemble/util/utils.dart';
 import 'package:ensemble_ts_interpreter/errors.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/cupertino.dart';
+
+import '../../model/capabilities.dart';
 
 /// Widget property that have nested properties should be extending this,
 /// as this allows any setters on the nested properties to trigger changes
@@ -371,6 +374,18 @@ class BoxController extends WidgetController {
       shadowOffset != null ||
       shadowRadius != null ||
       shadowStyle != null;
+}
+
+class TapEnabledBoxController extends BoxController with TapEnabled {
+  @override
+  Map<String, Function> getBaseSetters() => {
+        ...super.getBaseSetters(),
+        'onTap': (action) => onTap = EnsembleAction.from(action),
+        'splashColor': (color) => splashColor = Utils.getColor(color),
+        'highlightColor': (color) => highlightColor = Utils.getColor(color),
+        'focusColor': (color) => focusColor = Utils.getColor(color),
+        'hoverColor': (color) => hoverColor = Utils.getColor(color),
+      };
 }
 
 /// Base Widget Controller

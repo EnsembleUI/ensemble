@@ -244,7 +244,8 @@ class BaseVisitor1<T, A> implements Visitor1<T?, A> {
   T? visitSequence(SequenceExpression node, A arg) => defaultNode(node, arg);
   T? visitUnary(UnaryExpression node, A arg) => defaultNode(node, arg);
   T? visitBinary(BinaryExpression node, A arg) => defaultNode(node, arg);
-  T? visitAssignment(AssignmentExpression node, A arg) => defaultNode(node, arg);
+  T? visitAssignment(AssignmentExpression node, A arg) =>
+      defaultNode(node, arg);
   T? visitUpdateExpression(UpdateExpression node, A arg) =>
       defaultNode(node, arg);
   T? visitConditional(ConditionalExpression node, A arg) =>

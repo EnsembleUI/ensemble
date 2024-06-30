@@ -52,7 +52,7 @@ class Flow extends StatefulWidget
       'maxHeight': (value) =>
           _controller.maxHeight = Utils.optionalInt(value, min: 0),
       'onItemTap': (funcDefinition) => _controller.onItemTap =
-          EnsembleAction.fromYaml(funcDefinition, initiator: this),
+          EnsembleAction.from(funcDefinition, initiator: this),
     };
   }
 

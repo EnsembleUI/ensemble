@@ -72,7 +72,7 @@ class AvatarController extends EnsembleBoxController {
       'fit': (value) => fit = Utils.getBoxFit(value),
       'placeholderColor': (value) => placeholderColor = Utils.getColor(value),
       'variant': (value) => variant = AvatarVariant.values.from(value),
-      'onTap': (func) => onTap = EnsembleAction.fromYaml(func, initiator: this),
+      'onTap': (func) => onTap = EnsembleAction.from(func, initiator: this),
       'onTapHaptic': (value) => onTapHaptic = Utils.optionalString(value),
       'group-template': (value) => setGroupAvatar(value)
     });
@@ -95,7 +95,7 @@ class AvatarController extends EnsembleBoxController {
             Utils.getColor(groupData?['surplus']['backgroundColor']),
         height: Utils.optionalDouble(groupData?['surplus']['height']),
         width: Utils.optionalDouble(groupData?['surplus']['width']),
-        onTap: EnsembleAction.fromYaml(groupData?['surplus']['onTap']),
+        onTap: EnsembleAction.from(groupData?['surplus']['onTap']),
         textStyle: Utils.getTextStyle(groupData?['surplus']['textStyle']),
         variant: AvatarVariant.values.from(groupData?['surplus']['variant']),
         visible:

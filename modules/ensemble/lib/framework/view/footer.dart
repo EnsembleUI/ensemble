@@ -217,15 +217,14 @@ class DragOptions {
       required this.showDragHandle,
       required this.snapSizes});
 
-  factory DragOptions.fromYaml(
-          YamlMap yamlMap, Invokable invokable) =>
+  factory DragOptions.fromYaml(YamlMap yamlMap, Invokable invokable) =>
       DragOptions(
           onMaxSize:
               action
                       .EnsembleAction
-                  .fromYaml(yamlMap['onMaxSize'], initiator: invokable),
+                  .from(yamlMap['onMaxSize'], initiator: invokable),
           onMinSize:
-              action.EnsembleAction.fromYaml(yamlMap['onMinSize'],
+              action.EnsembleAction.from(yamlMap['onMinSize'],
                   initiator: invokable),
           minSize: Utils.getDouble(yamlMap['minSize'], fallback: 0.25),
           maxSize: Utils.getDouble(yamlMap['maxSize'], fallback: 1.0),

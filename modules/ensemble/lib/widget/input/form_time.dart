@@ -45,7 +45,7 @@ class Time extends StatefulWidget
       'initialValue': (value) =>
           _controller.initialValue = Utils.getTimeOfDay(value),
       'onChange': (definition) => _controller.onChange =
-          EnsembleAction.fromYaml(definition, initiator: this)
+          EnsembleAction.from(definition, initiator: this)
     });
     return setters;
   }

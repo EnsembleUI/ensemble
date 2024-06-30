@@ -4,20 +4,20 @@ class BindableExpressionFinder extends JSASTVisitor {
   List<String> bindableExpressions = [];
   List<ASTNode> nodes;
   Map context;
-  BindableExpressionFinder(this.nodes,this.context);
+  BindableExpressionFinder(this.nodes, this.context);
   List<String> findBindables() {
     for (ASTNode node in nodes) {
       node.accept(this);
     }
     return bindableExpressions;
   }
+
   @override
-  visitArrayExpression(ArrayExpression stmt) {
-  }
+  visitArrayExpression(ArrayExpression stmt) {}
 
   @override
   Function visitArrowFunctionExpression(ArrowFunctionExpression stmt) {
-    return ()=>'';
+    return () => '';
   }
 
   @override
@@ -37,8 +37,7 @@ class BindableExpressionFinder extends JSASTVisitor {
   }
 
   @override
-  visitCallExpression(CallExpression stmt) {
-  }
+  visitCallExpression(CallExpression stmt) {}
 
   @override
   visitConditionalExpression(ConditionalExpression stmt) {
@@ -52,7 +51,7 @@ class BindableExpressionFinder extends JSASTVisitor {
 
   @override
   String visitIdentifier(Identifier stmt) {
-    if ( context.containsKey(stmt.name) ) {
+    if (context.containsKey(stmt.name)) {
       bindableExpressions.add(stmt.name);
     }
     return '';
@@ -64,8 +63,7 @@ class BindableExpressionFinder extends JSASTVisitor {
   }
 
   @override
-  visitLiteral(Literal stmt) {
-  }
+  visitLiteral(Literal stmt) {}
 
   @override
   bool visitLogicalExpression(LogicalExpression stmt) {
@@ -91,14 +89,13 @@ class BindableExpressionFinder extends JSASTVisitor {
 
   @override
   visitReturnStatement(ReturnStatement stmt) {
-    if ( stmt.argument != null ) {
+    if (stmt.argument != null) {
       stmt.argument!.accept(this);
     }
   }
 
   @override
-  visitThisExpression(ThisExpr stmt) {
-  }
+  visitThisExpression(ThisExpr stmt) {}
 
   @override
   visitUnaryExpression(UnaryExpression stmt) {
@@ -116,5 +113,4 @@ class BindableExpressionFinder extends JSASTVisitor {
       stmt.init!.accept(this);
     }
   }
-
 }

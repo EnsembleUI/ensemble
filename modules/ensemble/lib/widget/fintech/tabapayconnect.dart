@@ -57,11 +57,11 @@ class TabaPayConnect extends StatefulWidget
       'height': (value) =>
           _controller.height = Utils.getDouble(value, fallback: 0),
       'onSuccess': (funcDefinition) => _controller.onSuccess =
-          EnsembleAction.fromYaml(funcDefinition, initiator: this),
+          EnsembleAction.from(funcDefinition, initiator: this),
       'onCancel': (funcDefinition) => _controller.onCancel =
-          EnsembleAction.fromYaml(funcDefinition, initiator: this),
+          EnsembleAction.from(funcDefinition, initiator: this),
       'onError': (funcDefinition) => _controller.onError =
-          EnsembleAction.fromYaml(funcDefinition, initiator: this),
+          EnsembleAction.from(funcDefinition, initiator: this),
     };
   }
 }

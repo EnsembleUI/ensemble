@@ -5,11 +5,10 @@ import 'package:ensemble_ts_interpreter/view.dart';
 import 'package:flutter/material.dart' hide View;
 import 'package:yaml/yaml.dart';
 
-enum Event {
-  click,longPress
-}
-class EnsembleAction {
-}
+enum Event { click, longPress }
+
+class EnsembleAction {}
+
 /*
 click:
       call:
@@ -24,49 +23,52 @@ class WidgetAction implements EnsembleAction {
   View view;
   Handler handler;
   TextFormField? f;
-  WidgetAction(this.target,this.event,this.view,this.handler);
-  static WidgetAction from(WidgetView target,String eventName,View view,Map<String,API> apis,YamlMap map) {
+  WidgetAction(this.target, this.event, this.view, this.handler);
+  static WidgetAction from(WidgetView target, String eventName, View view,
+      Map<String, API> apis, YamlMap map) {
     Event? event;
     try {
       Event.values.forEach((e) {
-        if ( e.toString() == 'Event.'+eventName.toLowerCase() ) {
+        if (e.toString() == 'Event.' + eventName.toLowerCase()) {
           event = e;
         }
       });
     } catch (e) {
-      throw Exception("Event by name="+eventName+" is not supported");
+      throw Exception("Event by name=" + eventName + " is not supported");
     }
     WidgetAction? action;
-    map.forEach((k,v) {
-      if ( k == "call" ) {
-        APIHandler handler = APIHandler.from(view, apis,v);
-        action = WidgetAction(target,event!,view,handler);
-        if ( event == Event.click ) {
+    map.forEach((k, v) {
+      if (k == "call") {
+        APIHandler handler = APIHandler.from(view, apis, v);
+        action = WidgetAction(target, event!, view, handler);
+        if (event == Event.click) {
           final Widget orig = target.widget;
           target.widget = GestureDetector(
-            onTap: () {
-              print('ontap on '+orig.key.toString());
-              handler.handle(action!);
-            },
-            child: AbsorbPointer(child:orig)
-          );
+              onTap: () {
+                print('ontap on ' + orig.key.toString());
+                handler.handle(action!);
+              },
+              child: AbsorbPointer(child: orig));
         }
       } else {
-        throw Exception('no handler found for event '+event.toString());
+        throw Exception('no handler found for event ' + event.toString());
       }
     });
     return action!;
   }
 }
+
 class WidgetActions {
-  static List<WidgetAction> from(View view,WidgetView target,Map<String,API> apis,YamlMap map) {
+  static List<WidgetAction> from(
+      View view, WidgetView target, Map<String, API> apis, YamlMap map) {
     List<WidgetAction> widgetActions = [];
-    map.forEach((k,v) {
-      widgetActions.add(WidgetAction.from(target,k,view,apis,v));
+    map.forEach((k, v) {
+      widgetActions.add(WidgetAction.from(target, k, view, apis, v));
     });
     return widgetActions;
   }
 }
+
 /*
 Actions:
   b:
@@ -78,20 +80,23 @@ Actions:
         success: c.value={gender}
  */
 class EnsembleActions {
-  static List<EnsembleAction> configure(View view,Map<String,API> apis,YamlMap map) {
+  static List<EnsembleAction> configure(
+      View view, Map<String, API> apis, YamlMap map) {
     List<EnsembleAction> actions = [];
-    map.forEach((k,v) {
+    map.forEach((k, v) {
       WidgetView? wv = view.get(k);
-      if ( wv != null ) {
-        actions.addAll(WidgetActions.from(view,wv,apis,v));
+      if (wv != null) {
+        actions.addAll(WidgetActions.from(view, wv, apis, v));
       }
     });
     return actions;
   }
 }
+
 abstract class Handler {
   void handle(WidgetAction action);
 }
+
 /*
         api: genderAPI
         parameters:
@@ -100,33 +105,35 @@ abstract class Handler {
  */
 class APIHandler extends Handler {
   API api;
-  Map<String,String>? paramMetaValues;
+  Map<String, String>? paramMetaValues;
   String? success;
   String? error;
-  APIHandler(this.api,this.paramMetaValues,this.success,this.error);
-  static APIHandler from(View view,Map<String,API> apis,YamlMap map) {
-    if ( !apis.containsKey(map['api']) ) {
-      throw Exception('api with name='+map['api']+' not define');
+  APIHandler(this.api, this.paramMetaValues, this.success, this.error);
+  static APIHandler from(View view, Map<String, API> apis, YamlMap map) {
+    if (!apis.containsKey(map['api'])) {
+      throw Exception('api with name=' + map['api'] + ' not define');
     }
     API api = apis[map['api']]!;
-    Map<String,String>? paramMetaValues = HashMap();
-    if ( map.containsKey('parameters') ) {
-      map['parameters'].forEach((k,v){
+    Map<String, String>? paramMetaValues = HashMap();
+    if (map.containsKey('parameters')) {
+      map['parameters'].forEach((k, v) {
         paramMetaValues[k.toString()] = v.toString();
       });
     }
-    return APIHandler(api,paramMetaValues,map['success'],map['error']);
+    return APIHandler(api, paramMetaValues, map['success'], map['error']);
   }
-  Map<String,dynamic> prepareContext(WidgetAction action) {
-    Map<String,dynamic> context = HashMap();
+
+  Map<String, dynamic> prepareContext(WidgetAction action) {
+    Map<String, dynamic> context = HashMap();
     action.view.idWidgetMap.forEach((k, v) {
       context[k] = v.widget;
     });
     return context;
   }
+
   @override
   void handle(WidgetAction action) {
-    Map<String,String> values = HashMap();
+    Map<String, String> values = HashMap();
     prepareContext(action);
     api.call(values);
     // response.then((res) {
@@ -141,13 +148,10 @@ class APIHandler extends Handler {
     //
     // });
   }
-
 }
+
 class MyEvaluator {
   const MyEvaluator();
 
-  dynamic evalMemberExpression() {
-
-  }
+  dynamic evalMemberExpression() {}
 }
-

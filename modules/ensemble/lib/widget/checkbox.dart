@@ -44,7 +44,7 @@ class EnsembleCheckbox extends StatefulWidget
           _controller.trailingText = Utils.optionalString(text),
       'size': (value) => _controller.size = Utils.optionalInt(value, min: 0),
       'onChange': (definition) => _controller.onChange =
-          framework.EnsembleAction.fromYaml(definition, initiator: this),
+          framework.EnsembleAction.from(definition, initiator: this),
 
       // deprecated - for backward compatible
       'selectedColor': (color) =>

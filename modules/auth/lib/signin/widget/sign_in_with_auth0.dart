@@ -20,7 +20,6 @@
 // // import 'package:auth0_flutter/auth0_flutter.dart';
 // import 'package:flutter/cupertino.dart';
 
-
 // class SignInWithAuth0Impl extends StatefulWidget
 //     with
 //         Invokable,
@@ -166,7 +165,6 @@
 //     }
 //   }
 // }
-
 
 // // Singleton reference to auth scheme and credentials being used
 // class Auth0CredentialsManager {

@@ -32,7 +32,7 @@ class HapticAction extends EnsembleAction {
 
     return HapticAction(
       type: payload['type'],
-      onComplete: EnsembleAction.fromYaml(payload['onComplete']),
+      onComplete: EnsembleAction.from(payload['onComplete']),
     );
   }
 

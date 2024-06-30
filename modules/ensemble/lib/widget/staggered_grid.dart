@@ -48,7 +48,7 @@ class EnsembleStaggeredGrid extends StatefulWidget
       'verticalGap': (value) =>
           _controller.verticalGap = Utils.optionalDouble(value),
       'onItemTap': (funcDefinition) => _controller.onItemTap =
-          EnsembleAction.fromYaml(funcDefinition, initiator: this),
+          EnsembleAction.from(funcDefinition, initiator: this),
       'onItemTapHaptic': (value) =>
           _controller.onItemTapHaptic = Utils.optionalString(value)
     };

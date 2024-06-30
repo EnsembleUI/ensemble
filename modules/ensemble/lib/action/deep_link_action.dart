@@ -33,8 +33,7 @@ class DeepLinkInitAction extends EnsembleAction {
         throw LanguageError('provider is required for initDeepLink action');
       }
 
-      EnsembleAction? successAction =
-          EnsembleAction.fromYaml(payload['onSuccess']);
+      EnsembleAction? successAction = EnsembleAction.from(payload['onSuccess']);
       if (successAction == null) {
         throw LanguageError('onSuccess() is required for initDeepLink action');
       }
@@ -42,8 +41,8 @@ class DeepLinkInitAction extends EnsembleAction {
       return DeepLinkInitAction(
         provider: provider,
         onSuccess: successAction,
-        onError: EnsembleAction.fromYaml(payload['onError']),
-        onLinkReceived: EnsembleAction.fromYaml(payload['onLinkReceived']),
+        onError: EnsembleAction.from(payload['onError']),
+        onLinkReceived: EnsembleAction.from(payload['onLinkReceived']),
         options: Utils.getMap(payload['options']),
       );
     }
@@ -91,7 +90,7 @@ class DeepLinkHandleAction extends EnsembleAction {
       }
 
       EnsembleAction? onLinkReceivedAction =
-          EnsembleAction.fromYaml(payload['onLinkReceived']);
+          EnsembleAction.from(payload['onLinkReceived']);
       if (onLinkReceivedAction == null) {
         throw LanguageError(
             'onLinkReceived() is required for handleDeepLink action');
@@ -100,7 +99,7 @@ class DeepLinkHandleAction extends EnsembleAction {
       return DeepLinkHandleAction(
         url: url,
         onLinkReceived: onLinkReceivedAction,
-        onError: EnsembleAction.fromYaml(payload['onError']),
+        onError: EnsembleAction.from(payload['onError']),
       );
     }
     throw LanguageError('DeferredDeepLink: Missing inputs for handleDeepLink');
@@ -150,8 +149,7 @@ class CreateDeeplinkAction extends EnsembleAction {
         throw LanguageError('provider is required for createDeepLink action');
       }
 
-      EnsembleAction? successAction =
-          EnsembleAction.fromYaml(payload['onSuccess']);
+      EnsembleAction? successAction = EnsembleAction.from(payload['onSuccess']);
       if (successAction == null) {
         throw LanguageError(
             'onSuccess() is required for createDeepLink action');
@@ -160,7 +158,7 @@ class CreateDeeplinkAction extends EnsembleAction {
       return CreateDeeplinkAction(
         provider: provider,
         onSuccess: successAction,
-        onError: EnsembleAction.fromYaml(payload['onError']),
+        onError: EnsembleAction.from(payload['onError']),
         universalProps: Utils.getMap(payload['universalProps']),
         linkProps: Utils.getMap(payload['linkProps']),
       );

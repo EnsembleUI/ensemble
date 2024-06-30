@@ -90,11 +90,11 @@ class EnsembleQRCodeScannerController extends EnsembleBoxController {
       'overlayColor': (color) => overlayColor = Utils.getColor(color),
       'cutOutBorderColor': (color) => cutOutBorderColor = Utils.getColor(color),
       'onInitialized': (func) =>
-          onInitialized = EnsembleAction.fromYaml(func, initiator: this),
+          onInitialized = EnsembleAction.from(func, initiator: this),
       'onReceived': (func) =>
-          onReceived = EnsembleAction.fromYaml(func, initiator: this),
+          onReceived = EnsembleAction.from(func, initiator: this),
       'onPermissionSet': (func) =>
-          onPermissionSet = EnsembleAction.fromYaml(func, initiator: this),
+          onPermissionSet = EnsembleAction.from(func, initiator: this),
     });
 }
 

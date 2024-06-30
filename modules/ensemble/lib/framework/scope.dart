@@ -760,11 +760,11 @@ class EnsembleSocket {
       inputs: Utils.getList(payload['inputs'])?.cast<String>() ?? [],
       uri: Utils.getString(payload['uri'], fallback: ''),
       options: SocketOptions.fromYaml(payload: payload['options']),
-      onReceive: EnsembleAction.fromYaml(payload['onReceive']),
-      onSuccess: EnsembleAction.fromYaml(payload['onSuccess']),
-      onError: EnsembleAction.fromYaml(payload['onError']),
-      onDisconnect: EnsembleAction.fromYaml(payload['onDisconnect']),
-      onReconnecting: EnsembleAction.fromYaml(payload['onReconnectAttempt']),
+      onReceive: EnsembleAction.from(payload['onReceive']),
+      onSuccess: EnsembleAction.from(payload['onSuccess']),
+      onError: EnsembleAction.from(payload['onError']),
+      onDisconnect: EnsembleAction.from(payload['onDisconnect']),
+      onReconnecting: EnsembleAction.from(payload['onReconnectAttempt']),
     );
   }
 

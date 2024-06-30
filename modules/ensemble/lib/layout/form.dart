@@ -59,7 +59,7 @@ class EnsembleForm extends StatefulWidget
   Map<String, Function> setters() {
     return {
       'onSubmit': (funcDefinition) => _controller.onSubmit =
-          EnsembleAction.fromYaml(funcDefinition, initiator: this),
+          EnsembleAction.from(funcDefinition, initiator: this),
       'labelPosition': (value) =>
           handleLabelPosition(Utils.optionalString(value)),
       'labelOverflow': (value) =>
