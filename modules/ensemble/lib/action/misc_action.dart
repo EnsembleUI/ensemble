@@ -27,8 +27,8 @@ class CopyToClipboardAction extends EnsembleAction {
     }
     return CopyToClipboardAction(
       payload['value'],
-      onSuccess: EnsembleAction.fromYaml(payload['onSuccess']),
-      onFailure: EnsembleAction.fromYaml(payload['onFailure']),
+      onSuccess: EnsembleAction.from(payload['onSuccess']),
+      onFailure: EnsembleAction.from(payload['onFailure']),
     );
   }
 

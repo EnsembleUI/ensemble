@@ -68,17 +68,17 @@ class GridView extends StatefulWidget
       'itemAspectRatio': (value) =>
           _controller.itemAspectRatio = Utils.optionalDouble(value, min: 0),
       'onItemTap': (funcDefinition) => _controller.onItemTap =
-          EnsembleAction.fromYaml(funcDefinition, initiator: this),
+          EnsembleAction.from(funcDefinition, initiator: this),
       'onItemTapHaptic': (value) =>
           _controller.onItemTapHaptic = Utils.optionalString(value),
       'pullToRefresh': (input) =>
           _controller.pullToRefresh = PullToRefresh.fromMap(input, this),
       'onPullToRefresh': (funcDefinition) => _controller.onPullToRefresh =
-          EnsembleAction.fromYaml(funcDefinition, initiator: this),
+          EnsembleAction.from(funcDefinition, initiator: this),
       'pullToRefreshOptions': (input) => _controller.pullToRefreshOptions =
           PullToRefreshOptions.fromMap(input),
       'onScrollEnd': (funcDefinition) => _controller.onScrollEnd =
-          EnsembleAction.fromYaml(funcDefinition, initiator: this),
+          EnsembleAction.from(funcDefinition, initiator: this),
       'reverse': (value) =>
           _controller.reverse = Utils.getBool(value, fallback: false),
       'scrollController': (value) {

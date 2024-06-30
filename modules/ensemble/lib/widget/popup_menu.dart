@@ -29,7 +29,7 @@ class PopupMenu extends StatefulWidget
     return {
       'widget': (widgetDef) => _controller.widgetDef = widgetDef,
       'onItemSelect': (action) => _controller.onItemSelect =
-          EnsembleAction.fromYaml(action, initiator: this),
+          EnsembleAction.from(action, initiator: this),
       'items': (input) =>
           _controller.items = _getItems(input) ?? _controller.items,
     };

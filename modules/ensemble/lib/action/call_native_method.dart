@@ -28,8 +28,8 @@ class CallNativeMethod extends EnsembleAction {
     }
     return CallNativeMethod(
         name, payload?['payload'] is Map ? payload!['payload'] : null,
-        onComplete: EnsembleAction.fromYaml(payload?['onComplete']),
-        onError: EnsembleAction.fromYaml(payload?['onError']));
+        onComplete: EnsembleAction.from(payload?['onComplete']),
+        onError: EnsembleAction.from(payload?['onError']));
   }
 
   @override

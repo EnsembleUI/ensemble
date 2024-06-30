@@ -112,7 +112,7 @@ class PlayAudio extends EnsembleAction {
       ),
       position: Utils.getDuration(payload['position']) ?? //
           const Duration(seconds: 0),
-      onComplete: EnsembleAction.fromYaml(payload['onComplete']),
+      onComplete: EnsembleAction.from(payload['onComplete']),
     );
   }
 

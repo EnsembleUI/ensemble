@@ -82,7 +82,7 @@ abstract class SwitchBase extends StatefulWidget
       'inactiveThumbColor': (color) =>
           _controller.inactiveThumbColor = Utils.getColor(color),
       'onChange': (definition) => _controller.onChange =
-          framework.EnsembleAction.fromYaml(definition, initiator: this)
+          framework.EnsembleAction.from(definition, initiator: this)
     };
   }
 }

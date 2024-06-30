@@ -61,11 +61,11 @@ class Video extends StatefulWidget
       'playbackRate': (value) => controller.setPlaybackRate(value),
       'volume': (value) => controller.setVolume(value),
       'onChange': (definition) => _controller.onChange =
-          EnsembleAction.fromYaml(definition, initiator: this),
+          EnsembleAction.from(definition, initiator: this),
       'onStart': (definition) => _controller.onStart =
-          EnsembleAction.fromYaml(definition, initiator: this),
+          EnsembleAction.from(definition, initiator: this),
       'onEnd': (definition) => _controller.onEnd =
-          EnsembleAction.fromYaml(definition, initiator: this),
+          EnsembleAction.from(definition, initiator: this),
     };
   }
 }

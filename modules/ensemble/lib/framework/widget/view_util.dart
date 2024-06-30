@@ -178,7 +178,7 @@ class ViewUtil {
     Map<String, EnsembleAction?> eventPayload = {};
     if (callerPayload?['events'] is Map) {
       callerPayload!['events'].forEach((key, value) {
-        eventPayload[key] = EnsembleAction.fromYaml(value);
+        eventPayload[key] = EnsembleAction.from(value);
       });
     }
     WidgetModel? widgetModel;

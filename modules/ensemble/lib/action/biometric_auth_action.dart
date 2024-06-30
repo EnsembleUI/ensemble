@@ -88,17 +88,17 @@ class AuthenticateByBiometric extends EnsembleAction {
       return null;
     }
     return AuthenticateByBiometric(
-      onAuthenticated: EnsembleAction.fromYaml(payload['onAuthenticated']),
+      onAuthenticated: EnsembleAction.from(payload['onAuthenticated']),
       onAuthenticationFailed:
-          EnsembleAction.fromYaml(payload['onAuthenticationFailed']),
-      onError: EnsembleAction.fromYaml(payload['onError']),
+          EnsembleAction.from(payload['onAuthenticationFailed']),
+      onError: EnsembleAction.from(payload['onError']),
       onSensorNotAvailable:
-          EnsembleAction.fromYaml(payload['onSensorNotAvailable']),
+          EnsembleAction.from(payload['onSensorNotAvailable']),
       androidTitle: Utils.optionalString(payload['androidTitle']),
       allowConfiguration: Utils.optionalBool(payload['allowConfiguration']),
       label: Utils.optionalString(payload['label']),
       onSensorNotConfigured:
-          EnsembleAction.fromYaml(payload['onSensorNotConfigured']),
+          EnsembleAction.from(payload['onSensorNotConfigured']),
     );
   }
 }

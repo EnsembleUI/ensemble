@@ -294,9 +294,9 @@ class SinglePageModel extends PageModel with HasStyles {
         }
 
         // set the view behavior
-        viewBehavior.onLoad = EnsembleAction.fromYaml(viewMap['onLoad']);
-        viewBehavior.onPause = EnsembleAction.fromYaml(viewMap['onPause']);
-        viewBehavior.onResume = EnsembleAction.fromYaml(viewMap['onResume']);
+        viewBehavior.onLoad = EnsembleAction.from(viewMap['onLoad']);
+        viewBehavior.onPause = EnsembleAction.from(viewMap['onPause']);
+        viewBehavior.onResume = EnsembleAction.from(viewMap['onResume']);
 
         processHeader(viewMap['header'], viewMap['title']);
 
