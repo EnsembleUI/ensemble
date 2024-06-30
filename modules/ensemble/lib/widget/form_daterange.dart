@@ -49,7 +49,7 @@ class DateRange extends StatefulWidget
       'fontSize': (value) => _controller.fontSize = Utils.optionalInt(value),
       'suffixIcon': (value) => _controller.suffixIcon = Utils.getIcon(value),
       'onChange': (definition) => _controller.onChange =
-          EnsembleAction.fromYaml(definition, initiator: this)
+          EnsembleAction.from(definition, initiator: this)
     };
   }
 }

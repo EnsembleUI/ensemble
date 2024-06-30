@@ -95,9 +95,9 @@ class EnsembleMapWidget extends StatefulWidget
       'autoSelect': (value) => _controller.autoSelect =
           Utils.getBool(value, fallback: _controller.autoSelect),
       'onMapCreated': (action) => _controller.onMapCreated =
-          EnsembleAction.fromYaml(action, initiator: this),
+          EnsembleAction.from(action, initiator: this),
       'onCameraMove': (action) => _controller.onCameraMove =
-          EnsembleAction.fromYaml(action, initiator: this),
+          EnsembleAction.from(action, initiator: this),
     };
   }
 
@@ -121,9 +121,9 @@ class EnsembleMapWidget extends StatefulWidget
                 widget: markerData['selectedMarker']?['widget'],
                 icon: Utils.getMap(markerData['selectedMarker']?['icon'])),
             overlayTemplate: markerData['overlayWidget'],
-            onMarkerTap: EnsembleAction.fromYaml(markerData['onMarkerTap'],
-                initiator: this),
-            onMarkersUpdated: EnsembleAction.fromYaml(
+            onMarkerTap:
+                EnsembleAction.from(markerData['onMarkerTap'], initiator: this),
+            onMarkersUpdated: EnsembleAction.from(
                 markerData['onMarkersUpdated'],
                 initiator: this));
       }
@@ -261,7 +261,9 @@ class MarkerTemplate {
   final dynamic widget;
 
   static MarkerTemplate? build(
-      {Map<String, dynamic>? image, Map<String, dynamic>? icon, dynamic widget}) {
+      {Map<String, dynamic>? image,
+      Map<String, dynamic>? icon,
+      dynamic widget}) {
     if (image != null || icon != null || widget != null) {
       return MarkerTemplate._(image: image, icon: icon, widget: widget);
     }

@@ -77,7 +77,7 @@ abstract class SelectOne extends StatefulWidget
       'value': (value) => _controller.maybeValue = value,
       'items': (values) => updateItems(values),
       'onChange': (definition) => _controller.onChange =
-          framework.EnsembleAction.fromYaml(definition, initiator: this),
+          framework.EnsembleAction.from(definition, initiator: this),
       'itemsFromString': (dynamic strValues) => setItemsFromString(strValues),
       'itemsFromArray': (dynamic arrValues) => setItemsFromArray(arrValues),
       'autoComplete': (value) =>
@@ -104,8 +104,7 @@ abstract class SelectOne extends StatefulWidget
 
   void _setCreateNewItem(dynamic input) {
     if (input is! Map) return;
-    _controller.onCreateItemTap =
-        framework.EnsembleAction.fromYaml(input['onTap']);
+    _controller.onCreateItemTap = framework.EnsembleAction.from(input['onTap']);
 
     _controller.createNewItemIcon = Utils.getIcon(input['icon']);
     _controller.createNewItemLabel = Utils.optionalString(input['label']);

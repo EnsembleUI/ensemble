@@ -53,7 +53,7 @@ class EnsembleStack extends StatefulWidget
   }
 }
 
-class StackController extends WidgetController {
+class StackController extends TapEnabledBoxController {
   List<WidgetModel>? children;
   Alignment? alignChildren;
 }

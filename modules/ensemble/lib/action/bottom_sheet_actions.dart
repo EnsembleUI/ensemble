@@ -39,7 +39,7 @@ class ShowBottomSheetAction extends EnsembleAction {
         initiator: initiator,
         inputs: Utils.getMap(payload['inputs']),
         body: body,
-        onDismiss: EnsembleAction.fromYaml(payload['onDismiss']),
+        onDismiss: EnsembleAction.from(payload['onDismiss']),
         payload: payload);
   }
 

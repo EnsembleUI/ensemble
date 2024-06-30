@@ -68,7 +68,7 @@ class ScrollableTabBar extends BaseTabBar {
       'selectedIndex': (index) =>
           _controller.selectedIndex = Utils.getInt(index, min: 0, fallback: 0),
       'onTabSelection': (action) => _controller.onTabSelection =
-          EnsembleAction.fromYaml(action, initiator: this),
+          EnsembleAction.from(action, initiator: this),
       'onTabSelectionHaptic': (value) =>
           _controller.onTabSelectionHaptic = Utils.optionalString(value),
     };

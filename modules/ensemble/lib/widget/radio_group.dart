@@ -47,7 +47,7 @@ class RadioGroup extends StatefulWidget
       'items': (values) => _controller.items = Utils.getListOfStrings(values),
       'itemTemplate': _setItemTemplate,
       'onChange': (definition) => _controller.onChange =
-          EnsembleAction.fromYaml(definition, initiator: this),
+          EnsembleAction.from(definition, initiator: this),
       'direction': (value) =>
           _controller.direction = RadioGroupDirection.values.from(value),
       'controlPosition': (value) => _controller.controlPosition =

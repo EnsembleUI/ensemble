@@ -53,7 +53,7 @@ class Date extends StatefulWidget
       'showCalendarIcon': (shouldShow) =>
           _controller.showCalendarIcon = Utils.optionalBool(shouldShow),
       'onChange': (definition) => _controller.onChange =
-          EnsembleAction.fromYaml(definition, initiator: this)
+          EnsembleAction.from(definition, initiator: this)
     });
     return setters;
   }

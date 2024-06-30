@@ -22,13 +22,13 @@ class ConnectWithMicrosoftImpl extends StatefulWidget
   static const defaultLabel = 'Continue with Microsoft';
   ConnectWithMicrosoftImpl({super.key});
 
-  final ConnectWithMicrosoftController _controller = ConnectWithMicrosoftController();
+  final ConnectWithMicrosoftController _controller =
+      ConnectWithMicrosoftController();
   @override
   ConnectWithMicrosoftController get controller => _controller;
 
   @override
   State<StatefulWidget> createState() => ConnectWithMicrosoftState();
-
 
   @override
   Map<String, Function> getters() {
@@ -44,23 +44,22 @@ class ConnectWithMicrosoftImpl extends StatefulWidget
   Map<String, Function> setters() {
     return {
       'tokenExchangeAPI': (apiAction) => _controller.tokenExchangeAPI =
-          apiAction == null ? null : InvokeAPIAction.fromYaml(
-              initiator: this, payload: apiAction),
+          apiAction == null
+              ? null
+              : InvokeAPIAction.fromYaml(initiator: this, payload: apiAction),
       'onInitiated': (action) => _controller.onInitiated =
-          EnsembleAction.fromYaml(action, initiator: this),
-      'onCanceled': (action) => _controller.onCanceled =
-          EnsembleAction.fromYaml(action, initiator: this),
+          EnsembleAction.from(action, initiator: this),
+      'onCanceled': (action) =>
+          _controller.onCanceled = EnsembleAction.from(action, initiator: this),
       'onAuthorized': (action) => _controller.onAuthorized =
-          EnsembleAction.fromYaml(action, initiator: this),
-      'onError': (action) => _controller.onError =
-          EnsembleAction.fromYaml(action, initiator: this),
+          EnsembleAction.from(action, initiator: this),
+      'onError': (action) =>
+          _controller.onError = EnsembleAction.from(action, initiator: this),
     };
   }
 }
 
-class ConnectWithMicrosoftController extends ConnectController{
-
-}
+class ConnectWithMicrosoftController extends ConnectController {}
 
 class ConnectWithMicrosoftState extends WidgetState<ConnectWithMicrosoftImpl> {
   Widget? _displayWidget;
@@ -74,16 +73,15 @@ class ConnectWithMicrosoftState extends WidgetState<ConnectWithMicrosoftImpl> {
     }
   }
 
-
   @override
   Widget buildWidget(BuildContext context) {
     return _displayWidget != null
         ? ConnectWidgetContainer(widget: _displayWidget!, onTap: startAuthFlow)
         : SignInButton(
-          defaultLabel: ConnectWithMicrosoftImpl.defaultLabel,
-          iconName: 'microsoft_logo.svg',
-          buttonController: widget._controller,
-          onTap: startAuthFlow);
+            defaultLabel: ConnectWithMicrosoftImpl.defaultLabel,
+            iconName: 'microsoft_logo.svg',
+            buttonController: widget._controller,
+            onTap: startAuthFlow);
   }
 
   Future<void> startAuthFlow() async {
@@ -100,12 +98,11 @@ class ConnectWithMicrosoftState extends WidgetState<ConnectWithMicrosoftImpl> {
 
     OAuthServiceToken? token;
     try {
-      token = await OAuthControllerImpl().authorize(
-          context,
-          OAuthService.microsoft,
-          scope: ConnectUtils.getScopesAsString(scopes),
-          forceNewTokens: true,   // this always force the flow again
-          tokenExchangeAPI: widget._controller.tokenExchangeAPI);
+      token =
+          await OAuthControllerImpl().authorize(context, OAuthService.microsoft,
+              scope: ConnectUtils.getScopesAsString(scopes),
+              forceNewTokens: true, // this always force the flow again
+              tokenExchangeAPI: widget._controller.tokenExchangeAPI);
 
       // dispatch success
       if (widget._controller.onAuthorized != null && token != null) {
@@ -125,9 +122,7 @@ class ConnectWithMicrosoftState extends WidgetState<ConnectWithMicrosoftImpl> {
 
     // dispatch error
     if (widget._controller.onError != null && token == null) {
-      ScreenController()
-          .executeAction(context, widget._controller.onError!);
+      ScreenController().executeAction(context, widget._controller.onError!);
     }
   }
-
 }

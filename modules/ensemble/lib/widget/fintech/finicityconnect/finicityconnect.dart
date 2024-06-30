@@ -65,17 +65,17 @@ class FinicityConnect extends StatefulWidget
       'uri': (value) =>
           _controller.uri = Utils.getString(value, fallback: _controller.uri),
       'onSuccess': (funcDefinition) => _controller.onSuccess =
-          EnsembleAction.fromYaml(funcDefinition, initiator: this),
+          EnsembleAction.from(funcDefinition, initiator: this),
       'onCancel': (funcDefinition) => _controller.onCancel =
-          EnsembleAction.fromYaml(funcDefinition, initiator: this),
+          EnsembleAction.from(funcDefinition, initiator: this),
       'onError': (funcDefinition) => _controller.onError =
-          EnsembleAction.fromYaml(funcDefinition, initiator: this),
+          EnsembleAction.from(funcDefinition, initiator: this),
       'onRoute': (funcDefinition) => _controller.onRoute =
-          EnsembleAction.fromYaml(funcDefinition, initiator: this),
+          EnsembleAction.from(funcDefinition, initiator: this),
       'onUser': (funcDefinition) => _controller.onUser =
-          EnsembleAction.fromYaml(funcDefinition, initiator: this),
+          EnsembleAction.from(funcDefinition, initiator: this),
       'onLoaded': (funcDefinition) => _controller.onLoaded =
-          EnsembleAction.fromYaml(funcDefinition, initiator: this),
+          EnsembleAction.from(funcDefinition, initiator: this),
       'overlay': (value) => _controller.overlay = value,
     };
   }
