@@ -7,6 +7,7 @@ import 'package:ensemble/framework/studio/studio_debugger.dart';
 import 'package:ensemble/framework/view/data_scope_widget.dart';
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/layout/form.dart' as ensemble;
+import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/widget/helpers/form_helper.dart';
 import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:ensemble/framework/theme/theme_manager.dart';
@@ -226,15 +227,33 @@ class BoxWrapper extends StatelessWidget {
           ? Stack(
               children: [
                 Positioned.fill(child: backgroundImage),
-                _getWidget(),
+                _getWidget(context),
               ],
             )
-          : _getWidget(),
+          : _getWidget(context),
     );
   }
 
   /// The child widget need to clip separately from the Container's decoration
-  Widget _getWidget() {
+  Widget _getWidget(BuildContext context) {
+    Widget w = widget;
+    if (boxController is TapEnabledBoxController &&
+        (boxController as TapEnabledBoxController).onTap != null) {
+      var controller = boxController as TapEnabledBoxController;
+      w = Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: () =>
+                ScreenController().executeAction(context, controller.onTap!),
+            splashColor: controller.splashColor,
+            highlightColor: controller.highlightColor,
+            focusColor: controller.focusColor,
+            hoverColor: controller.hoverColor,
+            mouseCursor: controller.mouseCursor,
+            child: w,
+          ));
+    }
+
     // some widget (i.e. Image) will not respect the Container's boundary
     // even if clipBehavior is enabled. In these case we need to apply
     // an explicit ClipRRect around it. Note also that apply it around
@@ -245,8 +264,8 @@ class BoxWrapper extends StatelessWidget {
         ? ClipRRect(
             borderRadius: boxController.borderRadius!.getValue(),
             clipBehavior: Clip.hardEdge,
-            child: widget)
-        : widget;
+            child: w)
+        : w;
   }
 }
 
