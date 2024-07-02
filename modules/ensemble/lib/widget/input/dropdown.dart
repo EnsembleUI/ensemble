@@ -73,7 +73,10 @@ abstract class SelectOne extends StatefulWidget
   Map<String, Function> setters() {
     var setters = _controller.textPlaceholderSetters;
     setters.addAll({
-      'value': (value) => _controller.maybeValue = value,
+      'value': (value) {
+        _controller.textEditingController.value = TextEditingValue(text: value);
+        return _controller.maybeValue = value;
+      },
       'items': (values) => updateItems(values),
       'onChange': (definition) => _controller.onChange =
           framework.EnsembleAction.fromYaml(definition, initiator: this),
@@ -246,6 +249,8 @@ class SelectOneController extends FormFieldController with HasTextPlaceholder {
   SelectOneInputFieldAction? inputFieldAction;
   List<SelectOneItem>? items;
 
+  TextEditingController textEditingController = TextEditingController();
+
   // this is our value but it can be in an invalid state.
   // Since user can set items/value in any order and at anytime, the value may
   // not be one of the items, hence it could be in an incorrect state
@@ -274,7 +279,6 @@ class SelectOneController extends FormFieldController with HasTextPlaceholder {
 class SelectOneState extends FormFieldWidgetState<SelectOne>
     with SelectOneInputFieldAction, TemplatedWidgetState {
   FocusNode focusNode = FocusNode();
-  late TextEditingController textEditingController;
   List? dataList;
 
   @override
@@ -285,7 +289,8 @@ class SelectOneState extends FormFieldWidgetState<SelectOne>
         validatorKey.currentState!.validate();
       }
     });*/
-    textEditingController = TextEditingController(text: widget.getValue());
+    widget.controller.textEditingController =
+        TextEditingController(text: widget.getValue());
 
     super.initState();
   }
@@ -315,7 +320,7 @@ class SelectOneState extends FormFieldWidgetState<SelectOne>
   void dispose() {
     focusNode.dispose();
     dataList = null;
-    textEditingController.dispose();
+    widget.controller.textEditingController.dispose();
     super.dispose();
   }
 
@@ -405,10 +410,10 @@ class SelectOneState extends FormFieldWidgetState<SelectOne>
     return LayoutBuilder(
         builder: (context, constraints) => RawAutocomplete<SelectOneItem>(
               focusNode: focusNode,
-              textEditingController: textEditingController,
+              textEditingController: widget.controller.textEditingController,
               optionsBuilder: (TextEditingValue textEditingValue) =>
-                  buildAutoCompleteOptions(
-                      textEditingValue, textEditingController),
+                  buildAutoCompleteOptions(textEditingValue,
+                      widget.controller.textEditingController),
               displayStringForOption: (SelectOneItem option) =>
                   option.label ?? option.value,
               fieldViewBuilder: (BuildContext context,
@@ -663,7 +668,7 @@ class SelectOneState extends FormFieldWidgetState<SelectOne>
   @override
   void clear() {
     onSelectionChanged(null);
-    textEditingController.clear();
+    widget.controller.textEditingController.clear();
   }
 
   @override
