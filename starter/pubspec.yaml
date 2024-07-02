@@ -96,6 +96,13 @@ dependencies:
   #     ref: main
   #     path: modules/firebase_analytics
 
+  # Uncomment to enable ensemble chat widget
+  # ensemble_chat:
+  #   git:
+  #     url: https://github.com/EnsembleUI/ensemble.git
+  #     ref: main
+  #     path: modules/chat
+
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.2
