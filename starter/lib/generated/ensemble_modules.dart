@@ -2,12 +2,12 @@ import 'package:ensemble/framework/logging/log_provider.dart';
 import 'package:ensemble/framework/notification_manager.dart';
 import 'package:ensemble/framework/stub/analytics_provider.dart';
 import 'package:ensemble/framework/stub/camera_manager.dart';
+import 'package:ensemble/framework/stub/ensemble_bracket.dart';
+import 'package:ensemble/framework/stub/ensemble_chat.dart';
 import 'package:ensemble/framework/stub/qr_code_scanner.dart';
 import 'package:ensemble/framework/stub/deferred_link_manager.dart';
-// import 'package:ensemble/framework/stub/ensemble_chat.dart';
 import 'package:ensemble/framework/stub/file_manager.dart';
 import 'package:ensemble/framework/stub/contacts_manager.dart';
-import 'package:ensemble/framework/stub/location_manager.dart';
 import 'package:ensemble/framework/stub/plaid_link_manager.dart';
 import 'package:ensemble/module/auth_module.dart';
 import 'package:ensemble/module/location_module.dart';
@@ -17,6 +17,9 @@ import 'package:get_it/get_it.dart';
 
 // Uncomment to enable ensemble_chat widget
 // import 'package:ensemble_chat/ensemble_chat.dart';
+
+// Uncomment to enable ensemble_bracket widget
+// import 'package:ensemble_bracket/ensemble_bracket.dart';
 
 // Uncomment to enable Auth service
 // import 'package:ensemble_auth/auth_module.dart';
@@ -57,6 +60,7 @@ class EnsembleModules {
   static const useDeeplink = false;
   static const useFirebaseAnalytics = false;
   static const useNotifications = false;
+  static const useBracket = false;
 
   // widgets
   static const enableChat = false;
@@ -132,13 +136,20 @@ class EnsembleModules {
       // Uncomment to enable ensemble chat
       // GetIt.I.registerSingleton<EnsembleChat>(EnsembleChatImpl());
     } else {
-      // GetIt.I.registerSingleton<EnsembleChat>(const EnsembleChatStub());
+      GetIt.I.registerSingleton<EnsembleChat>(const EnsembleChatStub());
     }
     if (useFirebaseAnalytics) {
       //uncomment to enable firebase analytics
       //GetIt.I.registerSingleton<LogProvider>(FirebaseAnalyticsProvider());
     } else {
       GetIt.I.registerSingleton<LogProvider>(LogProviderStub());
+    }
+
+    if (useBracket) {
+      //uncomment to enable ensemble bracket widget
+      // GetIt.I.registerSingleton<EnsembleBracket>(EnsembleBracketImpl.build());
+    } else {
+      GetIt.I.registerSingleton<EnsembleBracket>(EnsembleBracketStub());
     }
   }
 }
