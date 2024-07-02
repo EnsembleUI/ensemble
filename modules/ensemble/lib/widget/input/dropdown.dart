@@ -315,6 +315,7 @@ class SelectOneState extends FormFieldWidgetState<SelectOne>
   void dispose() {
     focusNode.dispose();
     dataList = null;
+    textEditingController.dispose();
     super.dispose();
   }
 
