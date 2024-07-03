@@ -20,6 +20,7 @@ import 'package:ensemble/page_model.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/custom_widget/custom_widget.dart';
 import 'package:ensemble/widget/custom_widget/custom_widget_model.dart';
+import 'package:ensemble/widget/radio/radio_button_controller.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokablecontroller.dart';
 import 'package:event_bus/event_bus.dart';
@@ -699,6 +700,10 @@ class PageData {
   // API model mapping
   Map<String, YamlMap>? apiMap;
   Map<String, EnsembleSocket>? socketData;
+
+  // we keep track of radios's groupId on every page, since Radios can be scattered
+  // anywhere on the screen
+  Map<String, RadioButtonController> radioButtonControllers = {};
 
   /// everytime we call this, we make sure any populated API result will have its updated values here
 /*DataContext getEnsembleContext() {
