@@ -141,7 +141,7 @@ class FirestoreAPIProvider extends APIProvider with LiveAPIProvider {
   }
 
   FirestoreResponse getOKResponse(String apiName, dynamic result) {
-    Map<String,dynamic>? body;
+    Map<String, dynamic>? body;
 
     if (result is QuerySnapshot) {
       // Handle QuerySnapshot for 'get' operations
@@ -266,7 +266,11 @@ class FirestoreAPIProvider extends APIProvider with LiveAPIProvider {
         listener.call(getOKResponse(apiName, snapshot));
       }));
     }
-    Map<String,dynamic> body = {'message': 'Subscribed to API','documents': []};;
+    Map<String, dynamic> body = {
+      'message': 'Subscribed to API',
+      'documents': []
+    };
+    ;
     return FirestoreResponse(
       apiState: APIState.success,
       body: body,
