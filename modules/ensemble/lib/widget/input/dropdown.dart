@@ -400,8 +400,7 @@ class SelectOneState extends FormFieldWidgetState<SelectOne>
           contentPadding: adjustedContentPadding,
           labelText: widget.controller.floatLabel == true
               ? widget.controller.label
-              : null,
-          fillColor: widget._controller.dropdownBackgroundColor, // Background color for the field
+              : null
         ));
   }
 
@@ -430,7 +429,7 @@ class SelectOneState extends FormFieldWidgetState<SelectOne>
                     labelText: widget.controller.floatLabel == true
                         ? widget.controller.label
                         : null,
-                    fillColor: widget._controller.dropdownBackgroundColor, // Background color for the field
+                    fillColor: widget._controller.fillColor, // Background color for the field
                   ),
                   onChanged: (value) {
                     final oldValue = widget._controller.maybeValue;
