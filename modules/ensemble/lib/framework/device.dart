@@ -14,35 +14,41 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
 import 'package:intl/intl.dart';
+import 'package:network_info_plus/network_info_plus.dart';
 
-/// get device information as well as requesting device permissions
+/// Singleton class to get device information and request device permissions
 class Device
     with
         Invokable,
         MediaQueryCapability,
         LocationCapability,
-        DeviceInfoCapability {
+        DeviceInfoCapability,
+        NetworkInfoCapability {
   static final Device _instance = Device._internal();
   Device._internal();
-  factory Device() {
-    return _instance;
-  }
+  factory Device() => _instance;
 
   @override
   Map<String, Function> getters() {
     return {
       // Capabilities
       'lastLocation': () => Location(getLastLocation()),
-
       // Media Query
       "width": () => screenWidth,
       "height": () => screenHeight,
       "safeAreaTop": () => safeAreaTop,
       "safeAreaBottom": () => safeAreaBottom,
-
       // Misc Info
       "platform": () => platform?.name,
-      DevicePlatform.web.name: () => DeviceWebInfo()
+      DevicePlatform.web.name: () => DeviceWebInfo(),
+      // Network Info
+      "wifiName": () => getWifiName(),
+      "wifiBSSID": () => getWifiBSSID(),
+      "wifiIP": () => getWifiIP(),
+      "wifiIPv6": () => getWifiIPv6(),
+      "wifiSubmask": () => getWifiSubmask(),
+      "wifiBroadcast": () => getWifiBroadcast(),
+      "wifiGateway": () => getWifiGateway(),
     };
   }
 
@@ -54,13 +60,10 @@ class Device
   }
 
   @override
-  Map<String, Function> setters() {
-    return {};
-  }
+  Map<String, Function> setters() => {};
 
   void openAppSettings(String target) {
-    final settingType =
-        AppSettingsType.values.from(target) ?? AppSettingsType.settings;
+    final settingType = AppSettingsType.values.from(target) ?? AppSettingsType.settings;
     AppSettings.openAppSettings(type: settingType);
   }
 }
@@ -75,30 +78,17 @@ mixin MediaQueryCapability {
     return data ??= MediaQuery.of(Utils.globalAppKey.currentContext!);
   }
 
-  int get screenWidth {
-    return _getData().size.width.toInt();
-  }
-
-  int get screenHeight {
-    return _getData().size.height.toInt();
-  }
-
-  int get safeAreaTop {
-    return _getData().padding.top.toInt();
-  }
-
-  int get safeAreaBottom {
-    return _getData().padding.bottom.toInt();
-  }
+  int get screenWidth => _getData().size.width.toInt();
+  int get screenHeight => _getData().size.height.toInt();
+  int get safeAreaTop => _getData().padding.top.toInt();
+  int get safeAreaBottom => _getData().padding.bottom.toInt();
 }
 
-// /// This mixin can access user's location
+/// Mixin to access user's location
 mixin LocationCapability {
   static LocationData? lastLocation;
 
-  LocationData? getLastLocation() {
-    return lastLocation;
-  }
+  LocationData? getLastLocation() => lastLocation;
 
   // TODO: shouldn't set this from outside.
   void updateLastLocation(LocationData location) {
@@ -106,7 +96,7 @@ mixin LocationCapability {
   }
 }
 
-/// retrieve basic device info
+/// Mixin to retrieve basic device info
 mixin DeviceInfoCapability {
   static final DeviceInfoPlugin _deviceInfoPlugin = DeviceInfoPlugin();
   static DevicePlatform? _platform;
@@ -114,22 +104,20 @@ mixin DeviceInfoCapability {
 
   DevicePlatform? get platform => _platform;
 
-  /// initialize device info
-  void initDeviceInfo() async {
+  /// Initialize device info
+  Future<void> initDeviceInfo() async {
     try {
       if (kIsWeb) {
         _platform = DevicePlatform.web;
         browserInfo = await _deviceInfoPlugin.webBrowserInfo;
-      } else {
-        if (Platform.isAndroid) {
-          _platform = DevicePlatform.android;
-        } else if (Platform.isIOS) {
-          _platform = DevicePlatform.ios;
-        } else if (Platform.isMacOS) {
-          _platform = DevicePlatform.macos;
-        } else if (Platform.isWindows) {
-          _platform = DevicePlatform.windows;
-        }
+      } else if (Platform.isAndroid) {
+        _platform = DevicePlatform.android;
+      } else if (Platform.isIOS) {
+        _platform = DevicePlatform.ios;
+      } else if (Platform.isMacOS) {
+        _platform = DevicePlatform.macos;
+      } else if (Platform.isWindows) {
+        _platform = DevicePlatform.windows;
       }
     } on PlatformException {
       log("Error getting device info");
@@ -137,14 +125,26 @@ mixin DeviceInfoCapability {
   }
 }
 
+/// Mixin to retrieve network info
+mixin NetworkInfoCapability {
+  final NetworkInfo _networkInfo = NetworkInfo();
+
+  Future<String?> getWifiName() async => await _networkInfo.getWifiName();
+  Future<String?> getWifiBSSID() async => await _networkInfo.getWifiBSSID();
+  Future<String?> getWifiIP() async => await _networkInfo.getWifiIP();
+  Future<String?> getWifiIPv6() async => await _networkInfo.getWifiIPv6();
+  Future<String?> getWifiSubmask() async => await _networkInfo.getWifiSubmask();
+  Future<String?> getWifiBroadcast() async => await _networkInfo.getWifiBroadcast();
+  Future<String?> getWifiGateway() async => await _networkInfo.getWifiGatewayIP();
+}
+
+/// Class to retrieve web-specific device info
 class DeviceWebInfo with Invokable {
   @override
   Map<String, Function> getters() {
     WebBrowserInfo? browserInfo = DeviceInfoCapability.browserInfo;
     return {
-      'browserName': () => browserInfo?.browserName == null
-          ? null
-          : describeEnum(browserInfo!.browserName),
+      'browserName': () => browserInfo?.browserName == null ? null : describeEnum(browserInfo!.browserName),
       'appCodeName': () => browserInfo?.appCodeName,
       'appName': () => browserInfo?.appName,
       'appVersion': () => browserInfo?.appVersion,
@@ -163,16 +163,12 @@ class DeviceWebInfo with Invokable {
   }
 
   @override
-  Map<String, Function> methods() {
-    return {};
-  }
-
+  Map<String, Function> methods() => {};
   @override
-  Map<String, Function> setters() {
-    return {};
-  }
+  Map<String, Function> setters() => {};
 }
 
+/// Class to manage location data
 class Location with Invokable {
   Location(this.location);
   LocationData? location;
@@ -186,10 +182,7 @@ class Location with Invokable {
   }
 
   @override
-  Map<String, Function> setters() {
-    return {};
-  }
-
+  Map<String, Function> setters() => {};
   @override
   Map<String, Function> methods() {
     return {
@@ -198,12 +191,11 @@ class Location with Invokable {
     };
   }
 
-  /// return distance between 2 coordinates in miles
+  /// Return distance between 2 coordinates in miles
   double? getDistance(double lat, double lng) {
     if (location != null) {
       return GetIt.I<LocationManager>().distanceBetween(
-              location!.latitude, location!.longitude, lat, lng) /
-          1609.344;
+          location!.latitude, location!.longitude, lat, lng) / 1609.344;
     }
     return null;
   }
@@ -220,7 +212,7 @@ class Location with Invokable {
 
 enum DevicePlatform { web, android, ios, macos, windows, other }
 
-// the wrapper class for location request that includes other info
+// Wrapper class for location request that includes other info
 class DeviceLocation {
   DeviceLocation({required this.status, this.location});
   LocationData? location;
