@@ -70,6 +70,7 @@ abstract class GlobalContext {
     'atob': _String.atob,
     'console': Console(),
     'Date': StaticDate(),
+    'Object': InvokableObject(),
     // Encode and Decode URI Component functions
     'encodeURIComponent': (String s) => Uri.encodeComponent(s),
     'decodeURIComponent': (String s) => Uri.decodeComponent(s),
