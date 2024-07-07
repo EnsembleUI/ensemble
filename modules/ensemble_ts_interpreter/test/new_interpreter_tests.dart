@@ -2474,4 +2474,20 @@ function createRandomizedTiles() {
     JSInterpreter.fromCode(codeToEvaluate, SimpleContext(context)).evaluate();
     expect(context['n'], 12);
   });
+
+  group('InvokableObject methods', ()
+  {
+    test('keys method', () {
+      String codeToEvaluate = """
+        var obj = new Object();
+        obj['a'] = 1;
+        obj['b'] = 2;
+        obj['c'] = 3;
+        var result = Object.keys(obj);
+      """;
+      Map<String, dynamic> context = initContext();
+      JSInterpreter.fromCode(codeToEvaluate, SimpleContext(context)).evaluate();
+      expect(context['result'][0], 'a');
+    });
+  });
 }
