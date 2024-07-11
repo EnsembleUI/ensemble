@@ -23,7 +23,9 @@ class Device
         LocationCapability,
         DeviceInfoCapability {
   static final Device _instance = Device._internal();
+
   Device._internal();
+
   factory Device() {
     return _instance;
   }
@@ -42,6 +44,9 @@ class Device
 
       // Misc Info
       "platform": () => platform?.name,
+      "browserInfo": () => DeviceWebInfo(),
+
+      // @deprecated. backward compatibility
       DevicePlatform.web.name: () => DeviceWebInfo()
     };
   }
@@ -49,6 +54,13 @@ class Device
   @override
   Map<String, Function> methods() {
     return {
+      'isIOS': () => platform == DevicePlatform.ios,
+      'isAndroid': () => platform == DevicePlatform.android,
+      'isWeb': () => platform == DevicePlatform.web,
+      'isMacOS': () => platform == DevicePlatform.macos,
+      'isWindows': () => platform == DevicePlatform.windows,
+
+      // deprecated. Should be using Action instead
       'openAppSettings': (target) => openAppSettings(target),
     };
   }
@@ -58,7 +70,7 @@ class Device
     return {};
   }
 
-  void openAppSettings(String target) {
+  void openAppSettings([String? target]) {
     final settingType =
         AppSettingsType.values.from(target) ?? AppSettingsType.settings;
     AppSettings.openAppSettings(type: settingType);
@@ -175,6 +187,7 @@ class DeviceWebInfo with Invokable {
 
 class Location with Invokable {
   Location(this.location);
+
   LocationData? location;
 
   @override
@@ -223,6 +236,7 @@ enum DevicePlatform { web, android, ios, macos, windows, other }
 // the wrapper class for location request that includes other info
 class DeviceLocation {
   DeviceLocation({required this.status, this.location});
+
   LocationData? location;
   LocationStatus status;
 }

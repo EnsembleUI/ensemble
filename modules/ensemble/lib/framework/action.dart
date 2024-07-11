@@ -302,11 +302,18 @@ class AppSettingAction extends EnsembleAction {
       AppSettingsType.values.from(dataContext.eval(target)) ??
       AppSettingsType.settings;
 
-  factory AppSettingAction.fromYaml({Invokable? initiator, Map? payload}) {
+  factory AppSettingAction.from({Invokable? initiator, Map? payload}) {
     return AppSettingAction(
       initiator: initiator,
       target: Utils.getString(payload?['target'], fallback: 'settings'),
     );
+  }
+
+  @override
+  Future execute(BuildContext context, ScopeManager scopeManager) {
+    final settingType = getTarget(scopeManager.dataContext);
+    AppSettings.openAppSettings(type: settingType);
+    return Future.value(null);
   }
 }
 
@@ -1249,7 +1256,7 @@ abstract class EnsembleAction {
     } else if (actionType == ActionType.openPlaidLink) {
       return PlaidLinkAction.fromYaml(initiator: initiator, payload: payload);
     } else if (actionType == ActionType.openAppSettings) {
-      return AppSettingAction.fromYaml(initiator: initiator, payload: payload);
+      return AppSettingAction.from(initiator: initiator, payload: payload);
     } else if (actionType == ActionType.getPhoneContacts) {
       return GetPhoneContactAction.fromMap(
           initiator: initiator, payload: payload);
