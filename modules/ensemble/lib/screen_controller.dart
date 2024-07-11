@@ -365,9 +365,6 @@ class ScreenController {
         throw RuntimeError(
             "openPlaidLink action requires the plaid's link_token.");
       }
-    } else if (action is AppSettingAction) {
-      final settingType = action.getTarget(scopeManager.dataContext);
-      AppSettings.openAppSettings(type: settingType);
     } else if (action is ShowCameraAction) {
       GetIt.I<CameraManager>().openCamera(context, action, scopeManager);
     } else if (action is StartTimerAction) {
