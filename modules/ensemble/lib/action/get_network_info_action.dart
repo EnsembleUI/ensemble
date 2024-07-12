@@ -7,6 +7,7 @@ import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
 
 import '../framework/stub/network_info.dart';
@@ -39,6 +40,12 @@ class GetNetworkInfoAction extends EnsembleAction {
 
   @override
   Future<dynamic> execute(BuildContext context, ScopeManager scopeManager) {
+    if (kIsWeb && onError != null) {
+      return ScreenController().executeAction(context, onError!,
+          event: EnsembleEvent(initiator,
+              error: 'Network info is not supported on the web',
+              data: {'status': 'error'}));
+    }
     networkInfo.getLocationStatus().then((locationStatus) {
       if ((locationStatus == LocationPermissionStatus.denied.name
           || locationStatus == LocationPermissionStatus.deniedForever.name)
