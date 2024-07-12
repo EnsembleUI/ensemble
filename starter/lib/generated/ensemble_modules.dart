@@ -12,7 +12,7 @@ import 'package:ensemble/framework/stub/location_manager.dart';
 import 'package:ensemble/framework/stub/plaid_link_manager.dart';
 import 'package:ensemble/module/auth_module.dart';
 import 'package:ensemble/module/location_module.dart';
-import 'package:ensemble_network_info/network_info.dart';
+//import 'package:ensemble_network_info/network_info.dart';
 //import 'package:ensemble_firebase_analytics/firebase_analytics.dart';
 // import 'package:ensemble_location/location_module.dart';
 import 'package:get_it/get_it.dart';
@@ -59,7 +59,7 @@ class EnsembleModules {
   static const useDeeplink = false;
   static const useFirebaseAnalytics = false;
   static const useNotifications = false;
-  static const useNetworkInfo = true;
+  static const useNetworkInfo = false;
 
   // widgets
   static const enableChat = false;
@@ -146,7 +146,7 @@ class EnsembleModules {
 
     if (useNetworkInfo) {
       //uncomment to enable network info
-      GetIt.I.registerSingleton<NetworkInfoManager>(NetworkInfoImpl());
+      //GetIt.I.registerSingleton<NetworkInfoManager>(NetworkInfoImpl());
     } else {
       GetIt.I.registerSingleton<NetworkInfoManager>(NetworkInfoManagerStub());
     }

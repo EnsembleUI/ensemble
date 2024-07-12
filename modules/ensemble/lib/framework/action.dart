@@ -1334,13 +1334,6 @@ abstract class EnsembleAction {
       return ClearLocaleAction();
     } else if (actionType == ActionType.getNetworkInfo) {
       return GetNetworkInfoAction.from(initiator: initiator,payload: payload);
-      // return GetNetworkInfoAction(
-      //     initiator: initiator,
-      //     onSuccess: EnsembleAction.from(payload?['onSuccess']),
-      //     onError: EnsembleAction.from(payload?['onError']),
-      //     onDenied: EnsembleAction.from(payload?['onDenied']),
-      //     onLocationDisabled: EnsembleAction.from(
-      //         payload?['onLocationDisabled']));
     } else {
       throw LanguageError("Invalid action.",
           recovery: "Make sure to use one of Ensemble-provided actions.");

@@ -1,5 +1,6 @@
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/device.dart';
+import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/stub/location_manager.dart';
@@ -29,6 +30,9 @@ class GetNetworkInfoAction extends EnsembleAction {
   factory GetNetworkInfoAction.from({Invokable? initiator,dynamic payload}) =>
       GetNetworkInfoAction.fromYaml(initiator: initiator, payload: Utils.getYamlMap(payload));
   factory GetNetworkInfoAction.fromYaml({Invokable? initiator, Map? payload}) {
+    if (payload?['onSuccess'] == null) {
+      throw LanguageError('onSuccess is required',recovery:'Please specify onSuccess method to call when network info is retrieved');
+    }
     return GetNetworkInfoAction(
         initiator: initiator,
         inputs: Utils.getMap(payload?['inputs']),
