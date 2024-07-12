@@ -1,6 +1,5 @@
 name: ensemble_starter
 description: Ensemble Starter project in Flutter
-
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: "none" # Remove this line if you wish to publish to pub.dev
@@ -95,6 +94,13 @@ dependencies:
   #     url: https://github.com/EnsembleUI/ensemble.git
   #     ref: main
   #     path: modules/firebase_analytics
+
+  # Uncomment to enable NetworkInfo
+#  ensemble_network_info:
+#   git:
+#     url: https://github.com/EnsembleUI/ensemble.git
+#     ref: main
+#     path: modules/network_info
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
