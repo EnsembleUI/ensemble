@@ -5,6 +5,7 @@ import 'package:ensemble/action/badge_action.dart';
 import 'package:ensemble/action/bottom_sheet_actions.dart';
 import 'package:ensemble/action/deep_link_action.dart';
 import 'package:ensemble/action/call_external_method.dart';
+import 'package:ensemble/action/get_network_info_action.dart';
 import 'package:ensemble/action/haptic_action.dart';
 import 'package:ensemble/action/call_native_method.dart';
 import 'package:ensemble/action/invoke_api_action.dart';
@@ -1132,6 +1133,7 @@ enum ActionType {
   resumeAudio,
   seekAudio,
   logEvent,
+  getNetworkInfo
 }
 
 /// payload representing an Action to do (navigateToScreen, InvokeAPI, ..)
@@ -1219,7 +1221,7 @@ abstract class EnsembleAction {
     } else if (actionType == ActionType.getLocation) {
       return GetLocationAction(
           onLocationReceived:
-              EnsembleAction.from(payload?['onLocationReceived']),
+          EnsembleAction.from(payload?['onLocationReceived']),
           onError: EnsembleAction.from(payload?['onError']),
           recurring: Utils.optionalBool(payload?['options']?['recurring']),
           recurringDistanceFilter: Utils.optionalInt(
@@ -1330,9 +1332,18 @@ abstract class EnsembleAction {
       return SetLocaleAction(languageCode: payload?['languageCode']);
     } else if (actionType == ActionType.clearLocale) {
       return ClearLocaleAction();
+    } else if (actionType == ActionType.getNetworkInfo) {
+      return GetNetworkInfoAction.from(initiator: initiator,payload: payload);
+      // return GetNetworkInfoAction(
+      //     initiator: initiator,
+      //     onSuccess: EnsembleAction.from(payload?['onSuccess']),
+      //     onError: EnsembleAction.from(payload?['onError']),
+      //     onDenied: EnsembleAction.from(payload?['onDenied']),
+      //     onLocationDisabled: EnsembleAction.from(
+      //         payload?['onLocationDisabled']));
+    } else {
+      throw LanguageError("Invalid action.",
+          recovery: "Make sure to use one of Ensemble-provided actions.");
     }
-
-    throw LanguageError("Invalid action.",
-        recovery: "Make sure to use one of Ensemble-provided actions.");
   }
 }
