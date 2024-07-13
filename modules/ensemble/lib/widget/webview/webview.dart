@@ -52,6 +52,9 @@ class EnsembleWebView extends StatefulWidget
           ensemble.EnsembleAction.from(funcDefinition, initiator: this),
       // legacy
       'uri': (value) => _controller.url = Utils.getUrl(value),
+      'allowUrlSchemes': (value) =>
+          _controller.schemes = Utils.getList<String>(value) ??
+              EnsembleWebViewController.defaultSchemes,
     };
   }
 }
@@ -65,7 +68,14 @@ class EnsembleWebViewController extends WidgetController {
   // params for each URI set
   int? loadingPercent = 0;
   String? error;
-
+  // List of default schemes to handle, this can be overwritten by an app
+  static const List<String> defaultSchemes = [
+    'tel:',
+    'sms:',
+    'mailto:',
+    'geo:' //for launching maps
+  ];
+  List<String> schemes = defaultSchemes;
   WebViewController? webViewController;
   WebViewCookieManager? cookieManager;
 
