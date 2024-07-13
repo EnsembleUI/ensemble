@@ -52,7 +52,7 @@ class EnsembleWebView extends StatefulWidget
           ensemble.EnsembleAction.from(funcDefinition, initiator: this),
       // legacy
       'uri': (value) => _controller.url = Utils.getUrl(value),
-      'allowUrlSchemes': (value) =>
+      'allowedLaunchSchemes': (value) =>
           _controller.schemes = Utils.getList<String>(value) ??
               EnsembleWebViewController.defaultSchemes,
     };
