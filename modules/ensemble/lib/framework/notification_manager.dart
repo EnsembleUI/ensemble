@@ -46,7 +46,6 @@ class NotificationManager {
   /// get the device token. This guarantees the token (if available)
   /// is the latest correct token
   Future<String?> getDeviceToken() async {
-    String? deviceToken;
     try {
       // request permission
       NotificationSettings settings =
