@@ -309,7 +309,7 @@ SPEC CHECKSUMS:
   local_auth_darwin: 4d56c90c2683319835a61274b57620df9c4520ab
   nanopb: 438bc412db1928dac798aa6fd75726007be04262
   otp_pin_field: 0f0935fafc56252e6a48a5a045ac689b6bad3857
-  package_info_plus: 6c92f08e1f853dc01228d6f553146438dafcd14e
+  package_info_plus: 58f0028419748fad15bf008b270aaa8e54380b1c
   path_provider_foundation: 2b6b4c569c0fb62ec74538f866245ac84301af46
   PromisesObjC: f5707f49cb48b9636751c5b2e7d227e43fba9f47
   rate_my_app: cd3e1c44d12f387482698ffaf6ea9bd669a69b94
@@ -321,9 +321,9 @@ SPEC CHECKSUMS:
   Toast: 1f5ea13423a1e6674c4abdac5be53587ae481c4e
   url_launcher_ios: 5334b05cef931de560670eeae103fd3e431ac3fe
   video_player_avfoundation: 7c6c11d8470e1675df7397027218274b6d2360b3
-  webview_flutter_wkwebview: be0f0d33777f1bfd0c9fdcb594786704dbf65f36
+  webview_flutter_wkwebview: 2a23822e9039b7b1bc52e5add778e5d89ad488d1
   workmanager: 0afdcf5628bbde6924c21af7836fed07b42e30e6
 
-PODFILE CHECKSUM: 8a346e30b7134a73fc98cba6021e766fbb65a21a
+PODFILE CHECKSUM: 29774f6a8fd9f547d8514efe9a9e72d99a78e0a3
 
 COCOAPODS: 1.14.3
