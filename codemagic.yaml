@@ -6,6 +6,8 @@ workflows:
     integrations:
       app_store_connect: codemagic
     environment:
+      groups:
+         - app_store_credentials
       ios_signing:
         distribution_type: app_store
         bundle_identifier: com.ensembleui.khurrambuild
@@ -17,6 +19,7 @@ workflows:
     scripts:
       - name: Set up code signing settings on Xcode project
         script: |
+          echo "about to call use profiles"
           xcode-project use-profiles
       - name: Get Flutter packages
         script: |
@@ -33,7 +36,7 @@ workflows:
         script: |
           cd starter
           # See the following link about getting the latest App Store or TestFlight version - https://docs.codemagic.io/knowledge-codemagic/build-versioning/#app-store-or-testflight-latest-build-number
-          flutter build ipa --release \
+          flutter build ipa  --no-tree-shake-icons --release \
             --build-name=1.0.0 \
             --build-number=$(($(app-store-connect get-latest-testflight-build-number "$APP_ID") + 1)) \
             --export-options-plist=/Users/builder/export_options.plist
@@ -60,3 +63,7 @@ workflows:
         # build to TestFlight beta review.
         # Note: This action is performed during post-processing.
         submit_to_testflight: true
+
+
+
+
