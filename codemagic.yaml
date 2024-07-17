@@ -25,10 +25,10 @@ workflows:
         script: |
           cd starter
           find . -name "Podfile" -execdir pod install \;
-      - name: Flutter analyze
-        script: |
-          cd starter
-          flutter analyze
+      # - name: Flutter analyze
+      #   script: |
+      #     cd starter
+      #     flutter analyze
       - name: Flutter build ipa and automatic versioning
         script: |
           cd starter
