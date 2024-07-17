@@ -7,7 +7,7 @@ workflows:
     #   app_store_connect: codemagic
     environment:
       groups:
-         - app_store_credentials
+         - appstore_credentials
       ios_signing:
         distribution_type: app_store
         bundle_identifier: com.ensembleui.khurrambuild
