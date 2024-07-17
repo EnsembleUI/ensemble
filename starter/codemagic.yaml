@@ -1,0 +1,74 @@
+workflows:
+  ios-workflow:
+    name: iOS Workflow
+    instance_type: mac_mini_m1
+    max_build_duration: 120
+    # integrations:
+    #   app_store_connect: codemagic
+    environment:
+      groups:
+         - appstore_credentials
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.ensembleui.khurrambuild
+      vars:
+        APP_ID: 6550416791 # <-- Put your APP ID here
+      flutter: '3.19.3'
+      xcode: latest # <-- set to specific version e.g. 14.3, 15.0 to avoid unexpected updates.
+      cocoapods: default
+    scripts:
+      - name: Get Flutter packages
+        script: |
+          cd starter
+          flutter pub get
+          cd ios
+          pod install
+          cd ..
+      # - name: Install pods
+      #   script: |
+      #     cd starter
+      #     find . -name "Podfile" -execdir pod install \;
+      # - name: Flutter analyze
+      #   script: |
+      #     cd starter
+      #     flutter analyze
+      - name: Use Provisioning Profiles
+        script: |
+          cd starter
+          xcode-project use-profiles
+          cd ..
+
+      - name: Flutter build ipa and automatic versioning
+        script: |
+          cd starter
+          # See the following link about getting the latest App Store or TestFlight version - https://docs.codemagic.io/knowledge-codemagic/build-versioning/#app-store-or-testflight-latest-build-number
+          flutter build ipa --release --no-tree-shake-icons \
+            --build-name=1.0.0 \
+            --build-number=$(($(app-store-connect get-latest-testflight-build-number "$APP_ID") + 1))
+    artifacts:
+      - /build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+      - flutter_drive.log
+    publishing:
+      app_store_connect:
+        # Contents of the API key saved as a secure environment variable:
+        api_key: $APP_STORE_CONNECT_PRIVATE_KEY 
+        
+        # Alphanumeric value that identifies the API key, 
+        # can also reference environment variable such as $APP_STORE_CONNECT_KEY_IDENTIFIER
+        key_id: JF3H5QSMDF 
+
+        # Alphanumeric value that identifies who created the API key,
+        # can also reference environment variable such as $APP_STORE_CONNECT_ISSUER_ID
+        issuer_id: 84d31bee-8808-4482-a687-9214a0325be7
+        
+        # Configuration related to TestFlight (optional)
+
+        # Optional boolean, defaults to false. Whether or not to submit the uploaded
+        # build to TestFlight beta review.
+        # Note: This action is performed during post-processing.
+        submit_to_testflight: true
+
+
+
+
