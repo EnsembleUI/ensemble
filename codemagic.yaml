@@ -31,12 +31,13 @@ workflows:
           find . -name "Podfile" -execdir pod install \;
       - name: Flutter analyze
         script: |
+          cd starter
           flutter analyze
       - name: Flutter build ipa and automatic versioning
         script: |
           cd starter
           # See the following link about getting the latest App Store or TestFlight version - https://docs.codemagic.io/knowledge-codemagic/build-versioning/#app-store-or-testflight-latest-build-number
-          flutter build ipa  --no-tree-shake-icons --release \
+          flutter build ipa --release --no-tree-shake-icons \
             --build-name=1.0.0 \
             --build-number=$(($(app-store-connect get-latest-testflight-build-number "$APP_ID") + 1)) \
             --export-options-plist=/Users/builder/export_options.plist
