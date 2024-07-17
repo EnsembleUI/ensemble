@@ -20,28 +20,32 @@ workflows:
       - name: Get Flutter packages
         script: |
           cd starter
-          flutter packages pub get
-      - name: Install pods
-        script: |
-          cd starter
-          find . -name "Podfile" -execdir pod install \;
+          flutter pub get
+          cd ios
+          pod install
+          cd ..
+      # - name: Install pods
+      #   script: |
+      #     cd starter
+      #     find . -name "Podfile" -execdir pod install \;
       # - name: Flutter analyze
       #   script: |
       #     cd starter
       #     flutter analyze
+      - name: Use Provisioning Profiles
+        script: |
+          cd starter
+          xcode-project use-profiles --team-id 9AU8J84769 --bundle-id com.ensembleui.khurrambuild --type app_store
+
       - name: Flutter build ipa and automatic versioning
         script: |
           cd starter
           # See the following link about getting the latest App Store or TestFlight version - https://docs.codemagic.io/knowledge-codemagic/build-versioning/#app-store-or-testflight-latest-build-number
-          flutter build ipa --project-directory=starter/ios --release --no-tree-shake-icons \
+          flutter build ipa --release --no-tree-shake-icons \
             --build-name=1.0.0 \
             --build-number=$(($(app-store-connect get-latest-testflight-build-number "$APP_ID") + 1))
-      - name: Set up code signing settings on Xcode project
-        script: |
-          echo "about to call use profiles"
-          xcode-project use-profiles
     artifacts:
-      - starter/build/ios/ipa/*.ipa
+      - /build/ios/ipa/*.ipa
       - /tmp/xcodebuild_logs/*.log
       - flutter_drive.log
     publishing:
