@@ -3,8 +3,8 @@ workflows:
     name: iOS Workflow
     instance_type: mac_mini_m1
     max_build_duration: 120
-    integrations:
-      app_store_connect: codemagic
+    # integrations:
+    #   app_store_connect: codemagic
     environment:
       groups:
          - app_store_credentials
