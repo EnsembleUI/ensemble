@@ -13,7 +13,7 @@ workflows:
         bundle_identifier: com.ensembleui.khurrambuild
       vars:
         APP_ID: 6550416791 # <-- Put your APP ID here
-      flutter: stable
+      flutter: '3.19.3'
       xcode: latest # <-- set to specific version e.g. 14.3, 15.0 to avoid unexpected updates.
       cocoapods: default
     scripts:
