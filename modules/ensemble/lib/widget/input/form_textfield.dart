@@ -52,6 +52,7 @@ class TextInput extends BaseTextInput {
       'delayedKeyPressDuration': (value) =>
           _controller.delayedKeyPressDuration =
               Utils.getDurationMs(value) ?? _controller.delayedKeyPressDuration,
+      'autofillHint': (value) => _controller.autofillHint = Utils.optionalString(value),
     });
     return setters;
   }
@@ -232,6 +233,8 @@ class TextInputController extends FormFieldController with HasTextPlaceholder {
   bool? multiline;
   int? minLines;
   int? maxLines;
+
+  String? autofillHint;
 }
 
 class TextInputState extends FormFieldWidgetState<BaseTextInput>
@@ -473,6 +476,7 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput>
           obscureText: isObscureOrPlainText(),
           enableSuggestions: !widget.isPassword(),
           autocorrect: !widget.isPassword(),
+          autofillHints: widget._controller.autofillHint != null ? [widget._controller.autofillHint!] : null,
           controller: widget.textController,
           focusNode: focusNode,
           enabled: isEnabled(),
