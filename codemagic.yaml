@@ -35,7 +35,8 @@ workflows:
       - name: Use Provisioning Profiles
         script: |
           cd starter
-          xcode-project use-profiles --team-id 9AU8J84769 --bundle-id com.ensembleui.khurrambuild --type app_store
+          xcode-project use-profiles
+          cd ..
 
       - name: Flutter build ipa and automatic versioning
         script: |
