@@ -1,8 +1,8 @@
 name: ensemble_ts_interpreter
 description: >-
-  Javascript (ES5) Interpreter written entirely in Dart.
-  Can be used in any Dart program or a Flutter app.
-  Support basic javascript including primitive types, maps, lists and declaring and executing functions
+  Javascript (ES5) Interpreter written entirely in Dart. Can be used in any Dart
+  program or a Flutter app. Support basic javascript including primitive types,
+  maps, lists and declaring and executing functions
 homepage: https://ensembleui.com
 repository: https://github.com/EnsembleUI/ensemble_ts_interpreter
 issue_tracker: https://github.com/EnsembleUI/ensemble_ts_interpreter/issues
@@ -52,7 +52,7 @@ dependencies:
   jsparser:
     git:
       url: https://github.com/EnsembleUI/ensemble.git
-      ref: main
+      ref: v0.1.3
       path: modules/parsejs_null_safety
   source_span: ^1.9.1
   intl: ^0.18.0
@@ -69,10 +69,10 @@ dev_dependencies:
   flutter_lints: ^2.0.1
   test:
 
-# For information on the generic Dart part of this file, see the
-# following page: https://dart.dev/tools/pub/pubspec
+    # For information on the generic Dart part of this file, see the
+    # following page: https://dart.dev/tools/pub/pubspec
 
-# The following section is specific to Flutter.
+    # The following section is specific to Flutter.
 flutter:
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in
