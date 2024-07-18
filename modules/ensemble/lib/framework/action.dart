@@ -13,7 +13,7 @@ import 'package:ensemble/action/biometric_auth_action.dart';
 import 'package:ensemble/action/change_locale_actions.dart';
 import 'package:ensemble/action/misc_action.dart';
 import 'package:ensemble/action/navigation_action.dart';
-import 'package:ensemble/action/notification_action.dart';
+import 'package:ensemble/action/notification_actions.dart';
 import 'package:ensemble/action/phone_contact_action.dart';
 import 'package:ensemble/action/sign_in_out_action.dart';
 import 'package:ensemble/action/toast_actions.dart';
@@ -823,21 +823,6 @@ class NotificationAction extends EnsembleAction {
   }
 }
 
-class RequestNotificationAction extends EnsembleAction {
-  EnsembleAction? onAccept;
-  EnsembleAction? onReject;
-
-  RequestNotificationAction({this.onAccept, this.onReject});
-
-  factory RequestNotificationAction.fromYaml(
-      {Invokable? initiator, Map? payload}) {
-    return RequestNotificationAction(
-      onAccept: EnsembleAction.from(payload?['onAccept']),
-      onReject: EnsembleAction.from(payload?['onReject']),
-    );
-  }
-}
-
 class ShowNotificationAction extends EnsembleAction {
   late String title;
   late String body;
@@ -1246,7 +1231,7 @@ abstract class EnsembleAction {
     } else if (actionType == ActionType.showNotification) {
       return ShowNotificationAction.fromYaml(payload: payload);
     } else if (actionType == ActionType.requestNotificationAccess) {
-      return RequestNotificationAction.fromYaml(payload: payload);
+      return RequestNotificationAccessAction.from(payload: payload);
     } else if (actionType == ActionType.copyToClipboard) {
       return CopyToClipboardAction.from(payload: payload);
     } else if (actionType == ActionType.share) {
