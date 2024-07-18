@@ -4,12 +4,20 @@ import os
 def check_and_change_directory():
     current_dir = os.path.basename(os.getcwd())
     if current_dir != "starter":
-        parent_dir = os.path.dirname(os.getcwd())
-        starter_dir = os.path.join(parent_dir, "starter")
+        starter_dir = os.path.join(os.getcwd(), "starter")
+
+        # Print out the list of directories under the current directory
+        print(f"Current directory: {os.getcwd()}")
+        print("Directories under the current directory:")
+        for item in os.listdir(os.getcwd()):
+            if os.path.isdir(os.path.join(os.getcwd(), item)):
+                print(item)
+
         if os.path.exists(starter_dir) and os.path.isdir(starter_dir):
             os.chdir(starter_dir)
         else:
-            raise FileNotFoundError(f"'starter' directory not found in the parent directory {parent_dir}.")
+            raise FileNotFoundError(f"'starter' directory not found in the current directory {os.getcwd()}.")
+
 
 
 def create_flutter_project(package_name, platform):
