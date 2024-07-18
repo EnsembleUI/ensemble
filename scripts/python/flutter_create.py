@@ -1,6 +1,6 @@
 import argparse
 import subprocess
-
+import os
 def check_and_change_directory():
     current_dir = os.path.basename(os.getcwd())
     if current_dir != "starter":
