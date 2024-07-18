@@ -20,6 +20,8 @@ import 'package:flutter/cupertino.dart';
 class RequestNotificationAccessAction extends EnsembleAction {
   EnsembleAction? onAuthorized;
   EnsembleAction? onDenied;
+  EnsembleAction? onProvisional;
+  EnsembleAction? onNotDetermined;
 
   bool? localNotificationOnly;
 
@@ -31,6 +33,8 @@ class RequestNotificationAccessAction extends EnsembleAction {
       {super.initiator,
       this.onAuthorized,
       this.onDenied,
+      this.onProvisional,
+      this.onNotDetermined,
       this.localNotificationOnly,
 
       // legacy
@@ -74,7 +78,7 @@ class RequestNotificationAccessAction extends EnsembleAction {
   Future executeActions(BuildContext context, AuthorizationStatus? status,
       String? deviceToken) async {
     EnsembleEvent event = EnsembleEvent(initiator,
-        data: deviceToken != null ? {"token": deviceToken} : null);
+        data: deviceToken != null ? {"deviceToken": deviceToken} : null);
 
     if (status == AuthorizationStatus.authorized) {
       if (onAuthorized != null) {
@@ -96,6 +100,17 @@ class RequestNotificationAccessAction extends EnsembleAction {
         await ScreenController()
             .executeAction(context, onReject!, event: event);
       }
+    }
+
+    // other status
+    if (status == AuthorizationStatus.provisional && onProvisional != null) {
+      await ScreenController()
+          .executeAction(context, onProvisional!, event: event);
+    }
+    if (status == AuthorizationStatus.notDetermined &&
+        onNotDetermined != null) {
+      await ScreenController()
+          .executeAction(context, onNotDetermined!, event: event);
     }
     return;
   }
