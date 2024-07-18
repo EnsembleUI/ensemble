@@ -1,74 +1,1013 @@
+version: 1
 workflows:
-  ios-workflow:
-    name: iOS Workflow
-    instance_type: mac_mini_m1
-    max_build_duration: 120
-    # integrations:
-    #   app_store_connect: codemagic
+  build-project:
+    name: Build Project
     environment:
+      flutter: "3.19.3"
+      java: "17.0.11"
+      # xcode: 15.1
       groups:
-         - appstore_credentials
-      ios_signing:
-        distribution_type: app_store
-        bundle_identifier: com.ensembleui.khurrambuild
-      vars:
-        APP_ID: 6550416791 # <-- Put your APP ID here
-      flutter: '3.19.3'
-      xcode: latest # <-- set to specific version e.g. 14.3, 15.0 to avoid unexpected updates.
-      cocoapods: default
+        - CREDS
     scripts:
-      - name: Get Flutter packages
+      - &logs
+        name: LOGS
+        script: |
+          python3 scripts/python/logs.py
+
+      - &script_permissions
+        name: Give permissions to scripts
+        script: |
+          find scripts -mindepth 1 -type f -name "*.sh" \
+            -exec chmod +x {} +
+
+      - &python_dependencies
+        name: Installing python dependencies
+        script: |
+          pip3 install Jinja2 argparse pyyaml firebase_admin google-cloud-firestore
+
+      - &ensemble_properties
+        name: Update Ensemble Properties
+        script: |
+          python3 scripts/python/ensemble_properties.py \
+            --android-package-name "$ANDROID_PACKAGE_NAME" \
+            --android-app-name "$ANDROID_APP_NAME" \
+            --google-maps-api-key "$ANDROID_GOOGLE_MAPS_API_KEY" \
+            --auth0-domain "$AUTH0_DOMAIN" \
+            --auth0-scheme "$AUTH0_SCHEME" \
+            --test-key "$BRANCH_IO_TEST_KEY" \
+            --live-key "$BRANCH_IO_LIVE_KEY"
+
+      - &manifest
+        name: Android Manifest
+        script: |
+          python3 scripts/python/manifest.py \
+            --has-camera "$HAS_CAMERA" \
+            --has-notification "$HAS_NOTIFICATION" \
+            --has-file-manager "$HAS_FILE_MANAGER" \
+            --has-auth "$HAS_AUTH" \
+            --has-contacts "$HAS_CONTACTS" \
+            --has-location "$HAS_LOCATION" \
+            --has-deeplink "$HAS_DEEPLINK" \
+            --has-google-maps "$HAS_GOOGLE_MAPS" \
+            --use-test-key "$BRANCH_IO_USE_TEST_KEY" \
+            --scheme "$BRANCH_IO_SCHEME" \
+            --links "$BRANCH_IO_LINKS"
+
+      - &info_plist
+        name: Info Plist
+        script: |
+          python3 scripts/python/info_plist.py \
+            --ios-app-name "$IOS_APP_NAME" \
+            --has-auth "$HAS_AUTH" \
+            --has-file-manager "$HAS_FILE_MANAGER" \
+            --has-contacts "$HAS_CONTACTS" \
+            --has-connect "$HAS_CONNECT" \
+            --has-camera "$HAS_CAMERA" \
+            --location-description "$LOCATION_DESCRIPTION" \
+            --ios-client-id "$GOOGLE_IOS_CLIENT_ID" \
+            --music-description "$MUSIC_DESCRIPTION" \
+            --photo-library-description "$PHOTO_LIBRARY_DESCRIPTION" \
+            --contacts-description "$CONTACTS_DESCRIPTION" \
+            --camera-description "$CAMERA_DESCRIPTION" \
+            --in-use-location-description "$IN_USE_LOCATION_DESCRIPTION" \
+            --always-use-location-description "$ALWAYS_USE_LOCATION_DESCRIPTION" \
+            --has-location "$HAS_LOCATION" \
+            --has-deeplink "$HAS_DEEPLINK" \
+            --scheme "$BRANCH_IO_SCHEME" \
+            --links "$BRANCH_IO_LINKS" \
+            --live-key "$BRANCH_IO_LIVE_KEY" \
+            --test-key "$BRANCH_IO_TEST_KEY"
+
+          cat starter/ios/Runner/Info.plist
+
+      - &runner_entitlements
+        name: Runner Entitlements
+        script: |
+          python3 scripts/python/entitlements.py \
+            --has-deeplink "$HAS_DEEPLINK" \
+            --links "$BRANCH_IO_LINKS"
+
+      - &app_delegate
+        name: Update AppDelegate.swift
+        script: |
+          python3 scripts/python/app_delegate.py \
+            --google-maps-api-key "$IOS_GOOGLE_MAPS_API_KEY" \
+            --has-google-maps "$HAS_GOOGLE_MAPS"
+
+      - &ensemble_module
+        name: Update Ensemble Module
+        script: |
+          python3 scripts/python/ensemble_module.py \
+            --has-chat "$HAS_CHAT" \
+            --has-auth "$HAS_AUTH" \
+            --has-contacts "$HAS_CONTACTS" \
+            --has-connect "$HAS_CONNECT" \
+            --has-camera "$HAS_CAMERA" \
+            --has-file-manager "$HAS_FILE_MANAGER" \
+            --has-location "$HAS_LOCATION" \
+            --has-deeplink "$HAS_DEEPLINK"
+
+      - &ensemble_config
+        name: Update Ensemble Config
+        script: |
+          python3 scripts/python/ensemble_config.py \
+            --app-id "$APP_ID" \
+            --ios-client-id "$GOOGLE_IOS_CLIENT_ID" \
+            --android-client-id "$GOOGLE_ANDROID_CLIENT_ID" \
+            --web-client-id "$GOOGLE_WEB_CLIENT_ID" \
+            --server-client-id "$GOOGLE_SERVER_CLIENT_ID"
+
+      - &main_dart
+        name: Update main.dart
+        script: |
+          python3 scripts/python/main_dart.py \
+            --has-notification "$HAS_NOTIFICATION" \
+            --notification-app-id "$NOTIFICATION_APP_ID" \
+            --notification-api-key "$NOTIFICATION_API_KEY" \
+            --notification-project-id "$NOTIFICATION_PROJECT_ID" \
+            --notification-sender-id "$NOTIFICATION_SENDER_ID"
+
+      - &index_html
+        name: Create index.html
+        script: |
+          python3 scripts/python/index_html.py \
+            --has-connect "$HAS_CONNECT" \
+            --has-deeplink "$HAS_DEEPLINK" \
+            --has-google-maps "$HAS_GOOGLE_MAPS" \
+            --use-test-key "$BRANCH_IO_USE_TEST_KEY" \
+            --description "$WEB_DESCRIPTION" \
+            --title "$WEB_TITLE" \
+            --google-maps-api-key "$WEB_GOOGLE_MAPS_API_KEY" \
+            --web-client-id "$GOOGLE_WEB_CLIENT_ID" \
+            --has-auth "$HAS_AUTH" \
+            --base-href "$WEB_BASE_HREF" \
+            --live-key "$BRANCH_IO_LIVE_KEY" \
+            --test-key "$BRANCH_IO_TEST_KEY" \
+
+      - &get_logo
+        name: Get Logo
+        script: |
+          python3 scripts/python/logo.py \
+            --app-id "$APP_ID" \
+            --firebase-credentials "$FIREBASE_CREDENTIALS" \
+            --get-from-firebase "$GET_LOGO_FROM_FIREBASE"
+
+      - &get_assets
+        name: Get Assets
+        script: |
+          python3 scripts/python/assets.py \
+            --app-id "$APP_ID" \
+            --firebase-credentials "$FIREBASE_CREDENTIALS"
+
+      - &pubspec
+        name: Update Pubspec
+        script: |
+          python3 scripts/python/pubspec.py \
+            --has-auth "$HAS_AUTH" \
+            --has-contacts "$HAS_CONTACTS" \
+            --has-connect "$HAS_CONNECT" \
+            --has-camera "$HAS_CAMERA" \
+            --has-file-manager "$HAS_FILE_MANAGER" \
+            --has-location "$HAS_LOCATION" \
+            --has-deeplink "$HAS_DEEPLINK" \
+            --version "$VERSION" \
+            --splash-color "$SPLASH_COLOR" \
+            --splash-has-bg-image "$SPLASH_HAS_BG_IMAGE" \
+            --splash-has-icon "$SPLASH_HAS_ICON" \
+            --build-name "$CM_WORKFLOW_NAME" \
+            --fonts "$FONTS"
+
+      - &flutter_create
+        name: Flutter Create
+        script: |
+          python3 scripts/python/flutter_create.py \
+            --android-package-name "$ANDROID_PACKAGE_NAME" \
+            --ios-package-name "$IOS_PACKAGE_NAME" \
+            --build-name "$CM_WORKFLOW_NAME"
+
+      - &keystore
+        name: Generate Keystore
+        script: |
+          python3 scripts/python/keystore.py \
+            --keystore-password "$KEYSTORE_PASSWORD" \
+            --key-alias "$KEY_ALIAS" \
+            --key-password "$KEY_PASSWORD" \
+            --app-id "$APP_ID" \
+            --firebase-credentials "$FIREBASE_CREDENTIALS" \
+            --generate-keystore "$GENERATE_KEYSTORE"
+
+          cd android/app/
+          ls -la
+          zip -r keystore.zip \
+            key.keystore \
+            keystore.jks
+          ls -la
+          cd ../../
+
+      # - &dart_fix
+      #   name: Dart Fix
+      #   script: |
+      #     dart fix --apply
+
+      - name: Flutter Doctor
+        script: |
+          cd starter
+          flutter doctor -v
+          cd ..
+
+      - &compress_app
+        name: Compressing the application for export
+        script: |
+          cd starter
+          mkdir project
+          rsync -av --exclude=project ./ project
+          rm -rf .git .gitignore
+          rm -rf project/scripts/
+          rm -rf project/firebase/
+          rm -rf project/codemagic.yaml
+          rm -rf project/assets/icon/icons_will_go_here
+          rm -rf project/assets/others/other_assets_will_go_here
+          rm -rf project/assets/fonts/fonts_will_go_here
+          rm -rf project/serviceAccountKey.json
+
+          cd project/
+          rm -rf .git .gitignore
+          git remote remove origin
+          cd ..
+
+          zip -r project.zip project/
+          cd ..
+
+      - &pub_get
+        name: Get Flutter Packages & add Logo
         script: |
           cd starter
           flutter pub get
+          dart run flutter_launcher_icons
+          dart run flutter_native_splash:create
+          cd ..
+
+    artifacts:
+      - starter/project.zip
+      - starter/android/app/keystore.zip
+      - starter/build/app/outputs/flutter-apk/app-release.apk
+
+  build-apk:
+    name: Build APK
+    environment:
+      flutter: "3.19.3"
+      java: "17.0.11"
+      # xcode: 15.1
+      groups:
+        - CREDS
+    scripts:
+      - *logs
+      - *script_permissions
+      - *python_dependencies
+      - name: "Remove iOS and Web"
+        script: |
+          rm -rf ios web
+      - *ensemble_properties
+      - *manifest
+      - *ensemble_module
+      - *ensemble_config
+      - *main_dart
+      - *get_logo
+      - *get_assets
+      - *pubspec
+      - *flutter_create
+      - *keystore
+      # - *dart_fix
+      - *pub_get
+      - *compress_app
+
+      - &build_apk
+        name: Build Release APK
+        script: |
+          flutter build apk --no-tree-shake-icons
+
+      - &get_debug_symbols
+        name: Get debug symbols
+        script: |
+          cd build/app/intermediates/merged_native_libs/release/out/lib
+          zip -r debug-symbols.zip arm64-v8a/ armeabi-v7a/ x86_64/
+
+          cd ../../../../../..
+
+    artifacts:
+      - project.zip
+      - build/**/debug-symbols.zip
+      - android/app/keystore.zip
+      - build/app/outputs/flutter-apk/app-release.apk
+
+  build-aab:
+    name: Build App Bundle
+    environment:
+      flutter: "3.19.3"
+      java: "17.0.11"
+      # xcode: 15.1
+      groups:
+        - CREDS
+    scripts:
+      - *logs
+      - *script_permissions
+      - *python_dependencies
+      - name: "Remove iOS and Web"
+        script: |
+          rm -rf ios web
+      - *ensemble_properties
+      - *manifest
+      - *ensemble_module
+      - *ensemble_config
+      - *main_dart
+      - *get_logo
+      - *get_assets
+      - *pubspec
+      - *flutter_create
+      - *keystore
+      # - *dart_fix
+      - *pub_get
+      - *compress_app
+
+      - &build_aab
+        name: Build Release AAB
+        script: |
+          flutter build appbundle --no-tree-shake-icons
+
+      - *get_debug_symbols
+
+    artifacts:
+      - project.zip
+      - build/**/debug-symbols.zip
+      - android/app/keystore.zip
+      - build/app/outputs/bundle/release/app-release.aab
+
+  build-apk-and-aab:
+    name: Build APK & App Bundle
+    environment:
+      flutter: "3.19.3"
+      java: "17.0.11"
+      # xcode: 15.1
+      groups:
+        - CREDS
+    scripts:
+      - *logs
+      - *script_permissions
+      - *python_dependencies
+      - name: "Remove iOS and Web"
+        script: |
+          rm -rf ios web
+      - *ensemble_properties
+      - *manifest
+      - *ensemble_module
+      - *ensemble_config
+      - *main_dart
+      - *get_logo
+      - *get_assets
+      - *pubspec
+      - *flutter_create
+      - *keystore
+      # - *dart_fix
+      - *pub_get
+      - *compress_app
+      - *build_aab
+      - *build_apk
+      - *get_debug_symbols
+
+    artifacts:
+      - project.zip
+      - build/**/debug-symbols.zip
+      - android/app/keystore.zip
+      - build/app/outputs/bundle/release/app-release.aab
+      - build/app/outputs/flutter-apk/app-release.apk
+
+  build-ipa:
+    name: Build IPA
+    environment:
+      flutter: "3.19.3"
+      java: "17.0.11"
+      xcode: 15.1
+      groups:
+        - CREDS
+    scripts:
+      - *logs
+      - *script_permissions
+      - *python_dependencies
+      - name: "Remove Android and Web"
+        script: |
+          rm -rf android web
+      - *ensemble_properties
+      - *info_plist
+      - *runner_entitlements
+      - *app_delegate
+      - *ensemble_module
+      - *ensemble_config
+      - *main_dart
+      - *get_logo
+      - *get_assets
+      - *pubspec
+      - *flutter_create
+      # - *dart_fix
+
+      - &ios_private_key
+        name: iOS Private key
+        script: |
+          python3 scripts/python/ios_key.py \
+            --app-id "$APP_ID" \
+            --firebase-credentials "$FIREBASE_CREDENTIALS"
+
+      - &ios_code_signing
+        name: iOS code signing
+        script: |
+          echo $CERTIFICATE_PRIVATE_KEY
+          keychain initialize
+          app-store-connect fetch-signing-files "$IOS_PACKAGE_NAME" --type IOS_APP_STORE --create
+          keychain add-certificates
+          xcode-project use-profiles
+
+      - *pub_get
+      - *compress_app
+
+      - &build_ipa
+        name: Build Release IPA
+        script: |
+          cd starter
           cd ios
+          pod repo update
           pod install
           cd ..
-      # - name: Install pods
-      #   script: |
-      #     cd starter
-      #     find . -name "Podfile" -execdir pod install \;
-      # - name: Flutter analyze
-      #   script: |
-      #     cd starter
-      #     flutter analyze
-      - name: Use Provisioning Profiles
-        script: |
-          cd starter
-          xcode-project use-profiles
+          
+
+          flutter build ipa --no-tree-shake-icons --export-options-plist=/Users/builder/export_options.plist --debug
           cd ..
 
-      - name: Flutter build ipa and automatic versioning
+    artifacts:
+      - starter/project.zip
+      - starter/build/ios/
+      - $HOME/Library/Developer/Xcode/DerivedData/**/Build/**/*.dSYM
+
+    publishing:
+      scripts:
+        - name: Upload debug symbols to Firebase Crashlytics
+          script: |
+            echo "Find build artifacts"
+            dsymPath=$(find $CM_BUILD_DIR/build/ios/archive/Runner.xcarchive -name "*.dSYM" | head -1)
+            if [[ -z ${dsymPath} ]]
+            then
+              echo "No debug symbols were found, skip publishing to Firebase Crashlytics"
+            else
+              echo "Publishing debug symbols from $dsymPath to Firebase Crashlytics"
+              ls -d -- starter/ios/Pods/*
+              $CM_BUILD_DIR/ios/Pods/FirebaseCrashlytics/upload-symbols \
+                -gsp starter/ios/Runner/GoogleService-Info.plist -p ios $dsymPath
+            fi
+
+  build-app:
+    name: Build ios app
+    environment:
+      flutter: "3.19.3"
+      java: "17.0.11"
+      # xcode: 15.1
+      groups:
+        - CREDS
+    scripts:
+      - *logs
+      - *script_permissions
+      - *python_dependencies
+      - name: "Remove Android and Web"
+        script: |
+          rm -rf android web
+      - *ensemble_properties
+      - *info_plist
+      - *runner_entitlements
+      - *app_delegate
+      - *ensemble_module
+      - *ensemble_config
+      - *main_dart
+      - *get_logo
+      - *get_assets
+      - *pubspec
+      - *flutter_create
+      - *ios_private_key
+      - *ios_code_signing
+      - *pub_get
+      - *compress_app
+
+      - name: Build Release iOS App
         script: |
           cd starter
-          # See the following link about getting the latest App Store or TestFlight version - https://docs.codemagic.io/knowledge-codemagic/build-versioning/#app-store-or-testflight-latest-build-number
-          flutter build ipa --release --no-tree-shake-icons \
-            --build-name=1.0.0 \
-            --build-number=$(($(app-store-connect get-latest-testflight-build-number "$APP_ID") + 1))
+          cd ios
+          pod repo update
+          pod install
+          cd ..
+
+          flutter build ios --no-tree-shake-icons --export-options-plist=/Users/builder/export_options.plist
+          cd ..
     artifacts:
-      - /build/ios/ipa/*.ipa
-      - /tmp/xcodebuild_logs/*.log
-      - flutter_drive.log
+      - starter/project.zip
+      - starter/build/ios/ipa/*.ipa
+
+  build-aab-and-ipa:
+    name: Build AAB & IPA
+    environment:
+      flutter: "3.19.3"
+      java: "17.0.11"
+      # xcode: 15.1
+      groups:
+        - CREDS
+    scripts:
+      - *logs
+      - *script_permissions
+      - *python_dependencies
+      - name: "Remove Web"
+        script: |
+          rm -rf web
+      - *ensemble_properties
+      - *manifest
+      - *info_plist
+      - *runner_entitlements
+      - *app_delegate
+      - *ensemble_module
+      - *ensemble_config
+      - *main_dart
+      - *get_logo
+      - *get_assets
+      - *pubspec
+      - *flutter_create
+      - *keystore
+      - *ios_private_key
+      - *ios_code_signing
+      # - *dart_fix
+      - *pub_get
+      - *compress_app
+      - *build_aab
+      - *build_ipa
+      - *get_debug_symbols
+
+    artifacts:
+      - project.zip
+      - build/app/outputs/bundle/release/app-release.aab
+      - build/**/debug-symbols.zip
+      - android/app/keystore.zip
+      - build/ios/ipa/*.ipa
+      - $HOME/Library/Developer/Xcode/DerivedData/**/Build/**/*.dSYM
+
     publishing:
+      scripts:
+        - name: Upload debug symbols to Firebase Crashlytics
+          script: |
+            echo "Find build artifacts"
+            dsymPath=$(find $CM_BUILD_DIR/build/ios/archive/Runner.xcarchive -name "*.dSYM" | head -1)
+            if [[ -z ${dsymPath} ]]
+            then
+              echo "No debug symbols were found, skip publishing to Firebase Crashlytics"
+            else
+              echo "Publishing debug symbols from $dsymPath to Firebase Crashlytics"
+              ls -d -- ios/Pods/*
+              $CM_BUILD_DIR/ios/Pods/FirebaseCrashlytics/upload-symbols \
+                -gsp ios/Runner/GoogleService-Info.plist -p ios $dsymPath
+            fi
+
+
+  deploy-ipa:
+    name: Deploy IPA
+    environment:
+      flutter: "3.19.3"
+      java: "17.0.11"
+      # xcode: 15.1
+      groups:
+        - CREDS
+    scripts:
+      - *logs
+      - *script_permissions
+      - *python_dependencies
+      - name: "Remove Android and Web"
+        script: |
+          cd starter
+          rm -rf android web
+          cd ..
+      - *ensemble_properties
+      - *info_plist
+      - *runner_entitlements
+      - *app_delegate
+      - *ensemble_module
+      - *ensemble_config
+      - *main_dart
+      - *get_logo
+      - *get_assets
+      - *pubspec
+      - *flutter_create
+      # - *dart_fix
+      - *ios_private_key
+      - *ios_code_signing
+      - *pub_get
+      - *compress_app
+      - *build_ipa
+
+    artifacts:
+      - starter/project.zip
+      - starter/build/ios/ipa/*.ipa
+      - $HOME/Library/Developer/Xcode/DerivedData/**/Build/**/*.dSYM
+
+    publishing:
+      scripts:
+        - name: Upload debug symbols to Firebase Crashlytics
+          script: |
+            echo "Find build artifacts"
+            dsymPath=$(find $CM_BUILD_DIR/build/ios/archive/Runner.xcarchive -name "*.dSYM" | head -1)
+            if [[ -z ${dsymPath} ]]
+            then
+              echo "No debug symbols were found, skip publishing to Firebase Crashlytics"
+            else
+              echo "Publishing debug symbols from $dsymPath to Firebase Crashlytics"
+              ls -d -- starter/ios/Pods/*
+              $CM_BUILD_DIR/ios/Pods/FirebaseCrashlytics/upload-symbols \
+                -gsp starter/ios/Runner/GoogleService-Info.plist -p ios $dsymPath
+            fi
+
       app_store_connect:
-        # Contents of the API key saved as a secure environment variable:
-        api_key: $APP_STORE_CONNECT_PRIVATE_KEY 
-        
-        # Alphanumeric value that identifies the API key, 
-        # can also reference environment variable such as $APP_STORE_CONNECT_KEY_IDENTIFIER
-        key_id: JF3H5QSMDF 
+        api_key: $APP_STORE_CONNECT_PRIVATE_KEY
+        key_id: $APP_STORE_CONNECT_KEY_IDENTIFIER
+        issuer_id: $APP_STORE_CONNECT_ISSUER_ID
 
-        # Alphanumeric value that identifies who created the API key,
-        # can also reference environment variable such as $APP_STORE_CONNECT_ISSUER_ID
-        issuer_id: 84d31bee-8808-4482-a687-9214a0325be7
-        
-        # Configuration related to TestFlight (optional)
+  deploy-aab:
+    name: Deploy App Bundle
+    environment:
+      flutter: "3.19.3"
+      java: "17.0.11"
+      # xcode: 15.1
+      groups:
+        - CREDS
+    scripts:
+      - *logs
+      - *script_permissions
+      - name: "Remove iOS and Web"
+        script: |
+          rm -rf ios web
+      - *python_dependencies
+      - *ensemble_properties
+      - *manifest
+      - *ensemble_module
+      - *ensemble_config
+      - *main_dart
+      - *get_logo
+      - *get_assets
+      - *pubspec
+      - *flutter_create
+      # - *dart_fix
+      - *keystore
+      - *pub_get
+      - *compress_app
+      - *build_aab
+      - *get_debug_symbols
 
-        # Optional boolean, defaults to false. Whether or not to submit the uploaded
-        # build to TestFlight beta review.
-        # Note: This action is performed during post-processing.
-        submit_to_testflight: true
+    artifacts:
+      - project.zip
+      - build/**/debug-symbols.zip
+      - android/app/keystore.zip
+      - build/app/outputs/bundle/release/app-release.aab
 
+    publishing:
+      google_play:
+        credentials: $GOOGLE_PLAY_API_KEY
+        track: $GOOGLE_PLAY_TRACK
+        submit_as_draft: true
 
+  deploy-aab-and-ipa:
+    name: Deploy App Bundle & IPA
+    environment:
+      flutter: "3.19.3"
+      java: "17.0.11"
+      # xcode: 15.1
+      groups:
+        - CREDS
+    scripts:
+      - *logs
+      - *script_permissions
+      - name: "Remove Web"
+        script: |
+          rm -rf web
+      - *python_dependencies
+      - *ensemble_properties
+      - *manifest
+      - *info_plist
+      - *runner_entitlements
+      - *app_delegate
+      - *ensemble_module
+      - *ensemble_config
+      - *main_dart
+      - *get_logo
+      - *get_assets
+      - *pubspec
+      - *flutter_create
+      - *keystore
+      - *ios_private_key
+      - *ios_code_signing
+      # - *dart_fix
+      - *pub_get
+      - *compress_app
+      - *build_aab
+      - *build_ipa
+      - *get_debug_symbols
 
+    artifacts:
+      - project.zip
+      - build/**/debug-symbols.zip
+      - android/app/keystore.zip
+      - build/app/outputs/bundle/release/app-release.aab
+      - build/ios/ipa/*.ipa
+      - $HOME/Library/Developer/Xcode/DerivedData/**/Build/**/*.dSYM
 
+    publishing:
+      scripts:
+        - name: Upload debug symbols to Firebase Crashlytics
+          script: |
+            echo "Find build artifacts"
+            dsymPath=$(find $CM_BUILD_DIR/build/ios/archive/Runner.xcarchive -name "*.dSYM" | head -1)
+            if [[ -z ${dsymPath} ]]
+            then
+              echo "No debug symbols were found, skip publishing to Firebase Crashlytics"
+            else
+              echo "Publishing debug symbols from $dsymPath to Firebase Crashlytics"
+              ls -d -- ios/Pods/*
+              $CM_BUILD_DIR/ios/Pods/FirebaseCrashlytics/upload-symbols \
+                -gsp ios/Runner/GoogleService-Info.plist -p ios $dsymPath
+            fi
+
+      google_play:
+        credentials: $GOOGLE_PLAY_API_KEY
+        track: $GOOGLE_PLAY_TRACK
+        submit_as_draft: true
+      app_store_connect:
+        api_key: $APP_STORE_CONNECT_PRIVATE_KEY
+        key_id: $APP_STORE_CONNECT_KEY_IDENTIFIER
+        issuer_id: $APP_STORE_CONNECT_ISSUER_ID
+
+  build-web-html:
+    name: Build Web (HTML Renderer)
+    environment:
+      flutter: "3.19.3"
+      java: "17.0.11"
+      # xcode: 15.1
+      groups:
+        - CREDS
+    scripts:
+      - *logs
+      - *script_permissions
+      - name: "Remove Android and iOS"
+        script: |
+          rm -rf android ios
+      - *python_dependencies
+      - *ensemble_properties
+      - *ensemble_module
+      - *ensemble_config
+      - *main_dart
+      - *index_html
+      - *get_logo
+      - *get_assets
+      - *pubspec
+      - *flutter_create
+      # - *dart_fix
+
+      - name: Get Flutter Packages & add Logo
+        script: |
+          flutter pub get
+          dart run flutter_launcher_icons
+
+      - *compress_app
+
+      - &build_html
+        name: Build Release Web
+        script: |
+          flutter build web --no-tree-shake-icons --web-renderer html
+
+      - &compress_web
+        name: Compressing the web build
+        script: |
+          cd build
+          zip -r web.zip web/*
+
+          mv web.zip ..
+          cd ..
+
+    artifacts:
+      - project.zip
+      - web.zip
+
+  build-web-canvas-kit:
+    name: Build Web (CanvasKit Renderer)
+    environment:
+      flutter: "3.19.3"
+      java: "17.0.11"
+      # xcode: 15.1
+      groups:
+        - CREDS
+    scripts:
+      - *logs
+      - *script_permissions
+      - *python_dependencies
+      - name: "Remove Android and iOS"
+        script: |
+          rm -rf android ios
+      - *ensemble_properties
+      - *ensemble_module
+      - *ensemble_config
+      - *main_dart
+      - *index_html
+      - *get_logo
+      - *get_assets
+      - *pubspec
+      - *flutter_create
+      # - *dart_fix
+
+      - name: Get Flutter Packages & add Logo
+        script: |
+          flutter pub get
+          dart run flutter_launcher_icons
+
+      - *compress_app
+
+      - &build_canvaskit
+        name: Build Release Web
+        script: |
+          flutter build web --no-tree-shake-icons --web-renderer canvaskit
+
+      - *compress_web
+
+    artifacts:
+      - project.zip
+      - web.zip
+
+  build-web-wasm:
+    name: Build Web (WASM Renderer)
+    environment:
+      flutter: "3.19.3"
+      java: "17.0.11"
+      # xcode: 15.1
+      groups:
+        - CREDS
+    scripts:
+      - *logs
+      - *script_permissions
+      - name: "Remove Android and iOS"
+        script: |
+          rm -rf android ios
+      - *python_dependencies
+      - *ensemble_properties
+      - *ensemble_module
+      - *ensemble_config
+      - *main_dart
+      - *get_logo
+      - *get_assets
+      - *pubspec
+      - *flutter_create
+      # - *dart_fix
+
+      - name: Get Flutter Packages & add Logo
+        script: |
+          flutter pub get
+          dart run flutter_launcher_icons
+
+      - *compress_app
+
+      - &build_wasm
+        name: Build Release Web
+        script: |
+          flutter build web --no-tree-shake-icons --web-renderer skwasm
+
+      - *compress_web
+
+    artifacts:
+      - project.zip
+      - web.zip
+
+  get-sha-key:
+    name: Get SHA Key
+    environment:
+      flutter: "3.19.3"
+      java: "17.0.11"
+      # xcode: 15.1
+      groups:
+        - CREDS
+    scripts:
+      - *logs
+      - *python_dependencies
+      - *keystore
+
+      - name: Get SHA Key
+        script: |
+          python3 scripts/python/sha_key.py \
+            --password "$KEYSTORE_PASSWORD" \
+            --alias "$KEY_ALIAS" \
+
+      - name: Compress the key
+        script: |
+          zip keys.zip keys.txt
+
+    artifacts:
+      - keys.zip
+      - android/app/keystore.zip
+
+  test-android:
+    name: Run test on android
+    environment:
+      flutter: "3.19.3"
+      java: "17.0.11"
+      # xcode: 15.1
+      groups:
+        - CREDS
+    scripts:
+      - *logs
+      - &download_maestro
+        name: Download Maestro
+        script: curl -Ls "https://get.maestro.mobile.dev" | bash
+
+      - *script_permissions
+      - *python_dependencies
+      - name: "Remove iOS and Web"
+        script: |
+          rm -rf ios web
+      - *ensemble_properties
+      - *manifest
+      - *ensemble_module
+      - *ensemble_config
+      - *main_dart
+      - *get_logo
+      - *get_assets
+      - *pubspec
+      - *flutter_create
+      - *keystore
+      - *pub_get
+      - *compress_app
+      - *build_apk
+
+    publishing:
+      scripts:
+        - script: |
+            export PATH="$PATH":"$HOME/.maestro/bin"
+            apkPath="/build/app/outputs/apk/release/app-release.apk"
+
+            maestro cloud \
+            --apiKey $MAESTRO_API_KEY \
+            $apkPath \
+            .maestro/
+
+    artifacts:
+      - keys.zip
+      - android/app/keystore.zip
+
+  test-ios:
+    name: Run test on android
+    environment:
+      flutter: "3.19.3"
+      java: "17.0.11"
+      # xcode: 15.1
+      groups:
+        - CREDS
+    scripts:
+      - *logs
+      - *download_maestro
+      - *script_permissions
+      - *python_dependencies
+      - name: "Remove Android and Web"
+        script: |
+          rm -rf android web
+      - *ensemble_properties
+      - *info_plist
+      - *runner_entitlements
+      - *app_delegate
+      - *ensemble_module
+      - *ensemble_config
+      - *main_dart
+      - *get_logo
+      - *get_assets
+      - *pubspec
+      - *flutter_create
+      - *ios_private_key
+      - *ios_code_signing
+      - *pub_get
+      - *compress_app
+      - name: Build unsigned .app
+        script: |
+          cd ios
+          xcodebuild \
+          -workspace "ios/$XCODE_WORKSPACE" \
+          -scheme "$XCODE_SCHEME" \
+          -configuration "Debug" \
+          -sdk iphonesimulator \
+          -derivedDataPath ios/output
+
+    publishing:
+      scripts:
+        - script: |
+            export PATH="$PATH":"$HOME/.maestro/bin"
+            iosAppPath="$ios/output/..."
+
+            maestro cloud \
+            --apiKey $MDEV_API_KEY \
+            $iosAppPath \
+            .maestro/
+
+    artifacts:
+      - keys.zip
+      - android/app/keystore.zip
