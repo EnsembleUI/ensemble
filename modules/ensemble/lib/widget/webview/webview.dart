@@ -42,16 +42,19 @@ class EnsembleWebView extends StatefulWidget
       'height': (value) => _controller.height = Utils.optionalDouble(value),
       'width': (value) => _controller.width = Utils.optionalDouble(value),
       'onPageStart': (funcDefinition) => _controller.onPageStart =
-          ensemble.EnsembleAction.fromYaml(funcDefinition, initiator: this),
+          ensemble.EnsembleAction.from(funcDefinition, initiator: this),
       'onPageFinished': (funcDefinition) => _controller.onPageFinished =
-          ensemble.EnsembleAction.fromYaml(funcDefinition, initiator: this),
+          ensemble.EnsembleAction.from(funcDefinition, initiator: this),
       'onNavigationRequest': (funcDefinition) =>
           _controller.onNavigationRequest =
-              ensemble.EnsembleAction.fromYaml(funcDefinition, initiator: this),
+              ensemble.EnsembleAction.from(funcDefinition, initiator: this),
       'onWebResourceError': (funcDefinition) => _controller.onWebResourceError =
-          ensemble.EnsembleAction.fromYaml(funcDefinition, initiator: this),
+          ensemble.EnsembleAction.from(funcDefinition, initiator: this),
       // legacy
       'uri': (value) => _controller.url = Utils.getUrl(value),
+      'allowedLaunchSchemes': (value) =>
+          _controller.schemes = Utils.getList<String>(value) ??
+              EnsembleWebViewController.defaultSchemes,
     };
   }
 }
@@ -65,7 +68,14 @@ class EnsembleWebViewController extends WidgetController {
   // params for each URI set
   int? loadingPercent = 0;
   String? error;
-
+  // List of default schemes to handle, this can be overwritten by an app
+  static const List<String> defaultSchemes = [
+    'tel:',
+    'sms:',
+    'mailto:',
+    'geo:' //for launching maps
+  ];
+  List<String> schemes = defaultSchemes;
   WebViewController? webViewController;
   WebViewCookieManager? cookieManager;
 

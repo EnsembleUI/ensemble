@@ -7,6 +7,7 @@ import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/theme_manager.dart';
 import 'package:ensemble/framework/view/data_scope_widget.dart';
 import 'package:ensemble/framework/view/page.dart';
+import 'package:ensemble/model/shared_models.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
@@ -15,7 +16,7 @@ import 'package:flutter/cupertino.dart';
 
 /// mixin for Widget that supports item-template
 mixin TemplatedWidgetState<W extends StatefulWidget> on State<W> {
-  void registerItemTemplate(BuildContext context, ItemTemplate itemTemplate,
+  void registerItemTemplate(BuildContext context, BaseItemTemplate itemTemplate,
       {bool? evaluateInitialValue, required Function onDataChanged}) {
     ScopeManager? scopeManager = DataScopeWidget.getScope(context);
 

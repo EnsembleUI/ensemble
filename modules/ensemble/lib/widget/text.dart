@@ -1,6 +1,6 @@
 import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/framework/view/has_selectable_text.dart';
-import 'package:ensemble/model/TextScale.dart';
+import 'package:ensemble/model/text_scale.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/framework/widget/widget.dart' as framework;
 import 'package:ensemble/widget/helpers/controllers.dart';

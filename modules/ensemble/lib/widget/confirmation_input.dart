@@ -69,9 +69,9 @@ class ConfirmationInput extends StatefulWidget
       'cursorColor': (newValue) =>
           _controller.cursorColor = Utils.getColor(newValue),
       'onChange': (funcDefinition) => _controller.onChange =
-          EnsembleAction.fromYaml(funcDefinition, initiator: this),
+          EnsembleAction.from(funcDefinition, initiator: this),
       'onComplete': (funcDefinition) => _controller.onComplete =
-          EnsembleAction.fromYaml(funcDefinition, initiator: this),
+          EnsembleAction.from(funcDefinition, initiator: this),
     };
   }
 

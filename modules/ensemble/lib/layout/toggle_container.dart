@@ -39,7 +39,7 @@ class ToggleContainer extends StatefulWidget
   Map<String, Function> setters() {
     return {
       'onToggle': (definition) => _controller.onToggle =
-          EnsembleAction.fromYaml(definition, initiator: this),
+          EnsembleAction.from(definition, initiator: this),
       'isFirst': (value) => _controller.isFirst =
           Utils.getBool(value, fallback: _controller.isFirst),
       'firstWidget': (widget) => _controller.firstWidget = widget,

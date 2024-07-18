@@ -19,6 +19,5 @@ Widget buildGoogleSignInButton(
 
           // medium is the only applicable option (large will have 2 lines with weird user selection)
           size: web.GSIButtonSize.medium,
-
           text: web.GSIButtonText.signinWith));
 }

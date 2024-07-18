@@ -10,6 +10,7 @@ import 'package:ensemble/framework/view/footer.dart';
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/layout/templated.dart';
 import 'package:ensemble/model/pull_to_refresh.dart';
+import 'package:ensemble/model/shared_models.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
@@ -67,17 +68,17 @@ class GridView extends StatefulWidget
       'itemAspectRatio': (value) =>
           _controller.itemAspectRatio = Utils.optionalDouble(value, min: 0),
       'onItemTap': (funcDefinition) => _controller.onItemTap =
-          EnsembleAction.fromYaml(funcDefinition, initiator: this),
+          EnsembleAction.from(funcDefinition, initiator: this),
       'onItemTapHaptic': (value) =>
           _controller.onItemTapHaptic = Utils.optionalString(value),
       'pullToRefresh': (input) =>
           _controller.pullToRefresh = PullToRefresh.fromMap(input, this),
       'onPullToRefresh': (funcDefinition) => _controller.onPullToRefresh =
-          EnsembleAction.fromYaml(funcDefinition, initiator: this),
+          EnsembleAction.from(funcDefinition, initiator: this),
       'pullToRefreshOptions': (input) => _controller.pullToRefreshOptions =
           PullToRefreshOptions.fromMap(input),
       'onScrollEnd': (funcDefinition) => _controller.onScrollEnd =
-          EnsembleAction.fromYaml(funcDefinition, initiator: this),
+          EnsembleAction.from(funcDefinition, initiator: this),
       'reverse': (value) =>
           _controller.reverse = Utils.getBool(value, fallback: false),
       'scrollController': (value) {

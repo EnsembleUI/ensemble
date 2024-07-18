@@ -20,6 +20,7 @@ import 'package:ensemble/page_model.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/custom_widget/custom_widget.dart';
 import 'package:ensemble/widget/custom_widget/custom_widget_model.dart';
+import 'package:ensemble/widget/radio/radio_button_controller.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokablecontroller.dart';
 import 'package:event_bus/event_bus.dart';
@@ -700,6 +701,10 @@ class PageData {
   Map<String, YamlMap>? apiMap;
   Map<String, EnsembleSocket>? socketData;
 
+  // we keep track of radios's groupId on every page, since Radios can be scattered
+  // anywhere on the screen
+  Map<String, RadioButtonController> radioButtonControllers = {};
+
   /// everytime we call this, we make sure any populated API result will have its updated values here
 /*DataContext getEnsembleContext() {
     for (var element in datasourceMap.values) {
@@ -760,11 +765,11 @@ class EnsembleSocket {
       inputs: Utils.getList(payload['inputs'])?.cast<String>() ?? [],
       uri: Utils.getString(payload['uri'], fallback: ''),
       options: SocketOptions.fromYaml(payload: payload['options']),
-      onReceive: EnsembleAction.fromYaml(payload['onReceive']),
-      onSuccess: EnsembleAction.fromYaml(payload['onSuccess']),
-      onError: EnsembleAction.fromYaml(payload['onError']),
-      onDisconnect: EnsembleAction.fromYaml(payload['onDisconnect']),
-      onReconnecting: EnsembleAction.fromYaml(payload['onReconnectAttempt']),
+      onReceive: EnsembleAction.from(payload['onReceive']),
+      onSuccess: EnsembleAction.from(payload['onSuccess']),
+      onError: EnsembleAction.from(payload['onError']),
+      onDisconnect: EnsembleAction.from(payload['onDisconnect']),
+      onReconnecting: EnsembleAction.from(payload['onReconnectAttempt']),
     );
   }
 

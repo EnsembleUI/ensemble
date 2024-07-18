@@ -3,7 +3,7 @@ abstract class Context {
   void addDataContextById(String id, dynamic value);
   bool hasContext(String id);
   dynamic getContextById(String id);
-  Map<String,dynamic> getContextMap();
+  Map<String, dynamic> getContextMap();
   void addToThisContext(String id, dynamic value);
 }
 

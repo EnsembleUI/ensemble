@@ -22,7 +22,8 @@ import 'package:ensemble/widget/button.dart';
 import 'package:ensemble/widget/calendar.dart';
 import 'package:ensemble/widget/checkbox.dart';
 import 'package:ensemble/widget/countdown.dart';
-import 'package:ensemble/widget/input/radio_button.dart';
+import 'package:ensemble/widget/radio/radio_button.dart';
+import 'package:ensemble/widget/radio/radio_group.dart';
 import 'package:ensemble/widget/static_map.dart';
 import 'package:ensemble/widget/shape.dart';
 import 'package:ensemble/widget/carousel.dart';
@@ -135,7 +136,7 @@ class WidgetRegistry {
         Countdown.type: () => Countdown(),
 
         // form fields
-        RadioWidget.type: () => RadioWidget(),
+        RadioButton.type: () => RadioButton(),
         EnsembleForm.type: () => EnsembleForm(),
         TextInput.type: () => TextInput(),
         ConfirmationInput.type: () => ConfirmationInput(),
@@ -147,6 +148,7 @@ class WidgetRegistry {
         EnsembleSwitch.type: () => EnsembleSwitch(),
         EnsembleTripleSwitch.type: () => EnsembleTripleSwitch(),
         Dropdown.type: () => Dropdown(),
+        RadioGroup.type: () => RadioGroup(),
         Button.type: () => Button(),
         EnsembleIconButton.type: () => EnsembleIconButton(),
         EnsembleToggleButton.type: () => EnsembleToggleButton(),

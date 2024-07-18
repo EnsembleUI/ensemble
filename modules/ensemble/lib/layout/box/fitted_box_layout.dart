@@ -8,6 +8,7 @@ import 'package:ensemble/layout/box/base_box_layout.dart';
 import 'package:ensemble/layout/box/box_layout.dart';
 import 'package:ensemble/layout/box/box_utils.dart';
 import 'package:ensemble/layout/templated.dart';
+import 'package:ensemble/model/shared_models.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/widget/spacer.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
@@ -61,7 +62,7 @@ abstract class FittedBoxLayout extends StatefulWidget
   Map<String, Function> setters() {
     return {
       'onTap': (funcDefinition) => _controller.onTap =
-          EnsembleAction.fromYaml(funcDefinition, initiator: this),
+          EnsembleAction.from(funcDefinition, initiator: this),
     };
   }
 
@@ -104,7 +105,8 @@ class FittedBoxLayoutState extends WidgetState<FittedBoxLayout>
       }
     }
     // add gap if needed
-    items = BoxUtils.buildChildrenAndGap(widget._controller, children: items);
+    items =
+        BoxUtils.buildChildrenAndGap(widget._controller.gap, children: items);
 
     Widget boxWidget;
     if (widget.isVertical()) {

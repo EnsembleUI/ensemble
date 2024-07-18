@@ -52,7 +52,7 @@ class Address extends StatefulWidget
       'proximitySearchRadius': (value) =>
           _controller.proximitySearchRadius = Utils.optionalInt(value),
       'onChange': (definition) => _controller.onChange =
-          EnsembleAction.fromYaml(definition, initiator: this)
+          EnsembleAction.from(definition, initiator: this)
     };
   }
 }

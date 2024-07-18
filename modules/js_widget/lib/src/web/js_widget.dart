@@ -6,22 +6,23 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 
 import 'js.dart';
+
 ///
 ///A generic library for exposing javascript widgets in Flutter webview.
 ///Took https://github.com/senthilnasa/high_chart as a start and genericized it
 ///
 class JsWidget extends StatefulWidget {
   JsWidget(
-      { required this.id,
-        required this.createHtmlTag,
-        required this.data,
-        required this.scriptToInstantiate,
-        required this.size,
-        this.loader = const CircularProgressIndicator(),
-        this.scripts = const [],
-        this.listener,
-        this.preCreateScript,
-        Key? key})
+      {required this.id,
+      required this.createHtmlTag,
+      required this.data,
+      required this.scriptToInstantiate,
+      required this.size,
+      this.loader = const CircularProgressIndicator(),
+      this.scripts = const [],
+      this.listener,
+      this.preCreateScript,
+      Key? key})
       : super(key: key);
 
   ///Custom `loader` widget, until script is loaded
@@ -59,26 +60,31 @@ class JsWidget extends StatefulWidget {
 
 class JsWidgetState extends State<JsWidget> {
   static Map<String, Function(String msg)> listeners = {};
-  static void addListener(String id,Function(String msg) listener) {
+  static void addListener(String id, Function(String msg) listener) {
     listeners[id] = listener;
   }
-  static Function(String msg)? removeListenersWithId (String id) {
+
+  static Function(String msg)? removeListenersWithId(String id) {
     return listeners.remove(id);
   }
-  static Function(String msg)? removeListener(String id, Function(String msg) listener) {
-    for ( int i=listeners.keys.length-1;i>=0;i-- ) {
-      if ( listeners[listeners.keys.elementAt(i)] == listener ) {
+
+  static Function(String msg)? removeListener(
+      String id, Function(String msg) listener) {
+    for (int i = listeners.keys.length - 1; i >= 0; i--) {
+      if (listeners[listeners.keys.elementAt(i)] == listener) {
         return listeners.remove(listeners.keys.elementAt(i));
       }
     }
     return null;
   }
+
   static void globalListener(String id, String msg) {
-    if ( listeners.containsKey(id) ) {
+    if (listeners.containsKey(id)) {
       Function(String msg) f = listeners[id]!;
       f.call(msg);
     }
   }
+
   @override
   void didUpdateWidget(covariant JsWidget oldWidget) {
     if (oldWidget.data != widget.data ||
@@ -92,11 +98,11 @@ class JsWidgetState extends State<JsWidget> {
 
   @override
   void initState() {
-    if ( widget.listener != null ) {
+    if (widget.listener != null) {
       addListener(widget.id, widget.listener!);
       init(globalListener);
     }
-    if ( widget.preCreateScript != null ) {
+    if (widget.preCreateScript != null) {
       eval(widget.preCreateScript!());
     }
     _load();
@@ -108,25 +114,25 @@ class JsWidgetState extends State<JsWidget> {
     });
     super.initState();
   }
+
   @override
   void dispose() {
     removeListenersWithId(widget.id);
     super.dispose();
   }
+
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: widget.size.height,
-      width: widget.size.width,
-      child: HtmlElementView(viewType: widget.id)
-    );
+        height: widget.size.height,
+        width: widget.size.width,
+        child: HtmlElementView(viewType: widget.id));
   }
-
 
   Future<bool> _load() {
     return Future<bool>.delayed(const Duration(milliseconds: 250), () {
       String? str = widget.scriptToInstantiate(widget.data);
-      if ( str != null && str.isNotEmpty ) {
+      if (str != null && str.isNotEmpty) {
         eval(str);
       }
       return true;

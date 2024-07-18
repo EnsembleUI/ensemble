@@ -1,6 +1,7 @@
 import 'package:ensemble/framework/widget/has_children.dart';
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/layout/templated.dart';
+import 'package:ensemble/model/shared_models.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
@@ -216,15 +217,14 @@ class DragOptions {
       required this.showDragHandle,
       required this.snapSizes});
 
-  factory DragOptions.fromYaml(
-          YamlMap yamlMap, Invokable invokable) =>
+  factory DragOptions.fromYaml(YamlMap yamlMap, Invokable invokable) =>
       DragOptions(
           onMaxSize:
               action
                       .EnsembleAction
-                  .fromYaml(yamlMap['onMaxSize'], initiator: invokable),
+                  .from(yamlMap['onMaxSize'], initiator: invokable),
           onMinSize:
-              action.EnsembleAction.fromYaml(yamlMap['onMinSize'],
+              action.EnsembleAction.from(yamlMap['onMinSize'],
                   initiator: invokable),
           minSize: Utils.getDouble(yamlMap['minSize'], fallback: 0.25),
           maxSize: Utils.getDouble(yamlMap['maxSize'], fallback: 1.0),

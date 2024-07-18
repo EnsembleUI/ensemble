@@ -9,6 +9,7 @@ import 'package:ensemble/framework/model.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/widget/colored_box_placeholder.dart';
 import 'package:ensemble/layout/templated.dart';
+import 'package:ensemble/model/shared_models.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
@@ -71,7 +72,7 @@ class AvatarController extends EnsembleBoxController {
       'fit': (value) => fit = Utils.getBoxFit(value),
       'placeholderColor': (value) => placeholderColor = Utils.getColor(value),
       'variant': (value) => variant = AvatarVariant.values.from(value),
-      'onTap': (func) => onTap = EnsembleAction.fromYaml(func, initiator: this),
+      'onTap': (func) => onTap = EnsembleAction.from(func, initiator: this),
       'onTapHaptic': (value) => onTapHaptic = Utils.optionalString(value),
       'group-template': (value) => setGroupAvatar(value)
     });
@@ -94,7 +95,7 @@ class AvatarController extends EnsembleBoxController {
             Utils.getColor(groupData?['surplus']['backgroundColor']),
         height: Utils.optionalDouble(groupData?['surplus']['height']),
         width: Utils.optionalDouble(groupData?['surplus']['width']),
-        onTap: EnsembleAction.fromYaml(groupData?['surplus']['onTap']),
+        onTap: EnsembleAction.from(groupData?['surplus']['onTap']),
         textStyle: Utils.getTextStyle(groupData?['surplus']['textStyle']),
         variant: AvatarVariant.values.from(groupData?['surplus']['variant']),
         visible:

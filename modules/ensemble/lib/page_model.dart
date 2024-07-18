@@ -11,6 +11,7 @@ import 'package:ensemble/layout/app_scroller.dart';
 import 'package:ensemble/layout/box/box_layout.dart';
 import 'package:ensemble/layout/stack.dart';
 import 'package:ensemble/framework/definition_providers/provider.dart';
+import 'package:ensemble/model/shared_models.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/widget_registry.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
@@ -293,9 +294,9 @@ class SinglePageModel extends PageModel with HasStyles {
         }
 
         // set the view behavior
-        viewBehavior.onLoad = EnsembleAction.fromYaml(viewMap['onLoad']);
-        viewBehavior.onPause = EnsembleAction.fromYaml(viewMap['onPause']);
-        viewBehavior.onResume = EnsembleAction.fromYaml(viewMap['onResume']);
+        viewBehavior.onLoad = EnsembleAction.from(viewMap['onLoad']);
+        viewBehavior.onPause = EnsembleAction.from(viewMap['onPause']);
+        viewBehavior.onResume = EnsembleAction.from(viewMap['onResume']);
 
         processHeader(viewMap['header'], viewMap['title']);
 
@@ -519,22 +520,6 @@ class ViewBehavior {
   EnsembleAction? onLoad;
   EnsembleAction? onPause;
   EnsembleAction? onResume;
-}
-
-class ItemTemplate {
-  dynamic data;
-  final String name;
-  final dynamic template;
-  List<dynamic>? initialValue;
-  Map<String, dynamic>? inheritedStyles;
-
-  ItemTemplate(
-    this.data,
-    this.name,
-    this.template, {
-    this.initialValue,
-    this.inheritedStyles,
-  });
 }
 
 class HeaderModel extends Object with HasStyles {

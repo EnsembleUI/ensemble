@@ -5,6 +5,7 @@ import 'package:ensemble/action/badge_action.dart';
 import 'package:ensemble/action/bottom_sheet_actions.dart';
 import 'package:ensemble/action/deep_link_action.dart';
 import 'package:ensemble/action/call_external_method.dart';
+import 'package:ensemble/action/get_network_info_action.dart';
 import 'package:ensemble/action/haptic_action.dart';
 import 'package:ensemble/action/call_native_method.dart';
 import 'package:ensemble/action/invoke_api_action.dart';
@@ -54,9 +55,9 @@ class ShowCameraAction extends EnsembleAction {
       initiator: initiator,
       options: Utils.getMap(payload?['options']),
       id: Utils.optionalString(payload?['id']),
-      onComplete: EnsembleAction.fromYaml(payload?['onComplete']),
-      onClose: EnsembleAction.fromYaml(payload?['onClose']),
-      onCapture: EnsembleAction.fromYaml(payload?['onCapture']),
+      onComplete: EnsembleAction.from(payload?['onComplete']),
+      onClose: EnsembleAction.from(payload?['onClose']),
+      onCapture: EnsembleAction.from(payload?['onCapture']),
     );
   }
 }
@@ -87,8 +88,7 @@ class ShowDialogAction extends EnsembleAction {
       options: Utils.getMap(payload['options']),
       onDialogDismiss: payload['onDialogDismiss'] == null
           ? null
-          : EnsembleAction.fromYaml(
-              Utils.maybeYamlMap(payload['onDialogDismiss'])),
+          : EnsembleAction.from(Utils.maybeYamlMap(payload['onDialogDismiss'])),
     );
   }
 }
@@ -117,7 +117,7 @@ class NavigateScreenAction extends BaseNavigateScreenAction {
       payload:
           Utils.getMap(payload['payload']) ?? Utils.getMap(payload['inputs']),
       options: Utils.getMap(payload['options']),
-      onNavigateBack: EnsembleAction.fromYaml(payload['onNavigateBack']),
+      onNavigateBack: EnsembleAction.from(payload['onNavigateBack']),
       transition: Utils.getMap(payload['transition']),
       isExternal: Utils.getBool(payload['external'], fallback: false),
       asExternal: Utils.getBool(payload['asExternal'], fallback: false),
@@ -192,7 +192,7 @@ class NavigateModalScreenAction extends BaseNavigateScreenAction {
       screenName: payload['name'].toString(),
       payload:
           Utils.getMap(payload['payload']) ?? Utils.getMap(payload['inputs']),
-      onModalDismiss: EnsembleAction.fromYaml(payload['onModalDismiss']),
+      onModalDismiss: EnsembleAction.from(payload['onModalDismiss']),
       asExternal: Utils.getBool(payload['asExternal'], fallback: false),
     );
   }
@@ -244,9 +244,9 @@ class PlaidLinkAction extends EnsembleAction {
     return PlaidLinkAction(
       initiator: initiator,
       linkToken: payload['linkToken'],
-      onSuccess: EnsembleAction.fromYaml(payload['onSuccess']),
-      onEvent: EnsembleAction.fromYaml(payload['onEvent']),
-      onExit: EnsembleAction.fromYaml(payload['onExit']),
+      onSuccess: EnsembleAction.from(payload['onSuccess']),
+      onEvent: EnsembleAction.from(payload['onEvent']),
+      onExit: EnsembleAction.from(payload['onExit']),
     );
   }
 }
@@ -275,8 +275,8 @@ class ReceiveIntentAction extends EnsembleAction {
       initiator: initiator,
       options: Utils.getMap(payload?['options']),
       id: Utils.optionalString(payload?['id']),
-      onReceive: EnsembleAction.fromYaml(payload?['onReceive']),
-      onError: EnsembleAction.fromYaml(payload?['onError']),
+      onReceive: EnsembleAction.from(payload?['onReceive']),
+      onError: EnsembleAction.from(payload?['onError']),
     );
   }
 
@@ -303,11 +303,18 @@ class AppSettingAction extends EnsembleAction {
       AppSettingsType.values.from(dataContext.eval(target)) ??
       AppSettingsType.settings;
 
-  factory AppSettingAction.fromYaml({Invokable? initiator, Map? payload}) {
+  factory AppSettingAction.from({Invokable? initiator, Map? payload}) {
     return AppSettingAction(
       initiator: initiator,
       target: Utils.getString(payload?['target'], fallback: 'settings'),
     );
+  }
+
+  @override
+  Future execute(BuildContext context, ScopeManager scopeManager) {
+    final settingType = getTarget(scopeManager.dataContext);
+    AppSettings.openAppSettings(type: settingType);
+    return Future.value(null);
   }
 }
 
@@ -347,14 +354,13 @@ class StartTimerAction extends EnsembleAction {
 
   factory StartTimerAction.fromYaml({Invokable? initiator, Map? payload}) {
     EnsembleAction? onTimer =
-        EnsembleAction.fromYaml(payload?['onTimer'], initiator: initiator);
+        EnsembleAction.from(payload?['onTimer'], initiator: initiator);
     if (payload == null || onTimer == null) {
       throw LanguageError(
           "${ActionType.startTimer.name} requires a valid 'onTimer' action.");
     }
-    EnsembleAction? onTimerComplete = EnsembleAction.fromYaml(
-        payload['onTimerComplete'],
-        initiator: initiator);
+    EnsembleAction? onTimerComplete =
+        EnsembleAction.from(payload['onTimerComplete'], initiator: initiator);
 
     return StartTimerAction(
         initiator: initiator,
@@ -406,8 +412,8 @@ class ExecuteCodeAction extends EnsembleAction {
         initiator: initiator,
         inputs: Utils.getMap(payload['inputs']),
         codeBlock: payload['body'].toString(),
-        onComplete: EnsembleAction.fromYaml(payload['onComplete'],
-            initiator: initiator),
+        onComplete:
+            EnsembleAction.from(payload['onComplete'], initiator: initiator),
         codeBlockSpan:
             ViewUtil.optDefinition((payload as YamlMap).nodes['body']));
   }
@@ -437,7 +443,7 @@ class ExecuteActionGroupAction extends EnsembleAction {
     List<EnsembleAction> ensembleActions = [];
     for (var action in actions) {
       EnsembleAction? ensembleAction =
-          EnsembleAction.fromYaml(action, initiator: initiator);
+          EnsembleAction.from(action, initiator: initiator);
       if (ensembleAction == null) {
         throw LanguageError(
             "$action under ${ActionType.executeActionGroup.name} is not a valid action");
@@ -507,7 +513,7 @@ class ExecuteConditionalActionAction extends EnsembleAction {
 
   Future<dynamic> _execute(
       Map actionMap, BuildContext context, ScopeManager scopeManager) async {
-    EnsembleAction? action = EnsembleAction.fromYaml(YamlMap.wrap(actionMap));
+    EnsembleAction? action = EnsembleAction.from(YamlMap.wrap(actionMap));
     if (action == null) {
       throw LanguageError(
           "${ActionType.executeConditionalAction.name} requires a valid action.");
@@ -569,7 +575,7 @@ class DispatchEventAction extends EnsembleAction {
     return DispatchEventAction(
         initiator: initiator,
         event: EnsembleEvent.fromYaml(payload.keys.first, data),
-        onComplete: EnsembleAction.fromYaml(payload['onComplete']));
+        onComplete: EnsembleAction.from(payload['onComplete']));
   }
 
   factory DispatchEventAction.from(dynamic payLoad) {
@@ -671,8 +677,8 @@ class FilePickerAction extends EnsembleAction {
           (payload['allowedExtensions'] as YamlList?)?.cast<String>().toList(),
       allowMultiple: Utils.optionalBool(payload['allowMultiple']),
       allowCompression: Utils.optionalBool(payload['allowCompression']),
-      onComplete: EnsembleAction.fromYaml(payload['onComplete']),
-      onError: EnsembleAction.fromYaml(payload['onError']),
+      onComplete: EnsembleAction.from(payload['onComplete']),
+      onError: EnsembleAction.from(payload['onError']),
       source: getSource(payload['source']),
     );
   }
@@ -719,8 +725,8 @@ class FileUploadAction extends EnsembleAction {
     }
     return FileUploadAction(
       id: Utils.optionalString(payload['id']),
-      onComplete: EnsembleAction.fromYaml(payload['onComplete']),
-      onError: EnsembleAction.fromYaml(payload['onError']),
+      onComplete: EnsembleAction.from(payload['onComplete']),
+      onError: EnsembleAction.from(payload['onError']),
       uploadApi: payload['uploadApi'],
       inputs: Utils.getMap(payload['inputs']),
       fieldName: Utils.getString(payload['fieldName'], fallback: 'files'),
@@ -776,8 +782,8 @@ class WalletConnectAction extends EnsembleAction {
           Utils.optionalString(payload['appMetaData']?['description']),
       appUrl: Utils.optionalString(payload['appMetaData']?['url']),
       appIconUrl: Utils.optionalString(payload['appMetaData']?['iconUrl']),
-      onComplete: EnsembleAction.fromYaml(payload['onComplete']),
-      onError: EnsembleAction.fromYaml(payload['onError']),
+      onComplete: EnsembleAction.from(payload['onComplete']),
+      onError: EnsembleAction.from(payload['onError']),
     );
   }
 }
@@ -797,8 +803,8 @@ class AuthorizeOAuthAction extends EnsembleAction {
     }
     return AuthorizeOAuthAction(
       payload['id'],
-      onResponse: EnsembleAction.fromYaml(payload['onResponse']),
-      onError: EnsembleAction.fromYaml(payload['onError']),
+      onResponse: EnsembleAction.from(payload['onResponse']),
+      onError: EnsembleAction.from(payload['onError']),
     );
   }
 }
@@ -811,8 +817,8 @@ class NotificationAction extends EnsembleAction {
 
   factory NotificationAction.fromYaml({Invokable? initiator, Map? payload}) {
     return NotificationAction(
-      onTap: EnsembleAction.fromYaml(payload?['onTap']),
-      onReceive: EnsembleAction.fromYaml(payload?['onReceive']),
+      onTap: EnsembleAction.from(payload?['onTap']),
+      onReceive: EnsembleAction.from(payload?['onReceive']),
     );
   }
 }
@@ -826,8 +832,8 @@ class RequestNotificationAction extends EnsembleAction {
   factory RequestNotificationAction.fromYaml(
       {Invokable? initiator, Map? payload}) {
     return RequestNotificationAction(
-      onAccept: EnsembleAction.fromYaml(payload?['onAccept']),
-      onReject: EnsembleAction.fromYaml(payload?['onReject']),
+      onAccept: EnsembleAction.from(payload?['onAccept']),
+      onReject: EnsembleAction.from(payload?['onReject']),
     );
   }
 }
@@ -867,8 +873,8 @@ class ConnectSocketAction extends EnsembleAction {
     return ConnectSocketAction(
       inputs: Utils.getMap(payload['inputs']),
       name: Utils.getString(payload['name'], fallback: ''),
-      onSuccess: EnsembleAction.fromYaml(payload['onSuccess']),
-      onError: EnsembleAction.fromYaml(payload['onError']),
+      onSuccess: EnsembleAction.from(payload['onSuccess']),
+      onError: EnsembleAction.from(payload['onError']),
     );
   }
 }
@@ -927,9 +933,9 @@ class CheckPermission extends EnsembleAction {
     }
     return CheckPermission(
       type: payload['type'],
-      onAuthorized: EnsembleAction.fromYaml(payload['onAuthorized']),
-      onDenied: EnsembleAction.fromYaml(payload['onDenied']),
-      onNotDetermined: EnsembleAction.fromYaml(payload['onNotDetermined']),
+      onAuthorized: EnsembleAction.from(payload['onAuthorized']),
+      onDenied: EnsembleAction.from(payload['onDenied']),
+      onNotDetermined: EnsembleAction.from(payload['onNotDetermined']),
     );
   }
 }
@@ -954,8 +960,8 @@ class SaveKeychain extends EnsembleAction {
     return SaveKeychain(
       key: payload['key'],
       value: payload['value'],
-      onComplete: EnsembleAction.fromYaml(payload['onComplete']),
-      onError: EnsembleAction.fromYaml(payload['onError']),
+      onComplete: EnsembleAction.from(payload['onComplete']),
+      onError: EnsembleAction.from(payload['onError']),
     );
   }
 
@@ -1002,8 +1008,8 @@ class SignInAnonymousAction extends EnsembleAction {
 
   factory SignInAnonymousAction.fromYaml({Map? payload}) {
     return SignInAnonymousAction(
-      onAuthenticated: EnsembleAction.fromYaml(payload?['onAuthenticated']),
-      onError: EnsembleAction.fromYaml(payload?['onError']),
+      onAuthenticated: EnsembleAction.from(payload?['onAuthenticated']),
+      onError: EnsembleAction.from(payload?['onError']),
     );
   }
 }
@@ -1025,8 +1031,8 @@ class ClearKeychain extends EnsembleAction {
     }
     return ClearKeychain(
       key: payload['key'],
-      onComplete: EnsembleAction.fromYaml(payload['onComplete']),
-      onError: EnsembleAction.fromYaml(payload['onError']),
+      onComplete: EnsembleAction.from(payload['onComplete']),
+      onError: EnsembleAction.from(payload['onError']),
     );
   }
 
@@ -1127,6 +1133,7 @@ enum ActionType {
   resumeAudio,
   seekAudio,
   logEvent,
+  getNetworkInfo
 }
 
 /// payload representing an Action to do (navigateToScreen, InvokeAPI, ..)
@@ -1150,11 +1157,11 @@ abstract class EnsembleAction {
     return Future.value(null);
   }
 
-  static EnsembleAction? fromYaml(dynamic action, {Invokable? initiator}) {
-    if (action is YamlMap) {
+  static EnsembleAction? from(dynamic action, {Invokable? initiator}) {
+    if (action is Map) {
       ActionType? actionType = ActionType.values.from(action.keys.first);
       dynamic payload = action[action.keys.first];
-      if (actionType != null && payload is YamlMap?) {
+      if (actionType != null && payload is Map?) {
         return fromActionType(actionType,
             initiator: initiator, payload: payload);
       }
@@ -1214,8 +1221,8 @@ abstract class EnsembleAction {
     } else if (actionType == ActionType.getLocation) {
       return GetLocationAction(
           onLocationReceived:
-              EnsembleAction.fromYaml(payload?['onLocationReceived']),
-          onError: EnsembleAction.fromYaml(payload?['onError']),
+          EnsembleAction.from(payload?['onLocationReceived']),
+          onError: EnsembleAction.from(payload?['onError']),
           recurring: Utils.optionalBool(payload?['options']?['recurring']),
           recurringDistanceFilter: Utils.optionalInt(
               payload?['options']?['recurringDistanceFilter'],
@@ -1251,7 +1258,7 @@ abstract class EnsembleAction {
     } else if (actionType == ActionType.openPlaidLink) {
       return PlaidLinkAction.fromYaml(initiator: initiator, payload: payload);
     } else if (actionType == ActionType.openAppSettings) {
-      return AppSettingAction.fromYaml(initiator: initiator, payload: payload);
+      return AppSettingAction.from(initiator: initiator, payload: payload);
     } else if (actionType == ActionType.getPhoneContacts) {
       return GetPhoneContactAction.fromMap(
           initiator: initiator, payload: payload);
@@ -1304,12 +1311,12 @@ abstract class EnsembleAction {
     } else if (actionType == ActionType.verifySignIn) {
       return VerifySignInAction(
           initiator: initiator,
-          onSignedIn: EnsembleAction.fromYaml(payload?['onSignedIn']),
-          onNotSignedIn: EnsembleAction.fromYaml(payload?['onNotSignedIn']));
+          onSignedIn: EnsembleAction.from(payload?['onSignedIn']),
+          onNotSignedIn: EnsembleAction.from(payload?['onNotSignedIn']));
     } else if (actionType == ActionType.signOut) {
       return SignOutAction(
           initiator: initiator,
-          onComplete: EnsembleAction.fromYaml(payload?['onComplete']));
+          onComplete: EnsembleAction.from(payload?['onComplete']));
     } else if (actionType == ActionType.dispatchEvent) {
       return DispatchEventAction.fromYaml(
           initiator: initiator, payload: payload);
@@ -1325,9 +1332,11 @@ abstract class EnsembleAction {
       return SetLocaleAction(languageCode: payload?['languageCode']);
     } else if (actionType == ActionType.clearLocale) {
       return ClearLocaleAction();
+    } else if (actionType == ActionType.getNetworkInfo) {
+      return GetNetworkInfoAction.from(initiator: initiator,payload: payload);
+    } else {
+      throw LanguageError("Invalid action.",
+          recovery: "Make sure to use one of Ensemble-provided actions.");
     }
-
-    throw LanguageError("Invalid action.",
-        recovery: "Make sure to use one of Ensemble-provided actions.");
   }
 }

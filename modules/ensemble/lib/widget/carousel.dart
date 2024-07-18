@@ -7,6 +7,7 @@ import 'package:ensemble/framework/view/data_scope_widget.dart';
 import 'package:ensemble/framework/widget/has_children.dart';
 import 'package:ensemble/framework/widget/view_util.dart';
 import 'package:ensemble/layout/templated.dart';
+import 'package:ensemble/model/shared_models.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
@@ -74,9 +75,9 @@ class Carousel extends StatefulWidget
       'indicatorMaxCount': (value) =>
           _controller.indicatorMaxCount = Utils.optionalInt(value),
       'onItemChange': (action) => _controller.onItemChange =
-          EnsembleAction.fromYaml(action, initiator: this),
+          EnsembleAction.from(action, initiator: this),
       'onItemTap': (funcDefinition) => _controller.onItemTap =
-          EnsembleAction.fromYaml(funcDefinition, initiator: this),
+          EnsembleAction.from(funcDefinition, initiator: this),
       'indicatorWidget': (widget) => _controller.indicatorWidget = widget,
       'selectedIndicatorWidget': (widget) =>
           _controller.selectedIndicatorWidget = widget,
