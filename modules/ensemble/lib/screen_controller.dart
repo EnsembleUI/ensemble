@@ -538,16 +538,6 @@ class ScreenController {
         scopeManager.dataContext.eval(action.body),
         payload: jsonEncode(scopeManager.dataContext.eval(action.payload)),
       );
-    } else if (action is RequestNotificationAction) {
-      final isEnabled = await notificationUtils.initNotifications() ?? false;
-
-      if (isEnabled && action.onAccept != null) {
-        executeAction(context, action.onAccept!);
-      }
-
-      if (!isEnabled && action.onReject != null) {
-        executeAction(context, action.onReject!);
-      }
     } else if (action is AuthorizeOAuthAction) {
       // TODO
     } else if (action is CheckPermission) {
