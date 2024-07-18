@@ -32,6 +32,7 @@ abstract class ActionInvokable with Invokable {
       ActionType.setLocale,
       ActionType.clearLocale,
       ActionType.openAppSettings,
+      ActionType.requestNotificationAccess,
     ]);
   }
 
