@@ -56,27 +56,32 @@ To contribute a new widget or enhance an existing one in Ensemble, follow these 
 
 ## Releasing a New Version
 
-To release a new version of your monorepo, follow these steps:
+To release a new version of your monorepo, follow these steps below.
 
-### Step 1: Update Git Reference Tags
+Replace `<new-tag>` with the actual version tag you want to use, e.g., `v1.2.3`.
 
-1. **Run the Script to Update References**:
+### Step 1: Create a switch to the release branch
+```bash
+git checkout -b release/<new-tag>
+```
+
+### Step 2: Update Git Reference Tags
+
+**Run the Script to Update References**:
    ```bash
+   npm install
    npx ts-node updateGitRefs.ts <new-tag>
    ```
+   
 
-   Replace `<new-tag>` with the actual version tag you want to use, e.g., `v1.2.3`.
+### Step 3: Commit and push changes to the branch
 
-### Step 2: Commit Changes
-
-1. **Commit the Changes**:
+**Commit the Changes**:
    ```bash
    git add .
-   git commit -m "Update Git references to <new-tag>"
-   git push origin main
+   git commit -m "New release <new-tag>"
+   git push origin release/<new-tag>
    ```
-
-   Replace `<new-tag>` with the actual version tag you used.
 
 ### Step 3: Create a New Release
 
@@ -86,14 +91,19 @@ To release a new version of your monorepo, follow these steps:
    git push origin <new-tag>
    ```
 
-   Replace `<new-tag>` with the actual version tag you used.
-
-2. **Create a Release on GitHub**:
+2. **(optional) Create a Release on GitHub**:
    - Go to your repository on GitHub.
    - Click on the "Releases" tab.
    - Click on "Draft a new release".
    - Fill in the tag version (e.g., `v1.2.3`), release title, and description.
    - Click "Publish release".
+
+### Step 4: Delete the release branch
+```
+git branch -d release/<new-tag>
+git push origin --delete release/<new-tag>
+
+```
 
 By following these steps, you can ensure a smooth release process for your new version, including updating all necessary Git references in your Flutter projects.
 
