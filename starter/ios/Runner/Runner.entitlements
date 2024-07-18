@@ -2,15 +2,18 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<key>aps-environment</key>
-	<string>development</string>
 	<key>com.apple.developer.applesignin</key>
 	<array>
 		<string>Default</string>
 	</array>
+
+	{% if has_deeplink %}
 	<key>com.apple.developer.associated-domains</key>
 	<array>
-		<string>applinks:app.ensembleui.com</string>
+		{% for link in links %}
+		<string>applinks:{{ link }}</string>
+		{% endfor %}
 	</array>
+	{% endif %}
 </dict>
 </plist>

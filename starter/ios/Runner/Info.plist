@@ -5,7 +5,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>Starter</string>
+	<string>{{ ios_app_name }}</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -47,19 +47,90 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>{{ location_description }}</string>
+
+    {% if has_file_manager %}    
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>fetch</string>
+		<string>remote-notification</string>
+	</array>
+	<key>NSAppleMusicUsageDescription</key>
+	<string>{{ music_description }}</string>
+	<key>UISupportsDocumentBrowser</key>
+	<true/>
+	<key>LSSupportsOpeningDocumentsInPlace</key>
+	<true/>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>{{ photo_library_description }}</string>
+    {% endif %}
+
+	{% if has_contacts %}
+	<key>NSContactsUsageDescription</key>
+    <string>{{ contacts_description }}</string>
+	{% endif %}
+
+	{% if (has_connect or has_camera) %}
+	<key>NSCameraUsageDescription</key>
+    <string>{{ camera_description }}</string>
+	{% endif %}
+	
+	{% if (has_camera or has_location) %}
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>{{ in_use_location_description }}</string>
+	<key>NSLocationAlwaysUsageDescription</key>
+	<string>{{ always_use_location_description }}</string>
+	{% endif %}
+
+	{% if has_deeplink %}
+	<key>branch_universal_link_domains</key>
+	<array>
+		{% for link in links %}
+		<string>{{ link }}</string>
+		{% endfor %}
+	</array>
+	{% endif %}
+
+	{% if has_deeplink %}
+	<key>branch_key</key>
+	<dict>
+		<key>live</key>
+		<string>{{ live_key }}</string>
+		<key>test</key>
+		<string>{{ test_key }}</string>
+	</dict>
+	{% endif %}
+
 
 	<!-- UPDATE for your Starter. Custom Scheme for OAuth -->
 	<key>CFBundleURLTypes</key>
     <array>
         <!-- Google Sign in, replace with your URL scheme -->
+		{% if has_auth %}
         <dict>
             <key>CFBundleTypeRole</key>
             <string>Editor</string>
             <key>CFBundleURLSchemes</key>
             <array>
-                <string>com.googleusercontent.apps.126811761383-8idgi6nkva2tb33j42l5vpqu3jli6eak</string>
+                <string>{{ ios_client_id }}</string>
             </array>
         </dict>
+		{% endif %}
+
+		{% if has_deeplink %}
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>{{ scheme }}</string>
+			</array>
+			<key>CFBundleURLName</key>
+			<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+		</dict>
+		{% endif %}
+
     </array>
 
 </dict>

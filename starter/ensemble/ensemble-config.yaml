@@ -1,59 +1,7 @@
 definitions:
-  # where your page definitions are hosted ('local', 'remote' or 'ensemble')
   from: ensemble
-
-  # for embedding definitions and assets locally with your App
-  local:
-    # directory where all your Apps definitions/assets reside
-    path: ensemble/apps/helloApp
-
-    # appHome is the name of the home screen. This will be the first screen your App will load
-    appHome: Hello Home
-
-    # always use this locale for your App instead of using the system-detected locale
-    # forcedLocale: en
-
-    # translation settings
-    i18n:
-      # Directory where all the translation files (e.g. en.yaml, es.yaml) reside.
-      # Translation will be disabled without the path.
-      path: ensemble/i18n
-      # This is not a setting but rather a way to surface the list of all supported languages
-      # to the users at runtime (e.g. user can change the App's language based on this list).
-      # Keep this in sync with all the languages you have translations for.
-      languages: ['en', 'es', 'nl']
-      # When a language is missing a translation key, we will try to look it up from this fallback translation.
-      # Make sure this fallback language has all the translation keys.
-      fallbackLanguage: en
-
-  # for hosting definitions on your own server
-  remote:
-    # the URL to your remote server where definitions/assets are hosted
-    path: <your_http_server_hosting_the_definitions>
-
-    # the home screen for your App
-    appHome: Hello Home
-
-    # always use this locale for your App instead of using the system-detected locale
-    # forcedLocale: en
-
-    i18n:
-      # The URL where all the translation files (e.g. en.yaml, es.yaml) reside.
-      # Translation will be disabled without the path.
-      path: <your_http_server>
-      # This is not a setting but rather a way to surface the list of all supported languages
-      # to the users at runtime (e.g. user can change the App's language based on this list).
-      # Keep this in sync with all the languages you have translations for.
-      languages: [ 'en', 'es', 'nl' ]
-      # When a language is missing a translation key, we will try to look it up from this fallback translation.
-      # Make sure this fallback language has all the translation keys.
-      fallbackLanguage: en
-
-  # for Ensemble-hosted definitions, simply enter your Ensemble's app key
   ensemble:
-    # appId can be found on Ensemble Studio. Navigate to your app, click the menu icon on top right, and copy your appId
-    # here is the appId for Ensemble Kitchen sink. You can view this app under demo apps in studio.
-    appId: e24402cb-75e2-404c-866c-29e6c3dd7992
+    appId: {{ app_id }}
 
 services:
   # Social sign-in
@@ -61,14 +9,12 @@ services:
     serverUri:
 
     providers:
-
       # replace with your clientId
       google:
-        iOSClientId: 126811761383-8idgi6nkva2tb33j42l5vpqu3jli6eak.apps.googleusercontent.com
-        androidClientId: 126811761383-pm0dlhb9fb8svso7f9bapv3fojmncvfo.apps.googleusercontent.com
-        webClientId: 126811761383-3k0ojg0tbuslc1pbhh0vllu1orbr3aml.apps.googleusercontent.com
-        serverClientId: 126811761383-5grp0akbag9aam2nl0r7j5j6u77l39eb.apps.googleusercontent.com
-
+        iOSClientId: "{{ ios_client_id }}"
+        androidClientId: "{{ android_client_id }}"
+        webClientId: "{{ web_client_id }}"
+        serverClientId: "{{ server_client_id }}"
 
   # Built-in API authorization. Override these callbacks in your Starter App.
   # You may use https redirect (Universal Links) or custom scheme redirects.
@@ -87,6 +33,10 @@ services:
         redirectUri: msauth.com.ensembleui.starter://auth
         redirectScheme: msauth.com.ensembleui.starter
 
+# Legacy Maps, replace with your own keys
+accounts:
+  maps:
+    mapbox_access_token: pk.eyJ1IjoiZW5zZW1ibGV1aSIsImEiOiJjbDVsYTNoeDQwaGQwM21udzhyemR3cDJrIn0.dnn3x8nZVj5ZFO3tn5l8Ww
 
 # override any environment variables on studio.ensembleui.com here
 # e.g. load local assets instead of URL
@@ -96,24 +46,4 @@ environmentVariables:
   # defined in your App on studio.ensembleui.com.
   # This asset value is empty, meaning a reference of {env.exampleAssetVariable}pic.png
   # will be loaded locally from /ensemble/assets/pic.png
-  exampleAssetVariable:
-
-# uncomment the following when using firebase analytics.
-# For iOS - Make sure that GoogleService-Info.plist is placed under the ios/Runner folder AND has been added to the Xcode project. Just putting the file under Runner folder is NOT sufficient, it has to be added to the prject using Xcode.
-# For Android - Make sure that google-services.json is placed under android/app folder
-# For Web - make sure that the web config is present under account/firebase/web below.
-#analytics:
-#  provider: firebase
-#  enabled: true
-#  enableConsoleLogs: true
-# uncomment the following when using Firebase analytics for the Web and replace the values with the values from your Firebase app.
-#accounts:
-#  firebase:
-#    web:
-#      apiKey: "xxxxx"
-#      authDomain: "xxxxx"
-#      projectId: "xxxx"
-#      storageBucket: "xxxxx"
-#      messagingSenderId: "nnnnnn"
-#      appId: "n:xxxxxxx"
-#      measurementId: "G-xxxxx"
+  assets: ""
