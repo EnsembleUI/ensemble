@@ -328,7 +328,7 @@ class Lexer {
               .EOF); // (will produce infinite EOF tokens if pressed for more tokens)
 
         case char
-            .SPACE: // Note: Exotic whitespace symbols are handled in the default clause.
+              .SPACE: // Note: Exotic whitespace symbols are handled in the default clause.
         case char.TAB:
           ++index;
           continue;

@@ -72,8 +72,12 @@ class MapsUtils {
         getTargetSize: (intrinsicWidth, intrinsicHeight) {
       if (resizedWidth != null || resizedHeight != null) {
         return TargetImageSize(
-            width: resizedWidth != null ? (resizedWidth * devicePixelRatio).toInt() : null,
-            height: resizedHeight != null ? (resizedHeight * devicePixelRatio).toInt() : null);
+            width: resizedWidth != null
+                ? (resizedWidth * devicePixelRatio).toInt()
+                : null,
+            height: resizedHeight != null
+                ? (resizedHeight * devicePixelRatio).toInt()
+                : null);
       }
       return TargetImageSize(
           width: (intrinsicWidth * devicePixelRatio).toInt());

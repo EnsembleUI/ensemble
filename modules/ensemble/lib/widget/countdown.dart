@@ -115,16 +115,16 @@ class Countdown extends StatefulWidget
           ),
       // Callback method for onStart
       'onStart': (definition) => _controller.onStart =
-          EnsembleAction.fromYaml(definition, initiator: this),
+          EnsembleAction.from(definition, initiator: this),
       // Callback method for onComplete
       'onComplete': (definition) => _controller.onComplete =
-          EnsembleAction.fromYaml(definition, initiator: this),
+          EnsembleAction.from(definition, initiator: this),
       // Callback method for onStop
-      'onStop': (definition) => _controller.onStop =
-          EnsembleAction.fromYaml(definition, initiator: this),
+      'onStop': (definition) =>
+          _controller.onStop = EnsembleAction.from(definition, initiator: this),
       // Callback method for onReset
       'onReset': (definition) => _controller.onReset =
-          EnsembleAction.fromYaml(definition, initiator: this),
+          EnsembleAction.from(definition, initiator: this),
     };
   }
 }

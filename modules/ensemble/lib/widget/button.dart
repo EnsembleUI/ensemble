@@ -55,7 +55,7 @@ class Button extends StatefulWidget
       'endingIcon': (value) => _controller.endingIcon = Utils.getIcon(value),
       'gap': (value) => _controller.gap = Utils.optionalInt(value),
       'onTap': (funcDefinition) => _controller.onTap =
-          ensemble.EnsembleAction.fromYaml(funcDefinition, initiator: this),
+          ensemble.EnsembleAction.from(funcDefinition, initiator: this),
       'onTapHaptic': (value) =>
           _controller.onTapHaptic = Utils.optionalString(value),
       'submitForm': (value) =>

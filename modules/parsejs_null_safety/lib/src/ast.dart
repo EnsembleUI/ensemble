@@ -130,9 +130,9 @@ class ArrowFunctionNode extends Scope {
 
   ArrowFunctionNode(this.params, this.body);
 
-  bool get isExpression => true;  // Arrow functions are always expressions
-  bool get isDeclaration => false;  // Arrow functions are not declarations
-  bool get isAccessor => false;  // Arrow functions are not accessors
+  bool get isExpression => true; // Arrow functions are always expressions
+  bool get isDeclaration => false; // Arrow functions are not declarations
+  bool get isAccessor => false; // Arrow functions are not accessors
 
   forEach(callback) {
     params.forEach(callback);
@@ -142,7 +142,8 @@ class ArrowFunctionNode extends Scope {
   String toString() => 'ArrowFunctionNode';
 
   visitBy<T>(Visitor<T> v) => v.visitArrowFunctionNode(this);
-  visitBy1<T, A>(Visitor1<T, A> v, A arg) => v.visitArrowFunctionNode(this, arg);
+  visitBy1<T, A>(Visitor1<T, A> v, A arg) =>
+      v.visitArrowFunctionNode(this, arg);
 }
 
 /// Mention of a variable, property, or label.
@@ -223,8 +224,8 @@ class ExpressionStatement extends Statement {
   String toString() => 'ExpressionStatement';
 
   visitBy<T>(Visitor<T> v) => v.visitExpressionStatement(this);
-  visitBy1<T, A>(Visitor1<T, A> v, A arg) => v.visitExpressionStatement(
-      this, arg);
+  visitBy1<T, A>(Visitor1<T, A> v, A arg) =>
+      v.visitExpressionStatement(this, arg);
 }
 
 /// Statement of form: `if ([condition]) then [then] else [otherwise]`.
@@ -512,8 +513,8 @@ class FunctionDeclaration extends Statement {
   String toString() => 'FunctionDeclaration';
 
   visitBy<T>(Visitor<T> v) => v.visitFunctionDeclaration(this);
-  visitBy1<T, A>(Visitor1<T, A> v, A arg) => v.visitFunctionDeclaration(
-      this, arg);
+  visitBy1<T, A>(Visitor1<T, A> v, A arg) =>
+      v.visitFunctionDeclaration(this, arg);
 }
 
 /// Statement of form: `var [declarations];`
@@ -527,8 +528,8 @@ class VariableDeclaration extends Statement {
   String toString() => 'VariableDeclaration';
 
   visitBy<T>(Visitor<T> v) => v.visitVariableDeclaration(this);
-  visitBy1<T, A>(Visitor1<T, A> v, A arg) => v.visitVariableDeclaration(
-      this, arg);
+  visitBy1<T, A>(Visitor1<T, A> v, A arg) =>
+      v.visitVariableDeclaration(this, arg);
 }
 
 /// Variable declaration: `[name]` or `[name] = [init]`.
@@ -546,8 +547,8 @@ class VariableDeclarator extends Node {
   String toString() => 'VariableDeclarator';
 
   visitBy<T>(Visitor<T> v) => v.visitVariableDeclarator(this);
-  visitBy1<T, A>(Visitor1<T, A> v, A arg) => v.visitVariableDeclarator(
-      this, arg);
+  visitBy1<T, A>(Visitor1<T, A> v, A arg) =>
+      v.visitVariableDeclarator(this, arg);
 }
 
 /// Statement of form: `debugger;`
@@ -664,8 +665,8 @@ class FunctionExpression extends Expression {
   String toString() => 'FunctionExpression';
 
   visitBy<T>(Visitor<T> v) => v.visitFunctionExpression(this);
-  visitBy1<T, A>(Visitor1<T, A> v, A arg) => v.visitFunctionExpression(
-      this, arg);
+  visitBy1<T, A>(Visitor1<T, A> v, A arg) =>
+      v.visitFunctionExpression(this, arg);
 }
 
 /// Comma-seperated expressions.
@@ -785,7 +786,7 @@ class CallExpression extends Expression {
   Expression callee;
   List<Expression> arguments;
 
-  CallExpression(this.callee, this.arguments, {this.isNew= false});
+  CallExpression(this.callee, this.arguments, {this.isNew = false});
   CallExpression.newCall(this.callee, this.arguments) : isNew = true;
 
   forEach(callback) {

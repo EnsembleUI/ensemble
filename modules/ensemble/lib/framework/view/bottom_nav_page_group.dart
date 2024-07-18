@@ -200,7 +200,7 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup>
   }
 
   void _floatingButtonTapped(MenuItem fabMenuItem) {
-    final onTapAction = EnsembleAction.fromYaml(fabMenuItem.onTap);
+    final onTapAction = EnsembleAction.from(fabMenuItem.onTap);
     if (onTapAction != null) {
       if (fabMenuItem.onTapHaptic != null) {
         ScreenController().executeAction(
@@ -303,7 +303,7 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup>
           isCustom: isCustom,
           text: label,
           switchScreen: item.switchScreen,
-          onTap: EnsembleAction.fromYaml(item.onTap),
+          onTap: EnsembleAction.from(item.onTap),
           onTapHaptic: item.onTapHaptic,
         ),
       );

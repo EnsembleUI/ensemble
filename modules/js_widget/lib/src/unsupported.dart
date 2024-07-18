@@ -6,16 +6,16 @@ import 'package:flutter/material.dart';
 ///
 class JsWidget extends StatefulWidget {
   JsWidget(
-      { required this.id,
-        required this.createHtmlTag,
-        required this.data,
-        required this.scriptToInstantiate,
-        required this.size,
-        this.loader = const Center(child: CircularProgressIndicator()),
-        this.scripts = const [],
-        this.listener,
-        this.preCreateScript,
-        Key? key})
+      {required this.id,
+      required this.createHtmlTag,
+      required this.data,
+      required this.scriptToInstantiate,
+      required this.size,
+      this.loader = const Center(child: CircularProgressIndicator()),
+      this.scripts = const [],
+      this.listener,
+      this.preCreateScript,
+      Key? key})
       : super(key: key);
 
   ///Custom `loader` widget, until script is loaded
@@ -48,6 +48,7 @@ class JsWidget extends StatefulWidget {
   JsState createState() => JsState();
   void evalScript(String script) {}
 }
+
 class JsState extends State<JsWidget> {
   @override
   Widget build(BuildContext context) {

@@ -37,8 +37,8 @@ class GetPhoneContactAction extends EnsembleAction {
       return GetPhoneContactAction(
         initiator: initiator,
         id: Utils.optionalString(payload['id']),
-        onSuccess: EnsembleAction.fromYaml(payload['onSuccess']),
-        onError: EnsembleAction.fromYaml(payload['onError']),
+        onSuccess: EnsembleAction.from(payload['onSuccess']),
+        onError: EnsembleAction.from(payload['onError']),
       );
     }
     throw LanguageError(

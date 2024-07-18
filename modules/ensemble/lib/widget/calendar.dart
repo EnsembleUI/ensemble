@@ -6,6 +6,7 @@ import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/view/data_scope_widget.dart';
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/layout/templated.dart';
+import 'package:ensemble/model/shared_models.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/extensions.dart';
@@ -447,9 +448,9 @@ class EnsembleCalendar extends StatefulWidget
       _controller.highlightColor = Utils.getColor(data['highlightColor']);
       _controller.rangeSelectionMode = RangeSelectionMode.toggledOn;
       _controller.onRangeStart =
-          EnsembleAction.fromYaml(data['onStart'], initiator: this);
+          EnsembleAction.from(data['onStart'], initiator: this);
       _controller.onRangeComplete =
-          EnsembleAction.fromYaml(data['onComplete'], initiator: this);
+          EnsembleAction.from(data['onComplete'], initiator: this);
       setCellData(data['startCell'], _controller.rangeStartCell);
       setCellData(data['endCell'], _controller.rangeEndCell);
       setCellData(data['betweenCell'], _controller.rangeBetweenCell);
@@ -459,7 +460,7 @@ class EnsembleCalendar extends StatefulWidget
   void setCellData(dynamic data, Cell cell) {
     if (data is YamlMap) {
       cell.widget = data['widget'];
-      cell.onTap = EnsembleAction.fromYaml(data['onTap'], initiator: this);
+      cell.onTap = EnsembleAction.from(data['onTap'], initiator: this);
       if (data.containsKey('config')) {
         cell.config = CellConfig(
             backgroundColor: Utils.getColor(data['config']?['backgroundColor']),

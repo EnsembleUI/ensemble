@@ -7,10 +7,12 @@ import 'package:ensemble/framework/theme/theme_manager.dart';
 import 'package:ensemble/framework/view/data_scope_widget.dart';
 import 'package:ensemble/framework/widget/icon.dart' as iconframework;
 import 'package:ensemble/layout/templated.dart';
+import 'package:ensemble/model/shared_models.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/helpers/HasTextPlaceholder.dart';
+import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:ensemble/widget/helpers/widgets.dart';
 import 'package:ensemble/widget/helpers/form_helper.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
@@ -79,7 +81,7 @@ abstract class SelectOne extends StatefulWidget
       },
       'items': (values) => updateItems(values),
       'onChange': (definition) => _controller.onChange =
-          framework.EnsembleAction.fromYaml(definition, initiator: this),
+          framework.EnsembleAction.from(definition, initiator: this),
       'itemsFromString': (dynamic strValues) => setItemsFromString(strValues),
       'itemsFromArray': (dynamic arrValues) => setItemsFromArray(arrValues),
       'autoComplete': (value) =>
@@ -100,14 +102,14 @@ abstract class SelectOne extends StatefulWidget
           _controller.dropdownMaxHeight = Utils.optionalInt(value, min: 0),
       'itemTemplate': (itemTemplate) => _setItemTemplate(itemTemplate),
       'createNewItem': (value) => _setCreateNewItem(value),
+      'textStyle': (style) => _controller.textStyle = Utils.getTextStyleAsComposite(_controller,style: style),
     });
     return setters;
   }
 
   void _setCreateNewItem(dynamic input) {
     if (input is! Map) return;
-    _controller.onCreateItemTap =
-        framework.EnsembleAction.fromYaml(input['onTap']);
+    _controller.onCreateItemTap = framework.EnsembleAction.from(input['onTap']);
 
     _controller.createNewItemIcon = Utils.getIcon(input['icon']);
     _controller.createNewItemLabel = Utils.optionalString(input['label']);
@@ -266,6 +268,11 @@ class SelectOneController extends FormFieldController with HasTextPlaceholder {
   int? dropdownBorderWidth;
   Color? dropdownBorderColor;
   int? dropdownMaxHeight;
+  TextStyleComposite? _textStyle;
+
+  TextStyleComposite get textStyle => _textStyle ??= TextStyleComposite(this);
+
+  set textStyle(TextStyleComposite style) => _textStyle = style;
 
   DropdownItemTemplate? itemTemplate;
 
@@ -375,6 +382,7 @@ class SelectOneState extends FormFieldWidgetState<SelectOne>
             widget._controller.itemTemplate, dataList),
         onChanged: isEnabled() ? (item) => onSelectionChanged(item) : null,
         focusNode: focusNode,
+        style: widget._controller.textStyle.getTextStyle(),
         iconStyleData: const IconStyleData(
             icon: Icon(Icons.keyboard_arrow_down, size: 20),
             openMenuIcon: Icon(Icons.keyboard_arrow_up, size: 20)),
@@ -401,7 +409,7 @@ class SelectOneState extends FormFieldWidgetState<SelectOne>
           contentPadding: adjustedContentPadding,
           labelText: widget.controller.floatLabel == true
               ? widget.controller.label
-              : null,
+              : null
         ));
   }
 
@@ -423,14 +431,14 @@ class SelectOneState extends FormFieldWidgetState<SelectOne>
                 return TextField(
                   enabled: isEnabled(),
                   showCursor: true,
-                  style: const TextStyle(
-                      color: Colors.black, fontWeight: FontWeight.w500),
+                  style: widget._controller.textStyle.getTextStyle(),
                   controller: fieldTextEditingController,
                   focusNode: fieldFocusNode,
                   decoration: inputDecoration.copyWith(
                     labelText: widget.controller.floatLabel == true
                         ? widget.controller.label
                         : null,
+                    fillColor: widget._controller.fillColor, // Background color for the field
                   ),
                   onChanged: (value) {
                     final oldValue = widget._controller.maybeValue;
@@ -516,6 +524,7 @@ class SelectOneState extends FormFieldWidgetState<SelectOne>
         child: Material(
           shadowColor: EnsembleTheme.grey,
           elevation: 2.0,
+          color: widget._controller.dropdownBackgroundColor,
           type: MaterialType.card,
           child: SizedBox(
               width: constraints.biggest.width,
@@ -561,10 +570,12 @@ class SelectOneState extends FormFieldWidgetState<SelectOne>
                                       widget._controller.createNewItemLabel,
                                       option.value,
                                     ),
+                                    style: widget._controller.textStyle.getTextStyle(),
                                   )
                                 : Text(
                                     Utils.optionalString(option.label) ??
                                         option.value,
+                                    style: widget._controller.textStyle.getTextStyle(),
                                   ),
                           ],
                         ),

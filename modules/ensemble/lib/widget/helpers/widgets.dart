@@ -7,6 +7,7 @@ import 'package:ensemble/framework/studio/studio_debugger.dart';
 import 'package:ensemble/framework/view/data_scope_widget.dart';
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/layout/form.dart' as ensemble;
+import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/widget/helpers/form_helper.dart';
 import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:ensemble/framework/theme/theme_manager.dart';
@@ -226,15 +227,33 @@ class BoxWrapper extends StatelessWidget {
           ? Stack(
               children: [
                 Positioned.fill(child: backgroundImage),
-                _getWidget(),
+                _getWidget(context),
               ],
             )
-          : _getWidget(),
+          : _getWidget(context),
     );
   }
 
   /// The child widget need to clip separately from the Container's decoration
-  Widget _getWidget() {
+  Widget _getWidget(BuildContext context) {
+    Widget w = widget;
+    if (boxController is TapEnabledBoxController &&
+        (boxController as TapEnabledBoxController).onTap != null) {
+      var controller = boxController as TapEnabledBoxController;
+      w = Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: () =>
+                ScreenController().executeAction(context, controller.onTap!),
+            splashColor: controller.splashColor,
+            highlightColor: controller.highlightColor,
+            focusColor: controller.focusColor,
+            hoverColor: controller.hoverColor,
+            mouseCursor: controller.mouseCursor,
+            child: w,
+          ));
+    }
+
     // some widget (i.e. Image) will not respect the Container's boundary
     // even if clipBehavior is enabled. In these case we need to apply
     // an explicit ClipRRect around it. Note also that apply it around
@@ -245,8 +264,8 @@ class BoxWrapper extends StatelessWidget {
         ? ClipRRect(
             borderRadius: boxController.borderRadius!.getValue(),
             clipBehavior: Clip.hardEdge,
-            child: widget)
-        : widget;
+            child: w)
+        : w;
   }
 }
 
@@ -267,27 +286,29 @@ class InputWrapper extends StatelessWidget {
   Widget build(BuildContext context) {
     final isFloatLabel =
         controller.floatLabel != null && controller.floatLabel == true;
+    Widget rtn = buildTextWidget(context, isFloatLabel);
 
-    Widget rtn = controller.maxWidth == null
-        ? buildTextWidget(context, isFloatLabel)
-        : ConstrainedBox(
-            constraints:
-                BoxConstraints(maxWidth: controller.maxWidth!.toDouble()),
-            child: buildTextWidget(context, isFloatLabel));
-
-    // we'd like to use LayoutBuilder to detect layout anomaly, but certain
-    // containers don't like LayoutBuilder, since it doesn't support returning
-    // intrinsic Width/Height
-    RequiresChildWithIntrinsicDimension? requiresChildWithIntrinsicDimension =
-        context.dependOnInheritedWidgetOfExactType<
-            RequiresChildWithIntrinsicDimension>();
-    if (requiresChildWithIntrinsicDimension == null) {
-      // InputWidget takes the parent width, so if the parent is a Row
-      // it'll caused an error. Assert against this in Studio's debugMode
-      if (StudioDebugger().debugMode) {
-        return StudioDebugger().assertHasBoundedWidth(rtn, type);
+    if (StudioDebugger().debugMode) {
+      // we'd like to use LayoutBuilder to detect layout anomaly, but certain
+      // containers don't like LayoutBuilder, since it doesn't support returning
+      // intrinsic Width/Height
+      RequiresChildWithIntrinsicDimension? requiresChildWithIntrinsicDimension =
+          context.dependOnInheritedWidgetOfExactType<
+              RequiresChildWithIntrinsicDimension>();
+      if (requiresChildWithIntrinsicDimension == null) {
+        // InputWidget takes the parent width, so if the parent is a Row
+        // it'll caused an error. Assert against this in Studio's debugMode
+        rtn = StudioDebugger().assertHasBoundedWidth(rtn, type);
       }
     }
+
+    if (controller.maxWidth != null) {
+      rtn = ConstrainedBox(
+          constraints:
+              BoxConstraints(maxWidth: controller.maxWidth!.toDouble()),
+          child: rtn);
+    }
+
     return rtn;
   }
 
