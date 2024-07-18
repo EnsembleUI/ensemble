@@ -5,6 +5,7 @@ import 'dart:developer';
 import 'package:app_settings/app_settings.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:ensemble/framework/extensions.dart';
+import 'package:ensemble/framework/notification_manager.dart';
 import 'package:ensemble/framework/storage_manager.dart';
 import 'package:ensemble/framework/stub/location_manager.dart';
 import 'package:ensemble/util/utils.dart';
@@ -35,6 +36,7 @@ class Device
     return {
       // Capabilities
       'lastLocation': () => Location(getLastLocation()),
+      'deviceToken': () => NotificationManager().deviceToken,
 
       // Media Query
       "width": () => screenWidth,

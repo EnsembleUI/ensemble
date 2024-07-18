@@ -1,0 +1,9 @@
+{
+  "devDependencies": {
+    "@types/fs-extra": "^11.0.4",
+    "@types/yaml": "^1.9.7"
+  },
+  "dependencies": {
+    "fs-extra": "^11.2.0"
+  }
+}
