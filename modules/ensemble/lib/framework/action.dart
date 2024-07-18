@@ -5,6 +5,7 @@ import 'package:ensemble/action/badge_action.dart';
 import 'package:ensemble/action/bottom_sheet_actions.dart';
 import 'package:ensemble/action/deep_link_action.dart';
 import 'package:ensemble/action/call_external_method.dart';
+import 'package:ensemble/action/device_security.dart';
 import 'package:ensemble/action/get_network_info_action.dart';
 import 'package:ensemble/action/haptic_action.dart';
 import 'package:ensemble/action/call_native_method.dart';
@@ -1133,7 +1134,8 @@ enum ActionType {
   resumeAudio,
   seekAudio,
   logEvent,
-  getNetworkInfo
+  getNetworkInfo,
+  deviceSecurity
 }
 
 /// payload representing an Action to do (navigateToScreen, InvokeAPI, ..)
@@ -1221,7 +1223,7 @@ abstract class EnsembleAction {
     } else if (actionType == ActionType.getLocation) {
       return GetLocationAction(
           onLocationReceived:
-          EnsembleAction.from(payload?['onLocationReceived']),
+              EnsembleAction.from(payload?['onLocationReceived']),
           onError: EnsembleAction.from(payload?['onError']),
           recurring: Utils.optionalBool(payload?['options']?['recurring']),
           recurringDistanceFilter: Utils.optionalInt(
@@ -1333,7 +1335,9 @@ abstract class EnsembleAction {
     } else if (actionType == ActionType.clearLocale) {
       return ClearLocaleAction();
     } else if (actionType == ActionType.getNetworkInfo) {
-      return GetNetworkInfoAction.from(initiator: initiator,payload: payload);
+      return GetNetworkInfoAction.from(initiator: initiator, payload: payload);
+    } else if (actionType == ActionType.deviceSecurity) {
+      return DeviceSecurity.fromMap(payload: payload);
     } else {
       throw LanguageError("Invalid action.",
           recovery: "Make sure to use one of Ensemble-provided actions.");
