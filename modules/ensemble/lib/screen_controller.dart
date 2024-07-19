@@ -531,13 +531,6 @@ class ScreenController {
       notificationUtils.context = context;
       notificationUtils.onRemoteNotification = action.onReceive;
       notificationUtils.onRemoteNotificationOpened = action.onTap;
-    } else if (action is ShowNotificationAction) {
-      scopeManager.dataContext.addDataContext(Ensemble.externalDataContext);
-      notificationUtils.showNotification(
-        scopeManager.dataContext.eval(action.title),
-        scopeManager.dataContext.eval(action.body),
-        payload: jsonEncode(scopeManager.dataContext.eval(action.payload)),
-      );
     } else if (action is AuthorizeOAuthAction) {
       // TODO
     } else if (action is CheckPermission) {

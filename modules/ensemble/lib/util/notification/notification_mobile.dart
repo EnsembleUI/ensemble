@@ -71,8 +71,8 @@ class NotificationUtilsMobile implements NotificationUtilsBase {
 
   @override
   Future<void> showNotification(
-    String? title,
-    String? body, {
+    String title, {
+    String? body,
     String? imageUrl,
     String? payload,
   }) async {
@@ -94,8 +94,8 @@ class NotificationUtilsMobile implements NotificationUtilsBase {
 
     await localNotificationsPlugin.show(
       0,
-      title ?? 'Notification Title',
-      body ?? 'Notification Body',
+      title,
+      body,
       platformChannelSpecifics,
       payload: payload,
     );

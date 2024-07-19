@@ -1,5 +1,7 @@
+import 'dart:convert';
 import 'dart:developer';
 
+import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/error_handling.dart';
@@ -113,6 +115,41 @@ class RequestNotificationAccessAction extends EnsembleAction {
           .executeAction(context, onNotDetermined!, event: event);
     }
     return;
+  }
+}
+
+/**
+ * Show a notification locally from the device
+ */
+class ShowLocalNotificationAction extends EnsembleAction {
+  String title;
+  String? body;
+  Map? payload;
+
+  ShowLocalNotificationAction({required this.title, this.body, this.payload});
+
+  factory ShowLocalNotificationAction.from({Map? payload}) {
+    String? title = Utils.optionalString(payload?['title']);
+    if (title == null) {
+      throw LanguageError("Notification title is required");
+    }
+    return ShowLocalNotificationAction(
+      title: title,
+      body: Utils.optionalString(payload?['body']),
+      payload: Utils.getMap(payload?['payload']),
+    );
+  }
+
+  @override
+  Future execute(BuildContext context, ScopeManager scopeManager) async {
+    if (await notificationUtils.initNotifications() == true) {
+      scopeManager.dataContext.addDataContext(Ensemble.externalDataContext);
+      return notificationUtils.showNotification(
+        scopeManager.dataContext.eval(title),
+        body: scopeManager.dataContext.eval(body),
+        payload: jsonEncode(scopeManager.dataContext.eval(payload)),
+      );
+    }
   }
 }
 
