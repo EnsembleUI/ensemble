@@ -420,6 +420,8 @@ workflows:
         name: iOS code signing
         script: |
           echo $CERTIFICATE_PRIVATE_KEY
+          rm -r macos
+          rm -r starter/macos
           keychain initialize
           app-store-connect fetch-signing-files "$IOS_PACKAGE_NAME" --type IOS_APP_STORE --create
           keychain add-certificates
