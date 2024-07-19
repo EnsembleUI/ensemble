@@ -60,6 +60,6 @@ echo "DELIMITER" >> $CM_ENV
 
 if __name__ == "__main__":
     args = parse_arguments()
-    initialize_firebase()
-
-    check_and_update_firestore()
+#     initialize_firebase()
+#
+#     check_and_update_firestore()
