@@ -87,12 +87,12 @@ workflows:
             --has-deeplink "$HAS_DEEPLINK" \
             --links "$BRANCH_IO_LINKS"
 
-      - &app_delegate
-        name: Update AppDelegate.swift
-        script: |
-          python3 scripts/python/app_delegate.py \
-            --google-maps-api-key "$IOS_GOOGLE_MAPS_API_KEY" \
-            --has-google-maps "$HAS_GOOGLE_MAPS"
+#      - &app_delegate
+#        name: Update AppDelegate.swift
+#        script: |
+#          python3 scripts/python/app_delegate.py \
+#            --google-maps-api-key "$IOS_GOOGLE_MAPS_API_KEY" \
+#            --has-google-maps "$HAS_GOOGLE_MAPS"
 
       - &ensemble_module
         name: Update Ensemble Module
@@ -399,7 +399,7 @@ workflows:
       - *ensemble_properties
       - *info_plist
       - *runner_entitlements
-      - *app_delegate
+      #- *app_delegate
       - *ensemble_module
       - *ensemble_config
       - *main_dart
@@ -440,7 +440,7 @@ workflows:
           cd ..
           echo "Hello"
           cat /Users/builder/export_options.plist
-          flutter build ipa --no-tree-shake-icons --export-options-plist=/Users/builder/export_options.plist --debug --build-name=1.0.0 --build-number=7
+          flutter build ipa --no-tree-shake-icons --export-options-plist=/Users/builder/export_options.plist --debug --build-name=1.0.0 --build-number=8
           cd ..
 
     artifacts:
@@ -482,7 +482,7 @@ workflows:
       - *ensemble_properties
       - *info_plist
       - *runner_entitlements
-      - *app_delegate
+      #- *app_delegate
       - *ensemble_module
       - *ensemble_config
       - *main_dart
@@ -504,7 +504,7 @@ workflows:
           cd ..
           echo "hello"
           cat /Users/builder/export_options.plist
-          flutter build ipa --no-tree-shake-icons --export-options-plist=/Users/builder/export_options.plist --debug --build-name=1.0.0 --build-number=7
+          flutter build ipa --no-tree-shake-icons --export-options-plist=/Users/builder/export_options.plist --debug --build-name=1.0.0 --build-number=8
           cd ..
     artifacts:
       - starter/project.zip
@@ -529,7 +529,7 @@ workflows:
       - *manifest
       - *info_plist
       - *runner_entitlements
-      - *app_delegate
+     # - *app_delegate
       - *ensemble_module
       - *ensemble_config
       - *main_dart
@@ -590,12 +590,12 @@ workflows:
           rm -rf android web
           cd ..
       - *ensemble_properties
-      - *info_plist
-      - *runner_entitlements
-      - *app_delegate
+      #- *info_plist
+      #- *runner_entitlements
+     # - *app_delegate
       - *ensemble_module
       - *ensemble_config
-      - *main_dart
+      #- *main_dart
       - *get_logo
       - *get_assets
       - *pubspec
@@ -695,7 +695,7 @@ workflows:
       - *manifest
       - *info_plist
       - *runner_entitlements
-      - *app_delegate
+     # - *app_delegate
       - *ensemble_module
       - *ensemble_config
       - *main_dart
@@ -978,7 +978,7 @@ workflows:
       - *ensemble_properties
       - *info_plist
       - *runner_entitlements
-      - *app_delegate
+   #   - *app_delegate
       - *ensemble_module
       - *ensemble_config
       - *main_dart
