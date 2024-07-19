@@ -440,7 +440,7 @@ workflows:
           cd ..
           echo "Hello"
           cat /Users/builder/export_options.plist
-          flutter build ipa --no-tree-shake-icons --export-options-plist=/Users/builder/export_options.plist --debug --build-name=1.0.0 --build-number=8
+          flutter build ipa --no-tree-shake-icons --export-options-plist=/Users/builder/export_options.plist --debug --build-name=1.0.0 --build-number=9
           cd ..
 
     artifacts:
@@ -504,7 +504,7 @@ workflows:
           cd ..
           echo "hello"
           cat /Users/builder/export_options.plist
-          flutter build ipa --no-tree-shake-icons --export-options-plist=/Users/builder/export_options.plist --debug --build-name=1.0.0 --build-number=8
+          flutter build ipa --no-tree-shake-icons --export-options-plist=/Users/builder/export_options.plist --debug --build-name=1.0.0 --build-number=9
           cd ..
     artifacts:
       - starter/project.zip
