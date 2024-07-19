@@ -29,7 +29,9 @@ def create_flutter_project(package_name, platform):
 
 
 def main():
+    print(f"before Current directory: {os.getcwd()}")
     check_and_change_directory()
+    print(f"after Current directory: {os.getcwd()}")
     parser = argparse.ArgumentParser(
         description="Create Flutter projects for Android, iOS and web platforms.")
     parser.add_argument("--android-package-name", required=True)
@@ -53,7 +55,11 @@ def main():
 
     if "web" in build_name:
         subprocess.run(["flutter", "create", "--platform=web", "."])
-
+    print(f"all done Current directory: {os.getcwd()}")
+    print("all done Directories under the current directory:")
+    for item in os.listdir(os.getcwd()):
+        if os.path.isdir(os.path.join(os.getcwd(), item)):
+            print(item)
 
 if __name__ == "__main__":
     main()
