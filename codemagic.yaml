@@ -440,7 +440,7 @@ workflows:
           cd ..
           
 
-          flutter build ios --no-tree-shake-icons --release --build-name=1.0.0 --build-number=7
+          flutter build ipa --no-tree-shake-icons --release --build-name=1.0.0 --build-number=7
           cd ..
 
     artifacts:
@@ -503,7 +503,7 @@ workflows:
           pod install
           cd ..
 
-          flutter build ios --release --no-tree-shake-icons --build-name=1.0.0 --build-number=7
+          flutter build ipa --release --no-tree-shake-icons --build-name=1.0.0 --build-number=7
           cd ..
     artifacts:
       - starter/project.zip
