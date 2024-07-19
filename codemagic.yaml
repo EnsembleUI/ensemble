@@ -589,16 +589,16 @@ workflows:
           cd starter
           rm -rf android web
           cd ..
-      - *ensemble_properties
+      # - *ensemble_properties
       #- *info_plist
       #- *runner_entitlements
      # - *app_delegate
-      - *ensemble_module
+      # - *ensemble_module
       - *ensemble_config
       #- *main_dart
       - *get_logo
       - *get_assets
-      - *pubspec
+      # - *pubspec
       - *flutter_create
       # - *dart_fix
       - *ios_private_key
