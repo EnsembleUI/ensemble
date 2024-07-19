@@ -80,7 +80,7 @@ class RequestNotificationAccessAction extends EnsembleAction {
   Future executeActions(BuildContext context, AuthorizationStatus? status,
       String? deviceToken) async {
     EnsembleEvent event = EnsembleEvent(initiator,
-        data: deviceToken != null ? {"deviceToken": deviceToken} : null);
+        data: deviceToken != null ? {"deviceToken": deviceToken} : {});
 
     if (status == AuthorizationStatus.authorized) {
       if (onAuthorized != null) {
