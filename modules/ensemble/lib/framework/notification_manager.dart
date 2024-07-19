@@ -45,7 +45,7 @@ class NotificationManager {
 
   Future<AuthorizationStatus> requestAccess() async {
     NotificationSettings settings =
-    await FirebaseMessaging.instance.requestPermission(
+        await FirebaseMessaging.instance.requestPermission(
       alert: true,
       badge: true,
       sound: true,
@@ -81,16 +81,18 @@ class NotificationManager {
     });
 
     /// This is when the app is in the foreground
-    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+    FirebaseMessaging.onMessage.listen((RemoteMessage message) async {
       Ensemble.externalDataContext.addAll({
         'title': message.notification?.title,
         'body': message.notification?.body,
         'data': message.data
       });
-      // _handleNotification(message);
+      // By default, notification won't show on foreground, so we leverage
+      // local notification to show it in the foreground
+      await notificationUtils.initNotifications();
       notificationUtils.showNotification(
-        message.notification?.title,
-        message.notification?.body,
+        message.notification?.title ?? '',
+        body: message.notification?.body,
         payload: jsonEncode(message.toMap()),
       );
     });
