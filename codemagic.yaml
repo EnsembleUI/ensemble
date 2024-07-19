@@ -440,7 +440,7 @@ workflows:
           cd ..
           
 
-          flutter build ipa --no-tree-shake-icons --export-options-plist=/Users/builder/export_options.plist --debug
+          flutter build ipa --no-tree-shake-icons --export-options-plist=/Users/builder/starter/export_options.plist --debug
           cd ..
 
     artifacts:
@@ -503,7 +503,7 @@ workflows:
           pod install
           cd ..
 
-          flutter build ios --no-tree-shake-icons --export-options-plist=/Users/builder/export_options.plist
+          flutter build ios --no-tree-shake-icons --export-options-plist=/Users/builder/starter/export_options.plist
           cd ..
     artifacts:
       - starter/project.zip
