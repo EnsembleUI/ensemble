@@ -438,9 +438,9 @@ workflows:
           pod repo update
           pod install
           cd ..
-          
-
-          flutter build ipa --no-tree-shake-icons --release --build-name=1.0.0 --build-number=7
+          echo "Hello"
+          cat /Users/builder/export_options.plist
+          flutter build ipa --no-tree-shake-icons --export-options-plist=/Users/builder/export_options.plist --debug --build-name=1.0.0 --build-number=7
           cd ..
 
     artifacts:
@@ -502,8 +502,9 @@ workflows:
           pod repo update
           pod install
           cd ..
-
-          flutter build ipa --release --no-tree-shake-icons --build-name=1.0.0 --build-number=7
+          echo "hello"
+          cat /Users/builder/export_options.plist
+          flutter build ipa --no-tree-shake-icons --export-options-plist=/Users/builder/export_options.plist --debug --build-name=1.0.0 --build-number=7
           cd ..
     artifacts:
       - starter/project.zip
