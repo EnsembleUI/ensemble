@@ -1,11 +1,9 @@
-import 'dart:ui';
-
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/definition_providers/provider.dart';
+import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/widget/screen.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_i18n/flutter_i18n_delegate.dart';
-import 'package:form_validator/form_validator.dart';
 import 'package:yaml/yaml.dart';
 
 /**
@@ -13,8 +11,9 @@ import 'package:yaml/yaml.dart';
  * in as the screen definition.
  */
 class ValidationProvider extends DefinitionProvider {
-  ValidationProvider(String contentStr) : this.content = loadYaml(contentStr);
-  final YamlMap content;
+  ValidationProvider(this.content);
+
+  final String content;
 
   @override
   Future<AppBundle> getAppBundle({bool? bypassCache = false}) =>
@@ -25,9 +24,12 @@ class ValidationProvider extends DefinitionProvider {
 
   @override
   Future<ScreenDefinition> getDefinition(
-      {String? screenId, String? screenName}) {
-    // debugPrint("returning definition $content");
-    return Future.value(ScreenDefinition(content));
+      {String? screenId, String? screenName}) async {
+    try {
+      return ScreenDefinition(await loadYaml(content));
+    } catch (e) {
+      throw LanguageError("Invalid YAML");
+    }
   }
 
   @override
