@@ -194,6 +194,16 @@ class ScreenController {
         } else if (action.options?['replaceCurrentScreen'] == true) {
           routeOption = RouteOption.replaceCurrentScreen;
         }
+
+        if (action.options?['closeToasts'] ?? true) {
+          ToastController().closeToast();
+        }
+      }
+
+      // No code for NavigateModalScreenAction so need to add this
+      if (action is NavigateModalScreenAction &&
+          (action.options?['closeToasts'] ?? true)) {
+        ToastController().closeToast();
       }
 
       /// TODO: if the initiator widget has been re-build or removed
