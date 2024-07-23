@@ -43,28 +43,30 @@ class NotificationManager {
     }
   }
 
-  /// get the device token. This guarantees the token (if available)
+  Future<AuthorizationStatus> requestAccess() async {
+    NotificationSettings settings =
+        await FirebaseMessaging.instance.requestPermission(
+      alert: true,
+      badge: true,
+      sound: true,
+    );
+    return settings.authorizationStatus;
+  }
+
+  /// get the device token.
+  /// Notification access should be requested first
+  /// This guarantees the token (if available)
   /// is the latest correct token
   Future<String?> getDeviceToken() async {
     try {
-      // request permission
-      NotificationSettings settings =
-          await FirebaseMessaging.instance.requestPermission(
-        alert: true,
-        badge: true,
-        sound: true,
-      );
-
-      if (settings.authorizationStatus == AuthorizationStatus.authorized) {
-        // on iOS we need to get APNS token first
-        if (!kIsWeb && Platform.isIOS) {
-          await FirebaseMessaging.instance.getAPNSToken();
-        }
-
-        // get device token
-        deviceToken = await FirebaseMessaging.instance.getToken();
-        return deviceToken;
+      // on iOS we need to get APNS token first
+      if (!kIsWeb && Platform.isIOS) {
+        await FirebaseMessaging.instance.getAPNSToken();
       }
+
+      // get device token
+      deviceToken = await FirebaseMessaging.instance.getToken();
+      return deviceToken;
     } on Exception catch (e) {
       log('Error getting device token: ${e.toString()}');
     }
@@ -79,16 +81,18 @@ class NotificationManager {
     });
 
     /// This is when the app is in the foreground
-    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+    FirebaseMessaging.onMessage.listen((RemoteMessage message) async {
       Ensemble.externalDataContext.addAll({
         'title': message.notification?.title,
         'body': message.notification?.body,
         'data': message.data
       });
-      // _handleNotification(message);
+      // By default, notification won't show on foreground, so we leverage
+      // local notification to show it in the foreground
+      await notificationUtils.initNotifications();
       notificationUtils.showNotification(
-        message.notification?.title,
-        message.notification?.body,
+        message.notification?.title ?? '',
+        body: message.notification?.body,
         payload: jsonEncode(message.toMap()),
       );
     });
