@@ -4,6 +4,7 @@ import 'package:ensemble_ts_interpreter/invokables/context.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokablecontroller.dart';
 import 'package:jsparser/jsparser.dart';
+import 'package:ensemble_ts_interpreter/parser/regex_ext.dart';
 
 class Bindings extends RecursiveVisitor<dynamic> {
   List<String> bindings = [];
@@ -1089,37 +1090,66 @@ class JSInterpreter extends RecursiveVisitor<dynamic> {
   }
 
   @override
-  visitRegexp(RegexpExpression node) {
-    bool allMatches = false,
-        dotAll = false,
-        multiline = false,
-        ignoreCase = false,
-        unicode = false;
+  RegExp visitRegexp(RegexpExpression node) {
+    if (node.regexp == null) {
+      throw ArgumentError("The regex pattern cannot be null.");
+    }
 
-    int index = node.regexp!.lastIndexOf('/');
-    if (index != -1) {
-      String options = node.regexp!.substring(index);
-      if (options.contains('i')) {
-        ignoreCase = true;
-      }
-      if (options.contains('g')) {
-        allMatches = true;
-      }
-      if (options.contains('m')) {
-        multiline = true;
-      }
-      if (options.contains('s')) {
-        dotAll = true;
-      }
-      if (options.contains('u')) {
-        unicode = true;
+    String pattern = node.regexp!;
+    int lastIndex = -1;
+
+    // Find the last unescaped slash
+    for (int i = pattern.length - 1; i >= 0; i--) {
+      if (pattern[i] == '/' && (i == 0 || pattern[i - 1] != '\\')) {
+        lastIndex = i;
+        break;
       }
     }
-    return RegExp(node.regexp!.substring(0, index).replaceAll('/', ''),
-        multiLine: multiline,
-        caseSensitive: !ignoreCase,
-        dotAll: dotAll,
-        unicode: unicode);
+
+    if (lastIndex == -1) {
+      throw ArgumentError("Invalid regex pattern: missing ending slash.");
+    }
+
+    // Extract the pattern and options
+    String regexPattern = (lastIndex > 0) ? pattern.substring(1, lastIndex) : ''; // Extract pattern without slashes
+    String options = (lastIndex < pattern.length - 1) ? pattern.substring(lastIndex + 1) : ''; // Extract options after the last slash
+
+    bool allMatches = false;
+    bool dotAll = false;
+    bool multiline = false;
+    bool ignoreCase = false;
+    bool unicode = false;
+
+    // Set the options
+    if (options.contains('i')) {
+      ignoreCase = true;
+    }
+    if (options.contains('g')) {
+      allMatches = true;
+    }
+    if (options.contains('m')) {
+      multiline = true;
+    }
+    if (options.contains('s')) {
+      dotAll = true;
+    }
+    if (options.contains('u')) {
+      unicode = true;
+    }
+
+    // Create and return the Dart RegExp
+    RegExp regex = RegExp(
+      regexPattern,
+      multiLine: multiline,
+      caseSensitive: !ignoreCase,
+      dotAll: dotAll,
+      unicode: unicode,
+    );
+    if (allMatches) {
+      //see regex_ext.dart for more details
+      regex.global = true;
+    }
+    return regex;
   }
 
   @override
@@ -1237,3 +1267,4 @@ class JavascriptFunction {
     }
   }
 }
+
