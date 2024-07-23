@@ -35,16 +35,13 @@ class StudioDebugger {
           controller.expanded == false)) {
         var brief =
             "$widgetName is scrollable therefore cannot be inside a parent with unbounded height constraint.";
-        try {
-          throw LanguageError(brief, detailedError: '''
+        throw LanguageError(brief, detailedError: '''
 $brief
 Fix it one of the below methods:
-a. If the parent is scrollable (e.g. Column with scrollable=true, View with scrollableView=true, ..), consider changing this widget into a non-scrollable widget (e.g. Column)       
-b. If the parent is a Column (which does not provide height constraint to its children), consider setting a height on this widget.    
+a. If the widget is a ListView, consider adding shrinkWrap=true to calculate the ListView's height based on its children.
+b. If the parent is scrollable (e.g. Column with scrollable=true, View with scrollableView=true, ..), consider changing this widget into a non-scrollable widget (e.g. Column)       
+c. If the parent is a Column (which does not provide height constraint to its children), consider setting a height on this widget.    
     ''');
-        } catch (e, s) {
-          print(s);
-        }
       }
     }
   }
@@ -117,8 +114,8 @@ b. If the parent is a Column (which does not provide height constraint to its ch
 $brief. Some widget stretches to match the parent width (especially form widgets), and will throw this error when its parent doesn't pass down a width constraint. Fix this by one of these methods:
 a. If the parent is a Row: consider changing it to a FlexRow, then set the flex/flexMode on this child widget to control the space distribution.
 b. If the parent is a Stack: Stack does not constrain the children's widths. Adjust the child's stackPositionLeft/stackPositionRight attributes to constrain the child within the Stack's width.  
-c. Simply set a widget width. Form widgets do not have width, so maxWidth should be used instead.          
-          ''');
+c. Simply set a widget width. Form widgets do not have width, so maxWidth should be used instead.
+''');
         }
       }
       if (!constraints.hasBoundedHeight && assertBoundedHeight) {

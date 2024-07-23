@@ -254,7 +254,9 @@ class ListViewState extends WidgetState<ListView>
       },
     );
 
-    if (StudioDebugger().debugMode) {
+    // if we don't shrinkWrap, the ListView used inside Column or scrollable height
+    // would cause an error, so we check for that in Studio mode
+    if (StudioDebugger().debugMode && widget._controller.shrinkWrap != true) {
       listView = StudioDebugger().assertScrollableHasBoundedHeightWrapper(
           listView, ListView.type, context, widget._controller);
     }
