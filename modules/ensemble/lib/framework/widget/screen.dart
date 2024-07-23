@@ -62,7 +62,7 @@ class _ScreenState extends State<Screen> {
               if (snapshot.hasError) {
                 return ErrorScreen(LanguageError(
                     "I'm not able to read your page definition",
-                    detailError: snapshot.error.toString()));
+                    detailedError: snapshot.error.toString()));
               }
               // show progress bar
               else if (!snapshot.hasData) {

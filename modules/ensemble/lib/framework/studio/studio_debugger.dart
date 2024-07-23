@@ -33,10 +33,15 @@ class StudioDebugger {
       if (!(FooterScope.of(context) != null &&
           ScrollableColumn.of(context) != null &&
           controller.expanded == false)) {
-        throw LanguageError(
-            "$widgetName cannot be inside a parent with infinite height.",
-            recovery:
-                "1. If the parent is a Column, consider setting the $widgetName's expanded to true or give the $widgetName a height.\n2. If the parent is scrollable, make the parent not scrollable as this widget is already itself scrollable.");
+        var brief =
+            "$widgetName is scrollable therefore cannot be inside a parent with unbounded height constraint.";
+        throw LanguageError(brief, detailedError: '''
+$brief
+Fix it one of the below methods:
+a. If the widget is a ListView, consider adding shrinkWrap=true to calculate the ListView's height based on its children.
+b. If the parent is scrollable (e.g. Column with scrollable=true, View with scrollableView=true, ..), consider changing this widget into a non-scrollable widget (e.g. Column)       
+c. If the parent is a Column (which does not provide height constraint to its children), consider setting a height on this widget.    
+    ''');
       }
     }
   }
@@ -103,8 +108,14 @@ class StudioDebugger {
           logger.w(
               "'$widgetName' requires a width. See ${StudioError.getDocUrl('no-bounded-width')}");
         } else {
-          throw StudioError("'$widgetName' requires a width.",
-              errorId: 'no-bounded-width');
+          var brief = "'$widgetName' requires a width";
+          throw StudioError(brief,
+              errorId: 'no-bounded-width', detailedError: '''
+$brief. Some widget stretches to match the parent width (especially form widgets), and will throw this error when its parent doesn't pass down a width constraint. Fix this by one of these methods:
+a. If the parent is a Row: consider changing it to a FlexRow, then set the flex/flexMode on this child widget to control the space distribution.
+b. If the parent is a Stack: Stack does not constrain the children's widths. Adjust the child's stackPositionLeft/stackPositionRight attributes to constrain the child within the Stack's width.  
+c. Simply set a widget width. Form widgets do not have width, so maxWidth should be used instead.
+''');
         }
       }
       if (!constraints.hasBoundedHeight && assertBoundedHeight) {
@@ -179,8 +190,14 @@ class StudioDebugger {
       HasFlexBox? flexBox =
           context.dependOnInheritedWidgetOfExactType<HasFlexBox>();
       if (flexBox == null) {
-        throw LanguageError(
-            "Usage of 'flex' or 'flexMode' requires this widget to be inside a FlexColumn or a FlexRow.");
+        const brief =
+            "Widget with 'flex' or 'flexMode' can only be used inside a FlexColumn or FlexRow.";
+        throw LanguageError(brief, detailedError: '''
+$brief
+Fix by doing one of the below:
+a. flex/flexMode is used for distributing the available space to each widget. If you intend to do so, use FlexColumn/FlexRow as the parent instead.
+b. If no space distribution is needed and each widgets should take up their natural size, don't use flex/flexMode.
+''');
       }
     }
     return widget;
