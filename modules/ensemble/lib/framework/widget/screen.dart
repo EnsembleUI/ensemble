@@ -60,9 +60,7 @@ class _ScreenState extends State<Screen> {
             builder: (context, snapshot) {
               // show error
               if (snapshot.hasError) {
-                return ErrorScreen(LanguageError(
-                    "I'm not able to read your page definition",
-                    detailedError: snapshot.error.toString()));
+                throw LanguageError("Invalid YAML definition");
               }
               // show progress bar
               else if (!snapshot.hasData) {

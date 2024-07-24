@@ -38,8 +38,8 @@ class StudioDebugger {
         throw LanguageError(brief, detailedError: '''
 $brief
 Fix it one of the below methods:
-a. If the widget is a ListView, consider adding shrinkWrap=true to calculate the ListView's height based on its children.
-b. If the parent is scrollable (e.g. Column with scrollable=true, View with scrollableView=true, ..), consider changing this widget into a non-scrollable widget (e.g. Column)       
+a. If the widget is a ListView or GridView, consider adding shrinkWrap=true to calculate the widget's height based on its children.
+b. If the parent is scrollable (e.g. Column with scrollable=true, View with scrollableView=true, ..), consider changing this widget into a non-scrollable widget (e.g. Column). If you used item template before, continue to use it.       
 c. If the parent is a Column (which does not provide height constraint to its children), consider setting a height on this widget.    
     ''');
       }
