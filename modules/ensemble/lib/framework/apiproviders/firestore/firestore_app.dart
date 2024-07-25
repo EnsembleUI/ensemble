@@ -3,7 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 class FirestoreApp {
   final FirebaseFirestore firestore;
   FirestoreApp(this.firestore);
-  Query getQuery(Map api, {bool isCollectionGroup = false}) {
+  Future<dynamic> getQuery(Map api, {bool isCollectionGroup = false}) async {
     String path = api['path'];
     Query collection;
     if (isCollectionGroup) {
@@ -116,6 +116,23 @@ class FirestoreApp {
         query = query.limitToLast(queryMap['limitToLast']);
       }
     }
+    if (api.containsKey('aggregate')) {
+        String aggregateType = api['aggregate']['type'];
+        String? field = api['aggregate']['field'];
+    
+        switch (aggregateType) {
+          case 'count':
+            return query.count();
+          case 'sum':
+            if (field == null) throw ArgumentError('Field is required for sum aggregation');
+            return query.aggregate(sum(field));
+          case 'average':
+            if (field == null) throw ArgumentError('Field is required for average aggregation');
+            return query.aggregate(average(field));
+          default:
+            throw UnimplementedError('Unsupported aggregate type: $aggregateType');
+        }
+      }
     return query;
   }
 
@@ -133,9 +150,32 @@ class FirestoreApp {
       }
       return docSnapshot;
     }
-    Query query = getQuery(evaluatedApi,
+    dynamic queryResult = await getQuery(evaluatedApi,
         isCollectionGroup: evaluatedApi['isCollectionGroup'] ?? false);
-    return await query.get();
+
+    if (queryResult is Query) {
+        // Regular query
+        return await queryResult.get();
+      } else if (queryResult is AggregateQuery) {
+        // Aggregate query
+        AggregateQuerySnapshot snapshot = await queryResult.get();
+ 
+        String aggregateType = evaluatedApi['aggregate']['type'];
+        switch (aggregateType) {
+          case 'count':
+            return {'count': snapshot.count};
+          case 'sum':
+            String field = evaluatedApi['aggregate']['field'];
+            return {'sum': snapshot.getSum(field)};
+          case 'average':
+            String field = evaluatedApi['aggregate']['field'];
+            return {'average': snapshot.getAverage(field)};
+          default:
+            throw UnimplementedError('Unsupported aggregate type: $aggregateType');
+        }
+      } else {
+        throw UnimplementedError('Unexpected query result type');
+      }
   }
 
   Future<DocumentReference> performAddOperation(Map evaluatedApi) async {

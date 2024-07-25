@@ -96,6 +96,10 @@ void main() async {
   await testOrderByAndLimitQuery(firestore);
   await testMultipleWhereQuery(firestore);
   await testCollectionGroupQueryForTeamsWithPerformGetOperation(firestore);
+  await testCountAggregateQuery(firestore);
+  await testSumAggregateQuery(firestore);
+  await testAverageAggregateQuery(firestore);
+  await testComplexAggregateQuery(firestore);
   print('All query tests completed.');
 }
 
@@ -337,4 +341,65 @@ Future<void> testCollectionGroupQueryForTeamsWithPerformGetOperation(
     print(doc
         .data()); // Adjust based on how you wish to output or use the document data
   }
+}
+
+
+Future<void> testCountAggregateQuery(FirestoreApp apiProvider) async {
+  Map evaluatedApi = {
+    'path': 'users/nWjQ0Wp64gwnOk7zY7uw/Projects',
+    'aggregate': {
+      'type': 'count'
+    }
+  };
+
+  var result = await apiProvider.performGetOperation(evaluatedApi);
+  print("Test Count Aggregate Query: ${result['count']}");
+}
+
+Future<void> testSumAggregateQuery(FirestoreApp apiProvider) async {
+  // Assuming there's a numeric field 'totalGoals' in each match document
+  Map evaluatedApi = {
+    'path': 'users/nWjQ0Wp64gwnOk7zY7uw/Projects',
+    'aggregate': {
+      'type': 'sum',
+      'field': 'filesCount'
+    }
+  };
+
+  var result = await apiProvider.performGetOperation(evaluatedApi);
+  print("Test Sum Aggregate Query: ${result['sum']}");
+}
+
+Future<void> testAverageAggregateQuery(FirestoreApp apiProvider) async {
+  // Assuming there's a numeric field 'duration' (in minutes) in each match document
+  Map evaluatedApi = {
+    'path': 'users/nWjQ0Wp64gwnOk7zY7uw/Projects',
+    'aggregate': {
+      'type': 'average',
+      'field': 'filesCount'
+    }
+  };
+
+  var result = await apiProvider.performGetOperation(evaluatedApi);
+  print("Test Average Aggregate Query: ${result['average']} ");
+}
+
+Future<void> testComplexAggregateQuery(FirestoreApp apiProvider) async {
+  Map evaluatedApi = {
+    'path': 'sports/soccer/competitions/comp_1/matches',
+    'query': {
+      'where': [
+        {
+          'field': 'venue',
+          'operator': '==',
+          'value': 'Venue A',
+        },
+      ],
+    },
+    'aggregate': {
+      'type': 'count'
+    }
+  };
+  var result = await apiProvider.performGetOperation(evaluatedApi);
+  print("Test Complex Aggregate Query with where Total matches in comp_1 at Venue A: ${result['count']}");
 }
