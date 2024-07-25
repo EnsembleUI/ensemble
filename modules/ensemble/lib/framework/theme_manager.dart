@@ -54,7 +54,6 @@ class EnsembleThemeManager {
     }
     return currentTheme()?.resolveStyles(context, hasStyles);
   }
-
   void configureStyles(
       DataContext dataContext, HasStyles model, HasStyles hasStyles) {
     //we have to set all these so we can resolve when styles change at runtime through app logic
@@ -62,7 +61,15 @@ class EnsembleThemeManager {
     hasStyles.widgetTypeStyles = model.widgetTypeStyles;
     hasStyles.widgetId = model.widgetId;
     hasStyles.idStyles = model.idStyles;
-    hasStyles.classList = model.classList;
+    //https://github.com/EnsembleUI/ensemble/issues/1491 we have to evaluate the classList here as it
+    //could be a dynamic expression such as ${ensemble.storage.classses[0]. If we don't evaluate it here, our
+    //runtime styles will not be able to resolve the classList and as a result will be incorrect.
+    //Note that such an evaluation is only required for classList as other styles will get evaluated when
+    //runtimeStyles are evaluated.
+    dynamic classList = dataContext.eval(model.classList);
+    if (classList is List) {
+      hasStyles.classList = classList.map((item) => item as String).toList();
+    }
     hasStyles.inlineStyles = model.inlineStyles;
     hasStyles.runtimeStyles = getRuntimeStyles(dataContext, hasStyles);
   }

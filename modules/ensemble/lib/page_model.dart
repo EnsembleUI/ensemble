@@ -58,7 +58,7 @@ abstract class PageModel {
     } on Error catch (e) {
       throw LanguageError("Invalid page definition.",
           recovery: "Please double check your page syntax.",
-          detailError: e.toString() + "\n" + (e.stackTrace?.toString() ?? ''));
+          detailedError: e.toString() + "\n" + (e.stackTrace?.toString() ?? ''));
     }
   }
 

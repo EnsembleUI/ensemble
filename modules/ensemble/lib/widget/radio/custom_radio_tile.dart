@@ -1,5 +1,5 @@
 import 'package:ensemble/model/widget_models.dart';
-import 'package:ensemble/widget/radio_group.dart';
+import 'package:ensemble/widget/radio/radio_group.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 

@@ -48,8 +48,8 @@ class NotificationUtils implements NotificationUtilsBase {
 
   @override
   Future<void> showNotification(
-    String? title,
-    String? body, {
+    String title, {
+    String? body,
     String? imageUrl,
     String? payload,
   }) async {
