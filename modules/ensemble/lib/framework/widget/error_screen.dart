@@ -20,13 +20,13 @@ class ErrorScreen extends StatefulWidget {
     // process the error
     if (myError is EnsembleError) {
       List<String> detail = [];
-      if (myError.detailError != null) {
-        detail.add(myError.detailError!);
+      if (myError.detailedError != null) {
+        detail.add(myError.detailedError!);
       }
 
       return ErrorScreen._init(myError.error,
           recovery: myError.recovery,
-          detailError: join(myError.detailError, stackTrace?.toString()),
+          detailError: join(myError.detailedError, stackTrace?.toString()),
           docUrl: myError is StudioError ? myError.docUrl : null);
     } else if (myError is Error) {
       return ErrorScreen._init(myError.toString(),
