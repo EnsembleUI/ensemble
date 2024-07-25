@@ -83,6 +83,8 @@ class ListView extends StatefulWidget
       'data': (value) => _controller.itemTemplate?.data = value,
       'onScroll': (value) =>
           controller.onScroll = EnsembleAction.from(value, initiator: this),
+      'shrinkWrap': (value) =>
+          controller.shrinkWrap = Utils.optionalBool(value),
     };
   }
 
@@ -118,6 +120,8 @@ class ListViewController extends BoxLayoutController {
 
   ListViewState? widgetState;
   EnsembleAction? onScroll;
+
+  bool? shrinkWrap;
 
   void _bind(ListViewState state) {
     widgetState = state;
@@ -177,7 +181,8 @@ class ListViewState extends WidgetState<ListView>
 
     PullToRefresh? pullToRefresh = _getPullToRefresh();
     Widget listView = ListViewCore(
-      shrinkWrap: FooterScope.of(context) != null ? true : false,
+      shrinkWrap: widget._controller.shrinkWrap ??
+          (FooterScope.of(context) != null ? true : false),
       itemCount: itemCount,
       isLoading: showLoading,
       onFetchData: _fetchData,
@@ -249,7 +254,9 @@ class ListViewState extends WidgetState<ListView>
       },
     );
 
-    if (StudioDebugger().debugMode) {
+    // if we don't shrinkWrap, the ListView used inside Column or scrollable height
+    // would cause an error, so we check for that in Studio mode
+    if (StudioDebugger().debugMode && widget._controller.shrinkWrap != true) {
       listView = StudioDebugger().assertScrollableHasBoundedHeightWrapper(
           listView, ListView.type, context, widget._controller);
     }

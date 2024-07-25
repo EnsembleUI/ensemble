@@ -8,11 +8,14 @@ import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/theme_manager.dart';
 import 'package:ensemble/framework/view/data_scope_widget.dart';
 import 'package:ensemble/model/shared_models.dart';
+import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/custom_widget/custom_widget.dart';
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/util/gesture_detector.dart';
 import 'package:ensemble/widget/custom_widget/custom_widget_model.dart';
+import 'package:ensemble/widget/radio/radio_button.dart';
+import 'package:ensemble/widget/radio/radio_button_controller.dart';
 import 'package:ensemble/widget/widget_registry.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/material.dart';
@@ -133,7 +136,8 @@ class ViewUtil {
           });
         } else if (key == 'children' && value is YamlList) {
           children = ViewUtil.buildModels(value, customWidgetMap);
-        } else if (key == "item-template" && value is YamlMap) {
+        } else if ((key == "item-template" || key == "itemTemplate") &&
+            value is YamlMap) {
           itemTemplate =
               ItemTemplate(value['data'], value['name'], value['template']);
         } else {
@@ -331,6 +335,18 @@ class ViewUtil {
         if (id != null) {
           invokable.id = id;
           currentScope.dataContext.addInvokableContext(id, invokable);
+        }
+
+        // This is terrible but we have multiple issues here to work around:
+        // 1. We need the root scopeManager to dispatch changes. The widget doesn't have it at this stage
+        // 2. Widget has no way to add to the global id map
+        // TODO: address this after scopeManager refactor.
+        if (w is RadioButton) {
+          String? groupId = Utils.optionalString(model.props['groupId']);
+          if (groupId != null) {
+            currentScope.dataContext.addInvokableContext(groupId,
+                RadioButtonController.getInstance(groupId, currentScope));
+          }
         }
       }
 

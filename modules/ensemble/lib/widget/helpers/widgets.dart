@@ -286,27 +286,29 @@ class InputWrapper extends StatelessWidget {
   Widget build(BuildContext context) {
     final isFloatLabel =
         controller.floatLabel != null && controller.floatLabel == true;
+    Widget rtn = buildTextWidget(context, isFloatLabel);
 
-    Widget rtn = controller.maxWidth == null
-        ? buildTextWidget(context, isFloatLabel)
-        : ConstrainedBox(
-            constraints:
-                BoxConstraints(maxWidth: controller.maxWidth!.toDouble()),
-            child: buildTextWidget(context, isFloatLabel));
-
-    // we'd like to use LayoutBuilder to detect layout anomaly, but certain
-    // containers don't like LayoutBuilder, since it doesn't support returning
-    // intrinsic Width/Height
-    RequiresChildWithIntrinsicDimension? requiresChildWithIntrinsicDimension =
-        context.dependOnInheritedWidgetOfExactType<
-            RequiresChildWithIntrinsicDimension>();
-    if (requiresChildWithIntrinsicDimension == null) {
-      // InputWidget takes the parent width, so if the parent is a Row
-      // it'll caused an error. Assert against this in Studio's debugMode
-      if (StudioDebugger().debugMode) {
-        return StudioDebugger().assertHasBoundedWidth(rtn, type);
+    if (StudioDebugger().debugMode) {
+      // we'd like to use LayoutBuilder to detect layout anomaly, but certain
+      // containers don't like LayoutBuilder, since it doesn't support returning
+      // intrinsic Width/Height
+      RequiresChildWithIntrinsicDimension? requiresChildWithIntrinsicDimension =
+          context.dependOnInheritedWidgetOfExactType<
+              RequiresChildWithIntrinsicDimension>();
+      if (requiresChildWithIntrinsicDimension == null) {
+        // InputWidget takes the parent width, so if the parent is a Row
+        // it'll caused an error. Assert against this in Studio's debugMode
+        rtn = StudioDebugger().assertHasBoundedWidth(rtn, type);
       }
     }
+
+    if (controller.maxWidth != null) {
+      rtn = ConstrainedBox(
+          constraints:
+              BoxConstraints(maxWidth: controller.maxWidth!.toDouble()),
+          child: rtn);
+    }
+
     return rtn;
   }
 

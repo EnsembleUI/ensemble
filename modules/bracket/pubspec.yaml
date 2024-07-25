@@ -11,7 +11,7 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  ensemble: 
+  ensemble:
     git:
       url: https://github.com/EnsembleUI/ensemble.git
       ref: main
