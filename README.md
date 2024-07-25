@@ -102,6 +102,12 @@ git checkout -b release/<new-tag>
 ```
 git branch -d release/<new-tag>
 git push origin --delete release/<new-tag>
+```
+
+
+
+
+This project is tested with BrowserStack
 
 ```
 
