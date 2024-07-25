@@ -1,9 +1,11 @@
+import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/framework/view/data_scope_widget.dart';
 import 'package:ensemble/layout/box/box_utils.dart';
 import 'package:ensemble/layout/templated.dart';
 import 'package:ensemble/model/shared_models.dart';
 import 'package:ensemble/model/widget_models.dart';
+import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/widget/radio/custom_radio_tile.dart';
 import 'package:flutter/material.dart';
 import 'package:ensemble/util/utils.dart';
@@ -32,7 +34,7 @@ class RadioGroup extends StatefulWidget
 
   @override
   Map<String, Function> getters() {
-    return {'value': () => _controller.value};
+    return {'selectedValue': () => _controller.selectedValue};
   }
 
   @override
@@ -43,7 +45,7 @@ class RadioGroup extends StatefulWidget
   @override
   Map<String, Function> setters() {
     return {
-      'value': (value) => _controller.value = value,
+      'selectedValue': (value) => _controller.selectedValue = value,
       'items': (values) => _controller.items = Utils.getListOfStrings(values),
       'itemTemplate': _setItemTemplate,
       'onChange': (definition) => _controller.onChange =
@@ -84,7 +86,7 @@ class RadioGroup extends StatefulWidget
 }
 
 class RadioGroupController extends FormFieldController {
-  dynamic value;
+  dynamic selectedValue;
 
   // list of string for items
   List<String>? items;
@@ -161,7 +163,8 @@ class RadioGroupState extends FormFieldWidgetState<RadioGroup>
       widget: FormField<String>(
         key: validatorKey,
         validator: (value) {
-          if (widget._controller.required && widget._controller.value == null) {
+          if (widget._controller.required &&
+              widget._controller.selectedValue == null) {
             return Utils.translateWithFallback(
                 'ensemble.input.required', 'This field is required');
           }
@@ -195,7 +198,7 @@ class RadioGroupState extends FormFieldWidgetState<RadioGroup>
       children.addAll(widget._controller.items!.map((str) => CustomRadioTile(
             title: Text(str, style: baseLabelStyle),
             value: str,
-            groupValue: widget._controller.value,
+            groupValue: widget._controller.selectedValue,
             controller: widget._controller,
             onChanged: enabled ? _onSelect : null,
           )));
@@ -226,7 +229,7 @@ class RadioGroupState extends FormFieldWidgetState<RadioGroup>
         return CustomRadioTile(
             title: title ?? Text(""),
             value: value,
-            groupValue: widget._controller.value,
+            groupValue: widget._controller.selectedValue,
             controller: widget._controller,
             onChanged: enabled ? _onSelect : null);
       }));
@@ -236,9 +239,16 @@ class RadioGroupState extends FormFieldWidgetState<RadioGroup>
   }
 
   void _onSelect(dynamic value) {
+    if (value == widget._controller.selectedValue) return;
+
     setState(() {
-      widget._controller.value = value;
+      widget._controller.selectedValue = value;
     });
+    if (widget._controller.onChange != null) {
+      ScreenController().executeAction(context, widget._controller.onChange!,
+          event: EnsembleEvent(widget,
+              data: {'selectedValue': widget._controller.selectedValue}));
+    }
   }
 }
 

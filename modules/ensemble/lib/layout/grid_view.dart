@@ -87,6 +87,8 @@ class GridView extends StatefulWidget
       },
       'direction': (value) =>
           _controller.direction = Utils.optionalString(value),
+      'shrinkWrap': (value) =>
+          controller.shrinkWrap = Utils.optionalBool(value),
     };
   }
 
@@ -112,6 +114,7 @@ class GridViewController extends BoxController {
   bool reverse = false;
   ScrollController? scrollController;
   String? direction;
+  bool? shrinkWrap;
 
   PullToRefresh? pullToRefresh;
   @Deprecated("use pullToRefresh")
@@ -221,7 +224,8 @@ class GridViewState extends WidgetState<GridView> with TemplatedWidgetState {
                   footerScope.isColumnScrollableAndRoot(context))
               ? null
               : widget._controller.scrollController,
-          shrinkWrap: FooterScope.of(context) != null ? true : false,
+          shrinkWrap: widget._controller.shrinkWrap ??
+              (FooterScope.of(context) != null ? true : false),
           physics: (footerScope != null &&
                   footerScope.isColumnScrollableAndRoot(context))
               ? const NeverScrollableScrollPhysics()

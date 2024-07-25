@@ -7,3 +7,4 @@ pubspec_overrides.yaml
 /starter/android/app/src/main/kotlin
 /starter/ios/Flutter
 starter/ios/Runner.xcodeproj/project.pbxproj
+/node_modules

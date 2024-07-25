@@ -12,6 +12,7 @@ import 'package:ensemble/page_model.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/helpers/HasTextPlaceholder.dart';
+import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:ensemble/widget/helpers/widgets.dart';
 import 'package:ensemble/widget/helpers/form_helper.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
@@ -74,7 +75,10 @@ abstract class SelectOne extends StatefulWidget
   Map<String, Function> setters() {
     var setters = _controller.textPlaceholderSetters;
     setters.addAll({
-      'value': (value) => _controller.maybeValue = value,
+      'value': (value) {
+        _controller.textEditingController.value = TextEditingValue(text: value);
+        return _controller.maybeValue = value;
+      },
       'items': (values) => updateItems(values),
       'onChange': (definition) => _controller.onChange =
           framework.EnsembleAction.from(definition, initiator: this),
@@ -98,6 +102,7 @@ abstract class SelectOne extends StatefulWidget
           _controller.dropdownMaxHeight = Utils.optionalInt(value, min: 0),
       'itemTemplate': (itemTemplate) => _setItemTemplate(itemTemplate),
       'createNewItem': (value) => _setCreateNewItem(value),
+      'textStyle': (style) => _controller.textStyle = Utils.getTextStyleAsComposite(_controller,style: style),
     });
     return setters;
   }
@@ -246,6 +251,8 @@ class SelectOneController extends FormFieldController with HasTextPlaceholder {
   SelectOneInputFieldAction? inputFieldAction;
   List<SelectOneItem>? items;
 
+  TextEditingController textEditingController = TextEditingController();
+
   // this is our value but it can be in an invalid state.
   // Since user can set items/value in any order and at anytime, the value may
   // not be one of the items, hence it could be in an incorrect state
@@ -261,6 +268,11 @@ class SelectOneController extends FormFieldController with HasTextPlaceholder {
   int? dropdownBorderWidth;
   Color? dropdownBorderColor;
   int? dropdownMaxHeight;
+  TextStyleComposite? _textStyle;
+
+  TextStyleComposite get textStyle => _textStyle ??= TextStyleComposite(this);
+
+  set textStyle(TextStyleComposite style) => _textStyle = style;
 
   DropdownItemTemplate? itemTemplate;
 
@@ -274,7 +286,6 @@ class SelectOneController extends FormFieldController with HasTextPlaceholder {
 class SelectOneState extends FormFieldWidgetState<SelectOne>
     with SelectOneInputFieldAction, TemplatedWidgetState {
   FocusNode focusNode = FocusNode();
-  TextEditingController textEditingController = TextEditingController();
   List? dataList;
 
   @override
@@ -285,6 +296,9 @@ class SelectOneState extends FormFieldWidgetState<SelectOne>
         validatorKey.currentState!.validate();
       }
     });*/
+    widget.controller.textEditingController =
+        TextEditingController(text: widget.getValue());
+
     super.initState();
   }
 
@@ -313,6 +327,7 @@ class SelectOneState extends FormFieldWidgetState<SelectOne>
   void dispose() {
     focusNode.dispose();
     dataList = null;
+    widget.controller.textEditingController.dispose();
     super.dispose();
   }
 
@@ -351,6 +366,7 @@ class SelectOneState extends FormFieldWidgetState<SelectOne>
 
     return DropdownButtonFormField2<dynamic>(
         key: validatorKey,
+        isExpanded: true,
         validator: (value) {
           if (widget._controller.required && widget.getValue() == null) {
             return Utils.translateWithFallback(
@@ -366,6 +382,7 @@ class SelectOneState extends FormFieldWidgetState<SelectOne>
             widget._controller.itemTemplate, dataList),
         onChanged: isEnabled() ? (item) => onSelectionChanged(item) : null,
         focusNode: focusNode,
+        style: widget._controller.textStyle.getTextStyle(),
         iconStyleData: const IconStyleData(
             icon: Icon(Icons.keyboard_arrow_down, size: 20),
             openMenuIcon: Icon(Icons.keyboard_arrow_up, size: 20)),
@@ -392,7 +409,7 @@ class SelectOneState extends FormFieldWidgetState<SelectOne>
           contentPadding: adjustedContentPadding,
           labelText: widget.controller.floatLabel == true
               ? widget.controller.label
-              : null,
+              : null
         ));
   }
 
@@ -401,10 +418,10 @@ class SelectOneState extends FormFieldWidgetState<SelectOne>
     return LayoutBuilder(
         builder: (context, constraints) => RawAutocomplete<SelectOneItem>(
               focusNode: focusNode,
-              textEditingController: textEditingController,
+              textEditingController: widget.controller.textEditingController,
               optionsBuilder: (TextEditingValue textEditingValue) =>
-                  buildAutoCompleteOptions(
-                      textEditingValue, textEditingController),
+                  buildAutoCompleteOptions(textEditingValue,
+                      widget.controller.textEditingController),
               displayStringForOption: (SelectOneItem option) =>
                   option.label ?? option.value,
               fieldViewBuilder: (BuildContext context,
@@ -414,14 +431,14 @@ class SelectOneState extends FormFieldWidgetState<SelectOne>
                 return TextField(
                   enabled: isEnabled(),
                   showCursor: true,
-                  style: const TextStyle(
-                      color: Colors.black, fontWeight: FontWeight.w500),
+                  style: widget._controller.textStyle.getTextStyle(),
                   controller: fieldTextEditingController,
                   focusNode: fieldFocusNode,
                   decoration: inputDecoration.copyWith(
                     labelText: widget.controller.floatLabel == true
                         ? widget.controller.label
                         : null,
+                    fillColor: widget._controller.fillColor, // Background color for the field
                   ),
                   onChanged: (value) {
                     final oldValue = widget._controller.maybeValue;
@@ -507,6 +524,7 @@ class SelectOneState extends FormFieldWidgetState<SelectOne>
         child: Material(
           shadowColor: EnsembleTheme.grey,
           elevation: 2.0,
+          color: widget._controller.dropdownBackgroundColor,
           type: MaterialType.card,
           child: SizedBox(
               width: constraints.biggest.width,
@@ -552,10 +570,12 @@ class SelectOneState extends FormFieldWidgetState<SelectOne>
                                       widget._controller.createNewItemLabel,
                                       option.value,
                                     ),
+                                    style: widget._controller.textStyle.getTextStyle(),
                                   )
                                 : Text(
                                     Utils.optionalString(option.label) ??
                                         option.value,
+                                    style: widget._controller.textStyle.getTextStyle(),
                                   ),
                           ],
                         ),
@@ -659,7 +679,7 @@ class SelectOneState extends FormFieldWidgetState<SelectOne>
   @override
   void clear() {
     onSelectionChanged(null);
-    textEditingController.clear();
+    widget.controller.textEditingController.clear();
   }
 
   @override
