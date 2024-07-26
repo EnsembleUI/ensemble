@@ -63,7 +63,7 @@ class InvokeAPIAction extends EnsembleAction {
 }
 
 class InvokeAPIController {
-  Future<Response> executeWithContext(
+  Future<Response?> executeWithContext(
       BuildContext context, InvokeAPIAction action,
       {Map<String, dynamic>? additionalInputs}) {
     ScopeManager? foundScopeManager =
@@ -90,9 +90,10 @@ class InvokeAPIController {
     return APIProviders.of(context).getProvider(provider);
   }
 
-  Future<Response> execute(InvokeAPIAction action, BuildContext context,
+  Future<Response?> execute(InvokeAPIAction action, BuildContext context,
       ScopeManager scopeManager, Map<String, YamlMap>? apiMap) async {
     YamlMap? apiDefinition = apiMap?[action.apiName];
+
     if (apiDefinition != null) {
       ScopeManager apiScopeManager =
           scopeManager.newCreateChildScope(ephemeral: true);
@@ -144,13 +145,27 @@ class InvokeAPIController {
         }
 
         APIProvider apiProvider = getAPIProvider(context, apiDefinition);
+        var isChangeListener = apiDefinition['listenForChanges'];
+
+        if (isChangeListener is! bool) {
+          isChangeListener = apiScopeManager.dataContext
+              .getContextById(apiDefinition['listenForChanges']);
+
+          if (!isChangeListener) {
+            if (apiProvider is LiveAPIProvider) {
+              await (apiProvider as LiveAPIProvider)
+                  .unSubscribeToApi(action.apiName);
+            }
+            return null;
+          }
+        }
+
         if (AppConfig(context, apiScopeManager.dataContext.getAppId())
                 .isMockResponse() &&
             apiDefinition['mockResponse'] != null) {
           response = await apiProvider.invokeMockAPI(
               apiScopeManager.dataContext, apiDefinition['mockResponse']);
-        } else if (apiDefinition['listenForChanges'] == true &&
-            apiProvider is LiveAPIProvider) {
+        } else if (isChangeListener == true && apiProvider is LiveAPIProvider) {
           response = await (apiProvider as LiveAPIProvider).subscribeToApi(
               context,
               apiDefinition,
