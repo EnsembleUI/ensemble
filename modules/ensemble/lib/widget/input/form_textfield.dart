@@ -156,6 +156,8 @@ abstract class BaseTextInput extends StatefulWidget
       'maxLines': (value) =>
           _controller.maxLines = Utils.optionalInt(value, min: 1),
       'textStyle': (style) => _controller.textStyle = Utils.getTextStyle(style),
+      'autofillHints': (value) =>
+          _controller.autofillHints = Utils.getListOfStrings(value),
     });
     return setters;
   }
@@ -232,6 +234,8 @@ class TextInputController extends FormFieldController with HasTextPlaceholder {
   bool? multiline;
   int? minLines;
   int? maxLines;
+
+  List<String>? autofillHints;
 }
 
 class TextInputState extends FormFieldWidgetState<BaseTextInput>
@@ -400,6 +404,7 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput>
         controller: widget._controller,
         widget: TextFormField(
           key: validatorKey,
+          autofillHints: widget._controller.autofillHints,
           autovalidateMode: widget._controller.validateOnUserInteraction
               ? AutovalidateMode.onUserInteraction
               : AutovalidateMode.disabled,

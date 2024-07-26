@@ -287,7 +287,7 @@ class Utils {
   }
 
   static List<String>? getListOfStrings(dynamic value) {
-    if (value is YamlList) {
+    if (value is YamlList || value is List) {
       List<String> results = [];
       for (var item in value) {
         if (item is String) {

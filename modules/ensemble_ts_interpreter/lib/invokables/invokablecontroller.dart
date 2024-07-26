@@ -6,6 +6,7 @@ import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokablecommons.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokablemath.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokableprimitives.dart';
+import 'package:ensemble_ts_interpreter/parser/regex_ext.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:json_path/json_path.dart';
 
@@ -334,9 +335,8 @@ class _String {
     }
 
     ;
-
     // Use replaceFirstMapped if replaceFirst is true, otherwise use replaceAllMapped
-    return replaceFirst
+    return replaceFirst && !regExp.global
         ? input.replaceFirstMapped(regExp, replace)
         : input.replaceAllMapped(regExp, replace);
   }
@@ -370,7 +370,8 @@ class _String {
       'substr': (int start, [int? length]) =>
           val.substring(start, start + (length ?? val.length - start)),
       'match': (regexp) {
-        final matches = (regexp as RegExp).allMatches(val);
+        RegExp regex = regexp as RegExp;
+        final matches = regex.allMatches(val);
         List<String> list = [];
         for (final m in matches) {
           list.add(m[0]!);

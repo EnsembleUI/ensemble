@@ -245,7 +245,7 @@ class EnsembleAppState extends State<EnsembleApp> with WidgetsBindingObserver {
             return _appPlaceholderWrapper(
                 placeholderWidget: ErrorScreen(LanguageError(
                     "Error loading configuration",
-                    detailError: snapshot.error.toString())));
+                    detailedError: snapshot.error.toString())));
           }
 
           // at this point we don't yet have the theme. It's best to have
