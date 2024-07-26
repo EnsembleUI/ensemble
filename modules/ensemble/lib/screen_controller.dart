@@ -194,6 +194,16 @@ class ScreenController {
         } else if (action.options?['replaceCurrentScreen'] == true) {
           routeOption = RouteOption.replaceCurrentScreen;
         }
+
+        if (action.options?['closeToasts'] ?? true) {
+          ToastController().closeToast();
+        }
+      }
+
+      // No code for NavigateModalScreenAction so need to add this
+      if (action is NavigateModalScreenAction &&
+          (action.options?['closeToasts'] ?? true)) {
+        ToastController().closeToast();
       }
 
       /// TODO: if the initiator widget has been re-build or removed
@@ -531,23 +541,6 @@ class ScreenController {
       notificationUtils.context = context;
       notificationUtils.onRemoteNotification = action.onReceive;
       notificationUtils.onRemoteNotificationOpened = action.onTap;
-    } else if (action is ShowNotificationAction) {
-      scopeManager.dataContext.addDataContext(Ensemble.externalDataContext);
-      notificationUtils.showNotification(
-        scopeManager.dataContext.eval(action.title),
-        scopeManager.dataContext.eval(action.body),
-        payload: jsonEncode(scopeManager.dataContext.eval(action.payload)),
-      );
-    } else if (action is RequestNotificationAction) {
-      final isEnabled = await notificationUtils.initNotifications() ?? false;
-
-      if (isEnabled && action.onAccept != null) {
-        executeAction(context, action.onAccept!);
-      }
-
-      if (!isEnabled && action.onReject != null) {
-        executeAction(context, action.onReject!);
-      }
     } else if (action is AuthorizeOAuthAction) {
       // TODO
     } else if (action is CheckPermission) {

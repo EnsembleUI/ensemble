@@ -33,6 +33,8 @@ abstract class ActionInvokable with Invokable {
       ActionType.clearLocale,
       ActionType.openAppSettings,
       ActionType.deviceSecurity,
+      ActionType.requestNotificationAccess,
+      ActionType.showLocalNotification,
     ]);
   }
 

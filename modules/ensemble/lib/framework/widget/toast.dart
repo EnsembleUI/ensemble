@@ -28,6 +28,10 @@ class ToastController {
     return _instance;
   }
 
+  void closeToast() {
+    _toast.removeQueuedCustomToasts();
+  }
+
   void showToast(BuildContext context, ShowToastAction toastAction,
       Widget? customToastBody,
       {DataContext? dataContext}) {
