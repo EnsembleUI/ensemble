@@ -19,7 +19,8 @@ class DeviceSecurity extends EnsembleAction with Invokable {
   @override
   Future<void> execute(BuildContext context, ScopeManager scopeManager) async {
     if (kIsWeb) {
-      _handleSuccess(context, false, false, false);
+      _handleSuccess(context, false, false, false,
+          'This information is not available on the web');
       return;
     }
 
@@ -29,14 +30,14 @@ class DeviceSecurity extends EnsembleAction with Invokable {
       bool isDebugged = await Rjsniffer.amIDebugged() ?? false;
       bool isEmulator = await Rjsniffer.amIEmulator() ?? false;
 
-      _handleSuccess(context, isRooted, isDebugged, isEmulator);
+      _handleSuccess(context, isRooted, isDebugged, isEmulator, 'success');
     } catch (e) {
       _handleError(context, e);
     }
   }
 
-  void _handleSuccess(
-      BuildContext context, bool isRooted, bool isDebugged, bool isEmulator) {
+  void _handleSuccess(BuildContext context, bool isRooted, bool isDebugged,
+      bool isEmulator, String message) {
     if (onSuccess != null) {
       ScreenController().executeAction(
         context,
@@ -47,6 +48,7 @@ class DeviceSecurity extends EnsembleAction with Invokable {
             'debugged': isDebugged,
             'rooted': isRooted,
             'emulator': isEmulator,
+            'message': message,
           },
         ),
       );
