@@ -14,10 +14,11 @@ import 'package:ensemble/action/biometric_auth_action.dart';
 import 'package:ensemble/action/change_locale_actions.dart';
 import 'package:ensemble/action/misc_action.dart';
 import 'package:ensemble/action/navigation_action.dart';
-import 'package:ensemble/action/notification_action.dart';
+import 'package:ensemble/action/notification_actions.dart';
 import 'package:ensemble/action/phone_contact_action.dart';
 import 'package:ensemble/action/sign_in_out_action.dart';
 import 'package:ensemble/action/toast_actions.dart';
+import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/event.dart';
@@ -29,6 +30,7 @@ import 'package:ensemble/framework/view/page_group.dart';
 import 'package:ensemble/framework/widget/view_util.dart';
 import 'package:ensemble/receive_intent_manager.dart';
 import 'package:ensemble/screen_controller.dart';
+import 'package:ensemble/util/notification_utils.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/stub_widgets.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
@@ -824,37 +826,6 @@ class NotificationAction extends EnsembleAction {
   }
 }
 
-class RequestNotificationAction extends EnsembleAction {
-  EnsembleAction? onAccept;
-  EnsembleAction? onReject;
-
-  RequestNotificationAction({this.onAccept, this.onReject});
-
-  factory RequestNotificationAction.fromYaml(
-      {Invokable? initiator, Map? payload}) {
-    return RequestNotificationAction(
-      onAccept: EnsembleAction.from(payload?['onAccept']),
-      onReject: EnsembleAction.from(payload?['onReject']),
-    );
-  }
-}
-
-class ShowNotificationAction extends EnsembleAction {
-  late String title;
-  late String body;
-  Map? payload;
-
-  ShowNotificationAction({this.title = '', this.body = '', this.payload});
-
-  factory ShowNotificationAction.fromYaml({Map? payload}) {
-    return ShowNotificationAction(
-      title: Utils.getString(payload?['title'], fallback: ''),
-      body: Utils.getString(payload?['body'], fallback: ''),
-      payload: Utils.getMap(payload?['payload']),
-    );
-  }
-}
-
 class ConnectSocketAction extends EnsembleAction {
   final String name;
   final EnsembleAction? onSuccess;
@@ -1095,7 +1066,7 @@ enum ActionType {
   authorizeOAuthService,
   notification,
   requestNotificationAccess,
-  showNotification,
+  showLocalNotification,
   copyToClipboard,
   share,
   rateApp,
@@ -1245,10 +1216,10 @@ abstract class EnsembleAction {
       return AuthorizeOAuthAction.fromYaml(payload: payload);
     } else if (actionType == ActionType.notification) {
       return NotificationAction.fromYaml(payload: payload);
-    } else if (actionType == ActionType.showNotification) {
-      return ShowNotificationAction.fromYaml(payload: payload);
+    } else if (actionType == ActionType.showLocalNotification) {
+      return ShowLocalNotificationAction.from(payload: payload);
     } else if (actionType == ActionType.requestNotificationAccess) {
-      return RequestNotificationAction.fromYaml(payload: payload);
+      return RequestNotificationAccessAction.from(payload: payload);
     } else if (actionType == ActionType.copyToClipboard) {
       return CopyToClipboardAction.from(payload: payload);
     } else if (actionType == ActionType.share) {

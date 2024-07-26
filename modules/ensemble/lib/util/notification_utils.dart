@@ -19,8 +19,8 @@ abstract class NotificationUtilsBase {
   Future<bool?> initNotifications();
 
   Future<void> showNotification(
-    String? title,
-    String? body, {
+    String title, {
+    String? body,
     String? imageUrl,
     String? payload,
   });

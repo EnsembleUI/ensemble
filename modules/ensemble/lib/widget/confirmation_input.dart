@@ -72,6 +72,8 @@ class ConfirmationInput extends StatefulWidget
           EnsembleAction.from(funcDefinition, initiator: this),
       'onComplete': (funcDefinition) => _controller.onComplete =
           EnsembleAction.from(funcDefinition, initiator: this),
+      'autofillEnabled': (value) =>
+          _controller.autofillEnabled = Utils.optionalBool(value),
     };
   }
 
@@ -113,6 +115,7 @@ class ConfirmationInputController extends BoxController {
   bool? autoComplete;
   bool? spaceEvenly;
   bool? enableCursor;
+  bool? autofillEnabled;
   String? fieldType;
   String? inputType;
   double? fieldWidth;
@@ -167,6 +170,7 @@ class ConfirmationInputState extends framework.WidgetState<ConfirmationInput>
 
   Widget buildTextInput(ConfirmationInputController controller) {
     return OtpPinField(
+      autoFillEnable: widget._controller.autofillEnabled,
       key: _otpPinFieldController,
       value: widget._controller.text ?? '',
       otpPinFieldStyle: OtpPinFieldStyle(
