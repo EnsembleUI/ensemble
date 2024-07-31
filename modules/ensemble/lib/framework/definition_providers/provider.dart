@@ -52,6 +52,8 @@ abstract class DefinitionProvider {
 
   List<String> getSupportedLanguages();
 
+  void onAppLifecycleStateChanged(AppLifecycleState state);
+
   // build the definition model from YAML
   static DefinitionProvider from(Map rootMap) {
     if (rootMap['definitions'] != null) {

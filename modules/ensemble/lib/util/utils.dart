@@ -1,9 +1,11 @@
 import 'dart:io';
 import 'dart:math';
 import 'dart:ui';
+import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/ensemble_app.dart';
 import 'package:ensemble/framework/stub/location_manager.dart';
 import 'package:ensemble/framework/theme/theme_manager.dart';
+import 'package:ensemble_ts_interpreter/invokables/UserLocale.dart';
 import 'package:path/path.dart' as p;
 
 import 'package:ensemble/framework/error_handling.dart';
@@ -549,18 +551,36 @@ class Utils {
     } else if (style is String) {}
     return null;
   }
-
+  //fontFamily could either be a string or a map where the key is the language code and the value is the font family name
   static TextStyle? getFontFamily(dynamic name) {
-    String? fontFamily = name?.toString().trim();
-    if (fontFamily != null && fontFamily.isNotEmpty) {
+    String? fontFamily;
+    // Check if the name is a map with language codes
+    if (name is Map) {
+      // Retrieve the current language code
+      String? languageCode = UserLocale.from(Ensemble().getLocale())?.languageCode;
+      if (languageCode != null && name.containsKey(languageCode)) {
+        fontFamily = name[languageCode]?.toString();
+      }
+
+      // If language code is null or not found in the map, use the default font family if specified
+      if (fontFamily == null || fontFamily.isEmpty) {
+        fontFamily = name['default']?.toString();
+      }
+    } else if (name is String) { // Handle the case where name is a string
+      fontFamily = name;
+    }
+    // If a valid font family is found, apply it
+    if (fontFamily != null && fontFamily.trim().isNotEmpty) {
       try {
         return GoogleFonts.getFont(fontFamily.trim());
       } catch (_) {
         return TextStyle(fontFamily: fontFamily);
       }
     }
+    // Return null if no valid font family is found
     return null;
   }
+
 
   static TextAlign? getTextAlignment(dynamic align) {
     TextAlign? textAlign;
