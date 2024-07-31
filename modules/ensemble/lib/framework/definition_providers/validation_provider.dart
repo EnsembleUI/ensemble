@@ -40,4 +40,9 @@ class ValidationProvider extends DefinitionProvider {
 
   @override
   List<String> getSupportedLanguages() => [];
+
+  @override
+  void onAppLifecycleStateChanged(AppLifecycleState state) {
+    // no-op
+  }
 }

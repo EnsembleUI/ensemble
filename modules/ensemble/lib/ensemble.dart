@@ -330,6 +330,10 @@ class Ensemble {
     return null;
   }
 
+  void notifyAppLifecycleStateChanged(AppLifecycleState state) {
+    _config?.definitionProvider.onAppLifecycleStateChanged(state);
+  }
+
   /// Navigate to an Ensemble App as configured in ensemble-config.yaml
   /// [screenId] / [screenName] - navigate to the screen if specified, otherwise to the App's home
   /// [asModal] - shows the App in a regular or modal screen
