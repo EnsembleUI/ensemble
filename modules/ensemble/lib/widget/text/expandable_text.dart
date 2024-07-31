@@ -9,8 +9,8 @@ class ExpandableText extends StatefulWidget {
   final bool selectable;
   final TextScaler? textScaler;
   final TextOverflow? textOverflow;
-  final String readMoreText;
-  final String readLessText;
+  final String expandLabel;
+  final String collapseLabel;
   final TextStyle? expandTextStyle;
 
   ExpandableText({
@@ -21,8 +21,8 @@ class ExpandableText extends StatefulWidget {
     this.selectable = false,
     this.textScaler,
     this.textOverflow,
-    this.readMoreText = '...Read more',
-    this.readLessText = ' Read less',
+    this.expandLabel = '...show more',
+    this.collapseLabel = ' show less',
     this.expandTextStyle,
   });
 
@@ -49,7 +49,7 @@ class _ExpandableTextState extends State<ExpandableText> {
     final expandTextStyle = widget.expandTextStyle ?? widget.style.copyWith(color: Colors.blue);
 
     TextSpan link = TextSpan(
-      text: _isExpanded ? widget.readLessText : widget.readMoreText,
+      text: _isExpanded ? widget.collapseLabel : widget.expandLabel,
       style: expandTextStyle,
       recognizer: TapGestureRecognizer()..onTap = _toggleExpand,
     );
