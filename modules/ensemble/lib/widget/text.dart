@@ -32,8 +32,8 @@ class EnsembleText extends StatefulWidget
       'selectable': () => _controller.selectable,
       'maxLines': () => _controller.maxLines,
       'expandable': () =>  _controller.expandable,
-      'readMoreText': () => _controller.readMoreText,
-      'readLessText': () => _controller.readLessText,
+      'expandLabel': () => _controller.expandLabel,
+      'collapseLabel': () => _controller.collapseLabel,
       'expandTextStyle': () => _controller.expandTextStyle,
     };
   }
@@ -52,8 +52,8 @@ class EnsembleText extends StatefulWidget
           _controller.selectable = Utils.optionalBool(value),
       'textScale': (value) => _controller.textScale = TextScale.from(value),
       'expandable': (value) => _controller.expandable = Utils.optionalBool(value),
-      'readMoreText': (value) => _controller.readMoreText = Utils.optionalString(value),
-      'readLessText': (value) => _controller.readLessText = Utils.optionalString(value),
+      'expandLabel': (value) => _controller.expandLabel = Utils.optionalString(value),
+      'collapseLabel': (value) => _controller.collapseLabel = Utils.optionalString(value),
       'expandTextStyle': (style) => _controller.expandTextStyle = Utils.getTextStyleAsComposite(_controller, style: style),
     };
   }
@@ -74,7 +74,7 @@ class TextController extends BoxController {
   bool? selectable;
   TextScale? textScale;
   bool? expandable;
-  String? readMoreText, readLessText;
+  String? expandLabel, collapseLabel;
   TextStyleComposite? expandTextStyle;
   TextStyleComposite? _textStyle;
 
@@ -109,8 +109,8 @@ class EnsembleTextState extends framework.WidgetState<EnsembleText> {
         textScaler: _getTextScaler(),
         selectable: shouldBeSelectable,
         textOverflow: controller.textStyle.overflow,
-        readMoreText: controller.readMoreText ?? '...show more',
-        readLessText: controller.readLessText ?? ' show less',
+        expandLabel: controller.expandLabel ?? '...show more',
+        collapseLabel: controller.collapseLabel ?? ' show less',
         expandTextStyle: controller.expandTextStyle != null ? controller.expandTextStyle?.getTextStyle() : null,
       );
     } else {
