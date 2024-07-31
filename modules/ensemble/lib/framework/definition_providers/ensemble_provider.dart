@@ -100,6 +100,16 @@ class EnsembleDefinitionProvider extends DefinitionProvider {
     });
     return supportedLanguages;
   }
+
+  @override
+  void onAppLifecycleStateChanged(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused) {
+      appModel.cancelListeners();
+    } else if (state == AppLifecycleState.resumed) {
+      // re-initialize the listeners
+      appModel.initListeners();
+    }
+  }
 }
 
 class InvalidDefinition {}
@@ -108,6 +118,10 @@ class AppModel {
   AppModel(this.appId) {
     initListeners();
   }
+
+  // only 1 instance of these listeners
+  static StreamSubscription? _artifactListener;
+  static StreamSubscription? _dependentArtifactListener;
 
   final String appId;
 
@@ -129,10 +143,23 @@ class AppModel {
   /// Plus listen for changes and update the cache
   String? listenerError;
 
-  void initListeners() {
-    final app = Ensemble().ensembleFirebaseApp!;
+  void cancelListeners() async {
+    if (_artifactListener != null) {
+      await _artifactListener!.cancel();
+      _artifactListener = null;
+    }
+    if (_dependentArtifactListener != null) {
+      await _dependentArtifactListener!.cancel();
+      _dependentArtifactListener = null;
+    }
+  }
+
+  void initListeners() async {
+    final app = Ensemble().ensembleFirebaseApp;
     FirebaseFirestore db = FirebaseFirestore.instanceFor(app: app);
-    db
+
+    await _artifactListener?.cancel();
+    _artifactListener = db
         .collection('apps')
         .doc(appId)
         .collection('artifacts')
@@ -156,11 +183,11 @@ class AppModel {
     initWidgetArtifactListeners(EnsembleDefinitionProvider.ensembleLibraryId);
   }
 
-  StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>
-      initWidgetArtifactListeners(String appId) {
-    final app = Ensemble().ensembleFirebaseApp!;
+  void initWidgetArtifactListeners(String appId) async {
+    final app = Ensemble().ensembleFirebaseApp;
 
-    return FirebaseFirestore.instanceFor(app: app)
+    await _dependentArtifactListener?.cancel();
+    _dependentArtifactListener = FirebaseFirestore.instanceFor(app: app)
         .collection('apps')
         .doc(appId)
         .collection('artifacts')

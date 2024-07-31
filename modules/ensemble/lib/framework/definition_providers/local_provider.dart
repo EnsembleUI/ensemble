@@ -70,4 +70,9 @@ class LocalDefinitionProvider extends FileDefinitionProvider {
   UserAppConfig? getAppConfig() {
     return appConfig;
   }
+
+  @override
+  void onAppLifecycleStateChanged(AppLifecycleState state) {
+    // no-op
+  }
 }

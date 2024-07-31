@@ -178,6 +178,7 @@ class EnsembleAppState extends State<EnsembleApp> with WidgetsBindingObserver {
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) async {
     super.didChangeAppLifecycleState(state);
+    Ensemble().notifyAppLifecycleStateChanged(state);
     initDeepLink(state);
   }
 
