@@ -136,8 +136,7 @@ class ViewUtil {
           });
         } else if (key == 'children' && value is YamlList) {
           children = ViewUtil.buildModels(value, customWidgetMap);
-        } else if ((key == "item-template" || key == "itemTemplate") &&
-            value is YamlMap) {
+        } else if (key == "item-template" && value is YamlMap) {
           itemTemplate =
               ItemTemplate(value['data'], value['name'], value['template']);
         } else {
