@@ -31,21 +31,34 @@ class TabBarController extends BoxController {
 
   int selectedIndex = 0;
 
-  final List<TabItem> _items = [];
+  List<TabItem> _originalItems = [];
+  List<TabItem> _visibleItems = [];
 
   set items(dynamic items) {
     if (items is YamlList) {
+      _originalItems = [];
       for (YamlMap item in items) {
-        _items.add(TabItem(
-            icon: Utils.getIcon(item['icon']),
-            label: Utils.optionalString(item['label']),
-            tabWidget: item['tabWidget'] ?? item['tabItem'],
-            bodyWidget: item['bodyWidget'] ?? item['widget'] ?? item['body']));
+        _originalItems.add(TabItem(
+          icon: Utils.getIcon(item['icon']),
+          label: Utils.optionalString(item['label']),
+          tabWidget: item['tabWidget'] ?? item['tabItem'],
+          bodyWidget: item['bodyWidget'] ?? item['widget'] ?? item['body'],
+          ifCondition: Utils.optionalString(item['if']),
+        ));
       }
+    } else if (items is List<TabItem>) {
+      _originalItems = List.from(items);
     }
+    _visibleItems = List.from(_originalItems);
   }
 
-  List<TabItem> get items => _items;
+  List<TabItem> get items => _visibleItems;
+  List<TabItem> get originalItems => _originalItems;
+
+  void updateVisibleItems(List<TabItem> newVisibleItems) {
+    _visibleItems = newVisibleItems;
+    notifyListeners();
+  }
 
   @override
   Map<String, Function> getBaseSetters() {
@@ -59,7 +72,12 @@ class TabBarController extends BoxController {
 
 /// Model for a single tab item
 class TabItem {
-  TabItem({this.icon, this.label, this.tabWidget, this.bodyWidget}) {
+  TabItem(
+      {this.icon,
+      this.label,
+      this.tabWidget,
+      this.bodyWidget,
+      this.ifCondition}) {
     if (icon == null && label == null && tabWidget == null) {
       throw LanguageError(
           "Each tab requires either an icon, a label, or a custom tabWidget");
@@ -70,4 +88,5 @@ class TabItem {
   String? label;
   dynamic tabWidget; // custom tab widget
   dynamic bodyWidget; // tab's body widget
+  String? ifCondition;
 }
