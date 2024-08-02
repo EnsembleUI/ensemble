@@ -148,13 +148,13 @@ class CountdownController extends WidgetController {
 
   TextStyleComposite get textStyle => _textStyle ??= TextStyleComposite(this);
 
-  set textStyle(TextStyleComposite style) => _textStyle = style;
+  set textStyle(TextStyleComposite? style) => _textStyle = style;
 
   TextStyleComposite? _labelStyle;
 
   TextStyleComposite get labelStyle => _labelStyle ??= TextStyleComposite(this);
 
-  set labelStyle(TextStyleComposite style) => _labelStyle = style;
+  set labelStyle(TextStyleComposite? style) => _labelStyle = style;
 }
 
 mixin CountdownAction on WidgetState<Countdown> {

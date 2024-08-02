@@ -66,7 +66,7 @@ class TextController extends BoxController {
 
   TextStyleComposite get textStyle => _textStyle ??= TextStyleComposite(this);
 
-  set textStyle(TextStyleComposite style) => _textStyle = style;
+  set textStyle(TextStyleComposite? style) => _textStyle = style;
 }
 
 class EnsembleTextState extends framework.WidgetState<EnsembleText> {

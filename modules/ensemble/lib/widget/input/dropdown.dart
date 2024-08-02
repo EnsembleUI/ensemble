@@ -272,7 +272,7 @@ class SelectOneController extends FormFieldController with HasTextPlaceholder {
 
   TextStyleComposite get textStyle => _textStyle ??= TextStyleComposite(this);
 
-  set textStyle(TextStyleComposite style) => _textStyle = style;
+  set textStyle(TextStyleComposite? style) => _textStyle = style;
 
   DropdownItemTemplate? itemTemplate;
 

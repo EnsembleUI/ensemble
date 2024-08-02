@@ -310,6 +310,13 @@ class BoxController extends WidgetController {
   bool? clipContent;
 
   @override
+  Map<String, Function> getBaseGetters() {
+    Map<String, Function> getters = super.getBaseGetters();
+    getters.addAll({'width': () => width, 'height': () => height});
+    return getters;
+  }
+
+  @override
   Map<String, Function> getBaseSetters() {
     Map<String, Function> setters = super.getBaseSetters();
     setters.addAll({

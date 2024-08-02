@@ -507,15 +507,18 @@ class Utils {
     return null;
   }
 
-  static TextStyleComposite getTextStyleAsComposite(
+  static TextStyleComposite? getTextStyleAsComposite(
       WidgetController widgetController,
       {dynamic style}) {
-    return TextStyleComposite(
-      widgetController,
-      textGradient: Utils.getBackgroundGradient(style['gradient']),
-      textAlign: style['textAlign'],
-      styleWithFontFamily: getTextStyle(style),
-    );
+    if (style is Map && style.isNotEmpty) {
+      return TextStyleComposite(
+        widgetController,
+        textGradient: Utils.getBackgroundGradient(style['gradient']),
+        textAlign: style['textAlign'],
+        styleWithFontFamily: getTextStyle(style),
+      );
+    }
+    return null;
   }
 
   static TextStyle? getTextStyle(dynamic style) {

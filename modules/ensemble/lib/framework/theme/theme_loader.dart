@@ -1,6 +1,7 @@
 import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/framework/theme/default_theme.dart';
 import 'package:ensemble/framework/theme/theme_manager.dart';
+import 'package:ensemble/framework/theme/theme_utils.dart';
 import 'package:ensemble/model/text_scale.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:flutter/material.dart';
@@ -9,21 +10,94 @@ import 'package:yaml/yaml.dart';
 mixin ThemeLoader {
   final EdgeInsets _buttonPadding =
       const EdgeInsets.only(left: 15, top: 5, right: 15, bottom: 5);
-  final int _buttonBorderRadius = 3;
+  final int _buttonBorderRadius = 8;
   final Color _buttonBorderOutlineColor = Colors.black12;
 
-  ThemeData getAppTheme(YamlMap? overrides) {
-    final seedColor = Utils.getColor(overrides?['Colors']?['seed']);
+  /**
+   * Build the App's theme based on the theme configuration
+   */
+  ThemeData getAppTheme(YamlMap? themeConfig) {
+    var colorScheme = _getColorScheme(themeConfig);
+    var baselineTheme = _getBaselineTheme(themeConfig);
 
-    ThemeData defaultTheme = ThemeData(
+    final themeData = baselineTheme.copyWith(
+      useMaterial3: Utils.getBool(themeConfig?['material3'], fallback: true),
+      colorScheme: colorScheme,
+      disabledColor: Utils.getColor(themeConfig?['Colors']?['disabled']),
+      inputDecorationTheme: _buildInputTheme(themeConfig?['Widgets']?['Input'],
+          colorScheme: colorScheme),
+      textButtonTheme: TextButtonThemeData(
+          style: _buildButtonTheme(getProp(themeConfig, ['Widgets', 'Button']),
+              baselineTheme: baselineTheme, isOutline: true)),
+      filledButtonTheme: FilledButtonThemeData(
+          style: _buildButtonTheme(getProp(themeConfig, ['Widgets', 'Button']),
+              baselineTheme: baselineTheme, isOutline: false)),
+      bottomNavigationBarTheme: const BottomNavigationBarThemeData(),
+      switchTheme: const SwitchThemeData(),
+      checkboxTheme: _buildCheckboxTheme(
+          themeConfig?['Widgets']?['Checkbox'], colorScheme),
+    );
+
+    // extends ThemeData
+    return themeData.copyWith(extensions: [
+      EnsembleThemeExtension(
+        appTheme: AppTheme(
+            textScale: TextScale(
+                enabled: Utils.optionalBool(
+                    getProp(themeConfig, ['App', 'textScale', 'enabled'])),
+                minFactor: Utils.optionalDouble(
+                    getProp(themeConfig, ['App', 'textScale', 'minFactor']),
+                    min: 0),
+                maxFactor: Utils.optionalDouble(
+                    getProp(themeConfig, ['App', 'textScale', 'maxFactor']),
+                    min: 0))),
+        loadingScreenBackgroundColor:
+            Utils.getColor(themeConfig?['Screen']?['loadingBackgroundColor']) ??
+                Utils.getColor(
+                    themeConfig?['Colors']?['loadingScreenBackgroundColor']),
+        loadingScreenIndicatorColor: Utils.getColor(
+            themeConfig?['Colors']?['loadingScreenIndicatorColor']),
+        transitions: Utils.getMap(themeConfig?['Transitions']),
+      )
+    ]);
+  }
+
+  /**
+   * Generate a Color Scheme for our App based on the seed and/or specific Color functions
+   */
+  ColorScheme _getColorScheme(Map? themeConfig) {
+    // generate Colors from seed if specified
+    final seedColor = Utils.getColor(getProp(themeConfig, ['Colors', 'seed']));
+    var colorScheme = seedColor == null
+        ? defaultColorScheme
+        : ColorScheme.fromSeed(seedColor: seedColor);
+
+    // then further override with specific Color functions
+    return colorScheme.copyWith(
+      primary: Utils.getColor(getProp(themeConfig, ['Colors', 'primary'])),
+      onPrimary: Utils.getColor(getProp(themeConfig, ['Colors', 'onPrimary'])),
+      secondary: Utils.getColor(getProp(themeConfig, ['Colors', 'secondary'])),
+      onSecondary:
+          Utils.getColor(getProp(themeConfig, ['Colors', 'onSecondary'])),
+    );
+  }
+
+  /**
+   * return the baseline theme from the theme configuration.
+   * We need this when overriding certain widgets/attributes
+   */
+  ThemeData _getBaselineTheme(Map? themeConfig) {
+    final seedColor = Utils.getColor(getProp(themeConfig, ['Colors', 'seed']));
+
+    return ThemeData(
       useMaterial3: true,
       colorScheme: seedColor == null
           ? defaultColorScheme
           : ColorScheme.fromSeed(seedColor: seedColor),
       scaffoldBackgroundColor:
-          Utils.getColor(overrides?['Screen']?['backgroundColor']) ??
+          Utils.getColor(getProp(themeConfig, ['Screen', 'backgroundColor'])) ??
               DesignSystem.scaffoldBackgroundColor,
-      appBarTheme: _getAppBarTheme(overrides?['Screen']),
+      appBarTheme: _getAppBarTheme(getProp(themeConfig, ['Screen'])),
       disabledColor: DesignSystem.disableColor,
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
@@ -49,26 +123,21 @@ mixin ThemeLoader {
               BorderSide(color: DesignSystem.inputBorderColor, width: 2),
         ),
       ),
-      textTheme: _buildTextTheme(),
-      outlinedButtonTheme: OutlinedButtonThemeData(
-        style: OutlinedButton.styleFrom(
-          textStyle: const TextStyle(fontSize: 16),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8.0),
-          ),
-        ),
-      ),
-      textButtonTheme: TextButtonThemeData(
-        style: TextButton.styleFrom(
-          textStyle: const TextStyle(fontSize: 16),
-        ),
-      ),
-      filledButtonTheme: FilledButtonThemeData(
-        style: FilledButton.styleFrom(
-            textStyle: const TextStyle(fontSize: 16),
-            shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8.0))),
-      ),
+      textTheme: _buildTextTheme(themeConfig?['Text']),
+      // outlinedButtonTheme: OutlinedButtonThemeData(
+      //   style: OutlinedButton.styleFrom(
+      //     textStyle: const TextStyle(fontSize: 16),
+      //     shape: RoundedRectangleBorder(
+      //       borderRadius: BorderRadius.circular(8.0),
+      //     ),
+      //   ),
+      // ),
+      // textButtonTheme: TextButtonThemeData(
+      //   style: TextButton.styleFrom(
+      //     textStyle: const TextStyle(fontSize: 16),
+      //   ),
+      // ),
+      // ,
       tabBarTheme: TabBarTheme(
         labelColor: DesignSystem.primary,
       ),
@@ -79,75 +148,10 @@ mixin ThemeLoader {
         ),
       ),
     );
-
-    final customColorScheme = defaultTheme.colorScheme.copyWith(
-      primary: Utils.getColor(overrides?['Colors']?['primary']),
-      onPrimary: Utils.getColor(overrides?['Colors']?['onPrimary']),
-      secondary: Utils.getColor(overrides?['Colors']?['secondary']),
-      onSecondary: Utils.getColor(overrides?['Colors']?['onSecondary']),
-    );
-
-    final customTheme = defaultTheme.copyWith(
-      useMaterial3: Utils.getBool(overrides?['material3'], fallback: true),
-      colorScheme: customColorScheme,
-      disabledColor: Utils.getColor(overrides?['Colors']?['disabled']),
-      textTheme: _buildTextTheme(overrides?['Text']),
-      inputDecorationTheme: _buildInputTheme(overrides?['Widgets']?['Input'],
-          colorScheme: customColorScheme),
-      outlinedButtonTheme: OutlinedButtonThemeData(
-        style: _buildButtonTheme(overrides?['Widgets']?['Button'],
-                isOutline: true, colorScheme: customColorScheme) ??
-            defaultTheme.outlinedButtonTheme.style,
-      ),
-      textButtonTheme: TextButtonThemeData(
-        style: _buildButtonTheme(overrides?['Widgets']?['Button'],
-                isOutline: true, colorScheme: customColorScheme) ??
-            defaultTheme.outlinedButtonTheme.style,
-      ),
-      filledButtonTheme: FilledButtonThemeData(
-        style: _buildButtonTheme(overrides?['Widgets']?['Button'],
-                isOutline: false, colorScheme: customColorScheme) ??
-            defaultTheme.filledButtonTheme.style,
-      ),
-      bottomNavigationBarTheme: const BottomNavigationBarThemeData(),
-      switchTheme: const SwitchThemeData(),
-      checkboxTheme: _buildCheckboxTheme(
-          overrides?['Widgets']?['Checkbox'], customColorScheme),
-    );
-
-    var appTheme = AppTheme(
-        textScale: TextScale(
-            enabled: Utils.optionalBool(
-                getProp(overrides, ['App', 'textScale', 'enabled'])),
-            minFactor: Utils.optionalDouble(
-                getProp(overrides, ['App', 'textScale', 'minFactor']),
-                min: 0),
-            maxFactor: Utils.optionalDouble(
-                getProp(overrides, ['App', 'textScale', 'maxFactor']),
-                min: 0)));
-
-    // extends ThemeData
-    return customTheme.copyWith(extensions: [
-      EnsembleThemeExtension(
-        appTheme: appTheme,
-        loadingScreenBackgroundColor:
-            Utils.getColor(overrides?['Screen']?['loadingBackgroundColor']) ??
-                Utils.getColor(
-                    overrides?['Colors']?['loadingScreenBackgroundColor']),
-        loadingScreenIndicatorColor: Utils.getColor(
-            overrides?['Colors']?['loadingScreenIndicatorColor']),
-        transitions: Utils.getMap(overrides?['Transitions']),
-      )
-    ]);
   }
 
-  dynamic getProp(Map? root, List<String> paths) {
-    dynamic result = root;
-    for (var path in paths) {
-      if (result == null) return null;
-      result = result[path];
-    }
-    return result;
+  _resolveButtonTextStyle(ThemeData baselineTheme) {
+    return baselineTheme.textTheme.labelLarge;
   }
 
   AppBarTheme? _getAppBarTheme(YamlMap? screenMap) {
@@ -169,6 +173,8 @@ mixin ThemeLoader {
                 fontFamily: 'Inter',
                 fontWeight: FontWeight.w400,
                 color: defaultThemeColor);
+
+    var fontFamily = defaultStyle.fontFamily;
 
     return ThemeData.light()
         .textTheme
@@ -324,36 +330,44 @@ mixin ThemeLoader {
   }
 
   ButtonStyle? _buildButtonTheme(YamlMap? input,
-      {required ColorScheme colorScheme, required bool isOutline}) {
+      {required ThemeData baselineTheme, required bool isOutline}) {
     // outline button can simply use backgroundColor as borderColor (if not set)
-    if (input == null) return null;
-    Color? borderColor = Utils.getColor(input['borderColor']);
+    Color? borderColor = Utils.getColor(input?['borderColor']);
     if (borderColor == null && isOutline) {
-      borderColor =
-          Utils.getColor(input['backgroundColor']) ?? _buttonBorderOutlineColor;
+      borderColor = Utils.getColor(input?['backgroundColor']) ??
+          _buttonBorderOutlineColor;
     }
 
     // outline button ignores backgroundColor
     Color? backgroundColor =
-        isOutline ? null : Utils.getColor(input['backgroundColor']);
+        isOutline ? null : Utils.getColor(input?['backgroundColor']);
 
     RoundedRectangleBorder border = RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(
-            Utils.getInt(input['borderRadius'], fallback: _buttonBorderRadius)
+            Utils.getInt(input?['borderRadius'], fallback: _buttonBorderRadius)
                 .toDouble()),
         side: borderColor == null
             ? BorderSide.none
             : BorderSide(
                 color: borderColor,
-                width: Utils.getInt(input['borderWidth'], fallback: 1)
+                width: Utils.getInt(input?['borderWidth'], fallback: 1)
                     .toDouble()));
 
-    return getButtonStyle(
+    // labelStyle starts at Text->labelLarge and overriden at Widgets->Button
+    var textStyle = Utils.getTextStyle(input?["labelStyle"]);
+    var labelStyle = baselineTheme.textTheme.labelLarge?.merge(textStyle) ?? textStyle;
+
+    var buttonStyle = _getButtonStyle(
         isOutline: isOutline,
         backgroundColor: backgroundColor,
         border: border,
-        padding: Utils.optionalInsets(input['padding']) ?? _buttonPadding,
-        labelStyle: Utils.getTextStyle('labelStyle'));
+        padding: Utils.optionalInsets(input?['padding']) ?? _buttonPadding,
+        // this is important. This is the only way to get the fontFamily/textStyle
+        // set at the theme Text's root or labelLarge (which maps to button label).
+        // Also note that this is only important initially at the theme level.
+        // Subsequently with the Context we will already fallback properly
+        labelStyle: labelStyle);
+    return buttonStyle;
   }
 
   InputBorder? getInputBorder(
@@ -377,22 +391,16 @@ mixin ThemeLoader {
     return null;
   }
 
-  /// this function is also called while building the button, so make sure we don't use any fallback
-  /// to ensure the style reverts to the button theming
-  ButtonStyle getButtonStyle(
+  ButtonStyle _getButtonStyle(
       {required bool isOutline,
       Color? backgroundColor,
       RoundedRectangleBorder? border,
       EdgeInsets? padding,
-      double? buttonWidth,
-      double? buttonHeight,
       TextStyle? labelStyle}) {
     if (isOutline) {
       return OutlinedButton.styleFrom(
           padding: padding,
           tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-          fixedSize: Size(buttonWidth ?? Size.infinite.width,
-              buttonHeight ?? Size.infinite.height),
           shape: border,
           textStyle: labelStyle);
     } else {
@@ -400,8 +408,6 @@ mixin ThemeLoader {
         backgroundColor: backgroundColor,
         padding: padding,
         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-        fixedSize: Size(buttonWidth ?? Size.infinite.width,
-            buttonHeight ?? Size.infinite.height),
         shape: border,
         textStyle: labelStyle,
       );
