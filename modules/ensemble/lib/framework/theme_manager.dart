@@ -54,6 +54,7 @@ class EnsembleThemeManager {
     }
     return currentTheme()?.resolveStyles(context, hasStyles);
   }
+
   void configureStyles(
       DataContext dataContext, HasStyles model, HasStyles hasStyles) {
     //we have to set all these so we can resolve when styles change at runtime through app logic

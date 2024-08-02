@@ -20,26 +20,33 @@ class GetNetworkInfoAction extends EnsembleAction {
   EnsembleAction? onDenied;
   EnsembleAction? onLocationDisabled;
 
-  GetNetworkInfoAction({super.initiator,
-    super.inputs,
-    this.onSuccess,
-    this.onError,
-    this.onDenied,
-    this.onLocationDisabled});
+  GetNetworkInfoAction(
+      {super.initiator,
+      super.inputs,
+      this.onSuccess,
+      this.onError,
+      this.onDenied,
+      this.onLocationDisabled});
 
-  factory GetNetworkInfoAction.from({Invokable? initiator,dynamic payload}) =>
-      GetNetworkInfoAction.fromYaml(initiator: initiator, payload: Utils.getYamlMap(payload));
+  factory GetNetworkInfoAction.from({Invokable? initiator, dynamic payload}) =>
+      GetNetworkInfoAction.fromYaml(
+          initiator: initiator, payload: Utils.getYamlMap(payload));
   factory GetNetworkInfoAction.fromYaml({Invokable? initiator, Map? payload}) {
     if (payload?['onSuccess'] == null) {
-      throw LanguageError('onSuccess is required',recovery:'Please specify onSuccess method to call when network info is retrieved');
+      throw LanguageError('onSuccess is required',
+          recovery:
+              'Please specify onSuccess method to call when network info is retrieved');
     }
     return GetNetworkInfoAction(
         initiator: initiator,
         inputs: Utils.getMap(payload?['inputs']),
-        onSuccess: EnsembleAction.from(payload?['onSuccess'], initiator: initiator),
+        onSuccess:
+            EnsembleAction.from(payload?['onSuccess'], initiator: initiator),
         onError: EnsembleAction.from(payload?['onError'], initiator: initiator),
-        onDenied: EnsembleAction.from(payload?['onDenied'], initiator: initiator),
-        onLocationDisabled: EnsembleAction.from(payload?['onLocationDisabled'], initiator: initiator));
+        onDenied:
+            EnsembleAction.from(payload?['onDenied'], initiator: initiator),
+        onLocationDisabled: EnsembleAction.from(payload?['onLocationDisabled'],
+            initiator: initiator));
   }
 
   @override
@@ -51,35 +58,31 @@ class GetNetworkInfoAction extends EnsembleAction {
               data: {'status': 'error'}));
     }
     networkInfo.getLocationStatus().then((locationStatus) {
-      if ((locationStatus == LocationPermissionStatus.denied.name
-          || locationStatus == LocationPermissionStatus.deniedForever.name)
-          && onDenied != null) {
+      if ((locationStatus == LocationPermissionStatus.denied.name ||
+              locationStatus == LocationPermissionStatus.deniedForever.name) &&
+          onDenied != null) {
         return ScreenController().executeAction(context, onDenied!,
-            event: EnsembleEvent(initiator,
-                data: {'status': locationStatus}));
-      } else if (locationStatus == LocationStatus.disabled.name
-          && onLocationDisabled != null) {
+            event: EnsembleEvent(initiator, data: {'status': locationStatus}));
+      } else if (locationStatus == LocationStatus.disabled.name &&
+          onLocationDisabled != null) {
         return ScreenController().executeAction(context, onLocationDisabled!,
-            event: EnsembleEvent(initiator,
-                data: {'status': locationStatus}));
-      } else
-      if (locationStatus == LocationPermissionStatus.unableToDetermine.name
-          && onError != null) {
+            event: EnsembleEvent(initiator, data: {'status': locationStatus}));
+      } else if (locationStatus ==
+              LocationPermissionStatus.unableToDetermine.name &&
+          onError != null) {
         return ScreenController().executeAction(context, onError!,
-            event: EnsembleEvent(initiator,
-                data: {
-                  'status': locationStatus
-                }));
+            event: EnsembleEvent(initiator, data: {'status': locationStatus}));
       } else {
         try {
-          networkInfo.getNetworkInfo().then((info) =>
-              ScreenController().executeAction(context, onSuccess!,
-                  event: EnsembleEvent(initiator,
-                      data: {
+          networkInfo
+              .getNetworkInfo()
+              .then((info) =>
+                  ScreenController().executeAction(context, onSuccess!,
+                      event: EnsembleEvent(initiator, data: {
                         'status': locationStatus,
                         'networkInfo': info,
-                      }
-                  ))).onError((error, stackTrace) {
+                      })))
+              .onError((error, stackTrace) {
             if (onError != null) {
               return ScreenController().executeAction(context, onError!,
                   event: EnsembleEvent(initiator,
@@ -91,25 +94,32 @@ class GetNetworkInfoAction extends EnsembleAction {
           if (onError != null) {
             return ScreenController().executeAction(context, onError!,
                 event: EnsembleEvent(initiator,
-                    error: e.toString(),
-                    data: {'status': locationStatus}));
+                    error: e.toString(), data: {'status': locationStatus}));
           }
         }
       }
     }).onError((e, stackTrace) {
       if (onError != null) {
         return ScreenController().executeAction(context, onError!,
-            event: EnsembleEvent(initiator,
-                error: e.toString(),
-                data: {'status': 'error: '+e.toString(), 'networkInfo': null}));
+            event: EnsembleEvent(initiator, error: e.toString(), data: {
+              'status': 'error: ' + e.toString(),
+              'networkInfo': null
+            }));
       }
       print('Failed to get location status: $e');
     });
     return Future.value(null);
   }
 }
+
 class InvokableNetworkInfo extends Object with Invokable {
-  String? wifiName,wifiIPv6,wifiIPv4,wifiGatewayIP,wifiSubmask,wifiBroadcast,wifiBSSID;
+  String? wifiName,
+      wifiIPv6,
+      wifiIPv4,
+      wifiGatewayIP,
+      wifiSubmask,
+      wifiBroadcast,
+      wifiBSSID;
   InvokableNetworkInfo({
     this.wifiName,
     this.wifiIPv4,
@@ -119,7 +129,6 @@ class InvokableNetworkInfo extends Object with Invokable {
     this.wifiBroadcast,
     this.wifiBSSID,
   });
-
 
   @override
   Map<String, Function> getters() {

@@ -554,13 +554,15 @@ class Utils {
     } else if (style is String) {}
     return null;
   }
+
   //fontFamily could either be a string or a map where the key is the language code and the value is the font family name
   static TextStyle? getFontFamily(dynamic name) {
     String? fontFamily;
     // Check if the name is a map with language codes
     if (name is Map) {
       // Retrieve the current language code
-      String? languageCode = UserLocale.from(Ensemble().getLocale())?.languageCode;
+      String? languageCode =
+          UserLocale.from(Ensemble().getLocale())?.languageCode;
       if (languageCode != null && name.containsKey(languageCode)) {
         fontFamily = name[languageCode]?.toString();
       }
@@ -569,7 +571,8 @@ class Utils {
       if (fontFamily == null || fontFamily.isEmpty) {
         fontFamily = name['default']?.toString();
       }
-    } else if (name is String) { // Handle the case where name is a string
+    } else if (name is String) {
+      // Handle the case where name is a string
       fontFamily = name;
     }
     // If a valid font family is found, apply it
@@ -583,7 +586,6 @@ class Utils {
     // Return null if no valid font family is found
     return null;
   }
-
 
   static TextAlign? getTextAlignment(dynamic align) {
     TextAlign? textAlign;

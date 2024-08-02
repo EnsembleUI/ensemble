@@ -124,20 +124,6 @@ mixin ThemeLoader {
         ),
       ),
       textTheme: _buildTextTheme(themeConfig?['Text']),
-      // outlinedButtonTheme: OutlinedButtonThemeData(
-      //   style: OutlinedButton.styleFrom(
-      //     textStyle: const TextStyle(fontSize: 16),
-      //     shape: RoundedRectangleBorder(
-      //       borderRadius: BorderRadius.circular(8.0),
-      //     ),
-      //   ),
-      // ),
-      // textButtonTheme: TextButtonThemeData(
-      //   style: TextButton.styleFrom(
-      //     textStyle: const TextStyle(fontSize: 16),
-      //   ),
-      // ),
-      // ,
       tabBarTheme: TabBarTheme(
         labelColor: DesignSystem.primary,
       ),
@@ -355,7 +341,8 @@ mixin ThemeLoader {
 
     // labelStyle starts at Text->labelLarge and overriden at Widgets->Button
     var textStyle = Utils.getTextStyle(input?["labelStyle"]);
-    var labelStyle = baselineTheme.textTheme.labelLarge?.merge(textStyle) ?? textStyle;
+    var labelStyle =
+        baselineTheme.textTheme.labelLarge?.merge(textStyle) ?? textStyle;
 
     var buttonStyle = _getButtonStyle(
         isOutline: isOutline,

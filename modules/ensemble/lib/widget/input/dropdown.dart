@@ -102,7 +102,8 @@ abstract class SelectOne extends StatefulWidget
           _controller.dropdownMaxHeight = Utils.optionalInt(value, min: 0),
       'itemTemplate': (itemTemplate) => _setItemTemplate(itemTemplate),
       'createNewItem': (value) => _setCreateNewItem(value),
-      'textStyle': (style) => _controller.textStyle = Utils.getTextStyleAsComposite(_controller,style: style),
+      'textStyle': (style) => _controller.textStyle =
+          Utils.getTextStyleAsComposite(_controller, style: style),
     });
     return setters;
   }
@@ -406,11 +407,10 @@ class SelectOneState extends FormFieldWidgetState<SelectOne>
               widget._controller.dropdownOffsetY?.toDouble() ?? 0,
             )),
         decoration: inputDecoration.copyWith(
-          contentPadding: adjustedContentPadding,
-          labelText: widget.controller.floatLabel == true
-              ? widget.controller.label
-              : null
-        ));
+            contentPadding: adjustedContentPadding,
+            labelText: widget.controller.floatLabel == true
+                ? widget.controller.label
+                : null));
   }
 
   /// build the auto-complete Dropdown
@@ -438,7 +438,8 @@ class SelectOneState extends FormFieldWidgetState<SelectOne>
                     labelText: widget.controller.floatLabel == true
                         ? widget.controller.label
                         : null,
-                    fillColor: widget._controller.fillColor, // Background color for the field
+                    fillColor: widget._controller
+                        .fillColor, // Background color for the field
                   ),
                   onChanged: (value) {
                     final oldValue = widget._controller.maybeValue;
@@ -570,12 +571,14 @@ class SelectOneState extends FormFieldWidgetState<SelectOne>
                                       widget._controller.createNewItemLabel,
                                       option.value,
                                     ),
-                                    style: widget._controller.textStyle.getTextStyle(),
+                                    style: widget._controller.textStyle
+                                        .getTextStyle(),
                                   )
                                 : Text(
                                     Utils.optionalString(option.label) ??
                                         option.value,
-                                    style: widget._controller.textStyle.getTextStyle(),
+                                    style: widget._controller.textStyle
+                                        .getTextStyle(),
                                   ),
                           ],
                         ),

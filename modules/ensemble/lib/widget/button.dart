@@ -194,58 +194,6 @@ class ButtonState extends WidgetState<Button> {
         widget._controller.labelStyle.getTextStyle();
   }
 
-  // ButtonStyle getButtonStyle2(BuildContext context, bool isOutlineButton) {
-  //   // we need to build a border which requires valid borderColor, borderThickness & borderRadius.
-  //   // Let's get the default theme so we can overwrite only necessary styles
-  //   RoundedRectangleBorder? border;
-  //   OutlinedBorder? defaultShape = isOutlineButton
-  //       ? Theme.of(context).textButtonTheme.style?.shape?.resolve({})
-  //       : Theme.of(context).elevatedButtonTheme.style?.shape?.resolve({});
-  //   if (defaultShape is RoundedRectangleBorder) {
-  //     // if we don't specify borderColor here, and the default border is none, stick with that
-  //     BorderSide borderSide;
-  //     if (widget._controller.borderColor == null &&
-  //         defaultShape.side.style == BorderStyle.none) {
-  //       borderSide = defaultShape.side;
-  //     } else {
-  //       borderSide = BorderSide(
-  //           color: widget._controller.borderColor ?? defaultShape.side.color,
-  //           width: widget._controller.borderWidth?.toDouble() ??
-  //               defaultShape.side.width);
-  //     }
-  //
-  //     border = RoundedRectangleBorder(
-  //         borderRadius: widget._controller.borderRadius == null
-  //             ? defaultShape.borderRadius
-  //             : widget._controller.borderRadius!.getValue(),
-  //         // when we give [borderGradient] and [borderColor] it will draw that color also around borderSide
-  //         // So when the borderGradient is there the side will be none
-  //         side: widget._controller.borderGradient != null
-  //             ? BorderSide.none
-  //             : borderSide);
-  //   } else {
-  //     if (isOutlineButton) {
-  //       border = const RoundedRectangleBorder(
-  //         borderRadius: BorderRadius.all(Radius.zero),
-  //       );
-  //     }
-  //   }
-  //
-  //   // we need to get the button shape from borderRadius, borderColor & borderThickness
-  //   // and we do not want to override the default theme if not specified
-  //   //int borderRadius = widget._controller.borderRadius ?? defaultButtonStyle?.
-  //
-  //   return ThemeManager().getButtonStyle(
-  //       isOutline: isOutlineButton,
-  //       backgroundColor: widget._controller.backgroundGradient == null
-  //           ? widget._controller.backgroundColor
-  //           : Colors.transparent,
-  //       border: border,
-  //       buttonHeight: widget._controller.buttonHeight?.toDouble(),
-  //       buttonWidth: widget._controller.buttonWidth?.toDouble(),
-  //       padding: widget._controller.padding);
-  // }
-
   void onPressed(BuildContext context) {
     // validate if we are inside a Form
     if (widget._controller.validateForm != null &&
