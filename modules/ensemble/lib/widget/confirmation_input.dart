@@ -74,6 +74,8 @@ class ConfirmationInput extends StatefulWidget
           EnsembleAction.from(funcDefinition, initiator: this),
       'autofillEnabled': (value) =>
           _controller.autofillEnabled = Utils.optionalBool(value),
+      'obscureText': (obscureText) =>
+          _controller.obscureText = Utils.optionalBool(obscureText),
     };
   }
 
@@ -116,6 +118,7 @@ class ConfirmationInputController extends BoxController {
   bool? spaceEvenly;
   bool? enableCursor;
   bool? autofillEnabled;
+  bool? obscureText;
   String? fieldType;
   String? inputType;
   double? fieldWidth;
@@ -202,6 +205,7 @@ class ConfirmationInputState extends framework.WidgetState<ConfirmationInput>
       spaceEvenly: controller.spaceEvenly ?? true,
       onChange: _onChange,
       onSubmit: _onComplete,
+      obscureText: controller.obscureText ?? false,
     );
   }
 

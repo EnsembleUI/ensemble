@@ -24,6 +24,7 @@ class OtpPinField extends StatefulWidget {
   final bool spaceEvenly;
   final bool? autoFillEnable;
   final bool? phoneNumbersHint;
+  final bool? obscureText;
   final String? smsRegex;
   final bool highlightBorder;
   final Color? cursorColor;
@@ -69,7 +70,8 @@ class OtpPinField extends StatefulWidget {
       this.middleChild,
       this.customKeyboard,
       this.showCustomKeyboard,
-      this.showDefaultKeyboard = true})
+      this.showDefaultKeyboard = true, 
+      this.obscureText = false})
       : super(key: key);
 
   @override

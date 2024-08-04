@@ -371,16 +371,20 @@ class OtpPinFieldState extends State<OtpPinField>
   String _getPinDisplay(int position) {
     var display = '';
     var value = pinsInputed[position];
-    switch (widget.otpPinFieldInputType) {
-      case OtpPinFieldInputType.password:
-        display = '*';
-        break;
-      case OtpPinFieldInputType.custom:
-        display = widget.otpPinInputCustom;
-        break;
-      default:
-        display = value;
-        break;
+    if( widget.obscureText == true ) {
+      display = '*'; // Use asterisks to obscure text
+    } else {
+        switch (widget.otpPinFieldInputType) {
+          case OtpPinFieldInputType.password:
+            display = '*';
+            break;
+          case OtpPinFieldInputType.custom:
+            display = widget.otpPinInputCustom;
+            break;
+          default:
+            display = value;
+            break;
+        }
     }
     return value.isNotEmpty ? display : value;
   }
