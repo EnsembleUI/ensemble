@@ -10,8 +10,10 @@ import 'package:ensemble/framework/stub/deferred_link_manager.dart';
 import 'package:ensemble/framework/stub/file_manager.dart';
 import 'package:ensemble/framework/stub/contacts_manager.dart';
 import 'package:ensemble/framework/stub/plaid_link_manager.dart';
+import 'package:ensemble/framework/stub/stripe_manager.dart';
 import 'package:ensemble/module/auth_module.dart';
 import 'package:ensemble/module/location_module.dart';
+import 'package:ensemble_stripe/stripe_manager.dart';
 //import 'package:ensemble_network_info/network_info.dart';
 //import 'package:ensemble_firebase_analytics/firebase_analytics.dart';
 // import 'package:ensemble_location/location_module.dart';
@@ -65,6 +67,7 @@ class EnsembleModules {
 
   static const useBracket = false;
   static const useNetworkInfo = false;
+  static const useStripe = true;
 
 
   // widgets
@@ -163,6 +166,13 @@ class EnsembleModules {
     } else {
       GetIt.I.registerSingleton<NetworkInfoManager>(NetworkInfoManagerStub());
 
+    }
+
+    if (useStripe) {
+      //uncomment to enable network info
+      GetIt.I.registerSingleton<StripeManager>(StripeManagerImpl());
+    } else {
+      GetIt.I.registerSingleton<StripeManager>(StripeManagerStub());
     }
   }
 }

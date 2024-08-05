@@ -17,6 +17,7 @@ import 'package:ensemble/action/navigation_action.dart';
 import 'package:ensemble/action/notification_actions.dart';
 import 'package:ensemble/action/phone_contact_action.dart';
 import 'package:ensemble/action/sign_in_out_action.dart';
+import 'package:ensemble/action/stripe_action.dart';
 import 'package:ensemble/action/toast_actions.dart';
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/data_context.dart';
@@ -1106,7 +1107,10 @@ enum ActionType {
   seekAudio,
   logEvent,
   getNetworkInfo,
-  deviceSecurity
+  deviceSecurity,
+  stripeInit,
+  createPaymentIntent,
+  showPaymentSheet,
 }
 
 /// payload representing an Action to do (navigateToScreen, InvokeAPI, ..)
@@ -1273,6 +1277,12 @@ abstract class EnsembleAction {
       return ResumeAudio.from(payload);
     } else if (actionType == ActionType.seekAudio) {
       return SeekAudio.from(payload);
+    } else if (actionType == ActionType.stripeInit) {
+      return StripeInitAction.fromMap(payload: payload);
+    } else if (actionType == ActionType.createPaymentIntent) {
+      return StripeCreatePaymentIntentAction.fromMap(payload: payload);
+    } else if (actionType == ActionType.showPaymentSheet) {
+      return StripeShowPaymentSheetAction.fromMap(payload: payload);
     } else if (actionType == ActionType.deeplinkInit) {
       return DeepLinkInitAction.fromMap(payload: payload);
     } else if (actionType == ActionType.authenticateByBiometric) {

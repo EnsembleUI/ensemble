@@ -18,7 +18,7 @@ version: 1.0.0+1
 
 environment:
   sdk: ">=3.0.6 <4.0.0"
-  flutter: '3.19.3'
+  flutter: "3.19.3"
 
 # Dependencies specify other packages that your package needs in order to work.
 # To automatically upgrade your package dependencies to the latest versions
@@ -34,10 +34,7 @@ dependencies:
 
   # embed Ensemble as a sibling project
   ensemble:
-    git:
-      url: https://github.com/EnsembleUI/ensemble.git
-      ref: main
-      path: modules/ensemble
+    path: ../modules/ensemble
 
   # Uncomment to enable camera module
   # ensemble_camera:
@@ -104,11 +101,15 @@ dependencies:
   #     path: modules/bracket
 
   # Uncomment to enable NetworkInfo
-#  ensemble_network_info:
-#   git:
-#     url: https://github.com/EnsembleUI/ensemble.git
-#     ref: main
-#     path: modules/ensemble_network_info
+  #  ensemble_network_info:
+  #   git:
+  #     url: https://github.com/EnsembleUI/ensemble.git
+  #     ref: main
+  #     path: modules/ensemble_network_info
+
+  # Uncomment to enable stripe
+  ensemble_stripe:
+    path: ../modules/stripe
 
 
   # The following adds the Cupertino Icons font to your application.
