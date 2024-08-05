@@ -69,7 +69,7 @@ class OtpPinField extends StatefulWidget {
       this.middleChild,
       this.customKeyboard,
       this.showCustomKeyboard,
-      this.showDefaultKeyboard = true,})
+      this.showDefaultKeyboard = true})
       : super(key: key);
 
   @override
