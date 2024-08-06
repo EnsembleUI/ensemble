@@ -16,7 +16,7 @@ import 'package:yaml/yaml.dart';
 class CSSStyle {
   CSSStyle._({required this.cssBuffer, required this.cssMap});
 
-  factory CSSStyle.fromYaml(List<YamlMap> yaml) {
+  factory CSSStyle.fromYaml(List<Map> yaml) {
     final Map<String, Map<String, dynamic>> rtnCssMap = {};
     final List<MapEntry<String, Map<String, dynamic>>> valuesToAdd = [];
     final StringBuffer rtnCssBuffer = StringBuffer();
@@ -117,7 +117,7 @@ class EnsembleHtml extends StatefulWidget
           ensemble.EnsembleAction.from(funcDefinition, initiator: this),
       'cssStyles': (value) {
         _controller.cssStyle = CSSStyle.fromYaml(
-          Utils.getListOfYamlMap(value) ?? [],
+          Utils.getListOfMap(value) ?? [],
         );
       },
     };
