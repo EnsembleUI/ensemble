@@ -38,6 +38,7 @@ class RoundTemplate extends ItemTemplate {
 
 class MatchTemplate extends ItemTemplate {
   final double height;
+
   MatchTemplate(super.data, super.name, super.template, this.height);
 }
 
@@ -139,6 +140,7 @@ class BracketController extends EnsembleBoxController {
 class BracketState extends EnsembleWidgetState<EnsembleBracketImpl>
     with TemplatedWidgetState {
   List<RoundData> roundData = [];
+
   @override
   void didChangeDependencies() {
     _registerRowSpanListener(context);
@@ -173,7 +175,7 @@ class BracketState extends EnsembleWidgetState<EnsembleBracketImpl>
   void _registerRowSpanListener(BuildContext context) {
     if (widget.controller.roundTemplate != null) {
       registerItemTemplate(context, widget.controller.roundTemplate!,
-          evaluateInitialValue: true, onDataChanged: (dataList) {
+          onDataChanged: (dataList) {
         if (dataList is List) {
           roundData = _buildRoundConfig(context, dataList);
           setState(() {});
@@ -194,6 +196,7 @@ class BracketState extends EnsembleWidgetState<EnsembleBracketImpl>
 class BracketsView extends StatefulWidget {
   final List<RoundData> data;
   final BracketController controller;
+
   const BracketsView({
     super.key,
     required this.data,
