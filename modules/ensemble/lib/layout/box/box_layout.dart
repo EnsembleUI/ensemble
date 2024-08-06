@@ -9,7 +9,7 @@ import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/layout/box/base_box_layout.dart';
 import 'package:ensemble/layout/templated.dart';
 import 'package:ensemble/model/pull_to_refresh.dart';
-import 'package:ensemble/model/shared_models.dart';
+import 'package:ensemble/model/item_template.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
@@ -118,9 +118,9 @@ abstract class BoxLayout extends StatefulWidget
   }
 
   @override
-  void initChildren({List<WidgetModel>? children, ItemTemplate? itemTemplate}) {
+  void initChildren({List<WidgetModel>? children, Map? itemTemplate}) {
     _controller.children = children;
-    _controller.itemTemplate = itemTemplate;
+    _controller.itemTemplate = ItemTemplate.from(itemTemplate);
   }
 
   @override
@@ -150,7 +150,7 @@ class BoxLayoutState extends WidgetState<BoxLayout>
       // Note that when visibility is toggled after rendering, the API may already be populated.
       // In that case we want to evaluate the data to see if they are there
       registerItemTemplate(context, widget._controller.itemTemplate!,
-          evaluateInitialValue: true, onDataChanged: (List dataList) {
+          onDataChanged: (List dataList) {
         if (!mounted) return;
         setState(() {
           templatedChildren = buildWidgetsFromTemplate(

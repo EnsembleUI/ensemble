@@ -7,7 +7,7 @@ import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/theme_manager.dart';
 import 'package:ensemble/framework/view/data_scope_widget.dart';
-import 'package:ensemble/model/shared_models.dart';
+import 'package:ensemble/model/item_template.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/custom_widget/custom_widget.dart';
 import 'package:ensemble/framework/widget/widget.dart';
@@ -119,7 +119,7 @@ class ViewUtil {
     }
 
     List<WidgetModel>? children;
-    ItemTemplate? itemTemplate;
+    Map? itemTemplate;
     Map<String, dynamic> props = {};
     Map<String, dynamic> styles = {};
     List<String>?
@@ -136,9 +136,8 @@ class ViewUtil {
           });
         } else if (key == 'children' && value is YamlList) {
           children = ViewUtil.buildModels(value, customWidgetMap);
-        } else if (key == "item-template" && value is YamlMap) {
-          itemTemplate =
-              ItemTemplate(value['data'], value['name'], value['template']);
+        } else if (value is Map && (key == "item-template" || key == "itemTemplate")) {
+          itemTemplate = value;
         } else {
           props[key] = value;
         }
