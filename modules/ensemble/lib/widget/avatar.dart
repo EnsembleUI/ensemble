@@ -9,7 +9,7 @@ import 'package:ensemble/framework/model.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/widget/colored_box_placeholder.dart';
 import 'package:ensemble/layout/templated.dart';
-import 'package:ensemble/model/shared_models.dart';
+import 'package:ensemble/model/item_template.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
@@ -132,7 +132,6 @@ class AvatarState extends EnsembleWidgetState<Avatar>
       registerItemTemplate(
         context,
         widget.controller.groupTemplate!,
-        evaluateInitialValue: true,
         onDataChanged: (dataList) {
           final avatars = _buildAvatarPayload(dataList);
           setState(() {

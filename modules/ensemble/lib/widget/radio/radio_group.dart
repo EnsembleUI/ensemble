@@ -1,9 +1,10 @@
 import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/framework/view/data_scope_widget.dart';
+import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/layout/box/box_utils.dart';
 import 'package:ensemble/layout/templated.dart';
-import 'package:ensemble/model/shared_models.dart';
+import 'package:ensemble/model/item_template.dart';
 import 'package:ensemble/model/widget_models.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/widget/radio/custom_radio_tile.dart';
@@ -16,7 +17,10 @@ import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:logger/logger.dart';
 
 class RadioGroup extends StatefulWidget
-    with Invokable, HasController<RadioGroupController, RadioGroupState> {
+    with
+        Invokable,
+        HasItemTemplate,
+        HasController<RadioGroupController, RadioGroupState> {
   static const type = 'RadioGroup';
 
   RadioGroup({Key? key}) : super(key: key);
@@ -28,9 +32,6 @@ class RadioGroup extends StatefulWidget
 
   @override
   State<StatefulWidget> createState() => RadioGroupState();
-
-  @override
-  List<String> passthroughSetters() => ['itemTemplate'];
 
   @override
   Map<String, Function> getters() {
@@ -47,7 +48,6 @@ class RadioGroup extends StatefulWidget
     return {
       'selectedValue': (value) => _controller.selectedValue = value,
       'items': (values) => _controller.items = Utils.getListOfStrings(values),
-      'itemTemplate': _setItemTemplate,
       'onChange': (definition) => _controller.onChange =
           EnsembleAction.from(definition, initiator: this),
       'direction': (value) =>
@@ -66,22 +66,9 @@ class RadioGroup extends StatefulWidget
     };
   }
 
-  _setItemTemplate(dynamic maybeTemplate) {
-    if (maybeTemplate is Map) {
-      dynamic data = maybeTemplate['data'];
-      String? name = maybeTemplate['name'];
-
-      dynamic value = maybeTemplate['value'];
-      String? label = Utils.optionalString(maybeTemplate['label']);
-      dynamic labelWidget = maybeTemplate['labelWidget'];
-
-      if (data != null && name != null && value != null) {
-        _controller.itemTemplate = LabelValueItemTemplate(data, name, value,
-            label: label, labelWidget: labelWidget);
-        return;
-      }
-    }
-    Logger().w("Incorrect usage of RadioGroup's item template.");
+  @override
+  setItemTemplate(Map maybeTemplate) {
+    _controller.itemTemplate = LabelValueItemTemplate.from(maybeTemplate);
   }
 }
 
@@ -124,7 +111,7 @@ class RadioGroupState extends FormFieldWidgetState<RadioGroup>
       registerItemTemplate(context, widget._controller.itemTemplate!,
           onDataChanged: (data) {
         setState(() => itemTemplateData = data);
-      }, evaluateInitialValue: true);
+      });
     }
   }
 

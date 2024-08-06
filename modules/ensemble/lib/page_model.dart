@@ -11,7 +11,7 @@ import 'package:ensemble/layout/app_scroller.dart';
 import 'package:ensemble/layout/box/box_layout.dart';
 import 'package:ensemble/layout/stack.dart';
 import 'package:ensemble/framework/definition_providers/provider.dart';
-import 'package:ensemble/model/shared_models.dart';
+import 'package:ensemble/model/item_template.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/widget_registry.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
@@ -488,7 +488,7 @@ class WidgetModel extends Object with HasStyles {
 
   // a layout can either have children or itemTemplate, but not both
   final List<WidgetModel>? children;
-  final ItemTemplate? itemTemplate;
+  final Map? itemTemplate;
 
   String? getId() {
     return props['id'];

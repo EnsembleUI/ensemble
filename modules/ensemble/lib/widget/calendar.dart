@@ -6,7 +6,7 @@ import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/view/data_scope_widget.dart';
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/layout/templated.dart';
-import 'package:ensemble/model/shared_models.dart';
+import 'package:ensemble/model/item_template.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/extensions.dart';
@@ -26,9 +26,11 @@ final kLastDay = DateTime(kToday.year, kToday.month + 12, kToday.day);
 class EnsembleCalendar extends StatefulWidget
     with Invokable, HasController<CalendarController, CalendarState> {
   static const type = 'Calendar';
+
   EnsembleCalendar({Key? key}) : super(key: key);
 
   final CalendarController _controller = CalendarController();
+
   @override
   CalendarController get controller => _controller;
 
@@ -600,6 +602,7 @@ class CalendarController extends WidgetController {
   CalendarState? widgetState;
 
   bool showOutsideDate = false;
+
   void _bind(CalendarState state) {
     widgetState = state;
   }
@@ -640,7 +643,7 @@ class CalendarState extends WidgetState<EnsembleCalendar>
   void _registerRowSpanListener(BuildContext context) {
     if (widget.controller.rowSpanTemplate != null) {
       registerItemTemplate(context, widget.controller.rowSpanTemplate!,
-          evaluateInitialValue: true, onDataChanged: (dataList) {
+          onDataChanged: (dataList) {
         if (dataList is List) {
           final configs = _builRowSpanConfigs(context, dataList);
           widget._controller.rowSpans.value = configs;
