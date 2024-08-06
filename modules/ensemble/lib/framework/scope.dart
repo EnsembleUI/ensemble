@@ -422,15 +422,13 @@ mixin ViewBuilder on IsScopeManager {
       }
 
       if (payload.widget is UpdatableContainer) {
-        // evaluate the itemTemplate data as initial value
-        if (model.itemTemplate != null) {
-          dynamic initialValue = dataContext.eval(model.itemTemplate!.data);
-          if (initialValue is List) {
-            model.itemTemplate!.initialValue = initialValue;
-          }
-        }
         (payload.widget as UpdatableContainer).initChildren(
             children: payload.children, itemTemplate: model.itemTemplate);
+      } else if (payload.widget is HasItemTemplate) {
+        if (model.itemTemplate != null) {
+          (payload.widget as HasItemTemplate)
+              .setItemTemplate(model.itemTemplate!);
+        }
       }
     });
   }

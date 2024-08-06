@@ -7,7 +7,7 @@ import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/theme_manager.dart';
 import 'package:ensemble/framework/view/data_scope_widget.dart';
 import 'package:ensemble/framework/view/page.dart';
-import 'package:ensemble/model/shared_models.dart';
+import 'package:ensemble/model/item_template.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
@@ -17,7 +17,7 @@ import 'package:flutter/cupertino.dart';
 /// mixin for Widget that supports item-template
 mixin TemplatedWidgetState<W extends StatefulWidget> on State<W> {
   void registerItemTemplate(BuildContext context, BaseItemTemplate itemTemplate,
-      {bool? evaluateInitialValue, required Function onDataChanged}) {
+      {required Function onDataChanged}) {
     ScopeManager? scopeManager = DataScopeWidget.getScope(context);
 
     if (scopeManager != null) {
@@ -29,8 +29,8 @@ mixin TemplatedWidgetState<W extends StatefulWidget> on State<W> {
         scopeManager.listen(scopeManager, dataExpression.rawExpression,
             destination: (widget is EnsembleWidget)
                 ? BindingDestination(
-                    (widget as EnsembleWidget).controller, 'item-template')
-                : BindingDestination(widget as Invokable, 'item-template'),
+                    (widget as EnsembleWidget).controller, 'itemTemplate')
+                : BindingDestination(widget as Invokable, 'itemTemplate'),
             onDataChange: (ModelChangeEvent event) {
           // evaluate the expression
           dynamic dataList = scopeManager.dataContext.eval(itemTemplate.data);
@@ -40,13 +40,17 @@ mixin TemplatedWidgetState<W extends StatefulWidget> on State<W> {
         });
       }
 
-      // if specified to evaluate initial value, then evaluate the data list now
-      // and dispatch it as a data change
-      if (evaluateInitialValue == true) {
-        dynamic dataList = scopeManager.dataContext.eval(itemTemplate.data);
-        if (dataList is List) {
-          onDataChanged(dataList);
-        }
+      // evaluate the data list now and dispatch it as a data change
+      dynamic dataList = scopeManager.dataContext.eval(itemTemplate.data);
+      if (dataList is List) {
+        onDataChanged(dataList);
+      } else {
+        // TODO: evaluate the initial values here? No use case yet
+        // dynamic initialValue =
+        //     scopeManager.dataContext.eval(itemTemplate.initialValue);
+        // if (initialValue is List) {
+        //   onDataChanged(initialValue);
+        // }
       }
     }
   }
