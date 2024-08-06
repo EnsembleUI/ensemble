@@ -34,6 +34,8 @@ class ConfirmationInput extends StatefulWidget
       'fieldType': (input) =>
           _controller.fieldType = Utils.optionalString(input),
       'inputType': (type) => _controller.inputType = Utils.optionalString(type),
+      'obscureText': (type) => _controller.obscureText = Utils.optionalString(type),
+      'obscureSymbol': (typeCustom) => _controller.obscureSymbol = Utils.optionalString(typeCustom),
       'autoComplete': (newValue) =>
           _controller.autoComplete = Utils.getBool(newValue, fallback: true),
       'spaceEvenly': (newValue) =>
@@ -116,6 +118,8 @@ class ConfirmationInputController extends BoxController {
   bool? spaceEvenly;
   bool? enableCursor;
   bool? autofillEnabled;
+  String? obscureText;
+  String? obscureSymbol;
   String? fieldType;
   String? inputType;
   double? fieldWidth;
@@ -197,11 +201,14 @@ class ConfirmationInputState extends framework.WidgetState<ConfirmationInput>
       keyboardType: widget.keyboardType,
       otpPinFieldDecoration: controller.fieldType?.otpPinField ??
           OtpPinFieldDecoration.defaultPinBoxDecoration,
+      otpPinFieldInputType: controller.obscureText?.otpPinType ?? OtpPinFieldInputType.none,
+      otpPinInputCustom: _validatePinTypeCustom(controller.obscureSymbol),
       cursorColor: controller.cursorColor,
       autoComplete: controller.autoComplete ?? true,
       spaceEvenly: controller.spaceEvenly ?? true,
       onChange: _onChange,
       onSubmit: _onComplete,
+      
     );
   }
 
@@ -234,6 +241,26 @@ class ConfirmationInputState extends framework.WidgetState<ConfirmationInput>
   void unfocusInputField() {
     _otpPinFieldController.currentState?.hasFocus = false;
     _otpPinFieldController.currentState?.focusNode.unfocus();
+  }
+}
+
+String _validatePinTypeCustom(String? value) {
+    if (value == null || value.length != 1) {
+      return "*";
+    }
+    return value;
+  }
+  
+extension PinTypeOtpValue on String {
+  OtpPinFieldInputType get otpPinType {
+    switch (this) {
+      case 'password':
+        return OtpPinFieldInputType.password;
+      case 'custom':
+        return OtpPinFieldInputType.custom;
+      default:
+        return OtpPinFieldInputType.none;
+    }
   }
 }
 

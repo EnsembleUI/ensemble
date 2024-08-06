@@ -13,6 +13,7 @@ import 'package:ensemble/action/navigation_action.dart';
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/all_countries.dart';
 import 'package:ensemble/framework/apiproviders/api_provider.dart';
+import 'package:ensemble/framework/apiproviders/firestore/firestore_types.dart';
 import 'package:ensemble/framework/apiproviders/http_api_provider.dart';
 import 'package:ensemble/framework/config.dart';
 import 'package:ensemble/framework/device.dart';
@@ -78,7 +79,7 @@ class DataContext implements Context {
     _contextMap['secrets'] = SecretsStore();
     _contextMap['ensemble'] = NativeInvokable(buildContext);
     _contextMap['appInfo'] = appInfo;
-
+    _contextMap['Timestamp'] = StaticFirestoreTimestamp();
     // auth can be selectively turned on
     if (GetIt.instance.isRegistered<AuthContextManager>()) {
       _contextMap['auth'] = GetIt.instance<AuthContextManager>();
