@@ -649,7 +649,7 @@ class SelectOneState extends FormFieldWidgetState<SelectOne>
           var labelWidget = DataScopeWidget(
               scopeManager: templatedScope,
               child: itemTemplate.label != null
-                  ? Text(itemTemplate.label!)
+                  ? Text(templatedScope.dataContext.eval(itemTemplate.label!))
                   : templatedScope
                       .buildWidgetFromDefinition(itemTemplate.labelWidget));
           results.add(DropdownMenuItem(
