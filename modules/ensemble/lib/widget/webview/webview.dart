@@ -92,6 +92,15 @@ class EnsembleWebViewController extends WidgetController {
   set url(String? url) {
     _url = url;
     error = null;
+
+    if (url != null) {
+      Uri? uri = Uri.tryParse(url);
+      if (uri != null) {
+        webViewController?.loadRequest(uri);
+      } else {
+        error = '${_url} is an Invalid URL';
+      }
+    }
   }
 
   List<Map<String, dynamic>> cookies = [];
