@@ -7,7 +7,7 @@ import 'package:ensemble/framework/theme/theme_manager.dart';
 import 'package:ensemble/framework/view/data_scope_widget.dart';
 import 'package:ensemble/framework/widget/icon.dart' as iconframework;
 import 'package:ensemble/layout/templated.dart';
-import 'package:ensemble/model/shared_models.dart';
+import 'package:ensemble/model/item_template.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
@@ -20,6 +20,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../../framework/model.dart';
+import '../../framework/widget/widget.dart';
 //import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 class Dropdown extends SelectOne {
@@ -34,7 +35,10 @@ class Dropdown extends SelectOne {
 }
 
 abstract class SelectOne extends StatefulWidget
-    with Invokable, HasController<SelectOneController, SelectOneState> {
+    with
+        Invokable,
+        HasItemTemplate,
+        HasController<SelectOneController, SelectOneState> {
   SelectOne({Key? key}) : super(key: key);
 
   final SelectOneController _controller = SelectOneController();
@@ -46,7 +50,7 @@ abstract class SelectOne extends StatefulWidget
   State<StatefulWidget> createState() => SelectOneState();
 
   @override
-  List<String> passthroughSetters() => ['itemTemplate', 'createNewItem'];
+  List<String> passthroughSetters() => ['createNewItem'];
 
   @override
   Map<String, Function> getters() {
@@ -100,9 +104,9 @@ abstract class SelectOne extends StatefulWidget
           _controller.dropdownBorderWidth = Utils.optionalInt(value),
       'dropdownMaxHeight': (value) =>
           _controller.dropdownMaxHeight = Utils.optionalInt(value, min: 0),
-      'itemTemplate': (itemTemplate) => _setItemTemplate(itemTemplate),
       'createNewItem': (value) => _setCreateNewItem(value),
-      'textStyle': (style) => _controller.textStyle = Utils.getTextStyleAsComposite(_controller,style: style),
+      'textStyle': (style) => _controller.textStyle =
+          Utils.getTextStyleAsComposite(_controller, style: style),
     });
     return setters;
   }
@@ -115,17 +119,9 @@ abstract class SelectOne extends StatefulWidget
     _controller.createNewItemLabel = Utils.optionalString(input['label']);
   }
 
-  void _setItemTemplate(dynamic input) {
-    if (input is Map) {
-      dynamic data = input['data'];
-      String? name = input['name'];
-      dynamic template = input['template'];
-      dynamic value = input['value'];
-      if (data != null && name != null && template != null && value != null) {
-        _controller.itemTemplate =
-            DropdownItemTemplate(data, name, template, value);
-      }
-    }
+  @override
+  void setItemTemplate(Map? maybeTemplate) {
+    _controller.itemTemplate = LabelValueItemTemplate.from(maybeTemplate);
   }
 
   @override
@@ -274,7 +270,7 @@ class SelectOneController extends FormFieldController with HasTextPlaceholder {
 
   set textStyle(TextStyleComposite style) => _textStyle = style;
 
-  DropdownItemTemplate? itemTemplate;
+  LabelValueItemTemplate? itemTemplate;
 
   framework.EnsembleAction? clear;
   framework.EnsembleAction? onChange;
@@ -313,7 +309,7 @@ class SelectOneState extends FormFieldWidgetState<SelectOne>
         setState(() {
           dataList = data;
         });
-      }, evaluateInitialValue: true);
+      });
     }
   }
 
@@ -406,11 +402,10 @@ class SelectOneState extends FormFieldWidgetState<SelectOne>
               widget._controller.dropdownOffsetY?.toDouble() ?? 0,
             )),
         decoration: inputDecoration.copyWith(
-          contentPadding: adjustedContentPadding,
-          labelText: widget.controller.floatLabel == true
-              ? widget.controller.label
-              : null
-        ));
+            contentPadding: adjustedContentPadding,
+            labelText: widget.controller.floatLabel == true
+                ? widget.controller.label
+                : null));
   }
 
   /// build the auto-complete Dropdown
@@ -438,7 +433,8 @@ class SelectOneState extends FormFieldWidgetState<SelectOne>
                     labelText: widget.controller.floatLabel == true
                         ? widget.controller.label
                         : null,
-                    fillColor: widget._controller.fillColor, // Background color for the field
+                    fillColor: widget._controller
+                        .fillColor, // Background color for the field
                   ),
                   onChanged: (value) {
                     final oldValue = widget._controller.maybeValue;
@@ -570,12 +566,14 @@ class SelectOneState extends FormFieldWidgetState<SelectOne>
                                       widget._controller.createNewItemLabel,
                                       option.value,
                                     ),
-                                    style: widget._controller.textStyle.getTextStyle(),
+                                    style: widget._controller.textStyle
+                                        .getTextStyle(),
                                   )
                                 : Text(
                                     Utils.optionalString(option.label) ??
                                         option.value,
-                                    style: widget._controller.textStyle.getTextStyle(),
+                                    style: widget._controller.textStyle
+                                        .getTextStyle(),
                                   ),
                           ],
                         ),
@@ -595,7 +593,7 @@ class SelectOneState extends FormFieldWidgetState<SelectOne>
 
 // ---------------------------------- Build Items ListTile if [AUTOCOMPLETE] is false ---------------------------------
   List<DropdownMenuItem<dynamic>>? buildItems(List<SelectOneItem>? items,
-      DropdownItemTemplate? itemTemplate, List? dataList) {
+      LabelValueItemTemplate? itemTemplate, List? dataList) {
     List<DropdownMenuItem<dynamic>>? results;
     // first add the static list
     if (items != null) {
@@ -650,8 +648,10 @@ class SelectOneState extends FormFieldWidgetState<SelectOne>
 
           var labelWidget = DataScopeWidget(
               scopeManager: templatedScope,
-              child: templatedScope
-                  .buildWidgetFromDefinition(itemTemplate.template));
+              child: itemTemplate.label != null
+                  ? Text(templatedScope.dataContext.eval(itemTemplate.label!))
+                  : templatedScope
+                      .buildWidgetFromDefinition(itemTemplate.labelWidget));
           results.add(DropdownMenuItem(
               value: templatedScope.dataContext.eval(itemTemplate.value),
               child: labelWidget));
@@ -715,13 +715,4 @@ class SelectOneItem {
   final String? label;
   IconModel? icon;
   final bool isIcon;
-}
-
-class DropdownItemTemplate extends ItemTemplate {
-  DropdownItemTemplate(
-      super.data,
-      super.name,
-      super.template, // label widget template
-      this.value); // the value when the item is selected
-  dynamic value;
 }
