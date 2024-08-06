@@ -34,8 +34,8 @@ class ConfirmationInput extends StatefulWidget
       'fieldType': (input) =>
           _controller.fieldType = Utils.optionalString(input),
       'inputType': (type) => _controller.inputType = Utils.optionalString(type),
-      'pinType': (type) => _controller.pinType = Utils.optionalString(type),
-      'pinTypeCustom': (typeCustom) => _controller.pinTypeCustom = Utils.optionalString(typeCustom),
+      'obscureText': (type) => _controller.obscureText = Utils.optionalString(type),
+      'obscureSymbol': (typeCustom) => _controller.obscureSymbol = Utils.optionalString(typeCustom),
       'autoComplete': (newValue) =>
           _controller.autoComplete = Utils.getBool(newValue, fallback: true),
       'spaceEvenly': (newValue) =>
@@ -118,8 +118,8 @@ class ConfirmationInputController extends BoxController {
   bool? spaceEvenly;
   bool? enableCursor;
   bool? autofillEnabled;
-  String? pinType;
-  String? pinTypeCustom;
+  String? obscureText;
+  String? obscureSymbol;
   String? fieldType;
   String? inputType;
   double? fieldWidth;
@@ -201,8 +201,8 @@ class ConfirmationInputState extends framework.WidgetState<ConfirmationInput>
       keyboardType: widget.keyboardType,
       otpPinFieldDecoration: controller.fieldType?.otpPinField ??
           OtpPinFieldDecoration.defaultPinBoxDecoration,
-      otpPinFieldInputType: controller.pinType?.otpPinType ?? OtpPinFieldInputType.none,
-      otpPinInputCustom: controller.pinTypeCustom ?? "*",
+      otpPinFieldInputType: controller.obscureText?.otpPinType ?? OtpPinFieldInputType.none,
+      otpPinInputCustom: _validatePinTypeCustom(controller.obscureSymbol),
       cursorColor: controller.cursorColor,
       autoComplete: controller.autoComplete ?? true,
       spaceEvenly: controller.spaceEvenly ?? true,
@@ -244,6 +244,13 @@ class ConfirmationInputState extends framework.WidgetState<ConfirmationInput>
   }
 }
 
+String _validatePinTypeCustom(String? value) {
+    if (value == null || value.length != 1) {
+      return "*";
+    }
+    return value;
+  }
+  
 extension PinTypeOtpValue on String {
   OtpPinFieldInputType get otpPinType {
     switch (this) {
