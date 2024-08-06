@@ -346,11 +346,22 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput>
   void didUpdateWidget(covariant BaseTextInput oldWidget) {
     super.didUpdateWidget(oldWidget);
     widget.controller.inputFieldAction = this;
+
+    // Making sure to move cursor to end when widget rebuild
+    // issue: https://github.com/EnsembleUI/ensemble/issues/1527
+    int cursorPosition = widget.textController.selection.baseOffset;
+    if (widget.textController.text.length != cursorPosition &&
+        focusNode.hasFocus) {
+      widget.textController.selection = TextSelection.fromPosition(
+        TextPosition(offset: widget.textController.text.length),
+      );
+    }
   }
 
   @override
   void dispose() {
     focusNode.dispose();
+    widget.textController.dispose();
     super.dispose();
   }
 
