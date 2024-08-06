@@ -47,7 +47,7 @@ class RadioGroup extends StatefulWidget
   Map<String, Function> setters() {
     return {
       'selectedValue': (value) => _controller.selectedValue = value,
-      'items': (values) => _controller.items = Utils.getListOfStrings(values),
+      'items': (values) => _controller.items = Utils.getList(values),
       'onChange': (definition) => _controller.onChange =
           EnsembleAction.from(definition, initiator: this),
       'direction': (value) =>
@@ -76,7 +76,7 @@ class RadioGroupController extends FormFieldController {
   dynamic selectedValue;
 
   // list of string for items
-  List<String>? items;
+  List? items;
 
   // use item template for complex data structure & flexible UI
   LabelValueItemTemplate? itemTemplate;
@@ -182,13 +182,27 @@ class RadioGroupState extends FormFieldWidgetState<RadioGroup>
 
     // add the children
     if (widget._controller.items != null) {
-      children.addAll(widget._controller.items!.map((str) => CustomRadioTile(
-            title: Text(str, style: baseLabelStyle),
-            value: str,
-            groupValue: widget._controller.selectedValue,
-            controller: widget._controller,
-            onChanged: enabled ? _onSelect : null,
-          )));
+      children.addAll(widget._controller.items!.map((item) {
+        var label, value;
+        if (item is String) {
+          label = value = item;
+        } else if (item is Map) {
+          if (item["label"] != null && item["value"] != null) {
+            label = item["label"];
+            value = item["value"];
+          } else {
+            label = value = item.toString();
+          }
+        }
+
+        return CustomRadioTile(
+          title: Text(label, style: baseLabelStyle),
+          value: value,
+          groupValue: widget._controller.selectedValue,
+          controller: widget._controller,
+          onChanged: enabled ? _onSelect : null,
+        );
+      }));
     }
 
     // add itemTemplate
