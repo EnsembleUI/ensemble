@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:ensemble/framework/apiproviders/firestore/firestore_types.dart';
 
 class FirestoreApp {
   final FirebaseFirestore firestore;
@@ -19,9 +20,9 @@ class FirestoreApp {
       List? whereMap = queryMap['where'];
       if (whereMap != null) {
         for (var condition in whereMap) {
-          final field = condition['field'];
-          final operator = condition['operator'];
-          final value = condition['value'];
+          final field = unwrapObject(condition['field']);
+          final operator = unwrapObject(condition['operator']);
+          final value = unwrapObject(condition['value']);
           if (![
             'array-contains',
             'array-contains-any',
@@ -163,5 +164,8 @@ class FirestoreApp {
     String path = evaluatedApi['path'];
     DocumentReference docRef = firestore.doc(path);
     return await docRef.delete();
+  }
+  dynamic unwrapObject(dynamic obj) {
+    return (obj is WrapsNativeType) ? obj.unwrap() : obj;
   }
 }
