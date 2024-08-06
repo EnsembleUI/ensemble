@@ -280,7 +280,7 @@ class Utils {
       List<T> results = [];
       for (var item in value) {
         if (item is T) {
-          results.add(item);
+          results.add(genericTranslate(item));
         }
       }
       return results;
@@ -293,9 +293,9 @@ class Utils {
       List<String> results = [];
       for (var item in value) {
         if (item is String) {
-          results.add(item);
+          results.add(translate(item, null));
         } else {
-          results.add(item.toString());
+          results.add(translate(item.toString(), null));
         }
       }
       return results;
@@ -303,14 +303,14 @@ class Utils {
     return null;
   }
 
-  static List<YamlMap>? getListOfYamlMap(dynamic value) {
-    if (value is YamlList || value is List) {
-      List<YamlMap> results = [];
+  static List<Map>? getListOfMap(dynamic value) {
+    if (value is List) {
+      List<Map> results = [];
       for (var item in value) {
-        if (item is YamlMap) {
+        if (item is Map) {
           results.add(item);
         } else {
-          results.add(getYamlMap(item) ?? YamlMap());
+          results.add(getMap(item) ?? Map());
         }
       }
       return results;
@@ -551,13 +551,15 @@ class Utils {
     } else if (style is String) {}
     return null;
   }
+
   //fontFamily could either be a string or a map where the key is the language code and the value is the font family name
   static TextStyle? getFontFamily(dynamic name) {
     String? fontFamily;
     // Check if the name is a map with language codes
     if (name is Map) {
       // Retrieve the current language code
-      String? languageCode = UserLocale.from(Ensemble().getLocale())?.languageCode;
+      String? languageCode =
+          UserLocale.from(Ensemble().getLocale())?.languageCode;
       if (languageCode != null && name.containsKey(languageCode)) {
         fontFamily = name[languageCode]?.toString();
       }
@@ -566,7 +568,8 @@ class Utils {
       if (fontFamily == null || fontFamily.isEmpty) {
         fontFamily = name['default']?.toString();
       }
-    } else if (name is String) { // Handle the case where name is a string
+    } else if (name is String) {
+      // Handle the case where name is a string
       fontFamily = name;
     }
     // If a valid font family is found, apply it
@@ -580,7 +583,6 @@ class Utils {
     // Return null if no valid font family is found
     return null;
   }
-
 
   static TextAlign? getTextAlignment(dynamic align) {
     TextAlign? textAlign;
@@ -868,6 +870,19 @@ class Utils {
     return rtn;
   }
 
+  // recursively execute the translation
+  static dynamic genericTranslate(dynamic input, [BuildContext? ctx]) {
+    if (input is String) {
+      return translate(input, ctx);
+    } else if (input is Map) {
+      return input
+          .map((key, value) => MapEntry(key, genericTranslate(value, ctx)));
+    } else if (input is List) {
+      return input.map((e) => genericTranslate(e, ctx)).toList();
+    }
+    return input;
+  }
+
   // temporary workaround for internal translation so we dont have to duplicate the translation files in all repos
   static String translateWithFallback(String key, String fallback) {
     if (Utils.globalAppKey.currentContext != null) {
@@ -920,23 +935,15 @@ class Utils {
     } else if (input is List) {
       List<String> tokens = [];
       for (final inputEntry in input) {
-        if (inputEntry is String) {
-          DataExpression? dataEntry =
-              _parseDataExpressionFromString(inputEntry);
-          tokens.addAll(dataEntry?.expressions ?? []);
-        }
+        tokens.addAll(parseDataExpression(inputEntry)?.expressions ?? []);
       }
       if (tokens.isNotEmpty) {
         return DataExpression(rawExpression: input, expressions: tokens);
       }
     } else if (input is Map) {
-      // no recursive, just a straight map is good
       List<String> tokens = [];
       input.forEach((_, value) {
-        if (value is String) {
-          DataExpression? dataEntry = _parseDataExpressionFromString(value);
-          tokens.addAll(dataEntry?.expressions ?? []);
-        }
+        tokens.addAll(parseDataExpression(value)?.expressions ?? []);
       });
       if (tokens.isNotEmpty) {
         return DataExpression(rawExpression: input, expressions: tokens);
