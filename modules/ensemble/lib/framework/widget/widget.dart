@@ -8,7 +8,7 @@ import 'package:ensemble/framework/view/data_scope_widget.dart';
 import 'package:ensemble/framework/view/page_group.dart';
 import 'package:ensemble/framework/widget/icon.dart' as ensemble;
 import 'package:ensemble/framework/view/page.dart';
-import 'package:ensemble/model/shared_models.dart';
+import 'package:ensemble/model/item_template.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
@@ -21,7 +21,11 @@ import 'package:yaml/yaml.dart';
 
 /// base mixin for Ensemble Container (e.g Column)
 mixin UpdatableContainer<T extends Widget> {
-  void initChildren({List<WidgetModel>? children, ItemTemplate? itemTemplate});
+  void initChildren({List<WidgetModel>? children, Map? itemTemplate});
+}
+
+mixin HasItemTemplate<T extends Widget> {
+  void setItemTemplate(Map itemTemplate);
 }
 
 /// Deprecated. Use [EnsembleWidgetState] instead

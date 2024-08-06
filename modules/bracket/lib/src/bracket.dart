@@ -6,7 +6,7 @@ import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/stub/ensemble_bracket.dart';
 import 'package:ensemble/framework/view/data_scope_widget.dart';
 import 'package:ensemble/layout/templated.dart';
-import 'package:ensemble/model/shared_models.dart';
+import 'package:ensemble/model/item_template.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:flutter/material.dart';
