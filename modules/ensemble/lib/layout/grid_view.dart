@@ -10,7 +10,7 @@ import 'package:ensemble/framework/view/footer.dart';
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/layout/templated.dart';
 import 'package:ensemble/model/pull_to_refresh.dart';
-import 'package:ensemble/model/shared_models.dart';
+import 'package:ensemble/model/item_template.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
@@ -93,8 +93,8 @@ class GridView extends StatefulWidget
   }
 
   @override
-  void initChildren({List<WidgetModel>? children, ItemTemplate? itemTemplate}) {
-    _controller.itemTemplate = itemTemplate;
+  void initChildren({List<WidgetModel>? children, Map? itemTemplate}) {
+    _controller.itemTemplate = ItemTemplate.from(itemTemplate);
   }
 }
 
@@ -150,7 +150,7 @@ class GridViewState extends WidgetState<GridView> with TemplatedWidgetState {
     super.didChangeDependencies();
     if (widget._controller.itemTemplate != null) {
       registerItemTemplate(context, widget._controller.itemTemplate!,
-          evaluateInitialValue: true, onDataChanged: (List dataList) {
+          onDataChanged: (List dataList) {
         setState(() {
           _items = dataList;
         });
@@ -219,6 +219,13 @@ class GridViewState extends WidgetState<GridView> with TemplatedWidgetState {
 
     PullToRefresh? pullToRefresh = _getPullToRefresh();
     Widget myGridView = LayoutBuilder(builder: (context, constraints) {
+      // Note that GridView already uses LayoutBuilder, hence checking
+      // it in here vs wrapping inside another nested LayoutBuilder
+      if (StudioDebugger().debugMode && widget._controller.shrinkWrap != true) {
+        StudioDebugger().assertScrollableHasBoundedHeight(
+            constraints, GridView.type, context, widget._controller);
+      }
+
       return flutter.GridView.builder(
           controller: (footerScope != null &&
                   footerScope.isColumnScrollableAndRoot(context))
@@ -256,10 +263,6 @@ class GridViewState extends WidgetState<GridView> with TemplatedWidgetState {
           padding: widget._controller.padding ?? EdgeInsets.zero,
           itemBuilder: (context, index) => _buildItem(index));
     });
-    if (StudioDebugger().debugMode) {
-      myGridView = StudioDebugger().assertScrollableHasBoundedHeightWrapper(
-          myGridView, GridView.type, context, widget.controller);
-    }
 
     if (pullToRefresh != null) {
       myGridView = PullToRefreshContainer(

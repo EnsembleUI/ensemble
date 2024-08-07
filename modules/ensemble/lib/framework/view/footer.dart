@@ -1,7 +1,7 @@
 import 'package:ensemble/framework/widget/has_children.dart';
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/layout/templated.dart';
-import 'package:ensemble/model/shared_models.dart';
+import 'package:ensemble/model/item_template.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
@@ -56,7 +56,7 @@ class Footer extends StatefulWidget
   }
 
   @override
-  void initChildren({List<WidgetModel>? children, ItemTemplate? itemTemplate}) {
+  void initChildren({List<WidgetModel>? children, Map? itemTemplate}) {
     _controller.children = children;
   }
 
@@ -75,6 +75,7 @@ class _FooterState extends WidgetState<Footer>
     with HasChildren<Footer>, TemplatedWidgetState {
   DragOptions? _dragOptions;
   late DraggableScrollableController _dragController;
+
   @override
   void initState() {
     super.initState();

@@ -96,12 +96,21 @@ dependencies:
   #     path: modules/firebase_analytics
 
 
+
+  # Uncomment to enable ensemble chat widget
+  # ensemble_chat:
+  #   git:
+  #     url: https://github.com/EnsembleUI/ensemble.git
+  #     ref: main
+  #     path: modules/chat
+
   # Uncomment to enable bracket widget
   # ensemble_bracket:
   #   git:
   #     url: https://github.com/EnsembleUI/ensemble.git
   #     ref: main
   #     path: modules/bracket
+
 
   # Uncomment to enable NetworkInfo
 #  ensemble_network_info:
