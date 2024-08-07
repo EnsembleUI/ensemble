@@ -33,6 +33,9 @@ class Conditional extends StatefulWidget
   }
 
   @override
+  List<String> passthroughSetters() => ['conditions'];
+
+  @override
   Map<String, Function> setters() {
     return {
       'conditions': (value) => _controller.conditions = value,
