@@ -2,6 +2,7 @@ import 'dart:developer';
 
 import 'package:ensemble/framework/bindings.dart';
 import 'package:ensemble/framework/data_context.dart';
+import 'package:ensemble/framework/data_utils.dart';
 import 'package:ensemble/framework/ensemble_widget.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/theme_manager.dart';
@@ -22,7 +23,7 @@ mixin TemplatedWidgetState<W extends StatefulWidget> on State<W> {
 
     if (scopeManager != null) {
       DataExpression? dataExpression =
-          Utils.parseDataExpression(itemTemplate.data);
+          DataUtils.parseDataExpression(itemTemplate.data);
       if (dataExpression != null) {
         // listen to the binding from our itemTemplate
         // data: $(apiName.*)
