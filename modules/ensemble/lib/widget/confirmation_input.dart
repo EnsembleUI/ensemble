@@ -36,7 +36,10 @@ class ConfirmationInput extends StatefulWidget
       'fieldType': (input) =>
           _controller.fieldType = Utils.optionalString(input),
       'inputType': (type) => _controller.inputType = Utils.optionalString(type),
-      'obscureText': (type) => _controller.obscureText = Utils.optionalBool(type),
+      'obscureText': (type) {
+        _controller.obscureText = Utils.optionalBool(type) ?? true;
+        _controller.obscureSymbol = type is String && type.length == 1 ? type : null;
+      },
       'obscureSymbol': (typeCustom) => _controller.obscureSymbol = typeCustom,
       'autoComplete': (newValue) =>
           _controller.autoComplete = Utils.getBool(newValue, fallback: true),
