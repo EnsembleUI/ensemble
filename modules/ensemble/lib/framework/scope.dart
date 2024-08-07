@@ -7,6 +7,7 @@ import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/bindings.dart';
 import 'package:ensemble/framework/data_context.dart';
+import 'package:ensemble/framework/data_utils.dart';
 import 'package:ensemble/framework/ensemble_widget.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/event.dart';
@@ -439,7 +440,7 @@ mixin ViewBuilder on IsScopeManager {
   ///    at the time the action is executed (to prevent stale-ness)
   /// 2. Widgets can mark certain properties as pass-through so the
   ///    variable evaluation can be done inside the widget
-  /// 3. Special properties like children and item-template are excluded
+  /// 3. Special properties like children and itemTemplate/item-template are excluded
   ///    automatically and don't need to be specified here
   static bool _isPassthroughProperty(String property, dynamic widget) =>
       property.startsWith('on') ||
@@ -501,7 +502,7 @@ mixin ViewBuilder on IsScopeManager {
   /// If the value is a valid binding, we'll register to listen for changes.
   void evalPropertyAndRegisterBinding(
       ScopeManager scopeManager, Invokable widget, String key, dynamic value) {
-    DataExpression? expression = Utils.parseDataExpression(value);
+    DataExpression? expression = DataUtils.parseDataExpression(value);
     if (expression != null) {
       // listen for binding changes
       (this as PageBindingManager).registerBindingListener(
