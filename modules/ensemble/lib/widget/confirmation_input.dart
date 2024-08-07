@@ -36,7 +36,7 @@ class ConfirmationInput extends StatefulWidget
       'fieldType': (input) =>
           _controller.fieldType = Utils.optionalString(input),
       'inputType': (type) => _controller.inputType = Utils.optionalString(type),
-      'obscureText': (type) => _controller.obscureText = Utils.optionalString(type),
+      'obscureText': (type) => _controller.obscureText = Utils.optionalBool(type),
       'obscureSymbol': (typeCustom) => _controller.obscureSymbol = typeCustom,
       'autoComplete': (newValue) =>
           _controller.autoComplete = Utils.getBool(newValue, fallback: true),
@@ -120,7 +120,7 @@ class ConfirmationInputController extends BoxController {
   bool? spaceEvenly;
   bool? enableCursor;
   bool? autofillEnabled;
-  String? obscureText;
+  bool? obscureText;
   dynamic obscureSymbol;
   String? fieldType;
   String? inputType;
@@ -203,7 +203,7 @@ class ConfirmationInputState extends framework.WidgetState<ConfirmationInput>
       keyboardType: widget.keyboardType,
       otpPinFieldDecoration: controller.fieldType?.otpPinField ??
           OtpPinFieldDecoration.defaultPinBoxDecoration,
-      otpPinFieldInputType: OtpPinFieldInputType.values.from(controller.obscureText) ?? OtpPinFieldInputType.none,
+      otpPinFieldInputType: controller.obscureText == true ? OtpPinFieldInputType.password : OtpPinFieldInputType.none,
       otpPinInputCustom: _validatePinTypeCustom(controller.obscureSymbol),
       cursorColor: controller.cursorColor,
       autoComplete: controller.autoComplete ?? true,

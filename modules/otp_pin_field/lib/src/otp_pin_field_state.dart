@@ -377,15 +377,13 @@ Widget _getPinDisplay(int position) {
 
   switch (widget.otpPinFieldInputType) {
     case OtpPinFieldInputType.password:
-      return _buildText('*');
-    case OtpPinFieldInputType.custom:
       if (value.isNotEmpty) {
         if (widget.otpPinInputCustom is String) {
           return _buildText(widget.otpPinInputCustom as String);
         } else if (widget.otpPinInputCustom is Widget) {
           return widget.otpPinInputCustom as Widget;
         } else {
-          return _buildText(value);
+          return _buildText("*");
         }
       } else {
         return _buildText(value);
