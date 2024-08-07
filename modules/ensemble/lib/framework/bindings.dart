@@ -1,4 +1,5 @@
 import 'package:ensemble/framework/data_context.dart';
+import 'package:ensemble/framework/data_utils.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
@@ -22,9 +23,9 @@ abstract class BindingSource {
       String expression, DataContext dataContext) {
     List<BindingSource> sources = [];
 
-    if (Utils.isExpression(expression)) {
+    if (DataUtils.isExpression(expression)) {
       String? variable =
-          Utils.onlyExpression.firstMatch(expression)?.group(1)?.trim();
+          DataUtils.onlyExpression.firstMatch(expression)?.group(1)?.trim();
       if (variable != null && variable.isNotEmpty) {
         List<String> bindings =
             Bindings().resolve(JSInterpreter.parseCode(variable));
@@ -113,7 +114,7 @@ abstract class BindingSource {
   /// convert an expression ${..} into a BindingSource
   /// TODO: LEGACY - to be removed and use getBindableSources instead
   static BindingSource? from(String expression, DataContext dataContext) {
-    if (Utils.isExpression(expression)) {
+    if (DataUtils.isExpression(expression)) {
       // save the model id as we go along so we can resolve unknown model afterward
       String? unknownModelId;
 
@@ -204,6 +205,7 @@ class StorageBindingSource extends BindingSource {
 /// TODO: consolidate this with StorageBindingSource
 class SystemStorageBindingSource extends BindingSource {
   SystemStorageBindingSource(super.modelId, {required this.storagePrefix});
+
   String storagePrefix;
 }
 

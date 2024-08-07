@@ -823,21 +823,11 @@ class Utils {
     return int.tryParse(value);
   }
 
-  static final onlyExpression =
-      RegExp(r'''^\$\{([^}]+)\}$''', caseSensitive: false);
-
-  static final containExpression =
-      RegExp(r'''\$\{([^}{]+(?:\{[^}{]*\}[^}{]*)*)\}''', caseSensitive: false);
-
   static final i18nExpression = RegExp(r'\br@([\w\.]+)', caseSensitive: false);
 
   // extract only the code after the comment and expression e.g //@code <expression>\n
   static final codeAfterComment =
       RegExp(r'^//@code[^\n]*\n+((.|\n)+)', caseSensitive: false);
-
-  // match an expression and AST e.g //@code <expression>\n<AST> in group1 and group2
-  static final expressionAndAst =
-      RegExp(r'^//@code\s+([^\n]+)\s*', caseSensitive: false);
 
   //expect r@mystring or r@myapp.myscreen.mystring as long as r@ is there. If r@ is not there, returns the string as-is
   static String translate(String val, BuildContext? ctx) {
@@ -908,65 +898,7 @@ class Utils {
     return input;
   }
 
-  /// is it $(....)
-  static bool isExpression(String expression) {
-    return onlyExpression.hasMatch(expression);
-  }
 
-  /// contains one or more expression e.g Hello $(firstname) $(lastname)
-  static bool hasExpression(String expression) {
-    return containExpression.hasMatch(expression);
-  }
-
-  /// get the list of expression from the raw string
-  /// [input]: Hello $(firstname) $(lastname)
-  /// @return [ $(firstname), $(lastname) ]
-  static List<String> getExpressionTokens(String input) {
-    return containExpression.allMatches(input).map((e) => e.group(0)!).toList();
-  }
-
-  /// parse an Expression and AST into a DataExpression object.
-  /// There are two variations:
-  /// 1. <expression>
-  /// 2. //@code <expression>\n<AST>
-  static DataExpression? parseDataExpression(dynamic input) {
-    if (input is String) {
-      return _parseDataExpressionFromString(input);
-    } else if (input is List) {
-      List<String> tokens = [];
-      for (final inputEntry in input) {
-        tokens.addAll(parseDataExpression(inputEntry)?.expressions ?? []);
-      }
-      if (tokens.isNotEmpty) {
-        return DataExpression(rawExpression: input, expressions: tokens);
-      }
-    } else if (input is Map) {
-      List<String> tokens = [];
-      input.forEach((_, value) {
-        tokens.addAll(parseDataExpression(value)?.expressions ?? []);
-      });
-      if (tokens.isNotEmpty) {
-        return DataExpression(rawExpression: input, expressions: tokens);
-      }
-    }
-    return null;
-  }
-
-  static DataExpression? _parseDataExpressionFromString(String input) {
-    // first match //@code <expression>\n<AST> as it is what we have
-    RegExpMatch? match = expressionAndAst.firstMatch(input);
-    if (match != null) {
-      return DataExpression(
-          rawExpression: match.group(1)!,
-          expressions: getExpressionTokens(match.group(1)!));
-    }
-    // fallback to match <expression> only. This is if we don't turn on AST
-    List<String> tokens = getExpressionTokens(input);
-    if (tokens.isNotEmpty) {
-      return DataExpression(rawExpression: input, expressions: tokens);
-    }
-    return null;
-  }
 
   /// pick a string randomly from the list
   static String randomize(List<String> strings) {
