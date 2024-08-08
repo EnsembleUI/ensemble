@@ -15,7 +15,7 @@ class OtpPinField extends StatefulWidget {
   final OnChange onChange;
   final List<TextInputFormatter>? inputFormatters;
   final OtpPinFieldInputType otpPinFieldInputType;
-  final String otpPinInputCustom;
+  final dynamic otpPinInputCustom;
   final OtpPinFieldDecoration otpPinFieldDecoration;
   final TextInputType keyboardType;
   final TextInputAction textInputAction;

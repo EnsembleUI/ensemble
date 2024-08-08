@@ -23,3 +23,9 @@ and following the instructions in the readme of https://github.com/EnsembleUI/en
 4. In the studio, create your own app and screens with your widget (or enhanced widget). Make sure you can test locally and it works fine
 5. When ready, create a pull request and we will review and provide feedback. 
 
+
+# How to run test
+- Run unit test with `flutter test`.
+- For integration test:
+  - first open `.ios > Podfile` and add this entry `ENV['SWIFT_VERSION'] = '5'`.
+  - Run `flutter test integration_test`.
