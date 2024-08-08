@@ -13,9 +13,11 @@ import '../framework/scope.dart';
 class Conditional extends StatefulWidget
     with Invokable, HasController<ConditionalController, ConditionalState> {
   static const type = 'Conditional';
+
   Conditional({Key? key}) : super(key: key);
 
   final ConditionalController _controller = ConditionalController();
+
   @override
   ConditionalController get controller => _controller;
 
@@ -148,6 +150,12 @@ class ConditionalState extends WidgetState<Conditional> {
       widgetDefinition = widgetDefinition['widget'];
     }
 
-    return scopeManager.buildWidgetFromDefinition(widgetDefinition);
+    // Flutter tends to re-use the widgets from different if/else clause when
+    // they are of the same type. Here we just stringify the widget map and use
+    // them as the key, so they are guaranteed to not be re-used unless the
+    // definition is identical
+    return KeyedSubtree(
+        key: ValueKey(widgetDefinition.toString()),
+        child: scopeManager.buildWidgetFromDefinition(widgetDefinition));
   }
 }
