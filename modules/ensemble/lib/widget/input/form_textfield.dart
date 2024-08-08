@@ -158,6 +158,9 @@ abstract class BaseTextInput extends StatefulWidget
       'textStyle': (style) => _controller.textStyle = Utils.getTextStyle(style),
       'autofillHints': (value) =>
           _controller.autofillHints = Utils.getListOfStrings(value),
+      'maxLength': (value) => _controller.maxLength = Utils.optionalInt(value),
+      'maxLengthEnforcement': (value) =>
+          _controller.maxLengthEnforcement = _getMaxLengthEnforcement(value),
     });
     return setters;
   }
@@ -234,6 +237,8 @@ class TextInputController extends FormFieldController with HasTextPlaceholder {
   bool? multiline;
   int? minLines;
   int? maxLines;
+  int? maxLength;
+  MaxLengthEnforcement? maxLengthEnforcement;
 
   List<String>? autofillHints;
 }
@@ -475,6 +480,9 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput>
           inputFormatters: _inputFormatter,
           minLines: isMultiline() ? widget._controller.minLines : null,
           maxLines: isMultiline() ? widget._controller.maxLines : 1,
+          maxLength: widget._controller.maxLength,
+          maxLengthEnforcement: widget._controller.maxLengthEnforcement ??
+              MaxLengthEnforcement.none,
           obscureText: isObscureOrPlainText(),
           enableSuggestions: !widget.isPassword(),
           autocorrect: !widget.isPassword(),
@@ -596,4 +604,16 @@ class _InputDoneButton extends StatelessWidget {
       ),
     );
   }
+}
+
+MaxLengthEnforcement? _getMaxLengthEnforcement(String? value) {
+  switch (value) {
+    case 'none':
+      return MaxLengthEnforcement.none;
+    case 'enforced':
+      return MaxLengthEnforcement.enforced;
+    case 'truncateAfterCompositionEnds':
+      return MaxLengthEnforcement.truncateAfterCompositionEnds;
+  }
+  return null;
 }
