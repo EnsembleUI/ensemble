@@ -13,8 +13,10 @@ import 'package:ensemble/action/navigation_action.dart';
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/all_countries.dart';
 import 'package:ensemble/framework/apiproviders/api_provider.dart';
+import 'package:ensemble/framework/apiproviders/firestore/firestore_types.dart';
 import 'package:ensemble/framework/apiproviders/http_api_provider.dart';
 import 'package:ensemble/framework/config.dart';
+import 'package:ensemble/framework/data_utils.dart';
 import 'package:ensemble/framework/device.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/keychain_manager.dart';
@@ -78,7 +80,7 @@ class DataContext implements Context {
     _contextMap['secrets'] = SecretsStore();
     _contextMap['ensemble'] = NativeInvokable(buildContext);
     _contextMap['appInfo'] = appInfo;
-
+    _contextMap['Timestamp'] = StaticFirestoreTimestamp();
     // auth can be selectively turned on
     if (GetIt.instance.isRegistered<AuthContextManager>()) {
       _contextMap['auth'] = GetIt.instance<AuthContextManager>();
@@ -252,7 +254,7 @@ class DataContext implements Context {
     // if just have single standalone expression, return the actual type (e.g integer)
     // this is the distinction here so we can continue to walk down the path
     // if the return type is JSON
-    RegExpMatch? simpleExpression = Utils.onlyExpression.firstMatch(expression);
+    RegExpMatch? simpleExpression = DataUtils.onlyExpression.firstMatch(expression);
     if (simpleExpression != null) {
       return asObject(evalVariable(simpleExpression.group(1)!));
     }
@@ -260,7 +262,7 @@ class DataContext implements Context {
     // greedy match anything inside a $() with letters, digits, period, square brackets.
     // Note that since we combine multiple expressions together, the end result
     // has to be a string.
-    return expression.replaceAllMapped(Utils.containExpression,
+    return expression.replaceAllMapped(DataUtils.containExpression,
         (match) => asString(evalVariable("${match[1]}")));
 
     /*return replaceAllMappedAsync(
