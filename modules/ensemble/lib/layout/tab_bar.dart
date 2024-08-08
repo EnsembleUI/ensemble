@@ -2,21 +2,15 @@ import 'package:ensemble/action/haptic_action.dart';
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/bindings.dart';
 import 'package:ensemble/framework/error_handling.dart';
-import 'package:ensemble/framework/extensions.dart';
-import 'package:ensemble/framework/model.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/view/data_scope_widget.dart';
-import 'package:ensemble/framework/view/page.dart';
-import 'package:ensemble/framework/widget/widget.dart';
 
 import 'package:ensemble/layout/tab/base_tab_bar.dart';
 import 'package:ensemble/layout/tab/tab_bar_controller.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
-import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/material.dart';
-import 'package:yaml/yaml.dart';
 
 /// TabBar navigation only
 class TabBarOnly extends BaseTabBar {
@@ -47,6 +41,9 @@ abstract class BaseTabBar extends StatefulWidget
       'selectedIndex': () => _controller.selectedIndex,
     };
   }
+
+  @override
+  List<String> passthroughSetters() => ['items'];
 
   @override
   Map<String, Function> methods() {
@@ -99,16 +96,33 @@ abstract class BaseTabBar extends StatefulWidget
 class TabBarState extends BaseTabBarState {
   @override
   void initState() {
-    // ensure the selectedIndex is valid, otherwise reset
-    if (widget._controller.selectedIndex >= widget._controller.items.length) {
-      widget._controller.selectedIndex = 0;
-    }
-    tabController = TabController(
-        initialIndex: widget._controller.selectedIndex,
-        length: widget._controller.items.length,
-        vsync: this);
-    tabController.addListener(notifyListener);
     super.initState();
+    _initializeTabController();
+  }
+
+  void _initializeTabController() {
+    tabController = TabController(
+      initialIndex: _getValidInitialIndex(),
+      length: widget.controller.items.length,
+      vsync: this,
+    );
+    tabController.addListener(notifyListener);
+  }
+
+  int _getValidInitialIndex() {
+    // ensure the selectedIndex is valid, otherwise reset
+    return widget._controller.selectedIndex < widget.controller.items.length
+        ? widget._controller.selectedIndex
+        : 0;
+  }
+
+  bool _evaluateCondition(ScopeManager scopeManager, String expression) {
+    try {
+      final expression0 = scopeManager.dataContext.eval(expression);
+      return expression0 is bool ? expression0 : false;
+    } catch (e) {
+      throw LanguageError('Failed to eval $expression');
+    }
   }
 
   void notifyListener() {
@@ -136,12 +150,72 @@ class TabBarState extends BaseTabBarState {
   void didChangeDependencies() {
     super.didChangeDependencies();
     widget.controller.tabBarAction = this;
+
+    final isConditional = widget.controller.originalItems
+        .any((element) => element.isVisible != null);
+
+    if (!isConditional) return;
+    ScopeManager? scopeManager = DataScopeWidget.getScope(context);
+    if (scopeManager == null) return;
+
+    for (var item in widget.controller.originalItems) {
+      if (item.isVisible == null || (item.isVisible is! EvaluateVisible)) {
+        continue;
+      }
+      scopeManager.listen(
+        scopeManager,
+        (item.isVisible! as EvaluateVisible).value,
+        destination: BindingDestination(widget, 'items'),
+        onDataChange: (event) {
+          if (mounted) {
+            handleConditionalTabs();
+          }
+        },
+      );
+    }
+
+    handleConditionalTabs();
+  }
+
+  void handleConditionalTabs() {
+    ScopeManager? scopeManager = ScreenController().getScopeManager(context);
+    if (scopeManager == null) return;
+
+    final visibleItems = <TabItem>[];
+    for (var item in widget.controller.originalItems) {
+      if (item.isVisible == null) {
+        visibleItems.add(item);
+        continue;
+      }
+
+      bool isTrue = false;
+      if (item.isVisible! is BoolVisible) {
+        isTrue = (item.isVisible as BoolVisible).value;
+      } else {
+        isTrue = _evaluateCondition(
+            scopeManager, (item.isVisible as EvaluateVisible).value);
+      }
+
+      if (isTrue) {
+        visibleItems.add(item);
+      }
+    }
+
+    widget.controller.updateVisibleItems(visibleItems);
+    _reinitializeTabController();
+  }
+
+  void _reinitializeTabController() {
+    tabController.removeListener(notifyListener);
+    tabController.dispose();
+    _initializeTabController();
   }
 
   @override
   void didUpdateWidget(covariant BaseTabBar oldWidget) {
     super.didUpdateWidget(oldWidget);
     widget.controller.tabBarAction = this;
+    widget.controller.items = oldWidget.controller.items;
   }
 
   // extra logic when a tab has been changed
