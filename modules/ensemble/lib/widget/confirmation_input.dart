@@ -1,7 +1,9 @@
 import 'package:ensemble/framework/action.dart';
+import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/framework/widget/widget.dart' as framework;
+import 'package:ensemble/framework/widget/icon.dart' as ensembleIcon;
 import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:ensemble/widget/helpers/widgets.dart';
 import 'package:ensemble/widget/input/form_textfield.dart';
@@ -34,8 +36,8 @@ class ConfirmationInput extends StatefulWidget
       'fieldType': (input) =>
           _controller.fieldType = Utils.optionalString(input),
       'inputType': (type) => _controller.inputType = Utils.optionalString(type),
-      'obscureText': (type) => _controller.obscureText = Utils.optionalString(type),
-      'obscureSymbol': (typeCustom) => _controller.obscureSymbol = Utils.optionalString(typeCustom),
+      'obscureText': (type) => _controller.obscureText = Utils.optionalBool(type),
+      'obscureSymbol': (typeCustom) => _controller.obscureSymbol = typeCustom,
       'autoComplete': (newValue) =>
           _controller.autoComplete = Utils.getBool(newValue, fallback: true),
       'spaceEvenly': (newValue) =>
@@ -118,8 +120,8 @@ class ConfirmationInputController extends BoxController {
   bool? spaceEvenly;
   bool? enableCursor;
   bool? autofillEnabled;
-  String? obscureText;
-  String? obscureSymbol;
+  bool? obscureText;
+  dynamic obscureSymbol;
   String? fieldType;
   String? inputType;
   double? fieldWidth;
@@ -201,7 +203,7 @@ class ConfirmationInputState extends framework.WidgetState<ConfirmationInput>
       keyboardType: widget.keyboardType,
       otpPinFieldDecoration: controller.fieldType?.otpPinField ??
           OtpPinFieldDecoration.defaultPinBoxDecoration,
-      otpPinFieldInputType: controller.obscureText?.otpPinType ?? OtpPinFieldInputType.none,
+      otpPinFieldInputType: controller.obscureText == true ? OtpPinFieldInputType.password : OtpPinFieldInputType.none,
       otpPinInputCustom: _validatePinTypeCustom(controller.obscureSymbol),
       cursorColor: controller.cursorColor,
       autoComplete: controller.autoComplete ?? true,
@@ -244,24 +246,21 @@ class ConfirmationInputState extends framework.WidgetState<ConfirmationInput>
   }
 }
 
-String _validatePinTypeCustom(String? value) {
-    if (value == null || value.length != 1) {
-      return "*";
+dynamic _validatePinTypeCustom(dynamic value) {
+  if ( value is String ) {
+    if (  value.length != 1) {
+      return "*"; // Default symbol if string length is not 1
     }
     return value;
+  } else if (value is Map && value['icon'] != null) {
+      final iconModel = Utils.getIcon(value['icon']);
+      if (iconModel != null) {
+        return ensembleIcon.Icon.fromModel(iconModel); // Return the IconModel directly
+      } else {
+        return "*"; 
+      } // Return the IconModel directly
   }
-  
-extension PinTypeOtpValue on String {
-  OtpPinFieldInputType get otpPinType {
-    switch (this) {
-      case 'password':
-        return OtpPinFieldInputType.password;
-      case 'custom':
-        return OtpPinFieldInputType.custom;
-      default:
-        return OtpPinFieldInputType.none;
-    }
-  }
+  return "*"; // Return null if value is neither String nor IconModel
 }
 
 extension FieldTypeOtpValue on String {

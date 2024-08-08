@@ -67,8 +67,6 @@ class LoadingContainerController extends BoxController {
 class LoadingContainerState extends WidgetState<LoadingContainer> {
   @override
   Widget buildWidget(BuildContext context) {
-    var loadingWidget = _buildLoadingWidget();
-
     return AnimatedSwitcher(
         duration: const Duration(milliseconds: 300),
         transitionBuilder: (child, animation) {

@@ -17,7 +17,7 @@ abstract class InvokablePrimitive {
     }
     if (value != null) {
       // find the currency symbol
-      String? currencySymbol;
+      String? currencySymbol = r'$';
       if (locale != null) {
         currencySymbol = NumberFormat.simpleCurrency(locale: locale.toString())
             .currencySymbol;

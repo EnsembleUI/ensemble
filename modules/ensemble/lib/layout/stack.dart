@@ -1,6 +1,6 @@
 import 'package:ensemble/framework/studio/studio_debugger.dart';
 import 'package:ensemble/framework/widget/has_children.dart';
-import 'package:ensemble/model/shared_models.dart';
+import 'package:ensemble/model/item_template.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/framework/widget/widget.dart';
@@ -15,6 +15,7 @@ class EnsembleStack extends StatefulWidget
         Invokable,
         HasController<StackController, StackState> {
   static const type = 'Stack';
+
   EnsembleStack({Key? key}) : super(key: key);
 
   late final List<Widget>? children;
@@ -34,9 +35,9 @@ class EnsembleStack extends StatefulWidget
   }
 
   @override
-  void initChildren({List<WidgetModel>? children, ItemTemplate? itemTemplate}) {
+  void initChildren({List<WidgetModel>? children, Map? itemTemplate}) {
     _controller.children = children;
-    this.itemTemplate = itemTemplate;
+    this.itemTemplate = ItemTemplate.from(itemTemplate);
   }
 
   @override
