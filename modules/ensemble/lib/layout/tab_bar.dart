@@ -43,6 +43,9 @@ abstract class BaseTabBar extends StatefulWidget
   }
 
   @override
+  List<String> passthroughSetters() => ['items'];
+
+  @override
   Map<String, Function> methods() {
     return {
       'changeTabItem': (index) => _controller.tabBarAction?.changeTab(index),
@@ -149,17 +152,19 @@ class TabBarState extends BaseTabBarState {
     widget.controller.tabBarAction = this;
 
     final isConditional = widget.controller.originalItems
-        .any((element) => element.ifCondition != null);
+        .any((element) => element.isVisible != null);
 
     if (!isConditional) return;
     ScopeManager? scopeManager = DataScopeWidget.getScope(context);
     if (scopeManager == null) return;
 
     for (var item in widget.controller.originalItems) {
-      if (item.ifCondition == null) continue;
+      if (item.isVisible == null || (item.isVisible is! EvaluateVisible)) {
+        continue;
+      }
       scopeManager.listen(
         scopeManager,
-        item.ifCondition!,
+        (item.isVisible! as EvaluateVisible).value,
         destination: BindingDestination(widget, 'items'),
         onDataChange: (event) {
           if (mounted) {
@@ -178,12 +183,19 @@ class TabBarState extends BaseTabBarState {
 
     final visibleItems = <TabItem>[];
     for (var item in widget.controller.originalItems) {
-      if (item.ifCondition == null) {
+      if (item.isVisible == null) {
         visibleItems.add(item);
         continue;
       }
 
-      final isTrue = _evaluateCondition(scopeManager, item.ifCondition!);
+      bool isTrue = false;
+      if (item.isVisible! is BoolVisible) {
+        isTrue = (item.isVisible as BoolVisible).value;
+      } else {
+        isTrue = _evaluateCondition(
+            scopeManager, (item.isVisible as EvaluateVisible).value);
+      }
+
       if (isTrue) {
         visibleItems.add(item);
       }

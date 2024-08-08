@@ -43,7 +43,7 @@ class TabBarController extends BoxController {
           label: Utils.optionalString(item['label']),
           tabWidget: item['tabWidget'] ?? item['tabItem'],
           bodyWidget: item['bodyWidget'] ?? item['widget'] ?? item['body'],
-          ifCondition: Utils.optionalString(item['if']),
+          isVisible: _setVisible(item['visible']),
         ));
       }
     } else if (items is List<TabItem>) {
@@ -68,6 +68,12 @@ class TabBarController extends BoxController {
     });
     return setters;
   }
+
+  Visible? _setVisible(dynamic value) {
+    if (value is bool) return BoolVisible(value);
+    if (value is String) return EvaluateVisible(value);
+    return null;
+  }
 }
 
 /// Model for a single tab item
@@ -77,7 +83,7 @@ class TabItem {
       this.label,
       this.tabWidget,
       this.bodyWidget,
-      this.ifCondition}) {
+      this.isVisible}) {
     if (icon == null && label == null && tabWidget == null) {
       throw LanguageError(
           "Each tab requires either an icon, a label, or a custom tabWidget");
@@ -88,5 +94,19 @@ class TabItem {
   String? label;
   dynamic tabWidget; // custom tab widget
   dynamic bodyWidget; // tab's body widget
-  String? ifCondition;
+  Visible? isVisible;
+}
+
+sealed class Visible {}
+
+class EvaluateVisible extends Visible {
+  final String value;
+
+  EvaluateVisible(this.value);
+}
+
+class BoolVisible extends Visible {
+  final bool value;
+
+  BoolVisible(this.value);
 }
