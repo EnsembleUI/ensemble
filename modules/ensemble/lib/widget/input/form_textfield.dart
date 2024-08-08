@@ -482,7 +482,7 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput>
           maxLines: isMultiline() ? widget._controller.maxLines : 1,
           maxLength: widget._controller.maxLength,
           maxLengthEnforcement: widget._controller.maxLengthEnforcement ??
-              MaxLengthEnforcement.none,
+              MaxLengthEnforcement.enforced,
           obscureText: isObscureOrPlainText(),
           enableSuggestions: !widget.isPassword(),
           autocorrect: !widget.isPassword(),
