@@ -114,7 +114,7 @@ c. If the parent is a Column (which does not provide height constraint to its ch
 $brief. Some widget stretches to match the parent width (especially form widgets), and will throw this error when its parent doesn't pass down a width constraint. Fix this by one of these methods:
 a. If the parent is a Row: consider changing it to a FlexRow, then set the flex/flexMode on this child widget to control the space distribution.
 b. If the parent is a Stack: Stack does not constrain the children's widths. Adjust the child's stackPositionLeft/stackPositionRight attributes to constrain the child within the Stack's width.  
-c. Simply set a widget width. Form widgets do not have width, so maxWidth should be used instead.
+c. Simply set a widget width. Form widgets (Checkbox, Date, Time, DateRange, Switch, Dropdown, TextInput, Slider, RadioButton, RadioGroup, ..) do not have width, so maxWidth should be used instead.
 ''');
         }
       }

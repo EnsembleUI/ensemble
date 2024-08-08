@@ -66,7 +66,6 @@ class EnsembleModules {
   static const useBracket = false;
   static const useNetworkInfo = false;
 
-
   // widgets
   static const enableChat = false;
 
@@ -150,19 +149,18 @@ class EnsembleModules {
       GetIt.I.registerSingleton<LogProvider>(LogProviderStub());
     }
 
-
     if (useBracket) {
       //uncomment to enable ensemble bracket widget
       // GetIt.I.registerSingleton<EnsembleBracket>(EnsembleBracketImpl.build());
     } else {
-      GetIt.I.registerSingleton<EnsembleBracket>(EnsembleBracketStub());
+      GetIt.I.registerSingleton<EnsembleBracket>(const EnsembleBracketStub());
+    }
 
     if (useNetworkInfo) {
       //uncomment to enable network info
       //GetIt.I.registerSingleton<NetworkInfoManager>(NetworkInfoImpl());
     } else {
       GetIt.I.registerSingleton<NetworkInfoManager>(NetworkInfoManagerStub());
-
     }
   }
 }

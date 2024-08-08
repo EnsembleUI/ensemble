@@ -130,7 +130,6 @@ class EnsembleMapState extends MapsActionableState
   void _registerMarkerListener(BuildContext context) {
     if (widget.controller.markerItemTemplate != null) {
       registerItemTemplate(context, widget.controller.markerItemTemplate!,
-          evaluateInitialValue: true,
           onDataChanged: (dataList) => _updateMarkers(context, dataList));
     }
   }
