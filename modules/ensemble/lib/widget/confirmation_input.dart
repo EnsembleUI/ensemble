@@ -141,7 +141,7 @@ class ConfirmationInputController extends BoxController {
 
   TextStyleComposite? _textStyle;
   TextStyleComposite get textStyle => _textStyle ??= TextStyleComposite(this);
-  set textStyle(TextStyleComposite style) => _textStyle = style;
+  set textStyle(TextStyleComposite? style) => _textStyle = style;
 }
 
 mixin InputFieldAction on framework.WidgetState<ConfirmationInput> {

@@ -38,8 +38,8 @@ class Button extends StatefulWidget
       'gap': () => Utils.getInt(_controller.gap, fallback: 0),
       'enabled': () => Utils.getBool(_controller.enabled, fallback: true),
       'outline': () => Utils.getBool(_controller.outline, fallback: false),
-      'width': () => _controller.buttonWidth,
-      'height': () => _controller.buttonHeight
+      'width': () => _controller.width,
+      'height': () => _controller.height
     };
   }
 
@@ -66,8 +66,6 @@ class Button extends StatefulWidget
           _controller.validateFields = Utils.getList(items),
       'enabled': (value) => _controller.enabled = Utils.optionalBool(value),
       'outline': (value) => _controller.outline = Utils.optionalBool(value),
-      'width': (value) => _controller.buttonWidth = Utils.optionalInt(value),
-      'height': (value) => _controller.buttonHeight = Utils.optionalInt(value),
     };
   }
 
@@ -85,8 +83,10 @@ class ButtonController extends BoxController {
   String? onTapHaptic;
 
   TextStyleComposite? _labelStyle;
+
   TextStyleComposite get labelStyle => _labelStyle ??= TextStyleComposite(this);
-  set labelStyle(TextStyleComposite style) => _labelStyle = style;
+
+  set labelStyle(TextStyleComposite? style) => _labelStyle = style;
 
   /// whether to trigger a form submission.
   /// This has no effect if the button is not inside a form
@@ -100,8 +100,6 @@ class ButtonController extends BoxController {
   List<dynamic>? validateFields;
   bool? enabled;
   bool? outline;
-  int? buttonWidth;
-  int? buttonHeight;
   int? gap;
 
   IconModel? startingIcon;
@@ -124,10 +122,15 @@ class ButtonState extends WidgetState<Button> {
       endingIcon = ensembleIcon.Icon.fromModel(widget._controller.endingIcon!);
     }
 
+    // since we build the Button from a Row ourselves, we have to reconcile
+    // the button theme starting from the theme
+    var buttonStyle = _getButtonStyle(context, isOutlineButton);
+    var labelTextStyle = _getLabelTextStyle(buttonStyle);
+
     List<Widget> labelParts = [
       Text(Utils.translate(widget._controller.label ?? '', context),
           textAlign: widget._controller.labelStyle.textAlign,
-          style: widget._controller.labelStyle.getTextStyle())
+          style: labelTextStyle)
     ];
 
     final gap = widget._controller.gap?.toDouble() ?? 0;
@@ -142,28 +145,22 @@ class ButtonState extends WidgetState<Button> {
     Widget labelLayout =
         Row(mainAxisSize: MainAxisSize.min, children: labelParts);
 
-    Widget? rtn;
-    if (isOutlineButton) {
-      rtn = BoxWrapper(
-        boxController: widget.controller,
-        ignoresPadding: true,
-        ignoresMargin: true,
-        widget: TextButton(
+    Widget rtn = isOutlineButton
+        ? TextButton(
             onPressed: isEnabled() ? () => onPressed(context) : null,
-            style: getButtonStyle(context, isOutlineButton),
-            child: labelLayout),
-      );
-    } else {
-      rtn = BoxWrapper(
-        boxController: widget.controller,
-        ignoresPadding: true,
-        ignoresMargin: true,
-        widget: FilledButton(
+            style: buttonStyle,
+            child: labelLayout)
+        : FilledButton(
             onPressed: isEnabled() ? () => onPressed(context) : null,
-            style: getButtonStyle(context, isOutlineButton),
-            child: labelLayout),
-      );
-    }
+            style: buttonStyle,
+            child: labelLayout);
+
+    rtn = BoxWrapper(
+      boxController: widget.controller,
+      ignoresPadding: true,
+      ignoresMargin: true,
+      widget: rtn,
+    );
 
     // add margin if specified
     return widget._controller.margin != null
@@ -171,56 +168,30 @@ class ButtonState extends WidgetState<Button> {
         : rtn;
   }
 
-  ButtonStyle getButtonStyle(BuildContext context, bool isOutlineButton) {
-    // we need to build a border which requires valid borderColor, borderThickness & borderRadius.
-    // Let's get the default theme so we can overwrite only necessary styles
-    RoundedRectangleBorder? border;
-    OutlinedBorder? defaultShape = isOutlineButton
-        ? Theme.of(context).textButtonTheme.style?.shape?.resolve({})
-        : Theme.of(context).elevatedButtonTheme.style?.shape?.resolve({});
-    if (defaultShape is RoundedRectangleBorder) {
-      // if we don't specify borderColor here, and the default border is none, stick with that
-      BorderSide borderSide;
-      if (widget._controller.borderColor == null &&
-          defaultShape.side.style == BorderStyle.none) {
-        borderSide = defaultShape.side;
-      } else {
-        borderSide = BorderSide(
-            color: widget._controller.borderColor ?? defaultShape.side.color,
-            width: widget._controller.borderWidth?.toDouble() ??
-                defaultShape.side.width);
-      }
+  ButtonStyle _getButtonStyle(BuildContext context, bool isOutline) {
+    // since we handle the label ourselves, we have to look up the theme first
+    // then combine it with inline styles
+    var labelStyle = isOutline
+        ? (Theme.of(context).textButtonTheme.style ?? TextButton.styleFrom())
+        : (Theme.of(context).filledButtonTheme.style ??
+            FilledButton.styleFrom());
+    return labelStyle.copyWith(
+      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      backgroundColor: widget._controller.backgroundColor != null
+          ? MaterialStateProperty.all<Color>(
+              widget._controller.backgroundColor!)
+          : null,
+      padding: widget._controller.padding != null
+          ? MaterialStateProperty.all<EdgeInsets>(widget._controller.padding!)
+          : null,
+    );
+  }
 
-      border = RoundedRectangleBorder(
-          borderRadius: widget._controller.borderRadius == null
-              ? defaultShape.borderRadius
-              : widget._controller.borderRadius!.getValue(),
-          // when we give [borderGradient] and [borderColor] it will draw that color also around borderSide
-          // So when the borderGradient is there the side will be none
-          side: widget._controller.borderGradient != null
-              ? BorderSide.none
-              : borderSide);
-    } else {
-      if (isOutlineButton) {
-        border = const RoundedRectangleBorder(
-          borderRadius: BorderRadius.all(Radius.zero),
-        );
-      }
-    }
-
-    // we need to get the button shape from borderRadius, borderColor & borderThickness
-    // and we do not want to override the default theme if not specified
-    //int borderRadius = widget._controller.borderRadius ?? defaultButtonStyle?.
-
-    return ThemeManager().getButtonStyle(
-        isOutline: isOutlineButton,
-        backgroundColor: widget._controller.backgroundGradient == null
-            ? widget._controller.backgroundColor
-            : Colors.transparent,
-        border: border,
-        buttonHeight: widget._controller.buttonHeight?.toDouble(),
-        buttonWidth: widget._controller.buttonWidth?.toDouble(),
-        padding: widget._controller.padding);
+  TextStyle _getLabelTextStyle(ButtonStyle buttonStyle) {
+    var labelTextStyle = buttonStyle.textStyle?.resolve(<MaterialState>{});
+    return labelTextStyle
+            ?.merge(widget._controller.labelStyle.getTextStyle()) ??
+        widget._controller.labelStyle.getTextStyle();
   }
 
   void onPressed(BuildContext context) {
