@@ -346,7 +346,7 @@ class EnsembleAppState extends State<EnsembleApp> with WidgetsBindingObserver {
     StorageManager().setIsPreview(widget.isPreview);
     Widget app = MaterialApp(
       key: appKey,
-      navigatorObservers: [Ensemble.routeObserver],
+      navigatorObservers: Ensemble().routeObservers,
       debugShowCheckedModeBanner: false,
       navigatorKey: Utils.globalAppKey,
       theme: theme,
