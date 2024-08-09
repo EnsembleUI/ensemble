@@ -16,6 +16,7 @@ import 'package:ensemble/framework/app_info.dart';
 import 'package:ensemble/framework/logging/console_log_provider.dart';
 import 'package:ensemble/framework/logging/log_manager.dart';
 import 'package:ensemble/framework/logging/log_provider.dart';
+import 'package:ensemble/framework/route_observer.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/secrets.dart';
 import 'package:ensemble/framework/storage_manager.dart';
@@ -42,15 +43,21 @@ import 'layout/ensemble_page_route.dart';
 typedef CustomBuilder = Widget Function(
     BuildContext context, Map<String, dynamic>? args);
 
+abstract class WithEnsemble {}
+
 /// Singleton Controller
-class Ensemble {
+class Ensemble extends WithEnsemble with EnsembleRouteObserver {
   static final Ensemble _instance = Ensemble._internal();
 
-  Ensemble._internal();
+  Ensemble._internal() {
+    // register listeners to listen to route changes
+    initializeRouteObservers();
+  }
 
   factory Ensemble() {
     return _instance;
   }
+
 
   Map<String, Function> externalMethods = {};
 
@@ -82,9 +89,6 @@ class Ensemble {
 
   late FirebaseApp ensembleFirebaseApp;
   static final Map<String, dynamic> externalDataContext = {};
-
-  static final RouteObserver<PageRoute> routeObserver =
-      RouteObserver<PageRoute>();
 
   /// initialize all the singleton/managers. Note that this function can be
   /// called multiple times since it's being called inside a widget.
