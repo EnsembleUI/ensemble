@@ -13,9 +13,13 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 
 class FirestoreAPIProvider extends APIProvider with LiveAPIProvider {
+  FirestoreAPIProvider._();
+  static final FirestoreAPIProvider _instance = FirestoreAPIProvider._();
+  factory FirestoreAPIProvider() => _instance;
+
   FirebaseApp? _app;
   FirebaseFirestore get firestore => FirebaseFirestore.instanceFor(app: _app!);
-  List<StreamSubscription> _subscriptions = [];
+  Map<String, StreamSubscription> _subscriptions = {};
   late FirestoreApp firestoreApp;
 
   @override
@@ -238,6 +242,12 @@ class FirestoreAPIProvider extends APIProvider with LiveAPIProvider {
   }
 
   @override
+  Future<void> unSubscribeToApi(String apiName) async {
+    if (!_subscriptions.containsKey(apiName)) return;
+    await _subscriptions[apiName]?.cancel();
+  }
+
+  @override
   Future<FirestoreResponse> subscribeToApi(BuildContext context, YamlMap apiMap,
       DataContext eContext, String apiName, ResponseListener listener) async {
     if (_app == null) {
@@ -257,20 +267,25 @@ class FirestoreAPIProvider extends APIProvider with LiveAPIProvider {
 
     if (isDocumentPath) {
       DocumentReference docRef = firestore.doc(path);
-      _subscriptions.add(docRef.snapshots().listen((DocumentSnapshot snapshot) {
-        listener.call(getOKResponse(apiName, snapshot));
-      }));
+
+      _subscriptions.addAll({
+        apiName: docRef.snapshots().listen((DocumentSnapshot snapshot) {
+          listener.call(getOKResponse(apiName, snapshot));
+        })
+      });
     } else {
       Query query = firestoreApp.getQuery(api);
-      _subscriptions.add(query.snapshots().listen((QuerySnapshot snapshot) {
-        listener.call(getOKResponse(apiName, snapshot));
-      }));
+      _subscriptions.addAll({
+        apiName: query.snapshots().listen((QuerySnapshot snapshot) {
+          listener.call(getOKResponse(apiName, snapshot));
+        })
+      });
     }
     Map<String, dynamic> body = {
       'message': 'Subscribed to API',
       'documents': []
     };
-    ;
+
     return FirestoreResponse(
       apiState: APIState.success,
       body: body,
@@ -283,11 +298,11 @@ class FirestoreAPIProvider extends APIProvider with LiveAPIProvider {
   dispose() {
     try {
       if (_subscriptions.isNotEmpty) {
-        for (var subscription in _subscriptions) {
+        for (var subscription in _subscriptions.values) {
           subscription.cancel();
         }
       }
-      _subscriptions = [];
+      _subscriptions = {};
     } catch (e) {
       print('Error disposing FirestoreAPIProvider: $e');
     }
