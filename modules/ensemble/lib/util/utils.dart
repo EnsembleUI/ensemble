@@ -1044,4 +1044,11 @@ class Utils {
 
     return String.fromCharCodes(codeUnits);
   }
+
+  static T getEnum<T>(String? value, List<T> enumValues) {
+    return enumValues.firstWhere(
+      (e) => e.toString().split('.').last.toLowerCase() == value?.toLowerCase(),
+      orElse: () => enumValues.first,
+    );
+  }
 }

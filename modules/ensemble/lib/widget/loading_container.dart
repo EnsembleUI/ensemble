@@ -6,6 +6,8 @@ import 'package:ensemble/widget/shape.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/material.dart';
 
+enum ShimmerEffect { diagonal, horizontal, vertical }
+
 /// A container that can display a loading indicator or shimmer
 /// while the content is being loaded
 class LoadingContainer extends StatefulWidget
@@ -50,6 +52,10 @@ class LoadingContainer extends StatefulWidget
       'widget': (widget) => _controller.widget = widget,
       'loadingWidget': (loadingWidget) =>
           _controller.loadingWidget = loadingWidget,
+      'shimmerEffect': (effect) => _controller.shimmerEffect =
+          Utils.getEnum<ShimmerEffect>(effect, ShimmerEffect.values),
+      'shimmerSpeed': (speed) =>
+          _controller.shimmerSpeed = Utils.optionalInt(speed),
     };
   }
 }
@@ -62,11 +68,15 @@ class LoadingContainerController extends BoxController {
   Color? highlightColor;
   dynamic widget;
   dynamic loadingWidget;
+  ShimmerEffect? shimmerEffect;
+  int? shimmerSpeed;
 }
 
 class LoadingContainerState extends WidgetState<LoadingContainer> {
   @override
   Widget buildWidget(BuildContext context) {
+    var loadingWidget = _buildLoadingWidget();
+
     return AnimatedSwitcher(
         duration: const Duration(milliseconds: 300),
         transitionBuilder: (child, animation) {
@@ -85,24 +95,55 @@ class LoadingContainerState extends WidgetState<LoadingContainer> {
 
     return widget._controller.useShimmer == true
         ? CustomShimmer(
-            linearGradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.centerRight,
-                colors: <Color>[
-                  widget._controller.baseColor ?? const Color(0xFFEBEBF4),
-                  widget._controller.highlightColor ??
-                      const Color(0xFFEBEBF4).withOpacity(0.3),
-                  widget._controller.baseColor ?? const Color(0xFFEBEBF4),
-                ],
-                // stops: const <double>[0.0, 0.35, 0.5, 0.65, 1.0],
-                stops: const [0.1, 0.3, 0.4],
-                tileMode: TileMode.clamp),
+            linearGradient: _buildGradient(),
+            shimmerEffect:
+                widget._controller.shimmerEffect ?? ShimmerEffect.diagonal,
+            shimmerSpeed: widget._controller.shimmerSpeed ?? 1000,
             child: ShimmerLoading(
                 isLoading: true,
                 child: loadingWidget ??
                     DefaultLoadingShape(
                         padding: widget._controller.defaultShimmerPadding)))
         : loadingWidget ?? const SizedBox.shrink();
+  }
+
+  LinearGradient _buildGradient() {
+    switch (widget._controller.shimmerEffect) {
+      case ShimmerEffect.horizontal:
+        return LinearGradient(
+          begin: Alignment.centerLeft,
+          end: Alignment.centerRight,
+          colors: _buildGradientColors(),
+          stops: const [0.1, 0.3, 0.4],
+          tileMode: TileMode.clamp,
+        );
+      case ShimmerEffect.vertical:
+        return LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: _buildGradientColors(),
+          stops: const [0.1, 0.3, 0.4],
+          tileMode: TileMode.clamp,
+        );
+      case ShimmerEffect.diagonal:
+      default:
+        return LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.centerRight,
+          colors: _buildGradientColors(),
+          stops: const [0.1, 0.3, 0.4],
+          tileMode: TileMode.clamp,
+        );
+    }
+  }
+
+  List<Color> _buildGradientColors() {
+    return <Color>[
+      widget._controller.baseColor ?? const Color(0xFFEBEBF4),
+      widget._controller.highlightColor ??
+          const Color(0xFFEBEBF4).withOpacity(0.3),
+      widget._controller.baseColor ?? const Color(0xFFEBEBF4),
+    ];
   }
 
   Widget _buildContentWidget() {
@@ -197,10 +238,14 @@ class CustomShimmer extends StatefulWidget {
   const CustomShimmer({
     super.key,
     required this.linearGradient,
+    this.shimmerEffect = ShimmerEffect.diagonal,
+    this.shimmerSpeed = 1000,
     this.child,
   });
 
   final LinearGradient linearGradient;
+  final ShimmerEffect shimmerEffect;
+  final int shimmerSpeed;
   final Widget? child;
 
   @override
@@ -216,7 +261,11 @@ class CustomShimmerState extends State<CustomShimmer>
     super.initState();
 
     _shimmerController = AnimationController.unbounded(vsync: this)
-      ..repeat(min: -0.5, max: 1.5, period: const Duration(milliseconds: 1000));
+      ..repeat(
+        min: -0.5,
+        max: 1.5,
+        period: Duration(milliseconds: widget.shimmerSpeed),
+      );
   }
 
   @override
