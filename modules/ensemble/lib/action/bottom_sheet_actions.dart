@@ -234,12 +234,12 @@ class ShowBottomSheetAction extends EnsembleAction {
 
 /// Dismiss the Bottom Modal (if the context is a descendant, no-op otherwise)
 class DismissBottomSheetAction extends EnsembleAction {
-  DismissBottomSheetAction({this.payload});
-
+  DismissBottomSheetAction({super.initiator, this.payload});
   Map? payload;
 
-  factory DismissBottomSheetAction.from({Map? payload}) =>
-      DismissBottomSheetAction(payload: payload?['payload']);
+  factory DismissBottomSheetAction.from({Invokable? initiator, Map? payload}) =>
+      DismissBottomSheetAction(
+          initiator: initiator, payload: Utils.getMap(payload?['payload']));
 
   @override
   Future<dynamic> execute(BuildContext context, ScopeManager scopeManager) {
