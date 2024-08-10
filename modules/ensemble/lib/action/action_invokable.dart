@@ -35,6 +35,9 @@ abstract class ActionInvokable with Invokable {
       ActionType.deviceSecurity,
       ActionType.requestNotificationAccess,
       ActionType.showLocalNotification,
+      ActionType.showDialog,
+      ActionType.dismissDialog,
+      ActionType.closeAllDialogs,
     ]);
   }
 

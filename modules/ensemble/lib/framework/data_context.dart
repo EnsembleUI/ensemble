@@ -477,8 +477,6 @@ class NativeInvokable extends ActionInvokable {
       ActionType.navigateScreen.name: (inputs) => ScreenController()
           .executeAction(buildContext, NavigateScreenAction.fromMap(inputs)),
       ActionType.navigateModalScreen.name: navigateToModalScreen,
-      ActionType.showDialog.name: showDialog,
-      ActionType.closeAllDialogs.name: () => closeAllDialogs(),
       ActionType.invokeAPI.name: invokeAPI,
       ActionType.openUrl.name: openUrl,
       ActionType.stopTimer.name: stopTimer,
@@ -512,8 +510,6 @@ class NativeInvokable extends ActionInvokable {
         final scope = ScreenController().getScopeManager(buildContext);
         callNativeMethod(buildContext, scope, inputs);
       },
-      ActionType.showDialog.name: (inputs) => ScreenController()
-          .executeAction(buildContext, ShowDialogAction.from(payload: inputs)),
       ActionType.rateApp.name: (inputs) => ScreenController()
           .executeAction(buildContext, RateAppAction.from(payload: inputs)),
       'connectSocket': (String socketName, Map<dynamic, dynamic>? inputs) {
@@ -622,15 +618,6 @@ class NativeInvokable extends ActionInvokable {
     ScreenController().navigateToScreen(buildContext,
         screenName: screenName, pageArgs: inputMap, asModal: true);
     // how do we handle onModalDismiss in Typescript?
-  }
-
-  void closeAllDialogs() {
-    ScreenController().executeAction(buildContext, CloseAllDialogsAction());
-  }
-
-  void showDialog(dynamic widget) {
-    ScreenController()
-        .executeAction(buildContext, ShowDialogAction(body: widget));
   }
 
   void openUrl([dynamic inputs]) {
