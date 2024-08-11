@@ -12,6 +12,40 @@ class Ensemble extends Object with Invokable {
   String? name, date, firstName, lastName, text;
   String? navigateScreenCalledForScreen;
   Ensemble(this.name);
+  static List<String> splitString(String input) {
+    List<String> result = [];
+    StringBuffer current = StringBuffer();
+    bool inExpression = false;
+
+    for (int i = 0; i < input.length; i++) {
+      String char = input[i];
+
+      if (char == '\$' && i + 1 < input.length && input[i + 1] == '{') {
+        inExpression = true;
+        current.write('\${');
+        i++; // Skip the '{'
+      } else if (char == '}' && inExpression) {
+        inExpression = false;
+        current.write('}');
+      } else if (char == ' ' && !inExpression) {
+        if (current.isNotEmpty) {
+          result.add(current.toString());
+          current.clear();
+        }
+      } else {
+        current.write(char);
+      }
+    }
+
+    if (current.isNotEmpty) {
+      result.add(current.toString());
+    }
+
+    return result;
+  }
+
+
+
   @override
   Map<String, Function> getters() {
     return {
@@ -2609,6 +2643,59 @@ function createRandomizedTiles() {
         ).evaluate();
         expect(context['test'], true);
       });
+
+    });
+  group('Regex for classnames', () {
+    test('Single word', () {
+      final regex = RegExp(r'\${[^}]+}|\S+|[^${}\s]+');
+      List<String> lista = Ensemble.splitString("abc");
+      expect(lista, ['abc']);
     });
 
+    test('Multiple words', () {
+      final regex = RegExp(r'\${[^}]*}|\S+');
+      List<String> lista = Ensemble.splitString("abc def ghi");
+      expect(lista, ['abc', 'def', 'ghi']);
+    });
+
+    test('Words with multiple spaces', () {
+      final regex = RegExp(r'\${[^}]*}|\S+');
+      List<String> lista = Ensemble.splitString("abc    def ghi");
+      expect(lista, ['abc', 'def', 'ghi']);
+    });
+
+    test(r'Mixed with ${...} expression', () {
+      final regex = RegExp(r'\${[^}]*}|\S+');
+      List<String> lista = Ensemble.splitString("abc \${1 + 1 ? 'gef' : 'xyz'} def");
+      expect(lista, ['abc', "\${1 + 1 ? 'gef' : 'xyz'}", 'def']);
+    });
+
+    test(r'Mixed with multiple spaces and ${...} expression', () {
+      final regex = RegExp(r'\${[^}]*}|\S+');
+      List<String> lista = Ensemble.splitString("abc    \${ example:123}    def");
+      expect(lista, ['abc', '\${ example:123}', 'def']);
+    });
+
+    test(r'Complex case with embedded ${...} and text', () {
+      final regex = RegExp(r'\${[^}]+}|\S+|[^${}\s]+');
+      //List<String> lista = regex.allMatches("abc\${.  example    }lmn def").map((match) => match.group(0)!).toList();
+
+      List<String> lista = Ensemble.splitString("abc\${.  example    }lmn def");
+      expect(lista, [r'abc${.  example    }lmn', 'def']);
+    });
+    test(r'empty string', () {
+      final regex = RegExp(r'\${[^}]+}|\S+|[^${}\s]+');
+      //List<String> lista = regex.allMatches("abc\${.  example    }lmn def").map((match) => match.group(0)!).toList();
+
+      List<String> lista = Ensemble.splitString("");
+      expect(lista, []);
+    });
+    test(r'string with only spaces', () {
+      final regex = RegExp(r'\${[^}]+}|\S+|[^${}\s]+');
+      //List<String> lista = regex.allMatches("abc\${.  example    }lmn def").map((match) => match.group(0)!).toList();
+
+      List<String> lista = Ensemble.splitString("     ");
+      expect(lista, []);
+    });
+  });
 }

@@ -128,7 +128,7 @@ class ViewUtil {
     payload.forEach((key, value) {
       if (value != null) {
         if (key == classNameAttribute) {
-          classList = (value as String?)?.split(RegExp('\\s+'));
+          classList = HasStyles.toClassList(value as String?);
         }
         if (key == 'styles' && value is YamlMap) {
           value.forEach((styleKey, styleValue) {
