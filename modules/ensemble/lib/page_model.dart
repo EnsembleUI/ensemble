@@ -1,4 +1,5 @@
 import 'package:ensemble/ensemble.dart';
+import 'package:ensemble/framework/data_utils.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/data_context.dart';
@@ -230,9 +231,11 @@ mixin HasStyles {
   }
 
   set className(String? className) {
-    classList = className?.split(RegExp('\\s+'));
+    classList = toClassList(className);
   }
-
+  static List<String>? toClassList(String? className) {
+    return DataUtils.splitSpaceDelimitedString(className);
+  }
   //these are the styles resolved with what's set at the theme level and inline styles
   Map<String, dynamic>? _runtimeStyles;
 
@@ -310,8 +313,7 @@ class SinglePageModel extends PageModel with HasStyles {
             inlineStyles![key] = EnsembleThemeManager.yamlToDart(value);
           });
         }
-        classList = (viewMap[ViewUtil.classNameAttribute] as String?)
-            ?.split(RegExp('\\s+'));
+        classList = HasStyles.toClassList(viewMap[ViewUtil.classNameAttribute] as String?);
         widgetType = type;
         widgetTypeStyles =
             EnsembleThemeManager().currentTheme()?.getWidgetTypeStyles(type);
@@ -331,8 +333,7 @@ class SinglePageModel extends PageModel with HasStyles {
               EnsembleThemeManager.yamlToDart(
                 viewMap['footer']['styles'],
               ),
-              (viewMap['footer'][ViewUtil.classNameAttribute] as String?)
-                  ?.split(RegExp('\\s+')),
+              HasStyles.toClassList(viewMap['footer'][ViewUtil.classNameAttribute] as String?),
               dragOptionsMap,
               fixedContent,
               ViewUtil.buildModel(footerYamlMap, customViewDefinitions));
@@ -372,8 +373,7 @@ class SinglePageModel extends PageModel with HasStyles {
       }
 
       styles = EnsembleThemeManager.yamlToDart(headerData['styles']);
-      classList = (headerData[ViewUtil.classNameAttribute] as String?)
-          ?.split(RegExp('\\s+'));
+      classList = HasStyles.toClassList(headerData[ViewUtil.classNameAttribute] as String?);
     }
 
     if (titleWidget != null ||
