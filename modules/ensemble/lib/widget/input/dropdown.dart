@@ -378,7 +378,9 @@ class SelectOneState extends FormFieldWidgetState<SelectOne>
             widget._controller.itemTemplate, dataList),
         onChanged: isEnabled() ? (item) => onSelectionChanged(item) : null,
         focusNode: focusNode,
-        style: widget._controller.textStyle.getTextStyle(),
+        style: DefaultTextStyle.of(context)
+            .style
+            .merge(widget._controller.textStyle.getTextStyle()),
         iconStyleData: const IconStyleData(
             icon: Icon(Icons.keyboard_arrow_down, size: 20),
             openMenuIcon: Icon(Icons.keyboard_arrow_up, size: 20)),
@@ -426,7 +428,9 @@ class SelectOneState extends FormFieldWidgetState<SelectOne>
                 return TextField(
                   enabled: isEnabled(),
                   showCursor: true,
-                  style: widget._controller.textStyle.getTextStyle(),
+                  style: DefaultTextStyle.of(context)
+                      .style
+                      .merge(widget._controller.textStyle.getTextStyle()),
                   controller: fieldTextEditingController,
                   focusNode: fieldFocusNode,
                   decoration: inputDecoration.copyWith(
@@ -566,14 +570,18 @@ class SelectOneState extends FormFieldWidgetState<SelectOne>
                                       widget._controller.createNewItemLabel,
                                       option.value,
                                     ),
-                                    style: widget._controller.textStyle
-                                        .getTextStyle(),
+                                    style: DefaultTextStyle.of(context)
+                                        .style
+                                        .merge(widget._controller.textStyle
+                                            .getTextStyle()),
                                   )
                                 : Text(
                                     Utils.optionalString(option.label) ??
                                         option.value,
-                                    style: widget._controller.textStyle
-                                        .getTextStyle(),
+                                    style: DefaultTextStyle.of(context)
+                                        .style
+                                        .merge(widget._controller.textStyle
+                                            .getTextStyle()),
                                   ),
                           ],
                         ),
