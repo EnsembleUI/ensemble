@@ -1,4 +1,5 @@
 import 'package:collection/collection.dart';
+import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/error_handling.dart';
@@ -111,17 +112,13 @@ class ShowBottomSheetAction extends EnsembleAction {
         enableDrag: true,
         // padding to account for the keyboard when we have input widgets inside the modal
         builder: (modalContext) => Padding(
-            padding: EdgeInsets.only(
-              bottom: MediaQuery.of(modalContext).viewInsets.bottom,
-            ),
-            // have a bottom modal scope widget so we can close the modal
-            child: BottomSheetScopeWidget(
-              rootContext: modalContext,
-              // create a new Data Scope since the bottom modal is placed in a different context tree (directly under MaterialApp)
-              child: DataScopeWidget(
-                  scopeManager: scopeManager.createChildScope(),
-                  child: getBodyWidget(scopeManager, context)),
-            )),
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(modalContext).viewInsets.bottom,
+          ),
+          child: DataScopeWidget(
+              scopeManager: scopeManager.createChildScope(),
+              child: getBodyWidget(scopeManager, context)),
+        ),
       ).then((payload) {
         if (onDismiss != null) {
           return ScreenController().executeActionWithScope(
@@ -237,41 +234,21 @@ class ShowBottomSheetAction extends EnsembleAction {
 
 /// Dismiss the Bottom Modal (if the context is a descendant, no-op otherwise)
 class DismissBottomSheetAction extends EnsembleAction {
-  DismissBottomSheetAction({this.payload});
-
+  DismissBottomSheetAction({super.initiator, this.payload});
   Map? payload;
 
-  factory DismissBottomSheetAction.from({Map? payload}) =>
-      DismissBottomSheetAction(payload: payload?['payload']);
+  factory DismissBottomSheetAction.from({Invokable? initiator, Map? payload}) =>
+      DismissBottomSheetAction(
+          initiator: initiator, payload: Utils.getMap(payload?['payload']));
 
   @override
   Future<dynamic> execute(BuildContext context, ScopeManager scopeManager) {
-    BuildContext? bottomSheetContext =
-        BottomSheetScopeWidget.getRootContext(context);
-    if (bottomSheetContext != null) {
-      return Navigator.maybePop(
-          bottomSheetContext, scopeManager.dataContext.eval(payload));
+    final route = Ensemble().getCurrentRoute();
+    if (route is ModalBottomSheetRoute &&
+        route.isCurrent &&
+        route.navigator != null) {
+      return route.navigator!.maybePop(scopeManager.dataContext.eval(payload));
     }
-    return Navigator.maybePop(context, scopeManager.dataContext.eval(payload));
-  }
-}
-
-/// a wrapper InheritedWidget for its descendant to look up the Sheet's root context to close it
-class BottomSheetScopeWidget extends InheritedWidget {
-  const BottomSheetScopeWidget(
-      {super.key, required super.child, required this.rootContext});
-
-  // this is the context root of the modal
-  final BuildContext rootContext;
-
-  @override
-  bool updateShouldNotify(covariant BottomSheetScopeWidget oldWidget) {
-    return oldWidget.rootContext != rootContext;
-  }
-
-  static BuildContext? getRootContext(BuildContext context) {
-    BottomSheetScopeWidget? wrapperWidget =
-        context.dependOnInheritedWidgetOfExactType<BottomSheetScopeWidget>();
-    return wrapperWidget?.rootContext;
+    return Future.value(null);
   }
 }

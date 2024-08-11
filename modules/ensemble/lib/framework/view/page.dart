@@ -121,8 +121,8 @@ class PageState extends State<Page>
     else {
       var route = ModalRoute.of(context);
       if (route is PageRoute) {
-        Ensemble.routeObserver.unsubscribe(this);
-        Ensemble.routeObserver.subscribe(this, route);
+        Ensemble().routeObserver.unsubscribe(this);
+        Ensemble().routeObserver.subscribe(this, route);
       }
     }
   }
@@ -768,7 +768,7 @@ class PageState extends State<Page>
 
   @override
   void dispose() {
-    Ensemble.routeObserver.unsubscribe(this);
+    Ensemble().routeObserver.unsubscribe(this);
     WidgetsBinding.instance.removeObserver(this);
 
     //log('Disposing View ${widget.hashCode}');

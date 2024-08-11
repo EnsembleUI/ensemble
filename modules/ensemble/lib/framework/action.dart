@@ -6,6 +6,7 @@ import 'package:ensemble/action/bottom_sheet_actions.dart';
 import 'package:ensemble/action/deep_link_action.dart';
 import 'package:ensemble/action/call_external_method.dart';
 import 'package:ensemble/action/device_security.dart';
+import 'package:ensemble/action/dialog_actions.dart';
 import 'package:ensemble/action/get_network_info_action.dart';
 import 'package:ensemble/action/haptic_action.dart';
 import 'package:ensemble/action/call_native_method.dart';
@@ -61,37 +62,6 @@ class ShowCameraAction extends EnsembleAction {
       onComplete: EnsembleAction.from(payload?['onComplete']),
       onClose: EnsembleAction.from(payload?['onClose']),
       onCapture: EnsembleAction.from(payload?['onCapture']),
-    );
-  }
-}
-
-/// TODO: support inputs for Dialog
-class ShowDialogAction extends EnsembleAction {
-  ShowDialogAction({
-    super.initiator,
-    required this.body,
-    this.options,
-    this.onDialogDismiss,
-  });
-
-  final dynamic body;
-  final Map<String, dynamic>? options;
-  final EnsembleAction? onDialogDismiss;
-
-  factory ShowDialogAction.from({Invokable? initiator, Map? payload}) {
-    if (payload == null ||
-        (payload['body'] == null && payload['widget'] == null)) {
-      throw LanguageError(
-          "${ActionType.showDialog.name} requires the 'widget' for the Dialog's content.");
-    }
-    return ShowDialogAction(
-      initiator: initiator,
-      body: Utils.maybeYamlMap(payload['body']) ??
-          Utils.maybeYamlMap(payload['widget']),
-      options: Utils.getMap(payload['options']),
-      onDialogDismiss: payload['onDialogDismiss'] == null
-          ? null
-          : EnsembleAction.from(Utils.maybeYamlMap(payload['onDialogDismiss'])),
     );
   }
 }
@@ -390,8 +360,6 @@ class StopTimerAction extends EnsembleAction {
     return StopTimerAction(payload!['id'].toString());
   }
 }
-
-class CloseAllDialogsAction extends EnsembleAction {}
 
 /// TODO: confirm codeBlockSpan
 class ExecuteCodeAction extends EnsembleAction {
@@ -1051,9 +1019,11 @@ enum ActionType {
   @Deprecated("use dismissBottomSheet")
   dismissBottomModal,
   showDialog,
+  dismissDialog,
+  @Deprecated("use dismissDialog")
+  closeAllDialogs,
   startTimer,
   stopTimer,
-  closeAllDialogs,
   executeCode,
   showToast,
   getLocation,
@@ -1181,6 +1151,8 @@ abstract class EnsembleAction {
       return ShowCameraAction.fromYaml(initiator: initiator, payload: payload);
     } else if (actionType == ActionType.showDialog) {
       return ShowDialogAction.from(initiator: initiator, payload: payload);
+    } else if (actionType == ActionType.dismissDialog) {
+      return DismissDialogAction.from(initiator: initiator, payload: payload);
     } else if (actionType == ActionType.closeAllDialogs) {
       return CloseAllDialogsAction();
     } else if (actionType == ActionType.startTimer) {

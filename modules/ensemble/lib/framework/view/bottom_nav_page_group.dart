@@ -146,7 +146,7 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup>
     // TODO: this should be moved to PageGroup for the other ViewGroup types all behave the same way
     var route = ModalRoute.of(context);
     if (route is PageRoute) {
-      Ensemble.routeObserver.subscribe(this, route);
+      Ensemble().routeObserver.subscribe(this, route);
     }
   }
 
@@ -155,7 +155,7 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup>
     if (widget.menu.reloadView == false) {
       controller.dispose();
     }
-    Ensemble.routeObserver.unsubscribe(this);
+    Ensemble().routeObserver.unsubscribe(this);
     super.dispose();
   }
 
