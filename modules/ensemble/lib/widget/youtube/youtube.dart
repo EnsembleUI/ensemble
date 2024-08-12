@@ -87,10 +87,11 @@ mixin YouTubeMethods on WidgetState<YouTube> {
   void setVolume(int volume);
 }
 
-class YouTubeState extends WidgetState<YouTube> with YouTubeMethods {
+class YouTubeState extends WidgetState<YouTube> with YouTubeMethods, WidgetsBindingObserver {
   late YoutubePlayerController player;
   @override
   void initState() {
+    super.initState();
     YouTubeBase().createWebInstance();
     PlayerController playerController = widget._controller;
     player = YoutubePlayerController(
@@ -100,7 +101,14 @@ class YouTubeState extends WidgetState<YouTube> with YouTubeMethods {
             showControls: playerController.showControls,
             showFullscreenButton: playerController.showFullScreenButton,
             showVideoAnnotations: playerController.showVideoAnnotation));
-    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused) {
+      player.pauseVideo();
+    }
   }
 
   @override
@@ -125,6 +133,7 @@ class YouTubeState extends WidgetState<YouTube> with YouTubeMethods {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     player.close();
     super.dispose();
   }
