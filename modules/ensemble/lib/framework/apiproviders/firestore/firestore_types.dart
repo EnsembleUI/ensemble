@@ -181,9 +181,9 @@ class StaticFirestoreTimestamp with Invokable {
   Map<String, Function> methods() {
     return {
       'fromDate': (Date d) => FirestoreTimestamp.fromDate(d),
-      'fromMillisecondsSinceEpoch': (int milliseconds) =>
+      'fromMillis': (int milliseconds) =>
           FirestoreTimestamp(Timestamp.fromMillisecondsSinceEpoch(milliseconds)),
-      'fromMicrosecondsSinceEpoch': (int microseconds) => FirestoreTimestamp(
+      'fromMicroseconds': (int microseconds) => FirestoreTimestamp(
           Timestamp.fromMicrosecondsSinceEpoch(microseconds)),
       'now': () => FirestoreTimestamp(Timestamp.now()),
       'init': (int seconds, int nanoseconds) =>
@@ -219,6 +219,11 @@ class FirestoreTimestamp with Invokable, SupportsPrimitiveOperations, WrapsNativ
     return {
       'toDate': () => Date(timestamp.toDate()),
       'toString': () => timestamp.toDate().toString(),
+      'toMillis': () => timestamp.millisecondsSinceEpoch,
+      'toMicroseconds': () => timestamp.microsecondsSinceEpoch,
+      'valueOf': () => timestamp.toString(),
+      'isEqual': (dynamic other) => other is FirestoreTimestamp &&
+          timestamp == other.timestamp,
     };
   }
 
