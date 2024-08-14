@@ -87,7 +87,42 @@ mixin YouTubeMethods on WidgetState<YouTube> {
   void setVolume(int volume);
 }
 
-class YouTubeState extends WidgetState<YouTube> with YouTubeMethods, WidgetsBindingObserver {
+class YouTubeNavigatorObserver extends NavigatorObserver {
+  final YoutubePlayerController player;
+
+  YouTubeNavigatorObserver(this.player);
+
+  void _pauseVideo() {
+    player.pauseVideo();
+  }
+
+  @override
+  void didPop(Route route, Route? previousRoute) {
+    super.didPop(route, previousRoute);
+    _pauseVideo();
+  }
+
+  @override
+  void didPush(Route route, Route? previousRoute) {
+    super.didPush(route, previousRoute);
+    _pauseVideo();
+  }
+
+  @override
+  void didRemove(Route route, Route? previousRoute) {
+    super.didRemove(route, previousRoute);
+    _pauseVideo();
+  }
+
+  @override
+  void didReplace({Route? newRoute, Route? oldRoute}) {
+    super.didReplace(newRoute: newRoute, oldRoute: oldRoute);
+    _pauseVideo();
+  }
+}
+
+class YouTubeState extends WidgetState<YouTube>
+    with YouTubeMethods, WidgetsBindingObserver {
   late YoutubePlayerController player;
   @override
   void initState() {
@@ -102,6 +137,13 @@ class YouTubeState extends WidgetState<YouTube> with YouTubeMethods, WidgetsBind
             showFullscreenButton: playerController.showFullScreenButton,
             showVideoAnnotations: playerController.showVideoAnnotation));
     WidgetsBinding.instance.addObserver(this);
+
+    if (context.findAncestorStateOfType<NavigatorState>() != null) {
+      Navigator.of(context)
+          .widget
+          .observers
+          .add(YouTubeNavigatorObserver(player));
+    }
   }
 
   @override
@@ -133,8 +175,9 @@ class YouTubeState extends WidgetState<YouTube> with YouTubeMethods, WidgetsBind
 
   @override
   void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
+    player.stopVideo();
     player.close();
+    WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
 
@@ -290,6 +333,7 @@ class PlayerController extends BoxController {
 
 class YoutubeNotifier extends ChangeNotifier {
   bool isCalled = false;
+
   Future<void> initializeYoutube(PlayerController playerController,
       List<String> list, YoutubePlayerController player) async {
     if (!playerController.autoplay) {
