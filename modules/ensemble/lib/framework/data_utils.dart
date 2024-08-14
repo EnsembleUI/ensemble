@@ -1,12 +1,11 @@
 import 'package:ensemble/framework/scope.dart';
 
-class DataUtils{
-
+class DataUtils {
   static final onlyExpression =
-  RegExp(r'''^\$\{([^}]+)\}$''', caseSensitive: false);
+      RegExp(r'''^\$\{([^}]+)\}$''', caseSensitive: false);
 
   static final containExpression =
-  RegExp(r'''\$\{([^}{]+(?:\{[^}{]*\}[^}{]*)*)\}''', caseSensitive: false);
+      RegExp(r'''\$\{([^}{]+(?:\{[^}{]*\}[^}{]*)*)\}''', caseSensitive: false);
 
   // match an expression and AST e.g //@code <expression>\n<AST> in group1 and group2
   static final expressionAndAst =
@@ -85,6 +84,7 @@ class DataUtils{
   static bool hasExpression(String expression) {
     return containExpression.hasMatch(expression);
   }
+
   /// Splits a given string into a list of substrings based on spaces.
   /// - Text inside `${...}` expressions is treated as a single entity,
   ///   even if it contains spaces.

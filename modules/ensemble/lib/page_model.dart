@@ -59,7 +59,8 @@ abstract class PageModel {
     } on Error catch (e) {
       throw LanguageError("Invalid page definition.",
           recovery: "Please double check your page syntax.",
-          detailedError: e.toString() + "\n" + (e.stackTrace?.toString() ?? ''));
+          detailedError:
+              e.toString() + "\n" + (e.stackTrace?.toString() ?? ''));
     }
   }
 
@@ -233,9 +234,11 @@ mixin HasStyles {
   set className(String? className) {
     classList = toClassList(className);
   }
+
   static List<String>? toClassList(String? className) {
     return DataUtils.splitSpaceDelimitedString(className);
   }
+
   //these are the styles resolved with what's set at the theme level and inline styles
   Map<String, dynamic>? _runtimeStyles;
 
@@ -313,7 +316,8 @@ class SinglePageModel extends PageModel with HasStyles {
             inlineStyles![key] = EnsembleThemeManager.yamlToDart(value);
           });
         }
-        classList = HasStyles.toClassList(viewMap[ViewUtil.classNameAttribute] as String?);
+        classList = HasStyles.toClassList(
+            viewMap[ViewUtil.classNameAttribute] as String?);
         widgetType = type;
         widgetTypeStyles =
             EnsembleThemeManager().currentTheme()?.getWidgetTypeStyles(type);
@@ -333,7 +337,8 @@ class SinglePageModel extends PageModel with HasStyles {
               EnsembleThemeManager.yamlToDart(
                 viewMap['footer']['styles'],
               ),
-              HasStyles.toClassList(viewMap['footer'][ViewUtil.classNameAttribute] as String?),
+              HasStyles.toClassList(
+                  viewMap['footer'][ViewUtil.classNameAttribute] as String?),
               dragOptionsMap,
               fixedContent,
               ViewUtil.buildModel(footerYamlMap, customViewDefinitions));
@@ -373,7 +378,8 @@ class SinglePageModel extends PageModel with HasStyles {
       }
 
       styles = EnsembleThemeManager.yamlToDart(headerData['styles']);
-      classList = HasStyles.toClassList(headerData[ViewUtil.classNameAttribute] as String?);
+      classList = HasStyles.toClassList(
+          headerData[ViewUtil.classNameAttribute] as String?);
     }
 
     if (titleWidget != null ||

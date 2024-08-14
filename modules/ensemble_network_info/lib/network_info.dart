@@ -2,7 +2,8 @@ import 'dart:io';
 import 'package:ensemble/action/get_network_info_action.dart';
 import 'package:ensemble/framework/device.dart';
 import 'package:ensemble/framework/stub/location_manager.dart';
-import 'package:ensemble/framework/stub/network_info.dart' as ensembleNetWorkInfo;
+import 'package:ensemble/framework/stub/network_info.dart'
+    as ensembleNetWorkInfo;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:geolocator/geolocator.dart';
@@ -13,7 +14,7 @@ class NetworkInfoImpl implements ensembleNetWorkInfo.NetworkInfoManager {
   @override
   Future<String?> getWifiBSSID() async {
     if (kIsWeb) {
-      return Future.value(null);//not supported on the web
+      return Future.value(null); //not supported on the web
     }
     try {
       if (Platform.isAndroid || Platform.isIOS) {
@@ -22,9 +23,12 @@ class NetworkInfoImpl implements ensembleNetWorkInfo.NetworkInfoManager {
         }
         return await _networkInfo.getWifiBSSID();
       }
-    }  on PlatformException catch (e) {
-        throw PlatformException(code: 'Failed to get Wifi BSSID', message: e.message, details: e.details);
-        print('Failed to get Wifi BSSID');
+    } on PlatformException catch (e) {
+      throw PlatformException(
+          code: 'Failed to get Wifi BSSID',
+          message: e.message,
+          details: e.details);
+      print('Failed to get Wifi BSSID');
     }
   }
 
@@ -33,7 +37,10 @@ class NetworkInfoImpl implements ensembleNetWorkInfo.NetworkInfoManager {
     try {
       return await _networkInfo.getWifiBroadcast();
     } on PlatformException catch (e) {
-      throw PlatformException(code: 'Failed to get Wifi Broadcast address', message: e.message, details: e.details);
+      throw PlatformException(
+          code: 'Failed to get Wifi Broadcast address',
+          message: e.message,
+          details: e.details);
     }
   }
 
@@ -42,7 +49,10 @@ class NetworkInfoImpl implements ensembleNetWorkInfo.NetworkInfoManager {
     try {
       return await _networkInfo.getWifiGatewayIP();
     } on PlatformException catch (e) {
-      throw PlatformException(code: 'Failed to get Wifi Gateway ip address', message: e.message, details: e.details);
+      throw PlatformException(
+          code: 'Failed to get Wifi Gateway ip address',
+          message: e.message,
+          details: e.details);
     }
   }
 
@@ -51,7 +61,10 @@ class NetworkInfoImpl implements ensembleNetWorkInfo.NetworkInfoManager {
     try {
       return await _networkInfo.getWifiIP();
     } on PlatformException catch (e) {
-      throw PlatformException(code: 'Failed to get Wifi IPv4 address', message: e.message, details: e.details);
+      throw PlatformException(
+          code: 'Failed to get Wifi IPv4 address',
+          message: e.message,
+          details: e.details);
     }
   }
 
@@ -60,14 +73,17 @@ class NetworkInfoImpl implements ensembleNetWorkInfo.NetworkInfoManager {
     try {
       return await _networkInfo.getWifiIPv6();
     } on PlatformException catch (e) {
-      throw PlatformException(code: 'Failed to get Wifi IPv6 address', message: e.message, details: e.details);
+      throw PlatformException(
+          code: 'Failed to get Wifi IPv6 address',
+          message: e.message,
+          details: e.details);
     }
   }
 
   @override
   Future<String?> getWifiName() async {
     if (kIsWeb) {
-      return Future.value(null);//not supported on the web
+      return Future.value(null); //not supported on the web
     }
     try {
       if (Platform.isAndroid || Platform.isIOS) {
@@ -84,9 +100,12 @@ class NetworkInfoImpl implements ensembleNetWorkInfo.NetworkInfoManager {
           }
         }
         return wifiName;
-    }
-    }  on PlatformException catch (e) {
-      throw PlatformException(code: 'Failed to get Wifi name', message: e.message, details: e.details);
+      }
+    } on PlatformException catch (e) {
+      throw PlatformException(
+          code: 'Failed to get Wifi name',
+          message: e.message,
+          details: e.details);
       print('Failed to get Wifi BSSID');
     }
   }
@@ -96,14 +115,19 @@ class NetworkInfoImpl implements ensembleNetWorkInfo.NetworkInfoManager {
     try {
       return await _networkInfo.getWifiSubmask();
     } on PlatformException catch (e) {
-      throw PlatformException(code: 'Failed to get Wifi Submask', message: e.message, details: e.details);
+      throw PlatformException(
+          code: 'Failed to get Wifi Submask',
+          message: e.message,
+          details: e.details);
     }
   }
+
   Future<LocationPermissionStatus> checkPermission() async {
     final permission = await Geolocator.checkPermission();
     return LocationPermissionStatus.values
         .firstWhere((element) => element.name == permission.name);
   }
+
   @override
   Future<String> getLocationStatus() async {
     if (await Geolocator.isLocationServiceEnabled()) {
