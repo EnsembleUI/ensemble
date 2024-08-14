@@ -8,7 +8,9 @@ import 'package:flutter/rendering.dart';
 mixin WrapsNativeType<T> {
   T unwrap();
 }
-class FirestoreDocumentReference with Invokable,WrapsNativeType<DocumentReference> {
+
+class FirestoreDocumentReference
+    with Invokable, WrapsNativeType<DocumentReference> {
   final DocumentReference reference;
 
   FirestoreDocumentReference(this.reference);
@@ -83,7 +85,6 @@ class FirestoreQuery with Invokable, WrapsNativeType<Query> {
   Query<Object?> unwrap() {
     return query;
   }
-
 }
 
 class FirestoreCollectionReference extends FirestoreQuery {
@@ -117,6 +118,7 @@ class FirestoreCollectionReference extends FirestoreQuery {
     });
     return methods;
   }
+
   @override
   CollectionReference unwrap() {
     return collection;
@@ -181,8 +183,8 @@ class StaticFirestoreTimestamp with Invokable {
   Map<String, Function> methods() {
     return {
       'fromDate': (Date d) => FirestoreTimestamp.fromDate(d),
-      'fromMillis': (int milliseconds) =>
-          FirestoreTimestamp(Timestamp.fromMillisecondsSinceEpoch(milliseconds)),
+      'fromMillis': (int milliseconds) => FirestoreTimestamp(
+          Timestamp.fromMillisecondsSinceEpoch(milliseconds)),
       'fromMicroseconds': (int microseconds) => FirestoreTimestamp(
           Timestamp.fromMicrosecondsSinceEpoch(microseconds)),
       'now': () => FirestoreTimestamp(Timestamp.now()),
@@ -196,7 +198,9 @@ class StaticFirestoreTimestamp with Invokable {
     return {};
   }
 }
-class FirestoreTimestamp with Invokable, SupportsPrimitiveOperations, WrapsNativeType<Timestamp> {
+
+class FirestoreTimestamp
+    with Invokable, SupportsPrimitiveOperations, WrapsNativeType<Timestamp> {
   final Timestamp timestamp;
 
   FirestoreTimestamp(this.timestamp);
@@ -222,8 +226,8 @@ class FirestoreTimestamp with Invokable, SupportsPrimitiveOperations, WrapsNativ
       'toMillis': () => timestamp.millisecondsSinceEpoch,
       'toMicroseconds': () => timestamp.microsecondsSinceEpoch,
       'valueOf': () => timestamp.toString(),
-      'isEqual': (dynamic other) => other is FirestoreTimestamp &&
-          timestamp == other.timestamp,
+      'isEqual': (dynamic other) =>
+          other is FirestoreTimestamp && timestamp == other.timestamp,
     };
   }
 
@@ -231,7 +235,6 @@ class FirestoreTimestamp with Invokable, SupportsPrimitiveOperations, WrapsNativ
   String toString() {
     return methods()['toString']!();
   }
-
 
   @override
   runOperation(String operator, rhs) {
@@ -256,5 +259,4 @@ class FirestoreTimestamp with Invokable, SupportsPrimitiveOperations, WrapsNativ
   Timestamp unwrap() {
     return timestamp;
   }
-
 }
