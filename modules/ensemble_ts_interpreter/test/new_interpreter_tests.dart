@@ -44,8 +44,6 @@ class Ensemble extends Object with Invokable {
     return result;
   }
 
-
-
   @override
   Map<String, Function> getters() {
     return {
@@ -2513,8 +2511,7 @@ function createRandomizedTiles() {
     expect(context['n'], 12);
   });
 
-  group('InvokableObject methods', ()
-  {
+  group('InvokableObject methods', () {
     test('keys method', () {
       String codeToEvaluate = """
         var obj = new Object();
@@ -2531,120 +2528,119 @@ function createRandomizedTiles() {
   test('regex_test_method', () async {
     Map<String, dynamic> context = initContext();
     JSInterpreter.fromCode(
-        r'var stagingRegex = /https:\/\/a\.b\.c\.d\/e\/[a-f0-9\-]{36}/; var test = stagingRegex.test("https://a.b.c.d/e/197ccfda-a134-49ff-a9d9-1ea8cbd89c73");', SimpleContext(context))
+            r'var stagingRegex = /https:\/\/a\.b\.c\.d\/e\/[a-f0-9\-]{36}/; var test = stagingRegex.test("https://a.b.c.d/e/197ccfda-a134-49ff-a9d9-1ea8cbd89c73");',
+            SimpleContext(context))
         .evaluate();
     expect(context['test'], true);
   });
-    group('Regex Tests', () {
-      test('Basic regex test', () async {
-        Map<String, dynamic> context = initContext();
-        JSInterpreter.fromCode(
-            r'var stagingRegex = /https:\/\/a\.b\.c\.d\/e\/[a-f0-9\-]{36}/; var test = stagingRegex.test("https://a.b.c.d/e/197ccfda-a134-49ff-a9d9-1ea8cbd89c73");',
-            SimpleContext(context)
-        ).evaluate();
-        expect(context['test'], true);
-      });
-
-      test('Regex test with no match', () async {
-        Map<String, dynamic> context = initContext();
-        JSInterpreter.fromCode(
-            r'var stagingRegex = /https:\/\/a\.b\.c\.d\/e\/[a-f0-9\-]{36}/; var test = stagingRegex.test("https://a.b.c.d/e/invalid");',
-            SimpleContext(context)
-        ).evaluate();
-        expect(context['test'], false);
-      });
-
-      test('Regex with global flag', () async {
-        Map<String, dynamic> context = initContext();
-        JSInterpreter.fromCode(
-            r'var regex = /a/g; var result = "aabba".match(regex);',
-            SimpleContext(context)
-        ).evaluate();
-        expect(context['result'], ['a', 'a', 'a']);
-      });
-
-      test('Regex with case insensitive flag', () async {
-        Map<String, dynamic> context = initContext();
-        JSInterpreter.fromCode(
-            r'var regex = /a/i; var test = regex.test("A");',
-            SimpleContext(context)
-        ).evaluate();
-        expect(context['test'], true);
-      });
-
-      test('Regex with multiline flag', () async {
-        Map<String, dynamic> context = initContext();
-        JSInterpreter.fromCode(
-            r'var regex = /^a/m; var test = regex.test("b\na");',
-            SimpleContext(context)
-        ).evaluate();
-        expect(context['test'], true);
-      });
-
-      test('Regex with dotAll flag', () async {
-        Map<String, dynamic> context = initContext();
-        JSInterpreter.fromCode(
-            r'var regex = /a.b/s; var test = regex.test("a\nb");',
-            SimpleContext(context)
-        ).evaluate();
-        expect(context['test'], true);
-      });
-
-      test('Regex with unicode flag', () async {
-        Map<String, dynamic> context = initContext();
-        JSInterpreter.fromCode(
-            r'var regex = /\u{61}/u; var test = regex.test("a");',
-            SimpleContext(context)
-        ).evaluate();
-        expect(context['test'], true);
-      });
-
-      test('Regex replace method', () async {
-        Map<String, dynamic> context = initContext();
-        JSInterpreter.fromCode(
-            r'var regex = /foo/g; var result = "foo bar foo".replace(regex, "baz");',
-            SimpleContext(context)
-        ).evaluate();
-        expect(context['result'], "baz bar baz");
-      });
-
-      test('Regex match method', () async {
-        Map<String, dynamic> context = initContext();
-        JSInterpreter.fromCode(
-            r'var regex = /foo/g; var result = "foo bar foo".match(regex);',
-            SimpleContext(context)
-        ).evaluate();
-        expect(context['result'], ['foo', 'foo']);
-      });
-
-      test('Regex matchAll method', () async {
-        Map<String, dynamic> context = initContext();
-        JSInterpreter.fromCode(
-            r'var regex = /foo/g; var result = "foo bar foo".match(regex);',
-            SimpleContext(context)
-        ).evaluate();
-        expect(context['result'][0], 'foo');
-      });
-
-      test('Regex with escaped slashes', () async {
-        Map<String, dynamic> context = initContext();
-        JSInterpreter.fromCode(
-            r'var regex = /https:\/\/a\.b\.c\.d\/e\/path\/[a-f0-9\-]{36}/; var test = regex.test("https://a.b.c.d/e/path/197ccfda-a134-49ff-a9d9-1ea8cbd89c73");',
-            SimpleContext(context)
-        ).evaluate();
-        expect(context['test'], true);
-      });
-
-      test('Regex with no options', () async {
-        Map<String, dynamic> context = initContext();
-        JSInterpreter.fromCode(
-            r'var regex = /https:\/\/a\.b\.c\.d\/e\/[a-f0-9\-]{36}/; var test = regex.test("https://a.b.c.d/e/197ccfda-a134-49ff-a9d9-1ea8cbd89c73");',
-            SimpleContext(context)
-        ).evaluate();
-        expect(context['test'], true);
-      });
-
+  group('Regex Tests', () {
+    test('Basic regex test', () async {
+      Map<String, dynamic> context = initContext();
+      JSInterpreter.fromCode(
+              r'var stagingRegex = /https:\/\/a\.b\.c\.d\/e\/[a-f0-9\-]{36}/; var test = stagingRegex.test("https://a.b.c.d/e/197ccfda-a134-49ff-a9d9-1ea8cbd89c73");',
+              SimpleContext(context))
+          .evaluate();
+      expect(context['test'], true);
     });
+
+    test('Regex test with no match', () async {
+      Map<String, dynamic> context = initContext();
+      JSInterpreter.fromCode(
+              r'var stagingRegex = /https:\/\/a\.b\.c\.d\/e\/[a-f0-9\-]{36}/; var test = stagingRegex.test("https://a.b.c.d/e/invalid");',
+              SimpleContext(context))
+          .evaluate();
+      expect(context['test'], false);
+    });
+
+    test('Regex with global flag', () async {
+      Map<String, dynamic> context = initContext();
+      JSInterpreter.fromCode(
+              r'var regex = /a/g; var result = "aabba".match(regex);',
+              SimpleContext(context))
+          .evaluate();
+      expect(context['result'], ['a', 'a', 'a']);
+    });
+
+    test('Regex with case insensitive flag', () async {
+      Map<String, dynamic> context = initContext();
+      JSInterpreter.fromCode(r'var regex = /a/i; var test = regex.test("A");',
+              SimpleContext(context))
+          .evaluate();
+      expect(context['test'], true);
+    });
+
+    test('Regex with multiline flag', () async {
+      Map<String, dynamic> context = initContext();
+      JSInterpreter.fromCode(
+              r'var regex = /^a/m; var test = regex.test("b\na");',
+              SimpleContext(context))
+          .evaluate();
+      expect(context['test'], true);
+    });
+
+    test('Regex with dotAll flag', () async {
+      Map<String, dynamic> context = initContext();
+      JSInterpreter.fromCode(
+              r'var regex = /a.b/s; var test = regex.test("a\nb");',
+              SimpleContext(context))
+          .evaluate();
+      expect(context['test'], true);
+    });
+
+    test('Regex with unicode flag', () async {
+      Map<String, dynamic> context = initContext();
+      JSInterpreter.fromCode(
+              r'var regex = /\u{61}/u; var test = regex.test("a");',
+              SimpleContext(context))
+          .evaluate();
+      expect(context['test'], true);
+    });
+
+    test('Regex replace method', () async {
+      Map<String, dynamic> context = initContext();
+      JSInterpreter.fromCode(
+              r'var regex = /foo/g; var result = "foo bar foo".replace(regex, "baz");',
+              SimpleContext(context))
+          .evaluate();
+      expect(context['result'], "baz bar baz");
+    });
+
+    test('Regex match method', () async {
+      Map<String, dynamic> context = initContext();
+      JSInterpreter.fromCode(
+              r'var regex = /foo/g; var result = "foo bar foo".match(regex);',
+              SimpleContext(context))
+          .evaluate();
+      expect(context['result'], ['foo', 'foo']);
+    });
+
+    test('Regex matchAll method', () async {
+      Map<String, dynamic> context = initContext();
+      JSInterpreter.fromCode(
+              r'var regex = /foo/g; var result = "foo bar foo".match(regex);',
+              SimpleContext(context))
+          .evaluate();
+      expect(context['result'][0], 'foo');
+    });
+
+    test('Regex with escaped slashes', () async {
+      Map<String, dynamic> context = initContext();
+      JSInterpreter.fromCode(
+              r'var regex = /https:\/\/a\.b\.c\.d\/e\/path\/[a-f0-9\-]{36}/; var test = regex.test("https://a.b.c.d/e/path/197ccfda-a134-49ff-a9d9-1ea8cbd89c73");',
+              SimpleContext(context))
+          .evaluate();
+      expect(context['test'], true);
+    });
+
+    test('Regex with no options', () async {
+      Map<String, dynamic> context = initContext();
+      JSInterpreter.fromCode(
+              r'var regex = /https:\/\/a\.b\.c\.d\/e\/[a-f0-9\-]{36}/; var test = regex.test("https://a.b.c.d/e/197ccfda-a134-49ff-a9d9-1ea8cbd89c73");',
+              SimpleContext(context))
+          .evaluate();
+      expect(context['test'], true);
+    });
+  });
   group('Regex for classnames', () {
     test('Single word', () {
       final regex = RegExp(r'\${[^}]+}|\S+|[^${}\s]+');
@@ -2666,13 +2662,15 @@ function createRandomizedTiles() {
 
     test(r'Mixed with ${...} expression', () {
       final regex = RegExp(r'\${[^}]*}|\S+');
-      List<String> lista = Ensemble.splitString("abc \${1 + 1 ? 'gef' : 'xyz'} def");
+      List<String> lista =
+          Ensemble.splitString("abc \${1 + 1 ? 'gef' : 'xyz'} def");
       expect(lista, ['abc', "\${1 + 1 ? 'gef' : 'xyz'}", 'def']);
     });
 
     test(r'Mixed with multiple spaces and ${...} expression', () {
       final regex = RegExp(r'\${[^}]*}|\S+');
-      List<String> lista = Ensemble.splitString("abc    \${ example:123}    def");
+      List<String> lista =
+          Ensemble.splitString("abc    \${ example:123}    def");
       expect(lista, ['abc', '\${ example:123}', 'def']);
     });
 

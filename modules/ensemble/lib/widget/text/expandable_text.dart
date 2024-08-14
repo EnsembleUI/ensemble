@@ -46,7 +46,8 @@ class _ExpandableTextState extends State<ExpandableText> {
     final style = widget.style;
     final textScaler = widget.textScaler;
     final textOverflow = widget.textOverflow;
-    final expandTextStyle = widget.expandTextStyle ?? widget.style.copyWith(color: Colors.blue);
+    final expandTextStyle =
+        widget.expandTextStyle ?? widget.style.copyWith(color: Colors.blue);
 
     TextSpan link = TextSpan(
       text: _isExpanded ? widget.collapseLabel : widget.expandLabel,
@@ -58,50 +59,48 @@ class _ExpandableTextState extends State<ExpandableText> {
       builder: (context, size) {
         final span = TextSpan(text: text, style: style);
         final tp = TextPainter(
-          text: span,
-          maxLines: widget.maxLines,
-          textAlign: textAlign,
-          textDirection: Directionality.of(context),
-          textScaler: textScaler ?? TextScaler.noScaling
-        );
+            text: span,
+            maxLines: widget.maxLines,
+            textAlign: textAlign,
+            textDirection: Directionality.of(context),
+            textScaler: textScaler ?? TextScaler.noScaling);
         tp.layout(maxWidth: size.maxWidth);
 
         final exceedsMaxLines = tp.didExceedMaxLines;
 
-        return
-              widget.selectable
-                ? SelectableText.rich(
-              TextSpan(
-                text: _isExpanded || !exceedsMaxLines
-                    ? text
-                    : text.substring(
-                    0,
-                    tp.getPositionForOffset(Offset(
-                        size.maxWidth,
-                        tp.preferredLineHeight * widget.maxLines))
-                        .offset),
-                style: style,
-                children: [if (exceedsMaxLines || _isExpanded) link],
-              ),
-              textAlign: textAlign,
-              textScaler: textScaler,
-            )
-                : Text.rich(
-              TextSpan(
-                text: _isExpanded || !exceedsMaxLines
-                    ? text
-                    : text.substring(
-                    0,
-                    tp.getPositionForOffset(Offset(
-                        size.maxWidth,
-                        tp.preferredLineHeight * widget.maxLines))
-                        .offset),
-                style: style,
-                children: [if (exceedsMaxLines || _isExpanded) link],
-              ),
-              textAlign: textAlign,
-              textScaler: textScaler,
-            );
+        return widget.selectable
+            ? SelectableText.rich(
+                TextSpan(
+                  text: _isExpanded || !exceedsMaxLines
+                      ? text
+                      : text.substring(
+                          0,
+                          tp
+                              .getPositionForOffset(Offset(size.maxWidth,
+                                  tp.preferredLineHeight * widget.maxLines))
+                              .offset),
+                  style: style,
+                  children: [if (exceedsMaxLines || _isExpanded) link],
+                ),
+                textAlign: textAlign,
+                textScaler: textScaler,
+              )
+            : Text.rich(
+                TextSpan(
+                  text: _isExpanded || !exceedsMaxLines
+                      ? text
+                      : text.substring(
+                          0,
+                          tp
+                              .getPositionForOffset(Offset(size.maxWidth,
+                                  tp.preferredLineHeight * widget.maxLines))
+                              .offset),
+                  style: style,
+                  children: [if (exceedsMaxLines || _isExpanded) link],
+                ),
+                textAlign: textAlign,
+                textScaler: textScaler,
+              );
       },
     );
   }
