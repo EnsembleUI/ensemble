@@ -100,26 +100,26 @@ class ShowBottomSheetAction extends EnsembleAction {
   @override
   Future<dynamic> execute(BuildContext context, ScopeManager scopeManager) {
     if (body != null) {
+      final body = getBodyWidget(scopeManager, context);
       showModalBottomSheet(
-        context: context,
-        // disable the default bottom sheet styling since we use our own
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        showDragHandle: false,
-
-        barrierColor: getBarrierColor(scopeManager),
-        isScrollControlled: true,
-        enableDrag: true,
-        // padding to account for the keyboard when we have input widgets inside the modal
-        builder: (modalContext) => Padding(
-          padding: EdgeInsets.only(
-            bottom: MediaQuery.of(modalContext).viewInsets.bottom,
-          ),
-          child: DataScopeWidget(
-              scopeManager: scopeManager.createChildScope(),
-              child: getBodyWidget(scopeManager, context)),
-        ),
-      ).then((payload) {
+          context: context,
+          // disable the default bottom sheet styling since we use our own
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          showDragHandle: false,
+          barrierColor: getBarrierColor(scopeManager),
+          isScrollControlled: true,
+          enableDrag: true,
+          // padding to account for the keyboard when we have input widgets inside the modal
+          builder: (modalContext) {
+            return Padding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(modalContext).viewInsets.bottom,
+              ),
+              child: DataScopeWidget(
+                  scopeManager: scopeManager.createChildScope(), child: body),
+            );
+          }).then((payload) {
         if (onDismiss != null) {
           return ScreenController().executeActionWithScope(
               context, scopeManager, onDismiss!,
@@ -235,6 +235,7 @@ class ShowBottomSheetAction extends EnsembleAction {
 /// Dismiss the Bottom Modal (if the context is a descendant, no-op otherwise)
 class DismissBottomSheetAction extends EnsembleAction {
   DismissBottomSheetAction({super.initiator, this.payload});
+
   Map? payload;
 
   factory DismissBottomSheetAction.from({Invokable? initiator, Map? payload}) =>
