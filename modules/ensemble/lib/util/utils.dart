@@ -898,8 +898,6 @@ class Utils {
     return input;
   }
 
-
-
   /// pick a string randomly from the list
   static String randomize(List<String> strings) {
     assert(strings.isNotEmpty);
