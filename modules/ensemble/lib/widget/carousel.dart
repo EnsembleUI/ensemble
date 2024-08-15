@@ -196,7 +196,7 @@ class MyController extends BoxController {
   final CarouselController _carouselController = CarouselController();
 }
 
-class CarouselState extends WidgetState<Carousel>
+class CarouselState extends EWidgetState<Carousel>
     with TemplatedWidgetState, HasChildren<Carousel> {
   List<Widget>? templatedChildren;
 

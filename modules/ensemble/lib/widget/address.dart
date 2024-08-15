@@ -87,7 +87,7 @@ class AddressController extends WidgetController with LocationCapability {
   }
 }
 
-class AddressState extends WidgetState<Address> {
+class AddressState extends EWidgetState<Address> {
   TextEditingController? _textEditingController;
   FocusNode? _focusNode;
   List<Place> _recentSearches = [];

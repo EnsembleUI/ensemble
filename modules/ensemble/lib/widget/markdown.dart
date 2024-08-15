@@ -54,7 +54,7 @@ class MarkdownController extends WidgetController {
   //TextStyle? codeStyle
 }
 
-class MarkdownState extends framework.WidgetState<Markdown> {
+class MarkdownState extends framework.EWidgetState<Markdown> {
   @override
   Widget buildWidget(BuildContext context) {
     // built styles from default Material3 text styles, then apply overrides

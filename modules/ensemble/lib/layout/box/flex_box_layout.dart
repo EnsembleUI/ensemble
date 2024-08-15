@@ -78,7 +78,7 @@ abstract class FlexBoxLayout extends StatefulWidget
   bool isVertical();
 }
 
-class FlexBoxLayoutState extends WidgetState<FlexBoxLayout>
+class FlexBoxLayoutState extends EWidgetState<FlexBoxLayout>
     with TemplatedWidgetState, HasChildren<FlexBoxLayout> {
   @override
   Widget buildWidget(BuildContext context) {

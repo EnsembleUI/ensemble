@@ -131,7 +131,7 @@ class EnsembleLottie extends StatefulWidget
   }
 }
 
-mixin LottieAction on WidgetState<EnsembleLottie> {
+mixin LottieAction on EWidgetState<EnsembleLottie> {
   void forward();
   void reverse();
   void reset();

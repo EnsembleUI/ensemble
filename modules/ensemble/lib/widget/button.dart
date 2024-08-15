@@ -116,7 +116,7 @@ class ButtonController extends BoxController {
   IconModel? endingIcon;
 }
 
-class ButtonState extends WidgetState<Button> {
+class ButtonState extends EWidgetState<Button> {
   @override
   Widget buildWidget(BuildContext context) {
     bool isOutlineButton = widget._controller.outline ?? false;

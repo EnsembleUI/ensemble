@@ -60,7 +60,7 @@ class ToggleController extends WidgetController {
   Duration? transitionDuration;
 }
 
-class ToggleState extends WidgetState<Toggle> {
+class ToggleState extends EWidgetState<Toggle> {
   late Widget _inactiveWidget;
   late Widget _activeWidget;
 

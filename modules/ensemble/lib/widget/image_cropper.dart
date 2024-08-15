@@ -94,7 +94,7 @@ class EnsembleImageCropper extends StatefulWidget
   }
 }
 
-mixin CropAction on WidgetState<EnsembleImageCropper> {
+mixin CropAction on EWidgetState<EnsembleImageCropper> {
   Future<void> cropImage();
 }
 
@@ -148,7 +148,7 @@ class EnsembleImageCropperController extends BoxController {
   }
 }
 
-class EnsembleImageCropperState extends WidgetState<EnsembleImageCropper>
+class EnsembleImageCropperState extends EWidgetState<EnsembleImageCropper>
     with CropAction {
   late Widget placeholder;
   final currentShape = CustomCropShape.Circle;

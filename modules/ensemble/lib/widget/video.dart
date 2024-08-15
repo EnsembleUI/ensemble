@@ -155,7 +155,7 @@ class MyController extends WidgetController {
   }
 }
 
-mixin PlayerCapabilities on WidgetState<Video> {
+mixin PlayerCapabilities on EWidgetState<Video> {
   void stop();
   void pause();
   void play();
@@ -165,7 +165,7 @@ mixin PlayerCapabilities on WidgetState<Video> {
   void videoPlayerStateChange();
 }
 
-class VideoState extends WidgetState<Video> with PlayerCapabilities {
+class VideoState extends EWidgetState<Video> with PlayerCapabilities {
   @override
   void didChangeDependencies() {
     widget._controller.playerCapabilities = this;

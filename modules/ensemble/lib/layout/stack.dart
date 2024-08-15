@@ -59,7 +59,7 @@ class StackController extends TapEnabledBoxController {
   Alignment? alignChildren;
 }
 
-class StackState extends WidgetState<EnsembleStack>
+class StackState extends EWidgetState<EnsembleStack>
     with HasChildren<EnsembleStack> {
   @override
   Widget buildWidget(BuildContext context) {

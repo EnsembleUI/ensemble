@@ -113,9 +113,11 @@ PODS:
     - Flutter
   - integration_test (0.0.1):
     - Flutter
+  - IOSSecuritySuite (2.1.0)
   - leveldb-library (1.22.5)
   - local_auth_darwin (0.0.1):
     - Flutter
+    - FlutterMacOS
   - nanopb (2.30910.0):
     - nanopb/decode (= 2.30910.0)
     - nanopb/encode (= 2.30910.0)
@@ -134,6 +136,9 @@ PODS:
     - FlutterMacOS
   - receive_sharing_intent (1.6.7):
     - Flutter
+  - root_jailbreak_sniffer (1.0.6):
+    - Flutter
+    - IOSSecuritySuite
   - sensors_plus (0.0.1):
     - Flutter
   - share_plus (0.0.1):
@@ -177,6 +182,7 @@ DEPENDENCIES:
   - path_provider_foundation (from `.symlinks/plugins/path_provider_foundation/darwin`)
   - rate_my_app (from `.symlinks/plugins/rate_my_app/darwin`)
   - receive_sharing_intent (from `.symlinks/plugins/receive_sharing_intent/ios`)
+  - root_jailbreak_sniffer (from `.symlinks/plugins/root_jailbreak_sniffer/ios`)
   - sensors_plus (from `.symlinks/plugins/sensors_plus/ios`)
   - share_plus (from `.symlinks/plugins/share_plus/ios`)
   - shared_preferences_foundation (from `.symlinks/plugins/shared_preferences_foundation/darwin`)
@@ -203,6 +209,7 @@ SPEC REPOS:
     - FirebaseSharedSwift
     - GoogleDataTransport
     - GoogleUtilities
+    - IOSSecuritySuite
     - leveldb-library
     - nanopb
     - PromisesObjC
@@ -252,6 +259,8 @@ EXTERNAL SOURCES:
     :path: ".symlinks/plugins/rate_my_app/darwin"
   receive_sharing_intent:
     :path: ".symlinks/plugins/receive_sharing_intent/ios"
+  root_jailbreak_sniffer:
+    :path: ".symlinks/plugins/root_jailbreak_sniffer/ios"
   sensors_plus:
     :path: ".symlinks/plugins/sensors_plus/ios"
   share_plus:
@@ -305,8 +314,9 @@ SPEC CHECKSUMS:
   GoogleUtilities: ea963c370a38a8069cc5f7ba4ca849a60b6d7d15
   high_chart: c903424304abb7549da4551c4450c83f742fbb15
   integration_test: 13825b8a9334a850581300559b8839134b124670
+  IOSSecuritySuite: 45e8531b05ffa72b5661cbdb5b5b5648a8de1a84
   leveldb-library: e8eadf9008a61f9e1dde3978c086d2b6d9b9dc28
-  local_auth_darwin: 4d56c90c2683319835a61274b57620df9c4520ab
+  local_auth_darwin: 66e40372f1c29f383a314c738c7446e2f7fdadc3
   nanopb: 438bc412db1928dac798aa6fd75726007be04262
   otp_pin_field: 0f0935fafc56252e6a48a5a045ac689b6bad3857
   package_info_plus: 58f0028419748fad15bf008b270aaa8e54380b1c
@@ -314,6 +324,7 @@ SPEC CHECKSUMS:
   PromisesObjC: f5707f49cb48b9636751c5b2e7d227e43fba9f47
   rate_my_app: cd3e1c44d12f387482698ffaf6ea9bd669a69b94
   receive_sharing_intent: 9ca20ae908f83c36ddaaaa8c9bd30ce4700495e8
+  root_jailbreak_sniffer: e0be4831c81d09059597eeff6804122d22eb9e6a
   sensors_plus: 4ee32bc7d61a055f27f88d3215ad6b6fb96a2b8e
   share_plus: c3fef564749587fc939ef86ffb283ceac0baf9f5
   shared_preferences_foundation: fcdcbc04712aee1108ac7fda236f363274528f78

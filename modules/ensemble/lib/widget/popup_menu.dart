@@ -69,7 +69,7 @@ class PopupMenuController extends WidgetController {
   List<PopupMenuItem> items = [];
 }
 
-class PopupMenuState extends WidgetState<PopupMenu> {
+class PopupMenuState extends EWidgetState<PopupMenu> {
   late Widget anchorWidget;
 
   @override

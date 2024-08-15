@@ -65,7 +65,7 @@ class IconController extends BoxController {
   String? onTapHaptic;
 }
 
-class IconState extends WidgetState<EnsembleIcon> {
+class IconState extends EWidgetState<EnsembleIcon> {
   @override
   Widget buildWidget(BuildContext context) {
     if (widget._controller.name == null && widget._controller.icon == null) {
