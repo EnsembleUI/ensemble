@@ -1051,4 +1051,11 @@ class Utils {
       orElse: () => enumValues.first,
     );
   }
+
+  static List<Color>? getColorList(dynamic value) {
+    if (value is List) {
+      return value.map((item) => getColor(item) ?? Colors.transparent).toList();
+    }
+    return null;
+  }
 }
