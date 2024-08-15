@@ -96,7 +96,7 @@ class ImageController extends BoxController {
   bool? pinchToZoom;
 }
 
-class ImageState extends WidgetState<EnsembleImage> {
+class ImageState extends EWidgetState<EnsembleImage> {
   @override
   Widget buildWidget(BuildContext context) {
     Widget image;

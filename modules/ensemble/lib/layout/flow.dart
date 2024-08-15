@@ -87,7 +87,7 @@ class FlowController extends BoxController {
   int selectedItemIndex = -1;
 }
 
-class FlowState extends WidgetState<Flow>
+class FlowState extends EWidgetState<Flow>
     with TemplatedWidgetState, HasChildren<Flow> {
   List<Widget>? templatedChildren;
 

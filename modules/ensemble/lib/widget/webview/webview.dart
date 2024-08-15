@@ -59,7 +59,7 @@ class EnsembleWebView extends StatefulWidget
   }
 }
 
-mixin CookieMethods on WidgetState<EnsembleWebView> {
+mixin CookieMethods on EWidgetState<EnsembleWebView> {
   void clearCookie();
   void inputCookie(String? value);
 }

@@ -130,7 +130,7 @@ class ChartJs extends StatefulWidget
   }
 }
 
-class ChartJsState extends WidgetState<ChartJs> {
+class ChartJsState extends EWidgetState<ChartJs> {
   JsWidget? jsWidget;
   void evalScript(String script) {
     if (jsWidget == null) {

@@ -9,7 +9,7 @@ import 'package:ensemble/screen_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:ensemble/framework/widget/icon.dart' as ensemble;
 
-abstract class BaseTabBarState extends WidgetState<BaseTabBar>
+abstract class BaseTabBarState extends EWidgetState<BaseTabBar>
     with TickerProviderStateMixin, TabBarAction {
   late TabController tabController;
 
@@ -111,6 +111,6 @@ abstract class BaseTabBarState extends WidgetState<BaseTabBar>
   }
 }
 
-mixin TabBarAction on WidgetState<BaseTabBar> {
+mixin TabBarAction on EWidgetState<BaseTabBar> {
   void changeTab(int index);
 }

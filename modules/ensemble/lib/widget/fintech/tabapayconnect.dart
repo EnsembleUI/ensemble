@@ -66,7 +66,7 @@ class TabaPayConnect extends StatefulWidget
   }
 }
 
-class TabaPayConnectState extends WidgetState<TabaPayConnect> {
+class TabaPayConnectState extends EWidgetState<TabaPayConnect> {
   WebViewController? _webViewController;
 
   @override

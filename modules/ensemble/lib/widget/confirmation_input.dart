@@ -145,13 +145,13 @@ class ConfirmationInputController extends BoxController {
   set textStyle(TextStyleComposite style) => _textStyle = style;
 }
 
-mixin InputFieldAction on framework.WidgetState<ConfirmationInput> {
+mixin InputFieldAction on framework.EWidgetState<ConfirmationInput> {
   void focusInputField();
   void unfocusInputField();
   void clear();
 }
 
-class ConfirmationInputState extends framework.WidgetState<ConfirmationInput>
+class ConfirmationInputState extends framework.EWidgetState<ConfirmationInput>
     with InputFieldAction {
   final _otpPinFieldController = GlobalKey<OtpPinFieldState>();
 

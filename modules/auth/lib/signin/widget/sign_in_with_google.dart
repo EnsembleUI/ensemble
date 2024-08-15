@@ -82,7 +82,7 @@ class SignInWithGoogleController extends SignInButtonController {
   EnsembleAction? onError;
 }
 
-class SignInWithGoogleImplState extends WidgetState<SignInWithGoogleImpl> {
+class SignInWithGoogleImplState extends EWidgetState<SignInWithGoogleImpl> {
   @override
   void initState() {
     super.initState();
