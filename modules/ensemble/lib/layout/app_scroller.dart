@@ -101,7 +101,7 @@ class AppScrollerController extends WidgetController {
   }
 }
 
-class _AppScrollerState extends WidgetState<AppScroller> {
+class _AppScrollerState extends EWidgetState<AppScroller> {
   @override
   void initState() {
     super.initState();

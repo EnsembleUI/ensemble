@@ -87,7 +87,7 @@ class TextController extends BoxController {
   set textStyle(TextStyleComposite style) => _textStyle = style;
 }
 
-class EnsembleTextState extends framework.WidgetState<EnsembleText> {
+class EnsembleTextState extends framework.EWidgetState<EnsembleText> {
   @override
   Widget buildWidget(BuildContext context) {
     return BoxWrapper(

@@ -75,7 +75,7 @@ class YouTube extends StatefulWidget
       };
 }
 
-mixin YouTubeMethods on WidgetState<YouTube> {
+mixin YouTubeMethods on EWidgetState<YouTube> {
   void nextVideo();
   void previousVideo();
   void stopVideo();
@@ -87,7 +87,7 @@ mixin YouTubeMethods on WidgetState<YouTube> {
   void setVolume(int volume);
 }
 
-class YouTubeState extends WidgetState<YouTube> with YouTubeMethods {
+class YouTubeState extends EWidgetState<YouTube> with YouTubeMethods {
   late YoutubePlayerController player;
   @override
   void initState() {

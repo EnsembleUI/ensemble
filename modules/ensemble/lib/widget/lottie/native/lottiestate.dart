@@ -9,7 +9,7 @@ import 'package:ensemble/widget/widget_util.dart';
 import 'package:flutter/widgets.dart';
 import 'package:lottie/lottie.dart';
 
-class LottieState extends WidgetState<EnsembleLottie>
+class LottieState extends EWidgetState<EnsembleLottie>
     with SingleTickerProviderStateMixin {
   @override
   void initState() {

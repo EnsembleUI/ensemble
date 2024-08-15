@@ -61,7 +61,7 @@ class ConnectWithGoogleImpl extends StatefulWidget
 
 class ConnectWithGoogleController extends ConnectController {}
 
-class ConnectWithGoogleState extends WidgetState<ConnectWithGoogleImpl> {
+class ConnectWithGoogleState extends EWidgetState<ConnectWithGoogleImpl> {
   Widget? _displayWidget;
 
   @override
