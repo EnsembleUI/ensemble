@@ -124,6 +124,8 @@ class YouTubeNavigatorObserver extends NavigatorObserver {
 class YouTubeState extends WidgetState<YouTube>
     with YouTubeMethods, WidgetsBindingObserver {
   late YoutubePlayerController player;
+  late YouTubeNavigatorObserver _youtubeObserver;
+
   @override
   void initState() {
     super.initState();
@@ -138,11 +140,10 @@ class YouTubeState extends WidgetState<YouTube>
             showVideoAnnotations: playerController.showVideoAnnotation));
     WidgetsBinding.instance.addObserver(this);
 
+    _youtubeObserver = YouTubeNavigatorObserver(player);
+
     if (context.findAncestorStateOfType<NavigatorState>() != null) {
-      Navigator.of(context)
-          .widget
-          .observers
-          .add(YouTubeNavigatorObserver(player));
+      Navigator.of(context).widget.observers.add(_youtubeObserver);
     }
   }
 
@@ -178,6 +179,11 @@ class YouTubeState extends WidgetState<YouTube>
     player.stopVideo();
     player.close();
     WidgetsBinding.instance.removeObserver(this);
+
+    if (context.findAncestorStateOfType<NavigatorState>() != null) {
+      Navigator.of(context).widget.observers.remove(_youtubeObserver);
+    }
+
     super.dispose();
   }
 
