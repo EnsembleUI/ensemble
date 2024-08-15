@@ -139,7 +139,7 @@ class GridViewController extends BoxController {
   }
 }
 
-class GridViewState extends WidgetState<GridView> with TemplatedWidgetState {
+class GridViewState extends EWidgetState<GridView> with TemplatedWidgetState {
   static const gap = 10.0;
   static const cachedPixels = 500.0; // cache an additional iphone size height
 

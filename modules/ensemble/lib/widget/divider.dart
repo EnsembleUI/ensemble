@@ -54,7 +54,7 @@ class DividerController extends WidgetController {
   int? endIndent;
 }
 
-class DividerState extends WidgetState<EnsembleDivider> {
+class DividerState extends EWidgetState<EnsembleDivider> {
   @override
   Widget buildWidget(BuildContext context) {
     Widget rtn;

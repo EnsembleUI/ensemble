@@ -59,7 +59,7 @@ class ToggleContainerController extends WidgetController {
   Duration? transitionDuration;
 }
 
-class ToggleContainerState extends WidgetState<ToggleContainer> {
+class ToggleContainerState extends EWidgetState<ToggleContainer> {
   final defaultDuration = const Duration(milliseconds: 300);
   late Widget first;
   late Widget second;

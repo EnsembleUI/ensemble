@@ -616,7 +616,7 @@ int getHashCode(DateTime key) {
   return key.day * 1000000 + key.month * 10000 + key.year;
 }
 
-class CalendarState extends WidgetState<EnsembleCalendar>
+class CalendarState extends EWidgetState<EnsembleCalendar>
     with TemplatedWidgetState {
   final CalendarFormat _calendarFormat = CalendarFormat.month;
   ItemTemplate? itemTemplate;

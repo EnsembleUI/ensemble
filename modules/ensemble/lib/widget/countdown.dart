@@ -157,7 +157,7 @@ class CountdownController extends WidgetController {
   set labelStyle(TextStyleComposite style) => _labelStyle = style;
 }
 
-mixin CountdownAction on WidgetState<Countdown> {
+mixin CountdownAction on EWidgetState<Countdown> {
   void startTimer();
 
   void stopTimer();
@@ -165,7 +165,7 @@ mixin CountdownAction on WidgetState<Countdown> {
   void resetTimer();
 }
 
-class CountdownState extends WidgetState<Countdown> with CountdownAction {
+class CountdownState extends EWidgetState<Countdown> with CountdownAction {
   late DateTime _startingTime;
   late Duration _duration;
 

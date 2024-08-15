@@ -53,7 +53,7 @@ class QRCodeController extends BoxController {
   QrEyeShape eyeShape = QrEyeShape.square;
 }
 
-class QRCodeState extends WidgetState<QRCode> {
+class QRCodeState extends EWidgetState<QRCode> {
   static const double defaultSize = 160;
 
   @override

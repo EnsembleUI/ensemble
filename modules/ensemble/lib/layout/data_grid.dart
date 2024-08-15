@@ -218,7 +218,7 @@ class DataColumnSort {
   });
 }
 
-class DataGridState extends WidgetState<DataGrid>
+class DataGridState extends EWidgetState<DataGrid>
     with TemplatedWidgetState, HasChildren<DataGrid> {
   List<Widget>? templatedChildren;
   List<EnsembleDataColumn> _columns = [];

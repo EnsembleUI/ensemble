@@ -14,7 +14,7 @@ import 'package:webview_flutter_android/webview_flutter_android.dart';
 // Import for iOS features.
 import 'package:webview_flutter_wkwebview/webview_flutter_wkwebview.dart';
 
-class WebViewState extends WidgetState<EnsembleWebView> with CookieMethods {
+class WebViewState extends EWidgetState<EnsembleWebView> with CookieMethods {
   // WebView won't render on Android if height is 0 initially
   bool isCookieLoaded = false;
   Cookie? cookieHeader;

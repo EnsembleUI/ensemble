@@ -44,7 +44,7 @@ class SpacerController extends Controller with HasStyles {
   int? flex;
 }
 
-class SpacerState extends WidgetState<EnsembleSpacer> {
+class SpacerState extends EWidgetState<EnsembleSpacer> {
   @override
   Widget buildWidget(BuildContext context) {
     if (widget._controller.size != null) {

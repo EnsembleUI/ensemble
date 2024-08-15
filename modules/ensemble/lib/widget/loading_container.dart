@@ -64,7 +64,7 @@ class LoadingContainerController extends BoxController {
   dynamic loadingWidget;
 }
 
-class LoadingContainerState extends WidgetState<LoadingContainer> {
+class LoadingContainerState extends EWidgetState<LoadingContainer> {
   @override
   Widget buildWidget(BuildContext context) {
     return AnimatedSwitcher(
