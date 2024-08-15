@@ -307,9 +307,10 @@ class CustomShimmerState extends State<CustomShimmer>
 
     _shimmerController = AnimationController.unbounded(vsync: this)
       ..repeat(
-          min: widget.min,
-          max: widget.max,
-          period: const Duration(milliseconds: 1000));
+        min: widget.min,
+        max: widget.max,
+        period: Duration(milliseconds: widget.shimmerSpeed),
+      );
   }
 
   @override
