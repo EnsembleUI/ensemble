@@ -30,7 +30,8 @@ mixin HasItemTemplate<T extends Widget> {
 
 /// Deprecated. Use [EnsembleWidgetState] instead
 /// base class for widgets that want to participate in Ensemble layout
-abstract class EWidgetState<W extends HasController> extends BaseWidgetState<W> {
+abstract class EWidgetState<W extends HasController>
+    extends BaseWidgetState<W> {
   ScopeManager? scopeManager;
 
   void resolveStylesIfUnresolved(BuildContext context) {
@@ -98,8 +99,26 @@ abstract class EWidgetState<W extends HasController> extends BaseWidgetState<W> 
         rtn = PointerInterceptor(child: rtn);
       }
 
-      // wrap inside Align if specified
-      if (widgetController.alignment != null) {
+      // handle percentage dimension and alignment together
+      if (widgetController is BoxController &&
+          Utils.hasPercentage(
+              width: widgetController.width, height: widgetController.height)) {
+        final widthFactor = widgetController.width?.getFractionalValue();
+        final heightFactor = widgetController.height?.getFractionalValue();
+        rtn = FractionallySizedBox(
+          widthFactor: widthFactor,
+          heightFactor: heightFactor,
+          alignment: widgetController.alignment ?? Alignment.center,
+          child: rtn,
+        );
+        // ensure if we are using a percentage then the parent must constrain the dimensions
+        rtn = StudioDebugger().assertPercentageWidgetHasBoundedConstraints(
+            widget,
+            assertBoundedWidth: widthFactor != null,
+            assertBoundedHeight: heightFactor != null);
+      }
+      // else handle alignment separately
+      else if (widgetController.alignment != null) {
         rtn = Align(alignment: widgetController.alignment!, child: rtn);
       }
 
@@ -217,6 +236,8 @@ class RequiresChildWithIntrinsicDimension extends InheritedWidget {
   }
 }
 
+/// use for a child widget to travel up to ensure their box-related properties (e.g. flex)
+/// are indeed used inside a Row/Column/Flex widget
 class RequiresRowColumnFlexWidget extends InheritedWidget {
   const RequiresRowColumnFlexWidget({super.key, required super.child});
 

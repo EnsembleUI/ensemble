@@ -75,7 +75,7 @@ dependencies:
   flutter_svg_provider: ^1.0.4
   qr_flutter: ^4.1.0
   device_info_plus: ^9.1.2
-  carousel_slider: ^4.1.1
+  carousel_slider: ^4.2.1
   fluttertoast: 8.2.2
   video_player: ^2.6.1
   lottie: ^3.0.0

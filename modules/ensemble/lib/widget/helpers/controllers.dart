@@ -283,8 +283,8 @@ class BoxController extends WidgetController {
   EdgeInsets? margin;
   EdgeInsets? padding;
 
-  int? width;
-  int? height;
+  IntegerOrPercentage? width;
+  IntegerOrPercentage? height;
 
   Color? backgroundColor;
   BackgroundImage? backgroundImage;
@@ -317,8 +317,8 @@ class BoxController extends WidgetController {
       'margin': (value) => margin = Utils.optionalInsets(value),
       'padding': (value) => padding = Utils.optionalInsets(value),
 
-      'width': (value) => width = Utils.optionalInt(value),
-      'height': (value) => height = Utils.optionalInt(value),
+      'width': (value) => width = IntegerOrPercentage.from(value),
+      'height': (value) => height = IntegerOrPercentage.from(value),
 
       'backgroundColor': (value) => backgroundColor = Utils.getColor(value),
       'backgroundImage': (value) =>

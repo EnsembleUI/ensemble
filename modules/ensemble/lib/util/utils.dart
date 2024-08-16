@@ -31,6 +31,10 @@ class Utils {
   /// such that they'll overflow the UI instead of layout exception
   static const double widgetMaxWidth = 2000;
 
+  static bool hasPercentage(
+          {IntegerOrPercentage? width, IntegerOrPercentage? height}) =>
+      (width?.isPercentage() ?? false) || (height?.isPercentage() ?? false);
+
   /// return an Integer if it is, or null if not
   static int? optionalInt(dynamic value, {int? min, int? max}) {
     int? rtn =

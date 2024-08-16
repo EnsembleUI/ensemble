@@ -291,21 +291,21 @@ class EnsembleImageCropperState extends EWidgetState<EnsembleImageCropper>
     if (source.startsWith('https://') || source.startsWith('http://')) {
       return Image.network(
         source,
-        width: widget._controller.width?.toDouble(),
-        height: widget._controller.height?.toDouble(),
+        width: widget._controller.width?.getFixedValue(),
+        height: widget._controller.height?.getFixedValue(),
       ).image;
     } else if (Utils.isMemoryPath(widget._controller.source)) {
       return Image.file(
         io.File(widget._controller.source),
-        width: widget._controller.width?.toDouble(),
-        height: widget._controller.height?.toDouble(),
+        width: widget._controller.width?.getFixedValue(),
+        height: widget._controller.height?.getFixedValue(),
         fit: fit,
       ).image;
     } else {
       return Image.asset(
         Utils.getLocalAssetFullPath(widget._controller.source),
-        width: widget._controller.width?.toDouble(),
-        height: widget._controller.height?.toDouble(),
+        width: widget._controller.width?.getFixedValue(),
+        height: widget._controller.height?.getFixedValue(),
         fit: fit,
       ).image;
     }

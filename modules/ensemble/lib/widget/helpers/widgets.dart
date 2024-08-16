@@ -184,8 +184,8 @@ class BoxWrapper extends StatelessWidget {
         boxController.backgroundImage?.getImageAsWidget(scopeManager);
 
     return Container(
-      width: ignoresDimension ? null : boxController.width?.toDouble(),
-      height: ignoresDimension ? null : boxController.height?.toDouble(),
+      width: ignoresDimension ? null : boxController.width?.getFixedValue(),
+      height: ignoresDimension ? null : boxController.height?.getFixedValue(),
       margin: ignoresMargin ? null : boxController.margin,
       padding: ignoresPadding ? null : boxController.padding,
       clipBehavior: clip,

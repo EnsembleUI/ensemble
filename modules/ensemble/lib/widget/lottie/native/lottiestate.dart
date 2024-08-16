@@ -68,8 +68,8 @@ class LottieState extends EWidgetState<EnsembleLottie>
             onLoaded: (composition) {
               widget.controller.initializeLottieController(composition);
             },
-            width: widget.controller.width?.toDouble(),
-            height: widget.controller.height?.toDouble(),
+            width: widget.controller.width?.getFixedValue(),
+            height: widget.controller.height?.getFixedValue(),
             repeat: widget.controller.repeat,
             fit: fit,
             errorBuilder: (context, error, stacktrace) => placeholderImage());
@@ -82,8 +82,8 @@ class LottieState extends EWidgetState<EnsembleLottie>
           onLoaded: (composition) {
             widget.controller.initializeLottieController(composition);
           },
-          width: widget.controller.width?.toDouble(),
-          height: widget.controller.height?.toDouble(),
+          width: widget.controller.width?.getFixedValue(),
+          height: widget.controller.height?.getFixedValue(),
           repeat: widget.controller.repeat,
           fit: fit,
           errorBuilder: (context, error, stacktrace) => placeholderImage(),
@@ -91,15 +91,15 @@ class LottieState extends EWidgetState<EnsembleLottie>
       }
     }
     return SizedBox(
-      width: widget.controller.width?.toDouble(),
-      height: widget.controller.height?.toDouble(),
+      width: widget.controller.width?.getFixedValue(),
+      height: widget.controller.height?.getFixedValue(),
     );
   }
 
   Widget placeholderImage() {
     return SizedBox(
-        width: widget.controller.width?.toDouble(),
-        height: widget.controller.height?.toDouble(),
+        width: widget.controller.width?.getFixedValue(),
+        height: widget.controller.height?.getFixedValue(),
         child: Image.asset('assets/images/img_placeholder.png',
             package: 'ensemble'));
   }

@@ -172,15 +172,15 @@ class ImageState extends EWidgetState<EnsembleImage> {
     if (isSvg()) {
       return SvgPicture.memory(
         source,
-        width: widget._controller.width?.toDouble(),
-        height: widget._controller.height?.toDouble(),
+        width: widget._controller.width?.getFixedValue(),
+        height: widget._controller.height?.getFixedValue(),
         fit: widget._controller.fit ?? BoxFit.contain,
       );
     }
     return Image.memory(
       source,
-      width: widget._controller.width?.toDouble(),
-      height: widget._controller.height?.toDouble(),
+      width: widget._controller.width?.getFixedValue(),
+      height: widget._controller.height?.getFixedValue(),
       fit: widget._controller.fit,
       errorBuilder: (context, error, stacktrace) => errorFallback(),
     );
@@ -201,8 +201,8 @@ class ImageState extends EWidgetState<EnsembleImage> {
       Widget cacheImage(String url) {
         return CachedNetworkImage(
           imageUrl: url,
-          width: widget._controller.width?.toDouble(),
-          height: widget._controller.height?.toDouble(),
+          width: widget._controller.width?.getFixedValue(),
+          height: widget._controller.height?.getFixedValue(),
           fit: fit,
           // we auto resize and cap these values so loading lots of
           // gigantic images won't run out of memory
@@ -212,8 +212,8 @@ class ImageState extends EWidgetState<EnsembleImage> {
           errorWidget: (context, error, stacktrace) => errorFallback(),
           placeholder: (context, url) => ColoredBoxPlaceholder(
             color: widget._controller.placeholderColor,
-            width: widget._controller.width?.toDouble(),
-            height: widget._controller.height?.toDouble(),
+            width: widget._controller.width?.getFixedValue(),
+            height: widget._controller.height?.getFixedValue(),
           ),
         );
       }
@@ -232,8 +232,8 @@ class ImageState extends EWidgetState<EnsembleImage> {
                 } else {
                   return ColoredBoxPlaceholder(
                     color: widget._controller.placeholderColor,
-                    width: widget._controller.width?.toDouble(),
-                    height: widget._controller.height?.toDouble(),
+                    width: widget._controller.width?.getFixedValue(),
+                    height: widget._controller.height?.getFixedValue(),
                   );
                 }
               })
@@ -241,13 +241,13 @@ class ImageState extends EWidgetState<EnsembleImage> {
     } else if (Utils.isMemoryPath(widget._controller.source)) {
       return kIsWeb
           ? Image.network(widget._controller.source,
-              width: widget._controller.width?.toDouble(),
-              height: widget._controller.height?.toDouble(),
+              width: widget._controller.width?.getFixedValue(),
+              height: widget._controller.height?.getFixedValue(),
               fit: fit,
               errorBuilder: (context, error, stacktrace) => errorFallback())
           : Image.file(File(widget._controller.source),
-              width: widget._controller.width?.toDouble(),
-              height: widget._controller.height?.toDouble(),
+              width: widget._controller.width?.getFixedValue(),
+              height: widget._controller.height?.getFixedValue(),
               fit: fit,
               errorBuilder: (context, error, stacktrace) => errorFallback());
     } else {
@@ -255,8 +255,8 @@ class ImageState extends EWidgetState<EnsembleImage> {
       // Assets might have additional token e.g. my-image.png?x=2343
       // so we need to strip them out
       return Image.asset(Utils.getLocalAssetFullPath(widget._controller.source),
-          width: widget._controller.width?.toDouble(),
-          height: widget._controller.height?.toDouble(),
+          width: widget._controller.width?.getFixedValue(),
+          height: widget._controller.height?.getFixedValue(),
           fit: fit,
           errorBuilder: (context, error, stacktrace) => errorFallback());
     }
@@ -267,21 +267,21 @@ class ImageState extends EWidgetState<EnsembleImage> {
     if (source.startsWith('https://') || source.startsWith('http://')) {
       return SvgPicture.network(
         widget._controller.source,
-        width: widget._controller.width?.toDouble(),
-        height: widget._controller.height?.toDouble(),
+        width: widget._controller.width?.getFixedValue(),
+        height: widget._controller.height?.getFixedValue(),
         fit: fit ?? BoxFit.contain,
         placeholderBuilder: (_) => ColoredBoxPlaceholder(
           color: widget._controller.placeholderColor,
-          width: widget._controller.width?.toDouble(),
-          height: widget._controller.height?.toDouble(),
+          width: widget._controller.width?.getFixedValue(),
+          height: widget._controller.height?.getFixedValue(),
         ),
       );
     }
     // attempt local assets
     return SvgPicture.asset(
         Utils.getLocalAssetFullPath(widget._controller.source),
-        width: widget._controller.width?.toDouble(),
-        height: widget._controller.height?.toDouble(),
+        width: widget._controller.width?.getFixedValue(),
+        height: widget._controller.height?.getFixedValue(),
         fit: fit ?? BoxFit.contain);
   }
 
@@ -331,8 +331,8 @@ class ImageState extends EWidgetState<EnsembleImage> {
     // so we wrap it inside a SizeBox and center for better UX
     if (widget._controller.width != null || widget._controller.height != null) {
       fallbackWidget = SizedBox(
-          width: widget._controller.width?.toDouble(),
-          height: widget._controller.height?.toDouble(),
+          width: widget._controller.width?.getFixedValue(),
+          height: widget._controller.height?.getFixedValue(),
           child: Center(child: fallbackWidget));
     }
     return fallbackWidget;

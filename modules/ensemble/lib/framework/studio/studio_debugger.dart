@@ -75,7 +75,7 @@ c. If the parent is a Column (which does not provide height constraint to its ch
   /// for widgets that have no width/height and rely to the parent for sizing. e.g. Google Maps
   Widget assertHasBoundedWidthHeight(Widget widget, String widgetName,
       {bool warningOnly = false}) {
-    return _assertHasBoundedDimension(widget, widgetName,
+    return assertHasBoundedDimension(widget, widgetName,
         assertBoundedWidth: true,
         assertBoundedHeight: true,
         warningOnly: warningOnly);
@@ -83,17 +83,17 @@ c. If the parent is a Column (which does not provide height constraint to its ch
 
   Widget assertHasBoundedWidth(Widget widget, String widgetName,
       {bool warningOnly = false}) {
-    return _assertHasBoundedDimension(widget, widgetName,
+    return assertHasBoundedDimension(widget, widgetName,
         assertBoundedWidth: true, warningOnly: warningOnly);
   }
 
   Widget assertHasBoundedHeight(Widget widget, String widgetName,
       {bool warningOnly = false}) {
-    return _assertHasBoundedDimension(widget, widgetName,
+    return assertHasBoundedDimension(widget, widgetName,
         assertBoundedHeight: true, warningOnly: warningOnly);
   }
 
-  Widget _assertHasBoundedDimension(
+  Widget assertHasBoundedDimension(
     Widget widget,
     String widgetName, {
     bool assertBoundedWidth = false,
@@ -126,6 +126,41 @@ c. Simply set a widget width. Form widgets (Checkbox, Date, Time, DateRange, Swi
           throw StudioError("'$widgetName' requires a height.",
               errorId: 'no-bounded-height');
         }
+      }
+      return widget;
+    });
+  }
+
+  /// if a widget uses percentage for dimension, its parent must constrain the dimensions.
+  Widget assertPercentageWidgetHasBoundedConstraints(
+      Widget widget,
+      {
+        String? widgetName = 'This widget',
+        bool assertBoundedWidth = false,
+        bool assertBoundedHeight = false,
+      }) {
+    if (!debugMode) return widget;
+
+    return LayoutBuilder(builder: (context, constraints) {
+      if (!constraints.hasBoundedWidth && assertBoundedWidth) {
+        var brief = "'$widgetName' uses a percentage width which requires the parent to have a width constraint.";
+        throw StudioError(brief,
+            errorId: 'no-bounded-width', detailedError: '''
+$brief. Fix by trying one of these:
+a. If the parent is a Row: consider changing it to a FlexRow, which sends a width constraint down to its children.
+b. If the parent is a Stack: Stack does not constrain the children's widths. Adjust the child's stackPositionLeft/stackPositionRight attributes to constrain the child within the Stack's width.
+c. Remove the percentage width or set a fixed size width.
+''');
+      }
+      if (!constraints.hasBoundedHeight && assertBoundedHeight) {
+        var brief = "'$widgetName' uses a percentage height which requires the parent to have a height constraint.";
+        throw StudioError(brief,
+            errorId: 'no-bounded-height', detailedError: '''
+$brief. Fix by trying one of these:
+a. If the parent is a Column: consider changing it to a FlexColumn, which sends a height constraint down to its children.
+b. If the parent is a Stack: Stack does not constrain the children's height. Adjust the child's stackPositionTop/stackPositionBottom attributes to constrain its height.
+c. Remove the percentage height or set a fixed size height.  
+''');
       }
       return widget;
     });
