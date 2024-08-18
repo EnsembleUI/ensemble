@@ -72,6 +72,8 @@ class Button extends StatefulWidget
       'outline': (value) => _controller.outline = Utils.optionalBool(value),
       'width': (value) => _controller.buttonWidth = Utils.optionalInt(value),
       'height': (value) => _controller.buttonHeight = Utils.optionalInt(value),
+      'loading': (value) => _controller.loading = Utils.optionalBool(value),
+      'loadingIndicator': (widget) => _controller.loadingIndicator = widget,
     };
   }
 
@@ -114,6 +116,9 @@ class ButtonController extends BoxController {
 
   IconModel? startingIcon;
   IconModel? endingIcon;
+
+  bool? loading;
+  dynamic loadingIndicator;
 }
 
 class ButtonState extends EWidgetState<Button> {
@@ -148,6 +153,39 @@ class ButtonState extends EWidgetState<Button> {
   }
 
   Widget _buildButtonChild() {
+    if (widget._controller.loading == true) {
+      // Measure text size to keep the button consistent
+      final textSpan = TextSpan(
+          text: widget._controller.label ?? '',
+          style: widget._controller.labelStyle.getTextStyle());
+      final textPainter = TextPainter(
+        text: textSpan,
+        maxLines: 1,
+        textDirection: TextDirection.ltr,
+      )..layout();
+
+      // Show a CircularProgressIndicator
+      return SizedBox(
+        width: textPainter.width + 24,
+        height: textPainter.height,
+        child: Center(
+            child: SizedBox(
+          width: 24,
+          height: 24,
+          child: widget._controller.loadingIndicator != null &&
+                  scopeManager != null
+              ? scopeManager!.buildWidgetFromDefinition(
+                  widget._controller.loadingIndicator)
+              : CircularProgressIndicator(
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                  widget._controller.labelStyle.color != null
+                      ? widget._controller.labelStyle.color!.withOpacity(0.5)
+                      : Colors.white.withOpacity(0.5),
+                )),
+        )),
+      );
+    }
+
     // use the body widget if specified
     if (widget._controller.body != null && scopeManager != null) {
       return scopeManager!.buildWidgetFromDefinition(widget._controller.body);
@@ -269,6 +307,9 @@ class ButtonState extends EWidgetState<Button> {
   }
 
   bool isEnabled() {
+    if (widget._controller.loading == true) {
+      return false;
+    }
     return widget._controller.enabled ??
         EnsembleForm.of(context)?.widget.controller.enabled ??
         true;
