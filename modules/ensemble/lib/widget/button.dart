@@ -12,6 +12,7 @@ import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:flutter/material.dart';
 import 'package:ensemble/layout/form.dart' as ensembleForm;
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
+import 'package:yaml/yaml.dart';
 
 import '../framework/event.dart';
 import '../framework/model.dart';
@@ -118,7 +119,7 @@ class ButtonController extends BoxController {
   IconModel? endingIcon;
 
   bool? loading;
-  dynamic loadingIndicator;
+  YamlMap? loadingIndicator;
 }
 
 class ButtonState extends EWidgetState<Button> {
