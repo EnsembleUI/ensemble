@@ -58,7 +58,6 @@ class Ensemble extends WithEnsemble with EnsembleRouteObserver {
     return _instance;
   }
 
-
   Map<String, Function> externalMethods = {};
 
   void setExternalMethods(Map<String, Function> methods) =>

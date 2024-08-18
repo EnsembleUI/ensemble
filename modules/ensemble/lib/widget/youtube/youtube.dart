@@ -75,7 +75,7 @@ class YouTube extends StatefulWidget
       };
 }
 
-mixin YouTubeMethods on WidgetState<YouTube> {
+mixin YouTubeMethods on EWidgetState<YouTube> {
   void nextVideo();
   void previousVideo();
   void stopVideo();
@@ -121,7 +121,7 @@ class YouTubeNavigatorObserver extends NavigatorObserver {
   }
 }
 
-class YouTubeState extends WidgetState<YouTube>
+class YouTubeState extends EWidgetState<YouTube>
     with YouTubeMethods, WidgetsBindingObserver {
   late YoutubePlayerController player;
   late YouTubeNavigatorObserver _youtubeObserver;

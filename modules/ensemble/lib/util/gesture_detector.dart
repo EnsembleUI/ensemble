@@ -26,7 +26,7 @@ class EnsembleGestureDetector extends StatefulWidget
 }
 
 class _EnsembleGestureDetectorState
-    extends WidgetState<EnsembleGestureDetector> {
+    extends EWidgetState<EnsembleGestureDetector> {
   @override
   Widget buildWidget(BuildContext context) {
     return GestureDetector(

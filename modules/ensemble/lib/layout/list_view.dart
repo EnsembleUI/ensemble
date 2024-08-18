@@ -128,7 +128,7 @@ class ListViewController extends BoxLayoutController {
   }
 }
 
-class ListViewState extends WidgetState<ListView>
+class ListViewState extends EWidgetState<ListView>
     with TemplatedWidgetState, HasChildren<ListView> {
   // template item is created on scroll. this will store the template's data list
   List<dynamic>? templatedDataList;

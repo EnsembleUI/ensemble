@@ -121,7 +121,7 @@ class FormController extends WidgetController {
   int gap = _defaultGap;
 }
 
-class FormState extends WidgetState<EnsembleForm>
+class FormState extends EWidgetState<EnsembleForm>
     with HasChildren<EnsembleForm> {
   bool validate() {
     return widget?._formKey.currentState!.validate() ?? false;

@@ -1111,8 +1111,12 @@ class JSInterpreter extends RecursiveVisitor<dynamic> {
     }
 
     // Extract the pattern and options
-    String regexPattern = (lastIndex > 0) ? pattern.substring(1, lastIndex) : ''; // Extract pattern without slashes
-    String options = (lastIndex < pattern.length - 1) ? pattern.substring(lastIndex + 1) : ''; // Extract options after the last slash
+    String regexPattern = (lastIndex > 0)
+        ? pattern.substring(1, lastIndex)
+        : ''; // Extract pattern without slashes
+    String options = (lastIndex < pattern.length - 1)
+        ? pattern.substring(lastIndex + 1)
+        : ''; // Extract options after the last slash
 
     bool allMatches = false;
     bool dotAll = false;
@@ -1267,4 +1271,3 @@ class JavascriptFunction {
     }
   }
 }
-

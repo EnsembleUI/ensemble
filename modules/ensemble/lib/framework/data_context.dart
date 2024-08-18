@@ -254,7 +254,8 @@ class DataContext implements Context {
     // if just have single standalone expression, return the actual type (e.g integer)
     // this is the distinction here so we can continue to walk down the path
     // if the return type is JSON
-    RegExpMatch? simpleExpression = DataUtils.onlyExpression.firstMatch(expression);
+    RegExpMatch? simpleExpression =
+        DataUtils.onlyExpression.firstMatch(expression);
     if (simpleExpression != null) {
       return asObject(evalVariable(simpleExpression.group(1)!));
     }

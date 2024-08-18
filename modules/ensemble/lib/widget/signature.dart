@@ -63,7 +63,7 @@ class EnsembleSignature extends StatefulWidget
   }
 }
 
-class EnsembleSignatureState extends WidgetState<EnsembleSignature> {
+class EnsembleSignatureState extends EWidgetState<EnsembleSignature> {
   @override
   Widget buildWidget(BuildContext context) {
     return Signature(

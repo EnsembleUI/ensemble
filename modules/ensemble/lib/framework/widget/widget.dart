@@ -30,7 +30,7 @@ mixin HasItemTemplate<T extends Widget> {
 
 /// Deprecated. Use [EnsembleWidgetState] instead
 /// base class for widgets that want to participate in Ensemble layout
-abstract class WidgetState<W extends HasController> extends BaseWidgetState<W> {
+abstract class EWidgetState<W extends HasController> extends BaseWidgetState<W> {
   ScopeManager? scopeManager;
 
   void resolveStylesIfUnresolved(BuildContext context) {

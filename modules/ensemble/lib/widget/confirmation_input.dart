@@ -36,7 +36,8 @@ class ConfirmationInput extends StatefulWidget
       'fieldType': (input) =>
           _controller.fieldType = Utils.optionalString(input),
       'inputType': (type) => _controller.inputType = Utils.optionalString(type),
-      'obscureText': (type) => _controller.obscureText = Utils.optionalBool(type),
+      'obscureText': (type) =>
+          _controller.obscureText = Utils.optionalBool(type),
       'obscureSymbol': (typeCustom) => _controller.obscureSymbol = typeCustom,
       'autoComplete': (newValue) =>
           _controller.autoComplete = Utils.getBool(newValue, fallback: true),
@@ -144,13 +145,13 @@ class ConfirmationInputController extends BoxController {
   set textStyle(TextStyleComposite style) => _textStyle = style;
 }
 
-mixin InputFieldAction on framework.WidgetState<ConfirmationInput> {
+mixin InputFieldAction on framework.EWidgetState<ConfirmationInput> {
   void focusInputField();
   void unfocusInputField();
   void clear();
 }
 
-class ConfirmationInputState extends framework.WidgetState<ConfirmationInput>
+class ConfirmationInputState extends framework.EWidgetState<ConfirmationInput>
     with InputFieldAction {
   final _otpPinFieldController = GlobalKey<OtpPinFieldState>();
 
@@ -203,14 +204,15 @@ class ConfirmationInputState extends framework.WidgetState<ConfirmationInput>
       keyboardType: widget.keyboardType,
       otpPinFieldDecoration: controller.fieldType?.otpPinField ??
           OtpPinFieldDecoration.defaultPinBoxDecoration,
-      otpPinFieldInputType: controller.obscureText == true ? OtpPinFieldInputType.password : OtpPinFieldInputType.none,
+      otpPinFieldInputType: controller.obscureText == true
+          ? OtpPinFieldInputType.password
+          : OtpPinFieldInputType.none,
       otpPinInputCustom: _validatePinTypeCustom(controller.obscureSymbol),
       cursorColor: controller.cursorColor,
       autoComplete: controller.autoComplete ?? true,
       spaceEvenly: controller.spaceEvenly ?? true,
       onChange: _onChange,
       onSubmit: _onComplete,
-      
     );
   }
 
@@ -247,18 +249,19 @@ class ConfirmationInputState extends framework.WidgetState<ConfirmationInput>
 }
 
 dynamic _validatePinTypeCustom(dynamic value) {
-  if ( value is String ) {
-    if (  value.length != 1) {
+  if (value is String) {
+    if (value.length != 1) {
       return "*"; // Default symbol if string length is not 1
     }
     return value;
   } else if (value is Map && value['icon'] != null) {
-      final iconModel = Utils.getIcon(value['icon']);
-      if (iconModel != null) {
-        return ensembleIcon.Icon.fromModel(iconModel); // Return the IconModel directly
-      } else {
-        return "*"; 
-      } // Return the IconModel directly
+    final iconModel = Utils.getIcon(value['icon']);
+    if (iconModel != null) {
+      return ensembleIcon.Icon.fromModel(
+          iconModel); // Return the IconModel directly
+    } else {
+      return "*";
+    } // Return the IconModel directly
   }
   return "*"; // Return null if value is neither String nor IconModel
 }

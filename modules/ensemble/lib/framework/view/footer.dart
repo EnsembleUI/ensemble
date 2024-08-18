@@ -71,7 +71,7 @@ class Footer extends StatefulWidget
   }
 }
 
-class _FooterState extends WidgetState<Footer>
+class _FooterState extends EWidgetState<Footer>
     with HasChildren<Footer>, TemplatedWidgetState {
   DragOptions? _dragOptions;
   late DraggableScrollableController _dragController;
