@@ -469,7 +469,7 @@ class DiagramPainter extends CustomPainter {
   }
 }
 
-class DiagramState extends WidgetState<Diagram> {
+class DiagramState extends EWidgetState<Diagram> {
   @override
   void initState() {
     super.initState();

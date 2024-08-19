@@ -186,5 +186,8 @@ class WidgetRegistry {
         //domain specific or custom widgets
         FinicityConnect.type: () => FinicityConnect(),
         TabaPayConnect.type: () => TabaPayConnect(),
+
+        // handling common GPT widget mistakes
+        "Container": () => Column(),
       };
 }

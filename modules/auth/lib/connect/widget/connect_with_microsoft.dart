@@ -61,7 +61,7 @@ class ConnectWithMicrosoftImpl extends StatefulWidget
 
 class ConnectWithMicrosoftController extends ConnectController {}
 
-class ConnectWithMicrosoftState extends WidgetState<ConnectWithMicrosoftImpl> {
+class ConnectWithMicrosoftState extends EWidgetState<ConnectWithMicrosoftImpl> {
   Widget? _displayWidget;
 
   @override

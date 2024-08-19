@@ -47,7 +47,7 @@ class HighchartsController extends WidgetController {
   dynamic data = '';
 }
 
-class HighchartsState extends WidgetState<Highcharts> {
+class HighchartsState extends EWidgetState<Highcharts> {
   @override
   Widget buildWidget(BuildContext context) {
     return HighCharts(

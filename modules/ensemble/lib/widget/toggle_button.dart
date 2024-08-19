@@ -128,7 +128,7 @@ class EnsembleToggleButton extends StatefulWidget
   }
 }
 
-class EnsembleToggleButtonState extends WidgetState<EnsembleToggleButton> {
+class EnsembleToggleButtonState extends EWidgetState<EnsembleToggleButton> {
   List<ToggleItem>? _items = [];
   int _selectedIndex = -1;
 

@@ -77,6 +77,23 @@ class ChartJs extends StatefulWidget
         }
         controller.evalScript!(script);
       },
+      'setData': (int dataSet, List data) {
+        String dataArr = jsonEncode(data);
+        String script = '''
+          if ( !${controller.chartVar} ) {
+            alert('chart var ${controller.chartVar} for chart with id=$id does not exist');
+          } else if ( $dataSet >= ${controller.chartVar}.data.datasets.length ) {
+            alert('chart with id=$id only has '+${controller.chartVar}.data.datasets.length+' datasets.');
+          } else {
+            ${controller.chartVar}.data.datasets[$dataSet].data = ${dataArr};
+          }
+        ''';
+        if (controller.evalScript == null) {
+          throw Exception(
+              'Chartjs.setData: evalScript is being called on null as it has not yet been set by the state. ');
+        }
+        controller.evalScript!(script);
+      },
       'update': () {
         String script = '''
             if ( !${controller.chartVar} ) {
@@ -113,7 +130,7 @@ class ChartJs extends StatefulWidget
   }
 }
 
-class ChartJsState extends WidgetState<ChartJs> {
+class ChartJsState extends EWidgetState<ChartJs> {
   JsWidget? jsWidget;
   void evalScript(String script) {
     if (jsWidget == null) {

@@ -2,7 +2,7 @@ import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/widget/fintech/finicityconnect/finicityconnect.dart';
 import 'package:flutter/material.dart';
 
-class FinicityConnectState extends WidgetState<FinicityConnect> {
+class FinicityConnectState extends EWidgetState<FinicityConnect> {
   double? height = 0;
 
   @override

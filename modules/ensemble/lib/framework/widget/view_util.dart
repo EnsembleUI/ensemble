@@ -128,7 +128,7 @@ class ViewUtil {
     payload.forEach((key, value) {
       if (value != null) {
         if (key == classNameAttribute) {
-          classList = (value as String?)?.split(RegExp('\\s+'));
+          classList = HasStyles.toClassList(value as String?);
         }
         if (key == 'styles' && value is YamlMap) {
           value.forEach((styleKey, styleValue) {
@@ -136,7 +136,8 @@ class ViewUtil {
           });
         } else if (key == 'children' && value is YamlList) {
           children = ViewUtil.buildModels(value, customWidgetMap);
-        } else if (value is Map && (key == "item-template" || key == "itemTemplate")) {
+        } else if (value is Map &&
+            (key == "item-template" || key == "itemTemplate")) {
           itemTemplate = value;
         } else {
           props[key] = value;

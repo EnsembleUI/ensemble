@@ -129,7 +129,7 @@ abstract class BoxLayout extends StatefulWidget
   bool isVertical();
 }
 
-class BoxLayoutState extends WidgetState<BoxLayout>
+class BoxLayoutState extends EWidgetState<BoxLayout>
     with TemplatedWidgetState, HasChildren<BoxLayout> {
   List<Widget>? templatedChildren;
 

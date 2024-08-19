@@ -71,7 +71,7 @@ class ProgressController extends WidgetController {
   EnsembleAction? onCountdownComplete;
 }
 
-class ProgressState extends WidgetState<EnsembleProgressIndicator> {
+class ProgressState extends EWidgetState<EnsembleProgressIndicator> {
   static const interval = 100;
   Timer? countdownTimer;
 

@@ -73,7 +73,7 @@ class EnsembleStaggeredGrid extends StatefulWidget
   }
 }
 
-class EnsembleStaggeredGridState extends WidgetState<EnsembleStaggeredGrid>
+class EnsembleStaggeredGridState extends EWidgetState<EnsembleStaggeredGrid>
     with TemplatedWidgetState, HasChildren<EnsembleStaggeredGrid> {
   List<StaggeredTile> _staggeredTiles = [];
   List<Widget>? templatedChildren;

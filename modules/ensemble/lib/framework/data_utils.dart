@@ -1,12 +1,11 @@
 import 'package:ensemble/framework/scope.dart';
 
-class DataUtils{
-
+class DataUtils {
   static final onlyExpression =
-  RegExp(r'''^\$\{([^}]+)\}$''', caseSensitive: false);
+      RegExp(r'''^\$\{([^}]+)\}$''', caseSensitive: false);
 
   static final containExpression =
-  RegExp(r'''\$\{([^}{]+(?:\{[^}{]*\}[^}{]*)*)\}''', caseSensitive: false);
+      RegExp(r'''\$\{([^}{]+(?:\{[^}{]*\}[^}{]*)*)\}''', caseSensitive: false);
 
   // match an expression and AST e.g //@code <expression>\n<AST> in group1 and group2
   static final expressionAndAst =
@@ -84,5 +83,56 @@ class DataUtils{
   /// contains one or more expression e.g Hello $(firstname) $(lastname)
   static bool hasExpression(String expression) {
     return containExpression.hasMatch(expression);
+  }
+
+  /// Splits a given string into a list of substrings based on spaces.
+  /// - Text inside `${...}` expressions is treated as a single entity,
+  ///   even if it contains spaces.
+  /// - Regular words are split by spaces, but leading, trailing, and
+  ///   multiple spaces between words are ignored.
+  ///
+  /// Example:
+  /// ```dart
+  /// List<String> result = splitString("abc\${.  example    }lmn def");
+  /// print(result); // ['abc${.  example    }lmn', 'def']
+  /// ```
+  /// see https://github.com/EnsembleUI/ensemble/issues/1555 for more details
+  static List<String>? splitSpaceDelimitedString(String? input) {
+    if (input == null) {
+      return null;
+    }
+    if (!input.contains('\$')) {
+      // If no '$' is found, split by spaces directly
+      return input.split(RegExp(r'\s+')).where((s) => s.isNotEmpty).toList();
+    }
+    List<String> result = [];
+    StringBuffer current = StringBuffer();
+    bool inExpression = false;
+
+    for (int i = 0; i < input.length; i++) {
+      String char = input[i];
+
+      if (char == '\$' && i + 1 < input.length && input[i + 1] == '{') {
+        inExpression = true;
+        current.write('\${');
+        i++; // Skip the '{'
+      } else if (char == '}' && inExpression) {
+        inExpression = false;
+        current.write('}');
+      } else if (char == ' ' && !inExpression) {
+        if (current.isNotEmpty) {
+          result.add(current.toString());
+          current.clear();
+        }
+      } else {
+        current.write(char);
+      }
+    }
+
+    if (current.isNotEmpty) {
+      result.add(current.toString());
+    }
+
+    return result;
   }
 }

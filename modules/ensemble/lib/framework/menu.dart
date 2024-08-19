@@ -117,8 +117,8 @@ abstract class Menu extends Object with HasStyles, Invokable {
       }
       List<String>? classList;
       if (payload[ViewUtil.classNameAttribute] != null) {
-        classList = (payload[ViewUtil.classNameAttribute] as String?)
-            ?.split(RegExp('\\s+'));
+        classList = HasStyles.toClassList(
+            payload[ViewUtil.classNameAttribute] as String?);
       }
       String? id = payload['id'] as String?;
       Map<String, dynamic>? styles = Utils.getMap(payload['styles']);

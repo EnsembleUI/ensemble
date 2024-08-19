@@ -133,11 +133,11 @@ class HtmlController extends BoxController {
   HtmlAction? htmlAction;
 }
 
-mixin HtmlAction on framework.WidgetState<EnsembleHtml> {
+mixin HtmlAction on framework.EWidgetState<EnsembleHtml> {
   void updateMaxLines(String selector, int maxLines);
 }
 
-class HtmlState extends framework.WidgetState<EnsembleHtml> with HtmlAction {
+class HtmlState extends framework.EWidgetState<EnsembleHtml> with HtmlAction {
   @override
   void updateMaxLines(String selector, int maxLines) {
     // Need to add it here to be able to do setState

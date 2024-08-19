@@ -102,7 +102,7 @@ class LoadingContainerController extends BoxController {
   double? max;
 }
 
-class LoadingContainerState extends WidgetState<LoadingContainer> {
+class LoadingContainerState extends EWidgetState<LoadingContainer> {
   @override
   Widget buildWidget(BuildContext context) {
     var loadingWidget = _buildLoadingWidget();

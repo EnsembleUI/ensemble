@@ -74,7 +74,7 @@ abstract class FittedBoxLayout extends StatefulWidget
   bool isVertical();
 }
 
-class FittedBoxLayoutState extends WidgetState<FittedBoxLayout>
+class FittedBoxLayoutState extends EWidgetState<FittedBoxLayout>
     with TemplatedWidgetState, HasChildren<FittedBoxLayout> {
   @override
   Widget buildWidget(BuildContext context) {

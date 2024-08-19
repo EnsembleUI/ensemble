@@ -61,7 +61,7 @@ class TopologyChart extends StatefulWidget
   }
 }
 
-class TopologyChartState extends WidgetState<TopologyChart> {
+class TopologyChartState extends EWidgetState<TopologyChart> {
   @override
   Widget buildWidget(BuildContext context) {
     if (widget.controller.config == '') {
