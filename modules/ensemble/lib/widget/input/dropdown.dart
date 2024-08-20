@@ -357,6 +357,19 @@ class SelectOneState extends FormFieldWidgetState<SelectOne>
       }
     }
 
+    OutlineInputBorder? getUpdatedBorder() {
+
+      OutlineInputBorder? existingBorder = inputDecoration.border as OutlineInputBorder?;
+
+      return existingBorder?.copyWith(
+        borderSide: BorderSide(
+          color: widget._controller.borderColor ?? existingBorder.borderSide.color,
+          width: widget._controller.borderWidth?.toDouble() ?? existingBorder.borderSide.width,
+        ),
+        borderRadius: widget._controller.borderRadius?.getValue() ?? existingBorder.borderRadius,
+      );
+    }
+
     String? placeholder =
         widget._controller.placeholder ?? widget._controller.hintText;
 
@@ -389,12 +402,13 @@ class SelectOneState extends FormFieldWidgetState<SelectOne>
                 color: widget._controller.dropdownBackgroundColor,
                 borderRadius:
                     widget._controller.dropdownBorderRadius?.getValue(),
-                border: widget._controller.borderColor != null ||
-                        widget._controller.borderWidth != null
+                border: widget._controller.dropdownBorderColor != null ||
+                        widget._controller.dropdownBorderWidth != null
                     ? Border.all(
-                        color: widget._controller.borderColor ??
+                        color: widget._controller.dropdownBorderColor ??
                             ThemeManager().getBorderColor(context),
-                        width: widget._controller.borderWidth?.toDouble() ??
+                        width: widget._controller.dropdownBorderWidth
+                                ?.toDouble() ??
                             ThemeManager().getBorderThickness(context),
                       )
                     : null),
@@ -407,7 +421,15 @@ class SelectOneState extends FormFieldWidgetState<SelectOne>
             contentPadding: adjustedContentPadding,
             labelText: widget.controller.floatLabel == true
                 ? widget.controller.label
-                : null));
+                : null,
+            errorBorder: getUpdatedBorder(),
+            focusedBorder: getUpdatedBorder(),
+            focusedErrorBorder: getUpdatedBorder(),
+            disabledBorder: getUpdatedBorder(),
+            enabledBorder: getUpdatedBorder(),
+            border: getUpdatedBorder(),
+        )
+    );
   }
 
   /// build the auto-complete Dropdown
