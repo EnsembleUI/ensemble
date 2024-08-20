@@ -1130,13 +1130,15 @@ class APIResponse with Invokable {
     return {
       'isSuccess': () => _response?.apiState.isSuccess,
       'isError': () => _response?.apiState.isError,
-      'isLoading': () => _response?.apiState.isLoading,
+      'isLoading': () => isLoading(),
       'body': () => _response?.body,
       'headers': () => _response?.headers,
       'statusCode': () => _response?.statusCode,
       'reasonPhrase': () => _response?.reasonPhrase
     };
   }
+
+  bool isLoading() => _response?.apiState.isLoading == true;
 
   @override
   Map<String, Function> methods() {
