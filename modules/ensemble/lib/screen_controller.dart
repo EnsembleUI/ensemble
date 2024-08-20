@@ -33,6 +33,7 @@ import 'package:ensemble/framework/widget/screen.dart';
 import 'package:ensemble/framework/widget/toast.dart';
 import 'package:ensemble/layout/ensemble_page_route.dart';
 import 'package:ensemble/page_model.dart';
+import 'package:ensemble/util/ensemble_utils.dart';
 import 'package:ensemble/util/notification_utils.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/stub_widgets.dart';
@@ -194,16 +195,19 @@ class ScreenController {
         } else if (action.options?['replaceCurrentScreen'] == true) {
           routeOption = RouteOption.replaceCurrentScreen;
         }
-
-        if (action.options?['closeToasts'] ?? true) {
-          ToastController().closeToast();
-        }
       }
 
-      // No code for NavigateModalScreenAction so need to add this
-      if (action is NavigateModalScreenAction &&
-          (action.options?['closeToasts'] ?? true)) {
+      // dismiss all toasts, dialog, and bottom sheet by default
+      if ((action.options?['dismissToasts'] ??
+              action.options?['closeToasts']) !=
+          false) {
         ToastController().closeToast();
+      }
+      if (action.options?['dismissDialog'] != false) {
+        await EnsembleUtils.dismissDialog();
+      }
+      if (action.options?['dismissBottomSheet'] != false) {
+        await EnsembleUtils.dismissBottomSheet();
       }
 
       /// TODO: if the initiator widget has been re-build or removed
@@ -213,7 +217,7 @@ class ScreenController {
         context = scopeManager.dataContext.buildContext;
       }
 
-      PageRouteBuilder routeBuilder = navigateToScreen(
+      PageRouteBuilder routeBuilder = await navigateToScreen(
         context,
         screenName: scopeManager.dataContext.eval(action.screenName),
         asModal: action.asModal,
@@ -579,7 +583,7 @@ class ScreenController {
   /// [replace] - whether to replace the current route on the stack, such that
   /// navigating back will skip the current route.
   /// [pageArgs] - Key/Value pairs to send to the screen if it takes input parameters
-  PageRouteBuilder navigateToScreen(
+  Future<PageRouteBuilder> navigateToScreen(
     BuildContext context, {
     String? screenId,
     String? screenName,
@@ -589,7 +593,7 @@ class ScreenController {
     Map<String, dynamic>? transition,
     bool isExternal = false,
     bool asExternal = false,
-  }) {
+  }) async {
     PageType pageType = asModal == true ? PageType.modal : PageType.regular;
 
     Widget screenWidget = getScreen(
@@ -628,19 +632,19 @@ class ScreenController {
         externalAppNavigateKey?.currentState
             ?.pushAndRemoveUntil(route, (route) => false);
       } else {
-        Navigator.pushAndRemoveUntil(context, route, (route) => false);
+        await Navigator.pushAndRemoveUntil(context, route, (route) => false);
       }
     } else if (routeOption == RouteOption.replaceCurrentScreen) {
       if (asExternal) {
         externalAppNavigateKey?.currentState?.pushReplacement(route);
       } else {
-        Navigator.pushReplacement(context, route);
+        await Navigator.pushReplacement(context, route);
       }
     } else {
       if (asExternal) {
         externalAppNavigateKey?.currentState?.push(route);
       } else {
-        Navigator.push(context, route);
+        await Navigator.push(context, route);
       }
     }
     return route;

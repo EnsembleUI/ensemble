@@ -462,7 +462,7 @@ class NativeInvokable extends ActionInvokable {
       'storage': () => storage,
       'user': () => UserInfo(),
       'formatter': () => Formatter(),
-      'utils': () => EnsembleUtils(),
+      'utils': () => _EnsembleUtils(),
       'device': () => Device(),
     };
   }
@@ -727,7 +727,7 @@ class EnsembleStorage with Invokable {
   }
 }
 
-class EnsembleUtils with Invokable {
+class _EnsembleUtils with Invokable {
   @override
   Map<String, Function> getters() => {};
 

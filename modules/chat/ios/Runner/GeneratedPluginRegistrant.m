@@ -102,8 +102,8 @@
 @import path_provider_foundation;
 #endif
 
-#if __has_include(<rate_my_app/RateMyAppPlugin.h>)
-#import <rate_my_app/RateMyAppPlugin.h>
+#if __has_include(<rate_my_app/SwiftRateMyAppPlugin.h>)
+#import <rate_my_app/SwiftRateMyAppPlugin.h>
 #else
 @import rate_my_app;
 #endif
@@ -112,6 +112,12 @@
 #import <receive_sharing_intent/ReceiveSharingIntentPlugin.h>
 #else
 @import receive_sharing_intent;
+#endif
+
+#if __has_include(<root_jailbreak_sniffer/RjsnifferPlugin.h>)
+#import <root_jailbreak_sniffer/RjsnifferPlugin.h>
+#else
+@import root_jailbreak_sniffer;
 #endif
 
 #if __has_include(<sensors_plus/FPPSensorsPlusPlugin.h>)
@@ -181,8 +187,9 @@
   [OtpPinFieldPlugin registerWithRegistrar:[registry registrarForPlugin:@"OtpPinFieldPlugin"]];
   [FPPPackageInfoPlusPlugin registerWithRegistrar:[registry registrarForPlugin:@"FPPPackageInfoPlusPlugin"]];
   [PathProviderPlugin registerWithRegistrar:[registry registrarForPlugin:@"PathProviderPlugin"]];
-  [RateMyAppPlugin registerWithRegistrar:[registry registrarForPlugin:@"RateMyAppPlugin"]];
+  [SwiftRateMyAppPlugin registerWithRegistrar:[registry registrarForPlugin:@"SwiftRateMyAppPlugin"]];
   [ReceiveSharingIntentPlugin registerWithRegistrar:[registry registrarForPlugin:@"ReceiveSharingIntentPlugin"]];
+  [RjsnifferPlugin registerWithRegistrar:[registry registrarForPlugin:@"RjsnifferPlugin"]];
   [FPPSensorsPlusPlugin registerWithRegistrar:[registry registrarForPlugin:@"FPPSensorsPlusPlugin"]];
   [FPPSharePlusPlugin registerWithRegistrar:[registry registrarForPlugin:@"FPPSharePlusPlugin"]];
   [SharedPreferencesPlugin registerWithRegistrar:[registry registrarForPlugin:@"SharedPreferencesPlugin"]];

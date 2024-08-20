@@ -4,8 +4,10 @@ import 'package:flutter/services.dart';
 // enable a widget to be tap-able
 mixin TapEnabled {
   EnsembleAction? onTap;
+
+  // by default disable splash feedback for historical reason
+  bool enableSplashFeedback = false;
   Color? splashColor;
-  Color? highlightColor;
 
   // for Desktop/Web or accessibility on Native
   Color? focusColor;
