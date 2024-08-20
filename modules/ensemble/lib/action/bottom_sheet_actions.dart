@@ -8,6 +8,7 @@ import 'package:ensemble/framework/model.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/view/data_scope_widget.dart';
 import 'package:ensemble/screen_controller.dart';
+import 'package:ensemble/util/ensemble_utils.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/material.dart';
@@ -243,13 +244,6 @@ class DismissBottomSheetAction extends EnsembleAction {
           initiator: initiator, payload: Utils.getMap(payload?['payload']));
 
   @override
-  Future<dynamic> execute(BuildContext context, ScopeManager scopeManager) {
-    final route = Ensemble().getCurrentRoute();
-    if (route is ModalBottomSheetRoute &&
-        route.isCurrent &&
-        route.navigator != null) {
-      return route.navigator!.maybePop(scopeManager.dataContext.eval(payload));
-    }
-    return Future.value(null);
-  }
+  Future<bool> execute(BuildContext context, ScopeManager scopeManager) =>
+      EnsembleUtils.dismissBottomSheet(scopeManager.dataContext.eval(payload));
 }
