@@ -104,7 +104,8 @@ void main() {
 
   test("parse into a DataExpression", () {
     String expr = 'Name is \${person.first} \${person.last}';
-    DataExpression? dataExpression = DataUtils.parseDataExpression('//@code $expr');
+    DataExpression? dataExpression =
+        DataUtils.parseDataExpression('//@code $expr');
     expect(dataExpression?.rawExpression, expr);
     expect(
         dataExpression?.expressions, ['\${person.first}', '\${person.last}']);
@@ -119,7 +120,8 @@ void main() {
   test('parse short-hand ifelse', () {
     String expr =
         '\${ getWifiStatus.body.data.Status ? 0xFF009900 : 0xFFE52E2E }';
-    DataExpression? dataExpression = DataUtils.parseDataExpression('//@code $expr');
+    DataExpression? dataExpression =
+        DataUtils.parseDataExpression('//@code $expr');
     expect(dataExpression?.rawExpression, expr);
     expect(dataExpression?.expressions, [expr]);
   });
@@ -127,7 +129,8 @@ void main() {
   test("another short-hand", () {
     String expr =
         "\${getPrivWiFi.body.status.wlanvap.vap5g0priv.VAPStatus == 'Up' ? true : false }";
-    DataExpression? dataExpression = DataUtils.parseDataExpression('//@code $expr');
+    DataExpression? dataExpression =
+        DataUtils.parseDataExpression('//@code $expr');
     expect(dataExpression?.rawExpression, expr);
     expect(dataExpression?.expressions, [expr]);
   });
