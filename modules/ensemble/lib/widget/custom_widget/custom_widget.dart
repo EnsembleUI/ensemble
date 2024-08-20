@@ -70,7 +70,6 @@ class CustomWidgetController extends EnsembleWidgetController {
 }
 
 class _CustomWidgetState extends EnsembleWidgetState<CustomWidget> {
-
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
