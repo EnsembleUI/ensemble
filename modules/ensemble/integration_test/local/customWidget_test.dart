@@ -50,7 +50,8 @@ void main() {
     });
   });
 
-  testWidgets("onLoad should be called for both new and re-used widget state", (tester) async {
+  testWidgets("onLoad should be called for both new and re-used widget state",
+      (tester) async {
     await TestHelper.loadScreen(tester, 'Custom Widget - onLoad', config);
 
     // after API called, widget's onLoad will change text to "hello"
@@ -58,12 +59,15 @@ void main() {
     expect(find.text('hello'), findsOneWidget);
 
     // change the text to "Hi", then open and close bottom sheet, which will invoke the API again
-    await tester.tap(find.descendant(of: find.byType(Button), matching: find.text("Say Hi")));
+    await tester.tap(find.descendant(
+        of: find.byType(Button), matching: find.text("Say Hi")));
     await tester.pumpAndSettle();
     expect(find.text('hi'), findsOneWidget);
-    await tester.tap(find.descendant(of: find.byType(Button), matching: find.text("Show Bottom Sheet")));
+    await tester.tap(find.descendant(
+        of: find.byType(Button), matching: find.text("Show Bottom Sheet")));
     await tester.pumpAndSettle();
-    await tester.tap(find.descendant(of: find.byType(Button), matching: find.text("Close")));
+    await tester.tap(
+        find.descendant(of: find.byType(Button), matching: find.text("Close")));
     await tester.pumpAndSettle();
 
     // since modal's dismiss invoke the API, the Row should re-render. The child widget inside is re-created
