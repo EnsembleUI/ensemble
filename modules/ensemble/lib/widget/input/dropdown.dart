@@ -357,19 +357,6 @@ class SelectOneState extends FormFieldWidgetState<SelectOne>
       }
     }
 
-    OutlineInputBorder? getUpdatedBorder() {
-
-      OutlineInputBorder? existingBorder = inputDecoration.border as OutlineInputBorder?;
-
-      return existingBorder?.copyWith(
-        borderSide: BorderSide(
-          color: widget._controller.borderColor ?? existingBorder.borderSide.color,
-          width: widget._controller.borderWidth?.toDouble() ?? existingBorder.borderSide.width,
-        ),
-        borderRadius: widget._controller.borderRadius?.getValue() ?? existingBorder.borderRadius,
-      );
-    }
-
     String? placeholder =
         widget._controller.placeholder ?? widget._controller.hintText;
 
@@ -418,18 +405,68 @@ class SelectOneState extends FormFieldWidgetState<SelectOne>
               widget._controller.dropdownOffsetY?.toDouble() ?? 0,
             )),
         decoration: inputDecoration.copyWith(
-            contentPadding: adjustedContentPadding,
-            labelText: widget.controller.floatLabel == true
-                ? widget.controller.label
-                : null,
-            errorBorder: getUpdatedBorder(),
-            focusedBorder: getUpdatedBorder(),
-            focusedErrorBorder: getUpdatedBorder(),
-            disabledBorder: getUpdatedBorder(),
-            enabledBorder: getUpdatedBorder(),
-            border: getUpdatedBorder(),
-        )
-    );
+          contentPadding: adjustedContentPadding,
+          labelText: widget.controller.floatLabel == true
+              ? widget.controller.label
+              : null,
+          // enabledBorder border is used because it overrides border property.
+          enabledBorder: widget._controller.dropdownBorderColor != null ||
+                  widget._controller.dropdownBorderWidth != null
+              // to handle both Outline and Underline border type.
+              ? (inputDecoration.enabledBorder is OutlineInputBorder
+                  ? (inputDecoration.enabledBorder as OutlineInputBorder)
+                      .copyWith(
+                      borderSide: BorderSide(
+                        color: widget._controller.borderColor ??
+                            (inputDecoration.enabledBorder as OutlineInputBorder).borderSide.color,
+                        width: widget._controller.borderWidth?.toDouble() ??
+                            (inputDecoration.enabledBorder as OutlineInputBorder).borderSide.width,
+                      ),
+                      borderRadius: widget._controller.borderRadius?.getValue() ??
+                          (inputDecoration.enabledBorder as OutlineInputBorder).borderRadius,
+                    )
+                  : (inputDecoration.enabledBorder as UnderlineInputBorder)
+                      .copyWith(
+                      borderSide: BorderSide(
+                        color: widget._controller.borderColor ??
+                            (inputDecoration.enabledBorder as UnderlineInputBorder).borderSide.color,
+                        width: widget._controller.borderWidth?.toDouble() ??
+                            (inputDecoration.enabledBorder as UnderlineInputBorder).borderSide.width,
+                      ),
+                      borderRadius: const BorderRadius.only(
+                        topLeft: Radius.circular(4.0),
+                        topRight: Radius.circular(4.0),
+                      ),
+                    ))
+              : null,
+          focusedBorder: widget._controller.focusedBorderColor != null
+              ? (inputDecoration.focusedBorder is OutlineInputBorder
+                  ? (inputDecoration.focusedBorder as OutlineInputBorder)
+                      .copyWith(
+                      borderSide: BorderSide(
+                        color: widget._controller.focusedBorderColor ??
+                            (inputDecoration.focusedBorder as OutlineInputBorder).borderSide.color,
+                        width: widget._controller.borderWidth?.toDouble() ??
+                            (inputDecoration.focusedBorder as OutlineInputBorder).borderSide.width,
+                      ),
+                      borderRadius: widget._controller.borderRadius?.getValue() ??
+                          (inputDecoration.focusedBorder as OutlineInputBorder).borderRadius,
+                    )
+                  : (inputDecoration.focusedBorder as UnderlineInputBorder)
+                      .copyWith(
+                      borderSide: BorderSide(
+                        color: widget._controller.focusedBorderColor ??
+                            (inputDecoration.focusedBorder as UnderlineInputBorder).borderSide.color,
+                        width: widget._controller.borderWidth?.toDouble() ??
+                            (inputDecoration.focusedBorder as UnderlineInputBorder).borderSide.width,
+                      ),
+                      borderRadius: const BorderRadius.only(
+                        topLeft: Radius.circular(4.0),
+                        topRight: Radius.circular(4.0),
+                      ),
+                    ))
+              : null,
+        ));
   }
 
   /// build the auto-complete Dropdown
@@ -461,6 +498,61 @@ class SelectOneState extends FormFieldWidgetState<SelectOne>
                         : null,
                     fillColor: widget._controller
                         .fillColor, // Background color for the field
+                    enabledBorder: widget._controller.dropdownBorderColor != null ||
+                            widget._controller.dropdownBorderWidth != null
+                        ? (inputDecoration.enabledBorder is OutlineInputBorder
+                            ? (inputDecoration.enabledBorder as OutlineInputBorder)
+                                .copyWith(
+                                borderSide: BorderSide(
+                                  color: widget._controller.borderColor ??
+                                      (inputDecoration.enabledBorder as OutlineInputBorder).borderSide.color,
+                                  width: widget._controller.borderWidth?.toDouble() ??
+                                      (inputDecoration.enabledBorder as OutlineInputBorder).borderSide.width,
+                                ),
+                                borderRadius: widget._controller.borderRadius?.getValue() ??
+                                    (inputDecoration.enabledBorder as OutlineInputBorder).borderRadius,
+                              )
+                            : (inputDecoration.enabledBorder as UnderlineInputBorder)
+                                .copyWith(
+                                borderSide: BorderSide(
+                                  color: widget._controller.borderColor ??
+                                      (inputDecoration.enabledBorder as UnderlineInputBorder).borderSide.color,
+                                  width: widget._controller.borderWidth?.toDouble() ??
+                                      (inputDecoration.enabledBorder as UnderlineInputBorder).borderSide.width,
+                                ),
+                                borderRadius: const BorderRadius.only(
+                                  topLeft: Radius.circular(4.0),
+                                  topRight: Radius.circular(4.0),
+                                ),
+                              ))
+                        : null,
+                    focusedBorder: widget._controller.focusedBorderColor != null
+                        ? (inputDecoration.focusedBorder is OutlineInputBorder
+                            ? (inputDecoration.focusedBorder as OutlineInputBorder)
+                                .copyWith(
+                                borderSide: BorderSide(
+                                  color: widget._controller.focusedBorderColor ??
+                                      (inputDecoration.focusedBorder as OutlineInputBorder).borderSide.color,
+                                  width: widget._controller.borderWidth?.toDouble() ??
+                                      (inputDecoration.focusedBorder as OutlineInputBorder).borderSide.width,
+                                ),
+                                borderRadius: widget._controller.borderRadius?.getValue() ??
+                                    (inputDecoration.focusedBorder as OutlineInputBorder).borderRadius,
+                              )
+                            : (inputDecoration.focusedBorder as UnderlineInputBorder)
+                                .copyWith(
+                                borderSide: BorderSide(
+                                  color: widget._controller.focusedBorderColor ??
+                                      (inputDecoration.focusedBorder as UnderlineInputBorder).borderSide.color,
+                                  width: widget._controller.borderWidth?.toDouble() ??
+                                      (inputDecoration.focusedBorder as UnderlineInputBorder).borderSide.width,
+                                ),
+                                borderRadius: const BorderRadius.only(
+                                  topLeft: Radius.circular(4.0),
+                                  topRight: Radius.circular(4.0),
+                                ),
+                              ))
+                        : null,
                   ),
                   onChanged: (value) {
                     final oldValue = widget._controller.maybeValue;
