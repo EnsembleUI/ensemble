@@ -6,7 +6,8 @@ import 'package:ensemble/page_model.dart';
 class CustomWidgetModel extends WidgetModel {
   CustomWidgetModel(this.widgetModel, String type, Map<String, dynamic> props,
       Map<String, dynamic> styles,
-      {this.importedCode,
+      {required super.path,
+      this.importedCode,
       this.parameters,
       this.inputs,
       this.actions,

@@ -328,12 +328,15 @@ class SinglePageModel extends PageModel with HasStyles {
           WidgetModel? fixedContent = (dragOptionsMap?['fixedContent'] != null)
               ? ViewUtil.buildModel(
                   Utils.getYamlMap(dragOptionsMap?['fixedContent']),
-                  customViewDefinitions)
+                  customViewDefinitions,
+                  path: "/footer/fixedContent",
+                )
               : null;
           YamlMap footerYamlMap = YamlMap.wrap({'footer': viewMap['footer']});
           footer = FooterItems(
               ViewUtil.buildModels(
-                  viewMap['footer']['children'], customViewDefinitions),
+                  viewMap['footer']['children'], customViewDefinitions,
+                  childPrefix: 'children', path: '/footer'),
               EnsembleThemeManager.yamlToDart(
                 viewMap['footer']['styles'],
               ),
@@ -341,7 +344,8 @@ class SinglePageModel extends PageModel with HasStyles {
                   viewMap['footer'][ViewUtil.classNameAttribute] as String?),
               dragOptionsMap,
               fixedContent,
-              ViewUtil.buildModel(footerYamlMap, customViewDefinitions));
+              ViewUtil.buildModel(footerYamlMap, customViewDefinitions,
+                  path: "/footer"));
         }
 
         rootWidgetModel = buildRootModel(viewMap, customViewDefinitions);
@@ -359,14 +363,16 @@ class SinglePageModel extends PageModel with HasStyles {
     if (headerData != null) {
       if (headerData['titleWidget'] != null) {
         titleWidget = ViewUtil.buildModel(
-            headerData['titleWidget'], customViewDefinitions);
+            headerData['titleWidget'], customViewDefinitions,
+            path: '/header/titleWidget');
       } else if (headerData['titleText'] != null) {
         titleText = headerData['titleText'].toString();
       } else {
         // we used to overload title as text or widget
         if (ViewUtil.isViewModel(headerData['title'], customViewDefinitions)) {
-          titleWidget =
-              ViewUtil.buildModel(headerData['title'], customViewDefinitions);
+          titleWidget = ViewUtil.buildModel(
+              headerData['title'], customViewDefinitions,
+              path: '/header/titleWidget');
         } else {
           titleText = headerData['title']?.toString() ?? legacyTitle;
         }
@@ -374,7 +380,8 @@ class SinglePageModel extends PageModel with HasStyles {
 
       if (headerData['flexibleBackground'] != null) {
         background = ViewUtil.buildModel(
-            headerData['flexibleBackground'], customViewDefinitions);
+            headerData['flexibleBackground'], customViewDefinitions,
+            path: '/header/flexibleBackground');
       }
 
       styles = EnsembleThemeManager.yamlToDart(headerData['styles']);
@@ -422,7 +429,8 @@ class SinglePageModel extends PageModel with HasStyles {
   WidgetModel? buildRootModel(
       YamlMap viewMap, Map<String, dynamic>? customViewDefinitions) {
     if (viewMap['body'] != null) {
-      return ViewUtil.buildModel(viewMap['body'], customViewDefinitions);
+      return ViewUtil.buildModel(viewMap['body'], customViewDefinitions,
+          path: '/body');
     }
     // backward compatible
     else {
@@ -450,7 +458,7 @@ class SinglePageModel extends PageModel with HasStyles {
     for (MapEntry<dynamic, dynamic> entry in rootTree.entries) {
       if (WidgetRegistry.legacyWidgetMap[entry.key] != null ||
           customViewDefinitions?[entry.key] != null) {
-        return ViewUtil.buildModel(entry, customViewDefinitions);
+        return ViewUtil.buildModel(entry, customViewDefinitions, path: '/body');
       }
     }
     return null;
@@ -492,6 +500,9 @@ class WidgetModel extends Object with HasStyles {
   final String type;
   final Map<String, dynamic> props;
 
+  // the xpath to the widget bsed on the YAML definition
+  final String path;
+
   // a layout can either have children or itemTemplate, but not both
   final List<WidgetModel>? children;
   final Map? itemTemplate;
@@ -508,7 +519,8 @@ class WidgetModel extends Object with HasStyles {
       Map<String, dynamic>? inlineStyles,
       List<String>? classList,
       this.props,
-      {this.children,
+      {required this.path,
+      this.children,
       this.itemTemplate}) {
     this.idStyles = idStyles;
     this.widgetTypeStyles = widgetTypeStyles;

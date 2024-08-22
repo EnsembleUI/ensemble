@@ -67,7 +67,8 @@ class ViewUtil {
 
   ///convert a YAML representing a widget to a WidgetModel
   static WidgetModel buildModel(
-      dynamic item, Map<String, dynamic>? customWidgetMap) {
+      dynamic item, Map<String, dynamic>? customWidgetMap,
+      {required String path}) {
     String? widgetType;
     Map? payload;
     SourceSpan def =
@@ -100,7 +101,8 @@ class ViewUtil {
     // if this is a custom widget
     if (customWidgetMap?[widgetType] != null) {
       WidgetModel? customModel = buildCustomModel(
-          payload, customWidgetMap![widgetType]!, widgetType!, customWidgetMap);
+          payload, customWidgetMap![widgetType]!, widgetType!, customWidgetMap,
+          path: path);
       if (customModel == null) {
         throw LanguageError("Unable to build the Custom Widget");
       }
@@ -115,7 +117,7 @@ class ViewUtil {
     // Let's build the model now
     // no payload, simple widget e.g Spacer or Spacer:
     if (payload == null) {
-      return WidgetModel(def, widgetType, {}, {}, {}, [], {});
+      return WidgetModel(def, widgetType, {}, {}, {}, [], {}, path: path);
     }
 
     List<WidgetModel>? children;
@@ -135,7 +137,8 @@ class ViewUtil {
             styles[styleKey] = EnsembleThemeManager.yamlToDart(styleValue);
           });
         } else if (key == 'children' && value is YamlList) {
-          children = ViewUtil.buildModels(value, customWidgetMap);
+          children = ViewUtil.buildModels(value, customWidgetMap,
+              childPrefix: 'children', path: path);
         } else if (value is Map &&
             (key == "item-template" || key == "itemTemplate")) {
           itemTemplate = value;
@@ -154,17 +157,19 @@ class ViewUtil {
         classList,
         props,
         children: children,
-        itemTemplate: itemTemplate);
+        itemTemplate: itemTemplate,
+        path: path);
   }
 
   static WidgetModel? buildCustomModel(
       Map? callerPayload,
       dynamic viewDefinition,
       String widgetType,
-      Map<String, dynamic> customWidgetMap) {
+      Map<String, dynamic> customWidgetMap,
+      {required String path}) {
     // the custom definition may just have another widget name (with zero other information)
     if (viewDefinition is String) {
-      return buildModel(viewDefinition, customWidgetMap);
+      return buildModel(viewDefinition, customWidgetMap, path: path);
     }
 
     Map<String, dynamic> props = {};
@@ -208,14 +213,16 @@ class ViewUtil {
       else if (entry.key == 'onLoad') {
         props[entry.key] = entry.value;
       } else if (entry.key == 'body') {
-        widgetModel = ViewUtil.buildModel(entry.value, customWidgetMap);
+        widgetModel = ViewUtil.buildModel(entry.value, customWidgetMap,
+            path: '$path/body');
       }
       // backward compatible - find the first widget model
       else {
         // if a regular widget or custom widget
         if (WidgetRegistry.legacyWidgetMap[entry.key] != null ||
             customWidgetMap[entry.key] != null) {
-          widgetModel = ViewUtil.buildModel(entry, customWidgetMap);
+          widgetModel =
+              ViewUtil.buildModel(entry, customWidgetMap, path: '$path/body');
 
           // there should only be 1 widget model
           break;
@@ -240,17 +247,20 @@ class ViewUtil {
         inputs: inputPayload,
         parameters: inputParams,
         actions: eventPayload,
-        events: eventParams);
+        events: eventParams,
+        path: path);
   }
 
   static List<WidgetModel> buildModels(
-      YamlList items, Map<String, dynamic>? customWidgetMap) {
+      YamlList items, Map<String, dynamic>? customWidgetMap,
+      {required String childPrefix, required String path}) {
     List<WidgetModel> rtn = [];
-    for (dynamic item in items) {
-      if (item is YamlMap && item.keys.length > 1) {
+    for (int i = 0; i < items.length; i++) {
+      if (items[i] is YamlMap && items[i].keys.length > 1) {
         //user has incorrectly used tabs
       }
-      rtn.add(buildModel(item, customWidgetMap));
+      rtn.add(buildModel(items[i], customWidgetMap,
+          path: '$path/$childPrefix[$i]'));
     }
     return rtn;
   }

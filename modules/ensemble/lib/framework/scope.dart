@@ -250,23 +250,24 @@ mixin ViewBuilder on IsScopeManager {
   /// parent scope is not defined. This means that onAction might not
   /// have the right data context. Use @buildWidgetWithScopeFromDefinition if
   /// you want to wrap it around the right scope
-  Widget buildWidgetFromDefinition(dynamic item) {
-    return buildWidget(ViewUtil.buildModel(item, customViewDefinitions));
+  Widget buildWidgetFromDefinition(dynamic item, [String? path]) {
+    return buildWidget(buildModelFromDefinition(item, path));
   }
 
   Widget buildWidgetFromModel(WidgetModel model) {
     return buildWidget(model);
   }
 
-  WidgetModel buildWidgetModelFromDefinition(dynamic item) {
-    return ViewUtil.buildModel(item, customViewDefinitions);
+  WidgetModel buildModelFromDefinition(dynamic item, [String? path]) {
+    path ??= '/generated/${Utils.generateRandomString()}';
+    return ViewUtil.buildModel(item, customViewDefinitions, path: path);
   }
 
   /// build a widget from the item YAML, and wrap it inside a DataScopeWidget
   /// This enables the widget to travel up and get its data context
-  DataScopeWidget buildWidgetWithScopeFromDefinition(dynamic item) {
-    Widget widget =
-        buildWidget(ViewUtil.buildModel(item, customViewDefinitions));
+  DataScopeWidget buildWidgetWithScopeFromDefinition(dynamic item,
+      [String? path]) {
+    Widget widget = buildWidgetFromDefinition(item, path);
     return DataScopeWidget(scopeManager: createChildScope(), child: widget);
   }
 

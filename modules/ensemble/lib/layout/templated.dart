@@ -84,7 +84,7 @@ mixin TemplatedWidgetState<W extends StatefulWidget> on State<W> {
     ScopeManager templatedScope = parentScope.createChildScope();
     templatedScope.dataContext.addDataContextById(itemTemplate.name, itemData);
     WidgetModel model =
-        templatedScope.buildWidgetModelFromDefinition(itemTemplate.template);
+        templatedScope.buildModelFromDefinition(itemTemplate.template);
     Widget templatedWidget = templatedScope.buildWidgetFromModel(model);
     // Widget templatedWidget =
     //     templatedScope.buildWidgetFromDefinition(itemTemplate.template);

@@ -8,6 +8,8 @@ import 'package:ensemble/util/utils.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:yaml/yaml.dart';
 
+/// historically you can have the menu in ViewGroup or in View. We probably need
+/// to have separate paths for them
 abstract class Menu extends Object with HasStyles, Invokable {
   Menu(this.menuItems,
       {String? widgetType,
@@ -45,8 +47,9 @@ abstract class Menu extends Object with HasStyles, Invokable {
       // classList,
       // build menu items
       List<MenuItem> menuItems = [];
-      if (payload['items'] is YamlList) {
-        for (final YamlMap item in (payload['items'] as YamlList)) {
+      if (payload['items'] is List) {
+        for (int i = 0; i < payload['items'].length; i++) {
+          Map item = payload['items'][i];
           final isNormalMenuItem =
               item['floating'] == null || item['floating'] == false;
           if (item['label'] == null) {
@@ -65,14 +68,16 @@ abstract class Menu extends Object with HasStyles, Invokable {
           if (customItem != null) {
             final dynamic iconWidget = customItem['widget'];
             if (iconWidget != null) {
-              customIconModel =
-                  ViewUtil.buildModel(iconWidget, customViewDefinitions);
+              customIconModel = ViewUtil.buildModel(
+                  iconWidget, customViewDefinitions,
+                  path: '/menu/items[$i]/widget');
             }
 
             final dynamic activeIconWidget = customItem['selectedWidget'];
             if (iconWidget != null) {
-              customActiveIconModel =
-                  ViewUtil.buildModel(activeIconWidget, customViewDefinitions);
+              customActiveIconModel = ViewUtil.buildModel(
+                  activeIconWidget, customViewDefinitions,
+                  path: '/menu/items[$i]/selectedWidget');
             }
           }
 
@@ -107,13 +112,15 @@ abstract class Menu extends Object with HasStyles, Invokable {
       // menu headers/footers
       WidgetModel? menuHeaderModel;
       if (payload['header'] != null) {
-        menuHeaderModel =
-            ViewUtil.buildModel(payload['header'], customViewDefinitions);
+        menuHeaderModel = ViewUtil.buildModel(
+            payload['header'], customViewDefinitions,
+            path: '/menu/header');
       }
       WidgetModel? menuFooterModel;
       if (payload['footer'] != null) {
-        menuFooterModel =
-            ViewUtil.buildModel(payload['footer'], customViewDefinitions);
+        menuFooterModel = ViewUtil.buildModel(
+            payload['footer'], customViewDefinitions,
+            path: '/menu/footer');
       }
       List<String>? classList;
       if (payload[ViewUtil.classNameAttribute] != null) {
