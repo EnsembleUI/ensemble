@@ -476,8 +476,10 @@ class NativeInvokable extends ActionInvokable {
     Map<String, Function> methods = super.methods();
     methods.addAll({
       ActionType.navigateScreen.name: (inputs) => ScreenController()
-          .executeAction(buildContext, NavigateScreenAction.fromMap(inputs)),
-      ActionType.navigateModalScreen.name: navigateToModalScreen,
+          .executeAction(buildContext, NavigateScreenAction.from(inputs)),
+      ActionType.navigateModalScreen.name: (screenNameOrPayload, [inputs]) =>
+          ScreenController().executeAction(buildContext,
+              NavigateModalScreenAction.from(screenNameOrPayload, inputs)),
       ActionType.invokeAPI.name: invokeAPI,
       ActionType.openUrl.name: openUrl,
       ActionType.stopTimer.name: stopTimer,
@@ -612,13 +614,6 @@ class NativeInvokable extends ActionInvokable {
       buildContext,
       FileUploadAction.fromYaml(payload: YamlMap.wrap(inputMap)),
     );
-  }
-
-  void navigateToModalScreen(String screenName, [dynamic inputs]) {
-    Map<String, dynamic>? inputMap = Utils.getMap(inputs);
-    ScreenController().navigateToScreen(buildContext,
-        screenName: screenName, pageArgs: inputMap, asModal: true);
-    // how do we handle onModalDismiss in Typescript?
   }
 
   void openUrl([dynamic inputs]) {
