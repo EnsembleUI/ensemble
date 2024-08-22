@@ -48,13 +48,12 @@ class LoadingContainer extends StatefulWidget
       'baseColor': (color) => _controller.baseColor = Utils.getColor(color),
       'highlightColor': (color) =>
           _controller.highlightColor = Utils.getColor(color),
+      'useShimmer': (value) =>
+          _controller.useShimmer = Utils.optionalBool(value),
       'defaultShimmerPadding': (value) => _controller.padding =
           Utils.getInsets(value), // Backward compatibility
       'shimmerOptions': (options) {
         if (options is Map<String, dynamic>) {
-          if (options.containsKey('useShimmer')) {
-            _controller.useShimmer = Utils.optionalBool(options['useShimmer']);
-          }
           if (options.containsKey('padding')) {
             _controller.padding = Utils.getInsets(options['padding']);
           }
