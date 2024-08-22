@@ -1,4 +1,5 @@
 import 'package:carousel_slider/carousel_slider.dart';
+import 'package:carousel_slider/carousel_slider.dart' as e;
 import 'package:ensemble/framework/device.dart';
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/extensions.dart';
@@ -193,10 +194,10 @@ class MyController extends BoxController {
   int selectedItemIndex = 0;
   int? indicatorMaxCount;
 
-  final CarouselController _carouselController = CarouselController();
+  final e.CarouselController _carouselController = e.CarouselController();
 }
 
-class CarouselState extends WidgetState<Carousel>
+class CarouselState extends EWidgetState<Carousel>
     with TemplatedWidgetState, HasChildren<Carousel> {
   List<Widget>? templatedChildren;
 

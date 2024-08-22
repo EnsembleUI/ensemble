@@ -28,12 +28,11 @@ class JSON extends Object with Invokable {
     return {};
   }
 }
+
 class StaticObject extends Object with Invokable {
   @override
   Map<String, Function> methods() {
-    return {
-      'init': () => {}
-    };
+    return {'init': () => {}};
   }
 
   @override
@@ -45,24 +44,23 @@ class StaticObject extends Object with Invokable {
   Map<String, Function> setters() {
     return {};
   }
-
 }
-class InvokableObject extends Object with Invokable {
 
+class InvokableObject extends Object with Invokable {
   @override
   Map<String, Function> methods() {
     return {
       'init': () => {},
       'keys': (dynamic value) =>
-      (value is Map) ? value.keys.toList() : (value == null ? [] : null),
+          (value is Map) ? value.keys.toList() : (value == null ? [] : null),
       'values': (dynamic value) =>
-      (value is Map) ? value.values.toList() : (value == null ? [] : null),
+          (value is Map) ? value.values.toList() : (value == null ? [] : null),
       'entries': (dynamic value) =>
-      (value is Map) ? value.entries.toList() : (value == null ? [] : null),
+          (value is Map) ? value.entries.toList() : (value == null ? [] : null),
       'hasOwnProperty': (dynamic value, String key) =>
-      (value is Map) ? value.containsKey(key) : false,
+          (value is Map) ? value.containsKey(key) : false,
       'getPropertyNames': (dynamic value) =>
-      (value is Map) ? value.keys.toList() : (value == null ? [] : null),
+          (value is Map) ? value.keys.toList() : (value == null ? [] : null),
       'toString': (dynamic value) => value.toString(),
       'toJSON': (dynamic value) => (value is Map || value is List)
           ? jsonEncode(value)
@@ -74,15 +72,15 @@ class InvokableObject extends Object with Invokable {
         return value;
       },
       'deleteProperty': (dynamic value, String key) =>
-      (value is Map) ? value.remove(key) : null,
+          (value is Map) ? value.remove(key) : null,
       'has': (dynamic value, String key) =>
-      (value is Map) ? value.containsKey(key) : false,
+          (value is Map) ? value.containsKey(key) : false,
       'isPrototypeOf': (dynamic proto, dynamic value) =>
-      value is InvokableObject && proto is InvokableObject
-          ? value.runtimeType == proto.runtimeType
-          : false,
+          value is InvokableObject && proto is InvokableObject
+              ? value.runtimeType == proto.runtimeType
+              : false,
       'propertyIsEnumerable': (dynamic value, String key) =>
-      (value is Map) ? value.keys.contains(key) : false,
+          (value is Map) ? value.keys.contains(key) : false,
     };
   }
 

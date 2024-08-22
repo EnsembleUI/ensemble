@@ -51,7 +51,7 @@ class IconButtonController extends WidgetController {
   String? onTapHaptic;
 }
 
-class IconButtonState extends WidgetState<EnsembleIconButton> {
+class IconButtonState extends EWidgetState<EnsembleIconButton> {
   @override
   Widget buildWidget(BuildContext context) {
     return FrameworkIconButton(

@@ -31,7 +31,7 @@ class EnsembleText extends StatefulWidget
       'textStyle': () => _controller.textStyle,
       'selectable': () => _controller.selectable,
       'maxLines': () => _controller.maxLines,
-      'expandable': () =>  _controller.expandable,
+      'expandable': () => _controller.expandable,
       'expandLabel': () => _controller.expandLabel,
       'collapseLabel': () => _controller.collapseLabel,
       'expandTextStyle': () => _controller.expandTextStyle,
@@ -51,10 +51,14 @@ class EnsembleText extends StatefulWidget
       'selectable': (value) =>
           _controller.selectable = Utils.optionalBool(value),
       'textScale': (value) => _controller.textScale = TextScale.from(value),
-      'expandable': (value) => _controller.expandable = Utils.optionalBool(value),
-      'expandLabel': (value) => _controller.expandLabel = Utils.optionalString(value),
-      'collapseLabel': (value) => _controller.collapseLabel = Utils.optionalString(value),
-      'expandTextStyle': (style) => _controller.expandTextStyle = Utils.getTextStyleAsComposite(_controller, style: style),
+      'expandable': (value) =>
+          _controller.expandable = Utils.optionalBool(value),
+      'expandLabel': (value) =>
+          _controller.expandLabel = Utils.optionalString(value),
+      'collapseLabel': (value) =>
+          _controller.collapseLabel = Utils.optionalString(value),
+      'expandTextStyle': (style) => _controller.expandTextStyle =
+          Utils.getTextStyleAsComposite(_controller, style: style),
     };
   }
 
@@ -83,7 +87,7 @@ class TextController extends BoxController {
   set textStyle(TextStyleComposite style) => _textStyle = style;
 }
 
-class EnsembleTextState extends framework.WidgetState<EnsembleText> {
+class EnsembleTextState extends framework.EWidgetState<EnsembleText> {
   @override
   Widget buildWidget(BuildContext context) {
     return BoxWrapper(
@@ -111,7 +115,9 @@ class EnsembleTextState extends framework.WidgetState<EnsembleText> {
         textOverflow: controller.textStyle.overflow,
         expandLabel: controller.expandLabel ?? '...show more',
         collapseLabel: controller.collapseLabel ?? ' show less',
-        expandTextStyle: controller.expandTextStyle != null ? controller.expandTextStyle?.getTextStyle() : null,
+        expandTextStyle: controller.expandTextStyle != null
+            ? controller.expandTextStyle?.getTextStyle()
+            : null,
       );
     } else {
       textWidget = shouldBeSelectable
@@ -120,7 +126,7 @@ class EnsembleTextState extends framework.WidgetState<EnsembleText> {
               maxLines: controller.maxLines,
               style: controller.textStyle.getTextStyle(),
               textScaler: _getTextScaler())
-         : Text(controller.text ?? '',
+          : Text(controller.text ?? '',
               textAlign: controller.textAlign,
               maxLines: controller.maxLines,
               style: controller.textStyle.getTextStyle(),
@@ -164,4 +170,3 @@ class _GradientText extends StatelessWidget {
     );
   }
 }
-
