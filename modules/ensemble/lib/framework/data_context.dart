@@ -462,7 +462,7 @@ class NativeInvokable extends ActionInvokable {
       'storage': () => storage,
       'user': () => UserInfo(),
       'formatter': () => Formatter(),
-      'utils': () => EnsembleUtils(),
+      'utils': () => _EnsembleUtils(),
       'device': () => Device(),
     };
   }
@@ -476,8 +476,10 @@ class NativeInvokable extends ActionInvokable {
     Map<String, Function> methods = super.methods();
     methods.addAll({
       ActionType.navigateScreen.name: (inputs) => ScreenController()
-          .executeAction(buildContext, NavigateScreenAction.fromMap(inputs)),
-      ActionType.navigateModalScreen.name: navigateToModalScreen,
+          .executeAction(buildContext, NavigateScreenAction.from(inputs)),
+      ActionType.navigateModalScreen.name: (screenNameOrPayload, [inputs]) =>
+          ScreenController().executeAction(buildContext,
+              NavigateModalScreenAction.from(screenNameOrPayload, inputs)),
       ActionType.invokeAPI.name: invokeAPI,
       ActionType.openUrl.name: openUrl,
       ActionType.stopTimer.name: stopTimer,
@@ -614,13 +616,6 @@ class NativeInvokable extends ActionInvokable {
     );
   }
 
-  void navigateToModalScreen(String screenName, [dynamic inputs]) {
-    Map<String, dynamic>? inputMap = Utils.getMap(inputs);
-    ScreenController().navigateToScreen(buildContext,
-        screenName: screenName, pageArgs: inputMap, asModal: true);
-    // how do we handle onModalDismiss in Typescript?
-  }
-
   void openUrl([dynamic inputs]) {
     Map<String, dynamic>? inputMap = Utils.getMap(inputs);
     inputMap ??= {};
@@ -727,7 +722,7 @@ class EnsembleStorage with Invokable {
   }
 }
 
-class EnsembleUtils with Invokable {
+class _EnsembleUtils with Invokable {
   @override
   Map<String, Function> getters() => {};
 
@@ -1130,13 +1125,15 @@ class APIResponse with Invokable {
     return {
       'isSuccess': () => _response?.apiState.isSuccess,
       'isError': () => _response?.apiState.isError,
-      'isLoading': () => _response?.apiState.isLoading,
+      'isLoading': () => isLoading(),
       'body': () => _response?.body,
       'headers': () => _response?.headers,
       'statusCode': () => _response?.statusCode,
       'reasonPhrase': () => _response?.reasonPhrase
     };
   }
+
+  bool isLoading() => _response?.apiState.isLoading == true;
 
   @override
   Map<String, Function> methods() {

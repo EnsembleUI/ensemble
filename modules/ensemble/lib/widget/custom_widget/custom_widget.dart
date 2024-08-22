@@ -12,9 +12,7 @@ import 'package:flutter/cupertino.dart';
 
 class CustomWidget extends EnsembleWidget<CustomWidgetController> {
   CustomWidget._(super.controller,
-      {super.key, required this.model, required this.scopeManager}) {
-    log("Custom Widget $hashCode created");
-  }
+      {super.key, required this.model, required this.scopeManager});
 
   final CustomWidgetModel model;
   final ScopeManager scopeManager;
@@ -73,8 +71,8 @@ class CustomWidgetController extends EnsembleWidgetController {
 
 class _CustomWidgetState extends EnsembleWidgetState<CustomWidget> {
   @override
-  void initState() {
-    super.initState();
+  void didChangeDependencies() {
+    super.didChangeDependencies();
     CustomWidgetLifecycle lifecycleActions = widget.model.getLifecycleActions();
     if (lifecycleActions.onLoad != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {

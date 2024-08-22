@@ -79,7 +79,7 @@ class NavigateScreenAction extends BaseNavigateScreenAction {
       : super(asModal: false);
   EnsembleAction? onNavigateBack;
 
-  factory NavigateScreenAction.fromYaml({Invokable? initiator, Map? payload}) {
+  factory NavigateScreenAction.fromMap({Invokable? initiator, Map? payload}) {
     if (payload == null || payload['name'] == null) {
       throw LanguageError(
           "${ActionType.navigateScreen.name} requires the 'name' of the screen to navigate to.");
@@ -97,12 +97,13 @@ class NavigateScreenAction extends BaseNavigateScreenAction {
     );
   }
 
-  factory NavigateScreenAction.fromMap(dynamic inputs) {
+  @Deprecated("use fromMap()")
+  factory NavigateScreenAction.from(dynamic inputs) {
     // just have the screen name only
     if (inputs is String) {
       return NavigateScreenAction(screenName: inputs);
     }
-    return NavigateScreenAction.fromYaml(payload: Utils.getYamlMap(inputs));
+    return NavigateScreenAction.fromMap(payload: Utils.getYamlMap(inputs));
   }
 }
 
@@ -154,7 +155,7 @@ class NavigateModalScreenAction extends BaseNavigateScreenAction {
   }) : super(asModal: true);
   EnsembleAction? onModalDismiss;
 
-  factory NavigateModalScreenAction.fromYaml(
+  factory NavigateModalScreenAction.fromMap(
       {Invokable? initiator, Map? payload}) {
     if (payload == null || payload['name'] == null) {
       throw LanguageError(
@@ -168,6 +169,20 @@ class NavigateModalScreenAction extends BaseNavigateScreenAction {
       onModalDismiss: EnsembleAction.from(payload['onModalDismiss']),
       asExternal: Utils.getBool(payload['asExternal'], fallback: false),
     );
+  }
+
+  @Deprecated("use fromMap()")
+  factory NavigateModalScreenAction.from(dynamic screenNameOrPayload,
+      [dynamic inputs]) {
+    // legacy
+    if (screenNameOrPayload is String) {
+      return NavigateModalScreenAction(
+          screenName: screenNameOrPayload, payload: Utils.getMap(inputs));
+    }
+    if (!(screenNameOrPayload is Map)) {
+      throw LanguageError("Invalid Modal Screen payload");
+    }
+    return NavigateModalScreenAction.fromMap(payload: screenNameOrPayload);
   }
 }
 
@@ -1127,7 +1142,7 @@ abstract class EnsembleAction {
   static EnsembleAction? fromActionType(ActionType actionType,
       {Invokable? initiator, Map? payload}) {
     if (actionType == ActionType.navigateScreen) {
-      return NavigateScreenAction.fromYaml(
+      return NavigateScreenAction.fromMap(
           initiator: initiator, payload: payload);
     } else if (actionType == ActionType.navigateExternalScreen) {
       return NavigateExternalScreen.from(
@@ -1135,7 +1150,7 @@ abstract class EnsembleAction {
     } else if (actionType == ActionType.navigateViewGroup) {
       return NavigateViewGroupAction(payload);
     } else if (actionType == ActionType.navigateModalScreen) {
-      return NavigateModalScreenAction.fromYaml(
+      return NavigateModalScreenAction.fromMap(
           initiator: initiator, payload: payload);
     } else if (actionType == ActionType.navigateBack) {
       return NavigateBackAction.from(payload: payload);
