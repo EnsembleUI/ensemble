@@ -178,6 +178,14 @@ class ScreenController {
       scopeManager.dataContext.addInvokableContext('event', event);
     }
 
+    /// widget's buildContext can be stale if the widget is rebuilt by the parent,
+    /// in which case we fallback to parent ScopeManager's buildContext.
+    /// Note that this is not guaranteed to be active either but often time
+    /// it is enough to recover from stale Context
+    if (!context.mounted) {
+      context = scopeManager.dataContext.buildContext;
+    }
+
     /// TODO: The below Actions should be move to their execute() functions
     if (action is NavigateExternalScreen) {
       return action.execute(context, scopeManager);

@@ -131,8 +131,9 @@ class InvokeAPIController {
           action,
           APIResponse(response: responseToDispatch),
         );
+
         Response response;
-        responseListener(Response response) {
+        void responseListener(Response response) {
           if (response.isOkay) {
             _onAPIComplete(context, action, apiDefinition, response, apiMap,
                 apiScopeManager);
