@@ -299,14 +299,65 @@ class EnsembleTheme {
         if (result[key] != null && result[key] is Map && value is Map) {
           result[key] = mergeMaps(result[key] as Map<String, dynamic>,
               value as Map<String, dynamic>);
+        } else if (key == 'margin' || key == 'padding') {
+          // Handle margin and padding specifically as they need to be merged at the edge level
+          result[key] = mergeEdgeInsets(
+              (result[key] is int)?result[key].toString():result[key],
+              (value is int)?value.toString():value);
         } else {
-          // Otherwise, just set/overwrite the value
           result[key] = value;
         }
       });
     }
     return result;
   }
+
+  List<String> normalizeEdgeInsets(String value) {
+    // Split the value by spaces and normalize to a list of four values
+    List<String> parts = value.split(' ');
+
+    if (parts.length == 1) {
+      // All sides are the same
+      return [parts[0], parts[0], parts[0], parts[0]];
+    } else if (parts.length == 2) {
+      // Top/Bottom are the first value, Left/Right are the second value
+      return [parts[0], parts[1], parts[0], parts[1]];
+    } else if (parts.length == 3) {
+      // Top is the first, Left/Right are the second, Bottom is the third
+      return [parts[0], parts[1], parts[2], parts[1]];
+    } else if (parts.length == 4) {
+      // All sides are specified
+      return parts;
+    }
+
+    // Fallback if something unexpected happens
+    return ['0', '0', '0', '0'];
+  }
+
+  String? mergeEdgeInsets(dynamic value1, dynamic value2) {
+    if (value1 == null) {
+      return value2;
+    }
+
+    if (value2 == null) {
+      return value1;
+    }
+
+    // Normalize both values to lists of four values
+    List<String> normalized1 = normalizeEdgeInsets(value1.toString());
+    List<String> normalized2 = normalizeEdgeInsets(value2.toString());
+
+    // Merge by using the value from map2 if it exists, otherwise fallback to map1
+    List<String> merged = [
+      normalized2[0] + '' != '0' ? normalized2[0] : normalized1[0],
+      normalized2[1] + '' != '0' ? normalized2[1] : normalized1[1],
+      normalized2[2] + '' != '0' ? normalized2[2] : normalized1[2],
+      normalized2[3] + '' != '0' ? normalized2[3] : normalized1[3],
+    ];
+
+    return merged.join(' ');
+  }
+
 
   //precedence order is exactly in the order of arguments in this method
   Map<String, dynamic> _resolveStyles(
