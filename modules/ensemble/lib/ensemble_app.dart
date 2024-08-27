@@ -13,10 +13,8 @@ import 'package:ensemble/framework/bindings.dart';
 import 'package:ensemble/framework/config.dart';
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/definition_providers/provider.dart';
-import 'package:ensemble/framework/device.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/event/change_locale_events.dart';
-import 'package:ensemble/framework/secrets.dart';
 import 'package:ensemble/framework/storage_manager.dart';
 import 'package:ensemble/framework/theme/theme_loader.dart';
 import 'package:ensemble/framework/theme_manager.dart';
@@ -342,11 +340,13 @@ class EnsembleAppState extends State<EnsembleApp> with WidgetsBindingObserver {
       apiProviders: APIProviders.clone(config.apiProviders ?? {}),
     );
     ThemeData? theme;
-    if (EnsembleThemeManager().currentTheme()?.appThemeData != null) {
-      theme = EnsembleThemeManager().currentTheme()!.appThemeData;
-    } else {
+    //if we have defined legacy themes at the root level or if thre is no Styles at the root level, we use the app level theme
+    if (config.hasLegacyCustomAppTheme() ||
+        EnsembleThemeManager().currentTheme()?.appThemeData == null) {
       //backward compatibility in case apps are using the old style of App level theming that is at the root level
       theme = config.getAppTheme();
+    } else {
+      theme = EnsembleThemeManager().currentTheme()!.appThemeData;
     }
 
     StorageManager().setIsPreview(widget.isPreview);
