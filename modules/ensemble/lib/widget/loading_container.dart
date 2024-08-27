@@ -9,8 +9,6 @@ import 'package:yaml/yaml.dart';
 
 enum ShimmerEffect { diagonal, horizontal, vertical }
 
-enum ShimmerEffect { diagonal, horizontal, vertical }
-
 /// A container that can display a loading indicator or shimmer
 /// while the content is being loaded
 class LoadingContainer extends StatefulWidget
