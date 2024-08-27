@@ -5,6 +5,9 @@ import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:ensemble/widget/shape.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/material.dart';
+import 'package:yaml/yaml.dart';
+
+enum ShimmerEffect { diagonal, horizontal, vertical }
 
 enum ShimmerEffect { diagonal, horizontal, vertical }
 
@@ -53,7 +56,7 @@ class LoadingContainer extends StatefulWidget
       'defaultShimmerPadding': (value) => _controller.padding =
           Utils.getInsets(value), // Backward compatibility
       'shimmerOptions': (options) {
-        if (options is Map<String, dynamic>) {
+        if (options is YamlMap) {
           if (options.containsKey('padding')) {
             _controller.padding = Utils.getInsets(options['padding']);
           }
@@ -124,19 +127,10 @@ class LoadingContainerState extends EWidgetState<LoadingContainer> {
 
     return widget._controller.useShimmer == true
         ? CustomShimmer(
-            linearGradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.centerRight,
-                colors: widget._controller.gradientColors ??
-                    <Color>[
-                      widget._controller.baseColor ?? const Color(0xFFEBEBF4),
-                      widget._controller.highlightColor ??
-                          const Color(0xFFEBEBF4).withOpacity(0.3),
-                      widget._controller.baseColor ?? const Color(0xFFEBEBF4),
-                    ],
-                stops:
-                    widget._controller.gradientStops ?? const [0.1, 0.3, 0.4],
-                tileMode: TileMode.clamp),
+            linearGradient: _buildGradient(),
+            shimmerEffect:
+                widget._controller.shimmerEffect ?? ShimmerEffect.diagonal,
+            shimmerSpeed: widget._controller.shimmerSpeed ?? 1000,
             min: widget._controller.min ?? -0.5,
             max: widget._controller.max ?? 1.5,
             child: ShimmerLoading(
@@ -148,42 +142,45 @@ class LoadingContainerState extends EWidgetState<LoadingContainer> {
   }
 
   LinearGradient _buildGradient() {
+    List<Color> colors = widget._controller.gradientColors ??
+        [
+          widget._controller.baseColor ?? const Color(0xFFEBEBF4),
+          widget._controller.highlightColor ??
+              const Color(0xFFEBEBF4).withOpacity(0.3),
+          widget._controller.baseColor ?? const Color(0xFFEBEBF4),
+        ];
+
+    return LinearGradient(
+      begin: _getGradientBegin(),
+      end: _getGradientEnd(),
+      colors: colors,
+      stops: widget._controller.gradientStops ?? const [0.1, 0.3, 0.4],
+      tileMode: TileMode.clamp,
+    );
+  }
+
+  Alignment _getGradientBegin() {
     switch (widget._controller.shimmerEffect) {
       case ShimmerEffect.horizontal:
-        return LinearGradient(
-          begin: Alignment.centerLeft,
-          end: Alignment.centerRight,
-          colors: _buildGradientColors(),
-          stops: const [0.1, 0.3, 0.4],
-          tileMode: TileMode.clamp,
-        );
+        return Alignment.centerLeft;
       case ShimmerEffect.vertical:
-        return LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: _buildGradientColors(),
-          stops: const [0.1, 0.3, 0.4],
-          tileMode: TileMode.clamp,
-        );
+        return Alignment.topCenter;
       case ShimmerEffect.diagonal:
       default:
-        return LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.centerRight,
-          colors: _buildGradientColors(),
-          stops: const [0.1, 0.3, 0.4],
-          tileMode: TileMode.clamp,
-        );
+        return Alignment.topLeft;
     }
   }
 
-  List<Color> _buildGradientColors() {
-    return <Color>[
-      widget._controller.baseColor ?? const Color(0xFFEBEBF4),
-      widget._controller.highlightColor ??
-          const Color(0xFFEBEBF4).withOpacity(0.3),
-      widget._controller.baseColor ?? const Color(0xFFEBEBF4),
-    ];
+  Alignment _getGradientEnd() {
+    switch (widget._controller.shimmerEffect) {
+      case ShimmerEffect.horizontal:
+        return Alignment.centerRight;
+      case ShimmerEffect.vertical:
+        return Alignment.bottomCenter;
+      case ShimmerEffect.diagonal:
+      default:
+        return Alignment.bottomRight;
+    }
   }
 
   Widget _buildContentWidget() {
