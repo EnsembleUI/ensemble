@@ -5,7 +5,7 @@ const double _kSplashInitialSize = 0.0; // logical pixels
 
 const Duration _kSplashDuration = const Duration(milliseconds: 500);
 const Duration _kSplashFadeDuration = const Duration(milliseconds: 500);
-const Duration _kUnconfirmedSplashDuration = const Duration(milliseconds: 500);
+const Duration _kUnconfirmedSplashDuration = const Duration(milliseconds: 1000);
 
 /// copied over from InkSplash with modifications for durations
 class CustomInkSplash extends InteractiveInkFeature {
