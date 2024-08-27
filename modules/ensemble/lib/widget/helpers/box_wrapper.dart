@@ -2,6 +2,7 @@ import 'package:ensemble/framework/model.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/theme/theme_manager.dart';
 import 'package:ensemble/framework/view/data_scope_widget.dart';
+import 'package:ensemble/framework/widget/custom_ink_splash.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:ensemble/widget/helpers/widgets.dart';
@@ -119,6 +120,11 @@ class BoxWrapper extends StatelessWidget {
       return Material(
           color: Colors.transparent,
           child: InkWell(
+            splashFactory: CustomInkSplashFactory(
+              splashDuration: controller.splashDuration,
+              splashFadeDuration: controller.splashFadeDuration,
+              unconfirmedSplashDuration: controller.unconfirmedSplashDuration,
+            ),
             onTap: () =>
                 ScreenController().executeAction(context, controller.onTap!),
             // note that splashColor has a default color if not specified
