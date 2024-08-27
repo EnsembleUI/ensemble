@@ -52,14 +52,14 @@ void callbackDispatcher() {
         }
         try {
           final sendPort =
-              IsolateNameServer.lookupPortByName(inputData['taskId']);
+          IsolateNameServer.lookupPortByName(inputData['taskId']);
           final response = await UploadUtils.uploadFiles(
             fieldName: inputData['fieldName'] ?? 'file',
             files: (inputData['files'] as List)
                 .map((e) => File.fromJson(json.decode(e)))
                 .toList(),
             headers:
-                Map<String, String>.from(json.decode(inputData['headers'])),
+            Map<String, String>.from(json.decode(inputData['headers'])),
             method: inputData['method'],
             url: inputData['url'],
             fields: Map<String, String>.from(json.decode(inputData['fields'])),
@@ -304,7 +304,7 @@ class EnsembleAppState extends State<EnsembleApp> with WidgetsBindingObserver {
     if (foundSelectedTheme && savedTheme != null) {
       defaultTheme = savedTheme;
     }
-    EnsembleThemeManager().init(context, themes, defaultTheme);
+    EnsembleThemeManager().init(context, themes, defaultTheme, localeThemes: doc["LocaleThemes"]);
   }
 
   Locale? resolveLocale(Locale? systemLocale,
@@ -329,6 +329,7 @@ class EnsembleAppState extends State<EnsembleApp> with WidgetsBindingObserver {
         configureThemes(doc, AppConfig(context, AppInfo().appId));
       }
     }
+    EnsembleThemeManager().setCurrentLocale(Ensemble().locale?.languageCode,notifyListeners: false);
     // notify external app once of EnsembleApp loading status
     if (widget.onAppLoad != null && !notifiedAppLoad) {
       widget.onAppLoad!.call();
@@ -340,8 +341,13 @@ class EnsembleAppState extends State<EnsembleApp> with WidgetsBindingObserver {
       screenPayload: widget.screenPayload,
       apiProviders: APIProviders.clone(config.apiProviders ?? {}),
     );
-
-    var theme = config.getAppTheme();
+    ThemeData? theme;
+    if (EnsembleThemeManager().currentTheme()?.appThemeData != null) {
+      theme = EnsembleThemeManager().currentTheme()!.appThemeData;
+    } else {
+      //backward compatibility in case apps are using the old style of App level theming that is at the root level
+      theme = config.getAppTheme();
+    }
 
     StorageManager().setIsPreview(widget.isPreview);
     Widget app = MaterialApp(
@@ -360,9 +366,9 @@ class EnsembleAppState extends State<EnsembleApp> with WidgetsBindingObserver {
         return Ensemble().locale;
       },
       home: Scaffold(
-          // this outer scaffold is where the background image would be (if
-          // specified). We do not want it to resize on keyboard popping up.
-          // The Page's Scaffold can handle the resizing.
+        // this outer scaffold is where the background image would be (if
+        // specified). We do not want it to resize on keyboard popping up.
+        // The Page's Scaffold can handle the resizing.
           resizeToAvoidBottomInset: false,
           body: screen),
       useInheritedMediaQuery: widget.isPreview,
@@ -373,7 +379,7 @@ class EnsembleAppState extends State<EnsembleApp> with WidgetsBindingObserver {
 
     // adjust for text scaling globally
     var textScale =
-        theme.extension<EnsembleThemeExtension>()?.appTheme?.textScale;
+        theme!.extension<EnsembleThemeExtension>()?.appTheme?.textScale;
     if (textScale != null) {
       if (textScale.enabled == false) {
         app = MediaQuery.withNoTextScaling(child: app);
@@ -430,15 +436,15 @@ class EnsembleAppState extends State<EnsembleApp> with WidgetsBindingObserver {
   Widget _appPlaceholderWrapper(
       {Widget? placeholderWidget, Color? placeholderBackgroundColor}) {
     return MaterialApp(
-        // even when this is the placeholder and will be replaced later, we still
-        // need to either set supportedLocales or handle localeResolutionCallback.
-        // Without this the system locale will be incorrect the first time.
-        //
-        // Also note we pass in the definitionProvider. This is only needed when
-        // the EnsembleConfig is passed in directly (without fetching it) and
-        // might contain the forcedLocale. For some reason localeResolutionCallback()
-        // will only be called once here and not again when the actual App is loaded.
-        // An example is when running integration test with another locale.
+      // even when this is the placeholder and will be replaced later, we still
+      // need to either set supportedLocales or handle localeResolutionCallback.
+      // Without this the system locale will be incorrect the first time.
+      //
+      // Also note we pass in the definitionProvider. This is only needed when
+      // the EnsembleConfig is passed in directly (without fetching it) and
+      // might contain the forcedLocale. For some reason localeResolutionCallback()
+      // will only be called once here and not again when the actual App is loaded.
+      // An example is when running integration test with another locale.
         localeResolutionCallback: (systemLocale, _) {
           Ensemble().locale = resolveLocale(systemLocale,
               definitionProvider: widget.ensembleConfig?.definitionProvider);
