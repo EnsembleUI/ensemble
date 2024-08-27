@@ -8,6 +8,9 @@ mixin TapEnabled {
   // by default disable splash feedback for historical reason
   bool enableSplashFeedback = false;
   Color? splashColor;
+  Duration? splashDuration;
+  Duration? splashFadeDuration;
+  Duration? unconfirmedSplashDuration;
 
   // for Desktop/Web or accessibility on Native
   Color? focusColor;

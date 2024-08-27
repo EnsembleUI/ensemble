@@ -384,6 +384,12 @@ class TapEnabledBoxController extends BoxController with TapEnabled {
         'enableSplashFeedback': (value) => enableSplashFeedback =
             Utils.getBool(value, fallback: enableSplashFeedback),
         'splashColor': (color) => splashColor = Utils.getColor(color),
+        'splashDuration': (value) =>
+            splashDuration = Utils.getDurationMs(value),
+        'splashFadeDuration': (value) =>
+            splashFadeDuration = Utils.getDurationMs(value),
+        'unconfirmedSplashDuration': (value) =>
+            unconfirmedSplashDuration = Utils.getDurationMs(value),
         'focusColor': (color) => focusColor = Utils.getColor(color),
         'hoverColor': (color) => hoverColor = Utils.getColor(color),
       };
