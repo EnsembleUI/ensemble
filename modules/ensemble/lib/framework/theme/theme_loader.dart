@@ -124,7 +124,7 @@ mixin ThemeLoader {
       onSecondary: Utils.getColor( colorOverrides?['onSecondary']),
     );
     final customTheme = defaultTheme.copyWith(
-      useMaterial3: Utils.getBool( materialOverrides, fallback: true),
+      useMaterial3: true,
       colorScheme: customColorScheme,
       disabledColor: Utils.getColor( colorOverrides?['disabled']),
       textTheme: defaultTheme.textTheme.merge(_buildTextTheme(widgetOverrides?['Text'], defaultFontFamily: defaultFontFamily)),
