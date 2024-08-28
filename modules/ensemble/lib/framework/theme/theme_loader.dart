@@ -11,7 +11,12 @@ mixin ThemeLoader {
   const EdgeInsets.only(left: 15, top: 5, right: 15, bottom: 5);
   final int _buttonBorderRadius = 3;
   final Color _buttonBorderOutlineColor = Colors.black12;
-
+  bool hasLegacyCustomAppTheme(YamlMap? overrides) {
+    return overrides?['App'] != null
+          || overrides?['Colors'] != null
+          || overrides?['Screen'] != null
+          || overrides?['Widgets'] != null;
+  }
   ThemeData getAppTheme(YamlMap? overrides,
       {YamlMap? appOverrides,
         YamlMap? colorOverrides,
@@ -119,7 +124,7 @@ mixin ThemeLoader {
       onSecondary: Utils.getColor( colorOverrides?['onSecondary']),
     );
     final customTheme = defaultTheme.copyWith(
-      useMaterial3: Utils.getBool( materialOverrides, fallback: true),
+      useMaterial3: true,
       colorScheme: customColorScheme,
       disabledColor: Utils.getColor( colorOverrides?['disabled']),
       textTheme: defaultTheme.textTheme.merge(_buildTextTheme(widgetOverrides?['Text'], defaultFontFamily: defaultFontFamily)),
