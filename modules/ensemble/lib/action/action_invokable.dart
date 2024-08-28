@@ -38,6 +38,7 @@ abstract class ActionInvokable with Invokable {
       ActionType.showDialog,
       ActionType.dismissDialog,
       ActionType.closeAllDialogs,
+      ActionType.executeActionGroup,
     ]);
   }
 
