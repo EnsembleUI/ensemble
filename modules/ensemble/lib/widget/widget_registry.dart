@@ -23,6 +23,7 @@ import 'package:ensemble/widget/button.dart';
 import 'package:ensemble/widget/calendar.dart';
 import 'package:ensemble/widget/checkbox.dart';
 import 'package:ensemble/widget/countdown.dart';
+import 'package:ensemble/widget/inline_timepicker.dart';
 import 'package:ensemble/widget/radio/radio_button.dart';
 import 'package:ensemble/widget/radio/radio_group.dart';
 import 'package:ensemble/widget/static_map.dart';
@@ -175,6 +176,7 @@ class WidgetRegistry {
         ScrollableTabBar.type: () => ScrollableTabBar(),
         AppScroller.type: () => AppScroller(),
         LoadingContainer.type: () => LoadingContainer(),
+        InlineTimePicker.type: () => InlineTimePicker(),
 
         // charts
         Highcharts.type: () => Highcharts(),
