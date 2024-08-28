@@ -536,11 +536,6 @@ class NativeInvokable extends ActionInvokable {
             buildContext,
             ExecuteConditionalActionAction.from(inputs),
           ),
-      ActionType.executeActionGroup.name: (inputs) =>
-          ScreenController().executeAction(
-            buildContext,
-            ExecuteActionGroupAction.from(inputs),
-          ),
       ActionType.logEvent.name: (inputs) => ScreenController().executeAction(
             buildContext,
             LogEvent.from(payload: inputs),
