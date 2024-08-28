@@ -1,5 +1,15 @@
 name: Ensemble
 
+repository: 
+  type: github
+  origin: https://github.com
+  owner: ensembleUI
+  name: ensemble
+
 packages:
   - modules/**
   # - examples/**
+
+command:
+  version:
+    updateGitTagRefs: true
