@@ -704,10 +704,7 @@ class SelectOneState extends FormFieldWidgetState<SelectOne>
           color: borderColor ?? originalBorder.borderSide.color,
           width: borderWidth ?? originalBorder.borderSide.width,
         ),
-        borderRadius: const BorderRadius.only(
-          topLeft: Radius.circular(4.0),
-          topRight: Radius.circular(4.0),
-        ),
+        borderRadius: const BorderRadius.all(Radius.circular(4)),
       );
     } else {
       return (originalBorder as OutlineInputBorder).copyWith(
