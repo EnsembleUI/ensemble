@@ -1,73 +1,35 @@
-import 'package:ensemble/framework/widget/widget.dart';
+import 'package:ensemble/action/haptic_action.dart';
+import 'package:ensemble/framework/action.dart';
+import 'package:ensemble/framework/ensemble_widget.dart';
+import 'package:ensemble/framework/event.dart';
+import 'package:ensemble/framework/extensions.dart';
+import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/helpers/box_wrapper.dart';
 import 'package:ensemble/widget/helpers/controllers.dart';
-import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:ensemble/framework/action.dart' as ensemble;
-import 'package:ensemble/screen_controller.dart';
-import 'package:ensemble/action/haptic_action.dart';
-import 'package:intl/intl.dart'; // For date formatting
-import '../framework/event.dart';
+import 'package:intl/intl.dart';
 
-/// An inline time picker widget that mimics the iOS clock app's circling time picker.
-/// It provides various customization options for a seamless user experience.
-class InlineTimePicker extends StatefulWidget
-    with
-        Invokable,
-        HasController<InlineTimePickerController, InlineTimePickerState> {
+class InlineTimePicker extends EnsembleWidget<InlineTimePickerController> {
   static const type = 'InlineTimePicker';
 
-  InlineTimePicker({Key? key}) : super(key: key);
+  const InlineTimePicker._(super.controller, {super.key});
 
-  final InlineTimePickerController _controller = InlineTimePickerController();
-
-  @override
-  get controller => _controller;
+  factory InlineTimePicker.build(dynamic controller) =>
+      InlineTimePicker._(controller is InlineTimePickerController
+          ? controller
+          : InlineTimePickerController());
 
   @override
   State<StatefulWidget> createState() => InlineTimePickerState();
-
-  @override
-  Map<String, Function> getters() {
-    return {
-      'selectedTime': () => _controller.selectedTimeFormatted(),
-    };
-  }
-
-  @override
-  Map<String, Function> methods() {
-    return {
-      'reset': () => _controller.reset(),
-    };
-  }
-
-  @override
-  Map<String, Function> setters() {
-    return {
-      'initialTime': (time) =>
-          _controller.initialTime = Utils.getTimeOfDay(time),
-      'onTimeChanged': (funcDefinition) => _controller.onTimeChangedAction =
-          ensemble.EnsembleAction.from(funcDefinition, initiator: this),
-      'mode': (value) => _controller.mode =
-          Utils.getEnum<CupertinoTimerPickerMode>(
-              value, CupertinoTimerPickerMode.values),
-      'minuteInterval': (value) =>
-          _controller.minuteInterval = Utils.optionalInt(value),
-      'secondInterval': (value) =>
-          _controller.secondInterval = Utils.optionalInt(value),
-      'onTimeChangedHaptic': (value) =>
-          _controller.onTimeChangedHaptic = Utils.optionalString(value),
-    };
-  }
 }
 
-class InlineTimePickerController extends BoxController {
+class InlineTimePickerController extends EnsembleBoxController {
   TimeOfDay? initialTime;
   TimeOfDay? selectedTime;
   int selectedSeconds = 0; // To hold the selected seconds
-  ensemble.EnsembleAction? onTimeChangedAction;
+  EnsembleAction? onTimeChangedAction;
   CupertinoTimerPickerMode mode = CupertinoTimerPickerMode.hm;
   int? minuteInterval;
   int? secondInterval;
@@ -97,60 +59,81 @@ class InlineTimePickerController extends BoxController {
 
     return formattedTime;
   }
+
+  @override
+  Map<String, Function> getters() {
+    return {
+      'selectedTime': () => selectedTimeFormatted(),
+    };
+  }
+
+  @override
+  Map<String, Function> setters() => Map<String, Function>.from(super.setters())
+    ..addAll({
+      'initialTime': (time) => initialTime = Utils.getTimeOfDay(time),
+      'onTimeChanged': (funcDefinition) => onTimeChangedAction =
+          EnsembleAction.from(funcDefinition, initiator: this),
+      'mode': (value) => mode = Utils.getEnum<CupertinoTimerPickerMode>(
+          value, CupertinoTimerPickerMode.values),
+      'minuteInterval': (value) => minuteInterval = Utils.optionalInt(value),
+      'secondInterval': (value) => secondInterval = Utils.optionalInt(value),
+      'onTimeChangedHaptic': (value) =>
+          onTimeChangedHaptic = Utils.optionalString(value),
+    });
 }
 
-class InlineTimePickerState extends EWidgetState<InlineTimePicker> {
+class InlineTimePickerState extends EnsembleWidgetState<InlineTimePicker> {
   @override
   void initState() {
     super.initState();
-    widget._controller.selectedTime =
-        widget._controller.initialTime ?? TimeOfDay.now();
+    widget.controller.selectedTime =
+        widget.controller.initialTime ?? TimeOfDay.now();
   }
 
   @override
   Widget buildWidget(BuildContext context) {
-    return BoxWrapper(
+    return EnsembleBoxWrapper(
+      boxController: widget.controller,
       widget: CupertinoTimerPicker(
-        mode: widget._controller.mode,
+        mode: widget.controller.mode,
         initialTimerDuration: Duration(
-          hours: widget._controller.selectedTime?.hour ?? TimeOfDay.now().hour,
+          hours: widget.controller.selectedTime?.hour ?? TimeOfDay.now().hour,
           minutes:
-              widget._controller.selectedTime?.minute ?? TimeOfDay.now().minute,
+              widget.controller.selectedTime?.minute ?? TimeOfDay.now().minute,
           seconds: widget
-              ._controller.selectedSeconds, // Initialize with selected seconds
+              .controller.selectedSeconds, // Initialize with selected seconds
         ),
         onTimerDurationChanged: (Duration newDuration) {
           onTimerDurationChanged(context, newDuration);
         },
-        minuteInterval: widget._controller.minuteInterval ?? 1,
-        secondInterval: widget._controller.secondInterval ?? 1,
+        minuteInterval: widget.controller.minuteInterval ?? 1,
+        secondInterval: widget.controller.secondInterval ?? 1,
       ),
-      boxController: widget._controller,
     );
   }
 
   void onTimerDurationChanged(BuildContext context, Duration newDuration) {
     setState(() {
-      widget._controller.selectedTime = TimeOfDay(
+      widget.controller.selectedTime = TimeOfDay(
         hour: newDuration.inHours,
         minute: newDuration.inMinutes % 60,
       );
-      widget._controller.selectedSeconds = newDuration.inSeconds % 60;
+      widget.controller.selectedSeconds = newDuration.inSeconds % 60;
     });
 
-    if (widget._controller.onTimeChangedHaptic != null) {
+    if (widget.controller.onTimeChangedHaptic != null) {
       ScreenController().executeAction(
         context,
         HapticAction(
-            type: widget._controller.onTimeChangedHaptic!, onComplete: null),
+            type: widget.controller.onTimeChangedHaptic!, onComplete: null),
       );
     }
 
-    if (widget._controller.onTimeChangedAction != null) {
+    if (widget.controller.onTimeChangedAction != null) {
       ScreenController().executeAction(
         context,
-        widget._controller.onTimeChangedAction!,
-        event: EnsembleEvent(widget),
+        widget.controller.onTimeChangedAction!,
+        event: EnsembleEvent(widget.controller),
       );
     }
   }

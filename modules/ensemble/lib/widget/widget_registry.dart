@@ -84,6 +84,7 @@ class WidgetRegistry {
     Avatar.type: Avatar.build,
     Shape.type: Shape.build,
     StaticMap.type: StaticMap.build,
+    InlineTimePicker.type: InlineTimePicker.build,
   };
 
   /// register or override a widget
@@ -176,7 +177,6 @@ class WidgetRegistry {
         ScrollableTabBar.type: () => ScrollableTabBar(),
         AppScroller.type: () => AppScroller(),
         LoadingContainer.type: () => LoadingContainer(),
-        InlineTimePicker.type: () => InlineTimePicker(),
 
         // charts
         Highcharts.type: () => Highcharts(),
