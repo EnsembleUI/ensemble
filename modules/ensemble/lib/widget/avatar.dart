@@ -7,16 +7,15 @@ import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/framework/model.dart';
 import 'package:ensemble/framework/scope.dart';
+import 'package:ensemble/framework/view/data_scope_widget.dart';
 import 'package:ensemble/framework/widget/colored_box_placeholder.dart';
 import 'package:ensemble/layout/templated.dart';
 import 'package:ensemble/model/item_template.dart';
-import 'package:ensemble/page_model.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/framework/widget/image.dart' as framework;
 import 'package:ensemble/widget/helpers/box_wrapper.dart';
 import 'package:ensemble/widget/helpers/controllers.dart';
-import 'package:ensemble/widget/helpers/widgets.dart';
 import 'package:ensemble/widget/image.dart';
 import 'package:flutter/material.dart';
 import 'package:yaml/yaml.dart';
@@ -24,13 +23,13 @@ import 'package:yaml/yaml.dart';
 class Avatar extends EnsembleWidget<AvatarController> {
   static const type = 'Avatar';
 
-  const Avatar._(super.controller, {super.key});
-
-  factory Avatar.build(dynamic controller) => Avatar._(
-      controller is AvatarController ? controller : AvatarController());
+  Avatar({super.key});
 
   @override
   State<StatefulWidget> createState() => AvatarState();
+
+  @override
+  AvatarController createController() => AvatarController();
 }
 
 class AvatarController extends EnsembleBoxController {
@@ -147,7 +146,7 @@ class AvatarState extends EnsembleWidgetState<Avatar>
     List<Widget> avatarData = [];
 
     GroupTemplate? itemTemplate = widget.controller.groupTemplate;
-    ScopeManager? myScope = getScopeManager();
+    ScopeManager? myScope = DataScopeWidget.getScope(context);
     if (myScope != null && itemTemplate != null) {
       for (dynamic dataItem in dataList) {
         ScopeManager dataScope = myScope.createChildScope();
@@ -165,7 +164,7 @@ class AvatarState extends EnsembleWidgetState<Avatar>
   }
 
   @override
-  Widget buildWidget(BuildContext context) {
+  Widget buildWidget(BuildContext context, ScopeManager scopeManager) {
     return widget.controller.groupTemplate == null
         ? _buildAvatar()
         : _buildGroupAvatar();

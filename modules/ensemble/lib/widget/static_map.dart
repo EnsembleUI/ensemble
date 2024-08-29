@@ -4,6 +4,7 @@ import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/ensemble_widget.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/extensions.dart';
+import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/stub/location_manager.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/helpers/controllers.dart';
@@ -12,14 +13,13 @@ import 'package:flutter/cupertino.dart';
 /// non-interactive Google Map as an image
 class StaticMap extends EnsembleWidget<StaticMapController> {
   static const type = 'StaticMap';
-
-  const StaticMap._(super.controller, {super.key});
-
-  factory StaticMap.build(dynamic controller) => StaticMap._(
-      controller is StaticMapController ? controller : StaticMapController());
+  StaticMap({super.key});
 
   @override
   State<StatefulWidget> createState() => StaticMapState();
+
+  @override
+  StaticMapController createController() => StaticMapController();
 }
 
 class StaticMapController extends EnsembleBoxController {
@@ -68,7 +68,7 @@ class StaticMapState extends EnsembleWidgetState<StaticMap> {
   }
 
   @override
-  Widget buildWidget(BuildContext context) {
+  Widget buildWidget(BuildContext context, ScopeManager scopeManager) {
     String url = 'https://maps.googleapis.com/maps/api/staticmap' +
         '?key=$apiKey' +
         '&size=${widget.controller.mapWidth ?? defaultSize}x${widget.controller.mapHeight ?? defaultSize}';

@@ -80,9 +80,9 @@ class WidgetRegistry {
   /// all statically-known widgets should be registered here.
   /// widgets can be dynamically registered (or overridden) by calling registerWidget()
   final Map<String, Function> _registeredWidgets = {
-    Avatar.type: Avatar.build,
-    Shape.type: Shape.build,
-    StaticMap.type: StaticMap.build,
+    Avatar.type: () => Avatar(),
+    Shape.type: () => Shape(),
+    StaticMap.type: () => StaticMap(),
   };
 
   /// register or override a widget

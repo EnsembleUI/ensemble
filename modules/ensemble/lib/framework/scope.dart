@@ -6,6 +6,7 @@ import 'package:ensemble/controller/controller_mixins.dart';
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/bindings.dart';
+import 'package:ensemble/framework/builder/widget_builder.dart';
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/data_utils.dart';
 import 'package:ensemble/framework/ensemble_widget.dart';
@@ -22,6 +23,7 @@ import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/custom_widget/custom_widget.dart';
 import 'package:ensemble/widget/custom_widget/custom_widget_model.dart';
 import 'package:ensemble/widget/radio/radio_button_controller.dart';
+import 'package:ensemble/widget/widget_registry.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokablecontroller.dart';
 import 'package:event_bus/event_bus.dart';
@@ -64,6 +66,13 @@ class ScopeManager extends IsScopeManager with ViewBuilder, PageBindingManager {
   @override
   List<BuildContext> get openedDialogs => pageData.openedDialogs;
 
+  EnsembleController? getWidgetController(String key) =>
+      pageData.controllerCache[key];
+
+  void registerWidgetController(String key, EnsembleController controller) {
+    pageData.controllerCache[key] = controller;
+  }
+
   /// call when the screen is being disposed
   /// TODO: consolidate listeners, location, eventBus, ...
   void dispose() {
@@ -81,6 +90,10 @@ class ScopeManager extends IsScopeManager with ViewBuilder, PageBindingManager {
 
     // cancel the screen's location listener
     pageData.locationListener?.cancel();
+
+    // remove all cached controllers
+    pageData.controllerCache.forEach((_, controller) => controller.dispose());
+    pageData.controllerCache = {};
 
     SocketService().dispose();
   }
@@ -281,8 +294,25 @@ mixin ViewBuilder on IsScopeManager {
     return _buildWidget(model);
   }
 
+  /// should we use the widget builder 2.0 or not
+  bool useNewWidgetBuilder(WidgetModel model) =>
+      model is CustomWidgetModel ||
+      WidgetRegistry().widgetMap[model.type] != null;
+
   Widget _buildWidget(WidgetModel model,
       {AfterWidgetCreationCallback? callback}) {
+    // new way of building a widget
+    if (useNewWidgetBuilder(model)) {
+      Widget? builtWidget =
+          EnsembleWidgetBuilder(me).build(model, callback: callback);
+      if (builtWidget == null) {
+        throw LanguageError("Unable to build widget ${model.type}");
+      }
+      return builtWidget;
+    }
+
+    // fallback to old way of building widgets
+
     // 1. Create a bare widget tree
     //  - Add Widget ID as needed to our DataContext
     //  - update the mapping of WidgetModel -> (Invokable, ScopeManager, children)
@@ -704,6 +734,8 @@ class PageData {
   // we keep track of radios's groupId on every page, since Radios can be scattered
   // anywhere on the screen
   Map<String, RadioButtonController> radioButtonControllers = {};
+
+  Map<String, EnsembleController> controllerCache = {};
 
   /// everytime we call this, we make sure any populated API result will have its updated values here
 /*DataContext getEnsembleContext() {

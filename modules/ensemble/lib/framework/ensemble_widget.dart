@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:ensemble/framework/config.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/scope.dart';
@@ -7,15 +5,23 @@ import 'package:ensemble/framework/studio/studio_debugger.dart';
 import 'package:ensemble/framework/view/data_scope_widget.dart';
 import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:pointer_interceptor/pointer_interceptor.dart';
 
 abstract class EnsembleWidget<C extends EnsembleController>
     extends StatefulWidget {
-  const EnsembleWidget(this.controller, {super.key});
+  EnsembleWidget({super.key});
 
-  final C controller;
+  late final C controller;
+
+  /// call when controller is being created for the first time
+  C createController();
+
+  /// Ensemble framework will call this immediately after the widget creation.
+  /// DO NOT call this outside of the framework
+  void initController(C newController) {
+    this.controller = newController;
+  }
 
   List<String> passthroughSetters() => [];
 }
@@ -44,15 +50,18 @@ abstract class EnsembleWidgetState<W extends EnsembleWidget> extends State<W> {
     super.dispose();
   }
 
-  ScopeManager? getScopeManager() => DataScopeWidget.getScope(context);
-
   @override
   Widget build(BuildContext context) {
+    final scopeManager = DataScopeWidget.getScope(context);
+    if (scopeManager == null) {
+      throw RuntimeError("Invalid ScopeManager. Unable to render the UI.");
+    }
+
     if (widget.controller is EnsembleWidgetController) {
       EnsembleWidgetController widgetController =
           widget.controller as EnsembleWidgetController;
 
-      Widget rtn = buildWidget(context);
+      Widget rtn = buildWidget(context, scopeManager);
 
       if (widgetController.textDirection != null) {
         rtn = Directionality(
@@ -127,5 +136,5 @@ abstract class EnsembleWidgetState<W extends EnsembleWidget> extends State<W> {
   }
 
   /// build your widget here
-  Widget buildWidget(BuildContext context);
+  Widget buildWidget(BuildContext context, ScopeManager scopeManager);
 }

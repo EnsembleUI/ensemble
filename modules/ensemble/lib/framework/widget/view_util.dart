@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/action.dart';
+import 'package:ensemble/framework/builder/widget_builder.dart';
 import 'package:ensemble/framework/ensemble_widget.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/event.dart';
@@ -265,67 +266,20 @@ class ViewUtil {
     return rtn;
   }
 
-  static Widget buildBareCustomWidget(ScopeNode scopeNode,
-      CustomWidgetModel customModel, Map<WidgetModel, ModelPayload> modelMap) {
-    // create a new Scope (for our custom widget) and add to the parent
-    ScopeManager customScope = scopeNode.scope
-        .createChildScope(childImportedCode: customModel.importedCode);
-    ScopeNode customScopeNode = ScopeNode(customScope);
-    scopeNode.addChild(customScopeNode);
-
-    // re-use the same controller if the Custom Widget is re-created
-    dynamic controller;
-    String? id = customModel.getId();
-    if (id != null) {
-      controller = scopeNode.scope.dataContext.getContextById(id);
-    }
-    CustomWidget customWidget =
-        CustomWidget(controller, model: customModel, scopeManager: customScope);
-    modelMap[customModel] = ModelPayload(customWidget, customScope);
-
-    // add the id so it is accessible in the parent scope
-    if (id != null) {
-      customWidget.controller.id = id;
-      scopeNode.scope.dataContext
-          .addInvokableContext(id, customWidget.controller);
-    }
-
-    // wrap it inside a DataScopeWidget
-    return DataScopeWidget(
-        debugLabel: "CustomWidget",
-        scopeManager: customScope,
-        child: customWidget);
-  }
-
   static Widget buildBareWidget(ScopeNode scopeNode, WidgetModel model,
       Map<WidgetModel, ModelPayload> modelMap) {
-    if (model is CustomWidgetModel) {
-      return buildBareCustomWidget(scopeNode, model, modelMap);
-    }
 
     Widget? w;
-    Function? widgetInstance = WidgetRegistry().widgetMap[model.type];
+    Function? widgetInstance = WidgetRegistry.legacyWidgetMap[model.type];
     if (widgetInstance != null) {
-      EnsembleController? previousController;
-      String? id = model.props['id']?.toString();
-      if (id != null) {
-        dynamic controller = scopeNode.scope.dataContext.getContextById(id);
-        if (controller is EnsembleController) {
-          previousController = controller;
-        }
-      }
-      w = Function.apply(widgetInstance, [previousController]);
+      w = widgetInstance.call();
     } else {
-      widgetInstance = WidgetRegistry.legacyWidgetMap[model.type];
+      widgetInstance = WidgetRegistry.pageWidgetMap[model.type];
       if (widgetInstance != null) {
         w = widgetInstance.call();
-      } else {
-        widgetInstance = WidgetRegistry.pageWidgetMap[model.type];
-        if (widgetInstance != null) {
-          w = widgetInstance.call();
-        }
       }
     }
+
 
     if (w != null) {
       ScopeManager currentScope = scopeNode.scope;

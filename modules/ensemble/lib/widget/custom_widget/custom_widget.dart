@@ -11,25 +11,17 @@ import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/cupertino.dart';
 
 class CustomWidget extends EnsembleWidget<CustomWidgetController> {
-  CustomWidget._(super.controller,
-      {super.key, required this.model, required this.scopeManager});
+  CustomWidget({required this.model, required this.scopeManager, super.key});
 
   final CustomWidgetModel model;
   final ScopeManager scopeManager;
 
-  factory CustomWidget(dynamic controller,
-          {required CustomWidgetModel model,
-          required ScopeManager scopeManager}) =>
-      CustomWidget._(
-          controller is CustomWidgetController
-              ? controller
-              : CustomWidgetController(
-                  model: model, scopeManager: scopeManager),
-          model: model,
-          scopeManager: scopeManager);
-
   @override
   State<StatefulWidget> createState() => _CustomWidgetState();
+
+  @override
+  CustomWidgetController createController() =>
+      CustomWidgetController(model: model, scopeManager: scopeManager);
 }
 
 class CustomWidgetController extends EnsembleWidgetController {
@@ -82,6 +74,6 @@ class _CustomWidgetState extends EnsembleWidgetState<CustomWidget> {
   }
 
   @override
-  Widget buildWidget(BuildContext context) =>
+  Widget buildWidget(BuildContext context, ScopeManager scopeManager) =>
       widget.scopeManager.buildWidget(widget.model.getModel());
 }
