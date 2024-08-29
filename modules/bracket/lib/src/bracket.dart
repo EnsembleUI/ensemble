@@ -13,14 +13,13 @@ import 'package:flutter/material.dart';
 
 class EnsembleBracketImpl extends EnsembleWidget<BracketController>
     implements EnsembleBracket {
-  const EnsembleBracketImpl._(super.controller);
-
-  factory EnsembleBracketImpl.build([dynamic controller]) =>
-      EnsembleBracketImpl._(
-          controller is BracketController ? controller : BracketController());
+  EnsembleBracketImpl({super.key});
 
   @override
   State<StatefulWidget> createState() => BracketState();
+
+  @override
+  BracketController createController() => BracketController();
 }
 
 class RoundTemplate extends ItemTemplate {
@@ -185,7 +184,7 @@ class BracketState extends EnsembleWidgetState<EnsembleBracketImpl>
   }
 
   @override
-  Widget buildWidget(BuildContext context) {
+  Widget buildWidget(BuildContext context, ScopeManager scopeManager) {
     return BracketsView(
       controller: widget.controller,
       data: roundData,

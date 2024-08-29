@@ -4,27 +4,26 @@ import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/ensemble_widget.dart';
 import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/extensions.dart';
+import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/stub/qr_code_scanner.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/helpers/box_wrapper.dart';
 import 'package:ensemble/widget/helpers/controllers.dart';
-import 'package:ensemble/widget/helpers/widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:qr_code_scanner/qr_code_scanner.dart';
 
 class EnsembleQRCodeScannerImpl
     extends EnsembleWidget<EnsembleQRCodeScannerController>
     implements EnsembleQRCodeScanner {
-  const EnsembleQRCodeScannerImpl._(super.controller, {super.key});
-
-  factory EnsembleQRCodeScannerImpl.build(dynamic controller) =>
-      EnsembleQRCodeScannerImpl._(controller is EnsembleQRCodeScannerController
-          ? controller
-          : EnsembleQRCodeScannerController());
+  EnsembleQRCodeScannerImpl({super.key});
 
   @override
   State<StatefulWidget> createState() => EnsembleQRCodeScannerState();
+
+  @override
+  EnsembleQRCodeScannerController createController() =>
+      EnsembleQRCodeScannerController();
 }
 
 class EnsembleQRCodeScannerController extends EnsembleBoxController {
@@ -101,8 +100,11 @@ class EnsembleQRCodeScannerController extends EnsembleBoxController {
 
 mixin QRCodeScannerAction on EnsembleWidgetState<EnsembleQRCodeScannerImpl> {
   void flipCamera();
+
   void toggleFlash();
+
   void pauseCamera();
+
   void resumeCamera();
 }
 
@@ -138,7 +140,7 @@ class EnsembleQRCodeScannerState
   }
 
   @override
-  Widget buildWidget(BuildContext context) {
+  Widget buildWidget(BuildContext context, ScopeManager scopeManager) {
     return EnsembleBoxWrapper(
       boxController: widget.controller,
       widget: QRView(

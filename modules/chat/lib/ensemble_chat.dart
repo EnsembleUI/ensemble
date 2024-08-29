@@ -4,7 +4,9 @@ import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/ensemble_widget.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/extensions.dart';
+import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/stub/ensemble_chat.dart';
+import 'package:ensemble/framework/view/data_scope_widget.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/helpers/controllers.dart';
@@ -16,16 +18,13 @@ import 'helpers/models.dart';
 
 class EnsembleChatImpl extends EnsembleWidget<EnsembleChatController>
     implements EnsembleChat {
-  const EnsembleChatImpl._(super.controller);
-
-  factory EnsembleChatImpl.build(dynamic controller) => EnsembleChatImpl._(
-        controller is EnsembleChatController
-            ? controller
-            : EnsembleChatController(),
-      );
+  EnsembleChatImpl({super.key});
 
   @override
   State<StatefulWidget> createState() => EnsembleChatState();
+
+  @override
+  EnsembleChatController createController() => EnsembleChatController();
 }
 
 class EnsembleChatState extends EnsembleWidgetState<EnsembleChatImpl> {
@@ -36,7 +35,7 @@ class EnsembleChatState extends EnsembleWidgetState<EnsembleChatImpl> {
   }
 
   @override
-  Widget buildWidget(BuildContext context) {
+  Widget buildWidget(BuildContext context, ScopeManager scopeManager) {
     return ValueListenableBuilder<List<InternalMessage>>(
       valueListenable: widget.controller.messages,
       builder: (context, messages, child) {
@@ -64,7 +63,7 @@ class EnsembleChatState extends EnsembleWidgetState<EnsembleChatImpl> {
         print("EnsembleChat: $e");
       }
     }
-    final scope = getScopeManager();
+    final scope = DataScopeWidget.getScope(context);
     final newScope = scope?.createChildScope();
     if (newScope == null || widget.controller.onMessageSend == null) {
       return;

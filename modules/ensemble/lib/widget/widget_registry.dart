@@ -83,6 +83,9 @@ class WidgetRegistry {
     Avatar.type: () => Avatar(),
     Shape.type: () => Shape(),
     StaticMap.type: () => StaticMap(),
+    EnsembleBracket.type: () => GetIt.instance<EnsembleBracket>(),
+    EnsembleQRCodeScanner.type: () => GetIt.instance<EnsembleQRCodeScanner>(),
+    EnsembleChat.type: () => GetIt.instance<EnsembleChat>(),
   };
 
   /// register or override a widget
@@ -127,10 +130,6 @@ class WidgetRegistry {
         ConnectWithGoogle.type: () => GetIt.instance<ConnectWithGoogle>(),
         ConnectWithMicrosoft.type: () => GetIt.instance<ConnectWithMicrosoft>(),
         SignInWithAuth0.type: () => GetIt.instance<SignInWithAuth0>(),
-        EnsembleChat.type: () => GetIt.instance<EnsembleChat>(),
-        EnsembleBracket.type: () => GetIt.instance<EnsembleBracket>(),
-        EnsembleQRCodeScanner.type: () =>
-            GetIt.instance<EnsembleQRCodeScanner>(),
         PopupMenu.type: () => PopupMenu(),
         EnsembleCalendar.type: () => EnsembleCalendar(),
         Countdown.type: () => Countdown(),
