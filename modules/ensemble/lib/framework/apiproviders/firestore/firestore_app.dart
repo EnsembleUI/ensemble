@@ -165,6 +165,7 @@ class FirestoreApp {
     DocumentReference docRef = firestore.doc(path);
     return await docRef.delete();
   }
+
   dynamic unwrapObject(dynamic obj) {
     return (obj is WrapsNativeType) ? obj.unwrap() : obj;
   }

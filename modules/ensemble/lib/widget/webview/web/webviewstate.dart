@@ -14,7 +14,7 @@ import 'package:flutter/material.dart';
 //   }
 // }
 
-class WebViewState extends WidgetState<EnsembleWebView> {
+class WebViewState extends EWidgetState<EnsembleWebView> {
   final IFrameElement _iframeElement = IFrameElement();
   HtmlElementView? htmlView;
 

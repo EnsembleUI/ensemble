@@ -72,7 +72,7 @@ class SignInWithAppleController extends SignInButtonController {
   SignInWithAppleButtonStyle? buttonStyle;
 }
 
-class SignInWithAppleState extends WidgetState<SignInWithAppleImpl> {
+class SignInWithAppleState extends EWidgetState<SignInWithAppleImpl> {
   @override
   Widget buildWidget(BuildContext context) {
     var button = AppleSignInButton(

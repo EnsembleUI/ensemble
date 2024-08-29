@@ -212,7 +212,7 @@ class DailyScheduler extends StatefulWidget
   }
 }
 
-class DailySchedulerState extends WidgetState<DailyScheduler> {
+class DailySchedulerState extends EWidgetState<DailyScheduler> {
   @override
   Widget buildWidget(BuildContext context) {
     return Listener(
@@ -449,7 +449,7 @@ class WeeklyScheduler extends StatefulWidget
   }
 }
 
-class WeeklySchedulerState extends WidgetState<WeeklyScheduler> {
+class WeeklySchedulerState extends EWidgetState<WeeklyScheduler> {
   void refresh() {
     setState(() {});
   }

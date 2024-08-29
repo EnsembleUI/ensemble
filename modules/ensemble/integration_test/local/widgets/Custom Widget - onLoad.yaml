@@ -1,0 +1,51 @@
+View:
+  styles:
+    useSafeArea: true
+    scrollableView: true
+  onLoad:
+    invokeAPI:
+      name: getUsers
+  body:
+    Column:
+      children:
+        - Row:
+            item-template:
+              data: ${getUsers.body.results}
+              name: user
+              template:
+                User:
+                  inputs:
+                    user: ${user}
+
+        - Button:
+            label: Show Bottom Sheet
+            onTap:
+              showBottomSheet:
+                body:
+                  Button:
+                    label: Close
+                    onTap:
+                      dismissBottomSheet:
+
+                onDismiss:
+                  invokeAPI:
+                    name: getUsers
+
+User:
+  inputs: [user]
+  onLoad: |
+    myText.text = "hello";
+  body:
+    Column:
+      children:
+        - Text:
+            id: myText
+        - Button:
+            label: Say Hi
+            onTap: |-
+              myText.text = "hi";
+
+
+API:
+  getUsers:
+    url: https://randomuser.me/api/?results=1

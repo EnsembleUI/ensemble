@@ -3,6 +3,7 @@ import 'dart:io' as io;
 import 'package:custom_image_crop/custom_image_crop.dart';
 import 'package:ensemble/action/haptic_action.dart';
 import 'package:ensemble/framework/extensions.dart';
+import 'package:ensemble/widget/helpers/box_wrapper.dart';
 import 'package:ensemble/widget/helpers/widgets.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_svg_provider/flutter_svg_provider.dart';
@@ -94,7 +95,7 @@ class EnsembleImageCropper extends StatefulWidget
   }
 }
 
-mixin CropAction on WidgetState<EnsembleImageCropper> {
+mixin CropAction on EWidgetState<EnsembleImageCropper> {
   Future<void> cropImage();
 }
 
@@ -148,7 +149,7 @@ class EnsembleImageCropperController extends BoxController {
   }
 }
 
-class EnsembleImageCropperState extends WidgetState<EnsembleImageCropper>
+class EnsembleImageCropperState extends EWidgetState<EnsembleImageCropper>
     with CropAction {
   late Widget placeholder;
   final currentShape = CustomCropShape.Circle;

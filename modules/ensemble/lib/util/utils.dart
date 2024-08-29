@@ -898,8 +898,6 @@ class Utils {
     return input;
   }
 
-
-
   /// pick a string randomly from the list
   static String randomize(List<String> strings) {
     assert(strings.isNotEmpty);
@@ -1043,5 +1041,19 @@ class Utils {
     });
 
     return String.fromCharCodes(codeUnits);
+  }
+
+  static T getEnum<T>(String? value, List<T> enumValues) {
+    return enumValues.firstWhere(
+      (e) => e.toString().split('.').last.toLowerCase() == value?.toLowerCase(),
+      orElse: () => enumValues.first,
+    );
+  }
+
+  static List<Color>? getColorList(dynamic value) {
+    if (value is List) {
+      return value.map((item) => getColor(item) ?? Colors.transparent).toList();
+    }
+    return null;
   }
 }
