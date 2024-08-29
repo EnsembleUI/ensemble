@@ -22,7 +22,7 @@ mixin ThemeLoader {
         YamlMap? colorOverrides,
         YamlMap? screenOverrides,
         YamlMap? widgetOverrides,
-        YamlMap? materialOverrides}) {
+      }) {
 
     if (appOverrides == null) {
       appOverrides =  overrides?['App'];
@@ -35,9 +35,6 @@ mixin ThemeLoader {
     }
     if (widgetOverrides == null) {
       widgetOverrides =  overrides?['Widgets'];
-    }
-    if (materialOverrides == null) {
-      materialOverrides =  overrides?['material3'];
     }
     final seedColor = Utils.getColor(colorOverrides?['seed']);
     String _defaultFontFamily = appOverrides?['fontFamily']?? appOverrides?['textStyle']?['fontFamily'] ?? 'Inter';
