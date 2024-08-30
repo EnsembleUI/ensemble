@@ -12,6 +12,7 @@ import 'package:ensemble/model/item_template.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
+import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/cupertino.dart';
 
@@ -68,9 +69,12 @@ mixin TemplatedWidgetState<W extends StatefulWidget> on State<W> {
     ScopeManager? parentScope = DataScopeWidget.getScope(context);
     if (parentScope != null) {
       widgets = [];
-      for (dynamic itemData in dataList) {
+      final modelPath = "/$hashCode";
+      // final modelPath = '';
+      for (var i=0; i<dataList.length; i++) {
+        final itemData = dataList[i];
         DataScopeWidget singleWidget =
-            buildSingleWidget(parentScope, itemTemplate, itemData);
+            buildSingleWidget(parentScope, itemTemplate, itemData, modelPath: '$modelPath/itemTemplate[$i]');
         widgets.add(singleWidget);
       }
     }
@@ -79,12 +83,13 @@ mixin TemplatedWidgetState<W extends StatefulWidget> on State<W> {
 
   DataScopeWidget buildSingleWidget(
       ScopeManager parentScope, ItemTemplate itemTemplate, dynamic itemData,
-      {Key? key}) {
+      {Key? key, String? modelPath}) {
     // create a new scope for each item template
     ScopeManager templatedScope = parentScope.createChildScope();
     templatedScope.dataContext.addDataContextById(itemTemplate.name, itemData);
     WidgetModel model =
-        templatedScope.buildModelFromDefinition(itemTemplate.template);
+        templatedScope.buildModelFromDefinition(itemTemplate.template, modelPath);
+    model.useCache = false;
     Widget templatedWidget = templatedScope.buildWidgetFromModel(model);
     // Widget templatedWidget =
     //     templatedScope.buildWidgetFromDefinition(itemTemplate.template);

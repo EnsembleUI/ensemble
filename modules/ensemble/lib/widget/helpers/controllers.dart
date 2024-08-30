@@ -392,6 +392,10 @@ class TapEnabledBoxController extends BoxController with TapEnabled {
 /// Base Widget Controller
 abstract class EnsembleWidgetController extends EnsembleController
     with HasStyles {
+  // careful here, this will always be populated by the framework if
+  // you are using the new widget creation process
+  late final String modelPath;
+
   FlexMode? flexMode;
   int? flex;
 

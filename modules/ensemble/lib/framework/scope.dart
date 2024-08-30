@@ -22,6 +22,7 @@ import 'package:ensemble/page_model.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/custom_widget/custom_widget.dart';
 import 'package:ensemble/widget/custom_widget/custom_widget_model.dart';
+import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:ensemble/widget/radio/radio_button_controller.dart';
 import 'package:ensemble/widget/widget_registry.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
@@ -66,10 +67,12 @@ class ScopeManager extends IsScopeManager with ViewBuilder, PageBindingManager {
   @override
   List<BuildContext> get openedDialogs => pageData.openedDialogs;
 
-  EnsembleController? getWidgetController(String key) =>
+  EnsembleWidgetController? getWidgetController(String key) =>
       pageData.controllerCache[key];
 
-  void registerWidgetController(String key, EnsembleController controller) {
+  void registerWidgetController(String key, EnsembleWidgetController controller) {
+    log("Register controller key: $key");
+    pageData.controllerCache[key]?.dispose();
     pageData.controllerCache[key] = controller;
   }
 
@@ -735,7 +738,7 @@ class PageData {
   // anywhere on the screen
   Map<String, RadioButtonController> radioButtonControllers = {};
 
-  Map<String, EnsembleController> controllerCache = {};
+  Map<String, EnsembleWidgetController> controllerCache = {};
 
   /// everytime we call this, we make sure any populated API result will have its updated values here
 /*DataContext getEnsembleContext() {

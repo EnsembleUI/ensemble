@@ -496,6 +496,7 @@ class SinglePageModel extends PageModel with HasStyles {
 }
 
 class WidgetModel extends Object with HasStyles {
+  bool useCache = true;
   final SourceSpan definition;
   final String type;
   final Map<String, dynamic> props;

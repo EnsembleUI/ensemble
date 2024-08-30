@@ -6,6 +6,7 @@ import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/widget/custom_widget/custom_widget.dart';
 import 'package:ensemble/widget/custom_widget/custom_widget_model.dart';
+import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:ensemble/widget/widget_registry.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/cupertino.dart';
@@ -25,7 +26,7 @@ class EnsembleWidgetBuilder {
         callback();
       }
       // 3. update the controller data if created brand new
-      if (!widgetAndController.controllerFromCache) {
+      if (!widgetAndController.controllerFromCache || !model.useCache) {
         _populateControllerData(widgetAndController.controller, model);
       }
       return widgetAndController.widget;
@@ -52,7 +53,10 @@ class EnsembleWidgetBuilder {
       var controller = scopeManager.getWidgetController(widgetKey);
       bool controllerFromCache = controller != null;
       if (!controllerFromCache) {
-        controller = w.createController();
+        controller = w.createController() as EnsembleWidgetController;
+        // save the model xPath to the controller so it can be used when
+        // creating child widgets internally on the fly.
+        controller.modelPath = model.path;
         scopeManager.registerWidgetController(widgetKey, controller);
       }
       // init the controller on this new widget
