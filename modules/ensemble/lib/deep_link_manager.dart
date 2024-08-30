@@ -44,7 +44,7 @@ class DeepLinkNavigator {
       print('DeepLinkManager: Error while running js function');
     }
 
-    final action = NavigateScreenAction.fromMap(payload);
+    final action = NavigateScreenAction.from(payload);
 
     ScreenController().navigateToScreen(
       Utils.globalAppKey.currentContext!,

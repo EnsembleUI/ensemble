@@ -23,8 +23,7 @@ void main() {
     expect(buttonFinder, findsOneWidget);
 
     FilledButton textButton = tester.firstWidget(buttonFinder);
-    expect(
-        ((textButton.child as Row).children.first as Text).data, 'hello world');
+    expect((textButton.child as Text).data, 'hello world');
   });
 
   testWidgets("button with starting icon", (tester) async {
@@ -43,6 +42,6 @@ void main() {
     FilledButton textButton = tester.firstWidget(buttonFinder);
     List<Widget> children = (textButton.child as Row).children;
     expect((children[0] as Icon).icon, Icons.star);
-    expect((children[2] as Text).data, 'hello world');
+    expect((children[1] as Text).data, 'hello world');
   });
 }

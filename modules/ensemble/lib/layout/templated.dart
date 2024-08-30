@@ -33,6 +33,12 @@ mixin TemplatedWidgetState<W extends StatefulWidget> on State<W> {
                     (widget as EnsembleWidget).controller, 'itemTemplate')
                 : BindingDestination(widget as Invokable, 'itemTemplate'),
             onDataChange: (ModelChangeEvent event) {
+          // Optimization - we don't care if API status is in loading state
+          if (event.source is APIBindingSource &&
+              event.payload is APIResponse &&
+              event.payload.isLoading()) {
+            return;
+          }
           // evaluate the expression
           dynamic dataList = scopeManager.dataContext.eval(itemTemplate.data);
           if (dataList is List) {

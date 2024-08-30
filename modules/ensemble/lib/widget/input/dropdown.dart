@@ -3,6 +3,7 @@ import 'package:ensemble/ensemble_theme.dart';
 import 'package:ensemble/framework/action.dart' as framework;
 import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/scope.dart';
+import 'package:ensemble/framework/theme/theme_loader.dart';
 import 'package:ensemble/framework/theme/theme_manager.dart';
 import 'package:ensemble/framework/view/data_scope_widget.dart';
 import 'package:ensemble/framework/widget/icon.dart' as iconframework;
@@ -13,6 +14,7 @@ import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/helpers/HasTextPlaceholder.dart';
 import 'package:ensemble/widget/helpers/controllers.dart';
+import 'package:ensemble/widget/helpers/input_wrapper.dart';
 import 'package:ensemble/widget/helpers/widgets.dart';
 import 'package:ensemble/widget/helpers/form_helper.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
@@ -389,12 +391,13 @@ class SelectOneState extends FormFieldWidgetState<SelectOne>
                 color: widget._controller.dropdownBackgroundColor,
                 borderRadius:
                     widget._controller.dropdownBorderRadius?.getValue(),
-                border: widget._controller.borderColor != null ||
-                        widget._controller.borderWidth != null
+                border: widget._controller.dropdownBorderColor != null ||
+                        widget._controller.dropdownBorderWidth != null
                     ? Border.all(
-                        color: widget._controller.borderColor ??
+                        color: widget._controller.dropdownBorderColor ??
                             ThemeManager().getBorderColor(context),
-                        width: widget._controller.borderWidth?.toDouble() ??
+                        width: widget._controller.dropdownBorderWidth
+                                ?.toDouble() ??
                             ThemeManager().getBorderThickness(context),
                       )
                     : null),
@@ -404,10 +407,14 @@ class SelectOneState extends FormFieldWidgetState<SelectOne>
               widget._controller.dropdownOffsetY?.toDouble() ?? 0,
             )),
         decoration: inputDecoration.copyWith(
-            contentPadding: adjustedContentPadding,
-            labelText: widget.controller.floatLabel == true
-                ? widget.controller.label
-                : null));
+          contentPadding: adjustedContentPadding,
+          labelText: widget.controller.floatLabel == true
+              ? widget.controller.label
+              : null,
+          // enabledBorder border is used because it overrides border property.
+          enabledBorder: getEnabledBorder(),
+          focusedBorder: getSafeFocusedBorder(),
+        ));
   }
 
   /// build the auto-complete Dropdown
@@ -439,6 +446,8 @@ class SelectOneState extends FormFieldWidgetState<SelectOne>
                         : null,
                     fillColor: widget._controller
                         .fillColor, // Background color for the field
+                    enabledBorder: getEnabledBorder(),
+                    focusedBorder: getSafeFocusedBorder(),
                   ),
                   onChanged: (value) {
                     final oldValue = widget._controller.maybeValue;
@@ -682,6 +691,58 @@ class SelectOneState extends FormFieldWidgetState<SelectOne>
     } else {
       return (i + 10).toDouble();
     }
+  }
+
+  InputBorder getCustomBorder({
+    required InputBorder originalBorder,
+    Color? borderColor,
+    double? borderWidth,
+    BorderRadius? borderRadius,
+  }) {
+    if (widget._controller.variant == InputVariant.underline) {
+      return (originalBorder as UnderlineInputBorder).copyWith(
+        borderSide: BorderSide(
+          color: borderColor ?? originalBorder.borderSide.color,
+          width: borderWidth ?? originalBorder.borderSide.width,
+        ),
+        borderRadius: const BorderRadius.all(Radius.circular(4)),
+      );
+    } else {
+      return (originalBorder as OutlineInputBorder).copyWith(
+        borderSide: BorderSide(
+          color: borderColor ?? originalBorder.borderSide.color,
+          width: borderWidth ?? originalBorder.borderSide.width,
+        ),
+        borderRadius: borderRadius ?? originalBorder.borderRadius,
+      );
+    }
+  }
+
+  InputBorder? getEnabledBorder() {
+    if (widget._controller.borderColor != null ||
+        widget._controller.borderWidth != null) {
+      return getCustomBorder(
+        originalBorder: inputDecoration.enabledBorder!,
+        borderColor: widget._controller.borderColor,
+        borderWidth: widget._controller.borderWidth?.toDouble(),
+        borderRadius: widget._controller.borderRadius?.getValue(),
+      );
+    }
+    return null;
+  }
+
+  InputBorder getSafeFocusedBorder() {
+    InputBorder baseBorder =
+        widget._controller.variant == InputVariant.underline
+            ? UnderlineInputBorder()
+            : OutlineInputBorder();
+
+    return getCustomBorder(
+      originalBorder: inputDecoration.focusedBorder ?? baseBorder,
+      borderColor: widget._controller.focusedBorderColor,
+      borderWidth: widget._controller.borderWidth?.toDouble(),
+      borderRadius: widget._controller.borderRadius?.getValue(),
+    );
   }
 
   @override

@@ -452,7 +452,9 @@ class EnsembleConfig {
   ThemeData getAppTheme() {
     return ThemeManager().getAppTheme(appBundle?.theme);
   }
-
+  bool hasLegacyCustomAppTheme() {
+    return ThemeManager().hasLegacyCustomAppTheme(appBundle?.theme);
+  }
   /// retrieve the global widgets/codes/APIs
   Map? getResources() {
     return appBundle?.resources;

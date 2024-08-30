@@ -121,7 +121,7 @@ abstract class FileDefinitionProvider extends DefinitionProvider {
 
   @override
   Map<String, String> getSecrets() {
-    return dotenv.env;
+    return dotenv.isInitialized ? dotenv.env : {};
   }
 
   @override
