@@ -74,7 +74,7 @@ class Button extends StatefulWidget
       'width': (value) => _controller.buttonWidth = Utils.optionalInt(value),
       'height': (value) => _controller.buttonHeight = Utils.optionalInt(value),
       'loading': (value) => _controller.loading = Utils.optionalBool(value),
-      'loadingIndicator': (widget) => _controller.loadingIndicator = widget,
+      'loadingWidget': (widget) => _controller.loadingWidget = widget,
     };
   }
 
@@ -119,7 +119,7 @@ class ButtonController extends BoxController {
   IconModel? endingIcon;
 
   bool? loading;
-  YamlMap? loadingIndicator;
+  YamlMap? loadingWidget;
 }
 
 class ButtonState extends EWidgetState<Button> {
@@ -155,36 +155,21 @@ class ButtonState extends EWidgetState<Button> {
 
   Widget _buildButtonChild() {
     if (widget._controller.loading == true) {
-      // Measure text size to keep the button consistent
-      final textSpan = TextSpan(
-          text: widget._controller.label ?? '',
-          style: widget._controller.labelStyle.getTextStyle());
-      final textPainter = TextPainter(
-        text: textSpan,
-        maxLines: 1,
-        textDirection: TextDirection.ltr,
-      )..layout();
-
-      // Show a CircularProgressIndicator
-      return SizedBox(
-        width: textPainter.width + 24,
-        height: textPainter.height,
-        child: Center(
-            child: SizedBox(
-          width: 24,
-          height: 24,
-          child: widget._controller.loadingIndicator != null &&
-                  scopeManager != null
-              ? scopeManager!.buildWidgetFromDefinition(
-                  widget._controller.loadingIndicator)
-              : CircularProgressIndicator(
-                  valueColor: AlwaysStoppedAnimation<Color>(
+      return widget._controller.loadingWidget != null && scopeManager != null
+          ? scopeManager!
+              .buildWidgetFromDefinition(widget._controller.loadingWidget)
+          : // default loading widget
+          SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(
+                strokeWidth: 2.0,
+                valueColor: AlwaysStoppedAnimation<Color>(
                   widget._controller.labelStyle.color != null
                       ? widget._controller.labelStyle.color!.withOpacity(0.5)
                       : Colors.white.withOpacity(0.5),
-                )),
-        )),
-      );
+                ),
+              ));
     }
 
     // use the body widget if specified
