@@ -168,6 +168,8 @@ flutter:
     - integration_test/local/translation/i18n/
     - integration_test/local/bottomNav/
 
+    - pubspec.yaml
+
   fonts:
     # icon fonts
     - family: Remix

@@ -33,6 +33,7 @@ import 'package:ensemble/util/extensions.dart';
 import 'package:ensemble/util/notification_utils.dart';
 import 'package:ensemble_ts_interpreter/invokables/context.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokablecontroller.dart';
+import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
 
 import 'package:ensemble/framework/action.dart';
@@ -464,7 +465,22 @@ class NativeInvokable extends ActionInvokable {
       'formatter': () => Formatter(),
       'utils': () => _EnsembleUtils(),
       'device': () => Device(),
+      'version': () => getEnsembleVersion(),
     };
+  }
+
+  Future<String?> getEnsembleVersion() async {
+    try {
+      final fileContent = await rootBundle.loadString(
+        "packages/ensemble/pubspec.yaml",
+      );
+
+      final pubspecYaml = loadYaml(fileContent);
+
+      return pubspecYaml['version'];
+    } on Exception catch (_) {
+      return null;
+    }
   }
 
   /**
