@@ -54,7 +54,7 @@ class LoadingContainer extends StatefulWidget
       'defaultShimmerPadding': (value) => _controller.padding =
           Utils.getInsets(value), // Backward compatibility
       'shimmerOptions': (options) {
-        if (options is YamlMap) {
+        if (options is YamlMap || options is Map) {
           if (options.containsKey('padding')) {
             _controller.padding = Utils.getInsets(options['padding']);
           }
@@ -73,6 +73,10 @@ class LoadingContainer extends StatefulWidget
           if (options.containsKey('gradientStops')) {
             _controller.gradientStops =
                 Utils.getList<double>(options['gradientStops']);
+          }
+          if (options.containsKey('tileMode')) {
+            _controller.tileMode =
+                Utils.getEnum<TileMode>(options['tileMode'], TileMode.values);
           }
           if (options.containsKey('min')) {
             _controller.min = Utils.optionalDouble(options['min']);
@@ -98,6 +102,7 @@ class LoadingContainerController extends BoxController {
   int? shimmerSpeed;
   List<Color>? gradientColors;
   List<double>? gradientStops;
+  TileMode? tileMode;
   double? min;
   double? max;
 }
@@ -131,6 +136,7 @@ class LoadingContainerState extends EWidgetState<LoadingContainer> {
             shimmerSpeed: widget._controller.shimmerSpeed ?? 1000,
             min: widget._controller.min ?? -0.5,
             max: widget._controller.max ?? 1.5,
+            tileMode: widget._controller.tileMode ?? TileMode.clamp,
             child: ShimmerLoading(
                 isLoading: true,
                 child: loadingWidget ??
@@ -153,7 +159,7 @@ class LoadingContainerState extends EWidgetState<LoadingContainer> {
       end: _getGradientEnd(),
       colors: colors,
       stops: widget._controller.gradientStops ?? const [0.1, 0.3, 0.4],
-      tileMode: TileMode.clamp,
+      tileMode: widget._controller.tileMode ?? TileMode.clamp,
     );
   }
 
@@ -255,13 +261,26 @@ class ListDetailShape extends StatelessWidget {
 class _SlidingGradientTransform extends GradientTransform {
   const _SlidingGradientTransform({
     required this.slidePercent,
+    required this.shimmerEffect,
   });
 
   final double slidePercent;
+  final ShimmerEffect shimmerEffect;
 
   @override
   Matrix4? transform(Rect bounds, {TextDirection? textDirection}) {
-    return Matrix4.translationValues(bounds.width * slidePercent, 0.0, 0.0);
+    switch (shimmerEffect) {
+      case ShimmerEffect.horizontal:
+        return Matrix4.translationValues(bounds.width * slidePercent, 0.0, 0.0);
+      case ShimmerEffect.vertical:
+        return Matrix4.translationValues(
+            0.0, bounds.height * slidePercent, 0.0);
+      case ShimmerEffect.diagonal:
+        return Matrix4.translationValues(
+            bounds.width * slidePercent, bounds.height * slidePercent, 0.0);
+      default:
+        return Matrix4.translationValues(bounds.width * slidePercent, 0.0, 0.0);
+    }
   }
 }
 
@@ -275,6 +294,7 @@ class CustomShimmer extends StatefulWidget {
     required this.linearGradient,
     this.shimmerEffect = ShimmerEffect.diagonal,
     this.shimmerSpeed = 1000,
+    this.tileMode = TileMode.clamp,
     this.child,
     this.min = -0.5,
     this.max = 1.5,
@@ -283,6 +303,7 @@ class CustomShimmer extends StatefulWidget {
   final LinearGradient linearGradient;
   final ShimmerEffect shimmerEffect;
   final int shimmerSpeed;
+  final TileMode tileMode;
   final Widget? child;
   final double min;
   final double max;
@@ -318,8 +339,11 @@ class CustomShimmerState extends State<CustomShimmer>
         stops: widget.linearGradient.stops,
         begin: widget.linearGradient.begin,
         end: widget.linearGradient.end,
-        transform:
-            _SlidingGradientTransform(slidePercent: _shimmerController.value),
+        tileMode: widget.tileMode,
+        transform: _SlidingGradientTransform(
+          slidePercent: _shimmerController.value,
+          shimmerEffect: widget.shimmerEffect,
+        ),
       );
 
   bool get isSized =>
