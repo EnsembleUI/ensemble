@@ -12,7 +12,6 @@ import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:flutter/material.dart';
 import 'package:ensemble/layout/form.dart' as ensembleForm;
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
-import 'package:yaml/yaml.dart';
 
 import '../framework/event.dart';
 import '../framework/model.dart';
@@ -73,7 +72,7 @@ class Button extends StatefulWidget
       'outline': (value) => _controller.outline = Utils.optionalBool(value),
       'width': (value) => _controller.buttonWidth = Utils.optionalInt(value),
       'height': (value) => _controller.buttonHeight = Utils.optionalInt(value),
-      'loading': (value) => _controller.loading = Utils.optionalBool(value),
+      'isLoading': (value) => _controller.isLoading = Utils.optionalBool(value),
       'loadingWidget': (widget) => _controller.loadingWidget = widget,
     };
   }
@@ -118,8 +117,8 @@ class ButtonController extends BoxController {
   IconModel? startingIcon;
   IconModel? endingIcon;
 
-  bool? loading;
-  YamlMap? loadingWidget;
+  bool? isLoading;
+  dynamic? loadingWidget;
 }
 
 class ButtonState extends EWidgetState<Button> {
@@ -154,7 +153,7 @@ class ButtonState extends EWidgetState<Button> {
   }
 
   Widget _buildButtonChild() {
-    if (widget._controller.loading == true) {
+    if (widget._controller.isLoading == true) {
       return widget._controller.loadingWidget != null && scopeManager != null
           ? scopeManager!
               .buildWidgetFromDefinition(widget._controller.loadingWidget)
@@ -293,7 +292,7 @@ class ButtonState extends EWidgetState<Button> {
   }
 
   bool isEnabled() {
-    if (widget._controller.loading == true) {
+    if (widget._controller.isLoading == true) {
       return false;
     }
     return widget._controller.enabled ??
