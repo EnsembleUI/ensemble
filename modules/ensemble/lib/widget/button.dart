@@ -7,6 +7,7 @@ import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/framework/widget/icon.dart' as ensembleIcon;
 import 'package:ensemble/framework/widget/widget.dart';
+import 'package:ensemble/widget/helpers/box_wrapper.dart';
 import 'package:ensemble/widget/helpers/form_helper.dart';
 import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:flutter/material.dart';
@@ -176,11 +177,7 @@ class ButtonState extends EWidgetState<Button> {
       return scopeManager!.buildWidgetFromDefinition(widget._controller.body);
     }
 
-    List<Widget> labelParts = [
-      Text(Utils.translate(widget._controller.label ?? '', context),
-          textAlign: widget._controller.labelStyle.textAlign,
-          style: widget._controller.labelStyle.getTextStyle())
-    ];
+    List<Widget> labelParts = [];
     final hasGap = widget._controller.gap != null;
 
     if (widget._controller.startingIcon != null) {
@@ -189,6 +186,12 @@ class ButtonState extends EWidgetState<Button> {
       if (hasGap)
         labelParts.add(SizedBox(width: widget._controller.gap!.toDouble()));
     }
+
+    labelParts.add(Text(
+        Utils.translate(widget._controller.label ?? '', context),
+        textAlign: widget._controller.labelStyle.textAlign,
+        style: widget._controller.labelStyle.getTextStyle()));
+
     if (widget._controller.endingIcon != null) {
       if (hasGap)
         labelParts.add(SizedBox(width: widget._controller.gap!.toDouble()));

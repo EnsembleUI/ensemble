@@ -151,7 +151,7 @@ class NotificationManager {
         (payload['status'] as String).toLowerCase() == 'error') {
       print('Error while running js function');
     }
-    final action = NavigateScreenAction.fromMap(payload);
+    final action = NavigateScreenAction.from(payload);
 
     ScreenController().navigateToScreen(Utils.globalAppKey.currentContext!,
         screenName: action.screenName,
