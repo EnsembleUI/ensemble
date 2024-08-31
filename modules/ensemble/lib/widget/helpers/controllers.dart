@@ -6,6 +6,7 @@ import 'package:ensemble/framework/model.dart';
 import 'package:ensemble/framework/theme/theme_manager.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/util/utils.dart';
+import 'package:ensemble/widget/helpers/box_animation_composite.dart';
 import 'package:ensemble_ts_interpreter/errors.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/cupertino.dart';
@@ -309,6 +310,8 @@ class BoxController extends WidgetController {
   // some children like Image don't get clipped properly with Box's clipBehavior
   bool? clipContent;
 
+  BoxAnimationComposite? animation;
+
   @override
   Map<String, Function> getBaseSetters() {
     Map<String, Function> setters = super.getBaseSetters();
@@ -340,7 +343,9 @@ class BoxController extends WidgetController {
       'shadowRadius': (value) => shadowRadius = Utils.optionalInt(value),
       'shadowStyle': (value) => shadowStyle = Utils.getShadowBlurStyle(value),
 
-      'clipContent': (value) => clipContent = Utils.optionalBool(value)
+      'clipContent': (value) => clipContent = Utils.optionalBool(value),
+      'animation': (payload) =>
+          animation = BoxAnimationComposite.from(this, payload),
     });
     return setters;
   }

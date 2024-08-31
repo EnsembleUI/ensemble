@@ -62,55 +62,70 @@ class BoxWrapper extends StatelessWidget {
             (boxController as TapEnabledBoxController).onTap != null &&
             (boxController as TapEnabledBoxController).enableSplashFeedback);
 
-    return Container(
-      width: ignoresDimension ? null : boxController.width?.toDouble(),
-      height: ignoresDimension ? null : boxController.height?.toDouble(),
-      margin: ignoresMargin ? null : boxController.margin,
-      padding: excludePadding ? null : boxController.padding,
-      clipBehavior: clip,
-      decoration: !boxController.hasBoxDecoration()
-          ? null
-          : BoxDecoration(
-              color: boxController.backgroundColor,
-              gradient: boxController.backgroundGradient,
-              border: !boxController.hasBorder()
-                  ? null
-                  : boxController.borderGradient != null
-                      ? GradientBoxBorder(
-                          gradient: boxController.borderGradient!,
-                          width: boxController.borderWidth?.toDouble() ??
-                              ThemeManager().getBorderThickness(context))
-                      : Border.all(
-                          color: boxController.borderColor ??
-                              ThemeManager().getBorderColor(context),
-                          width: boxController.borderWidth?.toDouble() ??
-                              ThemeManager().getBorderThickness(context)),
-              borderRadius: boxController.borderRadius?.getValue(),
-              boxShadow: !boxController.hasBoxShadow()
-                  ? null
-                  : <BoxShadow>[
-                      boxController.boxShadow?.getValue(context) ??
-                          BoxShadow(
-                              color: boxController.shadowColor ??
-                                  ThemeManager().getShadowColor(context),
-                              blurRadius:
-                                  boxController.shadowRadius?.toDouble() ??
-                                      ThemeManager().getShadowRadius(context),
-                              offset: boxController.shadowOffset ??
-                                  ThemeManager().getShadowOffset(context),
-                              blurStyle: boxController.shadowStyle ??
-                                  ThemeManager().getShadowStyle(context))
-                    ],
-            ),
-      child: backgroundImage != null
-          ? Stack(
-              children: [
-                Positioned.fill(child: backgroundImage),
-                _getClippedWidget(context),
-              ],
-            )
-          : _getClippedWidget(context),
-    );
+    final childWidget = backgroundImage != null
+        ? Stack(
+            children: [
+              Positioned.fill(child: backgroundImage),
+              _getClippedWidget(context),
+            ],
+          )
+        : _getClippedWidget(context);
+
+    final boxDecoration = !boxController.hasBoxDecoration()
+        ? null
+        : BoxDecoration(
+            color: boxController.backgroundColor,
+            gradient: boxController.backgroundGradient,
+            border: !boxController.hasBorder()
+                ? null
+                : boxController.borderGradient != null
+                    ? GradientBoxBorder(
+                        gradient: boxController.borderGradient!,
+                        width: boxController.borderWidth?.toDouble() ??
+                            ThemeManager().getBorderThickness(context))
+                    : Border.all(
+                        color: boxController.borderColor ??
+                            ThemeManager().getBorderColor(context),
+                        width: boxController.borderWidth?.toDouble() ??
+                            ThemeManager().getBorderThickness(context)),
+            borderRadius: boxController.borderRadius?.getValue(),
+            boxShadow: !boxController.hasBoxShadow()
+                ? null
+                : <BoxShadow>[
+                    boxController.boxShadow?.getValue(context) ??
+                        BoxShadow(
+                            color: boxController.shadowColor ??
+                                ThemeManager().getShadowColor(context),
+                            blurRadius:
+                                boxController.shadowRadius?.toDouble() ??
+                                    ThemeManager().getShadowRadius(context),
+                            offset: boxController.shadowOffset ??
+                                ThemeManager().getShadowOffset(context),
+                            blurStyle: boxController.shadowStyle ??
+                                ThemeManager().getShadowStyle(context))
+                  ],
+          );
+
+    return boxController.animation?.enabled == true
+        ? AnimatedContainer(
+            duration: boxController.animation?.duration ??
+                Duration(milliseconds: 500),
+            curve: boxController.animation?.curve ?? Curves.linear,
+            width: ignoresDimension ? null : boxController.width?.toDouble(),
+            height: ignoresDimension ? null : boxController.height?.toDouble(),
+            margin: ignoresMargin ? null : boxController.margin,
+            padding: excludePadding ? null : boxController.padding,
+            clipBehavior: clip,
+            decoration: boxDecoration,
+            child: childWidget)
+        : Container(
+            width: ignoresDimension ? null : boxController.width?.toDouble(),
+            height: ignoresDimension ? null : boxController.height?.toDouble(),
+            margin: ignoresMargin ? null : boxController.margin,
+            padding: excludePadding ? null : boxController.padding,
+            clipBehavior: clip,
+            decoration: boxDecoration,
+            child: childWidget);
   }
 
   Widget _getWidget(BuildContext context) {
