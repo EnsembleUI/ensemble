@@ -72,13 +72,13 @@ class EnsembleModules {
   // optional modules
   static const useAuth = false;
 
-  void init() {
+  Future<void> init() async {
     // Note that notifications is not a module
     if (useNotifications) {
       // TODO: use Firebase config in ensemble-config if specified
       // TODO: how to do notificationCallbacks in YAML
       // Currently we need to drop the iOS/Android Firebase config into the root folder
-      NotificationManager().init();
+      await NotificationManager().init();
     }
 
     if (useCamera) {
