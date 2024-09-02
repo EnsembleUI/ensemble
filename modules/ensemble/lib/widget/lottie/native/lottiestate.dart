@@ -3,13 +3,14 @@ import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
+import 'package:ensemble/widget/helpers/box_wrapper.dart';
 import 'package:ensemble/widget/helpers/widgets.dart';
 import 'package:ensemble/widget/lottie/lottie.dart';
 import 'package:ensemble/widget/widget_util.dart';
 import 'package:flutter/widgets.dart';
 import 'package:lottie/lottie.dart';
 
-class LottieState extends WidgetState<EnsembleLottie>
+class LottieState extends EWidgetState<EnsembleLottie>
     with SingleTickerProviderStateMixin {
   @override
   void initState() {

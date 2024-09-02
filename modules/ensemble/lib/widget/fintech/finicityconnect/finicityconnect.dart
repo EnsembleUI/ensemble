@@ -81,7 +81,7 @@ class FinicityConnect extends StatefulWidget
   }
 }
 
-abstract class FinicityConnectStateBase extends WidgetState<FinicityConnect> {
+abstract class FinicityConnectStateBase extends EWidgetState<FinicityConnect> {
   void executeAction(Map event) {
     EnsembleAction? action;
 

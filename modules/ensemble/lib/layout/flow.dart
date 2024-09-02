@@ -8,6 +8,7 @@ import 'package:ensemble/page_model.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/layout_utils.dart';
 import 'package:ensemble/util/utils.dart';
+import 'package:ensemble/widget/helpers/box_wrapper.dart';
 import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:ensemble/widget/helpers/widgets.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
@@ -87,7 +88,7 @@ class FlowController extends BoxController {
   int selectedItemIndex = -1;
 }
 
-class FlowState extends WidgetState<Flow>
+class FlowState extends EWidgetState<Flow>
     with TemplatedWidgetState, HasChildren<Flow> {
   List<Widget>? templatedChildren;
 

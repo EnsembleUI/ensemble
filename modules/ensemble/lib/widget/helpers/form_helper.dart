@@ -120,7 +120,7 @@ class FormHelper {
 
 /// base widget state for FormField widgets
 abstract class FormFieldWidgetState<W extends HasController>
-    extends WidgetState<W> {
+    extends EWidgetState<W> {
   // the key to validate this FormField
   final validatorKey = GlobalKey<FormFieldState>();
 

@@ -46,7 +46,7 @@ class RatingController extends WidgetController {
   EdgeInsets? padding;
 }
 
-class RatingState extends WidgetState<Rating> {
+class RatingState extends EWidgetState<Rating> {
   late Color primaryColor;
 
   @override
