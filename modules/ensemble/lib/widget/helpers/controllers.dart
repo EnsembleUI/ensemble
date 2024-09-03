@@ -4,6 +4,7 @@ import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/framework/model.dart';
 import 'package:ensemble/framework/theme/theme_manager.dart';
+import 'package:ensemble/model/transform_matrix.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/helpers/box_animation_composite.dart';
@@ -311,6 +312,7 @@ class BoxController extends WidgetController {
   bool? clipContent;
 
   BoxAnimationComposite? animation;
+  Matrix4? transform;
 
   @override
   Map<String, Function> getBaseSetters() {
@@ -346,6 +348,7 @@ class BoxController extends WidgetController {
       'clipContent': (value) => clipContent = Utils.optionalBool(value),
       'animation': (payload) =>
           animation = BoxAnimationComposite.from(this, payload),
+      'transform': (value) => transform = TransformMatrix.from(value)
     });
     return setters;
   }
@@ -386,6 +389,7 @@ class TapEnabledBoxController extends BoxController with TapEnabled {
   Map<String, Function> getBaseSetters() => {
         ...super.getBaseSetters(),
         'onTap': (action) => onTap = EnsembleAction.from(action),
+        'onLongPress': (action) => onLongPress = EnsembleAction.from(action),
         'enableSplashFeedback': (value) => enableSplashFeedback =
             Utils.getBool(value, fallback: enableSplashFeedback),
         'splashColor': (color) => splashColor = Utils.getColor(color),

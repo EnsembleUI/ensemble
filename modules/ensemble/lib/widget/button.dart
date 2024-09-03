@@ -88,6 +88,7 @@ class Button extends StatefulWidget
 class ButtonController extends BoxController {
   ensemble.EnsembleAction? onTap;
   String? onTapHaptic;
+  ensemble.EnsembleAction? onLongPress;
 
   TextStyleComposite? _labelStyle;
 
@@ -129,6 +130,12 @@ class ButtonState extends EWidgetState<Button> {
             ignoresMargin: true,
             widget: TextButton(
                 onPressed: isEnabled() ? () => onPressed(context) : null,
+                onLongPress:
+                    isEnabled() && widget._controller.onLongPress != null
+                        ? () => ScreenController().executeAction(
+                            context, widget._controller.onLongPress!,
+                            event: EnsembleEvent(widget))
+                        : null,
                 style: getButtonStyle(context, isOutlineButton),
                 child: _buildButtonChild()),
           )

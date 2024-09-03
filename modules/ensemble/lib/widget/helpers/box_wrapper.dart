@@ -106,6 +106,10 @@ class BoxWrapper extends StatelessWidget {
                   ],
           );
 
+    // if animation is enabled, we need a starting non-empty transform to animate
+    final transform = boxController.transform ??
+        (boxController.animation?.enabled == true ? Matrix4.identity() : null);
+
     return boxController.animation?.enabled == true
         ? AnimatedContainer(
             duration: boxController.animation?.duration ??
@@ -117,6 +121,7 @@ class BoxWrapper extends StatelessWidget {
             padding: excludePadding ? null : boxController.padding,
             clipBehavior: clip,
             decoration: boxDecoration,
+            transform: transform,
             child: childWidget)
         : Container(
             width: ignoresDimension ? null : boxController.width?.toDouble(),
@@ -125,12 +130,14 @@ class BoxWrapper extends StatelessWidget {
             padding: excludePadding ? null : boxController.padding,
             clipBehavior: clip,
             decoration: boxDecoration,
+            transform: transform,
             child: childWidget);
   }
 
   Widget _getWidget(BuildContext context) {
     if (boxController is TapEnabledBoxController &&
-        (boxController as TapEnabledBoxController).onTap != null) {
+        ((boxController as TapEnabledBoxController).onTap != null ||
+            (boxController as TapEnabledBoxController).onLongPress != null)) {
       var controller = boxController as TapEnabledBoxController;
       return Material(
           color: Colors.transparent,
@@ -140,8 +147,14 @@ class BoxWrapper extends StatelessWidget {
               splashFadeDuration: controller.splashFadeDuration,
               unconfirmedSplashDuration: controller.unconfirmedSplashDuration,
             ),
-            onTap: () =>
-                ScreenController().executeAction(context, controller.onTap!),
+            onLongPress: controller.onLongPress != null
+                ? () => ScreenController()
+                    .executeAction(context, controller.onLongPress!)
+                : null,
+            onTap: controller.onTap != null
+                ? () =>
+                    ScreenController().executeAction(context, controller.onTap!)
+                : null,
             // note that splashColor has a default color if not specified
             splashColor: controller.enableSplashFeedback
                 ? controller.splashColor
