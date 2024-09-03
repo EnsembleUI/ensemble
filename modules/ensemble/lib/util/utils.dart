@@ -33,8 +33,11 @@ class Utils {
 
   /// return an Integer if it is, or null if not
   static int? optionalInt(dynamic value, {int? min, int? max}) {
-    int? rtn =
-        value is int ? value : (value is String ? int.tryParse(value) : null);
+    int? rtn = value is int
+        ? value
+        : (value is double
+            ? value.round()
+            : (value is String ? int.tryParse(value) : null));
     if (rtn != null && min != null && rtn < min) {
       rtn = null;
     }

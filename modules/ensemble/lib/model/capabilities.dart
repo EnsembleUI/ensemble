@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 // enable a widget to be tap-able
 mixin TapEnabled {
   EnsembleAction? onTap;
+  EnsembleAction? onLongPress;
 
   // by default disable splash feedback for historical reason
   bool enableSplashFeedback = false;

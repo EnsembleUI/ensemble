@@ -1,6 +1,7 @@
 import 'dart:async';
-import 'dart:developer';
+import 'dart:developer' as dev;
 import 'dart:io' as io;
+import 'dart:math';
 import 'dart:ui';
 import 'package:ensemble/action/Log_event_action.dart';
 import 'package:ensemble/action/action_invokable.dart';
@@ -63,10 +64,9 @@ class DataContext implements Context {
   @Deprecated("do not use")
   BuildContext buildContext;
 
-  DataContext(
-      {required this.buildContext,
-      Map<String, dynamic>? initialMap,
-      Map<String, dynamic>? parentContext}) {
+  DataContext({required this.buildContext,
+    Map<String, dynamic>? initialMap,
+    Map<String, dynamic>? parentContext}) {
     if (initialMap != null) {
       _contextMap.addAll(initialMap);
     }
@@ -77,7 +77,7 @@ class DataContext implements Context {
     _contextMap['app'] = AppConfig(buildContext, appInfo.appId);
     _contextMap['env'] = EnvConfig();
     _contextMap['secrets'] = SecretsStore();
-    _contextMap['ensemble'] = NativeInvokable(buildContext);
+    _contextMap['ensemble'] = _contextMap['e'] = NativeInvokable(buildContext);
     _contextMap['appInfo'] = appInfo;
     _contextMap['FieldValue'] = EnsembleFieldValue();
     _contextMap['Timestamp'] = StaticFirestoreTimestamp();
@@ -195,7 +195,7 @@ class DataContext implements Context {
     if (!hasCtx) {
       // check parent context
       final parentContext =
-          _contextMap[parentContextKey] as Map<String, dynamic>?;
+      _contextMap[parentContextKey] as Map<String, dynamic>?;
       if (parentContext != null) {
         hasCtx = parentContext.containsKey(id);
       }
@@ -213,8 +213,8 @@ class DataContext implements Context {
     return null;
   }
 
-  static Map<String, dynamic>? _recursiveLookup(
-      Map<String, dynamic> map, String key) {
+  static Map<String, dynamic>? _recursiveLookup(Map<String, dynamic> map,
+      String key) {
     if (map.containsKey(key)) {
       return map;
     }
@@ -255,7 +255,7 @@ class DataContext implements Context {
     // this is the distinction here so we can continue to walk down the path
     // if the return type is JSON
     RegExpMatch? simpleExpression =
-        DataUtils.onlyExpression.firstMatch(expression);
+    DataUtils.onlyExpression.firstMatch(expression);
     if (simpleExpression != null) {
       return asObject(evalVariable(simpleExpression.group(1)!));
     }
@@ -264,7 +264,7 @@ class DataContext implements Context {
     // Note that since we combine multiple expressions together, the end result
     // has to be a string.
     return expression.replaceAllMapped(DataUtils.containExpression,
-        (match) => asString(evalVariable("${match[1]}")));
+            (match) => asString(evalVariable("${match[1]}")));
 
     /*return replaceAllMappedAsync(
         expression,
@@ -313,9 +313,7 @@ class DataContext implements Context {
     for (Match match in exp.allMatches(string)) {
       String prefix = match.input.substring(currentIndex, match.start);
       currentIndex = match.end;
-      replaced
-        ..write(prefix)
-        ..write(await replace(match));
+      replaced..write(prefix)..write(await replace(match));
     }
     replaced.write(string.substring(currentIndex));
     return replaced.toString();
@@ -329,7 +327,7 @@ class DataContext implements Context {
 
     SourceLocation startLoc = definition.start;
     String? codeWithoutComments =
-        Utils.codeAfterComment.firstMatch(codeBlock)?.group(1);
+    Utils.codeAfterComment.firstMatch(codeBlock)?.group(1);
     if (codeWithoutComments != null) {
       codeBlock = codeWithoutComments;
       startLoc = SourceLocationBase(0,
@@ -400,12 +398,12 @@ class DataContext implements Context {
       } else {
         // only support methods with 0 or 1 argument for now
         RegExpMatch? match =
-            RegExp(r'''([a-zA-Z_-\d]+)\s*\(["']?([a-zA-Z_-\d:.]*)["']?\)''')
-                .firstMatch(token);
+        RegExp(r'''([a-zA-Z_-\d]+)\s*\(["']?([a-zA-Z_-\d:.]*)["']?\)''')
+            .firstMatch(token);
         if (match != null) {
           // first group is the method name, second is the argument
           Function? method =
-              InvokableController.getMethods(data)[match.group(1)];
+          InvokableController.getMethods(data)[match.group(1)];
           if (method != null) {
             // our match will always have 2 groups. Second group is the argument
             // which could be empty since we use ()*
@@ -432,14 +430,14 @@ class DataContext implements Context {
       // TODO: we want to show errors in most case
       //  Exception: 1) API has not been loaded, 2) Custom widget input (also awaiting API)
       // perhaps don't process if we know API has not been called
-      log('JS Parsing Error: $error');
+      dev.log('JS Parsing Error: $error');
     }
     return null;
   }
 
   /// token format: result
-  static dynamic _parseToken(
-      List<String> tokens, int index, Map<String, dynamic> map) {
+  static dynamic _parseToken(List<String> tokens, int index,
+      Map<String, dynamic> map) {
     if (index == tokens.length - 1) {
       return map[tokens[index]];
     }
@@ -475,8 +473,9 @@ class NativeInvokable extends ActionInvokable {
     // see super method for Actions already exposed there
     Map<String, Function> methods = super.methods();
     methods.addAll({
-      ActionType.navigateScreen.name: (inputs) => ScreenController()
-          .executeAction(buildContext, NavigateScreenAction.from(inputs)),
+      ActionType.navigateScreen.name: (inputs) =>
+          ScreenController()
+              .executeAction(buildContext, NavigateScreenAction.from(inputs)),
       ActionType.navigateModalScreen.name: (screenNameOrPayload, [inputs]) =>
           ScreenController().executeAction(buildContext,
               NavigateModalScreenAction.from(screenNameOrPayload, inputs)),
@@ -485,21 +484,28 @@ class NativeInvokable extends ActionInvokable {
       ActionType.stopTimer.name: stopTimer,
       ActionType.openCamera.name: showCamera,
       ActionType.navigateBack.name: navigateBack,
-      ActionType.startTimer.name: (inputs) => ScreenController()
-          .executeAction(buildContext, StartTimerAction.fromMap(inputs)),
+      ActionType.startTimer.name: (inputs) =>
+          ScreenController()
+              .executeAction(buildContext, StartTimerAction.fromMap(inputs)),
       ActionType.uploadFiles.name: uploadFiles,
-      ActionType.invokeHaptic.name: (inputs) => ScreenController()
-          .executeAction(buildContext, HapticAction.from(inputs)),
-      ActionType.playAudio.name: (inputs) => ScreenController()
-          .executeAction(buildContext, PlayAudio.from(inputs)),
-      ActionType.pauseAudio.name: (inputs) => ScreenController()
-          .executeAction(buildContext, PauseAudio.from(inputs)),
-      ActionType.stopAudio.name: (inputs) => ScreenController()
-          .executeAction(buildContext, StopAudio.from(inputs)),
-      ActionType.resumeAudio.name: (inputs) => ScreenController()
-          .executeAction(buildContext, ResumeAudio.from(inputs)),
-      ActionType.seekAudio.name: (inputs) => ScreenController()
-          .executeAction(buildContext, SeekAudio.from(inputs)),
+      ActionType.invokeHaptic.name: (inputs) =>
+          ScreenController()
+              .executeAction(buildContext, HapticAction.from(inputs)),
+      ActionType.playAudio.name: (inputs) =>
+          ScreenController()
+              .executeAction(buildContext, PlayAudio.from(inputs)),
+      ActionType.pauseAudio.name: (inputs) =>
+          ScreenController()
+              .executeAction(buildContext, PauseAudio.from(inputs)),
+      ActionType.stopAudio.name: (inputs) =>
+          ScreenController()
+              .executeAction(buildContext, StopAudio.from(inputs)),
+      ActionType.resumeAudio.name: (inputs) =>
+          ScreenController()
+              .executeAction(buildContext, ResumeAudio.from(inputs)),
+      ActionType.seekAudio.name: (inputs) =>
+          ScreenController()
+              .executeAction(buildContext, SeekAudio.from(inputs)),
       'debug': (value) => debugPrint('Debug: $value'),
       'initNotification': () => notificationUtils.initNotifications(),
       'updateSystemAuthorizationToken': (token) =>
@@ -513,8 +519,9 @@ class NativeInvokable extends ActionInvokable {
         final scope = ScreenController().getScopeManager(buildContext);
         callNativeMethod(buildContext, scope, inputs);
       },
-      ActionType.rateApp.name: (inputs) => ScreenController()
-          .executeAction(buildContext, RateAppAction.from(payload: inputs)),
+      ActionType.rateApp.name: (inputs) =>
+          ScreenController()
+              .executeAction(buildContext, RateAppAction.from(payload: inputs)),
       'connectSocket': (String socketName, Map<dynamic, dynamic>? inputs) {
         connectSocket(buildContext, socketName, inputs: inputs);
       },
@@ -536,13 +543,14 @@ class NativeInvokable extends ActionInvokable {
             buildContext,
             ExecuteConditionalActionAction.from(inputs),
           ),
-      ActionType.logEvent.name: (inputs) => ScreenController().executeAction(
+      ActionType.logEvent.name: (inputs) =>
+          ScreenController().executeAction(
             buildContext,
             LogEvent.from(payload: inputs),
           ),
       ActionType.authenticateByBiometric.name: (inputs) {
         final action =
-            AuthenticateByBiometric.fromMap(payload: Utils.getYamlMap(inputs));
+        AuthenticateByBiometric.fromMap(payload: Utils.getYamlMap(inputs));
         if (action == null) return null;
         return ScreenController().executeAction(buildContext, action);
       },
@@ -556,12 +564,12 @@ class NativeInvokable extends ActionInvokable {
     return {};
   }
 
-  void callNativeMethod(
-      BuildContext context, ScopeManager? scopeManager, dynamic inputs) async {
+  void callNativeMethod(BuildContext context, ScopeManager? scopeManager,
+      dynamic inputs) async {
     if (scopeManager == null) return;
 
     String? name =
-        Utils.optionalString(scopeManager.dataContext.eval(inputs?['name']));
+    Utils.optionalString(scopeManager.dataContext.eval(inputs?['name']));
     Map<String, dynamic>? inputMap = Utils.getMap(inputs?['payload']);
     if (name == null) {
       print('Invalid method name');
@@ -722,7 +730,8 @@ class _EnsembleUtils with Invokable {
   Map<String, Function> getters() => {};
 
   @override
-  Map<String, Function> methods() => {
+  Map<String, Function> methods() =>
+      {
         'getCountries': () => allCountries,
         'getCountry': (value) {
           String val = Utils.getString(value, fallback: "");
@@ -731,7 +740,9 @@ class _EnsembleUtils with Invokable {
         'findCountry': (value) {
           String val = Utils.getString(value, fallback: "");
           return findCountry(val);
-        }
+        },
+        'random': () => Random().nextDouble(),
+        'randomInt': (int max) => Random().nextInt(max),
       };
 
   @override
@@ -764,7 +775,8 @@ class _EnsembleUtils with Invokable {
     List<Map<String, dynamic>> result = [];
     userInput = userInput.toLowerCase().trim();
     for (var i in allCountries) {
-      String countryName = i['name'] as String..toLowerCase();
+      String countryName = i['name'] as String
+        ..toLowerCase();
       countryName = countryName.toLowerCase();
       if (countryName.contains(userInput, 0)) {
         result.add(i);
@@ -942,7 +954,7 @@ class DateTimeInfo with Invokable {
       'getMinute': () => dateTime.minute,
       'getSecond': () => dateTime.second,
       'pretty': () =>
-          DateFormat.yMMMd(locale.toString()).format(dateTime) +
+      DateFormat.yMMMd(locale.toString()).format(dateTime) +
           ' ' +
           DateFormat.jm(locale.toString()).format(dateTime),
       'format': (String format) =>
@@ -979,7 +991,7 @@ class UserDateTime with Invokable {
       'getDateTime': () => dateTime.toIso8601String(),
       'prettyDate': () => DateFormat.yMMMd().format(dateTime),
       'prettyDateTime': () =>
-          DateFormat.yMMMd().format(dateTime) +
+      DateFormat.yMMMd().format(dateTime) +
           ' ' +
           DateFormat.jm().format(dateTime),
       'getMonth': () => dateTime.month,
@@ -1008,13 +1020,12 @@ class UploadTask {
   late dynamic body;
   late Map<String, dynamic>? headers;
 
-  UploadTask(
-      {required this.id,
-      this.status = UploadStatus.pending,
-      this.isBackground = false,
-      this.progress = 0.0,
-      this.body,
-      this.headers});
+  UploadTask({required this.id,
+    this.status = UploadStatus.pending,
+    this.isBackground = false,
+    this.progress = 0.0,
+    this.body,
+    this.headers});
 
   Map<String, dynamic> toJson() {
     return {
@@ -1149,9 +1160,9 @@ class ModifiableAPIResponse extends APIResponse {
   Map<String, Function> setters() {
     return {
       'body': (newBody) =>
-          _response!.body = HTTPAPIProvider.parseResponsePayload(newBody),
+      _response!.body = HTTPAPIProvider.parseResponsePayload(newBody),
       'headers': (newHeaders) =>
-          _response!.headers = HTTPAPIProvider.parseResponsePayload(newHeaders)
+      _response!.headers = HTTPAPIProvider.parseResponsePayload(newHeaders)
     };
   }
 
