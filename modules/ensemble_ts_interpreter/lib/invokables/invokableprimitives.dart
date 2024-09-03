@@ -8,7 +8,7 @@ import 'package:intl/intl.dart';
 import 'package:duration/duration.dart' as lib;
 
 abstract class InvokablePrimitive {
-  static String prettyCurrency(dynamic input) {
+  static String prettyCurrency(dynamic input, {Locale? locale}) {
     num? value;
     if (input is num) {
       value = input;
@@ -16,54 +16,86 @@ abstract class InvokablePrimitive {
       value = num.tryParse(input);
     }
     if (value != null) {
-      NumberFormat formatter = NumberFormat.currency(locale: 'en_US', symbol: "\$");
+      // find the currency symbol
+      String? currencySymbol = r'$';
+      if (locale != null) {
+        currencySymbol = NumberFormat.simpleCurrency(locale: locale.toString())
+            .currencySymbol;
+      }
+
+      NumberFormat formatter = NumberFormat.currency(
+          locale: locale?.toString(), symbol: currencySymbol);
       return formatter.format(value);
     }
     return '';
   }
+
   /// input should be # of seconds
   static String prettyDuration(dynamic input, {Locale? locale}) {
     if (input == null) {
       return '';
     }
-    if (input !is int) {
+    if (input! is int) {
       input = int.tryParse(input.toString());
     }
 
-    String localeString = locale?.languageCode ?? 'nl'; // ?? Intl.getCurrentLocale().substring(0, 2);
+    DurationLocale durationLocale = EnglishDurationLocale();
+    if (locale != null) {
+      durationLocale = DurationLocale.fromLanguageCode(locale.languageCode) ??
+          durationLocale;
+    }
+
+    String? localeString = locale?.languageCode;
     return lib.prettyDuration(
       Duration(seconds: input),
       abbreviated: false,
       upperTersity: lib.DurationTersity.week,
       tersity: lib.DurationTersity.minute,
-      locale: DurationLocale.fromLanguageCode(localeString) ?? EnglishDurationLocale()
+      locale: durationLocale,
     );
   }
-  static String prettyDate(dynamic input) {
+
+  // output most common Jan 17, 2024 or 17 jan 2024
+  static String prettyDate(dynamic input, {Locale? locale}) {
     DateTime? dateTime = parseDateTime(input)?.toLocal();
     if (dateTime != null) {
-      return DateFormat.yMMMd().format(dateTime);
+      return DateFormat.yMMMd(locale?.toString()).format(dateTime);
     }
     return '';
   }
-  static String prettyDateTime(dynamic input) {
+
+  // pretty time output as 3:14 PM or 15:14. This is the most common and user-friendly
+  static String prettyTime(dynamic input, {Locale? locale}) {
     DateTime? dateTime = parseDateTime(input)?.toLocal();
     if (dateTime != null) {
-      return DateFormat.yMMMd().format(dateTime) + ' ' + DateFormat.jm().format(dateTime);
+      return DateFormat.jm(locale?.toString()).format(dateTime);
     }
     return '';
   }
-  static String prettyTime(dynamic input) {
+
+  // combine prettyDate and prettyTime
+  static String prettyDateTime(dynamic input, {Locale? locale}) {
     DateTime? dateTime = parseDateTime(input)?.toLocal();
     if (dateTime != null) {
-      return DateFormat.jm().format(dateTime);
+      return "${prettyDate(input, locale: locale)}, ${prettyTime(input, locale: locale)}";
     }
     return '';
   }
+
+  static String customDateTime(dynamic input, pattern, {Locale? locale}) {
+    DateTime? dt = parseDateTime(input);
+    if (dt != null) {
+      return DateFormat(pattern, locale?.toString()).format(dt);
+    }
+    return '';
+  }
+
   /// try to parse the input into a DateTime.
   /// The returned DateTime is in UTC/GMT timezone (not your local DateTime)
   static DateTime? parseDateTime(dynamic input) {
-    if (input is int) {
+    if (input is DateTime) {
+      return input;
+    } else if (input is int) {
       return DateTime.fromMillisecondsSinceEpoch(input * 1000);
     } else if (input is String) {
       int? intValue = int.tryParse(input);
@@ -82,7 +114,9 @@ abstract class InvokablePrimitive {
         String updatedInput = input;
         Duration? offset;
         bool isNegativeOffset = false;
-        RegExpMatch? match = RegExp(r'.+ GMT(?<offset>\s?([+-])(\d{2}):?(\d{2}))$').firstMatch(input);
+        RegExpMatch? match =
+            RegExp(r'.+ GMT(?<offset>\s?([+-])(\d{2}):?(\d{2}))$')
+                .firstMatch(input);
         if (match != null) {
           // remove any offset from the string so we can parse it
           String rawOffset = match.namedGroup('offset')!;
@@ -99,19 +133,18 @@ abstract class InvokablePrimitive {
           DateTime gmtDateTime = HttpDate.parse(updatedInput);
           // adjust the offset
           if (offset != null) {
-            gmtDateTime = isNegativeOffset ? gmtDateTime.add(offset) : gmtDateTime.subtract(offset);
+            gmtDateTime = isNegativeOffset
+                ? gmtDateTime.add(offset)
+                : gmtDateTime.subtract(offset);
             //print(parsedDateTime);
           }
           // we parsed the date as GMT, need to convert to our local time
           return gmtDateTime;
         } catch (e) {}
-
       }
     }
     return null;
   }
 
-
   dynamic getValue();
-
 }

@@ -1,9 +1,11 @@
 import 'package:ensemble/framework/widget/has_children.dart';
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/layout/templated.dart';
+import 'package:ensemble/model/item_template.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
+import 'package:ensemble/widget/helpers/box_wrapper.dart';
 import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:ensemble/widget/helpers/widgets.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
@@ -55,7 +57,7 @@ class Footer extends StatefulWidget
   }
 
   @override
-  void initChildren({List<WidgetModel>? children, ItemTemplate? itemTemplate}) {
+  void initChildren({List<WidgetModel>? children, Map? itemTemplate}) {
     _controller.children = children;
   }
 
@@ -70,10 +72,11 @@ class Footer extends StatefulWidget
   }
 }
 
-class _FooterState extends WidgetState<Footer>
+class _FooterState extends EWidgetState<Footer>
     with HasChildren<Footer>, TemplatedWidgetState {
   DragOptions? _dragOptions;
   late DraggableScrollableController _dragController;
+
   @override
   void initState() {
     super.initState();
@@ -216,15 +219,14 @@ class DragOptions {
       required this.showDragHandle,
       required this.snapSizes});
 
-  factory DragOptions.fromYaml(
-          YamlMap yamlMap, Invokable invokable) =>
+  factory DragOptions.fromYaml(YamlMap yamlMap, Invokable invokable) =>
       DragOptions(
           onMaxSize:
               action
                       .EnsembleAction
-                  .fromYaml(yamlMap['onMaxSize'], initiator: invokable),
+                  .from(yamlMap['onMaxSize'], initiator: invokable),
           onMinSize:
-              action.EnsembleAction.fromYaml(yamlMap['onMinSize'],
+              action.EnsembleAction.from(yamlMap['onMinSize'],
                   initiator: invokable),
           minSize: Utils.getDouble(yamlMap['minSize'], fallback: 0.25),
           maxSize: Utils.getDouble(yamlMap['maxSize'], fallback: 1.0),

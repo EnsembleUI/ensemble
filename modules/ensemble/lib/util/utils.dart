@@ -1,9 +1,11 @@
 import 'dart:io';
 import 'dart:math';
 import 'dart:ui';
+import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/ensemble_app.dart';
 import 'package:ensemble/framework/stub/location_manager.dart';
 import 'package:ensemble/framework/theme/theme_manager.dart';
+import 'package:ensemble_ts_interpreter/invokables/UserLocale.dart';
 import 'package:path/path.dart' as p;
 
 import 'package:ensemble/framework/error_handling.dart';
@@ -278,7 +280,7 @@ class Utils {
       List<T> results = [];
       for (var item in value) {
         if (item is T) {
-          results.add(item);
+          results.add(genericTranslate(item));
         }
       }
       return results;
@@ -287,13 +289,13 @@ class Utils {
   }
 
   static List<String>? getListOfStrings(dynamic value) {
-    if (value is YamlList) {
+    if (value is YamlList || value is List) {
       List<String> results = [];
       for (var item in value) {
         if (item is String) {
-          results.add(item);
+          results.add(translate(item, null));
         } else {
-          results.add(item.toString());
+          results.add(translate(item.toString(), null));
         }
       }
       return results;
@@ -301,14 +303,14 @@ class Utils {
     return null;
   }
 
-  static List<YamlMap>? getListOfYamlMap(dynamic value) {
-    if (value is YamlList || value is List) {
-      List<YamlMap> results = [];
+  static List<Map>? getListOfMap(dynamic value) {
+    if (value is List) {
+      List<Map> results = [];
       for (var item in value) {
-        if (item is YamlMap) {
+        if (item is Map) {
           results.add(item);
         } else {
-          results.add(getYamlMap(item) ?? YamlMap());
+          results.add(getMap(item) ?? Map());
         }
       }
       return results;
@@ -550,15 +552,35 @@ class Utils {
     return null;
   }
 
+  //fontFamily could either be a string or a map where the key is the language code and the value is the font family name
   static TextStyle? getFontFamily(dynamic name) {
-    String? fontFamily = name?.toString().trim();
-    if (fontFamily != null && fontFamily.isNotEmpty) {
+    String? fontFamily;
+    // Check if the name is a map with language codes
+    if (name is Map) {
+      // Retrieve the current language code
+      String? languageCode =
+          UserLocale.from(Ensemble().getLocale())?.languageCode;
+      if (languageCode != null && name.containsKey(languageCode)) {
+        fontFamily = name[languageCode]?.toString();
+      }
+
+      // If language code is null or not found in the map, use the default font family if specified
+      if (fontFamily == null || fontFamily.isEmpty) {
+        fontFamily = name['default']?.toString();
+      }
+    } else if (name is String) {
+      // Handle the case where name is a string
+      fontFamily = name;
+    }
+    // If a valid font family is found, apply it
+    if (fontFamily != null && fontFamily.trim().isNotEmpty) {
       try {
         return GoogleFonts.getFont(fontFamily.trim());
       } catch (_) {
         return TextStyle(fontFamily: fontFamily);
       }
     }
+    // Return null if no valid font family is found
     return null;
   }
 
@@ -801,21 +823,11 @@ class Utils {
     return int.tryParse(value);
   }
 
-  static final onlyExpression =
-      RegExp(r'''^\$\{([^}]+)\}$''', caseSensitive: false);
-
-  static final containExpression =
-      RegExp(r'''\$\{([^}{]+(?:\{[^}{]*\}[^}{]*)*)\}''', caseSensitive: false);
-
   static final i18nExpression = RegExp(r'\br@([\w\.]+)', caseSensitive: false);
 
   // extract only the code after the comment and expression e.g //@code <expression>\n
   static final codeAfterComment =
       RegExp(r'^//@code[^\n]*\n+((.|\n)+)', caseSensitive: false);
-
-  // match an expression and AST e.g //@code <expression>\n<AST> in group1 and group2
-  static final expressionAndAst =
-      RegExp(r'^//@code\s+([^\n]+)\s*', caseSensitive: false);
 
   //expect r@mystring or r@myapp.myscreen.mystring as long as r@ is there. If r@ is not there, returns the string as-is
   static String translate(String val, BuildContext? ctx) {
@@ -848,6 +860,19 @@ class Utils {
     return rtn;
   }
 
+  // recursively execute the translation
+  static dynamic genericTranslate(dynamic input, [BuildContext? ctx]) {
+    if (input is String) {
+      return translate(input, ctx);
+    } else if (input is Map) {
+      return input
+          .map((key, value) => MapEntry(key, genericTranslate(value, ctx)));
+    } else if (input is List) {
+      return input.map((e) => genericTranslate(e, ctx)).toList();
+    }
+    return input;
+  }
+
   // temporary workaround for internal translation so we dont have to duplicate the translation files in all repos
   static String translateWithFallback(String key, String fallback) {
     if (Utils.globalAppKey.currentContext != null) {
@@ -871,74 +896,6 @@ class Utils {
       return match.group(1).toString();
     }
     return input;
-  }
-
-  /// is it $(....)
-  static bool isExpression(String expression) {
-    return onlyExpression.hasMatch(expression);
-  }
-
-  /// contains one or more expression e.g Hello $(firstname) $(lastname)
-  static bool hasExpression(String expression) {
-    return containExpression.hasMatch(expression);
-  }
-
-  /// get the list of expression from the raw string
-  /// [input]: Hello $(firstname) $(lastname)
-  /// @return [ $(firstname), $(lastname) ]
-  static List<String> getExpressionTokens(String input) {
-    return containExpression.allMatches(input).map((e) => e.group(0)!).toList();
-  }
-
-  /// parse an Expression and AST into a DataExpression object.
-  /// There are two variations:
-  /// 1. <expression>
-  /// 2. //@code <expression>\n<AST>
-  static DataExpression? parseDataExpression(dynamic input) {
-    if (input is String) {
-      return _parseDataExpressionFromString(input);
-    } else if (input is List) {
-      List<String> tokens = [];
-      for (final inputEntry in input) {
-        if (inputEntry is String) {
-          DataExpression? dataEntry =
-              _parseDataExpressionFromString(inputEntry);
-          tokens.addAll(dataEntry?.expressions ?? []);
-        }
-      }
-      if (tokens.isNotEmpty) {
-        return DataExpression(rawExpression: input, expressions: tokens);
-      }
-    } else if (input is Map) {
-      // no recursive, just a straight map is good
-      List<String> tokens = [];
-      input.forEach((_, value) {
-        if (value is String) {
-          DataExpression? dataEntry = _parseDataExpressionFromString(value);
-          tokens.addAll(dataEntry?.expressions ?? []);
-        }
-      });
-      if (tokens.isNotEmpty) {
-        return DataExpression(rawExpression: input, expressions: tokens);
-      }
-    }
-    return null;
-  }
-
-  static DataExpression? _parseDataExpressionFromString(String input) {
-    // first match //@code <expression>\n<AST> as it is what we have
-    RegExpMatch? match = expressionAndAst.firstMatch(input);
-    if (match != null) {
-      return DataExpression(
-          rawExpression: match.group(1)!,
-          expressions: getExpressionTokens(match.group(1)!));
-    }
-    // fallback to match <expression> only. This is if we don't turn on AST
-    List<String> tokens = getExpressionTokens(input);
-    if (tokens.isNotEmpty) {
-      return DataExpression(rawExpression: input, expressions: tokens);
-    }
-    return null;
   }
 
   /// pick a string randomly from the list
@@ -1084,5 +1041,19 @@ class Utils {
     });
 
     return String.fromCharCodes(codeUnits);
+  }
+
+  static T getEnum<T>(String? value, List<T> enumValues) {
+    return enumValues.firstWhere(
+      (e) => e.toString().split('.').last.toLowerCase() == value?.toLowerCase(),
+      orElse: () => enumValues.first,
+    );
+  }
+
+  static List<Color>? getColorList(dynamic value) {
+    if (value is List) {
+      return value.map((item) => getColor(item) ?? Colors.transparent).toList();
+    }
+    return null;
   }
 }

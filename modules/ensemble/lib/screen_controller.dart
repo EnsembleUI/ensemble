@@ -33,6 +33,7 @@ import 'package:ensemble/framework/widget/screen.dart';
 import 'package:ensemble/framework/widget/toast.dart';
 import 'package:ensemble/layout/ensemble_page_route.dart';
 import 'package:ensemble/page_model.dart';
+import 'package:ensemble/util/ensemble_utils.dart';
 import 'package:ensemble/util/notification_utils.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/stub_widgets.dart';
@@ -177,6 +178,14 @@ class ScreenController {
       scopeManager.dataContext.addInvokableContext('event', event);
     }
 
+    /// widget's buildContext can be stale if the widget is rebuilt by the parent,
+    /// in which case we fallback to parent ScopeManager's buildContext.
+    /// Note that this is not guaranteed to be active either but often time
+    /// it is enough to recover from stale Context
+    if (!context.mounted) {
+      context = scopeManager.dataContext.buildContext;
+    }
+
     /// TODO: The below Actions should be move to their execute() functions
     if (action is NavigateExternalScreen) {
       return action.execute(context, scopeManager);
@@ -196,6 +205,19 @@ class ScreenController {
         }
       }
 
+      // dismiss all toasts, dialog, and bottom sheet by default
+      if ((action.options?['dismissToasts'] ??
+              action.options?['closeToasts']) !=
+          false) {
+        ToastController().closeToast();
+      }
+      if (action.options?['dismissDialog'] != false) {
+        await EnsembleUtils.dismissDialog();
+      }
+      if (action.options?['dismissBottomSheet'] != false) {
+        await EnsembleUtils.dismissBottomSheet();
+      }
+
       /// TODO: if the initiator widget has been re-build or removed
       /// (e.g visible=false), the context is no longer valid. See if
       /// all Actions need the context or just navigateScreen and refactor
@@ -203,7 +225,7 @@ class ScreenController {
         context = scopeManager.dataContext.buildContext;
       }
 
-      PageRouteBuilder routeBuilder = navigateToScreen(
+      PageRouteBuilder routeBuilder = await navigateToScreen(
         context,
         screenName: scopeManager.dataContext.eval(action.screenName),
         asModal: action.asModal,
@@ -232,90 +254,6 @@ class ScreenController {
           executeActionWithScope(context, scopeManager, action.onModalDismiss!);
         });
       }
-    } else if (action is ShowDialogAction) {
-      Widget widget = scopeManager.buildWidgetFromDefinition(action.body);
-
-      // get styles. TODO: make bindable
-      Map<String, dynamic> dialogStyles = {};
-      action.options?.forEach((key, value) {
-        dialogStyles[key] = scopeManager.dataContext.eval(value);
-      });
-
-      bool useDefaultStyle = dialogStyles['style'] != 'none';
-      BuildContext? dialogContext;
-
-      showGeneralDialog(
-          useRootNavigator: false,
-          // use inner-most MaterialApp (our App) as root so theming is ours
-          context: context,
-          barrierDismissible: true,
-          barrierLabel: "Barrier",
-          barrierColor: Colors.black54,
-          // this has some transparency so the bottom shown through
-
-          pageBuilder: (context, animation, secondaryAnimation) {
-            // save a reference to the builder's context so we can close it programmatically
-            dialogContext = context;
-            scopeManager.openedDialogs.add(dialogContext!);
-
-            return Align(
-                alignment: Alignment(
-                    Utils.getDouble(dialogStyles['horizontalOffset'],
-                        min: -1, max: 1, fallback: 0),
-                    Utils.getDouble(dialogStyles['verticalOffset'],
-                        min: -1, max: 1, fallback: 0)),
-                child: Material(
-                    color: Colors.transparent,
-                    child: ConstrainedBox(
-                        constraints: BoxConstraints(
-                            minWidth: Utils.getDouble(dialogStyles['minWidth'],
-                                fallback: 0),
-                            maxWidth: Utils.getDouble(dialogStyles['maxWidth'],
-                                fallback: double.infinity),
-                            minHeight: Utils.getDouble(
-                                dialogStyles['minHeight'],
-                                fallback: 0),
-                            maxHeight: Utils.getDouble(
-                                dialogStyles['maxHeight'],
-                                fallback: double.infinity)),
-                        child: Container(
-                            decoration: useDefaultStyle
-                                ? const BoxDecoration(
-                                    color: Colors.white,
-                                    borderRadius:
-                                        BorderRadius.all(Radius.circular(5)),
-                                    boxShadow: <BoxShadow>[
-                                        BoxShadow(
-                                          color: Colors.white38,
-                                          blurRadius: 5,
-                                          offset: Offset(0, 0),
-                                        )
-                                      ])
-                                : null,
-                            margin: useDefaultStyle
-                                ? const EdgeInsets.all(20)
-                                : null,
-                            padding: useDefaultStyle
-                                ? const EdgeInsets.all(20)
-                                : null,
-                            child: SingleChildScrollView(
-                              child: widget,
-                            )))));
-          }).then((value) {
-        // remove the dialog context since we are closing them
-        scopeManager.openedDialogs.remove(dialogContext);
-
-        // callback when dialog is dismissed
-        if (action.onDialogDismiss != null) {
-          executeActionWithScope(
-              context, scopeManager, action.onDialogDismiss!);
-        }
-      });
-    } else if (action is CloseAllDialogsAction) {
-      for (var dialogContext in scopeManager.openedDialogs) {
-        Navigator.pop(dialogContext);
-      }
-      scopeManager.openedDialogs.clear();
     } else if (action is PlaidLinkAction) {
       final linkToken = action.getLinkToken(scopeManager.dataContext).trim();
       if (linkToken.isNotEmpty) {
@@ -365,9 +303,6 @@ class ScreenController {
         throw RuntimeError(
             "openPlaidLink action requires the plaid's link_token.");
       }
-    } else if (action is AppSettingAction) {
-      final settingType = action.getTarget(scopeManager.dataContext);
-      AppSettings.openAppSettings(type: settingType);
     } else if (action is ShowCameraAction) {
       GetIt.I<CameraManager>().openCamera(context, action, scopeManager);
     } else if (action is StartTimerAction) {
@@ -534,23 +469,6 @@ class ScreenController {
       notificationUtils.context = context;
       notificationUtils.onRemoteNotification = action.onReceive;
       notificationUtils.onRemoteNotificationOpened = action.onTap;
-    } else if (action is ShowNotificationAction) {
-      scopeManager.dataContext.addDataContext(Ensemble.externalDataContext);
-      notificationUtils.showNotification(
-        scopeManager.dataContext.eval(action.title),
-        scopeManager.dataContext.eval(action.body),
-        payload: jsonEncode(scopeManager.dataContext.eval(action.payload)),
-      );
-    } else if (action is RequestNotificationAction) {
-      final isEnabled = await notificationUtils.initNotifications() ?? false;
-
-      if (isEnabled && action.onAccept != null) {
-        executeAction(context, action.onAccept!);
-      }
-
-      if (!isEnabled && action.onReject != null) {
-        executeAction(context, action.onReject!);
-      }
     } else if (action is AuthorizeOAuthAction) {
       // TODO
     } else if (action is CheckPermission) {
@@ -673,7 +591,7 @@ class ScreenController {
   /// [replace] - whether to replace the current route on the stack, such that
   /// navigating back will skip the current route.
   /// [pageArgs] - Key/Value pairs to send to the screen if it takes input parameters
-  PageRouteBuilder navigateToScreen(
+  Future<PageRouteBuilder> navigateToScreen(
     BuildContext context, {
     String? screenId,
     String? screenName,
@@ -683,7 +601,7 @@ class ScreenController {
     Map<String, dynamic>? transition,
     bool isExternal = false,
     bool asExternal = false,
-  }) {
+  }) async {
     PageType pageType = asModal == true ? PageType.modal : PageType.regular;
 
     Widget screenWidget = getScreen(
@@ -722,19 +640,19 @@ class ScreenController {
         externalAppNavigateKey?.currentState
             ?.pushAndRemoveUntil(route, (route) => false);
       } else {
-        Navigator.pushAndRemoveUntil(context, route, (route) => false);
+        await Navigator.pushAndRemoveUntil(context, route, (route) => false);
       }
     } else if (routeOption == RouteOption.replaceCurrentScreen) {
       if (asExternal) {
         externalAppNavigateKey?.currentState?.pushReplacement(route);
       } else {
-        Navigator.pushReplacement(context, route);
+        await Navigator.pushReplacement(context, route);
       }
     } else {
       if (asExternal) {
         externalAppNavigateKey?.currentState?.push(route);
       } else {
-        Navigator.push(context, route);
+        await Navigator.push(context, route);
       }
     }
     return route;

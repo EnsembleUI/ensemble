@@ -2,12 +2,18 @@ import 'dart:convert';
 
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:dart_date/dart_date.dart';
+import 'package:ensemble_ts_interpreter/invokables/invokableprimitives.dart';
+import 'package:flutter/rendering.dart';
+import 'package:intl/intl.dart';
+
+import 'invokablecontroller.dart';
 
 class JSON extends Object with Invokable {
   @override
   Map<String, Function> methods() {
     return {
-      'stringify': (dynamic value) => (value != null )? json.encode(value) : null,
+      'stringify': (dynamic value) =>
+          (value != null) ? json.encode(value) : null,
       'parse': (String value) => json.decode(value)
     };
   }
@@ -22,6 +28,73 @@ class JSON extends Object with Invokable {
     return {};
   }
 }
+
+class StaticObject extends Object with Invokable {
+  @override
+  Map<String, Function> methods() {
+    return {'init': () => {}};
+  }
+
+  @override
+  Map<String, Function> getters() {
+    return {};
+  }
+
+  @override
+  Map<String, Function> setters() {
+    return {};
+  }
+}
+
+class InvokableObject extends Object with Invokable {
+  @override
+  Map<String, Function> methods() {
+    return {
+      'init': () => {},
+      'keys': (dynamic value) =>
+          (value is Map) ? value.keys.toList() : (value == null ? [] : null),
+      'values': (dynamic value) =>
+          (value is Map) ? value.values.toList() : (value == null ? [] : null),
+      'entries': (dynamic value) =>
+          (value is Map) ? value.entries.toList() : (value == null ? [] : null),
+      'hasOwnProperty': (dynamic value, String key) =>
+          (value is Map) ? value.containsKey(key) : false,
+      'getPropertyNames': (dynamic value) =>
+          (value is Map) ? value.keys.toList() : (value == null ? [] : null),
+      'toString': (dynamic value) => value.toString(),
+      'toJSON': (dynamic value) => (value is Map || value is List)
+          ? jsonEncode(value)
+          : jsonEncode({'value': value}),
+      'defineProperty': (dynamic value, String key, dynamic property) {
+        if (value is Map) {
+          value[key] = property;
+        }
+        return value;
+      },
+      'deleteProperty': (dynamic value, String key) =>
+          (value is Map) ? value.remove(key) : null,
+      'has': (dynamic value, String key) =>
+          (value is Map) ? value.containsKey(key) : false,
+      'isPrototypeOf': (dynamic proto, dynamic value) =>
+          value is InvokableObject && proto is InvokableObject
+              ? value.runtimeType == proto.runtimeType
+              : false,
+      'propertyIsEnumerable': (dynamic value, String key) =>
+          (value is Map) ? value.keys.contains(key) : false,
+    };
+  }
+
+  @override
+  Map<String, Function> getters() {
+    return {};
+  }
+
+  @override
+  Map<String, Function> setters() {
+    return {};
+  }
+}
+
 class StaticDate extends Object with Invokable {
   @override
   Map<String, Function> getters() {
@@ -39,8 +112,8 @@ class StaticDate extends Object with Invokable {
         dynamic arg5,
         dynamic arg6,
         dynamic arg7,
-      ]) => Date.utc(arg1,arg2,arg3,arg4,arg5,arg6,arg7),
-
+      ]) =>
+          Date.utc(arg1, arg2, arg3, arg4, arg5, arg6, arg7),
       'init': ([
         dynamic arg1,
         dynamic arg2,
@@ -49,7 +122,8 @@ class StaticDate extends Object with Invokable {
         dynamic arg5,
         dynamic arg6,
         dynamic arg7,
-      ]) => Date.init(arg1,arg2,arg3,arg4,arg5,arg6,arg7),
+      ]) =>
+          Date.init(arg1, arg2, arg3, arg4, arg5, arg6, arg7),
       'parse': (String strDate) => Date.init([strDate]),
       'now': () => Date.init([])
     };
@@ -59,48 +133,51 @@ class StaticDate extends Object with Invokable {
   Map<String, Function> setters() {
     return {};
   }
-
 }
-class Date extends Object with Invokable, SupportsPrimitiveOperations{
+
+class Date extends Object with Invokable, SupportsPrimitiveOperations {
   static Date now() {
     return Date(DateTime.now());
   }
+
   static Date fromDate(Date d) {
     return Date(d.dateTime.clone);
   }
-  static int utc([
-        dynamic arg1,
-        dynamic arg2,
-        dynamic arg3,
-        dynamic arg4,
-        dynamic arg5,
-        dynamic arg6,
-        dynamic arg7,
-      ]) {
-        if (arg1 != null && arg2 != null) {
-          int year = arg1;
-          int month = arg2 + 1; // JavaScript months are zero-based
-          int day = arg3 != null ? arg3 : 1;
-          int hour = arg4 != null ? arg4 : 0;
-          int minute = arg5 != null ? arg5 : 0;
-          int second = arg6 != null ? arg6 : 0;
-          int millisecond = arg7 != null ? arg7 : 0;
 
-          return DateTime.utc(year, month, day, hour, minute, second, millisecond).millisecondsSinceEpoch;
-        } else {
-          throw ArgumentError('At least 2 parameters are required for utc()');
-        }
-      }
+  static int utc([
+    dynamic arg1,
+    dynamic arg2,
+    dynamic arg3,
+    dynamic arg4,
+    dynamic arg5,
+    dynamic arg6,
+    dynamic arg7,
+  ]) {
+    if (arg1 != null && arg2 != null) {
+      int year = arg1;
+      int month = arg2 + 1; // JavaScript months are zero-based
+      int day = arg3 != null ? arg3 : 1;
+      int hour = arg4 != null ? arg4 : 0;
+      int minute = arg5 != null ? arg5 : 0;
+      int second = arg6 != null ? arg6 : 0;
+      int millisecond = arg7 != null ? arg7 : 0;
+
+      return DateTime.utc(year, month, day, hour, minute, second, millisecond)
+          .millisecondsSinceEpoch;
+    } else {
+      throw ArgumentError('At least 2 parameters are required for utc()');
+    }
+  }
 
   Date.init([
-        dynamic arg1,
-        dynamic arg2,
-        dynamic arg3,
-        dynamic arg4,
-        dynamic arg5,
-        dynamic arg6,
-        dynamic arg7,
-      ]) {
+    dynamic arg1,
+    dynamic arg2,
+    dynamic arg3,
+    dynamic arg4,
+    dynamic arg5,
+    dynamic arg6,
+    dynamic arg7,
+  ]) {
     if (arg1 == null) {
       dateTime = DateTime.now();
     } else if (arg2 == null) {
@@ -155,10 +232,38 @@ class Date extends Object with Invokable, SupportsPrimitiveOperations{
       'utcMilliseconds': () => dateTime.toUtc().millisecond,
     };
   }
+
   @override
   String toJson() {
     return dateTime.toUtc().toIso8601String();
   }
+
+  // create the locale from string if specified, otherwise fallback to global InvokableController's locale
+  Locale? _getLocale([String? localeStr]) {
+    if (localeStr != null) {
+      List<String> parts = localeStr.split('_');
+      if (parts.length == 2) {
+        return Locale(parts[0], parts[1]);
+      } else {
+        return Locale(localeStr);
+      }
+    }
+    return InvokableController.locale;
+  }
+
+  String _toLocaleDateString([String? localeStr]) {
+    Locale? myLocale = _getLocale(localeStr);
+    return DateFormat.yMd(myLocale?.toString()).format(dateTime.toLocal());
+  }
+
+  String _toLocaleTimeString([String? localeStr]) {
+    Locale? myLocale = _getLocale(localeStr);
+    return DateFormat.jms(myLocale?.toString()).format(dateTime.toLocal());
+  }
+
+  String _toLocaleString([String? localeStr]) =>
+      "${_toLocaleDateString(localeStr)}, ${_toLocaleTimeString(localeStr)}";
+
   Map<String, Function> methods() {
     return {
       'getTime': () => dateTime.millisecondsSinceEpoch,
@@ -172,10 +277,9 @@ class Date extends Object with Invokable, SupportsPrimitiveOperations{
       'getMilliseconds': () => dateTime.millisecond,
       'getTimezoneOffset': () => -dateTime.timeZoneOffset.inMinutes,
       'toISOString': () => dateTime.toUtc().toIso8601String(),
-      'toLocaleDateString': () => dateTime.toLocal().toString().split(' ')[0],
-      'toLocaleTimeString': () =>
-          dateTime.toLocal().toString().split(' ')[1].split('.')[0],
-      'toLocaleString': () => dateTime.toLocal().toString().split('.')[0],
+      'toLocaleDateString': _toLocaleDateString,
+      'toLocaleTimeString': _toLocaleTimeString,
+      'toLocaleString': _toLocaleString,
       'toJSON': () => dateTime.toUtc().toIso8601String(),
       'getUTCFullYear': () => dateTime.toUtc().year,
       'getUTCMonth': () =>
@@ -289,11 +393,11 @@ class Date extends Object with Invokable, SupportsPrimitiveOperations{
       'toString': () => dateTime.toString()
     };
   }
-  Map<String, Function> setters() {
-    return {
 
-    };
+  Map<String, Function> setters() {
+    return {};
   }
+
   @override
   String toString() {
     return dateTime.toString();
@@ -365,5 +469,4 @@ class Date extends Object with Invokable, SupportsPrimitiveOperations{
     }
     return rtn;
   }
-
 }

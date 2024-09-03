@@ -9,9 +9,9 @@ import 'package:ensemble/screen_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:ensemble/framework/widget/icon.dart' as ensemble;
 
-abstract class BaseTabBarState extends WidgetState<BaseTabBar>
-    with SingleTickerProviderStateMixin, TabBarAction {
-  late final TabController tabController;
+abstract class BaseTabBarState extends EWidgetState<BaseTabBar>
+    with TickerProviderStateMixin, TabBarAction {
+  late TabController tabController;
 
   // execute when a tab has (already) changed. Use this to run extra logic (and don't modify the tabController again
   void onTabChanged(int index);
@@ -111,6 +111,6 @@ abstract class BaseTabBarState extends WidgetState<BaseTabBar>
   }
 }
 
-mixin TabBarAction on WidgetState<BaseTabBar> {
+mixin TabBarAction on EWidgetState<BaseTabBar> {
   void changeTab(int index);
 }

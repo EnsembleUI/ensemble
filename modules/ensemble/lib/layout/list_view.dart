@@ -12,9 +12,11 @@ import 'package:ensemble/layout/box/base_box_layout.dart';
 import 'package:ensemble/layout/box/box_layout.dart';
 import 'package:ensemble/layout/templated.dart';
 import 'package:ensemble/model/pull_to_refresh.dart';
+import 'package:ensemble/model/item_template.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
+import 'package:ensemble/widget/helpers/box_wrapper.dart';
 import 'package:ensemble/widget/helpers/pull_to_refresh_container.dart';
 import 'package:ensemble/widget/helpers/widgets.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
@@ -49,7 +51,7 @@ class ListView extends StatefulWidget
   Map<String, Function> setters() {
     return {
       'onItemTap': (funcDefinition) => _controller.onItemTap =
-          EnsembleAction.fromYaml(funcDefinition, initiator: this),
+          EnsembleAction.from(funcDefinition, initiator: this),
       'onItemTapHaptic': (value) =>
           _controller.onItemTapHaptic = Utils.optionalString(value),
       'showSeparator': (value) =>
@@ -63,11 +65,11 @@ class ListView extends StatefulWidget
       'pullToRefresh': (input) =>
           _controller.pullToRefresh = PullToRefresh.fromMap(input, this),
       'onPullToRefresh': (funcDefinition) => _controller.onPullToRefresh =
-          EnsembleAction.fromYaml(funcDefinition, initiator: this),
+          EnsembleAction.from(funcDefinition, initiator: this),
       'pullToRefreshOptions': (input) => _controller.pullToRefreshOptions =
           PullToRefreshOptions.fromMap(input),
       'onScrollEnd': (funcDefinition) => _controller.onScrollEnd =
-          EnsembleAction.fromYaml(funcDefinition, initiator: this),
+          EnsembleAction.from(funcDefinition, initiator: this),
       'reverse': (value) =>
           _controller.reverse = Utils.getBool(value, fallback: false),
       'controller': (value) {
@@ -81,7 +83,9 @@ class ListView extends StatefulWidget
       'loadingWidget': (value) => _controller.loadingWidget = value,
       'data': (value) => _controller.itemTemplate?.data = value,
       'onScroll': (value) =>
-          controller.onScroll = EnsembleAction.fromYaml(value, initiator: this),
+          controller.onScroll = EnsembleAction.from(value, initiator: this),
+      'shrinkWrap': (value) =>
+          controller.shrinkWrap = Utils.optionalBool(value),
     };
   }
 
@@ -91,9 +95,9 @@ class ListView extends StatefulWidget
   }
 
   @override
-  void initChildren({List<WidgetModel>? children, ItemTemplate? itemTemplate}) {
+  void initChildren({List<WidgetModel>? children, Map? itemTemplate}) {
     _controller.children = children;
-    _controller.itemTemplate = itemTemplate;
+    _controller.itemTemplate = ItemTemplate.from(itemTemplate);
   }
 
   @override
@@ -118,12 +122,14 @@ class ListViewController extends BoxLayoutController {
   ListViewState? widgetState;
   EnsembleAction? onScroll;
 
+  bool? shrinkWrap;
+
   void _bind(ListViewState state) {
     widgetState = state;
   }
 }
 
-class ListViewState extends WidgetState<ListView>
+class ListViewState extends EWidgetState<ListView>
     with TemplatedWidgetState, HasChildren<ListView> {
   // template item is created on scroll. this will store the template's data list
   List<dynamic>? templatedDataList;
@@ -144,7 +150,7 @@ class ListViewState extends WidgetState<ListView>
       templatedDataList = widget._controller.itemTemplate!.initialValue;
 
       registerItemTemplate(context, widget._controller.itemTemplate!,
-          evaluateInitialValue: true, onDataChanged: (List dataList) {
+          onDataChanged: (List dataList) {
         if (!mounted) return;
 
         setState(() {
@@ -176,7 +182,8 @@ class ListViewState extends WidgetState<ListView>
 
     PullToRefresh? pullToRefresh = _getPullToRefresh();
     Widget listView = ListViewCore(
-      shrinkWrap: FooterScope.of(context) != null ? true : false,
+      shrinkWrap: widget._controller.shrinkWrap ??
+          (FooterScope.of(context) != null ? true : false),
       itemCount: itemCount,
       isLoading: showLoading,
       onFetchData: _fetchData,
@@ -248,7 +255,11 @@ class ListViewState extends WidgetState<ListView>
       },
     );
 
-    if (StudioDebugger().debugMode) {
+    // if we don't shrinkWrap, the ListView used inside Column or scrollable height
+    // would cause an error, so we check for that in Studio mode.
+    // Note that we don't need to check for explicit height since that will
+    // already cause the height constraint to be constrained.
+    if (StudioDebugger().debugMode && widget._controller.shrinkWrap != true) {
       listView = StudioDebugger().assertScrollableHasBoundedHeightWrapper(
           listView, ListView.type, context, widget._controller);
     }

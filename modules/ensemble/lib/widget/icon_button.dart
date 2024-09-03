@@ -37,7 +37,7 @@ class EnsembleIconButton extends StatefulWidget
     return {
       'icon': (value) => _controller.icon = Utils.getIcon(value),
       'onTap': (funcDefinition) => _controller.onTap =
-          EnsembleAction.fromYaml(funcDefinition, initiator: this),
+          EnsembleAction.from(funcDefinition, initiator: this),
       'onTapHaptic': (value) =>
           _controller.onTapHaptic = Utils.optionalString(value),
     };
@@ -51,7 +51,7 @@ class IconButtonController extends WidgetController {
   String? onTapHaptic;
 }
 
-class IconButtonState extends WidgetState<EnsembleIconButton> {
+class IconButtonState extends EWidgetState<EnsembleIconButton> {
   @override
   Widget buildWidget(BuildContext context) {
     return FrameworkIconButton(

@@ -146,7 +146,7 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup>
     // TODO: this should be moved to PageGroup for the other ViewGroup types all behave the same way
     var route = ModalRoute.of(context);
     if (route is PageRoute) {
-      Ensemble.routeObserver.subscribe(this, route);
+      Ensemble().routeObserver.subscribe(this, route);
     }
   }
 
@@ -155,7 +155,7 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup>
     if (widget.menu.reloadView == false) {
       controller.dispose();
     }
-    Ensemble.routeObserver.unsubscribe(this);
+    Ensemble().routeObserver.unsubscribe(this);
     super.dispose();
   }
 
@@ -200,7 +200,7 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup>
   }
 
   void _floatingButtonTapped(MenuItem fabMenuItem) {
-    final onTapAction = EnsembleAction.fromYaml(fabMenuItem.onTap);
+    final onTapAction = EnsembleAction.from(fabMenuItem.onTap);
     if (onTapAction != null) {
       if (fabMenuItem.onTapHaptic != null) {
         ScreenController().executeAction(
@@ -303,7 +303,7 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup>
           isCustom: isCustom,
           text: label,
           switchScreen: item.switchScreen,
-          onTap: EnsembleAction.fromYaml(item.onTap),
+          onTap: EnsembleAction.from(item.onTap),
           onTapHaptic: item.onTapHaptic,
         ),
       );

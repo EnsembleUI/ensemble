@@ -15,7 +15,7 @@ import 'package:flutter/foundation.dart';
 class FirestoreAPIProvider extends APIProvider with LiveAPIProvider {
   FirebaseApp? _app;
   FirebaseFirestore get firestore => FirebaseFirestore.instanceFor(app: _app!);
-  List<StreamSubscription<QuerySnapshot>> _subscriptions = [];
+  List<StreamSubscription> _subscriptions = [];
   late FirestoreApp firestoreApp;
 
   @override
@@ -141,7 +141,7 @@ class FirestoreAPIProvider extends APIProvider with LiveAPIProvider {
   }
 
   FirestoreResponse getOKResponse(String apiName, dynamic result) {
-    var body;
+    Map<String, dynamic>? body;
 
     if (result is QuerySnapshot) {
       // Handle QuerySnapshot for 'get' operations
@@ -250,13 +250,30 @@ class FirestoreAPIProvider extends APIProvider with LiveAPIProvider {
       // Handle set, update, delete accordingly
       throw UnimplementedError('$operation is not supported in this context.');
     }
-    Query query = firestoreApp.getQuery(api);
-    _subscriptions.add(query.snapshots().listen((QuerySnapshot snapshot) {
-      listener.call(getOKResponse(apiName, snapshot));
-    }));
+
+    String path = api['path'];
+    List<String> pathSegments = path.split('/');
+    bool isDocumentPath = pathSegments.length % 2 == 0;
+
+    if (isDocumentPath) {
+      DocumentReference docRef = firestore.doc(path);
+      _subscriptions.add(docRef.snapshots().listen((DocumentSnapshot snapshot) {
+        listener.call(getOKResponse(apiName, snapshot));
+      }));
+    } else {
+      Query query = firestoreApp.getQuery(api);
+      _subscriptions.add(query.snapshots().listen((QuerySnapshot snapshot) {
+        listener.call(getOKResponse(apiName, snapshot));
+      }));
+    }
+    Map<String, dynamic> body = {
+      'message': 'Subscribed to API',
+      'documents': []
+    };
+    ;
     return FirestoreResponse(
       apiState: APIState.success,
-      body: 'Subscribed to API',
+      body: body,
       apiName: apiName,
       isOkay: true,
     );

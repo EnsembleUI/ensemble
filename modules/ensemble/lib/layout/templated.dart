@@ -2,11 +2,13 @@ import 'dart:developer';
 
 import 'package:ensemble/framework/bindings.dart';
 import 'package:ensemble/framework/data_context.dart';
+import 'package:ensemble/framework/data_utils.dart';
 import 'package:ensemble/framework/ensemble_widget.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/theme_manager.dart';
 import 'package:ensemble/framework/view/data_scope_widget.dart';
 import 'package:ensemble/framework/view/page.dart';
+import 'package:ensemble/model/item_template.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
@@ -15,22 +17,28 @@ import 'package:flutter/cupertino.dart';
 
 /// mixin for Widget that supports item-template
 mixin TemplatedWidgetState<W extends StatefulWidget> on State<W> {
-  void registerItemTemplate(BuildContext context, ItemTemplate itemTemplate,
-      {bool? evaluateInitialValue, required Function onDataChanged}) {
+  void registerItemTemplate(BuildContext context, BaseItemTemplate itemTemplate,
+      {required Function onDataChanged}) {
     ScopeManager? scopeManager = DataScopeWidget.getScope(context);
 
     if (scopeManager != null) {
       DataExpression? dataExpression =
-          Utils.parseDataExpression(itemTemplate.data);
+          DataUtils.parseDataExpression(itemTemplate.data);
       if (dataExpression != null) {
         // listen to the binding from our itemTemplate
         // data: $(apiName.*)
         scopeManager.listen(scopeManager, dataExpression.rawExpression,
             destination: (widget is EnsembleWidget)
                 ? BindingDestination(
-                    (widget as EnsembleWidget).controller, 'item-template')
-                : BindingDestination(widget as Invokable, 'item-template'),
+                    (widget as EnsembleWidget).controller, 'itemTemplate')
+                : BindingDestination(widget as Invokable, 'itemTemplate'),
             onDataChange: (ModelChangeEvent event) {
+          // Optimization - we don't care if API status is in loading state
+          if (event.source is APIBindingSource &&
+              event.payload is APIResponse &&
+              event.payload.isLoading()) {
+            return;
+          }
           // evaluate the expression
           dynamic dataList = scopeManager.dataContext.eval(itemTemplate.data);
           if (dataList is List) {
@@ -39,13 +47,17 @@ mixin TemplatedWidgetState<W extends StatefulWidget> on State<W> {
         });
       }
 
-      // if specified to evaluate initial value, then evaluate the data list now
-      // and dispatch it as a data change
-      if (evaluateInitialValue == true) {
-        dynamic dataList = scopeManager.dataContext.eval(itemTemplate.data);
-        if (dataList is List) {
-          onDataChanged(dataList);
-        }
+      // evaluate the data list now and dispatch it as a data change
+      dynamic dataList = scopeManager.dataContext.eval(itemTemplate.data);
+      if (dataList is List) {
+        onDataChanged(dataList);
+      } else {
+        // TODO: evaluate the initial values here? No use case yet
+        // dynamic initialValue =
+        //     scopeManager.dataContext.eval(itemTemplate.initialValue);
+        // if (initialValue is List) {
+        //   onDataChanged(initialValue);
+        // }
       }
     }
   }

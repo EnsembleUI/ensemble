@@ -31,6 +31,14 @@ abstract class ActionInvokable with Invokable {
       ActionType.showToast,
       ActionType.setLocale,
       ActionType.clearLocale,
+      ActionType.openAppSettings,
+      ActionType.deviceSecurity,
+      ActionType.requestNotificationAccess,
+      ActionType.showLocalNotification,
+      ActionType.showDialog,
+      ActionType.dismissDialog,
+      ActionType.closeAllDialogs,
+      ActionType.executeActionGroup,
     ]);
   }
 

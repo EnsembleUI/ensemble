@@ -1,3 +1,4 @@
+import 'package:ensemble/widget/helpers/input_wrapper.dart';
 import 'package:flutter/material.dart';
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/event.dart';
@@ -42,7 +43,7 @@ class EnsembleSlider extends StatefulWidget
       'max': (value) =>
           _controller.maxValue = Utils.getDouble(value, fallback: 1.0),
       'onChange': (definition) => _controller.onChange =
-          EnsembleAction.fromYaml(definition, initiator: this),
+          EnsembleAction.from(definition, initiator: this),
       'divisions': (value) => _controller.divisions = Utils.optionalInt(value),
       'thumbColor': (value) => _controller.thumbColor = Utils.getColor(value),
       'inactiveTrackColor': (value) =>

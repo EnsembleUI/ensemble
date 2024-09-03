@@ -42,10 +42,9 @@ class InvokeAPIAction extends EnsembleAction {
         apiName: payload['name'],
         id: Utils.optionalString(payload['id']),
         inputs: Utils.getMap(payload['inputs']),
-        onResponse: EnsembleAction.fromYaml(payload['onResponse'],
-            initiator: initiator),
-        onError:
-            EnsembleAction.fromYaml(payload['onError'], initiator: initiator));
+        onResponse:
+            EnsembleAction.from(payload['onResponse'], initiator: initiator),
+        onError: EnsembleAction.from(payload['onError'], initiator: initiator));
   }
 
   @override
@@ -132,8 +131,9 @@ class InvokeAPIController {
           action,
           APIResponse(response: responseToDispatch),
         );
+
         Response response;
-        responseListener(Response response) {
+        void responseListener(Response response) {
           if (response.isOkay) {
             _onAPIComplete(context, action, apiDefinition, response, apiMap,
                 apiScopeManager);
@@ -194,7 +194,7 @@ class InvokeAPIController {
       Map<String, YamlMap>? apiMap,
       ScopeManager scopeManager) {
     // first execute API's onResponse code block
-    EnsembleAction? onResponse = EnsembleAction.fromYaml(
+    EnsembleAction? onResponse = EnsembleAction.from(
         apiDefinition['onResponse'],
         initiator: action.initiator);
     if (onResponse != null) {
@@ -293,7 +293,7 @@ class InvokeAPIController {
         error: errorStr ?? 'API Error', data: data);
 
     EnsembleAction? onErrorAction =
-        EnsembleAction.fromYaml(apiDefinition['onError']);
+        EnsembleAction.from(apiDefinition['onError']);
     if (onErrorAction != null) {
       ScreenController().nowExecuteAction(
           context, onErrorAction, apiMap, scopeManager,

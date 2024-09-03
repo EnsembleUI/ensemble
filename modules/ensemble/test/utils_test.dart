@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:ensemble/framework/data_utils.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/model.dart';
 import 'package:ensemble/util/extensions.dart';
@@ -43,25 +44,25 @@ void main() {
   });
 
   test('expressions utility', () {
-    expect(Utils.isExpression(r'${hi}'), true);
-    expect(Utils.isExpression(r'hello ${hi}'), false);
-    expect(Utils.isExpression(r'hi'), false);
+    expect(DataUtils.isExpression(r'${hi}'), true);
+    expect(DataUtils.isExpression(r'hello ${hi}'), false);
+    expect(DataUtils.isExpression(r'hi'), false);
 
-    expect(Utils.hasExpression(r'${hi}'), true);
-    expect(Utils.hasExpression(r'Hi ${name}'), true);
-    expect(Utils.hasExpression(r'${hi} there'), true);
-    expect(Utils.hasExpression(r'hi'), false);
+    expect(DataUtils.hasExpression(r'${hi}'), true);
+    expect(DataUtils.hasExpression(r'Hi ${name}'), true);
+    expect(DataUtils.hasExpression(r'${hi} there'), true);
+    expect(DataUtils.hasExpression(r'hi'), false);
 
-    expect(Utils.getExpressionTokens(r''), []);
-    expect(Utils.getExpressionTokens(r'hello world'), []);
-    expect(Utils.getExpressionTokens(r'${hi}'), [r'${hi}']);
-    expect(Utils.getExpressionTokens(r'hi ${name}'), [r'${name}']);
-    expect(Utils.getExpressionTokens(r'${first} ${last}'),
+    expect(DataUtils.getExpressionTokens(r''), []);
+    expect(DataUtils.getExpressionTokens(r'hello world'), []);
+    expect(DataUtils.getExpressionTokens(r'${hi}'), [r'${hi}']);
+    expect(DataUtils.getExpressionTokens(r'hi ${name}'), [r'${name}']);
+    expect(DataUtils.getExpressionTokens(r'${first} ${last}'),
         [r'${first}', r'${last}']);
-    expect(Utils.getExpressionTokens(r'hi ${48 * 2 * 122} ${last}'),
+    expect(DataUtils.getExpressionTokens(r'hi ${48 * 2 * 122} ${last}'),
         [r'${48 * 2 * 122}', r'${last}']);
     expect(
-        Utils.getExpressionTokens(
+        DataUtils.getExpressionTokens(
             r'hey there ${Math.floor(device.width / 2) - ((48 * 2 + 12)/2)} hello'),
         [r'${Math.floor(device.width / 2) - ((48 * 2 + 12)/2)}']);
   });
@@ -72,11 +73,11 @@ void main() {
   });
 
   test("get expression tokens", () {
-    expect(Utils.getExpressionTokens(''), []);
-    expect(Utils.getExpressionTokens('hi'), []);
-    expect(Utils.getExpressionTokens('hi \${name}'), ['\${name}']);
-    expect(Utils.getExpressionTokens('\${name}'), ['\${name}']);
-    expect(Utils.getExpressionTokens('hi \${person.first} \${person.last}'),
+    expect(DataUtils.getExpressionTokens(''), []);
+    expect(DataUtils.getExpressionTokens('hi'), []);
+    expect(DataUtils.getExpressionTokens('hi \${name}'), ['\${name}']);
+    expect(DataUtils.getExpressionTokens('\${name}'), ['\${name}']);
+    expect(DataUtils.getExpressionTokens('hi \${person.first} \${person.last}'),
         ['\${person.first}', '\${person.last}']);
   });
 
@@ -97,19 +98,20 @@ void main() {
 
   test("get both Expression and AST", () {
     String expr = '\${person.name}';
-    RegExpMatch? match = Utils.expressionAndAst.firstMatch('//@code $expr');
+    RegExpMatch? match = DataUtils.expressionAndAst.firstMatch('//@code $expr');
     expect(match?.group(1), expr);
   });
 
   test("parse into a DataExpression", () {
     String expr = 'Name is \${person.first} \${person.last}';
-    DataExpression? dataExpression = Utils.parseDataExpression('//@code $expr');
+    DataExpression? dataExpression =
+        DataUtils.parseDataExpression('//@code $expr');
     expect(dataExpression?.rawExpression, expr);
     expect(
         dataExpression?.expressions, ['\${person.first}', '\${person.last}']);
 
     // this time just expression only.
-    dataExpression = Utils.parseDataExpression(expr);
+    dataExpression = DataUtils.parseDataExpression(expr);
     expect(dataExpression?.rawExpression, expr);
     expect(
         dataExpression?.expressions, ['\${person.first}', '\${person.last}']);
@@ -118,7 +120,8 @@ void main() {
   test('parse short-hand ifelse', () {
     String expr =
         '\${ getWifiStatus.body.data.Status ? 0xFF009900 : 0xFFE52E2E }';
-    DataExpression? dataExpression = Utils.parseDataExpression('//@code $expr');
+    DataExpression? dataExpression =
+        DataUtils.parseDataExpression('//@code $expr');
     expect(dataExpression?.rawExpression, expr);
     expect(dataExpression?.expressions, [expr]);
   });
@@ -126,7 +129,8 @@ void main() {
   test("another short-hand", () {
     String expr =
         "\${getPrivWiFi.body.status.wlanvap.vap5g0priv.VAPStatus == 'Up' ? true : false }";
-    DataExpression? dataExpression = Utils.parseDataExpression('//@code $expr');
+    DataExpression? dataExpression =
+        DataUtils.parseDataExpression('//@code $expr');
     expect(dataExpression?.rawExpression, expr);
     expect(dataExpression?.expressions, [expr]);
   });

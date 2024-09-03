@@ -3,6 +3,7 @@ import 'package:ensemble/framework/theme/theme_loader.dart';
 import 'package:ensemble/framework/theme/theme_manager.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
+import 'package:ensemble/widget/helpers/input_wrapper.dart';
 import 'package:ensemble/widget/helpers/widgets.dart';
 import 'package:ensemble/widget/helpers/form_helper.dart';
 import 'package:ensemble/framework/action.dart' as framework;
@@ -44,7 +45,7 @@ class EnsembleCheckbox extends StatefulWidget
           _controller.trailingText = Utils.optionalString(text),
       'size': (value) => _controller.size = Utils.optionalInt(value, min: 0),
       'onChange': (definition) => _controller.onChange =
-          framework.EnsembleAction.fromYaml(definition, initiator: this),
+          framework.EnsembleAction.from(definition, initiator: this),
 
       // deprecated - for backward compatible
       'selectedColor': (color) =>

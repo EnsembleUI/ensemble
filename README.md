@@ -54,4 +54,63 @@ To contribute a new widget or enhance an existing one in Ensemble, follow these 
 4. Create your own app and screens with your widget (or enhanced widget) in the studio. Ensure it works flawlessly.
 5. When ready, create a pull request, and our team will review and provide feedback.
 
+## Releasing a New Version
+
+To release a new version of your monorepo, follow these steps below.
+
+Replace `<new-tag>` with the actual version tag you want to use, e.g., `v1.2.3`.
+
+### Step 1: Create a switch to the release branch
+```bash
+git checkout -b release/<new-tag>
+```
+
+### Step 2: Update Git Reference Tags
+
+**Run the Script to Update References**:
+   ```bash
+   npm install
+   npx ts-node updateGitRefs.ts <new-tag>
+   ```
+   
+
+### Step 3: Commit and push changes to the branch
+
+**Commit the Changes**:
+   ```bash
+   git add .
+   git commit -m "New release <new-tag>"
+   git push origin release/<new-tag>
+   ```
+
+### Step 3: Create a New Release
+
+1. **Create a New Tag**:
+   ```bash
+   git tag <new-tag>
+   git push origin <new-tag>
+   ```
+
+2. **(optional) Create a Release on GitHub**:
+   - Go to your repository on GitHub.
+   - Click on the "Releases" tab.
+   - Click on "Draft a new release".
+   - Fill in the tag version (e.g., `v1.2.3`), release title, and description.
+   - Click "Publish release".
+
+### Step 4: Delete the release branch
+```
+git branch -d release/<new-tag>
+git push origin --delete release/<new-tag>
+```
+
+
+
+
+This project is tested with BrowserStack
+
+```
+
+By following these steps, you can ensure a smooth release process for your new version, including updating all necessary Git references in your Flutter projects.
+
 Thank you for contributing to Ensemble! 🚀

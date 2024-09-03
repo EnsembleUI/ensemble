@@ -3,10 +3,12 @@ import 'package:ensemble/framework/widget/has_children.dart';
 import 'package:ensemble/framework/widget/view_util.dart';
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/layout/templated.dart';
+import 'package:ensemble/model/item_template.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/layout_utils.dart';
 import 'package:ensemble/util/utils.dart';
+import 'package:ensemble/widget/helpers/box_wrapper.dart';
 import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:ensemble/widget/helpers/widgets.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
@@ -20,11 +22,13 @@ class Flow extends StatefulWidget
         Invokable,
         HasController<FlowController, FlowState> {
   static const type = 'Flow';
+
   Flow({Key? key}) : super(key: key);
 
   late final ItemTemplate? itemTemplate;
 
   final FlowController _controller = FlowController();
+
   @override
   FlowController get controller => _controller;
 
@@ -51,7 +55,7 @@ class Flow extends StatefulWidget
       'maxHeight': (value) =>
           _controller.maxHeight = Utils.optionalInt(value, min: 0),
       'onItemTap': (funcDefinition) => _controller.onItemTap =
-          EnsembleAction.fromYaml(funcDefinition, initiator: this),
+          EnsembleAction.from(funcDefinition, initiator: this),
     };
   }
 
@@ -61,9 +65,9 @@ class Flow extends StatefulWidget
   }
 
   @override
-  void initChildren({List<WidgetModel>? children, ItemTemplate? itemTemplate}) {
+  void initChildren({List<WidgetModel>? children, Map? itemTemplate}) {
     _controller.children = children;
-    this.itemTemplate = itemTemplate;
+    this.itemTemplate = ItemTemplate.from(itemTemplate);
   }
 
   @override
@@ -84,7 +88,7 @@ class FlowController extends BoxController {
   int selectedItemIndex = -1;
 }
 
-class FlowState extends WidgetState<Flow>
+class FlowState extends EWidgetState<Flow>
     with TemplatedWidgetState, HasChildren<Flow> {
   List<Widget>? templatedChildren;
 
@@ -100,7 +104,7 @@ class FlowState extends WidgetState<Flow>
       }
       // listen for changes
       registerItemTemplate(context, widget.itemTemplate!,
-          evaluateInitialValue: true, onDataChanged: (List dataList) {
+          onDataChanged: (List dataList) {
         setState(() {
           templatedChildren =
               buildWidgetsFromTemplate(context, dataList, widget.itemTemplate!);

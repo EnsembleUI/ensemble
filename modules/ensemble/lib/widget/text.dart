@@ -1,10 +1,12 @@
 import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/framework/view/has_selectable_text.dart';
-import 'package:ensemble/model/TextScale.dart';
+import 'package:ensemble/model/text_scale.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/framework/widget/widget.dart' as framework;
+import 'package:ensemble/widget/helpers/box_wrapper.dart';
 import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:ensemble/widget/helpers/widgets.dart';
+import 'package:ensemble/widget/text/expandable_text.dart';
 import 'package:ensemble/widget/widget_util.dart' as util;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -26,7 +28,14 @@ class EnsembleText extends StatefulWidget
   Map<String, Function> getters() {
     return {
       'text': () => _controller.text ?? '',
-      'textStyle': () => _controller.textStyle
+      'textAlign': () => _controller.textAlign,
+      'textStyle': () => _controller.textStyle,
+      'selectable': () => _controller.selectable,
+      'maxLines': () => _controller.maxLines,
+      'expandable': () => _controller.expandable,
+      'expandLabel': () => _controller.expandLabel,
+      'collapseLabel': () => _controller.collapseLabel,
+      'expandTextStyle': () => _controller.expandTextStyle,
     };
   }
 
@@ -43,6 +52,14 @@ class EnsembleText extends StatefulWidget
       'selectable': (value) =>
           _controller.selectable = Utils.optionalBool(value),
       'textScale': (value) => _controller.textScale = TextScale.from(value),
+      'expandable': (value) =>
+          _controller.expandable = Utils.optionalBool(value),
+      'expandLabel': (value) =>
+          _controller.expandLabel = Utils.optionalString(value),
+      'collapseLabel': (value) =>
+          _controller.collapseLabel = Utils.optionalString(value),
+      'expandTextStyle': (style) => _controller.expandTextStyle =
+          Utils.getTextStyleAsComposite(_controller, style: style),
     };
   }
 
@@ -61,7 +78,9 @@ class TextController extends BoxController {
   int? maxLines;
   bool? selectable;
   TextScale? textScale;
-
+  bool? expandable;
+  String? expandLabel, collapseLabel;
+  TextStyleComposite? expandTextStyle;
   TextStyleComposite? _textStyle;
 
   TextStyleComposite get textStyle => _textStyle ??= TextStyleComposite(this);
@@ -69,7 +88,7 @@ class TextController extends BoxController {
   set textStyle(TextStyleComposite style) => _textStyle = style;
 }
 
-class EnsembleTextState extends framework.WidgetState<EnsembleText> {
+class EnsembleTextState extends framework.EWidgetState<EnsembleText> {
   @override
   Widget buildWidget(BuildContext context) {
     return BoxWrapper(
@@ -85,18 +104,35 @@ class EnsembleTextState extends framework.WidgetState<EnsembleText> {
         (controller.selectable != false &&
             context.dependOnInheritedWidgetOfExactType<HasSelectableText>() !=
                 null);
-
-    Widget textWidget = shouldBeSelectable
-        ? SelectableText(controller.text ?? '',
-            textAlign: controller.textAlign,
-            maxLines: controller.maxLines,
-            style: controller.textStyle.getTextStyle(),
-            textScaler: _getTextScaler())
-        : Text(controller.text ?? '',
-            textAlign: controller.textAlign,
-            maxLines: controller.maxLines,
-            style: controller.textStyle.getTextStyle(),
-            textScaler: _getTextScaler());
+    Widget textWidget;
+    if (controller.expandable == true) {
+      textWidget = ExpandableText(
+        text: controller.text ?? '',
+        maxLines: controller.maxLines ?? 3,
+        textAlign: controller.textAlign,
+        style: controller.textStyle.getTextStyle(),
+        textScaler: _getTextScaler(),
+        selectable: shouldBeSelectable,
+        textOverflow: controller.textStyle.overflow,
+        expandLabel: controller.expandLabel ?? '...show more',
+        collapseLabel: controller.collapseLabel ?? ' show less',
+        expandTextStyle: controller.expandTextStyle != null
+            ? controller.expandTextStyle?.getTextStyle()
+            : null,
+      );
+    } else {
+      textWidget = shouldBeSelectable
+          ? SelectableText(controller.text ?? '',
+              textAlign: controller.textAlign,
+              maxLines: controller.maxLines,
+              style: controller.textStyle.getTextStyle(),
+              textScaler: _getTextScaler())
+          : Text(controller.text ?? '',
+              textAlign: controller.textAlign,
+              maxLines: controller.maxLines,
+              style: controller.textStyle.getTextStyle(),
+              textScaler: _getTextScaler());
+    }
 
     return gradientStyle != null
         ? _GradientText(gradient: gradientStyle, child: textWidget)

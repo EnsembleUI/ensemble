@@ -8,9 +8,13 @@ import 'package:ensemble/framework/view/data_scope_widget.dart';
 import 'package:ensemble/framework/view/page_group.dart';
 import 'package:ensemble/framework/widget/icon.dart' as ensemble;
 import 'package:ensemble/framework/view/page.dart';
+import 'package:ensemble/model/item_template.dart';
 import 'package:ensemble/page_model.dart';
+import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
+import 'package:ensemble/widget/helpers/box_wrapper.dart';
 import 'package:ensemble/widget/helpers/controllers.dart';
+import 'package:ensemble/widget/helpers/widgets.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/material.dart';
 import 'package:pointer_interceptor/pointer_interceptor.dart';
@@ -18,12 +22,17 @@ import 'package:yaml/yaml.dart';
 
 /// base mixin for Ensemble Container (e.g Column)
 mixin UpdatableContainer<T extends Widget> {
-  void initChildren({List<WidgetModel>? children, ItemTemplate? itemTemplate});
+  void initChildren({List<WidgetModel>? children, Map? itemTemplate});
+}
+
+mixin HasItemTemplate<T extends Widget> {
+  void setItemTemplate(Map itemTemplate);
 }
 
 /// Deprecated. Use [EnsembleWidgetState] instead
 /// base class for widgets that want to participate in Ensemble layout
-abstract class WidgetState<W extends HasController> extends BaseWidgetState<W> {
+abstract class EWidgetState<W extends HasController>
+    extends BaseWidgetState<W> {
   ScopeManager? scopeManager;
 
   void resolveStylesIfUnresolved(BuildContext context) {
@@ -46,7 +55,10 @@ abstract class WidgetState<W extends HasController> extends BaseWidgetState<W> {
   @override
   Widget build(BuildContext context) {
     resolveStylesIfUnresolved(context);
+
     Widget rtn = buildWidget(context);
+
+    // inject base attributes
     if (widget.controller is WidgetController) {
       WidgetController widgetController = widget.controller as WidgetController;
 

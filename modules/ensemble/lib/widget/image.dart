@@ -8,6 +8,7 @@ import 'package:ensemble/framework/widget/colored_box_placeholder.dart';
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
+import 'package:ensemble/widget/helpers/box_wrapper.dart';
 import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:ensemble/widget/helpers/widgets.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
@@ -64,7 +65,7 @@ class EnsembleImage extends StatefulWidget
           _controller.placeholderColor = Utils.getColor(value),
       'fallback': (widget) => _controller.fallback = widget,
       'onTap': (funcDefinition) => _controller.onTap =
-          EnsembleAction.fromYaml(funcDefinition, initiator: this),
+          EnsembleAction.from(funcDefinition, initiator: this),
       'onTapHaptic': (value) =>
           _controller.onTapHaptic = Utils.optionalString(value),
       'pinchToZoom': (value) =>
@@ -96,7 +97,7 @@ class ImageController extends BoxController {
   bool? pinchToZoom;
 }
 
-class ImageState extends WidgetState<EnsembleImage> {
+class ImageState extends EWidgetState<EnsembleImage> {
   @override
   Widget buildWidget(BuildContext context) {
     Widget image;

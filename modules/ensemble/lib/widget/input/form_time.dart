@@ -5,6 +5,7 @@ import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/helpers/HasTextPlaceholder.dart';
 import 'package:ensemble/widget/helpers/form_helper.dart';
+import 'package:ensemble/widget/helpers/input_wrapper.dart';
 import 'package:ensemble/widget/helpers/widgets.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/material.dart';
@@ -45,7 +46,7 @@ class Time extends StatefulWidget
       'initialValue': (value) =>
           _controller.initialValue = Utils.getTimeOfDay(value),
       'onChange': (definition) => _controller.onChange =
-          EnsembleAction.fromYaml(definition, initiator: this)
+          EnsembleAction.from(definition, initiator: this)
     });
     return setters;
   }

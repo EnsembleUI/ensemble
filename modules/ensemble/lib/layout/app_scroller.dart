@@ -56,11 +56,11 @@ class AppScroller extends StatefulWidget
       'headerBackgroundColor': (color) =>
           _controller.headerBackgroundColor = Utils.getColor(color),
       'onHeaderStretch': (action) => _controller.onHeaderStretch =
-          EnsembleAction.fromYaml(action, initiator: this),
+          EnsembleAction.from(action, initiator: this),
 
       // temp
       'onExpandedHeightReset': (action) => _controller.onExpandedHeightReset =
-          EnsembleAction.fromYaml(action, initiator: this),
+          EnsembleAction.from(action, initiator: this),
     };
   }
 }
@@ -101,7 +101,7 @@ class AppScrollerController extends WidgetController {
   }
 }
 
-class _AppScrollerState extends WidgetState<AppScroller> {
+class _AppScrollerState extends EWidgetState<AppScroller> {
   @override
   void initState() {
     super.initState();

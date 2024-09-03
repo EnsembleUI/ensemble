@@ -7,6 +7,7 @@ import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/framework/widget/icon.dart' as ensembleIcon;
 import 'package:ensemble/framework/widget/widget.dart';
+import 'package:ensemble/widget/helpers/box_wrapper.dart';
 import 'package:ensemble/widget/helpers/form_helper.dart';
 import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:flutter/material.dart';
@@ -44,6 +45,9 @@ class Button extends StatefulWidget
   }
 
   @override
+  List<String> passthroughSetters() => ["body"];
+
+  @override
   Map<String, Function> setters() {
     return {
       'label': (value) =>
@@ -54,8 +58,9 @@ class Button extends StatefulWidget
           _controller.startingIcon = Utils.getIcon(value),
       'endingIcon': (value) => _controller.endingIcon = Utils.getIcon(value),
       'gap': (value) => _controller.gap = Utils.optionalInt(value),
+      'body': (widget) => _controller.body = widget,
       'onTap': (funcDefinition) => _controller.onTap =
-          ensemble.EnsembleAction.fromYaml(funcDefinition, initiator: this),
+          ensemble.EnsembleAction.from(funcDefinition, initiator: this),
       'onTapHaptic': (value) =>
           _controller.onTapHaptic = Utils.optionalString(value),
       'submitForm': (value) =>
@@ -68,6 +73,8 @@ class Button extends StatefulWidget
       'outline': (value) => _controller.outline = Utils.optionalBool(value),
       'width': (value) => _controller.buttonWidth = Utils.optionalInt(value),
       'height': (value) => _controller.buttonHeight = Utils.optionalInt(value),
+      'isLoading': (value) => _controller.isLoading = Utils.optionalBool(value),
+      'loadingWidget': (widget) => _controller.loadingWidget = widget,
     };
   }
 
@@ -85,7 +92,9 @@ class ButtonController extends BoxController {
   String? onTapHaptic;
 
   TextStyleComposite? _labelStyle;
+
   TextStyleComposite get labelStyle => _labelStyle ??= TextStyleComposite(this);
+
   set labelStyle(TextStyleComposite style) => _labelStyle = style;
 
   /// whether to trigger a form submission.
@@ -104,71 +113,94 @@ class ButtonController extends BoxController {
   int? buttonHeight;
   int? gap;
 
+  dynamic body;
+
   IconModel? startingIcon;
   IconModel? endingIcon;
+
+  bool? isLoading;
+  dynamic? loadingWidget;
 }
 
-class ButtonState extends WidgetState<Button> {
+class ButtonState extends EWidgetState<Button> {
   @override
   Widget buildWidget(BuildContext context) {
     bool isOutlineButton = widget._controller.outline ?? false;
 
-    ScopeManager? scopeManager = DataScopeWidget.getScope(context);
-    Widget? startingIcon;
-    Widget? endingIcon;
-    if (widget._controller.startingIcon != null) {
-      startingIcon =
-          ensembleIcon.Icon.fromModel(widget._controller.startingIcon!);
-    }
-    if (widget._controller.endingIcon != null) {
-      endingIcon = ensembleIcon.Icon.fromModel(widget._controller.endingIcon!);
-    }
-
-    List<Widget> labelParts = [
-      Text(Utils.translate(widget._controller.label ?? '', context),
-          textAlign: widget._controller.labelStyle.textAlign,
-          style: widget._controller.labelStyle.getTextStyle())
-    ];
-
-    final gap = widget._controller.gap?.toDouble() ?? 0;
-
-    if (startingIcon != null) {
-      // TODO: follow up on icon layout options https://github.com/EnsembleUI/ensemble/pull/358#discussion_r1139023000
-      labelParts.insertAll(0, [startingIcon, SizedBox(width: gap)]);
-    }
-    if (endingIcon != null) {
-      labelParts.addAll([SizedBox(width: gap), endingIcon]);
-    }
-    Widget labelLayout =
-        Row(mainAxisSize: MainAxisSize.min, children: labelParts);
-
-    Widget? rtn;
-    if (isOutlineButton) {
-      rtn = BoxWrapper(
-        boxController: widget.controller,
-        ignoresPadding: true,
-        ignoresMargin: true,
-        widget: TextButton(
-            onPressed: isEnabled() ? () => onPressed(context) : null,
-            style: getButtonStyle(context, isOutlineButton),
-            child: labelLayout),
-      );
-    } else {
-      rtn = BoxWrapper(
-        boxController: widget.controller,
-        ignoresPadding: true,
-        ignoresMargin: true,
-        widget: FilledButton(
-            onPressed: isEnabled() ? () => onPressed(context) : null,
-            style: getButtonStyle(context, isOutlineButton),
-            child: labelLayout),
-      );
-    }
+    Widget rtn = isOutlineButton
+        ? BoxWrapper(
+            boxController: widget.controller,
+            ignoresPadding: true,
+            ignoresMargin: true,
+            widget: TextButton(
+                onPressed: isEnabled() ? () => onPressed(context) : null,
+                style: getButtonStyle(context, isOutlineButton),
+                child: _buildButtonChild()),
+          )
+        : BoxWrapper(
+            boxController: widget.controller,
+            ignoresPadding: true,
+            ignoresMargin: true,
+            widget: FilledButton(
+                onPressed: isEnabled() ? () => onPressed(context) : null,
+                style: getButtonStyle(context, isOutlineButton),
+                child: _buildButtonChild()),
+          );
 
     // add margin if specified
     return widget._controller.margin != null
         ? Padding(padding: widget._controller.margin!, child: rtn)
         : rtn;
+  }
+
+  Widget _buildButtonChild() {
+    if (widget._controller.isLoading == true) {
+      return widget._controller.loadingWidget != null && scopeManager != null
+          ? scopeManager!
+              .buildWidgetFromDefinition(widget._controller.loadingWidget)
+          : // default loading widget
+          SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(
+                strokeWidth: 2.0,
+                valueColor: AlwaysStoppedAnimation<Color>(
+                  widget._controller.labelStyle.color != null
+                      ? widget._controller.labelStyle.color!.withOpacity(0.5)
+                      : Colors.white.withOpacity(0.5),
+                ),
+              ));
+    }
+
+    // use the body widget if specified
+    if (widget._controller.body != null && scopeManager != null) {
+      return scopeManager!.buildWidgetFromDefinition(widget._controller.body);
+    }
+
+    List<Widget> labelParts = [];
+    final hasGap = widget._controller.gap != null;
+
+    if (widget._controller.startingIcon != null) {
+      labelParts
+          .add(ensembleIcon.Icon.fromModel(widget._controller.startingIcon!));
+      if (hasGap)
+        labelParts.add(SizedBox(width: widget._controller.gap!.toDouble()));
+    }
+
+    labelParts.add(Text(
+        Utils.translate(widget._controller.label ?? '', context),
+        textAlign: widget._controller.labelStyle.textAlign,
+        style: widget._controller.labelStyle.getTextStyle()));
+
+    if (widget._controller.endingIcon != null) {
+      if (hasGap)
+        labelParts.add(SizedBox(width: widget._controller.gap!.toDouble()));
+      labelParts
+          .add(ensembleIcon.Icon.fromModel(widget._controller.endingIcon!));
+    }
+    return labelParts.length == 1
+        ? labelParts[0]
+        : Row(mainAxisSize: MainAxisSize.min, children: labelParts);
   }
 
   ButtonStyle getButtonStyle(BuildContext context, bool isOutlineButton) {
@@ -263,6 +295,9 @@ class ButtonState extends WidgetState<Button> {
   }
 
   bool isEnabled() {
+    if (widget._controller.isLoading == true) {
+      return false;
+    }
     return widget._controller.enabled ??
         EnsembleForm.of(context)?.widget.controller.enabled ??
         true;

@@ -107,7 +107,7 @@ class EnsembleLottie extends StatefulWidget
             fallback: true,
           ),
       'onTap': (funcDefinition) => _controller.onTap =
-          EnsembleAction.fromYaml(funcDefinition, initiator: this),
+          EnsembleAction.from(funcDefinition, initiator: this),
       'onTapHaptic': (value) =>
           _controller.onTapHaptic = Utils.optionalString(value),
       // It defines whether animation would start at the time of rendering or not
@@ -117,21 +117,21 @@ class EnsembleLottie extends StatefulWidget
           ),
       // Callback method for onForward
       'onForward': (definition) => _controller.onForward =
-          EnsembleAction.fromYaml(definition, initiator: this),
+          EnsembleAction.from(definition, initiator: this),
       // Callback method for onReverse
       'onReverse': (definition) => _controller.onReverse =
-          EnsembleAction.fromYaml(definition, initiator: this),
+          EnsembleAction.from(definition, initiator: this),
       // Callback method for onComplete
       'onComplete': (definition) => _controller.onComplete =
-          EnsembleAction.fromYaml(definition, initiator: this),
+          EnsembleAction.from(definition, initiator: this),
       // Callback method for onStop
-      'onStop': (definition) => _controller.onStop =
-          EnsembleAction.fromYaml(definition, initiator: this),
+      'onStop': (definition) =>
+          _controller.onStop = EnsembleAction.from(definition, initiator: this),
     };
   }
 }
 
-mixin LottieAction on WidgetState<EnsembleLottie> {
+mixin LottieAction on EWidgetState<EnsembleLottie> {
   void forward();
   void reverse();
   void reset();

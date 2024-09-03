@@ -16,6 +16,7 @@ import 'package:ensemble/framework/app_info.dart';
 import 'package:ensemble/framework/logging/console_log_provider.dart';
 import 'package:ensemble/framework/logging/log_manager.dart';
 import 'package:ensemble/framework/logging/log_provider.dart';
+import 'package:ensemble/framework/route_observer.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/secrets.dart';
 import 'package:ensemble/framework/storage_manager.dart';
@@ -42,11 +43,16 @@ import 'layout/ensemble_page_route.dart';
 typedef CustomBuilder = Widget Function(
     BuildContext context, Map<String, dynamic>? args);
 
+abstract class WithEnsemble {}
+
 /// Singleton Controller
-class Ensemble {
+class Ensemble extends WithEnsemble with EnsembleRouteObserver {
   static final Ensemble _instance = Ensemble._internal();
 
-  Ensemble._internal();
+  Ensemble._internal() {
+    // register listeners to listen to route changes
+    initializeRouteObservers();
+  }
 
   factory Ensemble() {
     return _instance;
@@ -82,9 +88,6 @@ class Ensemble {
 
   late FirebaseApp ensembleFirebaseApp;
   static final Map<String, dynamic> externalDataContext = {};
-
-  static final RouteObserver<PageRoute> routeObserver =
-      RouteObserver<PageRoute>();
 
   /// initialize all the singleton/managers. Note that this function can be
   /// called multiple times since it's being called inside a widget.
@@ -315,7 +318,11 @@ class Ensemble {
           .map((languageCode) => {
                 "languageCode": languageCode,
                 // the language name based on the current context (fr is French (in English) or Francés (in Spanish))
-                "name": localeNames?.nameOf(languageCode) ?? 'Unknown',
+                // Note that this maybe null if the LocaleNamesLocalizationsDelegate is not loaded, in which case fallback to nativeName
+                "name": localeNames?.nameOf(languageCode) ??
+                    LocaleNamesLocalizationsDelegate
+                        .nativeLocaleNames[languageCode] ??
+                    'Unknown',
                 // the language in their native name (fr is Français and en is English). These are always the same regardless of the current language.
                 "nativeName": LocaleNamesLocalizationsDelegate
                         .nativeLocaleNames[languageCode] ??
@@ -324,6 +331,10 @@ class Ensemble {
           .toList();
     }
     return null;
+  }
+
+  void notifyAppLifecycleStateChanged(AppLifecycleState state) {
+    _config?.definitionProvider.onAppLifecycleStateChanged(state);
   }
 
   /// Navigate to an Ensemble App as configured in ensemble-config.yaml
@@ -441,7 +452,9 @@ class EnsembleConfig {
   ThemeData getAppTheme() {
     return ThemeManager().getAppTheme(appBundle?.theme);
   }
-
+  bool hasLegacyCustomAppTheme() {
+    return ThemeManager().hasLegacyCustomAppTheme(appBundle?.theme);
+  }
   /// retrieve the global widgets/codes/APIs
   Map? getResources() {
     return appBundle?.resources;

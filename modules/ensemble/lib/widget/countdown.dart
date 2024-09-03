@@ -115,16 +115,16 @@ class Countdown extends StatefulWidget
           ),
       // Callback method for onStart
       'onStart': (definition) => _controller.onStart =
-          EnsembleAction.fromYaml(definition, initiator: this),
+          EnsembleAction.from(definition, initiator: this),
       // Callback method for onComplete
       'onComplete': (definition) => _controller.onComplete =
-          EnsembleAction.fromYaml(definition, initiator: this),
+          EnsembleAction.from(definition, initiator: this),
       // Callback method for onStop
-      'onStop': (definition) => _controller.onStop =
-          EnsembleAction.fromYaml(definition, initiator: this),
+      'onStop': (definition) =>
+          _controller.onStop = EnsembleAction.from(definition, initiator: this),
       // Callback method for onReset
       'onReset': (definition) => _controller.onReset =
-          EnsembleAction.fromYaml(definition, initiator: this),
+          EnsembleAction.from(definition, initiator: this),
     };
   }
 }
@@ -157,7 +157,7 @@ class CountdownController extends WidgetController {
   set labelStyle(TextStyleComposite style) => _labelStyle = style;
 }
 
-mixin CountdownAction on WidgetState<Countdown> {
+mixin CountdownAction on EWidgetState<Countdown> {
   void startTimer();
 
   void stopTimer();
@@ -165,7 +165,7 @@ mixin CountdownAction on WidgetState<Countdown> {
   void resetTimer();
 }
 
-class CountdownState extends WidgetState<Countdown> with CountdownAction {
+class CountdownState extends EWidgetState<Countdown> with CountdownAction {
   late DateTime _startingTime;
   late Duration _duration;
 

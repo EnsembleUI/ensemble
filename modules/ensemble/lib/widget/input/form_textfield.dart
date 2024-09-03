@@ -14,6 +14,7 @@ import 'package:ensemble/util/input_validator.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/helpers/HasTextPlaceholder.dart';
 import 'package:ensemble/widget/helpers/form_helper.dart';
+import 'package:ensemble/widget/helpers/input_wrapper.dart';
 import 'package:ensemble/widget/helpers/widgets.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokablecontroller.dart';
 import 'package:flutter/cupertino.dart';
@@ -48,7 +49,7 @@ class TextInput extends BaseTextInput {
       'inputType': (type) => _controller.inputType = Utils.optionalString(type),
       'mask': (type) => _controller.mask = Utils.optionalString(type),
       'onDelayedKeyPress': (function) => _controller.onDelayedKeyPress =
-          EnsembleAction.fromYaml(function, initiator: this),
+          EnsembleAction.from(function, initiator: this),
       'delayedKeyPressDuration': (value) =>
           _controller.delayedKeyPressDuration =
               Utils.getDurationMs(value) ?? _controller.delayedKeyPressDuration,
@@ -131,13 +132,13 @@ abstract class BaseTextInput extends StatefulWidget
               .validateOnUserInteraction =
           Utils.getBool(value, fallback: _controller.validateOnUserInteraction),
       'onKeyPress': (function) => _controller.onKeyPress =
-          EnsembleAction.fromYaml(function, initiator: this),
+          EnsembleAction.from(function, initiator: this),
       'onChange': (definition) => _controller.onChange =
-          EnsembleAction.fromYaml(definition, initiator: this),
+          EnsembleAction.from(definition, initiator: this),
       'onFocusReceived': (definition) => _controller.onFocusReceived =
-          EnsembleAction.fromYaml(definition, initiator: this),
+          EnsembleAction.from(definition, initiator: this),
       'onFocusLost': (definition) => _controller.onFocusLost =
-          EnsembleAction.fromYaml(definition, initiator: this),
+          EnsembleAction.from(definition, initiator: this),
       'validator': (value) => _controller.validator = Utils.getValidator(value),
       'enableClearText': (value) =>
           _controller.enableClearText = Utils.optionalBool(value),
@@ -156,6 +157,11 @@ abstract class BaseTextInput extends StatefulWidget
       'maxLines': (value) =>
           _controller.maxLines = Utils.optionalInt(value, min: 1),
       'textStyle': (style) => _controller.textStyle = Utils.getTextStyle(style),
+      'autofillHints': (value) =>
+          _controller.autofillHints = Utils.getListOfStrings(value),
+      'maxLength': (value) => _controller.maxLength = Utils.optionalInt(value),
+      'maxLengthEnforcement': (value) =>
+          _controller.maxLengthEnforcement = _getMaxLengthEnforcement(value),
     });
     return setters;
   }
@@ -232,6 +238,10 @@ class TextInputController extends FormFieldController with HasTextPlaceholder {
   bool? multiline;
   int? minLines;
   int? maxLines;
+  int? maxLength;
+  MaxLengthEnforcement? maxLengthEnforcement;
+
+  List<String>? autofillHints;
 }
 
 class TextInputState extends FormFieldWidgetState<BaseTextInput>
@@ -342,11 +352,31 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput>
   void didUpdateWidget(covariant BaseTextInput oldWidget) {
     super.didUpdateWidget(oldWidget);
     widget.controller.inputFieldAction = this;
+
+    // Making sure to move cursor to end when widget rebuild
+    // issue: https://github.com/EnsembleUI/ensemble/issues/1527
+
+    if (focusNode.hasFocus) {
+      int oldCursorPosition = oldWidget.textController.selection.baseOffset;
+      int textLength = widget.textController.text.length;
+
+      widget.textController.selection = TextSelection.fromPosition(
+        TextPosition(offset: oldCursorPosition),
+      );
+      int cursorPosition = widget.textController.selection.baseOffset;
+
+      if (textLength > cursorPosition) {
+        widget.textController.selection = TextSelection.fromPosition(
+          TextPosition(offset: textLength),
+        );
+      }
+    }
   }
 
   @override
   void dispose() {
     focusNode.dispose();
+    widget.textController.dispose();
     super.dispose();
   }
 
@@ -400,6 +430,7 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput>
         controller: widget._controller,
         widget: TextFormField(
           key: validatorKey,
+          autofillHints: widget._controller.autofillHints,
           autovalidateMode: widget._controller.validateOnUserInteraction
               ? AutovalidateMode.onUserInteraction
               : AutovalidateMode.disabled,
@@ -470,6 +501,9 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput>
           inputFormatters: _inputFormatter,
           minLines: isMultiline() ? widget._controller.minLines : null,
           maxLines: isMultiline() ? widget._controller.maxLines : 1,
+          maxLength: widget._controller.maxLength,
+          maxLengthEnforcement: widget._controller.maxLengthEnforcement ??
+              MaxLengthEnforcement.enforced,
           obscureText: isObscureOrPlainText(),
           enableSuggestions: !widget.isPassword(),
           autocorrect: !widget.isPassword(),
@@ -591,4 +625,16 @@ class _InputDoneButton extends StatelessWidget {
       ),
     );
   }
+}
+
+MaxLengthEnforcement? _getMaxLengthEnforcement(String? value) {
+  switch (value) {
+    case 'none':
+      return MaxLengthEnforcement.none;
+    case 'enforced':
+      return MaxLengthEnforcement.enforced;
+    case 'truncateAfterCompositionEnds':
+      return MaxLengthEnforcement.truncateAfterCompositionEnds;
+  }
+  return null;
 }

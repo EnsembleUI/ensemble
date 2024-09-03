@@ -7,6 +7,7 @@ import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/framework/stub/qr_code_scanner.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
+import 'package:ensemble/widget/helpers/box_wrapper.dart';
 import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:ensemble/widget/helpers/widgets.dart';
 import 'package:flutter/material.dart';
@@ -90,11 +91,11 @@ class EnsembleQRCodeScannerController extends EnsembleBoxController {
       'overlayColor': (color) => overlayColor = Utils.getColor(color),
       'cutOutBorderColor': (color) => cutOutBorderColor = Utils.getColor(color),
       'onInitialized': (func) =>
-          onInitialized = EnsembleAction.fromYaml(func, initiator: this),
+          onInitialized = EnsembleAction.from(func, initiator: this),
       'onReceived': (func) =>
-          onReceived = EnsembleAction.fromYaml(func, initiator: this),
+          onReceived = EnsembleAction.from(func, initiator: this),
       'onPermissionSet': (func) =>
-          onPermissionSet = EnsembleAction.fromYaml(func, initiator: this),
+          onPermissionSet = EnsembleAction.from(func, initiator: this),
     });
 }
 

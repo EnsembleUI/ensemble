@@ -6,6 +6,7 @@ import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/view/data_scope_widget.dart';
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/layout/templated.dart';
+import 'package:ensemble/model/item_template.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/extensions.dart';
@@ -25,9 +26,11 @@ final kLastDay = DateTime(kToday.year, kToday.month + 12, kToday.day);
 class EnsembleCalendar extends StatefulWidget
     with Invokable, HasController<CalendarController, CalendarState> {
   static const type = 'Calendar';
+
   EnsembleCalendar({Key? key}) : super(key: key);
 
   final CalendarController _controller = CalendarController();
+
   @override
   CalendarController get controller => _controller;
 
@@ -447,9 +450,9 @@ class EnsembleCalendar extends StatefulWidget
       _controller.highlightColor = Utils.getColor(data['highlightColor']);
       _controller.rangeSelectionMode = RangeSelectionMode.toggledOn;
       _controller.onRangeStart =
-          EnsembleAction.fromYaml(data['onStart'], initiator: this);
+          EnsembleAction.from(data['onStart'], initiator: this);
       _controller.onRangeComplete =
-          EnsembleAction.fromYaml(data['onComplete'], initiator: this);
+          EnsembleAction.from(data['onComplete'], initiator: this);
       setCellData(data['startCell'], _controller.rangeStartCell);
       setCellData(data['endCell'], _controller.rangeEndCell);
       setCellData(data['betweenCell'], _controller.rangeBetweenCell);
@@ -459,7 +462,7 @@ class EnsembleCalendar extends StatefulWidget
   void setCellData(dynamic data, Cell cell) {
     if (data is YamlMap) {
       cell.widget = data['widget'];
-      cell.onTap = EnsembleAction.fromYaml(data['onTap'], initiator: this);
+      cell.onTap = EnsembleAction.from(data['onTap'], initiator: this);
       if (data.containsKey('config')) {
         cell.config = CellConfig(
             backgroundColor: Utils.getColor(data['config']?['backgroundColor']),
@@ -599,6 +602,7 @@ class CalendarController extends WidgetController {
   CalendarState? widgetState;
 
   bool showOutsideDate = false;
+
   void _bind(CalendarState state) {
     widgetState = state;
   }
@@ -612,7 +616,7 @@ int getHashCode(DateTime key) {
   return key.day * 1000000 + key.month * 10000 + key.year;
 }
 
-class CalendarState extends WidgetState<EnsembleCalendar>
+class CalendarState extends EWidgetState<EnsembleCalendar>
     with TemplatedWidgetState {
   final CalendarFormat _calendarFormat = CalendarFormat.month;
   ItemTemplate? itemTemplate;
@@ -639,7 +643,7 @@ class CalendarState extends WidgetState<EnsembleCalendar>
   void _registerRowSpanListener(BuildContext context) {
     if (widget.controller.rowSpanTemplate != null) {
       registerItemTemplate(context, widget.controller.rowSpanTemplate!,
-          evaluateInitialValue: true, onDataChanged: (dataList) {
+          onDataChanged: (dataList) {
         if (dataList is List) {
           final configs = _builRowSpanConfigs(context, dataList);
           widget._controller.rowSpans.value = configs;

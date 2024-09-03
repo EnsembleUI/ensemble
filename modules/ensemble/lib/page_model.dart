@@ -1,4 +1,5 @@
 import 'package:ensemble/ensemble.dart';
+import 'package:ensemble/framework/data_utils.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/data_context.dart';
@@ -11,6 +12,7 @@ import 'package:ensemble/layout/app_scroller.dart';
 import 'package:ensemble/layout/box/box_layout.dart';
 import 'package:ensemble/layout/stack.dart';
 import 'package:ensemble/framework/definition_providers/provider.dart';
+import 'package:ensemble/model/item_template.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/widget_registry.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
@@ -57,7 +59,8 @@ abstract class PageModel {
     } on Error catch (e) {
       throw LanguageError("Invalid page definition.",
           recovery: "Please double check your page syntax.",
-          detailError: e.toString() + "\n" + (e.stackTrace?.toString() ?? ''));
+          detailedError:
+              e.toString() + "\n" + (e.stackTrace?.toString() ?? ''));
     }
   }
 
@@ -229,7 +232,11 @@ mixin HasStyles {
   }
 
   set className(String? className) {
-    classList = className?.split(RegExp('\\s+'));
+    classList = toClassList(className);
+  }
+
+  static List<String>? toClassList(String? className) {
+    return DataUtils.splitSpaceDelimitedString(className);
   }
 
   //these are the styles resolved with what's set at the theme level and inline styles
@@ -293,9 +300,9 @@ class SinglePageModel extends PageModel with HasStyles {
         }
 
         // set the view behavior
-        viewBehavior.onLoad = EnsembleAction.fromYaml(viewMap['onLoad']);
-        viewBehavior.onPause = EnsembleAction.fromYaml(viewMap['onPause']);
-        viewBehavior.onResume = EnsembleAction.fromYaml(viewMap['onResume']);
+        viewBehavior.onLoad = EnsembleAction.from(viewMap['onLoad']);
+        viewBehavior.onPause = EnsembleAction.from(viewMap['onPause']);
+        viewBehavior.onResume = EnsembleAction.from(viewMap['onResume']);
 
         processHeader(viewMap['header'], viewMap['title']);
 
@@ -309,8 +316,8 @@ class SinglePageModel extends PageModel with HasStyles {
             inlineStyles![key] = EnsembleThemeManager.yamlToDart(value);
           });
         }
-        classList = (viewMap[ViewUtil.classNameAttribute] as String?)
-            ?.split(RegExp('\\s+'));
+        classList = HasStyles.toClassList(
+            viewMap[ViewUtil.classNameAttribute] as String?);
         widgetType = type;
         widgetTypeStyles =
             EnsembleThemeManager().currentTheme()?.getWidgetTypeStyles(type);
@@ -330,8 +337,8 @@ class SinglePageModel extends PageModel with HasStyles {
               EnsembleThemeManager.yamlToDart(
                 viewMap['footer']['styles'],
               ),
-              (viewMap['footer'][ViewUtil.classNameAttribute] as String?)
-                  ?.split(RegExp('\\s+')),
+              HasStyles.toClassList(
+                  viewMap['footer'][ViewUtil.classNameAttribute] as String?),
               dragOptionsMap,
               fixedContent,
               ViewUtil.buildModel(footerYamlMap, customViewDefinitions));
@@ -371,8 +378,8 @@ class SinglePageModel extends PageModel with HasStyles {
       }
 
       styles = EnsembleThemeManager.yamlToDart(headerData['styles']);
-      classList = (headerData[ViewUtil.classNameAttribute] as String?)
-          ?.split(RegExp('\\s+'));
+      classList = HasStyles.toClassList(
+          headerData[ViewUtil.classNameAttribute] as String?);
     }
 
     if (titleWidget != null ||
@@ -487,7 +494,7 @@ class WidgetModel extends Object with HasStyles {
 
   // a layout can either have children or itemTemplate, but not both
   final List<WidgetModel>? children;
-  final ItemTemplate? itemTemplate;
+  final Map? itemTemplate;
 
   String? getId() {
     return props['id'];
@@ -519,22 +526,6 @@ class ViewBehavior {
   EnsembleAction? onLoad;
   EnsembleAction? onPause;
   EnsembleAction? onResume;
-}
-
-class ItemTemplate {
-  dynamic data;
-  final String name;
-  final dynamic template;
-  List<dynamic>? initialValue;
-  Map<String, dynamic>? inheritedStyles;
-
-  ItemTemplate(
-    this.data,
-    this.name,
-    this.template, {
-    this.initialValue,
-    this.inheritedStyles,
-  });
 }
 
 class HeaderModel extends Object with HasStyles {

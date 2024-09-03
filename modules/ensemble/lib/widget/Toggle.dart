@@ -38,7 +38,7 @@ class Toggle extends StatefulWidget
       'value': (value) =>
           _controller.value = Utils.getBool(value, fallback: false),
       'onChange': (definition) => _controller.onChange =
-          EnsembleAction.fromYaml(definition, initiator: this),
+          EnsembleAction.from(definition, initiator: this),
       'onChangeHaptic': (value) =>
           _controller.onChangeHaptic = Utils.optionalString(value),
       'inactiveWidget': (widget) => _controller.inactiveWidgetDef = widget,
@@ -60,7 +60,7 @@ class ToggleController extends WidgetController {
   Duration? transitionDuration;
 }
 
-class ToggleState extends WidgetState<Toggle> {
+class ToggleState extends EWidgetState<Toggle> {
   late Widget _inactiveWidget;
   late Widget _activeWidget;
 

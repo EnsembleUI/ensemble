@@ -54,7 +54,7 @@ class EnsembleToggleButton extends StatefulWidget
           _controller.selectedBorderColor = Utils.getColor(value),
       'shadowColor': (value) => _controller.shadowColor = Utils.getColor(value),
       'onChange': (definition) => _controller.onChange =
-          framework.EnsembleAction.fromYaml(definition, initiator: this),
+          framework.EnsembleAction.from(definition, initiator: this),
       'onChangeHaptic': (value) =>
           _controller.onChangeHaptic = Utils.optionalString(value),
     };
@@ -128,7 +128,7 @@ class EnsembleToggleButton extends StatefulWidget
   }
 }
 
-class EnsembleToggleButtonState extends WidgetState<EnsembleToggleButton> {
+class EnsembleToggleButtonState extends EWidgetState<EnsembleToggleButton> {
   List<ToggleItem>? _items = [];
   int _selectedIndex = -1;
 

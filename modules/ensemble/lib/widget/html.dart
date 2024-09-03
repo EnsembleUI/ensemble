@@ -3,6 +3,7 @@ import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/framework/widget/widget.dart' as framework;
+import 'package:ensemble/widget/helpers/box_wrapper.dart';
 import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:ensemble/widget/helpers/widgets.dart';
 
@@ -16,7 +17,7 @@ import 'package:yaml/yaml.dart';
 class CSSStyle {
   CSSStyle._({required this.cssBuffer, required this.cssMap});
 
-  factory CSSStyle.fromYaml(List<YamlMap> yaml) {
+  factory CSSStyle.fromYaml(List<Map> yaml) {
     final Map<String, Map<String, dynamic>> rtnCssMap = {};
     final List<MapEntry<String, Map<String, dynamic>>> valuesToAdd = [];
     final StringBuffer rtnCssBuffer = StringBuffer();
@@ -114,10 +115,10 @@ class EnsembleHtml extends StatefulWidget
     return {
       'text': (newValue) => _controller.text = Utils.optionalString(newValue),
       'onLinkTap': (funcDefinition) => _controller.onLinkTap =
-          ensemble.EnsembleAction.fromYaml(funcDefinition, initiator: this),
+          ensemble.EnsembleAction.from(funcDefinition, initiator: this),
       'cssStyles': (value) {
         _controller.cssStyle = CSSStyle.fromYaml(
-          Utils.getListOfYamlMap(value) ?? [],
+          Utils.getListOfMap(value) ?? [],
         );
       },
     };
@@ -133,11 +134,11 @@ class HtmlController extends BoxController {
   HtmlAction? htmlAction;
 }
 
-mixin HtmlAction on framework.WidgetState<EnsembleHtml> {
+mixin HtmlAction on framework.EWidgetState<EnsembleHtml> {
   void updateMaxLines(String selector, int maxLines);
 }
 
-class HtmlState extends framework.WidgetState<EnsembleHtml> with HtmlAction {
+class HtmlState extends framework.EWidgetState<EnsembleHtml> with HtmlAction {
   @override
   void updateMaxLines(String selector, int maxLines) {
     // Need to add it here to be able to do setState

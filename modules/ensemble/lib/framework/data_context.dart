@@ -16,6 +16,7 @@ import 'package:ensemble/framework/apiproviders/api_provider.dart';
 import 'package:ensemble/framework/apiproviders/firestore/firestore_types.dart';
 import 'package:ensemble/framework/apiproviders/http_api_provider.dart';
 import 'package:ensemble/framework/config.dart';
+import 'package:ensemble/framework/data_utils.dart';
 import 'package:ensemble/framework/device.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/keychain_manager.dart';
@@ -79,13 +80,19 @@ class DataContext implements Context {
     _contextMap['ensemble'] = NativeInvokable(buildContext);
     _contextMap['appInfo'] = appInfo;
     _contextMap['FieldValue'] = EnsembleFieldValue();
-
+    _contextMap['Timestamp'] = StaticFirestoreTimestamp();
     // auth can be selectively turned on
     if (GetIt.instance.isRegistered<AuthContextManager>()) {
       _contextMap['auth'] = GetIt.instance<AuthContextManager>();
     }
 
+    _addLegacyDataContext();
+  }
+
+  // For backward compatibility
+  void _addLegacyDataContext() {
     // device is a common name. If user already uses that, don't override it
+    // This is now in ensemble.device.*
     if (_contextMap['device'] == null) {
       _contextMap['device'] = Device();
     }
@@ -247,7 +254,8 @@ class DataContext implements Context {
     // if just have single standalone expression, return the actual type (e.g integer)
     // this is the distinction here so we can continue to walk down the path
     // if the return type is JSON
-    RegExpMatch? simpleExpression = Utils.onlyExpression.firstMatch(expression);
+    RegExpMatch? simpleExpression =
+        DataUtils.onlyExpression.firstMatch(expression);
     if (simpleExpression != null) {
       return asObject(evalVariable(simpleExpression.group(1)!));
     }
@@ -255,7 +263,7 @@ class DataContext implements Context {
     // greedy match anything inside a $() with letters, digits, period, square brackets.
     // Note that since we combine multiple expressions together, the end result
     // has to be a string.
-    return expression.replaceAllMapped(Utils.containExpression,
+    return expression.replaceAllMapped(DataUtils.containExpression,
         (match) => asString(evalVariable("${match[1]}")));
 
     /*return replaceAllMappedAsync(
@@ -454,7 +462,8 @@ class NativeInvokable extends ActionInvokable {
       'storage': () => storage,
       'user': () => UserInfo(),
       'formatter': () => Formatter(),
-      'utils': () => EnsembleUtils(),
+      'utils': () => _EnsembleUtils(),
+      'device': () => Device(),
     };
   }
 
@@ -467,10 +476,10 @@ class NativeInvokable extends ActionInvokable {
     Map<String, Function> methods = super.methods();
     methods.addAll({
       ActionType.navigateScreen.name: (inputs) => ScreenController()
-          .executeAction(buildContext, NavigateScreenAction.fromMap(inputs)),
-      ActionType.navigateModalScreen.name: navigateToModalScreen,
-      ActionType.showDialog.name: showDialog,
-      ActionType.closeAllDialogs.name: () => closeAllDialogs(),
+          .executeAction(buildContext, NavigateScreenAction.from(inputs)),
+      ActionType.navigateModalScreen.name: (screenNameOrPayload, [inputs]) =>
+          ScreenController().executeAction(buildContext,
+              NavigateModalScreenAction.from(screenNameOrPayload, inputs)),
       ActionType.invokeAPI.name: invokeAPI,
       ActionType.openUrl.name: openUrl,
       ActionType.stopTimer.name: stopTimer,
@@ -504,8 +513,6 @@ class NativeInvokable extends ActionInvokable {
         final scope = ScreenController().getScopeManager(buildContext);
         callNativeMethod(buildContext, scope, inputs);
       },
-      ActionType.showDialog.name: (inputs) => ScreenController()
-          .executeAction(buildContext, ShowDialogAction.from(payload: inputs)),
       ActionType.rateApp.name: (inputs) => ScreenController()
           .executeAction(buildContext, RateAppAction.from(payload: inputs)),
       'connectSocket': (String socketName, Map<dynamic, dynamic>? inputs) {
@@ -528,11 +535,6 @@ class NativeInvokable extends ActionInvokable {
           ScreenController().executeAction(
             buildContext,
             ExecuteConditionalActionAction.from(inputs),
-          ),
-      ActionType.executeActionGroup.name: (inputs) =>
-          ScreenController().executeAction(
-            buildContext,
-            ExecuteActionGroupAction.from(inputs),
           ),
       ActionType.logEvent.name: (inputs) => ScreenController().executeAction(
             buildContext,
@@ -607,22 +609,6 @@ class NativeInvokable extends ActionInvokable {
       buildContext,
       FileUploadAction.fromYaml(payload: YamlMap.wrap(inputMap)),
     );
-  }
-
-  void navigateToModalScreen(String screenName, [dynamic inputs]) {
-    Map<String, dynamic>? inputMap = Utils.getMap(inputs);
-    ScreenController().navigateToScreen(buildContext,
-        screenName: screenName, pageArgs: inputMap, asModal: true);
-    // how do we handle onModalDismiss in Typescript?
-  }
-
-  void closeAllDialogs() {
-    ScreenController().executeAction(buildContext, CloseAllDialogsAction());
-  }
-
-  void showDialog(dynamic widget) {
-    ScreenController()
-        .executeAction(buildContext, ShowDialogAction(body: widget));
   }
 
   void openUrl([dynamic inputs]) {
@@ -731,7 +717,7 @@ class EnsembleStorage with Invokable {
   }
 }
 
-class EnsembleUtils with Invokable {
+class _EnsembleUtils with Invokable {
   @override
   Map<String, Function> getters() => {};
 
@@ -813,31 +799,22 @@ class Formatter with Invokable {
     Locale? locale = Localizations.localeOf(Utils.globalAppKey.currentContext!);
     return {
       'now': () => UserDateTime(),
-      'prettyDate': (input) => InvokablePrimitive.prettyDate(input),
-      'prettyTime': (input) => InvokablePrimitive.prettyTime(input),
-      'prettyDateTime': (input) => InvokablePrimitive.prettyDateTime(input),
-      'prettyCurrency': (input) => InvokablePrimitive.prettyCurrency(input),
+      'prettyDate': (input) =>
+          InvokablePrimitive.prettyDate(input, locale: locale),
+      'prettyTime': (input) =>
+          InvokablePrimitive.prettyTime(input, locale: locale),
+      'prettyDateTime': (input) =>
+          InvokablePrimitive.prettyDateTime(input, locale: locale),
+      'prettyCurrency': (input) =>
+          InvokablePrimitive.prettyCurrency(input, locale: locale),
       'prettyDuration': (input) =>
           InvokablePrimitive.prettyDuration(input, locale: locale),
       'pluralize': pluralize,
-      'customDate': customDateFormat,
+      'customDateTime': (input, pattern) =>
+          InvokablePrimitive.customDateTime(input, pattern, locale: locale),
+      'customDate': (input, pattern) =>
+          InvokablePrimitive.customDateTime(input, pattern, locale: locale),
     };
-  }
-
-  customDateFormat(input, pattern) {
-    DateTime? date;
-
-    if (input is DateTime) {
-      date = input;
-    } else {
-      date = Utils.getDate(input);
-    }
-
-    if (date == null) {
-      debugPrint('Failed getting date from input');
-      return null;
-    }
-    return DateFormat(pattern).format(date);
   }
 
   @override
@@ -1143,13 +1120,15 @@ class APIResponse with Invokable {
     return {
       'isSuccess': () => _response?.apiState.isSuccess,
       'isError': () => _response?.apiState.isError,
-      'isLoading': () => _response?.apiState.isLoading,
+      'isLoading': () => isLoading(),
       'body': () => _response?.body,
       'headers': () => _response?.headers,
       'statusCode': () => _response?.statusCode,
       'reasonPhrase': () => _response?.reasonPhrase
     };
   }
+
+  bool isLoading() => _response?.apiState.isLoading == true;
 
   @override
   Map<String, Function> methods() {

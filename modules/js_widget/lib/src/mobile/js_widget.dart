@@ -12,16 +12,16 @@ import 'package:webview_flutter/webview_flutter.dart';
 ///
 class JsWidget extends StatefulWidget {
   JsWidget(
-      { required this.id,
-        required this.createHtmlTag,
-        required this.data,
-        required this.scriptToInstantiate,
-        required this.size,
-        this.loader = const Center(child: CircularProgressIndicator()),
-        this.scripts = const [],
-        this.listener,
-        this.preCreateScript,
-        Key? key})
+      {required this.id,
+      required this.createHtmlTag,
+      required this.data,
+      required this.scriptToInstantiate,
+      required this.size,
+      this.loader = const Center(child: CircularProgressIndicator()),
+      this.scripts = const [],
+      this.listener,
+      this.preCreateScript,
+      Key? key})
       : super(key: key);
 
   ///Custom `loader` widget, until script is loaded
@@ -52,7 +52,7 @@ class JsWidget extends StatefulWidget {
   JsWidgetState createState() => JsWidgetState();
   Function? eval;
   void evalScript(String script) {
-    if ( eval != null ) {
+    if (eval != null) {
       eval!(script);
     }
   }
@@ -80,7 +80,6 @@ class JsWidgetState extends State<JsWidget> {
           onProgress: (int progress) {
             // Update loading bar.
           },
-
           onPageStarted: (String url) {},
           onPageFinished: (String url) {
             _loadData();
@@ -101,20 +100,24 @@ class JsWidgetState extends State<JsWidget> {
     }
     // #enddocregion webview_controller
   }
+
   @override
   void initState() {
     super.initState();
     instantiateController();
     widget.eval = evalScript;
   }
+
   @override
   void dispose() {
     widget.eval = null;
     super.dispose();
   }
+
   void evalScript(String script) {
     controller.runJavaScript(script);
   }
+
   @override
   void didUpdateWidget(covariant JsWidget oldWidget) {
     if (oldWidget.data != widget.data ||
@@ -140,10 +143,11 @@ class JsWidgetState extends State<JsWidget> {
       ),
     );
   }
+
   String getHtmlContent() {
     String html = "";
     html +=
-    '<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=0"/> </head> <body>${widget.createHtmlTag()}';
+        '<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=0"/> </head> <body>${widget.createHtmlTag()}';
     for (String src in widget.scripts) {
       html += '<script async="false" src="$src"></script>';
     }

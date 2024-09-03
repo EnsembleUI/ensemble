@@ -9,6 +9,7 @@ import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/layout/box/base_box_layout.dart';
 import 'package:ensemble/layout/templated.dart';
 import 'package:ensemble/model/pull_to_refresh.dart';
+import 'package:ensemble/model/item_template.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
@@ -37,7 +38,7 @@ class Column extends BoxLayout {
       'pullToRefresh': (input) =>
           _controller.pullToRefresh = PullToRefresh.fromMap(input, this),
       'onPullToRefresh': (funcDefinition) => _controller.onPullToRefresh =
-          EnsembleAction.fromYaml(funcDefinition, initiator: this),
+          EnsembleAction.from(funcDefinition, initiator: this),
       'pullToRefreshOptions': (input) => _controller.pullToRefreshOptions =
           PullToRefreshOptions.fromMap(input),
     });
@@ -105,9 +106,9 @@ abstract class BoxLayout extends StatefulWidget
   Map<String, Function> setters() {
     return {
       'onTap': (funcDefinition) => _controller.onTap =
-          EnsembleAction.fromYaml(funcDefinition, initiator: this),
+          EnsembleAction.from(funcDefinition, initiator: this),
       'onItemTap': (funcDefinition) => _controller.onItemTap =
-          EnsembleAction.fromYaml(funcDefinition, initiator: this),
+          EnsembleAction.from(funcDefinition, initiator: this),
     };
   }
 
@@ -117,9 +118,9 @@ abstract class BoxLayout extends StatefulWidget
   }
 
   @override
-  void initChildren({List<WidgetModel>? children, ItemTemplate? itemTemplate}) {
+  void initChildren({List<WidgetModel>? children, Map? itemTemplate}) {
     _controller.children = children;
-    _controller.itemTemplate = itemTemplate;
+    _controller.itemTemplate = ItemTemplate.from(itemTemplate);
   }
 
   @override
@@ -128,7 +129,7 @@ abstract class BoxLayout extends StatefulWidget
   bool isVertical();
 }
 
-class BoxLayoutState extends WidgetState<BoxLayout>
+class BoxLayoutState extends EWidgetState<BoxLayout>
     with TemplatedWidgetState, HasChildren<BoxLayout> {
   List<Widget>? templatedChildren;
 
@@ -149,7 +150,7 @@ class BoxLayoutState extends WidgetState<BoxLayout>
       // Note that when visibility is toggled after rendering, the API may already be populated.
       // In that case we want to evaluate the data to see if they are there
       registerItemTemplate(context, widget._controller.itemTemplate!,
-          evaluateInitialValue: true, onDataChanged: (List dataList) {
+          onDataChanged: (List dataList) {
         if (!mounted) return;
         setState(() {
           templatedChildren = buildWidgetsFromTemplate(
@@ -177,7 +178,7 @@ class BoxLayoutState extends WidgetState<BoxLayout>
       templatedList = ViewUtil.addGesture(templatedList ?? [], _onItemTap);
     }
 
-    List<Widget> items = BoxUtils.buildChildrenAndGap(widget._controller,
+    List<Widget> items = BoxUtils.buildChildrenAndGap(widget._controller.gap,
         children: childrenList, templatedChildren: templatedList);
     if (items.isEmpty) {
       return const SizedBox.shrink();

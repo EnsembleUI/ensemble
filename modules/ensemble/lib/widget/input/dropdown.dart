@@ -3,14 +3,18 @@ import 'package:ensemble/ensemble_theme.dart';
 import 'package:ensemble/framework/action.dart' as framework;
 import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/scope.dart';
+import 'package:ensemble/framework/theme/theme_loader.dart';
 import 'package:ensemble/framework/theme/theme_manager.dart';
 import 'package:ensemble/framework/view/data_scope_widget.dart';
 import 'package:ensemble/framework/widget/icon.dart' as iconframework;
 import 'package:ensemble/layout/templated.dart';
+import 'package:ensemble/model/item_template.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/helpers/HasTextPlaceholder.dart';
+import 'package:ensemble/widget/helpers/controllers.dart';
+import 'package:ensemble/widget/helpers/input_wrapper.dart';
 import 'package:ensemble/widget/helpers/widgets.dart';
 import 'package:ensemble/widget/helpers/form_helper.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
@@ -18,6 +22,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../../framework/model.dart';
+import '../../framework/widget/widget.dart';
 //import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 class Dropdown extends SelectOne {
@@ -32,7 +37,10 @@ class Dropdown extends SelectOne {
 }
 
 abstract class SelectOne extends StatefulWidget
-    with Invokable, HasController<SelectOneController, SelectOneState> {
+    with
+        Invokable,
+        HasItemTemplate,
+        HasController<SelectOneController, SelectOneState> {
   SelectOne({Key? key}) : super(key: key);
 
   final SelectOneController _controller = SelectOneController();
@@ -44,7 +52,7 @@ abstract class SelectOne extends StatefulWidget
   State<StatefulWidget> createState() => SelectOneState();
 
   @override
-  List<String> passthroughSetters() => ['itemTemplate', 'createNewItem'];
+  List<String> passthroughSetters() => ['createNewItem'];
 
   @override
   Map<String, Function> getters() {
@@ -73,10 +81,13 @@ abstract class SelectOne extends StatefulWidget
   Map<String, Function> setters() {
     var setters = _controller.textPlaceholderSetters;
     setters.addAll({
-      'value': (value) => _controller.maybeValue = value,
+      'value': (value) {
+        _controller.textEditingController.value = TextEditingValue(text: value);
+        return _controller.maybeValue = value;
+      },
       'items': (values) => updateItems(values),
       'onChange': (definition) => _controller.onChange =
-          framework.EnsembleAction.fromYaml(definition, initiator: this),
+          framework.EnsembleAction.from(definition, initiator: this),
       'itemsFromString': (dynamic strValues) => setItemsFromString(strValues),
       'itemsFromArray': (dynamic arrValues) => setItemsFromArray(arrValues),
       'autoComplete': (value) =>
@@ -95,32 +106,24 @@ abstract class SelectOne extends StatefulWidget
           _controller.dropdownBorderWidth = Utils.optionalInt(value),
       'dropdownMaxHeight': (value) =>
           _controller.dropdownMaxHeight = Utils.optionalInt(value, min: 0),
-      'itemTemplate': (itemTemplate) => _setItemTemplate(itemTemplate),
       'createNewItem': (value) => _setCreateNewItem(value),
+      'textStyle': (style) => _controller.textStyle =
+          Utils.getTextStyleAsComposite(_controller, style: style),
     });
     return setters;
   }
 
   void _setCreateNewItem(dynamic input) {
     if (input is! Map) return;
-    _controller.onCreateItemTap =
-        framework.EnsembleAction.fromYaml(input['onTap']);
+    _controller.onCreateItemTap = framework.EnsembleAction.from(input['onTap']);
 
     _controller.createNewItemIcon = Utils.getIcon(input['icon']);
     _controller.createNewItemLabel = Utils.optionalString(input['label']);
   }
 
-  void _setItemTemplate(dynamic input) {
-    if (input is Map) {
-      dynamic data = input['data'];
-      String? name = input['name'];
-      dynamic template = input['template'];
-      dynamic value = input['value'];
-      if (data != null && name != null && template != null && value != null) {
-        _controller.itemTemplate =
-            DropdownItemTemplate(data, name, template, value);
-      }
-    }
+  @override
+  void setItemTemplate(Map? maybeTemplate) {
+    _controller.itemTemplate = LabelValueItemTemplate.from(maybeTemplate);
   }
 
   @override
@@ -246,6 +249,8 @@ class SelectOneController extends FormFieldController with HasTextPlaceholder {
   SelectOneInputFieldAction? inputFieldAction;
   List<SelectOneItem>? items;
 
+  TextEditingController textEditingController = TextEditingController();
+
   // this is our value but it can be in an invalid state.
   // Since user can set items/value in any order and at anytime, the value may
   // not be one of the items, hence it could be in an incorrect state
@@ -261,8 +266,13 @@ class SelectOneController extends FormFieldController with HasTextPlaceholder {
   int? dropdownBorderWidth;
   Color? dropdownBorderColor;
   int? dropdownMaxHeight;
+  TextStyleComposite? _textStyle;
 
-  DropdownItemTemplate? itemTemplate;
+  TextStyleComposite get textStyle => _textStyle ??= TextStyleComposite(this);
+
+  set textStyle(TextStyleComposite style) => _textStyle = style;
+
+  LabelValueItemTemplate? itemTemplate;
 
   framework.EnsembleAction? clear;
   framework.EnsembleAction? onChange;
@@ -274,7 +284,6 @@ class SelectOneController extends FormFieldController with HasTextPlaceholder {
 class SelectOneState extends FormFieldWidgetState<SelectOne>
     with SelectOneInputFieldAction, TemplatedWidgetState {
   FocusNode focusNode = FocusNode();
-  TextEditingController textEditingController = TextEditingController();
   List? dataList;
 
   @override
@@ -285,6 +294,9 @@ class SelectOneState extends FormFieldWidgetState<SelectOne>
         validatorKey.currentState!.validate();
       }
     });*/
+    widget.controller.textEditingController =
+        TextEditingController(text: widget.getValue());
+
     super.initState();
   }
 
@@ -299,7 +311,7 @@ class SelectOneState extends FormFieldWidgetState<SelectOne>
         setState(() {
           dataList = data;
         });
-      }, evaluateInitialValue: true);
+      });
     }
   }
 
@@ -313,6 +325,7 @@ class SelectOneState extends FormFieldWidgetState<SelectOne>
   void dispose() {
     focusNode.dispose();
     dataList = null;
+    widget.controller.textEditingController.dispose();
     super.dispose();
   }
 
@@ -351,6 +364,7 @@ class SelectOneState extends FormFieldWidgetState<SelectOne>
 
     return DropdownButtonFormField2<dynamic>(
         key: validatorKey,
+        isExpanded: true,
         validator: (value) {
           if (widget._controller.required && widget.getValue() == null) {
             return Utils.translateWithFallback(
@@ -366,6 +380,9 @@ class SelectOneState extends FormFieldWidgetState<SelectOne>
             widget._controller.itemTemplate, dataList),
         onChanged: isEnabled() ? (item) => onSelectionChanged(item) : null,
         focusNode: focusNode,
+        style: DefaultTextStyle.of(context)
+            .style
+            .merge(widget._controller.textStyle.getTextStyle()),
         iconStyleData: const IconStyleData(
             icon: Icon(Icons.keyboard_arrow_down, size: 20),
             openMenuIcon: Icon(Icons.keyboard_arrow_up, size: 20)),
@@ -374,12 +391,13 @@ class SelectOneState extends FormFieldWidgetState<SelectOne>
                 color: widget._controller.dropdownBackgroundColor,
                 borderRadius:
                     widget._controller.dropdownBorderRadius?.getValue(),
-                border: widget._controller.borderColor != null ||
-                        widget._controller.borderWidth != null
+                border: widget._controller.dropdownBorderColor != null ||
+                        widget._controller.dropdownBorderWidth != null
                     ? Border.all(
-                        color: widget._controller.borderColor ??
+                        color: widget._controller.dropdownBorderColor ??
                             ThemeManager().getBorderColor(context),
-                        width: widget._controller.borderWidth?.toDouble() ??
+                        width: widget._controller.dropdownBorderWidth
+                                ?.toDouble() ??
                             ThemeManager().getBorderThickness(context),
                       )
                     : null),
@@ -393,6 +411,9 @@ class SelectOneState extends FormFieldWidgetState<SelectOne>
           labelText: widget.controller.floatLabel == true
               ? widget.controller.label
               : null,
+          // enabledBorder border is used because it overrides border property.
+          enabledBorder: getEnabledBorder(),
+          focusedBorder: getSafeFocusedBorder(),
         ));
   }
 
@@ -401,10 +422,10 @@ class SelectOneState extends FormFieldWidgetState<SelectOne>
     return LayoutBuilder(
         builder: (context, constraints) => RawAutocomplete<SelectOneItem>(
               focusNode: focusNode,
-              textEditingController: textEditingController,
+              textEditingController: widget.controller.textEditingController,
               optionsBuilder: (TextEditingValue textEditingValue) =>
-                  buildAutoCompleteOptions(
-                      textEditingValue, textEditingController),
+                  buildAutoCompleteOptions(textEditingValue,
+                      widget.controller.textEditingController),
               displayStringForOption: (SelectOneItem option) =>
                   option.label ?? option.value,
               fieldViewBuilder: (BuildContext context,
@@ -414,14 +435,19 @@ class SelectOneState extends FormFieldWidgetState<SelectOne>
                 return TextField(
                   enabled: isEnabled(),
                   showCursor: true,
-                  style: const TextStyle(
-                      color: Colors.black, fontWeight: FontWeight.w500),
+                  style: DefaultTextStyle.of(context)
+                      .style
+                      .merge(widget._controller.textStyle.getTextStyle()),
                   controller: fieldTextEditingController,
                   focusNode: fieldFocusNode,
                   decoration: inputDecoration.copyWith(
                     labelText: widget.controller.floatLabel == true
                         ? widget.controller.label
                         : null,
+                    fillColor: widget._controller
+                        .fillColor, // Background color for the field
+                    enabledBorder: getEnabledBorder(),
+                    focusedBorder: getSafeFocusedBorder(),
                   ),
                   onChanged: (value) {
                     final oldValue = widget._controller.maybeValue;
@@ -507,6 +533,7 @@ class SelectOneState extends FormFieldWidgetState<SelectOne>
         child: Material(
           shadowColor: EnsembleTheme.grey,
           elevation: 2.0,
+          color: widget._controller.dropdownBackgroundColor,
           type: MaterialType.card,
           child: SizedBox(
               width: constraints.biggest.width,
@@ -552,10 +579,18 @@ class SelectOneState extends FormFieldWidgetState<SelectOne>
                                       widget._controller.createNewItemLabel,
                                       option.value,
                                     ),
+                                    style: DefaultTextStyle.of(context)
+                                        .style
+                                        .merge(widget._controller.textStyle
+                                            .getTextStyle()),
                                   )
                                 : Text(
                                     Utils.optionalString(option.label) ??
                                         option.value,
+                                    style: DefaultTextStyle.of(context)
+                                        .style
+                                        .merge(widget._controller.textStyle
+                                            .getTextStyle()),
                                   ),
                           ],
                         ),
@@ -575,7 +610,7 @@ class SelectOneState extends FormFieldWidgetState<SelectOne>
 
 // ---------------------------------- Build Items ListTile if [AUTOCOMPLETE] is false ---------------------------------
   List<DropdownMenuItem<dynamic>>? buildItems(List<SelectOneItem>? items,
-      DropdownItemTemplate? itemTemplate, List? dataList) {
+      LabelValueItemTemplate? itemTemplate, List? dataList) {
     List<DropdownMenuItem<dynamic>>? results;
     // first add the static list
     if (items != null) {
@@ -630,8 +665,10 @@ class SelectOneState extends FormFieldWidgetState<SelectOne>
 
           var labelWidget = DataScopeWidget(
               scopeManager: templatedScope,
-              child: templatedScope
-                  .buildWidgetFromDefinition(itemTemplate.template));
+              child: itemTemplate.label != null
+                  ? Text(templatedScope.dataContext.eval(itemTemplate.label!))
+                  : templatedScope
+                      .buildWidgetFromDefinition(itemTemplate.labelWidget));
           results.add(DropdownMenuItem(
               value: templatedScope.dataContext.eval(itemTemplate.value),
               child: labelWidget));
@@ -656,10 +693,62 @@ class SelectOneState extends FormFieldWidgetState<SelectOne>
     }
   }
 
+  InputBorder getCustomBorder({
+    required InputBorder originalBorder,
+    Color? borderColor,
+    double? borderWidth,
+    BorderRadius? borderRadius,
+  }) {
+    if (widget._controller.variant == InputVariant.underline) {
+      return (originalBorder as UnderlineInputBorder).copyWith(
+        borderSide: BorderSide(
+          color: borderColor ?? originalBorder.borderSide.color,
+          width: borderWidth ?? originalBorder.borderSide.width,
+        ),
+        borderRadius: const BorderRadius.all(Radius.circular(4)),
+      );
+    } else {
+      return (originalBorder as OutlineInputBorder).copyWith(
+        borderSide: BorderSide(
+          color: borderColor ?? originalBorder.borderSide.color,
+          width: borderWidth ?? originalBorder.borderSide.width,
+        ),
+        borderRadius: borderRadius ?? originalBorder.borderRadius,
+      );
+    }
+  }
+
+  InputBorder? getEnabledBorder() {
+    if (widget._controller.borderColor != null ||
+        widget._controller.borderWidth != null) {
+      return getCustomBorder(
+        originalBorder: inputDecoration.enabledBorder!,
+        borderColor: widget._controller.borderColor,
+        borderWidth: widget._controller.borderWidth?.toDouble(),
+        borderRadius: widget._controller.borderRadius?.getValue(),
+      );
+    }
+    return null;
+  }
+
+  InputBorder getSafeFocusedBorder() {
+    InputBorder baseBorder =
+        widget._controller.variant == InputVariant.underline
+            ? UnderlineInputBorder()
+            : OutlineInputBorder();
+
+    return getCustomBorder(
+      originalBorder: inputDecoration.focusedBorder ?? baseBorder,
+      borderColor: widget._controller.focusedBorderColor,
+      borderWidth: widget._controller.borderWidth?.toDouble(),
+      borderRadius: widget._controller.borderRadius?.getValue(),
+    );
+  }
+
   @override
   void clear() {
     onSelectionChanged(null);
-    textEditingController.clear();
+    widget.controller.textEditingController.clear();
   }
 
   @override
@@ -695,13 +784,4 @@ class SelectOneItem {
   final String? label;
   IconModel? icon;
   final bool isIcon;
-}
-
-class DropdownItemTemplate extends ItemTemplate {
-  DropdownItemTemplate(
-      super.data,
-      super.name,
-      super.template, // label widget template
-      this.value); // the value when the item is selected
-  dynamic value;
 }

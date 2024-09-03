@@ -3,8 +3,14 @@ import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'dart:math' show asin, cos, pi, sin, sqrt;
 
 import 'package:ensemble_ts_interpreter/invokables/invokablecommons.dart';
+import 'package:flutter/rendering.dart';
 
-class FirestoreDocumentReference with Invokable {
+mixin WrapsNativeType<T> {
+  T unwrap();
+}
+
+class FirestoreDocumentReference
+    with Invokable, WrapsNativeType<DocumentReference> {
   final DocumentReference reference;
 
   FirestoreDocumentReference(this.reference);
@@ -31,9 +37,14 @@ class FirestoreDocumentReference with Invokable {
           await reference.set(EnsembleFieldValue.prepareToSendToFirestore(data), options),
     };
   }
+
+  @override
+  DocumentReference unwrap() {
+    return reference;
+  }
 }
 
-class FirestoreQuery with Invokable {
+class FirestoreQuery with Invokable, WrapsNativeType<Query> {
   final Query query;
 
   FirestoreQuery(this.query);
@@ -72,6 +83,11 @@ class FirestoreQuery with Invokable {
       'get': () async => await query.get(),
     };
   }
+
+  @override
+  Query<Object?> unwrap() {
+    return query;
+  }
 }
 
 class FirestoreCollectionReference extends FirestoreQuery {
@@ -105,9 +121,14 @@ class FirestoreCollectionReference extends FirestoreQuery {
     });
     return methods;
   }
+
+  @override
+  CollectionReference unwrap() {
+    return collection;
+  }
 }
 
-class FirestoreGeoPoint with Invokable {
+class FirestoreGeoPoint with Invokable, WrapsNativeType<GeoPoint> {
   final GeoPoint geoPoint;
 
   FirestoreGeoPoint(this.geoPoint);
@@ -148,12 +169,46 @@ class FirestoreGeoPoint with Invokable {
   double _degreesToRadians(double degrees) {
     return degrees * pi / 180;
   }
+
+  @override
+  GeoPoint unwrap() {
+    return geoPoint;
+  }
 }
 
-class FirestoreTimestamp with Invokable {
+class StaticFirestoreTimestamp with Invokable {
+  @override
+  Map<String, Function> getters() {
+    return {};
+  }
+
+  @override
+  Map<String, Function> methods() {
+    return {
+      'fromDate': (Date d) => FirestoreTimestamp.fromDate(d),
+      'fromMillis': (int milliseconds) => FirestoreTimestamp(
+          Timestamp.fromMillisecondsSinceEpoch(milliseconds)),
+      'fromMicroseconds': (int microseconds) => FirestoreTimestamp(
+          Timestamp.fromMicrosecondsSinceEpoch(microseconds)),
+      'now': () => FirestoreTimestamp(Timestamp.now()),
+      'init': (int seconds, int nanoseconds) =>
+          FirestoreTimestamp(Timestamp(seconds, nanoseconds)),
+    };
+  }
+
+  @override
+  Map<String, Function> setters() {
+    return {};
+  }
+}
+
+class FirestoreTimestamp
+    with Invokable, SupportsPrimitiveOperations, WrapsNativeType<Timestamp> {
   final Timestamp timestamp;
 
   FirestoreTimestamp(this.timestamp);
+  FirestoreTimestamp.fromDate(Date date)
+      : timestamp = Timestamp.fromDate(date.dateTime);
 
   @override
   Map<String, Function> getters() {
@@ -171,12 +226,41 @@ class FirestoreTimestamp with Invokable {
     return {
       'toDate': () => Date(timestamp.toDate()),
       'toString': () => timestamp.toDate().toString(),
+      'toMillis': () => timestamp.millisecondsSinceEpoch,
+      'toMicroseconds': () => timestamp.microsecondsSinceEpoch,
+      'valueOf': () => timestamp.toString(),
+      'isEqual': (dynamic other) =>
+          other is FirestoreTimestamp && timestamp == other.timestamp,
     };
   }
 
   @override
   String toString() {
     return methods()['toString']!();
+  }
+
+  @override
+  runOperation(String operator, rhs) {
+    if (rhs is FirestoreTimestamp) {
+      switch (operator) {
+        case '+':
+          return FirestoreTimestamp(Timestamp(
+              timestamp.seconds + rhs.timestamp.seconds,
+              timestamp.nanoseconds + rhs.timestamp.nanoseconds));
+        case '-':
+          return FirestoreTimestamp(Timestamp(
+              timestamp.seconds - rhs.timestamp.seconds,
+              timestamp.nanoseconds - rhs.timestamp.nanoseconds));
+        default:
+          throw Exception('Unsupported operation: $operator');
+      }
+    }
+    throw Exception('Unsupported operation: $operator');
+  }
+
+  @override
+  Timestamp unwrap() {
+    return timestamp;
   }
 }
 

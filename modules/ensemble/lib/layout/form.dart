@@ -1,6 +1,7 @@
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/widget/has_children.dart';
 import 'package:ensemble/framework/widget/widget.dart';
+import 'package:ensemble/model/item_template.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/util/layout_utils.dart';
 import 'package:ensemble/util/utils.dart';
@@ -36,7 +37,7 @@ class EnsembleForm extends StatefulWidget
   }
 
   @override
-  void initChildren({List<WidgetModel>? children, ItemTemplate? itemTemplate}) {
+  void initChildren({List<WidgetModel>? children, Map? itemTemplate}) {
     _controller.children = children;
   }
 
@@ -58,7 +59,7 @@ class EnsembleForm extends StatefulWidget
   Map<String, Function> setters() {
     return {
       'onSubmit': (funcDefinition) => _controller.onSubmit =
-          EnsembleAction.fromYaml(funcDefinition, initiator: this),
+          EnsembleAction.from(funcDefinition, initiator: this),
       'labelPosition': (value) =>
           handleLabelPosition(Utils.optionalString(value)),
       'labelOverflow': (value) =>
@@ -120,7 +121,7 @@ class FormController extends WidgetController {
   int gap = _defaultGap;
 }
 
-class FormState extends WidgetState<EnsembleForm>
+class FormState extends EWidgetState<EnsembleForm>
     with HasChildren<EnsembleForm> {
   bool validate() {
     return widget?._formKey.currentState!.validate() ?? false;

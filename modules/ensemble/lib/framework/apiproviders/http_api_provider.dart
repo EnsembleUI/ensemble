@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:ensemble/framework/apiproviders/api_provider.dart';
 import 'dart:async';
 import 'dart:convert';
@@ -13,6 +15,7 @@ import 'package:ensemble/util/utils.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
+import 'package:http/io_client.dart';
 import 'package:yaml/yaml.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter/foundation.dart' as foundation;
@@ -115,33 +118,95 @@ class HTTPAPIProvider extends APIProvider {
       log("Body(debug only): $body");
     }
 
+    final env =
+        Ensemble().getConfig()?.definitionProvider.getAppConfig()?.envVariables;
+    final secrets = Ensemble().getConfig()?.definitionProvider.getSecrets();
+
+    bool sslPinningEnabled =
+        env?['ssl_pinning_enabled']?.toLowerCase() == 'true';
+    String? sslPinningCertificate = secrets?['ssl_pinning_certificate'];
+
     Completer<http.Response> completer = Completer();
     http.Response response;
-    switch (method) {
-      case 'POST':
-        response =
-            await http.post(Uri.parse(url), headers: headers, body: body);
-        break;
-      case 'PUT':
-        response = await http.put(Uri.parse(url), headers: headers, body: body);
-        break;
-      case 'PATCH':
-        response =
-            await http.patch(Uri.parse(url), headers: headers, body: body);
-        break;
-      case 'DELETE':
-        response =
-            await http.delete(Uri.parse(url), headers: headers, body: body);
-        break;
-      case 'GET':
-      default:
-        response = await http.get(Uri.parse(url), headers: headers);
-        break;
+
+    try {
+      http.Client client = await _getHttpClient(
+        sslPinningEnabled: sslPinningEnabled,
+        sslPinningCertificate: sslPinningCertificate,
+      );
+      switch (method) {
+        case 'POST':
+          response =
+              await client.post(Uri.parse(url), headers: headers, body: body);
+          break;
+        case 'PUT':
+          response =
+              await client.put(Uri.parse(url), headers: headers, body: body);
+          break;
+        case 'PATCH':
+          response =
+              await client.patch(Uri.parse(url), headers: headers, body: body);
+          break;
+        case 'DELETE':
+          response =
+              await client.delete(Uri.parse(url), headers: headers, body: body);
+          break;
+        case 'GET':
+        default:
+          response = await client.get(Uri.parse(url), headers: headers);
+          break;
+      }
+
+      final isOkay = response.statusCode >= 200 && response.statusCode <= 299;
+      log('Response: ${response.statusCode}');
+      return HttpResponse(response, isOkay ? APIState.success : APIState.error,
+          apiName: apiName);
+    } catch (e) {
+      return _handleError(e, apiName);
     }
-    final isOkay = response.statusCode >= 200 && response.statusCode <= 299;
-    log('Response: ${response.statusCode}');
-    return HttpResponse(response, isOkay ? APIState.success : APIState.error,
-        apiName: apiName);
+  }
+
+  Future<http.Client> _getHttpClient({
+    required bool sslPinningEnabled,
+    String? sslPinningCertificate,
+  }) async {
+    if (kIsWeb) {
+      // SSL pinning is not supported on the web
+      return http.Client();
+    }
+
+    if (sslPinningEnabled && sslPinningCertificate != null) {
+      Uint8List bytes = base64.decode(sslPinningCertificate);
+      SecurityContext context = SecurityContext.defaultContext;
+      context.setTrustedCertificatesBytes(bytes);
+
+      HttpClient httpClient = HttpClient(context: context);
+      return IOClient(httpClient);
+    } else {
+      return http.Client();
+    }
+  }
+
+  HttpResponse _handleError(Object error, String apiName) {
+    String errorMessage;
+    if (error is HandshakeException || error is TlsException) {
+      errorMessage =
+          'SSL Pinning failed: ${error.toString()}. Please check your certificate.';
+    } else if (error is SocketException) {
+      errorMessage =
+          'Network error: ${error.message}. Please check your network connection.';
+    } else {
+      errorMessage = 'Unexpected error: ${error.toString()}.';
+    }
+
+    log(errorMessage);
+    return HttpResponse.fromBody(
+      errorMessage,
+      {'Content-Type': 'text/plain'},
+      500,
+      'Internal Server Error',
+      APIState.error,
+    );
   }
 
   @override

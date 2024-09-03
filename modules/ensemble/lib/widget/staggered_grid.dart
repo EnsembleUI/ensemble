@@ -6,6 +6,7 @@ import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/widget/has_children.dart';
 import 'package:ensemble/layout/templated.dart';
+import 'package:ensemble/model/item_template.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
@@ -26,6 +27,7 @@ class EnsembleStaggeredGrid extends StatefulWidget
   EnsembleStaggeredGrid({Key? key}) : super(key: key);
 
   final StaggeredGridController _controller = StaggeredGridController();
+
   @override
   StaggeredGridController get controller => _controller;
 
@@ -47,7 +49,7 @@ class EnsembleStaggeredGrid extends StatefulWidget
       'verticalGap': (value) =>
           _controller.verticalGap = Utils.optionalDouble(value),
       'onItemTap': (funcDefinition) => _controller.onItemTap =
-          EnsembleAction.fromYaml(funcDefinition, initiator: this),
+          EnsembleAction.from(funcDefinition, initiator: this),
       'onItemTapHaptic': (value) =>
           _controller.onItemTapHaptic = Utils.optionalString(value)
     };
@@ -60,9 +62,9 @@ class EnsembleStaggeredGrid extends StatefulWidget
   }
 
   @override
-  void initChildren({List<WidgetModel>? children, ItemTemplate? itemTemplate}) {
+  void initChildren({List<WidgetModel>? children, Map? itemTemplate}) {
     _controller.children = children;
-    _controller.itemTemplate = itemTemplate;
+    _controller.itemTemplate = ItemTemplate.from(itemTemplate);
     if (_controller.children != null && itemTemplate != null) {
       throw LanguageError(
           '${EnsembleStaggeredGrid.type} accepts either children or item-template',
@@ -71,7 +73,7 @@ class EnsembleStaggeredGrid extends StatefulWidget
   }
 }
 
-class EnsembleStaggeredGridState extends WidgetState<EnsembleStaggeredGrid>
+class EnsembleStaggeredGridState extends EWidgetState<EnsembleStaggeredGrid>
     with TemplatedWidgetState, HasChildren<EnsembleStaggeredGrid> {
   List<StaggeredTile> _staggeredTiles = [];
   List<Widget>? templatedChildren;
@@ -83,7 +85,7 @@ class EnsembleStaggeredGridState extends WidgetState<EnsembleStaggeredGrid>
     // evaluate item-template's initial value & listen for changes
     if (widget._controller.itemTemplate != null) {
       registerItemTemplate(context, widget._controller.itemTemplate!,
-          evaluateInitialValue: true, onDataChanged: (List dataList) {
+          onDataChanged: (List dataList) {
         setState(() {
           templatedChildren = buildWidgetsFromTemplate(
               context, dataList, widget._controller.itemTemplate!);

@@ -10,10 +10,12 @@ import 'package:ensemble/framework/view/footer.dart';
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/layout/templated.dart';
 import 'package:ensemble/model/pull_to_refresh.dart';
+import 'package:ensemble/model/item_template.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/util/gesture_detector.dart';
+import 'package:ensemble/widget/helpers/box_wrapper.dart';
 import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:ensemble/framework/theme/theme_manager.dart';
 import 'package:ensemble/widget/helpers/pull_to_refresh_container.dart';
@@ -67,17 +69,17 @@ class GridView extends StatefulWidget
       'itemAspectRatio': (value) =>
           _controller.itemAspectRatio = Utils.optionalDouble(value, min: 0),
       'onItemTap': (funcDefinition) => _controller.onItemTap =
-          EnsembleAction.fromYaml(funcDefinition, initiator: this),
+          EnsembleAction.from(funcDefinition, initiator: this),
       'onItemTapHaptic': (value) =>
           _controller.onItemTapHaptic = Utils.optionalString(value),
       'pullToRefresh': (input) =>
           _controller.pullToRefresh = PullToRefresh.fromMap(input, this),
       'onPullToRefresh': (funcDefinition) => _controller.onPullToRefresh =
-          EnsembleAction.fromYaml(funcDefinition, initiator: this),
+          EnsembleAction.from(funcDefinition, initiator: this),
       'pullToRefreshOptions': (input) => _controller.pullToRefreshOptions =
           PullToRefreshOptions.fromMap(input),
       'onScrollEnd': (funcDefinition) => _controller.onScrollEnd =
-          EnsembleAction.fromYaml(funcDefinition, initiator: this),
+          EnsembleAction.from(funcDefinition, initiator: this),
       'reverse': (value) =>
           _controller.reverse = Utils.getBool(value, fallback: false),
       'scrollController': (value) {
@@ -86,12 +88,14 @@ class GridView extends StatefulWidget
       },
       'direction': (value) =>
           _controller.direction = Utils.optionalString(value),
+      'shrinkWrap': (value) =>
+          controller.shrinkWrap = Utils.optionalBool(value),
     };
   }
 
   @override
-  void initChildren({List<WidgetModel>? children, ItemTemplate? itemTemplate}) {
-    _controller.itemTemplate = itemTemplate;
+  void initChildren({List<WidgetModel>? children, Map? itemTemplate}) {
+    _controller.itemTemplate = ItemTemplate.from(itemTemplate);
   }
 }
 
@@ -111,6 +115,7 @@ class GridViewController extends BoxController {
   bool reverse = false;
   ScrollController? scrollController;
   String? direction;
+  bool? shrinkWrap;
 
   PullToRefresh? pullToRefresh;
   @Deprecated("use pullToRefresh")
@@ -135,7 +140,7 @@ class GridViewController extends BoxController {
   }
 }
 
-class GridViewState extends WidgetState<GridView> with TemplatedWidgetState {
+class GridViewState extends EWidgetState<GridView> with TemplatedWidgetState {
   static const gap = 10.0;
   static const cachedPixels = 500.0; // cache an additional iphone size height
 
@@ -146,7 +151,7 @@ class GridViewState extends WidgetState<GridView> with TemplatedWidgetState {
     super.didChangeDependencies();
     if (widget._controller.itemTemplate != null) {
       registerItemTemplate(context, widget._controller.itemTemplate!,
-          evaluateInitialValue: true, onDataChanged: (List dataList) {
+          onDataChanged: (List dataList) {
         setState(() {
           _items = dataList;
         });
@@ -215,12 +220,20 @@ class GridViewState extends WidgetState<GridView> with TemplatedWidgetState {
 
     PullToRefresh? pullToRefresh = _getPullToRefresh();
     Widget myGridView = LayoutBuilder(builder: (context, constraints) {
+      // Note that GridView already uses LayoutBuilder, hence checking
+      // it in here vs wrapping inside another nested LayoutBuilder
+      if (StudioDebugger().debugMode && widget._controller.shrinkWrap != true) {
+        StudioDebugger().assertScrollableHasBoundedHeight(
+            constraints, GridView.type, context, widget._controller);
+      }
+
       return flutter.GridView.builder(
           controller: (footerScope != null &&
                   footerScope.isColumnScrollableAndRoot(context))
               ? null
               : widget._controller.scrollController,
-          shrinkWrap: FooterScope.of(context) != null ? true : false,
+          shrinkWrap: widget._controller.shrinkWrap ??
+              (FooterScope.of(context) != null ? true : false),
           physics: (footerScope != null &&
                   footerScope.isColumnScrollableAndRoot(context))
               ? const NeverScrollableScrollPhysics()
@@ -251,10 +264,6 @@ class GridViewState extends WidgetState<GridView> with TemplatedWidgetState {
           padding: widget._controller.padding ?? EdgeInsets.zero,
           itemBuilder: (context, index) => _buildItem(index));
     });
-    if (StudioDebugger().debugMode) {
-      myGridView = StudioDebugger().assertScrollableHasBoundedHeightWrapper(
-          myGridView, GridView.type, context, widget.controller);
-    }
 
     if (pullToRefresh != null) {
       myGridView = PullToRefreshContainer(

@@ -1,4 +1,5 @@
 import 'package:collection/collection.dart';
+import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/error_handling.dart';
@@ -7,6 +8,7 @@ import 'package:ensemble/framework/model.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/view/data_scope_widget.dart';
 import 'package:ensemble/screen_controller.dart';
+import 'package:ensemble/util/ensemble_utils.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/material.dart';
@@ -39,7 +41,7 @@ class ShowBottomSheetAction extends EnsembleAction {
         initiator: initiator,
         inputs: Utils.getMap(payload['inputs']),
         body: body,
-        onDismiss: EnsembleAction.fromYaml(payload['onDismiss']),
+        onDismiss: EnsembleAction.from(payload['onDismiss']),
         payload: payload);
   }
 
@@ -99,30 +101,26 @@ class ShowBottomSheetAction extends EnsembleAction {
   @override
   Future<dynamic> execute(BuildContext context, ScopeManager scopeManager) {
     if (body != null) {
+      final body = getBodyWidget(scopeManager, context);
       showModalBottomSheet(
-        context: context,
-        // disable the default bottom sheet styling since we use our own
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        showDragHandle: false,
-
-        barrierColor: getBarrierColor(scopeManager),
-        isScrollControlled: true,
-        enableDrag: true,
-        // padding to account for the keyboard when we have input widgets inside the modal
-        builder: (modalContext) => Padding(
-            padding: EdgeInsets.only(
-              bottom: MediaQuery.of(modalContext).viewInsets.bottom,
-            ),
-            // have a bottom modal scope widget so we can close the modal
-            child: BottomSheetScopeWidget(
-              rootContext: modalContext,
-              // create a new Data Scope since the bottom modal is placed in a different context tree (directly under MaterialApp)
+          context: context,
+          // disable the default bottom sheet styling since we use our own
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          showDragHandle: false,
+          barrierColor: getBarrierColor(scopeManager),
+          isScrollControlled: true,
+          enableDrag: true,
+          // padding to account for the keyboard when we have input widgets inside the modal
+          builder: (modalContext) {
+            return Padding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(modalContext).viewInsets.bottom,
+              ),
               child: DataScopeWidget(
-                  scopeManager: scopeManager.createChildScope(),
-                  child: getBodyWidget(scopeManager, context)),
-            )),
-      ).then((payload) {
+                  scopeManager: scopeManager.createChildScope(), child: body),
+            );
+          }).then((payload) {
         if (onDismiss != null) {
           return ScreenController().executeActionWithScope(
               context, scopeManager, onDismiss!,
@@ -237,41 +235,15 @@ class ShowBottomSheetAction extends EnsembleAction {
 
 /// Dismiss the Bottom Modal (if the context is a descendant, no-op otherwise)
 class DismissBottomSheetAction extends EnsembleAction {
-  DismissBottomSheetAction({this.payload});
+  DismissBottomSheetAction({super.initiator, this.payload});
 
   Map? payload;
 
-  factory DismissBottomSheetAction.from({Map? payload}) =>
-      DismissBottomSheetAction(payload: payload?['payload']);
+  factory DismissBottomSheetAction.from({Invokable? initiator, Map? payload}) =>
+      DismissBottomSheetAction(
+          initiator: initiator, payload: Utils.getMap(payload?['payload']));
 
   @override
-  Future<dynamic> execute(BuildContext context, ScopeManager scopeManager) {
-    BuildContext? bottomSheetContext =
-        BottomSheetScopeWidget.getRootContext(context);
-    if (bottomSheetContext != null) {
-      return Navigator.maybePop(
-          bottomSheetContext, scopeManager.dataContext.eval(payload));
-    }
-    return Navigator.maybePop(context, scopeManager.dataContext.eval(payload));
-  }
-}
-
-/// a wrapper InheritedWidget for its descendant to look up the Sheet's root context to close it
-class BottomSheetScopeWidget extends InheritedWidget {
-  const BottomSheetScopeWidget(
-      {super.key, required super.child, required this.rootContext});
-
-  // this is the context root of the modal
-  final BuildContext rootContext;
-
-  @override
-  bool updateShouldNotify(covariant BottomSheetScopeWidget oldWidget) {
-    return oldWidget.rootContext != rootContext;
-  }
-
-  static BuildContext? getRootContext(BuildContext context) {
-    BottomSheetScopeWidget? wrapperWidget =
-        context.dependOnInheritedWidgetOfExactType<BottomSheetScopeWidget>();
-    return wrapperWidget?.rootContext;
-  }
+  Future<bool> execute(BuildContext context, ScopeManager scopeManager) =>
+      EnsembleUtils.dismissBottomSheet(scopeManager.dataContext.eval(payload));
 }

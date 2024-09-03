@@ -1,3 +1,4 @@
+import 'package:ensemble/framework/stub/ensemble_bracket.dart';
 import 'package:ensemble/framework/stub/ensemble_chat.dart';
 import 'package:ensemble/framework/stub/qr_code_scanner.dart';
 import 'package:ensemble/framework/view/footer.dart';
@@ -22,7 +23,8 @@ import 'package:ensemble/widget/button.dart';
 import 'package:ensemble/widget/calendar.dart';
 import 'package:ensemble/widget/checkbox.dart';
 import 'package:ensemble/widget/countdown.dart';
-import 'package:ensemble/widget/input/radio_button.dart';
+import 'package:ensemble/widget/radio/radio_button.dart';
+import 'package:ensemble/widget/radio/radio_group.dart';
 import 'package:ensemble/widget/static_map.dart';
 import 'package:ensemble/widget/shape.dart';
 import 'package:ensemble/widget/carousel.dart';
@@ -64,7 +66,6 @@ import 'package:ensemble/widget/visualization/topology_chart.dart';
 import 'package:ensemble/widget/webview/webview.dart';
 import 'package:ensemble/widget/youtube/youtube.dart';
 import 'package:ensemble/widget/weeklyscheduler.dart';
-import 'package:ensemble_bracket/ensemble_bracket.dart';
 import 'package:get_it/get_it.dart';
 
 import 'fintech/tabapayconnect.dart';
@@ -82,7 +83,6 @@ class WidgetRegistry {
     Avatar.type: Avatar.build,
     Shape.type: Shape.build,
     StaticMap.type: StaticMap.build,
-    Bracket.type: Bracket.build,
   };
 
   /// register or override a widget
@@ -128,6 +128,7 @@ class WidgetRegistry {
         ConnectWithMicrosoft.type: () => GetIt.instance<ConnectWithMicrosoft>(),
         SignInWithAuth0.type: () => GetIt.instance<SignInWithAuth0>(),
         EnsembleChat.type: () => GetIt.instance<EnsembleChat>(),
+        EnsembleBracket.type: () => GetIt.instance<EnsembleBracket>(),
         EnsembleQRCodeScanner.type: () =>
             GetIt.instance<EnsembleQRCodeScanner>(),
         PopupMenu.type: () => PopupMenu(),
@@ -135,7 +136,7 @@ class WidgetRegistry {
         Countdown.type: () => Countdown(),
 
         // form fields
-        RadioWidget.type: () => RadioWidget(),
+        RadioButton.type: () => RadioButton(),
         EnsembleForm.type: () => EnsembleForm(),
         TextInput.type: () => TextInput(),
         ConfirmationInput.type: () => ConfirmationInput(),
@@ -147,6 +148,7 @@ class WidgetRegistry {
         EnsembleSwitch.type: () => EnsembleSwitch(),
         EnsembleTripleSwitch.type: () => EnsembleTripleSwitch(),
         Dropdown.type: () => Dropdown(),
+        RadioGroup.type: () => RadioGroup(),
         Button.type: () => Button(),
         EnsembleIconButton.type: () => EnsembleIconButton(),
         EnsembleToggleButton.type: () => EnsembleToggleButton(),
@@ -184,5 +186,8 @@ class WidgetRegistry {
         //domain specific or custom widgets
         FinicityConnect.type: () => FinicityConnect(),
         TabaPayConnect.type: () => TabaPayConnect(),
+
+        // handling common GPT widget mistakes
+        "Container": () => Column(),
       };
 }

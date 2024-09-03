@@ -7,6 +7,7 @@ import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/helpers/HasTextPlaceholder.dart';
 import 'package:ensemble/widget/helpers/form_helper.dart';
+import 'package:ensemble/widget/helpers/input_wrapper.dart';
 import 'package:ensemble/widget/helpers/widgets.dart';
 import 'package:ensemble/widget/widget_registry.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
@@ -53,7 +54,7 @@ class Date extends StatefulWidget
       'showCalendarIcon': (shouldShow) =>
           _controller.showCalendarIcon = Utils.optionalBool(shouldShow),
       'onChange': (definition) => _controller.onChange =
-          EnsembleAction.fromYaml(definition, initiator: this)
+          EnsembleAction.from(definition, initiator: this)
     });
     return setters;
   }

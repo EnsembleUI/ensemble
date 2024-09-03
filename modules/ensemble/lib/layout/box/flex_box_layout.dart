@@ -10,6 +10,7 @@ import 'package:ensemble/layout/box/base_box_layout.dart';
 import 'package:ensemble/layout/box/box_layout.dart';
 import 'package:ensemble/layout/box/box_utils.dart';
 import 'package:ensemble/layout/templated.dart';
+import 'package:ensemble/model/item_template.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:ensemble/widget/spacer.dart';
@@ -65,19 +66,19 @@ abstract class FlexBoxLayout extends StatefulWidget
   Map<String, Function> setters() {
     return {
       'onTap': (funcDefinition) => _controller.onTap =
-          EnsembleAction.fromYaml(funcDefinition, initiator: this),
+          EnsembleAction.from(funcDefinition, initiator: this),
     };
   }
 
   @override
-  void initChildren({List<WidgetModel>? children, ItemTemplate? itemTemplate}) {
+  void initChildren({List<WidgetModel>? children, Map? itemTemplate}) {
     _controller.children = children;
   }
 
   bool isVertical();
 }
 
-class FlexBoxLayoutState extends WidgetState<FlexBoxLayout>
+class FlexBoxLayoutState extends EWidgetState<FlexBoxLayout>
     with TemplatedWidgetState, HasChildren<FlexBoxLayout> {
   @override
   Widget buildWidget(BuildContext context) {
@@ -98,7 +99,8 @@ class FlexBoxLayoutState extends WidgetState<FlexBoxLayout>
       }
     }
     // add gap if needed
-    items = BoxUtils.buildChildrenAndGap(widget._controller, children: items);
+    items =
+        BoxUtils.buildChildrenAndGap(widget._controller.gap, children: items);
 
     Widget boxWidget;
     if (widget.isVertical()) {

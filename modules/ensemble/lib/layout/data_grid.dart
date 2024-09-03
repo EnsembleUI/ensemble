@@ -5,6 +5,7 @@ import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/view/data_scope_widget.dart';
 import 'package:ensemble/framework/widget/has_children.dart';
 import 'package:ensemble/layout/templated.dart';
+import 'package:ensemble/model/item_template.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/screen_controller.dart';
@@ -26,13 +27,16 @@ class DataGrid extends StatefulWidget
         Invokable,
         HasController<DataGridController, DataGridState> {
   static const type = 'DataGrid';
+
   DataGrid({Key? key}) : super(key: key);
   late final ItemTemplate? itemTemplate;
   late List cols;
 
   final DataGridController _controller = DataGridController();
+
   @override
   DataGridController get controller => _controller;
+
   @override
   State<StatefulWidget> createState() => DataGridState();
 
@@ -44,9 +48,9 @@ class DataGrid extends StatefulWidget
   }
 
   @override
-  void initChildren({List<WidgetModel>? children, ItemTemplate? itemTemplate}) {
+  void initChildren({List<WidgetModel>? children, Map? itemTemplate}) {
     _controller.children = children;
-    this.itemTemplate = itemTemplate;
+    this.itemTemplate = ItemTemplate.from(itemTemplate);
   }
 
   @override
@@ -88,6 +92,7 @@ class DataGrid extends StatefulWidget
 
 class EnsembleDataColumn extends DataColumn {
   final String type;
+
   EnsembleDataColumn({
     required String label,
     required this.type,
@@ -141,9 +146,9 @@ class EnsembleDataRow extends StatefulWidget
   State<StatefulWidget> createState() => EnsembleDataRowState();
 
   @override
-  void initChildren({List<WidgetModel>? children, ItemTemplate? itemTemplate}) {
+  void initChildren({List<WidgetModel>? children, Map? itemTemplate}) {
     this.children = children;
-    this.itemTemplate = itemTemplate;
+    this.itemTemplate = ItemTemplate.from(itemTemplate);
   }
 
   @override
@@ -213,7 +218,7 @@ class DataColumnSort {
   });
 }
 
-class DataGridState extends WidgetState<DataGrid>
+class DataGridState extends EWidgetState<DataGrid>
     with TemplatedWidgetState, HasChildren<DataGrid> {
   List<Widget>? templatedChildren;
   List<EnsembleDataColumn> _columns = [];
@@ -249,7 +254,7 @@ class DataGridState extends WidgetState<DataGrid>
           onDataChanged: (List dataList) {
         this.dataList = dataList;
         _sortItems();
-      }, evaluateInitialValue: true);
+      });
     }
   }
 

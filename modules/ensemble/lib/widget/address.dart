@@ -52,7 +52,7 @@ class Address extends StatefulWidget
       'proximitySearchRadius': (value) =>
           _controller.proximitySearchRadius = Utils.optionalInt(value),
       'onChange': (definition) => _controller.onChange =
-          EnsembleAction.fromYaml(definition, initiator: this)
+          EnsembleAction.from(definition, initiator: this)
     };
   }
 }
@@ -87,7 +87,7 @@ class AddressController extends WidgetController with LocationCapability {
   }
 }
 
-class AddressState extends WidgetState<Address> {
+class AddressState extends EWidgetState<Address> {
   TextEditingController? _textEditingController;
   FocusNode? _focusNode;
   List<Place> _recentSearches = [];

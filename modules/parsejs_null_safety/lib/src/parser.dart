@@ -23,8 +23,9 @@ class Parser {
     if (message == null) {
       if (expected != null) {
         message = "Expected $expected but found $tok";
-      }else{
-        message = "Unexpected token $tok";}
+      } else {
+        message = "Unexpected token $tok";
+      }
     }
     throw new ParseError(
         message, filename, tok!.line, tok.startOffset, tok.endOffset);
@@ -111,16 +112,18 @@ class Parser {
   BlockStatement parseFunctionBody() {
     return parseBlock();
   }
+
   BlockStatement parseArrowFunctionBody() {
     if (token!.type == Token.LBRACE) {
       return parseBlock();
     }
     Expression exp = parseExpression();
-    if ( token!.type == Token.SEMICOLON ) {
+    if (token!.type == Token.SEMICOLON) {
       consumeSemicolon();
     }
     return new BlockStatement([new ReturnStatement(exp)]);
   }
+
   FunctionNode parseArrowFunction(Expression? exp) {
     int? start = token!.startOffset;
     // List<Name> params;
@@ -130,7 +133,7 @@ class Parser {
     //   params = <Name>[];
     // }
     List<Name> params = <Name>[];
-    if ( exp != null ) {
+    if (exp != null) {
       if (exp is SequenceExpression) {
         for (var e in exp.expressions) {
           if (e is NameExpression) {
@@ -155,6 +158,7 @@ class Parser {
       ..end = endOffset
       ..line = token!.line;
   }
+
   FunctionNode parseFunction() {
     int? start = token!.startOffset;
     assert(token!.text == 'function');
@@ -234,7 +238,7 @@ class Parser {
       case Token.LPAREN:
         next();
         Expression? exp;
-        if ( token!.type != Token.RPAREN ) {
+        if (token!.type != Token.RPAREN) {
           exp = parseExpression();
         }
         consume(Token.RPAREN);

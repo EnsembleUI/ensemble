@@ -25,7 +25,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
-abstract class MapsActionableState extends WidgetState<EnsembleMapWidget> {
+abstract class MapsActionableState extends EWidgetState<EnsembleMapWidget> {
   List<MarkerPayload> getMarkerPayloads();
 
   LocationData? getCurrentLocation();
@@ -130,7 +130,6 @@ class EnsembleMapState extends MapsActionableState
   void _registerMarkerListener(BuildContext context) {
     if (widget.controller.markerItemTemplate != null) {
       registerItemTemplate(context, widget.controller.markerItemTemplate!,
-          evaluateInitialValue: true,
           onDataChanged: (dataList) => _updateMarkers(context, dataList));
     }
   }

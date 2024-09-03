@@ -1,4 +1,6 @@
 View:
+  onLoad: |-
+    console.log(new Date("2022-03-14T16:07:20").toLocaleString());
   styles:
     useSafeArea: true
   body:
@@ -9,6 +11,26 @@ View:
             value: Peter
         - Text:
             text: r@home.hello ${myName.value}
+
+        # pretty date/time
+        - Text:
+            text: ${ensemble.formatter.prettyDate("2024-06-20")}
+        - Text:
+            text: ${ensemble.formatter.prettyTime("2024-06-20T14:02:13")}
+        - Text:
+            text: ${ensemble.formatter.prettyCurrency("100.12")}
+        - Text:
+            text: ${ensemble.formatter.customDateTime("2024-06-20T14:02:13", "MMM d 'at' h:mma")}
+
+        # Date object
+        - Text:
+            text: ${new Date("2022-03-14T16:07:20").toLocaleDateString()}
+        - Text:
+            text: ${new Date("2022-03-14T16:07:20").toLocaleTimeString()}
+        - Text:
+            text: ${new Date("2022-03-14T16:07:20").toLocaleString()}
+
+        # test more translation
         - Button:
             label: Show Toast
             onTap:

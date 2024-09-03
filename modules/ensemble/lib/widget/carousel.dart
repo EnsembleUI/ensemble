@@ -1,4 +1,5 @@
 import 'package:carousel_slider/carousel_slider.dart';
+import 'package:carousel_slider/carousel_slider.dart' as e;
 import 'package:ensemble/framework/device.dart';
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/extensions.dart';
@@ -7,10 +8,12 @@ import 'package:ensemble/framework/view/data_scope_widget.dart';
 import 'package:ensemble/framework/widget/has_children.dart';
 import 'package:ensemble/framework/widget/view_util.dart';
 import 'package:ensemble/layout/templated.dart';
+import 'package:ensemble/model/item_template.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/framework/widget/widget.dart';
+import 'package:ensemble/widget/helpers/box_wrapper.dart';
 import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:ensemble/widget/helpers/widgets.dart';
 import 'package:flutter/material.dart';
@@ -74,9 +77,9 @@ class Carousel extends StatefulWidget
       'indicatorMaxCount': (value) =>
           _controller.indicatorMaxCount = Utils.optionalInt(value),
       'onItemChange': (action) => _controller.onItemChange =
-          EnsembleAction.fromYaml(action, initiator: this),
+          EnsembleAction.from(action, initiator: this),
       'onItemTap': (funcDefinition) => _controller.onItemTap =
-          EnsembleAction.fromYaml(funcDefinition, initiator: this),
+          EnsembleAction.from(funcDefinition, initiator: this),
       'indicatorWidget': (widget) => _controller.indicatorWidget = widget,
       'selectedIndicatorWidget': (widget) =>
           _controller.selectedIndicatorWidget = widget,
@@ -130,9 +133,9 @@ class Carousel extends StatefulWidget
   }
 
   @override
-  void initChildren({List<WidgetModel>? children, ItemTemplate? itemTemplate}) {
+  void initChildren({List<WidgetModel>? children, Map? itemTemplate}) {
     _controller.children = children;
-    _controller.itemTemplate = itemTemplate;
+    _controller.itemTemplate = ItemTemplate.from(itemTemplate);
   }
 }
 
@@ -192,10 +195,10 @@ class MyController extends BoxController {
   int selectedItemIndex = 0;
   int? indicatorMaxCount;
 
-  final CarouselController _carouselController = CarouselController();
+  final e.CarouselController _carouselController = e.CarouselController();
 }
 
-class CarouselState extends WidgetState<Carousel>
+class CarouselState extends EWidgetState<Carousel>
     with TemplatedWidgetState, HasChildren<Carousel> {
   List<Widget>? templatedChildren;
 
@@ -223,7 +226,7 @@ class CarouselState extends WidgetState<Carousel>
     // evaluate item-template's initial value & listen for changes
     if (widget._controller.itemTemplate != null) {
       registerItemTemplate(context, widget._controller.itemTemplate!,
-          evaluateInitialValue: true, onDataChanged: (List dataList) {
+          onDataChanged: (List dataList) {
         setState(() {
           templatedChildren = buildWidgetsFromTemplate(
               context, dataList, widget._controller.itemTemplate!);

@@ -61,11 +61,11 @@ class Video extends StatefulWidget
       'playbackRate': (value) => controller.setPlaybackRate(value),
       'volume': (value) => controller.setVolume(value),
       'onChange': (definition) => _controller.onChange =
-          EnsembleAction.fromYaml(definition, initiator: this),
+          EnsembleAction.from(definition, initiator: this),
       'onStart': (definition) => _controller.onStart =
-          EnsembleAction.fromYaml(definition, initiator: this),
-      'onEnd': (definition) => _controller.onEnd =
-          EnsembleAction.fromYaml(definition, initiator: this),
+          EnsembleAction.from(definition, initiator: this),
+      'onEnd': (definition) =>
+          _controller.onEnd = EnsembleAction.from(definition, initiator: this),
     };
   }
 }
@@ -155,7 +155,7 @@ class MyController extends WidgetController {
   }
 }
 
-mixin PlayerCapabilities on WidgetState<Video> {
+mixin PlayerCapabilities on EWidgetState<Video> {
   void stop();
   void pause();
   void play();
@@ -165,7 +165,7 @@ mixin PlayerCapabilities on WidgetState<Video> {
   void videoPlayerStateChange();
 }
 
-class VideoState extends WidgetState<Video> with PlayerCapabilities {
+class VideoState extends EWidgetState<Video> with PlayerCapabilities {
   @override
   void didChangeDependencies() {
     widget._controller.playerCapabilities = this;

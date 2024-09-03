@@ -7,6 +7,7 @@ import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/bindings.dart';
 import 'package:ensemble/framework/data_context.dart';
+import 'package:ensemble/framework/data_utils.dart';
 import 'package:ensemble/framework/ensemble_widget.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/event.dart';
@@ -20,6 +21,7 @@ import 'package:ensemble/page_model.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/custom_widget/custom_widget.dart';
 import 'package:ensemble/widget/custom_widget/custom_widget_model.dart';
+import 'package:ensemble/widget/radio/radio_button_controller.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokablecontroller.dart';
 import 'package:event_bus/event_bus.dart';
@@ -421,15 +423,13 @@ mixin ViewBuilder on IsScopeManager {
       }
 
       if (payload.widget is UpdatableContainer) {
-        // evaluate the itemTemplate data as initial value
-        if (model.itemTemplate != null) {
-          dynamic initialValue = dataContext.eval(model.itemTemplate!.data);
-          if (initialValue is List) {
-            model.itemTemplate!.initialValue = initialValue;
-          }
-        }
         (payload.widget as UpdatableContainer).initChildren(
             children: payload.children, itemTemplate: model.itemTemplate);
+      } else if (payload.widget is HasItemTemplate) {
+        if (model.itemTemplate != null) {
+          (payload.widget as HasItemTemplate)
+              .setItemTemplate(model.itemTemplate!);
+        }
       }
     });
   }
@@ -440,7 +440,7 @@ mixin ViewBuilder on IsScopeManager {
   ///    at the time the action is executed (to prevent stale-ness)
   /// 2. Widgets can mark certain properties as pass-through so the
   ///    variable evaluation can be done inside the widget
-  /// 3. Special properties like children and item-template are excluded
+  /// 3. Special properties like children and itemTemplate/item-template are excluded
   ///    automatically and don't need to be specified here
   static bool _isPassthroughProperty(String property, dynamic widget) =>
       property.startsWith('on') ||
@@ -502,7 +502,7 @@ mixin ViewBuilder on IsScopeManager {
   /// If the value is a valid binding, we'll register to listen for changes.
   void evalPropertyAndRegisterBinding(
       ScopeManager scopeManager, Invokable widget, String key, dynamic value) {
-    DataExpression? expression = Utils.parseDataExpression(value);
+    DataExpression? expression = DataUtils.parseDataExpression(value);
     if (expression != null) {
       // listen for binding changes
       (this as PageBindingManager).registerBindingListener(
@@ -700,6 +700,10 @@ class PageData {
   Map<String, YamlMap>? apiMap;
   Map<String, EnsembleSocket>? socketData;
 
+  // we keep track of radios's groupId on every page, since Radios can be scattered
+  // anywhere on the screen
+  Map<String, RadioButtonController> radioButtonControllers = {};
+
   /// everytime we call this, we make sure any populated API result will have its updated values here
 /*DataContext getEnsembleContext() {
     for (var element in datasourceMap.values) {
@@ -760,11 +764,11 @@ class EnsembleSocket {
       inputs: Utils.getList(payload['inputs'])?.cast<String>() ?? [],
       uri: Utils.getString(payload['uri'], fallback: ''),
       options: SocketOptions.fromYaml(payload: payload['options']),
-      onReceive: EnsembleAction.fromYaml(payload['onReceive']),
-      onSuccess: EnsembleAction.fromYaml(payload['onSuccess']),
-      onError: EnsembleAction.fromYaml(payload['onError']),
-      onDisconnect: EnsembleAction.fromYaml(payload['onDisconnect']),
-      onReconnecting: EnsembleAction.fromYaml(payload['onReconnectAttempt']),
+      onReceive: EnsembleAction.from(payload['onReceive']),
+      onSuccess: EnsembleAction.from(payload['onSuccess']),
+      onError: EnsembleAction.from(payload['onError']),
+      onDisconnect: EnsembleAction.from(payload['onDisconnect']),
+      onReconnecting: EnsembleAction.from(payload['onReconnectAttempt']),
     );
   }
 

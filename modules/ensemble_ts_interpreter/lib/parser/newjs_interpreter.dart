@@ -4,6 +4,7 @@ import 'package:ensemble_ts_interpreter/invokables/context.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokablecontroller.dart';
 import 'package:jsparser/jsparser.dart';
+import 'package:ensemble_ts_interpreter/parser/regex_ext.dart';
 
 class Bindings extends RecursiveVisitor<dynamic> {
   List<String> bindings = [];
@@ -11,88 +12,101 @@ class Bindings extends RecursiveVisitor<dynamic> {
     visit(program);
     return bindings;
   }
+
   String convertToString(List<String> list) {
     String rtn = '';
-    list.forEach((element) {rtn += '.'+element;});
+    list.forEach((element) {
+      rtn += '.' + element;
+    });
     return rtn;
   }
+
   @override
   visitVariableDeclarator(VariableDeclarator node) {
     String name = visitName(node.name);
     bindings.add(name);
     return name;
   }
+
   @override
   visitBinary(BinaryExpression node) {
     dynamic left = node.left.visitBy(this);
     dynamic right = node.right.visitBy(this);
-    if ( left is String ) {
+    if (left is String) {
       bindings.add(left);
     }
-    if ( right is String ) {
+    if (right is String) {
       bindings.add(right);
     }
     return bindings;
   }
+
   @override
   visitMember(MemberExpression node) {
     dynamic obj = node.object.visitBy(this);
-    if ( obj != null ) {
+    if (obj != null) {
       return obj + '.' + node.property.visitBy(this);
     }
     return null;
   }
+
   @override
   String visitName(Name node) {
     return node.value;
   }
+
   @override
   String visitNameExpression(NameExpression node) {
     return node.name.visitBy(this) as String;
   }
+
   @override
   visitCall(CallExpression node) {
-    if ( node.arguments != null ) {
-      for ( Expression exp in node.arguments ) {
+    if (node.arguments != null) {
+      for (Expression exp in node.arguments) {
         dynamic rtn = exp.visitBy(this);
-        if ( rtn is String ) {
+        if (rtn is String) {
           bindings.add(rtn);
         }
       }
     }
   }
+
   @override
   visitAssignment(AssignmentExpression node) {
-    if ( node.right != null ) {
+    if (node.right != null) {
       dynamic rtn = node.right.visitBy(this);
-      if ( rtn is String ) {
+      if (rtn is String) {
         bindings.add(rtn);
       }
     }
   }
+
   @override
   visitExpressionStatement(ExpressionStatement node) {
     dynamic rtn = node.expression.visitBy(this);
-    if ( rtn is String ) {
+    if (rtn is String) {
       bindings.add(rtn);
     }
   }
+
   @override
-  visitIndex(IndexExpression node, {bool computeAsPattern=false}) {
+  visitIndex(IndexExpression node, {bool computeAsPattern = false}) {
     dynamic obj = node.object.visitBy(this);
     dynamic prop;
-    if ( node.property is LiteralExpression ) {
+    if (node.property is LiteralExpression) {
       prop = (node.property as LiteralExpression).value;
     }
-    if ( node.property is NameExpression ) {
-      if ( obj is String ) {
+    if (node.property is NameExpression) {
+      if (obj is String) {
         bindings.add(obj);
-        bindings.add(node.property.visitBy(this) as String); //we add the name to the bindings as well
+        bindings.add(node.property.visitBy(this)
+            as String); //we add the name to the bindings as well
       }
-    } else if ( obj is String ) {
-      if ( prop is num ) {
-        return obj + '['+prop.toString()+']';
-      } else if ( prop is String ) {
+    } else if (obj is String) {
+      if (prop is num) {
+        return obj + '[' + prop.toString() + ']';
+      } else if (prop is String) {
         return obj + "['" + prop + "']";
       }
     }
@@ -111,47 +125,58 @@ class Bindings extends RecursiveVisitor<dynamic> {
     return rtn;
   }
 }
-class JSInterpreter extends RecursiveVisitor<dynamic> {
 
+class JSInterpreter extends RecursiveVisitor<dynamic> {
   late String code;
   late Program program;
-  Map<Scope,Context> contexts= {};
+  Map<Scope, Context> contexts = {};
   @override
   defaultNode(Node node) {
     dynamic rtn;
-    node.forEach((node)=> rtn = visit(node));
+    node.forEach((node) => rtn = visit(node));
     return rtn;
   }
 
   String getCode(Node node) {
     String rtn = '';
-    if ( node.start != null && node.end != null ) {
-      rtn = code.substring(node.start!,node.end!);
+    if (node.start != null && node.end != null) {
+      rtn = code.substring(node.start!, node.end!);
     }
     return rtn;
   }
+
   JSInterpreter(this.code, this.program, Context programContext) {
     contexts[program] = programContext;
     InvokableController.addGlobals(programContext.getContextMap());
+    InvokableController.updateLocale(programContext.getContextMap());
   }
   static const String parsingErrorAppendage = "Only ES5 is supported. "
       "Key words such as let, const, operators such as -> and templated strings are not yet supported. "
       "Here's a full list of features that are only available in ES6 and are therefore NOT supported in Ensemble at this time. https://www.w3schools.com/js/js_es6.asp";
-  JSInterpreter.fromCode(String code, Context programContext): this(code,parseCode(code),programContext);
+  JSInterpreter.fromCode(String code, Context programContext)
+      : this(code, parseCode(code), programContext);
   static Program parseCode(String code) {
-    if ( code.isEmpty ) {
-      throw JSException(1,"Empty string is being passed as javascript code to parse. Please check your javascript code and fix it");
+    if (code.isEmpty) {
+      throw JSException(1,
+          "Empty string is being passed as javascript code to parse. Please check your javascript code and fix it");
     }
     try {
       return parsejs(code);
-    } on ParseError catch(e) {
-      throw JSException(e.line??1, "Parsing error Occurred while parsing javascript code block. "
-          "Error Message: ${e.message}",detailedError: 'Code: $code . FYI: $parsingErrorAppendage');
+    } on ParseError catch (e) {
+      throw JSException(
+          e.line ?? 1,
+          "Parsing error Occurred while parsing javascript code block. "
+          "Error Message: ${e.message}",
+          detailedError: 'Code: $code . FYI: $parsingErrorAppendage');
     } catch (error) {
-      throw JSException(1, "Parsing error Occurred while parsing javascript code block. "
-          "Error Message: ${error.toString()}",detailedError: 'Code: $code . FYI: $parsingErrorAppendage');
+      throw JSException(
+          1,
+          "Parsing error Occurred while parsing javascript code block. "
+          "Error Message: ${error.toString()}",
+          detailedError: 'Code: $code . FYI: $parsingErrorAppendage');
     }
   }
+
   static String toJSString(Map map) {
     int i = 0;
     Map placeHolders = {};
@@ -163,19 +188,21 @@ class JSInterpreter extends RecursiveVisitor<dynamic> {
         i++;
         return key;
       }
-      throw JSException(1,'Cannot convert to JSON: $value');
+      throw JSException(1, 'Cannot convert to JSON: $value');
     });
     placeHolders.forEach((key, value) {
       encoded = encoded.replaceFirst('\"$key\"', value);
     });
     return encoded;
   }
+
   Scope enclosingScope(Node node) {
     while (node is! Scope) {
       node = node.parent!;
     }
     return node;
   }
+
   Context findProgramContext(Node node) {
     Scope scope = enclosingScope(node);
     while (scope is! Program) {
@@ -183,9 +210,12 @@ class JSInterpreter extends RecursiveVisitor<dynamic> {
     }
     return getContextForScope(scope);
   }
-  JSInterpreter cloneForContext(Scope scope,Context ctx,bool inheritContexts) {
-    JSInterpreter i = JSInterpreter(this.code, this.program,getContextForScope(this.program));
-    if ( inheritContexts ) {
+
+  JSInterpreter cloneForContext(
+      Scope scope, Context ctx, bool inheritContexts) {
+    JSInterpreter i = JSInterpreter(
+        this.code, this.program, getContextForScope(this.program));
+    if (inheritContexts) {
       contexts.keys.forEach((key) {
         i.contexts[key] = contexts[key]!;
       });
@@ -193,6 +223,7 @@ class JSInterpreter extends RecursiveVisitor<dynamic> {
     i.contexts[scope] = ctx;
     return i;
   }
+
   Scope findScope(Name nameNode) {
     String name = nameNode.value;
     Node parent = nameNode.parent!;
@@ -203,33 +234,38 @@ class JSInterpreter extends RecursiveVisitor<dynamic> {
     Scope scope = enclosingScope(node);
     while (scope is! Program) {
       if (scope.environment == null)
-        throw JSException(scope.line??1, 'Scope does not have an environment. Scope:${getCode(scope)}');
+        throw JSException(scope.line ?? 1,
+            'Scope does not have an environment. Scope:${getCode(scope)}');
       if (scope.environment!.contains(name)) return scope;
       scope = enclosingScope(scope.parent!);
     }
     return scope;
   }
+
   Context getContextForScope(Scope scope) {
     return contexts[scope]!;
   }
+
   void addToThisContext(Name node, dynamic value) {
     Context ctx = getContextForScope(node.scope!);
-    ctx.addToThisContext(node.value,value);
+    ctx.addToThisContext(node.value, value);
   }
+
   void addToContext(Name node, dynamic value) {
     Context ctx = getContextForScope(node.scope!);
-    ctx.addDataContextById(node.value,value);
+    ctx.addDataContextById(node.value, value);
   }
+
   // dynamic removeFromContext(Name node) {
   //   Map m = getContextForScope(node.scope!);
   //   return m.remove(node.value);
   // }
   dynamic getValueFromNode(Node node) {
     dynamic value = node.visitBy(this);
-    if ( value is List ) {
+    if (value is List) {
       List<dynamic> arr = [];
       value.forEach((element) {
-        if ( element is Node ) {
+        if (element is Node) {
           arr.add(getValueFromNode(element));
         } else {
           arr.add(element);
@@ -239,25 +275,28 @@ class JSInterpreter extends RecursiveVisitor<dynamic> {
       //Take the nested array case when you are changing value within the nested array.
       //see 2darrayissue in unit tests
       //value = arr;
-      for ( int i=0;i<value.length;i++ ) {
+      for (int i = 0; i < value.length; i++) {
         value[i] = arr[i];
       }
-    } else if ( value is Name ) {
+    } else if (value is Name) {
       value = getValue(value);
-    } else if ( node is ThisExpression ) {
+    } else if (node is ThisExpression) {
       value = getValueFromString(value);
     }
     return value;
   }
+
   dynamic getValueFromString(String name) {
     Context ctx = getContextForScope(program);
     return ctx.getContextById(name);
   }
+
   dynamic getValue(Name node) {
     Scope scope = findScope(node);
     Context ctx = getContextForScope(scope);
     return ctx.getContextById(node.value);
   }
+
   evaluate({Node? node}) {
     dynamic rtn;
     try {
@@ -265,9 +304,9 @@ class JSInterpreter extends RecursiveVisitor<dynamic> {
         rtn = visit(node);
       } else {
         //first visit all the function declarations
-        for ( int i=program.body.length-1;i>=0;i-- ) {
+        for (int i = program.body.length - 1; i >= 0; i--) {
           Statement stmt = program.body[i];
-          if ( stmt is FunctionDeclaration ) {
+          if (stmt is FunctionDeclaration) {
             stmt.visitBy(this);
           }
         }
@@ -276,62 +315,71 @@ class JSInterpreter extends RecursiveVisitor<dynamic> {
           rtn = getValue(rtn);
         }
       }
-    } on ControlFlowReturnException catch(e) {
+    } on ControlFlowReturnException catch (e) {
       rtn = e.returnValue;
-    } on JSException catch(e) {
+    } on JSException catch (e) {
       rethrow;
     } catch (e) {
-      throw JSException(1, e.toString(), detailedError: 'Code: $code', originalError: e);
+      throw JSException(1, e.toString(),
+          detailedError: 'Code: $code', originalError: e);
     }
     return rtn;
   }
-  dynamic executeConditional(Expression testExp,Node consequent,Node? alternate) {
+
+  dynamic executeConditional(
+      Expression testExp, Node consequent, Node? alternate) {
     dynamic condition = getValueFromExpression(testExp);
     bool test = toBoolean(condition);
     dynamic rtn;
-    if ( test ) {
+    if (test) {
       rtn = consequent.visitBy(this);
     } else {
-      if ( alternate != null ) {
+      if (alternate != null) {
         rtn = alternate.visitBy(this);
       }
     }
     return rtn;
   }
+
   @override
   visitThis(ThisExpression node) {
     return 'this';
   }
+
   @override
   visitConditional(ConditionalExpression node) {
-    return executeConditional(node.condition,node.then,node.otherwise);
+    return executeConditional(node.condition, node.then, node.otherwise);
   }
+
   @override
   visitIf(IfStatement node) {
-    return executeConditional(node.condition,node.then,node.otherwise);
+    return executeConditional(node.condition, node.then, node.otherwise);
   }
+
   @override
   visitProperty(Property node) {
     String key;
-    if ( node.key is Name ) {
+    if (node.key is Name) {
       key = (node.key as Name).value;
-    } else if ( node.key is LiteralExpression ) {
+    } else if (node.key is LiteralExpression) {
       key = (node.key as LiteralExpression).value;
     } else {
       throw JSException(node.line ?? -1,
           'Property of object ${node.toString()} is not supported. Only Name or LiteralExpression are supported.');
     }
-    return {'key':key,'value':getValueFromNode(node.value)};
+    return {'key': key, 'value': getValueFromNode(node.value)};
   }
+
   @override
   visitObject(ObjectExpression node) {
     Map obj = {};
-    for ( Property property in node.properties ) {
+    for (Property property in node.properties) {
       Map prop = visitProperty(property);
       obj[prop['key']] = prop['value'];
     }
     return obj;
   }
+
   @override
   visitReturn(ReturnStatement node) {
     dynamic returnValue;
@@ -340,10 +388,11 @@ class JSInterpreter extends RecursiveVisitor<dynamic> {
     }
     throw ControlFlowReturnException(node.line ?? -1, '', returnValue);
   }
+
   @override
   visitUnary(UnaryExpression node) {
     dynamic val = getValueFromNode(node.argument);
-    switch(node.operator) {
+    switch (node.operator) {
       case '-':
         val = (val is num) ? -val : -toNumber(val);
         break;
@@ -383,7 +432,11 @@ class JSInterpreter extends RecursiveVisitor<dynamic> {
   }
 
   bool toBoolean(dynamic val) {
-    if (val == null || val == 0 || val == false || val == '' || val == 'false') {
+    if (val == null ||
+        val == 0 ||
+        val == false ||
+        val == '' ||
+        val == 'false') {
       return false;
     }
     if (val is num && val.isNaN) {
@@ -424,8 +477,8 @@ class JSInterpreter extends RecursiveVisitor<dynamic> {
           detailedError: 'Code: ${getCode(node)}');
     }
     if (node.argument is MemberExpression) {
-      pattern =
-          visitMember(node.argument as MemberExpression, computeAsPattern: true);
+      pattern = visitMember(node.argument as MemberExpression,
+          computeAsPattern: true);
     } else if (node.argument is IndexExpression) {
       pattern =
           visitIndex(node.argument as IndexExpression, computeAsPattern: true);
@@ -463,19 +516,21 @@ class JSInterpreter extends RecursiveVisitor<dynamic> {
       }
       addToContext(n, number);
     }
-    if ( node.isPrefix ) {
+    if (node.isPrefix) {
       return number;
     }
     return originalNumber;
   }
+
   @override
   visitFunctionDeclaration(FunctionDeclaration node) {
     JavascriptFunction? func = getValue(node.function.name!);
-    if ( func == null ) {
+    if (func == null) {
       addToThisContext(node.function.name!, visitFunctionNode(node.function));
     }
     return func;
   }
+
   @override
   visitFunctionNode(FunctionNode node, {bool? inheritContext}) {
     final List<dynamic> args = computeArguments(node.params);
@@ -496,25 +551,27 @@ class JSInterpreter extends RecursiveVisitor<dynamic> {
         }
       }
       Context context = SimpleContext(ctx);
-      JSInterpreter i = cloneForContext(node,context,inheritContext??false);
+      JSInterpreter i = cloneForContext(node, context, inheritContext ?? false);
       dynamic rtn;
       try {
         if (node.body != null) {
           rtn = node.body.visitBy(i);
         }
-      } on ControlFlowReturnException catch(e) {
+      } on ControlFlowReturnException catch (e) {
         rtn = e.returnValue;
       }
-      if ( rtn is Node ) {
+      if (rtn is Node) {
         rtn = i.getValueFromNode(rtn);
       }
       return rtn;
-    },code.substring(node.start!,node.end));
+    }, code.substring(node.start!, node.end));
   }
+
   @override
   visitFunctionExpression(FunctionExpression node) {
-    return visitFunctionNode(node.function,inheritContext:true);
+    return visitFunctionNode(node.function, inheritContext: true);
   }
+
   @override
   visitArrowFunctionNode(ArrowFunctionNode node) {
     final List<dynamic> args = computeArguments(node.params);
@@ -528,39 +585,42 @@ class JSInterpreter extends RecursiveVisitor<dynamic> {
         }
       }
       Context context = SimpleContext(ctx);
-      JSInterpreter i = cloneForContext(node,context,true);
+      JSInterpreter i = cloneForContext(node, context, true);
       dynamic rtn;
       try {
         if (node.body != null) {
           rtn = node.body.visitBy(i);
         }
-      } on ControlFlowReturnException catch(e) {
+      } on ControlFlowReturnException catch (e) {
         rtn = e.returnValue;
       }
-      if ( rtn is Node ) {
+      if (rtn is Node) {
         rtn = i.getValueFromNode(rtn);
       }
       return rtn;
-    },code.substring(node.start!,node.end));
+    }, code.substring(node.start!, node.end));
   }
+
   @override
   visitBlock(BlockStatement node) {
     dynamic rtn;
-    for ( Node stmt in node.body ) {
+    for (Node stmt in node.body) {
       rtn = stmt.visitBy(this);
     }
     return rtn;
   }
+
   @override
   visitVariableDeclarator(VariableDeclarator node) {
     Name name = node.name;
     dynamic value;
-    if ( node.init != null ) {
+    if (node.init != null) {
       value = getValueFromExpression(node.init!);
     }
-    addToThisContext(name,value);
+    addToThisContext(name, value);
     return name;
   }
+
   @override
   visitBinary(BinaryExpression node) {
     try {
@@ -568,14 +628,20 @@ class JSInterpreter extends RecursiveVisitor<dynamic> {
       //special check in case of || to avoid evaluating the right expression
       //https://github.com/EnsembleUI/ensemble/issues/574
       if (node.operator == '||') {
-        if (left != false && left != null && left != 0 && left != '' &&
+        if (left != false &&
+            left != null &&
+            left != 0 &&
+            left != '' &&
             !(left is num && left.isNaN)) {
           return left;
         } else {
           return getValueFromExpression(node.right);
         }
       } else if (node.operator == '&&') {
-        if (left == false || left == null || left == 0 || left == '' ||
+        if (left == false ||
+            left == null ||
+            left == 0 ||
+            left == '' ||
             (left is num && left.isNaN)) {
           return left;
         } else {
@@ -688,87 +754,98 @@ class JSInterpreter extends RecursiveVisitor<dynamic> {
       return rtn;
     } on JSException catch (e) {
       rethrow;
-    } on InvalidPropertyException catch(e) {
-      throw JSException(node.line??1, '${e.message}. Code: ${getCode(node)}');
+    } on InvalidPropertyException catch (e) {
+      throw JSException(node.line ?? 1, '${e.message}. Code: ${getCode(node)}');
     }
   }
+
   @override
   visitBreak(BreakStatement node) {
-    throw ControlFlowBreakException(node.line??1,'');
+    throw ControlFlowBreakException(node.line ?? 1, '');
   }
+
   @override
   visitContinue(ContinueStatement node) {
-    throw ControlFlowContinueException(node.line??1,'');
+    throw ControlFlowContinueException(node.line ?? 1, '');
   }
+
   @override
   visitFor(ForStatement node) {
-    if ( node.init != null ) {
+    if (node.init != null) {
       node.init!.visitBy(this);
     }
-    while ( node.condition != null && getValueFromNode(node.condition!) ) {
+    while (node.condition != null && getValueFromNode(node.condition!)) {
       try {
         node.body.visitBy(this);
-        if ( node.update != null ) {
+        if (node.update != null) {
           node.update!.visitBy(this);
         }
-      } on ControlFlowBreakException catch(e) {
+      } on ControlFlowBreakException catch (e) {
         break;
-      } on ControlFlowContinueException catch(e) {
+      } on ControlFlowContinueException catch (e) {
         continue;
       }
     }
   }
+
   @override
   visitWhile(WhileStatement node) {
-    while ( getValueFromNode(node.condition) ) {
+    while (getValueFromNode(node.condition)) {
       try {
         node.body.visitBy(this);
-      } on ControlFlowBreakException catch(e) {
+      } on ControlFlowBreakException catch (e) {
         break;
-      } on ControlFlowContinueException catch(e) {
+      } on ControlFlowContinueException catch (e) {
         continue;
       }
     }
   }
+
   @override
   visitDoWhile(DoWhileStatement node) {
     do {
       try {
         node.body.visitBy(this);
-      } on ControlFlowBreakException catch(e) {
+      } on ControlFlowBreakException catch (e) {
         break;
-      } on ControlFlowContinueException catch(e) {
+      } on ControlFlowContinueException catch (e) {
         continue;
       }
-    } while ( getValueFromNode(node.condition) ) ;
+    } while (getValueFromNode(node.condition));
   }
+
   @override
   visitForIn(ForInStatement node) {
     dynamic right = getValueFromNode(node.right);
     dynamic left = node.left.visitBy(this);
-    if ( right is! Map ) {
-      throw JSException(node.line??1,'for...in is only allowed for js objects or maps. $right is not a map', detailedError:'Code: ${getCode(node)}');
+    if (right is! Map) {
+      throw JSException(node.line ?? 1,
+          'for...in is only allowed for js objects or maps. $right is not a map',
+          detailedError: 'Code: ${getCode(node)}');
     }
-    if ( left is! Name ) {
-      throw JSException(node.line??1,'left side in the for...in expression must be a name node. $node.left is not name', detailedError:'Code: ${getCode(node)}');
+    if (left is! Name) {
+      throw JSException(node.line ?? 1,
+          'left side in the for...in expression must be a name node. $node.left is not name',
+          detailedError: 'Code: ${getCode(node)}');
     }
     Map map = right;
-    for ( dynamic key in map.keys ) {
+    for (dynamic key in map.keys) {
       addToContext(left, key);
       try {
         node.body.visitBy(this);
-      } on ControlFlowBreakException catch(e) {
+      } on ControlFlowBreakException catch (e) {
         break;
-      } on ControlFlowContinueException catch(e) {
+      } on ControlFlowContinueException catch (e) {
         continue;
       }
     }
     //removeFromContext(left);
   }
+
   @override
   visitLiteral(LiteralExpression node) {
     Context programContext = findProgramContext(node);
-    if ( node.value is String ) {
+    if (node.value is String) {
       Function? getStringFunc = programContext.getContextById('getStringValue');
       if (getStringFunc != null) {
         //this takes care of translating strings into different languages
@@ -777,6 +854,7 @@ class JSInterpreter extends RecursiveVisitor<dynamic> {
     }
     return node.value;
   }
+
   @override
   visitArray(ArrayExpression node) {
     List arr = [];
@@ -790,13 +868,14 @@ class JSInterpreter extends RecursiveVisitor<dynamic> {
   visitNameExpression(NameExpression node) {
     return node.name.visitBy(this);
   }
-  List computeArguments(List<Node> args,{bool resolveNames=false}) {
+
+  List computeArguments(List<Node> args, {bool resolveNames = false}) {
     List l = [];
-    for ( Node node in args ) {
-      if ( resolveNames ) {
-        if ( node is Expression ) {
+    for (Node node in args) {
+      if (resolveNames) {
+        if (node is Expression) {
           dynamic v = getValueFromExpression(node);
-          if ( v is JavascriptFunction ) {
+          if (v is JavascriptFunction) {
             l.add(v._onCall);
           } else {
             l.add(v);
@@ -833,26 +912,27 @@ class JSInterpreter extends RecursiveVisitor<dynamic> {
       }
     }
   }
+
   @override
   visitCall(CallExpression node) {
     dynamic val;
     try {
       dynamic method;
       if (node.callee is NameExpression) {
-        if ( node.isNew ) {
+        if (node.isNew) {
           //a new object is being instantiated
           final dynamic _class = getValue((node.callee as NameExpression).name);
-          if ( _class == null ) {
+          if (_class == null) {
             throw JSException(node.line ?? -1,
                 'Cannot instantiate object of class ${(node.callee as NameExpression).name} No definition found for class in code ${getCode(node)}.',
                 recovery: 'Check your syntax and try again.');
           }
-          if ( !( _class is Invokable) ) {
+          if (!(_class is Invokable)) {
             throw JSException(node.line ?? -1,
                 'Cannot instantiate object of class ${(node.callee as NameExpression).name} Class is not invokable in code ${getCode(node)}.',
                 recovery: 'Check your syntax and try again.');
           }
-          if ( _class.methods()['init'] == null ) {
+          if (_class.methods()['init'] == null) {
             throw JSException(node.line ?? -1,
                 'Cannot instantiate object of class ${(node.callee as NameExpression).name} No init method found for class in code ${getCode(node)}. init method is called to construct an instance. It must take List<parms> as argument.',
                 recovery: 'Check your syntax and try again.');
@@ -867,8 +947,8 @@ class JSInterpreter extends RecursiveVisitor<dynamic> {
           }
         }
         val = executeMethod(method, node.arguments);
-      } else
-      if (node.callee is MemberExpression || node.callee is IndexExpression) {
+      } else if (node.callee is MemberExpression ||
+          node.callee is IndexExpression) {
         ObjectPattern? pattern;
         dynamic method;
         MethodExecutor? methodExecutor;
@@ -884,8 +964,8 @@ class JSInterpreter extends RecursiveVisitor<dynamic> {
           }
           method = InvokableController.methods(pattern!.obj)[pattern.property];
         } else if (node.callee is IndexExpression) {
-          pattern = visitIndex(
-              node.callee as IndexExpression, computeAsPattern: true);
+          pattern = visitIndex(node.callee as IndexExpression,
+              computeAsPattern: true);
           method =
               InvokableController.getProperty(pattern!.obj, pattern.property);
           //old: method = pattern!.obj.getProperty(pattern.property);
@@ -906,20 +986,21 @@ class JSInterpreter extends RecursiveVisitor<dynamic> {
         } on JSException catch (e) {
           rethrow;
         } catch (e) {
-          throw JSException(
-              node.line ?? -1,
+          throw JSException(node.line ?? -1,
               'Error while executing method: ${getCode(node)}. Underlying error:${e.toString()}',
               originalError: e);
         }
       }
     } on JSException catch (e) {
       rethrow;
-    } on InvalidPropertyException catch(e) {
-      throw JSException(node.line??1, '${e.message}. Code: ${getCode(node)}');
+    } on InvalidPropertyException catch (e) {
+      throw JSException(node.line ?? 1, '${e.message}. Code: ${getCode(node)}');
     }
     return val;
   }
-  dynamic performOperation(dynamic left, dynamic right, String operator, int line, String code) {
+
+  dynamic performOperation(
+      dynamic left, dynamic right, String operator, int line, String code) {
     // Handle concatenation with strings
     if (operator == '+=' && (left is String || right is String)) {
       return left.toString() + right.toString();
@@ -931,7 +1012,8 @@ class JSInterpreter extends RecursiveVisitor<dynamic> {
       leftNum = num.parse(left.toString());
       rightNum = num.parse(right.toString());
     } catch (e) {
-      throw JSException(line,"Either '$left' or '$right' cannot be parsed ino a number and number if required for the $operator operation. Relevant Code: $code");
+      throw JSException(line,
+          "Either '$left' or '$right' cannot be parsed ino a number and number if required for the $operator operation. Relevant Code: $code");
     }
     switch (operator) {
       case '+=':
@@ -945,7 +1027,7 @@ class JSInterpreter extends RecursiveVisitor<dynamic> {
       case '%=':
         return leftNum % rightNum;
       case '<<=':
-      // Ensure operands are integers for bitwise operations
+        // Ensure operands are integers for bitwise operations
         return leftNum.toInt() << rightNum.toInt();
       case '>>=':
         return leftNum.toInt() >> rightNum.toInt();
@@ -956,10 +1038,11 @@ class JSInterpreter extends RecursiveVisitor<dynamic> {
       case '&=':
         return leftNum.toInt() & rightNum.toInt();
       default:
-        throw JSException(line,
-            "$operator in Code: $code is not yet supported");
+        throw JSException(
+            line, "$operator in Code: $code is not yet supported");
     }
   }
+
   @override
   visitAssignment(AssignmentExpression node) {
     try {
@@ -974,7 +1057,7 @@ class JSInterpreter extends RecursiveVisitor<dynamic> {
       }
       if (pattern != null) {
         var obj = pattern.obj;
-        if ( node.operator == '=' ) {
+        if (node.operator == '=') {
           InvokableController.setProperty(obj, pattern.property, val);
         } else {
           dynamic left = InvokableController.getProperty(obj, pattern.property);
@@ -991,7 +1074,7 @@ class JSInterpreter extends RecursiveVisitor<dynamic> {
           n = node.left as Name;
         }
         dynamic value = getValue(n);
-        if ( value == null || node.operator == '=') {
+        if (value == null || node.operator == '=') {
           value = val;
         } else {
           value = performOperation(
@@ -1001,80 +1084,122 @@ class JSInterpreter extends RecursiveVisitor<dynamic> {
       }
     } on JSException catch (e) {
       rethrow;
-    } on InvalidPropertyException catch(e) {
-      throw JSException(node.line??1, '${e.message}. Code: ${getCode(node)}');
+    } on InvalidPropertyException catch (e) {
+      throw JSException(node.line ?? 1, '${e.message}. Code: ${getCode(node)}');
     }
   }
-  @override
-  visitRegexp(RegexpExpression node) {
-    bool allMatches = false, dotAll = false, multiline = false, ignoreCase = false,unicode = false;
 
-    int index = node.regexp!.lastIndexOf('/');
-    if ( index != -1 ) {
-      String options = node.regexp!.substring(index);
-      if ( options.contains('i') ) {
-        ignoreCase = true;
-      }
-      if ( options.contains('g') ) {
-        allMatches = true;
-      }
-      if ( options.contains('m') ) {
-        multiline = true;
-      }
-      if ( options.contains('s') ) {
-        dotAll = true;
-      }
-      if ( options.contains('u') ) {
-        unicode = true;
+  @override
+  RegExp visitRegexp(RegexpExpression node) {
+    if (node.regexp == null) {
+      throw ArgumentError("The regex pattern cannot be null.");
+    }
+
+    String pattern = node.regexp!;
+    int lastIndex = -1;
+
+    // Find the last unescaped slash
+    for (int i = pattern.length - 1; i >= 0; i--) {
+      if (pattern[i] == '/' && (i == 0 || pattern[i - 1] != '\\')) {
+        lastIndex = i;
+        break;
       }
     }
-    return RegExp(node.regexp!.substring(0,index).replaceAll('/', ''),
-        multiLine: multiline,
-        caseSensitive: !ignoreCase,
-        dotAll: dotAll,
-        unicode: unicode
+
+    if (lastIndex == -1) {
+      throw ArgumentError("Invalid regex pattern: missing ending slash.");
+    }
+
+    // Extract the pattern and options
+    String regexPattern = (lastIndex > 0)
+        ? pattern.substring(1, lastIndex)
+        : ''; // Extract pattern without slashes
+    String options = (lastIndex < pattern.length - 1)
+        ? pattern.substring(lastIndex + 1)
+        : ''; // Extract options after the last slash
+
+    bool allMatches = false;
+    bool dotAll = false;
+    bool multiline = false;
+    bool ignoreCase = false;
+    bool unicode = false;
+
+    // Set the options
+    if (options.contains('i')) {
+      ignoreCase = true;
+    }
+    if (options.contains('g')) {
+      allMatches = true;
+    }
+    if (options.contains('m')) {
+      multiline = true;
+    }
+    if (options.contains('s')) {
+      dotAll = true;
+    }
+    if (options.contains('u')) {
+      unicode = true;
+    }
+
+    // Create and return the Dart RegExp
+    RegExp regex = RegExp(
+      regexPattern,
+      multiLine: multiline,
+      caseSensitive: !ignoreCase,
+      dotAll: dotAll,
+      unicode: unicode,
     );
+    if (allMatches) {
+      //see regex_ext.dart for more details
+      regex.global = true;
+    }
+    return regex;
   }
 
-
-
   @override
-  visitIndex(IndexExpression node, {bool computeAsPattern=false}) {
+  visitIndex(IndexExpression node, {bool computeAsPattern = false}) {
     dynamic val;
     try {
       val = visitObjectPropertyExpression(
           node.object, getValueFromExpression(node.property),
           computeAsPattern: computeAsPattern);
-    } on InvalidPropertyException catch(e) {
+    } on InvalidPropertyException catch (e) {
       //ignore since obj['prop'] is fine even when prop does not exist. We just return null in that case
     }
     return val;
   }
 
-  visitObjectPropertyExpression(Expression object, dynamic property, {bool computeAsPattern=false}) {
+  visitObjectPropertyExpression(Expression object, dynamic property,
+      {bool computeAsPattern = false}) {
     dynamic obj = getValueFromExpression(object);
     dynamic val;
-    if ( obj == null ) {
-      throw InvalidPropertyException('${getCode(object)} is undefined. Check your syntax.');
+    if (obj == null) {
+      throw InvalidPropertyException(
+          '${getCode(object)} is undefined. Check your syntax.');
     }
-    if ( computeAsPattern ) {
+    if (computeAsPattern) {
       val = ObjectPattern(obj, property);
     } else {
       val = InvokableController.getProperty(obj, property);
     }
     return val;
   }
+
   @override
-  visitMember(MemberExpression node, {bool computeAsPattern=false}) {
-    return visitObjectPropertyExpression(node.object,node.property.value,computeAsPattern: computeAsPattern);
+  visitMember(MemberExpression node, {bool computeAsPattern = false}) {
+    return visitObjectPropertyExpression(node.object, node.property.value,
+        computeAsPattern: computeAsPattern);
   }
+
   @override
   visitName(Name node) {
     return node;
   }
+
   dynamic getValueFromExpression(Expression exp) {
     return getValueFromNode(exp);
   }
+
   noSuchMethod(Invocation invocation) {
     if (!invocation.isMethod || invocation.namedArguments.isNotEmpty)
       super.noSuchMethod(invocation);
@@ -1082,39 +1207,55 @@ class JSInterpreter extends RecursiveVisitor<dynamic> {
     return null;
   }
 }
+
 enum BinaryOperator {
-  equals,strictEquals,lt,gt,ltEquals,gtEquals,notequals,minus,plus,multiply,divide,inop,instaneof
+  equals,
+  strictEquals,
+  lt,
+  gt,
+  ltEquals,
+  gtEquals,
+  notequals,
+  minus,
+  plus,
+  multiply,
+  divide,
+  inop,
+  instaneof
 }
-enum AssignmentOperator {
-  equal,plusEqual,minusEqual
-}
-enum LogicalOperator {
-  or,and,not
-}
-enum UnaryOperator {
-  minus,plus,not,typeof,voidop
-}
-enum VariableDeclarationKind {
-  constant,let,variable
-}
+
+enum AssignmentOperator { equal, plusEqual, minusEqual }
+
+enum LogicalOperator { or, and, not }
+
+enum UnaryOperator { minus, plus, not, typeof, voidop }
+
+enum VariableDeclarationKind { constant, let, variable }
+
 class ControlFlowReturnException extends JSException {
   dynamic returnValue;
-  ControlFlowReturnException(int line, String message,this.returnValue): super(line,message);
+  ControlFlowReturnException(int line, String message, this.returnValue)
+      : super(line, message);
 }
+
 class ControlFlowBreakException extends JSException {
-  ControlFlowBreakException(int line, String message):super(line,message);
+  ControlFlowBreakException(int line, String message) : super(line, message);
 }
+
 class ControlFlowContinueException extends JSException {
-  ControlFlowContinueException(int line, String message):super(line,message);
+  ControlFlowContinueException(int line, String message) : super(line, message);
 }
+
 class ObjectPattern {
   Object obj;
   dynamic property;
-  ObjectPattern(this.obj,this.property);
+  ObjectPattern(this.obj, this.property);
 }
+
 typedef OnCall = dynamic Function(List arguments);
+
 class JavascriptFunction {
-  JavascriptFunction(this._onCall,this.functionCode);
+  JavascriptFunction(this._onCall, this.functionCode);
 
   final OnCall _onCall;
   final String functionCode;
@@ -1123,7 +1264,7 @@ class JavascriptFunction {
     if (!invocation.isMethod || invocation.namedArguments.isNotEmpty)
       super.noSuchMethod(invocation);
     final arguments = invocation.positionalArguments;
-    if ( arguments.length > 0 ) {
+    if (arguments.length > 0) {
       return _onCall(arguments[0]);
     } else {
       return _onCall(arguments);

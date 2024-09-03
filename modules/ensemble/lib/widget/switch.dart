@@ -2,6 +2,7 @@ import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
+import 'package:ensemble/widget/helpers/input_wrapper.dart';
 import 'package:ensemble/widget/helpers/widgets.dart';
 import 'package:ensemble/widget/helpers/form_helper.dart';
 import 'package:ensemble/framework/action.dart' as framework;
@@ -82,7 +83,7 @@ abstract class SwitchBase extends StatefulWidget
       'inactiveThumbColor': (color) =>
           _controller.inactiveThumbColor = Utils.getColor(color),
       'onChange': (definition) => _controller.onChange =
-          framework.EnsembleAction.fromYaml(definition, initiator: this)
+          framework.EnsembleAction.from(definition, initiator: this)
     };
   }
 }

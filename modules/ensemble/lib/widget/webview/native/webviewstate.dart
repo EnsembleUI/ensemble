@@ -8,12 +8,13 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
 // Import for Android features.
 import 'package:webview_flutter_android/webview_flutter_android.dart';
 // Import for iOS features.
 import 'package:webview_flutter_wkwebview/webview_flutter_wkwebview.dart';
 
-class WebViewState extends WidgetState<EnsembleWebView> with CookieMethods {
+class WebViewState extends EWidgetState<EnsembleWebView> with CookieMethods {
   // WebView won't render on Android if height is 0 initially
   bool isCookieLoaded = false;
   Cookie? cookieHeader;
@@ -72,6 +73,14 @@ class WebViewState extends WidgetState<EnsembleWebView> with CookieMethods {
         }
         if (!event.allowNavigation) {
           return NavigationDecision.prevent;
+        }
+        final url = request.url;
+        // Check if the URL starts with any of the defined schemes
+        if (widget.controller.schemes.any((scheme) => url.startsWith(scheme))) {
+          if (await canLaunchUrl(Uri.parse(url))) {
+            await launchUrl(Uri.parse(url));
+            return NavigationDecision.prevent;
+          }
         }
         return NavigationDecision.navigate;
       },
