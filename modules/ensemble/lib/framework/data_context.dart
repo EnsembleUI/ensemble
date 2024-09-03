@@ -48,7 +48,6 @@ import 'package:intl/intl.dart';
 import 'package:mime/mime.dart';
 import 'package:source_span/source_span.dart';
 import 'package:walletconnect_dart/walletconnect_dart.dart';
-import 'package:web_socket_client/web_socket_client.dart';
 import 'package:workmanager/workmanager.dart';
 import 'package:yaml/yaml.dart';
 import 'package:collection/collection.dart';
@@ -80,6 +79,7 @@ class DataContext implements Context {
     _contextMap['secrets'] = SecretsStore();
     _contextMap['ensemble'] = NativeInvokable(buildContext);
     _contextMap['appInfo'] = appInfo;
+    _contextMap['FieldValue'] = EnsembleFieldValue();
     _contextMap['Timestamp'] = StaticFirestoreTimestamp();
     // auth can be selectively turned on
     if (GetIt.instance.isRegistered<AuthContextManager>()) {
