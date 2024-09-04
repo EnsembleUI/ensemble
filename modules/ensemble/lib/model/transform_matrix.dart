@@ -3,7 +3,6 @@ import 'package:flutter/cupertino.dart';
 
 /// covert a transform model into a Matrix4
 class TransformMatrix {
-
   static Matrix4? from(dynamic input) {
     Matrix4? result;
     if (input is List) {
@@ -17,7 +16,8 @@ class TransformMatrix {
             case 'translate':
               final xy = _XY.from(value, 'translate', min: -1000, max: 1000);
               if (xy != null) {
-                (result ??= Matrix4.identity())..translate(xy.x ?? 0.0, xy.y ?? 0.0);
+                (result ??= Matrix4.identity())
+                  ..translate(xy.x ?? 0.0, xy.y ?? 0.0);
               }
               break;
             case 'scale':
@@ -36,12 +36,9 @@ class TransformMatrix {
               }
               break;
             case 'rotate':
-              final xy = _XY.from(value, 'rotate', min: 0, max: 360);
-              if (xy?.x != null) {
-                (result ??= Matrix4.identity()).rotateX(xy!.x!);
-              }
-              if (xy?.y != null) {
-                (result ??= Matrix4.identity()).rotateY(xy!.y!);
+              final degree = Utils.optionalDouble(value, min: 0, max: 360);
+              if (degree != null) {
+                (result ??= Matrix4.identity()).rotateZ(degree);
               }
               break;
           }
