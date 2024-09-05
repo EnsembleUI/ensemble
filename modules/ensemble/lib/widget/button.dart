@@ -73,6 +73,8 @@ class Button extends StatefulWidget
       'outline': (value) => _controller.outline = Utils.optionalBool(value),
       'width': (value) => _controller.buttonWidth = Utils.optionalInt(value),
       'height': (value) => _controller.buttonHeight = Utils.optionalInt(value),
+      'isLoading': (value) => _controller.isLoading = Utils.optionalBool(value),
+      'loadingWidget': (widget) => _controller.loadingWidget = widget,
     };
   }
 
@@ -116,6 +118,9 @@ class ButtonController extends BoxController {
 
   IconModel? startingIcon;
   IconModel? endingIcon;
+
+  bool? isLoading;
+  dynamic? loadingWidget;
 }
 
 class ButtonState extends EWidgetState<Button> {
@@ -156,6 +161,24 @@ class ButtonState extends EWidgetState<Button> {
   }
 
   Widget _buildButtonChild() {
+    if (widget._controller.isLoading == true) {
+      return widget._controller.loadingWidget != null && scopeManager != null
+          ? scopeManager!
+              .buildWidgetFromDefinition(widget._controller.loadingWidget)
+          : // default loading widget
+          SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(
+                strokeWidth: 2.0,
+                valueColor: AlwaysStoppedAnimation<Color>(
+                  widget._controller.labelStyle.color != null
+                      ? widget._controller.labelStyle.color!.withOpacity(0.5)
+                      : Colors.white.withOpacity(0.5),
+                ),
+              ));
+    }
+
     // use the body widget if specified
     if (widget._controller.body != null && scopeManager != null) {
       return scopeManager!.buildWidgetFromDefinition(widget._controller.body);
@@ -279,6 +302,9 @@ class ButtonState extends EWidgetState<Button> {
   }
 
   bool isEnabled() {
+    if (widget._controller.isLoading == true) {
+      return false;
+    }
     return widget._controller.enabled ??
         EnsembleForm.of(context)?.widget.controller.enabled ??
         true;
