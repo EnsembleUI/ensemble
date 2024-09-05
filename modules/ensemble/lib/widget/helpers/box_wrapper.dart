@@ -112,8 +112,7 @@ class BoxWrapper extends StatelessWidget {
 
     return boxController.animation?.enabled == true
         ? AnimatedContainer(
-            duration: boxController.animation?.duration ??
-                Duration(milliseconds: 500),
+            duration: boxController.animation!.duration,
             curve: boxController.animation?.curve ?? Curves.linear,
             width: ignoresDimension ? null : boxController.width?.toDouble(),
             height: ignoresDimension ? null : boxController.height?.toDouble(),

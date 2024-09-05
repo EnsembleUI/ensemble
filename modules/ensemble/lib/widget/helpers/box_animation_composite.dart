@@ -4,14 +4,16 @@ import 'package:flutter/animation.dart';
 
 class BoxAnimationComposite extends WidgetCompositeProperty {
   BoxAnimationComposite._(super.widgetController,
-      {this.enabled, this.duration, this.curve});
+      {this.enabled, Duration? duration, this.curve})
+      : this.duration = duration ?? defaultDuration;
 
+  static final defaultDuration = const Duration(milliseconds: 400);
   bool? enabled;
-  Duration? duration;
+  Duration duration;
   Curve? curve;
 
-  factory BoxAnimationComposite.from(BoxController controller,
-      dynamic payload) {
+  factory BoxAnimationComposite.from(
+      BoxController controller, dynamic payload) {
     if (payload is Map) {
       return BoxAnimationComposite._(
         controller,
@@ -24,8 +26,7 @@ class BoxAnimationComposite extends WidgetCompositeProperty {
   }
 
   @override
-  Map<String, Function> getters() =>
-      {
+  Map<String, Function> getters() => {
         'enabled': () => enabled,
       };
 
@@ -33,10 +34,10 @@ class BoxAnimationComposite extends WidgetCompositeProperty {
   Map<String, Function> methods() => {};
 
   @override
-  Map<String, Function> setters() =>
-      {
+  Map<String, Function> setters() => {
         'enabled': (value) => enabled = Utils.optionalBool(value),
-        'duration': (value) => duration = Utils.getDurationMs(value),
+        'duration': (value) =>
+            duration = Utils.getDurationMs(value) ?? duration,
         'curve': (value) => curve = getCurve(value),
       };
 
@@ -133,5 +134,4 @@ class BoxAnimationComposite extends WidgetCompositeProperty {
         return null;
     }
   }
-
 }
