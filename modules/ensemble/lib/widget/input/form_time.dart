@@ -9,6 +9,8 @@ import 'package:ensemble/widget/helpers/widgets.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/material.dart';
 import 'package:ensemble/util/extensions.dart';
+import 'package:flutter/cupertino.dart';
+import 'dart:io' show Platform;
 
 class Time extends StatefulWidget
     with Invokable, HasController<TimeController, TimeState> {
@@ -29,6 +31,8 @@ class Time extends StatefulWidget
     var getters = _controller.textPlaceholderGetters;
     getters.addAll({
       'value': () => _controller.value?.toIso8601TimeString(),
+      'useIOSStyleTimePicker': () => _controller.useIOSStyleTimePicker,
+      'use24hFormat': () => _controller.use24hFormat,
     });
     return getters;
   }
@@ -42,10 +46,16 @@ class Time extends StatefulWidget
   Map<String, Function> setters() {
     var setters = _controller.textPlaceholderSetters;
     setters.addAll({
-      'initialValue': (value) =>
-          _controller.initialValue = Utils.getTimeOfDay(value),
+      'initialValue': (value) {
+        _controller.initialValue = Utils.getTimeOfDay(value);
+        _controller.value =
+            _controller.initialValue; // Set the current value to initialValue
+      },
       'onChange': (definition) => _controller.onChange =
-          EnsembleAction.from(definition, initiator: this)
+          EnsembleAction.from(definition, initiator: this),
+      'useIOSStyleTimePicker': (value) =>
+          _controller.useIOSStyleTimePicker = value,
+      'use24hFormat': (value) => _controller.use24hFormat = value,
     });
     return setters;
   }
@@ -53,22 +63,36 @@ class Time extends StatefulWidget
 
 class TimeController extends FormFieldController with HasTextPlaceholder {
   TimeOfDay? value;
-
-  Text prettyValue(BuildContext context) {
-    if (value != null) {
-      return Text(value!.format(context),
-          style: TextStyle(fontSize: fontSize?.toDouble()));
-    } else {
-      return Text(placeholder ?? 'Select a time', style: placeholderStyle);
-    }
-  }
-
   TimeOfDay? initialValue;
-
   EnsembleAction? onChange;
+  bool useIOSStyleTimePicker = Platform.isIOS;
+  bool use24hFormat = false;
+  
+  Text prettyValue(BuildContext context) {
+    if (value == null) {
+      return Text(
+        placeholder ?? 'Select a time',
+        style: placeholderStyle,
+      );
+    }
+
+    String formattedTime;
+    if (use24hFormat) {
+      formattedTime =
+          '${value!.hour.toString().padLeft(2, '0')}:${value!.minute.toString().padLeft(2, '0')}';
+    } else {
+      formattedTime = value!.format(context);
+    }
+
+    return Text(
+      formattedTime,
+      style: TextStyle(fontSize: fontSize?.toDouble()),
+    );
+  }
 }
 
 class TimeState extends FormFieldWidgetState<Time> {
+
   @override
   Widget buildWidget(BuildContext context) {
     return InputWrapper(
@@ -101,30 +125,68 @@ class TimeState extends FormFieldWidgetState<Time> {
   }
 
   void _selectTime(BuildContext context) async {
-    final picked = await showTimePicker(
-      context: context,
-      initialTime: widget._controller.initialValue ??
-          const TimeOfDay(hour: 12, minute: 0),
-      builder: (context, child) {
-        return Theme(
+    if (widget._controller.useIOSStyleTimePicker) {
+      _showCupertinoTimePicker(context);
+    } else {
+      final picked = await showTimePicker(
+        context: context,
+        initialTime: widget._controller.value ?? TimeOfDay.now(),
+        builder: (context, child) {
+          return Theme(
             data: ThemeData(
                 colorScheme: Theme.of(context)
                     .colorScheme
                     .copyWith(onPrimary: Colors.white)),
-            child: child!);
-      },
+            child: MediaQuery(
+                data: MediaQuery.of(context).copyWith(
+                    alwaysUse24HourFormat: widget._controller.use24hFormat),
+                child: child!),
+          );
+        },
+      );
+      _updateTime(picked);
+    }
+  }
+
+  void _showCupertinoTimePicker(BuildContext context) {
+    showCupertinoModalPopup<void>(
+      context: context,
+      builder: (BuildContext context) => Container(
+        height: 216,
+        padding: const EdgeInsets.only(top: 6.0),
+        margin: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom,
+        ),
+        color: CupertinoColors.systemBackground.resolveFrom(context),
+        child: SafeArea(
+          top: false,
+          child: CupertinoDatePicker(
+            initialDateTime: DateTime.now().copyWith(
+              hour: widget._controller.value?.hour ?? TimeOfDay.now().hour,
+              minute:
+                  widget._controller.value?.minute ?? TimeOfDay.now().minute,
+            ),
+            mode: CupertinoDatePickerMode.time,
+            use24hFormat: widget._controller.use24hFormat,
+            onDateTimeChanged: (DateTime newDateTime) {
+              _updateTime(TimeOfDay.fromDateTime(newDateTime));
+            },
+          ),
+        ),
+      ),
     );
-    if (picked != null) {
-      if (widget._controller.value == null ||
-          widget._controller.value!.compareTo(picked) != 0) {
-        setState(() {
-          widget._controller.value = picked;
-        });
-        if (isEnabled() && widget._controller.onChange != null) {
-          ScreenController().executeAction(
-              context, widget._controller.onChange!,
-              event: EnsembleEvent(widget));
-        }
+  }
+
+  void _updateTime(TimeOfDay? picked) {
+    if (picked != null &&
+        (widget._controller.value == null ||
+            widget._controller.value!.compareTo(picked) != 0)) {
+      setState(() {
+        widget._controller.value = picked;
+      });
+      if (isEnabled() && widget._controller.onChange != null) {
+        ScreenController().executeAction(context, widget._controller.onChange!,
+            event: EnsembleEvent(widget));
       }
     }
   }
@@ -133,9 +195,9 @@ class TimeState extends FormFieldWidgetState<Time> {
     Widget rtn = Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        const Icon(Icons.alarm, color: Colors.black54),
+        const Icon(Icons.access_time, color: Colors.black54),
         const SizedBox(width: 5),
-        widget._controller.prettyValue(context)
+        widget._controller.prettyValue(context),
       ],
     );
     if (!isEnabled()) {
