@@ -31,8 +31,6 @@ class Time extends StatefulWidget
     var getters = _controller.textPlaceholderGetters;
     getters.addAll({
       'value': () => _controller.value?.toIso8601TimeString(),
-      'useIOSStyleTimePicker': () => _controller.useIOSStyleTimePicker,
-      'use24hFormat': () => _controller.use24hFormat,
     });
     return getters;
   }
@@ -54,9 +52,13 @@ class Time extends StatefulWidget
       'onChange': (definition) => _controller.onChange =
           EnsembleAction.from(definition, initiator: this),
       'useIOSStyleTimePicker': (value) =>
-          _controller.useIOSStyleTimePicker = value,
-      'use24hFormat': (value) => _controller.use24hFormat = value,
-    });
+          _controller.useIOSStyleTimePicker = Utils.getBool(value, fallback: Platform.isIOS),
+      'use24hFormat': (value) => _controller.use24hFormat = Utils.getBool(value, fallback: false),
+      'pickerHeight': (value) => _controller.pickerHeight =  Utils.optionalDouble(value),
+      'pickerPadding': (value) => _controller.pickerPadding = Utils.getInsets(value) ,
+      'pickerBackgroundColor': (value) => _controller.pickerBackgroundColor = Utils.getColor(value),
+    
+    });                         
     return setters;
   }
 }
@@ -67,32 +69,26 @@ class TimeController extends FormFieldController with HasTextPlaceholder {
   EnsembleAction? onChange;
   bool useIOSStyleTimePicker = Platform.isIOS;
   bool use24hFormat = false;
-  
+  double? pickerHeight;
+  EdgeInsets? pickerPadding;
+  Color? pickerBackgroundColor;
+
   Text prettyValue(BuildContext context) {
-    if (value == null) {
+    if (value != null) {
       return Text(
-        placeholder ?? 'Select a time',
+        MaterialLocalizations.of(context).formatTimeOfDay(value!, alwaysUse24HourFormat: use24hFormat),
+        style: TextStyle(fontSize: fontSize?.toDouble()),
+      );
+    } else {
+      return Text(
+        placeholder ?? MaterialLocalizations.of(context).timePickerDialHelpText,
         style: placeholderStyle,
       );
     }
-
-    String formattedTime;
-    if (use24hFormat) {
-      formattedTime =
-          '${value!.hour.toString().padLeft(2, '0')}:${value!.minute.toString().padLeft(2, '0')}';
-    } else {
-      formattedTime = value!.format(context);
-    }
-
-    return Text(
-      formattedTime,
-      style: TextStyle(fontSize: fontSize?.toDouble()),
-    );
   }
 }
 
 class TimeState extends FormFieldWidgetState<Time> {
-
   @override
   Widget buildWidget(BuildContext context) {
     return InputWrapper(
@@ -152,26 +148,22 @@ class TimeState extends FormFieldWidgetState<Time> {
     showCupertinoModalPopup<void>(
       context: context,
       builder: (BuildContext context) => Container(
-        height: 216,
-        padding: const EdgeInsets.only(top: 6.0),
-        margin: EdgeInsets.only(
-          bottom: MediaQuery.of(context).viewInsets.bottom,
-        ),
-        color: CupertinoColors.systemBackground.resolveFrom(context),
+        height:  widget._controller.pickerHeight ?? 216,
+        padding: widget._controller.pickerPadding ?? const EdgeInsets.only(top: 6.0),
+        color: widget._controller.pickerBackgroundColor ?? CupertinoTheme.of(context).scaffoldBackgroundColor,
         child: SafeArea(
           top: false,
           child: CupertinoDatePicker(
-            initialDateTime: DateTime.now().copyWith(
-              hour: widget._controller.value?.hour ?? TimeOfDay.now().hour,
-              minute:
-                  widget._controller.value?.minute ?? TimeOfDay.now().minute,
+              initialDateTime: DateTime.now().copyWith(
+                hour: widget._controller.value?.hour ?? TimeOfDay.now().hour,
+                minute: widget._controller.value?.minute ?? TimeOfDay.now().minute,
+              ),
+              mode: CupertinoDatePickerMode.time,
+              use24hFormat: widget._controller.use24hFormat,
+              onDateTimeChanged: (DateTime newDateTime) {
+                _updateTime(TimeOfDay.fromDateTime(newDateTime));
+              },
             ),
-            mode: CupertinoDatePickerMode.time,
-            use24hFormat: widget._controller.use24hFormat,
-            onDateTimeChanged: (DateTime newDateTime) {
-              _updateTime(TimeOfDay.fromDateTime(newDateTime));
-            },
-          ),
         ),
       ),
     );
