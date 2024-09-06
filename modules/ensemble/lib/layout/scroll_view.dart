@@ -57,12 +57,7 @@ class ScrollView extends StatefulWidget
             ?.nextPage(duration: defaultDuration, curve: defaultCurve),
         'previous': () => controller.pageController
             ?.previousPage(duration: defaultDuration, curve: defaultCurve),
-        'jumpTo': (index) {
-          if (index is int) {
-            controller.pageController?.jumpToPage(index);
-          }
-        },
-        'animateTo': (index) {
+        'navigateTo': (index) {
           if (index is int) {
             controller.pageController?.animateToPage(index,
                 duration: defaultDuration, curve: defaultCurve);
@@ -157,7 +152,9 @@ class ScrollViewState extends EWidgetState<ScrollView>
         padEnds: widget._controller.padEnds ?? false,
         pageSnapping: widget._controller.enableSnap ?? true,
         // set to null to use scroll physics differently on different platform
-        physics: widget._controller.enableScrollGesture == false ? NeverScrollableScrollPhysics() : null,
+        physics: widget._controller.enableScrollGesture == false
+            ? NeverScrollableScrollPhysics()
+            : null,
         itemCount: templatedData.length,
         itemBuilder: (context, index) => GestureDetector(
               onTap: widget._controller.onItemTap != null
@@ -167,8 +164,9 @@ class ScrollViewState extends EWidgetState<ScrollView>
                   ? () =>
                       _executeAction(widget._controller.onItemLongPress!, index)
                   : null,
-              child: buildSingleWidget(scopeManager,
-                  widget._controller.itemTemplate!, templatedData[index]),
+              child: buildSingleWidget(
+                  scopeManager, widget._controller.itemTemplate!,
+                  itemIndex: index, itemData: templatedData[index]),
             ));
     return BoxWrapper(widget: rtn, boxController: widget._controller);
   }
