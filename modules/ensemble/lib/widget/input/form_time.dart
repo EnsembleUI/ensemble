@@ -187,7 +187,7 @@ class TimeState extends FormFieldWidgetState<Time> {
     Widget rtn = Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        const Icon(Icons.access_time, color: Colors.black54),
+        const Icon(Icons.alarm, color: Colors.black54),
         const SizedBox(width: 5),
         widget._controller.prettyValue(context),
       ],
