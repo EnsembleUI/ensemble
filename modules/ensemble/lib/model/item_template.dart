@@ -8,6 +8,7 @@ class ItemTemplate extends BaseItemTemplate {
     super.data,
     super.name,
     this.template, {
+    super.indexId,
     super.initialValue,
     super.inheritedStyles,
   });
@@ -21,6 +22,7 @@ class ItemTemplate extends BaseItemTemplate {
         throw LanguageError("Item template require data, name and template.");
       }
       return ItemTemplate(data, name, template,
+          indexId: Utils.optionalString(input["indexId"]),
           initialValue: input["initialValue"],
           inheritedStyles: input["inheritedStyles"]);
     }
@@ -35,7 +37,7 @@ class LabelValueItemTemplate extends BaseItemTemplate {
   final dynamic value;
 
   LabelValueItemTemplate(super.data, super.name, this.value,
-      {this.label, this.labelWidget}) {
+      {super.indexId, this.label, this.labelWidget}) {
     if (label == null && labelWidget == null) {
       throw LanguageError("Either label or labelWidget is required.");
     }
@@ -60,7 +62,9 @@ class LabelValueItemTemplate extends BaseItemTemplate {
       }
 
       return LabelValueItemTemplate(data, name, value,
-          label: label, labelWidget: labelWidget);
+          indexId: Utils.optionalString(input["indexId"]),
+          label: label,
+          labelWidget: labelWidget);
     }
     return null;
   }
@@ -73,10 +77,14 @@ class BaseItemTemplate {
   // use this as the id name for each loop
   final String name;
 
+  // this is the id for the index that can be accessed inside an item template (default 'index')
+  final String indexId;
+
   // what the data list's initial value should be
   dynamic initialValue;
   Map<String, dynamic>? inheritedStyles;
 
   BaseItemTemplate(this.data, this.name,
-      {this.initialValue, this.inheritedStyles});
+      {String? indexId, this.initialValue, this.inheritedStyles})
+      : this.indexId = indexId ?? 'index';
 }

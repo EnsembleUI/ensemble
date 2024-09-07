@@ -68,9 +68,11 @@ mixin TemplatedWidgetState<W extends StatefulWidget> on State<W> {
     ScopeManager? parentScope = DataScopeWidget.getScope(context);
     if (parentScope != null) {
       widgets = [];
-      for (dynamic itemData in dataList) {
-        DataScopeWidget singleWidget =
-            buildSingleWidget(parentScope, itemTemplate, itemData);
+      for (var i = 0; i < dataList.length; i++) {
+        final itemData = dataList[i];
+        DataScopeWidget singleWidget = buildSingleWidget(
+            parentScope, itemTemplate,
+            itemIndex: i, itemData: itemData);
         widgets.add(singleWidget);
       }
     }
@@ -78,11 +80,15 @@ mixin TemplatedWidgetState<W extends StatefulWidget> on State<W> {
   }
 
   DataScopeWidget buildSingleWidget(
-      ScopeManager parentScope, ItemTemplate itemTemplate, dynamic itemData,
-      {Key? key}) {
+      ScopeManager parentScope, ItemTemplate itemTemplate,
+      {required int itemIndex, required dynamic itemData, Key? key}) {
     // create a new scope for each item template
     ScopeManager templatedScope = parentScope.createChildScope();
+
+    // add the item's index and data to the templated scope
     templatedScope.dataContext.addDataContextById(itemTemplate.name, itemData);
+    templatedScope.dataContext.addDataContextById(itemTemplate.indexId, itemIndex);
+
     WidgetModel model =
         templatedScope.buildWidgetModelFromDefinition(itemTemplate.template);
     Widget templatedWidget = templatedScope.buildWidgetFromModel(model);
@@ -104,7 +110,8 @@ mixin TemplatedWidgetState<W extends StatefulWidget> on State<W> {
     if (parentScope != null) {
       dynamic itemData = dataList.elementAt(itemIndex);
       //return buildSingleWidget(parentScope, itemTemplate, itemData, key: ValueKey(itemIndex));
-      return buildSingleWidget(parentScope, itemTemplate, itemData);
+      return buildSingleWidget(parentScope, itemTemplate,
+          itemIndex: itemIndex, itemData: itemData);
     }
     return null;
   }
