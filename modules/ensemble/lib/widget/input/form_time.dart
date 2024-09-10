@@ -12,6 +12,127 @@ import 'package:ensemble/util/extensions.dart';
 import 'package:flutter/cupertino.dart';
 import 'dart:io' show Platform;
 
+class Time extends StatefulWidget
+    with Invokable, HasController<TimeController, TimeState> {
+  static const type = 'Time';
+
+  Time({Key? key}) : super(key: key);
+
+  final TimeController _controller = TimeController();
+
+  @override
+  TimeController get controller => _controller;
+
+  @override
+  State<StatefulWidget> createState() => TimeState();
+
+  @override
+  Map<String, Function> getters() {
+    var getters = _controller.textPlaceholderGetters;
+    getters.addAll({
+      'value': () => _controller.value?.toIso8601TimeString(),
+    });
+    return getters;
+  }
+
+  @override
+  Map<String, Function> methods() {
+    return {};
+  }
+
+  @override
+  Map<String, Function> setters() {
+    var setters = _controller.textPlaceholderSetters;
+    setters.addAll({
+      'initialValue': (value) {
+        _controller.initialValue = Utils.getTimeOfDay(value);
+        _controller.value =
+            _controller.initialValue; // Set the current value to initialValue
+      },
+      'onChange': (definition) => _controller.onChange =
+          EnsembleAction.from(definition, initiator: this),
+      'useIOSStyleTimePicker': (value) => _controller.useIOSStyleTimePicker =
+          Utils.getBool(value, fallback: Platform.isIOS),
+      'use24hFormat': (value) =>
+          _controller.use24hFormat = Utils.getBool(value, fallback: false),
+      'iOSStyles': (value) => _controller.iOSStyles = _parseIOSStyles(value),
+      'androidStyles': (value) =>
+          _controller.androidStyles = _parseAndroidStyles(value),
+    });
+    return setters;
+  }
+
+  IOSTimePickerStyle _parseIOSStyles(Map<String, dynamic> styles) {
+    return IOSTimePickerStyle(
+      backgroundColor: Utils.getColor(styles['backgroundColor']),
+      height: Utils.optionalDouble(styles['height']),
+      padding: Utils.getInsets(styles['padding']),
+    );
+  }
+
+  AndroidTimePickerStyle _parseAndroidStyles(Map<String, dynamic> styles) {
+    return AndroidTimePickerStyle(
+      initialEntryMode:
+          TimePickerEntryMode.values.from(styles['initialEntryMode']) ??
+              TimePickerEntryMode.dial,
+      cancelText: Utils.optionalString(styles['cancelText']),
+      confirmText: Utils.optionalString(styles['confirmText']),
+      orientation: Orientation.values.from(styles['orientation']),
+      backgroundColor: Utils.getColor(styles['backgroundColor']),
+      buttonStyle: _buildButtonStyle(styles['buttonStyle']),
+      dialBackgroundColor: Utils.getColor(styles['dialBackgroundColor']),
+      dialHandColor: Utils.getColor(styles['dialHandColor']),
+      dialTextColor: Utils.getColor(styles['dialTextColor']),
+      dialTextStyle: Utils.getTextStyle(styles['dialTextStyle']),
+      elevation: Utils.optionalDouble(styles['elevation']),
+      entryModeIconColor: Utils.getColor(styles['entryModeIconColor']),
+      helpTextStyle: Utils.getTextStyle(styles['helpTextStyle']),
+      hourMinuteBackgroundColor:
+          Utils.getColor(styles['hourMinuteBackgroundColor']),
+      hourMinuteTextStyle: Utils.getTextStyle(styles['hourMinuteTextStyle']),
+      padding: Utils.getInsets(styles['padding']),
+    );
+  }
+
+  static ButtonStyle? _buildButtonStyle(dynamic input) {
+    if (input == null) return null;
+    return ButtonStyle(
+      backgroundColor:
+          MaterialStateProperty.all(Utils.getColor(input['backgroundColor'])),
+      padding: MaterialStateProperty.all(Utils.getInsets(input['padding'])),
+      textStyle:
+          MaterialStateProperty.all(Utils.getTextStyle(input['textStyle'])),
+      foregroundColor: MaterialStateProperty.all(
+          Utils.getColor(input['textStyle']['color'])),
+    );
+  }
+}
+
+class TimeController extends FormFieldController with HasTextPlaceholder {
+  TimeOfDay? value;
+  TimeOfDay? initialValue;
+  EnsembleAction? onChange;
+  bool useIOSStyleTimePicker = Platform.isIOS;
+  bool use24hFormat = false;
+  IOSTimePickerStyle? iOSStyles;
+  AndroidTimePickerStyle? androidStyles;
+
+  Text prettyValue(BuildContext context) {
+    if (value != null) {
+      return Text(
+        MaterialLocalizations.of(context)
+            .formatTimeOfDay(value!, alwaysUse24HourFormat: use24hFormat),
+        style: TextStyle(fontSize: fontSize?.toDouble()),
+      );
+    } else {
+      return Text(
+        placeholder ?? MaterialLocalizations.of(context).timePickerDialHelpText,
+        style: placeholderStyle,
+      );
+    }
+  }
+}
+
 class IOSTimePickerStyle {
   Color? backgroundColor;
   double? height;
@@ -62,118 +183,6 @@ class AndroidTimePickerStyle {
   });
 }
 
-class Time extends StatefulWidget
-    with Invokable, HasController<TimeController, TimeState> {
-  static const type = 'Time';
-
-  Time({Key? key}) : super(key: key);
-
-  final TimeController _controller = TimeController();
-
-  @override
-  TimeController get controller => _controller;
-
-  @override
-  State<StatefulWidget> createState() => TimeState();
-
-  @override
-  Map<String, Function> getters() {
-    var getters = _controller.textPlaceholderGetters;
-    getters.addAll({
-      'value': () => _controller.value?.toIso8601TimeString(),
-    });
-    return getters;
-  }
-
-  @override
-  Map<String, Function> methods() {
-    return {};
-  }
-
-  @override
-  Map<String, Function> setters() {
-    var setters = _controller.textPlaceholderSetters;
-    setters.addAll({
-      'initialValue': (value) {
-        _controller.initialValue = Utils.getTimeOfDay(value);
-        _controller.value =
-            _controller.initialValue; // Set the current value to initialValue
-      },
-      'onChange': (definition) => _controller.onChange =
-          EnsembleAction.from(definition, initiator: this),
-      'useIOSStyleTimePicker': (value) =>
-          _controller.useIOSStyleTimePicker = Utils.getBool(value, fallback: Platform.isIOS),
-      'use24hFormat': (value) => _controller.use24hFormat = Utils.getBool(value, fallback: false),
-      'iOSStyles': (value) => _controller.iOSStyles = _parseIOSStyles(value),
-      'androidStyles': (value) => _controller.androidStyles = _parseAndroidStyles(value),
-    });
-    return setters;
-  }
-
-  IOSTimePickerStyle _parseIOSStyles(Map<String, dynamic> styles) {
-    return IOSTimePickerStyle(
-      backgroundColor: Utils.getColor(styles['backgroundColor']),
-      height: Utils.optionalDouble(styles['height']),
-      padding: Utils.getInsets(styles['padding']),
-    );
-  }
-
-  AndroidTimePickerStyle _parseAndroidStyles(Map<String, dynamic> styles) {
-    return AndroidTimePickerStyle(
-      initialEntryMode: TimePickerEntryMode.values.from(styles['initialEntryMode']) ?? TimePickerEntryMode.dial,
-      cancelText: Utils.optionalString(styles['cancelText']),
-      confirmText: Utils.optionalString(styles['confirmText']),
-      orientation: Orientation.values.from(styles['orientation']),
-      backgroundColor: Utils.getColor(styles['backgroundColor']),
-      buttonStyle: _buildButtonStyle(styles['buttonStyle']),
-      dialBackgroundColor: Utils.getColor(styles['dialBackgroundColor']),
-      dialHandColor: Utils.getColor(styles['dialHandColor']),
-      dialTextColor: Utils.getColor(styles['dialTextColor']),
-      dialTextStyle: Utils.getTextStyle(styles['dialTextStyle']),
-      elevation: Utils.optionalDouble(styles['elevation']),
-      entryModeIconColor: Utils.getColor(styles['entryModeIconColor']),
-      helpTextStyle: Utils.getTextStyle(styles['helpTextStyle']),
-      hourMinuteBackgroundColor: Utils.getColor(styles['hourMinuteBackgroundColor']),
-      hourMinuteTextStyle: Utils.getTextStyle(styles['hourMinuteTextStyle']),
-      padding: Utils.getInsets(styles['padding']),
-    );
-  }
-
-  static ButtonStyle? _buildButtonStyle(dynamic input) {
-    if (input == null) return null;
-    return ButtonStyle(
-      backgroundColor: MaterialStateProperty.all(Utils.getColor(input['backgroundColor'])),
-      padding: MaterialStateProperty.all(Utils.getInsets(input['padding'])),
-      textStyle: MaterialStateProperty.all(Utils.getTextStyle(input['textStyle'])),
-      foregroundColor: MaterialStateProperty.all(Utils.getColor(input['textStyle']['color'])) ,
-    );
-  }
-}
-
-class TimeController extends FormFieldController with HasTextPlaceholder {
-  TimeOfDay? value;
-  TimeOfDay? initialValue;
-  EnsembleAction? onChange;
-  bool useIOSStyleTimePicker = Platform.isIOS;
-  bool use24hFormat = false;
-  IOSTimePickerStyle? iOSStyles;
-  AndroidTimePickerStyle? androidStyles;
-
-  Text prettyValue(BuildContext context) {
-    if (value != null) {
-      return Text(
-        MaterialLocalizations.of(context).formatTimeOfDay(value!, alwaysUse24HourFormat: use24hFormat),
-        style: TextStyle(fontSize: fontSize?.toDouble()),
-      );
-    } else {
-      return Text(
-        placeholder ?? MaterialLocalizations.of(context).timePickerDialHelpText,
-        style: placeholderStyle,
-      );
-    }
-  }
-}
-
 class TimeState extends FormFieldWidgetState<Time> {
   @override
   Widget buildWidget(BuildContext context) {
@@ -184,7 +193,8 @@ class TimeState extends FormFieldWidgetState<Time> {
         key: validatorKey,
         validator: (value) {
           if (widget._controller.required && widget._controller.value == null) {
-            return Utils.translateWithFallback('ensemble.input.required', 'This field is required');
+            return Utils.translateWithFallback(
+                'ensemble.input.required', 'This field is required');
           }
           return null;
         },
@@ -225,14 +235,17 @@ class TimeState extends FormFieldWidgetState<Time> {
       context: context,
       builder: (BuildContext context) => Container(
         height: widget._controller.iOSStyles?.height ?? 216,
-        padding: widget._controller.iOSStyles?.padding ?? const EdgeInsets.only(top: 6.0),
-        color: widget._controller.iOSStyles?.backgroundColor ?? CupertinoTheme.of(context).scaffoldBackgroundColor,
+        padding: widget._controller.iOSStyles?.padding ??
+            const EdgeInsets.only(top: 6.0),
+        color: widget._controller.iOSStyles?.backgroundColor ??
+            CupertinoTheme.of(context).scaffoldBackgroundColor,
         child: SafeArea(
           top: false,
           child: CupertinoDatePicker(
             initialDateTime: DateTime.now().copyWith(
               hour: widget._controller.value?.hour ?? TimeOfDay.now().hour,
-              minute: widget._controller.value?.minute ?? TimeOfDay.now().minute,
+              minute:
+                  widget._controller.value?.minute ?? TimeOfDay.now().minute,
             ),
             mode: CupertinoDatePickerMode.time,
             use24hFormat: widget._controller.use24hFormat,
@@ -249,7 +262,8 @@ class TimeState extends FormFieldWidgetState<Time> {
     final picked = await showTimePicker(
       context: context,
       initialTime: widget._controller.value ?? TimeOfDay.now(),
-      initialEntryMode: widget._controller.androidStyles?.initialEntryMode ?? TimePickerEntryMode.dial,
+      initialEntryMode: widget._controller.androidStyles?.initialEntryMode ??
+          TimePickerEntryMode.dial,
       cancelText: widget._controller.androidStyles?.cancelText,
       confirmText: widget._controller.androidStyles?.confirmText,
       orientation: widget._controller.androidStyles?.orientation,
@@ -257,7 +271,8 @@ class TimeState extends FormFieldWidgetState<Time> {
         return Theme(
           data: _getTimePickerTheme(context),
           child: MediaQuery(
-            data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: widget._controller.use24hFormat),
+            data: MediaQuery.of(context).copyWith(
+                alwaysUse24HourFormat: widget._controller.use24hFormat),
             child: child!,
           ),
         );
@@ -290,12 +305,14 @@ class TimeState extends FormFieldWidgetState<Time> {
 
   void _updateTime(TimeOfDay? picked) {
     if (picked != null &&
-        (widget._controller.value == null || widget._controller.value!.compareTo(picked) != 0)) {
+        (widget._controller.value == null ||
+            widget._controller.value!.compareTo(picked) != 0)) {
       setState(() {
         widget._controller.value = picked;
       });
       if (isEnabled() && widget._controller.onChange != null) {
-        ScreenController().executeAction(context, widget._controller.onChange!, event: EnsembleEvent(widget));
+        ScreenController().executeAction(context, widget._controller.onChange!,
+            event: EnsembleEvent(widget));
       }
     }
   }
