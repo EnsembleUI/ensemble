@@ -8,6 +8,7 @@ import 'package:ensemble/framework/model.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/view/data_scope_widget.dart';
 import 'package:ensemble/screen_controller.dart';
+import 'package:ensemble/util/ensemble_utils.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/material.dart';
@@ -100,26 +101,26 @@ class ShowBottomSheetAction extends EnsembleAction {
   @override
   Future<dynamic> execute(BuildContext context, ScopeManager scopeManager) {
     if (body != null) {
+      final body = getBodyWidget(scopeManager, context);
       showModalBottomSheet(
-        context: context,
-        // disable the default bottom sheet styling since we use our own
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        showDragHandle: false,
-
-        barrierColor: getBarrierColor(scopeManager),
-        isScrollControlled: true,
-        enableDrag: true,
-        // padding to account for the keyboard when we have input widgets inside the modal
-        builder: (modalContext) => Padding(
-          padding: EdgeInsets.only(
-            bottom: MediaQuery.of(modalContext).viewInsets.bottom,
-          ),
-          child: DataScopeWidget(
-              scopeManager: scopeManager.createChildScope(),
-              child: getBodyWidget(scopeManager, context)),
-        ),
-      ).then((payload) {
+          context: context,
+          // disable the default bottom sheet styling since we use our own
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          showDragHandle: false,
+          barrierColor: getBarrierColor(scopeManager),
+          isScrollControlled: true,
+          enableDrag: true,
+          // padding to account for the keyboard when we have input widgets inside the modal
+          builder: (modalContext) {
+            return Padding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(modalContext).viewInsets.bottom,
+              ),
+              child: DataScopeWidget(
+                  scopeManager: scopeManager.createChildScope(), child: body),
+            );
+          }).then((payload) {
         if (onDismiss != null) {
           return ScreenController().executeActionWithScope(
               context, scopeManager, onDismiss!,
@@ -235,6 +236,7 @@ class ShowBottomSheetAction extends EnsembleAction {
 /// Dismiss the Bottom Modal (if the context is a descendant, no-op otherwise)
 class DismissBottomSheetAction extends EnsembleAction {
   DismissBottomSheetAction({super.initiator, this.payload});
+
   Map? payload;
 
   factory DismissBottomSheetAction.from({Invokable? initiator, Map? payload}) =>
@@ -242,13 +244,6 @@ class DismissBottomSheetAction extends EnsembleAction {
           initiator: initiator, payload: Utils.getMap(payload?['payload']));
 
   @override
-  Future<dynamic> execute(BuildContext context, ScopeManager scopeManager) {
-    final route = Ensemble().getCurrentRoute();
-    if (route is ModalBottomSheetRoute &&
-        route.isCurrent &&
-        route.navigator != null) {
-      return route.navigator!.maybePop(scopeManager.dataContext.eval(payload));
-    }
-    return Future.value(null);
-  }
+  Future<bool> execute(BuildContext context, ScopeManager scopeManager) =>
+      EnsembleUtils.dismissBottomSheet(scopeManager.dataContext.eval(payload));
 }

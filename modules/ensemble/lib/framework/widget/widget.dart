@@ -12,6 +12,7 @@ import 'package:ensemble/model/item_template.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
+import 'package:ensemble/widget/helpers/box_wrapper.dart';
 import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:ensemble/widget/helpers/widgets.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
@@ -30,7 +31,8 @@ mixin HasItemTemplate<T extends Widget> {
 
 /// Deprecated. Use [EnsembleWidgetState] instead
 /// base class for widgets that want to participate in Ensemble layout
-abstract class WidgetState<W extends HasController> extends BaseWidgetState<W> {
+abstract class EWidgetState<W extends HasController>
+    extends BaseWidgetState<W> {
   ScopeManager? scopeManager;
 
   void resolveStylesIfUnresolved(BuildContext context) {
@@ -50,31 +52,11 @@ abstract class WidgetState<W extends HasController> extends BaseWidgetState<W> {
     }
   }
 
-  Widget _buildTapEnabledBoxWrapper(
-      Widget childWidget, TapEnabledBoxController controller) {
-    var tapEnabled = controller.onTap != null;
-    Widget widget = BoxWrapper(
-        widget: childWidget,
-        boxController: controller,
-        ignoresMargin: tapEnabled);
-    // add the margin after the tap
-    if (controller.margin != null && tapEnabled) {
-      widget = Padding(padding: controller.margin!, child: widget);
-    }
-    return widget;
-  }
-
   @override
   Widget build(BuildContext context) {
     resolveStylesIfUnresolved(context);
 
     Widget rtn = buildWidget(context);
-
-    // inject box-related attributes
-    if (widget.controller is TapEnabledBoxController) {
-      rtn = _buildTapEnabledBoxWrapper(
-          rtn, widget.controller as TapEnabledBoxController);
-    }
 
     // inject base attributes
     if (widget.controller is WidgetController) {

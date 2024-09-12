@@ -45,7 +45,7 @@ dependencies:
   duration: ^3.0.11
   dart_date:
     git:
-      url: https://github.com/spaznuski/dart_date.git
+      url: https://github.com/EnsembleUI/dart_date.git
       ref: master
   #flutter_js: ^0.5.0+6
   #dartjsengine: ^1.0.1
@@ -55,7 +55,7 @@ dependencies:
       ref: main
       path: modules/parsejs_null_safety
   source_span: ^1.9.1
-  intl: ^0.18.0
+  intl: '>=0.18.1 <=0.19.0'
 
 dev_dependencies:
   flutter_test:

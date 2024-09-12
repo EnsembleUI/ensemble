@@ -1,18 +1,25 @@
 import 'package:ensemble/framework/bindings.dart';
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/scope.dart';
+import 'package:ensemble/framework/theme/theme_manager.dart';
 import 'package:ensemble/page_model.dart';
+import 'package:ensemble/util/utils.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
 import 'package:yaml/yaml.dart';
 
 class EnsembleThemeManager {
   static final EnsembleThemeManager _instance =
-      EnsembleThemeManager._internal();
+  EnsembleThemeManager._internal();
   static final Map<String, EnsembleTheme> _themes = {};
+  static final Map<String, List<dynamic>> _localeThemes = {};
+  static final Map<String, String> _defaultLocaleThemes = {};
+
   static const defaultThemeWhenNoneSpecified = '__ensemble__default__theme';
   String _currentThemeName = defaultThemeWhenNoneSpecified;
-
+  String? _currentLocale;
+  String? get currentLocale => _currentLocale;
   String get currentThemeName => _currentThemeName;
   bool initialized = false;
 
@@ -36,13 +43,43 @@ class EnsembleThemeManager {
     initialized = false;
   }
 
-  void setTheme(String theme) {
+  void setTheme(String theme, {bool notifyListeners = true}) {
     if (_currentThemeName != theme) {
       if (_themes[theme] != null) {
         _currentThemeName = theme;
-        //notify all listeners
-        AppEventBus().eventBus.fire(ThemeChangeEvent(theme));
+        // Only notify listeners if notifyListeners is true
+        if (notifyListeners) {
+          AppEventBus().eventBus.fire(ThemeChangeEvent(theme));
+        }
       }
+    }
+  }
+
+  void setCurrentLocale(String? locale, {bool notifyListeners = true}) {
+    if (_currentLocale != locale) {
+      _currentLocale = locale;
+      _handleLocaleChange(locale, notifyListeners: notifyListeners);
+    }
+  }
+  void _handleLocaleChange(String? locale, {bool notifyListeners = true}) {
+    if (locale == null || !_localeThemes.containsKey(locale)) {
+      return; // If the locale is null or not in _localeThemes, do nothing
+    }
+
+    // Get the list of themes for the new locale
+    List<dynamic> localeThemeList = _localeThemes[locale]!;
+
+    // Check if the current theme is in the list of themes for the new locale
+    if (localeThemeList.contains(_currentThemeName)) {
+      return; // Current theme is valid for the new locale, so do nothing
+    }
+
+    // Find the default theme for the new locale
+    String? defaultThemeForLocale = _defaultLocaleThemes[locale];
+
+    // If a default theme is found, set it as the current theme
+    if (defaultThemeForLocale != null) {
+      setTheme(defaultThemeForLocale, notifyListeners: notifyListeners);
     }
   }
 
@@ -76,12 +113,42 @@ class EnsembleThemeManager {
 
   /// this is name/value map. name being the name of the theme and value being the theme map
   void init(BuildContext context, Map<String, YamlMap> themeMap,
-      String defaultThemeName) {
+      String defaultThemeName, {YamlMap? localeThemes}) {
     _currentThemeName = defaultThemeName;
     for (var theme in themeMap.entries) {
       _themes[theme.key] = _parseAndInitTheme(theme.key, theme.value, context);
     }
+    _parseLocaleThemes(localeThemes);
     initialized = true;
+  }
+  void _parseLocaleThemes(YamlMap? localeThemes) {
+    if (localeThemes != null) {
+      for (var localeEntry in localeThemes.entries) {
+        String locale = localeEntry.key;
+        List<dynamic> themesList = localeEntry.value.map((themeYaml) {
+          if (themeYaml is YamlMap) {
+            return themeYaml.entries.first.key.toString();
+          } else if (themeYaml is String) {
+            return themeYaml;
+          }
+          return null;
+        }).whereType<String>().toList();
+
+        _localeThemes[locale] = themesList;
+
+        // Determine the default theme for the locale
+        String? defaultTheme;
+        for (var themeYaml in localeEntry.value) {
+          if (themeYaml is YamlMap && themeYaml.entries.first.value['default'] == true) {
+            defaultTheme = themeYaml.entries.first.key.toString();
+            break;
+          }
+        }
+
+        // If no default theme is specified, use the first theme in the list
+        _defaultLocaleThemes[locale] = defaultTheme ?? themesList.first;
+      }
+    }
   }
 
   EnsembleTheme _parseAndInitTheme(
@@ -97,7 +164,7 @@ class EnsembleThemeManager {
         tokens: theme['Tokens'] ?? {},
         styles: theme['Styles'] ?? {},
         inheritableStyles: {} //turning off inheritance as it is handled by the containers
-        ).init(context);
+    ).init(context);
   }
 
   EnsembleTheme? currentTheme() {
@@ -157,7 +224,7 @@ class EnsembleThemeManager {
         .split('-')
         .asMap()
         .map((index, word) => MapEntry(index,
-            index > 0 ? word[0].toUpperCase() + word.substring(1) : word))
+        index > 0 ? word[0].toUpperCase() + word.substring(1) : word))
         .values
         .join('');
   }
@@ -169,16 +236,17 @@ class EnsembleTheme {
   Map<String, dynamic> tokens;
   Map<String, dynamic> styles;
   Map<String, dynamic> inheritableStyles;
+  ThemeData? appThemeData;//app level theme data
   bool initialized = false;
 
   EnsembleTheme(
       {required this.name,
-      required this.label,
-      this.description,
-      this.inheritsFrom,
-      required this.tokens,
-      required this.styles,
-      required this.inheritableStyles});
+        required this.label,
+        this.description,
+        this.inheritsFrom,
+        required this.tokens,
+        required this.styles,
+        required this.inheritableStyles});
 
   EnsembleTheme init(BuildContext context) {
     if (initialized) {
@@ -186,7 +254,7 @@ class EnsembleTheme {
     }
     if (inheritsFrom != null) {
       EnsembleTheme? parentTheme =
-          EnsembleThemeManager().getTheme(inheritsFrom!);
+      EnsembleThemeManager().getTheme(inheritsFrom!);
       if (parentTheme != null) {
         parentTheme.init(context);
         tokens = mergeMaps(parentTheme.tokens, tokens);
@@ -196,12 +264,16 @@ class EnsembleTheme {
       }
     }
     DataContext dataContext =
-        DataContext(buildContext: context, initialMap: tokens);
+    DataContext(buildContext: context, initialMap: tokens);
     _resolveTokens(dataContext);
+    initAppThemeData();
     initialized = true;
     return this;
   }
-
+  void initAppThemeData() {
+    YamlMap? yamlStyles = styles != null ? YamlMap.wrap(styles) : null;
+    appThemeData = ThemeManager().getAppTheme(yamlStyles,widgetOverrides: yamlStyles);
+  }
   Map<String, dynamic>? getIDStyles(String? id) {
     return (id == null) ? {} : styles['#$id'];
   }
@@ -249,7 +321,7 @@ class EnsembleTheme {
   void resolveAndApplyStyles(
       ScopeManager scopeManager, HasStyles controller, Invokable widget) {
     Map<String, dynamic> resolvedStyles =
-        resolveStyles(scopeManager.dataContext, controller);
+    resolveStyles(scopeManager.dataContext, controller);
     controller.runtimeStyles = resolvedStyles;
     scopeManager.setProperties(scopeManager, widget, controller.runtimeStyles!);
   }
@@ -298,8 +370,12 @@ class EnsembleTheme {
         if (result[key] != null && result[key] is Map && value is Map) {
           result[key] = mergeMaps(result[key] as Map<String, dynamic>,
               value as Map<String, dynamic>);
+        } else if (key == 'margin' || key == 'padding') {
+          // Handle margin and padding specifically as they need to be merged at the edge level
+          result[key] = mergeEdgeInsets(
+              (result[key] is int)?result[key].toString():result[key],
+              (value is int)?value.toString():value);
         } else {
-          // Otherwise, just set/overwrite the value
           result[key] = value;
         }
       });
@@ -307,13 +383,60 @@ class EnsembleTheme {
     return result;
   }
 
+  List<String> normalizeEdgeInsets(String value) {
+    // Split the value by spaces and normalize to a list of four values
+    List<String> parts = value.split(' ');
+
+    if (parts.length == 1) {
+      // All sides are the same
+      return [parts[0], parts[0], parts[0], parts[0]];
+    } else if (parts.length == 2) {
+      // Top/Bottom are the first value, Left/Right are the second value
+      return [parts[0], parts[1], parts[0], parts[1]];
+    } else if (parts.length == 3) {
+      // Top is the first, Left/Right are the second, Bottom is the third
+      return [parts[0], parts[1], parts[2], parts[1]];
+    } else if (parts.length == 4) {
+      // All sides are specified
+      return parts;
+    }
+
+    // Fallback if something unexpected happens
+    return ['0', '0', '0', '0'];
+  }
+
+  String? mergeEdgeInsets(dynamic value1, dynamic value2) {
+    if (value1 == null) {
+      return value2;
+    }
+
+    if (value2 == null) {
+      return value1;
+    }
+
+    // Normalize both values to lists of four values
+    List<String> normalized1 = normalizeEdgeInsets(value1.toString());
+    List<String> normalized2 = normalizeEdgeInsets(value2.toString());
+
+    // Merge by using the value from map2 if it exists, otherwise fallback to map1
+    List<String> merged = [
+      normalized2[0] + '' != '0' ? normalized2[0] : normalized1[0],
+      normalized2[1] + '' != '0' ? normalized2[1] : normalized1[1],
+      normalized2[2] + '' != '0' ? normalized2[2] : normalized1[2],
+      normalized2[3] + '' != '0' ? normalized2[3] : normalized1[3],
+    ];
+
+    return merged.join(' ');
+  }
+
+
   //precedence order is exactly in the order of arguments in this method
   Map<String, dynamic> _resolveStyles(
       DataContext context,
       Map<String, dynamic>? styleOverrides,
       //styles overriden in app logic (e.g. through js)
       Map<String, dynamic>?
-          inlineStyles, //inline styles specified on the widget
+      inlineStyles, //inline styles specified on the widget
       Map<String, dynamic>? idStyles,
       List<String>? classList, //namedstyles specified on the widget
       Map<String, dynamic>? widgetTypeStyles,

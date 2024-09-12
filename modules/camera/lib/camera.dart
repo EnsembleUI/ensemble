@@ -174,7 +174,7 @@ class MyCameraController extends WidgetController {
   }
 }
 
-class CameraState extends WidgetState<Camera> with WidgetsBindingObserver {
+class CameraState extends EWidgetState<Camera> with WidgetsBindingObserver {
   final ImagePicker imagePicker = ImagePicker();
   List<CameraDescription> cameras = [];
   late PageController pageController;

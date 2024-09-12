@@ -11,8 +11,7 @@ abstract class NetworkInfoManager {
 }
 
 class NetworkInfoManagerStub implements NetworkInfoManager {
-  NetworkInfoManagerStub() {
-  }
+  NetworkInfoManagerStub() {}
   @override
   Future<InvokableNetworkInfo> getNetworkInfo() {
     if (kIsWeb) {
@@ -22,6 +21,7 @@ class NetworkInfoManagerStub implements NetworkInfoManager {
     throw ConfigError(
         "NetworkInfo module is not enabled. Please review the Ensemble documentation.");
   }
+
   @override
   Future<LocationPermissionStatus> checkPermission() {
     throw ConfigError(

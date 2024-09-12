@@ -8,7 +8,9 @@ import 'package:flutter/rendering.dart';
 mixin WrapsNativeType<T> {
   T unwrap();
 }
-class FirestoreDocumentReference with Invokable,WrapsNativeType<DocumentReference> {
+
+class FirestoreDocumentReference
+    with Invokable, WrapsNativeType<DocumentReference> {
   final DocumentReference reference;
 
   FirestoreDocumentReference(this.reference);
@@ -30,6 +32,9 @@ class FirestoreDocumentReference with Invokable,WrapsNativeType<DocumentReferenc
     return {
       'get': () async => await reference.get(),
       // Additional methods as needed, like delete, set, update
+      'delete': () async => await reference.delete(),
+      'set': (Map<String, dynamic> data, [SetOptions? options]) async =>
+          await reference.set(EnsembleFieldValue.prepareToSendToFirestore(data), options),
     };
   }
 
@@ -83,7 +88,6 @@ class FirestoreQuery with Invokable, WrapsNativeType<Query> {
   Query<Object?> unwrap() {
     return query;
   }
-
 }
 
 class FirestoreCollectionReference extends FirestoreQuery {
@@ -111,12 +115,13 @@ class FirestoreCollectionReference extends FirestoreQuery {
     var methods = super.methods(); // Retrieve methods from FirestoreQuery
     // Add or override with CollectionReference specific methods
     methods.addAll({
-      'add': (Map<String, dynamic> data) async => await collection.add(data),
+      'add': (Map<String, dynamic> data) async => await collection.add(EnsembleFieldValue.prepareToSendToFirestore(data)),
       'doc': (String? documentPath) =>
           FirestoreDocumentReference(collection.doc(documentPath)),
     });
     return methods;
   }
+
   @override
   CollectionReference unwrap() {
     return collection;
@@ -181,9 +186,9 @@ class StaticFirestoreTimestamp with Invokable {
   Map<String, Function> methods() {
     return {
       'fromDate': (Date d) => FirestoreTimestamp.fromDate(d),
-      'fromMillisecondsSinceEpoch': (int milliseconds) =>
-          FirestoreTimestamp(Timestamp.fromMillisecondsSinceEpoch(milliseconds)),
-      'fromMicrosecondsSinceEpoch': (int microseconds) => FirestoreTimestamp(
+      'fromMillis': (int milliseconds) => FirestoreTimestamp(
+          Timestamp.fromMillisecondsSinceEpoch(milliseconds)),
+      'fromMicroseconds': (int microseconds) => FirestoreTimestamp(
           Timestamp.fromMicrosecondsSinceEpoch(microseconds)),
       'now': () => FirestoreTimestamp(Timestamp.now()),
       'init': (int seconds, int nanoseconds) =>
@@ -196,7 +201,9 @@ class StaticFirestoreTimestamp with Invokable {
     return {};
   }
 }
-class FirestoreTimestamp with Invokable, SupportsPrimitiveOperations, WrapsNativeType<Timestamp> {
+
+class FirestoreTimestamp
+    with Invokable, SupportsPrimitiveOperations, WrapsNativeType<Timestamp> {
   final Timestamp timestamp;
 
   FirestoreTimestamp(this.timestamp);
@@ -219,6 +226,11 @@ class FirestoreTimestamp with Invokable, SupportsPrimitiveOperations, WrapsNativ
     return {
       'toDate': () => Date(timestamp.toDate()),
       'toString': () => timestamp.toDate().toString(),
+      'toMillis': () => timestamp.millisecondsSinceEpoch,
+      'toMicroseconds': () => timestamp.microsecondsSinceEpoch,
+      'valueOf': () => timestamp.toString(),
+      'isEqual': (dynamic other) =>
+          other is FirestoreTimestamp && timestamp == other.timestamp,
     };
   }
 
@@ -226,7 +238,6 @@ class FirestoreTimestamp with Invokable, SupportsPrimitiveOperations, WrapsNativ
   String toString() {
     return methods()['toString']!();
   }
-
 
   @override
   runOperation(String operator, rhs) {
@@ -251,5 +262,52 @@ class FirestoreTimestamp with Invokable, SupportsPrimitiveOperations, WrapsNativ
   Timestamp unwrap() {
     return timestamp;
   }
+}
 
+/// Sentinel values that can be used when writing document fields with set() or
+/// update().
+/// wraps the [FieldValue] class from cloud_firestore
+class EnsembleFieldValue with Invokable {
+  FieldValue? fieldValue;
+
+  EnsembleFieldValue([this.fieldValue]);
+
+  @override
+  Map<String, Function> getters() {
+    return {};
+  }
+
+  @override
+  Map<String, Function> setters() => {};
+
+  @override
+  Map<String, Function> methods() {
+    return {
+      'serverTimestamp': () => EnsembleFieldValue(FieldValue.serverTimestamp()),
+      'delete': () => EnsembleFieldValue(FieldValue.delete()),
+      'arrayUnion': (List<dynamic> elements) =>
+          EnsembleFieldValue(FieldValue.arrayUnion(elements)),
+      'arrayRemove': (List<dynamic> elements) =>
+          EnsembleFieldValue(FieldValue.arrayRemove(elements)),
+      'increment': (num value) => EnsembleFieldValue(FieldValue.increment(value)),
+    };
+  }
+  @override
+  String toString() {
+    return fieldValue.toString();
+  }
+  @override
+  bool operator ==(Object other) {
+    return other is EnsembleFieldValue && other.fieldValue == fieldValue;
+  }
+  static Map<String,dynamic> prepareToSendToFirestore(Map<String,dynamic> data) {
+    //iterate over the data map, looking for values that are of type EnsembleFieldValue.
+    //If found, replace them with value.fieldValue
+    data.forEach((key, value) {
+      if (value is EnsembleFieldValue) {
+        data[key] = value.fieldValue;
+      }
+    });
+    return data;
+  }
 }

@@ -7,6 +7,7 @@ import 'package:ensemble/framework/widget/icon.dart' as ensembleLib;
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/framework/widget/widget.dart';
+import 'package:ensemble/widget/helpers/box_wrapper.dart';
 import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:ensemble/framework/theme/theme_manager.dart';
 import 'package:ensemble/widget/helpers/widgets.dart';
@@ -65,7 +66,7 @@ class IconController extends BoxController {
   String? onTapHaptic;
 }
 
-class IconState extends WidgetState<EnsembleIcon> {
+class IconState extends EWidgetState<EnsembleIcon> {
   @override
   Widget buildWidget(BuildContext context) {
     if (widget._controller.name == null && widget._controller.icon == null) {

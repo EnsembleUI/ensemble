@@ -33,8 +33,11 @@ class Utils {
 
   /// return an Integer if it is, or null if not
   static int? optionalInt(dynamic value, {int? min, int? max}) {
-    int? rtn =
-        value is int ? value : (value is String ? int.tryParse(value) : null);
+    int? rtn = value is int
+        ? value
+        : (value is double
+            ? value.round()
+            : (value is String ? int.tryParse(value) : null));
     if (rtn != null && min != null && rtn < min) {
       rtn = null;
     }
@@ -898,8 +901,6 @@ class Utils {
     return input;
   }
 
-
-
   /// pick a string randomly from the list
   static String randomize(List<String> strings) {
     assert(strings.isNotEmpty);
@@ -1043,5 +1044,19 @@ class Utils {
     });
 
     return String.fromCharCodes(codeUnits);
+  }
+
+  static T getEnum<T>(String? value, List<T> enumValues) {
+    return enumValues.firstWhere(
+      (e) => e.toString().split('.').last.toLowerCase() == value?.toLowerCase(),
+      orElse: () => enumValues.first,
+    );
+  }
+
+  static List<Color>? getColorList(dynamic value) {
+    if (value is List) {
+      return value.map((item) => getColor(item) ?? Colors.transparent).toList();
+    }
+    return null;
   }
 }

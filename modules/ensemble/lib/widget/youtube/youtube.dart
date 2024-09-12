@@ -1,5 +1,6 @@
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/util/utils.dart';
+import 'package:ensemble/widget/helpers/box_wrapper.dart';
 import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:ensemble/widget/helpers/widgets.dart';
 import 'package:ensemble/widget/youtube/youtubestate.dart';
@@ -75,7 +76,7 @@ class YouTube extends StatefulWidget
       };
 }
 
-mixin YouTubeMethods on WidgetState<YouTube> {
+mixin YouTubeMethods on EWidgetState<YouTube> {
   void nextVideo();
   void previousVideo();
   void stopVideo();
@@ -87,10 +88,48 @@ mixin YouTubeMethods on WidgetState<YouTube> {
   void setVolume(int volume);
 }
 
-class YouTubeState extends WidgetState<YouTube> with YouTubeMethods {
+class YouTubeNavigatorObserver extends NavigatorObserver {
+  final YoutubePlayerController player;
+
+  YouTubeNavigatorObserver(this.player);
+
+  void _pauseVideo() {
+    player.pauseVideo();
+  }
+
+  @override
+  void didPop(Route route, Route? previousRoute) {
+    super.didPop(route, previousRoute);
+    _pauseVideo();
+  }
+
+  @override
+  void didPush(Route route, Route? previousRoute) {
+    super.didPush(route, previousRoute);
+    _pauseVideo();
+  }
+
+  @override
+  void didRemove(Route route, Route? previousRoute) {
+    super.didRemove(route, previousRoute);
+    _pauseVideo();
+  }
+
+  @override
+  void didReplace({Route? newRoute, Route? oldRoute}) {
+    super.didReplace(newRoute: newRoute, oldRoute: oldRoute);
+    _pauseVideo();
+  }
+}
+
+class YouTubeState extends EWidgetState<YouTube>
+    with YouTubeMethods, WidgetsBindingObserver {
   late YoutubePlayerController player;
+  late YouTubeNavigatorObserver _youtubeObserver;
+
   @override
   void initState() {
+    super.initState();
     YouTubeBase().createWebInstance();
     PlayerController playerController = widget._controller;
     player = YoutubePlayerController(
@@ -100,7 +139,20 @@ class YouTubeState extends WidgetState<YouTube> with YouTubeMethods {
             showControls: playerController.showControls,
             showFullscreenButton: playerController.showFullScreenButton,
             showVideoAnnotations: playerController.showVideoAnnotation));
-    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+
+    _youtubeObserver = YouTubeNavigatorObserver(player);
+
+    if (context.findAncestorStateOfType<NavigatorState>() != null) {
+      Navigator.of(context).widget.observers.add(_youtubeObserver);
+    }
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused) {
+      player.pauseVideo();
+    }
   }
 
   @override
@@ -125,7 +177,14 @@ class YouTubeState extends WidgetState<YouTube> with YouTubeMethods {
 
   @override
   void dispose() {
+    player.stopVideo();
     player.close();
+    WidgetsBinding.instance.removeObserver(this);
+
+    if (context.findAncestorStateOfType<NavigatorState>() != null) {
+      Navigator.of(context).widget.observers.remove(_youtubeObserver);
+    }
+
     super.dispose();
   }
 
@@ -281,6 +340,7 @@ class PlayerController extends BoxController {
 
 class YoutubeNotifier extends ChangeNotifier {
   bool isCalled = false;
+
   Future<void> initializeYoutube(PlayerController playerController,
       List<String> list, YoutubePlayerController player) async {
     if (!playerController.autoplay) {

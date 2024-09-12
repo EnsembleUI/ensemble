@@ -15,6 +15,7 @@ import 'package:ensemble/page_model.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/util/gesture_detector.dart';
+import 'package:ensemble/widget/helpers/box_wrapper.dart';
 import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:ensemble/framework/theme/theme_manager.dart';
 import 'package:ensemble/widget/helpers/pull_to_refresh_container.dart';
@@ -139,7 +140,7 @@ class GridViewController extends BoxController {
   }
 }
 
-class GridViewState extends WidgetState<GridView> with TemplatedWidgetState {
+class GridViewState extends EWidgetState<GridView> with TemplatedWidgetState {
   static const gap = 10.0;
   static const cachedPixels = 500.0; // cache an additional iphone size height
 

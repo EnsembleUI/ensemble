@@ -47,6 +47,10 @@ class Device
       // Misc Info
       "platform": () => platform?.name,
       "browserInfo": () => DeviceWebInfo(),
+      "androidInfo": () => DeviceAndroidInfo(),
+      "iosInfo": () => DeviceIosInfo(),
+      "macOsInfo": () => DeviceMacOsInfo(),
+      "windowsInfo": () => DeviceWindowsInfo(),
 
       // @deprecated. backward compatibility
       DevicePlatform.web.name: () => DeviceWebInfo()
@@ -89,24 +93,13 @@ mixin MediaQueryCapability {
     return data ??= MediaQuery.of(Utils.globalAppKey.currentContext!);
   }
 
-  int get screenWidth {
-    return _getData().size.width.toInt();
-  }
-
-  int get screenHeight {
-    return _getData().size.height.toInt();
-  }
-
-  int get safeAreaTop {
-    return _getData().padding.top.toInt();
-  }
-
-  int get safeAreaBottom {
-    return _getData().padding.bottom.toInt();
-  }
+  int get screenWidth => _getData().size.width.toInt();
+  int get screenHeight => _getData().size.height.toInt();
+  int get safeAreaTop => _getData().padding.top.toInt();
+  int get safeAreaBottom => _getData().padding.bottom.toInt();
 }
 
-// /// This mixin can access user's location
+/// This mixin can access user's location
 mixin LocationCapability {
   static LocationData? lastLocation;
 
@@ -125,6 +118,10 @@ mixin DeviceInfoCapability {
   static final DeviceInfoPlugin _deviceInfoPlugin = DeviceInfoPlugin();
   static DevicePlatform? _platform;
   static WebBrowserInfo? browserInfo;
+  static AndroidDeviceInfo? androidInfo;
+  static IosDeviceInfo? iosInfo;
+  static MacOsDeviceInfo? macOsInfo;
+  static WindowsDeviceInfo? windowsInfo;
 
   DevicePlatform? get platform => _platform;
 
@@ -137,12 +134,16 @@ mixin DeviceInfoCapability {
       } else {
         if (Platform.isAndroid) {
           _platform = DevicePlatform.android;
+          androidInfo = await _deviceInfoPlugin.androidInfo;
         } else if (Platform.isIOS) {
           _platform = DevicePlatform.ios;
+          iosInfo = await _deviceInfoPlugin.iosInfo;
         } else if (Platform.isMacOS) {
           _platform = DevicePlatform.macos;
+          macOsInfo = await _deviceInfoPlugin.macOsInfo;
         } else if (Platform.isWindows) {
           _platform = DevicePlatform.windows;
+          windowsInfo = await _deviceInfoPlugin.windowsInfo;
         }
       }
     } on PlatformException {
@@ -164,7 +165,7 @@ class DeviceWebInfo with Invokable {
       'appVersion': () => browserInfo?.appVersion,
       'deviceMemory': () => browserInfo?.deviceMemory,
       'language': () => browserInfo?.language,
-      'languages': () => browserInfo?.languages,
+      'languages': () => browserInfo?.languages?.join(', '),
       'platform': () => browserInfo?.platform,
       'product': () => browserInfo?.product,
       'productSub': () => browserInfo?.productSub,
@@ -177,14 +178,126 @@ class DeviceWebInfo with Invokable {
   }
 
   @override
-  Map<String, Function> methods() {
-    return {};
+  Map<String, Function> methods() => {};
+  @override
+  Map<String, Function> setters() => {};
+}
+
+class DeviceAndroidInfo with Invokable {
+  @override
+  Map<String, Function> getters() {
+    AndroidDeviceInfo? androidInfo = DeviceInfoCapability.androidInfo;
+    return {
+      'versionRelease': () => androidInfo?.version.release,
+      'versionSdkInt': () => androidInfo?.version.sdkInt,
+      'versionCodename': () => androidInfo?.version.codename,
+      'versionIncremental': () => androidInfo?.version.incremental,
+      'versionPreviewSdkInt': () => androidInfo?.version.previewSdkInt,
+      'versionSecurityPatch': () => androidInfo?.version.securityPatch,
+      'board': () => androidInfo?.board,
+      'bootloader': () => androidInfo?.bootloader,
+      'brand': () => androidInfo?.brand,
+      'device': () => androidInfo?.device,
+      'display': () => androidInfo?.display,
+      'fingerprint': () => androidInfo?.fingerprint,
+      'hardware': () => androidInfo?.hardware,
+      'host': () => androidInfo?.host,
+      'id': () => androidInfo?.id,
+      'manufacturer': () => androidInfo?.manufacturer,
+      'model': () => androidInfo?.model,
+      'product': () => androidInfo?.product,
+      'tags': () => androidInfo?.tags,
+      'type': () => androidInfo?.type,
+      'isPhysicalDevice': () => androidInfo?.isPhysicalDevice,
+      'serialNumber': () => androidInfo?.serialNumber,
+    };
   }
 
   @override
-  Map<String, Function> setters() {
-    return {};
+  Map<String, Function> methods() => {};
+  @override
+  Map<String, Function> setters() => {};
+}
+
+class DeviceIosInfo with Invokable {
+  @override
+  Map<String, Function> getters() {
+    IosDeviceInfo? iosInfo = DeviceInfoCapability.iosInfo;
+    return {
+      'name': () => iosInfo?.name,
+      'systemName': () => iosInfo?.systemName,
+      'systemVersion': () => iosInfo?.systemVersion,
+      'model': () => iosInfo?.model,
+      'localizedModel': () => iosInfo?.localizedModel,
+      'identifierForVendor': () => iosInfo?.identifierForVendor,
+      'isPhysicalDevice': () => iosInfo?.isPhysicalDevice,
+      'utsnameSysname': () => iosInfo?.utsname.sysname,
+      'utsnameNodename': () => iosInfo?.utsname.nodename,
+      'utsnameRelease': () => iosInfo?.utsname.release,
+      'utsnameVersion': () => iosInfo?.utsname.version,
+      'utsnameMachine': () => iosInfo?.utsname.machine,
+    };
   }
+
+  @override
+  Map<String, Function> methods() => {};
+  @override
+  Map<String, Function> setters() => {};
+}
+
+class DeviceMacOsInfo with Invokable {
+  @override
+  Map<String, Function> getters() {
+    MacOsDeviceInfo? macOsInfo = DeviceInfoCapability.macOsInfo;
+    return {
+      'computerName': () => macOsInfo?.computerName,
+      'hostName': () => macOsInfo?.hostName,
+      'arch': () => macOsInfo?.arch,
+      'model': () => macOsInfo?.model,
+      'kernelVersion': () => macOsInfo?.kernelVersion,
+      'osRelease': () => macOsInfo?.osRelease,
+      'majorVersion': () => macOsInfo?.majorVersion,
+      'minorVersion': () => macOsInfo?.minorVersion,
+      'patchVersion': () => macOsInfo?.patchVersion,
+      'activeCPUs': () => macOsInfo?.activeCPUs,
+      'memorySize': () => macOsInfo?.memorySize,
+      'cpuFrequency': () => macOsInfo?.cpuFrequency,
+      'systemGUID': () => macOsInfo?.systemGUID,
+    };
+  }
+
+  @override
+  Map<String, Function> methods() => {};
+  @override
+  Map<String, Function> setters() => {};
+}
+
+class DeviceWindowsInfo with Invokable {
+  @override
+  Map<String, Function> getters() {
+    WindowsDeviceInfo? windowsInfo = DeviceInfoCapability.windowsInfo;
+    return {
+      'computerName': () => windowsInfo?.computerName,
+      'numberOfCores': () => windowsInfo?.numberOfCores,
+      'systemMemoryInMegabytes': () => windowsInfo?.systemMemoryInMegabytes,
+      'userName': () => windowsInfo?.userName,
+      'majorVersion': () => windowsInfo?.majorVersion,
+      'minorVersion': () => windowsInfo?.minorVersion,
+      'buildNumber': () => windowsInfo?.buildNumber,
+      'platformId': () => windowsInfo?.platformId,
+      'buildLab': () => windowsInfo?.buildLab,
+      'buildLabEx': () => windowsInfo?.buildLabEx,
+      'productId': () => windowsInfo?.productId,
+      'productName': () => windowsInfo?.productName,
+      'releaseId': () => windowsInfo?.releaseId,
+      'deviceId': () => windowsInfo?.deviceId,
+    };
+  }
+
+  @override
+  Map<String, Function> methods() => {};
+  @override
+  Map<String, Function> setters() => {};
 }
 
 class Location with Invokable {

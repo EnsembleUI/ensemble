@@ -364,36 +364,34 @@ class OtpPinFieldState extends State<OtpPinField>
     return field;
   }
 
-Widget _getPinDisplay(int position) {
-  var value = pinsInputed[position];
-  
-  Widget _buildText(String text) {
-    return Text(
-      text,
-      style: widget.otpPinFieldStyle?.textStyle,
-      textAlign: TextAlign.center,
-    );
-  }
+  Widget _getPinDisplay(int position) {
+    var value = pinsInputed[position];
 
-  switch (widget.otpPinFieldInputType) {
-    case OtpPinFieldInputType.password:
-      if (value.isNotEmpty) {
-        if (widget.otpPinInputCustom is String) {
-          return _buildText(widget.otpPinInputCustom as String);
-        } else if (widget.otpPinInputCustom is Widget) {
-          return widget.otpPinInputCustom as Widget;
+    Widget _buildText(String text) {
+      return Text(
+        text,
+        style: widget.otpPinFieldStyle?.textStyle,
+        textAlign: TextAlign.center,
+      );
+    }
+
+    switch (widget.otpPinFieldInputType) {
+      case OtpPinFieldInputType.password:
+        if (value.isNotEmpty) {
+          if (widget.otpPinInputCustom is String) {
+            return _buildText(widget.otpPinInputCustom as String);
+          } else if (widget.otpPinInputCustom is Widget) {
+            return widget.otpPinInputCustom as Widget;
+          } else {
+            return _buildText("*");
+          }
         } else {
-          return _buildText("*");
+          return _buildText(value);
         }
-      } else {
+      default:
         return _buildText(value);
-      }
-    default:
-      return _buildText(value);
+    }
   }
-}
-
-
 
   void _bindTextIntoWidget(String text) {
     ///Reset value

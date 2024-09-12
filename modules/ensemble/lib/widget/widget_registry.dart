@@ -11,6 +11,7 @@ import 'package:ensemble/layout/flow.dart';
 import 'package:ensemble/layout/form.dart';
 import 'package:ensemble/layout/grid_view.dart';
 import 'package:ensemble/layout/list_view.dart';
+import 'package:ensemble/layout/scroll_view.dart';
 import 'package:ensemble/layout/stack.dart';
 import 'package:ensemble/layout/tab/scrollable_tab_bar.dart';
 import 'package:ensemble/layout/tab_bar.dart';
@@ -186,5 +187,9 @@ class WidgetRegistry {
         //domain specific or custom widgets
         FinicityConnect.type: () => FinicityConnect(),
         TabaPayConnect.type: () => TabaPayConnect(),
+
+        // handling common GPT widget mistakes
+        "Container": () => Column(),
+        "ScrollView": () => ScrollView(),
       };
 }

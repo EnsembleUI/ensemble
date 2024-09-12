@@ -8,6 +8,7 @@ import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/layout_utils.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/carousel.dart';
+import 'package:ensemble/widget/helpers/box_wrapper.dart';
 import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:ensemble/widget/helpers/widgets.dart';
 import 'package:flutter/material.dart';
@@ -37,13 +38,6 @@ class BoxLayoutWrapper extends StatelessWidget {
           child: boxWidget),
       ignoresMargin: true,
     );
-    if (controller.onTap != null) {
-      rtn = GestureDetector(
-        child: rtn,
-        onTap: () =>
-            ScreenController().executeAction(context, controller.onTap!),
-      );
-    }
     if (!ignoresMargin && controller.margin != null) {
       rtn = Padding(padding: controller.margin!, child: rtn);
     }
@@ -101,9 +95,8 @@ class BoxLayoutController extends BaseBoxLayoutController {
   }
 }
 
-abstract class BaseBoxLayoutController extends BoxController {
+abstract class BaseBoxLayoutController extends TapEnabledBoxController {
   List<WidgetModel>? children;
-  EnsembleAction? onTap;
   EnsembleAction? onItemTap;
 
   MainAxisSize mainAxisSize = MainAxisSize.max;

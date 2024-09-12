@@ -49,7 +49,7 @@ class ConditionalController extends WidgetController {
   dynamic conditions;
 }
 
-class ConditionalState extends WidgetState<Conditional> {
+class ConditionalState extends EWidgetState<Conditional> {
   Widget? _widget;
 
   @override
