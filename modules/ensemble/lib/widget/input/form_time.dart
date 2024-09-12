@@ -10,6 +10,7 @@ import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/material.dart';
 import 'package:ensemble/util/extensions.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'dart:io' show Platform;
 
 class Time extends StatefulWidget
@@ -52,7 +53,7 @@ class Time extends StatefulWidget
       'onChange': (definition) => _controller.onChange =
           EnsembleAction.from(definition, initiator: this),
       'useIOSStyleTimePicker': (value) => _controller.useIOSStyleTimePicker =
-          Utils.getBool(value, fallback: Platform.isIOS),
+          Utils.getBool(value, fallback: kIsWeb ? false : Platform.isIOS),
       'use24hFormat': (value) =>
           _controller.use24hFormat = Utils.getBool(value, fallback: false),
       'iOSStyles': (value) => _controller.iOSStyles = _parseIOSStyles(value),
@@ -112,7 +113,7 @@ class TimeController extends FormFieldController with HasTextPlaceholder {
   TimeOfDay? value;
   TimeOfDay? initialValue;
   EnsembleAction? onChange;
-  bool useIOSStyleTimePicker = Platform.isIOS;
+  bool useIOSStyleTimePicker = kIsWeb ? false : Platform.isIOS;
   bool use24hFormat = false;
   IOSTimePickerStyle? iOSStyles;
   AndroidTimePickerStyle? androidStyles;
