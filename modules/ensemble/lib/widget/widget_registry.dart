@@ -59,6 +59,7 @@ import 'package:ensemble/widget/stub_widgets.dart';
 import 'package:ensemble/widget/switch.dart';
 import 'package:ensemble/widget/text.dart';
 import 'package:ensemble/widget/toggle_button.dart';
+import 'package:ensemble/widget/tooltip.dart';
 import 'package:ensemble/widget/video.dart';
 import 'package:ensemble/widget/visualization/barchart.dart';
 import 'package:ensemble/widget/visualization/chart_js.dart';
@@ -135,6 +136,7 @@ class WidgetRegistry {
         PopupMenu.type: () => PopupMenu(),
         EnsembleCalendar.type: () => EnsembleCalendar(),
         Countdown.type: () => Countdown(),
+        ToolTip.type: () => ToolTip(),
 
         // form fields
         RadioButton.type: () => RadioButton(),
