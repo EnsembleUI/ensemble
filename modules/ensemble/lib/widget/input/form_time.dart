@@ -10,8 +10,7 @@ import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/material.dart';
 import 'package:ensemble/util/extensions.dart';
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
-import 'dart:io' show Platform;
+import 'package:flutter/foundation.dart' show defaultTargetPlatform, kIsWeb;
 
 class Time extends StatefulWidget
     with Invokable, HasController<TimeController, TimeState> {
@@ -53,7 +52,7 @@ class Time extends StatefulWidget
       'onChange': (definition) => _controller.onChange =
           EnsembleAction.from(definition, initiator: this),
       'useIOSStyleTimePicker': (value) => _controller.useIOSStyleTimePicker =
-          Utils.getBool(value, fallback: kIsWeb ? false : Platform.isIOS),
+          Utils.getBool(value, fallback: shouldUseIOSStyle()),
       'use24hFormat': (value) =>
           _controller.use24hFormat = Utils.getBool(value, fallback: false),
       'iOSStyles': (value) => _controller.iOSStyles = _parseIOSStyles(value),
@@ -113,7 +112,7 @@ class TimeController extends FormFieldController with HasTextPlaceholder {
   TimeOfDay? value;
   TimeOfDay? initialValue;
   EnsembleAction? onChange;
-  bool useIOSStyleTimePicker = kIsWeb ? false : Platform.isIOS;
+  bool useIOSStyleTimePicker = shouldUseIOSStyle();
   bool use24hFormat = false;
   IOSTimePickerStyle? iOSStyles;
   AndroidTimePickerStyle? androidStyles;
@@ -131,6 +130,17 @@ class TimeController extends FormFieldController with HasTextPlaceholder {
         style: placeholderStyle,
       );
     }
+  }
+}
+
+bool shouldUseIOSStyle() {
+  if (kIsWeb) {
+    // For web, use iOS style for browser which is on Apple platforms.
+    return defaultTargetPlatform == TargetPlatform.iOS ||
+           defaultTargetPlatform == TargetPlatform.macOS;
+  } else {
+    // For native platforms, use iOS style only on iOS
+    return defaultTargetPlatform == TargetPlatform.iOS;
   }
 }
 
