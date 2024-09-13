@@ -48,6 +48,8 @@ abstract class BaseTabBar extends StatefulWidget
   @override
   Map<String, Function> methods() {
     return {
+      'navigateTo': (index) => _controller.tabBarAction?.changeTab(index),
+      // legacy
       'changeTabItem': (index) => _controller.tabBarAction?.changeTab(index),
     };
   }

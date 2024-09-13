@@ -141,21 +141,21 @@ class FirestoreApp {
 
   Future<DocumentReference> performAddOperation(Map evaluatedApi) async {
     String path = evaluatedApi['path'];
-    Map<String, dynamic> data = evaluatedApi['data'];
+    Map<String, dynamic> data = EnsembleFieldValue.prepareToSendToFirestore(evaluatedApi['data']);
     CollectionReference collection = firestore.collection(path);
     return await collection.add(data);
   }
 
   Future<void> performSetOperation(Map evaluatedApi) async {
     String path = evaluatedApi['path'];
-    Map<String, dynamic> data = evaluatedApi['data'];
+    Map<String, dynamic> data = EnsembleFieldValue.prepareToSendToFirestore(evaluatedApi['data']);
     DocumentReference docRef = firestore.doc(path);
     return await docRef.set(data);
   }
 
   Future<void> performUpdateOperation(Map evaluatedApi) async {
     String path = evaluatedApi['path'];
-    Map<String, dynamic> data = evaluatedApi['data'];
+    Map<String, dynamic> data = EnsembleFieldValue.prepareToSendToFirestore(evaluatedApi['data']);
     DocumentReference docRef = firestore.doc(path);
     return await docRef.update(data);
   }

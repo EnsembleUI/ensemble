@@ -32,6 +32,9 @@ class FirestoreDocumentReference
     return {
       'get': () async => await reference.get(),
       // Additional methods as needed, like delete, set, update
+      'delete': () async => await reference.delete(),
+      'set': (Map<String, dynamic> data, [SetOptions? options]) async =>
+          await reference.set(EnsembleFieldValue.prepareToSendToFirestore(data), options),
     };
   }
 
@@ -112,7 +115,7 @@ class FirestoreCollectionReference extends FirestoreQuery {
     var methods = super.methods(); // Retrieve methods from FirestoreQuery
     // Add or override with CollectionReference specific methods
     methods.addAll({
-      'add': (Map<String, dynamic> data) async => await collection.add(data),
+      'add': (Map<String, dynamic> data) async => await collection.add(EnsembleFieldValue.prepareToSendToFirestore(data)),
       'doc': (String? documentPath) =>
           FirestoreDocumentReference(collection.doc(documentPath)),
     });
@@ -258,5 +261,53 @@ class FirestoreTimestamp
   @override
   Timestamp unwrap() {
     return timestamp;
+  }
+}
+
+/// Sentinel values that can be used when writing document fields with set() or
+/// update().
+/// wraps the [FieldValue] class from cloud_firestore
+class EnsembleFieldValue with Invokable {
+  FieldValue? fieldValue;
+
+  EnsembleFieldValue([this.fieldValue]);
+
+  @override
+  Map<String, Function> getters() {
+    return {};
+  }
+
+  @override
+  Map<String, Function> setters() => {};
+
+  @override
+  Map<String, Function> methods() {
+    return {
+      'serverTimestamp': () => EnsembleFieldValue(FieldValue.serverTimestamp()),
+      'delete': () => EnsembleFieldValue(FieldValue.delete()),
+      'arrayUnion': (List<dynamic> elements) =>
+          EnsembleFieldValue(FieldValue.arrayUnion(elements)),
+      'arrayRemove': (List<dynamic> elements) =>
+          EnsembleFieldValue(FieldValue.arrayRemove(elements)),
+      'increment': (num value) => EnsembleFieldValue(FieldValue.increment(value)),
+    };
+  }
+  @override
+  String toString() {
+    return fieldValue.toString();
+  }
+  @override
+  bool operator ==(Object other) {
+    return other is EnsembleFieldValue && other.fieldValue == fieldValue;
+  }
+  static Map<String,dynamic> prepareToSendToFirestore(Map<String,dynamic> data) {
+    //iterate over the data map, looking for values that are of type EnsembleFieldValue.
+    //If found, replace them with value.fieldValue
+    data.forEach((key, value) {
+      if (value is EnsembleFieldValue) {
+        data[key] = value.fieldValue;
+      }
+    });
+    return data;
   }
 }

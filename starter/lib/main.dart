@@ -10,7 +10,7 @@ import 'package:flutter/material.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   initErrorHandler();
-  EnsembleModules().init();
+  await EnsembleModules().init();
   runApp(EnsembleApp());
 }
 
