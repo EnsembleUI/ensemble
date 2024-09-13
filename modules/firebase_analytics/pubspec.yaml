@@ -40,7 +40,7 @@ dependencies:
   ensemble:
     git:
       url: https://github.com/EnsembleUI/ensemble.git
-      ref: main
+      ref: ensemble-v1.0.4
       path: modules/ensemble
 
 dev_dependencies:
