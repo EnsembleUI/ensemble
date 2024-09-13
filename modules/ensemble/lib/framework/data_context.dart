@@ -456,6 +456,7 @@ class NativeInvokable extends ActionInvokable {
   NativeInvokable(super.buildContext);
 
   EnsembleStorage get storage => EnsembleStorage(buildContext);
+  final Map<String, dynamic> _cache = {};
 
   @override
   Map<String, Function> getters() {
@@ -470,15 +471,22 @@ class NativeInvokable extends ActionInvokable {
   }
 
   Future<String?> getEnsembleVersion() async {
+    if (_cache.containsKey('version')) {
+      return _cache['version'] as String?;
+    }
+
     try {
       final fileContent = await rootBundle.loadString(
         "packages/ensemble/pubspec.yaml",
       );
 
       final pubspecYaml = loadYaml(fileContent);
+      final version = pubspecYaml['version'] as String?;
 
-      return pubspecYaml['version'];
+      _cache['version'] = version;
+      return version;
     } on Exception catch (_) {
+      _cache['version'] = null;
       return null;
     }
   }
