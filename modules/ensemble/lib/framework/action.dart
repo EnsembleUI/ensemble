@@ -7,6 +7,7 @@ import 'package:ensemble/action/deep_link_action.dart';
 import 'package:ensemble/action/call_external_method.dart';
 import 'package:ensemble/action/device_security.dart';
 import 'package:ensemble/action/dialog_actions.dart';
+import 'package:ensemble/action/execute_action_group_action.dart';
 import 'package:ensemble/action/get_network_info_action.dart';
 import 'package:ensemble/action/haptic_action.dart';
 import 'package:ensemble/action/call_native_method.dart';
@@ -402,59 +403,6 @@ class ExecuteCodeAction extends EnsembleAction {
             EnsembleAction.from(payload['onComplete'], initiator: initiator),
         codeBlockSpan:
             ViewUtil.optDefinition((payload as YamlMap).nodes['body']));
-  }
-}
-
-class ExecuteActionGroupAction extends EnsembleAction {
-  ExecuteActionGroupAction({super.initiator, required this.actions});
-
-  List<EnsembleAction> actions;
-
-  factory ExecuteActionGroupAction.fromYaml(
-      {Invokable? initiator, Map? payload}) {
-    if (payload == null || payload['actions'] == null) {
-      throw LanguageError(
-          "${ActionType.executeActionGroup.name} requires a 'actions' list.");
-    }
-
-    if (payload['actions'] is! List<dynamic>) {
-      throw LanguageError(
-          "${ActionType.executeActionGroup.name} requires a 'actions' list.");
-    }
-    List<dynamic> actions = payload['actions'] as List<dynamic>;
-    if (actions == null || actions.isEmpty) {
-      throw LanguageError(
-          "${ActionType.executeActionGroup.name} requires a 'actions' list.");
-    }
-    List<EnsembleAction> ensembleActions = [];
-    for (var action in actions) {
-      EnsembleAction? ensembleAction =
-          EnsembleAction.from(action, initiator: initiator);
-      if (ensembleAction == null) {
-        throw LanguageError(
-            "$action under ${ActionType.executeActionGroup.name} is not a valid action");
-      }
-      if (ensembleAction != null) {
-        ensembleActions.add(ensembleAction);
-      }
-    }
-    return ExecuteActionGroupAction(
-        initiator: initiator, actions: ensembleActions);
-  }
-
-  factory ExecuteActionGroupAction.from(dynamic payload) =>
-      ExecuteActionGroupAction.fromYaml(payload: Utils.getYamlMap(payload));
-
-  @override
-  Future<void> execute(BuildContext context, ScopeManager scopeManager) {
-    // Map each action into a Future by calling execute on it, starting all actions in parallel
-    var actionFutures = actions.map((action) {
-      return ScreenController()
-          .executeActionWithScope(context, scopeManager, action);
-    });
-
-    // Wait for all action Futures to complete and return the resulting Future
-    return Future.wait(actionFutures);
   }
 }
 
@@ -1284,7 +1232,7 @@ abstract class EnsembleAction {
       return ExecuteConditionalActionAction.fromYaml(
           initiator: initiator, payload: payload);
     } else if (actionType == ActionType.executeActionGroup) {
-      return ExecuteActionGroupAction.fromYaml(
+      return ExecuteActionGroupAction.from(
           initiator: initiator, payload: payload);
     } else if (actionType == ActionType.logEvent) {
       return LogEvent.from(initiator: initiator, payload: payload);
