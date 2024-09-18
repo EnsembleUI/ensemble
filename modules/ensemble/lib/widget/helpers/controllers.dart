@@ -105,6 +105,8 @@ class TextStyleComposite extends WidgetCompositeProperty {
         backgroundColor = styleWithFontFamily?.backgroundColor,
         decoration = styleWithFontFamily?.decoration,
         decorationStyle = styleWithFontFamily?.decorationStyle,
+        decorationColor = styleWithFontFamily?.decorationColor ?? styleWithFontFamily?.color,
+        decorationThickness = styleWithFontFamily?.decorationThickness,
         overflow = styleWithFontFamily?.overflow,
         letterSpacing = styleWithFontFamily?.letterSpacing,
         wordSpacing = styleWithFontFamily?.wordSpacing;
@@ -119,6 +121,8 @@ class TextStyleComposite extends WidgetCompositeProperty {
   LinearGradient? gradient;
   TextDecoration? decoration;
   TextDecorationStyle? decorationStyle;
+  Color? decorationColor;
+  double? decorationThickness;
   TextOverflow? overflow;
   double? letterSpacing;
   double? wordSpacing;
@@ -133,6 +137,8 @@ class TextStyleComposite extends WidgetCompositeProperty {
       backgroundColor: backgroundColor,
       decoration: decoration,
       decorationStyle: decorationStyle,
+      decorationColor: decorationColor ?? color, // Default to text color
+      decorationThickness: decorationThickness,
       overflow: overflow,
       letterSpacing: letterSpacing,
       wordSpacing: wordSpacing);
@@ -154,6 +160,8 @@ class TextStyleComposite extends WidgetCompositeProperty {
       'decoration': (value) => decoration = Utils.getDecoration(value),
       'decorationStyle': (value) =>
           decorationStyle = TextDecorationStyle.values.from(value),
+      'decorationColor': (value) => decorationColor = Utils.getColor(value),
+      'decorationThickness': (value) => decorationThickness = Utils.optionalDouble(value),
       'overflow': (value) => overflow = TextOverflow.values.from(value),
       'letterSpacing': (value) => letterSpacing = Utils.optionalDouble(value),
       'wordSpacing': (value) => wordSpacing = Utils.optionalDouble(value),
