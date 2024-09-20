@@ -16,6 +16,7 @@ abstract class APIProvider {
 mixin LiveAPIProvider {
   Future<Response> subscribeToApi(BuildContext context, YamlMap api,
       DataContext eContext, String apiName, ResponseListener listener);
+  Future<void> unSubscribeToApi(String apiName);
 }
 
 class APIProviders extends InheritedWidget {
