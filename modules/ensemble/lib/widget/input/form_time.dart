@@ -55,10 +55,10 @@ class Time extends StatefulWidget
 class TimeController extends FormFieldController with HasTextPlaceholder {
   TimeOfDay? value;
 
-  Text prettyValue(BuildContext context) {
+  Text prettyValue(BuildContext context, TextStyle formFieldTextStyle) {
     if (value != null) {
       return Text(value!.format(context),
-          style: TextStyle(fontSize: fontSize?.toDouble()));
+          style: formFieldTextStyle);
     } else {
       return Text(placeholder ?? 'Select a time', style: placeholderStyle);
     }
@@ -136,7 +136,7 @@ class TimeState extends FormFieldWidgetState<Time> {
       children: [
         const Icon(Icons.alarm, color: Colors.black54),
         const SizedBox(width: 5),
-        widget._controller.prettyValue(context)
+        widget._controller.prettyValue(context, formFieldTextStyle)
       ],
     );
     if (!isEnabled()) {
