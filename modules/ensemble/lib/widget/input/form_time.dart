@@ -123,7 +123,7 @@ class TimeController extends FormFieldController with HasTextPlaceholder {
       return Text(
         MaterialLocalizations.of(context)
             .formatTimeOfDay(value!, alwaysUse24HourFormat: use24hFormat),
-        style: formFieldTextStyle),
+        style: formFieldTextStyle,
       );
     } else {
       return Text(
