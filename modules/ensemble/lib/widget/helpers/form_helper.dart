@@ -292,7 +292,7 @@ abstract class FormFieldWidgetState<W extends HasController>
     if (widget.controller is FormFieldController) {
       final formController = (widget.controller as FormFieldController);
       return textStyle.copyWith(
-        fontSize: formController.fontSize?.toDouble(),
+        fontSize: formController.labelStyle?.fontSize,
         overflow: formController.labelStyle?.overflow ?? TextOverflow.ellipsis,
         color: formController.labelStyle?.color,
         fontWeight: formController.labelStyle?.fontWeight,
