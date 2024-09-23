@@ -548,6 +548,8 @@ class Utils {
           decoration: getDecoration(style['decoration']),
           decorationStyle:
               TextDecorationStyle.values.from(style['decorationStyle']),
+          decorationColor: Utils.getColor(style['decorationColor']),
+          decorationThickness: Utils.optionalDouble(style['decorationThickness']),
           overflow: TextOverflow.values.from(style['overflow']),
           letterSpacing: Utils.optionalDouble(style['letterSpacing']),
           wordSpacing: Utils.optionalDouble(style['wordSpacing']));

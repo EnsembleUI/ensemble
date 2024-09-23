@@ -99,6 +99,9 @@ class PageGroupState extends State<PageGroup> with MediaQueryCapability {
       ),
     );
 
+    // Need to get the items which are only visible
+    widget.menu.menuItems = Menu.getVisibleMenuItems(_scopeManager.dataContext, widget.menu.menuItems);
+
     int? selectedIndex = Utils.optionalInt(widget.pageArgs?["viewIndex"],
         min: 0, max: widget.menu.menuItems.length - 1);
     // init the pages (TODO: need to update if definition changes)

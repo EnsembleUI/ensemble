@@ -1,3 +1,4 @@
+import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/framework/model.dart';
@@ -94,6 +95,7 @@ abstract class Menu extends Object with HasStyles, Invokable {
               onTap: item['onTap'],
               onTapHaptic: Utils.optionalString(item['onTapHaptic']),
               isExternal: Utils.getBool(item['isExternal'], fallback: false),
+              visible: item['visible'],
             ),
           );
           customIconModel = null; // Resetting custom icon model
@@ -166,6 +168,10 @@ abstract class Menu extends Object with HasStyles, Invokable {
     }
     throw LanguageError("Invalid Menu type.",
         recovery: "Please use one of Ensemble-provided menu types.");
+  }
+
+  static List<MenuItem> getVisibleMenuItems(DataContext context, List<MenuItem> items) {
+    return items.where((item) => item.isVisible(context)).toList();
   }
 }
 
@@ -290,6 +296,7 @@ class MenuItem {
     this.onTap,
     this.onTapHaptic,
     required this.isExternal,
+    this.visible = true,
   });
 
   final String? label;
@@ -307,4 +314,18 @@ class MenuItem {
   final dynamic onTap;
   final String? onTapHaptic;
   final bool isExternal;
+  final dynamic visible;
+
+  bool isVisible(DataContext context) {
+    if (visible == null) return true;
+    if (visible is bool) return visible;
+    
+    // Evaluate the condition
+    try {
+      var result = context.eval(visible);
+      return result is bool ? result : true;
+    } catch (e) {
+      throw LanguageError('Failed to eval $visible');
+    }
+  }
 }
