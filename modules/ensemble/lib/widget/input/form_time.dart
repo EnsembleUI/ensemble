@@ -118,12 +118,12 @@ class TimeController extends FormFieldController with HasTextPlaceholder {
   IOSTimePickerStyle? iOSStyles;
   AndroidTimePickerStyle? androidStyles;
 
-  Text prettyValue(BuildContext context) {
+  Text prettyValue(BuildContext context, TextStyle formFieldTextStyle) {
     if (value != null) {
       return Text(
         MaterialLocalizations.of(context)
             .formatTimeOfDay(value!, alwaysUse24HourFormat: use24hFormat),
-        style: TextStyle(fontSize: fontSize?.toDouble()),
+        style: formFieldTextStyle),
       );
     } else {
       return Text(
@@ -335,7 +335,7 @@ class TimeState extends FormFieldWidgetState<Time> {
       children: [
         const Icon(Icons.alarm, color: Colors.black54),
         const SizedBox(width: 5),
-        widget._controller.prettyValue(context),
+        widget._controller.prettyValue(context, formFieldTextStyle)
       ],
     );
     if (!isEnabled()) {

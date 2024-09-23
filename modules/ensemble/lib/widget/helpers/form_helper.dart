@@ -28,7 +28,6 @@ class FormFieldController extends WidgetController {
   bool? enabled;
   bool required = false;
   IconModel? icon;
-  int? fontSize;
   int? maxWidth;
 
   InputVariant? variant;
@@ -65,7 +64,6 @@ class FormFieldController extends WidgetController {
           floatLabel = Utils.getBool(value, fallback: false),
       'required': (value) => required = Utils.getBool(value, fallback: false),
       'icon': (value) => icon = Utils.getIcon(value),
-      'fontSize': (value) => fontSize = Utils.optionalInt(value),
       'maxWidth': (value) =>
           maxWidth = Utils.optionalInt(value, min: 0, max: 5000),
       'variant': (type) => variant = InputVariant.values.from(type),
@@ -292,7 +290,7 @@ abstract class FormFieldWidgetState<W extends HasController>
     if (widget.controller is FormFieldController) {
       final formController = (widget.controller as FormFieldController);
       return textStyle.copyWith(
-        fontSize: formController.fontSize?.toDouble(),
+        fontSize: formController.labelStyle?.fontSize,
         overflow: formController.labelStyle?.overflow ?? TextOverflow.ellipsis,
         color: formController.labelStyle?.color,
         fontWeight: formController.labelStyle?.fontWeight,
