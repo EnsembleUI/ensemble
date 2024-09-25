@@ -193,6 +193,5 @@ class WidgetRegistry {
         // handling common GPT widget mistakes
         "Container": () => Column(),
         "ScrollView": () => ScrollView(),
-        // "EnsembleAccordion": () => EnsembleAccordion(),
       };
 }

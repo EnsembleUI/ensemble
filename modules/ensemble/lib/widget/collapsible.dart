@@ -241,39 +241,39 @@ class CollapsibleState extends EWidgetState<Collapsible> {
         return AccordionSection(
           isOpen: isOpen,
           headerBackgroundColor:
-              Utils.getColor(item['headerBackgroundColor']) ??
+              Utils.getColor(item['headerStyle']?['backgroundColor']) ??
                   widget.controller.headerStyle.backgroundColor,
           headerBackgroundColorOpened:
-              Utils.getColor(item['headerBackgroundColorOpened']) ??
+              Utils.getColor(item['headerStyle']?['backgroundColorOpened']) ??
                   widget.controller.headerStyle.backgroundColorOpened,
-          headerBorderColor: Utils.getColor(item['headerBorderColor']) ??
+          headerBorderColor:Utils.getColor(item['headerStyle']?['borderColor']) ??
               widget.controller.headerStyle.borderColor,
           headerBorderColorOpened:
-              Utils.getColor(item['headerBorderColorOpened']) ??
+              Utils.getColor(item['headerStyle']?['borderColorOpened']) ??
                   widget.controller.headerStyle.borderColorOpened,
-          headerBorderWidth: Utils.optionalDouble(item['headerBorderWidth']) ??
+          headerBorderWidth: Utils.optionalDouble(item['headerStyle']?['borderWidth']) ??
               widget.controller.headerStyle.borderWidth,
           headerBorderRadius:
-              Utils.optionalDouble(item['headerBorderRadius']) ??
+              Utils.optionalDouble(item['headerStyle']?['borderRadius']) ??
                   widget.controller.headerStyle.borderRadius,
-          headerPadding: Utils.optionalInsets(item['headerPadding']) ??
+          headerPadding: Utils.optionalInsets(item['headerStyle']?['padding']) ??
               widget.controller.headerStyle.padding,
           contentBackgroundColor:
-              Utils.getColor(item['contentBackgroundColor']) ??
+              Utils.getColor(item['contentStyle']?['backgroundColor']) ??
                   widget.controller.contentStyle.backgroundColor,
-          contentBorderColor: Utils.getColor(item['contentBorderColor']) ??
+          contentBorderColor: Utils.getColor(item['contentStyle']?['borderColor']) ??
               widget.controller.contentStyle.borderColor,
           contentBorderWidth:
-              Utils.optionalDouble(item['contentBorderWidth']) ??
+              Utils.optionalDouble(item['contentStyle']?['borderWidth']) ??
                   widget.controller.contentStyle.borderWidth,
           contentBorderRadius:
-              Utils.optionalDouble(item['contentBorderRadius']) ??
+              Utils.optionalDouble(item['contentStyle']?['borderRadius'])  ??
                   widget.controller.contentStyle.borderRadius,
           contentHorizontalPadding:
-              Utils.optionalDouble(item['contentHorizontalPadding']) ??
+              Utils.optionalDouble(item['contentStyle']?['horizontalPadding']) ??
                   widget.controller.contentStyle.horizontalPadding,
           contentVerticalPadding:
-              Utils.optionalDouble(item['contentVerticalPadding']) ??
+              Utils.optionalDouble(item['contentStyle']?['verticalPadding']) ??
                   widget.controller.contentStyle.verticalPadding,
           leftIcon: _buildIcon(item['leftIcon']) ??
               _buildIcon(widget.controller.leftIcon),
