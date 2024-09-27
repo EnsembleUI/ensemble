@@ -498,7 +498,7 @@ class CarouselState extends EWidgetState<Carousel>
       pageViewKey: widget._controller.cacheKey != null
           ? PageStorageKey<String>(widget._controller.cacheKey!)
           : null,
-      scrollPhysics: getScrollPhysics(widget._controller.scrollPhysics),
+      scrollPhysics: getScrollPhysics(widget._controller.scrollType),
     );
   }
 
