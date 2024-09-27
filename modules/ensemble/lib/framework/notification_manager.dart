@@ -6,7 +6,6 @@ import 'dart:io' show Platform;
 
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/action.dart';
-import 'package:ensemble/framework/widget/toast.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/notification_utils.dart';
 import 'package:ensemble/util/utils.dart';
@@ -26,17 +25,10 @@ class NotificationManager {
 
   // Store the last known device token
   String? deviceToken;
-
   Future<void> init(
-      {FirebasePayload? payload,
-      Future<void> Function(RemoteMessage)?
+      {Future<void> Function(RemoteMessage)?
           backgroundNotificationHandler}) async {
     if (!_init) {
-      /// if payload is not passed, Firebase configuration files
-      /// are required to be added manualy to iOS and Android
-      await Firebase.initializeApp(
-        options: payload?.getFirebaseOptions(),
-      );
       _initListener(
           backgroundNotificationHandler: backgroundNotificationHandler);
       _init = true;
