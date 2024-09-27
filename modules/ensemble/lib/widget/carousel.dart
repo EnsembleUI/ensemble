@@ -101,8 +101,8 @@ class Carousel extends StatefulWidget
       'direction': (value) =>
           _controller.direction = Utils.optionalString(value),
       'cacheKey': (value) => _controller.cacheKey = Utils.optionalString(value),
-      'scrollPhysics': (value) =>
-          _controller.scrollPhysics = CarouselScrollPhysics.values.from(value),
+      'scrollType': (value) =>
+          _controller.scrollType = CarouselScrollPhysics.values.from(value),
     };
   }
 
@@ -182,7 +182,7 @@ class MyController extends BoxController {
   int? buildOnDemandLength;
   String? direction;
   String? cacheKey;
-  CarouselScrollPhysics? scrollPhysics; // Use enum instead of string
+  CarouselScrollPhysics? scrollType; // Use enum instead of string
 
   // Custom Widget
   dynamic indicatorWidget;
