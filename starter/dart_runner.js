@@ -1,15 +1,16 @@
 const { exec } = require('child_process');
 
-// Get the Dart script path from the third argument
 const scriptPath = process.argv[2];
 
-// Get the key-value arguments starting from the fourth argument
 const argsArray = process.argv.slice(3);
 
 // Convert the key=value pairs into --key value format for Dart
 const dartArgs = argsArray.map(arg => {
     const [key, value] = arg.split('=');
-    return `--${key} ${value}`;
+
+    const quotedValue = value.includes(' ') ? `"${value}"` : value;
+
+    return `--${key} ${quotedValue}`;
 }).join(' ');
 
 // Construct the Dart command
