@@ -8,7 +8,8 @@
     "test": "test"
   },
   "scripts": {
-    "useCamera": "dart run scripts/modules/enable_camera.dart"
+    "useCamera": "dart run scripts/modules/enable_camera.dart",
+    "useFiles": "dart run scripts//modules/enable_files.dart"
   },
   "keywords": [],
   "author": "",
