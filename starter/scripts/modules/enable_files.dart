@@ -1,8 +1,10 @@
 import '../utils.dart';
 
-void main() {
+void main(List<String> arguments) {
   const ensembleModulesFilePath = 'lib/generated/ensemble_modules.dart';
   const pubspecFilePath = 'pubspec.yaml';
+  const androidManifestFilePath = 'android/app/src/main/AndroidManifest.xml';
+  const iosInfoPlistFilePath = 'ios/Runner/Info.plist';
 
   bool success = true;
 
@@ -50,6 +52,80 @@ void main() {
     writeFileContent(pubspecFilePath, pubspecContent);
   } catch (e) {
     print(e);
+    success = false;
+  }
+
+  // Add the storage permissions to the AndroidManifest.xml
+  try {
+    addPermissionToAndroidManifest(
+      androidManifestFilePath,
+      '<!-- UPDATE for your Starter. These are default permissions -->',
+      '<uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />',
+    );
+
+    addPermissionToAndroidManifest(
+      androidManifestFilePath,
+      '<!-- UPDATE for your Starter. These are default permissions -->',
+      '<uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />',
+    );
+  } catch (e) {
+    print('Error updating AndroidManifest.xml: $e');
+    success = false;
+  }
+
+  // Add the required keys and descriptions to the Info.plist file
+  try {
+    String photoLibraryDescription = '';
+    String musicDescription = '';
+
+    for (int i = 0; i < arguments.length; i++) {
+      if (arguments[i] == '--photo_library_description' &&
+          i + 1 < arguments.length) {
+        photoLibraryDescription = arguments[i + 1];
+      }
+      if (arguments[i] == '--music_description' && i + 1 < arguments.length) {
+        musicDescription = arguments[i + 1];
+      }
+    }
+
+    addPermissionDescriptionToInfoPlist(
+      iosInfoPlistFilePath,
+      'UIBackgroundModes',
+      ['fetch', 'remote-notification'],
+      isArray: true,
+    );
+
+    if (musicDescription.isNotEmpty) {
+      addPermissionDescriptionToInfoPlist(
+        iosInfoPlistFilePath,
+        'NSAppleMusicUsageDescription',
+        musicDescription,
+      );
+    }
+
+    addPermissionDescriptionToInfoPlist(
+      iosInfoPlistFilePath,
+      'UISupportsDocumentBrowser',
+      true,
+      isBoolean: true,
+    );
+
+    addPermissionDescriptionToInfoPlist(
+      iosInfoPlistFilePath,
+      'LSSupportsOpeningDocumentsInPlace',
+      true,
+      isBoolean: true,
+    );
+
+    if (photoLibraryDescription.isNotEmpty) {
+      addPermissionDescriptionToInfoPlist(
+        iosInfoPlistFilePath,
+        'NSPhotoLibraryUsageDescription',
+        photoLibraryDescription,
+      );
+    }
+  } catch (e) {
+    print('Error updating Info.plist: $e');
     success = false;
   }
 

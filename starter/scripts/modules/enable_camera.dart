@@ -1,8 +1,10 @@
 import '../utils.dart';
 
-void main() {
+void main(List<String> arguments) {
   const ensembleModulesFilePath = 'lib/generated/ensemble_modules.dart';
   const pubspecFilePath = 'pubspec.yaml';
+  const androidManifestFilePath = 'android/app/src/main/AndroidManifest.xml';
+  const iosInfoPlistFilePath = 'ios/Runner/Info.plist';
 
   bool success = true;
 
@@ -50,6 +52,37 @@ void main() {
     writeFileContent(pubspecFilePath, pubspecContent);
   } catch (e) {
     print(e);
+    success = false;
+  }
+
+  // Add the camera permission to the AndroidManifest.xml
+  try {
+    addPermissionToAndroidManifest(
+      androidManifestFilePath,
+      '<!-- UPDATE for your Starter. These are default permissions -->',
+      '<uses-permission android:name="android.permission.CAMERA" />',
+    );
+  } catch (e) {
+    print('Error updating AndroidManifest.xml: $e');
+    success = false;
+  }
+
+  // Add the camera usage description to the iOS Info.plist file
+  try {
+    String cameraDescription = '';
+    if (arguments.contains('--camera_description')) {
+      cameraDescription =
+          arguments[arguments.indexOf('--camera_description') + 1];
+    }
+    if (cameraDescription.isNotEmpty) {
+      addPermissionDescriptionToInfoPlist(
+        iosInfoPlistFilePath,
+        'NSCameraUsageDescription',
+        cameraDescription,
+      );
+    }
+  } catch (e) {
+    print('Error updating Info.plist: $e');
     success = false;
   }
 
