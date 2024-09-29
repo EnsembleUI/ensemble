@@ -1,5 +1,11 @@
 import 'dart:io';
 
+const String ensembleModulesFilePath = 'lib/generated/ensemble_modules.dart';
+const String pubspecFilePath = 'pubspec.yaml';
+const String androidManifestFilePath =
+    'android/app/src/main/AndroidManifest.xml';
+const String iosInfoPlistFilePath = 'ios/Runner/Info.plist';
+
 // To read file content
 String readFileContent(String filePath) {
   File file = File(filePath);

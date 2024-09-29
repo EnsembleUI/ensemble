@@ -1,11 +1,6 @@
 import '../utils.dart';
 
 void main(List<String> arguments) {
-  const ensembleModulesFilePath = 'lib/generated/ensemble_modules.dart';
-  const pubspecFilePath = 'pubspec.yaml';
-  const androidManifestFilePath = 'android/app/src/main/AndroidManifest.xml';
-  const iosInfoPlistFilePath = 'ios/Runner/Info.plist';
-
   List<String> platforms = getPlatforms(arguments);
 
   bool success = true;
