@@ -6,6 +6,8 @@ void main(List<String> arguments) {
   const androidManifestFilePath = 'android/app/src/main/AndroidManifest.xml';
   const iosInfoPlistFilePath = 'ios/Runner/Info.plist';
 
+  List<String> platforms = getPlatforms(arguments);
+
   bool success = true;
 
   // Update the ensemble_modules.dart file
@@ -56,37 +58,43 @@ void main(List<String> arguments) {
   }
 
   // Add the camera permission to the AndroidManifest.xml
-  try {
-    addPermissionToAndroidManifest(
-      androidManifestFilePath,
-      '<!-- UPDATE for your Starter. These are default permissions -->',
-      '<uses-permission android:name="android.permission.CAMERA" />',
-    );
-  } catch (e) {
-    print('Error updating AndroidManifest.xml: $e');
-    success = false;
+  if (platforms.contains('android')) {
+    try {
+      addPermissionToAndroidManifest(
+        androidManifestFilePath,
+        '<!-- UPDATE for your Starter. These are default permissions -->',
+        '<uses-permission android:name="android.permission.CAMERA" />',
+      );
+    } catch (e) {
+      print('Error updating AndroidManifest.xml: $e');
+      success = false;
+    }
   }
 
   // Add the camera usage description to the iOS Info.plist file
-  try {
-    String cameraDescription = '';
-    if (arguments.contains('--camera_description')) {
-      cameraDescription =
-          arguments[arguments.indexOf('--camera_description') + 1];
+  if (platforms.contains('ios')) {
+    try {
+      String cameraDescription = '';
+      if (arguments.contains('--camera_description')) {
+        cameraDescription =
+            arguments[arguments.indexOf('--camera_description') + 1];
+      }
+
+      print(cameraDescription);
+      if (cameraDescription.isNotEmpty) {
+        addPermissionDescriptionToInfoPlist(
+          iosInfoPlistFilePath,
+          'NSCameraUsageDescription',
+          cameraDescription,
+        );
+      }
+    } catch (e) {
+      print('Error updating Info.plist: $e');
+      success = false;
     }
-    if (cameraDescription.isNotEmpty) {
-      addPermissionDescriptionToInfoPlist(
-        iosInfoPlistFilePath,
-        'NSCameraUsageDescription',
-        cameraDescription,
-      );
-    }
-  } catch (e) {
-    print('Error updating Info.plist: $e');
-    success = false;
   }
 
   if (success) {
-    print('Camera module enabled successfully! 🎉');
+    print('Camera module enabled successfully for ${platforms.join(', ')}! 🎉');
   }
 }

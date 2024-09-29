@@ -9,6 +9,20 @@ String readFileContent(String filePath) {
   return file.readAsStringSync();
 }
 
+// process platforms argument
+List<String> getPlatforms(List<String> arguments,
+    {List<String> defaultPlatforms = const ['ios', 'android', 'web']}) {
+  List<String> platforms = defaultPlatforms;
+
+  if (arguments.contains('--platform')) {
+    String platformArg = arguments[arguments.indexOf('--platform') + 1];
+    platforms =
+        platformArg.split(',').map((platform) => platform.trim()).toList();
+  }
+
+  return platforms;
+}
+
 // To update content using regex
 String updateContent(String content, String regexPattern, String replacement) {
   return content.replaceAllMapped(
