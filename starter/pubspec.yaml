@@ -34,10 +34,11 @@ dependencies:
 
   # embed Ensemble as a sibling project
   ensemble:
-    git:
-      url: https://github.com/EnsembleUI/ensemble.git
-      ref: ensemble-v1.0.5
-      path: modules/ensemble
+    path: ../modules/ensemble
+#    git:
+#      url: https://github.com/EnsembleUI/ensemble.git
+#      ref: ensemble-v1.0.5
+#      path: modules/ensemble
 
   # Uncomment to enable camera module
   # ensemble_camera:
@@ -89,11 +90,12 @@ dependencies:
   #     path: modules/auth
 
   # Uncomment to enable firebase analytics
-  # ensemble_firebase_analytics:
-  #   git:
-  #     url: https://github.com/EnsembleUI/ensemble.git
-  #     ref: main
-  #     path: modules/firebase_analytics
+  ensemble_firebase_analytics:
+    path: ../modules/firebase_analytics
+#    git:
+#     url: https://github.com/EnsembleUI/ensemble.git
+#     ref: main
+#     path: modules/firebase_analytics
 
 
 
