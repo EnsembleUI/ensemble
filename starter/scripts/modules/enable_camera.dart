@@ -80,7 +80,6 @@ void main(List<String> arguments) {
             arguments[arguments.indexOf('--camera_description') + 1];
       }
 
-      print(cameraDescription);
       if (cameraDescription.isNotEmpty) {
         addPermissionDescriptionToInfoPlist(
           iosInfoPlistFilePath,

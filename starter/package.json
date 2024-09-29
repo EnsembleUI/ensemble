@@ -1,0 +1,17 @@
+{
+  "name": "starter",
+  "version": "1.0.0",
+  "description": "This starter project enables running and deploying Ensemble-powered Apps across iOS, Android, and Web (other platforms are not yet fully supported). It also includes examples on how to integrate Ensemble pages into your existing Flutter App.",
+  "main": "index.js",
+  "directories": {
+    "lib": "lib",
+    "test": "test"
+  },
+  "scripts": {
+    "useCamera": "node dart_runner.js scripts/modules/enable_camera.dart",
+    "useFiles": "node dart_runner.js scripts/modules/enable_files.dart"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}
