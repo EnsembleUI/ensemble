@@ -10,7 +10,8 @@
   "scripts": {
     "enable": "node dart_runner.js enable",
     "useCamera": "node dart_runner.js scripts/modules/enable_camera.dart",
-    "useFiles": "node dart_runner.js scripts/modules/enable_files.dart"
+    "useFiles": "node dart_runner.js scripts/modules/enable_files.dart",
+    "useContacts": "node dart_runner.js scripts/modules/enable_contacts.dart"
   },
   "keywords": [],
   "author": "",

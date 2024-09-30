@@ -11,6 +11,11 @@ const scriptsList = [
         path: 'scripts/modules/enable_files.dart',
         parameters: ['photo_library_description', 'music_description']
     },
+    {
+        name: 'contacts',
+        path: 'scripts/modules/enable_contacts.dart',
+        parameters: ['contacts_description']
+    }
 ];
 
 const commonParameters = ['platform'];

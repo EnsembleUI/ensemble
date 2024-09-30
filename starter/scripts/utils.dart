@@ -124,3 +124,96 @@ void addPermissionDescriptionToInfoPlist(
 
   plistFile.writeAsStringSync(plistContent);
 }
+
+// convert a string to a regex pattern for matching commented-out code
+String toRegexPattern(String statement, {bool isBoolean = false}) {
+  if (isBoolean) {
+    final prefix = statement.split('=')[0].trim();
+    return RegExp.escape(prefix) + r'\s*=\s*(true|false);';
+  } else {
+    String escapedStatement = RegExp.escape(statement);
+    return r'\/\/\s*' + escapedStatement.replaceAll(' ', r'\s+');
+  }
+}
+
+// Update ensemble_modules.dart file
+void updateEnsembleModules(
+    String filePath,
+    List<Map<String, String>> importStatements,
+    List<Map<String, String>> registerStatements,
+    List<Map<String, String>> useStatements) {
+  String? content = readFileContent(filePath);
+
+  for (var statementObj in importStatements) {
+    content = updateContent(
+      content ?? '',
+      statementObj['regex'] ?? '',
+      statementObj['statement'] ?? '',
+    );
+  }
+
+  for (var statementObj in useStatements) {
+    content = updateContent(
+      content ?? '',
+      statementObj['regex'] ?? '',
+      statementObj['statement'] ?? '',
+    );
+  }
+
+  for (var statementObj in registerStatements) {
+    content = updateContent(
+      content ?? '',
+      statementObj['regex'] ?? '',
+      statementObj['statement'] ?? '',
+    );
+  }
+
+  writeFileContent(filePath, content ?? '');
+}
+
+// Update pubspec.yaml file
+void updatePubspec(
+    String filePath, List<Map<String, String>> pubspecDependencies) {
+  String? pubspecContent = readFileContent(filePath);
+
+  for (var statementObj in pubspecDependencies) {
+    pubspecContent = updateContent(
+      pubspecContent ?? '',
+      statementObj['regex'] ?? '',
+      statementObj['statement'] ?? '',
+    );
+  }
+
+  writeFileContent(filePath, pubspecContent ?? '');
+}
+
+// Update AndroidManifest.xml with permissions
+void updateAndroidPermissions(
+    String manifestFilePath, List<String> permissions) {
+  for (var permission in permissions) {
+    addPermissionToAndroidManifest(
+      manifestFilePath,
+      '<!-- UPDATE for your Starter. These are default permissions -->',
+      permission,
+    );
+  }
+}
+
+// Update Info.plist for iOS with permissions and descriptions
+void updateIOSPermissions(String plistFilePath,
+    List<Map<String, String>> iOSPermissions, List<String> arguments) {
+  for (var permission in iOSPermissions) {
+    String paramValue = '';
+    if (arguments.contains(permission['paramKey'])) {
+      paramValue = arguments[arguments.indexOf(permission['paramKey']!) + 1];
+    }
+
+    if (paramValue.isNotEmpty) {
+      addPermissionDescriptionToInfoPlist(
+        plistFilePath,
+        permission['key'] ?? '',
+        paramValue,
+      );
+    }
+  }
+}
