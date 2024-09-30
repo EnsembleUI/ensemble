@@ -23,9 +23,13 @@ if (ensemblePropertiesFile.exists()) {
 def appId = ensembleProperties.getProperty('appId')
 def appName = ensembleProperties.getProperty('appName')
 def googleMapsAPIKey = ensembleProperties.getProperty('googleMapsAPIKey')
-def androidMinSdkVersion = ensembleProperties.getProperty('android.minSdkVersion')
+def androidMinSdkVersion = Integer.parseInt(ensembleProperties.getProperty('android.minSdkVersion'))
+def androidCompileSdkVersion = Integer.parseInt(ensembleProperties.getProperty('android.compileSdkVersion'))
+def androidTargetSdkVersion = Integer.parseInt(ensembleProperties.getProperty('android.targetSdkVersion'))
 def auth0Domain = ensembleProperties.getProperty("auth0Domain")
 def auth0Scheme = ensembleProperties.getProperty("auth0Scheme")
+def branchTestKey = ensembleProperties.getProperty("branchTestKey")
+def branchLiveKey = ensembleProperties.getProperty("branchLiveKey")
 
 def flutterRoot = localProperties.getProperty('flutter.sdk')
 if (flutterRoot == null) {
@@ -48,7 +52,7 @@ apply from: "$flutterRoot/packages/flutter_tools/gradle/flutter.gradle"
 
 android {
     namespace appId
-    compileSdkVersion flutter.compileSdkVersion
+    compileSdkVersion androidCompileSdkVersion
     ndkVersion flutter.ndkVersion
 
     compileOptions {
@@ -70,7 +74,7 @@ android {
         // You can update the following values to match your application needs.
         // For more information, see: https://docs.flutter.dev/deployment/android#reviewing-the-gradle-build-configuration.
         minSdkVersion androidMinSdkVersion
-        targetSdkVersion flutter.targetSdkVersion
+        targetSdkVersion androidTargetSdkVersion
         versionCode flutterVersionCode.toInteger()
         versionName flutterVersionName
 
@@ -81,6 +85,8 @@ android {
 
         manifestPlaceholders.auth0Domain = auth0Domain
         manifestPlaceholders.auth0Scheme = auth0Scheme
+        manifestPlaceholders.branchTestKey = branchTestKey
+        manifestPlaceholders.branchLiveKey = branchLiveKey
     }
 
     // signning configuration for your release version
@@ -95,11 +101,7 @@ android {
 
     buildTypes {
         release {
-            // Use this while developing so `flutter run --release` works.
-            signingConfig signingConfigs.debug
-
-            // Use this when releasing your App. See https://docs.ensembleui.com/#/deploy/5-android-play-store
-            // signingConfig signingConfigs.release
+            signingConfig signingConfigs.release
         }
     }
 }
@@ -110,4 +112,13 @@ flutter {
 
 dependencies {
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
+
+    def work_version = "2.8.1"
+    implementation "androidx.work:work-runtime-ktx:$work_version"
+    api('androidx.work:work-runtime') {
+        version {
+            require '[2.1.0, 2.8.99]'
+            prefer '$work_version'
+        }
+    }
 }
