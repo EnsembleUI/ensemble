@@ -57,8 +57,8 @@ class DividerController extends WidgetController {
   EdgeInsets? margin;
   int? thickness;
   Color? color;
-  int? indent;
-  int? endIndent;
+  int? indent = 0;
+  int? endIndent = 0;
   DividerType type = DividerType.solid; 
   double? dashLength; 
   double? gap; 
@@ -207,29 +207,57 @@ class DashedLinePainter extends CustomPainter {
   }
 
   void _drawDashedLine(Canvas canvas, Size size, Paint paint) {
-    // Draw dashed line with proper indentation
-    double currentPosition = isVertical ? indent : indent; // Start with indent
+  // Start with indent
+  double currentPosition = indent;
 
-    while (
-        currentPosition < (isVertical ? size.height : size.width) - endIndent) {
-      if (isVertical) {
-        // Draw vertical dashes
-        canvas.drawLine(
-          Offset(size.width / 2, currentPosition),
-          Offset(size.width / 2, currentPosition + dashLength),
-          paint,
-        );
-      } else {
-        // Draw horizontal dashes
-        canvas.drawLine(
-          Offset(currentPosition, size.height / 2),
-          Offset(currentPosition + dashLength, size.height / 2),
-          paint,
-        );
+  final double maxPosition = isVertical 
+      ? size.height - endIndent 
+      : size.width - endIndent;
+
+  // Ensure the dashes respect the available space minus the endIndent
+  while (currentPosition < maxPosition) {
+    final double nextDashEndPosition = currentPosition + dashLength;
+
+    if (nextDashEndPosition > maxPosition) {
+      // Adjust the last dash if it would extend beyond the max position
+      final double remainingSpace = maxPosition - currentPosition;
+      if (remainingSpace > 0) {
+        if (isVertical) {
+          canvas.drawLine(
+            Offset(size.width / 2, currentPosition),
+            Offset(size.width / 2, currentPosition + remainingSpace),
+            paint,
+          );
+        } else {
+          canvas.drawLine(
+            Offset(currentPosition, size.height / 2),
+            Offset(currentPosition + remainingSpace, size.height / 2),
+            paint,
+          );
+        }
       }
-      currentPosition += dashLength + gap;
+      break;
     }
+
+    // Draw the dash
+    if (isVertical) {
+      canvas.drawLine(
+        Offset(size.width / 2, currentPosition),
+        Offset(size.width / 2, nextDashEndPosition),
+        paint,
+      );
+    } else {
+      canvas.drawLine(
+        Offset(currentPosition, size.height / 2),
+        Offset(nextDashEndPosition, size.height / 2),
+        paint,
+      );
+    }
+
+    // Move to the next dash position (current + dashLength + gap)
+    currentPosition += dashLength + gap;
   }
+}
 
   @override
   bool shouldRepaint(CustomPainter oldDelegate) {
