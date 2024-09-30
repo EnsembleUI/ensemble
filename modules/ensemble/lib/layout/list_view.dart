@@ -86,6 +86,15 @@ class ListView extends StatefulWidget
           controller.onScroll = EnsembleAction.from(value, initiator: this),
       'shrinkWrap': (value) =>
           controller.shrinkWrap = Utils.optionalBool(value),
+      'enableSwipe': (value) =>
+          _controller.enableSwipe = Utils.getBool(value, fallback: false),
+      'swipeThreshold': (value) =>
+          _controller.swipeThreshold = Utils.optionalDouble(value) ?? 0.2,
+      'swipeWidget': (value) => _controller.swipeWidget = value,
+      'swipeAnimationDuration': (value) =>
+          _controller.swipeAnimationDuration = Utils.optionalInt(value) ?? 200,
+      'onSwipe': (funcDefinition) => _controller.onSwipe =
+          EnsembleAction.from(funcDefinition, initiator: this),
     };
   }
 
@@ -124,16 +133,22 @@ class ListViewController extends BoxLayoutController {
 
   bool? shrinkWrap;
 
+  bool enableSwipe = false;
+  double swipeThreshold = 0.2;
+  dynamic swipeWidget;
+  int swipeAnimationDuration = 200;
+  EnsembleAction? onSwipe;
+
   void _bind(ListViewState state) {
     widgetState = state;
   }
 }
 
 class ListViewState extends EWidgetState<ListView>
-    with TemplatedWidgetState, HasChildren<ListView> {
-  // template item is created on scroll. this will store the template's data list
+    with TickerProviderStateMixin, TemplatedWidgetState, HasChildren<ListView> {
   List<dynamic>? templatedDataList;
   bool showLoading = false;
+  Map<int, flutter.AnimationController> _animationControllers = {};
 
   @override
   void initState() {
@@ -164,6 +179,12 @@ class ListViewState extends EWidgetState<ListView>
   void didUpdateWidget(covariant ListView oldWidget) {
     showLoading = oldWidget._controller.showLoading;
     super.didUpdateWidget(oldWidget);
+  }
+
+  @override
+  void dispose() {
+    _animationControllers.values.forEach((controller) => controller.dispose());
+    super.dispose();
   }
 
   @override
@@ -225,31 +246,9 @@ class ListViewState extends EWidgetState<ListView>
                 )
               : const SizedBox.shrink(),
       itemBuilder: (context, index) {
-        Widget? itemWidget;
-        if (widget._controller.children != null &&
-            index < widget._controller.children!.length) {
-          itemWidget = buildChild(widget._controller.children![index]);
-        }
-        // create widget from item template
-        else if (templatedDataList != null &&
-            widget._controller.itemTemplate != null) {
-          final templateIndex =
-              index - (widget._controller.children?.length ?? 0);
-          if (templateIndex < templatedDataList!.length) {
-            itemWidget = buildWidgetForIndex(
-              context,
-              templatedDataList!,
-              widget._controller.itemTemplate!,
-              // templated widget should start at 0, need to offset chidlren length
-              templateIndex,
-            );
-          }
-        }
+        Widget? itemWidget = _buildItemWidget(index);
         if (itemWidget != null) {
-          return widget._controller.onItemTap == null
-              ? itemWidget
-              : flutter.InkWell(
-                  onTap: () => _onItemTapped(index), child: itemWidget);
+          return _wrapWithSwipeable(itemWidget, index);
         }
         return const SizedBox.shrink();
       },
@@ -279,6 +278,108 @@ class ListViewState extends EWidgetState<ListView>
   }
 
   // backward compatible
+  Widget? _buildItemWidget(int index) {
+    if (widget._controller.children != null &&
+        index < widget._controller.children!.length) {
+      return buildChild(widget._controller.children![index]);
+    } else if (templatedDataList != null &&
+        widget._controller.itemTemplate != null) {
+      final templateIndex = index - (widget._controller.children?.length ?? 0);
+      if (templateIndex < templatedDataList!.length) {
+        return buildWidgetForIndex(
+          context,
+          templatedDataList!,
+          widget._controller.itemTemplate!,
+          templateIndex,
+        );
+      }
+    }
+    return null;
+  }
+
+  Widget _wrapWithSwipeable(Widget itemWidget, int index) {
+    if (!widget._controller.enableSwipe) {
+      return itemWidget;
+    }
+
+    if (_animationControllers[index] == null) {
+      _animationControllers[index] = flutter.AnimationController(
+        vsync: this,
+        duration:
+            Duration(milliseconds: widget._controller.swipeAnimationDuration),
+      );
+    }
+
+    return flutter.GestureDetector(
+      onHorizontalDragUpdate: (details) {
+        // Negative delta means swiping left
+        _animationControllers[index]!.value -=
+            details.primaryDelta! / context.size!.width;
+      },
+      onHorizontalDragEnd: (details) {
+        if (_animationControllers[index]!.value >
+            widget._controller.swipeThreshold) {
+          _completeSwipe(index);
+        } else {
+          _resetSwipe(index);
+        }
+      },
+      child: flutter.Stack(
+        children: [
+          flutter.SlideTransition(
+            position: flutter.Tween<flutter.Offset>(
+              begin: flutter.Offset.zero,
+              end: flutter.Offset(-widget._controller.swipeThreshold, 0),
+            ).animate(_animationControllers[index]!),
+            child: widget._controller.onItemTap == null
+                ? itemWidget
+                : flutter.InkWell(
+                    onTap: () => _onItemTapped(index),
+                    child: itemWidget,
+                  ),
+          ),
+          if (widget._controller.swipeWidget != null)
+            _buildSwipeActionWidget(index),
+        ],
+      ),
+    );
+  }
+
+  void _completeSwipe(int index) {
+    _animationControllers[index]!.fling(velocity: 1);
+
+    if (widget._controller.onSwipe != null) {
+      ScreenController().executeAction(
+        context,
+        widget._controller.onSwipe!,
+        event: EnsembleEvent(null, data: {'index': index}),
+      );
+    }
+  }
+
+  void _resetSwipe(int index) {
+    _animationControllers[index]!.reverse();
+  }
+
+  Widget _buildSwipeActionWidget(int index) {
+    return flutter.Positioned.fill(
+      child: flutter.SlideTransition(
+        position: flutter.Tween<flutter.Offset>(
+          begin: flutter.Offset(1 - widget._controller.swipeThreshold, 0),
+          end: flutter.Offset.zero,
+        ).animate(_animationControllers[index]!),
+        child: flutter.Align(
+          alignment: flutter.Alignment.centerRight,
+          child: flutter.SizedBox(
+            width: MediaQuery.of(context).size.width *
+                widget._controller.swipeThreshold,
+            child: widgetBuilder(context, widget._controller.swipeWidget),
+          ),
+        ),
+      ),
+    );
+  }
+
   PullToRefresh? _getPullToRefresh() {
     return widget._controller.pullToRefresh ??
         (widget._controller.onPullToRefresh != null
