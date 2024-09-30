@@ -200,8 +200,13 @@ void updateAndroidPermissions(
 }
 
 // Update Info.plist for iOS with permissions and descriptions
-void updateIOSPermissions(String plistFilePath,
-    List<Map<String, String>> iOSPermissions, List<String> arguments) {
+void updateIOSPermissions(
+  String plistFilePath,
+  List<Map<String, String>> iOSPermissions,
+  List<String> arguments, {
+  List<Map<String, dynamic>> additionalSettings = const [],
+}) {
+  // Process the iOS permissions
   for (var permission in iOSPermissions) {
     String paramValue = '';
     if (arguments.contains(permission['paramKey'])) {
@@ -210,10 +215,25 @@ void updateIOSPermissions(String plistFilePath,
 
     if (paramValue.isNotEmpty) {
       addPermissionDescriptionToInfoPlist(
-        plistFilePath,
-        permission['key'] ?? '',
-        paramValue,
-      );
+          plistFilePath, permission['key'] ?? '', paramValue);
+    }
+  }
+
+  // Process additional settings (arrays, booleans, etc.) if provided
+  if (additionalSettings.isNotEmpty) {
+    for (var setting in additionalSettings) {
+      if (setting['isArray'] == true) {
+        addPermissionDescriptionToInfoPlist(
+            plistFilePath, setting['key'], setting['value'],
+            isArray: true);
+      } else if (setting['isBoolean'] == true) {
+        addPermissionDescriptionToInfoPlist(
+            plistFilePath, setting['key'], setting['value'],
+            isBoolean: true);
+      } else {
+        addPermissionDescriptionToInfoPlist(
+            plistFilePath, setting['key'], setting['value']);
+      }
     }
   }
 }
