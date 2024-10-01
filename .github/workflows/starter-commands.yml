@@ -1,0 +1,29 @@
+name: Test Modules
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  test-modules:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v2
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run useCamera command
+        run: npm run useCamera camera_description="This app requires camera access"
+
+      - name: Run useFiles command
+        run: npm run useFiles platform="ios,android" photo_library_description="Hello" music_description="world"
+
+      - name: Run useContacts command
+        run: npm run useContacts contacts_description="Hello world"
