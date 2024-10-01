@@ -1,3 +1,4 @@
+import 'dart:io';
 import '../utils.dart';
 
 void main(List<String> arguments) {
@@ -21,7 +22,7 @@ ensemble_contacts:
       path: modules/contacts
 ''',
       'regex':
-          r'#\s*ensemble_contacts:\s*\n\s*#\s*git:\s*\n\s*#\s*url:\s*https:\/\/github\.com\/EnsembleUI\/ensemble\.git\s*\n\s*#\s*ref:\s*main\s*\n\s*#\s*path:\s*modules\/contacts',
+          r'#\s*ensemble_cacts:\s*\n\s*#\s*git:\s*\n\s*#\s*url:\s*https:\/\/github\.com\/EnsembleUI\/ensemble\.git\s*\n\s*#\s*ref:\s*main\s*\n\s*#\s*path:\s*modules\/contacts',
     }
   ];
 
@@ -60,8 +61,9 @@ ensemble_contacts:
 
     print(
         'Contacts module enabled successfully for ${platforms.join(', ')}! 🎉');
+    exit(0);
   } catch (e) {
     print('Starter Error: $e');
-    return;
+    exit(1);
   }
 }

@@ -60,11 +60,13 @@ function runScript(scriptObj, argsArray, callback = () => { }) {
     exec(command, (error, stdout, stderr) => {
         if (error) {
             console.error(`Error running ${scriptObj.name}: ${error.message}`);
+            if (stderr) {
+                console.error(`Stderr from ${scriptObj.name}: ${stderr}`);
+            }
             return callback(error);
         }
         if (stderr) {
             console.error(`Stderr from ${scriptObj.name}: ${stderr}`);
-            return callback(new Error(stderr));
         }
         console.log(stdout);
         callback();
@@ -75,19 +77,24 @@ function runScript(scriptObj, argsArray, callback = () => { }) {
 function runScriptsSequentially(scripts, argsArray) {
     let index = 0;
 
-    function next() {
+    function next(err) {
+        if (err) {
+            console.error('Stopping execution due to an error.');
+            process.exit(1);
+        }
+
         if (index < scripts.length) {
             const scriptName = scripts[index++];
             const scriptObj = scriptsList.find(s => s.name === scriptName);
 
             if (!scriptObj) {
                 console.error(`Error: Script "${scriptName}" not found.`);
-                return next();
+                return process.exit(1);
             }
 
-            runScript(scriptObj, argsArray, (err) => {
-                if (!err) next();
-            });
+            runScript(scriptObj, argsArray, next);
+        } else {
+            process.exit(0);
         }
     }
 
@@ -105,7 +112,13 @@ function main() {
 
         if (scriptObj) {
             const { argsArray } = parseArguments(restArgs);
-            runScript(scriptObj, argsArray);
+            runScript(scriptObj, argsArray, (err) => {
+                if (err) {
+                    process.exit(1);
+                } else {
+                    process.exit(0);
+                }
+            });
         } else {
             console.error(`Error: Path "${firstArg}" not found.`);
             process.exit(1);

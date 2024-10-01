@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import '../utils.dart';
 
 void main(List<String> arguments) {
@@ -63,8 +65,9 @@ ensemble_camera:
     }
 
     print('Camera module enabled successfully for ${platforms.join(', ')}! 🎉');
+    exit(0);
   } catch (e) {
     print('Starter Error: $e');
-    return;
+    exit(1);
   }
 }
