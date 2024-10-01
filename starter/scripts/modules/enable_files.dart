@@ -3,49 +3,28 @@ import '../utils.dart';
 void main(List<String> arguments) {
   List<String> platforms = getPlatforms(arguments);
 
-  bool success = true;
-
-  // Define the file manager module statements
   final fileManagerStatements = {
-    'importStatements': [
-      {
-        'statement':
-            "import 'package:ensemble_file_manager/file_manager.dart';",
-        'regex': toRegexPattern(
-            "import 'package:ensemble_file_manager/file_manager.dart';"),
-      }
+    'moduleStatements': [
+      "import 'package:ensemble_file_manager/file_manager.dart';",
+      "GetIt.I.registerSingleton<FileManager>(FileManagerImpl());"
     ],
-    'registerStatements': [
-      {
-        'statement':
-            'GetIt.I.registerSingleton<FileManager>(FileManagerImpl());',
-        'regex': toRegexPattern(
-            'GetIt.I.registerSingleton<FileManager>(FileManagerImpl());'),
-      }
-    ],
-    'useStatements': [
-      {
-        'statement': 'static const useFiles = true;',
-        'regex':
-            toRegexPattern('static const useFiles = true;', isBoolean: true),
-      }
-    ],
-    'pubspecDependencies': [
-      {
-        'statement': '''
+    'useStatements': ["static const useFiles = true;"],
+  };
+
+  final pubspecDependencies = [
+    {
+      'statement': '''
 ensemble_file_manager:
     git:
       url: https://github.com/EnsembleUI/ensemble.git
       ref: main
       path: modules/file_manager
 ''',
-        'regex':
-            r'#\s*ensemble_file_manager:\s*\n\s*#\s*git:\s*\n\s*#\s*url:\s*https:\/\/github\.com\/EnsembleUI\/ensemble\.git\s*\n\s*#\s*ref:\s*main\s*\n\s*#\s*path:\s*modules\/file_manager',
-      }
-    ],
-  };
+      'regex':
+          r'#\s*ensemble_file_manager:\s*\n\s*#\s*git:\s*\n\s*#\s*url:\s*https:\/\/github\.com\/EnsembleUI\/ensemble\.git\s*\n\s*#\s*ref:\s*main\s*\n\s*#\s*path:\s*modules\/file_manager',
+    }
+  ];
 
-  // Define Android and iOS permissions for the file manager
   final androidPermissions = [
     '<uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />',
     '<uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />',
@@ -53,16 +32,15 @@ ensemble_file_manager:
 
   final iOSPermissions = [
     {
-      'paramKey': '--photo_library_description',
-      'key': 'NSPhotoLibraryUsageDescription',
+      'key': '--photo_library_description',
+      'value': 'NSPhotoLibraryUsageDescription',
     },
     {
-      'paramKey': '--music_description',
-      'key': 'NSAppleMusicUsageDescription',
+      'key': '--music_description',
+      'value': 'NSAppleMusicUsageDescription',
     }
   ];
 
-  // Additional settings for Info.plist (arrays, booleans)
   final iOSAdditionalSettings = [
     {
       'key': 'UIBackgroundModes',
@@ -81,53 +59,37 @@ ensemble_file_manager:
     },
   ];
 
-  // Update the ensemble_modules.dart file
   try {
+    // Update the ensemble_modules.dart file
     updateEnsembleModules(
-        ensembleModulesFilePath,
-        fileManagerStatements['importStatements']!,
-        fileManagerStatements['registerStatements']!,
-        fileManagerStatements['useStatements']!);
-  } catch (e) {
-    print(e);
-    success = false;
-  }
+      ensembleModulesFilePath,
+      fileManagerStatements['moduleStatements']!,
+      fileManagerStatements['useStatements']!,
+    );
 
-  // Update the pubspec.yaml file
-  try {
-    updatePubspec(
-        pubspecFilePath, fileManagerStatements['pubspecDependencies']!);
-  } catch (e) {
-    print(e);
-    success = false;
-  }
+    // Update the pubspec.yaml file
+    updatePubspec(pubspecFilePath, pubspecDependencies);
 
-  // Add the storage permissions to the AndroidManifest.xml
-  if (platforms.contains('android')) {
-    try {
+    // Add the storage permissions to AndroidManifest.xml
+    if (platforms.contains('android')) {
       updateAndroidPermissions(androidManifestFilePath, androidPermissions);
-    } catch (e) {
-      print('Error updating AndroidManifest.xml: $e');
-      success = false;
     }
-  }
 
-  // Add the required keys and descriptions to the Info.plist file for iOS
-  if (platforms.contains('ios')) {
-    try {
+    // Add the required keys and descriptions to the Info.plist file for iOS
+    if (platforms.contains('ios')) {
       updateIOSPermissions(
         iosInfoPlistFilePath,
         iOSPermissions,
         arguments,
         additionalSettings: iOSAdditionalSettings,
       );
-    } catch (e) {
-      print('Error updating Info.plist: $e');
-      success = false;
     }
-  }
 
-  if (success) {
-    print('Files module enabled successfully! 🎉');
+    // Success message
+    print(
+        'File manager module enabled successfully for ${platforms.join(', ')}! 🎉');
+  } catch (e) {
+    print('Starter Error: $e');
+    return;
   }
 }

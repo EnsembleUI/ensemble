@@ -10,20 +10,25 @@ const String iosInfoPlistFilePath = 'ios/Runner/Info.plist';
 String readFileContent(String filePath) {
   File file = File(filePath);
   if (!file.existsSync()) {
-    throw Exception('Error: $filePath not found.');
+    throw Exception('$filePath not found.');
   }
   return file.readAsStringSync();
 }
 
-// process platforms argument
+// Process platforms argument, defaulting to ['ios', 'android', 'web'] if not specified
 List<String> getPlatforms(List<String> arguments,
     {List<String> defaultPlatforms = const ['ios', 'android', 'web']}) {
   List<String> platforms = defaultPlatforms;
 
   if (arguments.contains('--platform')) {
-    String platformArg = arguments[arguments.indexOf('--platform') + 1];
-    platforms =
-        platformArg.split(',').map((platform) => platform.trim()).toList();
+    int platformIndex = arguments.indexOf('--platform');
+    if (platformIndex + 1 < arguments.length) {
+      String platformArg = arguments[platformIndex + 1];
+      platforms =
+          platformArg.split(',').map((platform) => platform.trim()).toList();
+    } else {
+      throw Exception('--platform argument provided without any values.');
+    }
   }
 
   return platforms;
@@ -31,10 +36,11 @@ List<String> getPlatforms(List<String> arguments,
 
 // To update content using regex
 String updateContent(String content, String regexPattern, String replacement) {
-  return content.replaceAllMapped(
-    RegExp(regexPattern),
-    (match) => replacement,
-  );
+  final RegExp regex = RegExp(regexPattern);
+  if (!regex.hasMatch(content)) {
+    throw Exception('Pattern not found: $regexPattern');
+  }
+  return content.replaceAllMapped(regex, (match) => replacement);
 }
 
 // To write updated content to file
@@ -55,6 +61,8 @@ void addPermissionToAndroidManifest(
     );
 
     writeFileContent(manifestPath, manifestContent);
+  } else {
+    throw Exception('Permission already exists in AndroidManifest.xml');
   }
 }
 
@@ -68,22 +76,24 @@ void addPermissionDescriptionToInfoPlist(
 }) {
   File plistFile = File(plistPath);
   if (!plistFile.existsSync()) {
-    print('Error: File does not exist at $plistPath');
-    return;
+    throw Exception('Error: File does not exist at $plistPath');
   }
 
   String plistContent = plistFile.readAsStringSync();
+  bool updated = false;
 
   if (plistContent.contains('<key>$key</key>')) {
     if (!isArray && !isBoolean) {
       RegExp regex = RegExp('<key>$key</key>\\s*<string>[^<]*</string>');
       String replacement = '<key>$key</key>\n    <string>$description</string>';
       plistContent = plistContent.replaceAll(regex, replacement);
+      updated = true;
     } else if (isBoolean) {
       RegExp regex = RegExp('<key>$key</key>\\s*<(true|false)/>');
       String replacement =
           '<key>$key</key>\n    <${description ? 'true' : 'false'}/>';
       plistContent = plistContent.replaceAll(regex, replacement);
+      updated = true;
     } else if (isArray) {
       RegExp regex =
           RegExp('<key>$key</key>\\s*<array>(.*?)</array>', dotAll: true);
@@ -93,8 +103,11 @@ void addPermissionDescriptionToInfoPlist(
       String replacement =
           '<key>$key</key>\n    <array>\n$arrayValues\n    </array>';
       plistContent = plistContent.replaceAll(regex, replacement);
+      updated = true;
     }
-  } else {
+  }
+
+  if (!updated) {
     // Find the closing </dict> tag to insert before
     final dictEndIndex = plistContent.lastIndexOf('</dict>');
     if (dictEndIndex != -1) {
@@ -117,20 +130,25 @@ void addPermissionDescriptionToInfoPlist(
         dictEndIndex,
         toInsert,
       );
-    } else {
-      return;
+      updated = true;
     }
+  }
+
+  if (!updated) {
+    throw Exception('Failed to update Info.plist with $key');
   }
 
   plistFile.writeAsStringSync(plistContent);
 }
 
-// convert a string to a regex pattern for matching commented-out code
+// Convert a string to a regex pattern
 String toRegexPattern(String statement, {bool isBoolean = false}) {
   if (isBoolean) {
+    // For boolean statements like 'static const useCamera = true;'
     final prefix = statement.split('=')[0].trim();
     return RegExp.escape(prefix) + r'\s*=\s*(true|false);';
   } else {
+    // For code statements like imports or registrations that may be commented out
     String escapedStatement = RegExp.escape(statement);
     return r'\/\/\s*' + escapedStatement.replaceAll(' ', r'\s+');
   }
@@ -138,56 +156,44 @@ String toRegexPattern(String statement, {bool isBoolean = false}) {
 
 // Update ensemble_modules.dart file
 void updateEnsembleModules(
-    String filePath,
-    List<Map<String, String>> importStatements,
-    List<Map<String, String>> registerStatements,
-    List<Map<String, String>> useStatements) {
-  String? content = readFileContent(filePath);
+  String filePath,
+  List<String> codeStatements,
+  List<String> useStatements,
+) {
+  String content = readFileContent(filePath);
 
-  for (var statementObj in importStatements) {
-    content = updateContent(
-      content ?? '',
-      statementObj['regex'] ?? '',
-      statementObj['statement'] ?? '',
-    );
+  // Process code statements (imports and register statements)
+  for (var statement in codeStatements) {
+    String regexPattern = toRegexPattern(statement);
+    content = updateContent(content, regexPattern, statement);
   }
 
-  for (var statementObj in useStatements) {
-    content = updateContent(
-      content ?? '',
-      statementObj['regex'] ?? '',
-      statementObj['statement'] ?? '',
-    );
+  // Process use statements (e.g., static const useCamera = true)
+  for (var statement in useStatements) {
+    String regexPattern = toRegexPattern(statement, isBoolean: true);
+    content = updateContent(content, regexPattern, statement);
   }
 
-  for (var statementObj in registerStatements) {
-    content = updateContent(
-      content ?? '',
-      statementObj['regex'] ?? '',
-      statementObj['statement'] ?? '',
-    );
-  }
-
-  writeFileContent(filePath, content ?? '');
+  writeFileContent(filePath, content);
 }
 
-// Update pubspec.yaml file
+// Update pubspec.yaml file and throw error if content is not updated
 void updatePubspec(
     String filePath, List<Map<String, String>> pubspecDependencies) {
-  String? pubspecContent = readFileContent(filePath);
+  String pubspecContent = readFileContent(filePath);
 
   for (var statementObj in pubspecDependencies) {
     pubspecContent = updateContent(
-      pubspecContent ?? '',
+      pubspecContent,
       statementObj['regex'] ?? '',
       statementObj['statement'] ?? '',
     );
   }
 
-  writeFileContent(filePath, pubspecContent ?? '');
+  writeFileContent(filePath, pubspecContent);
 }
 
-// Update AndroidManifest.xml with permissions
+// Update AndroidManifest.xml with permissions and throw error if not updated
 void updateAndroidPermissions(
     String manifestFilePath, List<String> permissions) {
   for (var permission in permissions) {
@@ -206,34 +212,31 @@ void updateIOSPermissions(
   List<String> arguments, {
   List<Map<String, dynamic>> additionalSettings = const [],
 }) {
-  // Process the iOS permissions
   for (var permission in iOSPermissions) {
     String paramValue = '';
-    if (arguments.contains(permission['paramKey'])) {
-      paramValue = arguments[arguments.indexOf(permission['paramKey']!) + 1];
+    if (arguments.contains(permission['key'])) {
+      paramValue = arguments[arguments.indexOf(permission['key']!) + 1];
     }
 
     if (paramValue.isNotEmpty) {
       addPermissionDescriptionToInfoPlist(
-          plistFilePath, permission['key'] ?? '', paramValue);
+          plistFilePath, permission['value'] ?? '', paramValue);
     }
   }
 
   // Process additional settings (arrays, booleans, etc.) if provided
-  if (additionalSettings.isNotEmpty) {
-    for (var setting in additionalSettings) {
-      if (setting['isArray'] == true) {
-        addPermissionDescriptionToInfoPlist(
-            plistFilePath, setting['key'], setting['value'],
-            isArray: true);
-      } else if (setting['isBoolean'] == true) {
-        addPermissionDescriptionToInfoPlist(
-            plistFilePath, setting['key'], setting['value'],
-            isBoolean: true);
-      } else {
-        addPermissionDescriptionToInfoPlist(
-            plistFilePath, setting['key'], setting['value']);
-      }
+  for (var setting in additionalSettings) {
+    if (setting['isArray'] == true) {
+      addPermissionDescriptionToInfoPlist(
+          plistFilePath, setting['key'], setting['value'],
+          isArray: true);
+    } else if (setting['isBoolean'] == true) {
+      addPermissionDescriptionToInfoPlist(
+          plistFilePath, setting['key'], setting['value'],
+          isBoolean: true);
+    } else {
+      addPermissionDescriptionToInfoPlist(
+          plistFilePath, setting['key'], setting['value']);
     }
   }
 }
