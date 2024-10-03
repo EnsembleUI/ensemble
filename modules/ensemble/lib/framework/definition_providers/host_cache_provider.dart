@@ -35,7 +35,7 @@ class HostCachedEnsembleProvider extends EnsembleDefinitionProvider {
     await hostCache.reload();
     String? theme;
     if (appModel.themeMapping != null &&
-        (theme ??= hostCache.getString(appModel.themeMapping!)) != null) {
+        (theme ??= hostCache.getString(_getCacheKey(appModel.themeMapping!))) != null) {
       return AppBundle(
           theme: loadYaml(theme!),
           resources: await appModel.getCombinedResources());
@@ -50,14 +50,14 @@ class HostCachedEnsembleProvider extends EnsembleDefinitionProvider {
     String? content;
 
     if (screenId != null) {
-      content = hostCache.getString(screenId);
+      content = hostCache.getString(_getCacheKey(screenId));
     } else if (screenName != null) {
       final screenId = appModel.screenNameMappings[screenName];
       if (screenId != null) {
-        content = hostCache.getString(screenId);
+        content = hostCache.getString(_getCacheKey(screenId));
       }
     } else if (appModel.homeMapping != null) {
-      content = hostCache.getString(appModel.homeMapping!);
+      content = hostCache.getString(_getCacheKey(appModel.homeMapping!));
     }
 
     return content != null
@@ -70,7 +70,11 @@ class HostCachedEnsembleProvider extends EnsembleDefinitionProvider {
       if (value == null || value is InvalidDefinition) {
         return;
       }
-      hostCache.setString(key, json.encode(value));
+      hostCache.setString(_getCacheKey(key), json.encode(value));
     });
+  }
+
+  _getCacheKey(String id) {
+    return '${appId}.${id}';
   }
 }
