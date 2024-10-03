@@ -103,11 +103,11 @@ class EnsembleDefinitionProvider extends DefinitionProvider {
 
   @override
   void onAppLifecycleStateChanged(AppLifecycleState state) {
-    if (state == AppLifecycleState.paused) {
-      appModel.cancelListeners();
-    } else if (state == AppLifecycleState.resumed) {
-      // re-initialize the listeners
-      appModel.initListeners();
+    // Only run the timer when the app is in the foreground
+    if (state == AppLifecycleState.resumed) {
+      appModel._startTimer();
+    } else {
+      appModel._stopTimer();
     }
   }
 }
@@ -116,7 +116,8 @@ class InvalidDefinition {}
 
 class AppModel {
   AppModel(this.appId) {
-    initListeners();
+    updateApp();
+    _startTimer();
   }
 
   // only 1 instance of these listeners
@@ -142,65 +143,97 @@ class AppModel {
   /// fetch async and cache our entire App's artifacts.
   /// Plus listen for changes and update the cache
   String? listenerError;
-
-  void cancelListeners() async {
-    if (_artifactListener != null) {
-      await _artifactListener!.cancel();
-      _artifactListener = null;
-    }
-    if (_dependentArtifactListener != null) {
-      await _dependentArtifactListener!.cancel();
-      _dependentArtifactListener = null;
+  /// this is latest timestamp of the updatedAt or createdAt among all artifacts
+  Timestamp? lastUpdatedAt;
+  Timestamp? internalArtifactLastUpdateAt;
+  /// timer to check for updates
+  Timer? _timer;
+  /// interval to check for updates
+  final Duration _interval = Duration(minutes: 60);
+  void _startTimer() {
+    if (_timer == null || _timer!.isActive == false) {
+      _timer = Timer.periodic(_interval, (timer) {
+        updateApp();
+      });
     }
   }
 
-  void initListeners() async {
+  void _stopTimer() {
+    _timer?.cancel();
+  }
+  Future<void> updateInternalArtifacts() async {
     final app = Ensemble().ensembleFirebaseApp;
-    FirebaseFirestore db = FirebaseFirestore.instanceFor(app: app);
-
-    await _artifactListener?.cancel();
-    _artifactListener = db
-        .collection('apps')
-        .doc(appId)
-        .collection('artifacts')
-        .where("isArchived", isEqualTo: false)
-        .snapshots()
-        .listen((event) {
-      for (var change in event.docChanges) {
-        if (change.type == DocumentChangeType.removed) {
-          removeArtifact(change.doc);
-        } else {
-          updateArtifact(
-              change.doc, change.type == DocumentChangeType.modified);
+    final String appId = EnsembleDefinitionProvider.ensembleLibraryId;
+    Map<String, dynamic>? data;
+    bool isUpdate = internalArtifactLastUpdateAt != null;
+    if (isUpdate) {
+      print("Checking for updates of internal artifacts at: ${DateTime.now()}");
+      QuerySnapshot<Map<String, dynamic>> snapshot = await FirebaseFirestore.instanceFor(app: app)
+          .collection('apps')
+          .doc(appId)
+          .collection('artifacts')
+          .where('updatedAt', isGreaterThan: internalArtifactLastUpdateAt)
+          .get();
+      if (snapshot.docs.isNotEmpty) {
+        for (var doc in snapshot.docs) {
+          internalArtifactLastUpdateAt = calculateLastUpdatedAt(doc, internalArtifactLastUpdateAt);
+          if (doc.id == 'resources') {
+            data = doc.data();
+          }
+        }
+        print("updating internalArtifactLastUpdateAt to $internalArtifactLastUpdateAt");
+      }
+    } else {
+      print("first time retrieving internal artifacts at: ${DateTime.now()}");
+      final docSnapshot = await FirebaseFirestore.instanceFor(app: app)
+          .collection('apps')
+          .doc(appId)
+          .collection('artifacts')
+          .doc('resources')
+          .get();
+      if (docSnapshot.exists) {
+        data = docSnapshot.data();
+        internalArtifactLastUpdateAt = data?['updatedAt'];
+        print("updating internalArtifactLastUpdateAt to $internalArtifactLastUpdateAt");
+      }
+    }
+    if (data == null) {
+      return;
+    }
+    dynamic content = data['content'];
+    if (content != null) {
+      importCache[appId] = content;
+    } else {
+      importCache.remove(appId);
+    }
+  }
+  Future<void> updateApp() async {
+    await updateInternalArtifacts();
+    QuerySnapshot<Map<String, dynamic>> snapshot;
+    bool isUpdate = lastUpdatedAt != null;
+    if (isUpdate) {
+      print("Checking for updates at: ${DateTime.now()}");
+      snapshot = await _getArtifacts()
+          .where('isArchived', isEqualTo: false)
+          .where('updatedAt', isGreaterThan: lastUpdatedAt)
+          .get();
+    } else {
+      print("first time retrieving app at: ${DateTime.now()}");
+      snapshot = await _getArtifacts()
+          .where('isArchived', isEqualTo: false)
+          .get();
+    }
+    for (var doc in snapshot.docs) {
+      await updateArtifact(doc, isUpdate);
+      if (doc.data()['isRoot'] == true) {
+        if (doc.data()['type'] == ArtifactType.theme.name) {
+          themeMapping = doc.id;
+        } else if (doc.data()['type'] == 'screen') {
+          homeMapping = doc.id;
         }
       }
-    }, onError: (error) {
-      log("Provider listener error");
-      listenerError = error.toString();
-    });
-
-    // hardcoded to Ensemble public widget library
-    initWidgetArtifactListeners(EnsembleDefinitionProvider.ensembleLibraryId);
-  }
-
-  void initWidgetArtifactListeners(String appId) async {
-    final app = Ensemble().ensembleFirebaseApp;
-
-    await _dependentArtifactListener?.cancel();
-    _dependentArtifactListener = FirebaseFirestore.instanceFor(app: app)
-        .collection('apps')
-        .doc(appId)
-        .collection('artifacts')
-        .doc('resources')
-        .snapshots()
-        .listen((event) {
-      dynamic content = event.data()?['content'];
-      if (content != null) {
-        importCache[appId] = content;
-      } else {
-        importCache.remove(appId);
-      }
-    });
+      lastUpdatedAt = calculateLastUpdatedAt(doc, lastUpdatedAt);
+    }
   }
 
   Future<bool> updateArtifact(
@@ -346,7 +379,24 @@ class AppModel {
     FirebaseFirestore db = FirebaseFirestore.instanceFor(app: app);
     return db.collection('apps').doc(appId).collection('artifacts');
   }
+  Timestamp? calculateLastUpdatedAt(var artifact, Timestamp? existingLastUpdatedAt) {
+    // Get the 'updatedAt' or 'createdAt' timestamp
+    Timestamp? currentUpdatedAt;
+    if (artifact.data().containsKey('updatedAt') && artifact.data()['updatedAt'] != null) {
+      currentUpdatedAt = artifact.data()['updatedAt'] as Timestamp;
+    } else if (artifact.data().containsKey('createdAt') && artifact.data()['createdAt'] != null) {
+      currentUpdatedAt = artifact.data()['createdAt'] as Timestamp;
+    }
 
+    // Update the lastUpdatedAt if currentUpdatedAt is more recent
+    if (currentUpdatedAt != null) {
+      if (existingLastUpdatedAt == null || currentUpdatedAt.millisecondsSinceEpoch > existingLastUpdatedAt!.millisecondsSinceEpoch) {
+        print("updating lastUpdatedAt to $currentUpdatedAt");
+        return currentUpdatedAt;
+      }
+    }
+    return existingLastUpdatedAt;
+  }
   /// App bundle for now only expects the theme, but we'll use this
   /// opportunity to also cache the home page
   Future<AppBundle> getAppBundle() async {
