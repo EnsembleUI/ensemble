@@ -1229,13 +1229,15 @@ class File {
         ext = file['extension'],
         size = file['size'],
         path = file['path'],
-        bytes = file['bytes'];
+        bytes = file['bytes'],
+        fieldName = file['fieldName'];
 
   final String? name;
   final int? size;
   final String? ext;
   final String? path;
   final Uint8List? bytes;
+  String? fieldName;
 
   Map<String, dynamic> toJson() {
     return {
@@ -1244,6 +1246,7 @@ class File {
       'size': size,
       'path': path,
       'bytes': bytes,
+      'fieldName': fieldName,
       'mediaType': getMediaType().name,
     };
   }
