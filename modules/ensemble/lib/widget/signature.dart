@@ -135,7 +135,6 @@ class EnsembleSignatureController extends EnsembleBoxController {
       disabled: disabled,
       onDrawEnd: () {
         value = _convertPointsToBase64(signatureController.points);
-        debugPrint('Updated signature value: $value');
         if (signatureController.isNotEmpty) {
             signatureController.toPngBytes().then((bytes) {
             _cachedSignatureBytes = bytes;
