@@ -40,7 +40,7 @@ dependencies:
   http: ^1.2.1
   flutter_rating_bar: ^4.0.0
   fl_chart: ^0.62.0
-  signature: ^5.2.1
+  signature: ^5.5.0
 
   ensemble_icons:
     git:
