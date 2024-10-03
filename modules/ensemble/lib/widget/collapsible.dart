@@ -13,7 +13,18 @@ import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:yaml/yaml.dart';
 import 'package:ensemble/framework/widget/icon.dart' as ensembleIcon;
 
-class HeaderStyle {
+// HeaderStyleComposite class to handle header styling
+class HeaderStyleComposite extends WidgetCompositeProperty {
+  HeaderStyleComposite(super.widgetController) {
+    backgroundColor = this.backgroundColor;
+    backgroundColorOpened = this.backgroundColorOpened;
+    borderColor = this.borderColor;
+    borderColorOpened = this.borderColorOpened;
+    borderWidth = this.borderWidth;
+    borderRadius = this.borderRadius;
+    padding = this.padding;
+  }
+
   Color? backgroundColor;
   Color? backgroundColorOpened;
   Color? borderColor;
@@ -22,18 +33,49 @@ class HeaderStyle {
   double? borderRadius;
   EdgeInsets? padding;
 
-  HeaderStyle({
-    this.backgroundColor,
-    this.backgroundColorOpened,
-    this.borderColor,
-    this.borderColorOpened,
-    this.borderWidth,
-    this.borderRadius,
-    this.padding,
-  });
+  factory HeaderStyleComposite.from(WidgetController controller, dynamic payload) {
+    HeaderStyleComposite composite = HeaderStyleComposite(controller);
+    if (payload is Map) {
+      composite.backgroundColor = Utils.getColor(payload['backgroundColor']);
+      composite.backgroundColorOpened = Utils.getColor(payload['backgroundColorOpened']);
+      composite.borderColor = Utils.getColor(payload['borderColor']);
+      composite.borderColorOpened = Utils.getColor(payload['borderColorOpened']);
+      composite.borderWidth = Utils.optionalDouble(payload['borderWidth']);
+      composite.borderRadius = Utils.optionalDouble(payload['borderRadius']);
+      composite.padding = Utils.optionalInsets(payload['padding']);
+    }
+    return composite;
+  }
+
+  @override
+  Map<String, Function> setters() => {
+    'backgroundColor': (value) => backgroundColor = Utils.getColor(value),
+    'backgroundColorOpened': (value) => backgroundColorOpened = Utils.getColor(value),
+    'borderColor': (value) => borderColor = Utils.getColor(value),
+    'borderColorOpened': (value) => borderColorOpened = Utils.getColor(value),
+    'borderWidth': (value) => borderWidth = Utils.optionalDouble(value),
+    'borderRadius': (value) => borderRadius = Utils.optionalDouble(value),
+    'padding': (value) => padding = Utils.optionalInsets(value),
+  };
+
+  @override
+  Map<String, Function> getters() => {};
+
+  @override
+  Map<String, Function> methods() => {};
 }
 
-class ContentStyle {
+// ContentStyleComposite class to handle content styling
+class ContentStyleComposite extends WidgetCompositeProperty {
+  ContentStyleComposite(super.widgetController) {
+    backgroundColor = this.backgroundColor;
+    borderColor = this.borderColor;
+    borderWidth = this.borderWidth;
+    borderRadius = this.borderRadius;
+    horizontalPadding = this.horizontalPadding;
+    verticalPadding = this.verticalPadding;
+  }
+
   Color? backgroundColor;
   Color? borderColor;
   double? borderWidth;
@@ -41,14 +83,34 @@ class ContentStyle {
   double? horizontalPadding;
   double? verticalPadding;
 
-  ContentStyle({
-    this.backgroundColor,
-    this.borderColor,
-    this.borderWidth,
-    this.borderRadius,
-    this.horizontalPadding,
-    this.verticalPadding,
-  });
+  factory ContentStyleComposite.from(WidgetController controller, dynamic payload) {
+    ContentStyleComposite composite = ContentStyleComposite(controller);
+    if (payload is Map) {
+      composite.backgroundColor = Utils.getColor(payload['backgroundColor']);
+      composite.borderColor = Utils.getColor(payload['borderColor']);
+      composite.borderWidth = Utils.optionalDouble(payload['borderWidth']);
+      composite.borderRadius = Utils.optionalDouble(payload['borderRadius']);
+      composite.horizontalPadding = Utils.optionalDouble(payload['horizontalPadding']);
+      composite.verticalPadding = Utils.optionalDouble(payload['verticalPadding']);
+    }
+    return composite;
+  }
+
+  @override
+  Map<String, Function> setters() => {
+    'backgroundColor': (value) => backgroundColor = Utils.getColor(value),
+    'borderColor': (value) => borderColor = Utils.getColor(value),
+    'borderWidth': (value) => borderWidth = Utils.optionalDouble(value),
+    'borderRadius': (value) => borderRadius = Utils.optionalDouble(value),
+    'horizontalPadding': (value) => horizontalPadding = Utils.optionalDouble(value),
+    'verticalPadding': (value) => verticalPadding = Utils.optionalDouble(value),
+  };
+
+  @override
+  Map<String, Function> getters() => {};
+
+  @override
+  Map<String, Function> methods() => {};
 }
 
 class Collapsible extends StatefulWidget
@@ -71,6 +133,8 @@ class Collapsible extends StatefulWidget
   Map<String, Function> getters() {
     return {
       'openSections': () => _controller.openSections,
+      'headerStyle': () => controller.headerStyle,
+      'contentStyle': () => _controller.contentStyle,
     };
   }
 
@@ -81,23 +145,8 @@ class Collapsible extends StatefulWidget
       'isAccordion': (value) => _controller.isAccordion = Utils.getBool(value, fallback: true),
       'initialOpeningSequenceDelay': (value) =>
           _controller.initialOpeningSequenceDelay = Utils.optionalInt(value),
-      'headerStyle': (value) => _controller.headerStyle = HeaderStyle(
-        backgroundColor: Utils.getColor(value['backgroundColor']),
-        backgroundColorOpened: Utils.getColor(value['backgroundColorOpened']),
-        borderColor: Utils.getColor(value['borderColor']),
-        borderColorOpened: Utils.getColor(value['borderColorOpened']),
-        borderWidth: Utils.optionalDouble(value['borderWidth']),
-        borderRadius: Utils.optionalDouble(value['borderRadius']),
-        padding: Utils.optionalInsets(value['padding']),
-      ),
-      'contentStyle': (value) => _controller.contentStyle = ContentStyle(
-        backgroundColor: Utils.getColor(value['backgroundColor']),
-        borderColor: Utils.getColor(value['borderColor']),
-        borderWidth: Utils.optionalDouble(value['borderWidth']),
-        borderRadius: Utils.optionalDouble(value['borderRadius']),
-        horizontalPadding: Utils.optionalDouble(value['horizontalPadding']),
-        verticalPadding: Utils.optionalDouble(value['verticalPadding']),
-      ),
+      'headerStyle': (value) => _controller.headerStyle = HeaderStyleComposite.from(controller, value),
+      'contentStyle': (value) => _controller.contentStyle = ContentStyleComposite.from(controller, value),
       'leftIcon': (value) => _controller.leftIcon = value,
       'rightIcon': (value) => _controller.rightIcon = value,
       'flipLeftIconIfOpen': (value) =>
@@ -138,8 +187,18 @@ class CollapsibleController extends BoxController {
   List<YamlMap> items = [];
   bool isAccordion = true;
   int? initialOpeningSequenceDelay;
-  HeaderStyle headerStyle = HeaderStyle();
-  ContentStyle contentStyle = ContentStyle();
+  HeaderStyleComposite? _headerStyle;
+  ContentStyleComposite? _contentStyle;
+  
+  HeaderStyleComposite get headerStyle => 
+      _headerStyle ??= HeaderStyleComposite(this);
+  
+  ContentStyleComposite get contentStyle => 
+      _contentStyle ??= ContentStyleComposite(this);
+  
+  set headerStyle(HeaderStyleComposite style) => _headerStyle = style;
+  set contentStyle(ContentStyleComposite style) => _contentStyle = style;
+
   dynamic leftIcon;
   dynamic rightIcon;
   bool? flipLeftIconIfOpen;
@@ -175,10 +234,6 @@ class CollapsibleController extends BoxController {
     final newOpenSections = List<int>.from(_openSections.value);
     newOpenSections.remove(index);
     _openSections.value = newOpenSections;
-  }
-
-  @override
-  void dispose() {
   }
 }
 
