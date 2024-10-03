@@ -506,8 +506,8 @@ class CameraState extends EWidgetState<Camera> with WidgetsBindingObserver {
                               null);
                           return;
                         }
-                        widget.onComplete?.call();
                         Navigator.pop(context, widget._controller.files);
+                        widget.onComplete?.call();
                       }
                     },
                   ),
@@ -689,8 +689,8 @@ class CameraState extends EWidgetState<Camera> with WidgetsBindingObserver {
                               null);
                           return;
                         }
-                        widget.onComplete?.call();
                         Navigator.pop(context, widget._controller.files);
+                        widget.onComplete?.call();
                       },
                       child: Container(
                         decoration: BoxDecoration(

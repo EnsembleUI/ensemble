@@ -38,11 +38,10 @@ dependencies:
   firebase_analytics: ^10.8.10
   firebase_crashlytics: ^3.4.19
   ensemble:
-    path: ../ensemble
-#    git:
-#      url: https://github.com/EnsembleUI/ensemble.git
-#      ref: ensemble-v1.0.5
-#      path: modules/ensemble
+    git:
+      url: https://github.com/EnsembleUI/ensemble.git
+      ref: ensemble-v1.0.8
+      path: modules/ensemble
 
 dev_dependencies:
   flutter_test:
