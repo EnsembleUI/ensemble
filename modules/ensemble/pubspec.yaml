@@ -138,6 +138,7 @@ dependencies:
   # use this convert a language code to localized language name e.g. es => Spanish/Español
   flutter_localized_locales: ^2.0.5
   root_jailbreak_sniffer: ^1.0.6
+  accordion: ^2.6.0
 
 dependency_overrides:
   http: ^0.13.5
