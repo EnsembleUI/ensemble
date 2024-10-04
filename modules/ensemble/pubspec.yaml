@@ -19,7 +19,7 @@ version: 1.0.9
 
 environment:
   sdk: ">=3.0.6 <4.0.0"
-  flutter: '<=3.19.6'
+  flutter: '>=3.24.0'
 
 dependencies:
   flutter:
@@ -39,7 +39,7 @@ dependencies:
   cupertino_icons: ^1.0.2
   http: ^1.2.1
   flutter_rating_bar: ^4.0.0
-  fl_chart: ^0.62.0
+  fl_chart: ^0.69.0
   signature: ^5.5.0
 
   ensemble_icons:
@@ -75,7 +75,7 @@ dependencies:
   flutter_svg_provider: ^1.0.4
   qr_flutter: ^4.1.0
   device_info_plus: ^9.1.2
-  carousel_slider: ^4.1.1
+  carousel_slider: ^5.0.0
   fluttertoast: 8.2.2
   video_player: ^2.6.1
   lottie: ^3.0.0

@@ -199,7 +199,7 @@ class MyController extends BoxController {
   int selectedItemIndex = 0;
   int? indicatorMaxCount;
 
-  final e.CarouselController _carouselController = e.CarouselController();
+  final e.CarouselSliderController _carouselController = e.CarouselSliderController();
 }
 
 class CarouselState extends EWidgetState<Carousel>
