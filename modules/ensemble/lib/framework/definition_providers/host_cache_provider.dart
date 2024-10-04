@@ -8,7 +8,7 @@ import 'package:yaml/yaml.dart';
 
 /// Connecting to Ensemble-hosted definitions with a host persistent cache
 class HostCachedEnsembleProvider extends EnsembleDefinitionProvider {
-  HostCachedEnsembleProvider._create(String appId) : super(appId);
+  HostCachedEnsembleProvider._create(String appId) : super(appId,isListenerMode: true);
 
   late SharedPreferences hostCache;
 
