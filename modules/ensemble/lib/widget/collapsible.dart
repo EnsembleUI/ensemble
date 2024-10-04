@@ -65,9 +65,9 @@ class HeaderStyleComposite extends WidgetCompositeProperty {
   Map<String, Function> methods() => {};
 }
 
-// ContentStyleComposite class to handle content styling
-class ContentStyleComposite extends WidgetCompositeProperty {
-  ContentStyleComposite(super.widgetController) {
+// bodyStyleComposite class to handle body styling
+class bodyStyleComposite extends WidgetCompositeProperty {
+  bodyStyleComposite(super.widgetController) {
     backgroundColor = this.backgroundColor;
     borderColor = this.borderColor;
     borderWidth = this.borderWidth;
@@ -83,8 +83,8 @@ class ContentStyleComposite extends WidgetCompositeProperty {
   double? horizontalPadding;
   double? verticalPadding;
 
-  factory ContentStyleComposite.from(WidgetController controller, dynamic payload) {
-    ContentStyleComposite composite = ContentStyleComposite(controller);
+  factory bodyStyleComposite.from(WidgetController controller, dynamic payload) {
+    bodyStyleComposite composite = bodyStyleComposite(controller);
     if (payload is Map) {
       composite.backgroundColor = Utils.getColor(payload['backgroundColor']);
       composite.borderColor = Utils.getColor(payload['borderColor']);
@@ -134,19 +134,19 @@ class Collapsible extends StatefulWidget
     return {
       'openSections': () => _controller.openSections,
       'headerStyle': () => controller.headerStyle,
-      'contentStyle': () => _controller.contentStyle,
+      'bodyStyle': () => _controller.bodyStyle,
     };
   }
 
   @override
   Map<String, Function> setters() {
     return {
-      'items': (value) => _controller.items = List<YamlMap>.from(value),
+      'items': (value) => _controller.items = List<Map>.from(value),
       'isAccordion': (value) => _controller.isAccordion = Utils.getBool(value, fallback: true),
       'initialOpeningSequenceDelay': (value) =>
           _controller.initialOpeningSequenceDelay = Utils.optionalInt(value),
       'headerStyle': (value) => _controller.headerStyle = HeaderStyleComposite.from(controller, value),
-      'contentStyle': (value) => _controller.contentStyle = ContentStyleComposite.from(controller, value),
+      'bodyStyle': (value) => _controller.bodyStyle = bodyStyleComposite.from(controller, value),
       'leftIcon': (value) => _controller.leftIcon = value,
       'rightIcon': (value) => _controller.rightIcon = value,
       'flipLeftIconIfOpen': (value) =>
@@ -184,20 +184,20 @@ class Collapsible extends StatefulWidget
 }
 
 class CollapsibleController extends BoxController {
-  List<YamlMap> items = [];
+  List<Map> items = [];
   bool isAccordion = true;
   int? initialOpeningSequenceDelay;
   HeaderStyleComposite? _headerStyle;
-  ContentStyleComposite? _contentStyle;
+  bodyStyleComposite? _bodyStyle;
   
   HeaderStyleComposite get headerStyle => 
       _headerStyle ??= HeaderStyleComposite(this);
   
-  ContentStyleComposite get contentStyle => 
-      _contentStyle ??= ContentStyleComposite(this);
+  bodyStyleComposite get bodyStyle => 
+      _bodyStyle ??= bodyStyleComposite(this);
   
   set headerStyle(HeaderStyleComposite style) => _headerStyle = style;
-  set contentStyle(ContentStyleComposite style) => _contentStyle = style;
+  set bodyStyle(bodyStyleComposite style) => _bodyStyle = style;
 
   dynamic leftIcon;
   dynamic rightIcon;
@@ -269,13 +269,13 @@ class CollapsibleState extends EWidgetState<Collapsible> {
       flipLeftIconIfOpen: widget.controller.flipLeftIconIfOpen ?? false,
       flipRightIconIfOpen: widget.controller.flipRightIconIfOpen ?? true,
       contentBackgroundColor:
-          widget.controller.contentStyle.backgroundColor,
-      contentBorderColor: widget.controller.contentStyle.borderColor,
-      contentBorderWidth: widget.controller.contentStyle.borderWidth ?? 1.0,
-      contentBorderRadius: widget.controller.contentStyle.borderRadius ?? 0.0,
+          widget.controller.bodyStyle.backgroundColor,
+      contentBorderColor: widget.controller.bodyStyle.borderColor,
+      contentBorderWidth: widget.controller.bodyStyle.borderWidth ?? 1.0,
+      contentBorderRadius: widget.controller.bodyStyle.borderRadius ?? 0.0,
       contentHorizontalPadding:
-          widget.controller.contentStyle.horizontalPadding ?? 0.0,
-      contentVerticalPadding: widget.controller.contentStyle.verticalPadding ?? 0.0,
+          widget.controller.bodyStyle.horizontalPadding ?? 0.0,
+      contentVerticalPadding: widget.controller.bodyStyle.verticalPadding ?? 0.0,
       paddingListTop: widget.controller.paddingListTop,
       paddingListBottom: widget.controller.paddingListBottom,
       paddingListHorizontal: widget.controller.paddingListHorizontal,
@@ -314,22 +314,22 @@ class CollapsibleState extends EWidgetState<Collapsible> {
           headerPadding: Utils.optionalInsets(item['headerStyle']?['padding']) ??
               widget.controller.headerStyle.padding,
           contentBackgroundColor:
-              Utils.getColor(item['contentStyle']?['backgroundColor']) ??
-                  widget.controller.contentStyle.backgroundColor,
-          contentBorderColor: Utils.getColor(item['contentStyle']?['borderColor']) ??
-              widget.controller.contentStyle.borderColor,
+              Utils.getColor(item['bodyStyle']?['backgroundColor']) ??
+                  widget.controller.bodyStyle.backgroundColor,
+          contentBorderColor: Utils.getColor(item['bodyStyle']?['borderColor']) ??
+              widget.controller.bodyStyle.borderColor,
           contentBorderWidth:
-              Utils.optionalDouble(item['contentStyle']?['borderWidth']) ??
-                  widget.controller.contentStyle.borderWidth,
+              Utils.optionalDouble(item['bodyStyle']?['borderWidth']) ??
+                  widget.controller.bodyStyle.borderWidth,
           contentBorderRadius:
-              Utils.optionalDouble(item['contentStyle']?['borderRadius'])  ??
-                  widget.controller.contentStyle.borderRadius,
+              Utils.optionalDouble(item['bodyStyle']?['borderRadius'])  ??
+                  widget.controller.bodyStyle.borderRadius,
           contentHorizontalPadding:
-              Utils.optionalDouble(item['contentStyle']?['horizontalPadding']) ??
-                  widget.controller.contentStyle.horizontalPadding,
+              Utils.optionalDouble(item['bodyStyle']?['horizontalPadding']) ??
+                  widget.controller.bodyStyle.horizontalPadding,
           contentVerticalPadding:
-              Utils.optionalDouble(item['contentStyle']?['verticalPadding']) ??
-                  widget.controller.contentStyle.verticalPadding,
+              Utils.optionalDouble(item['bodyStyle']?['verticalPadding']) ??
+                  widget.controller.bodyStyle.verticalPadding,
           leftIcon: _buildIcon(item['leftIcon']) ??
               _buildIcon(widget.controller.leftIcon),
           rightIcon: _buildIcon(item['rightIcon']) ??
@@ -340,8 +340,8 @@ class CollapsibleState extends EWidgetState<Collapsible> {
               Utils.optionalDouble(item['paddingBetweenClosedSections']) ?? widget.controller.paddingBetweenClosedSections,
           header: _buildChildWidget(context, item['header']) ??
               Text('Section $index'),
-          content: _buildChildWidget(context, item['content']) ??
-              Text('Content for section $index'),
+          content: _buildChildWidget(context, item['body']) ??
+              Text('body for section $index'),
           onOpenSection: () {
             setState(() {
               widget.controller.openSection(index);
