@@ -85,6 +85,7 @@ class WidgetRegistry {
     Avatar.type: Avatar.build,
     Shape.type: Shape.build,
     StaticMap.type: StaticMap.build,
+    EnsembleSignature.type: EnsembleSignature.build,
   };
 
   /// register or override a widget
@@ -121,7 +122,7 @@ class WidgetRegistry {
         Video.type: () => Video(),
         YouTube.type: () => YouTube(),
         EnsembleLottie.type: () => EnsembleLottie(),
-        EnsembleSignature.type: () => EnsembleSignature(),
+        // EnsembleSignature.type: () => EnsembleSignature(),
         WeeklyScheduler.type: () => WeeklyScheduler(),
         Conditional.type: () => Conditional(),
         SignInWithGoogle.type: () => GetIt.instance<SignInWithGoogle>(),
