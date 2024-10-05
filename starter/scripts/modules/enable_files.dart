@@ -33,11 +33,11 @@ ensemble_file_manager:
 
   final iOSPermissions = [
     {
-      'key': '--photo_library_description',
+      'key': 'photo_library_description',
       'value': 'NSPhotoLibraryUsageDescription',
     },
     {
-      'key': '--music_description',
+      'key': 'music_description',
       'value': 'NSAppleMusicUsageDescription',
     }
   ];

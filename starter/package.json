@@ -9,9 +9,11 @@
   },
   "scripts": {
     "enable": "node dart_runner.js enable",
-    "useCamera": "node dart_runner.js scripts/modules/enable_camera.dart",
-    "useFiles": "node dart_runner.js scripts/modules/enable_files.dart",
-    "useContacts": "node dart_runner.js scripts/modules/enable_contacts.dart"
+    "useCamera": "node dart_runner.js camera",
+    "useFiles": "node dart_runner.js files",
+    "useContacts": "node dart_runner.js contacts",
+    "generate_keystore": "node dart_runner.js generateKeystore",
+    "get_sha_keys": "node dart_runner.js getShaKeys"
   },
   "keywords": [],
   "author": "",

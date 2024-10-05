@@ -1,24 +1,45 @@
 const { exec } = require('child_process');
 
-const scriptsList = [
+// Common parameters available across scripts and modules
+const commonParameters = ['platform'];
+
+// Modules (called with `enable` command)
+const modules = [
     {
         name: 'camera',
         path: 'scripts/modules/enable_camera.dart',
-        parameters: ['camera_description']
+        parameters: ['camera_description', 'platform']
     },
     {
         name: 'files',
         path: 'scripts/modules/enable_files.dart',
-        parameters: ['photo_library_description', 'music_description']
+        parameters: ['photo_library_description', 'music_description', 'platform']
     },
     {
         name: 'contacts',
         path: 'scripts/modules/enable_contacts.dart',
-        parameters: ['contacts_description']
+        parameters: ['contacts_description', 'platform']
     }
 ];
 
-const commonParameters = ['platform'];
+// Custom Scripts (standalone Dart scripts)
+const scripts = [
+    {
+        name: 'generateKeystore',
+        path: 'scripts/generate_keystore.dart',
+        parameters: ['storePassword', 'keyPassword', 'keyAlias']
+    },
+    {
+        name: 'getShaKeys',
+        path: 'scripts/get_sha_keys.dart',
+    }
+];
+
+// find the script object
+function findScript(name) {
+    return scripts.find(script => script.name === name) ||
+        modules.find(module => module.name === name);
+}
 
 // Parse arguments into script names and key-value pairs
 function parseArguments(args) {
@@ -36,15 +57,17 @@ function parseArguments(args) {
     return { scripts, argsArray };
 }
 
-// Generate Dart arguments
+// Generate Dart arguments, filtering only allowed parameters
 function generateArgsForScript(scriptObj, argsArray) {
     return argsArray
         .map(arg => {
             const [key, value] = arg.split('=');
-            if (commonParameters.includes(key) || scriptObj.parameters.includes(key)) {
-                const quotedValue = value.includes(' ') ? `"${value}"` : value;
-                return `--${key} ${quotedValue}`;
+
+            // Only include arguments that are in the scriptObj's parameters or common parameters
+            if (scriptObj.parameters.includes(key) || commonParameters.includes(key)) {
+                return `${key}=${value}`;
             }
+
             return null;
         })
         .filter(arg => arg !== null)
@@ -60,9 +83,6 @@ function runScript(scriptObj, argsArray, callback = () => { }) {
     exec(command, (error, stdout, stderr) => {
         if (error) {
             console.error(`Error running ${scriptObj.name}: ${error.message}`);
-            if (stderr) {
-                console.error(`Stderr from ${scriptObj.name}: ${stderr}`);
-            }
             return callback(error);
         }
         if (stderr) {
@@ -73,7 +93,7 @@ function runScript(scriptObj, argsArray, callback = () => { }) {
     });
 }
 
-// Function to run multiple scripts in sequence
+// Function to run multiple Dart scripts in sequence (for modules)
 function runScriptsSequentially(scripts, argsArray) {
     let index = 0;
 
@@ -85,7 +105,7 @@ function runScriptsSequentially(scripts, argsArray) {
 
         if (index < scripts.length) {
             const scriptName = scripts[index++];
-            const scriptObj = scriptsList.find(s => s.name === scriptName);
+            const scriptObj = findScript(scriptName);
 
             if (!scriptObj) {
                 console.error(`Error: Script "${scriptName}" not found.`);
@@ -108,7 +128,7 @@ function main() {
         const { scripts, argsArray } = parseArguments(restArgs);
         runScriptsSequentially(scripts, argsArray);
     } else {
-        const scriptObj = scriptsList.find(script => script.path === firstArg);
+        const scriptObj = findScript(firstArg);
 
         if (scriptObj) {
             const { argsArray } = parseArguments(restArgs);
@@ -120,7 +140,7 @@ function main() {
                 }
             });
         } else {
-            console.error(`Error: Path "${firstArg}" not found.`);
+            console.error(`Error: Command "${firstArg}" not found.`);
             process.exit(1);
         }
     }

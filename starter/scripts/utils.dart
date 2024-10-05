@@ -15,23 +15,25 @@ String readFileContent(String filePath) {
   return file.readAsStringSync();
 }
 
+// Helper function to parse individual arguments in key=value format
+String? getArgumentValue(List<String> arguments, String key) {
+  for (var arg in arguments) {
+    final parts = arg.split('=');
+    if (parts.length == 2 && parts[0] == key) {
+      return parts[1];
+    }
+  }
+  return null;
+}
+
 // Process platforms argument, defaulting to ['ios', 'android', 'web'] if not specified
 List<String> getPlatforms(List<String> arguments,
     {List<String> defaultPlatforms = const ['ios', 'android', 'web']}) {
-  List<String> platforms = defaultPlatforms;
-
-  if (arguments.contains('--platform')) {
-    int platformIndex = arguments.indexOf('--platform');
-    if (platformIndex + 1 < arguments.length) {
-      String platformArg = arguments[platformIndex + 1];
-      platforms =
-          platformArg.split(',').map((platform) => platform.trim()).toList();
-    } else {
-      throw Exception('--platform argument provided without any values.');
-    }
+  String? platformArg = getArgumentValue(arguments, 'platform');
+  if (platformArg != null && platformArg.isNotEmpty) {
+    return platformArg.split(',').map((platform) => platform.trim()).toList();
   }
-
-  return platforms;
+  return defaultPlatforms;
 }
 
 // To update content using regex
@@ -59,7 +61,6 @@ void addPermissionToAndroidManifest(
       comment,
       '$comment\n    $permission',
     );
-
     writeFileContent(manifestPath, manifestContent);
   } else {
     throw Exception('Permission already exists in AndroidManifest.xml');
@@ -68,12 +69,8 @@ void addPermissionToAndroidManifest(
 
 // Add permission descriptions to Info.plist
 void addPermissionDescriptionToInfoPlist(
-  String plistPath,
-  String key,
-  dynamic description, {
-  bool isArray = false,
-  bool isBoolean = false,
-}) {
+    String plistPath, String key, dynamic description,
+    {bool isArray = false, bool isBoolean = false}) {
   File plistFile = File(plistPath);
   if (!plistFile.existsSync()) {
     throw Exception('Error: File does not exist at $plistPath');
@@ -125,11 +122,8 @@ void addPermissionDescriptionToInfoPlist(
         toInsert = '    <key>$key</key>\n    <string>$description</string>\n';
       }
 
-      plistContent = plistContent.replaceRange(
-        dictEndIndex,
-        dictEndIndex,
-        toInsert,
-      );
+      plistContent =
+          plistContent.replaceRange(dictEndIndex, dictEndIndex, toInsert);
       updated = true;
     }
   }
@@ -156,10 +150,7 @@ String toRegexPattern(String statement, {bool isBoolean = false}) {
 
 // Update ensemble_modules.dart file
 void updateEnsembleModules(
-  String filePath,
-  List<String> codeStatements,
-  List<String> useStatements,
-) {
+    String filePath, List<String> codeStatements, List<String> useStatements) {
   String content = readFileContent(filePath);
 
   // Process code statements (imports and register statements)
@@ -183,11 +174,8 @@ void updatePubspec(
   String pubspecContent = readFileContent(filePath);
 
   for (var statementObj in pubspecDependencies) {
-    pubspecContent = updateContent(
-      pubspecContent,
-      statementObj['regex'] ?? '',
-      statementObj['statement'] ?? '',
-    );
+    pubspecContent = updateContent(pubspecContent, statementObj['regex'] ?? '',
+        statementObj['statement'] ?? '');
   }
 
   writeFileContent(filePath, pubspecContent);
@@ -198,27 +186,20 @@ void updateAndroidPermissions(
     String manifestFilePath, List<String> permissions) {
   for (var permission in permissions) {
     addPermissionToAndroidManifest(
-      manifestFilePath,
-      '<!-- UPDATE for your Starter. These are default permissions -->',
-      permission,
-    );
+        manifestFilePath,
+        '<!-- UPDATE for your Starter. These are default permissions -->',
+        permission);
   }
 }
 
 // Update Info.plist for iOS with permissions and descriptions
-void updateIOSPermissions(
-  String plistFilePath,
-  List<Map<String, String>> iOSPermissions,
-  List<String> arguments, {
-  List<Map<String, dynamic>> additionalSettings = const [],
-}) {
+void updateIOSPermissions(String plistFilePath,
+    List<Map<String, String>> iOSPermissions, List<String> arguments,
+    {List<Map<String, dynamic>> additionalSettings = const []}) {
   for (var permission in iOSPermissions) {
-    String paramValue = '';
-    if (arguments.contains(permission['key'])) {
-      paramValue = arguments[arguments.indexOf(permission['key']!) + 1];
-    }
+    String? paramValue = getArgumentValue(arguments, permission['key']!);
 
-    if (paramValue.isNotEmpty) {
+    if (paramValue != null && paramValue.isNotEmpty) {
       addPermissionDescriptionToInfoPlist(
           plistFilePath, permission['value'] ?? '', paramValue);
     }

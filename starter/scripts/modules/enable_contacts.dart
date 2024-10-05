@@ -33,7 +33,7 @@ ensemble_contacts:
 
   final iOSPermissions = [
     {
-      'key': '--contacts_description',
+      'key': 'contacts_description',
       'value': 'NSContactsUsageDescription',
     }
   ];
