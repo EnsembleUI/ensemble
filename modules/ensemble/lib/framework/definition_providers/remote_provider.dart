@@ -91,4 +91,9 @@ class RemoteDefinitionProvider extends FileDefinitionProvider {
   void onAppLifecycleStateChanged(AppLifecycleState state) {
     // no-op
   }
+
+  @override
+  Future<DefinitionProvider> init() async {
+    return this;
+  }
 }

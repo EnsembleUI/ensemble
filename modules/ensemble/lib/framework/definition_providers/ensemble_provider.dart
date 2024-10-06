@@ -24,6 +24,10 @@ class EnsembleDefinitionProvider extends DefinitionProvider {
       appModel = AppModelTimerMode(appId);
     }
   }
+  Future<EnsembleDefinitionProvider> init() async {
+    await appModel.init();
+    return this;
+  }
   final bool isListenerMode;
   final String appId;
   late final AppModel appModel;
@@ -128,6 +132,9 @@ class InvalidDefinition {}
 class AppModel {
   final String appId;
   AppModel(this.appId);
+  Future<void> init() async {
+    return;
+  }
   // the cache for ID -> screen content
   Map<String, dynamic> artifactCache = {};
 
@@ -376,8 +383,9 @@ class AppModel {
   }
 }
 class AppModelListenerMode extends AppModel {
-  AppModelListenerMode(String appId): super(appId) {
-    initListeners();
+  AppModelListenerMode(String appId): super(appId);
+  Future<void> init() async {
+    await initListeners();
   }
   // only 1 instance of these listeners
   static StreamSubscription? _artifactListener;
@@ -397,7 +405,7 @@ class AppModelListenerMode extends AppModel {
     }
   }
 
-  void initListeners() async {
+  Future<void> initListeners() async {
     final app = Ensemble().ensembleFirebaseApp;
     FirebaseFirestore db = FirebaseFirestore.instanceFor(app: app);
 
@@ -423,10 +431,10 @@ class AppModelListenerMode extends AppModel {
     });
 
     // hardcoded to Ensemble public widget library
-    initWidgetArtifactListeners(EnsembleDefinitionProvider.ensembleLibraryId);
+    await initWidgetArtifactListeners(EnsembleDefinitionProvider.ensembleLibraryId);
   }
 
-  void initWidgetArtifactListeners(String appId) async {
+  Future<void> initWidgetArtifactListeners(String appId) async {
     final app = Ensemble().ensembleFirebaseApp;
 
     await _dependentArtifactListener?.cancel();
@@ -447,11 +455,11 @@ class AppModelListenerMode extends AppModel {
   }
 }
 class AppModelTimerMode extends AppModel {
-  AppModelTimerMode(String appId): super(appId) {
-    updateApp();
+  AppModelTimerMode(String appId): super(appId);
+  Future<void> init() async {
+    await updateApp();
     _startTimer();
   }
-
   /// this is latest timestamp of the updatedAt or createdAt among all artifacts
   Timestamp? lastUpdatedAt;
   Timestamp? internalArtifactLastUpdateAt;
@@ -469,6 +477,15 @@ class AppModelTimerMode extends AppModel {
 
   void _stopTimer() {
     _timer?.cancel();
+  }
+  @override
+  Future<AppBundle> getAppBundle({bool? bypassCache = false}) async {
+    if (bypassCache == true || artifactCache.isEmpty) {
+      await init();
+    }
+    return AppBundle(
+        theme: themeMapping != null ? artifactCache[themeMapping] : null,
+        resources: await getCombinedResources());
   }
   Future<void> updateInternalArtifacts() async {
     final app = Ensemble().ensembleFirebaseApp;
@@ -534,13 +551,6 @@ class AppModelTimerMode extends AppModel {
     }
     for (var doc in snapshot.docs) {
       await updateArtifact(doc, isUpdate);
-      if (doc.data()['isRoot'] == true) {
-        if (doc.data()['type'] == ArtifactType.theme.name) {
-          themeMapping = doc.id;
-        } else if (doc.data()['type'] == 'screen') {
-          homeMapping = doc.id;
-        }
-      }
       lastUpdatedAt = calculateLastUpdatedAt(doc, lastUpdatedAt);
     }
   }
