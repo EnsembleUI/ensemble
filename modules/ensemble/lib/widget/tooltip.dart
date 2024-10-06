@@ -1,5 +1,7 @@
+import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/extensions.dart';
-import 'package:ensemble/widget/calendar.dart';
+import 'package:ensemble/framework/theme/theme_manager.dart';
+import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:ensemble/framework/widget/widget.dart';
@@ -7,13 +9,8 @@ import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
-import 'package:ensemble/framework/view/data_scope_widget.dart';
-import 'package:ensemble/page_model.dart';
 import 'package:ensemble/framework/widget/has_children.dart';
 import 'package:ensemble/framework/widget/view_util.dart';
-import 'package:ensemble/framework/device.dart';
-import 'package:yaml/yaml.dart';
-
 
 class ToolTip extends StatefulWidget
     with Invokable, HasController<ToolTipController, ToolTipState> {
@@ -40,20 +37,20 @@ class ToolTip extends StatefulWidget
   Map<String, Function> setters() {
     return {
       'message': (value) => _controller.message = Utils.optionalString(value),
-      'child': (value) => _controller.child = value,
+      'widget': (value) => _controller.widget = value,
       'textStyle': (value) => _controller.textStyle = Utils.getTextStyle(value),
-      'height': (value) => _controller.height = Utils.optionalDouble(value),
-      'padding': (value) => _controller.padding = Utils.getInsets(value),
-      'margin': (value) => _controller.margin = Utils.getInsets(value),
-      'verticalOffset': (value) => _controller.verticalOffset = Utils.optionalDouble(value),
-      'preferBelow': (value) => _controller.preferBelow = Utils.optionalBool(value),
-      'excludeFromSemantics': (value) => _controller.excludeFromSemantics = Utils.optionalBool(value),
-      'waitDuration': (value) => _controller.waitDuration = Utils.getDuration(value),
-      'showDuration': (value) => _controller.showDuration = Utils.getDuration(value),
-      'triggerMode': (value) => _controller.triggerMode = TooltipTriggerMode.values.from(value),
-      'onShow': (definition) => _controller.onShow = EnsembleAction.from(definition, initiator: this),
-      'onDismiss': (definition) => _controller.onDismiss = EnsembleAction.from(definition, initiator: this),
-      'decoration': (value) => _controller.setDecoration(value),
+      'verticalOffset': (value) =>
+          _controller.verticalOffset = Utils.optionalDouble(value),
+      'preferBelow': (value) =>
+          _controller.preferBelow = Utils.optionalBool(value),
+      'waitDuration': (value) =>
+          _controller.waitDuration = Utils.getDuration(value),
+      'showDuration': (value) =>
+          _controller.showDuration = Utils.getDuration(value),
+      'triggerMode': (value) =>
+          _controller.triggerMode = TooltipTriggerMode.values.from(value),
+      'onTriggered': (definition) => _controller.onTriggered =
+          EnsembleAction.from(definition, initiator: this),
     };
   }
 
@@ -61,63 +58,37 @@ class ToolTip extends StatefulWidget
   Map<String, Function> methods() {
     return {
       'show': () => _controller.show(),
-      'hide': () => _controller.hide(),
     };
   }
 }
 
-class ToolTipController extends Controller {
+class ToolTipController extends BoxController {
   String? message;
-  dynamic child;
+  dynamic widget;
   TextStyle? textStyle;
-  double? height;
-  EdgeInsetsGeometry? padding;
-  EdgeInsetsGeometry? margin;
   double? verticalOffset;
   bool? preferBelow;
-  bool? excludeFromSemantics;
   Duration? waitDuration;
   Duration? showDuration;
   TooltipTriggerMode? triggerMode;
-  EnsembleAction? onShow;
-  EnsembleAction? onDismiss;
   bool isVisible = false;
-  BoxDecoration? tooltipDecoration;
-
-  void setDecoration(YamlMap? decorationMap) {
-    if (decorationMap == null) {
-      tooltipDecoration = null;
-      return;
-    }
-
-    var backgroundColor = Utils.getColor(decorationMap['backgroundColor']) ?? Colors.grey[700];
-    var borderRadius = Utils.getBorderRadius(decorationMap['borderRadius']);
-    var borderColor = Utils.getColor(decorationMap['borderColor']);
-    var borderWidth = Utils.optionalDouble(decorationMap['borderWidth']);
-
-    tooltipDecoration = BoxDecoration(
-      color: backgroundColor,
-      borderRadius: borderRadius?.getValue() ?? BorderRadius.circular(4.0),
-      border: borderColor != null && borderWidth != null
-          ? Border.all(color: borderColor, width: borderWidth)
-          : null,
-    );
-  }
-  
+  EnsembleAction? onTriggered;
 
   void show() {
     isVisible = true;
+    notifyListeners();
   }
 
   void hide() {
     isVisible = false;
+    notifyListeners();
   }
 }
 
 class ToolTipState extends EWidgetState<ToolTip> with HasChildren<ToolTip> {
   final GlobalKey _tooltipKey = GlobalKey();
-  bool _isHovering = false;
 
+  @override
   void initState() {
     super.initState();
     widget.controller.addListener(() => setState(() {}));
@@ -127,24 +98,18 @@ class ToolTipState extends EWidgetState<ToolTip> with HasChildren<ToolTip> {
     final dynamic tooltip = _tooltipKey.currentState;
     tooltip?.ensureTooltipVisible();
     widget.controller.show();
-    if (widget.controller.onShow != null) {
-      ScreenController().executeAction(context, widget.controller.onShow!);
-    }
   }
 
   void _hideTooltip() {
     final dynamic tooltip = _tooltipKey.currentState;
     tooltip?.deactivate();
     widget.controller.hide();
-    if (widget.controller.onDismiss != null) {
-      ScreenController().executeAction(context, widget.controller.onDismiss!);
-    }
   }
 
   @override
   Widget buildWidget(BuildContext context) {
-    Widget child = widget.controller.child != null 
-        ? buildChild(ViewUtil.buildModel(widget.controller.child, null)) 
+    Widget child = widget.controller.widget != null
+        ? buildChild(ViewUtil.buildModel(widget.controller.widget, null))
         : const SizedBox.shrink();
 
     if (kIsWeb && widget.controller.triggerMode == null) {
@@ -159,24 +124,40 @@ class ToolTipState extends EWidgetState<ToolTip> with HasChildren<ToolTip> {
       key: _tooltipKey,
       message: widget.controller.message ?? '',
       textStyle: widget.controller.textStyle,
-      height: widget.controller.height,
+      height: widget.controller.height?.toDouble(),
       padding: widget.controller.padding,
       margin: widget.controller.margin,
       verticalOffset: widget.controller.verticalOffset,
       preferBelow: widget.controller.preferBelow,
-      excludeFromSemantics: widget.controller.excludeFromSemantics ?? false,
-      waitDuration: widget.controller.waitDuration ?? const Duration(milliseconds: 0),
-      showDuration: widget.controller.showDuration ?? const Duration(milliseconds: 1500),
-      triggerMode: widget.controller.triggerMode ?? (kIsWeb ? null : TooltipTriggerMode.tap),
+      waitDuration:
+          widget.controller.waitDuration ?? const Duration(milliseconds: 0),
+      showDuration:
+          widget.controller.showDuration ?? const Duration(milliseconds: 1500),
+      triggerMode: widget.controller.triggerMode ??
+          (kIsWeb ? null : TooltipTriggerMode.tap),
       enableFeedback: true,
-      decoration: widget.controller.tooltipDecoration,
+      decoration: BoxDecoration(
+          color: widget._controller.backgroundColor ?? Colors.grey[700],
+          borderRadius: widget._controller.borderRadius?.getValue(),
+          border: widget._controller.borderColor != null ||
+                  widget._controller.borderWidth != null
+              ? Border.all(
+                  color: widget._controller.borderColor ??
+                      ThemeManager().getBorderColor(context),
+                  width: widget._controller.borderWidth?.toDouble() ??
+                      ThemeManager().getBorderThickness(context),
+                )
+              : null),
+      onTriggered: () {
+        if (widget.controller.onTriggered != null) {
+          ScreenController().executeAction(
+            context,
+            widget.controller.onTriggered!,
+            event: EnsembleEvent(widget),
+          );
+        }
+      },
       child: child,
     );
-  }
-
-  @override
-  void dispose() {
-    widget.controller.removeListener(() {});
-    super.dispose();
   }
 }
