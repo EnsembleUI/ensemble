@@ -45,4 +45,9 @@ class ValidationProvider extends DefinitionProvider {
   void onAppLifecycleStateChanged(AppLifecycleState state) {
     // no-op
   }
+
+  @override
+  Future<DefinitionProvider> init() async {
+    return this;
+  }
 }

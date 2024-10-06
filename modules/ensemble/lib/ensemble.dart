@@ -176,7 +176,7 @@ class Ensemble extends WithEnsemble with EnsembleRouteObserver {
     }
     DefinitionProvider definitionProvider = DefinitionProvider.from(yamlMap);
     _config = EnsembleConfig(
-        definitionProvider: definitionProvider,
+        definitionProvider: await definitionProvider.init(),
         appBundle: await definitionProvider.getAppBundle(),
         account: account,
         services: Services.fromYaml(yamlMap['services']),
