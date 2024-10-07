@@ -28,7 +28,7 @@ dependencies:
   device_preview:
     git:
       url: https://github.com/EnsembleUI/ensemble.git
-      ref: main
+      ref: 1678_flutter_3.24
       path: modules/device_preview
 
   yaml: ^3.1.2
