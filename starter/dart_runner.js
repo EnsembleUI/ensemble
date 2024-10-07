@@ -1,5 +1,5 @@
-const { exec } = require('child_process');
-const readline = require('readline');
+import { exec } from 'child_process';
+import inquirer from 'inquirer';
 
 // Common parameters available across scripts and modules
 const commonParameters = [
@@ -43,8 +43,8 @@ const modules = [
         parameters: [
             { key: 'in_use_location_description', question: 'Please provide a description for using location services while the app is in use: ', required: true, condition: (args) => args.platform === 'ios' },
             { key: 'always_use_location_description', question: 'Please provide a description for using location services always: ', required: true, condition: (args) => args.platform === 'ios' },
-            { key: 'google_maps', question: 'Are you enabling Google Maps? (yes/no): ', required: true },
-            { key: 'google_maps_api_key', question: 'Please provide your Google Maps API key: ', required: true, condition: (args) => args.google_maps === 'yes' }
+            { key: 'google_maps', question: 'Are you enabling Google Maps? (yes/no): ', type: 'list', choices: ['yes', 'no'], required: true },
+            { key: 'google_maps_api_key', question: 'Please provide your Google Maps API key: ', required: true, condition: (args) => args.google_maps === true }
         ]
     },
     {
@@ -148,39 +148,71 @@ function generateArgsForScript(scriptObj, argsArray) {
         .join(' ');
 }
 
-// Create readline interface for asking questions
-const rl = readline.createInterface({
-    input: process.stdin,
-    output: process.stdout
-});
-
-function askQuestion(query) {
-    return new Promise(resolve => rl.question(query, resolve));
-}
-
 // Check for missing arguments and ask for them
 async function checkAndAskForMissingArgs(modules, argsArray) {
     const providedArgs = argsArray.map(arg => arg.split('=')[0]);
-    const args = Object.fromEntries(argsArray.map(arg => arg.split('=')));
+    let args = Object.fromEntries(argsArray.map(arg => arg.split('=')));
     const askedParameters = new Set();
+    let prompts = [];
 
-    // Gather all the unique parameters for all the modules
-    const allParameters = [
-        ...commonParameters,
-        ...modules.flatMap(module => module.parameters)
-    ];
-
-    for (const param of allParameters) {
-        if (askedParameters.has(param.key)) continue;
-
-        const conditionMet = param.condition ? param.condition(args) : true;
-
-        if (!providedArgs.includes(param.key) && conditionMet) {
-            const answer = await askQuestion(param.question);
-            argsArray.push(`${param.key}=${answer}`);
-            args[param.key] = answer;
+    for (const param of commonParameters) {
+        if (!providedArgs.includes(param.key)) {
+            prompts.push({
+                type: 'input',
+                name: param.key,
+                message: param.question
+            });
             askedParameters.add(param.key);
         }
+    }
+
+    if (prompts.length > 0) {
+        const commonAnswers = await inquirer.prompt(prompts);
+        Object.entries(commonAnswers).forEach(([key, value]) => {
+            argsArray.push(`${key}=${value}`);
+            args[key] = value;
+        });
+    }
+
+    prompts = [];
+    const allParameters = modules.flatMap(module => module.parameters);
+
+    for (const param of allParameters) {
+        if (askedParameters.has(param.key) || providedArgs.includes(param.key)) continue;
+
+        const conditionMet = param.condition ? param.condition(args) : true;
+        const promptType = param.type || 'input';
+
+        if (conditionMet) {
+            const prompt = {
+                type: promptType,
+                name: param.key,
+                message: param.question,
+                choices: param.choices || []
+            };
+            const answer = await inquirer.prompt([prompt]);
+
+            const transformedAnswer = Object.entries(answer).reduce((acc, [key, value]) => {
+                if (value === 'yes') value = true;
+                if (value === 'no') value = false;
+                acc[key] = value;
+                return acc;
+            }, {});
+            Object.entries(transformedAnswer).forEach(([key, value]) => {
+                argsArray.push(`${key}=${value}`);
+                args[key] = value;
+            });
+            providedArgs.push(param.key);
+            askedParameters.add(param.key);
+        }
+    }
+
+    if (prompts.length > 0) {
+        const moduleAnswers = await inquirer.prompt(prompts);
+        Object.entries(moduleAnswers).forEach(([key, value]) => {
+            argsArray.push(`${key}=${value}`);
+            args[key] = value;
+        });
     }
 
     return argsArray;
@@ -212,23 +244,14 @@ async function runScriptsSequentially(scriptsToRun, argsArray) {
     async function next(err) {
         if (err) {
             console.error('Stopping execution due to an error.');
-            rl.close();
             process.exit(1);
         }
 
         if (index < scriptsToRun.length) {
-            const scriptName = scriptsToRun[index++];
-            const scriptObj = findScript(scriptName);
-
-            if (!scriptObj) {
-                console.error(`Error: Script "${scriptName}" not found.`);
-                rl.close();
-                return process.exit(1);
-            }
+            const scriptObj = scriptsToRun[index++];
 
             runScript(scriptObj, argsArray, next);
         } else {
-            rl.close();
             process.exit(0);
         }
     }
@@ -236,18 +259,41 @@ async function runScriptsSequentially(scriptsToRun, argsArray) {
     await next();
 }
 
+// Select modules interactively
+async function selectModules() {
+    const choices = modules.map(module => ({ name: module.name, value: module.name }));
+
+    const { selectedModules } = await inquirer.prompt([
+        {
+            type: 'checkbox',
+            name: 'selectedModules',
+            message: 'Please select the modules you want to enable:',
+            choices,
+        }
+    ]);
+
+    return selectedModules.map(name => findScript(name));
+}
+
+// Main function
 async function main() {
     const [firstArg, ...restArgs] = process.argv.slice(2);
 
     if (firstArg === 'enable') {
         const { scripts: scriptsToRun, argsArray } = parseArguments(restArgs);
-        const selectedModules = modules.filter(module => scriptsToRun.includes(module.name));
+        let selectedModules;
+
+        if (scriptsToRun.length === 0) {
+            selectedModules = await selectModules();
+        } else {
+            selectedModules = scriptsToRun.map(findScript);
+        }
 
         // Ask for missing arguments for all selected modules
         const updatedArgsArray = await checkAndAskForMissingArgs(selectedModules, argsArray);
 
         // Execute scripts sequentially
-        await runScriptsSequentially(scriptsToRun, updatedArgsArray);
+        await runScriptsSequentially(selectedModules, updatedArgsArray);
     } else {
         const scriptObj = findScript(firstArg);
 
@@ -255,7 +301,6 @@ async function main() {
             const { argsArray } = parseArguments(restArgs);
             const updatedArgsArray = await checkAndAskForMissingArgs([scriptObj], argsArray);
             runScript(scriptObj, updatedArgsArray, (err) => {
-                rl.close();
                 if (err) {
                     process.exit(1);
                 } else {
