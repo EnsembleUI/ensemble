@@ -61,6 +61,7 @@ import 'package:ensemble/widget/text.dart';
 import 'package:ensemble/widget/toggle_button.dart';
 import 'package:ensemble/widget/tooltip.dart';
 import 'package:ensemble/widget/video.dart';
+import 'package:ensemble/widget/collapsible.dart';
 import 'package:ensemble/widget/visualization/barchart.dart';
 import 'package:ensemble/widget/visualization/chart_js.dart';
 import 'package:ensemble/widget/visualization/line_area_chart.dart';
@@ -85,6 +86,7 @@ class WidgetRegistry {
     Avatar.type: Avatar.build,
     Shape.type: Shape.build,
     StaticMap.type: StaticMap.build,
+    EnsembleSignature.type: EnsembleSignature.build,
   };
 
   /// register or override a widget
@@ -121,7 +123,7 @@ class WidgetRegistry {
         Video.type: () => Video(),
         YouTube.type: () => YouTube(),
         EnsembleLottie.type: () => EnsembleLottie(),
-        EnsembleSignature.type: () => EnsembleSignature(),
+        // EnsembleSignature.type: () => EnsembleSignature(),
         WeeklyScheduler.type: () => WeeklyScheduler(),
         Conditional.type: () => Conditional(),
         SignInWithGoogle.type: () => GetIt.instance<SignInWithGoogle>(),
@@ -137,6 +139,7 @@ class WidgetRegistry {
         EnsembleCalendar.type: () => EnsembleCalendar(),
         Countdown.type: () => Countdown(),
         ToolTip.type: () => ToolTip(),
+        Collapsible.type: () => Collapsible(),
 
         // form fields
         RadioButton.type: () => RadioButton(),

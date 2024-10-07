@@ -16,6 +16,7 @@ import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/widget/helpers/box_wrapper.dart';
 import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:ensemble/widget/helpers/widgets.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 
@@ -100,6 +101,8 @@ class Carousel extends StatefulWidget
       'direction': (value) =>
           _controller.direction = Utils.optionalString(value),
       'cacheKey': (value) => _controller.cacheKey = Utils.optionalString(value),
+      'scrollType': (value) =>
+          _controller.scrollType = CarouselScrollPhysics.values.from(value),
     };
   }
 
@@ -179,6 +182,7 @@ class MyController extends BoxController {
   int? buildOnDemandLength;
   String? direction;
   String? cacheKey;
+  CarouselScrollPhysics? scrollType; // Use enum instead of string
 
   // Custom Widget
   dynamic indicatorWidget;
@@ -494,6 +498,7 @@ class CarouselState extends EWidgetState<Carousel>
       pageViewKey: widget._controller.cacheKey != null
           ? PageStorageKey<String>(widget._controller.cacheKey!)
           : null,
+      scrollPhysics: getScrollPhysics(widget._controller.scrollType),
     );
   }
 
@@ -543,6 +548,30 @@ class CarouselState extends EWidgetState<Carousel>
       ),
     );
   }
+
+  ScrollPhysics getScrollPhysics(CarouselScrollPhysics? physics) {
+    if (physics == null) {
+      // Platform-specific default behavior
+      if (defaultTargetPlatform == TargetPlatform.iOS) {
+        return BouncingScrollPhysics(); // Default for iOS
+      } else {
+        return ClampingScrollPhysics(); // Default for other platforms like Android
+      }
+    }
+
+    switch (physics) {
+      case CarouselScrollPhysics.bouncing:
+        return BouncingScrollPhysics();
+      case CarouselScrollPhysics.clamping:
+        return ClampingScrollPhysics();
+      case CarouselScrollPhysics.neverScrollable:
+        return NeverScrollableScrollPhysics();
+      case CarouselScrollPhysics.alwaysScrollable:
+        return AlwaysScrollableScrollPhysics();
+      default:
+        return ClampingScrollPhysics(); // Fallback for any undefined cases
+    }
+  }
 }
 
 enum CarouselLayout {
@@ -556,4 +585,11 @@ enum IndicatorType {
   circle,
   rectangle,
   custom,
+}
+
+enum CarouselScrollPhysics {
+  bouncing,
+  clamping,
+  neverScrollable,
+  alwaysScrollable,
 }

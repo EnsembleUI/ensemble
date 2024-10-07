@@ -13,7 +13,7 @@ dependencies:
   ensemble:
     git:
       url: https://github.com/EnsembleUI/ensemble.git
-      ref: main
+      ref: ensemble-v1.0.9
       path: modules/ensemble
 
   flutter_contacts: ^1.1.7+1

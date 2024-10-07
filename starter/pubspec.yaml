@@ -36,7 +36,7 @@ dependencies:
   ensemble:
     git:
       url: https://github.com/EnsembleUI/ensemble.git
-      ref: main
+      ref: ensemble-v1.0.9
       path: modules/ensemble
 
   # Uncomment to enable camera module
@@ -90,10 +90,10 @@ dependencies:
 
   # Uncomment to enable firebase analytics
   # ensemble_firebase_analytics:
-  #   git:
-  #     url: https://github.com/EnsembleUI/ensemble.git
-  #     ref: main
-  #     path: modules/firebase_analytics
+#    git:
+#     url: https://github.com/EnsembleUI/ensemble.git
+#     ref: main
+#     path: modules/firebase_analytics
 
 
 

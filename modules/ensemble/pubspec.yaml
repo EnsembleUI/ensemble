@@ -15,7 +15,7 @@ description: Ensemble Runtime
 # This version is used _only_ for the Runner app, which is used if you just do
 # a `flutter run` or a `flutter make-host-app-editable`. It has no impact
 # on any other native host app that you embed your Flutter project into.
-version: 1.0.0+5
+version: 1.0.9
 
 environment:
   sdk: ">=3.0.6 <4.0.0"
@@ -40,7 +40,7 @@ dependencies:
   http: ^1.2.1
   flutter_rating_bar: ^4.0.0
   fl_chart: ^0.62.0
-  signature: ^5.2.1
+  signature: ^5.5.0
 
   ensemble_icons:
     git:
@@ -138,6 +138,7 @@ dependencies:
   # use this convert a language code to localized language name e.g. es => Spanish/Español
   flutter_localized_locales: ^2.0.5
   root_jailbreak_sniffer: ^1.0.6
+  accordion: ^2.6.0
 
 dependency_overrides:
   http: ^0.13.5
@@ -167,6 +168,8 @@ flutter:
     - integration_test/local/translation/
     - integration_test/local/translation/i18n/
     - integration_test/local/bottomNav/
+
+    - pubspec.yaml
 
   fonts:
     # icon fonts
