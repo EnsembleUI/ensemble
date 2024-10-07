@@ -17,7 +17,7 @@ publish_to: "none" # Remove this line if you wish to publish to pub.dev
 version: 1.0.0+1
 
 environment:
-  sdk: ">=3.0.6 <4.0.0"
+  sdk: ">=3.5.0"
   flutter: '>=3.24.0'
 
 # Dependencies specify other packages that your package needs in order to work.
@@ -36,7 +36,7 @@ dependencies:
   ensemble:
     git:
       url: https://github.com/EnsembleUI/ensemble.git
-      ref: ensemble-v1.0.9
+      ref: 1678_flutter_3.24
       path: modules/ensemble
 
   # Uncomment to enable camera module

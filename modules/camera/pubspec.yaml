@@ -4,8 +4,8 @@ version: 0.0.1
 homepage: https://github.com/EnsembleUI/ensemble_camera
 
 environment:
-  sdk: ">=2.17.0 <=3.10.0"
-  flutter: ">=1.17.0"
+  sdk: ">=3.5.0"
+  flutter: ">=3.24.0"
 
 dependencies:
   flutter:
@@ -15,7 +15,7 @@ dependencies:
   ensemble:
     git:
       url: https://github.com/EnsembleUI/ensemble.git
-      ref: ensemble-v1.0.9
+      ref: 1678_flutter_3.24
       path: modules/ensemble
   ensemble_ts_interpreter:
     git:
