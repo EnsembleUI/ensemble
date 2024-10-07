@@ -159,22 +159,27 @@ function askQuestion(query) {
 }
 
 // Check for missing arguments and ask for them
-async function checkAndAskForMissingArgs(scriptObj, argsArray) {
+async function checkAndAskForMissingArgs(modules, argsArray) {
     const providedArgs = argsArray.map(arg => arg.split('=')[0]);
     const args = Object.fromEntries(argsArray.map(arg => arg.split('=')));
+    const askedParameters = new Set();
 
+    // Gather all the unique parameters for all the modules
     const allParameters = [
         ...commonParameters,
-        ...scriptObj.parameters
+        ...modules.flatMap(module => module.parameters)
     ];
 
     for (const param of allParameters) {
+        if (askedParameters.has(param.key)) continue;
+
         const conditionMet = param.condition ? param.condition(args) : true;
 
         if (!providedArgs.includes(param.key) && conditionMet) {
             const answer = await askQuestion(param.question);
             argsArray.push(`${param.key}=${answer}`);
             args[param.key] = answer;
+            askedParameters.add(param.key);
         }
     }
 
@@ -201,7 +206,7 @@ function runScript(scriptObj, argsArray, callback = () => { }) {
 }
 
 // Function to run multiple Dart scripts in sequence (for modules)
-async function runScriptsSequentially(scripts, argsArray) {
+async function runScriptsSequentially(scriptsToRun, argsArray) {
     let index = 0;
 
     async function next(err) {
@@ -211,8 +216,8 @@ async function runScriptsSequentially(scripts, argsArray) {
             process.exit(1);
         }
 
-        if (index < scripts.length) {
-            const scriptName = scripts[index++];
+        if (index < scriptsToRun.length) {
+            const scriptName = scriptsToRun[index++];
             const scriptObj = findScript(scriptName);
 
             if (!scriptObj) {
@@ -221,10 +226,7 @@ async function runScriptsSequentially(scripts, argsArray) {
                 return process.exit(1);
             }
 
-            // Check and prompt for missing arguments
-            const updatedArgsArray = await checkAndAskForMissingArgs(scriptObj, argsArray);
-
-            runScript(scriptObj, updatedArgsArray, next);
+            runScript(scriptObj, argsArray, next);
         } else {
             rl.close();
             process.exit(0);
@@ -238,14 +240,20 @@ async function main() {
     const [firstArg, ...restArgs] = process.argv.slice(2);
 
     if (firstArg === 'enable') {
-        const { scripts, argsArray } = parseArguments(restArgs);
-        await runScriptsSequentially(scripts, argsArray);
+        const { scripts: scriptsToRun, argsArray } = parseArguments(restArgs);
+        const selectedModules = modules.filter(module => scriptsToRun.includes(module.name));
+
+        // Ask for missing arguments for all selected modules
+        const updatedArgsArray = await checkAndAskForMissingArgs(selectedModules, argsArray);
+
+        // Execute scripts sequentially
+        await runScriptsSequentially(scriptsToRun, updatedArgsArray);
     } else {
         const scriptObj = findScript(firstArg);
 
         if (scriptObj) {
             const { argsArray } = parseArguments(restArgs);
-            const updatedArgsArray = await checkAndAskForMissingArgs(scriptObj, argsArray);
+            const updatedArgsArray = await checkAndAskForMissingArgs([scriptObj], argsArray);
             runScript(scriptObj, updatedArgsArray, (err) => {
                 rl.close();
                 if (err) {
