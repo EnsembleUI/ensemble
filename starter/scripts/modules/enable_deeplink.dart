@@ -14,7 +14,7 @@ void main(List<String> arguments) {
 
   if (branchIOLiveKey == null || branchIOLiveKey.isEmpty) {
     print(
-        'Error: Missing branch_live_key argument. Usage: npm run useConnect branch_live_key=<branch_live_key> branch_test_key=<branch_test_key> use_test_key=<true|false> scheme=<scheme> links=<link1,link2>');
+        'Error: Missing branch_live_key argument. Usage: npm run useDeeplink branch_live_key=<branch_live_key> branch_test_key=<branch_test_key> use_test_key=<true|false> scheme=<scheme> links=<link1,link2>');
     exit(1);
   }
 
