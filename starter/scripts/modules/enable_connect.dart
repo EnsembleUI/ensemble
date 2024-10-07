@@ -28,6 +28,13 @@ ensemble_connect:
     }
   ];
 
+  final iOSPermissions = [
+    {
+      'key': 'camera_description',
+      'value': 'NSCameraUsageDescription',
+    }
+  ];
+
   try {
     // Update the ensemble_modules.dart file
     updateEnsembleModules(
@@ -38,6 +45,20 @@ ensemble_connect:
 
     // Update the pubspec.yaml file
     updatePubspec(pubspecFilePath, pubspecDependencies);
+
+    // Add the camera usage description to the iOS Info.plist file
+    if (platforms.contains('ios')) {
+      updateIOSPermissions(iosInfoPlistFilePath, iOSPermissions, arguments);
+    }
+
+    // Add the <script> tag to index.html for web platform
+    if (platforms.contains('web')) {
+      updateHtmlFile(
+        webIndexFilePath,
+        '</head>',
+        '<script src="https://cdn.plaid.com/link/v2/stable/link-initialize.js"></script>',
+      );
+    }
 
     print(
         'Connect module enabled successfully for ${platforms.join(', ')}! 🎉');

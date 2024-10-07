@@ -1,9 +1,12 @@
 import 'dart:io';
-
 import '../utils.dart';
 
 void main(List<String> arguments) {
   List<String> platforms = getPlatforms(arguments);
+  bool? hasGoogleMaps =
+      getArgumentValue(arguments, 'google_maps')?.toLowerCase() == 'true';
+  String? googleMapsApiKey = getArgumentValue(arguments, 'google_maps_api_key',
+      required: hasGoogleMaps);
 
   final statements = {
     'moduleStatements': [
@@ -28,6 +31,21 @@ ensemble_location:
     }
   ];
 
+  final androidPermissions = [
+    '<uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />',
+  ];
+
+  final iOSPermissions = [
+    {
+      'key': 'in_use_location_description',
+      'value': 'NSLocationWhenInUseUsageDescription',
+    },
+    {
+      'key': 'always_use_location_description',
+      'value': 'NSLocationAlwaysUsageDescription',
+    }
+  ];
+
   try {
     // Update the ensemble_modules.dart file
     updateEnsembleModules(
@@ -38,6 +56,30 @@ ensemble_location:
 
     // Update the pubspec.yaml file
     updatePubspec(pubspecFilePath, pubspecDependencies);
+
+    // Add the location permissions to AndroidManifest.xml
+    if (platforms.contains('android')) {
+      updateAndroidPermissions(androidManifestFilePath, androidPermissions);
+    }
+
+    // Add the location usage description to the iOS Info.plist file
+    if (platforms.contains('ios')) {
+      updateIOSPermissions(iosInfoPlistFilePath, iOSPermissions, arguments);
+    }
+
+    // Update Google Maps API key if available
+    if (hasGoogleMaps == true && googleMapsApiKey != null) {
+      updatePropertiesFile(
+          ensemblePropertiesFilePath, 'googleMapsAPIKey', googleMapsApiKey);
+      if (platforms.contains('ios')) {
+        updateAppDelegateForGoogleMaps(appDelegatePath, googleMapsApiKey);
+      }
+
+      if (platforms.contains('web')) {
+        updateHtmlFile(webIndexFilePath, '</head>',
+            '<script src="https://maps.googleapis.com/maps/api/js?key=$googleMapsApiKey"></script>');
+      }
+    }
 
     print(
         'Location module enabled successfully for ${platforms.join(', ')}! 🎉');

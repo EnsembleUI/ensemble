@@ -8,32 +8,32 @@ const modules = [
     {
         name: 'camera',
         path: 'scripts/modules/enable_camera.dart',
-        parameters: ['camera_description', 'platform']
+        parameters: ['camera_description']
     },
     {
         name: 'files',
         path: 'scripts/modules/enable_files.dart',
-        parameters: ['photo_library_description', 'music_description', 'platform']
+        parameters: ['photo_library_description', 'music_description']
     },
     {
         name: 'contacts',
         path: 'scripts/modules/enable_contacts.dart',
-        parameters: ['contacts_description', 'platform']
+        parameters: ['contacts_description']
     },
     {
         name: 'connect',
         path: 'scripts/modules/enable_connect.dart',
-        parameters: [],
+        parameters: ['camera_description'],
     },
     {
         name: 'location',
         path: 'scripts/modules/enable_location.dart',
-        parameters: []
+        parameters: ['in_use_location_description', 'always_use_location_description', 'google_maps', 'google_maps_api_key']
     },
     {
         name: 'deeplink',
         path: 'scripts/modules/enable_deeplink.dart',
-        parameters: []
+        parameters: ['branch_live_key', 'branch_test_key', 'use_test_key']
     },
     {
         name: 'firebaseAnalytics',

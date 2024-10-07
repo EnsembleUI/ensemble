@@ -5,6 +5,9 @@ const String pubspecFilePath = 'pubspec.yaml';
 const String androidManifestFilePath =
     'android/app/src/main/AndroidManifest.xml';
 const String iosInfoPlistFilePath = 'ios/Runner/Info.plist';
+const String webIndexFilePath = 'web/index.html';
+const String ensemblePropertiesFilePath = 'ensemble/ensemble.properties';
+const String appDelegatePath = 'ios/Runner/AppDelegate.swift';
 
 // To read file content
 String readFileContent(String filePath) {
@@ -16,13 +19,19 @@ String readFileContent(String filePath) {
 }
 
 // Helper function to parse individual arguments in key=value format
-String? getArgumentValue(List<String> arguments, String key) {
+String? getArgumentValue(List<String> arguments, String key,
+    {bool required = false}) {
   for (var arg in arguments) {
     final parts = arg.split('=');
     if (parts.length == 2 && parts[0] == key) {
       return parts[1];
     }
   }
+
+  if (required) {
+    throw Exception('Missing required argument: $key');
+  }
+
   return null;
 }
 
@@ -188,11 +197,17 @@ void updatePubspec(
 // Update AndroidManifest.xml with permissions and throw error if not updated
 void updateAndroidPermissions(
     String manifestFilePath, List<String> permissions) {
+  String manifestContent = readFileContent(manifestFilePath);
+
   for (var permission in permissions) {
-    addPermissionToAndroidManifest(
-        manifestFilePath,
-        '<!-- UPDATE for your Starter. These are default permissions -->',
-        permission);
+    // Check if the permission already exists in the manifest
+    if (!manifestContent.contains(permission)) {
+      // Add the permission if it doesn't exist
+      addPermissionToAndroidManifest(
+          manifestFilePath,
+          '<!-- UPDATE for your Starter. These are default permissions -->',
+          permission);
+    }
   }
 }
 
@@ -224,4 +239,66 @@ void updateIOSPermissions(String plistFilePath,
           plistFilePath, setting['key'], setting['value']);
     }
   }
+}
+
+// To update an HTML file with a new content before a specific marker (like </head>)
+void updateHtmlFile(String filePath, String marker, String contentToAdd) {
+  // Check if the HTML file exists
+  if (!File(filePath).existsSync()) {
+    throw Exception('Error: $filePath not found');
+  }
+
+  String content = File(filePath).readAsStringSync();
+
+  if (!content.contains(contentToAdd)) {
+    // Insert the new content before the marker (e.g., </head>)
+    content = content.replaceFirst(marker, '  $contentToAdd\n$marker');
+    File(filePath).writeAsStringSync(content);
+  }
+}
+
+void updatePropertiesFile(String filePath, String key, String value) {
+  File propertiesFile = File(filePath);
+  if (!propertiesFile.existsSync()) {
+    throw Exception('Error: $filePath not found.');
+  }
+
+  List<String> lines = propertiesFile.readAsLinesSync();
+  bool updated = false;
+
+  for (int i = 0; i < lines.length; i++) {
+    if (lines[i].startsWith('$key=')) {
+      lines[i] = '$key=$value';
+      updated = true;
+      break;
+    }
+  }
+
+  if (!updated) {
+    lines.add('$key=$value');
+  }
+
+  propertiesFile.writeAsStringSync(lines.join('\n').trim());
+}
+
+void updateAppDelegateForGoogleMaps(String filePath, String googleMapsApiKey) {
+  File appDelegateFile = File(filePath);
+  if (!appDelegateFile.existsSync()) {
+    throw Exception('Error: $filePath not found.');
+  }
+
+  // Read the file content
+  String content = appDelegateFile.readAsStringSync();
+
+  // Uncomment the Google Maps import and API key lines if they are commented
+  content = content.replaceAllMapped(
+      RegExp(r'\/\/\s*import\s+GoogleMaps'), (match) => 'import GoogleMaps');
+
+  content = content.replaceAllMapped(
+      RegExp(r'\/\/\s*GMSServices\.provideAPIKey\("(.*?)"\)'),
+      (match) => '    GMSServices.provideAPIKey("$googleMapsApiKey")');
+
+  // Write the updated content back to the file
+  appDelegateFile.writeAsStringSync(content.trim());
+  print('AppDelegate.swift updated successfully with Google Maps API key.');
 }
