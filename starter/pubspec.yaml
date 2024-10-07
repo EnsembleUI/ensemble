@@ -2,7 +2,7 @@ name: ensemble_starter
 description: Ensemble Starter project in Flutter
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
-publish_to: "none" # Remove this line if you wish to publish to pub.dev
+publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 
 # The following defines the version and build number for your application.
 # A version number is three numbers separated by dots, like 1.2.43
@@ -17,7 +17,7 @@ publish_to: "none" # Remove this line if you wish to publish to pub.dev
 version: 1.0.0+1
 
 environment:
-  sdk: ">=3.0.6 <4.0.0"
+  sdk: '>=3.0.6 <4.0.0'
   flutter: '<=3.19.6'
 
 # Dependencies specify other packages that your package needs in order to work.
@@ -90,12 +90,10 @@ dependencies:
 
   # Uncomment to enable firebase analytics
   # ensemble_firebase_analytics:
-#    git:
-#     url: https://github.com/EnsembleUI/ensemble.git
-#     ref: main
-#     path: modules/firebase_analytics
-
-
+  #   git:
+  #     url: https://github.com/EnsembleUI/ensemble.git
+  #     ref: main
+  #     path: modules/firebase_analytics
 
   # Uncomment to enable ensemble chat widget
   # ensemble_chat:
@@ -111,14 +109,12 @@ dependencies:
   #     ref: main
   #     path: modules/bracket
 
-
   # Uncomment to enable NetworkInfo
-#  ensemble_network_info:
-#   git:
-#     url: https://github.com/EnsembleUI/ensemble.git
-#     ref: main
-#     path: modules/ensemble_network_info
-
+  # ensemble_network_info:
+  #   git:
+  #     url: https://github.com/EnsembleUI/ensemble.git
+  #     ref: main
+  #     path: modules/ensemble_network_info
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.

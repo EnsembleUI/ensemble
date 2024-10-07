@@ -149,20 +149,24 @@ String toRegexPattern(String statement, {bool isBoolean = false}) {
 }
 
 // Update ensemble_modules.dart file
-void updateEnsembleModules(
-    String filePath, List<String> codeStatements, List<String> useStatements) {
+void updateEnsembleModules(String filePath, List<String>? codeStatements,
+    List<String>? useStatements) {
   String content = readFileContent(filePath);
 
   // Process code statements (imports and register statements)
-  for (var statement in codeStatements) {
-    String regexPattern = toRegexPattern(statement);
-    content = updateContent(content, regexPattern, statement);
+  if (codeStatements != null && codeStatements.isNotEmpty) {
+    for (var statement in codeStatements) {
+      String regexPattern = toRegexPattern(statement);
+      content = updateContent(content, regexPattern, statement);
+    }
   }
 
   // Process use statements (e.g., static const useCamera = true)
-  for (var statement in useStatements) {
-    String regexPattern = toRegexPattern(statement, isBoolean: true);
-    content = updateContent(content, regexPattern, statement);
+  if (useStatements != null && useStatements.isNotEmpty) {
+    for (var statement in useStatements) {
+      String regexPattern = toRegexPattern(statement, isBoolean: true);
+      content = updateContent(content, regexPattern, statement);
+    }
   }
 
   writeFileContent(filePath, content);

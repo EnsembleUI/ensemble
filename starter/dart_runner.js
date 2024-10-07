@@ -19,6 +19,51 @@ const modules = [
         name: 'contacts',
         path: 'scripts/modules/enable_contacts.dart',
         parameters: ['contacts_description', 'platform']
+    },
+    {
+        name: 'connect',
+        path: 'scripts/modules/enable_connect.dart',
+        parameters: [],
+    },
+    {
+        name: 'location',
+        path: 'scripts/modules/enable_location.dart',
+        parameters: []
+    },
+    {
+        name: 'deeplink',
+        path: 'scripts/modules/enable_deeplink.dart',
+        parameters: []
+    },
+    {
+        name: 'firebaseAnalytics',
+        path: 'scripts/modules/enable_firebase_analytics.dart',
+        parameters: []
+    },
+    {
+        name: 'notifications',
+        path: 'scripts/modules/enable_notifications.dart',
+        parameters: []
+    },
+    {
+        name: 'bracket',
+        path: 'scripts/modules/enable_bracket.dart',
+        parameters: []
+    },
+    {
+        name: 'networkInfo',
+        path: 'scripts/modules/enable_network_info.dart',
+        parameters: []
+    },
+    {
+        name: 'chat',
+        path: 'scripts/modules/enable_chat.dart',
+        parameters: []
+    },
+    {
+        name: 'auth',
+        path: 'scripts/modules/enable_auth.dart',
+        parameters: []
     }
 ];
 

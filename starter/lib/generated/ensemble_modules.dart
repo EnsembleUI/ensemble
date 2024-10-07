@@ -160,7 +160,7 @@ class EnsembleModules {
     }
     if (useFirebaseAnalytics) {
       //uncomment to enable firebase analytics
-      //GetIt.I.registerSingleton<LogProvider>(FirebaseAnalyticsProvider());
+      // GetIt.I.registerSingleton<LogProvider>(FirebaseAnalyticsProvider());
     } else {
       GetIt.I.registerSingleton<LogProvider>(LogProviderStub());
     }
