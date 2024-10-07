@@ -33,7 +33,7 @@ const modules = [
     {
         name: 'deeplink',
         path: 'scripts/modules/enable_deeplink.dart',
-        parameters: ['branch_live_key', 'branch_test_key', 'use_test_key']
+        parameters: ['branch_live_key', 'branch_test_key', 'use_test_key', 'scheme', 'links']
     },
     {
         name: 'firebaseAnalytics',
