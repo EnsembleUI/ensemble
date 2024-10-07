@@ -15,6 +15,7 @@ class HostCachedEnsembleProvider extends EnsembleDefinitionProvider {
   static Future<HostCachedEnsembleProvider> create(
       String appId, I18nProps i18nProps) async {
     final instance = HostCachedEnsembleProvider._create(appId);
+    await instance.init();
     await instance._initCache();
     return instance;
   }
