@@ -52,7 +52,7 @@ dependencies:
   jsparser:
     git:
       url: https://github.com/EnsembleUI/ensemble.git
-      ref: main
+      ref: 1678_flutter_3.24
       path: modules/parsejs_null_safety
   source_span: ^1.9.1
   intl: '>=0.18.1 <=0.19.0'
