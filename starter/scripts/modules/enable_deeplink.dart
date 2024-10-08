@@ -1,5 +1,6 @@
 import 'dart:io';
 import '../utils.dart';
+import '../utils/deeplink_utils.dart';
 
 void main(List<String> arguments) {
   List<String> platforms = getPlatforms(arguments);
@@ -97,87 +98,43 @@ ensemble_deeplink:
       );
     }
 
+    // Modify Info.plist for deep linking on iOS
+    if (platforms.contains('ios')) {
+      addPermissionDescriptionToInfoPlist(
+        iosInfoPlistFilePath,
+        'branch_universal_link_domains',
+        links,
+        isArray: true,
+      );
+
+      addPermissionDescriptionToInfoPlist(
+        iosInfoPlistFilePath,
+        'branch_key',
+        {
+          'live': branchIOLiveKey,
+          'test': branchIOTestKey ?? '',
+        },
+        isDict: true,
+      );
+
+      addBlockAboveLineInInfoPlist(
+        iosInfoPlistFilePath,
+        scheme ?? '',
+        '<!-- Google Sign in, replace with your URL scheme -->',
+      );
+
+      updateRunnerEntitlements(
+        entitlementsFilePath: runnerEntitlementsPath,
+        module: 'deeplink',
+        deeplinkLinks: links,
+      );
+    }
+
     print(
         'Deeplink module enabled successfully for ${platforms.join(', ')}! 🎉');
     exit(0);
   } catch (e) {
     print('Starter Error: $e');
     exit(1);
-  }
-}
-
-/// Function to update AndroidManifest.xml with deep link and Branch configuration.
-void updateAndroidManifestWithDeeplink(
-  String manifestFilePath, {
-  required String? branchIOLiveKey,
-  required String? branchIOTestKey,
-  required bool useTestKey,
-  required String scheme,
-  required List<String> links,
-}) {
-  String manifestContent = readFileContent(manifestFilePath);
-
-  // Update the launchMode for the main activity from "singleTop" to "singleTask"
-  manifestContent = manifestContent.replaceFirst(
-    'android:launchMode="singleTop"',
-    'android:launchMode="singleTask"',
-  );
-
-  // Add the Branch URI scheme and App Links inside the MainActivity
-  final branchURIScheme = '''
-    <!-- Branch URI Scheme -->
-            <intent-filter>
-                <data android:scheme="$scheme" android:host="open"/>
-                <action android:name="android.intent.action.VIEW" />
-                <category android:name="android.intent.category.DEFAULT" />
-                <category android:name="android.intent.category.BROWSABLE" />
-            </intent-filter>
-            ''';
-
-  final branchAppLinks = '''
-            <!-- Branch App Links -->
-            <intent-filter android:autoVerify="true">
-                <action android:name="android.intent.action.VIEW" />
-                <category android:name="android.intent.category.DEFAULT" />
-                <category android:name="android.intent.category.BROWSABLE" />
-                ${links.map((link) {
-    final parts = link.split("://");
-    final scheme = parts.length > 1 ? parts[0] : 'https';
-    final host = parts[parts.length - 1].replaceAll('/', '');
-    return '<data android:scheme="$scheme" android:host="$host" />';
-  }).join("\n                ")}
-            </intent-filter>''';
-
-  // Insert the Branch-related intent filters inside the <activity> tag for MainActivity
-  if (!manifestContent.contains('<!-- Branch URI Scheme -->')) {
-    manifestContent = manifestContent.replaceFirst(
-      '</activity>',
-      '$branchURIScheme\n$branchAppLinks\n        </activity>',
-    );
-  }
-
-  // Add the Branch meta-data at the end of the <application> block
-  final branchMetaData = '''
-    <!-- Branch init -->
-        <meta-data android:name="io.branch.sdk.BranchKey" android:value="$branchIOLiveKey" />
-        <meta-data android:name="io.branch.sdk.BranchKey.test" android:value="$branchIOTestKey" />
-        <meta-data android:name="io.branch.sdk.TestMode" android:value="${useTestKey.toString().capitalize()}" />''';
-
-  if (!manifestContent.contains('io.branch.sdk.BranchKey')) {
-    manifestContent = manifestContent.replaceFirst(
-      '</application>',
-      '$branchMetaData\n    </application>',
-    );
-  }
-
-  // Write the modified content back to the file
-  writeFileContent(manifestFilePath, manifestContent);
-}
-
-extension StringExtensions on String {
-  String capitalize() {
-    return this.isEmpty
-        ? this
-        : this[0].toUpperCase() + this.substring(1).toLowerCase();
   }
 }

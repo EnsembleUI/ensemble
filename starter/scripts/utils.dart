@@ -8,6 +8,7 @@ const String iosInfoPlistFilePath = 'ios/Runner/Info.plist';
 const String webIndexFilePath = 'web/index.html';
 const String ensemblePropertiesFilePath = 'ensemble/ensemble.properties';
 const String appDelegatePath = 'ios/Runner/AppDelegate.swift';
+const String runnerEntitlementsPath = 'ios/Runner/Runner.entitlements';
 
 // To read file content
 String readFileContent(String filePath) {
@@ -79,7 +80,7 @@ void addPermissionToAndroidManifest(
 // Add permission descriptions to Info.plist
 void addPermissionDescriptionToInfoPlist(
     String plistPath, String key, dynamic description,
-    {bool isArray = false, bool isBoolean = false}) {
+    {bool isArray = false, bool isBoolean = false, bool isDict = false}) {
   File plistFile = File(plistPath);
   if (!plistFile.existsSync()) {
     throw Exception('Error: File does not exist at $plistPath');
@@ -89,7 +90,7 @@ void addPermissionDescriptionToInfoPlist(
   bool updated = false;
 
   if (plistContent.contains('<key>$key</key>')) {
-    if (!isArray && !isBoolean) {
+    if (!isArray && !isBoolean && !isDict) {
       RegExp regex = RegExp('<key>$key</key>\\s*<string>[^<]*</string>');
       String replacement = '<key>$key</key>\n    <string>$description</string>';
       plistContent = plistContent.replaceAll(regex, replacement);
@@ -110,6 +111,18 @@ void addPermissionDescriptionToInfoPlist(
           '<key>$key</key>\n    <array>\n$arrayValues\n    </array>';
       plistContent = plistContent.replaceAll(regex, replacement);
       updated = true;
+    } else if (isDict) {
+      RegExp regex =
+          RegExp('<key>$key</key>\\s*<dict>(.*?)</dict>', dotAll: true);
+      String dictValues = (description as Map<String, String>)
+          .entries
+          .map((entry) =>
+              '        <key>${entry.key}</key>\n        <string>${entry.value}</string>')
+          .join('\n');
+      String replacement =
+          '<key>$key</key>\n    <dict>\n$dictValues\n    </dict>';
+      plistContent = plistContent.replaceAll(regex, replacement);
+      updated = true;
     }
   }
 
@@ -127,6 +140,14 @@ void addPermissionDescriptionToInfoPlist(
       } else if (isBoolean) {
         toInsert =
             '    <key>$key</key>\n    <${description ? 'true' : 'false'}/>\n';
+      } else if (isDict) {
+        String dictValues = (description as Map<String, String>)
+            .entries
+            .map((entry) =>
+                '        <key>${entry.key}</key>\n        <string>${entry.value}</string>')
+            .join('\n');
+        toInsert =
+            '    <key>$key</key>\n    <dict>\n$dictValues\n    </dict>\n';
       } else {
         toInsert = '    <key>$key</key>\n    <string>$description</string>\n';
       }
@@ -301,4 +322,51 @@ void updateAppDelegateForGoogleMaps(String filePath, String googleMapsApiKey) {
   // Write the updated content back to the file
   appDelegateFile.writeAsStringSync(content.trim());
   print('AppDelegate.swift updated successfully with Google Maps API key.');
+}
+
+extension StringExtensions on String {
+  String capitalize() {
+    return this.isEmpty
+        ? this
+        : this[0].toUpperCase() + this.substring(1).toLowerCase();
+  }
+}
+
+// Function to update the Runner.entitlements file with the given keys and values.
+void updateRunnerEntitlements({
+  required String entitlementsFilePath,
+  required String module,
+  List<String>? deeplinkLinks,
+}) {
+  File entitlementsFile = File(entitlementsFilePath);
+  if (!entitlementsFile.existsSync()) {
+    throw Exception(
+        'Error: Runner.entitlements file does not exist at $entitlementsFilePath');
+  }
+
+  String entitlementsContent = entitlementsFile.readAsStringSync();
+
+  if (module == 'deeplink') {
+    String deeplinkEntries = deeplinkLinks!
+        .map((link) => '        <string>applinks:$link</string>')
+        .join('\n');
+
+    if (entitlementsContent
+        .contains('<key>com.apple.developer.associated-domains</key>')) {
+      entitlementsContent = entitlementsContent.replaceFirst(
+          RegExp(
+              '<key>com.apple.developer.associated-domains</key>\\s*<array>.*?</array>',
+              dotAll: true),
+          '''
+<key>com.apple.developer.associated-domains</key>
+    <array>
+$deeplinkEntries
+    </array>''');
+
+      entitlementsFile.writeAsStringSync(entitlementsContent);
+    } else {
+      print(
+          'No <key>com.apple.developer.associated-domains</key> block found in Runner.entitlements.');
+    }
+  }
 }
