@@ -18,39 +18,39 @@ const modules = [
         name: 'camera',
         path: 'scripts/modules/enable_camera.dart',
         parameters: [
-            { key: 'camera_description', question: 'Please provide a camera usage description for iOS: ', required: true, condition: (args) => args.platform === 'ios' }
+            { key: 'camera_description', question: 'Please provide a camera usage description for iOS: ', required: (args) => args.platform.includes('ios') }
         ]
     },
     {
         name: 'files',
         path: 'scripts/modules/enable_files.dart',
         parameters: [
-            { key: 'photo_library_description', question: 'Please provide a description for accessing the photo library: ', required: true, condition: (args) => args.platform === 'ios' },
-            { key: 'music_description', question: 'Please provide a description for accessing music files: ', required: true, condition: (args) => args.platform === 'ios' }
+            { key: 'photo_library_description', question: 'Please provide a description for accessing the photo library: ', required: (args) => args.platform.includes('ios') },
+            { key: 'music_description', question: 'Please provide a description for accessing music files: ', required: (args) => args.platform.includes('ios') }
         ]
     },
     {
         name: 'contacts',
         path: 'scripts/modules/enable_contacts.dart',
         parameters: [
-            { key: 'contacts_description', question: 'Please provide a description for accessing contacts: ', required: true, condition: (args) => args.platform === 'ios' }
+            { key: 'contacts_description', question: 'Please provide a description for accessing contacts: ', required: (args) => args.platform.includes('ios') }
         ]
     },
     {
         name: 'connect',
         path: 'scripts/modules/enable_connect.dart',
         parameters: [
-            { key: 'camera_description', question: 'Please provide a camera usage description: ', required: true, condition: (args) => args.platform === 'ios' }
+            { key: 'camera_description', question: 'Please provide a camera usage description: ', required: (args) => args.platform.includes('ios') }
         ]
     },
     {
         name: 'location',
         path: 'scripts/modules/enable_location.dart',
         parameters: [
-            { key: 'in_use_location_description', question: 'Please provide a description for using location services while the app is in use: ', required: true, condition: (args) => args.platform === 'ios' },
-            { key: 'always_use_location_description', question: 'Please provide a description for using location services always: ', required: true, condition: (args) => args.platform === 'ios' },
+            { key: 'in_use_location_description', question: 'Please provide a description for using location services while the app is in use: ', required: (args) => args.platform.includes('ios') },
+            { key: 'always_use_location_description', question: 'Please provide a description for using location services always: ', required: (args) => args.platform.includes('ios') },
             { key: 'google_maps', question: 'Are you enabling Google Maps? (yes/no): ', type: 'list', choices: ['yes', 'no'], required: true },
-            { key: 'google_maps_api_key', question: 'Please provide your Google Maps API key: ', required: true, condition: (args) => args.google_maps === true }
+            { key: 'google_maps_api_key', question: 'Please provide your Google Maps API key: ', required: (args) => args.google_maps === true }
         ]
     },
     {
@@ -182,7 +182,6 @@ async function checkAndAskForMissingArgs(modules, argsArray) {
             argsArray.push(`${key}=${value}`);
             args[key] = value;
         });
-
     }
 
     prompts = [];
@@ -191,10 +190,10 @@ async function checkAndAskForMissingArgs(modules, argsArray) {
     for (const param of allParameters) {
         if (askedParameters.has(param.key) || providedArgs.includes(param.key)) continue;
 
-        const conditionMet = param.condition ? param.condition(args) : true;
-        const promptType = param.type || 'input';
+        const isRequired = typeof param.required === 'function' ? param.required(args) : param.required;
 
-        if (conditionMet) {
+        if (isRequired) {
+            const promptType = param.type || 'input';
             const prompt = {
                 type: promptType,
                 name: param.key,
@@ -209,6 +208,7 @@ async function checkAndAskForMissingArgs(modules, argsArray) {
                 acc[key] = value;
                 return acc;
             }, {});
+
             Object.entries(transformedAnswer).forEach(([key, value]) => {
                 argsArray.push(`${key}=${value}`);
                 args[key] = value;
