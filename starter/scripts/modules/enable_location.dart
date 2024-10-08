@@ -5,8 +5,17 @@ void main(List<String> arguments) {
   List<String> platforms = getPlatforms(arguments);
   bool? hasGoogleMaps =
       getArgumentValue(arguments, 'google_maps')?.toLowerCase() == 'true';
-  String? googleMapsApiKey = getArgumentValue(arguments, 'google_maps_api_key',
-      required: hasGoogleMaps);
+  String? googleMapsApiKeyAndroid = getArgumentValue(
+      arguments, 'google_maps_api_key_android',
+      required: hasGoogleMaps && platforms.contains('android'));
+  String? googleMapsApiKeyIOS = getArgumentValue(
+      arguments, 'google_maps_api_key_ios',
+      required: hasGoogleMaps && platforms.contains('ios'));
+  String? googleMapsApiKeyWeb = getArgumentValue(
+    arguments,
+    'google_maps_api_key_web',
+    required: hasGoogleMaps && platforms.contains('web'),
+  );
 
   final statements = {
     'moduleStatements': [
@@ -68,16 +77,18 @@ ensemble_location:
     }
 
     // Update Google Maps API key if available
-    if (hasGoogleMaps == true && googleMapsApiKey != null) {
-      updatePropertiesFile(
-          ensemblePropertiesFilePath, 'googleMapsAPIKey', googleMapsApiKey);
-      if (platforms.contains('ios')) {
-        updateAppDelegateForGoogleMaps(appDelegatePath, googleMapsApiKey);
+    if (hasGoogleMaps == true) {
+      if (platforms.contains('android') && googleMapsApiKeyAndroid != null) {
+        updatePropertiesFile(ensemblePropertiesFilePath, 'googleMapsAPIKey',
+            googleMapsApiKeyAndroid);
+      }
+      if (platforms.contains('ios') && googleMapsApiKeyIOS != null) {
+        updateAppDelegateForGoogleMaps(appDelegatePath, googleMapsApiKeyIOS);
       }
 
-      if (platforms.contains('web')) {
+      if (platforms.contains('web') && googleMapsApiKeyWeb != null) {
         updateHtmlFile(webIndexFilePath, '</head>',
-            '<script src="https://maps.googleapis.com/maps/api/js?key=$googleMapsApiKey"></script>');
+            '<script src="https://maps.googleapis.com/maps/api/js?key=$googleMapsApiKeyWeb"></script>');
       }
     }
 
