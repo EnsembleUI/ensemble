@@ -1,11 +1,10 @@
-name: ensemble_bracket
-description: "A package for elimination style tournament brackets in ensemble"
+name: ensemble_bluetooth
+description: "An ensemble package to handle bluetooth actions."
 version: 0.0.1
-
 publish_to: none
 
 environment:
-  sdk: ">=3.2.1 <4.0.0"
+  sdk: '>=3.3.3 <4.0.0'
   flutter: ">=1.17.0"
 
 dependencies:
@@ -17,8 +16,16 @@ dependencies:
       ref: ensemble-v1.1.0
       path: modules/ensemble
 
+  ensemble_ts_interpreter:
+    git:
+      url: https://github.com/EnsembleUI/ensemble.git
+      ref: main
+      path: modules/ensemble_ts_interpreter
+
+  flutter_blue_plus: ^1.32.12
+  collection: ^1.18.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^3.0.0
-
