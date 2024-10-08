@@ -18,8 +18,8 @@ description: Ensemble Runtime
 version: 1.0.9
 
 environment:
-  sdk: ">=3.0.6 <4.0.0"
-  flutter: '<=3.19.6'
+  sdk: ">=3.5.0"
+  flutter: '>=3.24.0'
 
 dependencies:
   flutter:
@@ -28,7 +28,7 @@ dependencies:
   device_preview:
     git:
       url: https://github.com/EnsembleUI/ensemble.git
-      ref: main
+      ref: 1678_flutter_3.24
       path: modules/device_preview
 
   yaml: ^3.1.2
@@ -39,26 +39,26 @@ dependencies:
   cupertino_icons: ^1.0.2
   http: ^1.2.1
   flutter_rating_bar: ^4.0.0
-  fl_chart: ^0.62.0
+  fl_chart: ^0.69.0
   signature: ^5.5.0
 
   ensemble_icons:
     git:
       url: https://github.com/EnsembleUI/ensemble.git
-      ref: main
+      ref: 1678_flutter_3.24
       path: modules/ensemble_icons
 
   ensemble_ts_interpreter:
     git:
       url: https://github.com/EnsembleUI/ensemble.git
-      ref: main
+      ref: 1678_flutter_3.24
       path: modules/ensemble_ts_interpreter
 
   # use our forked high_chart to fix iOS issue
   high_chart:
     git:
       url: https://github.com/EnsembleUI/ensemble.git
-      ref: main
+      ref: 1678_flutter_3.24
       path: modules/high_chart
 
   event_bus: ^2.0.0
@@ -68,21 +68,21 @@ dependencies:
   otp_pin_field:
     git:
       url: https://github.com/EnsembleUI/ensemble.git
-      ref: main
+      ref: 1678_flutter_3.24
       path: modules/otp_pin_field
   form_validator: ^2.1.1
   flutter_svg: ^2.0.7
   flutter_svg_provider: ^1.0.4
   qr_flutter: ^4.1.0
   device_info_plus: ^9.1.2
-  carousel_slider: ^4.1.1
+  carousel_slider: ^5.0.0
   fluttertoast: 8.2.2
   video_player: ^2.6.1
   lottie: ^3.0.0
   js_widget:
     git: 
       url: https://github.com/EnsembleUI/ensemble.git
-      ref: main
+      ref: 1678_flutter_3.24
       path: modules/js_widget
   flutter_markdown: ^0.6.10+5
   provider: ^6.0.3

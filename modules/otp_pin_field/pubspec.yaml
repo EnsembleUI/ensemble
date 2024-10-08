@@ -4,8 +4,8 @@ version: 1.2.2
 homepage: https://github.com/shivbo96/otp_pin_field
 
 environment:
-  sdk: ">=2.18.0 <4.0.0"
-  flutter: ">=1.17.0"
+  sdk: ">=3.5.0"
+  flutter: ">=3.24.0"
 
 dependencies:
   flutter:

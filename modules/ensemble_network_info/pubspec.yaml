@@ -3,8 +3,8 @@ description: Module that provides wifi related information such as wifi name, SS
 version: 0.0.1
 
 environment:
-  sdk: ">=3.0.6 <4.0.0"
-  flutter: "3.19.3"
+  sdk: ">=3.5.0"
+  flutter: "3.24.0"
 
 dependencies:
   flutter:
@@ -12,7 +12,7 @@ dependencies:
   ensemble:
     git:
       url: https://github.com/EnsembleUI/ensemble.git
-      ref: ensemble-v1.0.9
+      ref: 1678_flutter_3.24
       path: modules/ensemble
 
   network_info_plus: ^5.0.3

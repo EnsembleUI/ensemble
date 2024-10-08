@@ -8,3 +8,6 @@ pubspec_overrides.yaml
 /starter/ios/Flutter
 starter/ios/Runner.xcodeproj/project.pbxproj
 /node_modules
+
+# FVM Version Cache
+.fvm/
