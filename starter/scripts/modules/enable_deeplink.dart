@@ -64,7 +64,7 @@ ensemble_deeplink:
       0
     );
     branch.init("$branchIOLiveKey");
-</script>''';
+  </script>''';
 
   try {
     // Update the ensemble_modules.dart file

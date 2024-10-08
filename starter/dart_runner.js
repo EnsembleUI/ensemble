@@ -3,7 +3,13 @@ import inquirer from 'inquirer';
 
 // Common parameters available across scripts and modules
 const commonParameters = [
-    { key: 'platform', question: 'Which platform are you targeting? (e.g., ios, android, web): ', required: true }
+    {
+        key: 'platform',
+        question: 'Which platform(s) are you targeting?',
+        type: 'checkbox',
+        choices: ['ios', 'android', 'web'],
+        required: true,
+    }
 ];
 
 // Modules (called with `enable` command)
@@ -53,7 +59,7 @@ const modules = [
         parameters: [
             { key: 'branch_live_key', question: 'Please provide the live Branch.io key: ', required: true },
             { key: 'branch_test_key', question: 'Please provide the test Branch.io key: ', required: false },
-            { key: 'use_test_key', question: 'Are you using the test key? (yes/no): ', required: true },
+            { key: 'use_test_key', question: 'Are you using the test key? (yes/no): ', type: 'list', choices: ['yes', 'no'], required: true },
             { key: 'scheme', question: 'Please provide the URI scheme for deeplinking: ', required: true },
             { key: 'links', question: 'Please provide a comma-separated list of deeplink URLs: ', required: true }
         ]
@@ -158,9 +164,10 @@ async function checkAndAskForMissingArgs(modules, argsArray) {
     for (const param of commonParameters) {
         if (!providedArgs.includes(param.key)) {
             prompts.push({
-                type: 'input',
+                type: param.type || 'input',
                 name: param.key,
-                message: param.question
+                message: param.question,
+                choices: param.choices || []
             });
             askedParameters.add(param.key);
         }
@@ -169,9 +176,13 @@ async function checkAndAskForMissingArgs(modules, argsArray) {
     if (prompts.length > 0) {
         const commonAnswers = await inquirer.prompt(prompts);
         Object.entries(commonAnswers).forEach(([key, value]) => {
+            if (Array.isArray(value)) {
+                value = value.join(',');
+            }
             argsArray.push(`${key}=${value}`);
             args[key] = value;
         });
+
     }
 
     prompts = [];
