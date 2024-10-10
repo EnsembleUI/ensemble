@@ -18,6 +18,7 @@ const modules = [
         name: 'camera',
         path: 'scripts/modules/enable_camera.dart',
         parameters: [
+            { key: 'qrcode_enabled', question: 'Do you want to enable QR code scanning? (yes/no): ', type: 'list', choices: ['yes', 'no'], required: true },
             { key: 'camera_description', question: 'Please provide a camera usage description for iOS: ', required: (args) => args.platform.includes('ios') }
         ]
     },
@@ -200,7 +201,7 @@ async function checkAndAskForMissingArgs(modules, argsArray) {
                 type: promptType,
                 name: param.key,
                 message: param.question,
-                choices: param.choices || []
+                choices: param.choices || [],
             };
             const answer = await inquirer.prompt([prompt]);
 
