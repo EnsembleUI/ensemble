@@ -1151,7 +1151,8 @@ class APIResponse with Invokable {
       'body': () => _response?.body,
       'headers': () => _response?.headers,
       'statusCode': () => _response?.statusCode,
-      'reasonPhrase': () => _response?.reasonPhrase
+      'reasonPhrase': () => _response?.reasonPhrase,
+      'cookies': () => _response?.cookies,
     };
   }
 

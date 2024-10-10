@@ -82,7 +82,7 @@ abstract class SelectOne extends StatefulWidget
     var setters = _controller.textPlaceholderSetters;
     setters.addAll({
       'value': (value) {
-        _controller.textEditingController.value = TextEditingValue(text: value);
+        _controller.textEditingController.value = TextEditingValue(text: (value == null)? '': value.toString());
         return _controller.maybeValue = value;
       },
       'items': (values) => updateItems(values),
@@ -176,7 +176,7 @@ abstract class SelectOne extends StatefulWidget
           if (element['value'] != null) {
             entries.add(
               SelectOneItem(
-                value: element['value'],
+                value: element['value'].toString(),
                 label: element['label']?.toString(),
                 icon: Utils.getIcon(element['icon']),
                 isIcon: isIconExist(values),

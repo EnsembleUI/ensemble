@@ -75,4 +75,9 @@ class LocalDefinitionProvider extends FileDefinitionProvider {
   void onAppLifecycleStateChanged(AppLifecycleState state) {
     // no-op
   }
+
+  @override
+  Future<DefinitionProvider> init() async {
+    return this;
+  }
 }

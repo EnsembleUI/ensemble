@@ -19,8 +19,10 @@ import 'package:http/io_client.dart';
 import 'package:yaml/yaml.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter/foundation.dart' as foundation;
+import 'package:cookie_jar/cookie_jar.dart';
 
 class HTTPAPIProvider extends APIProvider {
+  final CookieJar _cookieJar = CookieJar();
   @override
   Future<HttpResponse> invokeApi(BuildContext context, YamlMap api,
       DataContext eContext, String apiName) async {
@@ -126,6 +128,8 @@ class HTTPAPIProvider extends APIProvider {
         env?['ssl_pinning_enabled']?.toLowerCase() == 'true';
     String? sslPinningCertificate = secrets?['ssl_pinning_certificate'];
 
+    bool manageCookies = Utils.getBool(api['manageCookies'], fallback: false);
+
     Completer<http.Response> completer = Completer();
     http.Response response;
 
@@ -134,6 +138,15 @@ class HTTPAPIProvider extends APIProvider {
         sslPinningEnabled: sslPinningEnabled,
         sslPinningCertificate: sslPinningCertificate,
       );
+
+      if (!kIsWeb && manageCookies) {
+        List<Cookie> cookies = await _cookieJar.loadForRequest(Uri.parse(url));
+        String cookieString = cookies.map((cookie) => '${cookie.name}=${cookie.value}').join('; ');
+        if (cookieString.isNotEmpty) {
+          headers['Cookie'] = cookieString;
+        }
+      }
+
       switch (method) {
         case 'POST':
           response =
@@ -156,14 +169,26 @@ class HTTPAPIProvider extends APIProvider {
           response = await client.get(Uri.parse(url), headers: headers);
           break;
       }
+      // Store cookies for native apps
+      if (!kIsWeb && manageCookies) {
+        _cookieJar.saveFromResponse(Uri.parse(url), _extractCookies(response));
+      }
 
       final isOkay = response.statusCode >= 200 && response.statusCode <= 299;
       log('Response: ${response.statusCode}');
       return HttpResponse(response, isOkay ? APIState.success : APIState.error,
-          apiName: apiName);
+          apiName: apiName, manageCookies: manageCookies);
     } catch (e) {
       return _handleError(e, apiName);
     }
+  }
+
+  List<Cookie> _extractCookies(http.Response response) {
+    List<Cookie> cookies = [];
+    response.headers['set-cookie']?.split(',').forEach((String cookie) {
+      cookies.add(Cookie.fromSetCookieValue(cookie));
+    });
+    return cookies;
   }
 
   Future<http.Client> _getHttpClient({
@@ -301,12 +326,16 @@ class HTTPAPIProvider extends APIProvider {
 
 /// a wrapper class around the http Response
 class HttpResponse extends Response {
-  HttpResponse.updateState({required apiState}) {
+  final bool _manageCookies;
+  late Map<String, String> _cookies;
+
+  HttpResponse.updateState({required apiState}) : _manageCookies = false {
     super.updateState(apiState: apiState);
   }
 // APIState get apiState => _apiState;
   HttpResponse.fromBody(dynamic body,
-      [headers, statusCode, reasonPhrase, apiState = APIState.idle]) {
+      [headers, statusCode, reasonPhrase, apiState = APIState.idle])
+      : _manageCookies = false {
     super.body = body;
     super.headers = headers;
     super.statusCode = statusCode;
@@ -315,7 +344,8 @@ class HttpResponse extends Response {
   }
 
   HttpResponse(http.Response response, APIState apiState,
-      {String apiName = ''}) {
+      {String apiName = '', bool manageCookies = false})
+      : _manageCookies = manageCookies {
     try {
       body = json.decode(response.body);
     } on FormatException catch (_, e) {
@@ -326,7 +356,24 @@ class HttpResponse extends Response {
     statusCode = response.statusCode;
     reasonPhrase = response.reasonPhrase;
     apiName = apiName;
+    _cookies = _parseCookies(response);
   }
+
+  Map<String, String> _parseCookies(http.Response response) {
+    Map<String, String> cookies = {};
+    if (_manageCookies) {
+      response.headers['set-cookie']?.split(',').forEach((String rawCookie) {
+        List<String> cookieParts = rawCookie.split(';')[0].split('=');
+        if (cookieParts.length == 2) {
+          cookies[cookieParts[0].trim()] = cookieParts[1].trim();
+        }
+      });
+    }
+    return cookies;
+  }
+
+  Map<String, String> get cookies => _cookies;
+
   @override
   bool get isOkay =>
       statusCode != null && statusCode! >= 200 && statusCode! <= 299;
