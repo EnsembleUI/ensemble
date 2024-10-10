@@ -7,13 +7,17 @@ void main(List<String> arguments) {
 
   String? branchIOLiveKey =
       getArgumentValue(arguments, 'branch_live_key', required: true);
-  String? branchIOTestKey = getArgumentValue(arguments, 'branch_test_key');
+  String? branchIOTestKey =
+      getArgumentValue(arguments, 'branch_test_key', required: true);
   bool useTestKey =
       getArgumentValue(arguments, 'use_test_key')?.toLowerCase() == 'true';
   String? scheme = getArgumentValue(arguments, 'scheme', required: true);
   List<String> links = getArgumentValue(arguments, 'links')?.split(',') ?? [];
 
-  if (branchIOLiveKey == null || branchIOLiveKey.isEmpty) {
+  if (branchIOLiveKey == null ||
+      branchIOLiveKey.isEmpty ||
+      branchIOTestKey == null ||
+      branchIOTestKey.isEmpty) {
     print(
         'Error: Missing branch_live_key argument. Usage: npm run useDeeplink branch_live_key=<branch_live_key> branch_test_key=<branch_test_key> use_test_key=<true|false> scheme=<scheme> links=<link1,link2>');
     exit(1);
@@ -86,6 +90,11 @@ ensemble_deeplink:
       );
     }
 
+    updatePropertiesFile(
+        ensemblePropertiesFilePath, 'branchTestKey', branchIOTestKey);
+    updatePropertiesFile(
+        ensemblePropertiesFilePath, 'branchLiveKey', branchIOLiveKey);
+
     // Modify AndroidManifest.xml for deep linking
     if (platforms.contains('android')) {
       updateAndroidManifestWithDeeplink(
@@ -112,7 +121,7 @@ ensemble_deeplink:
         'branch_key',
         {
           'live': branchIOLiveKey,
-          'test': branchIOTestKey ?? '',
+          'test': branchIOTestKey,
         },
         isDict: true,
       );

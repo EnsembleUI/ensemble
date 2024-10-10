@@ -61,7 +61,7 @@ const modules = [
         path: 'scripts/modules/enable_deeplink.dart',
         parameters: [
             { key: 'branch_live_key', question: 'Please provide the live Branch.io key: ', required: true },
-            { key: 'branch_test_key', question: 'Please provide the test Branch.io key: ', required: false },
+            { key: 'branch_test_key', question: 'Please provide the test Branch.io key: ', required: true },
             { key: 'use_test_key', question: 'Are you using the test key? (yes/no): ', type: 'list', choices: ['yes', 'no'], required: true },
             { key: 'scheme', question: 'Please provide the URI scheme for deeplinking: ', required: true },
             { key: 'links', question: 'Please provide a comma-separated list of deeplink URLs: ', required: true }
