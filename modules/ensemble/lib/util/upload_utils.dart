@@ -60,10 +60,13 @@ class UploadUtils {
           lookupMimeType(file.path ?? '', headerBytes: file.bytes) ??
               'application/octet-stream';
       if (file.bytes != null) {
+        final mediaType = MediaType.parse(mimeType);
+        final filename = file.name?.isNotEmpty ?? false
+            ? file.name
+            : generateFileName(mediaType);
         multipartFile = http.MultipartFile.fromBytes(
             file.fieldName ?? fieldName, file.bytes!,
-            filename: file.name?.isNotEmpty ?? false ? file.name : 'data',
-            contentType: MediaType.parse(mimeType));
+            filename: filename, contentType: mediaType);
       } else if (file.path != null) {
         multipartFile = await http.MultipartFile.fromPath(
             file.fieldName ?? fieldName, file.path!,
@@ -93,6 +96,11 @@ class UploadUtils {
       onError?.call(error);
     }
     return null;
+  }
+
+  static generateFileName(MediaType mediaType) {
+    final timestamp = DateTime.now().millisecondsSinceEpoch;
+    return '${mediaType.type}_$timestamp.${mediaType.subtype}';
   }
 }
 
