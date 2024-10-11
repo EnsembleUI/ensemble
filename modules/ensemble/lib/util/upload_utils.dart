@@ -60,10 +60,13 @@ class UploadUtils {
           lookupMimeType(file.path ?? '', headerBytes: file.bytes) ??
               'application/octet-stream';
       if (file.bytes != null) {
-        multipartFile = http.MultipartFile.fromBytes(file.fieldName ?? fieldName, file.bytes!,
-            filename: file.name, contentType: MediaType.parse(mimeType));
+        multipartFile = http.MultipartFile.fromBytes(
+            file.fieldName ?? fieldName, file.bytes!,
+            filename: file.name?.isNotEmpty ?? false ? file.name : 'data',
+            contentType: MediaType.parse(mimeType));
       } else if (file.path != null) {
-        multipartFile = await http.MultipartFile.fromPath(file.fieldName ?? fieldName, file.path!,
+        multipartFile = await http.MultipartFile.fromPath(
+            file.fieldName ?? fieldName, file.path!,
             filename: file.name, contentType: MediaType.parse(mimeType));
       } else {
         debugPrint('Failed to add ${file.name} ${file.ext} ${file.path}');
@@ -83,7 +86,8 @@ class UploadUtils {
       if (res.statusCode >= 200 && res.statusCode <= 300) {
         return HttpResponse(res, APIState.success);
       } else {
-        throw Exception('uploadFile: Failed to upload files \nserver response:\n${res.body}');
+        throw Exception(
+            'uploadFile: Failed to upload files \nserver response:\n${res.body}');
       }
     } catch (error) {
       onError?.call(error);
