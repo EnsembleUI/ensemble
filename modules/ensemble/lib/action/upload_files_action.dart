@@ -198,9 +198,22 @@ List<File>? _getRawFiles(dynamic rawFiles, DataContext dataContext) {
       });
       return processedFile;
     }
+
+    if (files.values.length > 0 && files.values.first is List) {
+      List<File> processedFile = [];
+      files.forEach((key, value) {
+        (value as List).forEach((element) {
+          if (element is Map && element.containsKey('path')) {
+            element['fieldName'] = key;
+            processedFile.add(File.fromJson(element));
+          }
+        });
+      });
+      return processedFile;
+    }
   }
 
-  if (files is String) {
+  if (files is String && files.isNotEmpty) {
     final rawFiles = File.fromString(files);
     return [rawFiles];
   }
