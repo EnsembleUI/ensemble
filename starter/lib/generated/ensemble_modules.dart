@@ -47,6 +47,12 @@ import 'package:get_it/get_it.dart';
 // Uncomment to enable deeplink services
 // import 'package:ensemble_deeplink/deferred_link_manager.dart';
 
+// Uncomment to enable push notifications services
+// import 'package:ensemble/util/utils.dart';
+// import 'package:ensemble/framework/storage_manager.dart';
+// import 'package:flutter/foundation.dart';
+// import 'dart:io';
+
 /// TODO: This class should be generated to enable selected Services
 class EnsembleModules {
   static final EnsembleModules _instance = EnsembleModules._internal();

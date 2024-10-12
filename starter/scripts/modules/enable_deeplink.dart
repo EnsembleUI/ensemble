@@ -97,11 +97,14 @@ ensemble_deeplink:
 
     // Modify AndroidManifest.xml for deep linking
     if (platforms.contains('android')) {
+      final branchMetaData = [
+        '<meta-data android:name="io.branch.sdk.BranchKey" android:value="$branchIOLiveKey" />',
+        '<meta-data android:name="io.branch.sdk.BranchKey.test" android:value="$branchIOTestKey" />',
+        '<meta-data android:name="io.branch.sdk.TestMode" android:value="${useTestKey.toString().capitalize()}" />',
+      ];
+      addMetaDataInAndroidManifest(androidManifestFilePath, branchMetaData);
       updateAndroidManifestWithDeeplink(
         androidManifestFilePath,
-        branchIOLiveKey: branchIOLiveKey,
-        branchIOTestKey: branchIOTestKey,
-        useTestKey: useTestKey,
         scheme: scheme ?? '',
         links: links,
       );

@@ -5,9 +5,6 @@ import '../utils.dart';
 // Function to update AndroidManifest.xml with deep link and Branch configuration.
 void updateAndroidManifestWithDeeplink(
   String manifestFilePath, {
-  required String? branchIOLiveKey,
-  required String? branchIOTestKey,
-  required bool useTestKey,
   required String scheme,
   required List<String> links,
 }) {
@@ -51,21 +48,6 @@ void updateAndroidManifestWithDeeplink(
       '$branchURIScheme\n$branchAppLinks\n        </activity>',
     );
   }
-
-  // Add the Branch meta-data at the end of the <application> block
-  final branchMetaData = '''
-    <!-- Branch init -->
-        <meta-data android:name="io.branch.sdk.BranchKey" android:value="$branchIOLiveKey" />
-        <meta-data android:name="io.branch.sdk.BranchKey.test" android:value="$branchIOTestKey" />
-        <meta-data android:name="io.branch.sdk.TestMode" android:value="${useTestKey.toString().capitalize()}" />''';
-
-  if (!manifestContent.contains('io.branch.sdk.BranchKey')) {
-    manifestContent = manifestContent.replaceFirst(
-      '</application>',
-      '$branchMetaData\n    </application>',
-    );
-  }
-
   // Write the modified content back to the file
   writeFileContent(manifestFilePath, manifestContent);
 }

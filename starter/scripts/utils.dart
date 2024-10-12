@@ -368,5 +368,127 @@ $deeplinkEntries
       print(
           'No <key>com.apple.developer.associated-domains</key> block found in Runner.entitlements.');
     }
+  } else if (module == 'notifications') {
+    if (entitlementsContent.contains('<string>development</string>')) {
+      // replace the existing value with 'production'
+      entitlementsContent = entitlementsContent.replaceFirst(
+          '<string>development</string>', '<string>production</string>');
+      entitlementsFile.writeAsStringSync(entitlementsContent);
+    } else {
+      print(
+          'No <key>aps-environment</key> block found in Runner.entitlements.');
+    }
   }
+}
+
+void addMetaDataInAndroidManifest(
+    String manifestFilePath, List<String> metaDataContents) {
+  File manifestFile = File(manifestFilePath);
+  if (!manifestFile.existsSync()) {
+    throw Exception('Error: File does not exist at $manifestFilePath');
+  }
+  String manifestContent = manifestFile.readAsStringSync();
+
+  final applicationEndIndex = manifestContent.lastIndexOf('</application>');
+  if (applicationEndIndex == -1) {
+    throw Exception(
+        'Error: Could not find </application> tag in AndroidManifest.xml');
+  }
+
+  // Iterate over each meta-data item in the array and add if it's missing
+  for (String metaDataContent in metaDataContents) {
+    if (!manifestContent.contains(metaDataContent)) {
+      manifestContent = manifestContent.replaceRange(applicationEndIndex,
+          applicationEndIndex, '    $metaDataContent\n    ');
+    }
+  }
+  manifestFile.writeAsStringSync(manifestContent);
+}
+
+void updateFirebaseInitialization(
+  List<String> platforms, {
+  String? androidApiKey,
+  String? androidAppId,
+  String? androidMessagingSenderId,
+  String? androidProjectId,
+  String? iosApiKey,
+  String? iosAppId,
+  String? iosMessagingSenderId,
+  String? iosProjectId,
+  String? webApiKey,
+  String? webAppId,
+  String? webAuthDomain,
+  String? webMessagingSenderId,
+  String? webProjectId,
+  String? webStorageBucket,
+  String? webMeasurementId,
+}) {
+  final buffer = StringBuffer();
+  buffer.writeln('FirebaseOptions? androidPayload;');
+  buffer.writeln('        FirebaseOptions? iosPayload;');
+  buffer.writeln('        FirebaseOptions? webPayload;');
+
+  if (platforms.contains('android')) {
+    buffer.writeln('        androidPayload = const FirebaseOptions(');
+    buffer.writeln('          apiKey: "$androidApiKey",');
+    buffer.writeln('          appId: "$androidAppId",');
+    buffer.writeln('          messagingSenderId: "$androidMessagingSenderId",');
+    buffer.writeln('          projectId: "$androidProjectId",');
+    buffer.writeln('        );');
+  }
+
+  if (platforms.contains('ios')) {
+    buffer.writeln('        iosPayload = const FirebaseOptions(');
+    buffer.writeln('          apiKey: "$iosApiKey",');
+    buffer.writeln('          appId: "$iosAppId",');
+    buffer.writeln('          messagingSenderId: "$iosMessagingSenderId",');
+    buffer.writeln('          projectId: "$iosProjectId",');
+    buffer.writeln('        );');
+  }
+
+  if (platforms.contains('web')) {
+    buffer.writeln('        webPayload = const FirebaseOptions(');
+    buffer.writeln('          apiKey: "$webApiKey",');
+    buffer.writeln('          appId: "$webAppId",');
+    buffer.writeln('          authDomain: "$webAuthDomain",');
+    buffer.writeln('          messagingSenderId: "$webMessagingSenderId",');
+    buffer.writeln('          projectId: "$webProjectId",');
+    buffer.writeln('          storageBucket: "$webStorageBucket",');
+    buffer.writeln('          measurementId: "$webMeasurementId",');
+    buffer.writeln('      );');
+  }
+
+  buffer.writeln('        FirebaseOptions? selectedPayload;');
+  buffer.writeln('        if (Platform.isAndroid) {');
+  buffer.writeln('          selectedPayload = androidPayload;');
+  buffer.writeln('        } else if (Platform.isIOS) {');
+  buffer.writeln('          selectedPayload = iosPayload;');
+  buffer.writeln('        }');
+  buffer.writeln('        if (kIsWeb) {');
+  buffer.writeln('          selectedPayload = webPayload;');
+  buffer.writeln('        }');
+  buffer.writeln(
+      '        await Firebase.initializeApp(options: selectedPayload);');
+
+  String newCode = buffer.toString().trim();
+
+  // Now replace the Firebase initialization code in the file
+  final File file = File(ensembleModulesFilePath);
+  String content = file.readAsStringSync();
+
+  // Regular expression to match the current Firebase initialization block
+  final regex = RegExp(
+    r'await\s*Firebase\.initializeApp\(\);',
+    dotAll: true,
+  );
+
+  // Replace the existing Firebase initialization block with the new code
+  if (regex.hasMatch(content)) {
+    content = content.replaceFirst(regex, newCode);
+  } else {
+    throw Exception(
+        'Error: Unable to find the existing Firebase initialization block in ensemble_modules.dart.');
+  }
+
+  file.writeAsStringSync(content);
 }
