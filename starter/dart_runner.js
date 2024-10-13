@@ -300,7 +300,19 @@ function runScript(scriptObj, argsArray, callback = () => { }) {
             console.error(`Stderr from ${scriptObj.name}: ${stderr}`);
         }
         console.log(stdout);
-        callback();
+
+        // Automatically format the Dart files after the script runs
+        exec('dart format .', (formatError, formatStdout, formatStderr) => {
+            if (formatError) {
+                console.error(`Error running dart format: ${formatError.message}`);
+                return callback(formatError);
+            }
+            if (formatStderr) {
+                console.error(`Stderr from dart format: ${formatStderr}`);
+            }
+            console.log(`Formatting result: ${formatStdout}`);
+            callback();
+        });
     });
 }
 
