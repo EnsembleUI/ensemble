@@ -70,7 +70,23 @@ const modules = [
     {
         name: 'firebaseAnalytics',
         path: 'scripts/modules/enable_firebase_analytics.dart',
-        parameters: []
+        parameters: [
+            { key: 'android_api_key', question: 'Please provide your Firebase Android API key: ', required: (args) => args.platform.includes('android') },
+            { key: 'android_app_id', question: 'Please provide your Firebase Android App ID: ', required: (args) => args.platform.includes('android') },
+            { key: 'android_messaging_sender_id', question: 'Please provide your Firebase Android Messaging Sender ID: ', required: (args) => args.platform.includes('android') },
+            { key: 'android_project_id', question: 'Please provide your Firebase Android Project ID: ', required: (args) => args.platform.includes('android') },
+            { key: 'ios_api_key', question: 'Please provide your Firebase iOS API key: ', required: (args) => args.platform.includes('ios') },
+            { key: 'ios_app_id', question: 'Please provide your Firebase iOS App ID: ', required: (args) => args.platform.includes('ios') },
+            { key: 'ios_messaging_sender_id', question: 'Please provide your Firebase iOS Messaging Sender ID: ', required: (args) => args.platform.includes('ios') },
+            { key: 'ios_project_id', question: 'Please provide your Firebase iOS Project ID: ', required: (args) => args.platform.includes('ios') },
+            { key: 'web_api_key', question: 'Please provide your Firebase Web API key: ', required: (args) => args.platform.includes('web') },
+            { key: 'web_app_id', question: 'Please provide your Firebase Web App ID: ', required: (args) => args.platform.includes('web') },
+            { key: 'web_auth_domain', question: 'Please provide your Firebase Web Auth Domain: ', required: (args) => args.platform.includes('web') },
+            { key: 'web_messaging_sender_id', question: 'Please provide your Firebase Web Messaging Sender ID: ', required: (args) => args.platform.includes('web') },
+            { key: 'web_project_id', question: 'Please provide your Firebase Web Project ID: ', required: (args) => args.platform.includes('web') },
+            { key: 'web_storage_bucket', question: 'Please provide your Firebase Web Storage Bucket: ', required: (args) => args.platform.includes('web') },
+            { key: 'web_measurement_id', question: 'Please provide your Firebase Web Measurement ID: ', required: (args) => args.platform.includes('web') }
+        ]
     },
     {
         name: 'notifications',

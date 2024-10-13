@@ -8,7 +8,9 @@ void main(List<String> arguments) {
   final statements = {
     'moduleStatements': [
       "import 'package:ensemble_firebase_analytics/firebase_analytics.dart';",
-      'GetIt.I.registerSingleton<LogProvider>(FirebaseAnalyticsProvider());',
+      "GetIt.I.registerSingleton<LogProvider>(FirebaseAnalyticsProvider());",
+      "import 'dart:io';",
+      "import 'package:flutter/foundation.dart';",
     ],
     'useStatements': [
       'static const useFirebaseAnalytics = true;',
@@ -35,6 +37,9 @@ ensemble_firebase_analytics:
       statements['moduleStatements'],
       statements['useStatements'],
     );
+
+    // Generate Firebase configuration based on platform
+    updateFirebaseInitialization(platforms, arguments);
 
     // Update the pubspec.yaml file
     updatePubspec(pubspecFilePath, pubspecDependencies);

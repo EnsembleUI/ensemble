@@ -5,43 +5,6 @@ import '../utils.dart';
 void main(List<String> arguments) {
   List<String> platforms = getPlatforms(arguments);
 
-  // Get Firebase configuration values
-  String? androidApiKey = getArgumentValue(arguments, 'android_api_key',
-      required: platforms.contains('android'));
-  String? androidAppId = getArgumentValue(arguments, 'android_app_id',
-      required: platforms.contains('android'));
-  String? androidMessagingSenderId = getArgumentValue(
-      arguments, 'android_messaging_sender_id',
-      required: platforms.contains('android'));
-  String? androidProjectId = getArgumentValue(arguments, 'android_project_id',
-      required: platforms.contains('android'));
-
-  String? iosApiKey = getArgumentValue(arguments, 'ios_api_key',
-      required: platforms.contains('ios'));
-  String? iosAppId = getArgumentValue(arguments, 'ios_app_id',
-      required: platforms.contains('ios'));
-  String? iosMessagingSenderId = getArgumentValue(
-      arguments, 'ios_messaging_sender_id',
-      required: platforms.contains('ios'));
-  String? iosProjectId = getArgumentValue(arguments, 'ios_project_id',
-      required: platforms.contains('ios'));
-
-  String? webApiKey = getArgumentValue(arguments, 'web_api_key',
-      required: platforms.contains('web'));
-  String? webAppId = getArgumentValue(arguments, 'web_app_id',
-      required: platforms.contains('web'));
-  String? webAuthDomain = getArgumentValue(arguments, 'web_auth_domain',
-      required: platforms.contains('web'));
-  String? webMessagingSenderId = getArgumentValue(
-      arguments, 'web_messaging_sender_id',
-      required: platforms.contains('web'));
-  String? webProjectId = getArgumentValue(arguments, 'web_project_id',
-      required: platforms.contains('web'));
-  String? webStorageBucket = getArgumentValue(arguments, 'web_storage_bucket',
-      required: platforms.contains('web'));
-  String? webMeasurementId = getArgumentValue(arguments, 'web_measurement_id',
-      required: platforms.contains('web'));
-
   final statements = {
     'moduleStatements': [
       "import 'package:ensemble/util/utils.dart';",
@@ -70,6 +33,9 @@ void main(List<String> arguments) {
       statements['useStatements']!,
     );
 
+    // Generate Firebase configuration based on platform
+    updateFirebaseInitialization(platforms, arguments);
+
     // Configure Android-specific settings
     if (platforms.contains('android')) {
       updateAndroidPermissions(androidManifestFilePath,
@@ -83,26 +49,6 @@ void main(List<String> arguments) {
         module: 'notifications',
       );
     }
-
-    // Generate Firebase configuration based on platform
-    updateFirebaseInitialization(
-      platforms,
-      androidApiKey: androidApiKey,
-      androidAppId: androidAppId,
-      androidMessagingSenderId: androidMessagingSenderId,
-      androidProjectId: androidProjectId,
-      iosApiKey: iosApiKey,
-      iosAppId: iosAppId,
-      iosMessagingSenderId: iosMessagingSenderId,
-      iosProjectId: iosProjectId,
-      webApiKey: webApiKey,
-      webAppId: webAppId,
-      webAuthDomain: webAuthDomain,
-      webMessagingSenderId: webMessagingSenderId,
-      webProjectId: webProjectId,
-      webStorageBucket: webStorageBucket,
-      webMeasurementId: webMeasurementId,
-    );
 
     print(
         'Notifications module enabled successfully for ${platforms.join(', ')}! 🎉 Please make sure to add google-services.json for Android and GoogleService-Info.plist for iOS at the root of the Android and iOS directories respectively to enable Firebase messaging.');
