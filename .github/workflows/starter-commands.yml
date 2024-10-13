@@ -29,7 +29,7 @@ jobs:
         run: npm install
 
       - name: Run useCamera command
-        run: npm run useCamera camera_description="This app requires camera access"
+        run: npm run useCamera platform="ios,android" camera_description="Hello world"
         continue-on-error: false
 
       - name: Run useFiles command
@@ -37,5 +37,5 @@ jobs:
         continue-on-error: false
 
       - name: Run useContacts command
-        run: npm run useContacts contacts_description="Hello world"
+        run: npm run useContacts contacts_description="Hello world" platform="ios,android"
         continue-on-error: false

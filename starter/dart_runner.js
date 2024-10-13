@@ -188,7 +188,7 @@ async function checkAndAskForMissingArgs(modules, argsArray) {
         if (!providedArgs.includes(param.key)) {
             // If in CI, throw error if required params are missing
             if (isCI) {
-                throw new Error(`Missing required parameter "${param.key}" for CI environment.`);
+                throw new Error(`Missing required parameter "${param.key}".`);
             }
 
             prompts.push({
