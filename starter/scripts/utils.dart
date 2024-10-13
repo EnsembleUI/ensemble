@@ -61,22 +61,6 @@ void writeFileContent(String filePath, String content) {
   file.writeAsStringSync(content);
 }
 
-// Add permission to AndroidManifest.xml
-void addPermissionToAndroidManifest(
-    String manifestPath, String comment, String permission) {
-  String manifestContent = readFileContent(manifestPath);
-
-  if (!manifestContent.contains(permission)) {
-    manifestContent = manifestContent.replaceFirst(
-      comment,
-      '$comment\n    $permission',
-    );
-    writeFileContent(manifestPath, manifestContent);
-  } else {
-    throw Exception('Permission already exists in AndroidManifest.xml');
-  }
-}
-
 // Add permission descriptions to Info.plist
 void addPermissionDescriptionToInfoPlist(
     String plistPath, String key, dynamic description,
@@ -216,20 +200,41 @@ void updatePubspec(
 }
 
 // Update AndroidManifest.xml with permissions and throw error if not updated
-void updateAndroidPermissions(
-    String manifestFilePath, List<String> permissions) {
+void updateAndroidPermissions(String manifestFilePath,
+    {List<String>? permissions, List<String>? metaData}) {
   String manifestContent = readFileContent(manifestFilePath);
 
-  for (var permission in permissions) {
-    // Check if the permission already exists in the manifest
-    if (!manifestContent.contains(permission)) {
-      // Add the permission if it doesn't exist
-      addPermissionToAndroidManifest(
-          manifestFilePath,
-          '<!-- UPDATE for your Starter. These are default permissions -->',
-          permission);
+  if (permissions != null && permissions.isNotEmpty) {
+    String comment =
+        '<!-- UPDATE for your Starter. These are default permissions -->';
+
+    for (var permission in permissions) {
+      if (!manifestContent.contains(permission)) {
+        manifestContent = manifestContent.replaceFirst(
+          comment,
+          '$comment\n    $permission',
+        );
+      }
     }
   }
+
+  // Handle meta-data if provided
+  if (metaData != null && metaData.isNotEmpty) {
+    final applicationEndIndex = manifestContent.lastIndexOf('</application>');
+    if (applicationEndIndex == -1) {
+      throw Exception(
+          'Error: Could not find </application> tag in AndroidManifest.xml');
+    }
+
+    for (String metaDataContent in metaData) {
+      if (!manifestContent.contains(metaDataContent)) {
+        manifestContent = manifestContent.replaceRange(applicationEndIndex,
+            applicationEndIndex, '    $metaDataContent\n    ');
+      }
+    }
+  }
+
+  writeFileContent(manifestFilePath, manifestContent);
 }
 
 // Update Info.plist for iOS with permissions and descriptions
@@ -379,30 +384,6 @@ $deeplinkEntries
           'No <key>aps-environment</key> block found in Runner.entitlements.');
     }
   }
-}
-
-void addMetaDataInAndroidManifest(
-    String manifestFilePath, List<String> metaDataContents) {
-  File manifestFile = File(manifestFilePath);
-  if (!manifestFile.existsSync()) {
-    throw Exception('Error: File does not exist at $manifestFilePath');
-  }
-  String manifestContent = manifestFile.readAsStringSync();
-
-  final applicationEndIndex = manifestContent.lastIndexOf('</application>');
-  if (applicationEndIndex == -1) {
-    throw Exception(
-        'Error: Could not find </application> tag in AndroidManifest.xml');
-  }
-
-  // Iterate over each meta-data item in the array and add if it's missing
-  for (String metaDataContent in metaDataContents) {
-    if (!manifestContent.contains(metaDataContent)) {
-      manifestContent = manifestContent.replaceRange(applicationEndIndex,
-          applicationEndIndex, '    $metaDataContent\n    ');
-    }
-  }
-  manifestFile.writeAsStringSync(manifestContent);
 }
 
 void updateFirebaseInitialization(

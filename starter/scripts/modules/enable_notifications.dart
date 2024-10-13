@@ -72,9 +72,8 @@ void main(List<String> arguments) {
 
     // Configure Android-specific settings
     if (platforms.contains('android')) {
-      updateAndroidPermissions(androidManifestFilePath, androidPermissions);
-      addMetaDataInAndroidManifest(
-          androidManifestFilePath, notificationsMetaData);
+      updateAndroidPermissions(androidManifestFilePath,
+          permissions: androidPermissions, metaData: notificationsMetaData);
     }
 
     // Configure iOS-specific settings

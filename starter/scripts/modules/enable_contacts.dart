@@ -50,7 +50,8 @@ ensemble_contacts:
 
     // Add the contacts permissions to AndroidManifest.xml
     if (platforms.contains('android')) {
-      updateAndroidPermissions(androidManifestFilePath, androidPermissions);
+      updateAndroidPermissions(androidManifestFilePath,
+          permissions: androidPermissions);
     }
 
     // Add the contacts usage description to the iOS Info.plist file

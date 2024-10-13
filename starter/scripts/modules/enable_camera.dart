@@ -35,10 +35,6 @@ ensemble_camera:
     }
   ];
 
-  final androidPermissions = [
-    '<uses-permission android:name="android.permission.CAMERA" />',
-  ];
-
   final iOSPermissions = [
     {
       'key': 'camera_description',
@@ -59,7 +55,9 @@ ensemble_camera:
 
     // Add the camera permissions to AndroidManifest.xml
     if (platforms.contains('android')) {
-      updateAndroidPermissions(androidManifestFilePath, androidPermissions);
+      updateAndroidPermissions(androidManifestFilePath, permissions: [
+        '<uses-permission android:name="android.permission.CAMERA" />'
+      ]);
     }
 
     // Add the camera usage description to the iOS Info.plist file

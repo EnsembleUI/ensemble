@@ -68,7 +68,8 @@ ensemble_location:
 
     // Add the location permissions to AndroidManifest.xml
     if (platforms.contains('android')) {
-      updateAndroidPermissions(androidManifestFilePath, androidPermissions);
+      updateAndroidPermissions(androidManifestFilePath,
+          permissions: androidPermissions);
     }
 
     // Add the location usage description to the iOS Info.plist file

@@ -72,7 +72,8 @@ ensemble_file_manager:
 
     // Add the storage permissions to AndroidManifest.xml
     if (platforms.contains('android')) {
-      updateAndroidPermissions(androidManifestFilePath, androidPermissions);
+      updateAndroidPermissions(androidManifestFilePath,
+          permissions: androidPermissions);
     }
 
     // Add the required keys and descriptions to the Info.plist file for iOS

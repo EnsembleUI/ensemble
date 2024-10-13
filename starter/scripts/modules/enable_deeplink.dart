@@ -102,7 +102,8 @@ ensemble_deeplink:
         '<meta-data android:name="io.branch.sdk.BranchKey.test" android:value="$branchIOTestKey" />',
         '<meta-data android:name="io.branch.sdk.TestMode" android:value="${useTestKey.toString().capitalize()}" />',
       ];
-      addMetaDataInAndroidManifest(androidManifestFilePath, branchMetaData);
+      updateAndroidPermissions(androidManifestFilePath,
+          metaData: branchMetaData);
       updateAndroidManifestWithDeeplink(
         androidManifestFilePath,
         scheme: scheme ?? '',
