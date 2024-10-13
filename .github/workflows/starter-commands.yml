@@ -8,6 +8,10 @@ on:
 jobs:
   test-modules:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: starter
 
     steps:
       - name: Checkout repository
@@ -23,16 +27,15 @@ jobs:
 
       - name: Install dependencies
         run: npm install
-        working-directory: starter
 
       - name: Run useCamera command
         run: npm run useCamera camera_description="This app requires camera access"
-        working-directory: starter
+        continue-on-error: false
 
       - name: Run useFiles command
         run: npm run useFiles platform="ios,android" photo_library_description="Hello" music_description="world"
-        working-directory: starter
+        continue-on-error: false
 
       - name: Run useContacts command
         run: npm run useContacts contacts_description="Hello world"
-        working-directory: starter
+        continue-on-error: false

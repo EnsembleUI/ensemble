@@ -180,8 +180,17 @@ async function checkAndAskForMissingArgs(modules, argsArray) {
     const askedParameters = new Set();
     let prompts = [];
 
+    // Detect CI environment
+    const isCI = process.env.CI === 'true';
+
+    // Ask for missing common parameters
     for (const param of commonParameters) {
         if (!providedArgs.includes(param.key)) {
+            // If in CI, throw error if required params are missing
+            if (isCI) {
+                throw new Error(`Missing required parameter "${param.key}" for CI environment.`);
+            }
+
             prompts.push({
                 type: param.type || 'input',
                 name: param.key,
@@ -192,7 +201,8 @@ async function checkAndAskForMissingArgs(modules, argsArray) {
         }
     }
 
-    if (prompts.length > 0) {
+    // Prompt for missing common parameters
+    if (prompts.length > 0 && !isCI) {
         const commonAnswers = await inquirer.prompt(prompts);
         Object.entries(commonAnswers).forEach(([key, value]) => {
             if (Array.isArray(value)) {
@@ -203,46 +213,57 @@ async function checkAndAskForMissingArgs(modules, argsArray) {
         });
     }
 
+    // Reset prompts for module-specific parameters
     prompts = [];
     const allParameters = modules.flatMap(module => module.parameters);
 
+    // Loop through each module parameter and check if it's required and missing
     for (const param of allParameters) {
         if (askedParameters.has(param.key) || providedArgs.includes(param.key)) continue;
 
         const isRequired = typeof param.required === 'function' ? param.required(args) : param.required;
 
         if (isRequired) {
+            if (isCI) {
+                throw new Error(`Missing required parameter "${param.key}" for CI environment.`);
+            }
+
             const promptType = param.type || 'input';
-            const prompt = {
+            prompts.push({
                 type: promptType,
                 name: param.key,
                 message: param.question,
                 choices: param.choices || [],
-            };
-            const answer = await inquirer.prompt([prompt]);
-
-            const transformedAnswer = Object.entries(answer).reduce((acc, [key, value]) => {
-                if (value === 'yes') value = true;
-                if (value === 'no') value = false;
-                acc[key] = value;
-                return acc;
-            }, {});
-
-            Object.entries(transformedAnswer).forEach(([key, value]) => {
-                argsArray.push(`${key}=${value}`);
-                args[key] = value;
             });
-            providedArgs.push(param.key);
             askedParameters.add(param.key);
         }
     }
 
-    if (prompts.length > 0) {
+    // If there are required parameters that haven't been provided, ask for them
+    if (prompts.length > 0 && !isCI) {
         const moduleAnswers = await inquirer.prompt(prompts);
-        Object.entries(moduleAnswers).forEach(([key, value]) => {
+
+        // Transform 'yes'/'no' to true/false
+        const transformedAnswers = Object.entries(moduleAnswers).reduce((acc, [key, value]) => {
+            if (value === 'yes') value = true;
+            if (value === 'no') value = false;
+            acc[key] = value;
+            return acc;
+        }, {});
+
+        Object.entries(transformedAnswers).forEach(([key, value]) => {
             argsArray.push(`${key}=${value}`);
             args[key] = value;
         });
+    }
+
+    // Throw an error if required arguments are still missing
+    for (const param of allParameters) {
+        const isRequired = typeof param.required === 'function' ? param.required(args) : param.required;
+
+        if (isRequired && !providedArgs.includes(param.key) && !args[param.key]) {
+            throw new Error(`Missing required parameter "${param.key}".`);
+        }
     }
 
     return argsArray;
@@ -307,40 +328,44 @@ async function selectModules() {
 
 // Main function
 async function main() {
-    const [firstArg, ...restArgs] = process.argv.slice(2);
+    try {
+        const [firstArg, ...restArgs] = process.argv.slice(2);
 
-    if (firstArg === 'enable') {
-        const { scripts: scriptsToRun, argsArray } = parseArguments(restArgs);
-        let selectedModules;
+        if (firstArg === 'enable') {
+            const { scripts: scriptsToRun, argsArray } = parseArguments(restArgs);
+            let selectedModules;
 
-        if (scriptsToRun.length === 0) {
-            selectedModules = await selectModules();
+            if (scriptsToRun.length === 0) {
+                selectedModules = await selectModules();
+            } else {
+                selectedModules = scriptsToRun.map(findScript);
+            }
+
+            // Ask for missing arguments for all selected modules
+            const updatedArgsArray = await checkAndAskForMissingArgs(selectedModules, argsArray);
+
+            // Execute scripts sequentially
+            await runScriptsSequentially(selectedModules, updatedArgsArray);
         } else {
-            selectedModules = scriptsToRun.map(findScript);
+            const scriptObj = findScript(firstArg);
+
+            if (scriptObj) {
+                const { argsArray } = parseArguments(restArgs);
+                const updatedArgsArray = await checkAndAskForMissingArgs([scriptObj], argsArray);
+                runScript(scriptObj, updatedArgsArray, (err) => {
+                    if (err) {
+                        process.exit(1);
+                    } else {
+                        process.exit(0);
+                    }
+                });
+            } else {
+                throw new Error(`Command "${firstArg}" not found.`);
+            }
         }
-
-        // Ask for missing arguments for all selected modules
-        const updatedArgsArray = await checkAndAskForMissingArgs(selectedModules, argsArray);
-
-        // Execute scripts sequentially
-        await runScriptsSequentially(selectedModules, updatedArgsArray);
-    } else {
-        const scriptObj = findScript(firstArg);
-
-        if (scriptObj) {
-            const { argsArray } = parseArguments(restArgs);
-            const updatedArgsArray = await checkAndAskForMissingArgs([scriptObj], argsArray);
-            runScript(scriptObj, updatedArgsArray, (err) => {
-                if (err) {
-                    process.exit(1);
-                } else {
-                    process.exit(0);
-                }
-            });
-        } else {
-            console.error(`Error: Command "${firstArg}" not found.`);
-            process.exit(1);
-        }
+    } catch (error) {
+        console.error(`Error: ${error.message}`);
+        process.exit(1);
     }
 }
 
