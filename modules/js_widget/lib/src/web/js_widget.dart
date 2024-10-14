@@ -100,7 +100,7 @@ class JsWidgetState extends State<JsWidget> {
   void initState() {
     if (widget.listener != null) {
       addListener(widget.id, widget.listener!);
-      init(globalListener);
+      _setupFlutterWebCommunication();
     }
     if (widget.preCreateScript != null) {
       eval(widget.preCreateScript!());
@@ -113,6 +113,14 @@ class JsWidgetState extends State<JsWidget> {
       return element;
     });
     super.initState();
+  }
+  // Setup Flutter web communication for JS interactions
+  void _setupFlutterWebCommunication() {
+    html.window.addEventListener('callFlutter', (event) {
+      final customEvent = event as html.CustomEvent;
+      final msg = customEvent.detail;
+      globalListener(widget.id, msg);
+    });
   }
 
   @override

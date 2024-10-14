@@ -1,14 +1,15 @@
-import 'dart:io';
+import 'dart:convert';
 import 'dart:math';
-
+import 'package:ensemble/framework/action.dart';
+import 'package:ensemble/framework/event.dart';
+import 'package:ensemble/screen_controller.dart';
+import 'package:ensemble_ts_interpreter/parser/newjs_interpreter.dart';
+import 'package:flutter/material.dart';
+import 'package:js_widget/js_widget.dart';
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
-import 'package:ensemble_ts_interpreter/parser/newjs_interpreter.dart';
-import 'package:flutter/material.dart';
-import 'package:js_widget/js_widget.dart';
-import 'dart:convert';
 
 class ChartJsController extends WidgetController {
   ChartJsController() {
@@ -21,6 +22,7 @@ class ChartJsController extends WidgetController {
   String get chartId => id!;
   dynamic config = '';
   Function? evalScript;
+  EnsembleAction? onTap;
 }
 
 class ChartJs extends StatefulWidget
@@ -125,7 +127,9 @@ class ChartJs extends StatefulWidget
         } else {
           _controller.config = value;
         }
-      }
+      },
+      'onTap': (funcDefinition) => _controller.onTap =
+          EnsembleAction.from(funcDefinition, initiator: this), 
     };
   }
 }
@@ -161,15 +165,37 @@ class ChartJsState extends EWidgetState<ChartJs> {
       id: widget.controller.id!,
       createHtmlTag: () =>
           '<div id="${widget.controller.chartDiv}"><canvas id="${widget.controller.chartId}"></canvas></div>',
-      scriptToInstantiate: (String c) {
-        return 'if (typeof ${widget.controller.chartVar} !== "undefined") ${widget.controller.chartVar}.destroy();${widget.controller.chartVar} = new Chart(document.getElementById("${widget.controller.chartId}"), $c);${widget.controller.chartVar}.update();';
+      scriptToInstantiate: (String config) {
+        return '''
+          if (typeof ${widget.controller.chartVar} !== "undefined") {
+            ${widget.controller.chartVar}.destroy();
+          }
+          ${widget.controller.chartVar} = new Chart(document.getElementById("${widget.controller.chartId}"), $config);
+          
+          // Add click event listener to the chart
+          document.getElementById("${widget.controller.chartId}").onclick = function(event) {
+            // Notify Flutter about the click event (no need to send data)
+            if (window.dispatchEvent) {
+              var eventDetail = new CustomEvent('callFlutter', { detail: 'onTap' });
+              window.dispatchEvent(eventDetail);
+            } else {
+              console.log("Flutter handler not available");
+            }
+          };
+          ${widget.controller.chartVar}.update();
+        ''';
       },
-      size: Size(widget.controller.width.toDouble(),
-          widget.controller.height.toDouble()),
+      size: Size(widget.controller.width.toDouble(), widget.controller.height.toDouble()),
       data: widget.controller.config,
       scripts: const [
         "https://cdn.jsdelivr.net/npm/chart.js",
       ],
+      listener: (msg) {
+        if (msg == 'onTap' && widget.controller.onTap != null) {
+          ScreenController().executeAction(context, widget.controller.onTap!,
+              event: EnsembleEvent(widget));
+        }
+      },
     );
     return jsWidget!;
   }

@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 // Import for Android features.
@@ -138,7 +140,19 @@ class JsWidgetState extends State<JsWidget> {
         fit: StackFit.expand,
         children: [
           !_isLoaded ? widget.loader : const SizedBox.shrink(),
-          WebViewWidget(controller: controller),
+          WebViewWidget(
+            controller: controller,
+            gestureRecognizers: <Factory<OneSequenceGestureRecognizer>>{
+              Factory<OneSequenceGestureRecognizer>(
+                () => TapGestureRecognizer()
+                  ..onTapDown = (TapDownDetails details) {
+                    if (widget.listener != null) {
+                      widget.listener!('onTap');  // Notify on tap
+                    }
+                  },
+              ),
+            },
+          ),
         ],
       ),
     );
