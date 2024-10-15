@@ -150,7 +150,8 @@ const selectModules = async () => {
 const main = async () => {
     try {
         const [firstArg, ...restArgs] = process.argv.slice(2);
-        const bypass = restArgs.includes('bypass-questions');
+        const bypassArg = restArgs.find(arg => arg.startsWith('bypass-questions='));
+        const bypass = bypassArg ? bypassArg.split('=')[1] === 'true' : false;
 
         if (firstArg === 'enable') {
             const { scripts: scriptsToRun, argsArray } = parseArguments(restArgs);
