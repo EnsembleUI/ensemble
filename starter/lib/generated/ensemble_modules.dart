@@ -47,9 +47,7 @@ import 'package:get_it/get_it.dart';
 // Uncomment to enable deeplink services
 // import 'package:ensemble_deeplink/deferred_link_manager.dart';
 
-// Uncomment to enable push notifications services
-// import 'package:ensemble/util/utils.dart';
-// import 'package:ensemble/framework/storage_manager.dart';
+// Uncomment to enable push notifications services or Firebase Analytics
 // import 'package:flutter/foundation.dart';
 // import 'dart:io';
 

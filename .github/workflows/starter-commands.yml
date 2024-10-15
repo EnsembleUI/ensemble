@@ -29,7 +29,7 @@ jobs:
         run: npm install
 
       - name: Run useCamera command
-        run: npm run useCamera platform="ios,android" camera_description="Hello world"
+        run: npm run useCamera platform="ios,android" camera_description="Hello world" qrcode_enabled=false
         continue-on-error: false
 
       - name: Run useFiles command

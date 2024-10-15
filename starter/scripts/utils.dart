@@ -49,7 +49,7 @@ List<String> getPlatforms(List<String> arguments,
 // To update content using regex
 String updateContent(String content, String regexPattern, String replacement) {
   final RegExp regex = RegExp(regexPattern);
-  if (!regex.hasMatch(content)) {
+  if (!regex.hasMatch(content) && !content.contains(replacement)) {
     throw Exception('Pattern not found: $regexPattern');
   }
   return content.replaceAllMapped(regex, (match) => replacement);
@@ -487,9 +487,6 @@ void updateFirebaseInitialization(
   // Replace the existing Firebase initialization block with the new code
   if (regex.hasMatch(content)) {
     content = content.replaceFirst(regex, newCode);
-  } else {
-    throw Exception(
-        'Error: Unable to find the existing Firebase initialization block in ensemble_modules.dart.');
   }
 
   file.writeAsStringSync(content);

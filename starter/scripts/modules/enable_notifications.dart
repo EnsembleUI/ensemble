@@ -7,8 +7,6 @@ void main(List<String> arguments) {
 
   final statements = {
     'moduleStatements': [
-      "import 'package:ensemble/util/utils.dart';",
-      "import 'package:ensemble/framework/storage_manager.dart';",
       "import 'package:flutter/foundation.dart';",
       "import 'dart:io';",
     ],
