@@ -7,6 +7,7 @@ const String androidManifestFilePath =
 const String iosInfoPlistFilePath = 'ios/Runner/Info.plist';
 const String webIndexFilePath = 'web/index.html';
 const String ensemblePropertiesFilePath = 'ensemble/ensemble.properties';
+const String ensembleConfigFilePath = 'ensemble/ensemble-config.yaml';
 const String appDelegatePath = 'ios/Runner/AppDelegate.swift';
 const String runnerEntitlementsPath = 'ios/Runner/Runner.entitlements';
 
@@ -384,110 +385,4 @@ $deeplinkEntries
           'No <key>aps-environment</key> block found in Runner.entitlements.');
     }
   }
-}
-
-void updateFirebaseInitialization(
-    List<String> platforms, List<String> arguments) {
-  // Get Firebase configuration values
-  String? androidApiKey = getArgumentValue(arguments, 'android_api_key',
-      required: platforms.contains('android'));
-  String? androidAppId = getArgumentValue(arguments, 'android_app_id',
-      required: platforms.contains('android'));
-  String? androidMessagingSenderId = getArgumentValue(
-      arguments, 'android_messaging_sender_id',
-      required: platforms.contains('android'));
-  String? androidProjectId = getArgumentValue(arguments, 'android_project_id',
-      required: platforms.contains('android'));
-
-  String? iosApiKey = getArgumentValue(arguments, 'ios_api_key',
-      required: platforms.contains('ios'));
-  String? iosAppId = getArgumentValue(arguments, 'ios_app_id',
-      required: platforms.contains('ios'));
-  String? iosMessagingSenderId = getArgumentValue(
-      arguments, 'ios_messaging_sender_id',
-      required: platforms.contains('ios'));
-  String? iosProjectId = getArgumentValue(arguments, 'ios_project_id',
-      required: platforms.contains('ios'));
-
-  String? webApiKey = getArgumentValue(arguments, 'web_api_key',
-      required: platforms.contains('web'));
-  String? webAppId = getArgumentValue(arguments, 'web_app_id',
-      required: platforms.contains('web'));
-  String? webAuthDomain = getArgumentValue(arguments, 'web_auth_domain',
-      required: platforms.contains('web'));
-  String? webMessagingSenderId = getArgumentValue(
-      arguments, 'web_messaging_sender_id',
-      required: platforms.contains('web'));
-  String? webProjectId = getArgumentValue(arguments, 'web_project_id',
-      required: platforms.contains('web'));
-  String? webStorageBucket = getArgumentValue(arguments, 'web_storage_bucket',
-      required: platforms.contains('web'));
-  String? webMeasurementId = getArgumentValue(arguments, 'web_measurement_id',
-      required: platforms.contains('web'));
-
-  final buffer = StringBuffer();
-  buffer.writeln('FirebaseOptions? androidPayload;');
-  buffer.writeln('        FirebaseOptions? iosPayload;');
-  buffer.writeln('        FirebaseOptions? webPayload;');
-
-  if (platforms.contains('android')) {
-    buffer.writeln('        androidPayload = const FirebaseOptions(');
-    buffer.writeln('          apiKey: "$androidApiKey",');
-    buffer.writeln('          appId: "$androidAppId",');
-    buffer.writeln('          messagingSenderId: "$androidMessagingSenderId",');
-    buffer.writeln('          projectId: "$androidProjectId",');
-    buffer.writeln('        );');
-  }
-
-  if (platforms.contains('ios')) {
-    buffer.writeln('        iosPayload = const FirebaseOptions(');
-    buffer.writeln('          apiKey: "$iosApiKey",');
-    buffer.writeln('          appId: "$iosAppId",');
-    buffer.writeln('          messagingSenderId: "$iosMessagingSenderId",');
-    buffer.writeln('          projectId: "$iosProjectId",');
-    buffer.writeln('        );');
-  }
-
-  if (platforms.contains('web')) {
-    buffer.writeln('        webPayload = const FirebaseOptions(');
-    buffer.writeln('          apiKey: "$webApiKey",');
-    buffer.writeln('          appId: "$webAppId",');
-    buffer.writeln('          authDomain: "$webAuthDomain",');
-    buffer.writeln('          messagingSenderId: "$webMessagingSenderId",');
-    buffer.writeln('          projectId: "$webProjectId",');
-    buffer.writeln('          storageBucket: "$webStorageBucket",');
-    buffer.writeln('          measurementId: "$webMeasurementId",');
-    buffer.writeln('        );');
-  }
-
-  buffer.writeln('        FirebaseOptions? selectedPayload;');
-  buffer.writeln('        if (Platform.isAndroid) {');
-  buffer.writeln('          selectedPayload = androidPayload;');
-  buffer.writeln('        } else if (Platform.isIOS) {');
-  buffer.writeln('          selectedPayload = iosPayload;');
-  buffer.writeln('        }');
-  buffer.writeln('        if (kIsWeb) {');
-  buffer.writeln('          selectedPayload = webPayload;');
-  buffer.writeln('        }');
-  buffer.writeln(
-      '        await Firebase.initializeApp(options: selectedPayload);');
-
-  String newCode = buffer.toString().trim();
-
-  // Now replace the Firebase initialization code in the file
-  final File file = File(ensembleModulesFilePath);
-  String content = file.readAsStringSync();
-
-  // Regular expression to match the current Firebase initialization block
-  final regex = RegExp(
-    r'await\s*Firebase\.initializeApp\(\);',
-    dotAll: true,
-  );
-
-  // Replace the existing Firebase initialization block with the new code
-  if (regex.hasMatch(content)) {
-    content = content.replaceFirst(regex, newCode);
-  }
-
-  file.writeAsStringSync(content);
 }

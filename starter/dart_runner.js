@@ -85,7 +85,8 @@ const modules = [
             { key: 'web_messaging_sender_id', question: 'Please provide your Firebase Web Messaging Sender ID: ', required: (args) => args.platform.includes('web') },
             { key: 'web_project_id', question: 'Please provide your Firebase Web Project ID: ', required: (args) => args.platform.includes('web') },
             { key: 'web_storage_bucket', question: 'Please provide your Firebase Web Storage Bucket: ', required: (args) => args.platform.includes('web') },
-            { key: 'web_measurement_id', question: 'Please provide your Firebase Web Measurement ID: ', required: (args) => args.platform.includes('web') }
+            { key: 'web_measurement_id', question: 'Please provide your Firebase Web Measurement ID: ', required: (args) => args.platform.includes('web') },
+            { key: 'enable_console_logs', question: 'Do you want to enable Firebase console logs? (yes/no): ', type: 'list', choices: ['yes', 'no'], required: true }
         ]
     },
     {
@@ -261,8 +262,8 @@ async function checkAndAskForMissingArgs(modules, argsArray) {
 
         // Transform 'yes'/'no' to true/false
         const transformedAnswers = Object.entries(moduleAnswers).reduce((acc, [key, value]) => {
-            if (value === 'yes') value = true;
-            if (value === 'no') value = false;
+            if (value === 'yes') value = 'true';
+            if (value === 'no') value = 'false';
             acc[key] = value;
             return acc;
         }, {});

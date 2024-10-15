@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import '../utils.dart';
+import '../utils/firebase_utils.dart';
 
 void main(List<String> arguments) {
   List<String> platforms = getPlatforms(arguments);
@@ -39,7 +40,7 @@ ensemble_firebase_analytics:
     );
 
     // Generate Firebase configuration based on platform
-    updateFirebaseInitialization(platforms, arguments);
+    updateFirebaseInitialization(platforms, arguments, firebaseAnalytics: true);
 
     // Update the pubspec.yaml file
     updatePubspec(pubspecFilePath, pubspecDependencies);

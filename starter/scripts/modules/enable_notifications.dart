@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import '../utils.dart';
+import '../utils/firebase_utils.dart';
 
 void main(List<String> arguments) {
   List<String> platforms = getPlatforms(arguments);
@@ -49,7 +50,7 @@ void main(List<String> arguments) {
     }
 
     print(
-        'Notifications module enabled successfully for ${platforms.join(', ')}! 🎉 Please make sure to add google-services.json for Android and GoogleService-Info.plist for iOS at the root of the Android and iOS directories respectively to enable Firebase messaging.');
+        'Notifications module enabled successfully for ${platforms.join(', ')}! 🎉');
     exit(0);
   } catch (e) {
     print('Starter Error: $e');
