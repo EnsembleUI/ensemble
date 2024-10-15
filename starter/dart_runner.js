@@ -128,7 +128,12 @@ const modules = [
     {
         name: 'auth',
         path: 'scripts/modules/enable_auth.dart',
-        parameters: []
+        parameters: [
+            { key: 'ios_client_id', question: 'Please provide your iOS client ID: ', required: (args) => args.platform.includes('ios') },
+            { key: 'android_client_id', question: 'Please provide your Android client ID: ', required: (args) => args.platform.includes('android') },
+            { key: 'web_client_id', question: 'Please provide your Web client ID: ', required: (args) => args.platform.includes('web') },
+            { key: 'server_client_id', question: 'Please provide your server client ID: ', required: true }
+        ]
     }
 ];
 
