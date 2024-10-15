@@ -60,6 +60,7 @@ import 'package:ensemble/widget/switch.dart';
 import 'package:ensemble/widget/text.dart';
 import 'package:ensemble/widget/toggle_button.dart';
 import 'package:ensemble/widget/video.dart';
+import 'package:ensemble/widget/slidable.dart';
 import 'package:ensemble/widget/visualization/barchart.dart';
 import 'package:ensemble/widget/visualization/chart_js.dart';
 import 'package:ensemble/widget/visualization/line_area_chart.dart';
@@ -176,6 +177,7 @@ class WidgetRegistry {
         ScrollableTabBar.type: () => ScrollableTabBar(),
         AppScroller.type: () => AppScroller(),
         LoadingContainer.type: () => LoadingContainer(),
+        EnsembleSlidable.type: () => EnsembleSlidable(),
 
         // charts
         Highcharts.type: () => Highcharts(),
