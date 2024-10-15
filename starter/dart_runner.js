@@ -156,13 +156,11 @@ const scripts = [
 ];
 
 // Find the script object by name
-function findScript(name) {
-    return scripts.find(script => script.name === name) ||
-        modules.find(module => module.name === name);
-}
+const findScript = (name) =>
+    scripts.find(script => script.name === name) || modules.find(module => module.name === name);
 
 // Parse arguments into script names and key-value pairs
-function parseArguments(args) {
+const parseArguments = (args) => {
     const scripts = [];
     const argsArray = [];
 
@@ -175,177 +173,118 @@ function parseArguments(args) {
     });
 
     return { scripts, argsArray };
-}
+};
 
 // Generate Dart arguments, filtering only allowed parameters
-function generateArgsForScript(scriptObj, argsArray) {
+const generateArgsForScript = (scriptObj, argsArray) => {
+    const allowedKeys = new Set([
+        ...scriptObj.parameters.map(p => p.key),
+        ...commonParameters.map(p => p.key)
+    ]);
+
     return argsArray
-        .map(arg => {
-            const [key, value] = arg.split('=');
-
-            // Only include arguments that are in the scriptObj's parameters or common parameters
-            const allowedKeys = scriptObj.parameters.map(p => p.key).concat(commonParameters.map(p => p.key));
-            if (allowedKeys.includes(key)) {
-                return `${key}=${value}`;
-            }
-
-            return null;
-        })
-        .filter(arg => arg !== null)
+        .filter(arg => allowedKeys.has(arg.split('=')[0]))
         .join(' ');
-}
+};
 
-// Check for missing arguments and ask for them
-async function checkAndAskForMissingArgs(modules, argsArray) {
-    const providedArgs = argsArray.map(arg => arg.split('=')[0]);
-    let args = Object.fromEntries(argsArray.map(arg => arg.split('=')));
-    const askedParameters = new Set();
-    let prompts = [];
+// Helper function to ask missing arguments
+const askForMissingArgs = async (params, args, providedArgs, isCI) => {
+    const prompts = [];
 
-    // Detect CI environment
-    const isCI = process.env.CI === 'true';
+    for (const param of params) {
+        const isRequired = typeof param.required === 'function' ? param.required(args) : param.required;
 
-    // Ask for missing common parameters
-    for (const param of commonParameters) {
-        if (!providedArgs.includes(param.key)) {
-            // If in CI, throw error if required params are missing
+        if (isRequired && !providedArgs.includes(param.key) && !args[param.key]) {
             if (isCI) {
                 throw new Error(`Missing required parameter "${param.key}".`);
             }
-
             prompts.push({
                 type: param.type || 'input',
                 name: param.key,
                 message: param.question,
-                choices: param.choices || []
-            });
-            askedParameters.add(param.key);
-        }
-    }
-
-    // Prompt for missing common parameters
-    if (prompts.length > 0 && !isCI) {
-        const commonAnswers = await inquirer.prompt(prompts);
-        Object.entries(commonAnswers).forEach(([key, value]) => {
-            if (Array.isArray(value)) {
-                value = value.join(',');
-            }
-            argsArray.push(`${key}=${value}`);
-            args[key] = value;
-        });
-    }
-
-    // Reset prompts for module-specific parameters
-    prompts = [];
-    const allParameters = modules.flatMap(module => module.parameters);
-
-    // Loop through each module parameter and check if it's required and missing
-    for (const param of allParameters) {
-        if (askedParameters.has(param.key) || providedArgs.includes(param.key)) continue;
-
-        const isRequired = typeof param.required === 'function' ? param.required(args) : param.required;
-
-        if (isRequired) {
-            if (isCI) {
-                throw new Error(`Missing required parameter "${param.key}" for CI environment.`);
-            }
-
-            const promptType = param.type || 'input';
-            prompts.push({
-                type: promptType,
-                name: param.key,
-                message: param.question,
                 choices: param.choices || [],
             });
-            askedParameters.add(param.key);
         }
     }
 
-    // If there are required parameters that haven't been provided, ask for them
     if (prompts.length > 0 && !isCI) {
-        const moduleAnswers = await inquirer.prompt(prompts);
-
-        // Transform 'yes'/'no' to true/false
-        const transformedAnswers = Object.entries(moduleAnswers).reduce((acc, [key, value]) => {
-            if (value === 'yes') value = 'true';
-            if (value === 'no') value = 'false';
-            acc[key] = value;
+        const answers = await inquirer.prompt(prompts);
+        return Object.entries(answers).reduce((acc, [key, value]) => {
+            acc[key] = value === 'yes' ? 'true' : value === 'no' ? 'false' : value;
             return acc;
         }, {});
-
-        Object.entries(transformedAnswers).forEach(([key, value]) => {
-            argsArray.push(`${key}=${value}`);
-            args[key] = value;
-        });
     }
 
-    // Throw an error if required arguments are still missing
-    for (const param of allParameters) {
-        const isRequired = typeof param.required === 'function' ? param.required(args) : param.required;
+    return {};
+};
 
-        if (isRequired && !providedArgs.includes(param.key) && !args[param.key]) {
-            throw new Error(`Missing required parameter "${param.key}".`);
-        }
-    }
+// Check for missing arguments and ask for them
+const checkAndAskForMissingArgs = async (modules, argsArray) => {
+    const providedArgs = argsArray.map(arg => arg.split('=')[0]);
+    let args = Object.fromEntries(argsArray.map(arg => arg.split('=')));
 
-    return argsArray;
-}
+    const isCI = process.env.CI === 'true';
+
+    const commonAnswers = await askForMissingArgs(commonParameters, args, providedArgs, isCI);
+    Object.assign(args, commonAnswers);
+
+    const allModuleParams = modules.flatMap(module => module.parameters);
+    const moduleAnswers = await askForMissingArgs(allModuleParams, args, providedArgs, isCI);
+    Object.assign(args, moduleAnswers);
+
+    return argsArray.concat(
+        ...Object.entries({ ...commonAnswers, ...moduleAnswers }).map(([key, value]) => `${key}=${value}`)
+    );
+};
+
+// Centralized error handling
+const handleError = (error, message = 'An error occurred') => {
+    console.error(`${message}: ${error.message}`);
+    process.exitCode = 1;
+};
 
 // Execute a Dart script
-function runScript(scriptObj, argsArray, callback = () => { }) {
-    const dartArgs = generateArgsForScript(scriptObj, argsArray);
-    const command = `dart run ${scriptObj.path} ${dartArgs}`;
-    console.log(`Running: ${command}`);
+const runScript = (scriptObj, argsArray) => {
+    return new Promise((resolve, reject) => {
+        const dartArgs = generateArgsForScript(scriptObj, argsArray);
+        const command = `dart run ${scriptObj.path} ${dartArgs}`;
+        console.log(`Running: ${command}`);
 
-    exec(command, (error, stdout, stderr) => {
-        if (error) {
-            console.error(`Error running ${scriptObj.name}: ${error.message}`);
-            return callback(error);
-        }
-        if (stderr) {
-            console.error(`Stderr from ${scriptObj.name}: ${stderr}`);
-        }
-        console.log(stdout);
+        exec(command, (error, stdout, stderr) => {
+            if (error) {
+                handleError(error, `Error running ${scriptObj.name}`);
+                return reject(error);
+            }
+            if (stderr) {
+                console.error(`Stderr from ${scriptObj.name}: ${stderr}`);
+            }
+            console.log(stdout);
 
-        // Automatically format the Dart files after the script runs
-        exec('dart format .', (formatError, formatStdout, formatStderr) => {
-            if (formatError) {
-                console.error(`Error running dart format: ${formatError.message}`);
-                return callback(formatError);
-            }
-            if (formatStderr) {
-                console.error(`Stderr from dart format: ${formatStderr}`);
-            }
-            console.log(`Formatting result: ${formatStdout}`);
-            callback();
+            // Automatically format the Dart files after the script runs
+            exec('dart format .', (formatError, formatStdout, formatStderr) => {
+                if (formatError) {
+                    handleError(formatError, 'Error running dart format');
+                    return reject(formatError);
+                }
+                if (formatStderr) {
+                    console.error(`Stderr from dart format: ${formatStderr}`);
+                }
+                console.log(`Formatting result: ${formatStdout}`);
+                resolve();
+            });
         });
     });
-}
+};
 
-// Function to run multiple Dart scripts in sequence (for modules)
-async function runScriptsSequentially(scriptsToRun, argsArray) {
-    let index = 0;
-
-    async function next(err) {
-        if (err) {
-            console.error('Stopping execution due to an error.');
-            process.exit(1);
-        }
-
-        if (index < scriptsToRun.length) {
-            const scriptObj = scriptsToRun[index++];
-
-            runScript(scriptObj, argsArray, next);
-        } else {
-            process.exit(0);
-        }
-    }
-
-    await next();
-}
+// Run multiple Dart scripts sequentially
+const runScriptsSequentially = (scriptsToRun, argsArray) =>
+    scriptsToRun.reduce(
+        (promiseChain, scriptObj) => promiseChain.then(() => runScript(scriptObj, argsArray)),
+        Promise.resolve()
+    );
 
 // Select modules interactively
-async function selectModules() {
+const selectModules = async () => {
     const choices = modules.map(module => ({ name: module.name, value: module.name }));
 
     const { selectedModules } = await inquirer.prompt([
@@ -358,12 +297,13 @@ async function selectModules() {
     ]);
 
     return selectedModules.map(name => findScript(name));
-}
+};
 
 // Main function
-async function main() {
+const main = async () => {
     try {
         const [firstArg, ...restArgs] = process.argv.slice(2);
+        const bypass = restArgs.includes('bypass-questions');
 
         if (firstArg === 'enable') {
             const { scripts: scriptsToRun, argsArray } = parseArguments(restArgs);
@@ -376,31 +316,32 @@ async function main() {
             }
 
             // Ask for missing arguments for all selected modules
-            const updatedArgsArray = await checkAndAskForMissingArgs(selectedModules, argsArray);
+            const updatedArgsArray = !bypass
+                ? await checkAndAskForMissingArgs(selectedModules, argsArray)
+                : argsArray;
 
-            // Execute scripts sequentially
             await runScriptsSequentially(selectedModules, updatedArgsArray);
         } else {
             const scriptObj = findScript(firstArg);
 
             if (scriptObj) {
                 const { argsArray } = parseArguments(restArgs);
-                const updatedArgsArray = await checkAndAskForMissingArgs([scriptObj], argsArray);
-                runScript(scriptObj, updatedArgsArray, (err) => {
-                    if (err) {
-                        process.exit(1);
-                    } else {
-                        process.exit(0);
-                    }
-                });
+
+                // Ask for missing arguments for standalone script
+                const updatedArgsArray = !bypass
+                    ? await checkAndAskForMissingArgs([scriptObj], argsArray)
+                    : argsArray;
+
+                runScript(scriptObj, updatedArgsArray)
+                    .then(() => process.exit(0))
+                    .catch(() => process.exit(1));
             } else {
                 throw new Error(`Command "${firstArg}" not found.`);
             }
         }
     } catch (error) {
-        console.error(`Error: ${error.message}`);
-        process.exit(1);
+        handleError(error);
     }
-}
+};
 
 main();
