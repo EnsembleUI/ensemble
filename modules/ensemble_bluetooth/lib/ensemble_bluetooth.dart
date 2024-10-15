@@ -28,20 +28,7 @@ class BluetoothManagerImpl extends BluetoothManager {
     return _instance!;
   }
 
-  BluetoothManagerImpl._internal() {
-    _initializeBluetoothState();
-  }
-
-  void _initializeBluetoothState() {
-    try {
-      _adapterStateStateSubscription =
-          FlutterBluePlus.adapterState.listen((state) {
-        _adapterState = state;
-      });
-    } on Exception catch (error) {
-      print(error);
-    }
-  }
+  BluetoothManagerImpl._internal();
 
   @override
   void init({
@@ -49,12 +36,25 @@ class BluetoothManagerImpl extends BluetoothManager {
     EnsembleAction? onDataStream,
     Invokable? initiator,
   }) {
-    if (onDataStream != null) {
-      ScreenController().executeAction(context, onDataStream,
-          event: EnsembleEvent(
-            initiator,
-            data: _adapterState.name,
-          ));
+    try {
+      _adapterStateStateSubscription =
+          FlutterBluePlus.adapterState.listen((state) async {
+        _adapterState = state;
+
+        // if (_adapterState.name != 'on' && Platform.isAndroid) {
+        //   await FlutterBluePlus.turnOn();
+        // }
+
+        if (onDataStream != null) {
+          ScreenController().executeAction(context, onDataStream,
+              event: EnsembleEvent(
+                initiator,
+                data: _adapterState.name,
+              ));
+        }
+      });
+    } on Exception catch (error) {
+      print(error);
     }
   }
 
@@ -112,10 +112,12 @@ class BluetoothManagerImpl extends BluetoothManager {
         _bluetoothServices = await device.discoverServices();
         final data = _bluetoothServices
             .map((e) => {
-                  'serviceUuid': e.serviceUuid.str,
-                  'characteristics': e.characteristics.map((e) => {
-                        'characteristicsUuid': e.characteristicUuid.str,
-                      }),
+                  'serviceId': e.serviceUuid.str,
+                  'characteristics': e.characteristics
+                      .map((e) => {
+                            'id': e.characteristicUuid.str,
+                          })
+                      .toList(),
                 })
             .toList();
         onServiceFound.call(data); // services.first
@@ -135,6 +137,19 @@ class BluetoothManagerImpl extends BluetoothManager {
           final data = utf8.decode(value);
           onDataReceive.call(data);
         });
+        break;
+      }
+    }
+  }
+
+  @override
+  Future<void> unSubscribe(String characteristicId) async {
+    for (var service in _bluetoothServices) {
+      final c = service.characteristics.firstWhereOrNull(
+          (element) => element.characteristicUuid.str == characteristicId);
+      if (c != null) {
+        await c.setNotifyValue(c.isNotifying == false);
+
         break;
       }
     }

@@ -7,6 +7,7 @@ import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
+typedef AdapterStateCallback = Future<void>? Function(dynamic data);
 typedef ScanResultCallback = Future<void>? Function(dynamic data);
 typedef ServiceFoundCallback = Future<void>? Function(dynamic data);
 typedef DataReceivedCallback = Future<void>? Function(dynamic data);
@@ -23,6 +24,7 @@ abstract class BluetoothManager {
   Future<void> connect(String deviceId, ServiceFoundCallback onServiceFound);
   Future<void> subscribe(
       String characteristicId, DataReceivedCallback onDataReceive);
+  Future<void> unSubscribe(String characteristicId);
 
   void dispose() {}
 
@@ -87,6 +89,12 @@ class BluetoothManagerStub implements BluetoothManager {
 
   @override
   Future<void> stopScan() {
+    throw ConfigError(
+        "Bluetooth module is not enabled. Please review the Ensemble documentation.");
+  }
+  
+  @override
+  Future<void> unSubscribe(String characteristicId) {
     throw ConfigError(
         "Bluetooth module is not enabled. Please review the Ensemble documentation.");
   }

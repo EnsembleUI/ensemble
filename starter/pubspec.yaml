@@ -39,6 +39,13 @@ dependencies:
       ref: ensemble-v1.0.6
       path: modules/ensemble
 
+
+  # ensemble_bluetooth:
+  #   git:
+  #     url: https://github.com/EnsembleUI/ensemble.git
+  #     ref: main
+  #     path: modules/ensemble_bluetooth
+
   # Uncomment to enable camera module
   # ensemble_camera:
   #   git:
