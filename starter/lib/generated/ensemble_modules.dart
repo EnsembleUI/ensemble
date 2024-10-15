@@ -12,6 +12,8 @@ import 'package:ensemble/framework/stub/contacts_manager.dart';
 import 'package:ensemble/framework/stub/plaid_link_manager.dart';
 import 'package:ensemble/module/auth_module.dart';
 import 'package:ensemble/module/location_module.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 //import 'package:ensemble_network_info/network_info.dart';
 //import 'package:ensemble_firebase_analytics/firebase_analytics.dart';
 // import 'package:ensemble_location/location_module.dart';
@@ -74,6 +76,20 @@ class EnsembleModules {
 
   Future<void> init() async {
     // Note that notifications is not a module
+
+    if (useNotifications || useFirebaseAnalytics) {
+      // if payload is not passed, Firebase configuration files
+      // are required to be added manualy to iOS and Android
+      try {
+        await Firebase.initializeApp();
+      } catch (e) {
+        print(
+            "Failed to initialize firebase app, make sure you either have the firebase options specified in the config file (required for web) "
+            "or have the right google file for the platform - google-services.json for android and GoogleService-Info.plist for iOS.");
+        rethrow;
+      }
+    }
+
     if (useNotifications) {
       // TODO: use Firebase config in ensemble-config if specified
       // TODO: how to do notificationCallbacks in YAML
