@@ -7,7 +7,8 @@ class API {
   String name, uri;
   Map<String, String>? params;
   String method = 'get';
-  API(this.name, this.uri, this.params);
+  bool manageCookies = false;
+  API(this.name, this.uri, this.params, {this.manageCookies = false});
   Future<http.Response> call(Map<String, String>? paramValues) async {
     Map<String, String> m = HashMap();
     if (params != null) {
@@ -38,7 +39,8 @@ class API {
         params[k.toString()] = v.toString();
       });
     }
-    return API(name, uri, params);
+    bool manageCookies = map['manageCookies'] == true;
+    return API(name, uri, params, manageCookies: manageCookies);
   }
 }
 

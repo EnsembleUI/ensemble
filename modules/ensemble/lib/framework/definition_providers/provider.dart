@@ -34,7 +34,7 @@ abstract class DefinitionProvider {
   Locale? initialForcedLocale;
 
   DefinitionProvider({this.initialForcedLocale});
-
+  Future<DefinitionProvider> init();
   Future<ScreenDefinition> getDefinition(
       {String? screenId, String? screenName});
 
