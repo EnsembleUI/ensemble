@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:ensemble/action/bluetooth_action.dart';
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
@@ -21,14 +20,19 @@ abstract class BluetoothManager {
       EnsembleAction? onDataStream});
 
   Future<void> turnOn();
-  Future<void> connect(String deviceId, ServiceFoundCallback onServiceFound);
+  Future<void> connect({
+    required String deviceId,
+    required ServiceFoundCallback onServiceFound,
+    required DataReceivedCallback connectionState,
+    required bool autoConnect,
+    required int timeout,
+  });
+  void disconnect({required String deviceId});
   Future<void> subscribe(
       String characteristicId, DataReceivedCallback onDataReceive);
   Future<void> unSubscribe(String characteristicId);
 
   void dispose() {}
-
-  InvokableBluetooth getInvokableBluetooth();
 }
 
 class BluetoothManagerStub implements BluetoothManager {
@@ -66,12 +70,6 @@ class BluetoothManagerStub implements BluetoothManager {
   }
 
   @override
-  Future<void> connect(String deviceId, ServiceFoundCallback onServiceFound) {
-    throw ConfigError(
-        "Bluetooth module is not enabled. Please review the Ensemble documentation.");
-  }
-
-  @override
   Future<void> subscribe(
       String characteristicId, DataReceivedCallback onDataReceive) {
     throw ConfigError(
@@ -82,19 +80,30 @@ class BluetoothManagerStub implements BluetoothManager {
   void dispose() {}
 
   @override
-  InvokableBluetooth getInvokableBluetooth() {
+  Future<void> stopScan() {
     throw ConfigError(
         "Bluetooth module is not enabled. Please review the Ensemble documentation.");
   }
 
   @override
-  Future<void> stopScan() {
+  Future<void> unSubscribe(String characteristicId) {
+    throw ConfigError(
+        "Bluetooth module is not enabled. Please review the Ensemble documentation.");
+  }
+
+  @override
+  Future<void> connect(
+      {required String deviceId,
+      required ServiceFoundCallback onServiceFound,
+      required DataReceivedCallback connectionState,
+      required bool autoConnect,
+      required int timeout}) {
     throw ConfigError(
         "Bluetooth module is not enabled. Please review the Ensemble documentation.");
   }
   
   @override
-  Future<void> unSubscribe(String characteristicId) {
+  void disconnect({required String deviceId}) {
     throw ConfigError(
         "Bluetooth module is not enabled. Please review the Ensemble documentation.");
   }

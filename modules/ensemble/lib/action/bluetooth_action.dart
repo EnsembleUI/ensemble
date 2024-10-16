@@ -108,15 +108,22 @@ class ConnectBluetoothAction extends EnsembleAction {
 
   EnsembleAction? onError;
   EnsembleAction? onDataStream;
+  EnsembleAction? onConnectionStream;
 
-  final String deviceId;
+  final String? deviceId;
+  final bool autoConnect;
+  final int timeout;
 
-  ConnectBluetoothAction(
-      {super.initiator,
-      super.inputs,
-      this.onError,
-      this.onDataStream,
-      required this.deviceId});
+  ConnectBluetoothAction({
+    super.initiator,
+    super.inputs,
+    this.onError,
+    this.onDataStream,
+    this.onConnectionStream,
+    required this.deviceId,
+    required this.autoConnect,
+    required this.timeout,
+  });
 
   factory ConnectBluetoothAction.from(
           {Invokable? initiator, dynamic payload}) =>
@@ -131,21 +138,91 @@ class ConnectBluetoothAction extends EnsembleAction {
       onError: EnsembleAction.from(payload?['onError'], initiator: initiator),
       onDataStream:
           EnsembleAction.from(payload?['onDataStream'], initiator: initiator),
-      deviceId: Utils.getString(payload?['deviceId'], fallback: 'fallback'),
+      onConnectionStream: EnsembleAction.from(payload?['onConnectionStream'],
+          initiator: initiator),
+      deviceId: Utils.optionalString(payload?['deviceId']),
+      autoConnect: Utils.getBool(payload?['autoConnect'], fallback: false),
+      timeout: Utils.getInt(payload?['timeout'], fallback: 35),
     );
   }
 
   Future<dynamic> execute(
       BuildContext context, ScopeManager scopeManager) async {
+    if (deviceId == null) {
+      if (onError != null) {
+        ScreenController().executeAction(context, onDataStream!,
+            event: EnsembleEvent(
+              initiator,
+              error: 'DeviceId is required',
+            ));
+      }
+      return;
+    }
     final _deviceId = scopeManager.dataContext.eval(deviceId);
-    await bluetoothManager.connect(_deviceId, (data) {
-      ScreenController().executeAction(context, onDataStream!,
+    await bluetoothManager.connect(
+      deviceId: _deviceId,
+      autoConnect: autoConnect,
+      timeout: timeout,
+      onServiceFound: (data) {
+        if (onDataStream != null) {
+          ScreenController().executeAction(context, onDataStream!,
+              event: EnsembleEvent(
+                initiator,
+                data: data,
+              ));
+        }
+        return null;
+      },
+      connectionState: (data) {
+        if (onConnectionStream != null) {
+          ScreenController().executeAction(context, onConnectionStream!,
+              event: EnsembleEvent(
+                initiator,
+                data: {'status': data},
+              ));
+        }
+        return null;
+      },
+    );
+  }
+}
+
+class DisconnectBluetoothAction extends EnsembleAction {
+  BluetoothManager bluetoothManager = GetIt.I<BluetoothManager>();
+
+  EnsembleAction? onError;
+  final String? deviceId;
+  DisconnectBluetoothAction(
+      {super.initiator, super.inputs, this.onError, this.deviceId});
+
+  factory DisconnectBluetoothAction.from(
+          {Invokable? initiator, dynamic payload}) =>
+      DisconnectBluetoothAction.fromYaml(
+          initiator: initiator, payload: Utils.getYamlMap(payload));
+
+  factory DisconnectBluetoothAction.fromYaml(
+      {Invokable? initiator, Map? payload}) {
+    return DisconnectBluetoothAction(
+      initiator: initiator,
+      inputs: Utils.getMap(payload?['inputs']),
+      onError: EnsembleAction.from(payload?['onError'], initiator: initiator),
+      deviceId: Utils.optionalString(payload?['deviceId']),
+    );
+  }
+
+  Future<dynamic> execute(
+      BuildContext context, ScopeManager scopeManager) async {
+    if (kIsWeb && onError != null) {
+      return ScreenController().executeAction(context, onError!,
           event: EnsembleEvent(
             initiator,
-            data: data,
+            error: 'Bluetooth is not supported on the web',
+            data: {'status': 'error'},
           ));
-      return null;
-    });
+    }
+    final _deviceId = scopeManager.dataContext.eval(deviceId);
+
+    bluetoothManager.disconnect(deviceId: _deviceId);
   }
 }
 
@@ -155,7 +232,7 @@ class SubscribeBluetoothCharacteristicsAction extends EnsembleAction {
   EnsembleAction? onError;
   EnsembleAction? onDataStream;
 
-  final String characteristicsId;
+  final String? characteristicsId;
 
   SubscribeBluetoothCharacteristicsAction(
       {super.initiator,
@@ -177,12 +254,23 @@ class SubscribeBluetoothCharacteristicsAction extends EnsembleAction {
       onError: EnsembleAction.from(payload?['onError'], initiator: initiator),
       onDataStream:
           EnsembleAction.from(payload?['onDataStream'], initiator: initiator),
-      characteristicsId: Utils.getString(payload?['id'], fallback: 'fallback'),
+      characteristicsId: Utils.optionalString(payload?['id']),
     );
   }
 
   Future<dynamic> execute(
       BuildContext context, ScopeManager scopeManager) async {
+    if (characteristicsId == null) {
+      if (onError != null) {
+        ScreenController().executeAction(context, onError!,
+            event: EnsembleEvent(
+              initiator,
+              error: 'Please pass characteristics ID',
+            ));
+      }
+      return null;
+    }
+
     final charId = scopeManager.dataContext.eval(characteristicsId);
     await bluetoothManager.subscribe(charId, (data) {
       if (onDataStream != null) {
@@ -229,34 +317,5 @@ class UnSubscribeBluetoothCharacteristicsAction extends EnsembleAction {
       BuildContext context, ScopeManager scopeManager) async {
     final charId = scopeManager.dataContext.eval(characteristicsId);
     await bluetoothManager.unSubscribe(charId);
-  }
-}
-
-class InvokableBluetooth extends Object with Invokable {
-  InvokableBluetooth();
-  static late BuildContext context;
-  BluetoothManager bluetoothManager = GetIt.I<BluetoothManager>();
-
-  @override
-  Map<String, Function> getters() {
-    return {
-      'status': () => null,
-    };
-  }
-
-  @override
-  Map<String, Function> methods() {
-    return {
-      'turnOn': () => bluetoothManager.turnOn(),
-      'startScan': () => bluetoothManager.startScan(onScanResult: (data) {
-            return null;
-          }),
-      'stopScan': () => bluetoothManager.stopScan(),
-    };
-  }
-
-  @override
-  Map<String, Function> setters() {
-    return {};
   }
 }

@@ -1258,6 +1258,8 @@ abstract class EnsembleAction {
       return StartScanBluetoothAction.from(payload: payload);
     } else if (actionType == ActionType.bluetoothConnect) {
       return ConnectBluetoothAction.from(payload: payload);
+    } else if (actionType == ActionType.bluetoothDisconnect) {
+      return DisconnectBluetoothAction.from(payload: payload);
     } else if (actionType == ActionType.bluetoothSubscribeCharacteristic) {
       return SubscribeBluetoothCharacteristicsAction.from(payload: payload);
     } else if (actionType == ActionType.bluetoothUnsubscribeCharacteristic) {

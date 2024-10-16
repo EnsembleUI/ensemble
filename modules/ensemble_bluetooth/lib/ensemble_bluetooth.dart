@@ -4,7 +4,6 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:ensemble/action/bluetooth_action.dart';
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/stub/bluetooth.dart';
@@ -31,19 +30,18 @@ class BluetoothManagerImpl extends BluetoothManager {
   BluetoothManagerImpl._internal();
 
   @override
-  void init({
+  Future<void> init({
     required BuildContext context,
     EnsembleAction? onDataStream,
     Invokable? initiator,
-  }) {
+  }) async {
     try {
+      if (_adapterState.name != 'on' && Platform.isAndroid) {
+        await FlutterBluePlus.turnOn();
+      }
       _adapterStateStateSubscription =
-          FlutterBluePlus.adapterState.listen((state) async {
+          FlutterBluePlus.adapterState.listen((state) {
         _adapterState = state;
-
-        // if (_adapterState.name != 'on' && Platform.isAndroid) {
-        //   await FlutterBluePlus.turnOn();
-        // }
 
         if (onDataStream != null) {
           ScreenController().executeAction(context, onDataStream,
@@ -83,7 +81,14 @@ class BluetoothManagerImpl extends BluetoothManager {
           results
               .map((e) => {
                     'deviceId': e.device.remoteId.str,
-                    'advName': e.advertisementData.advName,
+                    'connectable': e.advertisementData.connectable,
+                    'advData': {
+                      'name': e.advertisementData.advName,
+                      'txPowerLevel': e.advertisementData.txPowerLevel,
+                      'appearance': e.advertisementData.appearance,
+                      'serviceIds': e.advertisementData.serviceUuids,
+                      'serviceData': e.advertisementData.serviceData,
+                    },
                   })
               .toList(),
         );
@@ -99,40 +104,14 @@ class BluetoothManagerImpl extends BluetoothManager {
   }
 
   @override
-  Future<void> connect(
-      String deviceId, ServiceFoundCallback onServiceFound) async {
-    final device = _scanResults
-        .firstWhereOrNull((element) => element.device.remoteId.str == deviceId)
-        ?.device;
-
-    await device?.connect();
-
-    device?.connectionState.listen((event) async {
-      if (event == BluetoothConnectionState.connected) {
-        _bluetoothServices = await device.discoverServices();
-        final data = _bluetoothServices
-            .map((e) => {
-                  'serviceId': e.serviceUuid.str,
-                  'characteristics': e.characteristics
-                      .map((e) => {
-                            'id': e.characteristicUuid.str,
-                          })
-                      .toList(),
-                })
-            .toList();
-        onServiceFound.call(data); // services.first
-      }
-    });
-  }
-
-  @override
   Future<void> subscribe(
       String characteristicId, DataReceivedCallback onDataReceive) async {
     for (var service in _bluetoothServices) {
       final c = service.characteristics.firstWhereOrNull(
           (element) => element.characteristicUuid.str == characteristicId);
       if (c != null) {
-        await c.setNotifyValue(c.isNotifying == false);
+        await c.setNotifyValue(true);
+
         c.onValueReceived.listen((value) {
           final data = utf8.decode(value);
           onDataReceive.call(data);
@@ -148,16 +127,60 @@ class BluetoothManagerImpl extends BluetoothManager {
       final c = service.characteristics.firstWhereOrNull(
           (element) => element.characteristicUuid.str == characteristicId);
       if (c != null) {
-        await c.setNotifyValue(c.isNotifying == false);
-
+        await c.setNotifyValue(false);
         break;
       }
     }
   }
 
   @override
-  InvokableBluetooth getInvokableBluetooth() {
-    // TODO: implement getInvokableBluetooth
-    throw UnimplementedError();
+  Future<void> connect({
+    required String deviceId,
+    required ServiceFoundCallback onServiceFound,
+    required DataReceivedCallback connectionState,
+    required bool autoConnect,
+    required int timeout,
+  }) async {
+    final device = _scanResults
+        .firstWhereOrNull((element) => element.device.remoteId.str == deviceId)
+        ?.device;
+
+    await device?.connect(
+      autoConnect: autoConnect,
+      timeout: Duration(seconds: timeout),
+      mtu: autoConnect ? null : 512,
+    );
+
+    device?.connectionState.listen((event) async {
+      connectionState.call(event.name);
+
+      if (event == BluetoothConnectionState.connected) {
+        _bluetoothServices = await device.discoverServices();
+        final data = _bluetoothServices
+            .map((e) => {
+                  'serviceId': e.serviceUuid.str,
+                  'characteristics': e.characteristics
+                      .map((e) => {
+                            'id': e.characteristicUuid.str,
+                            'isReadable': e.properties.read,
+                            'isWritable': e.properties.write,
+                            'isSubscribable':
+                                e.properties.notify || e.properties.indicate,
+                          })
+                      .toList(),
+                })
+            .toList();
+        onServiceFound.call(data);
+      }
+    });
+  }
+
+  @override
+  void disconnect({required String deviceId}) {
+    final device = _scanResults
+        .firstWhereOrNull((element) => element.device.remoteId.str == deviceId)
+        ?.device;
+
+    device?.disconnect();
   }
 }
