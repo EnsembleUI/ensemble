@@ -34,8 +34,8 @@ class EnsembleSlidable extends StatefulWidget
   @override
   Map<String, Function> getters() {
     return {
-      'startContent': () => _controller.startContent,
-      'endContent': () => _controller.endContent,
+      'startDrawer': () => _controller.startDrawer,
+      'endDrawer': () => _controller.endDrawer,
     };
   }
 
@@ -43,75 +43,27 @@ class EnsembleSlidable extends StatefulWidget
   Map<String, Function> setters() {
     return {
       'groupTag': (value) => _controller.groupTag = value,
-      'enabled': (value) => _controller.enabled = Utils.getBool(value, fallback: true),
-      'closeOnScroll': (value) => _controller.closeOnScroll = Utils.getBool(value, fallback: true),
-      'direction': (value) => _controller.direction = Axis.values.from(value) ?? Axis.horizontal,
-      'dragStartBehavior': (value) => _controller.dragStartBehavior = DragStartBehavior.values.from(value) ?? DragStartBehavior.down,
-      'useTextDirection': (value) => _controller.useTextDirection = Utils.getBool(value, fallback: true),
-      'startContent': (value) => _controller.startContent = value,
-      'endContent': (value) => _controller.endContent = value,
+      'enabled': (value) =>
+          _controller.enabled = Utils.getBool(value, fallback: true),
+      'closeOnScroll': (value) =>
+          _controller.closeOnScroll = Utils.getBool(value, fallback: true),
+      'direction': (value) =>
+          _controller.direction = Axis.values.from(value) ?? Axis.horizontal,
+      'dragStartBehavior': (value) => _controller.dragStartBehavior =
+          DragStartBehavior.values.from(value) ?? DragStartBehavior.down,
+      'useTextDirection': (value) =>
+          _controller.useTextDirection = Utils.getBool(value, fallback: true),
+      'startDrawer': (value) => _controller.startDrawer =
+          SlidableDrawerComposite.from(_controller, value),
+      'endDrawer': (value) => _controller.endDrawer =
+          SlidableDrawerComposite.from(_controller, value),
       'child': (value) => _controller.child = value,
     };
   }
 
   @override
   Map<String, Function> methods() {
-    return { };
-  }
-}
-
-class ActionPaneOptionsComposite {
-  ActionPaneOptionsComposite() {
-    extentRatio = 0.25;
-    motion = 'scroll';
-    dragDismissible = true;
-  }
-
-  double extentRatio = 0.25;
-  String motion = 'scroll';
-  bool dragDismissible = true;
-  double? openThreshold;
-  double? closeThreshold;
-
-  static ActionPaneOptionsComposite from(dynamic payload) {
-    ActionPaneOptionsComposite composite = ActionPaneOptionsComposite();
-    if (payload is Map) {
-      composite.extentRatio = Utils.getDouble(payload['extentRatio'], fallback: 0.25);
-      composite.motion = Utils.optionalString(payload['motion']) ?? 'scroll';
-      composite.dragDismissible = Utils.getBool(payload['dragDismissible'], fallback: true);
-      composite.openThreshold = Utils.optionalDouble(payload['openThreshold']);
-      composite.closeThreshold = Utils.optionalDouble(payload['closeThreshold']);
-    }
-    return composite;
-  }
-
-  Map<String, Function> setters() => {
-    'extentRatio': (value) => extentRatio = Utils.getDouble(value, fallback: 0.25),
-    'motion': (value) => motion = Utils.getString(value, fallback: 'scroll'),
-    'openThreshold': (value) => openThreshold = Utils.optionalDouble(value),
-    'closeThreshold': (value) => closeThreshold = Utils.optionalDouble(value),
-  };
-
-  Map<String, Function> getters() => {
-    'extentRatio': () => extentRatio,
-    'motion': () => motion,
-    'openThreshold': () => openThreshold,
-    'closeThreshold': () => closeThreshold,
-  };
-
-  Widget getMotion() {
-    switch (motion) {
-      case 'scroll':
-        return const ScrollMotion();
-      case 'stretch':
-        return const StretchMotion();
-      case 'behind':
-        return const BehindMotion();
-      case 'drawer':
-        return const DrawerMotion();
-      default:
-        return const ScrollMotion();
-    }
+    return {};
   }
 }
 
@@ -122,10 +74,19 @@ class EnsembleSlidableController extends BoxController {
   Axis? direction;
   DragStartBehavior? dragStartBehavior;
   bool useTextDirection = true;
-  dynamic startContent;
-  dynamic endContent;
-  dynamic child;
 
+  SlidableDrawerComposite? _startDrawer;
+  SlidableDrawerComposite? _endDrawer;
+
+  SlidableDrawerComposite get startDrawer =>
+      _startDrawer ??= SlidableDrawerComposite(this);
+  SlidableDrawerComposite get endDrawer =>
+      _endDrawer ??= SlidableDrawerComposite(this);
+
+  set startDrawer(SlidableDrawerComposite? drawer) => _startDrawer = drawer;
+  set endDrawer(SlidableDrawerComposite? drawer) => _endDrawer = drawer;
+
+  dynamic child;
 }
 
 class EnsembleSlidableState extends EWidgetState<EnsembleSlidable> {
@@ -136,45 +97,51 @@ class EnsembleSlidableState extends EWidgetState<EnsembleSlidable> {
       enabled: widget.controller.enabled,
       closeOnScroll: widget.controller.closeOnScroll,
       direction: widget.controller.direction ?? Axis.horizontal,
-      dragStartBehavior: widget.controller.dragStartBehavior ?? DragStartBehavior.down,
+      dragStartBehavior:
+          widget.controller.dragStartBehavior ?? DragStartBehavior.down,
       useTextDirection: widget.controller.useTextDirection,
-      startActionPane: _buildActionPane(context, widget.controller.startContent),
-      endActionPane: _buildActionPane(context, widget.controller.endContent),
+      startActionPane: _buildActionPane(context, widget.controller.startDrawer),
+      endActionPane: _buildActionPane(context, widget.controller.endDrawer),
       child: _buildChildWidget(context, widget.controller.child),
     );
   }
 
-  ActionPane? _buildActionPane(BuildContext context, dynamic actionPaneDefinition) {
-    if (actionPaneDefinition == null) return null;
-    
-    ActionPaneOptionsComposite options = ActionPaneOptionsComposite.from(actionPaneDefinition['options']);
-    List<Widget> children = _buildSlidableActions(context, actionPaneDefinition['children']);
+  ActionPane? _buildActionPane(
+      BuildContext context, SlidableDrawerComposite? drawerComposite) {
+    if (drawerComposite == null || drawerComposite.children.isEmpty)
+      return null;
+
+    ActionPaneOptionsComposite options = drawerComposite.options;
+    List<Widget> children =
+        _buildSlidableActions(context, drawerComposite.children);
 
     return ActionPane(
       extentRatio: options.extentRatio,
       motion: options.getMotion(),
-      dragDismissible: options.dragDismissible,
       openThreshold: options.openThreshold,
       closeThreshold: options.closeThreshold,
       children: children,
     );
   }
 
-  List<Widget> _buildSlidableActions(BuildContext context, dynamic actionsDefinition) {
-    if (actionsDefinition == null || actionsDefinition is! List) return [];
+  List<Widget> _buildSlidableActions(
+      BuildContext context, List<dynamic> actionsDefinition) {
+    if (actionsDefinition.isEmpty) return [];
     return actionsDefinition.map<Widget>((action) {
       final IconData? icon = _getIconData(action['icon']);
       final String? label = action['label'];
 
       // Ensure at least one of icon or label is provided
       if (icon == null && (label == null || label.isEmpty)) {
-        return const SizedBox.shrink(); // Return an empty widget if both are missing
+        return const SizedBox
+            .shrink(); // Return an empty widget if both are missing
       }
 
       return SlidableAction(
         onPressed: (context) {
           if (action['onPressed'] != null) {
-            final onPressedAction = EnsembleAction.from(action['onPressed'], initiator: widget);
+            final onPressedAction =
+                EnsembleAction.from(action['onPressed'], initiator: widget);
             ScreenController().executeAction(
               context,
               onPressedAction!,
@@ -182,15 +149,20 @@ class EnsembleSlidableState extends EWidgetState<EnsembleSlidable> {
             );
           }
         },
-        backgroundColor: Utils.getColor(action['backgroundColor']) ?? Colors.blue,
-        foregroundColor: Utils.getColor(action['foregroundColor']) ?? Colors.white,
+        backgroundColor:
+            Utils.getColor(action['backgroundColor']) ?? Colors.blue,
+        foregroundColor:
+            Utils.getColor(action['foregroundColor']) ?? Colors.white,
         icon: icon,
         label: label,
-        padding: Utils.getInsets(action['padding'], fallback: const EdgeInsets.all(0)),
+        padding: Utils.getInsets(action['padding'],
+            fallback: const EdgeInsets.all(0)),
         spacing: Utils.getDouble(action['spacing'], fallback: 4.0),
         autoClose: Utils.getBool(action['autoClose'], fallback: true),
         flex: Utils.getInt(action['flex'], fallback: 1),
-        borderRadius: Utils.getBorderRadius(action['borderRadius'])?.getValue() ?? BorderRadius.zero,
+        borderRadius:
+            Utils.getBorderRadius(action['borderRadius'])?.getValue() ??
+                BorderRadius.zero,
       );
     }).toList();
   }
@@ -213,7 +185,7 @@ class EnsembleSlidableState extends EWidgetState<EnsembleSlidable> {
 
   Widget _buildChildWidget(BuildContext context, dynamic widgetDefinition) {
     if (widgetDefinition == null) {
-      return Container();
+      return const SizedBox.shrink();
     }
     ScopeManager? scopeManager = DataScopeWidget.getScope(context);
     if (scopeManager != null) {
@@ -222,4 +194,110 @@ class EnsembleSlidableState extends EWidgetState<EnsembleSlidable> {
       throw LanguageError('Failed to build widget');
     }
   }
+}
+
+class ActionPaneOptionsComposite extends WidgetCompositeProperty {
+  ActionPaneOptionsComposite(ChangeNotifier widgetController)
+      : super(widgetController);
+
+  double extentRatio = 0.25;
+  String motion = 'scroll';
+  double? openThreshold;
+  double? closeThreshold;
+
+  factory ActionPaneOptionsComposite.from(
+      ChangeNotifier widgetController, dynamic payload) {
+    ActionPaneOptionsComposite composite =
+        ActionPaneOptionsComposite(widgetController);
+    if (payload is Map) {
+      composite.extentRatio =
+          Utils.getDouble(payload['extentRatio'], fallback: 0.25);
+      composite.motion = Utils.optionalString(payload['motion']) ?? 'scroll';
+      composite.openThreshold = Utils.optionalDouble(payload['openThreshold']);
+      composite.closeThreshold =
+          Utils.optionalDouble(payload['closeThreshold']);
+    }
+    return composite;
+  }
+
+  @override
+  Map<String, Function> setters() => {
+        'extentRatio': (value) =>
+            extentRatio = Utils.getDouble(value, fallback: 0.25),
+        'motion': (value) =>
+            motion = Utils.getString(value, fallback: 'scroll'),
+        'openThreshold': (value) => openThreshold = Utils.optionalDouble(value),
+        'closeThreshold': (value) =>
+            closeThreshold = Utils.optionalDouble(value),
+      };
+
+  @override
+  Map<String, Function> getters() => {
+        'extentRatio': () => extentRatio,
+        'motion': () => motion,
+        'openThreshold': () => openThreshold,
+        'closeThreshold': () => closeThreshold,
+      };
+
+  Widget getMotion() {
+    switch (motion) {
+      case 'scroll':
+        return const ScrollMotion();
+      case 'stretch':
+        return const StretchMotion();
+      case 'behind':
+        return const BehindMotion();
+      case 'drawer':
+        return const DrawerMotion();
+      default:
+        return const ScrollMotion();
+    }
+  }
+
+  @override
+  Map<String, Function> methods() => {};
+}
+
+class SlidableDrawerComposite extends WidgetCompositeProperty {
+  SlidableDrawerComposite(ChangeNotifier widgetController)
+      : super(widgetController);
+
+  ActionPaneOptionsComposite? _options;
+  ActionPaneOptionsComposite get options =>
+      _options ??= ActionPaneOptionsComposite(widgetController);
+  set options(ActionPaneOptionsComposite value) => _options = value;
+
+  List<dynamic> children = [];
+
+  factory SlidableDrawerComposite.from(
+      ChangeNotifier widgetController, dynamic payload) {
+    SlidableDrawerComposite composite =
+        SlidableDrawerComposite(widgetController);
+    if (payload is Map) {
+      if (payload['options'] != null) {
+        composite.options = ActionPaneOptionsComposite.from(
+            widgetController, payload['options']);
+      }
+      if (payload['children'] != null) {
+        composite.children = List.from(payload['children']);
+      }
+    }
+    return composite;
+  }
+
+  @override
+  Map<String, Function> setters() => {
+        'options': (value) =>
+            options = ActionPaneOptionsComposite.from(widgetController, value),
+        'children': (value) => children = List.from(value),
+      };
+
+  @override
+  Map<String, Function> getters() => {
+        'options': () => options,
+        'children': () => children,
+      };
+
+  @override
+  Map<String, Function> methods() => {};
 }
