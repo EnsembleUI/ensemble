@@ -1,0 +1,41 @@
+name: Test Commands in Starter
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  test-modules:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: starter
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Set up Flutter SDK
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v2
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run useCamera command
+        run: npm run useCamera platform="ios,android" camera_description="Hello world" qrcode_enabled=false
+        continue-on-error: false
+
+      - name: Run useFiles command
+        run: npm run useFiles platform="ios,android" photo_library_description="Hello" music_description="world"
+        continue-on-error: false
+
+      - name: Run useContacts command
+        run: npm run useContacts contacts_description="Hello world" platform="ios,android"
+        continue-on-error: false
