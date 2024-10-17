@@ -65,9 +65,9 @@ class HeaderStyleComposite extends WidgetCompositeProperty {
   Map<String, Function> methods() => {};
 }
 
-// bodyStyleComposite class to handle body styling
-class bodyStyleComposite extends WidgetCompositeProperty {
-  bodyStyleComposite(super.widgetController) {
+// BodyStyleComposite class to handle body styling
+class BodyStyleComposite extends WidgetCompositeProperty {
+  BodyStyleComposite(super.widgetController) {
     backgroundColor = this.backgroundColor;
     borderColor = this.borderColor;
     borderWidth = this.borderWidth;
@@ -83,8 +83,8 @@ class bodyStyleComposite extends WidgetCompositeProperty {
   double? horizontalPadding;
   double? verticalPadding;
 
-  factory bodyStyleComposite.from(WidgetController controller, dynamic payload) {
-    bodyStyleComposite composite = bodyStyleComposite(controller);
+  factory BodyStyleComposite.from(WidgetController controller, dynamic payload) {
+    BodyStyleComposite composite = BodyStyleComposite(controller);
     if (payload is Map) {
       composite.backgroundColor = Utils.getColor(payload['backgroundColor']);
       composite.borderColor = Utils.getColor(payload['borderColor']);
@@ -146,7 +146,7 @@ class EnsembleAccordion extends StatefulWidget
       'initialOpeningSequenceDelay': (value) =>
           _controller.initialOpeningSequenceDelay = Utils.optionalInt(value),
       'headerStyle': (value) => _controller.headerStyle = HeaderStyleComposite.from(controller, value),
-      'bodyStyle': (value) => _controller.bodyStyle = bodyStyleComposite.from(controller, value),
+      'bodyStyle': (value) => _controller.bodyStyle = BodyStyleComposite.from(controller, value),
       'leftIcon': (value) => _controller.leftIcon = value,
       'rightIcon': (value) => _controller.rightIcon = value,
       'flipLeftIconIfOpen': (value) =>
@@ -183,21 +183,21 @@ class EnsembleAccordion extends StatefulWidget
   }
 }
 
-class EnsembleAccordionController extends BoxController {
+class EnsembleAccordionController extends WidgetController {
   List<Map> items = [];
   bool limitExpandedToOne = true;
   int? initialOpeningSequenceDelay;
   HeaderStyleComposite? _headerStyle;
-  bodyStyleComposite? _bodyStyle;
-  
-  HeaderStyleComposite get headerStyle => 
+  BodyStyleComposite? _bodyStyle;
+
+  HeaderStyleComposite get headerStyle =>
       _headerStyle ??= HeaderStyleComposite(this);
-  
-  bodyStyleComposite get bodyStyle => 
-      _bodyStyle ??= bodyStyleComposite(this);
+
+  BodyStyleComposite get bodyStyle => 
+      _bodyStyle ??= BodyStyleComposite(this);
   
   set headerStyle(HeaderStyleComposite style) => _headerStyle = style;
-  set bodyStyle(bodyStyleComposite style) => _bodyStyle = style;
+  set bodyStyle(BodyStyleComposite style) => _bodyStyle = style;
 
   dynamic leftIcon;
   dynamic rightIcon;
@@ -221,19 +221,19 @@ class EnsembleAccordionController extends BoxController {
       _openSections.value = [index];
     } else {
       final newOpenSections = List<int>.from(_openSections.value);
-      if (newOpenSections.contains(index)) {
-        newOpenSections.remove(index);
-      } else {
+      if (!newOpenSections.contains(index)) {
         newOpenSections.add(index);
       }
       _openSections.value = newOpenSections;
     }
+    notifyListeners();
   }
 
   void closeSection(int index) {
     final newOpenSections = List<int>.from(_openSections.value);
     newOpenSections.remove(index);
     _openSections.value = newOpenSections;
+    notifyListeners();
   }
 }
 
@@ -296,56 +296,63 @@ class EnsembleAccordionState extends EWidgetState<EnsembleAccordion> {
         return AccordionSection(
           isOpen: isOpen,
           headerBackgroundColor:
-              Utils.getColor(item['headerStyle']?['backgroundColor']) ??
+              Utils.getColor(item['styles']?['headerStyle']?['backgroundColor']) ??
                   widget.controller.headerStyle.backgroundColor,
           headerBackgroundColorOpened:
-              Utils.getColor(item['headerStyle']?['backgroundColorOpened']) ??
+              Utils.getColor(
+                  item['styles']?['headerStyle']?['backgroundColorOpened']) ??
                   widget.controller.headerStyle.backgroundColorOpened,
-          headerBorderColor:Utils.getColor(item['headerStyle']?['borderColor']) ??
+          headerBorderColor: Utils.getColor(
+                  item['styles']?['headerStyle']?['borderColor']) ??
               widget.controller.headerStyle.borderColor,
-          headerBorderColorOpened:
-              Utils.getColor(item['headerStyle']?['borderColorOpened']) ??
-                  widget.controller.headerStyle.borderColorOpened,
-          headerBorderWidth: Utils.optionalDouble(item['headerStyle']?['borderWidth']) ??
-              widget.controller.headerStyle.borderWidth,
+          headerBorderColorOpened: Utils.getColor(
+                  item['styles']?['headerStyle']?['borderColorOpened']) ??
+              widget.controller.headerStyle.borderColorOpened,
+          headerBorderWidth:
+              Utils.optionalDouble(item['styles']?['headerStyle']?['borderWidth']) ??
+                  widget.controller.headerStyle.borderWidth,
           headerBorderRadius:
-              Utils.optionalDouble(item['headerStyle']?['borderRadius']) ??
+              Utils.optionalDouble(item['styles']?['headerStyle']?['borderRadius']) ??
                   widget.controller.headerStyle.borderRadius,
-          headerPadding: Utils.optionalInsets(item['headerStyle']?['padding']) ??
-              widget.controller.headerStyle.padding,
+          headerPadding:
+              Utils.optionalInsets(item['styles']?['headerStyle']?['padding']) ??
+                  widget.controller.headerStyle.padding,
           contentBackgroundColor:
-              Utils.getColor(item['bodyStyle']?['backgroundColor']) ??
+              Utils.getColor(item['styles']?['bodyStyle']?['backgroundColor']) ??
                   widget.controller.bodyStyle.backgroundColor,
-          contentBorderColor: Utils.getColor(item['bodyStyle']?['borderColor']) ??
-              widget.controller.bodyStyle.borderColor,
+          contentBorderColor:
+              Utils.getColor(item['styles']?['bodyStyle']?['borderColor']) ??
+                  widget.controller.bodyStyle.borderColor,
           contentBorderWidth:
-              Utils.optionalDouble(item['bodyStyle']?['borderWidth']) ??
+              Utils.optionalDouble(item['styles']?['bodyStyle']?['borderWidth']) ??
                   widget.controller.bodyStyle.borderWidth,
           contentBorderRadius:
-              Utils.optionalDouble(item['bodyStyle']?['borderRadius'])  ??
+              Utils.optionalDouble(item['styles']?['bodyStyle']?['borderRadius']) ??
                   widget.controller.bodyStyle.borderRadius,
           contentHorizontalPadding:
-              Utils.optionalDouble(item['bodyStyle']?['horizontalPadding']) ??
+              Utils.optionalDouble(
+                      item['styles']?['bodyStyle']?['horizontalPadding']) ??
                   widget.controller.bodyStyle.horizontalPadding,
           contentVerticalPadding:
-              Utils.optionalDouble(item['bodyStyle']?['verticalPadding']) ??
+              Utils.optionalDouble(
+                      item['styles']?['bodyStyle']?['verticalPadding']) ??
                   widget.controller.bodyStyle.verticalPadding,
           leftIcon: _buildIcon(item['leftIcon']) ??
               _buildIcon(widget.controller.leftIcon),
           rightIcon: _buildIcon(item['rightIcon']) ??
               _buildIcon(widget.controller.rightIcon),
-          paddingBetweenOpenSections:
-              Utils.optionalDouble(item['paddingBetweenOpenSections']) ?? widget.controller.paddingBetweenOpenSections,
-          paddingBetweenClosedSections:
-              Utils.optionalDouble(item['paddingBetweenClosedSections']) ?? widget.controller.paddingBetweenClosedSections,
+          paddingBetweenOpenSections: Utils.optionalDouble(
+                  item['styles']?['paddingBetweenOpenSections']) ??
+              widget.controller.paddingBetweenOpenSections,
+          paddingBetweenClosedSections: Utils.optionalDouble(
+                  item['styles']?['paddingBetweenClosedSections']) ??
+              widget.controller.paddingBetweenClosedSections,
           header: _buildChildWidget(context, item['header']) ??
               Text('Section $index'),
           content: _buildChildWidget(context, item['body']) ??
               Text('body for section $index'),
           onOpenSection: () {
-            setState(() {
-              widget.controller.openSection(index);
-            });
+            widget.controller.openSection(index);
             if (item['onOpenSection'] != null) {
               final onOpenAction = EnsembleAction.from(item['onOpenSection'], initiator: widget);
               ScreenController().executeAction(
@@ -356,9 +363,7 @@ class EnsembleAccordionState extends EWidgetState<EnsembleAccordion> {
             }
           },
           onCloseSection: () {
-            setState(() {
-              widget.controller.closeSection(index);
-            });
+            widget.controller.closeSection(index);
             if (item['onCloseSection'] != null) {
               final onCloseAction = EnsembleAction.from(item['onCloseSection'], initiator: widget);
               ScreenController().executeAction(
