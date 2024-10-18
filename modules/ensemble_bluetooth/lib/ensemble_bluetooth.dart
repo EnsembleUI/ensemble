@@ -74,6 +74,7 @@ class BluetoothManagerImpl extends BluetoothManager {
     try {
       await FlutterBluePlus.startScan(
         timeout: const Duration(seconds: 15),
+        androidUsesFineLocation: true,
       );
       _scanResultsSubscription = FlutterBluePlus.scanResults.listen((results) {
         _scanResults = results;
@@ -86,8 +87,9 @@ class BluetoothManagerImpl extends BluetoothManager {
                       'name': e.advertisementData.advName,
                       'txPowerLevel': e.advertisementData.txPowerLevel,
                       'appearance': e.advertisementData.appearance,
-                      'serviceIds': e.advertisementData.serviceUuids,
-                      'serviceData': e.advertisementData.serviceData,
+                      'serviceIds': e.advertisementData.serviceUuids
+                          .map((e) => e.str)
+                          .toList(),
                     },
                   })
               .toList(),
@@ -122,15 +124,15 @@ class BluetoothManagerImpl extends BluetoothManager {
   }
 
   @override
-  Future<void> unSubscribe(String characteristicId) async {
+  Future<bool> unSubscribe(String characteristicId) async {
     for (var service in _bluetoothServices) {
       final c = service.characteristics.firstWhereOrNull(
           (element) => element.characteristicUuid.str == characteristicId);
       if (c != null) {
-        await c.setNotifyValue(false);
-        break;
+        return await c.setNotifyValue(false);
       }
     }
+    return false;
   }
 
   @override
@@ -152,7 +154,10 @@ class BluetoothManagerImpl extends BluetoothManager {
     );
 
     device?.connectionState.listen((event) async {
-      connectionState.call(event.name);
+      Future.delayed(
+        const Duration(seconds: 1),
+        () => connectionState.call(event.name),
+      );
 
       if (event == BluetoothConnectionState.connected) {
         _bluetoothServices = await device.discoverServices();

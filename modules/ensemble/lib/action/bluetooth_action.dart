@@ -1,5 +1,4 @@
 import 'package:ensemble/framework/action.dart';
-import 'package:ensemble/framework/bindings.dart';
 import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/stub/bluetooth.dart';
@@ -288,14 +287,14 @@ class SubscribeBluetoothCharacteristicsAction extends EnsembleAction {
 class UnSubscribeBluetoothCharacteristicsAction extends EnsembleAction {
   BluetoothManager bluetoothManager = GetIt.I<BluetoothManager>();
 
-  EnsembleAction? onError;
+  EnsembleAction? onComplete;
 
-  final String characteristicsId;
+  final String? characteristicsId;
 
   UnSubscribeBluetoothCharacteristicsAction(
       {super.initiator,
       super.inputs,
-      this.onError,
+      this.onComplete,
       required this.characteristicsId});
 
   factory UnSubscribeBluetoothCharacteristicsAction.from(
@@ -308,14 +307,22 @@ class UnSubscribeBluetoothCharacteristicsAction extends EnsembleAction {
     return UnSubscribeBluetoothCharacteristicsAction(
       initiator: initiator,
       inputs: Utils.getMap(payload?['inputs']),
-      onError: EnsembleAction.from(payload?['onError'], initiator: initiator),
-      characteristicsId: Utils.getString(payload?['id'], fallback: 'fallback'),
+      onComplete:
+          EnsembleAction.from(payload?['onError'], initiator: initiator),
+      characteristicsId: Utils.optionalString(payload?['id']),
     );
   }
 
   Future<dynamic> execute(
       BuildContext context, ScopeManager scopeManager) async {
     final charId = scopeManager.dataContext.eval(characteristicsId);
-    await bluetoothManager.unSubscribe(charId);
+    final isListening = await bluetoothManager.unSubscribe(charId);
+    if (onComplete != null) {
+      ScreenController().executeAction(context, onComplete!,
+          event: EnsembleEvent(
+            initiator,
+            data: {'isListening': !isListening},
+          ));
+    }
   }
 }
