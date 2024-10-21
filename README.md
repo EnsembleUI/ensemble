@@ -25,7 +25,7 @@ This monorepo contains the following modules:
 
 ## Getting Started
 - Ensemble comes bundled with the Starter (located in /starter) to run any Ensemble-powered apps.
-- First initialize the modules with `melos bootstrap`, then follow the instructions at [Starter README](/starter/README.md).
+- First initialize the modules with `melos bootstrap` (see section on Melos Integration below), then follow the instructions at [Starter README](/starter/README.md).
 
 ## Links
 
