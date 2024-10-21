@@ -148,19 +148,7 @@ class JsWidgetState extends State<JsWidget> {
         fit: StackFit.expand,
         children: [
           !_isLoaded ? widget.loader : const SizedBox.shrink(),
-          widget.listener != null
-              ? WebViewWidget(
-                  controller: controller,
-                  gestureRecognizers: <Factory<OneSequenceGestureRecognizer>>{
-                    Factory<OneSequenceGestureRecognizer>(
-                      () => TapGestureRecognizer()
-                        ..onTapDown = (TapDownDetails details) {
-                          // No need to manually handle tap here; JavaScript will send messages via JsBridge
-                        },
-                    ),
-                  },
-                )
-              : WebViewWidget(controller: controller),
+          WebViewWidget(controller: controller),
         ],
       ),
     );
