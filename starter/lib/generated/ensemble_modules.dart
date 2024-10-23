@@ -49,6 +49,10 @@ import 'package:get_it/get_it.dart';
 // Uncomment to enable deeplink services
 // import 'package:ensemble_deeplink/deferred_link_manager.dart';
 
+// Uncomment to enable push notifications services or Firebase Analytics
+// import 'package:flutter/foundation.dart';
+// import 'dart:io';
+
 /// TODO: This class should be generated to enable selected Services
 class EnsembleModules {
   static final EnsembleModules _instance = EnsembleModules._internal();
@@ -163,7 +167,7 @@ class EnsembleModules {
     }
     if (useFirebaseAnalytics) {
       //uncomment to enable firebase analytics
-      //GetIt.I.registerSingleton<LogProvider>(FirebaseAnalyticsProvider());
+      // GetIt.I.registerSingleton<LogProvider>(FirebaseAnalyticsProvider());
     } else {
       GetIt.I.registerSingleton<LogProvider>(LogProviderStub());
     }
