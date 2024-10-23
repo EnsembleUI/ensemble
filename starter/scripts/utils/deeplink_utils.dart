@@ -3,12 +3,11 @@ import 'dart:io';
 import '../utils.dart';
 
 // Function to update AndroidManifest.xml with deep link and Branch configuration.
-void updateAndroidManifestWithDeeplink(
-  String manifestFilePath, {
+void updateAndroidManifestWithDeeplink({
   required String scheme,
   required List<String> links,
 }) {
-  String manifestContent = readFileContent(manifestFilePath);
+  String manifestContent = readFileContent(androidManifestFilePath);
 
   // Update the launchMode for the main activity from "singleTop" to "singleTask"
   manifestContent = manifestContent.replaceFirst(
@@ -49,15 +48,14 @@ void updateAndroidManifestWithDeeplink(
     );
   }
   // Write the modified content back to the file
-  writeFileContent(manifestFilePath, manifestContent);
+  writeFileContent(androidManifestFilePath, manifestContent);
 }
 
 // Function to add a block of code above a specific line in Info.plist
-void addBlockAboveLineInInfoPlist(
-    String plistPath, String scheme, String lineToFind) {
-  File plistFile = File(plistPath);
+void addBlockAboveLineInInfoPlist(String scheme, String lineToFind) {
+  File plistFile = File(iosInfoPlistFilePath);
   if (!plistFile.existsSync()) {
-    throw Exception('Error: File does not exist at $plistPath');
+    throw Exception('Error: File does not exist at $iosInfoPlistFilePath');
   }
 
   String plistContent = plistFile.readAsStringSync();

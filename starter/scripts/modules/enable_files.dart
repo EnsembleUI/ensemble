@@ -62,24 +62,21 @@ ensemble_file_manager:
   try {
     // Update the ensemble_modules.dart file
     updateEnsembleModules(
-      ensembleModulesFilePath,
-      fileManagerStatements['moduleStatements']!,
-      fileManagerStatements['useStatements']!,
+      fileManagerStatements['moduleStatements'],
+      fileManagerStatements['useStatements'],
     );
 
     // Update the pubspec.yaml file
-    updatePubspec(pubspecFilePath, pubspecDependencies);
+    updatePubspec(pubspecDependencies);
 
     // Add the storage permissions to AndroidManifest.xml
     if (platforms.contains('android')) {
-      updateAndroidPermissions(androidManifestFilePath,
-          permissions: androidPermissions);
+      updateAndroidPermissions(permissions: androidPermissions);
     }
 
     // Add the required keys and descriptions to the Info.plist file for iOS
     if (platforms.contains('ios')) {
       updateIOSPermissions(
-        iosInfoPlistFilePath,
         iOSPermissions,
         arguments,
         additionalSettings: iOSAdditionalSettings,

@@ -31,13 +31,12 @@ ensemble_bracket:
   try {
     // Update the ensemble_modules.dart file
     updateEnsembleModules(
-      ensembleModulesFilePath,
       statements['moduleStatements'],
       statements['useStatements'],
     );
 
     // Update the pubspec.yaml file
-    updatePubspec(pubspecFilePath, pubspecDependencies);
+    updatePubspec(pubspecDependencies);
 
     print(
         'Bracket module enabled successfully for ${platforms.join(', ')}! 🎉');

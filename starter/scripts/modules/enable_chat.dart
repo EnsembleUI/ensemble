@@ -31,13 +31,12 @@ ensemble_chat:
   try {
     // Update the ensemble_modules.dart file
     updateEnsembleModules(
-      ensembleModulesFilePath,
       statements['moduleStatements'],
       statements['useStatements'],
     );
 
     // Update the pubspec.yaml file
-    updatePubspec(pubspecFilePath, pubspecDependencies);
+    updatePubspec(pubspecDependencies);
 
     print('Chat module enabled successfully for ${platforms.join(', ')}! 🎉');
     exit(0);

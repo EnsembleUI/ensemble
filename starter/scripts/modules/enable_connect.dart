@@ -38,23 +38,21 @@ ensemble_connect:
   try {
     // Update the ensemble_modules.dart file
     updateEnsembleModules(
-      ensembleModulesFilePath,
       statements['moduleStatements'],
       statements['useStatements'],
     );
 
     // Update the pubspec.yaml file
-    updatePubspec(pubspecFilePath, pubspecDependencies);
+    updatePubspec(pubspecDependencies);
 
     // Add the camera usage description to the iOS Info.plist file
     if (platforms.contains('ios')) {
-      updateIOSPermissions(iosInfoPlistFilePath, iOSPermissions, arguments);
+      updateIOSPermissions(iOSPermissions, arguments);
     }
 
     // Add the <script> tag to index.html for web platform
     if (platforms.contains('web')) {
       updateHtmlFile(
-        webIndexFilePath,
         '</head>',
         '<script src="https://cdn.plaid.com/link/v2/stable/link-initialize.js"></script>',
       );

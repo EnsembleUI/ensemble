@@ -45,24 +45,23 @@ ensemble_camera:
   try {
     // Update the ensemble_modules.dart file
     updateEnsembleModules(
-      ensembleModulesFilePath,
-      cameraStatements['moduleStatements']!,
-      cameraStatements['useStatements']!,
+      cameraStatements['moduleStatements'],
+      cameraStatements['useStatements'],
     );
 
     // Update the pubspec.yaml file
-    updatePubspec(pubspecFilePath, pubspecDependencies);
+    updatePubspec(pubspecDependencies);
 
     // Add the camera permissions to AndroidManifest.xml
     if (platforms.contains('android')) {
-      updateAndroidPermissions(androidManifestFilePath, permissions: [
+      updateAndroidPermissions(permissions: [
         '<uses-permission android:name="android.permission.CAMERA" />'
       ]);
     }
 
     // Add the camera usage description to the iOS Info.plist file
     if (platforms.contains('ios')) {
-      updateIOSPermissions(iosInfoPlistFilePath, iOSPermissions, arguments);
+      updateIOSPermissions(iOSPermissions, arguments);
     }
 
     print('Camera module enabled successfully for ${platforms.join(', ')}! 🎉');

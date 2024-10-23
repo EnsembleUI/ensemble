@@ -63,12 +63,11 @@ void writeFileContent(String filePath, String content) {
 }
 
 // Add permission descriptions to Info.plist
-void addPermissionDescriptionToInfoPlist(
-    String plistPath, String key, dynamic description,
+void addPermissionDescriptionToInfoPlist(String key, dynamic description,
     {bool isArray = false, bool isBoolean = false, bool isDict = false}) {
-  File plistFile = File(plistPath);
+  File plistFile = File(iosInfoPlistFilePath);
   if (!plistFile.existsSync()) {
-    throw Exception('Error: File does not exist at $plistPath');
+    throw Exception('Error: File does not exist at $iosInfoPlistFilePath');
   }
 
   String plistContent = plistFile.readAsStringSync();
@@ -164,9 +163,9 @@ String toRegexPattern(String statement, {bool isBoolean = false}) {
 }
 
 // Update ensemble_modules.dart file
-void updateEnsembleModules(String filePath, List<String>? codeStatements,
-    List<String>? useStatements) {
-  String content = readFileContent(filePath);
+void updateEnsembleModules(
+    List<String>? codeStatements, List<String>? useStatements) {
+  String content = readFileContent(ensembleModulesFilePath);
 
   // Process code statements (imports and register statements)
   if (codeStatements != null && codeStatements.isNotEmpty) {
@@ -184,26 +183,25 @@ void updateEnsembleModules(String filePath, List<String>? codeStatements,
     }
   }
 
-  writeFileContent(filePath, content);
+  writeFileContent(ensembleModulesFilePath, content);
 }
 
 // Update pubspec.yaml file and throw error if content is not updated
-void updatePubspec(
-    String filePath, List<Map<String, String>> pubspecDependencies) {
-  String pubspecContent = readFileContent(filePath);
+void updatePubspec(List<Map<String, String>> pubspecDependencies) {
+  String pubspecContent = readFileContent(pubspecFilePath);
 
   for (var statementObj in pubspecDependencies) {
     pubspecContent = updateContent(pubspecContent, statementObj['regex'] ?? '',
         statementObj['statement'] ?? '');
   }
 
-  writeFileContent(filePath, pubspecContent);
+  writeFileContent(pubspecFilePath, pubspecContent);
 }
 
 // Update AndroidManifest.xml with permissions and throw error if not updated
-void updateAndroidPermissions(String manifestFilePath,
+void updateAndroidPermissions(
     {List<String>? permissions, List<String>? metaData}) {
-  String manifestContent = readFileContent(manifestFilePath);
+  String manifestContent = readFileContent(androidManifestFilePath);
 
   if (permissions != null && permissions.isNotEmpty) {
     String comment =
@@ -235,11 +233,11 @@ void updateAndroidPermissions(String manifestFilePath,
     }
   }
 
-  writeFileContent(manifestFilePath, manifestContent);
+  writeFileContent(androidManifestFilePath, manifestContent);
 }
 
 // Update Info.plist for iOS with permissions and descriptions
-void updateIOSPermissions(String plistFilePath,
+void updateIOSPermissions(
     List<Map<String, String>> iOSPermissions, List<String> arguments,
     {List<Map<String, dynamic>> additionalSettings = const []}) {
   for (var permission in iOSPermissions) {
@@ -247,47 +245,44 @@ void updateIOSPermissions(String plistFilePath,
 
     if (paramValue != null && paramValue.isNotEmpty) {
       addPermissionDescriptionToInfoPlist(
-          plistFilePath, permission['value'] ?? '', paramValue);
+          permission['value'] ?? '', paramValue);
     }
   }
 
   // Process additional settings (arrays, booleans, etc.) if provided
   for (var setting in additionalSettings) {
     if (setting['isArray'] == true) {
-      addPermissionDescriptionToInfoPlist(
-          plistFilePath, setting['key'], setting['value'],
+      addPermissionDescriptionToInfoPlist(setting['key'], setting['value'],
           isArray: true);
     } else if (setting['isBoolean'] == true) {
-      addPermissionDescriptionToInfoPlist(
-          plistFilePath, setting['key'], setting['value'],
+      addPermissionDescriptionToInfoPlist(setting['key'], setting['value'],
           isBoolean: true);
     } else {
-      addPermissionDescriptionToInfoPlist(
-          plistFilePath, setting['key'], setting['value']);
+      addPermissionDescriptionToInfoPlist(setting['key'], setting['value']);
     }
   }
 }
 
 // To update an HTML file with a new content before a specific marker (like </head>)
-void updateHtmlFile(String filePath, String marker, String contentToAdd) {
+void updateHtmlFile(String marker, String contentToAdd) {
   // Check if the HTML file exists
-  if (!File(filePath).existsSync()) {
-    throw Exception('Error: $filePath not found');
+  if (!File(webIndexFilePath).existsSync()) {
+    throw Exception('Error: $webIndexFilePath not found');
   }
 
-  String content = File(filePath).readAsStringSync();
+  String content = File(webIndexFilePath).readAsStringSync();
 
   if (!content.contains(contentToAdd)) {
     // Insert the new content before the marker (e.g., </head>)
     content = content.replaceFirst(marker, '  $contentToAdd\n$marker');
-    File(filePath).writeAsStringSync(content);
+    File(webIndexFilePath).writeAsStringSync(content);
   }
 }
 
-void updatePropertiesFile(String filePath, String key, String value) {
-  File propertiesFile = File(filePath);
+void updatePropertiesFile(String key, String value) {
+  File propertiesFile = File(ensemblePropertiesFilePath);
   if (!propertiesFile.existsSync()) {
-    throw Exception('Error: $filePath not found.');
+    throw Exception('Error: $ensemblePropertiesFilePath not found.');
   }
 
   List<String> lines = propertiesFile.readAsLinesSync();
@@ -308,10 +303,10 @@ void updatePropertiesFile(String filePath, String key, String value) {
   propertiesFile.writeAsStringSync(lines.join('\n').trim());
 }
 
-void updateAppDelegateForGoogleMaps(String filePath, String googleMapsApiKey) {
-  File appDelegateFile = File(filePath);
+void updateAppDelegateForGoogleMaps(String googleMapsApiKey) {
+  File appDelegateFile = File(appDelegatePath);
   if (!appDelegateFile.existsSync()) {
-    throw Exception('Error: $filePath not found.');
+    throw Exception('Error: $appDelegatePath not found.');
   }
 
   // Read the file content
@@ -340,14 +335,13 @@ extension StringExtensions on String {
 
 // Function to update the Runner.entitlements file with the given keys and values.
 void updateRunnerEntitlements({
-  required String entitlementsFilePath,
-  required String module,
+  String module = 'deeplink',
   List<String>? deeplinkLinks,
 }) {
-  File entitlementsFile = File(entitlementsFilePath);
+  File entitlementsFile = File(runnerEntitlementsPath);
   if (!entitlementsFile.existsSync()) {
     throw Exception(
-        'Error: Runner.entitlements file does not exist at $entitlementsFilePath');
+        'Error: Runner.entitlements file does not exist at $runnerEntitlementsPath');
   }
 
   String entitlementsContent = entitlementsFile.readAsStringSync();

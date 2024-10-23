@@ -40,23 +40,21 @@ ensemble_contacts:
   try {
     // Update the ensemble_modules.dart file
     updateEnsembleModules(
-      ensembleModulesFilePath,
-      contactsStatements['moduleStatements']!,
-      contactsStatements['useStatements']!,
+      contactsStatements['moduleStatements'],
+      contactsStatements['useStatements'],
     );
 
     // Update the pubspec.yaml file
-    updatePubspec(pubspecFilePath, pubspecDependencies);
+    updatePubspec(pubspecDependencies);
 
     // Add the contacts permissions to AndroidManifest.xml
     if (platforms.contains('android')) {
-      updateAndroidPermissions(androidManifestFilePath,
-          permissions: androidPermissions);
+      updateAndroidPermissions(permissions: androidPermissions);
     }
 
     // Add the contacts usage description to the iOS Info.plist file
     if (platforms.contains('ios')) {
-      updateIOSPermissions(iosInfoPlistFilePath, iOSPermissions, arguments);
+      updateIOSPermissions(iOSPermissions, arguments);
     }
 
     print(

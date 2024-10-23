@@ -58,37 +58,34 @@ ensemble_location:
   try {
     // Update the ensemble_modules.dart file
     updateEnsembleModules(
-      ensembleModulesFilePath,
       statements['moduleStatements'],
       statements['useStatements'],
     );
 
     // Update the pubspec.yaml file
-    updatePubspec(pubspecFilePath, pubspecDependencies);
+    updatePubspec(pubspecDependencies);
 
     // Add the location permissions to AndroidManifest.xml
     if (platforms.contains('android')) {
-      updateAndroidPermissions(androidManifestFilePath,
-          permissions: androidPermissions);
+      updateAndroidPermissions(permissions: androidPermissions);
     }
 
     // Add the location usage description to the iOS Info.plist file
     if (platforms.contains('ios')) {
-      updateIOSPermissions(iosInfoPlistFilePath, iOSPermissions, arguments);
+      updateIOSPermissions(iOSPermissions, arguments);
     }
 
     // Update Google Maps API key if available
     if (hasGoogleMaps == true) {
       if (platforms.contains('android') && googleMapsApiKeyAndroid != null) {
-        updatePropertiesFile(ensemblePropertiesFilePath, 'googleMapsAPIKey',
-            googleMapsApiKeyAndroid);
+        updatePropertiesFile('googleMapsAPIKey', googleMapsApiKeyAndroid);
       }
       if (platforms.contains('ios') && googleMapsApiKeyIOS != null) {
-        updateAppDelegateForGoogleMaps(appDelegatePath, googleMapsApiKeyIOS);
+        updateAppDelegateForGoogleMaps(googleMapsApiKeyIOS);
       }
 
       if (platforms.contains('web') && googleMapsApiKeyWeb != null) {
-        updateHtmlFile(webIndexFilePath, '</head>',
+        updateHtmlFile('</head>',
             '<script src="https://maps.googleapis.com/maps/api/js?key=$googleMapsApiKeyWeb"></script>');
       }
     }

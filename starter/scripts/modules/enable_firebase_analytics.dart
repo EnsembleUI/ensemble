@@ -34,7 +34,6 @@ ensemble_firebase_analytics:
   try {
     // Update the ensemble_modules.dart file
     updateEnsembleModules(
-      ensembleModulesFilePath,
       statements['moduleStatements'],
       statements['useStatements'],
     );
@@ -43,7 +42,7 @@ ensemble_firebase_analytics:
     updateFirebaseInitialization(platforms, arguments, firebaseAnalytics: true);
 
     // Update the pubspec.yaml file
-    updatePubspec(pubspecFilePath, pubspecDependencies);
+    updatePubspec(pubspecDependencies);
 
     print(
         'Firebase Analytics module enabled successfully for ${platforms.join(', ')}! 🎉');

@@ -73,27 +73,23 @@ ensemble_deeplink:
   try {
     // Update the ensemble_modules.dart file
     updateEnsembleModules(
-      ensembleModulesFilePath,
       statements['moduleStatements'],
       statements['useStatements'],
     );
 
     // Update the pubspec.yaml file
-    updatePubspec(pubspecFilePath, pubspecDependencies);
+    updatePubspec(pubspecDependencies);
 
     // Inject the Branch.io script for the web platform
     if (platforms.contains('web')) {
       updateHtmlFile(
-        webIndexFilePath,
         '</head>',
         branchScript,
       );
     }
 
-    updatePropertiesFile(
-        ensemblePropertiesFilePath, 'branchTestKey', branchIOTestKey);
-    updatePropertiesFile(
-        ensemblePropertiesFilePath, 'branchLiveKey', branchIOLiveKey);
+    updatePropertiesFile('branchTestKey', branchIOTestKey);
+    updatePropertiesFile('branchLiveKey', branchIOLiveKey);
 
     // Modify AndroidManifest.xml for deep linking
     if (platforms.contains('android')) {
@@ -102,10 +98,8 @@ ensemble_deeplink:
         '<meta-data android:name="io.branch.sdk.BranchKey.test" android:value="$branchIOTestKey" />',
         '<meta-data android:name="io.branch.sdk.TestMode" android:value="${useTestKey.toString().capitalize()}" />',
       ];
-      updateAndroidPermissions(androidManifestFilePath,
-          metaData: branchMetaData);
+      updateAndroidPermissions(metaData: branchMetaData);
       updateAndroidManifestWithDeeplink(
-        androidManifestFilePath,
         scheme: scheme ?? '',
         links: links,
       );
@@ -114,14 +108,12 @@ ensemble_deeplink:
     // Modify Info.plist for deep linking on iOS
     if (platforms.contains('ios')) {
       addPermissionDescriptionToInfoPlist(
-        iosInfoPlistFilePath,
         'branch_universal_link_domains',
         links,
         isArray: true,
       );
 
       addPermissionDescriptionToInfoPlist(
-        iosInfoPlistFilePath,
         'branch_key',
         {
           'live': branchIOLiveKey,
@@ -131,13 +123,11 @@ ensemble_deeplink:
       );
 
       addBlockAboveLineInInfoPlist(
-        iosInfoPlistFilePath,
         scheme ?? '',
         '<!-- Google Sign in, replace with your URL scheme -->',
       );
 
       updateRunnerEntitlements(
-        entitlementsFilePath: runnerEntitlementsPath,
         module: 'deeplink',
         deeplinkLinks: links,
       );

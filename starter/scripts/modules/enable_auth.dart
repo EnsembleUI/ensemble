@@ -44,13 +44,12 @@ ensemble_auth:
   try {
     // Update the ensemble_modules.dart file
     updateEnsembleModules(
-      ensembleModulesFilePath,
       statements['moduleStatements'],
       statements['useStatements'],
     );
 
     // Update the pubspec.yaml file
-    updatePubspec(pubspecFilePath, pubspecDependencies);
+    updatePubspec(pubspecDependencies);
 
     // Update the auth module configuration in ensemble-config.yaml
     updateAuthConfig(iOSClientId, androidClientId, webClientId, serverClientId);
@@ -61,7 +60,7 @@ ensemble_auth:
     }
 
     if (platforms.contains('web') && webClientId.isNotEmpty) {
-      updateHtmlFile(webIndexFilePath, '</head>',
+      updateHtmlFile('</head>',
           '<meta name="google-signin-client_id" content="$webClientId">');
     }
 
@@ -111,8 +110,7 @@ void updateAuthConfig(String iOSClientId, String androidClientId,
 
 void updateInfoPlist(String iOSClientId) {
   try {
-    final file = File(
-        iosInfoPlistFilePath); // Provide the correct path to your Info.plist
+    final file = File(iosInfoPlistFilePath);
     if (!file.existsSync()) {
       throw Exception('Info.plist file not found.');
     }

@@ -27,9 +27,8 @@ void main(List<String> arguments) {
   try {
     // Update the ensemble_modules.dart file
     updateEnsembleModules(
-      ensembleModulesFilePath,
-      statements['moduleStatements']!,
-      statements['useStatements']!,
+      statements['moduleStatements'],
+      statements['useStatements'],
     );
 
     // Generate Firebase configuration based on platform
@@ -37,14 +36,13 @@ void main(List<String> arguments) {
 
     // Configure Android-specific settings
     if (platforms.contains('android')) {
-      updateAndroidPermissions(androidManifestFilePath,
+      updateAndroidPermissions(
           permissions: androidPermissions, metaData: notificationsMetaData);
     }
 
     // Configure iOS-specific settings
     if (platforms.contains('ios')) {
       updateRunnerEntitlements(
-        entitlementsFilePath: runnerEntitlementsPath,
         module: 'notifications',
       );
     }
