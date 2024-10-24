@@ -113,21 +113,21 @@ class bodyStyleComposite extends WidgetCompositeProperty {
   Map<String, Function> methods() => {};
 }
 
-class Collapsible extends StatefulWidget
+class EnsembleAccordion extends StatefulWidget
     with
         Invokable,
-        HasController<CollapsibleController, CollapsibleState> {
-  static const type = 'Collapsible';
+        HasController<EnsembleAccordionController, EnsembleAccordionState> {
+  static const type = 'Accordion';
 
-  Collapsible({Key? key}) : super(key: key);
+  EnsembleAccordion({Key? key}) : super(key: key);
 
-  final CollapsibleController _controller = CollapsibleController();
-
-  @override
-  CollapsibleController get controller => _controller;
+  final EnsembleAccordionController _controller = EnsembleAccordionController();
 
   @override
-  State<StatefulWidget> createState() => CollapsibleState();
+  EnsembleAccordionController get controller => _controller;
+
+  @override
+  State<StatefulWidget> createState() => EnsembleAccordionState();
 
   @override
   Map<String, Function> getters() {
@@ -142,7 +142,7 @@ class Collapsible extends StatefulWidget
   Map<String, Function> setters() {
     return {
       'items': (value) => _controller.items = List<Map>.from(value),
-      'isAccordion': (value) => _controller.isAccordion = Utils.getBool(value, fallback: true),
+      'limitExpandedToOne': (value) => _controller.limitExpandedToOne = Utils.getBool(value, fallback: true),
       'initialOpeningSequenceDelay': (value) =>
           _controller.initialOpeningSequenceDelay = Utils.optionalInt(value),
       'headerStyle': (value) => _controller.headerStyle = HeaderStyleComposite.from(controller, value),
@@ -183,9 +183,9 @@ class Collapsible extends StatefulWidget
   }
 }
 
-class CollapsibleController extends BoxController {
+class EnsembleAccordionController extends BoxController {
   List<Map> items = [];
-  bool isAccordion = true;
+  bool limitExpandedToOne = true;
   int? initialOpeningSequenceDelay;
   HeaderStyleComposite? _headerStyle;
   bodyStyleComposite? _bodyStyle;
@@ -217,7 +217,7 @@ class CollapsibleController extends BoxController {
   List<int> get openSections => _openSections.value;
 
   void openSection(int index) {
-    if (isAccordion) {
+    if (limitExpandedToOne) {
       _openSections.value = [index];
     } else {
       final newOpenSections = List<int>.from(_openSections.value);
@@ -237,7 +237,7 @@ class CollapsibleController extends BoxController {
   }
 }
 
-class CollapsibleState extends EWidgetState<Collapsible> {
+class EnsembleAccordionState extends EWidgetState<EnsembleAccordion> {
 
   @override
   void initState() {
@@ -254,7 +254,7 @@ class CollapsibleState extends EWidgetState<Collapsible> {
   @override
   Widget buildWidget(BuildContext context) {
     return Accordion(
-      maxOpenSections: widget.controller.isAccordion ? 1 : widget.controller.items.length,
+      maxOpenSections: widget.controller.limitExpandedToOne ? 1 : widget.controller.items.length,
       initialOpeningSequenceDelay:
           widget.controller.initialOpeningSequenceDelay ?? 0,
       headerBackgroundColor:

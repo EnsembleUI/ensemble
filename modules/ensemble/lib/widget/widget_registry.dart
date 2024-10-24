@@ -62,7 +62,7 @@ import 'package:ensemble/widget/toggle_button.dart';
 import 'package:ensemble/widget/tooltip.dart';
 import 'package:ensemble/widget/video.dart';
 import 'package:ensemble/widget/slidable.dart';
-import 'package:ensemble/widget/collapsible.dart';
+import 'package:ensemble/widget/EnsembleAccordion.dart';
 import 'package:ensemble/widget/visualization/barchart.dart';
 import 'package:ensemble/widget/visualization/chart_js.dart';
 import 'package:ensemble/widget/visualization/line_area_chart.dart';
@@ -140,7 +140,7 @@ class WidgetRegistry {
         EnsembleCalendar.type: () => EnsembleCalendar(),
         Countdown.type: () => Countdown(),
         ToolTip.type: () => ToolTip(),
-        Collapsible.type: () => Collapsible(),
+        EnsembleAccordion.type: () => EnsembleAccordion(),
 
         // form fields
         RadioButton.type: () => RadioButton(),
