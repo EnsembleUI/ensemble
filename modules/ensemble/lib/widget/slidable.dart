@@ -139,14 +139,18 @@ class EnsembleSlidableState extends EWidgetState<EnsembleSlidable> {
 
       return SlidableAction(
         onPressed: (context) {
-          if (action['onPressed'] != null) {
+          if (action['onTap'] != null) {
             final onPressedAction =
-                EnsembleAction.from(action['onPressed'], initiator: widget);
-            ScreenController().executeAction(
-              context,
-              onPressedAction!,
-              event: EnsembleEvent(widget),
-            );
+                EnsembleAction.from(action['onTap'], initiator: widget);
+            if (onPressedAction != null) {
+              ScreenController().executeAction(
+                context,
+                onPressedAction,
+                event: EnsembleEvent(widget),
+              );
+            } else {
+              debugPrint('Warning: Failed to create action from onTap handler');
+            }
           }
         },
         backgroundColor:
