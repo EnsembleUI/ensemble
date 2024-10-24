@@ -61,7 +61,7 @@ import 'package:ensemble/widget/text.dart';
 import 'package:ensemble/widget/toggle_button.dart';
 import 'package:ensemble/widget/tooltip.dart';
 import 'package:ensemble/widget/video.dart';
-import 'package:ensemble/widget/EnsembleAccordion.dart';
+import 'package:ensemble/widget/accordion.dart';
 import 'package:ensemble/widget/visualization/barchart.dart';
 import 'package:ensemble/widget/visualization/chart_js.dart';
 import 'package:ensemble/widget/visualization/line_area_chart.dart';
