@@ -30,7 +30,7 @@ abstract class BluetoothManager {
   void disconnect({required String deviceId});
   Future<void> subscribe(
       String characteristicId, DataReceivedCallback onDataReceive);
-  Future<void> unSubscribe(String characteristicId);
+  Future<bool> unSubscribe(String characteristicId);
 
   void dispose() {}
 }
@@ -86,7 +86,7 @@ class BluetoothManagerStub implements BluetoothManager {
   }
 
   @override
-  Future<void> unSubscribe(String characteristicId) {
+  Future<bool> unSubscribe(String characteristicId) {
     throw ConfigError(
         "Bluetooth module is not enabled. Please review the Ensemble documentation.");
   }
