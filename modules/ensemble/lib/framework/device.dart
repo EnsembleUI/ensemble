@@ -41,6 +41,7 @@ class Device
       // Media Query
       "width": () => screenWidth,
       "height": () => screenHeight,
+      "orientation": () => screenOrientation,
       "safeAreaTop": () => safeAreaTop,
       "safeAreaBottom": () => safeAreaBottom,
 
@@ -95,6 +96,7 @@ mixin MediaQueryCapability {
 
   int get screenWidth => _getData().size.width.toInt();
   int get screenHeight => _getData().size.height.toInt();
+  String get screenOrientation => _getData().orientation.toString();
   int get safeAreaTop => _getData().padding.top.toInt();
   int get safeAreaBottom => _getData().padding.bottom.toInt();
 }
