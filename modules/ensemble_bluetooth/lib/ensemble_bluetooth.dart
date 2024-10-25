@@ -21,7 +21,8 @@ class BluetoothManagerImpl extends BluetoothManager {
 
   StreamSubscription<BluetoothAdapterState>? _adapterStateSubscription;
   StreamSubscription<List<ScanResult>>? _scanResultsSubscription;
-  final Map<String, StreamSubscription<BluetoothConnectionState>> _connectionStateSubscriptions = {};
+  final Map<String, StreamSubscription<BluetoothConnectionState>>
+      _connectionStateSubscriptions = {};
   final Map<String, StreamSubscription> _characteristicValueSubscriptions = {};
 
   factory BluetoothManagerImpl() {
@@ -139,7 +140,8 @@ class BluetoothManagerImpl extends BluetoothManager {
         if (c != null) {
           await c.setNotifyValue(true);
           _characteristicValueSubscriptions[characteristicId]?.cancel();
-          _characteristicValueSubscriptions[characteristicId] = c.onValueReceived.listen((value) {
+          _characteristicValueSubscriptions[characteristicId] =
+              c.onValueReceived.listen((value) {
             final data = utf8.decode(value);
             onDataReceive.call(data);
           }, onError: (error) {
@@ -182,13 +184,7 @@ class BluetoothManagerImpl extends BluetoothManager {
     required int timeout,
   }) async {
     try {
-      final device = _scanResults
-          .firstWhereOrNull((element) => element.device.remoteId.str == deviceId)
-          ?.device;
-
-      if (device == null) {
-        throw Exception('Device not found: $deviceId');
-      }
+      final device = BluetoothDevice.fromId(deviceId);
 
       await device.connect(
         autoConnect: autoConnect,
@@ -197,12 +193,14 @@ class BluetoothManagerImpl extends BluetoothManager {
       );
 
       _connectionStateSubscriptions[deviceId]?.cancel();
-      _connectionStateSubscriptions[deviceId] = device.connectionState.listen((event) async {
+      _connectionStateSubscriptions[deviceId] =
+          device.connectionState.listen((event) async {
         if (event == BluetoothConnectionState.connected) {
           _bluetoothServices = await device.discoverServices();
           final data = _bluetoothServices
               .map((e) => {
                     'serviceId': e.serviceUuid.str,
+                    'connectionStatus': event.name,
                     'characteristics': e.characteristics
                         .map((e) => {
                               'id': e.characteristicUuid.str,
@@ -229,17 +227,10 @@ class BluetoothManagerImpl extends BluetoothManager {
   }
 
   @override
-  void disconnect({required String deviceId}) {
+  Future<void> disconnect({required String deviceId}) async {
     try {
-      final device = _scanResults
-          .firstWhereOrNull((element) => element.device.remoteId.str == deviceId)
-          ?.device;
-
-      if (device == null) {
-        throw Exception('Device not found: $deviceId');
-      }
-
-      device.disconnect();
+      final device = BluetoothDevice.fromId(deviceId);
+      await device.disconnect();
       _connectionStateSubscriptions[deviceId]?.cancel();
       _connectionStateSubscriptions.remove(deviceId);
     } catch (e) {

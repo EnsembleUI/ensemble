@@ -273,6 +273,7 @@ class DisconnectBluetoothAction extends EnsembleAction {
 class SubscribeBluetoothCharacteristicsAction extends EnsembleAction {
   BluetoothManager bluetoothManager = GetIt.I<BluetoothManager>();
 
+  EnsembleAction? onComplete;
   EnsembleAction? onError;
   EnsembleAction? onDataStream;
 
@@ -282,6 +283,7 @@ class SubscribeBluetoothCharacteristicsAction extends EnsembleAction {
       {super.initiator,
       super.inputs,
       this.onError,
+      this.onComplete,
       this.onDataStream,
       required this.characteristicsId});
 
@@ -295,6 +297,8 @@ class SubscribeBluetoothCharacteristicsAction extends EnsembleAction {
     return SubscribeBluetoothCharacteristicsAction(
       initiator: initiator,
       inputs: Utils.getMap(payload?['inputs']),
+      onComplete:
+          EnsembleAction.from(payload?['onComplete'], initiator: initiator),
       onError: EnsembleAction.from(payload?['onError'], initiator: initiator),
       onDataStream:
           EnsembleAction.from(payload?['onDataStream'], initiator: initiator),
@@ -328,13 +332,22 @@ class SubscribeBluetoothCharacteristicsAction extends EnsembleAction {
         }
         return null;
       });
+
+      if (onComplete != null) {
+        ScreenController().executeAction(context, onComplete!,
+            event: EnsembleEvent(
+              initiator,
+              data: {'isListening': true},
+            ));
+      }
     } catch (e) {
       if (onError != null) {
         return ScreenController().executeAction(context, onError!,
             event: EnsembleEvent(
               initiator,
-              error: 'Error subscribing to Bluetooth characteristics: ${e.toString()}',
-              data: {'status': 'error'},
+              error:
+                  'Error subscribing to Bluetooth characteristics: ${e.toString()}',
+              data: {'status': 'error', 'isListening': false},
             ));
       }
     }
@@ -390,7 +403,8 @@ class UnSubscribeBluetoothCharacteristicsAction extends EnsembleAction {
         return ScreenController().executeAction(context, onError!,
             event: EnsembleEvent(
               initiator,
-              error: 'Error unsubscribing from Bluetooth characteristics: ${e.toString()}',
+              error:
+                  'Error unsubscribing from Bluetooth characteristics: ${e.toString()}',
               data: {'status': 'error'},
             ));
       }
