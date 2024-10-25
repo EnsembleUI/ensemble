@@ -68,7 +68,8 @@ When hosting on your server, follow the following steps.
 - make sure that your server is configured to serve files with extension `.ensemble` with `text/yaml` mime-type.
 - lastly if you are running `flutter run` with web configuration locally, make sure your webserver is properly configured to avoid CORS issues. See `custom_http_server.py` for an example
 
-- You can also use the sample python server script to test it out locally, see `custom_http_server.py` and run it as `python3 custom_http_server.py` from command prompt. 
+- You can also use the sample python server script to test it out locally, see `custom_http_server.py` and run it as `python3 custom_http_server.py` from command prompt.
+- Alternatively, you can build starter for web as `flutter build web --no-tree-shake-icons --base-href "/web/"`. Then copy/paste the starter/build/web folder under the root directory on your localhost and access it as - `<domain>:<port>/web/index.html` This should avoid the CORS issue. 
 
 ### For Flutter developers
 Use [Android Studio](https://developer.android.com/studio) to open this project and run `main.dart`.

@@ -60,10 +60,16 @@ class UploadUtils {
           lookupMimeType(file.path ?? '', headerBytes: file.bytes) ??
               'application/octet-stream';
       if (file.bytes != null) {
-        multipartFile = http.MultipartFile.fromBytes(fieldName, file.bytes!,
-            filename: file.name, contentType: MediaType.parse(mimeType));
+        final mediaType = MediaType.parse(mimeType);
+        final filename = file.name?.isNotEmpty ?? false
+            ? file.name
+            : generateFileName(mediaType);
+        multipartFile = http.MultipartFile.fromBytes(
+            file.fieldName ?? fieldName, file.bytes!,
+            filename: filename, contentType: mediaType);
       } else if (file.path != null) {
-        multipartFile = await http.MultipartFile.fromPath(fieldName, file.path!,
+        multipartFile = await http.MultipartFile.fromPath(
+            file.fieldName ?? fieldName, file.path!,
             filename: file.name, contentType: MediaType.parse(mimeType));
       } else {
         debugPrint('Failed to add ${file.name} ${file.ext} ${file.path}');
@@ -79,16 +85,22 @@ class UploadUtils {
     try {
       final response = await request.send();
 
-      if (response.statusCode >= 200 && response.statusCode <= 300) {
-        final res = await http.Response.fromStream(response);
+      final res = await http.Response.fromStream(response);
+      if (res.statusCode >= 200 && res.statusCode <= 300) {
         return HttpResponse(res, APIState.success);
       } else {
-        throw Exception('Failed to upload file');
+        throw Exception(
+            'uploadFile: Failed to upload files \nserver response:\n${res.body}');
       }
     } catch (error) {
       onError?.call(error);
     }
     return null;
+  }
+
+  static generateFileName(MediaType mediaType) {
+    final timestamp = DateTime.now().millisecondsSinceEpoch;
+    return '${mediaType.type}_$timestamp.${mediaType.subtype}';
   }
 }
 
