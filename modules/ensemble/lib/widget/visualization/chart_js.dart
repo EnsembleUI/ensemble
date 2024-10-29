@@ -1,15 +1,14 @@
-import 'dart:convert';
+import 'dart:io';
 import 'dart:math';
-import 'package:ensemble/framework/action.dart';
-import 'package:ensemble/framework/event.dart';
-import 'package:ensemble/screen_controller.dart';
-import 'package:ensemble_ts_interpreter/parser/newjs_interpreter.dart';
-import 'package:flutter/material.dart';
-import 'package:js_widget/js_widget.dart';
+
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
+import 'package:ensemble_ts_interpreter/parser/newjs_interpreter.dart';
+import 'package:flutter/material.dart';
+import 'package:js_widget/js_widget.dart';
+import 'dart:convert';
 
 class ChartJsController extends WidgetController {
   ChartJsController() {
@@ -22,7 +21,6 @@ class ChartJsController extends WidgetController {
   String get chartId => id!;
   dynamic config = '';
   Function? evalScript;
-  EnsembleAction? onTap;
 }
 
 class ChartJs extends StatefulWidget
@@ -127,9 +125,7 @@ class ChartJs extends StatefulWidget
         } else {
           _controller.config = value;
         }
-      },
-      'onTap': (funcDefinition) => _controller.onTap =
-          EnsembleAction.from(funcDefinition, initiator: this), 
+      }
     };
   }
 }
@@ -165,72 +161,15 @@ class ChartJsState extends EWidgetState<ChartJs> {
       id: widget.controller.id!,
       createHtmlTag: () =>
           '<div id="${widget.controller.chartDiv}"><canvas id="${widget.controller.chartId}"></canvas></div>',
-      scriptToInstantiate: (String config) {
-        return '''
-          if (typeof ${widget.controller.chartVar} !== "undefined") {
-            ${widget.controller.chartVar}.destroy();
-          }
-          ${widget.controller.chartVar} = new Chart(document.getElementById("${widget.controller.chartId}"), $config);
-
-          // Add click event listener to the chart
-          document.getElementById("${widget.controller.chartId}").onclick = function(event) {
-            var activePoints = ${widget.controller.chartVar}.getElementsAtEventForMode(event, 'nearest', { intersect: true }, true);
-            if (activePoints.length > 0) {
-              var firstPoint = activePoints[0];
-              var datasetIndex = firstPoint.datasetIndex;
-              var index = firstPoint.index;
-              var dataset = ${widget.controller.chartVar}.data.datasets[datasetIndex] || {};
-              var label = ${widget.controller.chartVar}.data.labels[index] || '';
-              var value = dataset.data ? dataset.data[index] : '';
-              var datasetLabel = dataset.label || '';
-              var backgroundColor = dataset.backgroundColor || '';
-              var borderColor = dataset.borderColor || '';
-              var x = firstPoint.element.x || 0;
-              var y = firstPoint.element.y || 0;
-              var chartType = ${widget.controller.chartVar}.config.type || '';
-              // Serialize options safely
-              var options = JSON.parse(JSON.stringify(${widget.controller.chartVar}.options, function(key, value) {
-                if (typeof value === 'function') {
-                  return value.toString();
-                }
-                return value;
-              })) || {};
-              var data = {
-                label: label,
-                value: value,
-                datasetLabel: datasetLabel,
-                datasetIndex: datasetIndex,
-                index: index,
-                backgroundColor: backgroundColor,
-                borderColor: borderColor,
-                x: x,
-                y: y,
-                chartType: chartType,
-                options: options
-              };
-              if (window.sendMessageToFlutter) {
-                window.sendMessageToFlutter(JSON.stringify(data));
-              } else {
-                console.log("Flutter handler not available");
-              }
-            }
-          };
-
-          ${widget.controller.chartVar}.update();
-        ''';
+      scriptToInstantiate: (String c) {
+        return 'if (typeof ${widget.controller.chartVar} !== "undefined") ${widget.controller.chartVar}.destroy();${widget.controller.chartVar} = new Chart(document.getElementById("${widget.controller.chartId}"), $c);${widget.controller.chartVar}.update();';
       },
-      size: Size(widget.controller.width.toDouble(), widget.controller.height.toDouble()),
+      size: Size(widget.controller.width.toDouble(),
+          widget.controller.height.toDouble()),
       data: widget.controller.config,
       scripts: const [
         "https://cdn.jsdelivr.net/npm/chart.js",
       ],
-      listener: (msg) {
-        if (widget.controller.onTap != null) {
-          Map<String, dynamic> data = jsonDecode(msg);
-          ScreenController().executeAction(context, widget.controller.onTap!,
-              event: EnsembleEvent(widget, data: data));
-        }
-      },
     );
     return jsWidget!;
   }

@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:html' as html;
-import 'dart:js' as js;  // Import dart:js for interop
 import 'dart:math';
 import 'dart:ui' as ui;
 
@@ -28,12 +27,12 @@ class JsWidget extends StatefulWidget {
 
   ///Custom `loader` widget, until script is loaded
   ///
-  /// Has no effect on Web
+  ///Has no effect on Web
   ///
-  /// Defaults to `CircularProgressIndicator`
+  ///Defaults to `CircularProgressIndicator`
   final Widget loader;
 
-  /// Widget data
+  ///Widget data
   final String id;
   final Function scriptToInstantiate;
   final Function createHtmlTag;
@@ -41,16 +40,16 @@ class JsWidget extends StatefulWidget {
   final String data;
   Function(String msg)? listener;
 
-  /// Widget size
+  ///Widget size
   ///
-  /// Height and width of the widget is required
+  ///Height and width of the widget is required
   ///
-  /// ```dart
-  /// Size size = Size(400, 300);
-  /// ```
+  ///```dart
+  ///Size size = Size(400, 300);
+  ///```
   final Size size;
 
-  /// Scripts to be loaded
+  ///Scripts to be loaded
   final List<String> scripts;
   @override
   JsWidgetState createState() => JsWidgetState();
@@ -86,13 +85,6 @@ class JsWidgetState extends State<JsWidget> {
     }
   }
 
-  void init(Function(String id, String msg) globalListener) {
-    // Expose the 'sendMessageToFlutter' function to JavaScript
-    js.context['sendMessageToFlutter'] = (dynamic msg) {
-      globalListener(widget.id, msg as String);
-    };
-  }
-
   @override
   void didUpdateWidget(covariant JsWidget oldWidget) {
     if (oldWidget.data != widget.data ||
@@ -106,9 +98,9 @@ class JsWidgetState extends State<JsWidget> {
 
   @override
   void initState() {
-    init(globalListener);
     if (widget.listener != null) {
       addListener(widget.id, widget.listener!);
+      init(globalListener);
     }
     if (widget.preCreateScript != null) {
       eval(widget.preCreateScript!());
@@ -132,10 +124,9 @@ class JsWidgetState extends State<JsWidget> {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: widget.size.height,
-      width: widget.size.width,
-      child: HtmlElementView(viewType: widget.id),
-    );
+        height: widget.size.height,
+        width: widget.size.width,
+        child: HtmlElementView(viewType: widget.id));
   }
 
   Future<bool> _load() {
