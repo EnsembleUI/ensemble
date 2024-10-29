@@ -145,6 +145,7 @@ Future<void> uploadFiles({
           : (error) =>
               ScreenController().executeAction(context, action.onError!),
       progressCallback: (progress) {
+        if (action.id == null) return;
         fileResponse?.setProgress(taskId, progress);
         scopeManager?.dispatch(
             ModelChangeEvent(APIBindingSource(action.id!), fileResponse));
@@ -183,11 +184,36 @@ List<File>? _getRawFiles(dynamic rawFiles, DataContext dataContext) {
         .cast<File>();
   }
 
-  if (files is Map && files.containsKey('path')) {
-    return [File.fromJson(files)];
+  if (files is Map) {
+    if (files.containsKey('path')) {
+      return [File.fromJson(files)];
+    }
+    if (files.values.length > 0 &&
+        files.values.first is Map &&
+        files.values.first.containsKey('path')) {
+      List<File> processedFile = [];
+      files.forEach((key, value) {
+        value['fieldName'] = key;
+        processedFile.add(File.fromJson(value));
+      });
+      return processedFile;
+    }
+
+    if (files.values.length > 0 && files.values.first is List) {
+      List<File> processedFile = [];
+      files.forEach((key, value) {
+        (value as List).forEach((element) {
+          if (element is Map && element.containsKey('path')) {
+            element['fieldName'] = key;
+            processedFile.add(File.fromJson(element));
+          }
+        });
+      });
+      return processedFile;
+    }
   }
 
-  if (files is String) {
+  if (files is String && files.isNotEmpty) {
     final rawFiles = File.fromString(files);
     return [rawFiles];
   }

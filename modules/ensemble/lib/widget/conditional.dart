@@ -142,7 +142,7 @@ class ConditionalState extends EWidgetState<Conditional> {
   }
 
   Widget _buildWidget(ScopeManager scopeManager, dynamic condition) {
-    var widgetDefinition = YamlMap.wrap({
+    dynamic widgetDefinition = YamlMap.wrap({
       condition.keys.last: condition.values.last,
     });
 

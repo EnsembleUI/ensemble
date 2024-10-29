@@ -5,6 +5,7 @@ import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/apiproviders/api_provider.dart';
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/error_handling.dart';
+import 'package:ensemble/framework/stub/bluetooth.dart';
 import 'package:ensemble/framework/theme/theme_loader.dart';
 import 'package:ensemble/framework/theme_manager.dart';
 import 'package:ensemble/framework/view/page_group.dart';
@@ -12,6 +13,7 @@ import 'package:ensemble/framework/widget/error_screen.dart';
 import 'package:ensemble/framework/view/page.dart' as ensemble;
 import 'package:ensemble/page_model.dart';
 import 'package:flutter/material.dart';
+import 'package:get_it/get_it.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:yaml/yaml.dart';
 
@@ -88,6 +90,8 @@ class _ScreenState extends State<Screen> {
     widget.apiProviders?.forEach((key, value) {
       value.dispose();
     });
+    BluetoothManager bluetoothManager = GetIt.I<BluetoothManager>();
+    bluetoothManager.dispose();
   }
 
   Widget renderScreen(ScreenDefinition screenDefinition) {

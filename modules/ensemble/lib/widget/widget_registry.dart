@@ -59,7 +59,10 @@ import 'package:ensemble/widget/stub_widgets.dart';
 import 'package:ensemble/widget/switch.dart';
 import 'package:ensemble/widget/text.dart';
 import 'package:ensemble/widget/toggle_button.dart';
+import 'package:ensemble/widget/tooltip.dart';
 import 'package:ensemble/widget/video.dart';
+import 'package:ensemble/widget/slidable.dart';
+import 'package:ensemble/widget/accordion.dart';
 import 'package:ensemble/widget/visualization/barchart.dart';
 import 'package:ensemble/widget/visualization/chart_js.dart';
 import 'package:ensemble/widget/visualization/line_area_chart.dart';
@@ -84,6 +87,7 @@ class WidgetRegistry {
     Avatar.type: Avatar.build,
     Shape.type: Shape.build,
     StaticMap.type: StaticMap.build,
+    EnsembleSignature.type: EnsembleSignature.build,
   };
 
   /// register or override a widget
@@ -120,7 +124,7 @@ class WidgetRegistry {
         Video.type: () => Video(),
         YouTube.type: () => YouTube(),
         EnsembleLottie.type: () => EnsembleLottie(),
-        EnsembleSignature.type: () => EnsembleSignature(),
+        // EnsembleSignature.type: () => EnsembleSignature(),
         WeeklyScheduler.type: () => WeeklyScheduler(),
         Conditional.type: () => Conditional(),
         SignInWithGoogle.type: () => GetIt.instance<SignInWithGoogle>(),
@@ -135,6 +139,8 @@ class WidgetRegistry {
         PopupMenu.type: () => PopupMenu(),
         EnsembleCalendar.type: () => EnsembleCalendar(),
         Countdown.type: () => Countdown(),
+        ToolTip.type: () => ToolTip(),
+        EnsembleAccordion.type: () => EnsembleAccordion(),
 
         // form fields
         RadioButton.type: () => RadioButton(),
@@ -176,6 +182,7 @@ class WidgetRegistry {
         ScrollableTabBar.type: () => ScrollableTabBar(),
         AppScroller.type: () => AppScroller(),
         LoadingContainer.type: () => LoadingContainer(),
+        EnsembleSlidable.type: () => EnsembleSlidable(),
 
         // charts
         Highcharts.type: () => Highcharts(),

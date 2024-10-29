@@ -81,6 +81,7 @@ abstract class Response {
   Map<String, dynamic>? headers;
   int? statusCode;
   String? reasonPhrase;
+  Map<String, String> get cookies => {};
   updateState({required apiState}) {
     this.apiState = apiState;
   }
