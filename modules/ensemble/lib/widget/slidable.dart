@@ -47,8 +47,6 @@ class EnsembleSlidable extends StatefulWidget
           _controller.enabled = Utils.getBool(value, fallback: true),
       'closeOnScroll': (value) =>
           _controller.closeOnScroll = Utils.getBool(value, fallback: true),
-      'limitOpenDrawerToOne': (value) =>
-          _controller.limitOpenDrawerToOne = Utils.getBool(value, fallback: true),
       'direction': (value) =>
           _controller.direction = Axis.values.from(value) ?? Axis.horizontal,
       'dragStartBehavior': (value) => _controller.dragStartBehavior =
@@ -70,13 +68,12 @@ class EnsembleSlidable extends StatefulWidget
 }
 
 class EnsembleSlidableController extends BoxController {
-  String? groupTag;
+  String? groupTag = "slidableGroup";
   bool enabled = true;
   bool closeOnScroll = true;
   Axis? direction;
   DragStartBehavior? dragStartBehavior;
   bool useTextDirection = true;
-  bool limitOpenDrawerToOne = true;
 
   SlidableDrawerComposite? _startDrawer;
   SlidableDrawerComposite? _endDrawer;
@@ -108,13 +105,6 @@ class EnsembleSlidableState extends EWidgetState<EnsembleSlidable> {
       endActionPane: _buildActionPane(context, widget.controller.endDrawer),
       child: _buildChildWidget(context, widget.controller.child),
     );
-
-    if (widget.controller.limitOpenDrawerToOne) {
-      slidableWidget = SlidableAutoCloseBehavior(
-        closeWhenOpened: true,
-        child: slidableWidget,
-      );
-    }
 
     return slidableWidget;
   }
