@@ -1,6 +1,7 @@
 import 'package:ensemble/framework/logging/log_provider.dart';
 import 'package:ensemble/framework/notification_manager.dart';
 import 'package:ensemble/framework/stub/analytics_provider.dart';
+import 'package:ensemble/framework/stub/bluetooth.dart';
 import 'package:ensemble/framework/stub/camera_manager.dart';
 import 'package:ensemble/framework/stub/ensemble_bracket.dart';
 import 'package:ensemble/framework/stub/ensemble_chat.dart';
@@ -12,6 +13,7 @@ import 'package:ensemble/framework/stub/contacts_manager.dart';
 import 'package:ensemble/framework/stub/plaid_link_manager.dart';
 import 'package:ensemble/module/auth_module.dart';
 import 'package:ensemble/module/location_module.dart';
+//import 'package:ensemble_bluetooth/ensemble_bluetooth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 //import 'package:ensemble_network_info/network_info.dart';
@@ -71,6 +73,7 @@ class EnsembleModules {
 
   static const useBracket = false;
   static const useNetworkInfo = false;
+  static const useBluetooth = false;
 
   // widgets
   static const enableChat = false;
@@ -181,6 +184,13 @@ class EnsembleModules {
       //GetIt.I.registerSingleton<NetworkInfoManager>(NetworkInfoImpl());
     } else {
       GetIt.I.registerSingleton<NetworkInfoManager>(NetworkInfoManagerStub());
+    }
+
+    if (useBluetooth) {
+
+    //GetIt.I.registerSingleton<BluetoothManager>(BluetoothManagerImpl());
+    } else {
+      GetIt.I.registerSingleton<BluetoothManager>(BluetoothManagerStub());
     }
   }
 }

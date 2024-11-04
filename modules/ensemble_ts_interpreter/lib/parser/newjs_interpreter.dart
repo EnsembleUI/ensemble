@@ -777,13 +777,15 @@ class JSInterpreter extends RecursiveVisitor<dynamic> {
     while (node.condition != null && getValueFromNode(node.condition!)) {
       try {
         node.body.visitBy(this);
-        if (node.update != null) {
-          node.update!.visitBy(this);
-        }
       } on ControlFlowBreakException catch (e) {
         break;
       } on ControlFlowContinueException catch (e) {
-        continue;
+        //skip as we are executing the update anyway
+      }
+      // Execute the update expression after each loop iteration
+      // see https://github.com/EnsembleUI/ensemble/issues/1704
+      if (node.update != null) {
+        node.update!.visitBy(this);
       }
     }
   }
