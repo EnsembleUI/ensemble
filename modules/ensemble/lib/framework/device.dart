@@ -18,91 +18,42 @@ import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:intl/intl.dart';
 
-class Device with Invokable, MediaQueryCapability, LocationCapability, DeviceInfoCapability, WidgetsBindingObserver {
+class Device
+    with
+        Invokable,
+        MediaQueryCapability,
+        LocationCapability,
+        DeviceInfoCapability,
+        WidgetsBindingObserver {
   static final Device _instance = Device._internal();
-  static bool _isInitialized = false;
-  bool _isHandlingChange = false;
-  MediaQueryData? _lastReportedData;
 
-  static final StreamController<MediaQueryData> _deviceUpdateController = 
-      StreamController<MediaQueryData>.broadcast();
-  static Stream<MediaQueryData> get onDeviceUpdate => _deviceUpdateController.stream;
-  
   Device._internal() {
-    if (!_isInitialized) {
-      print('🔄 Initializing Device observer...');
-      WidgetsBinding.instance.addObserver(this);
-      // Set up initial data
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _handleMediaQueryChange();  // Call this to set initial state
-      });
-      _isInitialized = true;
-    }
+    WidgetsBinding.instance.addObserver(this);
   }
 
   factory Device() => _instance;
 
   @override
   void didChangeMetrics() {
-    print('📏 Metrics changed - handling update...');
-    if (!_isHandlingChange) {
-      WidgetsBinding.instance.addPostFrameCallback((_) => _handleMediaQueryChange());
-    }
+    WidgetsBinding.instance
+        .addPostFrameCallback((_) => _handleMediaQueryChange());
   }
 
   void _handleMediaQueryChange() {
-    if (_isHandlingChange) return;
-    _isHandlingChange = true;
-    
     try {
       final context = Utils.globalAppKey.currentContext;
-      if (context == null) {
-        print('❌ No context available for MediaQuery update');
-        return;
-      }
+      if (context == null) return;
 
       final newData = MediaQuery.of(context);
-      
-      // Check for real changes
-      if (_hasSignificantChanges(_lastReportedData, newData)) {
-        
-        _lastReportedData = newData;
+
+      // Compare with existing static data
+      if (MediaQueryCapability.data?.orientation != newData.orientation ||
+          MediaQueryCapability.data?.size != newData.size) {
         MediaQueryCapability.data = newData;
-        
-        // Broadcast the change
-        print('📢 Broadcasting device update...');
-        _deviceUpdateController.add(newData);
       }
     } catch (e) {
       print('💥 Error handling MediaQuery change: $e');
-    } finally {
-      _isHandlingChange = false;
     }
-  }
-  
-  bool _hasSignificantChanges(MediaQueryData? oldData, MediaQueryData newData) {
-    if (oldData == null) return true;
-    
-    final orientationChanged = oldData.orientation != newData.orientation;
-    final sizeChanged = oldData.size != newData.size;
-    
-    if (orientationChanged || sizeChanged) {
-      print('📊 Change detection:');
-      print('- Orientation: ${oldData.orientation} → ${newData.orientation}');
-      print('- Size: ${oldData.size} → ${newData.size}');
-    }
-    
-    return orientationChanged || sizeChanged;
-  }
-
-  void initialize() {
-    initDeviceInfo();
-  }
-
-  @override
-  void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
-    _isInitialized = false;
   }
 
   @override
@@ -150,7 +101,8 @@ class Device with Invokable, MediaQueryCapability, LocationCapability, DeviceInf
   Map<String, Function> setters() => {};
 
   void openAppSettings([String? target]) {
-    final settingType = AppSettingsType.values.from(target) ?? AppSettingsType.settings;
+    final settingType =
+        AppSettingsType.values.from(target) ?? AppSettingsType.settings;
     AppSettings.openAppSettings(type: settingType);
   }
 }

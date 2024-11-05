@@ -98,20 +98,6 @@ class DataContext implements Context {
     if (_contextMap['device'] == null) {
       _contextMap['device'] = Device();
     }
-
-    // Always set up the listener
-    print('👂 Setting up device update listener...');
-    Device.onDeviceUpdate.listen((newData) {
-      print('📱 DataContext received device update');
-
-      // Update MediaQuery data
-      MediaQueryCapability.data = newData;
-
-      // Force a refresh of the device instance
-      _contextMap['device'] = Device();
-
-      print('✅ DataContext device metrics updated:');
-    });
   }
 
   DataContext createChildContext(
