@@ -44,7 +44,6 @@ class Device
       "height": () => screenHeight,
       "safeAreaTop": () => safeAreaTop,
       "safeAreaBottom": () => safeAreaBottom,
-      "orientation": () => orientation,
 
       // Misc Info
       "platform": () => platform?.name,
@@ -89,35 +88,16 @@ mixin MediaQueryCapability {
   static MediaQueryData? data;
 
   MediaQueryData _getData() {
-    final context = Utils.globalAppKey.currentContext!;
     if (StorageManager().isPreview() == true) {
-      _listenToOrientationChanges(context);
-      return MediaQuery.of(context);
+      return MediaQuery.of(Utils.globalAppKey.currentContext!);
     }
-    if (data == null) {
-      _listenToOrientationChanges(context);
-      data = MediaQuery.of(context);
-    }
-    return data!;
+    return data ??= MediaQuery.of(Utils.globalAppKey.currentContext!);
   }
 
   int get screenWidth => _getData().size.width.toInt();
   int get screenHeight => _getData().size.height.toInt();
   int get safeAreaTop => _getData().padding.top.toInt();
   int get safeAreaBottom => _getData().padding.bottom.toInt();
-  String get orientation => _getData().orientation == Orientation.portrait ? 'portrait' : 'landscape';
-
-  // Listen to orientation changes
-  void _listenToOrientationChanges(BuildContext context) {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      MediaQuery.of(context).addListener(() {
-        final newOrientation = MediaQuery.of(context).orientation == Orientation.portrait ? 'portrait' : 'landscape';
-        if (newOrientation != orientation) {
-          ScreenController().dispatchStorageChanges(context, 'orientation', newOrientation);
-        }
-      });
-    });
-  }
 }
 
 /// This mixin can access user's location
