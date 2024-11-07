@@ -1,4 +1,5 @@
 import 'package:ensemble/action/haptic_action.dart';
+import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/view/data_scope_widget.dart';
@@ -16,6 +17,16 @@ abstract class BaseTabBarState extends EWidgetState<BaseTabBar>
   // execute when a tab has (already) changed. Use this to run extra logic (and don't modify the tabController again
   void onTabChanged(int index);
 
+  /// Common method to evaluate visibility conditions
+  bool evaluateCondition(ScopeManager scopeManager, String expression) {
+    try {
+      final expression0 = scopeManager.dataContext.eval(expression);
+      return expression0 is bool ? expression0 : false;
+    } catch (e) {
+      throw LanguageError('Failed to eval $expression');
+    }
+  }
+  
   /// build the Tab Bar navigation part
   Widget buildTabBar() {
     TextStyle? tabStyle = TextStyle(

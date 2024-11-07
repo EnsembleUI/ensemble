@@ -1,7 +1,11 @@
 import 'package:ensemble/framework/action.dart';
+import 'package:ensemble/framework/bindings.dart';
+import 'package:ensemble/framework/scope.dart';
+import 'package:ensemble/framework/view/data_scope_widget.dart';
 import 'package:ensemble/layout/tab/base_tab_bar.dart';
 import 'package:ensemble/layout/tab/tab_bar_controller.dart';
 import 'package:ensemble/layout/tab_bar.dart';
+import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
@@ -91,12 +95,89 @@ class ScrollableTabBarState extends BaseTabBarState {
   @override
   void initState() {
     super.initState();
-    tabController =
-        TabController(length: widget.controller.items.length, vsync: this);
-    // create unique global keys for each tab for detecting scrolling into view, plus for manually scroll to view.
+    _initializeTabController();
+    _updateKeys();
+  }
+
+  void _initializeTabController() {
+    tabController = TabController(
+      length: widget.controller.items.length,
+      vsync: this,
+    );
+  }
+
+  void _reinitializeTabController() {
+    tabController.dispose();
+    _initializeTabController();
+  }
+
+  void _updateKeys() {
+    _keys.clear();
     for (int i = 0; i < widget.controller.items.length; i++) {
       _keys.add(GlobalKey(debugLabel: "key$i"));
     }
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    widget.controller.tabBarAction = this;
+
+    final isConditional = widget.controller.originalItems
+        .any((element) => element.isVisible != null);
+
+    if (!isConditional) return;
+
+    ScopeManager? scopeManager = DataScopeWidget.getScope(context);
+    if (scopeManager == null) return;
+
+    // Listen for visibility changes on conditional tabs
+    for (var item in widget.controller.originalItems) {
+      if (item.isVisible == null || (item.isVisible is! EvaluateVisible)) {
+        continue;
+      }
+      scopeManager.listen(
+        scopeManager,
+        (item.isVisible! as EvaluateVisible).value,
+        destination: BindingDestination(widget, 'items'),
+        onDataChange: (event) {
+          if (mounted) {
+            handleConditionalTabs();
+          }
+        },
+      );
+    }
+
+    handleConditionalTabs();
+  }
+
+  void handleConditionalTabs() {
+    ScopeManager? scopeManager = ScreenController().getScopeManager(context);
+    if (scopeManager == null) return;
+
+    final visibleItems = <TabItem>[];
+    for (var item in widget.controller.originalItems) {
+      if (item.isVisible == null) {
+        visibleItems.add(item);
+        continue;
+      }
+
+      bool isTrue = false;
+      if (item.isVisible! is BoolVisible) {
+        isTrue = (item.isVisible as BoolVisible).value;
+      } else {
+        isTrue = evaluateCondition(
+            scopeManager, (item.isVisible as EvaluateVisible).value);
+      }
+
+      if (isTrue) {
+        visibleItems.add(item);
+      }
+    }
+
+    widget.controller.updateVisibleItems(visibleItems);
+    _reinitializeTabController();
+    _updateKeys();
   }
 
   @override

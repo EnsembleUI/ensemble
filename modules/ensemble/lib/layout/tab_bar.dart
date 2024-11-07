@@ -118,15 +118,6 @@ class TabBarState extends BaseTabBarState {
         : 0;
   }
 
-  bool _evaluateCondition(ScopeManager scopeManager, String expression) {
-    try {
-      final expression0 = scopeManager.dataContext.eval(expression);
-      return expression0 is bool ? expression0 : false;
-    } catch (e) {
-      throw LanguageError('Failed to eval $expression');
-    }
-  }
-
   void notifyListener() {
     ScopeManager? scopeManager = ScreenController().getScopeManager(context);
     if (widget._controller.selectedIndex == tabController.index ||
@@ -194,7 +185,7 @@ class TabBarState extends BaseTabBarState {
       if (item.isVisible! is BoolVisible) {
         isTrue = (item.isVisible as BoolVisible).value;
       } else {
-        isTrue = _evaluateCondition(
+        isTrue = evaluateCondition(
             scopeManager, (item.isVisible as EvaluateVisible).value);
       }
 
