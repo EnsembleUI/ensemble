@@ -9,6 +9,7 @@ import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/framework/notification_manager.dart';
 import 'package:ensemble/framework/storage_manager.dart';
 import 'package:ensemble/framework/stub/location_manager.dart';
+import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/cupertino.dart';
@@ -26,12 +27,25 @@ class Device
         DeviceInfoCapability,
         WidgetsBindingObserver {
   static final Device _instance = Device._internal();
+  static late BuildContext context;
 
   Device._internal() {
     WidgetsBinding.instance.addObserver(this);
   }
 
-  factory Device() => _instance;
+  factory Device([BuildContext? buildContext]) {
+    if (buildContext != null) {
+      context = buildContext;
+    }
+    return _instance;
+  }
+
+  // method to update context
+  void updateContext(BuildContext? newContext) {
+    if (newContext != null) {
+      context = newContext;
+    }
+  }
 
   @override
   void didChangeMetrics() {
@@ -40,19 +54,22 @@ class Device
   }
 
   void _handleMediaQueryChange() {
-    try {
-      final context = Utils.globalAppKey.currentContext;
-      if (context == null) return;
+    final newData = MediaQuery.of(context);
 
-      final newData = MediaQuery.of(context);
+    // Compare with existing static data
+    if (MediaQueryCapability.data?.orientation != newData.orientation ||
+        MediaQueryCapability.data?.size != newData.size) {
+      MediaQueryCapability.data = newData;
 
-      // Compare with existing static data
-      if (MediaQueryCapability.data?.orientation != newData.orientation ||
-          MediaQueryCapability.data?.size != newData.size) {
-        MediaQueryCapability.data = newData;
-      }
-    } catch (e) {
-      print('💥 Error handling MediaQuery change: $e');
+      // Dispatch individual property changes
+      ScreenController().dispatchDeviceChanges(context, 'width', screenWidth);
+      ScreenController().dispatchDeviceChanges(context, 'height', screenHeight);
+      ScreenController()
+          .dispatchDeviceChanges(context, 'orientation', screenOrientation);
+      ScreenController()
+          .dispatchDeviceChanges(context, 'safeAreaTop', safeAreaTop);
+      ScreenController()
+          .dispatchDeviceChanges(context, 'safeAreaBottom', safeAreaBottom);
     }
   }
 
