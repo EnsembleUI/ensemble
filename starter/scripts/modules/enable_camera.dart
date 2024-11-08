@@ -2,7 +2,7 @@ import 'dart:io';
 
 import '../utils.dart';
 
-void main(List<String> arguments) {
+Future<void> main(List<String> arguments) async {
   List<String> platforms = getPlatforms(arguments);
   String qrCodeScannerEnabled =
       getArgumentValue(arguments, 'qrcode_enabled') ?? 'true';
@@ -28,7 +28,7 @@ void main(List<String> arguments) {
 ensemble_camera:
     git:
       url: https://github.com/EnsembleUI/ensemble.git
-      ref: main
+      ref: ${await getEnsembleRef()}
       path: modules/camera''',
       'regex':
           r'#\s*ensemble_camera:\s*\n\s*#\s*git:\s*\n\s*#\s*url:\s*https:\/\/github\.com\/EnsembleUI\/ensemble\.git\s*\n\s*#\s*ref:\s*main\s*\n\s*#\s*path:\s*modules\/camera',

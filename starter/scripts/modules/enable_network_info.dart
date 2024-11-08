@@ -2,7 +2,7 @@ import 'dart:io';
 
 import '../utils.dart';
 
-void main(List<String> arguments) {
+void main(List<String> arguments) async {
   List<String> platforms = getPlatforms(arguments);
 
   final statements = {
@@ -21,7 +21,7 @@ void main(List<String> arguments) {
 ensemble_network_info:
     git:
       url: https://github.com/EnsembleUI/ensemble.git
-      ref: main
+      ref: ${await getEnsembleRef()}
       path: modules/ensemble_network_info''',
       'regex':
           r'#\s*ensemble_network_info:\s*\n\s*#\s*git:\s*\n\s*#\s*url:\s*https:\/\/github\.com\/EnsembleUI\/ensemble\.git\s*\n\s*#\s*ref:\s*main\s*\n\s*#\s*path:\s*modules\/ensemble_network_info',

@@ -1,7 +1,7 @@
 import 'dart:io';
 import '../utils.dart';
 
-void main(List<String> arguments) {
+void main(List<String> arguments) async {
   List<String> platforms = getPlatforms(arguments);
   bool? hasGoogleMaps =
       getArgumentValue(arguments, 'google_maps')?.toLowerCase() == 'true';
@@ -33,7 +33,7 @@ void main(List<String> arguments) {
 ensemble_location:
     git:
       url: https://github.com/EnsembleUI/ensemble.git
-      ref: main
+      ref: ${await getEnsembleRef()}
       path: modules/location''',
       'regex':
           r'#\s*ensemble_location:\s*\n\s*#\s*git:\s*\n\s*#\s*url:\s*https:\/\/github\.com\/EnsembleUI\/ensemble\.git\s*\n\s*#\s*ref:\s*main\s*\n\s*#\s*path:\s*modules\/location',

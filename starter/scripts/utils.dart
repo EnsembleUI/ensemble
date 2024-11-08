@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:yaml/yaml.dart';
 
 const String ensembleModulesFilePath = 'lib/generated/ensemble_modules.dart';
 const String pubspecFilePath = 'pubspec.yaml';
@@ -378,5 +379,29 @@ $deeplinkEntries
       print(
           'No <key>aps-environment</key> block found in Runner.entitlements.');
     }
+  }
+}
+
+/// Reads the pubspec.yaml file and returns the 'ref' of the 'ensemble' package.
+/// Returns 'main' if the 'ref' is not found or the 'ensemble' package is not a git dependency.
+///
+/// [pubspecPath] - The file path to pubspec.yaml. Defaults to 'pubspec.yaml' in the current directory.
+Future<String?> getEnsembleRef({String pubspecPath = 'pubspec.yaml'}) async {
+  try {
+    final file = File(pubspecPath);
+    if (!await file.exists()) return 'main';
+
+    // Read and parse the YAML content
+    final yamlMap = loadYaml(await file.readAsString()) as YamlMap;
+
+    // Find the 'ensemble' dependency and check for its git ref
+    final ensemble = yamlMap['dependencies']?['ensemble'] as YamlMap?;
+    final gitRef = ensemble?['git']?['ref'] as String?;
+
+    // Return the git ref or default to 'main'
+    return gitRef?.trim().isNotEmpty == true ? gitRef?.trim() : 'main';
+  } catch (e) {
+    print('Error: $e');
+    return 'main';
   }
 }
