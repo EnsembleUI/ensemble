@@ -14,7 +14,7 @@ dependencies:
   ensemble:
     git:
       url: https://github.com/EnsembleUI/ensemble.git
-      ref: 1678_flutter_3.24
+      ref: ensemble-v1.1.0
       path: modules/ensemble
 
 dev_dependencies:

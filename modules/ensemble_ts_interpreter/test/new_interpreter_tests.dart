@@ -517,7 +517,25 @@ void main() {
             .evaluate();
     expect(context['indices'][2], 2);
   });
-
+  test('for-loop-continue-test', () async {
+    String codeToEvaluate = """
+      var data = ['a','b','c','d','e','f','g','h','i','j'];
+      var numLoops = 0;
+      for (var i = data.length - 1; i >= 0; i--) {
+        numLoops++;
+        console.log('looping '+numLoops+' times and i='+i);
+        if ( i > 0 ) {
+          continue;
+        }
+      }
+        
+    """;
+    Map<String, dynamic> context = initContext();
+    dynamic rtnValue =
+    JSInterpreter.fromCode(codeToEvaluate, SimpleContext(context))
+        .evaluate();
+    //expect(context['indices'][2], 2);
+  });
   test('whilelooptest', () async {
     String codeToEvaluate = """
       var indices = [];

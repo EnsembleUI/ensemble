@@ -2,6 +2,7 @@ import 'package:app_settings/app_settings.dart';
 import 'package:ensemble/action/audio_player.dart';
 import 'package:ensemble/action/Log_event_action.dart';
 import 'package:ensemble/action/badge_action.dart';
+import 'package:ensemble/action/bluetooth_action.dart';
 import 'package:ensemble/action/bottom_sheet_actions.dart';
 import 'package:ensemble/action/deep_link_action.dart';
 import 'package:ensemble/action/call_external_method.dart';
@@ -1039,7 +1040,14 @@ enum ActionType {
   seekAudio,
   logEvent,
   getNetworkInfo,
-  deviceSecurity
+  deviceSecurity,
+  bluetoothInit,
+  bluetoothStartScan,
+  bluetoothStopScan,
+  bluetoothConnect,
+  bluetoothDisconnect,
+  bluetoothSubscribeCharacteristic,
+  bluetoothUnsubscribeCharacteristic,
 }
 
 /// payload representing an Action to do (navigateToScreen, InvokeAPI, ..)
@@ -1244,6 +1252,18 @@ abstract class EnsembleAction {
       return GetNetworkInfoAction.from(initiator: initiator, payload: payload);
     } else if (actionType == ActionType.deviceSecurity) {
       return DeviceSecurity.fromMap(payload: payload);
+    } else if (actionType == ActionType.bluetoothInit) {
+      return InitializeBluetoothAction.from(payload: payload);
+    } else if (actionType == ActionType.bluetoothStartScan) {
+      return StartScanBluetoothAction.from(payload: payload);
+    } else if (actionType == ActionType.bluetoothConnect) {
+      return ConnectBluetoothAction.from(payload: payload);
+    } else if (actionType == ActionType.bluetoothDisconnect) {
+      return DisconnectBluetoothAction.from(payload: payload);
+    } else if (actionType == ActionType.bluetoothSubscribeCharacteristic) {
+      return SubscribeBluetoothCharacteristicsAction.from(payload: payload);
+    } else if (actionType == ActionType.bluetoothUnsubscribeCharacteristic) {
+      return UnSubscribeBluetoothCharacteristicsAction.from(payload: payload);
     } else {
       throw LanguageError("Invalid action.",
           recovery: "Make sure to use one of Ensemble-provided actions.");

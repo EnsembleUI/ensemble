@@ -121,6 +121,11 @@ public final class GeneratedPluginRegistrant {
       Log.e(TAG, "Error registering plugin receive_sharing_intent, com.kasem.receive_sharing_intent.ReceiveSharingIntentPlugin", e);
     }
     try {
+      flutterEngine.getPlugins().add(new com.emrys.rjsniffer.rjsniffer.RjsnifferPlugin());
+    } catch (Exception e) {
+      Log.e(TAG, "Error registering plugin root_jailbreak_sniffer, com.emrys.rjsniffer.rjsniffer.RjsnifferPlugin", e);
+    }
+    try {
       flutterEngine.getPlugins().add(new dev.fluttercommunity.plus.sensors.SensorsPlugin());
     } catch (Exception e) {
       Log.e(TAG, "Error registering plugin sensors_plus, dev.fluttercommunity.plus.sensors.SensorsPlugin", e);
