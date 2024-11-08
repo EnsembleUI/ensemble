@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'package:yaml/yaml.dart';
 
 const String ensembleModulesFilePath = 'lib/generated/ensemble_modules.dart';
 const String pubspecFilePath = 'pubspec.yaml';
@@ -386,20 +385,32 @@ $deeplinkEntries
 /// Returns 'main' if the 'ref' is not found or the 'ensemble' package is not a git dependency.
 ///
 /// [pubspecPath] - The file path to pubspec.yaml. Defaults to 'pubspec.yaml' in the current directory.
-Future<String?> getEnsembleRef({String pubspecPath = 'pubspec.yaml'}) async {
+Future<String> getEnsembleRef({String pubspecPath = 'pubspec.yaml'}) async {
   try {
     final file = File(pubspecPath);
     if (!await file.exists()) return 'main';
 
-    // Read and parse the YAML content
-    final yamlMap = loadYaml(await file.readAsString()) as YamlMap;
+    final content = await file.readAsString();
 
-    // Find the 'ensemble' dependency and check for its git ref
-    final ensemble = yamlMap['dependencies']?['ensemble'] as YamlMap?;
-    final gitRef = ensemble?['git']?['ref'] as String?;
+    const ensembleKey = 'ensemble:';
+    const gitKey = 'git:';
+    const refKey = 'ref:';
 
-    // Return the git ref or default to 'main'
-    return gitRef?.trim().isNotEmpty == true ? gitRef?.trim() : 'main';
+    final ensembleStart = content.indexOf(ensembleKey);
+    if (ensembleStart == -1) return 'main';
+
+    final gitStart = content.indexOf(gitKey, ensembleStart);
+    if (gitStart == -1) return 'main'; // Not a git dependency
+
+    final refStart = content.indexOf(refKey, gitStart);
+    if (refStart == -1) return 'main'; // 'ref' not found
+
+    // Extract the ref value by finding the line after 'ref:'
+    final refLineStart = refStart + refKey.length;
+    final refLineEnd = content.indexOf('\n', refLineStart);
+    final refValue = content.substring(refLineStart, refLineEnd).trim();
+
+    return refValue.isNotEmpty ? refValue : 'main';
   } catch (e) {
     print('Error: $e');
     return 'main';
