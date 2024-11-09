@@ -616,8 +616,14 @@ class JSInterpreter extends RecursiveVisitor<dynamic> {
     dynamic value;
     if (node.init != null) {
       value = getValueFromExpression(node.init!);
+      addToThisContext(name, value);
+    } else {
+      //hoisting
+      Context ctx = getContextForScope(name.scope!);
+      if (!ctx.hasContext(name.value)) {
+        addToThisContext(name, value);
+      }
     }
-    addToThisContext(name, value);
     return name;
   }
 
@@ -1197,7 +1203,59 @@ class JSInterpreter extends RecursiveVisitor<dynamic> {
   visitName(Name node) {
     return node;
   }
+  @override
+  visitThrow(ThrowStatement node) {
+    dynamic argumentValue = getValueFromExpression(node.argument);
+    throw JSCustomException(argumentValue);
+  }
 
+  @override
+  visitTry(TryStatement node) {
+    if (node.handler == null && node.finalizer == null) {
+      throw JSException(node.line ?? 0, "Syntax Error: a try block must have a corresponding catch or finally");
+    }
+    try {
+      node.block.visitBy(this);
+    } on ControlFlowReturnException {
+      rethrow; // Re-throw control flow exceptions
+    } on ControlFlowBreakException {
+      rethrow;
+    } on ControlFlowContinueException {
+      rethrow;
+    } catch (e) {
+      if (node.handler != null) {
+        dynamic exceptionValue = getExceptionValue(e);
+        Map<String, dynamic> ctxMap = {};
+        if (node.handler!.param != null) {
+          ctxMap[node.handler!.param.value] = JSCustomException(exceptionValue);
+        }
+        Context context = SimpleContext(ctxMap);
+        // Clone the interpreter with this new context
+        JSInterpreter interpreter = cloneForContext(node.handler!, context, true);
+        interpreter.visitCatchClause(node.handler!);
+      }
+    } finally {
+      if (node.finalizer != null) {
+        node.finalizer!.visitBy(this);
+      }
+    }
+  }
+
+  @override
+  visitCatchClause(CatchClause node) {
+    node.body.visitBy(this);
+  }
+
+// Helper method to extract exception value
+  dynamic getExceptionValue(dynamic exception) {
+    if (exception is JSCustomException) {
+      return exception.value;
+    } else if (exception is JSException) {
+      return exception.message;
+    } else {
+      return exception.toString();
+    }
+  }
   dynamic getValueFromExpression(Expression exp) {
     return getValueFromNode(exp);
   }
@@ -1271,5 +1329,27 @@ class JavascriptFunction {
     } else {
       return _onCall(arguments);
     }
+  }
+}
+// Exception class to represent custom JavaScript exceptions
+class JSCustomException with Invokable implements Exception  {
+  final dynamic value;
+  JSCustomException(this.value);
+
+  @override
+  Map<String, Function> getters() {
+    return {
+      'message': () => value
+    };
+  }
+
+  @override
+  Map<String, Function> methods() {
+    return {};
+  }
+
+  @override
+  Map<String, Function> setters() {
+    return {};
   }
 }
