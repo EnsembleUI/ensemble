@@ -1339,7 +1339,12 @@ class JSCustomException with Invokable implements Exception  {
   @override
   Map<String, Function> getters() {
     return {
-      'message': () => value
+      'message': () {
+        if (value is JSCustomException) {
+          return value.value;
+        }
+        return value;
+      }
     };
   }
 
@@ -1351,5 +1356,9 @@ class JSCustomException with Invokable implements Exception  {
   @override
   Map<String, Function> setters() {
     return {};
+  }
+  @override
+  String toString() {
+    return value;
   }
 }
