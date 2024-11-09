@@ -3,6 +3,7 @@ import '../utils.dart';
 
 void main(List<String> arguments) async {
   List<String> platforms = getPlatforms(arguments);
+  String? ensembleVersion = getArgumentValue(arguments, 'ensemble_version');
 
   final contactsStatements = {
     'moduleStatements': [
@@ -18,7 +19,7 @@ void main(List<String> arguments) async {
 ensemble_contacts:
     git:
       url: https://github.com/EnsembleUI/ensemble.git
-      ref: ${await getEnsembleRef()}
+      ref: ${await packageVersion(version: ensembleVersion)}
       path: modules/contacts''',
       'regex':
           r'#\s*ensemble_contacts:\s*\n\s*#\s*git:\s*\n\s*#\s*url:\s*https:\/\/github\.com\/EnsembleUI\/ensemble\.git\s*\n\s*#\s*ref:\s*main\s*\n\s*#\s*path:\s*modules\/contacts',

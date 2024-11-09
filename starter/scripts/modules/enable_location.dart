@@ -3,6 +3,8 @@ import '../utils.dart';
 
 void main(List<String> arguments) async {
   List<String> platforms = getPlatforms(arguments);
+  String? ensembleVersion = getArgumentValue(arguments, 'ensemble_version');
+
   bool? hasGoogleMaps =
       getArgumentValue(arguments, 'google_maps')?.toLowerCase() == 'true';
   String? googleMapsApiKeyAndroid = getArgumentValue(
@@ -33,7 +35,7 @@ void main(List<String> arguments) async {
 ensemble_location:
     git:
       url: https://github.com/EnsembleUI/ensemble.git
-      ref: ${await getEnsembleRef()}
+      ref: ${await packageVersion(version: ensembleVersion)}
       path: modules/location''',
       'regex':
           r'#\s*ensemble_location:\s*\n\s*#\s*git:\s*\n\s*#\s*url:\s*https:\/\/github\.com\/EnsembleUI\/ensemble\.git\s*\n\s*#\s*ref:\s*main\s*\n\s*#\s*path:\s*modules\/location',

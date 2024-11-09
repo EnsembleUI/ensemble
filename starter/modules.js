@@ -6,6 +6,11 @@ export const commonParameters = [
         type: 'checkbox',
         choices: ['ios', 'android', 'web'],
         required: true,
+    },
+    {
+        key: 'ensemble_version',
+        question: 'Which version of ensemble are you using?',
+        required: false,
     }
 ];
 

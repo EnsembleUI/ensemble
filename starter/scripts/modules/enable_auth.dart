@@ -18,6 +18,8 @@ void main(List<String> arguments) async {
   String serverClientId =
       getArgumentValue(arguments, 'server_client_id', required: true) ?? '';
 
+  String? ensembleVersion = getArgumentValue(arguments, 'ensemble_version');
+
   final statements = {
     'moduleStatements': [
       "import 'package:ensemble_auth/auth_module.dart';",
@@ -34,7 +36,7 @@ void main(List<String> arguments) async {
 ensemble_auth:
     git:
       url: https://github.com/EnsembleUI/ensemble.git
-      ref: ${await getEnsembleRef()}
+      ref: ${await packageVersion(version: ensembleVersion)}
       path: modules/auth''',
       'regex':
           r'#\s*ensemble_auth:\s*\n\s*#\s*git:\s*\n\s*#\s*url:\s*https:\/\/github\.com\/EnsembleUI\/ensemble\.git\s*\n\s*#\s*ref:\s*main\s*\n\s*#\s*path:\s*modules\/auth',

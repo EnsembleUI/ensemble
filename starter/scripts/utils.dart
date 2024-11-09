@@ -381,38 +381,107 @@ $deeplinkEntries
   }
 }
 
-/// Reads the pubspec.yaml file and returns the 'ref' of the 'ensemble' package.
-/// Returns 'main' if the 'ref' is not found or the 'ensemble' package is not a git dependency.
+/// Retrieves the ensemble version.
 ///
-/// [pubspecPath] - The file path to pubspec.yaml. Defaults to 'pubspec.yaml' in the current directory.
-Future<String> getEnsembleRef({String pubspecPath = 'pubspec.yaml'}) async {
+/// If [version] is provided and different from the current ensemble version,
+/// it updates the `pubspec.yaml` with the new version.
+/// Otherwise, it returns the existing version or defaults to 'main'.
+///
+/// Returns the effective ensemble version as a [String].
+Future<String> packageVersion({String? version}) async {
   try {
-    final file = File(pubspecPath);
-    if (!await file.exists()) return 'main';
-
-    final content = await file.readAsString();
-
-    const ensembleKey = 'ensemble:';
-    const gitKey = 'git:';
-    const refKey = 'ref:';
-
-    final ensembleStart = content.indexOf(ensembleKey);
-    if (ensembleStart == -1) return 'main';
-
-    final gitStart = content.indexOf(gitKey, ensembleStart);
-    if (gitStart == -1) return 'main'; // Not a git dependency
-
-    final refStart = content.indexOf(refKey, gitStart);
-    if (refStart == -1) return 'main'; // 'ref' not found
-
-    // Extract the ref value by finding the line after 'ref:'
-    final refLineStart = refStart + refKey.length;
-    final refLineEnd = content.indexOf('\n', refLineStart);
-    final refValue = content.substring(refLineStart, refLineEnd).trim();
-
-    return refValue.isNotEmpty ? refValue : 'main';
+    final current = await getEnsembleVersion();
+    if (version != null &&
+        version.trim().isNotEmpty &&
+        version.trim() != current) {
+      return await updateEnsembleVersion(version.trim())
+          ? version.trim()
+          : current;
+    }
+    return current;
   } catch (e) {
     print('Error: $e');
     return 'main';
   }
+}
+
+/// Reads the pubspec.yaml file and returns the 'ref' of the 'ensemble' package.
+/// Returns 'main' if the 'ref' is not found or the 'ensemble' package is not a git dependency.
+Future<String> getEnsembleVersion() async {
+  final file = File(pubspecFilePath);
+  if (!await file.exists()) return 'main';
+
+  try {
+    final lines = await file.readAsLines();
+    final refInfo = _findEnsembleGitRef(lines);
+    return refInfo['ref']?.isNotEmpty == true ? refInfo['ref'] : 'main';
+  } catch (e) {
+    print('Error reading ensemble version: $e');
+    return 'main';
+  }
+}
+
+/// Updates the 'ref' value of the 'ensemble' package in pubspec.yaml.
+///
+/// [newVersion] - The new version to set for the 'ensemble' package.
+///
+/// Returns `true` if the update was successful, `false` otherwise.
+Future<bool> updateEnsembleVersion(String newVersion) async {
+  final file = File(pubspecFilePath);
+
+  try {
+    final lines = await file.readAsLines();
+    final refInfo = _findEnsembleGitRef(lines);
+
+    if (refInfo['index'] != null) {
+      final indentation = refInfo['indentation'] ?? '';
+      lines[refInfo['index']] = '${indentation}ref: $newVersion';
+      await file.writeAsString(lines.join('\n'));
+      return true;
+    } else {
+      print("'ref:' not found under 'ensemble' git dependency.");
+      return false;
+    }
+  } catch (e) {
+    print('Error updating ensemble version: $e');
+    return false;
+  }
+}
+
+/// Helper function to locate the 'ref' line within the 'ensemble' git dependency.
+///
+/// Returns a [Map] containing:
+/// - 'ref': The current ref value (if found).
+/// - 'index': The line index of the 'ref:' key (if found).
+/// - 'indentation': The indentation before the 'ref:' key (if found).
+Map<String, dynamic> _findEnsembleGitRef(List<String> lines) {
+  bool inEnsemble = false;
+  bool inGit = false;
+
+  for (int i = 0; i < lines.length; i++) {
+    final trimmed = lines[i].trim();
+    if (trimmed.startsWith('ensemble:')) {
+      inEnsemble = true;
+      inGit = false;
+      continue;
+    }
+    if (inEnsemble) {
+      if (trimmed.startsWith('git:')) {
+        inGit = true;
+        continue;
+      }
+      if (inGit && trimmed.startsWith('ref:')) {
+        final ref = trimmed.split(':').last.trim();
+        final indentation = lines[i].substring(0, lines[i].indexOf('ref:'));
+        return {'ref': ref, 'index': i, 'indentation': indentation};
+      }
+      // If another dependency starts, exit the ensemble block
+      if (trimmed.endsWith(':') &&
+          !trimmed.startsWith('git:') &&
+          !trimmed.startsWith('ref:')) {
+        break;
+      }
+    }
+  }
+  return {};
 }
