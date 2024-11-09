@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:ensemble_ts_interpreter/errors.dart';
 import 'package:ensemble_ts_interpreter/invokables/context.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
+import 'package:ensemble_ts_interpreter/invokables/invokablecommons.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokablecontroller.dart';
 import 'package:jsparser/jsparser.dart';
 import 'package:ensemble_ts_interpreter/parser/regex_ext.dart';
@@ -1206,7 +1207,11 @@ class JSInterpreter extends RecursiveVisitor<dynamic> {
   @override
   visitThrow(ThrowStatement node) {
     dynamic argumentValue = getValueFromExpression(node.argument);
-    throw JSCustomException(argumentValue);
+    if (argumentValue is JSCustomException) {
+      throw argumentValue;
+    } else {
+      throw JSCustomException(argumentValue);
+    }
   }
 
   @override
@@ -1331,34 +1336,4 @@ class JavascriptFunction {
     }
   }
 }
-// Exception class to represent custom JavaScript exceptions
-class JSCustomException with Invokable implements Exception  {
-  final dynamic value;
-  JSCustomException(this.value);
 
-  @override
-  Map<String, Function> getters() {
-    return {
-      'message': () {
-        if (value is JSCustomException) {
-          return value.value;
-        }
-        return value;
-      }
-    };
-  }
-
-  @override
-  Map<String, Function> methods() {
-    return {};
-  }
-
-  @override
-  Map<String, Function> setters() {
-    return {};
-  }
-  @override
-  String toString() {
-    return value;
-  }
-}

@@ -94,7 +94,39 @@ class InvokableObject extends Object with Invokable {
     return {};
   }
 }
+// Exception class to represent custom JavaScript exceptions
+class JSCustomException with Invokable implements Exception  {
+  final dynamic value;
+  JSCustomException(this.value);
 
+  @override
+  Map<String, Function> getters() {
+    return {
+      'message': () {
+        if (value is JSCustomException) {
+          return value.value;
+        }
+        return value;
+      }
+    };
+  }
+
+  @override
+  Map<String, Function> methods() {
+    return {
+      'init': ([message]) => JSCustomException(message)
+    };
+  }
+
+  @override
+  Map<String, Function> setters() {
+    return {};
+  }
+  @override
+  String toString() {
+    return value;
+  }
+}
 class StaticDate extends Object with Invokable {
   @override
   Map<String, Function> getters() {
