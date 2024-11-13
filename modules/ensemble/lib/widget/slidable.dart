@@ -68,7 +68,7 @@ class EnsembleSlidable extends StatefulWidget
 }
 
 class EnsembleSlidableController extends BoxController {
-  String? groupTag;
+  String? groupTag = "slidableGroup";
   bool enabled = true;
   bool closeOnScroll = true;
   Axis? direction;
@@ -92,7 +92,8 @@ class EnsembleSlidableController extends BoxController {
 class EnsembleSlidableState extends EWidgetState<EnsembleSlidable> {
   @override
   Widget buildWidget(BuildContext context) {
-    return Slidable(
+    Widget slidableWidget = Slidable(
+      key: widget.controller.id != null ? Key(widget.controller.id!) : UniqueKey(),
       groupTag: widget.controller.groupTag,
       enabled: widget.controller.enabled,
       closeOnScroll: widget.controller.closeOnScroll,
@@ -104,22 +105,52 @@ class EnsembleSlidableState extends EWidgetState<EnsembleSlidable> {
       endActionPane: _buildActionPane(context, widget.controller.endDrawer),
       child: _buildChildWidget(context, widget.controller.child),
     );
+
+    return slidableWidget;
   }
 
   ActionPane? _buildActionPane(
       BuildContext context, SlidableDrawerComposite? drawerComposite) {
-    if (drawerComposite == null || drawerComposite.children.isEmpty)
+    if (drawerComposite == null)
       return null;
 
     ActionPaneOptionsComposite options = drawerComposite.options;
     List<Widget> children =
         _buildSlidableActions(context, drawerComposite.children);
 
+    // Build dismissible pane if configured
+    DismissiblePane? dismissiblePane;
+    if (drawerComposite._dismissible != null) {
+      final dismissible = drawerComposite.dismissible;
+      dismissiblePane = DismissiblePane(
+        onDismissed: () {
+          if (dismissible.onDismissed != null) {
+            final dismissAction = EnsembleAction.from(
+              dismissible.onDismissed,
+              initiator: widget,
+            );
+            if (dismissAction != null) {
+              ScreenController().executeAction(
+                context,
+                dismissAction,
+                event: EnsembleEvent(widget),
+              );
+            }
+          }
+        },
+        dismissThreshold: dismissible.dismissThreshold,
+        motion: dismissible.getDismissibleMotion(),
+        dismissalDuration: dismissible.dismissalDuration,
+        resizeDuration: dismissible.resizeDuration,
+      );
+    }
+
     return ActionPane(
       extentRatio: options.extentRatio,
       motion: options.getMotion(),
       openThreshold: options.openThreshold,
       closeThreshold: options.closeThreshold,
+      dismissible: dismissiblePane,
       children: children,
     );
   }
@@ -200,6 +231,78 @@ class EnsembleSlidableState extends EWidgetState<EnsembleSlidable> {
   }
 }
 
+class DismissiblePaneOptions extends WidgetCompositeProperty {
+  DismissiblePaneOptions(ChangeNotifier widgetController)
+      : super(widgetController);
+
+  double dismissThreshold = 0.75;
+  Duration dismissalDuration = const Duration(milliseconds: 300);
+  Duration resizeDuration = const Duration(milliseconds: 300);
+  String motion = 'inversedDrawer'; // default motion
+  dynamic onDismissed;
+
+  factory DismissiblePaneOptions.from(
+      ChangeNotifier widgetController, dynamic payload) {
+    DismissiblePaneOptions options = DismissiblePaneOptions(widgetController);
+    if (payload is Map) {
+      options.dismissThreshold =
+          Utils.getDouble(payload['dismissThreshold'], fallback: 0.75);
+      options.dismissalDuration = Duration(
+          milliseconds: Utils.getInt(payload['dismissalDurationMs'],
+              fallback: 300));
+      options.resizeDuration = Duration(
+          milliseconds:
+              Utils.getInt(payload['resizeDurationMs'], fallback: 300));
+      options.motion =
+          Utils.getString(payload['motion'], fallback: 'inversedDrawer');
+      options.onDismissed = payload['onDismissed'];
+    }
+    return options;
+  }
+
+  Widget getDismissibleMotion() {
+    switch (motion) {
+      case 'inversedDrawer':
+        return const InversedDrawerMotion();
+      case 'drawer':
+        return const DrawerMotion();
+      case 'behind':
+        return const BehindMotion();
+      case 'scroll':
+        return const ScrollMotion();
+      case 'stretch':
+        return const StretchMotion();
+      default:
+        return const InversedDrawerMotion();
+    }
+  }
+
+  @override
+  Map<String, Function> setters() => {
+        'dismissThreshold': (value) =>
+            dismissThreshold = Utils.getDouble(value, fallback: 0.75),
+        'dismissalDurationMs': (value) => dismissalDuration =
+            Duration(milliseconds: Utils.getInt(value, fallback: 300)),
+        'resizeDurationMs': (value) => resizeDuration =
+            Duration(milliseconds: Utils.getInt(value, fallback: 300)),
+        'motion': (value) =>
+            motion = Utils.getString(value, fallback: 'inversedDrawer'),
+        'onDismissed': (value) => onDismissed = value,
+      };
+
+  @override
+  Map<String, Function> getters() => {
+        'dismissThreshold': () => dismissThreshold,
+        'dismissalDurationMs': () => dismissalDuration.inMilliseconds,
+        'resizeDurationMs': () => resizeDuration.inMilliseconds,
+        'motion': () => motion,
+        'onDismissed': () => onDismissed,
+      };
+
+  @override
+  Map<String, Function> methods() => {};
+}
+
 class ActionPaneOptionsComposite extends WidgetCompositeProperty {
   ActionPaneOptionsComposite(ChangeNotifier widgetController)
       : super(widgetController);
@@ -271,6 +374,11 @@ class SlidableDrawerComposite extends WidgetCompositeProperty {
       _options ??= ActionPaneOptionsComposite(widgetController);
   set options(ActionPaneOptionsComposite value) => _options = value;
 
+  DismissiblePaneOptions? _dismissible;
+  DismissiblePaneOptions get dismissible =>
+      _dismissible ??= DismissiblePaneOptions(widgetController);
+  set dismissible(DismissiblePaneOptions value) => _dismissible = value;
+
   List<dynamic> children = [];
 
   factory SlidableDrawerComposite.from(
@@ -281,6 +389,10 @@ class SlidableDrawerComposite extends WidgetCompositeProperty {
       if (payload['options'] != null) {
         composite.options = ActionPaneOptionsComposite.from(
             widgetController, payload['options']);
+      }
+      if (payload['dismissible'] != null) {
+        composite.dismissible = DismissiblePaneOptions.from(
+            widgetController, payload['dismissible']);
       }
       if (payload['children'] != null) {
         composite.children = List.from(payload['children']);
@@ -293,12 +405,15 @@ class SlidableDrawerComposite extends WidgetCompositeProperty {
   Map<String, Function> setters() => {
         'options': (value) =>
             options = ActionPaneOptionsComposite.from(widgetController, value),
+        'dismissible': (value) =>
+            dismissible = DismissiblePaneOptions.from(widgetController, value),
         'children': (value) => children = List.from(value),
       };
 
   @override
   Map<String, Function> getters() => {
         'options': () => options,
+        'dismissible': () => dismissible,
         'children': () => children,
       };
 
