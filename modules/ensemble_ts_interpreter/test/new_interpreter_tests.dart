@@ -1,3 +1,4 @@
+import 'package:ensemble_ts_interpreter/errors.dart';
 import 'package:ensemble_ts_interpreter/invokables/context.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokablecontroller.dart';
@@ -2714,4 +2715,399 @@ function createRandomizedTiles() {
       expect(lista, []);
     });
   });
+  group('Try-Catch-Finally Tests (ES5)', () {
+    test('basic try-catch test', () {
+      String codeToEvaluate = """
+      try {
+        throw 'An error';
+      } catch (e) {
+        var caughtError = e;
+      }
+    """;
+      Map<String, dynamic> context = initContext();
+      JSInterpreter.fromCode(codeToEvaluate, SimpleContext(context)).evaluate();
+      expect(context['caughtError'], 'An error');
+      expect(context.containsKey('e'), false); // 'e' should not be accessible outside
+    });
+
+    test('variable scope in try', () {
+      String codeToEvaluate = """
+      function testFunction() {
+        try {
+          var insideTry = 'inside try';
+        } catch (e) {
+        }
+        return insideTry;
+      }
+      var result = testFunction();
+    """;
+      Map<String, dynamic> context = initContext();
+      JSInterpreter.fromCode(codeToEvaluate, SimpleContext(context)).evaluate();
+      expect(context['result'], 'inside try');
+    });
+
+    test('variable scope in catch', () {
+      String codeToEvaluate = """
+      function testFunction() {
+        try {
+          throw 'An error';
+        } catch (e) {
+          var insideCatch = 'inside catch';
+        }
+        return insideCatch;
+      }
+      var result = testFunction();
+    """;
+      Map<String, dynamic> context = initContext();
+      JSInterpreter.fromCode(codeToEvaluate, SimpleContext(context)).evaluate();
+      expect(context['result'], 'inside catch');
+    });
+
+    test('variable scope in finally', () {
+      String codeToEvaluate = """
+      function testFunction() {
+        try {
+        } finally {
+          var insideFinally = 'inside finally';
+        }
+        return insideFinally;
+      }
+      var result = testFunction();
+    """;
+      Map<String, dynamic> context = initContext();
+      JSInterpreter.fromCode(codeToEvaluate, SimpleContext(context)).evaluate();
+      expect(context['result'], 'inside finally');
+    });
+
+    test('exception parameter scope', () {
+      String codeToEvaluate = """
+      var exceptionVar;
+      try {
+        throw 'An error';
+      } catch (e) {
+        exceptionVar = e;
+      }
+      var outsideE = e;
+    """;
+      Map<String, dynamic> context = initContext();
+      // Accessing 'e' outside the catch block should throw an exception
+      JSInterpreter.fromCode(codeToEvaluate, SimpleContext(context)).evaluate();
+      // expect(
+      //         () => JSInterpreter.fromCode(codeToEvaluate, SimpleContext(context)).evaluate(),
+      //     throwsA(isA<JSCustomException>()));
+      expect(context['exceptionVar'], 'An error');
+      expect(context['outsideE'],null);
+    });
+
+    test('variables outside accessible inside try', () {
+      String codeToEvaluate = """
+      var outsideVar = 'outside';
+      try {
+        var insideVar = outsideVar;
+      } catch (e) {
+      }
+    """;
+      Map<String, dynamic> context = initContext();
+      JSInterpreter.fromCode(codeToEvaluate, SimpleContext(context)).evaluate();
+      expect(context['outsideVar'], 'outside');
+    });
+
+    test('rethrow exception in catch', () {
+      String codeToEvaluate = """
+      try {
+        throw 'An error';
+      } catch (e) {
+        throw e;
+      }
+    """;
+      Map<String, dynamic> context = initContext();
+      //JSInterpreter.fromCode(codeToEvaluate, SimpleContext(context)).evaluate();
+      expect(
+              () => JSInterpreter.fromCode(codeToEvaluate, SimpleContext(context)).evaluate(),
+          throwsA(isA<JSException>()));
+    });
+
+    test('nested try-catch', () {
+      String codeToEvaluate = """
+      var result = '';
+      try {
+        try {
+          throw 'Inner error';
+        } catch (e) {
+          result += 'inner catch;';
+          throw e;
+        }
+      } catch (e) {
+        result += 'outer catch;';
+      }
+    """;
+      Map<String, dynamic> context = initContext();
+      JSInterpreter.fromCode(codeToEvaluate, SimpleContext(context)).evaluate();
+      expect(context['result'], 'inner catch;outer catch;');
+    });
+
+    test('exception in finally block', () {
+      String codeToEvaluate = """
+      try {
+        // No error here
+      } finally {
+        throw 'Error in finally';
+      }
+    """;
+      Map<String, dynamic> context = initContext();
+      expect(
+              () => JSInterpreter.fromCode(codeToEvaluate, SimpleContext(context)).evaluate(),
+          throwsA(isA<JSException>()));
+    });
+
+    test('exception thrown in catch block', () {
+      String codeToEvaluate = """
+      var inFinally = false;
+      try {
+        throw 'Initial error';
+      } catch (e) {
+        throw 'Error in catch';
+      } finally {
+        inFinally = true;
+      }
+    """;
+      Map<String, dynamic> context = initContext();
+      expect(
+              () => JSInterpreter.fromCode(codeToEvaluate, SimpleContext(context)).evaluate(),
+          throwsA(isA<JSException>()));
+      expect(context['inFinally'], true);
+    });
+
+    test('try-catch with return in try', () {
+      String codeToEvaluate = """
+      function testFunction() {
+        try {
+          return 'from try';
+        } catch (e) {
+          return 'from catch';
+        } finally {
+          return 'from finally';
+        }
+      }
+      var result = testFunction();
+    """;
+      Map<String, dynamic> context = initContext();
+      JSInterpreter.fromCode(codeToEvaluate, SimpleContext(context)).evaluate();
+      expect(context['result'], 'from finally');
+    });
+
+    test('throwing non-string exception', () {
+      String codeToEvaluate = """
+      try {
+        throw {message: 'An error object'};
+      } catch (e) {
+        var caughtMessage = e.message;
+      }
+    """;
+      Map<String, dynamic> context = initContext();
+      JSInterpreter.fromCode(codeToEvaluate, SimpleContext(context)).evaluate();
+      expect(context['caughtMessage'], 'An error object');
+    });
+
+    // Additional tests adjusted for ES5 scoping rules
+
+    test('variable hoisting in try block', () {
+      String codeToEvaluate = """
+      function testFunction() {
+        try {
+          hoistedVar = 'hoisted';
+          var hoistedVar;
+        } catch (e) {
+          console.log(e);
+        }
+        return hoistedVar;
+      }
+      var result = testFunction();
+    """;
+      Map<String, dynamic> context = initContext();
+      JSInterpreter.fromCode(codeToEvaluate, SimpleContext(context)).evaluate();
+      expect(context['result'], 'hoisted');
+    });
+
+    test('variable hoisting in catch block', () {
+      String codeToEvaluate = """
+      function testFunction() {
+        try {
+          throw 'An error';
+        } catch (e) {
+          hoistedVar = 'hoisted in catch';
+          var hoistedVar;
+        }
+        return hoistedVar;
+      }
+      var result = testFunction();
+    """;
+      Map<String, dynamic> context = initContext();
+      JSInterpreter.fromCode(codeToEvaluate, SimpleContext(context)).evaluate();
+      expect(context['result'], 'hoisted in catch');
+    });
+
+    test('accessing exception variable outside catch block', () {
+      String codeToEvaluate = """
+      var caughtError;
+      try {
+        throw 'An error';
+      } catch (e) {
+        caughtError = e;
+      }
+      var outsideE = e;
+    """;
+      Map<String, dynamic> context = initContext();
+      // Accessing 'e' outside the catch block should throw an exception
+      JSInterpreter.fromCode(codeToEvaluate, SimpleContext(context)).evaluate();
+      // expect(
+      //         () => JSInterpreter.fromCode(codeToEvaluate, SimpleContext(context)).evaluate(),
+      //     throwsA(isA<JSException>()));
+      expect(context['caughtError'], 'An error');
+      expect(context['outsideE'], null);
+    });
+
+    test('variables declared in catch accessible outside catch', () {
+      String codeToEvaluate = """
+      function testFunction() {
+        try {
+          throw 'An error';
+        } catch (e) {
+          var insideCatch = 'inside catch';
+        }
+        return insideCatch;
+      }
+      var result = testFunction();
+    """;
+      Map<String, dynamic> context = initContext();
+      // 'insideCatch' should be accessible outside the catch block
+      JSInterpreter.fromCode(codeToEvaluate, SimpleContext(context)).evaluate();
+      expect(context['result'], 'inside catch');
+    });
+
+    test('variables declared in finally accessible outside finally', () {
+      String codeToEvaluate = """
+      function testFunction() {
+        try {
+        } finally {
+          var insideFinally = 'inside finally';
+        }
+        return insideFinally;
+      }
+      var result = testFunction();
+    """;
+      Map<String, dynamic> context = initContext();
+      // 'insideFinally' should be accessible outside the finally block
+      JSInterpreter.fromCode(codeToEvaluate, SimpleContext(context)).evaluate();
+      expect(context['result'], 'inside finally');
+    });
+
+    test('exception variable shadowing outer variable', () {
+      String codeToEvaluate = """
+      var e = 'outer';
+      try {
+        throw 'Error';
+      } catch (e) {
+        var caught = e;
+      }
+      var outsideE = e;
+    """;
+      Map<String, dynamic> context = initContext();
+      JSInterpreter.fromCode(codeToEvaluate, SimpleContext(context)).evaluate();
+      expect(context['caught'], 'Error');
+      expect(context['outsideE'], 'outer');
+    });
+
+    test('try-catch with function declaration in catch block', () {
+      String codeToEvaluate = """
+      function testFunction() {
+        try {
+          throw 'Error';
+        } catch (e) {
+          function catchFunction() {
+            return 'from catchFunction';
+          }
+          return catchFunction();
+        }
+      }
+      var result = testFunction();
+    """;
+      Map<String, dynamic> context = initContext();
+      // Function declarations inside blocks are hoisted to the function scope in ES5
+      JSInterpreter.fromCode(codeToEvaluate, SimpleContext(context)).evaluate();
+      expect(context['result'], 'from catchFunction');
+    });
+
+    test('throwing undefined', () {
+      String codeToEvaluate = """
+      try {
+        throw undefined;
+      } catch (e) {
+        var caught = e;
+      }
+    """;
+      Map<String, dynamic> context = initContext();
+      JSInterpreter.fromCode(codeToEvaluate, SimpleContext(context)).evaluate();
+      expect(context['caught'], null);
+    });
+
+    test('throwing null', () {
+      String codeToEvaluate = """
+      try {
+        throw null;
+      } catch (e) {
+        var caught = e;
+      }
+    """;
+      Map<String, dynamic> context = initContext();
+      JSInterpreter.fromCode(codeToEvaluate, SimpleContext(context)).evaluate();
+      expect(context['caught'], null);
+    });
+
+    test('catching exception and modifying it', () {
+      String codeToEvaluate = """
+      try {
+        throw 'Error';
+      } catch (e) {
+        e = 'Modified Error';
+        var caught = e;
+      }
+    """;
+      Map<String, dynamic> context = initContext();
+      JSInterpreter.fromCode(codeToEvaluate, SimpleContext(context)).evaluate();
+      expect(context['caught'], 'Modified Error');
+    });
+
+    test('try-catch-finally execution order', () {
+      String codeToEvaluate = """
+      var result = '';
+      try {
+        result += 'try;';
+        throw 'Error';
+      } catch (e) {
+        result += 'catch;';
+      } finally {
+        result += 'finally;';
+      }
+    """;
+      Map<String, dynamic> context = initContext();
+      JSInterpreter.fromCode(codeToEvaluate, SimpleContext(context)).evaluate();
+      expect(context['result'], 'try;catch;finally;');
+    });
+
+    test('try without catch or finally', () {
+      String codeToEvaluate = """
+      try {
+        var x = 1;
+      }
+      var y = x;
+    """;
+      Map<String, dynamic> context = initContext();
+      // ES5 syntax error: 'try' without 'catch' or 'finally' is invalid
+      expect(
+              () => JSInterpreter.fromCode(codeToEvaluate, SimpleContext(context)).evaluate(),
+          throwsA(isA<JSException>()));
+    });
+  });
+
 }

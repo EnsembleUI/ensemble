@@ -1,14 +1,15 @@
-import 'dart:io';
-import 'dart:math';
+import 'dart:convert';
 
+import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/widget/widget.dart';
+import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:ensemble_ts_interpreter/parser/newjs_interpreter.dart';
 import 'package:flutter/material.dart';
-import 'package:js_widget/js_widget.dart';
-import 'dart:convert';
+import 'chart_js_state.dart';
+import 'dart:math';
 
 class ChartJsController extends WidgetController {
   ChartJsController() {
@@ -21,6 +22,31 @@ class ChartJsController extends WidgetController {
   String get chartId => id!;
   dynamic config = '';
   Function? evalScript;
+  EnsembleAction? onTap;
+}
+
+abstract class ChartJsStateBase extends EWidgetState<ChartJs> {
+  void handleChartClick(String data) {
+    if (widget.controller.onTap != null) {
+      Map<String, dynamic> eventData = json.decode(data);
+      widget.controller.onTap!.inputs = {'event': eventData};
+      ScreenController().executeAction(context, widget.controller.onTap!);
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    widget.controller.evalScript = evalScript;
+  }
+
+  @override
+  void dispose() {
+    widget.controller.evalScript = null;
+    super.dispose();
+  }
+
+  void evalScript(String script);
 }
 
 class ChartJs extends StatefulWidget
@@ -125,52 +151,9 @@ class ChartJs extends StatefulWidget
         } else {
           _controller.config = value;
         }
-      }
-    };
-  }
-}
-
-class ChartJsState extends EWidgetState<ChartJs> {
-  JsWidget? jsWidget;
-  void evalScript(String script) {
-    if (jsWidget == null) {
-      print('evalScript is being called on a jsWidget which is null');
-    } else {
-      jsWidget!.evalScript(script);
-    }
-  }
-
-  @override
-  void initState() {
-    widget.controller.evalScript = evalScript;
-    super.initState();
-  }
-
-  @override
-  void dispose() {
-    widget.controller.evalScript = null;
-    super.dispose();
-  }
-
-  @override
-  Widget buildWidget(BuildContext context) {
-    if (widget.controller.config == '') {
-      return const Text("");
-    }
-    jsWidget = JsWidget(
-      id: widget.controller.id!,
-      createHtmlTag: () =>
-          '<div id="${widget.controller.chartDiv}"><canvas id="${widget.controller.chartId}"></canvas></div>',
-      scriptToInstantiate: (String c) {
-        return 'if (typeof ${widget.controller.chartVar} !== "undefined") ${widget.controller.chartVar}.destroy();${widget.controller.chartVar} = new Chart(document.getElementById("${widget.controller.chartId}"), $c);${widget.controller.chartVar}.update();';
       },
-      size: Size(widget.controller.width.toDouble(),
-          widget.controller.height.toDouble()),
-      data: widget.controller.config,
-      scripts: const [
-        "https://cdn.jsdelivr.net/npm/chart.js",
-      ],
-    );
-    return jsWidget!;
+      'onTap': (funcDefinition) => _controller.onTap =
+          EnsembleAction.from(funcDefinition, initiator: this),
+    };
   }
 }
