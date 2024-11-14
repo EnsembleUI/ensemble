@@ -22,11 +22,11 @@ class CircleTickMarkShape extends TickMarkShape {
   }
 }
 
-class RectangleTickMarkShape extends TickMarkShape {
+class rectangularTickMarkShape extends TickMarkShape {
   final double? width;
   final double? height;
 
-  const RectangleTickMarkShape({this.width, this.height});
+  const rectangularTickMarkShape({this.width, this.height});
 
   @override
   SliderTickMarkShape createShape(double offset, double trackHeight) {
@@ -169,10 +169,10 @@ class TickMarkStyleComposite extends WidgetCompositeProperty {
           composite.shape = CircleTickMarkShape(
             radius: Utils.optionalDouble(shapeConfig['circle']['radius']),
           );
-        } else if (shapeConfig['rectangle'] is Map) {
-          composite.shape = RectangleTickMarkShape(
-            width: Utils.optionalDouble(shapeConfig['rectangle']['width']),
-            height: Utils.optionalDouble(shapeConfig['rectangle']['height']),
+        } else if (shapeConfig['rectangular'] is Map) {
+          composite.shape = rectangularTickMarkShape(
+            width: Utils.optionalDouble(shapeConfig['rectangular']['width']),
+            height: Utils.optionalDouble(shapeConfig['rectangular']['height']),
           );
         }
       }
@@ -202,10 +202,10 @@ class TickMarkStyleComposite extends WidgetCompositeProperty {
               shape = CircleTickMarkShape(
                 radius: Utils.optionalDouble(value['circle']['radius']),
               );
-            } else if (value['rectangle'] is Map) {
-              shape = RectangleTickMarkShape(
-                width: Utils.optionalDouble(value['rectangle']['width']),
-                height: Utils.optionalDouble(value['rectangle']['height']),
+            } else if (value['rectangular'] is Map) {
+              shape = rectangularTickMarkShape(
+                width: Utils.optionalDouble(value['rectangular']['width']),
+                height: Utils.optionalDouble(value['rectangular']['height']),
               );
             }
           }

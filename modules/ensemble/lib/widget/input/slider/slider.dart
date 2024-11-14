@@ -28,7 +28,13 @@ class EnsembleSlider extends StatefulWidget
   Map<String, Function> getters() {
     return {
       'value': () => _controller.value,
+      'min': () => _controller.minValue,
+      'max': () => _controller.maxValue,
       'trackStyle': () => _controller.trackStyle,
+      'tickMarkStyle': () => _controller.tickMarkStyle,
+      'thumbStyle': () => _controller.thumbStyle,
+      'overlayStyle': () => _controller.overlayStyle,
+      'valueIndicatorStyle': () => _controller.valueIndicatorStyle,
     };
   }
 
