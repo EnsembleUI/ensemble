@@ -1,25 +1,22 @@
 import 'dart:io';
 import 'dart:math';
-import 'dart:ui';
-import 'package:ensemble/ensemble.dart';
-import 'package:ensemble/ensemble_app.dart';
-import 'package:ensemble/framework/stub/location_manager.dart';
-import 'package:ensemble/framework/theme/theme_manager.dart';
-import 'package:ensemble_ts_interpreter/invokables/UserLocale.dart';
-import 'package:path/path.dart' as p;
 
+import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/framework/model.dart';
-import 'package:ensemble/framework/scope.dart';
+import 'package:ensemble/framework/stub/location_manager.dart';
+import 'package:ensemble/framework/theme/theme_manager.dart';
 import 'package:ensemble/widget/helpers/controllers.dart';
+import 'package:ensemble_ts_interpreter/invokables/UserLocale.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokableprimitives.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_i18n/flutter_i18n.dart';
-import 'package:google_fonts/google_fonts.dart';
-import 'package:yaml/yaml.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:path/path.dart' as p;
+import 'package:yaml/yaml.dart';
 
 class Utils {
   /// global appKey to get the context
@@ -75,6 +72,22 @@ class Utils {
       rtn = null;
     }
     return rtn;
+  }
+
+  /// Expects a String containing 2 int values separated by whitespace
+  /// (e.g. "1 4")
+  static RangeValues? getRangeValues(dynamic value) {
+    if (value is String) {
+      final List<String> valuesList = value.split(RegExp('\\s+'));
+      if (valuesList.length == 2) {
+        final start = optionalDouble(valuesList[0]);
+        final end = optionalDouble(valuesList[1]);
+        if (start != null && end != null) {
+          return RangeValues(start, end);
+        }
+      }
+    }
+    return null;
   }
 
   /// expect a value in seconds
@@ -549,7 +562,8 @@ class Utils {
           decorationStyle:
               TextDecorationStyle.values.from(style['decorationStyle']),
           decorationColor: Utils.getColor(style['decorationColor']),
-          decorationThickness: Utils.optionalDouble(style['decorationThickness']),
+          decorationThickness:
+              Utils.optionalDouble(style['decorationThickness']),
           overflow: TextOverflow.values.from(style['overflow']),
           letterSpacing: Utils.optionalDouble(style['letterSpacing']),
           wordSpacing: Utils.optionalDouble(style['wordSpacing']));
