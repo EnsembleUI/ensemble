@@ -1,3 +1,7 @@
+## 1.1.2
+
+ - last ensemble support for 3.19.5
+
 ## 1.1.1
 
 ## 1.1.0
