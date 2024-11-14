@@ -102,13 +102,12 @@ class SliderState extends FormFieldWidgetState<EnsembleRangeSlider> {
       widget: FormField<RangeValues>(
         key: validatorKey,
         validator: (value) {
-          //TODO: Implement validation
-
-          // if (widget._controller.required &&
-          //     widget.controller.values == widget.controller.minValue) {
-          //   return Utils.translateWithFallback(
-          //       'ensemble.input.required', 'This field is required');
-          // }
+          if (widget._controller.required &&
+              widget.controller.values.start == widget.controller.minValue &&
+              widget.controller.values.end == widget.controller.minValue) {
+            return Utils.translateWithFallback(
+                'ensemble.input.required', 'This field is required');
+          }
           return null;
         },
         builder: (FormFieldState<RangeValues> field) {
