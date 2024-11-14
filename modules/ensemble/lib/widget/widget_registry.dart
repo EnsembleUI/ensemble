@@ -24,6 +24,7 @@ import 'package:ensemble/widget/button.dart';
 import 'package:ensemble/widget/calendar.dart';
 import 'package:ensemble/widget/checkbox.dart';
 import 'package:ensemble/widget/countdown.dart';
+import 'package:ensemble/widget/input/range_slider.dart';
 import 'package:ensemble/widget/radio/radio_button.dart';
 import 'package:ensemble/widget/radio/radio_group.dart';
 import 'package:ensemble/widget/static_map.dart';
@@ -160,6 +161,7 @@ class WidgetRegistry {
         EnsembleIconButton.type: () => EnsembleIconButton(),
         EnsembleToggleButton.type: () => EnsembleToggleButton(),
         EnsembleSlider.type: () => EnsembleSlider(),
+        EnsembleRangeSlider.type: () => EnsembleRangeSlider(),
 
         // containers
         ToggleContainer.type: () => ToggleContainer(),
