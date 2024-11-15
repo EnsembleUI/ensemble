@@ -74,12 +74,22 @@ class Utils {
     return rtn;
   }
 
-  /// Expects a String containing 2 int values separated by whitespace
-  /// (e.g. "1 4")
+  /// Expects a number or a String containing 2 numbers values separated by whitespace
+  /// (e.g. 1 or "1 4")
   static RangeValues? getRangeValues(dynamic value) {
-    if (value is String) {
+    if (value is num) {
+      final start = optionalDouble(value);
+      if (start != null) {
+        return RangeValues(start, start);
+      }
+    } else if (value is String) {
       final List<String> valuesList = value.split(RegExp('\\s+'));
-      if (valuesList.length == 2) {
+      if (valuesList.length == 1) {
+        final start = optionalDouble(valuesList[0]);
+        if (start != null) {
+          return RangeValues(start, start);
+        }
+      } else if (valuesList.length == 2) {
         final start = optionalDouble(valuesList[0]);
         final end = optionalDouble(valuesList[1]);
         if (start != null && end != null) {

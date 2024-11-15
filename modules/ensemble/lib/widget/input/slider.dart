@@ -1,12 +1,11 @@
-import 'package:ensemble/widget/helpers/input_wrapper.dart';
-import 'package:flutter/material.dart';
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/event.dart';
-import 'package:ensemble/widget/helpers/form_helper.dart';
-import 'package:ensemble/widget/helpers/widgets.dart';
-import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
-import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/screen_controller.dart';
+import 'package:ensemble/util/utils.dart';
+import 'package:ensemble/widget/helpers/form_helper.dart';
+import 'package:ensemble/widget/helpers/input_wrapper.dart';
+import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
+import 'package:flutter/material.dart';
 
 class EnsembleSlider extends StatefulWidget
     with Invokable, HasController<SliderController, SliderState> {
@@ -36,8 +35,8 @@ class EnsembleSlider extends StatefulWidget
   @override
   Map<String, Function> setters() {
     return {
-      'initialValue': (value) =>
-          _controller.value = Utils.optionalDouble(value) ?? 0,
+      'initialValue': (value) => _controller.value =
+          Utils.getRangeValues(value) ?? const RangeValues(0, 0),
       'min': (value) =>
           _controller.minValue = Utils.getDouble(value, fallback: 0.0),
       'max': (value) =>
@@ -58,12 +57,14 @@ class EnsembleSlider extends StatefulWidget
           _controller.trackHeight = Utils.optionalDouble(value),
       'thumbRadius': (value) =>
           _controller.thumbRadius = Utils.getDouble(value, fallback: 10),
+      'isRange': (value) =>
+          _controller.isRange = Utils.getBool(value, fallback: false),
     };
   }
 }
 
 class SliderController extends FormFieldController {
-  double value = 0.0;
+  RangeValues value = const RangeValues(0.0, 1.0);
   double minValue = 0.0;
   double maxValue = 1.0;
   int? divisions;
@@ -77,6 +78,8 @@ class SliderController extends FormFieldController {
 
   double? trackHeight;
   double thumbRadius = 10;
+
+  bool isRange = false;
 }
 
 int calculateDecimalPlaces(double min, double max, int? divisions) {
@@ -104,7 +107,8 @@ class SliderState extends FormFieldWidgetState<EnsembleSlider> {
         key: validatorKey,
         validator: (value) {
           if (widget._controller.required &&
-              widget.controller.value == widget.controller.minValue) {
+              widget.controller.value.start == widget.controller.minValue &&
+              widget.controller.value.end == widget.controller.minValue) {
             return Utils.translateWithFallback(
                 'ensemble.input.required', 'This field is required');
           }
@@ -124,27 +128,56 @@ class SliderState extends FormFieldWidgetState<EnsembleSlider> {
               trackHeight: widget.controller.trackHeight,
               valueIndicatorColor: widget.controller.thumbColor,
             ),
-            child: Slider(
-              label: widget.controller.value.toStringAsFixed(decimalPlaces),
-              min: widget.controller.minValue,
-              max: widget.controller.maxValue,
-              value: widget.controller.value,
-              divisions: widget.controller.divisions,
-              onChanged: isEnabled()
-                  ? (value) {
-                      setState(() {
-                        widget.controller.value = value;
-                      });
-                      if (widget.controller.onChange != null) {
-                        ScreenController().executeAction(
-                          context,
-                          widget.controller.onChange!,
-                          event: EnsembleEvent(widget),
-                        );
-                      }
-                    }
-                  : null,
-            ),
+            child: widget.controller.isRange
+                ? RangeSlider(
+                    labels: RangeLabels(
+                      widget.controller.value.start
+                          .toStringAsFixed(decimalPlaces),
+                      widget.controller.value.end
+                          .toStringAsFixed(decimalPlaces),
+                    ),
+                    min: widget.controller.minValue,
+                    max: widget.controller.maxValue,
+                    values: widget.controller.value,
+                    divisions: widget.controller.divisions,
+                    onChanged: isEnabled()
+                        ? (value) {
+                            setState(() {
+                              widget.controller.value = value;
+                            });
+                            if (widget.controller.onChange != null) {
+                              ScreenController().executeAction(
+                                context,
+                                widget.controller.onChange!,
+                                event: EnsembleEvent(widget),
+                              );
+                            }
+                          }
+                        : null,
+                  )
+                : Slider(
+                    label: widget.controller.value.start
+                        .toStringAsFixed(decimalPlaces),
+                    min: widget.controller.minValue,
+                    max: widget.controller.maxValue,
+                    value: widget.controller.value.start,
+                    divisions: widget.controller.divisions,
+                    onChanged: isEnabled()
+                        ? (value) {
+                            setState(() {
+                              widget.controller.value =
+                                  RangeValues(value, value);
+                            });
+                            if (widget.controller.onChange != null) {
+                              ScreenController().executeAction(
+                                context,
+                                widget.controller.onChange!,
+                                event: EnsembleEvent(widget),
+                              );
+                            }
+                          }
+                        : null,
+                  ),
           );
         },
       ),
