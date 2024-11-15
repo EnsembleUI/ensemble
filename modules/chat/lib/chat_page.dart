@@ -5,6 +5,8 @@ import 'dart:convert';
 
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/view/data_scope_widget.dart';
+import 'package:ensemble/util/utils.dart';
+import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:ensemble_chat/ensemble_chat.dart';
 import 'package:flutter/material.dart';
 import 'package:yaml/yaml.dart';
@@ -16,29 +18,79 @@ class ChatPage extends StatefulWidget {
     super.key,
     required this.messages,
     required this.onMessageSend,
+    required this.controller,
   });
 
   final List<InternalMessage> messages;
   final Function(String value) onMessageSend;
+  final EnsembleChatController controller;
 
   @override
   State<ChatPage> createState() => _ChatPageState();
 }
 
-class _ChatPageState extends State<ChatPage> {
-  final ScrollController scrollController = ScrollController();
+class BubbleStyleComposite extends WidgetCompositeProperty {
+  BubbleStyleComposite(ChangeNotifier widgetController) : super(widgetController);
 
-  final TextEditingController _textController = TextEditingController();
+  Color? backgroundColor;
+  Color? textColor;
+  double borderRadius = 20.0;
+  TextStyle? textStyle;
+  EdgeInsets padding = const EdgeInsets.symmetric(horizontal: 16, vertical: 12);
+  EdgeInsets margin = const EdgeInsets.symmetric(vertical: 4);
+
+  factory BubbleStyleComposite.from(
+      ChangeNotifier widgetController, dynamic payload) {
+    BubbleStyleComposite composite = BubbleStyleComposite(widgetController);
+    if (payload is Map) {
+      composite.backgroundColor = Utils.getColor(payload['backgroundColor']);
+      composite.textColor = Utils.getColor(payload['textColor']);
+      composite.borderRadius =
+          Utils.getDouble(payload['borderRadius'], fallback: 20.0);
+      composite.textStyle = Utils.getTextStyle(payload['textStyle']);
+      composite.padding = Utils.getInsets(payload['padding'],
+          fallback: const EdgeInsets.symmetric(horizontal: 16, vertical: 12));
+      composite.margin = Utils.getInsets(payload['margin'],
+          fallback: const EdgeInsets.symmetric(vertical: 4));
+    }
+    return composite;
+  }
 
   @override
-  void didUpdateWidget(covariant ChatPage oldWidget) {
-    super.didUpdateWidget(oldWidget);
-  }
+  Map<String, Function> setters() => {
+        'backgroundColor': (value) => backgroundColor = Utils.getColor(value),
+        'textColor': (value) => textColor = Utils.getColor(value),
+        'borderRadius': (value) =>
+            borderRadius = Utils.getDouble(value, fallback: 20.0),
+        'textStyle': (value) => textStyle = Utils.getTextStyle(value),
+        'padding': (value) => padding = Utils.getInsets(value,
+            fallback: const EdgeInsets.symmetric(horizontal: 16, vertical: 12)),
+        'margin': (value) => margin = Utils.getInsets(value,
+            fallback: const EdgeInsets.symmetric(vertical: 4)),
+      };
+
+  @override
+  Map<String, Function> getters() => {
+        'backgroundColor': () => backgroundColor,
+        'textColor': () => textColor,
+        'borderRadius': () => borderRadius,
+        'textStyle': () => textStyle,
+        'padding': () => padding,
+        'margin': () => margin,
+      };
+
+  @override
+  Map<String, Function> methods() => {};
+}
+
+class _ChatPageState extends State<ChatPage> {
+  final ScrollController scrollController = ScrollController();
+  final TextEditingController _textController = TextEditingController();
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: widget.controller.backgroundColor ?? Colors.black,
       body: Column(
         children: [
           Flexible(
@@ -53,12 +105,9 @@ class _ChatPageState extends State<ChatPage> {
                   child: MessageWidget(
                     key: ValueKey(message.id),
                     message: message,
+                    controller: widget.controller,
                   ),
                 );
-              },
-              findChildIndexCallback: (key) {
-                // TODO: https://www.youtube.com/watch?v=2FjCg1IAeds
-                return null;
               },
             ),
           ),
@@ -77,28 +126,21 @@ class _ChatPageState extends State<ChatPage> {
                 Expanded(
                   child: Container(
                     decoration: BoxDecoration(
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.grey.withOpacity(0.5),
-                          spreadRadius: 1,
-                          blurRadius: 5,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
+                      color: widget.controller.textFieldBackgroundColor ??
+                          Colors.white.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(16),
                     ),
                     child: TextFormField(
                       controller: _textController,
+                      style: widget.controller.textFieldTextStyle ??
+                          const TextStyle(color: Colors.white),
                       maxLines: 5,
                       minLines: 1,
-                      onFieldSubmitted: (value) {
-                        if (_textController.text.trim().isEmpty) return;
-                        widget.onMessageSend.call(_textController.text);
-                        _textController.clear();
-                      },
+                      onFieldSubmitted: _handleSubmit,
                       decoration: InputDecoration(
                         hintText: 'Send a message',
                         filled: true,
+                        fillColor: Colors.transparent,
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(16.0),
                           borderSide: BorderSide.none,
@@ -120,15 +162,11 @@ class _ChatPageState extends State<ChatPage> {
                     minHeight: 24,
                     minWidth: 24,
                   ),
-                  icon: const Icon(
+                  icon: Icon(
                     Icons.send,
-                    color: Colors.white,
+                    color: widget.controller.iconColor ?? Colors.white,
                   ),
-                  onPressed: () {
-                    if (_textController.text.trim().isEmpty) return;
-                    widget.onMessageSend.call(_textController.text);
-                    _textController.clear();
-                  },
+                  onPressed: () => _handleSubmit(),
                   padding: const EdgeInsets.symmetric(horizontal: 16.0),
                   splashRadius: 24,
                 )
@@ -139,15 +177,39 @@ class _ChatPageState extends State<ChatPage> {
       ),
     );
   }
+
+  void _handleSubmit([String? value]) {
+    if (_textController.text.trim().isEmpty) return;
+    widget.onMessageSend.call(_textController.text);
+    _textController.clear();
+  }
 }
 
 class MessageWidget extends StatelessWidget {
-  const MessageWidget({super.key, required this.message});
+  const MessageWidget({
+    super.key,
+    required this.message,
+    required this.controller,
+  });
 
   final InternalMessage message;
+  final EnsembleChatController controller;
+
+  BubbleStyleComposite _getStyleForRole() {
+    switch (message.role) {
+      case MessageRole.user:
+        return controller.userBubbleStyle;
+      case MessageRole.assistant:
+        return controller.assistantBubbleStyle;
+      case MessageRole.system:
+        return controller.assistantBubbleStyle; // Fallback to assistant style
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    final bubbleStyle = _getStyleForRole();
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12.0),
       child: message.role == MessageRole.system
@@ -160,14 +222,26 @@ class MessageWidget extends StatelessWidget {
             )
           : Column(
               mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment: message.role == MessageRole.user
+                  ? CrossAxisAlignment.end
+                  : CrossAxisAlignment.start,
               children: [
                 const SizedBox(height: 4),
                 if (message.content != null)
                   BubbleContainer(
                     text: message.content ?? '',
-                    color: const Color(0xFFEAEAEA),
-                    bubbleAlignment: BubbleAlignment.left,
+                    bubbleAlignment: message.role == MessageRole.user
+                        ? BubbleAlignment.right
+                        : BubbleAlignment.left,
+                    color: bubbleStyle.backgroundColor ??
+                        Colors.white.withOpacity(0.15),
+                    textStyle: bubbleStyle.textStyle?.copyWith(
+                          color: bubbleStyle.textColor,
+                        ) ??
+                        TextStyle(color: bubbleStyle.textColor ?? Colors.white),
+                    padding: bubbleStyle.padding,
+                    margin: bubbleStyle.margin,
+                    bubbleRadius: bubbleStyle.borderRadius,
                   ),
                 if (message.widget != null)
                   Container(
@@ -197,7 +271,7 @@ Widget? buildWidgetsFromTemplate(
     final widget = parentScope?.buildWidgetFromDefinition(definition);
     return widget;
   } on Exception catch (e) {
-    print("EnsembleChat: error while buidling inline widget:\n$e");
+    print("EnsembleChat: error while building inline widget:\n$e");
   }
   return null;
 }

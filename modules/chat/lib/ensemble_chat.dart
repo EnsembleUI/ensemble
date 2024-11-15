@@ -43,6 +43,7 @@ class EnsembleChatState extends EnsembleWidgetState<EnsembleChatImpl> {
         return ChatPage(
           messages: messages,
           onMessageSend: sendMessage,
+          controller: widget.controller,
         );
       },
     );
@@ -125,6 +126,21 @@ class EnsembleChatController extends EnsembleBoxController {
   Map<String, dynamic>? config;
   ChatType type = ChatType.local;
 
+  Color? backgroundColor;
+  Color? textFieldBackgroundColor;
+  Color? iconColor;
+  TextStyle? textFieldTextStyle;
+
+  BubbleStyleComposite? _userBubbleStyle;
+  BubbleStyleComposite get userBubbleStyle =>
+      _userBubbleStyle ??= BubbleStyleComposite(this);
+  set userBubbleStyle(BubbleStyleComposite value) => _userBubbleStyle = value;
+
+  BubbleStyleComposite? _assistantBubbleStyle;
+  BubbleStyleComposite get assistantBubbleStyle =>
+      _assistantBubbleStyle ??= BubbleStyleComposite(this);
+  set assistantBubbleStyle(BubbleStyleComposite value) => _assistantBubbleStyle = value;
+
   Future<void> Function(String newMessage)? sendMessage;
 
   bool get isLocalChat => type == ChatType.local;
@@ -187,6 +203,15 @@ class EnsembleChatController extends EnsembleBoxController {
       },
       "type": (value) =>
           type = ChatType.values.from(value ?? 'local') ?? ChatType.local,
+      'backgroundColor': (value) => backgroundColor = Utils.getColor(value),
+      'textFieldBackgroundColor': (value) =>
+          textFieldBackgroundColor = Utils.getColor(value),
+      'textFieldTextStyle': (value) => textFieldTextStyle = Utils.getTextStyle(value),
+      'iconColor': (value) => iconColor = Utils.getColor(value),
+      'userBubbleStyle': (value) =>
+          userBubbleStyle = BubbleStyleComposite.from(this, value),
+      'assistantBubbleStyle': (value) =>
+          assistantBubbleStyle = BubbleStyleComposite.from(this, value),
     };
   }
 
@@ -227,7 +252,6 @@ class EnsembleChatController extends EnsembleBoxController {
         tool[key]["inputs"]?.keys.forEach((inpKey) {
           properties[inpKey] = {"type": tool[key]["inputs"][inpKey]};
         });
-
         toolMap["name"] = key;
         toolMap["description"] = tool[key]["description"];
         toolMap["parameters"] = properties.isNotEmpty
