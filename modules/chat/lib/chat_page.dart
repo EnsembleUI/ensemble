@@ -89,91 +89,93 @@ class _ChatPageState extends State<ChatPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: widget.controller.backgroundColor ?? Colors.black,
-      body: Column(
-        children: [
-          Flexible(
-            child: ListView.builder(
-              reverse: true,
-              itemCount: widget.messages.length,
-              itemBuilder: (context, index) {
-                final effectiveIndex = widget.messages.length - 1 - index;
-                final message = widget.messages.elementAt(effectiveIndex);
-                return Container(
-                  margin: const EdgeInsets.only(top: 8.0),
-                  child: MessageWidget(
-                    key: ValueKey(message.id),
-                    message: message,
-                    controller: widget.controller,
-                  ),
-                );
-              },
-            ),
-          ),
-          const SizedBox(height: 8),
-          Padding(
-            padding: EdgeInsets.fromLTRB(
-              MediaQuery.of(context).padding.left + 16,
-              0,
-              MediaQuery.of(context).padding.right + 16,
-              MediaQuery.of(context).viewInsets.bottom +
-                  MediaQuery.of(context).padding.bottom +
-                  8,
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: widget.controller.textFieldBackgroundColor ??
-                          Colors.white.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(16),
+    return SafeArea(
+      child: Scaffold(
+        backgroundColor: widget.controller.backgroundColor ?? Colors.black,
+        body: Column(
+          children: [
+            Flexible(
+              child: ListView.builder(
+                reverse: true,
+                itemCount: widget.messages.length,
+                itemBuilder: (context, index) {
+                  final effectiveIndex = widget.messages.length - 1 - index;
+                  final message = widget.messages.elementAt(effectiveIndex);
+                  return Container(
+                    margin: const EdgeInsets.only(top: 8.0),
+                    child: MessageWidget(
+                      key: ValueKey(message.id),
+                      message: message,
+                      controller: widget.controller,
                     ),
-                    child: TextFormField(
-                      controller: _textController,
-                      style: widget.controller.textFieldTextStyle ??
-                          const TextStyle(color: Colors.white),
-                      maxLines: 5,
-                      minLines: 1,
-                      onFieldSubmitted: _handleSubmit,
-                      decoration: InputDecoration(
-                        hintText: 'Send a message',
-                        filled: true,
-                        fillColor: Colors.transparent,
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(16.0),
-                          borderSide: BorderSide.none,
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(16.0),
-                          borderSide: BorderSide.none,
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(16.0),
-                          borderSide: BorderSide.none,
+                  );
+                },
+              ),
+            ),
+            const SizedBox(height: 8),
+            Padding(
+              padding: EdgeInsets.fromLTRB(
+                MediaQuery.of(context).padding.left + 16,
+                0,
+                MediaQuery.of(context).padding.right + 16,
+                MediaQuery.of(context).viewInsets.bottom +
+                    MediaQuery.of(context).padding.bottom +
+                    8,
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: widget.controller.textFieldBackgroundColor ??
+                            Colors.white.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: TextFormField(
+                        controller: _textController,
+                        style: widget.controller.textFieldTextStyle ??
+                            const TextStyle(color: Colors.white),
+                        maxLines: 5,
+                        minLines: 1,
+                        onFieldSubmitted: _handleSubmit,
+                        decoration: InputDecoration(
+                          hintText: 'Send a message',
+                          filled: true,
+                          fillColor: Colors.transparent,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(16.0),
+                            borderSide: BorderSide.none,
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(16.0),
+                            borderSide: BorderSide.none,
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(16.0),
+                            borderSide: BorderSide.none,
+                          ),
                         ),
                       ),
                     ),
                   ),
-                ),
-                IconButton(
-                  constraints: const BoxConstraints(
-                    minHeight: 24,
-                    minWidth: 24,
-                  ),
-                  icon: Icon(
-                    Icons.send,
-                    color: widget.controller.iconColor ?? Colors.white,
-                  ),
-                  onPressed: () => _handleSubmit(),
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                  splashRadius: 24,
-                )
-              ],
+                  IconButton(
+                    constraints: const BoxConstraints(
+                      minHeight: 24,
+                      minWidth: 24,
+                    ),
+                    icon: Icon(
+                      Icons.send,
+                      color: widget.controller.iconColor ?? Colors.white,
+                    ),
+                    onPressed: () => _handleSubmit(),
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                    splashRadius: 24,
+                  )
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
