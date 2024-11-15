@@ -204,6 +204,7 @@ class EnsembleChatController extends EnsembleBoxController {
       "type": (value) =>
           type = ChatType.values.from(value ?? 'local') ?? ChatType.local,
       'backgroundColor': (value) => backgroundColor = Utils.getColor(value),
+      'padding': (value) => padding = Utils.getInsets(value, fallback: const EdgeInsets.all(0)),
       'textFieldBackgroundColor': (value) =>
           textFieldBackgroundColor = Utils.getColor(value),
       'textFieldTextStyle': (value) => textFieldTextStyle = Utils.getTextStyle(value),

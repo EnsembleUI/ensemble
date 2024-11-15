@@ -90,6 +90,11 @@ class _ChatPageState extends State<ChatPage> {
   @override
   Widget build(BuildContext context) {
     return SafeArea(
+      top: true,
+      bottom: true,
+      left: true, 
+      right: true,
+      minimum: widget.controller.padding ?? const EdgeInsets.all(0),
       child: Scaffold(
         backgroundColor: widget.controller.backgroundColor ?? Colors.black,
         body: Column(
