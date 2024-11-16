@@ -140,20 +140,7 @@ class SliderState extends FormFieldWidgetState<EnsembleSlider> {
                     max: widget.controller.maxValue,
                     values: widget.controller.value,
                     divisions: widget.controller.divisions,
-                    onChanged: isEnabled()
-                        ? (value) {
-                            setState(() {
-                              widget.controller.value = value;
-                            });
-                            if (widget.controller.onChange != null) {
-                              ScreenController().executeAction(
-                                context,
-                                widget.controller.onChange!,
-                                event: EnsembleEvent(widget),
-                              );
-                            }
-                          }
-                        : null,
+                    onChanged: onChange,
                   )
                 : Slider(
                     label: widget.controller.value.start
@@ -162,25 +149,30 @@ class SliderState extends FormFieldWidgetState<EnsembleSlider> {
                     max: widget.controller.maxValue,
                     value: widget.controller.value.start,
                     divisions: widget.controller.divisions,
-                    onChanged: isEnabled()
-                        ? (value) {
-                            setState(() {
-                              widget.controller.value =
-                                  RangeValues(value, value);
-                            });
-                            if (widget.controller.onChange != null) {
-                              ScreenController().executeAction(
-                                context,
-                                widget.controller.onChange!,
-                                event: EnsembleEvent(widget),
-                              );
-                            }
-                          }
-                        : null,
+                    onChanged: onChange,
                   ),
           );
         },
       ),
     );
+  }
+
+  void onChange(dynamic value) {
+    if (!isEnabled()) return;
+
+    setState(() {
+      if (value is RangeValues) {
+        widget.controller.value = value;
+      } else if (value is double) {
+        widget.controller.value = RangeValues(value, value);
+      }
+    });
+    if (widget.controller.onChange != null) {
+      ScreenController().executeAction(
+        context,
+        widget.controller.onChange!,
+        event: EnsembleEvent(widget),
+      );
+    }
   }
 }
