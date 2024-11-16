@@ -140,7 +140,7 @@ class SliderState extends FormFieldWidgetState<EnsembleSlider> {
                     max: widget.controller.maxValue,
                     values: widget.controller.value,
                     divisions: widget.controller.divisions,
-                    onChanged: onChange,
+                    onChanged: _onChanged,
                   )
                 : Slider(
                     label: widget.controller.value.start
@@ -149,7 +149,7 @@ class SliderState extends FormFieldWidgetState<EnsembleSlider> {
                     max: widget.controller.maxValue,
                     value: widget.controller.value.start,
                     divisions: widget.controller.divisions,
-                    onChanged: onChange,
+                    onChanged: _onChanged,
                   ),
           );
         },
@@ -157,7 +157,7 @@ class SliderState extends FormFieldWidgetState<EnsembleSlider> {
     );
   }
 
-  void onChange(dynamic value) {
+  void _onChanged(dynamic value) {
     if (!isEnabled()) return;
 
     setState(() {
