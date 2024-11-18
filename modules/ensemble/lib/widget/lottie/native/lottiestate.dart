@@ -4,25 +4,30 @@ import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/helpers/box_wrapper.dart';
-import 'package:ensemble/widget/helpers/widgets.dart';
 import 'package:ensemble/widget/lottie/lottie.dart';
-import 'package:ensemble/widget/widget_util.dart';
 import 'package:flutter/widgets.dart';
 import 'package:lottie/lottie.dart';
 
 class LottieState extends EWidgetState<EnsembleLottie>
     with SingleTickerProviderStateMixin {
+  late final AnimationController _animationController;
+
   @override
   void initState() {
     super.initState();
-    widget.controller
-      ..lottieController = AnimationController(vsync: this)
-      ..addStatusListener(context, widget);
+    _animationController = AnimationController(vsync: this);
+    widget.controller.lottieController = _animationController;
+    widget.controller.addStatusListener(context, widget);
   }
 
   @override
   void dispose() {
-    widget.controller.lottieController?.dispose();
+    _animationController.stop();
+    _animationController.dispose();
+    
+    if (widget.controller.lottieController == _animationController) {
+      widget.controller.lottieController = null;
+    }
     super.dispose();
   }
 
