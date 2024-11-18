@@ -322,16 +322,20 @@ class SubscribeBluetoothCharacteristicsAction extends EnsembleAction {
 
     final charId = scopeManager.dataContext.eval(characteristicsId);
     try {
-      await bluetoothManager.subscribe(charId, (data) {
-        if (onDataStream != null) {
-          ScreenController().executeAction(context, onDataStream!,
-              event: EnsembleEvent(
-                initiator,
-                data: data,
-              ));
-        }
-        return null;
-      });
+      await bluetoothManager.subscribe(
+        charId,
+        (data) {
+          if (onDataStream != null) {
+            ScreenController().executeAction(context, onDataStream!,
+                event: EnsembleEvent(
+                  initiator,
+                  data: data,
+                ));
+          }
+          return null;
+        },
+        backgroundMode: true,
+      );
 
       if (onComplete != null) {
         ScreenController().executeAction(context, onComplete!,

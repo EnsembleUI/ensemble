@@ -15,7 +15,7 @@ dependencies:
   ensemble:
     git:
       url: https://github.com/EnsembleUI/ensemble.git
-      ref: ensemble-v1.1.2
+      ref: ensemble-v1.1.3
       path: modules/ensemble
   ensemble_ts_interpreter:
     git:
@@ -25,6 +25,7 @@ dependencies:
 
   collection: ^1.17.1
   flutter_blue_plus: ^1.33.4
+  workmanager: ^0.5.2
 
 dev_dependencies:
   flutter_test:

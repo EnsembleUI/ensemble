@@ -1,3 +1,9 @@
+## 1.1.3
+
+ - last ensemble version to support flutter 3.19.5
+
+ - **FEAT**: Add reactive orientation support to Device class. ([47fc9314](https://github.com/ensembleUI/ensemble/commit/47fc93148c1eeaea7e87c4eb4131aa368726e9f7))
+
 ## 1.1.2
 
  - last ensemble support for 3.19.5
