@@ -36,18 +36,26 @@ class EnsembleChatState extends EnsembleWidgetState<EnsembleChatImpl> {
   }
 
   @override
+  void dispose() {
+    for (var message in widget.controller.messages.value) {
+      message.widget = null;
+    }
+    super.dispose();
+  }
+
+  @override
   Widget buildWidget(BuildContext context) {
     return ValueListenableBuilder<List<InternalMessage>>(
       valueListenable: widget.controller.messages,
       builder: (context, messages, child) {
-        for (var message in messages) {
-          if (message.inlineWidget != null && message.widget == null) {
-            message.widget =
-                buildWidgetsFromTemplate(context, message.inlineWidget);
-          }
-        }
         return ChatPage(
-          messages: messages,
+          messages: messages.map((message) {
+            if (message.inlineWidget != null && message.widget == null) {
+              message.widget =
+                  buildWidgetsFromTemplate(context, message.inlineWidget);
+            }
+            return message;
+          }).toList(),
           onMessageSend: sendMessage,
           controller: widget.controller,
         );
@@ -265,6 +273,7 @@ class EnsembleChatController extends EnsembleBoxController {
         tool[key]["inputs"]?.keys.forEach((inpKey) {
           properties[inpKey] = {"type": tool[key]["inputs"][inpKey]};
         });
+
         toolMap["name"] = key;
         toolMap["description"] = tool[key]["description"];
         toolMap["parameters"] = properties.isNotEmpty
