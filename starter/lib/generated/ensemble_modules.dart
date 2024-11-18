@@ -13,7 +13,7 @@ import 'package:ensemble/framework/stub/contacts_manager.dart';
 import 'package:ensemble/framework/stub/plaid_link_manager.dart';
 import 'package:ensemble/module/auth_module.dart';
 import 'package:ensemble/module/location_module.dart';
-import 'package:ensemble_bluetooth/ensemble_bluetooth.dart';
+//import 'package:ensemble_bluetooth/ensemble_bluetooth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 //import 'package:ensemble_network_info/network_info.dart';
@@ -184,7 +184,7 @@ class EnsembleModules {
 
     if (useBluetooth) {
 
-    GetIt.I.registerSingleton<BluetoothManager>(BluetoothManagerImpl());
+    //GetIt.I.registerSingleton<BluetoothManager>(BluetoothManagerImpl());
     } else {
       GetIt.I.registerSingleton<BluetoothManager>(BluetoothManagerStub());
     }

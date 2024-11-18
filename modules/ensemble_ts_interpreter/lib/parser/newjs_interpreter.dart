@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:ensemble_ts_interpreter/errors.dart';
 import 'package:ensemble_ts_interpreter/invokables/context.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
+import 'package:ensemble_ts_interpreter/invokables/invokablecommons.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokablecontroller.dart';
 import 'package:jsparser/jsparser.dart';
 import 'package:ensemble_ts_interpreter/parser/regex_ext.dart';
@@ -616,8 +617,14 @@ class JSInterpreter extends RecursiveVisitor<dynamic> {
     dynamic value;
     if (node.init != null) {
       value = getValueFromExpression(node.init!);
+      addToThisContext(name, value);
+    } else {
+      //hoisting
+      Context ctx = getContextForScope(name.scope!);
+      if (!ctx.hasContext(name.value)) {
+        addToThisContext(name, value);
+      }
     }
-    addToThisContext(name, value);
     return name;
   }
 
@@ -777,13 +784,15 @@ class JSInterpreter extends RecursiveVisitor<dynamic> {
     while (node.condition != null && getValueFromNode(node.condition!)) {
       try {
         node.body.visitBy(this);
-        if (node.update != null) {
-          node.update!.visitBy(this);
-        }
       } on ControlFlowBreakException catch (e) {
         break;
       } on ControlFlowContinueException catch (e) {
-        continue;
+        //skip as we are executing the update anyway
+      }
+      // Execute the update expression after each loop iteration
+      // see https://github.com/EnsembleUI/ensemble/issues/1704
+      if (node.update != null) {
+        node.update!.visitBy(this);
       }
     }
   }
@@ -1195,7 +1204,63 @@ class JSInterpreter extends RecursiveVisitor<dynamic> {
   visitName(Name node) {
     return node;
   }
+  @override
+  visitThrow(ThrowStatement node) {
+    dynamic argumentValue = getValueFromExpression(node.argument);
+    if (argumentValue is JSCustomException) {
+      throw argumentValue;
+    } else {
+      throw JSCustomException(argumentValue);
+    }
+  }
 
+  @override
+  visitTry(TryStatement node) {
+    if (node.handler == null && node.finalizer == null) {
+      throw JSException(node.line ?? 0, "Syntax Error: a try block must have a corresponding catch or finally");
+    }
+    try {
+      node.block.visitBy(this);
+    } on ControlFlowReturnException {
+      rethrow; // Re-throw control flow exceptions
+    } on ControlFlowBreakException {
+      rethrow;
+    } on ControlFlowContinueException {
+      rethrow;
+    } catch (e) {
+      if (node.handler != null) {
+        dynamic exceptionValue = getExceptionValue(e);
+        Map<String, dynamic> ctxMap = {};
+        if (node.handler!.param != null) {
+          ctxMap[node.handler!.param.value] = JSCustomException(exceptionValue);
+        }
+        Context context = SimpleContext(ctxMap);
+        // Clone the interpreter with this new context
+        JSInterpreter interpreter = cloneForContext(node.handler!, context, true);
+        interpreter.visitCatchClause(node.handler!);
+      }
+    } finally {
+      if (node.finalizer != null) {
+        node.finalizer!.visitBy(this);
+      }
+    }
+  }
+
+  @override
+  visitCatchClause(CatchClause node) {
+    node.body.visitBy(this);
+  }
+
+// Helper method to extract exception value
+  dynamic getExceptionValue(dynamic exception) {
+    if (exception is JSCustomException) {
+      return exception.value;
+    } else if (exception is JSException) {
+      return exception.message;
+    } else {
+      return exception.toString();
+    }
+  }
   dynamic getValueFromExpression(Expression exp) {
     return getValueFromNode(exp);
   }
@@ -1271,3 +1336,4 @@ class JavascriptFunction {
     }
   }
 }
+

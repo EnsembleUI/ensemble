@@ -23,9 +23,10 @@ class TestHelper {
     I18nProps i18nProps = I18nProps('integration_test/local/$appName/i18n');
 
     EnsembleConfig config = EnsembleConfig(
-        definitionProvider: LocalDefinitionProvider(
-            "integration_test/local/$appName/", "",
-            i18nProps: i18nProps, initialForcedLocale: forcedLocale));
+        definitionProvider: await LocalDefinitionProvider(
+                "integration_test/local/$appName/", "",
+                i18nProps: i18nProps, initialForcedLocale: forcedLocale)
+            .init());
     return config.updateAppBundle();
   }
 

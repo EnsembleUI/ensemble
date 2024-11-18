@@ -8,13 +8,14 @@ import 'package:yaml/yaml.dart';
 
 /// Connecting to Ensemble-hosted definitions with a host persistent cache
 class HostCachedEnsembleProvider extends EnsembleDefinitionProvider {
-  HostCachedEnsembleProvider._create(String appId) : super(appId);
+  HostCachedEnsembleProvider._create(String appId) : super(appId,isListenerMode: true);
 
   late SharedPreferences hostCache;
 
   static Future<HostCachedEnsembleProvider> create(
       String appId, I18nProps i18nProps) async {
     final instance = HostCachedEnsembleProvider._create(appId);
+    await instance.init();
     await instance._initCache();
     return instance;
   }
@@ -35,7 +36,7 @@ class HostCachedEnsembleProvider extends EnsembleDefinitionProvider {
     await hostCache.reload();
     String? theme;
     if (appModel.themeMapping != null &&
-        (theme ??= hostCache.getString(appModel.themeMapping!)) != null) {
+        (theme ??= hostCache.getString(_getCacheKey(appModel.themeMapping!))) != null) {
       return AppBundle(
           theme: loadYaml(theme!),
           resources: await appModel.getCombinedResources());
@@ -50,14 +51,14 @@ class HostCachedEnsembleProvider extends EnsembleDefinitionProvider {
     String? content;
 
     if (screenId != null) {
-      content = hostCache.getString(screenId);
+      content = hostCache.getString(_getCacheKey(screenId));
     } else if (screenName != null) {
       final screenId = appModel.screenNameMappings[screenName];
       if (screenId != null) {
-        content = hostCache.getString(screenId);
+        content = hostCache.getString(_getCacheKey(screenId));
       }
     } else if (appModel.homeMapping != null) {
-      content = hostCache.getString(appModel.homeMapping!);
+      content = hostCache.getString(_getCacheKey(appModel.homeMapping!));
     }
 
     return content != null
@@ -70,7 +71,11 @@ class HostCachedEnsembleProvider extends EnsembleDefinitionProvider {
       if (value == null || value is InvalidDefinition) {
         return;
       }
-      hostCache.setString(key, json.encode(value));
+      hostCache.setString(_getCacheKey(key), json.encode(value));
     });
+  }
+
+  _getCacheKey(String id) {
+    return '${appId}.${id}';
   }
 }
