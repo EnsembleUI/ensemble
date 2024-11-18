@@ -3,8 +3,8 @@ description: A new Flutter package project.
 version: 0.0.1
 
 environment:
-  sdk: ">=3.0.5 <4.0.0"
-  flutter: ">=1.17.0"
+  sdk: ">=3.5.0"
+  flutter: ">=3.24.0"
 
 dependencies:
   flutter:

@@ -23,7 +23,7 @@ dependencies:
       ref: main
       path: modules/ensemble_ts_interpreter
 
-  get_it: ^7.6.0
+  get_it: ^8.0.0
   google_maps_flutter: ^2.6.0
   flutter_cache_manager: ^3.3.0
   geolocator: ^9.0.2

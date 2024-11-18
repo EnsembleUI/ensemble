@@ -131,7 +131,7 @@ class EnsembleBarChartState extends BaseWidgetState<EnsembleBarChart>
     return BarTouchData(
       enabled: true,
       touchTooltipData: BarTouchTooltipData(
-        tooltipBgColor: Colors.orangeAccent,
+        getTooltipColor: (group) => Colors.orangeAccent,
         tooltipPadding: const EdgeInsets.all(0),
         tooltipMargin: 8,
         getTooltipItem: (
@@ -170,7 +170,7 @@ class EnsembleBarChartState extends BaseWidgetState<EnsembleBarChart>
   BarTouchData get barTouchData => BarTouchData(
         enabled: true,
         touchTooltipData: BarTouchTooltipData(
-          tooltipBgColor: Colors.orangeAccent,
+          getTooltipColor: (group) => Colors.orangeAccent,
           tooltipPadding: const EdgeInsets.all(0),
           tooltipMargin: 8,
           getTooltipItem: (

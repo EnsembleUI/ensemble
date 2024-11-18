@@ -3,8 +3,8 @@ description: Module that provides wifi related information such as wifi name, SS
 version: 0.0.1
 
 environment:
-  sdk: ">=3.0.6 <4.0.0"
-  flutter: "3.19.3"
+  sdk: ">=3.5.0"
+  flutter: "3.24.0"
 
 dependencies:
   flutter:
