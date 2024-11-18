@@ -40,7 +40,8 @@ import 'package:workmanager/workmanager.dart';
 import 'package:yaml/yaml.dart';
 
 const String backgroundUploadTask = 'backgroundUploadTask';
-const String backgroundBluetoothSubscribeTask = 'backgroundBluetoothSubscribeTask';
+const String backgroundBluetoothSubscribeTask =
+    'backgroundBluetoothSubscribeTask';
 
 const String ensembleMethodChannelName = 'com.ensembleui.host.platform';
 GlobalKey<NavigatorState>? externalAppNavigateKey;
@@ -106,25 +107,24 @@ void callbackDispatcher() {
           // Get the send port for communication
           final SendPort? sendPort = IsolateNameServer.lookupPortByName(taskId);
           if (sendPort == null) {
-            throw LanguageError('Failed to establish background communication channel');
+            throw LanguageError(
+                'Failed to establish background communication channel');
           }
 
           // Initialize FlutterBluePlus in background
           final device = BluetoothDevice.fromId(deviceId);
-          
+
           try {
             await device.connect(timeout: const Duration(seconds: 30));
           } catch (e) {
-            sendPort.send({
-              'error': 'Failed to connect to device: $e',
-              'taskId': taskId
-            });
+            sendPort.send(
+                {'error': 'Failed to connect to device: $e', 'taskId': taskId});
             return false;
           }
 
           final services = await device.discoverServices();
           BluetoothCharacteristic? targetCharacteristic;
-          
+
           for (var service in services) {
             final characteristic = service.characteristics.firstWhereOrNull(
                 (c) => c.characteristicUuid.str == characteristicId);
@@ -159,20 +159,15 @@ void callbackDispatcher() {
             (value) {
               try {
                 final data = utf8.decode(value);
-                sendPort.send({
-                  'data': data,
-                  'taskId': taskId
-                });
+                sendPort.send({'data': data, 'taskId': taskId});
               } catch (e) {
                 print('Error processing characteristic value: $e');
               }
             },
             onError: (error) {
               print('Error in characteristic subscription: $error');
-              sendPort.send({
-                'error': 'Subscription error: $error',
-                'taskId': taskId
-              });
+              sendPort.send(
+                  {'error': 'Subscription error: $error', 'taskId': taskId});
               subscription?.cancel();
               completer.complete();
             },
@@ -215,11 +210,7 @@ class EnsembleApp extends StatefulWidget {
     GlobalKey<NavigatorState>? navigatorKey,
   }) {
     externalAppNavigateKey = navigatorKey;
-    if (navigatorKey != null) {
-      Utils.globalAppKey = navigatorKey;
-    } else {
-      Utils.globalAppKey = GlobalKey<NavigatorState>();
-    }
+    Utils.globalAppKey = GlobalKey<NavigatorState>();
   }
 
   final ScreenPayload? screenPayload;
@@ -413,7 +404,8 @@ class EnsembleAppState extends State<EnsembleApp> with WidgetsBindingObserver {
     if (foundSelectedTheme && savedTheme != null) {
       defaultTheme = savedTheme;
     }
-    EnsembleThemeManager().init(context, themes, defaultTheme, localeThemes: doc["LocaleThemes"]);
+    EnsembleThemeManager()
+        .init(context, themes, defaultTheme, localeThemes: doc["LocaleThemes"]);
   }
 
   Locale? resolveLocale(Locale? systemLocale,
@@ -438,7 +430,8 @@ class EnsembleAppState extends State<EnsembleApp> with WidgetsBindingObserver {
         configureThemes(doc, AppConfig(context, AppInfo().appId));
       }
     }
-    EnsembleThemeManager().setCurrentLocale(Ensemble().locale?.languageCode,notifyListeners: false);
+    EnsembleThemeManager().setCurrentLocale(Ensemble().locale?.languageCode,
+        notifyListeners: false);
     // notify external app once of EnsembleApp loading status
     if (widget.onAppLoad != null && !notifiedAppLoad) {
       widget.onAppLoad!.call();
@@ -477,9 +470,9 @@ class EnsembleAppState extends State<EnsembleApp> with WidgetsBindingObserver {
         return Ensemble().locale;
       },
       home: Scaffold(
-        // this outer scaffold is where the background image would be (if
-        // specified). We do not want it to resize on keyboard popping up.
-        // The Page's Scaffold can handle the resizing.
+          // this outer scaffold is where the background image would be (if
+          // specified). We do not want it to resize on keyboard popping up.
+          // The Page's Scaffold can handle the resizing.
           resizeToAvoidBottomInset: false,
           body: screen),
       useInheritedMediaQuery: widget.isPreview,
@@ -547,15 +540,15 @@ class EnsembleAppState extends State<EnsembleApp> with WidgetsBindingObserver {
   Widget _appPlaceholderWrapper(
       {Widget? placeholderWidget, Color? placeholderBackgroundColor}) {
     return MaterialApp(
-      // even when this is the placeholder and will be replaced later, we still
-      // need to either set supportedLocales or handle localeResolutionCallback.
-      // Without this the system locale will be incorrect the first time.
-      //
-      // Also note we pass in the definitionProvider. This is only needed when
-      // the EnsembleConfig is passed in directly (without fetching it) and
-      // might contain the forcedLocale. For some reason localeResolutionCallback()
-      // will only be called once here and not again when the actual App is loaded.
-      // An example is when running integration test with another locale.
+        // even when this is the placeholder and will be replaced later, we still
+        // need to either set supportedLocales or handle localeResolutionCallback.
+        // Without this the system locale will be incorrect the first time.
+        //
+        // Also note we pass in the definitionProvider. This is only needed when
+        // the EnsembleConfig is passed in directly (without fetching it) and
+        // might contain the forcedLocale. For some reason localeResolutionCallback()
+        // will only be called once here and not again when the actual App is loaded.
+        // An example is when running integration test with another locale.
         localeResolutionCallback: (systemLocale, _) {
           Ensemble().locale = resolveLocale(systemLocale,
               definitionProvider: widget.ensembleConfig?.definitionProvider);
