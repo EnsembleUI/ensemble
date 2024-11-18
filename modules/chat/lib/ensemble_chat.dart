@@ -40,6 +40,12 @@ class EnsembleChatState extends EnsembleWidgetState<EnsembleChatImpl> {
     return ValueListenableBuilder<List<InternalMessage>>(
       valueListenable: widget.controller.messages,
       builder: (context, messages, child) {
+        for (var message in messages) {
+          if (message.inlineWidget != null && message.widget == null) {
+            message.widget =
+                buildWidgetsFromTemplate(context, message.inlineWidget);
+          }
+        }
         return ChatPage(
           messages: messages,
           onMessageSend: sendMessage,
@@ -139,7 +145,8 @@ class EnsembleChatController extends EnsembleBoxController {
   BubbleStyleComposite? _assistantBubbleStyle;
   BubbleStyleComposite get assistantBubbleStyle =>
       _assistantBubbleStyle ??= BubbleStyleComposite(this);
-  set assistantBubbleStyle(BubbleStyleComposite value) => _assistantBubbleStyle = value;
+  set assistantBubbleStyle(BubbleStyleComposite value) =>
+      _assistantBubbleStyle = value;
 
   Future<void> Function(String newMessage)? sendMessage;
 
@@ -188,9 +195,12 @@ class EnsembleChatController extends EnsembleBoxController {
   Map<String, Function> setters() {
     return {
       'initialMessages': (value) {
-        if (value is! List) return;
-        messages.value
-            .addAll(value.map((data) => InternalMessage.fromMap(data, this)));
+        if (value is! List || messages.value.isNotEmpty) return;
+        messages.value.addAll(value.map((data) {
+          final message = InternalMessage.fromMap(data, this);
+          return message;
+        }));
+        messages.notifyListeners();
       },
       "onMessageSend": (value) => onMessageSend = EnsembleAction.from(value),
       "inlineWidgetKey": (value) =>
@@ -204,10 +214,12 @@ class EnsembleChatController extends EnsembleBoxController {
       "type": (value) =>
           type = ChatType.values.from(value ?? 'local') ?? ChatType.local,
       'backgroundColor': (value) => backgroundColor = Utils.getColor(value),
-      'padding': (value) => padding = Utils.getInsets(value, fallback: const EdgeInsets.all(0)),
+      'padding': (value) =>
+          padding = Utils.getInsets(value, fallback: const EdgeInsets.all(0)),
       'textFieldBackgroundColor': (value) =>
           textFieldBackgroundColor = Utils.getColor(value),
-      'textFieldTextStyle': (value) => textFieldTextStyle = Utils.getTextStyle(value),
+      'textFieldTextStyle': (value) =>
+          textFieldTextStyle = Utils.getTextStyle(value),
       'iconColor': (value) => iconColor = Utils.getColor(value),
       'userBubbleStyle': (value) =>
           userBubbleStyle = BubbleStyleComposite.from(this, value),

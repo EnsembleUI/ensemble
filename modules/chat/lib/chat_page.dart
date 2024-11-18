@@ -30,7 +30,8 @@ class ChatPage extends StatefulWidget {
 }
 
 class BubbleStyleComposite extends WidgetCompositeProperty {
-  BubbleStyleComposite(ChangeNotifier widgetController) : super(widgetController);
+  BubbleStyleComposite(ChangeNotifier widgetController)
+      : super(widgetController);
 
   Color? backgroundColor;
   Color? textColor;
@@ -90,10 +91,6 @@ class _ChatPageState extends State<ChatPage> {
   @override
   Widget build(BuildContext context) {
     return SafeArea(
-      top: true,
-      bottom: true,
-      left: true, 
-      right: true,
       minimum: widget.controller.padding ?? const EdgeInsets.all(0),
       child: Scaffold(
         backgroundColor: widget.controller.backgroundColor ?? Colors.black,
@@ -278,7 +275,7 @@ Widget? buildWidgetsFromTemplate(
     final widget = parentScope?.buildWidgetFromDefinition(definition);
     return widget;
   } on Exception catch (e) {
-    print("EnsembleChat: error while building inline widget:\n$e");
+    print("EnsembleChat: error while buidling inline widget:\n$e");
   }
   return null;
 }
