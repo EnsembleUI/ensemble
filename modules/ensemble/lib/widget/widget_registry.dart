@@ -44,7 +44,7 @@ import 'package:ensemble/widget/input/dropdown.dart';
 import 'package:ensemble/widget/input/form_date.dart';
 import 'package:ensemble/widget/input/form_textfield.dart';
 import 'package:ensemble/widget/input/form_time.dart';
-import 'package:ensemble/widget/input/slider.dart';
+import 'package:ensemble/widget/input/slider/slider.dart';
 import 'package:ensemble/widget/loading_container.dart';
 import 'package:ensemble/widget/lottie/lottie.dart';
 import 'package:ensemble/widget/markdown.dart';
