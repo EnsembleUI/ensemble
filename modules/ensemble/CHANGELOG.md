@@ -1,3 +1,7 @@
+## 1.1.4
+
+ - Ensemble version with flutter 3.24.3 support
+
 ## 1.1.3
 
  - last ensemble version to support flutter 3.19.5
