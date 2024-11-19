@@ -1,9 +1,11 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:isolate';
 import 'dart:ui';
 import 'dart:ui' as ui;
 import 'dart:async';
 
+import 'package:collection/collection.dart';
 import 'package:device_preview/device_preview.dart';
 import 'package:ensemble/deep_link_manager.dart';
 import 'package:ensemble/ensemble.dart';
@@ -28,6 +30,7 @@ import 'package:event_bus/event_bus.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_i18n/flutter_i18n.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -37,6 +40,8 @@ import 'package:workmanager/workmanager.dart';
 import 'package:yaml/yaml.dart';
 
 const String backgroundUploadTask = 'backgroundUploadTask';
+const String backgroundBluetoothSubscribeTask = 'backgroundBluetoothSubscribeTask';
+
 const String ensembleMethodChannelName = 'com.ensembleui.host.platform';
 GlobalKey<NavigatorState>? externalAppNavigateKey;
 
@@ -50,14 +55,14 @@ void callbackDispatcher() {
         }
         try {
           final sendPort =
-          IsolateNameServer.lookupPortByName(inputData['taskId']);
+              IsolateNameServer.lookupPortByName(inputData['taskId']);
           final response = await UploadUtils.uploadFiles(
             fieldName: inputData['fieldName'] ?? 'file',
             files: (inputData['files'] as List)
                 .map((e) => File.fromJson(json.decode(e)))
                 .toList(),
             headers:
-            Map<String, String>.from(json.decode(inputData['headers'])),
+                Map<String, String>.from(json.decode(inputData['headers'])),
             method: inputData['method'],
             url: inputData['url'],
             fields: Map<String, String>.from(json.decode(inputData['fields'])),
@@ -85,9 +90,110 @@ void callbackDispatcher() {
             'responseHeaders': response.headers,
           });
         } catch (e) {
-          throw LanguageError('Failed to process backgroud upload task');
+          throw LanguageError('Failed to process background upload task');
         }
         break;
+      case backgroundBluetoothSubscribeTask:
+        try {
+          if (inputData == null) {
+            throw LanguageError('Failed to parse Bluetooth data');
+          }
+
+          final characteristicId = inputData['characteristicId'] as String;
+          final taskId = inputData['taskId'] as String;
+          final deviceId = inputData['deviceId'] as String;
+
+          // Get the send port for communication
+          final SendPort? sendPort = IsolateNameServer.lookupPortByName(taskId);
+          if (sendPort == null) {
+            throw LanguageError('Failed to establish background communication channel');
+          }
+
+          // Initialize FlutterBluePlus in background
+          final device = BluetoothDevice.fromId(deviceId);
+          
+          try {
+            await device.connect(timeout: const Duration(seconds: 30));
+          } catch (e) {
+            sendPort.send({
+              'error': 'Failed to connect to device: $e',
+              'taskId': taskId
+            });
+            return false;
+          }
+
+          final services = await device.discoverServices();
+          BluetoothCharacteristic? targetCharacteristic;
+          
+          for (var service in services) {
+            final characteristic = service.characteristics.firstWhereOrNull(
+                (c) => c.characteristicUuid.str == characteristicId);
+            if (characteristic != null) {
+              targetCharacteristic = characteristic;
+              break;
+            }
+          }
+
+          if (targetCharacteristic == null) {
+            sendPort.send({
+              'error': 'Characteristic not found: $characteristicId',
+              'taskId': taskId
+            });
+            return false;
+          }
+
+          try {
+            await targetCharacteristic.setNotifyValue(true);
+          } catch (e) {
+            sendPort.send({
+              'error': 'Failed to enable notifications: $e',
+              'taskId': taskId
+            });
+            return false;
+          }
+
+          final completer = Completer<void>();
+          StreamSubscription? subscription;
+
+          subscription = targetCharacteristic.onValueReceived.listen(
+            (value) {
+              try {
+                final data = utf8.decode(value);
+                sendPort.send({
+                  'data': data,
+                  'taskId': taskId
+                });
+              } catch (e) {
+                print('Error processing characteristic value: $e');
+              }
+            },
+            onError: (error) {
+              print('Error in characteristic subscription: $error');
+              sendPort.send({
+                'error': 'Subscription error: $error',
+                'taskId': taskId
+              });
+              subscription?.cancel();
+              completer.complete();
+            },
+            cancelOnError: false,
+          );
+
+          // Handle task cancellation and device disconnection
+          device.connectionState.listen((state) {
+            if (state == BluetoothConnectionState.disconnected) {
+              subscription?.cancel();
+              completer.complete();
+            }
+          });
+
+          await completer.future;
+          await device.disconnect();
+          return true;
+        } catch (e) {
+          print('Background task error: $e');
+          return false;
+        }
       default:
         throw LanguageError('Unknown background task: $task');
     }
@@ -109,6 +215,11 @@ class EnsembleApp extends StatefulWidget {
     GlobalKey<NavigatorState>? navigatorKey,
   }) {
     externalAppNavigateKey = navigatorKey;
+    if (navigatorKey != null) {
+      Utils.globalAppKey = navigatorKey;
+    } else {
+      Utils.globalAppKey = GlobalKey<NavigatorState>();
+    }
   }
 
   final ScreenPayload? screenPayload;
