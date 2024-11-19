@@ -90,8 +90,10 @@ class _ScreenState extends State<Screen> {
     widget.apiProviders?.forEach((key, value) {
       value.dispose();
     });
-    BluetoothManager bluetoothManager = GetIt.I<BluetoothManager>();
-    bluetoothManager.dispose();
+    try {
+      BluetoothManager bluetoothManager = GetIt.I<BluetoothManager>();
+      bluetoothManager.dispose();
+    } on Exception catch (_) {}
   }
 
   Widget renderScreen(ScreenDefinition screenDefinition) {

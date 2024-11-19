@@ -1,9 +1,10 @@
-// ignore_for_file: avoid_print
-
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:isolate';
+import 'dart:ui';
 
+import 'package:ensemble/ensemble_app.dart';
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/stub/bluetooth.dart';
@@ -12,11 +13,34 @@ import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:collection/collection.dart';
+import 'package:workmanager/workmanager.dart';
+
+class BackgroundTaskManager {
+  static final Map<String, ReceivePort> _backgroundPorts = {};
+
+  static void registerTask(String taskId, ReceivePort port) {
+    _backgroundPorts[taskId] = port;
+    IsolateNameServer.registerPortWithName(port.sendPort, taskId);
+  }
+
+  static void cleanupTask(String taskId) {
+    final port = _backgroundPorts.remove(taskId);
+    if (port != null) {
+      IsolateNameServer.removePortNameMapping(taskId);
+      port.close();
+    }
+  }
+
+  static void cleanupAllTasks() {
+    for (final taskId in _backgroundPorts.keys.toList()) {
+      cleanupTask(taskId);
+    }
+  }
+}
 
 class BluetoothManagerImpl extends BluetoothManager {
   static BluetoothManagerImpl? _instance;
   BluetoothAdapterState _adapterState = BluetoothAdapterState.unknown;
-  List<ScanResult> _scanResults = [];
   List<BluetoothService> _bluetoothServices = [];
 
   StreamSubscription<BluetoothAdapterState>? _adapterStateSubscription;
@@ -83,6 +107,9 @@ class BluetoothManagerImpl extends BluetoothManager {
     }
     _connectionStateSubscriptions.clear();
     _characteristicValueSubscriptions.clear();
+
+    // Cleanup all background tasks
+    BackgroundTaskManager.cleanupAllTasks();
   }
 
   @override
@@ -94,7 +121,6 @@ class BluetoothManagerImpl extends BluetoothManager {
       );
       _scanResultsSubscription?.cancel();
       _scanResultsSubscription = FlutterBluePlus.scanResults.listen((results) {
-        _scanResults = results;
         onScanResult.call(
           results
               .map((e) => {
@@ -132,7 +158,17 @@ class BluetoothManagerImpl extends BluetoothManager {
 
   @override
   Future<void> subscribe(
-      String characteristicId, DataReceivedCallback onDataReceive) async {
+      String characteristicId, DataReceivedCallback onDataReceive,
+      {bool backgroundMode = false}) async {
+    if (!Platform.isAndroid && backgroundMode) {
+      throw UnsupportedError('Background mode is only supported on Android');
+    }
+
+    if (backgroundMode && Platform.isAndroid) {
+      await _subscribeWithBackgroundMode(characteristicId, onDataReceive);
+      return;
+    }
+
     try {
       for (var service in _bluetoothServices) {
         final c = service.characteristics.firstWhereOrNull(
@@ -156,9 +192,75 @@ class BluetoothManagerImpl extends BluetoothManager {
     }
   }
 
+  Future<void> _subscribeWithBackgroundMode(
+      String characteristicId, DataReceivedCallback onDataReceive) async {
+    final taskId = 'bluetooth_$characteristicId';
+
+    // Cancel any existing background task for this characteristic
+    await unSubscribe(characteristicId);
+
+    // Create a new receive port for background communication
+    final port = ReceivePort();
+    BackgroundTaskManager.registerTask(taskId, port);
+
+    // Listen for data from background task
+    port.listen((message) {
+      if (message is Map<String, dynamic>) {
+        if (message.containsKey('error')) {
+          throw Exception(message['error']);
+        } else if (message.containsKey('data')) {
+          onDataReceive.call(message['data']);
+        }
+      } else if (message is String) {
+        onDataReceive.call(message);
+      }
+    });
+
+    // Get the current connected device ID
+    String? deviceId;
+    for (var service in _bluetoothServices) {
+      final c = service.characteristics.firstWhereOrNull(
+          (element) => element.characteristicUuid.str == characteristicId);
+      if (c != null) {
+        deviceId = c.deviceId.str;
+        break;
+      }
+    }
+
+    if (deviceId == null) {
+      throw Exception(
+          'No connected device found for characteristic: $characteristicId');
+    }
+
+    // Register the background task
+    await Workmanager().registerOneOffTask(
+      taskId,
+      backgroundBluetoothSubscribeTask,
+      constraints: Constraints(
+        networkType: NetworkType.not_required,
+        requiresBatteryNotLow: false,
+        requiresCharging: false,
+        requiresDeviceIdle: false,
+        requiresStorageNotLow: false,
+      ),
+      inputData: {
+        'characteristicId': characteristicId,
+        'deviceId': deviceId,
+        'taskId': taskId,
+      },
+      existingWorkPolicy: ExistingWorkPolicy.replace,
+      backoffPolicy: BackoffPolicy.linear,
+      backoffPolicyDelay: const Duration(seconds: 5),
+    );
+  }
+
   @override
   Future<bool> unSubscribe(String characteristicId) async {
     try {
+      final taskId = 'bluetooth_$characteristicId';
+
+      await Workmanager().cancelByUniqueName(taskId);
+      BackgroundTaskManager.cleanupTask(taskId);
       for (var service in _bluetoothServices) {
         final c = service.characteristics.firstWhereOrNull(
             (element) => element.characteristicUuid.str == characteristicId);

@@ -33,6 +33,7 @@ extension ToBitmapDescriptor on Widget {
 Future<(Uint8List, int, int)> _createImageFromWidget(Widget widget) async {
   final repaintBoundary = RenderRepaintBoundary();
   final view = ui.PlatformDispatcher.instance.views.first;
+  var logicalSize = view.physicalSize / view.devicePixelRatio;
   final renderView = RenderView(
     view: view,
     child: RenderPositionedBox(
@@ -40,7 +41,8 @@ Future<(Uint8List, int, int)> _createImageFromWidget(Widget widget) async {
       child: repaintBoundary,
     ),
     configuration: ViewConfiguration(
-      size: view.physicalSize,
+      physicalConstraints: BoxConstraints.tight(logicalSize) * view.devicePixelRatio,
+      logicalConstraints: BoxConstraints.tight(logicalSize),
       devicePixelRatio: view.devicePixelRatio,
     ),
   );

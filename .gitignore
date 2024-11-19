@@ -7,6 +7,8 @@ pubspec_overrides.yaml
 /starter/android/app/src/main/kotlin
 /starter/ios/Flutter
 starter/ios/Runner.xcodeproj/project.pbxproj
-/node_modules
-starter/node_modules
+/node_modulesstarter/node_modules
 starter/package-lock.json
+
+# FVM Version Cache
+.fvm/
