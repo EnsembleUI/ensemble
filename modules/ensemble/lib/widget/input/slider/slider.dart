@@ -47,8 +47,8 @@ class EnsembleSlider extends StatefulWidget
   Map<String, Function> setters() {
     return {
       // Basic Properties
-      'initialValue': (value) =>
-          _controller.value = Utils.optionalDouble(value) ?? 0,
+      'initialValue': (value) => _controller.value =
+          Utils.getRangeValues(value) ?? const RangeValues(0, 0),
       'min': (value) =>
           _controller.minValue = Utils.getDouble(value, fallback: 0.0),
       'max': (value) =>
@@ -60,11 +60,11 @@ class EnsembleSlider extends StatefulWidget
           _controller.trackStyle = TrackStyleComposite.from(_controller, value),
       'tickMarkStyle': (value) => _controller.tickMarkStyle =
           TickMarkStyleComposite.from(_controller, value),
-      'thumbStyle': (value) => _controller.thumbStyle = 
-          ThumbStyleComposite.from(_controller, value),
-      'overlayStyle': (value) => _controller.overlayStyle = 
+      'thumbStyle': (value) =>
+          _controller.thumbStyle = ThumbStyleComposite.from(_controller, value),
+      'overlayStyle': (value) => _controller.overlayStyle =
           OverlayStyleComposite.from(_controller, value),
-      'valueIndicatorStyle': (value) => _controller.valueIndicatorStyle = 
+      'valueIndicatorStyle': (value) => _controller.valueIndicatorStyle =
           ValueIndicatorStyleComposite.from(_controller, value),
 
       // @deprecated properties
@@ -85,6 +85,9 @@ class EnsembleSlider extends StatefulWidget
       // Event Handler
       'onChange': (definition) => _controller.onChange =
           EnsembleAction.from(definition, initiator: this),
+
+      'isRange': (value) =>
+          _controller.isRange = Utils.getBool(value, fallback: false),
     };
   }
 }

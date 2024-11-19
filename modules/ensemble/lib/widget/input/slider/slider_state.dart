@@ -83,31 +83,52 @@ class SliderState extends FormFieldWidgetState<EnsembleSlider> {
 
           return SliderTheme(
             data: themeData,
-            child: Slider(
-              value: widget.controller.value,
-              min: widget.controller.minValue,
-              max: widget.controller.maxValue,
-              divisions: widget.controller.divisions,
-              label: widget.controller.value.toStringAsFixed(decimalPlaces),
-              onChanged: isEnabled()
-                  ? (value) {
-                      setState(() {
-                        widget.controller.value = value;
-                      });
-                      if (widget.controller.onChange != null) {
-                        ScreenController().executeAction(
-                          context,
-                          widget.controller.onChange!,
-                          event: EnsembleEvent(widget),
-                        );
-                      }
-                    }
-                  : null,
-            ),
+            child: widget.controller.isRange
+                ? RangeSlider(
+                    labels: RangeLabels(
+                      widget.controller.value.start
+                          .toStringAsFixed(decimalPlaces),
+                      widget.controller.value.end
+                          .toStringAsFixed(decimalPlaces),
+                    ),
+                    min: widget.controller.minValue,
+                    max: widget.controller.maxValue,
+                    values: widget.controller.value,
+                    divisions: widget.controller.divisions,
+                    onChanged: _onChanged,
+                  )
+                : Slider(
+                    value: widget.controller.value.start,
+                    min: widget.controller.minValue,
+                    max: widget.controller.maxValue,
+                    divisions: widget.controller.divisions,
+                    label: widget.controller.value.start
+                        .toStringAsFixed(decimalPlaces),
+                    onChanged: _onChanged,
+                  ),
           );
         },
       ),
     );
+  }
+
+  void _onChanged(dynamic value) {
+    if (!isEnabled()) return;
+
+    setState(() {
+      if (value is RangeValues) {
+        widget.controller.value = value;
+      } else if (value is double) {
+        widget.controller.value = RangeValues(value, value);
+      }
+    });
+    if (widget.controller.onChange != null) {
+      ScreenController().executeAction(
+        context,
+        widget.controller.onChange!,
+        event: EnsembleEvent(widget),
+      );
+    }
   }
 
   int calculateDecimalPlaces(double min, double max, int? divisions) {
