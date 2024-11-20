@@ -79,6 +79,12 @@ class SliderState extends FormFieldWidgetState<EnsembleSlider> {
                 widget.controller.valueIndicatorStyle.textStyle,
             valueIndicatorShape:
                 widget.controller.valueIndicatorStyle.getIndicatorShape(),
+
+            // Range Slider Properties
+            rangeValueIndicatorShape:
+                widget.controller.valueIndicatorStyle.getRangeIndicatorShape(),
+            rangeThumbShape: widget.controller.thumbStyle.getRangeThumbShape(),
+            rangeTrackShape: widget.controller.trackStyle.getRangeTrackShape(),
           );
 
           return SliderTheme(

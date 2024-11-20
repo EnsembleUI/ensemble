@@ -8,20 +8,22 @@ class ValueIndicatorStyleComposite extends WidgetCompositeProperty {
       : super(widgetController);
 
   ShowValueIndicator visibility = ShowValueIndicator.onlyForDiscrete;
-  ValueIndicatorShape shape = ValueIndicatorShape.drop;  
+  ValueIndicatorShape shape = ValueIndicatorShape.drop;
   Color? color;
   TextStyle? textStyle;
 
   factory ValueIndicatorStyleComposite.from(
       ChangeNotifier widgetController, dynamic payload) {
-    ValueIndicatorStyleComposite composite = ValueIndicatorStyleComposite(widgetController);
+    ValueIndicatorStyleComposite composite =
+        ValueIndicatorStyleComposite(widgetController);
     if (payload is Map) {
-      composite.visibility = ShowValueIndicator.values.from(payload['visibility']) ?? 
-          ShowValueIndicator.onlyForDiscrete;
-      
-      composite.shape = ValueIndicatorShape.values.from(payload['shape']) ?? 
-          ValueIndicatorShape.drop; 
-      
+      composite.visibility =
+          ShowValueIndicator.values.from(payload['visibility']) ??
+              ShowValueIndicator.onlyForDiscrete;
+
+      composite.shape = ValueIndicatorShape.values.from(payload['shape']) ??
+          ValueIndicatorShape.drop;
+
       composite.color = Utils.getColor(payload['color']);
       composite.textStyle = Utils.getTextStyle(payload['textStyle']);
     }
@@ -30,12 +32,11 @@ class ValueIndicatorStyleComposite extends WidgetCompositeProperty {
 
   @override
   Map<String, Function> setters() => {
-        'visibility': (value) => 
-            visibility = ShowValueIndicator.values.from(value) ?? 
+        'visibility': (value) => visibility =
+            ShowValueIndicator.values.from(value) ??
                 ShowValueIndicator.onlyForDiscrete,
-        'shape': (value) => 
-            shape = ValueIndicatorShape.values.from(value) ?? 
-                ValueIndicatorShape.drop,  
+        'shape': (value) => shape =
+            ValueIndicatorShape.values.from(value) ?? ValueIndicatorShape.drop,
         'color': (value) => color = Utils.getColor(value),
         'textStyle': (value) => textStyle = Utils.getTextStyle(value),
       };
@@ -58,15 +59,22 @@ class ValueIndicatorStyleComposite extends WidgetCompositeProperty {
       case ValueIndicatorShape.paddle:
         return PaddleSliderValueIndicatorShape();
       case ValueIndicatorShape.drop:
-        return DropSliderValueIndicatorShape();  
+        return DropSliderValueIndicatorShape();
       default:
-        return DropSliderValueIndicatorShape();  
+        return DropSliderValueIndicatorShape();
+    }
+  }
+
+  RangeSliderValueIndicatorShape? getRangeIndicatorShape() {
+    switch (shape) {
+      case ValueIndicatorShape.rectangular:
+        return RectangularRangeSliderValueIndicatorShape();
+      case ValueIndicatorShape.paddle:
+        return PaddleRangeSliderValueIndicatorShape();
+      default:
+        return RectangularRangeSliderValueIndicatorShape();
     }
   }
 }
 
-enum ValueIndicatorShape {
-  drop,  
-  paddle,
-  rectangular  
-}
+enum ValueIndicatorShape { drop, paddle, rectangular }
