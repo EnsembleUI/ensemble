@@ -17,6 +17,7 @@ import 'package:flutter/material.dart';
 class WebViewState extends EWidgetState<EnsembleWebView> {
   final IFrameElement _iframeElement = IFrameElement();
   HtmlElementView? htmlView;
+  final String viewId = 'iframeElement-${DateTime.now().millisecondsSinceEpoch}';
 
   @override
   void initState() {
@@ -29,18 +30,18 @@ class WebViewState extends EWidgetState<EnsembleWebView> {
     _iframeElement.style.width = '100%';
     _iframeElement.style.height = '100%';
 
-    _iframeElement.src = widget.controller.url;
+    _iframeElement.src = widget.controller.url ?? '';
     _iframeElement.style.border = 'none';
 
     // ignore: undefined_prefixed_name
     ui.platformViewRegistry.registerViewFactory(
-      'iframeElement',
+      viewId,
       (int viewId) => _iframeElement,
     );
 
     return HtmlElementView(
       key: UniqueKey(),
-      viewType: 'iframeElement',
+      viewType: viewId,
     );
   }
 

@@ -6,7 +6,7 @@ import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:ensemble/framework/action.dart' as ensemble;
-import 'package:webview_flutter/webview_flutter.dart';
+import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:yaml/yaml.dart';
 
 class EnsembleWebView extends StatefulWidget
@@ -50,12 +50,32 @@ class EnsembleWebView extends StatefulWidget
               ensemble.EnsembleAction.from(funcDefinition, initiator: this),
       'onWebResourceError': (funcDefinition) => _controller.onWebResourceError =
           ensemble.EnsembleAction.from(funcDefinition, initiator: this),
+      'headerOverrideRules': (value) => _controller.headerOverrideRules = 
+          parseHeaderRules(value),
       // legacy
       'uri': (value) => _controller.url = Utils.getUrl(value),
       'allowedLaunchSchemes': (value) => _controller.schemes =
           Utils.getList<String>(value) ??
               EnsembleWebViewController.defaultSchemes,
     };
+  }
+
+  List<HeaderOverrideRule> parseHeaderRules(YamlList yamlList) {
+    return yamlList.map((rule) {
+      Map<String, String> headers = {};
+      (rule['headers'] as YamlMap).forEach((key, value) {
+        headers[key.toString()] = value.toString();
+      });
+      return HeaderOverrideRule(
+        urlPattern: rule['urlPattern'],
+        headers: headers,
+        mergeExisting: rule['mergeExisting'] ?? true,
+        matchType: HeaderMatchType.values.firstWhere(
+          (e) => e.toString() == rule['matchType'],
+          orElse: () => HeaderMatchType.CONTAINS,
+        ),
+      );
+    }).toList();
   }
 }
 
@@ -76,11 +96,12 @@ class EnsembleWebViewController extends WidgetController {
     'geo:' //for launching maps
   ];
   List<String> schemes = defaultSchemes;
-  WebViewController? webViewController;
-  WebViewCookieManager? cookieManager;
-
   CookieMethods? cookieMethods;
   Map<String, String> headers = {};
+  InAppWebViewController? webViewController;
+  late CookieManager cookieManager;
+  bool isInitialized = false;
+  List<HeaderOverrideRule> headerOverrideRules = [];
 
   ensemble.EnsembleAction? onPageStart,
       onPageFinished,
@@ -96,7 +117,7 @@ class EnsembleWebViewController extends WidgetController {
     if (url != null) {
       Uri? uri = Uri.tryParse(url);
       if (uri != null) {
-        webViewController?.loadRequest(uri);
+        webViewController?.loadUrl(urlRequest: URLRequest(url: uri, headers: headers));
       } else {
         error = '${_url} is an Invalid URL';
       }
@@ -107,6 +128,13 @@ class EnsembleWebViewController extends WidgetController {
   String? singleCookie;
   double? height;
   double? width;
+
+  Future<void> initializeCookieManager() async {
+    if (!isInitialized) {
+      cookieManager = CookieManager.instance();
+      isInitialized = true;
+    }
+  }
 }
 
 List<Map<String, dynamic>> getListOfMap(list) {
@@ -133,4 +161,26 @@ Map<String, String> parseYamlMap(value) {
     }
   }
   return result;
+}
+
+enum HeaderMatchType { CONTAINS, EXACT, REGEX }
+class HeaderOverrideRule {
+  final String urlPattern;
+  final Map<String, String> headers;
+  final bool mergeExisting;
+  final HeaderMatchType matchType;
+
+  HeaderOverrideRule({
+    required this.urlPattern,
+    required this.headers,
+    this.mergeExisting = true,
+    this.matchType = HeaderMatchType.CONTAINS,
+  });
+
+  Map<String, dynamic> toJson() => {
+    'urlPattern': urlPattern,
+    'headers': headers,
+    'mergeExisting': mergeExisting,
+    'matchType': matchType.toString(),
+  };
 }
