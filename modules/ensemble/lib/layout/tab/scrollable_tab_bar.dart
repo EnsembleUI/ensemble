@@ -119,6 +119,13 @@ class ScrollableTabBarState extends BaseTabBarState {
   }
 
   @override
+  void didUpdateWidget(covariant ScrollableTabBar oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    widget.controller.tabBarAction = this;
+    widget.controller.items = oldWidget.controller.items;
+  }
+
+  @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     widget.controller.tabBarAction = this;
