@@ -76,7 +76,7 @@ dependencies:
   qr_flutter: ^4.1.0
   device_info_plus: ^10.1.0
   carousel_slider: ^5.0.0
-  fluttertoast: 8.2.2
+  fluttertoast: ^8.2.8
   video_player: ^2.6.1
   lottie: ^3.0.0
   cookie_jar: ^4.0.8
@@ -123,7 +123,11 @@ dependencies:
       url: https://github.com/EnsembleUI/table_calendar.git
       ref: master
 
-  flutter_app_badger: ^1.5.0
+  flutter_app_badger: 
+    git:
+      url: https://github.com/ppprakhar/flutter_app_badger
+      ref: master
+
   webview_flutter_wkwebview: ^3.9.2
   webview_flutter_android: ^3.12.0
 
