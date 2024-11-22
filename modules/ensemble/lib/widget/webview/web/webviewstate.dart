@@ -26,6 +26,18 @@ class WebViewState extends EWidgetState<EnsembleWebView> {
     // widget.controller.webViewController = ControllerImpl(_iframeElement);
   }
 
+  @override
+  void dispose() {
+    _cleanupIFrame();
+    super.dispose();
+  }
+
+  void _cleanupIFrame() {
+    _iframeElement.src = 'about:blank';
+    _iframeElement.remove();
+    htmlView = null;
+  }
+
   HtmlElementView buildIFrameWidget() {
     _iframeElement.style.width = '100%';
     _iframeElement.style.height = '100%';

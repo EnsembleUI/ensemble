@@ -96,12 +96,14 @@ class WebViewState extends EWidgetState<EnsembleWebView> with CookieMethods {
       return;
     }
     final mainUrl = Uri.parse(widget.controller.url!);
+    final protocol = mainUrl.scheme; // Get the actual protocol (http or https)
+
     if (cookie != null) {
       final cookieDomain = cookie.domain ?? mainUrl.host;
 
       // Set cookie for main domain
       await widget.controller.cookieManager.setCookie(
-        url: Uri.parse('https://$cookieDomain'),
+        url: Uri.parse('$protocol://$cookieDomain'),
         name: cookie.name,
         value: cookie.value,
         domain: cookieDomain,
@@ -119,7 +121,7 @@ class WebViewState extends EWidgetState<EnsembleWebView> with CookieMethods {
         final cookieDomain = cookieData['domain'] ?? mainUrl.host;
 
         await widget.controller.cookieManager.setCookie(
-          url: Uri.parse('https://$cookieDomain'),
+          url: Uri.parse('$protocol://$cookieDomain'),
           name: cookieData['name'],
           value: cookieData['value'],
           domain: cookieDomain,

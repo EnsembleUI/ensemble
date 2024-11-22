@@ -1,3 +1,4 @@
+import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/helpers/controllers.dart';
@@ -60,20 +61,24 @@ class EnsembleWebView extends StatefulWidget
     };
   }
 
-  List<HeaderOverrideRule> parseHeaderRules(YamlList yamlList) {
-    return yamlList.map((rule) {
+  List<HeaderOverrideRule> parseHeaderRules(dynamic value) {
+    if (value == null) return [];
+    
+    List<dynamic> rulesList = value is List ? value : [];
+    return rulesList.map((rule) {
       Map<String, String> headers = {};
-      (rule['headers'] as YamlMap).forEach((key, value) {
-        headers[key.toString()] = value.toString();
-      });
+      final headersMap = rule['headers'];
+      if (headersMap is Map) {
+        headersMap.forEach((key, value) {
+          headers[key.toString()] = value.toString();
+        });
+      }
+
       return HeaderOverrideRule(
-        urlPattern: rule['urlPattern'],
+        urlPattern: rule['urlPattern']?.toString() ?? '',
         headers: headers,
         mergeExisting: rule['mergeExisting'] ?? true,
-        matchType: HeaderMatchType.values.firstWhere(
-          (e) => e.toString() == rule['matchType'],
-          orElse: () => HeaderMatchType.CONTAINS,
-        ),
+        matchType: HeaderMatchType.values.from(rule['matchType']) ?? HeaderMatchType.CONTAINS,
       );
     }).toList();
   }
