@@ -127,7 +127,8 @@ class BluetoothManagerImpl extends BluetoothManager {
         }
       }
 
-      if (Platform.isAndroid && !await Permission.location.serviceStatus.isEnabled) {
+      if (Platform.isAndroid &&
+          !await Permission.location.serviceStatus.isEnabled) {
         throw Exception(
             'BLE: (Android) Please enable location services to use Bluetooth scanning');
       }
@@ -192,7 +193,12 @@ class BluetoothManagerImpl extends BluetoothManager {
           _characteristicValueSubscriptions[characteristicId] =
               c.onValueReceived.listen((value) {
             final data = utf8.decode(value);
-            onDataReceive.call(data);
+            const key = 'ensemble_bluetooth_handler';
+            try {
+              dynamic _ = ScreenController().runGlobalScriptHandler(key, data);
+            } catch (e) {
+              throw Exception('Error processing ensemble_bluetooth_handler: $e');
+            }
           }, onError: (error) {
             throw Exception('Error in characteristic value stream: $error');
           });
