@@ -17,8 +17,8 @@ publish_to: "none" # Remove this line if you wish to publish to pub.dev
 version: 1.0.0+1
 
 environment:
-  sdk: ">=3.0.6 <4.0.0"
-  flutter: '<=3.19.6'
+  sdk: ">=3.5.0"
+  flutter: '>=3.24.0'
 
 # Dependencies specify other packages that your package needs in order to work.
 # To automatically upgrade your package dependencies to the latest versions
@@ -36,7 +36,7 @@ dependencies:
   ensemble:
     git:
       url: https://github.com/EnsembleUI/ensemble.git
-      ref: ensemble-v1.1.0
+      ref: ensemble-v1.1.4
       path: modules/ensemble
 
 

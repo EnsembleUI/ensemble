@@ -67,9 +67,15 @@ class FirebaseAnalyticsProvider extends LogProvider {
     FlutterError.onError = FirebaseCrashlytics.instance.recordFlutterFatalError;
   }
 
+  Map<String, Object> convertMap(Map<String, dynamic> input) {
+    return Map<String, Object>.fromEntries(input.entries
+        .where((entry) => entry.value != null)
+        .map((entry) => MapEntry(entry.key, entry.value as Object)));
+  }
+
   Future<void> logEvent(
       String event, Map<String, dynamic> parameters, LogLevel level) async {
-    _analytics?.logEvent(name: event, parameters: parameters);
+    _analytics?.logEvent(name: event, parameters: convertMap(parameters));
     print('Firebase: Logged event: $event with parameters: $parameters');
   }
 
