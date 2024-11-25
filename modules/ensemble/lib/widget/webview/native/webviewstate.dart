@@ -95,7 +95,7 @@ class WebViewState extends EWidgetState<EnsembleWebView> with CookieMethods {
     if (widget.controller.url == null) {
       return;
     }
-    final mainUrl = Uri.parse(widget.controller.url!);
+    final mainUrl = WebUri(widget.controller.url!);
     final protocol = mainUrl.scheme; // Get the actual protocol (http or https)
 
     if (cookie != null) {
@@ -103,7 +103,7 @@ class WebViewState extends EWidgetState<EnsembleWebView> with CookieMethods {
 
       // Set cookie for main domain
       await widget.controller.cookieManager.setCookie(
-        url: Uri.parse('$protocol://$cookieDomain'),
+        url: WebUri('$protocol://$cookieDomain'),
         name: cookie.name,
         value: cookie.value,
         domain: cookieDomain,
@@ -121,7 +121,7 @@ class WebViewState extends EWidgetState<EnsembleWebView> with CookieMethods {
         final cookieDomain = cookieData['domain'] ?? mainUrl.host;
 
         await widget.controller.cookieManager.setCookie(
-          url: Uri.parse('$protocol://$cookieDomain'),
+          url: WebUri('$protocol://$cookieDomain'),
           name: cookieData['name'],
           value: cookieData['value'],
           domain: cookieDomain,
@@ -142,7 +142,7 @@ class WebViewState extends EWidgetState<EnsembleWebView> with CookieMethods {
         key: ValueKey('webview_${widget.controller.url}'),
         initialUrlRequest: widget.controller.url != null
             ? URLRequest(
-                url: Uri.parse(widget.controller.url!),
+                url: WebUri(widget.controller.url!),
                 headers: widget.controller.headers,
               )
             : null,
@@ -253,8 +253,8 @@ class WebViewState extends EWidgetState<EnsembleWebView> with CookieMethods {
           // Check if the URL starts with any of the defined schemes
           if (widget.controller.schemes
               .any((scheme) => url.startsWith(scheme))) {
-            if (await canLaunchUrl(Uri.parse(url))) {
-              await launchUrl(Uri.parse(url));
+            if (await canLaunchUrl(WebUri(url))) {
+              await launchUrl(WebUri(url));
               return NavigationActionPolicy.CANCEL;
             }
           }

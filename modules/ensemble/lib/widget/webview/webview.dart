@@ -120,10 +120,10 @@ class EnsembleWebViewController extends WidgetController {
     error = null;
 
     if (url != null) {
-      Uri? uri = Uri.tryParse(url);
-      if (uri != null) {
+      try {
+        WebUri? uri = WebUri(url);
         webViewController?.loadUrl(urlRequest: URLRequest(url: uri, headers: headers));
-      } else {
+      } catch (e) {
         error = '${_url} is an Invalid URL';
       }
     }
