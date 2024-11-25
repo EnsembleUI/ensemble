@@ -90,7 +90,6 @@ dependencies:
   cloud_firestore: ^5.4.4
   get_storage: ^2.0.3
   flutter_html: ^3.0.0-beta.1 # flutter_html ^2.0.0 requires flutter_svg <1.0.0, conflicts with ours
-  webview_flutter: ^4.2.0
   cached_network_image: ^3.2.3
   sensors_plus: ^3.0.0
   mime: ^1.0.4
@@ -124,7 +123,7 @@ dependencies:
       ref: master
 
   flutter_app_badger: ^1.5.0
-  flutter_inappwebview: ^5.7.2+3
+  flutter_inappwebview: ^6.1.5
 
   receive_sharing_intent: 1.6.7
   change_case: ^1.1.0
