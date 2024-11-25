@@ -72,6 +72,7 @@ abstract class GlobalContext {
     'console': Console(),
     'Date': StaticDate(),
     'Object': InvokableObject(),
+    'Error': JSCustomException(null),
     // Encode and Decode URI Component functions
     'encodeURIComponent': (String s) => Uri.encodeComponent(s),
     'decodeURIComponent': (String s) => Uri.decodeComponent(s),

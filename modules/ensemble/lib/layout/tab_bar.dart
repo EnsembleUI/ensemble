@@ -1,7 +1,6 @@
 import 'package:ensemble/action/haptic_action.dart';
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/bindings.dart';
-import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/view/data_scope_widget.dart';
 
@@ -118,15 +117,6 @@ class TabBarState extends BaseTabBarState {
         : 0;
   }
 
-  bool _evaluateCondition(ScopeManager scopeManager, String expression) {
-    try {
-      final expression0 = scopeManager.dataContext.eval(expression);
-      return expression0 is bool ? expression0 : false;
-    } catch (e) {
-      throw LanguageError('Failed to eval $expression');
-    }
-  }
-
   void notifyListener() {
     ScopeManager? scopeManager = ScreenController().getScopeManager(context);
     if (widget._controller.selectedIndex == tabController.index ||
@@ -194,7 +184,7 @@ class TabBarState extends BaseTabBarState {
       if (item.isVisible! is BoolVisible) {
         isTrue = (item.isVisible as BoolVisible).value;
       } else {
-        isTrue = _evaluateCondition(
+        isTrue = evaluateCondition(
             scopeManager, (item.isVisible as EvaluateVisible).value);
       }
 

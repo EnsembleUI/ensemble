@@ -176,7 +176,7 @@ bool isEOL(int x) {
 
 class Lexer {
   Lexer(String text,
-      {this.filename, this.currentLine: 1, this.index: 0, this.endOfFile}) {
+      {this.filename, this.currentLine=1, this.index= 0, this.endOfFile}) {
     input = text.codeUnits;
     if (endOfFile == null) {
       endOfFile = input.length;
