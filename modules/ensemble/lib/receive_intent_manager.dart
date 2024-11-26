@@ -36,13 +36,13 @@ class ReceiveIntentManager {
 
   /// For sharing images coming from outside the app while the app is in the memory
   void receiveMediaWhenInMemory() {
-    ReceiveSharingIntent.getMediaStream().listen((List<SharedMediaFile> value) {
+    ReceiveSharingIntent.instance.getMediaStream().listen((List<SharedMediaFile> value) {
       if (context != null && onReceive != null) {
         final medias = _getMedias(value);
         _addToContext(context!, medias);
         ScreenController().executeAction(context!, onReceive!);
         // Tell the library that we are done processing the intent.
-        ReceiveSharingIntent.reset();
+        ReceiveSharingIntent.instance.reset();
       }
     }, onError: (err) {
       if (context != null && onError != null) {
@@ -54,13 +54,13 @@ class ReceiveIntentManager {
 
   /// For sharing images coming from outside the app while the app is closed
   void receiveMediaWhenClosed() {
-    ReceiveSharingIntent.getInitialMedia().then((List<SharedMediaFile> value) {
+    ReceiveSharingIntent.instance.getInitialMedia().then((List<SharedMediaFile> value) {
       if (context != null && onReceive != null) {
         final medias = _getMedias(value);
         _addToContext(context!, medias);
         ScreenController().executeAction(context!, onReceive!);
         // Tell the library that we are done processing the intent.
-        ReceiveSharingIntent.reset();
+        ReceiveSharingIntent.instance.reset();
       }
     }, onError: (err) {
       if (context != null && onError != null) {
