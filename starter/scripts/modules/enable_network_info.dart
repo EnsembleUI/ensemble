@@ -29,6 +29,22 @@ ensemble_network_info:
     }
   ];
 
+  final androidPermissions = [
+    '<uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />',
+    '<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />'
+  ];
+
+  final iOSPermissions = [
+    {
+      'key': 'in_use_location_description',
+      'value': 'NSLocationWhenInUseUsageDescription',
+    },
+    {
+      'key': 'always_location_description',
+      'value': 'NSLocationAlwaysAndWhenInUseUsageDescription',
+    }
+  ];
+
   try {
     // Update the ensemble_modules.dart file
     updateEnsembleModules(
@@ -38,6 +54,16 @@ ensemble_network_info:
 
     // Update the pubspec.yaml file
     updatePubspec(pubspecDependencies);
+
+    // Add required permissions to AndroidManifest.xml
+    if (platforms.contains('android')) {
+      updateAndroidPermissions(permissions: androidPermissions);
+    }
+
+    // Add required permissions to Info.plist
+    if (platforms.contains('ios')) {
+      updateIOSPermissions(iOSPermissions, arguments);
+    }
 
     print(
         'Network Info module enabled successfully for ${platforms.join(', ')}! 🎉');
