@@ -8,6 +8,8 @@ class BubbleContainer extends StatelessWidget {
   final String text;
   final TextStyle textStyle;
   final BubbleAlignment bubbleAlignment;
+  final EdgeInsets? padding;
+  final EdgeInsets? margin;
 
   const BubbleContainer({
     Key? key,
@@ -19,34 +21,40 @@ class BubbleContainer extends StatelessWidget {
       fontSize: 17,
     ),
     required this.bubbleAlignment,
+    this.padding,
+    this.margin,
   }) : super(key: key);
 
   ///chat bubble builder method
   @override
   Widget build(BuildContext context) {
-    return Align(
-      alignment: bubbleAlignment == BubbleAlignment.left
-          ? Alignment.bottomLeft
-          : Alignment.bottomRight,
-      child: Container(
-        constraints:
-            BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.8),
-        decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.15),
-          borderRadius: BorderRadius.only(
-            topLeft: Radius.circular(
-                bubbleAlignment == BubbleAlignment.left ? 0 : bubbleRadius),
-            topRight: Radius.circular(
-                bubbleAlignment == BubbleAlignment.right ? 0 : bubbleRadius),
-            bottomLeft: Radius.circular(bubbleRadius),
-            bottomRight: Radius.circular(bubbleRadius),
+    return Container(
+      margin: margin,
+      child: Align(
+        alignment: bubbleAlignment == BubbleAlignment.left
+            ? Alignment.bottomLeft
+            : Alignment.bottomRight,
+        child: Container(
+          constraints:
+              BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.8),
+          decoration: BoxDecoration(
+            color: color,
+            borderRadius: BorderRadius.only(
+              topLeft: Radius.circular(
+                  bubbleAlignment == BubbleAlignment.left ? 0 : bubbleRadius),
+              topRight: Radius.circular(
+                  bubbleAlignment == BubbleAlignment.right ? 0 : bubbleRadius),
+              bottomLeft: Radius.circular(bubbleRadius),
+              bottomRight: Radius.circular(bubbleRadius),
+            ),
           ),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
-          child: Text(
-            text,
-            style: textStyle,
+          child: Padding(
+            padding: padding ??
+                const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
+            child: Text(
+              text,
+              style: textStyle,
+            ),
           ),
         ),
       ),

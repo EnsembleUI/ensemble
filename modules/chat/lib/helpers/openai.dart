@@ -47,8 +47,10 @@ class OpenAIClient extends AIClient {
       if (message.content == null) {
         messages.add({
           "role": role,
-          "content": message
-              .rawResponse['message']['tool_calls'].first['function']['name']
+          "content": message.rawResponse != null
+              ? message.rawResponse['message']['tool_calls'].first['function']
+                  ['name']
+              : message.inlineWidget.keys.last,
         });
       } else {
         messages.add({"role": role, "content": message.content});

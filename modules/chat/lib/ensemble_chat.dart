@@ -36,13 +36,28 @@ class EnsembleChatState extends EnsembleWidgetState<EnsembleChatImpl> {
   }
 
   @override
+  void dispose() {
+    for (var message in widget.controller.messages.value) {
+      message.widget = null;
+    }
+    super.dispose();
+  }
+
+  @override
   Widget buildWidget(BuildContext context) {
     return ValueListenableBuilder<List<InternalMessage>>(
       valueListenable: widget.controller.messages,
       builder: (context, messages, child) {
         return ChatPage(
-          messages: messages,
+          messages: messages.map((message) {
+            if (message.inlineWidget != null && message.widget == null) {
+              message.widget =
+                  buildWidgetsFromTemplate(context, message.inlineWidget);
+            }
+            return message;
+          }).toList(),
           onMessageSend: sendMessage,
+          controller: widget.controller,
         );
       },
     );
@@ -125,6 +140,22 @@ class EnsembleChatController extends EnsembleBoxController {
   Map<String, dynamic>? config;
   ChatType type = ChatType.local;
 
+  Color? backgroundColor;
+  Color? textFieldBackgroundColor;
+  Color? iconColor;
+  TextStyle? textFieldTextStyle;
+
+  BubbleStyleComposite? _userBubbleStyle;
+  BubbleStyleComposite get userBubbleStyle =>
+      _userBubbleStyle ??= BubbleStyleComposite(this);
+  set userBubbleStyle(BubbleStyleComposite value) => _userBubbleStyle = value;
+
+  BubbleStyleComposite? _assistantBubbleStyle;
+  BubbleStyleComposite get assistantBubbleStyle =>
+      _assistantBubbleStyle ??= BubbleStyleComposite(this);
+  set assistantBubbleStyle(BubbleStyleComposite value) =>
+      _assistantBubbleStyle = value;
+
   Future<void> Function(String newMessage)? sendMessage;
 
   bool get isLocalChat => type == ChatType.local;
@@ -172,9 +203,12 @@ class EnsembleChatController extends EnsembleBoxController {
   Map<String, Function> setters() {
     return {
       'initialMessages': (value) {
-        if (value is! List) return;
-        messages.value
-            .addAll(value.map((data) => InternalMessage.fromMap(data, this)));
+        if (value is! List || messages.value.isNotEmpty) return;
+        messages.value.addAll(value.map((data) {
+          final message = InternalMessage.fromMap(data, this);
+          return message;
+        }));
+        messages.notifyListeners();
       },
       "onMessageSend": (value) => onMessageSend = EnsembleAction.from(value),
       "inlineWidgetKey": (value) =>
@@ -187,6 +221,18 @@ class EnsembleChatController extends EnsembleBoxController {
       },
       "type": (value) =>
           type = ChatType.values.from(value ?? 'local') ?? ChatType.local,
+      'backgroundColor': (value) => backgroundColor = Utils.getColor(value),
+      'padding': (value) =>
+          padding = Utils.getInsets(value, fallback: const EdgeInsets.all(0)),
+      'textFieldBackgroundColor': (value) =>
+          textFieldBackgroundColor = Utils.getColor(value),
+      'textFieldTextStyle': (value) =>
+          textFieldTextStyle = Utils.getTextStyle(value),
+      'iconColor': (value) => iconColor = Utils.getColor(value),
+      'userBubbleStyle': (value) =>
+          userBubbleStyle = BubbleStyleComposite.from(this, value),
+      'assistantBubbleStyle': (value) =>
+          assistantBubbleStyle = BubbleStyleComposite.from(this, value),
     };
   }
 
