@@ -126,7 +126,7 @@ dependencies:
   # old app_badger is unsupported so using a supported fork
   flutter_app_badger: 
     git:
-      url: https://github.com/ppprakhar/flutter_app_badger.git
+      url: https://github.com/EnsembleUI/flutter_app_badger.git
       ref: master
 
   webview_flutter_wkwebview: ^3.9.2
