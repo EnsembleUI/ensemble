@@ -1,3 +1,11 @@
+## 1.1.6
+
+ - Bump "ensemble" to `1.1.6`.
+
+## 1.1.5
+
+ - **FIX**: uninitialized getIt and handle externalKey properly. ([9b46738a](https://github.com/ensembleUI/ensemble/commit/9b46738a4a9cde57f09db7f40d174baed9e57550))
+
 ## 1.1.4
 
  - Ensemble version with flutter 3.24.3 support
