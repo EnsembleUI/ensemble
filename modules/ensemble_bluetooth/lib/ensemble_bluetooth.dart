@@ -14,6 +14,7 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:collection/collection.dart';
 import 'package:workmanager/workmanager.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 class BackgroundTaskManager {
   static final Map<String, ReceivePort> _backgroundPorts = {};
@@ -115,6 +116,23 @@ class BluetoothManagerImpl extends BluetoothManager {
   @override
   Future startScan({required ScanResultCallback onScanResult}) async {
     try {
+      if (Platform.isAndroid) {
+        final status = await Permission.location.status;
+        if (!status.isGranted) {
+          final result = await Permission.location.request();
+          if (!result.isGranted) {
+            throw Exception(
+                'Location permission is required for Bluetooth scanning on Android');
+          }
+        }
+      }
+
+      if (Platform.isAndroid &&
+          !await Permission.location.serviceStatus.isEnabled) {
+        throw Exception(
+            'BLE: (Android) Please enable location services to use Bluetooth scanning');
+      }
+
       await FlutterBluePlus.startScan(
         timeout: const Duration(seconds: 15),
         androidUsesFineLocation: true,
@@ -160,10 +178,6 @@ class BluetoothManagerImpl extends BluetoothManager {
   Future<void> subscribe(
       String characteristicId, DataReceivedCallback onDataReceive,
       {bool backgroundMode = false}) async {
-    if (!Platform.isAndroid && backgroundMode) {
-      throw UnsupportedError('Background mode is only supported on Android');
-    }
-
     if (backgroundMode && Platform.isAndroid) {
       await _subscribeWithBackgroundMode(characteristicId, onDataReceive);
       return;
@@ -179,7 +193,12 @@ class BluetoothManagerImpl extends BluetoothManager {
           _characteristicValueSubscriptions[characteristicId] =
               c.onValueReceived.listen((value) {
             final data = utf8.decode(value);
-            onDataReceive.call(data);
+            const key = 'ensemble_bluetooth_handler';
+            try {
+              dynamic _ = ScreenController().runGlobalScriptHandler(key, data);
+            } catch (e) {
+              throw Exception('Error processing ensemble_bluetooth_handler: $e');
+            }
           }, onError: (error) {
             throw Exception('Error in characteristic value stream: $error');
           });
