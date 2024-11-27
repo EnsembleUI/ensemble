@@ -236,6 +236,84 @@ void updateAndroidPermissions(
   writeFileContent(androidManifestFilePath, manifestContent);
 }
 
+void updateMainActivity(Map<String, List<Map<String, String>>> updates) {
+  const baseDir = 'android/app/src/main';
+
+  String? activityFilePath = findMainActivity(baseDir);
+  if (activityFilePath == null) {
+    throw Exception('MainActivity not found in $baseDir');
+  }
+
+  String content = readFileContent(activityFilePath);
+  bool isKotlin = activityFilePath.endsWith('.kt');
+
+  try {
+    final patterns = isKotlin ? updates['kotlin']! : updates['java']!;
+    bool requiresUpdate = false;
+    String updatedContent = content;
+
+    // Check if any of the desired states already exist
+    for (final update in patterns) {
+      final desiredContent = update['replacement'] ?? '';
+      if (!content.contains(desiredContent)) {
+        requiresUpdate = true;
+        break;
+      }
+    }
+
+    // Apply updates if needed
+    if (requiresUpdate) {
+      for (final update in patterns) {
+        try {
+          final newContent = updateContent(updatedContent,
+              update['pattern'] ?? '', update['replacement'] ?? '');
+          if (newContent != updatedContent) {
+            updatedContent = newContent;
+          }
+        } catch (_) {
+          // Continue with next pattern if one fails
+          continue;
+        }
+      }
+
+      // Write changes if content was modified
+      if (updatedContent != content) {
+        writeFileContent(activityFilePath, updatedContent);
+      }
+    }
+  } catch (e) {
+    throw Exception('Failed to update MainActivity: $e');
+  }
+}
+
+/// Finds the MainActivity file in the project
+String? findMainActivity(String baseDir) {
+  final commonPaths = ['kotlin', 'java'];
+
+  for (final path in commonPaths) {
+    final dir = Directory('$baseDir/$path');
+    if (!dir.existsSync()) continue;
+
+    try {
+      final files = dir.listSync(recursive: true);
+      final activityFile = files.firstWhere(
+        (file) =>
+            file.path.endsWith('MainActivity.kt') ||
+            file.path.endsWith('MainActivity.java'),
+        orElse: () => File(''),
+      );
+
+      if (activityFile.path.isNotEmpty) {
+        return activityFile.path;
+      }
+    } catch (_) {
+      continue;
+    }
+  }
+
+  return null;
+}
+
 // Update Info.plist for iOS with permissions and descriptions
 void updateIOSPermissions(
     List<Map<String, String>> iOSPermissions, List<String> arguments,

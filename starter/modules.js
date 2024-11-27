@@ -115,17 +115,20 @@ export const modules = [
     {
         name: 'bracket',
         path: 'scripts/modules/enable_bracket.dart',
-        parameters: []
+        parameters: []  // Bracket doesn't need any special parameters
     },
     {
         name: 'networkInfo',
         path: 'scripts/modules/enable_network_info.dart',
-        parameters: []
+        parameters: [
+            { key: 'in_use_location_description', question: 'Please provide a description for using location services while accessing network info: ', required: (args) => args.platform.includes('ios') },
+            { key: 'always_location_description', question: 'Please provide a description for always using location services for network info: ', required: (args) => args.platform.includes('ios') }
+        ]
     },
     {
-        name: 'chat',
+        name: 'chat',  
         path: 'scripts/modules/enable_chat.dart',
-        parameters: []
+        parameters: [] // Chat is a UI widget without special parameters needed
     },
     {
         name: 'auth',
@@ -135,6 +138,21 @@ export const modules = [
             { key: 'android_client_id', question: 'Please provide your Android client ID: ', required: (args) => args.platform.includes('android') },
             { key: 'web_client_id', question: 'Please provide your Web client ID: ', required: (args) => args.platform.includes('web') },
             { key: 'server_client_id', question: 'Please provide your server client ID: ', required: true }
+        ]
+    },
+    {
+        name: 'bluetooth',
+        path: 'scripts/modules/enable_bluetooth.dart',
+        parameters: [
+            { key: 'bluetooth_description', question: 'Please provide a description for accessing Bluetooth: ', required: (args) => args.platform.includes('ios') },
+            { key: 'bluetooth_peripheral_description', question: 'Please provide a description for using Bluetooth peripherals: ', required: (args) => args.platform.includes('ios') }
+        ]
+    },
+    {
+        name: 'biometric',
+        path: 'scripts/modules/enable_biometric.dart',
+        parameters: [
+            { key: 'face_id_description', question: 'Please provide a description for Face ID usage (iOS): ', required: (args) => args.platform.includes('ios') }
         ]
     }
 ];
