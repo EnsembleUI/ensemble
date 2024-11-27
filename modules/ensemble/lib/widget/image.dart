@@ -264,6 +264,16 @@ class ImageState extends EWidgetState<EnsembleImage> {
   }
 
   Widget buildSvgImage(String source, BoxFit? fit) {
+    // If the source starts with '<svg', treat it as inline SVG content
+    if (source.trim().toLowerCase().startsWith('<svg')) {
+      return SvgPicture.string(
+        source,
+        width: widget._controller.width?.toDouble(),
+        height: widget._controller.height?.toDouble(),
+        fit: fit ?? BoxFit.contain,
+      );
+    }
+    
     // if is URL
     if (source.startsWith('https://') || source.startsWith('http://')) {
       return SvgPicture.network(
@@ -299,6 +309,10 @@ class ImageState extends EWidgetState<EnsembleImage> {
           imageBytes[3] == 0x6D &&
           imageBytes[4] == 0x6C;
     } else if (widget._controller.source is String) {
+      // Check for inline SVG content
+      if (widget._controller.source.trim().toLowerCase().startsWith('<svg')) {
+        return true;
+      }
       // cheap check for extension
       Uri uri;
       try {
