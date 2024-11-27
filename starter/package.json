@@ -23,6 +23,7 @@
     "useChat": "node dart_runner.js chat",
     "useAuth": "node dart_runner.js auth",
     "useBluetooth": "node dart_runner.js bluetooth",
+    "useBiometric": "node dart_runner.js biometric",
     "generate_keystore": "node dart_runner.js generateKeystore",
     "get_sha_keys": "node dart_runner.js getShaKeys"
   },

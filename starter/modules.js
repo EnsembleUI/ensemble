@@ -147,6 +147,13 @@ export const modules = [
             { key: 'bluetooth_description', question: 'Please provide a description for accessing Bluetooth: ', required: (args) => args.platform.includes('ios') },
             { key: 'bluetooth_peripheral_description', question: 'Please provide a description for using Bluetooth peripherals: ', required: (args) => args.platform.includes('ios') }
         ]
+    },
+    {
+        name: 'biometric',
+        path: 'scripts/modules/enable_biometric.dart',
+        parameters: [
+            { key: 'face_id_description', question: 'Please provide a description for Face ID usage (iOS): ', required: (args) => args.platform.includes('ios') }
+        ]
     }
 ];
 
