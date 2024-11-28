@@ -1,5 +1,6 @@
 buildscript {
     ext.kotlin_version = '1.9.10'
+    ext.javaVersion = JavaVersion.VERSION_1_8
     repositories {
         google()
         mavenCentral()
@@ -31,12 +32,13 @@ subprojects {
                     if (android.namespace == null) {
                         namespace project.group
                     }
+                    compileOptions {
+                        sourceCompatibility javaVersion
+                        targetCompatibility javaVersion
+                    }
                 }
 
-                compileOptions {
-                    sourceCompatibility javaVersion
-                    targetCompatibility javaVersion
-                }
+                
                 tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
                     kotlinOptions {
                         jvmTarget = javaVersion.toString()
