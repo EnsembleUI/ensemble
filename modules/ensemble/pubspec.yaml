@@ -54,13 +54,6 @@ dependencies:
       ref: main
       path: modules/ensemble_ts_interpreter
 
-  # use our forked high_chart to fix iOS issue
-  high_chart:
-    git:
-      url: https://github.com/EnsembleUI/ensemble.git
-      ref: main
-      path: modules/high_chart
-
   event_bus: ^2.0.0
   flutter_layout_grid: ^2.0.3
   email_validator: ^2.0.1
