@@ -1,3 +1,7 @@
+## 1.1.7
+
+ - Removed high charts
+
 ## 1.1.6
 
  - Bump "ensemble" to `1.1.6`.
