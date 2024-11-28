@@ -28,9 +28,9 @@ subprojects {
             if (pluginCompileSdk != null && pluginCompileSdk < 34) {
                 project.android {
                     compileSdk 34
-                }
-                if (namespace == null) {
-                    namespace project.group
+                    if (android.namespace == null) {
+                        namespace project.group
+                    }
                 }
 
                 compileOptions {
