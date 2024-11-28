@@ -1,11 +1,8 @@
 import 'dart:convert';
 import 'dart:io';
-import 'dart:isolate';
 import 'dart:ui';
-import 'dart:ui' as ui;
 import 'dart:async';
 
-import 'package:collection/collection.dart';
 import 'package:device_preview/device_preview.dart';
 import 'package:ensemble/deep_link_manager.dart';
 import 'package:ensemble/ensemble.dart';
@@ -26,16 +23,11 @@ import 'package:ensemble/ios_deep_link_manager.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/util/upload_utils.dart';
 import 'package:ensemble/util/utils.dart';
-import 'package:event_bus/event_bus.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
-import 'package:flutter_blue_plus/flutter_blue_plus.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:flutter_i18n/flutter_i18n.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_localized_locales/flutter_localized_locales.dart';
-import 'package:intl/intl.dart';
 import 'package:workmanager/workmanager.dart';
 import 'package:yaml/yaml.dart';
 
@@ -93,107 +85,6 @@ void callbackDispatcher() {
           throw LanguageError('Failed to process background upload task');
         }
         break;
-      case backgroundBluetoothSubscribeTask:
-        try {
-          if (inputData == null) {
-            throw LanguageError('Failed to parse Bluetooth data');
-          }
-
-          final characteristicId = inputData['characteristicId'] as String;
-          final taskId = inputData['taskId'] as String;
-          final deviceId = inputData['deviceId'] as String;
-
-          // Get the send port for communication
-          final SendPort? sendPort = IsolateNameServer.lookupPortByName(taskId);
-          if (sendPort == null) {
-            throw LanguageError('Failed to establish background communication channel');
-          }
-
-          // Initialize FlutterBluePlus in background
-          final device = BluetoothDevice.fromId(deviceId);
-          
-          try {
-            await device.connect(timeout: const Duration(seconds: 30));
-          } catch (e) {
-            sendPort.send({
-              'error': 'Failed to connect to device: $e',
-              'taskId': taskId
-            });
-            return false;
-          }
-
-          final services = await device.discoverServices();
-          BluetoothCharacteristic? targetCharacteristic;
-          
-          for (var service in services) {
-            final characteristic = service.characteristics.firstWhereOrNull(
-                (c) => c.characteristicUuid.str == characteristicId);
-            if (characteristic != null) {
-              targetCharacteristic = characteristic;
-              break;
-            }
-          }
-
-          if (targetCharacteristic == null) {
-            sendPort.send({
-              'error': 'Characteristic not found: $characteristicId',
-              'taskId': taskId
-            });
-            return false;
-          }
-
-          try {
-            await targetCharacteristic.setNotifyValue(true);
-          } catch (e) {
-            sendPort.send({
-              'error': 'Failed to enable notifications: $e',
-              'taskId': taskId
-            });
-            return false;
-          }
-
-          final completer = Completer<void>();
-          StreamSubscription? subscription;
-
-          subscription = targetCharacteristic.onValueReceived.listen(
-            (value) {
-              try {
-                final data = utf8.decode(value);
-                sendPort.send({
-                  'data': data,
-                  'taskId': taskId
-                });
-              } catch (e) {
-                print('Error processing characteristic value: $e');
-              }
-            },
-            onError: (error) {
-              print('Error in characteristic subscription: $error');
-              sendPort.send({
-                'error': 'Subscription error: $error',
-                'taskId': taskId
-              });
-              subscription?.cancel();
-              completer.complete();
-            },
-            cancelOnError: false,
-          );
-
-          // Handle task cancellation and device disconnection
-          device.connectionState.listen((state) {
-            if (state == BluetoothConnectionState.disconnected) {
-              subscription?.cancel();
-              completer.complete();
-            }
-          });
-
-          await completer.future;
-          await device.disconnect();
-          return true;
-        } catch (e) {
-          print('Background task error: $e');
-          return false;
-        }
       default:
         throw LanguageError('Unknown background task: $task');
     }
