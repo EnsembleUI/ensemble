@@ -77,9 +77,9 @@ class HTTPAPIProvider extends APIProvider {
       
       if (contentType == 'application/x-www-form-urlencoded') {
         // For form-urlencoded, convert body to query string format
-        if (api['body'] is YamlMap) {
+        if (api['body'] is Map) {
           Map<String, dynamic> formData = {};
-          (api['body'] as YamlMap).forEach((key, value) {
+          (api['body'] as Map).forEach((key, value) {
             formData[key.toString()] = eContext.eval(value)?.toString() ?? '';
           });
           // Convert map to x-www-form-urlencoded format
