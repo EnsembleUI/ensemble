@@ -63,13 +63,14 @@ class EnsembleChatState extends EnsembleWidgetState<EnsembleChatImpl> {
     );
   }
 
-  Future<void> sendMessage(String newMessage) async {
+  Future<void> sendMessage(String newMessage, {bool visible = true}) async {
     if (widget.controller.isLocalChat) {
       widget.controller.addMessage({
         widget.controller.getMessageKey: newMessage,
         "role": MessageRole.user.name,
+        "visible": visible,
       });
-
+      widget.controller.isLoading.value = true;
       try {
         final response = await widget.controller.client?.complete(newMessage);
         if (response == null) return;
@@ -77,6 +78,8 @@ class EnsembleChatState extends EnsembleWidgetState<EnsembleChatImpl> {
         handleMessageIntent(choice);
       } on Exception catch (e) {
         print("EnsembleChat: $e");
+      } finally {
+        widget.controller.isLoading.value = false;
       }
     }
     final scope = getScopeManager();
@@ -156,11 +159,15 @@ class EnsembleChatController extends EnsembleBoxController {
   set assistantBubbleStyle(BubbleStyleComposite value) =>
       _assistantBubbleStyle = value;
 
-  Future<void> Function(String newMessage)? sendMessage;
+  Future<void> Function(String newMessage, {bool visible})? sendMessage;
 
   bool get isLocalChat => type == ChatType.local;
 
   AIClient? client;
+
+  bool showLoading = true;
+  dynamic loadingWidget;
+  ValueNotifier<bool> isLoading = ValueNotifier(false);
 
   @override
   Map<String, Function> getters() {
@@ -171,10 +178,11 @@ class EnsembleChatController extends EnsembleBoxController {
   Map<String, Function> methods() {
     return {
       'addMessage': addMessage,
-      'sendMessage': (message) {
+      'sendMessage': (String message, [Map<dynamic, dynamic>? options]) {
         final msg = Utils.optionalString(message);
+        final visible = Utils.getBool(options?['visible'], fallback: true);
         if (msg == null) return;
-        sendMessage?.call(msg);
+        sendMessage?.call(msg, visible: visible);
       },
       'getMessages': () => messages.value.map((e) => e.toMap()).toList(),
     };
@@ -233,6 +241,9 @@ class EnsembleChatController extends EnsembleBoxController {
           userBubbleStyle = BubbleStyleComposite.from(this, value),
       'assistantBubbleStyle': (value) =>
           assistantBubbleStyle = BubbleStyleComposite.from(this, value),
+      'showLoading': (value) =>
+          showLoading = Utils.getBool(value, fallback: true),
+      'loadingWidget': (widget) => loadingWidget = widget,
     };
   }
 
@@ -312,11 +323,13 @@ class InternalMessage {
   Widget? widget;
   MessageRole role;
   dynamic rawResponse;
+  final bool visible;
 
   InternalMessage({
     this.content,
     this.inlineWidget,
     required this.role,
+    this.visible = true,
   })  : id = Utils.generateRandomId(8),
         createdAt = DateTime.now();
 
@@ -324,7 +337,10 @@ class InternalMessage {
     final roleData = data.getOrNull("role");
     final role =
         MessageRole.values.firstWhere((element) => element.name == roleData);
-    final message = InternalMessage(role: role);
+    final message = InternalMessage(
+      role: role,
+      visible: data['visible'] ?? true,
+    );
 
     message.content = data.getOrNull(controller.getMessageKey);
     message.inlineWidget = data.getOrNull(controller.getInlineKey);
@@ -343,6 +359,7 @@ class InternalMessage {
       'createdAt': createdAt,
       'payload': payload,
       'role': role.name,
+      'visible': visible,
     };
   }
 }
