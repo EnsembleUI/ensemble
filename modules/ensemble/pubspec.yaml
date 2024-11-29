@@ -15,7 +15,7 @@ description: Ensemble Runtime
 # This version is used _only_ for the Runner app, which is used if you just do
 # a `flutter run` or a `flutter make-host-app-editable`. It has no impact
 # on any other native host app that you embed your Flutter project into.
-version: 1.1.4
+version: 1.1.6
 
 environment:
   sdk: ">=3.5.0"
@@ -76,7 +76,7 @@ dependencies:
   qr_flutter: ^4.1.0
   device_info_plus: ^10.1.0
   carousel_slider: ^5.0.0
-  fluttertoast: 8.2.2
+  fluttertoast: ^8.2.8
   video_player: ^2.6.1
   lottie: ^3.0.0
   cookie_jar: ^4.0.8
@@ -122,10 +122,18 @@ dependencies:
       url: https://github.com/EnsembleUI/table_calendar.git
       ref: master
 
-  flutter_app_badger: ^1.5.0
   flutter_inappwebview: ^6.1.5
+  # old app_badger is unsupported so using a supported fork
+  flutter_app_badger: 
+    git:
+      url: https://github.com/EnsembleUI/flutter_app_badger.git
+      ref: master
 
-  receive_sharing_intent: 1.6.7
+  # Current pub.dev version isn't compatible with 3.24 
+  receive_sharing_intent: 
+    git:
+      url: https://github.com/Piyush-e7/receive_sharing_intent.git
+      ref: master
   change_case: ^1.1.0
   dropdown_button2: ^2.3.9
   collection: ^1.17.1
