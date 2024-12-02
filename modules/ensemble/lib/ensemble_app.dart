@@ -215,7 +215,6 @@ class EnsembleApp extends StatefulWidget {
     GlobalKey<NavigatorState>? navigatorKey,
   }) {
     externalAppNavigateKey = navigatorKey;
-    Utils.globalAppKey = GlobalKey<NavigatorState>();
   }
 
   final ScreenPayload? screenPayload;
