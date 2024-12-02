@@ -14,7 +14,7 @@ dependencies:
   ensemble:
     git:
       url: https://github.com/EnsembleUI/ensemble.git
-      ref: ensemble-v1.1.7
+      ref: ensemble-v1.1.9
       path: modules/ensemble
 
 dev_dependencies:
