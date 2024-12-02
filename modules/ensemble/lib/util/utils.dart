@@ -23,7 +23,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 
 class Utils {
   /// global appKey to get the context
-  static GlobalKey<NavigatorState> globalAppKey =
+  static final GlobalKey<NavigatorState> globalAppKey =
       GlobalKey<NavigatorState>();
 
   /// some Flutter widgets (TextInput) has no width constraint, so using them inside
