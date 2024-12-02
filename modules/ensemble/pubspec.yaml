@@ -15,7 +15,7 @@ description: Ensemble Runtime
 # This version is used _only_ for the Runner app, which is used if you just do
 # a `flutter run` or a `flutter make-host-app-editable`. It has no impact
 # on any other native host app that you embed your Flutter project into.
-version: 1.1.6
+version: 1.1.7
 
 environment:
   sdk: ">=3.5.0"
@@ -53,13 +53,6 @@ dependencies:
       url: https://github.com/EnsembleUI/ensemble.git
       ref: main
       path: modules/ensemble_ts_interpreter
-
-  # use our forked high_chart to fix iOS issue
-  high_chart:
-    git:
-      url: https://github.com/EnsembleUI/ensemble.git
-      ref: main
-      path: modules/high_chart
 
   event_bus: ^2.0.0
   flutter_layout_grid: ^2.0.3
