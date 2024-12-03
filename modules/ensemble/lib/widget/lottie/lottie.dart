@@ -164,9 +164,9 @@ class LottieController extends BoxController {
 
     if (autoPlay) {
       if (repeat) {
-        lottieController!.repeat();
+        lottieController?.repeat();
       } else {
-        lottieController!.forward();
+        lottieController?.forward();
       }
     }
   }

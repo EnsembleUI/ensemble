@@ -2,7 +2,6 @@ import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
-import 'package:high_chart/high_chart.dart';
 import 'package:flutter/material.dart';
 
 class Highcharts extends StatefulWidget
@@ -50,18 +49,6 @@ class HighchartsController extends WidgetController {
 class HighchartsState extends EWidgetState<Highcharts> {
   @override
   Widget buildWidget(BuildContext context) {
-    return HighCharts(
-      loader: const SizedBox(
-        child: LinearProgressIndicator(),
-        width: 200,
-      ),
-      size: Size(widget._controller.width.toDouble(),
-          widget._controller.height.toDouble()),
-      data: widget._controller.data,
-      scripts: const [
-        'https://code.highcharts.com/highcharts.js',
-        'https://code.highcharts.com/highcharts-more.js'
-      ],
-    );
+    return Text('High Chart is not supported in newer version of please use chartJs instead');
   }
 }
