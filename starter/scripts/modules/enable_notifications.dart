@@ -32,7 +32,9 @@ void main(List<String> arguments) {
     );
 
     // Generate Firebase configuration based on platform
-    updateFirebaseInitialization(platforms, arguments);
+    if (platforms.contains('android') || platforms.contains('ios')) {
+      updateFirebaseInitialization(platforms, arguments);
+    }
 
     // Configure Android-specific settings
     if (platforms.contains('android')) {
