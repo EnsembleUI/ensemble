@@ -140,6 +140,7 @@ dependencies:
   root_jailbreak_sniffer: ^1.0.6
   flutter_slidable: ^3.1.1
   accordion: ^2.6.0
+  session_storage: ^0.0.1
 
 dependency_overrides:
   http: ^0.13.5
