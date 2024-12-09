@@ -54,13 +54,6 @@ dependencies:
       ref: main
       path: modules/ensemble_ts_interpreter
 
-  # use our forked high_chart to fix iOS issue
-  high_chart:
-    git:
-      url: https://github.com/EnsembleUI/ensemble.git
-      ref: main
-      path: modules/high_chart
-
   event_bus: ^2.0.0
   flutter_layout_grid: ^2.0.3
   email_validator: ^2.0.1
@@ -90,7 +83,6 @@ dependencies:
   cloud_firestore: ^5.4.4
   get_storage: ^2.0.3
   flutter_html: ^3.0.0-beta.1 # flutter_html ^2.0.0 requires flutter_svg <1.0.0, conflicts with ours
-  webview_flutter: ^4.2.0
   cached_network_image: ^3.2.3
   sensors_plus: ^3.0.0
   mime: ^1.0.4
@@ -123,14 +115,12 @@ dependencies:
       url: https://github.com/EnsembleUI/table_calendar.git
       ref: master
 
+  flutter_inappwebview: ^6.1.5
   # old app_badger is unsupported so using a supported fork
   flutter_app_badger: 
     git:
       url: https://github.com/EnsembleUI/flutter_app_badger.git
       ref: master
-
-  webview_flutter_wkwebview: ^3.9.2
-  webview_flutter_android: ^3.12.0
 
   # Current pub.dev version isn't compatible with 3.24 
   receive_sharing_intent: 

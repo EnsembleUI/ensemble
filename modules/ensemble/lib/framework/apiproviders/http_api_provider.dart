@@ -73,15 +73,33 @@ class HTTPAPIProvider extends APIProvider {
     // Here it's converted to YAML already
     String? bodyPayload;
     if (api['body'] != null) {
-      try {
-        bodyPayload = json.encode(eContext.eval(api['body']));
-
-        // set Content-Type as json but don't override user's value if exists
-        if (headers['Content-Type'] == null) {
-          headers['Content-Type'] = 'application/json';
+      final contentType = headers['Content-Type']?.toLowerCase() ?? '';
+      
+      if (contentType == 'application/x-www-form-urlencoded') {
+        // For form-urlencoded, convert body to query string format
+        if (api['body'] is Map) {
+          Map<String, dynamic> formData = {};
+          (api['body'] as Map).forEach((key, value) {
+            formData[key.toString()] = eContext.eval(value)?.toString() ?? '';
+          });
+          // Convert map to x-www-form-urlencoded format
+          bodyPayload = formData.entries
+              .map((e) => 
+                '${Uri.encodeComponent(e.key)}=${Uri.encodeComponent(e.value.toString())}')
+              .join('&');
         }
-      } on FormatException catch (_, e) {
-        log("Only JSON data supported: " + e.toString());
+      } else {
+        // For JSON and other content types
+        try {
+          bodyPayload = json.encode(eContext.eval(api['body']));
+          
+          // set Content-Type as json but don't override user's value if exists
+          if (headers['Content-Type'] == null) {
+            headers['Content-Type'] = 'application/json';
+          }
+        } on FormatException catch (_, e) {
+          log("Only JSON data supported: " + e.toString());
+        }
       }
     }
 
