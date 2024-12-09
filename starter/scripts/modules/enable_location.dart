@@ -88,7 +88,9 @@ ensemble_location:
 
       if (platforms.contains('web') && googleMapsApiKeyWeb != null) {
         updateHtmlFile('</head>',
-            '<script src="https://maps.googleapis.com/maps/api/js?key=$googleMapsApiKeyWeb"></script>');
+            '<script src="https://maps.googleapis.com/maps/api/js?key=$googleMapsApiKeyWeb"></script>',
+            removalPattern:
+                r'https://maps\.googleapis\.com/maps/api/js\?key=.*');
       }
     }
 

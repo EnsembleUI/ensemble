@@ -342,19 +342,30 @@ void updateIOSPermissions(
 }
 
 // To update an HTML file with a new content before a specific marker (like </head>)
-void updateHtmlFile(String marker, String contentToAdd) {
-  // Check if the HTML file exists
+void updateHtmlFile(String marker, String contentToAdd,
+    {String? removalPattern}) {
   if (!File(webIndexFilePath).existsSync()) {
     throw Exception('Error: $webIndexFilePath not found');
   }
 
   String content = File(webIndexFilePath).readAsStringSync();
 
+  // Remove existing tag
+  if (removalPattern != null) {
+    content = removeExistingTag(content, removalPattern);
+  }
+
   if (!content.contains(contentToAdd)) {
-    // Insert the new content before the marker (e.g., </head>)
     content = content.replaceFirst(marker, '  $contentToAdd\n$marker');
     File(webIndexFilePath).writeAsStringSync(content);
   }
+}
+
+String removeExistingTag(String content, String pattern) {
+  final regex = RegExp(pattern);
+  final lines = content.split('\n');
+  final filteredLines = lines.where((line) => !regex.hasMatch(line)).toList();
+  return filteredLines.join('\n');
 }
 
 void updatePropertiesFile(String key, String value) {

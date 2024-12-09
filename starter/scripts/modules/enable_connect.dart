@@ -56,6 +56,8 @@ ensemble_connect:
       updateHtmlFile(
         '</head>',
         '<script src="https://cdn.plaid.com/link/v2/stable/link-initialize.js"></script>',
+        removalPattern:
+            r'https://cdn\.plaid\.com/link/v2/stable/link-initialize\.js',
       );
     }
 

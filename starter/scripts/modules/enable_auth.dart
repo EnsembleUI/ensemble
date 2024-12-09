@@ -63,7 +63,9 @@ ensemble_auth:
 
     if (platforms.contains('web') && webClientId.isNotEmpty) {
       updateHtmlFile('</head>',
-          '<meta name="google-signin-client_id" content="$webClientId">');
+          '<meta name="google-signin-client_id" content="$webClientId">',
+          removalPattern:
+              r'<meta name="google-signin-client_id" content=".*">');
     }
 
     print(
