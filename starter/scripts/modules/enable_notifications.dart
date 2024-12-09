@@ -26,10 +26,12 @@ void main(List<String> arguments) {
 
   try {
     // Update the ensemble_modules.dart file
-    updateEnsembleModules(
-      statements['moduleStatements'],
-      statements['useStatements'],
-    );
+    if (platforms.contains('android') || platforms.contains('ios')) {
+      updateEnsembleModules(
+        statements['moduleStatements'],
+        statements['useStatements'],
+      );
+    }
 
     // Generate Firebase configuration based on platform
     if (platforms.contains('android') || platforms.contains('ios')) {
