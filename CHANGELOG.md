@@ -15,12 +15,12 @@ Packages with breaking changes:
 
 Packages with other changes:
 
- - [`ensemble` - `v1.1.7`](#ensemble---v117)
+ - [`ensemble` - `v1.1.8`](#ensemble---v118)
  - [`ensemble_chat` - `v0.0.1+1`](#ensemble_chat---v0011)
- - [`ensemble_camera` - `v0.0.1+1`](#ensemble_camera---v0011)
- - [`ensemble_auth` - `v1.0.1`](#ensemble_auth---v101)
  - [`ensemble_location` - `v0.0.1+1`](#ensemble_location---v0011)
  - [`ensemble_contacts` - `v0.0.1+1`](#ensemble_contacts---v0011)
+ - [`ensemble_auth` - `v1.0.1`](#ensemble_auth---v101)
+ - [`ensemble_camera` - `v0.0.1+1`](#ensemble_camera---v0011)
  - [`ensemble_file_manager` - `v0.0.1+1`](#ensemble_file_manager---v0011)
  - [`ensemble_connect` - `v0.0.1+1`](#ensemble_connect---v0011)
  - [`ensemble_bluetooth` - `v0.0.1+1`](#ensemble_bluetooth---v0011)
@@ -32,10 +32,10 @@ Packages with dependency updates only:
 > Packages listed below depend on other packages in this workspace that have had changes. Their versions have been incremented to bump the minimum dependency versions of the packages they depend upon in this project.
 
  - `ensemble_chat` - `v0.0.1+1`
- - `ensemble_camera` - `v0.0.1+1`
- - `ensemble_auth` - `v1.0.1`
  - `ensemble_location` - `v0.0.1+1`
  - `ensemble_contacts` - `v0.0.1+1`
+ - `ensemble_auth` - `v1.0.1`
+ - `ensemble_camera` - `v0.0.1+1`
  - `ensemble_file_manager` - `v0.0.1+1`
  - `ensemble_connect` - `v0.0.1+1`
  - `ensemble_bluetooth` - `v0.0.1+1`
@@ -44,9 +44,9 @@ Packages with dependency updates only:
 
 ---
 
-#### `ensemble` - `v1.1.7`
+#### `ensemble` - `v1.1.8`
 
- - Removed high charts
+ - Bump "ensemble" to `1.1.8`.
 
 
 ## 2024-11-27

@@ -61,9 +61,9 @@ public final class GeneratedPluginRegistrant {
       Log.e(TAG, "Error registering plugin firebase_messaging, io.flutter.plugins.firebase.messaging.FlutterFirebaseMessagingPlugin", e);
     }
     try {
-      flutterEngine.getPlugins().add(new fr.g123k.flutterappbadger.FlutterAppBadgerPlugin());
+      flutterEngine.getPlugins().add(new fr.ppprakhar.flutterappbadger.FlutterAppBadgerPlugin());
     } catch (Exception e) {
-      Log.e(TAG, "Error registering plugin flutter_app_badger, fr.g123k.flutterappbadger.FlutterAppBadgerPlugin", e);
+      Log.e(TAG, "Error registering plugin flutter_app_badger, fr.ppprakhar.flutterappbadger.FlutterAppBadgerPlugin", e);
     }
     try {
       flutterEngine.getPlugins().add(new com.dexterous.flutterlocalnotifications.FlutterLocalNotificationsPlugin());
