@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/ensemble_widget.dart';
 import 'package:ensemble/framework/error_handling.dart';
+import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/framework/stub/ensemble_chat.dart';
 import 'package:ensemble/screen_controller.dart';
@@ -70,6 +71,16 @@ class EnsembleChatState extends EnsembleWidgetState<EnsembleChatImpl> {
         "role": MessageRole.user.name,
         "visible": visible,
       });
+
+      // Execute onMessageSend first
+      final scope = getScopeManager();
+      final newScope = scope?.createChildScope();
+      if (newScope != null && widget.controller.onMessageSend != null && mounted) {
+        newScope.dataContext.addDataContextById('message', newMessage);
+        await ScreenController().executeActionWithScope(
+            context, newScope, widget.controller.onMessageSend!);
+      }
+      
       widget.controller.isLoading.value = true;
       try {
         final response = await widget.controller.client?.complete(newMessage);
@@ -81,19 +92,21 @@ class EnsembleChatState extends EnsembleWidgetState<EnsembleChatImpl> {
       } finally {
         widget.controller.isLoading.value = false;
       }
-    }
-    final scope = getScopeManager();
-    final newScope = scope?.createChildScope();
-    if (newScope == null || widget.controller.onMessageSend == null) {
-      return;
-    }
-    newScope.dataContext.addDataContextById('message', newMessage);
-    if (!mounted) return;
+    } else {
+      final scope = getScopeManager();
+      final newScope = scope?.createChildScope();
+      if (newScope == null || widget.controller.onMessageSend == null) {
+        return;
+      }
+      newScope.dataContext.addDataContextById('message', newMessage);
+      if (!mounted) return;
 
-    ScreenController().executeActionWithScope(
-        context, newScope, widget.controller.onMessageSend!);
+      ScreenController().executeActionWithScope(
+          context, newScope, widget.controller.onMessageSend!);
+    }
+    
   }
-
+  
   void handleMessageIntent(Choice? choice) {
     switch (choice?.messageType) {
       case MessageType.message:
@@ -102,6 +115,7 @@ class EnsembleChatState extends EnsembleWidgetState<EnsembleChatImpl> {
           "role": MessageRole.assistant.name,
           "choice": choice?.toMap(),
         });
+        _dispatchMessageReceived(choice?.getMessage, MessageRole.assistant.name, choice);
         break;
 
       case MessageType.inlineWidget:
@@ -113,6 +127,7 @@ class EnsembleChatState extends EnsembleWidgetState<EnsembleChatImpl> {
           "role": MessageRole.assistant.name,
           "choice": choice?.toMap(),
         });
+        _dispatchMessageReceived(choice?.tool['function']['name'], MessageRole.assistant.name, choice);
 
       case MessageType.action:
         if (!mounted) return;
@@ -122,6 +137,7 @@ class EnsembleChatState extends EnsembleWidgetState<EnsembleChatImpl> {
           "role": MessageRole.system.name,
           "choice": choice?.toMap(),
         });
+        _dispatchMessageReceived(choice?.tool['function']['name'], MessageRole.system.name, choice);
 
         final action = EnsembleAction.from(choice?.tool['function']['tool']);
         if (action == null) return;
@@ -129,12 +145,27 @@ class EnsembleChatState extends EnsembleWidgetState<EnsembleChatImpl> {
       default:
     }
   }
+
+  void _dispatchMessageReceived(dynamic content, String role, Choice? choice) {
+    if (!mounted || widget.controller.onMessageReceived == null) return;
+    
+    ScreenController().executeAction(
+      context, 
+      widget.controller.onMessageReceived!,
+      event: EnsembleEvent(widget.controller, data: {
+        'content': content,
+        'role': role,
+        'response': choice?.toMap()
+      })
+    );
+  }
 }
 
 class EnsembleChatController extends EnsembleBoxController {
   User? user;
   dynamic initialMessage;
   EnsembleAction? onMessageSend;
+  EnsembleAction? onMessageReceived;
   ValueNotifier<List<InternalMessage>> messages = ValueNotifier([]);
 
   String? inlineWidgetKey;
@@ -219,6 +250,7 @@ class EnsembleChatController extends EnsembleBoxController {
         messages.notifyListeners();
       },
       "onMessageSend": (value) => onMessageSend = EnsembleAction.from(value),
+      "onMessageReceived": (value) => onMessageReceived = EnsembleAction.from(value),
       "inlineWidgetKey": (value) =>
           inlineWidgetKey = Utils.optionalString(value),
       "messageKey": (value) => messageKey = Utils.optionalString(value),
