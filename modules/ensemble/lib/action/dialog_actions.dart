@@ -18,13 +18,13 @@ class ShowDialogAction extends EnsembleAction {
   ShowDialogAction({
     super.initiator,
     required this.body,
-    this.dismissible,
+    required this.dismissible,
     this.options,
     this.onDialogDismiss,
   });
 
   final dynamic body;
-  final bool? dismissible;
+  final bool dismissible;
   final Map<String, dynamic>? options;
   final EnsembleAction? onDialogDismiss;
 
