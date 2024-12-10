@@ -18,11 +18,13 @@ class ShowDialogAction extends EnsembleAction {
   ShowDialogAction({
     super.initiator,
     required this.body,
+    this.dismissible = true,
     this.options,
     this.onDialogDismiss,
   });
 
   final dynamic body;
+  final bool dismissible;
   final Map<String, dynamic>? options;
   final EnsembleAction? onDialogDismiss;
 
@@ -37,6 +39,7 @@ class ShowDialogAction extends EnsembleAction {
       body: Utils.maybeYamlMap(payload['body']) ??
           Utils.maybeYamlMap(payload['widget']),
       options: Utils.getMap(payload['options']),
+      dismissible: Utils.getBool(payload['dismissible'], fallback: true),
       onDialogDismiss: payload['onDialogDismiss'] == null
           ? null
           : EnsembleAction.from(Utils.maybeYamlMap(payload['onDialogDismiss'])),
@@ -58,7 +61,7 @@ class ShowDialogAction extends EnsembleAction {
         useRootNavigator: false,
         // use inner-most MaterialApp (our App) as root so theming is ours
         context: context,
-        barrierDismissible: true,
+        barrierDismissible: dismissible,
         barrierLabel: "Barrier",
         barrierColor: Colors.black54,
         // this has some transparency so the bottom shown through
