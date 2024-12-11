@@ -54,6 +54,10 @@ ensemble_location:
     {
       'key': 'always_use_location_description',
       'value': 'NSLocationAlwaysUsageDescription',
+    },
+    {
+      'key': 'always_and_when_in_use_location_description',
+      'value': 'NSLocationAlwaysAndWhenInUseUsageDescription'
     }
   ];
 
