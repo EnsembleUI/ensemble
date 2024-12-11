@@ -52,6 +52,7 @@ export const modules = [
         parameters: [
             { key: 'in_use_location_description', question: 'Please provide a description for using location services while the app is in use: ', required: (args) => args.platform.includes('ios') },
             { key: 'always_use_location_description', question: 'Please provide a description for using location services always: ', required: (args) => args.platform.includes('ios') },
+            { key: 'always_and_when_in_use_location_description', question: 'Please provide a description for using location services always and when the app is in use: ', required: (args) => args.platform.includes('ios') },
             { key: 'google_maps', question: 'Are you enabling Google Maps? (yes/no): ', type: 'list', choices: ['yes', 'no'], required: true },
             { key: 'google_maps_api_key_ios', question: 'Please provide your Google Maps API key for iOS ', required: (args) => args.google_maps === true && args.platform.includes('ios') },
             { key: 'google_maps_api_key_android', question: 'Please provide your Google Maps API key for Android ', required: (args) => args.google_maps === true && args.platform.includes('android') },
