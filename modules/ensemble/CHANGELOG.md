@@ -1,3 +1,5 @@
+## 1.1.11
+
 ## 1.1.10
 
  - **FIX**: multiple navigator key. ([7ae53f25](https://github.com/ensembleUI/ensemble/commit/7ae53f2542790c5fe0ec616d98f7aba69f277e3b))
