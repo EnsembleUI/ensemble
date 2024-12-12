@@ -99,10 +99,38 @@ class _ChatPageState extends State<ChatPage> {
             Flexible(
               child: ListView.builder(
                 reverse: true,
-                itemCount: widget.messages.length,
+                itemCount: widget.messages.where((m) => m.visible).length +
+                    (widget.controller.isLoading.value ? 1 : 0),
                 itemBuilder: (context, index) {
-                  final effectiveIndex = widget.messages.length - 1 - index;
-                  final message = widget.messages.elementAt(effectiveIndex);
+                  if (widget.controller.isLoading.value && index == 0) {
+                    return ValueListenableBuilder<bool>(
+                      valueListenable: widget.controller.isLoading,
+                      builder: (context, isLoading, _) {
+                        if (!widget.controller.showLoading)
+                          return const SizedBox.shrink();
+
+                        return Container(
+                          margin: const EdgeInsets.symmetric(vertical: 8),
+                          child: widget.controller.loadingWidget != null
+                              ? buildWidgetForLoading(
+                                  context, widget.controller.loadingWidget)
+                              : Center(
+                                  child: Padding(
+                                  padding: const EdgeInsets.all(8.0),
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color:
+                                        Theme.of(context).colorScheme.primary,
+                                  ),
+                                )),
+                        );
+                      },
+                    );
+                  }
+                  // Adjust index for messages to account for loading indicator
+                  final visibleMessages = widget.messages.where((m) => m.visible).toList();
+                  final effectiveIndex = visibleMessages.length - 1 - (widget.controller.isLoading.value ? index - 1 : index);
+                  final message = visibleMessages[effectiveIndex];
                   return Container(
                     margin: const EdgeInsets.only(top: 8.0),
                     child: MessageWidget(
@@ -259,6 +287,18 @@ class MessageWidget extends StatelessWidget {
             ),
     );
   }
+}
+
+Widget? buildWidgetForLoading(BuildContext context, dynamic widgetDefinition) {
+  if (widgetDefinition is! Map || widgetDefinition.isEmpty) return null;
+  try {
+    ScopeManager? parentScope = DataScopeWidget.getScope(context);
+    final widget = parentScope?.buildWidgetFromDefinition(widgetDefinition);
+    return widget;
+  } on Exception catch (e) {
+    print("EnsembleChat: error while buidling loading widget:\n$e");
+  }
+  return null;
 }
 
 Widget? buildWidgetsFromTemplate(
