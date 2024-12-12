@@ -161,7 +161,7 @@ class EnsembleModules {
 
     if (enableChat) {
       // Uncomment to enable ensemble chat
-      // GetIt.I.registerSingleton<EnsembleChat>(EnsembleChatImpl());
+      // GetIt.I.registerSingleton<EnsembleChat>(EnsembleChatImpl.build(null));
     } else {
       GetIt.I.registerSingleton<EnsembleChat>(const EnsembleChatStub());
     }
@@ -187,8 +187,7 @@ class EnsembleModules {
     }
 
     if (useBluetooth) {
-
-    //GetIt.I.registerSingleton<BluetoothManager>(BluetoothManagerImpl());
+      //GetIt.I.registerSingleton<BluetoothManager>(BluetoothManagerImpl());
     } else {
       GetIt.I.registerSingleton<BluetoothManager>(BluetoothManagerStub());
     }

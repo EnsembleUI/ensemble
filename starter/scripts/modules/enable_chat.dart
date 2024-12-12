@@ -9,7 +9,7 @@ void main(List<String> arguments) async {
   final statements = {
     'moduleStatements': [
       "import 'package:ensemble_chat/ensemble_chat.dart';",
-      'GetIt.I.registerSingleton<EnsembleChat>(EnsembleChatImpl());',
+      'GetIt.I.registerSingleton<EnsembleChat>(EnsembleChatImpl.build(null));',
     ],
     'useStatements': [
       'static const enableChat = true;',
