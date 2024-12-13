@@ -80,7 +80,7 @@ const checkAndAskForMissingArgs = async (modules, argsArray) => {
     Object.assign(args, moduleAnswers);
 
     return argsArray.concat(
-        ...Object.entries({ ...commonAnswers, ...moduleAnswers }).map(([key, value]) => `${key}=${value}`)
+        ...Object.entries({ ...commonAnswers, ...moduleAnswers }).map(([key, value]) => `${key}="${value}"`)
     );
 };
 
