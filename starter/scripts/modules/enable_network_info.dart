@@ -76,6 +76,7 @@ ensemble_network_info:
         {'PreciseLocation': preciseLocationDescription},
         isDict: true,
       );
+      updateRunnerEntitlements(module: 'networkInfo');
     }
 
     print(

@@ -467,6 +467,17 @@ $deeplinkEntries
       print(
           'No <key>aps-environment</key> block found in Runner.entitlements.');
     }
+  } else if (module == 'networkInfo') {
+    if (!entitlementsContent.contains(
+        '<key>com.apple.security.personal-information.location</key>')) {
+      entitlementsContent = entitlementsContent.replaceFirst('</dict>', '''
+    <key>com.apple.security.personal-information.location</key>
+    <true/>
+    <key>com.apple.developer.networking.wifi-info</key>
+    <true/>
+</dict>''');
+      entitlementsFile.writeAsStringSync(entitlementsContent);
+    }
   }
 }
 
