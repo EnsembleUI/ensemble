@@ -13,7 +13,7 @@ const parseArguments = (args) => {
 
     args.forEach(arg => {
         if (arg.includes('=')) {
-            argsArray.push(arg);
+            argsArray.push(`"${arg}"`);
         } else {
             scripts.push(arg);
         }
@@ -31,6 +31,10 @@ const generateArgsForScript = (scriptObj, argsArray) => {
 
     return argsArray
         .filter(arg => allowedKeys.has(arg.split('=')[0]))
+        .map(arg => {
+            const [key, value] = arg.split('=');
+            return `${key}="${value}"`;
+        })
         .join(' ');
 };
 
