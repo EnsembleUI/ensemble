@@ -13,7 +13,10 @@ const parseArguments = (args) => {
 
     args.forEach(arg => {
         if (arg.includes('=')) {
-            argsArray.push(`"${arg}"`);
+            const index = arg.indexOf('=');
+            const key = arg.slice(0, index);
+            const value = arg.slice(index + 1).replace(/"/g, '\\"'); // Escape any existing quotes in value
+            argsArray.push(`${key}="${value}"`);
         } else {
             scripts.push(arg);
         }
@@ -68,7 +71,12 @@ const askForMissingArgs = async (params, args, providedArgs, isCI) => {
 // Check for missing arguments and ask for them
 const checkAndAskForMissingArgs = async (modules, argsArray) => {
     const providedArgs = argsArray.map(arg => arg.split('=')[0]);
-    let args = Object.fromEntries(argsArray.map(arg => arg.split('=')));
+    let args = Object.fromEntries(argsArray.map(arg => {
+        const index = arg.indexOf('=');
+        const key = arg.slice(0, index);
+        const value = arg.slice(index + 1).replace(/"/g, '');
+        return [key, value];
+    }));
 
     const isCI = process.env.CI === 'true';
 
