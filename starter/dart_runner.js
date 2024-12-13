@@ -31,10 +31,6 @@ const generateArgsForScript = (scriptObj, argsArray) => {
 
     return argsArray
         .filter(arg => allowedKeys.has(arg.split('=')[0]))
-        .map(arg => {
-            const [key, value] = arg.split('=');
-            return `${key}="${value}"`;
-        })
         .join(' ');
 };
 
