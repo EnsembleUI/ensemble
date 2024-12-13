@@ -256,8 +256,7 @@ abstract class WidgetController extends Controller with HasStyles {
       'flex': (value) => flex = Utils.optionalInt(value, min: 1),
       'expanded': (value) => expanded = Utils.getBool(value, fallback: false),
       'visible': (value) => visible = Utils.getBool(value, fallback: true),
-      'opacity': (value) =>
-          opacity = Utils.optionalDouble(value, min: 0, max: 100),
+      'opacity': (value) => opacity = Utils.getValidOpacity(value),
       'visibilityTransitionDuration': (value) =>
           visibilityTransitionDuration = Utils.getDuration(value),
       'elevation': (value) =>
@@ -478,8 +477,7 @@ abstract class EnsembleWidgetController extends EnsembleController
       'flexMode': (value) => flexMode = FlexMode.values.from(value),
       'flex': (value) => flex = Utils.optionalInt(value, min: 1),
       'visible': (value) => visible = Utils.getBool(value, fallback: true),
-      'opacity': (value) =>
-          opacity = Utils.optionalDouble(value, min: 0, max: 100),
+      'opacity': (value) => opacity = Utils.getValidOpacity(value),
       'visibilityTransitionDuration': (value) =>
           visibilityTransitionDuration = Utils.getDuration(value),
       'textDirection': (value) => textDirection = Utils.getTextDirection(value),
