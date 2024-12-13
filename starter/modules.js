@@ -116,11 +116,12 @@ export const modules = [
         path: 'scripts/modules/enable_network_info.dart',
         parameters: [
             { key: 'in_use_location_description', question: 'Please provide a description for using location services while accessing network info: ', required: (args) => args.platform.includes('ios') },
-            { key: 'always_location_description', question: 'Please provide a description for always using location services for network info: ', required: (args) => args.platform.includes('ios') }
+            { key: 'always_location_description', question: 'Please provide a description for always using location services for network info: ', required: (args) => args.platform.includes('ios') },
+            { key: 'precise_location_description', question: 'Please provide a description for using precise location services for network info: ', required: (args) => args.platform.includes('ios') }
         ]
     },
     {
-        name: 'chat',  
+        name: 'chat',
         path: 'scripts/modules/enable_chat.dart',
         parameters: [] // Chat is a UI widget without special parameters needed
     },

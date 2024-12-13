@@ -5,6 +5,14 @@ import '../utils.dart';
 void main(List<String> arguments) async {
   List<String> platforms = getPlatforms(arguments);
   String? ensembleVersion = getArgumentValue(arguments, 'ensemble_version');
+  String? preciseLocationDescription =
+      getArgumentValue(arguments, 'precise_location_description');
+
+  if (preciseLocationDescription == null ||
+      preciseLocationDescription.isEmpty) {
+    print("Error: Precise location description is missing.");
+    exit(1);
+  }
 
   final statements = {
     'moduleStatements': [
@@ -42,7 +50,7 @@ ensemble_network_info:
     {
       'key': 'always_location_description',
       'value': 'NSLocationAlwaysAndWhenInUseUsageDescription',
-    }
+    },
   ];
 
   try {
@@ -63,6 +71,11 @@ ensemble_network_info:
     // Add required permissions to Info.plist
     if (platforms.contains('ios')) {
       updateIOSPermissions(iOSPermissions, arguments);
+      addPermissionDescriptionToInfoPlist(
+        'NSLocationTemporaryUsageDescriptionDictionary',
+        {'PreciseLocation': preciseLocationDescription},
+        isDict: true,
+      );
     }
 
     print(
