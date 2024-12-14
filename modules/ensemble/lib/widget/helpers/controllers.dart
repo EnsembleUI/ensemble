@@ -105,7 +105,8 @@ class TextStyleComposite extends WidgetCompositeProperty {
         backgroundColor = styleWithFontFamily?.backgroundColor,
         decoration = styleWithFontFamily?.decoration,
         decorationStyle = styleWithFontFamily?.decorationStyle,
-        decorationColor = styleWithFontFamily?.decorationColor ?? styleWithFontFamily?.color,
+        decorationColor =
+            styleWithFontFamily?.decorationColor ?? styleWithFontFamily?.color,
         decorationThickness = styleWithFontFamily?.decorationThickness,
         overflow = styleWithFontFamily?.overflow,
         letterSpacing = styleWithFontFamily?.letterSpacing,
@@ -161,7 +162,8 @@ class TextStyleComposite extends WidgetCompositeProperty {
       'decorationStyle': (value) =>
           decorationStyle = TextDecorationStyle.values.from(value),
       'decorationColor': (value) => decorationColor = Utils.getColor(value),
-      'decorationThickness': (value) => decorationThickness = Utils.optionalDouble(value),
+      'decorationThickness': (value) =>
+          decorationThickness = Utils.optionalDouble(value),
       'overflow': (value) => overflow = TextOverflow.values.from(value),
       'letterSpacing': (value) => letterSpacing = Utils.optionalDouble(value),
       'wordSpacing': (value) => wordSpacing = Utils.optionalDouble(value),
@@ -200,6 +202,8 @@ abstract class WidgetController extends Controller with HasStyles {
   bool? visible;
   Duration? visibilityTransitionDuration; // in seconds
 
+  double? opacity;
+
   TextDirection? textDirection;
 
   int? elevation;
@@ -236,6 +240,7 @@ abstract class WidgetController extends Controller with HasStyles {
     return {
       'expanded': () => expanded,
       'visible': () => visible != false,
+      'opacity': () => opacity,
       'className': () => className,
       'classList': () => classList,
       'testId': () => testId,
@@ -251,6 +256,7 @@ abstract class WidgetController extends Controller with HasStyles {
       'flex': (value) => flex = Utils.optionalInt(value, min: 1),
       'expanded': (value) => expanded = Utils.getBool(value, fallback: false),
       'visible': (value) => visible = Utils.getBool(value, fallback: true),
+      'opacity': (value) => opacity = Utils.getValidOpacity(value),
       'visibilityTransitionDuration': (value) =>
           visibilityTransitionDuration = Utils.getDuration(value),
       'elevation': (value) =>
@@ -421,6 +427,8 @@ abstract class EnsembleWidgetController extends EnsembleController
   bool? visible;
   Duration? visibilityTransitionDuration; // in seconds
 
+  double? opacity;
+
   TextDirection? textDirection;
 
   int? elevation;
@@ -454,6 +462,7 @@ abstract class EnsembleWidgetController extends EnsembleController
   Map<String, Function> getters() {
     return {
       'visible': () => visible != false,
+      'opacity': () => opacity,
       'className': () => className,
       'classList': () => classList,
       'testId': () => testId,
@@ -468,6 +477,7 @@ abstract class EnsembleWidgetController extends EnsembleController
       'flexMode': (value) => flexMode = FlexMode.values.from(value),
       'flex': (value) => flex = Utils.optionalInt(value, min: 1),
       'visible': (value) => visible = Utils.getBool(value, fallback: true),
+      'opacity': (value) => opacity = Utils.getValidOpacity(value),
       'visibilityTransitionDuration': (value) =>
           visibilityTransitionDuration = Utils.getDuration(value),
       'textDirection': (value) => textDirection = Utils.getTextDirection(value),
