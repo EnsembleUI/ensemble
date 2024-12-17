@@ -6,7 +6,7 @@ void main(List<String> arguments) async {
   List<String> platforms = getPlatforms(arguments);
   String? ensembleVersion = getArgumentValue(arguments, 'ensemble_version');
   String? preciseLocationDescription =
-      getArgumentValue(arguments, 'precise_location_description');
+      getArgumentValue(arguments, 'preciseLocationDescription');
 
   if (preciseLocationDescription == null ||
       preciseLocationDescription.isEmpty) {
@@ -44,11 +44,11 @@ ensemble_network_info:
 
   final iOSPermissions = [
     {
-      'key': 'in_use_location_description',
+      'key': 'inUseLocationDescription',
       'value': 'NSLocationWhenInUseUsageDescription',
     },
     {
-      'key': 'always_location_description',
+      'key': 'alwaysUseLocationDescription',
       'value': 'NSLocationAlwaysAndWhenInUseUsageDescription',
     },
   ];

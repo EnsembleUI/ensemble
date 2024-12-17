@@ -5,14 +5,14 @@ void main(List<String> arguments) async {
   List<String> platforms = getPlatforms(arguments);
 
   String? googleMapsApiKeyAndroid = getArgumentValue(
-      arguments, 'google_maps_api_key_android',
+      arguments, 'androidGoogleMapsApiKey',
       required: platforms.contains('android'));
   String? googleMapsApiKeyIOS = getArgumentValue(
-      arguments, 'google_maps_api_key_ios',
+      arguments, 'iOSGoogleMapsApiKey',
       required: platforms.contains('ios'));
   String? googleMapsApiKeyWeb = getArgumentValue(
     arguments,
-    'google_maps_api_key_web',
+    'webGoogleMapsApiKey',
     required: platforms.contains('web'),
   );
 

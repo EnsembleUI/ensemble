@@ -7,20 +7,23 @@ void main(List<String> arguments) async {
   String? ensembleVersion = getArgumentValue(arguments, 'ensemble_version');
 
   String? branchIOLiveKey =
-      getArgumentValue(arguments, 'branch_live_key', required: true);
+      getArgumentValue(arguments, 'branchIOLiveKey', required: true);
   String? branchIOTestKey =
-      getArgumentValue(arguments, 'branch_test_key', required: true);
+      getArgumentValue(arguments, 'branchIOTestKey', required: true);
   bool useTestKey =
-      getArgumentValue(arguments, 'use_test_key')?.toLowerCase() == 'true';
-  String? scheme = getArgumentValue(arguments, 'scheme', required: true);
-  List<String> links = getArgumentValue(arguments, 'links')?.split(',') ?? [];
+      getArgumentValue(arguments, 'branchIOUseTestKey')?.toLowerCase() ==
+          'true';
+  String? scheme =
+      getArgumentValue(arguments, 'branchIOScheme', required: true);
+  List<String> links =
+      getArgumentValue(arguments, 'branchIOLinks')?.split(',') ?? [];
 
   if (branchIOLiveKey == null ||
       branchIOLiveKey.isEmpty ||
       branchIOTestKey == null ||
       branchIOTestKey.isEmpty) {
     print(
-        'Error: Missing branch_live_key argument. Usage: npm run useDeeplink branch_live_key=<branch_live_key> branch_test_key=<branch_test_key> use_test_key=<true|false> scheme=<scheme> links=<link1,link2>');
+        'Error: Missing branchIOLiveKey argument. Usage: npm run useDeeplink branchIOLiveKey=<branchIOLiveKey> branchIOTestKey=<branchIOTestKey> branchIOUseTestKey=<true|false> branchIOScheme=<branchIOScheme> branchIOLinks=<link1,link2>');
     exit(1);
   }
 

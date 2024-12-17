@@ -42,11 +42,11 @@ ensemble_bluetooth:
 
   final iOSPermissions = [
     {
-      'key': 'bluetooth_description',
+      'key': 'bluetoothDescription',
       'value': 'NSBluetoothAlwaysUsageDescription',
     },
     {
-      'key': 'bluetooth_peripheral_description',
+      'key': 'bluetoothPeripheralDescription',
       'value': 'NSBluetoothPeripheralUsageDescription',
     }
   ];

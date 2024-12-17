@@ -34,15 +34,15 @@ ensemble_location:
 
   final iOSPermissions = [
     {
-      'key': 'in_use_location_description',
+      'key': 'inUseLocationDescription',
       'value': 'NSLocationWhenInUseUsageDescription',
     },
     {
-      'key': 'always_use_location_description',
+      'key': 'alwaysUseLocationDescription',
       'value': 'NSLocationAlwaysUsageDescription',
     },
     {
-      'key': 'always_and_when_in_use_location_description',
+      'key': 'locationDescription',
       'value': 'NSLocationAlwaysAndWhenInUseUsageDescription'
     }
   ];

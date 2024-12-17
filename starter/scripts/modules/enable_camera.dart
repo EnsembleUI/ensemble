@@ -31,7 +31,7 @@ ensemble_camera:
 
   final iOSPermissions = [
     {
-      'key': 'camera_description',
+      'key': 'cameraDescription',
       'value': 'NSCameraUsageDescription',
     }
   ];

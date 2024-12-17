@@ -6,40 +6,40 @@ void updateFirebaseInitialization(
     List<String> platforms, List<String> arguments,
     {bool firebaseAnalytics = false}) {
   // Get Firebase configuration values
-  String? androidApiKey = getArgumentValue(arguments, 'android_api_key',
+  String? androidApiKey = getArgumentValue(arguments, 'android_apiKey',
       required: platforms.contains('android'));
-  String? androidAppId = getArgumentValue(arguments, 'android_app_id',
+  String? androidAppId = getArgumentValue(arguments, 'android_appId',
       required: platforms.contains('android'));
   String? androidMessagingSenderId = getArgumentValue(
-      arguments, 'android_messaging_sender_id',
+      arguments, 'android_messagingSenderId',
       required: platforms.contains('android'));
-  String? androidProjectId = getArgumentValue(arguments, 'android_project_id',
+  String? androidProjectId = getArgumentValue(arguments, 'android_projectId',
       required: platforms.contains('android'));
 
-  String? iosApiKey = getArgumentValue(arguments, 'ios_api_key',
+  String? iosApiKey = getArgumentValue(arguments, 'ios_apiKey',
       required: platforms.contains('ios'));
-  String? iosAppId = getArgumentValue(arguments, 'ios_app_id',
+  String? iosAppId = getArgumentValue(arguments, 'ios_appId',
       required: platforms.contains('ios'));
   String? iosMessagingSenderId = getArgumentValue(
-      arguments, 'ios_messaging_sender_id',
+      arguments, 'ios_messagingSenderId',
       required: platforms.contains('ios'));
-  String? iosProjectId = getArgumentValue(arguments, 'ios_project_id',
+  String? iosProjectId = getArgumentValue(arguments, 'ios_projectId',
       required: platforms.contains('ios'));
 
-  String? webApiKey = getArgumentValue(arguments, 'web_api_key',
+  String? webApiKey = getArgumentValue(arguments, 'web_apiKey',
       required: platforms.contains('web'));
-  String? webAppId = getArgumentValue(arguments, 'web_app_id',
+  String? webAppId = getArgumentValue(arguments, 'web_appId',
       required: platforms.contains('web'));
-  String? webAuthDomain = getArgumentValue(arguments, 'web_auth_domain',
+  String? webAuthDomain = getArgumentValue(arguments, 'web_authDomain',
       required: platforms.contains('web'));
   String? webMessagingSenderId = getArgumentValue(
-      arguments, 'web_messaging_sender_id',
+      arguments, 'web_messagingSenderId',
       required: platforms.contains('web'));
-  String? webProjectId = getArgumentValue(arguments, 'web_project_id',
+  String? webProjectId = getArgumentValue(arguments, 'web_projectId',
       required: platforms.contains('web'));
-  String? webStorageBucket = getArgumentValue(arguments, 'web_storage_bucket',
+  String? webStorageBucket = getArgumentValue(arguments, 'web_storageBucket',
       required: platforms.contains('web'));
-  String? webMeasurementId = getArgumentValue(arguments, 'web_measurement_id',
+  String? webMeasurementId = getArgumentValue(arguments, 'web_measurementId',
       required: platforms.contains('web'));
 
   if (firebaseAnalytics) {
@@ -124,7 +124,7 @@ void uncommentFirebaseAnalyticsConfig(
     }
 
     String enableConsoleLogs =
-        getArgumentValue(arguments, 'enable_console_logs') ?? 'true';
+        getArgumentValue(arguments, 'enableConsoleLogs') ?? 'true';
 
     String content = file.readAsStringSync();
 

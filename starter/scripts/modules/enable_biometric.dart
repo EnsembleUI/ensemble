@@ -11,7 +11,7 @@ void main(List<String> arguments) async {
 
   final iOSPermissions = [
     {
-      'key': 'face_id_description',
+      'key': 'faceIdDescription',
       'value': 'NSFaceIDUsageDescription',
     }
   ];

@@ -6,17 +6,17 @@ void main(List<String> arguments) async {
   List<String> platforms = getPlatforms(arguments);
 
   // Extract client ID values from the arguments
-  String iOSClientId = getArgumentValue(arguments, 'ios_client_id',
+  String iOSClientId = getArgumentValue(arguments, 'googleIOSClientId',
           required: platforms.contains('ios')) ??
       '';
-  String androidClientId = getArgumentValue(arguments, 'android_client_id',
+  String androidClientId = getArgumentValue(arguments, 'googleAndroidClientId',
           required: platforms.contains('android')) ??
       '';
-  String webClientId = getArgumentValue(arguments, 'web_client_id',
+  String webClientId = getArgumentValue(arguments, 'googleWebClientId',
           required: platforms.contains('web')) ??
       '';
   String serverClientId =
-      getArgumentValue(arguments, 'server_client_id', required: true) ?? '';
+      getArgumentValue(arguments, 'googleServerClientId', required: true) ?? '';
 
   String? ensembleVersion = getArgumentValue(arguments, 'ensemble_version');
 
@@ -56,7 +56,7 @@ ensemble_auth:
     // Update the auth module configuration in ensemble-config.yaml
     updateAuthConfig(iOSClientId, androidClientId, webClientId, serverClientId);
 
-    // Update the iOS Info.plist with the ios_client_id
+    // Update the iOS Info.plist
     if (platforms.contains('ios')) {
       updateInfoPlist(iOSClientId);
     }
