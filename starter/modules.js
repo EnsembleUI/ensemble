@@ -116,7 +116,7 @@ export const modules = [
         ]
     },
     {
-        name: 'chat',
+        name: 'ai_chat',
         path: 'scripts/modules/enable_chat.dart',
         parameters: []
     },
