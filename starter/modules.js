@@ -20,12 +20,11 @@ export const modules = [
         name: 'camera',
         path: 'scripts/modules/enable_camera.dart',
         parameters: [
-            { key: 'qrcode_enabled', question: 'Do you want to enable QR code scanning? (yes/no): ', type: 'list', choices: ['yes', 'no'], required: true },
             { key: 'camera_description', question: 'Please provide a camera usage description for iOS: ', required: (args) => args.platform.includes('ios') }
         ]
     },
     {
-        name: 'files',
+        name: 'file_manager',
         path: 'scripts/modules/enable_files.dart',
         parameters: [
             { key: 'photo_library_description', question: 'Please provide a description for accessing the photo library: ', required: (args) => args.platform.includes('ios') },
@@ -40,7 +39,7 @@ export const modules = [
         ]
     },
     {
-        name: 'connect',
+        name: 'plaid_connect',
         path: 'scripts/modules/enable_connect.dart',
         parameters: [
             { key: 'camera_description', question: 'Please provide a camera usage description: ', required: (args) => args.platform.includes('ios') }
@@ -53,10 +52,6 @@ export const modules = [
             { key: 'in_use_location_description', question: 'Please provide a description for using location services while the app is in use: ', required: (args) => args.platform.includes('ios') },
             { key: 'always_use_location_description', question: 'Please provide a description for using location services always: ', required: (args) => args.platform.includes('ios') },
             { key: 'always_and_when_in_use_location_description', question: 'Please provide a description for using location services always and when the app is in use: ', required: (args) => args.platform.includes('ios') },
-            { key: 'google_maps', question: 'Are you enabling Google Maps? (yes/no): ', type: 'list', choices: ['yes', 'no'], required: true },
-            { key: 'google_maps_api_key_ios', question: 'Please provide your Google Maps API key for iOS ', required: (args) => args.google_maps === true && args.platform.includes('ios') },
-            { key: 'google_maps_api_key_android', question: 'Please provide your Google Maps API key for Android ', required: (args) => args.google_maps === true && args.platform.includes('android') },
-            { key: 'google_maps_api_key_web', question: 'Please provide your Google Maps API key for Web ', required: (args) => args.google_maps === true && args.platform.includes('web') }
         ]
     },
     {
@@ -71,7 +66,7 @@ export const modules = [
         ]
     },
     {
-        name: 'firebaseAnalytics',
+        name: 'firebase_analytics',
         path: 'scripts/modules/enable_firebase_analytics.dart',
         parameters: [
             { key: 'android_api_key', question: 'Please provide your Firebase Android API key: ', required: (args) => args.platform.includes('android') },
@@ -93,7 +88,7 @@ export const modules = [
         ]
     },
     {
-        name: 'notifications',
+        name: 'notification',
         path: 'scripts/modules/enable_notifications.dart',
         parameters: [
             { key: 'android_api_key', question: 'Please provide your Firebase Android API key: ', required: (args) => args.platform.includes('android') },
@@ -109,10 +104,10 @@ export const modules = [
     {
         name: 'bracket',
         path: 'scripts/modules/enable_bracket.dart',
-        parameters: []  // Bracket doesn't need any special parameters
+        parameters: []
     },
     {
-        name: 'networkInfo',
+        name: 'network_info',
         path: 'scripts/modules/enable_network_info.dart',
         parameters: [
             { key: 'in_use_location_description', question: 'Please provide a description for using location services while accessing network info: ', required: (args) => args.platform.includes('ios') },
@@ -123,7 +118,7 @@ export const modules = [
     {
         name: 'chat',
         path: 'scripts/modules/enable_chat.dart',
-        parameters: [] // Chat is a UI widget without special parameters needed
+        parameters: []
     },
     {
         name: 'auth',
@@ -148,6 +143,20 @@ export const modules = [
         path: 'scripts/modules/enable_biometric.dart',
         parameters: [
             { key: 'face_id_description', question: 'Please provide a description for Face ID usage (iOS): ', required: (args) => args.platform.includes('ios') }
+        ]
+    },
+    {
+        name: 'qr_code',
+        path: 'scripts/modules/enable_qr_code.dart',
+        parameters: []
+    },
+    {
+        name: 'google_maps',
+        path: 'scripts/modules/enable_google_maps.dart',
+        parameters: [
+            { key: 'google_maps_api_key_ios', question: 'Please provide your Google Maps API key for iOS ', required: (args) => args.platform.includes('ios') },
+            { key: 'google_maps_api_key_android', question: 'Please provide your Google Maps API key for Android ', required: (args) => args.platform.includes('android') },
+            { key: 'google_maps_api_key_web', question: 'Please provide your Google Maps API key for Web ', required: (args) => args.platform.includes('web') }
         ]
     }
 ];

@@ -5,20 +5,6 @@ void main(List<String> arguments) async {
   List<String> platforms = getPlatforms(arguments);
   String? ensembleVersion = getArgumentValue(arguments, 'ensemble_version');
 
-  bool? hasGoogleMaps =
-      getArgumentValue(arguments, 'google_maps')?.toLowerCase() == 'true';
-  String? googleMapsApiKeyAndroid = getArgumentValue(
-      arguments, 'google_maps_api_key_android',
-      required: hasGoogleMaps && platforms.contains('android'));
-  String? googleMapsApiKeyIOS = getArgumentValue(
-      arguments, 'google_maps_api_key_ios',
-      required: hasGoogleMaps && platforms.contains('ios'));
-  String? googleMapsApiKeyWeb = getArgumentValue(
-    arguments,
-    'google_maps_api_key_web',
-    required: hasGoogleMaps && platforms.contains('web'),
-  );
-
   final statements = {
     'moduleStatements': [
       "import 'package:ensemble_location/location_module.dart';",
@@ -79,23 +65,6 @@ ensemble_location:
     // Add the location usage description to the iOS Info.plist file
     if (platforms.contains('ios')) {
       updateIOSPermissions(iOSPermissions, arguments);
-    }
-
-    // Update Google Maps API key if available
-    if (hasGoogleMaps == true) {
-      if (platforms.contains('android') && googleMapsApiKeyAndroid != null) {
-        updatePropertiesFile('googleMapsAPIKey', googleMapsApiKeyAndroid);
-      }
-      if (platforms.contains('ios') && googleMapsApiKeyIOS != null) {
-        updateAppDelegateForGoogleMaps(googleMapsApiKeyIOS);
-      }
-
-      if (platforms.contains('web') && googleMapsApiKeyWeb != null) {
-        updateHtmlFile('</head>',
-            '<script src="https://maps.googleapis.com/maps/api/js?key=$googleMapsApiKeyWeb"></script>',
-            removalPattern:
-                r'https://maps\.googleapis\.com/maps/api/js\?key=.*');
-      }
     }
 
     print(

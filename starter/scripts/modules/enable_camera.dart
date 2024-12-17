@@ -4,19 +4,12 @@ import '../utils.dart';
 
 Future<void> main(List<String> arguments) async {
   List<String> platforms = getPlatforms(arguments);
-  String qrCodeScannerEnabled =
-      getArgumentValue(arguments, 'qrcode_enabled') ?? 'true';
   String? ensembleVersion = getArgumentValue(arguments, 'ensemble_version');
 
   final cameraStatements = {
     'moduleStatements': [
       "import 'package:ensemble_camera/camera_manager.dart';",
       "GetIt.I.registerSingleton<CameraManager>(CameraManagerImpl());",
-      if (qrCodeScannerEnabled == 'true') ...[
-        "import 'package:ensemble_camera/qr_code_scanner.dart';",
-        "GetIt.I.registerSingleton<EnsembleQRCodeScanner>(",
-        "     EnsembleQRCodeScannerImpl.build(EnsembleQRCodeScannerController()));",
-      ],
     ],
     'useStatements': [
       'static const useCamera = true;',
