@@ -98,7 +98,13 @@ export const modules = [
             { key: 'ios_apiKey', question: 'Please provide your Firebase iOS API key: ', required: (args) => args.platform.includes('ios') },
             { key: 'ios_appId', question: 'Please provide your Firebase iOS App ID: ', required: (args) => args.platform.includes('ios') },
             { key: 'ios_messagingSenderId', question: 'Please provide your Firebase iOS Messaging Sender ID: ', required: (args) => args.platform.includes('ios') },
-            { key: 'ios_projectId', question: 'Please provide your Firebase iOS Project ID: ', required: (args) => args.platform.includes('ios') }
+            { key: 'ios_projectId', question: 'Please provide your Firebase iOS Project ID: ', required: (args) => args.platform.includes('ios') },
+            { key: 'web_apiKey', question: 'Please provide your Firebase Web API key: ', required: (args) => args.platform.includes('web') },
+            { key: 'web_appId', question: 'Please provide your Firebase Web App ID: ', required: (args) => args.platform.includes('web') },
+            { key: 'web_authDomain', question: 'Please provide your Firebase Web Auth Domain: ', required: (args) => args.platform.includes('web') },
+            { key: 'web_messagingSenderId', question: 'Please provide your Firebase Web Messaging Sender ID: ', required: (args) => args.platform.includes('web') },
+            { key: 'web_projectId', question: 'Please provide your Firebase Web Project ID: ', required: (args) => args.platform.includes('web') },
+            { key: 'web_storageBucket', question: 'Please provide your Firebase Web Storage Bucket: ', required: (args) => args.platform.includes('web') },
         ]
     },
     {
