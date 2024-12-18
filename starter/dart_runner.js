@@ -3,8 +3,13 @@ import inquirer from 'inquirer';
 import { modules, scripts, commonParameters } from './modules.js';
 
 // Find the script object by name
-const findScript = (name) =>
-    scripts.find(script => script.name === name) || modules.find(module => module.name === name);
+const findScript = (name) => {
+    const script = scripts.find(script => script.name === name) || modules.find(module => module.name === name);
+    if (!script) {
+        throw new Error(`Script/module "${name}" not found.`);
+    }
+    return script;
+};
 
 // Parse arguments into script names and key-value pairs
 const parseArguments = (args) => {
@@ -15,7 +20,7 @@ const parseArguments = (args) => {
         if (arg.includes('=')) {
             const index = arg.indexOf('=');
             const key = arg.slice(0, index);
-            const value = arg.slice(index + 1).replace(/"/g, '\\"'); // Escape any existing quotes in value
+            const value = arg.slice(index + 1).replace(/"/g, '\\"');
             argsArray.push(`${key}="${value}"`);
         } else {
             scripts.push(arg);
