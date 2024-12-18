@@ -11,7 +11,7 @@
   "scripts": {
     "enable": "node dart_runner.js enable",
     "useCamera": "node dart_runner.js camera",
-    "useFiles": "node dart_runner.js files",
+    "useFiles": "node dart_runner.js file_manager",
     "useContacts": "node dart_runner.js contacts",
     "useConnect": "node dart_runner.js plaid_connect",
     "useLocation": "node dart_runner.js location",
@@ -20,7 +20,7 @@
     "useNotifications": "node dart_runner.js notification",
     "useBracket": "node dart_runner.js bracket",
     "useNetworkInfo": "node dart_runner.js network_info",
-    "useChat": "node dart_runner.js chat",
+    "useChat": "node dart_runner.js ai_chat",
     "useAuth": "node dart_runner.js auth",
     "useBluetooth": "node dart_runner.js bluetooth",
     "useBiometric": "node dart_runner.js biometric",

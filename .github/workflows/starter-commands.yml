@@ -29,13 +29,21 @@ jobs:
         run: npm install
 
       - name: Run useCamera command
-        run: npm run useCamera platform="ios,android" camera_description="Hello world" qrcode_enabled=false
+        run: npm run useCamera platform="ios,android" cameraDescription="Hello world"
         continue-on-error: false
 
       - name: Run useFiles command
-        run: npm run useFiles platform="ios,android" photo_library_description="Hello" music_description="world"
+        run: npm run useFiles platform="ios,android" photoLibraryDescription="Hello" musicDescription="world"
         continue-on-error: false
 
       - name: Run useContacts command
-        run: npm run useContacts contacts_description="Hello world" platform="ios,android"
+        run: npm run useContacts contactsDescription="Hello world" platform="ios,android"
+        continue-on-error: false
+      
+      - name: Run useConnect command
+        run: npm run useConnect platform="ios,android" cameraDescription="Hello world" contactsDescription="Hello world"
+        continue-on-error: false
+      
+      - name: Run useLocation command
+        run: npm run useLocation platform="ios,android" locationDescription="Hello world" alwaysUseLocationDescription="Hello world" inUseLocationDescription="Hello world"
         continue-on-error: false
