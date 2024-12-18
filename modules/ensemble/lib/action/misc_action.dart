@@ -57,11 +57,11 @@ class CopyToClipboardAction extends EnsembleAction {
   }
 }
 
+/// Share text and files (an optionally a title) to external Apps
 class ShareAction extends EnsembleAction {
   ShareAction(this._text, {String? title, dynamic files})
       : _title = title,
         _files = files;
-
   String? _title;
   dynamic _text;
   dynamic _files;
@@ -84,11 +84,9 @@ class ShareAction extends EnsembleAction {
   Future execute(BuildContext context, ScopeManager scopeManager) async {
     final box = context.findRenderObject() as RenderBox?;
     final sharePositionOrigin = box!.localToGlobal(Offset.zero) & box.size;
-
     final evaluatedText = scopeManager.dataContext.eval(_text);
     final evaluatedTitle =
         Utils.optionalString(scopeManager.dataContext.eval(_title));
-
     List<XFile>? xFiles;
     if (_files != null) {
       final evaluatedFiles = scopeManager.dataContext.eval(_files);
