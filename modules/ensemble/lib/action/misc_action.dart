@@ -57,29 +57,79 @@ class CopyToClipboardAction extends EnsembleAction {
   }
 }
 
-/// Share a text (an optionally a title) to external Apps
 class ShareAction extends EnsembleAction {
-  ShareAction(this._text, {String? title}) : _title = title;
+  ShareAction(this._text, {String? title, dynamic files})
+      : _title = title,
+        _files = files;
+
   String? _title;
   dynamic _text;
+  dynamic _files;
 
   factory ShareAction.from({Map? payload}) {
-    if (payload == null || payload['text'] == null) {
-      throw LanguageError("${ActionType.share.name} requires 'text'");
+    if (payload == null ||
+        (payload['text'] == null && payload['files'] == null)) {
+      throw LanguageError(
+          "${ActionType.share.name} requires 'text' or 'files'");
     }
-    return ShareAction(payload['text'], title: payload['title']?.toString());
+
+    return ShareAction(
+      payload['text'],
+      title: payload['title']?.toString(),
+      files: payload['files'],
+    );
   }
 
   @override
-  Future execute(BuildContext context, ScopeManager scopeManager) {
+  Future execute(BuildContext context, ScopeManager scopeManager) async {
     final box = context.findRenderObject() as RenderBox?;
+    final sharePositionOrigin = box!.localToGlobal(Offset.zero) & box.size;
 
-    Share.share(
-      scopeManager.dataContext.eval(_text),
-      subject: Utils.optionalString(scopeManager.dataContext.eval(_title)),
-      sharePositionOrigin: box!.localToGlobal(Offset.zero) & box.size,
-    );
-    return Future.value(null);
+    final evaluatedText = scopeManager.dataContext.eval(_text);
+    final evaluatedTitle =
+        Utils.optionalString(scopeManager.dataContext.eval(_title));
+
+    List<XFile>? xFiles;
+    if (_files != null) {
+      final evaluatedFiles = scopeManager.dataContext.eval(_files);
+      if (evaluatedFiles != null) {
+        final filesList =
+            evaluatedFiles is List ? evaluatedFiles : [evaluatedFiles];
+
+        xFiles = filesList.map((file) {
+          // Handle case where file is a Map containing file info
+          if (file is Map) {
+            return XFile(file['path'].toString());
+          }
+          // Handle case where file is a direct path string
+          return XFile(file.toString());
+        }).toList();
+      }
+    }
+
+    if (xFiles != null && xFiles.isNotEmpty) {
+      try {
+        await Share.shareXFiles(
+          xFiles,
+          text: evaluatedText,
+          subject: evaluatedTitle,
+          sharePositionOrigin: sharePositionOrigin,
+        );
+      } catch (e) {
+        // Fallback to sharing just the text if file sharing fails
+        await Share.share(
+          evaluatedText,
+          subject: evaluatedTitle,
+          sharePositionOrigin: sharePositionOrigin,
+        );
+      }
+    } else {
+      await Share.share(
+        evaluatedText,
+        subject: evaluatedTitle,
+        sharePositionOrigin: sharePositionOrigin,
+      );
+    }
   }
 }
 
