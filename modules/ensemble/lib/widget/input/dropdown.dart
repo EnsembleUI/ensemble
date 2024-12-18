@@ -82,7 +82,8 @@ abstract class SelectOne extends StatefulWidget
     var setters = _controller.textPlaceholderSetters;
     setters.addAll({
       'value': (value) {
-        _controller.textEditingController.value = TextEditingValue(text: (value == null)? '': value.toString());
+        _controller.textEditingController.value =
+            TextEditingValue(text: (value == null) ? '' : value.toString());
         return _controller.maybeValue = value;
       },
       'items': (values) => updateItems(values),
@@ -450,11 +451,19 @@ class SelectOneState extends FormFieldWidgetState<SelectOne>
                     focusedBorder: getSafeFocusedBorder(),
                   ),
                   onChanged: (value) {
+                    // Preserve the cursor position
+                    final cursorPosition = fieldTextEditingController.selection;
                     final oldValue = widget._controller.maybeValue;
                     if (oldValue != value) {
                       widget._controller.maybeValue = value;
                       widget.onSelectionChanged(value);
                     }
+                    // Restore the cursor position
+                    fieldTextEditingController.selection =
+                        cursorPosition.copyWith(
+                      baseOffset: value.length,
+                      extentOffset: value.length,
+                    );
                   },
                 );
               },
