@@ -130,10 +130,10 @@ export const modules = [
         name: 'auth',
         path: 'scripts/modules/enable_auth.dart',
         parameters: [
-            { key: 'googleIOSClientId', question: 'Please provide your iOS client ID: ', required: (args) => args.platform.includes('ios') },
-            { key: 'googleAndroidClientId', question: 'Please provide your Android client ID: ', required: (args) => args.platform.includes('android') },
-            { key: 'googleWebClientId', question: 'Please provide your Web client ID: ', required: (args) => args.platform.includes('web') },
-            { key: 'googleServerClientId', question: 'Please provide your server client ID: ', required: true }
+            { key: 'googleIOSClientId', question: 'Please provide your iOS client ID: ', required: false },
+            { key: 'googleAndroidClientId', question: 'Please provide your Android client ID: ', required: false },
+            { key: 'googleWebClientId', question: 'Please provide your Web client ID: ', required: false },
+            { key: 'googleServerClientId', question: 'Please provide your server client ID: ', required: false }
         ]
     },
     {
