@@ -138,23 +138,24 @@ void uncommentFirebaseAnalyticsConfig(
     );
 
     if (platforms.contains('web')) {
-      String? webApiKey = getArgumentValue(arguments, 'web_api_key',
+      String? webApiKey = getArgumentValue(arguments, 'web_apiKey',
           required: platforms.contains('web'));
-      String? webAppId = getArgumentValue(arguments, 'web_app_id',
+      String? webAppId = getArgumentValue(arguments, 'web_appId',
           required: platforms.contains('web'));
-      String? webAuthDomain = getArgumentValue(arguments, 'web_auth_domain',
+      String? webAuthDomain = getArgumentValue(arguments, 'web_authDomain',
           required: platforms.contains('web'));
       String? webMessagingSenderId = getArgumentValue(
-          arguments, 'web_messaging_sender_id',
+          arguments, 'web_messagingSenderId',
           required: platforms.contains('web'));
-      String? webProjectId = getArgumentValue(arguments, 'web_project_id',
+      String? webProjectId = getArgumentValue(arguments, 'web_projectId',
           required: platforms.contains('web'));
       String? webStorageBucket = getArgumentValue(
-          arguments, 'web_storage_bucket',
+          arguments, 'web_storageBucket',
           required: platforms.contains('web'));
       String? webMeasurementId = getArgumentValue(
-          arguments, 'web_measurement_id',
+          arguments, 'web_measurementId',
           required: platforms.contains('web'));
+
       // List of fields to be replaced in the accounts section
       final fields = {
         'apiKey': webApiKey,
