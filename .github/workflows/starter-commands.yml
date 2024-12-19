@@ -28,22 +28,22 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Run useCamera command
-        run: npm run useCamera platform="ios,android" cameraDescription="Hello world"
+      - name: Run hasCamera command
+        run: npm run hasCamera platform="ios,android" cameraDescription="Hello world"
         continue-on-error: false
 
-      - name: Run useFiles command
-        run: npm run useFiles platform="ios,android" photoLibraryDescription="Hello" musicDescription="world"
+      - name: Run hasFileManager command
+        run: npm run hasFileManager platform="ios,android" photoLibraryDescription="Hello" musicDescription="world"
         continue-on-error: false
 
-      - name: Run useContacts command
-        run: npm run useContacts contactsDescription="Hello world" platform="ios,android"
+      - name: Run hasContacts command
+        run: npm run hasContacts contactsDescription="Hello world" platform="ios,android"
         continue-on-error: false
       
-      - name: Run useConnect command
-        run: npm run useConnect platform="ios,android" cameraDescription="Hello world" contactsDescription="Hello world"
+      - name: Run hasConnect command
+        run: npm run hasConnect platform="ios,android" cameraDescription="Hello world" contactsDescription="Hello world"
         continue-on-error: false
       
-      - name: Run useLocation command
-        run: npm run useLocation platform="ios,android" locationDescription="Hello world" alwaysUseLocationDescription="Hello world" inUseLocationDescription="Hello world"
+      - name: Run hasLocation command
+        run: npm run hasLocation platform="ios,android" locationDescription="Hello world" alwaysUseLocationDescription="Hello world" inUseLocationDescription="Hello world"
         continue-on-error: false
