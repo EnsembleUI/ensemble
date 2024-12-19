@@ -60,7 +60,7 @@ class ToastController {
       toastGravity = ToastGravity.TOP_RIGHT;
     }
     _toast.showToast(
-      positionedToastBuilder: (context, child) {
+      positionedToastBuilder: (context, child, gravity) {
         return _getPostionWidgetBasedOnGravity(context, child, toastGravity);
       },
       toastDuration: toastAction.duration != null
