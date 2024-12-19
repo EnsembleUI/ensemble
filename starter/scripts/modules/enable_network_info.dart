@@ -8,12 +8,6 @@ void main(List<String> arguments) async {
   String? preciseLocationDescription =
       getArgumentValue(arguments, 'preciseLocationDescription');
 
-  if (preciseLocationDescription == null ||
-      preciseLocationDescription.isEmpty) {
-    print("Error: Precise location description is missing.");
-    exit(1);
-  }
-
   final statements = {
     'moduleStatements': [
       "import 'package:ensemble_network_info/network_info.dart';",
@@ -70,6 +64,11 @@ ensemble_network_info:
 
     // Add required permissions to Info.plist
     if (platforms.contains('ios')) {
+      if (preciseLocationDescription == null ||
+          preciseLocationDescription.isEmpty) {
+        print("Error: Precise location description is missing.");
+        exit(1);
+      }
       updateIOSPermissions(iOSPermissions, arguments);
       addPermissionDescriptionToInfoPlist(
         'NSLocationTemporaryUsageDescriptionDictionary',
