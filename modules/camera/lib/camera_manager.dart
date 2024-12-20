@@ -5,6 +5,7 @@ import 'package:camera/camera.dart';
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/bindings.dart';
 import 'package:ensemble/framework/data_context.dart';
+import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/stub/camera_manager.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/screen_controller.dart';
@@ -97,6 +98,18 @@ class CameraManagerImpl extends CameraManager {
     final isDefault = Utils.getBool(
         scopeManager?.dataContext.eval(cameraAction.options?['default']),
         fallback: false);
+
+    final isCameraAllowed = await hasPermission();
+
+    if (!(isCameraAllowed ?? false)) {
+      if (cameraAction.onError != null) {
+        ScreenController().executeAction(context, cameraAction.onError!,
+            event: EnsembleEvent(null,
+                error: 'ensemble_camera: permission denied'));
+      }
+      debugPrint('ensemble_camera: permission denied');
+      return;
+    }
 
     if (isDefault && !kIsWeb) {
       await defaultCamera(context, cameraAction, scopeManager);
