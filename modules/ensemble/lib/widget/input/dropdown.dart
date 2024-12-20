@@ -458,12 +458,7 @@ class SelectOneState extends FormFieldWidgetState<SelectOne>
                       widget._controller.maybeValue = value;
                       widget.onSelectionChanged(value);
                     }
-                    // Restore the cursor position
-                    fieldTextEditingController.selection =
-                        cursorPosition.copyWith(
-                      baseOffset: value.length,
-                      extentOffset: value.length,
-                    );
+                    fieldTextEditingController.selection = cursorPosition;
                   },
                 );
               },
