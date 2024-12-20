@@ -3,35 +3,43 @@
   "version": "1.0.0",
   "description": "This starter project enables running and deploying Ensemble-powered Apps across iOS, Android, and Web (other platforms are not yet fully supported). It also includes examples on how to integrate Ensemble pages into your existing Flutter App.",
   "main": "index.js",
-  "type": "module",
   "directories": {
     "lib": "lib",
     "test": "test"
   },
   "scripts": {
-    "enable": "node dart_runner.js enable",
-    "hasCamera": "node dart_runner.js camera",
-    "hasFileManager": "node dart_runner.js file_manager",
-    "hasContacts": "node dart_runner.js contacts",
-    "hasConnect": "node dart_runner.js plaid_connect",
-    "hasLocation": "node dart_runner.js location",
-    "hasDeeplink": "node dart_runner.js deeplink",
-    "hasFirebaseAnalytics": "node dart_runner.js firebase_analytics",
-    "hasNotification": "node dart_runner.js notification",
-    "hasBracket": "node dart_runner.js bracket",
-    "hasNetworkInfo": "node dart_runner.js network_info",
-    "hasChat": "node dart_runner.js ai_chat",
-    "hasAuth": "node dart_runner.js auth",
-    "hasBluetooth": "node dart_runner.js bluetooth",
-    "hasBiometric": "node dart_runner.js biometric",
-    "qrCodeEnabled": "node dart_runner.js qr_code",
-    "hasGoogleMaps": "node dart_runner.js google_maps",
-    "generate_keystore": "node dart_runner.js generateKeystore"
+    "build": "tsc",
+    "enable": "ts-node src/dart_runner.ts enable",
+    "hasCamera": "ts-node src/dart_runner.ts camera",
+    "hasFileManager": "ts-node src/dart_runner.ts file_manager",
+    "hasContacts": "ts-node src/dart_runner.ts contacts",
+    "hasConnect": "ts-node src/dart_runner.ts plaid_connect",
+    "hasLocation": "ts-node src/dart_runner.ts location",
+    "hasDeeplink": "ts-node src/dart_runner.ts deeplink",
+    "hasFirebaseAnalytics": "ts-node src/dart_runner.ts firebase_analytics",
+    "hasNotification": "ts-node src/dart_runner.ts notification",
+    "hasBracket": "ts-node src/dart_runner.ts bracket",
+    "hasNetworkInfo": "ts-node src/dart_runner.ts network_info",
+    "hasChat": "ts-node src/dart_runner.ts ai_chat",
+    "hasAuth": "ts-node src/dart_runner.ts auth",
+    "hasBluetooth": "ts-node src/dart_runner.ts bluetooth",
+    "hasBiometric": "ts-node src/dart_runner.ts biometric",
+    "qrCodeEnabled": "ts-node src/dart_runner.ts qr_code",
+    "hasGoogleMaps": "ts-node src/dart_runner.ts google_maps",
+    "generate_keystore": "ts-node src/dart_runner.ts generateKeystore"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "inquirer": "^12.0.0"
+    "inquirer": "^12.0.0",
+    "prompts": "^2.4.2"
+  },
+  "devDependencies": {
+    "@types/inquirer": "^9.0.7",
+    "@types/node": "^22.10.2",
+    "@types/prompts": "^2.4.9",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.7.2"
   }
 }
