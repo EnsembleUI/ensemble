@@ -178,9 +178,4 @@ export const scripts = [
             { key: 'keyAlias', question: 'Please provide the key alias: ', required: true }
         ]
     },
-    {
-        name: 'getShaKeys',
-        path: 'scripts/get_sha_keys.dart',
-        parameters: []
-    }
 ];

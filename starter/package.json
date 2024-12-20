@@ -26,8 +26,7 @@
     "hasBiometric": "node dart_runner.js biometric",
     "qrCodeEnabled": "node dart_runner.js qr_code",
     "hasGoogleMaps": "node dart_runner.js google_maps",
-    "generate_keystore": "node dart_runner.js generateKeystore",
-    "get_sha_keys": "node dart_runner.js getShaKeys"
+    "generate_keystore": "node dart_runner.js generateKeystore"
   },
   "keywords": [],
   "author": "",
