@@ -49,12 +49,15 @@ class ShowCameraAction extends EnsembleAction {
     this.onComplete,
     this.onClose,
     this.onCapture,
+    this.onError,
   }) : super(initiator: initiator);
   final Map<String, dynamic>? options;
   String? id;
   EnsembleAction? onComplete;
   EnsembleAction? onClose;
   EnsembleAction? onCapture;
+  EnsembleAction? onError;
+  
 
   factory ShowCameraAction.fromYaml({Invokable? initiator, Map? payload}) {
     return ShowCameraAction(
