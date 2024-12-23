@@ -932,6 +932,52 @@ void main() {
     expect(context['c'], 0);
     expect(context['d'], null);
   });
+  test('dateLocalUtc', () {
+    Map<String, dynamic> context = {};
+    String code = """
+      var date = new Date('2024-12-22T04:49:07.521Z');
+      // Methods
+      var getTime = date.getTime();
+      var getFullYear = date.getFullYear();
+      var getMonth = date.getMonth();
+      var getDate = date.getDate();
+      var getHours = date.getHours();
+      var getMinutes = date.getMinutes();
+      var getSeconds = date.getSeconds();
+      var getDay = date.getDay();
+      var getMilliseconds = date.getMilliseconds();
+      var getUTCTime = date.getTime();
+      var getUTCFullYear = date.getUTCFullYear();
+      var getUTCMonth = date.getUTCMonth();
+      var getUTCDate = date.getUTCDate();
+      var getUTCHours = date.getUTCHours();
+      var getUTCMinutes = date.getUTCMinutes();
+      var getUTCSeconds = date.getUTCSeconds();
+      var getUTCMilliseconds = date.getUTCMilliseconds();
+      var getUTCDay = date.getUTCDay();
+      
+      
+
+      """;
+    JSInterpreter.fromCode(code, SimpleContext(context)).evaluate();
+    DateTime date = DateTime.parse('2024-12-22T04:49:07.521Z');
+    expect(context['getTime'], isNotNull);
+    expect(context['getFullYear'], date.toLocal().year);
+    expect(context['getMonth'], date.toLocal().month - 1);
+    expect(context['getDate'], date.toLocal().day);
+    expect(context['getHours'], date.toLocal().hour);
+    expect(context['getMinutes'], date.toLocal().minute);
+    expect(context['getSeconds'], date.toLocal().second);
+    expect(context['getDay'], date.toLocal().weekday % 7);
+    expect(context['getUTCTime'], isNotNull);
+    expect(context['getUTCFullYear'], date.year);
+    expect(context['getUTCMonth'], date.month - 1);
+    expect(context['getUTCDate'], date.day);
+    expect(context['getUTCHours'], date.hour);
+    expect(context['getUTCMinutes'], date.minute);
+    expect(context['getUTCSeconds'], date.second);
+    expect(context['getUTCDay'], date.weekday % 7);
+  });
   test('datefunction', () {
     Map<String, dynamic> context = {};
     String code = """
