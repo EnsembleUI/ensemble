@@ -40,6 +40,12 @@ dependencies:
       path: modules/ensemble
 
 
+  # ensemble_moengage:
+  #   git:
+  #     url: https://github.com/EnsembleUI/ensemble.git
+  #     ref: ensemble-v1.1.12
+  #     path: modules/moengage
+
   # ensemble_bluetooth:
   #   git:
   #     url: https://github.com/EnsembleUI/ensemble.git

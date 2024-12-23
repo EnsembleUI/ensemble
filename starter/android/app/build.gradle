@@ -30,6 +30,7 @@ def auth0Domain = ensembleProperties.getProperty("auth0Domain")
 def auth0Scheme = ensembleProperties.getProperty("auth0Scheme")
 def branchTestKey = ensembleProperties.getProperty("branchTestKey")
 def branchLiveKey = ensembleProperties.getProperty("branchLiveKey")
+def moengageAppId = ensembleProperties.getProperty("moengageAppId")
 
 def flutterRoot = localProperties.getProperty('flutter.sdk')
 if (flutterRoot == null) {
@@ -60,6 +61,10 @@ android {
         targetCompatibility JavaVersion.VERSION_1_8
     }
 
+    buildFeatures {
+        buildConfig true
+    }
+
     kotlinOptions {
         jvmTarget = '1.8'
     }
@@ -77,6 +82,9 @@ android {
         targetSdkVersion androidTargetSdkVersion
         versionCode flutterVersionCode.toInteger()
         versionName flutterVersionName
+        
+        // pass properties to native kotlin files
+        buildConfigField("String", "MOENGAGE_WORKSPACE_ID", "\"${moengageAppId}\"")
 
         // pass properties to AndroidManifest
         manifestPlaceholders.googleMapsAPIKey = googleMapsAPIKey
