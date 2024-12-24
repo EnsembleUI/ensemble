@@ -57,7 +57,11 @@ class CameraManagerImpl extends CameraManager {
     try {
       final cameras = await availableCameras();
       if (cameras.isNotEmpty) {
-        await CameraController(cameras[0], ResolutionPreset.max).initialize();
+        await CameraController(
+          cameras[0],
+          ResolutionPreset.max,
+          enableAudio: false,
+        ).initialize();
         status = true;
       } else {
         status = null;

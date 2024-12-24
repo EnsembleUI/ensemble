@@ -410,11 +410,12 @@ class CameraState extends EWidgetState<Camera> with WidgetsBindingObserver {
   @override
   Widget buildWidget(BuildContext context) {
     if (isLoading) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      return const Scaffold(
+        backgroundColor: Colors.black,
+        body: Center(child: CircularProgressIndicator()),
+      );
     }
-    if (showPreviewPage) {
-      return fullImagePreview();
-    }
+
     if (widget._controller.cameraController == null ||
         !widget._controller.cameraController!.value.isInitialized) {
       return Container();
@@ -449,22 +450,28 @@ class CameraState extends EWidgetState<Camera> with WidgetsBindingObserver {
   Widget cameraView() {
     return Stack(
       children: [
-        Center(
-          child: CameraPreview(
-            widget._controller.cameraController!,
-            child: LayoutBuilder(builder: (context, constraints) {
-              return GestureDetector(
-                onTapUp: kIsWeb
-                    ? null
-                    : (details) => onViewFinderTap(details, constraints),
-                onScaleUpdate: (details) async {
-                  final zoom = details.scale.clamp(1.0, 2.0);
-                  widget._controller.cameraController?.setZoomLevel(zoom);
-                },
-              );
-            }),
-          ),
-        ),
+        kIsWeb
+            ? Center(
+                child: AspectRatio(
+                  aspectRatio:
+                      widget.controller.cameraController!.value.aspectRatio,
+                  child: widget.controller.cameraController!.buildPreview(),
+                ),
+              )
+            : CameraPreview(
+                widget._controller.cameraController!,
+                child: LayoutBuilder(builder: (context, constraints) {
+                  return GestureDetector(
+                    onTapUp: kIsWeb
+                        ? null
+                        : (details) => onViewFinderTap(details, constraints),
+                    onScaleUpdate: (details) async {
+                      final zoom = details.scale.clamp(1.0, 2.0);
+                      widget._controller.cameraController?.setZoomLevel(zoom);
+                    },
+                  );
+                }),
+              ),
         imagePreviewButton(),
         Align(
             alignment: Alignment.bottomCenter,
