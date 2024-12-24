@@ -40,8 +40,10 @@ ensemble_firebase_analytics:
     );
 
     // Generate Firebase configuration based on platform
-    updateFirebaseInitialization(platforms, arguments, firebaseAnalytics: true);
-    // updateFirebaseConfig(platforms, arguments);
+    // updateFirebaseInitialization(platforms, arguments, firebaseAnalytics: true);
+    updateFirebaseConfig(platforms, arguments);
+    addClasspathDependency("classpath 'com.google.gms:google-services:4.3.15'");
+    addPluginDependency("apply plugin: 'com.google.gms.google-services'");
 
     // Update the pubspec.yaml file
     updatePubspec(pubspecDependencies);

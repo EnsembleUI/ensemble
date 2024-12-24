@@ -34,8 +34,10 @@ void main(List<String> arguments) {
     }
 
     // Generate Firebase configuration based on platform
-    updateFirebaseInitialization(platforms, arguments);
-    // updateFirebaseConfig(platforms, arguments);
+    // updateFirebaseInitialization(platforms, arguments);
+    updateFirebaseConfig(platforms, arguments);
+    addClasspathDependency("classpath 'com.google.gms:google-services:4.3.15'");
+    addPluginDependency("apply plugin: 'com.google.gms.google-services'");
 
     // Configure Android-specific settings
     if (platforms.contains('android')) {

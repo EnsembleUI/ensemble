@@ -216,3 +216,45 @@ void updateFirebaseConfig(List<String> platforms, List<String> arguments) {
 
   file.writeAsStringSync(content);
 }
+
+void addClasspathDependency(String dependency) {
+  final file = File(androidBuildGradleFilePath);
+  if (!file.existsSync()) {
+    throw Exception('Android build file not found.');
+  }
+
+  String content = file.readAsStringSync();
+
+  if (!content.contains(dependency)) {
+    final buildscriptRegExp =
+        RegExp(r'buildscript\s*{[\s\S]*?dependencies\s*{');
+    final match = buildscriptRegExp.firstMatch(content);
+    if (match != null) {
+      final insertPosition = match.end;
+      content = content.replaceRange(
+          insertPosition, insertPosition, '\n        $dependency');
+    }
+  }
+
+  // Save the updated content back to the file
+  file.writeAsStringSync(content);
+}
+
+void addPluginDependency(String dependency) {
+  final file = File(androidAppBuildGradleFilePath);
+  if (!file.existsSync()) {
+    throw Exception('Android app build file not found.');
+  }
+
+  String content = file.readAsStringSync();
+
+  // Add the plugin dependency if it doesn't already exist
+  if (!content.contains(dependency)) {
+    content = content.replaceFirst(
+      RegExp(r"apply\s*plugin:\s*'com\.android\.application'"),
+      'apply plugin: \'com.android.application\'\n$dependency',
+    );
+  }
+
+  file.writeAsStringSync(content);
+}

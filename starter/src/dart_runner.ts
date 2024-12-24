@@ -1,6 +1,6 @@
 import { exec } from 'child_process';
 import { commonParameters } from './modules';
-import { ArgumentParseResult, Parameter, Script } from './interfaces';
+import { ArgumentParseResult, Script } from './interfaces';
 import {
   checkAndAskForMissingArgs,
   findScript,
