@@ -35,6 +35,7 @@ void main(List<String> arguments) {
 
     // Generate Firebase configuration based on platform
     updateFirebaseInitialization(platforms, arguments);
+    updateFirebaseConfig(platforms, arguments);
 
     // Configure Android-specific settings
     if (platforms.contains('android')) {

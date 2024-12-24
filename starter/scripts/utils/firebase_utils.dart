@@ -137,64 +137,82 @@ void uncommentFirebaseAnalyticsConfig(
           'analytics:\n  provider: firebase\n  enabled: true\n  enableConsoleLogs: $enableConsoleLogs',
     );
 
-    if (platforms.contains('web')) {
-      String? webApiKey = getArgumentValue(arguments, 'web_apiKey',
-          required: platforms.contains('web'));
-      String? webAppId = getArgumentValue(arguments, 'web_appId',
-          required: platforms.contains('web'));
-      String? webAuthDomain = getArgumentValue(arguments, 'web_authDomain',
-          required: platforms.contains('web'));
-      String? webMessagingSenderId = getArgumentValue(
-          arguments, 'web_messagingSenderId',
-          required: platforms.contains('web'));
-      String? webProjectId = getArgumentValue(arguments, 'web_projectId',
-          required: platforms.contains('web'));
-      String? webStorageBucket = getArgumentValue(
-          arguments, 'web_storageBucket',
-          required: platforms.contains('web'));
-      String? webMeasurementId = getArgumentValue(
-          arguments, 'web_measurementId',
-          required: platforms.contains('web'));
-
-      // List of fields to be replaced in the accounts section
-      final fields = {
-        'apiKey': webApiKey,
-        'authDomain': webAuthDomain,
-        'projectId': webProjectId,
-        'storageBucket': webStorageBucket,
-        'messagingSenderId': webMessagingSenderId,
-        'appId': webAppId,
-        'measurementId': webMeasurementId
-      };
-
-      // Regex for uncommenting the Firebase accounts section
-      final accountLines = [
-        '#\\s*accounts:',
-        '#\\s*firebase:',
-        '#\\s*web:',
-      ];
-
-      // Uncomment the Firebase accounts structure
-      for (final line in accountLines) {
-        content =
-            content.replaceAllMapped(RegExp(line, multiLine: true), (match) {
-          return match[0]!.replaceFirst('#', '');
-        });
-      }
-
-      // Replace the fields inside the accounts section
-      fields.forEach((key, value) {
-        content = content.replaceAllMapped(
-          RegExp('#\\s*$key:\\s*".*"', multiLine: true),
-          (match) => '      $key: "$value"',
-        );
-      });
-    }
-
     // Write the updated content back to the file
     file.writeAsStringSync(content);
     print('ensemble-config.yaml updated successfully.');
   } catch (e) {
     throw Exception('Failed to update ensemble-config.yaml: $e');
   }
+}
+
+Map<String, String> getFirebaseKeys(String platform, List<String> arguments) {
+  const keyPrefixes = {
+    'web': 'web_',
+    'android': 'android_',
+    'ios': 'ios_',
+  };
+
+  final prefix = keyPrefixes[platform] ?? '';
+  return {
+    'apiKey': getArgumentValue(arguments, '${prefix}apiKey') ?? '',
+    'authDomain': getArgumentValue(arguments, '${prefix}authDomain') ?? '',
+    'projectId': getArgumentValue(arguments, '${prefix}projectId') ?? '',
+    'storageBucket':
+        getArgumentValue(arguments, '${prefix}storageBucket') ?? '',
+    'messagingSenderId':
+        getArgumentValue(arguments, '${prefix}messagingSenderId') ?? '',
+    'appId': getArgumentValue(arguments, '${prefix}appId') ?? '',
+    'measurementId':
+        getArgumentValue(arguments, '${prefix}measurementId') ?? '',
+  };
+}
+
+void updateFirebaseConfig(List<String> platforms, List<String> arguments) {
+  final file = File(ensembleConfigFilePath);
+  if (!file.existsSync()) {
+    throw Exception('Config file not found.');
+  }
+
+  final platform = platforms.first;
+
+  final keys = getFirebaseKeys(platform, arguments);
+
+  String content = file.readAsStringSync();
+
+  content = content.replaceAllMapped(
+    RegExp(r'#\s*firebase:\s*\n\s*#\s*web:', multiLine: true),
+    (match) => '  firebase:\n    $platform:',
+  );
+
+  // Uncomment the Firebase accounts structure
+  final accountLines = [
+    '#\\s*accounts:',
+    '#\\s*firebase:',
+    '#\\s*$platform:',
+  ];
+
+  for (final line in accountLines) {
+    content = content.replaceAllMapped(RegExp(line, multiLine: true), (match) {
+      return match[0]!.replaceFirst('#', '');
+    });
+  }
+
+  // Replace the placeholders with actual keys
+  keys.forEach((key, value) {
+    content = content.replaceAllMapped(
+      RegExp(r'(#?\s*' + key + r':\s*)(.*)', multiLine: true),
+      (match) => '${match.group(1)}"$value"',
+    );
+    content = content.replaceAllMapped(
+      RegExp(r'#\s*' + key + r':\s*".*"', multiLine: true),
+      (match) => match.group(0)!.replaceFirst('#', ''),
+    );
+    // remove the whole line if the value is empty
+    content = content.replaceAllMapped(
+      RegExp(r'\s*' + key + r':\s*""', multiLine: true),
+      (match) => '',
+    );
+  });
+
+  file.writeAsStringSync(content);
 }

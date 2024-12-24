@@ -41,6 +41,7 @@ ensemble_firebase_analytics:
 
     // Generate Firebase configuration based on platform
     updateFirebaseInitialization(platforms, arguments, firebaseAnalytics: true);
+    updateFirebaseConfig(platforms, arguments);
 
     // Update the pubspec.yaml file
     updatePubspec(pubspecDependencies);
