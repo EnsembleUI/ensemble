@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import '../utils.dart';
+import '../utils/firebase_utils.dart';
 
 void main(List<String> arguments) async {
   List<String> platforms = getPlatforms(arguments);
@@ -50,6 +51,7 @@ ensemble_auth:
 
     // Update the auth module configuration in ensemble-config.yaml
     updateAuthConfig(iOSClientId, androidClientId, webClientId, serverClientId);
+    updateFirebaseConfig(platforms, arguments);
 
     // Update the iOS Info.plist
     if (platforms.contains('ios') && iOSClientId.isNotEmpty) {
