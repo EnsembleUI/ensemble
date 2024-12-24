@@ -6,6 +6,8 @@ import '../utils/firebase_utils.dart';
 void main(List<String> arguments) async {
   List<String> platforms = getPlatforms(arguments);
   String? ensembleVersion = getArgumentValue(arguments, 'ensemble_version');
+  String enableConsoleLogs =
+      getArgumentValue(arguments, 'enableConsoleLogs') ?? 'true';
 
   final statements = {
     'moduleStatements': [
@@ -42,6 +44,7 @@ ensemble_firebase_analytics:
     // Generate Firebase configuration based on platform
     // updateFirebaseInitialization(platforms, arguments, firebaseAnalytics: true);
     updateFirebaseConfig(platforms, arguments);
+    updateAnalyticsConfig(enableConsoleLogs);
     addClasspathDependency("classpath 'com.google.gms:google-services:4.3.15'");
     addPluginDependency("apply plugin: 'com.google.gms.google-services'");
 

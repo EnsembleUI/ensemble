@@ -3,8 +3,7 @@ import 'dart:io';
 import '../utils.dart';
 
 void updateFirebaseInitialization(
-    List<String> platforms, List<String> arguments,
-    {bool firebaseAnalytics = false}) {
+    List<String> platforms, List<String> arguments) {
   // Get Firebase configuration values
   String? androidApiKey = getArgumentValue(arguments, 'android_apiKey',
       required: platforms.contains('android'));
@@ -41,10 +40,6 @@ void updateFirebaseInitialization(
       required: platforms.contains('web'));
   String? webMeasurementId = getArgumentValue(arguments, 'web_measurementId',
       required: platforms.contains('web'));
-
-  if (firebaseAnalytics) {
-    uncommentFirebaseAnalyticsConfig(platforms, arguments);
-  }
 
   final buffer = StringBuffer();
   buffer.writeln('FirebaseOptions? androidPayload;');
@@ -113,18 +108,15 @@ void updateFirebaseInitialization(
   file.writeAsStringSync(content);
 }
 
-void uncommentFirebaseAnalyticsConfig(
-  List<String> platforms,
-  List<String> arguments,
-) {
+void updateAnalyticsConfig(
+  String enableConsoleLogs, {
+  String provider = 'firebase',
+}) {
   try {
     final file = File(ensembleConfigFilePath);
     if (!file.existsSync()) {
       throw Exception('Config file not found.');
     }
-
-    String enableConsoleLogs =
-        getArgumentValue(arguments, 'enableConsoleLogs') ?? 'true';
 
     String content = file.readAsStringSync();
 
@@ -134,7 +126,7 @@ void uncommentFirebaseAnalyticsConfig(
           r'#\s*analytics:\s*\n#\s*provider:\s*firebase\s*\n#\s*enabled:\s*true\s*\n#\s*enableConsoleLogs:\s*true',
           multiLine: true),
       (match) =>
-          'analytics:\n  provider: firebase\n  enabled: true\n  enableConsoleLogs: $enableConsoleLogs',
+          'analytics:\n  provider: $provider\n  enabled: true\n  enableConsoleLogs: $enableConsoleLogs',
     );
 
     // Write the updated content back to the file
