@@ -45,8 +45,17 @@ ensemble_firebase_analytics:
     // updateFirebaseInitialization(platforms, arguments, firebaseAnalytics: true);
     updateFirebaseConfig(platforms, arguments);
     updateAnalyticsConfig(enableConsoleLogs);
-    addClasspathDependency("classpath 'com.google.gms:google-services:4.3.15'");
-    addPluginDependency("apply plugin: 'com.google.gms.google-services'");
+    if (platforms.contains('android')) {
+      addClasspathDependency(
+          "classpath 'com.google.gms:google-services:4.3.15'");
+      addPluginDependency("apply plugin: 'com.google.gms.google-services'");
+      addImplementationDependency(
+          "implementation 'com.google.firebase:firebase-analytics'");
+      addImplementationDependency(
+          "implementation platform('com.google.firebase:firebase-bom:32.7.0')");
+      addSettingsPluginDependency(
+          'id "com.google.gms.google-services" version "4.3.15" apply false');
+    }
 
     // Update the pubspec.yaml file
     updatePubspec(pubspecDependencies);

@@ -52,8 +52,15 @@ ensemble_auth:
     // Update the auth module configuration in ensemble-config.yaml
     updateAuthConfig(iOSClientId, androidClientId, webClientId, serverClientId);
     updateFirebaseConfig(platforms, arguments);
-    addClasspathDependency("classpath 'com.google.gms:google-services:4.3.15'");
-    addPluginDependency("apply plugin: 'com.google.gms.google-services'");
+    if (platforms.contains('android')) {
+      addClasspathDependency(
+          "classpath 'com.google.gms:google-services:4.3.15'");
+      addPluginDependency("apply plugin: 'com.google.gms.google-services'");
+      addSettingsPluginDependency(
+          'id "com.google.gms.google-services" version "4.3.15" apply false');
+      addImplementationDependency(
+          "implementation platform('com.google.firebase:firebase-bom:32.7.0')");
+    }
 
     // Update the iOS Info.plist
     if (platforms.contains('ios') && iOSClientId.isNotEmpty) {

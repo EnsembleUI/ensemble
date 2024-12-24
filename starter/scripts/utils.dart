@@ -12,6 +12,7 @@ const String appDelegatePath = 'ios/Runner/AppDelegate.swift';
 const String runnerEntitlementsPath = 'ios/Runner/Runner.entitlements';
 const String androidBuildGradleFilePath = 'android/build.gradle';
 const String androidAppBuildGradleFilePath = 'android/app/build.gradle';
+const String androidSettingsGradleFilePath = 'android/settings.gradle';
 
 // To read file content
 String readFileContent(String filePath) {

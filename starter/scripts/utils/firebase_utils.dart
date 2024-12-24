@@ -250,3 +250,45 @@ void addPluginDependency(String dependency) {
 
   file.writeAsStringSync(content);
 }
+
+void addImplementationDependency(String dependency) {
+  final file = File(androidAppBuildGradleFilePath);
+  if (!file.existsSync()) {
+    throw Exception('Android app build file not found.');
+  }
+
+  String content = file.readAsStringSync();
+
+  // Add the implementation dependency if it doesn't already exist
+  if (!content.contains(dependency)) {
+    final dependenciesRegExp = RegExp(r'dependencies\s*{');
+    final match = dependenciesRegExp.firstMatch(content);
+    if (match != null) {
+      final insertPosition = match.end;
+      content = content.replaceRange(
+          insertPosition, insertPosition, '\n    $dependency');
+    }
+  }
+
+  file.writeAsStringSync(content);
+}
+
+void addSettingsPluginDependency(String dependency) {
+  final file = File(androidSettingsGradleFilePath);
+  if (!file.existsSync()) {
+    throw Exception('Android settings file not found.');
+  }
+
+  String content = file.readAsStringSync();
+
+  // Check if the dependency is already included in the plugins block
+  if (!content.contains(dependency)) {
+    int insertPosition = content.indexOf('plugins {');
+    int endPosition = content.indexOf('}', insertPosition);
+    content = content.substring(0, endPosition) +
+        '\n    $dependency\n' +
+        content.substring(endPosition);
+
+    file.writeAsStringSync(content);
+  }
+}
