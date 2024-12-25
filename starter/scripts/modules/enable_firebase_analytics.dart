@@ -42,7 +42,7 @@ ensemble_firebase_analytics:
     );
 
     // Generate Firebase configuration based on platform
-    // updateFirebaseInitialization(platforms, arguments);
+    updateFirebaseInitialization(platforms, arguments);
     updateFirebaseConfig(platforms, arguments);
     updateAnalyticsConfig(enableConsoleLogs);
 
