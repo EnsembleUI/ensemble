@@ -1,6 +1,8 @@
 import 'dart:io';
 
+import '../constants.dart';
 import '../utils.dart';
+import '../utils/proguard_utils.dart';
 
 void main(List<String> arguments) async {
   List<String> platforms = getPlatforms(arguments);
@@ -43,10 +45,12 @@ ensemble_connect:
       statements['useStatements'],
     );
 
-    // Update the pubspec.yaml file
     updatePubspec(pubspecDependencies);
 
-    // Add the camera usage description to the iOS Info.plist file
+    if (platforms.contains('android')) {
+      createProguardRules(connectProguardRules);
+    }
+
     if (platforms.contains('ios')) {
       updateIOSPermissions(iOSPermissions, arguments);
     }
