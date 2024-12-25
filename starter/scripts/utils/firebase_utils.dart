@@ -166,11 +166,11 @@ void updateFirebaseConfig(List<String> platforms, List<String> arguments) {
   }
 
   final platform = platforms.first;
-
   final keys = getFirebaseKeys(platform, arguments);
 
   String content = file.readAsStringSync();
 
+  // Update only the firebase:$platform section
   content = content.replaceAllMapped(
     RegExp(r'#\s*firebase:\s*\n\s*#\s*web:', multiLine: true),
     (match) => '  firebase:\n    $platform:',
@@ -189,21 +189,26 @@ void updateFirebaseConfig(List<String> platforms, List<String> arguments) {
     });
   }
 
-  // Replace the placeholders with actual keys
+  // Replace the placeholders with actual keys only within the $platform block
   keys.forEach((key, value) {
-    content = content.replaceAllMapped(
-      RegExp(r'(#?\s*' + key + r':\s*)(.*)', multiLine: true),
-      (match) => '${match.group(1)}"$value"',
-    );
-    content = content.replaceAllMapped(
-      RegExp(r'#\s*' + key + r':\s*".*"', multiLine: true),
-      (match) => match.group(0)!.replaceFirst('#', ''),
-    );
-    // remove the whole line if the value is empty
-    content = content.replaceAllMapped(
-      RegExp(r'\s*' + key + r':\s*""', multiLine: true),
-      (match) => '',
-    );
+    if (value.isNotEmpty) {
+      content = content.replaceAllMapped(
+        RegExp(
+          r'(firebase:\s*\n.*?' +
+              platform +
+              r':\s*\n.*?)(\b' +
+              key +
+              r':\s*).*?(\n|$)',
+          multiLine: true,
+          dotAll: true,
+        ),
+        (match) => '${match.group(1)}$key: "$value"${match.group(3)}',
+      );
+      content = content.replaceAllMapped(
+        RegExp(r'#\s*' + key + r':\s*".*"', multiLine: true),
+        (match) => match.group(0)!.replaceFirst('#', ''),
+      );
+    }
   });
 
   file.writeAsStringSync(content);

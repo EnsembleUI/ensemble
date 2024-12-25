@@ -34,18 +34,18 @@ void main(List<String> arguments) {
     }
 
     // Generate Firebase configuration based on platform
-    updateFirebaseInitialization(platforms, arguments);
-    // updateFirebaseConfig(platforms, arguments);
+    // updateFirebaseInitialization(platforms, arguments);
+    updateFirebaseConfig(platforms, arguments);
 
-    // if (platforms.contains('android')) {
-    //   addClasspathDependency(
-    //       "classpath 'com.google.gms:google-services:4.3.15'");
-    //   addPluginDependency("apply plugin: 'com.google.gms.google-services'");
-    //   addSettingsPluginDependency(
-    //       'id "com.google.gms.google-services" version "4.3.15" apply false');
-    //   addImplementationDependency(
-    //       "implementation platform('com.google.firebase:firebase-bom:32.7.0')");
-    // }
+    if (platforms.contains('android')) {
+      addClasspathDependency(
+          "classpath 'com.google.gms:google-services:4.3.15'");
+      addPluginDependency("apply plugin: 'com.google.gms.google-services'");
+      addSettingsPluginDependency(
+          'id "com.google.gms.google-services" version "4.3.15" apply false');
+      addImplementationDependency(
+          "implementation platform('com.google.firebase:firebase-bom:32.7.0')");
+    }
 
     // Configure Android-specific settings
     if (platforms.contains('android')) {
