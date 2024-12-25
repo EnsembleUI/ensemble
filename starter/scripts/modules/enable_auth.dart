@@ -134,6 +134,9 @@ void updateInfoPlist(String iOSClientId) {
 
     String content = file.readAsStringSync();
 
+    final clientIdParts = iOSClientId.split('-');
+    iOSClientId = 'com.googleusercontent.apps.${clientIdParts[0]}';
+
     // Replace the current iOS client ID in the Info.plist file
     content = content.replaceAllMapped(
       RegExp(
@@ -142,7 +145,6 @@ void updateInfoPlist(String iOSClientId) {
     );
 
     file.writeAsStringSync(content);
-    print('Updated Info.plist with iOS client ID: $iOSClientId');
   } catch (e) {
     throw Exception('Failed to update Info.plist: $e');
   }
