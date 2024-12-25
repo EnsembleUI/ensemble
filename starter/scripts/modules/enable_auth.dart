@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import '../constants.dart';
 import '../utils.dart';
 import '../utils/firebase_utils.dart';
 
@@ -53,6 +54,7 @@ ensemble_auth:
     updateAuthConfig(iOSClientId, androidClientId, webClientId, serverClientId);
     updateFirebaseConfig(platforms, arguments);
     if (platforms.contains('android')) {
+      createProguardRules(authProguardRules);
       addClasspathDependency(
           "classpath 'com.google.gms:google-services:4.3.15'");
       addPluginDependency("apply plugin: 'com.google.gms.google-services'");
@@ -143,5 +145,47 @@ void updateInfoPlist(String iOSClientId) {
     print('Updated Info.plist with iOS client ID: $iOSClientId');
   } catch (e) {
     throw Exception('Failed to update Info.plist: $e');
+  }
+}
+
+void createProguardRules(String rules) {
+  try {
+    final file = File(proguardRulesFilePath);
+    if (!file.existsSync()) {
+      file.createSync(recursive: true);
+    }
+
+    final content = file.readAsStringSync();
+
+    if (!content.contains(rules) && rules.isNotEmpty) {
+      file.writeAsStringSync('$content\n$rules');
+      updateBuildGradleProguardFiles();
+    }
+  } catch (e) {
+    throw Exception(
+        '❌ Starter Error: Failed to create proguard-rules.pro file: $e');
+  }
+}
+
+void updateBuildGradleProguardFiles() {
+  try {
+    final file = File(androidAppBuildGradleFilePath);
+    if (!file.existsSync()) {
+      throw Exception('build.gradle file not found.');
+    }
+
+    String content = file.readAsStringSync();
+
+    // Update the proguardFiles in the build.gradle file
+    if (!content.contains('proguardFiles')) {
+      content = content.replaceAllMapped(
+          RegExp(r'buildTypes\s*{[^}]*release\s*{', multiLine: true),
+          (match) =>
+              "buildTypes {\n        release {\n            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'");
+    }
+
+    file.writeAsStringSync(content);
+  } catch (e) {
+    throw Exception('❌ Starter Error: Failed to update build.gradle: $e');
   }
 }

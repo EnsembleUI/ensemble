@@ -13,6 +13,7 @@ const String runnerEntitlementsPath = 'ios/Runner/Runner.entitlements';
 const String androidBuildGradleFilePath = 'android/build.gradle';
 const String androidAppBuildGradleFilePath = 'android/app/build.gradle';
 const String androidSettingsGradleFilePath = 'android/settings.gradle';
+const String proguardRulesFilePath = 'android/app/proguard-rules.pro';
 
 // To read file content
 String readFileContent(String filePath) {
