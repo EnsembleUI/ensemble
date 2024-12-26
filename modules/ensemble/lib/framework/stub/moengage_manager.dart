@@ -80,9 +80,7 @@ abstract class MoEngageModule {
 class MoEngageModuleStub implements MoEngageModule {
   final _errorMsg = "MoEngage module is not enabled. Please review the Ensemble documentation.";
   
-  MoEngageModuleStub() {
-    throw RuntimeError(_errorMsg);
-  }
+  MoEngageModuleStub() {}
 
   @override
   Future<void> initialize(String workspaceId, {bool enableLogs = false}) {

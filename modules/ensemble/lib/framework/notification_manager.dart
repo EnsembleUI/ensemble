@@ -78,9 +78,6 @@ class NotificationManager {
 
     /// This is when the app is in the foreground
     FirebaseMessaging.onMessage.listen((RemoteMessage message) async {
-      print("--------------");
-      print(message.data);
-      print(message.notification);
 
       if (!isMoEngageNotification(message)) {
         // Handle regular FCM notifications as before
@@ -154,15 +151,12 @@ class NotificationManager {
     } on Exception catch (e) {
       print("NotificationManager: Error receiving notification: $e");
     }
-    print("----------");
-    print(payload);
     if (payload is! Map) return;
     if (payload.containsKey('status') &&
         (payload['status'] as String).toLowerCase() == 'error') {
       print('Error while running js function');
     }
     final action = NavigateScreenAction.from(payload);
-    print(action.screenName);
 
     ScreenController().navigateToScreen(Utils.globalAppKey.currentContext!,
         screenName: action.screenName,

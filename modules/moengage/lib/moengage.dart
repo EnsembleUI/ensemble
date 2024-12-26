@@ -146,7 +146,6 @@ class MoEngageImpl implements MoEngageModule {
 
   @override
   Future<void> setUserName(String userName) async {
-    print(userName);
     _checkInitialization();
     _moengagePlugin.setUserName(userName);
   }

@@ -40,7 +40,6 @@ import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/material.dart';
 import 'package:source_span/source_span.dart';
 import 'package:yaml/yaml.dart';
-import 'package:ensemble/action/moengage_actions.dart';
 
 class ShowCameraAction extends EnsembleAction {
   ShowCameraAction({
@@ -1052,7 +1051,6 @@ enum ActionType {
   bluetoothDisconnect,
   bluetoothSubscribeCharacteristic,
   bluetoothUnsubscribeCharacteristic,
-  moEngageEvents,
 }
 
 /// payload representing an Action to do (navigateToScreen, InvokeAPI, ..)
@@ -1269,8 +1267,6 @@ abstract class EnsembleAction {
       return SubscribeBluetoothCharacteristicsAction.from(payload: payload);
     } else if (actionType == ActionType.bluetoothUnsubscribeCharacteristic) {
       return UnSubscribeBluetoothCharacteristicsAction.from(payload: payload);
-    } else if (actionType == ActionType.moEngageEvents) {
-      return MoEngageAction.fromYaml(initiator: initiator, payload: payload);
     } else {
       throw LanguageError("Invalid action.",
           recovery: "Make sure to use one of Ensemble-provided actions.");

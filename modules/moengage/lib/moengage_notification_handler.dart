@@ -1,9 +1,12 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:ensemble/framework/notification_manager.dart';
+import 'package:ensemble/screen_controller.dart';
+import 'package:ensemble/util/utils.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:moengage_flutter/moengage_flutter.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 
 class MoEngageNotificationHandler {
   static final MoEngageNotificationHandler _instance =
@@ -24,6 +27,7 @@ class MoEngageNotificationHandler {
       _moengagePlugin = moengagePlugin;
 
       await _registerHandlers();
+      // await _setupPushToken();
 
       _initialized = true;
     } catch (e) {
@@ -51,6 +55,7 @@ class MoEngageNotificationHandler {
       if (message.action is NavigationAction) {
         final navAction = message.action as NavigationAction;
         inAppData['data'].addAll({
+          'actionType': 'navigation',
           'navigationType': navAction.navigationType.toString(),
           'navigationUrl': navAction.navigationUrl,
           'keyValuePairs': navAction.keyValuePairs,
