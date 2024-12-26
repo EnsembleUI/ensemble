@@ -2,6 +2,7 @@ import 'dart:io';
 
 import '../constants.dart';
 import '../utils.dart';
+import '../utils/firebase_utils.dart';
 import '../utils/proguard_utils.dart';
 
 void main(List<String> arguments) async {
@@ -49,6 +50,10 @@ ensemble_connect:
 
     if (platforms.contains('android')) {
       createProguardRules(connectProguardRules);
+      addImplementationDependency(
+          "implementation 'org.openjsse:openjsse:1.1.10'");
+      addImplementationDependency(
+          "implementation 'org.conscrypt:conscrypt-android:2.5.2'");
     }
 
     if (platforms.contains('ios')) {
