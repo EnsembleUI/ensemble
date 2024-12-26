@@ -111,11 +111,6 @@ void updateAuthConfig(String iOSClientId, String androidClientId,
           RegExp('$key:\\s*.*', multiLine: true),
           (match) => '$key: $value',
         );
-      } else {
-        content = content.replaceAllMapped(
-          RegExp('$key:\\s*.*', multiLine: true),
-          (match) => '$key:',
-        );
       }
     });
 
