@@ -240,14 +240,14 @@ class CameraState extends EWidgetState<Camera> with WidgetsBindingObserver {
     try {
       cameras = await availableCameras();
       setCameraInit();
-      setState(() {
-        isLoading = false;
-      });
     } catch (e) {
       if (e is CameraException && e.code == 'CameraAccessDenied') {
         hasPermission = false;
       }
     }
+    setState(() {
+      isLoading = false;
+    });
   }
 
   void initAccelerometerSub() {
@@ -410,11 +410,12 @@ class CameraState extends EWidgetState<Camera> with WidgetsBindingObserver {
   @override
   Widget buildWidget(BuildContext context) {
     if (isLoading) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      return const Scaffold(
+        backgroundColor: Colors.black,
+        body: Center(child: CircularProgressIndicator()),
+      );
     }
-    if (hasPermission) {
-      return showPreviewPage ? fullImagePreview() : permissionDeniedView();
-    }
+
     if (widget._controller.cameraController == null ||
         !widget._controller.cameraController!.value.isInitialized) {
       return Container();
@@ -449,22 +450,28 @@ class CameraState extends EWidgetState<Camera> with WidgetsBindingObserver {
   Widget cameraView() {
     return Stack(
       children: [
-        Center(
-          child: CameraPreview(
-            widget._controller.cameraController!,
-            child: LayoutBuilder(builder: (context, constraints) {
-              return GestureDetector(
-                onTapUp: kIsWeb
-                    ? null
-                    : (details) => onViewFinderTap(details, constraints),
-                onScaleUpdate: (details) async {
-                  final zoom = details.scale.clamp(1.0, 2.0);
-                  widget._controller.cameraController?.setZoomLevel(zoom);
-                },
-              );
-            }),
-          ),
-        ),
+        kIsWeb
+            ? Center(
+                child: AspectRatio(
+                  aspectRatio:
+                      widget.controller.cameraController!.value.aspectRatio,
+                  child: widget.controller.cameraController!.buildPreview(),
+                ),
+              )
+            : CameraPreview(
+                widget._controller.cameraController!,
+                child: LayoutBuilder(builder: (context, constraints) {
+                  return GestureDetector(
+                    onTapUp: kIsWeb
+                        ? null
+                        : (details) => onViewFinderTap(details, constraints),
+                    onScaleUpdate: (details) async {
+                      final zoom = details.scale.clamp(1.0, 2.0);
+                      widget._controller.cameraController?.setZoomLevel(zoom);
+                    },
+                  );
+                }),
+              ),
         imagePreviewButton(),
         Align(
             alignment: Alignment.bottomCenter,
@@ -639,7 +646,10 @@ class CameraState extends EWidgetState<Camera> with WidgetsBindingObserver {
                 final file = widget._controller.files.elementAt(index);
 
                 return kIsWeb
-                    ? DisplayMediaWeb(file: file)
+                    ? DisplayMediaWeb(
+                        file: file,
+                        aspectRatio: widget
+                            .controller.cameraController?.value.aspectRatio)
                     : Center(
                         child: file.getMediaType() == MediaType.image
                             ? Image.file(file.toFile()!)
@@ -1469,9 +1479,13 @@ class _InlineVideoPlayerState extends State<InlineVideoPlayer> {
 class DisplayMediaWeb extends StatefulWidget {
   final File file;
   final bool isThumbnail;
+  final double? aspectRatio;
 
   const DisplayMediaWeb(
-      {Key? key, required this.file, this.isThumbnail = false})
+      {Key? key,
+      required this.file,
+      this.isThumbnail = false,
+      this.aspectRatio})
       : super(key: key);
 
   @override
@@ -1527,13 +1541,21 @@ class _DisplayMediaWebState extends State<DisplayMediaWeb> {
   @override
   Widget build(BuildContext context) {
     if (_isImage) {
-      return Image.network(
+      final image = Image.network(
         widget.file.path!,
         fit: widget.isThumbnail ? BoxFit.cover : null,
         errorBuilder: (context, error, stackTrace) {
           return const SizedBox.shrink();
         },
       );
+      return widget.aspectRatio != null
+          ? Center(
+              child: AspectRatio(
+                aspectRatio: widget.aspectRatio!,
+                child: image,
+              ),
+            )
+          : image;
     } else if (_isVideo) {
       if (widget.isThumbnail) {
         return const Icon(
