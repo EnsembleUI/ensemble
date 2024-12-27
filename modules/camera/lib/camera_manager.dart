@@ -13,6 +13,7 @@ import 'package:ensemble/util/utils.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 import './camera.dart';
 
@@ -55,18 +56,8 @@ class CameraManagerImpl extends CameraManager {
   Future<bool?> hasPermission() async {
     bool? status;
     try {
-      final cameras = await availableCameras();
-      if (cameras.isNotEmpty) {
-        await CameraController(
-          cameras[0],
-          ResolutionPreset.max,
-          enableAudio: false,
-        ).initialize();
-        status = true;
-      } else {
-        status = null;
-      }
-      return status;
+      PermissionStatus permissionStatus = await Permission.camera.status;
+      status = permissionStatus.isGranted;
     } catch (error) {
       if (error is CameraException) {
         switch (error.code) {
@@ -84,8 +75,8 @@ class CameraManagerImpl extends CameraManager {
       } else {
         status = null;
       }
-      return status;
     }
+    return status;
   }
 
   Future<File?> convertXFile(XFile element) async {
@@ -106,13 +97,17 @@ class CameraManagerImpl extends CameraManager {
     final isCameraAllowed = await hasPermission();
 
     if (!(isCameraAllowed ?? false)) {
-      if (cameraAction.onError != null) {
+      final requestedPermissionStatus = await Permission.camera.request();
+
+      if ((!requestedPermissionStatus.isGranted) &&
+          cameraAction.onError != null) {
         ScreenController().executeAction(context, cameraAction.onError!,
             event: EnsembleEvent(null,
                 error: 'ensemble_camera: permission denied'));
+
+        debugPrint('ensemble_camera: permission denied');
+        return;
       }
-      debugPrint('ensemble_camera: permission denied');
-      return;
     }
 
     if (isDefault && !kIsWeb) {
