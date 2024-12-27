@@ -14,11 +14,23 @@ const authProguardRules = '''
 ''';
 
 const connectProguardRules = '''
--keep class okhttp3.logging.HttpLoggingInterceptor { *; }
+# OkHttp
+-dontwarn okhttp3.logging.**
+-keep class okhttp3.logging.** { *; }
 
-# Keep other relevant classes as before
--keep class com.android.org.conscrypt.** { *; }
+# Conscrypt
+-dontwarn org.conscrypt.**
 -keep class org.conscrypt.** { *; }
--keep class org.bouncycastle.jsse.** { *; }
--keep class org.bouncycastle.jsse.provider.BouncyCastleJsseProvider { *; }
+
+# Bouncy Castle
+-dontwarn org.bouncycastle.**
+-keep class org.bouncycastle.** { *; }
+
+# Apache Harmony
+-dontwarn org.apache.harmony.**
+-keep class org.apache.harmony.** { *; }
+
+# General SSL
+-dontwarn javax.net.ssl.**
+-keep class javax.net.ssl.** { *; }
 ''';
