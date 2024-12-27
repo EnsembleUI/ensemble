@@ -905,7 +905,7 @@ class CameraState extends EWidgetState<Camera> with WidgetsBindingObserver {
                     ],
                   ),
                 ),
-                widget._controller.allowCameraRotate
+                widget._controller.allowCameraRotate && cameras.length > 1
                     ? buttons(
                         icon: widget._controller.cameraRotateIcon != null
                             ? iconframework.Icon.fromModel(
@@ -916,25 +916,37 @@ class CameraState extends EWidgetState<Camera> with WidgetsBindingObserver {
                                 color: iconColor,
                               ),
                         backgroundColor: Colors.white.withOpacity(0.1),
-                        onPressed: () {
-                          currentModeIndex = 0;
+                        onPressed: () async {
+                          try {
+                            if (cameras.length <= 1) return;
+                            currentModeIndex = 0;
+                            setState(() {
+                              isLoading = true;
+                            });
+                            await widget._controller.cameraController
+                                ?.dispose();
 
-                          if (isFrontCamera) {
-                            final back = cameras.firstWhere((camera) =>
-                                camera.lensDirection ==
-                                CameraLensDirection.back);
-                            setCamera(cameraDescription: back);
-                            isFrontCamera = false;
-                          } else {
-                            final front = cameras.firstWhere((camera) =>
-                                camera.lensDirection ==
-                                CameraLensDirection.front);
-                            setCamera(cameraDescription: front);
-                            isFrontCamera = true;
+                            if (isFrontCamera) {
+                              final back = cameras.firstWhere((camera) =>
+                                  camera.lensDirection ==
+                                  CameraLensDirection.back);
+                              setCamera(cameraDescription: back);
+                              isFrontCamera = false;
+                            } else {
+                              final front = cameras.firstWhere((camera) =>
+                                  camera.lensDirection ==
+                                  CameraLensDirection.front);
+                              setCamera(cameraDescription: front);
+                              isFrontCamera = true;
+                            }
+                            setState(() {
+                              isLoading = false;
+                            });
+                          } on Exception catch (_) {
+                            Navigator.pop(context);
                           }
-                          setState(() {});
                         })
-                    : const SizedBox.shrink()
+                    : SizedBox(width: iconSize * 2, height: iconSize * 2)
               ],
             ),
           ],
