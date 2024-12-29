@@ -7,7 +7,7 @@ import 'package:json_path/json_path.dart';
 import 'dart:convert';
 import 'dart:io';
 import 'package:test/test.dart';
-import 'package:jsparser/jsparser.dart';
+import 'package:parsejs_null_safety/parsejs_null_safety.dart';
 
 class Ensemble extends Object with Invokable {
   String? name, date, firstName, lastName, text;
@@ -369,7 +369,7 @@ void main() {
         .evaluate();
     expect(rtn, false);
   });
-  test('jsparser', () async {
+  test('parsejs_null_safety', () async {
     String codeToEvaluate = """
       var arr = ['worked!'];
       users.map(function(user) {
@@ -533,8 +533,8 @@ void main() {
     """;
     Map<String, dynamic> context = initContext();
     dynamic rtnValue =
-    JSInterpreter.fromCode(codeToEvaluate, SimpleContext(context))
-        .evaluate();
+        JSInterpreter.fromCode(codeToEvaluate, SimpleContext(context))
+            .evaluate();
     //expect(context['indices'][2], 2);
   });
   test('whilelooptest', () async {
@@ -2727,7 +2727,8 @@ function createRandomizedTiles() {
       Map<String, dynamic> context = initContext();
       JSInterpreter.fromCode(codeToEvaluate, SimpleContext(context)).evaluate();
       expect(context['caughtError'], 'An error');
-      expect(context.containsKey('e'), false); // 'e' should not be accessible outside
+      expect(context.containsKey('e'),
+          false); // 'e' should not be accessible outside
     });
 
     test('variable scope in try', () {
@@ -2796,7 +2797,7 @@ function createRandomizedTiles() {
       //         () => JSInterpreter.fromCode(codeToEvaluate, SimpleContext(context)).evaluate(),
       //     throwsA(isA<JSCustomException>()));
       expect(context['exceptionVar'], 'An error');
-      expect(context['outsideE'],null);
+      expect(context['outsideE'], null);
     });
 
     test('variables outside accessible inside try', () {
@@ -2823,7 +2824,8 @@ function createRandomizedTiles() {
       Map<String, dynamic> context = initContext();
       //JSInterpreter.fromCode(codeToEvaluate, SimpleContext(context)).evaluate();
       expect(
-              () => JSInterpreter.fromCode(codeToEvaluate, SimpleContext(context)).evaluate(),
+          () => JSInterpreter.fromCode(codeToEvaluate, SimpleContext(context))
+              .evaluate(),
           throwsA(isA<JSException>()));
     });
 
@@ -2856,7 +2858,8 @@ function createRandomizedTiles() {
     """;
       Map<String, dynamic> context = initContext();
       expect(
-              () => JSInterpreter.fromCode(codeToEvaluate, SimpleContext(context)).evaluate(),
+          () => JSInterpreter.fromCode(codeToEvaluate, SimpleContext(context))
+              .evaluate(),
           throwsA(isA<JSException>()));
     });
 
@@ -2873,7 +2876,8 @@ function createRandomizedTiles() {
     """;
       Map<String, dynamic> context = initContext();
       expect(
-              () => JSInterpreter.fromCode(codeToEvaluate, SimpleContext(context)).evaluate(),
+          () => JSInterpreter.fromCode(codeToEvaluate, SimpleContext(context))
+              .evaluate(),
           throwsA(isA<JSException>()));
       expect(context['inFinally'], true);
     });
@@ -3105,9 +3109,9 @@ function createRandomizedTiles() {
       Map<String, dynamic> context = initContext();
       // ES5 syntax error: 'try' without 'catch' or 'finally' is invalid
       expect(
-              () => JSInterpreter.fromCode(codeToEvaluate, SimpleContext(context)).evaluate(),
+          () => JSInterpreter.fromCode(codeToEvaluate, SimpleContext(context))
+              .evaluate(),
           throwsA(isA<JSException>()));
     });
   });
-
 }

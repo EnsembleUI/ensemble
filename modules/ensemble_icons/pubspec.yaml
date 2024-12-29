@@ -18,7 +18,7 @@ description: A new Flutter module project.
 version: 0.0.1+1
 
 environment:
-  sdk: '>=3.5.0'
+  sdk: ">=3.5.0 <4.0.0"
 
 dependencies:
   flutter:
@@ -54,3 +54,7 @@ flutter:
     androidX: true
     androidPackage: com.example.ensemble_icons
     iosBundleIdentifier: com.example.ensembleIcons
+
+homepage: https://github.com/EnsembleUI/ensemble/tree/main/modules/ensemble_icons
+repository: https://github.com/EnsembleUI/ensemble
+issue_tracker: https://github.com/EnsembleUI/ensemble/issues

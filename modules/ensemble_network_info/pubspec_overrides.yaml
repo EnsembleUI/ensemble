@@ -1,0 +1,16 @@
+# melos_managed_dependency_overrides: device_preview,ensemble,ensemble_icons,ensemble_ts_interpreter,js_widget,parsejs_null_safety,otp_pin_field
+dependency_overrides:
+  device_preview:
+    path: ..\\device_preview
+  ensemble:
+    path: ..\\ensemble
+  ensemble_icons:
+    path: ..\\ensemble_icons
+  ensemble_ts_interpreter:
+    path: ..\\ensemble_ts_interpreter
+  js_widget:
+    path: ..\\js_widget
+  parsejs_null_safety:
+    path: ..\\parsejs_null_safety
+  otp_pin_field:
+    path: ..\\otp_pin_field

@@ -24,7 +24,7 @@ documentation: https://github.com/EnsembleUI/ensemble_ts_interpreter
 version: 1.0.0+1
 
 environment:
-  sdk: ">=3.5.0"
+  sdk: ">=3.5.0 <4.0.0"
 
 # Dependencies specify other packages that your package needs in order to work.
 # To automatically upgrade your package dependencies to the latest versions
@@ -49,11 +49,7 @@ dependencies:
       ref: master
   #flutter_js: ^0.5.0+6
   #dartjsengine: ^1.0.1
-  jsparser:
-    git:
-      url: https://github.com/EnsembleUI/ensemble.git
-      ref: main
-      path: modules/parsejs_null_safety
+  parsejs_null_safety: ^2.0.3
   source_span: ^1.9.1
   intl: '>=0.18.1 <=0.19.0'
 

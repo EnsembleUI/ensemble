@@ -5,8 +5,9 @@ Original project : https://github.com/asgerf/parsejs.dart
 This project is intended to migrate it to dart 2.4 or above
 
 ## Example Usage
+
 ```dart
-import 'package:jsparser/jsparser.dart';
+import 'package:parsejs_null_safety/parsejs_null_safety.dart';
 import 'dart:io';
 
 void main() {
@@ -29,6 +30,7 @@ The `jsparser` function takes the following optional arguments:
 
 
 ## To run test cases 
+
 1. Open terminal and cd to parsejs.dart/test/util directory
 2. Do `npm install` 
 3. CD to parsejs.dart/test/ director and run `./runtest`
