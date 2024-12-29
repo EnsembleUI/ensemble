@@ -1,4 +1,0 @@
-# melos_managed_dependency_overrides: js_widget
-dependency_overrides:
-  js_widget:
-    path: ..\\..

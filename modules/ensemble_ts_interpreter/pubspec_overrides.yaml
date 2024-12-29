@@ -1,4 +1,0 @@
-# melos_managed_dependency_overrides: parsejs_null_safety
-dependency_overrides:
-  parsejs_null_safety:
-    path: ..\\parsejs_null_safety
