@@ -65,8 +65,8 @@ class FormFieldController extends WidgetController {
       'floatLabel': (value) =>
           floatLabel = Utils.getBool(value, fallback: false),
       'required': (value) => required = Utils.getBool(value, fallback: false),
-      'requiredMessage': (value) =>
-          requiredMessage = Utils.getString(value, fallback: 'Required'),
+      'requiredMessage': (value) => requiredMessage =
+          Utils.getString(value, fallback: 'This field is required'),
       'icon': (value) => icon = Utils.getIcon(value),
       'maxWidth': (value) =>
           maxWidth = Utils.optionalInt(value, min: 0, max: 5000),
