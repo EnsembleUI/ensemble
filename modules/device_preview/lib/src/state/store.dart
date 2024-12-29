@@ -5,11 +5,11 @@ import 'package:device_frame/device_frame.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 
-import '../../device_preview.dart';
+import '../../ensemble_device_preview.dart';
 import '../storage/storage.dart';
 import 'custom_device.dart';
 import 'state.dart';
-import '../../device_preview.dart' as device_preview;
+import '../../ensemble_device_preview.dart' as device_preview;
 
 /// The store is a container for the current [state] of the device preview.
 ///

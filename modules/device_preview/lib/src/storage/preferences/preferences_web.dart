@@ -3,7 +3,7 @@
 import 'dart:async';
 import 'dart:convert' show jsonDecode, jsonEncode;
 import 'dart:html' as html;
-import 'package:device_preview/src/state/state.dart';
+import 'package:ensemble_device_preview/src/state/state.dart';
 
 import '../storage.dart';
 

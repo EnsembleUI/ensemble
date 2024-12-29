@@ -1,4 +1,4 @@
-import 'package:device_preview/device_preview.dart';
+import 'package:ensemble_device_preview/ensemble_device_preview.dart';
 import 'package:flutter/widgets.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 

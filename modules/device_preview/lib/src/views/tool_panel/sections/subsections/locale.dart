@@ -1,6 +1,6 @@
-import 'package:device_preview/device_preview.dart';
-import 'package:device_preview/src/state/store.dart';
-import 'package:device_preview/src/views/tool_panel/widgets/search_field.dart';
+import 'package:ensemble_device_preview/ensemble_device_preview.dart';
+import 'package:ensemble_device_preview/src/state/store.dart';
+import 'package:ensemble_device_preview/src/views/tool_panel/widgets/search_field.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
 import 'package:provider/provider.dart';

@@ -3,7 +3,7 @@ import 'dart:io';
 import 'dart:ui';
 import 'dart:async';
 
-import 'package:device_preview/device_preview.dart';
+import 'package:ensemble_device_preview/ensemble_device_preview.dart';
 import 'package:ensemble/deep_link_manager.dart';
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/apiproviders/api_provider.dart';
@@ -32,7 +32,8 @@ import 'package:workmanager/workmanager.dart';
 import 'package:yaml/yaml.dart';
 
 const String backgroundUploadTask = 'backgroundUploadTask';
-const String backgroundBluetoothSubscribeTask = 'backgroundBluetoothSubscribeTask';
+const String backgroundBluetoothSubscribeTask =
+    'backgroundBluetoothSubscribeTask';
 
 const String ensembleMethodChannelName = 'com.ensembleui.host.platform';
 GlobalKey<NavigatorState>? externalAppNavigateKey;
@@ -299,7 +300,8 @@ class EnsembleAppState extends State<EnsembleApp> with WidgetsBindingObserver {
     if (foundSelectedTheme && savedTheme != null) {
       defaultTheme = savedTheme;
     }
-    EnsembleThemeManager().init(context, themes, defaultTheme, localeThemes: doc["LocaleThemes"]);
+    EnsembleThemeManager()
+        .init(context, themes, defaultTheme, localeThemes: doc["LocaleThemes"]);
   }
 
   Locale? resolveLocale(Locale? systemLocale,
@@ -324,7 +326,8 @@ class EnsembleAppState extends State<EnsembleApp> with WidgetsBindingObserver {
         configureThemes(doc, AppConfig(context, AppInfo().appId));
       }
     }
-    EnsembleThemeManager().setCurrentLocale(Ensemble().locale?.languageCode,notifyListeners: false);
+    EnsembleThemeManager().setCurrentLocale(Ensemble().locale?.languageCode,
+        notifyListeners: false);
     // notify external app once of EnsembleApp loading status
     if (widget.onAppLoad != null && !notifiedAppLoad) {
       widget.onAppLoad!.call();
@@ -363,9 +366,9 @@ class EnsembleAppState extends State<EnsembleApp> with WidgetsBindingObserver {
         return Ensemble().locale;
       },
       home: Scaffold(
-        // this outer scaffold is where the background image would be (if
-        // specified). We do not want it to resize on keyboard popping up.
-        // The Page's Scaffold can handle the resizing.
+          // this outer scaffold is where the background image would be (if
+          // specified). We do not want it to resize on keyboard popping up.
+          // The Page's Scaffold can handle the resizing.
           resizeToAvoidBottomInset: false,
           body: screen),
       useInheritedMediaQuery: widget.isPreview,
@@ -433,15 +436,15 @@ class EnsembleAppState extends State<EnsembleApp> with WidgetsBindingObserver {
   Widget _appPlaceholderWrapper(
       {Widget? placeholderWidget, Color? placeholderBackgroundColor}) {
     return MaterialApp(
-      // even when this is the placeholder and will be replaced later, we still
-      // need to either set supportedLocales or handle localeResolutionCallback.
-      // Without this the system locale will be incorrect the first time.
-      //
-      // Also note we pass in the definitionProvider. This is only needed when
-      // the EnsembleConfig is passed in directly (without fetching it) and
-      // might contain the forcedLocale. For some reason localeResolutionCallback()
-      // will only be called once here and not again when the actual App is loaded.
-      // An example is when running integration test with another locale.
+        // even when this is the placeholder and will be replaced later, we still
+        // need to either set supportedLocales or handle localeResolutionCallback.
+        // Without this the system locale will be incorrect the first time.
+        //
+        // Also note we pass in the definitionProvider. This is only needed when
+        // the EnsembleConfig is passed in directly (without fetching it) and
+        // might contain the forcedLocale. For some reason localeResolutionCallback()
+        // will only be called once here and not again when the actual App is loaded.
+        // An example is when running integration test with another locale.
         localeResolutionCallback: (systemLocale, _) {
           Ensemble().locale = resolveLocale(systemLocale,
               definitionProvider: widget.ensembleConfig?.definitionProvider);

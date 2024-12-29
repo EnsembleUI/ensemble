@@ -33,7 +33,7 @@ Since Device Preview is a simple Dart package, you have to declare it as any oth
 
 ```yaml
 dependencies:
-  device_preview: <latest version>
+  ensemble_device_preview: <latest version>
 ```
 
 ### Add DevicePreview
@@ -47,7 +47,7 @@ Wrap your app's root widget in a `DevicePreview` and make sure to :
 > Make sure to override the previous properties as described. If not defined, `MediaQuery` won't be simulated for the selected device.
 
 ```dart
-import 'package:device_preview/device_preview.dart';
+import 'package:ensemble_device_preview/ensemble_device_preview.dart';
 
 void main() => runApp(
   DevicePreview(

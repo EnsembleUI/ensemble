@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:device_preview/src/state/state.dart';
+import 'package:ensemble_device_preview/src/state/state.dart';
 
 import '../storage.dart';
 
