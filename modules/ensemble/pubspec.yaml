@@ -44,11 +44,7 @@ dependencies:
 
   ensemble_icons: ^1.0.0
 
-  ensemble_ts_interpreter:
-    git:
-      url: https://github.com/EnsembleUI/ensemble.git
-      ref: main
-      path: modules/ensemble_ts_interpreter
+  ensemble_ts_interpreter: ^1.0.1
 
   event_bus: ^2.0.0
   flutter_layout_grid: ^2.0.3

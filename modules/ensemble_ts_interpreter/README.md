@@ -12,10 +12,7 @@ This is a javascript [ES5](https://www.geeksforgeeks.org/difference-between-es5-
 
 - in your pubspec.yaml, add the following line under dependencies - 
 ```
-  ensemble_ts_interpreter:
-    git:
-      url: https://github.com/EnsembleUI/ensemble_ts_interpreter.git
-      ref: master
+  ensemble_ts_interpreter: ^1.0.1
 ```
 - run ```flutter pub upgrade```
 - Simply call the ```JSInterpreter``` with the code you want to evaluate while passing it the context. 
