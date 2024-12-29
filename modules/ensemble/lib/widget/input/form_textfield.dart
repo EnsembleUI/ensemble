@@ -397,6 +397,11 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput>
         labelText: widget._controller.label,
       );
     }
+    if (widget._controller.errorStyle != null) {
+      decoration = decoration.copyWith(
+        errorStyle: widget._controller.errorStyle,
+      );
+    }
 
     // for password, show the toggle plain text/obscure text
     if ((widget.isPassword() || widget._controller.obscureText == true) &&
@@ -438,7 +443,9 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput>
             if (value == null || value.isEmpty) {
               return widget._controller.required
                   ? Utils.translateWithFallback(
-                      'ensemble.input.required', 'This field is required')
+                      'ensemble.input.required',
+                      widget._controller.requiredMessage ??
+                          'This field is required')
                   : null;
             }
 
