@@ -1,5 +1,5 @@
 name: ensemble_icons
-description: A new Flutter module project.
+description: Ensemble Icons is a collection of icons from Remix/Font Awesome and other sources. It is a Flutter package that provides a set of icons that can be used in Ensemble apps.
 
 # The following defines the version and build number for your application.
 # A version number is three numbers separated by dots, like 1.2.43
@@ -15,7 +15,7 @@ description: A new Flutter module project.
 # This version is used _only_ for the Runner app, which is used if you just do
 # a `flutter run` or a `flutter make-host-app-editable`. It has no impact
 # on any other native host app that you embed your Flutter project into.
-version: 0.0.1+1
+version: 1.0.0
 
 environment:
   sdk: ">=3.5.0 <4.0.0"
