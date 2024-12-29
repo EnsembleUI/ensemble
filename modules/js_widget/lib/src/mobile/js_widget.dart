@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher_string.dart';
 // Import for Android features.
 import 'package:webview_flutter_android/webview_flutter_android.dart';
 // Import for iOS features.
