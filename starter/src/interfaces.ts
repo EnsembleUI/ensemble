@@ -1,3 +1,5 @@
+export type Platform = 'ios' | 'android' | 'web';
+
 export interface ArgumentParseResult {
   scripts: string[];
   argsArray: string[];
@@ -12,7 +14,7 @@ export interface Script {
 export interface Parameter {
   key: string;
   question: string;
-  type?: string;
+  type: string;
   choices?: string[];
   required?: boolean | ((args: Record<string, any>) => boolean);
 }

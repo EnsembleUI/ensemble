@@ -1,5 +1,5 @@
 import prompts from 'prompts';
-import { Parameter, Script } from './interfaces';
+import { Parameter, Platform, Script } from './interfaces';
 import { commonParameters, modules, scripts } from './modules';
 
 export const findScript = (name: string): Script => {
@@ -100,4 +100,8 @@ export const checkAndAskForMissingArgs = async (
       ([k, v]) => `${k}="${v}"`
     )
   );
+};
+
+export const requiredForPlatform = (platform: Platform) => {
+  return (args: any) => args.platform.includes(platform);
 };

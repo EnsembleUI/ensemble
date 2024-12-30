@@ -1,16 +1,10 @@
-interface ModuleParameter {
-  key: string;
-  question: string;
-  type?: string;
-  choices?: string[];
-  required?: boolean | ((args: any) => boolean);
-}
-
-interface Module {
-  name: string;
-  path: string;
-  parameters: ModuleParameter[];
-}
+import {
+  firebaseAndroidParameters,
+  firebaseIOSParameters,
+  firebaseWebParameters,
+} from './common-params';
+import { Script } from './interfaces';
+import { requiredForPlatform } from './utils';
 
 // Common parameters available across scripts and modules
 export const commonParameters = [
@@ -25,11 +19,12 @@ export const commonParameters = [
     key: 'ensemble_version',
     question: 'Which version of ensemble are you using?',
     required: false,
+    type: 'text',
   },
 ];
 
 // Modules (called with `enable` command)
-export const modules: Module[] = [
+export const modules: Script[] = [
   {
     name: 'camera',
     path: 'scripts/modules/enable_camera.dart',
@@ -37,7 +32,8 @@ export const modules: Module[] = [
       {
         key: 'cameraDescription',
         question: 'Please provide a camera usage description for iOS: ',
-        required: (args) => args.platform.includes('ios'),
+        required: requiredForPlatform('ios'),
+        type: 'text',
       },
     ],
   },
@@ -49,12 +45,14 @@ export const modules: Module[] = [
         key: 'photoLibraryDescription',
         question:
           'Please provide a description for accessing the photo library: ',
-        required: (args) => args.platform.includes('ios'),
+        required: requiredForPlatform('ios'),
+        type: 'text',
       },
       {
         key: 'musicDescription',
         question: 'Please provide a description for accessing music files: ',
-        required: (args) => args.platform.includes('ios'),
+        required: requiredForPlatform('ios'),
+        type: 'text',
       },
     ],
   },
@@ -65,7 +63,8 @@ export const modules: Module[] = [
       {
         key: 'contactsDescription',
         question: 'Please provide a description for accessing contacts: ',
-        required: (args) => args.platform.includes('ios'),
+        required: requiredForPlatform('ios'),
+        type: 'text',
       },
     ],
   },
@@ -76,7 +75,8 @@ export const modules: Module[] = [
       {
         key: 'cameraDescription',
         question: 'Please provide a camera usage description: ',
-        required: (args) => args.platform.includes('ios'),
+        required: requiredForPlatform('ios'),
+        type: 'text',
       },
     ],
   },
@@ -88,19 +88,22 @@ export const modules: Module[] = [
         key: 'inUseLocationDescription',
         question:
           'Please provide a description for using location services while the app is in use: ',
-        required: (args) => args.platform.includes('ios'),
+        required: requiredForPlatform('ios'),
+        type: 'text',
       },
       {
         key: 'alwaysUseLocationDescription',
         question:
           'Please provide a description for using location services always: ',
-        required: (args) => args.platform.includes('ios'),
+        required: requiredForPlatform('ios'),
+        type: 'text',
       },
       {
         key: 'locationDescription',
         question:
           'Please provide a description for using location services always and when the app is in use: ',
-        required: (args) => args.platform.includes('ios'),
+        required: requiredForPlatform('ios'),
+        type: 'text',
       },
     ],
   },
@@ -112,11 +115,13 @@ export const modules: Module[] = [
         key: 'branchIOLiveKey',
         question: 'Please provide the live Branch.io key: ',
         required: true,
+        type: 'text',
       },
       {
         key: 'branchIOTestKey',
         question: 'Please provide the test Branch.io key: ',
         required: true,
+        type: 'text',
       },
       {
         key: 'branchIOUseTestKey',
@@ -129,11 +134,13 @@ export const modules: Module[] = [
         key: 'branchIOScheme',
         question: 'Please provide the URI scheme for deeplinking: ',
         required: true,
+        type: 'text',
       },
       {
         key: 'branchIOLinks',
         question: 'Please provide a comma-separated list of deeplink URLs: ',
         required: true,
+        type: 'text',
       },
     ],
   },
@@ -141,101 +148,9 @@ export const modules: Module[] = [
     name: 'firebase_analytics',
     path: 'scripts/modules/enable_firebase_analytics.dart',
     parameters: [
-      {
-        key: 'android_apiKey',
-        question: 'Please provide your Firebase Android API key: ',
-        required: (args) => args.platform.includes('android'),
-      },
-      {
-        key: 'android_appId',
-        question: 'Please provide your Firebase Android App ID: ',
-        required: (args) => args.platform.includes('android'),
-      },
-      {
-        key: 'android_messagingSenderId',
-        question: 'Please provide your Firebase Android Messaging Sender ID: ',
-        required: (args) => args.platform.includes('android'),
-      },
-      {
-        key: 'android_projectId',
-        question: 'Please provide your Firebase Android Project ID: ',
-        required: (args) => args.platform.includes('android'),
-      },
-      {
-        key: 'android_storageBucket',
-        question: 'Please provide your Firebase Android Storage Bucket: ',
-        required: (args) => args.platform.includes('android'),
-      },
-      {
-        key: 'android_authDomain',
-        question: 'Please provide your Firebase Android Auth Domain: ',
-        required: (args) => args.platform.includes('android'),
-      },
-      {
-        key: 'ios_apiKey',
-        question: 'Please provide your Firebase iOS API key: ',
-        required: (args) => args.platform.includes('ios'),
-      },
-      {
-        key: 'ios_appId',
-        question: 'Please provide your Firebase iOS App ID: ',
-        required: (args) => args.platform.includes('ios'),
-      },
-      {
-        key: 'ios_messagingSenderId',
-        question: 'Please provide your Firebase iOS Messaging Sender ID: ',
-        required: (args) => args.platform.includes('ios'),
-      },
-      {
-        key: 'ios_projectId',
-        question: 'Please provide your Firebase iOS Project ID: ',
-        required: (args) => args.platform.includes('ios'),
-      },
-      {
-        key: 'ios_storageBucket',
-        question: 'Please provide your Firebase iOS Storage Bucket: ',
-        required: (args) => args.platform.includes('ios'),
-      },
-      {
-        key: 'ios_authDomain',
-        question: 'Please provide your Firebase iOS Auth Domain: ',
-        required: (args) => args.platform.includes('ios'),
-      },
-      {
-        key: 'web_apiKey',
-        question: 'Please provide your Firebase Web API key: ',
-        required: (args) => args.platform.includes('web'),
-      },
-      {
-        key: 'web_appId',
-        question: 'Please provide your Firebase Web App ID: ',
-        required: (args) => args.platform.includes('web'),
-      },
-      {
-        key: 'web_authDomain',
-        question: 'Please provide your Firebase Web Auth Domain: ',
-        required: (args) => args.platform.includes('web'),
-      },
-      {
-        key: 'web_messagingSenderId',
-        question: 'Please provide your Firebase Web Messaging Sender ID: ',
-        required: (args) => args.platform.includes('web'),
-      },
-      {
-        key: 'web_projectId',
-        question: 'Please provide your Firebase Web Project ID: ',
-        required: (args) => args.platform.includes('web'),
-      },
-      {
-        key: 'web_storageBucket',
-        question: 'Please provide your Firebase Web Storage Bucket: ',
-        required: (args) => args.platform.includes('web'),
-      },
-      {
-        key: 'web_measurementId',
-        question: 'Please provide your Firebase Web Measurement ID: ',
-        required: (args) => args.platform.includes('web'),
-      },
+      ...firebaseAndroidParameters,
+      ...firebaseIOSParameters,
+      ...firebaseWebParameters,
       {
         key: 'enableConsoleLogs',
         question: 'Do you want to enable Firebase console logs? (yes/no): ',
@@ -249,101 +164,9 @@ export const modules: Module[] = [
     name: 'notification',
     path: 'scripts/modules/enable_notifications.dart',
     parameters: [
-      {
-        key: 'android_apiKey',
-        question: 'Please provide your Firebase Android API key: ',
-        required: (args) => args.platform.includes('android'),
-      },
-      {
-        key: 'android_appId',
-        question: 'Please provide your Firebase Android App ID: ',
-        required: (args) => args.platform.includes('android'),
-      },
-      {
-        key: 'android_messagingSenderId',
-        question: 'Please provide your Firebase Android Messaging Sender ID: ',
-        required: (args) => args.platform.includes('android'),
-      },
-      {
-        key: 'android_projectId',
-        question: 'Please provide your Firebase Android Project ID: ',
-        required: (args) => args.platform.includes('android'),
-      },
-      {
-        key: 'android_storageBucket',
-        question: 'Please provide your Firebase Android Storage Bucket: ',
-        required: (args) => args.platform.includes('android'),
-      },
-      {
-        key: 'android_authDomain',
-        question: 'Please provide your Firebase Android Auth Domain: ',
-        required: (args) => args.platform.includes('android'),
-      },
-      {
-        key: 'ios_apiKey',
-        question: 'Please provide your Firebase iOS API key: ',
-        required: (args) => args.platform.includes('ios'),
-      },
-      {
-        key: 'ios_appId',
-        question: 'Please provide your Firebase iOS App ID: ',
-        required: (args) => args.platform.includes('ios'),
-      },
-      {
-        key: 'ios_messagingSenderId',
-        question: 'Please provide your Firebase iOS Messaging Sender ID: ',
-        required: (args) => args.platform.includes('ios'),
-      },
-      {
-        key: 'ios_projectId',
-        question: 'Please provide your Firebase iOS Project ID: ',
-        required: (args) => args.platform.includes('ios'),
-      },
-      {
-        key: 'ios_storageBucket',
-        question: 'Please provide your Firebase iOS Storage Bucket: ',
-        required: (args) => args.platform.includes('ios'),
-      },
-      {
-        key: 'ios_authDomain',
-        question: 'Please provide your Firebase iOS Auth Domain: ',
-        required: (args) => args.platform.includes('ios'),
-      },
-      {
-        key: 'web_apiKey',
-        question: 'Please provide your Firebase Web API key: ',
-        required: (args) => args.platform.includes('web'),
-      },
-      {
-        key: 'web_appId',
-        question: 'Please provide your Firebase Web App ID: ',
-        required: (args) => args.platform.includes('web'),
-      },
-      {
-        key: 'web_authDomain',
-        question: 'Please provide your Firebase Web Auth Domain: ',
-        required: (args) => args.platform.includes('web'),
-      },
-      {
-        key: 'web_messagingSenderId',
-        question: 'Please provide your Firebase Web Messaging Sender ID: ',
-        required: (args) => args.platform.includes('web'),
-      },
-      {
-        key: 'web_projectId',
-        question: 'Please provide your Firebase Web Project ID: ',
-        required: (args) => args.platform.includes('web'),
-      },
-      {
-        key: 'web_storageBucket',
-        question: 'Please provide your Firebase Web Storage Bucket: ',
-        required: (args) => args.platform.includes('web'),
-      },
-      {
-        key: 'web_measurementId',
-        question: 'Please provide your Firebase Web Measurement ID: ',
-        required: (args) => args.platform.includes('web'),
-      },
+      ...firebaseAndroidParameters,
+      ...firebaseIOSParameters,
+      ...firebaseWebParameters,
     ],
   },
   {
@@ -359,19 +182,22 @@ export const modules: Module[] = [
         key: 'inUseLocationDescription',
         question:
           'Please provide a description for using location services while accessing network info: ',
-        required: (args) => args.platform.includes('ios'),
+        required: requiredForPlatform('ios'),
+        type: 'text',
       },
       {
         key: 'alwaysUseLocationDescription',
         question:
           'Please provide a description for always using location services for network info: ',
-        required: (args) => args.platform.includes('ios'),
+        required: requiredForPlatform('ios'),
+        type: 'text',
       },
       {
         key: 'preciseLocationDescription',
         question:
           'Please provide a description for using precise location services for network info: ',
-        required: (args) => args.platform.includes('ios'),
+        required: requiredForPlatform('ios'),
+        type: 'text',
       },
     ],
   },
@@ -384,120 +210,32 @@ export const modules: Module[] = [
     name: 'auth',
     path: 'scripts/modules/enable_auth.dart',
     parameters: [
+      ...firebaseAndroidParameters,
+      ...firebaseIOSParameters,
+      ...firebaseWebParameters,
       {
         key: 'googleIOSClientId',
         question: 'Please provide your iOS client ID: ',
         required: false,
+        type: 'text',
       },
       {
         key: 'googleAndroidClientId',
         question: 'Please provide your Android client ID: ',
         required: false,
+        type: 'text',
       },
       {
         key: 'googleWebClientId',
         question: 'Please provide your Web client ID: ',
         required: false,
+        type: 'text',
       },
       {
         key: 'googleServerClientId',
         question: 'Please provide your server client ID: ',
         required: false,
-      },
-      {
-        key: 'android_apiKey',
-        question: 'Please provide your Firebase Android API key: ',
-        required: (args) => args.platform.includes('android'),
-      },
-      {
-        key: 'android_appId',
-        question: 'Please provide your Firebase Android App ID: ',
-        required: (args) => args.platform.includes('android'),
-      },
-      {
-        key: 'android_messagingSenderId',
-        question: 'Please provide your Firebase Android Messaging Sender ID: ',
-        required: (args) => args.platform.includes('android'),
-      },
-      {
-        key: 'android_projectId',
-        question: 'Please provide your Firebase Android Project ID: ',
-        required: (args) => args.platform.includes('android'),
-      },
-      {
-        key: 'android_storageBucket',
-        question: 'Please provide your Firebase Android Storage Bucket: ',
-        required: (args) => args.platform.includes('android'),
-      },
-      {
-        key: 'android_authDomain',
-        question: 'Please provide your Firebase Android Auth Domain: ',
-        required: (args) => args.platform.includes('android'),
-      },
-      {
-        key: 'ios_apiKey',
-        question: 'Please provide your Firebase iOS API key: ',
-        required: (args) => args.platform.includes('ios'),
-      },
-      {
-        key: 'ios_appId',
-        question: 'Please provide your Firebase iOS App ID: ',
-        required: (args) => args.platform.includes('ios'),
-      },
-      {
-        key: 'ios_messagingSenderId',
-        question: 'Please provide your Firebase iOS Messaging Sender ID: ',
-        required: (args) => args.platform.includes('ios'),
-      },
-      {
-        key: 'ios_projectId',
-        question: 'Please provide your Firebase iOS Project ID: ',
-        required: (args) => args.platform.includes('ios'),
-      },
-      {
-        key: 'ios_storageBucket',
-        question: 'Please provide your Firebase iOS Storage Bucket: ',
-        required: (args) => args.platform.includes('ios'),
-      },
-      {
-        key: 'ios_authDomain',
-        question: 'Please provide your Firebase iOS Auth Domain: ',
-        required: (args) => args.platform.includes('ios'),
-      },
-      {
-        key: 'web_apiKey',
-        question: 'Please provide your Firebase Web API key: ',
-        required: (args) => args.platform.includes('web'),
-      },
-      {
-        key: 'web_appId',
-        question: 'Please provide your Firebase Web App ID: ',
-        required: (args) => args.platform.includes('web'),
-      },
-      {
-        key: 'web_authDomain',
-        question: 'Please provide your Firebase Web Auth Domain: ',
-        required: (args) => args.platform.includes('web'),
-      },
-      {
-        key: 'web_messagingSenderId',
-        question: 'Please provide your Firebase Web Messaging Sender ID: ',
-        required: (args) => args.platform.includes('web'),
-      },
-      {
-        key: 'web_projectId',
-        question: 'Please provide your Firebase Web Project ID: ',
-        required: (args) => args.platform.includes('web'),
-      },
-      {
-        key: 'web_storageBucket',
-        question: 'Please provide your Firebase Web Storage Bucket: ',
-        required: (args) => args.platform.includes('web'),
-      },
-      {
-        key: 'web_measurementId',
-        question: 'Please provide your Firebase Web Measurement ID: ',
-        required: (args) => args.platform.includes('web'),
+        type: 'text',
       },
     ],
   },
@@ -508,13 +246,15 @@ export const modules: Module[] = [
       {
         key: 'bluetoothDescription',
         question: 'Please provide a description for accessing Bluetooth: ',
-        required: (args) => args.platform.includes('ios'),
+        required: requiredForPlatform('ios'),
+        type: 'text',
       },
       {
         key: 'bluetoothPeripheralDescription',
         question:
           'Please provide a description for using Bluetooth peripherals: ',
-        required: (args) => args.platform.includes('ios'),
+        required: requiredForPlatform('ios'),
+        type: 'text',
       },
     ],
   },
@@ -525,7 +265,8 @@ export const modules: Module[] = [
       {
         key: 'faceIdDescription',
         question: 'Please provide a description for Face ID usage (iOS): ',
-        required: (args) => args.platform.includes('ios'),
+        required: requiredForPlatform('ios'),
+        type: 'text',
       },
     ],
   },
@@ -541,24 +282,27 @@ export const modules: Module[] = [
       {
         key: 'iOSGoogleMapsApiKey',
         question: 'Please provide your Google Maps API key for iOS ',
-        required: (args) => args.platform.includes('ios'),
+        required: requiredForPlatform('ios'),
+        type: 'text',
       },
       {
         key: 'androidGoogleMapsApiKey',
         question: 'Please provide your Google Maps API key for Android ',
-        required: (args) => args.platform.includes('android'),
+        required: requiredForPlatform('android'),
+        type: 'text',
       },
       {
         key: 'webGoogleMapsApiKey',
         question: 'Please provide your Google Maps API key for Web ',
-        required: (args) => args.platform.includes('web'),
+        required: requiredForPlatform('web'),
+        type: 'text',
       },
     ],
   },
 ];
 
 // Custom Scripts (standalone Dart scripts)
-export const scripts = [
+export const scripts: Script[] = [
   {
     name: 'generateKeystore',
     path: 'scripts/generate_keystore.dart',
@@ -567,16 +311,19 @@ export const scripts = [
         key: 'storePassword',
         question: 'Please provide the store password: ',
         required: true,
+        type: 'text',
       },
       {
         key: 'keyPassword',
         question: 'Please provide the key password: ',
         required: true,
+        type: 'text',
       },
       {
         key: 'keyAlias',
         question: 'Please provide the key alias: ',
         required: true,
+        type: 'text',
       },
     ],
   },
