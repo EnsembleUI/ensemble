@@ -1,9 +1,7 @@
 import 'dart:io';
 
-import '../constants.dart';
 import '../utils.dart';
 import '../utils/firebase_utils.dart';
-import '../utils/proguard_utils.dart';
 
 void main(List<String> arguments) async {
   List<String> platforms = getPlatforms(arguments);
@@ -49,11 +47,11 @@ ensemble_connect:
     updatePubspec(pubspecDependencies);
 
     if (platforms.contains('android')) {
-      createProguardRules(connectProguardRules);
       addImplementationDependency(
           "implementation 'org.openjsse:openjsse:1.1.10'");
       addImplementationDependency(
           "implementation 'org.conscrypt:conscrypt-android:2.5.2'");
+      updateBuildGradle(minifyEnabled: false, shrinkResources: false);
     }
 
     if (platforms.contains('ios')) {
@@ -77,4 +75,26 @@ ensemble_connect:
     print('Starter Error: $e');
     exit(1);
   }
+}
+
+void updateBuildGradle(
+    {bool minifyEnabled = false, bool shrinkResources = false}) {
+  final buildGradleFile = File('android/app/build.gradle');
+  String content = buildGradleFile.readAsStringSync();
+
+  if (!content.contains('minifyEnabled')) {
+    content = content.replaceAllMapped(
+        RegExp(r'buildTypes\s*{[^}]*release\s*{', multiLine: true),
+        (match) =>
+            "buildTypes {\n        release {\n            minifyEnabled $minifyEnabled");
+  }
+
+  if (!content.contains('shrinkResources')) {
+    content = content.replaceAllMapped(
+        RegExp(r'buildTypes\s*{[^}]*release\s*{', multiLine: true),
+        (match) =>
+            "buildTypes {\n        release {\n            shrinkResources $shrinkResources");
+  }
+
+  buildGradleFile.writeAsStringSync(content);
 }
