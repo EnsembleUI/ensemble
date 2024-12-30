@@ -16,5 +16,5 @@ export interface Parameter {
   question: string;
   type: string;
   choices?: string[];
-  required?: boolean | ((args: Record<string, any>) => boolean);
+  platform: Platform[];
 }

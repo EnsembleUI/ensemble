@@ -3,23 +3,22 @@ import {
   firebaseIOSParameters,
   firebaseWebParameters,
 } from './common-params';
-import { Script } from './interfaces';
-import { requiredForPlatform } from './utils';
+import { Parameter, Script } from './interfaces';
 
 // Common parameters available across scripts and modules
-export const commonParameters = [
+export const commonParameters: Parameter[] = [
   {
     key: 'platform',
     question: 'Which platform(s) are you targeting?',
-    type: 'checkbox',
+    type: 'select',
     choices: ['ios', 'android', 'web'],
-    required: true,
+    platform: ['android', 'ios', 'web'],
   },
   {
     key: 'ensemble_version',
     question: 'Which version of ensemble are you using?',
-    required: false,
     type: 'text',
+    platform: ['android', 'ios', 'web'],
   },
 ];
 
@@ -32,7 +31,7 @@ export const modules: Script[] = [
       {
         key: 'cameraDescription',
         question: 'Please provide a camera usage description for iOS: ',
-        required: requiredForPlatform('ios'),
+        platform: ['ios'],
         type: 'text',
       },
     ],
@@ -45,13 +44,13 @@ export const modules: Script[] = [
         key: 'photoLibraryDescription',
         question:
           'Please provide a description for accessing the photo library: ',
-        required: requiredForPlatform('ios'),
+        platform: ['ios'],
         type: 'text',
       },
       {
         key: 'musicDescription',
         question: 'Please provide a description for accessing music files: ',
-        required: requiredForPlatform('ios'),
+        platform: ['ios'],
         type: 'text',
       },
     ],
@@ -63,7 +62,7 @@ export const modules: Script[] = [
       {
         key: 'contactsDescription',
         question: 'Please provide a description for accessing contacts: ',
-        required: requiredForPlatform('ios'),
+        platform: ['ios'],
         type: 'text',
       },
     ],
@@ -75,7 +74,7 @@ export const modules: Script[] = [
       {
         key: 'cameraDescription',
         question: 'Please provide a camera usage description: ',
-        required: requiredForPlatform('ios'),
+        platform: ['ios'],
         type: 'text',
       },
     ],
@@ -88,21 +87,21 @@ export const modules: Script[] = [
         key: 'inUseLocationDescription',
         question:
           'Please provide a description for using location services while the app is in use: ',
-        required: requiredForPlatform('ios'),
+        platform: ['ios'],
         type: 'text',
       },
       {
         key: 'alwaysUseLocationDescription',
         question:
           'Please provide a description for using location services always: ',
-        required: requiredForPlatform('ios'),
+        platform: ['ios'],
         type: 'text',
       },
       {
         key: 'locationDescription',
         question:
           'Please provide a description for using location services always and when the app is in use: ',
-        required: requiredForPlatform('ios'),
+        platform: ['ios'],
         type: 'text',
       },
     ],
@@ -114,32 +113,32 @@ export const modules: Script[] = [
       {
         key: 'branchIOLiveKey',
         question: 'Please provide the live Branch.io key: ',
-        required: true,
+        platform: ['android', 'ios', 'web'],
         type: 'text',
       },
       {
         key: 'branchIOTestKey',
         question: 'Please provide the test Branch.io key: ',
-        required: true,
+        platform: ['android', 'ios', 'web'],
         type: 'text',
       },
       {
         key: 'branchIOUseTestKey',
         question: 'Are you using the test key? (yes/no): ',
-        type: 'list',
+        type: 'toggle',
         choices: ['yes', 'no'],
-        required: true,
+        platform: ['android', 'ios', 'web'],
       },
       {
         key: 'branchIOScheme',
         question: 'Please provide the URI scheme for deeplinking: ',
-        required: true,
+        platform: ['android', 'ios', 'web'],
         type: 'text',
       },
       {
         key: 'branchIOLinks',
         question: 'Please provide a comma-separated list of deeplink URLs: ',
-        required: true,
+        platform: ['android', 'ios', 'web'],
         type: 'text',
       },
     ],
@@ -154,9 +153,9 @@ export const modules: Script[] = [
       {
         key: 'enableConsoleLogs',
         question: 'Do you want to enable Firebase console logs? (yes/no): ',
-        type: 'list',
+        type: 'toggle',
         choices: ['yes', 'no'],
-        required: true,
+        platform: ['android', 'ios', 'web'],
       },
     ],
   },
@@ -182,21 +181,21 @@ export const modules: Script[] = [
         key: 'inUseLocationDescription',
         question:
           'Please provide a description for using location services while accessing network info: ',
-        required: requiredForPlatform('ios'),
+        platform: ['ios'],
         type: 'text',
       },
       {
         key: 'alwaysUseLocationDescription',
         question:
           'Please provide a description for always using location services for network info: ',
-        required: requiredForPlatform('ios'),
+        platform: ['ios'],
         type: 'text',
       },
       {
         key: 'preciseLocationDescription',
         question:
           'Please provide a description for using precise location services for network info: ',
-        required: requiredForPlatform('ios'),
+        platform: ['ios'],
         type: 'text',
       },
     ],
@@ -216,26 +215,26 @@ export const modules: Script[] = [
       {
         key: 'googleIOSClientId',
         question: 'Please provide your iOS client ID: ',
-        required: false,
         type: 'text',
+        platform: [],
       },
       {
         key: 'googleAndroidClientId',
         question: 'Please provide your Android client ID: ',
-        required: false,
         type: 'text',
+        platform: [],
       },
       {
         key: 'googleWebClientId',
         question: 'Please provide your Web client ID: ',
-        required: false,
         type: 'text',
+        platform: [],
       },
       {
         key: 'googleServerClientId',
         question: 'Please provide your server client ID: ',
-        required: false,
         type: 'text',
+        platform: [],
       },
     ],
   },
@@ -246,14 +245,14 @@ export const modules: Script[] = [
       {
         key: 'bluetoothDescription',
         question: 'Please provide a description for accessing Bluetooth: ',
-        required: requiredForPlatform('ios'),
+        platform: ['ios'],
         type: 'text',
       },
       {
         key: 'bluetoothPeripheralDescription',
         question:
           'Please provide a description for using Bluetooth peripherals: ',
-        required: requiredForPlatform('ios'),
+        platform: ['ios'],
         type: 'text',
       },
     ],
@@ -265,7 +264,7 @@ export const modules: Script[] = [
       {
         key: 'faceIdDescription',
         question: 'Please provide a description for Face ID usage (iOS): ',
-        required: requiredForPlatform('ios'),
+        platform: ['ios'],
         type: 'text',
       },
     ],
@@ -282,19 +281,19 @@ export const modules: Script[] = [
       {
         key: 'iOSGoogleMapsApiKey',
         question: 'Please provide your Google Maps API key for iOS ',
-        required: requiredForPlatform('ios'),
+        platform: ['ios'],
         type: 'text',
       },
       {
         key: 'androidGoogleMapsApiKey',
         question: 'Please provide your Google Maps API key for Android ',
-        required: requiredForPlatform('android'),
+        platform: ['android'],
         type: 'text',
       },
       {
         key: 'webGoogleMapsApiKey',
         question: 'Please provide your Google Maps API key for Web ',
-        required: requiredForPlatform('web'),
+        platform: ['web'],
         type: 'text',
       },
     ],
@@ -310,19 +309,19 @@ export const scripts: Script[] = [
       {
         key: 'storePassword',
         question: 'Please provide the store password: ',
-        required: true,
+        platform: ['android'],
         type: 'text',
       },
       {
         key: 'keyPassword',
         question: 'Please provide the key password: ',
-        required: true,
+        platform: ['android'],
         type: 'text',
       },
       {
         key: 'keyAlias',
         question: 'Please provide the key alias: ',
-        required: true,
+        platform: ['android'],
         type: 'text',
       },
     ],

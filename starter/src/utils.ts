@@ -34,9 +34,8 @@ const askForMissingArgs = async (
   const questions: prompts.PromptObject[] = params
     .filter((param) => {
       const required =
-        typeof param.required === 'function'
-          ? param.required(args)
-          : param.required;
+        (args.platform && param.platform.includes(args.platform as Platform)) ??
+        true;
       return (
         required &&
         !providedArgs.includes(param.key) &&
@@ -45,7 +44,7 @@ const askForMissingArgs = async (
       );
     })
     .map((param) => ({
-      type: param.choices ? 'select' : 'text',
+      type: param.type as prompts.PromptType,
       name: param.key,
       message: param.question,
       choices: param.choices?.map((choice) => ({
@@ -100,8 +99,4 @@ export const checkAndAskForMissingArgs = async (
       ([k, v]) => `${k}="${v}"`
     )
   );
-};
-
-export const requiredForPlatform = (platform: Platform) => {
-  return (args: any) => args.platform.includes(platform);
 };
