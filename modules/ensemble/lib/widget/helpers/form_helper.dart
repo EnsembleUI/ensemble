@@ -27,6 +27,8 @@ class FormFieldController extends WidgetController {
 
   bool? enabled;
   bool required = false;
+  String? requiredMessage;
+  TextStyle? errorStyle;
   IconModel? icon;
   int? maxWidth;
 
@@ -63,6 +65,8 @@ class FormFieldController extends WidgetController {
       'floatLabel': (value) =>
           floatLabel = Utils.getBool(value, fallback: false),
       'required': (value) => required = Utils.getBool(value, fallback: false),
+      'requiredMessage': (value) => requiredMessage =
+          Utils.getString(value, fallback: 'This field is required'),
       'icon': (value) => icon = Utils.getIcon(value),
       'maxWidth': (value) =>
           maxWidth = Utils.optionalInt(value, min: 0, max: 5000),
@@ -83,6 +87,7 @@ class FormFieldController extends WidgetController {
       'focusedErrorBorderColor': (color) =>
           focusedErrorBorderColor = Utils.getColor(color),
       'labelStyle': (style) => labelStyle = Utils.getTextStyle(style),
+      'errorStyle': (style) => errorStyle = Utils.getTextStyle(style),
       'floatingLabelStyle': (style) =>
           floatingLabelStyle = Utils.getTextStyle(style),
       'label': (value) => label = Utils.optionalString(value),
