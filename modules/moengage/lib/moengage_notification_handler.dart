@@ -48,6 +48,7 @@ class MoEngageNotificationHandler {
         'campaignId': message.campaignData.campaignId,
         'campaignName': message.campaignData.campaignName,
         'platform': message.platform.toString().split('.').last.toLowerCase(),
+        'notificationType': 'inApp',
         'data': {}, // Base data object
       };
 
@@ -82,6 +83,7 @@ class MoEngageNotificationHandler {
         ...pushData.payload, // Include all original payload
         'clickedAction': pushData.clickedAction,
         'platform': message.platform.toString().split('.').last.toLowerCase(),
+        'notificationType': 'push',
       };
 
       if (Platform.isAndroid) {
