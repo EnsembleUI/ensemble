@@ -1,5 +1,4 @@
 import { exec } from 'child_process';
-import { commonParameters } from './modules';
 import { ArgumentParseResult, Script } from './interfaces';
 import {
   checkAndAskForMissingArgs,
@@ -7,6 +6,7 @@ import {
   logError,
   selectModules,
 } from './utils';
+import { commonParameters } from './utility_scripts';
 
 const parseArguments = (args: string[]): ArgumentParseResult => {
   const scripts: string[] = [];

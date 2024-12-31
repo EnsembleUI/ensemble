@@ -1,6 +1,7 @@
 import prompts from 'prompts';
 import { Parameter, Platform, Script } from './interfaces';
-import { commonParameters, modules, scripts } from './modules';
+import { commonParameters, scripts } from './utility_scripts';
+import { modules } from './modules_scripts';
 
 export const findScript = (name: string): Script => {
   const script =
