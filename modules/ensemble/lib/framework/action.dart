@@ -18,6 +18,7 @@ import 'package:ensemble/action/change_locale_actions.dart';
 import 'package:ensemble/action/misc_action.dart';
 import 'package:ensemble/action/navigation_action.dart';
 import 'package:ensemble/action/notification_actions.dart';
+import 'package:ensemble/action/save_to_gallery.dart';
 import 'package:ensemble/action/phone_contact_action.dart';
 import 'package:ensemble/action/sign_in_out_action.dart';
 import 'package:ensemble/action/toast_actions.dart';
@@ -57,18 +58,16 @@ class ShowCameraAction extends EnsembleAction {
   EnsembleAction? onClose;
   EnsembleAction? onCapture;
   EnsembleAction? onError;
-  
 
   factory ShowCameraAction.fromYaml({Invokable? initiator, Map? payload}) {
     return ShowCameraAction(
-      initiator: initiator,
-      options: Utils.getMap(payload?['options']),
-      id: Utils.optionalString(payload?['id']),
-      onComplete: EnsembleAction.from(payload?['onComplete']),
-      onClose: EnsembleAction.from(payload?['onClose']),
-      onCapture: EnsembleAction.from(payload?['onCapture']),
-      onError: EnsembleAction.from(payload?['onError'])
-    );
+        initiator: initiator,
+        options: Utils.getMap(payload?['options']),
+        id: Utils.optionalString(payload?['id']),
+        onComplete: EnsembleAction.from(payload?['onComplete']),
+        onClose: EnsembleAction.from(payload?['onClose']),
+        onCapture: EnsembleAction.from(payload?['onCapture']),
+        onError: EnsembleAction.from(payload?['onError']));
   }
 }
 
@@ -1052,6 +1051,7 @@ enum ActionType {
   bluetoothDisconnect,
   bluetoothSubscribeCharacteristic,
   bluetoothUnsubscribeCharacteristic,
+  saveFile
 }
 
 /// payload representing an Action to do (navigateToScreen, InvokeAPI, ..)
@@ -1171,6 +1171,8 @@ abstract class EnsembleAction {
       return CopyToClipboardAction.from(payload: payload);
     } else if (actionType == ActionType.share) {
       return ShareAction.from(payload: payload);
+    } else if (actionType == ActionType.saveFile) {
+      return SaveToFileSystemAction.from(payload: payload);
     } else if (actionType == ActionType.rateApp) {
       return RateAppAction.from(payload: payload);
     } else if (actionType == ActionType.getDeviceToken) {
