@@ -30,10 +30,12 @@ class Camera extends StatefulWidget
     Key? key,
     this.onCapture,
     this.onComplete,
+    this.onError,
   }) : super(key: key);
 
   final Function? onCapture;
   final Function? onComplete;
+  final Function(dynamic error)? onError;
 
   final MyCameraController _controller = MyCameraController();
 
@@ -244,6 +246,9 @@ class CameraState extends EWidgetState<Camera> with WidgetsBindingObserver {
       if (e is CameraException && e.code == 'CameraAccessDenied') {
         hasPermission = false;
       }
+      debugPrint(e.toString());
+      widget.onError?.call(e);
+      Navigator.pop(context);
     }
     setState(() {
       isLoading = false;
