@@ -13,7 +13,6 @@ import 'package:ensemble/util/utils.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:permission_handler/permission_handler.dart';
 
 import './camera.dart';
 
@@ -56,8 +55,14 @@ class CameraManagerImpl extends CameraManager {
   Future<bool?> hasPermission() async {
     bool? status;
     try {
-      PermissionStatus permissionStatus = await Permission.camera.status;
-      status = permissionStatus.isGranted;
+      final cameras = await availableCameras();
+      if (cameras.isNotEmpty) {
+        await CameraController(cameras[0], ResolutionPreset.max).initialize();
+        status = true;
+      } else {
+        status = null;
+      }
+      return status;
     } catch (error) {
       if (error is CameraException) {
         switch (error.code) {
@@ -75,8 +80,8 @@ class CameraManagerImpl extends CameraManager {
       } else {
         status = null;
       }
+      return status;
     }
-    return status;
   }
 
   Future<File?> convertXFile(XFile element) async {
@@ -93,22 +98,6 @@ class CameraManagerImpl extends CameraManager {
     final isDefault = Utils.getBool(
         scopeManager?.dataContext.eval(cameraAction.options?['default']),
         fallback: false);
-
-    final isCameraAllowed = await hasPermission();
-
-    if (!(isCameraAllowed ?? false)) {
-      final requestedPermissionStatus = await Permission.camera.request();
-
-      if ((!requestedPermissionStatus.isGranted) &&
-          cameraAction.onError != null) {
-        ScreenController().executeAction(context, cameraAction.onError!,
-            event: EnsembleEvent(null,
-                error: 'ensemble_camera: permission denied'));
-
-        debugPrint('ensemble_camera: permission denied');
-        return;
-      }
-    }
 
     if (isDefault && !kIsWeb) {
       await defaultCamera(context, cameraAction, scopeManager);
@@ -171,6 +160,18 @@ class CameraManagerImpl extends CameraManager {
           : () {
               ScreenController()
                   .executeAction(context, cameraAction.onComplete!);
+            },
+      onError: cameraAction.onError == null
+          ? null
+          : (error) {
+              ScreenController().executeAction(
+                context,
+                cameraAction.onError!,
+                event: EnsembleEvent(
+                  null,
+                  error: error.toString(),
+                ),
+              );
             },
     );
 
