@@ -71,5 +71,9 @@
         <string>filza</string>
         <string>activator</string>
     </array>
+
+	<!-- To indicate that app does not use non-exempt (custom) encryption. Required for App Store submission, Otherwise, you need do it manually in App Store Connect -->
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 </dict>
 </plist>
