@@ -15,11 +15,13 @@ class SaveToFileSystemAction extends EnsembleAction {
   final String? fileName;
   final dynamic blobData;
   final String? source; // Optional source for URL if blobData is not available
+  final String? type; // file type
 
   SaveToFileSystemAction({
     required this.fileName,
     this.blobData,
     this.source,
+    this.type,
   });
 
   factory SaveToFileSystemAction.from({Map? payload}) {
@@ -31,6 +33,7 @@ class SaveToFileSystemAction extends EnsembleAction {
       fileName: payload['fileName'],
       blobData: payload['blobData'],
       source: payload['source'],
+      type: payload['type'],
     );
   }
 
@@ -66,10 +69,11 @@ class SaveToFileSystemAction extends EnsembleAction {
 
       // Determine file type based on file extension
       final fileExtension = fileName!.split('.').last.toLowerCase();
-      if (['jpg', 'jpeg', 'png', 'gif', 'bmp'].contains(fileExtension)) {
+      // if (['jpg', 'jpeg', 'png', 'gif', 'bmp'].contains(fileExtension)) {
+      if (type == 'image') {
         // Save images to DCIM/Pictures
         await _saveImageToDCIM(fileName!, fileBytes!);
-      } else {
+      } else if (type == 'document') {
         // Save documents to Documents folder
         await _saveDocumentToDocumentsFolder(fileName!, fileBytes!);
       }
