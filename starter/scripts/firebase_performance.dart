@@ -56,22 +56,27 @@ void addPod(String pod) {
 }
 
 void addDependency(String dependency, String version) {
-  final pubspec = File('pubspec.yaml');
+  final pubspec = File(pubspecFilePath);
   if (!pubspec.existsSync()) {
     throw 'pubspec.yaml not found';
   }
 
-  // find dependencies section with regex, don't do it with lines
   final content = pubspec.readAsStringSync();
-  final dependencies =
+  final dependenciesSection =
       RegExp(r'dependencies:', multiLine: true).firstMatch(content);
 
-  if (dependencies == null) {
+  if (dependenciesSection == null) {
     throw 'dependencies section not found in pubspec.yaml';
   }
 
-  final newContent = content.replaceFirst(dependencies.group(0)!,
-      '${dependencies.group(0)}\n  $dependency: $version\n');
+  final dependencyPattern = RegExp(r'\s+$dependency:\s+\S+');
+  if (dependencyPattern.hasMatch(content)) {
+    return;
+  }
+  final newContent = content.replaceFirst(
+    dependenciesSection.group(0)!,
+    '${dependenciesSection.group(0)}\n  $dependency: $version\n',
+  );
 
   pubspec.writeAsStringSync(newContent);
 }
