@@ -5,6 +5,8 @@ import 'package:camera/camera.dart';
 import 'package:collection/collection.dart' show IterableExtension;
 import 'package:ensemble/action/toast_actions.dart';
 import 'package:ensemble/framework/data_context.dart';
+import 'package:ensemble/framework/scope.dart';
+import 'package:ensemble/framework/view/data_scope_widget.dart';
 import 'package:ensemble/framework/widget/icon.dart' as iconframework;
 import 'package:ensemble/framework/widget/toast.dart';
 import 'package:ensemble/framework/widget/widget.dart';
@@ -31,11 +33,13 @@ class Camera extends StatefulWidget
     this.onCapture,
     this.onComplete,
     this.onError,
+    this.overlayWidget,
   }) : super(key: key);
 
   final Function? onCapture;
   final Function? onComplete;
   final Function(dynamic error)? onError;
+  final Widget? overlayWidget;
 
   final MyCameraController _controller = MyCameraController();
 
@@ -477,6 +481,7 @@ class CameraState extends EWidgetState<Camera> with WidgetsBindingObserver {
                   );
                 }),
               ),
+        if (widget.overlayWidget != null) Positioned.fill(child: widget.overlayWidget!),
         imagePreviewButton(),
         Align(
             alignment: Alignment.bottomCenter,
@@ -881,7 +886,7 @@ class CameraState extends EWidgetState<Camera> with WidgetsBindingObserver {
                         backgroundColor: Colors.white.withOpacity(0.1),
                         onPressed: selectImage,
                       )
-                    : const SizedBox.shrink(),
+                    : SizedBox(width: iconSize * 2, height: iconSize * 2),
                 InkWell(
                   onTap: capture,
                   child: Stack(
