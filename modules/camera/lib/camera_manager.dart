@@ -8,6 +8,7 @@ import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/stub/camera_manager.dart';
 import 'package:ensemble/framework/scope.dart';
+import 'package:ensemble/framework/view/data_scope_widget.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:flutter/foundation.dart';
@@ -148,7 +149,10 @@ class CameraManagerImpl extends CameraManager {
 
   Future<void> bespokeCamera(BuildContext context,
       ShowCameraAction cameraAction, ScopeManager? scopeManager) async {
+    Widget? overlayWidget = buildOverlayWidget(scopeManager, cameraAction);
+
     Camera camera = Camera(
+      overlayWidget: overlayWidget,
       onCapture: cameraAction.onCapture == null
           ? null
           : () {
@@ -233,5 +237,21 @@ class CameraManagerImpl extends CameraManager {
       scopeManager?.dispatch(
           ModelChangeEvent(WidgetBindingSource(cameraAction.id!), camera));
     }
+  }
+
+  Widget? buildOverlayWidget(
+      ScopeManager? scopeManager, ShowCameraAction cameraAction) {
+    Widget? overlayWidget;
+    try {
+      overlayWidget =
+          scopeManager?.buildWidgetFromDefinition(cameraAction.overlayWidget);
+      if (overlayWidget != null) {
+        overlayWidget =
+            DataScopeWidget(scopeManager: scopeManager!, child: overlayWidget);
+      }
+    } on Exception catch (e) {
+      debugPrint('Ensemble Camera: Error while building overlay widget $e');
+    }
+    return overlayWidget;
   }
 }

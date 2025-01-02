@@ -50,6 +50,7 @@ class ShowCameraAction extends EnsembleAction {
     this.onClose,
     this.onCapture,
     this.onError,
+    this.overlayWidget,
   }) : super(initiator: initiator);
   final Map<String, dynamic>? options;
   String? id;
@@ -57,6 +58,7 @@ class ShowCameraAction extends EnsembleAction {
   EnsembleAction? onClose;
   EnsembleAction? onCapture;
   EnsembleAction? onError;
+  dynamic overlayWidget;
   
 
   factory ShowCameraAction.fromYaml({Invokable? initiator, Map? payload}) {
@@ -67,7 +69,8 @@ class ShowCameraAction extends EnsembleAction {
       onComplete: EnsembleAction.from(payload?['onComplete']),
       onClose: EnsembleAction.from(payload?['onClose']),
       onCapture: EnsembleAction.from(payload?['onCapture']),
-      onError: EnsembleAction.from(payload?['onError'])
+      onError: EnsembleAction.from(payload?['onError']),
+      overlayWidget: payload?['overlayWidget'],
     );
   }
 }
