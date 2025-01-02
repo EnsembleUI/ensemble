@@ -67,6 +67,7 @@ class ShowCameraAction extends EnsembleAction {
       onComplete: EnsembleAction.from(payload?['onComplete']),
       onClose: EnsembleAction.from(payload?['onClose']),
       onCapture: EnsembleAction.from(payload?['onCapture']),
+      onError: EnsembleAction.from(payload?['onError'])
     );
   }
 }

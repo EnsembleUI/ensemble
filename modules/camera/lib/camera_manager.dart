@@ -99,18 +99,6 @@ class CameraManagerImpl extends CameraManager {
         scopeManager?.dataContext.eval(cameraAction.options?['default']),
         fallback: false);
 
-    final isCameraAllowed = await hasPermission();
-
-    if (!(isCameraAllowed ?? false)) {
-      if (cameraAction.onError != null) {
-        ScreenController().executeAction(context, cameraAction.onError!,
-            event: EnsembleEvent(null,
-                error: 'ensemble_camera: permission denied'));
-      }
-      debugPrint('ensemble_camera: permission denied');
-      return;
-    }
-
     if (isDefault && !kIsWeb) {
       await defaultCamera(context, cameraAction, scopeManager);
     } else {
@@ -172,6 +160,18 @@ class CameraManagerImpl extends CameraManager {
           : () {
               ScreenController()
                   .executeAction(context, cameraAction.onComplete!);
+            },
+      onError: cameraAction.onError == null
+          ? null
+          : (error) {
+              ScreenController().executeAction(
+                context,
+                cameraAction.onError!,
+                event: EnsembleEvent(
+                  null,
+                  error: error.toString(),
+                ),
+              );
             },
     );
 

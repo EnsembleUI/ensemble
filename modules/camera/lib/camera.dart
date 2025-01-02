@@ -30,10 +30,12 @@ class Camera extends StatefulWidget
     Key? key,
     this.onCapture,
     this.onComplete,
+    this.onError,
   }) : super(key: key);
 
   final Function? onCapture;
   final Function? onComplete;
+  final Function(dynamic error)? onError;
 
   final MyCameraController _controller = MyCameraController();
 
@@ -244,6 +246,9 @@ class CameraState extends EWidgetState<Camera> with WidgetsBindingObserver {
       if (e is CameraException && e.code == 'CameraAccessDenied') {
         hasPermission = false;
       }
+      debugPrint(e.toString());
+      widget.onError?.call(e);
+      Navigator.pop(context);
     }
     setState(() {
       isLoading = false;
@@ -410,11 +415,12 @@ class CameraState extends EWidgetState<Camera> with WidgetsBindingObserver {
   @override
   Widget buildWidget(BuildContext context) {
     if (isLoading) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      return const Scaffold(
+        backgroundColor: Colors.black,
+        body: Center(child: CircularProgressIndicator()),
+      );
     }
-    if (showPreviewPage) {
-      return fullImagePreview();
-    }
+
     if (widget._controller.cameraController == null ||
         !widget._controller.cameraController!.value.isInitialized) {
       return Container();
@@ -449,22 +455,28 @@ class CameraState extends EWidgetState<Camera> with WidgetsBindingObserver {
   Widget cameraView() {
     return Stack(
       children: [
-        Center(
-          child: CameraPreview(
-            widget._controller.cameraController!,
-            child: LayoutBuilder(builder: (context, constraints) {
-              return GestureDetector(
-                onTapUp: kIsWeb
-                    ? null
-                    : (details) => onViewFinderTap(details, constraints),
-                onScaleUpdate: (details) async {
-                  final zoom = details.scale.clamp(1.0, 2.0);
-                  widget._controller.cameraController?.setZoomLevel(zoom);
-                },
-              );
-            }),
-          ),
-        ),
+        kIsWeb
+            ? Center(
+                child: AspectRatio(
+                  aspectRatio:
+                      widget.controller.cameraController!.value.aspectRatio,
+                  child: widget.controller.cameraController!.buildPreview(),
+                ),
+              )
+            : CameraPreview(
+                widget._controller.cameraController!,
+                child: LayoutBuilder(builder: (context, constraints) {
+                  return GestureDetector(
+                    onTapUp: kIsWeb
+                        ? null
+                        : (details) => onViewFinderTap(details, constraints),
+                    onScaleUpdate: (details) async {
+                      final zoom = details.scale.clamp(1.0, 2.0);
+                      widget._controller.cameraController?.setZoomLevel(zoom);
+                    },
+                  );
+                }),
+              ),
         imagePreviewButton(),
         Align(
             alignment: Alignment.bottomCenter,
@@ -898,7 +910,7 @@ class CameraState extends EWidgetState<Camera> with WidgetsBindingObserver {
                     ],
                   ),
                 ),
-                widget._controller.allowCameraRotate
+                widget._controller.allowCameraRotate && cameras.length > 1
                     ? buttons(
                         icon: widget._controller.cameraRotateIcon != null
                             ? iconframework.Icon.fromModel(
@@ -909,25 +921,37 @@ class CameraState extends EWidgetState<Camera> with WidgetsBindingObserver {
                                 color: iconColor,
                               ),
                         backgroundColor: Colors.white.withOpacity(0.1),
-                        onPressed: () {
-                          currentModeIndex = 0;
+                        onPressed: () async {
+                          try {
+                            if (cameras.length <= 1) return;
+                            currentModeIndex = 0;
+                            setState(() {
+                              isLoading = true;
+                            });
+                            await widget._controller.cameraController
+                                ?.dispose();
 
-                          if (isFrontCamera) {
-                            final back = cameras.firstWhere((camera) =>
-                                camera.lensDirection ==
-                                CameraLensDirection.back);
-                            setCamera(cameraDescription: back);
-                            isFrontCamera = false;
-                          } else {
-                            final front = cameras.firstWhere((camera) =>
-                                camera.lensDirection ==
-                                CameraLensDirection.front);
-                            setCamera(cameraDescription: front);
-                            isFrontCamera = true;
+                            if (isFrontCamera) {
+                              final back = cameras.firstWhere((camera) =>
+                                  camera.lensDirection ==
+                                  CameraLensDirection.back);
+                              setCamera(cameraDescription: back);
+                              isFrontCamera = false;
+                            } else {
+                              final front = cameras.firstWhere((camera) =>
+                                  camera.lensDirection ==
+                                  CameraLensDirection.front);
+                              setCamera(cameraDescription: front);
+                              isFrontCamera = true;
+                            }
+                            setState(() {
+                              isLoading = false;
+                            });
+                          } on Exception catch (_) {
+                            Navigator.pop(context);
                           }
-                          setState(() {});
                         })
-                    : const SizedBox.shrink()
+                    : SizedBox(width: iconSize * 2, height: iconSize * 2)
               ],
             ),
           ],
