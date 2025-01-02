@@ -463,6 +463,7 @@ class SelectOneState extends FormFieldWidgetState<SelectOne>
                 );
               },
               onSelected: (SelectOneItem selection) {
+                focusNode.unfocus();
                 if (selection is CreateSelectOneItem) {
                   if (widget.controller.onCreateItemTap == null) return;
                   scopeManager?.dataContext
