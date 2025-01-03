@@ -16,9 +16,6 @@ class CloseAppAction extends EnsembleAction {
     );
   }
 
-  factory CloseAppAction.fromMap(dynamic inputs, {Map? payload}) =>
-      CloseAppAction.from(payload: Utils.getYamlMap(inputs));
-
   @override
   Future execute(BuildContext context, ScopeManager scopeManager) {
     SystemNavigator.pop();
