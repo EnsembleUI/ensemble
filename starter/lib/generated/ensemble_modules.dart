@@ -13,6 +13,7 @@ import 'package:ensemble/framework/stub/contacts_manager.dart';
 import 'package:ensemble/framework/stub/plaid_link_manager.dart';
 import 'package:ensemble/module/auth_module.dart';
 import 'package:ensemble/module/location_module.dart';
+import 'package:ensemble/framework/stub/moengage_manager.dart';
 //import 'package:ensemble_bluetooth/ensemble_bluetooth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -20,6 +21,9 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 //import 'package:ensemble_firebase_analytics/firebase_analytics.dart';
 // import 'package:ensemble_location/location_module.dart';
 import 'package:get_it/get_it.dart';
+
+// Uncomment to enable moengage
+// import 'package:ensemble_moengage/moengage.dart';
 
 // Uncomment to enable ensemble_chat widget
 // import 'package:ensemble_chat/ensemble_chat.dart';
@@ -70,6 +74,7 @@ class EnsembleModules {
   static const useDeeplink = false;
   static const useFirebaseAnalytics = false;
   static const useNotifications = false;
+  static const useMoEngage = false;
 
   static const useBracket = false;
   static const useNetworkInfo = false;
@@ -84,7 +89,7 @@ class EnsembleModules {
   Future<void> init() async {
     // Note that notifications is not a module
 
-    if (useNotifications || useFirebaseAnalytics) {
+    if (useMoEngage || useNotifications || useFirebaseAnalytics) {
       // if payload is not passed, Firebase configuration files
       // are required to be added manualy to iOS and Android
       try {
@@ -102,6 +107,12 @@ class EnsembleModules {
       // TODO: how to do notificationCallbacks in YAML
       // Currently we need to drop the iOS/Android Firebase config into the root folder
       await NotificationManager().init();
+    }
+
+    if (useMoEngage) {
+      // GetIt.I.registerSingleton<MoEngageModule>(MoEngageImpl(workspaceId: ''));
+    } else {
+      GetIt.I.registerSingleton<MoEngageModule>(MoEngageModuleStub());
     }
 
     if (useCamera) {
