@@ -1,5 +1,5 @@
-const authProguardRules = '''
-# Keep Google Play Services Auth classes
+const firebaseProguardRules = '''
+# Keep Google Play Services classes
 -keep class com.google.android.gms.** { *; }
 -keep interface com.google.android.gms.** { *; }
 -dontwarn com.google.android.gms.**

@@ -55,7 +55,7 @@ ensemble_auth:
     updateAuthConfig(iOSClientId, androidClientId, webClientId, serverClientId);
     updateFirebaseConfig(platforms, arguments);
     if (platforms.contains('android')) {
-      createProguardRules(authProguardRules);
+      createProguardRules(firebaseProguardRules);
       addClasspathDependency(
           "classpath 'com.google.gms:google-services:4.3.15'");
       addPluginDependency("apply plugin: 'com.google.gms.google-services'");

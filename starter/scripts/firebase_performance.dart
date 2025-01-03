@@ -2,6 +2,8 @@ import 'dart:io';
 
 import 'utils.dart';
 import 'utils/firebase_utils.dart';
+import 'utils/proguard_utils.dart';
+import 'constants.dart';
 
 // Adds the Firebase Performance SDK to the project
 void main(List<String> arguments) {
@@ -11,6 +13,7 @@ void main(List<String> arguments) {
     addDependency('firebase_performance', '^0.10.0+11');
 
     if (platforms.contains('android')) {
+      createProguardRules(firebaseProguardRules);
       addClasspathDependency(
           "classpath 'com.google.firebase:perf-plugin:1.4.2'");
       addPluginDependency("apply plugin: 'com.google.firebase.firebase-perf'");
