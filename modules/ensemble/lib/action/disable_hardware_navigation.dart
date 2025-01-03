@@ -64,7 +64,6 @@ class ControlBackNavigation extends EnsembleAction {
   }
 
   void _disableBackButton(BuildContext context) {
-    print(disable);
     ModalRoute? currentRoute = ModalRoute.of(context);
     if (currentRoute != null) {
       if (disable) {
