@@ -110,7 +110,7 @@ class EnsembleModules {
     }
 
     if (useMoEngage) {
-      // GetIt.I.registerSingleton<MoEngageModule>(MoEngageImpl(workspaceId: ''));
+      // GetIt.I.registerSingleton<MoEngageModule>(MoEngageImpl());
     } else {
       GetIt.I.registerSingleton<MoEngageModule>(MoEngageModuleStub());
     }
