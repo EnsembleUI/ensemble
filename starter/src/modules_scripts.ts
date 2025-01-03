@@ -281,4 +281,26 @@ export const modules: Script[] = [
       },
     ],
   },
+  {
+    name: 'moengage',
+    path: 'scripts/modules/enable_moengage.dart',
+    parameters: [
+      {
+        key: 'moengage_workspace_id',
+        question: 'Please provide your MoEngage Workspace ID: ',
+        platform: ['android', 'ios', 'web'],
+        type: 'text'
+      },
+      {
+        key: 'enableConsoleLogs',
+        question: 'Do you want to enable MoEngage console logs? (yes/no): ',
+        type: 'toggle',
+        choices: ['yes', 'no'],
+        platform: ['android', 'ios', 'web']
+      },
+      ...firebaseAndroidParameters,
+      ...firebaseIOSParameters,
+      ...firebaseWebParameters
+    ],
+  }
 ];

@@ -485,6 +485,204 @@ $deeplinkEntries
   }
 }
 
+// Reads a specific key from ensemble.properties
+/// [key] The property key to look for (e.g., 'appId')
+/// [defaultValue] Optional fallback value if key isn't found
+/// Returns the value associated with the key or throws if not found
+String getPropertyValue(String key, {String? defaultValue}) {
+  try {
+    // Read the properties file synchronously
+    final properties = File(ensemblePropertiesFilePath).readAsStringSync();
+
+    // Look for a line that matches key=value pattern
+    final match = RegExp('$key=(.+)').firstMatch(properties);
+
+    // If match found, return group 1 (the value part)
+    // If no match and defaultValue provided, return defaultValue
+    // Otherwise throw exception
+    if (match != null) {
+      return match.group(1)!;
+    } else if (defaultValue != null) {
+      return defaultValue;
+    } else {
+      throw Exception('$key not found in properties file');
+    }
+  } catch (e) {
+    throw Exception('Error reading $key: $e');
+  }
+}
+
+/// Gets the Kotlin source path for a package
+String getKotlinPath(String packageId) {
+  return 'android/app/src/main/kotlin/${packageId.split('.').join('/')}';
+}
+
+/// Creates or updates a Kotlin file
+Future<void> createKotlinFile(String path, String content) async {
+  final file = File(path);
+  if (!await file.parent.exists()) {
+    await file.parent.create(recursive: true);
+  }
+  await file.writeAsString(content);
+}
+
+/// Enhanced Android Manifest modification function
+Future<void> modifyAndroidManifest({
+  List<String>? permissions,
+  Map<String, String>? applicationAttributes,
+  List<Map<String, dynamic>>? intentFilters,
+  List<Map<String, dynamic>>? services,
+  List<Map<String, dynamic>>? activities,
+  String? launchMode,
+}) async {
+  String content = readFileContent(androidManifestFilePath);
+
+  // Add tools namespace if missing
+  if (!content.contains('xmlns:tools')) {
+    content = content.replaceFirst(
+        '<manifest xmlns:android="http://schemas.android.com/apk/res/android"',
+        '<manifest xmlns:android="http://schemas.android.com/apk/res/android" xmlns:tools="http://schemas.android.com/tools"');
+  }
+
+  // Add permissions
+  if (permissions != null && permissions.isNotEmpty) {
+    final permissionsBlock = permissions.join('\n    ');
+    if (!permissions.any((permission) => content.contains(permission))) {
+      content = content.replaceFirst(
+          '</manifest>', '    $permissionsBlock\n</manifest>');
+    }
+  }
+
+  // Update application attributes
+  if (applicationAttributes != null) {
+    final applicationPattern = RegExp(r'<application[^>]*>');
+    content = content.replaceAllMapped(applicationPattern, (match) {
+      String appTag = match.group(0) ?? '';
+      applicationAttributes.forEach((key, value) {
+        if (appTag.contains('$key=')) {
+          appTag = appTag.replaceAll(RegExp('$key="[^"]*"'), '$key="$value"');
+        } else {
+          appTag = appTag.replaceAll('>', ' $key="$value">');
+        }
+      });
+      return appTag;
+    });
+  }
+
+  // Update launch mode if provided
+  if (launchMode != null) {
+    content = content.replaceFirst(RegExp(r'android:launchMode="[^"]*"'),
+        'android:launchMode="$launchMode"');
+  }
+
+  // Add intent filters
+  if (intentFilters != null) {
+    for (final filter in intentFilters) {
+      if (!content.contains(filter['identifier'] as String)) {
+        content = content.replaceFirst(
+            '</activity>', '${filter['content']}\n        </activity>');
+      }
+    }
+  }
+
+  // Add services
+  if (services != null) {
+    final applicationEndIndex = content.lastIndexOf('</application>');
+    if (applicationEndIndex != -1) {
+      final servicesBlock = services
+          .where(
+              (service) => !content.contains(service['identifier'] as String))
+          .map((service) => service['content'])
+          .join('\n\n        ');
+
+      if (servicesBlock.isNotEmpty) {
+        content = content.replaceRange(applicationEndIndex, applicationEndIndex,
+            '        $servicesBlock\n    ');
+      }
+    }
+  }
+
+  // Add activities
+  if (activities != null) {
+    final applicationEndIndex = content.lastIndexOf('</application>');
+    if (applicationEndIndex != -1) {
+      final activitiesBlock = activities
+          .where(
+              (activity) => !content.contains(activity['identifier'] as String))
+          .map((activity) => activity['content'])
+          .join('\n\n        ');
+
+      if (activitiesBlock.isNotEmpty) {
+        content = content.replaceRange(applicationEndIndex, applicationEndIndex,
+            '        $activitiesBlock\n    ');
+      }
+    }
+  }
+
+  writeFileContent(androidManifestFilePath, content);
+}
+
+// Utility function to normalize line endings
+String normalizeLineEndings(String content) {
+  return content.replaceAll('\r\n', '\n');
+}
+
+/// Updates the AppDelegate.swift file with the provided updates.
+///
+/// [updates] is a list of maps. Each map should contain:
+/// - 'pattern': The text pattern to find in AppDelegate.swift
+/// - 'replacement': The text to replace the pattern with
+void updateAppDelegate(List<Map<String, String>> updates) {
+  String appDelegateFilePath = appDelegatePath;
+  if (!File(appDelegateFilePath).existsSync()) {
+    throw Exception('AppDelegate.swift not found at $appDelegateFilePath');
+  }
+
+  String appDelegateContent = readFileContent(appDelegateFilePath);
+  // normalizing the appDelegate content to remove extra spaces.
+  appDelegateContent = normalizeLineEndings(appDelegateContent);
+
+  try {
+    bool requiresUpdate = false;
+    String updatedContent = appDelegateContent;
+
+    // Check if any updates are needed
+    for (final update in updates) {
+      final desiredContent = update['replacement'] ?? '';
+      if (!appDelegateContent.contains(desiredContent)) {
+        requiresUpdate = true;
+        break;
+      }
+    }
+
+    if (requiresUpdate) {
+      for (final update in updates) {
+        try {
+          final newContent = updateContent(
+            updatedContent,
+            update['pattern'] ?? '',
+            update['replacement'] ?? '',
+          );
+          if (newContent != updatedContent) {
+            updatedContent = newContent;
+          }
+        } catch (e) {
+          print('Failed to apply update: $e');
+          continue;
+        }
+      }
+
+      if (updatedContent != appDelegateContent) {
+        writeFileContent(appDelegateFilePath, updatedContent);
+      }
+    } else {
+      print('No updates needed');
+    }
+  } catch (e) {
+    throw Exception('Failed to update AppDelegate.swift: $e');
+  }
+}
+
 /// Retrieves the ensemble version.
 ///
 /// If [version] is provided and different from the current ensemble version,

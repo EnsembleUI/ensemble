@@ -17,6 +17,7 @@
     "hasLocation": "ts-node src/dart_runner.ts location",
     "hasDeeplink": "ts-node src/dart_runner.ts deeplink",
     "hasFirebaseAnalytics": "ts-node src/dart_runner.ts firebase_analytics",
+    "hasMoengage": "ts-node src/dart_runner.ts moengage",
     "hasNotification": "ts-node src/dart_runner.ts notification",
     "hasBracket": "ts-node src/dart_runner.ts bracket",
     "hasNetworkInfo": "ts-node src/dart_runner.ts network_info",
