@@ -475,6 +475,8 @@ class SelectOneState extends FormFieldWidgetState<SelectOne>
                 if (kDebugMode) {
                   print('Selected: ${selection.value}');
                 }
+                widget.controller.textEditingController.text =
+                    selection.label ?? selection.value;
               },
               optionsViewBuilder: (BuildContext context,
                   AutocompleteOnSelected<SelectOneItem> onSelected,
