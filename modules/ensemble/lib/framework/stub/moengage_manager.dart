@@ -1,5 +1,5 @@
 import 'package:ensemble/framework/error_handling.dart';
-import 'package:moengage_flutter/moengage_flutter.dart';
+import 'package:ensemble/util/moengage_utils.dart';
 
 typedef NotificationCallback = void Function(dynamic data);
 
@@ -8,7 +8,7 @@ abstract class MoEngageModule {
   Future<void> initialize(String workspaceId, {bool enableLogs = false});
   
   // Event Tracking  
-  Future<void> trackEvent(String eventName, [MoEProperties? properties]);
+  Future<void> trackEvent(String eventName, [EnsembleProperties? properties]);
 
   // User Attributes - Basic
   Future<void> setUniqueId(String uniqueId);
@@ -17,18 +17,18 @@ abstract class MoEngageModule {
   Future<void> setLastName(String lastName);
   Future<void> setEmail(String email);
   Future<void> setPhoneNumber(String phoneNumber);
-  Future<void> setGender(MoEGender gender);
+  Future<void> setGender(EnsembleGender gender);
   Future<void> setBirthDate(String birthDate);
-  Future<void> setLocation(MoEGeoLocation location);
+  Future<void> setLocation(EnsembleGeoLocation location);
   Future<void> setAlias(String alias);
 
   // User Attributes - Custom
   Future<void> setUserAttribute(String attributeName, dynamic value);
   Future<void> setUserAttributeIsoDate(String attributeName, String date);
-  Future<void> setUserAttributeLocation(String attributeName, MoEGeoLocation location);
+  Future<void> setUserAttributeLocation(String attributeName, EnsembleGeoLocation location);
 
   // App Status & Tracking
-  Future<void> setAppStatus(MoEAppStatus status);
+  Future<void> setAppStatus(EnsembleAppStatus status);
   Future<void> enableDataTracking();
   Future<void> disableDataTracking();
 
@@ -52,7 +52,7 @@ abstract class MoEngageModule {
 
   // InApp & Context
   Future<void> showInApp();
-  Future<void> showNudge({MoEngageNudgePosition position = MoEngageNudgePosition.bottom});
+  Future<void> showNudge({EnsembleNudgePosition position = EnsembleNudgePosition.bottom});
   Future<void> setCurrentContext(List<String> contexts);
   Future<void> resetCurrentContext();
   Future<void> getSelfHandledInApp();
@@ -74,7 +74,7 @@ abstract class MoEngageModule {
   Future<void> enableSdk();
   Future<void> disableSdk();
   Future<void> logout();
-  Future<UserDeletionData> deleteUser();
+  Future<bool> deleteUser();
 }
 
 class MoEngageModuleStub implements MoEngageModule {
@@ -88,7 +88,7 @@ class MoEngageModuleStub implements MoEngageModule {
   }
 
   @override
-  Future<void> trackEvent(String eventName, [MoEProperties? properties]) {
+  Future<void> trackEvent(String eventName, [EnsembleProperties? properties]) {
     throw ConfigError(_errorMsg);
   }
 
@@ -123,7 +123,7 @@ class MoEngageModuleStub implements MoEngageModule {
   }
 
   @override 
-  Future<void> setGender(MoEGender gender) {
+  Future<void> setGender(EnsembleGender gender) {
     throw ConfigError(_errorMsg);
   }
 
@@ -133,7 +133,7 @@ class MoEngageModuleStub implements MoEngageModule {
   }
 
   @override
-  Future<void> setLocation(MoEGeoLocation location) {
+  Future<void> setLocation(EnsembleGeoLocation location) {
     throw ConfigError(_errorMsg);
   }
 
@@ -153,12 +153,12 @@ class MoEngageModuleStub implements MoEngageModule {
   }
 
   @override
-  Future<void> setUserAttributeLocation(String attributeName, MoEGeoLocation location) {
+  Future<void> setUserAttributeLocation(String attributeName, EnsembleGeoLocation location) {
     throw ConfigError(_errorMsg);
   }
 
   @override
-  Future<void> setAppStatus(MoEAppStatus status) {
+  Future<void> setAppStatus(EnsembleAppStatus status) {
     throw ConfigError(_errorMsg);
   }
 
@@ -248,7 +248,7 @@ class MoEngageModuleStub implements MoEngageModule {
   }
 
   @override
-  Future<void> showNudge({MoEngageNudgePosition position = MoEngageNudgePosition.bottom}) {
+  Future<void> showNudge({EnsembleNudgePosition position = EnsembleNudgePosition.bottom}) {
     throw ConfigError(_errorMsg);
   }
 
@@ -328,7 +328,7 @@ class MoEngageModuleStub implements MoEngageModule {
   }
 
   @override
-  Future<UserDeletionData> deleteUser() {
+  Future<bool> deleteUser() {
     throw ConfigError(_errorMsg);
   }
 }

@@ -141,7 +141,6 @@ dependencies:
   flutter_slidable: ^3.1.1
   accordion: ^2.6.0
   session_storage: ^0.0.1
-  moengage_flutter: ^8.0.0
 
 dependency_overrides:
   http: ^0.13.5
