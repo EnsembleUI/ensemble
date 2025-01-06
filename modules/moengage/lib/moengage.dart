@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:ensemble/framework/stub/moengage_manager.dart';
+import 'package:ensemble/util/moengage_utils.dart';
 import 'package:ensemble_moengage/moengage_notification_handler.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
@@ -28,43 +29,46 @@ class MoEngageImpl implements MoEngageModule {
   factory MoEngageImpl({required String workspaceId, bool enableLogs = false}) {
     if (!_instance._initialized) {
       try {
-        // Initialize everything here
-        _instance._workspaceId = workspaceId;
-        
-        // 1. Create plugin instance
-        _instance._moengagePlugin = MoEngageFlutter(
-          workspaceId,
-          moEInitConfig: MoEInitConfig(
-            pushConfig: PushConfig(shouldDeliverCallbackOnForegroundClick: true),
-            analyticsConfig: AnalyticsConfig(
-              shouldTrackUserAttributeBooleanAsNumber: false
-            )
-          )
-        );
-
-        // 2. Configure logs if enabled
-        if (enableLogs) {
-          _instance._moengagePlugin.configureLogs(LogLevel.VERBOSE);
-        }
-
-        // 3. Initialize notification handler
-        final notificationHandler = MoEngageNotificationHandler();
-        notificationHandler.initialize(_instance._moengagePlugin);
-
-        // 4. Initialize plugin
-        _instance._moengagePlugin.initialise();
-
-        // 5. Request push permissions
-        _instance._requestInitialPushPermissions();
-
-        _instance._initialized = true;
-        debugPrint('MoEngage: Initialization complete');
+        _instance._initialize(workspaceId, enableLogs);
       } catch (e) {
         debugPrint('MoEngage: Initialization failed: $e');
         rethrow;
       }
     }
     return _instance;
+  }
+
+  void _initialize(String workspaceId, bool enableLogs) {
+    _workspaceId = workspaceId;
+    
+    // 1. Create plugin instance
+    _moengagePlugin = MoEngageFlutter(
+      workspaceId,
+      moEInitConfig: MoEInitConfig(
+        pushConfig: PushConfig(shouldDeliverCallbackOnForegroundClick: true),
+        analyticsConfig: AnalyticsConfig(
+          shouldTrackUserAttributeBooleanAsNumber: false
+        )
+      )
+    );
+
+    // 2. Configure logs if enabled
+    if (enableLogs) {
+      _moengagePlugin.configureLogs(LogLevel.VERBOSE);
+    }
+
+    // 3. Initialize notification handler
+    final notificationHandler = MoEngageNotificationHandler();
+    notificationHandler.initialize(_moengagePlugin);
+
+    // 4. Initialize plugin
+    _moengagePlugin.initialise();
+
+    // 5. Request push permissions
+    _requestInitialPushPermissions();
+
+    _initialized = true;
+    debugPrint('MoEngage: Initialization complete');
   }
 
   @override
@@ -75,33 +79,7 @@ class MoEngageImpl implements MoEngageModule {
     }
 
     try {
-      _workspaceId = workspaceId;
-
-      // 1. Create plugin instance
-      _moengagePlugin = MoEngageFlutter(workspaceId,
-          moEInitConfig: MoEInitConfig(
-                  pushConfig:
-                      PushConfig(shouldDeliverCallbackOnForegroundClick: true),
-                  analyticsConfig: AnalyticsConfig(
-                      shouldTrackUserAttributeBooleanAsNumber: false)));
-
-      // 2. Configure logs BEFORE notification handler initialization
-       if (enableLogs) {
-        _moengagePlugin.configureLogs(LogLevel.VERBOSE);
-      }
-
-      // 3. Initialize notification handler BEFORE plugin initialization
-      final notificationHandler = MoEngageNotificationHandler();
-      await notificationHandler.initialize(_moengagePlugin); // Make this await
-
-      // 4. Initialize plugin after callbacks are registered
-      _moengagePlugin.initialise();
-
-      // 5. Request push permissions if needed
-      await _requestInitialPushPermissions();
-
-      _initialized = true;
-      debugPrint('MoEngage: Initialization complete');
+      _initialize(workspaceId, enableLogs);
     } catch (e) {
       debugPrint('MoEngage: Initialization failed: $e');
       _initialized = false;
@@ -133,9 +111,13 @@ class MoEngageImpl implements MoEngageModule {
 }
 
   @override
-  Future<void> trackEvent(String eventName, [MoEProperties? properties]) async {
+  Future<void> trackEvent(String eventName, [EnsembleProperties? properties]) async {
     _checkInitialization();
-    _moengagePlugin.trackEvent(eventName, properties);
+    if (properties != null) {
+      _moengagePlugin.trackEvent(eventName, _convertProperties(properties));
+    } else {
+      _moengagePlugin.trackEvent(eventName);
+    }
   }
 
   @override
@@ -175,9 +157,9 @@ class MoEngageImpl implements MoEngageModule {
   }
 
   @override
-  Future<void> setGender(MoEGender gender) async {
+  Future<void> setGender(EnsembleGender gender) async {
     _checkInitialization();
-    _moengagePlugin.setGender(gender);
+    _moengagePlugin.setGender(_convertGender(gender));
   }
 
   @override
@@ -187,9 +169,9 @@ class MoEngageImpl implements MoEngageModule {
   }
 
   @override
-  Future<void> setLocation(MoEGeoLocation location) async {
+  Future<void> setLocation(EnsembleGeoLocation location) async {
     _checkInitialization();
-    _moengagePlugin.setLocation(location);
+    _moengagePlugin.setLocation(_convertLocation(location));
   }
 
   @override
@@ -213,15 +195,15 @@ class MoEngageImpl implements MoEngageModule {
 
   @override
   Future<void> setUserAttributeLocation(
-      String attributeName, MoEGeoLocation location) async {
+      String attributeName, EnsembleGeoLocation location) async {
     _checkInitialization();
-    _moengagePlugin.setUserAttributeLocation(attributeName, location);
+    _moengagePlugin.setUserAttributeLocation(attributeName, _convertLocation(location));
   }
 
   @override
-  Future<void> setAppStatus(MoEAppStatus status) async {
+  Future<void> setAppStatus(EnsembleAppStatus status) async {
     _checkInitialization();
-    _moengagePlugin.setAppStatus(status);
+    _moengagePlugin.setAppStatus(_convertAppStatus(status));
   }
 
   @override
@@ -327,10 +309,9 @@ class MoEngageImpl implements MoEngageModule {
   }
 
   @override
-  Future<void> showNudge(
-      {MoEngageNudgePosition position = MoEngageNudgePosition.bottom}) async {
+  Future<void> showNudge({EnsembleNudgePosition position = EnsembleNudgePosition.bottom}) async {
     _checkInitialization();
-    _moengagePlugin.showNudge(position: position);
+    _moengagePlugin.showNudge(position: _convertNudgePosition(position));
   }
 
   @override
@@ -424,8 +405,65 @@ class MoEngageImpl implements MoEngageModule {
   }
 
   @override
-  Future<UserDeletionData> deleteUser() async {
-    _checkInitialization();
-    return _moengagePlugin.deleteUser();
+Future<bool> deleteUser() async {
+  _checkInitialization();
+  final response = await _moengagePlugin.deleteUser();
+  return response.isSuccess;
+}
+}
+
+extension EnsembleTypeConversion on MoEngageImpl {
+  MoEGender _convertGender(EnsembleGender gender) {
+    switch (gender) {
+      case EnsembleGender.male: return MoEGender.male;
+      case EnsembleGender.female: return MoEGender.female;
+      case EnsembleGender.other: return MoEGender.other;
+    }
+  }
+
+  MoEAppStatus _convertAppStatus(EnsembleAppStatus status) {
+    switch (status) {
+      case EnsembleAppStatus.install: return MoEAppStatus.install;
+      case EnsembleAppStatus.update: return MoEAppStatus.update;
+      case EnsembleAppStatus.active: return MoEAppStatus.install;
+    }
+  }
+
+  MoEngageNudgePosition _convertNudgePosition(EnsembleNudgePosition position) {
+    switch (position) {
+      case EnsembleNudgePosition.top: return MoEngageNudgePosition.top;
+      case EnsembleNudgePosition.bottom: return MoEngageNudgePosition.bottom;
+      case EnsembleNudgePosition.bottomRight: return MoEngageNudgePosition.bottomRight;
+      case EnsembleNudgePosition.bottomLeft: return MoEngageNudgePosition.bottomLeft;
+      case EnsembleNudgePosition.any: return MoEngageNudgePosition.any;
+    }
+  }
+
+  MoEGeoLocation _convertLocation(EnsembleGeoLocation location) {
+    return MoEGeoLocation(location.latitude, location.longitude);
+  }
+
+  MoEProperties _convertProperties(EnsembleProperties props) {
+    final moeProps = MoEProperties();
+    
+    // Add all attributes in batch
+    props.generalAttributes.forEach((key, value) {
+      moeProps.addAttribute(key, value);
+    });
+    
+    props.locationAttributes.forEach((key, value) {
+      final location = MoEGeoLocation(value['latitude']!, value['longitude']!);
+      moeProps.addAttribute(key, location);
+    });
+    
+    props.dateTimeAttributes.forEach((key, value) {
+      moeProps.addISODateTime(key, value);
+    });
+    
+    if (props.isNonInteractive) {
+      moeProps.setNonInteractiveEvent();
+    }
+    
+    return moeProps;
   }
 }
