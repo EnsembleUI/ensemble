@@ -1,9 +1,8 @@
 import 'dart:typed_data';
-import 'dart:io';
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/error_handling.dart';
-import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/framework/event.dart';
+import 'package:ensemble/framework/view/data_scope_widget.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/util/utils.dart';
@@ -31,7 +30,7 @@ class TakeScreenshotAction extends EnsembleAction {
     }
     return TakeScreenshotAction(
       widgetId: payload['widgetId'],
-      pixelRatio: Utils.optionalDouble(payload['options']?['pixelRatio']),
+      pixelRatio: Utils.optionalDouble(payload['pixelRatio']),
       onSuccess: payload['onSuccess'] != null
           ? EnsembleAction.from(payload['onSuccess'])
           : null,
@@ -40,9 +39,6 @@ class TakeScreenshotAction extends EnsembleAction {
           : null,
     );
   }
-
-  factory TakeScreenshotAction.fromMap(dynamic inputs) =>
-      TakeScreenshotAction.fromYaml(payload: Utils.getYamlMap(inputs));
 
   @override
   Future<void> execute(BuildContext context, ScopeManager scopeManager) async {
@@ -56,20 +52,22 @@ class TakeScreenshotAction extends EnsembleAction {
 
       final widget = Screenshot(
         controller: screenshotController,
-        child: resolvedWidget,
+        child: DataScopeWidget(
+          scopeManager: scopeManager,
+          child: resolvedWidget,
+        ),
       );
 
       final Uint8List? capturedImage =
-          await screenshotController.captureFromWidget(
-        MediaQuery(
-          data: MediaQuery.of(context),
-          child: Theme(
-              data: Theme.of(context),
-              child: Material(
-                child: widget,
-              )),
+          await screenshotController.captureFromLongWidget(
+        InheritedTheme.captureAll(
+          context,
+          Material(
+            type: MaterialType.transparency,
+            child: widget,
+          ),
         ),
-        delay: const Duration(milliseconds: 100),
+        delay: const Duration(milliseconds: 1000),
         pixelRatio: pixelRatio ?? MediaQuery.of(context).devicePixelRatio,
         context: context,
       );
@@ -78,13 +76,17 @@ class TakeScreenshotAction extends EnsembleAction {
         throw LanguageError("Failed to capture screenshot");
       }
 
-      final filePath = await _saveImageToFile(capturedImage);
+      final dimensions = await _getImageDimensions(capturedImage);
 
       if (onSuccess != null) {
         await ScreenController().executeAction(
           context,
           onSuccess!,
-          event: EnsembleEvent(initiator, data: {'filePath': filePath}),
+          event: EnsembleEvent(initiator, data: {
+            'imageData': capturedImage,
+            'size': capturedImage.length,
+            'dimensions': dimensions,
+          }),
         );
       }
     } catch (e) {
@@ -99,18 +101,11 @@ class TakeScreenshotAction extends EnsembleAction {
     }
   }
 
-  Future<String> _saveImageToFile(Uint8List imageBytes) async {
-    try {
-      final directory = Directory('/storage/emulated/0/DCIM/Pictures');
-      await directory.create(recursive: true);
-
-      final filePath =
-          '${directory.path}/screenshot_${DateTime.now().millisecondsSinceEpoch}.png';
-      await File(filePath).writeAsBytes(imageBytes);
-
-      return filePath;
-    } catch (e) {
-      throw LanguageError("Failed to save screenshot: $e");
-    }
+  Future<Map<String, int>> _getImageDimensions(Uint8List imageData) async {
+    final image = await decodeImageFromList(imageData);
+    return {
+      'width': image.width,
+      'height': image.height,
+    };
   }
 }
