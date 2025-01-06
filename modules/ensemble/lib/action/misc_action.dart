@@ -11,6 +11,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
 import 'package:rate_my_app/rate_my_app.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:flutter/foundation.dart';
 
 class CopyToClipboardAction extends EnsembleAction {
   CopyToClipboardAction(this._value,
@@ -80,53 +81,145 @@ class ShareAction extends EnsembleAction {
     );
   }
 
-  @override
-  Future execute(BuildContext context, ScopeManager scopeManager) async {
-    final box = context.findRenderObject() as RenderBox?;
-    final sharePositionOrigin = box!.localToGlobal(Offset.zero) & box.size;
-    final evaluatedText = scopeManager.dataContext.eval(_text);
-    final evaluatedTitle =
-        Utils.optionalString(scopeManager.dataContext.eval(_title));
-    List<XFile>? xFiles;
-    if (_files != null) {
-      final evaluatedFiles = scopeManager.dataContext.eval(_files);
-      if (evaluatedFiles != null) {
-        final filesList =
-            evaluatedFiles is List ? evaluatedFiles : [evaluatedFiles];
-
-        xFiles = filesList.map((file) {
-          // Handle case where file is a Map containing file info
-          if (file is Map) {
-            return XFile(file['path'].toString());
-          }
-          // Handle case where file is a direct path string
-          return XFile(file.toString());
-        }).toList();
-      }
+  // Helper method to determine MIME type
+  String getMimeType(String? extension) {
+    switch (extension?.toLowerCase()) {
+      case 'jpg':
+      case 'jpeg':
+        return 'image/jpeg';
+      case 'png':
+        return 'image/png';
+      case 'gif':
+        return 'image/gif';
+      case 'pdf':
+        return 'application/pdf';
+      case 'txt':
+        return 'text/plain';
+      default:
+        return 'application/octet-stream';
     }
+  }
 
-    if (xFiles != null && xFiles.isNotEmpty) {
-      try {
-        await Share.shareXFiles(
-          xFiles,
-          text: evaluatedText,
-          subject: evaluatedTitle,
-          sharePositionOrigin: sharePositionOrigin,
-        );
-      } catch (e) {
-        // Fallback to sharing just the text if file sharing fails
-        await Share.share(
-          evaluatedText,
-          subject: evaluatedTitle,
-          sharePositionOrigin: sharePositionOrigin,
-        );
+  // Helper method to extract file extension
+  String? getFileExtension(String fileName) {
+    return fileName.contains('.') ? fileName.split('.').last : null;
+  }
+
+  // Helper method to create XFile from file data
+  XFile? createXFile(dynamic file) {
+    try {
+      if (file is Map) {
+        // Handle file with path
+        if (file['path'] != null && file['path'].toString().isNotEmpty) {
+          final String path = file['path'].toString();
+          final String name = file['name']?.toString() ?? path.split('/').last;
+          return XFile(path,
+              name: name, mimeType: getMimeType(getFileExtension(name)));
+        }
+
+        // Handle file with bytes (web)
+        if (file.containsKey('bytes') && file['bytes'] != null) {
+          final String name = file['name']?.toString() ?? 'file';
+          final String? extension =
+              file['extension']?.toString() ?? getFileExtension(name);
+
+          return XFile.fromData(
+            file['bytes'],
+            name: name,
+            mimeType: getMimeType(extension),
+          );
+        }
+      } else if (file is String) {
+        // Handle simple file path string
+        return XFile(file,
+            name: file.split('/').last,
+            mimeType: getMimeType(getFileExtension(file)));
       }
-    } else {
-      await Share.share(
-        evaluatedText,
-        subject: evaluatedTitle,
-        sharePositionOrigin: sharePositionOrigin,
-      );
+    } catch (e) {
+      debugPrint('Error creating XFile: $e');
+    }
+    return null;
+  }
+
+  @override
+  Future<void> execute(BuildContext context, ScopeManager scopeManager) async {
+    try {
+      final box = context.findRenderObject() as RenderBox?;
+      if (box == null) return;
+
+      final sharePositionOrigin = box.localToGlobal(Offset.zero) & box.size;
+      final evaluatedText =
+          scopeManager.dataContext.eval(_text)?.toString() ?? '';
+      final evaluatedTitle =
+          Utils.optionalString(scopeManager.dataContext.eval(_title));
+
+      // Handle file sharing
+      if (_files != null) {
+        final evaluatedFiles = scopeManager.dataContext.eval(_files);
+        if (evaluatedFiles != null) {
+          final filesList =
+              evaluatedFiles is List ? evaluatedFiles : [evaluatedFiles];
+          final List<XFile> xFiles = [];
+
+          // Create XFiles
+          for (var file in filesList) {
+            final xFile = createXFile(file);
+            if (xFile != null) {
+              xFiles.add(xFile);
+            }
+          }
+
+          // Share files if any were created successfully
+          if (xFiles.isNotEmpty) {
+            try {
+              final result = await Share.shareXFiles(
+                xFiles,
+                text: evaluatedText,
+                subject: evaluatedTitle ?? '',
+                sharePositionOrigin: sharePositionOrigin,
+              );
+
+              // Handle share result
+              if (result.status == ShareResultStatus.success) {
+                debugPrint('Share completed successfully: ${result.raw}');
+              } else {
+                debugPrint('Share completed with status: ${result.status}');
+              }
+              return;
+            } catch (e) {
+              debugPrint('Error sharing files: $e');
+              if (kIsWeb) {
+                // On web, fall back to sharing just the text
+                await Share.share(
+                  evaluatedText,
+                  subject: evaluatedTitle ?? '',
+                  sharePositionOrigin: sharePositionOrigin,
+                );
+                return;
+              }
+              rethrow;
+            }
+          }
+        }
+      }
+
+      // Fall back to sharing just text if no files or file sharing failed
+      if (evaluatedText.isNotEmpty) {
+        final result = await Share.share(
+          evaluatedText,
+          subject: evaluatedTitle ?? '',
+          sharePositionOrigin: sharePositionOrigin,
+        );
+
+        if (result.status == ShareResultStatus.success) {
+          debugPrint('Text share completed successfully: ${result.raw}');
+        } else {
+          debugPrint('Text share completed with status: ${result.status}');
+        }
+      }
+    } catch (e) {
+      debugPrint('ShareAction failed: $e');
+      rethrow;
     }
   }
 }
