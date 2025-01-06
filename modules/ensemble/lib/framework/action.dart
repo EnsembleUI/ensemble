@@ -22,6 +22,7 @@ import 'package:ensemble/action/save_file.dart';
 import 'package:ensemble/action/phone_contact_action.dart';
 import 'package:ensemble/action/sign_in_out_action.dart';
 import 'package:ensemble/action/toast_actions.dart';
+import 'package:ensemble/action/disable_hardware_navigation.dart';
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/error_handling.dart';
@@ -51,6 +52,7 @@ class ShowCameraAction extends EnsembleAction {
     this.onClose,
     this.onCapture,
     this.onError,
+    this.overlayWidget,
   }) : super(initiator: initiator);
   final Map<String, dynamic>? options;
   String? id;
@@ -58,16 +60,19 @@ class ShowCameraAction extends EnsembleAction {
   EnsembleAction? onClose;
   EnsembleAction? onCapture;
   EnsembleAction? onError;
+  dynamic overlayWidget;
 
   factory ShowCameraAction.fromYaml({Invokable? initiator, Map? payload}) {
     return ShowCameraAction(
-        initiator: initiator,
-        options: Utils.getMap(payload?['options']),
-        id: Utils.optionalString(payload?['id']),
-        onComplete: EnsembleAction.from(payload?['onComplete']),
-        onClose: EnsembleAction.from(payload?['onClose']),
-        onCapture: EnsembleAction.from(payload?['onCapture']),
-        onError: EnsembleAction.from(payload?['onError']));
+      initiator: initiator,
+      options: Utils.getMap(payload?['options']),
+      id: Utils.optionalString(payload?['id']),
+      onComplete: EnsembleAction.from(payload?['onComplete']),
+      onClose: EnsembleAction.from(payload?['onClose']),
+      onCapture: EnsembleAction.from(payload?['onCapture']),
+      onError: EnsembleAction.from(payload?['onError']),
+      overlayWidget: payload?['overlayWidget'],
+    );
   }
 }
 
@@ -1052,6 +1057,7 @@ enum ActionType {
   bluetoothSubscribeCharacteristic,
   bluetoothUnsubscribeCharacteristic,
   saveFile
+  controlDeviceBackNavigation
 }
 
 /// payload representing an Action to do (navigateToScreen, InvokeAPI, ..)
@@ -1173,6 +1179,8 @@ abstract class EnsembleAction {
       return ShareAction.from(payload: payload);
     } else if (actionType == ActionType.saveFile) {
       return SaveToFileSystemAction.from(payload: payload);
+    } else if (actionType == ActionType.controlDeviceBackNavigation) {
+      return ControlBackNavigation.from(payload: payload);
     } else if (actionType == ActionType.rateApp) {
       return RateAppAction.from(payload: payload);
     } else if (actionType == ActionType.getDeviceToken) {
