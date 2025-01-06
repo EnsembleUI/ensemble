@@ -8,7 +8,9 @@ import 'package:flutter/material.dart';
 import 'package:image_gallery_saver/image_gallery_saver.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:ensemble/framework/error_handling.dart';
+import 'package:flutter/foundation.dart';
 import 'package:dio/dio.dart';
+import 'dart:html' as html;
 
 /// Custom action to save files (images and documents) in platform-specific accessible directories
 class SaveToFileSystemAction extends EnsembleAction {
@@ -67,62 +69,113 @@ class SaveToFileSystemAction extends EnsembleAction {
         throw Exception('Missing blobData and source.');
       }
 
-      // Determine file type based on file extension
-      final fileExtension = fileName!.split('.').last.toLowerCase();
-      // if (['jpg', 'jpeg', 'png', 'gif', 'bmp'].contains(fileExtension)) {
       if (type == 'image') {
-        // Save images to DCIM/Pictures
-        await _saveImageToDCIM(fileName!, fileBytes!);
+        // Save images to Default Image Path
+        await _saveImageToDCIM(fileName!, fileBytes);
       } else if (type == 'document') {
         // Save documents to Documents folder
-        await _saveDocumentToDocumentsFolder(fileName!, fileBytes!);
+        await _saveDocumentToDocumentsFolder(fileName!, fileBytes);
       }
     } catch (e) {
-      print('Error saving file: $e');
       throw Exception('Failed to save file: $e');
     }
   }
 
-  /// Save images to DCIM/Pictures folder
   Future<void> _saveImageToDCIM(String fileName, Uint8List fileBytes) async {
     try {
-      // Get DCIM directory
-      final directory = Directory('/storage/emulated/0/DCIM/Pictures');
-      if (!await directory.exists()) {
-        await directory.create(recursive: true);
+      final result = await ImageGallerySaver.saveImage(
+        fileBytes,
+        name: fileName,
+      );
+      if (result['isSuccess']) {
+        debugPrint('Image saved to gallery: $result');
+      } else {
+        throw Exception('Failed to save image to gallery.');
       }
-
-      // Save file
-      final filePath = '${directory.path}/$fileName';
-      final file = File(filePath);
-      await file.writeAsBytes(fileBytes);
-
-      print('Image saved to DCIM/Pictures: $filePath');
     } catch (e) {
-      print('Error saving image to DCIM/Pictures: $e');
       throw Exception('Failed to save image: $e');
     }
   }
 
-  /// Save documents to Documents folder
+  /// Save documents to the default "Documents" directory
   Future<void> _saveDocumentToDocumentsFolder(
       String fileName, Uint8List fileBytes) async {
     try {
-      // Get Documents directory
-      final directory = Directory('/storage/emulated/0/Documents');
-      if (!await directory.exists()) {
-        await directory.create(recursive: true);
+      String filePath;
+
+      if (Platform.isAndroid) {
+        // Get the default "Documents" directory on Android
+        Directory? directory = Directory('/storage/emulated/0/Documents');
+        if (!directory.existsSync()) {
+          directory.createSync(
+              recursive: true); // Create the directory if it doesn't exist
+        }
+        filePath = '${directory.path}/$fileName';
+      } else if (Platform.isIOS) {
+        // On iOS, use the app-specific Documents directory
+        final directory = await getApplicationDocumentsDirectory();
+        filePath = '${directory.path}/$fileName';
+
+        // Optionally, use a share intent to let users save the file to their desired location
+      } else if (kIsWeb) {
+        _downloadFileOnWeb(fileName, fileBytes);
+        return;
+      } else {
+        throw UnsupportedError('Platform not supported');
       }
 
-      // Save file
-      final filePath = '${directory.path}/$fileName';
+      // Write the file to the determined path
       final file = File(filePath);
       await file.writeAsBytes(fileBytes);
 
-      print('Document saved to Documents folder: $filePath');
+      debugPrint('Document saved to: $filePath');
+
+      // Notify Android's media store to make it visible
+      if (Platform.isAndroid) {
+        await _notifyFileSystem(filePath);
+      }
     } catch (e) {
-      print('Error saving document to Documents folder: $e');
       throw Exception('Failed to save document: $e');
+    }
+  }
+
+  /// Notify the Android media store about the new file
+  Future<void> _notifyFileSystem(String filePath) async {
+    try {
+      await Process.run('am', [
+        'broadcast',
+        '-a',
+        'android.intent.action.MEDIA_SCANNER_SCAN_FILE',
+        '-d',
+        'file://$filePath',
+      ]);
+    } catch (e) {
+      debugPrint('Failed to notify media store: $e');
+    }
+  }
+
+  Future<void> _downloadFileOnWeb(String fileName, Uint8List fileBytes) async {
+    try {
+      // Convert Uint8List to a Blob
+      final blob = html.Blob([fileBytes]);
+
+      // Create an object URL for the Blob
+      final url = html.Url.createObjectUrlFromBlob(blob);
+
+      // Create a download anchor element
+      final anchor = html.AnchorElement(href: url)
+        ..target = 'blank' // Open in a new tab if needed
+        ..download = fileName; // Set the download file name
+
+      // Trigger the download
+      anchor.click();
+
+      // Revoke the object URL to free resources
+      html.Url.revokeObjectUrl(url);
+
+      debugPrint('File downloaded: $fileName');
+    } catch (e) {
+      throw Exception('Failed to download file: $e');
     }
   }
 
