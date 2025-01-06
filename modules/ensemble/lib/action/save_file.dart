@@ -9,7 +9,7 @@ import 'package:image_gallery_saver/image_gallery_saver.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:flutter/foundation.dart';
-import 'package:dio/dio.dart';
+import 'package:http/http.dart' as http;
 import 'dart:html' as html;
 
 /// Custom action to save files (images and documents) in platform-specific accessible directories
@@ -61,10 +61,13 @@ class SaveToFileSystemAction extends EnsembleAction {
         }
       } else if (source != null) {
         // If blobData is not available, check for source (network URL)
-        Dio dio = Dio();
-        var response = await dio.get(source!,
-            options: Options(responseType: ResponseType.bytes));
-        fileBytes = Uint8List.fromList(response.data);
+        final response = await http.get(Uri.parse(source!));
+        if (response.statusCode == 200) {
+          fileBytes = Uint8List.fromList(response.bodyBytes);
+        } else {
+          throw Exception(
+              'Failed to download file: HTTP ${response.statusCode}');
+        }
       } else {
         throw Exception('Missing blobData and source.');
       }
@@ -83,14 +86,18 @@ class SaveToFileSystemAction extends EnsembleAction {
 
   Future<void> _saveImageToDCIM(String fileName, Uint8List fileBytes) async {
     try {
-      final result = await ImageGallerySaver.saveImage(
-        fileBytes,
-        name: fileName,
-      );
-      if (result['isSuccess']) {
-        debugPrint('Image saved to gallery: $result');
+      if (kIsWeb) {
+        _downloadFileOnWeb(fileName, fileBytes);
       } else {
-        throw Exception('Failed to save image to gallery.');
+        final result = await ImageGallerySaver.saveImage(
+          fileBytes,
+          name: fileName,
+        );
+        if (result['isSuccess']) {
+          debugPrint('Image saved to gallery: $result');
+        } else {
+          throw Exception('Failed to save image to gallery.');
+        }
       }
     } catch (e) {
       throw Exception('Failed to save image: $e');
@@ -129,28 +136,8 @@ class SaveToFileSystemAction extends EnsembleAction {
       await file.writeAsBytes(fileBytes);
 
       debugPrint('Document saved to: $filePath');
-
-      // Notify Android's media store to make it visible
-      if (Platform.isAndroid) {
-        await _notifyFileSystem(filePath);
-      }
     } catch (e) {
       throw Exception('Failed to save document: $e');
-    }
-  }
-
-  /// Notify the Android media store about the new file
-  Future<void> _notifyFileSystem(String filePath) async {
-    try {
-      await Process.run('am', [
-        'broadcast',
-        '-a',
-        'android.intent.action.MEDIA_SCANNER_SCAN_FILE',
-        '-d',
-        'file://$filePath',
-      ]);
-    } catch (e) {
-      debugPrint('Failed to notify media store: $e');
     }
   }
 
