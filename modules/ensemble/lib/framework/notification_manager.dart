@@ -65,6 +65,10 @@ class NotificationManager {
     return null;
   }
 
+  bool isMoEngageNotification(RemoteMessage message) {
+    return message.data['push_from']?.toString().toLowerCase() == 'moengage';
+  }
+
   void _initListener(
       {Future<void> Function(RemoteMessage)? backgroundNotificationHandler}) {
     /// listen for token changes and store a copy
@@ -74,19 +78,25 @@ class NotificationManager {
 
     /// This is when the app is in the foreground
     FirebaseMessaging.onMessage.listen((RemoteMessage message) async {
-      Ensemble.externalDataContext.addAll({
-        'title': message.notification?.title,
-        'body': message.notification?.body,
-        'data': message.data
-      });
-      // By default, notification won't show on foreground, so we leverage
-      // local notification to show it in the foreground
-      await notificationUtils.initNotifications();
-      notificationUtils.showNotification(
-        message.notification?.title ?? '',
-        body: message.notification?.body,
-        payload: jsonEncode(message.toMap()),
-      );
+
+      if (!isMoEngageNotification(message)) {
+        // Handle regular FCM notifications as before
+        Ensemble.externalDataContext.addAll({
+          'title': message.notification?.title,
+          'body': message.notification?.body,
+          'data': message.data
+        });
+
+        // By default, notification won't show on foreground, so we leverage
+        // local notification to show it in the foreground
+
+        await notificationUtils.initNotifications();
+        notificationUtils.showNotification(
+          message.notification?.title ?? '',
+          body: message.notification?.body,
+          payload: jsonEncode(message.toMap()),
+        );
+      }
     });
 
     /// when the app is in the background, we can't run UI logic.
@@ -96,13 +106,16 @@ class NotificationManager {
     }
 
     /// This is when the app is in the background and the user taps on the notification
+
     FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
-      Ensemble.externalDataContext.addAll({
-        'title': message.notification?.title,
-        'body': message.notification?.body,
-        'data': message.data
-      });
-      handleNotification(jsonEncode(message.toMap()));
+      if (!isMoEngageNotification(message)) {
+        Ensemble.externalDataContext.addAll({
+          'title': message.notification?.title,
+          'body': message.notification?.body,
+          'data': message.data
+        });
+        handleNotification(jsonEncode(message.toMap()));
+      }
     });
   }
 

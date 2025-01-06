@@ -1,5 +1,5 @@
-name: ensemble_firebase_analytics
-description: "A new Flutter project."
+name: ensemble_moengage
+description: MoEngage integration for Ensemble Framework
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
@@ -34,14 +34,20 @@ dependencies:
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
-  cupertino_icons: ^1.0.6
-  firebase_analytics: ^11.3.3
-  firebase_crashlytics: ^4.1.3
   ensemble:
     git:
       url: https://github.com/EnsembleUI/ensemble.git
       ref: ensemble-v1.1.13
       path: modules/ensemble
+
+  moengage_flutter: ^8.0.0
+  get_it: ^8.0.0
+  moengage_cards: 
+  moengage_geofence:   
+  moengage_inbox:     
+  firebase_core: 
+  firebase_messaging: 
+  permission_handler: 
 
 dev_dependencies:
   flutter_test:

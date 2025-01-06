@@ -36,9 +36,15 @@ dependencies:
   ensemble:
     git:
       url: https://github.com/EnsembleUI/ensemble.git
-      ref: ensemble-v1.1.12
+      ref: ensemble-v1.1.13
       path: modules/ensemble
 
+
+  # ensemble_moengage:
+  #   git:
+  #     url: https://github.com/EnsembleUI/ensemble.git
+  #     ref: main
+  #     path: modules/moengage
 
   # ensemble_bluetooth:
   #   git:

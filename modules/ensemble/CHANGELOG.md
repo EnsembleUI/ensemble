@@ -1,3 +1,9 @@
+## 1.1.13
+
+ - Moengage Module Release
+
+ - **FIX**: unreliable showpreview. ([2365d35e](https://github.com/ensembleUI/ensemble/commit/2365d35e5b44743d1924ce5c6e7875676858296b))
+
 ## 1.1.12
 
  - **FIX**: fluttertoast breaking changes. ([d29696d3](https://github.com/ensembleUI/ensemble/commit/d29696d3a4869ce0837c1f200e5ccfe7aa1449f7))
