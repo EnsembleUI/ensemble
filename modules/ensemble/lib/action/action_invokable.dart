@@ -40,6 +40,7 @@ abstract class ActionInvokable with Invokable {
       ActionType.closeAllDialogs,
       ActionType.executeActionGroup,
       ActionType.takeScreenshot
+      ActionType.controlDeviceBackNavigation,
     ]);
   }
 

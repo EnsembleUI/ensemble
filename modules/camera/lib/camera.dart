@@ -5,6 +5,8 @@ import 'package:camera/camera.dart';
 import 'package:collection/collection.dart' show IterableExtension;
 import 'package:ensemble/action/toast_actions.dart';
 import 'package:ensemble/framework/data_context.dart';
+import 'package:ensemble/framework/scope.dart';
+import 'package:ensemble/framework/view/data_scope_widget.dart';
 import 'package:ensemble/framework/widget/icon.dart' as iconframework;
 import 'package:ensemble/framework/widget/toast.dart';
 import 'package:ensemble/framework/widget/widget.dart';
@@ -30,10 +32,14 @@ class Camera extends StatefulWidget
     Key? key,
     this.onCapture,
     this.onComplete,
+    this.onError,
+    this.overlayWidget,
   }) : super(key: key);
 
   final Function? onCapture;
   final Function? onComplete;
+  final Function(dynamic error)? onError;
+  final Widget? overlayWidget;
 
   final MyCameraController _controller = MyCameraController();
 
@@ -240,14 +246,17 @@ class CameraState extends EWidgetState<Camera> with WidgetsBindingObserver {
     try {
       cameras = await availableCameras();
       setCameraInit();
-      setState(() {
-        isLoading = false;
-      });
     } catch (e) {
       if (e is CameraException && e.code == 'CameraAccessDenied') {
         hasPermission = false;
       }
+      debugPrint(e.toString());
+      widget.onError?.call(e);
+      Navigator.pop(context);
     }
+    setState(() {
+      isLoading = false;
+    });
   }
 
   void initAccelerometerSub() {
@@ -410,11 +419,12 @@ class CameraState extends EWidgetState<Camera> with WidgetsBindingObserver {
   @override
   Widget buildWidget(BuildContext context) {
     if (isLoading) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      return const Scaffold(
+        backgroundColor: Colors.black,
+        body: Center(child: CircularProgressIndicator()),
+      );
     }
-    if (hasPermission) {
-      return showPreviewPage ? fullImagePreview() : permissionDeniedView();
-    }
+
     if (widget._controller.cameraController == null ||
         !widget._controller.cameraController!.value.isInitialized) {
       return Container();
@@ -449,22 +459,29 @@ class CameraState extends EWidgetState<Camera> with WidgetsBindingObserver {
   Widget cameraView() {
     return Stack(
       children: [
-        Center(
-          child: CameraPreview(
-            widget._controller.cameraController!,
-            child: LayoutBuilder(builder: (context, constraints) {
-              return GestureDetector(
-                onTapUp: kIsWeb
-                    ? null
-                    : (details) => onViewFinderTap(details, constraints),
-                onScaleUpdate: (details) async {
-                  final zoom = details.scale.clamp(1.0, 2.0);
-                  widget._controller.cameraController?.setZoomLevel(zoom);
-                },
-              );
-            }),
-          ),
-        ),
+        kIsWeb
+            ? Center(
+                child: AspectRatio(
+                  aspectRatio:
+                      widget.controller.cameraController!.value.aspectRatio,
+                  child: widget.controller.cameraController!.buildPreview(),
+                ),
+              )
+            : CameraPreview(
+                widget._controller.cameraController!,
+                child: LayoutBuilder(builder: (context, constraints) {
+                  return GestureDetector(
+                    onTapUp: kIsWeb
+                        ? null
+                        : (details) => onViewFinderTap(details, constraints),
+                    onScaleUpdate: (details) async {
+                      final zoom = details.scale.clamp(1.0, 2.0);
+                      widget._controller.cameraController?.setZoomLevel(zoom);
+                    },
+                  );
+                }),
+              ),
+        if (widget.overlayWidget != null) Positioned.fill(child: widget.overlayWidget!),
         imagePreviewButton(),
         Align(
             alignment: Alignment.bottomCenter,
@@ -639,7 +656,10 @@ class CameraState extends EWidgetState<Camera> with WidgetsBindingObserver {
                 final file = widget._controller.files.elementAt(index);
 
                 return kIsWeb
-                    ? DisplayMediaWeb(file: file)
+                    ? DisplayMediaWeb(
+                        file: file,
+                        aspectRatio: widget
+                            .controller.cameraController?.value.aspectRatio)
                     : Center(
                         child: file.getMediaType() == MediaType.image
                             ? Image.file(file.toFile()!)
@@ -866,7 +886,7 @@ class CameraState extends EWidgetState<Camera> with WidgetsBindingObserver {
                         backgroundColor: Colors.white.withOpacity(0.1),
                         onPressed: selectImage,
                       )
-                    : const SizedBox.shrink(),
+                    : SizedBox(width: iconSize * 2, height: iconSize * 2),
                 InkWell(
                   onTap: capture,
                   child: Stack(
@@ -895,7 +915,7 @@ class CameraState extends EWidgetState<Camera> with WidgetsBindingObserver {
                     ],
                   ),
                 ),
-                widget._controller.allowCameraRotate
+                widget._controller.allowCameraRotate && cameras.length > 1
                     ? buttons(
                         icon: widget._controller.cameraRotateIcon != null
                             ? iconframework.Icon.fromModel(
@@ -906,25 +926,37 @@ class CameraState extends EWidgetState<Camera> with WidgetsBindingObserver {
                                 color: iconColor,
                               ),
                         backgroundColor: Colors.white.withOpacity(0.1),
-                        onPressed: () {
-                          currentModeIndex = 0;
+                        onPressed: () async {
+                          try {
+                            if (cameras.length <= 1) return;
+                            currentModeIndex = 0;
+                            setState(() {
+                              isLoading = true;
+                            });
+                            await widget._controller.cameraController
+                                ?.dispose();
 
-                          if (isFrontCamera) {
-                            final back = cameras.firstWhere((camera) =>
-                                camera.lensDirection ==
-                                CameraLensDirection.back);
-                            setCamera(cameraDescription: back);
-                            isFrontCamera = false;
-                          } else {
-                            final front = cameras.firstWhere((camera) =>
-                                camera.lensDirection ==
-                                CameraLensDirection.front);
-                            setCamera(cameraDescription: front);
-                            isFrontCamera = true;
+                            if (isFrontCamera) {
+                              final back = cameras.firstWhere((camera) =>
+                                  camera.lensDirection ==
+                                  CameraLensDirection.back);
+                              setCamera(cameraDescription: back);
+                              isFrontCamera = false;
+                            } else {
+                              final front = cameras.firstWhere((camera) =>
+                                  camera.lensDirection ==
+                                  CameraLensDirection.front);
+                              setCamera(cameraDescription: front);
+                              isFrontCamera = true;
+                            }
+                            setState(() {
+                              isLoading = false;
+                            });
+                          } on Exception catch (_) {
+                            Navigator.pop(context);
                           }
-                          setState(() {});
                         })
-                    : const SizedBox.shrink()
+                    : SizedBox(width: iconSize * 2, height: iconSize * 2)
               ],
             ),
           ],
@@ -1469,9 +1501,13 @@ class _InlineVideoPlayerState extends State<InlineVideoPlayer> {
 class DisplayMediaWeb extends StatefulWidget {
   final File file;
   final bool isThumbnail;
+  final double? aspectRatio;
 
   const DisplayMediaWeb(
-      {Key? key, required this.file, this.isThumbnail = false})
+      {Key? key,
+      required this.file,
+      this.isThumbnail = false,
+      this.aspectRatio})
       : super(key: key);
 
   @override
@@ -1527,13 +1563,21 @@ class _DisplayMediaWebState extends State<DisplayMediaWeb> {
   @override
   Widget build(BuildContext context) {
     if (_isImage) {
-      return Image.network(
+      final image = Image.network(
         widget.file.path!,
         fit: widget.isThumbnail ? BoxFit.cover : null,
         errorBuilder: (context, error, stackTrace) {
           return const SizedBox.shrink();
         },
       );
+      return widget.aspectRatio != null
+          ? Center(
+              child: AspectRatio(
+                aspectRatio: widget.aspectRatio!,
+                child: image,
+              ),
+            )
+          : image;
     } else if (_isVideo) {
       if (widget.isThumbnail) {
         return const Icon(
