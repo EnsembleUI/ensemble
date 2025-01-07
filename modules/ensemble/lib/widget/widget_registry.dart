@@ -70,7 +70,6 @@ import 'package:ensemble/widget/visualization/topology_chart.dart';
 import 'package:ensemble/widget/webview/webview.dart';
 import 'package:ensemble/widget/youtube/youtube.dart';
 import 'package:ensemble/widget/weeklyscheduler.dart';
-import 'package:ensemble/widget/screenshot_container.dart';
 import 'package:get_it/get_it.dart';
 
 import 'fintech/tabapayconnect.dart';
@@ -184,7 +183,6 @@ class WidgetRegistry {
         AppScroller.type: () => AppScroller(),
         LoadingContainer.type: () => LoadingContainer(),
         EnsembleSlidable.type: () => EnsembleSlidable(),
-        ScreenshotContainer.type: () => ScreenshotContainer(),
 
         // charts
         Highcharts.type: () => Highcharts(),
