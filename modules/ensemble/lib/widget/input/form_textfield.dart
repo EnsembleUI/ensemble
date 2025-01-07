@@ -121,9 +121,7 @@ abstract class BaseTextInput extends StatefulWidget
     var getters = _controller.textPlaceholderGetters;
     getters.addAll({
       'value': () => textController.text ?? '',
-      'obscured': () => isPassword() || _controller.obscureText == true,
-      'currentlyObscured': () =>
-          (controller.inputFieldAction as TextInputState).currentlyObscured,
+      'obscured': () => _controller.obscured,
     });
     return getters;
   }
@@ -149,6 +147,7 @@ abstract class BaseTextInput extends StatefulWidget
           _controller.enableClearText = Utils.optionalBool(value),
       'obscureToggle': (value) =>
           _controller.obscureToggle = Utils.optionalBool(value),
+      'obscured': (widget) => _controller.obscureText == true,
       'obscureTextWidget': (widget) => _controller.obscureTextWidget = widget,
       'readOnly': (value) => _controller.readOnly = Utils.optionalBool(value),
       'selectable': (value) =>
@@ -230,6 +229,7 @@ class TextInputController extends FormFieldController with HasTextPlaceholder {
   bool? obscureText;
 
   // applicable only for Password or obscure TextInput, to toggle between plain and secure text
+  bool? obscured;
   bool? obscureToggle;
   dynamic obscureTextWidget;
   bool? readOnly;
@@ -312,6 +312,7 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput>
   void initState() {
     currentlyObscured =
         widget.isPassword() || widget._controller.obscureText == true;
+    widget._controller.obscured = currentlyObscured;
     _inputFormatter = InputFormatter.getFormatter(
         widget._controller.inputType, widget._controller.mask);
     focusNode.addListener(() {
@@ -419,6 +420,8 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput>
                   child: scopeManager!.buildWidgetFromDefinition(
                       widget._controller.obscureTextWidget),
                   onTap: () {
+                    widget._controller.obscured = !currentlyObscured;
+                    widget.setProperty('obscured', !currentlyObscured);
                     setState(() {
                       currentlyObscured = !currentlyObscured;
                     });
@@ -431,6 +434,8 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput>
                     color: ThemeManager().getInputIconColor(context),
                   ),
                   onPressed: () {
+                    widget._controller.obscured = !currentlyObscured;
+                    widget.setProperty('obscured', !currentlyObscured);
                     setState(() {
                       currentlyObscured = !currentlyObscured;
                     });
