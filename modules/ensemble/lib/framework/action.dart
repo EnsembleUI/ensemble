@@ -18,10 +18,12 @@ import 'package:ensemble/action/change_locale_actions.dart';
 import 'package:ensemble/action/misc_action.dart';
 import 'package:ensemble/action/navigation_action.dart';
 import 'package:ensemble/action/notification_actions.dart';
+import 'package:ensemble/action/save_file.dart';
 import 'package:ensemble/action/phone_contact_action.dart';
 import 'package:ensemble/action/sign_in_out_action.dart';
 import 'package:ensemble/action/toast_actions.dart';
 import 'package:ensemble/action/disable_hardware_navigation.dart';
+import 'package:ensemble/action/close_app.dart';
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/error_handling.dart';
@@ -1055,7 +1057,9 @@ enum ActionType {
   bluetoothDisconnect,
   bluetoothSubscribeCharacteristic,
   bluetoothUnsubscribeCharacteristic,
-  controlDeviceBackNavigation
+  controlDeviceBackNavigation,
+  closeApp,
+  saveFile
 }
 
 /// payload representing an Action to do (navigateToScreen, InvokeAPI, ..)
@@ -1175,12 +1179,16 @@ abstract class EnsembleAction {
       return CopyToClipboardAction.from(payload: payload);
     } else if (actionType == ActionType.share) {
       return ShareAction.from(payload: payload);
+    } else if (actionType == ActionType.saveFile) {
+      return SaveToFileSystemAction.from(payload: payload);
     } else if (actionType == ActionType.controlDeviceBackNavigation) {
       return ControlBackNavigation.from(payload: payload);
     } else if (actionType == ActionType.rateApp) {
       return RateAppAction.from(payload: payload);
     } else if (actionType == ActionType.getDeviceToken) {
       return GetDeviceTokenAction.fromMap(payload: payload);
+    } else if (actionType == ActionType.closeApp) {
+      return CloseAppAction();
     } else if (actionType == ActionType.openPlaidLink) {
       return PlaidLinkAction.fromYaml(initiator: initiator, payload: payload);
     } else if (actionType == ActionType.openAppSettings) {
