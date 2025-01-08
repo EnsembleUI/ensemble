@@ -1058,7 +1058,7 @@ enum ActionType {
   bluetoothSubscribeCharacteristic,
   bluetoothUnsubscribeCharacteristic,
   controlDeviceBackNavigation,
-  closeApp
+  closeApp,
   saveFile
 }
 
