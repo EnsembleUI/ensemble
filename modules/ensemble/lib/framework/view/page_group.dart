@@ -383,7 +383,6 @@ class PageGroupState extends State<PageGroup> with MediaQueryCapability {
 
           // Main scrollable menu content wrapped in Expanded
           Expanded(
-            // ListenableBuilder rebuilds only when viewGroupNotifier changes
             child: ListenableBuilder(
                 listenable: viewGroupNotifier,
                 builder: (context, _) {
@@ -391,10 +390,7 @@ class PageGroupState extends State<PageGroup> with MediaQueryCapability {
 
                   for (int i = 0; i < visibleItems.length; i++) {
                     MenuItem item = visibleItems[i];
-                    // Track if this menu item is currently selected
                     final isSelected = i == viewGroupNotifier.viewIndex;
-
-                    // Get custom widgets if defined for normal and active states
                     final customIcon = _buildCustomWidget(item);
                     final customActiveIcon =
                         _buildCustomWidget(item, isActive: true);
@@ -402,7 +398,6 @@ class PageGroupState extends State<PageGroup> with MediaQueryCapability {
                     // Determine if using custom widgets or default ListTile
                     final isCustom =
                         customIcon != null || customActiveIcon != null;
-                    // Only show label for default items, not custom widgets
                     final label = isCustom
                         ? ''
                         : Utils.translate(item.label ?? '', context);
@@ -414,8 +409,6 @@ class PageGroupState extends State<PageGroup> with MediaQueryCapability {
 
                       // Always close drawer when item is tapped
                       Navigator.maybePop(context);
-
-                      // Execute custom onTap action if specified
                       if (item.onTap != null) {
                         ScreenController().executeActionWithScope(context,
                             _scopeManager, EnsembleAction.from(item.onTap)!);
