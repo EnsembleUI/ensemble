@@ -1,5 +1,7 @@
 import 'dart:developer';
 
+import 'package:ensemble/action/drawer_actions.dart';
+import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/device.dart';
 import 'package:ensemble/framework/error_handling.dart';
@@ -100,7 +102,8 @@ class PageGroupState extends State<PageGroup> with MediaQueryCapability {
     );
 
     // Need to get the items which are only visible
-    widget.menu.menuItems = Menu.getVisibleMenuItems(_scopeManager.dataContext, widget.menu.menuItems);
+    widget.menu.menuItems = Menu.getVisibleMenuItems(
+        _scopeManager.dataContext, widget.menu.menuItems);
 
     int? selectedIndex = Utils.optionalInt(widget.pageArgs?["viewIndex"],
         min: 0, max: widget.menu.menuItems.length - 1);
@@ -366,32 +369,115 @@ class PageGroupState extends State<PageGroup> with MediaQueryCapability {
   // }
 
   Drawer? _buildDrawer(BuildContext context, Menu menu) {
-    List<ListenableBuilder> navItems = [];
-    for (var i = 0; i < menu.menuItems.length; i++) {
-      MenuItem item = menu.menuItems[i];
-      navItems.add(ListenableBuilder(
-          listenable: viewGroupNotifier,
-          builder: (context, _) {
-            return ListTile(
-              selected: i == viewGroupNotifier.viewIndex,
-              title: Text(Utils.translate(item.label ?? '', context)),
-              leading:
-                  ensemble.Icon(item.icon ?? '', library: item.iconLibrary),
-              horizontalTitleGap: 0,
-              onTap: () {
-                //close the drawer
-                Navigator.maybePop(context);
-                viewGroupNotifier.updatePage(i);
-              },
-            );
-          }));
-    }
+    // Filter menu items based on visibility conditions
+    List<MenuItem> visibleItems =
+        Menu.getVisibleMenuItems(_scopeManager.dataContext, menu.menuItems);
+
     return Drawer(
       backgroundColor: Utils.getColor(menu.runtimeStyles?['backgroundColor']),
-      child: ListView(
-        children: navItems,
+      child: Column(
+        children: [
+          // Optional header section at the top of drawer
+          if (menu.headerModel != null)
+            _scopeManager.buildWidget(menu.headerModel!),
+
+          // Main scrollable menu content wrapped in Expanded
+          Expanded(
+            // ListenableBuilder rebuilds only when viewGroupNotifier changes
+            child: ListenableBuilder(
+                listenable: viewGroupNotifier,
+                builder: (context, _) {
+                  List<Widget> navItems = [];
+
+                  for (int i = 0; i < visibleItems.length; i++) {
+                    MenuItem item = visibleItems[i];
+                    // Track if this menu item is currently selected
+                    final isSelected = i == viewGroupNotifier.viewIndex;
+
+                    // Get custom widgets if defined for normal and active states
+                    final customIcon = _buildCustomWidget(item);
+                    final customActiveIcon =
+                        _buildCustomWidget(item, isActive: true);
+
+                    // Determine if using custom widgets or default ListTile
+                    final isCustom =
+                        customIcon != null || customActiveIcon != null;
+                    // Only show label for default items, not custom widgets
+                    final label = isCustom
+                        ? ''
+                        : Utils.translate(item.label ?? '', context);
+
+                    // Handler for menu item taps
+                    void handleTap() {
+                      // Skip if item is not clickable
+                      if (!item.isClickable) return;
+
+                      // Always close drawer when item is tapped
+                      Navigator.maybePop(context);
+
+                      // Execute custom onTap action if specified
+                      if (item.onTap != null) {
+                        ScreenController().executeActionWithScope(context,
+                            _scopeManager, EnsembleAction.from(item.onTap)!);
+                      }
+
+                      // Switch screens only if enabled and not already selected
+                      if (item.switchScreen &&
+                          viewGroupNotifier.viewIndex != i) {
+                        viewGroupNotifier.updatePage(i);
+                      }
+                    }
+
+                    Widget menuItem;
+                    if (isCustom) {
+                      // Choose between active and normal custom widget based on selection
+                      final displayWidget = isSelected
+                          ? (customActiveIcon ??
+                              customIcon!) // Fallback to normal if active not provided
+                          : customIcon!;
+
+                      // Wrap in InkWell only if clickable
+                      menuItem = item.isClickable
+                          ? InkWell(onTap: handleTap, child: displayWidget)
+                          : displayWidget;
+                    } else {
+                      // Default ListTile implementation
+                      menuItem = ListTile(
+                        enabled: item.isClickable,
+                        selected: isSelected,
+                        title: Text(label),
+                        // Use active icon when selected, fallback to normal icon
+                        leading: ensemble.Icon(
+                            isSelected
+                                ? (item.activeIcon ?? item.icon)
+                                : (item.icon ?? ''),
+                            library: item.iconLibrary),
+                        horizontalTitleGap: 0,
+                        onTap: item.isClickable ? handleTap : null,
+                      );
+                    }
+                    navItems.add(menuItem);
+                  }
+                  return ListView(children: navItems);
+                }),
+          ),
+
+          // Optional footer section at bottom of drawer
+          if (menu.footerModel != null)
+            _scopeManager.buildWidget(menu.footerModel!),
+        ],
       ),
     );
+  }
+
+  Widget? _buildCustomWidget(MenuItem item, {bool isActive = false}) {
+    Widget? iconWidget;
+    dynamic customWidgetModel =
+        isActive ? item.customActiveWidget : item.customWidget;
+    if (customWidgetModel != null) {
+      iconWidget = _scopeManager.buildWidget(customWidgetModel);
+    }
+    return iconWidget;
   }
 
   /// TODO: can't do this anymore without Conditional widget

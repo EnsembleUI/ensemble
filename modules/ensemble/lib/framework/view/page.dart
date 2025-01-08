@@ -1,6 +1,7 @@
 import 'dart:developer';
 
 import 'package:ensemble/ensemble.dart';
+import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/devmode.dart';
 import 'package:ensemble/framework/event.dart';
@@ -330,6 +331,12 @@ class PageState extends State<Page>
       backgroundWidget =
           _scopeManager.buildWidget(headerModel.flexibleBackground!);
     }
+    // Build custom leading widget if provided
+    Widget? leadingWidget;
+    if (headerModel.leadingWidget != null) {
+      leadingWidget = _scopeManager.buildWidget(headerModel.leadingWidget!);
+    }
+
     final evaluatedHeader = EnsembleThemeManager()
         .getRuntimeStyles(_scopeManager.dataContext, headerModel);
 
@@ -361,7 +368,9 @@ class PageState extends State<Page>
 
     if (scrollableView) {
       return SliverAppBar(
-        automaticallyImplyLeading: showNavigationIcon != false,
+        automaticallyImplyLeading:
+            leadingWidget == null && showNavigationIcon != false,
+        leading: leadingWidget,
         title: titleWidget,
         centerTitle: centerTitle,
         backgroundColor: backgroundColor,
@@ -382,7 +391,9 @@ class PageState extends State<Page>
       );
     } else {
       return AppBar(
-        automaticallyImplyLeading: showNavigationIcon != false,
+        automaticallyImplyLeading:
+            leadingWidget == null && showNavigationIcon != false,
+        leading: leadingWidget,
         title: titleWidget,
         centerTitle: centerTitle,
         backgroundColor: backgroundColor,
@@ -692,21 +703,68 @@ class PageState extends State<Page>
   }
 
   Drawer? _buildDrawer(BuildContext context, DrawerMenu menu) {
-    List<ListTile> navItems = [];
-    for (int i = 0; i < menu.menuItems.length; i++) {
-      MenuItem item = menu.menuItems[i];
-      navItems.add(ListTile(
-        selected: i == selectedPage,
-        title: Text(Utils.translate(item.label ?? '', context)),
-        leading: ensemble.Icon(item.icon ?? '', library: item.iconLibrary),
-        horizontalTitleGap: 0,
-        onTap: () => selectNavigationIndex(context, item),
-      ));
+    List<MenuItem> visibleItems =
+        Menu.getVisibleMenuItems(_scopeManager.dataContext, menu.menuItems);
+    List<Widget> menuItems = [];
+
+    for (int i = 0; i < visibleItems.length; i++) {
+      MenuItem item = visibleItems[i];
+
+      final customWidget = _buildCustomIcon(item);
+      final label = customWidget != null
+          ? ''
+          : Utils.translate(item.label ?? '', context);
+
+      Widget menuItem;
+      void handleTap() {
+        if (!item.isClickable) return;
+
+        if (item.onTap != null) {
+          ScreenController().executeActionWithScope(
+              context, _scopeManager, EnsembleAction.from(item.onTap)!);
+        }
+        if (item.switchScreen) {
+          selectNavigationIndex(context, item);
+        }
+      }
+
+      if (customWidget != null) {
+        menuItem = item.isClickable
+            ? InkWell(onTap: handleTap, child: customWidget)
+            : customWidget;
+      } else {
+        menuItem = ListTile(
+          enabled: item.isClickable,
+          selected: i == selectedPage,
+          title: Text(label),
+          leading: ensemble.Icon(item.icon ?? '', library: item.iconLibrary),
+          horizontalTitleGap: 0,
+          onTap: item.isClickable ? handleTap : null,
+        );
+      }
+
+      menuItems.add(menuItem);
     }
+
     return Drawer(
       backgroundColor: Utils.getColor(menu.runtimeStyles?['backgroundColor']),
-      child: ListView(
-        children: navItems,
+      child: Column(
+        children: [
+          // Header
+          if (menu.headerModel != null)
+            _scopeManager.buildWidget(menu.headerModel!),
+
+          // Menu Items in scrollable area
+          Expanded(
+            child: ListView(
+              children: menuItems,
+            ),
+          ),
+
+          // Footer at bottom
+          if (menu.footerModel != null)
+            _scopeManager.buildWidget(menu.footerModel!),
+        ],
       ),
     );
   }

@@ -8,6 +8,7 @@ import 'package:ensemble/action/deep_link_action.dart';
 import 'package:ensemble/action/call_external_method.dart';
 import 'package:ensemble/action/device_security.dart';
 import 'package:ensemble/action/dialog_actions.dart';
+import 'package:ensemble/action/drawer_actions.dart';
 import 'package:ensemble/action/execute_action_group_action.dart';
 import 'package:ensemble/action/get_network_info_action.dart';
 import 'package:ensemble/action/haptic_action.dart';
@@ -1055,7 +1056,9 @@ enum ActionType {
   bluetoothDisconnect,
   bluetoothSubscribeCharacteristic,
   bluetoothUnsubscribeCharacteristic,
-  controlDeviceBackNavigation
+  controlDeviceBackNavigation,
+  openDrawer,
+  closeDrawer,
 }
 
 /// payload representing an Action to do (navigateToScreen, InvokeAPI, ..)
@@ -1274,6 +1277,10 @@ abstract class EnsembleAction {
       return SubscribeBluetoothCharacteristicsAction.from(payload: payload);
     } else if (actionType == ActionType.bluetoothUnsubscribeCharacteristic) {
       return UnSubscribeBluetoothCharacteristicsAction.from(payload: payload);
+    } else if (actionType == ActionType.openDrawer) {
+      return OpenDrawerAction.from(initiator: initiator, payload: payload);
+    } else if (actionType == ActionType.closeDrawer) {
+      return CloseDrawerAction.from(initiator: initiator, payload: payload);
     } else {
       throw LanguageError("Invalid action.",
           recovery: "Make sure to use one of Ensemble-provided actions.");
