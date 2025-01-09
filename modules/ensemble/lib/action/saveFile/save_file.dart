@@ -10,7 +10,8 @@ import 'package:path_provider/path_provider.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
-import 'dart:html' as html;
+// Conditionally import the file that has `dart:html` vs. the stub:
+import 'download_stub.dart' if (dart.library.html) 'download_web.dart';
 
 /// Custom action to save files (images and documents) in platform-specific accessible directories
 class SaveToFileSystemAction extends EnsembleAction {
@@ -142,28 +143,7 @@ class SaveToFileSystemAction extends EnsembleAction {
   }
 
   Future<void> _downloadFileOnWeb(String fileName, Uint8List fileBytes) async {
-    try {
-      // Convert Uint8List to a Blob
-      final blob = html.Blob([fileBytes]);
-
-      // Create an object URL for the Blob
-      final url = html.Url.createObjectUrlFromBlob(blob);
-
-      // Create a download anchor element
-      final anchor = html.AnchorElement(href: url)
-        ..target = 'blank' // Open in a new tab if needed
-        ..download = fileName; // Set the download file name
-
-      // Trigger the download
-      anchor.click();
-
-      // Revoke the object URL to free resources
-      html.Url.revokeObjectUrl(url);
-
-      debugPrint('File downloaded: $fileName');
-    } catch (e) {
-      throw Exception('Failed to download file: $e');
-    }
+    downloadFileOnWeb(fileName, fileBytes);
   }
 
   /// Factory method to construct the action from JSON
