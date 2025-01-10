@@ -263,7 +263,6 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput>
   bool didItChange = false;
 
   // password is obscure by default
-  late bool currentlyObscured;
   late List<TextInputFormatter> _inputFormatter;
   OverlayEntry? overlayEntry;
 
@@ -310,9 +309,8 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput>
 
   @override
   void initState() {
-    currentlyObscured =
+    widget._controller.obscured =
         widget.isPassword() || widget._controller.obscureText == true;
-    widget._controller.obscured = currentlyObscured;
     _inputFormatter = InputFormatter.getFormatter(
         widget._controller.inputType, widget._controller.mask);
     focusNode.addListener(() {
@@ -391,9 +389,10 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput>
   /// whether to show the content as plain text or obscure
   bool isObscureOrPlainText() {
     if (widget.isPassword()) {
-      return currentlyObscured;
+      return widget._controller.obscured ?? true;
     } else {
-      return widget._controller.obscureText == true && currentlyObscured;
+      return widget._controller.obscureText == true &&
+          (widget._controller.obscured ?? true);
     }
   }
 
@@ -414,32 +413,29 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput>
     // for password, show the toggle plain text/obscure text
     if ((widget.isPassword() || widget._controller.obscureText == true) &&
         widget._controller.obscureToggle == true) {
+      void toggleObscured() {
+        bool newObscuredValue = !(widget._controller.obscured ?? true);
+        widget._controller.obscured = newObscuredValue;
+        widget.setProperty('obscured', newObscuredValue);
+        setState(() {});
+      }
+
       decoration = decoration.copyWith(
           suffixIcon: widget._controller.obscureTextWidget != null
               ? GestureDetector(
+                  onTap: toggleObscured,
                   child: scopeManager!.buildWidgetFromDefinition(
                       widget._controller.obscureTextWidget),
-                  onTap: () {
-                    widget._controller.obscured = !currentlyObscured;
-                    widget.setProperty('obscured', !currentlyObscured);
-                    setState(() {
-                      currentlyObscured = !currentlyObscured;
-                    });
-                  },
                 )
               : IconButton(
                   icon: Icon(
-                    currentlyObscured ? Icons.visibility : Icons.visibility_off,
+                    widget._controller.obscured ?? true
+                        ? Icons.visibility
+                        : Icons.visibility_off,
                     size: ThemeManager().getInputIconSize(context).toDouble(),
                     color: ThemeManager().getInputIconColor(context),
                   ),
-                  onPressed: () {
-                    widget._controller.obscured = !currentlyObscured;
-                    widget.setProperty('obscured', !currentlyObscured);
-                    setState(() {
-                      currentlyObscured = !currentlyObscured;
-                    });
-                  },
+                  onPressed: toggleObscured,
                 ));
     } else if (!widget.isPassword() &&
         widget.textController.text.isNotEmpty &&
