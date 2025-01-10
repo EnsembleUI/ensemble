@@ -33,7 +33,11 @@ ensemble_camera:
     {
       'key': 'cameraDescription',
       'value': 'NSCameraUsageDescription',
-    }
+    },
+    {
+      'key': 'photoLibraryDescription',
+      'value': 'NSPhotoLibraryUsageDescription',
+    },
   ];
 
   try {

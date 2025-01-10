@@ -17,6 +17,13 @@ export const modules: Script[] = [
         platform: ['ios'],
         type: 'text',
       },
+      {
+        key: 'photoLibraryDescription',
+        question:
+          'Please provide a description for accessing the photo library: ',
+        platform: ['ios'],
+        type: 'text',
+      },
     ],
   },
   {
@@ -289,18 +296,18 @@ export const modules: Script[] = [
         key: 'moengage_workspace_id',
         question: 'Please provide your MoEngage Workspace ID: ',
         platform: ['android', 'ios', 'web'],
-        type: 'text'
+        type: 'text',
       },
       {
         key: 'enableConsoleLogs',
         question: 'Do you want to enable MoEngage console logs? (yes/no): ',
         type: 'toggle',
         choices: ['yes', 'no'],
-        platform: ['android', 'ios', 'web']
+        platform: ['android', 'ios', 'web'],
       },
       ...firebaseAndroidParameters,
       ...firebaseIOSParameters,
-      ...firebaseWebParameters
+      ...firebaseWebParameters,
     ],
-  }
+  },
 ];
