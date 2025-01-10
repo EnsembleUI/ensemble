@@ -31,8 +31,11 @@ ensemble_bluetooth:
 
   final androidPermissions = [
     // New Android 12 Bluetooth permissions
-    '<uses-permission android:name="android.permission.BLUETOOTH_SCAN" android:usesPermissionFlags="neverForLocation" />',
+    '<uses-permission android:name="android.permission.BLUETOOTH_SCAN"/>',
     '<uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />',
+    '<uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />',
+    // legacy for Android 9 or lower
+    '<uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" android:maxSdkVersion="28" />',
     // Legacy permissions for Android 11 or lower
     '<uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30" />',
     '<uses-permission android:name="android.permission.BLUETOOTH_ADMIN" android:maxSdkVersion="30" />',
