@@ -44,19 +44,19 @@ void _handleError(
 /// - [phoneNumber] must be provided
 /// - [onSuccess] is executed when the code is sent successfully
 /// - [onError] is executed when there is a failure
-class SendPhoneVerificationCodeAction extends EnsembleAction {
+class SendVerificationCodeAction extends EnsembleAction {
   final String phoneNumber;
   final EnsembleAction? onSuccess;
   final EnsembleAction? onError;
 
-  SendPhoneVerificationCodeAction({
+  SendVerificationCodeAction({
     super.initiator,
     required this.phoneNumber,
     this.onSuccess,
     this.onError,
   });
 
-  factory SendPhoneVerificationCodeAction.fromYaml({
+  factory SendVerificationCodeAction.fromYaml({
     Invokable? initiator,
     Map? payload,
   }) {
@@ -65,7 +65,7 @@ class SendPhoneVerificationCodeAction extends EnsembleAction {
       throw LanguageError('phoneNumber is required in the YAML payload.');
     }
 
-    return SendPhoneVerificationCodeAction(
+    return SendVerificationCodeAction(
       initiator: initiator,
       phoneNumber: phoneNumberValue,
       onSuccess: EnsembleAction.from(payload?['onSuccess']),
@@ -89,7 +89,7 @@ class SendPhoneVerificationCodeAction extends EnsembleAction {
         return;
       }
 
-      await authManager.sendPhoneVerificationCode(
+      await authManager.sendVerificationCode(
         phoneNumber: localPhoneNumber,
         onSuccess: (String verificationId, int? resendToken) {
           _triggerEventAction(
@@ -117,13 +117,13 @@ class SendPhoneVerificationCodeAction extends EnsembleAction {
 /// - [code] and [verificationId] must be provided
 /// - [onSuccess] is executed when verification succeeds
 /// - [onError] is executed when there is a failure
-class VerifyPhoneCodeAction extends EnsembleAction {
+class ValidateVerificationCodeAction extends EnsembleAction {
   final String code;
   final String verificationId;
   final EnsembleAction? onSuccess;
   final EnsembleAction? onError;
 
-  VerifyPhoneCodeAction({
+  ValidateVerificationCodeAction({
     super.initiator,
     required this.code,
     required this.verificationId,
@@ -131,7 +131,7 @@ class VerifyPhoneCodeAction extends EnsembleAction {
     this.onError,
   });
 
-  factory VerifyPhoneCodeAction.fromYaml({
+  factory ValidateVerificationCodeAction.fromYaml({
     Invokable? initiator,
     Map? payload,
   }) {
@@ -145,7 +145,7 @@ class VerifyPhoneCodeAction extends EnsembleAction {
       throw LanguageError('verificationId is required in the YAML payload.');
     }
 
-    return VerifyPhoneCodeAction(
+    return ValidateVerificationCodeAction(
       initiator: initiator,
       code: codeValue,
       verificationId: verificationIdValue,
@@ -181,7 +181,7 @@ class VerifyPhoneCodeAction extends EnsembleAction {
         return;
       }
 
-      await authManager.verifyPhoneCode(
+      await authManager.validateVerificationCode(
         smsCode: localCode,
         verificationId: localVerificationId,
         onError: (String error) {
@@ -207,13 +207,13 @@ class VerifyPhoneCodeAction extends EnsembleAction {
 /// - [phoneNumber] and [resendToken] must be provided
 /// - [onSuccess] is executed when the code is resent successfully
 /// - [onError] is executed when there is a failure
-class ResendPhoneVerificationCodeAction extends EnsembleAction {
+class ResendVerificationCodeAction extends EnsembleAction {
   final String phoneNumber;
   final String resendToken;
   final EnsembleAction? onSuccess;
   final EnsembleAction? onError;
 
-  ResendPhoneVerificationCodeAction({
+  ResendVerificationCodeAction({
     super.initiator,
     required this.phoneNumber,
     required this.resendToken,
@@ -221,7 +221,7 @@ class ResendPhoneVerificationCodeAction extends EnsembleAction {
     this.onError,
   });
 
-  factory ResendPhoneVerificationCodeAction.fromYaml({
+  factory ResendVerificationCodeAction.fromYaml({
     Invokable? initiator,
     Map? payload,
   }) {
@@ -235,7 +235,7 @@ class ResendPhoneVerificationCodeAction extends EnsembleAction {
       throw LanguageError('resendToken is required in the YAML payload.');
     }
 
-    return ResendPhoneVerificationCodeAction(
+    return ResendVerificationCodeAction(
       initiator: initiator,
       phoneNumber: phoneNumberValue,
       resendToken: resendTokenValue,
@@ -268,7 +268,7 @@ class ResendPhoneVerificationCodeAction extends EnsembleAction {
         return;
       }
 
-      await authManager.resendPhoneVerificationCode(
+      await authManager.resendVerificationCode(
         phoneNumber: localPhoneNumber,
         resendToken: localResendToken,
         onSuccess: (String verificationId, int? newResendToken) {

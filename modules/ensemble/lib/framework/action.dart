@@ -21,7 +21,7 @@ import 'package:ensemble/action/notification_actions.dart';
 import 'package:ensemble/action/saveFile/save_file.dart';
 import 'package:ensemble/action/phone_contact_action.dart';
 import 'package:ensemble/action/sign_in_out_action.dart';
-import 'package:ensemble/action/sign_in_with_phone_actions.dart';
+import 'package:ensemble/action/sign_in_with_verification_code_actions.dart';
 import 'package:ensemble/action/toast_actions.dart';
 import 'package:ensemble/action/disable_hardware_navigation.dart';
 import 'package:ensemble/action/close_app.dart';
@@ -1061,9 +1061,9 @@ enum ActionType {
   controlDeviceBackNavigation,
   closeApp,
   saveFile,
-  sendPhoneVerificationCode,
-  verifyPhoneCode,
-  resendPhoneVerificationCode,
+  sendVerificationCode,
+  validateVerificationCode,
+  resendVerificationCode,
 }
 
 /// payload representing an Action to do (navigateToScreen, InvokeAPI, ..)
@@ -1286,14 +1286,14 @@ abstract class EnsembleAction {
       return SubscribeBluetoothCharacteristicsAction.from(payload: payload);
     } else if (actionType == ActionType.bluetoothUnsubscribeCharacteristic) {
       return UnSubscribeBluetoothCharacteristicsAction.from(payload: payload);
-    } else if (actionType == ActionType.sendPhoneVerificationCode) {
-      return SendPhoneVerificationCodeAction.fromYaml(
+    } else if (actionType == ActionType.sendVerificationCode) {
+      return SendVerificationCodeAction.fromYaml(
           initiator: initiator, payload: payload);
-    } else if (actionType == ActionType.verifyPhoneCode) {
-      return VerifyPhoneCodeAction.fromYaml(
+    } else if (actionType == ActionType.validateVerificationCode) {
+      return ValidateVerificationCodeAction.fromYaml(
           initiator: initiator, payload: payload);
-    } else if (actionType == ActionType.resendPhoneVerificationCode) {
-      return ResendPhoneVerificationCodeAction.fromYaml(
+    } else if (actionType == ActionType.resendVerificationCode) {
+      return ResendVerificationCodeAction.fromYaml(
           initiator: initiator, payload: payload);
     } else {
       throw LanguageError("Invalid action.",

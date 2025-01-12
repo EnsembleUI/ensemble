@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:mockito/mockito.dart';
-import 'package:ensemble_auth/signin/sign_in_with_phone.dart';
+import 'package:ensemble_auth/signin/sign_in_with_verification_code.dart';
 
 class MockFirebaseAuth extends Mock implements FirebaseAuth {
   @override
@@ -68,11 +68,12 @@ class MockUser extends Mock implements User {
 
 void main() {
   late MockFirebaseAuth mockFirebaseAuth;
-  late SignInWithPhone signInWithPhone;
+  late SignInWithVerificationCode signInWithVerificationCode;
 
   setUp(() {
     mockFirebaseAuth = MockFirebaseAuth();
-    signInWithPhone = SignInWithPhone(firebaseAuth: mockFirebaseAuth);
+    signInWithVerificationCode =
+        SignInWithVerificationCode(firebaseAuth: mockFirebaseAuth);
     print('Setup: MockFirebaseAuth and SignInWithPhone initialized');
   });
 
@@ -81,7 +82,7 @@ void main() {
       print('Test: Send Phone Verification Code - Success');
       bool successCallbackCalled = false;
 
-      await signInWithPhone.sendPhoneVerificationCode(
+      await signInWithVerificationCode.sendVerificationCode(
         phoneNumber: '+1234567890',
         onSuccess: (verificationId, resendToken) {
           successCallbackCalled = true;
@@ -100,7 +101,7 @@ void main() {
       print('Test: Send Phone Verification Code - Empty Phone Number');
       bool errorCallbackCalled = false;
 
-      await signInWithPhone.sendPhoneVerificationCode(
+      await signInWithVerificationCode.sendVerificationCode(
         phoneNumber: '',
         onSuccess: (verificationId, resendToken) {
           fail('Success callback should not be called for empty phone number');
@@ -119,7 +120,7 @@ void main() {
 
     test('Verify Phone Code - Success', () async {
       print('Test: Verify Phone Code - Success');
-      final user = await signInWithPhone.verifyPhoneCode(
+      final user = await signInWithVerificationCode.validateVerificationCode(
         smsCode: '123456',
         verificationId: 'testVerificationId',
       );
@@ -133,7 +134,7 @@ void main() {
     test('Verify Phone Code - Invalid Code', () async {
       print('Test: Verify Phone Code - Invalid Code');
       expect(
-        () async => await signInWithPhone.verifyPhoneCode(
+        () async => await signInWithVerificationCode.validateVerificationCode(
           smsCode: '654321',
           verificationId: 'testVerificationId',
         ),
@@ -149,7 +150,7 @@ void main() {
       print('Test: Resend Phone Verification Code - Success');
       bool successCallbackCalled = false;
 
-      await signInWithPhone.resendPhoneVerificationCode(
+      await signInWithVerificationCode.resendVerificationCode(
         phoneNumber: '+1234567890',
         resendToken: 12345,
         onSuccess: (verificationId, resendToken) {
@@ -170,7 +171,7 @@ void main() {
       print('Test: Resend Phone Verification Code - Invalid Phone Number');
       bool errorCallbackCalled = false;
 
-      await signInWithPhone.resendPhoneVerificationCode(
+      await signInWithVerificationCode.resendVerificationCode(
         phoneNumber: '+0987654321',
         resendToken: 12345,
         onSuccess: (verificationId, resendToken) {

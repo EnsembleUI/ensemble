@@ -5,20 +5,20 @@ abstract class AuthContextManager {
   Future<AuthenticatedUser?> getSignedInUser();
   Future<void> signOut();
 
-  Future<void> sendPhoneVerificationCode({
+  Future<void> sendVerificationCode({
     required String phoneNumber,
     required Function(String verificationId, int? resendToken) onSuccess,
     required Function(String error) onError,
   });
 
-  Future<AuthenticatedUser?> verifyPhoneCode({
+  Future<AuthenticatedUser?> validateVerificationCode({
     required String verificationId,
     required String smsCode,
     required Function(String error) onError,
     required Function(AuthenticatedUser user) onSuccess,
   });
 
-  Future<void> resendPhoneVerificationCode({
+  Future<void> resendVerificationCode({
     required String phoneNumber,
     required int resendToken,
     required Function(String verificationId, int? resendToken) onSuccess,
@@ -42,7 +42,7 @@ class AuthContextManagerStub implements AuthContextManager {
   }
 
   @override
-  Future<void> sendPhoneVerificationCode({
+  Future<void> sendVerificationCode({
     required String phoneNumber,
     required Function(String verificationId, int? resendToken) onSuccess,
     required Function(String error) onError,
@@ -51,7 +51,7 @@ class AuthContextManagerStub implements AuthContextManager {
   }
 
   @override
-  Future<AuthenticatedUser?> verifyPhoneCode({
+  Future<AuthenticatedUser?> validateVerificationCode({
     required String verificationId,
     required String smsCode,
     required Function(String error) onError,
@@ -61,7 +61,7 @@ class AuthContextManagerStub implements AuthContextManager {
   }
 
   @override
-  Future<void> resendPhoneVerificationCode({
+  Future<void> resendVerificationCode({
     required String phoneNumber,
     required int resendToken,
     required Function(String verificationId, int? resendToken) onSuccess,

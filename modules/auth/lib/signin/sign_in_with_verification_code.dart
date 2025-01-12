@@ -6,15 +6,15 @@ typedef VerificationSuccessCallback = void Function(
     String verificationId, int? resendToken);
 typedef VerificationErrorCallback = void Function(FirebaseAuthException error);
 
-class SignInWithPhone {
+class SignInWithVerificationCode {
   final FirebaseAuth _auth;
-  final Logger _logger = Logger('SignInWithPhone');
+  final Logger _logger = Logger('SignInWithVerificationCode');
 
-  SignInWithPhone({FirebaseAuth? firebaseAuth})
+  SignInWithVerificationCode({FirebaseAuth? firebaseAuth})
       : _auth = firebaseAuth ?? FirebaseAuth.instance;
 
   /// Sends a phone verification code to the specified [phoneNumber].
-  Future<void> sendPhoneVerificationCode({
+  Future<void> sendVerificationCode({
     required String phoneNumber,
     required VerificationSuccessCallback onSuccess,
     required VerificationErrorCallback onError,
@@ -27,7 +27,7 @@ class SignInWithPhone {
   }
 
   /// Verifies the phone code with the provided [smsCode] and [verificationId].
-  Future<AuthenticatedUser?> verifyPhoneCode({
+  Future<AuthenticatedUser?> validateVerificationCode({
     required String smsCode,
     required String verificationId,
   }) async {
@@ -59,7 +59,7 @@ class SignInWithPhone {
   }
 
   /// Resends a phone verification code using [resendToken].
-  Future<void> resendPhoneVerificationCode({
+  Future<void> resendVerificationCode({
     required String phoneNumber,
     required int resendToken,
     required VerificationSuccessCallback onSuccess,

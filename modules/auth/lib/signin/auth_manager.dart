@@ -13,7 +13,7 @@ import 'package:ensemble/framework/stub/auth_context_manager.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble_auth/signin/google_auth_manager.dart';
-import 'package:ensemble_auth/signin/sign_in_with_phone.dart';
+import 'package:ensemble_auth/signin/sign_in_with_verification_code.dart';
 import 'package:ensemble_auth/signin/sign_in_with_server_api_action.dart';
 import 'package:ensemble_auth/signin/signin_utils.dart';
 import 'package:ensemble_auth/signin/widget/sign_in_with_auth0.dart';
@@ -431,14 +431,15 @@ class AuthContextManagerImpl with Invokable implements AuthContextManager {
 
   /// Sends a phone verification code to the given phone number.
   @override
-  Future<void> sendPhoneVerificationCode({
+  Future<void> sendVerificationCode({
     required String phoneNumber,
     required Function(String verificationId, int? resendToken) onSuccess,
     required Function(String error) onError,
   }) async {
     try {
-      final SignInWithPhone _signInWithPhone = SignInWithPhone();
-      await _signInWithPhone.sendPhoneVerificationCode(
+      final SignInWithVerificationCode _signInWithPhone =
+          SignInWithVerificationCode();
+      await _signInWithPhone.sendVerificationCode(
         phoneNumber: phoneNumber,
         onSuccess: (verificationId, resendToken) {
           onSuccess(verificationId, resendToken);
@@ -454,15 +455,16 @@ class AuthContextManagerImpl with Invokable implements AuthContextManager {
 
   /// Verifies a phone code using [smsCode] and [verificationId].
   @override
-  Future<AuthenticatedUser?> verifyPhoneCode({
+  Future<AuthenticatedUser?> validateVerificationCode({
     required String smsCode,
     required String verificationId,
     required Function(AuthenticatedUser) onSuccess,
     required Function(String) onError,
   }) async {
     try {
-      final SignInWithPhone _signInWithPhone = SignInWithPhone();
-      final user = await _signInWithPhone.verifyPhoneCode(
+      final SignInWithVerificationCode _signInWithPhone =
+          SignInWithVerificationCode();
+      final user = await _signInWithPhone.validateVerificationCode(
         smsCode: smsCode,
         verificationId: verificationId,
       );
@@ -486,14 +488,15 @@ class AuthContextManagerImpl with Invokable implements AuthContextManager {
 
   /// Resends the verification code using [resendToken].
   @override
-  Future<void> resendPhoneVerificationCode({
+  Future<void> resendVerificationCode({
     required String phoneNumber,
     required int resendToken,
     required Function(String verificationId, int? resendToken) onSuccess,
     required Function(String error) onError,
   }) {
-    final SignInWithPhone _signInWithPhone = SignInWithPhone();
-    return _signInWithPhone.resendPhoneVerificationCode(
+    final SignInWithVerificationCode _signInWithPhone =
+        SignInWithVerificationCode();
+    return _signInWithPhone.resendVerificationCode(
       phoneNumber: phoneNumber,
       resendToken: resendToken,
       onSuccess: (verificationId, newResendToken) {
