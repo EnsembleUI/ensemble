@@ -1,5 +1,4 @@
 import 'package:ensemble/framework/action.dart';
-import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/stub/auth_context_manager.dart';
@@ -45,13 +44,13 @@ void _handleError(
 /// - [onSuccess] is executed when the code is sent successfully
 /// - [onError] is executed when there is a failure
 class SendVerificationCodeAction extends EnsembleAction {
-  final String phoneNumber;
+  final String? phoneNumber;
   final EnsembleAction? onSuccess;
   final EnsembleAction? onError;
 
   SendVerificationCodeAction({
     super.initiator,
-    required this.phoneNumber,
+    this.phoneNumber,
     this.onSuccess,
     this.onError,
   });
@@ -62,7 +61,7 @@ class SendVerificationCodeAction extends EnsembleAction {
   }) {
     return SendVerificationCodeAction(
       initiator: initiator,
-      phoneNumber: payload?['phoneNumber'],
+      phoneNumber: payload?['phoneNumber'] ?? '',
       onSuccess: EnsembleAction.from(payload?['onSuccess']),
       onError: EnsembleAction.from(payload?['onError']),
     );
@@ -80,7 +79,7 @@ class SendVerificationCodeAction extends EnsembleAction {
       );
 
       if (localPhoneNumber.isEmpty) {
-        LanguageError('Phone number is required');
+        _handleError(context, onError, initiator, 'Phone number is required');
         return;
       }
 
@@ -130,8 +129,8 @@ class ValidateVerificationCodeAction extends EnsembleAction {
   }) {
     return ValidateVerificationCodeAction(
       initiator: initiator,
-      code: payload?['code'],
-      verificationId: payload?['verificationId'],
+      code: payload?['code'] ?? '',
+      verificationId: payload?['verificationId'] ?? '',
       onSuccess: EnsembleAction.from(payload?['onSuccess']),
       onError: EnsembleAction.from(payload?['onError']),
     );
@@ -153,12 +152,14 @@ class ValidateVerificationCodeAction extends EnsembleAction {
       );
 
       if (localCode.isEmpty) {
-        LanguageError('Verification code is required');
+        _handleError(
+            context, onError, initiator, 'Verification code is required');
         return;
       }
 
       if (localVerificationId.isEmpty) {
-        LanguageError('Verification ID is required');
+        _handleError(
+            context, onError, initiator, 'Verification ID is required');
         return;
       }
 
@@ -187,14 +188,14 @@ class ValidateVerificationCodeAction extends EnsembleAction {
 /// - [onSuccess] is executed when the code is resent successfully
 /// - [onError] is executed when there is a failure
 class ResendVerificationCodeAction extends EnsembleAction {
-  final String phoneNumber;
+  final String? phoneNumber;
   final String resendToken;
   final EnsembleAction? onSuccess;
   final EnsembleAction? onError;
 
   ResendVerificationCodeAction({
     super.initiator,
-    required this.phoneNumber,
+    this.phoneNumber,
     required this.resendToken,
     this.onSuccess,
     this.onError,
@@ -206,7 +207,7 @@ class ResendVerificationCodeAction extends EnsembleAction {
   }) {
     return ResendVerificationCodeAction(
       initiator: initiator,
-      phoneNumber: payload?['phoneNumber'],
+      phoneNumber: payload?['phoneNumber'] ?? '',
       resendToken: payload?['resendToken'],
       onSuccess: EnsembleAction.from(payload?['onSuccess']),
       onError: EnsembleAction.from(payload?['onError']),
@@ -229,11 +230,11 @@ class ResendVerificationCodeAction extends EnsembleAction {
       );
 
       if (localPhoneNumber.isEmpty) {
-        LanguageError('Phone number is required');
+        _handleError(context, onError, initiator, 'Phone number is required');
         return;
       }
       if (localResendToken == 0) {
-        LanguageError('Invalid resend token');
+        _handleError(context, onError, initiator, 'Invalid resend token');
         return;
       }
 
