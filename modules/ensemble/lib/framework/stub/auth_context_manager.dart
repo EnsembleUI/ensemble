@@ -4,6 +4,26 @@ import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 abstract class AuthContextManager {
   Future<AuthenticatedUser?> getSignedInUser();
   Future<void> signOut();
+
+  Future<void> sendPhoneVerificationCode({
+    required String phoneNumber,
+    required Function(String verificationId, int? resendToken) onSuccess,
+    required Function(String error) onError,
+  });
+
+  Future<AuthenticatedUser?> verifyPhoneCode({
+    required String verificationId,
+    required String smsCode,
+    required Function(String error) onError,
+    required Function(AuthenticatedUser user) onSuccess,
+  });
+
+  Future<void> resendPhoneVerificationCode({
+    required String phoneNumber,
+    required int resendToken,
+    required Function(String verificationId, int? resendToken) onSuccess,
+    required Function(String error) onError,
+  });
 }
 
 class AuthContextManagerStub implements AuthContextManager {
@@ -19,6 +39,35 @@ class AuthContextManagerStub implements AuthContextManager {
   @override
   Future<void> signOut() {
     throw UnimplementedError();
+  }
+
+  @override
+  Future<void> sendPhoneVerificationCode({
+    required String phoneNumber,
+    required Function(String verificationId, int? resendToken) onSuccess,
+    required Function(String error) onError,
+  }) {
+    throw RuntimeError('Auth is not enabled.');
+  }
+
+  @override
+  Future<AuthenticatedUser?> verifyPhoneCode({
+    required String verificationId,
+    required String smsCode,
+    required Function(String error) onError,
+    required Function(AuthenticatedUser user) onSuccess,
+  }) {
+    throw RuntimeError('Auth is not enabled.');
+  }
+
+  @override
+  Future<void> resendPhoneVerificationCode({
+    required String phoneNumber,
+    required int resendToken,
+    required Function(String verificationId, int? resendToken) onSuccess,
+    required Function(String error) onError,
+  }) {
+    throw RuntimeError('Auth is not enabled.');
   }
 }
 
@@ -77,6 +126,7 @@ class AuthenticatedUser with Invokable {
       'email': () => email,
       'photo': () => photo,
       'data': () => data,
+      'phoneNumber': () => phoneNumber,
     };
   }
 

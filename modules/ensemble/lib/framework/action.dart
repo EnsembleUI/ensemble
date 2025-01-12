@@ -21,6 +21,7 @@ import 'package:ensemble/action/notification_actions.dart';
 import 'package:ensemble/action/saveFile/save_file.dart';
 import 'package:ensemble/action/phone_contact_action.dart';
 import 'package:ensemble/action/sign_in_out_action.dart';
+import 'package:ensemble/action/sign_in_with_phone_actions.dart';
 import 'package:ensemble/action/toast_actions.dart';
 import 'package:ensemble/action/disable_hardware_navigation.dart';
 import 'package:ensemble/action/close_app.dart';
@@ -1059,7 +1060,10 @@ enum ActionType {
   bluetoothUnsubscribeCharacteristic,
   controlDeviceBackNavigation,
   closeApp,
-  saveFile
+  saveFile,
+  sendPhoneVerificationCode,
+  verifyPhoneCode,
+  resendPhoneVerificationCode,
 }
 
 /// payload representing an Action to do (navigateToScreen, InvokeAPI, ..)
@@ -1282,6 +1286,15 @@ abstract class EnsembleAction {
       return SubscribeBluetoothCharacteristicsAction.from(payload: payload);
     } else if (actionType == ActionType.bluetoothUnsubscribeCharacteristic) {
       return UnSubscribeBluetoothCharacteristicsAction.from(payload: payload);
+    } else if (actionType == ActionType.sendPhoneVerificationCode) {
+      return SendPhoneVerificationCodeAction.fromYaml(
+          initiator: initiator, payload: payload);
+    } else if (actionType == ActionType.verifyPhoneCode) {
+      return VerifyPhoneCodeAction.fromYaml(
+          initiator: initiator, payload: payload);
+    } else if (actionType == ActionType.resendPhoneVerificationCode) {
+      return ResendPhoneVerificationCodeAction.fromYaml(
+          initiator: initiator, payload: payload);
     } else {
       throw LanguageError("Invalid action.",
           recovery: "Make sure to use one of Ensemble-provided actions.");

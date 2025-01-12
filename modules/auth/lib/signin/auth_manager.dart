@@ -13,6 +13,7 @@ import 'package:ensemble/framework/stub/auth_context_manager.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble_auth/signin/google_auth_manager.dart';
+import 'package:ensemble_auth/signin/sign_in_with_phone.dart';
 import 'package:ensemble_auth/signin/sign_in_with_server_api_action.dart';
 import 'package:ensemble_auth/signin/signin_utils.dart';
 import 'package:ensemble_auth/signin/widget/sign_in_with_auth0.dart';
@@ -426,6 +427,82 @@ class AuthContextManagerImpl with Invokable implements AuthContextManager {
   @override
   Future<void> signOut() {
     return AuthManager().signOut(Utils.globalAppKey.currentContext!);
+  }
+
+  /// Sends a phone verification code to the given phone number.
+  @override
+  Future<void> sendPhoneVerificationCode({
+    required String phoneNumber,
+    required Function(String verificationId, int? resendToken) onSuccess,
+    required Function(String error) onError,
+  }) async {
+    try {
+      final SignInWithPhone _signInWithPhone = SignInWithPhone();
+      await _signInWithPhone.sendPhoneVerificationCode(
+        phoneNumber: phoneNumber,
+        onSuccess: (verificationId, resendToken) {
+          onSuccess(verificationId, resendToken);
+        },
+        onError: (e) {
+          onError(e.message ?? 'An error occurred while sending code');
+        },
+      );
+    } catch (e) {
+      onError('Unexpected error occurred: $e');
+    }
+  }
+
+  /// Verifies a phone code using [smsCode] and [verificationId].
+  @override
+  Future<AuthenticatedUser?> verifyPhoneCode({
+    required String smsCode,
+    required String verificationId,
+    required Function(AuthenticatedUser) onSuccess,
+    required Function(String) onError,
+  }) async {
+    try {
+      final SignInWithPhone _signInWithPhone = SignInWithPhone();
+      final user = await _signInWithPhone.verifyPhoneCode(
+        smsCode: smsCode,
+        verificationId: verificationId,
+      );
+
+      if (user != null) {
+        await AuthManager()._updateCurrentUser(
+          Utils.globalAppKey.currentContext!,
+          user,
+        );
+        onSuccess(user);
+      } else {
+        onError('Unable to verify phone code');
+      }
+
+      return user;
+    } catch (e) {
+      onError('Error verifying phone code: ${e.toString()}');
+      return null;
+    }
+  }
+
+  /// Resends the verification code using [resendToken].
+  @override
+  Future<void> resendPhoneVerificationCode({
+    required String phoneNumber,
+    required int resendToken,
+    required Function(String verificationId, int? resendToken) onSuccess,
+    required Function(String error) onError,
+  }) {
+    final SignInWithPhone _signInWithPhone = SignInWithPhone();
+    return _signInWithPhone.resendPhoneVerificationCode(
+      phoneNumber: phoneNumber,
+      resendToken: resendToken,
+      onSuccess: (verificationId, newResendToken) {
+        onSuccess(verificationId, newResendToken);
+      },
+      onError: (e) {
+        onError('Error resending phone verification: ${e.message}');
+      },
+    );
   }
 }
 
