@@ -16,11 +16,15 @@ class SignInWithVerificationCode {
   /// Sends a phone verification code to the specified [phoneNumber].
   Future<void> sendVerificationCode({
     required String provider,
+    required String method,
     required String phoneNumber,
     required VerificationSuccessCallback onSuccess,
     required VerificationErrorCallback onError,
   }) async {
     if (provider == 'firebase') {
+      if (method != 'phone') {
+        throw ArgumentError('Unsupported method: $method');
+      }
       await _sendVerificationCode(
         phoneNumber: phoneNumber,
         onSuccess: onSuccess,
@@ -34,11 +38,15 @@ class SignInWithVerificationCode {
   /// Verifies the phone code with the provided [smsCode] and [verificationId].
   Future<AuthenticatedUser?> validateVerificationCode({
     required String provider,
+    required String method,
     required String smsCode,
     required String verificationId,
   }) async {
     try {
       if (provider == 'firebase') {
+        if (method != 'phone') {
+          throw ArgumentError('Unsupported method: $method');
+        }
         return await _validateFirebaseVerificationCode(
           smsCode: smsCode,
           verificationId: verificationId,
@@ -55,12 +63,16 @@ class SignInWithVerificationCode {
   /// Resends a phone verification code using [resendToken].
   Future<void> resendVerificationCode({
     required String provider,
+    required String method,
     required String phoneNumber,
     required int resendToken,
     required VerificationSuccessCallback onSuccess,
     required VerificationErrorCallback onError,
   }) async {
     if (provider == 'firebase') {
+      if (method != 'phone') {
+        throw ArgumentError('Unsupported method: $method');
+      }
       await _sendVerificationCode(
         phoneNumber: phoneNumber,
         forceResendingToken: resendToken,

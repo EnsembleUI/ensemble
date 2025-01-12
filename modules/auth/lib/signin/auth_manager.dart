@@ -433,6 +433,7 @@ class AuthContextManagerImpl with Invokable implements AuthContextManager {
   @override
   Future<void> sendVerificationCode({
     required String provider,
+    required String method,
     required String phoneNumber,
     required Function(String verificationId, int? resendToken) onSuccess,
     required Function(String error) onError,
@@ -442,6 +443,7 @@ class AuthContextManagerImpl with Invokable implements AuthContextManager {
           SignInWithVerificationCode();
       await _signInWithVerificationCode.sendVerificationCode(
         provider: provider,
+        method: method,
         phoneNumber: phoneNumber,
         onSuccess: (verificationId, resendToken) {
           onSuccess(verificationId, resendToken);
@@ -459,6 +461,7 @@ class AuthContextManagerImpl with Invokable implements AuthContextManager {
   @override
   Future<AuthenticatedUser?> validateVerificationCode({
     required String provider,
+    required String method,
     required String smsCode,
     required String verificationId,
     required Function(AuthenticatedUser) onSuccess,
@@ -469,6 +472,7 @@ class AuthContextManagerImpl with Invokable implements AuthContextManager {
           SignInWithVerificationCode();
       final user = await _signInWithVerificationCode.validateVerificationCode(
         provider: provider,
+        method: method,
         smsCode: smsCode,
         verificationId: verificationId,
       );
@@ -494,6 +498,7 @@ class AuthContextManagerImpl with Invokable implements AuthContextManager {
   @override
   Future<void> resendVerificationCode({
     required String provider,
+    required String method,
     required String phoneNumber,
     required int resendToken,
     required Function(String verificationId, int? resendToken) onSuccess,
@@ -503,6 +508,7 @@ class AuthContextManagerImpl with Invokable implements AuthContextManager {
         SignInWithVerificationCode();
     return _signInWithVerificationCode.resendVerificationCode(
       provider: provider,
+      method: method,
       phoneNumber: phoneNumber,
       resendToken: resendToken,
       onSuccess: (verificationId, newResendToken) {

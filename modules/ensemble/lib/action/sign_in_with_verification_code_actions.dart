@@ -45,6 +45,7 @@ void _handleError(
 /// - [onError] is executed when there is a failure
 class SendVerificationCodeAction extends EnsembleAction {
   final String provider;
+  final String method;
   final String? phoneNumber;
   final EnsembleAction? onSuccess;
   final EnsembleAction? onError;
@@ -52,6 +53,7 @@ class SendVerificationCodeAction extends EnsembleAction {
   SendVerificationCodeAction({
     super.initiator,
     required this.provider,
+    required this.method,
     this.phoneNumber,
     this.onSuccess,
     this.onError,
@@ -64,6 +66,7 @@ class SendVerificationCodeAction extends EnsembleAction {
     return SendVerificationCodeAction(
       initiator: initiator,
       provider: payload?['provider'] ?? 'firebase',
+      method: payload?['method'] ?? 'phone',
       phoneNumber: payload?['phoneNumber'] ?? '',
       onSuccess: EnsembleAction.from(payload?['onSuccess']),
       onError: EnsembleAction.from(payload?['onError']),
@@ -88,6 +91,7 @@ class SendVerificationCodeAction extends EnsembleAction {
 
       await authManager.sendVerificationCode(
         provider: provider,
+        method: method,
         phoneNumber: localPhoneNumber,
         onSuccess: (String verificationId, int? resendToken) {
           _triggerEventAction(
@@ -115,6 +119,7 @@ class SendVerificationCodeAction extends EnsembleAction {
 /// - [onError] is executed when there is a failure
 class ValidateVerificationCodeAction extends EnsembleAction {
   final String provider;
+  final String method;
   final String code;
   final String verificationId;
   final EnsembleAction? onSuccess;
@@ -123,6 +128,7 @@ class ValidateVerificationCodeAction extends EnsembleAction {
   ValidateVerificationCodeAction({
     super.initiator,
     required this.provider,
+    required this.method,
     required this.code,
     required this.verificationId,
     this.onSuccess,
@@ -137,6 +143,7 @@ class ValidateVerificationCodeAction extends EnsembleAction {
       initiator: initiator,
       code: payload?['code'] ?? '',
       provider: payload?['provider'] ?? 'firebase',
+      method: payload?['method'] ?? 'phone',
       verificationId: payload?['verificationId'] ?? '',
       onSuccess: EnsembleAction.from(payload?['onSuccess']),
       onError: EnsembleAction.from(payload?['onError']),
@@ -172,6 +179,7 @@ class ValidateVerificationCodeAction extends EnsembleAction {
 
       await authManager.validateVerificationCode(
         provider: provider,
+        method: method,
         smsCode: localCode,
         verificationId: localVerificationId,
         onError: (String error) {
@@ -199,6 +207,7 @@ class ResendVerificationCodeAction extends EnsembleAction {
   final String? phoneNumber;
   final String resendToken;
   final String provider;
+  final String method;
   final EnsembleAction? onSuccess;
   final EnsembleAction? onError;
 
@@ -207,6 +216,7 @@ class ResendVerificationCodeAction extends EnsembleAction {
     this.phoneNumber,
     required this.resendToken,
     required this.provider,
+    required this.method,
     this.onSuccess,
     this.onError,
   });
@@ -218,6 +228,7 @@ class ResendVerificationCodeAction extends EnsembleAction {
     return ResendVerificationCodeAction(
       initiator: initiator,
       provider: payload?['provider'] ?? 'firebase',
+      method: payload?['method'] ?? 'phone',
       phoneNumber: payload?['phoneNumber'] ?? '',
       resendToken: payload?['resendToken'] ?? 0,
       onSuccess: EnsembleAction.from(payload?['onSuccess']),
@@ -251,6 +262,7 @@ class ResendVerificationCodeAction extends EnsembleAction {
 
       await authManager.resendVerificationCode(
         provider: provider,
+        method: method,
         phoneNumber: localPhoneNumber,
         resendToken: localResendToken,
         onSuccess: (String verificationId, int? newResendToken) {
