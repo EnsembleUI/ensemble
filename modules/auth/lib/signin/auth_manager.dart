@@ -432,14 +432,16 @@ class AuthContextManagerImpl with Invokable implements AuthContextManager {
   /// Sends a phone verification code to the given phone number.
   @override
   Future<void> sendVerificationCode({
+    required String provider,
     required String phoneNumber,
     required Function(String verificationId, int? resendToken) onSuccess,
     required Function(String error) onError,
   }) async {
     try {
-      final SignInWithVerificationCode _signInWithPhone =
+      final SignInWithVerificationCode _signInWithVerificationCode =
           SignInWithVerificationCode();
-      await _signInWithPhone.sendVerificationCode(
+      await _signInWithVerificationCode.sendVerificationCode(
+        provider: provider,
         phoneNumber: phoneNumber,
         onSuccess: (verificationId, resendToken) {
           onSuccess(verificationId, resendToken);
@@ -456,15 +458,17 @@ class AuthContextManagerImpl with Invokable implements AuthContextManager {
   /// Verifies a phone code using [smsCode] and [verificationId].
   @override
   Future<AuthenticatedUser?> validateVerificationCode({
+    required String provider,
     required String smsCode,
     required String verificationId,
     required Function(AuthenticatedUser) onSuccess,
     required Function(String) onError,
   }) async {
     try {
-      final SignInWithVerificationCode _signInWithPhone =
+      final SignInWithVerificationCode _signInWithVerificationCode =
           SignInWithVerificationCode();
-      final user = await _signInWithPhone.validateVerificationCode(
+      final user = await _signInWithVerificationCode.validateVerificationCode(
+        provider: provider,
         smsCode: smsCode,
         verificationId: verificationId,
       );
@@ -489,14 +493,16 @@ class AuthContextManagerImpl with Invokable implements AuthContextManager {
   /// Resends the verification code using [resendToken].
   @override
   Future<void> resendVerificationCode({
+    required String provider,
     required String phoneNumber,
     required int resendToken,
     required Function(String verificationId, int? resendToken) onSuccess,
     required Function(String error) onError,
   }) {
-    final SignInWithVerificationCode _signInWithPhone =
+    final SignInWithVerificationCode _signInWithVerificationCode =
         SignInWithVerificationCode();
-    return _signInWithPhone.resendVerificationCode(
+    return _signInWithVerificationCode.resendVerificationCode(
+      provider: provider,
       phoneNumber: phoneNumber,
       resendToken: resendToken,
       onSuccess: (verificationId, newResendToken) {

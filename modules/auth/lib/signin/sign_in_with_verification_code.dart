@@ -15,19 +15,91 @@ class SignInWithVerificationCode {
 
   /// Sends a phone verification code to the specified [phoneNumber].
   Future<void> sendVerificationCode({
+    required String provider,
     required String phoneNumber,
     required VerificationSuccessCallback onSuccess,
     required VerificationErrorCallback onError,
   }) async {
-    await _sendVerificationCode(
-      phoneNumber: phoneNumber,
-      onSuccess: onSuccess,
-      onError: onError,
-    );
+    if (provider == 'firebase') {
+      await _sendVerificationCode(
+        phoneNumber: phoneNumber,
+        onSuccess: onSuccess,
+        onError: onError,
+      );
+    } else {
+      throw ArgumentError('Unsupported provider: $provider');
+    }
   }
 
   /// Verifies the phone code with the provided [smsCode] and [verificationId].
   Future<AuthenticatedUser?> validateVerificationCode({
+    required String provider,
+    required String smsCode,
+    required String verificationId,
+  }) async {
+    try {
+      if (provider == 'firebase') {
+        return await _validateFirebaseVerificationCode(
+          smsCode: smsCode,
+          verificationId: verificationId,
+        );
+      } else {
+        throw ArgumentError('Unsupported provider: $provider');
+      }
+    } catch (e) {
+      _logger.warning('Error during phone code verification: ${e.toString()}');
+      rethrow;
+    }
+  }
+
+  /// Resends a phone verification code using [resendToken].
+  Future<void> resendVerificationCode({
+    required String provider,
+    required String phoneNumber,
+    required int resendToken,
+    required VerificationSuccessCallback onSuccess,
+    required VerificationErrorCallback onError,
+  }) async {
+    if (provider == 'firebase') {
+      await _sendVerificationCode(
+        phoneNumber: phoneNumber,
+        forceResendingToken: resendToken,
+        onSuccess: onSuccess,
+        onError: onError,
+      );
+    } else {
+      throw ArgumentError('Unsupported provider: $provider');
+    }
+  }
+
+  /// Verify the phone number using Firebase's [verifyPhoneNumber].
+  Future<void> _sendVerificationCode({
+    required String phoneNumber,
+    int? forceResendingToken,
+    required VerificationSuccessCallback onSuccess,
+    required VerificationErrorCallback onError,
+  }) async {
+    try {
+      await _auth.verifyPhoneNumber(
+        phoneNumber: phoneNumber,
+        forceResendingToken: forceResendingToken,
+        verificationCompleted: (PhoneAuthCredential credential) {},
+        verificationFailed: (FirebaseAuthException e) {
+          _handleFirebaseError(e, onError);
+        },
+        codeSent: (String verificationId, int? resendToken) {
+          onSuccess(verificationId, resendToken);
+        },
+        codeAutoRetrievalTimeout: (String verificationId) {},
+      );
+    } catch (e) {
+      _logger.severe('Unexpected error in _verifyPhoneNumber: ${e.toString()}');
+      rethrow;
+    }
+  }
+
+  /// Validate the phone code using Firebase's [signInWithCredential].
+  Future<AuthenticatedUser?> _validateFirebaseVerificationCode({
     required String smsCode,
     required String verificationId,
   }) async {
@@ -38,7 +110,7 @@ class SignInWithVerificationCode {
         smsCode: smsCode,
       );
       final UserCredential userCredential =
-          await _signInWithCredential(credential);
+          await _auth.signInWithCredential(credential);
 
       if (userCredential.user == null) {
         throw FirebaseAuthException(
@@ -56,63 +128,6 @@ class SignInWithVerificationCode {
       _logger.warning('Error during phone code verification: ${e.toString()}');
       rethrow;
     }
-  }
-
-  /// Resends a phone verification code using [resendToken].
-  Future<void> resendVerificationCode({
-    required String phoneNumber,
-    required int resendToken,
-    required VerificationSuccessCallback onSuccess,
-    required VerificationErrorCallback onError,
-  }) async {
-    await _sendVerificationCode(
-      phoneNumber: phoneNumber,
-      forceResendingToken: resendToken,
-      onSuccess: onSuccess,
-      onError: onError,
-    );
-  }
-
-  /// Verify the phone number using Firebase's [verifyPhoneNumber].
-  Future<void> _sendVerificationCode({
-    required String phoneNumber,
-    int? forceResendingToken,
-    required VerificationSuccessCallback onSuccess,
-    required VerificationErrorCallback onError,
-  }) async {
-    try {
-      await _auth.verifyPhoneNumber(
-        phoneNumber: phoneNumber,
-        forceResendingToken: forceResendingToken,
-        verificationCompleted: (PhoneAuthCredential credential) async {
-          await _signInWithCredential(credential);
-        },
-        verificationFailed: (FirebaseAuthException e) {
-          _handleFirebaseError(e, onError);
-        },
-        codeSent: (String verificationId, int? resendToken) {
-          onSuccess(verificationId, resendToken);
-        },
-        codeAutoRetrievalTimeout: (String verificationId) {
-          _handleFirebaseError(
-            FirebaseAuthException(
-              code: 'timeout',
-              message: 'Verification timed out. Please try again.',
-            ),
-            onError,
-          );
-        },
-      );
-    } catch (e) {
-      _logger.severe('Unexpected error in _verifyPhoneNumber: ${e.toString()}');
-      rethrow;
-    }
-  }
-
-  /// Sign in with the provided [credential].
-  Future<UserCredential> _signInWithCredential(
-      PhoneAuthCredential credential) async {
-    return await _auth.signInWithCredential(credential);
   }
 
   /// Log the Firebase error and pass it to [onError].

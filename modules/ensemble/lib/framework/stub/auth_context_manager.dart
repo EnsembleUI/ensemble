@@ -6,12 +6,14 @@ abstract class AuthContextManager {
   Future<void> signOut();
 
   Future<void> sendVerificationCode({
+    required String provider,
     required String phoneNumber,
     required Function(String verificationId, int? resendToken) onSuccess,
     required Function(String error) onError,
   });
 
   Future<AuthenticatedUser?> validateVerificationCode({
+    required String provider,
     required String verificationId,
     required String smsCode,
     required Function(String error) onError,
@@ -19,6 +21,7 @@ abstract class AuthContextManager {
   });
 
   Future<void> resendVerificationCode({
+    required String provider,
     required String phoneNumber,
     required int resendToken,
     required Function(String verificationId, int? resendToken) onSuccess,
@@ -43,6 +46,7 @@ class AuthContextManagerStub implements AuthContextManager {
 
   @override
   Future<void> sendVerificationCode({
+    required String provider,
     required String phoneNumber,
     required Function(String verificationId, int? resendToken) onSuccess,
     required Function(String error) onError,
@@ -52,6 +56,7 @@ class AuthContextManagerStub implements AuthContextManager {
 
   @override
   Future<AuthenticatedUser?> validateVerificationCode({
+    required String provider,
     required String verificationId,
     required String smsCode,
     required Function(String error) onError,
@@ -62,6 +67,7 @@ class AuthContextManagerStub implements AuthContextManager {
 
   @override
   Future<void> resendVerificationCode({
+    required String provider,
     required String phoneNumber,
     required int resendToken,
     required Function(String verificationId, int? resendToken) onSuccess,
