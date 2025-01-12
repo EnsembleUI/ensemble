@@ -60,14 +60,9 @@ class SendVerificationCodeAction extends EnsembleAction {
     Invokable? initiator,
     Map? payload,
   }) {
-    final phoneNumberValue = payload?['phoneNumber'];
-    if (phoneNumberValue == null || phoneNumberValue.toString().isEmpty) {
-      throw LanguageError('phoneNumber is required in the YAML payload.');
-    }
-
     return SendVerificationCodeAction(
       initiator: initiator,
-      phoneNumber: phoneNumberValue,
+      phoneNumber: payload?['phoneNumber'],
       onSuccess: EnsembleAction.from(payload?['onSuccess']),
       onError: EnsembleAction.from(payload?['onError']),
     );
@@ -85,7 +80,7 @@ class SendVerificationCodeAction extends EnsembleAction {
       );
 
       if (localPhoneNumber.isEmpty) {
-        _handleError(context, onError, initiator, 'Phone number is required');
+        LanguageError('Phone number is required');
         return;
       }
 
@@ -107,8 +102,6 @@ class SendVerificationCodeAction extends EnsembleAction {
           _handleError(context, onError, initiator, error);
         },
       );
-    } else {
-      _handleError(context, onError, initiator, 'Auth module is not enabled');
     }
   }
 }
@@ -135,20 +128,10 @@ class ValidateVerificationCodeAction extends EnsembleAction {
     Invokable? initiator,
     Map? payload,
   }) {
-    final codeValue = payload?['code'];
-    final verificationIdValue = payload?['verificationId'];
-
-    if (codeValue == null || codeValue.toString().isEmpty) {
-      throw LanguageError('code is required in the YAML payload.');
-    }
-    if (verificationIdValue == null || verificationIdValue.toString().isEmpty) {
-      throw LanguageError('verificationId is required in the YAML payload.');
-    }
-
     return ValidateVerificationCodeAction(
       initiator: initiator,
-      code: codeValue,
-      verificationId: verificationIdValue,
+      code: payload?['code'],
+      verificationId: payload?['verificationId'],
       onSuccess: EnsembleAction.from(payload?['onSuccess']),
       onError: EnsembleAction.from(payload?['onError']),
     );
@@ -170,14 +153,12 @@ class ValidateVerificationCodeAction extends EnsembleAction {
       );
 
       if (localCode.isEmpty) {
-        _handleError(
-            context, onError, initiator, 'Verification code is required');
+        LanguageError('Verification code is required');
         return;
       }
 
       if (localVerificationId.isEmpty) {
-        _handleError(
-            context, onError, initiator, 'Verification ID is required');
+        LanguageError('Verification ID is required');
         return;
       }
 
@@ -197,8 +178,6 @@ class ValidateVerificationCodeAction extends EnsembleAction {
           );
         },
       );
-    } else {
-      _handleError(context, onError, initiator, 'Auth module is not enabled');
     }
   }
 }
@@ -225,20 +204,10 @@ class ResendVerificationCodeAction extends EnsembleAction {
     Invokable? initiator,
     Map? payload,
   }) {
-    final phoneNumberValue = payload?['phoneNumber'];
-    final resendTokenValue = payload?['resendToken'];
-
-    if (phoneNumberValue == null || phoneNumberValue.toString().isEmpty) {
-      throw LanguageError('phoneNumber is required in the YAML payload.');
-    }
-    if (resendTokenValue == null || resendTokenValue.toString().isEmpty) {
-      throw LanguageError('resendToken is required in the YAML payload.');
-    }
-
     return ResendVerificationCodeAction(
       initiator: initiator,
-      phoneNumber: phoneNumberValue,
-      resendToken: resendTokenValue,
+      phoneNumber: payload?['phoneNumber'],
+      resendToken: payload?['resendToken'],
       onSuccess: EnsembleAction.from(payload?['onSuccess']),
       onError: EnsembleAction.from(payload?['onError']),
     );
@@ -260,11 +229,11 @@ class ResendVerificationCodeAction extends EnsembleAction {
       );
 
       if (localPhoneNumber.isEmpty) {
-        _handleError(context, onError, initiator, 'Phone number is required');
+        LanguageError('Phone number is required');
         return;
       }
       if (localResendToken == 0) {
-        _handleError(context, onError, initiator, 'Invalid resend token');
+        LanguageError('Invalid resend token');
         return;
       }
 
@@ -287,8 +256,6 @@ class ResendVerificationCodeAction extends EnsembleAction {
           _handleError(context, onError, initiator, error);
         },
       );
-    } else {
-      _handleError(context, onError, initiator, 'Auth module is not enabled');
     }
   }
 }
