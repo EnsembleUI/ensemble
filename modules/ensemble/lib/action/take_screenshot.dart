@@ -6,8 +6,11 @@ import 'package:ensemble/framework/view/data_scope_widget.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/util/utils.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:screenshot/screenshot.dart';
+import 'saveFile/save_mobile.dart';
 
 class TakeScreenshotAction extends EnsembleAction {
   TakeScreenshotAction({
@@ -59,6 +62,7 @@ class TakeScreenshotAction extends EnsembleAction {
       );
 
       final Uint8List? capturedImage =
+          // It will only capture readonly widgets
           await screenshotController.captureFromLongWidget(
         InheritedTheme.captureAll(
           context,
@@ -67,7 +71,6 @@ class TakeScreenshotAction extends EnsembleAction {
             child: widget,
           ),
         ),
-        delay: const Duration(milliseconds: 1000),
         pixelRatio: pixelRatio ?? MediaQuery.of(context).devicePixelRatio,
         context: context,
       );
@@ -77,13 +80,15 @@ class TakeScreenshotAction extends EnsembleAction {
       }
 
       final dimensions = await _getImageDimensions(capturedImage);
+      // Save screenshot to gallery and download on web
+      await _saveScreenshot(capturedImage);
 
       if (onSuccess != null) {
         await ScreenController().executeAction(
           context,
           onSuccess!,
           event: EnsembleEvent(initiator, data: {
-            'imageData': capturedImage,
+            'imageBytes': capturedImage, // capturedImage contains Image Bytes
             'size': capturedImage.length,
             'dimensions': dimensions,
           }),
@@ -99,6 +104,20 @@ class TakeScreenshotAction extends EnsembleAction {
       }
       rethrow;
     }
+  }
+
+  Future<void> _saveScreenshot(Uint8List fileBytes) async {
+    // Screenshot name of current date
+    // Get the current date and time
+    DateTime now = DateTime.now();
+
+    // Format the date and time
+    String formattedDateTime = DateFormat('yyyyMMdd_HHmmss').format(now);
+
+    // Combine the prefix with the formatted date and time
+    String screenshotName = 'screenshot_$formattedDateTime';
+
+    await saveImageToDCIM(screenshotName, fileBytes);
   }
 
   Future<Map<String, int>> _getImageDimensions(Uint8List imageData) async {
