@@ -102,7 +102,6 @@ class TakeScreenshotAction extends EnsembleAction {
           event: EnsembleEvent(initiator, data: {'error': e.toString()}),
         );
       }
-      rethrow;
     }
   }
 
