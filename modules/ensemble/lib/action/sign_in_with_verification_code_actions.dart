@@ -124,6 +124,7 @@ class ValidateVerificationCodeAction extends EnsembleAction {
   final String verificationId;
   final EnsembleAction? onSuccess;
   final EnsembleAction? onError;
+  final EnsembleAction? onVerificationFailure;
 
   ValidateVerificationCodeAction({
     super.initiator,
@@ -133,6 +134,7 @@ class ValidateVerificationCodeAction extends EnsembleAction {
     required this.verificationId,
     this.onSuccess,
     this.onError,
+    this.onVerificationFailure,
   });
 
   factory ValidateVerificationCodeAction.fromYaml({
@@ -147,6 +149,8 @@ class ValidateVerificationCodeAction extends EnsembleAction {
       verificationId: payload?['verificationId'] ?? '',
       onSuccess: EnsembleAction.from(payload?['onSuccess']),
       onError: EnsembleAction.from(payload?['onError']),
+      onVerificationFailure:
+          EnsembleAction.from(payload?['onVerificationFailure']),
     );
   }
 
@@ -184,6 +188,15 @@ class ValidateVerificationCodeAction extends EnsembleAction {
         verificationId: localVerificationId,
         onError: (String error) {
           _handleError(context, onError, initiator, error);
+        },
+        onVerificationFailure: (String error) {
+          _triggerEventAction(
+            context,
+            onVerificationFailure,
+            initiator,
+            'onVerificationFailure',
+            {'error': error},
+          );
         },
         onSuccess: (AuthenticatedUser user) {
           _triggerEventAction(

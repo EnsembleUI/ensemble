@@ -466,6 +466,7 @@ class AuthContextManagerImpl with Invokable implements AuthContextManager {
     required String verificationId,
     required Function(AuthenticatedUser) onSuccess,
     required Function(String) onError,
+    required Function(String) onVerificationFailure,
   }) async {
     try {
       final SignInWithVerificationCode _signInWithVerificationCode =
@@ -484,12 +485,12 @@ class AuthContextManagerImpl with Invokable implements AuthContextManager {
         );
         onSuccess(user);
       } else {
-        onError('Unable to verify phone code');
+        onError('Something went wrong, User not found');
       }
 
       return user;
     } catch (e) {
-      onError('Error verifying phone code: ${e.toString()}');
+      onVerificationFailure('Error verifying phone code: ${e.toString()}');
       return null;
     }
   }

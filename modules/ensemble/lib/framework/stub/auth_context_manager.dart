@@ -20,6 +20,7 @@ abstract class AuthContextManager {
     required String smsCode,
     required Function(String error) onError,
     required Function(AuthenticatedUser user) onSuccess,
+    required Function(String) onVerificationFailure,
   });
 
   Future<void> resendVerificationCode({
@@ -66,6 +67,7 @@ class AuthContextManagerStub implements AuthContextManager {
     required String smsCode,
     required Function(String error) onError,
     required Function(AuthenticatedUser user) onSuccess,
+    required Function(String) onVerificationFailure,
   }) {
     throw RuntimeError('Auth is not enabled.');
   }
