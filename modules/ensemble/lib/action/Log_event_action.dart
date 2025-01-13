@@ -6,11 +6,12 @@ import 'package:ensemble/framework/logging/log_manager.dart';
 import 'package:ensemble/framework/logging/log_provider.dart' as logging;
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/screen_controller.dart';
+import 'package:ensemble/util/moengage_utils.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
-import 'package:moengage_flutter/moengage_flutter.dart';
+// import 'package:moengage_flutter/moengage_flutter.dart';
 import 'package:ensemble/framework/stub/moengage_manager.dart';
 
 class LogEvent extends ensembleAction.EnsembleAction {
@@ -79,7 +80,8 @@ class LogEvent extends ensembleAction.EnsembleAction {
 
         case 'setLocation':
         case 'setUserAttributeLocation':
-          final location = getLocation(value);
+        case 'locationAttribute':
+          final location = EnsembleGeoLocation.parse(value);
           if (location == null) {
             throw LanguageError('Invalid location format');
           }
@@ -124,20 +126,6 @@ class LogEvent extends ensembleAction.EnsembleAction {
       }
     }
     return logging.LogLevel.info;
-  }
-
-  static MoEGeoLocation? getLocation(dynamic value) {
-    if (value is Map) {
-      final lat = Utils.getDouble(value['latitude'], fallback: 0);
-      final lng = Utils.getDouble(value['longitude'], fallback: 0);
-      return MoEGeoLocation(lat, lng);
-    }
-    
-    final locationData = Utils.getLatLng(value);
-    if (locationData != null) {
-      return MoEGeoLocation(locationData.latitude, locationData.longitude);
-    }
-    return null;
   }
 
   @override
@@ -222,14 +210,16 @@ class LogEvent extends ensembleAction.EnsembleAction {
         await moEngage.setBirthDate(Utils.getString(value, fallback: ''));
         break;
       case 'setGender':
-        await moEngage
-            .setGender(MoEGender.values.from(value) ?? MoEGender.male);
+        final ensembleGender = EnsembleGender.fromString(value?.toString());
+        if (ensembleGender != null) {
+          await moEngage.setGender(ensembleGender);
+        }
         break;
       case 'setAlias':
         await moEngage.setAlias(Utils.getString(value, fallback: ''));
         break;
       case 'setLocation':
-        final location = getLocation(value);
+        final location = EnsembleGeoLocation.parse(value);
         if (location != null) {
           await moEngage.setLocation(location);
         }
@@ -244,7 +234,7 @@ class LogEvent extends ensembleAction.EnsembleAction {
             attributeKey!, Utils.getString(value, fallback: ''));
         break;
       case 'locationAttribute':
-        final location = getLocation(value);
+        final location = EnsembleGeoLocation.parse(value);
         if (location != null) {
           await moEngage.setUserAttributeLocation(attributeKey!, location);
         }
@@ -253,11 +243,11 @@ class LogEvent extends ensembleAction.EnsembleAction {
       // Tracking Events
       case 'trackEvent':
         if (parameters != null) {
-          final moEProperties = MoEProperties();
+          final ensembleProps = EnsembleProperties();
           parameters.forEach((key, value) {
-            moEProperties.addAttribute(key, value);
+            ensembleProps.addAttribute(key, value);
           });
-          await moEngage.trackEvent(eventName!, moEProperties);
+          await moEngage.trackEvent(eventName!, ensembleProps);
         } else {
           await moEngage.trackEvent(eventName!);
         }
@@ -295,14 +285,19 @@ class LogEvent extends ensembleAction.EnsembleAction {
         await moEngage.disableAdIdTracking();
         break;
       case 'setAppStatus':
-        await moEngage.setAppStatus(MoEAppStatus.values.from(value)!);
+        final status = EnsembleAppStatus.fromString(value?.toString());
+        if (status != null) {
+          await moEngage.setAppStatus(status);
+        }
         break;
       case 'logout':
         await moEngage.logout();
         break;
       case 'deleteUser':
-        await moEngage.deleteUser();
-        break;
+        final success = await moEngage.deleteUser();
+        if (!success) {
+          throw Exception('Failed to delete user');
+        }
 
       // Push Configuration
       case 'registerForPush':
@@ -335,9 +330,9 @@ class LogEvent extends ensembleAction.EnsembleAction {
         await moEngage.showInApp();
         break;
       case 'showNudge':
-        await moEngage.showNudge(
-            position: MoEngageNudgePosition.values.from(value) ??
-                MoEngageNudgePosition.bottom);
+        final position = EnsembleNudgePosition.fromString(value?.toString()) ??
+            EnsembleNudgePosition.bottom;
+        await moEngage.showNudge(position: position);
         break;
       case 'setContext':
         if (value is List) {

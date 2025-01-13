@@ -90,7 +90,7 @@ abstract class EWidgetState<W extends HasController>
         rtn = AnimatedOpacity(
             // If visible, apply opacity if specified, else default to 1
             opacity: widgetController.visible != false
-                ? (Utils.getValidOpacity(widgetController.opacity!) ?? 1)
+                ? (Utils.getValidOpacity(widgetController.opacity ?? 1) ?? 1)
                 : 0,
             duration: widgetController.visibilityTransitionDuration!,
             child: rtn);

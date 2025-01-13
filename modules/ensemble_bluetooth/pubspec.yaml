@@ -1,7 +1,7 @@
 name: ensemble_bluetooth
 description: An Ensemble package for BLE connection
 version: 0.0.1
-homepage: https://github.com/EnsembleUI/ensemble_camera
+homepage: https://github.com/EnsembleUI/ensemble/modules/ensemble_bluetooth
 
 environment:
   sdk: ">=2.17.0 <=3.10.0"
@@ -10,12 +10,11 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  camera: ^0.10.5
   # embed Ensemble as a sibling project
   ensemble:
     git:
       url: https://github.com/EnsembleUI/ensemble.git
-      ref: ensemble-v1.1.13
+      ref: ensemble-v1.1.14
       path: modules/ensemble
   ensemble_ts_interpreter:
     git:
