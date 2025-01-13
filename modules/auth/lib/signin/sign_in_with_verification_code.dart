@@ -34,7 +34,7 @@ class SignInWithVerificationCode {
   }
 
   /// Verifies the phone code with the provided [smsCode] and [verificationId].
-  Future<AuthenticatedUser?> validateVerificationCode({
+  Future<Map<String, dynamic>?> validateVerificationCode({
     required String provider,
     required String method,
     required String smsCode,
@@ -107,7 +107,7 @@ class SignInWithVerificationCode {
   }
 
   /// Validate the phone code using Firebase's [signInWithCredential].
-  Future<AuthenticatedUser?> _validateFirebaseVerificationCode({
+  Future<Map<String, dynamic>?> _validateFirebaseVerificationCode({
     required String smsCode,
     required String verificationId,
   }) async {
@@ -126,11 +126,18 @@ class SignInWithVerificationCode {
         );
       }
 
-      return AuthenticatedUser(
+      final String? idToken = await userCredential.user!.getIdToken();
+
+      final authenticatedUser = AuthenticatedUser(
         id: userCredential.user!.uid,
         phoneNumber: userCredential.user!.phoneNumber ?? '',
         provider: SignInProvider.firebase,
       );
+
+      return {
+        'user': authenticatedUser,
+        'idToken': idToken,
+      };
     } catch (e) {
       rethrow;
     }

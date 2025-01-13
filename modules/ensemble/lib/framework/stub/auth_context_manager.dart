@@ -19,7 +19,7 @@ abstract class AuthContextManager {
     required String verificationId,
     required String smsCode,
     required Function(String error) onError,
-    required Function(AuthenticatedUser user) onSuccess,
+    required Function(AuthenticatedUser, String idToken) onSuccess,
     required Function(String) onVerificationFailure,
   });
 
@@ -66,7 +66,7 @@ class AuthContextManagerStub implements AuthContextManager {
     required String verificationId,
     required String smsCode,
     required Function(String error) onError,
-    required Function(AuthenticatedUser user) onSuccess,
+    required Function(AuthenticatedUser, String idToken) onSuccess,
     required Function(String) onVerificationFailure,
   }) {
     throw RuntimeError('Auth is not enabled.');

@@ -464,31 +464,36 @@ class AuthContextManagerImpl with Invokable implements AuthContextManager {
     required String method,
     required String smsCode,
     required String verificationId,
-    required Function(AuthenticatedUser) onSuccess,
+    required Function(AuthenticatedUser, String idToken) onSuccess,
     required Function(String) onError,
     required Function(String) onVerificationFailure,
   }) async {
     try {
       final SignInWithVerificationCode _signInWithVerificationCode =
           SignInWithVerificationCode();
-      final user = await _signInWithVerificationCode.validateVerificationCode(
+      final response =
+          await _signInWithVerificationCode.validateVerificationCode(
         provider: provider,
         method: method,
         smsCode: smsCode,
         verificationId: verificationId,
       );
 
-      if (user != null) {
+      if (response != null) {
+        final user = response['user'];
+        final idToken = response['idToken'];
+
         await AuthManager()._updateCurrentUser(
           Utils.globalAppKey.currentContext!,
           user,
         );
-        onSuccess(user);
+
+        onSuccess(user, idToken);
       } else {
         onError('Something went wrong, User not found');
       }
 
-      return user;
+      return response?['user'];
     } catch (e) {
       onVerificationFailure('Error verifying phone code: ${e.toString()}');
       return null;

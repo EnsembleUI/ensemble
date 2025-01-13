@@ -198,13 +198,13 @@ class ValidateVerificationCodeAction extends EnsembleAction {
             {'error': error},
           );
         },
-        onSuccess: (AuthenticatedUser user) {
+        onSuccess: (AuthenticatedUser user, String idToken) {
           _triggerEventAction(
             context,
             onSuccess,
             initiator,
             'onSuccess',
-            {'user': user},
+            {'user': user, 'idToken': idToken},
           );
         },
       );
