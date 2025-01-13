@@ -1,6 +1,5 @@
 import 'package:ensemble/framework/stub/auth_context_manager.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:logging/logging.dart';
 
 typedef VerificationSuccessCallback = void Function(
     String verificationId, int? resendToken);
@@ -8,7 +7,6 @@ typedef VerificationErrorCallback = void Function(FirebaseAuthException error);
 
 class SignInWithVerificationCode {
   final FirebaseAuth _auth;
-  final Logger _logger = Logger('SignInWithVerificationCode');
 
   SignInWithVerificationCode({FirebaseAuth? firebaseAuth})
       : _auth = firebaseAuth ?? FirebaseAuth.instance;
@@ -55,7 +53,6 @@ class SignInWithVerificationCode {
         throw ArgumentError('Unsupported provider: $provider');
       }
     } catch (e) {
-      _logger.warning('Error during phone code verification: ${e.toString()}');
       rethrow;
     }
   }
@@ -105,7 +102,6 @@ class SignInWithVerificationCode {
         codeAutoRetrievalTimeout: (String verificationId) {},
       );
     } catch (e) {
-      _logger.severe('Unexpected error in _verifyPhoneNumber: ${e.toString()}');
       rethrow;
     }
   }
@@ -116,7 +112,6 @@ class SignInWithVerificationCode {
     required String verificationId,
   }) async {
     try {
-      _logger.info('Verifying phone code with verificationId: $verificationId');
       final PhoneAuthCredential credential = PhoneAuthProvider.credential(
         verificationId: verificationId,
         smsCode: smsCode,
@@ -137,7 +132,6 @@ class SignInWithVerificationCode {
         provider: SignInProvider.firebase,
       );
     } catch (e) {
-      _logger.warning('Error during phone code verification: ${e.toString()}');
       rethrow;
     }
   }
@@ -145,7 +139,6 @@ class SignInWithVerificationCode {
   /// Log the Firebase error and pass it to [onError].
   void _handleFirebaseError(
       FirebaseAuthException e, VerificationErrorCallback onError) {
-    _logger.warning('Firebase error occurred: ${e.code} - ${e.message}');
     onError(e);
   }
 }
