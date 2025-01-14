@@ -12,6 +12,7 @@ import 'package:flutter/services.dart';
 import 'package:rate_my_app/rate_my_app.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:flutter/foundation.dart';
+import 'package:mime/mime.dart';
 
 class CopyToClipboardAction extends EnsembleAction {
   CopyToClipboardAction(this._value,
@@ -81,59 +82,33 @@ class ShareAction extends EnsembleAction {
     );
   }
 
-  // Helper method to determine MIME type
-  String getMimeType(String? extension) {
-    switch (extension?.toLowerCase()) {
-      case 'jpg':
-      case 'jpeg':
-        return 'image/jpeg';
-      case 'png':
-        return 'image/png';
-      case 'gif':
-        return 'image/gif';
-      case 'pdf':
-        return 'application/pdf';
-      case 'txt':
-        return 'text/plain';
-      default:
-        return 'application/octet-stream';
-    }
-  }
-
-  // Helper method to extract file extension
-  String? getFileExtension(String fileName) {
-    return fileName.contains('.') ? fileName.split('.').last : null;
-  }
-
   // Helper method to create XFile from file data
   XFile? createXFile(dynamic file) {
+    final mimeType =
+        lookupMimeType(file["path"] ?? '', headerBytes: file["bytes"]) ??
+            'application/octet-stream';
     try {
       if (file is Map) {
         // Handle file with path
         if (file['path'] != null && file['path'].toString().isNotEmpty) {
           final String path = file['path'].toString();
           final String name = file['name']?.toString() ?? path.split('/').last;
-          return XFile(path,
-              name: name, mimeType: getMimeType(getFileExtension(name)));
+          return XFile(path, name: name, mimeType: mimeType);
         }
 
         // Handle file with bytes (web)
         if (file.containsKey('bytes') && file['bytes'] != null) {
           final String name = file['name']?.toString() ?? 'file';
-          final String? extension =
-              file['extension']?.toString() ?? getFileExtension(name);
 
           return XFile.fromData(
             file['bytes'],
             name: name,
-            mimeType: getMimeType(extension),
+            mimeType: mimeType,
           );
         }
       } else if (file is String) {
         // Handle simple file path string
-        return XFile(file,
-            name: file.split('/').last,
-            mimeType: getMimeType(getFileExtension(file)));
+        return XFile(file, name: file.split('/').last, mimeType: mimeType);
       }
     } catch (e) {
       debugPrint('Error creating XFile: $e');
