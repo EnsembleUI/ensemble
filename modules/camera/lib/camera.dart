@@ -1,12 +1,14 @@
 import 'dart:async';
 import 'dart:math' as math;
+import 'dart:ui' as ui;
+import 'package:image/image.dart' as img;
+import 'dart:io' as io;
+// import 'dart:html' as web;
 
 import 'package:camera/camera.dart';
 import 'package:collection/collection.dart' show IterableExtension;
 import 'package:ensemble/action/toast_actions.dart';
 import 'package:ensemble/framework/data_context.dart';
-import 'package:ensemble/framework/scope.dart';
-import 'package:ensemble/framework/view/data_scope_widget.dart';
 import 'package:ensemble/framework/widget/icon.dart' as iconframework;
 import 'package:ensemble/framework/widget/toast.dart';
 import 'package:ensemble/framework/widget/widget.dart';
@@ -16,9 +18,12 @@ import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:ensemble/framework/model.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:sensors_plus/sensors_plus.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:video_player/video_player.dart';
 
 enum CameraMode { photo, video, both }
@@ -120,6 +125,8 @@ class Camera extends StatefulWidget
           _controller.autoCaptureInterval = Utils.getInt(value, fallback: -1),
       'enableMicrophone': (value) =>
           _controller.enableMicrophone = Utils.getBool(value, fallback: true),
+      'captureOverlay': (value) =>
+          _controller.captureOverlay = Utils.getBool(value, fallback: false),
     };
   }
 }
@@ -153,6 +160,7 @@ class MyCameraController extends WidgetController {
   IconModel? cameraRotateIcon;
   IconModel? focusIcon;
   bool enableMicrophone = true;
+  bool captureOverlay = false;
 
   int autoCaptureInterval = -1;
   ValueNotifier<int> intervalCountdown = ValueNotifier(-1);
@@ -218,6 +226,9 @@ class CameraState extends EWidgetState<Camera> with WidgetsBindingObserver {
   final flashIcons = [Icons.flash_off, Icons.flash_auto, Icons.flash_on];
 
   GeolocatorPlatform locator = GeolocatorPlatform.instance;
+
+  final GlobalKey _cameraPreviewKey = GlobalKey();
+  final GlobalKey _overlayKey = GlobalKey();
 
   late int currentIndex;
   @override
@@ -459,29 +470,38 @@ class CameraState extends EWidgetState<Camera> with WidgetsBindingObserver {
   Widget cameraView() {
     return Stack(
       children: [
-        kIsWeb
-            ? Center(
-                child: AspectRatio(
-                  aspectRatio:
-                      widget.controller.cameraController!.value.aspectRatio,
-                  child: widget.controller.cameraController!.buildPreview(),
+        RepaintBoundary(
+          key: _cameraPreviewKey,
+          child: kIsWeb
+              ? Center(
+                  child: AspectRatio(
+                    aspectRatio:
+                        widget.controller.cameraController!.value.aspectRatio,
+                    child: widget.controller.cameraController!.buildPreview(),
+                  ),
+                )
+              : CameraPreview(
+                  widget._controller.cameraController!,
+                  child: LayoutBuilder(builder: (context, constraints) {
+                    return GestureDetector(
+                      onTapUp: (details) =>
+                          onViewFinderTap(details, constraints),
+                      onScaleUpdate: (details) async {
+                        final zoom = details.scale.clamp(1.0, 2.0);
+                        widget._controller.cameraController?.setZoomLevel(zoom);
+                      },
+                    );
+                  }),
                 ),
-              )
-            : CameraPreview(
-                widget._controller.cameraController!,
-                child: LayoutBuilder(builder: (context, constraints) {
-                  return GestureDetector(
-                    onTapUp: kIsWeb
-                        ? null
-                        : (details) => onViewFinderTap(details, constraints),
-                    onScaleUpdate: (details) async {
-                      final zoom = details.scale.clamp(1.0, 2.0);
-                      widget._controller.cameraController?.setZoomLevel(zoom);
-                    },
-                  );
-                }),
-              ),
-        if (widget.overlayWidget != null) Positioned.fill(child: widget.overlayWidget!),
+        ),
+        if (widget.overlayWidget != null)
+          Align(
+            alignment: Alignment.center,
+            child: KeyedSubtree(
+              key: _overlayKey,
+              child: widget.overlayWidget!,
+            ),
+          ),
         imagePreviewButton(),
         Align(
             alignment: Alignment.bottomCenter,
@@ -679,7 +699,15 @@ class CameraState extends EWidgetState<Camera> with WidgetsBindingObserver {
                       });
                     },
                     deleteButtonAction: deleteImages,
-                  )
+                    onShareButtonAction: () async {
+                      try {
+                        final file =
+                            widget._controller.files.elementAt(currentIndex);
+                        await Share.shareXFiles([XFile('${file.path}')]);
+                      } on Exception catch (e) {
+                        widget.onError?.call(e);
+                      }
+                    })
                 : const SizedBox.shrink(),
             Visibility(
               visible: isFullScreen,
@@ -836,7 +864,8 @@ class CameraState extends EWidgetState<Camera> with WidgetsBindingObserver {
 
   Widget appbar(
       {required void Function()? backArrowAction,
-      required void Function()? deleteButtonAction}) {
+      required void Function()? deleteButtonAction,
+      required void Function()? onShareButtonAction}) {
     return Padding(
       padding: const EdgeInsets.only(left: 10.0, right: 10.0, top: 10.0),
       child: Row(
@@ -850,14 +879,26 @@ class CameraState extends EWidgetState<Camera> with WidgetsBindingObserver {
                 size: iconSize,
               ),
               shadowColor: Colors.black54),
-          buttons(
-              onPressed: deleteButtonAction,
-              icon: Icon(
-                Icons.delete_sharp,
-                color: iconColor,
-                size: iconSize,
-              ),
-              shadowColor: Colors.black54),
+          Row(
+            children: [
+              buttons(
+                  onPressed: onShareButtonAction,
+                  icon: Icon(
+                    Icons.share,
+                    color: iconColor,
+                    size: iconSize,
+                  ),
+                  shadowColor: Colors.black54),
+              buttons(
+                  onPressed: deleteButtonAction,
+                  icon: Icon(
+                    Icons.delete_sharp,
+                    color: iconColor,
+                    size: iconSize,
+                  ),
+                  shadowColor: Colors.black54),
+            ],
+          ),
         ],
       ),
     );
@@ -975,7 +1016,11 @@ class CameraState extends EWidgetState<Camera> with WidgetsBindingObserver {
         await startVideoRecording();
       }
     } else {
-      file = await takePicture();
+      if (widget._controller.captureOverlay) {
+        file = await takeOverlayCapture();
+      } else {
+        file = await takePicture();
+      }
     }
     if (file == null) return;
     widget._controller.files.insert(0, file);
@@ -994,6 +1039,83 @@ class CameraState extends EWidgetState<Camera> with WidgetsBindingObserver {
     }
   }
 
+  Future<File?> takeOverlayCapture() async {
+    final overlayBox =
+        _overlayKey.currentContext?.findRenderObject() as RenderBox?;
+    if (overlayBox == null) {
+      widget.onError?.call('Error Capturing overlay: Overlay box not found');
+      return null;
+    }
+
+    final cameraBoundary = _cameraPreviewKey.currentContext?.findRenderObject()
+        as RenderRepaintBoundary?;
+    if (cameraBoundary == null) {
+      widget.onError
+          ?.call('Error Capturing overlay: Camera boundary not found');
+      return null;
+    }
+
+    // Capture the image using camera controller
+    final xFile = await widget._controller.cameraController!.takePicture();
+    final imageBytes = await xFile.readAsBytes();
+
+    final img.Image? decodedImage = img.decodeImage(imageBytes);
+    if (decodedImage == null) {
+      widget.onError
+          ?.call('Error Capturing overlay: Failed to decode image bytes');
+      return null;
+    }
+
+    // Calculate overlay position relative to camera preview
+    final cameraOffset = cameraBoundary.localToGlobal(Offset.zero);
+    final overlayOffset = overlayBox.localToGlobal(Offset.zero);
+
+    final double left = overlayOffset.dx - cameraOffset.dx;
+    final double top = overlayOffset.dy - cameraOffset.dy;
+
+    // Scale factors to map Flutter coordinates to image coordinates
+    final previewBox = cameraBoundary as RenderBox;
+    final scaleX = decodedImage.width / previewBox.size.width;
+    final scaleY = decodedImage.height / previewBox.size.height;
+
+    // Calculate crop dimensions in image coordinates
+    final scaledLeft = (left * scaleX).floor().clamp(0, decodedImage.width);
+    final scaledTop = (top * scaleY).floor().clamp(0, decodedImage.height);
+    final scaledWidth = (overlayBox.size.width * scaleX)
+        .floor()
+        .clamp(0, decodedImage.width - scaledLeft);
+    final scaledHeight = (overlayBox.size.height * scaleY)
+        .floor()
+        .clamp(0, decodedImage.height - scaledTop);
+
+    // Crop the image
+    final cropped = img.copyCrop(
+      decodedImage,
+      x: scaledLeft,
+      y: scaledTop,
+      width: scaledWidth,
+      height: scaledHeight,
+    );
+
+    final Uint8List croppedPng = Uint8List.fromList(img.encodePng(cropped));
+    final timestamp = DateTime.now().millisecondsSinceEpoch;
+    final filename = 'overlay_image_$timestamp.png';
+
+    String? path;
+    if (!kIsWeb) {
+      final tempDir = await getTemporaryDirectory();
+      final tempFile = io.File('${tempDir.path}/$filename');
+      await tempFile.writeAsBytes(croppedPng);
+      path = tempFile.path;
+    } else {
+      // final blob = web.Blob([croppedPng], 'image/png');
+      // path = web.Url.createObjectUrlFromBlob(blob);
+    }
+
+    return File(filename, 'png', null, path, croppedPng);
+  }
+
+  
   bool canCapture() {
     if (!(widget._controller.maxCount != null &&
         (widget._controller.files.length + 1) > widget._controller.maxCount!)) {
