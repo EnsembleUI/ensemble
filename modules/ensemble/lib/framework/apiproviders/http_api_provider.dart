@@ -43,7 +43,7 @@ class HTTPAPIProvider extends APIProvider {
             .authorize(context, oAuthService,
                 scope: scope, forceNewTokens: forceNewTokens);
         if (token != null) {
-          headers['Authorization'] = 'Bearer ${token.accessToken}';
+          headers['authorization'] = 'Bearer ${token.accessToken}';
         }
       }
 
@@ -54,7 +54,7 @@ class HTTPAPIProvider extends APIProvider {
         OAuthServiceToken? token =
             await GetIt.instance<TokenManager>().getServiceTokens(serviceName);
         if (token != null) {
-          headers['Authorization'] = 'Bearer ${token.accessToken}';
+          headers['authorization'] = 'Bearer ${token.accessToken}';
         }
       }
     }
@@ -62,18 +62,19 @@ class HTTPAPIProvider extends APIProvider {
     if (api['headers'] is YamlMap) {
       (api['headers'] as YamlMap).forEach((key, value) {
         // in Web we shouldn't pass the Cookie since that is automatic
-        if (key.toString() == 'Cookie' && kIsWeb) return;
+        if (key.toString().toLowerCase() == 'cookie' && kIsWeb) return;
 
         if (value != null) {
-          headers[key.toString()] = eContext.eval(value).toString();
+          headers[key.toString().toLowerCase()] = eContext.eval(value).toString();
         }
       });
     }
     // Support JSON (or Yaml) body only.
     // Here it's converted to YAML already
     String? bodyPayload;
+    Uint8List? bodyBytes;
     if (api['body'] != null) {
-      final contentType = headers['Content-Type']?.toLowerCase() ?? '';
+      final contentType = headers['content-type']?.toLowerCase() ?? '';
       
       if (contentType == 'application/x-www-form-urlencoded') {
         // For form-urlencoded, convert body to query string format
@@ -92,10 +93,14 @@ class HTTPAPIProvider extends APIProvider {
         // For JSON and other content types
         try {
           bodyPayload = json.encode(eContext.eval(api['body']));
-          
+          //this is just to make sure we don't create regressions, we will set
+          //the bodyBytes only when Content-Type header is explicitly specified.
+          //see https://github.com/EnsembleUI/ensemble/issues/1823
           // set Content-Type as json but don't override user's value if exists
-          if (headers['Content-Type'] == null) {
-            headers['Content-Type'] = 'application/json';
+          if (headers['content-type'] == null) {
+            headers['content-type'] = 'application/json';
+          } else {
+            bodyBytes = utf8.encode(bodyPayload);
           }
         } on FormatException catch (_, e) {
           log("Only JSON data supported: " + e.toString());
@@ -149,7 +154,7 @@ class HTTPAPIProvider extends APIProvider {
     bool manageCookies = Utils.getBool(api['manageCookies'], fallback: false);
 
     Completer<http.Response> completer = Completer();
-    http.Response response;
+    http.Response? response;
 
     try {
       http.Client client = await _getHttpClient(
@@ -161,39 +166,47 @@ class HTTPAPIProvider extends APIProvider {
         List<Cookie> cookies = await _cookieJar.loadForRequest(Uri.parse(url));
         String cookieString = cookies.map((cookie) => '${cookie.name}=${cookie.value}').join('; ');
         if (cookieString.isNotEmpty) {
-          headers['Cookie'] = cookieString;
+          headers['cookie'] = cookieString;
         }
       }
-
-      switch (method) {
-        case 'POST':
-          response =
-              await client.post(Uri.parse(url), headers: headers, body: body);
-          break;
-        case 'PUT':
-          response =
-              await client.put(Uri.parse(url), headers: headers, body: body);
-          break;
-        case 'PATCH':
-          response =
-              await client.patch(Uri.parse(url), headers: headers, body: body);
-          break;
-        case 'DELETE':
-          response =
-              await client.delete(Uri.parse(url), headers: headers, body: body);
-          break;
-        case 'GET':
-        default:
-          response = await client.get(Uri.parse(url), headers: headers);
-          break;
+      if (bodyBytes != null && bodyBytes.isNotEmpty && method != 'GET') {
+        //we don't want to send body with the GET request as it may cause issues with some servers
+        //see http spec
+        http.Request req = http.Request(method, Uri.parse(url))
+          ..bodyBytes = bodyBytes
+          ..headers.addAll(headers);
+        response = await client.send(req).then(http.Response.fromStream);
+      } else {
+        switch (method) {
+          case 'POST':
+            response =
+            await client.post(Uri.parse(url), headers: headers, body: body);
+            break;
+          case 'PUT':
+            response =
+            await client.put(Uri.parse(url), headers: headers, body: body);
+            break;
+          case 'PATCH':
+            response =
+            await client.patch(Uri.parse(url), headers: headers, body: body);
+            break;
+          case 'DELETE':
+            response =
+            await client.delete(Uri.parse(url), headers: headers, body: body);
+            break;
+          case 'GET':
+          default:
+            response = await client.get(Uri.parse(url), headers: headers);
+            break;
+        }
       }
       // Store cookies for native apps
       if (!kIsWeb && manageCookies) {
-        _cookieJar.saveFromResponse(Uri.parse(url), _extractCookies(response));
+        _cookieJar.saveFromResponse(Uri.parse(url), _extractCookies(response!));
       }
 
-      final isOkay = response.statusCode >= 200 && response.statusCode <= 299;
-      log('Response: ${response.statusCode}');
+      final isOkay = response!.statusCode >= 200 && response!.statusCode <= 299;
+      log('Response: ${response!.statusCode}');
       return HttpResponse(response, isOkay ? APIState.success : APIState.error,
           apiName: apiName, manageCookies: manageCookies);
     } catch (e) {
