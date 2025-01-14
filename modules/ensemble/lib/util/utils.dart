@@ -3,8 +3,11 @@ import 'dart:math';
 import 'dart:ui';
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/ensemble_app.dart';
+import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/stub/location_manager.dart';
 import 'package:ensemble/framework/theme/theme_manager.dart';
+import 'package:ensemble/screen_controller.dart';
+import 'package:ensemble/widget/helpers/tooltip_composite.dart';
 import 'package:ensemble_ts_interpreter/invokables/UserLocale.dart';
 import 'package:path/path.dart' as p;
 
@@ -486,6 +489,77 @@ class Utils {
       }
     }
     return null;
+  }
+
+  // Creates tooltip composite from inputs
+  static TooltipStyleComposite? getTooltipStyleComposite(
+      ChangeNotifier controller, dynamic inputs) {
+    if (inputs is Map) {
+      return TooltipStyleComposite(controller, inputs: inputs);
+    }
+    return null;
+  }
+
+  /// Creates tooltip widget with configured styles and behavior
+  static Widget getTooltipWidget(
+    Widget child,
+    String message,
+    TooltipStyleComposite? style, {
+    EnsembleAction? onTriggered,
+    required BuildContext context,
+  }) {
+    final tooltipKey = GlobalKey();
+    // Start with the original child
+    Widget tooltipChild = child;
+
+    // Handle web-specific hover case first
+    if (kIsWeb && style?.triggerMode == null) {
+      tooltipChild = MouseRegion(
+        onEnter: (_) {
+          final dynamic tooltip = tooltipKey.currentState;
+          tooltip?.ensureTooltipVisible();
+        },
+        onExit: (_) {
+          final dynamic tooltip = tooltipKey.currentState;
+          tooltip?.deactivate();
+        },
+        child: tooltipChild,
+      );
+    }
+
+    return Tooltip(
+      key: tooltipKey,
+      message: message,
+      textStyle: style?.textStyle,
+      padding: style?.padding,
+      margin: style?.margin,
+      verticalOffset: style?.verticalOffset,
+      preferBelow: style?.preferBelow,
+      waitDuration: style?.waitDuration ?? const Duration(milliseconds: 0),
+      showDuration: style?.showDuration ?? const Duration(milliseconds: 1500),
+      triggerMode: style?.triggerMode ?? TooltipTriggerMode.tap,
+      enableFeedback: true,
+      decoration: BoxDecoration(
+        color: style?.backgroundColor ?? Colors.grey[700],
+        borderRadius: style?.borderRadius,
+        border: (style?.borderColor != null || style?.borderWidth != null)
+            ? Border.all(
+                color: style?.borderColor ??
+                    ThemeManager().getBorderColor(context),
+                width: (style?.borderWidth ??
+                        ThemeManager().getBorderThickness(context))
+                    .toDouble(),
+              )
+            : null,
+      ),
+      onTriggered: onTriggered != null
+          ? () => ScreenController().executeAction(
+                context,
+                onTriggered,
+              )
+          : null,
+      child: tooltipChild,
+    );
   }
 
   static BoxShadowComposite? getBoxShadowComposite(
