@@ -18,13 +18,13 @@ class TakeScreenshotAction extends EnsembleAction {
     required this.widgetId,
     this.pixelRatio,
     this.onSuccess,
-    this.onFailure,
+    this.onError,
   });
 
   final dynamic widgetId;
   final double? pixelRatio;
   final EnsembleAction? onSuccess;
-  final EnsembleAction? onFailure;
+  final EnsembleAction? onError;
 
   factory TakeScreenshotAction.fromYaml({Map? payload}) {
     if (payload == null || payload['widgetId'] == null) {
@@ -37,8 +37,8 @@ class TakeScreenshotAction extends EnsembleAction {
       onSuccess: payload['onSuccess'] != null
           ? EnsembleAction.from(payload['onSuccess'])
           : null,
-      onFailure: payload['onFailure'] != null
-          ? EnsembleAction.from(payload['onFailure'])
+      onError: payload['onError'] != null
+          ? EnsembleAction.from(payload['onError'])
           : null,
     );
   }
@@ -95,10 +95,10 @@ class TakeScreenshotAction extends EnsembleAction {
         );
       }
     } catch (e) {
-      if (onFailure != null) {
+      if (onError != null) {
         await ScreenController().executeAction(
           context,
-          onFailure!,
+          onError!,
           event: EnsembleEvent(initiator, data: {'error': e.toString()}),
         );
       }
