@@ -37,7 +37,8 @@ const _optionMappings = {
   'minCountMessage': 'minCountMessage',
   'autoCaptureInterval': 'autoCaptureInterval',
   'enableMicrophone': 'enableMicrophone',
-  'instantPreview': 'instantPreview'
+  'instantPreview': 'instantPreview',
+  'captureOverlay': 'captureOverlay',
 };
 
 const _angleAssistOptions = {
@@ -149,7 +150,10 @@ class CameraManagerImpl extends CameraManager {
 
   Future<void> bespokeCamera(BuildContext context,
       ShowCameraAction cameraAction, ScopeManager? scopeManager) async {
-    Widget? overlayWidget = buildOverlayWidget(scopeManager, cameraAction);
+    Widget? overlayWidget;
+    if (cameraAction.overlayWidget != null) {
+      overlayWidget = buildOverlayWidget(scopeManager, cameraAction);
+    }
 
     Camera camera = Camera(
       overlayWidget: overlayWidget,
