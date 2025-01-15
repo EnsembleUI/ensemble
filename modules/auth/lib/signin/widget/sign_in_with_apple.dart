@@ -2,6 +2,7 @@ import 'dart:developer';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:crypto/crypto.dart';
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/event.dart';
@@ -79,12 +80,14 @@ class SignInWithAppleState extends EWidgetState<SignInWithAppleImpl> {
         buttonController: widget._controller,
         onTap: () async {
           try {
+            final rawNonce = generateNonce();
+            final nonce = sha256.convert(utf8.encode(rawNonce)).toString();
             final credential =
                 await SignInWithApple.getAppleIDCredential(scopes: [
               AppleIDAuthorizationScopes.email,
               AppleIDAuthorizationScopes.fullName,
-            ]);
-            _onAuthenticated(credential);
+            ], nonce: nonce);
+            _onAuthenticated(credential, rawNonce);
           } catch (e) {
             log(e.toString());
             if (widget._controller.onError != null) {
@@ -105,7 +108,7 @@ class SignInWithAppleState extends EWidgetState<SignInWithAppleImpl> {
     return button;
   }
 
-  void _onAuthenticated(AuthorizationCredentialAppleID credential) async {
+  void _onAuthenticated(AuthorizationCredentialAppleID credential, String rawNonce) async {
     if (credential.identityToken == null) {
       throw RuntimeError('Invalid token.');
     }
@@ -121,7 +124,7 @@ class SignInWithAppleState extends EWidgetState<SignInWithAppleImpl> {
     if (widget._controller.provider != SignInProvider.server) {
       // Apple don't have any access token related.
       await AuthManager().signInWithSocialCredential(context,
-          user: user, idToken: credential.identityToken!);
+          user: user, idToken: credential.identityToken!, authCode: credential.authorizationCode, rawNonce: rawNonce);
 
       // trigger onSignIn callback
       if (widget._controller.onSignedIn != null) {

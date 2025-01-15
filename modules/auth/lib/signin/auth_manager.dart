@@ -40,11 +40,13 @@ class AuthManager with UserAuthentication {
   Future<String?> signInWithSocialCredential(BuildContext context,
       {required AuthenticatedUser user,
       required String idToken,
-      AuthToken? token}) async {
+      AuthToken? token,
+      String? authCode,
+      String? rawNonce}) async {
     if (user.provider == null || user.provider == SignInProvider.local) {
       return _signInLocally(context, user: user);
     } else if (user.provider == SignInProvider.firebase) {
-      return _signInWithFirebase(context, user: user, idToken: idToken);
+      return _signInWithFirebase(context, user: user, idToken: idToken, authCode: authCode, rawNonce: rawNonce);
     }
     // else if (user.provider == SignInProvider.auth0) {
     //   return _updateCurrentUser(context, user);
@@ -133,12 +135,14 @@ class AuthManager with UserAuthentication {
   Future<String?> _signInWithFirebase(BuildContext context,
       {required AuthenticatedUser user,
       required String idToken,
-      AuthToken? token}) async {
+      AuthToken? token,
+      String? authCode,
+      String? rawNonce}) async {
     // initialize Firebase once
     customFirebaseApp ??= await _initializeFirebaseSignIn();
 
     final credential = _formatCredential(
-        client: user.client, idToken: idToken, accessToken: token?.token);
+        client: user.client, idToken: idToken, accessToken: token?.token, authCode: authCode, rawNonce: rawNonce);
     final UserCredential authResult =
         await FirebaseAuth.instanceFor(app: customFirebaseApp!)
             .signInWithCredential(credential);
@@ -153,12 +157,12 @@ class AuthManager with UserAuthentication {
   }
 
   OAuthCredential _formatCredential(
-      {SignInClient? client, required String idToken, String? accessToken}) {
+      {SignInClient? client, required String idToken, String? accessToken, String? authCode, String? rawNonce}) {
     if (client == SignInClient.google) {
       return GoogleAuthProvider.credential(
           idToken: idToken, accessToken: accessToken);
     } else if (client == SignInClient.apple) {
-      return OAuthProvider('apple.com').credential(idToken: idToken);
+      return OAuthProvider('apple.com').credential(idToken: idToken, rawNonce: rawNonce, accessToken: authCode);
     }
     throw RuntimeError("Invalid Sign In Client");
   }
