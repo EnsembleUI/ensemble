@@ -1,9 +1,8 @@
 import 'dart:async';
 import 'dart:math' as math;
-import 'dart:ui' as ui;
 import 'package:image/image.dart' as img;
 import 'dart:io' as io;
-// import 'dart:html' as web;
+import 'helper/web.dart' as web;
 
 import 'package:camera/camera.dart';
 import 'package:collection/collection.dart' show IterableExtension;
@@ -470,17 +469,20 @@ class CameraState extends EWidgetState<Camera> with WidgetsBindingObserver {
   Widget cameraView() {
     return Stack(
       children: [
-        RepaintBoundary(
-          key: _cameraPreviewKey,
-          child: kIsWeb
-              ? Center(
+        kIsWeb
+            ? Center(
+                child: RepaintBoundary(
+                  key: _cameraPreviewKey,
                   child: AspectRatio(
                     aspectRatio:
                         widget.controller.cameraController!.value.aspectRatio,
                     child: widget.controller.cameraController!.buildPreview(),
                   ),
-                )
-              : CameraPreview(
+                ),
+              )
+            : RepaintBoundary(
+                key: _cameraPreviewKey,
+                child: CameraPreview(
                   widget._controller.cameraController!,
                   child: LayoutBuilder(builder: (context, constraints) {
                     return GestureDetector(
@@ -493,7 +495,7 @@ class CameraState extends EWidgetState<Camera> with WidgetsBindingObserver {
                     );
                   }),
                 ),
-        ),
+              ),
         if (widget.overlayWidget != null)
           Align(
             alignment: Alignment.center,
@@ -881,14 +883,16 @@ class CameraState extends EWidgetState<Camera> with WidgetsBindingObserver {
               shadowColor: Colors.black54),
           Row(
             children: [
-              buttons(
+              if (!kIsWeb)
+                buttons(
                   onPressed: onShareButtonAction,
                   icon: Icon(
                     Icons.share,
                     color: iconColor,
                     size: iconSize,
                   ),
-                  shadowColor: Colors.black54),
+                  shadowColor: Colors.black54,
+                ),
               buttons(
                   onPressed: deleteButtonAction,
                   icon: Icon(
@@ -1017,7 +1021,11 @@ class CameraState extends EWidgetState<Camera> with WidgetsBindingObserver {
       }
     } else {
       if (widget._controller.captureOverlay) {
-        file = await takeOverlayCapture();
+        try {
+          file = await takeOverlayCapture();
+        } on Exception catch (e) {
+          print(e);
+        }
       } else {
         file = await takePicture();
       }
@@ -1108,14 +1116,13 @@ class CameraState extends EWidgetState<Camera> with WidgetsBindingObserver {
       await tempFile.writeAsBytes(croppedPng);
       path = tempFile.path;
     } else {
-      // final blob = web.Blob([croppedPng], 'image/png');
-      // path = web.Url.createObjectUrlFromBlob(blob);
+      final blob = web.Blob([croppedPng], 'image/png');
+      path = web.Url.createObjectUrlFromBlob(blob);
     }
 
     return File(filename, 'png', null, path, croppedPng);
   }
 
-  
   bool canCapture() {
     if (!(widget._controller.maxCount != null &&
         (widget._controller.files.length + 1) > widget._controller.maxCount!)) {
