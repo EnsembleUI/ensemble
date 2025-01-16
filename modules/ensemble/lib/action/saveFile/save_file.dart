@@ -2,7 +2,9 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:ensemble/framework/action.dart';
+import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/scope.dart';
+import 'package:ensemble/screen_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:flutter/foundation.dart';
@@ -15,12 +17,16 @@ class SaveToFileSystemAction extends EnsembleAction {
   final dynamic blobData;
   final String? source; // Optional source for URL if blobData is not available
   final String? type; // file type
+  final EnsembleAction? onComplete;
+  final EnsembleAction? onError;
 
   SaveToFileSystemAction({
     required this.fileName,
     this.blobData,
     this.source,
     this.type,
+    this.onComplete,
+    this.onError,
   });
 
   factory SaveToFileSystemAction.from({Map? payload}) {
@@ -33,6 +39,12 @@ class SaveToFileSystemAction extends EnsembleAction {
       blobData: payload['blobData'],
       source: payload['source'],
       type: payload['type'],
+      onComplete: payload['onComplete'] != null
+          ? EnsembleAction.from(payload['onComplete'])
+          : null,
+      onError: payload['onError'] != null
+          ? EnsembleAction.from(payload['onComplete'])
+          : null,
     );
   }
 
@@ -71,8 +83,24 @@ class SaveToFileSystemAction extends EnsembleAction {
 
       // Save the file to the storage system
       await _saveFile(type!, fileName!, fileBytes);
+      if (onComplete != null) {
+        await ScreenController().executeAction(
+          context,
+          onComplete!,
+          event: EnsembleEvent(initiator, data: {
+            'fileBytes': fileBytes,
+            'fileName': fileName,
+          }),
+        );
+      }
     } catch (e) {
-      throw Exception('Failed to save file: $e');
+      if (onError != null) {
+        await ScreenController().executeAction(
+          context,
+          onError!,
+          event: EnsembleEvent(initiator, data: {'error': e.toString()}),
+        );
+      }
     }
   }
 
