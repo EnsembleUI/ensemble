@@ -40,11 +40,26 @@ class AuthManager with UserAuthentication {
   Future<String?> signInWithSocialCredential(BuildContext context,
       {required AuthenticatedUser user,
       required String idToken,
-      AuthToken? token}) async {
+      AuthToken? token,
+      /// Optional string but required to complete Firebase Auth Sign-In with Apple flow.
+      ///
+      /// This is the authorization code returned by Apple Sign In and will be used to authenticate with Firebase as the accessToken.
+      ///
+      /// Can be `null` since it only applies to Apple Sign In
+      /// See [Firebase docs](https://firebase.google.com/docs/auth/ios/apple#sign_in_with_apple_and_authenticate_with_firebase) for more information.
+      /// Inspriration from [Mediuam](https://medium.com/@muhammad.fathy/resolving-the-firebase-auth-invalid-credential-invalid-oauth-response-from-apple-com-6bca6b6a8575)
+      String? authCode,
+      /// Optional string which, if set, will be be embedded in the resulting `identityToken` for Firebase Auth Sign-In with Apple flow.
+      ///
+      /// This can be used to mitigate replay attacks by using a unique argument per sign-in attempt.
+      ///
+      /// Can be `null`, in which case no nonce will be passed to the request.
+      /// See [Firebase docs](https://firebase.google.com/docs/auth/ios/apple#sign_in_with_apple_and_authenticate_with_firebase) for more information.
+      String? rawNonce}) async {
     if (user.provider == null || user.provider == SignInProvider.local) {
       return _signInLocally(context, user: user);
     } else if (user.provider == SignInProvider.firebase) {
-      return _signInWithFirebase(context, user: user, idToken: idToken);
+      return _signInWithFirebase(context, user: user, idToken: idToken, authCode: authCode, rawNonce: rawNonce);
     }
     // else if (user.provider == SignInProvider.auth0) {
     //   return _updateCurrentUser(context, user);
@@ -133,12 +148,14 @@ class AuthManager with UserAuthentication {
   Future<String?> _signInWithFirebase(BuildContext context,
       {required AuthenticatedUser user,
       required String idToken,
-      AuthToken? token}) async {
+      AuthToken? token,
+      String? authCode,
+      String? rawNonce}) async {
     // initialize Firebase once
     customFirebaseApp ??= await _initializeFirebaseSignIn();
 
     final credential = _formatCredential(
-        client: user.client, idToken: idToken, accessToken: token?.token);
+        client: user.client, idToken: idToken, accessToken: token?.token, authCode: authCode, rawNonce: rawNonce);
     final UserCredential authResult =
         await FirebaseAuth.instanceFor(app: customFirebaseApp!)
             .signInWithCredential(credential);
@@ -153,12 +170,13 @@ class AuthManager with UserAuthentication {
   }
 
   OAuthCredential _formatCredential(
-      {SignInClient? client, required String idToken, String? accessToken}) {
+      {SignInClient? client, required String idToken, String? accessToken, String? authCode, String? rawNonce}) {
     if (client == SignInClient.google) {
       return GoogleAuthProvider.credential(
           idToken: idToken, accessToken: accessToken);
     } else if (client == SignInClient.apple) {
-      return OAuthProvider('apple.com').credential(idToken: idToken);
+      /// Supply rawNonce and authCode as the accessToken to complete the  Apple Sign In Flow
+      return OAuthProvider('apple.com').credential(idToken: idToken, rawNonce: rawNonce, accessToken: authCode);
     }
     throw RuntimeError("Invalid Sign In Client");
   }
