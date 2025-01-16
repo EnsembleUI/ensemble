@@ -80,7 +80,10 @@ class SignInWithAppleState extends EWidgetState<SignInWithAppleImpl> {
         buttonController: widget._controller,
         onTap: () async {
           try {
+            /// Generate a cryptographically secure nonce for Apple Sign In
             final rawNonce = generateNonce();
+            /// Hash the nonce for later use within the Apple Sign In request for secure verification.
+            /// This is the nonce that will be used to verify the identity token after the user signs in with Apple.
             final nonce = sha256.convert(utf8.encode(rawNonce)).toString();
             final credential =
                 await SignInWithApple.getAppleIDCredential(scopes: [
