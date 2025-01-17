@@ -97,6 +97,20 @@ class ScrollableTabBarState extends BaseTabBarState {
     super.initState();
     _initializeTabController();
     _updateKeys();
+
+    // Ensure scroll controller is attached before using its offset
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      // this should avoid trying to access the offset before the controller is attached
+      if (_scrollController.hasClients && _scrollController.offset <= 0) {
+        _updateActiveTab();
+      }
+    });
+
+    _scrollController.addListener(() {
+      if (_scrollController.hasClients) {
+        _updateActiveTab();
+      }
+    });
   }
 
   void _initializeTabController() {
@@ -196,6 +210,10 @@ class ScrollableTabBarState extends BaseTabBarState {
   // changing the tab index by clicking on the TabBar
   @override
   void onTabChanged(int index) {
+    if (index < 0 || index >= _keys.length) {
+      return; // Guard against invalid indices
+    }
+
     _manualTabSelection = true;
     Scrollable.ensureVisible(_keys[index].currentContext!,
             duration: const Duration(milliseconds: scrollAnimationDuration))
@@ -234,6 +252,10 @@ class ScrollableTabBarState extends BaseTabBarState {
   }
 
   void _updateActiveTab() {
+    if (!_scrollController.hasClients) {
+      // this gets executed when navivate away from the screen and should avoid the offset error
+      return;
+    }
     int selectedTab = 0;
     if (_scrollController.offset <= 0) {
       selectedTab = 0;
