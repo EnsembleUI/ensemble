@@ -39,7 +39,7 @@ abstract class ActionInvokable with Invokable {
       ActionType.dismissDialog,
       ActionType.closeAllDialogs,
       ActionType.executeActionGroup,
-      ActionType.takeScreenshot
+      ActionType.takeScreenshot,
       ActionType.saveFile,
       ActionType.controlDeviceBackNavigation,
       ActionType.closeApp,
