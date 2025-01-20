@@ -1,3 +1,8 @@
+## 1.1.15
+
+ - **FIX**: type comma. ([f0749e36](https://github.com/ensembleUI/ensemble/commit/f0749e36da3e1f3e39866039b1062bd8f81319ee))
+ - **FIX**: typo missing semi-colon. ([76d0d99a](https://github.com/ensembleUI/ensemble/commit/76d0d99a8a7f0a2b0f583cb7888c649cfd0b3282))
+
 ## 1.1.14
 
 ## 1.1.13
