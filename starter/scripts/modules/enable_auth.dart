@@ -16,6 +16,10 @@ void main(List<String> arguments) async {
   String serverClientId =
       getArgumentValue(arguments, 'googleServerClientId') ?? '';
 
+  String iosAppId = getArgumentValue(arguments, 'ios_appId',
+          required: platforms.contains('ios')) ??
+      '';
+
   String? ensembleVersion = getArgumentValue(arguments, 'ensemble_version');
 
   final statements = {
@@ -66,8 +70,10 @@ ensemble_auth:
     }
 
     // Update the iOS Info.plist
-    if (platforms.contains('ios') && iOSClientId.isNotEmpty) {
-      updateInfoPlist(iOSClientId);
+    if (platforms.contains('ios') &&
+        iOSClientId.isNotEmpty &&
+        iosAppId.isNotEmpty) {
+      updateInfoPlist(iOSClientId, iosAppId);
     }
 
     if (platforms.contains('web') && webClientId.isNotEmpty) {
@@ -126,7 +132,7 @@ void updateAuthConfig(String iOSClientId, String androidClientId,
   }
 }
 
-void updateInfoPlist(String iOSClientId) {
+void updateInfoPlist(String iOSClientId, String appId) {
   try {
     final file = File(iosInfoPlistFilePath);
     if (!file.existsSync()) {
@@ -144,7 +150,8 @@ void updateInfoPlist(String iOSClientId) {
     content = content.replaceAllMapped(
       RegExp(
           r'<string>com\.googleusercontent\.apps\.\d+-[a-zA-Z0-9]+</string>'),
-      (match) => '<string>$reversedClientId</string>',
+      (match) =>
+          '<string>$reversedClientId</string>\n    			<string>$appId</string>',
     );
 
     file.writeAsStringSync(content);
