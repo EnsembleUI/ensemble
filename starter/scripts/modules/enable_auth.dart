@@ -146,12 +146,14 @@ void updateInfoPlist(String iOSClientId, String appId) {
 
     final reversedClientId = 'com.googleusercontent.apps.$cleanedClientId';
 
+    final iosAppId = appId.replaceAll(':', '-').replaceAll(' ', '');
+
     // Replace the current iOS client ID in the Info.plist file
     content = content.replaceAllMapped(
       RegExp(
           r'<string>com\.googleusercontent\.apps\.\d+-[a-zA-Z0-9]+</string>'),
       (match) =>
-          '<string>$reversedClientId</string>\n    			<string>$appId</string>',
+          '<string>$reversedClientId</string>\n    			<string>app-$iosAppId</string>',
     );
 
     file.writeAsStringSync(content);
