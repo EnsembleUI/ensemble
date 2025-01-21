@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:ui';
 
 import 'package:ensemble/ensemble.dart';
@@ -8,6 +9,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_i18n/flutter_i18n.dart';
 import 'package:flutter_i18n/loaders/decoders/yaml_decode_strategy.dart';
 import 'package:yaml/yaml.dart';
+import 'dart:convert';
 import 'package:flutter/foundation.dart' as foundation;
 
 /**
@@ -34,9 +36,8 @@ class LocalDefinitionProvider extends FileDefinitionProvider {
       {String? screenId, String? screenName}) async {
     // Note: Web with local definition caches even if we disable browser cache
     // so you may need to re-run the app on definition changes
-    var pageStr = await rootBundle.loadString(
-        '$path${screenId ?? screenName ?? appHome}.yaml',
-        cache: foundation.kReleaseMode);
+    var pageStr = await rootBundle
+        .loadString('${path}screen/${screenId ?? screenName ?? appHome}.yaml');
     if (pageStr.isEmpty) {
       return ScreenDefinition(YamlMap());
     }
@@ -51,9 +52,10 @@ class LocalDefinitionProvider extends FileDefinitionProvider {
           baseUrl: config['app']?['baseUrl'],
           useBrowserUrl: Utils.optionalBool(config['app']?['useBrowserUrl']));
     }
+    Map? combinedAppBundle = await getCombinedAppBundle();
     return AppBundle(
-        theme: await _readFile('theme.ensemble'),
-        resources: await _readFile('resources.ensemble'));
+        theme:  combinedAppBundle?["theme"],
+        resources: combinedAppBundle?['resources'],);
   }
 
   Future<YamlMap?> _readFile(String file) async {
@@ -64,6 +66,69 @@ class LocalDefinitionProvider extends FileDefinitionProvider {
       // ignore error
     }
     return null;
+  }
+
+  Future<Map?> getCombinedAppBundle() async {
+    Map code = {};
+    Map resources = {};
+    Map output = {};
+    Map widgets = {};
+    YamlMap? theme;
+
+    try {
+      // Get the manifest content
+      final manifestContent = await rootBundle.loadString(path + '.manifest.json');
+      final Map<String, dynamic> manifestMap = json.decode(manifestContent);
+
+      try {
+        final List<Map<String, dynamic>> widgetsList = List<Map<String, dynamic>>.from(manifestMap['widgets']);
+        for (var filePath in widgetsList) {
+          // Changed to for loop since we need async
+          try {
+            final content = await rootBundle.loadString("${path}internal_widget/${filePath["name"]}.yaml");
+            final widgetContent = loadYaml(content);
+            if (widgetContent is YamlMap) {
+              widgets[filePath["name"]] = widgetContent["Widget"];
+            } else {
+              print('Content in ${filePath["name"]} is not a YamlMap');
+            }
+          } catch (e) {
+            print('Error reading widget file ${filePath["name"]}: $e');
+          }
+        }
+      } catch (e) {
+        print('Error processing widgets: $e');
+      }
+
+      // Process script files
+      try {
+        final List<Map<String, dynamic>> scriptsList =
+            List<Map<String, dynamic>>.from(manifestMap['scripts']);
+        for (var script in scriptsList) {
+          try {
+            final content = await rootBundle.loadString("${path}internal_script/${script["name"]}.yaml");
+            code[script["name"]] = content;
+          } catch (e) {
+            print('Error reading script file $script: $e');
+          }
+        }
+      } catch (e) {
+        print('Error processing scripts: $e');
+      }
+
+      // for themes
+      Map<String, dynamic> themeMap = manifestMap["theme"];
+      theme = await _readFile("${themeMap["type"]}/${themeMap["id"]}.yaml");
+
+      resources[ResourceArtifactEntry.Widgets.name] = widgets;
+      resources[ResourceArtifactEntry.Scripts.name] = code;
+      output["resources"] = resources;
+      output["theme"] = theme;
+
+      return output;
+    } catch (e) {
+      return null;
+    }
   }
 
   @override
