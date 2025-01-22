@@ -5,6 +5,7 @@ import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/definition_providers/provider.dart';
 import 'package:ensemble/framework/widget/screen.dart';
 import 'package:ensemble/util/utils.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_i18n/flutter_i18n.dart';
 import 'package:flutter_i18n/loaders/decoders/yaml_decode_strategy.dart';
@@ -54,8 +55,9 @@ class LocalDefinitionProvider extends FileDefinitionProvider {
     }
     Map? combinedAppBundle = await getCombinedAppBundle();
     return AppBundle(
-        theme:  combinedAppBundle?["theme"],
-        resources: combinedAppBundle?['resources'],);
+      theme: combinedAppBundle?["theme"],
+      resources: combinedAppBundle?['resources'],
+    );
   }
 
   Future<YamlMap?> _readFile(String file) async {
@@ -77,48 +79,56 @@ class LocalDefinitionProvider extends FileDefinitionProvider {
 
     try {
       // Get the manifest content
-      final manifestContent = await rootBundle.loadString(path + '.manifest.json');
+      final manifestContent =
+          await rootBundle.loadString(path + '.manifest.json');
       final Map<String, dynamic> manifestMap = json.decode(manifestContent);
 
       try {
-        final List<Map<String, dynamic>> widgetsList = List<Map<String, dynamic>>.from(manifestMap['widgets']);
-        for (var filePath in widgetsList) {
-          // Changed to for loop since we need async
-          try {
-            final content = await rootBundle.loadString("${path}internal_widget/${filePath["name"]}.yaml");
-            final widgetContent = loadYaml(content);
-            if (widgetContent is YamlMap) {
-              widgets[filePath["name"]] = widgetContent["Widget"];
-            } else {
-              print('Content in ${filePath["name"]} is not a YamlMap');
+        if (manifestMap['widgets'] != null) {
+          final List<Map<String, dynamic>> widgetsList =
+              List<Map<String, dynamic>>.from(manifestMap['widgets']);
+
+          for (var widgetItem in widgetsList) {
+            // Changed to for loop since we need async
+            try {
+              final widgetContent = await _readFile("${widgetItem["type"]}/${widgetItem["relativePath"]}");
+              if (widgetContent is YamlMap) {
+                widgets[widgetItem["name"]] = widgetContent["Widget"];
+              } else {
+                debugPrint('Content in ${widgetItem["name"]} is not a YamlMap');
+              }
+            } catch (e) {
+              debugPrint('Error reading widget file ${widgetItem["name"]}: $e');
             }
-          } catch (e) {
-            print('Error reading widget file ${filePath["name"]}: $e');
           }
         }
       } catch (e) {
-        print('Error processing widgets: $e');
+        debugPrint('Error processing widgets: $e');
       }
 
       // Process script files
       try {
-        final List<Map<String, dynamic>> scriptsList =
-            List<Map<String, dynamic>>.from(manifestMap['scripts']);
-        for (var script in scriptsList) {
-          try {
-            final content = await rootBundle.loadString("${path}internal_script/${script["name"]}.yaml");
-            code[script["name"]] = content;
-          } catch (e) {
-            print('Error reading script file $script: $e');
+        if (manifestMap['scripts'] != null) {
+          final List<Map<String, dynamic>> scriptsList =
+              List<Map<String, dynamic>>.from(manifestMap['scripts']);
+
+          for (var script in scriptsList) {
+            try {
+              final content = await rootBundle.loadString("${path}${script["type"]}/${script["relativePath"]}");
+              code[script["name"]] = content;
+            } catch (e) {
+              debugPrint('Error reading script file $script: $e');
+            }
           }
         }
       } catch (e) {
-        print('Error processing scripts: $e');
+        debugPrint('Error processing scripts: $e');
       }
 
-      // for themes
-      Map<String, dynamic> themeMap = manifestMap["theme"];
-      theme = await _readFile("${themeMap["type"]}/${themeMap["id"]}.yaml");
+      if (manifestMap['theme'] != null) {
+        Map<String, dynamic> themeMap = manifestMap["theme"];
+        theme = await _readFile("${themeMap["type"]}/${themeMap["id"]}.yaml");
+      }
 
       resources[ResourceArtifactEntry.Widgets.name] = widgets;
       resources[ResourceArtifactEntry.Scripts.name] = code;
