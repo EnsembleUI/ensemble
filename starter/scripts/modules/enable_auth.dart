@@ -1,9 +1,7 @@
 import 'dart:io';
 
-import '../constants.dart';
 import '../utils.dart';
 import '../utils/firebase_utils.dart';
-import '../utils/proguard_utils.dart';
 
 void main(List<String> arguments) async {
   List<String> platforms = getPlatforms(arguments);
@@ -59,7 +57,6 @@ ensemble_auth:
     updateAuthConfig(iOSClientId, androidClientId, webClientId, serverClientId);
     updateFirebaseConfig(platforms, arguments);
     if (platforms.contains('android')) {
-      createProguardRules(firebaseProguardRules);
       addClasspathDependency(
           "classpath 'com.google.gms:google-services:4.3.15'");
       addPluginDependency("apply plugin: 'com.google.gms.google-services'");
