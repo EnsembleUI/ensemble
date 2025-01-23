@@ -64,6 +64,11 @@ class MockUser extends Mock implements User {
 
   @override
   String get phoneNumber => '+1234567890';
+
+  @override
+  Future<String?> getIdToken([bool forceRefresh = false]) async {
+    return 'mock-id-token';
+  }
 }
 
 void main() {
@@ -84,6 +89,8 @@ void main() {
 
       await signInWithVerificationCode.sendVerificationCode(
         phoneNumber: '+1234567890',
+        method: 'phone',
+        provider: 'firebase',
         onSuccess: (verificationId, resendToken) {
           successCallbackCalled = true;
           print('Callback: Success - Verification ID: $verificationId');
@@ -103,6 +110,8 @@ void main() {
 
       await signInWithVerificationCode.sendVerificationCode(
         phoneNumber: '',
+        method: 'phone',
+        provider: 'firebase',
         onSuccess: (verificationId, resendToken) {
           fail('Success callback should not be called for empty phone number');
         },
@@ -120,15 +129,24 @@ void main() {
 
     test('Verify Phone Code - Success', () async {
       print('Test: Verify Phone Code - Success');
-      final user = await signInWithVerificationCode.validateVerificationCode(
+      final response =
+          await signInWithVerificationCode.validateVerificationCode(
         smsCode: '123456',
         verificationId: 'testVerificationId',
+        method: 'phone',
+        provider: 'firebase',
       );
 
-      print('Result: User ID: ${user?.id}, Phone Number: ${user?.phoneNumber}');
-      expect(user, isNotNull);
-      expect(user?.phoneNumber, equals('+1234567890'));
-      expect(user?.id, equals('mock-uid'));
+      if (response != null) {
+        final user = response['user'];
+        final idToken = response['idToken'];
+        print(
+            'Result: User ID: ${user?.id}, Phone Number: ${user?.phoneNumber}');
+        expect(user, isNotNull);
+        expect(user?.phoneNumber, equals('+1234567890'));
+        expect(user?.id, equals('mock-uid'));
+        expect(idToken, isNotNull);
+      }
     });
 
     test('Verify Phone Code - Invalid Code', () async {
@@ -137,6 +155,8 @@ void main() {
         () async => await signInWithVerificationCode.validateVerificationCode(
           smsCode: '654321',
           verificationId: 'testVerificationId',
+          method: 'phone',
+          provider: 'firebase',
         ),
         throwsA(isA<FirebaseAuthException>().having(
           (e) => e.message,
@@ -153,6 +173,8 @@ void main() {
       await signInWithVerificationCode.resendVerificationCode(
         phoneNumber: '+1234567890',
         resendToken: 12345,
+        method: 'phone',
+        provider: 'firebase',
         onSuccess: (verificationId, resendToken) {
           successCallbackCalled = true;
           print('Callback: Success - Verification ID: $verificationId');
@@ -174,6 +196,8 @@ void main() {
       await signInWithVerificationCode.resendVerificationCode(
         phoneNumber: '+0987654321',
         resendToken: 12345,
+        method: 'phone',
+        provider: 'firebase',
         onSuccess: (verificationId, resendToken) {
           fail('Success callback should not be called on failure');
         },
