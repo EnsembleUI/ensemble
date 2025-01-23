@@ -1,3 +1,7 @@
+## 1.1.17
+
+ - **FIX**: bad state no element on scrollabletabbar. ([f45b71e6](https://github.com/ensembleUI/ensemble/commit/f45b71e67caef2fc7753a837a7c1f27db0eeb4a2))
+
 ## 1.1.16
 
  - **REFACTOR**: make phoneNumber optional and handle empty values in verification actions. ([49810b31](https://github.com/ensembleUI/ensemble/commit/49810b315fb461964d8839b5b619538611f63cbb))
