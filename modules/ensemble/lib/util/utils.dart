@@ -3,6 +3,7 @@ import 'dart:math';
 import 'dart:ui';
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/ensemble_app.dart';
+import 'package:ensemble/framework/ensemble_config_service.dart';
 import 'package:ensemble/framework/stub/location_manager.dart';
 import 'package:ensemble/framework/theme/theme_manager.dart';
 import 'package:ensemble_ts_interpreter/invokables/UserLocale.dart';
@@ -924,7 +925,8 @@ class Utils {
   /// prefix the asset with the root directory (i.e. ensemble/assets/), plus
   /// stripping any unnecessary query params (e.g. anything after the first ?)
   static String getLocalAssetFullPath(String asset) {
-    return 'ensemble/assets/${stripQueryParamsFromAsset(asset)}';
+    String path = EnsembleConfigService.config["definitions"]?['local']?["path"];
+    return '${path}/asset/${stripQueryParamsFromAsset(asset)}';
   }
 
   static bool isMemoryPath(String path) {

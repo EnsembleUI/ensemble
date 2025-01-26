@@ -1,7 +1,11 @@
 // Secrets Configuration
 
+import 'dart:convert';
+
+import 'package:ensemble/framework/ensemble_config_service.dart';
 import 'package:ensemble/framework/storage_manager.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 import '../ensemble.dart';
@@ -24,8 +28,16 @@ class SecretsStore with Invokable {
 
       // add local overrides
       try {
-        await dotenv.load();
-        secrets.addAll(dotenv.env);
+        String path =
+            EnsembleConfigService.config["definitions"]?['local']?["path"];
+        final secretsString =
+            await rootBundle.loadString('${path}/secret/secrets.json');
+        final Map<String, dynamic> appSecretsMap = json.decode(secretsString);
+        // await dotenv.load();
+        appSecretsMap["secrets"].forEach((key, value) {
+          secrets![key] = value;
+          // secrets.addAll(appSecretsMap['secrets']);
+        });
       } catch (_) {}
 
       for (var entry in secrets.entries) {

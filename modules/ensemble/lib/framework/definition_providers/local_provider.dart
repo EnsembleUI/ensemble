@@ -47,13 +47,17 @@ class LocalDefinitionProvider extends FileDefinitionProvider {
 
   @override
   Future<AppBundle> getAppBundle({bool? bypassCache = false}) async {
-    YamlMap? config = await _readFile('config.ensemble');
-    if (config != null) {
+    final configString =
+        await rootBundle.loadString('${path}/config/appConfig.json');
+    final Map<String, dynamic> appConfigMap = json.decode(configString);
+    if (appConfigMap.isNotEmpty) {
       appConfig = UserAppConfig(
-          baseUrl: config['app']?['baseUrl'],
-          useBrowserUrl: Utils.optionalBool(config['app']?['useBrowserUrl']));
+          baseUrl: appConfigMap["baseUrl"],
+          useBrowserUrl: Utils.optionalBool(appConfigMap['useBrowserUrl']),
+          envVariables: appConfigMap["envVariables"]);
     }
-    Map? combinedAppBundle = await getCombinedAppBundle();
+
+    Map? combinedAppBundle = await getCombinedAppBundle(); // get the combined app bundle for local scripts, widgets and theme
     return AppBundle(
       theme: combinedAppBundle?["theme"],
       resources: combinedAppBundle?['resources'],
@@ -91,7 +95,8 @@ class LocalDefinitionProvider extends FileDefinitionProvider {
           for (var widgetItem in widgetsList) {
             // Changed to for loop since we need async
             try {
-              final widgetContent = await _readFile("${widgetItem["type"]}/${widgetItem["relativePath"]}");
+              final widgetContent = await _readFile(
+                  "${widgetItem["type"]}/${widgetItem["name"]}.yaml");
               if (widgetContent is YamlMap) {
                 widgets[widgetItem["name"]] = widgetContent["Widget"];
               } else {
@@ -114,7 +119,8 @@ class LocalDefinitionProvider extends FileDefinitionProvider {
 
           for (var script in scriptsList) {
             try {
-              final content = await rootBundle.loadString("${path}${script["type"]}/${script["relativePath"]}");
+              final content = await rootBundle.loadString(
+                  "${path}${script["type"]}/${script["name"]}.yaml");
               code[script["name"]] = content;
             } catch (e) {
               debugPrint('Error reading script file $script: $e');
