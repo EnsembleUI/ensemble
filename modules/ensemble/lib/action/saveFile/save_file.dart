@@ -1,17 +1,13 @@
 import 'dart:convert';
 import 'dart:typed_data';
-import 'dart:io';
 
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:flutter/material.dart';
-import 'package:image_gallery_saver/image_gallery_saver.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
-// Conditionally import the file that has `dart:html` vs. the stub:
-import 'download_stub.dart' if (dart.library.html) 'download_web.dart';
+import 'save_mobile.dart';
 
 /// Custom action to save files (images and documents) in platform-specific accessible directories
 class SaveToFileSystemAction extends EnsembleAction {
@@ -73,77 +69,22 @@ class SaveToFileSystemAction extends EnsembleAction {
         throw Exception('Missing blobData and source.');
       }
 
-      if (type == 'image') {
-        // Save images to Default Image Path
-        await _saveImageToDCIM(fileName!, fileBytes);
-      } else if (type == 'document') {
-        // Save documents to Documents folder
-        await _saveDocumentToDocumentsFolder(fileName!, fileBytes);
-      }
+      // Save the file to the storage system
+      await _saveFile(type!, fileName!, fileBytes);
     } catch (e) {
       throw Exception('Failed to save file: $e');
     }
   }
 
-  Future<void> _saveImageToDCIM(String fileName, Uint8List fileBytes) async {
-    try {
-      if (kIsWeb) {
-        _downloadFileOnWeb(fileName, fileBytes);
-      } else {
-        final result = await ImageGallerySaver.saveImage(
-          fileBytes,
-          name: fileName,
-        );
-        if (result['isSuccess']) {
-          debugPrint('Image saved to gallery: $result');
-        } else {
-          throw Exception('Failed to save image to gallery.');
-        }
-      }
-    } catch (e) {
-      throw Exception('Failed to save image: $e');
+  Future<void> _saveFile(
+      String type, String fileName, Uint8List fileBytes) async {
+    if (type == 'image') {
+      // Save images to Default Image Path
+      await saveImageToDCIM(fileName!, fileBytes);
+    } else if (type == 'document') {
+      // Save documents to Documents folder
+      await saveDocumentToDocumentsFolder(fileName!, fileBytes);
     }
-  }
-
-  /// Save documents to the default "Documents" directory
-  Future<void> _saveDocumentToDocumentsFolder(
-      String fileName, Uint8List fileBytes) async {
-    try {
-      String filePath;
-
-      if (Platform.isAndroid) {
-        // Get the default "Documents" directory on Android
-        Directory? directory = Directory('/storage/emulated/0/Documents');
-        if (!directory.existsSync()) {
-          directory.createSync(
-              recursive: true); // Create the directory if it doesn't exist
-        }
-        filePath = '${directory.path}/$fileName';
-      } else if (Platform.isIOS) {
-        // On iOS, use the app-specific Documents directory
-        final directory = await getApplicationDocumentsDirectory();
-        filePath = '${directory.path}/$fileName';
-
-        // Optionally, use a share intent to let users save the file to their desired location
-      } else if (kIsWeb) {
-        _downloadFileOnWeb(fileName, fileBytes);
-        return;
-      } else {
-        throw UnsupportedError('Platform not supported');
-      }
-
-      // Write the file to the determined path
-      final file = File(filePath);
-      await file.writeAsBytes(fileBytes);
-
-      debugPrint('Document saved to: $filePath');
-    } catch (e) {
-      throw Exception('Failed to save document: $e');
-    }
-  }
-
-  Future<void> _downloadFileOnWeb(String fileName, Uint8List fileBytes) async {
-    downloadFileOnWeb(fileName, fileBytes);
   }
 
   /// Factory method to construct the action from JSON
