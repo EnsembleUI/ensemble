@@ -39,12 +39,8 @@ class SaveToFileSystemAction extends EnsembleAction {
       blobData: payload['blobData'],
       source: payload['source'],
       type: payload['type'],
-      onComplete: payload['onComplete'] != null
-          ? EnsembleAction.from(payload['onComplete'])
-          : null,
-      onError: payload['onError'] != null
-          ? EnsembleAction.from(payload['onComplete'])
-          : null,
+      onComplete: EnsembleAction.from(payload['onComplete']),
+      onError: EnsembleAction.from(payload['onError']),
     );
   }
 
@@ -98,7 +94,7 @@ class SaveToFileSystemAction extends EnsembleAction {
         await ScreenController().executeAction(
           context,
           onError!,
-          event: EnsembleEvent(initiator, data: {'error': e.toString()}),
+          event: EnsembleEvent(initiator, error: e.toString()),
         );
       }
     }
