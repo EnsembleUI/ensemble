@@ -392,7 +392,6 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput>
   @override
   void dispose() {
     focusNode.dispose();
-    // widget.textController.dispose();
     super.dispose();
   }
 
