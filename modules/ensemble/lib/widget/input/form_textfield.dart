@@ -134,6 +134,15 @@ abstract class BaseTextInput extends StatefulWidget
       'validateOnUserInteraction': (value) => _controller
               .validateOnUserInteraction =
           Utils.getBool(value, fallback: _controller.validateOnUserInteraction),
+      'visible': (value) {
+        controller.visible = Utils.optionalBool(value);
+        // Force a state change
+        var formContext = controller.context;
+        if (formContext != null) {
+          var formState = EnsembleForm.of(formContext);
+          formState?.widget.controller.notifyFormChanged();
+        }
+      },
       'onKeyPress': (function) => _controller.onKeyPress =
           EnsembleAction.from(function, initiator: this),
       'onChange': (definition) => _controller.onChange =
@@ -352,6 +361,7 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput>
   void didChangeDependencies() {
     super.didChangeDependencies();
     widget.controller.inputFieldAction = this;
+    (widget.controller as FormFieldController).setContext(context);
   }
 
   @override
@@ -382,7 +392,7 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput>
   @override
   void dispose() {
     focusNode.dispose();
-    widget.textController.dispose();
+    // widget.textController.dispose();
     super.dispose();
   }
 

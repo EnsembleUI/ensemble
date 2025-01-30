@@ -46,6 +46,12 @@ class FormFieldController extends WidgetController {
   Color? errorBorderColor;
   Color? focusedBorderColor;
   Color? focusedErrorBorderColor;
+  
+  BuildContext? _context;
+  void setContext(BuildContext? context) {
+    _context = context;
+  }
+  BuildContext? get context => _context;
 
   @override
   Map<String, Function> getBaseGetters() {
