@@ -134,15 +134,6 @@ abstract class BaseTextInput extends StatefulWidget
       'validateOnUserInteraction': (value) => _controller
               .validateOnUserInteraction =
           Utils.getBool(value, fallback: _controller.validateOnUserInteraction),
-      'visible': (value) {
-        controller.visible = Utils.optionalBool(value);
-        // Force a state change
-        var formContext = controller.context;
-        if (formContext != null) {
-          var formState = EnsembleForm.of(formContext);
-          formState?.widget.controller.notifyFormChanged();
-        }
-      },
       'onKeyPress': (function) => _controller.onKeyPress =
           EnsembleAction.from(function, initiator: this),
       'onChange': (definition) => _controller.onChange =
@@ -263,6 +254,7 @@ class TextInputController extends FormFieldController with HasTextPlaceholder {
 class TextInputState extends FormFieldWidgetState<BaseTextInput>
     with TextInputFieldAction {
   final focusNode = FocusNode();
+  VoidCallback? _propertyListener;
 
   // for this widget we will implement onChange if the text changes AND:
   // 1. the field loses focus next (tabbing out, ...)
@@ -361,7 +353,21 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput>
   void didChangeDependencies() {
     super.didChangeDependencies();
     widget.controller.inputFieldAction = this;
-    (widget.controller as FormFieldController).setContext(context);
+    
+    // Remove any existing listener first
+    if (_propertyListener != null) {
+      widget.controller.removeListener(_propertyListener!);
+    }
+    
+    // Create and store new listener
+    _propertyListener = () {
+      if (mounted) {  // Check if widget is still mounted
+        final formState = EnsembleForm.of(context);
+        formState?.widget.controller.notifyFormChanged();
+      }
+    };
+    
+    widget.controller.addListener(_propertyListener!);
   }
 
   @override
@@ -391,6 +397,10 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput>
 
   @override
   void dispose() {
+    // Remove listener
+    if (_propertyListener != null) {
+      widget.controller.removeListener(_propertyListener!);
+    }
     focusNode.dispose();
     super.dispose();
   }
