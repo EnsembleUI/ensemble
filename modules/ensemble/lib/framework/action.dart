@@ -19,10 +19,14 @@ import 'package:ensemble/action/change_locale_actions.dart';
 import 'package:ensemble/action/misc_action.dart';
 import 'package:ensemble/action/navigation_action.dart';
 import 'package:ensemble/action/notification_actions.dart';
+import 'package:ensemble/action/saveFile/save_file.dart';
 import 'package:ensemble/action/phone_contact_action.dart';
 import 'package:ensemble/action/sign_in_out_action.dart';
+import 'package:ensemble/action/sign_in_with_verification_code_actions.dart';
 import 'package:ensemble/action/toast_actions.dart';
+import 'package:ensemble/action/take_screenshot.dart';
 import 'package:ensemble/action/disable_hardware_navigation.dart';
+import 'package:ensemble/action/close_app.dart';
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/error_handling.dart';
@@ -1041,6 +1045,7 @@ enum ActionType {
   dispatchEvent,
   executeConditionalAction,
   executeActionGroup,
+  takeScreenshot,
   playAudio,
   stopAudio,
   pauseAudio,
@@ -1059,6 +1064,11 @@ enum ActionType {
   controlDeviceBackNavigation,
   openDrawer,
   closeDrawer,
+  closeApp,
+  saveFile,
+  sendVerificationCode,
+  validateVerificationCode,
+  resendVerificationCode,
 }
 
 /// payload representing an Action to do (navigateToScreen, InvokeAPI, ..)
@@ -1164,6 +1174,8 @@ abstract class EnsembleAction {
       return FilePickerAction.fromYaml(payload: payload);
     } else if (actionType == ActionType.openUrl) {
       return OpenUrlAction.fromYaml(payload: payload);
+    } else if (actionType == ActionType.takeScreenshot) {
+      return TakeScreenshotAction.fromYaml(payload: payload);
     } else if (actionType == ActionType.connectWallet) {
       return WalletConnectAction.fromYaml(payload: payload);
     } else if (actionType == ActionType.authorizeOAuthService) {
@@ -1178,12 +1190,16 @@ abstract class EnsembleAction {
       return CopyToClipboardAction.from(payload: payload);
     } else if (actionType == ActionType.share) {
       return ShareAction.from(payload: payload);
+    } else if (actionType == ActionType.saveFile) {
+      return SaveToFileSystemAction.from(payload: payload);
     } else if (actionType == ActionType.controlDeviceBackNavigation) {
       return ControlBackNavigation.from(payload: payload);
     } else if (actionType == ActionType.rateApp) {
       return RateAppAction.from(payload: payload);
     } else if (actionType == ActionType.getDeviceToken) {
       return GetDeviceTokenAction.fromMap(payload: payload);
+    } else if (actionType == ActionType.closeApp) {
+      return CloseAppAction();
     } else if (actionType == ActionType.openPlaidLink) {
       return PlaidLinkAction.fromYaml(initiator: initiator, payload: payload);
     } else if (actionType == ActionType.openAppSettings) {
@@ -1281,6 +1297,15 @@ abstract class EnsembleAction {
       return OpenDrawerAction.from(initiator: initiator, payload: payload);
     } else if (actionType == ActionType.closeDrawer) {
       return CloseDrawerAction.from(initiator: initiator, payload: payload);
+    } else if (actionType == ActionType.sendVerificationCode) {
+      return SendVerificationCodeAction.fromYaml(
+          initiator: initiator, payload: payload);
+    } else if (actionType == ActionType.validateVerificationCode) {
+      return ValidateVerificationCodeAction.fromYaml(
+          initiator: initiator, payload: payload);
+    } else if (actionType == ActionType.resendVerificationCode) {
+      return ResendVerificationCodeAction.fromYaml(
+          initiator: initiator, payload: payload);
     } else {
       throw LanguageError("Invalid action.",
           recovery: "Make sure to use one of Ensemble-provided actions.");

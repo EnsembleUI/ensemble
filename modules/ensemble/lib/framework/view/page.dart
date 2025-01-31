@@ -2,6 +2,7 @@ import 'dart:developer';
 
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/action.dart';
+import 'package:ensemble/ensemble_app.dart';
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/devmode.dart';
 import 'package:ensemble/framework/event.dart';
@@ -594,7 +595,10 @@ class PageState extends State<Page>
       child: getBody(appBar != null),
     ));
 
-    return CustomScrollView(slivers: slivers);
+    return CustomScrollView(
+      controller: externalScrollController,
+      slivers: slivers,
+    );
   }
 
   Widget getBody(bool hasAppBar) {
