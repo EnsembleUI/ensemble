@@ -147,8 +147,10 @@ class HTTPAPIProvider extends APIProvider {
         Ensemble().getConfig()?.definitionProvider.getAppConfig()?.envVariables;
     final secrets = Ensemble().getConfig()?.definitionProvider.getSecrets();
 
-    bool sslPinningEnabled = env?['ssl_pinning_enabled'].toString().toLowerCase() == 'true';
-    bool bypassSslCertificate = env?['bypass_ssl_pinning'].toString().toLowerCase() == 'true';
+    bool sslPinningEnabled =
+        env?['ssl_pinning_enabled']?.toString().toLowerCase() == 'true';
+    bool bypassSslCertificate =
+        env?['bypass_ssl_pinning']?.toString().toLowerCase() == 'true';
 
     String? sslPinningCertificate = secrets?['ssl_pinning_certificate'];
 
