@@ -578,6 +578,16 @@ class ScreenController {
     }
   }
 
+  void dispatchDeviceChanges(
+      BuildContext context, String property, dynamic value) {
+    ScopeManager? scopeManager = getScopeManager(context);
+
+    if (scopeManager != null) {
+      scopeManager
+          .dispatch(ModelChangeEvent(DeviceBindingSource(property), value));
+    }
+  }
+
   void dispatchSystemStorageChanges(
       BuildContext context, String key, dynamic value,
       {required String storagePrefix}) {
