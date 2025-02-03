@@ -369,7 +369,7 @@ class SelectOneState extends FormFieldWidgetState<SelectOne>
         validator: (value) {
           if (widget._controller.required && widget.getValue() == null) {
             return Utils.translateWithFallback(
-                'ensemble.input.required', 'This field is required');
+                'ensemble.input.required', widget._controller.requiredMessage ?? 'This field is required');
           }
           return null;
         },
@@ -409,6 +409,7 @@ class SelectOneState extends FormFieldWidgetState<SelectOne>
             )),
         decoration: inputDecoration.copyWith(
           contentPadding: adjustedContentPadding,
+          errorStyle: widget._controller.errorStyle ?? Theme.of(context).inputDecorationTheme.errorStyle,
           labelText: widget.controller.floatLabel == true
               ? widget.controller.label
               : null,
@@ -449,6 +450,7 @@ class SelectOneState extends FormFieldWidgetState<SelectOne>
                         .fillColor, // Background color for the field
                     enabledBorder: getEnabledBorder(),
                     focusedBorder: getSafeFocusedBorder(),
+                    errorStyle: widget._controller.errorStyle ?? Theme.of(context).inputDecorationTheme.errorStyle
                   ),
                   onChanged: (value) {
                     // Preserve the cursor position
