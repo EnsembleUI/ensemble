@@ -36,6 +36,7 @@ const String backgroundBluetoothSubscribeTask = 'backgroundBluetoothSubscribeTas
 
 const String ensembleMethodChannelName = 'com.ensembleui.host.platform';
 GlobalKey<NavigatorState>? externalAppNavigateKey;
+ScrollController? externalScrollController;
 
 @pragma('vm:entry-point')
 void callbackDispatcher() {
@@ -104,8 +105,10 @@ class EnsembleApp extends StatefulWidget {
     this.onAppLoad,
     this.forcedLocale,
     GlobalKey<NavigatorState>? navigatorKey,
+    ScrollController? screenScroller,
   }) {
     externalAppNavigateKey = navigatorKey;
+    externalScrollController = screenScroller;
   }
 
   final ScreenPayload? screenPayload;

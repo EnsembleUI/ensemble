@@ -1,9 +1,7 @@
 import 'dart:io';
 
-import '../constants.dart';
 import '../utils.dart';
 import '../utils/firebase_utils.dart';
-import '../utils/proguard_utils.dart';
 
 void main(List<String> arguments) async {
   List<String> platforms = getPlatforms(arguments);
@@ -15,6 +13,10 @@ void main(List<String> arguments) async {
   String webClientId = getArgumentValue(arguments, 'googleWebClientId') ?? '';
   String serverClientId =
       getArgumentValue(arguments, 'googleServerClientId') ?? '';
+
+  String iosAppId = getArgumentValue(arguments, 'ios_appId',
+          required: platforms.contains('ios')) ??
+      '';
 
   String? ensembleVersion = getArgumentValue(arguments, 'ensemble_version');
 
@@ -55,7 +57,6 @@ ensemble_auth:
     updateAuthConfig(iOSClientId, androidClientId, webClientId, serverClientId);
     updateFirebaseConfig(platforms, arguments);
     if (platforms.contains('android')) {
-      createProguardRules(firebaseProguardRules);
       addClasspathDependency(
           "classpath 'com.google.gms:google-services:4.3.15'");
       addPluginDependency("apply plugin: 'com.google.gms.google-services'");
@@ -66,8 +67,10 @@ ensemble_auth:
     }
 
     // Update the iOS Info.plist
-    if (platforms.contains('ios') && iOSClientId.isNotEmpty) {
-      updateInfoPlist(iOSClientId);
+    if (platforms.contains('ios') &&
+        iOSClientId.isNotEmpty &&
+        iosAppId.isNotEmpty) {
+      updateInfoPlist(iOSClientId, iosAppId);
     }
 
     if (platforms.contains('web') && webClientId.isNotEmpty) {
@@ -126,7 +129,7 @@ void updateAuthConfig(String iOSClientId, String androidClientId,
   }
 }
 
-void updateInfoPlist(String iOSClientId) {
+void updateInfoPlist(String iOSClientId, String appId) {
   try {
     final file = File(iosInfoPlistFilePath);
     if (!file.existsSync()) {
@@ -140,11 +143,14 @@ void updateInfoPlist(String iOSClientId) {
 
     final reversedClientId = 'com.googleusercontent.apps.$cleanedClientId';
 
+    final iosAppId = appId.replaceAll(':', '-').replaceAll(' ', '');
+
     // Replace the current iOS client ID in the Info.plist file
     content = content.replaceAllMapped(
       RegExp(
           r'<string>com\.googleusercontent\.apps\.\d+-[a-zA-Z0-9]+</string>'),
-      (match) => '<string>$reversedClientId</string>',
+      (match) =>
+          '<string>$reversedClientId</string>\n    			<string>app-$iosAppId</string>',
     );
 
     file.writeAsStringSync(content);
