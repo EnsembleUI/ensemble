@@ -9,7 +9,7 @@ import 'composites/value_indicator_style.dart';
 
 class SliderController extends FormFieldController {
   // Basic Values
-  double value = 0.0;
+  RangeValues value = const RangeValues(0.0, 1.0);
   double minValue = 0.0;
   double maxValue = 1.0;
   int? divisions;
@@ -26,7 +26,7 @@ class SliderController extends FormFieldController {
   set tickMarkStyle(TickMarkStyleComposite value) => _tickMarkStyle = value;
 
   ThumbStyleComposite? _thumbStyle;
-  ThumbStyleComposite get thumbStyle => 
+  ThumbStyleComposite get thumbStyle =>
       _thumbStyle ??= ThumbStyleComposite(this);
   set thumbStyle(ThumbStyleComposite value) => _thumbStyle = value;
 
@@ -38,7 +38,7 @@ class SliderController extends FormFieldController {
   ValueIndicatorStyleComposite? _valueIndicatorStyle;
   ValueIndicatorStyleComposite get valueIndicatorStyle =>
       _valueIndicatorStyle ??= ValueIndicatorStyleComposite(this);
-  set valueIndicatorStyle(ValueIndicatorStyleComposite value) => 
+  set valueIndicatorStyle(ValueIndicatorStyleComposite value) =>
       _valueIndicatorStyle = value;
 
   // @deprecated. backward compatibility
@@ -52,4 +52,7 @@ class SliderController extends FormFieldController {
 
   // Event Handler
   EnsembleAction? onChange;
+
+  // Optional property to determine if the slider is a range slider
+  bool isRange = false;
 }

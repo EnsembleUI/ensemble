@@ -1,8 +1,6 @@
 import 'dart:io';
 import 'dart:math';
-import 'dart:ui';
 import 'package:ensemble/ensemble.dart';
-import 'package:ensemble/ensemble_app.dart';
 import 'package:ensemble/framework/stub/location_manager.dart';
 import 'package:ensemble/framework/theme/theme_manager.dart';
 import 'package:ensemble_ts_interpreter/invokables/UserLocale.dart';
@@ -11,7 +9,6 @@ import 'package:path/path.dart' as p;
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/framework/model.dart';
-import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokableprimitives.dart';
 import 'package:flutter/foundation.dart';
@@ -75,6 +72,32 @@ class Utils {
       rtn = null;
     }
     return rtn;
+  }
+
+  /// Expects a number or a String containing 2 numbers values separated by whitespace
+  /// (e.g. 1 or "1 4")
+  static RangeValues? getRangeValues(dynamic value) {
+    if (value is num) {
+      final start = optionalDouble(value);
+      if (start != null) {
+        return RangeValues(start, start);
+      }
+    } else if (value is String) {
+      final List<String> valuesList = value.split(RegExp('\\s+'));
+      if (valuesList.length == 1) {
+        final start = optionalDouble(valuesList[0]);
+        if (start != null) {
+          return RangeValues(start, start);
+        }
+      } else if (valuesList.length == 2) {
+        final start = optionalDouble(valuesList[0]);
+        final end = optionalDouble(valuesList[1]);
+        if (start != null && end != null) {
+          return RangeValues(start, end);
+        }
+      }
+    }
+    return null;
   }
 
   /// expect a value in seconds
