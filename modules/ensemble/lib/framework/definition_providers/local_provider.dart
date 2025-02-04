@@ -38,7 +38,7 @@ class LocalDefinitionProvider extends FileDefinitionProvider {
     // Note: Web with local definition caches even if we disable browser cache
     // so you may need to re-run the app on definition changes
     var pageStr = await rootBundle
-        .loadString('${path}screen/${screenId ?? screenName ?? appHome}.yaml');
+        .loadString('${path}screens/${screenId ?? screenName ?? appHome}.yaml');
     if (pageStr.isEmpty) {
       return ScreenDefinition(YamlMap());
     }
@@ -47,20 +47,23 @@ class LocalDefinitionProvider extends FileDefinitionProvider {
 
   @override
   Future<AppBundle> getAppBundle({bool? bypassCache = false}) async {
-    final configString =
-        await rootBundle.loadString('${path}/config/appConfig.json');
-    final Map<String, dynamic> appConfigMap = json.decode(configString);
-    if (appConfigMap.isNotEmpty) {
-      appConfig = UserAppConfig(
-          baseUrl: appConfigMap["baseUrl"],
-          useBrowserUrl: Utils.optionalBool(appConfigMap['useBrowserUrl']),
-          envVariables: appConfigMap["envVariables"]);
+    try {
+      final configString =
+          await rootBundle.loadString('${path}/config/appConfig.json');
+      final Map<String, dynamic> appConfigMap = json.decode(configString);
+      if (appConfigMap.isNotEmpty) {
+        appConfig = UserAppConfig(
+            baseUrl: appConfigMap["baseUrl"],
+            useBrowserUrl: Utils.optionalBool(appConfigMap['useBrowserUrl']),
+            envVariables: appConfigMap["envVariables"]);
+      }
+    } catch (e) {
+      // ignore error
     }
 
-    Map? combinedAppBundle = await getCombinedAppBundle(); // get the combined app bundle for local scripts, widgets and theme
     return AppBundle(
-      theme: combinedAppBundle?["theme"],
-      resources: combinedAppBundle?['resources'],
+      theme: await _readFile('theme.yaml'),
+      resources: await getCombinedAppBundle(), // get the combined app bundle for local scripts and widgets
     );
   }
 
@@ -76,10 +79,8 @@ class LocalDefinitionProvider extends FileDefinitionProvider {
 
   Future<Map?> getCombinedAppBundle() async {
     Map code = {};
-    Map resources = {};
     Map output = {};
     Map widgets = {};
-    YamlMap? theme;
 
     try {
       // Get the manifest content
@@ -87,23 +88,24 @@ class LocalDefinitionProvider extends FileDefinitionProvider {
           await rootBundle.loadString(path + '.manifest.json');
       final Map<String, dynamic> manifestMap = json.decode(manifestContent);
 
+      // Process App Widgets
       try {
         if (manifestMap['widgets'] != null) {
           final List<Map<String, dynamic>> widgetsList =
               List<Map<String, dynamic>>.from(manifestMap['widgets']);
 
           for (var widgetItem in widgetsList) {
-            // Changed to for loop since we need async
             try {
-              final widgetContent = await _readFile(
-                  "${widgetItem["type"]}/${widgetItem["name"]}.yaml");
+              // Load the widget content in YamlMap
+              final widgetContent =
+                  await _readFile("widgets/${widgetItem["name"]}.yaml");
               if (widgetContent is YamlMap) {
                 widgets[widgetItem["name"]] = widgetContent["Widget"];
               } else {
                 debugPrint('Content in ${widgetItem["name"]} is not a YamlMap');
               }
             } catch (e) {
-              debugPrint('Error reading widget file ${widgetItem["name"]}: $e');
+              // ignore error
             }
           }
         }
@@ -111,7 +113,7 @@ class LocalDefinitionProvider extends FileDefinitionProvider {
         debugPrint('Error processing widgets: $e');
       }
 
-      // Process script files
+      // Process App Scripts
       try {
         if (manifestMap['scripts'] != null) {
           final List<Map<String, dynamic>> scriptsList =
@@ -119,11 +121,12 @@ class LocalDefinitionProvider extends FileDefinitionProvider {
 
           for (var script in scriptsList) {
             try {
-              final content = await rootBundle.loadString(
-                  "${path}${script["type"]}/${script["name"]}.yaml");
-              code[script["name"]] = content;
+              // Load the script content in string
+              final scriptContent = await rootBundle
+                  .loadString("${path}scripts/${script["name"]}.yaml");
+              code[script["name"]] = scriptContent;
             } catch (e) {
-              debugPrint('Error reading script file $script: $e');
+              // ignore error
             }
           }
         }
@@ -131,15 +134,8 @@ class LocalDefinitionProvider extends FileDefinitionProvider {
         debugPrint('Error processing scripts: $e');
       }
 
-      if (manifestMap['theme'] != null) {
-        Map<String, dynamic> themeMap = manifestMap["theme"];
-        theme = await _readFile("${themeMap["type"]}/${themeMap["id"]}.yaml");
-      }
-
-      resources[ResourceArtifactEntry.Widgets.name] = widgets;
-      resources[ResourceArtifactEntry.Scripts.name] = code;
-      output["resources"] = resources;
-      output["theme"] = theme;
+      output[ResourceArtifactEntry.Widgets.name] = widgets;
+      output[ResourceArtifactEntry.Scripts.name] = code;
 
       return output;
     } catch (e) {

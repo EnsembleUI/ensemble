@@ -31,7 +31,7 @@ class SecretsStore with Invokable {
         String path =
             EnsembleConfigService.config["definitions"]?['local']?["path"];
         final secretsString =
-            await rootBundle.loadString('${path}/secret/secrets.json');
+            await rootBundle.loadString('${path}/config/secrets.json');
         final Map<String, dynamic> appSecretsMap = json.decode(secretsString);
         // await dotenv.load();
         appSecretsMap["secrets"].forEach((key, value) {

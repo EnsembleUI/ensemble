@@ -922,7 +922,7 @@ class Utils {
     return strings[0];
   }
 
-  /// prefix the asset with the root directory (i.e. ensemble/assets/), plus
+  /// prefix the asset with the app root directory (i.e. ensemble/apps/<app-name>/assets/), plus
   /// stripping any unnecessary query params (e.g. anything after the first ?)
   static String getLocalAssetFullPath(String asset) {
     String path = EnsembleConfigService.config["definitions"]?['local']?["path"];
