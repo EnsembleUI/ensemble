@@ -75,6 +75,17 @@ abstract class EWidgetState<W extends HasController>
             child: rtn);
       }
 
+      // add tooltip handling if tooltip message is specified
+      if (widgetController.tooltipMessage?.isNotEmpty == true) {
+        rtn = Utils.getTooltipWidget(
+          rtn,
+          widgetController.tooltipMessage!,
+          widgetController.tooltipStyle,
+          onTriggered: widgetController.tooltipStyle?.onTriggered,
+          context: context,
+        );
+      }
+
       // in Web, capture the pointer if overlay on htmlelementview like Maps
       if (widgetController.captureWebPointer == true) {
         rtn = PointerInterceptor(child: rtn);
