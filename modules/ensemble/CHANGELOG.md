@@ -1,3 +1,5 @@
+## 1.1.18
+
 ## 1.1.17
 
  - **FIX**: bad state no element on scrollabletabbar. ([f45b71e6](https://github.com/ensembleUI/ensemble/commit/f45b71e67caef2fc7753a837a7c1f27db0eeb4a2))

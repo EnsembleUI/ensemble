@@ -130,7 +130,7 @@ class SwitchBaseState extends FormFieldWidgetState<SwitchBase> {
 
           if (switchRequiredStatus || tripleStateRequiredStatus) {
             return Utils.translateWithFallback(
-                'ensemble.input.required', 'This field is required');
+                'ensemble.input.required', widget._controller.requiredMessage ?? 'This field is required');
           }
           return null;
         },
@@ -143,7 +143,8 @@ class SwitchBaseState extends FormFieldWidgetState<SwitchBase> {
                 enabledBorder: InputBorder.none,
                 disabledBorder: InputBorder.none,
                 focusedBorder: InputBorder.none,
-                errorText: field.errorText),
+                errorText: field.errorText,
+                errorStyle: widget._controller.errorStyle ?? Theme.of(context).inputDecorationTheme.errorStyle),
             child: Row(
                 mainAxisAlignment: MainAxisAlignment.start, children: children),
           );

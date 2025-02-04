@@ -87,7 +87,7 @@ class RadioState extends FormFieldWidgetState<RadioButton> {
           if (widget.controller.required &&
               radioButtonController.selectedValue == null) {
             return Utils.translateWithFallback(
-                'ensemble.input.required', 'This field is required');
+                'ensemble.input.required', widget._controller.requiredMessage ?? 'This field is required');
           }
           return null;
         },
@@ -100,6 +100,7 @@ class RadioState extends FormFieldWidgetState<RadioButton> {
             disabledBorder: InputBorder.none,
             focusedBorder: InputBorder.none,
             errorText: field.errorText,
+            errorStyle: widget._controller.errorStyle ?? Theme.of(context).inputDecorationTheme.errorStyle,
           ),
           child: ChangeNotifierProvider(
             create: (context) => radioButtonController,

@@ -148,7 +148,10 @@ class HTTPAPIProvider extends APIProvider {
     final secrets = Ensemble().getConfig()?.definitionProvider.getSecrets();
 
     bool sslPinningEnabled =
-        env?['ssl_pinning_enabled']?.toLowerCase() == 'true';
+        env?['ssl_pinning_enabled']?.toString().toLowerCase() == 'true';
+    bool bypassSslCertificate =
+        env?['bypass_ssl_pinning']?.toString().toLowerCase() == 'true';
+
     String? sslPinningCertificate = secrets?['ssl_pinning_certificate'];
 
     bool manageCookies = Utils.getBool(api['manageCookies'], fallback: false);
@@ -159,6 +162,7 @@ class HTTPAPIProvider extends APIProvider {
     try {
       http.Client client = await _getHttpClient(
         sslPinningEnabled: sslPinningEnabled,
+        bypassSslCertificate: bypassSslCertificate,
         sslPinningCertificate: sslPinningCertificate,
       );
 
@@ -224,6 +228,7 @@ class HTTPAPIProvider extends APIProvider {
 
   Future<http.Client> _getHttpClient({
     required bool sslPinningEnabled,
+    required bool bypassSslCertificate,
     String? sslPinningCertificate,
   }) async {
     if (kIsWeb) {
@@ -232,15 +237,22 @@ class HTTPAPIProvider extends APIProvider {
     }
 
     if (sslPinningEnabled && sslPinningCertificate != null) {
+      // Use certificate for pinning
       Uint8List bytes = base64.decode(sslPinningCertificate);
       SecurityContext context = SecurityContext.defaultContext;
       context.setTrustedCertificatesBytes(bytes);
+      return IOClient(HttpClient(context: context));
+    } 
 
-      HttpClient httpClient = HttpClient(context: context);
-      return IOClient(httpClient);
-    } else {
-      return http.Client();
+    if ( bypassSslCertificate == true ) {
+      // Bypass SSL verification
+      return IOClient(
+          HttpClient()..badCertificateCallback = (cert, host, port) => true);
     }
+
+    // Default case when sslPinningEnabled is null
+    return http.Client();
+
   }
 
   HttpResponse _handleError(Object error, String apiName) {
