@@ -58,7 +58,7 @@ class FirestoreAPIProvider extends APIProvider with LiveAPIProvider {
     } else {
       // Initialize the new Firebase app with the options
       FirebaseApp app = await Firebase.initializeApp(
-        name: 'customFirebase',
+        name: appId,
         options: platformOptions,
       );
       print('Initialized new Firebase app: ${app.name}');

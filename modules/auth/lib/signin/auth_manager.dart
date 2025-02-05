@@ -1,5 +1,6 @@
 import 'dart:developer';
 import 'dart:io';
+import 'package:collection/collection.dart';
 
 import 'package:ensemble/action/invoke_api_action.dart';
 import 'package:ensemble/ensemble.dart';
@@ -21,8 +22,10 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
+import 'package:yaml/yaml.dart';
 
 /// This abstract out different method of Sign In (local, custom, Firebase, Auth0, ...)
 class AuthManager with UserAuthentication {
@@ -164,7 +167,14 @@ class AuthManager with UserAuthentication {
   }
 
   Future<FirebaseApp> _initializeFirebaseSignIn() async {
+    // Get the App ID from the ensemble-config.yaml to initialize Firebase
+    // Aligned with Firestore initialization as well
+    final yamlString =
+        await rootBundle.loadString('ensemble/ensemble-config.yaml');
+    final YamlMap yamlMap = loadYaml(yamlString);
+    String? appId = yamlMap['definitions']?['ensemble']?['appId'];
     FirebaseOptions? options;
+
     if (kIsWeb) {
       options = Ensemble().getAccount()?.firebaseConfig?.webConfig;
     } else if (Platform.isIOS) {
@@ -172,11 +182,26 @@ class AuthManager with UserAuthentication {
     } else if (Platform.isAndroid) {
       options = Ensemble().getAccount()?.firebaseConfig?.androidConfig;
     }
-    if (options == null) {
+    if (options == null || appId == null) {
       throw ConfigError('Firebase is not configured for this platform.');
     }
-    return await Firebase.initializeApp(
-        name: 'customFirebase', options: options);
+
+    FirebaseApp? existingApp = Firebase.apps.firstWhereOrNull(
+      (app) => _areOptionsEqual(app.options, options!),
+    );
+
+    if (existingApp != null) {
+      return existingApp;
+    }
+
+    return await Firebase.initializeApp(name: appId, options: options);
+  }
+
+  bool _areOptionsEqual(FirebaseOptions a, FirebaseOptions b) {
+    return a.apiKey == b.apiKey &&
+        a.appId == b.appId &&
+        a.messagingSenderId == b.messagingSenderId &&
+        a.projectId == b.projectId;
   }
 
   /// enrich the passed in User with information from Firebase
