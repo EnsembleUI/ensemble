@@ -254,6 +254,7 @@ class TextInputController extends FormFieldController with HasTextPlaceholder {
 class TextInputState extends FormFieldWidgetState<BaseTextInput>
     with TextInputFieldAction {
   final focusNode = FocusNode();
+  VoidCallback? _propertyListener;
 
   // for this widget we will implement onChange if the text changes AND:
   // 1. the field loses focus next (tabbing out, ...)
@@ -352,6 +353,21 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput>
   void didChangeDependencies() {
     super.didChangeDependencies();
     widget.controller.inputFieldAction = this;
+    
+    // Remove any existing listener first
+    if (_propertyListener != null) {
+      widget.controller.removeListener(_propertyListener!);
+    }
+    
+    // Create and store new listener
+    _propertyListener = () {
+      if (mounted) {  // Check if widget is still mounted
+        final formState = EnsembleForm.of(context);
+        formState?.widget.controller.notifyFormChanged();
+      }
+    };
+    
+    widget.controller.addListener(_propertyListener!);
   }
 
   @override
@@ -381,8 +397,11 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput>
 
   @override
   void dispose() {
+    // Remove listener
+    if (_propertyListener != null) {
+      widget.controller.removeListener(_propertyListener!);
+    }
     focusNode.dispose();
-    widget.textController.dispose();
     super.dispose();
   }
 
