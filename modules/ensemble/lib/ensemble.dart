@@ -106,7 +106,6 @@ class Ensemble extends WithEnsemble with EnsembleRouteObserver {
     try {
       // this code block is guaranteed to run at most once
       await StorageManager().init();
-      // await SecretsStore().initialize();
       Device().initDeviceInfo();
       AppInfo().initPackageInfo(_config);
       _completer!.complete();

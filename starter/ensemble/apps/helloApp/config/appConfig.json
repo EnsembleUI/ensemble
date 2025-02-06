@@ -1,0 +1,9 @@
+{
+    "id": "appConfig",
+    "envVariables": {
+        "apiURL": "https://dummyjson.com"
+    },
+    "type": "config",
+    "isRoot": true,
+    "isArchived": false
+}

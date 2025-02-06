@@ -33,10 +33,8 @@ class SecretsStore with Invokable {
         final secretsString =
             await rootBundle.loadString('${path}/config/secrets.json');
         final Map<String, dynamic> appSecretsMap = json.decode(secretsString);
-        // await dotenv.load();
         appSecretsMap["secrets"].forEach((key, value) {
           secrets![key] = value;
-          // secrets.addAll(appSecretsMap['secrets']);
         });
       } catch (_) {}
 
