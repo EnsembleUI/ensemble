@@ -18,10 +18,12 @@ import 'package:ensemble/action/change_locale_actions.dart';
 import 'package:ensemble/action/misc_action.dart';
 import 'package:ensemble/action/navigation_action.dart';
 import 'package:ensemble/action/notification_actions.dart';
-import 'package:ensemble/action/save_file.dart';
+import 'package:ensemble/action/saveFile/save_file.dart';
 import 'package:ensemble/action/phone_contact_action.dart';
 import 'package:ensemble/action/sign_in_out_action.dart';
+import 'package:ensemble/action/sign_in_with_verification_code_actions.dart';
 import 'package:ensemble/action/toast_actions.dart';
+import 'package:ensemble/action/take_screenshot.dart';
 import 'package:ensemble/action/disable_hardware_navigation.dart';
 import 'package:ensemble/action/close_app.dart';
 import 'package:ensemble/ensemble.dart';
@@ -1042,6 +1044,7 @@ enum ActionType {
   dispatchEvent,
   executeConditionalAction,
   executeActionGroup,
+  takeScreenshot,
   playAudio,
   stopAudio,
   pauseAudio,
@@ -1059,7 +1062,10 @@ enum ActionType {
   bluetoothUnsubscribeCharacteristic,
   controlDeviceBackNavigation,
   closeApp,
-  saveFile
+  saveFile,
+  sendVerificationCode,
+  validateVerificationCode,
+  resendVerificationCode,
 }
 
 /// payload representing an Action to do (navigateToScreen, InvokeAPI, ..)
@@ -1165,6 +1171,8 @@ abstract class EnsembleAction {
       return FilePickerAction.fromYaml(payload: payload);
     } else if (actionType == ActionType.openUrl) {
       return OpenUrlAction.fromYaml(payload: payload);
+    } else if (actionType == ActionType.takeScreenshot) {
+      return TakeScreenshotAction.fromYaml(payload: payload);
     } else if (actionType == ActionType.connectWallet) {
       return WalletConnectAction.fromYaml(payload: payload);
     } else if (actionType == ActionType.authorizeOAuthService) {
@@ -1282,6 +1290,15 @@ abstract class EnsembleAction {
       return SubscribeBluetoothCharacteristicsAction.from(payload: payload);
     } else if (actionType == ActionType.bluetoothUnsubscribeCharacteristic) {
       return UnSubscribeBluetoothCharacteristicsAction.from(payload: payload);
+    } else if (actionType == ActionType.sendVerificationCode) {
+      return SendVerificationCodeAction.fromYaml(
+          initiator: initiator, payload: payload);
+    } else if (actionType == ActionType.validateVerificationCode) {
+      return ValidateVerificationCodeAction.fromYaml(
+          initiator: initiator, payload: payload);
+    } else if (actionType == ActionType.resendVerificationCode) {
+      return ResendVerificationCodeAction.fromYaml(
+          initiator: initiator, payload: payload);
     } else {
       throw LanguageError("Invalid action.",
           recovery: "Make sure to use one of Ensemble-provided actions.");

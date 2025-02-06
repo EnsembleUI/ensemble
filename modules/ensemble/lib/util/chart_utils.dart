@@ -53,6 +53,7 @@ class ChartUtils {
         <head>
           <meta name="viewport" content="width=device-width, initial-scale=1.0">
           <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+          <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation"></script> 
           <style>
             html, body { margin: 0; padding: 0; width: 100%; height: 100%; }
             canvas { width: 100% !important; height: 100% !important; }

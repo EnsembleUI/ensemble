@@ -14,6 +14,7 @@ import 'package:ensemble/framework/stub/auth_context_manager.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble_auth/signin/google_auth_manager.dart';
+import 'package:ensemble_auth/signin/sign_in_with_verification_code.dart';
 import 'package:ensemble_auth/signin/sign_in_with_server_api_action.dart';
 import 'package:ensemble_auth/signin/signin_utils.dart';
 import 'package:ensemble_auth/signin/widget/sign_in_with_auth0.dart';
@@ -43,11 +44,26 @@ class AuthManager with UserAuthentication {
   Future<String?> signInWithSocialCredential(BuildContext context,
       {required AuthenticatedUser user,
       required String idToken,
-      AuthToken? token}) async {
+      AuthToken? token,
+      /// Optional string but required to complete Firebase Auth Sign-In with Apple flow.
+      ///
+      /// This is the authorization code returned by Apple Sign In and will be used to authenticate with Firebase as the accessToken.
+      ///
+      /// Can be `null` since it only applies to Apple Sign In
+      /// See [Firebase docs](https://firebase.google.com/docs/auth/ios/apple#sign_in_with_apple_and_authenticate_with_firebase) for more information.
+      /// Inspriration from [Mediuam](https://medium.com/@muhammad.fathy/resolving-the-firebase-auth-invalid-credential-invalid-oauth-response-from-apple-com-6bca6b6a8575)
+      String? authCode,
+      /// Optional string which, if set, will be be embedded in the resulting `identityToken` for Firebase Auth Sign-In with Apple flow.
+      ///
+      /// This can be used to mitigate replay attacks by using a unique argument per sign-in attempt.
+      ///
+      /// Can be `null`, in which case no nonce will be passed to the request.
+      /// See [Firebase docs](https://firebase.google.com/docs/auth/ios/apple#sign_in_with_apple_and_authenticate_with_firebase) for more information.
+      String? rawNonce}) async {
     if (user.provider == null || user.provider == SignInProvider.local) {
       return _signInLocally(context, user: user);
     } else if (user.provider == SignInProvider.firebase) {
-      return _signInWithFirebase(context, user: user, idToken: idToken);
+      return _signInWithFirebase(context, user: user, idToken: idToken, authCode: authCode, rawNonce: rawNonce);
     }
     // else if (user.provider == SignInProvider.auth0) {
     //   return _updateCurrentUser(context, user);
@@ -136,12 +152,14 @@ class AuthManager with UserAuthentication {
   Future<String?> _signInWithFirebase(BuildContext context,
       {required AuthenticatedUser user,
       required String idToken,
-      AuthToken? token}) async {
+      AuthToken? token,
+      String? authCode,
+      String? rawNonce}) async {
     // initialize Firebase once
     customFirebaseApp ??= await _initializeFirebaseSignIn();
 
     final credential = _formatCredential(
-        client: user.client, idToken: idToken, accessToken: token?.token);
+        client: user.client, idToken: idToken, accessToken: token?.token, authCode: authCode, rawNonce: rawNonce);
     final UserCredential authResult =
         await FirebaseAuth.instanceFor(app: customFirebaseApp!)
             .signInWithCredential(credential);
@@ -156,12 +174,13 @@ class AuthManager with UserAuthentication {
   }
 
   OAuthCredential _formatCredential(
-      {SignInClient? client, required String idToken, String? accessToken}) {
+      {SignInClient? client, required String idToken, String? accessToken, String? authCode, String? rawNonce}) {
     if (client == SignInClient.google) {
       return GoogleAuthProvider.credential(
           idToken: idToken, accessToken: accessToken);
     } else if (client == SignInClient.apple) {
-      return OAuthProvider('apple.com').credential(idToken: idToken);
+      /// Supply rawNonce and authCode as the accessToken to complete the  Apple Sign In Flow
+      return OAuthProvider('apple.com').credential(idToken: idToken, rawNonce: rawNonce, accessToken: authCode);
     }
     throw RuntimeError("Invalid Sign In Client");
   }
@@ -451,6 +470,103 @@ class AuthContextManagerImpl with Invokable implements AuthContextManager {
   @override
   Future<void> signOut() {
     return AuthManager().signOut(Utils.globalAppKey.currentContext!);
+  }
+
+  /// Sends a phone verification code to the given phone number.
+  @override
+  Future<void> sendVerificationCode({
+    required String provider,
+    required String method,
+    required String phoneNumber,
+    required Function(String verificationId, int? resendToken) onSuccess,
+    required Function(String error) onError,
+  }) async {
+    try {
+      final SignInWithVerificationCode _signInWithVerificationCode =
+          SignInWithVerificationCode();
+      await _signInWithVerificationCode.sendVerificationCode(
+        provider: provider,
+        method: method,
+        phoneNumber: phoneNumber,
+        onSuccess: (verificationId, resendToken) {
+          onSuccess(verificationId, resendToken);
+        },
+        onError: (e) {
+          onError(e.message ?? 'An error occurred while sending code');
+        },
+      );
+    } catch (e) {
+      onError('Unexpected error occurred: $e');
+    }
+  }
+
+  /// Verifies a phone code using [smsCode] and [verificationId].
+  @override
+  Future<AuthenticatedUser?> validateVerificationCode({
+    required String provider,
+    required String method,
+    required String smsCode,
+    required String verificationId,
+    required Function(AuthenticatedUser, String idToken) onSuccess,
+    required Function(String) onError,
+    required Function(String) onVerificationFailure,
+  }) async {
+    try {
+      final SignInWithVerificationCode _signInWithVerificationCode =
+          SignInWithVerificationCode();
+      final response =
+          await _signInWithVerificationCode.validateVerificationCode(
+        provider: provider,
+        method: method,
+        smsCode: smsCode,
+        verificationId: verificationId,
+      );
+
+      if (response != null) {
+        final user = response['user'];
+        final idToken = response['idToken'];
+
+        await AuthManager()._updateCurrentUser(
+          Utils.globalAppKey.currentContext!,
+          user,
+        );
+
+        onSuccess(user, idToken);
+      } else {
+        onError('Something went wrong, User not found');
+      }
+
+      return response?['user'];
+    } catch (e) {
+      onVerificationFailure('Error verifying phone code: ${e.toString()}');
+      return null;
+    }
+  }
+
+  /// Resends the verification code using [resendToken].
+  @override
+  Future<void> resendVerificationCode({
+    required String provider,
+    required String method,
+    required String phoneNumber,
+    required int resendToken,
+    required Function(String verificationId, int? resendToken) onSuccess,
+    required Function(String error) onError,
+  }) {
+    final SignInWithVerificationCode _signInWithVerificationCode =
+        SignInWithVerificationCode();
+    return _signInWithVerificationCode.resendVerificationCode(
+      provider: provider,
+      method: method,
+      phoneNumber: phoneNumber,
+      resendToken: resendToken,
+      onSuccess: (verificationId, newResendToken) {
+        onSuccess(verificationId, newResendToken);
+      },
+      onError: (e) {
+        onError('Error resending phone verification: ${e.message}');
+      },
+    );
   }
 }
 

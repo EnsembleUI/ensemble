@@ -119,6 +119,13 @@ class FormController extends WidgetController {
   int? width;
   int? height;
   int gap = _defaultGap;
+
+  // Add notifier just for form
+  final ValueNotifier<int> formStateNotifier = ValueNotifier(0);
+
+  void notifyFormChanged() {
+    formStateNotifier.value++;
+  }
 }
 
 class FormState extends EWidgetState<EnsembleForm>
@@ -190,62 +197,72 @@ class FormState extends EWidgetState<EnsembleForm>
   }
 
   Widget buildGrid(List<Widget> formItems) {
-    bool hasAtLeastOneLabel = false;
-    List<Widget> rows = [];
-    for (int i = 0; i < formItems.length; i++) {
-      Widget child = formItems[i];
+    return ValueListenableBuilder(
+        valueListenable: widget._controller.formStateNotifier,
+        builder: (context, _, __) {
+            bool hasAtLeastOneLabel = false;
+            List<Widget> rows = [];
+            for (int i = 0; i < formItems.length; i++) {
+              Widget child = formItems[i];
 
-      // build the label
-      Widget label;
-      if (child is HasController &&
-          child.controller is WidgetController &&
-          (child.controller as WidgetController).visible != false &&
-          (child.controller as WidgetController).label != null &&
-          !inExcludedList(child.controller as WidgetController)) {
-        label = buildLabel(
-            (child.controller as WidgetController).label!,
-            (child.controller is FormFieldController
-                ? (child.controller as FormFieldController).labelStyle
-                : null),
-            child.controller is FormFieldController
-                ? (child.controller as FormFieldController).labelHint
-                : null);
-        hasAtLeastOneLabel = true;
-      } else {
-        // empty label needs special treatment to line up with other labels
-        label = widget._controller.labelMaxWidth == null
-            ? const SizedBox.shrink()
-            : SizedBox(width: widget._controller.labelMaxWidth!.toDouble());
-      }
+              // build the label
+              Widget label;
+              if (child is HasController &&
+                  child.controller is WidgetController &&
+                  (child.controller as WidgetController).visible != false &&
+                  (child.controller as WidgetController).label != null &&
+                  !inExcludedList(child.controller as WidgetController)) {
+                label = buildLabel(
+                    (child.controller as WidgetController).label!,
+                    (child.controller is FormFieldController
+                        ? (child.controller as FormFieldController).labelStyle
+                        : null),
+                    child.controller is FormFieldController
+                        ? (child.controller as FormFieldController).labelHint
+                        : null);
+                hasAtLeastOneLabel = true;
+              } else {
+                // empty label needs special treatment to line up with other labels
+                label = widget._controller.labelMaxWidth == null
+                    ? const SizedBox.shrink()
+                    : SizedBox(
+                        width: widget._controller.labelMaxWidth!.toDouble());
+              }
 
-      // add the input field and its label
-      rows.add(Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
-        // make the label takes 1/3 of the available space, subjected to its labelMaxWidth
-        widget._controller.labelMaxWidth == null
-            ? Expanded(flex: 1, child: label)
-            : Flexible(
-                flex: 1,
-                child: ConstrainedBox(
-                    constraints: BoxConstraints(
-                        // constraint the label to the labelMaxWidth
-                        minWidth: widget._controller.labelMaxWidth!.toDouble(),
-                        maxWidth: widget._controller.labelMaxWidth!.toDouble()),
-                    child: label)),
-        // small gap after the label
-        const SizedBox(width: 5),
-        // make the widget takes 2/3 of the available space
-        Expanded(flex: 2, child: child)
-      ]));
+              // add the input field and its label
+              rows.add(
+                  Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
+                // make the label takes 1/3 of the available space, subjected to its labelMaxWidth
+                widget._controller.labelMaxWidth == null
+                    ? Expanded(flex: 1, child: label)
+                    : Flexible(
+                        flex: 1,
+                        child: ConstrainedBox(
+                            constraints: BoxConstraints(
+                                // constraint the label to the labelMaxWidth
+                                minWidth:
+                                    widget._controller.labelMaxWidth!.toDouble(),
+                                maxWidth:
+                                    widget._controller.labelMaxWidth!.toDouble()),
+                            child: label)),
+                // small gap after the label
+                const SizedBox(width: 5),
+                // make the widget takes 2/3 of the available space
+                Expanded(flex: 2, child: child)
+              ]));
 
-      // add gap
-      if (widget._controller.gap > 0 && i != formItems.length - 1) {
-        rows.add(flutter.SizedBox(
-            width: widget._controller.gap.toDouble(),
-            height: widget._controller.gap.toDouble()));
-      }
-    }
+              // add gap
+              if (widget._controller.gap > 0 && i != formItems.length - 1) {
+                rows.add(SizedBox(
+                    width: widget._controller.gap.toDouble(),
+                    height: widget._controller.gap.toDouble()));
+              }
+            }
 
-    return hasAtLeastOneLabel ? Column(children: rows) : buildColumn(formItems);
+            return hasAtLeastOneLabel
+                ? Column(children: rows)
+                : buildColumn(formItems);
+          });
   }
 
   /// Note that this is only for side-by-side. Label display on top will have

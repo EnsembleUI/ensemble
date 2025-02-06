@@ -29,3 +29,8 @@ jobs:
 
 #      - name: Run Unit Tests / Widget Tests
 #        run: melos exec -- "flutter test"
+
+      - name: Run Auth Tests
+        run: |
+          cd modules/auth
+          flutter test
