@@ -123,7 +123,7 @@ class LocalDefinitionProvider extends FileDefinitionProvider {
             try {
               // Load the script content in string
               final scriptContent = await rootBundle
-                  .loadString("${path}scripts/${script["name"]}.yaml");
+                  .loadString("${path}scripts/${script["name"]}.js");
               code[script["name"]] = scriptContent;
             } catch (e) {
               // ignore error
