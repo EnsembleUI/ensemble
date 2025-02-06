@@ -94,7 +94,7 @@ class DateState extends FormFieldWidgetState<Date> {
               if (widget._controller.required &&
                   widget._controller.value == null) {
                 return Utils.translateWithFallback(
-                    'ensemble.input.required', 'This field is required');
+                    'ensemble.input.required', widget._controller.requiredMessage ?? 'This field is required');
               }
               return null;
             },
@@ -105,6 +105,7 @@ class DateState extends FormFieldWidgetState<Date> {
                       isEmpty: widget._controller.value == null,
                       decoration: inputDecoration.copyWith(
                           errorText: field.errorText,
+                          errorStyle: widget._controller.errorStyle ?? Theme.of(context).inputDecorationTheme.errorStyle,
                           hintText: widget._controller.placeholder ??
                               widget._controller.hintText ??
                               Utils.translateWithFallback(
