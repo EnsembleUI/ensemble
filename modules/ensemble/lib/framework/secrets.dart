@@ -28,14 +28,22 @@ class SecretsStore with Invokable {
 
       // add local overrides
       try {
-        String path =
-            EnsembleConfigService.config["definitions"]?['local']?["path"];
-        final secretsString =
-            await rootBundle.loadString('${path}/config/secrets.json');
-        final Map<String, dynamic> appSecretsMap = json.decode(secretsString);
-        appSecretsMap["secrets"].forEach((key, value) {
-          secrets![key] = value;
-        });
+        String provider = EnsembleConfigService.config["definitions"]?['from'];
+        if (provider == 'local') {
+          String path =
+              EnsembleConfigService.config["definitions"]?['local']?["path"];
+          final secretsString =
+              await rootBundle.loadString('${path}/config/secrets.json');
+          final Map<String, dynamic> appSecretsMap = json.decode(secretsString);
+          appSecretsMap["secrets"].forEach((key, value) {
+            secrets![key] = value;
+          });
+        }
+      } catch (_) {}
+      // add secrets from env
+      try {
+        await dotenv.load();
+        secrets.addAll(dotenv.env);
       } catch (_) {}
 
       for (var entry in secrets.entries) {
