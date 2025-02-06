@@ -226,8 +226,7 @@ abstract class WidgetController extends Controller with HasStyles {
   bool? captureWebPointer;
 
   // properties for tooltip
-  String? tooltipMessage;
-  TooltipStyleComposite? tooltipStyle;
+  Map<String, dynamic>? toolTip;
 
   // legacy used to show as the form label if used inside Form
   @Deprecated("don't use anymore")
@@ -286,8 +285,7 @@ abstract class WidgetController extends Controller with HasStyles {
       'label': (value) => label = Utils.optionalString(value),
       'classList': (value) => classList = value,
       'className': (value) => className = value,
-      'tooltipMessage': (value) => tooltipMessage = Utils.optionalString(value),
-      'tooltipStyle': (value) => tooltipStyle = Utils.getTooltipStyleComposite(this, value),
+      'tooltip': (value) => toolTip = Utils.getMap(value),
     };
   }
 
@@ -467,8 +465,8 @@ abstract class EnsembleWidgetController extends EnsembleController
   bool? captureWebPointer;
 
   // properties for tooltip
-  String? tooltipMessage;
-  TooltipStyleComposite? tooltipStyle;
+  Map<String, dynamic>? toolTip;
+
 
   @override
   Map<String, Function> getters() {
@@ -512,8 +510,7 @@ abstract class EnsembleWidgetController extends EnsembleController
           captureWebPointer = Utils.optionalBool(value),
       'classList': (value) => classList = value,
       'className': (value) => className = value,
-      'tooltipMessage': (value) => tooltipMessage = Utils.optionalString(value),
-      'tooltipStyle': (value) => tooltipStyle = Utils.getTooltipStyleComposite(this, value),
+      'tooltip': (value) => toolTip = Utils.getMap(value),
       };
   }
 

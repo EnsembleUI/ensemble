@@ -76,13 +76,12 @@ abstract class EWidgetState<W extends HasController>
       }
 
       // add tooltip handling if tooltip message is specified
-      if (widgetController.tooltipMessage?.isNotEmpty == true) {
+      if (widgetController.toolTip != null) {
         rtn = Utils.getTooltipWidget(
+          context,
           rtn,
-          widgetController.tooltipMessage!,
-          widgetController.tooltipStyle,
-          onTriggered: widgetController.tooltipStyle?.onTriggered,
-          context: context,
+          widgetController.toolTip,
+          widgetController
         );
       }
 

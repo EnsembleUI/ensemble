@@ -5,6 +5,30 @@ import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:flutter/material.dart';
 
+class TooltipData {
+  final String message;
+  final TooltipStyleComposite? styles;
+  final EnsembleAction? onTriggered;
+
+  TooltipData({
+    required this.message,
+    this.styles,
+    this.onTriggered,
+  });
+
+  static TooltipData? from(Map<String, dynamic>? data, ChangeNotifier controller) {
+    if (data == null) return null;
+    
+    return TooltipData(
+      message: Utils.getString(data['message'], fallback: ''),
+      styles: data['styles'] != null ? 
+        TooltipStyleComposite(controller, inputs: data['styles']) : null,
+      onTriggered: data['onTriggered'] != null ? 
+        EnsembleAction.from(data['onTriggered']) : null,
+    );
+  }
+}
+
 // Composite class to handle tooltip styling and behavior
 class TooltipStyleComposite extends WidgetCompositeProperty {
   TooltipStyleComposite(super.widgetController, {required Map inputs}) {
@@ -18,8 +42,6 @@ class TooltipStyleComposite extends WidgetCompositeProperty {
     borderRadius = Utils.getBorderRadius(inputs['borderRadius'])?.getValue();
     padding = Utils.optionalInsets(inputs['padding']);
     margin = Utils.optionalInsets(inputs['margin']);
-    onTriggered = inputs['onTriggered'] != null ? 
-        EnsembleAction.from(inputs['onTriggered']) : null;
     borderColor = Utils.getColor(inputs['borderColor']);
     borderWidth = Utils.optionalInt(inputs['borderWidth']);
   }
@@ -34,7 +56,6 @@ class TooltipStyleComposite extends WidgetCompositeProperty {
   BorderRadius? borderRadius;
   EdgeInsets? padding;
   EdgeInsets? margin;
-  EnsembleAction? onTriggered;
   Color? borderColor;
   int? borderWidth;
 
@@ -53,8 +74,6 @@ class TooltipStyleComposite extends WidgetCompositeProperty {
       'margin': (value) => margin = Utils.optionalInsets(value),
       'borderColor': (value) => borderColor = Utils.getColor(value),
       'borderWidth': (value) => borderWidth = Utils.optionalInt(value),
-      'onTriggered': (value) => onTriggered = value != null ? 
-          EnsembleAction.from(value) : null,
     };
   }
 
@@ -70,6 +89,8 @@ class TooltipStyleComposite extends WidgetCompositeProperty {
     'borderRadius': () => borderRadius,
     'padding': () => padding,
     'margin': () => margin,
+    'borderColor': () => borderColor,
+    'borderWidth': () => borderWidth,
   };
 
   @override

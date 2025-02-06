@@ -502,18 +502,21 @@ class Utils {
 
   /// Creates tooltip widget with configured styles and behavior
   static Widget getTooltipWidget(
-    Widget child,
-    String message,
-    TooltipStyleComposite? style, {
-    EnsembleAction? onTriggered,
-    required BuildContext context,
-  }) {
+  BuildContext context,
+  Widget child,
+  Map<String, dynamic>? tooltipData,
+  ChangeNotifier controller
+) {
+  if (tooltipData == null) return child;
+  
+  final tooltip = TooltipData.from(tooltipData, controller);
+    if (tooltip == null) return child;
+
     final tooltipKey = GlobalKey();
     // Start with the original child
     Widget tooltipChild = child;
 
-    // Handle web-specific hover case first
-    if (kIsWeb && style?.triggerMode == null) {
+    if (kIsWeb && tooltip.styles?.triggerMode == null) {
       tooltipChild = MouseRegion(
         onEnter: (_) {
           final dynamic tooltip = tooltipKey.currentState;
@@ -529,34 +532,35 @@ class Utils {
 
     return Tooltip(
       key: tooltipKey,
-      message: message,
-      textStyle: style?.textStyle,
-      padding: style?.padding,
-      margin: style?.margin,
-      verticalOffset: style?.verticalOffset,
-      preferBelow: style?.preferBelow,
-      waitDuration: style?.waitDuration ?? const Duration(milliseconds: 0),
-      showDuration: style?.showDuration ?? const Duration(milliseconds: 1500),
-      triggerMode: style?.triggerMode ?? TooltipTriggerMode.tap,
+      message: tooltip.message,
+      textStyle: tooltip.styles?.textStyle,
+      padding: tooltip.styles?.padding,
+      margin: tooltip.styles?.margin,
+      verticalOffset: tooltip.styles?.verticalOffset,
+      preferBelow: tooltip.styles?.preferBelow,
+      waitDuration:
+          tooltip.styles?.waitDuration ?? const Duration(milliseconds: 0),
+      showDuration:
+          tooltip.styles?.showDuration ?? const Duration(milliseconds: 1500),
+      triggerMode: tooltip.styles?.triggerMode ?? TooltipTriggerMode.tap,
       enableFeedback: true,
       decoration: BoxDecoration(
-        color: style?.backgroundColor ?? Colors.grey[700],
-        borderRadius: style?.borderRadius,
-        border: (style?.borderColor != null || style?.borderWidth != null)
+        color: tooltip.styles?.backgroundColor ?? Colors.grey[700],
+        borderRadius: tooltip.styles?.borderRadius,
+        border: (tooltip.styles?.borderColor != null ||
+                tooltip.styles?.borderWidth != null)
             ? Border.all(
-                color: style?.borderColor ??
+                color: tooltip.styles?.borderColor ??
                     ThemeManager().getBorderColor(context),
-                width: (style?.borderWidth ??
+                width: (tooltip.styles?.borderWidth ??
                         ThemeManager().getBorderThickness(context))
                     .toDouble(),
               )
             : null,
       ),
-      onTriggered: onTriggered != null
-          ? () => ScreenController().executeAction(
-                context,
-                onTriggered,
-              )
+      onTriggered: tooltip.onTriggered != null
+          ? () =>
+              ScreenController().executeAction(context, tooltip.onTriggered!)
           : null,
       child: tooltipChild,
     );
