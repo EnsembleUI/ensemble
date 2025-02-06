@@ -25,7 +25,7 @@ subprojects {
             Integer pluginCompileSdk = project.android.compileSdk
             if (pluginCompileSdk != null && pluginCompileSdk < 34) {
 
-                def javaVersion = JavaVersion.VERSION_1_8
+                def javaVersion = JavaVersion.VERSION_17
                 project.android {
                     compileSdk 34
                     if (namespace == null) {
