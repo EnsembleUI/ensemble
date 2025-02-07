@@ -90,23 +90,16 @@ ensemble/apps/yourAppName/
 ```yaml
 flutter:
   assets:
-    # List all your app directories here. This is required by Flutter.
-    - ensemble/apps/yourAppName/screens/
-    - ensemble/apps/yourAppName/widgets/
-    - ensemble/apps/yourAppName/scripts/
-    - ensemble/apps/yourAppName/translations/
-    - ensemble/apps/yourAppName/assets/
-    - ensemble/apps/yourAppName/fonts/
-    - ensemble/apps/yourAppName/labels/
-    - ensemble/apps/yourAppName/theme.yaml
+    # list all your Apps directories here. It's a Flutter requirement
+    - ensemble/apps/helloApp/
+    - ensemble/apps/helloApp/screens/
+    - ensemble/apps/helloApp/widgets/
+    - ensemble/apps/helloApp/scripts/
+    - ensemble/apps/helloApp/assets/
+    - ensemble/apps/helloApp/translations/
 
-    # Config folder contains appConfig.json and secrets.json
-    - ensemble/apps/yourAppName/config/appConfig.json
-    - ensemble/apps/yourAppName/config/secrets.json
-
-    # .manifest.json is required and contains app configurations.
-    # Without this file, widgets and scripts won't function properly.
-    - ensemble/apps/yourAppName/.manifest.json
+    # # config folder contains appConfig.json and secrets.json
+    - ensemble/apps/helloApp/config/
   ```
   NOTE: Only add the existing paths under assets.
 #### 4. Run the App

@@ -1,0 +1,309 @@
+ensemblelive:
+  subtitle: "Voer uw App ID in of scan de barcode van Ensemble Studio om uw App te bekijken"
+  gobtn: "Gaan!"
+  or: of
+  user_name: Gebruikersnaam
+  password: Wachtwoord
+  sign_in: Inloggen
+
+kpn:
+  
+  # common labels
+  cancel: Annuleren
+  save: Opslaan
+  close: Dichtbij
+  restore: Herstellen
+  modify: Aanpassen
+  add: Toevoegen
+  start: Start
+  activate: Activeren
+  protocol: Protocol
+  device: Apparaat
+  port: Poort
+  mac_address: MAC adres
+  host_name: Hostnaam
+  ip_address: IP adres
+  ip4_address: IPv4 adres
+  ip6_address: IPv6 adres
+  subnet_mask: Subnet masker
+  apply: Toepassen
+  password: Wachtwoord
+  sign_in: Inloggen
+  logout: Uitloggen
+  status: Status
+  user_name: Gebruikersnaam
+  enabled: Enabled
+  disabled: Disabled
+  screen_unavailable: Dit scherm is niet beschikbaar
+
+  # common API messages
+  success: Succesvol geüpdatet.
+  error: Update mislukt. Probeer het opnieuw.
+
+  # navigation
+  nav:
+    dashboard: Dashboard
+    internet_link: Internet Verbinding
+    local_network: Lokaal netwerk
+    security: Beveiliging
+    wifi: Wi-Fi
+    phone: Telefoon
+    modem_settings: Modem instellingen
+    internet_connection: Internet verbinding
+    internet_connection_status: Verbonden met het internet via
+    internet_ip_address: "Uw modem is verbonden met het internet op het publieke IP adres:"
+    internet_last_change: "De internetverbinding is actief gedurende:"
+    this_modem: Dit modem
+    info_about_device: Hier staan gegevens over dit apparaat
+    firmware_version: "De firmware versie is:"
+  
+  home:
+    wifi_active: Uw Wi-Fi netwerk is actief
+    wifi_inactive: Uw Wi-Fi netwerk is inactief
+    qr_code_instruction: Scan deze QR code om te verbinden met je hoofd	Wi-Fi netwerk.
+    wifi_name_ssid: Wi-Fi naam (SSID)
+    wifi_password: Wi-Fi wachtwoord
+    internet_connection: Internet verbinding
+    active_connection_type: Verbonden met het internet via
+    inactive_connection_type: Geen verbinding met het internet controleer de WAN aansluiting op uw modem
+    internet_ip_address: "Uw modem is verbonden met het internet op het publieke IP adres:"
+    internet_last_change: "De internetverbinding is actief gedurende:"
+    this_modem: Dit modem
+    info_about_device: Hier staan gegevens over dit apparaat
+    model_name: "Het apparaat type is:"
+    serial_number: "Het serienummer is:"
+    firmware_version: "De firmware versie is:"
+    iptv: TV
+    iptv_on: De televisie service is actief. U kunt TV kijken, als u een KPN Settopbox heeft aangesloten.
+    iptv_off: KPN TO ADD
+    4g_dongle: 4G Dongle
+    4g_dongle_on: KPN TO ADD
+    4g_dongle_off: Er is geen verbonden 4G USB dongle aanwezig in het modem.
+    phone: Telefoon
+    phone_on: Uw telefoonnummers zijn geregistreerd en actief.
+    phone_off: Uw telefoonnummers zijn geregistreerd en inactief.
+
+  dashboard:
+    information:
+      model_name: Model naam
+      product_class: Model type
+      serial_number: Serial Number
+      hardware_version: Hardware versie
+      software_version: Software versie
+      bootloader_version: Bootloader versie
+      uptime: Tijd actief
+      base_mac: Wan MAC adres
+      base_ip: Internet IP adres
+    time:
+      date_time: Huidige datum en tijd
+  login:
+    welcome: Welkom
+    error: Het inloggen is mislukt
+
+
+  internet_link:
+    info: Informatie
+    speed: Snelheid
+    internet_usage: Internet gebruik
+    4g_backup: 4G backup
+    vpn: VPN
+    ipv6: IPv6
+    ipv6_description: |
+      Op deze pagina kunt u het gebruik van IPv6 aan- en uitzetten. IPv6 zal automatisch worden geactiveerd wanneer dit beschikbaar is. Het wordt niet ingeschakeld wanneer het niet beschikbaar is. In dat geval zal de router alleen gebruik maken van IPv4.
+    internet_status: Internet status
+    internet_status_up: Up
+    internet_status_down: Down
+    time_active: Tijd actief
+    ppp_status: PPP status
+    ppp_status_up: Up
+    ppp_status_down: Down
+    ppp_keep_alive_time: PPP Keep alive tijd tussen echo verzoek
+    ppp_keep_alive_echo: PPP Keep alive aantal echo herkansingen
+    mtu: MTU
+    standard_gw_address: Standaard gateway adres
+    ip_version: IP versie
+    public_address_ipv4: Publieke adres IPv4
+    primary_dns_ipv4: Primaire DNS IPv4
+    secondary_dns_ipv4: Secundaire DNS IPv4
+    public_address_ipv6: Publieke adres IPv6 (GUA)
+    local_address_ipv6: Link Local IPv6 (LLA)
+    delegated_prefix: Delegated prefix
+    primary_dns_ipv6: Primaire DNS IPv6
+    secondary_dns_ipv6: Secundaire DNS IPv6
+    internet_usage_description: Op deze pagina vindt u informatie over het internet gebruik van uw modem. Dit gaat dus enkel over het verkeer tussen het modem en het internet. Het gaat niet over het verkeer binnen uw lokale netwerk.
+    dsl_internet: DSL / Ethernet
+    wan_connection_type: WAN connectie type
+    sent: Verzonden
+    received: Ontvangen
+    data: Data
+    packages: Pakketten
+    errors: Errors
+    lost_packages: Weggevallen pakketten
+    ip_laag: IP laag
+    ppp_data: PPP Data
+    ip_data: IP Data
+    ip_iptv: IP IPTV Data
+    ip_bridge_guest: IP Bridge gast
+    ip_usb: IP USB
+
+    # Trace route
+    trace_route: Trace route
+    trace_route_description: |
+      Met de functie trace route kunt u traceren welke route IP-paketten afleggen tot ze een bepaalde host bereiken. Met deze functie kunt u makkelijk onderzoek doen wanneer u een website niet kan bereiken. Met het resultaat kan u concluderen op welk moment er wat mis gaat in de verbinding. Met de trace route functie wordt elke stap in het netwerk weergegeven. Met de ping functie, krijgt u alleen gegevens over het bereiken van het eindpunt.
+
+      De response tijd geeft per stap aan hoe lang het pakket heeft gedaan over elke stap. Er worden meerdere response tijden gegeven als er meerdere pogingen worden gedaan.
+      
+      Let er op dat bij de trace route functie, niet altijd alle servers in elke stap een response geven op trace route. Dat betekent niet dat het bericht niet wordt doorgegeven aan de server van de volgende stap. Dit is dus normaal gedrag. Hierdoor zullen sommige stappen geen informatie bevatten.
+    trace_or_ping_route: Route traceren of pingen
+
+
+  # local network tabs
+  local_network:
+    topology: Topology
+    connected_devices: Verbonden apparaten
+    dhcp: DHCP
+    reserved_ip: Gereserveerd IP
+    dyndns: DynDNS
+    ipv6: IPv6
+    arp_table: ARP tabel
+    usage: Gebruik
+    dhcp_server: DHCP server
+    pool_start: Pool start IPv4
+    pool_end: Pool einde IPv4
+    lease_time_minutes: Lease time in minutes
+    dhcp_leases: DHCP leases
+    dns_server: DNS server
+    dyndns_description: |
+      Op deze pagina kunt u de DynDNS service instellen. Met deze service geeft u een domein-, of hostnaam aan een statisch of dynamisch IP adres binnen uw lokale netwerk. Het apparaat met dit IP adres is vervolgens bereikbaar via deze domein-, of hostnaam. 
+      
+      Gebruik een van de ondersteunde DynDNS services.
+    dyndns_service: DynDNS service
+    dyndns_host: Host- of domeinnaam
+    dyndns_email: Email of gebruikersnaam
+    remaining_time: Resterende tijd
+    restore_dhcp: Herstel DHCP configuratie
+    reserved_ip_description: |
+      Op deze pagina kunt u een IP adres reserveren voor een specifiek apparaat. Daarmee zal dit apparaat altijd hetzelfde IP adres aangewezen krijgen. Een apparaat aanwijzen gebeurt op basis van het unieke MAC adres. U kunt een verbonden apparaat uit de lijst kiezen, of zelf het MAC adres van een apparaat invoeren.
+    main_network: Hoofdnetwerk
+    ipv6_description: Op deze pagina kunt u bepalen of u prefix delegation aan of uit zet.
+    ipv6_prefix_delegation: IPv6 prefix delegation
+    enabled_with_dhcp: Aan met DHCPv6
+
+  # wifi tabs
+  wifi:
+    main: Hoofd
+    settings: Instellingen
+    wifi_mesh: Wi-Fi Mesh
+    guest_wifi: Gast Wi-Fi
+    extra_wifi: Extra Wi-Fi
+    schema: Schema
+    spectrum: Spectrum
+    usage: Gebruik
+    settings_description: |
+      Op deze pagina pas je de instellingen van je hoofd Wi-Fi netwerk aan. Je kan hier ook de instellingen van de Wi-Fi radio aanpassen. De radio instellingen hebben ook effect op andere Wi-Fi netwerken (zoals het gast netwerk of extra Wi-Fi netwerk).
+      
+      Scan deze QR code om te verbinden met je Wi-Fi netwerk. Je kunt de code ook printen, door erop te klikken. Dan kun je deze laten zien aan mensen als ze met je Wi-Fi willen verbinden.
+      
+      Let op! Als je de naam (SSID) of het wachtwoord van je Wi-Fi netwerk verandert, zal er een andere QR code worden gegenereerd. Deze zul je dan op nieuw moeten scannen.
+    main_wifi: Hoofd Wi-Fi
+    name_ssid: Wi-Fi naam (SSID)
+    password: Wi-Fi wachtwoord
+    visibility: Zichtbaarheid
+    encryption_type: Encryptie type
+    max_clients: Maximaal aantal clients
+    max_clients_2g: Maximaal aantal clients 2.4 GHz
+    max_clients_5g: Maximaal aantal clients 5 GHz
+    wps_pairing: WPS pairing
+    radio: Radio
+    wireless_mode_2g: 2.4 GHz wireless mode
+    bandwidth_2g: 2.4 GHz bandbreedte
+    channel_2g: 2.4 GHz kanaal
+    wireless_mode_5g: 5 GHz bandbreedte
+    bandwidth_5g: 5 GHz bandwidth
+    channel_5g: 5 GHz kanaal
+    auto_select_channel: Automatische kanaal selectie
+    
+    guest_wifi_description: |
+      Op deze pagina pas je de instellingen van je gast Wi-Fi netwerk aan. Het gast Wi-Fi netwerk kan je gebruiken om je gasten toegang tot het internet te geven. Gasten op dit netwerk hebben geen toegang tot uw eigen apparaten op het hoofd netwerk.
+      
+      Scan deze QR code om te verbinden met je gast Wi-Fi netwerk. Je kunt de code ook printen, door erop te klikken. Dan kun je deze laten zien aan je gasten als ze met je Wi-Fi willen verbinden.
+      
+      Let op! Als je de naam (SSID) of het wachtwoord van je Wi-Fi netwerk verandert, zal er een andere QR code worden gegenereerd. Deze zul je dan op nieuw moeten scannen.
+    airtime_percentage: Airtime percentage t.o.v. hoofd netwerk
+    guest_client_timebox: Gast client timebox (min)
+    
+    extra_wifi_description_2g: |
+      Op deze pagina pas je de instellingen van je extra Wi-Fi netwerken aan. De twee verschillende radio bandbreedtes (2.4 GHz en 5 GHz) zijn hier gescheiden in twee losse netwerken. Deze losse netwerken kun je bijvoorbeeld gebruiken voor apparaten die alleen op 2.4 GHz functioneren.
+      
+      Scan deze QR code om te verbinden met je 2.4 GHz Extra Wi-Fi netwerk. Je kunt de code ook printen, door erop te klikken. Dan kun je deze laten zien aan mensen als ze met je Wi-Fi willen verbinden.
+      
+      Let op! Als je de naam (SSID) of het wachtwoord van je Wi-Fi netwerk verandert, zal er een andere QR code worden gegenereerd. Deze zul je dan op nieuw moeten scannen.
+    extra_wifi_2g: Extra Wi-Fi 2.4 GHz
+    extra_wifi_5g: Extra Wi-Fi 5 GHz
+    extra_wifi_description_5g: |
+      Scan deze QR code om te verbinden met je 5 GHz Extra Wi-Fi netwerk. Je kunt de code ook printen, door erop te klikken. Dan kun je deze laten zien aan mensen als ze met je Wi-Fi willen verbinden.
+      
+      Let op! Als je de naam (SSID) of het wachtwoord van je Wi-Fi netwerk verandert, zal er een andere QR code worden gegenereerd. Deze zul je dan op nieuw moeten scannen.
+    availability_2g: 2.4 GHz beschikbaarheid
+    availability_5g: 5 GHz beschikbaarheid
+    pairing_in_progress: Pairing in progress...
+    
+  # security tabs
+  security:
+    firewall: Firewall
+    device_block: Apparaat blokkade
+    port_forwarding: Port forwarding
+    upnp: UPnP
+    dmz: DMZ
+    firewall_description: |
+      Op deze pagina kunt u het niveau van uw firewall instellen. De firewall is een beveiling tussen het netwerk in uw huis en het internet. Het beschermt dus ook de apparaten die op uw netwerk thuis verbonden zijn van het internet.
+    
+      Afhankelijk van het niveau dat u instelt, zullen uw apparaten beter beveiligd zijn van het internet. Een betere beveiliging zal ook beperkingen met zich mee brengen in het internet gebruik.
+    firewall_level: Firewall niveau
+    firewall_level_low: Laag
+    firewall_level_medium: Medium
+    firewall_level_high: Hoog
+    firewall_level_custom: Aangepast
+    firewall_level_description_low: Met deze instelling blokkeert de firewall geen enkele inkomende verbinding. Let er wel op dat het noodzakelijk is om gebruik te maken van UPnP IGP of Port Forwarding regels voor succesvolle inkomende verbindingen naar de apparaten in je lokale netwerk. Gebruik deze instelling alleen als u een geavanceerde gebruiker bent die bewust is van de consequenties en veiligheidsrisico’s.
+    firewall_level_description_medium: Met deze instelling blokkeert de firewall alle inkomende verbindingen. Alle uitgaande verbindingen zijn wel toegestaan, met uitzondering van NetBIOS services. Met deze services kunnen apparaten in uw lokale netwerk met elkaar communiceren. Het is dus niet noodzakelijk voor deze service om met het internet te communiceren en wordt om deze reden geblokkeerd.
+    firewall_level_description_high: Met deze instelling blokkeert de firewall alle inkomende verbindingen. Van alle uitgaande verbindingen worden alleen de standaard internet applicaties (Web, emails, nieuws) toegestaan. Dit niveau limiteert TV tot live kanalen, hierdoor zijn TV en Video On Demand niet te gebruiken. Sommige applicaties, zoals games of peer to peer, die gebaseerd zijn op inkomende verbindingen, zullen niet werken.
+    firewall_level_description_custom: Met deze instelling kunt u eigen filter regels aanpassen en instellen. Gebruik deze instelling alleen als u een geavanceerde gebruiker bent die bewust is van de consequenties en veiligheidsrisico’s.
+    allow_ping: Modem reageert op pings
+    open_ports_ipv6: Open poorten in de firewall (voor IPv6)
+    open_port: Open poort
+    port_forwarding_description: |
+      Op deze pagina kunt u port forwarding regels inschakelen. Hiermee kunt u al het verkeer dat gebruik maakt van bepaalde poorten automatisch doorschakelen naar een van de apparaten in uw lokale netwerk. Voor zowel IPv4 als IPv6 dient u losse port forwarding regels in te stellen.
+
+      Port forwarding regels kunt u bijvoorbeeld gebruiken wanneer u een server host dat gebruik maakt van een poort. Dit apparaat zal over deze poort vervolgens toegankelijk zijn voor het internet.
+                
+      U begint met het bepalen van de service. Er is een lijst beschikbaar met services waaruit u kan kiezen. U kunt zelf ook een eigen service bepalen. In dat geval zult u zelf moeten invoeren van welke poort(en) deze service gebruik maakt.
+    service: Service
+    source_ip: "Interne host: IP adres"
+    destination_ip: "Externe host: IP adres"
+    source_port: "Interne poort"
+    destination_port: "Externe poort"
+    action:
+
+  # modem management tabs
+  modem:
+    information: Informatie
+    admin_password: Admin wachtwoord
+    time_ntp: Tijd (NTP)
+    time: Tijd
+    remote_help: Hulp op afstand
+    backup: Backup
+    system: Systeem
+    performance_charts: Prestatie grafieken
+    current_date_time: Huidige datum en tijd
+    change_admin_password: Admin wachtwoord veranderen
+    admin_password_description: |
+      Op deze pagina kunt u het wachtwoord van het modem opnieuw instellen. Let op: dit is niet het wachtwoord van uw Wi-Fi signaal. Dit wachtwoord gebruikt u om in te loggen in deze app.
+    current_password: Huidig wachtwoord
+    new_password: Nieuw wachtwoord
+    confirm_new_password: Nieuw wachtwoord herhalen
+    invalid_password: Invalid password
+    system_description: Heb je een probleem met tv, bellen, internet of wifi? Los dit op door KPN Box (modem) te herstarten of te resetten. Probeer altijd eerst je modem (Experia Box) opnieuw op te starten. Bij resetten vervallen alle persoonlijke instellingen.
+    system_reboot_description: Herstart uw modem
+    system_reboot: Herstart
+    system_reset_description: Reset uw modem
+    system_reset: Reset

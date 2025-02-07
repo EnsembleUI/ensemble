@@ -9,7 +9,7 @@ View:
 
   # Optional - set the header for the screen
   header:
-    title: r@info.title
+    title: r@title
   onLoad: |
     saveName('John','Doe');
     console.log('name is ='+getName());
@@ -31,7 +31,7 @@ View:
             inputs:
               inputName: ${ensemble.storage.helloApp.name}
         - Button:
-            label: Call scrpt
+            label: Call API in imported library
             onTap: |-
               callMockMethod();
               console.log('name is ='+getName());  
