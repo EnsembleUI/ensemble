@@ -206,7 +206,7 @@ class TimeState extends FormFieldWidgetState<Time> {
         validator: (value) {
           if (widget._controller.required && widget._controller.value == null) {
             return Utils.translateWithFallback(
-                'ensemble.input.required', 'This field is required');
+                'ensemble.input.required', widget._controller.requiredMessage ?? 'This field is required');
           }
           return null;
         },
@@ -218,6 +218,7 @@ class TimeState extends FormFieldWidgetState<Time> {
               disabledBorder: InputBorder.none,
               focusedBorder: InputBorder.none,
               errorText: field.errorText,
+              errorStyle: widget._controller.errorStyle ?? Theme.of(context).inputDecorationTheme.errorStyle,
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,

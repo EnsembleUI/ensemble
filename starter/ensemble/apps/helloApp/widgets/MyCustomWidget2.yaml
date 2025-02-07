@@ -1,0 +1,8 @@
+Widget:
+  inputs:
+    - customProperty
+  body:
+    Column:
+      children:
+        - Text:
+            text: ${customProperty}
