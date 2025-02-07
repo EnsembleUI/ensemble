@@ -86,4 +86,15 @@ class TrackStyleComposite extends WidgetCompositeProperty {
         return RectangularSliderTrackShape();
     }
   }
+
+  RangeSliderTrackShape getRangeTrackShape() {
+    switch (shape) {
+      case 'rectangular':
+        return RectangularRangeSliderTrackShape();
+      case 'circle':
+        return RoundedRectRangeSliderTrackShape();
+      default:
+        return RectangularRangeSliderTrackShape();
+    }
+  }
 }

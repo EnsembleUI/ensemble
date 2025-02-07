@@ -81,8 +81,7 @@ class ThumbStyleComposite extends WidgetCompositeProperty {
           Utils.getDouble(payload['elevation'], fallback: 1.0);
       composite.pressedElevation =
           Utils.getDouble(payload['pressedElevation'], fallback: 2.0);
-      composite.thumbColor =
-          Utils.getColor(payload['thumbColor']);
+      composite.thumbColor = Utils.getColor(payload['thumbColor']);
       composite.disabledThumbColor =
           Utils.getColor(payload['disabledThumbColor']);
       composite.borderWidth =
@@ -94,14 +93,12 @@ class ThumbStyleComposite extends WidgetCompositeProperty {
 
   @override
   Map<String, Function> setters() => {
-        'radius': (value) =>
-            radius = Utils.getDouble(value, fallback: 10.0),
+        'radius': (value) => radius = Utils.getDouble(value, fallback: 10.0),
         'elevation': (value) =>
             elevation = Utils.getDouble(value, fallback: 1.0),
         'pressedElevation': (value) =>
             pressedElevation = Utils.getDouble(value, fallback: 2.0),
-        'thumbColor': (value) =>
-            thumbColor = Utils.getColor(value),
+        'thumbColor': (value) => thumbColor = Utils.getColor(value),
         'disabledThumbColor': (value) =>
             disabledThumbColor = Utils.getColor(value),
         'borderWidth': (value) =>
@@ -130,6 +127,14 @@ class ThumbStyleComposite extends WidgetCompositeProperty {
       pressedElevation: pressedElevation,
       borderWidth: borderWidth,
       borderColor: borderColor,
+    );
+  }
+
+  RangeSliderThumbShape getRangeThumbShape() {
+    return RoundRangeSliderThumbShape(
+      enabledThumbRadius: radius,
+      elevation: elevation,
+      pressedElevation: pressedElevation,
     );
   }
 }
