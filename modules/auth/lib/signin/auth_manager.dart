@@ -25,7 +25,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
-import 'package:yaml/yaml.dart';
 
 /// This abstract out different method of Sign In (local, custom, Firebase, Auth0, ...)
 class AuthManager with UserAuthentication {
@@ -167,12 +166,8 @@ class AuthManager with UserAuthentication {
   }
 
   Future<FirebaseApp> _initializeFirebaseSignIn() async {
-    // Get the App ID from the ensemble-config.yaml to initialize Firebase
-    // Aligned with Firestore initialization as well
-    final yamlString =
-        await rootBundle.loadString('ensemble/ensemble-config.yaml');
-    final YamlMap yamlMap = loadYaml(yamlString);
-    String? appId = yamlMap['definitions']?['ensemble']?['appId'];
+    String? appId = await SignInUtils.getAppIdFromYaml();
+
     FirebaseOptions? options;
 
     if (kIsWeb) {
@@ -186,22 +181,13 @@ class AuthManager with UserAuthentication {
       throw ConfigError('Firebase is not configured for this platform.');
     }
 
+    // if the Firebase app is already initialized by other modules with same options, return it
     FirebaseApp? existingApp = Firebase.apps.firstWhereOrNull(
-      (app) => _areOptionsEqual(app.options, options!),
+      (app) => SignInUtils.areFirebaseOptionsEqual(app.options, options!),
     );
 
-    if (existingApp != null) {
-      return existingApp;
-    }
-
-    return await Firebase.initializeApp(name: appId, options: options);
-  }
-
-  bool _areOptionsEqual(FirebaseOptions a, FirebaseOptions b) {
-    return a.apiKey == b.apiKey &&
-        a.appId == b.appId &&
-        a.messagingSenderId == b.messagingSenderId &&
-        a.projectId == b.projectId;
+    return existingApp ??
+        await Firebase.initializeApp(name: appId, options: options);
   }
 
   /// enrich the passed in User with information from Firebase
