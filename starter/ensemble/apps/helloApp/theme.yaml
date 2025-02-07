@@ -1,4 +1,5 @@
-colors:
-  primary:
-  secondary:
-
+Styles:
+  .title:
+    backgroundColor: blue
+  Button:
+    backgroundColor: blue

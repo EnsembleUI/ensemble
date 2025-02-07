@@ -160,16 +160,16 @@ flutter:
     - .env
     - ensemble/
 
+     # put your app's images in this folder
+    - ensemble/assets/
+
     # list all your Apps directories here. It's a Flutter requirement
+    - ensemble/apps/helloApp/
     - ensemble/apps/helloApp/screens/
     - ensemble/apps/helloApp/widgets/
     - ensemble/apps/helloApp/scripts/
-    - ensemble/apps/helloApp/translations/
     - ensemble/apps/helloApp/assets/
-    - ensemble/apps/helloApp/theme.yaml
+    - ensemble/apps/helloApp/translations/
 
-    # config folder contains appConfig.json and secrets.json
+    # # config folder contains appConfig.json and secrets.json
     - ensemble/apps/helloApp/config/
-     
-     # .manifest.json file is required and it contains all the config of your app, without providing .manifest.json file your widgets and scripts won't work
-    - ensemble/apps/helloApp/.manifest.json

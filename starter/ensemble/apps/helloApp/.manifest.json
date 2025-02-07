@@ -1,54 +1,18 @@
 {
-    "name": "helloApp",
-    "screens": [
-        {
-            "id": "helloHome",
-            "type": "screen",
-            "name": "Hello Home",
-            "description": "",
-            "isRoot": false,
-            "isArchived": false,
-            "relativePath": "Hello Home.yaml"
-        }
-    ],
     "widgets": [
         {
-            "name": "MyCustomWidget1",
-            "description": "",
-            "isArchived": false,
-            "type": "internal_widget",
-            "isRoot": false,
-            "id": "MyCustomWidget1",
-            "relativePath": "MyCustomWidget1.yaml"
+            "name": "MyCustomWidget1"
         },
         {
-            "name": "MyCustomWidget2",
-            "description": "",
-            "isArchived": false,
-            "type": "internal_widget",
-            "isRoot": false,
-            "id": "MyCustomWidget2",
-            "relativePath": "MyCustomWidget2.yaml"
+            "name": "MyCustomWidget2"
         }
     ],
     "scripts": [
         {
-            "name": "common",
-            "description": "",
-            "content": "",
-            "isArchived": false,
-            "isRoot": false,
-            "type": "internal_script",
-            "id": "common"
+            "name": "common"
         },
         {
-            "name": "utils",
-            "description": "",
-            "content": "",
-            "isArchived": false,
-            "isRoot": false,
-            "type": "internal_script",
-            "id": "utils"
+            "name": "utils"
         }
     ]
 }

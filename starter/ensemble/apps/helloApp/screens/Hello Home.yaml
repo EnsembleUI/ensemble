@@ -13,6 +13,7 @@ View:
   onLoad: |
     saveName('John','Doe');
     console.log('name is ='+getName());
+    console.log(env.apiURL)
     console.log(secrets.testSecret)
 
   # Specify the body of the screen
@@ -23,13 +24,14 @@ View:
         gap: 8
       children:
         - Text:
+            className: title
             text: Hello ${ensemble.storage.helloApp.name.first}
               ${ensemble.storage.helloApp.name.last}
         - MyCustomWidget1:
             inputs:
               inputName: ${ensemble.storage.helloApp.name}
         - Button:
-            label: Call API in imported library
+            label: Call scrpt
             onTap: |-
               callMockMethod();
               console.log('name is ='+getName());  
