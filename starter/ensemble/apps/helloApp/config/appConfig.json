@@ -1,0 +1,5 @@
+{
+    "envVariables": {
+        "apiURL": "https://dummyjson.com"
+    }
+}
