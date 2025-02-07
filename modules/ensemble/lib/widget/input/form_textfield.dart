@@ -119,7 +119,10 @@ abstract class BaseTextInput extends StatefulWidget
   @override
   Map<String, Function> getters() {
     var getters = _controller.textPlaceholderGetters;
-    getters.addAll({'value': () => textController.text ?? ''});
+    getters.addAll({
+      'value': () => textController.text ?? '',
+      'obscured': () => _controller.obscured,
+    });
     return getters;
   }
 
@@ -144,6 +147,8 @@ abstract class BaseTextInput extends StatefulWidget
           _controller.enableClearText = Utils.optionalBool(value),
       'obscureToggle': (value) =>
           _controller.obscureToggle = Utils.optionalBool(value),
+      'obscured': (widget) => _controller.obscureText == true,
+      'obscureTextWidget': (widget) => _controller.obscureTextWidget = widget,
       'readOnly': (value) => _controller.readOnly = Utils.optionalBool(value),
       'selectable': (value) =>
           _controller.selectable = Utils.getBool(value, fallback: true),
@@ -224,7 +229,9 @@ class TextInputController extends FormFieldController with HasTextPlaceholder {
   bool? obscureText;
 
   // applicable only for Password or obscure TextInput, to toggle between plain and secure text
+  bool? obscured;
   bool? obscureToggle;
+  dynamic obscureTextWidget;
   bool? readOnly;
   bool selectable = true;
   bool? toolbarDoneButton;
@@ -247,6 +254,7 @@ class TextInputController extends FormFieldController with HasTextPlaceholder {
 class TextInputState extends FormFieldWidgetState<BaseTextInput>
     with TextInputFieldAction {
   final focusNode = FocusNode();
+  VoidCallback? _propertyListener;
 
   // for this widget we will implement onChange if the text changes AND:
   // 1. the field loses focus next (tabbing out, ...)
@@ -256,7 +264,6 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput>
   bool didItChange = false;
 
   // password is obscure by default
-  late bool currentlyObscured;
   late List<TextInputFormatter> _inputFormatter;
   OverlayEntry? overlayEntry;
 
@@ -303,7 +310,7 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput>
 
   @override
   void initState() {
-    currentlyObscured =
+    widget._controller.obscured =
         widget.isPassword() || widget._controller.obscureText == true;
     _inputFormatter = InputFormatter.getFormatter(
         widget._controller.inputType, widget._controller.mask);
@@ -346,6 +353,21 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput>
   void didChangeDependencies() {
     super.didChangeDependencies();
     widget.controller.inputFieldAction = this;
+    
+    // Remove any existing listener first
+    if (_propertyListener != null) {
+      widget.controller.removeListener(_propertyListener!);
+    }
+    
+    // Create and store new listener
+    _propertyListener = () {
+      if (mounted) {  // Check if widget is still mounted
+        final formState = EnsembleForm.of(context);
+        formState?.widget.controller.notifyFormChanged();
+      }
+    };
+    
+    widget.controller.addListener(_propertyListener!);
   }
 
   @override
@@ -375,17 +397,21 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput>
 
   @override
   void dispose() {
+    // Remove listener
+    if (_propertyListener != null) {
+      widget.controller.removeListener(_propertyListener!);
+    }
     focusNode.dispose();
-    widget.textController.dispose();
     super.dispose();
   }
 
   /// whether to show the content as plain text or obscure
   bool isObscureOrPlainText() {
     if (widget.isPassword()) {
-      return currentlyObscured;
+      return widget._controller.obscured ?? true;
     } else {
-      return widget._controller.obscureText == true && currentlyObscured;
+      return widget._controller.obscureText == true &&
+          (widget._controller.obscured ?? true);
     }
   }
 
@@ -397,23 +423,39 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput>
         labelText: widget._controller.label,
       );
     }
+    if (widget._controller.errorStyle != null) {
+      decoration = decoration.copyWith(
+        errorStyle: widget._controller.errorStyle,
+      );
+    }
 
     // for password, show the toggle plain text/obscure text
     if ((widget.isPassword() || widget._controller.obscureText == true) &&
         widget._controller.obscureToggle == true) {
+      void toggleObscured() {
+        bool newObscuredValue = !(widget._controller.obscured ?? true);
+        widget._controller.obscured = newObscuredValue;
+        widget.setProperty('obscured', newObscuredValue);
+        setState(() {});
+      }
+
       decoration = decoration.copyWith(
-          suffixIcon: IconButton(
-        icon: Icon(
-          currentlyObscured ? Icons.visibility : Icons.visibility_off,
-          size: ThemeManager().getInputIconSize(context).toDouble(),
-          color: ThemeManager().getInputIconColor(context),
-        ),
-        onPressed: () {
-          setState(() {
-            currentlyObscured = !currentlyObscured;
-          });
-        },
-      ));
+          suffixIcon: widget._controller.obscureTextWidget != null
+              ? GestureDetector(
+                  onTap: toggleObscured,
+                  child: scopeManager!.buildWidgetFromDefinition(
+                      widget._controller.obscureTextWidget),
+                )
+              : IconButton(
+                  icon: Icon(
+                    widget._controller.obscured ?? true
+                        ? Icons.visibility
+                        : Icons.visibility_off,
+                    size: ThemeManager().getInputIconSize(context).toDouble(),
+                    color: ThemeManager().getInputIconColor(context),
+                  ),
+                  onPressed: toggleObscured,
+                ));
     } else if (!widget.isPassword() &&
         widget.textController.text.isNotEmpty &&
         widget._controller.enableClearText == true) {
@@ -438,7 +480,9 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput>
             if (value == null || value.isEmpty) {
               return widget._controller.required
                   ? Utils.translateWithFallback(
-                      'ensemble.input.required', 'This field is required')
+                      'ensemble.input.required',
+                      widget._controller.requiredMessage ??
+                          'This field is required')
                   : null;
             }
 

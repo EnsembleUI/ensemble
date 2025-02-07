@@ -1,4 +1,6 @@
 View:
+  header:
+    title: Goodbye
   body:
     Column:
       children:
@@ -9,5 +11,5 @@ View:
         - Button:
             label: Go Home
             onTap:
-              action: navigateScreen
-              name: Hello Home
+               navigateScreen:
+                  name: Hello Home

@@ -8,6 +8,7 @@ import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/stub/camera_manager.dart';
 import 'package:ensemble/framework/scope.dart';
+import 'package:ensemble/framework/view/data_scope_widget.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:flutter/foundation.dart';
@@ -36,7 +37,8 @@ const _optionMappings = {
   'minCountMessage': 'minCountMessage',
   'autoCaptureInterval': 'autoCaptureInterval',
   'enableMicrophone': 'enableMicrophone',
-  'instantPreview': 'instantPreview'
+  'instantPreview': 'instantPreview',
+  'captureOverlay': 'captureOverlay',
 };
 
 const _angleAssistOptions = {
@@ -99,18 +101,6 @@ class CameraManagerImpl extends CameraManager {
         scopeManager?.dataContext.eval(cameraAction.options?['default']),
         fallback: false);
 
-    final isCameraAllowed = await hasPermission();
-
-    if (!(isCameraAllowed ?? false)) {
-      if (cameraAction.onError != null) {
-        ScreenController().executeAction(context, cameraAction.onError!,
-            event: EnsembleEvent(null,
-                error: 'ensemble_camera: permission denied'));
-      }
-      debugPrint('ensemble_camera: permission denied');
-      return;
-    }
-
     if (isDefault && !kIsWeb) {
       await defaultCamera(context, cameraAction, scopeManager);
     } else {
@@ -160,7 +150,13 @@ class CameraManagerImpl extends CameraManager {
 
   Future<void> bespokeCamera(BuildContext context,
       ShowCameraAction cameraAction, ScopeManager? scopeManager) async {
+    Widget? overlayWidget;
+    if (cameraAction.overlayWidget != null) {
+      overlayWidget = buildOverlayWidget(scopeManager, cameraAction);
+    }
+
     Camera camera = Camera(
+      overlayWidget: overlayWidget,
       onCapture: cameraAction.onCapture == null
           ? null
           : () {
@@ -172,6 +168,18 @@ class CameraManagerImpl extends CameraManager {
           : () {
               ScreenController()
                   .executeAction(context, cameraAction.onComplete!);
+            },
+      onError: cameraAction.onError == null
+          ? null
+          : (error) {
+              ScreenController().executeAction(
+                context,
+                cameraAction.onError!,
+                event: EnsembleEvent(
+                  null,
+                  error: error.toString(),
+                ),
+              );
             },
     );
 
@@ -233,5 +241,21 @@ class CameraManagerImpl extends CameraManager {
       scopeManager?.dispatch(
           ModelChangeEvent(WidgetBindingSource(cameraAction.id!), camera));
     }
+  }
+
+  Widget? buildOverlayWidget(
+      ScopeManager? scopeManager, ShowCameraAction cameraAction) {
+    Widget? overlayWidget;
+    try {
+      overlayWidget =
+          scopeManager?.buildWidgetFromDefinition(cameraAction.overlayWidget);
+      if (overlayWidget != null) {
+        overlayWidget =
+            DataScopeWidget(scopeManager: scopeManager!, child: overlayWidget);
+      }
+    } on Exception catch (e) {
+      debugPrint('Ensemble Camera: Error while building overlay widget $e');
+    }
+    return overlayWidget;
   }
 }
