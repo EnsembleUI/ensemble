@@ -92,6 +92,7 @@ abstract class Menu extends Object with HasStyles, Invokable {
                   Utils.optionalString(item['floatingAlignment']) ?? 'center',
               floatingMargin: Utils.optionalInt(item['floatingMargin']),
               switchScreen: Utils.getBool(item['switchScreen'], fallback: true),
+              isClickable: Utils.getBool(item['isClickable'], fallback: true),
               onTap: item['onTap'],
               onTapHaptic: Utils.optionalString(item['onTapHaptic']),
               isExternal: Utils.getBool(item['isExternal'], fallback: false),
@@ -291,6 +292,7 @@ class MenuItem {
     this.selected,
     this.floating = false,
     this.switchScreen = true,
+    this.isClickable = true,
     this.floatingAlignment = 'center',
     this.floatingMargin,
     this.onTap,
@@ -309,6 +311,7 @@ class MenuItem {
   final dynamic selected;
   final bool floating;
   final bool switchScreen;
+  final bool isClickable;
   final String floatingAlignment;
   final int? floatingMargin;
   final dynamic onTap;
