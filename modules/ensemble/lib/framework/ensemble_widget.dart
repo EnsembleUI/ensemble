@@ -5,6 +5,7 @@ import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/studio/studio_debugger.dart';
 import 'package:ensemble/framework/view/data_scope_widget.dart';
+import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/cupertino.dart';
@@ -65,6 +66,18 @@ abstract class EnsembleWidgetState<W extends EnsembleWidget> extends State<W> {
             shadowColor: widgetController.elevationShadowColor,
             borderRadius: widgetController.elevationBorderRadius?.getValue(),
             child: rtn);
+      }
+
+
+      // add tooltip handling if tooltip message is specified
+      // add tooltip handling if tooltip message is specified
+      if (widgetController.toolTip != null) {
+        rtn = Utils.getTooltipWidget(
+          context,
+          rtn,
+          widgetController.toolTip,
+          widgetController
+        );
       }
 
       // in Web, capture the pointer if overlay on htmlelementview like Maps
