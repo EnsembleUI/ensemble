@@ -32,6 +32,8 @@ dependencies:
   flutter_localizations: # Add this line
     sdk: flutter
 
+  connectivity_plus: ^6.1.3
+
   # embed Ensemble as a sibling project
   ensemble:
     git:
@@ -160,7 +162,7 @@ flutter:
     - .env
     - ensemble/
 
-     # put your app's images in this folder
+      # put your app's images in this folder
     - ensemble/assets/
 
     # list all your Apps directories here. It's a Flutter requirement
