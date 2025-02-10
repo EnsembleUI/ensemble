@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:ui';
 
 import 'package:ensemble/ensemble_app.dart';
@@ -13,21 +14,94 @@ void main() async {
   initErrorHandler();
   await EnsembleModules().init();
 
-  // Check if there is an active internet connection
-  bool hasInternet = await checkInternet();
-
-  if (hasInternet) {
-    runApp(EnsembleApp());
-  } else {
-    runApp(const NoInternetApp());
-  }
+  runApp(const MyApp());
 }
 
-/// Checks if the device is connected to the internet.
-Future<bool> checkInternet() async {
-  final connectivityResults = await Connectivity().checkConnectivity();
+/// The root widget that listens for connectivity changes and displays
+/// either your main app (when online) or a "No Internet" screen (when offline).
+class MyApp extends StatefulWidget {
+  const MyApp({super.key});
+  @override
+  State<MyApp> createState() => _MyAppState();
+}
 
-  return connectivityResults != ConnectivityResult.none;
+class _MyAppState extends State<MyApp> {
+  bool hasInternet = false;
+  late StreamSubscription connectivitySubscription;
+
+  @override
+  void initState() {
+    super.initState();
+
+    // Perform an initial connectivity check.
+    _checkInternet().then((value) {
+      setState(() {
+        hasInternet = value;
+      });
+    });
+
+    // Listen for connectivity changes.
+    connectivitySubscription =
+        Connectivity().onConnectivityChanged.listen((result) async {
+      bool internet = await _checkInternet();
+      if (internet != hasInternet) {
+        setState(() {
+          hasInternet = internet;
+        });
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    connectivitySubscription.cancel();
+    super.dispose();
+  }
+
+  /// Checks if the device is connected to the internet.
+  Future<bool> _checkInternet() async {
+    final dynamic result = await Connectivity().checkConnectivity();
+    return result.any((r) => r != ConnectivityResult.none);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (hasInternet) {
+      // When online, display Ensemble App
+      return EnsembleApp();
+    } else {
+      // Otherwise, show a static "No Internet" screen.
+      return MaterialApp(
+        home: Scaffold(
+          body: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.wifi_off, size: 100, color: Colors.red),
+                const SizedBox(height: 20),
+                const Text(
+                  'No Internet Connection',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 10),
+                const Text('Please enable internet connectivity.'),
+                const SizedBox(height: 20),
+                ElevatedButton(
+                  onPressed: () async {
+                    bool internet = await _checkInternet();
+                    setState(() {
+                      hasInternet = internet;
+                    });
+                  },
+                  child: const Text("Retry"),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+  }
 }
 
 /// Initializes custom error handling.
@@ -36,7 +110,6 @@ void initErrorHandler() {
     return ErrorScreen(errorDetails);
   };
 
-  /// print errors on console and Chrome dev tool (for Web)
   FlutterError.onError = (details) {
     if (details.exception is EnsembleError) {
       debugPrint(details.exception.toString());
@@ -45,46 +118,9 @@ void initErrorHandler() {
     }
   };
 
-  // async error
+  // Handle asynchronous errors.
   PlatformDispatcher.instance.onError = (error, stack) {
     debugPrint("Async Error: " + error.toString());
     return true;
   };
-}
-
-// "No Internet"
-class NoInternetApp extends StatelessWidget {
-  const NoInternetApp({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      home: Scaffold(
-        body: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.wifi_off, size: 100, color: Colors.red),
-              const SizedBox(height: 20),
-              const Text(
-                'No Internet Connection',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 10),
-              ElevatedButton(
-                onPressed: () async {
-                  // Retry checking for internet connectivity.
-                  bool hasInternet = await checkInternet();
-                  if (hasInternet) {
-                    runApp(EnsembleApp());
-                  }
-                },
-                child: const Text("Retry"),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
 }
