@@ -256,29 +256,6 @@ class EnsembleAppState extends State<EnsembleApp> with WidgetsBindingObserver {
     });
   }
 
-  /// “No Internet” widget.
-  Widget _buildOfflineWidget() {
-    return MaterialApp(
-      home: Scaffold(
-        body: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.wifi_off, size: 100, color: Colors.red),
-              const SizedBox(height: 20),
-              const Text(
-                'No Internet Connection',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 10),
-              const Text('Please enable internet connectivity.'),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return FutureBuilder(
@@ -287,7 +264,11 @@ class EnsembleAppState extends State<EnsembleApp> with WidgetsBindingObserver {
           if (snapshot.hasError) {
             if (!_hasInternet) {
               // Show the no internet widget if there is an error fetching the definitions and there is no internet connection.
-              return _buildOfflineWidget();
+              return _appPlaceholderWrapper(
+                  placeholderWidget: ErrorScreen(LanguageError(
+                      'No Internet Connection',
+                      detailedError:
+                          'Please enable internet connectivity to load the app.')));
             }
             return _appPlaceholderWrapper(
                 placeholderWidget: ErrorScreen(LanguageError(
