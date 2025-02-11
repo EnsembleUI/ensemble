@@ -23,6 +23,7 @@ import 'package:ensemble/widget/helpers/widgets.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokablecontroller.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:ensemble/layout/templated.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:email_validator/email_validator.dart';
 import 'package:ensemble/framework/model.dart' as model;
@@ -45,10 +46,10 @@ class TagInput extends BaseTextInput {
     setters.addAll({
       'value': (newValue) {
         if (newValue == null) {
-          textController.text = '';
+          _taggerController.text = '';
           return;
         }
-        textController.text = Utils.optionalString(newValue)!;
+        _taggerController.text = Utils.optionalString(newValue)!;
       },
       'obscureText': (obscure) =>
           _controller.obscureText = Utils.optionalBool(obscure),
@@ -99,7 +100,7 @@ abstract class BaseTextInput extends StatefulWidget
   BaseTextInput({Key? key}) : super(key: key);
 
   // textController manages 'value', while _controller manages the rest
-  final TextEditingController textController = TextEditingController();
+  final FlutterTaggerController _taggerController = FlutterTaggerController();
   final TagInputController _controller = TagInputController();
 
   @override
@@ -109,7 +110,7 @@ abstract class BaseTextInput extends StatefulWidget
   Map<String, Function> getters() {
     var getters = _controller.textPlaceholderGetters;
     getters.addAll({
-      'value': () => textController.text ?? '',
+      'value': () => _taggerController.text ?? '',
       'obscured': () => _controller.obscured,
     });
     return getters;
@@ -337,8 +338,9 @@ class TriggerItem {
 }
 
 class TagInputState extends FormFieldWidgetState<BaseTextInput>
-    with TextInputFieldAction {
+    with TextInputFieldAction,TemplatedWidgetState {
   final focusNode = FocusNode();
+  List? dataList;
 
   // for this widget we will implement onChange if the text changes AND:
   // 1. the field loses focus next (tabbing out, ...)
@@ -349,7 +351,6 @@ class TagInputState extends FormFieldWidgetState<BaseTextInput>
 
   // password is obscure by default
   late List<TextInputFormatter> _inputFormatter;
-  late FlutterTaggerController _taggerController;
   
 
 
@@ -362,7 +363,7 @@ class TagInputState extends FormFieldWidgetState<BaseTextInput>
   void evaluateChanges() {
     if (didItChange) {
       // trigger binding
-      widget.setProperty('value', widget.textController.text);
+      widget.setProperty('value', widget._taggerController.text);
 
       // call onChange
       if (widget._controller.onChange != null) {
@@ -400,15 +401,6 @@ class TagInputState extends FormFieldWidgetState<BaseTextInput>
   void initState() {
     _inputFormatter = InputFormatter.getFormatter(
         widget._controller.inputType, widget._controller.mask);
-    _taggerController = FlutterTaggerController();
-    _taggerController.formatTags(
-        pattern: RegExp(
-            r'@([^@]+)(?=@|$)'), // This pattern will match '@' followed by words with optional spaces
-        parser: (match) {
-          // Extract the text after @ symbol
-          final tagText = match.substring(1); // Remove @ symbol
-          return [tagText, tagText]; // Return [id, tagName]
-        });
     focusNode.addListener(() {
       if (focusNode.hasFocus) {
         if (widget._controller.onFocusReceived != null) {
@@ -448,6 +440,15 @@ class TagInputState extends FormFieldWidgetState<BaseTextInput>
   void didChangeDependencies() {
     super.didChangeDependencies();
     widget.controller.inputFieldAction = this;
+
+     if (widget._controller.itemTemplate != null) {
+      registerItemTemplate(context, widget._controller.itemTemplate!,
+          onDataChanged: (data) {
+        setState(() {
+          dataList = data;
+        });
+      });
+    }
   }
 
   @override
@@ -459,16 +460,16 @@ class TagInputState extends FormFieldWidgetState<BaseTextInput>
     // issue: https://github.com/EnsembleUI/ensemble/issues/1527
 
     if (focusNode.hasFocus) {
-      int oldCursorPosition = oldWidget.textController.selection.baseOffset;
-      int textLength = widget.textController.text.length;
+      int oldCursorPosition = oldWidget._taggerController.selection.baseOffset;
+      int textLength = widget._taggerController.text.length;
 
-      widget.textController.selection = TextSelection.fromPosition(
+      widget._taggerController.selection = TextSelection.fromPosition(
         TextPosition(offset: oldCursorPosition),
       );
-      int cursorPosition = widget.textController.selection.baseOffset;
+      int cursorPosition = widget._taggerController.selection.baseOffset;
 
       if (textLength > cursorPosition) {
-        widget.textController.selection = TextSelection.fromPosition(
+        widget._taggerController.selection = TextSelection.fromPosition(
           TextPosition(offset: textLength),
         );
       }
@@ -478,7 +479,7 @@ class TagInputState extends FormFieldWidgetState<BaseTextInput>
   @override
   void dispose() {
     focusNode.dispose();
-    widget.textController.dispose();
+    widget._taggerController.dispose();
     super.dispose();
   }
 
@@ -526,7 +527,7 @@ class TagInputState extends FormFieldWidgetState<BaseTextInput>
                   onPressed: toggleObscured,
                 ));
     } else if (!widget.isPassword() &&
-        widget.textController.text.isNotEmpty &&
+        widget._taggerController.text.isNotEmpty &&
         widget._controller.enableClearText == true) {
       decoration = decoration.copyWith(
         suffixIcon: IconButton(
@@ -540,7 +541,7 @@ class TagInputState extends FormFieldWidgetState<BaseTextInput>
         type: TagInput.type,
         controller: widget._controller,
         widget: FlutterTagger(
-          controller: _taggerController,
+          controller: widget._taggerController,
           tagTextFormatter: (originalText, tagId, tagText) {
             // Format the tag using a custom format
             final formattedTag = '[$tagText:$tagId]';
@@ -561,8 +562,8 @@ class TagInputState extends FormFieldWidgetState<BaseTextInput>
           overlay: Material(
             child: Container(
               decoration: widget._controller.overlayStyle,
-              constraints: BoxConstraints(maxHeight: 200),
-              child: buildItems(widget.controller.tags, widget.controller.itemTemplate, null),
+              // constraints: BoxConstraints(maxHeight: 200),
+              child: buildItems(widget.controller.tags, widget.controller.itemTemplate, dataList),
               // ListView.builder(
               //   // shrinkWrap: true,
               //   itemCount: widget.controller.tags?.length ?? 0,
@@ -667,7 +668,7 @@ class TagInputState extends FormFieldWidgetState<BaseTextInput>
                   MaxLengthEnforcement.enforced,
               enableSuggestions: !widget.isPassword(),
               autocorrect: !widget.isPassword(),
-              controller: _taggerController,
+              controller: widget._taggerController,
               focusNode: focusNode,
               enabled: isEnabled(),
               readOnly: widget._controller.readOnly == true,
@@ -675,7 +676,7 @@ class TagInputState extends FormFieldWidgetState<BaseTextInput>
               // onTap: () => showOverlay(context),
               onTapOutside: (_) => removeOverlayAndUnfocus(),
               onFieldSubmitted: (value) {
-                final formattedText = _taggerController.formattedText;
+                final formattedText = widget._taggerController.formattedText;
                 widget.controller.submitForm(context);
               },
               onChanged: (String txt) {
@@ -712,7 +713,7 @@ class TagInputState extends FormFieldWidgetState<BaseTextInput>
       (widget._controller.maxLines != null && widget._controller.maxLines! > 1);
 
   void _clearSelection() {
-    widget.textController.clear();
+    widget._taggerController.clear();
     focusNode.unfocus();
   }
 
@@ -732,22 +733,21 @@ class TagInputState extends FormFieldWidgetState<BaseTextInput>
       for (MentionItem item in items) {
         results.add(
           ListTile(
-                    leading: item.image != null
-                        ? CircleAvatar(
-                            backgroundImage: NetworkImage(item.image!),
-                          )
-                        : const CircleAvatar(child: Icon(Icons.person)),
-                    title: Text(item.label, style: widget._controller.tagSelectionStyle,),
-                    onTap: () {
-                      // Use insertMention instead of addTag to ensure styles are applied
-                      _taggerController.addTag(
-                        id: item.id.toString(),
-                        name: item.key,
-                      );
-                    },
-                  )
+              leading: item.image != null
+                  ? CircleAvatar(
+                      backgroundImage: NetworkImage(item.image!),
+                    )
+                  : const CircleAvatar(child: Icon(Icons.person)),
+              title: Text(item.label, style: widget._controller.tagSelectionStyle,),
+              onTap: () {
+                // Use insertMention instead of addTag to ensure styles are applied
+                widget._taggerController.addTag(
+                  id: item.id.toString(),
+                  name: item.key,
+                );
+              },
+            )
         );
-            
       }
     }
     // then add the templated list
@@ -768,9 +768,16 @@ class TagInputState extends FormFieldWidgetState<BaseTextInput>
                       .buildWidgetFromDefinition(itemTemplate.labelWidget));
           results.add(
             ListTile(
-              title: templatedScope.dataContext.eval(itemTemplate.value),
+              title: labelWidget,
               // value: templatedScope.dataContext.eval(itemTemplate.value),
               // child: labelWidget
+              onTap: () {
+                      // Use insertMention instead of addTag to ensure styles are applied
+                      widget._taggerController.addTag(
+                        id: templatedScope.dataContext.eval(itemTemplate.value),
+                        name: templatedScope.dataContext.eval(itemTemplate.value)
+                      );
+                    },
               ));
         }
       }

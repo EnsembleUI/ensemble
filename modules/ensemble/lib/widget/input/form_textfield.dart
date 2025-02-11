@@ -26,7 +26,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_i18n/flutter_i18n.dart';
 import 'package:form_validator/form_validator.dart';
 import 'package:mask_text_input_formatter/mask_text_input_formatter.dart';
-import 'package:fluttertagger/fluttertagger.dart';
 
 /// TextInput
 class TextInput extends BaseTextInput {
@@ -268,9 +267,6 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput>
 
   // password is obscure by default
   late List<TextInputFormatter> _inputFormatter;
-  late FlutterTaggerController _taggerController;
-  double overlayHeight = 300;
-
   OverlayEntry? overlayEntry;
 
   bool get toolbarDoneStatus {
@@ -320,8 +316,6 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput>
         widget.isPassword() || widget._controller.obscureText == true;
     _inputFormatter = InputFormatter.getFormatter(
         widget._controller.inputType, widget._controller.mask);
-    _taggerController = FlutterTaggerController();
-    _taggerController.formatTags();
     focusNode.addListener(() {
       if (focusNode.hasFocus) {
         if (widget._controller.onFocusReceived != null) {
@@ -460,167 +454,7 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput>
     return InputWrapper(
       type: TextInput.type,
       controller: widget._controller,
-      widget: widget._controller.allowMention == true
-          ? FlutterTagger(
-              controller: _taggerController,
-              onSearch: (query, triggerCharacter) async {
-                print(
-                    'Search triggered with: $query and character: $triggerCharacter');
-                await Future.delayed(const Duration(milliseconds: 300));
-                final results = ['ehsaan', 'Nouman', 'Ridsa', "Amin", "Khurram"]
-                    .where((user) =>
-                        user.toLowerCase().contains(query.toLowerCase()))
-                    .toList();
-                print('Search results: $results');
-                return Future.value(results);
-              },
-              triggerCharacterAndStyles: const {
-                '@': TextStyle(
-                  color: Colors.blue,
-                  fontWeight: FontWeight.bold,
-                ),
-              },
-              triggerStrategy: TriggerStrategy.eager,
-              overlay: Material(
-                // Add Material wrapper
-                child: Container(
-                  color: Colors.white,
-                  constraints: BoxConstraints(maxHeight: overlayHeight),
-                  child: ListView.builder(
-                    shrinkWrap: true,
-                    itemCount: 3,
-                    itemBuilder: (context, index) {
-                      final users = ['ehsaan', 'Nouman', 'Ridsa', "Amin", "Khurram"];
-                      return ListTile(
-                        title: Text(users[index]),
-                        onTap: () =>
-                            _taggerController.addTag(id: users[index], name: users[index])
-                      );
-                    },
-                  ),
-                ),
-              ),
-              builder: (context, textFieldKey) {
-                return TextFormField(
-                  key: textFieldKey,
-                  autofillHints: widget._controller.autofillHints,
-                  autovalidateMode: widget._controller.validateOnUserInteraction
-                      ? AutovalidateMode.onUserInteraction
-                      : AutovalidateMode.disabled,
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return widget._controller.required
-                          ? Utils.translateWithFallback(
-                              'ensemble.input.required',
-                              widget._controller.requiredMessage ??
-                                  'This field is required')
-                          : null;
-                    }
-
-                    if (widget._controller.validator != null) {
-                      ValidationBuilder? builder;
-                      if (widget._controller.validator?.minLength != null) {
-                        builder = ValidationBuilder().minLength(
-                            widget._controller.validator!.minLength!,
-                            Utils.translateOrNull(
-                                'ensemble.input.validation.minimumLength'));
-                      }
-                      if (widget._controller.validator?.maxLength != null) {
-                        builder = (builder ?? ValidationBuilder()).maxLength(
-                            widget._controller.validator!.maxLength!,
-                            Utils.translateOrNull(
-                                'ensemble.input.validation.maximumLength'));
-                      }
-                      if (widget._controller.validator?.regex != null) {
-                        builder = (builder ?? ValidationBuilder()).regExp(
-                            RegExp(widget._controller.validator!.regex!),
-                            widget._controller.validator!.regexError ??
-                                Utils.translateWithFallback(
-                                    'ensemble.input.validation.invalidInput',
-                                    'This field has invalid value'));
-                      }
-                      if (builder != null) {
-                        return builder.build().call(value);
-                      }
-                    }
-
-                    if (!widget.isPassword()) {
-                      if (widget._controller.inputType ==
-                          InputType.email.name) {
-                        if (!EmailValidator.validate(value)) {
-                          return Utils.translateWithFallback(
-                              'ensemble.input.validation.invalidEmailType',
-                              'Please enter a valid email address');
-                        }
-                      } else if (widget._controller.inputType ==
-                          InputType.ipAddress.name) {
-                        if (!InputValidator.ipAddress(value)) {
-                          return Utils.translateWithFallback(
-                              'ensemble.input.validation.invalidIPAddressType',
-                              'Please enter a valid IP Address');
-                        }
-                      } else if (widget._controller.inputType ==
-                          InputType.phone.name) {
-                        if (!InputValidator.phone(value)) {
-                          return Utils.translateWithFallback(
-                              'ensemble.input.validation.invalidPhoneType',
-                              "Please enter a valid Phone Number");
-                        }
-                      }
-                    }
-                    return null;
-                  },
-                  textInputAction: widget._controller.keyboardAction,
-                  keyboardType: widget.keyboardType,
-                  inputFormatters: _inputFormatter,
-                  minLines: isMultiline() ? widget._controller.minLines : null,
-                  maxLines: isMultiline() ? widget._controller.maxLines : 1,
-                  maxLength: widget._controller.maxLength,
-                  maxLengthEnforcement:
-                      widget._controller.maxLengthEnforcement ??
-                          MaxLengthEnforcement.enforced,
-                  obscureText: isObscureOrPlainText(),
-                  enableSuggestions: !widget.isPassword(),
-                  autocorrect: !widget.isPassword(),
-                  controller: _taggerController,
-                  focusNode: focusNode,
-                  enabled: isEnabled(),
-                  readOnly: widget._controller.readOnly == true,
-                  enableInteractiveSelection: widget._controller.selectable,
-                  // onTap: () => showOverlay(context),
-                  // onTapOutside: (_) => removeOverlayAndUnfocus(),
-                  onFieldSubmitted: (value) {
-                    final formattedText = _taggerController.formattedText;
-                    widget.controller.submitForm(context);
-                  },
-                  onChanged: (String txt) {
-                    if (txt != previousText) {
-                      didItChange = true;
-                      previousText = txt;
-
-                      if (widget._controller.onKeyPress != null) {
-                        ScreenController().executeAction(
-                            context, widget._controller.onKeyPress!,
-                            event: EnsembleEvent(widget));
-                      }
-
-                      if (widget._controller.onDelayedKeyPress != null) {
-                        executeDelayedAction(
-                            widget._controller.onDelayedKeyPress!);
-                      }
-                    }
-                    setState(() {});
-                  },
-                  style: isEnabled()
-                      ? widget._controller.textStyle
-                      : widget._controller.textStyle?.copyWith(
-                          color: Theme.of(context).disabledColor,
-                        ),
-                  decoration: decoration,
-                );
-              },
-            )
-          : TextFormField(
+      widget: TextFormField(
               key: validatorKey,
               autofillHints: widget._controller.autofillHints,
               autovalidateMode: widget._controller.validateOnUserInteraction
