@@ -188,8 +188,17 @@ class EnsembleAppState extends State<EnsembleApp> with WidgetsBindingObserver {
   /// Check the device’s connectivity and update the state.
   Future<void> _updateConnectivity() async {
     final result = await Connectivity().checkConnectivity();
+    final hasInternetNow = result.any((r) => r != ConnectivityResult.none);
+
+    // If connectivity has been restored, reinitialize the app
+    if (!_hasInternet && hasInternetNow) {
+      setState(() {
+        config = initApp();
+      });
+    }
+
     setState(() {
-      _hasInternet = result.any((r) => r != ConnectivityResult.none);
+      _hasInternet = hasInternetNow;
     });
   }
 
