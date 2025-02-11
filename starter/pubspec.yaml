@@ -32,8 +32,6 @@ dependencies:
   flutter_localizations: # Add this line
     sdk: flutter
 
-  connectivity_plus: ^6.1.3
-
   # embed Ensemble as a sibling project
   ensemble:
     git:

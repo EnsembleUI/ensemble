@@ -30,6 +30,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_localized_locales/flutter_localized_locales.dart';
 import 'package:workmanager/workmanager.dart';
 import 'package:yaml/yaml.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 
 const String backgroundUploadTask = 'backgroundUploadTask';
 const String backgroundBluetoothSubscribeTask = 'backgroundBluetoothSubscribeTask';
@@ -141,11 +142,22 @@ class EnsembleAppState extends State<EnsembleApp> with WidgetsBindingObserver {
   // the entire App to reload (e.g. change Locale at runtime)
   Key? appKey;
 
+  bool _hasInternet = true;
+  late final StreamSubscription<List<ConnectivityResult>>
+      _connectivitySubscription;
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     config = initApp();
+
+    // Initialize connectivity listener.
+    _updateConnectivity();
+    _connectivitySubscription = Connectivity()
+        .onConnectivityChanged
+        .listen((_) => _updateConnectivity());
+
     // Initialize native features.
     if (!kIsWeb) {
       Workmanager().initialize(callbackDispatcher, isInDebugMode: false);
@@ -173,6 +185,14 @@ class EnsembleAppState extends State<EnsembleApp> with WidgetsBindingObserver {
     }
   }
 
+  /// Check the device’s connectivity and update the state.
+  Future<void> _updateConnectivity() async {
+    final result = await Connectivity().checkConnectivity();
+    setState(() {
+      _hasInternet = result.any((r) => r != ConnectivityResult.none);
+    });
+  }
+
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) async {
     super.didChangeAppLifecycleState(state);
@@ -192,6 +212,7 @@ class EnsembleAppState extends State<EnsembleApp> with WidgetsBindingObserver {
 
   @override
   void dispose() {
+    _connectivitySubscription.cancel();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
@@ -235,12 +256,39 @@ class EnsembleAppState extends State<EnsembleApp> with WidgetsBindingObserver {
     });
   }
 
+  /// “No Internet” widget.
+  Widget _buildOfflineWidget() {
+    return MaterialApp(
+      home: Scaffold(
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.wifi_off, size: 100, color: Colors.red),
+              const SizedBox(height: 20),
+              const Text(
+                'No Internet Connection',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 10),
+              const Text('Please enable internet connectivity.'),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return FutureBuilder(
         future: config,
         builder: ((context, snapshot) {
           if (snapshot.hasError) {
+            if (!_hasInternet) {
+              // Show the no internet widget if there is an error fetching the definitions and there is no internet connection.
+              return _buildOfflineWidget();
+            }
             return _appPlaceholderWrapper(
                 placeholderWidget: ErrorScreen(LanguageError(
                     "Error loading configuration",
