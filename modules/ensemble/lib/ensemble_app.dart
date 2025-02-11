@@ -271,14 +271,6 @@ class EnsembleAppState extends State<EnsembleApp> with WidgetsBindingObserver {
         future: config,
         builder: ((context, snapshot) {
           if (snapshot.hasError) {
-            if (!_hasInternet) {
-              // Show the no internet widget if there is an error fetching the definitions and there is no internet connection.
-              return _appPlaceholderWrapper(
-                  placeholderWidget: ErrorScreen(LanguageError(
-                      'No Internet Connection',
-                      detailedError:
-                          'Please enable internet connectivity to load the app.')));
-            }
             return _appPlaceholderWrapper(
                 placeholderWidget: ErrorScreen(LanguageError(
                     "Error loading configuration",
