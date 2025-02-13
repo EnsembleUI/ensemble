@@ -160,7 +160,7 @@ flutter:
     - .env
     - ensemble/
 
-     # put your app's images in this folder
+      # put your app's images in this folder
     - ensemble/assets/
 
     # list all your Apps directories here. It's a Flutter requirement
