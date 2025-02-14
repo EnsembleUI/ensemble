@@ -351,6 +351,7 @@ class SinglePageModel extends PageModel with HasStyles {
 
   void processHeader(YamlMap? headerData, String? legacyTitle) {
     WidgetModel? titleWidget;
+    WidgetModel? subTitleWidget;
     String? titleText = legacyTitle;
     WidgetModel? background;
     WidgetModel? leadingWidget;
@@ -382,7 +383,10 @@ class SinglePageModel extends PageModel with HasStyles {
         background = ViewUtil.buildModel(
             headerData['flexibleBackground'], customViewDefinitions);
       }
-
+      if (headerData['subtitleWidget'] != null) {
+       subTitleWidget = ViewUtil.buildModel(
+            headerData['subtitleWidget'], customViewDefinitions);
+      }
       styles = EnsembleThemeManager.yamlToDart(headerData['styles']);
       classList = HasStyles.toClassList(
           headerData[ViewUtil.classNameAttribute] as String?);
@@ -395,12 +399,15 @@ class SinglePageModel extends PageModel with HasStyles {
         leadingWidget != null ||
         classList != null) {
       headerModel = HeaderModel(
-          titleText: titleText,
-          titleWidget: titleWidget,
-          flexibleBackground: background,
-          leadingWidget: leadingWidget,   
-          inlineStyles: styles,
-          classList: classList);
+
+        titleText: titleText,
+        titleWidget: titleWidget,
+        subTitleWidget: subTitleWidget,
+        flexibleBackground: background,
+        leadingWidget: leadingWidget,
+        inlineStyles: styles,
+        classList: classList,
+      );
     }
   }
 
@@ -540,6 +547,7 @@ class HeaderModel extends Object with HasStyles {
   HeaderModel(
       {this.titleText,
       this.titleWidget,
+      this.subTitleWidget,
       this.flexibleBackground,
       this.leadingWidget,
       inlineStyles,
@@ -551,7 +559,9 @@ class HeaderModel extends Object with HasStyles {
   // header title can be text or a widget
   String? titleText;
   WidgetModel? titleWidget;
+  WidgetModel? subTitleWidget;
   WidgetModel? leadingWidget;
+
 
   WidgetModel? flexibleBackground;
 }
