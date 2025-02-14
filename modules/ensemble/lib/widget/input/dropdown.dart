@@ -297,8 +297,24 @@ class SelectOneState extends FormFieldWidgetState<SelectOne>
     });*/
     widget.controller.textEditingController =
         TextEditingController(text: widget.getValue());
+    focusNode.addListener(_handleFocusChange);
 
     super.initState();
+  }
+
+  void _handleFocusChange() {
+      // If gaining focus, scroll into view
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          final context = validatorKey.currentContext;
+          if (context != null) {
+            Scrollable.ensureVisible(
+              context,
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeInOut,
+              alignment: 0.5,
+            );
+          }
+        });
   }
 
   @override
@@ -477,6 +493,8 @@ class SelectOneState extends FormFieldWidgetState<SelectOne>
                 if (kDebugMode) {
                   print('Selected: ${selection.value}');
                 }
+                widget.controller.textEditingController.text =
+                    selection.label ?? selection.value;
               },
               optionsViewBuilder: (BuildContext context,
                   AutocompleteOnSelected<SelectOneItem> onSelected,

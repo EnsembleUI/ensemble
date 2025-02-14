@@ -59,6 +59,53 @@ Ensemble Studio includes an Online Editor for making changes with type-ahead sup
 - Follow [iOS](https://docs.flutter.dev/deployment/ios), [Android](https://docs.flutter.dev/deployment/android), [MacOS](https://docs.flutter.dev/deployment/macos), [Windows](https://docs.flutter.dev/deployment/windows) release documentation.
 
 ## Misc
+### Run with Local Definition  
+To take advantage of a local definition setup (where UI updates are loaded directly from your local files), follow these steps:  
+
+#### 1. Ensure Your App Structure  
+Inside the `ensemble/apps/` folder, you should have a directory for your app. The folder structure should look like this:  
+```
+ensemble/apps/yourAppName/
+├── assets/
+├── fonts/
+├── scripts/
+├── widgets/
+├── screens/
+├── translations/
+├── config/
+│   ├── appConfig.json
+│   ├── secrets.json
+├── theme.yaml
+├── .manifest.json   # Required for widgets and scripts to work correctly
+```
+#### 2. Update `ensemble-config.yaml`  
+- Open `ensemble/ensemble-config.yaml` and set `from: local` under `definitions`.  
+- Under `local` update the `path` to match your app’s name `ensemble/apps/yourAppName` and also update `appHome` to the name of your App's Home Screen.
+- Under `i18n` update the `path` to match your app’s name `ensemble/apps/yourAppName/translations`.
+
+
+#### 3. Update `pubspec.yaml`  
+- Add the necessary paths under `flutter -> assets` to ensure your app loads all required files and folders correctly:  
+
+```yaml
+flutter:
+  assets:
+    # list all your Apps directories here. It's a Flutter requirement
+    - ensemble/apps/helloApp/
+    - ensemble/apps/helloApp/screens/
+    - ensemble/apps/helloApp/widgets/
+    - ensemble/apps/helloApp/scripts/
+    - ensemble/apps/helloApp/assets/
+    - ensemble/apps/helloApp/translations/
+
+    # # config folder contains appConfig.json and secrets.json
+    - ensemble/apps/helloApp/config/
+  ```
+  NOTE: Only add the existing paths under assets.
+#### 4. Run the App
+ - Run the App with `flutter run`. Your App now fetches its pages and resources from local app files.
+
+
 ### Run with remote definition
 To take advantage of Server-driven UI (change your UI at anytime from the server), you can host these definitions on your file server.
 When hosting on your server, follow the following steps. 

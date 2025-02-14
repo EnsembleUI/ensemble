@@ -354,6 +354,7 @@ class SinglePageModel extends PageModel with HasStyles {
     WidgetModel? subTitleWidget;
     String? titleText = legacyTitle;
     WidgetModel? background;
+    WidgetModel? leadingWidget;
     Map<String, dynamic>? styles;
     List<String>? classList;
 
@@ -373,6 +374,11 @@ class SinglePageModel extends PageModel with HasStyles {
         }
       }
 
+      if (headerData['leadingWidget'] != null) {
+        leadingWidget = ViewUtil.buildModel(
+            headerData['leadingWidget'], customViewDefinitions);
+      }
+
       if (headerData['flexibleBackground'] != null) {
         background = ViewUtil.buildModel(
             headerData['flexibleBackground'], customViewDefinitions);
@@ -390,12 +396,15 @@ class SinglePageModel extends PageModel with HasStyles {
         titleText != null ||
         background != null ||
         styles != null ||
+        leadingWidget != null ||
         classList != null) {
       headerModel = HeaderModel(
+
         titleText: titleText,
         titleWidget: titleWidget,
         subTitleWidget: subTitleWidget,
         flexibleBackground: background,
+        leadingWidget: leadingWidget,
         inlineStyles: styles,
         classList: classList,
       );
@@ -540,6 +549,7 @@ class HeaderModel extends Object with HasStyles {
       this.titleWidget,
       this.subTitleWidget,
       this.flexibleBackground,
+      this.leadingWidget,
       inlineStyles,
       classList}) {
     this.inlineStyles = inlineStyles;
@@ -550,6 +560,8 @@ class HeaderModel extends Object with HasStyles {
   String? titleText;
   WidgetModel? titleWidget;
   WidgetModel? subTitleWidget;
+  WidgetModel? leadingWidget;
+
 
   WidgetModel? flexibleBackground;
 }

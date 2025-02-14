@@ -8,9 +8,11 @@ import 'package:ensemble/model/transform_matrix.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/helpers/box_animation_composite.dart';
+import 'package:ensemble/widget/helpers/tooltip_composite.dart';
 import 'package:ensemble_ts_interpreter/errors.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
 
 import '../../model/capabilities.dart';
 
@@ -223,6 +225,9 @@ abstract class WidgetController extends Controller with HasStyles {
   // https://pub.dev/packages/pointer_interceptor
   bool? captureWebPointer;
 
+  // properties for tooltip
+  Map<String, dynamic>? toolTip;
+
   // legacy used to show as the form label if used inside Form
   @Deprecated("don't use anymore")
   String? label;
@@ -279,7 +284,8 @@ abstract class WidgetController extends Controller with HasStyles {
       'textDirection': (value) => textDirection = Utils.getTextDirection(value),
       'label': (value) => label = Utils.optionalString(value),
       'classList': (value) => classList = value,
-      'className': (value) => className = value
+      'className': (value) => className = value,
+      'tooltip': (value) => toolTip = Utils.getMap(value),
     };
   }
 
@@ -458,6 +464,10 @@ abstract class EnsembleWidgetController extends EnsembleController
   // https://pub.dev/packages/pointer_interceptor
   bool? captureWebPointer;
 
+  // properties for tooltip
+  Map<String, dynamic>? toolTip;
+
+
   @override
   Map<String, Function> getters() {
     return {
@@ -499,8 +509,9 @@ abstract class EnsembleWidgetController extends EnsembleController
       'captureWebPointer': (value) =>
           captureWebPointer = Utils.optionalBool(value),
       'classList': (value) => classList = value,
-      'className': (value) => className = value
-    };
+      'className': (value) => className = value,
+      'tooltip': (value) => toolTip = Utils.getMap(value),
+      };
   }
 
   bool hasPositions() {

@@ -1,3 +1,19 @@
+## 1.1.22
+
+ - **REFACTOR**: remove no internet widget. ([e03359b2](https://github.com/ensembleUI/ensemble/commit/e03359b2dd6b1290bea39c71c69e2a3d5ad27c13))
+ - **REFACTOR**: replace offline widget with error screen for no internet connection. ([b0163a1b](https://github.com/ensembleUI/ensemble/commit/b0163a1ba20eb72c7a459afb3dfa59e1729cf9bf))
+ - **FIX**: auto complete dropdown selected label. ([80b9c8f5](https://github.com/ensembleUI/ensemble/commit/80b9c8f54c753aca7884fd12ed449c5f019d981b))
+ - **FEAT**: reinitialize app state when internet connectivity is restored. ([e914e337](https://github.com/ensembleUI/ensemble/commit/e914e337e54bbe539f08aa192b0a50b118708a00))
+ - **FEAT**: implement internet connectivity check in runtime. ([30204d3b](https://github.com/ensembleUI/ensemble/commit/30204d3bb29324d9ae44380fc919b450cf30cfd0))
+
+## 1.1.21
+
+## 1.1.20
+
+ - Bump "ensemble" to `1.1.20`.
+
+## 1.1.19
+
 ## 1.1.18
 
 ## 1.1.17

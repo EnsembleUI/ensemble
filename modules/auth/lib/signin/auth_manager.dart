@@ -1,5 +1,6 @@
 import 'dart:developer';
 import 'dart:io';
+import 'package:collection/collection.dart';
 
 import 'package:ensemble/action/invoke_api_action.dart';
 import 'package:ensemble/ensemble.dart';
@@ -22,6 +23,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 
@@ -183,7 +185,10 @@ class AuthManager with UserAuthentication {
   }
 
   Future<FirebaseApp> _initializeFirebaseSignIn() async {
+    String? appId = await SignInUtils.getAppIdFromYaml();
+
     FirebaseOptions? options;
+
     if (kIsWeb) {
       options = Ensemble().getAccount()?.firebaseConfig?.webConfig;
     } else if (Platform.isIOS) {
@@ -191,11 +196,17 @@ class AuthManager with UserAuthentication {
     } else if (Platform.isAndroid) {
       options = Ensemble().getAccount()?.firebaseConfig?.androidConfig;
     }
-    if (options == null) {
+    if (options == null || appId == null) {
       throw ConfigError('Firebase is not configured for this platform.');
     }
-    return await Firebase.initializeApp(
-        name: 'customFirebase', options: options);
+
+    // if the Firebase app is already initialized by other modules with same options, return it
+    FirebaseApp? existingApp = Firebase.apps.firstWhereOrNull(
+      (app) => SignInUtils.areFirebaseOptionsEqual(app.options, options!),
+    );
+
+    return existingApp ??
+        await Firebase.initializeApp(name: appId, options: options);
   }
 
   /// enrich the passed in User with information from Firebase

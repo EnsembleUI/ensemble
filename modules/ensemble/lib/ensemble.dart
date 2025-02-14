@@ -16,6 +16,7 @@ import 'package:ensemble/framework/app_info.dart';
 import 'package:ensemble/framework/logging/console_log_provider.dart';
 import 'package:ensemble/framework/logging/log_manager.dart';
 import 'package:ensemble/framework/logging/log_provider.dart';
+import 'package:ensemble/framework/ensemble_config_service.dart';
 import 'package:ensemble/framework/route_observer.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/secrets.dart';
@@ -105,7 +106,6 @@ class Ensemble extends WithEnsemble with EnsembleRouteObserver {
     try {
       // this code block is guaranteed to run at most once
       await StorageManager().init();
-      await SecretsStore().initialize();
       Device().initDeviceInfo();
       AppInfo().initPackageInfo(_config);
       _completer!.complete();
@@ -139,10 +139,12 @@ class Ensemble extends WithEnsemble with EnsembleRouteObserver {
     if (_config != null) {
       return Future<EnsembleConfig>.value(_config);
     }
+    // Intialize the config service to get `ensemble-config.yaml` file to access the configuration using static property as `EnsembleConfigService.config`
+    await EnsembleConfigService.initialize();
+    await SecretsStore().initialize();
 
-    final yamlString =
-        await rootBundle.loadString('ensemble/ensemble-config.yaml');
-    final YamlMap yamlMap = loadYaml(yamlString);
+    // get the config YAML
+    final YamlMap yamlMap = EnsembleConfigService.config;
 
     Account account = Account.fromYaml(yamlMap['accounts']);
     dynamic analyticsConfig = yamlMap['analytics'];
@@ -174,6 +176,20 @@ class Ensemble extends WithEnsemble with EnsembleRouteObserver {
       envOverrides = {};
       env.forEach((key, value) => envOverrides![key.toString()] = value);
     }
+    // Read environmental variables from config/appConfig.json
+    try {
+      dynamic path = yamlMap["definitions"]?['local']?["path"];
+    final configString = await rootBundle
+        .loadString('${path}/config/appConfig.json');
+    final Map<String, dynamic> configMap = json.decode(configString);
+    // Loop through the envVariables from appConfig.json file and add them to the envOverrides
+    configMap["envVariables"].forEach((key, value) {
+      envOverrides![key] = value;
+    });
+    } catch(e) {
+      debugPrint("appConfig.json file doesn't exist");
+    }
+
     DefinitionProvider definitionProvider = DefinitionProvider.from(yamlMap);
     _config = EnsembleConfig(
         definitionProvider: await definitionProvider.init(),
@@ -452,9 +468,11 @@ class EnsembleConfig {
   ThemeData getAppTheme() {
     return ThemeManager().getAppTheme(appBundle?.theme);
   }
+
   bool hasLegacyCustomAppTheme() {
     return ThemeManager().hasLegacyCustomAppTheme(appBundle?.theme);
   }
+
   /// retrieve the global widgets/codes/APIs
   Map? getResources() {
     return appBundle?.resources;
