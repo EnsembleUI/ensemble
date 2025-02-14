@@ -22,6 +22,7 @@ import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:ensemble/widget/helpers/unfocus.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 
 class SinglePageController extends WidgetController {
   TextStyleComposite? _textStyle;
@@ -282,16 +283,33 @@ class PageState extends State<Page>
   /// create AppBar that is part of a CustomScrollView
   Widget? buildSliverAppBar(SinglePageModel pageModel, bool hasDrawer) {
     if (pageModel.headerModel != null) {
-      dynamic appBar = _buildAppBar(pageModel.headerModel!,
-          scrollableView: true,
-          showNavigationIcon: pageModel.runtimeStyles?['showNavigationIcon']);
-      if (appBar is SliverAppBar) {
-        return appBar;
-      }
+      dynamic appBar = _buildAppBar(
+        pageModel.headerModel!,
+        scrollableView: true,
+        showNavigationIcon: pageModel.runtimeStyles?['showNavigationIcon'],
+      );
+      // if (appBar is SliverAppBar) {
+      return appBar;
+      //r  }
     }
     if (hasDrawer) {
       return const SliverAppBar();
     }
+    return null;
+  }
+
+  // build a subtitle Widget right below the AppBar
+  Widget? buildSubtitleWidget(SinglePageModel pageModel) {
+    if (pageModel.headerModel != null &&
+        pageModel.headerModel!.subTitleWidget != null) {
+      dynamic appBar = _buildAppBar(pageModel.headerModel!,
+          scrollableView: true,
+          showNavigationIcon: pageModel.runtimeStyles?['showNavigationIcon'],
+          isSubtitle: true);
+
+      return appBar;
+    }
+
     return null;
   }
 
@@ -316,11 +334,19 @@ class PageState extends State<Page>
 
   /// fixed AppBar
   dynamic _buildAppBar(HeaderModel headerModel,
-      {required bool scrollableView, bool? showNavigationIcon}) {
+      {required bool scrollableView,
+      bool? showNavigationIcon,
+      bool? isSubtitle}) {
     Widget? titleWidget;
+    Widget? subTitleWidget;
+
     if (headerModel.titleWidget != null) {
       titleWidget = _scopeManager.buildWidget(headerModel.titleWidget!);
     }
+    if (headerModel.subTitleWidget != null) {
+      subTitleWidget = _scopeManager.buildWidget(headerModel.subTitleWidget!);
+    }
+
     if (titleWidget == null && headerModel.titleText != null) {
       final title = _scopeManager.dataContext.eval(headerModel.titleText);
       titleWidget = Text(Utils.translate(title.toString(), context));
@@ -344,6 +370,12 @@ class PageState extends State<Page>
     Color? shadowColor = Utils.getColor(evaluatedHeader?['shadowColor']);
     double? elevation =
         Utils.optionalInt(evaluatedHeader?['elevation'], min: 0)?.toDouble();
+    bool? pinned = Utils.getBool(evaluatedHeader?['pinned'], fallback: false);
+    bool? snapped = Utils.getBool(evaluatedHeader?['snapped'], fallback: false);
+    bool? floating =
+        Utils.getBool(evaluatedHeader?['floating'], fallback: false);
+    bool? animation =
+        Utils.getBool(evaluatedHeader?['animation'], fallback: false);
 
     final titleBarHeight =
         Utils.optionalInt(evaluatedHeader?['titleBarHeight'], min: 0)
@@ -353,6 +385,10 @@ class PageState extends State<Page>
     // applicable only to Sliver scrolling
     double? flexibleMaxHeight =
         Utils.optionalInt(evaluatedHeader?['flexibleMaxHeight'])?.toDouble();
+    double? flexibleSubtitleHeight =
+        Utils.optionalInt(evaluatedHeader?['subtitleHeightOffSet'])
+            ?.toDouble();
+
     double? flexibleMinHeight =
         Utils.optionalInt(evaluatedHeader?['flexibleMinHeight'])?.toDouble();
     // collapsed height if specified needs to be bigger than titleBar height
@@ -361,6 +397,18 @@ class PageState extends State<Page>
     }
 
     if (scrollableView) {
+      if (subTitleWidget != null && isSubtitle == true) {
+        if(animation == true){
+          return StickySliver(
+            height: flexibleSubtitleHeight!,
+            child: subTitleWidget,
+          );
+        }else{
+          return subTitleWidget;
+        }
+
+
+      }
       return SliverAppBar(
         automaticallyImplyLeading: showNavigationIcon != false,
         title: titleWidget,
@@ -378,8 +426,11 @@ class PageState extends State<Page>
         flexibleSpace: wrapsInFlexible(backgroundWidget),
         expandedHeight: flexibleMaxHeight,
         collapsedHeight: flexibleMinHeight,
+        floating: floating ?? false,
+        pinned: pinned ?? false,
 
-        pinned: true,
+        // Only enable snap if floating is true
+        snap: (floating ?? false) ? (snapped ?? false) : false,
       );
     } else {
       return AppBar(
@@ -575,10 +626,15 @@ class PageState extends State<Page>
 
     // appBar
     Widget? appBar = buildSliverAppBar(widget._pageModel, hasDrawer);
+
     if (appBar != null) {
       slivers.add(appBar);
     }
-
+    //
+    Widget? subtitle = buildSubtitleWidget(widget._pageModel);
+    if (subtitle != null) {
+      slivers.add(subtitle);
+    }
     // body
     slivers.add(SliverToBoxAdapter(
       child: getBody(appBar != null),
@@ -779,6 +835,57 @@ class PageState extends State<Page>
     _scopeManager.dispose();
     //_scopeManager.debugListenerMap();
     super.dispose();
+  }
+}
+
+class RenderStickySliver extends RenderSliverSingleBoxAdapter {
+  RenderStickySliver({RenderBox? child, required this.height})
+      : super(child: child);
+  final double height;
+  @override
+  void performLayout() {
+    final double scrollOffset = constraints.scrollOffset;
+    final double maxExtent = height;
+    bool repaint = false;
+
+    // Progress of the scroll (from 0 to 1)
+    double progress = (scrollOffset / maxExtent).clamp(0.0, 1.0);
+
+    if (child != null) {
+      // Adjust the height of the child based on the scroll progress
+      final double childHeight =
+          100 * progress; // 100 is the full height of the sticky sliver
+      child!.layout(
+        constraints.asBoxConstraints(maxExtent: childHeight),
+        parentUsesSize: true,
+      );
+
+
+      // Set the geometry for the sliver
+      geometry = SliverGeometry(
+        scrollExtent: childHeight,
+        paintExtent: childHeight,
+        maxPaintExtent: childHeight,
+        paintOrigin: scrollOffset + kToolbarHeight,
+      );
+      setChildParentData(child!, constraints, geometry!);
+    }
+  }
+}
+
+class StickySliver extends SingleChildRenderObjectWidget {
+  StickySliver({Widget? child, required this.height, Key? key})
+      : super(child: child, key: key);
+  final double height;
+  @override
+  RenderObject createRenderObject(BuildContext context) {
+    return RenderStickySliver(height: height);
+  }
+
+  @override
+  void updateRenderObject(
+      BuildContext context, RenderStickySliver renderObject) {
+    // No update needed
   }
 }
 
