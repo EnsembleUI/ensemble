@@ -96,11 +96,22 @@ class TagInput extends BaseTextInput {
 
 /// Base StatefulWidget for both TextInput and Password
 abstract class BaseTextInput extends StatefulWidget
-    with Invokable, HasItemTemplate,HasController<TagInputController, TagInputState> {
+    with
+        Invokable,
+        HasItemTemplate,
+        HasController<TagInputController, TagInputState> {
   BaseTextInput({Key? key}) : super(key: key);
 
   // textController manages 'value', while _controller manages the rest
-  final FlutterTaggerController _taggerController = FlutterTaggerController();
+  final FlutterTaggerController _taggerController = FlutterTaggerController(
+    //Initial text value with tag is formatted internally
+    //following the construction of FlutterTaggerController.
+    //After this controller is constructed, if you
+    //wish to update its text value with raw tag string,
+    //call (_controller.formatTags) after that.
+    text:
+        "Hey @11a27531b866ce0016f9e582#brad#. It's time to #93f27531f294jp0016f9k013#Flutter#!",
+  );
   final TagInputController _controller = TagInputController();
 
   @override
@@ -110,7 +121,7 @@ abstract class BaseTextInput extends StatefulWidget
   Map<String, Function> getters() {
     var getters = _controller.textPlaceholderGetters;
     getters.addAll({
-      'value': () => _taggerController.text ?? '',
+      'value': () => _taggerController.formattedText ?? '',
       'obscured': () => _controller.obscured,
     });
     return getters;
@@ -155,11 +166,14 @@ abstract class BaseTextInput extends StatefulWidget
           _controller.minLines = Utils.optionalInt(value, min: 1),
       'maxLines': (value) =>
           _controller.maxLines = Utils.optionalInt(value, min: 1),
-      'overlayHeight': (value) => _controller.overlayHeight = Utils.optionalDouble(value),
+      'overlayHeight': (value) =>
+          _controller.overlayHeight = Utils.optionalDouble(value),
       'textStyle': (style) => _controller.textStyle = Utils.getTextStyle(style),
       'tagStyle': (style) => _controller.tagStyle = Utils.getTextStyle(style),
-      'tagSelectionStyle': (style) => _controller.tagSelectionStyle = Utils.getTextStyle(style),
-      'overlayStyle': (style) => _controller.overlayStyle = Utils.getBoxDecoration(style),
+      'tagSelectionStyle': (style) =>
+          _controller.tagSelectionStyle = Utils.getTextStyle(style),
+      'overlayStyle': (style) =>
+          _controller.overlayStyle = Utils.getBoxDecoration(style),
       'autofillHints': (value) =>
           _controller.autofillHints = Utils.getListOfStrings(value),
       'maxLength': (value) => _controller.maxLength = Utils.optionalInt(value),
@@ -204,18 +218,14 @@ abstract class BaseTextInput extends StatefulWidget
           results.add(MentionItem(
             id: item['id']?.toString() ?? '',
             key: item['key']?.toString() ?? '',
-            label: item['label']  ?? '',
-            image: item['image'] ,
+            label: item['label'] ?? '',
+            image: item['image'],
           ));
         }
         // For simple string items
         else if (item is String) {
-          results.add(MentionItem(
-            id: item,
-            key: item,
-            label: item,
-            image: null
-          ));
+          results
+              .add(MentionItem(id: item, key: item, label: item, image: null));
         }
       }
     }
@@ -225,34 +235,32 @@ abstract class BaseTextInput extends StatefulWidget
   }
 
   Map<String, TextStyle?> buildTagTriggers(List<dynamic>? triggers) {
-  // Initialize with default @ trigger
-  Map<String, TextStyle?> results = {
-    '@': const TextStyle(color: Colors.blue),
-  };
+    // Initialize with default @ trigger
+    Map<String, TextStyle?> results = {
+      '@': const TextStyle(color: Colors.blue),
+    };
 
-  if (triggers != null) {
-    for (var item in triggers) {
-      if (item is Map) {
-        String? character = item['character']?.toString();
-        if (character != null) {
-          // Parse the tagStyle map to create TextStyle
-          if (item['tagStyle'] is Map) {
-            results[character] = Utils.getTextStyle(item['tagStyle']);
+    if (triggers != null) {
+      for (var item in triggers) {
+        if (item is Map) {
+          String? character = item['character']?.toString();
+          if (character != null) {
+            // Parse the tagStyle map to create TextStyle
+            if (item['tagStyle'] is Map) {
+              results[character] = Utils.getTextStyle(item['tagStyle']);
+            }
           }
         }
       }
     }
+
+    _controller.triggers = results;
+
+    return results;
   }
-
-  _controller.triggers = results;
-
-  return results;
-}
 
   @override
   TagInputState createState() => TagInputState();
-
-  bool isPassword();
 
   TextInputType? get keyboardType;
 }
@@ -288,7 +296,7 @@ class TagInputController extends FormFieldController with HasTextPlaceholder {
   late Map<String, TextStyle?> triggers; // Optional additional triggers  like #
   LabelValueItemTemplate? itemTemplate;
 
-  // overlay styles 
+  // overlay styles
   BoxDecoration? overlayStyle;
   double? overlayHeight;
 
@@ -327,18 +335,19 @@ class MentionItem {
     this.image,
   });
 }
+
 class TriggerItem {
   final String character;
   final TextStyle? textStyle;
 
   TriggerItem({
-     required this.character,
-     this.textStyle,
+    required this.character,
+    this.textStyle,
   });
 }
 
 class TagInputState extends FormFieldWidgetState<BaseTextInput>
-    with TextInputFieldAction,TemplatedWidgetState {
+    with TickerProviderStateMixin, TextInputFieldAction, TemplatedWidgetState {
   final focusNode = FocusNode();
   List? dataList;
 
@@ -351,8 +360,9 @@ class TagInputState extends FormFieldWidgetState<BaseTextInput>
 
   // password is obscure by default
   late List<TextInputFormatter> _inputFormatter;
-  
 
+  late AnimationController _animationController;
+  late Animation<Offset> _animation;
 
   OverlayEntry? overlayEntry;
 
@@ -401,6 +411,20 @@ class TagInputState extends FormFieldWidgetState<BaseTextInput>
   void initState() {
     _inputFormatter = InputFormatter.getFormatter(
         widget._controller.inputType, widget._controller.mask);
+    _animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 150),
+    );
+
+    _animation = Tween<Offset>(
+      begin: const Offset(0, 0.5),
+      end: Offset.zero,
+    ).animate(
+      CurvedAnimation(
+        parent: _animationController,
+        curve: Curves.easeInOut,
+      ),
+    );
     focusNode.addListener(() {
       if (focusNode.hasFocus) {
         if (widget._controller.onFocusReceived != null) {
@@ -410,11 +434,6 @@ class TagInputState extends FormFieldWidgetState<BaseTextInput>
         }
       } else {
         evaluateChanges();
-
-        // validate
-        /*if (validatorKey.currentState != null) {
-          validatorKey.currentState!.validate();
-        }*/
 
         if (widget._controller.onFocusLost != null) {
           ScreenController().executeAction(
@@ -441,7 +460,7 @@ class TagInputState extends FormFieldWidgetState<BaseTextInput>
     super.didChangeDependencies();
     widget.controller.inputFieldAction = this;
 
-     if (widget._controller.itemTemplate != null) {
+    if (widget._controller.itemTemplate != null) {
       registerItemTemplate(context, widget._controller.itemTemplate!,
           onDataChanged: (data) {
         setState(() {
@@ -479,11 +498,10 @@ class TagInputState extends FormFieldWidgetState<BaseTextInput>
   @override
   void dispose() {
     focusNode.dispose();
+    _animationController.dispose();
     widget._taggerController.dispose();
     super.dispose();
   }
-
-  
 
   @override
   Widget buildWidget(BuildContext context) {
@@ -499,35 +517,7 @@ class TagInputState extends FormFieldWidgetState<BaseTextInput>
       );
     }
 
-    // for password, show the toggle plain text/obscure text
-    if ((widget.isPassword() || widget._controller.obscureText == true) &&
-        widget._controller.obscureToggle == true) {
-      void toggleObscured() {
-        bool newObscuredValue = !(widget._controller.obscured ?? true);
-        widget._controller.obscured = newObscuredValue;
-        widget.setProperty('obscured', newObscuredValue);
-        setState(() {});
-      }
-
-      decoration = decoration.copyWith(
-          suffixIcon: widget._controller.obscureTextWidget != null
-              ? GestureDetector(
-                  onTap: toggleObscured,
-                  child: scopeManager!.buildWidgetFromDefinition(
-                      widget._controller.obscureTextWidget),
-                )
-              : IconButton(
-                  icon: Icon(
-                    widget._controller.obscured ?? true
-                        ? Icons.visibility
-                        : Icons.visibility_off,
-                    size: ThemeManager().getInputIconSize(context).toDouble(),
-                    color: ThemeManager().getInputIconColor(context),
-                  ),
-                  onPressed: toggleObscured,
-                ));
-    } else if (!widget.isPassword() &&
-        widget._taggerController.text.isNotEmpty &&
+    if (widget._taggerController.text.isNotEmpty &&
         widget._controller.enableClearText == true) {
       decoration = decoration.copyWith(
         suffixIcon: IconButton(
@@ -542,10 +532,11 @@ class TagInputState extends FormFieldWidgetState<BaseTextInput>
         controller: widget._controller,
         widget: FlutterTagger(
           controller: widget._taggerController,
+          animationController: _animationController,
           tagTextFormatter: (originalText, tagId, tagText) {
             // Format the tag using a custom format
-            final formattedTag = '[$tagText:$tagId]';
-            return originalText.replaceAll('@$tagText', formattedTag);
+            final formattedTag = '$tagText$originalText';
+            return formattedTag;
           },
           onSearch: (query, triggerCharacter) async {
             final results = widget.controller.tags!
@@ -556,42 +547,26 @@ class TagInputState extends FormFieldWidgetState<BaseTextInput>
                 .toList();
             return Future.value(results);
           },
-          triggerCharacterAndStyles: widget.controller.triggers.map((key, value) => MapEntry(key, value ?? const TextStyle())),
+          triggerCharacterAndStyles: const {
+            "@": TextStyle(color: Colors.pinkAccent),
+            "#": TextStyle(color: Colors.blueAccent),
+          },
+          // triggerCharacterAndStyles: widget.controller.triggers.map((key, value) => MapEntry(key, value ?? const TextStyle())),
           triggerStrategy: TriggerStrategy.eager,
           overlayHeight: widget._controller.overlayHeight ?? 200.0,
-          overlay: Material(
+          overlay:
+              Material(
+                  child: SlideTransition(
+            position: _animation,
             child: Container(
               decoration: widget._controller.overlayStyle,
-              // constraints: BoxConstraints(maxHeight: 200),
-              child: buildItems(widget.controller.tags, widget.controller.itemTemplate, dataList),
-              // ListView.builder(
-              //   // shrinkWrap: true,
-              //   itemCount: widget.controller.tags?.length ?? 0,
-              //   itemBuilder: (context, index) {
-              //     final item = widget.controller.tags![index];
-              //     return  
-              //     ListTile(
-              //       leading: item.image != null
-              //           ? CircleAvatar(
-              //               backgroundImage: NetworkImage(item.image!),
-              //             )
-              //           : const CircleAvatar(child: Icon(Icons.person)),
-              //       title: Text(item.label, style: widget._controller.tagSelectionStyle,),
-              //       onTap: () {
-              //         // Use insertMention instead of addTag to ensure styles are applied
-              //         _taggerController.addTag(
-              //           id: item.id.toString(),
-              //           name: item.key,
-              //         );
-              //       },
-              //     );
-              //   },
-              // ),
+              child: buildItems(widget.controller.tags,
+                  widget.controller.itemTemplate, dataList),
             ),
-          ),
-          builder: (context, textFieldKey) {
+          )),
+          builder: (context, containerKey) {
             return TextFormField(
-              key: textFieldKey,
+              key: containerKey,
               autofillHints: widget._controller.autofillHints,
               autovalidateMode: widget._controller.validateOnUserInteraction
                   ? AutovalidateMode.onUserInteraction
@@ -632,30 +607,6 @@ class TagInputState extends FormFieldWidgetState<BaseTextInput>
                     return builder.build().call(value);
                   }
                 }
-
-                if (!widget.isPassword()) {
-                  if (widget._controller.inputType == InputType.email.name) {
-                    if (!EmailValidator.validate(value)) {
-                      return Utils.translateWithFallback(
-                          'ensemble.input.validation.invalidEmailType',
-                          'Please enter a valid email address');
-                    }
-                  } else if (widget._controller.inputType ==
-                      InputType.ipAddress.name) {
-                    if (!InputValidator.ipAddress(value)) {
-                      return Utils.translateWithFallback(
-                          'ensemble.input.validation.invalidIPAddressType',
-                          'Please enter a valid IP Address');
-                    }
-                  } else if (widget._controller.inputType ==
-                      InputType.phone.name) {
-                    if (!InputValidator.phone(value)) {
-                      return Utils.translateWithFallback(
-                          'ensemble.input.validation.invalidPhoneType',
-                          "Please enter a valid Phone Number");
-                    }
-                  }
-                }
                 return null;
               },
               textInputAction: widget._controller.keyboardAction,
@@ -666,24 +617,20 @@ class TagInputState extends FormFieldWidgetState<BaseTextInput>
               maxLength: widget._controller.maxLength,
               maxLengthEnforcement: widget._controller.maxLengthEnforcement ??
                   MaxLengthEnforcement.enforced,
-              enableSuggestions: !widget.isPassword(),
-              autocorrect: !widget.isPassword(),
+              enableSuggestions: true,
+              autocorrect: true,
               controller: widget._taggerController,
               focusNode: focusNode,
               enabled: isEnabled(),
               readOnly: widget._controller.readOnly == true,
               enableInteractiveSelection: widget._controller.selectable,
-              // onTap: () => showOverlay(context),
               onTapOutside: (_) => removeOverlayAndUnfocus(),
               onFieldSubmitted: (value) {
-                final formattedText = widget._taggerController.formattedText;
                 widget.controller.submitForm(context);
               },
               onChanged: (String txt) {
                 if (txt != previousText) {
-                  didItChange = true;
                   previousText = txt;
-
                   if (widget._controller.onKeyPress != null) {
                     ScreenController().executeAction(
                         context, widget._controller.onKeyPress!,
@@ -731,23 +678,24 @@ class TagInputState extends FormFieldWidgetState<BaseTextInput>
     if (items != null) {
       results = [];
       for (MentionItem item in items) {
-        results.add(
-          ListTile(
-              leading: item.image != null
-                  ? CircleAvatar(
-                      backgroundImage: NetworkImage(item.image!),
-                    )
-                  : const CircleAvatar(child: Icon(Icons.person)),
-              title: Text(item.label, style: widget._controller.tagSelectionStyle,),
-              onTap: () {
-                // Use insertMention instead of addTag to ensure styles are applied
-                widget._taggerController.addTag(
-                  id: item.id.toString(),
-                  name: item.key,
-                );
-              },
-            )
-        );
+        results.add(ListTile(
+          leading: item.image != null
+              ? CircleAvatar(
+                  backgroundImage: NetworkImage(item.image!),
+                )
+              : const CircleAvatar(child: Icon(Icons.person)),
+          title: Text(
+            item.label,
+            style: widget._controller.tagSelectionStyle,
+          ),
+          onTap: () {
+            // Use insertMention instead of addTag to ensure styles are applied
+            widget._taggerController.addTag(
+              id: item.id.toString(),
+              name: item.key,
+            );
+          },
+        ));
       }
     }
     // then add the templated list
@@ -766,19 +714,23 @@ class TagInputState extends FormFieldWidgetState<BaseTextInput>
                   ? Text(templatedScope.dataContext.eval(itemTemplate.label!))
                   : templatedScope
                       .buildWidgetFromDefinition(itemTemplate.labelWidget));
-          results.add(
-            ListTile(
-              title: labelWidget,
-              // value: templatedScope.dataContext.eval(itemTemplate.value),
-              // child: labelWidget
-              onTap: () {
-                      // Use insertMention instead of addTag to ensure styles are applied
-                      widget._taggerController.addTag(
-                        id: templatedScope.dataContext.eval(itemTemplate.value),
-                        name: templatedScope.dataContext.eval(itemTemplate.value)
-                      );
-                    },
-              ));
+          results.add(ListTile(
+            title: labelWidget,
+            hoverColor: Colors.pink,
+            // value: templatedScope.dataContext.eval(itemTemplate.value),
+            onTap: () {
+              // Use insertMention instead of addTag to ensure styles are applied
+              widget._taggerController.addTag(
+                  id: templatedScope.dataContext.eval(itemTemplate.value),
+                  name: templatedScope.dataContext.eval(itemTemplate.label));
+
+              focusNode.requestFocus();
+
+              // WidgetsBinding.instance.addPostFrameCallback((_) {
+              //   widget._taggerController.closeOverlay();
+              // });
+            },
+          ));
         }
       }
     }
