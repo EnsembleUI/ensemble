@@ -565,7 +565,6 @@ class HeaderModel extends Object with HasStyles {
 
   WidgetModel? flexibleBackground;
 }
-
 class FooterItems extends Object with HasStyles {
   final List<WidgetModel> children;
   Map<String, dynamic>? inlineStyles;

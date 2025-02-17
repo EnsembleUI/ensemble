@@ -289,9 +289,9 @@ class PageState extends State<Page>
         scrollableView: true,
         showNavigationIcon: pageModel.runtimeStyles?['showNavigationIcon'],
       );
-      // if (appBar is SliverAppBar) {
+     if (appBar is SliverAppBar) {
       return appBar;
-      //r  }
+     }
     }
     if (hasDrawer) {
       return const SliverAppBar();
@@ -435,11 +435,11 @@ class PageState extends State<Page>
         flexibleSpace: wrapsInFlexible(backgroundWidget),
         expandedHeight: flexibleMaxHeight,
         collapsedHeight: flexibleMinHeight,
-        floating: floating ?? false,
-        pinned: pinned ?? false,
+        floating: floating,
+        pinned: pinned,
 
         // Only enable snap if floating is true
-        snap: (floating ?? false) ? (snapped ?? false) : false,
+        snap: floating ? snapped : false,
       );
     } else {
       return AppBar(
@@ -904,7 +904,6 @@ class RenderStickySliver extends RenderSliverSingleBoxAdapter {
   void performLayout() {
     final double scrollOffset = constraints.scrollOffset;
     final double maxExtent = height;
-    bool repaint = false;
 
     // Progress of the scroll (from 0 to 1)
     double progress = (scrollOffset / maxExtent).clamp(0.0, 1.0);
