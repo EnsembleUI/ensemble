@@ -1,3 +1,5 @@
+## 1.1.23
+
 ## 1.1.22
 
  - **REFACTOR**: remove no internet widget. ([e03359b2](https://github.com/ensembleUI/ensemble/commit/e03359b2dd6b1290bea39c71c69e2a3d5ad27c13))
