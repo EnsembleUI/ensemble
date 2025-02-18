@@ -82,8 +82,6 @@ class InputWrapper extends StatelessWidget {
         MergeSemantics(
           child: Semantics(
               label: controller.label,
-              hint: controller.description,
-              textField: true,
               child: widget,
             ),
         ),
