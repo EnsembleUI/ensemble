@@ -69,7 +69,7 @@ class InputWrapper extends StatelessWidget {
         if (shouldShowLabel && controller.label != null && !isFloatLabel)
           Container(
             margin: const EdgeInsets.only(bottom: 8.0),
-            child: Text(
+            child:  Text(
               controller.label!,
               // use our labelStyle and fallback to the parent Form's labelStyle
               style: controller.labelStyle ??
@@ -77,11 +77,21 @@ class InputWrapper extends StatelessWidget {
                   Theme.of(context).inputDecorationTheme.labelStyle,
             ),
           ),
-        widget,
+
+        // semantics for whatever text input comes through
+        MergeSemantics(
+          child: Semantics(
+              label: controller.label,
+              hint: controller.description,
+              textField: true,
+              child: widget,
+            ),
+        ),
+
         if (shouldShowLabel && controller.description != null)
           Container(
             margin: const EdgeInsets.only(top: 12.0),
-            child: Text(controller.description!),
+            child:  Text(controller.description!),
           ),
       ],
     );
