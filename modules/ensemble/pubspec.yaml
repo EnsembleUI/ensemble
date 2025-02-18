@@ -61,7 +61,7 @@ dependencies:
   otp_pin_field:
     git:
       url: https://github.com/EnsembleUI/ensemble.git
-      ref: main
+      ref: flutter_3_29_upgrade_fix
       path: modules/otp_pin_field
   form_validator: ^2.1.1
   flutter_svg: ^2.0.7
