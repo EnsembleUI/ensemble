@@ -85,6 +85,8 @@ class EnsembleMapWidget extends StatefulWidget
           _controller.toolbarRight = Utils.optionalInt(value, min: 0),
 
       'mapType': (value) => _controller.mapType = value,
+      'fixedMarker': (value) =>
+          _controller.fixedMarker = Utils.getBool(value, fallback: false),
       'markers': (markerData) => setMarkers(markerData),
       'scrollableMarkerOverlay': (value) => _controller
               .scrollableMarkerOverlay =
@@ -184,6 +186,8 @@ class MyController extends WidgetController with LocationCapability {
   bool scrollEnabled = true;
   bool tiltEnabled = true;
   bool zoomEnabled = true;
+
+  bool fixedMarker = false;
 
   // toolbar has multiple button options
   bool showToolbar = true;
