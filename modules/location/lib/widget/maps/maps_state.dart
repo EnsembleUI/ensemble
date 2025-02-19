@@ -264,6 +264,10 @@ class EnsembleMapState extends MapsActionableState
             position: markerPayload.latLng,
             icon: markerAsset ?? BitmapDescriptor.defaultMarker,
             consumeTapEvents: true,
+            draggable: widget.controller.draggableMarker,
+            onDrag: (latLng) {
+              _moveCamera(latLng);
+            },
             onTap: () {
               _selectMarker(markerId);
 
@@ -618,6 +622,10 @@ class EnsembleMapState extends MapsActionableState
           markerId: const MarkerId("fixed_marker"),
           position: _fixedMarker.position,
           icon: _fixedMarker.icon ?? BitmapDescriptor.defaultMarker,
+          draggable: widget.controller.draggableMarker,
+          onDrag: (position) {
+            _moveCamera(position);
+          },
         ));
       } else {
         if (markerPayload.marker != null) {
