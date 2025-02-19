@@ -189,7 +189,9 @@ class MyController extends WidgetController with LocationCapability {
   bool tiltEnabled = true;
   bool zoomEnabled = true;
 
+  // Determines whether the marker remains fixed at the center of the map when the user moves the map.
   bool fixedMarker = false;
+  // Determines whether the marker can be dragged by the user.
   bool draggableMarker = false;
 
   // toolbar has multiple button options

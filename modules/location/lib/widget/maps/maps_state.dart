@@ -12,7 +12,6 @@ import 'package:ensemble/layout/templated.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/debouncer.dart';
 import 'package:ensemble/util/utils.dart';
-import 'package:ensemble/widget/shape.dart';
 import 'package:ensemble_location/location_manager.dart';
 import 'package:ensemble_location/widget/maps/custom_marker_pin.dart';
 import 'package:ensemble_location/widget/maps/map_actions.dart';
@@ -627,10 +626,8 @@ class EnsembleMapState extends MapsActionableState
             _moveCamera(position);
           },
         ));
-      } else {
-        if (markerPayload.marker != null) {
-          markers.add(markerPayload.marker!);
-        }
+      } else if (markerPayload.marker != null) {
+        markers.add(markerPayload.marker!);
       }
     }
 
