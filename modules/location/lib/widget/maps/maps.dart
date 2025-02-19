@@ -85,10 +85,10 @@ class EnsembleMapWidget extends StatefulWidget
           _controller.toolbarRight = Utils.optionalInt(value, min: 0),
 
       'mapType': (value) => _controller.mapType = value,
-      'fixedMarker': (value) =>
-          _controller.fixedMarker = Utils.getBool(value, fallback: false),
-      'draggableMarker': (value) =>
-          _controller.draggableMarker = Utils.getBool(value, fallback: false),
+      'fixedMarker': (value) => _controller.fixedMarker =
+          Utils.getBool(value, fallback: _controller.fixedMarker),
+      'draggableMarker': (value) => _controller.draggableMarker =
+          Utils.getBool(value, fallback: _controller.draggableMarker),
       'markers': (markerData) => setMarkers(markerData),
       'scrollableMarkerOverlay': (value) => _controller
               .scrollableMarkerOverlay =
