@@ -233,7 +233,6 @@ class WebViewState extends EWidgetState<EnsembleWebView> with CookieMethods {
               () => widget.controller.error = "Error loading html content");
         },
         onCreateWindow: (controller, createWindowAction) async {
-          print('onCreateWindow: ${createWindowAction.request.url}');
           // Get the URL from the creation request
           final url = createWindowAction.request.url?.toString();
           if (url != null) {
@@ -244,8 +243,6 @@ class WebViewState extends EWidgetState<EnsembleWebView> with CookieMethods {
         },
         shouldOverrideUrlLoading: (controller, navigationAction) async {
           final url = navigationAction.request.url?.toString() ?? '';
-          print('shouldOverrideUrlLoading: $url');
-          // Rest of your existing navigation handling
           WebViewNavigationEvent event = WebViewNavigationEvent(widget, url);
           if (widget.controller.onNavigationRequest != null) {
             ScreenController().executeAction(
