@@ -4,6 +4,33 @@ import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 abstract class AuthContextManager {
   Future<AuthenticatedUser?> getSignedInUser();
   Future<void> signOut();
+
+  Future<void> sendVerificationCode({
+    required String provider,
+    required String method,
+    required String phoneNumber,
+    required Function(String verificationId, int? resendToken) onSuccess,
+    required Function(String error) onError,
+  });
+
+  Future<AuthenticatedUser?> validateVerificationCode({
+    required String provider,
+    required String method,
+    required String verificationId,
+    required String smsCode,
+    required Function(String error) onError,
+    required Function(AuthenticatedUser, String idToken) onSuccess,
+    required Function(String) onVerificationFailure,
+  });
+
+  Future<void> resendVerificationCode({
+    required String provider,
+    required String method,
+    required String phoneNumber,
+    required int resendToken,
+    required Function(String verificationId, int? resendToken) onSuccess,
+    required Function(String error) onError,
+  });
 }
 
 class AuthContextManagerStub implements AuthContextManager {
@@ -19,6 +46,42 @@ class AuthContextManagerStub implements AuthContextManager {
   @override
   Future<void> signOut() {
     throw UnimplementedError();
+  }
+
+  @override
+  Future<void> sendVerificationCode({
+    required String provider,
+    required String method,
+    required String phoneNumber,
+    required Function(String verificationId, int? resendToken) onSuccess,
+    required Function(String error) onError,
+  }) {
+    throw RuntimeError('Auth is not enabled.');
+  }
+
+  @override
+  Future<AuthenticatedUser?> validateVerificationCode({
+    required String provider,
+    required String method,
+    required String verificationId,
+    required String smsCode,
+    required Function(String error) onError,
+    required Function(AuthenticatedUser, String idToken) onSuccess,
+    required Function(String) onVerificationFailure,
+  }) {
+    throw RuntimeError('Auth is not enabled.');
+  }
+
+  @override
+  Future<void> resendVerificationCode({
+    required String provider,
+    required String method,
+    required String phoneNumber,
+    required int resendToken,
+    required Function(String verificationId, int? resendToken) onSuccess,
+    required Function(String error) onError,
+  }) {
+    throw RuntimeError('Auth is not enabled.');
   }
 }
 
@@ -77,6 +140,7 @@ class AuthenticatedUser with Invokable {
       'email': () => email,
       'photo': () => photo,
       'data': () => data,
+      'phoneNumber': () => phoneNumber,
     };
   }
 

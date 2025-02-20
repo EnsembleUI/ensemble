@@ -44,7 +44,7 @@ import 'package:ensemble/widget/input/dropdown.dart';
 import 'package:ensemble/widget/input/form_date.dart';
 import 'package:ensemble/widget/input/form_textfield.dart';
 import 'package:ensemble/widget/input/form_time.dart';
-import 'package:ensemble/widget/input/slider.dart';
+import 'package:ensemble/widget/input/slider/slider.dart';
 import 'package:ensemble/widget/loading_container.dart';
 import 'package:ensemble/widget/lottie/lottie.dart';
 import 'package:ensemble/widget/markdown.dart';
@@ -59,12 +59,11 @@ import 'package:ensemble/widget/stub_widgets.dart';
 import 'package:ensemble/widget/switch.dart';
 import 'package:ensemble/widget/text.dart';
 import 'package:ensemble/widget/toggle_button.dart';
-import 'package:ensemble/widget/tooltip.dart';
 import 'package:ensemble/widget/video.dart';
 import 'package:ensemble/widget/slidable.dart';
 import 'package:ensemble/widget/accordion.dart';
 import 'package:ensemble/widget/visualization/barchart.dart';
-import 'package:ensemble/widget/visualization/chart_js.dart';
+import 'package:ensemble/widget/visualization/chart_js/chart_js.dart';
 import 'package:ensemble/widget/visualization/line_area_chart.dart';
 import 'package:ensemble/widget/visualization/topology_chart.dart';
 import 'package:ensemble/widget/webview/webview.dart';
@@ -139,7 +138,6 @@ class WidgetRegistry {
         PopupMenu.type: () => PopupMenu(),
         EnsembleCalendar.type: () => EnsembleCalendar(),
         Countdown.type: () => Countdown(),
-        ToolTip.type: () => ToolTip(),
         EnsembleAccordion.type: () => EnsembleAccordion(),
 
         // form fields

@@ -61,9 +61,9 @@ public final class GeneratedPluginRegistrant {
       Log.e(TAG, "Error registering plugin firebase_messaging, io.flutter.plugins.firebase.messaging.FlutterFirebaseMessagingPlugin", e);
     }
     try {
-      flutterEngine.getPlugins().add(new fr.g123k.flutterappbadger.FlutterAppBadgerPlugin());
+      flutterEngine.getPlugins().add(new fr.ppprakhar.flutterappbadger.FlutterAppBadgerPlugin());
     } catch (Exception e) {
-      Log.e(TAG, "Error registering plugin flutter_app_badger, fr.g123k.flutterappbadger.FlutterAppBadgerPlugin", e);
+      Log.e(TAG, "Error registering plugin flutter_app_badger, fr.ppprakhar.flutterappbadger.FlutterAppBadgerPlugin", e);
     }
     try {
       flutterEngine.getPlugins().add(new com.dexterous.flutterlocalnotifications.FlutterLocalNotificationsPlugin());
@@ -119,6 +119,11 @@ public final class GeneratedPluginRegistrant {
       flutterEngine.getPlugins().add(new com.kasem.receive_sharing_intent.ReceiveSharingIntentPlugin());
     } catch (Exception e) {
       Log.e(TAG, "Error registering plugin receive_sharing_intent, com.kasem.receive_sharing_intent.ReceiveSharingIntentPlugin", e);
+    }
+    try {
+      flutterEngine.getPlugins().add(new com.emrys.rjsniffer.rjsniffer.RjsnifferPlugin());
+    } catch (Exception e) {
+      Log.e(TAG, "Error registering plugin root_jailbreak_sniffer, com.emrys.rjsniffer.rjsniffer.RjsnifferPlugin", e);
     }
     try {
       flutterEngine.getPlugins().add(new dev.fluttercommunity.plus.sensors.SensorsPlugin());

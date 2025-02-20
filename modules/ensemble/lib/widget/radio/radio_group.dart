@@ -41,7 +41,10 @@ class RadioGroup extends StatefulWidget
 
   @override
   Map<String, Function> methods() {
-    return {};
+    return {
+      'focus': () => _controller.radioGroupAction?.focusInputField(),
+      'unfocus': () => _controller.radioGroupAction?.unfocusInputField(),
+    };
   }
 
   @override
@@ -73,7 +76,12 @@ class RadioGroup extends StatefulWidget
   }
 }
 
+mixin RadioGroupAction on FormFieldWidgetState<RadioGroup> {
+  void focusInputField();
+  void unfocusInputField();
+}
 class RadioGroupController extends FormFieldController {
+  RadioGroupAction? radioGroupAction;
   dynamic selectedValue;
 
   // list of string for items
@@ -101,18 +109,63 @@ class RadioGroupController extends FormFieldController {
 }
 
 class RadioGroupState extends FormFieldWidgetState<RadioGroup>
-    with TemplatedWidgetState {
+    with RadioGroupAction, TemplatedWidgetState {
   List? itemTemplateData;
+  FocusNode focusNode = FocusNode();
+
+  @override
+  void initState() {
+    super.initState();
+    focusNode.addListener(_handleFocusChange);
+  }
+
+  @override
+  void dispose() {
+    focusNode.removeListener(_handleFocusChange);
+    focusNode.dispose();
+    super.dispose();
+  }
+
+  void _handleFocusChange() {
+      // If gaining focus, scroll into view
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          final context = validatorKey.currentContext;
+          if (context != null) {
+            Scrollable.ensureVisible(
+              context,
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeInOut,
+              alignment: 0.5,
+            );
+          }
+        });
+      
+  }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    widget.controller.radioGroupAction = this;
 
     if (widget._controller.itemTemplate != null) {
       registerItemTemplate(context, widget._controller.itemTemplate!,
           onDataChanged: (data) {
         setState(() => itemTemplateData = data);
       });
+    }
+  }
+
+  @override
+  void focusInputField() {
+    if (!focusNode.hasFocus) {
+      focusNode.requestFocus();
+    }
+  }
+
+  @override
+  void unfocusInputField() {
+    if (focusNode.hasFocus) {
+      focusNode.unfocus();
     }
   }
 
@@ -154,12 +207,14 @@ class RadioGroupState extends FormFieldWidgetState<RadioGroup>
           if (widget._controller.required &&
               widget._controller.selectedValue == null) {
             return Utils.translateWithFallback(
-                'ensemble.input.required', 'This field is required');
+                'ensemble.input.required', widget._controller.requiredMessage ?? 'This field is required');
           }
           return null;
         },
         builder: (FormFieldState<String> field) {
-          return InputDecorator(
+          return Focus(
+            focusNode: focusNode,
+            child: InputDecorator(
               decoration: inputDecoration.copyWith(
                   contentPadding: EdgeInsets.zero,
                   filled: false,
@@ -167,8 +222,10 @@ class RadioGroupState extends FormFieldWidgetState<RadioGroup>
                   enabledBorder: InputBorder.none,
                   disabledBorder: InputBorder.none,
                   focusedBorder: InputBorder.none,
-                  errorText: field.errorText),
-              child: rtn);
+                  errorText: field.errorText,
+                  errorStyle: widget._controller.errorStyle ?? Theme.of(context).inputDecorationTheme.errorStyle),
+              child: rtn),
+          );
         },
       ),
     );

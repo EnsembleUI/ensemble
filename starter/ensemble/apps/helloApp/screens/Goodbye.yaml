@@ -1,0 +1,15 @@
+View:
+  header:
+    title: Goodbye
+  body:
+    Column:
+      children:
+        - Text:
+            styles: { fontSize: 20 }
+            text: See you later
+
+        - Button:
+            label: Go Home
+            onTap:
+               navigateScreen:
+                  name: Hello Home

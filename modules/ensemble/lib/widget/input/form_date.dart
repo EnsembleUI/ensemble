@@ -51,6 +51,8 @@ class Date extends StatefulWidget
       'initialValue': (value) => _controller.value ??= Utils.getDate(value),
       'firstDate': (value) => _controller.firstDate = Utils.getDate(value),
       'lastDate': (value) => _controller.lastDate = Utils.getDate(value),
+      'showClearIcon': (shouldShow) =>
+          _controller.showClearIcon = Utils.getBool(shouldShow, fallback: true),
       'showCalendarIcon': (shouldShow) =>
           _controller.showCalendarIcon = Utils.optionalBool(shouldShow),
       'onChange': (definition) => _controller.onChange =
@@ -67,6 +69,7 @@ class DateController extends FormFieldController with HasTextPlaceholder {
   DateTime? firstDate;
   DateTime? lastDate;
 
+  bool? showClearIcon;
   bool? showCalendarIcon;
   EnsembleAction? onChange;
 }
@@ -91,7 +94,7 @@ class DateState extends FormFieldWidgetState<Date> {
               if (widget._controller.required &&
                   widget._controller.value == null) {
                 return Utils.translateWithFallback(
-                    'ensemble.input.required', 'This field is required');
+                    'ensemble.input.required', widget._controller.requiredMessage ?? 'This field is required');
               }
               return null;
             },
@@ -102,6 +105,7 @@ class DateState extends FormFieldWidgetState<Date> {
                       isEmpty: widget._controller.value == null,
                       decoration: inputDecoration.copyWith(
                           errorText: field.errorText,
+                          errorStyle: widget._controller.errorStyle ?? Theme.of(context).inputDecorationTheme.errorStyle,
                           hintText: widget._controller.placeholder ??
                               widget._controller.hintText ??
                               Utils.translateWithFallback(
@@ -116,15 +120,17 @@ class DateState extends FormFieldWidgetState<Date> {
                                       .getInputIconSize(context)
                                       .toDouble())
                               : null),
-                      child: ClearableInput(
-                          text: selectedValue,
-                          textStyle: formFieldTextStyle,
-                          enabled: widget._controller.enabled ?? true,
-                          onCleared: () {
-                            setState(() {
-                              widget._controller.value = null;
-                            });
-                          })));
+                      child: widget._controller.showClearIcon != false
+                          ? ClearableInput(
+                              text: selectedValue,
+                              textStyle: formFieldTextStyle,
+                              enabled: widget._controller.enabled ?? true,
+                              onCleared: () {
+                                setState(() {
+                                  widget._controller.value = null;
+                                });
+                              })
+                          : Text(selectedValue, style: formFieldTextStyle)));
 
               if (!isEnabled()) {
                 rtn = Opacity(

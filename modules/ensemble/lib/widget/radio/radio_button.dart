@@ -43,6 +43,8 @@ class RadioButton extends StatefulWidget
             _controller.activeColor = Utils.getColor(color),
         'inactiveColor': (color) =>
             _controller.inactiveColor = Utils.getColor(color),
+        'onChange': (definition) => _controller.onChange =
+            EnsembleAction.from(definition, initiator: this),
       };
 
   @override
@@ -57,6 +59,8 @@ class RadioController extends FormFieldController {
   Color? activeColor;
   Color? inactiveColor;
   int? size;
+
+  EnsembleAction? onChange;
 }
 
 class RadioState extends FormFieldWidgetState<RadioButton> {
@@ -83,7 +87,7 @@ class RadioState extends FormFieldWidgetState<RadioButton> {
           if (widget.controller.required &&
               radioButtonController.selectedValue == null) {
             return Utils.translateWithFallback(
-                'ensemble.input.required', 'This field is required');
+                'ensemble.input.required', widget._controller.requiredMessage ?? 'This field is required');
           }
           return null;
         },
@@ -96,6 +100,7 @@ class RadioState extends FormFieldWidgetState<RadioButton> {
             disabledBorder: InputBorder.none,
             focusedBorder: InputBorder.none,
             errorText: field.errorText,
+            errorStyle: widget._controller.errorStyle ?? Theme.of(context).inputDecorationTheme.errorStyle,
           ),
           child: ChangeNotifierProvider(
             create: (context) => radioButtonController,
@@ -103,7 +108,18 @@ class RadioState extends FormFieldWidgetState<RadioButton> {
               builder: (context, ref, child) => StyledRadio(
                 value: widget.controller.value,
                 groupValue: ref.selectedValue,
-                onChanged: (value) => ref.selectedValue = value,
+                onChanged: isEnabled()
+                  ? (value) {
+                      ref.selectedValue = value;
+                      if (widget._controller.onChange != null) {
+                        ScreenController().executeAction(
+                          context,
+                          widget._controller.onChange!,
+                          event: EnsembleEvent(widget, data: {'selectedValue': value}),
+                        );
+                      }
+                    }
+                  : null,
                 activeColor: widget._controller.activeColor,
                 inactiveColor: widget._controller.inactiveColor,
               ),

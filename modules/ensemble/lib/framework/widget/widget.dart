@@ -75,6 +75,16 @@ abstract class EWidgetState<W extends HasController>
             child: rtn);
       }
 
+      // add tooltip handling if tooltip message is specified
+      if (widgetController.toolTip != null) {
+        rtn = Utils.getTooltipWidget(
+          context,
+          rtn,
+          widgetController.toolTip,
+          widgetController
+        );
+      }
+
       // in Web, capture the pointer if overlay on htmlelementview like Maps
       if (widgetController.captureWebPointer == true) {
         rtn = PointerInterceptor(child: rtn);
@@ -88,7 +98,10 @@ abstract class EWidgetState<W extends HasController>
       // handle visibility
       if (widgetController.visibilityTransitionDuration != null) {
         rtn = AnimatedOpacity(
-            opacity: widgetController.visible != false ? 1 : 0,
+            // If visible, apply opacity if specified, else default to 1
+            opacity: widgetController.visible != false
+                ? (Utils.getValidOpacity(widgetController.opacity ?? 1) ?? 1)
+                : 0,
             duration: widgetController.visibilityTransitionDuration!,
             child: rtn);
       }
@@ -96,6 +109,16 @@ abstract class EWidgetState<W extends HasController>
       // since we don't want this on all widgets unnecessary
       else if (widgetController.visible != null) {
         rtn = Visibility(visible: widgetController.visible!, child: rtn);
+      }
+
+      // Handle standalone opacity
+      // Apply only if visibilityTransitionDuration is NOT set (to avoid double wrapping)
+      if (widgetController.visibilityTransitionDuration == null &&
+          widgetController.opacity != null) {
+        rtn = Opacity(
+          opacity: Utils.getValidOpacity(widgetController.opacity!) ?? 1,
+          child: rtn,
+        );
       }
 
       // Note that Positioned or expanded below has to be used directly inside

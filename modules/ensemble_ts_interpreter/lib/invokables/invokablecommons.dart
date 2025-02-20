@@ -94,7 +94,39 @@ class InvokableObject extends Object with Invokable {
     return {};
   }
 }
+// Exception class to represent custom JavaScript exceptions
+class JSCustomException with Invokable implements Exception  {
+  final dynamic value;
+  JSCustomException(this.value);
 
+  @override
+  Map<String, Function> getters() {
+    return {
+      'message': () {
+        if (value is JSCustomException) {
+          return value.value;
+        }
+        return value;
+      }
+    };
+  }
+
+  @override
+  Map<String, Function> methods() {
+    return {
+      'init': ([message]) => JSCustomException(message)
+    };
+  }
+
+  @override
+  Map<String, Function> setters() {
+    return {};
+  }
+  @override
+  String toString() {
+    return value;
+  }
+}
 class StaticDate extends Object with Invokable {
   @override
   Map<String, Function> getters() {
@@ -205,15 +237,15 @@ class Date extends Object with Invokable, SupportsPrimitiveOperations {
 
   Map<String, Function> getters() {
     return {
-      'time': () => dateTime.millisecondsSinceEpoch,
-      'year': () => dateTime.year,
-      'month': () => dateTime.month - 1, // JavaScript months are zero-based
-      'day': () => dateTime.day,
-      'weekday': () => dateTime.weekday % 7, // JavaScript days are zero-based
-      'hour': () => dateTime.hour,
-      'minute': () => dateTime.minute,
-      'second': () => dateTime.second,
-      'millisecond': () => dateTime.millisecond,
+      'time': () => dateTime.toLocal().millisecondsSinceEpoch,
+      'year': () => dateTime.toLocal().year,
+      'month': () => dateTime.toLocal().month - 1, // JavaScript months are zero-based
+      'day': () => dateTime.toLocal().day,
+      'weekday': () => dateTime.toLocal().weekday % 7, // JavaScript days are zero-based
+      'hour': () => dateTime.toLocal().hour,
+      'minute': () => dateTime.toLocal().minute,
+      'second': () => dateTime.toLocal().second,
+      'millisecond': () => dateTime.toLocal().millisecond,
       'timezoneOffset': () => -dateTime.timeZoneOffset.inMinutes,
       'isoString': () => dateTime.toUtc().toIso8601String(),
       'localDateString': () => dateTime.toLocal().toString().split(' ')[0],
@@ -266,15 +298,15 @@ class Date extends Object with Invokable, SupportsPrimitiveOperations {
 
   Map<String, Function> methods() {
     return {
-      'getTime': () => dateTime.millisecondsSinceEpoch,
-      'getFullYear': () => dateTime.year,
-      'getMonth': () => dateTime.month - 1, // JavaScript months are zero-based
-      'getDate': () => dateTime.day,
-      'getDay': () => dateTime.weekday % 7, // JavaScript days are zero-based
-      'getHours': () => dateTime.hour,
-      'getMinutes': () => dateTime.minute,
-      'getSeconds': () => dateTime.second,
-      'getMilliseconds': () => dateTime.millisecond,
+      'getTime': () => dateTime.toLocal().millisecondsSinceEpoch,
+      'getFullYear': () => dateTime.toLocal().year,
+      'getMonth': () => dateTime.toLocal().month - 1, // JavaScript months are zero-based
+      'getDate': () => dateTime.toLocal().day,
+      'getDay': () => dateTime.toLocal().weekday % 7, // JavaScript days are zero-based
+      'getHours': () => dateTime.toLocal().hour,
+      'getMinutes': () => dateTime.toLocal().minute,
+      'getSeconds': () => dateTime.toLocal().second,
+      'getMilliseconds': () => dateTime.toLocal().millisecond,
       'getTimezoneOffset': () => -dateTime.timeZoneOffset.inMinutes,
       'toISOString': () => dateTime.toUtc().toIso8601String(),
       'toLocaleDateString': _toLocaleDateString,

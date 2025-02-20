@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/ensemble_widget.dart';
 import 'package:ensemble/framework/error_handling.dart';
+import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/framework/stub/ensemble_chat.dart';
 import 'package:ensemble/screen_controller.dart';
@@ -36,25 +37,51 @@ class EnsembleChatState extends EnsembleWidgetState<EnsembleChatImpl> {
   }
 
   @override
+  void dispose() {
+    for (var message in widget.controller.messages.value) {
+      message.widget = null;
+    }
+    super.dispose();
+  }
+
+  @override
   Widget buildWidget(BuildContext context) {
     return ValueListenableBuilder<List<InternalMessage>>(
       valueListenable: widget.controller.messages,
       builder: (context, messages, child) {
         return ChatPage(
-          messages: messages,
+          messages: messages.map((message) {
+            if (message.inlineWidget != null && message.widget == null) {
+              message.widget =
+                  buildWidgetsFromTemplate(context, message.inlineWidget);
+            }
+            return message;
+          }).toList(),
           onMessageSend: sendMessage,
+          controller: widget.controller,
         );
       },
     );
   }
 
-  Future<void> sendMessage(String newMessage) async {
+  Future<void> sendMessage(String newMessage, {bool visible = true}) async {
     if (widget.controller.isLocalChat) {
       widget.controller.addMessage({
         widget.controller.getMessageKey: newMessage,
         "role": MessageRole.user.name,
+        "visible": visible,
       });
 
+      // Execute onMessageSend first
+      final scope = getScopeManager();
+      final newScope = scope?.createChildScope();
+      if (newScope != null && widget.controller.onMessageSend != null && mounted) {
+        newScope.dataContext.addDataContextById('message', newMessage);
+        await ScreenController().executeActionWithScope(
+            context, newScope, widget.controller.onMessageSend!);
+      }
+      
+      widget.controller.isLoading.value = true;
       try {
         final response = await widget.controller.client?.complete(newMessage);
         if (response == null) return;
@@ -62,20 +89,24 @@ class EnsembleChatState extends EnsembleWidgetState<EnsembleChatImpl> {
         handleMessageIntent(choice);
       } on Exception catch (e) {
         print("EnsembleChat: $e");
+      } finally {
+        widget.controller.isLoading.value = false;
       }
-    }
-    final scope = getScopeManager();
-    final newScope = scope?.createChildScope();
-    if (newScope == null || widget.controller.onMessageSend == null) {
-      return;
-    }
-    newScope.dataContext.addDataContextById('message', newMessage);
-    if (!mounted) return;
+    } else {
+      final scope = getScopeManager();
+      final newScope = scope?.createChildScope();
+      if (newScope == null || widget.controller.onMessageSend == null) {
+        return;
+      }
+      newScope.dataContext.addDataContextById('message', newMessage);
+      if (!mounted) return;
 
-    ScreenController().executeActionWithScope(
-        context, newScope, widget.controller.onMessageSend!);
+      ScreenController().executeActionWithScope(
+          context, newScope, widget.controller.onMessageSend!);
+    }
+    
   }
-
+  
   void handleMessageIntent(Choice? choice) {
     switch (choice?.messageType) {
       case MessageType.message:
@@ -84,6 +115,7 @@ class EnsembleChatState extends EnsembleWidgetState<EnsembleChatImpl> {
           "role": MessageRole.assistant.name,
           "choice": choice?.toMap(),
         });
+        _dispatchMessageReceived(choice?.getMessage, MessageRole.assistant.name, choice);
         break;
 
       case MessageType.inlineWidget:
@@ -95,6 +127,7 @@ class EnsembleChatState extends EnsembleWidgetState<EnsembleChatImpl> {
           "role": MessageRole.assistant.name,
           "choice": choice?.toMap(),
         });
+        _dispatchMessageReceived(choice?.tool['function']['name'], MessageRole.assistant.name, choice);
 
       case MessageType.action:
         if (!mounted) return;
@@ -104,6 +137,7 @@ class EnsembleChatState extends EnsembleWidgetState<EnsembleChatImpl> {
           "role": MessageRole.system.name,
           "choice": choice?.toMap(),
         });
+        _dispatchMessageReceived(choice?.tool['function']['name'], MessageRole.system.name, choice);
 
         final action = EnsembleAction.from(choice?.tool['function']['tool']);
         if (action == null) return;
@@ -111,12 +145,27 @@ class EnsembleChatState extends EnsembleWidgetState<EnsembleChatImpl> {
       default:
     }
   }
+
+  void _dispatchMessageReceived(dynamic content, String role, Choice? choice) {
+    if (!mounted || widget.controller.onMessageReceived == null) return;
+    
+    ScreenController().executeAction(
+      context, 
+      widget.controller.onMessageReceived!,
+      event: EnsembleEvent(widget.controller, data: {
+        'content': content,
+        'role': role,
+        'response': choice?.toMap()
+      })
+    );
+  }
 }
 
 class EnsembleChatController extends EnsembleBoxController {
   User? user;
   dynamic initialMessage;
   EnsembleAction? onMessageSend;
+  EnsembleAction? onMessageReceived;
   ValueNotifier<List<InternalMessage>> messages = ValueNotifier([]);
 
   String? inlineWidgetKey;
@@ -125,11 +174,31 @@ class EnsembleChatController extends EnsembleBoxController {
   Map<String, dynamic>? config;
   ChatType type = ChatType.local;
 
-  Future<void> Function(String newMessage)? sendMessage;
+  Color? backgroundColor;
+  Color? textFieldBackgroundColor;
+  Color? iconColor;
+  TextStyle? textFieldTextStyle;
+
+  BubbleStyleComposite? _userBubbleStyle;
+  BubbleStyleComposite get userBubbleStyle =>
+      _userBubbleStyle ??= BubbleStyleComposite(this);
+  set userBubbleStyle(BubbleStyleComposite value) => _userBubbleStyle = value;
+
+  BubbleStyleComposite? _assistantBubbleStyle;
+  BubbleStyleComposite get assistantBubbleStyle =>
+      _assistantBubbleStyle ??= BubbleStyleComposite(this);
+  set assistantBubbleStyle(BubbleStyleComposite value) =>
+      _assistantBubbleStyle = value;
+
+  Future<void> Function(String newMessage, {bool visible})? sendMessage;
 
   bool get isLocalChat => type == ChatType.local;
 
   AIClient? client;
+
+  bool showLoading = true;
+  dynamic loadingWidget;
+  ValueNotifier<bool> isLoading = ValueNotifier(false);
 
   @override
   Map<String, Function> getters() {
@@ -140,10 +209,11 @@ class EnsembleChatController extends EnsembleBoxController {
   Map<String, Function> methods() {
     return {
       'addMessage': addMessage,
-      'sendMessage': (message) {
+      'sendMessage': (String message, [Map<dynamic, dynamic>? options]) {
         final msg = Utils.optionalString(message);
+        final visible = Utils.getBool(options?['visible'], fallback: true);
         if (msg == null) return;
-        sendMessage?.call(msg);
+        sendMessage?.call(msg, visible: visible);
       },
       'getMessages': () => messages.value.map((e) => e.toMap()).toList(),
     };
@@ -172,11 +242,15 @@ class EnsembleChatController extends EnsembleBoxController {
   Map<String, Function> setters() {
     return {
       'initialMessages': (value) {
-        if (value is! List) return;
-        messages.value
-            .addAll(value.map((data) => InternalMessage.fromMap(data, this)));
+        if (value is! List || messages.value.isNotEmpty) return;
+        messages.value.addAll(value.map((data) {
+          final message = InternalMessage.fromMap(data, this);
+          return message;
+        }));
+        messages.notifyListeners();
       },
       "onMessageSend": (value) => onMessageSend = EnsembleAction.from(value),
+      "onMessageReceived": (value) => onMessageReceived = EnsembleAction.from(value),
       "inlineWidgetKey": (value) =>
           inlineWidgetKey = Utils.optionalString(value),
       "messageKey": (value) => messageKey = Utils.optionalString(value),
@@ -187,6 +261,21 @@ class EnsembleChatController extends EnsembleBoxController {
       },
       "type": (value) =>
           type = ChatType.values.from(value ?? 'local') ?? ChatType.local,
+      'backgroundColor': (value) => backgroundColor = Utils.getColor(value),
+      'padding': (value) =>
+          padding = Utils.getInsets(value, fallback: const EdgeInsets.all(0)),
+      'textFieldBackgroundColor': (value) =>
+          textFieldBackgroundColor = Utils.getColor(value),
+      'textFieldTextStyle': (value) =>
+          textFieldTextStyle = Utils.getTextStyle(value),
+      'iconColor': (value) => iconColor = Utils.getColor(value),
+      'userBubbleStyle': (value) =>
+          userBubbleStyle = BubbleStyleComposite.from(this, value),
+      'assistantBubbleStyle': (value) =>
+          assistantBubbleStyle = BubbleStyleComposite.from(this, value),
+      'showLoading': (value) =>
+          showLoading = Utils.getBool(value, fallback: true),
+      'loadingWidget': (widget) => loadingWidget = widget,
     };
   }
 
@@ -266,11 +355,13 @@ class InternalMessage {
   Widget? widget;
   MessageRole role;
   dynamic rawResponse;
+  final bool visible;
 
   InternalMessage({
     this.content,
     this.inlineWidget,
     required this.role,
+    this.visible = true,
   })  : id = Utils.generateRandomId(8),
         createdAt = DateTime.now();
 
@@ -278,7 +369,10 @@ class InternalMessage {
     final roleData = data.getOrNull("role");
     final role =
         MessageRole.values.firstWhere((element) => element.name == roleData);
-    final message = InternalMessage(role: role);
+    final message = InternalMessage(
+      role: role,
+      visible: data['visible'] ?? true,
+    );
 
     message.content = data.getOrNull(controller.getMessageKey);
     message.inlineWidget = data.getOrNull(controller.getInlineKey);
@@ -297,6 +391,7 @@ class InternalMessage {
       'createdAt': createdAt,
       'payload': payload,
       'role': role.name,
+      'visible': visible,
     };
   }
 }

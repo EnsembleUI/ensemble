@@ -25,6 +25,7 @@ apply plugin: 'com.android.library'
 apply plugin: 'kotlin-android'
 
 android {
+    namespace 'com.shivam.otp_pin_field'
     compileSdkVersion 33
 
     compileOptions {
@@ -51,7 +52,6 @@ android {
 }
 
 dependencies {
-    implementation 'com.google.android.gms:play-services-auth:20.5.0'
+    implementation 'com.google.android.gms:play-services-auth:21.0.0'
     implementation 'com.google.android.gms:play-services-auth-api-phone:18.0.1'
 }
-

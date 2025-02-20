@@ -1,5 +1,4 @@
 import 'package:ensemble/framework/action.dart';
-import 'package:ensemble/framework/bindings.dart';
 import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/stub/bluetooth.dart';
@@ -46,11 +45,22 @@ class InitializeBluetoothAction extends EnsembleAction {
           ));
     }
 
-    bluetoothManager.init(
-      context: context,
-      initiator: initiator,
-      onDataStream: onDataStream,
-    );
+    try {
+      bluetoothManager.init(
+        context: context,
+        initiator: initiator,
+        onDataStream: onDataStream,
+      );
+    } catch (e) {
+      if (onError != null) {
+        return ScreenController().executeAction(context, onError!,
+            event: EnsembleEvent(
+              initiator,
+              error: 'Error initializing Bluetooth: ${e.toString()}',
+              data: {'status': 'error'},
+            ));
+      }
+    }
   }
 }
 
@@ -90,16 +100,27 @@ class StartScanBluetoothAction extends EnsembleAction {
           ));
     }
 
-    await bluetoothManager.startScan(onScanResult: (data) {
-      if (onDataStream != null) {
-        ScreenController().executeAction(context, onDataStream!,
+    try {
+      await bluetoothManager.startScan(onScanResult: (data) {
+        if (onDataStream != null) {
+          ScreenController().executeAction(context, onDataStream!,
+              event: EnsembleEvent(
+                initiator,
+                data: data,
+              ));
+        }
+        return null;
+      });
+    } catch (e) {
+      if (onError != null) {
+        return ScreenController().executeAction(context, onError!,
             event: EnsembleEvent(
               initiator,
-              data: data,
+              error: 'Error starting Bluetooth scan: ${e.toString()}',
+              data: {'status': 'error'},
             ));
       }
-      return null;
-    });
+    }
   }
 }
 
@@ -150,40 +171,52 @@ class ConnectBluetoothAction extends EnsembleAction {
       BuildContext context, ScopeManager scopeManager) async {
     if (deviceId == null) {
       if (onError != null) {
-        ScreenController().executeAction(context, onDataStream!,
+        return ScreenController().executeAction(context, onError!,
             event: EnsembleEvent(
               initiator,
               error: 'DeviceId is required',
+              data: {'status': 'error'},
             ));
       }
       return;
     }
     final _deviceId = scopeManager.dataContext.eval(deviceId);
-    await bluetoothManager.connect(
-      deviceId: _deviceId,
-      autoConnect: autoConnect,
-      timeout: timeout,
-      onServiceFound: (data) {
-        if (onDataStream != null) {
-          ScreenController().executeAction(context, onDataStream!,
-              event: EnsembleEvent(
-                initiator,
-                data: data,
-              ));
-        }
-        return null;
-      },
-      connectionState: (data) {
-        if (onConnectionStream != null) {
-          ScreenController().executeAction(context, onConnectionStream!,
-              event: EnsembleEvent(
-                initiator,
-                data: {'status': data},
-              ));
-        }
-        return null;
-      },
-    );
+    try {
+      await bluetoothManager.connect(
+        deviceId: _deviceId,
+        autoConnect: autoConnect,
+        timeout: timeout,
+        onServiceFound: (data) {
+          if (onDataStream != null) {
+            ScreenController().executeAction(context, onDataStream!,
+                event: EnsembleEvent(
+                  initiator,
+                  data: data,
+                ));
+          }
+          return null;
+        },
+        connectionState: (data) {
+          if (onConnectionStream != null) {
+            ScreenController().executeAction(context, onConnectionStream!,
+                event: EnsembleEvent(
+                  initiator,
+                  data: {'status': data},
+                ));
+          }
+          return null;
+        },
+      );
+    } catch (e) {
+      if (onError != null) {
+        return ScreenController().executeAction(context, onError!,
+            event: EnsembleEvent(
+              initiator,
+              error: 'Error connecting to Bluetooth device: ${e.toString()}',
+              data: {'status': 'error'},
+            ));
+      }
+    }
   }
 }
 
@@ -222,13 +255,25 @@ class DisconnectBluetoothAction extends EnsembleAction {
     }
     final _deviceId = scopeManager.dataContext.eval(deviceId);
 
-    bluetoothManager.disconnect(deviceId: _deviceId);
+    try {
+      bluetoothManager.disconnect(deviceId: _deviceId);
+    } catch (e) {
+      if (onError != null) {
+        return ScreenController().executeAction(context, onError!,
+            event: EnsembleEvent(
+              initiator,
+              error: 'Error disconnecting Bluetooth device: ${e.toString()}',
+              data: {'status': 'error'},
+            ));
+      }
+    }
   }
 }
 
 class SubscribeBluetoothCharacteristicsAction extends EnsembleAction {
   BluetoothManager bluetoothManager = GetIt.I<BluetoothManager>();
 
+  EnsembleAction? onComplete;
   EnsembleAction? onError;
   EnsembleAction? onDataStream;
 
@@ -238,6 +283,7 @@ class SubscribeBluetoothCharacteristicsAction extends EnsembleAction {
       {super.initiator,
       super.inputs,
       this.onError,
+      this.onComplete,
       this.onDataStream,
       required this.characteristicsId});
 
@@ -251,6 +297,8 @@ class SubscribeBluetoothCharacteristicsAction extends EnsembleAction {
     return SubscribeBluetoothCharacteristicsAction(
       initiator: initiator,
       inputs: Utils.getMap(payload?['inputs']),
+      onComplete:
+          EnsembleAction.from(payload?['onComplete'], initiator: initiator),
       onError: EnsembleAction.from(payload?['onError'], initiator: initiator),
       onDataStream:
           EnsembleAction.from(payload?['onDataStream'], initiator: initiator),
@@ -262,39 +310,66 @@ class SubscribeBluetoothCharacteristicsAction extends EnsembleAction {
       BuildContext context, ScopeManager scopeManager) async {
     if (characteristicsId == null) {
       if (onError != null) {
-        ScreenController().executeAction(context, onError!,
+        return ScreenController().executeAction(context, onError!,
             event: EnsembleEvent(
               initiator,
               error: 'Please pass characteristics ID',
+              data: {'status': 'error'},
             ));
       }
       return null;
     }
 
     final charId = scopeManager.dataContext.eval(characteristicsId);
-    await bluetoothManager.subscribe(charId, (data) {
-      if (onDataStream != null) {
-        ScreenController().executeAction(context, onDataStream!,
+    try {
+      await bluetoothManager.subscribe(
+        charId,
+        (data) {
+          if (onDataStream != null) {
+            ScreenController().executeAction(context, onDataStream!,
+                event: EnsembleEvent(
+                  initiator,
+                  data: data,
+                ));
+          }
+          return null;
+        },
+        backgroundMode: true,
+      );
+
+      if (onComplete != null) {
+        ScreenController().executeAction(context, onComplete!,
             event: EnsembleEvent(
               initiator,
-              data: data,
+              data: {'isListening': true},
             ));
       }
-      return null;
-    });
+    } catch (e) {
+      if (onError != null) {
+        return ScreenController().executeAction(context, onError!,
+            event: EnsembleEvent(
+              initiator,
+              error:
+                  'Error subscribing to Bluetooth characteristics: ${e.toString()}',
+              data: {'status': 'error', 'isListening': false},
+            ));
+      }
+    }
   }
 }
 
 class UnSubscribeBluetoothCharacteristicsAction extends EnsembleAction {
   BluetoothManager bluetoothManager = GetIt.I<BluetoothManager>();
 
+  EnsembleAction? onComplete;
   EnsembleAction? onError;
 
-  final String characteristicsId;
+  final String? characteristicsId;
 
   UnSubscribeBluetoothCharacteristicsAction(
       {super.initiator,
       super.inputs,
+      this.onComplete,
       this.onError,
       required this.characteristicsId});
 
@@ -308,14 +383,35 @@ class UnSubscribeBluetoothCharacteristicsAction extends EnsembleAction {
     return UnSubscribeBluetoothCharacteristicsAction(
       initiator: initiator,
       inputs: Utils.getMap(payload?['inputs']),
+      onComplete:
+          EnsembleAction.from(payload?['onComplete'], initiator: initiator),
       onError: EnsembleAction.from(payload?['onError'], initiator: initiator),
-      characteristicsId: Utils.getString(payload?['id'], fallback: 'fallback'),
+      characteristicsId: Utils.optionalString(payload?['id']),
     );
   }
 
   Future<dynamic> execute(
       BuildContext context, ScopeManager scopeManager) async {
     final charId = scopeManager.dataContext.eval(characteristicsId);
-    await bluetoothManager.unSubscribe(charId);
+    try {
+      final isListening = await bluetoothManager.unSubscribe(charId);
+      if (onComplete != null) {
+        ScreenController().executeAction(context, onComplete!,
+            event: EnsembleEvent(
+              initiator,
+              data: {'isListening': !isListening},
+            ));
+      }
+    } catch (e) {
+      if (onError != null) {
+        return ScreenController().executeAction(context, onError!,
+            event: EnsembleEvent(
+              initiator,
+              error:
+                  'Error unsubscribing from Bluetooth characteristics: ${e.toString()}',
+              data: {'status': 'error'},
+            ));
+      }
+    }
   }
 }

@@ -82,7 +82,8 @@ abstract class SelectOne extends StatefulWidget
     var setters = _controller.textPlaceholderSetters;
     setters.addAll({
       'value': (value) {
-        _controller.textEditingController.value = TextEditingValue(text: (value == null)? '': value.toString());
+        _controller.textEditingController.value =
+            TextEditingValue(text: (value == null) ? '' : value.toString());
         return _controller.maybeValue = value;
       },
       'items': (values) => updateItems(values),
@@ -296,8 +297,24 @@ class SelectOneState extends FormFieldWidgetState<SelectOne>
     });*/
     widget.controller.textEditingController =
         TextEditingController(text: widget.getValue());
+    focusNode.addListener(_handleFocusChange);
 
     super.initState();
+  }
+
+  void _handleFocusChange() {
+      // If gaining focus, scroll into view
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          final context = validatorKey.currentContext;
+          if (context != null) {
+            Scrollable.ensureVisible(
+              context,
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeInOut,
+              alignment: 0.5,
+            );
+          }
+        });
   }
 
   @override
@@ -368,7 +385,7 @@ class SelectOneState extends FormFieldWidgetState<SelectOne>
         validator: (value) {
           if (widget._controller.required && widget.getValue() == null) {
             return Utils.translateWithFallback(
-                'ensemble.input.required', 'This field is required');
+                'ensemble.input.required', widget._controller.requiredMessage ?? 'This field is required');
           }
           return null;
         },
@@ -408,6 +425,7 @@ class SelectOneState extends FormFieldWidgetState<SelectOne>
             )),
         decoration: inputDecoration.copyWith(
           contentPadding: adjustedContentPadding,
+          errorStyle: widget._controller.errorStyle ?? Theme.of(context).inputDecorationTheme.errorStyle,
           labelText: widget.controller.floatLabel == true
               ? widget.controller.label
               : null,
@@ -448,17 +466,22 @@ class SelectOneState extends FormFieldWidgetState<SelectOne>
                         .fillColor, // Background color for the field
                     enabledBorder: getEnabledBorder(),
                     focusedBorder: getSafeFocusedBorder(),
+                    errorStyle: widget._controller.errorStyle ?? Theme.of(context).inputDecorationTheme.errorStyle
                   ),
                   onChanged: (value) {
+                    // Preserve the cursor position
+                    final cursorPosition = fieldTextEditingController.selection;
                     final oldValue = widget._controller.maybeValue;
                     if (oldValue != value) {
                       widget._controller.maybeValue = value;
                       widget.onSelectionChanged(value);
                     }
+                    fieldTextEditingController.selection = cursorPosition;
                   },
                 );
               },
               onSelected: (SelectOneItem selection) {
+                focusNode.unfocus();
                 if (selection is CreateSelectOneItem) {
                   if (widget.controller.onCreateItemTap == null) return;
                   scopeManager?.dataContext
@@ -470,6 +493,8 @@ class SelectOneState extends FormFieldWidgetState<SelectOne>
                 if (kDebugMode) {
                   print('Selected: ${selection.value}');
                 }
+                widget.controller.textEditingController.text =
+                    selection.label ?? selection.value;
               },
               optionsViewBuilder: (BuildContext context,
                   AutocompleteOnSelected<SelectOneItem> onSelected,

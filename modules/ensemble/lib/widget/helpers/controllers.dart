@@ -8,9 +8,11 @@ import 'package:ensemble/model/transform_matrix.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/helpers/box_animation_composite.dart';
+import 'package:ensemble/widget/helpers/tooltip_composite.dart';
 import 'package:ensemble_ts_interpreter/errors.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
 
 import '../../model/capabilities.dart';
 
@@ -105,7 +107,8 @@ class TextStyleComposite extends WidgetCompositeProperty {
         backgroundColor = styleWithFontFamily?.backgroundColor,
         decoration = styleWithFontFamily?.decoration,
         decorationStyle = styleWithFontFamily?.decorationStyle,
-        decorationColor = styleWithFontFamily?.decorationColor ?? styleWithFontFamily?.color,
+        decorationColor =
+            styleWithFontFamily?.decorationColor ?? styleWithFontFamily?.color,
         decorationThickness = styleWithFontFamily?.decorationThickness,
         overflow = styleWithFontFamily?.overflow,
         letterSpacing = styleWithFontFamily?.letterSpacing,
@@ -161,7 +164,8 @@ class TextStyleComposite extends WidgetCompositeProperty {
       'decorationStyle': (value) =>
           decorationStyle = TextDecorationStyle.values.from(value),
       'decorationColor': (value) => decorationColor = Utils.getColor(value),
-      'decorationThickness': (value) => decorationThickness = Utils.optionalDouble(value),
+      'decorationThickness': (value) =>
+          decorationThickness = Utils.optionalDouble(value),
       'overflow': (value) => overflow = TextOverflow.values.from(value),
       'letterSpacing': (value) => letterSpacing = Utils.optionalDouble(value),
       'wordSpacing': (value) => wordSpacing = Utils.optionalDouble(value),
@@ -200,6 +204,8 @@ abstract class WidgetController extends Controller with HasStyles {
   bool? visible;
   Duration? visibilityTransitionDuration; // in seconds
 
+  double? opacity;
+
   TextDirection? textDirection;
 
   int? elevation;
@@ -219,6 +225,9 @@ abstract class WidgetController extends Controller with HasStyles {
   // https://pub.dev/packages/pointer_interceptor
   bool? captureWebPointer;
 
+  // properties for tooltip
+  Map<String, dynamic>? toolTip;
+
   // legacy used to show as the form label if used inside Form
   @Deprecated("don't use anymore")
   String? label;
@@ -236,6 +245,7 @@ abstract class WidgetController extends Controller with HasStyles {
     return {
       'expanded': () => expanded,
       'visible': () => visible != false,
+      'opacity': () => opacity,
       'className': () => className,
       'classList': () => classList,
       'testId': () => testId,
@@ -251,6 +261,7 @@ abstract class WidgetController extends Controller with HasStyles {
       'flex': (value) => flex = Utils.optionalInt(value, min: 1),
       'expanded': (value) => expanded = Utils.getBool(value, fallback: false),
       'visible': (value) => visible = Utils.getBool(value, fallback: true),
+      'opacity': (value) => opacity = Utils.getValidOpacity(value),
       'visibilityTransitionDuration': (value) =>
           visibilityTransitionDuration = Utils.getDuration(value),
       'elevation': (value) =>
@@ -273,7 +284,8 @@ abstract class WidgetController extends Controller with HasStyles {
       'textDirection': (value) => textDirection = Utils.getTextDirection(value),
       'label': (value) => label = Utils.optionalString(value),
       'classList': (value) => classList = value,
-      'className': (value) => className = value
+      'className': (value) => className = value,
+      'tooltip': (value) => toolTip = Utils.getMap(value),
     };
   }
 
@@ -421,6 +433,8 @@ abstract class EnsembleWidgetController extends EnsembleController
   bool? visible;
   Duration? visibilityTransitionDuration; // in seconds
 
+  double? opacity;
+
   TextDirection? textDirection;
 
   int? elevation;
@@ -450,10 +464,15 @@ abstract class EnsembleWidgetController extends EnsembleController
   // https://pub.dev/packages/pointer_interceptor
   bool? captureWebPointer;
 
+  // properties for tooltip
+  Map<String, dynamic>? toolTip;
+
+
   @override
   Map<String, Function> getters() {
     return {
       'visible': () => visible != false,
+      'opacity': () => opacity,
       'className': () => className,
       'classList': () => classList,
       'testId': () => testId,
@@ -468,6 +487,7 @@ abstract class EnsembleWidgetController extends EnsembleController
       'flexMode': (value) => flexMode = FlexMode.values.from(value),
       'flex': (value) => flex = Utils.optionalInt(value, min: 1),
       'visible': (value) => visible = Utils.getBool(value, fallback: true),
+      'opacity': (value) => opacity = Utils.getValidOpacity(value),
       'visibilityTransitionDuration': (value) =>
           visibilityTransitionDuration = Utils.getDuration(value),
       'textDirection': (value) => textDirection = Utils.getTextDirection(value),
@@ -489,8 +509,9 @@ abstract class EnsembleWidgetController extends EnsembleController
       'captureWebPointer': (value) =>
           captureWebPointer = Utils.optionalBool(value),
       'classList': (value) => classList = value,
-      'className': (value) => className = value
-    };
+      'className': (value) => className = value,
+      'tooltip': (value) => toolTip = Utils.getMap(value),
+      };
   }
 
   bool hasPositions() {

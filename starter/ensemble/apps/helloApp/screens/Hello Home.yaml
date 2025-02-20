@@ -1,0 +1,60 @@
+Import:
+  - utils
+  - common
+
+View:
+  # Optional - style the screen
+  styles:
+    scrollableView: true
+
+  # Optional - set the header for the screen
+  header:
+    title: r@title
+  onLoad: |
+    saveName('John','Doe');
+    console.log('name is ='+getName());
+    console.log(env.apiURL)
+    console.log(secrets.testSecret)
+
+  # Specify the body of the screen
+  body:
+    Column:
+      styles:
+        padding: 24
+        gap: 8
+      children:
+        - Text:
+            className: title
+            text: Hello ${ensemble.storage.helloApp.name.first}
+              ${ensemble.storage.helloApp.name.last}
+        - MyCustomWidget1:
+            inputs:
+              inputName: ${ensemble.storage.helloApp.name}
+        - Button:
+            label: Call API in imported library
+            onTap: |-
+              callMockMethod();
+              console.log('name is ='+getName());  
+        - Button:
+            label: Navigate to Goodbye Screen
+            onTap:
+              navigateScreen:
+                name: Goodbye
+        - Image:
+            source: logo.svg
+            styles:
+              width: 200
+              height: 200
+
+Global: |-
+  //var myVar = myButton.label;
+  function globalHello() {
+    console.log('hello');
+  }
+
+API:
+  mockAPI:
+    url: ${env.apiURL}/users/1
+    method: GET
+    onResponse: |-
+      saveName('Michael', 'Jordan');

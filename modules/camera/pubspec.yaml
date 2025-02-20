@@ -4,18 +4,18 @@ version: 0.0.1
 homepage: https://github.com/EnsembleUI/ensemble_camera
 
 environment:
-  sdk: ">=2.17.0 <=3.10.0"
-  flutter: ">=1.17.0"
+  sdk: ">=3.5.0"
+  flutter: ">=3.24.0"
 
 dependencies:
   flutter:
     sdk: flutter
-  camera: ^0.10.5
+  camera: ^0.10.6
   # embed Ensemble as a sibling project
   ensemble:
     git:
       url: https://github.com/EnsembleUI/ensemble.git
-      ref: ensemble-v1.1.0
+      ref: ensemble-v1.1.24
       path: modules/ensemble
   ensemble_ts_interpreter:
     git:
@@ -29,6 +29,8 @@ dependencies:
   sensors_plus: ^3.0.0
   video_player: ^2.6.1
   qr_code_scanner: ^1.0.1
+  path_provider: ^2.1.5
+  share_plus: ^10.1.4
 
 dev_dependencies:
   flutter_test:

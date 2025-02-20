@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
 import 'dart:ui';
-import 'dart:ui' as ui;
 import 'dart:async';
 
 import 'package:device_preview/device_preview.dart';
@@ -24,21 +23,21 @@ import 'package:ensemble/ios_deep_link_manager.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/util/upload_utils.dart';
 import 'package:ensemble/util/utils.dart';
-import 'package:event_bus/event_bus.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:flutter_i18n/flutter_i18n.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_localized_locales/flutter_localized_locales.dart';
-import 'package:intl/intl.dart';
 import 'package:workmanager/workmanager.dart';
 import 'package:yaml/yaml.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 
 const String backgroundUploadTask = 'backgroundUploadTask';
+const String backgroundBluetoothSubscribeTask = 'backgroundBluetoothSubscribeTask';
+
 const String ensembleMethodChannelName = 'com.ensembleui.host.platform';
 GlobalKey<NavigatorState>? externalAppNavigateKey;
+ScrollController? externalScrollController;
 
 @pragma('vm:entry-point')
 void callbackDispatcher() {
@@ -50,14 +49,14 @@ void callbackDispatcher() {
         }
         try {
           final sendPort =
-          IsolateNameServer.lookupPortByName(inputData['taskId']);
+              IsolateNameServer.lookupPortByName(inputData['taskId']);
           final response = await UploadUtils.uploadFiles(
             fieldName: inputData['fieldName'] ?? 'file',
             files: (inputData['files'] as List)
                 .map((e) => File.fromJson(json.decode(e)))
                 .toList(),
             headers:
-            Map<String, String>.from(json.decode(inputData['headers'])),
+                Map<String, String>.from(json.decode(inputData['headers'])),
             method: inputData['method'],
             url: inputData['url'],
             fields: Map<String, String>.from(json.decode(inputData['fields'])),
@@ -85,7 +84,7 @@ void callbackDispatcher() {
             'responseHeaders': response.headers,
           });
         } catch (e) {
-          throw LanguageError('Failed to process backgroud upload task');
+          throw LanguageError('Failed to process background upload task');
         }
         break;
       default:
@@ -107,8 +106,10 @@ class EnsembleApp extends StatefulWidget {
     this.onAppLoad,
     this.forcedLocale,
     GlobalKey<NavigatorState>? navigatorKey,
+    ScrollController? screenScroller,
   }) {
     externalAppNavigateKey = navigatorKey;
+    externalScrollController = screenScroller;
   }
 
   final ScreenPayload? screenPayload;
@@ -141,11 +142,22 @@ class EnsembleAppState extends State<EnsembleApp> with WidgetsBindingObserver {
   // the entire App to reload (e.g. change Locale at runtime)
   Key? appKey;
 
+  bool _hasInternet = true;
+  late final StreamSubscription<List<ConnectivityResult>>
+      _connectivitySubscription;
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     config = initApp();
+
+    // Initialize connectivity listener.
+    _updateConnectivity();
+    _connectivitySubscription = Connectivity()
+        .onConnectivityChanged
+        .listen((_) => _updateConnectivity());
+
     // Initialize native features.
     if (!kIsWeb) {
       Workmanager().initialize(callbackDispatcher, isInDebugMode: false);
@@ -173,6 +185,23 @@ class EnsembleAppState extends State<EnsembleApp> with WidgetsBindingObserver {
     }
   }
 
+  /// Check the device’s connectivity and update the state.
+  Future<void> _updateConnectivity() async {
+    final result = await Connectivity().checkConnectivity();
+    final hasInternetNow = result.any((r) => r != ConnectivityResult.none);
+
+    // If connectivity has been restored, reinitialize the app
+    if (!_hasInternet && hasInternetNow) {
+      setState(() {
+        config = initApp();
+      });
+    }
+
+    setState(() {
+      _hasInternet = hasInternetNow;
+    });
+  }
+
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) async {
     super.didChangeAppLifecycleState(state);
@@ -192,6 +221,7 @@ class EnsembleAppState extends State<EnsembleApp> with WidgetsBindingObserver {
 
   @override
   void dispose() {
+    _connectivitySubscription.cancel();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }

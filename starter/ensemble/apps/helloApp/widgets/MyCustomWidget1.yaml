@@ -1,0 +1,19 @@
+Import:
+  - apiUtils
+  - common
+Widget:
+  inputs:
+    - inputName
+  body:
+    Column:
+      children:
+        - Text:
+            text: ${inputName.first} ${inputName.last}
+        - Button:
+            label: sayHello in console
+            onTap: |-
+              saveName('Jane','Doe');
+              console.log('name:'+getName());
+        - MyCustomWidget2:
+            inputs:
+              customProperty: ${ensemble.storage.helloApp.name.first}

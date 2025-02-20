@@ -1,5 +1,3 @@
-import 'package:flutter/foundation.dart';
-import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 // Import for Android features.
@@ -77,14 +75,6 @@ class JsWidgetState extends State<JsWidget> {
     controller = WebViewController.fromPlatformCreationParams(params)
       ..setBackgroundColor(Colors.transparent)
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
-      ..addJavaScriptChannel(
-        'JsBridge',
-        onMessageReceived: (JavaScriptMessage message) {
-          if (widget.listener != null) {
-            widget.listener!(message.message);
-          }
-        },
-      )
       ..setNavigationDelegate(
         NavigationDelegate(
           onProgress: (int progress) {
@@ -161,14 +151,6 @@ class JsWidgetState extends State<JsWidget> {
     for (String src in widget.scripts) {
       html += '<script async="false" src="$src"></script>';
     }
-    html += '''
-    <script>
-    // Expose sendMessageToFlutter function to JavaScript
-    window.sendMessageToFlutter = function(message) {
-      JsBridge.postMessage(message);
-    };
-    </script>
-    ''';
     html += '</body></html>';
     return html;
   }
@@ -178,8 +160,7 @@ class JsWidgetState extends State<JsWidget> {
       _isLoaded = true;
     });
     controller.runJavaScript('''
-      ${widget.preCreateScript != null ? widget.preCreateScript!() : ''}
       ${widget.scriptToInstantiate(widget.data)}
-    ''');
+   ''');
   }
 }

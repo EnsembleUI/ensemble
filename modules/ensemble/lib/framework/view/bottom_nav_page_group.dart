@@ -302,7 +302,7 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup>
           activeIcon: activeIcon,
           isCustom: isCustom,
           text: label,
-          switchScreen: item.switchScreen,
+          switchScreen: Menu.evalSwitchScreen(widget.scopeManager.dataContext, item),
           onTap: EnsembleAction.from(item.onTap),
           onTapHaptic: item.onTapHaptic,
         ),

@@ -101,7 +101,7 @@ class DeepLinkManager extends DeepLinkNavigator {
   ///  the default screen. But we don't need to check for the initial load
   void _checkInitialLink() async {
     try {
-      Uri? initialUri = await _appLinks!.getInitialAppLink();
+      Uri? initialUri = await _appLinks!.getLatestLink();
       if (initialUri != null) {
         navigateToScreen(initialUri);
       }

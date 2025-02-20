@@ -18,8 +18,8 @@ description: A new Flutter module project.
 version: 1.0.0+1
 
 environment:
-  sdk: ">=3.0.6 <4.0.0"
-  flutter: ">=1.17.0"
+  sdk: ">=3.5.0"
+  flutter: ">=3.24.0"
 
 dependencies:
   flutter:
@@ -28,7 +28,7 @@ dependencies:
   ensemble:
     git:
       url: https://github.com/EnsembleUI/ensemble.git
-      ref: ensemble-v1.1.0
+      ref: ensemble-v1.1.24
       path: modules/ensemble
 
   ensemble_ts_interpreter:
@@ -37,11 +37,11 @@ dependencies:
       ref: main
       path: modules/ensemble_ts_interpreter
 
-  get_it: ^7.6.0
+  get_it: ^8.0.0
   google_sign_in: ^6.1.4
   sign_in_with_apple: ^5.0.0
-  firebase_auth: 4.19.6
-  firebase_core: 2.31.1
+  firebase_auth: ^5.3.1
+  firebase_core: ^3.6.0
   flutter_web_auth_2: ^2.1.4
   flutter_svg: ^2.0.7
   crypto: ^3.0.3
@@ -51,6 +51,7 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^2.0.0
+  mockito:
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

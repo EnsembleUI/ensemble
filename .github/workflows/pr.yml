@@ -16,7 +16,7 @@ jobs:
       - name: Setup Flutter SDK
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: "3.19.3"
+          flutter-version: "3.24.3"
 
       - name: Install Melos
         run: dart pub global activate melos
@@ -29,3 +29,8 @@ jobs:
 
 #      - name: Run Unit Tests / Widget Tests
 #        run: melos exec -- "flutter test"
+
+      - name: Run Auth Tests
+        run: |
+          cd modules/auth
+          flutter test
