@@ -44,6 +44,18 @@ abstract class BindingSource {
       String binding, DataContext dataContext) {
     RegExp variableNameRegex = RegExp('^[0-9a-z_]+', caseSensitive: false);
 
+    // Check for device bindings (both patterns)
+    String deviceExpr = 'ensemble.device.';
+    if (binding.startsWith(deviceExpr)) {
+      // For ensemble.device.property pattern
+      String property = binding.substring(deviceExpr.length);
+      return DeviceBindingSource(property);
+    } else if (binding.startsWith('device.')) {
+      // For device.property pattern
+      String property = binding.substring('device.'.length);
+      return DeviceBindingSource(property);
+    }
+
     // bindable storage
     String storageExpr = 'ensemble.storage.';
     String userExpr = 'ensemble.user.';
@@ -120,6 +132,18 @@ abstract class BindingSource {
 
       String variable = expression.substring(2, expression.length - 1).trim();
       RegExp variableNameRegex = RegExp('^[0-9a-z_]+', caseSensitive: false);
+
+      // Check for device bindings (both patterns)
+      String deviceExpr = 'ensemble.device.';
+      if (variable.startsWith(deviceExpr)) {
+        // For ensemble.device.property pattern
+        String property = variable.substring(deviceExpr.length);
+        return DeviceBindingSource(property);
+      } else if (variable.startsWith('device.')) {
+        // For device.property pattern
+        String property = variable.substring('device.'.length);
+        return DeviceBindingSource(property);
+      }
 
       // storage bindable
       String storageExpr = 'ensemble.storage.';
@@ -200,6 +224,11 @@ abstract class BindingSource {
 /// a bindable source backed by Storage
 class StorageBindingSource extends BindingSource {
   StorageBindingSource(super.modelId);
+}
+
+/// bindable source backed by device
+class DeviceBindingSource extends BindingSource {
+  DeviceBindingSource(super.modelId);
 }
 
 /// TODO: consolidate this with StorageBindingSource

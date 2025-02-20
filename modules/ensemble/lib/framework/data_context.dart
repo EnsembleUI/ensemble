@@ -88,15 +88,19 @@ class DataContext implements Context {
       _contextMap['auth'] = GetIt.instance<AuthContextManager>();
     }
 
-    _addLegacyDataContext();
+    _addLegacyDataContext(buildContext);
   }
 
-  // For backward compatibility
-  void _addLegacyDataContext() {
+
     // device is a common name. If user already uses that, don't override it
     // This is now in ensemble.device.*
+  void _addLegacyDataContext(BuildContext? newBuildContext) {
     if (_contextMap['device'] == null) {
-      _contextMap['device'] = Device();
+        _contextMap['device'] = Device(newBuildContext);
+    } else {
+      // If device exists, update its context
+      final device = _contextMap['device'];
+      device.updateContext(newBuildContext);
     }
   }
 
@@ -468,7 +472,7 @@ class NativeInvokable extends ActionInvokable {
       'user': () => UserInfo(),
       'formatter': () => Formatter(),
       'utils': () => _EnsembleUtils(),
-      'device': () => Device(),
+      'device': () => Device(buildContext),
       'version': () => _cache['version'],
     };
   }
