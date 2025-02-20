@@ -18,7 +18,7 @@ import 'package:flutter/material.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:ensemble/framework/view/page.dart';
 
-enum DataColumnSortType  { ascending, descending }
+enum DataColumnSortType { ascending, descending }
 
 //8e26249e-c08c-4b3e-8584-cc83a5c9bc29
 class DataGrid extends StatefulWidget
@@ -77,9 +77,9 @@ class DataGrid extends StatefulWidget
         this.cols = cols;
       },
       'horizontalMargin': (val) =>
-      controller.horizontalMargin = Utils.optionalDouble(val),
+          controller.horizontalMargin = Utils.optionalDouble(val),
       'dataRowHeight': (val) =>
-      controller.dataRowHeight = Utils.optionalDouble(val),
+          controller.dataRowHeight = Utils.optionalDouble(val),
       'headingRowHeight': (val) =>
       controller.headingRowHeight = Utils.optionalDouble(val),
       'staticScrollbar': (val) =>
@@ -87,9 +87,9 @@ class DataGrid extends StatefulWidget
       'thumbThickness': (val) =>
       controller.thumbThickness = Utils.optionalDouble(val),
       'columnSpacing': (val) =>
-      controller.columnSpacing = Utils.optionalDouble(val),
+          controller.columnSpacing = Utils.optionalDouble(val),
       'dividerThickness': (val) =>
-      controller.dividerThickness = Utils.optionalDouble(val),
+          controller.dividerThickness = Utils.optionalDouble(val),
     };
   }
 }
@@ -106,11 +106,11 @@ class EnsembleDataColumn extends DataColumn {
     String? tooltip,
     dynamic onSort,
   }) : super(
-    label: Text(label),
-    tooltip: tooltip,
-    numeric: type == 'numeric',
-    onSort: onSort,
-  );
+          label: Text(label),
+          tooltip: tooltip,
+          numeric: type == 'numeric',
+          onSort: onSort,
+        );
 
   bool? sortable;
   String? sortKey;
@@ -313,7 +313,7 @@ class DataGridState extends EWidgetState<DataGrid>
         color: widget.controller.borderColor ?? Colors.black,
         width: widget.controller.borderWidth?.toDouble() ?? 1.0,
         borderRadius:
-        widget.controller.borderRadius?.getValue() ?? BorderRadius.zero,
+            widget.controller.borderRadius?.getValue() ?? BorderRadius.zero,
       ),
     );
     return SingleChildScrollView(
@@ -347,7 +347,7 @@ class DataGridState extends EWidgetState<DataGrid>
     TextStyle? dataTextStyle;
     if (widget.controller.dataTextController != null) {
       Text dataText =
-      TextUtils.buildText(widget.controller.dataTextController!);
+          TextUtils.buildText(widget.controller.dataTextController!);
       dataTextStyle = dataText.style;
     }
     return dataTextStyle;
@@ -357,7 +357,7 @@ class DataGridState extends EWidgetState<DataGrid>
     if (_columns.isEmpty) {
       _columns = List<EnsembleDataColumn>.generate(
         widget.cols.length,
-            (index) {
+        (index) {
           return EnsembleDataColumn.fromYaml(
             map: widget.cols[index] as Map,
             context: scopeManager.dataContext,
@@ -389,14 +389,14 @@ class DataGridState extends EWidgetState<DataGrid>
       List<DataCell> cells = [];
       if (child.children != null) {
         buildChildren(child.children!,
-            // scope comes from the rowScope (item-template) or the widget scope (children)
-            preferredScopeManager: rowScope?.scopeManager ?? scopeManager)
+                // scope comes from the rowScope (item-template) or the widget scope (children)
+                preferredScopeManager: rowScope?.scopeManager ?? scopeManager)
             .asMap()
             .forEach((index, Widget c) {
           // for templated row only, wrap each cell widget in a DataScopeWidget, and simply use the row's datascope
           if (rowScope != null) {
             Widget scopeWidget =
-            DataScopeWidget(scopeManager: rowScope.scopeManager, child: c);
+                DataScopeWidget(scopeManager: rowScope.scopeManager, child: c);
 
             cells.add(
               DataCell(EnsembleGestureDetector(
@@ -418,7 +418,7 @@ class DataGridState extends EWidgetState<DataGrid>
         if (kDebugMode) {
           print(
               'Number of DataGrid columns must be equal to the number of cells in each row. Number of DataGrid columns is ${_columns.length} '
-                  'while number of cells in the row is ${cells.length}. We will try to match them to be the same');
+                              'while number of cells in the row is ${cells.length}. We will try to match them to be the same');
         }
         if (_columns.length > cells.length) {
           int diff = _columns.length - cells.length;
