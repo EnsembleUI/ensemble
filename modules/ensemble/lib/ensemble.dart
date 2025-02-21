@@ -106,6 +106,7 @@ class Ensemble extends WithEnsemble with EnsembleRouteObserver {
     try {
       // this code block is guaranteed to run at most once
       await StorageManager().init();
+      await SecretsStore().initialize();
       Device().initDeviceInfo();
       AppInfo().initPackageInfo(_config);
       _completer!.complete();
@@ -139,9 +140,10 @@ class Ensemble extends WithEnsemble with EnsembleRouteObserver {
     if (_config != null) {
       return Future<EnsembleConfig>.value(_config);
     }
-    // Intialize the config service to get `ensemble-config.yaml` file to access the configuration using static property as `EnsembleConfigService.config`
-    await EnsembleConfigService.initialize();
-    await SecretsStore().initialize();
+    // Initialize the config service to get `ensemble-config.yaml` file to access the configuration using static property as `EnsembleConfigService.config`
+    if (!EnsembleConfigService.isInitialized) {
+      await EnsembleConfigService.initialize();
+    }
 
     // get the config YAML
     final YamlMap yamlMap = EnsembleConfigService.config;
