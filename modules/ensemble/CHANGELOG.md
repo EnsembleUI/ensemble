@@ -1,3 +1,7 @@
+## 1.1.26
+
+ - **FIX**: ensure EnsembleConfigService is initialized before accessing config. ([1f8df899](https://github.com/ensembleUI/ensemble/commit/1f8df8997f7a9ab2dffae88ad96ac898cb49fa0a))
+
 ## 1.1.25
 
 ## 1.1.24
