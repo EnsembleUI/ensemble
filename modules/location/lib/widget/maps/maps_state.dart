@@ -12,7 +12,6 @@ import 'package:ensemble/layout/templated.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/debouncer.dart';
 import 'package:ensemble/util/utils.dart';
-import 'package:ensemble/widget/shape.dart';
 import 'package:ensemble_location/location_manager.dart';
 import 'package:ensemble_location/widget/maps/custom_marker_pin.dart';
 import 'package:ensemble_location/widget/maps/map_actions.dart';
@@ -40,6 +39,8 @@ class EnsembleMapState extends MapsActionableState
   static const selectedMarkerZIndex = 100.0;
   static const MAX_WIDTH = 500;
   static const MAX_HEIGHT = 500;
+
+  late FixedMarker _fixedMarker;
 
   final Completer<GoogleMapController> _controller =
       Completer<GoogleMapController>();
@@ -85,6 +86,7 @@ class EnsembleMapState extends MapsActionableState
   @override
   void initState() {
     super.initState();
+    _fixedMarker = FixedMarker(position: widget.controller.defaultCameraLatLng);
     _initCurrentLocation();
   }
 
@@ -230,6 +232,12 @@ class EnsembleMapState extends MapsActionableState
           _selectedMarkerId = markerId;
         }
 
+        // build marker image for fixed marker
+        if (markerTemplate != null && widget.controller.fixedMarker) {
+          _fixedMarker.icon =
+              await _buildMarkerFromTemplate(payloads.first, markerTemplate);
+        }
+
         BitmapDescriptor? markerAsset;
         double zIndex = 0;
         if (markerId == _selectedMarkerId) {
@@ -255,6 +263,10 @@ class EnsembleMapState extends MapsActionableState
             position: markerPayload.latLng,
             icon: markerAsset ?? BitmapDescriptor.defaultMarker,
             consumeTapEvents: true,
+            draggable: widget.controller.draggableMarker,
+            onDrag: (latLng) {
+              _moveCamera(latLng);
+            },
             onTap: () {
               _selectMarker(markerId);
 
@@ -571,6 +583,13 @@ class EnsembleMapState extends MapsActionableState
         //log("Camera moved");
       });
     }
+
+    if (widget.controller.fixedMarker &&
+        _fixedMarker.position != position.target) {
+      setState(() {
+        _fixedMarker.position = position.target;
+      });
+    }
   }
 
   void _onCameraIdle() {}
@@ -597,7 +616,17 @@ class EnsembleMapState extends MapsActionableState
   Set<Marker> _getMarkers() {
     Set<Marker> markers = {};
     for (MarkerPayload markerPayload in _markerPayloads) {
-      if (markerPayload.marker != null) {
+      if (widget.controller.fixedMarker) {
+        markers.add(Marker(
+          markerId: const MarkerId("fixed_marker"),
+          position: _fixedMarker.position,
+          icon: _fixedMarker.icon ?? BitmapDescriptor.defaultMarker,
+          draggable: widget.controller.draggableMarker,
+          onDrag: (position) {
+            _moveCamera(position);
+          },
+        ));
+      } else if (markerPayload.marker != null) {
         markers.add(markerPayload.marker!);
       }
     }
@@ -624,4 +653,11 @@ class MarkerPayload {
   final ScopeManager scopeManager;
   final LatLng latLng;
   Marker? marker;
+}
+
+class FixedMarker {
+  LatLng position;
+  BitmapDescriptor? icon;
+
+  FixedMarker({required this.position, this.icon});
 }
