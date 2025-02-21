@@ -81,7 +81,11 @@ class DataGrid extends StatefulWidget
       'dataRowHeight': (val) =>
           controller.dataRowHeight = Utils.optionalDouble(val),
       'headingRowHeight': (val) =>
-          controller.headingRowHeight = Utils.optionalDouble(val),
+      controller.headingRowHeight = Utils.optionalDouble(val),
+      'staticScrollbar': (val) =>
+      controller.staticScrollbar = Utils.optionalBool(val),
+      'thumbThickness': (val) =>
+      controller.thumbThickness = Utils.optionalDouble(val),
       'columnSpacing': (val) =>
           controller.columnSpacing = Utils.optionalDouble(val),
       'dividerThickness': (val) =>
@@ -184,7 +188,9 @@ class DataGridController extends BoxController {
   GenericTextController? headingTextController;
   double? dataRowHeight;
   double? headingRowHeight;
+  bool? staticScrollbar;
   double? columnSpacing;
+  double? thumbThickness;
   GenericTextController? dataTextController;
   double? dividerThickness;
   TableBorder border = const TableBorder();
@@ -252,9 +258,9 @@ class DataGridState extends EWidgetState<DataGrid>
       // listen for changes
       registerItemTemplate(context, widget.itemTemplate!,
           onDataChanged: (List dataList) {
-        this.dataList = dataList;
-        _sortItems();
-      });
+            this.dataList = dataList;
+            _sortItems();
+          });
     }
   }
 
@@ -268,6 +274,7 @@ class DataGridState extends EWidgetState<DataGrid>
   @override
   Widget buildWidget(BuildContext context) {
     ScopeManager? scopeManager = DataScopeWidget.getScope(context);
+    final ScrollController _scrollController = ScrollController();
     if (scopeManager == null) {
       throw Exception(
           'scopeManager is null in the DataGrid.buildWidget method. This is unexpected. DataGrid.id=${widget.id}');
@@ -311,13 +318,17 @@ class DataGridState extends EWidgetState<DataGrid>
     );
     return SingleChildScrollView(
       scrollDirection: Axis.vertical,
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
 
-        // DataTable requires all children to report their intrinsic height.
-        // Some widgets don't like that so we expose this so the widgets
-        // can react accordingly
-        child: RequiresChildWithIntrinsicDimension(child: grid),
+      child: RawScrollbar(
+        thickness: widget.controller.thumbThickness,
+        controller: _scrollController,
+        thumbVisibility: widget.controller.staticScrollbar, // Ensure the scrollbar thumb is always visible
+        trackVisibility: widget.controller.staticScrollbar,
+        child: SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          controller: _scrollController,
+          child: RequiresChildWithIntrinsicDimension(child: grid),
+        ),
       ),
     );
   }
@@ -326,7 +337,7 @@ class DataGridState extends EWidgetState<DataGrid>
     TextStyle? headingTextStyle;
     if (widget.controller.headingTextController != null) {
       Text headingText =
-          TextUtils.buildText(widget.controller.headingTextController!);
+      TextUtils.buildText(widget.controller.headingTextController!);
       headingTextStyle = headingText.style;
     }
     return headingTextStyle;
@@ -407,7 +418,7 @@ class DataGridState extends EWidgetState<DataGrid>
         if (kDebugMode) {
           print(
               'Number of DataGrid columns must be equal to the number of cells in each row. Number of DataGrid columns is ${_columns.length} '
-              'while number of cells in the row is ${cells.length}. We will try to match them to be the same');
+                              'while number of cells in the row is ${cells.length}. We will try to match them to be the same');
         }
         if (_columns.length > cells.length) {
           int diff = _columns.length - cells.length;
