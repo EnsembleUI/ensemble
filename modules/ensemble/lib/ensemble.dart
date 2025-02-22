@@ -164,7 +164,7 @@ class Ensemble extends WithEnsemble with EnsembleRouteObserver {
       // These are not secrets so OK to include here.
       // https://firebase.google.com/docs/projects/api-keys#api-keys-for-firebase-are-different
       ensembleFirebaseApp = await Firebase.initializeApp(
-        name: getFirebaseName,
+        name: 'ensemble',
         options: DefaultFirebaseOptions.currentPlatform,
       );
     }
@@ -271,16 +271,6 @@ class Ensemble extends WithEnsemble with EnsembleRouteObserver {
           options: accounts?[analyticsProvider], ensembleAppId: appId);
       LogManager().addProviderForAllLevels(LogType.appAnalytics, provider);
       print("$analyticsProvider analytics provider initialized");
-    }
-  }
-
-  String? get getFirebaseName {
-    try {
-      return Firebase.apps.isNotEmpty ? 'ensemble' : null;
-    } catch (e) {
-      /// Firebase flutter web implementation throws error of uninitialized project
-      /// When project is no initialized which means we can set ensemble as primary project
-      return null;
     }
   }
 
