@@ -367,10 +367,15 @@ class PageState extends State<Page>
             kToolbarHeight;
 
     // animation
-    final animation = EnsembleThemeManager.yamlToDart(evaluatedHeader?['animation']);
-    final animationEnabled = Utils.getBool(animation!['enabled'], fallback: false);
-    final duration = Utils.getInt(animation!['duration'], fallback: 0);
-    final curve = Utils.getCurve(animation!['curve']);
+    final animation = evaluatedHeader?['animation']!= null? EnsembleThemeManager.yamlToDart(evaluatedHeader?['animation']):null;
+    bool animationEnabled = false;
+    int? duration;
+    Curve? curve;
+    if(animation != null){
+      animationEnabled = Utils.getBool(animation!['enabled'], fallback: false);
+      duration = Utils.getInt(animation!['duration'], fallback: 0);
+       curve = Utils.getCurve(animation!['curve']);
+    }
     // applicable only to Sliver scrolling
     double? flexibleMaxHeight =
         Utils.optionalInt(evaluatedHeader?['flexibleMaxHeight'])?.toDouble();
@@ -383,7 +388,6 @@ class PageState extends State<Page>
     }
 
     if (scrollableView) {
-        if(animationEnabled== true){
           return AnimatedAppBar( scrollController: externalScrollController!,
             automaticallyImplyLeading:
           leadingWidget == null && showNavigationIcon != false,
@@ -393,7 +397,7 @@ class PageState extends State<Page>
             backgroundColor: backgroundColor,
             surfaceTintColor: surfaceTintColor,
             foregroundColor: color,
-
+            animated: animationEnabled,
             // control the drop shadow on the header's bottom edge
             elevation: elevation,
             shadowColor: shadowColor,
@@ -409,30 +413,6 @@ class PageState extends State<Page>
 
           );
 
-      }
-      return SliverAppBar(
-        automaticallyImplyLeading:
-            leadingWidget == null && showNavigationIcon != false,
-        leading: leadingWidget,
-        title: titleWidget,
-        centerTitle: centerTitle,
-        backgroundColor: backgroundColor,
-        surfaceTintColor: surfaceTintColor,
-        foregroundColor: color,
-
-        // control the drop shadow on the header's bottom edge
-        elevation: elevation,
-        shadowColor: shadowColor,
-
-        toolbarHeight: titleBarHeight,
-
-        flexibleSpace: wrapsInFlexible(backgroundWidget),
-        expandedHeight: flexibleMaxHeight,
-        collapsedHeight: flexibleMinHeight,
-        floating: behaviour == AppBarBehavior.floating,
-        pinned: behaviour == AppBarBehavior.pinned,
-
-      );
     } else {
       return AppBar(
         automaticallyImplyLeading:
@@ -900,7 +880,7 @@ class AnimatedAppBar extends StatefulWidget {
   final backgroundWidget;
   final floating;
   final pinned;
-  final snap;
+  final animated;
   final curve;
   final duration;
    AnimatedAppBar({Key? key,
@@ -915,9 +895,10 @@ class AnimatedAppBar extends StatefulWidget {
      this.shadowColor,
      this.titleBarHeight,
      this.backgroundWidget,
+     this.animated,
      this.floating,
      this.pinned,
-     this.snap,
+
      this.collapsedBarHeight,
      this.expandedBarHeight, required this.scrollController,
      this.curve,
@@ -970,16 +951,16 @@ class _AnimatedAppBarState extends State<AnimatedAppBar> {
       expandedHeight: widget.expandedBarHeight,
       pinned: widget.pinned,
       centerTitle: widget.centerTitle,
-      title: AnimatedContainer(
-        curve: widget.curve,
-        duration: Duration(milliseconds: widget.duration), // Animation duration
+      title: widget.animated ? AnimatedContainer(
+        curve: widget.curve ?? Curves.easeIn,
+        duration: Duration(milliseconds: widget.duration ?? 300), // Animation duration
         transform: Matrix4.translationValues(
           0, // No horizontal movement
           isCollapsed ? 0 : -100, // Move from top to bottom
           0, // No depth movement
         ),
         child: widget.titleWidget, // Your title widget
-      ),
+      ) : widget.titleWidget,
       elevation: widget.elevation,
       backgroundColor: widget.backgroundColor,
       flexibleSpace: wrapsInFlexible(widget.backgroundWidget),
@@ -989,14 +970,11 @@ class _AnimatedAppBarState extends State<AnimatedAppBar> {
       foregroundColor: widget.foregroundColor,
       shadowColor: widget.shadowColor,
       toolbarHeight: widget.titleBarHeight,
-      // Only enable snap if floating is true
-      snap: widget.snap,
     );
   }
 }
 enum AppBarBehavior {
   floating,
-  snap,
   pinned,
 }
 class ActionResponse {
