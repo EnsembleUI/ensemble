@@ -359,12 +359,8 @@ class PageState extends State<Page>
     Color? shadowColor = Utils.getColor(evaluatedHeader?['shadowColor']);
     double? elevation =
         Utils.optionalInt(evaluatedHeader?['elevation'], min: 0)?.toDouble();
-    bool? pinned = Utils.getBool(evaluatedHeader?['pinned'], fallback: false);
-    bool? snapped = Utils.getBool(evaluatedHeader?['snapped'], fallback: false);
-    bool? floating =
-        Utils.getBool(evaluatedHeader?['floating'], fallback: false);
-    appBarBehaviour behaviour =
-        Utils.getEnum<appBarBehaviour>(evaluatedHeader?['scrollMode'], appBarBehaviour.values);
+    AppBarBehavior behaviour =
+        Utils.getEnum<AppBarBehavior>(evaluatedHeader?['scrollMode'], AppBarBehavior.values);
     final titleBarHeight =
         Utils.optionalInt(evaluatedHeader?['titleBarHeight'], min: 0)
                 ?.toDouble() ??
@@ -408,11 +404,9 @@ class PageState extends State<Page>
             backgroundWidget: backgroundWidget,
             expandedBarHeight: flexibleMaxHeight,
             collapsedBarHeight: flexibleMinHeight,
-            floating: behaviour == appBarBehaviour.floating,
-            pinned: behaviour == appBarBehaviour.pinned,
+            floating: behaviour == AppBarBehavior.floating,
+            pinned: behaviour == AppBarBehavior.pinned,
 
-            // Only enable snap if floating is true
-            snap: floating ? snapped : false,
           );
 
       }
@@ -435,11 +429,9 @@ class PageState extends State<Page>
         flexibleSpace: wrapsInFlexible(backgroundWidget),
         expandedHeight: flexibleMaxHeight,
         collapsedHeight: flexibleMinHeight,
-        floating: behaviour == appBarBehaviour.floating,
-        pinned: behaviour == appBarBehaviour.pinned,
+        floating: behaviour == AppBarBehavior.floating,
+        pinned: behaviour == AppBarBehavior.pinned,
 
-        // Only enable snap if floating is true
-        snap: floating ? snapped : false,
       );
     } else {
       return AppBar(
@@ -1002,7 +994,7 @@ class _AnimatedAppBarState extends State<AnimatedAppBar> {
     );
   }
 }
-enum appBarBehaviour {
+enum AppBarBehavior {
   floating,
   snap,
   pinned,
