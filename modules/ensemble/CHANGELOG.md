@@ -1,3 +1,7 @@
+## 1.1.27
+
+ - **FIX**: handle exceptions in getLocalAssetFullPath. ([8844d487](https://github.com/ensembleUI/ensemble/commit/8844d4874ddde3e7a3244e663c5cdcf0ee6520b7))
+
 ## 1.1.26
 
  - **FIX**: ensure EnsembleConfigService is initialized before accessing config. ([1f8df899](https://github.com/ensembleUI/ensemble/commit/1f8df8997f7a9ab2dffae88ad96ac898cb49fa0a))
