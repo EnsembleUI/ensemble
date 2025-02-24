@@ -23,7 +23,7 @@ import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:ensemble/widget/helpers/unfocus.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
+
 
 class SinglePageController extends WidgetController {
   TextStyleComposite? _textStyle;
@@ -289,28 +289,13 @@ class PageState extends State<Page>
         scrollableView: true,
         showNavigationIcon: pageModel.runtimeStyles?['showNavigationIcon'],
       );
-     if (appBar is SliverAppBar) {
+   //  if (appBar is SliverAppBar) {
       return appBar;
-     }
+    // }1
     }
     if (hasDrawer) {
       return const SliverAppBar();
     }
-    return null;
-  }
-
-  // build a subtitle Widget right below the AppBar
-  Widget? buildSubtitleWidget(SinglePageModel pageModel) {
-    if (pageModel.headerModel != null &&
-        pageModel.headerModel!.subTitleWidget != null) {
-      dynamic appBar = _buildAppBar(pageModel.headerModel!,
-          scrollableView: true,
-          showNavigationIcon: pageModel.runtimeStyles?['showNavigationIcon'],
-          isSubtitle: true);
-
-      return appBar;
-    }
-
     return null;
   }
 
@@ -337,15 +322,12 @@ class PageState extends State<Page>
   dynamic _buildAppBar(HeaderModel headerModel,
       {required bool scrollableView,
       bool? showNavigationIcon,
-      bool? isSubtitle}) {
+      }) {
     Widget? titleWidget;
-    Widget? subTitleWidget;
+
 
     if (headerModel.titleWidget != null) {
       titleWidget = _scopeManager.buildWidget(headerModel.titleWidget!);
-    }
-    if (headerModel.subTitleWidget != null) {
-      subTitleWidget = _scopeManager.buildWidget(headerModel.subTitleWidget!);
     }
 
     if (titleWidget == null && headerModel.titleText != null) {
@@ -381,20 +363,21 @@ class PageState extends State<Page>
     bool? snapped = Utils.getBool(evaluatedHeader?['snapped'], fallback: false);
     bool? floating =
         Utils.getBool(evaluatedHeader?['floating'], fallback: false);
-    bool? animation =
-        Utils.getBool(evaluatedHeader?['animation'], fallback: false);
-
+    appBarBehaviour behaviour =
+        Utils.getEnum<appBarBehaviour>(evaluatedHeader?['scrollMode'], appBarBehaviour.values);
     final titleBarHeight =
         Utils.optionalInt(evaluatedHeader?['titleBarHeight'], min: 0)
                 ?.toDouble() ??
             kToolbarHeight;
 
+    // animation
+    final animation = EnsembleThemeManager.yamlToDart(evaluatedHeader?['animation']);
+    final animationEnabled = Utils.getBool(animation!['enabled'], fallback: false);
+    final duration = Utils.getInt(animation!['duration'], fallback: 0);
+    final curve = Utils.getCurve(animation!['curve']);
     // applicable only to Sliver scrolling
     double? flexibleMaxHeight =
         Utils.optionalInt(evaluatedHeader?['flexibleMaxHeight'])?.toDouble();
-    double? flexibleSubtitleHeight =
-        Utils.optionalInt(evaluatedHeader?['subtitleHeightOffSet'])
-            ?.toDouble();
 
     double? flexibleMinHeight =
         Utils.optionalInt(evaluatedHeader?['flexibleMinHeight'])?.toDouble();
@@ -404,16 +387,33 @@ class PageState extends State<Page>
     }
 
     if (scrollableView) {
-      if (subTitleWidget != null && isSubtitle == true) {
-        if(animation == true){
-          return StickySliver(
-            height: flexibleSubtitleHeight!,
-            child: subTitleWidget,
-          );
-        }else{
-          return subTitleWidget;
-        }
+        if(animationEnabled== true){
+          return AnimatedAppBar( scrollController: externalScrollController!,
+            automaticallyImplyLeading:
+          leadingWidget == null && showNavigationIcon != false,
+            leadingWidget: leadingWidget,
+            titleWidget: titleWidget,
+            centerTitle: centerTitle,
+            backgroundColor: backgroundColor,
+            surfaceTintColor: surfaceTintColor,
+            foregroundColor: color,
 
+            // control the drop shadow on the header's bottom edge
+            elevation: elevation,
+            shadowColor: shadowColor,
+
+            titleBarHeight: titleBarHeight,
+            curve: curve,
+            duration: duration,
+            backgroundWidget: backgroundWidget,
+            expandedBarHeight: flexibleMaxHeight,
+            collapsedBarHeight: flexibleMinHeight,
+            floating: behaviour == appBarBehaviour.floating,
+            pinned: behaviour == appBarBehaviour.pinned,
+
+            // Only enable snap if floating is true
+            snap: floating ? snapped : false,
+          );
 
       }
       return SliverAppBar(
@@ -435,8 +435,8 @@ class PageState extends State<Page>
         flexibleSpace: wrapsInFlexible(backgroundWidget),
         expandedHeight: flexibleMaxHeight,
         collapsedHeight: flexibleMinHeight,
-        floating: floating,
-        pinned: pinned,
+        floating: behaviour == appBarBehaviour.floating,
+        pinned: behaviour == appBarBehaviour.pinned,
 
         // Only enable snap if floating is true
         snap: floating ? snapped : false,
@@ -634,17 +634,12 @@ class PageState extends State<Page>
 
   Widget buildScrollablePageContent(bool hasDrawer) {
     List<Widget> slivers = [];
-
+    externalScrollController = ScrollController();
     // appBar
     Widget? appBar = buildSliverAppBar(widget._pageModel, hasDrawer);
 
     if (appBar != null) {
       slivers.add(appBar);
-    }
-    //
-    Widget? subtitle = buildSubtitleWidget(widget._pageModel);
-    if (subtitle != null) {
-      slivers.add(subtitle);
     }
     // body
     slivers.add(SliverToBoxAdapter(
@@ -896,56 +891,122 @@ class PageState extends State<Page>
   }
 }
 
-class RenderStickySliver extends RenderSliverSingleBoxAdapter {
-  RenderStickySliver({RenderBox? child, required this.height})
-      : super(child: child);
-  final double height;
+class AnimatedAppBar extends StatefulWidget {
+  final ScrollController scrollController;
+  final collapsedBarHeight;
+  final expandedBarHeight;
+  final automaticallyImplyLeading;
+  final leadingWidget;
+  final titleWidget;
+  final centerTitle;
+  final backgroundColor;
+  final surfaceTintColor;
+  final foregroundColor;
+  final elevation;
+  final shadowColor;
+  final titleBarHeight;
+  final backgroundWidget;
+  final floating;
+  final pinned;
+  final snap;
+  final curve;
+  final duration;
+   AnimatedAppBar({Key? key,
+     this.automaticallyImplyLeading,
+     this.leadingWidget,
+     this.titleWidget,
+     this.centerTitle,
+     this.backgroundColor,
+     this.surfaceTintColor,
+     this.foregroundColor,
+     this.elevation,
+     this.shadowColor,
+     this.titleBarHeight,
+     this.backgroundWidget,
+     this.floating,
+     this.pinned,
+     this.snap,
+     this.collapsedBarHeight,
+     this.expandedBarHeight, required this.scrollController,
+     this.curve,
+     this.duration}) : super(key: key);
+
   @override
-  void performLayout() {
-    final double scrollOffset = constraints.scrollOffset;
-    final double maxExtent = height;
+  _AnimatedAppBarState createState() => _AnimatedAppBarState();
+}
 
-    // Progress of the scroll (from 0 to 1)
-    double progress = (scrollOffset / maxExtent).clamp(0.0, 1.0);
+class _AnimatedAppBarState extends State<AnimatedAppBar> {
 
-    if (child != null) {
-      // Adjust the height of the child based on the scroll progress
-      final double childHeight =
-          100 * progress; // 100 is the full height of the sticky sliver
-      child!.layout(
-        constraints.asBoxConstraints(maxExtent: childHeight),
-        parentUsesSize: true,
-      );
+  bool isCollapsed = false;
 
+  @override
+  void initState() {
+    super.initState();
+    widget.scrollController.addListener(_updateCollapseState);
+  }
 
-      // Set the geometry for the sliver
-      geometry = SliverGeometry(
-        scrollExtent: childHeight,
-        paintExtent: childHeight,
-        maxPaintExtent: childHeight,
-        paintOrigin: scrollOffset + kToolbarHeight,
-      );
-      setChildParentData(child!, constraints, geometry!);
+  void _updateCollapseState() {
+    bool newState = widget.scrollController.hasClients &&
+        widget.scrollController.offset > (widget.expandedBarHeight - widget.collapsedBarHeight);
+
+    if (newState != isCollapsed) {
+      setState(() {
+        isCollapsed = newState;
+      });
     }
   }
-}
-
-class StickySliver extends SingleChildRenderObjectWidget {
-  StickySliver({Widget? child, required this.height, Key? key})
-      : super(child: child, key: key);
-  final double height;
-  @override
-  RenderObject createRenderObject(BuildContext context) {
-    return RenderStickySliver(height: height);
-  }
 
   @override
-  void updateRenderObject(
-      BuildContext context, RenderStickySliver renderObject) {
-    // No update needed
+  void dispose() {
+    widget.scrollController.removeListener(_updateCollapseState);
+    super.dispose();
+  }
+  /// wraps the background in a FlexibleSpaceBar for automatic stretching and parallax effect.
+  Widget? wrapsInFlexible(Widget? backgroundWidget) {
+    if (backgroundWidget != null) {
+      return FlexibleSpaceBar(
+        background: backgroundWidget,
+        collapseMode: CollapseMode.parallax,
+      );
+    }
+    return null;
+  }
+  @override
+  Widget build(BuildContext context) {
+    return SliverAppBar(
+      collapsedHeight: widget.collapsedBarHeight,
+      expandedHeight: widget.expandedBarHeight,
+      pinned: widget.pinned,
+      centerTitle: widget.centerTitle,
+      title: AnimatedContainer(
+        curve: widget.curve,
+        duration: Duration(milliseconds: widget.duration), // Animation duration
+        transform: Matrix4.translationValues(
+          0, // No horizontal movement
+          isCollapsed ? 0 : -100, // Move from top to bottom
+          0, // No depth movement
+        ),
+        child: widget.titleWidget, // Your title widget
+      ),
+      elevation: widget.elevation,
+      backgroundColor: widget.backgroundColor,
+      flexibleSpace: wrapsInFlexible(widget.backgroundWidget),
+      automaticallyImplyLeading: widget.automaticallyImplyLeading,
+      leading: widget.leadingWidget,
+      surfaceTintColor: widget.surfaceTintColor,
+      foregroundColor: widget.foregroundColor,
+      shadowColor: widget.shadowColor,
+      toolbarHeight: widget.titleBarHeight,
+      // Only enable snap if floating is true
+      snap: widget.snap,
+    );
   }
 }
-
+enum appBarBehaviour {
+  floating,
+  snap,
+  pinned,
+}
 class ActionResponse {
   Map<String, dynamic>? _resultData;
   Set<Function> listeners = {};
