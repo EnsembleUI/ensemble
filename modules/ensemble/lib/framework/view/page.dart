@@ -289,9 +289,9 @@ class PageState extends State<Page>
         scrollableView: true,
         showNavigationIcon: pageModel.runtimeStyles?['showNavigationIcon'],
       );
-   //  if (appBar is SliverAppBar) {
+   if (appBar is SliverAppBar || appBar is AnimatedAppBar) {
       return appBar;
-    // }1
+     }
     }
     if (hasDrawer) {
       return const SliverAppBar();
