@@ -24,7 +24,6 @@ import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:ensemble/widget/helpers/unfocus.dart';
 import 'package:flutter/material.dart';
 
-
 class SinglePageController extends WidgetController {
   TextStyleComposite? _textStyle;
   int? maxLines;
@@ -284,11 +283,9 @@ class PageState extends State<Page>
   /// create AppBar that is part of a CustomScrollView
   Widget? buildSliverAppBar(SinglePageModel pageModel, bool hasDrawer) {
     if (pageModel.headerModel != null) {
-      dynamic appBar = _buildAppBar(
-        pageModel.headerModel!,
-        scrollableView: true,
-        showNavigationIcon: pageModel.runtimeStyles?['showNavigationIcon'],
-      );
+      dynamic appBar = _buildAppBar(pageModel.headerModel!,
+          scrollableView: true,
+          showNavigationIcon: pageModel.runtimeStyles?['showNavigationIcon']);
       if (appBar is SliverAppBar || appBar is AnimatedAppBar) {
         return appBar;
       }
@@ -320,9 +317,7 @@ class PageState extends State<Page>
 
   /// fixed AppBar
   dynamic _buildAppBar(HeaderModel headerModel,
-      {required bool scrollableView,
-      bool? showNavigationIcon,
-      }) {
+      {required bool scrollableView, bool? showNavigationIcon}) {
     Widget? titleWidget;
 
 
@@ -616,6 +611,7 @@ class PageState extends State<Page>
     if (appBar != null) {
       slivers.add(appBar);
     }
+
     // body
     slivers.add(SliverToBoxAdapter(
       child: getBody(appBar != null),

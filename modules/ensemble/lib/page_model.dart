@@ -382,6 +382,7 @@ class SinglePageModel extends PageModel with HasStyles {
         background = ViewUtil.buildModel(
             headerData['flexibleBackground'], customViewDefinitions);
       }
+
       styles = EnsembleThemeManager.yamlToDart(headerData['styles']);
       classList = HasStyles.toClassList(
           headerData[ViewUtil.classNameAttribute] as String?);
@@ -394,14 +395,12 @@ class SinglePageModel extends PageModel with HasStyles {
         leadingWidget != null ||
         classList != null) {
       headerModel = HeaderModel(
-
-        titleText: titleText,
-        titleWidget: titleWidget,
-        flexibleBackground: background,
-        leadingWidget: leadingWidget,
-        inlineStyles: styles,
-        classList: classList,
-      );
+          titleText: titleText,
+          titleWidget: titleWidget,
+          flexibleBackground: background,
+          leadingWidget: leadingWidget,
+          inlineStyles: styles,
+          classList: classList);
     }
   }
 
@@ -556,6 +555,7 @@ class HeaderModel extends Object with HasStyles {
 
   WidgetModel? flexibleBackground;
 }
+
 class FooterItems extends Object with HasStyles {
   final List<WidgetModel> children;
   Map<String, dynamic>? inlineStyles;
