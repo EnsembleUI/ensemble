@@ -7,6 +7,7 @@ import 'package:ensemble/framework/storage_manager.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:http/http.dart' as http;
 
 import '../ensemble.dart';
 
@@ -35,6 +36,16 @@ class SecretsStore with Invokable {
           final secretsString =
               await rootBundle.loadString('${path}/config/secrets.json');
           final Map<String, dynamic> appSecretsMap = json.decode(secretsString);
+          appSecretsMap["secrets"].forEach((key, value) {
+            secrets![key] = value;
+          });
+        }
+        else if(provider == 'remote') {
+          String path =
+              EnsembleConfigService.config["definitions"]?['remote']?["path"];
+            final secretsString =
+              await  http.get(Uri.parse('${path}/config/secrets.json'));
+          final Map<String, dynamic> appSecretsMap = json.decode(secretsString.body);
           appSecretsMap["secrets"].forEach((key, value) {
             secrets![key] = value;
           });

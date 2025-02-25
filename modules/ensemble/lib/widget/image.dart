@@ -252,14 +252,24 @@ class ImageState extends EWidgetState<EnsembleImage> {
               fit: fit,
               errorBuilder: (context, error, stacktrace) => errorFallback());
     } else {
-      // user might use env variables to switch between remote and local images.
-      // Assets might have additional token e.g. my-image.png?x=2343
-      // so we need to strip them out
-      return Image.asset(Utils.getLocalAssetFullPath(widget._controller.source),
-          width: widget._controller.width?.toDouble(),
-          height: widget._controller.height?.toDouble(),
-          fit: fit,
-          errorBuilder: (context, error, stacktrace) => errorFallback());
+      var localSource = Utils.getLocalAssetFullPath(widget._controller.source);
+      if (localSource.startsWith('https://') ||
+          localSource.startsWith('http://')) {
+        return Image.network(localSource,
+            width: widget._controller.width?.toDouble(),
+            height: widget._controller.height?.toDouble(),
+            fit: fit,
+            errorBuilder: (context, error, stacktrace) => errorFallback());
+      } else {
+        // user might use env variables to switch between remote and local images.
+        // Assets might have additional token e.g. my-image.png?x=2343
+        // so we need to strip them out
+        return Image.asset(Utils.getLocalAssetFullPath(widget._controller.source),
+            width: widget._controller.width?.toDouble(),
+            height: widget._controller.height?.toDouble(),
+            fit: fit,
+            errorBuilder: (context, error, stacktrace) => errorFallback());
+            }
     }
   }
 
@@ -288,12 +298,29 @@ class ImageState extends EWidgetState<EnsembleImage> {
         ),
       );
     }
-    // attempt local assets
-    return SvgPicture.asset(
-        Utils.getLocalAssetFullPath(widget._controller.source),
+
+    var localSource = Utils.getLocalAssetFullPath(widget._controller.source);
+    if (localSource.startsWith('https://') ||
+        localSource.startsWith('http://')) {
+      return SvgPicture.network(
+        localSource,
         width: widget._controller.width?.toDouble(),
         height: widget._controller.height?.toDouble(),
-        fit: fit ?? BoxFit.contain);
+        fit: fit ?? BoxFit.contain,
+        placeholderBuilder: (_) => ColoredBoxPlaceholder(
+          color: widget._controller.placeholderColor,
+          width: widget._controller.width?.toDouble(),
+          height: widget._controller.height?.toDouble(),
+        ),
+      );
+    } else {
+      // attempt local assets
+      return SvgPicture.asset(
+          Utils.getLocalAssetFullPath(widget._controller.source),
+          width: widget._controller.width?.toDouble(),
+          height: widget._controller.height?.toDouble(),
+          fit: fit ?? BoxFit.contain);
+    }
   }
 
   bool isSvg() {

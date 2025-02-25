@@ -119,6 +119,17 @@ class MyController extends WidgetController {
             notifyListeners();
           });
       } else {
+        final localSource = Utils.getLocalAssetFullPath(value);
+        if(Utils.isUrl(localSource)){
+          _playerController = VideoPlayerController.networkUrl(Uri.parse(localSource))
+            ..initialize().then((_) {
+              VideoPlayerValue value = _playerController!.value;
+              log(value.toString());
+              setupPlayer();
+              notifyListeners();
+            });
+        }
+        else{
         _playerController =
             VideoPlayerController.asset(Utils.getLocalAssetFullPath(value))
               ..initialize().then((_) {
@@ -127,6 +138,7 @@ class MyController extends WidgetController {
                 setupPlayer();
                 notifyListeners();
               });
+        }
       }
 
       _playerController!.addListener(() {

@@ -33,7 +33,13 @@ class BackgroundImage {
     if (Utils.isUrl(_source)) {
       imageProvider = NetworkImage(_source);
     } else {
+       final localSource = Utils.getLocalAssetFullPath(_source);
+       if(Utils.isUrl(localSource)){
+          imageProvider = NetworkImage(localSource);
+       }
+       else{
       imageProvider = AssetImage(Utils.getLocalAssetFullPath(_source));
+       }
     }
     return DecorationImage(
       image: imageProvider,
@@ -56,6 +62,17 @@ class BackgroundImage {
             fallbackWidget != null ? (_, __, ___) => fallbackWidget : null,
       );
     } else {
+      final localSource = Utils.getLocalAssetFullPath(_source);
+      if(Utils.isUrl(localSource)){
+        return CachedNetworkImage(
+          imageUrl: localSource,
+          fit: _fit,
+          alignment: _alignment,
+          errorWidget:
+              fallbackWidget != null ? (_, __, ___) => fallbackWidget : null,
+        );
+      }
+      else{
       return Image.asset(
         Utils.getLocalAssetFullPath(_source),
         fit: _fit,
@@ -63,6 +80,7 @@ class BackgroundImage {
         errorBuilder:
             fallbackWidget != null ? (_, __, ___) => fallbackWidget : null,
       );
+      }
     }
   }
 }
