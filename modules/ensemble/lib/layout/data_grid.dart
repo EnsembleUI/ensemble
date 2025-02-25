@@ -258,9 +258,9 @@ class DataGridState extends EWidgetState<DataGrid>
       // listen for changes
       registerItemTemplate(context, widget.itemTemplate!,
           onDataChanged: (List dataList) {
-            this.dataList = dataList;
-            _sortItems();
-          });
+        this.dataList = dataList;
+        _sortItems();
+      });
     }
   }
 
@@ -418,7 +418,7 @@ class DataGridState extends EWidgetState<DataGrid>
         if (kDebugMode) {
           print(
               'Number of DataGrid columns must be equal to the number of cells in each row. Number of DataGrid columns is ${_columns.length} '
-                              'while number of cells in the row is ${cells.length}. We will try to match them to be the same');
+                  'while number of cells in the row is ${cells.length}. We will try to match them to be the same');
         }
         if (_columns.length > cells.length) {
           int diff = _columns.length - cells.length;
