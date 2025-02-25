@@ -28,6 +28,9 @@ class SecretsStore with Invokable {
 
       // add local overrides
       try {
+        if (!EnsembleConfigService.isInitialized) {
+          await EnsembleConfigService.initialize();
+        }
         String provider = EnsembleConfigService.config["definitions"]?['from'];
         if (provider == 'local') {
           String path =
