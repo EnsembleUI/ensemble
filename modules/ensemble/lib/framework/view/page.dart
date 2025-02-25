@@ -289,9 +289,9 @@ class PageState extends State<Page>
         scrollableView: true,
         showNavigationIcon: pageModel.runtimeStyles?['showNavigationIcon'],
       );
-   if (appBar is SliverAppBar || appBar is AnimatedAppBar) {
-      return appBar;
-     }
+      if (appBar is SliverAppBar || appBar is AnimatedAppBar) {
+        return appBar;
+      }
     }
     if (hasDrawer) {
       return const SliverAppBar();
@@ -359,22 +359,24 @@ class PageState extends State<Page>
     Color? shadowColor = Utils.getColor(evaluatedHeader?['shadowColor']);
     double? elevation =
         Utils.optionalInt(evaluatedHeader?['elevation'], min: 0)?.toDouble();
-    AppBarBehavior behaviour =
-        Utils.getEnum<AppBarBehavior>(evaluatedHeader?['scrollMode'], AppBarBehavior.values);
+    ScrollMode scrollMode =
+        Utils.getEnum<ScrollMode>(evaluatedHeader?['scrollMode'], ScrollMode.values);
     final titleBarHeight =
         Utils.optionalInt(evaluatedHeader?['titleBarHeight'], min: 0)
                 ?.toDouble() ??
             kToolbarHeight;
 
     // animation
-    final animation = evaluatedHeader?['animation']!= null? EnsembleThemeManager.yamlToDart(evaluatedHeader?['animation']):null;
+    final animation = evaluatedHeader?['animation'] != null
+        ? EnsembleThemeManager.yamlToDart(evaluatedHeader?['animation'])
+        : null;
     bool animationEnabled = false;
     int? duration;
     Curve? curve;
-    if(animation != null){
+    if (animation != null) {
       animationEnabled = Utils.getBool(animation!['enabled'], fallback: false);
       duration = Utils.getInt(animation!['duration'], fallback: 0);
-       curve = Utils.getCurve(animation!['curve']);
+      curve = Utils.getCurve(animation!['curve']);
     }
     // applicable only to Sliver scrolling
     double? flexibleMaxHeight =
@@ -388,30 +390,31 @@ class PageState extends State<Page>
     }
 
     if (scrollableView) {
-          return AnimatedAppBar( scrollController: externalScrollController!,
-            automaticallyImplyLeading:
-          leadingWidget == null && showNavigationIcon != false,
-            leadingWidget: leadingWidget,
-            titleWidget: titleWidget,
-            centerTitle: centerTitle,
-            backgroundColor: backgroundColor,
-            surfaceTintColor: surfaceTintColor,
-            foregroundColor: color,
-            animated: animationEnabled,
-            // control the drop shadow on the header's bottom edge
-            elevation: elevation,
-            shadowColor: shadowColor,
+      return AnimatedAppBar( scrollController: externalScrollController!,
+        automaticallyImplyLeading:
+           leadingWidget == null && showNavigationIcon != false,
+        leadingWidget: leadingWidget,
+        titleWidget: titleWidget,
+        centerTitle: centerTitle,
+        backgroundColor: backgroundColor,
+        surfaceTintColor: surfaceTintColor,
+        foregroundColor: color,
+        animated: animationEnabled,
 
-            titleBarHeight: titleBarHeight,
-            curve: curve,
-            duration: duration,
-            backgroundWidget: backgroundWidget,
-            expandedBarHeight: flexibleMaxHeight,
-            collapsedBarHeight: flexibleMinHeight,
-            floating: behaviour == AppBarBehavior.floating,
-            pinned: behaviour == AppBarBehavior.pinned,
+        // control the drop shadow on the header's bottom edge
+        elevation: elevation,
+        shadowColor: shadowColor,
 
-          );
+        titleBarHeight: titleBarHeight,
+        curve: curve,
+        duration: duration,
+        backgroundWidget: backgroundWidget,
+        expandedBarHeight: flexibleMaxHeight,
+        collapsedBarHeight: flexibleMinHeight,
+        floating: scrollMode == ScrollMode.floating,
+        pinned: scrollMode == ScrollMode.pinned,
+
+      );
 
     } else {
       return AppBar(
@@ -883,33 +886,34 @@ class AnimatedAppBar extends StatefulWidget {
   final animated;
   final curve;
   final duration;
-   AnimatedAppBar({Key? key,
-     this.automaticallyImplyLeading,
-     this.leadingWidget,
-     this.titleWidget,
-     this.centerTitle,
-     this.backgroundColor,
-     this.surfaceTintColor,
-     this.foregroundColor,
-     this.elevation,
-     this.shadowColor,
-     this.titleBarHeight,
-     this.backgroundWidget,
-     this.animated,
-     this.floating,
-     this.pinned,
-
-     this.collapsedBarHeight,
-     this.expandedBarHeight, required this.scrollController,
-     this.curve,
-     this.duration}) : super(key: key);
+  AnimatedAppBar(
+      {Key? key,
+        this.automaticallyImplyLeading,
+        this.leadingWidget,
+        this.titleWidget,
+        this.centerTitle,
+        this.backgroundColor,
+        this.surfaceTintColor,
+        this.foregroundColor,
+        this.elevation,
+        this.shadowColor,
+        this.titleBarHeight,
+        this.backgroundWidget,
+        this.animated,
+        this.floating,
+        this.pinned,
+        this.collapsedBarHeight,
+        this.expandedBarHeight,
+        required this.scrollController,
+        this.curve,
+        this.duration})
+      : super(key: key);
 
   @override
   _AnimatedAppBarState createState() => _AnimatedAppBarState();
 }
 
 class _AnimatedAppBarState extends State<AnimatedAppBar> {
-
   bool isCollapsed = false;
 
   @override
@@ -920,7 +924,8 @@ class _AnimatedAppBarState extends State<AnimatedAppBar> {
 
   void _updateCollapseState() {
     bool newState = widget.scrollController.hasClients &&
-        widget.scrollController.offset > (widget.expandedBarHeight - widget.collapsedBarHeight);
+        widget.scrollController.offset >
+            (widget.expandedBarHeight - widget.collapsedBarHeight);
 
     if (newState != isCollapsed) {
       setState(() {
@@ -934,6 +939,7 @@ class _AnimatedAppBarState extends State<AnimatedAppBar> {
     widget.scrollController.removeListener(_updateCollapseState);
     super.dispose();
   }
+
   /// wraps the background in a FlexibleSpaceBar for automatic stretching and parallax effect.
   Widget? wrapsInFlexible(Widget? backgroundWidget) {
     if (backgroundWidget != null) {
@@ -944,6 +950,7 @@ class _AnimatedAppBarState extends State<AnimatedAppBar> {
     }
     return null;
   }
+
   @override
   Widget build(BuildContext context) {
     return SliverAppBar(
@@ -951,9 +958,11 @@ class _AnimatedAppBarState extends State<AnimatedAppBar> {
       expandedHeight: widget.expandedBarHeight,
       pinned: widget.pinned,
       centerTitle: widget.centerTitle,
-      title: widget.animated ? AnimatedContainer(
+      title: widget.animated
+          ? AnimatedContainer(
         curve: widget.curve ?? Curves.easeIn,
-        duration: Duration(milliseconds: widget.duration ?? 300), // Animation duration
+        duration: Duration(
+            milliseconds: widget.duration ?? 300), // Animation duration
         transform: Matrix4.translationValues(
           0, // No horizontal movement
           isCollapsed ? 0 : -100, // Move from top to bottom
@@ -973,7 +982,8 @@ class _AnimatedAppBarState extends State<AnimatedAppBar> {
     );
   }
 }
-enum AppBarBehavior {
+
+enum ScrollMode {
   floating,
   pinned,
 }
