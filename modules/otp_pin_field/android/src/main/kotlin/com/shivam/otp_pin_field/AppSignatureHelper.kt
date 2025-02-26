@@ -49,20 +49,21 @@ class AppSignatureHelper(context: Context?) : ContextWrapper(context) {
                 // Get all package signatures for the current package
                 val packageName: String = packageName
                 val packageManager: PackageManager = packageManager
-                val signatures: Array<Signature> = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                        packageManager.getPackageInfo(
-                            packageName,
-                            PackageManager.GET_SIGNING_CERTIFICATES
-                        ).signingInfo.apkContentsSigners
-                    } else {
-                        packageManager.getPackageInfo(
-                            packageName,
-                            PackageManager.GET_SIGNATURES
-                        ).signatures
-                    }
+                val signatures = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                    packageManager.getPackageInfo(
+                        packageName,
+                        PackageManager.GET_SIGNING_CERTIFICATES
+                    ).signingInfo?.apkContentsSigners?.let { Array(it.size) { i -> it[i] } } ?: emptyArray()
+                } else {
+                    @Suppress("DEPRECATION")
+                    packageManager.getPackageInfo(
+                        packageName,
+                        PackageManager.GET_SIGNATURES
+                    ).signatures
+                }
 
-                // For each signature create a compatible hash
-                for (signature in signatures) {
+                // Updated this part to handle null safety
+                signatures?.forEach { signature ->
                     val hash = hash(packageName, signature.toCharsString())
                     if (hash != null) {
                         appCodes.add(String.format("%s", hash))
