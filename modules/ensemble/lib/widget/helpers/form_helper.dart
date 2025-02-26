@@ -119,7 +119,7 @@ class FormHelper {
       }
     }
     // only dismiss keyboard if dismissKeyboardOnSubmit is true (By default it is true)
-    if(formState?.widget.controller.dismissKeyboardOnSubmit == true) {
+    if(formState?.widget.controller.dismissibleKeyboard == true) {
     FocusManager.instance.primaryFocus?.unfocus();
     }
   }

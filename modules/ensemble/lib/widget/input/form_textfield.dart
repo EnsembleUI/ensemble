@@ -146,7 +146,7 @@ abstract class BaseTextInput extends StatefulWidget
       'enableClearText': (value) =>
           _controller.enableClearText = Utils.optionalBool(value),
       'dismissibleKeyboard': (value) =>
-          _controller.dismissibleKeyboard = Utils.getBool(value, fallback: true),
+          _controller.dismissibleKeyboard = Utils.getBool(value, fallback: _controller.dismissibleKeyboard),
       'obscureToggle': (value) =>
           _controller.obscureToggle = Utils.optionalBool(value),
       'obscured': (widget) => _controller.obscureText == true,
