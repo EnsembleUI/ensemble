@@ -55,6 +55,15 @@ abstract class EnsembleWidgetState<W extends EnsembleWidget> extends State<W> {
 
       Widget rtn = buildWidget(context);
 
+      // Add KeyedSubtree with ValueKey based on testId to make widget findable in tests using find.byKey()
+      if (widgetController.testId != null &&
+          widgetController.testId!.isNotEmpty) {
+        rtn = KeyedSubtree(
+          key: ValueKey(widgetController.testId!),
+          child: rtn,
+        );
+      }
+
       if (widgetController.textDirection != null) {
         rtn = Directionality(
             textDirection: widgetController.textDirection!, child: rtn);

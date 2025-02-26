@@ -62,6 +62,15 @@ abstract class EWidgetState<W extends HasController>
     if (widget.controller is WidgetController) {
       WidgetController widgetController = widget.controller as WidgetController;
 
+      // Add KeyedSubtree with ValueKey based on testId to make widget findable in tests using find.byKey()
+      if (widgetController.testId != null &&
+          widgetController.testId!.isNotEmpty) {
+        rtn = KeyedSubtree(
+          key: ValueKey(widgetController.testId!),
+          child: rtn,
+        );
+      }
+
       if (widgetController.textDirection != null) {
         rtn = Directionality(
             textDirection: widgetController.textDirection!, child: rtn);
