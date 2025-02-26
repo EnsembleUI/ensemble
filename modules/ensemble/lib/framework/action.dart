@@ -930,6 +930,28 @@ class SignInAnonymousAction extends EnsembleAction {
   }
 }
 
+class SignInWithCustomAuthAction extends EnsembleAction {
+  final EnsembleAction? onAuthenticated;
+  final EnsembleAction? onError;
+  final String? idToken;
+
+  SignInWithCustomAuthAction({
+    super.initiator,
+    super.inputs,
+    required this.onAuthenticated,
+    required this.onError,
+    this.idToken,
+  });
+
+  factory SignInWithCustomAuthAction.fromYaml({Map? payload}) {
+    return SignInWithCustomAuthAction(
+      onAuthenticated: EnsembleAction.from(payload?['onAuthenticated']),
+      onError: EnsembleAction.from(payload?['onError']),
+      idToken: payload?['token'],
+    );
+  }
+}
+
 class ClearKeychain extends EnsembleAction {
   ClearKeychain({
     required this.key,
@@ -1038,6 +1060,7 @@ enum ActionType {
   setLocale,
   clearLocale,
   signInAnonymous,
+  signInWithCustomAuth,
   handleDeeplink,
   createDeeplink,
   verifySignIn,
@@ -1170,6 +1193,8 @@ abstract class EnsembleAction {
       return FileUploadAction.fromYaml(payload: payload);
     } else if (actionType == ActionType.signInAnonymous) {
       return SignInAnonymousAction.fromYaml(payload: payload);
+    } else if (actionType == ActionType.signInWithCustomAuth) {
+      return SignInWithCustomAuthAction.fromYaml(payload: payload);
     } else if (actionType == ActionType.pickFiles) {
       return FilePickerAction.fromYaml(payload: payload);
     } else if (actionType == ActionType.openUrl) {

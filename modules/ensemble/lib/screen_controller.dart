@@ -405,6 +405,8 @@ class ScreenController {
       GetIt.I<FileManager>().pickFiles(context, action, scopeManager);
     } else if (action is SignInAnonymousAction) {
       GetIt.I<SignInAnonymous>().signInAnonymously(context, action: action);
+    } else if (action is SignInWithCustomAuthAction) {
+      GetIt.I<SignInWithCustomAuth>().signInWithCustomAuth(context, action: action);
     } else if (action is WalletConnectAction) {
       //  TODO store session:  WalletConnectSession? session = await sessionStorage.getSession();
 
