@@ -89,9 +89,9 @@ class EnsembleModules {
   Future<void> init() async {
     // Note that notifications is not a module
 
-    if (useMoEngage || useNotifications || useFirebaseAnalytics) {
+    if (useMoEngage || useNotifications || useFirebaseAnalytics || useAuth) {
       // if payload is not passed, Firebase configuration files
-      // are required to be added manualy to iOS and Android
+      // are required to be added manually to iOS and Android
       try {
         await Firebase.initializeApp();
       } catch (e) {
