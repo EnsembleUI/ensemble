@@ -68,6 +68,7 @@ class EnsembleForm extends StatefulWidget
           _controller.labelStyle = Utils.getTextStyle(value),
       'enabled': (value) => _controller.enabled = Utils.optionalBool(value),
       'readOnly': (value) => _controller.readOnly = Utils.optionalBool(value),
+      'dismissKeyboardOnSubmit': (value) => _controller.dismissKeyboardOnSubmit = Utils.getBool(value, fallback: true),
       'width': (value) => _controller.width = Utils.optionalInt(value),
       'height': (value) => _controller.height = Utils.optionalInt(value),
       'gap': (value) => _controller.gap =
@@ -110,6 +111,7 @@ class FormController extends WidgetController {
   String? labelOverflow;
   bool? enabled;
   bool? readOnly;
+  bool dismissKeyboardOnSubmit = true;
 
   // labelMaxWidth applicable only to labelPosition=start
   int? labelMaxWidth;

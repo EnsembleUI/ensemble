@@ -145,6 +145,8 @@ abstract class BaseTextInput extends StatefulWidget
       'validator': (value) => _controller.validator = Utils.getValidator(value),
       'enableClearText': (value) =>
           _controller.enableClearText = Utils.optionalBool(value),
+      'dismissibleKeyboard': (value) =>
+          _controller.dismissibleKeyboard = Utils.getBool(value, fallback: true),
       'obscureToggle': (value) =>
           _controller.obscureToggle = Utils.optionalBool(value),
       'obscured': (widget) => _controller.obscureText == true,
@@ -224,6 +226,7 @@ class TextInputController extends FormFieldController with HasTextPlaceholder {
   EnsembleAction? onFocusReceived;
   EnsembleAction? onFocusLost;
   bool? enableClearText;
+  bool dismissibleKeyboard = true;
 
   // applicable only for TextInput
   bool? obscureText;
@@ -305,7 +308,10 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput>
       overlayEntry!.remove();
       overlayEntry = null;
     }
+    // only dismiss if dismissibleKeyboard is true (By Default dismissibleKeyboard is true)
+    if(widget._controller.dismissibleKeyboard == true){
     FocusManager.instance.primaryFocus?.unfocus();
+    }
   }
 
   @override
