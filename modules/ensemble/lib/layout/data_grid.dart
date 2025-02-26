@@ -81,11 +81,12 @@ class DataGrid extends StatefulWidget
       'dataRowHeight': (val) =>
           controller.dataRowHeight = Utils.optionalDouble(val),
       'headingRowHeight': (val) =>
-      controller.headingRowHeight = Utils.optionalDouble(val),
-      'staticScrollbar': (val) =>
-      controller.staticScrollbar = Utils.optionalBool(val),
+          controller.headingRowHeight = Utils.optionalDouble(val),
+      'scrollbarBehaviour': (val) =>
+          controller.scrollbarBehaviour =
+              Utils.getEnum<ScrollbarBehaviour>(val, ScrollbarBehaviour.values),
       'thumbThickness': (val) =>
-      controller.thumbThickness = Utils.optionalDouble(val),
+          controller.thumbThickness = Utils.optionalDouble(val),
       'columnSpacing': (val) =>
           controller.columnSpacing = Utils.optionalDouble(val),
       'dividerThickness': (val) =>
@@ -188,7 +189,7 @@ class DataGridController extends BoxController {
   GenericTextController? headingTextController;
   double? dataRowHeight;
   double? headingRowHeight;
-  bool? staticScrollbar;
+  ScrollbarBehaviour? scrollbarBehaviour;
   double? columnSpacing;
   double? thumbThickness;
   GenericTextController? dataTextController;
@@ -322,8 +323,8 @@ class DataGridState extends EWidgetState<DataGrid>
       child: RawScrollbar(
         thickness: widget.controller.thumbThickness,
         controller: _scrollController,
-        thumbVisibility: widget.controller.staticScrollbar, // Ensure the scrollbar thumb is always visible
-        trackVisibility: widget.controller.staticScrollbar,
+        thumbVisibility: widget.controller.scrollbarBehaviour == ScrollbarBehaviour.static,
+        trackVisibility: widget.controller.scrollbarBehaviour == ScrollbarBehaviour.static,
         child: SingleChildScrollView(
           scrollDirection: Axis.horizontal,
           controller: _scrollController,
@@ -513,4 +514,8 @@ class DataGridState extends EWidgetState<DataGrid>
       ScreenController().executeAction(context, widget._controller.onItemTap!);
     }
   }
+}
+enum ScrollbarBehaviour{
+  static,
+  fade
 }
