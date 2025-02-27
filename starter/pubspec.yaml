@@ -36,7 +36,7 @@ dependencies:
   ensemble:
     git:
       url: https://github.com/EnsembleUI/ensemble.git
-      ref: ensemble-v1.1.18
+      ref: ensemble-v1.1.27
       path: modules/ensemble
 
 
@@ -159,11 +159,17 @@ flutter:
   assets:
     - .env
     - ensemble/
-    - ensemble/i18n/
 
-    # put your app's images in this folder
+      # put your app's images in this folder
     - ensemble/assets/
 
     # list all your Apps directories here. It's a Flutter requirement
     - ensemble/apps/helloApp/
-    #- ensemble/apps/another_app_of_yours/
+    - ensemble/apps/helloApp/screens/
+    - ensemble/apps/helloApp/widgets/
+    - ensemble/apps/helloApp/scripts/
+    - ensemble/apps/helloApp/assets/
+    - ensemble/apps/helloApp/translations/
+
+    # # config folder contains appConfig.json and secrets.json
+    - ensemble/apps/helloApp/config/

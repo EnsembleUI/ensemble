@@ -1,13 +1,16 @@
+import 'dart:io';
 import 'dart:ui';
 
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/definition_providers/provider.dart';
 import 'package:ensemble/framework/widget/screen.dart';
 import 'package:ensemble/util/utils.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_i18n/flutter_i18n.dart';
 import 'package:flutter_i18n/loaders/decoders/yaml_decode_strategy.dart';
 import 'package:yaml/yaml.dart';
+import 'dart:convert';
 import 'package:flutter/foundation.dart' as foundation;
 
 /**
@@ -34,9 +37,8 @@ class LocalDefinitionProvider extends FileDefinitionProvider {
       {String? screenId, String? screenName}) async {
     // Note: Web with local definition caches even if we disable browser cache
     // so you may need to re-run the app on definition changes
-    var pageStr = await rootBundle.loadString(
-        '$path${screenId ?? screenName ?? appHome}.yaml',
-        cache: foundation.kReleaseMode);
+    var pageStr = await rootBundle
+        .loadString('${path}screens/${screenId ?? screenName ?? appHome}.yaml');
     if (pageStr.isEmpty) {
       return ScreenDefinition(YamlMap());
     }
@@ -45,15 +47,24 @@ class LocalDefinitionProvider extends FileDefinitionProvider {
 
   @override
   Future<AppBundle> getAppBundle({bool? bypassCache = false}) async {
-    YamlMap? config = await _readFile('config.ensemble');
-    if (config != null) {
-      appConfig = UserAppConfig(
-          baseUrl: config['app']?['baseUrl'],
-          useBrowserUrl: Utils.optionalBool(config['app']?['useBrowserUrl']));
+    try {
+      final configString =
+          await rootBundle.loadString('${path}/config/appConfig.json');
+      final Map<String, dynamic> appConfigMap = json.decode(configString);
+      if (appConfigMap.isNotEmpty) {
+        appConfig = UserAppConfig(
+            baseUrl: appConfigMap["baseUrl"],
+            useBrowserUrl: Utils.optionalBool(appConfigMap['useBrowserUrl']),
+            envVariables: appConfigMap["envVariables"]);
+      }
+    } catch (e) {
+      // ignore error
     }
+
     return AppBundle(
-        theme: await _readFile('theme.ensemble'),
-        resources: await _readFile('resources.ensemble'));
+      theme: await _readFile('theme.yaml'),
+      resources: await getCombinedAppBundle(), // get the combined app bundle for local scripts and widgets
+    );
   }
 
   Future<YamlMap?> _readFile(String file) async {
@@ -64,6 +75,72 @@ class LocalDefinitionProvider extends FileDefinitionProvider {
       // ignore error
     }
     return null;
+  }
+
+  Future<Map?> getCombinedAppBundle() async {
+    Map code = {};
+    Map output = {};
+    Map widgets = {};
+
+    try {
+      // Get the manifest content
+      final manifestContent =
+          await rootBundle.loadString(path + '.manifest.json');
+      final Map<String, dynamic> manifestMap = json.decode(manifestContent);
+
+      // Process App Widgets
+      try {
+        if (manifestMap['widgets'] != null) {
+          final List<Map<String, dynamic>> widgetsList =
+              List<Map<String, dynamic>>.from(manifestMap['widgets']);
+
+          for (var widgetItem in widgetsList) {
+            try {
+              // Load the widget content in YamlMap
+              final widgetContent =
+                  await _readFile("widgets/${widgetItem["name"]}.yaml");
+              if (widgetContent is YamlMap) {
+                widgets[widgetItem["name"]] = widgetContent["Widget"];
+              } else {
+                debugPrint('Content in ${widgetItem["name"]} is not a YamlMap');
+              }
+            } catch (e) {
+              // ignore error
+            }
+          }
+        }
+      } catch (e) {
+        debugPrint('Error processing widgets: $e');
+      }
+
+      // Process App Scripts
+      try {
+        if (manifestMap['scripts'] != null) {
+          final List<Map<String, dynamic>> scriptsList =
+              List<Map<String, dynamic>>.from(manifestMap['scripts']);
+
+          for (var script in scriptsList) {
+            try {
+              // Load the script content in string
+              final scriptContent = await rootBundle
+                  .loadString("${path}scripts/${script["name"]}.js");
+              code[script["name"]] = scriptContent;
+            } catch (e) {
+              // ignore error
+            }
+          }
+        }
+      } catch (e) {
+        debugPrint('Error processing scripts: $e');
+      }
+
+      output[ResourceArtifactEntry.Widgets.name] = widgets;
+      output[ResourceArtifactEntry.Scripts.name] = code;
+
+      return output;
+    } catch (e) {
+      return null;
+    }
   }
 
   @override

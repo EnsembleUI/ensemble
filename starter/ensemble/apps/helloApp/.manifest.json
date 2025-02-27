@@ -1,0 +1,18 @@
+{
+    "widgets": [
+        {
+            "name": "MyCustomWidget1"
+        },
+        {
+            "name": "MyCustomWidget2"
+        }
+    ],
+    "scripts": [
+        {
+            "name": "common"
+        },
+        {
+            "name": "utils"
+        }
+    ]
+}

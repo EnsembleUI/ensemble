@@ -3,6 +3,416 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## 2025-02-24
+
+### Changes
+
+---
+
+Packages with breaking changes:
+
+ - There are no breaking changes in this release.
+
+Packages with other changes:
+
+ - [`ensemble` - `v1.1.27`](#ensemble---v1127)
+ - [`ensemble_chat` - `v0.0.1+1`](#ensemble_chat---v0011)
+ - [`ensemble_camera` - `v0.0.1+1`](#ensemble_camera---v0011)
+ - [`ensemble_auth` - `v1.0.1`](#ensemble_auth---v101)
+ - [`ensemble_contacts` - `v0.0.1+1`](#ensemble_contacts---v0011)
+ - [`ensemble_location` - `v0.0.1+1`](#ensemble_location---v0011)
+ - [`ensemble_file_manager` - `v0.0.1+1`](#ensemble_file_manager---v0011)
+ - [`ensemble_connect` - `v0.0.1+1`](#ensemble_connect---v0011)
+ - [`ensemble_bluetooth` - `v0.0.1+1`](#ensemble_bluetooth---v0011)
+ - [`ensemble_deeplink` - `v0.0.1+1`](#ensemble_deeplink---v0011)
+ - [`ensemble_network_info` - `v0.0.1+1`](#ensemble_network_info---v0011)
+
+Packages with dependency updates only:
+
+> Packages listed below depend on other packages in this workspace that have had changes. Their versions have been incremented to bump the minimum dependency versions of the packages they depend upon in this project.
+
+ - `ensemble_chat` - `v0.0.1+1`
+ - `ensemble_camera` - `v0.0.1+1`
+ - `ensemble_auth` - `v1.0.1`
+ - `ensemble_contacts` - `v0.0.1+1`
+ - `ensemble_location` - `v0.0.1+1`
+ - `ensemble_file_manager` - `v0.0.1+1`
+ - `ensemble_connect` - `v0.0.1+1`
+ - `ensemble_bluetooth` - `v0.0.1+1`
+ - `ensemble_deeplink` - `v0.0.1+1`
+ - `ensemble_network_info` - `v0.0.1+1`
+
+---
+
+#### `ensemble` - `v1.1.27`
+
+ - **FIX**: handle exceptions in getLocalAssetFullPath. ([8844d487](https://github.com/ensembleUI/ensemble/commit/8844d4874ddde3e7a3244e663c5cdcf0ee6520b7))
+
+
+## 2025-02-21
+
+### Changes
+
+---
+
+Packages with breaking changes:
+
+ - There are no breaking changes in this release.
+
+Packages with other changes:
+
+ - [`ensemble` - `v1.1.26`](#ensemble---v1126)
+ - [`ensemble_auth` - `v1.0.1`](#ensemble_auth---v101)
+ - [`ensemble_file_manager` - `v0.0.1+1`](#ensemble_file_manager---v0011)
+ - [`ensemble_bluetooth` - `v0.0.1+1`](#ensemble_bluetooth---v0011)
+ - [`ensemble_location` - `v0.0.1+1`](#ensemble_location---v0011)
+ - [`ensemble_camera` - `v0.0.1+1`](#ensemble_camera---v0011)
+ - [`ensemble_connect` - `v0.0.1+1`](#ensemble_connect---v0011)
+ - [`ensemble_deeplink` - `v0.0.1+1`](#ensemble_deeplink---v0011)
+ - [`ensemble_network_info` - `v0.0.1+1`](#ensemble_network_info---v0011)
+ - [`ensemble_chat` - `v0.0.1+1`](#ensemble_chat---v0011)
+ - [`ensemble_contacts` - `v0.0.1+1`](#ensemble_contacts---v0011)
+
+Packages with dependency updates only:
+
+> Packages listed below depend on other packages in this workspace that have had changes. Their versions have been incremented to bump the minimum dependency versions of the packages they depend upon in this project.
+
+ - `ensemble_auth` - `v1.0.1`
+ - `ensemble_file_manager` - `v0.0.1+1`
+ - `ensemble_bluetooth` - `v0.0.1+1`
+ - `ensemble_location` - `v0.0.1+1`
+ - `ensemble_camera` - `v0.0.1+1`
+ - `ensemble_connect` - `v0.0.1+1`
+ - `ensemble_deeplink` - `v0.0.1+1`
+ - `ensemble_network_info` - `v0.0.1+1`
+ - `ensemble_chat` - `v0.0.1+1`
+ - `ensemble_contacts` - `v0.0.1+1`
+
+---
+
+#### `ensemble` - `v1.1.26`
+
+ - **FIX**: ensure EnsembleConfigService is initialized before accessing config. ([1f8df899](https://github.com/ensembleUI/ensemble/commit/1f8df8997f7a9ab2dffae88ad96ac898cb49fa0a))
+
+
+## 2025-02-21
+
+### Changes
+
+---
+
+Packages with breaking changes:
+
+ - There are no breaking changes in this release.
+
+Packages with other changes:
+
+ - [`ensemble` - `v1.1.25`](#ensemble---v1125)
+ - [`ensemble_auth` - `v1.0.1`](#ensemble_auth---v101)
+ - [`ensemble_chat` - `v0.0.1+1`](#ensemble_chat---v0011)
+ - [`ensemble_location` - `v0.0.1+1`](#ensemble_location---v0011)
+ - [`ensemble_camera` - `v0.0.1+1`](#ensemble_camera---v0011)
+ - [`ensemble_bluetooth` - `v0.0.1+1`](#ensemble_bluetooth---v0011)
+ - [`ensemble_file_manager` - `v0.0.1+1`](#ensemble_file_manager---v0011)
+ - [`ensemble_deeplink` - `v0.0.1+1`](#ensemble_deeplink---v0011)
+ - [`ensemble_contacts` - `v0.0.1+1`](#ensemble_contacts---v0011)
+ - [`ensemble_connect` - `v0.0.1+1`](#ensemble_connect---v0011)
+ - [`ensemble_network_info` - `v0.0.1+1`](#ensemble_network_info---v0011)
+
+Packages with dependency updates only:
+
+> Packages listed below depend on other packages in this workspace that have had changes. Their versions have been incremented to bump the minimum dependency versions of the packages they depend upon in this project.
+
+ - `ensemble_auth` - `v1.0.1`
+ - `ensemble_chat` - `v0.0.1+1`
+ - `ensemble_location` - `v0.0.1+1`
+ - `ensemble_camera` - `v0.0.1+1`
+ - `ensemble_bluetooth` - `v0.0.1+1`
+ - `ensemble_file_manager` - `v0.0.1+1`
+ - `ensemble_deeplink` - `v0.0.1+1`
+ - `ensemble_contacts` - `v0.0.1+1`
+ - `ensemble_connect` - `v0.0.1+1`
+ - `ensemble_network_info` - `v0.0.1+1`
+
+---
+
+#### `ensemble` - `v1.1.25`
+
+
+## 2025-02-20
+
+### Changes
+
+---
+
+Packages with breaking changes:
+
+ - There are no breaking changes in this release.
+
+Packages with other changes:
+
+ - [`ensemble` - `v1.1.24`](#ensemble---v1124)
+ - [`ensemble_contacts` - `v0.0.1+1`](#ensemble_contacts---v0011)
+ - [`ensemble_location` - `v0.0.1+1`](#ensemble_location---v0011)
+ - [`ensemble_chat` - `v0.0.1+1`](#ensemble_chat---v0011)
+ - [`ensemble_file_manager` - `v0.0.1+1`](#ensemble_file_manager---v0011)
+ - [`ensemble_auth` - `v1.0.1`](#ensemble_auth---v101)
+ - [`ensemble_connect` - `v0.0.1+1`](#ensemble_connect---v0011)
+ - [`ensemble_deeplink` - `v0.0.1+1`](#ensemble_deeplink---v0011)
+ - [`ensemble_network_info` - `v0.0.1+1`](#ensemble_network_info---v0011)
+ - [`ensemble_camera` - `v0.0.1+1`](#ensemble_camera---v0011)
+ - [`ensemble_bluetooth` - `v0.0.1+1`](#ensemble_bluetooth---v0011)
+
+Packages with dependency updates only:
+
+> Packages listed below depend on other packages in this workspace that have had changes. Their versions have been incremented to bump the minimum dependency versions of the packages they depend upon in this project.
+
+ - `ensemble_contacts` - `v0.0.1+1`
+ - `ensemble_location` - `v0.0.1+1`
+ - `ensemble_chat` - `v0.0.1+1`
+ - `ensemble_file_manager` - `v0.0.1+1`
+ - `ensemble_auth` - `v1.0.1`
+ - `ensemble_connect` - `v0.0.1+1`
+ - `ensemble_deeplink` - `v0.0.1+1`
+ - `ensemble_network_info` - `v0.0.1+1`
+ - `ensemble_camera` - `v0.0.1+1`
+ - `ensemble_bluetooth` - `v0.0.1+1`
+
+---
+
+#### `ensemble` - `v1.1.24`
+
+ - Bump "ensemble" to `1.1.24`.
+
+
+## 2025-02-19
+
+### Changes
+
+---
+
+Packages with breaking changes:
+
+ - There are no breaking changes in this release.
+
+Packages with other changes:
+
+ - [`ensemble` - `v1.1.23`](#ensemble---v1123)
+ - [`ensemble_file_manager` - `v0.0.1+1`](#ensemble_file_manager---v0011)
+ - [`ensemble_bluetooth` - `v0.0.1+1`](#ensemble_bluetooth---v0011)
+ - [`ensemble_auth` - `v1.0.1`](#ensemble_auth---v101)
+ - [`ensemble_chat` - `v0.0.1+1`](#ensemble_chat---v0011)
+ - [`ensemble_contacts` - `v0.0.1+1`](#ensemble_contacts---v0011)
+ - [`ensemble_location` - `v0.0.1+1`](#ensemble_location---v0011)
+ - [`ensemble_camera` - `v0.0.1+1`](#ensemble_camera---v0011)
+ - [`ensemble_connect` - `v0.0.1+1`](#ensemble_connect---v0011)
+ - [`ensemble_deeplink` - `v0.0.1+1`](#ensemble_deeplink---v0011)
+ - [`ensemble_network_info` - `v0.0.1+1`](#ensemble_network_info---v0011)
+
+Packages with dependency updates only:
+
+> Packages listed below depend on other packages in this workspace that have had changes. Their versions have been incremented to bump the minimum dependency versions of the packages they depend upon in this project.
+
+ - `ensemble_file_manager` - `v0.0.1+1`
+ - `ensemble_bluetooth` - `v0.0.1+1`
+ - `ensemble_auth` - `v1.0.1`
+ - `ensemble_chat` - `v0.0.1+1`
+ - `ensemble_contacts` - `v0.0.1+1`
+ - `ensemble_location` - `v0.0.1+1`
+ - `ensemble_camera` - `v0.0.1+1`
+ - `ensemble_connect` - `v0.0.1+1`
+ - `ensemble_deeplink` - `v0.0.1+1`
+ - `ensemble_network_info` - `v0.0.1+1`
+
+---
+
+#### `ensemble` - `v1.1.23`
+
+
+## 2025-02-13
+
+### Changes
+
+---
+
+Packages with breaking changes:
+
+ - There are no breaking changes in this release.
+
+Packages with other changes:
+
+ - [`ensemble` - `v1.1.22`](#ensemble---v1122)
+ - [`ensemble_chat` - `v0.0.1+1`](#ensemble_chat---v0011)
+ - [`ensemble_auth` - `v1.0.1`](#ensemble_auth---v101)
+ - [`ensemble_location` - `v0.0.1+1`](#ensemble_location---v0011)
+ - [`ensemble_camera` - `v0.0.1+1`](#ensemble_camera---v0011)
+ - [`ensemble_contacts` - `v0.0.1+1`](#ensemble_contacts---v0011)
+ - [`ensemble_file_manager` - `v0.0.1+1`](#ensemble_file_manager---v0011)
+ - [`ensemble_bluetooth` - `v0.0.1+1`](#ensemble_bluetooth---v0011)
+ - [`ensemble_connect` - `v0.0.1+1`](#ensemble_connect---v0011)
+ - [`ensemble_deeplink` - `v0.0.1+1`](#ensemble_deeplink---v0011)
+ - [`ensemble_network_info` - `v0.0.1+1`](#ensemble_network_info---v0011)
+
+Packages with dependency updates only:
+
+> Packages listed below depend on other packages in this workspace that have had changes. Their versions have been incremented to bump the minimum dependency versions of the packages they depend upon in this project.
+
+ - `ensemble_chat` - `v0.0.1+1`
+ - `ensemble_auth` - `v1.0.1`
+ - `ensemble_location` - `v0.0.1+1`
+ - `ensemble_camera` - `v0.0.1+1`
+ - `ensemble_contacts` - `v0.0.1+1`
+ - `ensemble_file_manager` - `v0.0.1+1`
+ - `ensemble_bluetooth` - `v0.0.1+1`
+ - `ensemble_connect` - `v0.0.1+1`
+ - `ensemble_deeplink` - `v0.0.1+1`
+ - `ensemble_network_info` - `v0.0.1+1`
+
+---
+
+#### `ensemble` - `v1.1.22`
+
+ - **REFACTOR**: remove no internet widget. ([e03359b2](https://github.com/ensembleUI/ensemble/commit/e03359b2dd6b1290bea39c71c69e2a3d5ad27c13))
+ - **REFACTOR**: replace offline widget with error screen for no internet connection. ([b0163a1b](https://github.com/ensembleUI/ensemble/commit/b0163a1ba20eb72c7a459afb3dfa59e1729cf9bf))
+ - **FIX**: auto complete dropdown selected label. ([80b9c8f5](https://github.com/ensembleUI/ensemble/commit/80b9c8f54c753aca7884fd12ed449c5f019d981b))
+ - **FEAT**: reinitialize app state when internet connectivity is restored. ([e914e337](https://github.com/ensembleUI/ensemble/commit/e914e337e54bbe539f08aa192b0a50b118708a00))
+ - **FEAT**: implement internet connectivity check in runtime. ([30204d3b](https://github.com/ensembleUI/ensemble/commit/30204d3bb29324d9ae44380fc919b450cf30cfd0))
+
+
+## 2025-02-07
+
+### Changes
+
+---
+
+Packages with breaking changes:
+
+ - There are no breaking changes in this release.
+
+Packages with other changes:
+
+ - [`ensemble` - `v1.1.21`](#ensemble---v1121)
+ - [`ensemble_chat` - `v0.0.1+1`](#ensemble_chat---v0011)
+ - [`ensemble_location` - `v0.0.1+1`](#ensemble_location---v0011)
+ - [`ensemble_contacts` - `v0.0.1+1`](#ensemble_contacts---v0011)
+ - [`ensemble_auth` - `v1.0.1`](#ensemble_auth---v101)
+ - [`ensemble_camera` - `v0.0.1+1`](#ensemble_camera---v0011)
+ - [`ensemble_file_manager` - `v0.0.1+1`](#ensemble_file_manager---v0011)
+ - [`ensemble_bluetooth` - `v0.0.1+1`](#ensemble_bluetooth---v0011)
+ - [`ensemble_connect` - `v0.0.1+1`](#ensemble_connect---v0011)
+ - [`ensemble_deeplink` - `v0.0.1+1`](#ensemble_deeplink---v0011)
+ - [`ensemble_network_info` - `v0.0.1+1`](#ensemble_network_info---v0011)
+
+Packages with dependency updates only:
+
+> Packages listed below depend on other packages in this workspace that have had changes. Their versions have been incremented to bump the minimum dependency versions of the packages they depend upon in this project.
+
+ - `ensemble_chat` - `v0.0.1+1`
+ - `ensemble_location` - `v0.0.1+1`
+ - `ensemble_contacts` - `v0.0.1+1`
+ - `ensemble_auth` - `v1.0.1`
+ - `ensemble_camera` - `v0.0.1+1`
+ - `ensemble_file_manager` - `v0.0.1+1`
+ - `ensemble_bluetooth` - `v0.0.1+1`
+ - `ensemble_connect` - `v0.0.1+1`
+ - `ensemble_deeplink` - `v0.0.1+1`
+ - `ensemble_network_info` - `v0.0.1+1`
+
+---
+
+#### `ensemble` - `v1.1.21`
+
+
+## 2025-02-07
+
+### Changes
+
+---
+
+Packages with breaking changes:
+
+ - There are no breaking changes in this release.
+
+Packages with other changes:
+
+ - [`ensemble` - `v1.1.20`](#ensemble---v1120)
+ - [`ensemble_chat` - `v0.0.1+1`](#ensemble_chat---v0011)
+ - [`ensemble_auth` - `v1.0.1`](#ensemble_auth---v101)
+ - [`ensemble_camera` - `v0.0.1+1`](#ensemble_camera---v0011)
+ - [`ensemble_location` - `v0.0.1+1`](#ensemble_location---v0011)
+ - [`ensemble_contacts` - `v0.0.1+1`](#ensemble_contacts---v0011)
+ - [`ensemble_file_manager` - `v0.0.1+1`](#ensemble_file_manager---v0011)
+ - [`ensemble_bluetooth` - `v0.0.1+1`](#ensemble_bluetooth---v0011)
+ - [`ensemble_connect` - `v0.0.1+1`](#ensemble_connect---v0011)
+ - [`ensemble_deeplink` - `v0.0.1+1`](#ensemble_deeplink---v0011)
+ - [`ensemble_network_info` - `v0.0.1+1`](#ensemble_network_info---v0011)
+
+Packages with dependency updates only:
+
+> Packages listed below depend on other packages in this workspace that have had changes. Their versions have been incremented to bump the minimum dependency versions of the packages they depend upon in this project.
+
+ - `ensemble_chat` - `v0.0.1+1`
+ - `ensemble_auth` - `v1.0.1`
+ - `ensemble_camera` - `v0.0.1+1`
+ - `ensemble_location` - `v0.0.1+1`
+ - `ensemble_contacts` - `v0.0.1+1`
+ - `ensemble_file_manager` - `v0.0.1+1`
+ - `ensemble_bluetooth` - `v0.0.1+1`
+ - `ensemble_connect` - `v0.0.1+1`
+ - `ensemble_deeplink` - `v0.0.1+1`
+ - `ensemble_network_info` - `v0.0.1+1`
+
+---
+
+#### `ensemble` - `v1.1.20`
+
+ - Bump "ensemble" to `1.1.20`.
+
+
+## 2025-02-06
+
+### Changes
+
+---
+
+Packages with breaking changes:
+
+ - There are no breaking changes in this release.
+
+Packages with other changes:
+
+ - [`ensemble` - `v1.1.19`](#ensemble---v1119)
+ - [`ensemble_auth` - `v1.0.1`](#ensemble_auth---v101)
+ - [`ensemble_camera` - `v0.0.1+1`](#ensemble_camera---v0011)
+ - [`ensemble_chat` - `v0.0.1+1`](#ensemble_chat---v0011)
+ - [`ensemble_file_manager` - `v0.0.1+1`](#ensemble_file_manager---v0011)
+ - [`ensemble_contacts` - `v0.0.1+1`](#ensemble_contacts---v0011)
+ - [`ensemble_bluetooth` - `v0.0.1+1`](#ensemble_bluetooth---v0011)
+ - [`ensemble_deeplink` - `v0.0.1+1`](#ensemble_deeplink---v0011)
+ - [`ensemble_connect` - `v0.0.1+1`](#ensemble_connect---v0011)
+ - [`ensemble_location` - `v0.0.1+1`](#ensemble_location---v0011)
+ - [`ensemble_network_info` - `v0.0.1+1`](#ensemble_network_info---v0011)
+
+Packages with dependency updates only:
+
+> Packages listed below depend on other packages in this workspace that have had changes. Their versions have been incremented to bump the minimum dependency versions of the packages they depend upon in this project.
+
+ - `ensemble_auth` - `v1.0.1`
+ - `ensemble_camera` - `v0.0.1+1`
+ - `ensemble_chat` - `v0.0.1+1`
+ - `ensemble_file_manager` - `v0.0.1+1`
+ - `ensemble_contacts` - `v0.0.1+1`
+ - `ensemble_bluetooth` - `v0.0.1+1`
+ - `ensemble_deeplink` - `v0.0.1+1`
+ - `ensemble_connect` - `v0.0.1+1`
+ - `ensemble_location` - `v0.0.1+1`
+ - `ensemble_network_info` - `v0.0.1+1`
+
+---
+
+#### `ensemble` - `v1.1.19`
+
+
 ## 2025-01-30
 
 ### Changes

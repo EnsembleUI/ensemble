@@ -145,6 +145,8 @@ abstract class BaseTextInput extends StatefulWidget
       'validator': (value) => _controller.validator = Utils.getValidator(value),
       'enableClearText': (value) =>
           _controller.enableClearText = Utils.optionalBool(value),
+      'dismissibleKeyboard': (value) =>
+          _controller.dismissibleKeyboard = Utils.getBool(value, fallback: _controller.dismissibleKeyboard),
       'obscureToggle': (value) =>
           _controller.obscureToggle = Utils.optionalBool(value),
       'allowMention': (value) =>
@@ -226,6 +228,7 @@ class TextInputController extends FormFieldController with HasTextPlaceholder {
   EnsembleAction? onFocusReceived;
   EnsembleAction? onFocusLost;
   bool? enableClearText;
+  bool dismissibleKeyboard = true;
 
   // applicable only for TextInput
   bool? obscureText;
@@ -257,6 +260,7 @@ class TextInputController extends FormFieldController with HasTextPlaceholder {
 class TextInputState extends FormFieldWidgetState<BaseTextInput>
     with TextInputFieldAction {
   final focusNode = FocusNode();
+  VoidCallback? _propertyListener;
 
   // for this widget we will implement onChange if the text changes AND:
   // 1. the field loses focus next (tabbing out, ...)
@@ -307,7 +311,10 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput>
       overlayEntry!.remove();
       overlayEntry = null;
     }
+    // only dismiss if dismissibleKeyboard is true (By Default dismissibleKeyboard is true)
+    if(widget._controller.dismissibleKeyboard == true){
     FocusManager.instance.primaryFocus?.unfocus();
+    }
   }
 
   @override
@@ -355,6 +362,21 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput>
   void didChangeDependencies() {
     super.didChangeDependencies();
     widget.controller.inputFieldAction = this;
+    
+    // Remove any existing listener first
+    if (_propertyListener != null) {
+      widget.controller.removeListener(_propertyListener!);
+    }
+    
+    // Create and store new listener
+    _propertyListener = () {
+      if (mounted) {  // Check if widget is still mounted
+        final formState = EnsembleForm.of(context);
+        formState?.widget.controller.notifyFormChanged();
+      }
+    };
+    
+    widget.controller.addListener(_propertyListener!);
   }
 
   @override
@@ -384,8 +406,11 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput>
 
   @override
   void dispose() {
+    // Remove listener
+    if (_propertyListener != null) {
+      widget.controller.removeListener(_propertyListener!);
+    }
     focusNode.dispose();
-    widget.textController.dispose();
     super.dispose();
   }
 

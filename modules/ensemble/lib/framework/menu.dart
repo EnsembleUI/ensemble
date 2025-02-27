@@ -91,7 +91,8 @@ abstract class Menu extends Object with HasStyles, Invokable {
               floatingAlignment:
                   Utils.optionalString(item['floatingAlignment']) ?? 'center',
               floatingMargin: Utils.optionalInt(item['floatingMargin']),
-              switchScreen: Utils.getBool(item['switchScreen'], fallback: true),
+              switchScreen: item['switchScreen'],  
+              isClickable: Utils.getBool(item['isClickable'], fallback: true),
               onTap: item['onTap'],
               onTapHaptic: Utils.optionalString(item['onTapHaptic']),
               isExternal: Utils.getBool(item['isExternal'], fallback: false),
@@ -172,6 +173,10 @@ abstract class Menu extends Object with HasStyles, Invokable {
 
   static List<MenuItem> getVisibleMenuItems(DataContext context, List<MenuItem> items) {
     return items.where((item) => item.isVisible(context)).toList();
+  }
+  static bool evalSwitchScreen(DataContext context, MenuItem item) {
+    print(item.shouldSwitchScreen(context));
+    return item.shouldSwitchScreen(context);
   }
 }
 
@@ -290,7 +295,8 @@ class MenuItem {
     this.iconLibrary,
     this.selected,
     this.floating = false,
-    this.switchScreen = true,
+    this.switchScreen,
+    this.isClickable = true,
     this.floatingAlignment = 'center',
     this.floatingMargin,
     this.onTap,
@@ -308,7 +314,8 @@ class MenuItem {
   final String? iconLibrary;
   final dynamic selected;
   final bool floating;
-  final bool switchScreen;
+  final dynamic switchScreen;
+  final bool isClickable;
   final String floatingAlignment;
   final int? floatingMargin;
   final dynamic onTap;
@@ -326,6 +333,19 @@ class MenuItem {
       return result is bool ? result : true;
     } catch (e) {
       throw LanguageError('Failed to eval $visible');
+    }
+  }
+
+  bool shouldSwitchScreen(DataContext context) {
+    if (switchScreen == null) return true; // Default to true if not specified
+    if (switchScreen is bool) return switchScreen;
+
+    // Evaluate the dynamic condition
+    try {
+      var result = context.eval(switchScreen);
+      return result is bool ? result : true;
+    } catch (e) {
+      throw LanguageError('Failed to eval switchScreen: $switchScreen');
     }
   }
 }
