@@ -694,13 +694,6 @@ class Utils {
     return textAlign;
   }
 
-  static double? getValidOpacity(double opacity) {
-    if (opacity < 0 || opacity > 1) {
-      return 1;
-    } else {
-      return opacity;
-    }
-  }
 
   static Curve? getCurve(String? curveType) {
     Curve? curve;
@@ -1003,12 +996,16 @@ class Utils {
   /// prefix the asset with the app root directory (i.e. ensemble/apps/<app-name>/assets/), plus
   /// stripping any unnecessary query params (e.g. anything after the first ?)
   static String getLocalAssetFullPath(String asset) {
-    String provider = EnsembleConfigService.config["definitions"]?['from'];
-    if(provider == 'local') {
-      String path = EnsembleConfigService.config["definitions"]?['local']?["path"];
-      return '${path}/assets/${stripQueryParamsFromAsset(asset)}';
-    }
-    else{
+    try {
+      String provider = EnsembleConfigService.config["definitions"]?['from'];
+      if (provider == 'local') {
+        String path =
+            EnsembleConfigService.config["definitions"]?['local']?["path"];
+        return '${path}/assets/${stripQueryParamsFromAsset(asset)}';
+      } else {
+        return 'ensemble/assets/${stripQueryParamsFromAsset(asset)}';
+      }
+    } catch (e) {
       return 'ensemble/assets/${stripQueryParamsFromAsset(asset)}';
     }
   }

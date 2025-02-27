@@ -1,3 +1,19 @@
+## 1.1.27
+
+ - **FIX**: handle exceptions in getLocalAssetFullPath. ([8844d487](https://github.com/ensembleUI/ensemble/commit/8844d4874ddde3e7a3244e663c5cdcf0ee6520b7))
+
+## 1.1.26
+
+ - **FIX**: ensure EnsembleConfigService is initialized before accessing config. ([1f8df899](https://github.com/ensembleUI/ensemble/commit/1f8df8997f7a9ab2dffae88ad96ac898cb49fa0a))
+
+## 1.1.25
+
+## 1.1.24
+
+ - Bump "ensemble" to `1.1.24`.
+
+## 1.1.23
+
 ## 1.1.22
 
  - **REFACTOR**: remove no internet widget. ([e03359b2](https://github.com/ensembleUI/ensemble/commit/e03359b2dd6b1290bea39c71c69e2a3d5ad27c13))
