@@ -87,7 +87,7 @@ class TagInput extends BaseTextInput {
     }
     return null;
   }
-  
+
   @override
   void setItemTemplate(Map? maybeTemplate) {
     _controller.itemTemplate = LabelValueItemTemplate.from(maybeTemplate);
@@ -103,15 +103,7 @@ abstract class BaseTextInput extends StatefulWidget
   BaseTextInput({Key? key}) : super(key: key);
 
   // textController manages 'value', while _controller manages the rest
-  final FlutterTaggerController _taggerController = FlutterTaggerController(
-    //Initial text value with tag is formatted internally
-    //following the construction of FlutterTaggerController.
-    //After this controller is constructed, if you
-    //wish to update its text value with raw tag string,
-    //call (_controller.formatTags) after that.
-    text:
-        "Hey @11a27531b866ce0016f9e582#brad#. It's time to #93f27531f294jp0016f9k013#Flutter#!",
-  );
+  final FlutterTaggerController _taggerController = FlutterTaggerController();
   final TagInputController _controller = TagInputController();
 
   @override
@@ -350,6 +342,7 @@ class TagInputState extends FormFieldWidgetState<BaseTextInput>
     with TickerProviderStateMixin, TextInputFieldAction, TemplatedWidgetState {
   final focusNode = FocusNode();
   List? dataList;
+  String? tagQuery;
 
   // for this widget we will implement onChange if the text changes AND:
   // 1. the field loses focus next (tabbing out, ...)
@@ -539,19 +532,11 @@ class TagInputState extends FormFieldWidgetState<BaseTextInput>
             return formattedTag;
           },
           onSearch: (query, triggerCharacter) async {
-            final results = widget.controller.tags!
-                .where((item) =>
-                    item.label.toLowerCase().contains(query.toLowerCase()))
-                .map(
-                    (item) => item.label) // Return full titles including spaces
-                .toList();
-            return Future.value(results);
+            setState(() {
+              tagQuery = query;
+            });
           },
-          triggerCharacterAndStyles: const {
-            "@": TextStyle(color: Colors.pinkAccent),
-            "#": TextStyle(color: Colors.blueAccent),
-          },
-          // triggerCharacterAndStyles: widget.controller.triggers.map((key, value) => MapEntry(key, value ?? const TextStyle())),
+          triggerCharacterAndStyles: widget.controller.triggers.map((key, value) => MapEntry(key, value!)),
           triggerStrategy: TriggerStrategy.eager,
           overlayHeight: widget._controller.overlayHeight ?? 200.0,
           overlay:
@@ -561,7 +546,7 @@ class TagInputState extends FormFieldWidgetState<BaseTextInput>
             child: Container(
               decoration: widget._controller.overlayStyle,
               child: buildItems(widget.controller.tags,
-                  widget.controller.itemTemplate, dataList),
+                  widget.controller.itemTemplate, dataList, tagQuery),
             ),
           )),
           builder: (context, containerKey) {
@@ -672,13 +657,19 @@ class TagInputState extends FormFieldWidgetState<BaseTextInput>
   }
 
   ListView? buildItems(List<MentionItem>? items,
-      LabelValueItemTemplate? itemTemplate, List? dataList) {
-    List<ListTile>? results;
-    // first add the static list
-    if (items != null) {
-      results = [];
-      for (MentionItem item in items) {
-        results.add(ListTile(
+    LabelValueItemTemplate? itemTemplate, List? dataList, String? tagQuery) {
+    List<ListTile> results = [];
+
+  // Normalize the query
+  String query = tagQuery?.toLowerCase() ?? '';
+
+  // Filter the static list
+  if (items != null) {
+    results.addAll(
+      items.where((item) {
+        return item.label.toLowerCase().contains(query) ||
+            item.key.toLowerCase().contains(query);
+      }).map((item) => ListTile(
           leading: item.image != null
               ? CircleAvatar(
                   backgroundImage: NetworkImage(item.image!),
@@ -689,61 +680,54 @@ class TagInputState extends FormFieldWidgetState<BaseTextInput>
             style: widget._controller.tagSelectionStyle,
           ),
           onTap: () {
-            // Use insertMention instead of addTag to ensure styles are applied
             widget._taggerController.addTag(
               id: item.id.toString(),
               name: item.key,
             );
+              focusNode.requestFocus();
           },
-        ));
-      }
-    }
-    // then add the templated list
+        )),
+    );
+  }
+
+  // Filter the templated list
     if (itemTemplate != null && dataList != null) {
       ScopeManager? parentScope = DataScopeWidget.getScope(context);
       if (parentScope != null) {
-        results ??= [];
         for (var itemData in dataList) {
           ScopeManager templatedScope = parentScope.createChildScope();
-          templatedScope.dataContext
-              .addDataContextById(itemTemplate.name, itemData);
+          templatedScope.dataContext.addDataContextById(itemTemplate.name, itemData);
 
+        String label = templatedScope.dataContext.eval(itemTemplate.label!);
+        String value = templatedScope.dataContext.eval(itemTemplate.value);
+
+        if (label.toLowerCase().contains(query) || value.toLowerCase().contains(query)) {
           var labelWidget = DataScopeWidget(
-              scopeManager: templatedScope,
-              child: itemTemplate.label != null
-                  ? Text(templatedScope.dataContext.eval(itemTemplate.label!))
-                  : templatedScope
-                      .buildWidgetFromDefinition(itemTemplate.labelWidget));
+            scopeManager: templatedScope,
+            child: Text(label),
+          );
+
           results.add(ListTile(
             title: labelWidget,
             hoverColor: Colors.pink,
-            // value: templatedScope.dataContext.eval(itemTemplate.value),
             onTap: () {
-              // Use insertMention instead of addTag to ensure styles are applied
               widget._taggerController.addTag(
-                  id: templatedScope.dataContext.eval(itemTemplate.value),
-                  name: templatedScope.dataContext.eval(itemTemplate.label));
-
+                id: value,
+                name: label,
+              );
               focusNode.requestFocus();
-
-              // WidgetsBinding.instance.addPostFrameCallback((_) {
-              //   widget._taggerController.closeOverlay();
-              // });
             },
           ));
         }
       }
     }
-
-    ListView finalList = ListView.builder(
-      itemCount: results!.length,
-      itemBuilder: (context, index) {
-        return results![index];
-      },
-    );
-
-    return finalList;
   }
+
+  return ListView.builder(
+    itemCount: results.length,
+    itemBuilder: (context, index) => results[index],
+  );
+}
 
   Debouncer? _delayedKeyPressDebouncer;
   Duration? _lastDelayedKeyPressDuration;
