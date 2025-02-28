@@ -149,8 +149,6 @@ abstract class BaseTextInput extends StatefulWidget
           _controller.dismissibleKeyboard = Utils.getBool(value, fallback: _controller.dismissibleKeyboard),
       'obscureToggle': (value) =>
           _controller.obscureToggle = Utils.optionalBool(value),
-      'allowMention': (value) =>
-          _controller.allowMention = Utils.optionalBool(value),
       'obscured': (widget) => _controller.obscureText == true,
       'obscureTextWidget': (widget) => _controller.obscureTextWidget = widget,
       'readOnly': (value) => _controller.readOnly = Utils.optionalBool(value),
@@ -236,7 +234,6 @@ class TextInputController extends FormFieldController with HasTextPlaceholder {
   // applicable only for Password or obscure TextInput, to toggle between plain and secure text
   bool? obscured;
   bool? obscureToggle;
-  bool? allowMention;
   dynamic obscureTextWidget;
   bool? readOnly;
   bool selectable = true;
@@ -477,121 +474,124 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput>
     }
 
     return InputWrapper(
-      type: TextInput.type,
-      controller: widget._controller,
-      widget: TextFormField(
-              key: validatorKey,
-              autofillHints: widget._controller.autofillHints,
-              autovalidateMode: widget._controller.validateOnUserInteraction
-                  ? AutovalidateMode.onUserInteraction
-                  : AutovalidateMode.disabled,
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return widget._controller.required
-                      ? Utils.translateWithFallback(
-                          'ensemble.input.required',
-                          widget._controller.requiredMessage ??
-                              'This field is required')
-                      : null;
-                }
+        type: TextInput.type,
+        controller: widget._controller,
+        widget: TextFormField(
+          key: validatorKey,
+          autofillHints: widget._controller.autofillHints,
+          autovalidateMode: widget._controller.validateOnUserInteraction
+              ? AutovalidateMode.onUserInteraction
+              : AutovalidateMode.disabled,
+          validator: (value) {
+            if (value == null || value.isEmpty) {
+              return widget._controller.required
+                  ? Utils.translateWithFallback(
+                      'ensemble.input.required',
+                      widget._controller.requiredMessage ??
+                          'This field is required')
+                  : null;
+            }
 
-                if (widget._controller.validator != null) {
-                  ValidationBuilder? builder;
-                  if (widget._controller.validator?.minLength != null) {
-                    builder = ValidationBuilder().minLength(
-                        widget._controller.validator!.minLength!,
-                        Utils.translateOrNull(
-                            'ensemble.input.validation.minimumLength'));
-                  }
-                  if (widget._controller.validator?.maxLength != null) {
-                    builder = (builder ?? ValidationBuilder()).maxLength(
-                        widget._controller.validator!.maxLength!,
-                        Utils.translateOrNull(
-                            'ensemble.input.validation.maximumLength'));
-                  }
-                  if (widget._controller.validator?.regex != null) {
-                    builder = (builder ?? ValidationBuilder()).regExp(
-                        RegExp(widget._controller.validator!.regex!),
-                        widget._controller.validator!.regexError ??
-                            Utils.translateWithFallback(
-                                'ensemble.input.validation.invalidInput',
-                                'This field has invalid value'));
-                  }
-                  if (builder != null) {
-                    return builder.build().call(value);
-                  }
-                }
+            // First we're using the validator to validate the TextInput Field
+            if (widget._controller.validator != null) {
+              ValidationBuilder? builder;
+              if (widget._controller.validator?.minLength != null) {
+                builder = ValidationBuilder().minLength(
+                    widget._controller.validator!.minLength!,
+                    Utils.translateOrNull(
+                        'ensemble.input.validation.minimumLength'));
+              }
+              if (widget._controller.validator?.maxLength != null) {
+                builder = (builder ?? ValidationBuilder()).maxLength(
+                    widget._controller.validator!.maxLength!,
+                    Utils.translateOrNull(
+                        'ensemble.input.validation.maximumLength'));
+              }
+              if (widget._controller.validator?.regex != null) {
+                builder = (builder ?? ValidationBuilder()).regExp(
+                    RegExp(widget._controller.validator!.regex!),
+                    widget._controller.validator!.regexError ??
+                        Utils.translateWithFallback(
+                            'ensemble.input.validation.invalidInput',
+                            'This field has invalid value'));
+              }
+              if (builder != null) {
+                return builder.build().call(value);
+              }
+            }
 
-                if (!widget.isPassword()) {
-                  if (widget._controller.inputType == InputType.email.name) {
-                    if (!EmailValidator.validate(value)) {
-                      return Utils.translateWithFallback(
-                          'ensemble.input.validation.invalidEmailType',
-                          'Please enter a valid email address');
+            // If validator is null, we can use our own validation based on the InputType
+            //only applicable for TextInput
+            if (!widget.isPassword()) {
+              if (widget._controller.inputType == InputType.email.name) {
+                if (!EmailValidator.validate(value)) {
+                  return Utils.translateWithFallback(
+                      'ensemble.input.validation.invalidEmailType',
+                      'Please enter a valid email address');
                     }
-                  } else if (widget._controller.inputType ==
-                      InputType.ipAddress.name) {
-                    if (!InputValidator.ipAddress(value)) {
-                      return Utils.translateWithFallback(
-                          'ensemble.input.validation.invalidIPAddressType',
-                          'Please enter a valid IP Address');
+              } else if (widget._controller.inputType ==
+                  InputType.ipAddress.name) {
+                if (!InputValidator.ipAddress(value)) {
+                  return Utils.translateWithFallback(
+                      'ensemble.input.validation.invalidIPAddressType',
+                      'Please enter a valid IP Address');
                     }
-                  } else if (widget._controller.inputType ==
-                      InputType.phone.name) {
-                    if (!InputValidator.phone(value)) {
-                      return Utils.translateWithFallback(
-                          'ensemble.input.validation.invalidPhoneType',
-                          "Please enter a valid Phone Number");
+              } else if (widget._controller.inputType == InputType.phone.name) {
+                if (!InputValidator.phone(value)) {
+                  return Utils.translateWithFallback(
+                      'ensemble.input.validation.invalidPhoneType',
+                      "Please enter a valid Phone Number");
                     }
-                  }
-                }
-                return null;
-              },
-              textInputAction: widget._controller.keyboardAction,
-              keyboardType: widget.keyboardType,
-              inputFormatters: _inputFormatter,
-              minLines: isMultiline() ? widget._controller.minLines : null,
-              maxLines: isMultiline() ? widget._controller.maxLines : 1,
-              maxLength: widget._controller.maxLength,
-              maxLengthEnforcement: widget._controller.maxLengthEnforcement ??
-                  MaxLengthEnforcement.enforced,
-              obscureText: isObscureOrPlainText(),
-              enableSuggestions: !widget.isPassword(),
-              autocorrect: !widget.isPassword(),
-              controller: widget.textController,
-              focusNode: focusNode,
-              enabled: isEnabled(),
-              readOnly: widget._controller.readOnly == true,
-              enableInteractiveSelection: widget._controller.selectable,
-              // onTap: () => showOverlay(context),
-              // onTapOutside: (_) => removeOverlayAndUnfocus(),
-              onFieldSubmitted: (value) =>
-                  widget.controller.submitForm(context),
-              onChanged: (String txt) {
-                if (txt != previousText) {
-                  didItChange = true;
-                  previousText = txt;
+              }
+            }
+            return null;
+          },
+          textInputAction: widget._controller.keyboardAction,
+          keyboardType: widget.keyboardType,
+          inputFormatters: _inputFormatter,
+          minLines: isMultiline() ? widget._controller.minLines : null,
+          maxLines: isMultiline() ? widget._controller.maxLines : 1,
+          maxLength: widget._controller.maxLength,
+          maxLengthEnforcement: widget._controller.maxLengthEnforcement ??
+              MaxLengthEnforcement.enforced,
+          obscureText: isObscureOrPlainText(),
+          enableSuggestions: !widget.isPassword(),
+          autocorrect: !widget.isPassword(),
+          controller: widget.textController,
+          focusNode: focusNode,
+          enabled: isEnabled(),
+          readOnly: widget._controller.readOnly == true,
+          enableInteractiveSelection: widget._controller.selectable,
+          onTap: () => showOverlay(context),
+          onTapOutside: (_) => removeOverlayAndUnfocus(),
+          onFieldSubmitted: (value) => widget.controller.submitForm(context),
+          onChanged: (String txt) {
+            if (txt != previousText) {
+              // for performance reason, we dispatch onChange (as well as binding to value)
+              // upon EditingComplete (select Done on virtual keyboard) or Focus Out
+              didItChange = true;
+              previousText = txt;
 
-                  if (widget._controller.onKeyPress != null) {
-                    ScreenController().executeAction(
-                        context, widget._controller.onKeyPress!,
-                        event: EnsembleEvent(widget));
-                  }
+              // we dispatch onKeyPress here
+              if (widget._controller.onKeyPress != null) {
+                ScreenController().executeAction(
+                    context, widget._controller.onKeyPress!,
+                    event: EnsembleEvent(widget));
+              }
 
-                  if (widget._controller.onDelayedKeyPress != null) {
-                    executeDelayedAction(widget._controller.onDelayedKeyPress!);
-                  }
-                }
-                setState(() {});
-              },
-              style: isEnabled()
-                  ? widget._controller.textStyle
-                  : widget._controller.textStyle?.copyWith(
-                      color: Theme.of(context).disabledColor,
-                    ),
-              decoration: decoration,
-            ),
-    );
+              if (widget._controller.onDelayedKeyPress != null) {
+                executeDelayedAction(widget._controller.onDelayedKeyPress!);
+              }
+            }
+            setState(() {});
+          },
+          style: isEnabled()
+              ? widget._controller.textStyle
+              : widget._controller.textStyle?.copyWith(
+                  color: Theme.of(context).disabledColor,
+                ),
+          decoration: decoration,
+        ));
   }
 
   /// multi-line if specified or if maxLine is more than 1
