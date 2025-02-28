@@ -138,6 +138,8 @@ abstract class BaseTextInput extends StatefulWidget
       'validator': (value) => _controller.validator = Utils.getValidator(value),
       'enableClearText': (value) =>
           _controller.enableClearText = Utils.optionalBool(value),
+      'endingWidget': (widget) =>
+          _controller.endingWidget = widget,
       'obscureToggle': (value) =>
           _controller.obscureToggle = Utils.optionalBool(value),
       'tags': (items) => buildTagItems(items),
@@ -276,6 +278,9 @@ class TagInputController extends FormFieldController with HasTextPlaceholder {
   EnsembleAction? onFocusReceived;
   EnsembleAction? onFocusLost;
   bool? enableClearText;
+
+  // Ending widget for the input field
+  dynamic? endingWidget;
 
   // applicable only for TextInput
   bool? obscureText;
@@ -517,6 +522,11 @@ class TagInputState extends FormFieldWidgetState<BaseTextInput>
           onPressed: _clearSelection,
           icon: const Icon(Icons.close),
         ),
+      );
+    }
+    if(widget.controller.endingWidget != null) {
+      decoration = decoration.copyWith(
+        suffixIcon: scopeManager!.buildWidgetFromDefinition(widget.controller.endingWidget),
       );
     }
 
