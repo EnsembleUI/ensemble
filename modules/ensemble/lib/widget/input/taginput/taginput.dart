@@ -140,8 +140,6 @@ abstract class BaseTextInput extends StatefulWidget
           _controller.enableClearText = Utils.optionalBool(value),
       'obscureToggle': (value) =>
           _controller.obscureToggle = Utils.optionalBool(value),
-      'allowMention': (value) =>
-          _controller.allowMention = Utils.optionalBool(value),
       'tags': (items) => buildTagItems(items),
       'triggers': (items) => buildTagTriggers(items),
       'obscured': (widget) => _controller.obscureText == true,
@@ -166,6 +164,8 @@ abstract class BaseTextInput extends StatefulWidget
           _controller.tagSelectionStyle = Utils.getTextStyle(style),
       'overlayStyle': (style) =>
           _controller.overlayStyle = Utils.getBoxDecoration(style),
+      'mentionStyle': (style) =>
+          _controller.mentionStyle = Utils.getTextStyle(style),
       'autofillHints': (value) =>
           _controller.autofillHints = Utils.getListOfStrings(value),
       'maxLength': (value) => _controller.maxLength = Utils.optionalInt(value),
@@ -283,10 +283,10 @@ class TagInputController extends FormFieldController with HasTextPlaceholder {
   // applicable only for Password or obscure TextInput, to toggle between plain and secure text
   bool? obscured;
   bool? obscureToggle;
-  bool? allowMention;
   List<MentionItem>? tags; // Tag items List for FlutterTagger
   late Map<String, TextStyle?> triggers; // Optional additional triggers  like #
   LabelValueItemTemplate? itemTemplate;
+  TextStyle? mentionStyle;
 
   // overlay styles
   BoxDecoration? overlayStyle;
@@ -536,7 +536,12 @@ class TagInputState extends FormFieldWidgetState<BaseTextInput>
               tagQuery = query;
             });
           },
-          triggerCharacterAndStyles: widget.controller.triggers.map((key, value) => MapEntry(key, value!)),
+          triggerCharacterAndStyles: {
+            ...widget.controller.triggers
+                .map((key, value) => MapEntry(key, value!)), 
+            "@": widget._controller.mentionStyle!,
+            // "#": TextStyle(color: Colors.blueAccent),
+          },
           triggerStrategy: TriggerStrategy.eager,
           overlayHeight: widget._controller.overlayHeight ?? 200.0,
           overlay:
