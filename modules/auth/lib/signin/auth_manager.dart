@@ -132,7 +132,7 @@ class AuthManager with UserAuthentication {
     }
   }
 
-  Future<bool?> signInWithCustomAuth(
+  Future<bool?> signInWithCustomToken(
       BuildContext context,
       {required String idToken}
   ) async {

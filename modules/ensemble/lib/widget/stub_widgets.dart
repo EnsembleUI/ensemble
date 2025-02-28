@@ -69,15 +69,15 @@ class SignInAnonymousStub implements SignInAnonymous {
   }
 }
 
-abstract class SignInWithCustomAuth {
-  Future<void> signInWithCustomAuth(BuildContext context,
-      {required SignInWithCustomAuthAction action});
+abstract class SignInWithCustomToken {
+  Future<void> signInWithCustomToken(BuildContext context,
+      {required SignInWithCustomTokenAction action});
 }
 
-class SignInWithCustomAuthStub implements SignInWithCustomAuth {
+class SignInWithCustomTokenStub implements SignInWithCustomToken {
   @override
-  Future<void> signInWithCustomAuth(BuildContext context,
-      {required SignInWithCustomAuthAction action}) {
+  Future<void> signInWithCustomToken(BuildContext context,
+      {required SignInWithCustomTokenAction action}) {
     throw ConfigError(
         "Auth is not enabled. Please review the Ensemble documentation.");
   }

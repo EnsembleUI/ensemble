@@ -6,11 +6,11 @@ import 'package:ensemble/widget/stub_widgets.dart';
 import 'package:ensemble_auth/signin/auth_manager.dart';
 import 'package:flutter/material.dart';
 
-class SignInWithCustomAuthImpl implements SignInWithCustomAuth {
+class SignInWithCustomTokenImpl implements SignInWithCustomToken {
   @override
-  Future<void> signInWithCustomAuth(BuildContext context,
-      {required SignInWithCustomAuthAction action}) async {
-    final isAuthenticated = await AuthManager().signInWithCustomAuth(context,idToken: action.idToken!);
+  Future<void> signInWithCustomToken(BuildContext context,
+      {required SignInWithCustomTokenAction action}) async {
+    final isAuthenticated = await AuthManager().signInWithCustomToken(context,idToken: action.idToken!);
     if (isAuthenticated != null) {
       if (action.onAuthenticated != null) {
         AuthenticatedUser? currentUser = AuthManager().getCurrentUser();
