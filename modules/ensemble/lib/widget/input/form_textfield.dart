@@ -528,20 +528,20 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput>
                   return Utils.translateWithFallback(
                       'ensemble.input.validation.invalidEmailType',
                       'Please enter a valid email address');
-                    }
+                }
               } else if (widget._controller.inputType ==
                   InputType.ipAddress.name) {
                 if (!InputValidator.ipAddress(value)) {
                   return Utils.translateWithFallback(
                       'ensemble.input.validation.invalidIPAddressType',
                       'Please enter a valid IP Address');
-                    }
+                }
               } else if (widget._controller.inputType == InputType.phone.name) {
                 if (!InputValidator.phone(value)) {
                   return Utils.translateWithFallback(
                       'ensemble.input.validation.invalidPhoneType',
                       "Please enter a valid Phone Number");
-                    }
+                }
               }
             }
             return null;
