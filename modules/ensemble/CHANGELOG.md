@@ -1,3 +1,7 @@
+## 1.1.29
+
+ - **FIX**(notification_manager): initialize message handling on startup. ([9ca35acb](https://github.com/ensembleUI/ensemble/commit/9ca35acbd9b868198acb29fa618841b362ac8d19))
+
 ## 1.1.28
 
 ## 1.1.27
