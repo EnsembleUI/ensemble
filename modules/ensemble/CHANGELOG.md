@@ -1,3 +1,5 @@
+## 1.1.28
+
 ## 1.1.27
 
  - **FIX**: handle exceptions in getLocalAssetFullPath. ([8844d487](https://github.com/ensembleUI/ensemble/commit/8844d4874ddde3e7a3244e663c5cdcf0ee6520b7))
