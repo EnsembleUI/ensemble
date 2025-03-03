@@ -62,6 +62,15 @@ abstract class EWidgetState<W extends HasController>
     if (widget.controller is WidgetController) {
       WidgetController widgetController = widget.controller as WidgetController;
 
+      // Add KeyedSubtree with ValueKey based on testId to make widget findable in tests using find.byKey()
+      if (widgetController.testId != null &&
+          widgetController.testId!.isNotEmpty) {
+        rtn = KeyedSubtree(
+          key: ValueKey(widgetController.testId!),
+          child: rtn,
+        );
+      }
+
       if (widgetController.textDirection != null) {
         rtn = Directionality(
             textDirection: widgetController.textDirection!, child: rtn);
@@ -100,7 +109,7 @@ abstract class EWidgetState<W extends HasController>
         rtn = AnimatedOpacity(
             // If visible, apply opacity if specified, else default to 1
             opacity: widgetController.visible != false
-                ? (Utils.getValidOpacity(widgetController.opacity ?? 1) ?? 1)
+                ? (Utils.optionalDouble(widgetController.opacity ?? 1, min: 0, max: 1.0) ?? 1)
                 : 0,
             duration: widgetController.visibilityTransitionDuration!,
             child: rtn);
@@ -116,7 +125,7 @@ abstract class EWidgetState<W extends HasController>
       if (widgetController.visibilityTransitionDuration == null &&
           widgetController.opacity != null) {
         rtn = Opacity(
-          opacity: Utils.getValidOpacity(widgetController.opacity!) ?? 1,
+          opacity: Utils.optionalDouble(widgetController.opacity!, min: 0, max: 1.0) ?? 1.0,
           child: rtn,
         );
       }

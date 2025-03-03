@@ -694,13 +694,6 @@ class Utils {
     return textAlign;
   }
 
-  static double? getValidOpacity(double opacity) {
-    if (opacity < 0 || opacity > 1) {
-      return 1;
-    } else {
-      return opacity;
-    }
-  }
 
   static Curve? getCurve(String? curveType) {
     Curve? curve;
