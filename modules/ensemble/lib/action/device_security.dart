@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:root_jailbreak_sniffer/rjsniffer.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
+import 'package:flutter_security_checker/flutter_security_checker.dart';
 import 'package:ensemble/framework/event.dart';
 
 class DeviceSecurity extends EnsembleAction with Invokable {
@@ -19,7 +20,7 @@ class DeviceSecurity extends EnsembleAction with Invokable {
   @override
   Future<void> execute(BuildContext context, ScopeManager scopeManager) async {
     if (kIsWeb) {
-      _handleSuccess(context, false, false, false,
+      _handleSuccess(context, false, false, false,false,
           'This information is not available on the web');
       return;
     }
@@ -29,15 +30,16 @@ class DeviceSecurity extends EnsembleAction with Invokable {
       bool isRooted = await Rjsniffer.amICompromised() ?? false;
       bool isDebugged = await Rjsniffer.amIDebugged() ?? false;
       bool isEmulator = await Rjsniffer.amIEmulator() ?? false;
+      bool hasCorrectlyInstalled = await FlutterSecurityChecker.hasCorrectlyInstalled;
 
-      _handleSuccess(context, isRooted, isDebugged, isEmulator, 'success');
+      _handleSuccess(context, isRooted, isDebugged, isEmulator, hasCorrectlyInstalled, 'success');
     } catch (e) {
       _handleError(context, e);
     }
   }
 
   void _handleSuccess(BuildContext context, bool isRooted, bool isDebugged,
-      bool isEmulator, String message) {
+      bool isEmulator, bool hasCorrectlyInstalled, String message) {
     if (onSuccess != null) {
       ScreenController().executeAction(
         context,
@@ -48,6 +50,7 @@ class DeviceSecurity extends EnsembleAction with Invokable {
             'debugged': isDebugged,
             'rooted': isRooted,
             'emulator': isEmulator,
+            'tampered': !hasCorrectlyInstalled, // if not correctly installed, then it's tempered
             'message': message,
           },
         ),
