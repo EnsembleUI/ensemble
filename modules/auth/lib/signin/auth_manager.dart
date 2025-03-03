@@ -146,7 +146,7 @@ class AuthManager with UserAuthentication {
         print('Sign in with custom firebase auth token failed');
         return null;
       }
-      String? token = await user.getIdToken();
+      String? firebaseToken = await user.getIdToken();
       Future<void> updateCurrentUser(BuildContext context, User newUser) async {
         await StorageManager()
             .writeToSystemStorage(UserAuthentication._idKey, newUser.uid);
@@ -155,7 +155,7 @@ class AuthManager with UserAuthentication {
       }
 
       updateCurrentUser(context, user);
-      return token;
+      return firebaseToken;
     } catch (e) {
       print(e.toString());
       return null;

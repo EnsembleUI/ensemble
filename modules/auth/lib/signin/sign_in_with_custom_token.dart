@@ -10,12 +10,12 @@ class SignInWithCustomTokenImpl implements SignInWithCustomToken {
   @override
   Future<void> signInWithCustomToken(BuildContext context,
       {required SignInWithCustomTokenAction action}) async {
-    final token = await AuthManager().signInWithCustomToken(context,idToken: action.idToken!);
-    if (token != null) {
+    final idToken = await AuthManager().signInWithCustomToken(context,idToken: action.idToken!);
+    if (idToken != null) {
       if (action.onAuthenticated != null) {
         AuthenticatedUser? currentUser = AuthManager().getCurrentUser();
         ScreenController().executeAction(context, action.onAuthenticated!,
-            event: EnsembleEvent(null, data: {'user': currentUser, 'token': token}));
+            event: EnsembleEvent(null, data: {'user': currentUser, 'idToken': idToken}));
       }
     } else {
       if (action.onError != null) {
