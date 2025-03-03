@@ -50,7 +50,7 @@ class DeviceSecurity extends EnsembleAction with Invokable {
             'debugged': isDebugged,
             'rooted': isRooted,
             'emulator': isEmulator,
-            'tampered': !hasCorrectlyInstalled, // if not correctly installed, then it's tempered
+            'correctlyInstalled': hasCorrectlyInstalled,
             'message': message,
           },
         ),
