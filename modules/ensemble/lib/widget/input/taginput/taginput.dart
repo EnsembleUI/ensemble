@@ -1,12 +1,7 @@
-import 'dart:developer';
 
-import 'package:ensemble/ensemble_theme.dart';
 import 'package:ensemble/framework/event.dart';
-import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/framework/scope.dart';
-import 'package:ensemble/framework/theme/theme_manager.dart';
 import 'package:ensemble/framework/view/data_scope_widget.dart';
-import 'package:ensemble/framework/widget/icon.dart' as framework;
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/layout/form.dart';
@@ -14,24 +9,17 @@ import 'package:ensemble/model/item_template.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/debouncer.dart';
 import 'package:ensemble/util/input_formatter.dart';
-import 'package:ensemble/util/input_validator.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/helpers/HasTextPlaceholder.dart';
 import 'package:ensemble/widget/helpers/form_helper.dart';
 import 'package:ensemble/widget/helpers/input_wrapper.dart';
-import 'package:ensemble/widget/helpers/widgets.dart';
-import 'package:ensemble_ts_interpreter/invokables/invokablecontroller.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:ensemble/layout/templated.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
-import 'package:email_validator/email_validator.dart';
 import 'package:ensemble/framework/model.dart' as model;
 import 'package:flutter/services.dart';
-import 'package:flutter_html/flutter_html.dart';
-import 'package:flutter_i18n/flutter_i18n.dart';
 import 'package:form_validator/form_validator.dart';
-import 'package:mask_text_input_formatter/mask_text_input_formatter.dart';
 import 'package:fluttertagger/fluttertagger.dart';
 
 /// TextInput
