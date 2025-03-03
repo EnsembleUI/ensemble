@@ -1,8 +1,8 @@
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
-import 'package:image_gallery_saver/image_gallery_saver.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:vision_gallery_saver/vision_gallery_saver.dart';
 // Conditionally import the file that has `dart:html` vs. the stub:
 import 'download_stub.dart' if (dart.library.html) 'download_web.dart';
 
@@ -11,7 +11,7 @@ Future<void> saveImageToDCIM(String fileName, Uint8List fileBytes) async {
     if (kIsWeb) {
       downloadFileOnWeb(fileName, fileBytes);
     } else {
-      final result = await ImageGallerySaver.saveImage(
+      final result = await VisionGallerySaver.saveImage(
         fileBytes,
         name: fileName,
       );
