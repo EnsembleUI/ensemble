@@ -247,7 +247,7 @@ class ListViewState extends EWidgetState<ListView>
         }
         if (itemWidget != null) {
           return Padding(
-            padding: EdgeInsets.symmetric(vertical: Utils.getDouble(widget._controller.gap, fallback: 0)),
+            padding: EdgeInsets.only(bottom: Utils.getDouble(widget._controller.gap, fallback: 0)),
             child: widget._controller.onItemTap == null
                 ? itemWidget
                 : flutter.InkWell(onTap: () => _onItemTapped(index), child: itemWidget),
