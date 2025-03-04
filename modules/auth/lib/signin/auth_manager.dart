@@ -132,6 +132,36 @@ class AuthManager with UserAuthentication {
     }
   }
 
+  Future<String?> signInWithCustomToken(
+      BuildContext context,
+      {required String idToken}
+  ) async {
+    try {
+      customFirebaseApp ??= await _initializeFirebaseSignIn();
+      final _auth = FirebaseAuth.instanceFor(app: customFirebaseApp!);
+
+      UserCredential userCredential = await _auth.signInWithCustomToken(idToken);
+      User? user = userCredential.user;
+      if (user == null) {
+        print('Sign in with custom firebase auth token failed');
+        return null;
+      }
+      String? firebaseToken = await user.getIdToken();
+      Future<void> updateCurrentUser(BuildContext context, User newUser) async {
+        await StorageManager()
+            .writeToSystemStorage(UserAuthentication._idKey, newUser.uid);
+        await StorageManager()
+            .writeToSystemStorage(UserAuthentication._isAnonymous, user.isAnonymous);
+      }
+
+      updateCurrentUser(context, user);
+      return firebaseToken;
+    } catch (e) {
+      print(e.toString());
+      return null;
+    }
+  }
+
   Future<String?> _signInLocally(BuildContext context,
       {required AuthenticatedUser user, AuthToken? token}) async {
     // update the current user
