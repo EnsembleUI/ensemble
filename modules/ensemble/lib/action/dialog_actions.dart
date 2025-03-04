@@ -48,6 +48,8 @@ class ShowDialogAction extends EnsembleAction {
 
   @override
   Future execute(BuildContext context, ScopeManager scopeManager) {
+    // Save the currently focused widget so we can keep focus on it after dialog opens
+    FocusNode? currentFocus = FocusManager.instance.primaryFocus;
     // get styles. TODO: make bindable
     Map<String, dynamic> dialogStyles = {};
     options?.forEach((key, value) {
@@ -109,10 +111,21 @@ class ShowDialogAction extends EnsembleAction {
                               useDefaultStyle ? const EdgeInsets.all(20) : null,
                           child: DataScopeWidget(
                               scopeManager: scopeManager.createChildScope(),
-                              child: SingleChildScrollView(
+                            child: Builder(
+                              builder: (context) {
+                                // Keep focus on the focus sensitive widgets (e.g. TextInput) after dialog opens
+                                WidgetsBinding.instance.addPostFrameCallback((_) {
+                                  if (currentFocus != null && currentFocus.hasFocus) {
+                                    currentFocus.requestFocus();
+                                  }
+                                });
+                                return SingleChildScrollView(
                                 child: scopeManager
                                     .buildWidgetFromDefinition(body),
-                              ))))));
+                                );
+                                })))),
+                    ),
+                  );
         }).then((payload) {
       // remove the dialog context since we are closing them
       scopeManager.openedDialogs.remove(dialogContext);
