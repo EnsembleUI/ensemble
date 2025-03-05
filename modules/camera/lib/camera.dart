@@ -351,6 +351,12 @@ class CameraState extends EWidgetState<Camera> with WidgetsBindingObserver {
   }
 
   Future<void> setCamera({CameraDescription? cameraDescription}) async {
+    // If a camera controller has already been initialized, dispose it.
+    if (widget._controller.cameraController != null) {
+      await widget._controller.cameraController!.dispose();
+      widget._controller.cameraController = null;
+    }
+
     CameraDescription targetCamera = cameraDescription ?? cameras[0];
 
     widget._controller.cameraController = CameraController(
