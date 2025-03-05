@@ -1234,12 +1234,16 @@ class CameraState extends EWidgetState<Camera> with WidgetsBindingObserver {
                         itemBuilder: (context, index) {
                           return IconButton(
                               onPressed: () {
-                                final page = (index + 1) % flashIcons.length;
-                                _flashPageController.animateToPage(page,
-                                    duration: const Duration(milliseconds: 400),
-                                    curve: Curves.ease);
-                                widget._controller.cameraController
-                                    ?.setFlashMode(flashModes.elementAt(page));
+                                try{
+                                  final page = (index + 1) % flashIcons.length;
+                                  _flashPageController.animateToPage(page,
+                                      duration: const Duration(milliseconds: 400),
+                                      curve: Curves.ease);
+                                  widget._controller.cameraController
+                                      ?.setFlashMode(flashModes.elementAt(page));
+                                } catch(e){
+                                  debugPrint("CameraException: ${e}");
+                                }
                               },
                               icon: Icon(flashIcons.elementAt(index)),
                               color: Colors.white);
