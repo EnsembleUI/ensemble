@@ -246,14 +246,16 @@ class ListViewState extends EWidgetState<ListView>
           }
         }
         if (itemWidget != null) {
-          return index < (itemCount-1) ? Padding(
-            padding: EdgeInsets.only(bottom: Utils.getDouble(widget._controller.gap, fallback: 0)),
-            child: widget._controller.onItemTap == null
-                ? itemWidget
-                : flutter.InkWell(onTap: () => _onItemTapped(index), child: itemWidget),
-          ): widget._controller.onItemTap == null
+          Widget wrappedItem = widget._controller.onItemTap == null
               ? itemWidget
               : flutter.InkWell(onTap: () => _onItemTapped(index), child: itemWidget);
+
+          return index < (itemCount - 1)
+              ? Padding(
+            padding: EdgeInsets.only(bottom: Utils.getDouble(widget._controller.gap, fallback: 0)),
+            child: wrappedItem,
+          )
+              : wrappedItem;
         }
         return const SizedBox.shrink();
       },
