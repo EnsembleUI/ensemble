@@ -4,6 +4,7 @@ import 'dart:ui';
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/ensemble_app.dart';
 import 'package:ensemble/framework/action.dart';
+import 'package:ensemble/framework/assets_service.dart';
 import 'package:ensemble/framework/ensemble_config_service.dart';
 import 'package:ensemble/framework/stub/location_manager.dart';
 import 'package:ensemble/framework/theme/theme_manager.dart';
@@ -247,6 +248,20 @@ class Utils {
 
   static bool isUrl(String source) {
     return source.startsWith('https://') || source.startsWith('http://');
+  }
+
+  static String getAssetName(String source) {
+    try {
+    Uri uri = Uri.parse(source);
+    String path = uri.pathSegments!.last; // Get the last segment with encoding
+    return Uri.decodeFull(path)
+        .split('/')
+        .last
+        .split('?')
+        .first; // Decode and extract the file name
+    } catch (e) {
+      return '';
+    }
   }
 
   static LocationData? getLatLng(dynamic value) {
@@ -1008,6 +1023,10 @@ class Utils {
     } catch (e) {
       return 'ensemble/assets/${stripQueryParamsFromAsset(asset)}';
     }
+  }
+
+  static bool isAssetAvailableLocally(String? fileName) {
+   return LocalAssetsService.localAssets.contains(fileName);
   }
 
   static bool isMemoryPath(String path) {

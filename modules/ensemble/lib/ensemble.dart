@@ -6,6 +6,7 @@ import 'dart:math' as math;
 import 'package:ensemble/ensemble_app.dart';
 import 'package:ensemble/firebase_options.dart';
 import 'package:ensemble/framework/apiproviders/api_provider.dart';
+import 'package:ensemble/framework/assets_service.dart';
 import 'package:ensemble/framework/bindings.dart';
 import 'package:ensemble/framework/definition_providers/ensemble_provider.dart';
 import 'package:ensemble/framework/device.dart';
@@ -200,7 +201,10 @@ class Ensemble extends WithEnsemble with EnsembleRouteObserver {
         services: Services.fromYaml(yamlMap['services']),
         signInServices: SignInServices.fromYaml(yamlMap['services']),
         envOverrides: envOverrides);
-
+  // Initializing Local Assets Service to store available local assets names
+   if(!LocalAssetsService.isInitialized){
+     await  LocalAssetsService.initialize(_instance.getConfig()?.definitionProvider.getAppConfig()?.envVariables, yamlMap);
+   }
     AppInfo().initPackageInfo(_config);
     await initializeAPIProviders(_config!);
     return _config!;

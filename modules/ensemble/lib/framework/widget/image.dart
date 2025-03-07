@@ -34,8 +34,21 @@ class Image extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return source.startsWith('https://') || source.startsWith('http://')
-        ? CachedNetworkImage(
+    if (source.startsWith('https://') || source.startsWith('http://')) {
+       // If the asset is available locally, then use local path
+      String assetName = Utils.getAssetName(source);
+      if (Utils.isAssetAvailableLocally(assetName)) {
+        return flutter.Image.asset(
+          Utils.getLocalAssetFullPath(assetName),
+          width: width,
+          height: height,
+          fit: fit,
+          errorBuilder: errorBuilder != null
+              ? (context, error, stackTrace) => errorBuilder!(error.toString())
+              : null,
+        );
+      }
+        return CachedNetworkImage(
             imageUrl: source,
             width: width,
             height: height,
@@ -46,8 +59,9 @@ class Image extends StatelessWidget {
             errorWidget: errorBuilder != null
                 ? (context, url, error) => errorBuilder!(error.toString())
                 : null,
-            cacheManager: networkCacheManager)
-        : flutter.Image.asset(
+            cacheManager: networkCacheManager);
+    } else {
+      return flutter.Image.asset(
             Utils.getLocalAssetFullPath(source),
             width: width,
             height: height,
@@ -57,5 +71,6 @@ class Image extends StatelessWidget {
                     errorBuilder!(error.toString())
                 : null,
           );
+    }
   }
 }
