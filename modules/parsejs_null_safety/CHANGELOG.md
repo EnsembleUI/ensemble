@@ -1,6 +1,20 @@
+# ChangeLog
+
+## 2.0.3 (2024-12-29)
+
+- Fixes
+
+## 2.0.2 (2024-12-29)
+
+- Migrated to null safety (Dart SDK >=3.5.0).
+- Updated dependencies and constraints.
+
 ## 2.0.1 (2019-08-06)
+
 - Amended Pub analysis suggestions
+
 ## 2.0.0 (2019-08-06)
+
 - Updated for Dart 2.4
 
 ## 1.2.0 (2017-05-06)
