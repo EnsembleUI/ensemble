@@ -17,6 +17,7 @@ class AuthModuleStub implements AuthModule {
     GetIt.I.registerSingleton<TokenManager>(TokenManagerStub());
     GetIt.I.registerFactory<OAuthController>(() => OAuthControllerStub());
     GetIt.I.registerFactory<SignInAnonymous>(() => SignInAnonymousStub());
+    GetIt.I.registerFactory<SignInWithCustomToken>(() => SignInWithCustomTokenStub());
     // note that we don't inject AuthContextManagerStub(), since its presence
     // will prevent data_context to load
   }
