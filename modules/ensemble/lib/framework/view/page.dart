@@ -404,8 +404,8 @@ class PageState extends State<Page>
         curve: curve,
         duration: duration,
         backgroundWidget: backgroundWidget,
-        expandedBarHeight: flexibleMaxHeight,
-        collapsedBarHeight: flexibleMinHeight,
+        expandedBarHeight: flexibleMaxHeight?? titleBarHeight,
+        collapsedBarHeight: flexibleMinHeight?? titleBarHeight,
         floating: scrollMode == ScrollMode.floating,
         pinned: scrollMode == ScrollMode.pinned,
 
@@ -919,9 +919,10 @@ class _AnimatedAppBarState extends State<AnimatedAppBar> {
   }
 
   void _updateCollapseState() {
-    bool newState = widget.scrollController.hasClients &&
-        widget.scrollController.offset >
-            (widget.expandedBarHeight - widget.collapsedBarHeight);
+    bool newState = widget.scrollController != null &&
+        widget.scrollController.hasClients &&
+            widget.scrollController.offset >
+                (widget.expandedBarHeight - widget.collapsedBarHeight);
 
     if (newState != isCollapsed) {
       setState(() {
@@ -980,8 +981,8 @@ class _AnimatedAppBarState extends State<AnimatedAppBar> {
 }
 
 enum ScrollMode {
-  floating,
   pinned,
+  floating,
 }
 class ActionResponse {
   Map<String, dynamic>? _resultData;
