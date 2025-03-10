@@ -933,21 +933,21 @@ class SignInAnonymousAction extends EnsembleAction {
 class SignInWithCustomTokenAction extends EnsembleAction {
   final EnsembleAction? onAuthenticated;
   final EnsembleAction? onError;
-  final String? idToken;
+  final String? jwtToken;
 
   SignInWithCustomTokenAction({
     super.initiator,
     super.inputs,
     required this.onAuthenticated,
     required this.onError,
-    this.idToken,
+    this.jwtToken,
   });
 
   factory SignInWithCustomTokenAction.fromYaml({Map? payload}) {
     return SignInWithCustomTokenAction(
       onAuthenticated: EnsembleAction.from(payload?['onAuthenticated']),
       onError: EnsembleAction.from(payload?['onError']),
-      idToken: payload?['token'],
+      jwtToken: payload?['token'],
     );
   }
 }

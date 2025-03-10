@@ -10,7 +10,7 @@ class SignInWithCustomTokenImpl implements SignInWithCustomToken {
   @override
   Future<void> signInWithCustomToken(BuildContext context,
       {required SignInWithCustomTokenAction action}) async {
-    final idToken = await AuthManager().signInWithCustomToken(context,idToken: action.idToken!);
+    final idToken = await AuthManager().signInWithCustomToken(context, jwtToken: action.jwtToken!);
     if (idToken != null) {
       if (action.onAuthenticated != null) {
         AuthenticatedUser? currentUser = AuthManager().getCurrentUser();
