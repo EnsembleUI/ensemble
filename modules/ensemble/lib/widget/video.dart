@@ -103,6 +103,19 @@ class MyController extends WidgetController {
       }
 
       if (value.startsWith('https://') || value.startsWith('http://')) {
+        // If the asset is available locally, then use local path
+        String assetName = Utils.getAssetName(value);
+        if (Utils.isAssetAvailableLocally(assetName)) {
+          _playerController = VideoPlayerController.asset(
+              Utils.getLocalAssetFullPath(assetName))
+            ..initialize().then((_) {
+              VideoPlayerValue value = _playerController!.value;
+              log(value.toString());
+              setupPlayer();
+              notifyListeners();
+            });
+        }
+        else{
         _playerController = VideoPlayerController.networkUrl(Uri.parse(value))
           ..initialize().then((_) {
             VideoPlayerValue value = _playerController!.value;
@@ -110,6 +123,7 @@ class MyController extends WidgetController {
             setupPlayer();
             notifyListeners();
           });
+        }
       } else if (Utils.isMemoryPath(value)) {
         _playerController = VideoPlayerController.file(File(value))
           ..initialize().then((_) {

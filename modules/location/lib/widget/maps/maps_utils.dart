@@ -38,6 +38,12 @@ class MapsUtils {
     /// for device with high device pixel ratio.
     if (Utils.isUrl(asset)) {
       try {
+         // If the asset is available locally, then use local path
+        String assetName = Utils.getAssetName(asset);
+        if (Utils.isAssetAvailableLocally(assetName)) {
+            return BitmapDescriptor.fromAssetImage(
+          ImageConfiguration.empty, Utils.getLocalAssetFullPath(asset));
+        }
         // use cache manager
         final File file = await DefaultCacheManager().getSingleFile(asset);
         final Uint8List imageBytes = await file.readAsBytes();
