@@ -147,6 +147,8 @@ abstract class BaseTextInput extends StatefulWidget
           _controller.enableClearText = Utils.optionalBool(value),
       'dismissibleKeyboard': (value) =>
           _controller.dismissibleKeyboard = Utils.getBool(value, fallback: _controller.dismissibleKeyboard),
+      'endingWidget': (widget) =>
+          _controller.endingWidget = widget,
       'obscureToggle': (value) =>
           _controller.obscureToggle = Utils.optionalBool(value),
       'obscured': (widget) => _controller.obscureText == true,
@@ -227,6 +229,9 @@ class TextInputController extends FormFieldController with HasTextPlaceholder {
   EnsembleAction? onFocusLost;
   bool? enableClearText;
   bool dismissibleKeyboard = true;
+
+  // Ending widget for the input field
+  dynamic endingWidget;
 
   // applicable only for TextInput
   bool? obscureText;
@@ -470,6 +475,12 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput>
           onPressed: _clearSelection,
           icon: const Icon(Icons.close),
         ),
+      );
+    }
+
+    if(widget.controller.endingWidget != null) {
+      decoration = decoration.copyWith(
+        suffixIcon: scopeManager!.buildWidgetFromDefinition(widget.controller.endingWidget),
       );
     }
 
