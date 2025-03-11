@@ -185,10 +185,12 @@ class Ensemble extends WithEnsemble with EnsembleRouteObserver {
       final configString =
           await rootBundle.loadString('${path}/config/appConfig.json');
       final Map<String, dynamic> configMap = json.decode(configString);
-      // Loop through the envVariables from appConfig.json file and add them to the envOverrides
-      configMap["envVariables"].forEach((key, value) {
-        envOverrides![key] = value;
-      });
+      if (configMap["envVariables"] != null) {
+        // Loop through the envVariables from appConfig.json file and add them to the envOverrides
+        configMap["envVariables"].forEach((key, value) {
+          envOverrides![key] = value;
+        });
+      }
     } catch (e) {
       debugPrint("appConfig.json file doesn't exist");
     }
