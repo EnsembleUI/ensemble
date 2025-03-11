@@ -280,9 +280,7 @@ class ButtonState extends EWidgetState<Button> {
     // if focus in on a formfield (e.g. TextField), clicking on button will
     // not remove focus, so its value is never updated. Unfocus here before
     // executing button click ensure we get all the latest value of the form fields
-    if (widget._controller.submitForm == false) {
-      FocusManager.instance.primaryFocus?.unfocus();
-    }
+    FocusManager.instance.primaryFocus?.unfocus();
 
     // submit the form if specified
     if (widget._controller.submitForm == true) {
