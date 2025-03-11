@@ -49,7 +49,7 @@ class LocalDefinitionProvider extends FileDefinitionProvider {
   Future<AppBundle> getAppBundle({bool? bypassCache = false}) async {
     try {
       final configString =
-          await rootBundle.loadString('${path}/config/appConfig.json');
+          await rootBundle.loadString('${path}config/appConfig.json');
       final Map<String, dynamic> appConfigMap = json.decode(configString);
       if (appConfigMap.isNotEmpty) {
         appConfig = UserAppConfig(
