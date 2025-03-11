@@ -27,50 +27,11 @@ class Device
         DeviceInfoCapability,
         WidgetsBindingObserver {
   static final Device _instance = Device._internal();
-  static late BuildContext context;
 
-  Device._internal() {
-    WidgetsBinding.instance.addObserver(this);
-  }
+  Device._internal();
 
-  factory Device([BuildContext? buildContext]) {
-    if (buildContext != null) {
-      context = buildContext;
-    }
+  factory Device() {
     return _instance;
-  }
-
-  // method to update context
-  void updateContext(BuildContext? newContext) {
-    if (newContext != null) {
-      context = newContext;
-    }
-  }
-
-  @override
-  void didChangeMetrics() {
-    WidgetsBinding.instance
-        .addPostFrameCallback((_) => _handleMediaQueryChange());
-  }
-
-  void _handleMediaQueryChange() {
-    final newData = MediaQuery.of(context);
-
-    // Compare with existing static data
-    if (MediaQueryCapability.data?.orientation != newData.orientation ||
-        MediaQueryCapability.data?.size != newData.size) {
-      MediaQueryCapability.data = newData;
-
-      // Dispatch individual property changes
-      ScreenController().dispatchDeviceChanges(context, 'width', screenWidth);
-      ScreenController().dispatchDeviceChanges(context, 'height', screenHeight);
-      ScreenController()
-          .dispatchDeviceChanges(context, 'orientation', screenOrientation);
-      ScreenController()
-          .dispatchDeviceChanges(context, 'safeAreaTop', safeAreaTop);
-      ScreenController()
-          .dispatchDeviceChanges(context, 'safeAreaBottom', safeAreaBottom);
-    }
   }
 
   @override
