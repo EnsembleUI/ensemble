@@ -252,13 +252,14 @@ class Utils {
 
   static String getAssetName(String source) {
     try {
-    Uri uri = Uri.parse(source);
-    String path = uri.pathSegments!.last; // Get the last segment with encoding
-    return Uri.decodeFull(path)
-        .split('/')
-        .last
-        .split('?')
-        .first; // Decode and extract the file name
+      Uri uri = Uri.parse(source);
+      String path =
+          uri.pathSegments!.last; // Get the last segment with encoding
+      return Uri.decodeFull(path)
+          .split('/')
+          .last
+          .split('?')
+          .first; // Decode and extract the file name
     } catch (e) {
       return '';
     }
@@ -1026,7 +1027,7 @@ class Utils {
   }
 
   static bool isAssetAvailableLocally(String? fileName) {
-   return LocalAssetsService.localAssets.contains(fileName);
+    return LocalAssetsService.localAssets.contains(fileName);
   }
 
   static bool isMemoryPath(String path) {

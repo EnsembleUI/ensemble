@@ -114,15 +114,14 @@ class MyController extends WidgetController {
               setupPlayer();
               notifyListeners();
             });
-        }
-        else{
-        _playerController = VideoPlayerController.networkUrl(Uri.parse(value))
-          ..initialize().then((_) {
-            VideoPlayerValue value = _playerController!.value;
-            log(value.toString());
-            setupPlayer();
-            notifyListeners();
-          });
+        } else {
+          _playerController = VideoPlayerController.networkUrl(Uri.parse(value))
+            ..initialize().then((_) {
+              VideoPlayerValue value = _playerController!.value;
+              log(value.toString());
+              setupPlayer();
+              notifyListeners();
+            });
         }
       } else if (Utils.isMemoryPath(value)) {
         _playerController = VideoPlayerController.file(File(value))

@@ -6,14 +6,17 @@ class LocalAssetsService {
   static List<String> localAssets = [];
   static bool _isInitialized = false;
 
-  static Future<void> initialize(Map<String, dynamic>? envVariables, YamlMap definations) async {
+  static Future<void> initialize(
+      Map<String, dynamic>? envVariables, YamlMap definations) async {
     List<String> foundAssets = [];
 
     for (var entry in envVariables!.entries) {
       String assetName = Utils.getAssetName(entry.value); // Get the asset name
       String provider = definations['definitions']?['from'];
-      String path= definations['definitions']?['local']['path'];
-      String assetPath = provider == 'local' ? "$path/assets/$assetName" : "ensemble/assets/$assetName"; // Construct the full path
+      String path = definations['definitions']?['local']['path'];
+      String assetPath = provider == 'local'
+          ? "$path/assets/$assetName"
+          : "ensemble/assets/$assetName"; // Construct the full path
 
       bool exists = await _assetExists(assetPath); // Check if asset exists
 

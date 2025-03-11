@@ -288,11 +288,10 @@ class ImageState extends EWidgetState<EnsembleImage> {
       // If the asset is available locally, then use local path
       String assetName = Utils.getAssetName(source);
       if (Utils.isAssetAvailableLocally(assetName)) {
-        return SvgPicture.asset(
-          Utils.getLocalAssetFullPath(assetName),
-          width: widget._controller.width?.toDouble(),
-        height: widget._controller.height?.toDouble(),
-        fit: fit ?? BoxFit.contain);
+        return SvgPicture.asset(Utils.getLocalAssetFullPath(assetName),
+            width: widget._controller.width?.toDouble(),
+            height: widget._controller.height?.toDouble(),
+            fit: fit ?? BoxFit.contain);
       }
       return SvgPicture.network(
         widget._controller.source,

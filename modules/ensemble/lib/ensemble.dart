@@ -182,14 +182,14 @@ class Ensemble extends WithEnsemble with EnsembleRouteObserver {
     // Read environmental variables from config/appConfig.json
     try {
       dynamic path = yamlMap["definitions"]?['local']?["path"];
-    final configString = await rootBundle
-        .loadString('${path}/config/appConfig.json');
-    final Map<String, dynamic> configMap = json.decode(configString);
-    // Loop through the envVariables from appConfig.json file and add them to the envOverrides
-    configMap["envVariables"].forEach((key, value) {
-      envOverrides![key] = value;
-    });
-    } catch(e) {
+      final configString =
+          await rootBundle.loadString('${path}/config/appConfig.json');
+      final Map<String, dynamic> configMap = json.decode(configString);
+      // Loop through the envVariables from appConfig.json file and add them to the envOverrides
+      configMap["envVariables"].forEach((key, value) {
+        envOverrides![key] = value;
+      });
+    } catch (e) {
       debugPrint("appConfig.json file doesn't exist");
     }
 
@@ -201,10 +201,16 @@ class Ensemble extends WithEnsemble with EnsembleRouteObserver {
         services: Services.fromYaml(yamlMap['services']),
         signInServices: SignInServices.fromYaml(yamlMap['services']),
         envOverrides: envOverrides);
-  // Initializing Local Assets Service to store available local assets names
-   if(!LocalAssetsService.isInitialized){
-     await  LocalAssetsService.initialize(_instance.getConfig()?.definitionProvider.getAppConfig()?.envVariables, yamlMap);
-   }
+    // Initializing Local Assets Service to store available local assets names
+    if (!LocalAssetsService.isInitialized) {
+      await LocalAssetsService.initialize(
+          _instance
+              .getConfig()
+              ?.definitionProvider
+              .getAppConfig()
+              ?.envVariables,
+          yamlMap);
+    }
     AppInfo().initPackageInfo(_config);
     await initializeAPIProviders(_config!);
     return _config!;

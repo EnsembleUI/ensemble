@@ -290,7 +290,7 @@ class EnsembleImageCropperState extends EWidgetState<EnsembleImageCropper>
 
   ImageProvider buildNonSvgImageProvider(String source, BoxFit? fit) {
     if (source.startsWith('https://') || source.startsWith('http://')) {
-       // If the asset is available locally, then use local path
+      // If the asset is available locally, then use local path
       String assetName = Utils.getAssetName(source);
       if (Utils.isAssetAvailableLocally(assetName)) {
         return Image.asset(
@@ -325,7 +325,7 @@ class EnsembleImageCropperState extends EWidgetState<EnsembleImageCropper>
   Svg buildSvgImageProvider(String source, BoxFit? fit) {
     // if is URL
     if (source.startsWith('https://') || source.startsWith('http://')) {
-       // If the asset is available locally, then use local path
+      // If the asset is available locally, then use local path
       String assetName = Utils.getAssetName(source);
       if (Utils.isAssetAvailableLocally(assetName)) {
         return Svg(

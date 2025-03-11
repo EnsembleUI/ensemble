@@ -31,7 +31,7 @@ class BackgroundImage {
   DecorationImage getImageAsDecorated() {
     ImageProvider imageProvider;
     if (Utils.isUrl(_source)) {
-       // If the asset is available locally, then use local path
+      // If the asset is available locally, then use local path
       String assetName = Utils.getAssetName(_source);
       if (Utils.isAssetAvailableLocally(assetName)) {
         imageProvider = AssetImage(Utils.getLocalAssetFullPath(assetName));

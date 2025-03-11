@@ -24,7 +24,7 @@ class LottieState extends EWidgetState<EnsembleLottie>
   void dispose() {
     _animationController.stop();
     _animationController.dispose();
-    
+
     if (widget.controller.lottieController == _animationController) {
       widget.controller.lottieController = null;
     }
