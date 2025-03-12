@@ -197,6 +197,7 @@ class CameraState extends EWidgetState<Camera> with WidgetsBindingObserver {
   bool isRecording = false;
   bool hasPermission = false;
   bool isLoading = true;
+  bool isCropping = false;
   int currentModeIndex = 0;
 
   List<CameraMode> modes = [];
@@ -502,6 +503,17 @@ class CameraState extends EWidgetState<Camera> with WidgetsBindingObserver {
             child: KeyedSubtree(
               key: _overlayKey,
               child: widget.overlayWidget!,
+            ),
+          ),
+        if (isCropping)
+          Container(
+            color: Colors.black.withOpacity(0.7), // Black background
+            width: MediaQuery.of(context).size.width, // Full screen width
+            height: MediaQuery.of(context).size.height, // Full screen height
+            child: Center(
+              child: CircularProgressIndicator(
+                color: Colors.white, // Optional: Change the color of the progress indicator
+              ),
             ),
           ),
         imagePreviewButton(),
@@ -1021,10 +1033,17 @@ class CameraState extends EWidgetState<Camera> with WidgetsBindingObserver {
       }
     } else {
       if (widget._controller.captureOverlay) {
+        setState(() {
+          isCropping = true;
+        });
         try {
           file = await takeOverlayCapture();
         } on Exception catch (e) {
           print(e);
+        } finally {
+          setState(() {
+            isCropping = false;
+          });
         }
       } else {
         file = await takePicture();
