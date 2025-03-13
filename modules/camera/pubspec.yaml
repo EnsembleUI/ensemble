@@ -10,12 +10,13 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  camera: ^0.10.6
+  camera: ^0.11.0+2
+  face_camera: ^0.1.4
   # embed Ensemble as a sibling project
   ensemble:
     git:
       url: https://github.com/EnsembleUI/ensemble.git
-      ref: ensemble-v1.1.31
+      ref: ensemble-v1.1.34
       path: modules/ensemble
   ensemble_ts_interpreter:
     git:
