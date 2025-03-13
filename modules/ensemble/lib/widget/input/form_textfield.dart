@@ -1,10 +1,5 @@
-import 'dart:developer';
-
-import 'package:ensemble/ensemble_theme.dart';
 import 'package:ensemble/framework/event.dart';
-import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/framework/theme/theme_manager.dart';
-import 'package:ensemble/framework/widget/icon.dart' as framework;
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/layout/form.dart';
 import 'package:ensemble/screen_controller.dart';
@@ -14,18 +9,13 @@ import 'package:ensemble/util/input_validator.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/helpers/HasTextPlaceholder.dart';
 import 'package:ensemble/widget/helpers/form_helper.dart';
+import 'package:ensemble/widget/helpers/input_field_helper.dart';
 import 'package:ensemble/widget/helpers/input_wrapper.dart';
-import 'package:ensemble/widget/helpers/widgets.dart';
-import 'package:ensemble_ts_interpreter/invokables/invokablecontroller.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:email_validator/email_validator.dart';
-import 'package:ensemble/framework/model.dart' as model;
 import 'package:flutter/services.dart';
-import 'package:flutter_i18n/flutter_i18n.dart';
 import 'package:form_validator/form_validator.dart';
-import 'package:mask_text_input_formatter/mask_text_input_formatter.dart';
 
 /// TextInput
 class TextInput extends BaseTextInput {
@@ -63,23 +53,8 @@ class TextInput extends BaseTextInput {
   }
 
   @override
-  TextInputType? get keyboardType {
-    // set the best keyboard type based on the input type
-    if (_controller.inputType == InputType.email.name) {
-      return TextInputType.emailAddress;
-    } else if (_controller.inputType == InputType.phone.name) {
-      return TextInputType.phone;
-    } else if (_controller.inputType == InputType.number.name) {
-      return TextInputType.number;
-    } else if (_controller.inputType == InputType.text.name) {
-      return TextInputType.text;
-    } else if (_controller.inputType == InputType.url.name) {
-      return TextInputType.url;
-    } else if (_controller.inputType == InputType.datetime.name) {
-      return TextInputType.datetime;
-    }
-    return null;
-  }
+  TextInputType? get keyboardType =>
+      InputFieldHelper.getKeyboardType(_controller.inputType);
 }
 
 /// PasswordInput
@@ -129,47 +104,18 @@ abstract class BaseTextInput extends StatefulWidget
   @override
   Map<String, Function> setters() {
     var setters = _controller.textPlaceholderSetters;
-    // set value is not specified here for safety in case of PasswordInput
+
+    // Add common setters from helper
+    setters.addAll(InputFieldHelper.getCommonSetters(this, _controller));
+
+    // Add TextInput/PasswordInput specific setters
     setters.addAll({
-      'validateOnUserInteraction': (value) => _controller
-              .validateOnUserInteraction =
-          Utils.getBool(value, fallback: _controller.validateOnUserInteraction),
-      'onKeyPress': (function) => _controller.onKeyPress =
-          EnsembleAction.from(function, initiator: this),
-      'onChange': (definition) => _controller.onChange =
-          EnsembleAction.from(definition, initiator: this),
-      'onFocusReceived': (definition) => _controller.onFocusReceived =
-          EnsembleAction.from(definition, initiator: this),
-      'onFocusLost': (definition) => _controller.onFocusLost =
-          EnsembleAction.from(definition, initiator: this),
-      'validator': (value) => _controller.validator = Utils.getValidator(value),
-      'enableClearText': (value) =>
-          _controller.enableClearText = Utils.optionalBool(value),
-      'endingWidget': (widget) =>
-          _controller.endingWidget = widget,
       'obscureToggle': (value) =>
           _controller.obscureToggle = Utils.optionalBool(value),
       'obscured': (widget) => _controller.obscureText == true,
       'obscureTextWidget': (widget) => _controller.obscureTextWidget = widget,
-      'readOnly': (value) => _controller.readOnly = Utils.optionalBool(value),
-      'selectable': (value) =>
-          _controller.selectable = Utils.getBool(value, fallback: true),
-      'toolbarDone': (value) =>
-          _controller.toolbarDoneButton = Utils.optionalBool(value),
-      'keyboardAction': (value) =>
-          _controller.keyboardAction = _getKeyboardAction(value),
-      'multiline': (value) => _controller.multiline = Utils.optionalBool(value),
-      'minLines': (value) =>
-          _controller.minLines = Utils.optionalInt(value, min: 1),
-      'maxLines': (value) =>
-          _controller.maxLines = Utils.optionalInt(value, min: 1),
-      'textStyle': (style) => _controller.textStyle = Utils.getTextStyle(style),
-      'autofillHints': (value) =>
-          _controller.autofillHints = Utils.getListOfStrings(value),
-      'maxLength': (value) => _controller.maxLength = Utils.optionalInt(value),
-      'maxLengthEnforcement': (value) =>
-          _controller.maxLengthEnforcement = _getMaxLengthEnforcement(value),
     });
+
     return setters;
   }
 
@@ -181,24 +127,6 @@ abstract class BaseTextInput extends StatefulWidget
     };
   }
 
-  TextInputAction? _getKeyboardAction(dynamic value) {
-    switch (value) {
-      case 'done':
-        return TextInputAction.done;
-      case 'go':
-        return TextInputAction.go;
-      case 'search':
-        return TextInputAction.search;
-      case 'send':
-        return TextInputAction.send;
-      case 'next':
-        return TextInputAction.next;
-      case 'previous':
-        return TextInputAction.previous;
-    }
-    return null;
-  }
-
   @override
   TextInputState createState() => TextInputState();
 
@@ -207,29 +135,17 @@ abstract class BaseTextInput extends StatefulWidget
   TextInputType? get keyboardType;
 }
 
-mixin TextInputFieldAction on FormFieldWidgetState<BaseTextInput> {
+mixin TextInputFieldAction on FormFieldWidgetState<BaseTextInput>
+    implements InputFieldAction {
+  @override
   void focusInputField();
 
+  @override
   void unfocusInputField();
 }
 
 /// controller for both TextField and Password
-class TextInputController extends FormFieldController with HasTextPlaceholder {
-  TextInputFieldAction? inputFieldAction;
-  EnsembleAction? onChange;
-  EnsembleAction? onKeyPress;
-  TextInputAction? keyboardAction;
-
-  EnsembleAction? onDelayedKeyPress;
-  Duration delayedKeyPressDuration = const Duration(milliseconds: 300);
-
-  EnsembleAction? onFocusReceived;
-  EnsembleAction? onFocusLost;
-  bool? enableClearText;
-
-  // Ending widget for the input field
-  dynamic endingWidget;
-
+class TextInputController extends BaseInputController with HasTextPlaceholder {
   // applicable only for TextInput
   bool? obscureText;
 
@@ -237,23 +153,7 @@ class TextInputController extends FormFieldController with HasTextPlaceholder {
   bool? obscured;
   bool? obscureToggle;
   dynamic obscureTextWidget;
-  bool? readOnly;
-  bool selectable = true;
-  bool? toolbarDoneButton;
 
-  model.InputValidator? validator;
-  bool validateOnUserInteraction = false;
-  String? inputType;
-  String? mask;
-  TextStyle? textStyle;
-
-  bool? multiline;
-  int? minLines;
-  int? maxLines;
-  int? maxLength;
-  MaxLengthEnforcement? maxLengthEnforcement;
-
-  List<String>? autofillHints;
 }
 
 class TextInputState extends FormFieldWidgetState<BaseTextInput>
@@ -298,7 +198,7 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput>
         bottom: MediaQuery.of(context).viewInsets.bottom,
         right: 0.0,
         left: 0.0,
-        child: const _InputDoneButton(),
+        child: InputFieldHelper.createInputDoneButton(context),
       );
     });
 
@@ -329,11 +229,6 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput>
       } else {
         evaluateChanges();
 
-        // validate
-        /*if (validatorKey.currentState != null) {
-          validatorKey.currentState!.validate();
-        }*/
-
         if (widget._controller.onFocusLost != null) {
           ScreenController().executeAction(
               context, widget._controller.onFocusLost!,
@@ -358,20 +253,21 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput>
   void didChangeDependencies() {
     super.didChangeDependencies();
     widget.controller.inputFieldAction = this;
-    
+
     // Remove any existing listener first
     if (_propertyListener != null) {
       widget.controller.removeListener(_propertyListener!);
     }
-    
+
     // Create and store new listener
     _propertyListener = () {
-      if (mounted) {  // Check if widget is still mounted
+      if (mounted) {
+        // Check if widget is still mounted
         final formState = EnsembleForm.of(context);
         formState?.widget.controller.notifyFormChanged();
       }
     };
-    
+
     widget.controller.addListener(_propertyListener!);
   }
 
@@ -381,8 +277,6 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput>
     widget.controller.inputFieldAction = this;
 
     // Making sure to move cursor to end when widget rebuild
-    // issue: https://github.com/EnsembleUI/ensemble/issues/1527
-
     if (focusNode.hasFocus) {
       int oldCursorPosition = oldWidget.textController.selection.baseOffset;
       int textLength = widget.textController.text.length;
@@ -472,137 +366,137 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput>
       );
     }
 
-    if(widget.controller.endingWidget != null) {
-      decoration = decoration.copyWith(
-        suffixIcon: scopeManager!.buildWidgetFromDefinition(widget.controller.endingWidget),
-      );
-    }
+    // Add ending widget if provided
+    decoration = InputFieldHelper.addEndingWidget(
+        decoration, widget.controller.endingWidget, scopeManager);
 
     return InputWrapper(
-        type: TextInput.type,
-        controller: widget._controller,
-        widget: TextFormField(
-          key: validatorKey,
-          autofillHints: widget._controller.autofillHints,
-          autovalidateMode: widget._controller.validateOnUserInteraction
-              ? AutovalidateMode.onUserInteraction
-              : AutovalidateMode.disabled,
-          validator: (value) {
-            if (value == null || value.isEmpty) {
-              return widget._controller.required
-                  ? Utils.translateWithFallback(
-                      'ensemble.input.required',
-                      widget._controller.requiredMessage ??
-                          'This field is required')
-                  : null;
-            }
+      type: TextInput.type,
+      controller: widget._controller,
+      widget: InputFieldHelper.createTextFormField(
+        key: validatorKey,
+        controller: widget.textController,
+        focusNode: focusNode,
+        validateOnUserInteraction: widget._controller.validateOnUserInteraction,
+        validator: (value) {
+          if (value == null || value.isEmpty) {
+            return widget._controller.required
+                ? Utils.translateWithFallback(
+                    'ensemble.input.required',
+                    widget._controller.requiredMessage ??
+                        'This field is required')
+                : null;
+          }
 
-            // First we're using the validator to validate the TextInput Field
-            if (widget._controller.validator != null) {
-              ValidationBuilder? builder;
-              if (widget._controller.validator?.minLength != null) {
-                builder = ValidationBuilder().minLength(
-                    widget._controller.validator!.minLength!,
-                    Utils.translateOrNull(
-                        'ensemble.input.validation.minimumLength'));
-              }
-              if (widget._controller.validator?.maxLength != null) {
-                builder = (builder ?? ValidationBuilder()).maxLength(
-                    widget._controller.validator!.maxLength!,
-                    Utils.translateOrNull(
-                        'ensemble.input.validation.maximumLength'));
-              }
-              if (widget._controller.validator?.regex != null) {
-                builder = (builder ?? ValidationBuilder()).regExp(
-                    RegExp(widget._controller.validator!.regex!),
-                    widget._controller.validator!.regexError ??
-                        Utils.translateWithFallback(
-                            'ensemble.input.validation.invalidInput',
-                            'This field has invalid value'));
-              }
-              if (builder != null) {
-                return builder.build().call(value);
-              }
+          // First we're using the validator to validate the TextInput Field
+          if (widget._controller.validator != null) {
+            ValidationBuilder? builder;
+            if (widget._controller.validator?.minLength != null) {
+              builder = ValidationBuilder().minLength(
+                  widget._controller.validator!.minLength!,
+                  Utils.translateOrNull(
+                      'ensemble.input.validation.minimumLength'));
             }
+            if (widget._controller.validator?.maxLength != null) {
+              builder = (builder ?? ValidationBuilder()).maxLength(
+                  widget._controller.validator!.maxLength!,
+                  Utils.translateOrNull(
+                      'ensemble.input.validation.maximumLength'));
+            }
+            if (widget._controller.validator?.regex != null) {
+              builder = (builder ?? ValidationBuilder()).regExp(
+                  RegExp(widget._controller.validator!.regex!),
+                  widget._controller.validator!.regexError ??
+                      Utils.translateWithFallback(
+                          'ensemble.input.validation.invalidInput',
+                          'This field has invalid value'));
+            }
+            if (builder != null) {
+              return builder.build().call(value);
+            }
+          }
 
-            // If validator is null, we can use our own validation based on the InputType
-            //only applicable for TextInput
-            if (!widget.isPassword()) {
-              if (widget._controller.inputType == InputType.email.name) {
-                if (!EmailValidator.validate(value)) {
-                  return Utils.translateWithFallback(
-                      'ensemble.input.validation.invalidEmailType',
-                      'Please enter a valid email address');
-                }
-              } else if (widget._controller.inputType ==
-                  InputType.ipAddress.name) {
-                if (!InputValidator.ipAddress(value)) {
-                  return Utils.translateWithFallback(
-                      'ensemble.input.validation.invalidIPAddressType',
-                      'Please enter a valid IP Address');
-                }
-              } else if (widget._controller.inputType == InputType.phone.name) {
-                if (!InputValidator.phone(value)) {
-                  return Utils.translateWithFallback(
-                      'ensemble.input.validation.invalidPhoneType',
-                      "Please enter a valid Phone Number");
-                }
+          // If validator is null, we can use our own validation based on the InputType
+          // only applicable for TextInput
+          if (!widget.isPassword()) {
+            if (widget._controller.inputType == InputType.email.name) {
+              if (!EmailValidator.validate(value)) {
+                return Utils.translateWithFallback(
+                    'ensemble.input.validation.invalidEmailType',
+                    'Please enter a valid email address');
+              }
+            } else if (widget._controller.inputType ==
+                InputType.ipAddress.name) {
+              if (!InputValidator.ipAddress(value)) {
+                return Utils.translateWithFallback(
+                    'ensemble.input.validation.invalidIPAddressType',
+                    'Please enter a valid IP Address');
+              }
+            } else if (widget._controller.inputType == InputType.phone.name) {
+              if (!InputValidator.phone(value)) {
+                return Utils.translateWithFallback(
+                    'ensemble.input.validation.invalidPhoneType',
+                    "Please enter a valid Phone Number");
               }
             }
-            return null;
-          },
-          textInputAction: widget._controller.keyboardAction,
-          keyboardType: widget.keyboardType,
-          inputFormatters: _inputFormatter,
-          minLines: isMultiline() ? widget._controller.minLines : null,
-          maxLines: isMultiline() ? widget._controller.maxLines : 1,
-          maxLength: widget._controller.maxLength,
-          maxLengthEnforcement: widget._controller.maxLengthEnforcement ??
-              MaxLengthEnforcement.enforced,
-          obscureText: isObscureOrPlainText(),
-          enableSuggestions: !widget.isPassword(),
-          autocorrect: !widget.isPassword(),
-          controller: widget.textController,
-          focusNode: focusNode,
-          enabled: isEnabled(),
-          readOnly: widget._controller.readOnly == true,
-          enableInteractiveSelection: widget._controller.selectable,
-          onTap: () => showOverlay(context),
-          onTapOutside: (_) => removeOverlayAndUnfocus(),
-          onFieldSubmitted: (value) => widget.controller.submitForm(context),
-          onChanged: (String txt) {
-            if (txt != previousText) {
-              // for performance reason, we dispatch onChange (as well as binding to value)
-              // upon EditingComplete (select Done on virtual keyboard) or Focus Out
-              didItChange = true;
-              previousText = txt;
+          }
+          return null;
+        },
+        inputFormatters: _inputFormatter,
+        multiline: widget._controller.multiline,
+        minLines: widget._controller.minLines,
+        maxLines: widget._controller.maxLines,
+        maxLength: widget._controller.maxLength,
+        maxLengthEnforcement: widget._controller.maxLengthEnforcement,
+        enabled: isEnabled(),
+        readOnly: widget._controller.readOnly,
+        selectable: widget._controller.selectable,
+        onTap: () => showOverlay(context),
+        onTapOutside: (_) => removeOverlayAndUnfocus(),
+        onFieldSubmitted: (value) => widget.controller.submitForm(context),
+        onChanged: (String txt) {
+          if (txt != previousText) {
+            // for performance reason, we dispatch onChange (as well as binding to value)
+            // upon EditingComplete (select Done on virtual keyboard) or Focus Out
+            didItChange = true;
+            previousText = txt;
 
-              // we dispatch onKeyPress here
-              if (widget._controller.onKeyPress != null) {
-                ScreenController().executeAction(
-                    context, widget._controller.onKeyPress!,
-                    event: EnsembleEvent(widget));
-              }
-
-              if (widget._controller.onDelayedKeyPress != null) {
-                executeDelayedAction(widget._controller.onDelayedKeyPress!);
-              }
+            // we dispatch onKeyPress here
+            if (widget._controller.onKeyPress != null) {
+              ScreenController().executeAction(
+                  context, widget._controller.onKeyPress!,
+                  event: EnsembleEvent(widget));
             }
-            setState(() {});
-          },
-          style: isEnabled()
-              ? widget._controller.textStyle
-              : widget._controller.textStyle?.copyWith(
-                  color: Theme.of(context).disabledColor,
-                ),
-          decoration: decoration,
-        ));
+
+            if (widget._controller.onDelayedKeyPress != null) {
+              InputFieldHelper.executeDelayedAction(
+                  context,
+                  widget._controller.onDelayedKeyPress!,
+                  widget,
+                  getKeyPressDebouncer());
+            }
+          }
+          setState(() {});
+        },
+        textStyle: isEnabled()
+            ? widget._controller.textStyle
+            : widget._controller.textStyle?.copyWith(
+                color: Theme.of(context).disabledColor,
+              ),
+        autofillHints: widget._controller.autofillHints,
+        decoration: decoration,
+        keyboardAction: widget._controller.keyboardAction,
+        keyboardType: widget.keyboardType,
+        obscureText: isObscureOrPlainText(),
+        enableSuggestions: !widget.isPassword(),
+        autocorrect: !widget.isPassword(),
+      ),
+    );
   }
 
   /// multi-line if specified or if maxLine is more than 1
-  bool isMultiline() =>
-      widget._controller.multiline ??
-      (widget._controller.maxLines != null && widget._controller.maxLines! > 1);
+  bool isMultiline() => InputFieldHelper.isMultiline(
+      widget._controller.multiline, widget._controller.maxLines);
 
   void _clearSelection() {
     widget.textController.clear();
@@ -610,37 +504,18 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput>
   }
 
   void executeDelayedAction(EnsembleAction action) {
-    getKeyPressDebouncer().run(() async {
-      ScreenController()
-          .executeAction(context, action, event: EnsembleEvent(widget));
-    });
+    InputFieldHelper.executeDelayedAction(
+        context, action, widget, getKeyPressDebouncer());
   }
 
   Debouncer? _delayedKeyPressDebouncer;
   Duration? _lastDelayedKeyPressDuration;
 
   Debouncer getKeyPressDebouncer() {
-    if (_delayedKeyPressDebouncer == null) {
-      _delayedKeyPressDebouncer =
-          Debouncer(widget._controller.delayedKeyPressDuration);
-      _lastDelayedKeyPressDuration = widget._controller.delayedKeyPressDuration;
-    }
-    // debouncer exists, but has the duration changed?
-    else {
-      // re-create if anything changed, but need to cancel first
-      if (_lastDelayedKeyPressDuration!
-              .compareTo(widget._controller.delayedKeyPressDuration) !=
-          0) {
-        _delayedKeyPressDebouncer!.cancel();
-        _delayedKeyPressDebouncer =
-            Debouncer(widget._controller.delayedKeyPressDuration);
-        _lastDelayedKeyPressDuration =
-            widget._controller.delayedKeyPressDuration;
-      }
-    }
-
-    // here debouncer is valid
-    return _delayedKeyPressDebouncer!;
+    return InputFieldHelper.getKeyPressDebouncer(
+        _delayedKeyPressDebouncer,
+        _lastDelayedKeyPressDuration,
+        widget._controller.delayedKeyPressDuration);
   }
 
   @override
@@ -656,40 +531,4 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput>
       focusNode.unfocus();
     }
   }
-}
-
-enum InputType { email, phone, ipAddress, number, text, url, datetime }
-
-class _InputDoneButton extends StatelessWidget {
-  const _InputDoneButton();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      color: Colors.grey[200],
-      alignment: Alignment.topRight,
-      padding: const EdgeInsets.only(top: 1.0, bottom: 1.0),
-      child: CupertinoButton(
-        padding: const EdgeInsets.only(right: 24.0, top: 2.0, bottom: 2.0),
-        onPressed: () => FocusScope.of(context).requestFocus(FocusNode()),
-        child: const Text(
-          'Done',
-          style: TextStyle(color: Colors.black, fontWeight: FontWeight.normal),
-        ),
-      ),
-    );
-  }
-}
-
-MaxLengthEnforcement? _getMaxLengthEnforcement(String? value) {
-  switch (value) {
-    case 'none':
-      return MaxLengthEnforcement.none;
-    case 'enforced':
-      return MaxLengthEnforcement.enforced;
-    case 'truncateAfterCompositionEnds':
-      return MaxLengthEnforcement.truncateAfterCompositionEnds;
-  }
-  return null;
 }

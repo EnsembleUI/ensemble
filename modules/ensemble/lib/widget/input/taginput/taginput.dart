@@ -1,4 +1,3 @@
-
 import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/view/data_scope_widget.dart';
@@ -13,16 +12,15 @@ import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/helpers/HasTextPlaceholder.dart';
 import 'package:ensemble/widget/helpers/form_helper.dart';
 import 'package:ensemble/widget/helpers/input_wrapper.dart';
+import 'package:ensemble/widget/helpers/input_field_helper.dart'; // Import the helper class
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:ensemble/layout/templated.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
-import 'package:ensemble/framework/model.dart' as model;
 import 'package:flutter/services.dart';
-import 'package:form_validator/form_validator.dart';
 import 'package:fluttertagger/fluttertagger.dart';
 
-/// TextInput
+/// TagInput
 class TagInput extends BaseTextInput {
   static const type = 'TagInput';
 
@@ -39,8 +37,6 @@ class TagInput extends BaseTextInput {
         }
         _taggerController.text = Utils.optionalString(newValue)!;
       },
-      'obscureText': (obscure) =>
-          _controller.obscureText = Utils.optionalBool(obscure),
       'inputType': (type) => _controller.inputType = Utils.optionalString(type),
       'mask': (type) => _controller.mask = Utils.optionalString(type),
       'onDelayedKeyPress': (function) => _controller.onDelayedKeyPress =
@@ -53,28 +49,7 @@ class TagInput extends BaseTextInput {
   }
 
   @override
-  bool isPassword() {
-    return false;
-  }
-
-  @override
-  TextInputType? get keyboardType {
-    // set the best keyboard type based on the input type
-    if (_controller.inputType == InputType.email.name) {
-      return TextInputType.emailAddress;
-    } else if (_controller.inputType == InputType.phone.name) {
-      return TextInputType.phone;
-    } else if (_controller.inputType == InputType.number.name) {
-      return TextInputType.number;
-    } else if (_controller.inputType == InputType.text.name) {
-      return TextInputType.text;
-    } else if (_controller.inputType == InputType.url.name) {
-      return TextInputType.url;
-    } else if (_controller.inputType == InputType.datetime.name) {
-      return TextInputType.datetime;
-    }
-    return null;
-  }
+  TextInputType? get keyboardType => InputFieldHelper.getKeyboardType('text');
 
   @override
   void setItemTemplate(Map? maybeTemplate) {
@@ -102,7 +77,6 @@ abstract class BaseTextInput extends StatefulWidget
     var getters = _controller.textPlaceholderGetters;
     getters.addAll({
       'value': () => _taggerController.formattedText ?? '',
-      'obscured': () => _controller.obscured,
     });
     return getters;
   }
@@ -110,45 +84,16 @@ abstract class BaseTextInput extends StatefulWidget
   @override
   Map<String, Function> setters() {
     var setters = _controller.textPlaceholderSetters;
-    // set value is not specified here for safety in case of PasswordInput
+
+    // Use the common setters from the helper
+    setters.addAll(InputFieldHelper.getCommonSetters(this, _controller));
+
+    // Add TagInput specific setters
     setters.addAll({
-      'validateOnUserInteraction': (value) => _controller
-              .validateOnUserInteraction =
-          Utils.getBool(value, fallback: _controller.validateOnUserInteraction),
-      'onKeyPress': (function) => _controller.onKeyPress =
-          EnsembleAction.from(function, initiator: this),
-      'onChange': (definition) => _controller.onChange =
-          EnsembleAction.from(definition, initiator: this),
-      'onFocusReceived': (definition) => _controller.onFocusReceived =
-          EnsembleAction.from(definition, initiator: this),
-      'onFocusLost': (definition) => _controller.onFocusLost =
-          EnsembleAction.from(definition, initiator: this),
-      'validator': (value) => _controller.validator = Utils.getValidator(value),
-      'enableClearText': (value) =>
-          _controller.enableClearText = Utils.optionalBool(value),
-      'endingWidget': (widget) =>
-          _controller.endingWidget = widget,
-      'obscureToggle': (value) =>
-          _controller.obscureToggle = Utils.optionalBool(value),
       'tags': (items) => buildTagItems(items),
       'triggers': (items) => buildTagTriggers(items),
-      'obscured': (widget) => _controller.obscureText == true,
-      'obscureTextWidget': (widget) => _controller.obscureTextWidget = widget,
-      'readOnly': (value) => _controller.readOnly = Utils.optionalBool(value),
-      'selectable': (value) =>
-          _controller.selectable = Utils.getBool(value, fallback: true),
-      'toolbarDone': (value) =>
-          _controller.toolbarDoneButton = Utils.optionalBool(value),
-      'keyboardAction': (value) =>
-          _controller.keyboardAction = _getKeyboardAction(value),
-      'multiline': (value) => _controller.multiline = Utils.optionalBool(value),
-      'minLines': (value) =>
-          _controller.minLines = Utils.optionalInt(value, min: 1),
-      'maxLines': (value) =>
-          _controller.maxLines = Utils.optionalInt(value, min: 1),
       'overlayHeight': (value) =>
           _controller.overlayHeight = Utils.optionalDouble(value),
-      'textStyle': (style) => _controller.textStyle = Utils.getTextStyle(style),
       'tagStyle': (style) => _controller.tagStyle = Utils.getTextStyle(style),
       'tagSelectionStyle': (style) =>
           _controller.tagSelectionStyle = Utils.getTextStyle(style),
@@ -156,11 +101,8 @@ abstract class BaseTextInput extends StatefulWidget
           _controller.overlayStyle = Utils.getBoxDecoration(style),
       'mentionStyle': (style) =>
           _controller.mentionStyle = Utils.getTextStyle(style),
-      'autofillHints': (value) =>
-          _controller.autofillHints = Utils.getListOfStrings(value),
-      'maxLength': (value) => _controller.maxLength = Utils.optionalInt(value),
-      'maxLengthEnforcement': (value) =>
-          _controller.maxLengthEnforcement = _getMaxLengthEnforcement(value),
+      'onSearch': (function) =>
+          _controller.onSearch = EnsembleAction.from(function, initiator: this),
     });
     return setters;
   }
@@ -171,24 +113,6 @@ abstract class BaseTextInput extends StatefulWidget
       'focus': () => _controller.inputFieldAction?.focusInputField(),
       'unfocus': () => _controller.inputFieldAction?.unfocusInputField(),
     };
-  }
-
-  TextInputAction? _getKeyboardAction(dynamic value) {
-    switch (value) {
-      case 'done':
-        return TextInputAction.done;
-      case 'go':
-        return TextInputAction.go;
-      case 'search':
-        return TextInputAction.search;
-      case 'send':
-        return TextInputAction.send;
-      case 'next':
-        return TextInputAction.next;
-      case 'previous':
-        return TextInputAction.previous;
-    }
-    return null;
   }
 
   List<MentionItem> buildTagItems(List<dynamic>? items) {
@@ -247,64 +171,32 @@ abstract class BaseTextInput extends StatefulWidget
   TextInputType? get keyboardType;
 }
 
-mixin TextInputFieldAction on FormFieldWidgetState<BaseTextInput> {
+mixin TextInputFieldAction on FormFieldWidgetState<BaseTextInput>
+    implements InputFieldAction {
+  @override
   void focusInputField();
 
+  @override
   void unfocusInputField();
 }
 
-/// controller for both TextField and Password
-class TagInputController extends FormFieldController with HasTextPlaceholder {
-  TextInputFieldAction? inputFieldAction;
-  EnsembleAction? onChange;
-  EnsembleAction? onKeyPress;
-  TextInputAction? keyboardAction;
+/// Controller for TagInput extending BaseInputController
+class TagInputController extends BaseInputController with HasTextPlaceholder {
+  // TextInputFieldAction? inputFieldAction;
 
-  EnsembleAction? onDelayedKeyPress;
-  Duration delayedKeyPressDuration = const Duration(milliseconds: 300);
-
-  EnsembleAction? onFocusReceived;
-  EnsembleAction? onFocusLost;
-  bool? enableClearText;
-
-  // Ending widget for the input field
-  dynamic? endingWidget;
-
-  // applicable only for TextInput
-  bool? obscureText;
-
-  // applicable only for Password or obscure TextInput, to toggle between plain and secure text
-  bool? obscured;
-  bool? obscureToggle;
   List<MentionItem>? tags; // Tag items List for FlutterTagger
-  late Map<String, TextStyle?> triggers; // Optional additional triggers  like #
+  late Map<String, TextStyle?> triggers; // Optional additional triggers like #
   LabelValueItemTemplate? itemTemplate;
   TextStyle? mentionStyle;
+
+  EnsembleAction? onSearch;
 
   // overlay styles
   BoxDecoration? overlayStyle;
   double? overlayHeight;
 
-  dynamic obscureTextWidget;
-  bool? readOnly;
-  bool selectable = true;
-  bool? toolbarDoneButton;
-
-  model.InputValidator? validator;
-  bool validateOnUserInteraction = false;
-  String? inputType;
-  String? mask;
-  TextStyle? textStyle;
   TextStyle? tagStyle;
   TextStyle? tagSelectionStyle;
-
-  bool? multiline;
-  int? minLines;
-  int? maxLines;
-  int? maxLength;
-  MaxLengthEnforcement? maxLengthEnforcement;
-
-  List<String>? autofillHints;
 }
 
 class MentionItem {
@@ -321,32 +213,17 @@ class MentionItem {
   });
 }
 
-class TriggerItem {
-  final String character;
-  final TextStyle? textStyle;
-
-  TriggerItem({
-    required this.character,
-    this.textStyle,
-  });
-}
-
 class TagInputState extends FormFieldWidgetState<BaseTextInput>
     with TickerProviderStateMixin, TextInputFieldAction, TemplatedWidgetState {
   final focusNode = FocusNode();
   List? dataList;
   String? tagQuery;
 
-  // for this widget we will implement onChange if the text changes AND:
-  // 1. the field loses focus next (tabbing out, ...)
-  // 2. upon onEditingComplete (e.g click Done on keyboard)
-  // This is so we can be consistent with the other input widgets' onChange
+  // For change tracking
   String previousText = '';
   bool didItChange = false;
 
-  // password is obscure by default
   late List<TextInputFormatter> _inputFormatter;
-
   late AnimationController _animationController;
   late Animation<Offset> _animation;
 
@@ -370,27 +247,12 @@ class TagInputState extends FormFieldWidgetState<BaseTextInput>
     }
   }
 
-  void showOverlay(BuildContext context) {
-    if (overlayEntry != null || !toolbarDoneStatus) return;
-    OverlayState overlayState = Overlay.of(context);
-    overlayEntry = OverlayEntry(builder: (context) {
-      return Positioned(
-        bottom: MediaQuery.of(context).viewInsets.bottom,
-        right: 0.0,
-        left: 0.0,
-        child: const _InputDoneButton(),
-      );
-    });
-
-    overlayState.insert(overlayEntry!);
-  }
-
   void removeOverlayAndUnfocus() {
     if (overlayEntry != null) {
       overlayEntry!.remove();
       overlayEntry = null;
     }
-    FocusManager.instance.primaryFocus?.unfocus();
+    // FocusManager.instance.primaryFocus?.unfocus();
   }
 
   @override
@@ -428,7 +290,7 @@ class TagInputState extends FormFieldWidgetState<BaseTextInput>
         }
       }
     });
-    // Checking for readOnly from parent widget and assign the value to TextInput and PasswordInput if it's readOnly property is null
+    // Check for readOnly from parent widget
     if (widget._controller.readOnly == null) {
       final formController =
           context.findAncestorWidgetOfExactType<EnsembleForm>()?.controller;
@@ -462,8 +324,6 @@ class TagInputState extends FormFieldWidgetState<BaseTextInput>
     widget.controller.inputFieldAction = this;
 
     // Making sure to move cursor to end when widget rebuild
-    // issue: https://github.com/EnsembleUI/ensemble/issues/1527
-
     if (focusNode.hasFocus) {
       int oldCursorPosition = oldWidget._taggerController.selection.baseOffset;
       int textLength = widget._taggerController.text.length;
@@ -512,9 +372,10 @@ class TagInputState extends FormFieldWidgetState<BaseTextInput>
         ),
       );
     }
-    if(widget.controller.endingWidget != null) {
+    if (widget.controller.endingWidget != null) {
       decoration = decoration.copyWith(
-        suffixIcon: scopeManager!.buildWidgetFromDefinition(widget.controller.endingWidget),
+        suffixIcon: scopeManager!
+            .buildWidgetFromDefinition(widget.controller.endingWidget),
       );
     }
 
@@ -524,27 +385,30 @@ class TagInputState extends FormFieldWidgetState<BaseTextInput>
         widget: FlutterTagger(
           controller: widget._taggerController,
           animationController: _animationController,
-          tagTextFormatter: (originalText, tagId, tagText) {
-            // Format the tag using a custom format
-            final formattedTag = '$tagText$originalText';
-            return formattedTag;
+          tagTextFormatter: (id, tag, triggerCharacter) {
+            return "$triggerCharacter$id";
           },
           onSearch: (query, triggerCharacter) async {
+            if (widget._controller.onSearch != null) {
+              ScreenController().executeAction(
+                context,
+                widget._controller.onSearch!,
+                event: EnsembleEvent(widget, data: {'query': query}),
+              );
+            }
             setState(() {
               tagQuery = query;
             });
           },
           triggerCharacterAndStyles: {
             ...widget.controller.triggers
-                .map((key, value) => MapEntry(key, value!)), 
+                .map((key, value) => MapEntry(key, value!)),
             "@": widget._controller.mentionStyle!,
-            // "#": TextStyle(color: Colors.blueAccent),
           },
           triggerStrategy: TriggerStrategy.eager,
           overlayHeight: widget._controller.overlayHeight ?? 200.0,
-          overlay:
-              Material(
-                  child: SlideTransition(
+          overlay: Material(
+              child: SlideTransition(
             position: _animation,
             child: Container(
               decoration: widget._controller.overlayStyle,
@@ -553,99 +417,67 @@ class TagInputState extends FormFieldWidgetState<BaseTextInput>
             ),
           )),
           builder: (context, containerKey) {
-            return TextFormField(
+            // Use the helper to create a TextFormField with common configuration
+            return InputFieldHelper.createTextFormField(
               key: containerKey,
               autofillHints: widget._controller.autofillHints,
-              autovalidateMode: widget._controller.validateOnUserInteraction
-                  ? AutovalidateMode.onUserInteraction
-                  : AutovalidateMode.disabled,
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return widget._controller.required
-                      ? Utils.translateWithFallback(
-                          'ensemble.input.required',
-                          widget._controller.requiredMessage ??
-                              'This field is required')
-                      : null;
-                }
-
-                if (widget._controller.validator != null) {
-                  ValidationBuilder? builder;
-                  if (widget._controller.validator?.minLength != null) {
-                    builder = ValidationBuilder().minLength(
-                        widget._controller.validator!.minLength!,
-                        Utils.translateOrNull(
-                            'ensemble.input.validation.minimumLength'));
-                  }
-                  if (widget._controller.validator?.maxLength != null) {
-                    builder = (builder ?? ValidationBuilder()).maxLength(
-                        widget._controller.validator!.maxLength!,
-                        Utils.translateOrNull(
-                            'ensemble.input.validation.maximumLength'));
-                  }
-                  if (widget._controller.validator?.regex != null) {
-                    builder = (builder ?? ValidationBuilder()).regExp(
-                        RegExp(widget._controller.validator!.regex!),
-                        widget._controller.validator!.regexError ??
-                            Utils.translateWithFallback(
-                                'ensemble.input.validation.invalidInput',
-                                'This field has invalid value'));
-                  }
-                  if (builder != null) {
-                    return builder.build().call(value);
-                  }
-                }
-                return null;
-              },
-              textInputAction: widget._controller.keyboardAction,
-              keyboardType: widget.keyboardType,
-              inputFormatters: _inputFormatter,
-              minLines: isMultiline() ? widget._controller.minLines : null,
-              maxLines: isMultiline() ? widget._controller.maxLines : 1,
-              maxLength: widget._controller.maxLength,
-              maxLengthEnforcement: widget._controller.maxLengthEnforcement ??
-                  MaxLengthEnforcement.enforced,
-              enableSuggestions: true,
-              autocorrect: true,
               controller: widget._taggerController,
               focusNode: focusNode,
+              validateOnUserInteraction:
+                  widget._controller.validateOnUserInteraction,
+              // validator: (value) => InputFieldHelper.validateInput(
+              //     value,
+              //     widget._controller.required ?? false,
+              //     widget._controller.requiredMessage,
+              //     widget._controller.validator),
+              inputFormatters: _inputFormatter,
+              multiline: widget._controller.multiline,
+              minLines: widget._controller.minLines,
+              maxLines: widget._controller.maxLines,
+              maxLength: widget._controller.maxLength,
+              maxLengthEnforcement: widget._controller.maxLengthEnforcement,
               enabled: isEnabled(),
-              readOnly: widget._controller.readOnly == true,
-              enableInteractiveSelection: widget._controller.selectable,
-              onTapOutside: (_) => removeOverlayAndUnfocus(),
+              readOnly: widget._controller.readOnly,
+              selectable: widget._controller.selectable,
+              onChanged: (String txt) {
+                // if (txt != previousText) {
+                //   previousText = txt;
+                //   didItChange = false;
+
+                //   if (widget._controller.onKeyPress != null) {
+                //     ScreenController().executeAction(
+                //         context, widget._controller.onKeyPress!,
+                //         event: EnsembleEvent(widget));
+                //   }
+
+                //   if (widget._controller.onDelayedKeyPress != null) {
+                //     InputFieldHelper.executeDelayedAction(
+                //         context,
+                //         widget._controller.onDelayedKeyPress!,
+                //         widget,
+                //         getKeyPressDebouncer());
+                //   }
+                // }
+                // setState(() {});
+              },
               onFieldSubmitted: (value) {
                 widget.controller.submitForm(context);
               },
-              onChanged: (String txt) {
-                if (txt != previousText) {
-                  previousText = txt;
-                  if (widget._controller.onKeyPress != null) {
-                    ScreenController().executeAction(
-                        context, widget._controller.onKeyPress!,
-                        event: EnsembleEvent(widget));
-                  }
-
-                  if (widget._controller.onDelayedKeyPress != null) {
-                    executeDelayedAction(widget._controller.onDelayedKeyPress!);
-                  }
-                }
-                setState(() {});
-              },
-              style: isEnabled()
-                  ? widget._controller.textStyle
-                  : widget._controller.textStyle?.copyWith(
-                      color: Theme.of(context).disabledColor,
-                    ),
+              onTapOutside: (_) => removeOverlayAndUnfocus(),
+              textStyle: widget._controller.textStyle,
               decoration: decoration,
+              keyboardAction: widget._controller.keyboardAction,
+              keyboardType: widget.keyboardType,
+              enableSuggestions: true,
+              autocorrect: true,
             );
           },
         ));
   }
 
   /// multi-line if specified or if maxLine is more than 1
-  bool isMultiline() =>
-      widget._controller.multiline ??
-      (widget._controller.maxLines != null && widget._controller.maxLines! > 1);
+  bool isMultiline() => InputFieldHelper.isMultiline(
+      widget._controller.multiline, widget._controller.maxLines);
 
   void _clearSelection() {
     widget._taggerController.clear();
@@ -653,110 +485,104 @@ class TagInputState extends FormFieldWidgetState<BaseTextInput>
   }
 
   void executeDelayedAction(EnsembleAction action) {
-    getKeyPressDebouncer().run(() async {
-      ScreenController()
-          .executeAction(context, action, event: EnsembleEvent(widget));
-    });
+    InputFieldHelper.executeDelayedAction(
+        context, action, widget, getKeyPressDebouncer());
   }
 
   ListView? buildItems(List<MentionItem>? items,
-    LabelValueItemTemplate? itemTemplate, List? dataList, String? tagQuery) {
+      LabelValueItemTemplate? itemTemplate, List? dataList, String? tagQuery) {
     List<ListTile> results = [];
 
-  // Normalize the query
-  String query = tagQuery?.toLowerCase() ?? '';
+    // Normalize the query
+    String query = tagQuery?.toLowerCase() ?? '';
 
-  // Filter the static list
-  if (items != null) {
-    results.addAll(
-      items.where((item) {
-        return item.label.toLowerCase().contains(query) ||
-            item.key.toLowerCase().contains(query);
-      }).map((item) => ListTile(
-          leading: item.image != null
-              ? CircleAvatar(
-                  backgroundImage: NetworkImage(item.image!),
-                )
-              : const CircleAvatar(child: Icon(Icons.person)),
-          title: Text(
-            item.label,
-            style: widget._controller.tagSelectionStyle,
-          ),
-          onTap: () {
-            widget._taggerController.addTag(
-              id: item.id.toString(),
-              name: item.key,
-            );
-              focusNode.requestFocus();
-          },
-        )),
-    );
-  }
+    // Filter the static list
+    if (items != null) {
+      results.addAll(
+        items.where((item) {
+          return item.label.toLowerCase().contains(query) ||
+              item.key.toLowerCase().contains(query);
+        }).map((item) => ListTile(
+              leading: item.image != null
+                  ? CircleAvatar(
+                      backgroundImage: NetworkImage(item.image!),
+                    )
+                  : const CircleAvatar(child: Icon(Icons.person)),
+              title: Text(
+                item.label,
+                style: widget._controller.tagSelectionStyle,
+              ),
+              onTap: () {
+                widget._taggerController.addTag(
+                  id: item.id.toString(),
+                  name: item.key,
+                );
+                Future.delayed(Duration(milliseconds: 50), () {
+                  if (mounted) {
+                    focusNode.requestFocus();
+                  }
+                });
+              },
+            )),
+      );
+    }
 
-  // Filter the templated list
+    // Filter the templated list
     if (itemTemplate != null && dataList != null) {
       ScopeManager? parentScope = DataScopeWidget.getScope(context);
       if (parentScope != null) {
         for (var itemData in dataList) {
           ScopeManager templatedScope = parentScope.createChildScope();
-          templatedScope.dataContext.addDataContextById(itemTemplate.name, itemData);
+          templatedScope.dataContext
+              .addDataContextById(itemTemplate.name, itemData);
 
-        String label = templatedScope.dataContext.eval(itemTemplate.label!);
-        String value = templatedScope.dataContext.eval(itemTemplate.value);
+          String label = templatedScope.dataContext.eval(itemTemplate.label!);
+          String value = templatedScope.dataContext.eval(itemTemplate.value);
 
-        if (label.toLowerCase().contains(query) || value.toLowerCase().contains(query)) {
-          var labelWidget = DataScopeWidget(
-            scopeManager: templatedScope,
-            child: Text(label),
-          );
+          if (label.toLowerCase().contains(query) ||
+              value.toLowerCase().contains(query)) {
+            var labelWidget = DataScopeWidget(
+              scopeManager: templatedScope,
+              child: Text(label),
+            );
 
-          results.add(ListTile(
-            title: labelWidget,
-            hoverColor: Colors.pink,
-            onTap: () {
-              widget._taggerController.addTag(
-                id: value,
-                name: label,
-              );
-              focusNode.requestFocus();
-            },
-          ));
+            results.add(ListTile(
+              title: labelWidget,
+              hoverColor: Colors.pink,
+              onTap: () {
+                widget._taggerController.addTag(
+                  id: value,
+                  name: label,
+                );
+                // Ensure focus does not shift away
+                if (FocusManager.instance.primaryFocus != focusNode) {
+                  Future.delayed(Duration(milliseconds: 100), () {
+                    if (mounted && focusNode.canRequestFocus) {
+                      focusNode.requestFocus();
+                    }
+                  });
+                }
+              },
+            ));
+          }
         }
       }
     }
-  }
 
-  return ListView.builder(
-    itemCount: results.length,
-    itemBuilder: (context, index) => results[index],
-  );
-}
+    return ListView.builder(
+      itemCount: results.length,
+      itemBuilder: (context, index) => results[index],
+    );
+  }
 
   Debouncer? _delayedKeyPressDebouncer;
   Duration? _lastDelayedKeyPressDuration;
 
   Debouncer getKeyPressDebouncer() {
-    if (_delayedKeyPressDebouncer == null) {
-      _delayedKeyPressDebouncer =
-          Debouncer(widget._controller.delayedKeyPressDuration);
-      _lastDelayedKeyPressDuration = widget._controller.delayedKeyPressDuration;
-    }
-    // debouncer exists, but has the duration changed?
-    else {
-      // re-create if anything changed, but need to cancel first
-      if (_lastDelayedKeyPressDuration!
-              .compareTo(widget._controller.delayedKeyPressDuration) !=
-          0) {
-        _delayedKeyPressDebouncer!.cancel();
-        _delayedKeyPressDebouncer =
-            Debouncer(widget._controller.delayedKeyPressDuration);
-        _lastDelayedKeyPressDuration =
-            widget._controller.delayedKeyPressDuration;
-      }
-    }
-
-    // here debouncer is valid
-    return _delayedKeyPressDebouncer!;
+    return InputFieldHelper.getKeyPressDebouncer(
+        _delayedKeyPressDebouncer,
+        _lastDelayedKeyPressDuration,
+        widget._controller.delayedKeyPressDuration);
   }
 
   @override
@@ -772,40 +598,4 @@ class TagInputState extends FormFieldWidgetState<BaseTextInput>
       focusNode.unfocus();
     }
   }
-}
-
-enum InputType { email, phone, ipAddress, number, text, url, datetime }
-
-class _InputDoneButton extends StatelessWidget {
-  const _InputDoneButton();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      color: Colors.grey[200],
-      alignment: Alignment.topRight,
-      padding: const EdgeInsets.only(top: 1.0, bottom: 1.0),
-      child: CupertinoButton(
-        padding: const EdgeInsets.only(right: 24.0, top: 2.0, bottom: 2.0),
-        onPressed: () => FocusScope.of(context).requestFocus(FocusNode()),
-        child: const Text(
-          'Done',
-          style: TextStyle(color: Colors.black, fontWeight: FontWeight.normal),
-        ),
-      ),
-    );
-  }
-}
-
-MaxLengthEnforcement? _getMaxLengthEnforcement(String? value) {
-  switch (value) {
-    case 'none':
-      return MaxLengthEnforcement.none;
-    case 'enforced':
-      return MaxLengthEnforcement.enforced;
-    case 'truncateAfterCompositionEnds':
-      return MaxLengthEnforcement.truncateAfterCompositionEnds;
-  }
-  return null;
 }
