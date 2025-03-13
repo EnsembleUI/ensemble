@@ -38,6 +38,10 @@ ensemble_camera:
       'key': 'photoLibraryDescription',
       'value': 'NSPhotoLibraryUsageDescription',
     },
+    {
+      'key': 'microphoneDescription',
+      'value': 'NSMicrophoneUsageDescription',
+    }
   ];
 
   try {

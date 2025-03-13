@@ -24,6 +24,12 @@ export const modules: Script[] = [
         platform: ['ios'],
         type: 'text',
       },
+      {
+        key: 'microphoneDescription',
+        question: 'Please provide a microphone usage description: ',
+        platform: ['ios'],
+        type: 'text',
+      },
     ],
   },
   {
