@@ -90,7 +90,6 @@ abstract class BaseTextInput extends StatefulWidget
 
     // Add TagInput specific setters
     setters.addAll({
-      'tags': (items) => buildTagItems(items),
       'triggers': (items) => buildTagTriggers(items),
       'overlayHeight': (value) =>
           _controller.overlayHeight = Utils.optionalDouble(value),
@@ -113,31 +112,6 @@ abstract class BaseTextInput extends StatefulWidget
       'focus': () => _controller.inputFieldAction?.focusInputField(),
       'unfocus': () => _controller.inputFieldAction?.unfocusInputField(),
     };
-  }
-
-  List<MentionItem> buildTagItems(List<dynamic>? items) {
-    List<MentionItem> results = [];
-
-    if (items != null) {
-      for (var item in items) {
-        if (item is Map) {
-          results.add(MentionItem(
-            id: item['id']?.toString() ?? '',
-            key: item['key']?.toString() ?? '',
-            label: item['label'] ?? '',
-            image: item['image'],
-          ));
-        }
-        // For simple string items
-        else if (item is String) {
-          results
-              .add(MentionItem(id: item, key: item, label: item, image: null));
-        }
-      }
-    }
-    _controller.tags = results;
-
-    return results;
   }
 
   Map<String, TextStyle?> buildTagTriggers(List<dynamic>? triggers) {
@@ -184,7 +158,6 @@ mixin TextInputFieldAction on FormFieldWidgetState<BaseTextInput>
 class TagInputController extends BaseInputController with HasTextPlaceholder {
   // TextInputFieldAction? inputFieldAction;
 
-  List<MentionItem>? tags; // Tag items List for FlutterTagger
   late Map<String, TextStyle?> triggers; // Optional additional triggers like #
   LabelValueItemTemplate? itemTemplate;
   TextStyle? mentionStyle;
@@ -252,6 +225,7 @@ class TagInputState extends FormFieldWidgetState<BaseTextInput>
       overlayEntry!.remove();
       overlayEntry = null;
     }
+    widget._taggerController.dismissOverlay();
     FocusManager.instance.primaryFocus?.unfocus();
   }
 
@@ -412,7 +386,7 @@ class TagInputState extends FormFieldWidgetState<BaseTextInput>
             position: _animation,
             child: Container(
               decoration: widget._controller.overlayStyle,
-              child: buildItems(widget.controller.tags,
+              child: buildItems(
                   widget.controller.itemTemplate, dataList, tagQuery),
             ),
           )),
@@ -489,43 +463,12 @@ class TagInputState extends FormFieldWidgetState<BaseTextInput>
         context, action, widget, getKeyPressDebouncer());
   }
 
-  ListView? buildItems(List<MentionItem>? items,
+  ListView? buildItems(
       LabelValueItemTemplate? itemTemplate, List? dataList, String? tagQuery) {
     List<ListTile> results = [];
 
     // Normalize the query
     String query = tagQuery?.toLowerCase() ?? '';
-
-    // Filter the static list
-    if (items != null) {
-      results.addAll(
-        items.where((item) {
-          return item.label.toLowerCase().contains(query) ||
-              item.key.toLowerCase().contains(query);
-        }).map((item) => ListTile(
-              leading: item.image != null
-                  ? CircleAvatar(
-                      backgroundImage: NetworkImage(item.image!),
-                    )
-                  : const CircleAvatar(child: Icon(Icons.person)),
-              title: Text(
-                item.label,
-                style: widget._controller.tagSelectionStyle,
-              ),
-              onTap: () {
-                widget._taggerController.addTag(
-                  id: item.id.toString(),
-                  name: item.key,
-                );
-                Future.delayed(Duration(milliseconds: 50), () {
-                  if (mounted) {
-                    focusNode.requestFocus();
-                  }
-                });
-              },
-            )),
-      );
-    }
 
     // Filter the templated list
     if (itemTemplate != null && dataList != null) {
@@ -555,12 +498,8 @@ class TagInputState extends FormFieldWidgetState<BaseTextInput>
                   name: label,
                 );
                 // Ensure focus does not shift away
-                if (FocusManager.instance.primaryFocus != focusNode) {
-                  Future.delayed(Duration(milliseconds: 100), () {
-                    if (mounted && focusNode.canRequestFocus) {
-                      focusNode.requestFocus();
-                    }
-                  });
+                if (focusNode.canRequestFocus) {
+                  focusNode.requestFocus();
                 }
               },
             ));
