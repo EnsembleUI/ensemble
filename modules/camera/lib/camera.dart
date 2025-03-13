@@ -38,12 +38,14 @@ class Camera extends StatefulWidget
     this.onComplete,
     this.onError,
     this.overlayWidget,
+    this.loadingWidget,
   }) : super(key: key);
 
   final Function? onCapture;
   final Function? onComplete;
   final Function(dynamic error)? onError;
   final Widget? overlayWidget;
+  final Widget? loadingWidget;
 
   final MyCameraController _controller = MyCameraController();
 
@@ -126,7 +128,6 @@ class Camera extends StatefulWidget
           _controller.enableMicrophone = Utils.getBool(value, fallback: true),
       'captureOverlay': (value) =>
           _controller.captureOverlay = Utils.getBool(value, fallback: false),
-      'loadingWidget': (loadingWidget) => _controller.loadingWidget = loadingWidget,
     };
   }
 }
@@ -170,7 +171,6 @@ class MyCameraController extends WidgetController {
   File? currentFile;
   Position? position;
   double? angle;
-  dynamic? loadingWidget;
 
   void initCameraOption(String? data) {
     if (data == null) return;
@@ -438,9 +438,9 @@ class CameraState extends EWidgetState<Camera> with WidgetsBindingObserver {
   @override
   Widget buildWidget(BuildContext context) {
     if (isLoading) {
-      return const Scaffold(
+      return Scaffold(
         backgroundColor: Colors.black,
-        body: Center(child: CircularProgressIndicator()),
+        body: Center(child: widget.loadingWidget?? CircularProgressIndicator()),
       );
     }
 
@@ -513,20 +513,16 @@ class CameraState extends EWidgetState<Camera> with WidgetsBindingObserver {
               child: widget.overlayWidget!,
             ),
           ),
-        if (isCropping) widget._controller.loadingWidget != null && scopeManager != null
-            ? scopeManager!
-            .buildWidgetFromDefinition(widget._controller.loadingWidget)
-            :
-          Container(
-            color: Colors.black.withOpacity(0.7),
-            width: MediaQuery.of(context).size.width,
-            height: MediaQuery.of(context).size.height,
-            child: Center(
-              child: CircularProgressIndicator(
-                color: Colors.white,
+        if (isCropping)
+           Center(
+             child: widget.loadingWidget ??
+              Container(
+                color: Colors.black.withOpacity(0.7),
+                width: MediaQuery.of(context).size.width,
+                height: MediaQuery.of(context).size.height,
+                child: CircularProgressIndicator(),
               ),
-            ),
-          ),
+           ),
         imagePreviewButton(),
         Align(
             alignment: Alignment.bottomCenter,
