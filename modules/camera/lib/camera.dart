@@ -126,6 +126,7 @@ class Camera extends StatefulWidget
           _controller.enableMicrophone = Utils.getBool(value, fallback: true),
       'captureOverlay': (value) =>
           _controller.captureOverlay = Utils.getBool(value, fallback: false),
+      'loadingWidget': (loadingWidget) => _controller.loadingWidget = loadingWidget,
     };
   }
 }
@@ -169,6 +170,7 @@ class MyCameraController extends WidgetController {
   File? currentFile;
   Position? position;
   double? angle;
+  dynamic? loadingWidget;
 
   void initCameraOption(String? data) {
     if (data == null) return;
@@ -511,14 +513,17 @@ class CameraState extends EWidgetState<Camera> with WidgetsBindingObserver {
               child: widget.overlayWidget!,
             ),
           ),
-        if (isCropping)
+        if (isCropping) widget._controller.loadingWidget != null && scopeManager != null
+            ? scopeManager!
+            .buildWidgetFromDefinition(widget._controller.loadingWidget)
+            :
           Container(
-            color: Colors.black.withOpacity(0.7), // Black background
-            width: MediaQuery.of(context).size.width, // Full screen width
-            height: MediaQuery.of(context).size.height, // Full screen height
+            color: Colors.black.withOpacity(0.7),
+            width: MediaQuery.of(context).size.width,
+            height: MediaQuery.of(context).size.height,
             child: Center(
               child: CircularProgressIndicator(
-                color: Colors.white, // Optional: Change the color of the progress indicator
+                color: Colors.white,
               ),
             ),
           ),
