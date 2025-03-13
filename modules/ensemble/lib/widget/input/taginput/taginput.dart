@@ -252,7 +252,7 @@ class TagInputState extends FormFieldWidgetState<BaseTextInput>
       overlayEntry!.remove();
       overlayEntry = null;
     }
-    // FocusManager.instance.primaryFocus?.unfocus();
+    FocusManager.instance.primaryFocus?.unfocus();
   }
 
   @override
@@ -425,11 +425,11 @@ class TagInputState extends FormFieldWidgetState<BaseTextInput>
               focusNode: focusNode,
               validateOnUserInteraction:
                   widget._controller.validateOnUserInteraction,
-              // validator: (value) => InputFieldHelper.validateInput(
-              //     value,
-              //     widget._controller.required ?? false,
-              //     widget._controller.requiredMessage,
-              //     widget._controller.validator),
+              validator: (value) => InputFieldHelper.validateInput(
+                  value,
+                  widget._controller.required ?? false,
+                  widget._controller.requiredMessage,
+                  widget._controller.validator),
               inputFormatters: _inputFormatter,
               multiline: widget._controller.multiline,
               minLines: widget._controller.minLines,
@@ -440,25 +440,25 @@ class TagInputState extends FormFieldWidgetState<BaseTextInput>
               readOnly: widget._controller.readOnly,
               selectable: widget._controller.selectable,
               onChanged: (String txt) {
-                // if (txt != previousText) {
-                //   previousText = txt;
-                //   didItChange = false;
+                if (txt != previousText) {
+                  previousText = txt;
+                  didItChange = false;
 
-                //   if (widget._controller.onKeyPress != null) {
-                //     ScreenController().executeAction(
-                //         context, widget._controller.onKeyPress!,
-                //         event: EnsembleEvent(widget));
-                //   }
+                  if (widget._controller.onKeyPress != null) {
+                    ScreenController().executeAction(
+                        context, widget._controller.onKeyPress!,
+                        event: EnsembleEvent(widget));
+                  }
 
-                //   if (widget._controller.onDelayedKeyPress != null) {
-                //     InputFieldHelper.executeDelayedAction(
-                //         context,
-                //         widget._controller.onDelayedKeyPress!,
-                //         widget,
-                //         getKeyPressDebouncer());
-                //   }
-                // }
-                // setState(() {});
+                  if (widget._controller.onDelayedKeyPress != null) {
+                    InputFieldHelper.executeDelayedAction(
+                        context,
+                        widget._controller.onDelayedKeyPress!,
+                        widget,
+                        getKeyPressDebouncer());
+                  }
+                }
+                setState(() {});
               },
               onFieldSubmitted: (value) {
                 widget.controller.submitForm(context);
