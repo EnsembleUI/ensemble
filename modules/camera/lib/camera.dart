@@ -351,6 +351,12 @@ class CameraState extends EWidgetState<Camera> with WidgetsBindingObserver {
   }
 
   Future<void> setCamera({CameraDescription? cameraDescription}) async {
+    // If a camera controller has already been initialized, dispose it.
+    if (widget._controller.cameraController != null) {
+      await widget._controller.cameraController!.dispose();
+      widget._controller.cameraController = null;
+    }
+
     CameraDescription targetCamera = cameraDescription ?? cameras[0];
 
     widget._controller.cameraController = CameraController(
@@ -1234,12 +1240,16 @@ class CameraState extends EWidgetState<Camera> with WidgetsBindingObserver {
                         itemBuilder: (context, index) {
                           return IconButton(
                               onPressed: () {
-                                final page = (index + 1) % flashIcons.length;
-                                _flashPageController.animateToPage(page,
-                                    duration: const Duration(milliseconds: 400),
-                                    curve: Curves.ease);
-                                widget._controller.cameraController
-                                    ?.setFlashMode(flashModes.elementAt(page));
+                                try{
+                                  final page = (index + 1) % flashIcons.length;
+                                  _flashPageController.animateToPage(page,
+                                      duration: const Duration(milliseconds: 400),
+                                      curve: Curves.ease);
+                                  widget._controller.cameraController
+                                      ?.setFlashMode(flashModes.elementAt(page));
+                                } catch(e){
+                                  debugPrint("CameraException: ${e}");
+                                }
                               },
                               icon: Icon(flashIcons.elementAt(index)),
                               color: Colors.white);

@@ -31,6 +31,7 @@ class NotificationManager {
     if (!_init) {
       _initListener(
           backgroundNotificationHandler: backgroundNotificationHandler);
+      initGetInitialMessage();
       _init = true;
     }
   }
@@ -78,7 +79,6 @@ class NotificationManager {
 
     /// This is when the app is in the foreground
     FirebaseMessaging.onMessage.listen((RemoteMessage message) async {
-
       if (!isMoEngageNotification(message)) {
         // Handle regular FCM notifications as before
         Ensemble.externalDataContext.addAll({

@@ -77,7 +77,14 @@ class InputWrapper extends StatelessWidget {
                   Theme.of(context).inputDecorationTheme.labelStyle,
             ),
           ),
-        widget,
+        // semantics for whatever text input comes through
+        MergeSemantics(
+          child: Semantics(
+              label: controller.label,
+              child: widget,
+            ),
+        ),
+
         if (shouldShowLabel && controller.description != null)
           Container(
             margin: const EdgeInsets.only(top: 12.0),

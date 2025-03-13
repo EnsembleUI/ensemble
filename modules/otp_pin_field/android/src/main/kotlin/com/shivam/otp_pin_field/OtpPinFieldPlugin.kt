@@ -44,12 +44,6 @@ class OtpPinFieldPlugin : FlutterPlugin, ActivityAware, MethodCallHandler {
 
     constructor()
 
-    private constructor(registrar: PluginRegistry.Registrar) {
-        activity = registrar.activity()
-        setupChannel(registrar.messenger())
-        registrar.addActivityResultListener(activityResultListener)
-    }
-
     fun setCode(code: String?) {
         channel?.invokeMethod("smsCode", code)
     }
@@ -178,9 +172,5 @@ class OtpPinFieldPlugin : FlutterPlugin, ActivityAware, MethodCallHandler {
 
     companion object {
         private const val channelName = "otp_pin_field"
-
-        fun registerWith(registrar: PluginRegistry.Registrar) {
-            OtpPinFieldPlugin(registrar)
-        }
     }
 }
