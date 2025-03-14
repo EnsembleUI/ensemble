@@ -41,7 +41,9 @@ const _optionMappings = {
   'enableMicrophone': 'enableMicrophone',
   'instantPreview': 'instantPreview',
   'captureOverlay': 'captureOverlay',
+  'loadingWidget': 'loadingWidget',
   'faceDetection': 'faceDetection',
+
 };
 
 const _angleAssistOptions = {
@@ -161,12 +163,18 @@ class CameraManagerImpl extends CameraManager {
   Future<void> bespokeCamera(BuildContext context,
       ShowCameraAction cameraAction, ScopeManager? scopeManager) async {
     Widget? overlayWidget;
+    Widget? loadingWidget;
     if (cameraAction.overlayWidget != null) {
       overlayWidget = buildOverlayWidget(scopeManager, cameraAction);
     }
 
+    if (cameraAction.loadingWidget != null) {
+      loadingWidget = buildLoadingWidget(scopeManager, cameraAction);
+    }
+
     Camera camera = Camera(
       overlayWidget: overlayWidget,
+      loadingWidget: loadingWidget,
       onCapture: cameraAction.onCapture == null
           ? null
           : () {
@@ -331,5 +339,21 @@ class CameraManagerImpl extends CameraManager {
       debugPrint('Ensemble Camera: Error while building overlay widget $e');
     }
     return overlayWidget;
+  }
+
+  Widget? buildLoadingWidget(
+      ScopeManager? scopeManager, ShowCameraAction cameraAction) {
+    Widget? loadingWidget;
+    try {
+      loadingWidget =
+          scopeManager?.buildWidgetFromDefinition(cameraAction.loadingWidget);
+      if (loadingWidget != null) {
+        loadingWidget =
+            DataScopeWidget(scopeManager: scopeManager!, child: loadingWidget);
+      }
+    } on Exception catch (e) {
+      debugPrint('Ensemble Camera: Error while building loading widget $e');
+    }
+    return loadingWidget;
   }
 }
