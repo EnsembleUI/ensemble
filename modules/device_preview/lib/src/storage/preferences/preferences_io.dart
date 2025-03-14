@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-import 'package:device_preview/src/state/state.dart';
+import 'package:ensemble_device_preview/src/state/state.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../storage.dart';
