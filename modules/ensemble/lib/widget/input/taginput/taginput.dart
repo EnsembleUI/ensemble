@@ -91,8 +91,8 @@ abstract class BaseTextInput extends StatefulWidget
     // Add TagInput specific setters
     setters.addAll({
       'triggers': (items) => buildTagTriggers(items),
-      'overlayHeight': (value) =>
-          _controller.overlayHeight = Utils.optionalDouble(value),
+      'maxOverlayHeight': (value) =>
+          _controller.maxOverlayHeight = Utils.optionalDouble(value),
       'tagStyle': (style) => _controller.tagStyle = Utils.getTextStyle(style),
       'tagSelectionStyle': (style) =>
           _controller.tagSelectionStyle = Utils.getTextStyle(style),
@@ -166,7 +166,7 @@ class TagInputController extends BaseInputController with HasTextPlaceholder {
 
   // overlay styles
   BoxDecoration? overlayStyle;
-  double? overlayHeight;
+  double? maxOverlayHeight;
 
   TextStyle? tagStyle;
   TextStyle? tagSelectionStyle;
@@ -191,16 +191,17 @@ class TagInputState extends FormFieldWidgetState<BaseTextInput>
   final focusNode = FocusNode();
   List? dataList;
   String? tagQuery;
-
+  // Track the filtered results count for dynamic height calculation
+  int _filteredResultsCount = 0;
+  double _listTileHeight = 60.0; // Default height for a list tile
   // For change tracking
   String previousText = '';
   bool didItChange = false;
+  bool _isOverlayVisible = false;
 
   late List<TextInputFormatter> _inputFormatter;
   late AnimationController _animationController;
   late Animation<Offset> _animation;
-
-  OverlayEntry? overlayEntry;
 
   bool get toolbarDoneStatus {
     return widget.controller.toolbarDoneButton ?? false;
@@ -221,12 +222,10 @@ class TagInputState extends FormFieldWidgetState<BaseTextInput>
   }
 
   void removeOverlayAndUnfocus() {
-    if (overlayEntry != null) {
-      overlayEntry!.remove();
-      overlayEntry = null;
+    if (!_isOverlayVisible) {
+      widget._taggerController.dismissOverlay();
+      FocusManager.instance.primaryFocus?.unfocus();
     }
-    widget._taggerController.dismissOverlay();
-    FocusManager.instance.primaryFocus?.unfocus();
   }
 
   @override
@@ -323,6 +322,23 @@ class TagInputState extends FormFieldWidgetState<BaseTextInput>
     super.dispose();
   }
 
+  // Calculate the dynamic height based on results
+  double get _calculatedOverlayHeight {
+    if (_listTileHeight < 60.0) _listTileHeight = 60.0;
+    // Calculate the height based on the number of results
+    double height = _filteredResultsCount * _listTileHeight;
+    // Set minimum and maximum height constraints
+    if (height < 60.0) height = 60.0;
+    if (widget._controller.maxOverlayHeight != null) {
+      if (height > widget._controller.maxOverlayHeight!) {
+        height = widget._controller.maxOverlayHeight!;
+      }
+    } else {
+      if (height > 300.0) height = 300.0;
+    }
+    return height;
+  }
+
   @override
   Widget buildWidget(BuildContext context) {
     InputDecoration decoration = inputDecoration;
@@ -363,6 +379,7 @@ class TagInputState extends FormFieldWidgetState<BaseTextInput>
             return "$triggerCharacter$id";
           },
           onSearch: (query, triggerCharacter) async {
+            _isOverlayVisible = true;
             if (widget._controller.onSearch != null) {
               ScreenController().executeAction(
                 context,
@@ -380,7 +397,7 @@ class TagInputState extends FormFieldWidgetState<BaseTextInput>
             "@": widget._controller.mentionStyle!,
           },
           triggerStrategy: TriggerStrategy.eager,
-          overlayHeight: widget._controller.overlayHeight ?? 200.0,
+          overlayHeight: _calculatedOverlayHeight,
           overlay: Material(
               child: SlideTransition(
             position: _animation,
@@ -414,6 +431,11 @@ class TagInputState extends FormFieldWidgetState<BaseTextInput>
               readOnly: widget._controller.readOnly,
               selectable: widget._controller.selectable,
               onChanged: (String txt) {
+                if (isLastWordATag(txt)) {
+                  _isOverlayVisible = true;
+                } else {
+                  _isOverlayVisible = false;
+                }
                 if (txt != previousText) {
                   previousText = txt;
                   didItChange = false;
@@ -447,6 +469,23 @@ class TagInputState extends FormFieldWidgetState<BaseTextInput>
             );
           },
         ));
+  }
+
+  bool isLastWordATag(String message) {
+    if (message[message.length - 1] == " ") {
+      return false;
+    }
+    // Trim any spaces at the end
+    message = message.trim();
+
+    // Split the message into words
+    List<String> words = message.split(" ");
+
+    // Check if the last word exists and starts with '@'
+    if (words.isNotEmpty && words.last.startsWith("@")) {
+      return true; // It is a tag
+    }
+    return false; // Not a tag
   }
 
   /// multi-line if specified or if maxLine is more than 1
@@ -484,10 +523,28 @@ class TagInputState extends FormFieldWidgetState<BaseTextInput>
 
           if (label.toLowerCase().contains(query) ||
               value.toLowerCase().contains(query)) {
+            final GlobalKey labelWidgetKey = GlobalKey();
+
             var labelWidget = DataScopeWidget(
-              scopeManager: templatedScope,
-              child: Text(label),
-            );
+                key: labelWidgetKey,
+                scopeManager: templatedScope,
+                child: templatedScope
+                    .buildWidgetFromDefinition(itemTemplate.labelWidget));
+
+            // Add a post-frame callback to get the height after rendering
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (labelWidgetKey.currentContext != null) {
+                final RenderBox renderBox = labelWidgetKey.currentContext!
+                    .findRenderObject() as RenderBox;
+                if (mounted) {
+                  setState(() {
+                    _listTileHeight = renderBox.size.height > 0
+                        ? renderBox.size.height
+                        : _listTileHeight;
+                  });
+                }
+              }
+            });
 
             results.add(ListTile(
               title: labelWidget,
@@ -497,17 +554,25 @@ class TagInputState extends FormFieldWidgetState<BaseTextInput>
                   id: value,
                   name: label,
                 );
-                // Ensure focus does not shift away
-                if (focusNode.canRequestFocus) {
-                  focusNode.requestFocus();
-                }
+                // Change the overlay visibility flag to false to allow the focus of TextInput to be dismissed
+                _isOverlayVisible = false;
               },
             ));
           }
         }
       }
     }
-
+    // Update the results count to recalculate height
+    if (_filteredResultsCount != results.length) {
+      // Use Future.microtask to ensure we're not rebuilding during build
+      Future.microtask(() {
+        if (mounted) {
+          setState(() {
+            _filteredResultsCount = results.length;
+          });
+        }
+      });
+    }
     return ListView.builder(
       itemCount: results.length,
       itemBuilder: (context, index) => results[index],
