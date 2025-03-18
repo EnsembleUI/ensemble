@@ -93,6 +93,8 @@ abstract class BaseTextInput extends StatefulWidget
       'triggers': (items) => buildTagTriggers(items),
       'maxOverlayHeight': (value) =>
           _controller.maxOverlayHeight = Utils.optionalDouble(value),
+      'minOverlayHeight': (value) =>
+          _controller.minOverlayHeight = Utils.optionalDouble(value),
       'tagStyle': (style) => _controller.tagStyle = Utils.getTextStyle(style),
       'tagSelectionStyle': (style) =>
           _controller.tagSelectionStyle = Utils.getTextStyle(style),
@@ -167,6 +169,7 @@ class TagInputController extends BaseInputController with HasTextPlaceholder {
   // overlay styles
   BoxDecoration? overlayStyle;
   double? maxOverlayHeight;
+  double? minOverlayHeight;
 
   TextStyle? tagStyle;
   TextStyle? tagSelectionStyle;
@@ -328,7 +331,13 @@ class TagInputState extends FormFieldWidgetState<BaseTextInput>
     // Calculate the height based on the number of results
     double height = _filteredResultsCount * _listTileHeight;
     // Set minimum and maximum height constraints
-    if (height < 60.0) height = 60.0;
+    if (widget._controller.minOverlayHeight != null) {
+      if (height < widget._controller.minOverlayHeight!) {
+        height = widget._controller.minOverlayHeight!;
+      }
+    } else {
+      if (height < 60.0) height = 60.0;
+    }
     if (widget._controller.maxOverlayHeight != null) {
       if (height > widget._controller.maxOverlayHeight!) {
         height = widget._controller.maxOverlayHeight!;
@@ -482,7 +491,10 @@ class TagInputState extends FormFieldWidgetState<BaseTextInput>
     List<String> words = message.split(" ");
 
     // Check if the last word exists and starts with '@'
-    if (words.isNotEmpty && words.last.startsWith("@")) {
+    if (words.isNotEmpty &&
+        (words.last.startsWith("@") ||
+            widget._controller.triggers.entries
+                .any((trigger) => words.last.startsWith(trigger.key)))) {
       return true; // It is a tag
     }
     return false; // Not a tag
