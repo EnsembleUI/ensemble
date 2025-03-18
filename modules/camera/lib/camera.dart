@@ -38,12 +38,14 @@ class Camera extends StatefulWidget
     this.onComplete,
     this.onError,
     this.overlayWidget,
+    this.loadingWidget,
   }) : super(key: key);
 
   final Function? onCapture;
   final Function? onComplete;
   final Function(dynamic error)? onError;
   final Widget? overlayWidget;
+  final Widget? loadingWidget;
 
   final MyCameraController _controller = MyCameraController();
 
@@ -197,6 +199,7 @@ class CameraState extends EWidgetState<Camera> with WidgetsBindingObserver {
   bool isRecording = false;
   bool hasPermission = false;
   bool isLoading = true;
+  bool isCropping = false;
   int currentModeIndex = 0;
 
   List<CameraMode> modes = [];
@@ -351,6 +354,12 @@ class CameraState extends EWidgetState<Camera> with WidgetsBindingObserver {
   }
 
   Future<void> setCamera({CameraDescription? cameraDescription}) async {
+    // If a camera controller has already been initialized, dispose it.
+    if (widget._controller.cameraController != null) {
+      await widget._controller.cameraController!.dispose();
+      widget._controller.cameraController = null;
+    }
+
     CameraDescription targetCamera = cameraDescription ?? cameras[0];
 
     widget._controller.cameraController = CameraController(
@@ -429,9 +438,9 @@ class CameraState extends EWidgetState<Camera> with WidgetsBindingObserver {
   @override
   Widget buildWidget(BuildContext context) {
     if (isLoading) {
-      return const Scaffold(
+      return Scaffold(
         backgroundColor: Colors.black,
-        body: Center(child: CircularProgressIndicator()),
+        body: Center(child: widget.loadingWidget?? CircularProgressIndicator()),
       );
     }
 
@@ -504,6 +513,16 @@ class CameraState extends EWidgetState<Camera> with WidgetsBindingObserver {
               child: widget.overlayWidget!,
             ),
           ),
+        if (isCropping)
+           Center(
+             child: widget.loadingWidget ??
+              Container(
+                color: Colors.black.withOpacity(0.7),
+                width: MediaQuery.of(context).size.width,
+                height: MediaQuery.of(context).size.height,
+                child: CircularProgressIndicator(),
+              ),
+           ),
         imagePreviewButton(),
         Align(
             alignment: Alignment.bottomCenter,
@@ -1021,10 +1040,17 @@ class CameraState extends EWidgetState<Camera> with WidgetsBindingObserver {
       }
     } else {
       if (widget._controller.captureOverlay) {
+        setState(() {
+          isCropping = true;
+        });
         try {
           file = await takeOverlayCapture();
         } on Exception catch (e) {
           print(e);
+        } finally {
+          setState(() {
+            isCropping = false;
+          });
         }
       } else {
         file = await takePicture();
@@ -1234,12 +1260,16 @@ class CameraState extends EWidgetState<Camera> with WidgetsBindingObserver {
                         itemBuilder: (context, index) {
                           return IconButton(
                               onPressed: () {
-                                final page = (index + 1) % flashIcons.length;
-                                _flashPageController.animateToPage(page,
-                                    duration: const Duration(milliseconds: 400),
-                                    curve: Curves.ease);
-                                widget._controller.cameraController
-                                    ?.setFlashMode(flashModes.elementAt(page));
+                                try{
+                                  final page = (index + 1) % flashIcons.length;
+                                  _flashPageController.animateToPage(page,
+                                      duration: const Duration(milliseconds: 400),
+                                      curve: Curves.ease);
+                                  widget._controller.cameraController
+                                      ?.setFlashMode(flashModes.elementAt(page));
+                                } catch(e){
+                                  debugPrint("CameraException: ${e}");
+                                }
                               },
                               icon: Icon(flashIcons.elementAt(index)),
                               color: Colors.white);

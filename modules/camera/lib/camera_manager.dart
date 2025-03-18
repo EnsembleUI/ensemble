@@ -14,8 +14,10 @@ import 'package:ensemble/util/utils.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:face_camera/face_camera.dart';
 
 import './camera.dart';
+import './face_detection_camera.dart';
 
 const _optionMappings = {
   'mode': 'mode',
@@ -39,6 +41,9 @@ const _optionMappings = {
   'enableMicrophone': 'enableMicrophone',
   'instantPreview': 'instantPreview',
   'captureOverlay': 'captureOverlay',
+  'loadingWidget': 'loadingWidget',
+  'faceDetection': 'faceDetection',
+
 };
 
 const _angleAssistOptions = {
@@ -101,8 +106,15 @@ class CameraManagerImpl extends CameraManager {
         scopeManager?.dataContext.eval(cameraAction.options?['default']),
         fallback: false);
 
+    final faceDetection = Utils.getBool(
+        scopeManager?.dataContext
+            .eval(cameraAction.options?['faceDetection'])?['enabled'],
+        fallback: false);
+
     if (isDefault && !kIsWeb) {
       await defaultCamera(context, cameraAction, scopeManager);
+    } else if (faceDetection) {
+      await faceDetectionCamera(context, cameraAction, scopeManager);
     } else {
       await bespokeCamera(context, cameraAction, scopeManager);
     }
@@ -151,12 +163,18 @@ class CameraManagerImpl extends CameraManager {
   Future<void> bespokeCamera(BuildContext context,
       ShowCameraAction cameraAction, ScopeManager? scopeManager) async {
     Widget? overlayWidget;
+    Widget? loadingWidget;
     if (cameraAction.overlayWidget != null) {
       overlayWidget = buildOverlayWidget(scopeManager, cameraAction);
     }
 
+    if (cameraAction.loadingWidget != null) {
+      loadingWidget = buildLoadingWidget(scopeManager, cameraAction);
+    }
+
     Camera camera = Camera(
       overlayWidget: overlayWidget,
+      loadingWidget: loadingWidget,
       onCapture: cameraAction.onCapture == null
           ? null
           : () {
@@ -243,6 +261,70 @@ class CameraManagerImpl extends CameraManager {
     }
   }
 
+  Future<void> faceDetectionCamera(BuildContext context,
+      ShowCameraAction cameraAction, ScopeManager? scopeManager) async {
+    await FaceCamera.initialize();
+
+    final camera = FaceDetectionCamera(
+      onCapture: (image) async {
+        // Pop the camera page once a capture has occurred.
+        Navigator.pop(context);
+        final fileJson = File(image, 'jpg', 0, image, null).toJson();
+
+        // If an ID is provided and scopeManager exists, update dataContext and dispatch event.
+        if (cameraAction.id != null && scopeManager != null) {
+          scopeManager.dataContext.addDataContext({
+            cameraAction.id!: {
+              'files': [fileJson]
+            }
+          });
+          scopeManager.dispatch(
+            ModelChangeEvent(
+              APIBindingSource(cameraAction.id!),
+              {
+                'files': [fileJson]
+              },
+            ),
+          );
+        }
+
+        // Execute the onCapture action if provided.
+        if (cameraAction.onCapture != null) {
+          try {
+            await ScreenController()
+                .executeAction(context, cameraAction.onCapture!);
+          } on Exception catch (_) {}
+        }
+      },
+      onError: (error) {
+        // Close the camera page when an error occurs.
+        Navigator.pop(context);
+
+        if (cameraAction.onError != null) {
+          ScreenController().executeAction(
+            context,
+            cameraAction.onError!,
+            event: EnsembleEvent(null, error: error),
+          );
+        }
+      },
+    );
+
+    final options = cameraAction.options ?? {};
+    for (var option in options.keys) {
+      final property = _optionMappings[option];
+      if (property != null) {
+        final value = scopeManager?.dataContext.eval(options[option]);
+        camera.setProperty(property, value);
+      }
+    }
+
+    await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => camera),
+    );
+  }
+
   Widget? buildOverlayWidget(
       ScopeManager? scopeManager, ShowCameraAction cameraAction) {
     Widget? overlayWidget;
@@ -257,5 +339,21 @@ class CameraManagerImpl extends CameraManager {
       debugPrint('Ensemble Camera: Error while building overlay widget $e');
     }
     return overlayWidget;
+  }
+
+  Widget? buildLoadingWidget(
+      ScopeManager? scopeManager, ShowCameraAction cameraAction) {
+    Widget? loadingWidget;
+    try {
+      loadingWidget =
+          scopeManager?.buildWidgetFromDefinition(cameraAction.loadingWidget);
+      if (loadingWidget != null) {
+        loadingWidget =
+            DataScopeWidget(scopeManager: scopeManager!, child: loadingWidget);
+      }
+    } on Exception catch (e) {
+      debugPrint('Ensemble Camera: Error while building loading widget $e');
+    }
+    return loadingWidget;
   }
 }
