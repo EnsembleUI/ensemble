@@ -38,12 +38,14 @@ class Camera extends StatefulWidget
     this.onComplete,
     this.onError,
     this.overlayWidget,
+    this.loadingWidget,
   }) : super(key: key);
 
   final Function? onCapture;
   final Function? onComplete;
   final Function(dynamic error)? onError;
   final Widget? overlayWidget;
+  final Widget? loadingWidget;
 
   final MyCameraController _controller = MyCameraController();
 
@@ -197,6 +199,7 @@ class CameraState extends EWidgetState<Camera> with WidgetsBindingObserver {
   bool isRecording = false;
   bool hasPermission = false;
   bool isLoading = true;
+  bool isCropping = false;
   int currentModeIndex = 0;
 
   List<CameraMode> modes = [];
@@ -435,9 +438,9 @@ class CameraState extends EWidgetState<Camera> with WidgetsBindingObserver {
   @override
   Widget buildWidget(BuildContext context) {
     if (isLoading) {
-      return const Scaffold(
+      return Scaffold(
         backgroundColor: Colors.black,
-        body: Center(child: CircularProgressIndicator()),
+        body: Center(child: widget.loadingWidget?? CircularProgressIndicator()),
       );
     }
 
@@ -510,6 +513,16 @@ class CameraState extends EWidgetState<Camera> with WidgetsBindingObserver {
               child: widget.overlayWidget!,
             ),
           ),
+        if (isCropping)
+           Center(
+             child: widget.loadingWidget ??
+              Container(
+                color: Colors.black.withOpacity(0.7),
+                width: MediaQuery.of(context).size.width,
+                height: MediaQuery.of(context).size.height,
+                child: CircularProgressIndicator(),
+              ),
+           ),
         imagePreviewButton(),
         Align(
             alignment: Alignment.bottomCenter,
@@ -1027,10 +1040,17 @@ class CameraState extends EWidgetState<Camera> with WidgetsBindingObserver {
       }
     } else {
       if (widget._controller.captureOverlay) {
+        setState(() {
+          isCropping = true;
+        });
         try {
           file = await takeOverlayCapture();
         } on Exception catch (e) {
           print(e);
+        } finally {
+          setState(() {
+            isCropping = false;
+          });
         }
       } else {
         file = await takePicture();
