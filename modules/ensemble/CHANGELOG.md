@@ -1,3 +1,9 @@
+## 1.1.35
+
+## 1.1.34
+
+ - Bump "ensemble" to `1.1.34`.
+
 ## 1.1.33
 
  - **FIX**: keep the focus sensitive field focused on dialog open. ([efc94638](https://github.com/ensembleUI/ensemble/commit/efc94638254ed69c55f8bf8d1192cd5d2c51d6ba))
