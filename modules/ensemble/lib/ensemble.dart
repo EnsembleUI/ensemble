@@ -364,7 +364,16 @@ class Ensemble extends WithEnsemble with EnsembleRouteObserver {
 
   Object? getSelectedLanguage() {
     UserLocale? userLocale = UserLocale.from(Ensemble().getLocale());
-    String languageCode = userLocale!.languageCode;
+    // Check if userLocale is null before accessing languageCode
+    if (userLocale == null) {
+      return {
+        "languageCode": "Unknown",
+        "name": "Unknown",
+        "nativeName": "Unknown"
+      };
+    }
+
+    String languageCode = userLocale.languageCode;
     var localeNames = LocaleNames.of(Utils.globalAppKey.currentContext!);
     return {
       "languageCode": languageCode,
