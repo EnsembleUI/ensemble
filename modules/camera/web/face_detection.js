@@ -183,8 +183,6 @@ window.detectFace = async function (videoElement, accurateMode = false, accuracy
     const INTERSECTION_RATIO_THRESHOLD = accuracyConfig['intersectionRatioThreshold'];
     const EXTRA_HEIGHT_FACTOR = accuracyConfig['extraHeightFactor'];
 
-    console.log('DETECTION_THRESHOLD: '+ DETECTION_THRESHOLD);
-
     const INPUT_SIZE = accuracyConfig.inputSize;
 
     if (!videoElement || videoElement.readyState !== 4) {
