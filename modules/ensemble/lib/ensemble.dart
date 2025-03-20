@@ -28,6 +28,7 @@ import 'package:ensemble/page_model.dart';
 import 'package:ensemble/framework/definition_providers/provider.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
+import 'package:ensemble_ts_interpreter/invokables/UserLocale.dart';
 import 'package:ensemble_ts_interpreter/parser/newjs_interpreter.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -357,6 +358,28 @@ class Ensemble extends WithEnsemble with EnsembleRouteObserver {
                     'Unknown'
               })
           .toList();
+    }
+    return null;
+  }
+
+  Object? getSelectedLanguage() {
+    UserLocale? userLocale = UserLocale.from(Ensemble().getLocale());
+    // Check if userLocale is null before accessing languageCode
+    if (userLocale != null) {
+      String languageCode = userLocale.languageCode;
+      var localeNames = LocaleNames.of(Utils.globalAppKey.currentContext!);
+      return {
+        "languageCode": languageCode,
+        // the language name based on the current context (fr is French (in English) or Francés (in Spanish))
+        // Note that this maybe null if the LocaleNamesLocalizationsDelegate is not loaded, in which case fallback to nativeName
+        "name": localeNames?.nameOf(languageCode) ??
+            LocaleNamesLocalizationsDelegate.nativeLocaleNames[languageCode] ??
+            'Unknown',
+        // the language in their native name (fr is Français and en is English). These are always the same regardless of the current language.
+        "nativeName":
+            LocaleNamesLocalizationsDelegate.nativeLocaleNames[languageCode] ??
+                'Unknown'
+      };
     }
     return null;
   }
