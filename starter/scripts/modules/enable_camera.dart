@@ -73,7 +73,7 @@ ensemble_camera:
   <script src="assets/packages/ensemble_camera/web/face_api.js"></script>
   <script src="assets/packages/ensemble_camera/web/face_detection.js"></script>
 ''';
-      updateWebIndexHtml(webIndexHtml);
+      updateWebIndexHtml(webIndexHtml, '<!-- Face Detection Scripts -->');
     }
 
     print('Camera module enabled successfully for ${platforms.join(', ')}! 🎉');
@@ -82,14 +82,4 @@ ensemble_camera:
     print('Starter Error: $e');
     exit(1);
   }
-}
-
-void updateWebIndexHtml(String webIndexHtml) {
-  const indexHtmlPath = 'web/index.html';
-  final indexHtmlContent = File(indexHtmlPath).readAsStringSync();
-  final updatedContent = indexHtmlContent.replaceAll(
-    '<!-- Face Detection Scripts -->',
-    webIndexHtml,
-  );
-  File(indexHtmlPath).writeAsStringSync(updatedContent);
 }
