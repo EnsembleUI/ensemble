@@ -221,7 +221,6 @@ class WebFaceDetection {
     AccuracyConfig? accuracyConfig,
   }) async {
     try {
-      print('accuracyConfig: $accuracyConfig');
       // Store the configuration
       _accuracyConfig = accuracyConfig;
       _imageResolution = imageResolution;
