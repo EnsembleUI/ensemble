@@ -69,7 +69,7 @@ ensemble_camera:
     // Add the face detection models to the web/index.html file
     if (platforms.contains('web')) {
       const webIndexHtml = '''
-<!-- Face Detection Scripts -->
+<!-- Face Detection -->
   <script src="assets/packages/ensemble_camera/web/face_api.js"></script>
   <script src="assets/packages/ensemble_camera/web/face_detection.js"></script>
 ''';

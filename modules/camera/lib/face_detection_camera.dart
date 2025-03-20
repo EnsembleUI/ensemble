@@ -65,6 +65,7 @@ class FaceDetectionCameraState extends State<FaceDetectionCamera>
           defaultFlashMode:
               widget.controller.faceDetectionConfig.defaultFlashMode,
           indicatorShape: widget.controller.faceDetectionConfig.indicatorShape,
+          accuracyConfig: widget.controller.faceDetectionConfig.accuracyConfig,
         );
 
         setState(() {});
@@ -215,6 +216,7 @@ class FaceDetectionConfig {
   final CameraFlashMode defaultFlashMode;
   final CameraOrientation orientation;
   final FaceDetectorMode performanceMode;
+  final AccuracyConfig accuracyConfig;
 
   FaceDetectionConfig({
     this.message = '',
@@ -231,7 +233,8 @@ class FaceDetectionConfig {
     this.defaultFlashMode = CameraFlashMode.off,
     this.orientation = CameraOrientation.portraitUp,
     this.performanceMode = FaceDetectorMode.fast,
-  });
+    AccuracyConfig? accuracyConfig,
+  }) : accuracyConfig = accuracyConfig ?? const AccuracyConfig();
 
   factory FaceDetectionConfig.fromMap(Map<String, dynamic>? map) {
     if (map == null) return FaceDetectionConfig();
@@ -252,6 +255,10 @@ class FaceDetectionConfig {
       defaultFlashMode: map['defaultFlashMode'] ?? CameraFlashMode.off,
       orientation: map['orientation'] ?? CameraOrientation.portraitUp,
       performanceMode: _parsePerformanceMode(map['performanceMode']),
+      accuracyConfig: map['accuracyConfig'] != null
+          ? AccuracyConfig.fromMap(
+              Map<String, dynamic>.from(map['accuracyConfig']))
+          : null,
     );
   }
 
