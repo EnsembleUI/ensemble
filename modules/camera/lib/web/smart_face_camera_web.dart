@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
 import 'package:face_camera/face_camera.dart';
-import 'face_detection_web.dart';
+import 'face_detection_web.dart' as face_detection show WebFaceDetection;
 
 class SmartFaceCameraWeb extends StatefulWidget {
   final String message;
@@ -42,12 +42,12 @@ class _SmartFaceCameraWebState extends State<SmartFaceCameraWeb> {
 
   // Group notifiers to simplify adding and removing listeners.
   final List<ValueNotifier<dynamic>> _notifiers = [
-    WebFaceDetection.statusMessage,
-    WebFaceDetection.faceDetected,
-    WebFaceDetection.faceLeft,
-    WebFaceDetection.faceTop,
-    WebFaceDetection.faceWidth,
-    WebFaceDetection.faceHeight,
+    face_detection.WebFaceDetection.statusMessage,
+    face_detection.WebFaceDetection.faceDetected,
+    face_detection.WebFaceDetection.faceLeft,
+    face_detection.WebFaceDetection.faceTop,
+    face_detection.WebFaceDetection.faceWidth,
+    face_detection.WebFaceDetection.faceHeight,
   ];
 
   @override
@@ -70,9 +70,13 @@ class _SmartFaceCameraWebState extends State<SmartFaceCameraWeb> {
     if (mounted) {
       setState(() {});
       if (widget.autoCapture &&
-          WebFaceDetection.getCameraController()?.value.isInitialized == true &&
-          WebFaceDetection.shouldAutoCapture(widget.autoCapture)) {
-        WebFaceDetection.markAutoCaptured();
+          face_detection.WebFaceDetection.getCameraController()
+                  ?.value
+                  .isInitialized ==
+              true &&
+          face_detection.WebFaceDetection.shouldAutoCapture(
+              widget.autoCapture)) {
+        face_detection.WebFaceDetection.markAutoCaptured();
         _captureImage();
       }
     }
@@ -80,7 +84,8 @@ class _SmartFaceCameraWebState extends State<SmartFaceCameraWeb> {
 
   @override
   Widget build(BuildContext context) {
-    final cameraController = WebFaceDetection.getCameraController();
+    final cameraController =
+        face_detection.WebFaceDetection.getCameraController();
     if (cameraController == null ||
         !mounted ||
         !cameraController.value.isInitialized) {
@@ -122,12 +127,12 @@ class _SmartFaceCameraWebState extends State<SmartFaceCameraWeb> {
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
                     if (widget.showCameraLensControl &&
-                        WebFaceDetection.getCameras().length > 1)
+                        face_detection.WebFaceDetection.getCameras().length > 1)
                       IconButton(
                         icon: const Icon(Icons.switch_camera),
                         color: Colors.white,
                         onPressed: () async {
-                          await WebFaceDetection.switchCamera();
+                          await face_detection.WebFaceDetection.switchCamera();
                           setState(() {});
                         },
                       ),
@@ -137,23 +142,27 @@ class _SmartFaceCameraWebState extends State<SmartFaceCameraWeb> {
                         color: Colors.white,
                         iconSize: 32,
                         onPressed: (!widget.autoDisableCaptureControl ||
-                                WebFaceDetection.faceDetected.value)
+                                face_detection
+                                    .WebFaceDetection.faceDetected.value)
                             ? _captureImage
                             : null,
                         disabledColor: Colors.grey,
                       ),
                     if (widget.showFlashControl &&
-                        WebFaceDetection.isFlashSupported())
+                        face_detection.WebFaceDetection.isFlashSupported())
                       IconButton(
                         icon: Icon(
-                          WebFaceDetection.getFlashMode() == FlashMode.off
+                          face_detection.WebFaceDetection.getFlashMode() ==
+                                  FlashMode.off
                               ? Icons.flash_off
                               : Icons.flash_on,
                         ),
                         color: Colors.white,
                         onPressed: () async {
-                          final currentMode = WebFaceDetection.getFlashMode();
-                          final success = await WebFaceDetection.setFlashMode(
+                          final currentMode =
+                              face_detection.WebFaceDetection.getFlashMode();
+                          final success = await face_detection.WebFaceDetection
+                              .setFlashMode(
                             currentMode == FlashMode.off
                                 ? FlashMode.torch
                                 : FlashMode.off,
@@ -173,7 +182,8 @@ class _SmartFaceCameraWebState extends State<SmartFaceCameraWeb> {
   Widget _buildCameraPreview(CameraController cameraController) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final previewRatio = WebFaceDetection.getAspectRatio() ?? 1.0;
+        final previewRatio =
+            face_detection.WebFaceDetection.getAspectRatio() ?? 1.0;
         final screenWidth = constraints.maxWidth;
         final screenHeight = constraints.maxHeight;
         final bool isWider = screenWidth / screenHeight > previewRatio;
@@ -182,12 +192,13 @@ class _SmartFaceCameraWebState extends State<SmartFaceCameraWeb> {
         final previewWidth =
             isWider ? screenHeight * previewRatio : screenWidth;
 
-        final faceLeft = WebFaceDetection.faceLeft.value;
-        final faceTop = WebFaceDetection.faceTop.value;
-        final faceWidth = WebFaceDetection.faceWidth.value;
-        final faceHeight = WebFaceDetection.faceHeight.value;
-        final faceDetected = WebFaceDetection.faceDetected.value;
-        final statusMessage = WebFaceDetection.statusMessage.value;
+        final faceLeft = face_detection.WebFaceDetection.faceLeft.value;
+        final faceTop = face_detection.WebFaceDetection.faceTop.value;
+        final faceWidth = face_detection.WebFaceDetection.faceWidth.value;
+        final faceHeight = face_detection.WebFaceDetection.faceHeight.value;
+        final faceDetected = face_detection.WebFaceDetection.faceDetected.value;
+        final statusMessage =
+            face_detection.WebFaceDetection.statusMessage.value;
 
         return Stack(
           children: [
@@ -266,11 +277,11 @@ class _SmartFaceCameraWebState extends State<SmartFaceCameraWeb> {
 
   Future<void> _captureImage() async {
     if (widget.autoDisableCaptureControl &&
-        !WebFaceDetection.faceDetected.value) return;
+        !face_detection.WebFaceDetection.faceDetected.value) return;
     if (_isCapturing) return;
     _isCapturing = true;
     try {
-      final imagePath = await WebFaceDetection.takePicture();
+      final imagePath = await face_detection.WebFaceDetection.takePicture();
       if (imagePath != null) widget.onCapture?.call(imagePath);
     } catch (e) {
       if (!e.toString().contains('after being disposed')) {
