@@ -1,33 +1,92 @@
-import 'package:js/js.dart';
-import 'package:flutter/widgets.dart';
+import 'package:flutter/material.dart';
+import 'package:camera/camera.dart';
 import 'package:face_camera/face_camera.dart';
+import 'accuracy_config.dart';
 
-@JS()
-@anonymous
 class FaceDetectionResult {
-  external bool get detected;
-  external double? get left;
-  external double? get top;
-  external double? get width;
-  external double? get height;
-  external String? get message;
-  external factory FaceDetectionResult(
-      {bool detected,
-      double? left,
-      double? top,
-      double? width,
-      double? height,
-      String? message});
+  final bool detected;
+  final double? left;
+  final double? top;
+  final double? width;
+  final double? height;
+  final String? message;
+
+  FaceDetectionResult({
+    this.detected = false,
+    this.left,
+    this.top,
+    this.width,
+    this.height,
+    this.message,
+  });
 }
 
-/// Stub implementation for non-web platforms
 class WebFaceDetection {
-  static void dispose() {}
-  static void setPerformanceMode(FaceDetectorMode mode) {}
-  static Future<void> initialize() async {}
-  static Future<FaceDetectionResult> detectFace() async =>
-      FaceDetectionResult(detected: false);
-  static Future<String?> captureImage() async => null;
+  static final ValueNotifier<bool> faceDetected = ValueNotifier<bool>(false);
+  static final ValueNotifier<String> statusMessage = ValueNotifier<String>('');
+  static final ValueNotifier<double?> faceLeft = ValueNotifier<double?>(null);
+  static final ValueNotifier<double?> faceTop = ValueNotifier<double?>(null);
+  static final ValueNotifier<double?> faceWidth = ValueNotifier<double?>(null);
+  static final ValueNotifier<double?> faceHeight = ValueNotifier<double?>(null);
+
+  static Future<void> initializeCamera({
+    required CameraLens initialLens,
+    required Function(dynamic) onError,
+    ImageResolution imageResolution = ImageResolution.high,
+    CameraFlashMode defaultFlashMode = CameraFlashMode.off,
+    IndicatorShape indicatorShape = IndicatorShape.defaultShape,
+    AccuracyConfig? accuracyConfig,
+  }) async {
+    // No-op for non-web platforms
+  }
+
+  static void setPerformanceMode(FaceDetectorMode mode) {
+    // No-op for non-web platforms
+  }
+
+  static void dispose() {
+    // No-op for non-web platforms
+  }
+
+  static CameraController? getCameraController() {
+    return null;
+  }
+
+  static List<CameraDescription> getCameras() {
+    return [];
+  }
+
+  static Future<void> switchCamera() async {
+    // No-op for non-web platforms
+  }
+
+  static bool isFlashSupported() {
+    return false;
+  }
+
+  static FlashMode getFlashMode() {
+    return FlashMode.off;
+  }
+
+  static Future<bool> setFlashMode(FlashMode mode) async {
+    return false;
+  }
+
+  static double? getAspectRatio() {
+    return null;
+  }
+
+  static bool shouldAutoCapture(bool autoCapture) {
+    return false;
+  }
+
+  static void markAutoCaptured() {
+    // No-op for non-web platforms
+  }
+
+  static Future<String?> takePicture() async {
+    return null;
+  }
 }
 
 /// Stub implementation of SmartFaceCameraWeb for non-web platforms
