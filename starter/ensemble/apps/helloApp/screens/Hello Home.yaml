@@ -6,16 +6,17 @@ View:
   # Optional - style the screen
   styles:
     scrollableView: true
-
+    
   # Optional - set the header for the screen
   header:
     title: r@title
+    
   onLoad: |
     saveName('John','Doe');
     console.log('name is ='+getName());
     console.log(env.apiURL)
     console.log(secrets.testSecret)
-
+    
   # Specify the body of the screen
   body:
     Column:
@@ -24,27 +25,45 @@ View:
         gap: 8
       children:
         - Text:
+            testId: greeting_text
             className: title
-            text: Hello ${ensemble.storage.helloApp.name.first}
-              ${ensemble.storage.helloApp.name.last}
+            text: Hello ${ensemble.storage.helloApp.name.first} ${ensemble.storage.helloApp.name.last}
+            
+        - Text:
+            testId: description_text
+            text: Welcome to our Ensemble app
+            styles:
+              color: '#444444'
+              
         - MyCustomWidget1:
+            testId: custom_widget
             inputs:
               inputName: ${ensemble.storage.helloApp.name}
+              
         - Button:
+            testId: api_button
             label: Call API in imported library
             onTap: |-
               callMockMethod();
-              console.log('name is ='+getName());  
+              console.log('name is ='+getName());
+              
         - Button:
+            testId: navigate_button
             label: Navigate to Goodbye Screen
+            styles:
+              marginTop: 16
+              padding: 12
             onTap:
               navigateScreen:
                 name: Goodbye
+                
         - Image:
+            testId: logo_image
             source: logo.svg
             styles:
               width: 200
               height: 200
+              marginTop: 24
 
 Global: |-
   //var myVar = myButton.label;

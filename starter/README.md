@@ -125,3 +125,46 @@ To incorporate Ensemble pages to your existing Flutter App, see `example_existin
 ## Build Tips
 ### Windows
 - If any issue is faced on `flutter pub get`, clean Pub cache either by running `flutter pub cache clean` command or emptying the contents of 'C:\Users\username\AppData\Local\Pub\Cache' directory.
+
+## Testing
+
+This starter project includes support for testing Ensemble apps using Flutter's integration testing framework. Widgets can be easily found in tests using testIds.
+
+### Writing Tests
+
+To write integration tests for your Ensemble app:
+
+1. Add testIds to your widgets in YAML:
+   ```yaml
+   Button:
+     testId: navigate_button
+     label: Navigate to Goodbye Screen
+     onTap:
+       navigateScreen:
+         name: Goodbye
+   ```
+
+2. See the example integration test file at `integration_test/app_test.dart` that shows how to:
+   - Find widgets by testId using ValueKey
+   - Interact with widgets (tap, enter text, etc.)
+   - Navigate between screens
+   - Verify widget states
+
+3. Run the tests with:
+   ```
+   flutter test integration_test/app_test.dart
+   ```
+
+### Setting Up Test Dependencies
+
+The integration_test dependencies are already configured in the starter project. If you're creating a new project, ensure you have these in your pubspec.yaml:
+
+```yaml
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  integration_test:
+    sdk: flutter
+```
+
+For more information on Flutter integration tests, see the [Flutter Testing documentation](https://docs.flutter.dev/testing/integration-tests).
