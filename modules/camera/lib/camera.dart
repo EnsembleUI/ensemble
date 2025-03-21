@@ -1174,7 +1174,7 @@ class CameraState extends EWidgetState<Camera> with WidgetsBindingObserver {
 // Helper function for web worker processing
   Future<Uint8List> _processWithWebWorker(Map<String, dynamic> cropData) {
     final completer = Completer<Uint8List>();
-    final worker = js.JsObject(js.context['Worker'], ['js/image_worker.js']);
+    final worker = js.JsObject(js.context['Worker'], ['assets/packages/ensemble_camera/web/image_worker.js']);
 
     // Set up message handler
     worker.callMethod('addEventListener', ['message', js.allowInterop((event) {
