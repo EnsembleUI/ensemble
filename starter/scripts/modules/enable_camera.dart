@@ -72,10 +72,10 @@ ensemble_camera:
 <!-- Face Detection Scripts -->
   <script src="assets/packages/ensemble_camera/web/face_api.js"></script>
   <script src="assets/packages/ensemble_camera/web/face_detection.js"></script>
- <!-- Image worker Script -->
+<!-- Image worker Script -->
   <script src="assets/packages/ensemble_camera/web/image_worker.js"></script>
 ''';
-      updateWebIndexHtml(webIndexHtml, '<!-- Face Detection Scripts -->');
+      updateWebIndexHtml(webIndexHtml, '<!-- Face Detection -->');
     }
 
     print('Camera module enabled successfully for ${platforms.join(', ')}! 🎉');
