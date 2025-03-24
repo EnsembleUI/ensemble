@@ -15,8 +15,6 @@ window.initFaceDetection = async function () {
         try {
             const modelBaseUrl = 'https://raw.githubusercontent.com/justadudewhohacks/face-api.js/master/weights/';
 
-            console.log('Loading face detection models...');
-
             // Load all required models for face detection
             await Promise.all([
                 faceapi.nets.tinyFaceDetector.load(modelBaseUrl),
@@ -24,7 +22,6 @@ window.initFaceDetection = async function () {
                 faceapi.nets.faceLandmark68TinyNet.load(modelBaseUrl)
             ]);
 
-            console.log('All face detection models loaded successfully');
             window.faceDetectionModels = true;
         } catch (error) {
             console.error('Error loading face detection models: ' + error);

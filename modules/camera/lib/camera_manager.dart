@@ -43,7 +43,6 @@ const _optionMappings = {
   'captureOverlay': 'captureOverlay',
   'loadingWidget': 'loadingWidget',
   'faceDetection': 'faceDetection',
-
 };
 
 const _angleAssistOptions = {
@@ -266,11 +265,10 @@ class CameraManagerImpl extends CameraManager {
     await FaceCamera.initialize();
 
     final camera = FaceDetectionCamera(
-      onCapture: (image) async {
+      onCapture: (file) async {
         // Pop the camera page once a capture has occurred.
         Navigator.pop(context);
-        final fileJson = File(image, 'jpg', 0, image, null).toJson();
-
+        final fileJson = file?.toJson();
         // If an ID is provided and scopeManager exists, update dataContext and dispatch event.
         if (cameraAction.id != null && scopeManager != null) {
           scopeManager.dataContext.addDataContext({
