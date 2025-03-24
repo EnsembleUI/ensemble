@@ -1,14 +1,15 @@
-import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:face_camera/face_camera.dart';
 import 'package:flutter/foundation.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
-import 'package:face_camera/face_camera.dart';
-import 'web/face_detection_web.dart'
-    if (dart.library.io) 'web/face_detection_stub.dart';
-import 'web/smart_face_camera_web.dart'
-    if (dart.library.io) 'web/face_detection_stub.dart';
+import 'web/face_detection_stub.dart'
+    if (dart.library.html) 'web/face_detection_web.dart' as face_detection;
+import 'web/face_detection_stub.dart'
+    if (dart.library.html) 'web/smart_face_camera_web.dart'
+    show SmartFaceCameraWeb;
+import 'web/accuracy_config.dart' show AccuracyConfig;
 
 // ignore: must_be_immutable
 class FaceDetectionCamera extends StatefulWidget
@@ -55,9 +56,9 @@ class FaceDetectionCameraState extends State<FaceDetectionCamera>
     if (kIsWeb) {
       try {
         // Initialize camera with web implementation and all configuration properties
-        WebFaceDetection.setPerformanceMode(
+        face_detection.WebFaceDetection.setPerformanceMode(
             widget.controller.faceDetectionConfig.performanceMode);
-        await WebFaceDetection.initializeCamera(
+        await face_detection.WebFaceDetection.initializeCamera(
           initialLens: widget.controller.initialCamera,
           onError: widget.onError ?? (e) => print('Error: $e'),
           imageResolution:
@@ -86,7 +87,7 @@ class FaceDetectionCameraState extends State<FaceDetectionCamera>
     if (kIsWeb &&
         widget.controller.faceDetectionConfig.performanceMode !=
             oldWidget.controller.faceDetectionConfig.performanceMode) {
-      WebFaceDetection.setPerformanceMode(
+      face_detection.WebFaceDetection.setPerformanceMode(
           widget.controller.faceDetectionConfig.performanceMode);
     }
   }
@@ -94,7 +95,7 @@ class FaceDetectionCameraState extends State<FaceDetectionCamera>
   @override
   void dispose() {
     if (kIsWeb) {
-      WebFaceDetection.dispose();
+      face_detection.WebFaceDetection.dispose();
     }
     WidgetsBinding.instance.removeObserver(this);
     widget.controller.dispose();
@@ -167,7 +168,8 @@ class FaceDetectionController extends Controller {
 
     // Update face detection mode for web implementation
     if (kIsWeb) {
-      WebFaceDetection.setPerformanceMode(faceDetectionConfig.performanceMode);
+      face_detection.WebFaceDetection.setPerformanceMode(
+          faceDetectionConfig.performanceMode);
     }
   }
 
@@ -216,7 +218,7 @@ class FaceDetectionConfig {
   final CameraFlashMode defaultFlashMode;
   final CameraOrientation orientation;
   final FaceDetectorMode performanceMode;
-  final AccuracyConfig accuracyConfig;
+  final AccuracyConfig? accuracyConfig;
 
   FaceDetectionConfig({
     this.message = '',
@@ -233,8 +235,8 @@ class FaceDetectionConfig {
     this.defaultFlashMode = CameraFlashMode.off,
     this.orientation = CameraOrientation.portraitUp,
     this.performanceMode = FaceDetectorMode.fast,
-    AccuracyConfig? accuracyConfig,
-  }) : accuracyConfig = accuracyConfig ?? const AccuracyConfig();
+    this.accuracyConfig,
+  });
 
   factory FaceDetectionConfig.fromMap(Map<String, dynamic>? map) {
     if (map == null) return FaceDetectionConfig();
