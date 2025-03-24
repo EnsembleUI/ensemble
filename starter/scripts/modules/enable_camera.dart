@@ -66,6 +66,18 @@ ensemble_camera:
       updateIOSPermissions(iOSPermissions, arguments);
     }
 
+    // Add the face detection models to the web/index.html file
+    if (platforms.contains('web')) {
+      const webIndexHtml = '''
+<!-- Face Detection Scripts -->
+  <script src="assets/packages/ensemble_camera/web/face_api.js"></script>
+  <script src="assets/packages/ensemble_camera/web/face_detection.js"></script>
+<!-- Image worker Script -->
+  <script src="assets/packages/ensemble_camera/web/image_worker.js"></script>
+''';
+      updateWebIndexHtml(webIndexHtml, '<!-- Face Detection -->');
+    }
+
     print('Camera module enabled successfully for ${platforms.join(', ')}! 🎉');
     exit(0);
   } catch (e) {
