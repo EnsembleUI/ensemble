@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:face_camera/face_camera.dart';
 import 'package:flutter/foundation.dart';
@@ -10,6 +9,7 @@ import 'web/face_detection_stub.dart'
     if (dart.library.html) 'web/smart_face_camera_web.dart'
     show SmartFaceCameraWeb;
 import 'web/accuracy_config.dart' show AccuracyConfig;
+import 'package:ensemble/framework/data_context.dart';
 
 // ignore: must_be_immutable
 class FaceDetectionCamera extends StatefulWidget
@@ -19,7 +19,7 @@ class FaceDetectionCamera extends StatefulWidget
   FaceDetectionCamera({Key? key, this.onCapture, this.onError})
       : super(key: key);
 
-  final void Function(String)? onCapture;
+  final void Function(File?)? onCapture;
   final void Function(dynamic)? onError;
 
   @override
@@ -173,7 +173,7 @@ class FaceDetectionController extends Controller {
     }
   }
 
-  void init(BuildContext context, Function(String)? onCapture,
+  void init(BuildContext context, Function(File?)? onCapture,
       Function(dynamic)? onError) {
     if (!kIsWeb) {
       faceCameraController = FaceCameraController(
@@ -183,12 +183,22 @@ class FaceDetectionController extends Controller {
           defaultFlashMode: faceDetectionConfig.defaultFlashMode,
           orientation: faceDetectionConfig.orientation,
           performanceMode: faceDetectionConfig.performanceMode,
-          onCapture: (File? image) async {
+          onCapture: (dynamic image) async {
             if (image != null) {
               try {
                 notifyListeners();
-                onCapture?.call(image.path);
+
+                // Convert the image to a File object
+                final fileSize = await image.length();
+                final fileExtension = image.path?.split('.').last ?? 'jpg';
+                final fileName = image.path?.split('/').last ??
+                    '${DateTime.now().millisecondsSinceEpoch}.$fileExtension';
+                final file =
+                    File(fileName, fileExtension, fileSize, image.path, null);
+
+                onCapture?.call(file);
               } catch (e) {
+                print('Error capturing image: $e');
                 onError?.call(e);
               }
             }
@@ -196,7 +206,6 @@ class FaceDetectionController extends Controller {
     }
   }
 
-  @override
   void dispose() {
     faceCameraController?.dispose();
     super.dispose();
