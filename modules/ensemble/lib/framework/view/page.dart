@@ -410,8 +410,8 @@ class PageState extends State<Page>
         animationType: animationType,
 
         backgroundWidget: backgroundWidget,
-        expandedBarHeight: flexibleMaxHeight,
-        collapsedBarHeight: flexibleMinHeight,
+        expandedBarHeight: flexibleMaxHeight?? titleBarHeight,
+        collapsedBarHeight: flexibleMinHeight?? titleBarHeight,
         floating: scrollMode == ScrollMode.floating,
         pinned: scrollMode == ScrollMode.pinned,
 
@@ -927,10 +927,12 @@ class _AnimatedAppBarState extends State<AnimatedAppBar> {
   }
 
   void _updateCollapseState() {
+
     if (!widget.scrollController.hasClients) return;
 
     double threshold = (widget.expandedBarHeight - widget.collapsedBarHeight).clamp(10, double.infinity);
     bool newState = widget.scrollController.offset > threshold;
+
 
     if (newState != isCollapsed) {
       setState(() {
@@ -994,8 +996,8 @@ class _AnimatedAppBarState extends State<AnimatedAppBar> {
 }
 
 enum ScrollMode {
-  floating,
   pinned,
+  floating,
 }
 
 enum AnimationType{

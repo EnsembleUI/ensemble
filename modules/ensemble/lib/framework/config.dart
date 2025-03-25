@@ -31,6 +31,7 @@ class AppConfig with Invokable {
       'theme': () => EnsembleThemeManager().currentThemeName,
       'themes': () => EnsembleThemeManager().getThemeNames(),
       'languages': () => Ensemble().getSupportedLanguages(context),
+      'language': () => Ensemble().getSelectedLanguage(),
       // note the ts_interpreter package expects the locale at "app.locale",
       // so if you need to move this, update the package also.
       'locale': () => UserLocale.from(Ensemble().getLocale()),

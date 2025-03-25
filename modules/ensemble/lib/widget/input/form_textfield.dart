@@ -145,8 +145,8 @@ abstract class BaseTextInput extends StatefulWidget
       'validator': (value) => _controller.validator = Utils.getValidator(value),
       'enableClearText': (value) =>
           _controller.enableClearText = Utils.optionalBool(value),
-      'dismissibleKeyboard': (value) =>
-          _controller.dismissibleKeyboard = Utils.getBool(value, fallback: _controller.dismissibleKeyboard),
+      'endingWidget': (widget) =>
+          _controller.endingWidget = widget,
       'obscureToggle': (value) =>
           _controller.obscureToggle = Utils.optionalBool(value),
       'obscured': (widget) => _controller.obscureText == true,
@@ -226,7 +226,9 @@ class TextInputController extends FormFieldController with HasTextPlaceholder {
   EnsembleAction? onFocusReceived;
   EnsembleAction? onFocusLost;
   bool? enableClearText;
-  bool dismissibleKeyboard = true;
+
+  // Ending widget for the input field
+  dynamic endingWidget;
 
   // applicable only for TextInput
   bool? obscureText;
@@ -308,10 +310,7 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput>
       overlayEntry!.remove();
       overlayEntry = null;
     }
-    // only dismiss if dismissibleKeyboard is true (By Default dismissibleKeyboard is true)
-    if(widget._controller.dismissibleKeyboard == true){
     FocusManager.instance.primaryFocus?.unfocus();
-    }
   }
 
   @override
@@ -470,6 +469,12 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput>
           onPressed: _clearSelection,
           icon: const Icon(Icons.close),
         ),
+      );
+    }
+
+    if(widget.controller.endingWidget != null) {
+      decoration = decoration.copyWith(
+        suffixIcon: scopeManager!.buildWidgetFromDefinition(widget.controller.endingWidget),
       );
     }
 
