@@ -143,8 +143,9 @@ abstract class EnsembleWidgetState<W extends EnsembleWidget> extends State<W> {
         );
       }
 
-      if(widgetController.semantics != null && widgetController.semantics!.focusable){
+      if(widgetController.semantics != null){
         rtn =  FocusableActionDetector(
+          enabled: true,
           child: Semantics(
             label: widgetController.semantics!.label,
             hint: widgetController.semantics!.hint,
