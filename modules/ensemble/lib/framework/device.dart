@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:core';
 import 'dart:io';
 import 'dart:developer';
@@ -14,22 +15,62 @@ import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:intl/intl.dart';
 
-/// get device information as well as requesting device permissions
 class Device
     with
         Invokable,
         MediaQueryCapability,
         LocationCapability,
-        DeviceInfoCapability {
+        DeviceInfoCapability,
+        WidgetsBindingObserver {
   static final Device _instance = Device._internal();
+  static late BuildContext context;
 
-  Device._internal();
+  Device._internal() {
+    WidgetsBinding.instance.addObserver(this);
+  }
 
-  factory Device() {
+  factory Device([BuildContext? buildContext]) {
+    if (buildContext != null) {
+      context = buildContext;
+    }
     return _instance;
+  }
+
+  // method to update context
+  void updateContext(BuildContext? newContext) {
+    if (newContext != null) {
+      context = newContext;
+    }
+  }
+
+  @override
+  void didChangeMetrics() {
+    WidgetsBinding.instance
+        .addPostFrameCallback((_) => _handleMediaQueryChange());
+  }
+
+  void _handleMediaQueryChange() {
+    final newData = MediaQuery.of(context);
+
+    // Compare with existing static data
+    if (MediaQueryCapability.data?.orientation != newData.orientation ||
+        MediaQueryCapability.data?.size != newData.size) {
+      MediaQueryCapability.data = newData;
+
+      // Dispatch individual property changes
+      ScreenController().dispatchDeviceChanges(context, 'width', screenWidth);
+      ScreenController().dispatchDeviceChanges(context, 'height', screenHeight);
+      ScreenController()
+          .dispatchDeviceChanges(context, 'orientation', screenOrientation);
+      ScreenController()
+          .dispatchDeviceChanges(context, 'safeAreaTop', safeAreaTop);
+      ScreenController()
+          .dispatchDeviceChanges(context, 'safeAreaBottom', safeAreaBottom);
+    }
   }
 
   @override
@@ -42,6 +83,7 @@ class Device
       // Media Query
       "width": () => screenWidth,
       "height": () => screenHeight,
+      "orientation": () => screenOrientation,
       "safeAreaTop": () => safeAreaTop,
       "safeAreaBottom": () => safeAreaBottom,
 
@@ -73,9 +115,7 @@ class Device
   }
 
   @override
-  Map<String, Function> setters() {
-    return {};
-  }
+  Map<String, Function> setters() => {};
 
   void openAppSettings([String? target]) {
     final settingType =
@@ -96,6 +136,7 @@ mixin MediaQueryCapability {
 
   int get screenWidth => _getData().size.width.toInt();
   int get screenHeight => _getData().size.height.toInt();
+  String get screenOrientation => _getData().orientation.toString();
   int get safeAreaTop => _getData().padding.top.toInt();
   int get safeAreaBottom => _getData().padding.bottom.toInt();
 }
