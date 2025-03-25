@@ -167,6 +167,15 @@ abstract class EWidgetState<W extends HasController>
           child: rtn,
         );
       }
+      if(widgetController.semantics != null && widgetController.semantics!.focusable){
+        rtn = FocusableActionDetector(
+          child: Semantics(
+            label: widgetController.semantics!.label,
+            hint: widgetController.semantics!.hint,
+            child: rtn,
+          ),
+        );
+      }
     }
     return rtn;
   }

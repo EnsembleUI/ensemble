@@ -78,12 +78,7 @@ class InputWrapper extends StatelessWidget {
             ),
           ),
         // semantics for whatever text input comes through
-        MergeSemantics(
-          child: Semantics(
-              label: controller.label,
-              child: widget,
-            ),
-        ),
+        widget,
 
         if (shouldShowLabel && controller.description != null)
           Container(
