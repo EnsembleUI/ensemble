@@ -262,7 +262,9 @@ class CameraManagerImpl extends CameraManager {
 
   Future<void> faceDetectionCamera(BuildContext context,
       ShowCameraAction cameraAction, ScopeManager? scopeManager) async {
-    await FaceCamera.initialize();
+    if (!kIsWeb) {
+      await FaceCamera.initialize();
+    }
 
     final camera = FaceDetectionCamera(
       onCapture: (file) async {
