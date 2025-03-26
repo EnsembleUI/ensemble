@@ -9,7 +9,6 @@ import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/debouncer.dart';
 import 'package:ensemble/util/input_formatter.dart';
 import 'package:ensemble/util/utils.dart';
-import 'package:ensemble/widget/helpers/HasTextPlaceholder.dart';
 import 'package:ensemble/widget/helpers/form_helper.dart';
 import 'package:ensemble/widget/helpers/input_wrapper.dart';
 import 'package:ensemble/widget/helpers/input_field_helper.dart'; // Import the helper class
@@ -157,7 +156,7 @@ mixin TextInputFieldAction on FormFieldWidgetState<BaseTextInput>
 }
 
 /// Controller for TagInput extending BaseInputController
-class TagInputController extends BaseInputController with HasTextPlaceholder {
+class TagInputController extends BaseInputController {
   // TextInputFieldAction? inputFieldAction;
 
   late Map<String, TextStyle?> triggers; // Optional additional triggers like #

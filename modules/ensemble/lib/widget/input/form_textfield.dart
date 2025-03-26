@@ -7,7 +7,6 @@ import 'package:ensemble/util/debouncer.dart';
 import 'package:ensemble/util/input_formatter.dart';
 import 'package:ensemble/util/input_validator.dart';
 import 'package:ensemble/util/utils.dart';
-import 'package:ensemble/widget/helpers/HasTextPlaceholder.dart';
 import 'package:ensemble/widget/helpers/form_helper.dart';
 import 'package:ensemble/widget/helpers/input_field_helper.dart';
 import 'package:ensemble/widget/helpers/input_wrapper.dart';
@@ -145,7 +144,7 @@ mixin TextInputFieldAction on FormFieldWidgetState<BaseTextInput>
 }
 
 /// controller for both TextField and Password
-class TextInputController extends BaseInputController with HasTextPlaceholder {
+class TextInputController extends BaseInputController {
   // applicable only for TextInput
   bool? obscureText;
 
@@ -153,7 +152,6 @@ class TextInputController extends BaseInputController with HasTextPlaceholder {
   bool? obscured;
   bool? obscureToggle;
   dynamic obscureTextWidget;
-
 }
 
 class TextInputState extends FormFieldWidgetState<BaseTextInput>
