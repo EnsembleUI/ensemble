@@ -116,20 +116,45 @@ class AuthManager with UserAuthentication {
         print('Sign in anonymous failed');
         return null;
       }
-      Future<void> updateCurrentUser(BuildContext context, User newUser) async {
-        await StorageManager()
-            .writeToSystemStorage(UserAuthentication._idKey, newUser.uid);
-        await StorageManager()
-            .writeToSystemStorage(UserAuthentication._isAnonymous, true);
-      }
 
-      updateCurrentUser(context, user);
+      updateCurrentFirebaseUser(context, user);
 
       return user.isAnonymous;
     } catch (e) {
       print(e.toString());
       return null;
     }
+  }
+
+  Future<String?> signInWithCustomToken(
+      BuildContext context,
+      {required String jwtToken}
+  ) async {
+    try {
+      customFirebaseApp ??= await _initializeFirebaseSignIn();
+      final _auth = FirebaseAuth.instanceFor(app: customFirebaseApp!);
+
+      UserCredential userCredential = await _auth.signInWithCustomToken(jwtToken);
+      User? user = userCredential.user;
+      if (user == null) {
+        print('Sign in with custom firebase auth token failed');
+        return null;
+      }
+      String? firebaseToken = await user.getIdToken();
+
+      updateCurrentFirebaseUser(context, user);
+      return firebaseToken;
+    } catch (e) {
+      print(e.toString());
+      return null;
+    }
+  }
+
+  Future<void> updateCurrentFirebaseUser(BuildContext context, User newUser) async {
+    await StorageManager()
+        .writeToSystemStorage(UserAuthentication._idKey, newUser.uid);
+    await StorageManager()
+        .writeToSystemStorage(UserAuthentication._isAnonymous, newUser.isAnonymous);
   }
 
   Future<String?> _signInLocally(BuildContext context,

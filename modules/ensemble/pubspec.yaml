@@ -15,7 +15,7 @@ description: Ensemble Runtime
 # This version is used _only_ for the Runner app, which is used if you just do
 # a `flutter run` or a `flutter make-host-app-editable`. It has no impact
 # on any other native host app that you embed your Flutter project into.
-version: 1.1.29
+version: 1.1.38
 
 environment:
   sdk: ">=3.5.0"
@@ -97,7 +97,6 @@ dependencies:
       ref: main 
       path: workmanager
   flutter_local_notifications: ^17.2.3
-  vision_gallery_saver: ^2.0.2
   flutter_i18n: ^0.35.1
   pointer_interceptor: ^0.9.3+4
   flutter_secure_storage: ^9.2.2

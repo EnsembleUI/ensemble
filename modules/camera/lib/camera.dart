@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:image/image.dart' as img;
 import 'dart:io' as io;
 import 'helper/web.dart' as web;
+import 'helper/js.dart' as js;
 
 import 'package:camera/camera.dart';
 import 'package:collection/collection.dart' show IterableExtension;
@@ -38,12 +39,14 @@ class Camera extends StatefulWidget
     this.onComplete,
     this.onError,
     this.overlayWidget,
+    this.loadingWidget,
   }) : super(key: key);
 
   final Function? onCapture;
   final Function? onComplete;
   final Function(dynamic error)? onError;
   final Widget? overlayWidget;
+  final Widget? loadingWidget;
 
   final MyCameraController _controller = MyCameraController();
 
@@ -197,6 +200,7 @@ class CameraState extends EWidgetState<Camera> with WidgetsBindingObserver {
   bool isRecording = false;
   bool hasPermission = false;
   bool isLoading = true;
+  bool isCropping = false;
   int currentModeIndex = 0;
 
   List<CameraMode> modes = [];
@@ -351,11 +355,17 @@ class CameraState extends EWidgetState<Camera> with WidgetsBindingObserver {
   }
 
   Future<void> setCamera({CameraDescription? cameraDescription}) async {
+    // If a camera controller has already been initialized, dispose it.
+    if (widget._controller.cameraController != null) {
+      await widget._controller.cameraController!.dispose();
+      widget._controller.cameraController = null;
+    }
+
     CameraDescription targetCamera = cameraDescription ?? cameras[0];
 
     widget._controller.cameraController = CameraController(
       targetCamera,
-      ResolutionPreset.veryHigh,
+      kIsWeb? ResolutionPreset.high : ResolutionPreset.veryHigh,
       enableAudio: widget._controller.enableMicrophone,
     );
 
@@ -429,9 +439,9 @@ class CameraState extends EWidgetState<Camera> with WidgetsBindingObserver {
   @override
   Widget buildWidget(BuildContext context) {
     if (isLoading) {
-      return const Scaffold(
+      return Scaffold(
         backgroundColor: Colors.black,
-        body: Center(child: CircularProgressIndicator()),
+        body: Center(child: widget.loadingWidget?? CircularProgressIndicator()),
       );
     }
 
@@ -504,6 +514,11 @@ class CameraState extends EWidgetState<Camera> with WidgetsBindingObserver {
               child: widget.overlayWidget!,
             ),
           ),
+        if (isCropping)
+           Center(
+             child: widget.loadingWidget ??
+                 CircularProgressIndicator(),
+           ),
         imagePreviewButton(),
         Align(
             alignment: Alignment.bottomCenter,
@@ -1021,10 +1036,17 @@ class CameraState extends EWidgetState<Camera> with WidgetsBindingObserver {
       }
     } else {
       if (widget._controller.captureOverlay) {
+        setState(() {
+          isCropping = true;
+        });
         try {
           file = await takeOverlayCapture();
         } on Exception catch (e) {
           print(e);
+        } finally {
+          setState(() {
+            isCropping = false;
+          });
         }
       } else {
         file = await takePicture();
@@ -1067,36 +1089,141 @@ class CameraState extends EWidgetState<Camera> with WidgetsBindingObserver {
     final xFile = await widget._controller.cameraController!.takePicture();
     final imageBytes = await xFile.readAsBytes();
 
-    final img.Image? decodedImage = img.decodeImage(imageBytes);
-    if (decodedImage == null) {
-      widget.onError
-          ?.call('Error Capturing overlay: Failed to decode image bytes');
-      return null;
-    }
-
     // Calculate overlay position relative to camera preview
     final cameraOffset = cameraBoundary.localToGlobal(Offset.zero);
     final overlayOffset = overlayBox.localToGlobal(Offset.zero);
-
-    final double left = overlayOffset.dx - cameraOffset.dx;
-    final double top = overlayOffset.dy - cameraOffset.dy;
-
-    // Scale factors to map Flutter coordinates to image coordinates
     final previewBox = cameraBoundary as RenderBox;
-    final scaleX = decodedImage.width / previewBox.size.width;
-    final scaleY = decodedImage.height / previewBox.size.height;
 
-    // Calculate crop dimensions in image coordinates
+    // Create crop data map with all required parameters
+    final cropData = {
+      'imageBytes': imageBytes,
+      'left': overlayOffset.dx - cameraOffset.dx,
+      'top': overlayOffset.dy - cameraOffset.dy,
+      'width': overlayBox.size.width,
+      'height': overlayBox.size.height,
+      'previewWidth': previewBox.size.width,
+      'previewHeight': previewBox.size.height,
+    };
+
+    final timestamp = DateTime.now().millisecondsSinceEpoch;
+    final filename = 'overlay_image_$timestamp.png';
+
+    // Process differently based on platform
+    if (kIsWeb) {
+      try {
+        // Convert image bytes to a Blob with explicit MIME type
+        final blob = web.Blob([cropData['imageBytes']], 'image/png');
+        final url = web.Url.createObjectUrlFromBlob(blob);
+
+        // Create a complete crop data object
+        final Map<String, dynamic> safeCropData = {
+          'imageUrl': url.toString(),
+          'left': cropData['left'] ?? 0,
+          'top': cropData['top'] ?? 0,
+          'width': cropData['width'] ?? 0,
+          'height': cropData['height'] ?? 0,
+          'previewWidth': cropData['previewWidth'] ?? 0,
+          'previewHeight': cropData['previewHeight'] ?? 0,
+        };
+
+        // Web worker processing
+        final croppedPng = await _processWithWebWorker(safeCropData);
+
+        // Create file with processed image
+        final processedBlob = web.Blob([croppedPng], 'image/png');
+        final path = web.Url.createObjectUrlFromBlob(processedBlob);
+
+        return File(filename, 'png', null, path, croppedPng);
+      } catch (e) {
+        print('Error in image processing: $e');
+        widget.onError?.call('Error processing image: $e');
+        return null;
+      }
+    } else {
+      // Non-web platform processing
+      try {
+        final img.Image? decodedImage = img.decodeImage(imageBytes);
+        if (decodedImage == null) {
+          widget.onError?.call('Error Capturing overlay: Failed to decode image bytes');
+          return null;
+        }
+
+        final croppedPng = _cropImageForNonWeb(
+            decodedImage,
+            cropData['left'] as double,
+            cropData['top'] as double,
+            cropData['width'] as double,
+            cropData['height'] as double,
+            cropData['previewWidth'] as double,
+            cropData['previewHeight'] as double
+        );
+
+        // Save to temp file
+        final tempDir = await getTemporaryDirectory();
+        final tempFile = io.File('${tempDir.path}/$filename');
+        await tempFile.writeAsBytes(croppedPng);
+
+        return File(filename, 'png', null, tempFile.path, croppedPng);
+      } catch (e) {
+        widget.onError?.call('Error processing image: $e');
+        return null;
+      }
+    }
+  }
+
+// Helper function for web worker processing
+  Future<Uint8List> _processWithWebWorker(Map<String, dynamic> cropData) {
+    final completer = Completer<Uint8List>();
+    final worker = js.JsObject(js.context['Worker'], ['assets/packages/ensemble_camera/web/image_worker.js']);
+
+    // Set up message handler
+    worker.callMethod('addEventListener', ['message', js.allowInterop((event) {
+      final result = event.data;
+      if (result.containsKey('processedImage')) {
+        try {
+          // Get the JS array and convert to Dart Uint8List
+          final jsArray = result['processedImage'];
+          final List<int> intList = List<int>.generate(
+              jsArray.length,
+                  (i) => jsArray[i] as int
+          );
+          completer.complete(Uint8List.fromList(intList));
+        } catch (e) {
+          completer.completeError('Error processing result: $e');
+        }
+      } else {
+        completer.completeError('Invalid response from worker');
+      }
+      worker.callMethod('terminate');
+    })]);
+
+    // Send data to the worker
+    worker.callMethod('postMessage', [js.JsObject.jsify(cropData)]);
+    return completer.future;
+  }
+
+  // Non-web image cropping
+  Uint8List _cropImageForNonWeb(
+      img.Image decodedImage,
+      double left,
+      double top,
+      double width,
+      double height,
+      double previewWidth,
+      double previewHeight
+      ) {
+    final scaleX = decodedImage.width / previewWidth;
+    final scaleY = decodedImage.height / previewHeight;
+
     final scaledLeft = (left * scaleX).floor().clamp(0, decodedImage.width);
     final scaledTop = (top * scaleY).floor().clamp(0, decodedImage.height);
-    final scaledWidth = (overlayBox.size.width * scaleX)
+    final scaledWidth = (width * scaleX)
         .floor()
         .clamp(0, decodedImage.width - scaledLeft);
-    final scaledHeight = (overlayBox.size.height * scaleY)
+    final scaledHeight = (height * scaleY)
         .floor()
         .clamp(0, decodedImage.height - scaledTop);
 
-    // Crop the image
     final cropped = img.copyCrop(
       decodedImage,
       x: scaledLeft,
@@ -1105,27 +1232,12 @@ class CameraState extends EWidgetState<Camera> with WidgetsBindingObserver {
       height: scaledHeight,
     );
 
-    final Uint8List croppedPng = Uint8List.fromList(img.encodePng(cropped));
-    final timestamp = DateTime.now().millisecondsSinceEpoch;
-    final filename = 'overlay_image_$timestamp.png';
-
-    String? path;
-    if (!kIsWeb) {
-      final tempDir = await getTemporaryDirectory();
-      final tempFile = io.File('${tempDir.path}/$filename');
-      await tempFile.writeAsBytes(croppedPng);
-      path = tempFile.path;
-    } else {
-      final blob = web.Blob([croppedPng], 'image/png');
-      path = web.Url.createObjectUrlFromBlob(blob);
-    }
-
-    return File(filename, 'png', null, path, croppedPng);
+    return Uint8List.fromList(img.encodePng(cropped));
   }
 
   bool canCapture() {
     if (!(widget._controller.maxCount != null &&
-        (widget._controller.files.length + 1) > widget._controller.maxCount!)) {
+        (widget._controller.files.length + 1) > widget._controller.maxCount!) && !isCropping) {
       return true;
     }
 
@@ -1234,12 +1346,16 @@ class CameraState extends EWidgetState<Camera> with WidgetsBindingObserver {
                         itemBuilder: (context, index) {
                           return IconButton(
                               onPressed: () {
-                                final page = (index + 1) % flashIcons.length;
-                                _flashPageController.animateToPage(page,
-                                    duration: const Duration(milliseconds: 400),
-                                    curve: Curves.ease);
-                                widget._controller.cameraController
-                                    ?.setFlashMode(flashModes.elementAt(page));
+                                try{
+                                  final page = (index + 1) % flashIcons.length;
+                                  _flashPageController.animateToPage(page,
+                                      duration: const Duration(milliseconds: 400),
+                                      curve: Curves.ease);
+                                  widget._controller.cameraController
+                                      ?.setFlashMode(flashModes.elementAt(page));
+                                } catch(e){
+                                  debugPrint("CameraException: ${e}");
+                                }
                               },
                               icon: Icon(flashIcons.elementAt(index)),
                               color: Colors.white);
