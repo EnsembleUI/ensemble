@@ -1,3 +1,29 @@
+## 1.1.38
+
+ - Bump "ensemble" to `1.1.38`.
+
+## 1.1.37
+
+ - Bump "ensemble" to `1.1.37`.
+
+## 1.1.36
+
+## 1.1.35
+
+## 1.1.34
+
+ - Bump "ensemble" to `1.1.34`.
+
+## 1.1.33
+
+ - **FIX**: keep the focus sensitive field focused on dialog open. ([efc94638](https://github.com/ensembleUI/ensemble/commit/efc94638254ed69c55f8bf8d1192cd5d2c51d6ba))
+
+## 1.1.31
+
+ - Changing version
+
+## 1.1.30
+
 ## 1.1.29
 
  - **FIX**(notification_manager): initialize message handling on startup. ([9ca35acb](https://github.com/ensembleUI/ensemble/commit/9ca35acbd9b868198acb29fa618841b362ac8d19))

@@ -787,3 +787,12 @@ Map<String, dynamic> _findEnsembleGitRef(List<String> lines) {
   }
   return {};
 }
+
+void updateWebIndexHtml(String webIndexHtml, String comment) {
+  final indexHtmlContent = File(webIndexFilePath).readAsStringSync();
+  final updatedContent = indexHtmlContent.replaceAll(
+    comment,
+    webIndexHtml,
+  );
+  File(webIndexFilePath).writeAsStringSync(updatedContent);
+}

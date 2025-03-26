@@ -215,6 +215,8 @@ class Date extends Object with Invokable, SupportsPrimitiveOperations {
     } else if (arg2 == null) {
       if (arg1 is String) {
         dateTime = DateTime.parse(arg1);
+      } else if (arg1 is double) {
+        dateTime = DateTime.fromMillisecondsSinceEpoch(arg1.round());
       } else {
         dateTime = DateTime.fromMillisecondsSinceEpoch(arg1);
       }

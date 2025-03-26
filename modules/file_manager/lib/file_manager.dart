@@ -1,5 +1,7 @@
 library ensemble_file_manager;
 
+import 'dart:typed_data';
+
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/bindings.dart';
 import 'package:ensemble/framework/data_context.dart';
@@ -9,6 +11,7 @@ import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble_file_manager/file_extension.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:vision_gallery_saver/vision_gallery_saver.dart';
 
 class FileManagerImpl extends FileManager {
   FileType pickType(FilePickerAction action) {
@@ -65,5 +68,10 @@ class FileManagerImpl extends FileManager {
         ScreenController().executeAction(context, action.onComplete!);
       }
     });
+  }
+
+  @override
+  Future<void> saveImage(Uint8List fileBytes, {String? name}) async {
+    await VisionGallerySaver.saveImage(fileBytes, name: name);
   }
 }
