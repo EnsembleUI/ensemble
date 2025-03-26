@@ -596,9 +596,9 @@ class EnsembleSemantics {
   // Factory constructor to map from YAML
   factory EnsembleSemantics.fromYaml(Map<String, dynamic>? yamlMap) {
     return EnsembleSemantics(
-      focusable: yamlMap!['focusable'] ?? true,
-      label: yamlMap['label'] ?? '',
-      hint: yamlMap['hint'] ?? '',
+      focusable: Utils.optionalBool(yamlMap!['focusable']) ?? true,
+      label: Utils.optionalString(yamlMap['label']) ?? '',
+      hint: Utils.optionalString(yamlMap['hint']) ?? '',
     );
   }
 }
