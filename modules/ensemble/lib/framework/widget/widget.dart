@@ -177,14 +177,17 @@ abstract class EWidgetState<W extends HasController>
         );
       }
       if(widgetController.semantics != null){
-        rtn = FocusableActionDetector(
+        rtn = widgetController.semantics!.focusable ? FocusableActionDetector(
           enabled: true,
           child: Semantics(
             label: widgetController.semantics!.label,
             hint: widgetController.semantics!.hint,
             child: rtn,
-          ),
-        );
+            )): Semantics(
+              label: widgetController.semantics!.label,
+              hint: widgetController.semantics!.hint,
+              child: rtn,
+          );
       }
     }
     return rtn;
