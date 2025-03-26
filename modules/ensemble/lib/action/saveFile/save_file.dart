@@ -104,10 +104,10 @@ class SaveToFileSystemAction extends EnsembleAction {
       String type, String fileName, Uint8List fileBytes) async {
     if (type == 'image') {
       // Save images to Default Image Path
-      await saveImageToDCIM(fileName!, fileBytes);
+      await saveImageToDCIM(fileName, fileBytes);
     } else if (type == 'document') {
       // Save documents to Documents folder
-      await saveDocumentToDocumentsFolder(fileName!, fileBytes);
+      await saveDocumentToDocumentsFolder(fileName, fileBytes);
     }
   }
 

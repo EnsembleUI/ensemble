@@ -143,6 +143,21 @@ abstract class EnsembleWidgetState<W extends EnsembleWidget> extends State<W> {
         );
       }
 
+      if(widgetController.semantics != null){
+        Widget semanticsWidget = Semantics(
+          label: widgetController.semantics!.label,
+          hint: widgetController.semantics!.hint,
+          focusable: true,
+          child: rtn,
+        );
+
+        rtn = widgetController.semantics!.focusable
+            ? FocusableActionDetector(
+          enabled: true,
+          child: semanticsWidget,
+        ) : semanticsWidget;
+      }
+
       return rtn;
     }
     throw LanguageError("Wrong usage of widget controller!");

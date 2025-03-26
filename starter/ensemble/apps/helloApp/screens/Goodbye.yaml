@@ -1,15 +1,32 @@
 View:
   header:
-    title: Goodbye
+    title: Goodbye Screen
+    
   body:
     Column:
+      styles:
+        padding: 24
+        gap: 16
       children:
         - Text:
-            styles: { fontSize: 20 }
-            text: See you later
-
+            testId: goodbye_title
+            text: Goodbye!
+            styles:
+              fontSize: 32
+              fontWeight: bold
+              
+        - Text:
+            testId: goodbye_message
+            text: Thank you for visiting our app.
+            styles:
+              fontSize: 18
+              
         - Button:
-            label: Go Home
+            testId: back_button
+            label: Go Back
+            styles:
+              marginTop: 24
+              backgroundColor: '#4285F4'
+              padding: 12
             onTap:
-               navigateScreen:
-                  name: Hello Home
+              navigateBack: {}

@@ -368,10 +368,12 @@ class PageState extends State<Page>
     bool animationEnabled = false;
     int? duration;
     Curve? curve;
+    AnimationType? animationType;
     if (animation != null) {
       animationEnabled = Utils.getBool(animation!['enabled'], fallback: false);
       duration = Utils.getInt(animation!['duration'], fallback: 0);
       curve = Utils.getCurve(animation!['curve']);
+      animationType = Utils.getEnum<AnimationType>(animation!['animationType'], AnimationType.values);
     }
     // applicable only to Sliver scrolling
     double? flexibleMaxHeight =
@@ -394,15 +396,19 @@ class PageState extends State<Page>
         backgroundColor: backgroundColor,
         surfaceTintColor: surfaceTintColor,
         foregroundColor: color,
-        animated: animationEnabled,
 
         // control the drop shadow on the header's bottom edge
         elevation: elevation,
         shadowColor: shadowColor,
 
         titleBarHeight: titleBarHeight,
+
+        // animation
+        animated: animationEnabled,
         curve: curve,
         duration: duration,
+        animationType: animationType,
+
         backgroundWidget: backgroundWidget,
         expandedBarHeight: flexibleMaxHeight?? titleBarHeight,
         collapsedBarHeight: flexibleMinHeight?? titleBarHeight,
@@ -881,6 +887,7 @@ class AnimatedAppBar extends StatefulWidget {
   final pinned;
   final animated;
   final curve;
+  final animationType;
   final duration;
   AnimatedAppBar(
       {Key? key,
@@ -902,6 +909,7 @@ class AnimatedAppBar extends StatefulWidget {
         this.expandedBarHeight,
         required this.scrollController,
         this.curve,
+        this.animationType,
         this.duration})
       : super(key: key);
 
@@ -919,10 +927,12 @@ class _AnimatedAppBarState extends State<AnimatedAppBar> {
   }
 
   void _updateCollapseState() {
-    bool newState = widget.scrollController != null &&
-        widget.scrollController.hasClients &&
-            widget.scrollController.offset >
-                (widget.expandedBarHeight - widget.collapsedBarHeight);
+
+    if (!widget.scrollController.hasClients) return;
+
+    double threshold = (widget.expandedBarHeight - widget.collapsedBarHeight).clamp(10, double.infinity);
+    bool newState = widget.scrollController.offset > threshold;
+
 
     if (newState != isCollapsed) {
       setState(() {
@@ -956,17 +966,22 @@ class _AnimatedAppBarState extends State<AnimatedAppBar> {
       pinned: widget.pinned,
       centerTitle: widget.centerTitle,
       title: widget.animated
-          ? AnimatedContainer(
-        curve: widget.curve ?? Curves.easeIn,
-        duration: Duration(
-            milliseconds: widget.duration ?? 300), // Animation duration
-        transform: Matrix4.translationValues(
-          0, // No horizontal movement
-          isCollapsed ? 0 : -100, // Move from top to bottom
-          0, // No depth movement
+          ? switch (widget.animationType) {
+        AnimationType.fade => AnimatedOpacity(
+          opacity: isCollapsed ? 1.0 : 0.0,
+          duration: Duration(milliseconds: widget.duration ?? 300),
+          curve: widget.curve ?? Curves.easeIn,
+          child: widget.titleWidget,
         ),
-        child: widget.titleWidget, // Your title widget
-      ) : widget.titleWidget,
+        AnimationType.drop => AnimatedSlide(
+          offset: isCollapsed ? Offset(0, 0) : Offset(0, -2),
+          duration: Duration(milliseconds: widget.duration ?? 300),
+          curve: widget.curve ?? Curves.easeIn,
+          child: widget.titleWidget,
+        ),
+        _ => widget.titleWidget,
+      }
+      : widget.titleWidget,
       elevation: widget.elevation,
       backgroundColor: widget.backgroundColor,
       flexibleSpace: wrapsInFlexible(widget.backgroundWidget),
@@ -984,6 +999,12 @@ enum ScrollMode {
   pinned,
   floating,
 }
+
+enum AnimationType{
+  drop,
+  fade,
+}
+
 class ActionResponse {
   Map<String, dynamic>? _resultData;
   Set<Function> listeners = {};
