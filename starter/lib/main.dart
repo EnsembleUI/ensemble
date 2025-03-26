@@ -1,36 +1,35 @@
-import 'dart:ui';
-
-import 'package:ensemble/ensemble_app.dart';
-import 'package:ensemble/framework/error_handling.dart';
-import 'package:ensemble/framework/widget/error_screen.dart';
-import 'package:ensemble_starter/generated/ensemble_modules.dart';
 import 'package:flutter/material.dart';
+import 'screens/home_screen.dart';
+import 'util/ensemble_manager.dart';
 
-/// this demonstrates an App running exclusively with Ensemble
 void main() async {
+  // Initialize Flutter binding first
   WidgetsFlutterBinding.ensureInitialized();
-  initErrorHandler();
-  await EnsembleModules().init();
-  runApp(EnsembleApp());
+  
+  // Global navigator key that will be shared
+  final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+  
+  // Initialize Ensemble after Flutter binding is initialized
+  await EnsembleManager.instance.initialize();
+  
+  runApp(MyApp(navigatorKey: navigatorKey));
 }
 
-void initErrorHandler() {
-  ErrorWidget.builder = (FlutterErrorDetails errorDetails) {
-    return ErrorScreen(errorDetails);
-  };
+class MyApp extends StatelessWidget {
+  final GlobalKey<NavigatorState> navigatorKey;
+  
+  const MyApp({super.key, required this.navigatorKey});
 
-  /// print errors on console and Chrome dev tool (for Web)
-  FlutterError.onError = (details) {
-    if (details.exception is EnsembleError) {
-      debugPrint(details.exception.toString());
-    } else {
-      debugPrint(details.exception.toString());
-    }
-  };
-
-  // async error
-  PlatformDispatcher.instance.onError = (error, stack) {
-    debugPrint("Async Error: " + error.toString());
-    return true;
-  };
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'Ensemble Issue Demo',
+      navigatorKey: navigatorKey,
+      theme: ThemeData(
+        primarySwatch: Colors.blue,
+        useMaterial3: true,
+      ),
+      home: HomeScreen(navigatorKey: navigatorKey),
+    );
+  }
 }

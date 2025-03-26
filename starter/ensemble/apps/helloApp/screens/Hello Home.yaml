@@ -1,79 +1,54 @@
-Import:
-  - utils
-  - common
-
 View:
-  # Optional - style the screen
   styles:
     scrollableView: true
     
-  # Optional - set the header for the screen
   header:
-    title: r@title
+    title: ${title}
     
   onLoad: |
-    saveName('John','Doe');
-    console.log('name is ='+getName());
-    console.log(env.apiURL)
-    console.log(secrets.testSecret)
+    console.log('Hello Home screen loaded');
     
-  # Specify the body of the screen
   body:
     Column:
       styles:
         padding: 24
-        gap: 8
+        gap: 16
       children:
         - Text:
-            testId: greeting_text
-            className: title
-            text: Hello ${ensemble.storage.helloApp.name.first} ${ensemble.storage.helloApp.name.last}
-            
-        - Text:
-            testId: description_text
-            text: Welcome to our Ensemble app
+            text: Welcome to the Sports Data Screen
             styles:
+              fontSize: 20
+              fontWeight: bold
+              
+        - Text:
+            text: This is the main Ensemble screen
+            styles:
+              fontSize: 16
               color: '#444444'
               
-        - MyCustomWidget1:
-            testId: custom_widget
-            inputs:
-              inputName: ${ensemble.storage.helloApp.name}
-              
+        - Text:
+            text: 'Media ID: ${id}'
+            styles:
+              fontSize: 16
+                
         - Button:
-            testId: api_button
-            label: Call API in imported library
-            onTap: |-
-              callMockMethod();
-              console.log('name is ='+getName());
-              
-        - Button:
-            testId: navigate_button
-            label: Navigate to Goodbye Screen
+            label: Open Content Detail
             styles:
               marginTop: 16
               padding: 12
             onTap:
-              navigateScreen:
-                name: Goodbye
-                
-        - Image:
-            testId: logo_image
-            source: logo.svg
+              callExternalMethod:
+                name: openContentDetail
+                payload:
+                  mediaId: ${id}
+                  
+        - Button:
+            label: Log Message
             styles:
-              width: 200
-              height: 200
-              marginTop: 24
-
-Global: |-
-  //var myVar = myButton.label;
-  function globalHello() {
-    console.log('hello');
-  }
-
-API:
-  mockAPI:
-    url: ${env.apiURL}/users/1
-    method: GET
-    onResponse: |-
-      saveName('Michael', 'Jordan');
+              marginTop: 8
+              padding: 12
+            onTap:
+              callExternalMethod:
+                name: logMessage
+                payload:
+                  message: Button clicked in Hello Home screen

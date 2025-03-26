@@ -1,6 +1,12 @@
 View:
+  styles:
+    scrollableView: true
+    
   header:
-    title: Goodbye Screen
+    title: ${title}
+    
+  onLoad: |
+    console.log('Goodbye screen loaded in nested Ensemble app');
     
   body:
     Column:
@@ -9,24 +15,30 @@ View:
         gap: 16
       children:
         - Text:
-            testId: goodbye_title
-            text: Goodbye!
+            text: This is the nested Ensemble screen
             styles:
-              fontSize: 32
+              fontSize: 20
               fontWeight: bold
               
         - Text:
-            testId: goodbye_message
-            text: Thank you for visiting our app.
+            text: Media ID from parent screen: ${mediaId}
             styles:
-              fontSize: 18
+              fontSize: 16
+              color: '#444444'
               
-        - Button:
-            testId: back_button
-            label: Go Back
+        - Text:
+            text: This screen is shown in a nested Ensemble app
             styles:
-              marginTop: 24
-              backgroundColor: '#4285F4'
+              fontSize: 16
+              marginTop: 8
+                
+        - Button:
+            label: Log Message from Nested Screen
+            styles:
+              marginTop: 16
               padding: 12
             onTap:
-              navigateBack: {}
+              callExternalMethod:
+                name: logMessage
+                payload:
+                  message: Button clicked in nested Goodbye screen

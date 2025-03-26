@@ -1,6 +1,6 @@
 definitions:
   # where your page definitions are hosted ('local', 'remote' or 'ensemble')
-  from: ensemble
+  from: local
 
   # for embedding definitions and assets locally with your App
   local:
