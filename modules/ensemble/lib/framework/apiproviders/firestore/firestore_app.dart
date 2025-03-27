@@ -101,16 +101,16 @@ class FirestoreApp {
 
       // Apply pagination constraints if present
       if (queryMap.containsKey('startAfter')) {
-        query = query.startAfter(queryMap['startAfter']);
+        query = query.startAfter(unwrapObjects(queryMap['startAfter']));
       }
       if (queryMap.containsKey('startAt')) {
-        query = query.startAt(queryMap['startAt']);
+        query = query.startAt(unwrapObjects(queryMap['startAt']));
       }
       if (queryMap.containsKey('endBefore')) {
-        query = query.endBefore(queryMap['endBefore']);
+        query = query.endBefore(unwrapObjects(queryMap['endBefore']));
       }
       if (queryMap.containsKey('endAt')) {
-        query = query.endAt(queryMap['endAt']);
+        query = query.endAt(unwrapObjects(queryMap['endAt']));
       }
       // Apply limitToLast if present
       if (queryMap.containsKey('limitToLast')) {
@@ -168,5 +168,9 @@ class FirestoreApp {
 
   dynamic unwrapObject(dynamic obj) {
     return (obj is WrapsNativeType) ? obj.unwrap() : obj;
+  }
+
+  dynamic unwrapObjects(List<dynamic> objs) {
+    return objs.map((value) => unwrapObject(value)).toList();
   }
 }
