@@ -1,9 +1,12 @@
 name: js_widget
-description: A new Flutter project.
+description: A Flutter package to render HTML and CSS as Flutter widgets.
+
+homepage: https://github.com/EnsembleUI/ensemble
+repository: https://github.com/EnsembleUI/ensemble/blob/main/modules/js_widget
+issue_tracker: https://github.com/EnsembleUI/ensemble/issues
 
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
-publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 
 # The following defines the version and build number for your application.
 # A version number is three numbers separated by dots, like 1.2.43
@@ -15,10 +18,10 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # In iOS, build-name is used as CFBundleShortVersionString while build-number used as CFBundleVersion.
 # Read more about iOS versioning at
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
-version: 1.0.0+1
+version: 1.0.0
 
 environment:
-  sdk: ">=3.5.0"
+  sdk: ">=3.5.0 <4.0.0"
 
 # Dependencies specify other packages that your package needs in order to work.
 # To automatically upgrade your package dependencies to the latest versions
@@ -34,6 +37,8 @@ dependencies:
   js: ^0.6.3
   url_launcher: ^6.1.0
   webview_flutter: ^4.0.1
+  webview_flutter_android: ^4.2.0
+  webview_flutter_wkwebview: ^3.16.3
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
