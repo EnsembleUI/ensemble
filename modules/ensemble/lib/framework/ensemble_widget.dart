@@ -10,6 +10,7 @@ import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart';
 import 'package:pointer_interceptor/pointer_interceptor.dart';
 
 abstract class EnsembleWidget<C extends EnsembleController>
@@ -144,18 +145,24 @@ abstract class EnsembleWidgetState<W extends EnsembleWidget> extends State<W> {
       }
 
       if(widgetController.semantics != null){
-        Widget semanticsWidget = Semantics(
+        rtn = Semantics(
           label: widgetController.semantics!.label,
           hint: widgetController.semantics!.hint,
-          focusable: true,
-          child: rtn,
+          focusable: widgetController.semantics!.focusable,
+          child: FocusTraversalGroup(
+            policy: WidgetOrderTraversalPolicy(),
+            child: FocusableActionDetector(
+              enabled: widgetController.semantics!.focusable,
+              focusNode: FocusNode(
+                canRequestFocus: false,
+                descendantsAreFocusable: true,
+                descendantsAreTraversable: true,
+              ),
+              child: rtn,
+            ),
+          ),
         );
 
-        rtn = widgetController.semantics!.focusable
-            ? FocusableActionDetector(
-          enabled: true,
-          child: semanticsWidget,
-        ) : semanticsWidget;
       }
 
       return rtn;

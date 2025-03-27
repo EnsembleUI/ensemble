@@ -17,6 +17,7 @@ import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:ensemble/widget/helpers/widgets.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart';
 import 'package:pointer_interceptor/pointer_interceptor.dart';
 import 'package:yaml/yaml.dart';
 
@@ -177,18 +178,24 @@ abstract class EWidgetState<W extends HasController>
         );
       }
       if(widgetController.semantics != null){
-        Widget semanticsWidget = Semantics(
+        rtn = Semantics(
           label: widgetController.semantics!.label,
           hint: widgetController.semantics!.hint,
-          focusable: true,
-          child: rtn,
+          focusable: widgetController.semantics!.focusable,
+          child: FocusTraversalGroup(
+            policy: WidgetOrderTraversalPolicy(),
+            child: FocusableActionDetector(
+              enabled: widgetController.semantics!.focusable,
+              focusNode: FocusNode(
+                canRequestFocus: false, // Ensures focusability
+                descendantsAreFocusable: true,
+                descendantsAreTraversable: true,
+              ),
+              child: rtn,
+            ),
+          ),
         );
 
-        rtn = widgetController.semantics!.focusable
-            ? FocusableActionDetector(
-          enabled: true,
-          child: semanticsWidget,
-        ) : semanticsWidget;
       }
     }
     return rtn;
