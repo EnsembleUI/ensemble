@@ -6,6 +6,7 @@ import 'package:ensemble/framework/theme_manager.dart';
 import 'package:ensemble/framework/widget/view_util.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/util/utils.dart';
+import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:yaml/yaml.dart';
 
@@ -19,7 +20,8 @@ abstract class Menu extends Object with HasStyles, Invokable {
       List<String>? classList,
       this.headerModel,
       this.footerModel,
-      this.reloadView}) {
+      this.reloadView,
+      this.semantics}) {
     this.widgetType = widgetType;
     this.widgetTypeStyles = widgetTypeStyles;
     this.widgetId = widgetId;
@@ -32,6 +34,7 @@ abstract class Menu extends Object with HasStyles, Invokable {
   WidgetModel? headerModel;
   WidgetModel? footerModel;
   bool? reloadView = true;
+  EnsembleSemantics? semantics;
 
   static Menu fromYaml(
       dynamic menu, Map<String, dynamic>? customViewDefinitions) {
@@ -107,6 +110,9 @@ abstract class Menu extends Object with HasStyles, Invokable {
         throw LanguageError("Menu requires two or more menu items.");
       }
 
+      // semantics for Menu
+      final semantics = EnsembleSemantics.fromYaml(Utils.getMap(payload["semantics"]));
+
       // menu headers/footers
       WidgetModel? menuHeaderModel;
       if (payload['header'] != null) {
@@ -136,7 +142,8 @@ abstract class Menu extends Object with HasStyles, Invokable {
             idStyles: EnsembleThemeManager().currentTheme()?.getIDStyles(id),
             inlineStyles: styles,
             classList: classList,
-            reloadView: isReloadView);
+            reloadView: isReloadView,
+            semantics: semantics);
       } else if (menuType == MenuDisplay.Drawer ||
           menuType == MenuDisplay.EndDrawer) {
         return DrawerMenu(menuItems, menuType != MenuDisplay.EndDrawer,
@@ -150,7 +157,8 @@ abstract class Menu extends Object with HasStyles, Invokable {
             classList: classList,
             headerModel: menuHeaderModel,
             footerModel: menuFooterModel,
-            reloadView: isReloadView);
+            reloadView: isReloadView,
+            semantics: semantics);
       } else if (menuType == MenuDisplay.Sidebar ||
           menuType == MenuDisplay.EndSidebar) {
         return SidebarMenu(menuItems, menuType != MenuDisplay.EndSidebar,
@@ -164,7 +172,8 @@ abstract class Menu extends Object with HasStyles, Invokable {
             classList: classList,
             headerModel: menuHeaderModel,
             footerModel: menuFooterModel,
-            reloadView: isReloadView);
+            reloadView: isReloadView,
+            semantics: semantics);
       }
     }
     throw LanguageError("Invalid Menu type.",
@@ -188,7 +197,8 @@ class BottomNavBarMenu extends Menu {
       super.idStyles,
       super.inlineStyles,
       super.classList,
-      super.reloadView});
+      super.reloadView,
+      super.semantics});
 
   @override
   Map<String, Function> getters() {
@@ -216,7 +226,8 @@ class DrawerMenu extends Menu {
       super.classList,
       super.headerModel,
       super.footerModel,
-      super.reloadView});
+      super.reloadView,
+      super.semantics});
 
   // show the drawer at start (left for LTR languages) or at the end
   bool atStart = true;
@@ -247,7 +258,8 @@ class SidebarMenu extends Menu {
       super.classList,
       super.headerModel,
       super.footerModel,
-      super.reloadView});
+      super.reloadView,
+      super.semantics});
 
   // show the sidebar at start (left for LTR languages) or at the end
   bool atStart = true;
