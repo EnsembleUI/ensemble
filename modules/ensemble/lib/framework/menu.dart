@@ -64,6 +64,13 @@ abstract class Menu extends Object with HasStyles, Invokable {
             throw LanguageError("Menu Item's 'page' attribute is required.");
           }
 
+          // semantics for MenuItem
+          EnsembleSemantics? itemSemantics = EnsembleSemantics(focusable: true);
+          if (item['semantics'] != null) {
+            itemSemantics =
+                EnsembleSemantics.fromYaml(Utils.getMap(item["semantics"]));
+          }
+
           // custom menu
           final YamlMap? customItem = item['customItem'];
           if (customItem != null) {
@@ -100,6 +107,7 @@ abstract class Menu extends Object with HasStyles, Invokable {
               onTapHaptic: Utils.optionalString(item['onTapHaptic']),
               isExternal: Utils.getBool(item['isExternal'], fallback: false),
               visible: item['visible'],
+              semantics: itemSemantics,
             ),
           );
           customIconModel = null; // Resetting custom icon model
@@ -110,8 +118,12 @@ abstract class Menu extends Object with HasStyles, Invokable {
         throw LanguageError("Menu requires two or more menu items.");
       }
 
-      // semantics for Menu
-      final semantics = EnsembleSemantics.fromYaml(Utils.getMap(payload["semantics"]));
+      // semantics for Menu for sidebar and drawer
+      EnsembleSemantics? semantics = EnsembleSemantics(focusable: true);
+      if (payload['semantics'] != null) {
+        semantics =
+            EnsembleSemantics.fromYaml(Utils.getMap(payload["semantics"]));
+      }
 
       // menu headers/footers
       WidgetModel? menuHeaderModel;
@@ -315,6 +327,7 @@ class MenuItem {
     this.onTapHaptic,
     required this.isExternal,
     this.visible = true,
+    this.semantics,
   });
 
   final String? label;
@@ -334,6 +347,7 @@ class MenuItem {
   final String? onTapHaptic;
   final bool isExternal;
   final dynamic visible;
+  EnsembleSemantics? semantics;
 
   bool isVisible(DataContext context) {
     if (visible == null) return true;
