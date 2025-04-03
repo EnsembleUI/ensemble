@@ -56,10 +56,10 @@ class DevMode {
     return context;
   }
 
-  static Map<String, dynamic> validateJsCode(String jsCode) {
+  static Map<String, dynamic> validateJsCode(String jsCode, DataContext ctx) {
     try {
       Program p = JSInterpreter.parseCode(jsCode);
-      JSInterpreter(jsCode, p, _pageDataContext!).evaluate();
+      JSInterpreter(jsCode, p, ctx).evaluate();
       return {
         'error': null,
       };
