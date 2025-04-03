@@ -95,9 +95,11 @@ abstract class BaseTabBar extends StatefulWidget
 }
 
 class TabBarState extends BaseTabBarState {
+  late final List<FocusNode> _contentFocusNodes;
   @override
   void initState() {
     super.initState();
+    _contentFocusNodes = List.generate(widget.controller.items.length, (_) => FocusNode());
     _initializeTabController();
   }
 
@@ -219,6 +221,7 @@ class TabBarState extends BaseTabBarState {
     setState(() {
       widget.controller.selectedIndex = index;
     });
+    FocusScope.of(context).requestFocus(_contentFocusNodes[index]);
     if (widget.controller.onTabSelection != null) {
       if (widget.controller.onTabSelectionHaptic != null) {
         ScreenController().executeAction(
@@ -316,7 +319,9 @@ class TabBarState extends BaseTabBarState {
     if (scopeManager != null) {
       TabItem selectedTab =
           widget._controller.items[widget._controller.selectedIndex];
-      return scopeManager.buildWidgetFromDefinition(selectedTab.bodyWidget);
+      return Focus(
+          focusNode: _contentFocusNodes[widget._controller.selectedIndex],
+          child: scopeManager.buildWidgetFromDefinition(selectedTab.bodyWidget));
     }
     return const Text("Unknown widget for this Tab");
   }
