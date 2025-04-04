@@ -353,6 +353,50 @@ class JSInterpreter extends RecursiveVisitor<dynamic> {
     }
   }
 
+  /// Helper method to validate that a variable or object exists in the current context
+  void validateContextExistence(String name, Node node, Context programContext,
+      {bool isObject = false}) {
+    if (!programContext.hasContext(name)) {
+      throw JSException(node.line ?? 1,
+          '${isObject ? "Object" : "Variable"} "$name" is not defined in the current context',
+          detailedError:
+              'Code: ${getCode(node)}\nAvailable ${isObject ? "objects" : "variables"}: ${programContext.getContextMap().keys.join(", ")}',
+          recovery:
+              'Check if you have:\n1. ${isObject ? "Used the correct object name" : "Declared the variable before using it"}\n2. Used the correct ${isObject ? "object" : "variable"} name (case sensitive)\n3. Used the correct context to access the ${isObject ? "object" : "variable"}');
+    }
+  }
+
+  /// Helper method to validate property or method access on an object
+  void validatePropertyOrMethodAccess(
+      String propertyName, String objectName, dynamic obj, Node node) {
+    if (obj is Invokable) {
+      bool hasProperty = obj.hasGettableProperty(propertyName);
+      bool hasMethod = obj.hasMethod(propertyName);
+      if (!hasProperty && !hasMethod) {
+        throw JSException(node.line ?? 1,
+            'Property "$propertyName" does not exist on object "$objectName"',
+            detailedError:
+                'Code: ${getCode(node)}\nAvailable properties: ${Invokable.getGettableProperties(obj).join(", ")}\nAvailable methods: ${obj.methods().keys.join(", ")}',
+            recovery:
+                'Check if you have used the correct property name (case sensitive)');
+      }
+    }
+  }
+
+  /// Helper method to validate object expressions
+  void validateObjectExpression(ObjectExpression node) {
+    for (var property in node.properties) {
+      validateNode(property);
+
+      // Validate property values
+      if (property.value is ObjectExpression) {
+        validateNode(property.value);
+      } else if (property.value is ArrayExpression) {
+        validateNode(property.value);
+      }
+    }
+  }
+
   void validateNode(Node node) {
     // Validate variable declarations
     if (node is VariableDeclaration) {
@@ -397,14 +441,8 @@ class JSInterpreter extends RecursiveVisitor<dynamic> {
         MemberExpression member = node.callee as MemberExpression;
         if (member.object is NameExpression) {
           String objectName = (member.object as NameExpression).name.value;
-          if (!programContext.hasContext(objectName)) {
-            throw JSException(node.line ?? 1,
-                'Object "$objectName" is not defined in the current context',
-                detailedError:
-                    'Code: ${getCode(node)}\nAvailable objects: ${programContext.getContextMap().keys.join(", ")}',
-                recovery:
-                    'Check if you have:\n1. Used the correct object name (case sensitive)\n2. Used the correct context to access the object');
-          }
+          validateContextExistence(objectName, node, programContext,
+              isObject: true);
           obj = programContext.getContextById(objectName);
         }
       }
@@ -429,16 +467,7 @@ class JSInterpreter extends RecursiveVisitor<dynamic> {
 
         // Special validation for object arguments
         if (arg is ObjectExpression) {
-          for (var property in arg.properties) {
-            validateNode(property);
-
-            // Validate property values
-            if (property.value is ObjectExpression) {
-              validateNode(property.value);
-            } else if (property.value is ArrayExpression) {
-              validateNode(property.value);
-            }
-          }
+          validateObjectExpression(arg);
         }
       }
     }
@@ -452,31 +481,13 @@ class JSInterpreter extends RecursiveVisitor<dynamic> {
       if (node.object is NameExpression) {
         String objectName = (node.object as NameExpression).name.value;
         Context programContext = findProgramContext(node);
-        if (!programContext.hasContext(objectName)) {
-          throw JSException(
-              node.line ?? 1,
-              'Object "$objectName" is not defined in the current context',
-              detailedError:
-                  'Code: ${getCode(node)}\nAvailable objects: ${programContext.getContextMap().keys.join(", ")}',
-              recovery:
-                  'Check if you have:\n1. Used the correct object name (case sensitive)\n2. Used the correct context to access the object');
-        }
+        validateContextExistence(objectName, node, programContext,
+            isObject: true);
 
         // Validate property access
         String propertyName = node.property.value;
         dynamic obj = programContext.getContextById(objectName);
-        if (obj is Invokable) {
-          bool hasProperty = obj.hasGettableProperty(propertyName);
-          bool hasMethod = obj.hasMethod(propertyName);
-          if (!hasProperty && !hasMethod) {
-            throw JSException(node.line ?? 1,
-                'Property "$propertyName" does not exist on object "$objectName"',
-                detailedError:
-                    'Code: ${getCode(node)}\nAvailable properties: ${Invokable.getGettableProperties(obj).join(", ")}\nAvailable methods: ${obj.methods().keys.join(", ")}',
-                recovery:
-                    'Check if you have used the correct property name (case sensitive)');
-          }
-        }
+        validatePropertyOrMethodAccess(propertyName, objectName, obj, node);
       }
     }
 
@@ -484,14 +495,7 @@ class JSInterpreter extends RecursiveVisitor<dynamic> {
     if (node is NameExpression) {
       String name = node.name.value;
       Context programContext = findProgramContext(node);
-      if (!programContext.hasContext(name)) {
-        throw JSException(node.line ?? 1,
-            'Variable "$name" is not defined in the current context',
-            detailedError:
-                'Code: ${getCode(node)}\nAvailable variables: ${programContext.getContextMap().keys.join(", ")}',
-            recovery:
-                'Check if you have:\n1. Declared the variable before using it\n2. Used the correct variable name (case sensitive)\n3. Used the correct scope to access the variable');
-      }
+      validateContextExistence(name, node, programContext);
     }
 
     // Validate assignment expressions
@@ -499,14 +503,7 @@ class JSInterpreter extends RecursiveVisitor<dynamic> {
       if (node.left is NameExpression) {
         String name = (node.left as NameExpression).name.value;
         Context programContext = findProgramContext(node);
-        if (!programContext.hasContext(name)) {
-          throw JSException(
-              node.line ?? 1, 'Cannot assign to undefined variable "$name"',
-              detailedError:
-                  'Code: ${getCode(node)}\nAvailable variables: ${programContext.getContextMap().keys.join(", ")}',
-              recovery:
-                  'Check if you have:\n1. Declared the variable before assigning to it\n2. Used the correct variable name (case sensitive)\n3. Used the correct scope to access the variable\n4. Used "var", "let", or "const" to declare the variable');
-        }
+        validateContextExistence(name, node, programContext);
       } else if (node.left is MemberExpression) {
         MemberExpression member = node.left as MemberExpression;
         validateNode(member.object);
@@ -516,31 +513,13 @@ class JSInterpreter extends RecursiveVisitor<dynamic> {
         if (member.object is NameExpression) {
           String objectName = (member.object as NameExpression).name.value;
           Context programContext = findProgramContext(node);
-          if (!programContext.hasContext(objectName)) {
-            throw JSException(node.line ?? 1,
-                'Object "$objectName" is not defined in the current context',
-                detailedError:
-                    'Code: ${getCode(node)}\nAvailable objects: ${programContext.getContextMap().keys.join(", ")}',
-                recovery:
-                    'Check if you have:\n1. Used the correct object name (case sensitive)\n2. Used the correct context to access the object');
-          }
+          validateContextExistence(objectName, node, programContext,
+              isObject: true);
 
-          // Validate property access
           // Validate property access
           String propertyName = member.property.value;
           dynamic obj = programContext.getContextById(objectName);
-          if (obj is Invokable) {
-            bool hasProperty = obj.hasGettableProperty(propertyName);
-            bool hasMethod = obj.hasMethod(propertyName);
-            if (!hasProperty && !hasMethod) {
-              throw JSException(node.line ?? 1,
-                  'Property "$propertyName" does not exist on object "$objectName"',
-                  detailedError:
-                      'Code: ${getCode(node)}\nAvailable properties: ${Invokable.getGettableProperties(obj).join(", ")}\nAvailable methods: ${obj.methods().keys.join(", ")}',
-                  recovery:
-                      'Check if you have used the correct property name (case sensitive)');
-            }
-          }
+          validatePropertyOrMethodAccess(propertyName, objectName, obj, node);
         }
       }
       validateNode(node.right);
@@ -557,16 +536,7 @@ class JSInterpreter extends RecursiveVisitor<dynamic> {
 
     // Validate object expressions
     if (node is ObjectExpression) {
-      for (var property in node.properties) {
-        validateNode(property);
-
-        // Validate property values
-        if (property.value is ObjectExpression) {
-          validateNode(property.value);
-        } else if (property.value is ArrayExpression) {
-          validateNode(property.value);
-        }
-      }
+      validateObjectExpression(node);
     }
 
     // Validate binary expressions
@@ -1512,6 +1482,7 @@ class JSInterpreter extends RecursiveVisitor<dynamic> {
   visitName(Name node) {
     return node;
   }
+
   @override
   visitThrow(ThrowStatement node) {
     dynamic argumentValue = getValueFromExpression(node.argument);
@@ -1525,7 +1496,8 @@ class JSInterpreter extends RecursiveVisitor<dynamic> {
   @override
   visitTry(TryStatement node) {
     if (node.handler == null && node.finalizer == null) {
-      throw JSException(node.line ?? 0, "Syntax Error: a try block must have a corresponding catch or finally");
+      throw JSException(node.line ?? 0,
+          "Syntax Error: a try block must have a corresponding catch or finally");
     }
     try {
       node.block.visitBy(this);
@@ -1544,7 +1516,8 @@ class JSInterpreter extends RecursiveVisitor<dynamic> {
         }
         Context context = SimpleContext(ctxMap);
         // Clone the interpreter with this new context
-        JSInterpreter interpreter = cloneForContext(node.handler!, context, true);
+        JSInterpreter interpreter =
+            cloneForContext(node.handler!, context, true);
         interpreter.visitCatchClause(node.handler!);
       }
     } finally {
@@ -1569,6 +1542,7 @@ class JSInterpreter extends RecursiveVisitor<dynamic> {
       return exception.toString();
     }
   }
+
   dynamic getValueFromExpression(Expression exp) {
     return getValueFromNode(exp);
   }
@@ -1644,4 +1618,3 @@ class JavascriptFunction {
     }
   }
 }
-
