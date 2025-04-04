@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math';
 
 import 'package:ensemble/ensemble.dart';
+import 'package:ensemble/ensemble_app.dart';
 import 'package:ensemble/framework/apiproviders/api_provider.dart';
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/error_handling.dart';
@@ -22,11 +23,16 @@ class Screen extends StatefulWidget {
       {super.key,
       required this.appProvider,
       this.screenPayload,
-      required this.apiProviders});
+      required this.apiProviders,
+      this.navigatorKey,
+      this.placeholderBackgroundColor});
 
   final AppProvider appProvider;
   final ScreenPayload? screenPayload;
   final Map<String, APIProvider> apiProviders;
+  // If we are using only screen widget to render screen, we need to pass navigator key from host app to work with external screens
+  final GlobalKey<NavigatorState>? navigatorKey;
+  final Color? placeholderBackgroundColor;
 
   @override
   State<Screen> createState() => _ScreenState();
@@ -39,6 +45,12 @@ class _ScreenState extends State<Screen> {
   @override
   void initState() {
     super.initState();
+
+    // this external app navigate key is used to navigate to external screens in screen controller
+    if (widget.navigatorKey != null) {
+      externalAppNavigateKey = widget.navigatorKey;
+    }
+
     if (widget.screenPayload?.isExternal ?? false) {
       if (widget.screenPayload?.screenName == null) {
         throw LanguageError('ScreenName is mandatory, when external is true');
@@ -67,9 +79,10 @@ class _ScreenState extends State<Screen> {
               // show progress bar
               else if (!snapshot.hasData) {
                 return Scaffold(
-                    backgroundColor: Theme.of(context)
-                        .extension<EnsembleThemeExtension>()
-                        ?.loadingScreenBackgroundColor,
+                    backgroundColor: widget.placeholderBackgroundColor ??
+                        Theme.of(context)
+                            .extension<EnsembleThemeExtension>()
+                            ?.loadingScreenBackgroundColor,
                     resizeToAvoidBottomInset: false,
                     body: Center(
                         child: CircularProgressIndicator(
