@@ -267,7 +267,21 @@ class PageGroupState extends State<PageGroup> with MediaQueryCapability {
           icon: item.icon != null
               ? ensemble.Icon.fromModel(item.icon!)
               : const SizedBox.shrink(),
-          label: Text(Utils.translate(item.label ?? '', context))));
+          label: Semantics(
+            label: item.semantics!.label,
+            hint: item.semantics!.hint,
+            focusable: item.semantics!.focusable,
+            child: FocusTraversalGroup(
+                policy: WidgetOrderTraversalPolicy(),
+                child: FocusableActionDetector(
+                    enabled: item.semantics!.focusable,
+                    focusNode: FocusNode(
+                      canRequestFocus: false,
+                      descendantsAreFocusable: true,
+                      descendantsAreTraversable: true,
+                    ),
+                    child: Text(Utils.translate(item.label ?? '', context)))),
+          )));
     }
 
     // sidebar footer
@@ -296,26 +310,41 @@ class PageGroupState extends State<PageGroup> with MediaQueryCapability {
     int minWidth =
         Utils.optionalInt(menu.runtimeStyles?['minWidth'], min: minGap) ?? 200;
 
-    return ListenableBuilder(
-      listenable: viewGroupNotifier,
-      builder: (context, _) {
-        return NavigationRail(
-          extended: itemDisplay == MenuItemDisplay.sideBySide ? true : false,
-          minExtendedWidth: minWidth.toDouble(),
-          minWidth: minGap.toDouble(),
-          // this is important for optimal default item spacing
-          labelType: itemDisplay != MenuItemDisplay.sideBySide
-              ? NavigationRailLabelType.all
-              : null,
-          backgroundColor: menuBackground,
-          leading: menuHeader,
-          destinations: navItems,
-          trailing: menuFooter,
-          selectedIndex: viewGroupNotifier.viewIndex,
-          onDestinationSelected: viewGroupNotifier.updatePage,
-        );
-      },
-    );
+    return Semantics(
+        label: widget.menu.semantics!.label ?? '',
+        hint: widget.menu.semantics!.hint ?? '',
+        focusable: widget.menu.semantics!.focusable,
+        child: FocusTraversalGroup(
+        policy: WidgetOrderTraversalPolicy(),
+      child: FocusableActionDetector(
+        enabled: widget.menu.semantics!.focusable,
+        focusNode: FocusNode(
+          canRequestFocus: true,
+          descendantsAreFocusable: true,
+          descendantsAreTraversable: true,
+        ),
+        child: ListenableBuilder(
+          listenable: viewGroupNotifier,
+          builder: (context, _) {
+            return NavigationRail(
+              extended: itemDisplay == MenuItemDisplay.sideBySide ? true : false,
+              minExtendedWidth: minWidth.toDouble(),
+              minWidth: minGap.toDouble(),
+              // this is important for optimal default item spacing
+              labelType: itemDisplay != MenuItemDisplay.sideBySide
+                  ? NavigationRailLabelType.all
+                  : null,
+              backgroundColor: menuBackground,
+              leading: menuHeader,
+              destinations: navItems,
+              trailing: menuFooter,
+              selectedIndex: viewGroupNotifier.viewIndex,
+              onDestinationSelected: viewGroupNotifier.updatePage,
+            );
+          },
+        ),
+      ),
+    ));
   }
 
   Widget? _buildSidebarSeparator(Menu menu) {
