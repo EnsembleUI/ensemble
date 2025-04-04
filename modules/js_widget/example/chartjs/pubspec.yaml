@@ -30,8 +30,7 @@ dependencies:
   flutter:
     sdk: flutter
 
-  js_widget:
-    git: https://github.com/EnsembleUI/js_widget.git
+  js_widget: ^1.0.0
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.

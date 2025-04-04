@@ -1,4 +1,4 @@
-library jsparser;
+library parsejs_null_safety;
 
 import 'src/ast.dart';
 import 'src/lexer.dart';
