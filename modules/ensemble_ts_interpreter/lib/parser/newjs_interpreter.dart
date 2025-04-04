@@ -327,13 +327,9 @@ class JSInterpreter extends RecursiveVisitor<dynamic> {
     return rtn;
   }
 
-  /// Validates the JS code with context.
-  /// This method checks for:
-  /// 1. Syntax errors
-  /// 2. Undefined variables
-  /// 3. Invalid property access
-  /// 4. Invalid method calls
-  /// Returns true if validation passes, throws JSException if validation fails
+  /// Validates the JavaScript AST with context-aware rules
+  /// Checks for syntax errors, undefined variables/objects, invalid property or method access,
+  /// and provides typo suggestions. Throws [JSException] if validation fails; returns true if valid.
   bool validate({Node? node}) {
     try {
       if (node != null) {
@@ -373,18 +369,152 @@ class JSInterpreter extends RecursiveVisitor<dynamic> {
       bool hasProperty = obj.hasGettableProperty(propertyName);
       bool hasMethod = obj.hasMethod(propertyName);
       if (!hasProperty && !hasMethod) {
-        throw JSException(node.line ?? 1,
-            'Property "$propertyName" does not exist on object "$objectName"',
-            detailedError:
-                'Code: ${getCode(node)}\nAvailable properties: ${Invokable.getGettableProperties(obj).join(", ")}\nAvailable methods: ${obj.methods().keys.join(", ")}',
-            recovery:
-                'Check if you have used the correct property name (case sensitive)');
+        // Get available properties and methods
+        List<String> availableProperties = Invokable.getGettableProperties(obj);
+        List<String> availableMethods = obj.methods().keys.toList();
+
+        // Find suggestions for typos
+        List<String> suggestions = [];
+
+        // Check for property name typos
+        suggestions.addAll(availableProperties
+            .where((prop) => _levenshteinDistance(propertyName, prop) <= 2));
+
+        // Check for method name typos
+        suggestions.addAll(availableMethods.where(
+            (method) => _levenshteinDistance(propertyName, method) <= 2));
+
+        // Create error message
+        String errorMessage =
+            'Property "$propertyName" does not exist on object "$objectName"';
+        String detailedError =
+            'Code: ${getCode(node)}\nAvailable properties: ${availableProperties.join(", ")}\nAvailable methods: ${availableMethods.join(", ")}';
+        String recovery =
+            'Check if you have used the correct property name (case sensitive)';
+
+        // Add suggestions if any were found
+        if (suggestions.isNotEmpty) {
+          recovery += '\nDid you mean one of these? ${suggestions.join(", ")}';
+        }
+
+        throw JSException(node.line ?? 1, errorMessage,
+            detailedError: detailedError, recovery: recovery);
       }
     }
   }
 
+  /// Helper method to validate object property names against expected properties
+  void validateObjectPropertyNames(
+      ObjectExpression node, dynamic obj, Node parentNode) {
+    if (obj is Invokable) {
+      // Check if this is a method call with an object argument
+      String methodName = '';
+      String objectName = '';
+
+      // Try to find the method name and object name from the parent node
+      if (parentNode is CallExpression &&
+          parentNode.callee is MemberExpression) {
+        MemberExpression member = parentNode.callee as MemberExpression;
+        if (member.property is Name) {
+          methodName = (member.property as Name).value;
+        }
+        if (member.object is NameExpression) {
+          objectName = (member.object as NameExpression).name.value;
+        }
+      }
+
+      // For method calls, we need to check if the method exists
+      if (methodName.isNotEmpty && objectName.isNotEmpty) {
+        // Check if the method exists
+        bool hasMethod = obj.hasMethod(methodName);
+
+        // If the method exists, we don't need to validate the properties
+        // This is because methods like showToast accept any object
+        if (hasMethod) {
+          return;
+        } else {
+          // If the method doesn't exist, throw an error
+          throw JSException(node.line ?? 1,
+              'Method "$methodName" does not exist on object "$objectName"',
+              detailedError:
+                  'Code: ${getCode(node)}\nAvailable methods: ${obj.methods().keys.join(", ")}',
+              recovery:
+                  'Check if you have used the correct method name (case sensitive)');
+        }
+      } else {
+        // If this is not a method call, validate against object properties
+        List<String> availableProperties = Invokable.getGettableProperties(obj);
+
+        // Check each property in the object expression
+        for (var property in node.properties) {
+          if (property.key is Name) {
+            String propertyName = (property.key as Name).value;
+
+            // Check if the property exists in the available properties
+            if (!availableProperties.contains(propertyName)) {
+              // Create a helpful error message
+              String errorMessage =
+                  'Property "$propertyName" does not exist in the object passed to ${objectName.isNotEmpty ? "$objectName.$methodName" : "the method"}';
+              String detailedError =
+                  'Code: ${getCode(node)}\nAvailable properties: ${availableProperties.join(", ")}';
+              String recovery =
+                  'Check if you have used the correct property name (case sensitive)';
+
+              // If this looks like a typo, suggest possible corrections
+              List<String> suggestions = availableProperties
+                  .where(
+                      (prop) => _levenshteinDistance(propertyName, prop) <= 2)
+                  .toList();
+
+              if (suggestions.isNotEmpty) {
+                recovery +=
+                    '\nDid you mean one of these? ${suggestions.join(", ")}';
+              }
+
+              throw JSException(node.line ?? 1, errorMessage,
+                  detailedError: detailedError, recovery: recovery);
+            }
+          }
+        }
+      }
+    }
+  }
+
+  /// Calculate Levenshtein distance between two strings to suggest corrections for typos
+  int _levenshteinDistance(String s1, String s2) {
+    if (s1.isEmpty) return s2.length;
+    if (s2.isEmpty) return s1.length;
+
+    List<int> prev = List<int>.filled(s2.length + 1, 0);
+    List<int> curr = List<int>.filled(s2.length + 1, 0);
+
+    for (int i = 0; i <= s2.length; i++) {
+      prev[i] = i;
+    }
+
+    for (int i = 0; i < s1.length; i++) {
+      curr[0] = i + 1;
+
+      for (int j = 0; j < s2.length; j++) {
+        int cost = (s1[i] == s2[j]) ? 0 : 1;
+        curr[j + 1] = [
+          curr[j] + 1, // deletion
+          prev[j + 1] + 1, // insertion
+          prev[j] + cost // substitution
+        ].reduce((a, b) => a < b ? a : b);
+      }
+
+      List<int> temp = prev;
+      prev = curr;
+      curr = temp;
+    }
+
+    return prev[s2.length];
+  }
+
   /// Helper method to validate object expressions
-  void validateObjectExpression(ObjectExpression node) {
+  void validateObjectExpression(ObjectExpression node,
+      {Node? parentNode, dynamic parentObj}) {
     for (var property in node.properties) {
       validateNode(property);
 
@@ -394,6 +524,11 @@ class JSInterpreter extends RecursiveVisitor<dynamic> {
       } else if (property.value is ArrayExpression) {
         validateNode(property.value);
       }
+    }
+
+    // If this is an argument to a method call, validate the property names
+    if (parentNode != null && parentObj != null) {
+      validateObjectPropertyNames(node, parentObj, parentNode);
     }
   }
 
@@ -467,7 +602,7 @@ class JSInterpreter extends RecursiveVisitor<dynamic> {
 
         // Special validation for object arguments
         if (arg is ObjectExpression) {
-          validateObjectExpression(arg);
+          validateObjectExpression(arg, parentNode: node, parentObj: obj);
         }
       }
     }
