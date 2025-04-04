@@ -27,6 +27,7 @@ abstract class ActionInvokable with Invokable {
       ActionType.showBottomSheet,
       ActionType.dismissBottomSheet,
       ActionType.showDialog,
+      ActionType.logEvent,
       ActionType.navigateViewGroup,
       ActionType.showToast,
       ActionType.setLocale,
