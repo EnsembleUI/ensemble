@@ -327,6 +327,132 @@ class JSInterpreter extends RecursiveVisitor<dynamic> {
     return rtn;
   }
 
+  /// Validates the JS code with context.
+  /// This method checks for:
+  /// 1. Syntax errors
+  /// 2. Undefined variables
+  /// 3. Invalid property access
+  /// 4. Invalid method calls
+  /// Returns true if validation passes, throws JSException if validation fails
+  bool validate({Node? node}) {
+    try {
+      if (node != null) {
+        validateNode(node);
+      } else {
+        // Visit all statements to validate them
+        for (Statement stmt in program.body) {
+          validateNode(stmt);
+        }
+      }
+      return true;
+    } on JSException catch (e) {
+      rethrow;
+    } catch (e) {
+      throw JSException(1, e.toString(),
+          detailedError: 'Code: $code', originalError: e);
+    }
+  }
+
+  void validateNode(Node node) {
+    if (node is CallExpression) {
+      if (node.callee is NameExpression) {
+        String methodName = (node.callee as NameExpression).name.value;
+        Context programContext = findProgramContext(node);
+        if (!programContext.hasContext(methodName)) {
+          throw JSException(
+              node.line ?? 1,
+              'Method "$methodName" is not defined in the current context',
+              detailedError:
+                  'Code: ${getCode(node)}\nContext: ${programContext.getContextMap().keys.join(", ")}',
+              recovery:
+                  'Check if you have:\n1. Used the correct method name (case sensitive)\n2. Used the correct object to call the method');
+        }
+      } else if (node.callee is MemberExpression) {
+        validateNode(node.callee as MemberExpression);
+      }
+    } else if (node is MemberExpression) {
+      // Get the object name without executing
+      String objectName = '';
+      if (node.object is NameExpression) {
+        objectName = (node.object as NameExpression).name.value;
+      }
+
+      // Check if the object exists in context
+      Context programContext = findProgramContext(node);
+      if (!programContext.hasContext(objectName)) {
+        throw JSException(node.line ?? 1,
+            'Object "$objectName" is not defined in the current context',
+            detailedError:
+                'Code: ${getCode(node)}\nAvailable objects: ${programContext.getContextMap().keys.join(", ")}',
+            recovery:
+                'Check if you have:\n1. Used the correct object name (case sensitive)\n2. Used the correct context to access the object');
+      }
+
+      // Get the object from context
+      dynamic obj = programContext.getContextById(objectName);
+      if (obj == null) {
+        throw JSException(
+            node.line ?? 1, 'Object "$objectName" is null or undefined',
+            detailedError: 'Code: ${getCode(node)}',
+            recovery:
+                'Make sure the object is properly initialized before accessing its properties');
+      }
+
+      String propertyName = node.property.value;
+      if (obj is Invokable) {
+        if (!obj.methods().containsKey(propertyName) &&
+            !obj.getters().containsKey(propertyName)) {
+          throw JSException(node.line ?? 1,
+              'Property or method "$propertyName" does not exist on object "$objectName"',
+              detailedError:
+                  'Code: ${getCode(node)}\nAvailable properties: ${obj.getters().keys.join(", ")}\nAvailable methods: ${obj.methods().keys.join(", ")}',
+              recovery:
+                  'Check if you have:\n1. Used the correct property/method name (case sensitive)\n2. Used the correct object to access the property/method\n3. Defined the property/method in the object\n4. Used the correct API version if accessing built-in methods');
+        }
+      } else if (obj is Map) {
+        if (!obj.containsKey(propertyName)) {
+          throw JSException(node.line ?? 1,
+              'Property "$propertyName" does not exist on object "$objectName"',
+              detailedError:
+                  'Code: ${getCode(node)}\nAvailable properties: ${obj.keys.join(", ")}',
+              recovery:
+                  'Check if you have:\n1. Used the correct property name (case sensitive)\n2. Used the correct object to access the property\n3. Defined the property in the object\n4. Used the correct API version if accessing built-in properties');
+        }
+      }
+    } else if (node is NameExpression) {
+      String name = node.name.value;
+      Context programContext = findProgramContext(node);
+      if (!programContext.hasContext(name)) {
+        throw JSException(node.line ?? 1,
+            'Variable "$name" is not defined in the current context',
+            detailedError:
+                'Code: ${getCode(node)}\nAvailable variables: ${programContext.getContextMap().keys.join(", ")}',
+            recovery:
+                'Check if you have:\n1. Declared the variable before using it\n2. Used the correct variable name (case sensitive)\n3. Used the correct scope to access the variable');
+      }
+    } else if (node is AssignmentExpression) {
+      if (node.left is NameExpression) {
+        String name = (node.left as NameExpression).name.value;
+        Context programContext = findProgramContext(node);
+        if (!programContext.hasContext(name)) {
+          throw JSException(
+              node.line ?? 1, 'Cannot assign to undefined variable "$name"',
+              detailedError:
+                  'Code: ${getCode(node)}\nAvailable variables: ${programContext.getContextMap().keys.join(", ")}',
+              recovery:
+                  'Check if you have:\n1. Declared the variable before assigning to it\n2. Used the correct variable name (case sensitive)\n3. Used the correct scope to access the variable\n4. Used "var", "let", or "const" to declare the variable');
+        }
+      } else if (node.left is MemberExpression) {
+        validateNode(node.left as MemberExpression);
+      }
+    }
+
+    // Recursively validate child nodes
+    node.forEach((child) {
+      validateNode(child);
+    });
+  }
+
   dynamic executeConditional(
       Expression testExp, Node consequent, Node? alternate) {
     dynamic condition = getValueFromExpression(testExp);
