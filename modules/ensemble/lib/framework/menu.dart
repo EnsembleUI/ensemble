@@ -65,7 +65,7 @@ abstract class Menu extends Object with HasStyles, Invokable {
           }
 
           // semantics for MenuItem
-          EnsembleSemantics? itemSemantics = EnsembleSemantics(focusable: true);
+          EnsembleSemantics? itemSemantics = EnsembleSemantics(focusable: false);
           if (item['semantics'] != null) {
             itemSemantics =
                 EnsembleSemantics.fromYaml(Utils.getMap(item["semantics"]));
