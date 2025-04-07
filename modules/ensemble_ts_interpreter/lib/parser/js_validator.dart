@@ -1,0 +1,232 @@
+import 'package:ensemble_ts_interpreter/errors.dart';
+import 'package:ensemble_ts_interpreter/invokables/context.dart';
+import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
+import 'package:jsparser/jsparser.dart';
+import 'package:ensemble_ts_interpreter/parser/newjs_interpreter.dart';
+
+/// A validator that uses the visitor pattern to validate JavaScript code
+class JSValidator extends RecursiveVisitor<bool> {
+  final String code;
+  final Program program;
+  final Context context;
+
+  JSValidator(this.code, this.program, this.context);
+
+  JSInterpreter get interpreter => JSInterpreter(code, program, context);
+
+  /// Validates the JavaScript AST with context-aware rules
+  /// Checks for syntax errors, undefined variables/objects, invalid property or method access,
+  /// and provides typo suggestions. Throws [JSException] if validation fails; returns true if valid.
+  bool validate({Node? node}) {
+    try {
+      if (node != null) {
+        return visit(node) ?? true;
+      }
+      for (var stmt in program.body) {
+        visit(stmt);
+      }
+      return true;
+    } catch (e) {
+      if (e is JSException) throw e;
+      throw JSException(1, e.toString(),
+          detailedError: 'Code: $code', originalError: e);
+    }
+  }
+
+  /// Checks whether the given [name] exists in the [programContext]. If not,
+  /// throws an exception with details and possible recovery suggestions.
+  void validateContextExistence(String name, Node node, Context programContext,
+      {bool isObject = false}) {
+    if (!programContext.hasContext(name)) {
+      final available = programContext.getContextMap().keys.join(", ");
+      throw JSException(
+        node.line ?? 1,
+        '${isObject ? "Object" : "Variable"} "$name" is not defined in the current context',
+        detailedError:
+            'Code: ${interpreter.getCode(node)}\nAvailable ${isObject ? "objects" : "variables"}: $available',
+        recovery:
+            'Check if you have declared the ${isObject ? "object" : "variable"} correctly (including case sensitivity).',
+      );
+    }
+  }
+
+  /// Validates that a property or method exists on the given object. In case
+  /// of a typo, it provides suggestions based on Levenshtein distance.
+  void validatePropertyOrMethodAccess(
+      String propertyName, String objectName, dynamic obj, Node node) {
+    if (obj is Invokable) {
+      final hasProp = obj.hasGettableProperty(propertyName);
+      final hasMethod = obj.hasMethod(propertyName);
+      if (!hasProp && !hasMethod) {
+        final availableProps = Invokable.getGettableProperties(obj);
+        final availableMethods = obj.methods().keys.toList();
+        final suggestions = [
+          ...availableProps
+              .where((prop) => _levenshteinDistance(propertyName, prop) <= 2),
+          ...availableMethods.where(
+              (method) => _levenshteinDistance(propertyName, method) <= 2)
+        ];
+        var recovery =
+            'Check if you have used the correct property name (case sensitive).';
+        if (suggestions.isNotEmpty) {
+          recovery += '\nDid you mean one of these? ${suggestions.join(", ")}';
+        }
+        throw JSException(
+          node.line ?? 1,
+          'Property "$propertyName" does not exist on object "$objectName"',
+          detailedError:
+              'Code: ${interpreter.getCode(node)}\nAvailable properties: ${availableProps.join(", ")}\nAvailable methods: ${availableMethods.join(", ")}',
+          recovery: recovery,
+        );
+      }
+    }
+  }
+
+  /// Validates property names for an object expression by checking that each
+  /// property exists on the provided object. Also suggests corrections for typos.
+  void validateObjectPropertyNames(
+      ObjectExpression node, dynamic obj, Node parentNode) {
+    if (obj is Invokable) {
+      // If this is a method call, try to validate the method name first.
+      if (parentNode is CallExpression &&
+          parentNode.callee is MemberExpression) {
+        final member = parentNode.callee as MemberExpression;
+        final methodName = member.property.value;
+        if (obj.hasMethod(methodName)) return;
+        throw JSException(
+          node.line ?? 1,
+          'Method "$methodName" does not exist on object',
+          detailedError:
+              'Code: ${interpreter.getCode(node)}\nAvailable methods: ${obj.methods().keys.join(", ")}',
+          recovery:
+              'Check if you have used the correct method name (case sensitive).',
+        );
+      }
+      // Validate each property in the object expression.
+      final availableProps = Invokable.getGettableProperties(obj);
+      for (var property in node.properties) {
+        if (property.key is Name) {
+          final propName = (property.key as Name).value;
+          if (!availableProps.contains(propName)) {
+            final suggestions = availableProps
+                .where((prop) => _levenshteinDistance(propName, prop) <= 2)
+                .toList();
+            var recovery =
+                'Check if you have used the correct property name (case sensitive).';
+            if (suggestions.isNotEmpty) {
+              recovery += '\nDid you mean: ${suggestions.join(", ")}?';
+            }
+            throw JSException(
+              node.line ?? 1,
+              'Property "$propName" does not exist in the object.',
+              detailedError:
+                  'Code: ${interpreter.getCode(node)}\nAvailable properties: ${availableProps.join(", ")}',
+              recovery: recovery,
+            );
+          }
+        }
+      }
+    }
+  }
+
+  /// A helper method to calculate the Levenshtein distance between two strings.
+  int _levenshteinDistance(String s1, String s2) {
+    if (s1.isEmpty) return s2.length;
+    if (s2.isEmpty) return s1.length;
+
+    List<int> prev = List<int>.generate(s2.length + 1, (i) => i);
+    List<int> curr = List<int>.filled(s2.length + 1, 0);
+
+    for (int i = 0; i < s1.length; i++) {
+      curr[0] = i + 1;
+      for (int j = 0; j < s2.length; j++) {
+        int cost = (s1[i] == s2[j]) ? 0 : 1;
+        curr[j + 1] = [curr[j] + 1, prev[j + 1] + 1, prev[j] + cost]
+            .reduce((a, b) => a < b ? a : b);
+      }
+      final temp = prev;
+      prev = curr;
+      curr = temp;
+    }
+    return prev[s2.length];
+  }
+
+  // --- Visitor methods ---
+  @override
+  bool visitVariableDeclaration(VariableDeclaration node) {
+    for (var declarator in node.declarations) {
+      if (declarator.init != null) {
+        visit(declarator.init!);
+      }
+    }
+    return true;
+  }
+
+  @override
+  bool visitCall(CallExpression node) {
+    visit(node.callee);
+    // Validate method name and context if applicable.
+    if (node.callee is MemberExpression) {
+      final member = node.callee as MemberExpression;
+      if (member.object is NameExpression) {
+        String objectName = (member.object as NameExpression).name.value;
+        validateContextExistence(objectName, node, context, isObject: true);
+        dynamic obj = context.getContextById(objectName);
+        validatePropertyOrMethodAccess(
+            member.property.value, objectName, obj, node);
+      }
+    } else if (node.callee is NameExpression) {
+      String name = (node.callee as NameExpression).name.value;
+      validateContextExistence(name, node, context);
+    }
+    // Validate arguments.
+    for (var arg in node.arguments) {
+      visit(arg);
+      if (arg is ObjectExpression) {
+        // You could pass the related object if available.
+        validateObjectPropertyNames(arg, null, node);
+      }
+    }
+    return true;
+  }
+
+  @override
+  bool visitMember(MemberExpression node) {
+    visit(node.object);
+    visit(node.property);
+
+    if (node.object is NameExpression) {
+      String objectName = (node.object as NameExpression).name.value;
+      validateContextExistence(objectName, node, context, isObject: true);
+      dynamic obj = context.getContextById(objectName);
+      validatePropertyOrMethodAccess(
+          node.property.value, objectName, obj, node);
+    }
+    return true;
+  }
+
+  @override
+  bool visitNameExpression(NameExpression node) {
+    String name = node.name.value;
+    validateContextExistence(name, node, context);
+    return true;
+  }
+
+  @override
+  bool visitAssignment(AssignmentExpression node) {
+    if (node.left is NameExpression) {
+      String name = (node.left as NameExpression).name.value;
+      validateContextExistence(name, node, context);
+    } else if (node.left is MemberExpression) {
+      visit(node.left);
+    }
+    visit(node.right);
+    return true;
+  }
+
+  @override
+  bool defaultNode(Node node) {
+    node.forEach((child) => visit(child));
+    return true;
+  }
+}
