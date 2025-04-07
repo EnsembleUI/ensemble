@@ -9,8 +9,10 @@ class JSValidator extends RecursiveVisitor<bool> {
   final String code;
   final Program program;
   final Context context;
+
   final Set<String> _functionParams = {};
   final Set<String> _declaredFunctions = {};
+  final Set<String> _declaredVariables = {};
 
   JSValidator(this.code, this.program, this.context);
 
@@ -24,10 +26,14 @@ class JSValidator extends RecursiveVisitor<bool> {
       if (node != null) {
         return visit(node) ?? true;
       }
-      // First pass: collect all function declarations
+      // First pass: collect all function declarations and variable declarations
       for (var stmt in program.body) {
         if (stmt is FunctionDeclaration) {
           _declaredFunctions.add(stmt.function.name!.value);
+        } else if (stmt is VariableDeclaration) {
+          for (var declarator in stmt.declarations) {
+            _declaredVariables.add(declarator.name.value);
+          }
         }
       }
       // Second pass: validate everything
@@ -46,9 +52,10 @@ class JSValidator extends RecursiveVisitor<bool> {
   /// throws an exception with details and possible recovery suggestions.
   void validateContextExistence(String name, Node node, Context programContext,
       {bool isObject = false}) {
-    // Skip validation if the name is a function parameter or declared function
-    if (_functionParams.contains(name) || _declaredFunctions.contains(name))
-      return;
+    // Skip validation if the name is a function parameter, declared function, or declared variable
+    if (_functionParams.contains(name) ||
+        _declaredFunctions.contains(name) ||
+        _declaredVariables.contains(name)) return;
 
     if (!programContext.hasContext(name)) {
       final available = programContext.getContextMap().keys.join(", ");
@@ -216,6 +223,7 @@ class JSValidator extends RecursiveVisitor<bool> {
   @override
   bool visitVariableDeclaration(VariableDeclaration node) {
     for (var declarator in node.declarations) {
+      _declaredVariables.add(declarator.name.value);
       if (declarator.init != null) {
         visit(declarator.init!);
       }
