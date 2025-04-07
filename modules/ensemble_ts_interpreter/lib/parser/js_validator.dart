@@ -9,11 +9,9 @@ class JSValidator extends RecursiveVisitor<bool> {
   final String code;
   final Program program;
   final Context context;
-  final Map<Scope, Context> contexts = {};
   late final JSInterpreter _interpreter;
 
   JSValidator(this.code, this.program, this.context) {
-    contexts[program] = context;
     _interpreter = JSInterpreter(code, program, context);
   }
 
@@ -34,7 +32,6 @@ class JSValidator extends RecursiveVisitor<bool> {
           }
           // Create a new context for the function
           Context functionContext = SimpleContext({});
-          contexts[stmt.function] = functionContext;
           // Add function parameters to the context
           if (stmt.function.params != null) {
             for (var param in stmt.function.params) {
@@ -62,25 +59,10 @@ class JSValidator extends RecursiveVisitor<bool> {
     }
   }
 
-  /// Helper method to check if a name exists in any scope
-  bool _nameExistsInScopes(String name) {
-    // Check in all contexts
-    for (var ctx in contexts.values) {
-      if (ctx == null) continue;
-      if (ctx.hasContext(name)) {
-        return true;
-      }
-    }
-    return false;
-  }
-
   /// Checks whether the given [name] exists in the [programContext]. If not,
   /// throws an exception with details and possible recovery suggestions.
   void validateContextExistence(String name, Node node, Context programContext,
       {bool isObject = false}) {
-    // Skip validation if the name exists in any scope
-    if (_nameExistsInScopes(name)) return;
-
     if (!programContext.hasContext(name)) {
       final available = programContext.getContextMap().keys.join(", ");
       throw JSException(
@@ -180,20 +162,8 @@ class JSValidator extends RecursiveVisitor<bool> {
 
   @override
   bool visitFunctionDeclaration(FunctionDeclaration node) {
-    // Add function name to declared functions
     if (node.function.name != null) {
       _interpreter.addToContext(node.function.name!, true);
-    }
-    // Create a new context for the function
-    Context functionContext = SimpleContext({});
-    contexts[node.function] = functionContext;
-    // Add function parameters to the context
-    if (node.function.params != null) {
-      for (var param in node.function.params) {
-        if (param is Name) {
-          functionContext.addDataContextById(param.value, true);
-        }
-      }
     }
     visit(node.function.body);
     return true;
@@ -201,34 +171,12 @@ class JSValidator extends RecursiveVisitor<bool> {
 
   @override
   bool visitFunctionExpression(FunctionExpression node) {
-    // Create a new context for the function
-    Context functionContext = SimpleContext({});
-    contexts[node.function] = functionContext;
-    // Add function parameters to the context
-    if (node.function.params != null) {
-      for (var param in node.function.params) {
-        if (param is Name) {
-          functionContext.addDataContextById(param.value, true);
-        }
-      }
-    }
     visit(node.function.body);
     return true;
   }
 
   @override
   bool visitArrowFunctionNode(ArrowFunctionNode node) {
-    // Create a new context for the function
-    Context functionContext = SimpleContext({});
-    contexts[node] = functionContext;
-    // Add function parameters to the context
-    if (node.params != null) {
-      for (var param in node.params) {
-        if (param is Name) {
-          functionContext.addDataContextById(param.value, true);
-        }
-      }
-    }
     visit(node.body);
     return true;
   }
@@ -248,12 +196,10 @@ class JSValidator extends RecursiveVisitor<bool> {
   bool visitCall(CallExpression node) {
     try {
       visit(node.callee);
-      // Validate method name and context if applicable.
       if (node.callee is MemberExpression) {
         final member = node.callee as MemberExpression;
         if (member.object is NameExpression) {
           String objectName = (member.object as NameExpression).name.value;
-          // Always validate existence in context
           validateContextExistence(objectName, node, context, isObject: true);
           dynamic obj = context.getContextById(objectName);
           if (obj != null && member.property is Name) {
@@ -263,19 +209,16 @@ class JSValidator extends RecursiveVisitor<bool> {
         }
       } else if (node.callee is NameExpression) {
         String name = (node.callee as NameExpression).name.value;
-        // Always validate existence in context
         validateContextExistence(name, node, context);
       }
-      // Validate arguments.
       for (var arg in node.arguments) {
         visit(arg);
       }
     } catch (e) {
-      // Only catch and log non-JSException errors
       if (e is! JSException) {
         print('Validation warning: ${e.toString()}');
       } else {
-        rethrow; // Re-throw JSException to maintain validation
+        rethrow;
       }
     }
     return true;
@@ -289,7 +232,6 @@ class JSValidator extends RecursiveVisitor<bool> {
 
       if (node.object is NameExpression) {
         String objectName = (node.object as NameExpression).name.value;
-        // Always validate existence in context
         validateContextExistence(objectName, node, context, isObject: true);
         dynamic obj = context.getContextById(objectName);
         if (obj != null && node.property is Name) {
@@ -297,7 +239,6 @@ class JSValidator extends RecursiveVisitor<bool> {
               (node.property as Name).value, objectName, obj, node);
         }
       } else if (node.object is MemberExpression) {
-        // Handle nested property access (e.g., event.data.debugged)
         dynamic obj = _interpreter.getValueFromNode(node.object);
         if (obj != null && node.property is Name) {
           validatePropertyOrMethodAccess(
@@ -305,11 +246,10 @@ class JSValidator extends RecursiveVisitor<bool> {
         }
       }
     } catch (e) {
-      // Only catch and log non-JSException errors
       if (e is! JSException) {
         print('Validation warning: ${e.toString()}');
       } else {
-        rethrow; // Re-throw JSException to maintain validation
+        rethrow;
       }
     }
     return true;
@@ -319,14 +259,12 @@ class JSValidator extends RecursiveVisitor<bool> {
   bool visitNameExpression(NameExpression node) {
     try {
       String name = node.name.value;
-      // Always validate existence in context
       validateContextExistence(name, node, context);
     } catch (e) {
-      // Only catch and log non-JSException errors
       if (e is! JSException) {
         print('Validation warning: ${e.toString()}');
       } else {
-        rethrow; // Re-throw JSException to maintain validation
+        rethrow;
       }
     }
     return true;
@@ -337,18 +275,16 @@ class JSValidator extends RecursiveVisitor<bool> {
     try {
       if (node.left is NameExpression) {
         String name = (node.left as NameExpression).name.value;
-        // Always validate existence in context
         validateContextExistence(name, node, context);
       } else if (node.left is MemberExpression) {
         visit(node.left);
       }
       visit(node.right);
     } catch (e) {
-      // Only catch and log non-JSException errors
       if (e is! JSException) {
         print('Validation warning: ${e.toString()}');
       } else {
-        rethrow; // Re-throw JSException to maintain validation
+        rethrow;
       }
     }
     return true;
