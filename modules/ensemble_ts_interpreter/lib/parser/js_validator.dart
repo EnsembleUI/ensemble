@@ -9,14 +9,13 @@ class JSValidator extends RecursiveVisitor<bool> {
   final String code;
   final Program program;
   final Context context;
+  final Map<Scope, Context> contexts = {};
+  late final JSInterpreter _interpreter;
 
-  final Set<String> _functionParams = {};
-  final Set<String> _declaredFunctions = {};
-  final Set<String> _declaredVariables = {};
-
-  JSValidator(this.code, this.program, this.context);
-
-  JSInterpreter get interpreter => JSInterpreter(code, program, context);
+  JSValidator(this.code, this.program, this.context) {
+    contexts[program] = context;
+    _interpreter = JSInterpreter(code, program, context);
+  }
 
   /// Validates the JavaScript AST with context-aware rules
   /// Checks for syntax errors, undefined variables/objects, invalid property or method access,
@@ -26,16 +25,31 @@ class JSValidator extends RecursiveVisitor<bool> {
       if (node != null) {
         return visit(node) ?? true;
       }
+
       // First pass: collect all function declarations and variable declarations
       for (var stmt in program.body) {
         if (stmt is FunctionDeclaration) {
-          _declaredFunctions.add(stmt.function.name!.value);
+          if (stmt.function.name != null) {
+            _interpreter.addToContext(stmt.function.name!, true);
+          }
+          // Create a new context for the function
+          Context functionContext = SimpleContext({});
+          contexts[stmt.function] = functionContext;
+          // Add function parameters to the context
+          if (stmt.function.params != null) {
+            for (var param in stmt.function.params) {
+              if (param is Name) {
+                functionContext.addDataContextById(param.value, true);
+              }
+            }
+          }
         } else if (stmt is VariableDeclaration) {
           for (var declarator in stmt.declarations) {
-            _declaredVariables.add(declarator.name.value);
+            _interpreter.addToContext(declarator.name, true);
           }
         }
       }
+
       // Second pass: validate everything
       for (var stmt in program.body) {
         visit(stmt);
@@ -48,14 +62,27 @@ class JSValidator extends RecursiveVisitor<bool> {
     }
   }
 
+  /// Helper method to check if a name exists in any scope
+  bool _nameExistsInScopes(String name) {
+    if (name == null) {
+      throw JSException(1, 'Name cannot be null in _nameExistsInScopes');
+    }
+    // Check in all contexts
+    for (var ctx in contexts.values) {
+      if (ctx == null) continue;
+      if (ctx.hasContext(name)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   /// Checks whether the given [name] exists in the [programContext]. If not,
   /// throws an exception with details and possible recovery suggestions.
   void validateContextExistence(String name, Node node, Context programContext,
       {bool isObject = false}) {
-    // Skip validation if the name is a function parameter, declared function, or declared variable
-    if (_functionParams.contains(name) ||
-        _declaredFunctions.contains(name) ||
-        _declaredVariables.contains(name)) return;
+    // Skip validation if the name exists in any scope
+    if (_nameExistsInScopes(name)) return;
 
     if (!programContext.hasContext(name)) {
       final available = programContext.getContextMap().keys.join(", ");
@@ -63,7 +90,7 @@ class JSValidator extends RecursiveVisitor<bool> {
         node.line ?? 1,
         '${isObject ? "Object" : "Variable"} "$name" is not defined in the current context',
         detailedError:
-            'Code: ${interpreter.getCode(node)}\nAvailable ${isObject ? "objects" : "variables"}: $available',
+            'Code: ${_interpreter.getCode(node)}\nAvailable ${isObject ? "objects" : "variables"}: $available',
         recovery:
             'Check if you have declared the ${isObject ? "object" : "variable"} correctly (including case sensitivity).',
       );
@@ -95,58 +122,9 @@ class JSValidator extends RecursiveVisitor<bool> {
           node.line ?? 1,
           'Property "$propertyName" does not exist on object "$objectName"',
           detailedError:
-              'Code: ${interpreter.getCode(node)}\nAvailable properties: ${availableProps.join(", ")}\nAvailable methods: ${availableMethods.join(", ")}',
+              'Code: ${_interpreter.getCode(node)}\nAvailable properties: ${availableProps.join(", ")}\nAvailable methods: ${availableMethods.join(", ")}',
           recovery: recovery,
         );
-      }
-    }
-  }
-
-  /// Validates property names for an object expression by checking that each
-  /// property exists on the provided object. Also suggests corrections for typos.
-  void validateObjectPropertyNames(
-      ObjectExpression node, dynamic obj, Node parentNode) {
-    if (obj is Invokable) {
-      // If this is a method call, try to validate the method name first.
-      if (parentNode is CallExpression &&
-          parentNode.callee is MemberExpression) {
-        final member = parentNode.callee as MemberExpression;
-        if (member.property is Name) {
-          final methodName = (member.property as Name).value;
-          if (obj.hasMethod(methodName)) return;
-          throw JSException(
-            node.line ?? 1,
-            'Method "$methodName" does not exist on object',
-            detailedError:
-                'Code: ${interpreter.getCode(node)}\nAvailable methods: ${obj.methods().keys.join(", ")}',
-            recovery:
-                'Check if you have used the correct method name (case sensitive).',
-          );
-        }
-      }
-      // Validate each property in the object expression.
-      final availableProps = Invokable.getGettableProperties(obj);
-      for (var property in node.properties) {
-        if (property.key is Name) {
-          final propName = (property.key as Name).value;
-          if (!availableProps.contains(propName)) {
-            final suggestions = availableProps
-                .where((prop) => _levenshteinDistance(propName, prop) <= 2)
-                .toList();
-            var recovery =
-                'Check if you have used the correct property name (case sensitive).';
-            if (suggestions.isNotEmpty) {
-              recovery += '\nDid you mean: ${suggestions.join(", ")}?';
-            }
-            throw JSException(
-              node.line ?? 1,
-              'Property "$propName" does not exist in the object.',
-              detailedError:
-                  'Code: ${interpreter.getCode(node)}\nAvailable properties: ${availableProps.join(", ")}',
-              recovery: recovery,
-            );
-          }
-        }
       }
     }
   }
@@ -173,20 +151,11 @@ class JSValidator extends RecursiveVisitor<bool> {
     return prev[s2.length];
   }
 
-  // --- Visitor methods ---
   @override
   bool visitFunctionDeclaration(FunctionDeclaration node) {
     // Add function name to declared functions
     if (node.function.name != null) {
-      _declaredFunctions.add(node.function.name!.value);
-    }
-    // Add function parameters to the set of valid names
-    if (node.function.params != null) {
-      for (var param in node.function.params) {
-        if (param is Name) {
-          _functionParams.add(param.value);
-        }
-      }
+      _interpreter.addToContext(node.function.name!, true);
     }
     visit(node.function.body);
     return true;
@@ -194,28 +163,12 @@ class JSValidator extends RecursiveVisitor<bool> {
 
   @override
   bool visitFunctionExpression(FunctionExpression node) {
-    // Add function parameters to the set of valid names
-    if (node.function.params != null) {
-      for (var param in node.function.params) {
-        if (param is Name) {
-          _functionParams.add(param.value);
-        }
-      }
-    }
     visit(node.function.body);
     return true;
   }
 
   @override
   bool visitArrowFunctionNode(ArrowFunctionNode node) {
-    // Add function parameters to the set of valid names
-    if (node.params != null) {
-      for (var param in node.params) {
-        if (param is Name) {
-          _functionParams.add(param.value);
-        }
-      }
-    }
     visit(node.body);
     return true;
   }
@@ -223,7 +176,7 @@ class JSValidator extends RecursiveVisitor<bool> {
   @override
   bool visitVariableDeclaration(VariableDeclaration node) {
     for (var declarator in node.declarations) {
-      _declaredVariables.add(declarator.name.value);
+      _interpreter.addToContext(declarator.name, true);
       if (declarator.init != null) {
         visit(declarator.init!);
       }
@@ -253,10 +206,6 @@ class JSValidator extends RecursiveVisitor<bool> {
     // Validate arguments.
     for (var arg in node.arguments) {
       visit(arg);
-      if (arg is ObjectExpression) {
-        // You could pass the related object if available.
-        validateObjectPropertyNames(arg, null, node);
-      }
     }
     return true;
   }
