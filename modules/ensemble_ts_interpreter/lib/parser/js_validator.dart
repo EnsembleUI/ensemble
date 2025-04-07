@@ -64,9 +64,6 @@ class JSValidator extends RecursiveVisitor<bool> {
 
   /// Helper method to check if a name exists in any scope
   bool _nameExistsInScopes(String name) {
-    if (name == null) {
-      throw JSException(1, 'Name cannot be null in _nameExistsInScopes');
-    }
     // Check in all contexts
     for (var ctx in contexts.values) {
       if (ctx == null) continue;
@@ -101,6 +98,16 @@ class JSValidator extends RecursiveVisitor<bool> {
   /// of a typo, it provides suggestions based on Levenshtein distance.
   void validatePropertyOrMethodAccess(
       String propertyName, String objectName, dynamic obj, Node node) {
+    if (obj == null) {
+      throw JSException(
+        node.line ?? 1,
+        'Cannot access property "$propertyName" on null or undefined object "$objectName"',
+        detailedError: 'Code: ${_interpreter.getCode(node)}',
+        recovery:
+            'Make sure the object is properly initialized before accessing its properties.',
+      );
+    }
+
     if (obj is Invokable) {
       final hasProp = obj.hasGettableProperty(propertyName);
       final hasMethod = obj.hasMethod(propertyName);
@@ -123,6 +130,26 @@ class JSValidator extends RecursiveVisitor<bool> {
           'Property "$propertyName" does not exist on object "$objectName"',
           detailedError:
               'Code: ${_interpreter.getCode(node)}\nAvailable properties: ${availableProps.join(", ")}\nAvailable methods: ${availableMethods.join(", ")}',
+          recovery: recovery,
+        );
+      }
+    } else if (obj is Map) {
+      if (!obj.containsKey(propertyName)) {
+        final availableProps = obj.keys.toList();
+        final suggestions = availableProps
+            .where((prop) =>
+                _levenshteinDistance(propertyName, prop.toString()) <= 2)
+            .toList();
+        var recovery =
+            'Check if you have used the correct property name (case sensitive).';
+        if (suggestions.isNotEmpty) {
+          recovery += '\nDid you mean one of these? ${suggestions.join(", ")}';
+        }
+        throw JSException(
+          node.line ?? 1,
+          'Property "$propertyName" does not exist on object "$objectName"',
+          detailedError:
+              'Code: ${_interpreter.getCode(node)}\nAvailable properties: ${availableProps.join(", ")}',
           recovery: recovery,
         );
       }
@@ -157,18 +184,51 @@ class JSValidator extends RecursiveVisitor<bool> {
     if (node.function.name != null) {
       _interpreter.addToContext(node.function.name!, true);
     }
+    // Create a new context for the function
+    Context functionContext = SimpleContext({});
+    contexts[node.function] = functionContext;
+    // Add function parameters to the context
+    if (node.function.params != null) {
+      for (var param in node.function.params) {
+        if (param is Name) {
+          functionContext.addDataContextById(param.value, true);
+        }
+      }
+    }
     visit(node.function.body);
     return true;
   }
 
   @override
   bool visitFunctionExpression(FunctionExpression node) {
+    // Create a new context for the function
+    Context functionContext = SimpleContext({});
+    contexts[node.function] = functionContext;
+    // Add function parameters to the context
+    if (node.function.params != null) {
+      for (var param in node.function.params) {
+        if (param is Name) {
+          functionContext.addDataContextById(param.value, true);
+        }
+      }
+    }
     visit(node.function.body);
     return true;
   }
 
   @override
   bool visitArrowFunctionNode(ArrowFunctionNode node) {
+    // Create a new context for the function
+    Context functionContext = SimpleContext({});
+    contexts[node] = functionContext;
+    // Add function parameters to the context
+    if (node.params != null) {
+      for (var param in node.params) {
+        if (param is Name) {
+          functionContext.addDataContextById(param.value, true);
+        }
+      }
+    }
     visit(node.body);
     return true;
   }
@@ -186,42 +246,70 @@ class JSValidator extends RecursiveVisitor<bool> {
 
   @override
   bool visitCall(CallExpression node) {
-    visit(node.callee);
-    // Validate method name and context if applicable.
-    if (node.callee is MemberExpression) {
-      final member = node.callee as MemberExpression;
-      if (member.object is NameExpression) {
-        String objectName = (member.object as NameExpression).name.value;
-        validateContextExistence(objectName, node, context, isObject: true);
-        dynamic obj = context.getContextById(objectName);
-        if (member.property is Name) {
-          validatePropertyOrMethodAccess(
-              (member.property as Name).value, objectName, obj, node);
+    try {
+      visit(node.callee);
+      // Validate method name and context if applicable.
+      if (node.callee is MemberExpression) {
+        final member = node.callee as MemberExpression;
+        if (member.object is NameExpression) {
+          String objectName = (member.object as NameExpression).name.value;
+          // Always validate existence in context
+          validateContextExistence(objectName, node, context, isObject: true);
+          dynamic obj = context.getContextById(objectName);
+          if (obj != null && member.property is Name) {
+            String methodName = (member.property as Name).value;
+            validatePropertyOrMethodAccess(methodName, objectName, obj, node);
+          }
         }
+      } else if (node.callee is NameExpression) {
+        String name = (node.callee as NameExpression).name.value;
+        // Always validate existence in context
+        validateContextExistence(name, node, context);
       }
-    } else if (node.callee is NameExpression) {
-      String name = (node.callee as NameExpression).name.value;
-      validateContextExistence(name, node, context);
-    }
-    // Validate arguments.
-    for (var arg in node.arguments) {
-      visit(arg);
+      // Validate arguments.
+      for (var arg in node.arguments) {
+        visit(arg);
+      }
+    } catch (e) {
+      // Only catch and log non-JSException errors
+      if (e is! JSException) {
+        print('Validation warning: ${e.toString()}');
+      } else {
+        rethrow; // Re-throw JSException to maintain validation
+      }
     }
     return true;
   }
 
   @override
   bool visitMember(MemberExpression node) {
-    visit(node.object);
-    visit(node.property);
+    try {
+      visit(node.object);
+      visit(node.property);
 
-    if (node.object is NameExpression) {
-      String objectName = (node.object as NameExpression).name.value;
-      validateContextExistence(objectName, node, context, isObject: true);
-      dynamic obj = context.getContextById(objectName);
-      if (node.property is Name) {
-        validatePropertyOrMethodAccess(
-            (node.property as Name).value, objectName, obj, node);
+      if (node.object is NameExpression) {
+        String objectName = (node.object as NameExpression).name.value;
+        // Always validate existence in context
+        validateContextExistence(objectName, node, context, isObject: true);
+        dynamic obj = context.getContextById(objectName);
+        if (obj != null && node.property is Name) {
+          validatePropertyOrMethodAccess(
+              (node.property as Name).value, objectName, obj, node);
+        }
+      } else if (node.object is MemberExpression) {
+        // Handle nested property access (e.g., event.data.debugged)
+        dynamic obj = _interpreter.getValueFromNode(node.object);
+        if (obj != null && node.property is Name) {
+          validatePropertyOrMethodAccess(
+              (node.property as Name).value, 'object', obj, node);
+        }
+      }
+    } catch (e) {
+      // Only catch and log non-JSException errors
+      if (e is! JSException) {
+        print('Validation warning: ${e.toString()}');
+      } else {
+        rethrow; // Re-throw JSException to maintain validation
       }
     }
     return true;
@@ -229,20 +317,48 @@ class JSValidator extends RecursiveVisitor<bool> {
 
   @override
   bool visitNameExpression(NameExpression node) {
-    String name = node.name.value;
-    validateContextExistence(name, node, context);
+    try {
+      String name = node.name.value;
+      // Always validate existence in context
+      validateContextExistence(name, node, context);
+    } catch (e) {
+      // Only catch and log non-JSException errors
+      if (e is! JSException) {
+        print('Validation warning: ${e.toString()}');
+      } else {
+        rethrow; // Re-throw JSException to maintain validation
+      }
+    }
     return true;
   }
 
   @override
   bool visitAssignment(AssignmentExpression node) {
-    if (node.left is NameExpression) {
-      String name = (node.left as NameExpression).name.value;
-      validateContextExistence(name, node, context);
-    } else if (node.left is MemberExpression) {
-      visit(node.left);
+    try {
+      if (node.left is NameExpression) {
+        String name = (node.left as NameExpression).name.value;
+        // Always validate existence in context
+        validateContextExistence(name, node, context);
+      } else if (node.left is MemberExpression) {
+        visit(node.left);
+      }
+      visit(node.right);
+    } catch (e) {
+      // Only catch and log non-JSException errors
+      if (e is! JSException) {
+        print('Validation warning: ${e.toString()}');
+      } else {
+        rethrow; // Re-throw JSException to maintain validation
+      }
     }
-    visit(node.right);
+    return true;
+  }
+
+  @override
+  bool visitObject(ObjectExpression node) {
+    for (var prop in node.properties) {
+      visit(prop.value);
+    }
     return true;
   }
 
