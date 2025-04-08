@@ -379,6 +379,7 @@ class EnsembleAppState extends State<EnsembleApp> with WidgetsBindingObserver {
         appProvider: AppProvider(definitionProvider: config.definitionProvider),
         screenPayload: widget.screenPayload,
         apiProviders: APIProviders.clone(config.apiProviders ?? {}),
+        placeholderBackgroundColor: widget.placeholderBackgroundColor,
       );
       
       // Wrap the Screen in a Scaffold when not using child mode
