@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
 import 'package:face_camera/face_camera.dart';
 import 'accuracy_config.dart';
+import 'package:ensemble/framework/data_context.dart';
 
 class FaceDetectionResult {
   final bool detected;
@@ -117,7 +118,7 @@ class SmartFaceCameraWeb extends StatelessWidget {
   final IndicatorShape indicatorShape;
   final bool autoDisableCaptureControl;
   final bool autoCapture;
-  final Function(String)? onCapture;
+  final Function(File?)? onCapture;
   final Function(dynamic)? onError;
 
   @override

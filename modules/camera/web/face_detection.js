@@ -15,8 +15,6 @@ window.initFaceDetection = async function () {
         try {
             const modelBaseUrl = 'https://raw.githubusercontent.com/justadudewhohacks/face-api.js/master/weights/';
 
-            console.log('Loading face detection models...');
-
             // Load all required models for face detection
             await Promise.all([
                 faceapi.nets.tinyFaceDetector.load(modelBaseUrl),
@@ -24,7 +22,6 @@ window.initFaceDetection = async function () {
                 faceapi.nets.faceLandmark68TinyNet.load(modelBaseUrl)
             ]);
 
-            console.log('All face detection models loaded successfully');
             window.faceDetectionModels = true;
         } catch (error) {
             console.error('Error loading face detection models: ' + error);
@@ -239,7 +236,7 @@ window.detectFace = async function (videoElement, accurateMode = false, accuracy
         // Normalize coordinates and add extra height for hair.
         const extraHeight = box.height * EXTRA_HEIGHT_FACTOR;
         const normalized = {
-            left: box.x / videoWidth,
+            left: 1 - (box.x + box.width) / videoWidth,
             top: Math.max(0, box.y - extraHeight) / videoHeight,
             width: box.width / videoWidth,
             height: (box.height + extraHeight) / videoHeight,

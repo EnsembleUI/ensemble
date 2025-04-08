@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
 import 'package:face_camera/face_camera.dart';
 import 'face_detection_web.dart' as face_detection show WebFaceDetection;
+import 'package:ensemble/framework/data_context.dart';
 
 class SmartFaceCameraWeb extends StatefulWidget {
   final String message;
@@ -14,7 +15,7 @@ class SmartFaceCameraWeb extends StatefulWidget {
   final IndicatorShape indicatorShape;
   final bool autoDisableCaptureControl;
   final bool autoCapture;
-  final Function(String)? onCapture;
+  final Function(File)? onCapture;
   final Function(dynamic)? onError;
 
   const SmartFaceCameraWeb({
@@ -206,11 +207,7 @@ class _SmartFaceCameraWebState extends State<SmartFaceCameraWeb> {
               child: SizedBox(
                 width: previewWidth,
                 height: previewHeight,
-                child: Transform(
-                  alignment: Alignment.center,
-                  transform: Matrix4.identity()..scale(-1.0, 1.0, 1.0),
-                  child: CameraPreview(cameraController),
-                ),
+                child: CameraPreview(cameraController),
               ),
             ),
             if (faceLeft != null &&
@@ -281,8 +278,8 @@ class _SmartFaceCameraWebState extends State<SmartFaceCameraWeb> {
     if (_isCapturing) return;
     _isCapturing = true;
     try {
-      final imagePath = await face_detection.WebFaceDetection.takePicture();
-      if (imagePath != null) widget.onCapture?.call(imagePath);
+      final file = await face_detection.WebFaceDetection.takePicture();
+      if (file != null) widget.onCapture?.call(file);
     } catch (e) {
       if (!e.toString().contains('after being disposed')) {
         widget.onError?.call(e);

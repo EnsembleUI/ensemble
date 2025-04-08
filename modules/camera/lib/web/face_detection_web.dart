@@ -6,6 +6,7 @@ import 'package:js/js.dart';
 import 'package:js/js_util.dart' as js_util;
 import 'package:face_camera/face_camera.dart';
 import 'accuracy_config.dart';
+import 'package:ensemble/framework/data_context.dart';
 
 @JS('window')
 external dynamic get window;
@@ -318,7 +319,7 @@ class WebFaceDetection {
   }
 
   /// Capture image from camera
-  static Future<String?> takePicture() async {
+  static Future<File?> takePicture() async {
     if (!_isCapturing) {
       _isCapturing = true;
       try {
@@ -341,8 +342,11 @@ class WebFaceDetection {
           return null;
         }
 
-        final image = await _cameraController!.takePicture();
-        return image.path;
+        XFile file = await _cameraController!.takePicture();
+        final bytes = await file.readAsBytes();
+        final fileSize = await file.length();
+        return File(
+            file.name, file.path.split('.').last, fileSize, file.path, bytes);
       } catch (e) {
         print('Capture error: $e');
         return null;

@@ -398,7 +398,7 @@ class SinglePageModel extends PageModel with HasStyles {
           titleText: titleText,
           titleWidget: titleWidget,
           flexibleBackground: background,
-          leadingWidget: leadingWidget,  
+          leadingWidget: leadingWidget,
           inlineStyles: styles,
           classList: classList);
     }
