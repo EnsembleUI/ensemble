@@ -11,9 +11,23 @@ class JSValidator extends RecursiveVisitor<bool> {
   final Program program;
   final Context context;
   late final JSInterpreter _interpreter;
+  List<Context> _contextStack = [];
 
   JSValidator(this.code, this.program, this.context) {
     _interpreter = JSInterpreter(code, program, context);
+    _contextStack.add(context);
+  }
+
+  Context get currentContext => _contextStack.last;
+
+  void pushContext(Context ctx) {
+    _contextStack.add(ctx);
+  }
+
+  void popContext() {
+    if (_contextStack.length > 1) {
+      _contextStack.removeLast();
+    }
   }
 
   /// Validates the JavaScript AST with context-aware rules
@@ -37,10 +51,12 @@ class JSValidator extends RecursiveVisitor<bool> {
           if (stmt.function.params != null) {
             for (var param in stmt.function.params) {
               if (param is Name) {
-                functionContext.addDataContextById(param.value, true);
+                functionContext.addDataContextById(param.value, null);
               }
             }
           }
+          // Store the function context
+          _interpreter.contexts[stmt.function] = functionContext;
         } else if (stmt is VariableDeclaration) {
           for (var declarator in stmt.declarations) {
             _interpreter.addToContext(declarator.name, true);
@@ -64,17 +80,22 @@ class JSValidator extends RecursiveVisitor<bool> {
   /// throws an exception with details and possible recovery suggestions.
   void validateContextExistence(String name, Node node, Context programContext,
       {bool isObject = false}) {
-    if (!programContext.hasContext(name)) {
-      final available = programContext.getContextMap().keys.join(", ");
-      throw JSException(
-        node.line ?? 1,
-        '${isObject ? "Object" : "Variable"} "$name" is not defined in the current context',
-        detailedError:
-            'Code: ${_interpreter.getCode(node)}\nAvailable ${isObject ? "objects" : "variables"}: $available',
-        recovery:
-            'Check if you have declared the ${isObject ? "object" : "variable"} correctly (including case sensitivity).',
-      );
+    // Check all contexts in the stack from innermost to outermost
+    for (var ctx in _contextStack.reversed) {
+      if (ctx.hasContext(name)) {
+        return;
+      }
     }
+
+    final available = currentContext.getContextMap().keys.join(", ");
+    throw JSException(
+      node.line ?? 1,
+      '${isObject ? "Object" : "Variable"} "$name" is not defined in the current context',
+      detailedError:
+          'Code: ${_interpreter.getCode(node)}\nAvailable ${isObject ? "objects" : "variables"}: $available',
+      recovery:
+          'Check if you have declared the ${isObject ? "object" : "variable"} correctly (including case sensitivity).',
+    );
   }
 
   /// Validates that a property or method exists on the given object. In case
@@ -212,19 +233,38 @@ class JSValidator extends RecursiveVisitor<bool> {
     if (node.function.name != null) {
       _interpreter.addToContext(node.function.name!, true);
     }
+    // Get the function's context and push it onto the stack
+    Context functionContext =
+        _interpreter.contexts[node.function] ?? SimpleContext({});
+    pushContext(functionContext);
     visit(node.function.body);
+    popContext();
     return true;
   }
 
   @override
   bool visitFunctionExpression(FunctionExpression node) {
+    Context functionContext =
+        _interpreter.contexts[node.function] ?? SimpleContext({});
+    pushContext(functionContext);
     visit(node.function.body);
+    popContext();
     return true;
   }
 
   @override
   bool visitArrowFunctionNode(ArrowFunctionNode node) {
+    Context functionContext = SimpleContext({});
+    if (node.params != null) {
+      for (var param in node.params) {
+        if (param is Name) {
+          functionContext.addDataContextById(param.value, null);
+        }
+      }
+    }
+    pushContext(functionContext);
     visit(node.body);
+    popContext();
     return true;
   }
 
@@ -339,7 +379,7 @@ class JSValidator extends RecursiveVisitor<bool> {
       visit(prop.value);
     }
     // Store the object properties in the context for later validation
-    if (node.parent is VariableDeclarator) {
+    if (node.parent != null && node.parent is VariableDeclarator) {
       String varName = (node.parent as VariableDeclarator).name.value;
       context.addDataContextById(varName, objProperties);
     }
