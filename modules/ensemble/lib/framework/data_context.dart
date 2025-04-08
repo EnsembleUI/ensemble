@@ -726,8 +726,8 @@ class EnsembleStorage with Invokable {
   Map<String, Function> methods() {
     return {
       'get': (String key) => StorageManager().read(key),
-      'set': (String key, dynamic value) => setProperty(key, value),
-      'delete': (String key) => delete(key),
+      'set': setProperty,
+      'delete': (key) => delete(key),
     };
   }
 
@@ -739,16 +739,6 @@ class EnsembleStorage with Invokable {
   @override
   Map<String, Function> setters() {
     throw UnimplementedError();
-  }
-
-  @override
-  bool hasGettableProperty(dynamic prop) {
-    return true;
-  }
-
-  @override
-  bool hasSettableProperty(dynamic prop) {
-    return true;
   }
 }
 

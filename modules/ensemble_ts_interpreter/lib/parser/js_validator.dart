@@ -3,6 +3,7 @@ import 'package:ensemble_ts_interpreter/invokables/context.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:jsparser/jsparser.dart';
 import 'package:ensemble_ts_interpreter/parser/newjs_interpreter.dart';
+import 'package:ensemble_ts_interpreter/invokables/invokablecontroller.dart';
 
 /// A validator that uses the visitor pattern to validate JavaScript code
 class JSValidator extends RecursiveVisitor<bool> {
@@ -90,50 +91,96 @@ class JSValidator extends RecursiveVisitor<bool> {
       );
     }
 
-    if (obj is Invokable) {
-      final hasProp = obj.hasGettableProperty(propertyName);
-      final hasMethod = obj.hasMethod(propertyName);
-      if (!hasProp && !hasMethod) {
-        final availableProps = Invokable.getGettableProperties(obj);
-        final availableMethods = obj.methods().keys.toList();
-        final suggestions = [
-          ...availableProps
-              .where((prop) => _levenshteinDistance(propertyName, prop) <= 2),
-          ...availableMethods.where(
-              (method) => _levenshteinDistance(propertyName, method) <= 2)
-        ];
-        var recovery =
-            'Check if you have used the correct property name (case sensitive).';
-        if (suggestions.isNotEmpty) {
-          recovery += '\nDid you mean one of these? ${suggestions.join(", ")}';
+    try {
+      // Get the property using InvokableController
+      InvokableController.getProperty(obj, propertyName);
+    } catch (e) {
+      if (e is InvalidPropertyException) {
+        // If property doesn't exist, check if it's a method
+        final hasMethod = obj is Invokable && obj.hasMethod(propertyName);
+        if (!hasMethod) {
+          // If neither property nor method exists, provide helpful suggestions
+          final availableProps = obj is Invokable
+              ? [...Invokable.getGettableProperties(obj), ...obj.methods().keys]
+              : obj is Map
+                  ? obj.keys.toList()
+                  : [];
+
+          final suggestions = availableProps
+              .where((prop) =>
+                  _levenshteinDistance(propertyName, prop.toString()) <= 2)
+              .toList();
+
+          var recovery =
+              'Check if you have used the correct property name (case sensitive).';
+          if (suggestions.isNotEmpty) {
+            recovery +=
+                '\nDid you mean one of these? ${suggestions.join(", ")}';
+          }
+
+          throw JSException(
+            node.line ?? 1,
+            'Property "$propertyName" does not exist on object "$objectName"',
+            detailedError:
+                'Code: ${_interpreter.getCode(node)}\nAvailable properties: ${availableProps.join(", ")}',
+            recovery: recovery,
+          );
         }
-        throw JSException(
-          node.line ?? 1,
-          'Property "$propertyName" does not exist on object "$objectName"',
-          detailedError:
-              'Code: ${_interpreter.getCode(node)}\nAvailable properties: ${availableProps.join(", ")}\nAvailable methods: ${availableMethods.join(", ")}',
-          recovery: recovery,
-        );
       }
-    } else if (obj is Map) {
-      if (!obj.containsKey(propertyName)) {
-        final availableProps = obj.keys.toList();
-        final suggestions = availableProps
-            .where((prop) =>
-                _levenshteinDistance(propertyName, prop.toString()) <= 2)
-            .toList();
-        var recovery =
-            'Check if you have used the correct property name (case sensitive).';
-        if (suggestions.isNotEmpty) {
-          recovery += '\nDid you mean one of these? ${suggestions.join(", ")}';
+      rethrow;
+    }
+  }
+
+  /// Validates a chain of property accesses
+  void validateObjectPath(MemberExpression node) {
+    dynamic currentObj;
+    String path = '';
+
+    // First get the base object
+    if (node.object is NameExpression) {
+      String objectName = (node.object as NameExpression).name.value;
+      validateContextExistence(objectName, node, context, isObject: true);
+      currentObj = context.getContextById(objectName);
+      path = objectName;
+    } else if (node.object is MemberExpression) {
+      // Recursively validate the nested object path
+      validateObjectPath(node.object as MemberExpression);
+      currentObj = _interpreter.getValueFromNode(node.object);
+      path = _interpreter.getCode(node.object);
+    }
+
+    // Then validate the current property access
+    if (currentObj != null && node.property is Name) {
+      String propertyName = (node.property as Name).value;
+      if (currentObj is Map) {
+        // For object literals, check if the property exists
+        if (!currentObj.containsKey(propertyName)) {
+          final availableProps = currentObj.keys.toList();
+          final suggestions = availableProps
+              .where((prop) =>
+                  _levenshteinDistance(propertyName, prop.toString()) <= 2)
+              .toList();
+
+          var recovery =
+              'Check if you have used the correct property name (case sensitive).';
+          if (suggestions.isNotEmpty) {
+            recovery +=
+                '\nDid you mean one of these? ${suggestions.join(", ")}';
+          }
+
+          throw JSException(
+            node.line ?? 1,
+            'Property "$propertyName" does not exist on object "$path"',
+            detailedError:
+                'Code: ${_interpreter.getCode(node)}\nAvailable properties: ${availableProps.join(", ")}',
+            recovery: recovery,
+          );
         }
-        throw JSException(
-          node.line ?? 1,
-          'Property "$propertyName" does not exist on object "$objectName"',
-          detailedError:
-              'Code: ${_interpreter.getCode(node)}\nAvailable properties: ${availableProps.join(", ")}',
-          recovery: recovery,
-        );
+        // Update currentObj to the nested object for the next property access
+        currentObj = currentObj[propertyName];
+      } else {
+        // For other types of objects, use the standard property validation
+        validatePropertyOrMethodAccess(propertyName, path, currentObj, node);
       }
     }
   }
@@ -229,22 +276,7 @@ class JSValidator extends RecursiveVisitor<bool> {
     try {
       visit(node.object);
       visit(node.property);
-
-      if (node.object is NameExpression) {
-        String objectName = (node.object as NameExpression).name.value;
-        validateContextExistence(objectName, node, context, isObject: true);
-        dynamic obj = context.getContextById(objectName);
-        if (obj != null && node.property is Name) {
-          validatePropertyOrMethodAccess(
-              (node.property as Name).value, objectName, obj, node);
-        }
-      } else if (node.object is MemberExpression) {
-        dynamic obj = _interpreter.getValueFromNode(node.object);
-        if (obj != null && node.property is Name) {
-          validatePropertyOrMethodAccess(
-              (node.property as Name).value, 'object', obj, node);
-        }
-      }
+      validateObjectPath(node);
     } catch (e) {
       if (e is! JSException) {
         print('Validation warning: ${e.toString()}');
@@ -292,10 +324,43 @@ class JSValidator extends RecursiveVisitor<bool> {
 
   @override
   bool visitObject(ObjectExpression node) {
+    Map<String, dynamic> objProperties = {};
     for (var prop in node.properties) {
+      if (prop.key is Name) {
+        String key = (prop.key as Name).value;
+        // If the value is another object, recursively track its properties
+        if (prop.value is ObjectExpression) {
+          objProperties[key] =
+              _trackNestedObject(prop.value as ObjectExpression);
+        } else {
+          objProperties[key] = true;
+        }
+      }
       visit(prop.value);
     }
+    // Store the object properties in the context for later validation
+    if (node.parent is VariableDeclarator) {
+      String varName = (node.parent as VariableDeclarator).name.value;
+      context.addDataContextById(varName, objProperties);
+    }
     return true;
+  }
+
+  /// Helper method to track nested object properties
+  Map<String, dynamic> _trackNestedObject(ObjectExpression node) {
+    Map<String, dynamic> objProperties = {};
+    for (var prop in node.properties) {
+      if (prop.key is Name) {
+        String key = (prop.key as Name).value;
+        if (prop.value is ObjectExpression) {
+          objProperties[key] =
+              _trackNestedObject(prop.value as ObjectExpression);
+        } else {
+          objProperties[key] = true;
+        }
+      }
+    }
+    return objProperties;
   }
 
   @override
