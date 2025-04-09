@@ -1,9 +1,4 @@
-const loadJimp = async () => {
-  const response = await fetch('https://cdn.jsdelivr.net/npm/jimp@0.16.2-canary.919.1052.0/browser/lib/jimp.js');
-  const scriptText = await response.text();
-  const scriptFunction = new Function(scriptText);
-  scriptFunction();
-};
+self.importScripts('https://cdn.jsdelivr.net/npm/jimp@0.16.2-canary.919.1052.0/browser/lib/jimp.js');
 
 self.onmessage = async function(event) {
   try {
@@ -11,10 +6,6 @@ self.onmessage = async function(event) {
 
     if (!data.imageUrl) {
       throw new Error('Missing image URL in worker data');
-    }
-
-    if (typeof Jimp === 'undefined') {
-      await loadJimp();
     }
 
     // Fetch the image
