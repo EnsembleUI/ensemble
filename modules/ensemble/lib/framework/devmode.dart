@@ -1,5 +1,9 @@
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
+import 'package:ensemble_ts_interpreter/parser/newjs_interpreter.dart';
+import 'package:ensemble_ts_interpreter/parser/js_validator.dart';
+import 'package:jsparser/jsparser.dart';
+import 'package:ensemble_ts_interpreter/errors.dart';
 
 class DevMode {
   static bool debug = false;
@@ -52,5 +56,17 @@ class DevMode {
     });
 
     return context;
+  }
+
+  static Map<String, dynamic> validateJsCode(String code) {
+    try {
+      Program p = JSInterpreter.parseCode(code);
+      JSValidator(code, p, DevMode.pageDataContext!).validate();
+      return {'error': null};
+    } on JSException catch (e) {
+      return {'error': e.toString()};
+    } catch (e) {
+      return {'error': e.toString()};
+    }
   }
 }
