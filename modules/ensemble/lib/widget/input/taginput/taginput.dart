@@ -19,6 +19,9 @@ import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/services.dart';
 import 'package:fluttertagger/fluttertagger.dart';
 
+// Global controller to persist across rebuilds
+final _globalTaggerController = FlutterTaggerController();
+
 /// TagInput
 class TagInput extends BaseTextInput {
   static const type = 'TagInput';
@@ -31,10 +34,10 @@ class TagInput extends BaseTextInput {
     setters.addAll({
       'value': (newValue) {
         if (newValue == null) {
-          _taggerController.text = '';
+          _globalTaggerController.text = '';
           return;
         }
-        _taggerController.text = Utils.optionalString(newValue)!;
+        _globalTaggerController.text = Utils.optionalString(newValue)!;
       },
       'inputType': (type) => _controller.inputType = Utils.optionalString(type),
       'mask': (type) => _controller.mask = Utils.optionalString(type),
@@ -64,8 +67,8 @@ abstract class BaseTextInput extends StatefulWidget
         HasController<TagInputController, TagInputState> {
   BaseTextInput({Key? key}) : super(key: key);
 
-  // textController manages 'value', while _controller manages the rest
-  final FlutterTaggerController _taggerController = FlutterTaggerController();
+  // Use global controller instead of instance field
+  final FlutterTaggerController _taggerController = _globalTaggerController;
   final TagInputController _controller = TagInputController();
 
   @override
@@ -201,9 +204,10 @@ class TagInputState extends FormFieldWidgetState<BaseTextInput>
   bool didItChange = false;
   bool _isOverlayVisible = false;
 
-  late List<TextInputFormatter> _inputFormatter;
-  late AnimationController _animationController;
-  late Animation<Offset> _animation;
+  // Initialize these fields immediately
+  List<TextInputFormatter> _inputFormatter = [];
+  AnimationController? _animationController;
+  Animation<Offset>? _animation;
 
   bool get toolbarDoneStatus {
     return widget.controller.toolbarDoneButton ?? false;
@@ -244,7 +248,7 @@ class TagInputState extends FormFieldWidgetState<BaseTextInput>
       end: Offset.zero,
     ).animate(
       CurvedAnimation(
-        parent: _animationController,
+        parent: _animationController!,
         curve: Curves.easeInOut,
       ),
     );
@@ -319,7 +323,7 @@ class TagInputState extends FormFieldWidgetState<BaseTextInput>
   @override
   void dispose() {
     focusNode.dispose();
-    _animationController.dispose();
+    _animationController?.dispose();
     widget._taggerController.dispose();
     super.dispose();
   }
@@ -399,16 +403,18 @@ class TagInputState extends FormFieldWidgetState<BaseTextInput>
               tagQuery = query;
             });
           },
-          triggerCharacterAndStyles: {
-            ...widget.controller.triggers
-                .map((key, value) => MapEntry(key, value!)),
-            "@": widget._controller.mentionStyle!,
-          },
+          triggerCharacterAndStyles: widget.controller.triggers.isEmpty
+              ? { "@": widget._controller.mentionStyle ?? const TextStyle(color: Colors.blue) }
+              : {
+                  ...widget.controller.triggers
+                      .map((key, value) => MapEntry(key, value ?? const TextStyle(color: Colors.blue))),
+                  "@": widget._controller.mentionStyle ?? const TextStyle(color: Colors.blue),
+                },
           triggerStrategy: TriggerStrategy.eager,
           overlayHeight: _calculatedOverlayHeight,
           overlay: Material(
               child: SlideTransition(
-            position: _animation,
+            position: _animation!,
             child: Container(
               decoration: widget._controller.overlayStyle,
               child: buildItems(
