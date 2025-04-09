@@ -150,19 +150,13 @@ abstract class EnsembleWidgetState<W extends EnsembleWidget> extends State<W> {
           hint: widgetController.semantics!.hint,
           focusable: widgetController.semantics!.focusable,
           child: FocusTraversalGroup(
-            policy: WidgetOrderTraversalPolicy(),
+            policy: ReadingOrderTraversalPolicy(),
             child: FocusableActionDetector(
               enabled: widgetController.semantics!.focusable,
-              focusNode: FocusNode(
-                canRequestFocus: false,
-                descendantsAreFocusable: true,
-                descendantsAreTraversable: true,
-              ),
               child: rtn,
             ),
           ),
         );
-
       }
 
       return rtn;

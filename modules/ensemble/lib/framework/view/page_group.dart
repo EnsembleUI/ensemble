@@ -267,21 +267,7 @@ class PageGroupState extends State<PageGroup> with MediaQueryCapability {
           icon: item.icon != null
               ? ensemble.Icon.fromModel(item.icon!)
               : const SizedBox.shrink(),
-          label: Semantics(
-            label: item.semantics!.label,
-            hint: item.semantics!.hint,
-            focusable: item.semantics!.focusable,
-            child: FocusTraversalGroup(
-                policy: WidgetOrderTraversalPolicy(),
-                child: FocusableActionDetector(
-                    enabled: item.semantics!.focusable,
-                    focusNode: FocusNode(
-                      canRequestFocus: false,
-                      descendantsAreFocusable: true,
-                      descendantsAreTraversable: true,
-                    ),
-                    child: Text(Utils.translate(item.label ?? '', context)))),
-          )));
+          label: Text(Utils.translate(item.label ?? '', context))));
     }
 
     // sidebar footer
@@ -318,11 +304,6 @@ class PageGroupState extends State<PageGroup> with MediaQueryCapability {
         policy: WidgetOrderTraversalPolicy(),
       child: FocusableActionDetector(
         enabled: widget.menu.semantics!.focusable,
-        focusNode: FocusNode(
-          canRequestFocus: true,
-          descendantsAreFocusable: true,
-          descendantsAreTraversable: true,
-        ),
         child: ListenableBuilder(
           listenable: viewGroupNotifier,
           builder: (context, _) {
