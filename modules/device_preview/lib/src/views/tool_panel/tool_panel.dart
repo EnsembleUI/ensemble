@@ -1,5 +1,5 @@
-import 'package:device_preview/src/state/store.dart';
-import 'package:device_preview/src/views/theme.dart';
+import 'package:ensemble_device_preview/src/state/store.dart';
+import 'package:ensemble_device_preview/src/views/theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
 import 'package:provider/provider.dart';
