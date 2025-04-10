@@ -6,6 +6,7 @@ import 'dart:math' as math;
 import 'package:ensemble/ensemble_app.dart';
 import 'package:ensemble/firebase_options.dart';
 import 'package:ensemble/framework/apiproviders/api_provider.dart';
+import 'package:ensemble/framework/assets_service.dart';
 import 'package:ensemble/framework/bindings.dart';
 import 'package:ensemble/framework/definition_providers/ensemble_provider.dart';
 import 'package:ensemble/framework/device.dart';
@@ -27,6 +28,7 @@ import 'package:ensemble/page_model.dart';
 import 'package:ensemble/framework/definition_providers/provider.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
+import 'package:ensemble_ts_interpreter/invokables/UserLocale.dart';
 import 'package:ensemble_ts_interpreter/parser/newjs_interpreter.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -106,6 +108,7 @@ class Ensemble extends WithEnsemble with EnsembleRouteObserver {
     try {
       // this code block is guaranteed to run at most once
       await StorageManager().init();
+      await SecretsStore().initialize();
       Device().initDeviceInfo();
       AppInfo().initPackageInfo(_config);
       _completer!.complete();
@@ -139,9 +142,10 @@ class Ensemble extends WithEnsemble with EnsembleRouteObserver {
     if (_config != null) {
       return Future<EnsembleConfig>.value(_config);
     }
-    // Intialize the config service to get `ensemble-config.yaml` file to access the configuration using static property as `EnsembleConfigService.config`
-    await EnsembleConfigService.initialize();
-    await SecretsStore().initialize();
+    // Initialize the config service to get `ensemble-config.yaml` file to access the configuration using static property as `EnsembleConfigService.config`
+    if (!EnsembleConfigService.isInitialized) {
+      await EnsembleConfigService.initialize();
+    }
 
     // get the config YAML
     final YamlMap yamlMap = EnsembleConfigService.config;
@@ -179,14 +183,14 @@ class Ensemble extends WithEnsemble with EnsembleRouteObserver {
     // Read environmental variables from config/appConfig.json
     try {
       dynamic path = yamlMap["definitions"]?['local']?["path"];
-    final configString = await rootBundle
-        .loadString('${path}/config/appConfig.json');
-    final Map<String, dynamic> configMap = json.decode(configString);
-    // Loop through the envVariables from appConfig.json file and add them to the envOverrides
-    configMap["envVariables"].forEach((key, value) {
-      envOverrides![key] = value;
-    });
-    } catch(e) {
+      final configString =
+          await rootBundle.loadString('${path}/config/appConfig.json');
+      final Map<String, dynamic> configMap = json.decode(configString);
+      // Loop through the envVariables from appConfig.json file and add them to the envOverrides
+      configMap["envVariables"].forEach((key, value) {
+        envOverrides![key] = value;
+      });
+    } catch (e) {
       debugPrint("appConfig.json file doesn't exist");
     }
 
@@ -198,7 +202,16 @@ class Ensemble extends WithEnsemble with EnsembleRouteObserver {
         services: Services.fromYaml(yamlMap['services']),
         signInServices: SignInServices.fromYaml(yamlMap['services']),
         envOverrides: envOverrides);
-
+    // Initializing Local Assets Service to store available local assets names
+    if (!LocalAssetsService.isInitialized) {
+      await LocalAssetsService.initialize(
+          _instance
+              .getConfig()
+              ?.definitionProvider
+              .getAppConfig()
+              ?.envVariables,
+          yamlMap);
+    }
     AppInfo().initPackageInfo(_config);
     await initializeAPIProviders(_config!);
     return _config!;
@@ -345,6 +358,28 @@ class Ensemble extends WithEnsemble with EnsembleRouteObserver {
                     'Unknown'
               })
           .toList();
+    }
+    return null;
+  }
+
+  Object? getSelectedLanguage() {
+    UserLocale? userLocale = UserLocale.from(Ensemble().getLocale());
+    // Check if userLocale is null before accessing languageCode
+    if (userLocale != null) {
+      String languageCode = userLocale.languageCode;
+      var localeNames = LocaleNames.of(Utils.globalAppKey.currentContext!);
+      return {
+        "languageCode": languageCode,
+        // the language name based on the current context (fr is French (in English) or Francés (in Spanish))
+        // Note that this maybe null if the LocaleNamesLocalizationsDelegate is not loaded, in which case fallback to nativeName
+        "name": localeNames?.nameOf(languageCode) ??
+            LocaleNamesLocalizationsDelegate.nativeLocaleNames[languageCode] ??
+            'Unknown',
+        // the language in their native name (fr is Français and en is English). These are always the same regardless of the current language.
+        "nativeName":
+            LocaleNamesLocalizationsDelegate.nativeLocaleNames[languageCode] ??
+                'Unknown'
+      };
     }
     return null;
   }

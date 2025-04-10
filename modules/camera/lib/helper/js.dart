@@ -1,0 +1,1 @@
+export 'stub.dart' if (dart.library.js) 'dart:js';

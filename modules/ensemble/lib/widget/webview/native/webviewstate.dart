@@ -146,41 +146,39 @@ class WebViewState extends EWidgetState<EnsembleWebView> with CookieMethods {
                 headers: widget.controller.headers,
               )
             : null,
-        initialOptions: InAppWebViewGroupOptions(
-          crossPlatform: InAppWebViewOptions(
-            useShouldOverrideUrlLoading: true,
-            mediaPlaybackRequiresUserGesture: false,
-            javaScriptEnabled: true,
-            useOnLoadResource: true,
-            clearCache: true,
-            transparentBackground: true,
-            supportZoom: true,
-            preferredContentMode: UserPreferredContentMode.MOBILE,
-          ),
-          android: AndroidInAppWebViewOptions(
-            useHybridComposition: true,
-            hardwareAcceleration: true,
-            mixedContentMode:
-                AndroidMixedContentMode.MIXED_CONTENT_ALWAYS_ALLOW,
-            safeBrowsingEnabled: false,
-            domStorageEnabled: true,
-            databaseEnabled: true,
-            supportMultipleWindows: true,
-            builtInZoomControls: true,
-            displayZoomControls: false,
-            allowFileAccess: true,
-            useWideViewPort: true,
-            allowContentAccess: true,
-            loadWithOverviewMode: true,
-          ),
-          ios: IOSInAppWebViewOptions(
-            allowsInlineMediaPlayback: true,
-            allowsBackForwardNavigationGestures: true,
-            enableViewportScale: true,
-            suppressesIncrementalRendering: false,
-            allowsPictureInPictureMediaPlayback: true,
-            isFraudulentWebsiteWarningEnabled: false,
-          ),
+        initialSettings: InAppWebViewSettings(
+          // Cross Platform Settings
+          useShouldOverrideUrlLoading: true,
+          mediaPlaybackRequiresUserGesture: false,
+          javaScriptEnabled: true,
+          useOnLoadResource: true,
+          transparentBackground: true,
+          supportZoom: true,
+          clearCache: true,
+          preferredContentMode: UserPreferredContentMode.MOBILE,
+
+          // Android Specific Settings
+          useHybridComposition: true,
+          hardwareAcceleration: true,
+          mixedContentMode: MixedContentMode.MIXED_CONTENT_ALWAYS_ALLOW,
+          safeBrowsingEnabled: false,
+          domStorageEnabled: true,
+          databaseEnabled: true,
+          supportMultipleWindows: true,
+          builtInZoomControls: true,
+          displayZoomControls: false,
+          allowFileAccess: true,
+          useWideViewPort: true,
+          allowContentAccess: true,
+          loadWithOverviewMode: true,
+
+          // iOS Specific Settings
+          allowsInlineMediaPlayback: true,
+          allowsBackForwardNavigationGestures: true,
+          enableViewportScale: true,
+          suppressesIncrementalRendering: false,
+          allowsPictureInPictureMediaPlayback: true,
+          isFraudulentWebsiteWarningEnabled: false,
         ),
         gestureRecognizers: gestureRecognizers,
         onWebViewCreated: (controller) async {
@@ -234,9 +232,17 @@ class WebViewState extends EWidgetState<EnsembleWebView> with CookieMethods {
           setState(
               () => widget.controller.error = "Error loading html content");
         },
+        onCreateWindow: (controller, createWindowAction) async {
+          // Get the URL from the creation request
+          final url = createWindowAction.request.url?.toString();
+          if (url != null) {
+            // Load the URL in the current WebView instead of creating a new window
+            await controller.loadUrl(urlRequest: URLRequest(url: WebUri(url)));
+          }
+          return true;
+        },
         shouldOverrideUrlLoading: (controller, navigationAction) async {
           final url = navigationAction.request.url?.toString() ?? '';
-
           WebViewNavigationEvent event = WebViewNavigationEvent(widget, url);
           if (widget.controller.onNavigationRequest != null) {
             ScreenController().executeAction(

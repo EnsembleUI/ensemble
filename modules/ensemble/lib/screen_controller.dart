@@ -405,6 +405,8 @@ class ScreenController {
       GetIt.I<FileManager>().pickFiles(context, action, scopeManager);
     } else if (action is SignInAnonymousAction) {
       GetIt.I<SignInAnonymous>().signInAnonymously(context, action: action);
+    } else if (action is SignInWithCustomTokenAction) {
+      GetIt.I<SignInWithCustomToken>().signInWithCustomToken(context, action: action);
     } else if (action is WalletConnectAction) {
       //  TODO store session:  WalletConnectSession? session = await sessionStorage.getSession();
 
@@ -575,6 +577,16 @@ class ScreenController {
     ScopeManager? scopeManager = getScopeManager(context);
     if (scopeManager != null) {
       scopeManager.dispatch(ModelChangeEvent(StorageBindingSource(key), value));
+    }
+  }
+
+  void dispatchDeviceChanges(
+      BuildContext context, String property, dynamic value) {
+    ScopeManager? scopeManager = getScopeManager(context);
+
+    if (scopeManager != null) {
+      scopeManager
+          .dispatch(ModelChangeEvent(DeviceBindingSource(property), value));
     }
   }
 

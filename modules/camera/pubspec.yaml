@@ -1,7 +1,7 @@
 name: ensemble_camera
 description: A new Flutter package project.
 version: 0.0.1
-homepage: https://github.com/EnsembleUI/ensemble_camera
+homepage: https://github.com/EnsembleUI/ensemble/modules/camera
 
 environment:
   sdk: ">=3.5.0"
@@ -10,12 +10,13 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  camera: ^0.10.6
+  camera: ^0.11.0+2
+  face_camera: ^0.1.4
   # embed Ensemble as a sibling project
   ensemble:
     git:
       url: https://github.com/EnsembleUI/ensemble.git
-      ref: ensemble-v1.1.23
+      ref: ensemble-v1.1.42
       path: modules/ensemble
   ensemble_ts_interpreter:
     git:
@@ -73,3 +74,8 @@ flutter:
   #
   # For details regarding fonts in packages, see
   # https://flutter.dev/custom-fonts/#from-packages
+
+  assets:
+    - web/face_api.js
+    - web/face_detection.js
+    - web/image_worker.js

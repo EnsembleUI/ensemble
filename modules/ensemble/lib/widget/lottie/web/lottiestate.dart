@@ -246,6 +246,20 @@ class LottieState extends EWidgetState<EnsembleLottie>
     if (source.isNotEmpty) {
       // if is URL
       if (source.startsWith('https://') || source.startsWith('http://')) {
+        // If the asset is available locally, then use local path
+        String assetName = Utils.getAssetName(source);
+        if (Utils.isAssetAvailableLocally(assetName)) {
+          return Lottie.asset(Utils.getLocalAssetFullPath(assetName),
+              controller: widget.controller.lottieController,
+              onLoaded: (LottieComposition composition) {
+                widget.controller.initializeLottieController(composition);
+              },
+              width: widget.controller.width?.toDouble(),
+              height: widget.controller.height?.toDouble(),
+              repeat: widget.controller.repeat,
+              fit: fit,
+              errorBuilder: (context, error, stacktrace) => placeholderImage());
+        }
         // image binding is tricky. When the URL has not been resolved
         // the image will throw exception. We have to use a permanent placeholder
         // until the binding engages

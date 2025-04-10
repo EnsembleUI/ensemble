@@ -34,46 +34,42 @@ class Image extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (Utils.isUrl(source)){
-        return CachedNetworkImage(
-            imageUrl: source,
-            width: width,
-            height: height,
-            fit: fit,
+    if (source.startsWith('https://') || source.startsWith('http://')) {
+      // If the asset is available locally, then use local path
+      String assetName = Utils.getAssetName(source);
+      if (Utils.isAssetAvailableLocally(assetName)) {
+        return flutter.Image.asset(
+          Utils.getLocalAssetFullPath(assetName),
+          width: width,
+          height: height,
+          fit: fit,
+          errorBuilder: errorBuilder != null
+              ? (context, error, stackTrace) => errorBuilder!(error.toString())
+              : null,
+        );
+      }
+      return CachedNetworkImage(
+          imageUrl: source,
+          width: width,
+          height: height,
+          fit: fit,
 
-            // placeholder while the image is loading
-            placeholder: placeholderBuilder,
-            errorWidget: errorBuilder != null
-                ? (context, url, error) => errorBuilder!(error.toString())
-                : null,
-            cacheManager: networkCacheManager);
-      }
-      else{
-       final localSource = Utils.getLocalAssetFullPath(source);
-        if(Utils.isUrl(localSource)){
-            return CachedNetworkImage(
-              imageUrl: localSource,
-              width: width,
-              height: height,
-              fit: fit,
-              placeholder: placeholderBuilder,
-              errorWidget: errorBuilder != null
-                  ? (context, url, error) => errorBuilder!(error.toString())
-                  : null,
-              cacheManager: networkCacheManager);
-        }
-        else{
-            return flutter.Image.asset(
-            Utils.getLocalAssetFullPath(source),
-            width: width,
-            height: height,
-            fit: fit,
-            errorBuilder: errorBuilder != null
-                ? (context, error, stackTrace) =>
-                    errorBuilder!(error.toString())
-                : null,
-          );
-      }
+          // placeholder while the image is loading
+          placeholder: placeholderBuilder,
+          errorWidget: errorBuilder != null
+              ? (context, url, error) => errorBuilder!(error.toString())
+              : null,
+          cacheManager: networkCacheManager);
+    } else {
+      return flutter.Image.asset(
+        Utils.getLocalAssetFullPath(source),
+        width: width,
+        height: height,
+        fit: fit,
+        errorBuilder: errorBuilder != null
+            ? (context, error, stackTrace) => errorBuilder!(error.toString())
+            : null,
+      );
     }
   }
 }

@@ -189,6 +189,15 @@ class ImageState extends EWidgetState<EnsembleImage> {
 
   Widget buildNonSvgImage(String source, BoxFit? fit) {
     if (source.startsWith('https://') || source.startsWith('http://')) {
+      // If the asset is available locally, then use local path
+      String assetName = Utils.getAssetName(source);
+      if (Utils.isAssetAvailableLocally(assetName)) {
+        return Image.asset(Utils.getLocalAssetFullPath(assetName),
+            width: widget._controller.width?.toDouble(),
+            height: widget._controller.height?.toDouble(),
+            fit: fit,
+            errorBuilder: (context, error, stacktrace) => errorFallback());
+      }
       int? cachedWidth = widget._controller.resizedWidth;
       int? cachedHeight = widget._controller.resizedHeight;
 
@@ -283,9 +292,17 @@ class ImageState extends EWidgetState<EnsembleImage> {
         fit: fit ?? BoxFit.contain,
       );
     }
-    
+
     // if is URL
     if (source.startsWith('https://') || source.startsWith('http://')) {
+      // If the asset is available locally, then use local path
+      String assetName = Utils.getAssetName(source);
+      if (Utils.isAssetAvailableLocally(assetName)) {
+        return SvgPicture.asset(Utils.getLocalAssetFullPath(assetName),
+            width: widget._controller.width?.toDouble(),
+            height: widget._controller.height?.toDouble(),
+            fit: fit ?? BoxFit.contain);
+      }
       return SvgPicture.network(
         widget._controller.source,
         width: widget._controller.width?.toDouble(),

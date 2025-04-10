@@ -4,6 +4,7 @@ import 'dart:ui';
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/ensemble_app.dart';
 import 'package:ensemble/framework/action.dart';
+import 'package:ensemble/framework/assets_service.dart';
 import 'package:ensemble/framework/ensemble_config_service.dart';
 import 'package:ensemble/framework/stub/location_manager.dart';
 import 'package:ensemble/framework/theme/theme_manager.dart';
@@ -247,6 +248,21 @@ class Utils {
 
   static bool isUrl(String source) {
     return source.startsWith('https://') || source.startsWith('http://');
+  }
+
+  static String getAssetName(String source) {
+    try {
+      Uri uri = Uri.parse(source);
+      String path =
+          uri.pathSegments!.last; // Get the last segment with encoding
+      return Uri.decodeFull(path)
+          .split('/')
+          .last
+          .split('?')
+          .first; // Decode and extract the file name
+    } catch (e) {
+      return '';
+    }
   }
 
   static LocationData? getLatLng(dynamic value) {
@@ -694,13 +710,6 @@ class Utils {
     return textAlign;
   }
 
-  static double? getValidOpacity(double opacity) {
-    if (opacity < 0 || opacity > 1) {
-      return 1;
-    } else {
-      return opacity;
-    }
-  }
 
   static Curve? getCurve(String? curveType) {
     Curve? curve;
@@ -810,6 +819,81 @@ class Utils {
     return null;
   }
 
+  static BorderRadiusGeometry? getBorderRadiusGeometry(dynamic value) {
+  if (value is int) {
+    // Optimize: Ignore zero border radius as it causes unnecessary clipping
+    if (value != 0) {
+      return BorderRadius.all(Radius.circular(value.toDouble()));
+    }
+  } else if (value is String) {
+    // Convert the string to a list of integers
+    List<int> numbers = stringToIntegers(value, min: 0);
+
+    // Handle 1 to 4 values for BorderRadius
+    switch (numbers.length) {
+      case 1:
+        return BorderRadius.all(Radius.circular(numbers[0].toDouble()));
+      case 2:
+        return BorderRadius.vertical(
+          top: Radius.circular(numbers[0].toDouble()),
+          bottom: Radius.circular(numbers[1].toDouble()),
+        );
+      case 3:
+        return BorderRadius.only(
+          topLeft: Radius.circular(numbers[0].toDouble()),
+          topRight: Radius.circular(numbers[1].toDouble()),
+          bottomLeft: Radius.circular(numbers[2].toDouble()),
+        );
+      case 4:
+        return BorderRadius.only(
+          topLeft: Radius.circular(numbers[0].toDouble()),
+          topRight: Radius.circular(numbers[1].toDouble()),
+          bottomRight: Radius.circular(numbers[2].toDouble()),
+          bottomLeft: Radius.circular(numbers[3].toDouble()),
+        );
+      default:
+        throw LanguageError('borderRadius requires 1 to 4 integers');
+    }
+  }
+
+  // If the input is invalid, return null
+  return null;
+}
+
+static BoxDecoration? getBoxDecoration(dynamic style) {
+  if (style is Map) {
+    return BoxDecoration(
+      color: Utils.getColor(style['backgroundColor']),
+      border: Border.all(
+        color: Utils.getColor(style['borderColor']) ?? Colors.transparent,
+        width: Utils.optionalDouble(style['borderWidth']) ?? 1.0,
+        
+      ),
+      borderRadius: getBorderRadiusGeometry(style['borderRadius']),
+      boxShadow: [
+        if (style['shadow'] != null) BoxShadow(
+          blurRadius: Utils.optionalDouble(style['shadow']['blurRadius']) ?? 0.0,
+          color: Utils.getColor(style['shadow']['color']) ?? Colors.black,
+          offset: Utils.getOffset(style['shadow']['offset']) ?? Offset.zero,
+          spreadRadius: Utils.optionalDouble(style['shadow']['spreadRadius']) ?? 0.0,
+        ),
+      ],
+      gradient: style['gradient'] != null ? LinearGradient(
+        begin: getAlignment(style['gradient']['begin']) ?? Alignment.centerLeft,
+        end: getAlignment(style['gradient']['end']) ?? Alignment.centerRight,
+        colors: (style['gradient']['colors'] as List?)
+            ?.map((c) => Utils.getColor(c) ?? Colors.transparent)
+            .toList() ?? [Colors.transparent],
+        stops: (style['gradient']['stops'] as List?)
+            ?.map((s) => Utils.optionalDouble(s) ?? 0.0)
+            .toList(),
+      ) : null,
+      backgroundBlendMode: BlendMode.values.from(style['blendMode']),
+      shape: BoxShape.values.from(style['shape']) ?? BoxShape.rectangle,
+    );
+  }
+  return null;
+}
   /// return the padding/margin value
   static EdgeInsets getInsets(dynamic value, {EdgeInsets? fallback}) {
     return optionalInsets(value) ?? fallback ?? const EdgeInsets.all(0);
@@ -1021,6 +1105,10 @@ class Utils {
     } catch (e) {
       return 'ensemble/assets/${stripQueryParamsFromAsset(asset)}';
     }
+  }
+
+  static bool isAssetAvailableLocally(String? fileName) {
+    return LocalAssetsService.localAssets.contains(fileName);
   }
 
   static bool isMemoryPath(String path) {

@@ -1,9 +1,10 @@
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
-import 'package:image_gallery_saver/image_gallery_saver.dart';
+import 'package:get_it/get_it.dart';
 import 'package:path_provider/path_provider.dart';
-// Conditionally import the file that has `dart:html` vs. the stub:
+import 'package:ensemble/framework/stub/file_manager.dart';
+
 import 'download_stub.dart' if (dart.library.html) 'download_web.dart';
 
 Future<void> saveImageToDCIM(String fileName, Uint8List fileBytes) async {
@@ -11,15 +12,10 @@ Future<void> saveImageToDCIM(String fileName, Uint8List fileBytes) async {
     if (kIsWeb) {
       downloadFileOnWeb(fileName, fileBytes);
     } else {
-      final result = await ImageGallerySaver.saveImage(
+      await GetIt.I<FileManager>().saveImage(
         fileBytes,
         name: fileName,
       );
-      if (result['isSuccess']) {
-        debugPrint('Image saved to gallery: $result');
-      } else {
-        throw Exception('Failed to save image to gallery.');
-      }
     }
   } catch (e) {
     throw Exception('Failed to save image: $e');

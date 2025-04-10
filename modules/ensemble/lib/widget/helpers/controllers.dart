@@ -228,6 +228,7 @@ abstract class WidgetController extends Controller with HasStyles {
   // properties for tooltip
   Map<String, dynamic>? toolTip;
 
+  EnsembleSemantics? semantics;
   // legacy used to show as the form label if used inside Form
   @Deprecated("don't use anymore")
   String? label;
@@ -261,7 +262,7 @@ abstract class WidgetController extends Controller with HasStyles {
       'flex': (value) => flex = Utils.optionalInt(value, min: 1),
       'expanded': (value) => expanded = Utils.getBool(value, fallback: false),
       'visible': (value) => visible = Utils.getBool(value, fallback: true),
-      'opacity': (value) => opacity = Utils.getValidOpacity(value),
+      'opacity': (value) => opacity = Utils.optionalDouble(value, min: 0, max: 1),
       'visibilityTransitionDuration': (value) =>
           visibilityTransitionDuration = Utils.getDuration(value),
       'elevation': (value) =>
@@ -286,6 +287,7 @@ abstract class WidgetController extends Controller with HasStyles {
       'classList': (value) => classList = value,
       'className': (value) => className = value,
       'tooltip': (value) => toolTip = Utils.getMap(value),
+      'semantics': (value) => semantics = EnsembleSemantics.fromYaml(Utils.getMap(value)),
     };
   }
 
@@ -467,6 +469,7 @@ abstract class EnsembleWidgetController extends EnsembleController
   // properties for tooltip
   Map<String, dynamic>? toolTip;
 
+  EnsembleSemantics? semantics;
 
   @override
   Map<String, Function> getters() {
@@ -487,7 +490,7 @@ abstract class EnsembleWidgetController extends EnsembleController
       'flexMode': (value) => flexMode = FlexMode.values.from(value),
       'flex': (value) => flex = Utils.optionalInt(value, min: 1),
       'visible': (value) => visible = Utils.getBool(value, fallback: true),
-      'opacity': (value) => opacity = Utils.getValidOpacity(value),
+      'opacity': (value) => opacity = Utils.optionalDouble(value, min: 0, max: 1),
       'visibilityTransitionDuration': (value) =>
           visibilityTransitionDuration = Utils.getDuration(value),
       'textDirection': (value) => textDirection = Utils.getTextDirection(value),
@@ -511,6 +514,7 @@ abstract class EnsembleWidgetController extends EnsembleController
       'classList': (value) => classList = value,
       'className': (value) => className = value,
       'tooltip': (value) => toolTip = Utils.getMap(value),
+      'semantics': (value) => semantics = EnsembleSemantics.fromYaml(Utils.getMap(value)),
       };
   }
 
@@ -579,4 +583,22 @@ class EnsembleBoxController extends EnsembleWidgetController
       hasBorder() ||
       borderRadius != null ||
       boxShadow != null;
+}
+
+class EnsembleSemantics {
+  bool focusable;
+  String? label;
+  String? hint;
+
+  // Convert to named parameters
+  EnsembleSemantics({this.label, this.hint,required this.focusable});
+
+  // Factory constructor to map from YAML
+  factory EnsembleSemantics.fromYaml(Map<String, dynamic>? yamlMap) {
+    return EnsembleSemantics(
+      focusable: Utils.optionalBool(yamlMap!['focusable']) ?? true,
+      label: Utils.optionalString(yamlMap['label']) ?? '',
+      hint: Utils.optionalString(yamlMap['hint']) ?? '',
+    );
+  }
 }

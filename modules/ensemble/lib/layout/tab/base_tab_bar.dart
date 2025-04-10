@@ -88,9 +88,18 @@ abstract class BaseTabBarState extends EWidgetState<BaseTabBar>
 
     if (widget.controller.borderRadius != null) {
       final borderRadius = widget.controller.borderRadius?.getValue();
-      tabBar = ClipRRect(
-        borderRadius: borderRadius ?? BorderRadius.zero,
-        child: tabBar,
+      tabBar = Container(
+        decoration: BoxDecoration(
+          border: Border.all(
+            color: widget.controller.borderColor ?? Colors.transparent, // Customize as needed
+            width: (widget.controller.borderWidth ?? 0.0).toDouble(),
+          ),
+          borderRadius: borderRadius ?? BorderRadius.zero,
+        ),
+        child: ClipRRect(
+            borderRadius: borderRadius ?? BorderRadius.zero,
+            child: tabBar
+        ),
       );
     }
 
@@ -108,6 +117,7 @@ abstract class BaseTabBarState extends EWidgetState<BaseTabBar>
 
   Widget _buildTabWidget(ScopeManager? scopeManager, TabItem tabItem) {
     final tabWidget = tabItem.tabWidget;
+    final label = scopeManager!.dataContext.eval(tabItem.label);
     if (scopeManager != null && tabWidget != null) {
       final customWidget = scopeManager.buildWidgetFromDefinition(tabWidget);
       return Tab(
@@ -115,7 +125,7 @@ abstract class BaseTabBarState extends EWidgetState<BaseTabBar>
       );
     }
     return Tab(
-      text: tabItem.label,
+      text: label,
       icon:
           tabItem.icon != null ? ensemble.Icon.fromModel(tabItem.icon!) : null,
     );

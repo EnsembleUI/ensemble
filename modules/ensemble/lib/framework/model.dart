@@ -31,7 +31,13 @@ class BackgroundImage {
   DecorationImage getImageAsDecorated() {
     ImageProvider imageProvider;
     if (Utils.isUrl(_source)) {
-      imageProvider = NetworkImage(_source);
+      // If the asset is available locally, then use local path
+      String assetName = Utils.getAssetName(_source);
+      if (Utils.isAssetAvailableLocally(assetName)) {
+        imageProvider = AssetImage(Utils.getLocalAssetFullPath(assetName));
+      } else {
+        imageProvider = NetworkImage(_source);
+      }
     } else {
        final localSource = Utils.getLocalAssetFullPath(_source);
        if(Utils.isUrl(localSource)){
@@ -54,6 +60,16 @@ class BackgroundImage {
         : null;
 
     if (Utils.isUrl(_source)) {
+      String assetName = Utils.getAssetName(_source);
+      if (Utils.isAssetAvailableLocally(assetName)) {
+        return Image.asset(
+          Utils.getLocalAssetFullPath(assetName),
+          fit: _fit,
+          alignment: _alignment,
+          errorBuilder:
+              fallbackWidget != null ? (_, __, ___) => fallbackWidget : null,
+        );
+      }
       return CachedNetworkImage(
         imageUrl: _source,
         fit: _fit,

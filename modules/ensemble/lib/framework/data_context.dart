@@ -91,12 +91,12 @@ class DataContext implements Context {
     _addLegacyDataContext();
   }
 
-  // For backward compatibility
-  void _addLegacyDataContext() {
+
     // device is a common name. If user already uses that, don't override it
     // This is now in ensemble.device.*
+  void _addLegacyDataContext() {
     if (_contextMap['device'] == null) {
-      _contextMap['device'] = Device();
+        _contextMap['device'] = Device();
     }
   }
 
