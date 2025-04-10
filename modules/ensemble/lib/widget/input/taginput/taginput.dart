@@ -455,13 +455,10 @@ class TagInputState extends FormFieldWidgetState<BaseTextInput>
               tagQuery = query;
             });
           },
-          triggerCharacterAndStyles: widget.controller.triggers.isEmpty
-              ? { "@": widget._controller.mentionStyle ?? const TextStyle(color: Colors.blue) }
-              : {
-                  ...widget.controller.triggers
-                      .map((key, value) => MapEntry(key, value ?? const TextStyle(color: Colors.blue))),
-                  "@": widget._controller.mentionStyle ?? const TextStyle(color: Colors.blue),
-                },
+          triggerCharacterAndStyles: {
+            for (var entry in widget._controller.triggers.entries)
+              entry.key: entry.value ?? const TextStyle(color: Colors.blue),
+          },
           triggerStrategy: TriggerStrategy.eager,
           overlayHeight: _calculatedOverlayHeight,
           overlay: Material(
