@@ -3,6 +3,104 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## 2025-04-09
+
+### Changes
+
+---
+
+Packages with breaking changes:
+
+ - There are no breaking changes in this release.
+
+Packages with other changes:
+
+ - [`ensemble` - `v1.1.42`](#ensemble---v1142)
+ - [`ensemble_chat` - `v0.0.1+1`](#ensemble_chat---v0011)
+ - [`ensemble_auth` - `v1.0.1`](#ensemble_auth---v101)
+ - [`ensemble_camera` - `v0.0.1+1`](#ensemble_camera---v0011)
+ - [`ensemble_location` - `v0.0.1+1`](#ensemble_location---v0011)
+ - [`ensemble_contacts` - `v0.0.1+1`](#ensemble_contacts---v0011)
+ - [`ensemble_file_manager` - `v0.0.1+1`](#ensemble_file_manager---v0011)
+ - [`ensemble_bluetooth` - `v0.0.1+1`](#ensemble_bluetooth---v0011)
+ - [`ensemble_connect` - `v0.0.1+1`](#ensemble_connect---v0011)
+ - [`ensemble_deeplink` - `v0.0.1+1`](#ensemble_deeplink---v0011)
+ - [`ensemble_network_info` - `v0.0.1+1`](#ensemble_network_info---v0011)
+
+Packages with dependency updates only:
+
+> Packages listed below depend on other packages in this workspace that have had changes. Their versions have been incremented to bump the minimum dependency versions of the packages they depend upon in this project.
+
+ - `ensemble_chat` - `v0.0.1+1`
+ - `ensemble_auth` - `v1.0.1`
+ - `ensemble_camera` - `v0.0.1+1`
+ - `ensemble_location` - `v0.0.1+1`
+ - `ensemble_contacts` - `v0.0.1+1`
+ - `ensemble_file_manager` - `v0.0.1+1`
+ - `ensemble_bluetooth` - `v0.0.1+1`
+ - `ensemble_connect` - `v0.0.1+1`
+ - `ensemble_deeplink` - `v0.0.1+1`
+ - `ensemble_network_info` - `v0.0.1+1`
+
+---
+
+#### `ensemble` - `v1.1.42`
+
+ - **REFACTOR**: update validateJsCode method to include DataContext parameter. ([cfee0493](https://github.com/ensembleUI/ensemble/commit/cfee049346da5a82528360b37bbbeb4ce0ff9cd2))
+ - **REFACTOR**: update validateJsCode method to remove DataContext parameter. ([ab6bc651](https://github.com/ensembleUI/ensemble/commit/ab6bc651ad44cc07954cd408d72a1f19d977f384))
+ - **FEAT**: simplify EnsembleStorage method mappings and enhance JSValidator property access error handling. ([05661a5e](https://github.com/ensembleUI/ensemble/commit/05661a5e0d132cbc0342a88f90d8da5521185ec6))
+ - **FEAT**: update EnsembleStorage methods to accept dynamic values for setProperty and implement property access checks. ([1e3373a5](https://github.com/ensembleUI/ensemble/commit/1e3373a50185a2732c8468c4f4743da25e72a279))
+ - **FEAT**: refactor JSInterpreter validation logic into JSValidator for improved error handling and context-aware checks. ([b47d93ac](https://github.com/ensembleUI/ensemble/commit/b47d93ac1db79e65dc77082c127ca867c5f437a4))
+ - **FEAT**: enhance JS code validation in DevMode and add detailed error handling. ([00d0f617](https://github.com/ensembleUI/ensemble/commit/00d0f6172ff96eb2368aca85c6199da12d937db5))
+ - **FEAT**: add JS code validation method in DevMode class. ([6006ffcb](https://github.com/ensembleUI/ensemble/commit/6006ffcbd1e10044d25109f0574bd858a1db43dd))
+
+
+## 2025-04-09
+
+### Changes
+
+---
+
+Packages with breaking changes:
+
+ - There are no breaking changes in this release.
+
+Packages with other changes:
+
+ - [`ensemble` - `v1.1.41`](#ensemble---v1141)
+ - [`ensemble_auth` - `v1.0.1`](#ensemble_auth---v101)
+ - [`ensemble_camera` - `v0.0.1+1`](#ensemble_camera---v0011)
+ - [`ensemble_chat` - `v0.0.1+1`](#ensemble_chat---v0011)
+ - [`ensemble_contacts` - `v0.0.1+1`](#ensemble_contacts---v0011)
+ - [`ensemble_location` - `v0.0.1+1`](#ensemble_location---v0011)
+ - [`ensemble_file_manager` - `v0.0.1+1`](#ensemble_file_manager---v0011)
+ - [`ensemble_bluetooth` - `v0.0.1+1`](#ensemble_bluetooth---v0011)
+ - [`ensemble_connect` - `v0.0.1+1`](#ensemble_connect---v0011)
+ - [`ensemble_network_info` - `v0.0.1+1`](#ensemble_network_info---v0011)
+ - [`ensemble_deeplink` - `v0.0.1+1`](#ensemble_deeplink---v0011)
+
+Packages with dependency updates only:
+
+> Packages listed below depend on other packages in this workspace that have had changes. Their versions have been incremented to bump the minimum dependency versions of the packages they depend upon in this project.
+
+ - `ensemble_auth` - `v1.0.1`
+ - `ensemble_camera` - `v0.0.1+1`
+ - `ensemble_chat` - `v0.0.1+1`
+ - `ensemble_contacts` - `v0.0.1+1`
+ - `ensemble_location` - `v0.0.1+1`
+ - `ensemble_file_manager` - `v0.0.1+1`
+ - `ensemble_bluetooth` - `v0.0.1+1`
+ - `ensemble_connect` - `v0.0.1+1`
+ - `ensemble_network_info` - `v0.0.1+1`
+ - `ensemble_deeplink` - `v0.0.1+1`
+
+---
+
+#### `ensemble` - `v1.1.41`
+
+ - Updating Ensemble to 1.1.41
+
+
 ## 2025-04-03
 
 ### Changes
