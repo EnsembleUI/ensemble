@@ -1,3 +1,5 @@
+## 1.1.43
+
 ## 1.1.42
 
  - **REFACTOR**: update validateJsCode method to include DataContext parameter. ([cfee0493](https://github.com/ensembleUI/ensemble/commit/cfee049346da5a82528360b37bbbeb4ce0ff9cd2))
