@@ -457,7 +457,7 @@ class PageGroupState extends State<PageGroup> with MediaQueryCapability {
 
           // Optional footer section at bottom of drawer
           if (menu.footerModel != null)
-            _scopeManager.buildWidget(menu.footerModel!),
+            Expanded(child: _scopeManager.buildWidget(menu.footerModel!)),
         ],
       ),
     );
