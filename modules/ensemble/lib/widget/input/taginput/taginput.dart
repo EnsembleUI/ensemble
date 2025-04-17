@@ -17,7 +17,7 @@ import 'package:flutter/material.dart';
 import 'package:ensemble/layout/templated.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/services.dart';
-import 'package:fluttertagger/fluttertagger.dart';
+import 'package:input_tagger/input_tagger.dart';
 
 /// TagInput
 class TagInput extends BaseTextInput {
@@ -73,7 +73,9 @@ abstract class BaseTextInput extends StatefulWidget
   Map<String, Function> getters() {
     var getters = _controller.textPlaceholderGetters;
     getters.addAll({
-      'value': () => _controller.taggerControllerValue ?? '',
+      'value': () => _controller.taggerController.formattedText ?? '',
+      'currentTriggerChar': () => _controller
+          .currentTriggerChar, // Getter for current trigger character
     });
     return getters;
   }
@@ -88,6 +90,18 @@ abstract class BaseTextInput extends StatefulWidget
     // Add TagInput specific setters
     setters.addAll({
       'triggers': (items) => buildTagTriggers(items),
+      'initialTag': (tag) {
+        if (tag is Map) {
+          Map<String, String> newTag = {
+            'id': tag['id']?.toString() ?? '',
+            'label': tag['label']?.toString() ?? '',
+            'key': tag['key']?.toString() ?? '',
+          };
+          _controller.initialTag = newTag;
+        } else if (tag == null) {
+          _controller.initialTag = null;
+        }
+      },
       'maxOverlayHeight': (value) =>
           _controller.maxOverlayHeight = Utils.optionalDouble(value),
       'minOverlayHeight': (value) =>
@@ -114,12 +128,9 @@ abstract class BaseTextInput extends StatefulWidget
   }
 
   Map<String, TextStyle?> buildTagTriggers(List<dynamic>? triggers) {
-    // Initialize with default @ trigger
-    Map<String, TextStyle?> results = {
-      '@': const TextStyle(color: Colors.blue),
-    };
+    Map<String, TextStyle?> results = {};
 
-    if (triggers != null) {
+    if (triggers != null && triggers.isNotEmpty) {
       for (var item in triggers) {
         if (item is Map) {
           String? character = item['character']?.toString();
@@ -135,8 +146,13 @@ abstract class BaseTextInput extends StatefulWidget
       }
     }
 
-    _controller.triggers = results;
+    // If no triggers were defined, add a default @ trigger
+    if (results.isEmpty) {
+      results['@'] = const TextStyle(color: Colors.blue);
+    }
 
+    _controller.triggers = results;
+    _controller.setupTriggerTypes(triggers);
     return results;
   }
 
@@ -157,10 +173,29 @@ mixin TextInputFieldAction on FormFieldWidgetState<BaseTextInput>
 
 /// Controller for TagInput extending BaseInputController
 class TagInputController extends BaseInputController {
-  // Text value for the controller
+  // Private properties
   String _taggerControllerValue = '';
+  String _currentTriggerChar = '@';
+  Map<String, String> _triggerTypeMap = {};
+  InputTaggerController? _taggerController;
+  bool _initialTagApplied = false;
+  bool _applyingInitialTag = false;
+  Map<String, String>? _initialTag;
 
-  // Getter and setter for the value
+  // Configurable properties
+  Map<String, TextStyle?> triggers = {'@': const TextStyle(color: Colors.blue)};
+  LabelValueItemTemplate? itemTemplate;
+  TextStyle? mentionStyle;
+  EnsembleAction? onSearch;
+  BoxDecoration? overlayStyle;
+  double? maxOverlayHeight;
+  double? minOverlayHeight;
+  TextStyle? tagStyle;
+  TextStyle? tagSelectionStyle;
+
+  // Getters and Setters
+  String get currentTriggerChar => _currentTriggerChar;
+
   String get taggerControllerValue => _taggerControllerValue;
   set taggerControllerValue(String value) {
     _taggerControllerValue = value;
@@ -169,36 +204,84 @@ class TagInputController extends BaseInputController {
     }
   }
 
-  // Controller is created only when needed
-  FlutterTaggerController? _taggerController;
+  Map<String, String>? get initialTag => _initialTag;
+  set initialTag(Map<String, String>? value) {
+    if (_initialTag != value) {
+      _initialTag = value;
+      if (_taggerController != null) {
+        applyInitialTag();
+      }
+    }
+  }
 
-  // Each time we get the controller, ensure it's initialized
-  FlutterTaggerController get taggerController {
+  InputTaggerController get taggerController {
     if (_taggerController == null) {
-      _taggerController = FlutterTaggerController(text: _taggerControllerValue);
+      _taggerController = InputTaggerController(text: _taggerControllerValue);
     }
     return _taggerController!;
   }
 
-  // Initialize with default triggers
-  Map<String, TextStyle?> triggers = {'@': const TextStyle(color: Colors.blue)};
+  // Setup Trigger Types
+  void setupTriggerTypes(List<dynamic>? triggers) {
+    _triggerTypeMap.clear();
 
-  LabelValueItemTemplate? itemTemplate;
-  TextStyle? mentionStyle;
+    if (triggers != null) {
+      for (var item in triggers) {
+        if (item is Map) {
+          String? character = item['character']?.toString();
+          String? triggerType = item['triggerType']?.toString();
 
-  EnsembleAction? onSearch;
+          if (character != null && triggerType != null) {
+            _triggerTypeMap[character] = triggerType;
+          }
+        }
+      }
+    }
+  }
 
-  // overlay styles
-  BoxDecoration? overlayStyle;
-  double? maxOverlayHeight;
-  double? minOverlayHeight;
+  // Apply Initial Tag
+  void applyInitialTag() {
+    if (initialTag == null) return;
 
-  TextStyle? tagStyle;
-  TextStyle? tagSelectionStyle;
+    _initialTagApplied = false;
+    _applyingInitialTag = true;
+
+    Future.delayed(const Duration(milliseconds: 100), () {
+      if (initialTag == null) return;
+      if (_initialTagApplied) return;
+
+      final tag = initialTag!;
+      final triggerChar = triggers.keys.first;
+
+      _initialTagApplied = true;
+
+      if (tag.containsKey('id') &&
+          (tag.containsKey('key') || tag.containsKey('label'))) {
+        String displayText = tag['label'] ?? tag['key'] ?? '';
+
+        taggerController.clear();
+        taggerController.text = triggerChar;
+        taggerController.selection =
+            TextSelection.collapsed(offset: taggerController.text.length);
+
+        taggerController.addTag(id: tag['id']!, name: displayText);
+        taggerController.dismissOverlay();
+
+        final text = taggerController.text;
+        if (!text.endsWith(' ')) {
+          taggerController.text = '$text ';
+          taggerController.selection =
+              TextSelection.collapsed(offset: taggerController.text.length);
+        }
+
+        _taggerControllerValue = taggerController.text;
+        _applyingInitialTag = false;
+      }
+    });
+  }
 
   @override
   void dispose() {
-    // Only dispose if it was created
     _taggerController?.dispose();
     _taggerController = null;
     super.dispose();
@@ -208,7 +291,7 @@ class TagInputController extends BaseInputController {
 class TagInputState extends FormFieldWidgetState<BaseTextInput>
     with TickerProviderStateMixin, TextInputFieldAction, TemplatedWidgetState {
   // Core controller references
-  FlutterTaggerController get _taggerController =>
+  InputTaggerController get _taggerController =>
       widget._controller.taggerController;
 
   // UI state
@@ -299,6 +382,12 @@ class TagInputState extends FormFieldWidgetState<BaseTextInput>
         setState(() {
           _initialized = true;
         });
+        Future.delayed(Duration(milliseconds: 200), () {
+          // Change from initialTags to initialTag
+          if (mounted && widget._controller.initialTag != null) {
+            widget._controller.applyInitialTag();
+          }
+        });
       }
     });
   }
@@ -337,16 +426,20 @@ class TagInputState extends FormFieldWidgetState<BaseTextInput>
 
     // Making sure to move cursor to end when widget rebuild
     if (focusNode.hasFocus) {
-      int oldCursorPosition = oldWidget._controller.taggerController.selection.baseOffset;
+      int oldCursorPosition =
+          oldWidget._controller.taggerController.selection.baseOffset;
       int textLength = widget._controller.taggerController.text.length;
 
-      widget._controller.taggerController.selection = TextSelection.fromPosition(
+      widget._controller.taggerController.selection =
+          TextSelection.fromPosition(
         TextPosition(offset: oldCursorPosition),
       );
-      int cursorPosition = widget._controller.taggerController.selection.baseOffset;
+      int cursorPosition =
+          widget._controller.taggerController.selection.baseOffset;
 
       if (textLength > cursorPosition) {
-        widget._controller.taggerController.selection = TextSelection.fromPosition(
+        widget._controller.taggerController.selection =
+            TextSelection.fromPosition(
           TextPosition(offset: textLength),
         );
       }
@@ -436,7 +529,7 @@ class TagInputState extends FormFieldWidgetState<BaseTextInput>
     return InputWrapper(
         type: TagInput.type,
         controller: widget._controller,
-        widget: FlutterTagger(
+        widget: InputTagger(
           controller: _taggerController,
           animationController: _animationController,
           tagTextFormatter: (id, tag, triggerCharacter) {
@@ -448,7 +541,12 @@ class TagInputState extends FormFieldWidgetState<BaseTextInput>
               ScreenController().executeAction(
                 context,
                 widget._controller.onSearch!,
-                event: EnsembleEvent(widget, data: {'query': query}),
+                event: EnsembleEvent(widget, data: {
+                  'query': query,
+                  'triggerChar': triggerCharacter,
+                  'triggerType': widget._controller._triggerTypeMap[
+                      triggerCharacter]
+                }),
               );
             }
             setState(() {
@@ -459,7 +557,9 @@ class TagInputState extends FormFieldWidgetState<BaseTextInput>
             for (var entry in widget._controller.triggers.entries)
               entry.key: entry.value ?? const TextStyle(color: Colors.blue),
           },
-          triggerStrategy: TriggerStrategy.eager,
+          triggerStrategy: widget._controller._applyingInitialTag
+              ? TriggerStrategy.deferred
+              : TriggerStrategy.eager,
           overlayHeight: _calculatedOverlayHeight,
           overlay: Material(
               child: SlideTransition(
@@ -551,10 +651,14 @@ class TagInputState extends FormFieldWidgetState<BaseTextInput>
     // Check if the last word exists and starts with a trigger character
     if (words.isNotEmpty) {
       final lastWord = words.last;
-      if (lastWord.startsWith("@") ||
-          widget._controller.triggers.entries
-              .any((trigger) => lastWord.startsWith(trigger.key))) {
-        return true; // It is a tag
+
+      // Check each trigger character
+      for (String trigger in widget._controller.triggers.keys) {
+        if (lastWord.startsWith(trigger)) {
+          // Update the current trigger character when found
+          widget._controller._currentTriggerChar = trigger;
+          return true; // It is a tag
+        }
       }
     }
 
@@ -563,6 +667,7 @@ class TagInputState extends FormFieldWidgetState<BaseTextInput>
 
   void _clearSelection() {
     _taggerController.clear();
+    widget._controller._initialTagApplied = false; // Reset flag when clearing
     focusNode.unfocus();
   }
 
@@ -573,11 +678,33 @@ class TagInputState extends FormFieldWidgetState<BaseTextInput>
     // Normalize the query
     String query = tagQuery?.toLowerCase() ?? '';
 
-    // Filter the templated list
-    if (itemTemplate != null && dataList != null) {
+    // Get current trigger and its type
+    String currentTrigger = widget._controller.currentTriggerChar;
+    String? currentTriggerType =
+        widget._controller._triggerTypeMap[currentTrigger];
+
+    // Find the data group matching the current trigger type
+    List? filteredDataList;
+    if (currentTriggerType != null && dataList != null) {
+      // Look for a group with matching triggerType
+      for (var group in dataList) {
+        if (group is Map &&
+            group['triggerType'] == currentTriggerType &&
+            group['data'] is List) {
+          filteredDataList = group['data'];
+          break;
+        }
+      }
+    }
+
+    // If no matching group found or no trigger type, use the full data list
+    filteredDataList ??= dataList;
+
+    // Filter the templated list - use filteredDataList instead of dataList
+    if (itemTemplate != null && filteredDataList != null) {
       ScopeManager? parentScope = DataScopeWidget.getScope(context);
       if (parentScope != null) {
-        for (var itemData in dataList) {
+        for (var itemData in filteredDataList) {
           ScopeManager templatedScope = parentScope.createChildScope();
           templatedScope.dataContext
               .addDataContextById(itemTemplate.name, itemData);
