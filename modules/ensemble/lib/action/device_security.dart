@@ -3,43 +3,68 @@ import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:root_jailbreak_sniffer/rjsniffer.dart';
+import 'package:safe_device/safe_device.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter_security_checker/flutter_security_checker.dart';
 import 'package:ensemble/framework/event.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 class DeviceSecurity extends EnsembleAction with Invokable {
   EnsembleAction? onSuccess;
   EnsembleAction? onError;
+  String? packageName;
+  String? signature;
 
   DeviceSecurity({
     this.onSuccess,
     this.onError,
+    this.packageName,
+    this.signature,
   });
 
   @override
   Future<void> execute(BuildContext context, ScopeManager scopeManager) async {
     if (kIsWeb) {
-      _handleSuccess(context, false, false, false,false,
+      _handleSuccess(context, false, false, false, false, false, false,
           'This information is not available on the web');
       return;
     }
 
     try {
       // Check if the device is rooted, debugged, or an emulator
-      bool isRooted = await Rjsniffer.amICompromised() ?? false;
-      bool isDebugged = await Rjsniffer.amIDebugged() ?? false;
-      bool isEmulator = await Rjsniffer.amIEmulator() ?? false;
-      bool hasCorrectlyInstalled = await FlutterSecurityChecker.hasCorrectlyInstalled;
+      bool isRooted = await SafeDevice.isJailBroken;
+      bool isDebugged = await SafeDevice.isDevelopmentModeEnable;
+      bool isEmulator = !await SafeDevice.isRealDevice;
+      bool hasCorrectlyInstalled =
+          await FlutterSecurityChecker.hasCorrectlyInstalled;
 
-      _handleSuccess(context, isRooted, isDebugged, isEmulator, hasCorrectlyInstalled, 'success');
+      // Get the current package name and signature
+      PackageInfo packageInfo = await PackageInfo.fromPlatform();
+      String currentPackageName = packageInfo.packageName;
+      String currentSignature = packageInfo.buildSignature;
+
+      // Verify package name and signature if they were provided
+      bool isPackageValid =
+          packageName == null || currentPackageName == packageName;
+      bool isSignatureValid =
+          signature == null || currentSignature == signature;
+
+      _handleSuccess(context, isRooted, isDebugged, isEmulator,
+          hasCorrectlyInstalled, isPackageValid, isSignatureValid, 'success');
     } catch (e) {
       _handleError(context, e);
     }
   }
 
-  void _handleSuccess(BuildContext context, bool isRooted, bool isDebugged,
-      bool isEmulator, bool hasCorrectlyInstalled, String message) {
+  void _handleSuccess(
+      BuildContext context,
+      bool isRooted,
+      bool isDebugged,
+      bool isEmulator,
+      bool hasCorrectlyInstalled,
+      bool isPackageValid,
+      bool isSignatureValid,
+      String message) {
     if (onSuccess != null) {
       ScreenController().executeAction(
         context,
@@ -51,6 +76,8 @@ class DeviceSecurity extends EnsembleAction with Invokable {
             'rooted': isRooted,
             'emulator': isEmulator,
             'correctlyInstalled': hasCorrectlyInstalled,
+            'isPackageValid': isPackageValid,
+            'isSignatureValid': isSignatureValid,
             'message': message,
           },
         ),
@@ -79,6 +106,8 @@ class DeviceSecurity extends EnsembleAction with Invokable {
     return DeviceSecurity(
       onSuccess: EnsembleAction.from(payload['onSuccess']),
       onError: EnsembleAction.from(payload['onError']),
+      packageName: payload['packageName'],
+      signature: payload['signature'],
     );
   }
 
