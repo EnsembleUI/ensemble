@@ -143,12 +143,12 @@ dependencies:
   local_auth: ^2.2.0
   # use this convert a language code to localized language name e.g. es => Spanish/Español
   flutter_localized_locales: ^2.0.5
-  root_jailbreak_sniffer: ^1.0.6
   flutter_slidable: ^3.1.1
   accordion: ^2.6.0
   session_storage: ^0.0.1
   connectivity_plus: ^6.1.3
   flutter_security_checker: ^3.2.1
+  safe_device: ^1.2.1
 
 dependency_overrides:
   http: ^0.13.5
