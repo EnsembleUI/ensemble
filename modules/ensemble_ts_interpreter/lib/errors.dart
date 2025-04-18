@@ -13,8 +13,11 @@ class JSException implements Exception {
 
   @override
   String toString() {
-    return 'Exception Occurred while running javascript code: Line: $line Message: $message.'
-        ' Detailed Error: ${detailedError ?? ''}';
+    return 'Exception occurred while running JavaScript code: '
+        'Line: $line '
+        'Message: $message. '
+        '${detailedError != null ? 'Detailed Error: $detailedError. ' : ''}'
+        '${recovery != null ? 'Recovery: $recovery .' : ''}';
   }
 }
 
