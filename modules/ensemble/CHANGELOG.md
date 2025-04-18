@@ -1,3 +1,7 @@
+## 1.1.44
+
+ - **REFACTOR**: replace root_jailbreak_sniffer with safe_device for enhanced device security checks. ([2b873f56](https://github.com/ensembleUI/ensemble/commit/2b873f56083dc7c16e79efabe4addc25e66ea327))
+
 ## 1.1.43
 
 ## 1.1.42
