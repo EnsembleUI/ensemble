@@ -1,6 +1,7 @@
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/screen_controller.dart';
+import 'package:ensemble/util/utils.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:safe_device/safe_device.dart';
@@ -8,6 +9,7 @@ import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter_security_checker/flutter_security_checker.dart';
 import 'package:ensemble/framework/event.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'dart:io' show Platform;
 
 class DeviceSecurity extends EnsembleAction with Invokable {
   EnsembleAction? onSuccess;
@@ -38,16 +40,25 @@ class DeviceSecurity extends EnsembleAction with Invokable {
       bool hasCorrectlyInstalled =
           await FlutterSecurityChecker.hasCorrectlyInstalled;
 
+      String localPackageName = Utils.getString(
+        scopeManager.dataContext.eval(packageName),
+        fallback: '',
+      );
+
+      String localSignature = Utils.getString(
+        scopeManager.dataContext.eval(signature),
+        fallback: '',
+      );
+
       // Get the current package name and signature
       PackageInfo packageInfo = await PackageInfo.fromPlatform();
       String currentPackageName = packageInfo.packageName;
       String currentSignature = packageInfo.buildSignature;
 
       // Verify package name and signature if they were provided
-      bool isPackageValid =
-          packageName == null || currentPackageName == packageName;
+      bool isPackageValid = currentPackageName == localPackageName;
       bool isSignatureValid =
-          signature == null || currentSignature == signature;
+          Platform.isIOS ? true : currentSignature == localSignature;
 
       _handleSuccess(context, isRooted, isDebugged, isEmulator,
           hasCorrectlyInstalled, isPackageValid, isSignatureValid, 'success');
