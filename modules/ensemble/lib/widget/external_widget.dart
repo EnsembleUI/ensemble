@@ -24,13 +24,13 @@ class ExternalWidget extends EnsembleWidget<ExternalWidgetController> {
 
 class ExternalWidgetController extends EnsembleWidgetController {
   String name = '';
-  Map<String, dynamic>? payload;
+  Map<String, dynamic>? inputs;
   Map<String, EnsembleAction?> events = {};
 
   @override
   Map<String, Function> getters() => {
         'name': () => name,
-        'payload': () => payload,
+        'inputs': () => inputs,
         ...events.map((key, _) => MapEntry(key, () => events[key])),
       };
 
@@ -38,7 +38,7 @@ class ExternalWidgetController extends EnsembleWidgetController {
   Map<String, Function> setters() => Map<String, Function>.from(super.setters())
     ..addAll({
       'name': (value) => name = Utils.getString(value, fallback: ''),
-      'payload': (value) => payload = Utils.getMap(value),
+      'inputs': (value) => inputs = Utils.getMap(value),
       'events': (value) {
         if (value is Map) {
           value.forEach((key, actionValue) {
@@ -65,13 +65,13 @@ class ExternalWidgetState extends EnsembleWidgetState<ExternalWidget> {
       throw RuntimeError("External widget '${controller.name}' not found");
     }
 
-    final payload = Map<String, dynamic>.from(controller.payload ?? {});
+    final inputs = Map<String, dynamic>.from(controller.inputs ?? {});
 
     // Add all event handlers to the payload
     // This allows the external widget to call back into Ensemble
     controller.events.forEach((eventName, action) {
       if (action != null) {
-        payload[eventName] = (dynamic value) {
+        inputs[eventName] = (dynamic value) {
           if (mounted) {
             ScreenController().executeAction(
               context,
@@ -83,6 +83,6 @@ class ExternalWidgetState extends EnsembleWidgetState<ExternalWidget> {
       }
     });
 
-    return builder(context, payload);
+    return builder(context, inputs);
   }
 }
