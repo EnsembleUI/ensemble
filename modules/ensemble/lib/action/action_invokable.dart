@@ -44,6 +44,7 @@ abstract class ActionInvokable with Invokable {
       ActionType.saveFile,
       ActionType.controlDeviceBackNavigation,
       ActionType.closeApp,
+      ActionType.getLocation,
     ]);
   }
 

@@ -367,9 +367,6 @@ class ScreenController {
         debugPrint(
             'error when trying to stop timer with name ${action.id}. Error: ${e.toString()}');
       }
-    } else if (action is GetLocationAction) {
-      executeGetLocationAction(
-          scopeManager, scopeManager.dataContext, context, action);
     } else if (action is ExecuteCodeAction) {
       action.inputs?.forEach((key, value) {
         dynamic val = scopeManager.dataContext.eval(value);
@@ -695,70 +692,6 @@ class ScreenController {
         ),
         apiProviders:
             APIProviders.clone(Ensemble().getConfig()!.apiProviders ?? {}));
-  }
-
-  void executeGetLocationAction(ScopeManager scopeManager,
-      DataContext dataContext, BuildContext context, GetLocationAction action) {
-    if (action.onLocationReceived != null) {
-      GetIt.I<LocationManager>()
-          .getLocationStatus()
-          .then((LocationStatus status) async {
-        if (status == LocationStatus.ready) {
-          // if recurring
-          if (action.recurring == true) {
-            StreamSubscription<LocationData> streamSubscription =
-                GetIt.I<LocationManager>()
-                    .getPositionStream(
-                        distanceFilter: action.recurringDistanceFilter ?? 1000)
-                    .map((position) => LocationData(
-                        latitude: position.latitude,
-                        longitude: position.longitude))
-                    .listen((LocationData? location) {
-              if (location != null) {
-                // update last location. TODO: consolidate this
-                Device().updateLastLocation(location);
-
-                _onLocationReceived(scopeManager, dataContext, context,
-                    action.onLocationReceived!, location);
-              } else if (action.onError != null) {
-                DataContext localizedContext = dataContext.clone();
-                localizedContext.addDataContextById('reason', 'unknown');
-                nowExecuteAction(context, action.onError!,
-                    scopeManager.pageData.apiMap, scopeManager);
-              }
-            });
-            scopeManager.addLocationListener(streamSubscription);
-          }
-          // one-time get location
-          else {
-            _onLocationReceived(
-                scopeManager,
-                dataContext,
-                context,
-                action.onLocationReceived!,
-                await GetIt.I<LocationManager>().simplyGetLocation());
-          }
-        } else if (action.onError != null) {
-          DataContext localizedContext = dataContext.clone();
-          localizedContext.addDataContextById('reason', status.name);
-          nowExecuteAction(context, action.onError!,
-              scopeManager.pageData.apiMap, scopeManager);
-        }
-      });
-    }
-  }
-
-  void _onLocationReceived(
-      ScopeManager scopeManager,
-      DataContext dataContext,
-      BuildContext context,
-      EnsembleAction onLocationReceived,
-      LocationData location) {
-    scopeManager.dataContext.addDataContextById('latitude', location.latitude);
-    scopeManager.dataContext
-        .addDataContextById('longitude', location.longitude);
-    nowExecuteAction(context, onLocationReceived, scopeManager.pageData.apiMap,
-        scopeManager);
   }
 
   /// return a wrapper for the screen widget

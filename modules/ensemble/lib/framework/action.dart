@@ -27,6 +27,7 @@ import 'package:ensemble/action/toast_actions.dart';
 import 'package:ensemble/action/take_screenshot.dart';
 import 'package:ensemble/action/disable_hardware_navigation.dart';
 import 'package:ensemble/action/close_app.dart';
+import 'package:ensemble/action/getLocation.dart';
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/error_handling.dart';
@@ -569,20 +570,6 @@ class OpenUrlAction extends EnsembleAction {
 
   factory OpenUrlAction.fromMap(dynamic inputs) =>
       OpenUrlAction.fromYaml(payload: Utils.getYamlMap(inputs));
-}
-
-class GetLocationAction extends EnsembleAction {
-  GetLocationAction(
-      {this.onLocationReceived,
-      this.onError,
-      this.recurring,
-      this.recurringDistanceFilter});
-
-  EnsembleAction? onLocationReceived;
-  EnsembleAction? onError;
-
-  bool? recurring;
-  int? recurringDistanceFilter;
 }
 
 enum FileSource { gallery, files }
@@ -1182,14 +1169,7 @@ abstract class EnsembleAction {
     } else if (actionType == ActionType.executeCode) {
       return ExecuteCodeAction.fromYaml(initiator: initiator, payload: payload);
     } else if (actionType == ActionType.getLocation) {
-      return GetLocationAction(
-          onLocationReceived:
-              EnsembleAction.from(payload?['onLocationReceived']),
-          onError: EnsembleAction.from(payload?['onError']),
-          recurring: Utils.optionalBool(payload?['options']?['recurring']),
-          recurringDistanceFilter: Utils.optionalInt(
-              payload?['options']?['recurringDistanceFilter'],
-              min: 50));
+      return GetLocationAction.fromYaml(initiator: initiator, payload: payload);
     } else if (actionType == ActionType.pickFiles) {
       return FilePickerAction.fromYaml(payload: payload);
     } else if (actionType == ActionType.uploadFiles) {
