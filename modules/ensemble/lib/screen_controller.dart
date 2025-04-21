@@ -21,8 +21,6 @@ import 'package:ensemble/framework/permissions_manager.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/stub/camera_manager.dart';
 import 'package:ensemble/framework/stub/contacts_manager.dart';
-import 'package:ensemble/framework/stub/file_manager.dart';
-import 'package:ensemble/framework/stub/location_manager.dart';
 import 'package:ensemble/framework/stub/plaid_link_manager.dart';
 import 'package:ensemble/framework/theme/theme_loader.dart';
 import 'package:ensemble/framework/view/data_scope_widget.dart';
@@ -398,8 +396,6 @@ class ScreenController {
           dataContext: scopeManager.dataContext,
           apiMap: apiMap,
           scopeManager: scopeManager);
-    } else if (action is FilePickerAction) {
-      GetIt.I<FileManager>().pickFiles(context, action, scopeManager);
     } else if (action is SignInAnonymousAction) {
       GetIt.I<SignInAnonymous>().signInAnonymously(context, action: action);
     } else if (action is SignInWithCustomTokenAction) {

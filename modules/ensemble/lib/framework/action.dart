@@ -10,6 +10,7 @@ import 'package:ensemble/action/device_security.dart';
 import 'package:ensemble/action/dialog_actions.dart';
 import 'package:ensemble/action/drawer_actions.dart';
 import 'package:ensemble/action/execute_action_group_action.dart';
+import 'package:ensemble/action/file_picker_action.dart';
 import 'package:ensemble/action/get_network_info_action.dart';
 import 'package:ensemble/action/haptic_action.dart';
 import 'package:ensemble/action/call_native_method.dart';
@@ -570,55 +571,6 @@ class OpenUrlAction extends EnsembleAction {
 
   factory OpenUrlAction.fromMap(dynamic inputs) =>
       OpenUrlAction.fromYaml(payload: Utils.getYamlMap(inputs));
-}
-
-enum FileSource { gallery, files }
-
-class FilePickerAction extends EnsembleAction {
-  FilePickerAction({
-    required this.id,
-    this.allowedExtensions,
-    this.allowMultiple,
-    this.allowCompression,
-    this.onComplete,
-    this.onError,
-    this.source,
-  });
-
-  String id;
-  List<String>? allowedExtensions;
-  bool? allowMultiple;
-  bool? allowCompression;
-  EnsembleAction? onComplete;
-  EnsembleAction? onError;
-  FileSource? source;
-
-  factory FilePickerAction.fromYaml({Map? payload}) {
-    if (payload == null || payload['id'] == null) {
-      throw LanguageError("${ActionType.pickFiles.name} requires 'id'.");
-    }
-
-    FileSource? getSource(String? source) {
-      if (source == 'gallery') {
-        return FileSource.gallery;
-      }
-      if (source == 'files') {
-        return FileSource.files;
-      }
-      return null;
-    }
-
-    return FilePickerAction(
-      id: Utils.getString(payload['id'], fallback: ''),
-      allowedExtensions:
-          (payload['allowedExtensions'] as YamlList?)?.cast<String>().toList(),
-      allowMultiple: Utils.optionalBool(payload['allowMultiple']),
-      allowCompression: Utils.optionalBool(payload['allowCompression']),
-      onComplete: EnsembleAction.from(payload['onComplete']),
-      onError: EnsembleAction.from(payload['onError']),
-      source: getSource(payload['source']),
-    );
-  }
 }
 
 class FileUploadAction extends EnsembleAction {
