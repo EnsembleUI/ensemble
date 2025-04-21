@@ -12,6 +12,7 @@ import 'package:ensemble/widget/ensemble_icon.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
+import 'package:flutter/semantics.dart';
 
 /// managing Toast dialogs
 class ToastController {
@@ -143,6 +144,9 @@ class ToastController {
       dataContext ??= DataScopeWidget.getScope(context)?.dataContext;
       String? message =
           dataContext?.eval(toastAction.message) ?? toastAction.message;
+      if (message != null && message.isNotEmpty) {
+        SemanticsService.announce(message, TextDirection.ltr);
+      }
 
       content = Row(
         mainAxisSize: MainAxisSize.min,
