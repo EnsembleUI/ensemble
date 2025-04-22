@@ -1,3 +1,7 @@
+## 1.1.48
+
+ - **FIX**: enhance package name and signature validation in DeviceSecurity class. ([1cecfd8e](https://github.com/ensembleUI/ensemble/commit/1cecfd8ee3f94f071eb292e1b450166f8244ba22))
+
 ## 1.1.47
 
  - Ensemble to 1.1.47
