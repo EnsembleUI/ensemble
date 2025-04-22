@@ -62,6 +62,10 @@ class Ensemble extends WithEnsemble with EnsembleRouteObserver {
   }
 
   Map<String, Function> externalMethods = {};
+  Map<String, CustomBuilder> externalWidgets = {};
+
+  void setExternalWidgets(Map<String, CustomBuilder> widgets) =>
+    externalWidgets = widgets;
 
   void setExternalMethods(Map<String, Function> methods) =>
       externalMethods = methods;
