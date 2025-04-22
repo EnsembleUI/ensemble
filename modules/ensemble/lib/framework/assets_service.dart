@@ -9,19 +9,21 @@ class LocalAssetsService {
   static Future<void> initialize(
       Map<String, dynamic>? envVariables, YamlMap definations) async {
     List<String> foundAssets = [];
+    if (envVariables != null) {
+      for (var entry in envVariables.entries) {
+        String assetName =
+            Utils.getAssetName(entry.value); // Get the asset name
+        String provider = definations['definitions']?['from'];
+        String path = definations['definitions']?['local']['path'];
+        String assetPath = provider == 'local'
+            ? "$path/assets/$assetName"
+            : "ensemble/assets/$assetName"; // Construct the full path
 
-    for (var entry in envVariables!.entries) {
-      String assetName = Utils.getAssetName(entry.value); // Get the asset name
-      String provider = definations['definitions']?['from'];
-      String path = definations['definitions']?['local']['path'];
-      String assetPath = provider == 'local'
-          ? "$path/assets/$assetName"
-          : "ensemble/assets/$assetName"; // Construct the full path
+        bool exists = await _assetExists(assetPath); // Check if asset exists
 
-      bool exists = await _assetExists(assetPath); // Check if asset exists
-
-      if (exists) {
-        foundAssets.add(assetName); // Store only existing assets
+        if (exists) {
+          foundAssets.add(assetName); // Store only existing assets
+        }
       }
     }
 
