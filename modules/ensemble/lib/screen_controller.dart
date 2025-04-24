@@ -252,55 +252,6 @@ class ScreenController {
           executeActionWithScope(context, scopeManager, action.onModalDismiss!);
         });
       }
-    } else if (action is PlaidLinkAction) {
-      final linkToken = action.getLinkToken(scopeManager.dataContext).trim();
-      if (linkToken.isNotEmpty) {
-        GetIt.I<PlaidLinkManager>().openPlaidLink(
-          linkToken,
-          (linkSuccess) {
-            if (action.onSuccess != null) {
-              executeActionWithScope(
-                context,
-                scopeManager,
-                action.onSuccess!,
-                event: EnsembleEvent(
-                  action.initiator,
-                  data: linkSuccess,
-                ),
-              );
-            }
-          },
-          (linkEvent) {
-            if (action.onEvent != null) {
-              executeActionWithScope(
-                context,
-                scopeManager,
-                action.onEvent!,
-                event: EnsembleEvent(
-                  action.initiator,
-                  data: linkEvent,
-                ),
-              );
-            }
-          },
-          (linkExit) {
-            if (action.onExit != null) {
-              executeActionWithScope(
-                context,
-                scopeManager,
-                action.onExit!,
-                event: EnsembleEvent(
-                  action.initiator,
-                  data: linkExit,
-                ),
-              );
-            }
-          },
-        );
-      } else {
-        throw RuntimeError(
-            "openPlaidLink action requires the plaid's link_token.");
-      }
     } else if (action is ShowCameraAction) {
       GetIt.I<CameraManager>().openCamera(context, action, scopeManager);
     } else if (action is StartTimerAction) {

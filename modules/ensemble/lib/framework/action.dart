@@ -37,6 +37,7 @@ import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/framework/keychain_manager.dart';
 import 'package:ensemble/framework/permissions_manager.dart';
 import 'package:ensemble/framework/scope.dart';
+import 'package:ensemble/framework/stub/plaid_link_manager.dart';
 import 'package:ensemble/framework/view/page_group.dart';
 import 'package:ensemble/framework/widget/view_util.dart';
 import 'package:ensemble/receive_intent_manager.dart';
@@ -48,6 +49,7 @@ import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/material.dart';
 import 'package:source_span/source_span.dart';
 import 'package:yaml/yaml.dart';
+import 'package:get_it/get_it.dart';
 
 class ShowCameraAction extends EnsembleAction {
   ShowCameraAction({
@@ -255,6 +257,62 @@ class PlaidLinkAction extends EnsembleAction {
       onEvent: EnsembleAction.from(payload['onEvent']),
       onExit: EnsembleAction.from(payload['onExit']),
     );
+  }
+
+  @override
+  Future execute(BuildContext context, ScopeManager scopeManager) async {
+    final linkToken = getLinkToken(scopeManager.dataContext).trim();
+    if (linkToken.isNotEmpty) {
+      try {
+        GetIt.I<PlaidLinkManager>().openPlaidLink(
+          linkToken,
+          (linkSuccess) {
+            if (onSuccess != null) {
+              ScreenController().executeActionWithScope(
+                context,
+                scopeManager,
+                onSuccess!,
+                event: EnsembleEvent(
+                  initiator,
+                  data: linkSuccess,
+                ),
+              );
+            }
+          },
+          (linkEvent) {
+            if (onEvent != null) {
+              ScreenController().executeActionWithScope(
+                context,
+                scopeManager,
+                onEvent!,
+                event: EnsembleEvent(
+                  initiator,
+                  data: linkEvent,
+                ),
+              );
+            }
+          },
+          (linkExit) {
+            if (onExit != null) {
+              ScreenController().executeActionWithScope(
+                context,
+                scopeManager,
+                onExit!,
+                event: EnsembleEvent(
+                  initiator,
+                  data: linkExit,
+                ),
+              );
+            }
+          },
+        );
+      } catch (e) {
+        throw ConfigError("Error opening Plaid link: $e");
+      }
+    } else {
+      throw RuntimeError(
+          "openPlaidLink action requires the plaid's link_token.");
+    }
   }
 }
 

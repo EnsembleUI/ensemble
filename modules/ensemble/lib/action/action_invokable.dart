@@ -46,6 +46,7 @@ abstract class ActionInvokable with Invokable {
       ActionType.closeApp,
       ActionType.getLocation,
       ActionType.pickFiles,
+      ActionType.openPlaidLink,
     ]);
   }
 
