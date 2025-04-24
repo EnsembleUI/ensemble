@@ -101,6 +101,7 @@ class EnsembleApp extends StatefulWidget {
     this.screenPayload,
     this.ensembleConfig,
     this.externalMethods,
+    this.externalWidgets,
     this.isPreview = false,
     this.placeholderBackgroundColor,
     this.onAppLoad,
@@ -117,6 +118,11 @@ class EnsembleApp extends StatefulWidget {
   final EnsembleConfig? ensembleConfig;
   final bool isPreview;
   final Map<String, Function>? externalMethods;
+
+  // use this to pass in custom widgets that are not part of the Ensemble
+  // framework. The key is the name of the widget and the value is a
+  // function that returns a widget.
+  final Map<String, CustomBuilder>? externalWidgets;
 
   // use this if you want to pass in a child widget instead of a screen
   final Widget? child; 
@@ -238,6 +244,10 @@ class EnsembleAppState extends State<EnsembleApp> with WidgetsBindingObserver {
 
     if (widget.externalMethods != null) {
       Ensemble().setExternalMethods(widget.externalMethods!);
+    }
+
+    if (widget.externalWidgets != null) {
+      Ensemble().setExternalWidgets(widget.externalWidgets!);
     }
 
     // use the config if passed in
