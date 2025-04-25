@@ -47,6 +47,8 @@ abstract class ActionInvokable with Invokable {
       ActionType.getLocation,
       ActionType.pickFiles,
       ActionType.openPlaidLink,
+      ActionType.updateBadgeCount,
+      ActionType.clearBadgeCount,
     ]);
   }
 
