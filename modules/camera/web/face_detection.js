@@ -236,7 +236,7 @@ window.detectFace = async function (videoElement, accurateMode = false, accuracy
         // Normalize coordinates and add extra height for hair.
         const extraHeight = box.height * EXTRA_HEIGHT_FACTOR;
         const normalized = {
-            left: box.x / videoWidth,
+            left: 1 - (box.x + box.width) / videoWidth,
             top: Math.max(0, box.y - extraHeight) / videoHeight,
             width: box.width / videoWidth,
             height: (box.height + extraHeight) / videoHeight,

@@ -24,6 +24,7 @@ import 'package:ensemble/widget/button.dart';
 import 'package:ensemble/widget/calendar.dart';
 import 'package:ensemble/widget/checkbox.dart';
 import 'package:ensemble/widget/countdown.dart';
+import 'package:ensemble/widget/external_widget.dart';
 import 'package:ensemble/widget/radio/radio_button.dart';
 import 'package:ensemble/widget/radio/radio_group.dart';
 import 'package:ensemble/widget/static_map.dart';
@@ -43,6 +44,7 @@ import 'package:ensemble/widget/image_cropper.dart';
 import 'package:ensemble/widget/input/dropdown.dart';
 import 'package:ensemble/widget/input/form_date.dart';
 import 'package:ensemble/widget/input/form_textfield.dart';
+import 'package:ensemble/widget/input/taginput/taginput.dart';
 import 'package:ensemble/widget/input/form_time.dart';
 import 'package:ensemble/widget/input/slider/slider.dart';
 import 'package:ensemble/widget/loading_container.dart';
@@ -87,6 +89,7 @@ class WidgetRegistry {
     Shape.type: Shape.build,
     StaticMap.type: StaticMap.build,
     EnsembleSignature.type: EnsembleSignature.build,
+    ExternalWidget.type: ExternalWidget.build, 
   };
 
   /// register or override a widget
@@ -144,6 +147,7 @@ class WidgetRegistry {
         RadioButton.type: () => RadioButton(),
         EnsembleForm.type: () => EnsembleForm(),
         TextInput.type: () => TextInput(),
+        TagInput.type: () => TagInput(),
         ConfirmationInput.type: () => ConfirmationInput(),
         Date.type: () => Date(),
         Time.type: () => Time(),

@@ -1,3 +1,37 @@
+## 1.1.48
+
+ - **FIX**: enhance package name and signature validation in DeviceSecurity class. ([1cecfd8e](https://github.com/ensembleUI/ensemble/commit/1cecfd8ee3f94f071eb292e1b450166f8244ba22))
+
+## 1.1.47
+
+ - Ensemble to 1.1.47
+
+## 1.1.45
+
+## 1.1.44
+
+ - **REFACTOR**: replace root_jailbreak_sniffer with safe_device for enhanced device security checks. ([2b873f56](https://github.com/ensembleUI/ensemble/commit/2b873f56083dc7c16e79efabe4addc25e66ea327))
+
+## 1.1.43
+
+## 1.1.42
+
+ - **REFACTOR**: update validateJsCode method to include DataContext parameter. ([cfee0493](https://github.com/ensembleUI/ensemble/commit/cfee049346da5a82528360b37bbbeb4ce0ff9cd2))
+ - **REFACTOR**: update validateJsCode method to remove DataContext parameter. ([ab6bc651](https://github.com/ensembleUI/ensemble/commit/ab6bc651ad44cc07954cd408d72a1f19d977f384))
+ - **FEAT**: simplify EnsembleStorage method mappings and enhance JSValidator property access error handling. ([05661a5e](https://github.com/ensembleUI/ensemble/commit/05661a5e0d132cbc0342a88f90d8da5521185ec6))
+ - **FEAT**: update EnsembleStorage methods to accept dynamic values for setProperty and implement property access checks. ([1e3373a5](https://github.com/ensembleUI/ensemble/commit/1e3373a50185a2732c8468c4f4743da25e72a279))
+ - **FEAT**: refactor JSInterpreter validation logic into JSValidator for improved error handling and context-aware checks. ([b47d93ac](https://github.com/ensembleUI/ensemble/commit/b47d93ac1db79e65dc77082c127ca867c5f437a4))
+ - **FEAT**: enhance JS code validation in DevMode and add detailed error handling. ([00d0f617](https://github.com/ensembleUI/ensemble/commit/00d0f6172ff96eb2368aca85c6199da12d937db5))
+ - **FEAT**: add JS code validation method in DevMode class. ([6006ffcb](https://github.com/ensembleUI/ensemble/commit/6006ffcbd1e10044d25109f0574bd858a1db43dd))
+
+## 1.1.41
+
+ - Updating Ensemble to 1.1.41
+
+## 1.1.40
+
+## 1.1.39
+
 ## 1.1.38
 
  - Bump "ensemble" to `1.1.38`.
