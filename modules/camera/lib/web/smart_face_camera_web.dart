@@ -207,11 +207,7 @@ class _SmartFaceCameraWebState extends State<SmartFaceCameraWeb> {
               child: SizedBox(
                 width: previewWidth,
                 height: previewHeight,
-                child: Transform(
-                  alignment: Alignment.center,
-                  transform: Matrix4.identity()..scale(-1.0, 1.0, 1.0),
-                  child: CameraPreview(cameraController),
-                ),
+                child: CameraPreview(cameraController),
               ),
             ),
             if (faceLeft != null &&
