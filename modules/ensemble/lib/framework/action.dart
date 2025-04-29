@@ -854,6 +854,35 @@ class CheckPermission extends EnsembleAction {
       onNotDetermined: EnsembleAction.from(payload['onNotDetermined']),
     );
   }
+
+  @override
+  Future execute(BuildContext context, ScopeManager scopeManager) async {
+    Permission? type = getType(scopeManager.dataContext);
+    if (type == null) {
+      throw RuntimeError('checkPermission requires a type.');
+    }
+
+    bool? result = await PermissionsManager().hasPermission(type);
+
+    if (result == true) {
+      if (onAuthorized != null) {
+        return ScreenController()
+            .executeActionWithScope(context, scopeManager, onAuthorized!);
+      }
+    } else if (result == false) {
+      if (onDenied != null) {
+        return ScreenController()
+            .executeActionWithScope(context, scopeManager, onDenied!);
+      }
+    } else {
+      if (onNotDetermined != null) {
+        return ScreenController()
+            .executeActionWithScope(context, scopeManager, onNotDetermined!);
+      }
+    }
+
+    return Future.value(null);
+  }
 }
 
 class SaveKeychain extends EnsembleAction {

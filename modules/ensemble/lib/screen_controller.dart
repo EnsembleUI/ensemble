@@ -417,25 +417,6 @@ class ScreenController {
       notificationUtils.onRemoteNotificationOpened = action.onTap;
     } else if (action is AuthorizeOAuthAction) {
       // TODO
-    } else if (action is CheckPermission) {
-      Permission? type = action.getType(scopeManager.dataContext);
-      if (type == null) {
-        throw RuntimeError('checkPermission requires a type.');
-      }
-      bool? result = await PermissionsManager().hasPermission(type);
-      if (result == true) {
-        if (action.onAuthorized != null) {
-          executeAction(context, action.onAuthorized!);
-        }
-      } else if (result == false) {
-        if (action.onDenied != null) {
-          executeAction(context, action.onDenied!);
-        }
-      } else {
-        if (action.onNotDetermined != null) {
-          executeAction(context, action.onNotDetermined!);
-        }
-      }
     } else if (action is ConnectSocketAction) {
       dynamic resolveURI(String uri) {
         final result = scopeManager.dataContext.eval(uri);

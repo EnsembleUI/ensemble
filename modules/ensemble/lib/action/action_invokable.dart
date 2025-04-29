@@ -50,6 +50,7 @@ abstract class ActionInvokable with Invokable {
       ActionType.updateBadgeCount,
       ActionType.clearBadgeCount,
       ActionType.getNetworkInfo,
+      ActionType.checkPermission,
     ]);
   }
 
