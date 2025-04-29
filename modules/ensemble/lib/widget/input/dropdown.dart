@@ -473,7 +473,7 @@ class SelectOneState extends FormFieldWidgetState<SelectOne>
                     final cursorPosition = fieldTextEditingController.selection;
                     final oldValue = widget._controller.maybeValue;
                     if (oldValue != value) {
-                      widget._controller.maybeValue.value = value;
+                      widget._controller.maybeValue = value;
                       widget.onSelectionChanged(value);
                     }
                     fieldTextEditingController.selection = cursorPosition;
