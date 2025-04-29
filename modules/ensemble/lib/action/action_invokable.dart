@@ -51,6 +51,9 @@ abstract class ActionInvokable with Invokable {
       ActionType.clearBadgeCount,
       ActionType.getNetworkInfo,
       ActionType.checkPermission,
+      ActionType.sendVerificationCode,
+      ActionType.validateVerificationCode,
+      ActionType.resendVerificationCode,
     ]);
   }
 
