@@ -54,6 +54,11 @@ abstract class ActionInvokable with Invokable {
       ActionType.sendVerificationCode,
       ActionType.validateVerificationCode,
       ActionType.resendVerificationCode,
+      ActionType.bluetoothStartScan,
+      ActionType.bluetoothConnect,
+      ActionType.bluetoothDisconnect,
+      ActionType.bluetoothSubscribeCharacteristic,
+      ActionType.bluetoothUnsubscribeCharacteristic,
     ]);
   }
 
