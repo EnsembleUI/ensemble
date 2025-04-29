@@ -49,6 +49,7 @@ abstract class ActionInvokable with Invokable {
       ActionType.openPlaidLink,
       ActionType.updateBadgeCount,
       ActionType.clearBadgeCount,
+      ActionType.getNetworkInfo,
     ]);
   }
 
