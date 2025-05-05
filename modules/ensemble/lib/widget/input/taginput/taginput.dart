@@ -124,6 +124,7 @@ abstract class BaseTextInput extends StatefulWidget
     return {
       'focus': () => _controller.inputFieldAction?.focusInputField(),
       'unfocus': () => _controller.inputFieldAction?.unfocusInputField(),
+      'clear': () => _controller.taggerController.clear(),
     };
   }
 
@@ -424,7 +425,6 @@ class TagInputState extends FormFieldWidgetState<BaseTextInput>
     super.didUpdateWidget(oldWidget);
     widget.controller.inputFieldAction = this;
     widget._controller._taggerController = oldWidget._controller._taggerController;
-    widget._controller._taggerController?.clear();
 
     // Making sure to move cursor to end when widget rebuild
     if (focusNode.hasFocus) {
