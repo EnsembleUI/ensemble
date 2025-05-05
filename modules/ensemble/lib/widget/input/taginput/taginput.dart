@@ -423,6 +423,8 @@ class TagInputState extends FormFieldWidgetState<BaseTextInput>
   void didUpdateWidget(covariant BaseTextInput oldWidget) {
     super.didUpdateWidget(oldWidget);
     widget.controller.inputFieldAction = this;
+    widget._controller._taggerController = oldWidget._controller._taggerController;
+    widget._controller._taggerController?.clear();
 
     // Making sure to move cursor to end when widget rebuild
     if (focusNode.hasFocus) {
