@@ -399,6 +399,7 @@ class TagInputState extends FormFieldWidgetState<BaseTextInput>
     widget.controller.inputFieldAction = this;
 
     if (widget._controller.itemTemplate != null) {
+      widget._controller.itemTemplate!.data = scopeManager!.dataContext.eval(widget._controller.itemTemplate!.data);
       registerItemTemplate(context, widget._controller.itemTemplate!,
           onDataChanged: (data) {
         if (mounted) {
