@@ -930,7 +930,9 @@ class _AnimatedAppBarState extends State<AnimatedAppBar> {
 
     if (!widget.scrollController.hasClients) return;
 
-    double threshold = (widget.expandedBarHeight - widget.collapsedBarHeight).clamp(10, double.infinity);
+    double expandedHeight = (widget.expandedBarHeight ?? 0.0).toDouble();
+    double collapsedHeight = (widget.collapsedBarHeight ?? 0.0).toDouble();
+    double threshold = (expandedHeight - collapsedHeight).clamp(10.0, double.infinity);
     bool newState = widget.scrollController.offset > threshold;
 
 
