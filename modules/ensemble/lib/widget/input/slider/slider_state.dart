@@ -18,11 +18,17 @@ class SliderState extends FormFieldWidgetState<EnsembleSlider> {
       widget: FormField<double>(
         key: validatorKey,
         validator: (value) {
-          if (widget.controller
-                  .required && // Changed from _controller to controller
-              widget.controller.value == widget.controller.minValue) {
-            return Utils.translateWithFallback(
-                'ensemble.input.required', 'This field is required');
+          if (widget.controller.required) {
+            if (widget.controller.enableRange) {
+              if (widget.controller.startValue == widget.controller.minValue &&
+                  widget.controller.endValue == widget.controller.minValue) {
+                return Utils.translateWithFallback(
+                    'ensemble.input.required', 'This field is required');
+              }
+            } else if (widget.controller.value == widget.controller.minValue) {
+              return Utils.translateWithFallback(
+                  'ensemble.input.required', 'This field is required');
+            }
           }
           return null;
         },
@@ -83,7 +89,8 @@ class SliderState extends FormFieldWidgetState<EnsembleSlider> {
 
           return SliderTheme(
             data: themeData,
-            child: Slider(
+            child: widget.controller.enableRange ? _buildRangeSlider(context, decimalPlaces):
+            Slider(
               value: widget.controller.value,
               min: widget.controller.minValue,
               max: widget.controller.maxValue,
@@ -120,5 +127,32 @@ class SliderState extends FormFieldWidgetState<EnsembleSlider> {
     }
 
     return decimalPlaces;
+  }
+ Widget _buildRangeSlider(BuildContext context, int decimalPlaces) {
+    return RangeSlider(
+      values: RangeValues(widget.controller.startValue, widget.controller.endValue),
+      min: widget.controller.minValue,
+      max: widget.controller.maxValue,
+      divisions: widget.controller.divisions,
+      labels: RangeLabels(
+        widget.controller.startValue.toStringAsFixed(decimalPlaces),
+        widget.controller.endValue.toStringAsFixed(decimalPlaces),
+      ),
+      onChanged: isEnabled()
+          ? (RangeValues values) {
+              setState(() {
+                widget.controller.startValue = values.start;
+                widget.controller.endValue = values.end;
+              });
+              if (widget.controller.onChange != null) {
+                ScreenController().executeAction(
+                  context,
+                  widget.controller.onChange!,
+                  event: EnsembleEvent(widget),
+                );
+              }
+            }
+          : null,
+    );
   }
 }
