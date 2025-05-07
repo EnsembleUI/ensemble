@@ -560,15 +560,16 @@ class TagInputState extends FormFieldWidgetState<BaseTextInput>
               ? TriggerStrategy.deferred
               : TriggerStrategy.eager,
           overlayHeight: _calculatedOverlayHeight,
-          overlay: Material(
+          overlay: _isOverlayVisible ?
+            Material(
               child: SlideTransition(
-            position: _animation!,
-            child: Container(
-              decoration: widget._controller.overlayStyle,
-              child: buildItems(
-                  widget.controller.itemTemplate, dataList, tagQuery),
-            ),
-          )),
+                position: _animation!,
+                child: Container(
+                  decoration: widget._controller.overlayStyle,
+                  child: buildItems(
+                      widget.controller.itemTemplate, dataList, tagQuery),
+                ),
+            )): Container(),
           builder: (context, containerKey) {
             // Use the helper to create a TextFormField with common configuration
             return InputFieldHelper.createTextFormField(
