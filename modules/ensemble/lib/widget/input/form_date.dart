@@ -125,14 +125,14 @@ class DateState extends FormFieldWidgetState<Date> {
                       child: widget._controller.showClearIcon != false
                           ? ClearableInput(
                               text: selectedValue,
-                              textStyle: formFieldTextStyle,
+                              textStyle: widget._controller.textStyle != null ? dateTextStyle : formFieldTextStyle,
                               enabled: widget._controller.enabled ?? true,
                               onCleared: () {
                                 setState(() {
                                   widget._controller.value = null;
                                 });
                               })
-                          : Text(selectedValue, style: formFieldTextStyle)));
+                          : Text(selectedValue, style: widget._controller.textStyle != null ? dateTextStyle : formFieldTextStyle,)));
 
               if (!isEnabled()) {
                 rtn = Opacity(
@@ -188,7 +188,7 @@ class DateState extends FormFieldWidgetState<Date> {
       }
     }
   }
-    TextStyle get formFieldTextStyle {
+    TextStyle get dateTextStyle {
     TextStyle textStyle = const TextStyle();
       return textStyle.copyWith(
         fontSize: widget._controller.textStyle?.fontSize,
