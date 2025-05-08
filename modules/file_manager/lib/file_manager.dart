@@ -2,7 +2,7 @@ library ensemble_file_manager;
 
 import 'dart:typed_data';
 
-import 'package:ensemble/framework/action.dart';
+import 'package:ensemble/action/file_picker_action.dart';
 import 'package:ensemble/framework/bindings.dart';
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/stub/file_manager.dart';

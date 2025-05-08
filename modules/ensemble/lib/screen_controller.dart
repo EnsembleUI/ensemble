@@ -20,8 +20,6 @@ import 'package:ensemble/framework/permissions_manager.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/stub/camera_manager.dart';
 import 'package:ensemble/framework/stub/contacts_manager.dart';
-import 'package:ensemble/framework/stub/file_manager.dart';
-import 'package:ensemble/framework/stub/location_manager.dart';
 import 'package:ensemble/framework/stub/plaid_link_manager.dart';
 import 'package:ensemble/framework/theme/theme_loader.dart';
 import 'package:ensemble/framework/view/data_scope_widget.dart';
@@ -253,55 +251,6 @@ class ScreenController {
           executeActionWithScope(context, scopeManager, action.onModalDismiss!);
         });
       }
-    } else if (action is PlaidLinkAction) {
-      final linkToken = action.getLinkToken(scopeManager.dataContext).trim();
-      if (linkToken.isNotEmpty) {
-        GetIt.I<PlaidLinkManager>().openPlaidLink(
-          linkToken,
-          (linkSuccess) {
-            if (action.onSuccess != null) {
-              executeActionWithScope(
-                context,
-                scopeManager,
-                action.onSuccess!,
-                event: EnsembleEvent(
-                  action.initiator,
-                  data: linkSuccess,
-                ),
-              );
-            }
-          },
-          (linkEvent) {
-            if (action.onEvent != null) {
-              executeActionWithScope(
-                context,
-                scopeManager,
-                action.onEvent!,
-                event: EnsembleEvent(
-                  action.initiator,
-                  data: linkEvent,
-                ),
-              );
-            }
-          },
-          (linkExit) {
-            if (action.onExit != null) {
-              executeActionWithScope(
-                context,
-                scopeManager,
-                action.onExit!,
-                event: EnsembleEvent(
-                  action.initiator,
-                  data: linkExit,
-                ),
-              );
-            }
-          },
-        );
-      } else {
-        throw RuntimeError(
-            "openPlaidLink action requires the plaid's link_token.");
-      }
     } else if (action is ShowCameraAction) {
       GetIt.I<CameraManager>().openCamera(context, action, scopeManager);
     } else if (action is StartTimerAction) {
@@ -366,9 +315,6 @@ class ScreenController {
         debugPrint(
             'error when trying to stop timer with name ${action.id}. Error: ${e.toString()}');
       }
-    } else if (action is GetLocationAction) {
-      executeGetLocationAction(
-          scopeManager, scopeManager.dataContext, context, action);
     } else if (action is ExecuteCodeAction) {
       action.inputs?.forEach((key, value) {
         dynamic val = scopeManager.dataContext.eval(value);
@@ -400,8 +346,6 @@ class ScreenController {
           dataContext: scopeManager.dataContext,
           apiMap: apiMap,
           scopeManager: scopeManager);
-    } else if (action is FilePickerAction) {
-      GetIt.I<FileManager>().pickFiles(context, action, scopeManager);
     } else if (action is SignInAnonymousAction) {
       GetIt.I<SignInAnonymous>().signInAnonymously(context, action: action);
     } else if (action is SignInWithCustomTokenAction) {
@@ -472,25 +416,6 @@ class ScreenController {
       notificationUtils.onRemoteNotificationOpened = action.onTap;
     } else if (action is AuthorizeOAuthAction) {
       // TODO
-    } else if (action is CheckPermission) {
-      Permission? type = action.getType(scopeManager.dataContext);
-      if (type == null) {
-        throw RuntimeError('checkPermission requires a type.');
-      }
-      bool? result = await PermissionsManager().hasPermission(type);
-      if (result == true) {
-        if (action.onAuthorized != null) {
-          executeAction(context, action.onAuthorized!);
-        }
-      } else if (result == false) {
-        if (action.onDenied != null) {
-          executeAction(context, action.onDenied!);
-        }
-      } else {
-        if (action.onNotDetermined != null) {
-          executeAction(context, action.onNotDetermined!);
-        }
-      }
     } else if (action is ConnectSocketAction) {
       dynamic resolveURI(String uri) {
         final result = scopeManager.dataContext.eval(uri);
@@ -694,70 +619,6 @@ class ScreenController {
         ),
         apiProviders:
             APIProviders.clone(Ensemble().getConfig()!.apiProviders ?? {}));
-  }
-
-  void executeGetLocationAction(ScopeManager scopeManager,
-      DataContext dataContext, BuildContext context, GetLocationAction action) {
-    if (action.onLocationReceived != null) {
-      GetIt.I<LocationManager>()
-          .getLocationStatus()
-          .then((LocationStatus status) async {
-        if (status == LocationStatus.ready) {
-          // if recurring
-          if (action.recurring == true) {
-            StreamSubscription<LocationData> streamSubscription =
-                GetIt.I<LocationManager>()
-                    .getPositionStream(
-                        distanceFilter: action.recurringDistanceFilter ?? 1000)
-                    .map((position) => LocationData(
-                        latitude: position.latitude,
-                        longitude: position.longitude))
-                    .listen((LocationData? location) {
-              if (location != null) {
-                // update last location. TODO: consolidate this
-                Device().updateLastLocation(location);
-
-                _onLocationReceived(scopeManager, dataContext, context,
-                    action.onLocationReceived!, location);
-              } else if (action.onError != null) {
-                DataContext localizedContext = dataContext.clone();
-                localizedContext.addDataContextById('reason', 'unknown');
-                nowExecuteAction(context, action.onError!,
-                    scopeManager.pageData.apiMap, scopeManager);
-              }
-            });
-            scopeManager.addLocationListener(streamSubscription);
-          }
-          // one-time get location
-          else {
-            _onLocationReceived(
-                scopeManager,
-                dataContext,
-                context,
-                action.onLocationReceived!,
-                await GetIt.I<LocationManager>().simplyGetLocation());
-          }
-        } else if (action.onError != null) {
-          DataContext localizedContext = dataContext.clone();
-          localizedContext.addDataContextById('reason', status.name);
-          nowExecuteAction(context, action.onError!,
-              scopeManager.pageData.apiMap, scopeManager);
-        }
-      });
-    }
-  }
-
-  void _onLocationReceived(
-      ScopeManager scopeManager,
-      DataContext dataContext,
-      BuildContext context,
-      EnsembleAction onLocationReceived,
-      LocationData location) {
-    scopeManager.dataContext.addDataContextById('latitude', location.latitude);
-    scopeManager.dataContext
-        .addDataContextById('longitude', location.longitude);
-    nowExecuteAction(context, onLocationReceived, scopeManager.pageData.apiMap,
-        scopeManager);
   }
 
   /// return a wrapper for the screen widget

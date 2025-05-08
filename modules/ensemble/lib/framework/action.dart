@@ -10,6 +10,7 @@ import 'package:ensemble/action/device_security.dart';
 import 'package:ensemble/action/dialog_actions.dart';
 import 'package:ensemble/action/drawer_actions.dart';
 import 'package:ensemble/action/execute_action_group_action.dart';
+import 'package:ensemble/action/file_picker_action.dart';
 import 'package:ensemble/action/get_network_info_action.dart';
 import 'package:ensemble/action/haptic_action.dart';
 import 'package:ensemble/action/call_native_method.dart';
@@ -27,6 +28,7 @@ import 'package:ensemble/action/toast_actions.dart';
 import 'package:ensemble/action/take_screenshot.dart';
 import 'package:ensemble/action/disable_hardware_navigation.dart';
 import 'package:ensemble/action/close_app.dart';
+import 'package:ensemble/action/getLocation.dart';
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/error_handling.dart';
@@ -35,6 +37,7 @@ import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/framework/keychain_manager.dart';
 import 'package:ensemble/framework/permissions_manager.dart';
 import 'package:ensemble/framework/scope.dart';
+import 'package:ensemble/framework/stub/plaid_link_manager.dart';
 import 'package:ensemble/framework/view/page_group.dart';
 import 'package:ensemble/framework/widget/view_util.dart';
 import 'package:ensemble/receive_intent_manager.dart';
@@ -46,6 +49,7 @@ import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/material.dart';
 import 'package:source_span/source_span.dart';
 import 'package:yaml/yaml.dart';
+import 'package:get_it/get_it.dart';
 
 class ShowCameraAction extends EnsembleAction {
   ShowCameraAction({
@@ -253,6 +257,62 @@ class PlaidLinkAction extends EnsembleAction {
       onEvent: EnsembleAction.from(payload['onEvent']),
       onExit: EnsembleAction.from(payload['onExit']),
     );
+  }
+
+  @override
+  Future execute(BuildContext context, ScopeManager scopeManager) async {
+    final linkToken = getLinkToken(scopeManager.dataContext).trim();
+    if (linkToken.isNotEmpty) {
+      try {
+        GetIt.I<PlaidLinkManager>().openPlaidLink(
+          linkToken,
+          (linkSuccess) {
+            if (onSuccess != null) {
+              ScreenController().executeActionWithScope(
+                context,
+                scopeManager,
+                onSuccess!,
+                event: EnsembleEvent(
+                  initiator,
+                  data: linkSuccess,
+                ),
+              );
+            }
+          },
+          (linkEvent) {
+            if (onEvent != null) {
+              ScreenController().executeActionWithScope(
+                context,
+                scopeManager,
+                onEvent!,
+                event: EnsembleEvent(
+                  initiator,
+                  data: linkEvent,
+                ),
+              );
+            }
+          },
+          (linkExit) {
+            if (onExit != null) {
+              ScreenController().executeActionWithScope(
+                context,
+                scopeManager,
+                onExit!,
+                event: EnsembleEvent(
+                  initiator,
+                  data: linkExit,
+                ),
+              );
+            }
+          },
+        );
+      } catch (e) {
+        throw ConfigError("Error opening Plaid link: $e");
+      }
+    } else {
+      throw RuntimeError(
+          "openPlaidLink action requires the plaid's link_token.");
+    }
   }
 }
 
@@ -544,69 +604,6 @@ class OpenUrlAction extends EnsembleAction {
       OpenUrlAction.fromYaml(payload: Utils.getYamlMap(inputs));
 }
 
-class GetLocationAction extends EnsembleAction {
-  GetLocationAction(
-      {this.onLocationReceived,
-      this.onError,
-      this.recurring,
-      this.recurringDistanceFilter});
-
-  EnsembleAction? onLocationReceived;
-  EnsembleAction? onError;
-
-  bool? recurring;
-  int? recurringDistanceFilter;
-}
-
-enum FileSource { gallery, files }
-
-class FilePickerAction extends EnsembleAction {
-  FilePickerAction({
-    required this.id,
-    this.allowedExtensions,
-    this.allowMultiple,
-    this.allowCompression,
-    this.onComplete,
-    this.onError,
-    this.source,
-  });
-
-  String id;
-  List<String>? allowedExtensions;
-  bool? allowMultiple;
-  bool? allowCompression;
-  EnsembleAction? onComplete;
-  EnsembleAction? onError;
-  FileSource? source;
-
-  factory FilePickerAction.fromYaml({Map? payload}) {
-    if (payload == null || payload['id'] == null) {
-      throw LanguageError("${ActionType.pickFiles.name} requires 'id'.");
-    }
-
-    FileSource? getSource(String? source) {
-      if (source == 'gallery') {
-        return FileSource.gallery;
-      }
-      if (source == 'files') {
-        return FileSource.files;
-      }
-      return null;
-    }
-
-    return FilePickerAction(
-      id: Utils.getString(payload['id'], fallback: ''),
-      allowedExtensions:
-          (payload['allowedExtensions'] as YamlList?)?.cast<String>().toList(),
-      allowMultiple: Utils.optionalBool(payload['allowMultiple']),
-      allowCompression: Utils.optionalBool(payload['allowCompression']),
-      onComplete: EnsembleAction.from(payload['onComplete']),
-      onError: EnsembleAction.from(payload['onError']),
-      source: getSource(payload['source']),
-    );
-  }
-}
-
 class FileUploadAction extends EnsembleAction {
   FileUploadAction({
     super.inputs,
@@ -829,6 +826,35 @@ class CheckPermission extends EnsembleAction {
       onDenied: EnsembleAction.from(payload['onDenied']),
       onNotDetermined: EnsembleAction.from(payload['onNotDetermined']),
     );
+  }
+
+  @override
+  Future execute(BuildContext context, ScopeManager scopeManager) async {
+    Permission? type = getType(scopeManager.dataContext);
+    if (type == null) {
+      throw RuntimeError('checkPermission requires a type.');
+    }
+
+    bool? result = await PermissionsManager().hasPermission(type);
+
+    if (result == true) {
+      if (onAuthorized != null) {
+        return ScreenController()
+            .executeActionWithScope(context, scopeManager, onAuthorized!);
+      }
+    } else if (result == false) {
+      if (onDenied != null) {
+        return ScreenController()
+            .executeActionWithScope(context, scopeManager, onDenied!);
+      }
+    } else {
+      if (onNotDetermined != null) {
+        return ScreenController()
+            .executeActionWithScope(context, scopeManager, onNotDetermined!);
+      }
+    }
+
+    return Future.value(null);
   }
 }
 
@@ -1155,14 +1181,7 @@ abstract class EnsembleAction {
     } else if (actionType == ActionType.executeCode) {
       return ExecuteCodeAction.fromYaml(initiator: initiator, payload: payload);
     } else if (actionType == ActionType.getLocation) {
-      return GetLocationAction(
-          onLocationReceived:
-              EnsembleAction.from(payload?['onLocationReceived']),
-          onError: EnsembleAction.from(payload?['onError']),
-          recurring: Utils.optionalBool(payload?['options']?['recurring']),
-          recurringDistanceFilter: Utils.optionalInt(
-              payload?['options']?['recurringDistanceFilter'],
-              min: 50));
+      return GetLocationAction.fromYaml(initiator: initiator, payload: payload);
     } else if (actionType == ActionType.pickFiles) {
       return FilePickerAction.fromYaml(payload: payload);
     } else if (actionType == ActionType.uploadFiles) {
