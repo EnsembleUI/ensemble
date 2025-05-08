@@ -159,7 +159,8 @@ class SliderState extends FormFieldWidgetState<EnsembleSlider> {
                   context,
                   widget.controller.onChange!,
                   event: EnsembleEvent(widget,
-                      data: {'value': widget.controller.value}),
+                      data: {'value': widget.controller.value}
+                      ),
                 );
               }
             }
@@ -167,6 +168,3 @@ class SliderState extends FormFieldWidgetState<EnsembleSlider> {
     );
   }
 }
-
-
-            // event: EnsembleEvent(null, data: {'user': currentUser}));
