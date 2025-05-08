@@ -26,7 +26,34 @@ enum AndroidSettingsTarget {
   nfc,
   security,
   sound,
-  wifi
+  wifi,
+  appSettings,
+  memoryCard,
+  addAccount,
+  airplaneMode,
+  applicationDetails,
+  applicationNotification,
+  applicationSettings,
+  applicationWriteSettings,
+  batterySaver,
+  captioning,
+  cast,
+  dataUsage,
+  appNotificationBubble,
+  appNotification,
+  search,
+  biometricEnroll,
+  hardwareKeyboard,
+  home,
+  ignoreBackgroundDataRestrictions,
+  inputMethod,
+  inputMethodSubtype,
+  locale,
+  manageAllApplications,
+  manageApplication,
+  manageDefaultApps,
+  manageExternalSources,
+  manageOverlay
 }
 
 // Enums for iOS platform
@@ -47,7 +74,23 @@ enum IOSSettingsTarget {
   siri,
   photos,
   keyboard,
-  general
+  general,
+  appSettings,
+  about,
+  accountSettings,
+  autoLock,
+  battery,
+  dictionary,
+  facetime,
+  healthKit,
+  music,
+  keyboards,
+  languageAndRegion,
+  phone,
+  profilesAndDeviceManagement,
+  softwareUpdate,
+  storageAndBackup,
+  wallpapers
 }
 
 class AppSettingAction extends EnsembleAction {
@@ -131,6 +174,60 @@ class AppSettingAction extends EnsembleAction {
         android.sound();
       case AndroidSettingsTarget.wifi:
         android.wifi();
+      case AndroidSettingsTarget.appSettings:
+        android.appSettings();
+      case AndroidSettingsTarget.memoryCard:
+        android.memoryCard();
+      case AndroidSettingsTarget.addAccount:
+        android.addAccount();
+      case AndroidSettingsTarget.airplaneMode:
+        android.airplaneMode();
+      case AndroidSettingsTarget.applicationDetails:
+        android.applicationDetails();
+      case AndroidSettingsTarget.applicationNotification:
+        android.applicationNotification();
+      case AndroidSettingsTarget.applicationSettings:
+        android.applicationSettings();
+      case AndroidSettingsTarget.applicationWriteSettings:
+        android.applicationWriteSettings();
+      case AndroidSettingsTarget.batterySaver:
+        android.batterySaver();
+      case AndroidSettingsTarget.captioning:
+        android.captioning();
+      case AndroidSettingsTarget.cast:
+        android.cast();
+      case AndroidSettingsTarget.dataUsage:
+        android.dataUsage();
+      case AndroidSettingsTarget.appNotificationBubble:
+        android.appNotificationBubble();
+      case AndroidSettingsTarget.appNotification:
+        android.appNotification();
+      case AndroidSettingsTarget.search:
+        android.search();
+      case AndroidSettingsTarget.biometricEnroll:
+        android.biometricEnroll();
+      case AndroidSettingsTarget.hardwareKeyboard:
+        android.hardwareKeyboard();
+      case AndroidSettingsTarget.home:
+        android.home();
+      case AndroidSettingsTarget.ignoreBackgroundDataRestrictions:
+        android.ignoreBackgroundDataRestrictions();
+      case AndroidSettingsTarget.inputMethod:
+        android.inputMethod();
+      case AndroidSettingsTarget.inputMethodSubtype:
+        android.inputMethodSubtype();
+      case AndroidSettingsTarget.locale:
+        android.locale();
+      case AndroidSettingsTarget.manageAllApplications:
+        android.manageAllApplications();
+      case AndroidSettingsTarget.manageApplication:
+        android.manageApplication();
+      case AndroidSettingsTarget.manageDefaultApps:
+        android.manageDefaultApps();
+      case AndroidSettingsTarget.manageExternalSources:
+        android.manageExternalSources();
+      case AndroidSettingsTarget.manageOverlay:
+        android.manageOverlay();
       default:
         android(); // Default to main settings
     }
@@ -178,6 +275,39 @@ class AppSettingAction extends EnsembleAction {
         ios.soundsAndHaptics();
       case IOSSettingsTarget.wifi:
         ios.wifi();
+      // Additional iOS settings
+      case IOSSettingsTarget.appSettings:
+        ios.appSettings();
+      case IOSSettingsTarget.about:
+        ios.about();
+      case IOSSettingsTarget.accountSettings:
+        ios.accountSettings();
+      case IOSSettingsTarget.autoLock:
+        ios.autoLock();
+      case IOSSettingsTarget.battery:
+        ios.battery();
+      case IOSSettingsTarget.dictionary:
+        ios.dictionary();
+      case IOSSettingsTarget.facetime:
+        ios.facetime();
+      case IOSSettingsTarget.healthKit:
+        ios.healthKit();
+      case IOSSettingsTarget.music:
+        ios.music();
+      case IOSSettingsTarget.keyboards:
+        ios.keyboards();
+      case IOSSettingsTarget.languageAndRegion:
+        ios.languageAndRegion();
+      case IOSSettingsTarget.phone:
+        ios.phone();
+      case IOSSettingsTarget.profilesAndDeviceManagement:
+        ios.profilesAndDeviceManagement();
+      case IOSSettingsTarget.softwareUpdate:
+        ios.softwareUpdate();
+      case IOSSettingsTarget.storageAndBackup:
+        ios.storageAndBackup();
+      case IOSSettingsTarget.wallpapers:
+        ios.wallpapers();
       default:
         ios(); // Default to main settings
     }
