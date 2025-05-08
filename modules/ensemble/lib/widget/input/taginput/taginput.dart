@@ -124,22 +124,42 @@ abstract class BaseTextInput extends StatefulWidget
     return {
       'focus': () => _controller.inputFieldAction?.focusInputField(),
       'unfocus': () => _controller.inputFieldAction?.unfocusInputField(),
+      'clear': () => _controller.taggerController.clear(),
     };
   }
 
-  Map<String, TextStyle?> buildTagTriggers(List<dynamic>? triggers) {
-    Map<String, TextStyle?> results = {};
+  List<Trigger> buildTagTriggers(List<dynamic>? triggers) {
+    List<Trigger> results = [];
 
     if (triggers != null && triggers.isNotEmpty) {
       for (var item in triggers) {
         if (item is Map) {
           String? character = item['character']?.toString();
+          var data = item['data'];
+
+          TextStyle? style;
+          if (item['tagStyle'] is Map) {
+            style = Utils.getTextStyle(item['tagStyle']);
+          } else {
+            style = const TextStyle(color: Colors.blue);
+          }
+
           if (character != null) {
-            // Parse the tagStyle map to create TextStyle
-            if (item['tagStyle'] is Map) {
-              results[character] = Utils.getTextStyle(item['tagStyle']);
+            if(data != null && data != ""){
+              results.add(
+                Trigger(
+                  character: character,
+                  textStyle: style,
+                  data: data,
+                ),
+              );
             } else {
-              results[character] = const TextStyle(color: Colors.blue);
+              results.add(
+                Trigger(
+                  character: character,
+                  textStyle: style,
+                ),
+              );
             }
           }
         }
@@ -148,7 +168,9 @@ abstract class BaseTextInput extends StatefulWidget
 
     // If no triggers were defined, add a default @ trigger
     if (results.isEmpty) {
-      results['@'] = const TextStyle(color: Colors.blue);
+      results = [
+        Trigger(character: '@',textStyle: const TextStyle(color: Colors.blue))
+      ];
     }
 
     _controller.triggers = results;
@@ -183,7 +205,9 @@ class TagInputController extends BaseInputController {
   Map<String, String>? _initialTag;
 
   // Configurable properties
-  Map<String, TextStyle?> triggers = {'@': const TextStyle(color: Colors.blue)};
+  List<Trigger> triggers = [
+    Trigger(character: '@',textStyle: const TextStyle(color: Colors.blue))
+  ];
   LabelValueItemTemplate? itemTemplate;
   TextStyle? mentionStyle;
   EnsembleAction? onSearch;
@@ -246,38 +270,34 @@ class TagInputController extends BaseInputController {
     _initialTagApplied = false;
     _applyingInitialTag = true;
 
-    Future.delayed(const Duration(milliseconds: 100), () {
-      if (initialTag == null) return;
-      if (_initialTagApplied) return;
+    if (initialTag == null) return;
+    if (_initialTagApplied) return;
 
-      final tag = initialTag!;
-      final triggerChar = triggers.keys.first;
+    final tag = initialTag!;
+    final triggerChar = triggers.first.character;
 
-      _initialTagApplied = true;
+    _initialTagApplied = true;
 
-      if (tag.containsKey('id') &&
-          (tag.containsKey('key') || tag.containsKey('label'))) {
-        String displayText = tag['label'] ?? tag['key'] ?? '';
+    if (tag.containsKey('id') &&
+        (tag.containsKey('key') || tag.containsKey('label'))) {
+      String displayText = tag['label'] ?? tag['key'] ?? '';
 
-        taggerController.clear();
-        taggerController.text = triggerChar;
+      taggerController.clear();
+      taggerController.selection =
+          TextSelection.collapsed(offset: taggerController.text.length);
+
+      taggerController.addTag(id: tag['id']!, name: '$triggerChar$displayText');
+
+      final text = taggerController.text;
+      if (!text.endsWith(' ')) {
+        taggerController.text = '$text ';
         taggerController.selection =
             TextSelection.collapsed(offset: taggerController.text.length);
-
-        taggerController.addTag(id: tag['id']!, name: displayText);
-        taggerController.dismissOverlay();
-
-        final text = taggerController.text;
-        if (!text.endsWith(' ')) {
-          taggerController.text = '$text ';
-          taggerController.selection =
-              TextSelection.collapsed(offset: taggerController.text.length);
-        }
-
-        _taggerControllerValue = taggerController.text;
-        _applyingInitialTag = false;
       }
-    });
+
+      _taggerControllerValue = taggerController.text;
+      _applyingInitialTag = false;
+    }
   }
 
   @override
@@ -423,6 +443,7 @@ class TagInputState extends FormFieldWidgetState<BaseTextInput>
   void didUpdateWidget(covariant BaseTextInput oldWidget) {
     super.didUpdateWidget(oldWidget);
     widget.controller.inputFieldAction = this;
+    widget._controller._taggerController = oldWidget._controller._taggerController;
 
     // Making sure to move cursor to end when widget rebuild
     if (focusNode.hasFocus) {
@@ -554,22 +575,24 @@ class TagInputState extends FormFieldWidgetState<BaseTextInput>
             });
           },
           triggerCharacterAndStyles: {
-            for (var entry in widget._controller.triggers.entries)
-              entry.key: entry.value ?? const TextStyle(color: Colors.blue),
+            for (var entry in widget._controller.triggers)
+              entry.character:
+                  entry.textStyle ?? const TextStyle(color: Colors.blue),
           },
           triggerStrategy: widget._controller._applyingInitialTag
               ? TriggerStrategy.deferred
               : TriggerStrategy.eager,
           overlayHeight: _calculatedOverlayHeight,
-          overlay: Material(
+          overlay: _isOverlayVisible ?
+            Material(
               child: SlideTransition(
-            position: _animation!,
-            child: Container(
-              decoration: widget._controller.overlayStyle,
-              child: buildItems(
-                  widget.controller.itemTemplate, dataList, tagQuery),
-            ),
-          )),
+                position: _animation!,
+                child: Container(
+                  decoration: widget._controller.overlayStyle,
+                  child: buildItems(
+                      widget.controller.itemTemplate, dataList, tagQuery),
+                ),
+            )): Container(),
           builder: (context, containerKey) {
             // Use the helper to create a TextFormField with common configuration
             return InputFieldHelper.createTextFormField(
@@ -653,10 +676,10 @@ class TagInputState extends FormFieldWidgetState<BaseTextInput>
       final lastWord = words.last;
 
       // Check each trigger character
-      for (String trigger in widget._controller.triggers.keys) {
-        if (lastWord.startsWith(trigger)) {
+      for (Trigger trigger in widget._controller.triggers) {
+        if (lastWord.startsWith(trigger.character)) {
           // Update the current trigger character when found
-          widget._controller._currentTriggerChar = trigger;
+          widget._controller._currentTriggerChar = trigger.character;
           return true; // It is a tag
         }
       }
@@ -687,11 +710,11 @@ class TagInputState extends FormFieldWidgetState<BaseTextInput>
     List? filteredDataList;
     if (currentTriggerType != null && dataList != null) {
       // Look for a group with matching triggerType
-      for (var group in dataList) {
-        if (group is Map &&
-            group['triggerType'] == currentTriggerType &&
-            group['data'] is List) {
-          filteredDataList = group['data'];
+      for (Trigger trigger in widget._controller.triggers) {
+        if (widget._controller._triggerTypeMap[trigger.character] ==
+            currentTriggerType &&
+            trigger.data != null) {
+          filteredDataList = trigger.data;
           break;
         }
       }
@@ -793,4 +816,12 @@ class TagInputState extends FormFieldWidgetState<BaseTextInput>
       focusNode.unfocus();
     }
   }
+}
+
+class Trigger {
+  String character;
+  TextStyle? textStyle;
+  List? data;
+
+  Trigger({required this.character, this.textStyle, this.data});
 }
