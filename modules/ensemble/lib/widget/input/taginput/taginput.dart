@@ -145,13 +145,22 @@ abstract class BaseTextInput extends StatefulWidget
           }
 
           if (character != null) {
-            results.add(
-              Trigger(
-                character: character,
-                textStyle: style,
-                data: data,
-              ),
-            );
+            if(data != null && data != ""){
+              results.add(
+                Trigger(
+                  character: character,
+                  textStyle: style,
+                  data: data,
+                ),
+              );
+            } else {
+              results.add(
+                Trigger(
+                  character: character,
+                  textStyle: style,
+                ),
+              );
+            }
           }
         }
       }
