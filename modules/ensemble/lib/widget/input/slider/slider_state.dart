@@ -18,6 +18,8 @@ class SliderState extends FormFieldWidgetState<EnsembleSlider> {
       widget: FormField<double>(
         key: validatorKey,
         validator: (value) {
+          print('slider required');
+          print(widget.controller.required);
           if (widget.controller.required) {
             if (widget.controller.enableRange) {
               if (widget.controller.startValue == widget.controller.minValue &&
@@ -26,6 +28,7 @@ class SliderState extends FormFieldWidgetState<EnsembleSlider> {
                     'ensemble.input.required', 'This field is required');
               }
             } else if (widget.controller.value == widget.controller.minValue) {
+              print('here--------');
               return Utils.translateWithFallback(
                   'ensemble.input.required', 'This field is required');
             }
@@ -86,32 +89,52 @@ class SliderState extends FormFieldWidgetState<EnsembleSlider> {
             valueIndicatorShape:
                 widget.controller.valueIndicatorStyle.getIndicatorShape(),
           );
-
-          return SliderTheme(
-            data: themeData,
-            child: widget.controller.enableRange ? _buildRangeSlider(context, decimalPlaces):
-            Slider(
-              value: widget.controller.value,
-              min: widget.controller.minValue,
-              max: widget.controller.maxValue,
-              divisions: widget.controller.divisions,
-              label: widget.controller.value.toStringAsFixed(decimalPlaces),
-              onChanged: isEnabled()
-                  ? (value) {
-                      setState(() {
-                        widget.controller.value = value;
-                      });
-                      if (widget.controller.onChange != null) {
-                        ScreenController().executeAction(
-                          context,
-                          widget.controller.onChange!,
-                          event: EnsembleEvent(widget),
-                        );
-                      }
-                    }
-                  : null,
-            ),
-          );
+return Column(
+  crossAxisAlignment: CrossAxisAlignment.start,
+  mainAxisSize: MainAxisSize.min,
+  children: [
+    SliderTheme(
+      data: themeData,
+      child: widget.controller.enableRange ? _buildRangeSlider(context, decimalPlaces) :
+      Slider(
+        // Slider properties - keep these unchanged
+        value: widget.controller.value,
+        min: widget.controller.minValue,
+        max: widget.controller.maxValue,
+        divisions: widget.controller.divisions,
+        label: widget.controller.value.toStringAsFixed(decimalPlaces),
+        onChanged: isEnabled()
+            ? (value) {
+                setState(() {
+                  widget.controller.value = value;
+                  // Add this line to validate the field
+                  field.validate();
+                });
+                if (widget.controller.onChange != null) {
+                  ScreenController().executeAction(
+                    context,
+                    widget.controller.onChange!,
+                    event: EnsembleEvent(widget),
+                  );
+                }
+              }
+            : null,
+      ),
+    ),
+    // Add this section to display the error message
+    if (field.hasError)
+      Padding(
+        padding: const EdgeInsets.only(top: 4.0, left: 4.0),
+        child: Text(
+          field.errorText!,
+          style: TextStyle(
+            color: Theme.of(context).colorScheme.error,
+            fontSize: 12.0,
+          ),
+        ),
+      ),
+  ],
+);
         },
       ),
     );
