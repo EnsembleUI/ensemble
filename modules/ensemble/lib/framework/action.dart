@@ -1,4 +1,4 @@
-import 'package:app_settings/app_settings.dart';
+import 'package:ensemble/action/app_setting.dart';
 import 'package:ensemble/action/audio_player.dart';
 import 'package:ensemble/action/Log_event_action.dart';
 import 'package:ensemble/action/badge_action.dart';
@@ -352,33 +352,6 @@ class ReceiveIntentAction extends EnsembleAction {
         initiator,
         getOnReceive(scopeManager.dataContext),
         getOnError(scopeManager.dataContext));
-    return Future.value(null);
-  }
-}
-
-class AppSettingAction extends EnsembleAction {
-  AppSettingAction({
-    super.initiator,
-    required this.target,
-  });
-
-  final String target;
-
-  AppSettingsType getTarget(dataContext) =>
-      AppSettingsType.values.from(dataContext.eval(target)) ??
-      AppSettingsType.settings;
-
-  factory AppSettingAction.from({Invokable? initiator, Map? payload}) {
-    return AppSettingAction(
-      initiator: initiator,
-      target: Utils.getString(payload?['target'], fallback: 'settings'),
-    );
-  }
-
-  @override
-  Future execute(BuildContext context, ScopeManager scopeManager) {
-    final settingType = getTarget(scopeManager.dataContext);
-    AppSettings.openAppSettings(type: settingType);
     return Future.value(null);
   }
 }

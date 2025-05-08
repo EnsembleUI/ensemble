@@ -3,7 +3,6 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:app_settings/app_settings.dart';
 import 'package:ensemble/action/navigation_action.dart';
 import 'package:ensemble/action/phone_contact_action.dart';
 import 'package:ensemble/action/upload_files_action.dart';
