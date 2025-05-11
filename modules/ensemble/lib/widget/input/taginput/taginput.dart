@@ -76,6 +76,8 @@ abstract class BaseTextInput extends StatefulWidget
       'value': () => _controller.taggerController.formattedText ?? '',
       'currentTriggerChar': () => _controller
           .currentTriggerChar, // Getter for current trigger character
+      'text': ()=> _controller.taggerController.text ?? '',
+      'tags': ()=> _controller.getTags() ?? '',
     });
     return getters;
   }
@@ -262,7 +264,18 @@ class TagInputController extends BaseInputController {
       }
     }
   }
-
+  // get Applied Tags
+  List<Map<String, dynamic>> getTags() {
+    if (_taggerController?.tags == null) {
+      return [];
+    }
+    // Convert Tag objects to simple maps
+    return _taggerController!.tags.map((tag) => {
+      'id': tag.id,
+      'text': tag.text,
+      'triggerCharacter': tag.triggerCharacter
+    }).toList();
+  }
   // Apply Initial Tag
   void applyInitialTag() {
     if (initialTag == null) return;
