@@ -3,7 +3,7 @@ import 'dart:core';
 import 'dart:io';
 import 'dart:developer';
 
-import 'package:app_settings/app_settings.dart';
+import 'package:ensemble/action/app_setting.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/framework/notification_manager.dart';
@@ -79,9 +79,7 @@ class Device
   Map<String, Function> setters() => {};
 
   void openAppSettings([String? target]) {
-    final settingType =
-        AppSettingsType.values.from(target) ?? AppSettingsType.settings;
-    AppSettings.openAppSettings(type: settingType);
+    AppSettingAction.openAppSettings(target ?? 'settings');
   }
 }
 

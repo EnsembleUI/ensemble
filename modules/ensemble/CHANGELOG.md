@@ -1,3 +1,16 @@
+## 1.1.50
+
+ - **FIX**: add Bluetooth action types to ActionInvokable. ([8e662847](https://github.com/ensembleUI/ensemble/commit/8e662847ced9033b8cdbffebfec14dcb98e55f18))
+ - **FIX**: firebase phone auth actions invokable. ([fe94ae21](https://github.com/ensembleUI/ensemble/commit/fe94ae21627c8460028860a8452b71dd99c18cf6))
+ - **FIX**: CheckPermission action execution logic. ([b0af7e40](https://github.com/ensembleUI/ensemble/commit/b0af7e406e5504dc45443091a9657723242f363c))
+ - **FIX**: add ActionType.getNetworkInfo to ActionInvokable. ([c7091665](https://github.com/ensembleUI/ensemble/commit/c7091665da2b933cab6aca8161c46ca16760c621))
+ - **FEAT**: add new action types for badge management. ([71c98763](https://github.com/ensembleUI/ensemble/commit/71c987631dbc0d82f1f206e8607cc9abc5a5df34))
+ - **FEAT**: implement PlaidLinkAction execution logic. ([0db8e85a](https://github.com/ensembleUI/ensemble/commit/0db8e85af03ec8275b1d30137789230518a2dedd))
+
+## 1.1.49
+
+ - CHnaging to 1.1.49
+
 ## 1.1.48
 
  - **FIX**: enhance package name and signature validation in DeviceSecurity class. ([1cecfd8e](https://github.com/ensembleUI/ensemble/commit/1cecfd8ee3f94f071eb292e1b450166f8244ba22))
