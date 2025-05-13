@@ -92,18 +92,6 @@ abstract class BaseTextInput extends StatefulWidget
     // Add TagInput specific setters
     setters.addAll({
       'triggers': (items) => buildTagTriggers(items),
-      'initialTag': (tag) {
-        if (tag is Map) {
-          Map<String, String> newTag = {
-            'id': tag['id']?.toString() ?? '',
-            'label': tag['label']?.toString() ?? '',
-            'key': tag['key']?.toString() ?? '',
-          };
-          _controller.initialTag = newTag;
-        } else if (tag == null) {
-          _controller.initialTag = null;
-        }
-      },
       'maxOverlayHeight': (value) =>
           _controller.maxOverlayHeight = Utils.optionalDouble(value),
       'minOverlayHeight': (value) =>
@@ -127,6 +115,19 @@ abstract class BaseTextInput extends StatefulWidget
       'focus': () => _controller.inputFieldAction?.focusInputField(),
       'unfocus': () => _controller.inputFieldAction?.unfocusInputField(),
       'clear': () => _controller.taggerController.clear(),
+      'initialTag': (tag) {
+        if (tag is Map) {
+          Map<String, String> newTag = {
+            'id': tag['id']?.toString() ?? '',
+            'label': tag['label']?.toString() ?? '',
+            'key': tag['key']?.toString() ?? '',
+          };
+          _controller.initialTag = newTag;
+          _controller.applyInitialTag();
+        } else if (tag == null) {
+          _controller.initialTag = null;
+        }
+      },
     };
   }
 
@@ -234,9 +235,6 @@ class TagInputController extends BaseInputController {
   set initialTag(Map<String, String>? value) {
     if (_initialTag != value) {
       _initialTag = value;
-      if (_taggerController != null) {
-        applyInitialTag();
-      }
     }
   }
 
@@ -283,34 +281,40 @@ class TagInputController extends BaseInputController {
     _initialTagApplied = false;
     _applyingInitialTag = true;
 
-    if (initialTag == null) return;
-    if (_initialTagApplied) return;
+    Future.delayed(const Duration(milliseconds: 100), () {
+      if (initialTag == null) return;
+      if (_initialTagApplied) return;
 
-    final tag = initialTag!;
-    final triggerChar = triggers.first.character;
+      final tag = initialTag!;
+      final triggerChar = triggers.first.character;
 
-    _initialTagApplied = true;
+      _initialTagApplied = true;
 
-    if (tag.containsKey('id') &&
-        (tag.containsKey('key') || tag.containsKey('label'))) {
-      String displayText = tag['label'] ?? tag['key'] ?? '';
+      if (tag.containsKey('id') &&
+          (tag.containsKey('key') || tag.containsKey('label'))) {
+        String displayText = tag['label'] ?? tag['key'] ?? '';
 
-      taggerController.clear();
-      taggerController.selection =
-          TextSelection.collapsed(offset: taggerController.text.length);
+        taggerController.clear();
 
-      taggerController.addTag(id: tag['id']!, name: '$triggerChar$displayText');
-
-      final text = taggerController.text;
-      if (!text.endsWith(' ')) {
-        taggerController.text = '$text ';
+        taggerController.text = triggerChar;
+        taggerController.isInitialTag = true;
         taggerController.selection =
             TextSelection.collapsed(offset: taggerController.text.length);
-      }
 
-      _taggerControllerValue = taggerController.text;
-      _applyingInitialTag = false;
-    }
+        taggerController.addTag(id: tag['id']!, name: '$displayText');
+
+        final text = taggerController.text;
+        if (!text.endsWith(' ')) {
+          taggerController.text = '$text ';
+          taggerController.selection =
+              TextSelection.collapsed(offset: taggerController.text.length);
+        }
+
+        _taggerControllerValue = taggerController.text;
+        _applyingInitialTag = false;
+        taggerController.isInitialTag = false;
+      }
+    });
   }
 
   @override
