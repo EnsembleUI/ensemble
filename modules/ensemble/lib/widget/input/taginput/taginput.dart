@@ -281,40 +281,39 @@ class TagInputController extends BaseInputController {
     _initialTagApplied = false;
     _applyingInitialTag = true;
 
-    Future.delayed(const Duration(milliseconds: 100), () {
-      if (initialTag == null) return;
-      if (_initialTagApplied) return;
+    if (initialTag == null) return;
+    if (_initialTagApplied) return;
 
-      final tag = initialTag!;
-      final triggerChar = triggers.first.character;
+    final tag = initialTag!;
+    final triggerChar = triggers.first.character;
 
-      _initialTagApplied = true;
+    _initialTagApplied = true;
 
-      if (tag.containsKey('id') &&
-          (tag.containsKey('key') || tag.containsKey('label'))) {
-        String displayText = tag['label'] ?? tag['key'] ?? '';
+    if (tag.containsKey('id') &&
+        (tag.containsKey('key') || tag.containsKey('label'))) {
+      String displayText = tag['label'] ?? tag['key'] ?? '';
 
-        taggerController.clear();
+      taggerController.clear();
 
-        taggerController.text = triggerChar;
-        taggerController.isInitialTag = true;
+      taggerController.text = triggerChar;
+      taggerController.isInitialTag = true;
+      taggerController.selection =
+          TextSelection.collapsed(offset: taggerController.text.length);
+
+      taggerController.addTag(id: tag['id']!, name: '$displayText');
+
+      final text = taggerController.text;
+      if (!text.endsWith(' ')) {
+        taggerController.text = '$text ';
         taggerController.selection =
             TextSelection.collapsed(offset: taggerController.text.length);
-
-        taggerController.addTag(id: tag['id']!, name: '$displayText');
-
-        final text = taggerController.text;
-        if (!text.endsWith(' ')) {
-          taggerController.text = '$text ';
-          taggerController.selection =
-              TextSelection.collapsed(offset: taggerController.text.length);
-        }
-
-        _taggerControllerValue = taggerController.text;
-        _applyingInitialTag = false;
-        taggerController.isInitialTag = false;
       }
-    });
+
+      _taggerControllerValue = taggerController.text;
+      _applyingInitialTag = false;
+      taggerController.isInitialTag = false;
+    }
+
   }
 
   @override
