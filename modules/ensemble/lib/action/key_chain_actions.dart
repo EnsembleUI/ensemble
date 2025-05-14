@@ -71,12 +71,12 @@ class SaveKeychain extends EnsembleAction {
 class ReadKeychain extends EnsembleAction {
   ReadKeychain({
     required this.key,
-    this.onSuccess,
+    this.onComplete,
     this.onError,
   });
 
   final String key;
-  final EnsembleAction? onSuccess;
+  final EnsembleAction? onComplete;
   final EnsembleAction? onError;
 
   factory ReadKeychain.fromYaml({Map? payload}) {
@@ -85,7 +85,7 @@ class ReadKeychain extends EnsembleAction {
     }
     return ReadKeychain(
       key: payload['key'],
-      onSuccess: EnsembleAction.from(payload['onSuccess']),
+      onComplete: EnsembleAction.from(payload['onComplete']),
       onError: EnsembleAction.from(payload['onError']),
     );
   }
@@ -100,11 +100,11 @@ class ReadKeychain extends EnsembleAction {
     if (storageKey != null) {
       try {
         dynamic value = await StorageManager().readSecurely(storageKey);
-        // dispatch onSuccess with the retrieved value
-        if (onSuccess != null && value != null) {
-          ScreenController().executeAction(context, onSuccess!,
+        // dispatch onComplete with the retrieved value
+        if (onComplete != null && value != null) {
+          ScreenController().executeAction(context, onComplete!,
               event: EnsembleEvent(null, data: value));
-        } else if (onSuccess != null && value == null) {
+        } else if (onComplete != null && value == null) {
           // Key exists but value is null
           errorReason = 'No value found for key: $storageKey';
         }

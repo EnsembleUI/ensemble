@@ -64,12 +64,12 @@ class SetSecureStorage extends EnsembleAction {
 class GetSecureStorage extends EnsembleAction {
   GetSecureStorage({
     required this.key,
-    this.onSuccess,
+    this.onComplete,
     this.onError,
   });
 
   final String key;
-  final EnsembleAction? onSuccess;
+  final EnsembleAction? onComplete;
   final EnsembleAction? onError;
 
   factory GetSecureStorage.fromYaml({Map? payload}) {
@@ -78,7 +78,7 @@ class GetSecureStorage extends EnsembleAction {
     }
     return GetSecureStorage(
       key: payload['key'],
-      onSuccess: EnsembleAction.from(payload['onSuccess']),
+      onComplete: EnsembleAction.from(payload['onComplete']),
       onError: EnsembleAction.from(payload['onError']),
     );
   }
@@ -94,8 +94,8 @@ class GetSecureStorage extends EnsembleAction {
       
       final value = EncryptedStorageManager.getSecureStorage(inputs);
       
-      if (onSuccess != null) {
-        ScreenController().executeAction(context, onSuccess!,
+      if (onComplete != null) {
+        ScreenController().executeAction(context, onComplete!,
             event: EnsembleEvent(null, data: value));
       }
     } catch (e) {
