@@ -352,13 +352,17 @@ class SelectOneState extends FormFieldWidgetState<SelectOne>
     if (oldValue != value) {
       widget.onSelectionChanged(value);
 
-      if (widget._controller.onChange != null) {
-        ScreenController().executeAction(
-          context,
-          widget._controller.onChange!,
-          event: EnsembleEvent(widget, data: {'value': value}),
-        );
-      }
+      /// Delayed Invocation and let the dropdown Calculation
+      /// be finished and then Invoke Ensemble Action
+      Future.delayed(Duration(milliseconds: 300),(){
+        if (widget._controller.onChange != null) {
+          ScreenController().executeAction(
+            context,
+            widget._controller.onChange!,
+            event: EnsembleEvent(widget, data: {'value': value}),
+          );
+        }
+      });
     }
   }
 
