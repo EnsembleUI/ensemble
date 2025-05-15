@@ -919,7 +919,7 @@ class AnimatedAppBar extends StatefulWidget {
 
 class _AnimatedAppBarState extends State<AnimatedAppBar> with WidgetsBindingObserver{
   bool isCollapsed = false;
-  bool hasInitialized = false;
+  
   @override
   void initState() {
     super.initState();
@@ -944,32 +944,20 @@ class _AnimatedAppBarState extends State<AnimatedAppBar> with WidgetsBindingObse
   }
 
   @override
-  void didChangeMetrics() {
-    super.didChangeMetrics();
-
-    if (hasInitialized) {
-      _updateCollapseState();
-      hasInitialized = true;
-    }
-  }
-
-
-  @override
   void didUpdateWidget(AnimatedAppBar oldWidget) {
     super.didUpdateWidget(oldWidget);
-
 
     if (oldWidget.scrollController != widget.scrollController) {
       oldWidget.scrollController.removeListener(_updateCollapseState);
       widget.scrollController.addListener(_updateCollapseState);
     }
 
-
     if (oldWidget.expandedBarHeight != widget.expandedBarHeight ||
         oldWidget.collapsedBarHeight != widget.collapsedBarHeight) {
       _updateCollapseState();
     }
   }
+
   @override
   void dispose() {
     widget.scrollController.removeListener(_updateCollapseState);
