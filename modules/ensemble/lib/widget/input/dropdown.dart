@@ -298,25 +298,10 @@ class SelectOneState extends FormFieldWidgetState<SelectOne>
     widget.controller.textEditingController =
         TextEditingController(text: widget.getValue());
     focusNode.addListener(_handleFocusChange);
-    widget._controller.maybeValue.addListener(_handleValueChange);
+
     super.initState();
   }
 
-  void _handleValueChange() {
-    final value = widget._controller.maybeValue.value;
-
-    /// wait for value to be updated,
-    /// then Trigger the onChange action if it exists
-    Future.delayed(Duration(milliseconds: 100),(){
-      if (widget._controller.onChange != null) {
-        ScreenController().executeAction(
-          context,
-          widget._controller.onChange!,
-          event: EnsembleEvent(widget, data: {'value': value}),
-        );
-      }
-    });
-  }
   void _handleFocusChange() {
       // If gaining focus, scroll into view
         WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -366,6 +351,14 @@ class SelectOneState extends FormFieldWidgetState<SelectOne>
 
     if (oldValue != value) {
       widget.onSelectionChanged(value);
+
+      if (widget._controller.onChange != null) {
+        ScreenController().executeAction(
+          context,
+          widget._controller.onChange!,
+          event: EnsembleEvent(widget, data: {'value': value}),
+        );
+      }
     }
   }
 
