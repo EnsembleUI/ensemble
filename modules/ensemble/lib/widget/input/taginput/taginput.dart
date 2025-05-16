@@ -17,7 +17,7 @@ import 'package:flutter/material.dart';
 import 'package:ensemble/layout/templated.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/services.dart';
-import 'package:input_tagger/input_tagger.dart';
+import 'package:ensemble/widget/input/taginput/tagger.dart';
 
 /// TagInput
 class TagInput extends BaseTextInput {
