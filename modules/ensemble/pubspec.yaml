@@ -115,7 +115,7 @@ dependencies:
   share_plus: ^10.0.3
   screenshot: ^3.0.0
   rate_my_app: ^2.0.0
-  input_tagger: ^2.1.0
+  input_tagger: ^3.0.0
   table_calendar:
     git:
       url: https://github.com/EnsembleUI/table_calendar.git
