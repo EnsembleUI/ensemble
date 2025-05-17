@@ -17,11 +17,13 @@ import 'package:ensemble/action/call_native_method.dart';
 import 'package:ensemble/action/invoke_api_action.dart';
 import 'package:ensemble/action/biometric_auth_action.dart';
 import 'package:ensemble/action/change_locale_actions.dart';
+import 'package:ensemble/action/key_chain_actions.dart';
 import 'package:ensemble/action/misc_action.dart';
 import 'package:ensemble/action/navigation_action.dart';
 import 'package:ensemble/action/notification_actions.dart';
 import 'package:ensemble/action/saveFile/save_file.dart';
 import 'package:ensemble/action/phone_contact_action.dart';
+import 'package:ensemble/action/secure_storage.dart';
 import 'package:ensemble/action/sign_in_out_action.dart';
 import 'package:ensemble/action/sign_in_with_verification_code_actions.dart';
 import 'package:ensemble/action/toast_actions.dart';
@@ -34,7 +36,6 @@ import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/extensions.dart';
-import 'package:ensemble/framework/keychain_manager.dart';
 import 'package:ensemble/framework/permissions_manager.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/stub/plaid_link_manager.dart';
@@ -858,61 +859,6 @@ class CheckPermission extends EnsembleAction {
   }
 }
 
-class SaveKeychain extends EnsembleAction {
-  SaveKeychain({
-    required this.key,
-    this.value,
-    this.onComplete,
-    this.onError,
-  });
-
-  final String key;
-  final dynamic value;
-  final EnsembleAction? onComplete;
-  final EnsembleAction? onError;
-
-  factory SaveKeychain.fromYaml({Map? payload}) {
-    if (payload == null || payload['key'] == null) {
-      throw ConfigError('${ActionType.saveKeychain} requires a key.');
-    }
-    return SaveKeychain(
-      key: payload['key'],
-      value: payload['value'],
-      onComplete: EnsembleAction.from(payload['onComplete']),
-      onError: EnsembleAction.from(payload['onError']),
-    );
-  }
-
-  @override
-  Future execute(BuildContext context, ScopeManager scopeManager,
-      {DataContext? dataContext}) async {
-    String? storageKey =
-        Utils.optionalString(scopeManager.dataContext.eval(key));
-    String? errorReason;
-
-    if (storageKey != null) {
-      try {
-        final datas = {'key': key, 'value': value};
-        await KeychainManager().saveToKeychain(datas);
-        // dispatch onComplete
-        if (onComplete != null) {
-          ScreenController().executeAction(context, onComplete!);
-        }
-      } catch (e) {
-        errorReason = e.toString();
-      }
-    } else {
-      errorReason = '${ActionType.saveKeychain} requires a key.';
-    }
-
-    if (onError != null && errorReason != null) {
-      ScreenController().executeAction(context, onError!,
-          event: EnsembleEvent(null, error: errorReason));
-    }
-    return Future.value(null);
-  }
-}
-
 class SignInAnonymousAction extends EnsembleAction {
   final EnsembleAction? onAuthenticated;
   final EnsembleAction? onError;
@@ -951,58 +897,6 @@ class SignInWithCustomTokenAction extends EnsembleAction {
       onError: EnsembleAction.from(payload?['onError']),
       jwtToken: payload?['token'],
     );
-  }
-}
-
-class ClearKeychain extends EnsembleAction {
-  ClearKeychain({
-    required this.key,
-    this.onComplete,
-    this.onError,
-  });
-
-  final String key;
-  final EnsembleAction? onComplete;
-  final EnsembleAction? onError;
-
-  factory ClearKeychain.fromYaml({Map? payload}) {
-    if (payload == null || payload['key'] == null) {
-      throw ConfigError('${ActionType.clearKeychain} requires a key.');
-    }
-    return ClearKeychain(
-      key: payload['key'],
-      onComplete: EnsembleAction.from(payload['onComplete']),
-      onError: EnsembleAction.from(payload['onError']),
-    );
-  }
-
-  @override
-  Future execute(BuildContext context, ScopeManager scopeManager,
-      {DataContext? dataContext}) async {
-    String? storageKey =
-        Utils.optionalString(scopeManager.dataContext.eval(key));
-    String? errorReason;
-
-    if (storageKey != null) {
-      try {
-        final datas = {'key': key};
-        await KeychainManager().clearKeychain(datas);
-        // dispatch onComplete
-        if (onComplete != null) {
-          ScreenController().executeAction(context, onComplete!);
-        }
-      } catch (e) {
-        errorReason = e.toString();
-      }
-    } else {
-      errorReason = '${ActionType.clearKeychain} requires a key.';
-    }
-
-    if (onError != null && errorReason != null) {
-      ScreenController().executeAction(context, onError!,
-          event: EnsembleEvent(null, error: errorReason));
-    }
-    return Future.value(null);
   }
 }
 
@@ -1047,6 +941,10 @@ enum ActionType {
   checkPermission,
   saveKeychain,
   clearKeychain,
+  readKeychain,
+  setSecureStorage,
+  getSecureStorage,
+  clearSecureStorage,
   getDeviceToken,
   receiveIntent,
   connectSocket,
@@ -1253,6 +1151,14 @@ abstract class EnsembleAction {
       return SaveKeychain.fromYaml(payload: payload);
     } else if (actionType == ActionType.clearKeychain) {
       return ClearKeychain.fromYaml(payload: payload);
+    } else if (actionType == ActionType.setSecureStorage) {
+      return SetSecureStorage.fromYaml(payload: payload);
+    } else if (actionType == ActionType.getSecureStorage) {
+      return GetSecureStorage.fromYaml(payload: payload);
+    } else if (actionType == ActionType.clearSecureStorage) {
+      return ClearSecureStorage.fromYaml(payload: payload);
+    } else if (actionType == ActionType.readKeychain) {
+      return ReadKeychain.fromYaml(payload: payload); // Add this
     } else if (actionType == ActionType.invokeHaptic) {
       return HapticAction.from(payload);
     } else if (actionType == ActionType.playAudio) {
