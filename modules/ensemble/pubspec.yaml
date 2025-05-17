@@ -63,6 +63,11 @@ dependencies:
       url: https://github.com/EnsembleUI/ensemble.git
       ref: main
       path: modules/otp_pin_field
+  ensemble_dropdown:
+    git:
+      url: https://github.com/EnsembleUI/ensemble.git
+      ref: main
+      path: modules\ensemble_dropdown
   form_validator: ^2.1.1
   flutter_svg: ^2.0.7
   flutter_svg_provider: ^1.0.4
@@ -134,7 +139,6 @@ dependencies:
       url: https://github.com/Piyush-e7/receive_sharing_intent.git
       ref: master
   change_case: ^1.1.0
-  dropdown_button2: ^2.3.9
   collection: ^1.17.1
   package_info_plus: ^8.0.0
   audioplayers: ^5.2.1
