@@ -917,9 +917,9 @@ class AnimatedAppBar extends StatefulWidget {
   _AnimatedAppBarState createState() => _AnimatedAppBarState();
 }
 
-class _AnimatedAppBarState extends State<AnimatedAppBar> {
+class _AnimatedAppBarState extends State<AnimatedAppBar> with WidgetsBindingObserver{
   bool isCollapsed = false;
-
+  
   @override
   void initState() {
     super.initState();
@@ -940,6 +940,21 @@ class _AnimatedAppBarState extends State<AnimatedAppBar> {
       setState(() {
         isCollapsed = newState;
       });
+    }
+  }
+
+  @override
+  void didUpdateWidget(AnimatedAppBar oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    if (oldWidget.scrollController != widget.scrollController) {
+      oldWidget.scrollController.removeListener(_updateCollapseState);
+      widget.scrollController.addListener(_updateCollapseState);
+    }
+
+    if (oldWidget.expandedBarHeight != widget.expandedBarHeight ||
+        oldWidget.collapsedBarHeight != widget.collapsedBarHeight) {
+      _updateCollapseState();
     }
   }
 
