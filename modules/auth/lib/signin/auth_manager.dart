@@ -103,7 +103,7 @@ class AuthManager with UserAuthentication {
     return null;
   }
 
-  Future<bool?> signInAnonymously(
+  Future<String?> signInAnonymously(
     BuildContext context,
   ) async {
     try {
@@ -116,10 +116,10 @@ class AuthManager with UserAuthentication {
         print('Sign in anonymous failed');
         return null;
       }
+      String? firebaseToken = await user.getIdToken();
 
       updateCurrentFirebaseUser(context, user);
-
-      return user.isAnonymous;
+      return firebaseToken;
     } catch (e) {
       print(e.toString());
       return null;
