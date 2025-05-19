@@ -56,7 +56,8 @@ class Date extends StatefulWidget
       'showCalendarIcon': (shouldShow) =>
           _controller.showCalendarIcon = Utils.optionalBool(shouldShow),
       'onChange': (definition) => _controller.onChange =
-          EnsembleAction.from(definition, initiator: this)
+          EnsembleAction.from(definition, initiator: this),
+      'textStyle': (value) => _controller.textStyle = Utils.getTextStyle(value),
     });
     return setters;
   }
@@ -68,6 +69,7 @@ class DateController extends FormFieldController with HasTextPlaceholder {
   // first and last available dates to be selected
   DateTime? firstDate;
   DateTime? lastDate;
+  TextStyle? textStyle;
 
   bool? showClearIcon;
   bool? showCalendarIcon;
@@ -85,6 +87,19 @@ class DateState extends FormFieldWidgetState<Date> {
 
   @override
   Widget buildWidget(BuildContext context) {
+      // Create a local TextStyle variable that we can modify
+  TextStyle dateTextStyle = formFieldTextStyle;
+  
+  // If textStyle is provided in DateController, apply it
+    if (widget._controller.textStyle != null) {
+      dateTextStyle = dateTextStyle.copyWith(
+        fontSize: widget._controller.textStyle?.fontSize,
+        overflow: widget._controller.textStyle?.overflow ?? TextOverflow.ellipsis,
+        color: widget._controller.textStyle?.color,
+        fontWeight: widget._controller.textStyle?.fontWeight,
+      );
+    }
+    
     return InputWrapper(
         type: Date.type,
         controller: widget.controller,
@@ -115,7 +130,7 @@ class DateState extends FormFieldWidgetState<Date> {
                                   false
                               ? Icon(Icons.calendar_month_rounded,
                                   color:
-                                      formFieldTextStyle.color?.withOpacity(.5),
+                                      dateTextStyle.color?.withOpacity(.5),
                                   size: ThemeManager()
                                       .getInputIconSize(context)
                                       .toDouble())
@@ -123,14 +138,14 @@ class DateState extends FormFieldWidgetState<Date> {
                       child: widget._controller.showClearIcon != false
                           ? ClearableInput(
                               text: selectedValue,
-                              textStyle: formFieldTextStyle,
+                              textStyle: dateTextStyle,
                               enabled: widget._controller.enabled ?? true,
                               onCleared: () {
                                 setState(() {
                                   widget._controller.value = null;
                                 });
                               })
-                          : Text(selectedValue, style: formFieldTextStyle)));
+                          : Text(selectedValue, style: dateTextStyle)));
 
               if (!isEnabled()) {
                 rtn = Opacity(
