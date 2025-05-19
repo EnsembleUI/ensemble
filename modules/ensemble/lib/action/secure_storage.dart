@@ -86,13 +86,14 @@ class GetSecureStorage extends EnsembleAction {
   @override
   Future execute(BuildContext context, ScopeManager scopeManager,
       {DataContext? dataContext}) async {
+        var value;
     try {
       final evaluatedKey = scopeManager.dataContext.eval(key);
       
       // Create inputs in the format expected by EncryptedStorageManager
       final inputs = {'key': evaluatedKey};
       
-      final value = EncryptedStorageManager.getSecureStorage(inputs);
+      value = EncryptedStorageManager.getSecureStorage(inputs);
       
       if (onComplete != null) {
         ScreenController().executeAction(context, onComplete!,
@@ -104,7 +105,7 @@ class GetSecureStorage extends EnsembleAction {
             event: EnsembleEvent(null, error: e.toString()));
       }
     }
-    return Future.value(null);
+    return Future.value(value);
   }
 }
 

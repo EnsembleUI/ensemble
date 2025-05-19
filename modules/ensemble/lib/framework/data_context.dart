@@ -551,12 +551,10 @@ class NativeInvokable extends ActionInvokable {
         final evalMessage = scope?.dataContext.eval(message);
         messageSocket(socketName, evalMessage);
       },
-      ActionType.setSecureStorage.name: (dynamic inputs) =>
-          EncryptedStorageManager.setSecureStorage(inputs),
+      // Have to use getSecureStorage from here, as action_invokables return future value,
+      // and we don't want to wait for it.
       ActionType.getSecureStorage.name: (dynamic inputs) =>
           EncryptedStorageManager.getSecureStorage(inputs),
-      ActionType.clearSecureStorage.name: (dynamic inputs) =>
-          EncryptedStorageManager.clearSecureStorage(inputs),
       ActionType.dispatchEvent.name: (inputs) =>
           ScreenController().executeAction(
             buildContext,
