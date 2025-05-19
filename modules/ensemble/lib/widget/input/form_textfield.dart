@@ -35,6 +35,8 @@ class TextInput extends BaseTextInput {
       },
       'obscureText': (obscure) =>
           _controller.obscureText = Utils.optionalBool(obscure),
+      'dismissOnTapOutside': (value) =>
+          _controller.dismissOnTapOutside = Utils.optionalBool(value),
       'inputType': (type) => _controller.inputType = Utils.optionalString(type),
       'mask': (type) => _controller.mask = Utils.optionalString(type),
       'onDelayedKeyPress': (function) => _controller.onDelayedKeyPress =
@@ -147,6 +149,7 @@ mixin TextInputFieldAction on FormFieldWidgetState<BaseTextInput>
 class TextInputController extends BaseInputController {
   // applicable only for TextInput
   bool? obscureText;
+  bool? dismissOnTapOutside;
 
   // applicable only for Password or obscure TextInput, to toggle between plain and secure text
   bool? obscured;
@@ -208,7 +211,8 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput>
       overlayEntry!.remove();
       overlayEntry = null;
     }
-    FocusManager.instance.primaryFocus?.unfocus();
+    if (widget.controller.dismissOnTapOutside == true)
+      FocusManager.instance.primaryFocus?.unfocus();
   }
 
   @override
