@@ -8,6 +8,10 @@ import 'composites/overlay_style.dart';
 import 'composites/value_indicator_style.dart';
 
 class SliderController extends FormFieldController {
+ // Range slider specific properties
+  bool enableRange = false;
+  double startValue = 0.0;
+  double endValue = 1.0;
   // Basic Values
   double value = 0.0;
   double minValue = 0.0;

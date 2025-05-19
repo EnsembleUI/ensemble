@@ -1,4 +1,4 @@
-import 'package:app_settings/app_settings.dart';
+import 'package:ensemble/action/app_setting.dart';
 import 'package:ensemble/action/audio_player.dart';
 import 'package:ensemble/action/Log_event_action.dart';
 import 'package:ensemble/action/badge_action.dart';
@@ -10,31 +10,35 @@ import 'package:ensemble/action/device_security.dart';
 import 'package:ensemble/action/dialog_actions.dart';
 import 'package:ensemble/action/drawer_actions.dart';
 import 'package:ensemble/action/execute_action_group_action.dart';
+import 'package:ensemble/action/file_picker_action.dart';
 import 'package:ensemble/action/get_network_info_action.dart';
 import 'package:ensemble/action/haptic_action.dart';
 import 'package:ensemble/action/call_native_method.dart';
 import 'package:ensemble/action/invoke_api_action.dart';
 import 'package:ensemble/action/biometric_auth_action.dart';
 import 'package:ensemble/action/change_locale_actions.dart';
+import 'package:ensemble/action/key_chain_actions.dart';
 import 'package:ensemble/action/misc_action.dart';
 import 'package:ensemble/action/navigation_action.dart';
 import 'package:ensemble/action/notification_actions.dart';
 import 'package:ensemble/action/saveFile/save_file.dart';
 import 'package:ensemble/action/phone_contact_action.dart';
+import 'package:ensemble/action/secure_storage.dart';
 import 'package:ensemble/action/sign_in_out_action.dart';
 import 'package:ensemble/action/sign_in_with_verification_code_actions.dart';
 import 'package:ensemble/action/toast_actions.dart';
 import 'package:ensemble/action/take_screenshot.dart';
 import 'package:ensemble/action/disable_hardware_navigation.dart';
 import 'package:ensemble/action/close_app.dart';
+import 'package:ensemble/action/getLocation.dart';
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/extensions.dart';
-import 'package:ensemble/framework/keychain_manager.dart';
 import 'package:ensemble/framework/permissions_manager.dart';
 import 'package:ensemble/framework/scope.dart';
+import 'package:ensemble/framework/stub/plaid_link_manager.dart';
 import 'package:ensemble/framework/view/page_group.dart';
 import 'package:ensemble/framework/widget/view_util.dart';
 import 'package:ensemble/receive_intent_manager.dart';
@@ -46,6 +50,7 @@ import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/material.dart';
 import 'package:source_span/source_span.dart';
 import 'package:yaml/yaml.dart';
+import 'package:get_it/get_it.dart';
 
 class ShowCameraAction extends EnsembleAction {
   ShowCameraAction({
@@ -254,6 +259,62 @@ class PlaidLinkAction extends EnsembleAction {
       onExit: EnsembleAction.from(payload['onExit']),
     );
   }
+
+  @override
+  Future execute(BuildContext context, ScopeManager scopeManager) async {
+    final linkToken = getLinkToken(scopeManager.dataContext).trim();
+    if (linkToken.isNotEmpty) {
+      try {
+        GetIt.I<PlaidLinkManager>().openPlaidLink(
+          linkToken,
+          (linkSuccess) {
+            if (onSuccess != null) {
+              ScreenController().executeActionWithScope(
+                context,
+                scopeManager,
+                onSuccess!,
+                event: EnsembleEvent(
+                  initiator,
+                  data: linkSuccess,
+                ),
+              );
+            }
+          },
+          (linkEvent) {
+            if (onEvent != null) {
+              ScreenController().executeActionWithScope(
+                context,
+                scopeManager,
+                onEvent!,
+                event: EnsembleEvent(
+                  initiator,
+                  data: linkEvent,
+                ),
+              );
+            }
+          },
+          (linkExit) {
+            if (onExit != null) {
+              ScreenController().executeActionWithScope(
+                context,
+                scopeManager,
+                onExit!,
+                event: EnsembleEvent(
+                  initiator,
+                  data: linkExit,
+                ),
+              );
+            }
+          },
+        );
+      } catch (e) {
+        throw ConfigError("Error opening Plaid link: $e");
+      }
+    } else {
+      throw RuntimeError(
+          "openPlaidLink action requires the plaid's link_token.");
+    }
+  }
 }
 
 class ReceiveIntentAction extends EnsembleAction {
@@ -292,33 +353,6 @@ class ReceiveIntentAction extends EnsembleAction {
         initiator,
         getOnReceive(scopeManager.dataContext),
         getOnError(scopeManager.dataContext));
-    return Future.value(null);
-  }
-}
-
-class AppSettingAction extends EnsembleAction {
-  AppSettingAction({
-    super.initiator,
-    required this.target,
-  });
-
-  final String target;
-
-  AppSettingsType getTarget(dataContext) =>
-      AppSettingsType.values.from(dataContext.eval(target)) ??
-      AppSettingsType.settings;
-
-  factory AppSettingAction.from({Invokable? initiator, Map? payload}) {
-    return AppSettingAction(
-      initiator: initiator,
-      target: Utils.getString(payload?['target'], fallback: 'settings'),
-    );
-  }
-
-  @override
-  Future execute(BuildContext context, ScopeManager scopeManager) {
-    final settingType = getTarget(scopeManager.dataContext);
-    AppSettings.openAppSettings(type: settingType);
     return Future.value(null);
   }
 }
@@ -571,69 +605,6 @@ class OpenUrlAction extends EnsembleAction {
       OpenUrlAction.fromYaml(payload: Utils.getYamlMap(inputs));
 }
 
-class GetLocationAction extends EnsembleAction {
-  GetLocationAction(
-      {this.onLocationReceived,
-      this.onError,
-      this.recurring,
-      this.recurringDistanceFilter});
-
-  EnsembleAction? onLocationReceived;
-  EnsembleAction? onError;
-
-  bool? recurring;
-  int? recurringDistanceFilter;
-}
-
-enum FileSource { gallery, files }
-
-class FilePickerAction extends EnsembleAction {
-  FilePickerAction({
-    required this.id,
-    this.allowedExtensions,
-    this.allowMultiple,
-    this.allowCompression,
-    this.onComplete,
-    this.onError,
-    this.source,
-  });
-
-  String id;
-  List<String>? allowedExtensions;
-  bool? allowMultiple;
-  bool? allowCompression;
-  EnsembleAction? onComplete;
-  EnsembleAction? onError;
-  FileSource? source;
-
-  factory FilePickerAction.fromYaml({Map? payload}) {
-    if (payload == null || payload['id'] == null) {
-      throw LanguageError("${ActionType.pickFiles.name} requires 'id'.");
-    }
-
-    FileSource? getSource(String? source) {
-      if (source == 'gallery') {
-        return FileSource.gallery;
-      }
-      if (source == 'files') {
-        return FileSource.files;
-      }
-      return null;
-    }
-
-    return FilePickerAction(
-      id: Utils.getString(payload['id'], fallback: ''),
-      allowedExtensions:
-          (payload['allowedExtensions'] as YamlList?)?.cast<String>().toList(),
-      allowMultiple: Utils.optionalBool(payload['allowMultiple']),
-      allowCompression: Utils.optionalBool(payload['allowCompression']),
-      onComplete: EnsembleAction.from(payload['onComplete']),
-      onError: EnsembleAction.from(payload['onError']),
-      source: getSource(payload['source']),
-    );
-  }
-}
-
 class FileUploadAction extends EnsembleAction {
   FileUploadAction({
     super.inputs,
@@ -857,59 +828,33 @@ class CheckPermission extends EnsembleAction {
       onNotDetermined: EnsembleAction.from(payload['onNotDetermined']),
     );
   }
-}
-
-class SaveKeychain extends EnsembleAction {
-  SaveKeychain({
-    required this.key,
-    this.value,
-    this.onComplete,
-    this.onError,
-  });
-
-  final String key;
-  final dynamic value;
-  final EnsembleAction? onComplete;
-  final EnsembleAction? onError;
-
-  factory SaveKeychain.fromYaml({Map? payload}) {
-    if (payload == null || payload['key'] == null) {
-      throw ConfigError('${ActionType.saveKeychain} requires a key.');
-    }
-    return SaveKeychain(
-      key: payload['key'],
-      value: payload['value'],
-      onComplete: EnsembleAction.from(payload['onComplete']),
-      onError: EnsembleAction.from(payload['onError']),
-    );
-  }
 
   @override
-  Future execute(BuildContext context, ScopeManager scopeManager,
-      {DataContext? dataContext}) async {
-    String? storageKey =
-        Utils.optionalString(scopeManager.dataContext.eval(key));
-    String? errorReason;
+  Future execute(BuildContext context, ScopeManager scopeManager) async {
+    Permission? type = getType(scopeManager.dataContext);
+    if (type == null) {
+      throw RuntimeError('checkPermission requires a type.');
+    }
 
-    if (storageKey != null) {
-      try {
-        final datas = {'key': key, 'value': value};
-        await KeychainManager().saveToKeychain(datas);
-        // dispatch onComplete
-        if (onComplete != null) {
-          ScreenController().executeAction(context, onComplete!);
-        }
-      } catch (e) {
-        errorReason = e.toString();
+    bool? result = await PermissionsManager().hasPermission(type);
+
+    if (result == true) {
+      if (onAuthorized != null) {
+        return ScreenController()
+            .executeActionWithScope(context, scopeManager, onAuthorized!);
+      }
+    } else if (result == false) {
+      if (onDenied != null) {
+        return ScreenController()
+            .executeActionWithScope(context, scopeManager, onDenied!);
       }
     } else {
-      errorReason = '${ActionType.saveKeychain} requires a key.';
+      if (onNotDetermined != null) {
+        return ScreenController()
+            .executeActionWithScope(context, scopeManager, onNotDetermined!);
+      }
     }
 
-    if (onError != null && errorReason != null) {
-      ScreenController().executeAction(context, onError!,
-          event: EnsembleEvent(null, error: errorReason));
-    }
     return Future.value(null);
   }
 }
@@ -955,58 +900,6 @@ class SignInWithCustomTokenAction extends EnsembleAction {
   }
 }
 
-class ClearKeychain extends EnsembleAction {
-  ClearKeychain({
-    required this.key,
-    this.onComplete,
-    this.onError,
-  });
-
-  final String key;
-  final EnsembleAction? onComplete;
-  final EnsembleAction? onError;
-
-  factory ClearKeychain.fromYaml({Map? payload}) {
-    if (payload == null || payload['key'] == null) {
-      throw ConfigError('${ActionType.clearKeychain} requires a key.');
-    }
-    return ClearKeychain(
-      key: payload['key'],
-      onComplete: EnsembleAction.from(payload['onComplete']),
-      onError: EnsembleAction.from(payload['onError']),
-    );
-  }
-
-  @override
-  Future execute(BuildContext context, ScopeManager scopeManager,
-      {DataContext? dataContext}) async {
-    String? storageKey =
-        Utils.optionalString(scopeManager.dataContext.eval(key));
-    String? errorReason;
-
-    if (storageKey != null) {
-      try {
-        final datas = {'key': key};
-        await KeychainManager().clearKeychain(datas);
-        // dispatch onComplete
-        if (onComplete != null) {
-          ScreenController().executeAction(context, onComplete!);
-        }
-      } catch (e) {
-        errorReason = e.toString();
-      }
-    } else {
-      errorReason = '${ActionType.clearKeychain} requires a key.';
-    }
-
-    if (onError != null && errorReason != null) {
-      ScreenController().executeAction(context, onError!,
-          event: EnsembleEvent(null, error: errorReason));
-    }
-    return Future.value(null);
-  }
-}
-
 enum ActionType {
   invokeAPI,
   navigateScreen,
@@ -1048,6 +941,10 @@ enum ActionType {
   checkPermission,
   saveKeychain,
   clearKeychain,
+  readKeychain,
+  setSecureStorage,
+  getSecureStorage,
+  clearSecureStorage,
   getDeviceToken,
   receiveIntent,
   connectSocket,
@@ -1182,14 +1079,7 @@ abstract class EnsembleAction {
     } else if (actionType == ActionType.executeCode) {
       return ExecuteCodeAction.fromYaml(initiator: initiator, payload: payload);
     } else if (actionType == ActionType.getLocation) {
-      return GetLocationAction(
-          onLocationReceived:
-              EnsembleAction.from(payload?['onLocationReceived']),
-          onError: EnsembleAction.from(payload?['onError']),
-          recurring: Utils.optionalBool(payload?['options']?['recurring']),
-          recurringDistanceFilter: Utils.optionalInt(
-              payload?['options']?['recurringDistanceFilter'],
-              min: 50));
+      return GetLocationAction.fromYaml(initiator: initiator, payload: payload);
     } else if (actionType == ActionType.pickFiles) {
       return FilePickerAction.fromYaml(payload: payload);
     } else if (actionType == ActionType.uploadFiles) {
@@ -1261,6 +1151,14 @@ abstract class EnsembleAction {
       return SaveKeychain.fromYaml(payload: payload);
     } else if (actionType == ActionType.clearKeychain) {
       return ClearKeychain.fromYaml(payload: payload);
+    } else if (actionType == ActionType.setSecureStorage) {
+      return SetSecureStorage.fromYaml(payload: payload);
+    } else if (actionType == ActionType.getSecureStorage) {
+      return GetSecureStorage.fromYaml(payload: payload);
+    } else if (actionType == ActionType.clearSecureStorage) {
+      return ClearSecureStorage.fromYaml(payload: payload);
+    } else if (actionType == ActionType.readKeychain) {
+      return ReadKeychain.fromYaml(payload: payload); // Add this
     } else if (actionType == ActionType.invokeHaptic) {
       return HapticAction.from(payload);
     } else if (actionType == ActionType.playAudio) {
