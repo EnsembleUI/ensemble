@@ -85,77 +85,78 @@ class DateState extends FormFieldWidgetState<Date> {
           .format(widget._controller.value!)
       : '';
 
-@override
-Widget buildWidget(BuildContext context) {
-  // Create a local TextStyle variable that we can modify
+  @override
+  Widget buildWidget(BuildContext context) {
+      // Create a local TextStyle variable that we can modify
   TextStyle dateTextStyle = formFieldTextStyle;
   
   // If textStyle is provided in DateController, apply it
-  if (widget._controller.textStyle != null) {
-    dateTextStyle = dateTextStyle.copyWith(
-      fontSize: widget._controller.textStyle?.fontSize,
-      overflow: widget._controller.textStyle?.overflow ?? TextOverflow.ellipsis,
-      color: widget._controller.textStyle?.color,
-      fontWeight: widget._controller.textStyle?.fontWeight,
-    );
+    if (widget._controller.textStyle != null) {
+      dateTextStyle = dateTextStyle.copyWith(
+        fontSize: widget._controller.textStyle?.fontSize,
+        overflow: widget._controller.textStyle?.overflow ?? TextOverflow.ellipsis,
+        color: widget._controller.textStyle?.color,
+        fontWeight: widget._controller.textStyle?.fontWeight,
+      );
+    }
+    
+    return InputWrapper(
+        type: Date.type,
+        controller: widget.controller,
+        widget: FormField<DateTime>(
+            key: validatorKey,
+            validator: (value) {
+              if (widget._controller.required &&
+                  widget._controller.value == null) {
+                return Utils.translateWithFallback(
+                    'ensemble.input.required', widget._controller.requiredMessage ?? 'This field is required');
+              }
+              return null;
+            },
+            builder: (FormFieldState<DateTime> field) {
+              Widget rtn = InkWell(
+                  onTap: isEnabled() ? () => _selectDate(context) : null,
+                  child: InputDecorator(
+                      isEmpty: widget._controller.value == null,
+                      decoration: inputDecoration.copyWith(
+                          errorText: field.errorText,
+                          errorStyle: widget._controller.errorStyle ?? Theme.of(context).inputDecorationTheme.errorStyle,
+                          hintText: widget._controller.placeholder ??
+                              widget._controller.hintText ??
+                              Utils.translateWithFallback(
+                                  'ensemble.input.date.placeholder',
+                                  'Select a date'),
+                          suffixIcon: widget._controller.showCalendarIcon !=
+                                  false
+                              ? Icon(Icons.calendar_month_rounded,
+                                  color:
+                                      dateTextStyle.color?.withOpacity(.5),
+                                  size: ThemeManager()
+                                      .getInputIconSize(context)
+                                      .toDouble())
+                              : null),
+                      child: widget._controller.showClearIcon != false
+                          ? ClearableInput(
+                              text: selectedValue,
+                              textStyle: dateTextStyle,
+                              enabled: widget._controller.enabled ?? true,
+                              onCleared: () {
+                                setState(() {
+                                  widget._controller.value = null;
+                                });
+                              })
+                          : Text(selectedValue, style: dateTextStyle)));
+
+              if (!isEnabled()) {
+                rtn = Opacity(
+                  opacity: .5,
+                  child: rtn,
+                );
+              }
+              return rtn;
+            }));
   }
 
-  return InputWrapper(
-      type: Date.type,
-      controller: widget.controller,
-      widget: FormField<DateTime>(
-          key: validatorKey,
-          validator: (value) {
-            if (widget._controller.required &&
-                widget._controller.value == null) {
-              return Utils.translateWithFallback(
-                  'ensemble.input.required', widget._controller.requiredMessage ?? 'This field is required');
-            }
-            return null;
-          },
-          builder: (FormFieldState<DateTime> field) {
-            Widget rtn = InkWell(
-                onTap: isEnabled() ? () => _selectDate(context) : null,
-                child: InputDecorator(
-                    isEmpty: widget._controller.value == null,
-                    decoration: inputDecoration.copyWith(
-                        errorText: field.errorText,
-                        errorStyle: widget._controller.errorStyle ?? Theme.of(context).inputDecorationTheme.errorStyle,
-                        hintText: widget._controller.placeholder ??
-                            widget._controller.hintText ??
-                            Utils.translateWithFallback(
-                                'ensemble.input.date.placeholder',
-                                'Select a date'),
-                        suffixIcon: widget._controller.showCalendarIcon !=
-                                false
-                            ? Icon(Icons.calendar_month_rounded,
-                                color:
-                                    dateTextStyle.color?.withOpacity(.5),  // Use dateTextStyle here
-                                size: ThemeManager()
-                                    .getInputIconSize(context)
-                                    .toDouble())
-                            : null),
-                    child: widget._controller.showClearIcon != false
-                        ? ClearableInput(
-                            text: selectedValue,
-                            textStyle: dateTextStyle,  // Use dateTextStyle here instead of formFieldTextStyle
-                            enabled: widget._controller.enabled ?? true,
-                            onCleared: () {
-                              setState(() {
-                                widget._controller.value = null;
-                              });
-                            })
-                        : Text(selectedValue, style: dateTextStyle,)));  // Use dateTextStyle here
-
-            if (!isEnabled()) {
-              rtn = Opacity(
-                opacity: .5,
-                child: rtn,
-              );
-            }
-            return rtn;
-          }));
-}
   void _selectDate(BuildContext context) async {
     // massage the dates to ensure initial date falls between firstDate and lastDate
     DateTime firstDate = widget._controller.firstDate ?? DateTime(1900);
@@ -201,4 +202,3 @@ Widget buildWidget(BuildContext context) {
     }
   }
 }
-
