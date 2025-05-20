@@ -94,6 +94,8 @@ abstract class BaseTextInput extends StatefulWidget
       'triggers': (items) => buildTagTriggers(items),
       'maxOverlayHeight': (value) =>
           _controller.maxOverlayHeight = Utils.optionalDouble(value),
+      'dismissOnTapOutside': (value) =>
+          _controller.dismissOnTapOutside = Utils.optionalBool(value),
       'minOverlayHeight': (value) =>
           _controller.minOverlayHeight = Utils.optionalDouble(value),
       'overlayWidth': (value) =>
@@ -218,6 +220,7 @@ class TagInputController extends BaseInputController {
   LabelValueItemTemplate? itemTemplate;
   TextStyle? mentionStyle;
   EnsembleAction? onSearch;
+  bool? dismissOnTapOutside;
   BoxDecoration? overlayStyle;
   double? maxOverlayHeight;
   double? minOverlayHeight;
@@ -300,9 +303,8 @@ class TagInputController extends BaseInputController {
       String displayText = tag['label'] ?? tag['key'] ?? '';
 
       taggerController.clear();
-
-      taggerController.text = triggerChar;
       taggerController.isInitialTag = true;
+      taggerController.text = triggerChar;
       taggerController.selection =
           TextSelection.collapsed(offset: taggerController.text.length);
 
@@ -371,7 +373,8 @@ class TagInputState extends FormFieldWidgetState<BaseTextInput>
   void removeOverlayAndUnfocus() {
     if (!_isOverlayVisible) {
       _taggerController.dismissOverlay();
-      FocusManager.instance.primaryFocus?.unfocus();
+      if (widget.controller.dismissOnTapOutside == true)
+        FocusManager.instance.primaryFocus?.unfocus();
     }
   }
 
