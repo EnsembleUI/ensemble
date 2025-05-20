@@ -19,6 +19,15 @@ class KeychainManager {
     }
   }
 
+  Future<dynamic> getFromKeychain(dynamic inputs) async {
+    try {
+      final key = inputs?['key'] as String;
+      return await StorageManager().readSecurely(key);
+    } catch (e) {
+      throw LanguageError('Failed to retrieve value. Reason: ${e.toString()}');
+    }
+  }
+
   Future<void> clearKeychain(dynamic inputs) async {
     try {
       final key = inputs?['key'] as String;

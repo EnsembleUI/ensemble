@@ -59,6 +59,8 @@ abstract class ActionInvokable with Invokable {
       ActionType.bluetoothDisconnect,
       ActionType.bluetoothSubscribeCharacteristic,
       ActionType.bluetoothUnsubscribeCharacteristic,
+      ActionType.setSecureStorage,
+      ActionType.clearSecureStorage,
     ]);
   }
 
