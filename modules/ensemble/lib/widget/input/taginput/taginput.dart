@@ -612,12 +612,12 @@ class TagInputState extends FormFieldWidgetState<BaseTextInput>
               : TriggerStrategy.eager,
           overlayHeight: _calculatedOverlayHeight,
           overlayWidth: widget._controller.overlayWidth ?? 380,
+          padding: widget._controller.overlayPadding ?? EdgeInsets.zero,
           overlay: _isOverlayVisible ?
           Material(
               child: SlideTransition(
                 position: _animation!,
                 child: Container(
-                  padding: widget._controller.overlayPadding,
                   decoration: widget._controller.overlayStyle,
                   child: buildItems(
                       widget.controller.itemTemplate, dataList, tagQuery),
