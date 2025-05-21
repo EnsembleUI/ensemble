@@ -98,6 +98,10 @@ abstract class BaseTextInput extends StatefulWidget
           _controller.dismissOnTapOutside = Utils.optionalBool(value),
       'minOverlayHeight': (value) =>
           _controller.minOverlayHeight = Utils.optionalDouble(value),
+      'overlayWidth': (value) =>
+          _controller.overlayWidth = Utils.optionalDouble(value),
+      'overlayPadding': (value) =>
+          _controller.overlayPadding = Utils.getInsets(value),
       'tagStyle': (style) => _controller.tagStyle = Utils.getTextStyle(style),
       'tagSelectionStyle': (style) =>
           _controller.tagSelectionStyle = Utils.getTextStyle(style),
@@ -220,6 +224,8 @@ class TagInputController extends BaseInputController {
   BoxDecoration? overlayStyle;
   double? maxOverlayHeight;
   double? minOverlayHeight;
+  double? overlayWidth;
+  EdgeInsets? overlayPadding;
   TextStyle? tagStyle;
   TextStyle? tagSelectionStyle;
 
@@ -442,6 +448,9 @@ class TagInputState extends FormFieldWidgetState<BaseTextInput>
         if (mounted) {
           setState(() {
             dataList = data;
+            if(dataList!.length == 0){
+              _isOverlayVisible = false;
+            }
           });
         }
       });
@@ -602,6 +611,8 @@ class TagInputState extends FormFieldWidgetState<BaseTextInput>
               ? TriggerStrategy.deferred
               : TriggerStrategy.eager,
           overlayHeight: _calculatedOverlayHeight,
+          overlayWidth: widget._controller.overlayWidth ?? 380,
+          padding: widget._controller.overlayPadding ?? EdgeInsets.zero,
           overlay: _isOverlayVisible ?
           Material(
               child: SlideTransition(
