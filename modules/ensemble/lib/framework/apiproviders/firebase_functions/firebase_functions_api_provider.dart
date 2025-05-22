@@ -109,15 +109,7 @@ class FirebaseFunctionsAPIProvider extends APIProvider {
     }
     try {
       HttpsCallable callable;
-
-      // Create the callable function with or without region
-
       callable = _functions.httpsCallable(name);
-
-      // Call the function with or without App Check
-      // HttpsCallableResult result;
-      // final result = await callable.call();
-      // print('printing results');
       final result;
       result = await callable.call(data);
 
@@ -131,8 +123,6 @@ class FirebaseFunctionsAPIProvider extends APIProvider {
         apiName: apiName,
       );
     } catch (e) {
-      // print('encountered error!');
-      // print(e);
       return _handleError(e, apiName);
     }
   }
