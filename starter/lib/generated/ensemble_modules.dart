@@ -22,7 +22,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 // import 'package:ensemble_location/location_module.dart';
 import 'package:get_it/get_it.dart';
 // Uncomment below in order to initialize appcheck
-//import 'package:ensemble/framework/apiproviders/firebase_functions/firebase_functions_api_provider.dart';
+import 'package:ensemble/framework/apiproviders/firebase_functions/firebase_functions_api_provider.dart';
 
 // Uncomment to enable moengage
 // import 'package:ensemble_moengage/moengage.dart';
@@ -90,12 +90,13 @@ class EnsembleModules {
 
   // enable appcheck (if true)
   static const useAppCheck = false;
+  static const useFirebaseFunctions = false;
 
 
   Future<void> init() async {
     // Note that notifications is not a module
 
-    if (useMoEngage || useNotifications || useFirebaseAnalytics || useAuth || useAppCheck) {
+    if (useMoEngage || useNotifications || useFirebaseAnalytics || useAuth || useAppCheck || useFirebaseFunctions) {
       // if payload is not passed, Firebase configuration files
       // are required to be added manually to iOS and Android
       try {
