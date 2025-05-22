@@ -21,6 +21,8 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 //import 'package:ensemble_firebase_analytics/firebase_analytics.dart';
 // import 'package:ensemble_location/location_module.dart';
 import 'package:get_it/get_it.dart';
+// Uncomment below in order to initialize appcheck
+//import 'package:ensemble/framework/apiproviders/firebase_functions/firebase_functions_api_provider.dart';
 
 // Uncomment to enable moengage
 // import 'package:ensemble_moengage/moengage.dart';
@@ -86,10 +88,14 @@ class EnsembleModules {
   // optional modules
   static const useAuth = false;
 
+  // enable appcheck (if true)
+  static const useAppCheck = false;
+
+
   Future<void> init() async {
     // Note that notifications is not a module
 
-    if (useMoEngage || useNotifications || useFirebaseAnalytics || useAuth) {
+    if (useMoEngage || useNotifications || useFirebaseAnalytics || useAuth || useAppCheck) {
       // if payload is not passed, Firebase configuration files
       // are required to be added manually to iOS and Android
       try {
@@ -201,6 +207,15 @@ class EnsembleModules {
       //GetIt.I.registerSingleton<BluetoothManager>(BluetoothManagerImpl());
     } else {
       GetIt.I.registerSingleton<BluetoothManager>(BluetoothManagerStub());
+    }
+    if (useAppCheck) {
+      try {
+        await FirebaseFunctionsAPIProvider.initializeFirebaseAppCheck();
+        print(
+            'App Check initialized successfully through Firebase Functions API Provider!');
+      } catch (e) {
+        print("App Check initialization failed: $e");
+      }
     }
   }
 }
