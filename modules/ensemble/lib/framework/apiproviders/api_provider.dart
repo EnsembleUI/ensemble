@@ -3,6 +3,7 @@ import 'package:ensemble/framework/apiproviders/http_api_provider.dart';
 import 'package:ensemble/framework/data_context.dart';
 import 'package:flutter/widgets.dart';
 import 'package:yaml/yaml.dart';
+import 'package:ensemble/framework/apiproviders/firebase_functions/firebase_functions_api_provider.dart';
 
 abstract class APIProvider {
   Future<void> init(String appId, Map<String, dynamic> config);
@@ -26,7 +27,11 @@ class APIProviders extends InheritedWidget {
   APIProvider getProvider(String? provider) {
     if (provider == null) {
       return httpProvider;
-    } else {
+    }
+    else if(provider == 'firebaseFunction') {
+      return FirebaseFunctionsAPIProvider();
+    }
+    else {
       return providers[provider] ?? httpProvider;
     }
   }
@@ -58,6 +63,8 @@ class APIProviders extends InheritedWidget {
         return HTTPAPIProvider();
       case 'firestore':
         return FirestoreAPIProvider();
+      case 'firebaseFunction':
+        return FirebaseFunctionsAPIProvider();
       default:
         return null;
     }
