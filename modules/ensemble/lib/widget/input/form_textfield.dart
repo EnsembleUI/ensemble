@@ -457,11 +457,24 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput>
         onTapOutside: (_) => removeOverlayAndUnfocus(),
         onFieldSubmitted: (value) => widget.controller.submitForm(context),
         onChanged: (String txt) {
+          // If text suddenly increased by more than one character,
+          // it could indicate a paste operation
+          if (txt != previousText &&
+              (txt.length > previousText.length + 1 ||
+                  previousText.length > txt.length + 1) &&
+              !widget._controller.selectable) {
+            widget.textController.text = previousText;
+            widget.textController.selection = TextSelection.fromPosition(
+              TextPosition(offset: previousText.length),
+            );
+            // Early return to prevent further processing
+            return;
+          }
           if (txt != previousText) {
             // for performance reason, we dispatch onChange (as well as binding to value)
             // upon EditingComplete (select Done on virtual keyboard) or Focus Out
             didItChange = true;
-            previousText = txt;
+            previousText = widget.textController.text;
 
             // we dispatch onKeyPress here
             if (widget._controller.onKeyPress != null) {
