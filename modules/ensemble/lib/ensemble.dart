@@ -6,6 +6,7 @@ import 'dart:math' as math;
 import 'package:ensemble/ensemble_app.dart';
 import 'package:ensemble/firebase_options.dart';
 import 'package:ensemble/framework/apiproviders/api_provider.dart';
+import 'package:ensemble/framework/apiproviders/firebase_functions/firebase_functions_api_provider.dart';
 import 'package:ensemble/framework/assets_service.dart';
 import 'package:ensemble/framework/bindings.dart';
 import 'package:ensemble/framework/definition_providers/ensemble_provider.dart';
@@ -265,6 +266,9 @@ class Ensemble extends WithEnsemble with EnsembleRouteObserver {
           }
         }
       }
+    }
+    if (appConfig?.envVariables?['firebase_app_check'] == 'true'){
+        FirebaseFunctionsAPIProvider.initializeFirebaseAppCheck();
     }
     config.apiProviders = providers;
   }
