@@ -6,7 +6,6 @@ import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/apiproviders/api_provider.dart';
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/error_handling.dart';
-import 'package:ensemble/util/utils.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
@@ -20,15 +19,6 @@ class FirebaseFunctionsAPIProvider extends APIProvider {
   static bool _firebaseInitialized = false;
   static bool _appCheckInitialized = false;
   static bool _initializationInProgress = false;
-
-  /// Check if Firebase is currently initialized
-  bool isFirebaseInitialized() {
-    try {
-      return Firebase.apps.isNotEmpty;
-    } catch (e) {
-      return false;
-    }
-  }
 
   /// Check if Firebase Functions API provider is enabled
   bool _isFirebaseProviderEnabled() {
@@ -203,15 +193,7 @@ static Future<FirebaseOptions?> _getFirebaseOptions() async {
     try {
       log('Initializing Firebase App Check...');
 
-      // Ensure Firebase is initialized before App Check
-      bool firebaseReady = false;
-      try {
-        firebaseReady = Firebase.apps.isNotEmpty;
-      } catch (e) {
-        firebaseReady = false;
-      }
-
-      if (!firebaseReady) {
+      if (!_firebaseInitialized) {
         log('Firebase not initialized, initializing Firebase first for App Check...');
         await _initializeFirebase();
       }
@@ -248,11 +230,7 @@ static Future<FirebaseOptions?> _getFirebaseOptions() async {
 
   @override
   Future<void> init(String appId, Map<String, dynamic> config) async {
-    log('Initializing Firebase Functions API Provider...');
-    if (!_isFirebaseProviderEnabled()) {
-      throw RuntimeError('Firebase Functions API provider is not enabled. Please set cloud_function_provider environment variable to include "firebase"');
-    }
-    await _initializeFirebase();
+    // This doesn't require initialization
   }
 
   @override
@@ -290,7 +268,7 @@ static Future<FirebaseOptions?> _getFirebaseOptions() async {
     log('Using region: $region for function: $name');
 
     // Check if Firebase is initialized, if not initialize it
-    if (!isFirebaseInitialized()) {
+    if (!_firebaseInitialized) {
       try {
         log('Firebase not initialized, initializing now...');
         await _initializeFirebase();
@@ -406,7 +384,6 @@ static Future<FirebaseOptions?> _getFirebaseOptions() async {
 
   @override
   dispose() {
-    // Nothing specific to dispose
   }
 }
 
