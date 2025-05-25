@@ -1,8 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:developer';
-import 'dart:io';
-
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/apiproviders/api_provider.dart';
@@ -65,42 +63,8 @@ class FirebaseFunctionsAPIProvider extends APIProvider {
     }
   }
 
-  /// Check if Firebase App Check should be enabled
-  static bool _isAppCheckEnabled() {
-    try {
-      EnsembleConfig? config = Ensemble().getConfig();
-      if (config == null) {
-        log('Ensemble config is not initialized for App Check check');
-        return false;
-      }
-      
-      UserAppConfig? appConfig = config.definitionProvider.getAppConfig();
-      if (appConfig == null) {
-        log('App config is not available for App Check check');
-        return false;
-      }
-      
-      String? appCheckEnabled = appConfig.envVariables?['firebase_app_check'];
-      if (appCheckEnabled == null) {
-        log('firebase_app_check environment variable is not set, defaulting to false');
-        return false;
-      }
-      
-      // Check if appcheck is enabled (true/false or yes/no)
-      bool isEnabled = appCheckEnabled.toLowerCase() == 'true' || 
-                      appCheckEnabled.toLowerCase() == 'yes' || 
-                      appCheckEnabled.toLowerCase() == '1';
-      
-      log('Firebase App Check: $appCheckEnabled, Enabled: $isEnabled');
-      return isEnabled;
-    } catch (e) {
-      log('Error checking Firebase App Check status: $e');
-      return false;
-    }
-  }
-
   /// Initialize Firebase if not already initialized
-  static Future<void> _initializeFirebase([Map<String, dynamic>? config]) async {
+  static Future<void> _initializeFirebase() async {
     if (_firebaseInitialized) {
       log('Firebase already initialized');
       return;
@@ -117,7 +81,7 @@ class FirebaseFunctionsAPIProvider extends APIProvider {
       }
 
       // Get Firebase options from config
-      FirebaseOptions? firebaseOptions = await _getFirebaseOptions(config);
+      FirebaseOptions? firebaseOptions = await _getFirebaseOptions();
       
       if (firebaseOptions != null) {
         await Firebase.initializeApp(options: firebaseOptions);
@@ -134,81 +98,99 @@ class FirebaseFunctionsAPIProvider extends APIProvider {
     }
   }
 
-  /// Get Firebase options from config map (similar to Firestore approach)
-  static Future<FirebaseOptions?> _getFirebaseOptions(Map<String, dynamic>? config) async {
-    try {
-      if (config == null) {
-        log('No config provided, using default Firebase initialization');
-        return null;
-      }
-
-      // Create a FirebaseConfig-like structure
-      FirebaseOptions? platformOptions;
-      
-      if (defaultTargetPlatform == TargetPlatform.iOS) {
-        // Get iOS configuration from config
-        var iosConfig = config['ios'];
-        if (iosConfig != null) {
-          platformOptions = FirebaseOptions(
-            apiKey: iosConfig['apiKey'],
-            appId: iosConfig['appId'],
-            messagingSenderId: iosConfig['messagingSenderId'],
-            projectId: iosConfig['projectId'],
-          );
-        }
-      } else if (defaultTargetPlatform == TargetPlatform.android) {
-        // Get Android configuration from config
-        var androidConfig = config['android'];
-        if (androidConfig != null) {
-          platformOptions = FirebaseOptions(
-            apiKey: androidConfig['apiKey'],
-            appId: androidConfig['appId'],
-            messagingSenderId: androidConfig['messagingSenderId'],
-            projectId: androidConfig['projectId'],
-          );
-        }
-      } else if (kIsWeb) {
-        // Get Web configuration from config
-        var webConfig = config['web'];
-        if (webConfig != null) {
-          platformOptions = FirebaseOptions(
-            apiKey: webConfig['apiKey'],
-            appId: webConfig['appId'],
-            messagingSenderId: webConfig['messagingSenderId'],
-            projectId: webConfig['projectId'],
-            authDomain: webConfig['authDomain'],
-            storageBucket: webConfig['storageBucket'],
-            measurementId: webConfig['measurementId'],
-          );
-        }
-      }
-
-      // Fallback to hardcoded values if no config found
-      if (platformOptions == null) {
-        if (Platform.isAndroid) {
-          platformOptions = const FirebaseOptions(
-            apiKey: "AIzaSyD9a8iVJ4LSz8lpp4GUmzxxxtmtQsX3C80",
-            appId: "1:49232071130:android:95c22ce11d6de7c114d8e3",
-            messagingSenderId: "49232071130",
-            projectId: "noumantest-12630",
-          );
-        } else if (Platform.isIOS) {
-          platformOptions = const FirebaseOptions(
-            apiKey: "AIzaSyCdj73RKpJNGB19XTNmLKg_YTb9aThNhAc",
-            appId: "1:49232071130:ios:3ded2134a088d83514d8e3",
-            messagingSenderId: "49232071130",
-            projectId: "noumantest-12630",
-          );
-        }
-      }
-
-      return platformOptions;
-    } catch (e) {
-      log('Error getting Firebase options: $e');
+static Future<FirebaseOptions?> _getFirebaseOptions() async {
+  try {
+    log('Reading Firebase config from environment variables...');
+    
+    // Get config from Ensemble environment variables
+    EnsembleConfig? ensembleConfig = Ensemble().getConfig();
+    if (ensembleConfig == null) {
+      log('Ensemble config is not available, using default Firebase initialization');
       return null;
     }
-  }
+    
+    UserAppConfig? appConfig = ensembleConfig.definitionProvider.getAppConfig();
+    if (appConfig == null) {
+      log('App config is not available, using default Firebase initialization');
+      return null;
+    }
+    
+    // Get the firebase_config from environment variables
+    String? firestoreConfigStr = appConfig.envVariables?['firebase_config'];
+    if (firestoreConfigStr == null || firestoreConfigStr.isEmpty) {
+      log('firebase_config environment variable not found, using default Firebase initialization');
+      return null;
+    }
+    
+    // Parse the JSON string
+    Map<String, dynamic> firebaseConfig;
+    try {
+      firebaseConfig = jsonDecode(firestoreConfigStr);
+      log('Successfully parsed firebase_config JSON');
+    } catch (e) {
+      log('Failed to parse firebase_config JSON: $e, using default Firebase initialization');
+      return null;
+    }
 
+    // Create a FirebaseConfig-like structure based on platform
+    FirebaseOptions? platformOptions;
+    
+    if (defaultTargetPlatform == TargetPlatform.iOS) {
+      // Get iOS configuration from config
+      var iosConfig = firebaseConfig['ios'];
+      if (iosConfig != null) {
+        log('Using iOS Firebase configuration');
+        platformOptions = FirebaseOptions(
+          apiKey: iosConfig['apiKey'],
+          appId: iosConfig['appId'],
+          messagingSenderId: iosConfig['messagingSenderId'],
+          projectId: iosConfig['projectId'],
+        );
+      } else {
+        log('iOS configuration not found in firebase_config');
+      }
+    } else if (defaultTargetPlatform == TargetPlatform.android) {
+      // Get Android configuration from config
+      var androidConfig = firebaseConfig['android'];
+      if (androidConfig != null) {
+        log('Using Android Firebase configuration');
+        platformOptions = FirebaseOptions(
+          apiKey: androidConfig['apiKey'],
+          appId: androidConfig['appId'],
+          messagingSenderId: androidConfig['messagingSenderId'],
+          projectId: androidConfig['projectId'],
+        );
+      } else {
+        log('Android configuration not found in firebase_config');
+      }
+    } else if (kIsWeb) {
+      // Get Web configuration from config
+      var webConfig = firebaseConfig['web'];
+      if (webConfig != null) {
+        log('Using Web Firebase configuration');
+        platformOptions = FirebaseOptions(
+          apiKey: webConfig['apiKey'],
+          appId: webConfig['appId'],
+          messagingSenderId: webConfig['messagingSenderId'],
+          projectId: webConfig['projectId'],
+        );
+      } else {
+        log('Web configuration not found in firebase_config');
+      }
+    }
+    
+    if (platformOptions != null) {
+      log('Firebase options loaded successfully for current platform');
+    } else {
+      log('No valid Firebase configuration found for current platform');
+    }
+    
+    return platformOptions;
+  } catch (e) {
+    log('Error getting Firebase options: $e');
+    return null;
+  }
+}
   /// Initialize Firebase App Check with Firebase dependency check
   static Future<void> initializeFirebaseAppCheck() async {
     if (_appCheckInitialized || _initializationInProgress) {
@@ -267,28 +249,10 @@ class FirebaseFunctionsAPIProvider extends APIProvider {
   @override
   Future<void> init(String appId, Map<String, dynamic> config) async {
     log('Initializing Firebase Functions API Provider...');
-    
-    // Check if Firebase provider is enabled
     if (!_isFirebaseProviderEnabled()) {
       throw RuntimeError('Firebase Functions API provider is not enabled. Please set cloud_function_provider environment variable to include "firebase"');
     }
-
-    // Initialize Firebase if not already done (pass config for Firebase options)
-    await _initializeFirebase(config);
-
-
-
-    // Handle emulator configuration
-    bool useEmulator = Utils.getBool(config['useEmulator'], fallback: false);
-    if (useEmulator) {
-      String emulatorHost = config['emulatorHost'] ?? 'localhost';
-      int emulatorPort = config['emulatorPort'] ?? 5001;
-      
-      // Note: Emulator configuration will be applied when Functions instance is created per API call
-      log('Emulator configuration: $emulatorHost:$emulatorPort (will be applied per API call)');
-    }
-
-    log('Firebase Functions API Provider initialized successfully');
+    await _initializeFirebase();
   }
 
   @override
@@ -443,17 +407,6 @@ class FirebaseFunctionsAPIProvider extends APIProvider {
   @override
   dispose() {
     // Nothing specific to dispose
-  }
-
-  /// Get the initialization status
-  static bool get isFirebaseInitializedStatic => _firebaseInitialized;
-  static bool get isAppCheckInitialized => _appCheckInitialized;
-
-  /// Reset initialization status (useful for testing)
-  static void resetInitialization() {
-    _firebaseInitialized = false;
-    _appCheckInitialized = false;
-    _initializationInProgress = false;
   }
 }
 
