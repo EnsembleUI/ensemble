@@ -103,14 +103,14 @@ class FirebaseFunctionsAPIProvider extends APIProvider {
       // Get config from Ensemble environment variables
       EnsembleConfig? ensembleConfig = Ensemble().getConfig();
       if (ensembleConfig == null) {
-        log('Ensemble config is not available, using default Firebase initialization');
+        log('Ensemble config is not available');
         return null;
       }
 
       UserAppConfig? appConfig =
           ensembleConfig.definitionProvider.getAppConfig();
       if (appConfig == null) {
-        log('App config is not available, using default Firebase initialization');
+        log('App config is not available');
         return null;
       }
 
@@ -118,7 +118,7 @@ class FirebaseFunctionsAPIProvider extends APIProvider {
       String? firebaseConfigStr = appConfig.envVariables?['firebase_config'] ??
           appConfig.envVariables?['firestore_config'];
       if (firebaseConfigStr == null || firebaseConfigStr.isEmpty) {
-        log('firebase_config environment variable not found, using default Firebase initialization');
+        log('firebase_config environment variable not found');
         return null;
       }
 
@@ -127,7 +127,7 @@ class FirebaseFunctionsAPIProvider extends APIProvider {
       try {
         firebaseConfig = jsonDecode(firebaseConfigStr);
       } catch (e) {
-        log('Failed to parse firebase_config JSON: $e, using default Firebase initialization');
+        log('Failed to parse firebase_config JSON: $e');
         return null;
       }
 
@@ -269,7 +269,6 @@ class FirebaseFunctionsAPIProvider extends APIProvider {
     // Check if Firebase is initialized, if not initialize it
     if (!_firebaseInitialized) {
       try {
-        log('Firebase not initialized, initializing now...');
         await _initializeFirebase();
       } catch (e) {
         log('Failed to initialize Firebase: $e');
