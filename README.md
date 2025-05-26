@@ -58,6 +58,9 @@ To contribute a new widget or enhance an existing one in Ensemble, follow these 
 
 To release a new version of your monorepo, follow these steps below.
 
+### Prerequisites
+
+**⚠️ IMPORTANT:** Please ensure no uncommitted changes or extra files exist (`git status`) and pull latest changes (`git pull origin main`) before releasing new version.
 
 ### Update SDK version 
 
@@ -71,6 +74,7 @@ To push this version on github with tag:
 
 `git push --follow-tags origin main`
 
+**Recommended:** Create a new branch for better safety instead of using directly main.
 
 **(optional) Create a Release on GitHub**:
    - Go to your repository on GitHub.

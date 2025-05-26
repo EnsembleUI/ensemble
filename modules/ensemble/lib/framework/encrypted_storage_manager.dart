@@ -43,7 +43,6 @@ class EncryptedStorageManager {
     if (inputs is Map) {
       key = _extractKey(inputs, 'setSecureStorage');
       val = inputs['value'];
-      print('Value to store: $val');
 
     } else if (inputs is String) {
       key = inputs;
@@ -62,21 +61,16 @@ class EncryptedStorageManager {
 
     try {
       final encryptedValue = _encryptValue(val);
-      print('Encrypted value: $encryptedValue');
       StorageManager().write(PREFIX + key, encryptedValue);
     } catch (e) {
-      print('Error encrypting value: $e');
       throw LanguageError('Failed to encrypt and store value: ${e.toString()}');
     }
   }
 
   static dynamic getSecureStorage(dynamic inputs) {
-    print('getSecureStorage called with inputs: $inputs');
     final key = _extractKey(inputs, 'getSecureStorage');
-    print('Extracted key: $key');
     try {
       final storedValue = StorageManager().read(PREFIX + key);
-      print('Stored value: $storedValue');
       if (storedValue == null) return null;
 
       return _decryptValue(storedValue);
