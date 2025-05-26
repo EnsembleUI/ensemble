@@ -12,6 +12,7 @@ import 'package:ensemble/widget/ensemble_icon.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
+import 'package:flutter/semantics.dart';
 
 /// managing Toast dialogs
 class ToastController {
@@ -139,36 +140,50 @@ class ToastController {
       }
 
       const double closeButtonRadius = 10;
-
+      FocusNode focusNode = FocusNode();
       dataContext ??= DataScopeWidget.getScope(context)?.dataContext;
       String? message =
           dataContext?.eval(toastAction.message) ?? toastAction.message;
+      if (message != null && message.isNotEmpty) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          Future.delayed(const Duration(milliseconds: 300), () {
+            // Only steal focus if nothing else has focus
+            if (focusNode.canRequestFocus) {
+              focusNode.requestFocus();
+            }
+            SemanticsService.announce(message, TextDirection.ltr);
+          });
+        });
+      }
 
-      content = Row(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Icon(icon),
-          const SizedBox(width: 18),
-          if (message != null && message.isNotEmpty)
-            Flexible(
-              child: Text(
-                message,
-                maxLines: 3,
-                overflow: TextOverflow.ellipsis,
+      content = Focus(
+        focusNode: focusNode,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Icon(icon),
+            const SizedBox(width: 18),
+            if (message != null && message.isNotEmpty)
+              Flexible(
+                child: Text(
+                  message,
+                  maxLines: 3,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
-            ),
-          if (toastAction.dismissible != false)
-            InkWell(
-              child: const CircleAvatar(
-                backgroundColor: Colors.transparent,
-                radius: closeButtonRadius,
-                child: Icon(Icons.close, size: closeButtonRadius * 2 - 2),
-              ),
-              onTap: () => _toast.removeQueuedCustomToasts(),
-            )
-        ],
+            if (toastAction.dismissible != false)
+              InkWell(
+                child: const CircleAvatar(
+                  backgroundColor: Colors.transparent,
+                  radius: closeButtonRadius,
+                  child: Icon(Icons.close, size: closeButtonRadius * 2 - 2),
+                ),
+                onTap: () => _toast.removeQueuedCustomToasts(),
+              )
+          ],
+        ),
       );
     }
 
