@@ -58,10 +58,6 @@ To contribute a new widget or enhance an existing one in Ensemble, follow these 
 
 To release a new version of your monorepo, follow these steps below.
 
-## Releasing a New Version
-
-To release a new version of your monorepo, follow these steps below.
-
 ### Prerequisites
 
 **⚠️ IMPORTANT:** Please ensure no uncommitted changes or extra files exist (`git status`) and pull latest changes (`git pull origin main`) before releasing new version.
