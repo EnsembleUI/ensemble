@@ -16,7 +16,7 @@ dependencies:
   ensemble:
     git:
       url: https://github.com/EnsembleUI/ensemble.git
-      ref: ensemble-v1.1.54
+      ref: ensemble-v1.1.55
       path: modules/ensemble
   ensemble_ts_interpreter:
     git:
