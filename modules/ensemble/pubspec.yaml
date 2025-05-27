@@ -135,7 +135,7 @@ dependencies:
       url: https://github.com/Piyush-e7/receive_sharing_intent.git
       ref: master
   change_case: ^1.1.0
-  dropdown_button2: ^2.3.9
+  ensemble_dropdown: ^0.1.0
   collection: ^1.17.1
   package_info_plus: ^8.0.0
   audioplayers: ^5.2.1
