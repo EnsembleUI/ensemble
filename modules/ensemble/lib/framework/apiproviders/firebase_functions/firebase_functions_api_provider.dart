@@ -29,20 +29,17 @@ class FirebaseFunctionsAPIProvider extends APIProvider {
     try {
       EnsembleConfig? config = Ensemble().getConfig();
       if (config == null) {
-        log('Ensemble config is not initialized');
         return false;
       }
 
       UserAppConfig? appConfig = config.definitionProvider.getAppConfig();
       if (appConfig == null) {
-        log('App config is not available');
         return false;
       }
 
       String? apiProviders = appConfig.envVariables?['cloud_function_provider'];
       if (apiProviders == null) {
-        log('cloud_function_provider environment variable is not set');
-        return false;
+        throw ConfigError('cloud_function_provider environment variable is not initialized');
       }
 
       // Check if firebase is enabled (can be 'firebase' or comma-separated list containing 'firebase')
@@ -52,7 +49,6 @@ class FirebaseFunctionsAPIProvider extends APIProvider {
 
       return isEnabled;
     } catch (e) {
-      log('Error checking Firebase provider status: $e');
       return false;
     }
   }
@@ -93,7 +89,6 @@ class FirebaseFunctionsAPIProvider extends APIProvider {
         _app = app;
       }
     } catch (e) {
-      log('Failed to initialize Firebase: $e');
       throw RuntimeError('Firebase initialization failed: $e');
     }
   }
@@ -103,14 +98,12 @@ class FirebaseFunctionsAPIProvider extends APIProvider {
       // Get config from Ensemble environment variables
       EnsembleConfig? ensembleConfig = Ensemble().getConfig();
       if (ensembleConfig == null) {
-        log('Ensemble config is not available');
         return null;
       }
 
       UserAppConfig? appConfig =
           ensembleConfig.definitionProvider.getAppConfig();
       if (appConfig == null) {
-        log('App config is not available');
         return null;
       }
 
@@ -118,7 +111,7 @@ class FirebaseFunctionsAPIProvider extends APIProvider {
       String? firebaseConfigStr = appConfig.envVariables?['firebase_config'] ??
           appConfig.envVariables?['firestore_config'];
       if (firebaseConfigStr == null || firebaseConfigStr.isEmpty) {
-        log('firebase_config environment variable not found');
+        ConfigError('firebase_config environment variable not found');
         return null;
       }
 
@@ -127,8 +120,7 @@ class FirebaseFunctionsAPIProvider extends APIProvider {
       try {
         firebaseConfig = jsonDecode(firebaseConfigStr);
       } catch (e) {
-        log('Failed to parse firebase_config JSON: $e');
-        return null;
+        throw ConfigError('Failed to parse firebase_config envoirment variable: $e');
       }
 
       // Create a FirebaseConfig-like structure based on platform
@@ -145,7 +137,7 @@ class FirebaseFunctionsAPIProvider extends APIProvider {
             projectId: iosConfig['projectId'],
           );
         } else {
-          log('iOS configuration not found in firebase_config');
+          throw ConfigError('iOS configuration not found in firebase_config');
         }
       } else if (defaultTargetPlatform == TargetPlatform.android) {
         // Get Android configuration from config
@@ -158,7 +150,7 @@ class FirebaseFunctionsAPIProvider extends APIProvider {
             projectId: androidConfig['projectId'],
           );
         } else {
-          log('Android configuration not found in firebase_config');
+          throw ConfigError('Android configuration not found in firebase_config');
         }
       } else if (kIsWeb) {
         // Get Web configuration from config
@@ -171,18 +163,17 @@ class FirebaseFunctionsAPIProvider extends APIProvider {
             projectId: webConfig['projectId'],
           );
         } else {
-          log('Web configuration not found in firebase_config');
+          throw ConfigError('Web configuration not found in firebase_config');
         }
       }
 
       if (platformOptions == null) {
-        log('No valid Firebase configuration found for current platform');
+        throw ConfigError('No Firebase options found for current platform in firebase_config');
       }
 
       return platformOptions;
     } catch (e) {
-      log('Error getting Firebase options: $e');
-      return null;
+      throw ConfigError('Error getting Firebase options: $e');
     }
   }
 
@@ -215,10 +206,9 @@ class FirebaseFunctionsAPIProvider extends APIProvider {
 
       _appCheckInitialized = true;
     } catch (e) {
-      log('Failed to initialize Firebase App Check: $e');
-
-      // Always continue without App Check if it fails
       _appCheckInitialized = false;
+      throw ConfigError('Failed to initialize Firebase App Check: $e');
+      // Always continue without App Check if it fails
 
       // Don't rethrow to prevent blocking the app
     } finally {
@@ -271,15 +261,7 @@ class FirebaseFunctionsAPIProvider extends APIProvider {
       try {
         await _initializeFirebase();
       } catch (e) {
-        log('Failed to initialize Firebase: $e');
-        return FirebaseFunctionResponse(
-          {'error': 'Failed to initialize Firebase: ${e.toString()}'},
-          {'Content-Type': 'application/json'},
-          500,
-          'Internal Server Error',
-          APIState.error,
-          apiName: apiName,
-        );
+        throw ConfigError('Failed to initialize Firebase: $e');
       }
     }
 
@@ -289,18 +271,7 @@ class FirebaseFunctionsAPIProvider extends APIProvider {
       functionsInstance =
           FirebaseFunctions.instanceFor(app: _app, region: region);
     } catch (e) {
-      log('Failed to create Firebase Functions instance: $e');
-      return FirebaseFunctionResponse(
-        {
-          'error':
-              'Failed to create Firebase Functions instance: ${e.toString()}'
-        },
-        {'Content-Type': 'application/json'},
-        500,
-        'Internal Server Error',
-        APIState.error,
-        apiName: apiName,
-      );
+      throw ConfigError('Failed to create Firebase Functions instance: $e');
     }
 
     // Prepare data payload for the function
@@ -330,7 +301,6 @@ class FirebaseFunctionsAPIProvider extends APIProvider {
         apiName: apiName,
       );
     } catch (e) {
-      log('Error calling Firebase Function $name: $e');
       return _handleError(e, apiName);
     }
   }
