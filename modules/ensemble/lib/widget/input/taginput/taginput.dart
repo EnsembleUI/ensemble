@@ -37,11 +37,7 @@ class TagInput extends BaseTextInput {
         _controller.taggerControllerValue = Utils.optionalString(newValue)!;
       },
       'isOverlayVisible': (newValue) {
-        if (newValue == null) {
-          _controller.isOverlayVisible = false;
-          return;
-        }
-        _controller.isOverlayVisible = Utils.optionalBool(newValue)!;
+        _controller.isOverlayVisible = Utils.getBool(newValue, fallback: false);
       },
       'inputType': (type) => _controller.inputType = Utils.optionalString(type),
       'mask': (type) => _controller.mask = Utils.optionalString(type),
