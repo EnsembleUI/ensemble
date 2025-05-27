@@ -36,6 +36,13 @@ class TagInput extends BaseTextInput {
         }
         _controller.taggerControllerValue = Utils.optionalString(newValue)!;
       },
+      'isOverlayVisible': (newValue) {
+        if (newValue == null) {
+          _controller.isOverlayVisible = false;
+          return;
+        }
+        _controller.isOverlayVisible = Utils.optionalBool(newValue)!;
+      },
       'inputType': (type) => _controller.inputType = Utils.optionalString(type),
       'mask': (type) => _controller.mask = Utils.optionalString(type),
       'onDelayedKeyPress': (function) => _controller.onDelayedKeyPress =
@@ -78,6 +85,7 @@ abstract class BaseTextInput extends StatefulWidget
           .currentTriggerChar, // Getter for current trigger character
       'text': ()=> _controller.taggerController.text ?? '',
       'tags': ()=> _controller.getTags() ?? '',
+      'isOverlayVisible': () => _controller.isOverlayVisible,
     });
     return getters;
   }
@@ -212,7 +220,8 @@ class TagInputController extends BaseInputController {
   bool _initialTagApplied = false;
   bool _applyingInitialTag = false;
   Map<String, String>? _initialTag;
-
+  bool _isOverlayVisible = false;
+  bool get isOverlayVisible => _isOverlayVisible;
   // Configurable properties
   List<Trigger> triggers = [
     Trigger(character: '@',textStyle: const TextStyle(color: Colors.blue))
@@ -239,7 +248,9 @@ class TagInputController extends BaseInputController {
       _taggerController!.text = value;
     }
   }
-
+  set isOverlayVisible(bool value) {
+    _isOverlayVisible = value;
+  }
   Map<String, String>? get initialTag => _initialTag;
   set initialTag(Map<String, String>? value) {
     if (_initialTag != value) {
@@ -348,7 +359,6 @@ class TagInputState extends FormFieldWidgetState<BaseTextInput>
   // For change tracking
   String previousText = '';
   bool didItChange = false;
-  bool _isOverlayVisible = false;
   bool _initialized = false;
 
   // Initialize these fields immediately
@@ -371,7 +381,7 @@ class TagInputState extends FormFieldWidgetState<BaseTextInput>
   }
 
   void removeOverlayAndUnfocus() {
-    if (!_isOverlayVisible) {
+    if (!widget.controller.isOverlayVisible) {
       _taggerController.dismissOverlay();
       if (widget.controller.dismissOnTapOutside == true)
         FocusManager.instance.primaryFocus?.unfocus();
@@ -449,7 +459,8 @@ class TagInputState extends FormFieldWidgetState<BaseTextInput>
           setState(() {
             dataList = data;
             if(dataList!.length == 0){
-              _isOverlayVisible = false;
+              widget.controller.isOverlayVisible = false;
+              widget.setProperty('isOverlayVisible', widget.controller.isOverlayVisible);
             }
           });
         }
@@ -585,7 +596,7 @@ class TagInputState extends FormFieldWidgetState<BaseTextInput>
             return "$triggerCharacter$id";
           },
           onSearch: (query, triggerCharacter) async {
-            _isOverlayVisible = true;
+            widget.controller.isOverlayVisible = true;
             if (widget._controller.onSearch != null) {
               ScreenController().executeAction(
                 context,
@@ -611,9 +622,9 @@ class TagInputState extends FormFieldWidgetState<BaseTextInput>
               ? TriggerStrategy.deferred
               : TriggerStrategy.eager,
           overlayHeight: _calculatedOverlayHeight,
-          overlayWidth: widget._controller.overlayWidth ?? 380,
+          overlayWidth: widget._controller.overlayWidth ?? MediaQuery.sizeOf(context).width,
           padding: widget._controller.overlayPadding ?? EdgeInsets.zero,
-          overlay: _isOverlayVisible ?
+          overlay: widget.controller.isOverlayVisible ?
           Material(
               child: SlideTransition(
                 position: _animation!,
@@ -648,9 +659,9 @@ class TagInputState extends FormFieldWidgetState<BaseTextInput>
               selectable: widget._controller.selectable,
               onChanged: (String txt) {
                 if (isLastWordATag(txt)) {
-                  _isOverlayVisible = true;
+                  widget.controller.isOverlayVisible = true;
                 } else {
-                  _isOverlayVisible = false;
+                  widget.controller.isOverlayVisible = false;
                 }
                 if (txt != previousText) {
                   previousText = txt;
@@ -671,6 +682,7 @@ class TagInputState extends FormFieldWidgetState<BaseTextInput>
                         getKeyPressDebouncer());
                   }
                 }
+                widget.setProperty("isOverlayVisible", widget.controller.isOverlayVisible);
                 setState(() {});
               },
               onFieldSubmitted: (value) {
@@ -799,7 +811,8 @@ class TagInputState extends FormFieldWidgetState<BaseTextInput>
                   name: label,
                 );
                 // Change the overlay visibility flag to false to allow the focus of TextInput to be dismissed
-                _isOverlayVisible = false;
+                widget.controller.isOverlayVisible = false;
+                widget.setProperty('isOverlayVisible', widget.controller.isOverlayVisible);
               },
             ));
           }
