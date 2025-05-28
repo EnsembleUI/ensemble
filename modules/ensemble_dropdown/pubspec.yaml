@@ -1,42 +1,20 @@
-name: ensemble_camera
-description: A new Flutter package project.
-version: 0.0.1
-homepage: https://github.com/EnsembleUI/ensemble/modules/camera
+name: ensemble_dropdown
+description: "Accessible Dropdown with custom styling"
+version: 0.1.0
+homepage:
 
 environment:
-  sdk: ">=3.5.0"
-  flutter: ">=3.24.0"
+  sdk: ^3.5.3
+  flutter: ">=1.17.0"
 
 dependencies:
   flutter:
     sdk: flutter
-  camera: ^0.11.0+2
-  face_camera: ^0.1.4
-  # embed Ensemble as a sibling project
-  ensemble:
-    git:
-      url: https://github.com/EnsembleUI/ensemble.git
-      ref: ensemble-v1.1.55
-      path: modules/ensemble
-  ensemble_ts_interpreter:
-    git:
-      url: https://github.com/EnsembleUI/ensemble.git
-      ref: main
-      path: modules/ensemble_ts_interpreter
-
-  collection: ^1.17.1
-  geolocator: ^9.0.2
-  image_picker: ^0.8.7+5
-  sensors_plus: ^3.0.0
-  video_player: ^2.6.1
-  mobile_scanner: ^6.0.7
-  path_provider: ^2.1.5
-  share_plus: ^10.1.4
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: ^2.0.0
+  flutter_lints: ^4.0.0
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -50,10 +28,10 @@ flutter:
   #   - images/a_dot_ham.jpeg
   #
   # For details regarding assets in packages, see
-  # https://flutter.dev/assets-and-images/#from-packages
+  # https://flutter.dev/to/asset-from-package
   #
   # An image asset can refer to one or more resolution-specific "variants", see
-  # https://flutter.dev/assets-and-images/#resolution-aware
+  # https://flutter.dev/to/resolution-aware-images
 
   # To add custom fonts to your package, add a fonts section here,
   # in this "flutter" section. Each entry in this list should have a
@@ -73,9 +51,4 @@ flutter:
   #         weight: 700
   #
   # For details regarding fonts in packages, see
-  # https://flutter.dev/custom-fonts/#from-packages
-
-  assets:
-    - web/face_api.js
-    - web/face_detection.js
-    - web/image_worker.js
+  # https://flutter.dev/to/font-from-package
