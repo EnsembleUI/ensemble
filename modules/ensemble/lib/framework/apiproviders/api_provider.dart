@@ -63,7 +63,7 @@ class APIProviders extends InheritedWidget {
         return HTTPAPIProvider();
       case 'firestore':
         return FirestoreAPIProvider();
-      case 'firebaseFunction':
+      case 'firebase':
         return FirebaseFunctionsAPIProvider();
       default:
         return null;

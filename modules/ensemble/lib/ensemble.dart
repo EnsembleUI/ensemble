@@ -253,6 +253,11 @@ class Ensemble extends WithEnsemble with EnsembleRouteObserver {
             } catch (e) {
               print('Error decoding provider config for $provider');
             }
+          } else if (providerConfig == 'firestore_config') {
+            if (appConfig.envVariables?['firebase_config'] != null) {
+              providerConfigMap =
+                  json.decode(appConfig.envVariables?['firebase_config']);
+            }
           }
           APIProvider? apiProvider = APIProviders.initProvider(provider);
           if (apiProvider != null) {
@@ -267,8 +272,8 @@ class Ensemble extends WithEnsemble with EnsembleRouteObserver {
         }
       }
     }
-    if (appConfig?.envVariables?['firebase_app_check'] == 'true'){
-        FirebaseFunctionsAPIProvider.initializeFirebaseAppCheck();
+    if (appConfig?.envVariables?['firebase_app_check'] == 'true') {
+      FirebaseFunctionsAPIProvider.initializeFirebaseAppCheck();
     }
     config.apiProviders = providers;
   }
