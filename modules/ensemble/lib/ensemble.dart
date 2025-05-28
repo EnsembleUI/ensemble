@@ -273,7 +273,7 @@ class Ensemble extends WithEnsemble with EnsembleRouteObserver {
       }
     }
     if (appConfig?.envVariables?['firebase_app_check'] == 'true') {
-      FirebaseFunctionsAPIProvider.initializeFirebaseAppCheck();
+      await FirebaseFunctionsAPIProvider.initializeFirebaseAppCheck();
     }
     config.apiProviders = providers;
   }
