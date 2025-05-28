@@ -318,6 +318,7 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput>
 
   @override
   Widget buildWidget(BuildContext context) {
+    bool isMobileWeb = Utils.isMobileWeb();
     InputDecoration decoration = inputDecoration;
     if (widget._controller.floatLabel == true) {
       decoration = decoration.copyWith(
@@ -459,16 +460,18 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput>
         onChanged: (String txt) {
           // If text suddenly increased by more than one character,
           // it could indicate a paste operation
-          if (txt != previousText &&
-              (txt.length > previousText.length + 1 ||
-                  previousText.length > txt.length + 1) &&
-              !widget._controller.selectable) {
-            widget.textController.text = previousText;
-            widget.textController.selection = TextSelection.fromPosition(
-              TextPosition(offset: previousText.length),
-            );
-            // Early return to prevent further processing
-            return;
+          if(isMobileWeb){
+            if (txt != previousText &&
+                (txt.length > previousText.length + 1 ||
+                    previousText.length > txt.length + 1) &&
+                !widget._controller.selectable) {
+              widget.textController.text = previousText;
+              widget.textController.selection = TextSelection.fromPosition(
+                TextPosition(offset: previousText.length),
+              );
+              // Early return to prevent further processing
+              return;
+            }
           }
           if (txt != previousText) {
             // for performance reason, we dispatch onChange (as well as binding to value)
