@@ -25,6 +25,9 @@ class FirebaseFunctionsAPIProvider extends APIProvider {
   static get platformOptions => null;
 
   // Check if Firebase Functions API provider is enabled
+  static FirebaseApp? getFirebaseAppContext(){
+    return _app;
+  }
   bool _isFirebaseProviderEnabled() {
     try {
       EnsembleConfig? config = Ensemble().getConfig();
