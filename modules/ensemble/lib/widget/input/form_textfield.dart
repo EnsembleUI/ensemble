@@ -10,6 +10,7 @@ import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/helpers/form_helper.dart';
 import 'package:ensemble/widget/helpers/input_field_helper.dart';
 import 'package:ensemble/widget/helpers/input_wrapper.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:email_validator/email_validator.dart';
@@ -318,7 +319,6 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput>
 
   @override
   Widget buildWidget(BuildContext context) {
-    bool isMobileWeb = Utils.isMobileWeb();
     InputDecoration decoration = inputDecoration;
     if (widget._controller.floatLabel == true) {
       decoration = decoration.copyWith(
@@ -460,7 +460,7 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput>
         onChanged: (String txt) {
           // If text suddenly increased by more than one character,
           // it could indicate a paste operation
-          if(isMobileWeb){
+          if(kIsWeb){
             if (txt != previousText &&
                 (txt.length > previousText.length + 1 ||
                     previousText.length > txt.length + 1) &&

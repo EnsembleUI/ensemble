@@ -1248,11 +1248,4 @@ static BoxDecoration? getBoxDecoration(dynamic style) {
     }
     return null;
   }
-  static bool isMobileWeb() {
-    if (kIsWeb) {
-      return defaultTargetPlatform == TargetPlatform.iOS ||
-          defaultTargetPlatform == TargetPlatform.android;
-    }
-    return false;
-  }
 }
