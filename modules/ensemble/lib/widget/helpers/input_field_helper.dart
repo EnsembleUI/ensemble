@@ -264,6 +264,12 @@ class InputFieldHelper {
       onChanged: onChanged,
       style: textStyle,
       decoration: decoration,
+      contextMenuBuilder: selectable
+          ? (context, editableTextState) {
+        return AdaptiveTextSelectionToolbar.editableText(
+          editableTextState: editableTextState,
+        );
+      } : null,
     );
   }
 
