@@ -1,10 +1,12 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:developer';
+import 'dart:io';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:collection/collection.dart';
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/apiproviders/api_provider.dart';
+import 'package:ensemble/framework/apiproviders/http_api_provider.dart';
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -25,9 +27,10 @@ class FirebaseFunctionsAPIProvider extends APIProvider {
   static get platformOptions => null;
 
   // Check if Firebase Functions API provider is enabled
-  static FirebaseApp? getFirebaseAppContext(){
+  static FirebaseApp? getFirebaseAppContext() {
     return _app;
   }
+
   bool _isFirebaseProviderEnabled() {
     try {
       EnsembleConfig? config = Ensemble().getConfig();
@@ -45,11 +48,9 @@ class FirebaseFunctionsAPIProvider extends APIProvider {
       if (!apiProviders.contains('firebase')) {
         throw ConfigError(
             'cloud_function_provider environment variable is not initialized');
-      }
-      else{
+      } else {
         return true;
       }
-
     } catch (e) {
       return false;
     }
@@ -63,7 +64,6 @@ class FirebaseFunctionsAPIProvider extends APIProvider {
           a.messagingSenderId == b.messagingSenderId &&
           a.projectId == b.projectId;
     }
-
 
     try {
       FirebaseApp? existingApp = Firebase.apps.firstWhereOrNull(
@@ -85,39 +85,38 @@ class FirebaseFunctionsAPIProvider extends APIProvider {
         _app = app;
       }
     } catch (e) {
-      throw RuntimeError('Firebase initialization failed: $e');
+      throw RuntimeError('Firebase initialization failed: $e. Please make sure to include correct firebase_config in env variables');
     }
   }
+
   /// Initialize Firebase App Check with Firebase dependency check
   static Future<void> initializeFirebaseAppCheck() async {
-
     try {
       if (_app == null) {
         await _initializeFirebase();
       }
       if (_app?.options.apiKey != null) {
-      FirebaseAppCheck appCheck = FirebaseAppCheck.instanceFor(app: _app!);
-      // Now initialize App Check
-      if (kDebugMode) {
-        await appCheck.activate(
-          androidProvider: AndroidProvider.debug,
-          appleProvider: AppleProvider.debug,
-        );
-      } else {
-        await appCheck.activate(
-          androidProvider: AndroidProvider.playIntegrity,
-          appleProvider: AppleProvider.appAttest,
-        );
-      }
+        FirebaseAppCheck appCheck = FirebaseAppCheck.instanceFor(app: _app!);
+        // Now initialize App Check
+        if (kDebugMode) {
+          await appCheck.activate(
+            androidProvider: AndroidProvider.debug,
+            appleProvider: AppleProvider.debug,
+          );
+        } else {
+          await appCheck.activate(
+            androidProvider: AndroidProvider.playIntegrity,
+            appleProvider: AppleProvider.appAttest,
+          );
+        }
 
-      _appCheckInitialized = true;
-      }
-      else{
-         await _initializeFirebase();
+        _appCheckInitialized = true;
+      } else {
+        await _initializeFirebase();
       }
     } catch (e) {
       _appCheckInitialized = false;
-      
+
       throw ConfigError('Failed to initialize Firebase App Check: $e');
     }
   }
@@ -140,26 +139,20 @@ class FirebaseFunctionsAPIProvider extends APIProvider {
       DataContext eContext, String apiName) async {
     // Check if Firebase provider is enabled in environment variables
     if (!_isFirebaseProviderEnabled()) {
-      throw ConfigError('Please include firebase in api_provider to use this function');
+      return _handleError(
+          'Please include firebase in api_provider to use this function',
+          apiName);
     }
 
     // Extract the function name from the API definition
     String name = eContext.eval(api['name'] ?? '')?.toString() ?? '';
     if (name.isEmpty) {
-      return FirebaseFunctionResponse(
-        {'error': 'Function name cannot be empty'},
-        {'Content-Type': 'application/json'},
-        400,
-        'Bad Request',
-        APIState.error,
-        apiName: apiName,
-      );
+      return _handleError('firebase function name cannot be null', apiName);
     }
 
     // Get region from API definition, fallback to default
     String? apiRegion = eContext.eval(api['region'])?.toString();
     String region = apiRegion?.isNotEmpty == true ? apiRegion! : _defaultRegion;
-
 
     // Create Functions instance for the specified region
     FirebaseFunctions functionsInstance;
@@ -200,26 +193,25 @@ class FirebaseFunctionsAPIProvider extends APIProvider {
     }
   }
 
-  FirebaseFunctionResponse _handleError(Object error, String apiName) {
+  HttpResponse _handleError(Object error, String apiName) {
     String errorMessage;
-    int statusCode = 500;
-
-    if (error is FirebaseFunctionsException) {
-      statusCode = error.code as int;
+    if (error is HandshakeException || error is TlsException) {
       errorMessage =
-          'Firebase Functions error: ${error.message}. Details: ${error.details}';
+          'SSL Pinning failed: ${error.toString()}. Please check your certificate.';
+    } else if (error is SocketException) {
+      errorMessage =
+          'Network error: ${error.message}. Please check your network connection.';
     } else {
       errorMessage = 'Unexpected error: ${error.toString()}.';
     }
 
     log(errorMessage);
-    return FirebaseFunctionResponse(
-      {'error': errorMessage},
-      {'Content-Type': 'application/json'},
-      statusCode,
-      'Error',
+    return HttpResponse.fromBody(
+      errorMessage,
+      {'Content-Type': 'text/plain'},
+      500,
+      'Internal Server Error',
       APIState.error,
-      apiName: apiName,
     );
   }
 
