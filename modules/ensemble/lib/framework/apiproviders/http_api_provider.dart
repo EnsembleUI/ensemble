@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:crypto/crypto.dart';
 import 'package:ensemble/framework/apiproviders/api_provider.dart';
 import 'dart:async';
 import 'dart:convert';
@@ -9,6 +10,7 @@ import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/extensions.dart';
+import 'package:ensemble/framework/storage_manager.dart';
 import 'package:ensemble/framework/stub/oauth_controller.dart';
 import 'package:ensemble/framework/stub/token_manager.dart';
 import 'package:ensemble/util/utils.dart';
@@ -75,7 +77,7 @@ class HTTPAPIProvider extends APIProvider {
     Uint8List? bodyBytes;
     if (api['body'] != null) {
       final contentType = headers['content-type']?.toLowerCase() ?? '';
-      
+
       if (contentType == 'application/x-www-form-urlencoded') {
         // For form-urlencoded, convert body to query string format
         if (api['body'] is Map) {
@@ -85,8 +87,8 @@ class HTTPAPIProvider extends APIProvider {
           });
           // Convert map to x-www-form-urlencoded format
           bodyPayload = formData.entries
-              .map((e) => 
-                '${Uri.encodeComponent(e.key)}=${Uri.encodeComponent(e.value.toString())}')
+              .map((e) =>
+                  '${Uri.encodeComponent(e.key)}=${Uri.encodeComponent(e.value.toString())}')
               .join('&');
         }
       } else {
@@ -151,6 +153,9 @@ class HTTPAPIProvider extends APIProvider {
         env?['ssl_pinning_enabled']?.toString().toLowerCase() == 'true';
     bool bypassSslCertificate =
         env?['bypass_ssl_pinning']?.toString().toLowerCase() == 'true';
+    bool bypassSslPinningWithValidation =
+        env?['bypass_ssl_pinning_with_validation']?.toString().toLowerCase() ==
+            'true';
 
     String? sslPinningCertificate = secrets?['ssl_pinning_certificate'];
 
@@ -161,10 +166,10 @@ class HTTPAPIProvider extends APIProvider {
 
     try {
       http.Client client = await _getHttpClient(
-        sslPinningEnabled: sslPinningEnabled,
-        bypassSslCertificate: bypassSslCertificate,
-        sslPinningCertificate: sslPinningCertificate,
-      );
+          sslPinningEnabled: sslPinningEnabled,
+          bypassSslCertificate: bypassSslCertificate,
+          sslPinningCertificate: sslPinningCertificate,
+          bypassSslPinningWithValidation: bypassSslPinningWithValidation);
 
       if (!kIsWeb && manageCookies) {
         List<Cookie> cookies = await _cookieJar.loadForRequest(Uri.parse(url));
@@ -184,11 +189,11 @@ class HTTPAPIProvider extends APIProvider {
         switch (method) {
           case 'POST':
             response =
-            await client.post(Uri.parse(url), headers: headers, body: body);
+                await client.post(Uri.parse(url), headers: headers, body: body);
             break;
           case 'PUT':
             response =
-            await client.put(Uri.parse(url), headers: headers, body: body);
+                await client.put(Uri.parse(url), headers: headers, body: body);
             break;
           case 'PATCH':
             response =
@@ -230,6 +235,7 @@ class HTTPAPIProvider extends APIProvider {
     required bool sslPinningEnabled,
     required bool bypassSslCertificate,
     String? sslPinningCertificate,
+    bool bypassSslPinningWithValidation = false,
   }) async {
     if (kIsWeb) {
       // SSL pinning is not supported on the web
@@ -244,15 +250,31 @@ class HTTPAPIProvider extends APIProvider {
       return IOClient(HttpClient(context: context));
     } 
 
-    if ( bypassSslCertificate == true ) {
+    if (bypassSslCertificate == true) {
       // Bypass SSL verification
       return IOClient(
           HttpClient()..badCertificateCallback = (cert, host, port) => true);
     }
 
+    if (bypassSslPinningWithValidation == true) {
+      String storedFingerprint =
+          await StorageManager().readSecurely('bypass_ssl_certificate');
+      // Check SSL while bypassing
+      HttpClient client = HttpClient();
+      client.badCertificateCallback =
+          (X509Certificate cert, String host, int port) {
+        String currentFingerprint = sha256.convert(cert.der).toString();
+
+        // Compare with stored fingerprint
+        bool fingerprintMatches = currentFingerprint == storedFingerprint;
+        // only allow if the fingerprint matches
+        return fingerprintMatches;
+      };
+      return IOClient(client);
+    }
+
     // Default case when sslPinningEnabled is null
     return http.Client();
-
   }
 
   HttpResponse _handleError(Object error, String apiName) {
