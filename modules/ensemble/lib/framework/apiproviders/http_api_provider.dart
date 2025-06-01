@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:ensemble/action/key_chain_actions.dart';
 import 'package:ensemble/framework/apiproviders/api_provider.dart';
 import 'dart:async';
 import 'dart:convert';
@@ -9,6 +10,7 @@ import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/extensions.dart';
+import 'package:ensemble/framework/keychain_manager.dart';
 import 'package:ensemble/framework/stub/oauth_controller.dart';
 import 'package:ensemble/framework/stub/token_manager.dart';
 import 'package:ensemble/util/utils.dart';
@@ -59,40 +61,75 @@ class HTTPAPIProvider extends APIProvider {
       }
     }
 
-    if (api['headers'] is YamlMap) {
-      (api['headers'] as YamlMap).forEach((key, value) {
-        // in Web we shouldn't pass the Cookie since that is automatic
-        if (key.toString().toLowerCase() == 'cookie' && kIsWeb) return;
-
-        if (value != null) {
-          headers[key.toString().toLowerCase()] = eContext.eval(value).toString();
-        }
-      });
+if (api['headers'] is YamlMap) {
+  for (var entry in (api['headers'] as YamlMap).entries) {
+    var key = entry.key;
+    var value = entry.value;
+    if (key.toString().toLowerCase() == 'cookie' && kIsWeb) continue;
+    
+    if (value != null) {
+      if (value is String && value.contains('ensemble.apiSecureStorage.get(')) {
+        value = await processSecureStorageCalls(value, includeBrackets: true);
+      }
+      headers[key.toString().toLowerCase()] = eContext.eval(value).toString();
     }
+  }
+}
     // Support JSON (or Yaml) body only.
     // Here it's converted to YAML already
     String? bodyPayload;
     Uint8List? bodyBytes;
     if (api['body'] != null) {
       final contentType = headers['content-type']?.toLowerCase() ?? '';
-      
-      if (contentType == 'application/x-www-form-urlencoded') {
+
+        if (contentType == 'application/x-www-form-urlencoded') {
         // For form-urlencoded, convert body to query string format
         if (api['body'] is Map) {
           Map<String, dynamic> formData = {};
-          (api['body'] as Map).forEach((key, value) {
+          final bodyMap = api['body'] as Map;
+          for (var entry in bodyMap.entries) {
+            var key = entry.key;
+            var value = entry.value;
+            // Apply secure storage processing to each value
+            if (value.toString().contains('ensemble.apiSecureStorage.get(')) {
+              value = await processSecureStorageCalls(value.toString());
+            }
             formData[key.toString()] = eContext.eval(value)?.toString() ?? '';
-          });
+          }
           // Convert map to x-www-form-urlencoded format
           bodyPayload = formData.entries
               .map((e) => 
                 '${Uri.encodeComponent(e.key)}=${Uri.encodeComponent(e.value.toString())}')
               .join('&');
         }
-      } else {
+        } else {
         // For JSON and other content types
         try {
-          bodyPayload = json.encode(eContext.eval(api['body']));
+          // Handle both YamlMap and JSON cases
+          String bodyString;
+          dynamic body = api['body'];
+          if (api['body']
+              .toString()
+              .contains('ensemble.apiSecureStorage.get(')) {
+            if (api['body'] is YamlMap) {
+              // Convert YamlMap to regular Map first, then to JSON string
+              Map<String, dynamic> bodyMap =
+                  Map<String, dynamic>.from(api['body']);
+              bodyString = json.encode(bodyMap);
+            } else if (api['body'] is String) {
+              // Already a JSON string
+              bodyString = api['body'];
+            } else {
+              bodyString = api['body'].toString();
+            }
+            String parsedBody = await processSecureStorageCalls(bodyString);
+            body = parsedBody;
+            var parsedMap = json.decode(body);
+            var evaluatedResult = eContext.eval(parsedMap);
+            bodyPayload = json.encode(evaluatedResult);
+          } else {
+            bodyPayload = json.encode(eContext.eval(body));
+          }
           //this is just to make sure we don't create regressions, we will set
           //the bodyBytes only when Content-Type header is explicitly specified.
           //see https://github.com/EnsembleUI/ensemble/issues/1823
@@ -364,6 +401,117 @@ class HTTPAPIProvider extends APIProvider {
   @override
   dispose() {
     // nothing to dispose
+  }
+  Future<String> processSecureStorageCalls(String input,
+      {bool includeBrackets = true}) async {
+    String result = input;
+    try {
+      if (includeBrackets) {
+        // Process patterns with ${} brackets
+
+        // Single quotes: ${ensemble.apiSecureStorage.get('key')}
+        final singleQuoteRegex =
+            RegExp(r"\$\{ensemble\.apiSecureStorage\.get\('([^']+)'\)\}");
+        final singleMatches =
+            singleQuoteRegex.allMatches(result).toList().reversed;
+
+        for (final match in singleMatches) {
+          final storageKey = match.group(1)!;
+          try {
+            final storageValue =
+                await KeychainManager().getFromKeychain({'key': storageKey});
+            // For ${} patterns, replace with just the value (no quotes)
+            result =
+                result.replaceRange(match.start, match.end, storageValue ?? '');
+          } catch (e) {
+            result = result.replaceRange(match.start, match.end, '');
+          }
+        }
+
+        // Double quotes: ${ensemble.apiSecureStorage.get("key")} - handles escaped quotes
+        final doubleQuoteRegex = RegExp(
+            r'\$\{ensemble\.apiSecureStorage\.get\(\\?"([^"\\]*(?:\\.[^"\\]*)*)\\?"\)\}');
+        final doubleMatches =
+            doubleQuoteRegex.allMatches(result).toList().reversed;
+
+        for (final match in doubleMatches) {
+          final storageKey = match.group(1)!;
+          try {
+            final storageValue =
+                await KeychainManager().getFromKeychain({'key': storageKey});
+            // For ${} patterns, replace with just the value (no quotes)
+            result =
+                result.replaceRange(match.start, match.end, storageValue ?? '');
+          } catch (e) {
+            result = result.replaceRange(match.start, match.end, '');
+          }
+        }
+
+        // Fallback regex for simpler cases if the above doesn't match
+        final simpleDoubleQuoteRegex =
+            RegExp(r'\$\{ensemble\.apiSecureStorage\.get\("([^"]+)"\)\}');
+        final simpleDoubleMatches =
+            simpleDoubleQuoteRegex.allMatches(result).toList().reversed;
+
+        for (final match in simpleDoubleMatches) {
+          final storageKey = match.group(1)!;
+          try {
+            final storageValue =
+                await KeychainManager().getFromKeychain({'key': storageKey});
+            // For ${} patterns, replace with just the value (no quotes)
+            result =
+                result.replaceRange(match.start, match.end, storageValue ?? '');
+          } catch (e) {
+            result = result.replaceRange(match.start, match.end, '');
+          }
+        }
+      } else {
+        // Process patterns without ${} brackets (original behavior)
+
+        // Single quotes: ensemble.apiSecureStorage.get('key')
+        final singleQuoteRegex =
+            RegExp(r"ensemble\.apiSecureStorage\.get\('([^']+)'\)");
+        final singleMatches =
+            singleQuoteRegex.allMatches(result).toList().reversed;
+
+        for (final match in singleMatches) {
+          final storageKey = match.group(1)!;
+          try {
+            final storageValue =
+                await KeychainManager().getFromKeychain({'key': storageKey});
+            final escapedValue = (storageValue ?? '').replaceAll("'", "\\'");
+            result =
+                result.replaceRange(match.start, match.end, "'$escapedValue'");
+          } catch (e) {
+            result = result.replaceRange(match.start, match.end, "''");
+          }
+        }
+
+        // Double quotes: ensemble.apiSecureStorage.get("key")
+        final doubleQuoteRegex =
+            RegExp(r'ensemble\.apiSecureStorage\.get\("([^"]+)"\)');
+        final doubleMatches =
+            doubleQuoteRegex.allMatches(result).toList().reversed;
+
+        for (final match in doubleMatches) {
+          final storageKey = match.group(1)!;
+          try {
+            final storageValue =
+                await KeychainManager().getFromKeychain({'key': storageKey});
+            final escapedValue = (storageValue ?? '').replaceAll('"', '\\"');
+            result =
+                result.replaceRange(match.start, match.end, '"$escapedValue"');
+          } catch (e) {
+            result = result.replaceRange(match.start, match.end, '""');
+          }
+        }
+      }
+    } catch (e) {
+      log('Error processing secure storage calls: $e');
+      return input;
+    }
+
+    return result;
   }
 }
 
