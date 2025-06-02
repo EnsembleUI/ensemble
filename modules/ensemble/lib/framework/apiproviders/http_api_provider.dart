@@ -30,12 +30,18 @@ class HTTPAPIProvider extends APIProvider {
       DataContext eContext, String apiName) async {
     // headers
     Map<String, String> headers = {};
-    Map<String, dynamic> allKeys = await StorageManager().getAllFromKeychain();
-    Map<String, dynamic> mapWrapper = {
-      'apiSecureStorage': allKeys
-    };
-    DataContext clonedContext = eContext.clone(initialMap: mapWrapper);
+    DataContext clonedContext = eContext;
+    //check if we need to update clone context; only update clone context when secureStorage is used in header or body
+    if (_containsSecureStorageReference(api)) {
+          final Map<String, dynamic> secureStorageData =
+              await StorageManager().getAllFromKeychain();
 
+          final Map<String, dynamic> contextWrapper = {
+            'apiSecureStorage': secureStorageData,
+          };
+
+          clonedContext = eContext.clone(initialMap: contextWrapper);
+        }
     // this is the OAuth flow, where the authorization triggers before
     // calling the API. Leave it alone for now
     if (api['authorization'] != "none") {
@@ -388,6 +394,16 @@ class HTTPAPIProvider extends APIProvider {
     return this; //configless so nothing to close
   }
 
+  bool _containsSecureStorageReference(YamlMap api) {
+  const String storageIdentifier = 'apiSecureStorage.';
+  
+  final headers = api['headers'];
+  final body = api['body'];
+  
+  return (headers?.toString().contains(storageIdentifier) ?? false) ||
+         (body?.toString().contains(storageIdentifier) ?? false);
+}
+
   @override
   dispose() {
     // nothing to dispose
@@ -441,6 +457,7 @@ class HttpResponse extends Response {
     }
     return cookies;
   }
+  
 
   Map<String, String> get cookies => _cookies;
 
