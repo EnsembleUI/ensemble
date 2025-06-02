@@ -6,6 +6,7 @@ import 'dart:math' as math;
 import 'package:ensemble/ensemble_app.dart';
 import 'package:ensemble/firebase_options.dart';
 import 'package:ensemble/framework/apiproviders/api_provider.dart';
+import 'package:ensemble/framework/apiproviders/firebase_functions/firebase_functions_api_provider.dart';
 import 'package:ensemble/framework/assets_service.dart';
 import 'package:ensemble/framework/bindings.dart';
 import 'package:ensemble/framework/definition_providers/ensemble_provider.dart';
@@ -252,6 +253,11 @@ class Ensemble extends WithEnsemble with EnsembleRouteObserver {
             } catch (e) {
               print('Error decoding provider config for $provider');
             }
+          } else if (providerConfig == 'firestore_config') {
+            if (appConfig.envVariables?['firebase_config'] != null) {
+              providerConfigMap =
+                  json.decode(appConfig.envVariables?['firebase_config']);
+            }
           }
           APIProvider? apiProvider = APIProviders.initProvider(provider);
           if (apiProvider != null) {
@@ -265,6 +271,18 @@ class Ensemble extends WithEnsemble with EnsembleRouteObserver {
           }
         }
       }
+    }
+    if (appConfig?.envVariables?['firebase_app_check'] == 'true') {
+      //Check if Firebase Functions Provider is initialized
+      if (FirebaseFunctionsAPIProvider.getFirebaseAppContext() == null) {
+        await FirebaseFunctionsAPIProvider().init(
+            config.definitionProvider is EnsembleDefinitionProvider
+                ? (config.definitionProvider as EnsembleDefinitionProvider)
+                    .appId
+                : generateRandomString(10),
+            json.decode(appConfig?.envVariables?['firebase_config']));
+      }
+      await FirebaseFunctionsAPIProvider.initializeFirebaseAppCheck();
     }
     config.apiProviders = providers;
   }
