@@ -1,6 +1,6 @@
 import 'dart:io';
 
-import 'package:ensemble/action/key_chain_actions.dart';
+import 'package:crypto/crypto.dart';
 import 'package:ensemble/framework/apiproviders/api_provider.dart';
 import 'dart:async';
 import 'dart:convert';
@@ -10,7 +10,7 @@ import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/extensions.dart';
-import 'package:ensemble/framework/keychain_manager.dart';
+import 'package:ensemble/framework/storage_manager.dart';
 import 'package:ensemble/framework/stub/oauth_controller.dart';
 import 'package:ensemble/framework/stub/token_manager.dart';
 import 'package:ensemble/util/utils.dart';
@@ -28,7 +28,13 @@ class HTTPAPIProvider extends APIProvider {
   @override
   Future<HttpResponse> invokeApi(BuildContext context, YamlMap api,
       DataContext eContext, String apiName) async {
+    // headers
     Map<String, String> headers = {};
+    Map<String, dynamic> allKeys = await StorageManager().getAllFromKeychain();
+    Map<String, dynamic> mapWrapper = {
+      'apiSecureStorage': allKeys
+    };
+    DataContext clonedContext = eContext.clone(initialMap: mapWrapper);
 
     // this is the OAuth flow, where the authorization triggers before
     // calling the API. Leave it alone for now
@@ -61,20 +67,14 @@ class HTTPAPIProvider extends APIProvider {
     }
 
     if (api['headers'] is YamlMap) {
-          for (var entry in (api['headers'] as YamlMap).entries) {
-            var key = entry.key;
-            var value = entry.value;
-            if (key.toString().toLowerCase() == 'cookie' && kIsWeb) continue;
+      (api['headers'] as YamlMap).forEach((key, value) {
+        // in Web we shouldn't pass the Cookie since that is automatic
+        if (key.toString().toLowerCase() == 'cookie' && kIsWeb) return;
 
-            if (value != null) {
-              if (value is String && value.contains('apiSecureStorage.')) {
-                value =
-                    await processSecureStorageCalls(value, includeBrackets: true);
-              }
-              headers[key.toString().toLowerCase()] =
-                  eContext.eval(value).toString();
-            }
-          }
+        if (value != null) {
+          headers[key.toString().toLowerCase()] = clonedContext.eval(value).toString();
+        }
+      });
     }
     // Support JSON (or Yaml) body only.
     // Here it's converted to YAML already
@@ -83,54 +83,23 @@ class HTTPAPIProvider extends APIProvider {
     if (api['body'] != null) {
       final contentType = headers['content-type']?.toLowerCase() ?? '';
 
-        if (contentType == 'application/x-www-form-urlencoded') {
+      if (contentType == 'application/x-www-form-urlencoded') {
         // For form-urlencoded, convert body to query string format
         if (api['body'] is Map) {
           Map<String, dynamic> formData = {};
-          final bodyMap = api['body'] as Map;
-          for (var entry in bodyMap.entries) {
-            var key = entry.key;
-            var value = entry.value;
-            // Apply secure storage processing to each value
-            if (value.toString().contains('apiSecureStorage.')) {
-              value = await processSecureStorageCalls(value.toString());
-            }
-            formData[key.toString()] = eContext.eval(value)?.toString() ?? '';
-          }
+          (api['body'] as Map).forEach((key, value) {
+            formData[key.toString()] = clonedContext.eval(value)?.toString() ?? '';
+          });
           // Convert map to x-www-form-urlencoded format
           bodyPayload = formData.entries
-              .map((e) => 
-                '${Uri.encodeComponent(e.key)}=${Uri.encodeComponent(e.value.toString())}')
+              .map((e) =>
+                  '${Uri.encodeComponent(e.key)}=${Uri.encodeComponent(e.value.toString())}')
               .join('&');
         }
-        } else {
+      } else {
         // For JSON and other content types
         try {
-          // Handle both YamlMap and JSON cases
-          String bodyString;
-          dynamic body = api['body'];
-          if (api['body']
-              .toString()
-              .contains('apiSecureStorage.')) {
-            if (api['body'] is YamlMap) {
-              // Convert YamlMap to regular Map first, then to JSON string
-              Map<String, dynamic> bodyMap =
-                  Map<String, dynamic>.from(api['body']);
-              bodyString = json.encode(bodyMap);
-            } else if (api['body'] is String) {
-              // Already a JSON string
-              bodyString = api['body'];
-            } else {
-              bodyString = api['body'].toString();
-            }
-            String parsedBody = await processSecureStorageCalls(bodyString);
-            body = parsedBody;
-            var parsedMap = json.decode(body);
-            var evaluatedResult = eContext.eval(parsedMap);
-            bodyPayload = json.encode(evaluatedResult);
-          } else {
-            bodyPayload = json.encode(eContext.eval(body));
-          }
+          bodyPayload = json.encode(clonedContext.eval(api['body']));
           //this is just to make sure we don't create regressions, we will set
           //the bodyBytes only when Content-Type header is explicitly specified.
           //see https://github.com/EnsembleUI/ensemble/issues/1823
@@ -189,6 +158,9 @@ class HTTPAPIProvider extends APIProvider {
         env?['ssl_pinning_enabled']?.toString().toLowerCase() == 'true';
     bool bypassSslCertificate =
         env?['bypass_ssl_pinning']?.toString().toLowerCase() == 'true';
+    bool bypassSslPinningWithValidation =
+        env?['bypass_ssl_pinning_with_validation']?.toString().toLowerCase() ==
+            'true';
 
     String? sslPinningCertificate = secrets?['ssl_pinning_certificate'];
 
@@ -199,10 +171,10 @@ class HTTPAPIProvider extends APIProvider {
 
     try {
       http.Client client = await _getHttpClient(
-        sslPinningEnabled: sslPinningEnabled,
-        bypassSslCertificate: bypassSslCertificate,
-        sslPinningCertificate: sslPinningCertificate,
-      );
+          sslPinningEnabled: sslPinningEnabled,
+          bypassSslCertificate: bypassSslCertificate,
+          sslPinningCertificate: sslPinningCertificate,
+          bypassSslPinningWithValidation: bypassSslPinningWithValidation);
 
       if (!kIsWeb && manageCookies) {
         List<Cookie> cookies = await _cookieJar.loadForRequest(Uri.parse(url));
@@ -222,11 +194,11 @@ class HTTPAPIProvider extends APIProvider {
         switch (method) {
           case 'POST':
             response =
-            await client.post(Uri.parse(url), headers: headers, body: body);
+                await client.post(Uri.parse(url), headers: headers, body: body);
             break;
           case 'PUT':
             response =
-            await client.put(Uri.parse(url), headers: headers, body: body);
+                await client.put(Uri.parse(url), headers: headers, body: body);
             break;
           case 'PATCH':
             response =
@@ -268,6 +240,7 @@ class HTTPAPIProvider extends APIProvider {
     required bool sslPinningEnabled,
     required bool bypassSslCertificate,
     String? sslPinningCertificate,
+    bool bypassSslPinningWithValidation = false,
   }) async {
     if (kIsWeb) {
       // SSL pinning is not supported on the web
@@ -282,15 +255,31 @@ class HTTPAPIProvider extends APIProvider {
       return IOClient(HttpClient(context: context));
     } 
 
-    if ( bypassSslCertificate == true ) {
+    if (bypassSslCertificate == true) {
       // Bypass SSL verification
       return IOClient(
           HttpClient()..badCertificateCallback = (cert, host, port) => true);
     }
 
+    if (bypassSslPinningWithValidation == true) {
+      String storedFingerprint =
+          await StorageManager().readSecurely('bypass_ssl_certificate');
+      // Check SSL while bypassing
+      HttpClient client = HttpClient();
+      client.badCertificateCallback =
+          (X509Certificate cert, String host, int port) {
+        String currentFingerprint = sha256.convert(cert.der).toString();
+
+        // Compare with stored fingerprint
+        bool fingerprintMatches = currentFingerprint == storedFingerprint;
+        // only allow if the fingerprint matches
+        return fingerprintMatches;
+      };
+      return IOClient(client);
+    }
+
     // Default case when sslPinningEnabled is null
     return http.Client();
-
   }
 
   HttpResponse _handleError(Object error, String apiName) {
@@ -403,46 +392,7 @@ class HTTPAPIProvider extends APIProvider {
   dispose() {
     // nothing to dispose
   }
-Future<String> processSecureStorageCalls(String input,
-      {bool includeBrackets = true}) async {
-    try {
-      RegExp regex;
-      if (includeBrackets) {
-        // Process patterns with ${} brackets: ${apiSecureStorage.key}
-        regex = RegExp(r'\$\{apiSecureStorage\.([a-zA-Z_][a-zA-Z0-9_]*)\}');
-      } else {
-        // Process patterns without ${} brackets: apiSecureStorage.key
-        regex = RegExp(r'apiSecureStorage\.([a-zA-Z_][a-zA-Z0-9_]*)');
-      }
-
-      return await _processMatches(input, regex);
-    } catch (e) {
-      log('Error processing secure storage calls: $e');
-      return input;
-    }
-  }
-
-  Future<String> _processMatches(String input, RegExp regex) async {
-    String result = input;
-    final matches = regex.allMatches(result).toList().reversed;
-
-    for (final match in matches) {
-      final storageKey = match.group(1)!;
-      try {
-        final storageValue =
-            await KeychainManager().getFromKeychain({'key': storageKey});
-        result =
-            result.replaceRange(match.start, match.end, storageValue ?? '');
-      } catch (e) {
-        result = result.replaceRange(match.start, match.end, '');
-      }
-    }
-
-    return result;
-  }
-
 }
-
 
 /// a wrapper class around the http Response
 class HttpResponse extends Response {

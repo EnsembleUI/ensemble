@@ -1,5 +1,7 @@
 import 'dart:convert';
-
+import 'dart:developer';
+import "package:universal_html/html.dart";
+import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:get_storage/get_storage.dart';
 
@@ -97,6 +99,55 @@ mixin SecureStorage {
     return value != null ? _decode(value) : null;
   }
 
+Future<Map<String, dynamic>> getAllFromKeychain() async {
+  Map<String, dynamic> result = {};
+
+  if (kIsWeb) {
+    try {
+      // Get all localStorage keys that start with FlutterSecureStorage
+
+      final storage = window.localStorage;
+      final allKeys = storage.keys.where((key) => 
+        key.startsWith('FlutterSecureStorage.') && 
+        key != 'FlutterSecureStorage' && 
+        key != 'FlutterSecureStorage.testSecret'
+      );
+
+      // Read each key using your working readSecurely method
+      for (String fullKey in allKeys) {
+
+        String actualKey = fullKey.replaceFirst('FlutterSecureStorage.', '');
+        try {
+          String? value = await secureStorage.read(key: actualKey);
+          if (value != null) {
+            result[actualKey] = value;
+          }
+        } catch (e) {
+        }
+      }
+      
+      return result;
+    } catch (e) {
+      log('Error reading from localStorage: $e');
+      return result;
+    }
+  } else {
+    // Mobile - use the original approach
+    try {
+      final allKeys = await secureStorage.readAll();
+      for (String key in allKeys.keys) {
+        dynamic value = await readSecurely(key);
+        if (value != null) {
+          result[key] = value;
+        }
+      }
+      return result;
+    } catch (e) {
+      log('Error: $e');
+      return result;
+    }
+  }
+}
   dynamic _decode(String value) {
     // decode json
     if ((value.startsWith('{') && value.endsWith('}')) ||
