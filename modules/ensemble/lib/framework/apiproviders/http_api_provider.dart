@@ -28,7 +28,6 @@ class HTTPAPIProvider extends APIProvider {
   @override
   Future<HttpResponse> invokeApi(BuildContext context, YamlMap api,
       DataContext eContext, String apiName) async {
-    // headers
     Map<String, String> headers = {};
 
     // this is the OAuth flow, where the authorization triggers before
@@ -61,20 +60,22 @@ class HTTPAPIProvider extends APIProvider {
       }
     }
 
-if (api['headers'] is YamlMap) {
-  for (var entry in (api['headers'] as YamlMap).entries) {
-    var key = entry.key;
-    var value = entry.value;
-    if (key.toString().toLowerCase() == 'cookie' && kIsWeb) continue;
-    
-    if (value != null) {
-      if (value is String && value.contains('ensemble.apiSecureStorage.get(')) {
-        value = await processSecureStorageCalls(value, includeBrackets: true);
-      }
-      headers[key.toString().toLowerCase()] = eContext.eval(value).toString();
+    if (api['headers'] is YamlMap) {
+          for (var entry in (api['headers'] as YamlMap).entries) {
+            var key = entry.key;
+            var value = entry.value;
+            if (key.toString().toLowerCase() == 'cookie' && kIsWeb) continue;
+
+            if (value != null) {
+              if (value is String && value.contains('apiSecureStorage.')) {
+                value =
+                    await processSecureStorageCalls(value, includeBrackets: true);
+              }
+              headers[key.toString().toLowerCase()] =
+                  eContext.eval(value).toString();
+            }
+          }
     }
-  }
-}
     // Support JSON (or Yaml) body only.
     // Here it's converted to YAML already
     String? bodyPayload;
@@ -91,7 +92,7 @@ if (api['headers'] is YamlMap) {
             var key = entry.key;
             var value = entry.value;
             // Apply secure storage processing to each value
-            if (value.toString().contains('ensemble.apiSecureStorage.get(')) {
+            if (value.toString().contains('apiSecureStorage.')) {
               value = await processSecureStorageCalls(value.toString());
             }
             formData[key.toString()] = eContext.eval(value)?.toString() ?? '';
@@ -110,7 +111,7 @@ if (api['headers'] is YamlMap) {
           dynamic body = api['body'];
           if (api['body']
               .toString()
-              .contains('ensemble.apiSecureStorage.get(')) {
+              .contains('apiSecureStorage.')) {
             if (api['body'] is YamlMap) {
               // Convert YamlMap to regular Map first, then to JSON string
               Map<String, dynamic> bodyMap =
@@ -402,118 +403,46 @@ if (api['headers'] is YamlMap) {
   dispose() {
     // nothing to dispose
   }
-  Future<String> processSecureStorageCalls(String input,
+Future<String> processSecureStorageCalls(String input,
       {bool includeBrackets = true}) async {
-    String result = input;
     try {
+      RegExp regex;
       if (includeBrackets) {
-        // Process patterns with ${} brackets
-
-        // Single quotes: ${ensemble.apiSecureStorage.get('key')}
-        final singleQuoteRegex =
-            RegExp(r"\$\{ensemble\.apiSecureStorage\.get\('([^']+)'\)\}");
-        final singleMatches =
-            singleQuoteRegex.allMatches(result).toList().reversed;
-
-        for (final match in singleMatches) {
-          final storageKey = match.group(1)!;
-          try {
-            final storageValue =
-                await KeychainManager().getFromKeychain({'key': storageKey});
-            // For ${} patterns, replace with just the value (no quotes)
-            result =
-                result.replaceRange(match.start, match.end, storageValue ?? '');
-          } catch (e) {
-            result = result.replaceRange(match.start, match.end, '');
-          }
-        }
-
-        // Double quotes: ${ensemble.apiSecureStorage.get("key")} - handles escaped quotes
-        final doubleQuoteRegex = RegExp(
-            r'\$\{ensemble\.apiSecureStorage\.get\(\\?"([^"\\]*(?:\\.[^"\\]*)*)\\?"\)\}');
-        final doubleMatches =
-            doubleQuoteRegex.allMatches(result).toList().reversed;
-
-        for (final match in doubleMatches) {
-          final storageKey = match.group(1)!;
-          try {
-            final storageValue =
-                await KeychainManager().getFromKeychain({'key': storageKey});
-            // For ${} patterns, replace with just the value (no quotes)
-            result =
-                result.replaceRange(match.start, match.end, storageValue ?? '');
-          } catch (e) {
-            result = result.replaceRange(match.start, match.end, '');
-          }
-        }
-
-        // Fallback regex for simpler cases if the above doesn't match
-        final simpleDoubleQuoteRegex =
-            RegExp(r'\$\{ensemble\.apiSecureStorage\.get\("([^"]+)"\)\}');
-        final simpleDoubleMatches =
-            simpleDoubleQuoteRegex.allMatches(result).toList().reversed;
-
-        for (final match in simpleDoubleMatches) {
-          final storageKey = match.group(1)!;
-          try {
-            final storageValue =
-                await KeychainManager().getFromKeychain({'key': storageKey});
-            // For ${} patterns, replace with just the value (no quotes)
-            result =
-                result.replaceRange(match.start, match.end, storageValue ?? '');
-          } catch (e) {
-            result = result.replaceRange(match.start, match.end, '');
-          }
-        }
+        // Process patterns with ${} brackets: ${apiSecureStorage.key}
+        regex = RegExp(r'\$\{apiSecureStorage\.([a-zA-Z_][a-zA-Z0-9_]*)\}');
       } else {
-        // Process patterns without ${} brackets (original behavior)
-
-        // Single quotes: ensemble.apiSecureStorage.get('key')
-        final singleQuoteRegex =
-            RegExp(r"ensemble\.apiSecureStorage\.get\('([^']+)'\)");
-        final singleMatches =
-            singleQuoteRegex.allMatches(result).toList().reversed;
-
-        for (final match in singleMatches) {
-          final storageKey = match.group(1)!;
-          try {
-            final storageValue =
-                await KeychainManager().getFromKeychain({'key': storageKey});
-            final escapedValue = (storageValue ?? '').replaceAll("'", "\\'");
-            result =
-                result.replaceRange(match.start, match.end, "'$escapedValue'");
-          } catch (e) {
-            result = result.replaceRange(match.start, match.end, "''");
-          }
-        }
-
-        // Double quotes: ensemble.apiSecureStorage.get("key")
-        final doubleQuoteRegex =
-            RegExp(r'ensemble\.apiSecureStorage\.get\("([^"]+)"\)');
-        final doubleMatches =
-            doubleQuoteRegex.allMatches(result).toList().reversed;
-
-        for (final match in doubleMatches) {
-          final storageKey = match.group(1)!;
-          try {
-            final storageValue =
-                await KeychainManager().getFromKeychain({'key': storageKey});
-            final escapedValue = (storageValue ?? '').replaceAll('"', '\\"');
-            result =
-                result.replaceRange(match.start, match.end, '"$escapedValue"');
-          } catch (e) {
-            result = result.replaceRange(match.start, match.end, '""');
-          }
-        }
+        // Process patterns without ${} brackets: apiSecureStorage.key
+        regex = RegExp(r'apiSecureStorage\.([a-zA-Z_][a-zA-Z0-9_]*)');
       }
+
+      return await _processMatches(input, regex);
     } catch (e) {
       log('Error processing secure storage calls: $e');
       return input;
     }
+  }
+
+  Future<String> _processMatches(String input, RegExp regex) async {
+    String result = input;
+    final matches = regex.allMatches(result).toList().reversed;
+
+    for (final match in matches) {
+      final storageKey = match.group(1)!;
+      try {
+        final storageValue =
+            await KeychainManager().getFromKeychain({'key': storageKey});
+        result =
+            result.replaceRange(match.start, match.end, storageValue ?? '');
+      } catch (e) {
+        result = result.replaceRange(match.start, match.end, '');
+      }
+    }
 
     return result;
   }
+
 }
+
 
 /// a wrapper class around the http Response
 class HttpResponse extends Response {
