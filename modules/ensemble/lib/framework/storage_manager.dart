@@ -109,8 +109,7 @@ Future<Map<String, dynamic>> getAllFromKeychain() async {
       final storage = window.localStorage;
       final allKeys = storage.keys.where((key) => 
         key.startsWith('FlutterSecureStorage.') && 
-        key != 'FlutterSecureStorage' && 
-        key != 'FlutterSecureStorage.testSecret'
+        key != 'FlutterSecureStorage'
       );
 
       // Read each key using your working readSecurely method
