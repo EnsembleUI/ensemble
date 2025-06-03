@@ -870,6 +870,7 @@ class PageState extends State<Page>
   }
   @override
   void dispose() {
+    viewGroupNotifier.removeListener(executeOnViewGroupUpdate);
     Ensemble().routeObserver.unsubscribe(this);
     WidgetsBinding.instance.removeObserver(this);
 
