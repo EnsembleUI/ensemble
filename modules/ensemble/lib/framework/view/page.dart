@@ -267,6 +267,9 @@ class PageState extends State<Page>
         : null;
 
     super.initState();
+    // Adding a listener for [viewGroupNotifier] so we can execute
+    // onViewGroupUpdate when change in parent ViewGroup occurs
+    viewGroupNotifier.addListener(executeOnViewGroupUpdate);
   }
 
   /// This is a callback because we need the widget to be first instantiate
@@ -855,7 +858,16 @@ class PageState extends State<Page>
     ScreenController().navigateToScreen(context,
         screenName: menuItem.page, isExternal: menuItem.isExternal);
   }
-
+  /// this method executes if this screen is part of ViewGroup
+  /// and onViewGroupUpdate is defined in View
+  void executeOnViewGroupUpdate() {
+    if (widget._pageModel.viewBehavior.onViewGroupUpdate != null) {
+      ScreenController().executeActionWithScope(
+          context,
+          _scopeManager,
+          widget._pageModel.viewBehavior.onViewGroupUpdate!);
+    }
+  }
   @override
   void dispose() {
     Ensemble().routeObserver.unsubscribe(this);
