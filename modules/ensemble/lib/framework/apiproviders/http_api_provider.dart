@@ -30,7 +30,18 @@ class HTTPAPIProvider extends APIProvider {
       DataContext eContext, String apiName) async {
     // headers
     Map<String, String> headers = {};
+    DataContext clonedContext = eContext;
+    //check if we need to update clone context; only update clone context when secureStorage is used in header or body
+    if (_containsSecureStorageReference(api)) {
+          final Map<String, dynamic> secureStorageData =
+              await StorageManager().getAllFromKeychain();
 
+          final Map<String, dynamic> contextWrapper = {
+            'apiSecureStorage': secureStorageData,
+          };
+
+          clonedContext = eContext.clone(initialMap: contextWrapper);
+        }
     // this is the OAuth flow, where the authorization triggers before
     // calling the API. Leave it alone for now
     if (api['authorization'] != "none") {
@@ -67,7 +78,7 @@ class HTTPAPIProvider extends APIProvider {
         if (key.toString().toLowerCase() == 'cookie' && kIsWeb) return;
 
         if (value != null) {
-          headers[key.toString().toLowerCase()] = eContext.eval(value).toString();
+          headers[key.toString().toLowerCase()] = clonedContext.eval(value).toString();
         }
       });
     }
@@ -83,7 +94,7 @@ class HTTPAPIProvider extends APIProvider {
         if (api['body'] is Map) {
           Map<String, dynamic> formData = {};
           (api['body'] as Map).forEach((key, value) {
-            formData[key.toString()] = eContext.eval(value)?.toString() ?? '';
+            formData[key.toString()] = clonedContext.eval(value)?.toString() ?? '';
           });
           // Convert map to x-www-form-urlencoded format
           bodyPayload = formData.entries
@@ -94,7 +105,7 @@ class HTTPAPIProvider extends APIProvider {
       } else {
         // For JSON and other content types
         try {
-          bodyPayload = json.encode(eContext.eval(api['body']));
+          bodyPayload = json.encode(clonedContext.eval(api['body']));
           //this is just to make sure we don't create regressions, we will set
           //the bodyBytes only when Content-Type header is explicitly specified.
           //see https://github.com/EnsembleUI/ensemble/issues/1823
@@ -419,6 +430,16 @@ class HTTPAPIProvider extends APIProvider {
     return this; //configless so nothing to close
   }
 
+  bool _containsSecureStorageReference(YamlMap api) {
+  const String storageIdentifier = 'apiSecureStorage.';
+  
+  final headers = api['headers'];
+  final body = api['body'];
+  
+  return (headers?.toString().contains(storageIdentifier) ?? false) ||
+         (body?.toString().contains(storageIdentifier) ?? false);
+}
+
   @override
   dispose() {
     // nothing to dispose
@@ -472,6 +493,7 @@ class HttpResponse extends Response {
     }
     return cookies;
   }
+  
 
   Map<String, String> get cookies => _cookies;
 
