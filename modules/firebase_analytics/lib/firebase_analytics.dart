@@ -9,6 +9,10 @@ import 'package:flutter/foundation.dart';
 class FirebaseAnalyticsProvider extends LogProvider {
   FirebaseOptions? firebaseOptions;
   FirebaseAnalytics? _analytics;
+  final FirebaseApp? _providedFirebaseApp; // Store the provided Firebase app
+
+  // Constructor accepts optional Firebase app (called from EnsembleModules)
+  FirebaseAnalyticsProvider([this._providedFirebaseApp]);
 
   void _init({Map? options, String? ensembleAppId, bool shouldAwait = false}) {
     this.options = options;
@@ -34,6 +38,25 @@ class FirebaseAnalyticsProvider extends LogProvider {
         ensembleAppId: ensembleAppId,
         shouldAwait: shouldAwait);
     bool isFirebaseAppInitialized = false;
+    // PRIORITY: If we have a provided Firebase app from constructor, use it to initialize Analytics
+    if (_providedFirebaseApp != null) {
+      try {
+        _analytics = FirebaseAnalytics.instanceFor(app: _providedFirebaseApp!);
+        isFirebaseAppInitialized = true;
+        // Setup crash reporting if available
+        try {
+          FlutterError.onError =
+              FirebaseCrashlytics.instance.recordFlutterFatalError;
+        } catch (e) {
+          print('Flutter: ⚠️ Firebase Crashlytics not available: $e');
+        }
+        return; // Success - exit early
+      } catch (e) {
+        print(
+            'Flutter: ❌ Failed to initialize Firebase Analytics with provided app: $e');
+      }
+    }
+
     try {
       isFirebaseAppInitialized =
           Firebase.apps.any((app) => app.name == Firebase.app().name);
