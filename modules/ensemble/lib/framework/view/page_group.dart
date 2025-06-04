@@ -16,7 +16,7 @@ import 'package:flutter/material.dart';
 import 'package:ensemble/framework/widget/icon.dart' as ensemble;
 import 'package:ensemble/framework/extensions.dart';
 
-import '../../ensemble.dart';
+import 'package:ensemble/ensemble.dart';
 import 'bottom_nav_page_group.dart';
 
 /// a collection of pages grouped under a navigation menu
