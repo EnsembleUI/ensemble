@@ -160,6 +160,7 @@ class HTTPAPIProvider extends APIProvider {
         Ensemble().getConfig()?.definitionProvider.getAppConfig()?.envVariables;
     final secrets = Ensemble().getConfig()?.definitionProvider.getSecrets();
 
+    // Global SSL configuration (existing environment variables - unchanged)
     bool sslPinningEnabled =
         env?['ssl_pinning_enabled']?.toString().toLowerCase() == 'true';
     bool bypassSslCertificate =
@@ -169,6 +170,29 @@ class HTTPAPIProvider extends APIProvider {
             'true';
 
     String? sslPinningCertificate = secrets?['ssl_pinning_certificate'];
+
+    // Extract API-specific SSL configuration and override global settings
+    String? fingerprintKey = 'bypass_ssl_fingerprint'; // default key
+    
+    if (api['sslConfig'] != null && api['sslConfig'] is YamlMap) {
+      YamlMap sslConfig = api['sslConfig'];
+      
+      if (sslConfig['pinningEnabled'] != null) {
+        sslPinningEnabled = Utils.getBool(eContext.eval(sslConfig['pinningEnabled']), fallback: sslPinningEnabled);
+      }
+      
+      if (sslConfig['bypassPinning'] != null) {
+        bypassSslCertificate = Utils.getBool(eContext.eval(sslConfig['bypassPinning']), fallback: bypassSslCertificate);
+      }
+      
+      if (sslConfig['bypassPinningWithFingerprint'] != null) {
+        bypassSslPinningWithValidation = Utils.getBool(eContext.eval(sslConfig['bypassPinningWithFingerprint']), fallback: bypassSslPinningWithValidation);
+      }
+      
+      if (sslConfig['fingerprintKey'] != null) {
+        fingerprintKey = Utils.optionalString(eContext.eval(sslConfig['fingerprintKey'])) ?? fingerprintKey;
+      }
+    }
 
     bool manageCookies = Utils.getBool(api['manageCookies'], fallback: false);
 
@@ -180,7 +204,8 @@ class HTTPAPIProvider extends APIProvider {
           sslPinningEnabled: sslPinningEnabled,
           bypassSslCertificate: bypassSslCertificate,
           sslPinningCertificate: sslPinningCertificate,
-          bypassSslPinningWithValidation: bypassSslPinningWithValidation);
+          bypassSslPinningWithValidation: bypassSslPinningWithValidation,
+          fingerprintKey: fingerprintKey);
 
       if (!kIsWeb && manageCookies) {
         List<Cookie> cookies = await _cookieJar.loadForRequest(Uri.parse(url));
@@ -247,6 +272,7 @@ class HTTPAPIProvider extends APIProvider {
     required bool bypassSslCertificate,
     String? sslPinningCertificate,
     bool bypassSslPinningWithValidation = false,
+    String? fingerprintKey,
   }) async {
     if (kIsWeb) {
       // SSL pinning is not supported on the web
@@ -268,12 +294,22 @@ class HTTPAPIProvider extends APIProvider {
     }
 
     if (bypassSslPinningWithValidation == true) {
-      String storedFingerprint =
-          await StorageManager().readSecurely('bypass_ssl_certificate');
+      String? storedFingerprint;
+      try {
+        storedFingerprint = await StorageManager().readSecurely(fingerprintKey!); // fingerprintKey cannot be null, as it has a default value.
+      } catch (e) {
+        print('Error reading stored fingerprint: $e');
+      }
+      
       // Check SSL while bypassing
       HttpClient client = HttpClient();
       client.badCertificateCallback =
           (X509Certificate cert, String host, int port) {
+        if (storedFingerprint == null) {
+          print('No stored fingerprint found for key: ${fingerprintKey}');
+          return false;
+        }
+        
         String currentFingerprint = sha256.convert(cert.der).toString();
 
         // Compare with stored fingerprint

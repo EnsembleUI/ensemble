@@ -16,6 +16,7 @@ import 'package:flutter/material.dart';
 import 'package:ensemble/framework/widget/icon.dart' as ensemble;
 import 'package:ensemble/framework/extensions.dart';
 
+import '../../ensemble.dart';
 import 'bottom_nav_page_group.dart';
 
 /// a collection of pages grouped under a navigation menu
@@ -82,7 +83,8 @@ class PageGroupWidget extends DataScopeWidget {
   }
 }
 
-class PageGroupState extends State<PageGroup> with MediaQueryCapability {
+class PageGroupState extends State<PageGroup>
+    with MediaQueryCapability, RouteAware, WidgetsBindingObserver {
   late ScopeManager _scopeManager;
 
   // managing the list of pages
@@ -92,6 +94,7 @@ class PageGroupState extends State<PageGroup> with MediaQueryCapability {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _scopeManager = ScopeManager(
       widget.initialDataContext.clone(newBuildContext: context),
       PageData(
@@ -135,6 +138,39 @@ class PageGroupState extends State<PageGroup> with MediaQueryCapability {
     // select a page if passed via argument
     if (selectedIndex != null) {
       viewGroupNotifier.updatePage(selectedIndex, isReload: false);
+    }
+  }
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+
+    // Subscribe to route changes to detect when we return to this ViewGroup
+    var route = ModalRoute.of(context);
+    if (route is PageRoute) {
+      Ensemble().routeObserver.unsubscribe(this);
+      Ensemble().routeObserver.subscribe(this, route);
+    }
+  }
+
+  /// this route aware method is executed
+  /// when next route/screen is popped
+  @override
+  void didPopNext() {
+    super.didPopNext();
+    // ViewGroup is becoming active again (returned from another screen)
+    _executeOnViewGroupResume();
+  }
+
+  /// Ensemble Action: onViewGroupResume
+  /// Executed when ViewGroup becomes active
+  void _executeOnViewGroupResume() {
+    if (widget.model.onViewGroupResume != null) {
+      // Execute the action with the ViewGroup scope
+      ScreenController().executeActionWithScope(
+          context,
+          _scopeManager,
+          widget.model.onViewGroupResume!,
+      );
     }
   }
 
@@ -474,7 +510,12 @@ class PageGroupState extends State<PageGroup> with MediaQueryCapability {
     }
     return iconWidget;
   }
-
+  @override
+  void dispose() {
+    Ensemble().routeObserver.unsubscribe(this);
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
   /// TODO: can't do this anymore without Conditional widget
   /// get the menu mode depending on user spec + device types / screen resolutions
 // MenuDisplay _getPreferredMenuDisplay(Menu menu) {
