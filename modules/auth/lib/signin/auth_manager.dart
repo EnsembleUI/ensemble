@@ -131,14 +131,22 @@ class AuthManager with UserAuthentication {
       {required String jwtToken}
   ) async {
     try {
+      // Get the ScopeManager to access DataContext
+      // and Evaluate jwtToken from ensemble.storage
+      ScopeManager? scopeManager = ScreenController().getScopeManager(context);
+      String evaluatedJwtToken = jwtToken;
+      if (scopeManager != null) {
+        evaluatedJwtToken =
+            scopeManager.dataContext.eval(jwtToken)?.toString() ?? jwtToken;
+      }
       customFirebaseApp ??= await _initializeFirebaseSignIn();
       final _auth = FirebaseAuth.instanceFor(app: customFirebaseApp!);
 
-      UserCredential userCredential = await _auth.signInWithCustomToken(jwtToken);
+      UserCredential userCredential =
+          await _auth.signInWithCustomToken(evaluatedJwtToken);
       User? user = userCredential.user;
       if (user == null) {
-        print('Sign in with custom firebase auth token failed');
-        return null;
+        throw RuntimeError('firebase sign in failed.');
       }
       String? firebaseToken = await user.getIdToken();
 
@@ -146,7 +154,7 @@ class AuthManager with UserAuthentication {
       return firebaseToken;
     } catch (e) {
       print(e.toString());
-      return null;
+      rethrow;
     }
   }
 

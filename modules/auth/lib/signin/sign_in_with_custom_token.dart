@@ -10,16 +10,25 @@ class SignInWithCustomTokenImpl implements SignInWithCustomToken {
   @override
   Future<void> signInWithCustomToken(BuildContext context,
       {required SignInWithCustomTokenAction action}) async {
-    final idToken = await AuthManager().signInWithCustomToken(context, jwtToken: action.jwtToken!);
-    if (idToken != null) {
-      if (action.onAuthenticated != null) {
-        AuthenticatedUser? currentUser = AuthManager().getCurrentUser();
-        ScreenController().executeAction(context, action.onAuthenticated!,
-            event: EnsembleEvent(null, data: {'user': currentUser, 'idToken': idToken}));
+    try {
+      final jwtToken = action.jwtToken;
+      if (jwtToken == null) {
+        throw ArgumentError('token must not be null.');
       }
-    } else {
+      final idToken = await AuthManager()
+          .signInWithCustomToken(context, jwtToken: jwtToken);
+      if (idToken != null) {
+        if (action.onAuthenticated != null) {
+          AuthenticatedUser? currentUser = AuthManager().getCurrentUser();
+          ScreenController().executeAction(context, action.onAuthenticated!,
+              event: EnsembleEvent(null,
+                  data: {'user': currentUser, 'idToken': idToken}));
+        }
+      }
+    } catch (e) {
       if (action.onError != null) {
-        ScreenController().executeAction(context, action.onError!);
+        ScreenController().executeAction(context, action.onError!,
+            event: EnsembleEvent(null, error: {'error': e.toString()}));
       }
     }
   }
