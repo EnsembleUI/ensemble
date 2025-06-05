@@ -1,4 +1,5 @@
 import 'package:ensemble/framework/action.dart';
+import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/stub/auth_context_manager.dart';
 import 'package:ensemble/screen_controller.dart';
@@ -12,8 +13,10 @@ class SignInWithCustomTokenImpl implements SignInWithCustomToken {
       {required SignInWithCustomTokenAction action}) async {
     try {
       final jwtToken = action.jwtToken;
-      if (jwtToken == null) {
-        throw ArgumentError('JWT token must not be null.');
+      if (jwtToken == null || jwtToken == "") {
+        throw LanguageError(
+            "signInWithCustomToken requires jwtToken as 'token' parameter.",
+            recovery: "Fix: pass valid jwtToken as 'token' under signInWithCustomToken");
       }
       final idToken = await AuthManager()
           .signInWithCustomToken(context, jwtToken: jwtToken);
