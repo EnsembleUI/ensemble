@@ -5,6 +5,7 @@ import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/framework/logging/log_manager.dart';
 import 'package:ensemble/framework/logging/log_provider.dart' as logging;
 import 'package:ensemble/framework/scope.dart';
+import 'package:ensemble/framework/stub/adobe_manager.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/moengage_utils.dart';
 import 'package:ensemble/util/utils.dart';
@@ -101,6 +102,28 @@ class LogEvent extends ensembleAction.EnsembleAction {
           }
           break;
       }
+    } else if (provider == 'adobe') {
+      if (operation == 'trackAction') {
+        if (eventName == null) {
+          throw LanguageError('trackAction requires event name');
+        }
+      } else if (operation == 'trackState') {
+        if (eventName == null) {
+          throw LanguageError('trackState requires event name');
+        }
+      } else if (operation == 'sendEvent') {
+        if (eventName == null) {
+          throw LanguageError('sendEvent requires event name');
+        }
+      } else if (operation == 'trackPurchase') {
+        if (eventName == null) {
+          throw LanguageError('trackPurchase requires event name');
+        }
+      } else if (operation == 'trackProductView') {
+        if (eventName == null) {
+          throw LanguageError('trackProductView requires event name');
+        }
+      }
     }
 
     return LogEvent(
@@ -147,6 +170,15 @@ class LogEvent extends ensembleAction.EnsembleAction {
         if (onSuccess != null) {
           await ScreenController().executeAction(context, onSuccess!);
         }
+      } else if (evaluatedProvider == 'adobe') {
+        await _handleAdobeOperations(
+          context,
+          scopeManager,
+          operation: scopeManager.dataContext.eval(operation),
+          eventName: scopeManager.dataContext.eval(eventName),
+          parameters: scopeManager.dataContext.eval(parameters),
+          attributeKey: scopeManager.dataContext.eval(attributeKey),
+        );
       } else {
         LogManager().log(
           logging.LogType.appAnalytics,
@@ -344,6 +376,52 @@ class LogEvent extends ensembleAction.EnsembleAction {
         await moEngage.resetCurrentContext();
         break;
     }
+  }
+}
+
+Future<void> _handleAdobeOperations(
+  BuildContext context,
+  ScopeManager scopeManager, {
+  String? operation,
+  String? eventName,
+  Map? parameters,
+  String? attributeKey,
+}) async {
+  final adobe = GetIt.instance<AdobeAnalyticsModule>();
+
+  switch (operation) {
+    case 'trackAction':
+      await adobe.trackAction(
+          eventName!,
+          parameters!
+              .map((key, value) => MapEntry(key.toString(), value.toString())));
+      break;
+    case 'trackState':
+      await adobe.trackState(
+          eventName!,
+          parameters!
+              .map((key, value) => MapEntry(key.toString(), value.toString())));
+      break;
+    case 'sendEvent':
+      await adobe.sendEvent(
+          eventName!,
+          parameters!
+              .map((key, value) => MapEntry(key.toString(), value.toString())));
+      break;
+    case 'trackPurchase':
+      await adobe.trackPurchase(
+          eventName!,
+          parameters!
+              .map((key, value) => MapEntry(key.toString(), value.toString())));
+      break;
+    case 'trackProductView':
+      await adobe.trackProductView(
+          eventName!,
+          parameters!
+              .map((key, value) => MapEntry(key.toString(), value.toString())));
+      break;
+    default:
+      throw LanguageError('Invalid operation: $operation');
   }
 }
 
