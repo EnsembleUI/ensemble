@@ -13,7 +13,7 @@ class SignInWithCustomTokenImpl implements SignInWithCustomToken {
     try {
       final jwtToken = action.jwtToken;
       if (jwtToken == null) {
-        throw ArgumentError('token must not be null.');
+        throw ArgumentError('JWT token must not be null.');
       }
       final idToken = await AuthManager()
           .signInWithCustomToken(context, jwtToken: jwtToken);

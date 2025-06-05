@@ -146,14 +146,14 @@ class AuthManager with UserAuthentication {
           await _auth.signInWithCustomToken(evaluatedJwtToken);
       User? user = userCredential.user;
       if (user == null) {
-        throw RuntimeError('firebase sign in failed.');
+        throw StateError('Firebase sign-in failed. User is null.');
       }
       String? firebaseToken = await user.getIdToken();
 
       updateCurrentFirebaseUser(context, user);
       return firebaseToken;
     } catch (e) {
-      print(e.toString());
+      debugPrint('Error during Firebase sign-in: $e');
       rethrow;
     }
   }
