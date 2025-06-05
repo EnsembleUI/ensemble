@@ -408,18 +408,6 @@ Future<void> _handleAdobeOperations(
           parameters!
               .map((key, value) => MapEntry(key.toString(), value.toString())));
       break;
-    case 'trackPurchase':
-      await adobe.trackPurchase(
-          eventName!,
-          parameters!
-              .map((key, value) => MapEntry(key.toString(), value.toString())));
-      break;
-    case 'trackProductView':
-      await adobe.trackProductView(
-          eventName!,
-          parameters!
-              .map((key, value) => MapEntry(key.toString(), value.toString())));
-      break;
     default:
       throw LanguageError('Invalid operation: $operation');
   }

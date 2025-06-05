@@ -24,6 +24,7 @@ class AdobeAnalyticsImpl implements AdobeAnalyticsModule {
   Future<void> initialize(String appId) async {
     try {
       debugPrint('Initializing Adobe Analytics with appId: $appId');
+      // Initialize the AEP Core SDK
       await MobileCore.setLogLevel(LogLevel.debug);
       await MobileCore.initializeWithAppId(appId: appId);
       _isAdobeAnalyticsInitialized = true;
@@ -44,6 +45,8 @@ class AdobeAnalyticsImpl implements AdobeAnalyticsModule {
           'Adobe Analytics: Not initialized. Call initialize() first.');
     }
     try {
+      debugPrint(
+          'Tracking Adobe Analytics action: $name with parameters: $parameters');
       if (parameters != null) {
         await MobileCore.trackAction(name, data: parameters);
       } else {
@@ -60,6 +63,8 @@ class AdobeAnalyticsImpl implements AdobeAnalyticsModule {
           'Adobe Analytics: Not initialized. Call initialize() first.');
     }
     try {
+      debugPrint(
+          'Tracking Adobe Analytics state: $name with parameters: $parameters');
       if (parameters != null) {
         await MobileCore.trackState(name, data: parameters);
       } else {
@@ -76,22 +81,35 @@ class AdobeAnalyticsImpl implements AdobeAnalyticsModule {
           'Adobe Analytics: Not initialized. Call initialize() first.');
     }
     try {
+      debugPrint(
+          'Sending Adobe Analytics event: $name with parameters: $parameters');
       if (parameters != null) {
-        final xdmData = parameters['xdmData'] as Map<String, dynamic>?;
-        final data = parameters['data'] as Map<String, dynamic>?;
-        final datastreamId = parameters['datastreamId'] as String?;
-        final configOverrides =
-            parameters['configOverrides'] as Map<String, dynamic>?;
+        final xdmDataRaw = parameters['xdmData'];
+        final xdmData = (xdmDataRaw is Map)
+            ? xdmDataRaw.cast<String, dynamic>()
+            : <String, dynamic>{};
 
-        final ExperienceEvent experienceEvent = ExperienceEvent({
-          'xdmData': xdmData ?? {'eventType': name},
-          'data': data,
-          if (datastreamId != null) 'datastreamIdOverride': datastreamId,
-          if (configOverrides != null)
-            'datastreamConfigOverride': configOverrides,
-        });
+        final dataRaw = parameters['data'];
+        final data = (dataRaw is Map)
+            ? dataRaw.cast<String, dynamic>()
+            : <String, dynamic>{};
+
+        final datastreamId = parameters['datastreamId'] as String?;
+        final configOverridesRaw = parameters['configOverrides'];
+        final configOverrides = (configOverridesRaw is Map)
+            ? configOverridesRaw.cast<String, dynamic>()
+            : null;
+
+        final experienceEvent = ExperienceEvent.createEventWithOverrides(
+          xdmData,
+          data,
+          datastreamId,
+          configOverrides,
+        );
 
         await Edge.sendEvent(experienceEvent);
+        debugPrint(
+            'Adobe Analytics event sent: $name with xdmData: $xdmData, data: $data, datastreamId: $datastreamId, configOverrides: $configOverrides');
       } else {
         await Edge.sendEvent(
           ExperienceEvent({
@@ -99,54 +117,8 @@ class AdobeAnalyticsImpl implements AdobeAnalyticsModule {
           }),
         );
       }
-    } catch (e) {
-      debugPrint('Error sending Adobe Analytics event: $e');
-    }
-  }
-
-  Future<void> trackPurchase(
-    String name,
-    Map<String, String> parameters,
-  ) async {
-    if (!checkInitialization()) {
-      throw StateError(
-          'Adobe Analytics: Not initialized. Call initialize() first.');
-    }
-    try {
-      final products = parameters['products']?.toString() ?? '';
-      final events = parameters['events']?.toString() ?? '';
-      final additionalData =
-          parameters['additionalData'] as Map<String, String>?;
-      final data = {
-        '&&products': products,
-        '&&events': events,
-        ...?additionalData,
-      };
-      await MobileCore.trackAction(name, data: data);
-    } catch (e) {
-      debugPrint('Error tracking purchase: $e');
-    }
-  }
-
-  Future<void> trackProductView(
-    String name,
-    Map<String, String> parameters,
-  ) async {
-    if (!checkInitialization()) {
-      throw StateError(
-          'Adobe Analytics: Not initialized. Call initialize() first.');
-    }
-    try {
-      final products = parameters['products']?.toString() ?? '';
-      final additionalData =
-          parameters['additionalData'] as Map<String, String>?;
-      final data = {
-        '&&products': products,
-        ...?additionalData,
-      };
-      await MobileCore.trackState(name, data: data);
-    } catch (e) {
-      debugPrint('Error tracking product view: $e');
+    } catch (e, stack) {
+      debugPrint('Error sending Adobe Analytics event: $e\n$stack');
     }
   }
 }

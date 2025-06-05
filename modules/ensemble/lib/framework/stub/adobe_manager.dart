@@ -5,9 +5,6 @@ abstract class AdobeAnalyticsModule {
   Future<void> trackAction(String eventName, Map<String, String> parameters);
   Future<void> trackState(String eventName, Map<String, String> parameters);
   Future<void> sendEvent(String eventName, Map<String, String> parameters);
-  Future<void> trackPurchase(String eventName, Map<String, String> parameters);
-  Future<void> trackProductView(
-      String eventName, Map<String, String> parameters);
 }
 
 class AdobeAnalyticsModuleStub implements AdobeAnalyticsModule {
@@ -33,18 +30,6 @@ class AdobeAnalyticsModuleStub implements AdobeAnalyticsModule {
 
   @override
   Future<void> sendEvent(
-      String eventName, Map<String, String> parameters) async {
-    throw ConfigError(_errorMsg);
-  }
-
-  @override
-  Future<void> trackPurchase(
-      String eventName, Map<String, String> parameters) async {
-    throw ConfigError(_errorMsg);
-  }
-
-  @override
-  Future<void> trackProductView(
       String eventName, Map<String, String> parameters) async {
     throw ConfigError(_errorMsg);
   }

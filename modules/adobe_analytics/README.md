@@ -41,13 +41,14 @@ The module provides a singleton instance of Adobe Analytics that can be accessed
 logEvent:
   name: trackButtonClick
   provider: adobe
+  operation: trackAction
   parameters:
-    eventName: "button_click"
-    eventType: "button_click"
-    eventSource: "mobile_app"
-    eventCategory: "button_click"
-    eventAction: "button_click"
-    eventLabel: "button_click"
+    eventName: 'button_click'
+    eventType: 'button_click'
+    eventSource: 'mobile_app'
+    eventCategory: 'button_click'
+    eventAction: 'button_click'
+    eventLabel: 'button_click'
 ```
 
 2. Track State (Page Views):
@@ -55,10 +56,11 @@ logEvent:
 logEvent:
   name: trackScreenView
   provider: adobe
+  operation: trackState
   parameters:
-    eventName: "screen_view"
-    eventType: "screen_view"
-    eventSource: "mobile_app"
+    eventName: 'screen_view'
+    eventType: 'screen_view'
+    eventSource: 'mobile_app'
 ```
 
 3. XDM Event (Experience Platform):
@@ -66,41 +68,19 @@ logEvent:
 logEvent:
   name: trackXdmEvent
   provider: adobe
+  operation: sendEvent
   parameters:
-    eventName: "xdm_event"
-    eventType: "xdm_event"
-    eventSource: "mobile_app"
-```
-
-4. Track Purchase:
-```yaml
-logEvent:
-  name: trackPurchase
-  provider: adobe
-  parameters:
-    eventName: "purchase"
-    eventType: "purchase"
-    eventSource: "mobile_app"
-    products: ";Running Shoes;1;69.95;event1|event2=55.99;eVar1=12345"
-    events: "event5,purchase"
-    additionalData:
-      myapp.promotion: "a0138"
-```
-
-5. Track Product View:
-```yaml
-logEvent:
-  name: trackProductView
-  provider: adobe
-  parameters:
-    eventName: "product_view"
-    eventType: "product_view"
-    eventSource: "mobile_app"
-    products: ";Running Shoes;1;69.95;prodView|event2=55.99;eVar1=12345"
-    events: "event5,purchase"
-    additionalData:
-      myapp.promotion: "a0138"
-      products: ";Running Shoes;1;69.95;prodView|event2=55.99;eVar1=12345"
+    xdmData:
+      eventType: 'commerce.productViews'
+      commerce:
+        productViews:
+          value: 1
+    data:
+      customField: 'customValue'
+      userSegment:
+        - 'segment1'
+        - 'segment2'
+    datastreamId: <your_datastream_id>
 ```
 
 ## Requirements
