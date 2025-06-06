@@ -1,0 +1,27 @@
+name: ensemble_adobe_analytics
+description: Adobe Analytics integration for Ensemble
+version: 1.0.0
+publish_to: none
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+  flutter: '>=3.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  ensemble:
+    git:
+      url: https://github.com/EnsembleUI/ensemble.git
+      ref: ensemble-v1.1.60
+      path: modules/ensemble
+
+  flutter_aepcore: ^5.0.0
+  flutter_aepedge: ^5.0.0
+  # flutter_aepedgebridge: ^5.0.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^2.0.0
+

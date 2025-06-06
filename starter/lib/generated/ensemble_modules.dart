@@ -1,5 +1,6 @@
 import 'package:ensemble/framework/logging/log_provider.dart';
 import 'package:ensemble/framework/notification_manager.dart';
+import 'package:ensemble/framework/stub/adobe_manager.dart';
 import 'package:ensemble/framework/stub/analytics_provider.dart';
 import 'package:ensemble/framework/stub/bluetooth.dart';
 import 'package:ensemble/framework/stub/camera_manager.dart';
@@ -57,6 +58,9 @@ import 'package:get_it/get_it.dart';
 // import 'package:flutter/foundation.dart';
 // import 'dart:io';
 
+// Uncomment to enable Adobe Analytics
+// import 'package:ensemble_adobe_analytics/adobe_analytics.dart';
+
 /// TODO: This class should be generated to enable selected Services
 class EnsembleModules {
   static final EnsembleModules _instance = EnsembleModules._internal();
@@ -75,6 +79,7 @@ class EnsembleModules {
   static const useFirebaseAnalytics = false;
   static const useNotifications = false;
   static const useMoEngage = false;
+  static const useAdobeAnalytics = false;
 
   static const useBracket = false;
   static const useNetworkInfo = false;
@@ -113,6 +118,13 @@ class EnsembleModules {
       // GetIt.I.registerSingleton<MoEngageModule>(MoEngageImpl());
     } else {
       GetIt.I.registerSingleton<MoEngageModule>(MoEngageModuleStub());
+    }
+
+    if (useAdobeAnalytics) {
+      // GetIt.I.registerSingleton<AdobeAnalyticsModule>(AdobeAnalyticsImpl());
+    } else {
+      GetIt.I
+          .registerSingleton<AdobeAnalyticsModule>(AdobeAnalyticsModuleStub());
     }
 
     if (useCamera) {
