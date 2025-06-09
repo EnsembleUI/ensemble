@@ -45,7 +45,6 @@ class SaveKeychain extends EnsembleAction {
     if (storageKey != null) {
       try {
         final datas = {'key': storageKey, 'value': evaluatedValue};
-        print('Saving to keychain: $datas');
         await KeychainManager().saveToKeychain(datas);
         // dispatch onComplete
         if (onComplete != null) {
