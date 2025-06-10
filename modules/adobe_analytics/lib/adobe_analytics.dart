@@ -76,7 +76,7 @@ class AdobeAnalyticsImpl implements AdobeAnalyticsModule {
           'Adobe Analytics: Not initialized. Call initialize() first.');
     }
     try {
-      return await Assurance.startSession(url);
+      await Assurance.startSession(url);
     } catch (e) {
       debugPrint('Error setting up Adobe Analytics Assurance: $e');
       throw StateError('Error setting up Adobe Analytics Assurance: $e');
