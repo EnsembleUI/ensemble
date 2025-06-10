@@ -104,28 +104,22 @@ class AdobeAnalyticsImpl implements AdobeAnalyticsModule {
           : null;
       final datasetIdentifier =
           parameters['datasetIdentifier'] as String? ?? null;
-      final configOverrides = parameters['configOverrides'] is Map
-          ? parameters['configOverrides'] as Map<String, dynamic>
-          : null;
+      final datastreamConfigOverride =
+          parameters['datastreamConfigOverride'] is Map
+              ? parameters['datastreamConfigOverride'] as Map<String, dynamic>
+              : null;
       final datastreamIdOverride =
           parameters['datastreamIdOverride'] as String? ?? null;
 
-      var event = <String, dynamic>{};
-      if (xdmData != null) {
-        event['xdmData'] = xdmData;
-      }
-      if (data != null) {
-        event['data'] = data;
-      }
-      if (datasetIdentifier != null) {
-        event['datasetIdentifier'] = datasetIdentifier;
-      }
-      if (datastreamIdOverride != null) {
-        event['datastreamIdOverride'] = datastreamIdOverride;
-      }
-      if (configOverrides != null) {
-        event['datastreamConfigOverride'] = configOverrides;
-      }
+      final event = <String, dynamic>{
+        if (xdmData != null) 'xdmData': xdmData,
+        if (data != null) 'data': data,
+        if (datasetIdentifier != null) 'datasetIdentifier': datasetIdentifier,
+        if (datastreamIdOverride != null)
+          'datastreamIdOverride': datastreamIdOverride,
+        if (datastreamConfigOverride != null)
+          'datastreamConfigOverride': datastreamConfigOverride,
+      };
       final experienceEvent = ExperienceEvent(event);
 
       result = await Edge.sendEvent(experienceEvent).timeout(
