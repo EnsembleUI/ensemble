@@ -25,7 +25,7 @@ class AdobeAnalyticsImpl implements AdobeAnalyticsModule {
     try {
       debugPrint('Initializing Adobe Analytics with appId: $appId');
       // Initialize the AEP Core SDK
-      await MobileCore.setLogLevel(LogLevel.debug);
+      await MobileCore.setLogLevel(LogLevel.trace);
       await MobileCore.initializeWithAppId(appId: appId);
       _isAdobeAnalyticsInitialized = true;
       print('Adobe Analytics initialized');
@@ -47,11 +47,13 @@ class AdobeAnalyticsImpl implements AdobeAnalyticsModule {
     try {
       debugPrint(
           'Tracking Adobe Analytics action: $name with parameters: $parameters');
-      if (parameters != null) {
-        await MobileCore.trackAction(name, data: parameters);
-      } else {
-        await MobileCore.trackAction(name, data: {});
-      }
+      await MobileCore.trackAction(name, data: parameters).timeout(
+        Duration(seconds: 10),
+        onTimeout: () {
+          debugPrint('MobileCore.trackAction timed out!');
+          throw StateError('MobileCore.trackAction timed out!');
+        },
+      );
     } catch (e) {
       debugPrint('Error tracking Adobe Analytics action: $e');
     }
@@ -65,11 +67,13 @@ class AdobeAnalyticsImpl implements AdobeAnalyticsModule {
     try {
       debugPrint(
           'Tracking Adobe Analytics state: $name with parameters: $parameters');
-      if (parameters != null) {
-        await MobileCore.trackState(name, data: parameters);
-      } else {
-        await MobileCore.trackState(name, data: {});
-      }
+      await MobileCore.trackState(name, data: parameters).timeout(
+        Duration(seconds: 10),
+        onTimeout: () {
+          debugPrint('MobileCore.trackState timed out!');
+          throw StateError('MobileCore.trackState timed out!');
+        },
+      );
     } catch (e) {
       debugPrint('Error tracking Adobe Analytics state: $e');
     }
@@ -84,21 +88,16 @@ class AdobeAnalyticsImpl implements AdobeAnalyticsModule {
       debugPrint(
           'Sending Adobe Analytics event: $name with parameters: $parameters');
       if (parameters != null) {
-        final xdmDataRaw = parameters['xdmData'];
-        final xdmData = (xdmDataRaw is Map)
-            ? xdmDataRaw.cast<String, dynamic>()
+        final xdmData = parameters['xdmData'] is Map
+            ? parameters['xdmData'] as Map<String, dynamic>
             : <String, dynamic>{};
-
-        final dataRaw = parameters['data'];
-        final data = (dataRaw is Map)
-            ? dataRaw.cast<String, dynamic>()
+        final data = parameters['data'] is Map
+            ? parameters['data'] as Map<String, dynamic>
             : <String, dynamic>{};
-
-        final datastreamId = parameters['datastreamId'] as String?;
-        final configOverridesRaw = parameters['configOverrides'];
-        final configOverrides = (configOverridesRaw is Map)
-            ? configOverridesRaw.cast<String, dynamic>()
-            : null;
+        final datastreamId = parameters['datastreamId'] as String? ?? '';
+        final configOverrides = parameters['configOverrides'] is Map
+            ? parameters['configOverrides'] as Map<String, dynamic>
+            : <String, dynamic>{};
 
         final experienceEvent = ExperienceEvent.createEventWithOverrides(
           xdmData,
@@ -106,19 +105,26 @@ class AdobeAnalyticsImpl implements AdobeAnalyticsModule {
           datastreamId,
           configOverrides,
         );
-
-        await Edge.sendEvent(experienceEvent);
+        await Edge.sendEvent(experienceEvent).timeout(
+          Duration(seconds: 10),
+          onTimeout: () {
+            debugPrint('Edge.sendEvent timed out!');
+            throw StateError('Edge.sendEvent timed out!');
+          },
+        );
         debugPrint(
-            'Adobe Analytics event sent: $name with xdmData: $xdmData, data: $data, datastreamId: $datastreamId, configOverrides: $configOverrides');
+            'Adobe Analytics event sent successfully: $name with xdmData: $xdmData');
       } else {
         await Edge.sendEvent(
           ExperienceEvent({
             'xdmData': {'eventType': name},
           }),
         );
+        debugPrint('Adobe Analytics event sent successfully: $name');
       }
     } catch (e, stack) {
       debugPrint('Error sending Adobe Analytics event: $e\n$stack');
+      throw StateError('Error sending Adobe Analytics event: $e');
     }
   }
 }

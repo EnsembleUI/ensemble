@@ -179,6 +179,10 @@ class LogEvent extends ensembleAction.EnsembleAction {
           parameters: scopeManager.dataContext.eval(parameters),
           attributeKey: scopeManager.dataContext.eval(attributeKey),
         );
+
+        if (onSuccess != null) {
+          await ScreenController().executeAction(context, onSuccess!);
+        }
       } else {
         LogManager().log(
           logging.LogType.appAnalytics,
@@ -384,7 +388,7 @@ Future<void> _handleAdobeOperations(
   ScopeManager scopeManager, {
   String? operation,
   String? eventName,
-  Map? parameters,
+  Map<String, dynamic>? parameters,
   String? attributeKey,
 }) async {
   final adobe = GetIt.instance<AdobeAnalyticsModule>();
@@ -403,10 +407,7 @@ Future<void> _handleAdobeOperations(
               .map((key, value) => MapEntry(key.toString(), value.toString())));
       break;
     case 'sendEvent':
-      await adobe.sendEvent(
-          eventName!,
-          parameters!
-              .map((key, value) => MapEntry(key.toString(), value.toString())));
+      await adobe.sendEvent(eventName!, parameters!);
       break;
     default:
       throw LanguageError('Invalid operation: $operation');
