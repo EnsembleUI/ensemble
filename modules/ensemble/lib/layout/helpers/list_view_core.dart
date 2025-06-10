@@ -1,3 +1,4 @@
+import 'package:ensemble/ensemble_app.dart';
 import 'package:ensemble/util/debouncer.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter/material.dart' as flutter;
@@ -55,6 +56,7 @@ class ListViewCore extends StatefulWidget {
     required this.itemBuilder,
     super.key,
     this.shrinkWrap = false,
+    this.nestedScroll = false,
     this.scrollController,
     this.scrollDirection = Axis.vertical,
     this.physics,
@@ -73,6 +75,7 @@ class ListViewCore extends StatefulWidget {
   });
 
   final bool shrinkWrap;
+  final bool nestedScroll;
   final ScrollController? scrollController;
   final Axis scrollDirection;
   final ScrollPhysics? physics;
@@ -153,6 +156,19 @@ class _ListViewCoreState extends State<ListViewCore> {
       _scrollDebouce.run(() {
         widget.onScroll?.call(_scrollController.position.pixels);
       });
+    }
+    // listView's scrollController is in sync with externalScrollController
+    // given the nestedScroll property is set to true and View is Scrollable
+    // Note that we are not using jumpTo to avoid jerky movement of external
+    // Scroll instead we are using animateTo which is smoother than jumpTo
+    if (externalScrollController != null && widget.nestedScroll) {
+      final currentOffset = _scrollController.position.pixels;
+
+      externalScrollController!.animateTo(
+        currentOffset,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+      );
     }
   }
 
