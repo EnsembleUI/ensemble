@@ -409,6 +409,9 @@ Future<void> _handleAdobeOperations(
     case 'sendEvent':
       await adobe.sendEvent(eventName!, parameters!);
       break;
+    case 'setupAssurance':
+      await adobe.setupAssurance(parameters!['url'].toString());
+      break;
     default:
       throw LanguageError('Invalid operation: $operation');
   }

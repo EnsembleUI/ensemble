@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_aepcore/flutter_aepcore.dart';
 import 'package:flutter_aepedge/flutter_aepedge.dart';
+import 'package:flutter_aepassurance/flutter_aepassurance.dart';
 
 class AdobeAnalyticsImpl implements AdobeAnalyticsModule {
   static final AdobeAnalyticsImpl _instance = AdobeAnalyticsImpl._internal();
@@ -87,44 +88,65 @@ class AdobeAnalyticsImpl implements AdobeAnalyticsModule {
     try {
       debugPrint(
           'Sending Adobe Analytics event: $name with parameters: $parameters');
-      if (parameters != null) {
-        final xdmData = parameters['xdmData'] is Map
-            ? parameters['xdmData'] as Map<String, dynamic>
-            : <String, dynamic>{};
-        final data = parameters['data'] is Map
-            ? parameters['data'] as Map<String, dynamic>
-            : <String, dynamic>{};
-        final datastreamId = parameters['datastreamId'] as String? ?? '';
-        final configOverrides = parameters['configOverrides'] is Map
-            ? parameters['configOverrides'] as Map<String, dynamic>
-            : <String, dynamic>{};
-
-        final experienceEvent = ExperienceEvent.createEventWithOverrides(
-          xdmData,
-          data,
-          datastreamId,
-          configOverrides,
-        );
-        await Edge.sendEvent(experienceEvent).timeout(
-          Duration(seconds: 10),
-          onTimeout: () {
-            debugPrint('Edge.sendEvent timed out!');
-            throw StateError('Edge.sendEvent timed out!');
-          },
-        );
-        debugPrint(
-            'Adobe Analytics event sent successfully: $name with xdmData: $xdmData');
-      } else {
-        await Edge.sendEvent(
-          ExperienceEvent({
-            'xdmData': {'eventType': name},
-          }),
-        );
-        debugPrint('Adobe Analytics event sent successfully: $name');
+      late List<EventHandle> result;
+      if (parameters == null) {
+        throw StateError('Parameters are required for sendEvent');
       }
+      final xdmData = parameters['xdmData'] is Map
+          ? parameters['xdmData'] as Map<String, dynamic>
+          : null;
+      final data = parameters['data'] is Map
+          ? parameters['data'] as Map<String, dynamic>
+          : null;
+      final datasetIdentifier =
+          parameters['datasetIdentifier'] as String? ?? null;
+      final configOverrides = parameters['configOverrides'] is Map
+          ? parameters['configOverrides'] as Map<String, dynamic>
+          : null;
+      final datastreamIdOverride =
+          parameters['datastreamIdOverride'] as String? ?? null;
+
+      var event = <String, dynamic>{};
+      if (xdmData != null) {
+        event['xdmData'] = xdmData;
+      }
+      if (data != null) {
+        event['data'] = data;
+      }
+      if (datasetIdentifier != null) {
+        event['datasetIdentifier'] = datasetIdentifier;
+      }
+      if (datastreamIdOverride != null) {
+        event['datastreamIdOverride'] = datastreamIdOverride;
+      }
+      if (configOverrides != null) {
+        event['datastreamConfigOverride'] = configOverrides;
+      }
+      final experienceEvent = ExperienceEvent(event);
+
+      result = await Edge.sendEvent(experienceEvent).timeout(
+        Duration(seconds: 10),
+        onTimeout: () {
+          debugPrint('Edge.sendEvent timed out!');
+          throw StateError('Edge.sendEvent timed out!');
+        },
+      );
+      debugPrint('result info: ' + result.toString());
     } catch (e, stack) {
       debugPrint('Error sending Adobe Analytics event: $e\n$stack');
       throw StateError('Error sending Adobe Analytics event: $e');
+    }
+  }
+
+  Future<void> setupAssurance(String url) async {
+    if (!checkInitialization()) {
+      throw StateError(
+          'Adobe Analytics: Not initialized. Call initialize() first.');
+    }
+    try {
+      await Assurance.startSession(url);
+    } catch (e) {
+      debugPrint('Error setting up Adobe Analytics Assurance: $e');
     }
   }
 }
