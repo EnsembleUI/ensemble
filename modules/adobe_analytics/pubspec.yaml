@@ -18,7 +18,8 @@ dependencies:
 
   flutter_aepcore: ^5.0.0
   flutter_aepedge: ^5.0.0
-  # flutter_aepedgebridge: ^5.0.0
+  flutter_aepassurance: ^5.0.0
+  flutter_aepedgeidentity: ^5.0.0
 
 dev_dependencies:
   flutter_test:

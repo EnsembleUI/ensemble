@@ -414,6 +414,21 @@ Future<dynamic> _handleAdobeOperations(
       return await adobe.sendEvent(eventName!, parameters!);
     case 'setupAssurance':
       return await adobe.setupAssurance(parameters!['url'].toString());
+    case 'getExperienceCloudId':
+      return await adobe.getExperienceCloudId();
+    case 'getIdentities':
+      return await adobe.getIdentities();
+    case 'getUrlVariables':
+      return await adobe.getUrlVariables();
+    case 'removeIdentity':
+      return await adobe.removeIdentity(parameters!);
+    case 'resetIdentities':
+      return await adobe.resetIdentities();
+    case 'setAdvertisingIdentifier':
+      return await adobe.setAdvertisingIdentifier(
+          parameters!['advertisingIdentifier'].toString());
+    case 'updateIdentities':
+      return await adobe.updateIdentities(parameters!);
     default:
       throw LanguageError('Invalid operation: $operation');
   }

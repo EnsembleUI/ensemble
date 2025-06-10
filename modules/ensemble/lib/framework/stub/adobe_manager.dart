@@ -1,11 +1,25 @@
 import 'package:ensemble/framework/error_handling.dart';
 
 abstract class AdobeAnalyticsModule {
+  // CORE
   Future<dynamic> initialize(String appId);
   Future<dynamic> trackAction(String eventName, Map<String, String> parameters);
   Future<dynamic> trackState(String eventName, Map<String, String> parameters);
+
+  // EDGE
   Future<dynamic> sendEvent(String eventName, Map<String, dynamic> parameters);
+
+  // ASSURANCE
   Future<dynamic> setupAssurance(String url);
+
+  // IDENTITY
+  Future<dynamic> getExperienceCloudId();
+  Future<dynamic> getIdentities();
+  Future<dynamic> getUrlVariables();
+  Future<dynamic> removeIdentity(Map<String, dynamic> parameters);
+  Future<dynamic> resetIdentities();
+  Future<dynamic> setAdvertisingIdentifier(String advertisingIdentifier);
+  Future<dynamic> updateIdentities(Map<String, dynamic> parameters);
 }
 
 class AdobeAnalyticsModuleStub implements AdobeAnalyticsModule {
@@ -37,6 +51,41 @@ class AdobeAnalyticsModuleStub implements AdobeAnalyticsModule {
 
   @override
   Future<dynamic> setupAssurance(String url) async {
+    throw ConfigError(_errorMsg);
+  }
+
+  @override
+  Future<dynamic> getExperienceCloudId() async {
+    throw ConfigError(_errorMsg);
+  }
+
+  @override
+  Future<dynamic> getIdentities() async {
+    throw ConfigError(_errorMsg);
+  }
+
+  @override
+  Future<dynamic> getUrlVariables() async {
+    throw ConfigError(_errorMsg);
+  }
+
+  @override
+  Future<dynamic> removeIdentity(Map<String, dynamic> parameters) async {
+    throw ConfigError(_errorMsg);
+  }
+
+  @override
+  Future<dynamic> resetIdentities() async {
+    throw ConfigError(_errorMsg);
+  }
+
+  @override
+  Future<dynamic> setAdvertisingIdentifier(String advertisingIdentifier) async {
+    throw ConfigError(_errorMsg);
+  }
+
+  @override
+  Future<dynamic> updateIdentities(Map<String, dynamic> parameters) async {
     throw ConfigError(_errorMsg);
   }
 }

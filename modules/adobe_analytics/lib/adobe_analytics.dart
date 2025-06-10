@@ -1,20 +1,25 @@
 import 'package:ensemble/framework/stub/adobe_manager.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
-import 'package:flutter_aepcore/flutter_aepcore.dart';
-import 'package:flutter_aepedge/flutter_aepedge.dart';
 import 'package:flutter_aepassurance/flutter_aepassurance.dart';
+import 'package:flutter_aepedgeidentity/flutter_aepedgeidentity.dart';
+import 'core.dart';
+import 'edge.dart';
+import 'identity.dart';
 
 class AdobeAnalyticsImpl implements AdobeAnalyticsModule {
   static final AdobeAnalyticsImpl _instance = AdobeAnalyticsImpl._internal();
+  late final AdobeAnalyticsCore _core;
+  late final AdobeAnalyticsEdge _edge;
+  late final AdobeAnalyticsIdentity _identity;
+
   AdobeAnalyticsImpl._internal();
 
-  static bool _isAdobeAnalyticsInitialized = false;
-
   factory AdobeAnalyticsImpl({required String appId}) {
-    if (!AdobeAnalyticsImpl._isAdobeAnalyticsInitialized) {
+    if (!AdobeAnalyticsCore.checkInitialization()) {
       try {
-        _instance.initialize(appId);
+        _instance._core = AdobeAnalyticsCore(appId: appId);
+        _instance._edge = AdobeAnalyticsEdge();
+        _instance._identity = AdobeAnalyticsIdentity();
       } catch (e) {
         debugPrint('Error initializing Adobe Analytics: $e');
       }
@@ -24,12 +29,9 @@ class AdobeAnalyticsImpl implements AdobeAnalyticsModule {
 
   Future<dynamic> initialize(String appId) async {
     try {
-      debugPrint('Initializing Adobe Analytics with appId: $appId');
-      // Initialize the AEP Core SDK
-      await MobileCore.setLogLevel(LogLevel.trace);
-      await MobileCore.initializeWithAppId(appId: appId);
-      _isAdobeAnalyticsInitialized = true;
-      print('Adobe Analytics initialized');
+      _core = AdobeAnalyticsCore(appId: appId);
+      _edge = AdobeAnalyticsEdge();
+      _identity = AdobeAnalyticsIdentity();
       return true;
     } catch (e) {
       debugPrint('Error initializing Adobe Analytics: $e');
@@ -38,103 +40,35 @@ class AdobeAnalyticsImpl implements AdobeAnalyticsModule {
   }
 
   static bool checkInitialization() {
-    return _isAdobeAnalyticsInitialized;
+    return AdobeAnalyticsCore.checkInitialization();
   }
+
+  // ==========================
+  // CORE
+  // ==========================
 
   Future<dynamic> trackAction(
       String name, Map<String, String>? parameters) async {
-    if (!checkInitialization()) {
-      throw StateError(
-          'Adobe Analytics: Not initialized. Call initialize() first.');
-    }
-    try {
-      debugPrint(
-          'Tracking Adobe Analytics action: $name with parameters: $parameters');
-      return await MobileCore.trackAction(name, data: parameters).timeout(
-        Duration(seconds: 10),
-        onTimeout: () {
-          debugPrint('MobileCore.trackAction timed out!');
-          throw StateError('MobileCore.trackAction timed out!');
-        },
-      );
-    } catch (e) {
-      debugPrint('Error tracking Adobe Analytics action: $e');
-    }
+    return _core.trackAction(name, parameters);
   }
 
   Future<dynamic> trackState(
       String name, Map<String, String>? parameters) async {
-    if (!checkInitialization()) {
-      throw StateError(
-          'Adobe Analytics: Not initialized. Call initialize() first.');
-    }
-    try {
-      debugPrint(
-          'Tracking Adobe Analytics state: $name with parameters: $parameters');
-      return await MobileCore.trackState(name, data: parameters).timeout(
-        Duration(seconds: 10),
-        onTimeout: () {
-          debugPrint('MobileCore.trackState timed out!');
-          throw StateError('MobileCore.trackState timed out!');
-        },
-      );
-    } catch (e) {
-      debugPrint('Error tracking Adobe Analytics state: $e');
-    }
+    return _core.trackState(name, parameters);
   }
+
+  // ==========================
+  // EDGE
+  // ==========================
 
   Future<dynamic> sendEvent(
       String name, Map<String, dynamic>? parameters) async {
-    if (!checkInitialization()) {
-      throw StateError(
-          'Adobe Analytics: Not initialized. Call initialize() first.');
-    }
-    try {
-      debugPrint(
-          'Sending Adobe Analytics event: $name with parameters: $parameters');
-      late List<EventHandle> result;
-      if (parameters == null) {
-        throw StateError('Parameters are required for sendEvent');
-      }
-      final xdmData = parameters['xdmData'] is Map
-          ? parameters['xdmData'] as Map<String, dynamic>
-          : null;
-      final data = parameters['data'] is Map
-          ? parameters['data'] as Map<String, dynamic>
-          : null;
-      final datasetIdentifier =
-          parameters['datasetIdentifier'] as String? ?? null;
-      final datastreamConfigOverride =
-          parameters['datastreamConfigOverride'] is Map
-              ? parameters['datastreamConfigOverride'] as Map<String, dynamic>
-              : null;
-      final datastreamIdOverride =
-          parameters['datastreamIdOverride'] as String? ?? null;
-
-      final event = <String, dynamic>{
-        if (xdmData != null) 'xdmData': xdmData,
-        if (data != null) 'data': data,
-        if (datasetIdentifier != null) 'datasetIdentifier': datasetIdentifier,
-        if (datastreamIdOverride != null)
-          'datastreamIdOverride': datastreamIdOverride,
-        if (datastreamConfigOverride != null)
-          'datastreamConfigOverride': datastreamConfigOverride,
-      };
-      final experienceEvent = ExperienceEvent(event);
-
-      result = await Edge.sendEvent(experienceEvent).timeout(
-        Duration(seconds: 10),
-        onTimeout: () {
-          debugPrint('Edge.sendEvent timed out!');
-          throw StateError('Edge.sendEvent timed out!');
-        },
-      );
-      return result;
-    } catch (e, stack) {
-      debugPrint('Error sending Adobe Analytics event: $e\n$stack');
-      throw StateError('Error sending Adobe Analytics event: $e');
-    }
+    return _edge.sendEvent(name, parameters);
   }
+
+  // ==========================
+  // ASSURANCE
+  // ==========================
 
   Future<dynamic> setupAssurance(String url) async {
     if (!checkInitialization()) {
@@ -145,6 +79,42 @@ class AdobeAnalyticsImpl implements AdobeAnalyticsModule {
       return await Assurance.startSession(url);
     } catch (e) {
       debugPrint('Error setting up Adobe Analytics Assurance: $e');
+      throw StateError('Error setting up Adobe Analytics Assurance: $e');
     }
+  }
+
+  // ==========================
+  // IDENTITY
+  // ==========================
+
+  Future<dynamic> getExperienceCloudId() async {
+    return _identity.getExperienceCloudId();
+  }
+
+  Future<dynamic> getIdentities() async {
+    return _identity.getIdentities();
+  }
+
+  Future<dynamic> getUrlVariables() async {
+    return _identity.getUrlVariables();
+  }
+
+  Future<dynamic> removeIdentity(Map<String, dynamic> parameters) async {
+    final item = parameters['item'] as IdentityItem;
+    final namespace = parameters['namespace'] as String;
+    return _identity.removeIdentity(item, namespace);
+  }
+
+  Future<dynamic> resetIdentities() async {
+    return _identity.resetIdentities();
+  }
+
+  Future<dynamic> setAdvertisingIdentifier(String advertisingIdentifier) async {
+    return _identity.setAdvertisingIdentifier(advertisingIdentifier);
+  }
+
+  Future<dynamic> updateIdentities(Map<String, dynamic> parameters) async {
+    final identities = parameters['identities'] as IdentityMap;
+    return _identity.updateIdentities(identities);
   }
 }
