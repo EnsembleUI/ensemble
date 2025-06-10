@@ -171,7 +171,7 @@ class LogEvent extends ensembleAction.EnsembleAction {
           await ScreenController().executeAction(context, onSuccess!);
         }
       } else if (evaluatedProvider == 'adobe') {
-        await _handleAdobeOperations(
+        final result = await _handleAdobeOperations(
           context,
           scopeManager,
           operation: scopeManager.dataContext.eval(operation),
@@ -180,8 +180,14 @@ class LogEvent extends ensembleAction.EnsembleAction {
           attributeKey: scopeManager.dataContext.eval(attributeKey),
         );
 
+        debugPrint('Adobe result: $result');
+
         if (onSuccess != null) {
-          await ScreenController().executeAction(context, onSuccess!);
+          await ScreenController().executeAction(
+            context,
+            onSuccess!,
+            event: EnsembleEvent(null, data: result.toString()),
+          );
         }
       } else {
         LogManager().log(
@@ -383,7 +389,7 @@ class LogEvent extends ensembleAction.EnsembleAction {
   }
 }
 
-Future<void> _handleAdobeOperations(
+Future<dynamic> _handleAdobeOperations(
   BuildContext context,
   ScopeManager scopeManager, {
   String? operation,
@@ -395,23 +401,19 @@ Future<void> _handleAdobeOperations(
 
   switch (operation) {
     case 'trackAction':
-      await adobe.trackAction(
+      return await adobe.trackAction(
           eventName!,
           parameters!
               .map((key, value) => MapEntry(key.toString(), value.toString())));
-      break;
     case 'trackState':
-      await adobe.trackState(
+      return await adobe.trackState(
           eventName!,
           parameters!
               .map((key, value) => MapEntry(key.toString(), value.toString())));
-      break;
     case 'sendEvent':
-      await adobe.sendEvent(eventName!, parameters!);
-      break;
+      return await adobe.sendEvent(eventName!, parameters!);
     case 'setupAssurance':
-      await adobe.setupAssurance(parameters!['url'].toString());
-      break;
+      return await adobe.setupAssurance(parameters!['url'].toString());
     default:
       throw LanguageError('Invalid operation: $operation');
   }
