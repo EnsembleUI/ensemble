@@ -20,6 +20,11 @@ abstract class AdobeAnalyticsModule {
   Future<dynamic> resetIdentities();
   Future<dynamic> setAdvertisingIdentifier(String advertisingIdentifier);
   Future<dynamic> updateIdentities(Map<String, dynamic> parameters);
+
+  // CONSENT
+  Future<dynamic> getConsents();
+  Future<void> updateConsent(bool allowed);
+  Future<void> setDefaultConsent(bool allowed);
 }
 
 class AdobeAnalyticsModuleStub implements AdobeAnalyticsModule {
@@ -86,6 +91,21 @@ class AdobeAnalyticsModuleStub implements AdobeAnalyticsModule {
 
   @override
   Future<dynamic> updateIdentities(Map<String, dynamic> parameters) async {
+    throw ConfigError(_errorMsg);
+  }
+
+  @override
+  Future<dynamic> getConsents() async {
+    throw ConfigError(_errorMsg);
+  }
+
+  @override
+  Future<void> updateConsent(bool allowed) async {
+    throw ConfigError(_errorMsg);
+  }
+
+  @override
+  Future<void> setDefaultConsent(bool allowed) async {
     throw ConfigError(_errorMsg);
   }
 }

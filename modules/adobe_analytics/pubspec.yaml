@@ -20,6 +20,7 @@ dependencies:
   flutter_aepedge: ^5.0.0
   flutter_aepassurance: ^5.0.0
   flutter_aepedgeidentity: ^5.0.0
+  flutter_aepedgeconsent: ^5.0.0
 
 dev_dependencies:
   flutter_test:

@@ -5,12 +5,14 @@ import 'package:flutter_aepedgeidentity/flutter_aepedgeidentity.dart';
 import 'core.dart';
 import 'edge.dart';
 import 'identity.dart';
+import 'consent.dart';
 
 class AdobeAnalyticsImpl implements AdobeAnalyticsModule {
   static final AdobeAnalyticsImpl _instance = AdobeAnalyticsImpl._internal();
   late final AdobeAnalyticsCore _core;
   late final AdobeAnalyticsEdge _edge;
   late final AdobeAnalyticsIdentity _identity;
+  late final AdobeAnalyticsConsent _consent;
 
   AdobeAnalyticsImpl._internal();
 
@@ -20,6 +22,7 @@ class AdobeAnalyticsImpl implements AdobeAnalyticsModule {
         _instance._core = AdobeAnalyticsCore(appId: appId);
         _instance._edge = AdobeAnalyticsEdge();
         _instance._identity = AdobeAnalyticsIdentity();
+        _instance._consent = AdobeAnalyticsConsent();
       } catch (e) {
         debugPrint('Error initializing Adobe Analytics: $e');
       }
@@ -32,6 +35,7 @@ class AdobeAnalyticsImpl implements AdobeAnalyticsModule {
       _core = AdobeAnalyticsCore(appId: appId);
       _edge = AdobeAnalyticsEdge();
       _identity = AdobeAnalyticsIdentity();
+      _consent = AdobeAnalyticsConsent();
       return true;
     } catch (e) {
       debugPrint('Error initializing Adobe Analytics: $e');
@@ -116,5 +120,21 @@ class AdobeAnalyticsImpl implements AdobeAnalyticsModule {
   Future<dynamic> updateIdentities(Map<String, dynamic> parameters) async {
     final identities = parameters['identities'] as IdentityMap;
     return _identity.updateIdentities(identities);
+  }
+
+  // ==========================
+  // CONSENT
+  // ==========================
+
+  Future<dynamic> getConsents() async {
+    return _consent.getConsents();
+  }
+
+  Future<void> updateConsent(bool allowed) async {
+    return _consent.updateConsent(allowed);
+  }
+
+  Future<void> setDefaultConsent(bool allowed) async {
+    return _consent.setDefaultConsent(allowed);
   }
 }

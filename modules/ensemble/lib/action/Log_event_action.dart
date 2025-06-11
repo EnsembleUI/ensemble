@@ -429,6 +429,12 @@ Future<dynamic> _handleAdobeOperations(
           parameters!['advertisingIdentifier'].toString());
     case 'updateIdentities':
       return await adobe.updateIdentities(parameters!);
+    case 'getConsents':
+      return await adobe.getConsents();
+    case 'updateConsent':
+      return await adobe.updateConsent(parameters!['allowed']);
+    case 'setDefaultConsent':
+      return await adobe.setDefaultConsent(parameters!['allowed']);
     default:
       throw LanguageError('Invalid operation: $operation');
   }
