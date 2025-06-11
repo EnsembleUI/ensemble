@@ -4,6 +4,7 @@ import 'package:flutter_aepedge/flutter_aepedge.dart';
 class AdobeAnalyticsEdge {
   AdobeAnalyticsEdge();
 
+  // Sends an Experience event to Adobe Experience Platform Edge Network.
   Future<dynamic> sendEvent(
       String name, Map<String, dynamic>? parameters) async {
     try {

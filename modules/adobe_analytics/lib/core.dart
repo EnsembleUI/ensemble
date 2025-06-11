@@ -18,6 +18,8 @@ class AdobeAnalyticsCore {
     return _instance;
   }
 
+  // Initialize the AEP SDK by automatically registering all extensions bundled with the application and enabling automatic lifecycle tracking.
+  // appId: Configures the SDK with the provided mobile property environment ID configured from the Data Collection UI.
   Future<dynamic> initialize(String appId) async {
     try {
       // Initialize the AEP Core SDK
@@ -35,6 +37,7 @@ class AdobeAnalyticsCore {
     return _isAdobeAnalyticsInitialized;
   }
 
+  // Track event actions that occur in your application.
   Future<dynamic> trackAction(
       String name, Map<String, String>? parameters) async {
     try {
@@ -49,6 +52,7 @@ class AdobeAnalyticsCore {
     }
   }
 
+  // Track states that represent screens or views in your application.
   Future<dynamic> trackState(
       String name, Map<String, String>? parameters) async {
     try {
