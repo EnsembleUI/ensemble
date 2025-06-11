@@ -10,7 +10,7 @@ abstract class AdobeAnalyticsModule {
   Future<dynamic> sendEvent(String eventName, Map<String, dynamic> parameters);
 
   // ASSURANCE
-  Future<dynamic> setupAssurance(String url);
+  Future<void> setupAssurance(Map<String, dynamic> parameters);
 
   // IDENTITY
   Future<dynamic> getExperienceCloudId();
@@ -60,7 +60,7 @@ class AdobeAnalyticsModuleStub implements AdobeAnalyticsModule {
   }
 
   @override
-  Future<dynamic> setupAssurance(String url) async {
+  Future<void> setupAssurance(Map<String, dynamic> parameters) async {
     throw ConfigError(_errorMsg);
   }
 

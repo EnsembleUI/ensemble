@@ -32,7 +32,9 @@ class AdobeAnalyticsIdentity {
     }
   }
 
-  Future<dynamic> removeIdentity(IdentityItem item, String namespace) async {
+  Future<dynamic> removeIdentity(Map<String, dynamic> parameters) async {
+    final item = parameters['item'] as IdentityItem;
+    final namespace = parameters['namespace'] as String;
     try {
       return await Identity.removeIdentity(item, namespace);
     } catch (e) {
@@ -60,7 +62,8 @@ class AdobeAnalyticsIdentity {
     }
   }
 
-  Future<dynamic> updateIdentities(IdentityMap identities) async {
+  Future<dynamic> updateIdentities(Map<String, dynamic> parameters) async {
+    final identities = parameters['identities'] as IdentityMap;
     try {
       return await Identity.updateIdentities(identities);
     } catch (e) {

@@ -1,17 +1,17 @@
 import 'package:ensemble/framework/stub/adobe_manager.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter_aepassurance/flutter_aepassurance.dart';
-import 'package:flutter_aepedgeidentity/flutter_aepedgeidentity.dart';
 import 'core.dart';
 import 'edge.dart';
 import 'identity.dart';
 import 'consent.dart';
 import 'user_profile.dart';
+import 'assurance.dart';
 
 class AdobeAnalyticsImpl implements AdobeAnalyticsModule {
   static final AdobeAnalyticsImpl _instance = AdobeAnalyticsImpl._internal();
   late final AdobeAnalyticsCore _core;
   late final AdobeAnalyticsEdge _edge;
+  late final AdobeAnalyticsAssurance _assurance;
   late final AdobeAnalyticsIdentity _identity;
   late final AdobeAnalyticsConsent _consent;
   late final AdobeAnalyticsUserProfile _userProfile;
@@ -23,6 +23,7 @@ class AdobeAnalyticsImpl implements AdobeAnalyticsModule {
       try {
         _instance._core = AdobeAnalyticsCore(appId: appId);
         _instance._edge = AdobeAnalyticsEdge();
+        _instance._assurance = AdobeAnalyticsAssurance();
         _instance._identity = AdobeAnalyticsIdentity();
         _instance._consent = AdobeAnalyticsConsent();
         _instance._userProfile = AdobeAnalyticsUserProfile();
@@ -37,6 +38,7 @@ class AdobeAnalyticsImpl implements AdobeAnalyticsModule {
     try {
       _core = AdobeAnalyticsCore(appId: appId);
       _edge = AdobeAnalyticsEdge();
+      _assurance = AdobeAnalyticsAssurance();
       _identity = AdobeAnalyticsIdentity();
       _consent = AdobeAnalyticsConsent();
       _userProfile = AdobeAnalyticsUserProfile();
@@ -78,17 +80,8 @@ class AdobeAnalyticsImpl implements AdobeAnalyticsModule {
   // ASSURANCE
   // ==========================
 
-  Future<dynamic> setupAssurance(String url) async {
-    if (!checkInitialization()) {
-      throw StateError(
-          'Adobe Analytics: Not initialized. Call initialize() first.');
-    }
-    try {
-      await Assurance.startSession(url);
-    } catch (e) {
-      debugPrint('Error setting up Adobe Analytics Assurance: $e');
-      throw StateError('Error setting up Adobe Analytics Assurance: $e');
-    }
+  Future<void> setupAssurance(Map<String, dynamic> parameters) async {
+    return await _assurance.setupAssurance(parameters);
   }
 
   // ==========================
@@ -96,11 +89,11 @@ class AdobeAnalyticsImpl implements AdobeAnalyticsModule {
   // ==========================
 
   Future<dynamic> getExperienceCloudId() async {
-    return _identity.getExperienceCloudId();
+    return await _identity.getExperienceCloudId();
   }
 
   Future<dynamic> getIdentities() async {
-    return _identity.getIdentities();
+    return await _identity.getIdentities();
   }
 
   Future<dynamic> getUrlVariables() async {
@@ -108,22 +101,19 @@ class AdobeAnalyticsImpl implements AdobeAnalyticsModule {
   }
 
   Future<dynamic> removeIdentity(Map<String, dynamic> parameters) async {
-    final item = parameters['item'] as IdentityItem;
-    final namespace = parameters['namespace'] as String;
-    return _identity.removeIdentity(item, namespace);
+    return await _identity.removeIdentity(parameters);
   }
 
   Future<dynamic> resetIdentities() async {
-    return _identity.resetIdentities();
+    return await _identity.resetIdentities();
   }
 
   Future<dynamic> setAdvertisingIdentifier(String advertisingIdentifier) async {
-    return _identity.setAdvertisingIdentifier(advertisingIdentifier);
+    return await _identity.setAdvertisingIdentifier(advertisingIdentifier);
   }
 
   Future<dynamic> updateIdentities(Map<String, dynamic> parameters) async {
-    final identities = parameters['identities'] as IdentityMap;
-    return _identity.updateIdentities(identities);
+    return await _identity.updateIdentities(parameters);
   }
 
   // ==========================
@@ -131,15 +121,15 @@ class AdobeAnalyticsImpl implements AdobeAnalyticsModule {
   // ==========================
 
   Future<dynamic> getConsents() async {
-    return _consent.getConsents();
+    return await _consent.getConsents();
   }
 
   Future<void> updateConsent(bool allowed) async {
-    return _consent.updateConsent(allowed);
+    return await _consent.updateConsent(allowed);
   }
 
   Future<void> setDefaultConsent(bool allowed) async {
-    return _consent.setDefaultConsent(allowed);
+    return await _consent.setDefaultConsent(allowed);
   }
 
   // ==========================
@@ -149,7 +139,7 @@ class AdobeAnalyticsImpl implements AdobeAnalyticsModule {
   Future<String> getUserAttributes(Map<String, dynamic> parameters) async {
     final attributes =
         (parameters['attributes'] as List).map((e) => e.toString()).toList();
-    return _userProfile.getUserAttributes(attributes);
+    return await _userProfile.getUserAttributes(attributes);
   }
 
   Future<void> removeUserAttributes(Map<String, dynamic> parameters) async {
@@ -159,12 +149,12 @@ class AdobeAnalyticsImpl implements AdobeAnalyticsModule {
     }
     final attributes =
         (attributesList as List).map((e) => e.toString()).toList();
-    return _userProfile.removeUserAttributes(attributes);
+    return await _userProfile.removeUserAttributes(attributes);
   }
 
   Future<void> updateUserAttributes(Map<String, dynamic> parameters) async {
     final attributeMap =
         Map<String, Object>.from(parameters['attributeMap'] as Map);
-    return _userProfile.updateUserAttributes(attributeMap);
+    return await _userProfile.updateUserAttributes(attributeMap);
   }
 }

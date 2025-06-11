@@ -413,7 +413,7 @@ Future<dynamic> _handleAdobeOperations(
     case 'sendEvent':
       return await adobe.sendEvent(eventName!, parameters!);
     case 'setupAssurance':
-      return await adobe.setupAssurance(parameters!['url'].toString());
+      return await adobe.setupAssurance(parameters!);
     case 'getExperienceCloudId':
       return await adobe.getExperienceCloudId();
     case 'getIdentities':
