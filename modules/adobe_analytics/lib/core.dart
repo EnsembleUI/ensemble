@@ -20,12 +20,10 @@ class AdobeAnalyticsCore {
 
   Future<dynamic> initialize(String appId) async {
     try {
-      debugPrint('Initializing Adobe Analytics with appId: $appId');
       // Initialize the AEP Core SDK
       await MobileCore.setLogLevel(LogLevel.trace);
       await MobileCore.initializeWithAppId(appId: appId);
       _isAdobeAnalyticsInitialized = true;
-      print('Adobe Analytics initialized');
       return true;
     } catch (e) {
       debugPrint('Error initializing Adobe Analytics: $e');
@@ -39,17 +37,10 @@ class AdobeAnalyticsCore {
 
   Future<dynamic> trackAction(
       String name, Map<String, String>? parameters) async {
-    if (!checkInitialization()) {
-      throw StateError(
-          'Adobe Analytics: Not initialized. Call initialize() first.');
-    }
     try {
-      debugPrint(
-          'Tracking Adobe Analytics action: $name with parameters: $parameters');
       return await MobileCore.trackAction(name, data: parameters).timeout(
         Duration(seconds: 10),
         onTimeout: () {
-          debugPrint('MobileCore.trackAction timed out!');
           throw StateError('MobileCore.trackAction timed out!');
         },
       );
@@ -60,17 +51,10 @@ class AdobeAnalyticsCore {
 
   Future<dynamic> trackState(
       String name, Map<String, String>? parameters) async {
-    if (!checkInitialization()) {
-      throw StateError(
-          'Adobe Analytics: Not initialized. Call initialize() first.');
-    }
     try {
-      debugPrint(
-          'Tracking Adobe Analytics state: $name with parameters: $parameters');
       return await MobileCore.trackState(name, data: parameters).timeout(
         Duration(seconds: 10),
         onTimeout: () {
-          debugPrint('MobileCore.trackState timed out!');
           throw StateError('MobileCore.trackState timed out!');
         },
       );

@@ -1,19 +1,12 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_aepedge/flutter_aepedge.dart';
-import 'core.dart';
 
 class AdobeAnalyticsEdge {
   AdobeAnalyticsEdge();
 
   Future<dynamic> sendEvent(
       String name, Map<String, dynamic>? parameters) async {
-    if (!AdobeAnalyticsCore.checkInitialization()) {
-      throw StateError(
-          'Adobe Analytics: Not initialized. Call initialize() first.');
-    }
     try {
-      debugPrint(
-          'Sending Adobe Analytics event: $name with parameters: $parameters');
       late List<EventHandle> result;
       if (parameters == null) {
         throw StateError('Parameters are required for sendEvent');
@@ -47,7 +40,6 @@ class AdobeAnalyticsEdge {
       result = await Edge.sendEvent(experienceEvent).timeout(
         Duration(seconds: 10),
         onTimeout: () {
-          debugPrint('Edge.sendEvent timed out!');
           throw StateError('Edge.sendEvent timed out!');
         },
       );
