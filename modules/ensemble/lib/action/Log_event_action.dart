@@ -115,14 +115,6 @@ class LogEvent extends ensembleAction.EnsembleAction {
         if (eventName == null) {
           throw LanguageError('sendEvent requires event name');
         }
-      } else if (operation == 'trackPurchase') {
-        if (eventName == null) {
-          throw LanguageError('trackPurchase requires event name');
-        }
-      } else if (operation == 'trackProductView') {
-        if (eventName == null) {
-          throw LanguageError('trackProductView requires event name');
-        }
       }
     }
 
