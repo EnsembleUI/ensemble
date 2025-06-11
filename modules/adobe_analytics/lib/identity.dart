@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_aepcore/flutter_aepcore.dart';
 import 'package:flutter_aepedgeidentity/flutter_aepedgeidentity.dart';
+import 'dart:async';
 
 class AdobeAnalyticsIdentity {
   AdobeAnalyticsIdentity();
@@ -33,19 +34,52 @@ class AdobeAnalyticsIdentity {
   }
 
   Future<dynamic> removeIdentity(Map<String, dynamic> parameters) async {
-    final item = parameters['item'] as IdentityItem;
+    final itemMap = parameters['item'] as Map<String, dynamic>;
     final namespace = parameters['namespace'] as String;
+
     try {
-      return await Identity.removeIdentity(item, namespace);
+      AuthenticatedState authState;
+      switch (itemMap['authenticatedState'] as String) {
+        case 'authenticated':
+          authState = AuthenticatedState.AUTHENTICATED;
+          break;
+        case 'ambiguous':
+          authState = AuthenticatedState.AMBIGUOUS;
+          break;
+        case 'loggedOut':
+          authState = AuthenticatedState.LOGGED_OUT;
+          break;
+        default:
+          authState = AuthenticatedState.AMBIGUOUS;
+      }
+
+      final item = IdentityItem(
+        itemMap['id'] as String,
+        authState,
+        itemMap['primary'] as bool? ?? false,
+      );
+      // Perform the removal with a timeout
+      try {
+        final removeFuture = Identity.removeIdentity(item, namespace);
+        final timeoutFuture = Future.delayed(Duration(seconds: 1));
+        await Future.any([removeFuture, timeoutFuture]);
+        final afterRemovalIdentities = await Identity.identities;
+        return afterRemovalIdentities;
+      } catch (e) {
+        print('Error during identity removal: $e');
+        throw StateError('Failed to remove identity: $e');
+      }
     } catch (e) {
-      debugPrint('Error removing Adobe Analytics Identity: $e');
-      throw StateError('Error removing Adobe Analytics Identity: $e');
+      print('Error in removeIdentity: $e');
+      debugPrint('Error in identity removal process: $e');
+      throw StateError('Error in identity removal process: $e');
     }
   }
 
   Future<dynamic> resetIdentities() async {
     try {
-      return await MobileCore.resetIdentities();
+      await MobileCore.resetIdentities();
+      return await Identity.identities;
     } catch (e) {
       debugPrint('Error resetting Adobe Analytics Identity: $e');
       throw StateError('Error resetting Adobe Analytics Identity: $e');
@@ -63,9 +97,56 @@ class AdobeAnalyticsIdentity {
   }
 
   Future<dynamic> updateIdentities(Map<String, dynamic> parameters) async {
-    final identities = parameters['identities'] as IdentityMap;
     try {
-      return await Identity.updateIdentities(identities);
+      final identitiesMap = parameters['identities'] as Map<String, dynamic>;
+      final identityMap = IdentityMap();
+
+      // Process each namespace in the identities map
+      identitiesMap.forEach((namespace, items) {
+        if (items is List) {
+          for (var item in items) {
+            if (item is Map<String, dynamic>) {
+              AuthenticatedState authState;
+              switch (item['authenticatedState'] as String) {
+                case 'authenticated':
+                  authState = AuthenticatedState.AUTHENTICATED;
+                  break;
+                case 'ambiguous':
+                  authState = AuthenticatedState.AMBIGUOUS;
+                  break;
+                case 'loggedOut':
+                  authState = AuthenticatedState.LOGGED_OUT;
+                  break;
+                default:
+                  authState = AuthenticatedState.AMBIGUOUS;
+              }
+
+              final identityItem = IdentityItem(
+                item['id'] as String,
+                authState,
+                item['primary'] as bool? ?? false,
+              );
+              try {
+                identityMap.addItem(identityItem, namespace);
+              } catch (e) {
+                throw StateError('Failed to add identity item: $e');
+              }
+            }
+          }
+        }
+      });
+      // Perform the update with a workaround for the hanging issue
+      try {
+        final updateFuture = Identity.updateIdentities(identityMap);
+        final timeoutFuture = Future.delayed(Duration(seconds: 1));
+        await Future.any([updateFuture, timeoutFuture]);
+        final afterUpdateIdentities = await Identity.identities;
+
+        return afterUpdateIdentities;
+      } catch (e) {
+        print('Error during identity update: $e');
+        throw StateError('Failed to update identities: $e');
+      }
     } catch (e) {
       debugPrint('Error updating Adobe Analytics Identities: $e');
       throw StateError('Error updating Adobe Analytics Identities: $e');
