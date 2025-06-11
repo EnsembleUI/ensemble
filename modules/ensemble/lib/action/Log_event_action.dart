@@ -435,6 +435,12 @@ Future<dynamic> _handleAdobeOperations(
       return await adobe.updateConsent(parameters!['allowed']);
     case 'setDefaultConsent':
       return await adobe.setDefaultConsent(parameters!['allowed']);
+    case 'getUserAttributes':
+      return await adobe.getUserAttributes(parameters!);
+    case 'removeUserAttributes':
+      return await adobe.removeUserAttributes(parameters!);
+    case 'updateUserAttributes':
+      return await adobe.updateUserAttributes(parameters!);
     default:
       throw LanguageError('Invalid operation: $operation');
   }

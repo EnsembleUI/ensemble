@@ -6,6 +6,7 @@ import 'core.dart';
 import 'edge.dart';
 import 'identity.dart';
 import 'consent.dart';
+import 'user_profile.dart';
 
 class AdobeAnalyticsImpl implements AdobeAnalyticsModule {
   static final AdobeAnalyticsImpl _instance = AdobeAnalyticsImpl._internal();
@@ -13,6 +14,7 @@ class AdobeAnalyticsImpl implements AdobeAnalyticsModule {
   late final AdobeAnalyticsEdge _edge;
   late final AdobeAnalyticsIdentity _identity;
   late final AdobeAnalyticsConsent _consent;
+  late final AdobeAnalyticsUserProfile _userProfile;
 
   AdobeAnalyticsImpl._internal();
 
@@ -23,6 +25,7 @@ class AdobeAnalyticsImpl implements AdobeAnalyticsModule {
         _instance._edge = AdobeAnalyticsEdge();
         _instance._identity = AdobeAnalyticsIdentity();
         _instance._consent = AdobeAnalyticsConsent();
+        _instance._userProfile = AdobeAnalyticsUserProfile();
       } catch (e) {
         debugPrint('Error initializing Adobe Analytics: $e');
       }
@@ -36,6 +39,7 @@ class AdobeAnalyticsImpl implements AdobeAnalyticsModule {
       _edge = AdobeAnalyticsEdge();
       _identity = AdobeAnalyticsIdentity();
       _consent = AdobeAnalyticsConsent();
+      _userProfile = AdobeAnalyticsUserProfile();
       return true;
     } catch (e) {
       debugPrint('Error initializing Adobe Analytics: $e');
@@ -136,5 +140,31 @@ class AdobeAnalyticsImpl implements AdobeAnalyticsModule {
 
   Future<void> setDefaultConsent(bool allowed) async {
     return _consent.setDefaultConsent(allowed);
+  }
+
+  // ==========================
+  // USER PROFILE
+  // ==========================
+
+  Future<String> getUserAttributes(Map<String, dynamic> parameters) async {
+    final attributes =
+        (parameters['attributes'] as List).map((e) => e.toString()).toList();
+    return _userProfile.getUserAttributes(attributes);
+  }
+
+  Future<void> removeUserAttributes(Map<String, dynamic> parameters) async {
+    final attributesList = parameters['attributes'];
+    if (attributesList == null) {
+      throw ArgumentError('attributes parameter cannot be null');
+    }
+    final attributes =
+        (attributesList as List).map((e) => e.toString()).toList();
+    return _userProfile.removeUserAttributes(attributes);
+  }
+
+  Future<void> updateUserAttributes(Map<String, dynamic> parameters) async {
+    final attributeMap =
+        Map<String, Object>.from(parameters['attributeMap'] as Map);
+    return _userProfile.updateUserAttributes(attributeMap);
   }
 }

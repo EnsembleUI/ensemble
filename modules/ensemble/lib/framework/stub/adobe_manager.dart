@@ -25,6 +25,11 @@ abstract class AdobeAnalyticsModule {
   Future<dynamic> getConsents();
   Future<void> updateConsent(bool allowed);
   Future<void> setDefaultConsent(bool allowed);
+
+  // USER PROFILE
+  Future<String> getUserAttributes(Map<String, dynamic> parameters);
+  Future<void> removeUserAttributes(Map<String, dynamic> parameters);
+  Future<void> updateUserAttributes(Map<String, dynamic> parameters);
 }
 
 class AdobeAnalyticsModuleStub implements AdobeAnalyticsModule {
@@ -106,6 +111,21 @@ class AdobeAnalyticsModuleStub implements AdobeAnalyticsModule {
 
   @override
   Future<void> setDefaultConsent(bool allowed) async {
+    throw ConfigError(_errorMsg);
+  }
+
+  @override
+  Future<String> getUserAttributes(Map<String, dynamic> parameters) async {
+    throw ConfigError(_errorMsg);
+  }
+
+  @override
+  Future<void> removeUserAttributes(Map<String, dynamic> parameters) async {
+    throw ConfigError(_errorMsg);
+  }
+
+  @override
+  Future<void> updateUserAttributes(Map<String, dynamic> parameters) async {
     throw ConfigError(_errorMsg);
   }
 }

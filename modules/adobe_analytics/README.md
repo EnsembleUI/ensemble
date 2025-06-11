@@ -31,8 +31,6 @@ The module provides a singleton instance of Adobe Analytics that can be accessed
 1. trackAction - For user interactions (button clicks, form submissions, etc.)
 2. trackState - For page/screen views and navigation tracking
 3. sendEvent - For Experience Platform events with XDM schema format
-4. trackPurchase - For tracking product purchases
-5. trackProductView - For tracking product views
 
 ### Examples
 
