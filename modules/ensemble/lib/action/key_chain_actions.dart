@@ -1,4 +1,3 @@
-
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/error_handling.dart';
@@ -40,11 +39,12 @@ class SaveKeychain extends EnsembleAction {
       {DataContext? dataContext}) async {
     String? storageKey =
         Utils.optionalString(scopeManager.dataContext.eval(key));
+    dynamic evaluatedValue = scopeManager.dataContext.eval(value);
     String? errorReason;
 
     if (storageKey != null) {
       try {
-        final datas = {'key': key, 'value': value};
+        final datas = {'key': storageKey, 'value': evaluatedValue};
         await KeychainManager().saveToKeychain(datas);
         // dispatch onComplete
         if (onComplete != null) {
@@ -155,7 +155,7 @@ class ClearKeychain extends EnsembleAction {
 
     if (storageKey != null) {
       try {
-        final datas = {'key': key};
+        final datas = {'key': storageKey};
         await KeychainManager().clearKeychain(datas);
         // dispatch onComplete
         if (onComplete != null) {
