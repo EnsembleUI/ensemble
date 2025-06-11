@@ -161,7 +161,9 @@ class _ListViewCoreState extends State<ListViewCore> {
     // given the nestedScroll property is set to true and View is Scrollable
     // Note that we are not using jumpTo to avoid jerky movement of external
     // Scroll instead we are using animateTo which is smoother than jumpTo
-    if (externalScrollController != null && widget.nestedScroll) {
+    if (externalScrollController != null &&
+        widget.nestedScroll &&
+        widget.shrinkWrap) {
       final currentOffset = _scrollController.position.pixels;
 
       externalScrollController!.animateTo(
