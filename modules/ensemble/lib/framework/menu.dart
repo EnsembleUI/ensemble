@@ -39,8 +39,19 @@ abstract class Menu extends Object with HasStyles, Invokable {
   static Menu fromYaml(
       dynamic menu, Map<String, dynamic>? customViewDefinitions) {
     if (menu is YamlMap) {
-      MenuDisplay? menuType = MenuDisplay.values.from(menu.keys.first);
-      YamlMap payload = menu[menu.keys.first];
+      String menuTypeKey;
+      List<String> keys = menu.keys.cast<String>().toList();
+      // Can't change YamlMap which is unmodifiable
+      // Using second key if onViewGroupResume is given
+      // for future if add more methods or actions
+      // need to make map unmodifiable
+      if (menu.containsKey('onViewGroupResume')) {
+        menuTypeKey = keys[1];
+      } else {
+        menuTypeKey = keys[0];
+      }
+      MenuDisplay? menuType = MenuDisplay.values.from(menuTypeKey);
+      YamlMap payload = menu[menuTypeKey];
       WidgetModel? customIconModel;
       WidgetModel? customActiveIconModel;
       //   EnsembleThemeManager().currentTheme()?.getWidgetTypeStyles(widgetType),

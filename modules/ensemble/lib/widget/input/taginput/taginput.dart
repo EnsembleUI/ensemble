@@ -36,6 +36,9 @@ class TagInput extends BaseTextInput {
         }
         _controller.taggerControllerValue = Utils.optionalString(newValue)!;
       },
+      'isOverlayVisible': (newValue) {
+        _controller.isOverlayVisible = Utils.getBool(newValue, fallback: false);
+      },
       'inputType': (type) => _controller.inputType = Utils.optionalString(type),
       'mask': (type) => _controller.mask = Utils.optionalString(type),
       'onDelayedKeyPress': (function) => _controller.onDelayedKeyPress =
@@ -76,6 +79,9 @@ abstract class BaseTextInput extends StatefulWidget
       'value': () => _controller.taggerController.formattedText ?? '',
       'currentTriggerChar': () => _controller
           .currentTriggerChar, // Getter for current trigger character
+      'text': ()=> _controller.taggerController.text ?? '',
+      'tags': ()=> _controller.getTags() ?? '',
+      'isOverlayVisible': () => _controller.isOverlayVisible,
     });
     return getters;
   }
@@ -90,22 +96,16 @@ abstract class BaseTextInput extends StatefulWidget
     // Add TagInput specific setters
     setters.addAll({
       'triggers': (items) => buildTagTriggers(items),
-      'initialTag': (tag) {
-        if (tag is Map) {
-          Map<String, String> newTag = {
-            'id': tag['id']?.toString() ?? '',
-            'label': tag['label']?.toString() ?? '',
-            'key': tag['key']?.toString() ?? '',
-          };
-          _controller.initialTag = newTag;
-        } else if (tag == null) {
-          _controller.initialTag = null;
-        }
-      },
       'maxOverlayHeight': (value) =>
           _controller.maxOverlayHeight = Utils.optionalDouble(value),
+      'dismissOnTapOutside': (value) =>
+          _controller.dismissOnTapOutside = Utils.optionalBool(value),
       'minOverlayHeight': (value) =>
           _controller.minOverlayHeight = Utils.optionalDouble(value),
+      'overlayWidth': (value) =>
+          _controller.overlayWidth = Utils.optionalDouble(value),
+      'overlayPadding': (value) =>
+          _controller.overlayPadding = Utils.getInsets(value),
       'tagStyle': (style) => _controller.tagStyle = Utils.getTextStyle(style),
       'tagSelectionStyle': (style) =>
           _controller.tagSelectionStyle = Utils.getTextStyle(style),
@@ -124,22 +124,55 @@ abstract class BaseTextInput extends StatefulWidget
     return {
       'focus': () => _controller.inputFieldAction?.focusInputField(),
       'unfocus': () => _controller.inputFieldAction?.unfocusInputField(),
+      'clear': () => _controller.taggerController.clear(),
+      'initialTag': (tag) {
+        if (tag is Map) {
+          Map<String, String> newTag = {
+            'id': tag['id']?.toString() ?? '',
+            'label': tag['label']?.toString() ?? '',
+            'key': tag['key']?.toString() ?? '',
+          };
+          _controller.initialTag = newTag;
+          _controller.applyInitialTag();
+        } else if (tag == null) {
+          _controller.initialTag = null;
+        }
+      },
     };
   }
 
-  Map<String, TextStyle?> buildTagTriggers(List<dynamic>? triggers) {
-    Map<String, TextStyle?> results = {};
+  List<Trigger> buildTagTriggers(List<dynamic>? triggers) {
+    List<Trigger> results = [];
 
     if (triggers != null && triggers.isNotEmpty) {
       for (var item in triggers) {
         if (item is Map) {
           String? character = item['character']?.toString();
+          var data = item['data'];
+
+          TextStyle? style;
+          if (item['tagStyle'] is Map) {
+            style = Utils.getTextStyle(item['tagStyle']);
+          } else {
+            style = const TextStyle(color: Colors.blue);
+          }
+
           if (character != null) {
-            // Parse the tagStyle map to create TextStyle
-            if (item['tagStyle'] is Map) {
-              results[character] = Utils.getTextStyle(item['tagStyle']);
+            if(data != null && data != ""){
+              results.add(
+                Trigger(
+                  character: character,
+                  textStyle: style,
+                  data: data,
+                ),
+              );
             } else {
-              results[character] = const TextStyle(color: Colors.blue);
+              results.add(
+                Trigger(
+                  character: character,
+                  textStyle: style,
+                ),
+              );
             }
           }
         }
@@ -148,7 +181,9 @@ abstract class BaseTextInput extends StatefulWidget
 
     // If no triggers were defined, add a default @ trigger
     if (results.isEmpty) {
-      results['@'] = const TextStyle(color: Colors.blue);
+      results = [
+        Trigger(character: '@',textStyle: const TextStyle(color: Colors.blue))
+      ];
     }
 
     _controller.triggers = results;
@@ -181,15 +216,21 @@ class TagInputController extends BaseInputController {
   bool _initialTagApplied = false;
   bool _applyingInitialTag = false;
   Map<String, String>? _initialTag;
-
+  bool _isOverlayVisible = false;
+  bool get isOverlayVisible => _isOverlayVisible;
   // Configurable properties
-  Map<String, TextStyle?> triggers = {'@': const TextStyle(color: Colors.blue)};
+  List<Trigger> triggers = [
+    Trigger(character: '@',textStyle: const TextStyle(color: Colors.blue))
+  ];
   LabelValueItemTemplate? itemTemplate;
   TextStyle? mentionStyle;
   EnsembleAction? onSearch;
+  bool? dismissOnTapOutside;
   BoxDecoration? overlayStyle;
   double? maxOverlayHeight;
   double? minOverlayHeight;
+  double? overlayWidth;
+  EdgeInsets? overlayPadding;
   TextStyle? tagStyle;
   TextStyle? tagSelectionStyle;
 
@@ -203,14 +244,13 @@ class TagInputController extends BaseInputController {
       _taggerController!.text = value;
     }
   }
-
+  set isOverlayVisible(bool value) {
+    _isOverlayVisible = value;
+  }
   Map<String, String>? get initialTag => _initialTag;
   set initialTag(Map<String, String>? value) {
     if (_initialTag != value) {
       _initialTag = value;
-      if (_taggerController != null) {
-        applyInitialTag();
-      }
     }
   }
 
@@ -238,7 +278,18 @@ class TagInputController extends BaseInputController {
       }
     }
   }
-
+  // get Applied Tags
+  List<Map<String, dynamic>> getTags() {
+    if (_taggerController?.tags == null) {
+      return [];
+    }
+    // Convert Tag objects to simple maps
+    return _taggerController!.tags.map((tag) => {
+      'id': tag.id,
+      'text': tag.text,
+      'triggerCharacter': tag.triggerCharacter
+    }).toList();
+  }
   // Apply Initial Tag
   void applyInitialTag() {
     if (initialTag == null) return;
@@ -246,38 +297,38 @@ class TagInputController extends BaseInputController {
     _initialTagApplied = false;
     _applyingInitialTag = true;
 
-    Future.delayed(const Duration(milliseconds: 100), () {
-      if (initialTag == null) return;
-      if (_initialTagApplied) return;
+    if (initialTag == null) return;
+    if (_initialTagApplied) return;
 
-      final tag = initialTag!;
-      final triggerChar = triggers.keys.first;
+    final tag = initialTag!;
+    final triggerChar = triggers.first.character;
 
-      _initialTagApplied = true;
+    _initialTagApplied = true;
 
-      if (tag.containsKey('id') &&
-          (tag.containsKey('key') || tag.containsKey('label'))) {
-        String displayText = tag['label'] ?? tag['key'] ?? '';
+    if (tag.containsKey('id') &&
+        (tag.containsKey('key') || tag.containsKey('label'))) {
+      String displayText = tag['label'] ?? tag['key'] ?? '';
 
-        taggerController.clear();
-        taggerController.text = triggerChar;
+      taggerController.clear();
+      taggerController.isInitialTag = true;
+      taggerController.text = triggerChar;
+      taggerController.selection =
+          TextSelection.collapsed(offset: taggerController.text.length);
+
+      taggerController.addTag(id: tag['id']!, name: '$displayText');
+
+      final text = taggerController.text;
+      if (!text.endsWith(' ')) {
+        taggerController.text = '$text ';
         taggerController.selection =
             TextSelection.collapsed(offset: taggerController.text.length);
-
-        taggerController.addTag(id: tag['id']!, name: displayText);
-        taggerController.dismissOverlay();
-
-        final text = taggerController.text;
-        if (!text.endsWith(' ')) {
-          taggerController.text = '$text ';
-          taggerController.selection =
-              TextSelection.collapsed(offset: taggerController.text.length);
-        }
-
-        _taggerControllerValue = taggerController.text;
-        _applyingInitialTag = false;
       }
-    });
+
+      _taggerControllerValue = taggerController.text;
+      _applyingInitialTag = false;
+      taggerController.isInitialTag = false;
+    }
+
   }
 
   @override
@@ -304,7 +355,6 @@ class TagInputState extends FormFieldWidgetState<BaseTextInput>
   // For change tracking
   String previousText = '';
   bool didItChange = false;
-  bool _isOverlayVisible = false;
   bool _initialized = false;
 
   // Initialize these fields immediately
@@ -327,9 +377,10 @@ class TagInputState extends FormFieldWidgetState<BaseTextInput>
   }
 
   void removeOverlayAndUnfocus() {
-    if (!_isOverlayVisible) {
+    if (!widget.controller.isOverlayVisible) {
       _taggerController.dismissOverlay();
-      FocusManager.instance.primaryFocus?.unfocus();
+      if (widget.controller.dismissOnTapOutside == true)
+        FocusManager.instance.primaryFocus?.unfocus();
     }
   }
 
@@ -403,6 +454,10 @@ class TagInputState extends FormFieldWidgetState<BaseTextInput>
         if (mounted) {
           setState(() {
             dataList = data;
+            if(dataList!.length == 0){
+              widget.controller.isOverlayVisible = false;
+              widget.setProperty('isOverlayVisible', widget.controller.isOverlayVisible);
+            }
           });
         }
       });
@@ -423,6 +478,7 @@ class TagInputState extends FormFieldWidgetState<BaseTextInput>
   void didUpdateWidget(covariant BaseTextInput oldWidget) {
     super.didUpdateWidget(oldWidget);
     widget.controller.inputFieldAction = this;
+    widget._controller._taggerController = oldWidget._controller._taggerController;
 
     // Making sure to move cursor to end when widget rebuild
     if (focusNode.hasFocus) {
@@ -536,7 +592,7 @@ class TagInputState extends FormFieldWidgetState<BaseTextInput>
             return "$triggerCharacter$id";
           },
           onSearch: (query, triggerCharacter) async {
-            _isOverlayVisible = true;
+            widget.controller.isOverlayVisible = true;
             if (widget._controller.onSearch != null) {
               ScreenController().executeAction(
                 context,
@@ -554,22 +610,26 @@ class TagInputState extends FormFieldWidgetState<BaseTextInput>
             });
           },
           triggerCharacterAndStyles: {
-            for (var entry in widget._controller.triggers.entries)
-              entry.key: entry.value ?? const TextStyle(color: Colors.blue),
+            for (var entry in widget._controller.triggers)
+              entry.character:
+              entry.textStyle ?? const TextStyle(color: Colors.blue),
           },
           triggerStrategy: widget._controller._applyingInitialTag
               ? TriggerStrategy.deferred
               : TriggerStrategy.eager,
           overlayHeight: _calculatedOverlayHeight,
-          overlay: Material(
+          overlayWidth: widget._controller.overlayWidth ?? MediaQuery.sizeOf(context).width,
+          padding: widget._controller.overlayPadding ?? EdgeInsets.zero,
+          overlay: widget.controller.isOverlayVisible ?
+          Material(
               child: SlideTransition(
-            position: _animation!,
-            child: Container(
-              decoration: widget._controller.overlayStyle,
-              child: buildItems(
-                  widget.controller.itemTemplate, dataList, tagQuery),
-            ),
-          )),
+                position: _animation!,
+                child: Container(
+                  decoration: widget._controller.overlayStyle,
+                  child: buildItems(
+                      widget.controller.itemTemplate, dataList, tagQuery),
+                ),
+              )): Container(),
           builder: (context, containerKey) {
             // Use the helper to create a TextFormField with common configuration
             return InputFieldHelper.createTextFormField(
@@ -595,9 +655,9 @@ class TagInputState extends FormFieldWidgetState<BaseTextInput>
               selectable: widget._controller.selectable,
               onChanged: (String txt) {
                 if (isLastWordATag(txt)) {
-                  _isOverlayVisible = true;
+                  widget.controller.isOverlayVisible = true;
                 } else {
-                  _isOverlayVisible = false;
+                  widget.controller.isOverlayVisible = false;
                 }
                 if (txt != previousText) {
                   previousText = txt;
@@ -618,6 +678,7 @@ class TagInputState extends FormFieldWidgetState<BaseTextInput>
                         getKeyPressDebouncer());
                   }
                 }
+                widget.setProperty("isOverlayVisible", widget.controller.isOverlayVisible);
                 setState(() {});
               },
               onFieldSubmitted: (value) {
@@ -653,10 +714,10 @@ class TagInputState extends FormFieldWidgetState<BaseTextInput>
       final lastWord = words.last;
 
       // Check each trigger character
-      for (String trigger in widget._controller.triggers.keys) {
-        if (lastWord.startsWith(trigger)) {
+      for (Trigger trigger in widget._controller.triggers) {
+        if (lastWord.startsWith(trigger.character)) {
           // Update the current trigger character when found
-          widget._controller._currentTriggerChar = trigger;
+          widget._controller._currentTriggerChar = trigger.character;
           return true; // It is a tag
         }
       }
@@ -687,11 +748,11 @@ class TagInputState extends FormFieldWidgetState<BaseTextInput>
     List? filteredDataList;
     if (currentTriggerType != null && dataList != null) {
       // Look for a group with matching triggerType
-      for (var group in dataList) {
-        if (group is Map &&
-            group['triggerType'] == currentTriggerType &&
-            group['data'] is List) {
-          filteredDataList = group['data'];
+      for (Trigger trigger in widget._controller.triggers) {
+        if (widget._controller._triggerTypeMap[trigger.character] ==
+            currentTriggerType &&
+            trigger.data != null) {
+          filteredDataList = trigger.data;
           break;
         }
       }
@@ -746,7 +807,8 @@ class TagInputState extends FormFieldWidgetState<BaseTextInput>
                   name: label,
                 );
                 // Change the overlay visibility flag to false to allow the focus of TextInput to be dismissed
-                _isOverlayVisible = false;
+                widget.controller.isOverlayVisible = false;
+                widget.setProperty('isOverlayVisible', widget.controller.isOverlayVisible);
               },
             ));
           }
@@ -793,4 +855,12 @@ class TagInputState extends FormFieldWidgetState<BaseTextInput>
       focusNode.unfocus();
     }
   }
+}
+
+class Trigger {
+  String character;
+  TextStyle? textStyle;
+  List? data;
+
+  Trigger({required this.character, this.textStyle, this.data});
 }
