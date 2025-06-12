@@ -129,6 +129,13 @@ dependencies:
   #     ref: main
   #     path: modules/ensemble_network_info
 
+  # Uncomment to enable Adobe Analytics
+  # ensemble_adobe_analytics:
+  #   git:
+  #     url: https://github.com/EnsembleUI/ensemble.git
+  #     ref: main
+  #     path: modules/adobe_analytics
+
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.2
