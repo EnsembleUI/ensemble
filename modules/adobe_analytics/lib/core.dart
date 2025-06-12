@@ -5,15 +5,11 @@ class AdobeAnalyticsCore {
   static final AdobeAnalyticsCore _instance = AdobeAnalyticsCore._internal();
   AdobeAnalyticsCore._internal();
 
-  static bool _isAdobeAnalyticsInitialized = false;
-
   factory AdobeAnalyticsCore({required String appId}) {
-    if (!AdobeAnalyticsCore._isAdobeAnalyticsInitialized) {
-      try {
-        _instance.initialize(appId);
-      } catch (e) {
-        debugPrint('Error initializing Adobe Analytics: $e');
-      }
+    try {
+      _instance.initialize(appId);
+    } catch (e) {
+      debugPrint('Error initializing Adobe Analytics: $e');
     }
     return _instance;
   }
@@ -25,16 +21,11 @@ class AdobeAnalyticsCore {
       // Initialize the AEP Core SDK
       await MobileCore.setLogLevel(LogLevel.trace);
       await MobileCore.initializeWithAppId(appId: appId);
-      _isAdobeAnalyticsInitialized = true;
       return true;
     } catch (e) {
       debugPrint('Error initializing Adobe Analytics: $e');
       throw StateError('Error initializing Adobe Analytics: $e');
     }
-  }
-
-  static bool checkInitialization() {
-    return _isAdobeAnalyticsInitialized;
   }
 
   // Track event actions that occur in your application.

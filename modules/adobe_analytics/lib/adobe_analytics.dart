@@ -19,17 +19,15 @@ class AdobeAnalyticsImpl implements AdobeAnalyticsModule {
   AdobeAnalyticsImpl._internal();
 
   factory AdobeAnalyticsImpl({required String appId}) {
-    if (!AdobeAnalyticsCore.checkInitialization()) {
-      try {
-        _instance._core = AdobeAnalyticsCore(appId: appId);
-        _instance._edge = AdobeAnalyticsEdge();
-        _instance._assurance = AdobeAnalyticsAssurance();
-        _instance._identity = AdobeAnalyticsIdentity();
-        _instance._consent = AdobeAnalyticsConsent();
-        _instance._userProfile = AdobeAnalyticsUserProfile();
-      } catch (e) {
-        debugPrint('Error initializing Adobe Analytics: $e');
-      }
+    try {
+      _instance._core = AdobeAnalyticsCore(appId: appId);
+      _instance._edge = AdobeAnalyticsEdge();
+      _instance._assurance = AdobeAnalyticsAssurance();
+      _instance._identity = AdobeAnalyticsIdentity();
+      _instance._consent = AdobeAnalyticsConsent();
+      _instance._userProfile = AdobeAnalyticsUserProfile();
+    } catch (e) {
+      debugPrint('Error initializing Adobe Analytics: $e');
     }
     return _instance;
   }
@@ -49,29 +47,17 @@ class AdobeAnalyticsImpl implements AdobeAnalyticsModule {
     }
   }
 
-  static bool checkInitialization() {
-    return AdobeAnalyticsCore.checkInitialization();
-  }
-
   // ==========================
   // CORE
   // ==========================
 
   Future<dynamic> trackAction(
       String name, Map<String, String>? parameters) async {
-    if (!checkInitialization()) {
-      throw StateError(
-          'Adobe Analytics: Not initialized. Call initialize() first.');
-    }
     return _core.trackAction(name, parameters);
   }
 
   Future<dynamic> trackState(
       String name, Map<String, String>? parameters) async {
-    if (!checkInitialization()) {
-      throw StateError(
-          'Adobe Analytics: Not initialized. Call initialize() first.');
-    }
     return _core.trackState(name, parameters);
   }
 
@@ -81,10 +67,6 @@ class AdobeAnalyticsImpl implements AdobeAnalyticsModule {
 
   Future<dynamic> sendEvent(
       String name, Map<String, dynamic>? parameters) async {
-    if (!checkInitialization()) {
-      throw StateError(
-          'Adobe Analytics: Not initialized. Call initialize() first.');
-    }
     return _edge.sendEvent(name, parameters);
   }
 
@@ -93,10 +75,6 @@ class AdobeAnalyticsImpl implements AdobeAnalyticsModule {
   // ==========================
 
   Future<void> setupAssurance(Map<String, dynamic> parameters) async {
-    if (!checkInitialization()) {
-      throw StateError(
-          'Adobe Analytics: Not initialized. Call initialize() first.');
-    }
     return await _assurance.setupAssurance(parameters);
   }
 
@@ -105,58 +83,30 @@ class AdobeAnalyticsImpl implements AdobeAnalyticsModule {
   // ==========================
 
   Future<dynamic> getExperienceCloudId() async {
-    if (!checkInitialization()) {
-      throw StateError(
-          'Adobe Analytics: Not initialized. Call initialize() first.');
-    }
     return await _identity.getExperienceCloudId();
   }
 
   Future<dynamic> getIdentities() async {
-    if (!checkInitialization()) {
-      throw StateError(
-          'Adobe Analytics: Not initialized. Call initialize() first.');
-    }
     return await _identity.getIdentities();
   }
 
   Future<dynamic> getUrlVariables() async {
-    if (!checkInitialization()) {
-      throw StateError(
-          'Adobe Analytics: Not initialized. Call initialize() first.');
-    }
     return _identity.getUrlVariables();
   }
 
   Future<dynamic> removeIdentity(Map<String, dynamic> parameters) async {
-    if (!checkInitialization()) {
-      throw StateError(
-          'Adobe Analytics: Not initialized. Call initialize() first.');
-    }
     return await _identity.removeIdentity(parameters);
   }
 
   Future<dynamic> resetIdentities() async {
-    if (!checkInitialization()) {
-      throw StateError(
-          'Adobe Analytics: Not initialized. Call initialize() first.');
-    }
     return await _identity.resetIdentities();
   }
 
   Future<dynamic> setAdvertisingIdentifier(String advertisingIdentifier) async {
-    if (!checkInitialization()) {
-      throw StateError(
-          'Adobe Analytics: Not initialized. Call initialize() first.');
-    }
     return await _identity.setAdvertisingIdentifier(advertisingIdentifier);
   }
 
   Future<dynamic> updateIdentities(Map<String, dynamic> parameters) async {
-    if (!checkInitialization()) {
-      throw StateError(
-          'Adobe Analytics: Not initialized. Call initialize() first.');
-    }
     return await _identity.updateIdentities(parameters);
   }
 
@@ -165,26 +115,14 @@ class AdobeAnalyticsImpl implements AdobeAnalyticsModule {
   // ==========================
 
   Future<dynamic> getConsents() async {
-    if (!checkInitialization()) {
-      throw StateError(
-          'Adobe Analytics: Not initialized. Call initialize() first.');
-    }
     return await _consent.getConsents();
   }
 
   Future<void> updateConsent(bool allowed) async {
-    if (!checkInitialization()) {
-      throw StateError(
-          'Adobe Analytics: Not initialized. Call initialize() first.');
-    }
     return await _consent.updateConsent(allowed);
   }
 
   Future<void> setDefaultConsent(bool allowed) async {
-    if (!checkInitialization()) {
-      throw StateError(
-          'Adobe Analytics: Not initialized. Call initialize() first.');
-    }
     return await _consent.setDefaultConsent(allowed);
   }
 
@@ -193,20 +131,12 @@ class AdobeAnalyticsImpl implements AdobeAnalyticsModule {
   // ==========================
 
   Future<String> getUserAttributes(Map<String, dynamic> parameters) async {
-    if (!checkInitialization()) {
-      throw StateError(
-          'Adobe Analytics: Not initialized. Call initialize() first.');
-    }
     final attributes =
         (parameters['attributes'] as List).map((e) => e.toString()).toList();
     return await _userProfile.getUserAttributes(attributes);
   }
 
   Future<void> removeUserAttributes(Map<String, dynamic> parameters) async {
-    if (!checkInitialization()) {
-      throw StateError(
-          'Adobe Analytics: Not initialized. Call initialize() first.');
-    }
     final attributesList = parameters['attributes'];
     if (attributesList == null) {
       throw ArgumentError('attributes parameter cannot be null');
@@ -217,10 +147,6 @@ class AdobeAnalyticsImpl implements AdobeAnalyticsModule {
   }
 
   Future<void> updateUserAttributes(Map<String, dynamic> parameters) async {
-    if (!checkInitialization()) {
-      throw StateError(
-          'Adobe Analytics: Not initialized. Call initialize() first.');
-    }
     final attributeMap =
         Map<String, Object>.from(parameters['attributeMap'] as Map);
     return await _userProfile.updateUserAttributes(attributeMap);
