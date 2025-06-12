@@ -352,17 +352,13 @@ class SelectOneState extends FormFieldWidgetState<SelectOne>
     if (oldValue != value) {
       widget.onSelectionChanged(value);
 
-      /// Delayed Invocation and let the dropdown Calculation
-      /// be finished and then Invoke Ensemble Action
-      Future.delayed(Duration(milliseconds: 300),(){
-        if (widget._controller.onChange != null) {
-          ScreenController().executeAction(
-            context,
-            widget._controller.onChange!,
-            event: EnsembleEvent(widget, data: {'value': value}),
-          );
-        }
-      });
+      if (widget._controller.onChange != null) {
+        ScreenController().executeAction(
+          context,
+          widget._controller.onChange!,
+          event: EnsembleEvent(widget, data: {'value': value}),
+        );
+      }
     }
   }
 
@@ -396,7 +392,7 @@ class SelectOneState extends FormFieldWidgetState<SelectOne>
         hint: placeholder == null
             ? null
             : Text(placeholder, style: widget._controller.placeholderStyle),
-        value: widget.controller.maybeValue,
+        value: widget.getValue(),
         items: buildItems(widget._controller.items,
             widget._controller.itemTemplate, dataList),
         onChanged: isEnabled() ? (item) => onSelectionChanged(item) : null,
@@ -477,7 +473,7 @@ class SelectOneState extends FormFieldWidgetState<SelectOne>
                     final cursorPosition = fieldTextEditingController.selection;
                     final oldValue = widget._controller.maybeValue;
                     if (oldValue != value) {
-                      widget._controller.maybeValue= value;
+                      widget._controller.maybeValue = value;
                       widget.onSelectionChanged(value);
                     }
                     fieldTextEditingController.selection = cursorPosition;
