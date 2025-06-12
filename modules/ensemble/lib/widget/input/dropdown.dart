@@ -141,7 +141,7 @@ abstract class SelectOne extends StatefulWidget
   }
 
   bool isValueInItems() {
-     if (_controller.maybeValue != null) {
+    if (_controller.maybeValue != null) {
       // check for match in the item list
       if (_controller.items != null) {
         for (SelectOneItem item in _controller.items!) {
