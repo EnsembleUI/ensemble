@@ -1,4 +1,4 @@
-import 'package:dropdown_button2/dropdown_button2.dart';
+import 'package:ensemble_dropdown/ensemble_dropdown.dart';
 import 'package:ensemble/ensemble_theme.dart';
 import 'package:ensemble/framework/action.dart' as framework;
 import 'package:ensemble/framework/event.dart';
@@ -84,7 +84,7 @@ abstract class SelectOne extends StatefulWidget
       'value': (value) {
         _controller.textEditingController.value =
             TextEditingValue(text: (value == null) ? '' : value.toString());
-        return _controller.maybeValue.value = value;
+        return _controller.maybeValue = value;
       },
       'items': (values) => updateItems(values),
       'onChange': (definition) => _controller.onChange =
@@ -141,11 +141,11 @@ abstract class SelectOne extends StatefulWidget
   }
 
   bool isValueInItems() {
-     if (_controller.maybeValue.value != null) {
+     if (_controller.maybeValue != null) {
       // check for match in the item list
       if (_controller.items != null) {
         for (SelectOneItem item in _controller.items!) {
-          if (_controller.maybeValue.value == item.value) {
+          if (_controller.maybeValue == item.value) {
             return true;
           }
         }
@@ -162,7 +162,7 @@ abstract class SelectOne extends StatefulWidget
 
   dynamic getValue() {
     if (isValueInItems()) {
-      return _controller.maybeValue.value;
+      return _controller.maybeValue;
     }
     return null;
   }
@@ -195,7 +195,7 @@ abstract class SelectOne extends StatefulWidget
 
     // ensure that the value is still correct
     if (!isValueInItems()) {
-      _controller.maybeValue = ValueNotifier(null);
+      _controller.maybeValue = null;
     }
   }
 
@@ -255,7 +255,7 @@ class SelectOneController extends FormFieldController with HasTextPlaceholder {
   // this is our value but it can be in an invalid state.
   // Since user can set items/value in any order and at anytime, the value may
   // not be one of the items, hence it could be in an incorrect state
-  ValueNotifier<dynamic> maybeValue = ValueNotifier(null);
+  dynamic maybeValue;
   int gap = 0;
   bool autoComplete = false;
 
@@ -347,7 +347,7 @@ class SelectOneState extends FormFieldWidgetState<SelectOne>
   }
 
   void onSelectionChanged(dynamic value) {
-    final oldValue = widget._controller.maybeValue.value;
+    final oldValue = widget._controller.maybeValue;
 
     if (oldValue != value) {
       widget.onSelectionChanged(value);
@@ -396,7 +396,7 @@ class SelectOneState extends FormFieldWidgetState<SelectOne>
         hint: placeholder == null
             ? null
             : Text(placeholder, style: widget._controller.placeholderStyle),
-        valueListenable: widget.controller.maybeValue,
+        value: widget.controller.maybeValue,
         items: buildItems(widget._controller.items,
             widget._controller.itemTemplate, dataList),
         onChanged: isEnabled() ? (item) => onSelectionChanged(item) : null,
@@ -477,7 +477,7 @@ class SelectOneState extends FormFieldWidgetState<SelectOne>
                     final cursorPosition = fieldTextEditingController.selection;
                     final oldValue = widget._controller.maybeValue;
                     if (oldValue != value) {
-                      widget._controller.maybeValue.value = value;
+                      widget._controller.maybeValue= value;
                       widget.onSelectionChanged(value);
                     }
                     fieldTextEditingController.selection = cursorPosition;
@@ -638,16 +638,16 @@ class SelectOneState extends FormFieldWidgetState<SelectOne>
   }
 
 // ---------------------------------- Build Items ListTile if [AUTOCOMPLETE] is false ---------------------------------
-  List<DropdownItem<dynamic>>? buildItems(List<SelectOneItem>? items,
+  List<DropdownMenuItem<dynamic>>? buildItems(List<SelectOneItem>? items,
       LabelValueItemTemplate? itemTemplate, List? dataList) {
-    List<DropdownItem<dynamic>>? results;
+    List<DropdownMenuItem<dynamic>>? results;
     // first add the static list
     if (items != null) {
       results = [];
       for (SelectOneItem item in items) {
         item.isIcon == true
             ? results.add(
-                DropdownItem(
+                DropdownMenuItem(
                   value: item.value,
                   child: Row(
                     children: [
@@ -675,7 +675,7 @@ class SelectOneState extends FormFieldWidgetState<SelectOne>
                 ),
               )
             : results.add(
-                DropdownItem(
+                DropdownMenuItem(
                   value: item.value,
                   child: Text(Utils.optionalString(item.label) ?? item.value),
                 ),
@@ -698,7 +698,7 @@ class SelectOneState extends FormFieldWidgetState<SelectOne>
                   ? Text(templatedScope.dataContext.eval(itemTemplate.label!))
                   : templatedScope
                       .buildWidgetFromDefinition(itemTemplate.labelWidget));
-          results.add(DropdownItem(
+          results.add(DropdownMenuItem(
               value: templatedScope.dataContext.eval(itemTemplate.value),
               child: labelWidget));
         }
