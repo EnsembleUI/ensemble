@@ -101,10 +101,12 @@ class EnsembleApp extends StatefulWidget {
     this.screenPayload,
     this.ensembleConfig,
     this.externalMethods,
+    this.externalWidgets,
     this.isPreview = false,
     this.placeholderBackgroundColor,
     this.onAppLoad,
     this.forcedLocale,
+    this.child,  
     GlobalKey<NavigatorState>? navigatorKey,
     ScrollController? screenScroller,
   }) {
@@ -116,6 +118,14 @@ class EnsembleApp extends StatefulWidget {
   final EnsembleConfig? ensembleConfig;
   final bool isPreview;
   final Map<String, Function>? externalMethods;
+
+  // use this to pass in custom widgets that are not part of the Ensemble
+  // framework. The key is the name of the widget and the value is a
+  // function that returns a widget.
+  final Map<String, CustomBuilder>? externalWidgets;
+
+  // use this if you want to pass in a child widget instead of a screen
+  final Widget? child; 
 
   // for integration with external Flutter code
   final Function? onAppLoad;
@@ -234,6 +244,10 @@ class EnsembleAppState extends State<EnsembleApp> with WidgetsBindingObserver {
 
     if (widget.externalMethods != null) {
       Ensemble().setExternalMethods(widget.externalMethods!);
+    }
+
+    if (widget.externalWidgets != null) {
+      Ensemble().setExternalWidgets(widget.externalWidgets!);
     }
 
     // use the config if passed in
@@ -364,11 +378,30 @@ class EnsembleAppState extends State<EnsembleApp> with WidgetsBindingObserver {
       notifiedAppLoad = true;
     }
 
-    Widget screen = Screen(
-      appProvider: AppProvider(definitionProvider: config.definitionProvider),
-      screenPayload: widget.screenPayload,
-      apiProviders: APIProviders.clone(config.apiProviders ?? {}),
-    );
+    // Determine the content based on whether a child was provided
+    Widget content;
+    if (widget.child != null) {
+      // Use the provided child directly
+      content = widget.child!;
+    } else {
+      // Create a Screen widget
+      content = Screen(
+        appProvider: AppProvider(definitionProvider: config.definitionProvider),
+        screenPayload: widget.screenPayload,
+        apiProviders: APIProviders.clone(config.apiProviders ?? {}),
+        placeholderBackgroundColor: widget.placeholderBackgroundColor,
+      );
+      
+      // Wrap the Screen in a Scaffold when not using child mode
+      content = Scaffold(
+        // This outer scaffold is where the background image would be (if specified)
+        // We do not want it to resize on keyboard popping up
+        // The Page's Scaffold can handle the resizing
+        resizeToAvoidBottomInset: false,
+        body: content
+      );
+    }
+
     ThemeData? theme;
     //if we have defined legacy themes at the root level or if thre is no Styles at the root level, we use the app level theme
     if (config.hasLegacyCustomAppTheme() ||
@@ -395,12 +428,7 @@ class EnsembleAppState extends State<EnsembleApp> with WidgetsBindingObserver {
             definitionProvider: config.definitionProvider);
         return Ensemble().locale;
       },
-      home: Scaffold(
-        // this outer scaffold is where the background image would be (if
-        // specified). We do not want it to resize on keyboard popping up.
-        // The Page's Scaffold can handle the resizing.
-          resizeToAvoidBottomInset: false,
-          body: screen),
+      home: content,
       useInheritedMediaQuery: widget.isPreview,
       builder: (context, child) => widget.isPreview
           ? DevicePreview.appBuilder(context, child)

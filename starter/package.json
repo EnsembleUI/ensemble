@@ -27,7 +27,8 @@
     "hasBiometric": "ts-node src/dart_runner.ts biometric",
     "qrCodeEnabled": "ts-node src/dart_runner.ts qr_code",
     "hasGoogleMaps": "ts-node src/dart_runner.ts google_maps",
-    "generate_keystore": "ts-node src/dart_runner.ts generateKeystore"
+    "generate_keystore": "ts-node src/dart_runner.ts generateKeystore",
+    "hasAdobeAnalytics": "ts-node src/dart_runner.ts adobe_analytics"
   },
   "keywords": [],
   "author": "",

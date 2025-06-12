@@ -6,6 +6,7 @@ import 'dart:math' as math;
 import 'package:ensemble/ensemble_app.dart';
 import 'package:ensemble/firebase_options.dart';
 import 'package:ensemble/framework/apiproviders/api_provider.dart';
+import 'package:ensemble/framework/apiproviders/firebase_functions/firebase_functions_api_provider.dart';
 import 'package:ensemble/framework/assets_service.dart';
 import 'package:ensemble/framework/bindings.dart';
 import 'package:ensemble/framework/definition_providers/ensemble_provider.dart';
@@ -62,6 +63,10 @@ class Ensemble extends WithEnsemble with EnsembleRouteObserver {
   }
 
   Map<String, Function> externalMethods = {};
+  Map<String, CustomBuilder> externalWidgets = {};
+
+  void setExternalWidgets(Map<String, CustomBuilder> widgets) =>
+      externalWidgets = widgets;
 
   void setExternalMethods(Map<String, Function> methods) =>
       externalMethods = methods;
@@ -187,9 +192,12 @@ class Ensemble extends WithEnsemble with EnsembleRouteObserver {
           await rootBundle.loadString('${path}/config/appConfig.json');
       final Map<String, dynamic> configMap = json.decode(configString);
       // Loop through the envVariables from appConfig.json file and add them to the envOverrides
-      configMap["envVariables"].forEach((key, value) {
-        envOverrides![key] = value;
-      });
+      if (configMap["envVariables"] != null) {
+        // Loop through the envVariables from appConfig.json file and add them to the envOverrides
+        configMap["envVariables"].forEach((key, value) {
+          envOverrides![key] = value;
+        });
+      }
     } catch (e) {
       debugPrint("appConfig.json file doesn't exist");
     }
@@ -245,6 +253,11 @@ class Ensemble extends WithEnsemble with EnsembleRouteObserver {
             } catch (e) {
               print('Error decoding provider config for $provider');
             }
+          } else if (providerConfig == 'firestore_config') {
+            if (appConfig.envVariables?['firebase_config'] != null) {
+              providerConfigMap =
+                  json.decode(appConfig.envVariables?['firebase_config']);
+            }
           }
           APIProvider? apiProvider = APIProviders.initProvider(provider);
           if (apiProvider != null) {
@@ -258,6 +271,18 @@ class Ensemble extends WithEnsemble with EnsembleRouteObserver {
           }
         }
       }
+    }
+    if (appConfig?.envVariables?['firebase_app_check'] == 'true') {
+      //Check if Firebase Functions Provider is initialized
+      if (FirebaseFunctionsAPIProvider.getFirebaseAppContext() == null) {
+        await FirebaseFunctionsAPIProvider().init(
+            config.definitionProvider is EnsembleDefinitionProvider
+                ? (config.definitionProvider as EnsembleDefinitionProvider)
+                    .appId
+                : generateRandomString(10),
+            json.decode(appConfig?.envVariables?['firebase_config']));
+      }
+      await FirebaseFunctionsAPIProvider.initializeFirebaseAppCheck();
     }
     config.apiProviders = providers;
   }

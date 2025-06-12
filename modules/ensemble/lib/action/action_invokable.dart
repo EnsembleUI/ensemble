@@ -44,6 +44,23 @@ abstract class ActionInvokable with Invokable {
       ActionType.saveFile,
       ActionType.controlDeviceBackNavigation,
       ActionType.closeApp,
+      ActionType.getLocation,
+      ActionType.pickFiles,
+      ActionType.openPlaidLink,
+      ActionType.updateBadgeCount,
+      ActionType.clearBadgeCount,
+      ActionType.getNetworkInfo,
+      ActionType.checkPermission,
+      ActionType.sendVerificationCode,
+      ActionType.validateVerificationCode,
+      ActionType.resendVerificationCode,
+      ActionType.bluetoothStartScan,
+      ActionType.bluetoothConnect,
+      ActionType.bluetoothDisconnect,
+      ActionType.bluetoothSubscribeCharacteristic,
+      ActionType.bluetoothUnsubscribeCharacteristic,
+      ActionType.setSecureStorage,
+      ActionType.clearSecureStorage,
     ]);
   }
 

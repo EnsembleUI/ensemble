@@ -5,6 +5,7 @@ import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/framework/logging/log_manager.dart';
 import 'package:ensemble/framework/logging/log_provider.dart' as logging;
 import 'package:ensemble/framework/scope.dart';
+import 'package:ensemble/framework/stub/adobe_manager.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/moengage_utils.dart';
 import 'package:ensemble/util/utils.dart';
@@ -101,6 +102,20 @@ class LogEvent extends ensembleAction.EnsembleAction {
           }
           break;
       }
+    } else if (provider == 'adobe') {
+      if (operation == 'trackAction') {
+        if (eventName == null) {
+          throw LanguageError('trackAction requires event name');
+        }
+      } else if (operation == 'trackState') {
+        if (eventName == null) {
+          throw LanguageError('trackState requires event name');
+        }
+      } else if (operation == 'sendEvent') {
+        if (eventName == null) {
+          throw LanguageError('sendEvent requires event name');
+        }
+      }
     }
 
     return LogEvent(
@@ -146,6 +161,23 @@ class LogEvent extends ensembleAction.EnsembleAction {
 
         if (onSuccess != null) {
           await ScreenController().executeAction(context, onSuccess!);
+        }
+      } else if (evaluatedProvider == 'adobe') {
+        final result = await _handleAdobeOperations(
+          context,
+          scopeManager,
+          operation: scopeManager.dataContext.eval(operation),
+          eventName: scopeManager.dataContext.eval(eventName),
+          parameters: scopeManager.dataContext.eval(parameters),
+          attributeKey: scopeManager.dataContext.eval(attributeKey),
+        );
+
+        if (onSuccess != null) {
+          await ScreenController().executeAction(
+            context,
+            onSuccess!,
+            event: EnsembleEvent(null, data: result.toString()),
+          );
         }
       } else {
         LogManager().log(
@@ -344,6 +376,63 @@ class LogEvent extends ensembleAction.EnsembleAction {
         await moEngage.resetCurrentContext();
         break;
     }
+  }
+}
+
+Future<dynamic> _handleAdobeOperations(
+  BuildContext context,
+  ScopeManager scopeManager, {
+  String? operation,
+  String? eventName,
+  Map<String, dynamic>? parameters,
+  String? attributeKey,
+}) async {
+  final adobe = GetIt.instance<AdobeAnalyticsModule>();
+
+  switch (operation) {
+    case 'trackAction':
+      return await adobe.trackAction(
+          eventName!,
+          parameters!
+              .map((key, value) => MapEntry(key.toString(), value.toString())));
+    case 'trackState':
+      return await adobe.trackState(
+          eventName!,
+          parameters!
+              .map((key, value) => MapEntry(key.toString(), value.toString())));
+    case 'sendEvent':
+      return await adobe.sendEvent(eventName!, parameters!);
+    case 'setupAssurance':
+      return await adobe.setupAssurance(parameters!);
+    case 'getExperienceCloudId':
+      return await adobe.getExperienceCloudId();
+    case 'getIdentities':
+      return await adobe.getIdentities();
+    case 'getUrlVariables':
+      return await adobe.getUrlVariables();
+    case 'removeIdentity':
+      return await adobe.removeIdentity(parameters!);
+    case 'resetIdentities':
+      return await adobe.resetIdentities();
+    case 'setAdvertisingIdentifier':
+      return await adobe.setAdvertisingIdentifier(
+          parameters!['advertisingIdentifier'].toString());
+    case 'updateIdentities':
+      return await adobe.updateIdentities(parameters!);
+    case 'getConsents':
+      return await adobe.getConsents();
+    case 'updateConsent':
+      return await adobe.updateConsent(parameters!['allowed']);
+    case 'setDefaultConsent':
+      return await adobe.setDefaultConsent(parameters!['allowed']);
+    case 'getUserAttributes':
+      return await adobe.getUserAttributes(parameters!);
+    case 'removeUserAttributes':
+      return await adobe.removeUserAttributes(parameters!);
+    case 'updateUserAttributes':
+      return await adobe.updateUserAttributes(parameters!);
+    default:
+      throw LanguageError('Invalid operation: $operation');
   }
 }
 

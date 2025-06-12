@@ -30,6 +30,9 @@ class EnsembleSlider extends StatefulWidget
       'value': () => _controller.value,
       'min': () => _controller.minValue,
       'max': () => _controller.maxValue,
+      'startValue': () => _controller.startValue,
+      'endValue': () => _controller.endValue,
+      'enableRange': () => _controller.enableRange,
       'trackStyle': () => _controller.trackStyle,
       'tickMarkStyle': () => _controller.tickMarkStyle,
       'thumbStyle': () => _controller.thumbStyle,
@@ -46,6 +49,9 @@ class EnsembleSlider extends StatefulWidget
   @override
   Map<String, Function> setters() {
     return {
+      'enableRange': (value) => _controller.enableRange = Utils.getBool(value, fallback: false),
+      'startValue': (value) => _controller.startValue = Utils.getDouble(value, fallback: 0.0),
+      'endValue': (value) => _controller.endValue = Utils.getDouble(value, fallback: 1.0),
       // Basic Properties
       'initialValue': (value) =>
           _controller.value = Utils.optionalDouble(value) ?? 0,

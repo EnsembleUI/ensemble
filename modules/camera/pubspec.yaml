@@ -16,7 +16,7 @@ dependencies:
   ensemble:
     git:
       url: https://github.com/EnsembleUI/ensemble.git
-      ref: ensemble-v1.1.42
+      ref: ensemble-v1.1.64
       path: modules/ensemble
   ensemble_ts_interpreter:
     git:
@@ -29,7 +29,7 @@ dependencies:
   image_picker: ^0.8.7+5
   sensors_plus: ^3.0.0
   video_player: ^2.6.1
-  qr_code_scanner: ^1.0.1
+  mobile_scanner: ^6.0.7
   path_provider: ^2.1.5
   share_plus: ^10.1.4
 

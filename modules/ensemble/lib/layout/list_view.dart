@@ -86,6 +86,8 @@ class ListView extends StatefulWidget
           controller.onScroll = EnsembleAction.from(value, initiator: this),
       'shrinkWrap': (value) =>
           controller.shrinkWrap = Utils.optionalBool(value),
+      'nestedScroll': (value) =>
+          controller.nestedScroll = Utils.optionalBool(value),
     };
   }
 
@@ -123,6 +125,7 @@ class ListViewController extends BoxLayoutController {
   EnsembleAction? onScroll;
 
   bool? shrinkWrap;
+  bool? nestedScroll;
 
   void _bind(ListViewState state) {
     widgetState = state;
@@ -184,6 +187,7 @@ class ListViewState extends EWidgetState<ListView>
     Widget listView = ListViewCore(
       shrinkWrap: widget._controller.shrinkWrap ??
           (FooterScope.of(context) != null ? true : false),
+      nestedScroll: widget._controller.nestedScroll?? false,
       itemCount: itemCount,
       isLoading: showLoading,
       onFetchData: _fetchData,

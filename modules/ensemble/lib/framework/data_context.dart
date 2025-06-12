@@ -19,6 +19,7 @@ import 'package:ensemble/framework/apiproviders/http_api_provider.dart';
 import 'package:ensemble/framework/config.dart';
 import 'package:ensemble/framework/data_utils.dart';
 import 'package:ensemble/framework/device.dart';
+import 'package:ensemble/framework/encrypted_storage_manager.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/keychain_manager.dart';
 import 'package:ensemble/framework/app_info.dart';
@@ -91,12 +92,11 @@ class DataContext implements Context {
     _addLegacyDataContext();
   }
 
-
-    // device is a common name. If user already uses that, don't override it
-    // This is now in ensemble.device.*
+  // device is a common name. If user already uses that, don't override it
+  // This is now in ensemble.device.*
   void _addLegacyDataContext() {
     if (_contextMap['device'] == null) {
-        _contextMap['device'] = Device();
+      _contextMap['device'] = Device();
     }
   }
 
@@ -551,6 +551,10 @@ class NativeInvokable extends ActionInvokable {
         final evalMessage = scope?.dataContext.eval(message);
         messageSocket(socketName, evalMessage);
       },
+      // Have to use getSecureStorage from here, as action_invokables return future value,
+      // and we don't want to wait for it.
+      ActionType.getSecureStorage.name: (dynamic inputs) =>
+          EncryptedStorageManager.getSecureStorage(inputs),
       ActionType.dispatchEvent.name: (inputs) =>
           ScreenController().executeAction(
             buildContext,

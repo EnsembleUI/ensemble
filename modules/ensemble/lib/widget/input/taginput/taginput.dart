@@ -17,10 +17,7 @@ import 'package:flutter/material.dart';
 import 'package:ensemble/layout/templated.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/services.dart';
-import 'package:fluttertagger/fluttertagger.dart';
-
-// Global controller to persist across rebuilds
-final _globalTaggerController = FlutterTaggerController();
+import 'package:input_tagger/input_tagger.dart';
 
 /// TagInput
 class TagInput extends BaseTextInput {
@@ -34,10 +31,13 @@ class TagInput extends BaseTextInput {
     setters.addAll({
       'value': (newValue) {
         if (newValue == null) {
-          _globalTaggerController.text = '';
+          _controller.taggerControllerValue = '';
           return;
         }
-        _globalTaggerController.text = Utils.optionalString(newValue)!;
+        _controller.taggerControllerValue = Utils.optionalString(newValue)!;
+      },
+      'isOverlayVisible': (newValue) {
+        _controller.isOverlayVisible = Utils.getBool(newValue, fallback: false);
       },
       'inputType': (type) => _controller.inputType = Utils.optionalString(type),
       'mask': (type) => _controller.mask = Utils.optionalString(type),
@@ -67,8 +67,6 @@ abstract class BaseTextInput extends StatefulWidget
         HasController<TagInputController, TagInputState> {
   BaseTextInput({Key? key}) : super(key: key);
 
-  // Use global controller instead of instance field
-  final FlutterTaggerController _taggerController = _globalTaggerController;
   final TagInputController _controller = TagInputController();
 
   @override
@@ -78,7 +76,12 @@ abstract class BaseTextInput extends StatefulWidget
   Map<String, Function> getters() {
     var getters = _controller.textPlaceholderGetters;
     getters.addAll({
-      'value': () => _taggerController.formattedText ?? '',
+      'value': () => _controller.taggerController.formattedText ?? '',
+      'currentTriggerChar': () => _controller
+          .currentTriggerChar, // Getter for current trigger character
+      'text': ()=> _controller.taggerController.text ?? '',
+      'tags': ()=> _controller.getTags() ?? '',
+      'isOverlayVisible': () => _controller.isOverlayVisible,
     });
     return getters;
   }
@@ -95,8 +98,14 @@ abstract class BaseTextInput extends StatefulWidget
       'triggers': (items) => buildTagTriggers(items),
       'maxOverlayHeight': (value) =>
           _controller.maxOverlayHeight = Utils.optionalDouble(value),
+      'dismissOnTapOutside': (value) =>
+          _controller.dismissOnTapOutside = Utils.optionalBool(value),
       'minOverlayHeight': (value) =>
           _controller.minOverlayHeight = Utils.optionalDouble(value),
+      'overlayWidth': (value) =>
+          _controller.overlayWidth = Utils.optionalDouble(value),
+      'overlayPadding': (value) =>
+          _controller.overlayPadding = Utils.getInsets(value),
       'tagStyle': (style) => _controller.tagStyle = Utils.getTextStyle(style),
       'tagSelectionStyle': (style) =>
           _controller.tagSelectionStyle = Utils.getTextStyle(style),
@@ -115,31 +124,70 @@ abstract class BaseTextInput extends StatefulWidget
     return {
       'focus': () => _controller.inputFieldAction?.focusInputField(),
       'unfocus': () => _controller.inputFieldAction?.unfocusInputField(),
+      'clear': () => _controller.taggerController.clear(),
+      'initialTag': (tag) {
+        if (tag is Map) {
+          Map<String, String> newTag = {
+            'id': tag['id']?.toString() ?? '',
+            'label': tag['label']?.toString() ?? '',
+            'key': tag['key']?.toString() ?? '',
+          };
+          _controller.initialTag = newTag;
+          _controller.applyInitialTag();
+        } else if (tag == null) {
+          _controller.initialTag = null;
+        }
+      },
     };
   }
 
-  Map<String, TextStyle?> buildTagTriggers(List<dynamic>? triggers) {
-    // Initialize with default @ trigger
-    Map<String, TextStyle?> results = {
-      '@': const TextStyle(color: Colors.blue),
-    };
+  List<Trigger> buildTagTriggers(List<dynamic>? triggers) {
+    List<Trigger> results = [];
 
-    if (triggers != null) {
+    if (triggers != null && triggers.isNotEmpty) {
       for (var item in triggers) {
         if (item is Map) {
           String? character = item['character']?.toString();
+          var data = item['data'];
+
+          TextStyle? style;
+          if (item['tagStyle'] is Map) {
+            style = Utils.getTextStyle(item['tagStyle']);
+          } else {
+            style = const TextStyle(color: Colors.blue);
+          }
+
           if (character != null) {
-            // Parse the tagStyle map to create TextStyle
-            if (item['tagStyle'] is Map) {
-              results[character] = Utils.getTextStyle(item['tagStyle']);
+            if(data != null && data != ""){
+              results.add(
+                Trigger(
+                  character: character,
+                  textStyle: style,
+                  data: data,
+                ),
+              );
+            } else {
+              results.add(
+                Trigger(
+                  character: character,
+                  textStyle: style,
+                ),
+              );
             }
           }
         }
       }
     }
 
-    _controller.triggers = results;
+    // If no triggers were defined, add a default @ trigger
+    if (results.isEmpty) {
+      results = [
+        Trigger(character: '@',textStyle: const TextStyle(color: Colors.blue))
+      ];
+    }
 
+    _controller.triggers = results;
+    _controller.setupTriggerTypes(triggers);
     return results;
   }
 
@@ -160,39 +208,144 @@ mixin TextInputFieldAction on FormFieldWidgetState<BaseTextInput>
 
 /// Controller for TagInput extending BaseInputController
 class TagInputController extends BaseInputController {
-  // TextInputFieldAction? inputFieldAction;
-
-  late Map<String, TextStyle?> triggers; // Optional additional triggers like #
+  // Private properties
+  String _taggerControllerValue = '';
+  String _currentTriggerChar = '@';
+  Map<String, String> _triggerTypeMap = {};
+  InputTaggerController? _taggerController;
+  bool _initialTagApplied = false;
+  bool _applyingInitialTag = false;
+  Map<String, String>? _initialTag;
+  bool _isOverlayVisible = false;
+  bool get isOverlayVisible => _isOverlayVisible;
+  // Configurable properties
+  List<Trigger> triggers = [
+    Trigger(character: '@',textStyle: const TextStyle(color: Colors.blue))
+  ];
   LabelValueItemTemplate? itemTemplate;
   TextStyle? mentionStyle;
-
   EnsembleAction? onSearch;
-
-  // overlay styles
+  bool? dismissOnTapOutside;
   BoxDecoration? overlayStyle;
   double? maxOverlayHeight;
   double? minOverlayHeight;
-
+  double? overlayWidth;
+  EdgeInsets? overlayPadding;
   TextStyle? tagStyle;
   TextStyle? tagSelectionStyle;
-}
 
-class MentionItem {
-  final String id;
-  final String key;
-  final String label;
-  final String? image;
+  // Getters and Setters
+  String get currentTriggerChar => _currentTriggerChar;
 
-  MentionItem({
-    required this.id,
-    required this.key,
-    required this.label,
-    this.image,
-  });
+  String get taggerControllerValue => _taggerControllerValue;
+  set taggerControllerValue(String value) {
+    _taggerControllerValue = value;
+    if (_taggerController != null) {
+      _taggerController!.text = value;
+    }
+  }
+  set isOverlayVisible(bool value) {
+    _isOverlayVisible = value;
+  }
+  Map<String, String>? get initialTag => _initialTag;
+  set initialTag(Map<String, String>? value) {
+    if (_initialTag != value) {
+      _initialTag = value;
+    }
+  }
+
+  InputTaggerController get taggerController {
+    if (_taggerController == null) {
+      _taggerController = InputTaggerController(text: _taggerControllerValue);
+    }
+    return _taggerController!;
+  }
+
+  // Setup Trigger Types
+  void setupTriggerTypes(List<dynamic>? triggers) {
+    _triggerTypeMap.clear();
+
+    if (triggers != null) {
+      for (var item in triggers) {
+        if (item is Map) {
+          String? character = item['character']?.toString();
+          String? triggerType = item['triggerType']?.toString();
+
+          if (character != null && triggerType != null) {
+            _triggerTypeMap[character] = triggerType;
+          }
+        }
+      }
+    }
+  }
+  // get Applied Tags
+  List<Map<String, dynamic>> getTags() {
+    if (_taggerController?.tags == null) {
+      return [];
+    }
+    // Convert Tag objects to simple maps
+    return _taggerController!.tags.map((tag) => {
+      'id': tag.id,
+      'text': tag.text,
+      'triggerCharacter': tag.triggerCharacter
+    }).toList();
+  }
+  // Apply Initial Tag
+  void applyInitialTag() {
+    if (initialTag == null) return;
+
+    _initialTagApplied = false;
+    _applyingInitialTag = true;
+
+    if (initialTag == null) return;
+    if (_initialTagApplied) return;
+
+    final tag = initialTag!;
+    final triggerChar = triggers.first.character;
+
+    _initialTagApplied = true;
+
+    if (tag.containsKey('id') &&
+        (tag.containsKey('key') || tag.containsKey('label'))) {
+      String displayText = tag['label'] ?? tag['key'] ?? '';
+
+      taggerController.clear();
+      taggerController.isInitialTag = true;
+      taggerController.text = triggerChar;
+      taggerController.selection =
+          TextSelection.collapsed(offset: taggerController.text.length);
+
+      taggerController.addTag(id: tag['id']!, name: '$displayText');
+
+      final text = taggerController.text;
+      if (!text.endsWith(' ')) {
+        taggerController.text = '$text ';
+        taggerController.selection =
+            TextSelection.collapsed(offset: taggerController.text.length);
+      }
+
+      _taggerControllerValue = taggerController.text;
+      _applyingInitialTag = false;
+      taggerController.isInitialTag = false;
+    }
+
+  }
+
+  @override
+  void dispose() {
+    _taggerController?.dispose();
+    _taggerController = null;
+    super.dispose();
+  }
 }
 
 class TagInputState extends FormFieldWidgetState<BaseTextInput>
     with TickerProviderStateMixin, TextInputFieldAction, TemplatedWidgetState {
+  // Core controller references
+  InputTaggerController get _taggerController =>
+      widget._controller.taggerController;
+
+  // UI state
   final focusNode = FocusNode();
   List? dataList;
   String? tagQuery;
@@ -202,21 +355,17 @@ class TagInputState extends FormFieldWidgetState<BaseTextInput>
   // For change tracking
   String previousText = '';
   bool didItChange = false;
-  bool _isOverlayVisible = false;
+  bool _initialized = false;
 
   // Initialize these fields immediately
   List<TextInputFormatter> _inputFormatter = [];
   AnimationController? _animationController;
   Animation<Offset>? _animation;
 
-  bool get toolbarDoneStatus {
-    return widget.controller.toolbarDoneButton ?? false;
-  }
-
   void evaluateChanges() {
     if (didItChange) {
       // trigger binding
-      widget.setProperty('value', widget._taggerController.text);
+      widget.setProperty('value', _taggerController.text);
 
       // call onChange
       if (widget._controller.onChange != null) {
@@ -228,16 +377,22 @@ class TagInputState extends FormFieldWidgetState<BaseTextInput>
   }
 
   void removeOverlayAndUnfocus() {
-    if (!_isOverlayVisible) {
-      widget._taggerController.dismissOverlay();
-      FocusManager.instance.primaryFocus?.unfocus();
+    if (!widget.controller.isOverlayVisible) {
+      _taggerController.dismissOverlay();
+      if (widget.controller.dismissOnTapOutside == true)
+        FocusManager.instance.primaryFocus?.unfocus();
     }
   }
 
   @override
   void initState() {
+    super.initState();
+
+    // Initialize input formatters
     _inputFormatter = InputFormatter.getFormatter(
         widget._controller.inputType, widget._controller.mask);
+
+    // Initialize animation controller
     _animationController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 150),
@@ -252,6 +407,8 @@ class TagInputState extends FormFieldWidgetState<BaseTextInput>
         curve: Curves.easeInOut,
       ),
     );
+
+    // Setup focus listeners
     focusNode.addListener(() {
       if (focusNode.hasFocus) {
         if (widget._controller.onFocusReceived != null) {
@@ -269,17 +426,21 @@ class TagInputState extends FormFieldWidgetState<BaseTextInput>
         }
       }
     });
-    // Check for readOnly from parent widget
-    if (widget._controller.readOnly == null) {
-      final formController =
-          context.findAncestorWidgetOfExactType<EnsembleForm>()?.controller;
 
-      if (formController != null) {
-        widget._controller.readOnly = formController.readOnly == true;
+    // Defer initialization of the tagger to first frame
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        setState(() {
+          _initialized = true;
+        });
+        Future.delayed(Duration(milliseconds: 200), () {
+          // Change from initialTags to initialTag
+          if (mounted && widget._controller.initialTag != null) {
+            widget._controller.applyInitialTag();
+          }
+        });
       }
-    }
-
-    super.initState();
+    });
   }
 
   @override
@@ -290,10 +451,26 @@ class TagInputState extends FormFieldWidgetState<BaseTextInput>
     if (widget._controller.itemTemplate != null) {
       registerItemTemplate(context, widget._controller.itemTemplate!,
           onDataChanged: (data) {
-        setState(() {
-          dataList = data;
-        });
+        if (mounted) {
+          setState(() {
+            dataList = data;
+            if(dataList!.length == 0){
+              widget.controller.isOverlayVisible = false;
+              widget.setProperty('isOverlayVisible', widget.controller.isOverlayVisible);
+            }
+          });
+        }
       });
+    }
+
+    // Check for readOnly from parent widget
+    if (widget._controller.readOnly == null) {
+      final formController =
+          context.findAncestorWidgetOfExactType<EnsembleForm>()?.controller;
+
+      if (formController != null) {
+        widget._controller.readOnly = formController.readOnly == true;
+      }
     }
   }
 
@@ -301,19 +478,24 @@ class TagInputState extends FormFieldWidgetState<BaseTextInput>
   void didUpdateWidget(covariant BaseTextInput oldWidget) {
     super.didUpdateWidget(oldWidget);
     widget.controller.inputFieldAction = this;
+    widget._controller._taggerController = oldWidget._controller._taggerController;
 
     // Making sure to move cursor to end when widget rebuild
     if (focusNode.hasFocus) {
-      int oldCursorPosition = oldWidget._taggerController.selection.baseOffset;
-      int textLength = widget._taggerController.text.length;
+      int oldCursorPosition =
+          oldWidget._controller.taggerController.selection.baseOffset;
+      int textLength = widget._controller.taggerController.text.length;
 
-      widget._taggerController.selection = TextSelection.fromPosition(
+      widget._controller.taggerController.selection =
+          TextSelection.fromPosition(
         TextPosition(offset: oldCursorPosition),
       );
-      int cursorPosition = widget._taggerController.selection.baseOffset;
+      int cursorPosition =
+          widget._controller.taggerController.selection.baseOffset;
 
       if (textLength > cursorPosition) {
-        widget._taggerController.selection = TextSelection.fromPosition(
+        widget._controller.taggerController.selection =
+            TextSelection.fromPosition(
           TextPosition(offset: textLength),
         );
       }
@@ -324,7 +506,6 @@ class TagInputState extends FormFieldWidgetState<BaseTextInput>
   void dispose() {
     focusNode.dispose();
     _animationController?.dispose();
-    widget._taggerController.dispose();
     super.dispose();
   }
 
@@ -353,7 +534,27 @@ class TagInputState extends FormFieldWidgetState<BaseTextInput>
 
   @override
   Widget buildWidget(BuildContext context) {
+    if (!_initialized) {
+      // Return a simple loading state or basic input until fully initialized
+      return InputWrapper(
+        type: TagInput.type,
+        controller: widget._controller,
+        widget: TextFormField(
+          controller: TextEditingController(
+              text: widget._controller.taggerControllerValue),
+          decoration: inputDecoration,
+          enabled: false,
+        ),
+      );
+    }
+
+    return _buildFullTagInput(context);
+  }
+
+  Widget _buildFullTagInput(BuildContext context) {
     InputDecoration decoration = inputDecoration;
+
+    // Apply styles and configurations
     if (widget._controller.floatLabel == true) {
       decoration = decoration.copyWith(
         labelText: widget._controller.label,
@@ -365,7 +566,7 @@ class TagInputState extends FormFieldWidgetState<BaseTextInput>
       );
     }
 
-    if (widget._taggerController.text.isNotEmpty &&
+    if (_taggerController.text.isNotEmpty &&
         widget._controller.enableClearText == true) {
       decoration = decoration.copyWith(
         suffixIcon: IconButton(
@@ -384,49 +585,57 @@ class TagInputState extends FormFieldWidgetState<BaseTextInput>
     return InputWrapper(
         type: TagInput.type,
         controller: widget._controller,
-        widget: FlutterTagger(
-          controller: widget._taggerController,
+        widget: InputTagger(
+          controller: _taggerController,
           animationController: _animationController,
           tagTextFormatter: (id, tag, triggerCharacter) {
             return "$triggerCharacter$id";
           },
           onSearch: (query, triggerCharacter) async {
-            _isOverlayVisible = true;
+            widget.controller.isOverlayVisible = true;
             if (widget._controller.onSearch != null) {
               ScreenController().executeAction(
                 context,
                 widget._controller.onSearch!,
-                event: EnsembleEvent(widget, data: {'query': query}),
+                event: EnsembleEvent(widget, data: {
+                  'query': query,
+                  'triggerChar': triggerCharacter,
+                  'triggerType': widget._controller._triggerTypeMap[
+                      triggerCharacter]
+                }),
               );
             }
             setState(() {
               tagQuery = query;
             });
           },
-          triggerCharacterAndStyles: widget.controller.triggers.isEmpty
-              ? { "@": widget._controller.mentionStyle ?? const TextStyle(color: Colors.blue) }
-              : {
-                  ...widget.controller.triggers
-                      .map((key, value) => MapEntry(key, value ?? const TextStyle(color: Colors.blue))),
-                  "@": widget._controller.mentionStyle ?? const TextStyle(color: Colors.blue),
-                },
-          triggerStrategy: TriggerStrategy.eager,
+          triggerCharacterAndStyles: {
+            for (var entry in widget._controller.triggers)
+              entry.character:
+              entry.textStyle ?? const TextStyle(color: Colors.blue),
+          },
+          triggerStrategy: widget._controller._applyingInitialTag
+              ? TriggerStrategy.deferred
+              : TriggerStrategy.eager,
           overlayHeight: _calculatedOverlayHeight,
-          overlay: Material(
+          overlayWidth: widget._controller.overlayWidth ?? MediaQuery.sizeOf(context).width,
+          padding: widget._controller.overlayPadding ?? EdgeInsets.zero,
+          overlay: widget.controller.isOverlayVisible ?
+          Material(
               child: SlideTransition(
-            position: _animation!,
-            child: Container(
-              decoration: widget._controller.overlayStyle,
-              child: buildItems(
-                  widget.controller.itemTemplate, dataList, tagQuery),
-            ),
-          )),
+                position: _animation!,
+                child: Container(
+                  decoration: widget._controller.overlayStyle,
+                  child: buildItems(
+                      widget.controller.itemTemplate, dataList, tagQuery),
+                ),
+              )): Container(),
           builder: (context, containerKey) {
             // Use the helper to create a TextFormField with common configuration
             return InputFieldHelper.createTextFormField(
               key: containerKey,
               autofillHints: widget._controller.autofillHints,
-              controller: widget._taggerController,
+              controller: _taggerController,
               focusNode: focusNode,
               validateOnUserInteraction:
                   widget._controller.validateOnUserInteraction,
@@ -446,13 +655,14 @@ class TagInputState extends FormFieldWidgetState<BaseTextInput>
               selectable: widget._controller.selectable,
               onChanged: (String txt) {
                 if (isLastWordATag(txt)) {
-                  _isOverlayVisible = true;
+                  widget.controller.isOverlayVisible = true;
                 } else {
-                  _isOverlayVisible = false;
+                  widget.controller.isOverlayVisible = false;
                 }
                 if (txt != previousText) {
                   previousText = txt;
-                  didItChange = false;
+                  didItChange = true;
+                  widget._controller._taggerControllerValue = txt;
 
                   if (widget._controller.onKeyPress != null) {
                     ScreenController().executeAction(
@@ -468,6 +678,7 @@ class TagInputState extends FormFieldWidgetState<BaseTextInput>
                         getKeyPressDebouncer());
                   }
                 }
+                widget.setProperty("isOverlayVisible", widget.controller.isOverlayVisible);
                 setState(() {});
               },
               onFieldSubmitted: (value) {
@@ -486,37 +697,39 @@ class TagInputState extends FormFieldWidgetState<BaseTextInput>
   }
 
   bool isLastWordATag(String message) {
-    if (message[message.length - 1] == " ") {
+    if (message.isEmpty) return false;
+
+    if (message.length > 0 && message[message.length - 1] == " ") {
       return false;
     }
+
     // Trim any spaces at the end
     message = message.trim();
 
     // Split the message into words
     List<String> words = message.split(" ");
 
-    // Check if the last word exists and starts with '@'
-    if (words.isNotEmpty &&
-        (words.last.startsWith("@") ||
-            widget._controller.triggers.entries
-                .any((trigger) => words.last.startsWith(trigger.key)))) {
-      return true; // It is a tag
+    // Check if the last word exists and starts with a trigger character
+    if (words.isNotEmpty) {
+      final lastWord = words.last;
+
+      // Check each trigger character
+      for (Trigger trigger in widget._controller.triggers) {
+        if (lastWord.startsWith(trigger.character)) {
+          // Update the current trigger character when found
+          widget._controller._currentTriggerChar = trigger.character;
+          return true; // It is a tag
+        }
+      }
     }
+
     return false; // Not a tag
   }
 
-  /// multi-line if specified or if maxLine is more than 1
-  bool isMultiline() => InputFieldHelper.isMultiline(
-      widget._controller.multiline, widget._controller.maxLines);
-
   void _clearSelection() {
-    widget._taggerController.clear();
+    _taggerController.clear();
+    widget._controller._initialTagApplied = false; // Reset flag when clearing
     focusNode.unfocus();
-  }
-
-  void executeDelayedAction(EnsembleAction action) {
-    InputFieldHelper.executeDelayedAction(
-        context, action, widget, getKeyPressDebouncer());
   }
 
   ListView? buildItems(
@@ -526,11 +739,33 @@ class TagInputState extends FormFieldWidgetState<BaseTextInput>
     // Normalize the query
     String query = tagQuery?.toLowerCase() ?? '';
 
-    // Filter the templated list
-    if (itemTemplate != null && dataList != null) {
+    // Get current trigger and its type
+    String currentTrigger = widget._controller.currentTriggerChar;
+    String? currentTriggerType =
+        widget._controller._triggerTypeMap[currentTrigger];
+
+    // Find the data group matching the current trigger type
+    List? filteredDataList;
+    if (currentTriggerType != null && dataList != null) {
+      // Look for a group with matching triggerType
+      for (Trigger trigger in widget._controller.triggers) {
+        if (widget._controller._triggerTypeMap[trigger.character] ==
+            currentTriggerType &&
+            trigger.data != null) {
+          filteredDataList = trigger.data;
+          break;
+        }
+      }
+    }
+
+    // If no matching group found or no trigger type, use the full data list
+    filteredDataList ??= dataList;
+
+    // Filter the templated list - use filteredDataList instead of dataList
+    if (itemTemplate != null && filteredDataList != null) {
       ScopeManager? parentScope = DataScopeWidget.getScope(context);
       if (parentScope != null) {
-        for (var itemData in dataList) {
+        for (var itemData in filteredDataList) {
           ScopeManager templatedScope = parentScope.createChildScope();
           templatedScope.dataContext
               .addDataContextById(itemTemplate.name, itemData);
@@ -550,7 +785,7 @@ class TagInputState extends FormFieldWidgetState<BaseTextInput>
 
             // Add a post-frame callback to get the height after rendering
             WidgetsBinding.instance.addPostFrameCallback((_) {
-              if (labelWidgetKey.currentContext != null) {
+              if (labelWidgetKey.currentContext != null && mounted) {
                 final RenderBox renderBox = labelWidgetKey.currentContext!
                     .findRenderObject() as RenderBox;
                 if (mounted) {
@@ -567,12 +802,13 @@ class TagInputState extends FormFieldWidgetState<BaseTextInput>
               title: labelWidget,
               hoverColor: Colors.pink,
               onTap: () {
-                widget._taggerController.addTag(
+                _taggerController.addTag(
                   id: value,
                   name: label,
                 );
                 // Change the overlay visibility flag to false to allow the focus of TextInput to be dismissed
-                _isOverlayVisible = false;
+                widget.controller.isOverlayVisible = false;
+                widget.setProperty('isOverlayVisible', widget.controller.isOverlayVisible);
               },
             ));
           }
@@ -619,4 +855,12 @@ class TagInputState extends FormFieldWidgetState<BaseTextInput>
       focusNode.unfocus();
     }
   }
+}
+
+class Trigger {
+  String character;
+  TextStyle? textStyle;
+  List? data;
+
+  Trigger({required this.character, this.textStyle, this.data});
 }
