@@ -590,7 +590,6 @@ class EnsembleSemantics {
   String? label;
   String? hint;
 
-  // Convert to named parameters
   EnsembleSemantics({this.label, this.hint,required this.focusable});
 
   // Factory constructor to map from YAML

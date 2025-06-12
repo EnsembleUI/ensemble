@@ -6,6 +6,7 @@ import 'package:ensemble/framework/theme_manager.dart';
 import 'package:ensemble/framework/widget/view_util.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/util/utils.dart';
+import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:yaml/yaml.dart';
 
@@ -19,7 +20,8 @@ abstract class Menu extends Object with HasStyles, Invokable {
       List<String>? classList,
       this.headerModel,
       this.footerModel,
-      this.reloadView}) {
+      this.reloadView,
+      this.semantics}) {
     this.widgetType = widgetType;
     this.widgetTypeStyles = widgetTypeStyles;
     this.widgetId = widgetId;
@@ -32,6 +34,7 @@ abstract class Menu extends Object with HasStyles, Invokable {
   WidgetModel? headerModel;
   WidgetModel? footerModel;
   bool? reloadView = true;
+  EnsembleSemantics? semantics;
 
   static Menu fromYaml(
       dynamic menu, Map<String, dynamic>? customViewDefinitions) {
@@ -72,6 +75,13 @@ abstract class Menu extends Object with HasStyles, Invokable {
             throw LanguageError("Menu Item's 'page' attribute is required.");
           }
 
+          // semantics for MenuItem
+          EnsembleSemantics? itemSemantics = EnsembleSemantics(focusable: false);
+          if (item['semantics'] != null) {
+            itemSemantics =
+                EnsembleSemantics.fromYaml(Utils.getMap(item["semantics"]));
+          }
+
           // custom menu
           final YamlMap? customItem = item['customItem'];
           if (customItem != null) {
@@ -108,6 +118,7 @@ abstract class Menu extends Object with HasStyles, Invokable {
               onTapHaptic: Utils.optionalString(item['onTapHaptic']),
               isExternal: Utils.getBool(item['isExternal'], fallback: false),
               visible: item['visible'],
+              semantics: itemSemantics,
             ),
           );
           customIconModel = null; // Resetting custom icon model
@@ -116,6 +127,13 @@ abstract class Menu extends Object with HasStyles, Invokable {
       }
       if (menuItems.length < 2) {
         throw LanguageError("Menu requires two or more menu items.");
+      }
+
+      // semantics for Menu for sidebar and drawer
+      EnsembleSemantics? semantics = EnsembleSemantics(focusable: true);
+      if (payload['semantics'] != null) {
+        semantics =
+            EnsembleSemantics.fromYaml(Utils.getMap(payload["semantics"]));
       }
 
       // menu headers/footers
@@ -147,7 +165,8 @@ abstract class Menu extends Object with HasStyles, Invokable {
             idStyles: EnsembleThemeManager().currentTheme()?.getIDStyles(id),
             inlineStyles: styles,
             classList: classList,
-            reloadView: isReloadView);
+            reloadView: isReloadView,
+            semantics: semantics);
       } else if (menuType == MenuDisplay.Drawer ||
           menuType == MenuDisplay.EndDrawer) {
         return DrawerMenu(menuItems, menuType != MenuDisplay.EndDrawer,
@@ -161,7 +180,8 @@ abstract class Menu extends Object with HasStyles, Invokable {
             classList: classList,
             headerModel: menuHeaderModel,
             footerModel: menuFooterModel,
-            reloadView: isReloadView);
+            reloadView: isReloadView,
+            semantics: semantics);
       } else if (menuType == MenuDisplay.Sidebar ||
           menuType == MenuDisplay.EndSidebar) {
         return SidebarMenu(menuItems, menuType != MenuDisplay.EndSidebar,
@@ -175,7 +195,8 @@ abstract class Menu extends Object with HasStyles, Invokable {
             classList: classList,
             headerModel: menuHeaderModel,
             footerModel: menuFooterModel,
-            reloadView: isReloadView);
+            reloadView: isReloadView,
+            semantics: semantics);
       }
     }
     throw LanguageError("Invalid Menu type.",
@@ -199,7 +220,8 @@ class BottomNavBarMenu extends Menu {
       super.idStyles,
       super.inlineStyles,
       super.classList,
-      super.reloadView});
+      super.reloadView,
+      super.semantics});
 
   @override
   Map<String, Function> getters() {
@@ -227,7 +249,8 @@ class DrawerMenu extends Menu {
       super.classList,
       super.headerModel,
       super.footerModel,
-      super.reloadView});
+      super.reloadView,
+      super.semantics});
 
   // show the drawer at start (left for LTR languages) or at the end
   bool atStart = true;
@@ -258,7 +281,8 @@ class SidebarMenu extends Menu {
       super.classList,
       super.headerModel,
       super.footerModel,
-      super.reloadView});
+      super.reloadView,
+      super.semantics});
 
   // show the sidebar at start (left for LTR languages) or at the end
   bool atStart = true;
@@ -314,6 +338,7 @@ class MenuItem {
     this.onTapHaptic,
     required this.isExternal,
     this.visible = true,
+    this.semantics,
   });
 
   final String? label;
@@ -333,6 +358,7 @@ class MenuItem {
   final String? onTapHaptic;
   final bool isExternal;
   final dynamic visible;
+  EnsembleSemantics? semantics;
 
   bool isVisible(DataContext context) {
     if (visible == null) return true;
