@@ -172,8 +172,6 @@ class LogEvent extends ensembleAction.EnsembleAction {
           attributeKey: scopeManager.dataContext.eval(attributeKey),
         );
 
-        debugPrint('Adobe result: $result');
-
         if (onSuccess != null) {
           await ScreenController().executeAction(
             context,
