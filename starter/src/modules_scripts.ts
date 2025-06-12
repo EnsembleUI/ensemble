@@ -316,4 +316,16 @@ export const modules: Script[] = [
       ...firebaseWebParameters,
     ],
   },
+  {
+    name: 'adobe_analytics',
+    path: 'scripts/modules/enable_adobe_analytics.dart',
+    parameters: [
+      {
+        key: 'adobeAnalyticsAppId',
+        question: 'Please provide your Adobe Analytics App ID: ',
+        platform: ['android', 'ios', 'web'],
+        type: 'text',
+      },
+    ],
+  },
 ];
