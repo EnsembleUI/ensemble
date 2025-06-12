@@ -161,6 +161,7 @@ abstract class PageModel {
 
 /// a screen list grouped together by a menu
 class PageGroupModel extends PageModel {
+  EnsembleAction? onViewGroupResume;
   PageGroupModel._init(YamlMap docMap) {
     _processModel(docMap);
   }
@@ -169,7 +170,13 @@ class PageGroupModel extends PageModel {
   void _processModel(YamlMap docMap) {
     super._processModel(docMap);
 
-    menu = Menu.fromYaml(docMap['ViewGroup'], customViewDefinitions);
+    if (docMap['ViewGroup'] != null) {
+      YamlMap viewGroupMap = docMap['ViewGroup'];
+
+      // Extract onResumeScreen action from ViewGroup definition
+      onViewGroupResume = EnsembleAction.from(viewGroupMap['onViewGroupResume']);
+      menu = Menu.fromYaml(viewGroupMap, customViewDefinitions);
+    }
   }
 }
 
@@ -303,6 +310,8 @@ class SinglePageModel extends PageModel with HasStyles {
         viewBehavior.onLoad = EnsembleAction.from(viewMap['onLoad']);
         viewBehavior.onPause = EnsembleAction.from(viewMap['onPause']);
         viewBehavior.onResume = EnsembleAction.from(viewMap['onResume']);
+        viewBehavior.onViewGroupUpdate =
+            EnsembleAction.from(viewMap['onViewGroupUpdate']);
 
         processHeader(viewMap['header'], viewMap['title']);
 
@@ -529,11 +538,17 @@ class WidgetModel extends Object with HasStyles {
 
 /// special behaviors for RootView (View) and Custom Views
 class ViewBehavior {
-  ViewBehavior({this.onLoad, this.onPause, this.onResume});
+  ViewBehavior({
+    this.onLoad,
+    this.onPause,
+    this.onResume,
+    this.onViewGroupUpdate,
+  });
 
   EnsembleAction? onLoad;
   EnsembleAction? onPause;
   EnsembleAction? onResume;
+  EnsembleAction? onViewGroupUpdate;
 }
 
 class HeaderModel extends Object with HasStyles {

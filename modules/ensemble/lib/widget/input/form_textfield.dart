@@ -10,6 +10,7 @@ import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/helpers/form_helper.dart';
 import 'package:ensemble/widget/helpers/input_field_helper.dart';
 import 'package:ensemble/widget/helpers/input_wrapper.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:email_validator/email_validator.dart';
@@ -35,6 +36,8 @@ class TextInput extends BaseTextInput {
       },
       'obscureText': (obscure) =>
           _controller.obscureText = Utils.optionalBool(obscure),
+      'dismissOnTapOutside': (value) =>
+          _controller.dismissOnTapOutside = Utils.optionalBool(value),
       'inputType': (type) => _controller.inputType = Utils.optionalString(type),
       'mask': (type) => _controller.mask = Utils.optionalString(type),
       'onDelayedKeyPress': (function) => _controller.onDelayedKeyPress =
@@ -147,6 +150,7 @@ mixin TextInputFieldAction on FormFieldWidgetState<BaseTextInput>
 class TextInputController extends BaseInputController {
   // applicable only for TextInput
   bool? obscureText;
+  bool? dismissOnTapOutside;
 
   // applicable only for Password or obscure TextInput, to toggle between plain and secure text
   bool? obscured;
@@ -208,7 +212,8 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput>
       overlayEntry!.remove();
       overlayEntry = null;
     }
-    FocusManager.instance.primaryFocus?.unfocus();
+    if (widget.controller.dismissOnTapOutside == true)
+      FocusManager.instance.primaryFocus?.unfocus();
   }
 
   @override
@@ -453,11 +458,26 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput>
         onTapOutside: (_) => removeOverlayAndUnfocus(),
         onFieldSubmitted: (value) => widget.controller.submitForm(context),
         onChanged: (String txt) {
+          // If text suddenly increased by more than one character,
+          // it could indicate a paste operation
+          if(kIsWeb){
+            if (txt != previousText &&
+                (txt.length > previousText.length + 1 ||
+                    previousText.length > txt.length + 1) &&
+                !widget._controller.selectable) {
+              widget.textController.text = previousText;
+              widget.textController.selection = TextSelection.fromPosition(
+                TextPosition(offset: previousText.length),
+              );
+              // Early return to prevent further processing
+              return;
+            }
+          }
           if (txt != previousText) {
             // for performance reason, we dispatch onChange (as well as binding to value)
             // upon EditingComplete (select Done on virtual keyboard) or Focus Out
             didItChange = true;
-            previousText = txt;
+            previousText = widget.textController.text;
 
             // we dispatch onKeyPress here
             if (widget._controller.onKeyPress != null) {

@@ -103,7 +103,7 @@ class AuthManager with UserAuthentication {
     return null;
   }
 
-  Future<bool?> signInAnonymously(
+  Future<String?> signInAnonymously(
     BuildContext context,
   ) async {
     try {
@@ -116,10 +116,10 @@ class AuthManager with UserAuthentication {
         print('Sign in anonymous failed');
         return null;
       }
+      String? firebaseToken = await user.getIdToken();
 
       updateCurrentFirebaseUser(context, user);
-
-      return user.isAnonymous;
+      return firebaseToken;
     } catch (e) {
       print(e.toString());
       return null;
@@ -131,22 +131,30 @@ class AuthManager with UserAuthentication {
       {required String jwtToken}
   ) async {
     try {
+      // Get the ScopeManager to access DataContext
+      // and Evaluate jwtToken from ensemble.storage
+      ScopeManager? scopeManager = ScreenController().getScopeManager(context);
+      String evaluatedJwtToken = jwtToken;
+      if (scopeManager != null) {
+        evaluatedJwtToken =
+            scopeManager.dataContext.eval(jwtToken)?.toString() ?? jwtToken;
+      }
       customFirebaseApp ??= await _initializeFirebaseSignIn();
       final _auth = FirebaseAuth.instanceFor(app: customFirebaseApp!);
 
-      UserCredential userCredential = await _auth.signInWithCustomToken(jwtToken);
+      UserCredential userCredential =
+          await _auth.signInWithCustomToken(evaluatedJwtToken);
       User? user = userCredential.user;
       if (user == null) {
-        print('Sign in with custom firebase auth token failed');
-        return null;
+        throw StateError('Firebase sign-in failed. User is null.');
       }
       String? firebaseToken = await user.getIdToken();
 
       updateCurrentFirebaseUser(context, user);
       return firebaseToken;
     } catch (e) {
-      print(e.toString());
-      return null;
+      debugPrint('Error during Firebase sign-in: $e');
+      rethrow;
     }
   }
 
