@@ -1,3 +1,16 @@
+## 1.1.63
+
+ - **REFACTOR**: remove redundant event name checks in LogEvent class. ([09001583](https://github.com/ensembleUI/ensemble/commit/09001583522736c3c6876500ce24041ef47c8438))
+ - **REFACTOR**: streamline Adobe Analytics event tracking and remove unused methods. ([d22e3aa8](https://github.com/ensembleUI/ensemble/commit/d22e3aa818a96b8b836ca88fde991b687eb2248c))
+ - **FEAT**: integrate Assurance functionality into Adobe Analytics module. ([7e16c4e9](https://github.com/ensembleUI/ensemble/commit/7e16c4e9e7b7795e3b9517f264096601c32c1f69))
+ - **FEAT**: integrate user profile management into Adobe Analytics module. ([e30660ee](https://github.com/ensembleUI/ensemble/commit/e30660ee8f201db10ad1a30e5c3e94c7a08e585b))
+ - **FEAT**: add consent management to Adobe Analytics module. ([9a8a750f](https://github.com/ensembleUI/ensemble/commit/9a8a750f94699a20ada3d1606184df57dbee3720))
+ - **FEAT**: enhance Adobe Analytics module with core, edge, and identity functionalities. ([a49e1224](https://github.com/ensembleUI/ensemble/commit/a49e1224f322b4780467d6e9b794e3896a0958fa))
+ - **FEAT**: update Adobe Analytics methods to return dynamic results. ([3a9caf08](https://github.com/ensembleUI/ensemble/commit/3a9caf08fa37c03484ff3c04be4bf18bb6bd4d68))
+ - **FEAT**: add setupAssurance method to Adobe Analytics module for session management. ([9d01e220](https://github.com/ensembleUI/ensemble/commit/9d01e2201f97baf1320ace14271ee70ceae3255e))
+ - **FEAT**: enhance Adobe Analytics event tracking with timeout handling and parameter type adjustments. ([48d4880c](https://github.com/ensembleUI/ensemble/commit/48d4880c3138e463665b704681eec3d5f57188b7))
+ - **FEAT**: add Adobe Analytics module for Ensemble integration. ([77fadddb](https://github.com/ensembleUI/ensemble/commit/77fadddb913ed20834f977db0fe78ee79c93005b))
+
 ## 1.1.62
 
 ## 1.1.61
