@@ -1,3 +1,7 @@
+## 1.1.64
+
+ - version build => enabling adobe analytics for build system
+
 ## 1.1.63
 
  - **REFACTOR**: remove redundant event name checks in LogEvent class. ([09001583](https://github.com/ensembleUI/ensemble/commit/09001583522736c3c6876500ce24041ef47c8438))
