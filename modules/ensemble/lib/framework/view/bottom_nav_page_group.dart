@@ -15,6 +15,8 @@ import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/framework/widget/icon.dart' as ensemble;
 import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:flutter/material.dart';
+// Import the global controller
+import 'package:ensemble/framework/view/bottom_nav_controller.dart';
 
 class BottomNavBarItem {
   BottomNavBarItem({
@@ -27,6 +29,7 @@ class BottomNavBarItem {
     this.switchScreen = true,
     this.onTap,
     this.onTapHaptic,
+    this.page,
   });
 
   Widget icon;
@@ -38,6 +41,7 @@ class BottomNavBarItem {
   bool? switchScreen;
   EnsembleAction? onTap;
   String? onTapHaptic;
+  String? page;
 }
 
 enum FloatingAlignment {
@@ -113,10 +117,15 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup>
   FloatingAlignment floatingAlignment = FloatingAlignment.center;
   int? floatingMargin;
   MenuItem? fabMenuItem;
+  late String _pageGroupId;
 
   @override
   void initState() {
     super.initState();
+    
+    // Generate unique page group ID
+    _pageGroupId = 'pagegroup_${widget.hashCode}';
+    
     if (widget.menu.reloadView == false) {
       controller = PageController(initialPage: widget.selectedPage);
     }
@@ -152,6 +161,9 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup>
 
   @override
   void dispose() {
+    // Unregister from global controller
+    GlobalBottomNavController.instance.unregisterBottomNavWidgets(_pageGroupId);
+    
     if (widget.menu.reloadView == false) {
       controller.dispose();
     }
@@ -221,18 +233,109 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup>
         Utils.getColor(widget.menu.runtimeStyles?['notchColor']) ??
             Theme.of(context).scaffoldBackgroundColor;
 
+    // Build the widgets
+    Widget? bottomNavBar = _buildBottomNavBar();
+    Widget? floatingButton = _buildFloatingButton();
+    FloatingActionButtonLocation? floatingLocation =
+        floatingAlignment == FloatingAlignment.none
+            ? null
+            : floatingAlignment.location;
+
+// Register the built widgets with global controller
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      GlobalBottomNavController.instance.registerBottomNavWidgets(
+        bottomNavWidget: bottomNavBar,
+        floatingActionButton: floatingButton,
+        floatingActionButtonLocation: floatingLocation,
+        pageGroupId: _pageGroupId,
+        onTabSelected: (index) {
+          List<BottomNavBarItem> navItems = [];
+
+          final unselectedColor =
+              Utils.getColor(widget.menu.runtimeStyles?['color']) ??
+                  Theme.of(context).unselectedWidgetColor;
+          final selectedColor =
+              Utils.getColor(widget.menu.runtimeStyles?['selectedColor']) ??
+                  Theme.of(context).primaryColor;
+
+          // final menu = widget.menu;
+          for (int i = 0; i < menuItems.length; i++) {
+            MenuItem item = menuItems[i];
+            final dynamic customIcon = _buildCustomIcon(item);
+            final dynamic customActiveIcon =
+                _buildCustomIcon(item, isActive: true);
+
+            final isCustom = customIcon != null || customActiveIcon != null;
+            final label =
+                isCustom ? '' : Utils.translate(item.label ?? '', context);
+
+            final icon = customIcon ??
+                (item.icon != null
+                    ? ensemble.Icon.fromModel(item.icon!,
+                        fallbackLibrary: item.iconLibrary,
+                        fallbackColor: unselectedColor)
+                    : ensemble.Icon(''));
+
+            final activeIcon = customActiveIcon ??
+                (item.activeIcon != null || item.icon != null
+                    ? ensemble.Icon.fromModel((item.activeIcon ?? item.icon)!,
+                        fallbackColor: selectedColor,
+                        fallbackLibrary: item.iconLibrary)
+                    : null);
+
+            navItems.add(
+              BottomNavBarItem(
+                  icon: icon,
+                  activeIcon: activeIcon,
+                  isCustom: isCustom,
+                  text: label,
+                  switchScreen: Menu.evalSwitchScreen(
+                      widget.scopeManager.dataContext, item),
+                  onTap: EnsembleAction.from(item.onTap),
+                  onTapHaptic: item.onTapHaptic,
+                  page: item.page),
+            );
+          }
+          // Copy this EXACT code from your _buildBottomNavBar() method:
+          final isSwitchScreen =
+              Utils.getBool(navItems[index].switchScreen, fallback: true);
+          print('clicked inside the register!!!');
+          if (isSwitchScreen) {
+            if (widget.menu.reloadView == true) {
+              viewGroupNotifier.updatePage(index);
+            } else {
+              PageGroupWidget.getPageController(context)!.jumpToPage(index);
+              viewGroupNotifier.updatePage(index);
+            }
+
+            _onTap(navItems[index]);
+          } else {
+            // Execute only onTap action. Page switching is handled by the developer with onTap
+            _onTap(navItems[index]);
+          }
+
+          // Executing haptic feedback action
+          if (navItems[index].onTapHaptic != null) {
+            ScreenController().executeAction(
+              context,
+              HapticAction(
+                  type: navItems[index].onTapHaptic!, onComplete: null),
+            );
+          }
+        },
+        menu: widget.menu as BottomNavBarMenu,
+      );
+    });
+
     return PageGroupWidgetWrapper(
       reloadView: widget.menu.reloadView,
       scopeManager: widget.scopeManager,
       child: Scaffold(
         resizeToAvoidBottomInset: true,
         backgroundColor: notchColor,
-        bottomNavigationBar: _buildBottomNavBar(),
-        floatingActionButtonLocation:
-            floatingAlignment == FloatingAlignment.none
-                ? null
-                : floatingAlignment.location,
-        floatingActionButton: _buildFloatingButton(),
+        bottomNavigationBar: bottomNavBar,
+        floatingActionButtonLocation: floatingLocation,
+        floatingActionButton: floatingButton,
         body: widget.menu.reloadView == true
             ? ListenableBuilder(
                 listenable: viewGroupNotifier,
@@ -313,7 +416,10 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup>
       listenable: viewGroupNotifier,
       builder: (context, _) {
         final viewIndex = viewGroupNotifier.viewIndex;
-
+        if (PageGroupWidget.getPageController(context) != null) {
+          GlobalBottomNavController.instance.pageController =
+              PageGroupWidget.getPageController(context)!;
+        }
         return EnsembleBottomAppBar(
           key: UniqueKey(),
           selectedIndex: viewIndex,
@@ -347,7 +453,18 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup>
               if (widget.menu.reloadView == true) {
                 viewGroupNotifier.updatePage(index);
               } else {
-                PageGroupWidget.getPageController(context)!.jumpToPage(index);
+                // Continue the old flow if PageController is available
+                if (PageGroupWidget.getPageController(context) != null) {
+                  PageGroupWidget.getPageController(context)!.jumpToPage(index);
+                }
+                else {
+                  // If PageController is not available, navigate to the screen
+                  ScreenController().navigateToScreen(context,
+                      screenName: navItems[index].page,
+                      pageArgs: viewGroupNotifier.payload);
+                  // Update the global controller to reflect the current page
+                  GlobalBottomNavController.instance.pageController.jumpToPage(index);
+                }
                 viewGroupNotifier.updatePage(index);
               }
 

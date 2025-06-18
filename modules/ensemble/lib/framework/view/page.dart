@@ -1,5 +1,6 @@
 import 'dart:developer';
-
+import 'bottom_nav_page_group.dart'; // To access bottomNavVisibilityNotifier
+import 'bottom_nav_controller.dart';
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/ensemble_app.dart';
@@ -94,11 +95,40 @@ class PageState extends State<Page>
   @override
   bool get wantKeepAlive => true;
 
+  // Helper method to check if we're in a bottom nav context
+//   bool _isInBottomNavContext() {
+//     try {
+//       final pageGroupWidget = context.findAncestorWidgetOfExactType<PageGroupWidget>();
+//       return pageGroupWidget != null;
+//     } catch (e) {
+//       return false;
+//     }
+//   }
+
+//   // Handle bottom nav visibility based on page styles
+// void _handleBottomNavVisibility() {
+//   if (_isInBottomNavContext()) {
+//     final hideBottomNavBar = Utils.optionalBool(
+//         widget._pageModel.runtimeStyles?['hideBottomNavBar']) ?? false;
+    
+//     // Use the controller that the UI is actually listening to
+//     if (hideBottomNavBar) {
+//       bottomNavVisibilityNotifier.hide(); // ← Use this one
+//     } else {
+//       print('calling show() from PageState');
+//       bottomNavVisibilityNotifier.show(); // ← Use this one
+//     }
+//   }
+// }
+
   @override
   void didUpdateWidget(covariant Page oldWidget) {
     super.didUpdateWidget(oldWidget);
     // widget can be re-created at any time, we need to keep the Scope intact.
     widget.rootScopeManager = _scopeManager;
+    //    WidgetsBinding.instance.addPostFrameCallback((_) {
+    //   _handleBottomNavVisibility();
+    // });
   }
 
   @override
@@ -106,11 +136,12 @@ class PageState extends State<Page>
     super.didChangeDependencies();
     // if our widget changes, we need to save the scopeManager to it.
     widget.rootScopeManager = _scopeManager;
-
-    // see if we are part of a ViewGroup or not
     BottomNavScreen? bottomNavRootScreen = BottomNavScreen.getScreen(context);
     if (bottomNavRootScreen != null) {
       bottomNavRootScreen.onReVisited(() {
+    //        WidgetsBinding.instance.addPostFrameCallback((_) {
+    //   _handleBottomNavVisibility();
+    // });
         if (widget._pageModel.viewBehavior.onResume != null) {
           ScreenController().executeActionWithScope(
               context, _scopeManager, widget._pageModel.viewBehavior.onResume!,
@@ -176,6 +207,9 @@ class PageState extends State<Page>
   @override
   void didPush() {
     log("didPush() for ${widget.hashCode}");
+    //    WidgetsBinding.instance.addPostFrameCallback((_) {
+    //   _handleBottomNavVisibility();
+    // });
   }
 
   DateTime? screenLastPaused;
@@ -196,6 +230,10 @@ class PageState extends State<Page>
   @override
   void didPopNext() {
     super.didPopNext();
+    // print('inside didPopNext() for ${widget.hashCode}');
+    //    WidgetsBinding.instance.addPostFrameCallback((_) {
+    //   _handleBottomNavVisibility();
+    // });
     if (widget._pageModel.viewBehavior.onResume != null) {
       ScreenController().executeActionWithScope(
           context, _scopeManager, widget._pageModel.viewBehavior.onResume!,
@@ -236,6 +274,10 @@ class PageState extends State<Page>
         }
       }
     }
+        // _handleBottomNavVisibility();
+  //  WidgetsBinding.instance.addPostFrameCallback((_) {
+  //     _handleBottomNavVisibility();
+  //   });
 
     // execute view behavior
     if (widget._pageModel.viewBehavior.onLoad != null) {
@@ -452,143 +494,185 @@ class PageState extends State<Page>
     return null;
   }
 
-  @override
-  Widget build(BuildContext context) {
-    super.build(context);
-    //log("View build() $hashCode");
+@override
+Widget build(BuildContext context) {
+  super.build(context);
+  //log("View build() $hashCode");
 
-    // drawer might be injected from the PageGroup, so check for it first.
-    // Note that if the drawer already exists, we will ignore any new drawer
-    Widget? _drawer = PageGroupWidget.getNavigationDrawer(context);
-    Widget? _endDrawer = PageGroupWidget.getNavigationEndDrawer(context);
-    bool hasDrawer = _drawer != null || _endDrawer != null;
+  // drawer might be injected from the PageGroup, so check for it first.
+  // Note that if the drawer already exists, we will ignore any new drawer
+  Widget? _drawer = PageGroupWidget.getNavigationDrawer(context);
+  Widget? _endDrawer = PageGroupWidget.getNavigationEndDrawer(context);
+  bool hasDrawer = _drawer != null || _endDrawer != null;
 
-    Widget? _bottomNavBar;
-    if (widget._pageModel.menu != null) {
-      EnsembleThemeManager().configureStyles(_scopeManager.dataContext,
-          widget._pageModel.menu!, widget._pageModel.menu!);
-    }
-    // build the navigation menu (bottom nav bar or drawer). Note that menu is not applicable on modal pages
-    if (widget._pageModel.menu != null &&
-        widget._pageModel.screenOptions?.pageType != PageType.modal) {
-      if (widget._pageModel.menu is BottomNavBarMenu) {
-        _bottomNavBar = _buildBottomNavBar(
-            context, widget._pageModel.menu as BottomNavBarMenu);
-      } else if (widget._pageModel.menu is DrawerMenu) {
-        if (!(widget._pageModel.menu as DrawerMenu).atStart) {
-          _endDrawer ??=
-              _buildDrawer(context, widget._pageModel.menu as DrawerMenu);
-        } else {
-          _drawer ??=
-              _buildDrawer(context, widget._pageModel.menu as DrawerMenu);
-        }
+  Widget? _bottomNavBar;
+  if (widget._pageModel.menu != null) {
+    EnsembleThemeManager().configureStyles(_scopeManager.dataContext,
+        widget._pageModel.menu!, widget._pageModel.menu!);
+  }
+    final globalBottomNav = GlobalBottomNavController.instance;
+    Widget? _floatingActionButton;
+  FloatingActionButtonLocation? _floatingActionButtonLocation;
+  if (globalBottomNav.hasBottomNav && 
+      widget._pageModel.runtimeStyles?['showMenu'] == true) {
+    _bottomNavBar = globalBottomNav.bottomNavWidget;
+    _floatingActionButton = globalBottomNav.floatingActionButton;
+    _floatingActionButtonLocation = globalBottomNav.floatingActionButtonLocation;
+  } 
+  // build the navigation menu (bottom nav bar or drawer). Note that menu is not applicable on modal pages
+  if (widget._pageModel.menu != null &&
+      widget._pageModel.screenOptions?.pageType != PageType.modal) {
+    if (widget._pageModel.menu is BottomNavBarMenu) {
+      _bottomNavBar = _buildBottomNavBar(
+          context, widget._pageModel.menu as BottomNavBarMenu);
+    } else if (widget._pageModel.menu is DrawerMenu) {
+      if (!(widget._pageModel.menu as DrawerMenu).atStart) {
+        _endDrawer ??=
+            _buildDrawer(context, widget._pageModel.menu as DrawerMenu);
+      } else {
+        _drawer ??=
+            _buildDrawer(context, widget._pageModel.menu as DrawerMenu);
       }
-      // sidebar navBar will be rendered as part of the body
     }
-
-    LinearGradient? backgroundGradient = Utils.getBackgroundGradient(
-        widget._pageModel.runtimeStyles?['backgroundGradient']);
-    Color? backgroundColor = Utils.getColor(_scopeManager.dataContext
-        .eval(widget._pageModel.runtimeStyles?['backgroundColor']));
-    // if we have a background image, set the background color to transparent
-    // since our image is outside the Scaffold
-    dynamic evaluatedBackgroundImg = _scopeManager.dataContext
-        .eval(widget._pageModel.runtimeStyles?['backgroundImage']);
-    BackgroundImage? backgroundImage =
-        Utils.getBackgroundImage(evaluatedBackgroundImg);
-    if (backgroundImage != null || backgroundGradient != null) {
-      backgroundColor = Colors.transparent;
-    }
-
-    // whether to usse CustomScrollView for the entire page
-    bool isScrollableView =
-        widget._pageModel.runtimeStyles?['scrollableView'] == true;
-
-    PreferredSizeWidget? fixedAppBar;
-    if (!isScrollableView) {
-      fixedAppBar = buildFixedAppBar(widget._pageModel, hasDrawer);
-    }
-
-    // whether we have a header and if the close button is already there-
-    bool hasHeader = widget._pageModel.headerModel != null || hasDrawer;
-    bool? showNavigationIcon =
-        widget._pageModel.runtimeStyles?['showNavigationIcon'];
-
-    // add close button for modal page
-    Widget? closeModalButton;
-    if (widget._pageModel.screenOptions?.pageType == PageType.modal &&
-        !hasHeader &&
-        showNavigationIcon != false) {
-      closeModalButton = FloatingActionButton(
-        elevation: 3,
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black,
-        mini: true,
-        onPressed: () {
-          Navigator.maybePop(context);
-        },
-        child: const Icon(Icons.close_rounded),
-      );
-    }
-
-    Widget rtn = DataScopeWidget(
-      scopeManager: _scopeManager,
-      child: Unfocus(
-        isUnfocus: Utils.getBool(widget._pageModel.runtimeStyles?['unfocus'],
-            fallback: false),
-        child: Scaffold(
-            resizeToAvoidBottomInset: true,
-            // slight optimization, if body background is set, let's paint
-            // the entire screen including the Safe Area
-            backgroundColor: backgroundColor,
-
-            // appBar is inside CustomScrollView if defined
-            appBar: fixedAppBar,
-            body: FooterLayout(
-              body: isScrollableView
-                  ? buildScrollablePageContent(hasDrawer)
-                  : buildFixedPageContent(fixedAppBar != null),
-              footer: footerWidget,
-            ),
-            bottomNavigationBar: _bottomNavBar,
-            drawer: _drawer,
-            endDrawer: _endDrawer,
-            floatingActionButton: closeModalButton,
-            floatingActionButtonLocation:
-                widget._pageModel.runtimeStyles?['navigationIconPosition'] ==
-                        'start'
-                    ? FloatingActionButtonLocation.startTop
-                    : FloatingActionButtonLocation.endTop),
-      ),
-    );
-    DevMode.pageDataContext = _scopeManager.dataContext;
-    // selectableText at the root
-    if (Utils.optionalBool(widget._pageModel.runtimeStyles?['selectable']) ==
-        true) {
-      rtn = HasSelectableText(child: rtn);
-    }
-
-    // if backgroundImage is set, put it outside of the Scaffold so
-    // keyboard sliding up (when entering value) won't resize the background
-    if (backgroundImage != null) {
-      return Stack(
-        children: [
-          Positioned.fill(
-            child: backgroundImage.getImageAsWidget(_scopeManager),
-          ),
-          rtn,
-        ],
-      );
-    } else if (backgroundGradient != null) {
-      return Scaffold(
-          resizeToAvoidBottomInset: false,
-          body: Container(
-              decoration: BoxDecoration(gradient: backgroundGradient),
-              child: rtn));
-    }
-    return rtn;
+    // sidebar navBar will be rendered as part of the body
   }
 
+  // Use context bottom nav if available and page wants to show menu
+  bool showMenu = widget._pageModel.runtimeStyles?['showMenu'] ?? false;
+    if (showMenu && globalBottomNav.hasBottomNav) {
+      final storedWidget = globalBottomNav.bottomNavWidget;
+      if (storedWidget is EnsembleBottomAppBar) {
+        _bottomNavBar = EnsembleBottomAppBar(
+          // Copy all properties from stored widget
+          items: storedWidget.items,
+          selectedIndex: storedWidget.selectedIndex,
+          backgroundColor: storedWidget.backgroundColor,
+          height: storedWidget.height,
+          margin: storedWidget.margin,
+          padding: storedWidget.padding,
+          borderRadius: storedWidget.borderRadius,
+          color: storedWidget.color,
+          selectedColor: storedWidget.selectedColor,
+          boxShadow: storedWidget.boxShadow,
+          notchedShape: storedWidget.notchedShape,
+          isFloating: storedWidget.isFloating,
+          floatingAlignment: storedWidget.floatingAlignment,
+          floatingMargin: storedWidget.floatingMargin,
+
+          // OVERRIDE with global controller callback
+          onTabSelected: (index) {
+            print('Tab $index tapped in Page.dart');
+            globalBottomNav.selectTab(index); // This calls your registration callback
+          }
+          ,
+        );
+      } else {
+        _bottomNavBar = storedWidget;
+      }
+    }
+    LinearGradient? backgroundGradient = Utils.getBackgroundGradient(
+      widget._pageModel.runtimeStyles?['backgroundGradient']);
+  Color? backgroundColor = Utils.getColor(_scopeManager.dataContext
+      .eval(widget._pageModel.runtimeStyles?['backgroundColor']));
+  // if we have a background image, set the background color to transparent
+  // since our image is outside the Scaffold
+  dynamic evaluatedBackgroundImg = _scopeManager.dataContext
+      .eval(widget._pageModel.runtimeStyles?['backgroundImage']);
+  BackgroundImage? backgroundImage =
+      Utils.getBackgroundImage(evaluatedBackgroundImg);
+  if (backgroundImage != null || backgroundGradient != null) {
+    backgroundColor = Colors.transparent;
+  }
+
+    // whether to usse CustomScrollView for the entire page
+  bool isScrollableView =
+      widget._pageModel.runtimeStyles?['scrollableView'] == true;
+
+  PreferredSizeWidget? fixedAppBar;
+  if (!isScrollableView) {
+    fixedAppBar = buildFixedAppBar(widget._pageModel, hasDrawer);
+  }
+
+    // whether we have a header and if the close button is already there-
+  bool hasHeader = widget._pageModel.headerModel != null || hasDrawer;
+  bool? showNavigationIcon =
+      widget._pageModel.runtimeStyles?['showNavigationIcon'];
+
+  // add close button for modal page
+  Widget? closeModalButton;
+  if (widget._pageModel.screenOptions?.pageType == PageType.modal &&
+      !hasHeader &&
+      showNavigationIcon != false) {
+    closeModalButton = FloatingActionButton(
+      elevation: 3,
+      backgroundColor: Colors.white,
+      foregroundColor: Colors.black,
+      mini: true,
+      onPressed: () {
+        Navigator.maybePop(context);
+      },
+      child: const Icon(Icons.close_rounded),
+    );
+  }
+
+  Widget rtn = DataScopeWidget(
+    scopeManager: _scopeManager,
+    child: Unfocus(
+      isUnfocus: Utils.getBool(widget._pageModel.runtimeStyles?['unfocus'],
+          fallback: false),
+      child: Scaffold(
+          resizeToAvoidBottomInset: true,
+          // slight optimization, if body background is set, let's paint
+          // the entire screen including the Safe Area
+          backgroundColor: backgroundColor,
+
+          // appBar is inside CustomScrollView if defined
+          appBar: fixedAppBar,
+          body: FooterLayout(
+            body: isScrollableView
+                ? buildScrollablePageContent(hasDrawer)
+                : buildFixedPageContent(fixedAppBar != null),
+            footer: footerWidget,
+          ),
+          bottomNavigationBar: _bottomNavBar,
+          drawer: _drawer,
+          endDrawer: _endDrawer,
+          floatingActionButton: _floatingActionButton ?? closeModalButton,
+          floatingActionButtonLocation: _floatingActionButtonLocation ??
+              (
+                widget._pageModel.runtimeStyles?['navigationIconPosition'] ==
+                        'start'                  
+                    ? FloatingActionButtonLocation.startTop
+                    : FloatingActionButtonLocation.endTop)),
+    ),
+  );
+  DevMode.pageDataContext = _scopeManager.dataContext;
+  // selectableText at the root
+    if (Utils.optionalBool(widget._pageModel.runtimeStyles?['selectable']) ==
+        true) {    
+          rtn = HasSelectableText(child: rtn);
+  }
+
+  // if backgroundImage is set, put it outside of the Scaffold so
+  // keyboard sliding up (when entering value) won't resize the background
+  if (backgroundImage != null) {
+    return Stack(
+      children: [
+        Positioned.fill(
+          child: backgroundImage.getImageAsWidget(_scopeManager),
+        ),
+        rtn,
+      ],
+    );
+  } else if (backgroundGradient != null) {
+    return Scaffold(
+        resizeToAvoidBottomInset: false,
+        body: Container(
+            decoration: BoxDecoration(gradient: backgroundGradient),
+            child: rtn));
+  }
+  return rtn;
+}
   /// determine if we should wraps the body in a SafeArea or not
   bool useSafeArea() {
     bool? useSafeArea =
