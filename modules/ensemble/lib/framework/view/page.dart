@@ -356,8 +356,8 @@ class PageState extends State<Page>
     Color? shadowColor = Utils.getColor(evaluatedHeader?['shadowColor']);
     double? elevation =
         Utils.optionalInt(evaluatedHeader?['elevation'], min: 0)?.toDouble();
-    ScrollMode scrollMode =
-        Utils.getEnum<ScrollMode>(evaluatedHeader?['scrollMode'], ScrollMode.values);
+    ScrollMode scrollMode = Utils.getEnum<ScrollMode>(
+        evaluatedHeader?['scrollMode'], ScrollMode.values);
     final titleBarHeight =
         Utils.optionalInt(evaluatedHeader?['titleBarHeight'], min: 0)
                 ?.toDouble() ??
@@ -375,7 +375,8 @@ class PageState extends State<Page>
       animationEnabled = Utils.getBool(animation!['enabled'], fallback: false);
       duration = Utils.getInt(animation!['duration'], fallback: 0);
       curve = Utils.getCurve(animation!['curve']);
-      animationType = Utils.getEnum<AnimationType>(animation!['animationType'], AnimationType.values);
+      animationType = Utils.getEnum<AnimationType>(
+          animation!['animationType'], AnimationType.values);
     }
     // applicable only to Sliver scrolling
     double? flexibleMaxHeight =
@@ -451,185 +452,153 @@ class PageState extends State<Page>
     return null;
   }
 
-@override
-Widget build(BuildContext context) {
-  super.build(context);
-  //log("View build() $hashCode");
+  @override
+  Widget build(BuildContext context) {
+    super.build(context);
+    //log("View build() $hashCode");
 
-  // drawer might be injected from the PageGroup, so check for it first.
-  // Note that if the drawer already exists, we will ignore any new drawer
-  Widget? _drawer = PageGroupWidget.getNavigationDrawer(context);
-  Widget? _endDrawer = PageGroupWidget.getNavigationEndDrawer(context);
-  bool hasDrawer = _drawer != null || _endDrawer != null;
+    // drawer might be injected from the PageGroup, so check for it first.
+    // Note that if the drawer already exists, we will ignore any new drawer
+    Widget? _drawer = PageGroupWidget.getNavigationDrawer(context);
+    Widget? _endDrawer = PageGroupWidget.getNavigationEndDrawer(context);
+    bool hasDrawer = _drawer != null || _endDrawer != null;
 
-  Widget? _bottomNavBar;
-  if (widget._pageModel.menu != null) {
-    EnsembleThemeManager().configureStyles(_scopeManager.dataContext,
-        widget._pageModel.menu!, widget._pageModel.menu!);
-  }
+    Widget? _bottomNavBar;
+    if (widget._pageModel.menu != null) {
+      EnsembleThemeManager().configureStyles(_scopeManager.dataContext,
+          widget._pageModel.menu!, widget._pageModel.menu!);
+    }
     final globalBottomNav = GlobalBottomNavController.instance;
     Widget? _floatingActionButton;
-  FloatingActionButtonLocation? _floatingActionButtonLocation;
-  if (globalBottomNav.hasBottomNav && 
-      widget._pageModel.runtimeStyles?['showMenu'] == true) {
-    _bottomNavBar = globalBottomNav.bottomNavWidget;
-    _floatingActionButton = globalBottomNav.floatingActionButton;
-    _floatingActionButtonLocation = globalBottomNav.floatingActionButtonLocation;
-  } 
-  // build the navigation menu (bottom nav bar or drawer). Note that menu is not applicable on modal pages
-  if (widget._pageModel.menu != null &&
-      widget._pageModel.screenOptions?.pageType != PageType.modal) {
-    if (widget._pageModel.menu is BottomNavBarMenu) {
-      _bottomNavBar = _buildBottomNavBar(
-          context, widget._pageModel.menu as BottomNavBarMenu);
-    } else if (widget._pageModel.menu is DrawerMenu) {
-      if (!(widget._pageModel.menu as DrawerMenu).atStart) {
-        _endDrawer ??=
-            _buildDrawer(context, widget._pageModel.menu as DrawerMenu);
-      } else {
-        _drawer ??=
-            _buildDrawer(context, widget._pageModel.menu as DrawerMenu);
+    FloatingActionButtonLocation? _floatingActionButtonLocation;
+    // build the navigation menu (bottom nav bar or drawer). Note that menu is not applicable on modal pages
+    if (widget._pageModel.menu != null &&
+        widget._pageModel.screenOptions?.pageType != PageType.modal) {
+      if (widget._pageModel.menu is BottomNavBarMenu) {
+        _bottomNavBar = _buildBottomNavBar(
+            context, widget._pageModel.menu as BottomNavBarMenu);
+      } else if (widget._pageModel.menu is DrawerMenu) {
+        if (!(widget._pageModel.menu as DrawerMenu).atStart) {
+          _endDrawer ??=
+              _buildDrawer(context, widget._pageModel.menu as DrawerMenu);
+        } else {
+          _drawer ??=
+              _buildDrawer(context, widget._pageModel.menu as DrawerMenu);
+        }
       }
+      // sidebar navBar will be rendered as part of the body
     }
-    // sidebar navBar will be rendered as part of the body
-  }
 
-  // Use context bottom nav if available and page wants to show menu
-  bool showMenu = widget._pageModel.runtimeStyles?['showMenu'] ?? false;
-    if (showMenu && globalBottomNav.hasBottomNav) {
-      final storedWidget = globalBottomNav.bottomNavWidget;
-      if (storedWidget is EnsembleBottomAppBar) {
-        _bottomNavBar = EnsembleBottomAppBar(
-          // Copy all properties from stored widget
-          items: storedWidget.items,
-          selectedIndex: storedWidget.selectedIndex,
-          backgroundColor: storedWidget.backgroundColor,
-          height: storedWidget.height,
-          margin: storedWidget.margin,
-          padding: storedWidget.padding,
-          borderRadius: storedWidget.borderRadius,
-          color: storedWidget.color,
-          selectedColor: storedWidget.selectedColor,
-          boxShadow: storedWidget.boxShadow,
-          notchedShape: storedWidget.notchedShape,
-          isFloating: storedWidget.isFloating,
-          floatingAlignment: storedWidget.floatingAlignment,
-          floatingMargin: storedWidget.floatingMargin,
-
-          // OVERRIDE with global controller callback
-          onTabSelected: (index) {
-            print('Tab $index tapped in Page.dart');
-            globalBottomNav.selectTab(index); // This calls your registration callback
-          }
-          ,
-        );
-      } else {
-        _bottomNavBar = storedWidget;
-      }
+    if (globalBottomNav.bottomNavWidget != null &&
+        widget._pageModel.runtimeStyles?['showMenu'] == true) {
+      _bottomNavBar = globalBottomNav.bottomNavWidget;
+      _floatingActionButton = globalBottomNav.floatingActionButton;
+      _floatingActionButtonLocation =
+          globalBottomNav.floatingActionButtonLocation;
     }
     LinearGradient? backgroundGradient = Utils.getBackgroundGradient(
-      widget._pageModel.runtimeStyles?['backgroundGradient']);
-  Color? backgroundColor = Utils.getColor(_scopeManager.dataContext
-      .eval(widget._pageModel.runtimeStyles?['backgroundColor']));
-  // if we have a background image, set the background color to transparent
-  // since our image is outside the Scaffold
-  dynamic evaluatedBackgroundImg = _scopeManager.dataContext
-      .eval(widget._pageModel.runtimeStyles?['backgroundImage']);
-  BackgroundImage? backgroundImage =
-      Utils.getBackgroundImage(evaluatedBackgroundImg);
-  if (backgroundImage != null || backgroundGradient != null) {
-    backgroundColor = Colors.transparent;
-  }
+        widget._pageModel.runtimeStyles?['backgroundGradient']);
+    Color? backgroundColor = Utils.getColor(_scopeManager.dataContext
+        .eval(widget._pageModel.runtimeStyles?['backgroundColor']));
+    // if we have a background image, set the background color to transparent
+    // since our image is outside the Scaffold
+    dynamic evaluatedBackgroundImg = _scopeManager.dataContext
+        .eval(widget._pageModel.runtimeStyles?['backgroundImage']);
+    BackgroundImage? backgroundImage =
+        Utils.getBackgroundImage(evaluatedBackgroundImg);
+    if (backgroundImage != null || backgroundGradient != null) {
+      backgroundColor = Colors.transparent;
+    }
 
     // whether to usse CustomScrollView for the entire page
-  bool isScrollableView =
-      widget._pageModel.runtimeStyles?['scrollableView'] == true;
+    bool isScrollableView =
+        widget._pageModel.runtimeStyles?['scrollableView'] == true;
 
-  PreferredSizeWidget? fixedAppBar;
-  if (!isScrollableView) {
-    fixedAppBar = buildFixedAppBar(widget._pageModel, hasDrawer);
-  }
+    PreferredSizeWidget? fixedAppBar;
+    if (!isScrollableView) {
+      fixedAppBar = buildFixedAppBar(widget._pageModel, hasDrawer);
+    }
 
     // whether we have a header and if the close button is already there-
-  bool hasHeader = widget._pageModel.headerModel != null || hasDrawer;
-  bool? showNavigationIcon =
-      widget._pageModel.runtimeStyles?['showNavigationIcon'];
+    bool hasHeader = widget._pageModel.headerModel != null || hasDrawer;
+    bool? showNavigationIcon =
+        widget._pageModel.runtimeStyles?['showNavigationIcon'];
 
-  // add close button for modal page
-  Widget? closeModalButton;
-  if (widget._pageModel.screenOptions?.pageType == PageType.modal &&
-      !hasHeader &&
-      showNavigationIcon != false) {
-    closeModalButton = FloatingActionButton(
-      elevation: 3,
-      backgroundColor: Colors.white,
-      foregroundColor: Colors.black,
-      mini: true,
-      onPressed: () {
-        Navigator.maybePop(context);
-      },
-      child: const Icon(Icons.close_rounded),
-    );
-  }
+    // add close button for modal page
+    Widget? closeModalButton;
+    if (widget._pageModel.screenOptions?.pageType == PageType.modal &&
+        !hasHeader &&
+        showNavigationIcon != false) {
+      closeModalButton = FloatingActionButton(
+        elevation: 3,
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.black,
+        mini: true,
+        onPressed: () {
+          Navigator.maybePop(context);
+        },
+        child: const Icon(Icons.close_rounded),
+      );
+    }
 
-  Widget rtn = DataScopeWidget(
-    scopeManager: _scopeManager,
-    child: Unfocus(
-      isUnfocus: Utils.getBool(widget._pageModel.runtimeStyles?['unfocus'],
-          fallback: false),
-      child: Scaffold(
-          resizeToAvoidBottomInset: true,
-          // slight optimization, if body background is set, let's paint
-          // the entire screen including the Safe Area
-          backgroundColor: backgroundColor,
+    Widget rtn = DataScopeWidget(
+      scopeManager: _scopeManager,
+      child: Unfocus(
+        isUnfocus: Utils.getBool(widget._pageModel.runtimeStyles?['unfocus'],
+            fallback: false),
+        child: Scaffold(
+            resizeToAvoidBottomInset: true,
+            // slight optimization, if body background is set, let's paint
+            // the entire screen including the Safe Area
+            backgroundColor: backgroundColor,
 
-          // appBar is inside CustomScrollView if defined
-          appBar: fixedAppBar,
-          body: FooterLayout(
-            body: isScrollableView
-                ? buildScrollablePageContent(hasDrawer)
-                : buildFixedPageContent(fixedAppBar != null),
-            footer: footerWidget,
-          ),
-          bottomNavigationBar: _bottomNavBar,
-          drawer: _drawer,
-          endDrawer: _endDrawer,
-          floatingActionButton: _floatingActionButton ?? closeModalButton,
-          floatingActionButtonLocation: _floatingActionButtonLocation ??
-              (
-                widget._pageModel.runtimeStyles?['navigationIconPosition'] ==
-                        'start'                  
+            // appBar is inside CustomScrollView if defined
+            appBar: fixedAppBar,
+            body: FooterLayout(
+              body: isScrollableView
+                  ? buildScrollablePageContent(hasDrawer)
+                  : buildFixedPageContent(fixedAppBar != null),
+              footer: footerWidget,
+            ),
+            bottomNavigationBar: _bottomNavBar,
+            drawer: _drawer,
+            endDrawer: _endDrawer,
+            floatingActionButton: _floatingActionButton ?? closeModalButton,
+            floatingActionButtonLocation: _floatingActionButtonLocation ??
+                (
+                  widget._pageModel.runtimeStyles?['navigationIconPosition'] ==
+                        'start'
                     ? FloatingActionButtonLocation.startTop
                     : FloatingActionButtonLocation.endTop)),
-    ),
-  );
-  DevMode.pageDataContext = _scopeManager.dataContext;
-  // selectableText at the root
-    if (Utils.optionalBool(widget._pageModel.runtimeStyles?['selectable']) ==
-        true) {    
-          rtn = HasSelectableText(child: rtn);
-  }
-
-  // if backgroundImage is set, put it outside of the Scaffold so
-  // keyboard sliding up (when entering value) won't resize the background
-  if (backgroundImage != null) {
-    return Stack(
-      children: [
-        Positioned.fill(
-          child: backgroundImage.getImageAsWidget(_scopeManager),
-        ),
-        rtn,
-      ],
+      ),
     );
-  } else if (backgroundGradient != null) {
-    return Scaffold(
-        resizeToAvoidBottomInset: false,
-        body: Container(
-            decoration: BoxDecoration(gradient: backgroundGradient),
-            child: rtn));
+    DevMode.pageDataContext = _scopeManager.dataContext;
+    // selectableText at the root
+    if (Utils.optionalBool(widget._pageModel.runtimeStyles?['selectable']) ==
+        true) {
+      rtn = HasSelectableText(child: rtn);
+    }
+
+    // if backgroundImage is set, put it outside of the Scaffold so
+    // keyboard sliding up (when entering value) won't resize the background
+    if (backgroundImage != null) {
+      return Stack(
+        children: [
+          Positioned.fill(
+            child: backgroundImage.getImageAsWidget(_scopeManager),
+          ),
+          rtn,
+        ],
+      );
+    } else if (backgroundGradient != null) {
+      return Scaffold(
+          resizeToAvoidBottomInset: false,
+          body: Container(
+              decoration: BoxDecoration(gradient: backgroundGradient),
+              child: rtn));
+    }
+    return rtn;
   }
-  return rtn;
-}
   /// determine if we should wraps the body in a SafeArea or not
   bool useSafeArea() {
     bool? useSafeArea =
@@ -945,26 +914,26 @@ class AnimatedAppBar extends StatefulWidget {
   final duration;
   AnimatedAppBar(
       {Key? key,
-        this.automaticallyImplyLeading,
-        this.leadingWidget,
-        this.titleWidget,
-        this.centerTitle,
-        this.backgroundColor,
-        this.surfaceTintColor,
-        this.foregroundColor,
-        this.elevation,
-        this.shadowColor,
-        this.titleBarHeight,
-        this.backgroundWidget,
-        this.animated,
-        this.floating,
-        this.pinned,
-        this.collapsedBarHeight,
-        this.expandedBarHeight,
-        required this.scrollController,
-        this.curve,
-        this.animationType,
-        this.duration})
+      this.automaticallyImplyLeading,
+      this.leadingWidget,
+      this.titleWidget,
+      this.centerTitle,
+      this.backgroundColor,
+      this.surfaceTintColor,
+      this.foregroundColor,
+      this.elevation,
+      this.shadowColor,
+      this.titleBarHeight,
+      this.backgroundWidget,
+      this.animated,
+      this.floating,
+      this.pinned,
+      this.collapsedBarHeight,
+      this.expandedBarHeight,
+      required this.scrollController,
+      this.curve,
+      this.animationType,
+      this.duration})
       : super(key: key);
 
   @override
@@ -973,7 +942,7 @@ class AnimatedAppBar extends StatefulWidget {
 
 class _AnimatedAppBarState extends State<AnimatedAppBar> with WidgetsBindingObserver{
   bool isCollapsed = false;
-  
+
   @override
   void initState() {
     super.initState();
@@ -1038,21 +1007,21 @@ class _AnimatedAppBarState extends State<AnimatedAppBar> with WidgetsBindingObse
       centerTitle: widget.centerTitle,
       title: widget.animated
           ? switch (widget.animationType) {
-        AnimationType.fade => AnimatedOpacity(
-          opacity: isCollapsed ? 1.0 : 0.0,
-          duration: Duration(milliseconds: widget.duration ?? 300),
-          curve: widget.curve ?? Curves.easeIn,
-          child: widget.titleWidget,
-        ),
-        AnimationType.drop => AnimatedSlide(
-          offset: isCollapsed ? Offset(0, 0) : Offset(0, -2),
-          duration: Duration(milliseconds: widget.duration ?? 300),
-          curve: widget.curve ?? Curves.easeIn,
-          child: widget.titleWidget,
-        ),
-        _ => widget.titleWidget,
-      }
-      : widget.titleWidget,
+              AnimationType.fade => AnimatedOpacity(
+                  opacity: isCollapsed ? 1.0 : 0.0,
+                  duration: Duration(milliseconds: widget.duration ?? 300),
+                  curve: widget.curve ?? Curves.easeIn,
+                  child: widget.titleWidget,
+                ),
+              AnimationType.drop => AnimatedSlide(
+                  offset: isCollapsed ? Offset(0, 0) : Offset(0, -2),
+                  duration: Duration(milliseconds: widget.duration ?? 300),
+                  curve: widget.curve ?? Curves.easeIn,
+                  child: widget.titleWidget,
+                ),
+              _ => widget.titleWidget,
+            }
+          : widget.titleWidget,
       elevation: widget.elevation,
       backgroundColor: widget.backgroundColor,
       flexibleSpace: wrapsInFlexible(widget.backgroundWidget),
