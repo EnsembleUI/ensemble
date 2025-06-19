@@ -9,6 +9,7 @@ import 'package:ensemble_ts_interpreter/invokables/invokableprimitives.dart';
 import 'package:ensemble_ts_interpreter/parser/regex_ext.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:json_path/json_path.dart';
+import 'package:intl/intl.dart';
 
 import 'UserLocale.dart';
 
@@ -473,6 +474,77 @@ class _Number {
           return val.toInt().toRadixString(radix);
         }
         return val.toString();
+      },
+      'toLocaleString': ([String? locale, dynamic options]) {
+        // If called without parameters, use default formatting
+        if (locale == null && options == null) {
+          try {
+            return NumberFormat.decimalPattern().format(val);
+          } catch (e) {
+            return val.toString();
+          }
+        }
+
+        String? localeStr;
+        if (locale != null) {
+          // Handle both hyphen and underscore formats
+          List<String> parts = locale.split(RegExp(r'[-_]'));
+          if (parts.length > 1) {
+            localeStr = '${parts[0]}_${parts[1]}';
+          } else {
+            localeStr = locale;
+          }
+        }
+
+        // Handle options if provided
+        if (options != null && options is Map) {
+          try {
+            Map<String, dynamic> optionsMap =
+                Map<String, dynamic>.from(options);
+            String style = optionsMap['style'] ?? 'decimal';
+
+            switch (style) {
+              case 'currency':
+                String currencyCode = optionsMap['currency'] ?? 'USD';
+                return NumberFormat.currency(
+                  locale: localeStr,
+                  symbol: currencyCode,
+                  decimalDigits: optionsMap['minimumFractionDigits'] ?? 2,
+                  customPattern: '#,##0.00',
+                  name: currencyCode,
+                ).format(val);
+
+              case 'percent':
+                return NumberFormat.percentPattern(localeStr).format(val);
+
+              case 'decimal':
+              default:
+                int? minimumFractionDigits =
+                    optionsMap['minimumFractionDigits'];
+                int? maximumFractionDigits =
+                    optionsMap['maximumFractionDigits'];
+
+                var formatter = NumberFormat.decimalPattern(localeStr);
+                if (minimumFractionDigits != null) {
+                  formatter.minimumFractionDigits = minimumFractionDigits;
+                }
+                if (maximumFractionDigits != null) {
+                  formatter.maximumFractionDigits = maximumFractionDigits;
+                }
+                return formatter.format(val);
+            }
+          } catch (e) {
+            // If any error occurs during formatting, return string representation
+            return val.toString();
+          }
+        }
+
+        // Default decimal formatting with locale if provided
+        try {
+          return NumberFormat.decimalPattern(localeStr).format(val);
+        } catch (e) {
+          return val.toString();
+        }
       }
     };
   }
