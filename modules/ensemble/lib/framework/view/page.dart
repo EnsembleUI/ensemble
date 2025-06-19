@@ -1,5 +1,4 @@
 import 'dart:developer';
-import 'bottom_nav_page_group.dart'; // To access bottomNavVisibilityNotifier
 import 'bottom_nav_controller.dart';
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/action.dart';
@@ -107,6 +106,8 @@ class PageState extends State<Page>
     super.didChangeDependencies();
     // if our widget changes, we need to save the scopeManager to it.
     widget.rootScopeManager = _scopeManager;
+
+    // see if we are part of a ViewGroup or not
     BottomNavScreen? bottomNavRootScreen = BottomNavScreen.getScreen(context);
     if (bottomNavRootScreen != null) {
       bottomNavRootScreen.onReVisited(() {
@@ -356,8 +357,8 @@ class PageState extends State<Page>
     Color? shadowColor = Utils.getColor(evaluatedHeader?['shadowColor']);
     double? elevation =
         Utils.optionalInt(evaluatedHeader?['elevation'], min: 0)?.toDouble();
-    ScrollMode scrollMode = Utils.getEnum<ScrollMode>(
-        evaluatedHeader?['scrollMode'], ScrollMode.values);
+    ScrollMode scrollMode =
+        Utils.getEnum<ScrollMode>(evaluatedHeader?['scrollMode'], ScrollMode.values);
     final titleBarHeight =
         Utils.optionalInt(evaluatedHeader?['titleBarHeight'], min: 0)
                 ?.toDouble() ??
@@ -375,8 +376,7 @@ class PageState extends State<Page>
       animationEnabled = Utils.getBool(animation!['enabled'], fallback: false);
       duration = Utils.getInt(animation!['duration'], fallback: 0);
       curve = Utils.getCurve(animation!['curve']);
-      animationType = Utils.getEnum<AnimationType>(
-          animation!['animationType'], AnimationType.values);
+      animationType = Utils.getEnum<AnimationType>(animation!['animationType'], AnimationType.values);
     }
     // applicable only to Sliver scrolling
     double? flexibleMaxHeight =
@@ -599,6 +599,7 @@ class PageState extends State<Page>
     }
     return rtn;
   }
+  
   /// determine if we should wraps the body in a SafeArea or not
   bool useSafeArea() {
     bool? useSafeArea =

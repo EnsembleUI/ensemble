@@ -15,7 +15,6 @@ import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/framework/widget/icon.dart' as ensemble;
 import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:flutter/material.dart';
-// Import the global controller
 import 'package:ensemble/framework/view/bottom_nav_controller.dart';
 
 class BottomNavBarItem {
@@ -117,15 +116,10 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup>
   FloatingAlignment floatingAlignment = FloatingAlignment.center;
   int? floatingMargin;
   MenuItem? fabMenuItem;
-  late String _pageGroupId;
 
   @override
   void initState() {
     super.initState();
-
-    // Generate unique page group ID
-    _pageGroupId = 'pagegroup_${widget.hashCode}';
-
     if (widget.menu.reloadView == false) {
       controller = PageController(initialPage: widget.selectedPage);
     }
@@ -161,9 +155,8 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup>
 
   @override
   void dispose() {
-    // Unregister from global controller
+    // Unregister the bottom nav widgets when the PageGroup is disposed
     GlobalBottomNavController.instance.unregisterBottomNavWidgets();
-
     if (widget.menu.reloadView == false) {
       controller.dispose();
     }
@@ -334,6 +327,7 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup>
       listenable: viewGroupNotifier,
       builder: (context, _) {
         final viewIndex = viewGroupNotifier.viewIndex;
+
         return EnsembleBottomAppBar(
           key: UniqueKey(),
           selectedIndex: viewIndex,
