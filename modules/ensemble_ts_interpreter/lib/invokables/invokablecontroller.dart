@@ -646,7 +646,16 @@ class _List {
         if (f == null) {
           list.sort();
         } else {
-          list.sort((a, b) => f([a, b]));
+          list.sort((a, b) {
+            dynamic result = f([a, b]);
+            // Convert floating point comparison to integer
+            if (result is double) {
+              if (result > 0) return 1;
+              if (result < 0) return -1;
+              return 0;
+            }
+            return result;
+          });
         }
         return list;
       },
@@ -679,8 +688,13 @@ class _List {
         }
       },
       'reverse': () => list.reversed.toList(),
-      'slice': (int start, [int? end]) =>
-          list.sublist(start, end ?? list.length),
+      'slice': ([int? start, int? end]) {
+        // If no arguments provided, create a shallow copy of the entire list
+        if (start == null) {
+          return List.from(list);
+        }
+        return list.sublist(start, end ?? list.length);
+      },
       'shift': () => list.isNotEmpty ? list.removeAt(0) : null,
       'unshift': (dynamic val) {
         list.insert(0, val);
