@@ -103,6 +103,7 @@ class _ListViewCoreState extends State<ListViewCore> {
   late final Debouncer debounce;
   late final Debouncer _scrollDebouce;
   late final ScrollController _scrollController;
+  double _previousOffset = 0.0;
 
   int? _lastFetchedIndex;
 
@@ -161,16 +162,24 @@ class _ListViewCoreState extends State<ListViewCore> {
     // given the nestedScroll property is set to true and View is Scrollable
     // Note that we are not using jumpTo to avoid jerky movement of external
     // Scroll instead we are using animateTo which is smoother than jumpTo
+    ScrollController? currentExternalScrollController = persistentControllers[currentPageKey];
     if (externalScrollController != null &&
         widget.nestedScroll &&
         widget.shrinkWrap) {
-      final currentOffset = _scrollController.position.pixels;
+      _scrollController.addListener(() {
+        
+      final currentOffset = _scrollController.offset;
+      final scrollingUp = currentOffset > _previousOffset;
+      final scrollingDown = currentOffset < _previousOffset;
 
-      externalScrollController!.animateTo(
-        currentOffset,
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeInOut,
-      );
+      if (scrollingUp) {
+        currentExternalScrollController!.animateTo(100, duration: const Duration(milliseconds: 16), curve: Curves.linear);
+      } else if (scrollingDown && currentOffset > 0) {
+        currentExternalScrollController!.jumpTo(0);
+      }
+
+      _previousOffset = currentOffset;
+    });
     }
   }
 

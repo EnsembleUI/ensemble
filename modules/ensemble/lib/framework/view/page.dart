@@ -93,7 +93,7 @@ class PageState extends State<Page>
 
   @override
   bool get wantKeepAlive => true;
-
+  
   @override
   void didUpdateWidget(covariant Page oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -196,6 +196,7 @@ class PageState extends State<Page>
   @override
   void didPopNext() {
     super.didPopNext();
+      currentPageKey = widget._pageModel.hashCode.toString();
     if (widget._pageModel.viewBehavior.onResume != null) {
       ScreenController().executeActionWithScope(
           context, _scopeManager, widget._pageModel.viewBehavior.onResume!,
@@ -253,6 +254,7 @@ class PageState extends State<Page>
         // has completely rendered. This will be sufficient for most use case
         widget.onRendered();
       });
+
     }
 
     // build the root widget
@@ -270,6 +272,7 @@ class PageState extends State<Page>
     // Adding a listener for [viewGroupNotifier] so we can execute
     // onViewGroupUpdate when change in parent ViewGroup occurs
     viewGroupNotifier.addListener(executeOnViewGroupUpdate);
+
   }
 
   /// This is a callback because we need the widget to be first instantiate
@@ -503,7 +506,9 @@ class PageState extends State<Page>
     // whether to usse CustomScrollView for the entire page
     bool isScrollableView =
         widget._pageModel.runtimeStyles?['scrollableView'] == true;
-
+    
+    bool collapsableHeader = widget._pageModel.runtimeStyles?['collapsableHeader'] == true;
+    bool collapseSafeArea = widget._pageModel.runtimeStyles?['collapseSafeArea'] == true;
     PreferredSizeWidget? fixedAppBar;
     if (!isScrollableView) {
       fixedAppBar = buildFixedAppBar(widget._pageModel, hasDrawer);
@@ -544,12 +549,20 @@ class PageState extends State<Page>
 
             // appBar is inside CustomScrollView if defined
             appBar: fixedAppBar,
-            body: FooterLayout(
-              body: isScrollableView
-                  ? buildScrollablePageContent(hasDrawer)
-                  : buildFixedPageContent(fixedAppBar != null),
-              footer: footerWidget,
-            ),
+body: FooterLayout(
+  body: isScrollableView
+      ? (collapsableHeader == true 
+          ? (collapseSafeArea == true
+              ? SafeArea(
+                  top: true,
+                  bottom: false, // Let footer handle bottom safe area
+                  child: buildScrollablePageContentWithCollapsableHeader(hasDrawer)
+                )
+              : buildScrollablePageContentWithCollapsableHeader(hasDrawer))
+          : buildScrollablePageContent(hasDrawer))
+      : buildFixedPageContent(fixedAppBar != null),
+  footer: footerWidget,
+),
             bottomNavigationBar: _bottomNavBar,
             drawer: _drawer,
             endDrawer: _endDrawer,
@@ -611,7 +624,7 @@ class PageState extends State<Page>
     return getBody(hasAppBar);
   }
 
-  Widget buildScrollablePageContent(bool hasDrawer) {
+ Widget buildScrollablePageContent(bool hasDrawer) {
     List<Widget> slivers = [];
     externalScrollController = ScrollController();
     // appBar
@@ -630,6 +643,37 @@ class PageState extends State<Page>
       controller: externalScrollController,
       slivers: slivers,
     );
+  }
+Widget buildScrollablePageContentWithCollapsableHeader(bool hasDrawer) {
+        bool isScrollableView = widget._pageModel.runtimeStyles?['scrollableView'] == true;
+if (isScrollableView) {
+  currentPageKey = widget._pageModel.hashCode.toString();
+  if (persistentControllers.containsKey(currentPageKey!)) {
+    externalScrollController = ScrollController();
+    persistentControllers[currentPageKey!] = externalScrollController!;
+  } else {
+    externalScrollController = ScrollController();
+    persistentControllers[currentPageKey!] = externalScrollController!;
+  }
+}
+  return NestedScrollView(
+    controller: externalScrollController,
+    physics: ClampingScrollPhysics(),
+    headerSliverBuilder: (BuildContext context, bool innerBoxIsScrolled) {
+      List<Widget> slivers = [];
+      // Build the AppBar using your existing method
+      Widget? appBar = buildSliverAppBar(widget._pageModel, hasDrawer);
+
+      // Add AppBar to slivers if it exists and is not manually hidden
+      if (appBar != null) {
+        slivers.add(appBar);
+      }
+      
+      return slivers;
+    },
+    body: getBody(true), // Pass true since we have a header structure
+  );
+
   }
 
   Widget getBody(bool hasAppBar) {
@@ -994,6 +1038,7 @@ class _AnimatedAppBarState extends State<AnimatedAppBar> with WidgetsBindingObse
       collapsedHeight: widget.collapsedBarHeight,
       expandedHeight: widget.expandedBarHeight,
       pinned: widget.pinned,
+      floating: widget.floating,
       centerTitle: widget.centerTitle,
       title: widget.animated
           ? switch (widget.animationType) {
