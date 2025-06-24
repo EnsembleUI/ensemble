@@ -1,3 +1,7 @@
+## 1.1.66
+
+ - updating
+
 ## 1.1.65
 
  - **REFACTOR**(adobe_analytics): streamline initialization and remove redundant checks. ([5714a3fc](https://github.com/ensembleUI/ensemble/commit/5714a3fc1820bb7522f3f08183d46dc727c300df))
