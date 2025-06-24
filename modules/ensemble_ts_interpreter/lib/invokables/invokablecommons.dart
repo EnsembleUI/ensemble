@@ -285,8 +285,69 @@ class Date extends Object with Invokable, SupportsPrimitiveOperations {
     return InvokableController.locale;
   }
 
-  String _toLocaleDateString([String? localeStr]) {
+  String _toLocaleDateString([String? localeStr, dynamic options]) {
     Locale? myLocale = _getLocale(localeStr);
+    if (options != null && options is Map) {
+      String pattern = '';
+
+      // Handle year format
+      if (options['year'] != null) {
+        switch (options['year']) {
+          case 'numeric':
+            pattern += 'y';
+            break;
+          case '2-digit':
+            pattern += 'yy';
+            break;
+          default:
+            pattern += 'y';
+        }
+      }
+
+      // Handle month format
+      if (options['month'] != null) {
+        switch (options['month']) {
+          case 'numeric':
+            pattern += 'M';
+            break;
+          case '2-digit':
+            pattern += 'MM';
+            break;
+          case 'short':
+            pattern += 'MMM';
+            break;
+          case 'long':
+            pattern += 'MMMM';
+            break;
+          default:
+            pattern += 'M';
+        }
+      }
+
+      // Handle day format
+      if (options['day'] != null) {
+        switch (options['day']) {
+          case 'numeric':
+            pattern += 'd';
+            break;
+          case '2-digit':
+            pattern += 'dd';
+            break;
+          default:
+            pattern += 'd';
+        }
+      }
+
+      // If no pattern was specified, use default
+      if (pattern.isEmpty) {
+        pattern = 'yMd';
+      }
+
+      return DateFormat(pattern, myLocale?.toString())
+          .format(dateTime.toLocal());
+    }
+
+    // Default format if no options provided
     return DateFormat.yMd(myLocale?.toString()).format(dateTime.toLocal());
   }
 
