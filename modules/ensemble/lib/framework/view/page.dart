@@ -648,7 +648,7 @@ Widget buildScrollablePageContentWithCollapsableHeader(bool hasDrawer) {
    bool isScrollableView = widget._pageModel.runtimeStyles?['scrollableView'] == true;
 if (isScrollableView) {
   currentPageKey = widget._pageModel.hashCode.toString();
-  print('our page key');
+  print('our page key ${currentPageKey}');
   if (persistentControllers.containsKey(currentPageKey!)) {
     externalScrollController = ScrollController();
     persistentControllers[currentPageKey!] = externalScrollController!;
