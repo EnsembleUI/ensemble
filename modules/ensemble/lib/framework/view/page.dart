@@ -215,6 +215,9 @@ class PageState extends State<Page>
 
   @override
   void initState() {
+      currentPageKey = widget._pageModel.hashCode.toString();
+      externalScrollController = ScrollController();
+      persistentControllers[currentPageKey!] = externalScrollController!;
     WidgetsBinding.instance.addObserver(this);
     _scopeManager = ScopeManager(
         widget._initialDataContext
@@ -647,10 +650,6 @@ body: FooterLayout(
     );
   }
 Widget buildScrollablePageContentWithCollapsableHeader(bool hasDrawer) {
-
-    externalScrollController = ScrollController();
-    persistentControllers[currentPageKey!] = externalScrollController!;
-
     return NestedScrollView(
       controller: externalScrollController,
       physics: ClampingScrollPhysics(),
