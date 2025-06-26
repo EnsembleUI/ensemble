@@ -197,6 +197,8 @@ class PageState extends State<Page>
   void didPopNext() {
     super.didPopNext();
       currentPageKey = widget._pageModel.hashCode.toString();
+      externalScrollController = ScrollController();
+      persistentControllers[currentPageKey!] = externalScrollController!;
     if (widget._pageModel.viewBehavior.onResume != null) {
       ScreenController().executeActionWithScope(
           context, _scopeManager, widget._pageModel.viewBehavior.onResume!,
@@ -645,35 +647,27 @@ body: FooterLayout(
     );
   }
 Widget buildScrollablePageContentWithCollapsableHeader(bool hasDrawer) {
-        bool isScrollableView = widget._pageModel.runtimeStyles?['scrollableView'] == true;
-if (isScrollableView) {
-  currentPageKey = widget._pageModel.hashCode.toString();
-  if (persistentControllers.containsKey(currentPageKey!)) {
+
     externalScrollController = ScrollController();
     persistentControllers[currentPageKey!] = externalScrollController!;
-  } else {
-    externalScrollController = ScrollController();
-    persistentControllers[currentPageKey!] = externalScrollController!;
-  }
-}
-  return NestedScrollView(
-    controller: externalScrollController,
-    physics: ClampingScrollPhysics(),
-    headerSliverBuilder: (BuildContext context, bool innerBoxIsScrolled) {
-      List<Widget> slivers = [];
-      // Build the AppBar using your existing method
-      Widget? appBar = buildSliverAppBar(widget._pageModel, hasDrawer);
 
-      // Add AppBar to slivers if it exists and is not manually hidden
-      if (appBar != null) {
-        slivers.add(appBar);
-      }
-      
-      return slivers;
-    },
-    body: getBody(true), // Pass true since we have a header structure
-  );
+    return NestedScrollView(
+      controller: externalScrollController,
+      physics: ClampingScrollPhysics(),
+      headerSliverBuilder: (BuildContext context, bool innerBoxIsScrolled) {
+        List<Widget> slivers = [];
+        // Build the AppBar using your existing method
+        Widget? appBar = buildSliverAppBar(widget._pageModel, hasDrawer);
 
+        // Add AppBar to slivers if it exists and is not manually hidden
+        if (appBar != null) {
+          slivers.add(appBar);
+        }
+
+        return slivers;
+      },
+      body: getBody(true), // Pass true since we have a header structure
+    );
   }
 
   Widget getBody(bool hasAppBar) {
