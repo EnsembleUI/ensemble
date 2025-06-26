@@ -196,9 +196,7 @@ class PageState extends State<Page>
   @override
   void didPopNext() {
     super.didPopNext();
-      currentPageKey = widget._pageModel.hashCode.toString();
       externalScrollController = ScrollController();
-      persistentControllers[currentPageKey!] = externalScrollController!;
     if (widget._pageModel.viewBehavior.onResume != null) {
       ScreenController().executeActionWithScope(
           context, _scopeManager, widget._pageModel.viewBehavior.onResume!,
@@ -215,9 +213,7 @@ class PageState extends State<Page>
 
   @override
   void initState() {
-      currentPageKey = widget._pageModel.hashCode.toString();
       externalScrollController = ScrollController();
-      persistentControllers[currentPageKey!] = externalScrollController!;
     WidgetsBinding.instance.addObserver(this);
     _scopeManager = ScopeManager(
         widget._initialDataContext
