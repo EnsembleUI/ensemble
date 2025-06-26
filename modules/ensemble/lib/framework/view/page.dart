@@ -646,6 +646,8 @@ body: FooterLayout(
     );
   }
 Widget buildScrollablePageContentWithCollapsableHeader(bool hasDrawer) {
+    externalScrollController = ScrollController();
+
     return NestedScrollView(
       controller: externalScrollController,
       physics: ClampingScrollPhysics(),
