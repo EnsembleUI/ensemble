@@ -44,7 +44,8 @@ class AvatarController extends EnsembleBoxController {
   String? source;
   BoxFit? fit;
   Color? placeholderColor;
-
+  Color? colorFilter;
+  bool? useGrayscaleFilter;
   GroupTemplate? groupTemplate;
 
   AvatarVariant? variant;
@@ -75,7 +76,8 @@ class AvatarController extends EnsembleBoxController {
       'variant': (value) => variant = AvatarVariant.values.from(value),
       'onTap': (func) => onTap = EnsembleAction.from(func, initiator: this),
       'onTapHaptic': (value) => onTapHaptic = Utils.optionalString(value),
-      'group-template': (value) => setGroupAvatar(value)
+      'group-template': (value) => setGroupAvatar(value),
+      'colorFilter': (value) => colorFilter = Utils.getColor(value)
     });
 
   void setGroupAvatar(dynamic groupData) {
@@ -294,6 +296,7 @@ class AvatarState extends EnsembleWidgetState<Avatar>
   Widget _buildImage(String source) => framework.Image(
       source: source,
       fit: widget.controller.fit,
+      colorFilter: widget.controller.colorFilter,
       networkCacheManager: EnsembleImageCacheManager.instance,
       placeholderBuilder: (_, __) =>
           ColoredBoxPlaceholder(color: widget.controller.placeholderColor),

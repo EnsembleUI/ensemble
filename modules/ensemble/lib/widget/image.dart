@@ -42,6 +42,8 @@ class EnsembleImage extends StatefulWidget
       'resizedWidth': () => _controller.resizedWidth,
       'resizedHeight': () => _controller.resizedHeight,
       'placeholderColor': () => _controller.placeholderColor,
+      'colorFilter': () =>
+          _controller.colorFilter?.toString() ?? 'null',
     };
   }
 
@@ -70,6 +72,7 @@ class EnsembleImage extends StatefulWidget
           _controller.onTapHaptic = Utils.optionalString(value),
       'pinchToZoom': (value) =>
           _controller.pinchToZoom = Utils.optionalBool(value),
+      'colorFilter': (value) => _controller.colorFilter = Utils.getColor(value),
     };
   }
 }
@@ -87,6 +90,7 @@ class ImageController extends BoxController {
   Color? placeholderColor;
   EnsembleAction? onTap;
   String? onTapHaptic;
+  Color? colorFilter;
 
   // whether we should resize the image to this. Note that we should set either
   // resizedWidth or resizedHeight but not both so the aspect ratio is maintained
@@ -126,6 +130,27 @@ class ImageState extends EWidgetState<EnsembleImage> {
       ignoresMargin: true, // make sure the gesture don't include the margin
       ignoresDimension: true, // we apply width/height in the image already
     );
+    if (widget._controller.colorFilter != null) {
+      if (widget._controller.colorFilter == Colors.black) {
+        rtn = ColorFiltered(
+          colorFilter: const ColorFilter.matrix(<double>[
+            0.2126, 0.7152, 0.0722, 0, 0,
+            0.2126, 0.7152, 0.0722, 0, 0,
+            0.2126, 0.7152, 0.0722, 0, 0,
+            0, 0, 0, 1, 0,
+          ]),
+          child: rtn,
+        );
+      } else {
+        rtn = ColorFiltered(
+          colorFilter: ColorFilter.mode(
+            widget._controller.colorFilter!,
+            BlendMode.modulate,
+          ),
+          child: rtn,
+        );
+      }
+    }
     if (widget._controller.onTap != null) {
       rtn = GestureDetector(
         child: rtn,
@@ -188,68 +213,71 @@ class ImageState extends EWidgetState<EnsembleImage> {
   }
 
   Widget buildNonSvgImage(String source, BoxFit? fit) {
+    Widget imageWidget;
+    
     if (source.startsWith('https://') || source.startsWith('http://')) {
       // If the asset is available locally, then use local path
       String assetName = Utils.getAssetName(source);
       if (Utils.isAssetAvailableLocally(assetName)) {
-        return Image.asset(Utils.getLocalAssetFullPath(assetName),
+        imageWidget = Image.asset(Utils.getLocalAssetFullPath(assetName),
             width: widget._controller.width?.toDouble(),
             height: widget._controller.height?.toDouble(),
             fit: fit,
             errorBuilder: (context, error, stacktrace) => errorFallback());
-      }
-      int? cachedWidth = widget._controller.resizedWidth;
-      int? cachedHeight = widget._controller.resizedHeight;
+      } else {
+        // Handle remote images
+        int? cachedWidth = widget._controller.resizedWidth;
+        int? cachedHeight = widget._controller.resizedHeight;
 
-      // if user doesn't override the cache dimension, we resize all images
-      // to a reasonable 800 width so loading lots of gigantic images won't crash.
-      // TODO: figure out the actual dimension once so we can do min(actualWidth, 800)
-      if (cachedWidth == null && cachedHeight == null) {
-        cachedWidth = 800;
-      }
+        // if user doesn't override the cache dimension, we resize all images
+        // to a reasonable 800 width so loading lots of gigantic images won't crash.
+        if (cachedWidth == null && cachedHeight == null) {
+          cachedWidth = 800;
+        }
 
-      Widget cacheImage(String url) {
-        return CachedNetworkImage(
-          imageUrl: url,
-          width: widget._controller.width?.toDouble(),
-          height: widget._controller.height?.toDouble(),
-          fit: fit,
-          // we auto resize and cap these values so loading lots of
-          // gigantic images won't run out of memory
-          memCacheWidth: cachedWidth,
-          memCacheHeight: cachedHeight,
-          cacheManager: EnsembleImageCacheManager.instance,
-          errorWidget: (context, error, stacktrace) => errorFallback(),
-          placeholder: (context, url) => ColoredBoxPlaceholder(
-            color: widget._controller.placeholderColor,
+        Widget cacheImage(String url) {
+          return CachedNetworkImage(
+            imageUrl: url,
             width: widget._controller.width?.toDouble(),
             height: widget._controller.height?.toDouble(),
-          ),
-        );
-      }
+            fit: fit,
+            // we auto resize and cap these values so loading lots of
+            // gigantic images won't run out of memory
+            memCacheWidth: cachedWidth,
+            memCacheHeight: cachedHeight,
+            cacheManager: EnsembleImageCacheManager.instance,
+            errorWidget: (context, error, stacktrace) => errorFallback(),
+            placeholder: (context, url) => ColoredBoxPlaceholder(
+              color: widget._controller.placeholderColor,
+              width: widget._controller.width?.toDouble(),
+              height: widget._controller.height?.toDouble(),
+            ),
+          );
+        }
 
-      return (!widget.controller.cache)
-          ? FutureBuilder(
-              future: fetch(widget.controller.source),
-              initialData: widget._controller.source,
-              builder: (context, AsyncSnapshot snapshot) {
-                if (snapshot.connectionState == ConnectionState.done) {
-                  if (snapshot.hasData) {
-                    return cacheImage(snapshot.data!);
+        imageWidget = (!widget.controller.cache)
+            ? FutureBuilder(
+                future: fetch(widget.controller.source),
+                initialData: widget._controller.source,
+                builder: (context, AsyncSnapshot snapshot) {
+                  if (snapshot.connectionState == ConnectionState.done) {
+                    if (snapshot.hasData) {
+                      return cacheImage(snapshot.data!);
+                    } else {
+                      return cacheImage(widget.controller.source);
+                    }
                   } else {
-                    return cacheImage(widget.controller.source);
+                    return ColoredBoxPlaceholder(
+                      color: widget._controller.placeholderColor,
+                      width: widget._controller.width?.toDouble(),
+                      height: widget._controller.height?.toDouble(),
+                    );
                   }
-                } else {
-                  return ColoredBoxPlaceholder(
-                    color: widget._controller.placeholderColor,
-                    width: widget._controller.width?.toDouble(),
-                    height: widget._controller.height?.toDouble(),
-                  );
-                }
-              })
-          : cacheImage(widget._controller.source);
+                })
+            : cacheImage(widget._controller.source);
+      }
     } else if (Utils.isMemoryPath(widget._controller.source)) {
-      return kIsWeb
+      imageWidget = kIsWeb
           ? Image.network(widget._controller.source,
               width: widget._controller.width?.toDouble(),
               height: widget._controller.height?.toDouble(),
@@ -264,12 +292,15 @@ class ImageState extends EWidgetState<EnsembleImage> {
       // user might use env variables to switch between remote and local images.
       // Assets might have additional token e.g. my-image.png?x=2343
       // so we need to strip them out
-      return Image.asset(Utils.getLocalAssetFullPath(widget._controller.source),
+      imageWidget = Image.asset(Utils.getLocalAssetFullPath(widget._controller.source),
           width: widget._controller.width?.toDouble(),
           height: widget._controller.height?.toDouble(),
           fit: fit,
           errorBuilder: (context, error, stacktrace) => errorFallback());
     }
+
+    // DON'T apply ColorFilter here anymore - it's handled in buildWidget
+    return imageWidget;
   }
 
   Widget buildSvgImage(String source, BoxFit? fit) {
