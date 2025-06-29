@@ -11,6 +11,7 @@ import 'package:ensemble/widget/widget_util.dart' as util;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
+import 'package:flutter_html/flutter_html.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class EnsembleText extends StatefulWidget
@@ -36,6 +37,8 @@ class EnsembleText extends StatefulWidget
       'expandLabel': () => _controller.expandLabel,
       'collapseLabel': () => _controller.collapseLabel,
       'expandTextStyle': () => _controller.expandTextStyle,
+      'colorFilter': () =>
+          _controller.textStyle.colorFilter,
     };
   }
 
@@ -60,6 +63,8 @@ class EnsembleText extends StatefulWidget
           _controller.collapseLabel = Utils.optionalString(value),
       'expandTextStyle': (style) => _controller.expandTextStyle =
           Utils.getTextStyleAsComposite(_controller, style: style),
+      'colorFilter': (color) => _controller.textStyle.colorFilter =
+          Utils.getColor(color),
     };
   }
 
@@ -99,6 +104,7 @@ class EnsembleTextState extends framework.EWidgetState<EnsembleText> {
 
   Widget buildText(TextController controller) {
     final gradientStyle = controller.textStyle.gradient;
+    final colorFilter = controller.textStyle.colorFilter;
 
     bool shouldBeSelectable = controller.selectable == true ||
         (controller.selectable != false &&
@@ -133,7 +139,26 @@ class EnsembleTextState extends framework.EWidgetState<EnsembleText> {
               style: controller.textStyle.getTextStyle(),
               textScaler: _getTextScaler());
     }
-
+      if(colorFilter != null){
+       bool isBlack = colorFilter.value == 0xFF000000 ||
+                     colorFilter.value == 0x00000000;
+          if (isBlack) {
+            textWidget = ColorFiltered(
+              colorFilter: const ColorFilter.matrix(<double>[
+                0.2126, 0.7152, 0.0722, 0, 0, // Red channel
+                0.2126, 0.7152, 0.0722, 0, 0, // Green channel  
+                0.2126, 0.7152, 0.0722, 0, 0, // Blue channel
+                0,      0,      0,      1, 0, // Alpha channel
+              ]),
+              child: textWidget,
+            );
+          } else {
+            textWidget = ColorFiltered(
+              colorFilter: ColorFilter.mode(colorFilter, BlendMode.modulate),
+              child: textWidget,
+            );
+          }
+    }
     return gradientStyle != null
         ? _GradientText(gradient: gradientStyle, child: textWidget)
         : textWidget;

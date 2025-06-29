@@ -41,6 +41,27 @@ class BoxLayoutWrapper extends StatelessWidget {
     if (!ignoresMargin && controller.margin != null) {
       rtn = Padding(padding: controller.margin!, child: rtn);
     }
+if (controller.colorFilter != null) {
+      bool isBlack = controller.colorFilter!.value == 0xFF000000 ||
+                     controller.colorFilter!.value == 0x00000000;
+      if (isBlack) {
+        rtn = ColorFiltered(
+          colorFilter: const ColorFilter.matrix(<double>[
+            0.2126, 0.7152, 0.0722, 0, 0, // Red channel
+            0.2126, 0.7152, 0.0722, 0, 0, // Green channel  
+            0.2126, 0.7152, 0.0722, 0, 0, // Blue channel
+            0,      0,      0,      1, 0, // Alpha channel
+          ]),
+          child: rtn,
+        );
+      } else {
+        // Use modulate blend mode for other colors
+        rtn = ColorFiltered(
+          colorFilter: ColorFilter.mode(controller.colorFilter!, BlendMode.modulate),
+          child: rtn,
+        );
+      }
+    }
     return rtn;
   }
 }
@@ -110,6 +131,7 @@ abstract class BaseBoxLayoutController extends TapEnabledBoxController {
   int? fontSize;
   TextStyleComposite? _textStyle;
   int? maxLines;
+    Color? colorFilter;
 
   @override
   Map<String, Function> getBaseSetters() {
@@ -129,6 +151,7 @@ abstract class BaseBoxLayoutController extends TapEnabledBoxController {
       'maxLines': (value) => maxLines = Utils.optionalInt(value, min: 1),
       'textStyle': (style) =>
           _textStyle = Utils.getTextStyleAsComposite(this, style: style),
+      'colorFilter': (value) => colorFilter = Utils.getColor(value)
     });
     return setters;
   }
