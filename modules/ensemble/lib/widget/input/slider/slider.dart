@@ -91,6 +91,10 @@ class EnsembleSlider extends StatefulWidget
       // Event Handler
       'onChange': (definition) => _controller.onChange =
           EnsembleAction.from(definition, initiator: this),
+      'onChangeStart': (definition) => _controller.onChangeStart =
+        EnsembleAction.from(definition, initiator: this),
+      'onChangeEnd': (definition) => _controller.onChangeEnd =
+          EnsembleAction.from(definition, initiator: this),
     };
   }
 }
