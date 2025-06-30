@@ -75,19 +75,10 @@ class MarkdownState extends framework.EWidgetState<Markdown> {
       onTapLink: openUrl,
     );
     if(widget._controller.colorFilter?.color != null){
-       bool isBlack = widget._controller.colorFilter!.color!.value == 0xFF000000 ||
-                     widget._controller.colorFilter!.color!.value == 0x00000000;
-      if (isBlack && widget._controller.colorFilter!.blendMode == BlendMode.modulate) {
         rtn = ColorFiltered(
-          colorFilter: Utils.getGreyScale(),
+          colorFilter: widget._controller.colorFilter!.getColorFilter()!,
           child: rtn,
         );
-      } else {
-        rtn = ColorFiltered(
-          colorFilter: ColorFilter.mode(widget._controller.colorFilter!.color!, widget._controller.colorFilter!.blendMode),
-          child: rtn,
-        );
-      }
     }
     return rtn;
   }

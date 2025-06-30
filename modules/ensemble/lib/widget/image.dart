@@ -158,20 +158,10 @@ class ImageState extends EWidgetState<EnsembleImage> {
       rtn = PinchToZoom(child: rtn);
     }
     if (widget._controller.colorFilter?.color != null) {
-      if (widget._controller.colorFilter!.color == Colors.black && widget._controller.colorFilter?.blendMode == BlendMode.modulate) {
         rtn = ColorFiltered(
-          colorFilter: Utils.getGreyScale(),
+          colorFilter: widget._controller.colorFilter!.getColorFilter()!,
           child: rtn,
         );
-      } else {
-        rtn = ColorFiltered(
-          colorFilter: ColorFilter.mode(
-            widget._controller.colorFilter!.color!,
-            widget._controller.colorFilter!.blendMode,
-          ),
-          child: rtn,
-        );
-      }
     }
     return rtn;
   }

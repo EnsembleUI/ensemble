@@ -143,19 +143,10 @@ class EnsembleTextState extends framework.EWidgetState<EnsembleText> {
               textScaler: _getTextScaler());
     }
     if (colorFilter?.color != null) {
-      bool isBlack =
-          colorFilter?.color!.value == 0xFF000000 || colorFilter?.color!.value == 0x00000000;
-      if (isBlack && controller.colorFilter!.blendMode == BlendMode.modulate) {
         textWidget = ColorFiltered(
-          colorFilter: Utils.getGreyScale(),
+          colorFilter: colorFilter!.getColorFilter()!,
           child: textWidget,
         );
-      } else {
-        textWidget = ColorFiltered(
-          colorFilter: ColorFilter.mode(colorFilter!.color!, controller.colorFilter!.blendMode),
-          child: textWidget,
-        );
-      }
     }
     return gradientStyle != null
         ? _GradientText(gradient: gradientStyle, child: textWidget)

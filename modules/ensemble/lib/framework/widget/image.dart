@@ -1,5 +1,6 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:ensemble/util/utils.dart';
+import 'package:ensemble/widget/helpers/ColorFilter_Composite.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/cupertino.dart' as flutter;
 import 'package:flutter/material.dart';
@@ -19,15 +20,13 @@ class Image extends StatelessWidget {
       this.errorBuilder,
       this.placeholderBuilder,
       this.colorFilter,
-      this.blendMode,
       this.networkCacheManager});
 
   final String source;
   final double? width;
   final double? height;
   final BoxFit? fit;
-  final Color? colorFilter;
-  final BlendMode? blendMode;
+  final ColorFilterComposite? colorFilter;
 
   final Widget Function(String)? errorBuilder;
 
@@ -79,21 +78,11 @@ class Image extends StatelessWidget {
             : null,
       );
     }
-    if (colorFilter != null) {
-      if (colorFilter == Colors.black) {
+    if (colorFilter?.color != null) {
         imageWidget = ColorFiltered(
-          colorFilter: Utils.getGreyScale(),
+          colorFilter: colorFilter!.getColorFilter()!,
           child: imageWidget,
         );
-      } else {
-        imageWidget = ColorFiltered(
-          colorFilter: ColorFilter.mode(
-            colorFilter!,
-            blendMode!,
-          ),
-          child: imageWidget,
-        );
-      }
     }
     return imageWidget;
   }

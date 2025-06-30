@@ -43,20 +43,11 @@ class BoxLayoutWrapper extends StatelessWidget {
       rtn = Padding(padding: controller.margin!, child: rtn);
     }
     if (controller.colorFilter?.color != null) {
-          bool isBlack = controller.colorFilter!.color! == Colors.black;
-            if (isBlack && controller.colorFilter!.blendMode == BlendMode.modulate) {
-            rtn = ColorFiltered(
-              colorFilter: Utils.getGreyScale(),
-              child: rtn,
-            );
-          } else {
             // Use modulate blend mode for other colors
             rtn = ColorFiltered(
-              colorFilter:
-                  ColorFilter.mode(controller.colorFilter!.color!, controller.colorFilter!.blendMode),
+              colorFilter: controller.colorFilter!.getColorFilter()!,
               child: rtn,
-            );
-          }
+            ); 
         }
         return rtn;
       }

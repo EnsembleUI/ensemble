@@ -12,8 +12,6 @@ class ColorFilterComposite {
 
   factory ColorFilterComposite.from(dynamic payload) {
     if (payload is Map && payload['color'] != null) {
-      print('this is payload ${payload}');
-      print('here ${Utils.getColor(payload['color'])}');
       return ColorFilterComposite(
         color: Utils.getColor(payload['color']),
         blendMode: Utils.getBlendMode(payload['blendMode']),
@@ -22,7 +20,7 @@ class ColorFilterComposite {
     return ColorFilterComposite();
   }
 
-  /// Returns a ColorFilter if color is not null
+  // Returns a ColorFilter if color is not null
   ColorFilter? getColorFilter() { 
     if (color == null) return null;
     // Special case for black color with modulate blend mode - use grayscale
@@ -33,6 +31,4 @@ class ColorFilterComposite {
     
     return ColorFilter.mode(color!, blendMode);
   }
-
-  bool get hasColorFilter => color != null;
 }

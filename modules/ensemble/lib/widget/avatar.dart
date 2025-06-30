@@ -298,8 +298,7 @@ class AvatarState extends EnsembleWidgetState<Avatar>
   Widget _buildImage(String source) => framework.Image(
       source: source,
       fit: widget.controller.fit,
-      colorFilter: widget.controller.colorFilter!.color,
-      blendMode: widget.controller.colorFilter!.blendMode,
+      colorFilter: widget.controller.colorFilter!,
       networkCacheManager: EnsembleImageCacheManager.instance,
       placeholderBuilder: (_, __) =>
           ColoredBoxPlaceholder(color: widget.controller.placeholderColor),

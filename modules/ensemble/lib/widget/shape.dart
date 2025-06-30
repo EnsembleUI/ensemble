@@ -61,10 +61,9 @@ class ShapeState extends EnsembleWidgetState<Shape> {
         height: widget.controller.height,
         backgroundColor: widget.controller.backgroundColor,
         borderGradient: widget.controller.borderGradient,
-        colorFilter: widget.controller.colorFilter!.color,
+        colorFilter: widget.controller.colorFilter!,
         borderColor: widget.controller.borderColor,
         borderWidth: widget.controller.borderWidth,
-        blendMode: widget.controller.colorFilter!.blendMode,
         borderRadius: widget.controller.borderRadius?.getValue(),
       );
 }
@@ -81,15 +80,13 @@ class InternalShape extends StatelessWidget {
       this.borderColor,
       this.borderWidth,
       this.colorFilter,
-      this.blendMode,
       this.borderRadius});
 
   final ShapeVariant? type;
   final int? width;
   final int? height;
   final Color? backgroundColor;
-  final Color? colorFilter;
-  final BlendMode? blendMode;
+  final ColorFilterComposite? colorFilter;
 
   final LinearGradient? borderGradient;
   final Color? borderColor;
@@ -142,22 +139,11 @@ class InternalShape extends StatelessWidget {
                 shape: BoxShape.rectangle,
                 border: _getBorder(context)));
     }
-    if (colorFilter != null) {
-      if (colorFilter == Colors.black && blendMode == BlendMode.modulate) {
+    if (colorFilter?.color != null) {
         return ColorFiltered(
-          colorFilter: Utils.getGreyScale(),
+          colorFilter: colorFilter!.getColorFilter()!,
           child: shape,
         );
-      } else {
-        // Apply color filter for other colors
-        return ColorFiltered(
-          colorFilter: ColorFilter.mode(
-            colorFilter!,
-            blendMode!,
-          ),
-          child: shape,
-        );
-      }
     }
     return shape;
   }
