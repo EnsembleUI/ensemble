@@ -1,3 +1,4 @@
+import 'package:ensemble/framework/action.dart';
 import 'package:flutter/material.dart';
 import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/screen_controller.dart';
@@ -110,10 +111,19 @@ class SliderState extends FormFieldWidgetState<EnsembleSlider> {
     return decimalPlaces;
   }
 
+  void _executeAction(EnsembleAction? action, Map<String, dynamic> data) {
+    if (action != null) {
+      ScreenController().executeAction(
+        context,
+        action,
+        event: EnsembleEvent(widget, data: data),
+      );
+    }
+  }
+
   Widget _buildRangeSlider(BuildContext context, int decimalPlaces) {
     return RangeSlider(
-      values:
-          RangeValues(widget.controller.startValue, widget.controller.endValue),
+      values: RangeValues(widget.controller.startValue, widget.controller.endValue),
       min: widget.controller.minValue,
       max: widget.controller.maxValue,
       divisions: widget.controller.divisions,
@@ -121,24 +131,32 @@ class SliderState extends FormFieldWidgetState<EnsembleSlider> {
         widget.controller.startValue.toStringAsFixed(decimalPlaces),
         widget.controller.endValue.toStringAsFixed(decimalPlaces),
       ),
-      onChanged: isEnabled()
-          ? (RangeValues values) {
-              setState(() {
-                widget.controller.startValue = values.start;
-                widget.controller.endValue = values.end;
-              });
-              if (widget.controller.onChange != null) {
-                ScreenController().executeAction(
-                  context,
-                  widget.controller.onChange!,
-                  event: EnsembleEvent(widget, data: {
-                    'startValue': widget.controller.startValue,
-                    'endValue': widget.controller.endValue
-                  }),
-                );
-              }
-            }
-          : null,
+      onChanged: isEnabled() ? (RangeValues values) {
+        setState(() {
+          widget.controller.startValue = values.start;
+          widget.controller.endValue = values.end;
+        });
+        _executeAction(widget.controller.onChange, {
+          'startValue': widget.controller.startValue,
+          'endValue': widget.controller.endValue
+        });
+      } : null,
+      onChangeStart: isEnabled() && widget.controller.onChangeStart != null ? (RangeValues values) {
+        _executeAction(widget.controller.onChangeStart, {
+          'startValue': values.start,
+          'endValue': values.end
+        });
+      } : null,
+      onChangeEnd: isEnabled() && widget.controller.onChangeEnd != null ? (RangeValues values) {
+        setState(() {
+          widget.controller.startValue = values.start;
+          widget.controller.endValue = values.end;
+        });
+        _executeAction(widget.controller.onChangeEnd, {
+          'startValue': widget.controller.startValue,
+          'endValue': widget.controller.endValue
+        });
+      } : null,
     );
   }
 
@@ -149,22 +167,21 @@ class SliderState extends FormFieldWidgetState<EnsembleSlider> {
       max: widget.controller.maxValue,
       divisions: widget.controller.divisions,
       label: widget.controller.value.toStringAsFixed(decimalPlaces),
-      onChanged: isEnabled()
-          ? (value) {
-              setState(() {
-                widget.controller.value = value;
-              });
-              if (widget.controller.onChange != null) {
-                ScreenController().executeAction(
-                  context,
-                  widget.controller.onChange!,
-                  event: EnsembleEvent(widget,
-                      data: {'value': widget.controller.value}
-                      ),
-                );
-              }
-            }
-          : null,
+      onChanged: isEnabled() ? (double value) {
+        setState(() {
+          widget.controller.value = value;
+        });
+        _executeAction(widget.controller.onChange, {'value': widget.controller.value});
+      } : null,
+      onChangeStart: isEnabled() && widget.controller.onChangeStart != null ? (double value) {
+        _executeAction(widget.controller.onChangeStart, {'value': value});
+      } : null,
+      onChangeEnd: isEnabled() && widget.controller.onChangeEnd != null ? (double value) {
+        setState(() {
+          widget.controller.value = value;
+        });
+        _executeAction(widget.controller.onChangeEnd, {'value': widget.controller.value});
+      } : null,
     );
   }
 }

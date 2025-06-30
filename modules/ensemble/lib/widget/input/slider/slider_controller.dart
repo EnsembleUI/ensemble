@@ -56,4 +56,6 @@ class SliderController extends FormFieldController {
 
   // Event Handler
   EnsembleAction? onChange;
+  EnsembleAction? onChangeStart;
+  EnsembleAction? onChangeEnd;
 }
