@@ -23,9 +23,8 @@ class ColorFilterComposite {
   }
 
   /// Returns a ColorFilter if color is not null
-  ColorFilter? getColorFilter() {
+  ColorFilter? getColorFilter() { 
     if (color == null) return null;
-    
     // Special case for black color with modulate blend mode - use grayscale
     bool isBlack = color!.value == 0xFF000000 || color!.value == 0x00000000;
     if (isBlack && blendMode == BlendMode.modulate) {
