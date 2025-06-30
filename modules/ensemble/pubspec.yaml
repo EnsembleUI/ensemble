@@ -131,9 +131,9 @@ dependencies:
       ref: master
 
   # Current pub.dev version isn't compatible with 3.24 
-  receive_sharing_intent: 
+  receive_sharing_intent:
     git:
-      url: https://github.com/Piyush-e7/receive_sharing_intent.git
+      url: https://github.com/KasemJaffer/receive_sharing_intent.git
       ref: master
   change_case: ^1.1.0
   crypto: ^3.0.3 
