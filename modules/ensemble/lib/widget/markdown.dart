@@ -88,7 +88,7 @@ class MarkdownState extends framework.EWidgetState<Markdown> {
       } else {
         // Use modulate blend mode for other colors
         rtn = ColorFiltered(
-          colorFilter: ColorFilter.mode(widget._controller.colorFilter!, BlendMode.saturation),
+          colorFilter: ColorFilter.mode(widget._controller.colorFilter!, BlendMode.modulate),
           child: rtn,
         );
       }

@@ -93,7 +93,7 @@ if (colorFilter != null) {
     imageWidget = ColorFiltered(
       colorFilter: ColorFilter.mode(
         colorFilter!,
-        BlendMode.saturation,
+        BlendMode.modulate,
       ),
       child: imageWidget,
     );
