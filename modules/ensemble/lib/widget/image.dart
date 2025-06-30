@@ -133,12 +133,7 @@ class ImageState extends EWidgetState<EnsembleImage> {
     if (widget._controller.colorFilter != null) {
       if (widget._controller.colorFilter == Colors.black) {
         rtn = ColorFiltered(
-          colorFilter: const ColorFilter.matrix(<double>[
-            0.2126, 0.7152, 0.0722, 0, 0,
-            0.2126, 0.7152, 0.0722, 0, 0,
-            0.2126, 0.7152, 0.0722, 0, 0,
-            0, 0, 0, 1, 0,
-          ]),
+          colorFilter: Utils.getGreyScale(),
           child: rtn,
         );
       } else {

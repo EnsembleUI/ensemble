@@ -138,14 +138,8 @@ class InternalShape extends StatelessWidget {
 }
     if (colorFilter != null) {
       if (colorFilter == Colors.black) {
-        // Apply grayscale filter for black
         return ColorFiltered(
-          colorFilter: const ColorFilter.matrix(<double>[
-            0.2126, 0.7152, 0.0722, 0, 0,
-            0.2126, 0.7152, 0.0722, 0, 0,
-            0.2126, 0.7152, 0.0722, 0, 0,
-            0, 0, 0, 1, 0,
-          ]),
+          colorFilter: Utils.getGreyScale(),
           child: shape,
         );
       } else {
