@@ -41,24 +41,25 @@ class BoxLayoutWrapper extends StatelessWidget {
     if (!ignoresMargin && controller.margin != null) {
       rtn = Padding(padding: controller.margin!, child: rtn);
     }
-if (controller.colorFilter != null) {
-      bool isBlack = controller.colorFilter!.value == 0xFF000000 ||
-                     controller.colorFilter!.value == 0x00000000;
-      if (isBlack) {
-        rtn = ColorFiltered(
-          colorFilter: Utils.getGreyScale(),
-          child: rtn,
-        );
-      } else {
-        // Use modulate blend mode for other colors
-        rtn = ColorFiltered(
-          colorFilter: ColorFilter.mode(controller.colorFilter!, BlendMode.modulate),
-          child: rtn,
-        );
+    if (controller.colorFilter != null) {
+          bool isBlack = controller.colorFilter!.value == 0xFF000000 ||
+              controller.colorFilter!.value == 0x00000000;
+          if (isBlack) {
+            rtn = ColorFiltered(
+              colorFilter: Utils.getGreyScale(),
+              child: rtn,
+            );
+          } else {
+            // Use modulate blend mode for other colors
+            rtn = ColorFiltered(
+              colorFilter:
+                  ColorFilter.mode(controller.colorFilter!, BlendMode.modulate),
+              child: rtn,
+            );
+          }
+        }
+        return rtn;
       }
-    }
-    return rtn;
-  }
 }
 
 // controller for FlexRow/FlexColumn

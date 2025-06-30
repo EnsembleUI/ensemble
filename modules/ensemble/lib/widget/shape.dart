@@ -135,7 +135,7 @@ class InternalShape extends StatelessWidget {
                 color: backgroundColor,
                 shape: BoxShape.rectangle,
                 border: _getBorder(context)));
-}
+    }
     if (colorFilter != null) {
       if (colorFilter == Colors.black) {
         return ColorFiltered(
