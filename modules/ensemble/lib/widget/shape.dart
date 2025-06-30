@@ -9,6 +9,7 @@ import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/theme/theme_manager.dart';
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/util/utils.dart';
+import 'package:ensemble/widget/helpers/ColorFilter_Composite.dart';
 import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:ensemble/widget/helpers/widgets.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
@@ -36,7 +37,7 @@ class ShapeController extends EnsembleWidgetController
   int? width;
   int? height;
   Color? backgroundColor;
-  Color? colorFilter;
+  ColorFilterComposite? colorFilter;
   BlendMode blendMode = BlendMode.modulate;
 
   @override
@@ -47,8 +48,8 @@ class ShapeController extends EnsembleWidgetController
       'width': (value) => width = Utils.optionalInt(value),
       'height': (value) => height = Utils.optionalInt(value),
       'backgroundColor': (color) => backgroundColor = Utils.getColor(color),
-      'colorFilter': (color) => colorFilter = Utils.getColor(color),
-      'blendMode': (value) => blendMode = Utils.getBlendMode(value)
+      'colorFilter': (value) => colorFilter = ColorFilterComposite.from(value),
+
     });
 }
 
@@ -60,10 +61,10 @@ class ShapeState extends EnsembleWidgetState<Shape> {
         height: widget.controller.height,
         backgroundColor: widget.controller.backgroundColor,
         borderGradient: widget.controller.borderGradient,
-        colorFilter: widget.controller.colorFilter,
+        colorFilter: widget.controller.colorFilter!.color,
         borderColor: widget.controller.borderColor,
         borderWidth: widget.controller.borderWidth,
-        blendMode: widget.controller.blendMode,
+        blendMode: widget.controller.colorFilter!.blendMode,
         borderRadius: widget.controller.borderRadius?.getValue(),
       );
 }

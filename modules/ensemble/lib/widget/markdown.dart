@@ -4,6 +4,7 @@ import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/framework/widget/widget.dart' as framework;
+import 'package:ensemble/widget/helpers/ColorFilter_Composite.dart';
 import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:ensemble/framework/theme/theme_manager.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -37,8 +38,8 @@ class Markdown extends StatefulWidget
       'text': (newValue) => _controller.text = Utils.optionalString(newValue),
       'textStyle': (style) => _controller.textStyle = Utils.getTextStyle(style),
       'linkStyle': (style) => _controller.linkStyle = Utils.getTextStyle(style),
-      'colorFilter': (value) => _controller.colorFilter = Utils.getColor(value),
-      'blendMode': (value) => _controller.blendMode = Utils.getBlendMode(value),
+      'colorFilter': (value) => _controller.colorFilter = ColorFilterComposite.from(value),
+
     };
   }
 
@@ -53,8 +54,7 @@ class MarkdownController extends WidgetController {
 
   TextStyle? textStyle;
   TextStyle? linkStyle;
-  Color? colorFilter;
-  BlendMode blendMode = BlendMode.modulate;
+  ColorFilterComposite? colorFilter;
   //TextStyle? codeStyle
 }
 
@@ -74,17 +74,17 @@ class MarkdownState extends framework.EWidgetState<Markdown> {
       styleSheet: styles,
       onTapLink: openUrl,
     );
-    if(widget._controller.colorFilter != null){
-       bool isBlack = widget._controller.colorFilter!.value == 0xFF000000 ||
-                     widget._controller.colorFilter!.value == 0x00000000;
-      if (isBlack && widget._controller.blendMode == BlendMode.modulate) {
+    if(widget._controller.colorFilter?.color != null){
+       bool isBlack = widget._controller.colorFilter!.color!.value == 0xFF000000 ||
+                     widget._controller.colorFilter!.color!.value == 0x00000000;
+      if (isBlack && widget._controller.colorFilter!.blendMode == BlendMode.modulate) {
         rtn = ColorFiltered(
           colorFilter: Utils.getGreyScale(),
           child: rtn,
         );
       } else {
         rtn = ColorFiltered(
-          colorFilter: ColorFilter.mode(widget._controller.colorFilter!, widget._controller.blendMode),
+          colorFilter: ColorFilter.mode(widget._controller.colorFilter!.color!, widget._controller.colorFilter!.blendMode),
           child: rtn,
         );
       }

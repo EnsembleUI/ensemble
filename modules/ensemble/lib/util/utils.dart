@@ -60,7 +60,7 @@ class Utils {
       0, 0, 0, 1, 0, // Alpha channel
     ]);
   }
-  static BlendMode getBlendMode(String blendModeString) {
+  static BlendMode getBlendMode(String? blendModeString) {
     final blendModeMap = {
       'clear': BlendMode.clear,
       'src': BlendMode.src,

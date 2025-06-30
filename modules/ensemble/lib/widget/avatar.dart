@@ -14,6 +14,7 @@ import 'package:ensemble/page_model.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/framework/widget/image.dart' as framework;
+import 'package:ensemble/widget/helpers/ColorFilter_Composite.dart';
 import 'package:ensemble/widget/helpers/box_wrapper.dart';
 import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:ensemble/widget/helpers/widgets.dart';
@@ -44,8 +45,7 @@ class AvatarController extends EnsembleBoxController {
   String? source;
   BoxFit? fit;
   Color? placeholderColor;
-  Color? colorFilter;
-  BlendMode blendMode = BlendMode.modulate;
+  ColorFilterComposite? colorFilter;
   bool? useGrayscaleFilter;
   GroupTemplate? groupTemplate;
 
@@ -78,8 +78,7 @@ class AvatarController extends EnsembleBoxController {
       'onTap': (func) => onTap = EnsembleAction.from(func, initiator: this),
       'onTapHaptic': (value) => onTapHaptic = Utils.optionalString(value),
       'group-template': (value) => setGroupAvatar(value),
-      'colorFilter': (value) => colorFilter = Utils.getColor(value),
-      'blendMode': (value) => blendMode = Utils.getBlendMode(value)
+      'colorFilter': (value) => colorFilter = ColorFilterComposite.from(value),
 
     });
 
@@ -299,8 +298,8 @@ class AvatarState extends EnsembleWidgetState<Avatar>
   Widget _buildImage(String source) => framework.Image(
       source: source,
       fit: widget.controller.fit,
-      colorFilter: widget.controller.colorFilter,
-      blendMode: widget.controller.blendMode,
+      colorFilter: widget.controller.colorFilter!.color,
+      blendMode: widget.controller.colorFilter!.blendMode,
       networkCacheManager: EnsembleImageCacheManager.instance,
       placeholderBuilder: (_, __) =>
           ColoredBoxPlaceholder(color: widget.controller.placeholderColor),

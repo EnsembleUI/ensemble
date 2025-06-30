@@ -3,6 +3,7 @@ import 'package:ensemble/framework/view/has_selectable_text.dart';
 import 'package:ensemble/model/text_scale.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/framework/widget/widget.dart' as framework;
+import 'package:ensemble/widget/helpers/ColorFilter_Composite.dart';
 import 'package:ensemble/widget/helpers/box_wrapper.dart';
 import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:ensemble/widget/helpers/widgets.dart';
@@ -62,9 +63,8 @@ class EnsembleText extends StatefulWidget
           _controller.collapseLabel = Utils.optionalString(value),
       'expandTextStyle': (style) => _controller.expandTextStyle =
           Utils.getTextStyleAsComposite(_controller, style: style),
-      'colorFilter': (color) =>
-          _controller.colorFilter = Utils.getColor(color),
-      'blendMode': (value) => _controller.blendMode = Utils.getBlendMode(value)
+      'colorFilter': (value) =>
+        _controller.colorFilter = ColorFilterComposite.from( value),
 
     };
   }
@@ -88,9 +88,8 @@ class TextController extends BoxController {
   String? expandLabel, collapseLabel;
   TextStyleComposite? expandTextStyle;
   TextStyleComposite? _textStyle;
-  BlendMode blendMode = BlendMode.modulate;
 
-  Color? colorFilter;
+  ColorFilterComposite? colorFilter;
 
   TextStyleComposite get textStyle => _textStyle ??= TextStyleComposite(this);
 
@@ -143,17 +142,17 @@ class EnsembleTextState extends framework.EWidgetState<EnsembleText> {
               style: controller.textStyle.getTextStyle(),
               textScaler: _getTextScaler());
     }
-    if (colorFilter != null) {
+    if (colorFilter?.color != null) {
       bool isBlack =
-          colorFilter.value == 0xFF000000 || colorFilter.value == 0x00000000;
-      if (isBlack && controller.blendMode == BlendMode.modulate) {
+          colorFilter?.color!.value == 0xFF000000 || colorFilter?.color!.value == 0x00000000;
+      if (isBlack && controller.colorFilter!.blendMode == BlendMode.modulate) {
         textWidget = ColorFiltered(
           colorFilter: Utils.getGreyScale(),
           child: textWidget,
         );
       } else {
         textWidget = ColorFiltered(
-          colorFilter: ColorFilter.mode(colorFilter, controller.blendMode),
+          colorFilter: ColorFilter.mode(colorFilter!.color!, controller.colorFilter!.blendMode),
           child: textWidget,
         );
       }
