@@ -45,6 +45,7 @@ class AvatarController extends EnsembleBoxController {
   BoxFit? fit;
   Color? placeholderColor;
   Color? colorFilter;
+  BlendMode blendMode = BlendMode.modulate;
   bool? useGrayscaleFilter;
   GroupTemplate? groupTemplate;
 
@@ -77,7 +78,9 @@ class AvatarController extends EnsembleBoxController {
       'onTap': (func) => onTap = EnsembleAction.from(func, initiator: this),
       'onTapHaptic': (value) => onTapHaptic = Utils.optionalString(value),
       'group-template': (value) => setGroupAvatar(value),
-      'colorFilter': (value) => colorFilter = Utils.getColor(value)
+      'colorFilter': (value) => colorFilter = Utils.getColor(value),
+      'blendMode': (value) => blendMode = Utils.getBlendMode(value)
+
     });
 
   void setGroupAvatar(dynamic groupData) {
@@ -297,6 +300,7 @@ class AvatarState extends EnsembleWidgetState<Avatar>
       source: source,
       fit: widget.controller.fit,
       colorFilter: widget.controller.colorFilter,
+      blendMode: widget.controller.blendMode,
       networkCacheManager: EnsembleImageCacheManager.instance,
       placeholderBuilder: (_, __) =>
           ColoredBoxPlaceholder(color: widget.controller.placeholderColor),

@@ -130,7 +130,6 @@ class TextStyleComposite extends WidgetCompositeProperty {
   double? letterSpacing;
   double? wordSpacing;
   TextAlign? textAlign;
-  Color? colorFilter;
 
   TextStyle getTextStyle() => (fontFamily ?? const TextStyle()).copyWith(
       fontSize: fontSize?.toDouble(),
@@ -145,7 +144,6 @@ class TextStyleComposite extends WidgetCompositeProperty {
       decorationThickness: decorationThickness,
       overflow: overflow,
       letterSpacing: letterSpacing,
-      colorFilter: colorFilter,
       wordSpacing: wordSpacing);
 
   @override

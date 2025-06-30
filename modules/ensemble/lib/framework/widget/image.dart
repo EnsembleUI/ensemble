@@ -19,6 +19,7 @@ class Image extends StatelessWidget {
       this.errorBuilder,
       this.placeholderBuilder,
       this.colorFilter,
+      this.blendMode,
       this.networkCacheManager});
 
   final String source;
@@ -26,6 +27,7 @@ class Image extends StatelessWidget {
   final double? height;
   final BoxFit? fit;
   final Color? colorFilter;
+  final BlendMode? blendMode;
 
   final Widget Function(String)? errorBuilder;
 
@@ -92,7 +94,7 @@ class Image extends StatelessWidget {
         imageWidget = ColorFiltered(
           colorFilter: ColorFilter.mode(
             colorFilter!,
-            BlendMode.saturation,
+            blendMode!,
           ),
           child: imageWidget,
         );

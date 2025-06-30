@@ -44,7 +44,7 @@ class BoxLayoutWrapper extends StatelessWidget {
     if (controller.colorFilter != null) {
           bool isBlack = controller.colorFilter!.value == 0xFF000000 ||
               controller.colorFilter!.value == 0x00000000;
-          if (isBlack) {
+          if (isBlack && controller.blendMode == BlendMode.modulate) {
             rtn = ColorFiltered(
               colorFilter: Utils.getGreyScale(),
               child: rtn,
@@ -53,7 +53,7 @@ class BoxLayoutWrapper extends StatelessWidget {
             // Use modulate blend mode for other colors
             rtn = ColorFiltered(
               colorFilter:
-                  ColorFilter.mode(controller.colorFilter!, BlendMode.modulate),
+                  ColorFilter.mode(controller.colorFilter!, controller.blendMode!),
               child: rtn,
             );
           }
@@ -127,7 +127,8 @@ abstract class BaseBoxLayoutController extends TapEnabledBoxController {
   int? fontSize;
   TextStyleComposite? _textStyle;
   int? maxLines;
-    Color? colorFilter;
+  Color? colorFilter;
+  BlendMode blendMode = BlendMode.modulate;
 
   @override
   Map<String, Function> getBaseSetters() {
@@ -147,7 +148,8 @@ abstract class BaseBoxLayoutController extends TapEnabledBoxController {
       'maxLines': (value) => maxLines = Utils.optionalInt(value, min: 1),
       'textStyle': (style) =>
           _textStyle = Utils.getTextStyleAsComposite(this, style: style),
-      'colorFilter': (value) => colorFilter = Utils.getColor(value)
+      'colorFilter': (value) => colorFilter = Utils.getColor(value),
+      'blendMode': (value) => blendMode = Utils.getBlendMode(value)
     });
     return setters;
   }

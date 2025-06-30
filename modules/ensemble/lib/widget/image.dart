@@ -73,6 +73,7 @@ class EnsembleImage extends StatefulWidget
       'pinchToZoom': (value) =>
           _controller.pinchToZoom = Utils.optionalBool(value),
       'colorFilter': (value) => _controller.colorFilter = Utils.getColor(value),
+      'blendMode': (value) => _controller.blendMode = Utils.getBlendMode(value)
     };
   }
 }
@@ -90,7 +91,8 @@ class ImageController extends BoxController {
   Color? placeholderColor;
   EnsembleAction? onTap;
   String? onTapHaptic;
-    Color? colorFilter;
+  Color? colorFilter;
+  BlendMode blendMode = BlendMode.modulate;
 
   // whether we should resize the image to this. Note that we should set either
   // resizedWidth or resizedHeight but not both so the aspect ratio is maintained
@@ -156,7 +158,7 @@ class ImageState extends EWidgetState<EnsembleImage> {
       rtn = PinchToZoom(child: rtn);
     }
     if (widget._controller.colorFilter != null) {
-      if (widget._controller.colorFilter == Colors.black) {
+      if (widget._controller.colorFilter == Colors.black && widget._controller.blendMode == BlendMode.modulate) {
         rtn = ColorFiltered(
           colorFilter: Utils.getGreyScale(),
           child: rtn,
@@ -165,7 +167,7 @@ class ImageState extends EWidgetState<EnsembleImage> {
         rtn = ColorFiltered(
           colorFilter: ColorFilter.mode(
             widget._controller.colorFilter!,
-            BlendMode.modulate,
+            widget._controller.blendMode,
           ),
           child: rtn,
         );

@@ -60,6 +60,41 @@ class Utils {
       0, 0, 0, 1, 0, // Alpha channel
     ]);
   }
+  static BlendMode getBlendMode(String blendModeString) {
+    final blendModeMap = {
+      'clear': BlendMode.clear,
+      'src': BlendMode.src,
+      'dst': BlendMode.dst,
+      'srcOver': BlendMode.srcOver,
+      'dstOver': BlendMode.dstOver,
+      'srcIn': BlendMode.srcIn,
+      'dstIn': BlendMode.dstIn,
+      'srcOut': BlendMode.srcOut,
+      'dstOut': BlendMode.dstOut,
+      'srcATop': BlendMode.srcATop,
+      'dstATop': BlendMode.dstATop,
+      'xor': BlendMode.xor,
+      'plus': BlendMode.plus,
+      'modulate': BlendMode.modulate,
+      'screen': BlendMode.screen,
+      'overlay': BlendMode.overlay,
+      'darken': BlendMode.darken,
+      'lighten': BlendMode.lighten,
+      'colorDodge': BlendMode.colorDodge,
+      'colorBurn': BlendMode.colorBurn,
+      'hardLight': BlendMode.hardLight,
+      'softLight': BlendMode.softLight,
+      'difference': BlendMode.difference,
+      'exclusion': BlendMode.exclusion,
+      'multiply': BlendMode.multiply,
+      'hue': BlendMode.hue,
+      'saturation': BlendMode.saturation,
+      'color': BlendMode.color,
+      'luminosity': BlendMode.luminosity,
+    };
+
+    return blendModeMap[blendModeString] ?? BlendMode.modulate;
+  }
 
   static bool? optionalBool(dynamic value) {
     return value is bool ? value : null;

@@ -37,8 +37,7 @@ class EnsembleText extends StatefulWidget
       'expandLabel': () => _controller.expandLabel,
       'collapseLabel': () => _controller.collapseLabel,
       'expandTextStyle': () => _controller.expandTextStyle,
-      'colorFilter': () =>
-          _controller.textStyle.colorFilter,
+      'colorFilter': () => _controller.colorFilter,
     };
   }
 
@@ -63,8 +62,10 @@ class EnsembleText extends StatefulWidget
           _controller.collapseLabel = Utils.optionalString(value),
       'expandTextStyle': (style) => _controller.expandTextStyle =
           Utils.getTextStyleAsComposite(_controller, style: style),
-      'colorFilter': (color) => _controller.textStyle.colorFilter =
-          Utils.getColor(color),
+      'colorFilter': (color) =>
+          _controller.colorFilter = Utils.getColor(color),
+      'blendMode': (value) => _controller.blendMode = Utils.getBlendMode(value)
+
     };
   }
 
@@ -87,6 +88,9 @@ class TextController extends BoxController {
   String? expandLabel, collapseLabel;
   TextStyleComposite? expandTextStyle;
   TextStyleComposite? _textStyle;
+  BlendMode blendMode = BlendMode.modulate;
+
+  Color? colorFilter;
 
   TextStyleComposite get textStyle => _textStyle ??= TextStyleComposite(this);
 
@@ -104,7 +108,7 @@ class EnsembleTextState extends framework.EWidgetState<EnsembleText> {
 
   Widget buildText(TextController controller) {
     final gradientStyle = controller.textStyle.gradient;
-    final colorFilter = controller.textStyle.colorFilter;
+    final colorFilter = controller.colorFilter;
 
     bool shouldBeSelectable = controller.selectable == true ||
         (controller.selectable != false &&
@@ -139,20 +143,20 @@ class EnsembleTextState extends framework.EWidgetState<EnsembleText> {
               style: controller.textStyle.getTextStyle(),
               textScaler: _getTextScaler());
     }
-      if(colorFilter != null){
-       bool isBlack = colorFilter.value == 0xFF000000 ||
-                     colorFilter.value == 0x00000000;
-          if (isBlack) {
-            textWidget = ColorFiltered(
-              colorFilter: Utils.getGreyScale(),
-              child: textWidget,
-            );
-          } else {
-            textWidget = ColorFiltered(
-              colorFilter: ColorFilter.mode(colorFilter, BlendMode.modulate),
-              child: textWidget,
-            );
-          }
+    if (colorFilter != null) {
+      bool isBlack =
+          colorFilter.value == 0xFF000000 || colorFilter.value == 0x00000000;
+      if (isBlack && controller.blendMode == BlendMode.modulate) {
+        textWidget = ColorFiltered(
+          colorFilter: Utils.getGreyScale(),
+          child: textWidget,
+        );
+      } else {
+        textWidget = ColorFiltered(
+          colorFilter: ColorFilter.mode(colorFilter, controller.blendMode),
+          child: textWidget,
+        );
+      }
     }
     return gradientStyle != null
         ? _GradientText(gradient: gradientStyle, child: textWidget)

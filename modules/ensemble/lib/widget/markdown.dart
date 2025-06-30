@@ -37,7 +37,8 @@ class Markdown extends StatefulWidget
       'text': (newValue) => _controller.text = Utils.optionalString(newValue),
       'textStyle': (style) => _controller.textStyle = Utils.getTextStyle(style),
       'linkStyle': (style) => _controller.linkStyle = Utils.getTextStyle(style),
-      'colorFilter': (value) => _controller.colorFilter = Utils.getColor(value)
+      'colorFilter': (value) => _controller.colorFilter = Utils.getColor(value),
+      'blendMode': (value) => _controller.blendMode = Utils.getBlendMode(value),
     };
   }
 
@@ -53,6 +54,7 @@ class MarkdownController extends WidgetController {
   TextStyle? textStyle;
   TextStyle? linkStyle;
   Color? colorFilter;
+  BlendMode blendMode = BlendMode.modulate;
   //TextStyle? codeStyle
 }
 
@@ -75,15 +77,14 @@ class MarkdownState extends framework.EWidgetState<Markdown> {
     if(widget._controller.colorFilter != null){
        bool isBlack = widget._controller.colorFilter!.value == 0xFF000000 ||
                      widget._controller.colorFilter!.value == 0x00000000;
-      if (isBlack) {
+      if (isBlack && widget._controller.blendMode == BlendMode.modulate) {
         rtn = ColorFiltered(
           colorFilter: Utils.getGreyScale(),
           child: rtn,
         );
       } else {
-        // Use modulate blend mode for other colors
         rtn = ColorFiltered(
-          colorFilter: ColorFilter.mode(widget._controller.colorFilter!, BlendMode.modulate),
+          colorFilter: ColorFilter.mode(widget._controller.colorFilter!, widget._controller.blendMode),
           child: rtn,
         );
       }

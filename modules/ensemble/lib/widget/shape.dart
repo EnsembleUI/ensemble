@@ -37,6 +37,7 @@ class ShapeController extends EnsembleWidgetController
   int? height;
   Color? backgroundColor;
   Color? colorFilter;
+  BlendMode blendMode = BlendMode.modulate;
 
   @override
   Map<String, Function> setters() => Map<String, Function>.from(super.setters())
@@ -47,6 +48,7 @@ class ShapeController extends EnsembleWidgetController
       'height': (value) => height = Utils.optionalInt(value),
       'backgroundColor': (color) => backgroundColor = Utils.getColor(color),
       'colorFilter': (color) => colorFilter = Utils.getColor(color),
+      'blendMode': (value) => blendMode = Utils.getBlendMode(value)
     });
 }
 
@@ -61,6 +63,7 @@ class ShapeState extends EnsembleWidgetState<Shape> {
         colorFilter: widget.controller.colorFilter,
         borderColor: widget.controller.borderColor,
         borderWidth: widget.controller.borderWidth,
+        blendMode: widget.controller.blendMode,
         borderRadius: widget.controller.borderRadius?.getValue(),
       );
 }
@@ -77,6 +80,7 @@ class InternalShape extends StatelessWidget {
       this.borderColor,
       this.borderWidth,
       this.colorFilter,
+      this.blendMode,
       this.borderRadius});
 
   final ShapeVariant? type;
@@ -84,6 +88,7 @@ class InternalShape extends StatelessWidget {
   final int? height;
   final Color? backgroundColor;
   final Color? colorFilter;
+  final BlendMode? blendMode;
 
   final LinearGradient? borderGradient;
   final Color? borderColor;
@@ -137,7 +142,7 @@ class InternalShape extends StatelessWidget {
                 border: _getBorder(context)));
     }
     if (colorFilter != null) {
-      if (colorFilter == Colors.black) {
+      if (colorFilter == Colors.black && blendMode == BlendMode.modulate) {
         return ColorFiltered(
           colorFilter: Utils.getGreyScale(),
           child: shape,
@@ -147,7 +152,7 @@ class InternalShape extends StatelessWidget {
         return ColorFiltered(
           colorFilter: ColorFilter.mode(
             colorFilter!,
-            BlendMode.modulate,
+            blendMode!,
           ),
           child: shape,
         );
