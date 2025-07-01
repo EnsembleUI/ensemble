@@ -14,6 +14,7 @@ import 'package:ensemble/page_model.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/framework/widget/image.dart' as framework;
+import 'package:ensemble/widget/helpers/ColorFilter_Composite.dart';
 import 'package:ensemble/widget/helpers/box_wrapper.dart';
 import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:ensemble/widget/helpers/widgets.dart';
@@ -44,7 +45,8 @@ class AvatarController extends EnsembleBoxController {
   String? source;
   BoxFit? fit;
   Color? placeholderColor;
-
+  ColorFilterComposite? colorFilter;
+  bool? useGrayscaleFilter;
   GroupTemplate? groupTemplate;
 
   AvatarVariant? variant;
@@ -75,7 +77,9 @@ class AvatarController extends EnsembleBoxController {
       'variant': (value) => variant = AvatarVariant.values.from(value),
       'onTap': (func) => onTap = EnsembleAction.from(func, initiator: this),
       'onTapHaptic': (value) => onTapHaptic = Utils.optionalString(value),
-      'group-template': (value) => setGroupAvatar(value)
+      'group-template': (value) => setGroupAvatar(value),
+      'colorFilter': (value) => colorFilter = ColorFilterComposite.from(value),
+
     });
 
   void setGroupAvatar(dynamic groupData) {
@@ -294,6 +298,7 @@ class AvatarState extends EnsembleWidgetState<Avatar>
   Widget _buildImage(String source) => framework.Image(
       source: source,
       fit: widget.controller.fit,
+      colorFilter: widget.controller.colorFilter!,
       networkCacheManager: EnsembleImageCacheManager.instance,
       placeholderBuilder: (_, __) =>
           ColoredBoxPlaceholder(color: widget.controller.placeholderColor),

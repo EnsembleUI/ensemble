@@ -3,6 +3,7 @@ import 'package:ensemble/framework/view/has_selectable_text.dart';
 import 'package:ensemble/model/text_scale.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/framework/widget/widget.dart' as framework;
+import 'package:ensemble/widget/helpers/ColorFilter_Composite.dart';
 import 'package:ensemble/widget/helpers/box_wrapper.dart';
 import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:ensemble/widget/helpers/widgets.dart';
@@ -11,6 +12,7 @@ import 'package:ensemble/widget/widget_util.dart' as util;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
+import 'package:flutter_html/flutter_html.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class EnsembleText extends StatefulWidget
@@ -36,6 +38,7 @@ class EnsembleText extends StatefulWidget
       'expandLabel': () => _controller.expandLabel,
       'collapseLabel': () => _controller.collapseLabel,
       'expandTextStyle': () => _controller.expandTextStyle,
+      'colorFilter': () => _controller.colorFilter,
     };
   }
 
@@ -60,6 +63,9 @@ class EnsembleText extends StatefulWidget
           _controller.collapseLabel = Utils.optionalString(value),
       'expandTextStyle': (style) => _controller.expandTextStyle =
           Utils.getTextStyleAsComposite(_controller, style: style),
+      'colorFilter': (value) =>
+        _controller.colorFilter = ColorFilterComposite.from( value),
+
     };
   }
 
@@ -83,6 +89,8 @@ class TextController extends BoxController {
   TextStyleComposite? expandTextStyle;
   TextStyleComposite? _textStyle;
 
+  ColorFilterComposite? colorFilter;
+
   TextStyleComposite get textStyle => _textStyle ??= TextStyleComposite(this);
 
   set textStyle(TextStyleComposite style) => _textStyle = style;
@@ -99,6 +107,7 @@ class EnsembleTextState extends framework.EWidgetState<EnsembleText> {
 
   Widget buildText(TextController controller) {
     final gradientStyle = controller.textStyle.gradient;
+    final colorFilter = controller.colorFilter;
 
     bool shouldBeSelectable = controller.selectable == true ||
         (controller.selectable != false &&
@@ -133,7 +142,12 @@ class EnsembleTextState extends framework.EWidgetState<EnsembleText> {
               style: controller.textStyle.getTextStyle(),
               textScaler: _getTextScaler());
     }
-
+    if (colorFilter?.color != null) {
+        textWidget = ColorFiltered(
+          colorFilter: colorFilter!.getColorFilter()!,
+          child: textWidget,
+        );
+    }
     return gradientStyle != null
         ? _GradientText(gradient: gradientStyle, child: textWidget)
         : textWidget;

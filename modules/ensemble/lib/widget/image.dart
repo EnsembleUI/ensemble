@@ -8,6 +8,7 @@ import 'package:ensemble/framework/widget/colored_box_placeholder.dart';
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
+import 'package:ensemble/widget/helpers/ColorFilter_Composite.dart';
 import 'package:ensemble/widget/helpers/box_wrapper.dart';
 import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:ensemble/widget/helpers/widgets.dart';
@@ -42,6 +43,8 @@ class EnsembleImage extends StatefulWidget
       'resizedWidth': () => _controller.resizedWidth,
       'resizedHeight': () => _controller.resizedHeight,
       'placeholderColor': () => _controller.placeholderColor,
+      'colorFilter': () =>
+          _controller.colorFilter?.toString() ?? 'null',
     };
   }
 
@@ -70,6 +73,8 @@ class EnsembleImage extends StatefulWidget
           _controller.onTapHaptic = Utils.optionalString(value),
       'pinchToZoom': (value) =>
           _controller.pinchToZoom = Utils.optionalBool(value),
+      'colorFilter': (value) => _controller.colorFilter = ColorFilterComposite.from(value),
+
     };
   }
 }
@@ -87,6 +92,7 @@ class ImageController extends BoxController {
   Color? placeholderColor;
   EnsembleAction? onTap;
   String? onTapHaptic;
+  ColorFilterComposite? colorFilter;
 
   // whether we should resize the image to this. Note that we should set either
   // resizedWidth or resizedHeight but not both so the aspect ratio is maintained
@@ -150,6 +156,12 @@ class ImageState extends EWidgetState<EnsembleImage> {
     }
     if (widget._controller.pinchToZoom == true) {
       rtn = PinchToZoom(child: rtn);
+    }
+    if (widget._controller.colorFilter?.color != null) {
+        rtn = ColorFiltered(
+          colorFilter: widget._controller.colorFilter!.getColorFilter()!,
+          child: rtn,
+        );
     }
     return rtn;
   }

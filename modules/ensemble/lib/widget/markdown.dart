@@ -4,6 +4,7 @@ import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/framework/widget/widget.dart' as framework;
+import 'package:ensemble/widget/helpers/ColorFilter_Composite.dart';
 import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:ensemble/framework/theme/theme_manager.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -37,6 +38,8 @@ class Markdown extends StatefulWidget
       'text': (newValue) => _controller.text = Utils.optionalString(newValue),
       'textStyle': (style) => _controller.textStyle = Utils.getTextStyle(style),
       'linkStyle': (style) => _controller.linkStyle = Utils.getTextStyle(style),
+      'colorFilter': (value) => _controller.colorFilter = ColorFilterComposite.from(value),
+
     };
   }
 
@@ -51,6 +54,7 @@ class MarkdownController extends WidgetController {
 
   TextStyle? textStyle;
   TextStyle? linkStyle;
+  ColorFilterComposite? colorFilter;
   //TextStyle? codeStyle
 }
 
@@ -65,11 +69,18 @@ class MarkdownState extends framework.EWidgetState<Markdown> {
           TextStyle(color: ThemeManager().getPrimaryColor(context)),
     );
 
-    return MarkdownBody(
+    Widget rtn =  MarkdownBody(
       data: widget._controller.text ?? '',
       styleSheet: styles,
       onTapLink: openUrl,
     );
+    if(widget._controller.colorFilter?.color != null){
+        rtn = ColorFiltered(
+          colorFilter: widget._controller.colorFilter!.getColorFilter()!,
+          child: rtn,
+        );
+    }
+    return rtn;
   }
 
   void openUrl(String text, String? url, String? title) {

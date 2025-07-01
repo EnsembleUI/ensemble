@@ -8,6 +8,7 @@ import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/layout_utils.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/carousel.dart';
+import 'package:ensemble/widget/helpers/ColorFilter_Composite.dart';
 import 'package:ensemble/widget/helpers/box_wrapper.dart';
 import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:ensemble/widget/helpers/widgets.dart';
@@ -41,8 +42,15 @@ class BoxLayoutWrapper extends StatelessWidget {
     if (!ignoresMargin && controller.margin != null) {
       rtn = Padding(padding: controller.margin!, child: rtn);
     }
-    return rtn;
-  }
+    if (controller.colorFilter?.color != null) {
+            // Use modulate blend mode for other colors
+            rtn = ColorFiltered(
+              colorFilter: controller.colorFilter!.getColorFilter()!,
+              child: rtn,
+            ); 
+        }
+        return rtn;
+      }
 }
 
 // controller for FlexRow/FlexColumn
@@ -111,6 +119,7 @@ abstract class BaseBoxLayoutController extends TapEnabledBoxController {
   TextStyleComposite? _textStyle;
   int? maxLines;
 
+  ColorFilterComposite? colorFilter;
   @override
   Map<String, Function> getBaseSetters() {
     Map<String, Function> setters = super.getBaseSetters();
@@ -129,6 +138,7 @@ abstract class BaseBoxLayoutController extends TapEnabledBoxController {
       'maxLines': (value) => maxLines = Utils.optionalInt(value, min: 1),
       'textStyle': (style) =>
           _textStyle = Utils.getTextStyleAsComposite(this, style: style),
+      'colorFilter': (value) => colorFilter = ColorFilterComposite.from(value),
     });
     return setters;
   }

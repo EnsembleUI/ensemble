@@ -9,6 +9,7 @@ import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/theme/theme_manager.dart';
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/util/utils.dart';
+import 'package:ensemble/widget/helpers/ColorFilter_Composite.dart';
 import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:ensemble/widget/helpers/widgets.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
@@ -36,6 +37,8 @@ class ShapeController extends EnsembleWidgetController
   int? width;
   int? height;
   Color? backgroundColor;
+  ColorFilterComposite? colorFilter;
+  BlendMode blendMode = BlendMode.modulate;
 
   @override
   Map<String, Function> setters() => Map<String, Function>.from(super.setters())
@@ -45,6 +48,8 @@ class ShapeController extends EnsembleWidgetController
       'width': (value) => width = Utils.optionalInt(value),
       'height': (value) => height = Utils.optionalInt(value),
       'backgroundColor': (color) => backgroundColor = Utils.getColor(color),
+      'colorFilter': (value) => colorFilter = ColorFilterComposite.from(value),
+
     });
 }
 
@@ -56,6 +61,7 @@ class ShapeState extends EnsembleWidgetState<Shape> {
         height: widget.controller.height,
         backgroundColor: widget.controller.backgroundColor,
         borderGradient: widget.controller.borderGradient,
+        colorFilter: widget.controller.colorFilter!,
         borderColor: widget.controller.borderColor,
         borderWidth: widget.controller.borderWidth,
         borderRadius: widget.controller.borderRadius?.getValue(),
@@ -73,12 +79,14 @@ class InternalShape extends StatelessWidget {
       this.borderGradient,
       this.borderColor,
       this.borderWidth,
+      this.colorFilter,
       this.borderRadius});
 
   final ShapeVariant? type;
   final int? width;
   final int? height;
   final Color? backgroundColor;
+  final ColorFilterComposite? colorFilter;
 
   final LinearGradient? borderGradient;
   final Color? borderColor;
@@ -92,9 +100,10 @@ class InternalShape extends StatelessWidget {
     }
     double w = (width ?? height)!.toDouble();
     double h = (height ?? width)!.toDouble();
+    Widget shape;
     switch (type) {
       case ShapeVariant.circle:
-        return Container(
+        shape = Container(
             width: w,
             height: h,
             decoration: BoxDecoration(
@@ -102,7 +111,7 @@ class InternalShape extends StatelessWidget {
                 shape: BoxShape.circle,
                 border: _getBorder(context)));
       case ShapeVariant.oval:
-        return Container(
+        shape = Container(
             width: w,
             height: h,
             decoration: BoxDecoration(
@@ -111,7 +120,7 @@ class InternalShape extends StatelessWidget {
                 shape: BoxShape.rectangle,
                 border: _getBorder(context)));
       case ShapeVariant.square:
-        return Container(
+        shape = Container(
             width: min(w, h),
             height: min(w, h),
             decoration: BoxDecoration(
@@ -121,7 +130,7 @@ class InternalShape extends StatelessWidget {
                 border: _getBorder(context)));
       case ShapeVariant.rectangle:
       default:
-        return Container(
+        shape = Container(
             width: w,
             height: h,
             decoration: BoxDecoration(
@@ -130,6 +139,13 @@ class InternalShape extends StatelessWidget {
                 shape: BoxShape.rectangle,
                 border: _getBorder(context)));
     }
+    if (colorFilter?.color != null) {
+        return ColorFiltered(
+          colorFilter: colorFilter!.getColorFilter()!,
+          child: shape,
+        );
+    }
+    return shape;
   }
 
   bool _hasBorder() =>

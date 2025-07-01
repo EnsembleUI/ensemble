@@ -13,6 +13,7 @@ import 'package:ensemble/page_model.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/framework/widget/widget.dart';
+import 'package:ensemble/widget/helpers/ColorFilter_Composite.dart';
 import 'package:ensemble/widget/helpers/box_wrapper.dart';
 import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:ensemble/widget/helpers/widgets.dart';
@@ -103,6 +104,9 @@ class Carousel extends StatefulWidget
       'cacheKey': (value) => _controller.cacheKey = Utils.optionalString(value),
       'scrollType': (value) =>
           _controller.scrollType = CarouselScrollPhysics.values.from(value),
+      'colorFilter': (value) => 
+          _controller.colorFilter = ColorFilterComposite.from(value)
+
     };
   }
 
@@ -182,6 +186,7 @@ class MyController extends BoxController {
   int? buildOnDemandLength;
   String? direction;
   String? cacheKey;
+  ColorFilterComposite? colorFilter;
   CarouselScrollPhysics? scrollType; // Use enum instead of string
 
   // Custom Widget
@@ -398,7 +403,12 @@ class CarouselState extends EWidgetState<Carousel>
     List<Widget> items = [];
     for (int i = 0; i < children.length; i++) {
       Widget child = children[i];
-
+      if (widget._controller.colorFilter?.color != null) {
+        child = ColorFiltered(
+          colorFilter: widget._controller.colorFilter!.getColorFilter()!,
+          child: child,
+        );
+      }
       items.add(
         Padding(
           padding: EdgeInsets.only(
