@@ -61,7 +61,7 @@ class ShapeState extends EnsembleWidgetState<Shape> {
         height: widget.controller.height,
         backgroundColor: widget.controller.backgroundColor,
         borderGradient: widget.controller.borderGradient,
-        colorFilter: widget.controller.colorFilter!,
+        colorFilter: widget.controller.colorFilter,
         borderColor: widget.controller.borderColor,
         borderWidth: widget.controller.borderWidth,
         borderRadius: widget.controller.borderRadius?.getValue(),
