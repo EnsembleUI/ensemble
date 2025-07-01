@@ -24,11 +24,7 @@ dependencies:
 
   collection: ^1.17.1
   flutter_blue_plus: ^1.33.4
-  workmanager:
-    git:
-      url: https://github.com/fluttercommunity/flutter_workmanager.git
-      ref: main 
-      path: workmanager
+  workmanager: ^0.7.0
   permission_handler: ^11.3.1
 
 dev_dependencies:
