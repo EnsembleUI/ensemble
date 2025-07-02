@@ -15,6 +15,7 @@ import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/framework/widget/icon.dart' as ensemble;
 import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:flutter/material.dart';
+import 'package:ensemble/framework/view/bottom_nav_controller.dart';
 
 class BottomNavBarItem {
   BottomNavBarItem({
@@ -27,6 +28,7 @@ class BottomNavBarItem {
     this.switchScreen = true,
     this.onTap,
     this.onTapHaptic,
+    this.page,
   });
 
   Widget icon;
@@ -38,6 +40,7 @@ class BottomNavBarItem {
   bool? switchScreen;
   EnsembleAction? onTap;
   String? onTapHaptic;
+  String? page;
 }
 
 enum FloatingAlignment {
@@ -152,6 +155,8 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup>
 
   @override
   void dispose() {
+    // Unregister the bottom nav widgets when the PageGroup is disposed
+    GlobalBottomNavController.instance.unregisterBottomNavWidgets();
     if (widget.menu.reloadView == false) {
       controller.dispose();
     }
@@ -221,18 +226,27 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup>
         Utils.getColor(widget.menu.runtimeStyles?['notchColor']) ??
             Theme.of(context).scaffoldBackgroundColor;
 
+    // Build the widgets
+    Widget? bottomNavBar = _buildBottomNavBar();
+    Widget? floatingButton = _buildFloatingButton();
+    FloatingActionButtonLocation? floatingLocation =
+        floatingAlignment == FloatingAlignment.none
+            ? null
+            : floatingAlignment.location;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      GlobalBottomNavController.instance.bottomNavWidget = bottomNavBar;
+      GlobalBottomNavController.instance.floatingActionButton = floatingButton;
+      GlobalBottomNavController.instance.floatingLocation = floatingLocation;
+    });
     return PageGroupWidgetWrapper(
       reloadView: widget.menu.reloadView,
       scopeManager: widget.scopeManager,
       child: Scaffold(
         resizeToAvoidBottomInset: true,
         backgroundColor: notchColor,
-        bottomNavigationBar: _buildBottomNavBar(),
-        floatingActionButtonLocation:
-            floatingAlignment == FloatingAlignment.none
-                ? null
-                : floatingAlignment.location,
-        floatingActionButton: _buildFloatingButton(),
+        bottomNavigationBar: bottomNavBar,
+        floatingActionButtonLocation: floatingLocation,
+        floatingActionButton: floatingButton,
         body: widget.menu.reloadView == true
             ? ListenableBuilder(
                 listenable: viewGroupNotifier,
@@ -347,7 +361,16 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup>
               if (widget.menu.reloadView == true) {
                 viewGroupNotifier.updatePage(index);
               } else {
-                PageGroupWidget.getPageController(context)!.jumpToPage(index);
+                // Continue the old flow if PageController is available
+                if (PageGroupWidget.getPageController(context) != null) {
+                  PageGroupWidget.getPageController(context)!.jumpToPage(index);
+                } else if (GlobalBottomNavController.instance.bottomNavWidget !=
+                    null) {
+                  // This to make sure that if nav buttons are used outside the page group, they would still function
+                  ScreenController().navigateToScreen(context,
+                      screenName: navItems[index].page,
+                      pageArgs: viewGroupNotifier.payload);
+                }
                 viewGroupNotifier.updatePage(index);
               }
 
