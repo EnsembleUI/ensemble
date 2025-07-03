@@ -503,6 +503,8 @@ class PageState extends State<Page>
     // whether to usse CustomScrollView for the entire page
     bool isScrollableView =
         widget._pageModel.runtimeStyles?['scrollableView'] == true;
+    bool collapsableHeader = widget._pageModel.runtimeStyles?['collapsableHeader'] == true;
+    bool collapseSafeArea = widget._pageModel.runtimeStyles?['collapseSafeArea'] == true;
 
     PreferredSizeWidget? fixedAppBar;
     if (!isScrollableView) {
@@ -546,8 +548,16 @@ class PageState extends State<Page>
             appBar: fixedAppBar,
             body: FooterLayout(
               body: isScrollableView
-                  ? buildScrollablePageContent(hasDrawer)
-                  : buildFixedPageContent(fixedAppBar != null),
+                ? (collapsableHeader == true 
+                    ? (collapseSafeArea == true
+                        ? SafeArea(
+                            top: true,
+                            bottom: false, // Let footer handle bottom safe area
+                            child: buildNestedScrollablePageContent(hasDrawer)
+                          )
+                        : buildNestedScrollablePageContent(hasDrawer))
+                    : buildScrollablePageContent(hasDrawer))
+                : buildFixedPageContent(fixedAppBar != null),
               footer: footerWidget,
             ),
             bottomNavigationBar: _bottomNavBar,
@@ -632,6 +642,22 @@ class PageState extends State<Page>
     );
   }
 
+  Widget buildNestedScrollablePageContent(bool hasDrawer) {
+    externalScrollController = ScrollController();
+    return NestedScrollView(
+        controller: externalScrollController,
+        physics: ClampingScrollPhysics(),
+        floatHeaderSlivers: true,
+        headerSliverBuilder: (BuildContext context, bool innerBoxIsScrolled) {
+          List<Widget> slivers = [];
+          Widget? appBar = buildSliverAppBar(widget._pageModel, hasDrawer);
+          if (appBar != null) {
+            slivers.add(appBar);
+          }
+          return slivers;
+        },
+        body: getBody(true));
+  }
   Widget getBody(bool hasAppBar) {
     // ignore safe area is only applicable if we don't have an AppBar
     bool _useSafeArea = !hasAppBar && useSafeArea();
@@ -994,6 +1020,7 @@ class _AnimatedAppBarState extends State<AnimatedAppBar> with WidgetsBindingObse
       collapsedHeight: widget.collapsedBarHeight,
       expandedHeight: widget.expandedBarHeight,
       pinned: widget.pinned,
+      floating: widget.floating,
       centerTitle: widget.centerTitle,
       title: widget.animated
           ? switch (widget.animationType) {

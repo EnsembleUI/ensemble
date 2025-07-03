@@ -161,17 +161,6 @@ class _ListViewCoreState extends State<ListViewCore> {
     // given the nestedScroll property is set to true and View is Scrollable
     // Note that we are not using jumpTo to avoid jerky movement of external
     // Scroll instead we are using animateTo which is smoother than jumpTo
-    if (externalScrollController != null &&
-        widget.nestedScroll &&
-        widget.shrinkWrap) {
-      final currentOffset = _scrollController.position.pixels;
-
-      externalScrollController!.animateTo(
-        currentOffset,
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeInOut,
-      );
-    }
   }
 
   WidgetBuilder get loadingBuilder =>
@@ -201,7 +190,7 @@ class _ListViewCoreState extends State<ListViewCore> {
       scrollDirection: widget.scrollDirection,
       reverse: widget.reverse,
       shrinkWrap: widget.shrinkWrap,
-      controller: _scrollController,
+      controller: widget.nestedScroll == true ? null: _scrollController,
       physics: widget.physics,
       cacheExtent: widget.cacheExtent,
       slivers: [
