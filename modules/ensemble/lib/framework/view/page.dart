@@ -87,6 +87,7 @@ class PageState extends State<Page>
   late Widget rootWidget;
   late ScopeManager _scopeManager;
   Widget? footerWidget;
+  late ScrollController pageController;
 
   // a menu can include other pages, keep track of what is selected
   int selectedPage = 0;
@@ -212,6 +213,7 @@ class PageState extends State<Page>
 
   @override
   void initState() {
+    pageController = ScrollController();
     WidgetsBinding.instance.addObserver(this);
     _scopeManager = ScopeManager(
         widget._initialDataContext
@@ -643,9 +645,8 @@ class PageState extends State<Page>
   }
 
   Widget buildNestedScrollablePageContent(bool hasDrawer) {
-    externalScrollController = ScrollController();
     return NestedScrollView(
-        controller: externalScrollController,
+        controller: pageController,
         physics: ClampingScrollPhysics(),
         floatHeaderSlivers: true,
         headerSliverBuilder: (BuildContext context, bool innerBoxIsScrolled) {
@@ -896,6 +897,7 @@ class PageState extends State<Page>
   }
   @override
   void dispose() {
+    pageController.dispose();
     viewGroupNotifier.removeListener(executeOnViewGroupUpdate);
     Ensemble().routeObserver.unsubscribe(this);
     WidgetsBinding.instance.removeObserver(this);
