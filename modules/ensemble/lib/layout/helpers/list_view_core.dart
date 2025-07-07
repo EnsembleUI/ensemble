@@ -190,7 +190,7 @@ class _ListViewCoreState extends State<ListViewCore> {
       scrollDirection: widget.scrollDirection,
       reverse: widget.reverse,
       shrinkWrap: widget.shrinkWrap,
-      controller: widget.nestedScroll == true ? null: _scrollController,
+      controller: widget.nestedScroll == true ? currentPageController: _scrollController,
       physics: widget.physics,
       cacheExtent: widget.cacheExtent,
       slivers: [
