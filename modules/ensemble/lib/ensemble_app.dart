@@ -38,6 +38,7 @@ const String backgroundBluetoothSubscribeTask = 'backgroundBluetoothSubscribeTas
 const String ensembleMethodChannelName = 'com.ensembleui.host.platform';
 GlobalKey<NavigatorState>? externalAppNavigateKey;
 ScrollController? externalScrollController;
+// fix
 ScrollController? currentPageController;
 
 @pragma('vm:entry-point')
