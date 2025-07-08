@@ -291,32 +291,34 @@ class PageState extends State<Page>
   }
 
   /// Handle auto-hide scroll logic
-  void _handleAutoHideScroll() {
-    if (!_autoHideScrollController.hasClients) return;
-    
-    final currentOffset = _autoHideScrollController.offset;
-    final scrollDelta = currentOffset - _lastScrollOffset;
-    
-    bool shouldHideAppBar = false;
-    bool shouldShowAppBar = false;
-    
-    if (scrollDelta > 0 && currentOffset > _scrollThreshold && _isAppBarVisible) {
-      // Scrolling down past threshold - hide app bar
-      shouldHideAppBar = true;
-    } else if (scrollDelta < -1.0 && !_isAppBarVisible && (-scrollDelta) > _showThreshold) {
-      // Scrolling up past threshold - show app bar
-      shouldShowAppBar = true;
-    }
-    
-    if (shouldHideAppBar || shouldShowAppBar) {
-      setState(() {
-        _isAppBarVisible = shouldShowAppBar;
-      });
-    }
-    
-    _lastScrollOffset = currentOffset;
+void _handleAutoHideScroll() {
+  if (!_autoHideScrollController.hasClients) return;
+  
+  final currentOffset = _autoHideScrollController.offset;
+  final scrollDelta = currentOffset - _lastScrollOffset;
+  
+  bool shouldHideAppBar = false;
+  bool shouldShowAppBar = false;
+  
+  // Always show header when at the top
+  if (currentOffset <= 0 && !_isAppBarVisible) {
+    shouldShowAppBar = true;
+  } else if (scrollDelta > 0 && currentOffset > _scrollThreshold && _isAppBarVisible) {
+    // Scrolling down past threshold - hide app bar
+    shouldHideAppBar = true;
+  } else if (scrollDelta < -2.0 && !_isAppBarVisible) {
+    // Requires at least 2 pixels of upward movement
+    shouldShowAppBar = true;
   }
-
+  
+  if (shouldHideAppBar || shouldShowAppBar) {
+    setState(() {
+      _isAppBarVisible = shouldShowAppBar;
+    });
+  }
+  
+  _lastScrollOffset = currentOffset;
+}
   /// This is a callback because we need the widget to be first instantiate
   /// since the global code block may reference them. Once the global code
   /// block runs, only then we can continue the next steps for the widget
@@ -351,7 +353,6 @@ void _buildAppBarCache(SinglePageModel pageModel, bool hasDrawer) {
 
   
   if (!needsRebuild) {
-    print('cache is valid');
     return; // Cache is still valid, no need to rebuild
   }
 
@@ -652,7 +653,6 @@ Widget _wrapWithSafeAreaIfNeeded(Widget child, bool collapseSafeArea) {
         child: const Icon(Icons.close_rounded),
       );
     }
-    print('this is collapse safe area');
     Widget rtn = DataScopeWidget(
       scopeManager: _scopeManager,
       child: Unfocus(
