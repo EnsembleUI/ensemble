@@ -110,6 +110,7 @@ class PageState extends State<Page>
   }
   void _reassignScrollController() {
     currentPageController = _autoHideScrollController;
+    print('Reassigned scroll controller on page resume');
   }
 
   @override
@@ -350,6 +351,7 @@ void _buildAppBarCache(SinglePageModel pageModel, bool hasDrawer) {
 
   
   if (!needsRebuild) {
+    print('cache is valid');
     return; // Cache is still valid, no need to rebuild
   }
 
@@ -423,6 +425,7 @@ Widget _wrapWithSafeAreaIfNeeded(Widget child, bool collapseSafeArea) {
   if (collapseSafeArea != true) {
     return child;
   }
+  print('this is value received: ${collapseSafeArea}');
 
   return Builder(
     builder: (context) {
@@ -649,6 +652,7 @@ Widget _wrapWithSafeAreaIfNeeded(Widget child, bool collapseSafeArea) {
         child: const Icon(Icons.close_rounded),
       );
     }
+    print('this is collapse safe area');
     Widget rtn = DataScopeWidget(
       scopeManager: _scopeManager,
       child: Unfocus(
