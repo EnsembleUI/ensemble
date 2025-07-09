@@ -88,10 +88,7 @@ dependencies:
   mime: ^1.0.4
   flutter_cache_manager: ^3.3.0
   google_fonts: ^6.2.1
-  walletconnect_dart:
-    git:
-      url: https://github.com/EnsembleUI/ensemble_walletconnect.git
-      ref: master
+  ensemble_walletconnect: ^1.0.0
   http_parser: ^4.0.2
   shared_preferences: ^2.1.1
   workmanager: ^0.7.0
