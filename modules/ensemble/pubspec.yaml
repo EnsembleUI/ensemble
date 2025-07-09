@@ -114,10 +114,7 @@ dependencies:
   rate_my_app: ^2.0.0
   input_tagger: ^3.0.1
   universal_html: ^2.2.4
-  table_calendar:
-    git:
-      url: https://github.com/EnsembleUI/table_calendar.git
-      ref: master
+  ensemble_table_calendar: ^3.1.0
 
   flutter_inappwebview: ^6.1.5
   # old app_badger is unsupported so using a supported fork
