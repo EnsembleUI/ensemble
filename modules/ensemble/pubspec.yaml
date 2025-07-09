@@ -118,10 +118,7 @@ dependencies:
 
   flutter_inappwebview: ^6.1.5
   # old app_badger is unsupported so using a supported fork
-  flutter_app_badger: 
-    git:
-      url: https://github.com/EnsembleUI/flutter_app_badger.git
-      ref: master
+  ensemble_app_badger: ^1.6.0
 
   # Current pub.dev version isn't compatible with 3.24 
   receive_sharing_intent:
