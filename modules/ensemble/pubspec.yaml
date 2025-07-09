@@ -121,10 +121,7 @@ dependencies:
   ensemble_app_badger: ^1.6.0
 
   # Current pub.dev version isn't compatible with 3.24 
-  receive_sharing_intent:
-    git:
-      url: https://github.com/KasemJaffer/receive_sharing_intent.git
-      ref: master
+  flutter_share_receiver: ^1.0.0
   change_case: ^1.1.0
   crypto: ^3.0.3 
   ensemble_dropdown: ^0.1.0

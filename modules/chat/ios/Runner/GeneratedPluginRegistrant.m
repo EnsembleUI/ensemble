@@ -90,6 +90,12 @@
 @import flutter_security_checker;
 #endif
 
+#if __has_include(<flutter_share_receiver/ReceiveSharingIntentPlugin.h>)
+#import <flutter_share_receiver/ReceiveSharingIntentPlugin.h>
+#else
+@import flutter_share_receiver;
+#endif
+
 #if __has_include(<fluttertoast/FluttertoastPlugin.h>)
 #import <fluttertoast/FluttertoastPlugin.h>
 #else
@@ -130,12 +136,6 @@
 #import <rate_my_app/SwiftRateMyAppPlugin.h>
 #else
 @import rate_my_app;
-#endif
-
-#if __has_include(<receive_sharing_intent/ReceiveSharingIntentPlugin.h>)
-#import <receive_sharing_intent/ReceiveSharingIntentPlugin.h>
-#else
-@import receive_sharing_intent;
 #endif
 
 #if __has_include(<safe_device/SafeDevicePlugin.h>)
@@ -209,6 +209,7 @@
   [FlutterLocalNotificationsPlugin registerWithRegistrar:[registry registrarForPlugin:@"FlutterLocalNotificationsPlugin"]];
   [FlutterSecureStoragePlugin registerWithRegistrar:[registry registrarForPlugin:@"FlutterSecureStoragePlugin"]];
   [FlutterSecurityCheckerPlugin registerWithRegistrar:[registry registrarForPlugin:@"FlutterSecurityCheckerPlugin"]];
+  [ReceiveSharingIntentPlugin registerWithRegistrar:[registry registrarForPlugin:@"ReceiveSharingIntentPlugin"]];
   [FluttertoastPlugin registerWithRegistrar:[registry registrarForPlugin:@"FluttertoastPlugin"]];
   [FLALocalAuthPlugin registerWithRegistrar:[registry registrarForPlugin:@"FLALocalAuthPlugin"]];
   [OpenSettingsPlusPlugin registerWithRegistrar:[registry registrarForPlugin:@"OpenSettingsPlusPlugin"]];
@@ -216,7 +217,6 @@
   [FPPPackageInfoPlusPlugin registerWithRegistrar:[registry registrarForPlugin:@"FPPPackageInfoPlusPlugin"]];
   [PathProviderPlugin registerWithRegistrar:[registry registrarForPlugin:@"PathProviderPlugin"]];
   [SwiftRateMyAppPlugin registerWithRegistrar:[registry registrarForPlugin:@"SwiftRateMyAppPlugin"]];
-  [ReceiveSharingIntentPlugin registerWithRegistrar:[registry registrarForPlugin:@"ReceiveSharingIntentPlugin"]];
   [SafeDevicePlugin registerWithRegistrar:[registry registrarForPlugin:@"SafeDevicePlugin"]];
   [FPPSensorsPlusPlugin registerWithRegistrar:[registry registrarForPlugin:@"FPPSensorsPlusPlugin"]];
   [FPPSharePlusPlugin registerWithRegistrar:[registry registrarForPlugin:@"FPPSharePlusPlugin"]];

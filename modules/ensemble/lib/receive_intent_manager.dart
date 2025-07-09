@@ -4,7 +4,7 @@ import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/material.dart';
-import 'package:receive_sharing_intent/receive_sharing_intent.dart';
+import 'package:flutter_share_receiver/flutter_share_receiver.dart';
 
 class ReceiveIntentManager {
   static final ReceiveIntentManager _instance =
@@ -36,7 +36,8 @@ class ReceiveIntentManager {
 
   /// For sharing images coming from outside the app while the app is in the memory
   void receiveMediaWhenInMemory() {
-    ReceiveSharingIntent.instance.getMediaStream().listen((List<SharedMediaFile> value) {
+    ReceiveSharingIntent.instance.getMediaStream().listen(
+        (List<SharedMediaFile> value) {
       if (context != null && onReceive != null) {
         final medias = _getMedias(value);
         _addToContext(context!, medias);
@@ -54,7 +55,8 @@ class ReceiveIntentManager {
 
   /// For sharing images coming from outside the app while the app is closed
   void receiveMediaWhenClosed() {
-    ReceiveSharingIntent.instance.getInitialMedia().then((List<SharedMediaFile> value) {
+    ReceiveSharingIntent.instance.getInitialMedia().then(
+        (List<SharedMediaFile> value) {
       if (context != null && onReceive != null) {
         final medias = _getMedias(value);
         _addToContext(context!, medias);

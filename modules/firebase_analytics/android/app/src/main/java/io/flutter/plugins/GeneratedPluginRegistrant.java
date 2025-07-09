@@ -101,6 +101,11 @@ public final class GeneratedPluginRegistrant {
       Log.e(TAG, "Error registering plugin flutter_security_checker, com.pravera.flutter_security_checker.FlutterSecurityCheckerPlugin", e);
     }
     try {
+      flutterEngine.getPlugins().add(new com.kasem.receive_sharing_intent.ReceiveSharingIntentPlugin());
+    } catch (Exception e) {
+      Log.e(TAG, "Error registering plugin flutter_share_receiver, com.kasem.receive_sharing_intent.ReceiveSharingIntentPlugin", e);
+    }
+    try {
       flutterEngine.getPlugins().add(new io.github.ponnamkarthik.toast.fluttertoast.FlutterToastPlugin());
     } catch (Exception e) {
       Log.e(TAG, "Error registering plugin fluttertoast, io.github.ponnamkarthik.toast.fluttertoast.FlutterToastPlugin", e);
@@ -134,11 +139,6 @@ public final class GeneratedPluginRegistrant {
       flutterEngine.getPlugins().add(new fr.skyost.ratemyapp.RateMyAppPlugin());
     } catch (Exception e) {
       Log.e(TAG, "Error registering plugin rate_my_app, fr.skyost.ratemyapp.RateMyAppPlugin", e);
-    }
-    try {
-      flutterEngine.getPlugins().add(new com.kasem.receive_sharing_intent.ReceiveSharingIntentPlugin());
-    } catch (Exception e) {
-      Log.e(TAG, "Error registering plugin receive_sharing_intent, com.kasem.receive_sharing_intent.ReceiveSharingIntentPlugin", e);
     }
     try {
       flutterEngine.getPlugins().add(new com.xamdesign.safe_device.SafeDevicePlugin());
