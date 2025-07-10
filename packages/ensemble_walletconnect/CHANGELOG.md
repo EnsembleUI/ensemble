@@ -1,4 +1,10 @@
 
+## 1.0.4
+
+### Changes
+
+* Moved to Ensemble monorepo
+
 ## 1.0.3
 
 ### Changes
