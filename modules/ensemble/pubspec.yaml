@@ -142,10 +142,6 @@ dependencies:
   firebase_app_check: ^0.3.2+6
   cloud_functions: ^5.5.1
 
-dependency_overrides:
-  http: ^0.13.5
-  uuid: ^4.0.0
-
 dev_dependencies:
   flutter_test:
     sdk: flutter

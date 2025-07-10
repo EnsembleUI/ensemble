@@ -9,6 +9,7 @@ repository:
 packages:
   - modules/**
   - starter
+  - packages/**
 
 command:
   version:
