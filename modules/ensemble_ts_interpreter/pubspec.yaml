@@ -52,7 +52,7 @@ dependencies:
       ref: main
       path: modules/parsejs_null_safety
   source_span: ^1.9.1
-  intl: '>=0.18.1 <=0.20.2'
+  intl: '>=0.17.0 <=0.20.2'
 
 dev_dependencies:
   flutter_test:

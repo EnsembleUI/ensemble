@@ -23,7 +23,7 @@ dependencies:
   flutter:
     sdk: flutter
 
-  intl: ">=0.18.1 <=0.20.2"
+  intl: ">=0.17.0 <=0.20.2"
   simple_gesture_detector: ^0.2.0
   collection: ^1.15.0
 
