@@ -3,9 +3,9 @@ description: Highly customizable, feature-packed calendar widget for Flutter wit
 version: 3.1.2
 # Remove deprecated author field - will use publishers in pub.dev
 homepage: https://ensembleui.com/
-repository: https://github.com/EnsembleUI/ensemble/tree/main/packages/table_calendar
+repository: https://github.com/EnsembleUI/ensemble
 issue_tracker: https://github.com/EnsembleUI/ensemble/issues
-documentation: https://github.com/EnsembleUI/table_calendar#readme
+documentation: https://github.com/EnsembleUI/ensemble/tree/main/packages/table_calendar#readme
 
 platforms:
   android:

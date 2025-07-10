@@ -1,4 +1,8 @@
 
+## 3.1.2
+
+* Moved to Ensemble monorepo
+
 ## [3.1.1]
 
 * **FIX**: Corrected URLs in pubspec.yaml to use correct case for EnsembleUI

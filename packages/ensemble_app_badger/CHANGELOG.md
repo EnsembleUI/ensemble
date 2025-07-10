@@ -1,3 +1,8 @@
+
+## [1.6.1]
+
+* Moved to Ensemble monorepo
+
 ## [1.6.0] - 2025
 
 * Forked from flutter_app_badger and renamed to ensemble_app_badger

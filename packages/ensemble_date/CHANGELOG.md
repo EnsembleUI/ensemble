@@ -1,4 +1,8 @@
-# Changelog
+
+
+## 1.6.2
+
+- Moved to Ensemble monorepo
 
 ## 1.6.1
 

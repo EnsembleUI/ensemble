@@ -1,4 +1,8 @@
 
+## 1.0.4
+
+* Moved to Ensemble monorepo
+
 ## 1.0.3
 
 * Fixed iOS build error: Updated import statements in ReceiveSharingIntentPlugin.m to use correct module name
