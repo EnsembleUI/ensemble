@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:developer';
 
 import 'package:ensemble/ensemble.dart';
@@ -98,6 +99,8 @@ class PageState extends State<Page>
   double _lastScrollOffset = 0.0;
   static const double _scrollThreshold = 10.0;
   static const double _showThreshold = 10.0;
+  Timer? _debounceTimer;
+  static const Duration _debounceDuration = Duration(milliseconds: 16); // ~60fps
 
   @override
   bool get wantKeepAlive => true;
@@ -300,6 +303,26 @@ void _handleAutoHideScroll() {
   bool shouldHideAppBar = false;
   bool shouldShowAppBar = false;
   
+    if (!_autoHideScrollController.hasClients) return;
+    
+    // Cancel previous timer if it exists
+    _debounceTimer?.cancel();
+    
+    // Create new timer with debounce
+    _debounceTimer = Timer(_debounceDuration, () {
+      _performScrollVisibilityCheck();
+    });
+}
+
+void _performScrollVisibilityCheck() {
+  if (!_autoHideScrollController.hasClients) return;
+  
+  final currentOffset = _autoHideScrollController.offset;
+  final scrollDelta = currentOffset - _lastScrollOffset;
+  
+  bool shouldHideAppBar = false;
+  bool shouldShowAppBar = false;
+  
   // Always show header when at the top
   if (currentOffset <= 0 && !_isAppBarVisible) {
     shouldShowAppBar = true;
@@ -310,15 +333,15 @@ void _handleAutoHideScroll() {
     // Requires at least 2 pixels of upward movement
     shouldShowAppBar = true;
   }
-  
-  if (shouldHideAppBar || shouldShowAppBar) {
-    setState(() {
-      _isAppBarVisible = shouldShowAppBar;
-    });
+    
+    if (shouldHideAppBar || shouldShowAppBar) {
+      setState(() {
+        _isAppBarVisible = shouldShowAppBar;
+      });
+    }
+    
+    _lastScrollOffset = currentOffset;
   }
-  
-  _lastScrollOffset = currentOffset;
-}
   /// This is a callback because we need the widget to be first instantiate
   /// since the global code block may reference them. Once the global code
   /// block runs, only then we can continue the next steps for the widget
