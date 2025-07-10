@@ -53,7 +53,7 @@ Add this to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  ensemble_walletconnect: ^1.0.0
+  ensemble_walletconnect: ^1.0.4
 ```
 
 Then run:
