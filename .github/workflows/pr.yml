@@ -60,6 +60,20 @@ jobs:
           flutter-version: ${{ matrix.flutter-version }}
           cache: true
 
+      - name: Setup Xcode (iOS only)
+        if: matrix.platform == 'ios'
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+
+      - name: Install CocoaPods (iOS only)
+        if: matrix.platform == 'ios'
+        run: |
+          sudo gem install cocoapods
+          cd starter/ios
+          pod repo update
+          pod install
+
       - name: Install Melos
         run: dart pub global activate melos
 
@@ -88,5 +102,5 @@ jobs:
           path: |
             starter/build/web/**
             starter/build/app/outputs/flutter-apk/*.apk
-            starter/build/ios/Release-iphoneos/*.app
+            starter/build/ios/Release-iphoneos/Runner.app/**
           retention-days: 7
