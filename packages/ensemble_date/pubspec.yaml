@@ -1,0 +1,17 @@
+name: ensemble_date
+description: Date manipulation library. DateTime extensions. Also includes an Interval object. Forked from dart_date with additional improvements and maintenance.
+version: 1.6.2
+homepage: https://ensembleui.com/
+repository: https://github.com/EnsembleUI/ensemble/tree/main/packages/dart_date
+issue_tracker: https://github.com/EnsembleUI/ensemble/issues
+
+environment:
+  sdk: '>=2.12.0 <4.0.0'
+
+dependencies:
+  intl: ">=0.17.0 <=0.20.2"
+  timeago: ^3.0.2
+
+dev_dependencies:
+  test: ^1.16.0
+  lints: ^3.0.0

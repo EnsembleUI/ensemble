@@ -101,7 +101,7 @@ mixin ThemeLoader {
             shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(8.0))),
       ),
-      tabBarTheme: TabBarTheme(
+      tabBarTheme: TabBarThemeData(
         labelColor: DesignSystem.primary,
       ),
       tooltipTheme: const TooltipThemeData(

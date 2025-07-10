@@ -15,7 +15,7 @@ import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:table_calendar/table_calendar.dart';
+import 'package:ensemble_table_calendar/ensemble_table_calendar.dart';
 import 'package:yaml/yaml.dart';
 import 'package:collection/collection.dart';
 

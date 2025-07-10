@@ -4,7 +4,7 @@ import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:flutter/cupertino.dart';
-import 'package:flutter_app_badger/flutter_app_badger.dart';
+import 'package:ensemble_app_badger/ensemble_app_badger.dart';
 
 class UpdateBadgeCount extends EnsembleAction {
   UpdateBadgeCount(dynamic count) : _count = count;

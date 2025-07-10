@@ -1,0 +1,25 @@
+name: ensemble_app_badger
+description: Plugin to update the app badge on the launcher (both for Android, iOS, and macOS)
+version: 1.6.1
+homepage: https://ensembleui.com/
+repository: https://github.com/EnsembleUI/ensemble/tree/main/packages/flutter_app_badger
+issue_tracker: https://github.com/EnsembleUI/ensemble/issues
+
+environment:
+  sdk: '>=2.17.0 <4.0.0'
+  flutter: '>=3.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+flutter:
+  plugin:
+    platforms:
+      android:
+        package: fr.ppprakhar.flutterappbadger
+        pluginClass: FlutterAppBadgerPlugin
+      ios:
+        pluginClass: FlutterAppBadgerPlugin
+      macos:
+        pluginClass: FlutterAppBadgerPlugin
