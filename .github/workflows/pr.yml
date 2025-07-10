@@ -39,3 +39,54 @@ jobs:
         run: |
           cd modules/auth
           flutter test
+
+  buildStarter:
+    name: Build Starter App
+    needs: runUnitTest
+    runs-on: macos-latest
+
+    strategy:
+      matrix:
+        flutter-version: ['3.27.2', '3.32.5']
+        platform: ['web', 'android', 'ios']
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Setup Flutter SDK
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ matrix.flutter-version }}
+          cache: true
+
+      - name: Install Melos
+        run: dart pub global activate melos
+
+      - name: Bootstrap Melos
+        run: melos bootstrap
+
+      - name: Build for ${{ matrix.platform }}
+        run: |
+          cd starter
+          case "${{ matrix.platform }}" in
+            web)
+              flutter build web --release --no-tree-shake-icons
+              ;;
+            android)
+              flutter build apk --release --no-tree-shake-icons
+              ;;
+            ios)
+              flutter build ios --release --no-codesign --no-tree-shake-icons
+              ;;
+          esac
+
+      - name: Upload Build Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: starter-build-${{ matrix.platform }}-flutter-${{ matrix.flutter-version }}
+          path: |
+            starter/build/web/**
+            starter/build/app/outputs/flutter-apk/*.apk
+            starter/build/ios/Release-iphoneos/*.app
+          retention-days: 7
