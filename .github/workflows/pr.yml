@@ -86,13 +86,16 @@ jobs:
             -dname "CN=CI Build, OU=CI, O=Ensemble, L=City, S=State, C=US" \
             -storepass ci-password -keypass ci-password
           
-          # Create key.properties file
+          # Create key.properties file with absolute path
           cat > key.properties << EOF
           storePassword=ci-password
           keyPassword=ci-password
           keyAlias=ci-key
-          storeFile=ci-release-key.jks
+          storeFile=$(pwd)/ci-release-key.jks
           EOF
+          
+          # Verify files were created
+          ls -la ci-release-key.jks key.properties
 
       - name: Build for ${{ matrix.platform }}
         run: |
