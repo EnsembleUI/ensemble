@@ -80,6 +80,11 @@ jobs:
       - name: Bootstrap Melos
         run: melos bootstrap
 
+      - name: Flutter pub get for starter
+        run: |
+          cd starter
+          flutter pub get
+
       - name: Build for ${{ matrix.platform }}
         run: |
           cd starter
