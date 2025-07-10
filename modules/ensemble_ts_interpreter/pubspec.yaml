@@ -43,7 +43,7 @@ dependencies:
   http: ^1.2.1
   json_path: ^0.7.2
   duration: ^3.0.11
-  ensemble_date: ^1.6.0
+  ensemble_date: ^1.6.1
   #flutter_js: ^0.5.0+6
   #dartjsengine: ^1.0.1
   jsparser:
