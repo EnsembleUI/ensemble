@@ -77,6 +77,23 @@ jobs:
       - name: Bootstrap Melos
         run: melos bootstrap
 
+      - name: Create temporary keystore for Android signing
+        if: matrix.platform == 'android'
+        run: |
+          cd starter/android
+          # Create a temporary keystore for CI builds
+          keytool -genkey -v -keystore ci-release-key.jks -keyalg RSA -keysize 2048 -validity 10000 -alias ci-key \
+            -dname "CN=CI Build, OU=CI, O=Ensemble, L=City, S=State, C=US" \
+            -storepass ci-password -keypass ci-password
+          
+          # Create key.properties file
+          cat > key.properties << EOF
+          storePassword=ci-password
+          keyPassword=ci-password
+          keyAlias=ci-key
+          storeFile=ci-release-key.jks
+          EOF
+
       - name: Build for ${{ matrix.platform }}
         run: |
           cd starter
@@ -95,5 +112,5 @@ jobs:
           name: starter-build-${{ matrix.platform }}-flutter-${{ matrix.flutter-version }}
           path: |
             starter/build/web/**
-            starter/build/app/outputs/flutter-apk/*.apk
+            starter/build/app/outputs/flutter-apk/*-release.apk
           retention-days: 7
