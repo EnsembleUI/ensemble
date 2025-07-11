@@ -111,22 +111,47 @@ class PageState extends State<Page>
     // widget can be re-created at any time, we need to keep the Scope intact.
     widget.rootScopeManager = _scopeManager;
   }
+
   void _reassignScrollController() {
-    currentPageController = _autoHideScrollController;
-    print('Reassigned scroll controller on page resume');
+    // Ensure we're in a valid state
+    if (!mounted) return;
+    
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!_autoHideScrollController.hasClients) {
+        print('⚠️ ScrollController not ready, skipping reassignment');
+        return;
+      }
+      
+      try {
+        // Remove existing listener (if any)
+        _autoHideScrollController.removeListener(_handleAutoHideScroll);
+      } catch (e) {
+        // Listener wasn't there, continue
+      }
+      
+      // Add listener back
+      _autoHideScrollController.addListener(_handleAutoHideScroll);
+      
+      // Update reference only if different
+      if (currentPageController != _autoHideScrollController) {
+        currentPageController = _autoHideScrollController;
+        print('✅ Reassigned scroll controller on page resume');
+      }
+    });
   }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     // if our widget changes, we need to save the scopeManager to it.
+    print('widget changed!!!!!!!!!');
     widget.rootScopeManager = _scopeManager;
+        _reassignScrollController();
 
     // see if we are part of a ViewGroup or not
     BottomNavScreen? bottomNavRootScreen = BottomNavScreen.getScreen(context);
     if (bottomNavRootScreen != null) {
       bottomNavRootScreen.onReVisited(() {
-        _reassignScrollController();
         if (widget._pageModel.viewBehavior.onResume != null) {
           ScreenController().executeActionWithScope(
               context, _scopeManager, widget._pageModel.viewBehavior.onResume!,
