@@ -20,6 +20,7 @@ import 'package:ensemble/framework/view/page_group.dart';
 import 'package:ensemble/framework/widget/icon.dart' as ensemble;
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/screen_controller.dart';
+import 'package:ensemble/util/debouncer.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:ensemble/widget/helpers/unfocus.dart';
@@ -100,6 +101,7 @@ class PageState extends State<Page>
   static const double _scrollThreshold = 10.0;
   static const double _showThreshold = 10.0;
   Timer? _debounceTimer;
+  late Debouncer debounce;
   static const Duration _debounceDuration = Duration(milliseconds: 16); // ~60fps
 
   @override
@@ -115,29 +117,20 @@ class PageState extends State<Page>
   void _reassignScrollController() {
     // Ensure we're in a valid state
     if (!mounted) return;
+
+    print('is mounted: $mounted');
     
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!_autoHideScrollController.hasClients) {
-        print('⚠️ ScrollController not ready, skipping reassignment');
-        return;
-      }
-      
-      try {
-        // Remove existing listener (if any)
-        _autoHideScrollController.removeListener(_handleAutoHideScroll);
-      } catch (e) {
-        // Listener wasn't there, continue
-      }
-      
-      // Add listener back
-      _autoHideScrollController.addListener(_handleAutoHideScroll);
-      
       // Update reference only if different
       if (currentPageController != _autoHideScrollController) {
         currentPageController = _autoHideScrollController;
-        print('✅ Reassigned scroll controller on page resume');
+        print('✅ Reassigned scroll controller on page resume ${_autoHideScrollController}');
       }
-    });
+  print('this is autoHideScrollController ${_autoHideScrollController}');
+  print('hasClients: ${_autoHideScrollController.hasClients}');
+  print('Controller hashCode: ${_autoHideScrollController.hashCode}');
+  print('currentPageController == _autoHideScrollController: ${currentPageController == _autoHideScrollController}');
+  
+    
   }
 
   @override
@@ -237,6 +230,7 @@ class PageState extends State<Page>
   @override
   void didPopNext() {
     super.didPopNext();
+    print('inside did pop next');
     _reassignScrollController();
     if (widget._pageModel.viewBehavior.onResume != null) {
       ScreenController().executeActionWithScope(
@@ -254,6 +248,7 @@ class PageState extends State<Page>
 
   @override
   void initState() {
+    debounce = Debouncer(const Duration(milliseconds: 15));
     pageController = ScrollController();
     _autoHideScrollController = ScrollController();
     currentPageController = _autoHideScrollController;
@@ -322,21 +317,9 @@ class PageState extends State<Page>
 void _handleAutoHideScroll() {
   if (!_autoHideScrollController.hasClients) return;
   
-  final currentOffset = _autoHideScrollController.offset;
-  final scrollDelta = currentOffset - _lastScrollOffset;
-  
-  bool shouldHideAppBar = false;
-  bool shouldShowAppBar = false;
-  
-    if (!_autoHideScrollController.hasClients) return;
-    
-    // Cancel previous timer if it exists
-    _debounceTimer?.cancel();
-    
-    // Create new timer with debounce
-    _debounceTimer = Timer(_debounceDuration, () {
-      _performScrollVisibilityCheck();
-    });
+  debounce.run(() {
+    _performScrollVisibilityCheck();
+  });
 }
 
 void _performScrollVisibilityCheck() {
@@ -1063,6 +1046,8 @@ body: FooterLayout(
   }
   @override
   void dispose() {
+    print('this is the page disposed!');
+    debounce.cancel();
     pageController.dispose();
     _autoHideScrollController.removeListener(_handleAutoHideScroll);
     _autoHideScrollController.dispose();
