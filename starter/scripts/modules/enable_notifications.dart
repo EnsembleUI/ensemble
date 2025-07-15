@@ -38,7 +38,7 @@ void main(List<String> arguments) {
     if (platforms.contains('android')) {
       addClasspathDependency(
           "classpath 'com.google.gms:google-services:4.3.15'");
-      addPluginDependency("apply plugin: 'com.google.gms.google-services'");
+      addPluginDependency("id 'com.google.gms.google-services'");
       addSettingsPluginDependency(
           'id "com.google.gms.google-services" version "4.3.15" apply false');
       addImplementationDependency(

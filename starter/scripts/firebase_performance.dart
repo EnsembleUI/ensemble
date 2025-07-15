@@ -13,7 +13,7 @@ void main(List<String> arguments) {
     if (platforms.contains('android')) {
       addClasspathDependency(
           "classpath 'com.google.firebase:perf-plugin:1.4.2'");
-      addPluginDependency("apply plugin: 'com.google.firebase.firebase-perf'");
+      addPluginDependency("id 'com.google.firebase.firebase-perf'");
     }
 
     // Configure iOS-specific settings

@@ -237,7 +237,7 @@ void addClasspathDependency(String dependency) {
   file.writeAsStringSync(content);
 }
 
-void addPluginDependency(String dependency) {
+void addPluginDependency(String pluginLine) {
   final file = File(androidAppBuildGradleFilePath);
   if (!file.existsSync()) {
     throw Exception('Android app build file not found.');
@@ -245,15 +245,25 @@ void addPluginDependency(String dependency) {
 
   String content = file.readAsStringSync();
 
-  // Add the plugin dependency if it doesn't already exist
-  if (!content.contains(dependency)) {
-    content = content.replaceFirst(
-      RegExp(r"apply\s*plugin:\s*'com\.android\.application'"),
-      'apply plugin: \'com.android.application\'\n$dependency',
-    );
+  // Check if the plugin is already present
+  if (content.contains(pluginLine)) {
+    return;
   }
 
-  file.writeAsStringSync(content);
+  // Find the plugins { ... } block
+  final pluginsBlockRegExp = RegExp(r'plugins\s*\{');
+  final match = pluginsBlockRegExp.firstMatch(content);
+  if (match != null) {
+    // Insert the plugin line after the opening brace of plugins block
+    final insertPosition = content.indexOf('{', match.start) + 1;
+    content = content.substring(0, insertPosition) +
+        '\n    ' +
+        pluginLine +
+        content.substring(insertPosition);
+    file.writeAsStringSync(content);
+  } else {
+    throw Exception('No plugins block found in build.gradle.');
+  }
 }
 
 void addImplementationDependency(String dependency) {

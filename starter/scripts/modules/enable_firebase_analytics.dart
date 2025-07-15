@@ -49,7 +49,7 @@ ensemble_firebase_analytics:
     if (platforms.contains('android')) {
       addClasspathDependency(
           "classpath 'com.google.gms:google-services:4.3.15'");
-      addPluginDependency("apply plugin: 'com.google.gms.google-services'");
+      addPluginDependency("id 'com.google.gms.google-services'");
       addImplementationDependency(
           "implementation 'com.google.firebase:firebase-analytics'");
       addImplementationDependency(
