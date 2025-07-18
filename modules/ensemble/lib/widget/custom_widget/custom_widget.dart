@@ -76,6 +76,7 @@ class _CustomWidgetState extends EnsembleWidgetState<CustomWidget> {
     CustomWidgetLifecycle lifecycleActions = widget.model.getLifecycleActions();
     if (lifecycleActions.onLoad != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
         ScreenController().executeAction(context, lifecycleActions.onLoad!);
       });
     }

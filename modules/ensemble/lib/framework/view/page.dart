@@ -19,6 +19,7 @@ import 'package:ensemble/framework/view/page_group.dart';
 import 'package:ensemble/framework/widget/icon.dart' as ensemble;
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/screen_controller.dart';
+import 'package:ensemble/util/debouncer.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:ensemble/widget/helpers/unfocus.dart';
@@ -74,10 +75,6 @@ class Page extends StatefulWidget {
 
   final Function() onRendered;
 
-  //final Widget bodyWidget;
-  //final Menu? menu;
-  //final Widget? footer;
-
   @override
   State<Page> createState() => PageState();
 }
@@ -85,11 +82,22 @@ class Page extends StatefulWidget {
 class PageState extends State<Page>
     with AutomaticKeepAliveClientMixin, RouteAware, WidgetsBindingObserver {
   late Widget rootWidget;
+  PreferredSizeWidget? _cachedHeaderAppBar;
+  PreferredSizeWidget? _cachedDrawerAppBar;
+  SinglePageModel? _lastCachedPageModel;
+  bool? _lastHasDrawer;
   late ScopeManager _scopeManager;
   Widget? footerWidget;
 
   // a menu can include other pages, keep track of what is selected
   int selectedPage = 0;
+  
+  // Auto-hide app bar functionality
+  bool _isAppBarVisible = true;
+  late ScrollController _autoHideScrollController;
+  double _lastScrollOffset = 0.0;
+  static const double _scrollThreshold = 10.0;
+  late Debouncer debounce;
 
   @override
   bool get wantKeepAlive => true;
@@ -101,11 +109,20 @@ class PageState extends State<Page>
     widget.rootScopeManager = _scopeManager;
   }
 
+  void _reassignScrollController() {
+    if (!mounted) return;
+    
+    if (currentPageController != _autoHideScrollController) {
+      currentPageController = _autoHideScrollController;
+    } 
+  }
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     // if our widget changes, we need to save the scopeManager to it.
     widget.rootScopeManager = _scopeManager;
+    _reassignScrollController();
 
     // see if we are part of a ViewGroup or not
     BottomNavScreen? bottomNavRootScreen = BottomNavScreen.getScreen(context);
@@ -196,6 +213,7 @@ class PageState extends State<Page>
   @override
   void didPopNext() {
     super.didPopNext();
+    _reassignScrollController();
     if (widget._pageModel.viewBehavior.onResume != null) {
       ScreenController().executeActionWithScope(
           context, _scopeManager, widget._pageModel.viewBehavior.onResume!,
@@ -212,6 +230,16 @@ class PageState extends State<Page>
 
   @override
   void initState() {
+    debounce = Debouncer(const Duration(milliseconds: 15));
+    _autoHideScrollController = ScrollController();
+    if(widget._pageModel.runtimeStyles?['scrollableView'] == true){
+      currentPageController = null;
+    }
+    else{
+    currentPageController = _autoHideScrollController;
+    _autoHideScrollController.addListener(_handleAutoHideScroll);
+
+    }
     WidgetsBinding.instance.addObserver(this);
     _scopeManager = ScopeManager(
         widget._initialDataContext
@@ -271,6 +299,43 @@ class PageState extends State<Page>
     // onViewGroupUpdate when change in parent ViewGroup occurs
     viewGroupNotifier.addListener(executeOnViewGroupUpdate);
   }
+  /// Handle auto-hide scroll logic
+  void _handleAutoHideScroll() {
+    if (!_autoHideScrollController.hasClients) return;
+    
+    debounce.run(() {
+      _performScrollVisibilityCheck();
+    });
+  }
+
+  void _performScrollVisibilityCheck() {
+    if (!_autoHideScrollController.hasClients) return;
+    
+    final currentOffset = _autoHideScrollController.offset;
+    final scrollDelta = currentOffset - _lastScrollOffset;
+    
+    bool shouldHideAppBar = false;
+    bool shouldShowAppBar = false;
+    
+    // Always show header when at the top
+    if (currentOffset <= 0 && !_isAppBarVisible) {
+      shouldShowAppBar = true;
+    } else if (scrollDelta > 0 && currentOffset > _scrollThreshold && _isAppBarVisible) {
+      // Scrolling down past threshold - hide app bar
+      shouldHideAppBar = true;
+    } else if (scrollDelta < -2.0 && !_isAppBarVisible) {
+      // Requires at least 2 pixels of upward movement
+      shouldShowAppBar = true;
+    }
+      
+    if (shouldHideAppBar || shouldShowAppBar) {
+      setState(() {
+        _isAppBarVisible = shouldShowAppBar;
+      });
+    }
+    
+    _lastScrollOffset = currentOffset;
+  }
 
   /// This is a callback because we need the widget to be first instantiate
   /// since the global code block may reference them. Once the global code
@@ -319,10 +384,99 @@ class PageState extends State<Page>
   }
 
   /// fixed AppBar
+  PreferredSizeWidget? buildCollapsableFixedAppbar(
+      SinglePageModel pageModel, bool hasDrawer) {
+    // Build cache if needed
+    _buildAppBarCache(pageModel, hasDrawer);
+    
+    PreferredSizeWidget? baseAppBar;
+    
+    // Get cached AppBar
+    if (_cachedHeaderAppBar != null) {
+      baseAppBar = _cachedHeaderAppBar;
+    } else if (_cachedDrawerAppBar != null) {
+      baseAppBar = _cachedDrawerAppBar;
+    }
+
+    if (baseAppBar == null) {
+      return null;
+    }
+
+    // Use Offstage to hide/show without removing from widget tree
+    return PreferredSize(
+      preferredSize: baseAppBar.preferredSize,
+      child: Offstage(
+        offstage: !_isAppBarVisible, // Hide when _isAppBarVisible is false
+        child: baseAppBar,
+      ),
+    );
+  }
+
+  Widget _wrapWithSafeAreaIfNeeded(Widget child, bool collapseSafeArea) {
+    if (collapseSafeArea != true) {
+      return child;
+    }
+
+    return Builder(
+      builder: (context) {
+        final mediaQuery = MediaQuery.of(context);
+        double topPadding = _isAppBarVisible ? mediaQuery.padding.top : 55.0;
+        
+        return Padding(
+          padding: EdgeInsets.only(top: topPadding),
+          child: child,
+        );
+      },
+    );
+  }
+
+  /// Build AppBar cache
+  void _buildAppBarCache(SinglePageModel pageModel, bool hasDrawer) {
+    // Check if cache needs rebuilding
+    bool needsRebuild = _lastCachedPageModel != pageModel || _lastHasDrawer != hasDrawer;
+
+    if (!needsRebuild) {
+      return; // Cache is still valid, no need to rebuild
+    }
+
+    // Clear existing cache
+    _cachedHeaderAppBar = null;
+    _cachedDrawerAppBar = null;
+
+    // Build and cache header AppBar if header model exists
+    if (pageModel.headerModel != null) {
+      try {
+        dynamic appBar = _buildAppBar(
+          pageModel.headerModel!,
+          scrollableView: false,
+          showNavigationIcon: pageModel.runtimeStyles?['showNavigationIcon']
+        );
+        
+        if (appBar is PreferredSizeWidget) {
+          _cachedHeaderAppBar = appBar;
+        }
+      } catch (e) {
+        _cachedHeaderAppBar = null;
+      }
+    }
+    // Build and cache drawer AppBar if drawer is needed
+    if (hasDrawer) {
+      try {
+        _cachedDrawerAppBar = AppBar();
+      } catch (e) {
+        _cachedDrawerAppBar = null;
+      }
+    }
+
+    // Update cache markers to track what we cached
+    _lastCachedPageModel = pageModel;
+    _lastHasDrawer = hasDrawer;
+  }
+
+  /// fixed AppBar
   dynamic _buildAppBar(HeaderModel headerModel,
       {required bool scrollableView, bool? showNavigationIcon}) {
     Widget? titleWidget;
-
 
     if (headerModel.titleWidget != null) {
       titleWidget = _scopeManager.buildWidget(headerModel.titleWidget!);
@@ -500,17 +654,23 @@ class PageState extends State<Page>
       backgroundColor = Colors.transparent;
     }
 
-    // whether to usse CustomScrollView for the entire page
+    // whether to use CustomScrollView for the entire page
     bool isScrollableView =
         widget._pageModel.runtimeStyles?['scrollableView'] == true;
+    bool collapsableHeader = widget._pageModel.runtimeStyles?['collapsableHeader'] == true;
+    bool collapseSafeArea = widget._pageModel.runtimeStyles?['collapseSafeArea'] == true;
 
     PreferredSizeWidget? fixedAppBar;
     if (!isScrollableView) {
-      fixedAppBar = buildFixedAppBar(widget._pageModel, hasDrawer);
+      if (collapsableHeader) {
+        fixedAppBar = buildCollapsableFixedAppbar(widget._pageModel, hasDrawer);
+      } else {
+        fixedAppBar = buildFixedAppBar(widget._pageModel, hasDrawer);
+      }
     }
 
     // whether we have a header and if the close button is already there-
-    bool hasHeader = widget._pageModel.headerModel != null || hasDrawer;
+    bool hasHeader = (widget._pageModel.headerModel != null && _isAppBarVisible) || hasDrawer;
     bool? showNavigationIcon =
         widget._pageModel.runtimeStyles?['showNavigationIcon'];
 
@@ -546,8 +706,16 @@ class PageState extends State<Page>
             appBar: fixedAppBar,
             body: FooterLayout(
               body: isScrollableView
-                  ? buildScrollablePageContent(hasDrawer)
-                  : buildFixedPageContent(fixedAppBar != null),
+                ? (collapsableHeader == true 
+                    ? _wrapWithSafeAreaIfNeeded(
+                        buildNestedScrollablePageContent(hasDrawer),
+                        collapseSafeArea
+                      )
+                    : buildScrollablePageContent(hasDrawer))
+                : _wrapWithSafeAreaIfNeeded(
+                    buildFixedPageContent(fixedAppBar != null),
+                    collapseSafeArea
+                  ),
               footer: footerWidget,
             ),
             bottomNavigationBar: _bottomNavBar,
@@ -608,7 +776,7 @@ class PageState extends State<Page>
   }
 
   Widget buildFixedPageContent(bool hasAppBar) {
-    return getBody(hasAppBar);
+    return getBody(hasAppBar && _isAppBarVisible);
   }
 
   Widget buildScrollablePageContent(bool hasDrawer) {
@@ -630,6 +798,23 @@ class PageState extends State<Page>
       controller: externalScrollController,
       slivers: slivers,
     );
+  }
+
+  Widget buildNestedScrollablePageContent(bool hasDrawer) {
+    externalScrollController = ScrollController();
+    return NestedScrollView(
+        controller: externalScrollController,
+        physics: ClampingScrollPhysics(),
+        floatHeaderSlivers: true,
+        headerSliverBuilder: (BuildContext context, bool innerBoxIsScrolled) {
+          List<Widget> slivers = [];
+          Widget? appBar = buildSliverAppBar(widget._pageModel, hasDrawer);
+          if (appBar != null) {
+            slivers.add(appBar);
+          }
+          return slivers;
+        },
+        body: getBody(_isAppBarVisible));
   }
 
   Widget getBody(bool hasAppBar) {
@@ -870,6 +1055,9 @@ class PageState extends State<Page>
   }
   @override
   void dispose() {
+    debounce.cancel();
+    _autoHideScrollController.removeListener(_handleAutoHideScroll);
+    _autoHideScrollController.dispose();
     viewGroupNotifier.removeListener(executeOnViewGroupUpdate);
     Ensemble().routeObserver.unsubscribe(this);
     WidgetsBinding.instance.removeObserver(this);
@@ -994,6 +1182,7 @@ class _AnimatedAppBarState extends State<AnimatedAppBar> with WidgetsBindingObse
       collapsedHeight: widget.collapsedBarHeight,
       expandedHeight: widget.expandedBarHeight,
       pinned: widget.pinned,
+      floating: widget.floating,
       centerTitle: widget.centerTitle,
       title: widget.animated
           ? switch (widget.animationType) {
