@@ -58,35 +58,54 @@ class Card extends StatefulWidget
   }
 }
 
-class CardController extends WidgetController {
-  String? width;
-  String? height;
-  Color? backgroundColor;
-  String? border;
-  double? borderRadius;
-  Color? shadowColor;
-  double? shadowOffset;
-  double? shadowBlur;
-  double? shadowSpread;
-  EdgeInsets? padding;
-  double? maxWidth;
-  double? minWidth;
-  double? gap;
-  List<WidgetModel>? children;
+  class CardController extends WidgetController {
+    String? width;
+    String? height;
+    Color? backgroundColor;
+    String? border;
+    double? borderRadius;
+    Color? shadowColor;
+    double? shadowOffset;
+    double? shadowBlur;
+    double? shadowSpread;
+    EdgeInsets? padding;
+    double? maxWidth;
+    double? minWidth;
+    double? gap;
+    List<WidgetModel>? children;
 
-  CardController() {
-    backgroundColor = Colors.transparent;
-    borderRadius = 10.0;
-    shadowColor = Colors.grey.shade300;
-    shadowOffset = 0.0;
-    shadowBlur = 0.0;
-    shadowSpread = 0.0;
-    padding = const EdgeInsets.all(20.0);
-    maxWidth = 250.0;
-    minWidth = 250.0;
-    gap = 0.0;
+    CardController() {
+      backgroundColor = Colors.transparent;
+      borderRadius = 10.0;
+      shadowColor = Colors.grey.shade300;
+      shadowOffset = 0.0;
+      shadowBlur = 0.0;
+      shadowSpread = 0.0;
+      padding = const EdgeInsets.all(20.0);
+      maxWidth = 250.0;
+      minWidth = 250.0;
+      gap = 0.0;
+    }
+
+    @override
+    void dispose() {
+      // Clear child references
+      children?.clear();
+      children = null;
+      
+      // Clear color references
+      backgroundColor = null;
+      shadowColor = null;
+      padding = null;
+      
+      // Clear other references
+      border = null;
+      width = null;
+      height = null;
+      
+      super.dispose();
+    }
   }
-}
 
 class _CardState extends EWidgetState<Card> with HasChildren<Card> {
   @override
