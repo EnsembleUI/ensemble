@@ -4,7 +4,9 @@ import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/scope.dart';
+import 'package:ensemble/framework/view/bottom_nav_page_group.dart';
 import 'package:ensemble/framework/view/data_scope_widget.dart';
+import 'package:ensemble/framework/view/page_group.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/ensemble_utils.dart';
 import 'package:ensemble/util/utils.dart';
@@ -21,11 +23,13 @@ class ShowDialogAction extends EnsembleAction {
     required this.dismissible,
     this.options,
     this.onDialogDismiss,
+    this.useRoot,
   });
 
   final dynamic body;
   final bool dismissible;
   final Map<String, dynamic>? options;
+  final bool? useRoot;
   final EnsembleAction? onDialogDismiss;
 
   factory ShowDialogAction.from({Invokable? initiator, Map? payload}) {
@@ -34,12 +38,14 @@ class ShowDialogAction extends EnsembleAction {
       throw LanguageError(
           "${ActionType.showDialog.name} requires the 'body' for the Dialog's content.");
     }
+    print('this is the payload body: ${payload['useRoot']}');
     return ShowDialogAction(
       initiator: initiator,
       body: Utils.maybeYamlMap(payload['body']) ??
           Utils.maybeYamlMap(payload['widget']),
       options: Utils.getMap(payload['options']),
       dismissible: Utils.getBool(payload['dismissible'], fallback: true),
+      useRoot: Utils.getBool(payload['useRoot'], fallback: false),
       onDialogDismiss: payload['onDialogDismiss'] == null
           ? null
           : EnsembleAction.from(Utils.maybeYamlMap(payload['onDialogDismiss'])),
@@ -56,9 +62,12 @@ class ShowDialogAction extends EnsembleAction {
 
     bool useDefaultStyle = dialogStyles['style'] != 'none';
     BuildContext? dialogContext;
-
+    
+    // Store the current tab observer provider for resubscription
+    final tabObserverProvider = TabRouteObserverProvider.of(context);
+    
     showGeneralDialog(
-        useRootNavigator: false,
+        useRootNavigator: true,
         // use inner-most MaterialApp (our App) as root so theming is ours
         context: context,
         barrierDismissible: dismissible,
@@ -71,7 +80,8 @@ class ShowDialogAction extends EnsembleAction {
           dialogContext = context;
           scopeManager.openedDialogs.add(dialogContext!);
 
-          return Align(
+          // Wrap the dialog content with TabRouteObserverProvider to maintain tab context
+          Widget dialogWidget = Align(
               alignment: Alignment(
                   Utils.getDouble(dialogStyles['horizontalOffset'],
                       min: -1, max: 1, fallback: 0),
@@ -113,6 +123,17 @@ class ShowDialogAction extends EnsembleAction {
                                 child: scopeManager
                                     .buildWidgetFromDefinition(body),
                               ))))));
+
+          // If we have a tab observer provider, wrap the dialog to maintain tab context
+          if (tabObserverProvider != null) {
+            return TabRouteObserverProvider(
+              routeObserver: tabObserverProvider.routeObserver,
+              tabIndex: tabObserverProvider.tabIndex,
+              child: dialogWidget,
+            );
+          }
+
+          return dialogWidget;
         }).then((payload) {
       // remove the dialog context since we are closing them
       scopeManager.openedDialogs.remove(dialogContext);
@@ -123,8 +144,37 @@ class ShowDialogAction extends EnsembleAction {
             context, scopeManager, onDialogDismiss!,
             event: EnsembleEvent(initiator, data: payload));
       }
+
+      // Trigger resubscription to bottom nav navigator when dialog closes
+      _resubscribeToBottomNavNavigator(context, tabObserverProvider);
     });
     return Future.value(null);
+  }
+
+  // Helper method to resubscribe to bottom nav navigator after dialog closes
+  void _resubscribeToBottomNavNavigator(BuildContext context, TabRouteObserverProvider? tabObserverProvider) {
+    if (tabObserverProvider != null) {
+      // Schedule the resubscription for the next frame to ensure the dialog is fully closed
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        try {
+          // Use the viewGroupNotifier's updatePage method to trigger a refresh
+          // This maintains the current page but forces a rebuild
+          int currentIndex = viewGroupNotifier.viewIndex;
+          viewGroupNotifier.updatePage(currentIndex, isReload: true);
+        } catch (e) {
+        }
+      });
+    }
+  }
+
+  // Fallback method to trigger bottom nav rebuild  
+  void _triggerBottomNavRebuild(BuildContext context) {
+    try {
+      // Use the viewGroupNotifier's public updatePage method
+      int currentIndex = viewGroupNotifier.viewIndex;
+      viewGroupNotifier.updatePage(currentIndex, isReload: true);
+    } catch (e) {
+    }
   }
 }
 

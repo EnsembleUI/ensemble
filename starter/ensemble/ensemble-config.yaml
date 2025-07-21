@@ -53,8 +53,8 @@ definitions:
   ensemble:
     # appId can be found on Ensemble Studio. Navigate to your app, click the menu icon on top right, and copy your appId
     # here is the appId for Ensemble Kitchen sink. You can view this app under demo apps in studio.
-    appId: e24402cb-75e2-404c-866c-29e6c3dd7992
-
+    # appId: 3LXkJtwOQKrUvHl5aDyg
+    appId: FYrHv8pXKEnrVsWrMWB9
 services:
   # Social sign-in
   signIn:
