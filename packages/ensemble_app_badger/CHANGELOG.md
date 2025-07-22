@@ -1,7 +1,9 @@
 
+
 ## [1.6.1]
 
 * Moved to Ensemble monorepo
+* Fixed `isAppBadgeSupported` method.
 
 ## [1.6.0] - 2025
 
