@@ -142,9 +142,9 @@ class PageGroupState extends State<PageGroup>
   }
   @override
   void didChangeDependencies() {
-    if (widget.menu is BottomNavBarMenu) {
-      super.didChangeDependencies();
+    super.didChangeDependencies();
 
+    if (widget.menu is BottomNavBarMenu) {
       // Subscribe to route changes to detect when we return to this ViewGroup
       var route = ModalRoute.of(context);
       if (route is PageRoute) {
