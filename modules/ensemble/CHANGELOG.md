@@ -1,3 +1,7 @@
+## 1.1.72
+
+ - **FIX**: update ensemble_app_badger dependency to version 1.6.1. ([9df43b5f](https://github.com/ensembleUI/ensemble/commit/9df43b5fb063b9dcafb25d571267b6799980965c))
+
 ## 1.1.71
 
 ## 1.1.70
