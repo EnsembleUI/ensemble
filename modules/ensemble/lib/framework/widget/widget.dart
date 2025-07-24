@@ -177,18 +177,23 @@ abstract class EWidgetState<W extends HasController>
           child: rtn,
         );
       }
-      if(widgetController.semantics != null){
+      // If semantics is provided, use it. Otherwise, if label exists on the controller, use it as semantics label.
+      final String? semanticsLabel = widgetController.getSemanticsLabel();
+      if (semanticsLabel != null || widgetController.semantics != null) {
+        final semantics = widgetController.semantics;
         rtn = Semantics(
-          label: widgetController.semantics!.label,
-          hint: widgetController.semantics!.hint,
-          focusable: widgetController.semantics!.focusable,
-          child: FocusTraversalGroup(
-            policy: ReadingOrderTraversalPolicy(),
-            child: FocusableActionDetector(
-              enabled: widgetController.semantics!.focusable,
-              child: rtn,
-            ),
-          ),
+          label: semanticsLabel,
+          hint: semantics?.hint,
+          focusable: semantics?.focusable,
+          child: semantics?.focusable == true
+              ? FocusTraversalGroup(
+                  policy: ReadingOrderTraversalPolicy(),
+                  child: FocusableActionDetector(
+                    enabled: true,
+                    child: rtn,
+                  ),
+                )
+              : rtn,
         );
       }
     }

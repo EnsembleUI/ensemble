@@ -241,6 +241,18 @@ abstract class WidgetController extends Controller with HasStyles {
 
   set testId(value) => _testId = value;
 
+  /// Returns the best available label for semantics/aria-label accessibility.
+  /// Widgets should set [label] if they want to participate in accessibility fallback.
+  String? getSemanticsLabel() {
+    if (semantics?.label != null && semantics!.label!.isNotEmpty) {
+      return semantics!.label;
+    }
+    if (label != null && label!.isNotEmpty) {
+      return label;
+    }
+    return null;
+  }
+
   @override
   Map<String, Function> getBaseGetters() {
     return {
@@ -262,7 +274,8 @@ abstract class WidgetController extends Controller with HasStyles {
       'flex': (value) => flex = Utils.optionalInt(value, min: 1),
       'expanded': (value) => expanded = Utils.getBool(value, fallback: false),
       'visible': (value) => visible = Utils.getBool(value, fallback: true),
-      'opacity': (value) => opacity = Utils.optionalDouble(value, min: 0, max: 1),
+      'opacity': (value) =>
+          opacity = Utils.optionalDouble(value, min: 0, max: 1),
       'visibilityTransitionDuration': (value) =>
           visibilityTransitionDuration = Utils.getDuration(value),
       'elevation': (value) =>
@@ -287,7 +300,8 @@ abstract class WidgetController extends Controller with HasStyles {
       'classList': (value) => classList = value,
       'className': (value) => className = value,
       'tooltip': (value) => toolTip = Utils.getMap(value),
-      'semantics': (value) => semantics = EnsembleSemantics.fromYaml(Utils.getMap(value)),
+      'semantics': (value) =>
+          semantics = EnsembleSemantics.fromYaml(Utils.getMap(value)),
     };
   }
 
@@ -490,7 +504,8 @@ abstract class EnsembleWidgetController extends EnsembleController
       'flexMode': (value) => flexMode = FlexMode.values.from(value),
       'flex': (value) => flex = Utils.optionalInt(value, min: 1),
       'visible': (value) => visible = Utils.getBool(value, fallback: true),
-      'opacity': (value) => opacity = Utils.optionalDouble(value, min: 0, max: 1),
+      'opacity': (value) =>
+          opacity = Utils.optionalDouble(value, min: 0, max: 1),
       'visibilityTransitionDuration': (value) =>
           visibilityTransitionDuration = Utils.getDuration(value),
       'textDirection': (value) => textDirection = Utils.getTextDirection(value),
@@ -514,8 +529,9 @@ abstract class EnsembleWidgetController extends EnsembleController
       'classList': (value) => classList = value,
       'className': (value) => className = value,
       'tooltip': (value) => toolTip = Utils.getMap(value),
-      'semantics': (value) => semantics = EnsembleSemantics.fromYaml(Utils.getMap(value)),
-      };
+      'semantics': (value) =>
+          semantics = EnsembleSemantics.fromYaml(Utils.getMap(value)),
+    };
   }
 
   bool hasPositions() {
@@ -590,7 +606,7 @@ class EnsembleSemantics {
   String? label;
   String? hint;
 
-  EnsembleSemantics({this.label, this.hint,required this.focusable});
+  EnsembleSemantics({this.label, this.hint, required this.focusable});
 
   // Factory constructor to map from YAML
   factory EnsembleSemantics.fromYaml(Map<String, dynamic>? yamlMap) {
