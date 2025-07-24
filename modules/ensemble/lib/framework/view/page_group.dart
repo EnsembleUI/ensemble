@@ -144,11 +144,13 @@ class PageGroupState extends State<PageGroup>
   void didChangeDependencies() {
     super.didChangeDependencies();
 
-    // Subscribe to route changes to detect when we return to this ViewGroup
-    var route = ModalRoute.of(context);
-    if (route is PageRoute) {
-      Ensemble().routeObserver.unsubscribe(this);
-      Ensemble().routeObserver.subscribe(this, route);
+    if (widget.menu is BottomNavBarMenu) {
+      // Subscribe to route changes to detect when we return to this ViewGroup
+      var route = ModalRoute.of(context);
+      if (route is PageRoute) {
+        Ensemble().routeObserver.unsubscribe(this);
+        Ensemble().routeObserver.subscribe(this, route);
+      }
     }
   }
 
