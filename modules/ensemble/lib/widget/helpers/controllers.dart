@@ -241,6 +241,18 @@ abstract class WidgetController extends Controller with HasStyles {
 
   set testId(value) => _testId = value;
 
+  /// Returns the best available label for semantics/aria-label accessibility.
+  /// Widgets should set [label] if they want to participate in accessibility fallback.
+  String? getSemanticsLabel() {
+    if (semantics?.label != null && semantics!.label!.isNotEmpty) {
+      return semantics!.label;
+    }
+    if (label != null && label!.isNotEmpty) {
+      return label;
+    }
+    return null;
+  }
+
   @override
   Map<String, Function> getBaseGetters() {
     return {
