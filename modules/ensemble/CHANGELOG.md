@@ -1,3 +1,8 @@
+## 1.1.73
+
+ - **FIX**: semantics handling for aria-label. ([1ef42542](https://github.com/ensembleUI/ensemble/commit/1ef42542757da00f3f86b449764a94d7badb9eba))
+ - **FIX**: refine route change subscription logic in PageGroupState. ([02e03f33](https://github.com/ensembleUI/ensemble/commit/02e03f3321539a01e8dafa776060395f8106a6bd))
+
 ## 1.1.72
 
  - **FIX**: update ensemble_app_badger dependency to version 1.6.1. ([9df43b5f](https://github.com/ensembleUI/ensemble/commit/9df43b5fb063b9dcafb25d571267b6799980965c))
