@@ -463,7 +463,7 @@ class PageGroupState extends State<PageGroup>
                       }
 
                       // Switch screens only if enabled and not already selected
-                      if (item.switchScreen &&
+                      if ((item.switchScreen ?? true) &&
                           viewGroupNotifier.viewIndex != i) {
                         viewGroupNotifier.updatePage(i);
                       }
