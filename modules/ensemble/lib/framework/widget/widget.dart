@@ -180,10 +180,10 @@ abstract class EWidgetState<W extends HasController>
 
       // If semantics is provided, use it. Otherwise, if label exists on the controller, use it as label for aria-label.
       final String? semanticsLabel = widgetController.getSemanticsLabel();
-      if (widgetController.semantics != null) {
-        final semantics = widgetController.semantics;
+      final semantics = widgetController.semantics;
+      if (semanticsLabel != null && semanticsLabel.isNotEmpty) {
         rtn = Semantics(
-          label: semanticsLabel!,
+          label: semanticsLabel,
           hint: semantics?.hint,
           focusable: semantics?.focusable,
           child: semantics?.focusable == true
