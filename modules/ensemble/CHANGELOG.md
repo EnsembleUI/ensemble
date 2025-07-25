@@ -1,3 +1,7 @@
+## 1.1.75
+
+ - **FIX**(widget): improve semantics label handling in EWidgetState. ([24fe4bd9](https://github.com/ensembleUI/ensemble/commit/24fe4bd914a98f3cf10bd3113bd2d0fd599f067b))
+
 ## 1.1.74
 
  - **FIX**(page_group): ensure default value for switchScreen in condition. ([eb222828](https://github.com/ensembleUI/ensemble/commit/eb222828e52f61c144db05a4cdb6c74f8ab52521))
