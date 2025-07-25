@@ -1,3 +1,7 @@
+## 1.1.74
+
+ - **FIX**(page_group): ensure default value for switchScreen in condition. ([eb222828](https://github.com/ensembleUI/ensemble/commit/eb222828e52f61c144db05a4cdb6c74f8ab52521))
+
 ## 1.1.73
 
  - **FIX**(page_group): ensure default value for switchScreen in condition. ([eb222828](https://github.com/ensembleUI/ensemble/commit/eb222828e52f61c144db05a4cdb6c74f8ab52521))
