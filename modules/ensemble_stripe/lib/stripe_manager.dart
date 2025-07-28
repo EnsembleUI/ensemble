@@ -38,8 +38,6 @@ class StripeManagerImpl implements StripeManager {
       }
 
       _isInitialized = true;
-      print(
-          'Stripe initialized successfully with key: ${publishableKey.substring(0, 10)}...');
     } catch (e) {
       throw Exception('Failed to initialize Stripe: $e');
     }

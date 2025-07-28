@@ -15,13 +15,13 @@ class ShowPaymentSheetAction extends EnsembleAction {
     super.initiator,
     required this.clientSecret,
     this.configuration,
-    this.onComplete,
+    this.onSuccess,
     this.onError,
   });
 
   final String clientSecret;
   final Map<String, dynamic>? configuration;
-  final EnsembleAction? onComplete;
+  final EnsembleAction? onSuccess;
   final EnsembleAction? onError;
 
   factory ShowPaymentSheetAction.fromYaml(
@@ -35,7 +35,7 @@ class ShowPaymentSheetAction extends EnsembleAction {
       initiator: initiator,
       clientSecret: Utils.getString(payload['clientSecret'], fallback: ''),
       configuration: Utils.getMap(payload['configuration']),
-      onComplete: EnsembleAction.from(payload['onComplete']),
+      onSuccess: EnsembleAction.from(payload['onComplete']),
       onError: EnsembleAction.from(payload['onError']),
     );
   }
@@ -49,8 +49,8 @@ class ShowPaymentSheetAction extends EnsembleAction {
         configuration: scopeManager.dataContext.eval(configuration),
       );
 
-      if (onComplete != null) {
-        await ScreenController().executeAction(context, onComplete!);
+      if (onSuccess != null) {
+        await ScreenController().executeAction(context, onSuccess!);
       }
     } catch (e) {
       if (onError != null) {

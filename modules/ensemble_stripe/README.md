@@ -57,7 +57,7 @@ showPaymentSheet:
         state: "NY"
         postalCode: "10001"
         country: "US"
-  onComplete:
+  onSuccess:
     showToast:
       message: "Payment completed successfully"
   onError:
@@ -89,26 +89,18 @@ View:
               padding: 15
               borderRadius: 8
             onTap:
-              executeActionGroup:
-                actions:
-                  - initializeStripe:
-                      publishableKey: "pk_test_your_key"
-                      onComplete:
-                        showPaymentSheet:
-                          clientSecret: "pi_test_client_secret_here"
-                          configuration:
-                            merchantDisplayName: "Your Company"
-                            primaryButtonLabel: "Pay Now"
-                            style: "system"
-                          onComplete:
-                            showToast:
-                              message: "Payment successful!"
-                          onError:
-                            showToast:
-                              message: "Payment failed: {{event.error}}"
-                      onError:
-                        showToast:
-                          message: "Failed to initialize Stripe"
+              showPaymentSheet:
+                clientSecret: "pi_test_client_secret_here"
+                configuration:
+                  merchantDisplayName: "Your Company"
+                  primaryButtonLabel: "Pay Now"
+                  style: "system"
+                onSuccess:
+                  showToast:
+                    message: "Payment successful!"
+                onError:
+                  showToast:
+                    message: ${event.error}
 ```
 
 ## Configuration
