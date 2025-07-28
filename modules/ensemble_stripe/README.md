@@ -11,12 +11,31 @@ A Stripe payment integration module for the Ensemble framework, providing easy-t
 
 ## Installation
 
+### Option 1: Using the Starter Script (Recommended)
+
+Run the enable script from your starter project:
+
+```bash
+npm run hasStripe
+```
+
+This will automatically:
+- Add the dependency to `pubspec.yaml`
+- Update `ensemble_modules.dart`
+- Add iOS camera permissions
+- Enable Stripe in `ensemble-config.yaml`
+
+### Option 2: Manual Installation
+
 The Stripe actions are now part of the Ensemble runtime and are available by default. To use the Stripe module implementation, add it to your Ensemble project:
 
 ```yaml
 dependencies:
   ensemble_stripe:
-    path: modules/ensemble_stripe
+    git:
+      url: https://github.com/EnsembleUI/ensemble.git
+      ref: main
+      path: modules/ensemble_stripe
 ```
 
 ## Configuration
