@@ -133,4 +133,7 @@ dependencies {
         }
     }
     coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.0.4'
+    
+    // Material Design support
+    implementation 'com.google.android.material:material:1.9.0'
 }

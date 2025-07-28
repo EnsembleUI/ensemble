@@ -15,6 +15,8 @@ import 'package:ensemble/framework/stub/plaid_link_manager.dart';
 import 'package:ensemble/module/auth_module.dart';
 import 'package:ensemble/module/location_module.dart';
 import 'package:ensemble/framework/stub/moengage_manager.dart';
+import 'package:ensemble/module/stripe_module.dart';
+// import 'package:ensemble_stripe/ensemble_stripe.dart';
 //import 'package:ensemble_bluetooth/ensemble_bluetooth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -84,6 +86,8 @@ class EnsembleModules {
   static const useBracket = false;
   static const useNetworkInfo = false;
   static const useBluetooth = false;
+
+  static const useStripe = false;
 
   // widgets
   static const enableChat = false;
@@ -213,6 +217,13 @@ class EnsembleModules {
       //GetIt.I.registerSingleton<BluetoothManager>(BluetoothManagerImpl());
     } else {
       GetIt.I.registerSingleton<BluetoothManager>(BluetoothManagerStub());
+    }
+
+    if (useStripe) {
+      // Initialize the real Stripe module implementation
+      // GetIt.I.registerSingleton<StripeModule>(StripeModuleImpl());
+    } else {
+      GetIt.I.registerSingleton<StripeModule>(StripeModuleStub());
     }
   }
 }
