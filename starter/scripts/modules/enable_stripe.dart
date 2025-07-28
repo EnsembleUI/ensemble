@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import '../utils.dart';
+import '../utils/proguard_utils.dart';
 
 Future<void> main(List<String> arguments) async {
   List<String> platforms = getPlatforms(arguments);
@@ -36,6 +37,15 @@ ensemble_stripe:
     },
   ];
 
+  const proguardRules = '''
+-dontwarn com.stripe.android.pushProvisioning.PushProvisioningActivity\$g
+-dontwarn com.stripe.android.pushProvisioning.PushProvisioningActivityStarter\$Args
+-dontwarn com.stripe.android.pushProvisioning.PushProvisioningActivityStarter\$Error
+-dontwarn com.stripe.android.pushProvisioning.PushProvisioningActivityStarter
+-dontwarn com.stripe.android.pushProvisioning.PushProvisioningEphemeralKeyProvider
+-keep class com.stripe.** { *; }
+''';
+
   try {
     // Update the ensemble_modules.dart file
     updateEnsembleModules(
@@ -49,6 +59,10 @@ ensemble_stripe:
     // Update iOS configuration for Stripe
     if (platforms.contains('ios')) {
       updateIOSPermissions(iOSPermissions, arguments);
+    }
+
+    if (platforms.contains('android')) {
+      createProguardRules(proguardRules);
     }
 
     // Update ensemble-config.yaml to enable Stripe
