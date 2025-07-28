@@ -107,7 +107,16 @@ View:
 
 ### iOS Configuration
 
-Add the following to your `ios/Runner/Info.plist`:
+Compatible with apps targeting iOS 13 or above.
+To upgrade your iOS deployment target to 13.0, you can either do so in Xcode under your Build Settings, or by modifying IPHONEOS_DEPLOYMENT_TARGET in your project.pbxproj directly.
+
+You will also need to update in your Podfile:
+
+```podfile
+platform :ios, '13.0'
+```
+
+For card scanning add the following to your `ios/Runner/Info.plist`:
 
 ```xml
 <key>NSCameraUsageDescription</key>
@@ -117,6 +126,7 @@ Add the following to your `ios/Runner/Info.plist`:
 ### Android Configuration
 
 Ensure your Android app uses:
+
 - Android 5.0 (API level 21) and above
 - Kotlin version 1.8.0 and above
 - Android Gradle plugin 8 and higher
