@@ -73,6 +73,11 @@ ensemble_auth:
       updateInfoPlist(iOSClientId, iosAppId);
     }
 
+    // Update the iOS entitlements file for Apple Sign In
+    if (platforms.contains('ios') && iOSClientId.isNotEmpty) {
+      updateEntitlements();
+    }
+
     if (platforms.contains('web') && webClientId.isNotEmpty) {
       updateHtmlFile('</head>',
           '<meta name="google-signin-client_id" content="$webClientId">',
@@ -156,5 +161,38 @@ void updateInfoPlist(String iOSClientId, String appId) {
     file.writeAsStringSync(content);
   } catch (e) {
     throw Exception('Failed to update Info.plist: $e');
+  }
+}
+
+void updateEntitlements() {
+  try {
+    final file = File(runnerEntitlementsPath);
+    if (!file.existsSync()) {
+      throw Exception('Runner.entitlements file not found.');
+    }
+
+    String content = file.readAsStringSync();
+
+    // Uncomment the Apple Sign In lines
+    content = content.replaceAll(
+      '	<!-- <key>com.apple.developer.applesignin</key> -->',
+      '	<key>com.apple.developer.applesignin</key>',
+    );
+    content = content.replaceAll(
+      '	<!-- <array>',
+      '	<array>',
+    );
+    content = content.replaceAll(
+      '		<string>Default</string>',
+      '		<string>Default</string>',
+    );
+    content = content.replaceAll(
+      '	</array> -->',
+      '	</array>',
+    );
+
+    file.writeAsStringSync(content);
+  } catch (e) {
+    throw Exception('Failed to update Runner.entitlements: $e');
   }
 }
