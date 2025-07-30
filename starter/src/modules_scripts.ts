@@ -328,4 +328,34 @@ export const modules: Script[] = [
       },
     ],
   },
+  {
+    name: 'stripe',
+    path: 'scripts/modules/enable_stripe.dart',
+    parameters: [
+      {
+        key: 'publishableKey',
+        question: 'Please provide your Stripe publishable key: ',
+        platform: ['android', 'ios'],
+        type: 'text',
+      },
+      {
+        key: 'stripeAccountId',
+        question: 'Please provide your Stripe account ID: ',
+        platform: [],
+        type: 'text',
+      },
+      {
+        key: 'merchantIdentifier',
+        question: 'Please provide your merchant identifier: ',
+        platform: [],
+        type: 'text',
+      },
+      {
+        key: 'cameraDescription',
+        question: 'Please provide a camera usage description: ',
+        platform: ['ios'],
+        type: 'text',
+      },
+    ],
+  },
 ];

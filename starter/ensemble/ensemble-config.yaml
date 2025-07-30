@@ -117,3 +117,11 @@ environmentVariables:
 #      messagingSenderId: "nnnnnn"
 #      appId: "n:xxxxxxx"
 #      measurementId: "G-xxxxx"
+
+# Stripe payment configuration
+# Uncomment and configure when using Stripe payments
+#stripe:
+#  enabled: true
+#  publishableKey: "pk_test_your_publishable_key_here"
+#  stripeAccountId: "acct_optional_account_id"  # Optional
+#  merchantIdentifier: "merchant.com.yourapp"   # Optional, for Apple Pay
