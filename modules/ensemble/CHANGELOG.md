@@ -1,3 +1,8 @@
+## 1.1.76
+
+ - **REFACTOR**(stripe): rename onComplete to onSuccess in ShowPaymentSheetAction. ([deddd07c](https://github.com/ensembleUI/ensemble/commit/deddd07cd498d249aca5b15f33319b981adace47))
+ - **FEAT**(stripe): add Stripe payment integration module. ([1f29b783](https://github.com/ensembleUI/ensemble/commit/1f29b783f640e4cd6227c8bd36fd328b0b3f3f57))
+
 ## 1.1.75
 
  - **FIX**(widget): improve semantics label handling in EWidgetState. ([24fe4bd9](https://github.com/ensembleUI/ensemble/commit/24fe4bd914a98f3cf10bd3113bd2d0fd599f067b))
