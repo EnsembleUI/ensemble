@@ -1,72 +1,43 @@
 import 'dart:async';
 import 'package:ensemble/framework/stub/stripe_manager.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_stripe/flutter_stripe.dart';
-import 'package:yaml/yaml.dart';
 
 /// Real implementation of StripeManager for the ensemble_stripe module
 class StripeManagerImpl implements StripeManager {
   bool _isInitialized = false;
 
-  /// Auto-initialize Stripe from ensemble configuration
-  Future<void> _ensureInitialized() async {
-    if (_isInitialized) return;
+  @override
+  Future<void> initializeStripe({
+    String? publishableKey,
+    String? stripeAccountId,
+    String? merchantIdentifier,
+  }) async {
+    if (_isInitialized) {
+      print('Stripe is already initialized');
+      return;
+    }
 
     try {
-      // Get configuration from ensemble
-      final config = await _getStripeConfig();
-      if (config == null || !config['enabled']) {
-        throw Exception('Stripe is not enabled in configuration');
-      }
-
-      final publishableKey = config['publishableKey'] as String?;
       if (publishableKey == null || publishableKey.isEmpty) {
-        throw Exception('Stripe publishableKey is required in configuration');
+        throw Exception('Stripe publishableKey is required');
       }
 
+      // Initialize Stripe
       Stripe.publishableKey = publishableKey;
 
-      final stripeAccountId = config['stripeAccountId'] as String?;
       if (stripeAccountId != null && stripeAccountId.isNotEmpty) {
         Stripe.stripeAccountId = stripeAccountId;
       }
 
-      final merchantIdentifier = config['merchantIdentifier'] as String?;
       if (merchantIdentifier != null && merchantIdentifier.isNotEmpty) {
         Stripe.merchantIdentifier = merchantIdentifier;
       }
 
       _isInitialized = true;
+      print('Stripe initialized successfully');
     } catch (e) {
       throw Exception('Failed to initialize Stripe: $e');
-    }
-  }
-
-  /// Get Stripe configuration from ensemble config
-  Future<Map<String, dynamic>?> _getStripeConfig() async {
-    try {
-      // Load the ensemble configuration file
-      final yamlString =
-          await rootBundle.loadString('ensemble/ensemble-config.yaml');
-      final YamlMap yamlMap = loadYaml(yamlString);
-
-      // Extract Stripe configuration
-      final stripeConfig = yamlMap['stripe'] as YamlMap?;
-      if (stripeConfig == null) {
-        print('Stripe configuration not found in ensemble-config.yaml');
-        return null;
-      }
-
-      return {
-        'enabled': stripeConfig['enabled'] as bool? ?? false,
-        'publishableKey': stripeConfig['publishableKey'] as String?,
-        'stripeAccountId': stripeConfig['stripeAccountId'] as String?,
-        'merchantIdentifier': stripeConfig['merchantIdentifier'] as String?,
-      };
-    } catch (e) {
-      print('Error reading Stripe configuration: $e');
-      return null;
     }
   }
 
@@ -75,9 +46,6 @@ class StripeManagerImpl implements StripeManager {
     required String clientSecret,
     Map<String, dynamic>? configuration,
   }) async {
-    // Auto-initialize if not already initialized
-    await _ensureInitialized();
-
     try {
       // Parse theme mode from configuration
       ThemeMode themeMode = ThemeMode.system;

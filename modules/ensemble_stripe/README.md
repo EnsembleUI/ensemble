@@ -40,20 +40,46 @@ dependencies:
 
 ## Configuration
 
-Stripe is automatically initialized when the module is enabled. Add your Stripe configuration to `ensemble-config.yaml`:
+Stripe should be initialized using the `initializeStripe` action. This allows you to:
+
+- Initialize Stripe with different keys for different environments
+- Initialize Stripe conditionally based on user preferences
+- Initialize Stripe with dynamic configuration from your backend
 
 ```yaml
-# Stripe payment configuration
-stripe:
-  enabled: true
-  publishableKey: "pk_test_your_publishable_key_here"
-  stripeAccountId: "acct_optional_account_id"  # Optional
-  merchantIdentifier: "merchant.com.yourapp"   # Optional, for Apple Pay
+# Example: Initialize Stripe with dynamic configuration
+initializeStripe:
+  publishableKey: ${apiResponse.stripeKey}
+  onSuccess:
+    showToast:
+      message: "Stripe ready for payments"
 ```
 
-The configuration is automatically read from `ensemble-config.yaml` when the first payment sheet is shown.
-
 ## Actions
+
+### initializeStripe
+
+Initialize Stripe with custom configuration. This is the primary way to initialize Stripe in your application.
+
+```yaml
+initializeStripe:
+  publishableKey: "pk_test_your_publishable_key_here"  # Required
+  stripeAccountId: "acct_optional_account_id"  # Optional
+  merchantIdentifier: "merchant.com.yourapp"   # Optional, for Apple Pay
+  onSuccess:
+    showToast:
+      message: "Stripe initialized successfully"
+  onError:
+    showToast:
+      message: "Failed to initialize Stripe"
+```
+
+**Parameters:**
+- `publishableKey` (required): Your Stripe publishable key
+- `stripeAccountId` (optional): Your Stripe account ID for Connect applications
+- `merchantIdentifier` (optional): Your merchant identifier for Apple Pay
+- `onSuccess` (optional): Action to execute when initialization succeeds
+- `onError` (optional): Action to execute when initialization fails
 
 ### showPaymentSheet
 
@@ -99,6 +125,24 @@ View:
               fontSize: 24
               fontWeight: bold
               marginBottom: 20
+        
+        - Button:
+            text: "Initialize Stripe"
+            styles:
+              backgroundColor: "#28a745"
+              color: white
+              padding: 15
+              borderRadius: 8
+              marginBottom: 10
+            onTap:
+              initializeStripe:
+                publishableKey: "pk_test_your_publishable_key_here"
+                onSuccess:
+                  showToast:
+                    message: "Stripe initialized successfully"
+                onError:
+                  showToast:
+                    message: "Failed to initialize Stripe"
         
         - Button:
             text: "Pay $20.00"

@@ -61,6 +61,8 @@ abstract class ActionInvokable with Invokable {
       ActionType.bluetoothUnsubscribeCharacteristic,
       ActionType.setSecureStorage,
       ActionType.clearSecureStorage,
+      ActionType.initializeStripe,
+      ActionType.showPaymentSheet,
     ]);
   }
 
