@@ -994,6 +994,7 @@ enum ActionType {
   validateVerificationCode,
   resendVerificationCode,
   // Stripe actions
+  initializeStripe,
   showPaymentSheet,
 }
 
@@ -1234,6 +1235,9 @@ abstract class EnsembleAction {
           initiator: initiator, payload: payload);
     } else if (actionType == ActionType.resendVerificationCode) {
       return ResendVerificationCodeAction.fromYaml(
+          initiator: initiator, payload: payload);
+    } else if (actionType == ActionType.initializeStripe) {
+      return InitializeStripeAction.fromYaml(
           initiator: initiator, payload: payload);
     } else if (actionType == ActionType.showPaymentSheet) {
       return ShowPaymentSheetAction.fromYaml(

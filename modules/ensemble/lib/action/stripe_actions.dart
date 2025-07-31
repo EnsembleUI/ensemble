@@ -63,3 +63,67 @@ class ShowPaymentSheetAction extends EnsembleAction {
     }
   }
 }
+
+/// Initialize Stripe with configuration
+class InitializeStripeAction extends EnsembleAction {
+  InitializeStripeAction({
+    super.initiator,
+    this.publishableKey,
+    this.stripeAccountId,
+    this.merchantIdentifier,
+    this.onSuccess,
+    this.onError,
+  });
+
+  final String? publishableKey;
+  final String? stripeAccountId;
+  final String? merchantIdentifier;
+  final EnsembleAction? onSuccess;
+  final EnsembleAction? onError;
+
+  factory InitializeStripeAction.fromYaml(
+      {Invokable? initiator, Map? payload}) {
+    return InitializeStripeAction(
+      initiator: initiator,
+      publishableKey: Utils.getString(payload?['publishableKey'], fallback: ''),
+      stripeAccountId:
+          Utils.getString(payload?['stripeAccountId'], fallback: ''),
+      merchantIdentifier:
+          Utils.getString(payload?['merchantIdentifier'], fallback: ''),
+      onSuccess: EnsembleAction.from(payload?['onSuccess']),
+      onError: EnsembleAction.from(payload?['onError']),
+    );
+  }
+
+  @override
+  Future<void> execute(BuildContext context, ScopeManager scopeManager) async {
+    try {
+      final stripeManager = GetIt.I<StripeManager>();
+
+      if (publishableKey == null || publishableKey!.isEmpty) {
+        throw LanguageError("publishableKey is required");
+      }
+
+      // Initialize Stripe with the provided configuration only
+      await stripeManager.initializeStripe(
+        publishableKey: scopeManager.dataContext.eval(publishableKey),
+        stripeAccountId: scopeManager.dataContext.eval(stripeAccountId),
+        merchantIdentifier: scopeManager.dataContext.eval(merchantIdentifier),
+      );
+
+      if (onSuccess != null) {
+        await ScreenController().executeAction(context, onSuccess!);
+      }
+    } catch (e) {
+      if (onError != null) {
+        await ScreenController().executeAction(
+          context,
+          onError!,
+          event: EnsembleEvent(initiator, error: e.toString()),
+        );
+      } else {
+        rethrow;
+      }
+    }
+  }
+}
