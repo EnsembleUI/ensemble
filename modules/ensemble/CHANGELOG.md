@@ -1,3 +1,7 @@
+## 1.1.78
+
+ - **FIX**(stripe): correct onSuccess callback reference in ShowPaymentSheetAction. ([60ce6612](https://github.com/ensembleUI/ensemble/commit/60ce661276fadee0d8ae863680d4a28c603597ca))
+
 ## 1.1.77
 
  - **FEAT**(stripe): add initializeStripe action and update payment sheet functionality. ([5622bd40](https://github.com/ensembleUI/ensemble/commit/5622bd40b4b21a21b55154444e2dbe2802b1dc68))
