@@ -35,7 +35,7 @@ class ShowPaymentSheetAction extends EnsembleAction {
       initiator: initiator,
       clientSecret: Utils.getString(payload['clientSecret'], fallback: ''),
       configuration: Utils.getMap(payload['configuration']),
-      onSuccess: EnsembleAction.from(payload['onComplete']),
+      onSuccess: EnsembleAction.from(payload['onSuccess']),
       onError: EnsembleAction.from(payload['onError']),
     );
   }
