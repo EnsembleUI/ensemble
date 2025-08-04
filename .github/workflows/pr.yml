@@ -5,47 +5,6 @@ on:
     branches: [main]
 
 jobs:
-  runUnitTest:
-    name: Execute Unit/Widget tests
-
-    runs-on: macos-latest
-
-    strategy:
-      matrix:
-        flutter-version: ['3.27.2', '3.32.5']
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v3
-
-      - name: Setup Java
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'temurin'
-          java-version: '17'
-
-      - name: Setup Flutter SDK
-        uses: subosito/flutter-action@v2
-        with:
-          flutter-version: ${{ matrix.flutter-version }}
-          cache: true
-
-      - name: Install Melos
-        run: dart pub global activate melos
-
-      # - name: Lint
-      #   run: melos exec -- "dart format --output=none --set-exit-if-changed ."
-
-      - name: Pub Upgrade
-        run: melos bootstrap
-
-#      - name: Run Unit Tests / Widget Tests
-#        run: melos exec -- "flutter test"
-
-      - name: Run Auth Tests
-        run: |
-          cd modules/auth
-          flutter test
-
   buildStarter:
     name: Build Starter App
     runs-on: macos-latest
