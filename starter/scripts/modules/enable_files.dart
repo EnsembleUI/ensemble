@@ -26,15 +26,15 @@ ensemble_file_manager:
     }
   ];
 
-  final androidPermissions = [
-    // For Android 9 (API 28) and below
-    '<uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />',
-    '<uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />',
-    // For Android 13 (API 33) and above
-    '<uses-permission android:name="android.permission.READ_MEDIA_IMAGES"/>',
-    '<uses-permission android:name="android.permission.READ_MEDIA_VIDEO"/>',
-    '<uses-permission android:name="android.permission.READ_MEDIA_AUDIO"/>'
-  ];
+  // final androidPermissions = [
+  //   // For Android 9 (API 28) and below
+  //   '<uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />',
+  //   '<uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />',
+  //   // For Android 13 (API 33) and above
+  //   '<uses-permission android:name="android.permission.READ_MEDIA_IMAGES"/>',
+  //   '<uses-permission android:name="android.permission.READ_MEDIA_VIDEO"/>',
+  //   '<uses-permission android:name="android.permission.READ_MEDIA_AUDIO"/>'
+  // ];
 
   final iOSPermissions = [
     {
@@ -76,9 +76,9 @@ ensemble_file_manager:
     updatePubspec(pubspecDependencies);
 
     // Add the storage permissions to AndroidManifest.xml
-    if (platforms.contains('android')) {
-      updateAndroidPermissions(permissions: androidPermissions);
-    }
+    // if (platforms.contains('android')) {
+    //   updateAndroidPermissions(permissions: androidPermissions);
+    // }
 
     // Add the required keys and descriptions to the Info.plist file for iOS
     if (platforms.contains('ios')) {
