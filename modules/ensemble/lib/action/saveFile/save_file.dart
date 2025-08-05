@@ -47,26 +47,49 @@ class SaveToFileSystemAction extends EnsembleAction {
   @override
   Future<void> execute(BuildContext context, ScopeManager scopeManager) async {
     try {
-      if (fileName == null) {
-        throw Exception('Missing required parameter: fileName.');
+      // FIX: Evaluate fileName expression using scope manager
+      dynamic evaluatedFileName = scopeManager.dataContext.eval(fileName);
+      String? finalFileName = evaluatedFileName?.toString().trim();
+      
+      if (finalFileName == null || finalFileName.isEmpty) {
+        throw Exception('Missing or empty fileName parameter.');
+      }
+
+      // FIX: Evaluate type expression using scope manager
+      dynamic evaluatedType = scopeManager.dataContext.eval(type);
+      String? finalType = evaluatedType?.toString().trim();
+      
+      if (finalType == null || finalType.isEmpty) {
+        throw Exception('Missing or empty type parameter.');
       }
 
       Uint8List? fileBytes;
 
       // If blobData is provided, process it
       if (blobData != null) {
+        dynamic evaluatedBlobData = scopeManager.dataContext.eval(blobData);
+        
         // Handle base64 blob or binary data
-        if (blobData is String) {
-          fileBytes = base64Decode(blobData); // Decode base64
-        } else if (blobData is List<int>) {
-          fileBytes = Uint8List.fromList(blobData);
+        if (evaluatedBlobData is String) {
+          fileBytes = base64Decode(evaluatedBlobData); // Decode base64
+        } else if (evaluatedBlobData is List<int>) {
+          fileBytes = Uint8List.fromList(evaluatedBlobData);
         } else {
           throw Exception(
               'Invalid blob data format. Must be base64 or List<int>.');
         }
       } else if (source != null) {
-        // If blobData is not available, check for source (network URL)
-        final response = await http.get(Uri.parse(source!));
+        dynamic evaluatedSource = scopeManager.dataContext.eval(source);
+        String? sourceUrl = evaluatedSource?.toString().trim();
+
+        if (sourceUrl == null || sourceUrl.isEmpty) {
+          throw Exception('Source URL is null or empty after evaluation');
+        }
+
+        // FIX: Handle URLs with spaces by encoding them
+        String encodedUrl = Uri.encodeFull(sourceUrl);
+        final response = await http.get(Uri.parse(encodedUrl));
+        
         if (response.statusCode == 200) {
           fileBytes = Uint8List.fromList(response.bodyBytes);
         } else {
@@ -78,14 +101,15 @@ class SaveToFileSystemAction extends EnsembleAction {
       }
 
       // Save the file to the storage system
-      await _saveFile(type!, fileName!, fileBytes);
+      await _saveFile(finalType, finalFileName, fileBytes);
+      
       if (onComplete != null) {
         await ScreenController().executeAction(
           context,
           onComplete!,
           event: EnsembleEvent(initiator, data: {
             'fileBytes': fileBytes,
-            'fileName': fileName,
+            'fileName': finalFileName,
           }),
         );
       }
