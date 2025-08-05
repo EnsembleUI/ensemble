@@ -1,3 +1,7 @@
+## 1.1.79
+
+ - **FIX**: evaluating the saveFile action properties. ([dedb9658](https://github.com/ensembleUI/ensemble/commit/dedb9658a8ba16c443de6abce0f3130256f19ad9))
+
 ## 1.1.78
 
  - **FIX**(stripe): correct onSuccess callback reference in ShowPaymentSheetAction. ([60ce6612](https://github.com/ensembleUI/ensemble/commit/60ce661276fadee0d8ae863680d4a28c603597ca))
