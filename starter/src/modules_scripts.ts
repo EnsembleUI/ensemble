@@ -37,6 +37,13 @@ export const modules: Script[] = [
     path: 'scripts/modules/enable_files.dart',
     parameters: [
       {
+        key: 'permissions',
+        question:
+          'What Android permissions do you need? (all/none/read_external,write_external,read_media_images,read_media_video,read_media_audio) [default: all]: ',
+        platform: ['android'],
+        type: 'text',
+      },
+      {
         key: 'photoLibraryDescription',
         question:
           'Please provide a description for accessing the photo library: ',
