@@ -22,7 +22,7 @@ dependencies:
       ref: main
       path: modules/ensemble_ts_interpreter
   file_picker: ^10.1.2
-  vision_gallery_saver: ^3.1.0
+  vision_gallery_saver: ^3.1.1
 
 dev_dependencies:
   flutter_test:
