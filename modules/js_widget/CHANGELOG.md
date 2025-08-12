@@ -28,32 +28,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.0.1] - 2025-08-12
 
 ### Added
-- Added web support for js_widget package
-- Added mobile support for js_widget package
-- Added html/css rendering capabilities
-- Added custom loader support
-- Added event listener functionality
-- Added script loading and execution
-- Added conditional compilation for different platforms
-
-### Changed
-- N/A
-
-### Deprecated
-- N/A
-
-### Removed
-- N/A
-
-### Fixed
-- N/A
-
-### Security
-- N/A
-
-## [1.0.0+1] - 2025-08-12
-
-### Added
 - Initial release of js_widget package
 - Cross-platform support for web and mobile
 - Generic JavaScript widget integration
@@ -66,7 +40,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Platform-specific webview implementations for Android and iOS
 
 ### Changed
-- N/A
+- Updated all dependencies to latest stable versions
+- Improved code quality and linting compliance
+- Fixed package structure for better pub.dev recognition
 
 ### Deprecated
 - N/A
@@ -75,7 +51,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - N/A
 
 ### Fixed
-- N/A
+- Resolved dependency version conflicts
+- Fixed immutable class issues
+- Improved package score and validation
 
 ### Security
 - N/A
