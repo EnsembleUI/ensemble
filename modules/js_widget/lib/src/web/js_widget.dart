@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:html' as html;
-import 'dart:math';
 import 'dart:ui_web' as ui;
 
 import 'package:flutter/material.dart';
@@ -38,7 +37,7 @@ class JsWidget extends StatefulWidget {
   final Function createHtmlTag;
   final Function? preCreateScript;
   final String data;
-  Function(String msg)? listener;
+  final Function(String msg)? listener;
 
   ///Widget size
   ///

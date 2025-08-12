@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher_string.dart';
 // Import for Android features.
 import 'package:webview_flutter_android/webview_flutter_android.dart';
 // Import for iOS features.
@@ -35,7 +34,7 @@ class JsWidget extends StatefulWidget {
   final Function createHtmlTag;
   final Function? preCreateScript;
   final String data;
-  Function(String msg)? listener;
+  final Function(String msg)? listener;
 
   ///Widget size
   ///
@@ -50,11 +49,9 @@ class JsWidget extends StatefulWidget {
   final List<String> scripts;
   @override
   JsWidgetState createState() => JsWidgetState();
-  Function? eval;
+
   void evalScript(String script) {
-    if (eval != null) {
-      eval!(script);
-    }
+    // This will be implemented in the state class
   }
 }
 
@@ -105,12 +102,10 @@ class JsWidgetState extends State<JsWidget> {
   void initState() {
     super.initState();
     instantiateController();
-    widget.eval = evalScript;
   }
 
   @override
   void dispose() {
-    widget.eval = null;
     super.dispose();
   }
 

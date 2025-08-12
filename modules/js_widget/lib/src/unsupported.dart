@@ -31,7 +31,7 @@ class JsWidget extends StatefulWidget {
   final Function createHtmlTag;
   final Function? preCreateScript;
   final String data;
-  Function(String msg)? listener;
+  final Function(String msg)? listener;
 
   ///Widget size
   ///
@@ -52,6 +52,6 @@ class JsWidget extends StatefulWidget {
 class JsState extends State<JsWidget> {
   @override
   Widget build(BuildContext context) {
-    return const Center(child: Text("JsWidget: UnSupported Platform"));
+    return const Center(child: Text('JsWidget: UnSupported Platform'));
   }
 }
