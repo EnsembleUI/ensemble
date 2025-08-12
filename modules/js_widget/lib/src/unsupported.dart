@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 ///Took https://github.com/senthilnasa/high_chart as a start and genericized it
 ///
 class JsWidget extends StatefulWidget {
-  JsWidget(
+  const JsWidget(
       {required this.id,
       required this.createHtmlTag,
       required this.data,
