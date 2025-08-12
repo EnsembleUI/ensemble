@@ -15,7 +15,7 @@ issue_tracker: https://github.com/EnsembleUI/ensemble/issues
 # In iOS, build-name is used as CFBundleShortVersionString while build-number used as CFBundleVersion.
 # Read more about iOS versioning at
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
-version: 1.0.1
+version: 1.0.2
 
 # Topics help users find your package on pub.dev
 topics:

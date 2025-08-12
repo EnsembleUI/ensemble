@@ -25,6 +25,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Security
 - N/A
 
+## [1.0.2] - 2025-08-12
+
+### Added
+- N/A
+
+### Changed
+- Updated dependencies to latest stable versions
+- Updated web package to latest version
+- Updated js package to latest version
+- Updated webview_flutter package to latest version
+- Updated webview_flutter_android package to latest version
+- Updated webview_flutter_wkwebview package to latest version
+
+### Fixed
+- N/A
+
+### Security
+- N/A
+
 ## [1.0.1] - 2025-08-12
 
 ### Added
