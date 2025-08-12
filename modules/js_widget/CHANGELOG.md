@@ -25,6 +25,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Security
 - N/A
 
+## [1.0.3] - 2025-08-12
+
+### Added
+- N/A
+
+### Changed
+- Fixed CI/CD compatibility by downgrading flutter_lints to ^5.0.0 for Dart SDK 3.6.1 support
+- Maintained all other dependency updates and improvements
+
+### Deprecated
+- N/A
+
+### Removed
+- N/A
+
+### Fixed
+- Resolved CI/CD build failure due to SDK version mismatch
+- flutter_lints now compatible with Dart SDK 3.6.1+
+
+### Security
+- N/A
+
 ## [1.0.2] - 2025-08-12
 
 ### Added
