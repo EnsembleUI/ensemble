@@ -21,9 +21,8 @@ version: 1.0.0+1
 topics:
   - webview
   - javascript
-  - html
-  - css
   - widgets
+  - html
   - cross-platform
 
 # Keywords help with searchability
