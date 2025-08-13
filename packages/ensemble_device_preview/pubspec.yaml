@@ -1,0 +1,40 @@
+name: ensemble_device_preview
+version: 1.1.1
+description: >-
+  A Flutter package that helps you approximate how your app looks and performs on different devices.
+  Perfect for development and testing, allowing developers to preview their Flutter apps across
+  various screen sizes, orientations, and device types. Built for the Ensemble UI ecosystem.
+homepage: https://ensembleui.com
+repository: https://github.com/EnsembleUI/ensemble/tree/main/packages/ensemble_device_preview
+issue_tracker: https://github.com/EnsembleUI/ensemble/issues
+documentation: https://pub.dev/documentation/ensemble_device_preview
+
+topics:
+  - device-preview
+  - development
+  - testing
+  - responsive
+  - tools
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+  provider: ^6.0.1
+  device_frame: ^1.1.0
+  freezed_annotation: ^2.0.3
+  json_annotation: ^4.4.0
+  shared_preferences: ^2.0.9
+  collection: ^1.15.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^2.0.1
+  build_runner: ^2.1.4
+  freezed: ^2.0.3
+  json_serializable: ^6.1.0
