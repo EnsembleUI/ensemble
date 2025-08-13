@@ -25,11 +25,7 @@ dependencies:
   flutter:
     sdk: flutter
 
-  device_preview:
-    git:
-      url: https://github.com/EnsembleUI/ensemble.git
-      ref: main
-      path: modules/device_preview
+  ensemble_device_preview: ^1.1.2
 
   yaml: ^3.1.2
   intl: '>=0.17.0 <=0.20.2'
@@ -42,30 +38,18 @@ dependencies:
   fl_chart: ^0.69.0
   signature: ^5.5.0
 
-  ensemble_icons:
-    git:
-      url: https://github.com/EnsembleUI/ensemble.git
-      ref: main
-      path: modules/ensemble_icons
+  ensemble_icons: ^1.0.1
 
-  ensemble_ts_interpreter:
-    git:
-      url: https://github.com/EnsembleUI/ensemble.git
-      ref: main
-      path: modules/ensemble_ts_interpreter
+  ensemble_ts_interpreter: ^1.0.2
 
   event_bus: ^2.0.0
   flutter_layout_grid: ^2.0.3
   email_validator: ^2.0.1
   mask_text_input_formatter: ^2.5.0
-  otp_pin_field:
-    git:
-      url: https://github.com/EnsembleUI/ensemble.git
-      ref: main
-      path: modules/otp_pin_field
+  ensemble_otp: ^1.0.0
   form_validator: ^2.1.1
-  flutter_svg: ^2.0.7
-  flutter_svg_provider: ^1.0.4
+  flutter_svg: ^2.2.0
+  flutter_svg_provider: ^1.0.7
   qr_flutter: ^4.1.0
   device_info_plus: ^10.1.0
   carousel_slider: ^5.0.0
@@ -78,7 +62,7 @@ dependencies:
   provider: ^6.0.3
   cloud_firestore: ^5.4.4
   get_storage: ^2.0.3
-  flutter_html: ^3.0.0-beta.1 # flutter_html ^2.0.0 requires flutter_svg <1.0.0, conflicts with ours
+  flutter_html: ^3.0.0
   cached_network_image: ^3.2.3
   sensors_plus: ^3.0.0
   mime: ^1.0.4

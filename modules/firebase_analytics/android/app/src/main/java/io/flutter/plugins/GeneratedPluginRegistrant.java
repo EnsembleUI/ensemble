@@ -51,6 +51,11 @@ public final class GeneratedPluginRegistrant {
       Log.e(TAG, "Error registering plugin ensemble_app_badger, fr.ppprakhar.flutterappbadger.FlutterAppBadgerPlugin", e);
     }
     try {
+      flutterEngine.getPlugins().add(new com.shivam.otp_pin_field.OtpPinFieldPlugin());
+    } catch (Exception e) {
+      Log.e(TAG, "Error registering plugin ensemble_otp, com.shivam.otp_pin_field.OtpPinFieldPlugin", e);
+    }
+    try {
       flutterEngine.getPlugins().add(new io.flutter.plugins.firebase.analytics.FlutterFirebaseAnalyticsPlugin());
     } catch (Exception e) {
       Log.e(TAG, "Error registering plugin firebase_analytics, io.flutter.plugins.firebase.analytics.FlutterFirebaseAnalyticsPlugin", e);
@@ -119,11 +124,6 @@ public final class GeneratedPluginRegistrant {
       flutterEngine.getPlugins().add(new br.com.yanncabral.open_settings_plus.OpenSettingsPlusPlugin());
     } catch (Exception e) {
       Log.e(TAG, "Error registering plugin open_settings_plus, br.com.yanncabral.open_settings_plus.OpenSettingsPlusPlugin", e);
-    }
-    try {
-      flutterEngine.getPlugins().add(new com.shivam.otp_pin_field.OtpPinFieldPlugin());
-    } catch (Exception e) {
-      Log.e(TAG, "Error registering plugin otp_pin_field, com.shivam.otp_pin_field.OtpPinFieldPlugin", e);
     }
     try {
       flutterEngine.getPlugins().add(new dev.fluttercommunity.plus.packageinfo.PackageInfoPlugin());

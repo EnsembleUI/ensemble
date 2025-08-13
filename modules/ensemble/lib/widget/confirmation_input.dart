@@ -10,7 +10,7 @@ import 'package:ensemble/widget/helpers/input_field_helper.dart';
 import 'package:ensemble/widget/helpers/widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
-import 'package:otp_pin_field/otp_pin_field.dart';
+import 'package:ensemble_otp/otp_pin_field.dart';
 
 class ConfirmationInput extends StatefulWidget
     with

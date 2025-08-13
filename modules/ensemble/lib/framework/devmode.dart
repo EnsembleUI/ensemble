@@ -2,7 +2,7 @@ import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:ensemble_ts_interpreter/parser/newjs_interpreter.dart';
 import 'package:ensemble_ts_interpreter/parser/js_validator.dart';
-import 'package:jsparser/jsparser.dart';
+import 'package:parsejs_null_safety/jsparser.dart';
 import 'package:ensemble_ts_interpreter/errors.dart';
 
 class DevMode {

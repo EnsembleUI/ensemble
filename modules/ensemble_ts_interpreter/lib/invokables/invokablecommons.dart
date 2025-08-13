@@ -2,7 +2,7 @@ import 'dart:convert';
 
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:ensemble_date/ensemble_date.dart';
-import 'package:ensemble_ts_interpreter/invokables/invokableprimitives.dart';
+
 import 'package:flutter/rendering.dart';
 import 'package:intl/intl.dart';
 
@@ -94,8 +94,9 @@ class InvokableObject extends Object with Invokable {
     return {};
   }
 }
+
 // Exception class to represent custom JavaScript exceptions
-class JSCustomException with Invokable implements Exception  {
+class JSCustomException with Invokable implements Exception {
   final dynamic value;
   JSCustomException(this.value);
 
@@ -113,20 +114,20 @@ class JSCustomException with Invokable implements Exception  {
 
   @override
   Map<String, Function> methods() {
-    return {
-      'init': ([message]) => JSCustomException(message)
-    };
+    return {'init': ([message]) => JSCustomException(message)};
   }
 
   @override
   Map<String, Function> setters() {
     return {};
   }
+
   @override
   String toString() {
     return value;
   }
 }
+
 class StaticDate extends Object with Invokable {
   @override
   Map<String, Function> getters() {
@@ -241,9 +242,11 @@ class Date extends Object with Invokable, SupportsPrimitiveOperations {
     return {
       'time': () => dateTime.toLocal().millisecondsSinceEpoch,
       'year': () => dateTime.toLocal().year,
-      'month': () => dateTime.toLocal().month - 1, // JavaScript months are zero-based
+      'month': () =>
+          dateTime.toLocal().month - 1, // JavaScript months are zero-based
       'day': () => dateTime.toLocal().day,
-      'weekday': () => dateTime.toLocal().weekday % 7, // JavaScript days are zero-based
+      'weekday': () =>
+          dateTime.toLocal().weekday % 7, // JavaScript days are zero-based
       'hour': () => dateTime.toLocal().hour,
       'minute': () => dateTime.toLocal().minute,
       'second': () => dateTime.toLocal().second,
@@ -363,9 +366,11 @@ class Date extends Object with Invokable, SupportsPrimitiveOperations {
     return {
       'getTime': () => dateTime.toLocal().millisecondsSinceEpoch,
       'getFullYear': () => dateTime.toLocal().year,
-      'getMonth': () => dateTime.toLocal().month - 1, // JavaScript months are zero-based
+      'getMonth': () =>
+          dateTime.toLocal().month - 1, // JavaScript months are zero-based
       'getDate': () => dateTime.toLocal().day,
-      'getDay': () => dateTime.toLocal().weekday % 7, // JavaScript days are zero-based
+      'getDay': () =>
+          dateTime.toLocal().weekday % 7, // JavaScript days are zero-based
       'getHours': () => dateTime.toLocal().hour,
       'getMinutes': () => dateTime.toLocal().minute,
       'getSeconds': () => dateTime.toLocal().second,

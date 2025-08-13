@@ -12,7 +12,6 @@ void main() {
 
 class MyApp extends StatelessWidget {
   const MyApp({Key? key}) : super(key: key);
-  static const String _title = 'Ensemble Demo';
 
   // This widget is the root of your application.
   @override
@@ -43,8 +42,7 @@ Widget buildFrom(YamlMap doc, BuildContext context) {
   if (doc['View'] != null) {
     View v = View.from(doc['View']);
     Map<String, API> apis = APIs.from(doc['APIs']);
-    List<EnsembleAction> actions =
-        EnsembleActions.configure(v, apis, doc['Actions']);
+    EnsembleActions.configure(v, apis, doc['Actions']);
     Layout l = Layout.from(doc["Layout"], v);
     rtn = l.build(context);
   }
@@ -53,8 +51,6 @@ Widget buildFrom(YamlMap doc, BuildContext context) {
 
 /// This is the private State class that goes with MyStatefulWidget.
 class _MyStatefulWidgetState extends State<MyStatefulWidget> {
-  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
-
   Future<String> loadAsset(BuildContext context, String name) async {
     return await DefaultAssetBundle.of(context).loadString('assets/' + name);
   }
@@ -69,7 +65,7 @@ class _MyStatefulWidgetState extends State<MyStatefulWidget> {
     '0b66a9d9-9125-46b3-82ec-5b360ab73fbd',
     'c8a19fcf-69c0-4751-9733-032291c83937'
   ];
-  final List<int> colorCodes = <int>[600, 500];
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
