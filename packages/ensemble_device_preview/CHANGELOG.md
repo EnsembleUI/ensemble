@@ -1,3 +1,10 @@
+## 1.1.2
+
+* Fixed dependency compatibility issues with Ensemble ecosystem
+* Downgraded dependencies to ensure compatibility with flutter_stripe ^11.5.0
+* Resolved version conflicts with freezed_annotation and related packages
+* Package now fully compatible with existing Ensemble UI packages
+
 ## 1.1.1
 
 * Package renamed from `device_preview` to `ensemble_device_preview`

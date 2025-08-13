@@ -25,11 +25,7 @@ dependencies:
   flutter:
     sdk: flutter
 
-  device_preview:
-    git:
-      url: https://github.com/EnsembleUI/ensemble.git
-      ref: main
-      path: modules/device_preview
+  ensemble_device_preview: ^1.1.2
 
   yaml: ^3.1.2
   intl: '>=0.17.0 <=0.20.2'
