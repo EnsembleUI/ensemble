@@ -18,7 +18,7 @@ public final class GeneratedPluginRegistrant {
     try {
       flutterEngine.getPlugins().add(new com.shivam.otp_pin_field.OtpPinFieldPlugin());
     } catch (Exception e) {
-      Log.e(TAG, "Error registering plugin otp_pin_field, com.shivam.otp_pin_field.OtpPinFieldPlugin", e);
+      Log.e(TAG, "Error registering plugin ensemble_otp, com.shivam.otp_pin_field.OtpPinFieldPlugin", e);
     }
   }
 }

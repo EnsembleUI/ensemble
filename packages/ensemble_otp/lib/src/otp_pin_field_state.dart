@@ -2,8 +2,11 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'dart:async';
-import 'package:otp_pin_field/otp_pin_field_platform_interface.dart';
-import '../otp_pin_field.dart';
+import '../otp_pin_field_platform_interface.dart';
+import 'otp_pin_field_input_type.dart';
+import 'custom_keyboard.dart';
+import 'cursor_painter.dart';
+import 'otp_pin_field_widget.dart';
 
 class OtpPinFieldState extends State<OtpPinField>
     with TickerProviderStateMixin, OtpPinAutoFill {

@@ -1,3 +1,9 @@
+## [1.0.0] - Package Rename and Publication
+* Package renamed from `otp_pin_field` to `ensemble_otp`
+* Updated for pub.dev publication
+* Enhanced documentation and examples
+* Improved package metadata and structure
+
 ## [0.0.1] -Release
 * Initial release, working base functionality.
 

@@ -6,10 +6,10 @@
 
 #import "GeneratedPluginRegistrant.h"
 
-#if __has_include(<otp_pin_field/OtpPinFieldPlugin.h>)
-#import <otp_pin_field/OtpPinFieldPlugin.h>
+#if __has_include(<ensemble_otp/OtpPinFieldPlugin.h>)
+#import <ensemble_otp/OtpPinFieldPlugin.h>
 #else
-@import otp_pin_field;
+@import ensemble_otp;
 #endif
 
 @implementation GeneratedPluginRegistrant

@@ -1,6 +1,6 @@
-import 'package:example_otp_pin_field/next_page.dart';
+import 'package:example_ensemble_otp/next_page.dart';
 import 'package:flutter/material.dart';
-import 'package:otp_pin_field/otp_pin_field.dart';
+import 'package:ensemble_otp/otp_pin_field.dart';
 
 void main() {
   runApp(MyApp());

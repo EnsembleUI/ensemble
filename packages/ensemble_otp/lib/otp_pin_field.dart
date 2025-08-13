@@ -1,4 +1,4 @@
-library otp_pin_field;
+library ensemble_otp;
 
 export '../src/otp_pin_field_widget.dart';
 export '../src/otp_pin_field_style.dart';

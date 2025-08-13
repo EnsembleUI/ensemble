@@ -24,8 +24,8 @@ dependencies:
   flutter:
     sdk: flutter
 
-  otp_pin_field:
-    path: '../../otp_pin_field'
+  ensemble_otp:
+    path: '../../ensemble_otp'
 
 
   # The following adds the Cupertino Icons font to your application.

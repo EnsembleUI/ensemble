@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:otp_pin_field/otp_pin_field.dart';
+import 'otp_pin_field_style.dart';
+import 'otp_pin_field_input_type.dart';
+import 'otp_pin_field_state.dart';
 
 typedef OnDone = void Function(String text);
 typedef OnChange = void Function(String text);
