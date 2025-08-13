@@ -40,7 +40,7 @@ import 'package:get_it/get_it.dart';
 import 'package:yaml/yaml.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'html_shim.dart' if (dart.library.html) 'dart:html' show window;
-import 'package:jsparser/jsparser.dart';
+import 'package:parsejs_null_safety/jsparser.dart';
 import 'framework/theme/theme_loader.dart';
 import 'layout/ensemble_page_route.dart';
 

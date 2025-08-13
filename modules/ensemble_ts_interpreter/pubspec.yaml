@@ -46,11 +46,7 @@ dependencies:
   ensemble_date: ^1.6.1
   #flutter_js: ^0.5.0+6
   #dartjsengine: ^1.0.1
-  jsparser:
-    git:
-      url: https://github.com/EnsembleUI/ensemble.git
-      ref: main
-      path: modules/parsejs_null_safety
+  parsejs_null_safety: ^2.0.4
   source_span: ^1.9.1
   intl: '>=0.17.0 <=0.20.2'
 
