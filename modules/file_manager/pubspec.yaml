@@ -16,11 +16,7 @@ dependencies:
       url: https://github.com/EnsembleUI/ensemble.git
       ref: ensemble-v1.1.80
       path: modules/ensemble
-  ensemble_ts_interpreter:
-    git:
-      url: https://github.com/EnsembleUI/ensemble.git
-      ref: main
-      path: modules/ensemble_ts_interpreter
+  ensemble_ts_interpreter: ^1.0.2
   file_picker: ^10.1.2
   vision_gallery_saver: ^3.1.1
 
