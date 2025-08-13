@@ -1,5 +1,4 @@
 //http://160.16.109.33/github.com/mason-lang/esast/
-import 'package:yaml/yaml.dart';
 
 abstract class JSASTVisitor {
   void visitExpressionStatement(ExpressionStatement stmt);
@@ -321,7 +320,6 @@ class LogicalExpression implements BooleanExpression {
     } else {
       Exception(operator + ' is not yet supported');
     }
-    Expression left = builder.buildNode(jsonNode['left']) as Expression;
     return LogicalExpression(builder.buildNode(jsonNode['left']) as Expression,
         op!, builder.buildNode(jsonNode['right']) as Expression);
   }
