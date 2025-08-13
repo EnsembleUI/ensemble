@@ -42,11 +42,7 @@ dependencies:
   fl_chart: ^0.69.0
   signature: ^5.5.0
 
-  ensemble_icons:
-    git:
-      url: https://github.com/EnsembleUI/ensemble.git
-      ref: main
-      path: modules/ensemble_icons
+  ensemble_icons: ^1.0.1
 
   ensemble_ts_interpreter: ^1.0.2
 
