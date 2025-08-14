@@ -1,0 +1,185 @@
+ID: Screen1
+View:
+  title: Guess your gender from your name
+  items:
+  - a. First Name: TextInput
+  - b. Find My Gender: Button
+  - c. Gender: TextInput
+
+APIs:
+  genderAPI:
+    uri: https://gender-api.com/get
+    parameters:
+      key: gE3CT26ctLhjufjXlKRMnqFrNLgSDcN4tPMK
+      name:
+
+Transitions:
+  - tr1. Screen1 -> Screen2 : slide
+  - tr2. Screen1 -> Screen3 :
+      ios: modal_from_bottom
+      android: default_child
+
+Actions:
+  b:
+    click:
+      call:
+        api: genderAPI
+        parameters:
+          name: a.value
+#c.value = response.gender
+        success: |-
+          {
+            "type": "Program",
+            "body": [
+              {
+                "type": "IfStatement",
+                "test": {
+                  "type": "BinaryExpression",
+                  "operator": "==",
+                  "left": {
+                    "type": "MemberExpression",
+                    "object": {
+                      "type": "Identifier",
+                      "name": "response"
+                    },
+                    "property": {
+                      "type": "Identifier",
+                      "name": "gender"
+                    },
+                    "computed": false,
+                    "optional": false
+                  },
+                  "right": {
+                    "type": "Literal",
+                    "value": "male",
+                    "raw": "'male'"
+                  }
+                },
+                "consequent": {
+                  "type": "BlockStatement",
+                  "body": [
+                    {
+                      "type": "ExpressionStatement",
+                      "expression": {
+                        "type": "AssignmentExpression",
+                        "operator": "=",
+                        "left": {
+                          "type": "MemberExpression",
+                          "object": {
+                            "type": "Identifier",
+                            "name": "c"
+                          },
+                          "property": {
+                            "type": "Identifier",
+                            "name": "value"
+                          },
+                          "computed": false,
+                          "optional": false
+                        },
+                        "right": {
+                          "type": "Literal",
+                          "value": "Male",
+                          "raw": "'Male'"
+                        }
+                      }
+                    }
+                  ]
+                },
+                "alternate": {
+                  "type": "IfStatement",
+                  "test": {
+                    "type": "BinaryExpression",
+                    "operator": "==",
+                    "left": {
+                      "type": "MemberExpression",
+                      "object": {
+                        "type": "Identifier",
+                        "name": "response"
+                      },
+                      "property": {
+                        "type": "Identifier",
+                        "name": "gender"
+                      },
+                      "computed": false,
+                      "optional": false
+                    },
+                    "right": {
+                      "type": "Literal",
+                      "value": "female",
+                      "raw": "'female'"
+                    }
+                  },
+                  "consequent": {
+                    "type": "BlockStatement",
+                    "body": [
+                      {
+                        "type": "ExpressionStatement",
+                        "expression": {
+                          "type": "AssignmentExpression",
+                          "operator": "=",
+                          "left": {
+                            "type": "MemberExpression",
+                            "object": {
+                              "type": "Identifier",
+                              "name": "c"
+                            },
+                            "property": {
+                              "type": "Identifier",
+                              "name": "value"
+                            },
+                            "computed": false,
+                            "optional": false
+                          },
+                          "right": {
+                            "type": "Literal",
+                            "value": "Female",
+                            "raw": "'Female'"
+                          }
+                        }
+                      }
+                    ]
+                  },
+                  "alternate": {
+                    "type": "BlockStatement",
+                    "body": [
+                      {
+                        "type": "ExpressionStatement",
+                        "expression": {
+                          "type": "AssignmentExpression",
+                          "operator": "=",
+                          "left": {
+                            "type": "MemberExpression",
+                            "object": {
+                              "type": "Identifier",
+                              "name": "c"
+                            },
+                            "property": {
+                              "type": "Identifier",
+                              "name": "value"
+                            },
+                            "computed": false,
+                            "optional": false
+                          },
+                          "right": {
+                            "type": "Literal",
+                            "value": "Unknown",
+                            "raw": "'Unknown'"
+                          }
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
+            ],
+            "sourceType": "script"
+          }
+
+
+Layout:
+  Form:
+    spaceBetween: 2
+    items:
+      - a
+      - c
+      - b

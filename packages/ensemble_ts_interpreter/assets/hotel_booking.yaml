@@ -1,0 +1,30 @@
+View:
+  title: Hotel Search
+  items:
+  - a. *Where are you going : Auto-complete
+  - b. Dates : Duration
+    properties:
+      required: true
+      start: today
+      end: today.add(7)
+  - c. Search : Button
+  - d. Use Points: Checkbox
+  - e. : List
+    item:
+      - pic: icon
+      - fav: checkbox
+      - title
+      - price
+      - place
+      - rating: rating_widget
+      - reviews
+
+
+Layout:
+  Form:
+    spaceBetween: 2
+    items:
+      - a
+      - b
+      - c
+      - d
