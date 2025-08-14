@@ -1,3 +1,5 @@
+## [1.0.3] - Moved to packages directory
+
 ## [1.0.2] - Package Publication and Code Quality Improvements
 * Package prepared for pub.dev publication
 * Enhanced documentation and examples
