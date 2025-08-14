@@ -35,7 +35,7 @@ dependencies:
     git:
       url: https://github.com/EnsembleUI/ensemble.git
       ref: main
-      path: packages/parsejs_null_safety
+      path: modules/parsejs_null_safety
   source_span: ^1.9.1
   intl: '>=0.17.0 <=0.20.2'
 
