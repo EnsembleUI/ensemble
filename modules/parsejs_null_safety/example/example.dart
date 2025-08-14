@@ -1,4 +1,4 @@
-import 'package:jsparser/jsparser.dart';
+import 'package:parsejs_null_safety/jsparser.dart';
 import 'dart:io';
 
 void main() {
