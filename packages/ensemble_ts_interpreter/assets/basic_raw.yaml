@@ -1,0 +1,41 @@
+ID: Screen1
+View:
+  title: Guess your gender from your name
+  items:
+  - a. First Name: TextInput
+  - b. Find My Gender: Button
+  - c. Gender: TextInput
+
+APIs:
+  genderAPI:
+    uri: https://gender-api.com/get
+    parameters:
+      key: gE3CT26ctLhjufjXlKRMnqFrNLgSDcN4tPMK
+      name:
+
+Transitions:
+  - tr1. Screen1 -> Screen2 : slide
+  - tr2. Screen1 -> Screen3 :
+      ios: modal_from_bottom
+      android: default_child
+
+Actions:
+  b:
+    click:
+      call:
+        api: genderAPI
+        parameters:
+          name: a.value
+        success: |-
+          c.value = response.gender;
+          flowContext.put('gender',c.value);
+          log('gender retrieved as '+c.value);
+          tr1.go();
+
+Layout:
+  Form:
+    spaceBetween: 2
+    items:
+      - a
+      - c
+      - b
