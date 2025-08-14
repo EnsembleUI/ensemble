@@ -1,5 +1,3 @@
-library parsejs_null_safety;
-
 import 'src/ast.dart';
 import 'src/lexer.dart';
 import 'src/parser.dart';
