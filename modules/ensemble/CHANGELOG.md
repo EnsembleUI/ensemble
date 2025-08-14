@@ -1,3 +1,7 @@
+## 1.2.0
+
+ - **FEAT**(widget): enhance semantics label retrieval logic. ([7ddb5d55](https://github.com/ensembleUI/ensemble/commit/7ddb5d55634fe7aa0c4a3000671e37dc8f9b9e73))
+
 ## 1.1.80
 
  - Bump "ensemble" to `1.1.80`.
