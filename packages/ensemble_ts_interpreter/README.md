@@ -25,7 +25,7 @@ Add this to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  ensemble_ts_interpreter: ^1.0.0
+  ensemble_ts_interpreter: ^1.0.3
 ```
 
 Then run:
