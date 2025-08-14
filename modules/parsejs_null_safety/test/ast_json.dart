@@ -1,6 +1,6 @@
 library ast_json;
 
-import 'package:parsejs_null_safety/src/ast.dart';
+import 'package:jsparser/src/ast.dart';
 
 /// Converts an AST to a JSON object matching the AST structure emitted by the Esprima parser.
 /// This is for testing purposes, so the output can be compared against another well-tested parser.

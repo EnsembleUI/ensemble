@@ -1,6 +1,6 @@
 library parser;
 
-import 'package:parsejs_null_safety/jsparser.dart';
+import 'package:jsparser/jsparser.dart';
 
 import 'lexer.dart';
 import 'ast.dart';
