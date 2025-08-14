@@ -31,7 +31,11 @@ dependencies:
   json_path: ^0.7.2
   duration: ^3.0.11
   ensemble_date: ^1.6.1
-  parsejs_null_safety: ^2.0.4
+  jsparser:
+    git:
+      url: https://github.com/EnsembleUI/ensemble.git
+      ref: main
+      path: packages/parsejs_null_safety
   source_span: ^1.9.1
   intl: '>=0.17.0 <=0.20.2'
 

@@ -4,7 +4,7 @@ import 'package:ensemble_ts_interpreter/invokables/context.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokablecommons.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokablecontroller.dart';
-import 'package:parsejs_null_safety/jsparser.dart';
+import 'package:jsparser/jsparser.dart';
 import 'package:ensemble_ts_interpreter/parser/regex_ext.dart';
 
 class Bindings extends RecursiveVisitor<dynamic> {

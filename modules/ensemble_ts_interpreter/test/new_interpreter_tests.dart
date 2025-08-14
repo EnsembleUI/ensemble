@@ -7,7 +7,7 @@ import 'package:json_path/json_path.dart';
 import 'dart:convert';
 import 'dart:io';
 import 'package:test/test.dart';
-import 'package:parsejs_null_safety/jsparser.dart';
+import 'package:jsparser/jsparser.dart';
 
 class Ensemble extends Object with Invokable {
   String? name, date, firstName, lastName, text;
