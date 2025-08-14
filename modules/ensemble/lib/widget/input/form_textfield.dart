@@ -10,6 +10,7 @@ import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/helpers/form_helper.dart';
 import 'package:ensemble/widget/helpers/input_field_helper.dart';
 import 'package:ensemble/widget/helpers/input_wrapper.dart';
+import 'package:ensemble/widget/helpers/text_selection_helper.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
@@ -280,19 +281,26 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput>
     widget.controller.inputFieldAction = this;
 
     // Making sure to move cursor to end when widget rebuild
-    if (focusNode.hasFocus) {
-      int oldCursorPosition = oldWidget.textController.selection.baseOffset;
-      int textLength = widget.textController.text.length;
+    if (focusNode.hasFocus && mounted) {
+      try {
+        // Check if the old widget's text controller is still valid
+        if (oldWidget.textController.text.isNotEmpty &&
+            widget.textController.text.isNotEmpty) {
+          int oldCursorPosition = oldWidget.textController.selection.baseOffset;
+          int textLength = widget.textController.text.length;
 
-      widget.textController.selection = TextSelection.fromPosition(
-        TextPosition(offset: oldCursorPosition),
-      );
-      int cursorPosition = widget.textController.selection.baseOffset;
-
-      if (textLength > cursorPosition) {
-        widget.textController.selection = TextSelection.fromPosition(
-          TextPosition(offset: textLength),
-        );
+          // Ensure cursor position is within valid bounds
+          if (oldCursorPosition >= 0 && oldCursorPosition <= textLength) {
+            // Use the safe helper to set selection
+            TextSelectionHelper.safeSetSelectionFromPosition(
+              widget.textController,
+              oldCursorPosition,
+              usePostFrame: true,
+            );
+          }
+        }
+      } catch (e) {
+        debugPrint('FormTextField: Error in didUpdateWidget: $e');
       }
     }
   }
@@ -460,14 +468,17 @@ class TextInputState extends FormFieldWidgetState<BaseTextInput>
         onChanged: (String txt) {
           // If text suddenly increased by more than one character,
           // it could indicate a paste operation
-          if(kIsWeb){
+          if (kIsWeb) {
             if (txt != previousText &&
                 (txt.length > previousText.length + 1 ||
                     previousText.length > txt.length + 1) &&
                 !widget._controller.selectable) {
               widget.textController.text = previousText;
-              widget.textController.selection = TextSelection.fromPosition(
-                TextPosition(offset: previousText.length),
+              // Safe text selection with error handling
+              TextSelectionHelper.safeSetSelectionFromPosition(
+                widget.textController,
+                previousText.length,
+                usePostFrame: false,
               );
               // Early return to prevent further processing
               return;

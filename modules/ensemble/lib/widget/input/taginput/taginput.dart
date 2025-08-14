@@ -12,6 +12,7 @@ import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/helpers/form_helper.dart';
 import 'package:ensemble/widget/helpers/input_wrapper.dart';
 import 'package:ensemble/widget/helpers/input_field_helper.dart'; // Import the helper class
+import 'package:ensemble/widget/helpers/text_selection_helper.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:ensemble/layout/templated.dart';
@@ -79,8 +80,8 @@ abstract class BaseTextInput extends StatefulWidget
       'value': () => _controller.taggerController.formattedText ?? '',
       'currentTriggerChar': () => _controller
           .currentTriggerChar, // Getter for current trigger character
-      'text': ()=> _controller.taggerController.text ?? '',
-      'tags': ()=> _controller.getTags() ?? '',
+      'text': () => _controller.taggerController.text ?? '',
+      'tags': () => _controller.getTags() ?? '',
       'isOverlayVisible': () => _controller.isOverlayVisible,
     });
     return getters;
@@ -158,7 +159,7 @@ abstract class BaseTextInput extends StatefulWidget
           }
 
           if (character != null) {
-            if(data != null && data != ""){
+            if (data != null && data != "") {
               results.add(
                 Trigger(
                   character: character,
@@ -182,7 +183,7 @@ abstract class BaseTextInput extends StatefulWidget
     // If no triggers were defined, add a default @ trigger
     if (results.isEmpty) {
       results = [
-        Trigger(character: '@',textStyle: const TextStyle(color: Colors.blue))
+        Trigger(character: '@', textStyle: const TextStyle(color: Colors.blue))
       ];
     }
 
@@ -220,7 +221,7 @@ class TagInputController extends BaseInputController {
   bool get isOverlayVisible => _isOverlayVisible;
   // Configurable properties
   List<Trigger> triggers = [
-    Trigger(character: '@',textStyle: const TextStyle(color: Colors.blue))
+    Trigger(character: '@', textStyle: const TextStyle(color: Colors.blue))
   ];
   LabelValueItemTemplate? itemTemplate;
   TextStyle? mentionStyle;
@@ -244,9 +245,11 @@ class TagInputController extends BaseInputController {
       _taggerController!.text = value;
     }
   }
+
   set isOverlayVisible(bool value) {
     _isOverlayVisible = value;
   }
+
   Map<String, String>? get initialTag => _initialTag;
   set initialTag(Map<String, String>? value) {
     if (_initialTag != value) {
@@ -278,18 +281,22 @@ class TagInputController extends BaseInputController {
       }
     }
   }
+
   // get Applied Tags
   List<Map<String, dynamic>> getTags() {
     if (_taggerController?.tags == null) {
       return [];
     }
     // Convert Tag objects to simple maps
-    return _taggerController!.tags.map((tag) => {
-      'id': tag.id,
-      'text': tag.text,
-      'triggerCharacter': tag.triggerCharacter
-    }).toList();
+    return _taggerController!.tags
+        .map((tag) => {
+              'id': tag.id,
+              'text': tag.text,
+              'triggerCharacter': tag.triggerCharacter
+            })
+        .toList();
   }
+
   // Apply Initial Tag
   void applyInitialTag() {
     if (initialTag == null) return;
@@ -312,23 +319,32 @@ class TagInputController extends BaseInputController {
       taggerController.clear();
       taggerController.isInitialTag = true;
       taggerController.text = triggerChar;
-      taggerController.selection =
-          TextSelection.collapsed(offset: taggerController.text.length);
+
+      // Safe text selection
+      TextSelectionHelper.safeSetCollapsedSelection(
+        taggerController,
+        taggerController.text.length,
+        usePostFrame: false,
+      );
 
       taggerController.addTag(id: tag['id']!, name: '$displayText');
 
       final text = taggerController.text;
       if (!text.endsWith(' ')) {
         taggerController.text = '$text ';
-        taggerController.selection =
-            TextSelection.collapsed(offset: taggerController.text.length);
+
+        // Safe text selection after adding space
+        TextSelectionHelper.safeSetCollapsedSelection(
+          taggerController,
+          taggerController.text.length,
+          usePostFrame: false,
+        );
       }
 
       _taggerControllerValue = taggerController.text;
       _applyingInitialTag = false;
       taggerController.isInitialTag = false;
     }
-
   }
 
   @override
@@ -454,9 +470,10 @@ class TagInputState extends FormFieldWidgetState<BaseTextInput>
         if (mounted) {
           setState(() {
             dataList = data;
-            if(dataList!.length == 0){
+            if (dataList!.length == 0) {
               widget.controller.isOverlayVisible = false;
-              widget.setProperty('isOverlayVisible', widget.controller.isOverlayVisible);
+              widget.setProperty(
+                  'isOverlayVisible', widget.controller.isOverlayVisible);
             }
           });
         }
@@ -478,7 +495,8 @@ class TagInputState extends FormFieldWidgetState<BaseTextInput>
   void didUpdateWidget(covariant BaseTextInput oldWidget) {
     super.didUpdateWidget(oldWidget);
     widget.controller.inputFieldAction = this;
-    widget._controller._taggerController = oldWidget._controller._taggerController;
+    widget._controller._taggerController =
+        oldWidget._controller._taggerController;
 
     // Making sure to move cursor to end when widget rebuild
     if (focusNode.hasFocus) {
@@ -600,8 +618,8 @@ class TagInputState extends FormFieldWidgetState<BaseTextInput>
                 event: EnsembleEvent(widget, data: {
                   'query': query,
                   'triggerChar': triggerCharacter,
-                  'triggerType': widget._controller._triggerTypeMap[
-                      triggerCharacter]
+                  'triggerType':
+                      widget._controller._triggerTypeMap[triggerCharacter]
                 }),
               );
             }
@@ -612,24 +630,26 @@ class TagInputState extends FormFieldWidgetState<BaseTextInput>
           triggerCharacterAndStyles: {
             for (var entry in widget._controller.triggers)
               entry.character:
-              entry.textStyle ?? const TextStyle(color: Colors.blue),
+                  entry.textStyle ?? const TextStyle(color: Colors.blue),
           },
           triggerStrategy: widget._controller._applyingInitialTag
               ? TriggerStrategy.deferred
               : TriggerStrategy.eager,
           overlayHeight: _calculatedOverlayHeight,
-          overlayWidth: widget._controller.overlayWidth ?? MediaQuery.sizeOf(context).width,
+          overlayWidth: widget._controller.overlayWidth ??
+              MediaQuery.sizeOf(context).width,
           padding: widget._controller.overlayPadding ?? EdgeInsets.zero,
-          overlay: widget.controller.isOverlayVisible ?
-          Material(
-              child: SlideTransition(
-                position: _animation!,
-                child: Container(
-                  decoration: widget._controller.overlayStyle,
-                  child: buildItems(
-                      widget.controller.itemTemplate, dataList, tagQuery),
-                ),
-              )): Container(),
+          overlay: widget.controller.isOverlayVisible
+              ? Material(
+                  child: SlideTransition(
+                  position: _animation!,
+                  child: Container(
+                    decoration: widget._controller.overlayStyle,
+                    child: buildItems(
+                        widget.controller.itemTemplate, dataList, tagQuery),
+                  ),
+                ))
+              : Container(),
           builder: (context, containerKey) {
             // Use the helper to create a TextFormField with common configuration
             return InputFieldHelper.createTextFormField(
@@ -678,7 +698,8 @@ class TagInputState extends FormFieldWidgetState<BaseTextInput>
                         getKeyPressDebouncer());
                   }
                 }
-                widget.setProperty("isOverlayVisible", widget.controller.isOverlayVisible);
+                widget.setProperty(
+                    "isOverlayVisible", widget.controller.isOverlayVisible);
                 setState(() {});
               },
               onFieldSubmitted: (value) {
@@ -750,7 +771,7 @@ class TagInputState extends FormFieldWidgetState<BaseTextInput>
       // Look for a group with matching triggerType
       for (Trigger trigger in widget._controller.triggers) {
         if (widget._controller._triggerTypeMap[trigger.character] ==
-            currentTriggerType &&
+                currentTriggerType &&
             trigger.data != null) {
           filteredDataList = trigger.data;
           break;
@@ -808,7 +829,8 @@ class TagInputState extends FormFieldWidgetState<BaseTextInput>
                 );
                 // Change the overlay visibility flag to false to allow the focus of TextInput to be dismissed
                 widget.controller.isOverlayVisible = false;
-                widget.setProperty('isOverlayVisible', widget.controller.isOverlayVisible);
+                widget.setProperty(
+                    'isOverlayVisible', widget.controller.isOverlayVisible);
               },
             ));
           }
