@@ -1,5 +1,5 @@
 import 'dart:developer';
-
+import 'bottom_nav_page_group.dart'; // To access bottomNavVisibilityNotifier
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/ensemble_app.dart';
@@ -24,6 +24,122 @@ import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:ensemble/widget/helpers/unfocus.dart';
 import 'package:flutter/material.dart';
 
+class PageNavigatorWrapper extends StatefulWidget {
+  const PageNavigatorWrapper({
+    Key? key,
+    required this.child,
+    required this.isTabPage,
+    this.tabIndex,
+  }) : super(key: key);
+
+  final Widget child;
+  final bool isTabPage;
+  final int? tabIndex;
+
+  @override
+  State<PageNavigatorWrapper> createState() => _PageNavigatorWrapperState();
+}
+
+class _PageNavigatorWrapperState extends State<PageNavigatorWrapper> with RouteAware {
+  late final RouteObserver<PageRoute> _routeObserver;
+  late final GlobalKey<NavigatorState> _navigatorKey;
+
+  @override
+  void initState() {
+    super.initState();
+    _routeObserver = RouteObserver<PageRoute>();
+    _navigatorKey = GlobalKey<NavigatorState>();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    
+    // Subscribe to route changes
+    var route = ModalRoute.of(context);
+    if (route is PageRoute) {
+      _routeObserver.unsubscribe(this);
+      _routeObserver.subscribe(this, route);
+    }
+  }
+
+  @override
+  void dispose() {
+    _routeObserver.unsubscribe(this);
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (widget.isTabPage) {
+      // Wrap tab pages in their own Navigator
+      return Navigator(
+        key: _navigatorKey,
+        observers: [_routeObserver],
+        onGenerateRoute: (settings) {
+          return MaterialPageRoute(
+            settings: settings,
+            builder: (_) => widget.child,
+          );
+        },
+      );
+    }
+    
+    // For non-tab pages, return child directly
+    return widget.child;
+  }
+
+  // Navigator methods for external access
+  void pushPage(Widget page, {String? routeName}) {
+    if (widget.isTabPage && _navigatorKey.currentState != null) {
+      _navigatorKey.currentState!.push(
+        MaterialPageRoute(
+          settings: RouteSettings(name: routeName),
+          builder: (_) => page,
+        ),
+      );
+    }
+  }
+
+  void popPage() {
+    if (widget.isTabPage && _navigatorKey.currentState != null) {
+      _navigatorKey.currentState!.pop();
+    }
+  }
+
+  void popToRoot() {
+    if (widget.isTabPage && _navigatorKey.currentState != null) {
+      _navigatorKey.currentState!.popUntil((route) => route.isFirst);
+    }
+  }
+
+  bool canPop() {
+    if (widget.isTabPage && _navigatorKey.currentState != null) {
+      return _navigatorKey.currentState!.canPop();
+    }
+    return false;
+  }
+}
+
+// Add this InheritedWidget to provide Navigator access
+class PageNavigatorProvider extends InheritedWidget {
+  const PageNavigatorProvider({
+    Key? key,
+    required this.navigatorWrapper,
+    required Widget child,
+  }) : super(key: key, child: child);
+
+  final _PageNavigatorWrapperState navigatorWrapper;
+
+  static PageNavigatorProvider? of(BuildContext context) {
+    return context.dependOnInheritedWidgetOfExactType<PageNavigatorProvider>();
+  }
+
+  @override
+  bool updateShouldNotify(PageNavigatorProvider oldWidget) {
+    return navigatorWrapper != oldWidget.navigatorWrapper;
+  }
+}
 class SinglePageController extends WidgetController {
   TextStyleComposite? _textStyle;
   int? maxLines;
@@ -94,12 +210,84 @@ class PageState extends State<Page>
   @override
   bool get wantKeepAlive => true;
 
+  // Helper method to check if we're in a bottom nav context
+//   bool _isInBottomNavContext() {
+//     try {
+//       final pageGroupWidget = context.findAncestorWidgetOfExactType<PageGroupWidget>();
+//       return pageGroupWidget != null;
+//     } catch (e) {
+//       return false;
+//     }
+//   }
+
+//   // Handle bottom nav visibility based on page styles
+// void _handleBottomNavVisibility() {
+//   if (_isInBottomNavContext()) {
+//     final hideBottomNavBar = Utils.optionalBool(
+//         widget._pageModel.runtimeStyles?['hideBottomNavBar']) ?? false;
+    
+//     // Use the controller that the UI is actually listening to
+//     if (hideBottomNavBar) {
+//       bottomNavVisibilityNotifier.hide(); // ← Use this one
+//     } else {
+//       print('calling show() from PageState');
+//       bottomNavVisibilityNotifier.show(); // ← Use this one
+//     }
+//   }
+// }
+
   @override
   void didUpdateWidget(covariant Page oldWidget) {
     super.didUpdateWidget(oldWidget);
     // widget can be re-created at any time, we need to keep the Scope intact.
     widget.rootScopeManager = _scopeManager;
+    //    WidgetsBinding.instance.addPostFrameCallback((_) {
+    //   _handleBottomNavVisibility();
+    // });
   }
+void _updateBottomNavVisibility() {
+  // Check if this page is a direct child of BottomNavPageGroup (tab page)
+  bool isTabPage = _isTabPage();
+  
+  // Get showMenu setting
+  bool? showMenuSetting = widget._pageModel.runtimeStyles?['showMenu'];
+  
+if (isTabPage) {
+    // For tab pages: show by default, hide only if explicitly set to false
+    bool shouldShow = showMenuSetting != false;
+    if (shouldShow) {
+      BottomNavVisibilityNotifier().show();
+    } else {
+      BottomNavVisibilityNotifier().hide();
+    }
+  } else {
+    // For navigated pages: hide by default, show only if explicitly set to true
+    bool shouldShow = showMenuSetting == true;
+    if (shouldShow) {
+      BottomNavVisibilityNotifier().show();
+    } else {
+      BottomNavVisibilityNotifier().hide();
+    }
+  }
+}
+
+// Helper method to check if this is a tab page
+bool _isTabPage() {
+  try {
+    // Check if we have a TabRouteObserverProvider ancestor
+    final tabObserverProvider = TabRouteObserverProvider.of(context);
+    if (tabObserverProvider != null) {
+      // If we can find the provider, we're likely in a tab context
+      // Additional check: see if we're at the root of the tab's Navigator
+      final route = ModalRoute.of(context);
+      return route != null && route.isFirst;
+    }
+    return false;
+  } catch (e) {
+    return false;
+  }
+}
+
 
   @override
   void didChangeDependencies() {
@@ -107,10 +295,16 @@ class PageState extends State<Page>
     // if our widget changes, we need to save the scopeManager to it.
     widget.rootScopeManager = _scopeManager;
 
-    // see if we are part of a ViewGroup or not
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    _updateBottomNavVisibility();
+  });
     BottomNavScreen? bottomNavRootScreen = BottomNavScreen.getScreen(context);
+    print(bottomNavRootScreen?.bottomNavRoot.selectedScreen);
     if (bottomNavRootScreen != null) {
       bottomNavRootScreen.onReVisited(() {
+    //        WidgetsBinding.instance.addPostFrameCallback((_) {
+    //   _handleBottomNavVisibility();
+    // });
         if (widget._pageModel.viewBehavior.onResume != null) {
           ScreenController().executeActionWithScope(
               context, _scopeManager, widget._pageModel.viewBehavior.onResume!,
@@ -120,13 +314,7 @@ class PageState extends State<Page>
       });
     }
     // standalone screen, listen when another screen is popped and we are back here
-    else {
-      var route = ModalRoute.of(context);
-      if (route is PageRoute) {
-        Ensemble().routeObserver.unsubscribe(this);
-        Ensemble().routeObserver.subscribe(this, route);
-      }
-    }
+     _subscribeToRouteObserver();
   }
 
   /// the last time the screen went to the background
@@ -176,6 +364,9 @@ class PageState extends State<Page>
   @override
   void didPush() {
     log("didPush() for ${widget.hashCode}");
+    //    WidgetsBinding.instance.addPostFrameCallback((_) {
+    //   _handleBottomNavVisibility();
+    // });
   }
 
   DateTime? screenLastPaused;
@@ -184,6 +375,7 @@ class PageState extends State<Page>
   @override
   void didPushNext() {
     super.didPushNext();
+    final observerType = _isUsingTabObserver ? 'TAB' : 'GLOBAL';
     screenLastPaused = DateTime.now();
     if (widget._pageModel.viewBehavior.onPause != null) {
       ScreenController().executeActionWithScope(
@@ -192,10 +384,44 @@ class PageState extends State<Page>
     }
   }
 
+  RouteObserver<PageRoute>? _currentObserver;
+bool _isUsingTabObserver = false;
+
+void _subscribeToRouteObserver() {
+  var route = ModalRoute.of(context);
+  if (route is! PageRoute) return;
+
+  // Try to get tab-specific observer first
+  final tabObserverProvider = TabRouteObserverProvider.of(context);
+  if (tabObserverProvider != null) {
+    _currentObserver = tabObserverProvider.routeObserver;
+    _isUsingTabObserver = true;
+    
+    _currentObserver!.unsubscribe(this);
+    _currentObserver!.subscribe(this, route);
+    return;
+  }
+
+  // Fallback to global observer for standalone pages
+  _currentObserver = Ensemble().routeObserver;
+  _isUsingTabObserver = false;
+  
+  _currentObserver!.unsubscribe(this);
+  _currentObserver!.subscribe(this, route);
+}
+
   /// when a page is popped and we go back to this page
   @override
   void didPopNext() {
     super.didPopNext();
+    // print('inside didPopNext() for ${widget.hashCode}');
+    //    WidgetsBinding.instance.addPostFrameCallback((_) {
+    //   _handleBottomNavVisibility();
+    // });
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+    _updateBottomNavVisibility();
+  });
+
     if (widget._pageModel.viewBehavior.onResume != null) {
       ScreenController().executeActionWithScope(
           context, _scopeManager, widget._pageModel.viewBehavior.onResume!,
@@ -225,6 +451,10 @@ class PageState extends State<Page>
         ),
         importedCode: widget._pageModel.importedCode);
     widget.rootScopeManager = _scopeManager;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+    _updateBottomNavVisibility();
+  });
+
     // if we have a menu, figure out which child page to display initially
     if (widget._pageModel.menu != null &&
         widget._pageModel.menu!.menuItems.length > 1) {
@@ -236,6 +466,10 @@ class PageState extends State<Page>
         }
       }
     }
+        // _handleBottomNavVisibility();
+  //  WidgetsBinding.instance.addPostFrameCallback((_) {
+  //     _handleBottomNavVisibility();
+  //   });
 
     // execute view behavior
     if (widget._pageModel.viewBehavior.onLoad != null) {
@@ -612,6 +846,7 @@ class PageState extends State<Page>
   }
 
   Widget buildScrollablePageContent(bool hasDrawer) {
+    var route = ModalRoute.of(context);
     List<Widget> slivers = [];
     externalScrollController = ScrollController();
     // appBar
