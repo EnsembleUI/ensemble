@@ -1,6 +1,6 @@
 #
 # To learn more about a Podspec see http://guides.cocoapods.org/syntax/podspec.html.
-# Run `pod lib lint otp_pin_field.podspec` to validate before publishing.
+# Run `pod lib lint ensemble_otp.podspec` to validate before publishing.
 #
 Pod::Spec.new do |s|
   s.name             = 'ensemble_otp'
