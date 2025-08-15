@@ -2,6 +2,7 @@ import 'package:ensemble/framework/stub/ensemble_bracket.dart';
 import 'package:ensemble/framework/stub/ensemble_chat.dart';
 import 'package:ensemble/framework/stub/qr_code_scanner.dart';
 import 'package:ensemble/framework/view/footer.dart';
+import 'package:ensemble/framework/widget/Card.dart';
 import 'package:ensemble/layout/app_scroller.dart';
 import 'package:ensemble/layout/box/box_layout.dart';
 import 'package:ensemble/layout/box/fitted_box_layout.dart';
@@ -122,6 +123,8 @@ class WidgetRegistry {
         EnsembleProgressIndicator.type: () => EnsembleProgressIndicator(),
         EnsembleMap.type: () => GetIt.instance<EnsembleMap>(),
         'Maps': () => GetIt.instance<EnsembleMap>(), // backward compatible
+        'Card': () => Card(),
+
         Carousel.type: () => Carousel(),
         Video.type: () => Video(),
         YouTube.type: () => YouTube(),
