@@ -46,7 +46,7 @@ dependencies:
   flutter_layout_grid: ^2.0.3
   email_validator: ^2.0.1
   mask_text_input_formatter: ^2.5.0
-  ensemble_otp: ^1.0.0
+  ensemble_otp: ^1.0.1
   form_validator: ^2.1.1
   flutter_svg: ^2.2.0
   flutter_svg_provider: ^1.0.7
