@@ -1,3 +1,7 @@
+## 1.2.1
+
+ - **FIX**: correct typo in calendar widget tooltip property. ([dc6d7312](https://github.com/ensembleUI/ensemble/commit/dc6d7312fe0712f41b81dd3c0888215146c6d173))
+
 ## 1.2.0
 
  - **FEAT**(widget): enhance semantics label retrieval logic. ([7ddb5d55](https://github.com/ensembleUI/ensemble/commit/7ddb5d55634fe7aa0c4a3000671e37dc8f9b9e73))
