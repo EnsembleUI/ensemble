@@ -7,7 +7,6 @@ import 'package:ensemble/framework/view/data_scope_widget.dart';
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/layout/templated.dart';
 import 'package:ensemble/model/item_template.dart';
-import 'package:ensemble/page_model.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/extensions.dart';
 import 'package:ensemble/util/utils.dart';
@@ -119,7 +118,7 @@ class EnsembleCalendar extends StatefulWidget
       'headerTextStyle': (value) =>
           _controller.headerTextStyle = Utils.getTextStyle(value),
       'header': (value) => _controller.header = value,
-      'tootlip': (value) => setTooltip(value),
+      'tooltip': (value) => setTooltip(value),
       'showTooltip': (value) =>
           _controller.showTooltip = Utils.getBool(value, fallback: false),
       'showOutsideDate': (value) =>
