@@ -13,3 +13,7 @@ starter/package-lock.json
 
 # FVM Version Cache
 .fvm/
+ 
+# Allow GitHub workflows (override ".*" ignore rule)
+!.github/
+!.github/**

@@ -1,3 +1,8 @@
+## [1.0.1]
+
+* fixed podspec file for iOS
+
+
 ## [1.0.0] - Package Rename and Publication
 * Package renamed from `otp_pin_field` to `ensemble_otp`
 * Updated for pub.dev publication
