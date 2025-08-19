@@ -2,6 +2,7 @@
 ## 3.1.2
 
 * Moved to Ensemble monorepo
+* Fixed issue with tooltip typo
 
 ## [3.1.1]
 
