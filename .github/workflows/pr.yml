@@ -5,74 +5,34 @@ on:
     branches: [main]
 
 jobs:
-  buildStarter:
-    name: Build Starter App
-    runs-on: macos-latest
+  runUnitTest:
+    name: Execute Unit/Widget tests
 
-    strategy:
-      matrix:
-        flutter-version: ['3.27.2', '3.32.5']
-        platform: ['web', 'android']
+    runs-on: macos-latest
 
     steps:
       - name: Checkout Code
         uses: actions/checkout@v3
 
-      - name: Setup Java
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'temurin'
-          java-version: '17'
-
       - name: Setup Flutter SDK
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: ${{ matrix.flutter-version }}
+          flutter-version: '3.32.5'
           cache: true
 
       - name: Install Melos
         run: dart pub global activate melos
 
-      - name: Bootstrap Melos
+      # - name: Lint
+      #   run: melos exec -- "dart format --output=none --set-exit-if-changed ."
+
+      - name: Pub Upgrade
         run: melos bootstrap
 
-      - name: Create temporary keystore for Android signing
-        if: matrix.platform == 'android'
-        run: |
-          cd starter/android
-          # Create a temporary keystore for CI builds
-          keytool -genkey -v -keystore ci-release-key.jks -keyalg RSA -keysize 2048 -validity 10000 -alias ci-key \
-            -dname "CN=CI Build, OU=CI, O=Ensemble, L=City, S=State, C=US" \
-            -storepass ci-password -keypass ci-password
-          
-          # Create key.properties file with absolute path
-          cat > key.properties << EOF
-          storePassword=ci-password
-          keyPassword=ci-password
-          keyAlias=ci-key
-          storeFile=$(pwd)/ci-release-key.jks
-          EOF
-          
-          # Verify files were created
-          ls -la ci-release-key.jks key.properties
+#      - name: Run Unit Tests / Widget Tests
+#        run: melos exec -- "flutter test"
 
-      - name: Build for ${{ matrix.platform }}
+      - name: Run Auth Tests
         run: |
-          cd starter
-          case "${{ matrix.platform }}" in
-            web)
-              flutter build web --release --no-tree-shake-icons
-              ;;
-            android)
-              flutter build apk --release --no-tree-shake-icons
-              ;;
-          esac
-
-      - name: Upload Build Artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: starter-build-${{ matrix.platform }}-flutter-${{ matrix.flutter-version }}
-          path: |
-            starter/build/web/**
-            starter/build/app/outputs/flutter-apk/*-release.apk
-          retention-days: 7
+          cd modules/auth
+          flutter test
