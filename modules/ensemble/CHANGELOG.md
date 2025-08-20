@@ -1,3 +1,5 @@
+## 1.2.2
+
 ## 1.2.1
 
  - **FIX**: correct typo in calendar widget tooltip property. ([dc6d7312](https://github.com/ensembleUI/ensemble/commit/dc6d7312fe0712f41b81dd3c0888215146c6d173))
