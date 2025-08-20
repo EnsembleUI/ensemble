@@ -1,6 +1,6 @@
 name: ensemble_table_calendar
 description: Highly customizable, feature-packed calendar widget for Flutter with enhanced overlay ranges, tooltips, and marking capabilities. A maintained fork with additional features.
-version: 3.1.2
+version: 3.1.3
 # Remove deprecated author field - will use publishers in pub.dev
 homepage: https://ensembleui.com/
 repository: https://github.com/EnsembleUI/ensemble/tree/main/packages/ensemble_table_calendar
