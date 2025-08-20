@@ -126,10 +126,12 @@ class CalendarPage extends StatelessWidget {
                   ),
                   if (overlayBuilder != null &&
                       (overlayRanges?.isNotEmpty ?? false))
-                    getEventWidgets(
-                      constraints: constraints,
-                      context: context,
-                      dateRanges: overlayRanges!,
+                    Positioned.fill(
+                      child: getEventWidgets(
+                        constraints: constraints,
+                        context: context,
+                        dateRanges: overlayRanges!,
+                      ),
                     ),
                   if (isTooltipEnable)
                     Positioned(
@@ -261,17 +263,25 @@ class CalendarPage extends StatelessWidget {
       final group = overlapGroups[i];
       for (int j = 0; j < group.length; j++) {
         final range = group[j];
+        final childId =
+            '${i}_${j}_${range.id}_${range.newRange.start.millisecondsSinceEpoch}_${range.newRange.end.millisecondsSinceEpoch}_${range.isDefault ? 'd' : 'n'}';
         if (range.isDefault) {
           children.add(LayoutId(
-            id: (i + j).toString() + range.newRange.toString(),
-            child: overlayDefaultBuilder?.call(context,
-                    range.collapsedChildrenLength, range.collapsedChildren) ??
-                Container(child: Text('Override default overlay')),
+            id: childId,
+            child: GestureDetector(
+              behavior: HitTestBehavior.translucent,
+              child: overlayDefaultBuilder?.call(context,
+                      range.collapsedChildrenLength, range.collapsedChildren) ??
+                  Container(child: Text('Override default overlay')),
+            ),
           ));
         } else {
           children.add(LayoutId(
-            id: (i + j).toString() + range.newRange.toString(),
-            child: overlayBuilder!.call(context, range.originalRange),
+            id: childId,
+            child: GestureDetector(
+              behavior: HitTestBehavior.translucent,
+              child: overlayBuilder!.call(context, range.originalRange),
+            ),
           ));
         }
       }
@@ -434,24 +444,24 @@ class CalendarLayoutDelegate extends MultiChildLayoutDelegate {
 
         double xOffset = getLeftOffset(startDate, constraints.maxWidth / 7);
         double yOffset =
-            getTopOffset(startDate, size.height / (visibleDays.length / 7)) +
-                sharedYOffset +
-                topMargin;
+            getTopOffset(startDate, rowHeight) + sharedYOffset + topMargin;
 
-        if (spanPerRow != null &&
-            !(range.originalRange.rowId == null ||
-                range.originalRange.rowId == 1)) {
-          yOffset += (range.originalRange.rowId! - 1) * height;
+        if (spanPerRow != null) {
+          final int positionIndex = (range.originalRange.rowId == null)
+              ? j
+              : (range.originalRange.rowId! - 1);
+          yOffset += positionIndex * height;
         }
 
         double widgetWidth =
             getWidgetWidth(startDate, endDate, constraints.maxWidth / 7);
 
-        layoutChild((i + j).toString() + range.newRange.toString(),
+        final childId =
+            '${i}_${j}_${range.id}_${range.newRange.start.millisecondsSinceEpoch}_${range.newRange.end.millisecondsSinceEpoch}_${range.isDefault ? 'd' : 'n'}';
+        layoutChild(childId,
             BoxConstraints.tightFor(width: widgetWidth, height: sharedHeight));
 
-        positionChild((i + j).toString() + range.newRange.toString(),
-            Offset(xOffset, yOffset));
+        positionChild(childId, Offset(xOffset, yOffset));
         if (spanPerRow == null) {
           sharedYOffset += sharedHeight;
         }
