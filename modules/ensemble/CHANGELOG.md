@@ -1,3 +1,7 @@
+## 1.2.3
+
+ - **FIX**(page-group): notify selected page on ViewGroup resume. ([ff4cbfc4](https://github.com/ensembleUI/ensemble/commit/ff4cbfc4321635db54cf70bfc4650005fb9aa1de))
+
 ## 1.2.2
 
 ## 1.2.1
