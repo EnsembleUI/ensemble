@@ -1,5 +1,5 @@
 import 'dart:developer';
-
+import 'bottom_nav_controller.dart';
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/ensemble_app.dart';
@@ -468,6 +468,9 @@ class PageState extends State<Page>
       EnsembleThemeManager().configureStyles(_scopeManager.dataContext,
           widget._pageModel.menu!, widget._pageModel.menu!);
     }
+    final globalBottomNav = GlobalBottomNavController.instance;
+    Widget? _floatingActionButton;
+    FloatingActionButtonLocation? _floatingActionButtonLocation;
     // build the navigation menu (bottom nav bar or drawer). Note that menu is not applicable on modal pages
     if (widget._pageModel.menu != null &&
         widget._pageModel.screenOptions?.pageType != PageType.modal) {
@@ -486,6 +489,13 @@ class PageState extends State<Page>
       // sidebar navBar will be rendered as part of the body
     }
 
+    if (globalBottomNav.bottomNavWidget != null &&
+        widget._pageModel.runtimeStyles?['showMenu'] == true) {
+      _bottomNavBar = globalBottomNav.bottomNavWidget;
+      _floatingActionButton = globalBottomNav.floatingActionButton;
+      _floatingActionButtonLocation =
+          globalBottomNav.floatingActionButtonLocation;
+    }
     LinearGradient? backgroundGradient = Utils.getBackgroundGradient(
         widget._pageModel.runtimeStyles?['backgroundGradient']);
     Color? backgroundColor = Utils.getColor(_scopeManager.dataContext
@@ -553,12 +563,13 @@ class PageState extends State<Page>
             bottomNavigationBar: _bottomNavBar,
             drawer: _drawer,
             endDrawer: _endDrawer,
-            floatingActionButton: closeModalButton,
-            floatingActionButtonLocation:
-                widget._pageModel.runtimeStyles?['navigationIconPosition'] ==
+            floatingActionButton: _floatingActionButton ?? closeModalButton,
+            floatingActionButtonLocation: _floatingActionButtonLocation ??
+                (
+                  widget._pageModel.runtimeStyles?['navigationIconPosition'] ==
                         'start'
                     ? FloatingActionButtonLocation.startTop
-                    : FloatingActionButtonLocation.endTop),
+                    : FloatingActionButtonLocation.endTop)),
       ),
     );
     DevMode.pageDataContext = _scopeManager.dataContext;
@@ -588,7 +599,7 @@ class PageState extends State<Page>
     }
     return rtn;
   }
-
+  
   /// determine if we should wraps the body in a SafeArea or not
   bool useSafeArea() {
     bool? useSafeArea =
@@ -904,26 +915,26 @@ class AnimatedAppBar extends StatefulWidget {
   final duration;
   AnimatedAppBar(
       {Key? key,
-        this.automaticallyImplyLeading,
-        this.leadingWidget,
-        this.titleWidget,
-        this.centerTitle,
-        this.backgroundColor,
-        this.surfaceTintColor,
-        this.foregroundColor,
-        this.elevation,
-        this.shadowColor,
-        this.titleBarHeight,
-        this.backgroundWidget,
-        this.animated,
-        this.floating,
-        this.pinned,
-        this.collapsedBarHeight,
-        this.expandedBarHeight,
-        required this.scrollController,
-        this.curve,
-        this.animationType,
-        this.duration})
+      this.automaticallyImplyLeading,
+      this.leadingWidget,
+      this.titleWidget,
+      this.centerTitle,
+      this.backgroundColor,
+      this.surfaceTintColor,
+      this.foregroundColor,
+      this.elevation,
+      this.shadowColor,
+      this.titleBarHeight,
+      this.backgroundWidget,
+      this.animated,
+      this.floating,
+      this.pinned,
+      this.collapsedBarHeight,
+      this.expandedBarHeight,
+      required this.scrollController,
+      this.curve,
+      this.animationType,
+      this.duration})
       : super(key: key);
 
   @override
@@ -932,7 +943,7 @@ class AnimatedAppBar extends StatefulWidget {
 
 class _AnimatedAppBarState extends State<AnimatedAppBar> with WidgetsBindingObserver{
   bool isCollapsed = false;
-  
+
   @override
   void initState() {
     super.initState();
@@ -997,21 +1008,21 @@ class _AnimatedAppBarState extends State<AnimatedAppBar> with WidgetsBindingObse
       centerTitle: widget.centerTitle,
       title: widget.animated
           ? switch (widget.animationType) {
-        AnimationType.fade => AnimatedOpacity(
-          opacity: isCollapsed ? 1.0 : 0.0,
-          duration: Duration(milliseconds: widget.duration ?? 300),
-          curve: widget.curve ?? Curves.easeIn,
-          child: widget.titleWidget,
-        ),
-        AnimationType.drop => AnimatedSlide(
-          offset: isCollapsed ? Offset(0, 0) : Offset(0, -2),
-          duration: Duration(milliseconds: widget.duration ?? 300),
-          curve: widget.curve ?? Curves.easeIn,
-          child: widget.titleWidget,
-        ),
-        _ => widget.titleWidget,
-      }
-      : widget.titleWidget,
+              AnimationType.fade => AnimatedOpacity(
+                  opacity: isCollapsed ? 1.0 : 0.0,
+                  duration: Duration(milliseconds: widget.duration ?? 300),
+                  curve: widget.curve ?? Curves.easeIn,
+                  child: widget.titleWidget,
+                ),
+              AnimationType.drop => AnimatedSlide(
+                  offset: isCollapsed ? Offset(0, 0) : Offset(0, -2),
+                  duration: Duration(milliseconds: widget.duration ?? 300),
+                  curve: widget.curve ?? Curves.easeIn,
+                  child: widget.titleWidget,
+                ),
+              _ => widget.titleWidget,
+            }
+          : widget.titleWidget,
       elevation: widget.elevation,
       backgroundColor: widget.backgroundColor,
       flexibleSpace: wrapsInFlexible(widget.backgroundWidget),
