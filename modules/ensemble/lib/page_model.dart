@@ -393,6 +393,10 @@ class SinglePageModel extends PageModel with HasStyles {
       }
 
       styles = EnsembleThemeManager.yamlToDart(headerData['styles']);
+      if (headerData['collapsibleHeader'] != null) {
+        styles!['collapsibleHeader'] =
+            EnsembleThemeManager.yamlToDart(headerData['collapsibleHeader']);
+      }
       classList = HasStyles.toClassList(
           headerData[ViewUtil.classNameAttribute] as String?);
     }

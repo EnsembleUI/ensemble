@@ -1,4 +1,5 @@
 import 'dart:developer';
+import 'dart:async';
 
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/action.dart';
@@ -22,6 +23,7 @@ import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:ensemble/widget/helpers/unfocus.dart';
+import 'package:ensemble/framework/bindings.dart';
 import 'package:flutter/material.dart';
 
 class SinglePageController extends WidgetController {
@@ -91,8 +93,117 @@ class PageState extends State<Page>
   // a menu can include other pages, keep track of what is selected
   int selectedPage = 0;
 
+  // Track the last known titleBarHeight value for change detection
+  dynamic _lastKnownTitleBarHeight;
+  // Track the last known header visibility for collapsibleHeader
+  dynamic _lastKnownHeaderVisible;
+
   @override
   bool get wantKeepAlive => true;
+
+  // Listen to storage changes for titleBarHeight
+  void _listenToTitleBarHeightChanges() {
+    // Get the header model to check if titleBarHeight is set
+    if (widget._pageModel.headerModel != null) {
+      final headerStyles = EnsembleThemeManager().getRuntimeStyles(
+          _scopeManager.dataContext, widget._pageModel.headerModel!);
+
+      final titleBarHeightExpression = headerStyles?['titleBarHeight'];
+      if (titleBarHeightExpression is String &&
+          titleBarHeightExpression.contains('ensemble.storage.')) {
+        // Extract the storage key
+        final storageKey =
+            titleBarHeightExpression.replaceFirst('ensemble.storage.', '');
+
+        // Listen to storage changes for this key
+        _scopeManager.eventBus?.on<ModelChangeEvent>().listen((event) {
+          if (event.source is StorageBindingSource &&
+              event.source.modelId == storageKey) {
+            // Trigger a rebuild when storage changes
+            setState(() {});
+          }
+        });
+
+        // Also listen to the scope manager's dispatch events
+        _scopeManager.eventBus?.on<ModelChangeEvent>().listen((event) {
+          if (event.source is StorageBindingSource &&
+              event.source.modelId == storageKey) {
+            // Trigger a rebuild when storage changes
+            setState(() {});
+          }
+        });
+
+        // Also add a direct listener to the scope manager's event bus
+        _scopeManager.eventBus?.on<ModelChangeEvent>().listen((event) {
+          if (event.source is StorageBindingSource &&
+              event.source.modelId == storageKey) {
+            // Trigger a rebuild when storage changes
+            setState(() {});
+          }
+        });
+
+        // Force a rebuild after a short delay to ensure we get the latest value
+        Future.delayed(Duration(milliseconds: 100), () {
+          if (mounted) {
+            setState(() {});
+          }
+        });
+      }
+    }
+  }
+
+  /// Listen to storage changes for collapsibleHeader.visible
+  void _listenToHeaderVisibilityChanges() {
+    if (widget._pageModel.headerModel != null) {
+      final headerStyles = EnsembleThemeManager().getRuntimeStyles(
+          _scopeManager.dataContext, widget._pageModel.headerModel!);
+
+      final collapsible = headerStyles?['collapsibleHeader'];
+      final visibleExpr = collapsible?['visible'];
+      if (visibleExpr is String && visibleExpr.contains('ensemble.storage.')) {
+        final storageKey = visibleExpr.replaceFirst('ensemble.storage.', '');
+
+        _scopeManager.eventBus?.on<ModelChangeEvent>().listen((event) {
+          if (event.source is StorageBindingSource &&
+              event.source.modelId == storageKey) {
+            setState(() {});
+          }
+        });
+
+        Future.delayed(const Duration(milliseconds: 100), () {
+          if (mounted) setState(() {});
+        });
+      }
+    }
+  }
+
+  /// Initialize last known collapsibleHeader.visible
+  void _initializeLastKnownHeaderVisible() {
+    if (widget._pageModel.headerModel != null) {
+      final headerStyles = EnsembleThemeManager().getRuntimeStyles(
+          _scopeManager.dataContext, widget._pageModel.headerModel!);
+      final collapsible = headerStyles?['collapsibleHeader'];
+      final visibleExpr = collapsible?['visible'];
+      if (visibleExpr != null) {
+        _lastKnownHeaderVisible = _scopeManager.dataContext.eval(visibleExpr);
+      }
+    }
+  }
+
+  /// Initialize the last known titleBarHeight value
+  void _initializeLastKnownTitleBarHeight() {
+    if (widget._pageModel.headerModel != null) {
+      final headerStyles = EnsembleThemeManager().getRuntimeStyles(
+          _scopeManager.dataContext, widget._pageModel.headerModel!);
+
+      final titleBarHeightExpression = headerStyles?['titleBarHeight'];
+      if (titleBarHeightExpression is String &&
+          titleBarHeightExpression.contains('ensemble.storage.')) {
+        _lastKnownTitleBarHeight =
+            _scopeManager.dataContext.eval(titleBarHeightExpression);
+      }
+    }
+  }
 
   @override
   void didUpdateWidget(covariant Page oldWidget) {
@@ -267,6 +378,42 @@ class PageState extends State<Page>
         : null;
 
     super.initState();
+
+    // Conditionally enable storage-based titleBarHeight updates
+    bool _enableTitleBarHeightStorageListener = false;
+    if (widget._pageModel.headerModel != null) {
+      final _headerStyles = EnsembleThemeManager().getRuntimeStyles(
+          _scopeManager.dataContext, widget._pageModel.headerModel!);
+      // listenTitleBarHeightStorage: When true, we attach a storage listener so
+      // titleBarHeight expressions that reference ensemble.storage.* can update
+      // the AppBar height reactively. Keeping this opt-in avoids creating
+      // unnecessary listeners on pages that use a static height.
+      _enableTitleBarHeightStorageListener = Utils.getBool(
+          _headerStyles?['listenTitleBarHeightStorage'],
+          fallback: false);
+    }
+    if (_enableTitleBarHeightStorageListener) {
+      // Initialize the last known titleBarHeight value
+      _initializeLastKnownTitleBarHeight();
+      // Listen to titleBarHeight storage changes
+      _listenToTitleBarHeightChanges();
+      // Set up periodic check for storage changes (as a fallback)
+      _setupPeriodicStorageCheck();
+    }
+
+    // Set up collapsibleHeader listeners if enabled
+    if (widget._pageModel.headerModel != null) {
+      final _headerStyles = EnsembleThemeManager().getRuntimeStyles(
+          _scopeManager.dataContext, widget._pageModel.headerModel!);
+      final collapsible = _headerStyles?['collapsibleHeader'];
+      final enabled = Utils.getBool(collapsible?['enabled'], fallback: false);
+      if (enabled) {
+        _initializeLastKnownHeaderVisible();
+        _listenToHeaderVisibilityChanges();
+        _setupPeriodicVisibilityCheck();
+      }
+    }
+
     // Adding a listener for [viewGroupNotifier] so we can execute
     // onViewGroupUpdate when change in parent ViewGroup occurs
     viewGroupNotifier.addListener(executeOnViewGroupUpdate);
@@ -357,11 +504,12 @@ class PageState extends State<Page>
     Color? shadowColor = Utils.getColor(evaluatedHeader?['shadowColor']);
     double? elevation =
         Utils.optionalInt(evaluatedHeader?['elevation'], min: 0)?.toDouble();
-    ScrollMode scrollMode =
-        Utils.getEnum<ScrollMode>(evaluatedHeader?['scrollMode'], ScrollMode.values);
-    final titleBarHeight =
-        Utils.optionalInt(evaluatedHeader?['titleBarHeight'], min: 0)
-                ?.toDouble() ??
+    ScrollMode scrollMode = Utils.getEnum<ScrollMode>(
+        evaluatedHeader?['scrollMode'], ScrollMode.values);
+
+    final titleBarHeightExpression = evaluatedHeader?['titleBarHeight'];
+    final baseTitleBarHeight =
+        _scopeManager.dataContext.eval(titleBarHeightExpression)?.toDouble() ??
             kToolbarHeight;
 
     // animation
@@ -385,9 +533,24 @@ class PageState extends State<Page>
     double? flexibleMinHeight =
         Utils.optionalInt(evaluatedHeader?['flexibleMinHeight'])?.toDouble();
     // collapsed height if specified needs to be bigger than titleBar height
-    if (flexibleMinHeight != null && flexibleMinHeight < titleBarHeight) {
+    if (flexibleMinHeight != null && flexibleMinHeight < baseTitleBarHeight) {
       flexibleMinHeight = null;
     }
+
+    // Collapsible header support
+    final collapsible = evaluatedHeader?['collapsibleHeader'];
+    final bool collapsibleEnabled =
+        Utils.getBool(collapsible?['enabled'], fallback: false);
+    bool isHeaderVisible = true;
+    if (collapsibleEnabled) {
+      final visibleExpr = collapsible?['visible'];
+      final evaluatedVisible = visibleExpr != null
+          ? _scopeManager.dataContext.eval(visibleExpr)
+          : null;
+      isHeaderVisible = Utils.getBool(evaluatedVisible, fallback: true);
+    }
+
+    final titleBarHeight = isHeaderVisible ? baseTitleBarHeight : 0.0;
 
     if (scrollableView) {
       return AnimatedAppBar( scrollController: externalScrollController!,
@@ -404,7 +567,7 @@ class PageState extends State<Page>
         elevation: elevation,
         shadowColor: shadowColor,
 
-        titleBarHeight: titleBarHeight,
+        titleBarHeight: baseTitleBarHeight,
 
         // animation
         animated: animationEnabled,
@@ -413,13 +576,37 @@ class PageState extends State<Page>
         animationType: animationType,
 
         backgroundWidget: backgroundWidget,
-        expandedBarHeight: flexibleMaxHeight?? titleBarHeight,
-        collapsedBarHeight: flexibleMinHeight?? titleBarHeight,
+        expandedBarHeight: flexibleMaxHeight ?? baseTitleBarHeight,
+        collapsedBarHeight: flexibleMinHeight ?? baseTitleBarHeight,
         floating: scrollMode == ScrollMode.floating,
         pinned: scrollMode == ScrollMode.pinned,
-
       );
+    } else if (collapsibleEnabled) {
+      return PreferredSize(
+        preferredSize: Size.fromHeight(titleBarHeight),
+        child: AnimatedContainer(
+          height: titleBarHeight,
+          duration: Duration(milliseconds: duration ?? 200),
+          curve: curve ?? Curves.easeInOut,
+          child: AppBar(
+            automaticallyImplyLeading:
+                leadingWidget == null && showNavigationIcon != false,
+            leading: leadingWidget,
+            title: titleWidget,
+            centerTitle: centerTitle,
+            backgroundColor: backgroundColor,
+            surfaceTintColor: surfaceTintColor,
+            foregroundColor: color,
 
+            // control the drop shadow on the header's bottom edge
+            elevation: elevation,
+            shadowColor: shadowColor,
+
+            toolbarHeight: titleBarHeight,
+            flexibleSpace: backgroundWidget,
+          ),
+        ),
+      );
     } else {
       return AppBar(
         automaticallyImplyLeading:
@@ -435,7 +622,7 @@ class PageState extends State<Page>
         elevation: elevation,
         shadowColor: shadowColor,
 
-        toolbarHeight: titleBarHeight,
+        toolbarHeight: baseTitleBarHeight,
         flexibleSpace: backgroundWidget,
       );
     }
@@ -868,6 +1055,62 @@ class PageState extends State<Page>
           widget._pageModel.viewBehavior.onViewGroupUpdate!);
     }
   }
+
+  /// Set up periodic check for storage changes (as a fallback)
+  void _setupPeriodicStorageCheck() {
+    // Check for storage changes every 100ms as a fallback
+    Timer.periodic(Duration(milliseconds: 100), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+
+      // Check if we have a titleBarHeight storage reference
+      if (widget._pageModel.headerModel != null) {
+        final headerStyles = EnsembleThemeManager().getRuntimeStyles(
+            _scopeManager.dataContext, widget._pageModel.headerModel!);
+
+        final titleBarHeightExpression = headerStyles?['titleBarHeight'];
+        if (titleBarHeightExpression is String &&
+            titleBarHeightExpression.contains('ensemble.storage.')) {
+          final currentValue =
+              _scopeManager.dataContext.eval(titleBarHeightExpression);
+
+          // If the value has changed, trigger a rebuild
+          if (_lastKnownTitleBarHeight != currentValue) {
+            _lastKnownTitleBarHeight = currentValue;
+            setState(() {});
+          }
+        }
+      }
+    });
+  }
+
+  /// Periodically check collapsibleHeader.visible for changes
+  void _setupPeriodicVisibilityCheck() {
+    Timer.periodic(const Duration(milliseconds: 150), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+      if (widget._pageModel.headerModel != null) {
+        final headerStyles = EnsembleThemeManager().getRuntimeStyles(
+            _scopeManager.dataContext, widget._pageModel.headerModel!);
+        final collapsible = headerStyles?['collapsibleHeader'];
+        final enabled = Utils.getBool(collapsible?['enabled'], fallback: false);
+        if (!enabled) return;
+        final visibleExpr = collapsible?['visible'];
+        if (visibleExpr != null) {
+          final current = _scopeManager.dataContext.eval(visibleExpr);
+          if (_lastKnownHeaderVisible != current) {
+            _lastKnownHeaderVisible = current;
+            setState(() {});
+          }
+        }
+      }
+    });
+  }
+
   @override
   void dispose() {
     viewGroupNotifier.removeListener(executeOnViewGroupUpdate);
@@ -947,7 +1190,6 @@ class _AnimatedAppBarState extends State<AnimatedAppBar> with WidgetsBindingObse
     double collapsedHeight = (widget.collapsedBarHeight ?? 0.0).toDouble();
     double threshold = (expandedHeight - collapsedHeight).clamp(10.0, double.infinity);
     bool newState = widget.scrollController.offset > threshold;
-
 
     if (newState != isCollapsed) {
       setState(() {
