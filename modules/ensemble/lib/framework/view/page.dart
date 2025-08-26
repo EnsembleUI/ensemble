@@ -338,23 +338,11 @@ class PageState extends State<Page>
     // Get showMenu setting
     bool? showMenuSetting = widget._pageModel.runtimeStyles?['showMenu'];
 
-    if (isTabPage) {
-      // For tab pages: show by default, hide only if explicitly set to false
-      bool shouldShow = showMenuSetting != false;
-      if (shouldShow) {
-        BottomNavVisibilityNotifier().show();
-      } else {
-        BottomNavVisibilityNotifier().hide();
-      }
-    } else {
-      // For navigated pages: hide by default, show only if explicitly set to true
-      bool shouldShow = showMenuSetting == true;
-      if (shouldShow) {
-        BottomNavVisibilityNotifier().show();
-      } else {
-        BottomNavVisibilityNotifier().hide();
-      }
-    }
+    bool shouldShow =
+        isTabPage ? showMenuSetting != false : showMenuSetting == true;
+    shouldShow
+        ? BottomNavVisibilityNotifier().show()
+        : BottomNavVisibilityNotifier().hide();
   }
 
 // Helper method to check if this is a tab page
