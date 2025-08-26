@@ -1,5 +1,3 @@
-library jsparser;
-
 import 'src/ast.dart';
 import 'src/lexer.dart';
 import 'src/parser.dart';

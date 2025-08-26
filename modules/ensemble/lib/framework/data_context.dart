@@ -54,7 +54,7 @@ import 'package:ensemble_walletconnect/ensemble_walletconnect.dart';
 import 'package:workmanager/workmanager.dart';
 import 'package:yaml/yaml.dart';
 import 'package:collection/collection.dart';
-import 'package:jsparser/jsparser.dart';
+import 'package:parsejs_null_safety/jsparser.dart';
 
 /// manages Data and Invokables within the current data scope.
 /// This class can evaluate expressions based on the data scope

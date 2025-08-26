@@ -16,7 +16,7 @@ public class FlutterAppBadgerPlugin implements FlutterPlugin, MethodCallHandler 
 
     @Override
     public void onAttachedToEngine(@NonNull FlutterPluginBinding binding) {
-        channel = new MethodChannel(binding.getBinaryMessenger(), "flutter_app_badger");
+        channel = new MethodChannel(binding.getBinaryMessenger(), "ppprakhar/flutter_app_badger");
         context = binding.getApplicationContext();
         channel.setMethodCallHandler(this);
     }
@@ -31,6 +31,9 @@ public class FlutterAppBadgerPlugin implements FlutterPlugin, MethodCallHandler 
                 ShortcutBadger.removeCount(context);
             }
             result.success(null);
+        } else if (call.method.equals("isAppBadgeSupported")) {
+            boolean isSupported = ShortcutBadger.isBadgeCounterSupported(context);
+            result.success(isSupported);
         } else {
             result.notImplemented();
         }

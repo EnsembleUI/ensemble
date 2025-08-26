@@ -541,7 +541,7 @@ class Parser {
     return exp;
   }
 
-  Expression parseAssignment({bool allowIn= true}) {
+  Expression parseAssignment({bool allowIn = true}) {
     int? start = token!.startOffset;
     Expression exp = parseConditional(allowIn);
     if (token!.type == Token.ASSIGN) {
@@ -555,7 +555,7 @@ class Parser {
     return exp;
   }
 
-  Expression parseExpression({bool allowIn= true}) {
+  Expression parseExpression({bool allowIn = true}) {
     int? start = token!.startOffset;
     Expression exp = parseAssignment(allowIn: allowIn);
     if (token!.type == Token.COMMA) {
@@ -589,7 +589,7 @@ class Parser {
       ..line = line;
   }
 
-  VariableDeclaration parseVariableDeclarationList({bool allowIn= true}) {
+  VariableDeclaration parseVariableDeclarationList({bool allowIn = true}) {
     int? start = token!.startOffset;
     int? line = token!.line;
     assert(token!.text == 'var');

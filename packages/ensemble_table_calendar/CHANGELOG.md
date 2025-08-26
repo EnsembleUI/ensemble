@@ -1,7 +1,13 @@
+## 3.1.3
+
+* Wrapped event widgets in Positioned.fill for better layout management.
+* Introduced GestureDetector for overlay children to improve touch handling.
+* Simplified child ID generation for layout positioning.
 
 ## 3.1.2
 
 * Moved to Ensemble monorepo
+* Fixed issue with tooltip typo
 
 ## [3.1.1]
 

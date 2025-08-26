@@ -1,5 +1,7 @@
 import 'dart:developer';
 import 'bottom_nav_page_group.dart'; // To access bottomNavVisibilityNotifier
+import 'dart:async';
+
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/ensemble_app.dart';
@@ -22,6 +24,7 @@ import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:ensemble/widget/helpers/unfocus.dart';
+import 'package:ensemble/framework/bindings.dart';
 import 'package:flutter/material.dart';
 
 class PageNavigatorWrapper extends StatefulWidget {
@@ -40,7 +43,8 @@ class PageNavigatorWrapper extends StatefulWidget {
   State<PageNavigatorWrapper> createState() => _PageNavigatorWrapperState();
 }
 
-class _PageNavigatorWrapperState extends State<PageNavigatorWrapper> with RouteAware {
+class _PageNavigatorWrapperState extends State<PageNavigatorWrapper>
+    with RouteAware {
   late final RouteObserver<PageRoute> _routeObserver;
   late final GlobalKey<NavigatorState> _navigatorKey;
 
@@ -54,7 +58,7 @@ class _PageNavigatorWrapperState extends State<PageNavigatorWrapper> with RouteA
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    
+
     // Subscribe to route changes
     var route = ModalRoute.of(context);
     if (route is PageRoute) {
@@ -84,7 +88,7 @@ class _PageNavigatorWrapperState extends State<PageNavigatorWrapper> with RouteA
         },
       );
     }
-    
+
     // For non-tab pages, return child directly
     return widget.child;
   }
@@ -140,6 +144,7 @@ class PageNavigatorProvider extends InheritedWidget {
     return navigatorWrapper != oldWidget.navigatorWrapper;
   }
 }
+
 class SinglePageController extends WidgetController {
   TextStyleComposite? _textStyle;
   int? maxLines;
@@ -207,6 +212,11 @@ class PageState extends State<Page>
   // a menu can include other pages, keep track of what is selected
   int selectedPage = 0;
 
+  // Track the last known titleBarHeight value for change detection
+  dynamic _lastKnownTitleBarHeight;
+  // Track the last known header visibility for collapsibleHeader
+  dynamic _lastKnownHeaderVisible;
+
   @override
   bool get wantKeepAlive => true;
 
@@ -225,7 +235,7 @@ class PageState extends State<Page>
 //   if (_isInBottomNavContext()) {
 //     final hideBottomNavBar = Utils.optionalBool(
 //         widget._pageModel.runtimeStyles?['hideBottomNavBar']) ?? false;
-    
+
 //     // Use the controller that the UI is actually listening to
 //     if (hideBottomNavBar) {
 //       bottomNavVisibilityNotifier.hide(); // ← Use this one
@@ -235,6 +245,109 @@ class PageState extends State<Page>
 //     }
 //   }
 // }
+  // Listen to storage changes for titleBarHeight
+  void _listenToTitleBarHeightChanges() {
+    // Get the header model to check if titleBarHeight is set
+    if (widget._pageModel.headerModel != null) {
+      final headerStyles = EnsembleThemeManager().getRuntimeStyles(
+          _scopeManager.dataContext, widget._pageModel.headerModel!);
+
+      final titleBarHeightExpression = headerStyles?['titleBarHeight'];
+      if (titleBarHeightExpression is String &&
+          titleBarHeightExpression.contains('ensemble.storage.')) {
+        // Extract the storage key
+        final storageKey =
+            titleBarHeightExpression.replaceFirst('ensemble.storage.', '');
+
+        // Listen to storage changes for this key
+        _scopeManager.eventBus?.on<ModelChangeEvent>().listen((event) {
+          if (event.source is StorageBindingSource &&
+              event.source.modelId == storageKey) {
+            // Trigger a rebuild when storage changes
+            setState(() {});
+          }
+        });
+
+        // Also listen to the scope manager's dispatch events
+        _scopeManager.eventBus?.on<ModelChangeEvent>().listen((event) {
+          if (event.source is StorageBindingSource &&
+              event.source.modelId == storageKey) {
+            // Trigger a rebuild when storage changes
+            setState(() {});
+          }
+        });
+
+        // Also add a direct listener to the scope manager's event bus
+        _scopeManager.eventBus?.on<ModelChangeEvent>().listen((event) {
+          if (event.source is StorageBindingSource &&
+              event.source.modelId == storageKey) {
+            // Trigger a rebuild when storage changes
+            setState(() {});
+          }
+        });
+
+        // Force a rebuild after a short delay to ensure we get the latest value
+        Future.delayed(Duration(milliseconds: 100), () {
+          if (mounted) {
+            setState(() {});
+          }
+        });
+      }
+    }
+  }
+
+  /// Listen to storage changes for collapsibleHeader.visible
+  void _listenToHeaderVisibilityChanges() {
+    if (widget._pageModel.headerModel != null) {
+      final headerStyles = EnsembleThemeManager().getRuntimeStyles(
+          _scopeManager.dataContext, widget._pageModel.headerModel!);
+
+      final collapsible = headerStyles?['collapsibleHeader'];
+      final visibleExpr = collapsible?['visible'];
+      if (visibleExpr is String && visibleExpr.contains('ensemble.storage.')) {
+        final storageKey = visibleExpr.replaceFirst('ensemble.storage.', '');
+
+        _scopeManager.eventBus?.on<ModelChangeEvent>().listen((event) {
+          if (event.source is StorageBindingSource &&
+              event.source.modelId == storageKey) {
+            setState(() {});
+          }
+        });
+
+        Future.delayed(const Duration(milliseconds: 100), () {
+          if (mounted) setState(() {});
+        });
+      }
+    }
+  }
+
+  /// Initialize last known collapsibleHeader.visible
+  void _initializeLastKnownHeaderVisible() {
+    if (widget._pageModel.headerModel != null) {
+      final headerStyles = EnsembleThemeManager().getRuntimeStyles(
+          _scopeManager.dataContext, widget._pageModel.headerModel!);
+      final collapsible = headerStyles?['collapsibleHeader'];
+      final visibleExpr = collapsible?['visible'];
+      if (visibleExpr != null) {
+        _lastKnownHeaderVisible = _scopeManager.dataContext.eval(visibleExpr);
+      }
+    }
+  }
+
+  /// Initialize the last known titleBarHeight value
+  void _initializeLastKnownTitleBarHeight() {
+    if (widget._pageModel.headerModel != null) {
+      final headerStyles = EnsembleThemeManager().getRuntimeStyles(
+          _scopeManager.dataContext, widget._pageModel.headerModel!);
+
+      final titleBarHeightExpression = headerStyles?['titleBarHeight'];
+      if (titleBarHeightExpression is String &&
+          titleBarHeightExpression.contains('ensemble.storage.')) {
+        _lastKnownTitleBarHeight =
+            _scopeManager.dataContext.eval(titleBarHeightExpression);
+      }
+    }
+  }
 
   @override
   void didUpdateWidget(covariant Page oldWidget) {
@@ -245,49 +358,49 @@ class PageState extends State<Page>
     //   _handleBottomNavVisibility();
     // });
   }
-void _updateBottomNavVisibility() {
-  // Check if this page is a direct child of BottomNavPageGroup (tab page)
-  bool isTabPage = _isTabPage();
-  
-  // Get showMenu setting
-  bool? showMenuSetting = widget._pageModel.runtimeStyles?['showMenu'];
-  
-if (isTabPage) {
-    // For tab pages: show by default, hide only if explicitly set to false
-    bool shouldShow = showMenuSetting != false;
-    if (shouldShow) {
-      BottomNavVisibilityNotifier().show();
+
+  void _updateBottomNavVisibility() {
+    // Check if this page is a direct child of BottomNavPageGroup (tab page)
+    bool isTabPage = _isTabPage();
+
+    // Get showMenu setting
+    bool? showMenuSetting = widget._pageModel.runtimeStyles?['showMenu'];
+
+    if (isTabPage) {
+      // For tab pages: show by default, hide only if explicitly set to false
+      bool shouldShow = showMenuSetting != false;
+      if (shouldShow) {
+        BottomNavVisibilityNotifier().show();
+      } else {
+        BottomNavVisibilityNotifier().hide();
+      }
     } else {
-      BottomNavVisibilityNotifier().hide();
-    }
-  } else {
-    // For navigated pages: hide by default, show only if explicitly set to true
-    bool shouldShow = showMenuSetting == true;
-    if (shouldShow) {
-      BottomNavVisibilityNotifier().show();
-    } else {
-      BottomNavVisibilityNotifier().hide();
+      // For navigated pages: hide by default, show only if explicitly set to true
+      bool shouldShow = showMenuSetting == true;
+      if (shouldShow) {
+        BottomNavVisibilityNotifier().show();
+      } else {
+        BottomNavVisibilityNotifier().hide();
+      }
     }
   }
-}
 
 // Helper method to check if this is a tab page
-bool _isTabPage() {
-  try {
-    // Check if we have a TabRouteObserverProvider ancestor
-    final tabObserverProvider = TabRouteObserverProvider.of(context);
-    if (tabObserverProvider != null) {
-      // If we can find the provider, we're likely in a tab context
-      // Additional check: see if we're at the root of the tab's Navigator
-      final route = ModalRoute.of(context);
-      return route != null && route.isFirst;
+  bool _isTabPage() {
+    try {
+      // Check if we have a TabRouteObserverProvider ancestor
+      final tabObserverProvider = TabRouteObserverProvider.of(context);
+      if (tabObserverProvider != null) {
+        // If we can find the provider, we're likely in a tab context
+        // Additional check: see if we're at the root of the tab's Navigator
+        final route = ModalRoute.of(context);
+        return route != null && route.isFirst;
+      }
+      return false;
+    } catch (e) {
+      return false;
     }
-    return false;
-  } catch (e) {
-    return false;
   }
-}
-
 
   @override
   void didChangeDependencies() {
@@ -295,16 +408,16 @@ bool _isTabPage() {
     // if our widget changes, we need to save the scopeManager to it.
     widget.rootScopeManager = _scopeManager;
 
-  WidgetsBinding.instance.addPostFrameCallback((_) {
-    _updateBottomNavVisibility();
-  });
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _updateBottomNavVisibility();
+    });
     BottomNavScreen? bottomNavRootScreen = BottomNavScreen.getScreen(context);
     print(bottomNavRootScreen?.bottomNavRoot.selectedScreen);
     if (bottomNavRootScreen != null) {
       bottomNavRootScreen.onReVisited(() {
-    //        WidgetsBinding.instance.addPostFrameCallback((_) {
-    //   _handleBottomNavVisibility();
-    // });
+        //        WidgetsBinding.instance.addPostFrameCallback((_) {
+        //   _handleBottomNavVisibility();
+        // });
         if (widget._pageModel.viewBehavior.onResume != null) {
           ScreenController().executeActionWithScope(
               context, _scopeManager, widget._pageModel.viewBehavior.onResume!,
@@ -314,7 +427,7 @@ bool _isTabPage() {
       });
     }
     // standalone screen, listen when another screen is popped and we are back here
-     _subscribeToRouteObserver();
+    _subscribeToRouteObserver();
   }
 
   /// the last time the screen went to the background
@@ -385,30 +498,30 @@ bool _isTabPage() {
   }
 
   RouteObserver<PageRoute>? _currentObserver;
-bool _isUsingTabObserver = false;
+  bool _isUsingTabObserver = false;
 
-void _subscribeToRouteObserver() {
-  var route = ModalRoute.of(context);
-  if (route is! PageRoute) return;
+  void _subscribeToRouteObserver() {
+    var route = ModalRoute.of(context);
+    if (route is! PageRoute) return;
 
-  // Try to get tab-specific observer first
-  final tabObserverProvider = TabRouteObserverProvider.of(context);
-  if (tabObserverProvider != null) {
-    _currentObserver = tabObserverProvider.routeObserver;
-    _isUsingTabObserver = true;
-    
+    // Try to get tab-specific observer first
+    final tabObserverProvider = TabRouteObserverProvider.of(context);
+    if (tabObserverProvider != null) {
+      _currentObserver = tabObserverProvider.routeObserver;
+      _isUsingTabObserver = true;
+
+      _currentObserver!.unsubscribe(this);
+      _currentObserver!.subscribe(this, route);
+      return;
+    }
+
+    // Fallback to global observer for standalone pages
+    _currentObserver = Ensemble().routeObserver;
+    _isUsingTabObserver = false;
+
     _currentObserver!.unsubscribe(this);
     _currentObserver!.subscribe(this, route);
-    return;
   }
-
-  // Fallback to global observer for standalone pages
-  _currentObserver = Ensemble().routeObserver;
-  _isUsingTabObserver = false;
-  
-  _currentObserver!.unsubscribe(this);
-  _currentObserver!.subscribe(this, route);
-}
 
   /// when a page is popped and we go back to this page
   @override
@@ -418,9 +531,9 @@ void _subscribeToRouteObserver() {
     //    WidgetsBinding.instance.addPostFrameCallback((_) {
     //   _handleBottomNavVisibility();
     // });
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-    _updateBottomNavVisibility();
-  });
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _updateBottomNavVisibility();
+    });
 
     if (widget._pageModel.viewBehavior.onResume != null) {
       ScreenController().executeActionWithScope(
@@ -451,9 +564,9 @@ void _subscribeToRouteObserver() {
         ),
         importedCode: widget._pageModel.importedCode);
     widget.rootScopeManager = _scopeManager;
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-    _updateBottomNavVisibility();
-  });
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _updateBottomNavVisibility();
+    });
 
     // if we have a menu, figure out which child page to display initially
     if (widget._pageModel.menu != null &&
@@ -466,10 +579,10 @@ void _subscribeToRouteObserver() {
         }
       }
     }
-        // _handleBottomNavVisibility();
-  //  WidgetsBinding.instance.addPostFrameCallback((_) {
-  //     _handleBottomNavVisibility();
-  //   });
+    // _handleBottomNavVisibility();
+    //  WidgetsBinding.instance.addPostFrameCallback((_) {
+    //     _handleBottomNavVisibility();
+    //   });
 
     // execute view behavior
     if (widget._pageModel.viewBehavior.onLoad != null) {
@@ -501,6 +614,42 @@ void _subscribeToRouteObserver() {
         : null;
 
     super.initState();
+
+    // Conditionally enable storage-based titleBarHeight updates
+    bool _enableTitleBarHeightStorageListener = false;
+    if (widget._pageModel.headerModel != null) {
+      final _headerStyles = EnsembleThemeManager().getRuntimeStyles(
+          _scopeManager.dataContext, widget._pageModel.headerModel!);
+      // listenTitleBarHeightStorage: When true, we attach a storage listener so
+      // titleBarHeight expressions that reference ensemble.storage.* can update
+      // the AppBar height reactively. Keeping this opt-in avoids creating
+      // unnecessary listeners on pages that use a static height.
+      _enableTitleBarHeightStorageListener = Utils.getBool(
+          _headerStyles?['listenTitleBarHeightStorage'],
+          fallback: false);
+    }
+    if (_enableTitleBarHeightStorageListener) {
+      // Initialize the last known titleBarHeight value
+      _initializeLastKnownTitleBarHeight();
+      // Listen to titleBarHeight storage changes
+      _listenToTitleBarHeightChanges();
+      // Set up periodic check for storage changes (as a fallback)
+      _setupPeriodicStorageCheck();
+    }
+
+    // Set up collapsibleHeader listeners if enabled
+    if (widget._pageModel.headerModel != null) {
+      final _headerStyles = EnsembleThemeManager().getRuntimeStyles(
+          _scopeManager.dataContext, widget._pageModel.headerModel!);
+      final collapsible = _headerStyles?['collapsibleHeader'];
+      final enabled = Utils.getBool(collapsible?['enabled'], fallback: false);
+      if (enabled) {
+        _initializeLastKnownHeaderVisible();
+        _listenToHeaderVisibilityChanges();
+        _setupPeriodicVisibilityCheck();
+      }
+    }
+
     // Adding a listener for [viewGroupNotifier] so we can execute
     // onViewGroupUpdate when change in parent ViewGroup occurs
     viewGroupNotifier.addListener(executeOnViewGroupUpdate);
@@ -557,7 +706,6 @@ void _subscribeToRouteObserver() {
       {required bool scrollableView, bool? showNavigationIcon}) {
     Widget? titleWidget;
 
-
     if (headerModel.titleWidget != null) {
       titleWidget = _scopeManager.buildWidget(headerModel.titleWidget!);
     }
@@ -591,11 +739,12 @@ void _subscribeToRouteObserver() {
     Color? shadowColor = Utils.getColor(evaluatedHeader?['shadowColor']);
     double? elevation =
         Utils.optionalInt(evaluatedHeader?['elevation'], min: 0)?.toDouble();
-    ScrollMode scrollMode =
-        Utils.getEnum<ScrollMode>(evaluatedHeader?['scrollMode'], ScrollMode.values);
-    final titleBarHeight =
-        Utils.optionalInt(evaluatedHeader?['titleBarHeight'], min: 0)
-                ?.toDouble() ??
+    ScrollMode scrollMode = Utils.getEnum<ScrollMode>(
+        evaluatedHeader?['scrollMode'], ScrollMode.values);
+
+    final titleBarHeightExpression = evaluatedHeader?['titleBarHeight'];
+    final baseTitleBarHeight =
+        _scopeManager.dataContext.eval(titleBarHeightExpression)?.toDouble() ??
             kToolbarHeight;
 
     // animation
@@ -610,7 +759,8 @@ void _subscribeToRouteObserver() {
       animationEnabled = Utils.getBool(animation!['enabled'], fallback: false);
       duration = Utils.getInt(animation!['duration'], fallback: 0);
       curve = Utils.getCurve(animation!['curve']);
-      animationType = Utils.getEnum<AnimationType>(animation!['animationType'], AnimationType.values);
+      animationType = Utils.getEnum<AnimationType>(
+          animation!['animationType'], AnimationType.values);
     }
     // applicable only to Sliver scrolling
     double? flexibleMaxHeight =
@@ -619,14 +769,30 @@ void _subscribeToRouteObserver() {
     double? flexibleMinHeight =
         Utils.optionalInt(evaluatedHeader?['flexibleMinHeight'])?.toDouble();
     // collapsed height if specified needs to be bigger than titleBar height
-    if (flexibleMinHeight != null && flexibleMinHeight < titleBarHeight) {
+    if (flexibleMinHeight != null && flexibleMinHeight < baseTitleBarHeight) {
       flexibleMinHeight = null;
     }
 
+    // Collapsible header support
+    final collapsible = evaluatedHeader?['collapsibleHeader'];
+    final bool collapsibleEnabled =
+        Utils.getBool(collapsible?['enabled'], fallback: false);
+    bool isHeaderVisible = true;
+    if (collapsibleEnabled) {
+      final visibleExpr = collapsible?['visible'];
+      final evaluatedVisible = visibleExpr != null
+          ? _scopeManager.dataContext.eval(visibleExpr)
+          : null;
+      isHeaderVisible = Utils.getBool(evaluatedVisible, fallback: true);
+    }
+
+    final titleBarHeight = isHeaderVisible ? baseTitleBarHeight : 0.0;
+
     if (scrollableView) {
-      return AnimatedAppBar( scrollController: externalScrollController!,
+      return AnimatedAppBar(
+        scrollController: externalScrollController!,
         automaticallyImplyLeading:
-           leadingWidget == null && showNavigationIcon != false,
+            leadingWidget == null && showNavigationIcon != false,
         leadingWidget: leadingWidget,
         titleWidget: titleWidget,
         centerTitle: centerTitle,
@@ -638,7 +804,7 @@ void _subscribeToRouteObserver() {
         elevation: elevation,
         shadowColor: shadowColor,
 
-        titleBarHeight: titleBarHeight,
+        titleBarHeight: baseTitleBarHeight,
 
         // animation
         animated: animationEnabled,
@@ -647,13 +813,37 @@ void _subscribeToRouteObserver() {
         animationType: animationType,
 
         backgroundWidget: backgroundWidget,
-        expandedBarHeight: flexibleMaxHeight?? titleBarHeight,
-        collapsedBarHeight: flexibleMinHeight?? titleBarHeight,
+        expandedBarHeight: flexibleMaxHeight ?? baseTitleBarHeight,
+        collapsedBarHeight: flexibleMinHeight ?? baseTitleBarHeight,
         floating: scrollMode == ScrollMode.floating,
         pinned: scrollMode == ScrollMode.pinned,
-
       );
+    } else if (collapsibleEnabled) {
+      return PreferredSize(
+        preferredSize: Size.fromHeight(titleBarHeight),
+        child: AnimatedContainer(
+          height: titleBarHeight,
+          duration: Duration(milliseconds: duration ?? 200),
+          curve: curve ?? Curves.easeInOut,
+          child: AppBar(
+            automaticallyImplyLeading:
+                leadingWidget == null && showNavigationIcon != false,
+            leading: leadingWidget,
+            title: titleWidget,
+            centerTitle: centerTitle,
+            backgroundColor: backgroundColor,
+            surfaceTintColor: surfaceTintColor,
+            foregroundColor: color,
 
+            // control the drop shadow on the header's bottom edge
+            elevation: elevation,
+            shadowColor: shadowColor,
+
+            toolbarHeight: titleBarHeight,
+            flexibleSpace: backgroundWidget,
+          ),
+        ),
+      );
     } else {
       return AppBar(
         automaticallyImplyLeading:
@@ -669,7 +859,7 @@ void _subscribeToRouteObserver() {
         elevation: elevation,
         shadowColor: shadowColor,
 
-        toolbarHeight: titleBarHeight,
+        toolbarHeight: baseTitleBarHeight,
         flexibleSpace: backgroundWidget,
       );
     }
@@ -1093,16 +1283,71 @@ void _subscribeToRouteObserver() {
     ScreenController().navigateToScreen(context,
         screenName: menuItem.page, isExternal: menuItem.isExternal);
   }
+
   /// this method executes if this screen is part of ViewGroup
   /// and onViewGroupUpdate is defined in View
   void executeOnViewGroupUpdate() {
     if (widget._pageModel.viewBehavior.onViewGroupUpdate != null) {
-      ScreenController().executeActionWithScope(
-          context,
-          _scopeManager,
+      ScreenController().executeActionWithScope(context, _scopeManager,
           widget._pageModel.viewBehavior.onViewGroupUpdate!);
     }
   }
+
+  /// Set up periodic check for storage changes (as a fallback)
+  void _setupPeriodicStorageCheck() {
+    // Check for storage changes every 100ms as a fallback
+    Timer.periodic(Duration(milliseconds: 100), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+
+      // Check if we have a titleBarHeight storage reference
+      if (widget._pageModel.headerModel != null) {
+        final headerStyles = EnsembleThemeManager().getRuntimeStyles(
+            _scopeManager.dataContext, widget._pageModel.headerModel!);
+
+        final titleBarHeightExpression = headerStyles?['titleBarHeight'];
+        if (titleBarHeightExpression is String &&
+            titleBarHeightExpression.contains('ensemble.storage.')) {
+          final currentValue =
+              _scopeManager.dataContext.eval(titleBarHeightExpression);
+
+          // If the value has changed, trigger a rebuild
+          if (_lastKnownTitleBarHeight != currentValue) {
+            _lastKnownTitleBarHeight = currentValue;
+            setState(() {});
+          }
+        }
+      }
+    });
+  }
+
+  /// Periodically check collapsibleHeader.visible for changes
+  void _setupPeriodicVisibilityCheck() {
+    Timer.periodic(const Duration(milliseconds: 150), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+      if (widget._pageModel.headerModel != null) {
+        final headerStyles = EnsembleThemeManager().getRuntimeStyles(
+            _scopeManager.dataContext, widget._pageModel.headerModel!);
+        final collapsible = headerStyles?['collapsibleHeader'];
+        final enabled = Utils.getBool(collapsible?['enabled'], fallback: false);
+        if (!enabled) return;
+        final visibleExpr = collapsible?['visible'];
+        if (visibleExpr != null) {
+          final current = _scopeManager.dataContext.eval(visibleExpr);
+          if (_lastKnownHeaderVisible != current) {
+            _lastKnownHeaderVisible = current;
+            setState(() {});
+          }
+        }
+      }
+    });
+  }
+
   @override
   void dispose() {
     viewGroupNotifier.removeListener(executeOnViewGroupUpdate);
@@ -1139,35 +1384,36 @@ class AnimatedAppBar extends StatefulWidget {
   final duration;
   AnimatedAppBar(
       {Key? key,
-        this.automaticallyImplyLeading,
-        this.leadingWidget,
-        this.titleWidget,
-        this.centerTitle,
-        this.backgroundColor,
-        this.surfaceTintColor,
-        this.foregroundColor,
-        this.elevation,
-        this.shadowColor,
-        this.titleBarHeight,
-        this.backgroundWidget,
-        this.animated,
-        this.floating,
-        this.pinned,
-        this.collapsedBarHeight,
-        this.expandedBarHeight,
-        required this.scrollController,
-        this.curve,
-        this.animationType,
-        this.duration})
+      this.automaticallyImplyLeading,
+      this.leadingWidget,
+      this.titleWidget,
+      this.centerTitle,
+      this.backgroundColor,
+      this.surfaceTintColor,
+      this.foregroundColor,
+      this.elevation,
+      this.shadowColor,
+      this.titleBarHeight,
+      this.backgroundWidget,
+      this.animated,
+      this.floating,
+      this.pinned,
+      this.collapsedBarHeight,
+      this.expandedBarHeight,
+      required this.scrollController,
+      this.curve,
+      this.animationType,
+      this.duration})
       : super(key: key);
 
   @override
   _AnimatedAppBarState createState() => _AnimatedAppBarState();
 }
 
-class _AnimatedAppBarState extends State<AnimatedAppBar> with WidgetsBindingObserver{
+class _AnimatedAppBarState extends State<AnimatedAppBar>
+    with WidgetsBindingObserver {
   bool isCollapsed = false;
-  
+
   @override
   void initState() {
     super.initState();
@@ -1175,14 +1421,13 @@ class _AnimatedAppBarState extends State<AnimatedAppBar> with WidgetsBindingObse
   }
 
   void _updateCollapseState() {
-
     if (!widget.scrollController.hasClients) return;
 
     double expandedHeight = (widget.expandedBarHeight ?? 0.0).toDouble();
     double collapsedHeight = (widget.collapsedBarHeight ?? 0.0).toDouble();
-    double threshold = (expandedHeight - collapsedHeight).clamp(10.0, double.infinity);
+    double threshold =
+        (expandedHeight - collapsedHeight).clamp(10.0, double.infinity);
     bool newState = widget.scrollController.offset > threshold;
-
 
     if (newState != isCollapsed) {
       setState(() {
@@ -1232,21 +1477,21 @@ class _AnimatedAppBarState extends State<AnimatedAppBar> with WidgetsBindingObse
       centerTitle: widget.centerTitle,
       title: widget.animated
           ? switch (widget.animationType) {
-        AnimationType.fade => AnimatedOpacity(
-          opacity: isCollapsed ? 1.0 : 0.0,
-          duration: Duration(milliseconds: widget.duration ?? 300),
-          curve: widget.curve ?? Curves.easeIn,
-          child: widget.titleWidget,
-        ),
-        AnimationType.drop => AnimatedSlide(
-          offset: isCollapsed ? Offset(0, 0) : Offset(0, -2),
-          duration: Duration(milliseconds: widget.duration ?? 300),
-          curve: widget.curve ?? Curves.easeIn,
-          child: widget.titleWidget,
-        ),
-        _ => widget.titleWidget,
-      }
-      : widget.titleWidget,
+              AnimationType.fade => AnimatedOpacity(
+                  opacity: isCollapsed ? 1.0 : 0.0,
+                  duration: Duration(milliseconds: widget.duration ?? 300),
+                  curve: widget.curve ?? Curves.easeIn,
+                  child: widget.titleWidget,
+                ),
+              AnimationType.drop => AnimatedSlide(
+                  offset: isCollapsed ? Offset(0, 0) : Offset(0, -2),
+                  duration: Duration(milliseconds: widget.duration ?? 300),
+                  curve: widget.curve ?? Curves.easeIn,
+                  child: widget.titleWidget,
+                ),
+              _ => widget.titleWidget,
+            }
+          : widget.titleWidget,
       elevation: widget.elevation,
       backgroundColor: widget.backgroundColor,
       flexibleSpace: wrapsInFlexible(widget.backgroundWidget),
@@ -1265,7 +1510,7 @@ enum ScrollMode {
   floating,
 }
 
-enum AnimationType{
+enum AnimationType {
   drop,
   fade,
 }

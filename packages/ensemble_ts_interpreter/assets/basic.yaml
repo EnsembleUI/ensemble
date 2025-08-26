@@ -1,0 +1,69 @@
+View:
+  title: Guess your gender from your name
+  items:
+  - a. First Name: TextInput
+  - b. Find My Gender: Button
+  - c. Gender: TextInput
+
+APIs:
+  genderAPI:
+    uri: https://gender-api.com/get
+    parameters:
+      key: gE3CT26ctLhjufjXlKRMnqFrNLgSDcN4tPMK
+      name:
+
+
+Actions:
+  b:
+    click:
+      call:
+        api: genderAPI
+        parameters:
+          name: a.value
+        success: |-
+            {
+              "type": "Program",
+              "body": [
+                {
+                  "type": "ExpressionStatement",
+                  "expression": {
+                    "type": "AssignmentExpression",
+                    "operator": "=",
+                    "left": {
+                      "type": "MemberExpression",
+                      "object": {
+                        "type": "Identifier",
+                        "name": "c"
+                      },
+                      "property": {
+                        "type": "Identifier",
+                        "name": "value"
+                      },
+                      "computed": false
+                    },
+                    "right": {
+                      "type": "MemberExpression",
+                      "object": {
+                        "type": "Identifier",
+                        "name": "response"
+                      },
+                      "property": {
+                        "type": "Identifier",
+                        "name": "gender"
+                      },
+                      "computed": false
+                    }
+                  }
+                }
+              ],
+              "sourceType": "script"
+            }
+
+
+Layout:
+  Form:
+    spaceBetween: 2
+    items:
+      - a
+      - c
+      - b

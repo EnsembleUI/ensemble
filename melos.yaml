@@ -7,9 +7,12 @@ repository:
   name: ensemble
 
 packages:
-  - modules/**
   - starter
   - packages/**
+  - modules/**
+
+ignore:
+  - modules/ensemble_ts_interpreter
 
 command:
   version:

@@ -241,6 +241,98 @@ abstract class WidgetController extends Controller with HasStyles {
 
   set testId(value) => _testId = value;
 
+  /// Returns the best available label for semantics/aria-label accessibility.
+  /// Widgets should set [label] if they want to participate in accessibility fallback.
+  String? getSemanticsLabel() {
+    if (semantics?.label != null && semantics!.label!.isNotEmpty) {
+      return semantics!.label;
+    }
+    if (label != null && label!.isNotEmpty) {
+      return label;
+    }
+
+    // Try to find a label by looking up the current value in the items
+    try {
+      // First, try to get the current value
+      dynamic currentValue;
+
+      // Try to access value property directly
+      try {
+        currentValue = (this as dynamic).maybeValue;
+      } catch (e) {
+        // Try getValue method
+        try {
+          currentValue = (this as dynamic).getValue();
+        } catch (e) {
+          // No value property found
+          return null;
+        }
+      }
+
+      if (currentValue == null) return null;
+
+      // Now try to find the items and look up the label
+      try {
+        final items = (this as dynamic).items;
+        if (items != null && items is List) {
+          for (final item in items) {
+            if (item is Map) {
+              // Handle item as Map with value/label structure
+              final itemValue = item['value'];
+              final itemLabel = item['label'];
+
+              // Compare values more robustly
+              if (itemValue != null &&
+                  (itemValue.toString() == currentValue.toString() ||
+                      itemValue == currentValue)) {
+                // Found matching item, return its label
+                if (itemLabel != null && itemLabel.toString().isNotEmpty) {
+                  return itemLabel.toString();
+                }
+                // If no label, use the value itself
+                return currentValue.toString();
+              }
+            } else {
+              // Handle custom objects
+              try {
+                // Try to access properties dynamically
+                final itemValue = (item as dynamic).value;
+                final itemLabel = (item as dynamic).label;
+
+                // Compare values more robustly
+                if (itemValue != null &&
+                    (itemValue.toString() == currentValue.toString() ||
+                        itemValue == currentValue)) {
+                  // Found matching item, return its label
+                  if (itemLabel != null && itemLabel.toString().isNotEmpty) {
+                    // Check if the label is a translation key and translate it
+                    final translatedLabel =
+                        Utils.translate(itemLabel.toString(), null);
+                    return translatedLabel;
+                  }
+                  // If no label, use the value itself
+                  return currentValue.toString();
+                }
+              } catch (e) {
+                // Try to access as simple value
+                if (item != null &&
+                    (item.toString() == currentValue.toString() ||
+                        item == currentValue)) {
+                  // Item is a simple value that matches, use it directly
+                  return currentValue.toString();
+                }
+              }
+            }
+          }
+        }
+      } catch (e) {}
+
+      return currentValue.toString();
+    } catch (e) {
+      return null;
+    }
+  }
+
   @override
   Map<String, Function> getBaseGetters() {
     return {

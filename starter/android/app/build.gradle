@@ -61,6 +61,7 @@ android {
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_1_8
         targetCompatibility JavaVersion.VERSION_1_8
+        coreLibraryDesugaringEnabled true
     }
 
     buildFeatures {
@@ -131,4 +132,8 @@ dependencies {
             prefer '$work_version'
         }
     }
+    coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.0.4'
+    
+    // Material Design support
+    implementation 'com.google.android.material:material:1.9.0'
 }

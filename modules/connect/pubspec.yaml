@@ -13,7 +13,7 @@ dependencies:
   ensemble:
     git:
       url: https://github.com/EnsembleUI/ensemble.git
-      ref: ensemble-v1.1.71
+      ref: ensemble-v1.2.3
       path: modules/ensemble
 
   plaid_flutter: ^3.1.2

@@ -37,6 +37,13 @@ export const modules: Script[] = [
     path: 'scripts/modules/enable_files.dart',
     parameters: [
       {
+        key: 'permissions',
+        question:
+          'What Android permissions do you need? (all/none/read_external,write_external,read_media_images,read_media_video,read_media_audio) [default: all]: ',
+        platform: ['android'],
+        type: 'text',
+      },
+      {
         key: 'photoLibraryDescription',
         question:
           'Please provide a description for accessing the photo library: ',
@@ -324,6 +331,36 @@ export const modules: Script[] = [
         key: 'adobeAnalyticsAppId',
         question: 'Please provide your Adobe Analytics App ID: ',
         platform: ['android', 'ios', 'web'],
+        type: 'text',
+      },
+    ],
+  },
+  {
+    name: 'stripe',
+    path: 'scripts/modules/enable_stripe.dart',
+    parameters: [
+      {
+        key: 'publishableKey',
+        question: 'Please provide your Stripe publishable key: ',
+        platform: ['android', 'ios'],
+        type: 'text',
+      },
+      {
+        key: 'stripeAccountId',
+        question: 'Please provide your Stripe account ID: ',
+        platform: [],
+        type: 'text',
+      },
+      {
+        key: 'merchantIdentifier',
+        question: 'Please provide your merchant identifier: ',
+        platform: [],
+        type: 'text',
+      },
+      {
+        key: 'cameraDescription',
+        question: 'Please provide a camera usage description: ',
+        platform: ['ios'],
         type: 'text',
       },
     ],

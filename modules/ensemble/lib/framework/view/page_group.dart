@@ -1,6 +1,3 @@
-import 'dart:developer';
-
-import 'package:ensemble/action/drawer_actions.dart';
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/device.dart';
@@ -144,11 +141,13 @@ class PageGroupState extends State<PageGroup>
   void didChangeDependencies() {
     super.didChangeDependencies();
 
-    // Subscribe to route changes to detect when we return to this ViewGroup
-    var route = ModalRoute.of(context);
-    if (route is PageRoute) {
-      Ensemble().routeObserver.unsubscribe(this);
-      Ensemble().routeObserver.subscribe(this, route);
+    if (widget.menu is BottomNavBarMenu) {
+      // Subscribe to route changes to detect when we return to this ViewGroup
+      var route = ModalRoute.of(context);
+      if (route is PageRoute) {
+        Ensemble().routeObserver.unsubscribe(this);
+        Ensemble().routeObserver.subscribe(this, route);
+      }
     }
   }
 
@@ -170,6 +169,14 @@ class PageGroupState extends State<PageGroup>
           context,
           _scopeManager,
           widget.model.onViewGroupResume!,
+      );
+      // After resuming the ViewGroup, notify the currently selected page so that
+      // it can refresh and execute onViewGroupUpdate (if defined).
+      // Also pass along the current ViewGroup scope data as payload so the child
+      // page can merge and update its DataContext accordingly.
+      viewGroupNotifier.updatePage(
+        viewGroupNotifier.viewIndex,
+        payload: _scopeManager.dataContext.getContextMap(),
       );
     }
   }
@@ -461,7 +468,7 @@ class PageGroupState extends State<PageGroup>
                       }
 
                       // Switch screens only if enabled and not already selected
-                      if (item.switchScreen &&
+                      if ((item.switchScreen ?? true) &&
                           viewGroupNotifier.viewIndex != i) {
                         viewGroupNotifier.updatePage(i);
                       }

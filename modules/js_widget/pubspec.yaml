@@ -1,9 +1,9 @@
 name: js_widget
-description: A new Flutter project.
+description: A Flutter package to render HTML and CSS as Flutter widgets through webview integration. Supports both web and mobile platforms with conditional compilation.
 
-# The following line prevents the package from being accidentally published to
-# pub.dev using `flutter pub publish`. This is preferred for private packages.
-publish_to: 'none' # Remove this line if you wish to publish to pub.dev
+homepage: https://github.com/EnsembleUI/ensemble
+repository: https://github.com/EnsembleUI/ensemble/tree/main/modules/js_widget
+issue_tracker: https://github.com/EnsembleUI/ensemble/issues
 
 # The following defines the version and build number for your application.
 # A version number is three numbers separated by dots, like 1.2.43
@@ -15,10 +15,30 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # In iOS, build-name is used as CFBundleShortVersionString while build-number used as CFBundleVersion.
 # Read more about iOS versioning at
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
-version: 1.0.0+1
+version: 1.0.4
+
+# Topics help users find your package on pub.dev
+topics:
+  - webview
+  - javascript
+  - widgets
+  - html
+  - cross-platform
+
+# Keywords help with searchability
+keywords:
+  - flutter
+  - webview
+  - javascript
+  - html
+  - css
+  - widgets
+  - cross-platform
+  - chart
+  - visualization
 
 environment:
-  sdk: ">=3.5.0"
+  sdk: ">=3.5.0 <4.0.0"
 
 # Dependencies specify other packages that your package needs in order to work.
 # To automatically upgrade your package dependencies to the latest versions
@@ -31,13 +51,15 @@ dependencies:
     sdk: flutter
   flutter_web_plugins:
     sdk: flutter
-  js: ^0.6.3
-  url_launcher: ^6.1.0
-  webview_flutter: ^4.0.1
+  web: ^1.1.1
+  url_launcher: ^6.3.2
+  webview_flutter: ^4.13.0
+  webview_flutter_android: ^4.9.1
+  webview_flutter_wkwebview: ^3.23.0
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
-  cupertino_icons: ^1.0.2
+  cupertino_icons: ^1.0.8
 
 dev_dependencies:
   flutter_test:
@@ -48,7 +70,7 @@ dev_dependencies:
   # activated in the `analysis_options.yaml` file located at the root of your
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
-  flutter_lints: ^2.0.0
+  flutter_lints: ^5.0.0
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

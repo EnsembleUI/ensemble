@@ -3,7 +3,7 @@ import Flutter
 // import GoogleMaps
 import flutter_local_notifications
 
-@UIApplicationMain
+@main
 @objc class AppDelegate: FlutterAppDelegate {
   static let methodChannelName: String = "com.ensembleui.host.platform"
   var methodChannel: FlutterMethodChannel?

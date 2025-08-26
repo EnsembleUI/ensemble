@@ -17,6 +17,7 @@ import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:ensemble/widget/helpers/input_wrapper.dart';
 import 'package:ensemble/widget/helpers/widgets.dart';
 import 'package:ensemble/widget/helpers/form_helper.dart';
+import 'package:ensemble/widget/helpers/text_selection_helper.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -303,18 +304,18 @@ class SelectOneState extends FormFieldWidgetState<SelectOne>
   }
 
   void _handleFocusChange() {
-      // If gaining focus, scroll into view
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          final context = validatorKey.currentContext;
-          if (context != null) {
-            Scrollable.ensureVisible(
-              context,
-              duration: const Duration(milliseconds: 300),
-              curve: Curves.easeInOut,
-              alignment: 0.5,
-            );
-          }
-        });
+    // If gaining focus, scroll into view
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final context = validatorKey.currentContext;
+      if (context != null) {
+        Scrollable.ensureVisible(
+          context,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeInOut,
+          alignment: 0.5,
+        );
+      }
+    });
   }
 
   @override
@@ -384,8 +385,8 @@ class SelectOneState extends FormFieldWidgetState<SelectOne>
         isExpanded: true,
         validator: (value) {
           if (widget._controller.required && widget.getValue() == null) {
-            return Utils.translateWithFallback(
-                'ensemble.input.required', widget._controller.requiredMessage ?? 'This field is required');
+            return Utils.translateWithFallback('ensemble.input.required',
+                widget._controller.requiredMessage ?? 'This field is required');
           }
           return null;
         },
@@ -425,7 +426,8 @@ class SelectOneState extends FormFieldWidgetState<SelectOne>
             )),
         decoration: inputDecoration.copyWith(
           contentPadding: adjustedContentPadding,
-          errorStyle: widget._controller.errorStyle ?? Theme.of(context).inputDecorationTheme.errorStyle,
+          errorStyle: widget._controller.errorStyle ??
+              Theme.of(context).inputDecorationTheme.errorStyle,
           labelText: widget.controller.floatLabel == true
               ? widget.controller.label
               : null,
@@ -459,24 +461,43 @@ class SelectOneState extends FormFieldWidgetState<SelectOne>
                   controller: fieldTextEditingController,
                   focusNode: fieldFocusNode,
                   decoration: inputDecoration.copyWith(
-                    labelText: widget.controller.floatLabel == true
-                        ? widget.controller.label
-                        : null,
-                    fillColor: widget._controller
-                        .fillColor, // Background color for the field
-                    enabledBorder: getEnabledBorder(),
-                    focusedBorder: getSafeFocusedBorder(),
-                    errorStyle: widget._controller.errorStyle ?? Theme.of(context).inputDecorationTheme.errorStyle
-                  ),
+                      labelText: widget.controller.floatLabel == true
+                          ? widget.controller.label
+                          : null,
+                      fillColor: widget._controller
+                          .fillColor, // Background color for the field
+                      enabledBorder: getEnabledBorder(),
+                      focusedBorder: getSafeFocusedBorder(),
+                      errorStyle: widget._controller.errorStyle ??
+                          Theme.of(context).inputDecorationTheme.errorStyle),
                   onChanged: (value) {
-                    // Preserve the cursor position
-                    final cursorPosition = fieldTextEditingController.selection;
-                    final oldValue = widget._controller.maybeValue;
-                    if (oldValue != value) {
-                      widget._controller.maybeValue = value;
-                      widget.onSelectionChanged(value);
+                    // Preserve the cursor position safely
+                    try {
+                      if (mounted &&
+                          fieldTextEditingController.text.isNotEmpty) {
+                        final cursorPosition =
+                            fieldTextEditingController.selection;
+                        final oldValue = widget._controller.maybeValue;
+
+                        if (oldValue != value) {
+                          widget._controller.maybeValue = value;
+                          widget.onSelectionChanged(value);
+                        }
+
+                        // Use the safe helper to restore selection
+                        if (cursorPosition.isValid &&
+                            cursorPosition.baseOffset <=
+                                fieldTextEditingController.text.length) {
+                          TextSelectionHelper.safeSetSelectionFromPosition(
+                            fieldTextEditingController,
+                            cursorPosition.baseOffset,
+                            usePostFrame: false,
+                          );
+                        }
+                      }
+                    } catch (e) {
+                      debugPrint('Dropdown: Failed to preserve cursor: $e');
                     }
-                    fieldTextEditingController.selection = cursorPosition;
                   },
                 );
               },

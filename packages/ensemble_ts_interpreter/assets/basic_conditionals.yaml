@@ -1,0 +1,239 @@
+View:
+  title: Guess your gender from your name
+  items:
+  - a. First Name: TextInput
+  - b. Find My Gender: Button
+  - c. Gender: TextInput
+
+APIs:
+  genderAPI:
+    uri: https://gender-api.com/get
+    parameters:
+      key: gE3CT26ctLhjufjXlKRMnqFrNLgSDcN4tPMK
+      name:
+
+
+Actions:
+  b:
+    click:
+      call:
+        api: genderAPI
+        parameters:
+          name: a.value
+        success: |-
+          {
+            "type": "Program",
+            "start": 0,
+            "end": 235,
+            "body": [
+            {
+              "type": "IfStatement",
+              "start": 54,
+              "end": 203,
+              "test": {
+                "type": "BinaryExpression",
+                "start": 59,
+                "end": 84,
+                "left": {
+                  "type": "MemberExpression",
+                  "start": 59,
+                  "end": 74,
+                  "object": {
+                    "type": "Identifier",
+                    "start": 59,
+                    "end": 67,
+                    "name": "response"
+                  },
+                  "property": {
+                    "type": "Identifier",
+                    "start": 68,
+                    "end": 74,
+                    "name": "gender"
+                  },
+                  "computed": false
+                },
+                "operator": "==",
+                "right": {
+                  "type": "Literal",
+                  "start": 78,
+                  "end": 84,
+                  "value": "male",
+                  "raw": "'male'"
+                }
+              },
+              "consequent": {
+                "type": "BlockStatement",
+                "start": 87,
+                "end": 109,
+                "body": [
+                  {
+                    "type": "ExpressionStatement",
+                    "start": 90,
+                    "end": 107,
+                    "expression": {
+                      "type": "AssignmentExpression",
+                      "start": 90,
+                      "end": 106,
+                      "operator": "=",
+                      "left": {
+                        "type": "MemberExpression",
+                        "start": 90,
+                        "end": 97,
+                        "object": {
+                          "type": "Identifier",
+                          "start": 90,
+                          "end": 91,
+                          "name": "c"
+                        },
+                        "property": {
+                          "type": "Identifier",
+                          "start": 92,
+                          "end": 97,
+                          "name": "value"
+                        },
+                        "computed": false
+                      },
+                      "right": {
+                        "type": "Literal",
+                        "start": 100,
+                        "end": 106,
+                        "value": "Male",
+                        "raw": "'Male'"
+                      }
+                    }
+                  }
+                ]
+              },
+              "alternate": {
+                "type": "IfStatement",
+                "start": 115,
+                "end": 203,
+                "test": {
+                  "type": "BinaryExpression",
+                  "start": 120,
+                  "end": 147,
+                  "left": {
+                    "type": "MemberExpression",
+                    "start": 120,
+                    "end": 135,
+                    "object": {
+                      "type": "Identifier",
+                      "start": 120,
+                      "end": 128,
+                      "name": "response"
+                    },
+                    "property": {
+                      "type": "Identifier",
+                      "start": 129,
+                      "end": 135,
+                      "name": "gender"
+                    },
+                    "computed": false
+                  },
+                  "operator": "==",
+                  "right": {
+                    "type": "Literal",
+                    "start": 139,
+                    "end": 147,
+                    "value": "female",
+                    "raw": "'female'"
+                  }
+                },
+                "consequent": {
+                  "type": "BlockStatement",
+                  "start": 149,
+                  "end": 173,
+                  "body": [
+                    {
+                      "type": "ExpressionStatement",
+                      "start": 152,
+                      "end": 171,
+                      "expression": {
+                        "type": "AssignmentExpression",
+                        "start": 152,
+                        "end": 170,
+                        "operator": "=",
+                        "left": {
+                          "type": "MemberExpression",
+                          "start": 152,
+                          "end": 159,
+                          "object": {
+                            "type": "Identifier",
+                            "start": 152,
+                            "end": 153,
+                            "name": "c"
+                          },
+                          "property": {
+                            "type": "Identifier",
+                            "start": 154,
+                            "end": 159,
+                            "name": "value"
+                          },
+                          "computed": false
+                        },
+                        "right": {
+                          "type": "Literal",
+                          "start": 162,
+                          "end": 170,
+                          "value": "Female",
+                          "raw": "'Female'"
+                        }
+                      }
+                    }
+                  ]
+                },
+                "alternate": {
+                  "type": "BlockStatement",
+                  "start": 179,
+                  "end": 203,
+                  "body": [
+                    {
+                      "type": "ExpressionStatement",
+                      "start": 182,
+                      "end": 201,
+                      "expression": {
+                        "type": "AssignmentExpression",
+                        "start": 182,
+                        "end": 200,
+                        "operator": "=",
+                        "left": {
+                          "type": "MemberExpression",
+                          "start": 182,
+                          "end": 189,
+                          "object": {
+                            "type": "Identifier",
+                            "start": 182,
+                            "end": 183,
+                            "name": "c"
+                          },
+                          "property": {
+                            "type": "Identifier",
+                            "start": 184,
+                            "end": 189,
+                            "name": "value"
+                          },
+                          "computed": false
+                        },
+                        "right": {
+                          "type": "Literal",
+                          "start": 191,
+                          "end": 200,
+                          "value": "unknown",
+                          "raw": "'unknown'"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          ],
+          "sourceType": "script"
+          }
+Layout:
+  Form:
+    spaceBetween: 2
+    items:
+      - a
+      - c
+      - b

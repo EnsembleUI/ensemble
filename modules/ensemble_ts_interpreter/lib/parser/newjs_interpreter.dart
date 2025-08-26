@@ -1204,6 +1204,7 @@ class JSInterpreter extends RecursiveVisitor<dynamic> {
   visitName(Name node) {
     return node;
   }
+
   @override
   visitThrow(ThrowStatement node) {
     dynamic argumentValue = getValueFromExpression(node.argument);
@@ -1217,7 +1218,8 @@ class JSInterpreter extends RecursiveVisitor<dynamic> {
   @override
   visitTry(TryStatement node) {
     if (node.handler == null && node.finalizer == null) {
-      throw JSException(node.line ?? 0, "Syntax Error: a try block must have a corresponding catch or finally");
+      throw JSException(node.line ?? 0,
+          "Syntax Error: a try block must have a corresponding catch or finally");
     }
     try {
       node.block.visitBy(this);
@@ -1236,7 +1238,8 @@ class JSInterpreter extends RecursiveVisitor<dynamic> {
         }
         Context context = SimpleContext(ctxMap);
         // Clone the interpreter with this new context
-        JSInterpreter interpreter = cloneForContext(node.handler!, context, true);
+        JSInterpreter interpreter =
+            cloneForContext(node.handler!, context, true);
         interpreter.visitCatchClause(node.handler!);
       }
     } finally {
@@ -1261,6 +1264,7 @@ class JSInterpreter extends RecursiveVisitor<dynamic> {
       return exception.toString();
     }
   }
+
   dynamic getValueFromExpression(Expression exp) {
     return getValueFromNode(exp);
   }

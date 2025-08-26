@@ -8,7 +8,7 @@ class Ast2Json extends Visitor<Object?> {
   bool ranges;
   bool lines;
 
-  Ast2Json({this.ranges= false, this.lines= false});
+  Ast2Json({this.ranges = false, this.lines = false});
 
   // NOTE: The order in which properties are mentioned is significant, since properties
   //       must be mentioned in the same order for our JSON comparator to work.
@@ -257,6 +257,5 @@ class Ast2Json extends Visitor<Object?> {
       {'type': 'Literal', 'value': <String, Object>{}, 'raw': node.regexp};
 
   @override
-  Object? visitArrowFunctionNode(ArrowFunctionNode node) {
-  }
+  Object? visitArrowFunctionNode(ArrowFunctionNode node) {}
 }

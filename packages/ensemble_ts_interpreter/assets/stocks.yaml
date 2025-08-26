@@ -1,0 +1,89 @@
+#api key:QE1JSA96LZ8ZC57B
+View:
+  title: Get Stock Price
+  items:
+    - a. Stock Symbol: TextInput
+    - b. Get Real-Time Price: Button
+    - c. Quote: Text
+
+APIs:
+  stockAPI:
+    uri: https://www.alphavantage.co/query
+    parameters:
+      apikey: QE1JSA96LZ8ZC57B
+      function: GLOBAL_QUOTE
+      symbol:
+
+Actions:
+  b:
+    click:
+      call:
+        api: stockAPI
+        parameters:
+          symbol: a.value
+        success: |-
+          {
+            "type": "Program",
+            "start": 0,
+            "end": 35,
+            "body": [
+              {
+                "type": "ExpressionStatement",
+                "start": 0,
+                "end": 35,
+                "expression": {
+                  "type": "AssignmentExpression",
+                  "start": 0,
+                  "end": 34,
+                  "operator": "=",
+                  "left": {
+                    "type": "MemberExpression",
+                    "start": 0,
+                    "end": 7,
+                    "object": {
+                      "type": "Identifier",
+                      "start": 0,
+                      "end": 1,
+                      "name": "c"
+                    },
+                    "property": {
+                      "type": "Identifier",
+                      "start": 2,
+                      "end": 7,
+                      "name": "value"
+                    },
+                    "computed": false,
+                    "optional": false
+                  },
+                  "right": {
+                    "type": "MemberExpression",
+                    "start": 10,
+                    "end": 34,
+                    "object": {
+                      "type": "Identifier",
+                      "start": 10,
+                      "end": 18,
+                      "name": "response"
+                    },
+                    "property": {
+                      "type": "Literal",
+                      "start": 19,
+                      "end": 33,
+                      "value": "Global Quote",
+                      "raw": "\"Global Quote\""
+                    },
+                    "computed": true,
+                    "optional": false
+                  }
+                }
+              }
+            ],
+            "sourceType": "module"
+          }
+Layout:
+  Form:
+    spaceBetween: 2
+    items:
+      - a
+      - b
+      - c
