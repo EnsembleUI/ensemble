@@ -1,8 +1,6 @@
 name: Create Build Artifacts
 on:
   push:
-  pull_request:
-    branches: [main]
 
 jobs:
   buildStarter:
