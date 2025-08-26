@@ -26,7 +26,7 @@ Add this to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  ensemble_otp: ^1.0.1
+  ensemble_otp: ^1.0.2
 ```
 
 Then run:

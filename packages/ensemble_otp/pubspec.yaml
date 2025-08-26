@@ -1,6 +1,6 @@
 name: ensemble_otp
 description: A beautiful and highly customizable Flutter widget for OTP and PIN code input fields. Features include beautiful animations, custom styling, SMS autofill, custom keyboards, and extensive customization options. Perfect for authentication flows, verification screens, and any application requiring secure PIN or OTP input.
-version: 1.0.1
+version: 1.0.2
 
 homepage: https://ensembleui.com
 repository: https://github.com/EnsembleUI/ensemble/tree/main/packages/ensemble_otp

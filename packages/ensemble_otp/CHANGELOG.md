@@ -1,3 +1,11 @@
+## [1.0.2] - iOS Build Fixes
+
+* Fixed iOS build errors related to Swift header imports
+* Corrected podspec configuration for proper Swift module generation
+* Updated method channel naming for consistency
+* Resolved podspec name mismatch issues
+* Added proper Swift header configuration in podspec
+
 ## [1.0.1]
 
 * fixed podspec file for iOS
