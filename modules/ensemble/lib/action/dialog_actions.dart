@@ -23,13 +23,13 @@ class ShowDialogAction extends EnsembleAction {
     required this.dismissible,
     this.options,
     this.onDialogDismiss,
-    this.useRoot,
+    this.useRoot = true,
   });
 
   final dynamic body;
   final bool dismissible;
   final Map<String, dynamic>? options;
-  final bool? useRoot;
+  final bool useRoot;
   final EnsembleAction? onDialogDismiss;
 
   factory ShowDialogAction.from({Invokable? initiator, Map? payload}) {
@@ -66,7 +66,7 @@ class ShowDialogAction extends EnsembleAction {
     final tabObserverProvider = TabRouteObserverProvider.of(context);
 
     showGeneralDialog(
-        useRootNavigator: useRoot ?? true, // use root navigator if specified
+        useRootNavigator: useRoot, // use root navigator if specified
         // use inner-most MaterialApp (our App) as root so theming is ours
         context: context,
         barrierDismissible: dismissible,

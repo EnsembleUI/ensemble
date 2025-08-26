@@ -21,6 +21,7 @@ class ShowBottomSheetAction extends EnsembleAction {
     required this.body,
     required this.payload,
     this.onDismiss,
+    this.useRoot = true,
   });
 
   static const defaultTopBorderRadius = Radius.circular(16);
@@ -30,6 +31,7 @@ class ShowBottomSheetAction extends EnsembleAction {
   final Map payload;
   final dynamic body;
   final EnsembleAction? onDismiss;
+  final bool useRoot;
 
   factory ShowBottomSheetAction.from({Invokable? initiator, Map? payload}) {
     dynamic body = payload?['body'] ?? payload?['widget'];
@@ -42,6 +44,7 @@ class ShowBottomSheetAction extends EnsembleAction {
         inputs: Utils.getMap(payload['inputs']),
         body: body,
         onDismiss: EnsembleAction.from(payload['onDismiss']),
+        useRoot: Utils.getBool(payload['useRoot'], fallback: true),
         payload: payload);
   }
 
@@ -103,6 +106,7 @@ class ShowBottomSheetAction extends EnsembleAction {
     if (body != null) {
       final body = getBodyWidget(scopeManager, context);
       showModalBottomSheet(
+          useRootNavigator: useRoot,
           context: context,
           // disable the default bottom sheet styling since we use our own
           backgroundColor: Colors.transparent,
