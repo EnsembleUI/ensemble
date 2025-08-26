@@ -38,14 +38,13 @@ class ShowDialogAction extends EnsembleAction {
       throw LanguageError(
           "${ActionType.showDialog.name} requires the 'body' for the Dialog's content.");
     }
-    print('this is the payload body: ${payload['useRoot']}');
     return ShowDialogAction(
       initiator: initiator,
       body: Utils.maybeYamlMap(payload['body']) ??
           Utils.maybeYamlMap(payload['widget']),
       options: Utils.getMap(payload['options']),
       dismissible: Utils.getBool(payload['dismissible'], fallback: true),
-      useRoot: Utils.getBool(payload['useRoot'], fallback: false),
+      useRoot: Utils.getBool(payload['useRoot'], fallback: true),
       onDialogDismiss: payload['onDialogDismiss'] == null
           ? null
           : EnsembleAction.from(Utils.maybeYamlMap(payload['onDialogDismiss'])),
@@ -62,12 +61,12 @@ class ShowDialogAction extends EnsembleAction {
 
     bool useDefaultStyle = dialogStyles['style'] != 'none';
     BuildContext? dialogContext;
-    
+
     // Store the current tab observer provider for resubscription
     final tabObserverProvider = TabRouteObserverProvider.of(context);
-    
+
     showGeneralDialog(
-        useRootNavigator: useRoot ?? false, // use root navigator if specified
+        useRootNavigator: useRoot ?? true, // use root navigator if specified
         // use inner-most MaterialApp (our App) as root so theming is ours
         context: context,
         barrierDismissible: dismissible,
@@ -152,7 +151,8 @@ class ShowDialogAction extends EnsembleAction {
   }
 
   // Helper method to resubscribe to bottom nav navigator after dialog closes
-  void _resubscribeToBottomNavNavigator(BuildContext context, TabRouteObserverProvider? tabObserverProvider) {
+  void _resubscribeToBottomNavNavigator(
+      BuildContext context, TabRouteObserverProvider? tabObserverProvider) {
     if (tabObserverProvider != null) {
       // Schedule the resubscription for the next frame to ensure the dialog is fully closed
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -161,20 +161,18 @@ class ShowDialogAction extends EnsembleAction {
           // This maintains the current page but forces a rebuild
           int currentIndex = viewGroupNotifier.viewIndex;
           viewGroupNotifier.updatePage(currentIndex, isReload: true);
-        } catch (e) {
-        }
+        } catch (e) {}
       });
     }
   }
 
-  // Fallback method to trigger bottom nav rebuild  
+  // Fallback method to trigger bottom nav rebuild
   void _triggerBottomNavRebuild(BuildContext context) {
     try {
       // Use the viewGroupNotifier's public updatePage method
       int currentIndex = viewGroupNotifier.viewIndex;
       viewGroupNotifier.updatePage(currentIndex, isReload: true);
-    } catch (e) {
-    }
+    } catch (e) {}
   }
 }
 

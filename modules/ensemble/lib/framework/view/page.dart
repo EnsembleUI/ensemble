@@ -220,31 +220,6 @@ class PageState extends State<Page>
   @override
   bool get wantKeepAlive => true;
 
-  // Helper method to check if we're in a bottom nav context
-//   bool _isInBottomNavContext() {
-//     try {
-//       final pageGroupWidget = context.findAncestorWidgetOfExactType<PageGroupWidget>();
-//       return pageGroupWidget != null;
-//     } catch (e) {
-//       return false;
-//     }
-//   }
-
-//   // Handle bottom nav visibility based on page styles
-// void _handleBottomNavVisibility() {
-//   if (_isInBottomNavContext()) {
-//     final hideBottomNavBar = Utils.optionalBool(
-//         widget._pageModel.runtimeStyles?['hideBottomNavBar']) ?? false;
-
-//     // Use the controller that the UI is actually listening to
-//     if (hideBottomNavBar) {
-//       bottomNavVisibilityNotifier.hide(); // ← Use this one
-//     } else {
-//       print('calling show() from PageState');
-//       bottomNavVisibilityNotifier.show(); // ← Use this one
-//     }
-//   }
-// }
   // Listen to storage changes for titleBarHeight
   void _listenToTitleBarHeightChanges() {
     // Get the header model to check if titleBarHeight is set
@@ -354,9 +329,6 @@ class PageState extends State<Page>
     super.didUpdateWidget(oldWidget);
     // widget can be re-created at any time, we need to keep the Scope intact.
     widget.rootScopeManager = _scopeManager;
-    //    WidgetsBinding.instance.addPostFrameCallback((_) {
-    //   _handleBottomNavVisibility();
-    // });
   }
 
   void _updateBottomNavVisibility() {
@@ -415,9 +387,6 @@ class PageState extends State<Page>
     print(bottomNavRootScreen?.bottomNavRoot.selectedScreen);
     if (bottomNavRootScreen != null) {
       bottomNavRootScreen.onReVisited(() {
-        //        WidgetsBinding.instance.addPostFrameCallback((_) {
-        //   _handleBottomNavVisibility();
-        // });
         if (widget._pageModel.viewBehavior.onResume != null) {
           ScreenController().executeActionWithScope(
               context, _scopeManager, widget._pageModel.viewBehavior.onResume!,
@@ -477,9 +446,6 @@ class PageState extends State<Page>
   @override
   void didPush() {
     log("didPush() for ${widget.hashCode}");
-    //    WidgetsBinding.instance.addPostFrameCallback((_) {
-    //   _handleBottomNavVisibility();
-    // });
   }
 
   DateTime? screenLastPaused;
@@ -527,10 +493,6 @@ class PageState extends State<Page>
   @override
   void didPopNext() {
     super.didPopNext();
-    // print('inside didPopNext() for ${widget.hashCode}');
-    //    WidgetsBinding.instance.addPostFrameCallback((_) {
-    //   _handleBottomNavVisibility();
-    // });
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _updateBottomNavVisibility();
     });
@@ -579,10 +541,6 @@ class PageState extends State<Page>
         }
       }
     }
-    // _handleBottomNavVisibility();
-    //  WidgetsBinding.instance.addPostFrameCallback((_) {
-    //     _handleBottomNavVisibility();
-    //   });
 
     // execute view behavior
     if (widget._pageModel.viewBehavior.onLoad != null) {
