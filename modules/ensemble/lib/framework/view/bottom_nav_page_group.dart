@@ -1,5 +1,3 @@
-import 'dart:developer';
-
 import 'package:ensemble/action/haptic_action.dart';
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/action.dart';
@@ -7,14 +5,65 @@ import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/menu.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/view/bottom_nav_page_view.dart';
-import 'package:ensemble/framework/view/data_scope_widget.dart';
 import 'package:ensemble/framework/view/page_group.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/framework/widget/icon.dart' as ensemble;
-import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:flutter/material.dart';
+// Import the global controller
+
+// Global notifier for bottom nav visibility
+class BottomNavVisibilityNotifier extends ChangeNotifier {
+  static final BottomNavVisibilityNotifier _instance =
+      BottomNavVisibilityNotifier._internal();
+  factory BottomNavVisibilityNotifier() => _instance;
+  BottomNavVisibilityNotifier._internal();
+
+  bool _isVisible = true; // Show by default for PageGroup
+
+  bool get isVisible => _isVisible;
+
+  void show() {
+    if (!_isVisible) {
+      _isVisible = true;
+      notifyListeners();
+    }
+  }
+
+  void hide() {
+    if (_isVisible) {
+      _isVisible = false;
+      notifyListeners();
+    }
+  }
+
+  void toggle() {
+    _isVisible = !_isVisible;
+    notifyListeners();
+  }
+}
+
+class TabRouteObserverProvider extends InheritedWidget {
+  const TabRouteObserverProvider({
+    Key? key,
+    required this.routeObserver,
+    required this.tabIndex,
+    required Widget child,
+  }) : super(key: key, child: child);
+
+  final RouteObserver<PageRoute> routeObserver;
+  final int tabIndex;
+
+  static TabRouteObserverProvider? of(BuildContext context) {
+    return context.dependOnInheritedWidgetOfExactType<TabRouteObserverProvider>();
+  }
+
+  @override
+  bool updateShouldNotify(TabRouteObserverProvider oldWidget) {
+    return routeObserver != oldWidget.routeObserver || tabIndex != oldWidget.tabIndex;
+  }
+}
 
 class BottomNavBarItem {
   BottomNavBarItem({
@@ -27,6 +76,7 @@ class BottomNavBarItem {
     this.switchScreen = true,
     this.onTap,
     this.onTapHaptic,
+    this.page,
   });
 
   Widget icon;
@@ -38,6 +88,7 @@ class BottomNavBarItem {
   bool? switchScreen;
   EnsembleAction? onTap;
   String? onTapHaptic;
+  String? page;
 }
 
 enum FloatingAlignment {
@@ -103,10 +154,10 @@ class BottomNavPageGroup extends StatefulWidget {
   final List<Widget> children;
 
   @override
-  State<BottomNavPageGroup> createState() => _BottomNavPageGroupState();
+  State<BottomNavPageGroup> createState() => BottomNavPageGroupState();
 }
 
-class _BottomNavPageGroupState extends State<BottomNavPageGroup>
+class BottomNavPageGroupState extends State<BottomNavPageGroup>
     with RouteAware {
   late List<MenuItem> menuItems;
   late PageController controller;
@@ -114,9 +165,24 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup>
   int? floatingMargin;
   MenuItem? fabMenuItem;
 
+  // Use RouteObserver<PageRoute> for proper tab-specific route observation
+  late final RouteObserver<PageRoute> _mainRouteObserver;
+  late final List<RouteObserver<PageRoute>> _childRouteObservers;
+
+  static List<String> navpages = [];
+
   @override
   void initState() {
     super.initState();
+    // No unique page group ID needed
+
+    // Initialize RouteObserver<PageRoute> for proper route awareness
+    _mainRouteObserver = RouteObserver<PageRoute>();
+    _childRouteObservers = List.generate(
+      widget.children.length,
+      (index) => RouteObserver<PageRoute>(),
+    );
+
     if (widget.menu.reloadView == false) {
       controller = PageController(initialPage: widget.selectedPage);
     }
@@ -143,19 +209,25 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup>
   void didChangeDependencies() {
     super.didChangeDependencies();
 
-    // TODO: this should be moved to PageGroup for the other ViewGroup types all behave the same way
+    // Subscribe to the global route observer for PageGroup-level navigation
     var route = ModalRoute.of(context);
     if (route is PageRoute) {
+      Ensemble().routeObserver.unsubscribe(this);
       Ensemble().routeObserver.subscribe(this, route);
     }
   }
 
   @override
   void dispose() {
+    // Unregister from global controller
+
     if (widget.menu.reloadView == false) {
       controller.dispose();
     }
+
+    // Unsubscribe from global route observer
     Ensemble().routeObserver.unsubscribe(this);
+
     super.dispose();
   }
 
@@ -224,43 +296,93 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup>
     return PageGroupWidgetWrapper(
       reloadView: widget.menu.reloadView,
       scopeManager: widget.scopeManager,
-      child: Scaffold(
-        resizeToAvoidBottomInset: true,
-        backgroundColor: notchColor,
-        bottomNavigationBar: _buildBottomNavBar(),
-        floatingActionButtonLocation:
-            floatingAlignment == FloatingAlignment.none
-                ? null
-                : floatingAlignment.location,
-        floatingActionButton: _buildFloatingButton(),
-        body: widget.menu.reloadView == true
-            ? ListenableBuilder(
-                listenable: viewGroupNotifier,
-                builder: (_, __) {
-                  final screenPayload =
-                      widget.screenPayload[viewGroupNotifier.viewIndex];
-                  final screen = ScreenController().getScreen(
-                    key: ValueKey(
-                        "${viewGroupNotifier.hashCode}:${viewGroupNotifier.viewIndex}"),
-                    screenName: screenPayload.screenName,
-                    pageArgs:
-                        viewGroupNotifier.payload ?? screenPayload.arguments,
-                    isExternal: screenPayload.isExternal,
-                  );
-                  return screen;
-                })
-            : Builder(
-                builder: (context) {
-                  final controller = PageGroupWidget.getPageController(context);
+      child: ListenableBuilder(
+        listenable: BottomNavVisibilityNotifier(),
+        builder: (context, _) {
+          final isBottomNavVisible = BottomNavVisibilityNotifier().isVisible;
 
-                  return BottomNavPageView(
-                    controller: controller ?? PageController(),
-                    children: widget.children,
-                  );
-                },
-              ),
+          return Scaffold(
+            resizeToAvoidBottomInset: true,
+            backgroundColor: notchColor,
+            bottomNavigationBar: isBottomNavVisible ? _buildBottomNavBar() : null,
+            floatingActionButtonLocation:
+                floatingAlignment == FloatingAlignment.none
+                    ? null
+                    : floatingAlignment.location,
+            floatingActionButton: isBottomNavVisible ? _buildFloatingButton() : null,
+            body: widget.menu.reloadView == true
+                ? ListenableBuilder(
+                    listenable: viewGroupNotifier,
+                    builder: (_, __) {
+                      final screenPayload = widget.screenPayload[viewGroupNotifier.viewIndex];
+                      final screen = ScreenController().getScreen(
+                        key: ValueKey("${viewGroupNotifier.hashCode}:${viewGroupNotifier.viewIndex}"),
+                        screenName: screenPayload.screenName,
+                        pageArgs: viewGroupNotifier.payload ?? screenPayload.arguments,
+                        isExternal: screenPayload.isExternal,
+                      );
+
+                      // Wrap with tab-specific observer
+                      return TabRouteObserverProvider(
+                        routeObserver: _mainRouteObserver,
+                        tabIndex: viewGroupNotifier.viewIndex,
+                        child: Navigator(
+                          key: GlobalKey<NavigatorState>(),
+                          observers: [_mainRouteObserver],
+                          onGenerateRoute: (_) => MaterialPageRoute(
+                            settings: RouteSettings(name: '/${screenPayload.screenName}'),
+                            builder: (_) => screen,
+                          ),
+                        ),
+                      );
+                    },
+                  )
+                : Builder(
+                    builder: (context) {
+                      final controller = PageGroupWidget.getPageController(context);
+
+                      return BottomNavPageView(
+                        controller: controller ?? PageController(),
+                        children: widget.children
+                            .asMap()
+                            .entries
+                            .map((entry) {
+                              final screenName = widget.screenPayload[entry.key].screenName;
+                              
+                              // Wrap each tab with its own observer
+                              return TabRouteObserverProvider(
+                                routeObserver: _childRouteObservers[entry.key],
+                                tabIndex: entry.key,
+                                child: Navigator(
+                                  key: ValueKey("Navigator-${entry.key}"),
+                                  observers: [_childRouteObservers[entry.key]],
+                                  onGenerateRoute: (_) => MaterialPageRoute(
+                                    settings: RouteSettings(name: '/$screenName'),
+                                    builder: (_) => entry.value,
+                                  ),
+                                ),
+                              );
+                            })
+                            .toList(),
+                      );
+                    },
+                  ),
+          );
+        },
       ),
     );
+  }
+
+  void _dismissAllRootDialogs(BuildContext context) {
+    try {
+      // Method 1: Pop all routes from root navigator until we get back to the app
+      final rootNavigator = Navigator.of(context, rootNavigator: true);
+      while (rootNavigator.canPop()) {
+        rootNavigator.pop();
+      }
+    } catch (e) {
+      print('Error dismissing root dialogs: $e');
+    }
   }
 
   Widget? _buildBottomNavBar() {
@@ -273,7 +395,6 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup>
         Utils.getColor(widget.menu.runtimeStyles?['selectedColor']) ??
             Theme.of(context).primaryColor;
 
-    // final menu = widget.menu;
     for (int i = 0; i < menuItems.length; i++) {
       MenuItem item = menuItems[i];
       final dynamic customIcon = _buildCustomIcon(item);
@@ -295,7 +416,8 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup>
                   fallbackColor: selectedColor,
                   fallbackLibrary: item.iconLibrary)
               : null);
-
+      
+      navpages.add(item.page ?? '');  
       navItems.add(
         BottomNavBarItem(
           icon: icon,
@@ -305,6 +427,7 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup>
           switchScreen: Menu.evalSwitchScreen(widget.scopeManager.dataContext, item),
           onTap: EnsembleAction.from(item.onTap),
           onTapHaptic: item.onTapHaptic,
+          page: item.page
         ),
       );
     }
@@ -313,7 +436,6 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup>
       listenable: viewGroupNotifier,
       builder: (context, _) {
         final viewIndex = viewGroupNotifier.viewIndex;
-
         return EnsembleBottomAppBar(
           key: UniqueKey(),
           selectedIndex: viewIndex,
@@ -341,17 +463,21 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup>
               widget.menu.runtimeStyles?['shadowStyle']),
           notchedShape: const CircularNotchedRectangle(),
           onTabSelected: (index) {
+            _dismissAllRootDialogs(context);
+
             final isSwitchScreen =
                 Utils.getBool(navItems[index].switchScreen, fallback: true);
             if (isSwitchScreen) {
               if (widget.menu.reloadView == true) {
+                // Rebuild the active tab and its Navigator when reloadView=true
                 viewGroupNotifier.updatePage(index);
               } else {
-                PageGroupWidget.getPageController(context)!.jumpToPage(index);
-                viewGroupNotifier.updatePage(index);
+                // Use the persistent PageController when reloadView=false
+                final controller = PageGroupWidget.getPageController(context);
+                controller?.jumpToPage(index);
+                // Keep the notifier in sync so the bottom bar highlights the right tab
+                viewGroupNotifier.updatePage(index, isReload: false);
               }
-
-              _onTap(navItems[index]);
             } else {
               // Execute only onTap action. Page switching is handled by the developer with onTap
               _onTap(navItems[index]);
@@ -388,6 +514,7 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup>
     if (customWidgetModel != null) {
       return widget.scopeManager.buildWidget(customWidgetModel!);
     }
+    return null;
   }
 }
 

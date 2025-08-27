@@ -1,10 +1,8 @@
 // ignore_for_file: use_build_context_synchronously, avoid_print
 
 import 'dart:async';
-import 'dart:convert';
 
 import 'package:ensemble/action/navigation_action.dart';
-import 'package:ensemble/action/phone_contact_action.dart';
 import 'package:ensemble/action/upload_files_action.dart';
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/ensemble_app.dart';
@@ -12,15 +10,11 @@ import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/apiproviders/api_provider.dart';
 import 'package:ensemble/framework/bindings.dart';
 import 'package:ensemble/framework/data_context.dart';
-import 'package:ensemble/framework/device.dart';
 import 'package:ensemble/framework/devmode.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/event.dart';
-import 'package:ensemble/framework/permissions_manager.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/stub/camera_manager.dart';
-import 'package:ensemble/framework/stub/contacts_manager.dart';
-import 'package:ensemble/framework/stub/plaid_link_manager.dart';
 import 'package:ensemble/framework/theme/theme_loader.dart';
 import 'package:ensemble/framework/view/data_scope_widget.dart';
 import 'package:ensemble/framework/view/page.dart' as ensemble;
@@ -34,7 +28,6 @@ import 'package:ensemble/util/ensemble_utils.dart';
 import 'package:ensemble/util/notification_utils.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/stub_widgets.dart';
-import 'package:ensemble_ts_interpreter/invokables/context.dart';
 import 'package:ensemble_ts_interpreter/parser/newjs_interpreter.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -540,6 +533,24 @@ class ScreenController {
   }) async {
     PageType pageType = asModal == true ? PageType.modal : PageType.regular;
 
+    // If no explicit route option was provided and we're navigating
+    // to a ViewGroup, default to replacing the current screen to avoid
+    // stacking multiple ViewGroups (which can cause duplicate nav bars).
+    if (routeOption == null && screenName != null) {
+      try {
+        final def = await Ensemble()
+            .getConfig()!
+            .definitionProvider
+            .getDefinition(screenName: screenName);
+        final model = def.getModel(pageArgs);
+        if (model is PageGroupModel) {
+          routeOption = RouteOption.replaceCurrentScreen;
+        }
+      } catch (_) {
+        // Fall back silently if detection fails.
+      }
+    }
+
     Widget screenWidget = getScreen(
       screenId: screenId,
       screenName: screenName,
@@ -570,25 +581,31 @@ class ScreenController {
       alignment: alignment,
       duration: duration,
     );
+    // When target is a ViewGroup, use the root Navigator to avoid stacking a ViewGroup
+    // inside a nested tab Navigator. Otherwise, use the default navigator.
+    final _targetIsViewGroup =
+        routeOption == RouteOption.replaceCurrentScreen && screenName != null;
+    final navigator = Navigator.of(context, rootNavigator: _targetIsViewGroup);
+
     // push the new route and remove all existing screens. This is suitable for logging out.
     if (routeOption == RouteOption.clearAllScreens) {
       if (asExternal) {
         externalAppNavigateKey?.currentState
             ?.pushAndRemoveUntil(route, (route) => false);
       } else {
-        await Navigator.pushAndRemoveUntil(context, route, (route) => false);
+        await navigator.pushAndRemoveUntil(route, (route) => false);
       }
     } else if (routeOption == RouteOption.replaceCurrentScreen) {
       if (asExternal) {
         externalAppNavigateKey?.currentState?.pushReplacement(route);
       } else {
-        await Navigator.pushReplacement(context, route);
+        await navigator.pushReplacement(route);
       }
     } else {
       if (asExternal) {
         externalAppNavigateKey?.currentState?.push(route);
       } else {
-        await Navigator.push(context, route);
+        await navigator.push(route);
       }
     }
     return route;
