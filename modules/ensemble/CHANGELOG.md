@@ -1,3 +1,7 @@
+## 1.2.4
+
+ - **FEAT**(page): add collapsible header support and dynamic title bar height updates. ([d35eba01](https://github.com/ensembleUI/ensemble/commit/d35eba015c0a26429aa4201504bed7c686ed096b))
+
 ## 1.2.3
 
  - **FIX**(page-group): notify selected page on ViewGroup resume. ([ff4cbfc4](https://github.com/ensembleUI/ensemble/commit/ff4cbfc4321635db54cf70bfc4650005fb9aa1de))
