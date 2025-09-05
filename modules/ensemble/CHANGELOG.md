@@ -1,3 +1,7 @@
+## 1.2.5
+
+ - **FIX**: storage updates to page group as well. ([ab6e3c61](https://github.com/ensembleUI/ensemble/commit/ab6e3c613e4e33b7f5f12fe2c4cb517c75cba25c))
+
 ## 1.2.4
 
  - **FEAT**(page): add collapsible header support and dynamic title bar height updates. ([d35eba01](https://github.com/ensembleUI/ensemble/commit/d35eba015c0a26429aa4201504bed7c686ed096b))
