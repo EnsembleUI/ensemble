@@ -502,6 +502,14 @@ class ScreenController {
     if (scopeManager != null) {
       scopeManager.dispatch(ModelChangeEvent(StorageBindingSource(key), value));
     }
+
+    // Also dispatch to PageGroup's ScopeManager if different
+    ScopeManager? pageGroupScopeManager = PageGroupWidget.getScope(context);
+    if (pageGroupScopeManager != null &&
+        pageGroupScopeManager != scopeManager) {
+      pageGroupScopeManager
+          .dispatch(ModelChangeEvent(StorageBindingSource(key), value));
+    }
   }
 
   void dispatchDeviceChanges(
