@@ -3,6 +3,7 @@ import 'dart:developer';
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/i18n_loader.dart';
+import 'package:ensemble/framework/storage_manager.dart';
 import 'package:ensemble/framework/widget/screen.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:flutter/cupertino.dart';
@@ -132,7 +133,73 @@ class InvalidDefinition {}
 class AppModel {
   final String appId;
   AppModel(this.appId);
+
+  // Storage keys for persistent update tracking
+  static const String _lastCheckedTimeKey = 'artifact_last_checked_time';
+  static const String _updateCheckDurationKey = 'artifact_update_check_duration';
+  
+  // Default update check duration (60 minutes in milliseconds)
+  static const int _defaultUpdateCheckDuration = 60 * 60 * 1000;
+
+  // Get the configurable update check duration from environment or use default
+  int get _updateCheckDuration {
+    String? envDuration = appConfig?.envVariables?['UPDATE_CHECK_DURATION'];
+    if (envDuration != null) {
+      int parsedDuration = int.parse(envDuration);
+
+      // Check if the stored duration is different from the environment variable to avoid edge case if user changes env var.
+      int? storedDuration = StorageManager().readFromSystemStorage<int>(_updateCheckDurationKey);
+      if (storedDuration != parsedDuration) {
+        StorageManager().writeToSystemStorage(_updateCheckDurationKey, parsedDuration);
+      }
+      return parsedDuration;
+    }
+
+    // No environment variable found - check if we have a stored value
+    int? storedDuration = StorageManager().readFromSystemStorage<int>(_updateCheckDurationKey);
+    if (storedDuration != null) {
+      return storedDuration;
+    }
+
+    StorageManager().writeToSystemStorage(_updateCheckDurationKey, _defaultUpdateCheckDuration);
+    return _defaultUpdateCheckDuration;
+  }
+
+  // Get the last checked time from persistent storage
+  int? get _lastCheckedTime {
+    return StorageManager().readFromSystemStorage<int>(_lastCheckedTimeKey);
+  }
+
+  // Update the last checked time in persistent storage
+  void _updateLastCheckedTime() {
+    int currentTime = DateTime.now().millisecondsSinceEpoch;
+    StorageManager().writeToSystemStorage(_lastCheckedTimeKey, currentTime);
+  }
+
+  // Check if configured time has passed since last update check
+  bool _shouldCheckForUpdates() {
+    int? lastChecked = _lastCheckedTime;
+    if (lastChecked == null) {
+      return true; // First time, should check
+    }
+    int currentTime = DateTime.now().millisecondsSinceEpoch;
+    int timeSinceLastCheck = currentTime - lastChecked;
+    return timeSinceLastCheck >= _updateCheckDuration;
+  }
+
+  /// Smart update function that respects the time duration
+  Future<void> updateAppIfNeeded() async {
+    if (_shouldCheckForUpdates()) {
+      await updateApp();
+    }
+  }
+
   Future<void> init() async {
+    return;
+  }
+
+  // Base updateApp method - will be overridden by subclasses
+  Future<void> updateApp() async {
     return;
   }
   // the cache for ID -> screen content
@@ -457,17 +524,23 @@ class AppModelListenerMode extends AppModel {
 class AppModelTimerMode extends AppModel {
   AppModelTimerMode(String appId): super(appId);
   Future<void> init() async {
-    await updateApp();
-    _startTimer();
+    await updateApp(); // Direct call bypasses duration check
+    await _startTimer();
   }
   /// this is latest timestamp of the updatedAt or createdAt among all artifacts
   Timestamp? lastUpdatedAt;
   Timestamp? internalArtifactLastUpdateAt;
   /// timer to check for updates
   Timer? _timer;
-  /// interval to check for updates
-  final Duration _interval = Duration(minutes: 60);
-  void _startTimer() {
+  // Interval based on configured duration
+  Duration get _interval {
+    int durationMs = _updateCheckDuration;
+    return Duration(milliseconds: durationMs);
+  }
+
+  Future<void> _startTimer() async {
+    // Call updateAppIfNeeded on resume (respects duration check)
+    await updateAppIfNeeded();
     if (_timer == null || _timer!.isActive == false) {
       _timer = Timer.periodic(_interval, (timer) {
         updateApp();
@@ -533,6 +606,8 @@ class AppModelTimerMode extends AppModel {
       importCache.remove(appId);
     }
   }
+
+  @override
   Future<void> updateApp() async {
     await updateInternalArtifacts();
     QuerySnapshot<Map<String, dynamic>> snapshot;
@@ -553,6 +628,7 @@ class AppModelTimerMode extends AppModel {
       await updateArtifact(doc, isUpdate);
       lastUpdatedAt = calculateLastUpdatedAt(doc, lastUpdatedAt);
     }
+    _updateLastCheckedTime();
   }
 
   Timestamp? calculateLastUpdatedAt(var artifact, Timestamp? existingLastUpdatedAt) {
