@@ -18,7 +18,9 @@ enum ArtifactType {
   i18n,
   resources, // global widgets/codes/APIs/
   config, // app config
-  secrets
+  secrets,
+  internal_script,
+  internal_widget
 }
 
 // the root entries of the Resource artifact
