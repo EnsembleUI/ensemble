@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:ensemble/framework/apiproviders/firestore/firestore_types.dart';
+import 'package:ensemble_ts_interpreter/invokables/invokablecommons.dart';
 
 class FirestoreApp {
   final FirebaseFirestore firestore;
@@ -167,6 +168,10 @@ class FirestoreApp {
   }
 
   dynamic unwrapObject(dynamic obj) {
+    // Convert JavaScript Date objects to Firestore Timestamps
+    if (obj is Date) {
+      return FirestoreTimestamp.fromDate(obj).unwrap();
+    }
     return (obj is WrapsNativeType) ? obj.unwrap() : obj;
   }
 
