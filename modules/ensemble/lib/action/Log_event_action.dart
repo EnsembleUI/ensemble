@@ -1,7 +1,6 @@
 import 'package:ensemble/framework/action.dart' as ensembleAction;
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/event.dart';
-import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/framework/logging/log_manager.dart';
 import 'package:ensemble/framework/logging/log_provider.dart' as logging;
 import 'package:ensemble/framework/scope.dart';
@@ -12,7 +11,6 @@ import 'package:ensemble/util/utils.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
-// import 'package:moengage_flutter/moengage_flutter.dart';
 import 'package:ensemble/framework/stub/moengage_manager.dart';
 
 class LogEvent extends ensembleAction.EnsembleAction {
@@ -24,6 +22,7 @@ class LogEvent extends ensembleAction.EnsembleAction {
   final String logLevel;
   final dynamic value;
   final String? attributeKey;
+  final Map? originalPayload;
   final ensembleAction.EnsembleAction? onSuccess;
   final ensembleAction.EnsembleAction? onError;
 
@@ -37,6 +36,7 @@ class LogEvent extends ensembleAction.EnsembleAction {
     this.parameters,
     this.value,
     this.attributeKey,
+    this.originalPayload,
     this.onSuccess,
     this.onError,
   }) : super(initiator: initiator);
@@ -51,12 +51,21 @@ class LogEvent extends ensembleAction.EnsembleAction {
 
     // Firebase validation
     if (provider == 'firebase') {
-      if (operation == 'logEvent' && eventName == null) {
+      Map<String, dynamic> validationPayload = {};
+      if (payload != null) {
+        payload.forEach((key, value) {
+          if (key != null) {
+            validationPayload[key.toString()] = value;
+          }
+        });
+      }
+      
+      // Required Parameters validator for ALL Firebase operations 
+      try {
+        FirebaseAnalyticsValidator.validate(operation ?? 'logEvent', validationPayload);
+      } catch (e) {
         throw LanguageError(
-            "${ensembleAction.ActionType.logEvent.name} requires the event name");
-      } else if (operation == 'setUserId' && payload?['userId'] == null) {
-        throw LanguageError(
-            "${ensembleAction.ActionType.logEvent.name} requires the user id");
+            "${ensembleAction.ActionType.logEvent.name} validation failed: ${e.toString()}");
       }
     }
     // MoEngage validations
@@ -128,6 +137,7 @@ class LogEvent extends ensembleAction.EnsembleAction {
       userId: payload?['userId'],
       value: value,
       attributeKey: attributeKey,
+      originalPayload: payload,
       onSuccess: ensembleAction.EnsembleAction.from(payload?['onSuccess']),
       onError: ensembleAction.EnsembleAction.from(payload?['onError']),
     );
@@ -180,18 +190,30 @@ class LogEvent extends ensembleAction.EnsembleAction {
           );
         }
       } else {
-        LogManager().log(
-          logging.LogType.appAnalytics,
-          {
-            'name': scopeManager.dataContext.eval(eventName),
-            'parameters': scopeManager.dataContext.eval(parameters) ?? {},
-            'logLevel':
-                stringToLogLevel(scopeManager.dataContext.eval(logLevel)),
-            'provider': evaluatedProvider,
-            'operation': scopeManager.dataContext.eval(operation),
-            'userId': scopeManager.dataContext.eval(userId),
-          },
-        );
+        Map<String, dynamic> logData = {
+          'name': scopeManager.dataContext.eval(eventName),
+          'parameters': _convertToStringMap(scopeManager.dataContext.eval(parameters) ?? {}),
+          'logLevel': stringToLogLevel(scopeManager.dataContext.eval(logLevel)),
+          'provider': evaluatedProvider,
+          'operation': scopeManager.dataContext.eval(operation) ?? 'logEvent',
+          'userId': scopeManager.dataContext.eval(userId),
+        };
+        if (evaluatedProvider == 'firebase' && originalPayload != null) {
+          // Extract Firebase parameters from originalPayload and add to logData
+          for (FirebaseParams param in FirebaseParams.values) {
+            final key = param.name;
+            if (originalPayload!.containsKey(key)) {
+              final value = scopeManager.dataContext.eval(originalPayload![key]);
+              if (value != null) {
+                logData[key] = value;
+              }
+            }
+          }
+        }
+        LogManager().log(logging.LogType.appAnalytics, logData);
+        if (onSuccess != null) {
+          await ScreenController().executeAction(context, onSuccess!);
+        }
       }
     } catch (error) {
       if (onError != null) {
@@ -204,6 +226,19 @@ class LogEvent extends ensembleAction.EnsembleAction {
         rethrow;
       }
     }
+  }
+
+  /// Helper to convert Map<dynamic, dynamic> to Map<String, dynamic>
+  Map<String, dynamic> _convertToStringMap(Map? input) {
+    if (input == null) return {};
+    
+    Map<String, dynamic> result = {};
+    input.forEach((key, value) {
+      if (key != null) {
+        result[key.toString()] = value;
+      }
+    });
+    return result;
   }
 
   Future<void> _handleMoEngageOperations(
@@ -330,6 +365,7 @@ class LogEvent extends ensembleAction.EnsembleAction {
         if (!success) {
           throw Exception('Failed to delete user');
         }
+        break;
 
       // Push Configuration
       case 'registerForPush':
@@ -436,6 +472,220 @@ Future<dynamic> _handleAdobeOperations(
   }
 }
 
+/// Firebase Analytics Validator handles ALL Firebase operations in one place
+class FirebaseAnalyticsValidator {
+  static const Map<String, Map<String, dynamic>> validationRules = {
+    'logEvent': {
+      'required': ['name'],
+    },
+    'setUserId': {
+      'required': ['userId'],
+    },
+    
+    // Screen tracking  
+    'logScreenView': {
+      'required': ['screenName'],
+      'optional': ['screenClass'],
+    },
+    
+    // User lifecycle
+    'logLogin': {
+      'optional': ['loginMethod'],
+    },
+    'logSignUp': {
+      'required': ['signUpMethod'],
+    },
+    'logAppOpen': {
+      'optional': ['parameters'],
+    },
+    
+    // Content and interaction
+    'logSelectContent': {
+      'required': ['contentType', 'itemId'],
+      'optional': ['parameters'],
+    },
+    'logShare': {
+      'required': ['contentType', 'itemId', 'method'],
+      'optional': ['parameters'],
+    },
+    'logSearch': {
+      'required': ['searchTerm'],
+      'optional': ['numberOfNights', 'numberOfRooms', 'numberOfPassengers', 'origin', 'destination', 'startDate', 'endDate', 'travelClass', 'parameters'],
+    },
+    'logViewSearchResults': {
+      'required': ['searchTerm'],
+      'optional': ['parameters'],
+    },
+    
+    // Gaming and achievements
+    'logLevelUp': {
+      'required': ['level'],
+      'optional': ['character', 'parameters'],
+    },
+    'logLevelStart': {
+      'required': ['levelName'],
+      'optional': ['parameters'],
+    },
+    'logLevelEnd': {
+      'required': ['levelName'],
+      'optional': ['success', 'parameters'],
+    },
+    'logPostScore': {
+      'required': ['score'],
+      'optional': ['level', 'character', 'parameters'],
+    },
+    'logUnlockAchievement': {
+      'required': ['achievementId'],
+      'optional': ['parameters'],
+    },
+    'logEarnVirtualCurrency': {
+      'required': ['virtualCurrencyName', 'value'],
+      'optional': ['parameters'],
+    },
+    'logSpendVirtualCurrency': {
+      'required': ['itemName', 'virtualCurrencyName', 'value'],
+      'optional': ['parameters'],
+    },
+    
+    // Tutorial and onboarding
+    'logTutorialBegin': {
+      'optional': ['parameters'],
+    },
+    'logTutorialComplete': {
+      'optional': ['parameters'],
+    },
+    
+    // Social features
+    'logJoinGroup': {
+      'required': ['groupId'],
+      'optional': ['parameters'],
+    },
+    
+    // Marketing and attribution
+    'logGenerateLead': {
+      'optional': ['currency', 'value', 'parameters'],
+    },
+    'logCampaignDetails': {
+      'required': ['source', 'medium', 'campaign'],
+      'optional': ['term', 'content', 'aclid', 'cp1', 'parameters'],
+    },
+    'logAdImpression': {
+      'optional': ['adPlatform', 'adSource', 'adFormat', 'adUnitName', 'value', 'currency', 'parameters'],
+    },
+    
+    // E-COMMERCE OPERATIONS
+    'logAddPaymentInfo': {
+      'optional': ['coupon', 'currency', 'paymentType', 'value', 'items', 'parameters'],
+    },
+    'logAddShippingInfo': {
+      'optional': ['coupon', 'currency', 'value', 'shippingTier', 'items', 'parameters'],
+    },
+    'logAddToCart': {
+      'optional': ['items', 'value', 'currency', 'parameters'],
+    },
+    'logAddToWishlist': {
+      'optional': ['items', 'value', 'currency', 'parameters'],
+    },
+    'logBeginCheckout': {
+      'optional': ['value', 'currency', 'items', 'coupon', 'parameters'],
+    },
+    'logPurchase': {
+      'optional': ['currency', 'coupon', 'value', 'items', 'tax', 'shipping', 'transactionId', 'affiliation', 'parameters'],
+    },
+    'logRemoveFromCart': {
+      'optional': ['currency', 'value', 'items', 'parameters'],
+    },
+    'logViewCart': {
+      'optional': ['currency', 'value', 'items', 'parameters'],
+    },
+    'logViewItem': {
+      'optional': ['currency', 'value', 'items', 'parameters'],
+    },
+    'logViewItemList': {
+      'optional': ['items', 'itemListId', 'itemListName', 'parameters'],
+    },
+    'logSelectItem': {
+      'optional': ['itemListId', 'itemListName', 'items', 'parameters'],
+    },
+    'logSelectPromotion': {
+      'optional': ['creativeName', 'creativeSlot', 'items', 'locationId', 'promotionId', 'promotionName', 'parameters'],
+    },
+    'logViewPromotion': {
+      'optional': ['creativeName', 'creativeSlot', 'items', 'locationId', 'promotionId', 'promotionName', 'parameters'],
+    },
+    'logRefund': {
+      'optional': ['currency', 'coupon', 'value', 'tax', 'shipping', 'transactionId', 'affiliation', 'items', 'parameters'],
+    },
+    
+    // Configuration methods
+    'setUserProperty': {
+      'required': ['propertyName'],
+      'optional': ['propertyValue'],
+    },
+    'setAnalyticsCollectionEnabled': {
+      'required': ['enabled'],
+    },
+    'setConsent': {
+      'anyOf': ['adStorageConsentGranted', 'analyticsStorageConsentGranted', 'adPersonalizationSignalsConsentGranted', 'adUserDataConsentGranted', 'functionalityStorageConsentGranted', 'personalizationStorageConsentGranted', 'securityStorageConsentGranted'],
+      'message': 'At least one consent parameter required',
+    },
+    'setDefaultEventParameters': {
+      'required': ['defaultParameters'],
+    },
+    'setSessionTimeoutDuration': {
+      'anyOf': ['timeoutMilliseconds', 'timeout'],
+      'message': 'Either timeoutMilliseconds or timeout parameter required',
+    },
+    'resetAnalyticsData': {},
+    
+    // iOS-specific conversion methods
+    'initiateOnDeviceConversionMeasurementWithEmailAddress': {
+      'required': ['emailAddress'],
+    },
+    'initiateOnDeviceConversionMeasurementWithPhoneNumber': {
+      'required': ['phoneNumber'],
+    },
+    'initiateOnDeviceConversionMeasurementWithHashedEmailAddress': {
+      'required': ['hashedEmailAddress'],
+    },
+    'initiateOnDeviceConversionMeasurementWithHashedPhoneNumber': {
+      'required': ['hashedPhoneNumber'],
+    },
+  };
+
+  static void validate(String operation, Map<String, dynamic> payload) {
+    final rule = validationRules[operation];
+    if (rule == null) {
+      throw ConfigError('Unknown Firebase Analytics operation: $operation');
+    }
+
+    // Check required parameters
+    if (rule['required'] != null) {
+      List<String> missing = [];
+      for (String param in rule['required']) {
+        if (payload[param] == null) missing.add(param);
+      }
+      if (missing.isNotEmpty) {
+        throw ConfigError('$operation requires: ${missing.join(', ')}');
+      }
+    }
+
+    // Check "any of" requirements (for operations like setConsent)
+    if (rule['anyOf'] != null) {
+      bool hasAny = false;
+      for (String param in rule['anyOf']) {
+        if (payload[param] != null) {
+          hasAny = true;
+          break;
+        }
+      }
+      if (!hasAny) {
+        throw ConfigError(rule['message'] ?? '$operation requires at least one parameter from: ${rule['anyOf'].join(', ')}');
+      }
+    }
+  }
+}
+
 // Operations that don't require value parameter
 enum NoValueOperations {
   showInApp,
@@ -463,4 +713,86 @@ enum NoValueOperations {
   passFCMPushPayload,
   updatePermissionCount,
   pushPermissionResponse,
+}
+
+// Firebase-specific parameters enum
+enum FirebaseParams {
+  // Screen tracking
+  screenName,
+  screenClass,
+  
+  // User lifecycle
+  loginMethod,
+  signUpMethod,
+  
+  // Content interaction
+  contentType,
+  itemId,
+  method,
+  searchTerm,
+  
+  // Gaming and achievements
+  level,
+  character,
+  levelName,
+  success,
+  score,
+  achievementId,
+  virtualCurrencyName,
+  itemName,
+  
+  // Social features
+  groupId,
+  
+  // Commerce
+  currency,
+  value,
+  source,
+  medium,
+  campaign,
+  term,
+  content,
+  aclid,
+  cp1,
+  
+  // Advertising
+  adPlatform,
+  adSource,
+  adFormat,
+  adUnitName,
+  
+  // E-commerce
+  coupon,
+  paymentType,
+  shippingTier,
+  items,
+  tax,
+  shipping,
+  transactionId,
+  affiliation,
+  itemListId,
+  itemListName,
+  creativeName,
+  creativeSlot,
+  locationId,
+  promotionId,
+  promotionName,
+  
+  // Configuration
+  propertyName,
+  propertyValue,
+  enabled,
+  adStorageConsentGranted,
+  analyticsStorageConsentGranted,
+  adPersonalizationSignalsConsentGranted,
+  adUserDataConsentGranted,
+  defaultParameters,
+  timeoutMilliseconds,
+  timeout,
+  
+  // iOS conversion tracking
+  emailAddress,
+  phoneNumber,
+  hashedEmailAddress,
+  hashedPhoneNumber,
 }
