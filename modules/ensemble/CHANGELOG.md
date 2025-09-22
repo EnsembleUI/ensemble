@@ -1,3 +1,8 @@
+## 1.2.6
+
+ - **FIX**: converted Date objects to Timestamps. ([f59d69d3](https://github.com/ensembleUI/ensemble/commit/f59d69d37154e82a7e195275def76c0f69b19da9))
+ - **FEAT**: added firebase analytics rest of unsupported functions. ([04f34898](https://github.com/ensembleUI/ensemble/commit/04f34898dd4a033a130084c0656b769de99e20f1))
+
 ## 1.2.5
 
  - **FIX**: storage updates to page group as well. ([ab6e3c61](https://github.com/ensembleUI/ensemble/commit/ab6e3c613e4e33b7f5f12fe2c4cb517c75cba25c))
