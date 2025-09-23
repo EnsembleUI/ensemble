@@ -1,4 +1,5 @@
 import 'dart:developer';
+import 'bottom_nav_page_group.dart'; // To access bottomNavVisibilityNotifier
 import 'dart:async';
 
 import 'package:ensemble/ensemble.dart';
@@ -25,6 +26,124 @@ import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:ensemble/widget/helpers/unfocus.dart';
 import 'package:ensemble/framework/bindings.dart';
 import 'package:flutter/material.dart';
+
+class PageNavigatorWrapper extends StatefulWidget {
+  const PageNavigatorWrapper({
+    Key? key,
+    required this.child,
+    required this.isTabPage,
+    this.tabIndex,
+  }) : super(key: key);
+
+  final Widget child;
+  final bool isTabPage;
+  final int? tabIndex;
+
+  @override
+  State<PageNavigatorWrapper> createState() => _PageNavigatorWrapperState();
+}
+
+class _PageNavigatorWrapperState extends State<PageNavigatorWrapper>
+    with RouteAware {
+  late final RouteObserver<PageRoute> _routeObserver;
+  late final GlobalKey<NavigatorState> _navigatorKey;
+
+  @override
+  void initState() {
+    super.initState();
+    _routeObserver = RouteObserver<PageRoute>();
+    _navigatorKey = GlobalKey<NavigatorState>();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+
+    // Subscribe to route changes
+    var route = ModalRoute.of(context);
+    if (route is PageRoute) {
+      _routeObserver.unsubscribe(this);
+      _routeObserver.subscribe(this, route);
+    }
+  }
+
+  @override
+  void dispose() {
+    _routeObserver.unsubscribe(this);
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (widget.isTabPage) {
+      // Wrap tab pages in their own Navigator
+      return Navigator(
+        key: _navigatorKey,
+        observers: [_routeObserver],
+        onGenerateRoute: (settings) {
+          return MaterialPageRoute(
+            settings: settings,
+            builder: (_) => widget.child,
+          );
+        },
+      );
+    }
+
+    // For non-tab pages, return child directly
+    return widget.child;
+  }
+
+  // Navigator methods for external access
+  void pushPage(Widget page, {String? routeName}) {
+    if (widget.isTabPage && _navigatorKey.currentState != null) {
+      _navigatorKey.currentState!.push(
+        MaterialPageRoute(
+          settings: RouteSettings(name: routeName),
+          builder: (_) => page,
+        ),
+      );
+    }
+  }
+
+  void popPage() {
+    if (widget.isTabPage && _navigatorKey.currentState != null) {
+      _navigatorKey.currentState!.pop();
+    }
+  }
+
+  void popToRoot() {
+    if (widget.isTabPage && _navigatorKey.currentState != null) {
+      _navigatorKey.currentState!.popUntil((route) => route.isFirst);
+    }
+  }
+
+  bool canPop() {
+    if (widget.isTabPage && _navigatorKey.currentState != null) {
+      return _navigatorKey.currentState!.canPop();
+    }
+    return false;
+  }
+}
+
+// Add this InheritedWidget to provide Navigator access
+class PageNavigatorProvider extends InheritedWidget {
+  const PageNavigatorProvider({
+    Key? key,
+    required this.navigatorWrapper,
+    required Widget child,
+  }) : super(key: key, child: child);
+
+  final _PageNavigatorWrapperState navigatorWrapper;
+
+  static PageNavigatorProvider? of(BuildContext context) {
+    return context.dependOnInheritedWidgetOfExactType<PageNavigatorProvider>();
+  }
+
+  @override
+  bool updateShouldNotify(PageNavigatorProvider oldWidget) {
+    return navigatorWrapper != oldWidget.navigatorWrapper;
+  }
+}
 
 class SinglePageController extends WidgetController {
   TextStyleComposite? _textStyle;
@@ -212,14 +331,48 @@ class PageState extends State<Page>
     widget.rootScopeManager = _scopeManager;
   }
 
+  void _updateBottomNavVisibility() {
+    // Check if this page is a direct child of BottomNavPageGroup (tab page)
+    bool isTabPage = _isTabPage();
+
+    // Get showMenu setting
+    bool? showMenuSetting = widget._pageModel.runtimeStyles?['showMenu'];
+
+    bool shouldShow =
+        isTabPage ? showMenuSetting != false : showMenuSetting == true;
+    shouldShow
+        ? BottomNavVisibilityNotifier().show()
+        : BottomNavVisibilityNotifier().hide();
+  }
+
+// Helper method to check if this is a tab page
+  bool _isTabPage() {
+    try {
+      // Check if we have a TabRouteObserverProvider ancestor
+      final tabObserverProvider = TabRouteObserverProvider.of(context);
+      if (tabObserverProvider != null) {
+        // If we can find the provider, we're likely in a tab context
+        // Additional check: see if we're at the root of the tab's Navigator
+        final route = ModalRoute.of(context);
+        return route != null && route.isFirst;
+      }
+      return false;
+    } catch (e) {
+      return false;
+    }
+  }
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     // if our widget changes, we need to save the scopeManager to it.
     widget.rootScopeManager = _scopeManager;
 
-    // see if we are part of a ViewGroup or not
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _updateBottomNavVisibility();
+    });
     BottomNavScreen? bottomNavRootScreen = BottomNavScreen.getScreen(context);
+    print(bottomNavRootScreen?.bottomNavRoot.selectedScreen);
     if (bottomNavRootScreen != null) {
       bottomNavRootScreen.onReVisited(() {
         if (widget._pageModel.viewBehavior.onResume != null) {
@@ -231,13 +384,7 @@ class PageState extends State<Page>
       });
     }
     // standalone screen, listen when another screen is popped and we are back here
-    else {
-      var route = ModalRoute.of(context);
-      if (route is PageRoute) {
-        Ensemble().routeObserver.unsubscribe(this);
-        Ensemble().routeObserver.subscribe(this, route);
-      }
-    }
+    _subscribeToRouteObserver();
   }
 
   /// the last time the screen went to the background
@@ -295,6 +442,7 @@ class PageState extends State<Page>
   @override
   void didPushNext() {
     super.didPushNext();
+    final observerType = _isUsingTabObserver ? 'TAB' : 'GLOBAL';
     screenLastPaused = DateTime.now();
     if (widget._pageModel.viewBehavior.onPause != null) {
       ScreenController().executeActionWithScope(
@@ -303,10 +451,40 @@ class PageState extends State<Page>
     }
   }
 
+  RouteObserver<PageRoute>? _currentObserver;
+  bool _isUsingTabObserver = false;
+
+  void _subscribeToRouteObserver() {
+    var route = ModalRoute.of(context);
+    if (route is! PageRoute) return;
+
+    // Try to get tab-specific observer first
+    final tabObserverProvider = TabRouteObserverProvider.of(context);
+    if (tabObserverProvider != null) {
+      _currentObserver = tabObserverProvider.routeObserver;
+      _isUsingTabObserver = true;
+
+      _currentObserver!.unsubscribe(this);
+      _currentObserver!.subscribe(this, route);
+      return;
+    }
+
+    // Fallback to global observer for standalone pages
+    _currentObserver = Ensemble().routeObserver;
+    _isUsingTabObserver = false;
+
+    _currentObserver!.unsubscribe(this);
+    _currentObserver!.subscribe(this, route);
+  }
+
   /// when a page is popped and we go back to this page
   @override
   void didPopNext() {
     super.didPopNext();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _updateBottomNavVisibility();
+    });
+
     if (widget._pageModel.viewBehavior.onResume != null) {
       ScreenController().executeActionWithScope(
           context, _scopeManager, widget._pageModel.viewBehavior.onResume!,
@@ -336,6 +514,10 @@ class PageState extends State<Page>
         ),
         importedCode: widget._pageModel.importedCode);
     widget.rootScopeManager = _scopeManager;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _updateBottomNavVisibility();
+    });
+
     // if we have a menu, figure out which child page to display initially
     if (widget._pageModel.menu != null &&
         widget._pageModel.menu!.menuItems.length > 1) {
@@ -470,7 +652,6 @@ class PageState extends State<Page>
       {required bool scrollableView, bool? showNavigationIcon}) {
     Widget? titleWidget;
 
-
     if (headerModel.titleWidget != null) {
       titleWidget = _scopeManager.buildWidget(headerModel.titleWidget!);
     }
@@ -524,7 +705,8 @@ class PageState extends State<Page>
       animationEnabled = Utils.getBool(animation!['enabled'], fallback: false);
       duration = Utils.getInt(animation!['duration'], fallback: 0);
       curve = Utils.getCurve(animation!['curve']);
-      animationType = Utils.getEnum<AnimationType>(animation!['animationType'], AnimationType.values);
+      animationType = Utils.getEnum<AnimationType>(
+          animation!['animationType'], AnimationType.values);
     }
     // applicable only to Sliver scrolling
     double? flexibleMaxHeight =
@@ -553,9 +735,10 @@ class PageState extends State<Page>
     final titleBarHeight = isHeaderVisible ? baseTitleBarHeight : 0.0;
 
     if (scrollableView) {
-      return AnimatedAppBar( scrollController: externalScrollController!,
+      return AnimatedAppBar(
+        scrollController: externalScrollController!,
         automaticallyImplyLeading:
-           leadingWidget == null && showNavigationIcon != false,
+            leadingWidget == null && showNavigationIcon != false,
         leadingWidget: leadingWidget,
         titleWidget: titleWidget,
         centerTitle: centerTitle,
@@ -799,6 +982,7 @@ class PageState extends State<Page>
   }
 
   Widget buildScrollablePageContent(bool hasDrawer) {
+    var route = ModalRoute.of(context);
     List<Widget> slivers = [];
     externalScrollController = ScrollController();
     // appBar
@@ -1045,13 +1229,12 @@ class PageState extends State<Page>
     ScreenController().navigateToScreen(context,
         screenName: menuItem.page, isExternal: menuItem.isExternal);
   }
+
   /// this method executes if this screen is part of ViewGroup
   /// and onViewGroupUpdate is defined in View
   void executeOnViewGroupUpdate() {
     if (widget._pageModel.viewBehavior.onViewGroupUpdate != null) {
-      ScreenController().executeActionWithScope(
-          context,
-          _scopeManager,
+      ScreenController().executeActionWithScope(context, _scopeManager,
           widget._pageModel.viewBehavior.onViewGroupUpdate!);
     }
   }
@@ -1147,35 +1330,36 @@ class AnimatedAppBar extends StatefulWidget {
   final duration;
   AnimatedAppBar(
       {Key? key,
-        this.automaticallyImplyLeading,
-        this.leadingWidget,
-        this.titleWidget,
-        this.centerTitle,
-        this.backgroundColor,
-        this.surfaceTintColor,
-        this.foregroundColor,
-        this.elevation,
-        this.shadowColor,
-        this.titleBarHeight,
-        this.backgroundWidget,
-        this.animated,
-        this.floating,
-        this.pinned,
-        this.collapsedBarHeight,
-        this.expandedBarHeight,
-        required this.scrollController,
-        this.curve,
-        this.animationType,
-        this.duration})
+      this.automaticallyImplyLeading,
+      this.leadingWidget,
+      this.titleWidget,
+      this.centerTitle,
+      this.backgroundColor,
+      this.surfaceTintColor,
+      this.foregroundColor,
+      this.elevation,
+      this.shadowColor,
+      this.titleBarHeight,
+      this.backgroundWidget,
+      this.animated,
+      this.floating,
+      this.pinned,
+      this.collapsedBarHeight,
+      this.expandedBarHeight,
+      required this.scrollController,
+      this.curve,
+      this.animationType,
+      this.duration})
       : super(key: key);
 
   @override
   _AnimatedAppBarState createState() => _AnimatedAppBarState();
 }
 
-class _AnimatedAppBarState extends State<AnimatedAppBar> with WidgetsBindingObserver{
+class _AnimatedAppBarState extends State<AnimatedAppBar>
+    with WidgetsBindingObserver {
   bool isCollapsed = false;
-  
+
   @override
   void initState() {
     super.initState();
@@ -1183,12 +1367,12 @@ class _AnimatedAppBarState extends State<AnimatedAppBar> with WidgetsBindingObse
   }
 
   void _updateCollapseState() {
-
     if (!widget.scrollController.hasClients) return;
 
     double expandedHeight = (widget.expandedBarHeight ?? 0.0).toDouble();
     double collapsedHeight = (widget.collapsedBarHeight ?? 0.0).toDouble();
-    double threshold = (expandedHeight - collapsedHeight).clamp(10.0, double.infinity);
+    double threshold =
+        (expandedHeight - collapsedHeight).clamp(10.0, double.infinity);
     bool newState = widget.scrollController.offset > threshold;
 
     if (newState != isCollapsed) {
@@ -1239,21 +1423,21 @@ class _AnimatedAppBarState extends State<AnimatedAppBar> with WidgetsBindingObse
       centerTitle: widget.centerTitle,
       title: widget.animated
           ? switch (widget.animationType) {
-        AnimationType.fade => AnimatedOpacity(
-          opacity: isCollapsed ? 1.0 : 0.0,
-          duration: Duration(milliseconds: widget.duration ?? 300),
-          curve: widget.curve ?? Curves.easeIn,
-          child: widget.titleWidget,
-        ),
-        AnimationType.drop => AnimatedSlide(
-          offset: isCollapsed ? Offset(0, 0) : Offset(0, -2),
-          duration: Duration(milliseconds: widget.duration ?? 300),
-          curve: widget.curve ?? Curves.easeIn,
-          child: widget.titleWidget,
-        ),
-        _ => widget.titleWidget,
-      }
-      : widget.titleWidget,
+              AnimationType.fade => AnimatedOpacity(
+                  opacity: isCollapsed ? 1.0 : 0.0,
+                  duration: Duration(milliseconds: widget.duration ?? 300),
+                  curve: widget.curve ?? Curves.easeIn,
+                  child: widget.titleWidget,
+                ),
+              AnimationType.drop => AnimatedSlide(
+                  offset: isCollapsed ? Offset(0, 0) : Offset(0, -2),
+                  duration: Duration(milliseconds: widget.duration ?? 300),
+                  curve: widget.curve ?? Curves.easeIn,
+                  child: widget.titleWidget,
+                ),
+              _ => widget.titleWidget,
+            }
+          : widget.titleWidget,
       elevation: widget.elevation,
       backgroundColor: widget.backgroundColor,
       flexibleSpace: wrapsInFlexible(widget.backgroundWidget),
@@ -1272,7 +1456,7 @@ enum ScrollMode {
   floating,
 }
 
-enum AnimationType{
+enum AnimationType {
   drop,
   fade,
 }
