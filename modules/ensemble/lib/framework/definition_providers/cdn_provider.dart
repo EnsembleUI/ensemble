@@ -257,7 +257,8 @@ class CdnDefinitionProvider extends DefinitionProvider {
       }
 
       final lastUpdateData = jsonDecode(jsonString) as Map<String, dynamic>;
-      final remoteLastUpdate = _extractLastUpdatedAt(lastUpdateData);
+      final num? remoteLastUpdateNum = lastUpdateData['lastUpdatedAt'] as num?;
+      final int? remoteLastUpdate = remoteLastUpdateNum?.toInt();
 
       if (remoteLastUpdate == null) {
         return true;
@@ -522,24 +523,6 @@ class CdnDefinitionProvider extends DefinitionProvider {
   // ---------------------------------------------------------------------------
   // Helpers
   // ---------------------------------------------------------------------------
-
-  static int? _extractLastUpdatedAt(Map<String, dynamic> root) {
-    final v = root['lastUpdatedAt'];
-    if (v is num) return v.toInt();
-    if (v is String) {
-      final dt = DateTime.tryParse(v);
-      return dt?.millisecondsSinceEpoch;
-    }
-    if (v is Map) {
-      final s = v['_seconds'];
-      final n = v['_nanoseconds'];
-      if (s is num) {
-        final ms = (s * 1000).round() + (n is num ? (n / 1e6).round() : 0);
-        return ms;
-      }
-    }
-    return null;
-  }
 
   static bool _isIncomingNewer(int? incoming, int? current) =>
       incoming != null && (current == null || incoming > current);
