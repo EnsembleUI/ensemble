@@ -424,11 +424,11 @@ class CdnDefinitionProvider extends DefinitionProvider {
     }
   }
 
-  void _parseTheme(dynamic themeRaw) {
-    final content = themeRaw?.toString();
-    if (content != null && content.isNotEmpty) {
+  void _parseTheme(Map<String, dynamic> themeRaw) {
+    final id = themeRaw['id']?.toString();
+    final content = themeRaw['content']?.toString();
+    if (id != null && content != null && content.isNotEmpty) {
       final yaml = _tryLoadYaml(content);
-      const id = 'theme';
       _artifactCache[id] = yaml;
       _themeMapping = id;
     }
