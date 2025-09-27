@@ -288,7 +288,7 @@ class CdnDefinitionProvider extends DefinitionProvider {
     if (resp.statusCode == 304) return null;
     if (resp.statusCode != 200 || resp.bodyBytes.isEmpty) {
       throw ConfigError(
-          "Failed to fetch manifest from Storage bucket. Please check your appId and make sure the manifest is in the bucket.");
+          "Failed to fetch manifest from CDN. Please check your appId and make sure to sync app to CDN.");
     }
 
     final jsonString = _decodePossiblyBrotli(resp);
@@ -342,16 +342,13 @@ class CdnDefinitionProvider extends DefinitionProvider {
     Map<String, dynamic> envVars = Map<String, dynamic>.from(
         _asMap(configMap?['envVariables']) ?? const {});
 
-    // 3) assets → enrich env (derive 'assets' base + per-file keys) without overriding existing env
-    envVars = _parseAssetsIntoEnv(artifacts['assets'], envVars);
-
-    // 4) core artifacts
+    // 3) core artifacts
     _parseScreens(artifacts['screens']);
     _parseTheme(artifacts['theme']);
     _parseResources(artifacts['widgets'], artifacts['scripts']);
-    _parseTranslations(artifacts['translations'], artifacts['defaultLocale']);
+    _parseTranslations(artifacts['translations']);
 
-    // 5) finalize AppConfig
+    // 4) finalize AppConfig
     if (envVars.isNotEmpty || baseUrl != null || useBrowserUrl != null) {
       _appConfig = UserAppConfig(
         baseUrl: baseUrl,
@@ -364,43 +361,6 @@ class CdnDefinitionProvider extends DefinitionProvider {
   // ---------------------------------------------------------------------------
   // Parsers
   // ---------------------------------------------------------------------------
-
-  Map<String, dynamic> _parseAssetsIntoEnv(
-      dynamic assetsRaw, Map<String, dynamic> envVars) {
-    if (assetsRaw is! List) return envVars;
-
-    // gather URLs to infer a common base (unless config env already defines one)
-    final urls = <String>[];
-    for (final a in assetsRaw) {
-      final m = _asMap(a);
-      final u = m?['publicUrl']?.toString();
-      if (u != null && u.isNotEmpty) urls.add(u);
-    }
-
-    final out = Map<String, dynamic>.from(envVars);
-    String? base = out['assets']?.toString();
-    base ??= _computeCommonUrlBase(urls);
-    if (base != null && base.isNotEmpty) {
-      out['assets'] = base;
-    }
-
-    for (final a in assetsRaw) {
-      final m = _asMap(a);
-      if (m == null) continue;
-      final file = m['fileName']?.toString();
-      final url = m['publicUrl']?.toString();
-      if (file == null || url == null) continue;
-
-      final key = _assetKeyFromFileName(file);
-      if (!out.containsKey(key)) {
-        out[key] = (base != null && url.startsWith(base))
-            ? url.substring(base.length)
-            : url;
-      }
-    }
-    return out;
-  }
-
   void _parseScreens(dynamic screensRaw) {
     final screens = screensRaw is List ? screensRaw : const [];
     for (final entry in screens) {
@@ -419,13 +379,11 @@ class CdnDefinitionProvider extends DefinitionProvider {
     }
   }
 
-  void _parseTheme(Map<String, dynamic> themeRaw) {
-    final id = themeRaw['id']?.toString();
-    final content = themeRaw['content']?.toString();
-    if (id != null && content != null && content.isNotEmpty) {
-      final yaml = _tryLoadYaml(content);
-      _artifactCache[id] = yaml;
-      _themeMapping = id;
+  void _parseTheme(String themeRaw) {
+    if (themeRaw.isNotEmpty) {
+      final yaml = _tryLoadYaml(themeRaw);
+      _artifactCache["theme"] = yaml;
+      _themeMapping = "theme";
     }
   }
 
@@ -476,42 +434,26 @@ class CdnDefinitionProvider extends DefinitionProvider {
     }
   }
 
-  void _parseTranslations(dynamic translationsRaw, String? defaultLocaleRaw) {
-    if (translationsRaw is Map) {
-      translationsRaw.forEach((lang, content) {
-        final langCode = _normalizeLocale(lang.toString());
-        final yaml = _yamlFromUnknown(content);
-        final unwrapped = _unwrapI18nYaml(yaml);
-        if (unwrapped != null)
-          _artifactCache['$_i18nPrefix$langCode'] = unwrapped;
-      });
-    } else if (translationsRaw is List) {
-      for (final item in translationsRaw) {
-        final t = _asMap(item);
-        if (t == null) continue;
-        final id = t['id']?.toString();
-        String? langCode;
-        if (id != null && id.startsWith(_i18nPrefix)) {
-          langCode = _normalizeLocale(id.substring(_i18nPrefix.length));
-        }
-        langCode ??= _normalizeLocale(
-          (t['locale'] ?? t['language'] ?? t['lang'])?.toString() ?? '',
-        );
-        if (langCode.isEmpty) continue;
+  void _parseTranslations(dynamic translationsRaw) {
+    if (translationsRaw is! List) return;
 
-        final yaml = _yamlFromUnknown(t['content']);
-        final unwrapped = _unwrapI18nYaml(yaml);
-        if (unwrapped != null)
-          _artifactCache['$_i18nPrefix$langCode'] = unwrapped;
-
-        if ((t['defaultLocale'] == true) && _defaultLocale == null) {
-          _defaultLocale = langCode;
-        }
+    for (final item in translationsRaw) {
+      final t = _asMap(item);
+      if (t == null) continue;
+      final id = t['id']?.toString();
+      String langCode = '';
+      if (id != null && id.startsWith(_i18nPrefix)) {
+        langCode = _normalizeLocale(id.substring(_i18nPrefix.length));
       }
-    }
 
-    if (defaultLocaleRaw != null && defaultLocaleRaw.isNotEmpty) {
-      _defaultLocale = _normalizeLocale(defaultLocaleRaw);
+      final yaml = _yamlFromUnknown(t['content']);
+      final unwrapped = _unwrapI18nYaml(yaml);
+      if (unwrapped != null)
+        _artifactCache['$_i18nPrefix$langCode'] = unwrapped;
+
+      if ((t['defaultLocale'] == true) && _defaultLocale == null) {
+        _defaultLocale = langCode;
+      }
     }
   }
 
@@ -534,23 +476,6 @@ class CdnDefinitionProvider extends DefinitionProvider {
     } catch (_) {
       return null;
     }
-  }
-
-  static String _assetKeyFromFileName(String fileName) =>
-      fileName.replaceAll('.', '_');
-
-  static String? _computeCommonUrlBase(List<String> urls) {
-    if (urls.isEmpty) return null;
-    var prefix = urls.first;
-    for (final u in urls.skip(1)) {
-      var j = 0;
-      final max = prefix.length < u.length ? prefix.length : u.length;
-      while (j < max && prefix[j] == u[j]) j++;
-      prefix = prefix.substring(0, j);
-      if (prefix.isEmpty) break;
-    }
-    final idx = prefix.lastIndexOf('/');
-    return idx > 0 ? prefix.substring(0, idx + 1) : null;
   }
 
   static YamlMap? _yamlFromUnknown(dynamic content) {
