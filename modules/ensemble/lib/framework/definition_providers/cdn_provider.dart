@@ -15,7 +15,7 @@ import 'package:brotli/brotli.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:cryptography/cryptography.dart';
 
-/// DefinitionProvider that reads a pre-built app manifest from Storage bucket
+/// DefinitionProvider that reads the app manifest from CDN
 class CdnDefinitionProvider extends DefinitionProvider {
   CdnDefinitionProvider(
     this.appId, {
@@ -136,9 +136,9 @@ class CdnDefinitionProvider extends DefinitionProvider {
     }
   }
 
-  // ---------------------------------------------------------------------------
+  // --------------------------------------------------------
   // Persistent caching
-  // ---------------------------------------------------------------------------
+  // --------------------------------------------------------
 
   Future<void> _loadCachedState() async {
     try {
@@ -186,9 +186,9 @@ class CdnDefinitionProvider extends DefinitionProvider {
     }
   }
 
-  // ---------------------------------------------------------------------------
+  // --------------------------------------------------------
   // Networking / manifest loading
-  // ---------------------------------------------------------------------------
+  // --------------------------------------------------------
 
   Future<void> _refreshIfStale() async {
     try {
@@ -205,11 +205,9 @@ class CdnDefinitionProvider extends DefinitionProvider {
 
       final newEtag = fetched['etag'] as String?;
       final root = jsonDecode(jsonString) as Map<String, dynamic>;
-      // Note: lastUpdatedAt is not in manifest, it's in lastUpdateTime.json
 
       _rebuildFromRoot(root);
       _etag = newEtag ?? _etag;
-      // _lastUpdatedAt is updated in _shouldFetchManifest() from lastUpdateTime.json
 
       // Save to persistent cache
       await _saveCachedState(jsonString);
@@ -308,9 +306,9 @@ class CdnDefinitionProvider extends DefinitionProvider {
     }
   }
 
-  // ---------------------------------------------------------------------------
+  // --------------------------------------------------------
   // Rebuild pipeline
-  // ---------------------------------------------------------------------------
+  // --------------------------------------------------------
 
   void _rebuildFromRoot(Map<String, dynamic> root) {
     // reset caches/state
@@ -364,9 +362,9 @@ class CdnDefinitionProvider extends DefinitionProvider {
     }
   }
 
-  // ---------------------------------------------------------------------------
+  // --------------------------------------------------------
   // Parsers
-  // ---------------------------------------------------------------------------
+  // --------------------------------------------------------
   void _parseScreens(dynamic screensRaw) {
     final screens = screensRaw is List ? screensRaw : const [];
     for (final entry in screens) {
@@ -463,9 +461,9 @@ class CdnDefinitionProvider extends DefinitionProvider {
     }
   }
 
-  // ---------------------------------------------------------------------------
+  // --------------------------------------------------------
   // Helpers
-  // ---------------------------------------------------------------------------
+  // --------------------------------------------------------
 
   static bool _isIncomingNewer(int? incoming, int? current) =>
       incoming != null && (current == null || incoming > current);
@@ -558,30 +556,18 @@ class CdnDefinitionProvider extends DefinitionProvider {
     // 2) Load key
     final keyStr = 'gRet6enBqAoDobmL0x8G4Vdw7BE6NGMRKBF27Y1X7SU';
     final keyBytes = _b64Decode(keyStr);
-    if (keyBytes.length != 32) {
-      throw StateError(
-          'Encryption key must be 32 bytes, got ${keyBytes.length}');
-    }
     final secretKey = SecretKey(keyBytes);
 
     // 3) Decode nonce and data
     final nonce = _b64Decode(payload['nonce'] as String);
-    if (nonce.length != 24) {
-      throw StateError(
-          'Nonce must be 24 bytes for XChaCha20-Poly1305, got ${nonce.length}');
-    }
     final data = _b64Decode(payload['data'] as String);
-    if (data.length < 16) {
-      throw StateError(
-          'Ciphertext too short (needs at least 16 bytes for tag)');
-    }
 
     // 4) Split ciphertext and tag
     final tagLen = 16;
     final cipherText = Uint8List.sublistView(data, 0, data.length - tagLen);
     final tagBytes = Uint8List.sublistView(data, data.length - tagLen);
 
-    // 5) AAD must match encryption side
+    // 5) AAD
     final aad = utf8.encode('appId:$appId');
 
     // 6) Decrypt
