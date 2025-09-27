@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/definition_providers/provider.dart';
@@ -12,6 +13,7 @@ import 'package:http/http.dart' as http;
 import 'package:yaml/yaml.dart';
 import 'package:brotli/brotli.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:cryptography/cryptography.dart';
 
 /// DefinitionProvider that reads a pre-built app manifest from Storage bucket
 class CdnDefinitionProvider extends DefinitionProvider {
@@ -230,7 +232,6 @@ class CdnDefinitionProvider extends DefinitionProvider {
     _etag = fetched['etag'] as String?;
 
     final root = jsonDecode(jsonString) as Map<String, dynamic>;
-    // Note: lastUpdatedAt is not in manifest, it's in lastUpdateTime.json
     _rebuildFromRoot(root);
 
     // Save to persistent cache
@@ -325,9 +326,14 @@ class CdnDefinitionProvider extends DefinitionProvider {
     if (artifacts == null) return;
 
     // 1) secrets
-    final secretsMap = _asMap(artifacts['secrets']);
-    if (secretsMap != null) {
-      _secrets = secretsMap.map((k, v) => MapEntry(k.toString(), v.toString()));
+    final secretsPayload = _asMap(artifacts['secrets']);
+    if (secretsPayload != null && secretsPayload.isNotEmpty) {
+      decryptSecretsXChaCha(secretsPayload, appId: appId).then((decrypted) {
+        _secrets = decrypted.map((k, v) => MapEntry(k, v.toString()));
+      }).catchError((e) {
+        debugPrint('Failed to decrypt secrets: $e');
+        _secrets = {};
+      });
     }
 
     // 2) config
@@ -521,5 +527,72 @@ class CdnDefinitionProvider extends DefinitionProvider {
       return Locale(parts[0], parts[1]);
     }
     return Locale(normalized);
+  }
+
+  Uint8List _b64Decode(String s) {
+    var t = s.replaceAll('-', '+').replaceAll('_', '/');
+    switch (t.length % 4) {
+      case 2:
+        t += '==';
+        break;
+      case 3:
+        t += '=';
+        break;
+    }
+    return Uint8List.fromList(base64.decode(t));
+  }
+
+  /// Decrypts the secrets payload
+  Future<Map<String, dynamic>> decryptSecretsXChaCha(
+    Map<String, dynamic> payload, {
+    required String appId,
+  }) async {
+    if (payload.isEmpty) return {};
+
+    // 1) Validate alg
+    final alg = (payload['alg'] ?? '').toString().toUpperCase();
+    if (alg != 'XCHACHA20-POLY1305') {
+      throw StateError('Unsupported alg: $alg');
+    }
+
+    // 2) Load key
+    final keyStr = 'gRet6enBqAoDobmL0x8G4Vdw7BE6NGMRKBF27Y1X7SU';
+    final keyBytes = _b64Decode(keyStr);
+    if (keyBytes.length != 32) {
+      throw StateError(
+          'Encryption key must be 32 bytes, got ${keyBytes.length}');
+    }
+    final secretKey = SecretKey(keyBytes);
+
+    // 3) Decode nonce and data
+    final nonce = _b64Decode(payload['nonce'] as String);
+    if (nonce.length != 24) {
+      throw StateError(
+          'Nonce must be 24 bytes for XChaCha20-Poly1305, got ${nonce.length}');
+    }
+    final data = _b64Decode(payload['data'] as String);
+    if (data.length < 16) {
+      throw StateError(
+          'Ciphertext too short (needs at least 16 bytes for tag)');
+    }
+
+    // 4) Split ciphertext and tag
+    final tagLen = 16;
+    final cipherText = Uint8List.sublistView(data, 0, data.length - tagLen);
+    final tagBytes = Uint8List.sublistView(data, data.length - tagLen);
+
+    // 5) AAD must match encryption side
+    final aad = utf8.encode('appId:$appId');
+
+    // 6) Decrypt
+    final algo = Xchacha20.poly1305Aead();
+    final clearBytes = await algo.decrypt(
+      SecretBox(cipherText, nonce: nonce, mac: Mac(tagBytes)),
+      secretKey: secretKey,
+      aad: aad,
+    );
+
+    final jsonStr = utf8.decode(clearBytes);
+    return jsonDecode(jsonStr) as Map<String, dynamic>;
   }
 }
