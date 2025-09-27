@@ -9,7 +9,6 @@ import 'package:ensemble/framework/widget/screen.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_i18n/flutter_i18n.dart';
 import 'package:http/http.dart' as http;
-import 'package:ensemble/firebase_options.dart';
 import 'package:yaml/yaml.dart';
 import 'package:brotli/brotli.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -23,18 +22,14 @@ class CdnDefinitionProvider extends DefinitionProvider {
 
   final String appId;
 
-  // ============================================================================
-  // URL CONFIGURATION
-  // ============================================================================
+  final String baseUrl = 'https://cdn.ensembleui.com/manifests/apps';
 
   String get _lastUpdateTimeUrl {
-    final bucket = DefaultFirebaseOptions.currentPlatform.storageBucket ?? '';
-    return 'https://firebasestorage.googleapis.com/v0/b/$bucket/o/apps_manifest%2F$appId%2FlastUpdateTime.json?alt=media';
+    return '$baseUrl/$appId/lastUpdateTime.json';
   }
 
   String get _manifestUrl {
-    final bucket = DefaultFirebaseOptions.currentPlatform.storageBucket ?? '';
-    return 'https://firebasestorage.googleapis.com/v0/b/$bucket/o/apps_manifest%2F$appId%2Fmanifest.json?alt=media';
+    return '$baseUrl/$appId/manifest.json';
   }
 
   // Artifact caches

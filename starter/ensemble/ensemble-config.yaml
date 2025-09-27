@@ -1,5 +1,5 @@
 definitions:
-  # where your page definitions are hosted ('local', 'remote' or 'ensemble')
+  # where your page definitions are hosted ('local', 'remote', 'ensemble', 'cdn')
   from: ensemble
 
   # for embedding definitions and assets locally with your App
@@ -56,8 +56,10 @@ definitions:
     appId: e24402cb-75e2-404c-866c-29e6c3dd7992
 
   # for definitions hosted on Ensemble's CDN, simply enter your Ensemble's app id
+  # recommended for production apps
   cdn:
     appId: e24402cb-75e2-404c-866c-29e6c3dd7992
+
 services:
   # Social sign-in
   signIn:
