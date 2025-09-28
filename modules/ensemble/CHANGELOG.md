@@ -1,3 +1,13 @@
+## 1.2.7
+
+ - **REFACTOR**: update CdnDefinitionProvider documentation and clean up comment formatting for improved readability. ([59ae2e98](https://github.com/ensembleUI/ensemble/commit/59ae2e98ffae67e1e3d7d638d9c6fb8a3056a33e))
+ - **REFACTOR**: enhance CdnDefinitionProvider by improving error messages, simplifying asset parsing, and refining translation handling. ([f58353c9](https://github.com/ensembleUI/ensemble/commit/f58353c960eedd8eeb1f1edbe14492c54acbc59a))
+ - **REFACTOR**: update CdnDefinitionProvider to use a base URL and improve URL construction; change configuration to support CDN hosting. ([3c783cb5](https://github.com/ensembleUI/ensemble/commit/3c783cb5004a2123a8f8e448e30665fd6efa7038))
+ - **REFACTOR**: update _parseTheme method to accept a Map and improve theme data handling. ([86110ff9](https://github.com/ensembleUI/ensemble/commit/86110ff9e619e88765b04a31cde0fab2683f0b0e))
+ - **REFACTOR**: simplify lastUpdatedAt extraction in CdnDefinitionProvider. ([83f34d09](https://github.com/ensembleUI/ensemble/commit/83f34d097632009811482a2bae70902e991f3d37))
+ - **FEAT**: implement XChaCha20-Poly1305 decryption for secrets in CdnDefinitionProvider, enhancing security and payload handling. ([94ec0b19](https://github.com/ensembleUI/ensemble/commit/94ec0b1905ae903d83618c50a828238ba65f6a05))
+ - **FEAT**: add CDN definition provider. ([c1746d87](https://github.com/ensembleUI/ensemble/commit/c1746d87bd7886a6a20a087f772c5a5efd363804))
+
 ## 1.2.6
 
  - **FIX**: converted Date objects to Timestamps. ([f59d69d3](https://github.com/ensembleUI/ensemble/commit/f59d69d37154e82a7e195275def76c0f69b19da9))
