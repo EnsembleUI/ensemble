@@ -908,7 +908,7 @@ class CalendarState extends EWidgetState<EnsembleCalendar>
                       ),
                       decoration: BoxDecoration(
                         color: widget._controller.highlightColor ??
-                            Theme.of(context).primaryColor.withOpacity(0.4),
+                            Theme.of(context).primaryColor.withValues(alpha: 0.4),
                       ),
                     ),
                   );

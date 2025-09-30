@@ -176,7 +176,7 @@ class _FooterState extends EWidgetState<Footer>
           width: handleSize.width,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(handleSize.height / 2),
-            color: colors.onSurfaceVariant.withOpacity(0.4),
+            color: colors.onSurfaceVariant.withValues(alpha: 0.4),
           ),
         ),
       ),

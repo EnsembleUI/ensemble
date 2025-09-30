@@ -73,7 +73,7 @@ class EnsembleLineChartController extends Controller {
           dotData: FlDotData(show: false),
           belowBarData: BarAreaData(
               show: properties.asArea,
-              color: Color(colorValue).withOpacity(0.2)),
+              color: Color(colorValue).withValues(alpha: 0.2)),
           spots: spots));
     }
     isDirty = false;
@@ -251,7 +251,7 @@ class EnsembleLineChart extends StatefulWidget
     isStrokeCapRound: true,
     dotData: FlDotData(show: false),
     belowBarData: BarAreaData(show: true,
-        color: const Color(0xff27b6fc).withOpacity(0.5)),
+        color: const Color(0xff27b6fc).withValues(alpha: 0.5)),
     spots: const [
       FlSpot(1, 2.8),
       FlSpot(3, 1.9),

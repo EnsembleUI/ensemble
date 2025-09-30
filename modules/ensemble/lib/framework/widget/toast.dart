@@ -136,7 +136,7 @@ class ToastController {
       } else {
         // info by default
         icon = Icons.info;
-        bgColor ??= Colors.white.withOpacity(.9);
+        bgColor ??= Colors.white.withValues(alpha: .9);
       }
 
       const double closeButtonRadius = 10;

@@ -28,14 +28,14 @@ extension ThemeToolbarExtension on DevicePreviewToolBarThemeData {
           primaryColor: accentColor,
           primaryColorDark: accentColor,
           indicatorColor: accentColor,
-          highlightColor: accentColor.withOpacity(0.1),
+          highlightColor: accentColor.withValues(alpha: 0.1),
           sliderTheme: base.sliderTheme.copyWith(
             thumbColor: accentColor,
-            activeTrackColor: accentColor.withOpacity(0.7),
-            inactiveTrackColor: accentColor.withOpacity(0.12),
+            activeTrackColor: accentColor.withValues(alpha: 0.7),
+            inactiveTrackColor: accentColor.withValues(alpha: 0.12),
             activeTickMarkColor: accentColor,
             inactiveTickMarkColor: accentColor,
-            overlayColor: accentColor.withOpacity(0.12),
+            overlayColor: accentColor.withValues(alpha: 0.12),
           ),
           checkboxTheme: CheckboxThemeData(
             fillColor: WidgetStateProperty.resolveWith<Color?>(
@@ -102,11 +102,11 @@ extension ThemeToolbarExtension on DevicePreviewToolBarThemeData {
           ),
           sliderTheme: base.sliderTheme.copyWith(
             thumbColor: accentColor,
-            activeTrackColor: accentColor.withOpacity(0.7),
-            inactiveTrackColor: accentColor.withOpacity(0.12),
+            activeTrackColor: accentColor.withValues(alpha: 0.7),
+            inactiveTrackColor: accentColor.withValues(alpha: 0.12),
             activeTickMarkColor: accentColor,
             inactiveTickMarkColor: accentColor,
-            overlayColor: accentColor.withOpacity(0.12),
+            overlayColor: accentColor.withValues(alpha: 0.12),
           ),
           checkboxTheme: CheckboxThemeData(
             fillColor: WidgetStateProperty.resolveWith<Color?>(

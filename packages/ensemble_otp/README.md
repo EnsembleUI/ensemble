@@ -129,7 +129,7 @@ OtpPinField(
   otpPinFieldStyle: OtpPinFieldStyle(
     defaultFieldBorderColor: Colors.grey,
     activeFieldBorderColor: Colors.blue,
-    filledFieldBackgroundColor: Colors.blue.withOpacity(0.1),
+    filledFieldBackgroundColor: Colors.blue.withValues(alpha: 0.1),
     fieldBorderRadius: 8.0,
     fieldBorderWidth: 2.0,
   ),
