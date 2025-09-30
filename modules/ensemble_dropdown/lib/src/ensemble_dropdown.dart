@@ -1419,9 +1419,8 @@ class EnsembleDropdownState<T> extends State<EnsembleDropdown<T>>
   Rect _getRect() {
     final TextDirection? textDirection = Directionality.maybeOf(context);
     const EdgeInsetsGeometry menuMargin = EdgeInsets.zero;
-    final NavigatorState navigator = Navigator.of(context,
-        rootNavigator:
-            _dropdownStyle.isFullScreen ?? _dropdownStyle.useRootNavigator);
+    final NavigatorState navigator =
+        Navigator.of(context, rootNavigator: _dropdownStyle.useRootNavigator);
 
     final RenderBox itemBox = context.findRenderObject()! as RenderBox;
     final Rect itemRect = itemBox.localToGlobal(Offset.zero,
@@ -1462,9 +1461,8 @@ class EnsembleDropdownState<T> extends State<EnsembleDropdown<T>>
         ),
     ];
 
-    final NavigatorState navigator = Navigator.of(context,
-        rootNavigator:
-            _dropdownStyle.isFullScreen ?? _dropdownStyle.useRootNavigator);
+    final NavigatorState navigator =
+        Navigator.of(context, rootNavigator: _dropdownStyle.useRootNavigator);
     assert(_dropdownRoute == null);
     _rect.value = _getRect();
     _dropdownRoute = _DropdownRoute<T>(
