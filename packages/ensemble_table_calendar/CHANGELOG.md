@@ -1,3 +1,8 @@
+## 3.1.4
+
+* Updated to Flutter 3.35.5
+* Removed deprecated methods
+
 ## 3.1.3
 
 * Wrapped event widgets in Positioned.fill for better layout management.
