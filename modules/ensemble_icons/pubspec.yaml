@@ -35,7 +35,7 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  font_awesome_flutter: ^10.9.0
+  font_awesome_flutter: ^10.10.0
 
 dev_dependencies:
   flutter_test:
