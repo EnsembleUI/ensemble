@@ -19,7 +19,7 @@ class _WalletConnectLifecycleState extends State<WalletConnectLifecycle>
     with WidgetsBindingObserver {
   @override
   void initState() {
-    WidgetsBinding.instance?.addObserver(this);
+    WidgetsBinding.instance.addObserver(this);
     super.initState();
   }
 
@@ -42,7 +42,7 @@ class _WalletConnectLifecycleState extends State<WalletConnectLifecycle>
 
   @override
   void dispose() {
-    WidgetsBinding.instance?.removeObserver(this);
+    WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
 }
