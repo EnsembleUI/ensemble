@@ -26,14 +26,6 @@ class CdnDefinitionProvider extends DefinitionProvider {
 
   final String baseUrl = 'https://cdn.ensembleui.com/manifests/apps';
 
-  String get _lastUpdateTimeUrl {
-    return '$baseUrl/$appId/lastUpdateTime.json';
-  }
-
-  String get _manifestUrl {
-    return '$baseUrl/$appId/manifest.json';
-  }
-
   // Artifact caches
   final Map<String, dynamic> _artifactCache = {};
   final Map<String, String> _screenNameMappings = {};
@@ -49,19 +41,19 @@ class CdnDefinitionProvider extends DefinitionProvider {
   String? _etag;
   int? _lastUpdatedAt;
 
-  // Persistent cache keys
-  String get _etagKey => 'cdn_provider_etag_$appId';
-  String get _lastUpdatedAtKey => 'cdn_provider_lastUpdatedAt_$appId';
-  String get _manifestCacheKey => 'cdn_provider_manifest_$appId';
+  // Persistent cache key
+  String get _artifactCacheKey => 'cdn_provider_state_$appId';
 
   static const String _i18nPrefix = 'i18n_';
 
   @override
   Future<DefinitionProvider> init() async {
-    // Load cached state first for faster startup
     await _loadCachedState();
+    if (_artifactCache.isNotEmpty) {
+      unawaited(_refreshIfStale());
+      return this;
+    }
 
-    // Then check for updates
     await _loadManifest();
     return this;
   }
@@ -145,11 +137,14 @@ class CdnDefinitionProvider extends DefinitionProvider {
       final prefs = await SharedPreferences.getInstance();
 
       // Load cached ETag and lastUpdatedAt
-      _etag = prefs.getString(_etagKey);
-      _lastUpdatedAt = prefs.getInt(_lastUpdatedAtKey);
+      final batched = prefs.getStringList(_artifactCacheKey);
+      String? cachedManifest;
+      if (batched != null && batched.length == 3) {
+        _etag = batched[0];
+        _lastUpdatedAt = int.tryParse(batched[1]);
+        cachedManifest = batched[2];
+      }
 
-      // Try to load cached manifest
-      final cachedManifest = prefs.getString(_manifestCacheKey);
       if (cachedManifest != null && cachedManifest.isNotEmpty) {
         try {
           final root = jsonDecode(cachedManifest) as Map<String, dynamic>;
@@ -165,22 +160,24 @@ class CdnDefinitionProvider extends DefinitionProvider {
   }
 
   Future<void> _saveCachedState(String manifestJson) async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(_etagKey, _etag ?? '');
-      await prefs.setInt(_lastUpdatedAtKey, _lastUpdatedAt ?? 0);
-      await prefs.setString(_manifestCacheKey, manifestJson);
-    } catch (e) {
-      debugPrint('CdnProvider: Failed to save cached state: $e');
-    }
+    // Fire-and-forget to avoid blocking UI
+    unawaited(() async {
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        final etagVal = _etag ?? '';
+        final lastVal = (_lastUpdatedAt ?? 0).toString();
+        await prefs
+            .setStringList(_artifactCacheKey, [etagVal, lastVal, manifestJson]);
+      } catch (e) {
+        debugPrint('CdnProvider: Failed to save cached state: $e');
+      }
+    }());
   }
 
   Future<void> _clearCache() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.remove(_etagKey);
-      await prefs.remove(_lastUpdatedAtKey);
-      await prefs.remove(_manifestCacheKey);
+      await prefs.remove(_artifactCacheKey);
     } catch (e) {
       debugPrint('CdnProvider: Failed to clear cache: $e');
     }
@@ -237,7 +234,7 @@ class CdnDefinitionProvider extends DefinitionProvider {
   }
 
   Future<bool> _shouldFetchManifest() async {
-    final lastUpdateUri = Uri.parse(_lastUpdateTimeUrl);
+    final lastUpdateUri = Uri.parse('$baseUrl/$appId/lastUpdateTime.json');
 
     try {
       final resp = await http.get(lastUpdateUri);
@@ -276,7 +273,7 @@ class CdnDefinitionProvider extends DefinitionProvider {
   }
 
   Future<Map<String, Object>?> _fetchManifest({String? ifNoneMatch}) async {
-    final uri = Uri.parse(_manifestUrl);
+    final uri = Uri.parse('$baseUrl/$appId/manifest.json');
 
     final headers = <String, String>{};
     if (ifNoneMatch != null && ifNoneMatch.isNotEmpty) {
@@ -298,12 +295,19 @@ class CdnDefinitionProvider extends DefinitionProvider {
   }
 
   String? _decodePossiblyBrotli(http.Response resp) {
-    try {
-      final decompressed = brotliDecode(resp.bodyBytes);
-      return utf8.decode(decompressed);
-    } catch (_) {
-      return resp.body;
+    final enc = (resp.headers['content-encoding'] ??
+            resp.headers['Content-Encoding'] ??
+            '')
+        .toLowerCase();
+    if (enc.contains('br') || enc.contains('brotli')) {
+      try {
+        final decompressed = brotliDecode(resp.bodyBytes);
+        return utf8.decode(decompressed);
+      } catch (_) {
+        return resp.body;
+      }
     }
+    return resp.body;
   }
 
   // --------------------------------------------------------
