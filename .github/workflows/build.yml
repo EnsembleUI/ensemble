@@ -9,8 +9,8 @@ jobs:
 
     strategy:
       matrix:
-        flutter-version: ['3.32.5', '3.35.5']
-        platform: ['web', 'android']
+        flutter-version: ["3.27.2", "3.35.5"]
+        platform: ["web", "android"]
 
     steps:
       - name: Checkout Code
