@@ -68,7 +68,7 @@ class _DeviceModelPickerState extends State<DeviceModelPicker>
             ..._allPlatforms.map(
               (e) => Tab(
                 icon: TargetPlatformIcon(platform: e),
-                text: describeEnum(e),
+                text: e.name,
               ),
             ),
             const Tab(

@@ -4,7 +4,6 @@ import 'package:ensemble/framework/theme/theme_manager.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/helpers/input_wrapper.dart';
-import 'package:ensemble/widget/helpers/widgets.dart';
 import 'package:ensemble/widget/helpers/form_helper.dart';
 import 'package:ensemble/framework/action.dart' as framework;
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
@@ -49,9 +48,9 @@ class EnsembleCheckbox extends StatefulWidget
 
       // deprecated - for backward compatible
       'selectedColor': (color) =>
-          _controller.selectedColor = Utils.getColor(color),
+          _controller.activeColor = Utils.getColor(color),
       'unSelectedColor': (color) =>
-          _controller.unSelectedColor = Utils.getColor(color),
+          _controller.borderColor = Utils.getColor(color),
 
       // borderColor/fillColor is on super controller
       'activeColor': (color) => _controller.activeColor = Utils.getColor(color),
@@ -74,11 +73,6 @@ class CheckboxController extends FormFieldController {
 
   // the color when the checkbox is selected
   Color? activeColor;
-  @Deprecated("use activeColor instead")
-  Color? selectedColor;
-
-  @Deprecated("use borderColor instead")
-  Color? unSelectedColor;
 
   framework.EnsembleAction? onChange;
 }
@@ -158,11 +152,9 @@ class CheckboxState extends FormFieldWidgetState<EnsembleCheckbox> {
         theme.checkboxTheme.side?.width.toInt() ??
         2;
     Color borderColor = widget._controller.borderColor ??
-        widget._controller.unSelectedColor ??
         theme.checkboxTheme.side?.color ??
         ThemeManager().getBorderColor(context);
-    Color? activeColor =
-        widget._controller.activeColor ?? widget._controller.selectedColor;
+    Color? activeColor = widget._controller.activeColor;
 
     Widget checkbox = Checkbox(
         side: WidgetStateBorderSide.resolveWith((states) {
