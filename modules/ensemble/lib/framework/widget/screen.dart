@@ -4,17 +4,18 @@ import 'dart:math';
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/ensemble_app.dart';
 import 'package:ensemble/framework/apiproviders/api_provider.dart';
+import 'package:ensemble/framework/bindings.dart';
 import 'package:ensemble/framework/data_context.dart';
+import 'package:ensemble/framework/definition_providers/ensemble_provider.dart';
 import 'package:ensemble/framework/error_handling.dart';
-import 'package:ensemble/framework/stub/bluetooth.dart';
+import 'package:ensemble/framework/screen_tracker.dart';
 import 'package:ensemble/framework/theme/theme_loader.dart';
 import 'package:ensemble/framework/theme_manager.dart';
 import 'package:ensemble/framework/view/page_group.dart';
-import 'package:ensemble/framework/widget/error_screen.dart';
 import 'package:ensemble/framework/view/page.dart' as ensemble;
 import 'package:ensemble/page_model.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:get_it/get_it.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:yaml/yaml.dart';
 
@@ -41,6 +42,8 @@ class Screen extends StatefulWidget {
 class _ScreenState extends State<Screen> {
   late Future<ScreenDefinition> screenRequester;
   Widget? externalScreen;
+  Key _contentKey = UniqueKey();
+  ScreenPayload? _enhancedPayload; // Store enhanced payload for refresh matching
 
   @override
   void initState() {
@@ -70,6 +73,7 @@ class _ScreenState extends State<Screen> {
     return widget.screenPayload?.isExternal ?? false
         ? ExternalScreen(screen: externalScreen)
         : FutureBuilder(
+            key: _contentKey,
             future: screenRequester,
             builder: (context, snapshot) {
               // show error
@@ -92,7 +96,7 @@ class _ScreenState extends State<Screen> {
               }
 
               return APIProviders(
-                  providers: widget.apiProviders ?? {},
+                  providers: widget.apiProviders,
                   child: renderScreen(snapshot.data!));
             });
   }
@@ -100,14 +104,64 @@ class _ScreenState extends State<Screen> {
   @override
   void dispose() {
     super.dispose();
-    widget.apiProviders?.forEach((key, value) {
+    widget.apiProviders.forEach((key, value) {
       value.dispose();
     });
   }
 
+  /// Called when this screen needs to refresh due to artifact or resource updates
+  void _refreshScreen() {
+    if (kDebugMode) {
+      print('🔄 Refreshing Screen widget: ${widget.screenPayload?.screenId}/${widget.screenPayload?.screenName}');
+    }
+    setState(() {
+      // Create a new key to force FutureBuilder to rebuild completely
+      _contentKey = UniqueKey();
+      // Create a new Future to force FutureBuilder to rebuild with fresh data
+      screenRequester = widget.appProvider.getDefinition(payload: widget.screenPayload);
+    });
+  }
+
   Widget renderScreen(ScreenDefinition screenDefinition) {
+    if (kDebugMode) {
+      print('🏗️ renderScreen() called for ${widget.screenPayload?.screenName} - building PageModel');
+    }
     PageModel pageModel =
         screenDefinition.getModel(widget.screenPayload?.arguments);
+
+    // Track screen after we have the pageModel - this ensures we can check if it's a ViewGroup
+    // Only track if NOT a ViewGroup container (ViewGroup tabs track themselves)
+    if (pageModel is! PageGroupModel) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          final inViewGroup = PageGroupWidget.getScope(context) != null;
+          final isCurrentRoute = ModalRoute.of(context)?.isCurrent ?? false;
+
+          if (!inViewGroup && isCurrentRoute) {
+            final currentScreen = ScreenTracker().currentScreen;
+            final payload = widget.screenPayload;
+
+            // Only track if screen not already tracked
+            final alreadyTracked = currentScreen != null && payload != null && (
+              (payload.screenId != null && currentScreen.screenId == payload.screenId) ||
+              (payload.screenName != null && currentScreen.screenName == payload.screenName)
+            );
+
+            if (!alreadyTracked) {
+              if (kDebugMode) {
+                print('✅ Tracking from renderScreen: ${payload?.screenName}');
+              }
+              _trackScreenWithEnhancement();
+            }
+          }
+        }
+      });
+    } else {
+      if (kDebugMode) {
+        print('⏭️ Skipping tracking - PageGroupModel container (tabs will track themselves)');
+      }
+    }
+
     //here add the js code
     //widget.appProvider.definitionProvider.getAppBundle().
     // build the data context
@@ -139,8 +193,109 @@ class _ScreenState extends State<Screen> {
     return PageInitializer(
       pageModel: pageModel,
       dataContext: dataContext,
-      screenPayload: widget.screenPayload,
+      screenPayload: _enhancedPayload ?? widget.screenPayload,
     );
+  }
+
+  /// Track screen with enhancement for missing identifiers - called during initial tracking
+  void _trackScreenWithEnhancement() {
+    var payload = widget.screenPayload;
+
+    // If payload is null, try to create one for the home screen
+    if (payload == null) {
+      final homeScreenName = _findScreenNameFromDefinitionProvider();
+      if (homeScreenName != null) {
+        if (kDebugMode) {
+          print('✅ Creating payload for home screen: $homeScreenName');
+        }
+        payload = ScreenPayload(
+          screenName: homeScreenName,
+          screenId: homeScreenName,
+        );
+      } else {
+        if (kDebugMode) {
+          print('❌ Could not determine screen name for tracking (payload is null)');
+        }
+        return;
+      }
+    }
+
+    // Try to enhance the payload before tracking
+    final enhancedPayload = _createEnhancedPayload(payload);
+    _enhancedPayload = enhancedPayload;
+    ScreenTracker().trackScreenFromPayload(enhancedPayload);
+  }
+
+  /// Create an enhanced payload with proper screen identifiers when missing
+  ScreenPayload _createEnhancedPayload(ScreenPayload originalPayload) {
+    // If we already have both identifiers populated, return original payload
+    final hasCompleteIdentifiers = (originalPayload.screenId?.isNotEmpty == true) &&
+                                     (originalPayload.screenName?.isNotEmpty == true);
+    if (hasCompleteIdentifiers) {
+      return originalPayload;
+    }
+
+    // Try to find the actual screen name from provider mappings
+    final actualScreenName = _findScreenNameFromDefinitionProvider();
+
+    if (actualScreenName != null) {
+      if (kDebugMode) {
+        print('✅ Enhanced external integration with actual screen name: $actualScreenName');
+      }
+
+      // Create new payload with enhanced identifiers
+      return ScreenPayload(
+        screenId: originalPayload.screenId ?? actualScreenName,
+        screenName: actualScreenName,
+        pageType: originalPayload.pageType,
+        arguments: originalPayload.arguments,
+        isExternal: originalPayload.isExternal,
+      );
+    }
+
+    // No enhancement possible, return original payload
+    return originalPayload;
+  }
+
+
+  /// Try to find the actual screen name by checking how this screen was loaded
+  String? _findScreenNameFromDefinitionProvider() {
+    try {
+      final provider = widget.appProvider.definitionProvider;
+      if (provider is! EnsembleDefinitionProvider) return null; // Only EnsembleDefinitionProvider has access to screenNameMappings
+      final appModel = provider.appModel;
+      final payload = widget.screenPayload;
+
+      // If we have no identifiers at all, check if this is the home screen
+      if (payload?.screenId == null && payload?.screenName == null) {
+        final homeScreenName = provider.getHomeScreenName();
+        if (homeScreenName != null) return homeScreenName;
+      }
+
+      // Try to reverse-lookup the screen name from mappings using screenId
+      if (payload?.screenId != null) {
+        final foundName = appModel.screenNameMappings.entries
+            .where((entry) => entry.value == payload!.screenId)
+            .map((entry) => entry.key)
+            .firstOrNull;
+        if (foundName != null) return foundName;
+      }
+
+      // If we have a screenName, validate it exists in mappings and return it
+      if (payload?.screenName != null) {
+        final screenName = payload!.screenName!;
+        if (appModel.screenNameMappings.containsKey(screenName)) {
+          return screenName; // Confirmed it exists in mappings
+        }
+      }
+
+      return null;
+    } catch (e) {
+      if (kDebugMode) {
+        print('❌ Error accessing definition provider for screen name lookup: $e');
+      }
+      return null;
+    }
   }
 }
 
@@ -162,14 +317,98 @@ class PageInitializer extends StatefulWidget {
 
 class _PageInitializerState extends State<PageInitializer>
     with WidgetsBindingObserver {
+
+  late StreamSubscription _screenRefreshSubscription;
+  late StreamSubscription _resourceRefreshSubscription;
+  // Key used for PageGroup/Page widgets to maintain state across refreshes
+  final Key _widgetKey = UniqueKey();
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+
+    // Listen for screen refresh events
+    _screenRefreshSubscription = AppEventBus().eventBus.on<ScreenRefreshEvent>().listen((event) {
+      _handleScreenRefresh(event);
+    });
+
+    // Listen for resource refresh events (resources, theme, config, etc.)
+    _resourceRefreshSubscription = AppEventBus().eventBus.on<ResourceRefreshEvent>().listen((event) {
+      _handleResourceRefresh(event);
+    });
+
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       executeCallbacks();
     });
   }
+
+  void _handleScreenRefresh(ScreenRefreshEvent event) {
+    if (!mounted) return;
+
+    // Check if this screen matches the updated artifact
+    String? myScreenId = widget.screenPayload?.screenId;
+    String? myScreenName = widget.screenPayload?.screenName;
+
+    bool shouldRefresh = false;
+    String? matchReason;
+
+    if (myScreenId != null && myScreenId == event.screenId) {
+      shouldRefresh = true;
+      matchReason = 'Screen ID: $myScreenId';
+    } else if (myScreenName != null && myScreenName == event.screenName) {
+      shouldRefresh = true;
+      matchReason = 'Screen Name: $myScreenName';
+    } else if (widget.pageModel is PageGroupModel) {
+      // For ViewGroup screens, also refresh if any child screen is updated
+      shouldRefresh = true;
+      matchReason = 'ViewGroup container - child screen updated: ${event.screenName}';
+    }
+
+    if (shouldRefresh) {
+      if (kDebugMode) {
+        print('🔄 Screen refresh triggered for: $matchReason');
+      }
+      _refreshParentScreen();
+    } else {
+      if (kDebugMode) {
+        print('⏭️ Ignoring refresh - not for this screen (my: $myScreenId/$myScreenName, event: ${event.screenId}/${event.screenName})');
+      }
+    }
+  }
+
+  void _handleResourceRefresh(ResourceRefreshEvent event) {
+    if (!mounted) return;
+
+    // Resource refresh events affect ALL screens since resources are global
+    if (kDebugMode) {
+      print('🔄 Resource refresh triggered for artifact: ${event.artifactId} (type: ${event.artifactType}) clearCaches: ${event.clearCaches}');
+    }
+    // Clear resource caches if requested to force re-parsing
+    if (event.clearCaches) {
+      Ensemble().getConfig()?.clearResourceCaches();
+      // Also refresh AppBundle to get fresh resources from artifact cache
+      Ensemble().getConfig()?.refreshAppBundleResources();
+    }
+    // For resources, always refresh since they affect all screens
+    _refreshParentScreen();
+  }
+
+  void _refreshParentScreen() {
+    // Find the Screen widget ancestor and trigger its refresh
+    // This updates the Screen's _contentKey and screenRequester which forces a complete rebuild
+    // of the entire widget tree (FutureBuilder → PageInitializer → PageGroup/Page)
+    final screenState = context.findAncestorStateOfType<_ScreenState>();
+    if (screenState != null) {
+      screenState._refreshScreen();
+    } else {
+      if (kDebugMode) {
+        print('⚠️ Could not find parent Screen to refresh');
+      }
+    }
+  }
+
+
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) async {
@@ -182,6 +421,8 @@ class _PageInitializerState extends State<PageInitializer>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _screenRefreshSubscription.cancel();
+    _resourceRefreshSubscription.cancel();
     super.dispose();
   }
 
@@ -219,6 +460,7 @@ class _PageInitializerState extends State<PageInitializer>
       final pageModel = widget.pageModel as PageGroupModel;
 
       return PageGroup(
+          key: _widgetKey,
           pageArgs: widget.screenPayload?.arguments,
           initialDataContext: widget.dataContext,
           model: pageModel,
@@ -236,6 +478,7 @@ class _PageInitializerState extends State<PageInitializer>
         }
       }
       return ensemble.Page(
+          key: _widgetKey,
           dataContext: widget.dataContext,
           pageModel: pageModel,
 

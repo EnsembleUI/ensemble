@@ -54,6 +54,9 @@ abstract class DefinitionProvider {
 
   void onAppLifecycleStateChanged(AppLifecycleState state);
 
+  // Get the home screen name for proper refresh matching
+  String? getHomeScreenName();
+
   // build the definition model from YAML
   static DefinitionProvider from(Map rootMap) {
     if (rootMap['definitions'] != null) {

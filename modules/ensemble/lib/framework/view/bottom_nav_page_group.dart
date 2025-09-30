@@ -6,6 +6,7 @@ import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/menu.dart';
 import 'package:ensemble/framework/scope.dart';
+import 'package:ensemble/framework/screen_tracker.dart';
 import 'package:ensemble/framework/view/bottom_nav_page_view.dart';
 import 'package:ensemble/framework/view/data_scope_widget.dart';
 import 'package:ensemble/framework/view/page_group.dart';
@@ -137,6 +138,11 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup>
       floatingAlignment =
           FloatingAlignment.values.byName(fabMenuItem!.floatingAlignment);
     }
+
+    // Track the initial screen that will be shown
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _trackInitialScreen();
+    });
   }
 
   @override
@@ -163,6 +169,19 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup>
   @override
   void didPopNext() {
     // TODO: dispatch onRevisit so the child Page can execute onResume()
+  }
+
+  /// Track the initial screen when BottomNav ViewGroup loads
+  void _trackInitialScreen() {
+    if (widget.screenPayload.isNotEmpty && mounted) {
+      final initialIndex = viewGroupNotifier.viewIndex;
+      final initialPayload = widget.screenPayload[initialIndex];
+
+      ScreenTracker().trackScreenFromPayload(
+        initialPayload,
+        viewGroupIndex: initialIndex,
+      );
+    }
   }
 
   Widget? _buildFloatingButton() {
@@ -350,6 +369,18 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup>
                 PageGroupWidget.getPageController(context)!.jumpToPage(index);
                 viewGroupNotifier.updatePage(index);
               }
+
+              // Store the ViewGroup index for persistence
+              viewGroupNotifier.storeCurrentIndex();
+
+              // Track the new screen that's now visible via bottom navigation
+              final screenPayload = widget.screenPayload[index];
+              ScreenTracker().handleBottomNavChange(
+                screenPayload.screenId,
+                screenPayload.screenName,
+                arguments: screenPayload.arguments,
+                viewGroupIndex: index,
+              );
 
               _onTap(navItems[index]);
             } else {
