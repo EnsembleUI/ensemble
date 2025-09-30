@@ -347,9 +347,9 @@ class _DropdownMenuState<T> extends State<_DropdownMenu<T>> {
     super.dispose();
   }
 
-  final _states = <MaterialState>{
-    MaterialState.dragged,
-    MaterialState.hovered,
+  final _states = <WidgetState>{
+    WidgetState.dragged,
+    WidgetState.hovered,
   };
 
   bool get _isIOS => Theme.of(context).platform == TargetPlatform.iOS;
@@ -1728,10 +1728,10 @@ class EnsembleDropdownState<T> extends State<EnsembleDropdown<T>>
     }
 
     final MouseCursor effectiveMouseCursor =
-        MaterialStateProperty.resolveAs<MouseCursor>(
-      MaterialStateMouseCursor.clickable,
-      <MaterialState>{
-        if (!_enabled) MaterialState.disabled,
+        WidgetStateProperty.resolveAs<MouseCursor>(
+      WidgetStateMouseCursor.clickable,
+      <WidgetState>{
+        if (!_enabled) WidgetState.disabled,
       },
     );
 
@@ -1934,9 +1934,9 @@ class DropdownButtonFormField2<T> extends FormField<T> {
     return decoration ??
         InputDecoration(
           focusColor: buttonStyleData?.overlayColor
-              ?.resolve(<MaterialState>{MaterialState.focused}),
+              ?.resolve(<WidgetState>{WidgetState.focused}),
           hoverColor: buttonStyleData?.overlayColor
-              ?.resolve(<MaterialState>{MaterialState.hovered}),
+              ?.resolve(<WidgetState>{WidgetState.hovered}),
         );
   }
 

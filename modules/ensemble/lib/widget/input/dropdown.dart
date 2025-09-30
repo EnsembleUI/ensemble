@@ -369,8 +369,7 @@ class SelectOneState extends FormFieldWidgetState<SelectOne>
     // slightly so the dropdown is the same height as other input widgets
     EdgeInsetsGeometry? adjustedContentPadding;
     if (widget._controller.contentPadding == null) {
-      InputDecorationTheme themeDecoration =
-          Theme.of(context).inputDecorationTheme;
+      final themeDecoration = Theme.of(context).inputDecorationTheme;
       if (themeDecoration.contentPadding != null) {
         adjustedContentPadding = themeDecoration.contentPadding!
             .subtract(const EdgeInsets.only(top: 2, bottom: 3));

@@ -99,12 +99,12 @@ class Time extends StatefulWidget
     if (input == null) return null;
     return ButtonStyle(
       backgroundColor:
-          MaterialStateProperty.all(Utils.getColor(input['backgroundColor'])),
-      padding: MaterialStateProperty.all(Utils.getInsets(input['padding'])),
+          WidgetStateProperty.all(Utils.getColor(input['backgroundColor'])),
+      padding: WidgetStateProperty.all(Utils.getInsets(input['padding'])),
       textStyle:
-          MaterialStateProperty.all(Utils.getTextStyle(input['textStyle'])),
-      foregroundColor: MaterialStateProperty.all(
-          Utils.getColor(input['textStyle']['color'])),
+          WidgetStateProperty.all(Utils.getTextStyle(input['textStyle'])),
+      foregroundColor:
+          WidgetStateProperty.all(Utils.getColor(input['textStyle']['color'])),
     );
   }
 }

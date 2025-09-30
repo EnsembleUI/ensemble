@@ -129,8 +129,8 @@ class SwitchBaseState extends FormFieldWidgetState<SwitchBase> {
               widget._controller.value == SwitchState.off.name;
 
           if (switchRequiredStatus || tripleStateRequiredStatus) {
-            return Utils.translateWithFallback(
-                'ensemble.input.required', widget._controller.requiredMessage ?? 'This field is required');
+            return Utils.translateWithFallback('ensemble.input.required',
+                widget._controller.requiredMessage ?? 'This field is required');
           }
           return null;
         },
@@ -144,7 +144,8 @@ class SwitchBaseState extends FormFieldWidgetState<SwitchBase> {
                 disabledBorder: InputBorder.none,
                 focusedBorder: InputBorder.none,
                 errorText: field.errorText,
-                errorStyle: widget._controller.errorStyle ?? Theme.of(context).inputDecorationTheme.errorStyle),
+                errorStyle: widget._controller.errorStyle ??
+                    Theme.of(context).inputDecorationTheme.errorStyle),
             child: Row(
                 mainAxisAlignment: MainAxisAlignment.start, children: children),
           );
@@ -176,11 +177,11 @@ class SwitchBaseState extends FormFieldWidgetState<SwitchBase> {
   }
 
   Widget get switchWidget {
-    final MaterialStateProperty<Color?> trackColor =
-        MaterialStateProperty.resolveWith<Color?>(
-      (Set<MaterialState> states) {
+    final WidgetStateProperty<Color?> trackColor =
+        WidgetStateProperty.resolveWith<Color?>(
+      (Set<WidgetState> states) {
         // Track color when the switch is selected.
-        if (states.contains(MaterialState.selected)) {
+        if (states.contains(WidgetState.selected)) {
           return widget._controller.activeColor;
         }
 
@@ -189,11 +190,11 @@ class SwitchBaseState extends FormFieldWidgetState<SwitchBase> {
       },
     );
 
-    final MaterialStateProperty<Color?> thumbColor =
-        MaterialStateProperty.resolveWith<Color?>(
-      (Set<MaterialState> states) {
+    final WidgetStateProperty<Color?> thumbColor =
+        WidgetStateProperty.resolveWith<Color?>(
+      (Set<WidgetState> states) {
         // Thumb color when the switch is selected.
-        if (states.contains(MaterialState.selected)) {
+        if (states.contains(WidgetState.selected)) {
           return widget._controller.activeThumbColor;
         }
 
