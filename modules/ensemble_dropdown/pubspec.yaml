@@ -1,11 +1,22 @@
 name: ensemble_dropdown
-description: "Accessible Dropdown with custom styling"
-version: 0.1.0
-homepage:
+description: 'Flutter package for a customizable steady dropdown menu and many other features.'
+version: 0.1.1
+
+homepage: https://ensembleui.com
+repository: https://github.com/EnsembleUI/ensemble/tree/main/modules/ensemble_dropdown
+issue_tracker: https://github.com/EnsembleUI/ensemble/issues
+documentation: https://pub.dev/documentation/ensemble_dropdown
+
+topics:
+  - dropdown
+  - menu
+  - selection
+  - custom styling
+  - theming
 
 environment:
   sdk: ^3.5.3
-  flutter: ">=1.17.0"
+  flutter: '>=1.17.0'
 
 dependencies:
   flutter:

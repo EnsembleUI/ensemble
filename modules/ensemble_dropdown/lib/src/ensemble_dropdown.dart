@@ -918,7 +918,7 @@ class _DropdownMenuItemContainer extends StatelessWidget {
   ///
   /// The [child] argument is required.
   const _DropdownMenuItemContainer({
-    // ignore: unused_element
+    // ignore: unused_element_parameter
     super.key,
     this.alignment = AlignmentDirectional.centerStart,
     required this.child,
