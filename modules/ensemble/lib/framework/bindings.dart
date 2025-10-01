@@ -326,15 +326,13 @@ class ScreenRefreshEvent {
 class ResourceRefreshEvent {
   final String artifactId;
   final String artifactType; // 'resources', 'theme', 'config', etc.
-  final bool clearCaches; // Whether to clear parsed resource caches
   final DateTime timestamp;
 
   ResourceRefreshEvent({
     required this.artifactId,
     required this.artifactType,
-    this.clearCaches = false
   }) : timestamp = DateTime.now();
 
   @override
-  String toString() => 'ResourceRefreshEvent(artifactId: $artifactId, type: $artifactType, clearCaches: $clearCaches, time: $timestamp)';
+  String toString() => 'ResourceRefreshEvent(artifactId: $artifactId, type: $artifactType, time: $timestamp)';
 }

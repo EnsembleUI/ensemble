@@ -147,11 +147,12 @@ class EnsembleDefinitionProvider extends DefinitionProvider {
       if (kDebugMode) {
         print('📱 App Resumed - triggering refresh events and restoring screen state');
       }
-      // Fire any pending refresh events accumulated since last resume
-      appModel._firePendingRefreshEvents();
-      // Restore screen state immediately after refresh events
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _restoreVisibleScreenOnForeground();
+      // Fire any pending refresh events accumulated since last resume (async operation)
+      appModel._firePendingRefreshEvents().then((_) {
+        // Restore screen state after refresh events complete
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _restoreVisibleScreenOnForeground();
+        });
       });
       // Start timers/listeners
       if (appModel is AppModelTimerMode) {
@@ -251,22 +252,19 @@ class AppModel {
     if (envDuration != null) {
       int parsedDuration = int.parse(envDuration);
 
-      // Check if the stored duration is different from the environment variable to avoid edge case if user changes env var.
+      // Update storage to track current env value
       int? storedDuration = StorageManager().readFromSystemStorage<int>(_updateCheckDurationKey);
       if (storedDuration != parsedDuration) {
         StorageManager().writeToSystemStorage(_updateCheckDurationKey, parsedDuration);
       }
       return parsedDuration;
+    } else {
+      // No env variable - clear storage and use default
+      if (StorageManager().hasDataFromSystemStorage(_updateCheckDurationKey)) {
+        StorageManager().removeFromSystemStorage(_updateCheckDurationKey);
+      }
+      return _defaultUpdateCheckDuration;
     }
-
-    // No environment variable found - check if we have a stored value
-    int? storedDuration = StorageManager().readFromSystemStorage<int>(_updateCheckDurationKey);
-    if (storedDuration != null) {
-      return storedDuration;
-    }
-
-    StorageManager().writeToSystemStorage(_updateCheckDurationKey, _defaultUpdateCheckDuration);
-    return _defaultUpdateCheckDuration;
   }
 
   // Get the last checked time from persistent storage
@@ -333,12 +331,23 @@ class AppModel {
   }
 
   /// Fire all pending refresh events and clear the list
-  void _firePendingRefreshEvents() {
+  Future<void> _firePendingRefreshEvents() async {
     int totalEvents = _pendingRefreshEvents.length + _pendingResourceRefreshEvents.length;
     if (totalEvents == 0) return;
 
     if (kDebugMode) {
       print('🔄 Firing $totalEvents pending refresh events (${_pendingRefreshEvents.length} screen, ${_pendingResourceRefreshEvents.length} resource)...');
+    }
+
+    bool needsCacheClear = _pendingResourceRefreshEvents.any(
+      (event) => ['resources'].contains(event['artifactType'])
+    );
+
+    if (needsCacheClear) {
+      // Clear resource caches if requested to force re-parsing
+      Ensemble().getConfig()?.clearResourceCaches();
+      // Refresh AppBundle once (fetches from Firebase)
+      await Ensemble().getConfig()?.refreshAppBundleResources();
     }
 
     // Fire screen refresh events
@@ -361,16 +370,12 @@ class AppModel {
     // Fire resource refresh events
     for (var refreshEvent in _pendingResourceRefreshEvents) {
       try {
-        // Determine if we need to clear caches based on artifact type
-        bool shouldClearCaches = ['resources'].contains(refreshEvent['artifactType']);
-
         AppEventBus().eventBus.fire(ResourceRefreshEvent(
           artifactId: refreshEvent['artifactId'],
           artifactType: refreshEvent['artifactType'],
-          clearCaches: shouldClearCaches,
         ));
         if (kDebugMode) {
-          print('🎯 Fired resource refresh event for: ${refreshEvent['artifactId']} (${refreshEvent['artifactType']}) clearCaches: $shouldClearCaches');
+          print('🎯 Fired resource refresh event for: ${refreshEvent['artifactId']} (${refreshEvent['artifactType']})');
         }
       } catch (e) {
         if (kDebugMode) {

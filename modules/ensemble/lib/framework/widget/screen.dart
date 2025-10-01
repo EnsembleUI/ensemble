@@ -334,8 +334,13 @@ class _PageInitializerState extends State<PageInitializer>
     });
 
     // Listen for resource refresh events (resources, theme, config, etc.)
+    // Resources affect ALL screens, so always refresh (no condition check needed)
     _resourceRefreshSubscription = AppEventBus().eventBus.on<ResourceRefreshEvent>().listen((event) {
-      _handleResourceRefresh(event);
+      if (!mounted) return;
+      if (kDebugMode) {
+        print('🔄 Resource refresh triggered for artifact: ${event.artifactId} (type: ${event.artifactType})');
+      }
+      _refreshParentScreen();
     });
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
@@ -375,23 +380,6 @@ class _PageInitializerState extends State<PageInitializer>
         print('⏭️ Ignoring refresh - not for this screen (my: $myScreenId/$myScreenName, event: ${event.screenId}/${event.screenName})');
       }
     }
-  }
-
-  void _handleResourceRefresh(ResourceRefreshEvent event) {
-    if (!mounted) return;
-
-    // Resource refresh events affect ALL screens since resources are global
-    if (kDebugMode) {
-      print('🔄 Resource refresh triggered for artifact: ${event.artifactId} (type: ${event.artifactType}) clearCaches: ${event.clearCaches}');
-    }
-    // Clear resource caches if requested to force re-parsing
-    if (event.clearCaches) {
-      Ensemble().getConfig()?.clearResourceCaches();
-      // Also refresh AppBundle to get fresh resources from artifact cache
-      Ensemble().getConfig()?.refreshAppBundleResources();
-    }
-    // For resources, always refresh since they affect all screens
-    _refreshParentScreen();
   }
 
   void _refreshParentScreen() {
