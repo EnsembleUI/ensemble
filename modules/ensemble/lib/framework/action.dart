@@ -148,6 +148,14 @@ class NavigateViewGroupAction extends EnsembleAction {
 
     Map<String, dynamic>? payload = Utils.getMap(data?["payload"]);
 
+    Map<String, dynamic>? evaluatedPayload = Utils.getMap(data?["payload"]);
+    if (evaluatedPayload != null) {
+      evaluatedPayload = evaluatedPayload.map(
+          (key, value) => MapEntry(key, scopeManager.dataContext.eval(value)));
+    }
+
+    payload = evaluatedPayload;
+
     if (screenName != null) {
       if (viewIndex != null) {
         (payload ??= {})["viewIndex"] = viewIndex;

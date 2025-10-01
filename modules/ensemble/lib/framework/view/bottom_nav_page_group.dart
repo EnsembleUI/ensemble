@@ -1,5 +1,3 @@
-import 'dart:developer';
-
 import 'package:ensemble/action/haptic_action.dart';
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/action.dart';
@@ -7,13 +5,11 @@ import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/menu.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/view/bottom_nav_page_view.dart';
-import 'package:ensemble/framework/view/data_scope_widget.dart';
 import 'package:ensemble/framework/view/page_group.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/framework/widget/icon.dart' as ensemble;
-import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:flutter/material.dart';
 
 class BottomNavBarItem {
@@ -121,7 +117,9 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup>
       controller = PageController(initialPage: widget.selectedPage);
     }
     viewGroupNotifier.updatePage(widget.selectedPage, isReload: false);
-    menuItems = widget.menu.menuItems
+    // Filter for visible, non-floating items for display in bottom nav
+    menuItems = Menu.getVisibleMenuItems(
+            widget.scopeManager.dataContext, widget.menu.menuItems)
         .where((element) => element.floating != true)
         .toList();
     final fabItems = widget.menu.menuItems
@@ -314,9 +312,15 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup>
       builder: (context, _) {
         final viewIndex = viewGroupNotifier.viewIndex;
 
+        int selectedVisibleIndex = -1;
+        if (viewIndex >= 0 && viewIndex < widget.menu.menuItems.length) {
+          MenuItem selectedItem = widget.menu.menuItems[viewIndex];
+          selectedVisibleIndex = menuItems.indexOf(selectedItem);
+        }
+
         return EnsembleBottomAppBar(
           key: UniqueKey(),
-          selectedIndex: viewIndex,
+          selectedIndex: selectedVisibleIndex,
           backgroundColor:
               Utils.getColor(widget.menu.runtimeStyles?['backgroundColor']) ??
                   Colors.white,
@@ -340,29 +344,40 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup>
           shadowStyle: Utils.getShadowBlurStyle(
               widget.menu.runtimeStyles?['shadowStyle']),
           notchedShape: const CircularNotchedRectangle(),
-          onTabSelected: (index) {
-            final isSwitchScreen =
-                Utils.getBool(navItems[index].switchScreen, fallback: true);
-            if (isSwitchScreen) {
-              if (widget.menu.reloadView == true) {
-                viewGroupNotifier.updatePage(index);
-              } else {
-                PageGroupWidget.getPageController(context)!.jumpToPage(index);
-                viewGroupNotifier.updatePage(index);
-              }
+          onTabSelected: (visibleIndex) {
+            int actualIndex = -1;
+            if (visibleIndex >= 0 && visibleIndex < menuItems.length) {
+              MenuItem selectedItem = menuItems[visibleIndex];
+              actualIndex = widget.menu.menuItems.indexOf(selectedItem);
+            }
 
-              _onTap(navItems[index]);
-            } else {
-              // Execute only onTap action. Page switching is handled by the developer with onTap
-              _onTap(navItems[index]);
+            if (actualIndex >= 0) {
+              final isSwitchScreen = Utils.getBool(
+                  navItems[visibleIndex].switchScreen,
+                  fallback: true);
+              if (isSwitchScreen) {
+                if (widget.menu.reloadView == true) {
+                  viewGroupNotifier.updatePage(actualIndex);
+                } else {
+                  PageGroupWidget.getPageController(context)!
+                      .jumpToPage(actualIndex);
+                  viewGroupNotifier.updatePage(actualIndex);
+                }
+
+                _onTap(navItems[visibleIndex]);
+              } else {
+                _onTap(navItems[visibleIndex]);
+              }
             }
 
             // Executing haptic feedback action
-            if (navItems[index].onTapHaptic != null) {
+            if (actualIndex >= 0 &&
+                navItems[visibleIndex].onTapHaptic != null) {
               ScreenController().executeAction(
                 context,
                 HapticAction(
-                    type: navItems[index].onTapHaptic!, onComplete: null),
+                    type: navItems[visibleIndex].onTapHaptic!,
+                    onComplete: null),
               );
             }
           },
@@ -388,6 +403,7 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup>
     if (customWidgetModel != null) {
       return widget.scopeManager.buildWidget(customWidgetModel!);
     }
+    return null;
   }
 }
 
