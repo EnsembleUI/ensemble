@@ -1,3 +1,8 @@
+## 1.1.3
+
+* Updated to Flutter 3.35.5
+* Removed deprecated methods
+
 ## 1.1.2
 
 * Fixed dependency compatibility issues with Ensemble ecosystem

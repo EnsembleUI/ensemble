@@ -85,7 +85,8 @@ class RatingState extends EWidgetState<Rating> {
             widget._controller.count == 0
                 ? ''
                 : '${widget._controller.count} Reviews',
-            style: TextStyle(fontSize: 14, color: Colors.grey.withOpacity(0.8)),
+            style: TextStyle(
+                fontSize: 14, color: Colors.grey.withValues(alpha: 0.8)),
           ),
         ],
       );

@@ -33,10 +33,10 @@ class CustomRadioTile extends StatelessWidget {
     // set our inactiveColor
     var fillColorStates;
     if (controller.inactiveColor != null) {
-      fillColorStates = MaterialStateProperty.resolveWith<Color?>((states) {
-        if (states.contains(MaterialState.selected) ||
-            states.contains(MaterialState.disabled) ||
-            states.contains(MaterialState.error)) {
+      fillColorStates = WidgetStateProperty.resolveWith<Color?>((states) {
+        if (states.contains(WidgetState.selected) ||
+            states.contains(WidgetState.disabled) ||
+            states.contains(WidgetState.error)) {
           // we don't override these states
           return null;
         }

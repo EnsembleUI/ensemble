@@ -100,7 +100,7 @@ TableCalendar(
     overlayBuilder: (context, range) {
       return Container(
         decoration: BoxDecoration(
-          color: Colors.blue.withOpacity(0.3),
+          color: Colors.blue.withValues(alpha: 0.3),
           borderRadius: BorderRadius.circular(8),
         ),
         child: Center(

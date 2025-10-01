@@ -158,7 +158,7 @@ class _ChatPageState extends State<ChatPage> {
                     child: Container(
                       decoration: BoxDecoration(
                         color: widget.controller.textFieldBackgroundColor ??
-                            Colors.white.withOpacity(0.1),
+                            Colors.white.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(16),
                       ),
                       child: TextFormField(
@@ -266,7 +266,7 @@ class MessageWidget extends StatelessWidget {
                         ? BubbleAlignment.right
                         : BubbleAlignment.left,
                     color: bubbleStyle.backgroundColor ??
-                        Colors.white.withOpacity(0.15),
+                        Colors.white.withValues(alpha: 0.15),
                     textStyle: bubbleStyle.textStyle?.copyWith(
                           color: bubbleStyle.textColor,
                         ) ??

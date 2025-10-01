@@ -249,7 +249,7 @@ List<Widget> buildCustomDeviceTiles(BuildContext context) {
           (p) => ListTile(
             leading: TargetPlatformIcon(platform: p),
             title: Text(
-              describeEnum(p),
+              p.name,
             ),
             onTap: () {
               final store = context.read<DevicePreviewStore>();
@@ -274,7 +274,7 @@ List<Widget> buildCustomDeviceTiles(BuildContext context) {
               type: type,
             ),
             title: Text(
-              describeEnum(type),
+              type.name,
             ),
             onTap: () {
               final store = context.read<DevicePreviewStore>();

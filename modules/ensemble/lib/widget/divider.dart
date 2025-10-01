@@ -83,7 +83,7 @@ class DividerState extends EWidgetState<EnsembleDivider> {
         ),
         painter: DashedLinePainter(
           color: (widget._controller.color ?? const Color(0xFFD3D3D3))
-              .withOpacity(widget._controller.opacity ?? 1.0),
+              .withValues(alpha: widget._controller.opacity ?? 1.0),
           thickness: (widget._controller.thickness ?? 1).toDouble(),
           isVertical: widget._controller.direction == DirectionType.vertical,
           dashLength: widget._controller.dashLength ?? 5,
@@ -101,7 +101,7 @@ class DividerState extends EWidgetState<EnsembleDivider> {
             indent: (widget._controller.indent ?? 0).toDouble(),
             endIndent: (widget._controller.endIndent ?? 0).toDouble(),
             color: (widget._controller.color ?? const Color(0xFFD3D3D3))
-                .withOpacity(widget._controller.opacity ?? 1.0));
+                .withValues(alpha: widget._controller.opacity ?? 1.0));
         rtn = StudioDebugger()
             .assertHasBoundedHeight(rtn, "${EnsembleDivider.type} (vertical)");
       } else {
@@ -111,7 +111,7 @@ class DividerState extends EWidgetState<EnsembleDivider> {
             indent: (widget._controller.indent ?? 0).toDouble(),
             endIndent: (widget._controller.endIndent ?? 0).toDouble(),
             color: (widget._controller.color ?? const Color(0xFFD3D3D3))
-                .withOpacity(widget._controller.opacity ?? 1.0));
+                .withValues(alpha: widget._controller.opacity ?? 1.0));
         rtn = StudioDebugger().assertHasBoundedWidth(rtn, EnsembleDivider.type);
       }
     }

@@ -521,7 +521,7 @@ class _PinchToZoomState extends State<PinchToZoom>
           .clamp(0, widget.maxOverlayOpacity);
 
       return Material(
-        color: Colors.green.withOpacity(0),
+        color: Colors.green.withValues(alpha: 0),
         child: Stack(
           children: [
             Positioned.fill(

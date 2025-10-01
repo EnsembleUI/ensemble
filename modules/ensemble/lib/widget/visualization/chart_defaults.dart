@@ -58,7 +58,7 @@ mixin ChartDefaults {
   LineTouchData get lineTouchData => LineTouchData(
         handleBuiltInTouches: true,
         touchTooltipData: LineTouchTooltipData(
-          getTooltipColor: (group) => Colors.blueGrey.withOpacity(0.8),
+          getTooltipColor: (group) => Colors.blueGrey.withValues(alpha: 0.8),
         ),
       );
   FlGridData get gridData => FlGridData(show: true);

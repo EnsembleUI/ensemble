@@ -155,7 +155,7 @@ class TickMarkStyleComposite extends WidgetCompositeProperty {
 
   // Colors with defaults
   Color activeColor = Colors.white;
-  Color inactiveColor = Colors.white.withOpacity(0.5);
+  Color inactiveColor = Colors.white.withValues(alpha: 0.5);
   Color disabledActiveColor = Colors.grey.shade400;
   Color disabledInactiveColor = Colors.grey.shade300;
 
@@ -216,7 +216,7 @@ class TickMarkStyleComposite extends WidgetCompositeProperty {
         'activeColor': (value) =>
             activeColor = Utils.getColor(value) ?? Colors.white,
         'inactiveColor': (value) => inactiveColor =
-            Utils.getColor(value) ?? Colors.white.withOpacity(0.5),
+            Utils.getColor(value) ?? Colors.white.withValues(alpha: 0.5),
         'disabledActiveColor': (value) =>
             disabledActiveColor = Utils.getColor(value) ?? Colors.grey.shade400,
         'disabledInactiveColor': (value) => disabledInactiveColor =

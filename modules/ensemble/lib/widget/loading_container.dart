@@ -150,7 +150,7 @@ class LoadingContainerState extends EWidgetState<LoadingContainer> {
         [
           widget._controller.baseColor ?? const Color(0xFFEBEBF4),
           widget._controller.highlightColor ??
-              const Color(0xFFEBEBF4).withOpacity(0.3),
+              const Color(0xFFEBEBF4).withValues(alpha: 0.3),
           widget._controller.baseColor ?? const Color(0xFFEBEBF4),
         ];
 

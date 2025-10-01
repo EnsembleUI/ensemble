@@ -173,8 +173,8 @@ class ButtonState extends EWidgetState<Button> {
                 strokeWidth: 2.0,
                 valueColor: AlwaysStoppedAnimation<Color>(
                   widget._controller.labelStyle.color != null
-                      ? widget._controller.labelStyle.color!.withOpacity(0.5)
-                      : Colors.white.withOpacity(0.5),
+                      ? widget._controller.labelStyle.color!.withValues(alpha: 0.5)
+                      : Colors.white.withValues(alpha: 0.5),
                 ),
               ));
     }

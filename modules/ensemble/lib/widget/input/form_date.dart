@@ -130,7 +130,7 @@ class DateState extends FormFieldWidgetState<Date> {
                                   false
                               ? Icon(Icons.calendar_month_rounded,
                                   color:
-                                      dateTextStyle.color?.withOpacity(.5),
+                                      dateTextStyle.color?.withValues(alpha: .5),
                                   size: ThemeManager()
                                       .getInputIconSize(context)
                                       .toDouble())
