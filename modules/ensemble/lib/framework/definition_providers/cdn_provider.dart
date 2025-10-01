@@ -3,11 +3,13 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:ensemble/ensemble.dart';
+import 'package:ensemble/framework/bindings.dart';
 import 'package:ensemble/framework/definition_providers/provider.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/i18n_loader.dart';
 import 'package:ensemble/framework/widget/screen.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_i18n/flutter_i18n.dart';
 import 'package:http/http.dart' as http;
 import 'package:yaml/yaml.dart';
@@ -122,6 +124,18 @@ class CdnDefinitionProvider extends DefinitionProvider {
       .toList();
 
   @override
+  String? getHomeScreenName() {
+    // Find the screen name that maps to the homeMapping ID
+    if (_homeMapping != null) {
+      return _screenNameMappings.entries
+          .where((entry) => entry.value == _homeMapping)
+          .map((entry) => entry.key)
+          .firstOrNull;
+    }
+    return null;
+  }
+
+  @override
   void onAppLifecycleStateChanged(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       _refreshIfStale();
@@ -208,8 +222,33 @@ class CdnDefinitionProvider extends DefinitionProvider {
 
       // Save to persistent cache
       await _saveCachedState(jsonString);
+
+      // Fire global refresh event to update UI
+      _fireManifestRefreshEvent();
+
       Ensemble().notifyAppBundleChanges();
     } catch (_) {}
+  }
+
+  /// Fire a global refresh event to trigger UI updates across all screens
+  /// CDN fetches the entire manifest atomically, so we can't determine which
+  /// specific screens changed. Therefore, we fire a global refresh event that
+  /// triggers all mounted screens to refresh.
+  void _fireManifestRefreshEvent() {
+    if (kDebugMode) {
+      debugPrint('🔄 CDN Provider: Manifest updated - firing global refresh event');
+    }
+
+    // clear Ensemble's _parsedScriptCache (parsed JavaScript) as well
+    Ensemble().getConfig()?.clearResourceCaches();
+    AppEventBus().eventBus.fire(ResourceRefreshEvent(
+      artifactId: 'cdn_manifest_$appId',
+      artifactType: 'manifest',
+    ));
+
+    if (kDebugMode) {
+      debugPrint('✅ CDN Provider: Global refresh event fired, all screens will update');
+    }
   }
 
   Future<void> _loadManifest() async {
