@@ -3,6 +3,58 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## 2025-10-01
+
+### Changes
+
+---
+
+Packages with breaking changes:
+
+ - There are no breaking changes in this release.
+
+Packages with other changes:
+
+ - [`ensemble` - `v1.2.8`](#ensemble---v128)
+ - [`ensemble_stripe` - `v1.0.1`](#ensemble_stripe---v101)
+ - [`ensemble_auth` - `v1.0.1`](#ensemble_auth---v101)
+ - [`ensemble_location` - `v0.0.1+1`](#ensemble_location---v0011)
+ - [`ensemble_contacts` - `v0.0.1+1`](#ensemble_contacts---v0011)
+ - [`ensemble_chat` - `v0.0.1+1`](#ensemble_chat---v0011)
+ - [`ensemble_camera` - `v0.0.1+1`](#ensemble_camera---v0011)
+ - [`ensemble_file_manager` - `v0.0.1+1`](#ensemble_file_manager---v0011)
+ - [`ensemble_bluetooth` - `v0.0.1+1`](#ensemble_bluetooth---v0011)
+ - [`ensemble_connect` - `v0.0.1+1`](#ensemble_connect---v0011)
+ - [`ensemble_deeplink` - `v0.0.1+1`](#ensemble_deeplink---v0011)
+ - [`ensemble_network_info` - `v0.0.1+1`](#ensemble_network_info---v0011)
+
+Packages with dependency updates only:
+
+> Packages listed below depend on other packages in this workspace that have had changes. Their versions have been incremented to bump the minimum dependency versions of the packages they depend upon in this project.
+
+ - `ensemble_stripe` - `v1.0.1`
+ - `ensemble_auth` - `v1.0.1`
+ - `ensemble_location` - `v0.0.1+1`
+ - `ensemble_contacts` - `v0.0.1+1`
+ - `ensemble_chat` - `v0.0.1+1`
+ - `ensemble_camera` - `v0.0.1+1`
+ - `ensemble_file_manager` - `v0.0.1+1`
+ - `ensemble_bluetooth` - `v0.0.1+1`
+ - `ensemble_connect` - `v0.0.1+1`
+ - `ensemble_deeplink` - `v0.0.1+1`
+ - `ensemble_network_info` - `v0.0.1+1`
+
+---
+
+#### `ensemble` - `v1.2.8`
+
+ - **REFACTOR**: enhance navigation logic by evaluating payloads and improving menu item visibility handling. ([9992099b](https://github.com/ensembleUI/ensemble/commit/9992099b36504db84662eb7e2c4e51157b78d105))
+ - **REFACTOR**: update color handling in various widget files to use withValues for opacity adjustments. ([47affb3a](https://github.com/ensembleUI/ensemble/commit/47affb3a3b8e84c092c9d912b85ed8987b828e19))
+ - **REFACTOR**: update color handling in widget files to use withValues for opacity adjustments. ([562d8e9e](https://github.com/ensembleUI/ensemble/commit/562d8e9e5247d56362a783f6752a3c801016d1a6))
+ - **REFACTOR**: replace MaterialState with WidgetState in theme and widget files for improved state management. ([77ece02f](https://github.com/ensembleUI/ensemble/commit/77ece02fecf121320e5f62e042ec993e5f7fd178))
+ - **REFACTOR**: streamline caching mechanism in CdnDefinitionProvider by consolidating persistent cache keys and improving state management. ([9be858b0](https://github.com/ensembleUI/ensemble/commit/9be858b0265fc8c197c08d61d269b9bfdbd7a3ce))
+
+
 ## 2025-09-28
 
 ### Changes

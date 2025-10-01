@@ -1,3 +1,11 @@
+## 1.2.8
+
+ - **REFACTOR**: enhance navigation logic by evaluating payloads and improving menu item visibility handling. ([9992099b](https://github.com/ensembleUI/ensemble/commit/9992099b36504db84662eb7e2c4e51157b78d105))
+ - **REFACTOR**: update color handling in various widget files to use withValues for opacity adjustments. ([47affb3a](https://github.com/ensembleUI/ensemble/commit/47affb3a3b8e84c092c9d912b85ed8987b828e19))
+ - **REFACTOR**: update color handling in widget files to use withValues for opacity adjustments. ([562d8e9e](https://github.com/ensembleUI/ensemble/commit/562d8e9e5247d56362a783f6752a3c801016d1a6))
+ - **REFACTOR**: replace MaterialState with WidgetState in theme and widget files for improved state management. ([77ece02f](https://github.com/ensembleUI/ensemble/commit/77ece02fecf121320e5f62e042ec993e5f7fd178))
+ - **REFACTOR**: streamline caching mechanism in CdnDefinitionProvider by consolidating persistent cache keys and improving state management. ([9be858b0](https://github.com/ensembleUI/ensemble/commit/9be858b0265fc8c197c08d61d269b9bfdbd7a3ce))
+
 ## 1.2.7
 
  - **REFACTOR**: update CdnDefinitionProvider documentation and clean up comment formatting for improved readability. ([59ae2e98](https://github.com/ensembleUI/ensemble/commit/59ae2e98ffae67e1e3d7d638d9c6fb8a3056a33e))
