@@ -5,12 +5,12 @@ on:
 jobs:
   buildStarter:
     name: Build Starter App
-    runs-on: macos-latest
+    runs-on: ubuntu-latest
 
     strategy:
       matrix:
-        flutter-version: ['3.27.2', '3.32.5']
-        platform: ['web', 'android']
+        flutter-version: ["3.27.2", "3.35.5"]
+        platform: ["web", "android"]
 
     steps:
       - name: Checkout Code

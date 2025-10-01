@@ -554,7 +554,7 @@ class CarouselState extends EWidgetState<Carousel>
         shape: widget._controller.indicatorType == IndicatorType.rectangle
             ? BoxShape.rectangle
             : BoxShape.circle,
-        color: indicatorColor.withOpacity(selected ? 0.9 : 0.4),
+        color: indicatorColor.withValues(alpha: selected ? 0.9 : 0.4),
       ),
     );
   }

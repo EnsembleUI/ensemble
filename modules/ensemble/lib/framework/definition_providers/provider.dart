@@ -5,6 +5,7 @@ import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/definition_providers/ensemble_provider.dart';
 import 'package:ensemble/framework/definition_providers/local_provider.dart';
 import 'package:ensemble/framework/definition_providers/remote_provider.dart';
+import 'package:ensemble/framework/definition_providers/cdn_provider.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/widget/screen.dart';
 import 'package:ensemble/util/utils.dart';
@@ -24,7 +25,7 @@ enum ArtifactType {
 // the root entries of the Resource artifact
 enum ResourceArtifactEntry { Widgets, Scripts, API }
 
-enum _Provider { local, remote, ensemble }
+enum _Provider { local, remote, ensemble, cdn }
 
 /**
  * base definition provider
@@ -74,6 +75,14 @@ abstract class DefinitionProvider {
       } else if (type == _Provider.local.name ||
           type == _Provider.remote.name) {
         return FileDefinitionProvider.from(type!, definitionsMap);
+      } else if (type == _Provider.cdn.name) {
+        String? appId = definitionsMap[type]?['appId'];
+        if (appId == null) {
+          throw ConfigError("appId is required for cdn provider.");
+        }
+        return CdnDefinitionProvider(appId,
+            initialForcedLocale:
+                _localeFromString(definitionsMap[type]?['forcedLocale']));
       }
     }
     throw ConfigError(

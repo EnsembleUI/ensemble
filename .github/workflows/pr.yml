@@ -8,7 +8,7 @@ jobs:
   runUnitTest:
     name: Execute Unit/Widget tests
 
-    runs-on: macos-latest
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout Code

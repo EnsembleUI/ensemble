@@ -1,5 +1,5 @@
 definitions:
-  # where your page definitions are hosted ('local', 'remote' or 'ensemble')
+  # where your page definitions are hosted ('local', 'remote', 'ensemble', 'cdn')
   from: ensemble
 
   # for embedding definitions and assets locally with your App
@@ -53,6 +53,11 @@ definitions:
   ensemble:
     # appId can be found on Ensemble Studio. Navigate to your app, click the menu icon on top right, and copy your appId
     # here is the appId for Ensemble Kitchen sink. You can view this app under demo apps in studio.
+    appId: e24402cb-75e2-404c-866c-29e6c3dd7992
+
+  # for definitions hosted on Ensemble's CDN, simply enter your Ensemble's app id
+  # recommended for production apps
+  cdn:
     appId: e24402cb-75e2-404c-866c-29e6c3dd7992
 
 services:

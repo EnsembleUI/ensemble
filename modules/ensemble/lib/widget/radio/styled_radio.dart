@@ -23,10 +23,10 @@ class StyledRadio extends StatelessWidget {
         onChanged: onChanged,
         activeColor: activeColor,
         fillColor: inactiveColor != null
-            ? MaterialStateProperty.resolveWith<Color?>((states) {
-                if (states.contains(MaterialState.selected) ||
-                    states.contains(MaterialState.disabled) ||
-                    states.contains(MaterialState.error)) {
+            ? WidgetStateProperty.resolveWith<Color?>((states) {
+                if (states.contains(WidgetState.selected) ||
+                    states.contains(WidgetState.disabled) ||
+                    states.contains(WidgetState.error)) {
                   // we don't override these states
                   return null;
                 }

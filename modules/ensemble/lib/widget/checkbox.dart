@@ -4,7 +4,6 @@ import 'package:ensemble/framework/theme/theme_manager.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/helpers/input_wrapper.dart';
-import 'package:ensemble/widget/helpers/widgets.dart';
 import 'package:ensemble/widget/helpers/form_helper.dart';
 import 'package:ensemble/framework/action.dart' as framework;
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
@@ -49,9 +48,9 @@ class EnsembleCheckbox extends StatefulWidget
 
       // deprecated - for backward compatible
       'selectedColor': (color) =>
-          _controller.selectedColor = Utils.getColor(color),
+          _controller.activeColor = Utils.getColor(color),
       'unSelectedColor': (color) =>
-          _controller.unSelectedColor = Utils.getColor(color),
+          _controller.borderColor = Utils.getColor(color),
 
       // borderColor/fillColor is on super controller
       'activeColor': (color) => _controller.activeColor = Utils.getColor(color),
@@ -74,11 +73,6 @@ class CheckboxController extends FormFieldController {
 
   // the color when the checkbox is selected
   Color? activeColor;
-  @Deprecated("use activeColor instead")
-  Color? selectedColor;
-
-  @Deprecated("use borderColor instead")
-  Color? unSelectedColor;
 
   framework.EnsembleAction? onChange;
 }
@@ -124,23 +118,24 @@ class CheckboxState extends FormFieldWidgetState<EnsembleCheckbox> {
         key: validatorKey,
         validator: (value) {
           if (widget._controller.required && !widget._controller.value) {
-            return Utils.translateWithFallback(
-                'ensemble.input.required', widget._controller.requiredMessage ?? 'This field is required');
+            return Utils.translateWithFallback('ensemble.input.required',
+                widget._controller.requiredMessage ?? 'This field is required');
           }
           return null;
         },
         builder: (FormFieldState<bool> field) {
           return InputDecorator(
             decoration: inputDecoration.copyWith(
-                contentPadding: EdgeInsets.zero,
-                filled: false,
-                border: InputBorder.none,
-                enabledBorder: InputBorder.none,
-                disabledBorder: InputBorder.none,
-                focusedBorder: InputBorder.none,
-                errorText: field.errorText,
-                errorStyle: widget._controller.errorStyle ?? Theme.of(context).inputDecorationTheme.errorStyle,
-                ),
+              contentPadding: EdgeInsets.zero,
+              filled: false,
+              border: InputBorder.none,
+              enabledBorder: InputBorder.none,
+              disabledBorder: InputBorder.none,
+              focusedBorder: InputBorder.none,
+              errorText: field.errorText,
+              errorStyle: widget._controller.errorStyle ??
+                  Theme.of(context).inputDecorationTheme.errorStyle,
+            ),
             child: Row(
                 mainAxisAlignment: MainAxisAlignment.start,
                 crossAxisAlignment: CrossAxisAlignment.center,
@@ -157,17 +152,15 @@ class CheckboxState extends FormFieldWidgetState<EnsembleCheckbox> {
         theme.checkboxTheme.side?.width.toInt() ??
         2;
     Color borderColor = widget._controller.borderColor ??
-        widget._controller.unSelectedColor ??
         theme.checkboxTheme.side?.color ??
         ThemeManager().getBorderColor(context);
-    Color? activeColor =
-        widget._controller.activeColor ?? widget._controller.selectedColor;
+    Color? activeColor = widget._controller.activeColor;
 
     Widget checkbox = Checkbox(
-        side: MaterialStateBorderSide.resolveWith((states) {
-          if (!states.contains(MaterialState.selected) &&
-              !states.contains(MaterialState.disabled) &&
-              !states.contains(MaterialState.error)) {
+        side: WidgetStateBorderSide.resolveWith((states) {
+          if (!states.contains(WidgetState.selected) &&
+              !states.contains(WidgetState.disabled) &&
+              !states.contains(WidgetState.error)) {
             return BorderSide(
                 width: borderWidth.toDouble(), color: borderColor);
           }
@@ -182,11 +175,11 @@ class CheckboxState extends FormFieldWidgetState<EnsembleCheckbox> {
                     width: borderWidth.toDouble(), color: borderColor)),
         activeColor: activeColor,
         checkColor: widget._controller.checkColor,
-        fillColor: MaterialStateProperty.resolveWith<Color?>(
-            (Set<MaterialState> states) {
-          if (states.contains(MaterialState.selected) ||
-              states.contains(MaterialState.error) ||
-              states.contains(MaterialState.disabled)) {
+        fillColor:
+            WidgetStateProperty.resolveWith<Color?>((Set<WidgetState> states) {
+          if (states.contains(WidgetState.selected) ||
+              states.contains(WidgetState.error) ||
+              states.contains(WidgetState.disabled)) {
             return null;
           }
           return widget._controller.fillColor;

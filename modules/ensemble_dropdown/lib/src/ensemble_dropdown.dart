@@ -347,9 +347,9 @@ class _DropdownMenuState<T> extends State<_DropdownMenu<T>> {
     super.dispose();
   }
 
-  final _states = <MaterialState>{
-    MaterialState.dragged,
-    MaterialState.hovered,
+  final _states = <WidgetState>{
+    WidgetState.dragged,
+    WidgetState.hovered,
   };
 
   bool get _isIOS => Theme.of(context).platform == TargetPlatform.iOS;
@@ -918,7 +918,7 @@ class _DropdownMenuItemContainer extends StatelessWidget {
   ///
   /// The [child] argument is required.
   const _DropdownMenuItemContainer({
-    // ignore: unused_element
+    // ignore: unused_element_parameter
     super.key,
     this.alignment = AlignmentDirectional.centerStart,
     required this.child,
@@ -1419,9 +1419,8 @@ class EnsembleDropdownState<T> extends State<EnsembleDropdown<T>>
   Rect _getRect() {
     final TextDirection? textDirection = Directionality.maybeOf(context);
     const EdgeInsetsGeometry menuMargin = EdgeInsets.zero;
-    final NavigatorState navigator = Navigator.of(context,
-        rootNavigator:
-            _dropdownStyle.isFullScreen ?? _dropdownStyle.useRootNavigator);
+    final NavigatorState navigator =
+        Navigator.of(context, rootNavigator: _dropdownStyle.useRootNavigator);
 
     final RenderBox itemBox = context.findRenderObject()! as RenderBox;
     final Rect itemRect = itemBox.localToGlobal(Offset.zero,
@@ -1462,9 +1461,8 @@ class EnsembleDropdownState<T> extends State<EnsembleDropdown<T>>
         ),
     ];
 
-    final NavigatorState navigator = Navigator.of(context,
-        rootNavigator:
-            _dropdownStyle.isFullScreen ?? _dropdownStyle.useRootNavigator);
+    final NavigatorState navigator =
+        Navigator.of(context, rootNavigator: _dropdownStyle.useRootNavigator);
     assert(_dropdownRoute == null);
     _rect.value = _getRect();
     _dropdownRoute = _DropdownRoute<T>(
@@ -1728,10 +1726,10 @@ class EnsembleDropdownState<T> extends State<EnsembleDropdown<T>>
     }
 
     final MouseCursor effectiveMouseCursor =
-        MaterialStateProperty.resolveAs<MouseCursor>(
-      MaterialStateMouseCursor.clickable,
-      <MaterialState>{
-        if (!_enabled) MaterialState.disabled,
+        WidgetStateProperty.resolveAs<MouseCursor>(
+      WidgetStateMouseCursor.clickable,
+      <WidgetState>{
+        if (!_enabled) WidgetState.disabled,
       },
     );
 
@@ -1934,9 +1932,9 @@ class DropdownButtonFormField2<T> extends FormField<T> {
     return decoration ??
         InputDecoration(
           focusColor: buttonStyleData?.overlayColor
-              ?.resolve(<MaterialState>{MaterialState.focused}),
+              ?.resolve(<WidgetState>{WidgetState.focused}),
           hoverColor: buttonStyleData?.overlayColor
-              ?.resolve(<MaterialState>{MaterialState.hovered}),
+              ?.resolve(<WidgetState>{WidgetState.hovered}),
         );
   }
 

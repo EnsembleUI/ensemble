@@ -349,7 +349,7 @@ class CircleButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return CircleAvatar(
-      backgroundColor: Colors.white.withOpacity(.5),
+      backgroundColor: Colors.white.withValues(alpha: .5),
       radius: 17,
       child: IconButton(
         padding: EdgeInsets.zero,

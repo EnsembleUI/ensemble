@@ -1,3 +1,8 @@
+## [1.0.3] - Updated to Flutter 3.35.5
+
+* Updated to Flutter 3.35.5
+* Rmoved deprecated methods
+
 ## [1.0.2] - iOS Build Fixes
 
 * Fixed iOS build errors related to Swift header imports

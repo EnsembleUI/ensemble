@@ -46,6 +46,6 @@ class OverlayStyleComposite extends WidgetCompositeProperty {
 
   Color? getOverlayColor() {
     if (color == null) return null;
-    return color!.withOpacity(opacity);
+    return color!.withValues(alpha: opacity);
   }
 }

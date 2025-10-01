@@ -3,6 +3,161 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## 2025-10-01
+
+### Changes
+
+---
+
+Packages with breaking changes:
+
+ - There are no breaking changes in this release.
+
+Packages with other changes:
+
+ - [`ensemble` - `v1.2.8`](#ensemble---v128)
+ - [`ensemble_stripe` - `v1.0.1`](#ensemble_stripe---v101)
+ - [`ensemble_auth` - `v1.0.1`](#ensemble_auth---v101)
+ - [`ensemble_location` - `v0.0.1+1`](#ensemble_location---v0011)
+ - [`ensemble_contacts` - `v0.0.1+1`](#ensemble_contacts---v0011)
+ - [`ensemble_chat` - `v0.0.1+1`](#ensemble_chat---v0011)
+ - [`ensemble_camera` - `v0.0.1+1`](#ensemble_camera---v0011)
+ - [`ensemble_file_manager` - `v0.0.1+1`](#ensemble_file_manager---v0011)
+ - [`ensemble_bluetooth` - `v0.0.1+1`](#ensemble_bluetooth---v0011)
+ - [`ensemble_connect` - `v0.0.1+1`](#ensemble_connect---v0011)
+ - [`ensemble_deeplink` - `v0.0.1+1`](#ensemble_deeplink---v0011)
+ - [`ensemble_network_info` - `v0.0.1+1`](#ensemble_network_info---v0011)
+
+Packages with dependency updates only:
+
+> Packages listed below depend on other packages in this workspace that have had changes. Their versions have been incremented to bump the minimum dependency versions of the packages they depend upon in this project.
+
+ - `ensemble_stripe` - `v1.0.1`
+ - `ensemble_auth` - `v1.0.1`
+ - `ensemble_location` - `v0.0.1+1`
+ - `ensemble_contacts` - `v0.0.1+1`
+ - `ensemble_chat` - `v0.0.1+1`
+ - `ensemble_camera` - `v0.0.1+1`
+ - `ensemble_file_manager` - `v0.0.1+1`
+ - `ensemble_bluetooth` - `v0.0.1+1`
+ - `ensemble_connect` - `v0.0.1+1`
+ - `ensemble_deeplink` - `v0.0.1+1`
+ - `ensemble_network_info` - `v0.0.1+1`
+
+---
+
+#### `ensemble` - `v1.2.8`
+
+ - **REFACTOR**: enhance navigation logic by evaluating payloads and improving menu item visibility handling. ([9992099b](https://github.com/ensembleUI/ensemble/commit/9992099b36504db84662eb7e2c4e51157b78d105))
+ - **REFACTOR**: update color handling in various widget files to use withValues for opacity adjustments. ([47affb3a](https://github.com/ensembleUI/ensemble/commit/47affb3a3b8e84c092c9d912b85ed8987b828e19))
+ - **REFACTOR**: update color handling in widget files to use withValues for opacity adjustments. ([562d8e9e](https://github.com/ensembleUI/ensemble/commit/562d8e9e5247d56362a783f6752a3c801016d1a6))
+ - **REFACTOR**: replace MaterialState with WidgetState in theme and widget files for improved state management. ([77ece02f](https://github.com/ensembleUI/ensemble/commit/77ece02fecf121320e5f62e042ec993e5f7fd178))
+ - **REFACTOR**: streamline caching mechanism in CdnDefinitionProvider by consolidating persistent cache keys and improving state management. ([9be858b0](https://github.com/ensembleUI/ensemble/commit/9be858b0265fc8c197c08d61d269b9bfdbd7a3ce))
+
+
+## 2025-09-28
+
+### Changes
+
+---
+
+Packages with breaking changes:
+
+ - There are no breaking changes in this release.
+
+Packages with other changes:
+
+ - [`ensemble` - `v1.2.7`](#ensemble---v127)
+ - [`ensemble_stripe` - `v1.0.1`](#ensemble_stripe---v101)
+ - [`ensemble_chat` - `v0.0.1+1`](#ensemble_chat---v0011)
+ - [`ensemble_camera` - `v0.0.1+1`](#ensemble_camera---v0011)
+ - [`ensemble_location` - `v0.0.1+1`](#ensemble_location---v0011)
+ - [`ensemble_file_manager` - `v0.0.1+1`](#ensemble_file_manager---v0011)
+ - [`ensemble_network_info` - `v0.0.1+1`](#ensemble_network_info---v0011)
+ - [`ensemble_contacts` - `v0.0.1+1`](#ensemble_contacts---v0011)
+ - [`ensemble_deeplink` - `v0.0.1+1`](#ensemble_deeplink---v0011)
+ - [`ensemble_bluetooth` - `v0.0.1+1`](#ensemble_bluetooth---v0011)
+ - [`ensemble_connect` - `v0.0.1+1`](#ensemble_connect---v0011)
+ - [`ensemble_auth` - `v1.0.1`](#ensemble_auth---v101)
+
+Packages with dependency updates only:
+
+> Packages listed below depend on other packages in this workspace that have had changes. Their versions have been incremented to bump the minimum dependency versions of the packages they depend upon in this project.
+
+ - `ensemble_stripe` - `v1.0.1`
+ - `ensemble_chat` - `v0.0.1+1`
+ - `ensemble_camera` - `v0.0.1+1`
+ - `ensemble_location` - `v0.0.1+1`
+ - `ensemble_file_manager` - `v0.0.1+1`
+ - `ensemble_network_info` - `v0.0.1+1`
+ - `ensemble_contacts` - `v0.0.1+1`
+ - `ensemble_deeplink` - `v0.0.1+1`
+ - `ensemble_bluetooth` - `v0.0.1+1`
+ - `ensemble_connect` - `v0.0.1+1`
+ - `ensemble_auth` - `v1.0.1`
+
+---
+
+#### `ensemble` - `v1.2.7`
+
+ - **REFACTOR**: update CdnDefinitionProvider documentation and clean up comment formatting for improved readability. ([59ae2e98](https://github.com/ensembleUI/ensemble/commit/59ae2e98ffae67e1e3d7d638d9c6fb8a3056a33e))
+ - **REFACTOR**: enhance CdnDefinitionProvider by improving error messages, simplifying asset parsing, and refining translation handling. ([f58353c9](https://github.com/ensembleUI/ensemble/commit/f58353c960eedd8eeb1f1edbe14492c54acbc59a))
+ - **REFACTOR**: update CdnDefinitionProvider to use a base URL and improve URL construction; change configuration to support CDN hosting. ([3c783cb5](https://github.com/ensembleUI/ensemble/commit/3c783cb5004a2123a8f8e448e30665fd6efa7038))
+ - **REFACTOR**: update _parseTheme method to accept a Map and improve theme data handling. ([86110ff9](https://github.com/ensembleUI/ensemble/commit/86110ff9e619e88765b04a31cde0fab2683f0b0e))
+ - **REFACTOR**: simplify lastUpdatedAt extraction in CdnDefinitionProvider. ([83f34d09](https://github.com/ensembleUI/ensemble/commit/83f34d097632009811482a2bae70902e991f3d37))
+ - **FEAT**: implement XChaCha20-Poly1305 decryption for secrets in CdnDefinitionProvider, enhancing security and payload handling. ([94ec0b19](https://github.com/ensembleUI/ensemble/commit/94ec0b1905ae903d83618c50a828238ba65f6a05))
+ - **FEAT**: add CDN definition provider. ([c1746d87](https://github.com/ensembleUI/ensemble/commit/c1746d87bd7886a6a20a087f772c5a5efd363804))
+
+
+## 2025-09-22
+
+### Changes
+
+---
+
+Packages with breaking changes:
+
+ - There are no breaking changes in this release.
+
+Packages with other changes:
+
+ - [`ensemble` - `v1.2.6`](#ensemble---v126)
+ - [`ensemble_chat` - `v0.0.1+1`](#ensemble_chat---v0011)
+ - [`ensemble_stripe` - `v1.0.1`](#ensemble_stripe---v101)
+ - [`ensemble_contacts` - `v0.0.1+1`](#ensemble_contacts---v0011)
+ - [`ensemble_connect` - `v0.0.1+1`](#ensemble_connect---v0011)
+ - [`ensemble_camera` - `v0.0.1+1`](#ensemble_camera---v0011)
+ - [`ensemble_auth` - `v1.0.1`](#ensemble_auth---v101)
+ - [`ensemble_location` - `v0.0.1+1`](#ensemble_location---v0011)
+ - [`ensemble_file_manager` - `v0.0.1+1`](#ensemble_file_manager---v0011)
+ - [`ensemble_bluetooth` - `v0.0.1+1`](#ensemble_bluetooth---v0011)
+ - [`ensemble_network_info` - `v0.0.1+1`](#ensemble_network_info---v0011)
+ - [`ensemble_deeplink` - `v0.0.1+1`](#ensemble_deeplink---v0011)
+
+Packages with dependency updates only:
+
+> Packages listed below depend on other packages in this workspace that have had changes. Their versions have been incremented to bump the minimum dependency versions of the packages they depend upon in this project.
+
+ - `ensemble_chat` - `v0.0.1+1`
+ - `ensemble_stripe` - `v1.0.1`
+ - `ensemble_contacts` - `v0.0.1+1`
+ - `ensemble_connect` - `v0.0.1+1`
+ - `ensemble_camera` - `v0.0.1+1`
+ - `ensemble_auth` - `v1.0.1`
+ - `ensemble_location` - `v0.0.1+1`
+ - `ensemble_file_manager` - `v0.0.1+1`
+ - `ensemble_bluetooth` - `v0.0.1+1`
+ - `ensemble_network_info` - `v0.0.1+1`
+ - `ensemble_deeplink` - `v0.0.1+1`
+
+---
+
+#### `ensemble` - `v1.2.6`
+
+ - **FIX**: converted Date objects to Timestamps. ([f59d69d3](https://github.com/ensembleUI/ensemble/commit/f59d69d37154e82a7e195275def76c0f69b19da9))
+ - **FEAT**: added firebase analytics rest of unsupported functions. ([04f34898](https://github.com/ensembleUI/ensemble/commit/04f34898dd4a033a130084c0656b769de99e20f1))
+
+
 ## 2025-09-05
 
 ### Changes

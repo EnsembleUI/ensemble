@@ -135,8 +135,7 @@ abstract class FormFieldWidgetState<W extends HasController>
     if (widget.controller is FormFieldController) {
       FormFieldController myController =
           widget.controller as FormFieldController;
-      InputDecorationTheme themeDecoration =
-          Theme.of(context).inputDecorationTheme;
+      final themeDecoration = Theme.of(context).inputDecorationTheme;
 
       // if the theme has fill color, we don't want to disable that just because
       // the user doesn't manually override the fill color here. Make sure it is

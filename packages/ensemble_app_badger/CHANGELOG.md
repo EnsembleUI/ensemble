@@ -1,4 +1,7 @@
 
+## [1.6.2]
+
+* Added documentation for the plugin
 
 ## [1.6.1]
 

@@ -122,7 +122,9 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup>
       controller = PageController(initialPage: widget.selectedPage);
     }
     viewGroupNotifier.updatePage(widget.selectedPage, isReload: false);
-    menuItems = widget.menu.menuItems
+    // Filter for visible, non-floating items for display in bottom nav
+    menuItems = Menu.getVisibleMenuItems(
+            widget.scopeManager.dataContext, widget.menu.menuItems)
         .where((element) => element.floating != true)
         .toList();
     final fabItems = widget.menu.menuItems
@@ -333,9 +335,15 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup>
       builder: (context, _) {
         final viewIndex = viewGroupNotifier.viewIndex;
 
+        int selectedVisibleIndex = -1;
+        if (viewIndex >= 0 && viewIndex < widget.menu.menuItems.length) {
+          MenuItem selectedItem = widget.menu.menuItems[viewIndex];
+          selectedVisibleIndex = menuItems.indexOf(selectedItem);
+        }
+
         return EnsembleBottomAppBar(
           key: UniqueKey(),
-          selectedIndex: viewIndex,
+          selectedIndex: selectedVisibleIndex,
           backgroundColor:
               Utils.getColor(widget.menu.runtimeStyles?['backgroundColor']) ??
                   Colors.white,
@@ -359,41 +367,52 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup>
           shadowStyle: Utils.getShadowBlurStyle(
               widget.menu.runtimeStyles?['shadowStyle']),
           notchedShape: const CircularNotchedRectangle(),
-          onTabSelected: (index) {
-            final isSwitchScreen =
-                Utils.getBool(navItems[index].switchScreen, fallback: true);
-            if (isSwitchScreen) {
-              if (widget.menu.reloadView == true) {
-                viewGroupNotifier.updatePage(index);
+          onTabSelected: (visibleIndex) {
+            int actualIndex = -1;
+            if (visibleIndex >= 0 && visibleIndex < menuItems.length) {
+              MenuItem selectedItem = menuItems[visibleIndex];
+              actualIndex = widget.menu.menuItems.indexOf(selectedItem);
+            }
+
+            if (actualIndex >= 0) {
+              final isSwitchScreen = Utils.getBool(
+                  navItems[visibleIndex].switchScreen,
+                  fallback: true);
+              if (isSwitchScreen) {
+                if (widget.menu.reloadView == true) {
+                  viewGroupNotifier.updatePage(actualIndex);
+                } else {
+                  PageGroupWidget.getPageController(context)!
+                      .jumpToPage(actualIndex);
+                  viewGroupNotifier.updatePage(actualIndex);
+                }
+
+                 // Store the ViewGroup index for persistence
+                viewGroupNotifier.storeCurrentIndex();
+
+                // Track the new screen that's now visible via bottom navigation
+                final screenPayload = widget.screenPayload[actualIndex];
+                ScreenTracker().handleBottomNavChange(
+                  screenPayload.screenId,
+                  screenPayload.screenName,
+                  arguments: screenPayload.arguments,
+                  viewGroupIndex: actualIndex,
+                );
+
+                _onTap(navItems[visibleIndex]);
               } else {
-                PageGroupWidget.getPageController(context)!.jumpToPage(index);
-                viewGroupNotifier.updatePage(index);
+                _onTap(navItems[visibleIndex]);
               }
-
-              // Store the ViewGroup index for persistence
-              viewGroupNotifier.storeCurrentIndex();
-
-              // Track the new screen that's now visible via bottom navigation
-              final screenPayload = widget.screenPayload[index];
-              ScreenTracker().handleBottomNavChange(
-                screenPayload.screenId,
-                screenPayload.screenName,
-                arguments: screenPayload.arguments,
-                viewGroupIndex: index,
-              );
-
-              _onTap(navItems[index]);
-            } else {
-              // Execute only onTap action. Page switching is handled by the developer with onTap
-              _onTap(navItems[index]);
             }
 
             // Executing haptic feedback action
-            if (navItems[index].onTapHaptic != null) {
+            if (actualIndex >= 0 &&
+                navItems[visibleIndex].onTapHaptic != null) {
               ScreenController().executeAction(
                 context,
                 HapticAction(
-                    type: navItems[index].onTapHaptic!, onComplete: null),
+                    type: navItems[visibleIndex].onTapHaptic!,
+                    onComplete: null),
               );
             }
           },
@@ -419,6 +438,7 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup>
     if (customWidgetModel != null) {
       return widget.scopeManager.buildWidget(customWidgetModel!);
     }
+    return null;
   }
 }
 

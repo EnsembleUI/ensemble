@@ -775,7 +775,7 @@ class CameraState extends EWidgetState<Camera> with WidgetsBindingObserver {
                     ),
                     const SizedBox(height: 8),
                     Container(
-                        color: Colors.black.withOpacity(0.4),
+                        color: Colors.black.withValues(alpha: 0.4),
                         child: mediaThumbnail(isBorderView: true)),
                   ],
                 ),
@@ -844,7 +844,7 @@ class CameraState extends EWidgetState<Camera> with WidgetsBindingObserver {
                 height: 82.0,
                 decoration: BoxDecoration(
                   color: file.getMediaType() == MediaType.video
-                      ? Colors.black.withOpacity(0.3)
+                      ? Colors.black.withValues(alpha: 0.3)
                       : Colors.transparent,
                   border: isBorderView
                       ? currentIndex == index
@@ -925,7 +925,7 @@ class CameraState extends EWidgetState<Camera> with WidgetsBindingObserver {
 
   Widget cameraButton() {
     return Container(
-      color: Colors.black.withOpacity(0.4),
+      color: Colors.black.withValues(alpha: 0.4),
       child: Padding(
         padding: const EdgeInsets.all(15.0),
         child: Column(
@@ -943,7 +943,7 @@ class CameraState extends EWidgetState<Camera> with WidgetsBindingObserver {
                                 widget._controller.imagePickerIcon!)
                             : Icon(Icons.photo_size_select_actual_outlined,
                                 size: iconSize, color: iconColor),
-                        backgroundColor: Colors.white.withOpacity(0.1),
+                        backgroundColor: Colors.white.withValues(alpha: 0.1),
                         onPressed: selectImage,
                       )
                     : SizedBox(width: iconSize * 2, height: iconSize * 2),
@@ -985,7 +985,7 @@ class CameraState extends EWidgetState<Camera> with WidgetsBindingObserver {
                                 size: iconSize,
                                 color: iconColor,
                               ),
-                        backgroundColor: Colors.white.withOpacity(0.1),
+                        backgroundColor: Colors.white.withValues(alpha: 0.1),
                         onPressed: () async {
                           try {
                             if (cameras.length <= 1) return;
@@ -1325,7 +1325,7 @@ class CameraState extends EWidgetState<Camera> with WidgetsBindingObserver {
         children: [
           buttons(
             icon: Icon(Icons.close, size: iconSize, color: iconColor),
-            backgroundColor: Colors.white.withOpacity(0.1),
+            backgroundColor: Colors.white.withValues(alpha: 0.1),
             onPressed: () {
               widget._controller.cameraController?.pausePreview();
               Navigator.pop(context, widget._controller.files);
@@ -1716,7 +1716,7 @@ class _InlineVideoPlayerState extends State<InlineVideoPlayer> {
           VideoPlayer(playerController),
           Center(
               child: CircleAvatar(
-                  backgroundColor: Colors.white.withOpacity(.5),
+                  backgroundColor: Colors.white.withValues(alpha: .5),
                   radius: 17,
                   child: IconButton(
                       padding: EdgeInsets.zero,

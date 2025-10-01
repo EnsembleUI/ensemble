@@ -105,7 +105,7 @@ class SignInWithAppleState extends EWidgetState<SignInWithAppleImpl> {
       return IgnorePointer(
           child: Stack(children: [
         button,
-        Positioned.fill(child: Container(color: Colors.grey.withOpacity(0.7)))
+        Positioned.fill(child: Container(color: Colors.grey.withValues(alpha: 0.7)))
       ]));
     }
     return button;

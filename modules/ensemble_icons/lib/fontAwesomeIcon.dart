@@ -1936,7 +1936,6 @@ class FontAwesome {
     'vaadin': FontAwesomeIcons.vaadin,
     'vanShuttle': FontAwesomeIcons.vanShuttle,
     'vault': FontAwesomeIcons.vault,
-    'vectorSquare': FontAwesomeIcons.vectorSquare,
     'venus': FontAwesomeIcons.venus,
     'venusDouble': FontAwesomeIcons.venusDouble,
     'venusMars': FontAwesomeIcons.venusMars,

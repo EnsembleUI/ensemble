@@ -81,9 +81,9 @@ class DesignSystem {
   static Color disableColor = const Color(0xFFBDBDBD);
 
   static Color successColor = const Color(0xFF009966);
-  static Color successBackgroundColor = successColor.withOpacity(.26);
+  static Color successBackgroundColor = successColor.withValues(alpha: .26);
   static Color warningColor = const Color(0xFFFFBE0A);
-  static Color warningBackgroundColor = warningColor.withOpacity(.26);
+  static Color warningBackgroundColor = warningColor.withValues(alpha: .26);
   static Color errorColor = const Color(0xFFE00909);
-  static Color errorBackgroundColor = errorColor.withOpacity(.26);
+  static Color errorBackgroundColor = errorColor.withValues(alpha: .26);
 }

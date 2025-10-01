@@ -456,17 +456,17 @@ mixin ThemeLoader {
     int borderWidth = Utils.optionalInt(input?['borderWidth'], min: 0) ?? 2;
 
     var checkboxTheme = CheckboxThemeData(
-      side: MaterialStateBorderSide.resolveWith((states) {
-        if (states.contains(MaterialState.disabled)) {
+      side: WidgetStateBorderSide.resolveWith((states) {
+        if (states.contains(WidgetState.disabled)) {
           return BorderSide(
               width: borderWidth.toDouble(), color: DesignSystem.disableColor);
         }
-        if (states.contains(MaterialState.error)) {
+        if (states.contains(WidgetState.error)) {
           return BorderSide(
               width: borderWidth.toDouble(),
               color: DesignSystem.inputErrorColor);
         }
-        if (!states.contains(MaterialState.selected)) {
+        if (!states.contains(WidgetState.selected)) {
           return BorderSide(width: borderWidth.toDouble(), color: borderColor);
         }
         // use default
@@ -474,32 +474,29 @@ mixin ThemeLoader {
       }),
       shape: RoundedRectangleBorder(
           borderRadius:
-          Utils.getBorderRadius(input?['borderRadius'])?.getValue() ??
-              BorderRadius.circular(4)),
+              Utils.getBorderRadius(input?['borderRadius'])?.getValue() ??
+                  BorderRadius.circular(4)),
       checkColor: checkColor == null
           ? null
-          : MaterialStateProperty.resolveWith<Color?>(
-              (Set<MaterialState> states) {
-            if (states.contains(MaterialState.disabled)) {
-              return DesignSystem.disableColor;
-            }
-            return states.contains(MaterialState.selected)
-                ? checkColor
-                : null;
-          }),
-      fillColor: MaterialStateProperty.resolveWith<Color?>(
-              (Set<MaterialState> states) {
-            if (states.contains(MaterialState.selected)) {
-              return activeColor;
-            }
-            // use the default color
-            if (states.contains(MaterialState.error) ||
-                states.contains(MaterialState.disabled)) {
-              return null;
-            }
-            // fillColor if specified should be the same for most states
-            return fillColor;
-          }),
+          : WidgetStateProperty.resolveWith<Color?>((Set<WidgetState> states) {
+              if (states.contains(WidgetState.disabled)) {
+                return DesignSystem.disableColor;
+              }
+              return states.contains(WidgetState.selected) ? checkColor : null;
+            }),
+      fillColor:
+          WidgetStateProperty.resolveWith<Color?>((Set<WidgetState> states) {
+        if (states.contains(WidgetState.selected)) {
+          return activeColor;
+        }
+        // use the default color
+        if (states.contains(WidgetState.error) ||
+            states.contains(WidgetState.disabled)) {
+          return null;
+        }
+        // fillColor if specified should be the same for most states
+        return fillColor;
+      }),
     );
     checkboxTheme.size = Utils.optionalInt(input?["size"]);
     return checkboxTheme;

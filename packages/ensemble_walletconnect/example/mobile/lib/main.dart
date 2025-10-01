@@ -73,7 +73,7 @@ class _MyHomePageState extends State<MyHomePage> {
                   child: Padding(
                     padding: const EdgeInsets.only(left: 8),
                     child: Text('Select network: ',
-                        style: Theme.of(context).textTheme.headline6),
+                        style: Theme.of(context).textTheme.titleLarge),
                   ),
                 ),
                 Padding(
@@ -103,11 +103,11 @@ class _MyHomePageState extends State<MyHomePage> {
                           ),
                           child: Text(
                             'Click on the button below to transfer ${_network == NetworkType.ethereum ? '0.0001 Eth from Ethereum' : '0.0001 Algo from the Algorand'} account connected through WalletConnect to the same account.',
-                            style: Theme.of(context).textTheme.headline6,
+                            style: Theme.of(context).textTheme.titleLarge,
                             textAlign: TextAlign.center,
                           ),
                         )
-                      : QrImage(data: _displayUri),
+                      : QrImageView(data: _displayUri),
                   ElevatedButton(
                     onPressed:
                         _transactionStateToAction(context, state: _state),
