@@ -138,18 +138,9 @@ class _ScreenState extends State<Screen> {
           final isCurrentRoute = ModalRoute.of(context)?.isCurrent ?? false;
 
           if (!inViewGroup && isCurrentRoute) {
-            final currentScreen = ScreenTracker().currentScreen;
-            final payload = widget.screenPayload;
-
-            // Only track if screen not already tracked
-            final alreadyTracked = currentScreen != null && payload != null && (
-              (payload.screenId != null && currentScreen.screenId == payload.screenId) ||
-              (payload.screenName != null && currentScreen.screenName == payload.screenName)
-            );
-
-            if (!alreadyTracked) {
+            if (!_isScreenAlreadyTracked()) {
               if (kDebugMode) {
-                print('✅ Tracking from renderScreen: ${payload?.screenName}');
+                print('✅ Tracking from renderScreen: ${widget.screenPayload?.screenName ?? "home screen"}');
               }
               _trackScreenWithEnhancement();
             }
@@ -195,6 +186,23 @@ class _ScreenState extends State<Screen> {
       dataContext: dataContext,
       screenPayload: _enhancedPayload ?? widget.screenPayload,
     );
+  }
+
+  /// Check if the current screen is already being tracked
+  bool _isScreenAlreadyTracked() {
+    final currentScreen = ScreenTracker().currentScreen;
+    if (currentScreen == null) return false;
+
+    // Check against enhanced payload first (for home screens)
+    final payload = _enhancedPayload ?? widget.screenPayload;
+    if (payload != null) {
+      return (payload.screenId != null && currentScreen.screenId == payload.screenId) ||
+             (payload.screenName != null && currentScreen.screenName == payload.screenName);
+    }
+
+    // For null payload, check if home screen matches
+    final homeScreenName = _findScreenNameFromDefinitionProvider();
+    return homeScreenName != null && currentScreen.screenName == homeScreenName;
   }
 
   /// Track screen with enhancement for missing identifiers - called during initial tracking
@@ -262,8 +270,6 @@ class _ScreenState extends State<Screen> {
   String? _findScreenNameFromDefinitionProvider() {
     try {
       final provider = widget.appProvider.definitionProvider;
-      if (provider is! EnsembleDefinitionProvider) return null; // Only EnsembleDefinitionProvider has access to screenNameMappings
-      final appModel = provider.appModel;
       final payload = widget.screenPayload;
 
       // If we have no identifiers at all, check if this is the home screen
@@ -272,21 +278,32 @@ class _ScreenState extends State<Screen> {
         if (homeScreenName != null) return homeScreenName;
       }
 
-      // Try to reverse-lookup the screen name from mappings using screenId
-      if (payload?.screenId != null) {
-        final foundName = appModel.screenNameMappings.entries
-            .where((entry) => entry.value == payload!.screenId)
-            .map((entry) => entry.key)
-            .firstOrNull;
-        if (foundName != null) return foundName;
+      // For Ensemble provider - access appModel directly
+      if (provider is EnsembleDefinitionProvider) {
+        final appModel = provider.appModel;
+
+        // Try to reverse-lookup the screen name from mappings using screenId
+        if (payload?.screenId != null) {
+          final foundName = appModel.screenNameMappings.entries
+              .where((entry) => entry.value == payload!.screenId)
+              .map((entry) => entry.key)
+              .firstOrNull;
+          if (foundName != null) return foundName;
+        }
+
+        // If we have a screenName, validate it exists in mappings and return it
+        if (payload?.screenName != null) {
+          final screenName = payload!.screenName!;
+          if (appModel.screenNameMappings.containsKey(screenName)) {
+            return screenName; // Confirmed it exists in mappings
+          }
+        }
       }
 
-      // If we have a screenName, validate it exists in mappings and return it
+      // For other providers (CDN, etc.) - use the interface method
+      // This will work if the provider implements getHomeScreenName()
       if (payload?.screenName != null) {
-        final screenName = payload!.screenName!;
-        if (appModel.screenNameMappings.containsKey(screenName)) {
-          return screenName; // Confirmed it exists in mappings
-        }
+        return payload?.screenName;
       }
 
       return null;
