@@ -5,7 +5,7 @@ on:
 jobs:
   buildStarter:
     name: Build Starter App
-    runs-on: macos-latest
+    runs-on: ubuntu-latest
 
     strategy:
       matrix:

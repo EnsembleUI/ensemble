@@ -101,15 +101,14 @@ class PageGroupState extends State<PageGroup>
       ),
     );
 
-    // Need to get the items which are only visible
-    widget.menu.menuItems = Menu.getVisibleMenuItems(
-        _scopeManager.dataContext, widget.menu.menuItems);
+    // Keep all menu items for navigation
+    List<MenuItem> allMenuItems = widget.menu.menuItems;
 
     int? selectedIndex = Utils.optionalInt(widget.pageArgs?["viewIndex"],
-        min: 0, max: widget.menu.menuItems.length - 1);
+        min: 0, max: allMenuItems.length - 1);
     // init the pages (TODO: need to update if definition changes)
-    for (int i = 0; i < widget.menu.menuItems.length; i++) {
-      MenuItem menuItem = widget.menu.menuItems[i];
+    for (int i = 0; i < allMenuItems.length; i++) {
+      MenuItem menuItem = allMenuItems[i];
       pagePayloads.add(
         ScreenPayload(
           screenName: menuItem.page,
@@ -185,10 +184,16 @@ class PageGroupState extends State<PageGroup>
   Widget build(BuildContext context) {
     EnsembleThemeManager()
         .configureStyles(_scopeManager.dataContext, widget.menu, widget.menu);
-    // skip rendering the menu if only 1 menu item, just the content itself
-    if (widget.menu.menuItems.length == 1) {
-      return pageWidgets[0];
-    } else if (widget.menu.menuItems.length >= 2) {
+    // Get visible items for rendering decisions
+    List<MenuItem> visibleMenuItems = Menu.getVisibleMenuItems(
+        _scopeManager.dataContext, widget.menu.menuItems);
+
+    // skip rendering the menu if only 1 visible menu item, just the content itself
+    if (visibleMenuItems.length == 1) {
+      // Find the index of the single visible item in all items
+      int visibleIndex = widget.menu.menuItems.indexOf(visibleMenuItems[0]);
+      return pageWidgets[visibleIndex];
+    } else if (visibleMenuItems.length >= 2) {
       // drawer menu will be injected in the child Page since the icon
       // has to be on the header, which only exists on the Page.
       // Here we wrap the widget in a provider such that its children
@@ -302,9 +307,11 @@ class PageGroupState extends State<PageGroup>
       )
     ]);
 
-    // build each menu item
+    // build each visible menu item
+    List<MenuItem> visibleItems =
+        Menu.getVisibleMenuItems(_scopeManager.dataContext, menu.menuItems);
     List<NavigationRailDestination> navItems = [];
-    for (var item in menu.menuItems) {
+    for (var item in visibleItems) {
       navItems.add(NavigationRailDestination(
           padding: Utils.getInsets(menu.runtimeStyles?['itemPadding']),
           icon: item.icon != null
@@ -344,31 +351,50 @@ class PageGroupState extends State<PageGroup>
         hint: widget.menu.semantics!.hint ?? '',
         focusable: widget.menu.semantics!.focusable,
         child: FocusTraversalGroup(
-        policy: WidgetOrderTraversalPolicy(),
-      child: FocusableActionDetector(
-        enabled: widget.menu.semantics!.focusable,
-        child: ListenableBuilder(
-          listenable: viewGroupNotifier,
-          builder: (context, _) {
-            return NavigationRail(
-              extended: itemDisplay == MenuItemDisplay.sideBySide ? true : false,
-              minExtendedWidth: minWidth.toDouble(),
-              minWidth: minGap.toDouble(),
-              // this is important for optimal default item spacing
-              labelType: itemDisplay != MenuItemDisplay.sideBySide
-                  ? NavigationRailLabelType.all
-                  : null,
-              backgroundColor: menuBackground,
-              leading: menuHeader,
-              destinations: navItems,
-              trailing: menuFooter,
-              selectedIndex: viewGroupNotifier.viewIndex,
-              onDestinationSelected: viewGroupNotifier.updatePage,
-            );
-          },
-        ),
-      ),
-    ));
+          policy: WidgetOrderTraversalPolicy(),
+          child: FocusableActionDetector(
+            enabled: widget.menu.semantics!.focusable,
+            child: ListenableBuilder(
+              listenable: viewGroupNotifier,
+              builder: (context, _) {
+                int selectedVisibleIndex = -1;
+                if (viewGroupNotifier.viewIndex >= 0 &&
+                    viewGroupNotifier.viewIndex < menu.menuItems.length) {
+                  MenuItem selectedItem =
+                      menu.menuItems[viewGroupNotifier.viewIndex];
+                  selectedVisibleIndex = visibleItems.indexOf(selectedItem);
+                }
+
+                return NavigationRail(
+                  extended:
+                      itemDisplay == MenuItemDisplay.sideBySide ? true : false,
+                  minExtendedWidth: minWidth.toDouble(),
+                  minWidth: minGap.toDouble(),
+                  // this is important for optimal default item spacing
+                  labelType: itemDisplay != MenuItemDisplay.sideBySide
+                      ? NavigationRailLabelType.all
+                      : null,
+                  backgroundColor: menuBackground,
+                  leading: menuHeader,
+                  destinations: navItems,
+                  trailing: menuFooter,
+                  selectedIndex: selectedVisibleIndex,
+                  onDestinationSelected: (visibleIndex) {
+                    // Map visible index back to actual index
+                    if (visibleIndex >= 0 &&
+                        visibleIndex < visibleItems.length) {
+                      MenuItem selectedItem = visibleItems[visibleIndex];
+                      int actualIndex = menu.menuItems.indexOf(selectedItem);
+                      if (actualIndex >= 0) {
+                        viewGroupNotifier.updatePage(actualIndex);
+                      }
+                    }
+                  },
+                );
+              },
+            ),
+          ),
+        ));
   }
 
   Widget? _buildSidebarSeparator(Menu menu) {
@@ -443,7 +469,10 @@ class PageGroupState extends State<PageGroup>
 
                   for (int i = 0; i < visibleItems.length; i++) {
                     MenuItem item = visibleItems[i];
-                    final isSelected = i == viewGroupNotifier.viewIndex;
+                    // Find the actual index of this item in all menu items
+                    int actualIndex = menu.menuItems.indexOf(item);
+                    final isSelected =
+                        actualIndex == viewGroupNotifier.viewIndex;
                     final customIcon = _buildCustomWidget(item);
                     final customActiveIcon =
                         _buildCustomWidget(item, isActive: true);
@@ -469,8 +498,8 @@ class PageGroupState extends State<PageGroup>
 
                       // Switch screens only if enabled and not already selected
                       if ((item.switchScreen ?? true) &&
-                          viewGroupNotifier.viewIndex != i) {
-                        viewGroupNotifier.updatePage(i);
+                          viewGroupNotifier.viewIndex != actualIndex) {
+                        viewGroupNotifier.updatePage(actualIndex);
                       }
                     }
 
