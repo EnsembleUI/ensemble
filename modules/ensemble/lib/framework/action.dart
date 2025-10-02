@@ -32,6 +32,7 @@ import 'package:ensemble/action/take_screenshot.dart';
 import 'package:ensemble/action/disable_hardware_navigation.dart';
 import 'package:ensemble/action/close_app.dart';
 import 'package:ensemble/action/getLocation.dart';
+import 'package:ensemble/action/wakelock_action.dart';
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/error_handling.dart';
@@ -990,6 +991,7 @@ enum ActionType {
   bluetoothStartScan,
   bluetoothStopScan,
   bluetoothConnect,
+  wakelock,
   bluetoothDisconnect,
   bluetoothSubscribeCharacteristic,
   bluetoothUnsubscribeCharacteristic,
@@ -1225,6 +1227,8 @@ abstract class EnsembleAction {
       return StartScanBluetoothAction.from(payload: payload);
     } else if (actionType == ActionType.bluetoothConnect) {
       return ConnectBluetoothAction.from(payload: payload);
+    } else if (actionType == ActionType.wakelock) {
+      return WakelockAction.from(initiator: initiator, payload: payload);
     } else if (actionType == ActionType.bluetoothDisconnect) {
       return DisconnectBluetoothAction.from(payload: payload);
     } else if (actionType == ActionType.bluetoothSubscribeCharacteristic) {
