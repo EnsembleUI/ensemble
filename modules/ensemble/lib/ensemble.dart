@@ -552,6 +552,19 @@ class EnsembleConfig {
     }
    */
 
+  // Cache for parsed scripts to avoid re-parsing
+  final Map<String, ParsedCode> _parsedScriptCache = {};
+
+  /// Clear all cached parsed resources to force re-parsing
+  void clearResourceCaches() {
+    _parsedScriptCache.clear();
+  }
+
+  /// This ensures the appBundle has the latest resources after artifact updates
+  Future<void> refreshAppBundleResources() async {
+    await updateAppBundle(bypassCache: true);
+  }
+
   ParsedCode? getGlobalfunction(String library) {
     Map? globals = getResources();
 
@@ -560,8 +573,18 @@ class EnsembleConfig {
     if (!scripts.containsKey(library)) return null;
 
     final libraryCode = scripts[library];
-    final code =
-        ParsedCode(library, libraryCode, JSInterpreter.parseCode(libraryCode));
+
+    // Create cache key based on library name and code content
+    final cacheKey = '$library:${libraryCode.hashCode}';
+
+    // Check if we have a cached version
+    if (_parsedScriptCache.containsKey(cacheKey)) {
+      return _parsedScriptCache[cacheKey];
+    }
+
+    // Parse and cache the code
+    final code = ParsedCode(library, libraryCode, JSInterpreter.parseCode(libraryCode));
+    _parsedScriptCache[cacheKey] = code;
     return code;
   }
 
@@ -575,8 +598,15 @@ class EnsembleConfig {
       if (imports.contains(key)) {
         if (value is String) {
           try {
-            importMap[key] =
-                ParsedCode(key, value, JSInterpreter.parseCode(value));
+            // Use cached version if available
+            final cacheKey = '$key:${value.hashCode}';
+            if (_parsedScriptCache.containsKey(cacheKey)) {
+              importMap[key] = _parsedScriptCache[cacheKey]!;
+            } else {
+              final parsedCode = ParsedCode(key, value, JSInterpreter.parseCode(value));
+              _parsedScriptCache[cacheKey] = parsedCode;
+              importMap[key] = parsedCode;
+            }
           } catch (e) {
             throw 'Error Parsing Code. Invalid code definition for $key. Detailed Message: $e';
           }

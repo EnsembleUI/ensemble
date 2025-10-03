@@ -93,6 +93,11 @@ class RemoteDefinitionProvider extends FileDefinitionProvider {
   }
 
   @override
+  String? getHomeScreenName() {
+    return appHome; // For remote provider, appHome is the home screen name
+  }
+
+  @override
   Future<DefinitionProvider> init() async {
     return this;
   }

@@ -231,6 +231,14 @@ class DeviceBindingSource extends BindingSource {
   DeviceBindingSource(super.modelId);
 }
 
+/// Binding source for artifact refresh events
+class ArtifactBindingSource extends BindingSource {
+  ArtifactBindingSource(String screenId) : super(screenId, type: 'artifact');
+  
+  @override
+  String toString() => "ArtifactBindingSource($modelId)";
+}
+
 /// TODO: consolidate this with StorageBindingSource
 class SystemStorageBindingSource extends BindingSource {
   SystemStorageBindingSource(super.modelId, {required this.storagePrefix});
@@ -300,4 +308,31 @@ class ThemeChangeEvent {
   ThemeChangeEvent(this.theme);
 
   String theme;
+}
+
+/// Screen-specific refresh event - fired when a specific screen artifact is updated
+class ScreenRefreshEvent {
+  final String? screenId;
+  final String? screenName;
+  final DateTime timestamp;
+
+  ScreenRefreshEvent({this.screenId, this.screenName}) : timestamp = DateTime.now();
+
+  @override
+  String toString() => 'ScreenRefreshEvent(screenId: $screenId, screenName: $screenName, time: $timestamp)';
+}
+
+/// Resource-specific refresh event - fired when resources, theme, config, or other non-screen artifacts are updated
+class ResourceRefreshEvent {
+  final String artifactId;
+  final String artifactType; // 'resources', 'theme', 'config', etc.
+  final DateTime timestamp;
+
+  ResourceRefreshEvent({
+    required this.artifactId,
+    required this.artifactType,
+  }) : timestamp = DateTime.now();
+
+  @override
+  String toString() => 'ResourceRefreshEvent(artifactId: $artifactId, type: $artifactType, time: $timestamp)';
 }

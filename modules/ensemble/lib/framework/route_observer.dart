@@ -1,4 +1,5 @@
 import 'package:ensemble/ensemble.dart';
+import 'package:ensemble/framework/screen_tracker.dart';
 import 'package:flutter/cupertino.dart';
 
 // handle the listeners to listen for Route changes
@@ -9,6 +10,9 @@ mixin EnsembleRouteObserver on WithEnsemble {
   // Carry-over logic for the pages/bottomModal.
   late final RouteObserver<PageRoute> routeObserver;
 
+  // Screen tracking observer
+  late final ScreenTrackingNavigatorObserver _screenTrackingObserver;
+
   final List<NavigatorObserver> routeObservers = [];
 
   initializeRouteObservers() {
@@ -17,6 +21,9 @@ mixin EnsembleRouteObserver on WithEnsemble {
 
     routeObserver = RouteObserver<PageRoute>();
     routeObservers.add(routeObserver);
+
+    _screenTrackingObserver = ScreenTrackingNavigatorObserver();
+    routeObservers.add(_screenTrackingObserver);
   }
 
   // return the current top-most Route for our App
