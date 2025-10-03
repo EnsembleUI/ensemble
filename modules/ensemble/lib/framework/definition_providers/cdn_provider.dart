@@ -43,6 +43,10 @@ class CdnDefinitionProvider extends DefinitionProvider {
   String? _etag;
   int? _lastUpdatedAt;
 
+  // Background update tracking
+  bool _hasPendingUpdate = false;
+
+
   // Persistent cache key
   String get _artifactCacheKey => 'cdn_provider_state_$appId';
 
@@ -137,8 +141,19 @@ class CdnDefinitionProvider extends DefinitionProvider {
 
   @override
   void onAppLifecycleStateChanged(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) {
-      _refreshIfStale();
+    if (state == AppLifecycleState.paused || state == AppLifecycleState.inactive) {
+      // When app goes to background, fetch and update cache but DON'T fire events
+      unawaited(_refreshIfStale());
+    } else if (state == AppLifecycleState.resumed) {
+      // When app comes to foreground, only fire events if enabled and we have pending updates
+      if (isArtifactRefreshEnabled() && _hasPendingUpdate) {
+        _fireManifestRefreshEvent();
+        Ensemble().notifyAppBundleChanges();
+        _hasPendingUpdate = false;
+        if (kDebugMode) {
+          debugPrint('✅ CDN Provider: Pending updates applied on resume');
+        }
+      }
     }
   }
 
@@ -201,6 +216,8 @@ class CdnDefinitionProvider extends DefinitionProvider {
   // Networking / manifest loading
   // --------------------------------------------------------
 
+  /// Check for updates and update cache if available
+  /// Sets _hasPendingUpdate flag if updates were fetched
   Future<void> _refreshIfStale() async {
     try {
       final shouldFetch = await _shouldFetchManifest();
@@ -223,11 +240,13 @@ class CdnDefinitionProvider extends DefinitionProvider {
       // Save to persistent cache
       await _saveCachedState(jsonString);
 
-      // Fire global refresh event to update UI
-      _fireManifestRefreshEvent();
-
-      Ensemble().notifyAppBundleChanges();
-    } catch (_) {}
+      // Mark that we have updates
+      _hasPendingUpdate = true;
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('⚠️ CDN Provider: Refresh failed: $e');
+      }
+    }
   }
 
   /// Fire a global refresh event to trigger UI updates across all screens

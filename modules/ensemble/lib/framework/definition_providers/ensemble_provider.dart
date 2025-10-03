@@ -148,12 +148,15 @@ class EnsembleDefinitionProvider extends DefinitionProvider {
         print('📱 App Resumed - triggering refresh events and restoring screen state');
       }
       // Fire any pending refresh events accumulated since last resume (async operation)
-      appModel._firePendingRefreshEvents().then((_) {
-        // Restore screen state after refresh events complete
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          _restoreVisibleScreenOnForeground();
+      // Only fire events if refresh is enabled
+      if (isArtifactRefreshEnabled()) {
+        appModel._firePendingRefreshEvents().then((_) {
+          // Restore screen state after refresh events complete
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            _restoreVisibleScreenOnForeground();
+          });
         });
-      });
+      } 
       // Start timers/listeners
       if (appModel is AppModelTimerMode) {
         (appModel as AppModelTimerMode)._startTimer();
@@ -265,6 +268,15 @@ class AppModel {
       }
       return _defaultUpdateCheckDuration;
     }
+  }
+
+  // Check if artifact refresh is enabled via environment variable
+  bool get _isArtifactRefreshEnabled {
+    String? enableRefresh = appConfig?.envVariables?['ENABLE_ARTIFACT_REFRESH'];
+    if (enableRefresh != null) {
+      return enableRefresh.toLowerCase() == 'true';
+    }
+    return false; // Default: disabled
   }
 
   // Get the last checked time from persistent storage
@@ -529,18 +541,21 @@ class AppModel {
     artifactCache[doc.id] = yamlContent;
 
     // Handle refresh events - screen-specific and resource-specific
-    String? artifactType = doc.data()?['type'];
-    if (artifactType == 'screen') {
-      String? screenName = doc.data()?['name'];
-      if (_shouldDeferRefreshEvents) {
-        // Runtime update - defer refresh until app resumes for better UX
-        _addPendingRefreshEvent(doc.id, screenName);
-      }
-    } else if (artifactType != null && ['resources', 'theme', 'config', 'secrets'].contains(artifactType)) {
-      // Handle non-screen artifacts that should trigger global refresh
-      if (_shouldDeferRefreshEvents) {
-        // Runtime update - defer refresh until app resumes
-        _addPendingResourceRefreshEvent(doc.id, artifactType);
+    // Only add events if refresh is enabled
+    if (_isArtifactRefreshEnabled) {
+      String? artifactType = doc.data()?['type'];
+      if (artifactType == 'screen') {
+        String? screenName = doc.data()?['name'];
+        if (_shouldDeferRefreshEvents) {
+          // Runtime update - defer refresh until app resumes for better UX
+          _addPendingRefreshEvent(doc.id, screenName);
+        }
+      } else if (artifactType != null && ['resources', 'theme', 'config', 'secrets'].contains(artifactType)) {
+        // Handle non-screen artifacts that should trigger global refresh
+        if (_shouldDeferRefreshEvents) {
+          // Runtime update - defer refresh until app resumes
+          _addPendingResourceRefreshEvent(doc.id, artifactType);
+        }
       }
     }
 
