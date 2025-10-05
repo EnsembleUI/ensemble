@@ -107,7 +107,7 @@ dependencies:
   crypto: ^3.0.3 
   ensemble_dropdown: ^0.1.0
   collection: ^1.17.1
-  package_info_plus: ^8.0.0
+  package_info_plus: ^9.0.0
   audioplayers: ^5.2.1
   logger: ^2.2.0
   visibility_detector: ^0.4.0+2
@@ -122,6 +122,7 @@ dependencies:
   safe_device: ^1.2.1
   firebase_app_check: ^0.3.2+6
   cloud_functions: ^5.5.1
+  wakelock_plus: ^1.4.0
 
 dev_dependencies:
   flutter_test:

@@ -18,6 +18,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:intl/intl.dart';
+import 'package:wakelock_plus/wakelock_plus.dart';
 
 class Device
     with
@@ -34,12 +35,16 @@ class Device
     return _instance;
   }
 
+  // Cache for wakelock status (synchronous access)
+  bool _wakelockEnabled = false;
+
   @override
   Map<String, Function> getters() {
     return {
       // Capabilities
       'lastLocation': () => Location(getLastLocation()),
       'deviceToken': () => NotificationManager().deviceToken,
+      'wakelockEnabled': () => _wakelockEnabled,
 
       // Media Query
       "width": () => screenWidth,
@@ -73,6 +78,11 @@ class Device
       // deprecated. Should be using Action instead
       'openAppSettings': (target) => openAppSettings(target),
     };
+  }
+
+  /// Refresh wakelock status from the actual platform state
+  Future<void> refreshWakelockStatus() async {
+    _wakelockEnabled = await WakelockPlus.enabled;
   }
 
   @override
@@ -147,6 +157,9 @@ mixin DeviceInfoCapability {
           windowsInfo = await _deviceInfoPlugin.windowsInfo;
         }
       }
+
+      // Initialize wakelock status from actual platform state
+      await Device().refreshWakelockStatus();
     } on PlatformException {
       log("Error getting device info");
     }
