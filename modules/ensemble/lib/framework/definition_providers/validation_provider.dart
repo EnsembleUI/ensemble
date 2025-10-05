@@ -50,4 +50,7 @@ class ValidationProvider extends DefinitionProvider {
   Future<DefinitionProvider> init() async {
     return this;
   }
+
+  @override
+  String? getHomeScreenName() => null;
 }

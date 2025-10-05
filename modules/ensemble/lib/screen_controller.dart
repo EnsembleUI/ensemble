@@ -614,8 +614,9 @@ class ScreenController {
     DevMode.screenId = screenId;
     DevMode.screenName = screenName;
     PageType pageType = asModal == true ? PageType.modal : PageType.regular;
+    Key widgetKey = key ?? ValueKey(screenId ?? screenName ?? 'default');
     return Screen(
-        key: key,
+        key: widgetKey,
         appProvider: AppProvider(
             definitionProvider: Ensemble().getConfig()!.definitionProvider),
         screenPayload: ScreenPayload(
