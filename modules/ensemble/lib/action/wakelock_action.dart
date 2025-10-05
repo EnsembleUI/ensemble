@@ -24,41 +24,32 @@ class WakelockAction extends EnsembleAction {
   final EnsembleAction? onError;
 
   factory WakelockAction.from({Invokable? initiator, Map? payload}) {
-    if (payload == null || payload['enable'] == null) {
-      throw LanguageError(
-          "${ActionType.wakelock.name} requires the 'enable' property (true/false).");
-    }
-
     return WakelockAction(
       initiator: initiator,
-      enable: payload['enable'],
-      onComplete: EnsembleAction.from(payload['onComplete']),
-      onError: EnsembleAction.from(payload['onError']),
+      enable: payload?['enable'],
+      onComplete: EnsembleAction.from(payload?['onComplete']),
+      onError: EnsembleAction.from(payload?['onError']),
     );
   }
 
   @override
   Future<void> execute(BuildContext context, ScopeManager scopeManager) async {
     try {
-      print("WakelockAction: Setting wakelock to $enable");
-      // Evaluate the enable property
+      // Evaluate the enable property (defaults to true if not provided)
       final shouldEnable = Utils.getBool(
         scopeManager.dataContext.eval(enable),
-        fallback: false,
+        fallback: true,
       );
 
-      // Toggle wakelock based on the enable value
-      if (shouldEnable) {
-        print("WakelockAction: Enabling wakelock");
-        await WakelockPlus.enable();
-      } else {
-        print("WakelockAction: Disabling wakelock");
+      // Toggle wakelock: false disables, anything else enables
+      if (shouldEnable == false) {
         await WakelockPlus.disable();
+      } else {
+        await WakelockPlus.enable();
       }
 
       // Verify and update the cached status from actual platform state
       await Device().refreshWakelockStatus();
-      print("WakelockAction: Actual wakelock status is now: ${await WakelockPlus.enabled}");
 
       // Execute onComplete callback if provided
       if (onComplete != null) {
@@ -71,7 +62,6 @@ class WakelockAction extends EnsembleAction {
       }
     } catch (e) {
       // Execute onError callback if provided
-      print("WakelockAction: Error toggling wakelock: $e");
       if (onError != null) {
         ScreenController().executeActionWithScope(
           context,
