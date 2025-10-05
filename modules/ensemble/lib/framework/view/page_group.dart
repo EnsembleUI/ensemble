@@ -4,11 +4,14 @@ import 'package:ensemble/framework/device.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/menu.dart';
 import 'package:ensemble/framework/scope.dart';
+import 'package:ensemble/framework/screen_tracker.dart';
+import 'package:ensemble/framework/storage_manager.dart';
 import 'package:ensemble/framework/theme_manager.dart';
 import 'package:ensemble/framework/view/data_scope_widget.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:ensemble/framework/widget/icon.dart' as ensemble;
 import 'package:ensemble/framework/extensions.dart';
@@ -104,8 +107,13 @@ class PageGroupState extends State<PageGroup>
     // Keep all menu items for navigation
     List<MenuItem> allMenuItems = widget.menu.menuItems;
 
+    // Try multiple sources for the selected index (in priority order):
+    // 1. Explicit viewIndex from page arguments
+    // 2. Stored index from previous session/refresh
+    // 3. Selected item from menu definition
     int? selectedIndex = Utils.optionalInt(widget.pageArgs?["viewIndex"],
-        min: 0, max: allMenuItems.length - 1);
+        min: 0, max: allMenuItems.length - 1)
+        ?? _getStoredViewGroupIndex();
     // init the pages (TODO: need to update if definition changes)
     for (int i = 0; i < allMenuItems.length; i++) {
       MenuItem menuItem = allMenuItems[i];
@@ -135,6 +143,11 @@ class PageGroupState extends State<PageGroup>
     if (selectedIndex != null) {
       viewGroupNotifier.updatePage(selectedIndex, isReload: false);
     }
+
+    // Track the initial screen that will be shown
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _trackInitialScreen();
+    });
   }
   @override
   void didChangeDependencies() {
@@ -176,6 +189,47 @@ class PageGroupState extends State<PageGroup>
       viewGroupNotifier.updatePage(
         viewGroupNotifier.viewIndex,
         payload: _scopeManager.dataContext.getContextMap(),
+      );
+    }
+  }
+
+  /// Get stored ViewGroup index from persistent storage
+  int? _getStoredViewGroupIndex() {
+    final storedIndex = StorageManager().readFromSystemStorage<int>('viewgroup_current_index');
+    if (storedIndex != null && storedIndex >= 0 && storedIndex < widget.menu.menuItems.length) {
+      if (kDebugMode) {
+        print('💾 Retrieved stored ViewGroup index: $storedIndex');
+      }
+      return storedIndex;
+    }
+    return null;
+  }
+
+  /// Store current ViewGroup index to persistent storage
+  void _storeViewGroupIndex(int index) {
+    StorageManager().writeToSystemStorage('viewgroup_current_index', index);
+    if (kDebugMode) {
+      print('💾 Stored ViewGroup index: $index');
+    }
+  }
+
+
+  /// Track the initial screen when ViewGroup loads
+  void _trackInitialScreen() {
+    if (pagePayloads.isNotEmpty && mounted) {
+      final initialIndex = viewGroupNotifier.viewIndex;
+      final initialPayload = pagePayloads[initialIndex];
+
+      if (kDebugMode) {
+        print('🏗️ ViewGroup _trackInitialScreen - viewIndex: $initialIndex, screen: ${initialPayload.screenName}');
+      }
+
+      // Store the initial index
+      _storeViewGroupIndex(initialIndex);
+
+      ScreenTracker().trackScreenFromPayload(
+        initialPayload,
+        viewGroupIndex: initialIndex,
       );
     }
   }
@@ -387,6 +441,17 @@ class PageGroupState extends State<PageGroup>
                       int actualIndex = menu.menuItems.indexOf(selectedItem);
                       if (actualIndex >= 0) {
                         viewGroupNotifier.updatePage(actualIndex);
+                        // Store the new index
+                        _storeViewGroupIndex(actualIndex);
+
+                        // Track the screen change in ViewGroup
+                        final screenPayload = pagePayloads[actualIndex];
+                        ScreenTracker().handleViewGroupChange(
+                          screenPayload.screenId,
+                          screenPayload.screenName,
+                          arguments: screenPayload.arguments,
+                          viewGroupIndex: actualIndex,
+                        );
                       }
                     }
                   },
@@ -500,6 +565,16 @@ class PageGroupState extends State<PageGroup>
                       if ((item.switchScreen ?? true) &&
                           viewGroupNotifier.viewIndex != actualIndex) {
                         viewGroupNotifier.updatePage(actualIndex);
+                        // Store the new index
+                        _storeViewGroupIndex(actualIndex);
+                        // Track the screen change in ViewGroup
+                        final screenPayload = pagePayloads[actualIndex];
+                        ScreenTracker().handleViewGroupChange(
+                          screenPayload.screenId,
+                          screenPayload.screenName,
+                          arguments: screenPayload.arguments,
+                          viewGroupIndex: actualIndex,
+                        );
                       }
                     }
 
@@ -595,6 +670,14 @@ class ViewGroupNotifier extends ChangeNotifier {
     _payload = payload;
     if (isReload) {
       notifyListeners();
+    }
+  }
+
+  /// Store ViewGroup index using a simple global key for persistence
+  void storeCurrentIndex() {
+    StorageManager().writeToSystemStorage('viewgroup_current_index', _viewIndex);
+    if (kDebugMode) {
+      print('💾 Stored current ViewGroup index: $_viewIndex');
     }
   }
 }

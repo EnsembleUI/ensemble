@@ -55,6 +55,19 @@ abstract class DefinitionProvider {
 
   void onAppLifecycleStateChanged(AppLifecycleState state);
 
+  // Get the home screen name for proper refresh matching
+  String? getHomeScreenName();
+
+  // Check if artifact refresh is enabled via environment variable
+  // Default: false (disabled) - apps must explicitly enable it
+  bool isArtifactRefreshEnabled() {
+    String? enableRefresh = getAppConfig()?.envVariables?['ENABLE_ARTIFACT_REFRESH'];
+    if (enableRefresh != null) {
+      return enableRefresh.toLowerCase() == 'true';
+    }
+    return false; // Default: disabled
+  }
+
   // build the definition model from YAML
   static DefinitionProvider from(Map rootMap) {
     if (rootMap['definitions'] != null) {

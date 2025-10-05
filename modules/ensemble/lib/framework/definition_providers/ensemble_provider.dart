@@ -1,15 +1,20 @@
 import 'dart:async';
 import 'dart:developer';
 import 'package:ensemble/ensemble.dart';
+import 'package:ensemble/framework/bindings.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/i18n_loader.dart';
+import 'package:ensemble/framework/screen_tracker.dart';
+import 'package:ensemble/framework/storage_manager.dart';
 import 'package:ensemble/framework/widget/screen.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:flutter/cupertino.dart';
-import 'package:flutter_localized_locales/flutter_localized_locales.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:yaml/yaml.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:ensemble/framework/definition_providers/provider.dart';
+import 'package:ensemble/framework/view/page_group.dart';
 import 'package:flutter_i18n/flutter_i18n.dart';
 
 /**
@@ -99,6 +104,18 @@ class EnsembleDefinitionProvider extends DefinitionProvider {
   }
 
   @override
+  String? getHomeScreenName() {
+    // Find the screen name that maps to the homeMapping ID
+    if (appModel.homeMapping != null) {
+      return appModel.screenNameMappings.entries
+          .where((entry) => entry.value == appModel.homeMapping)
+          .map((entry) => entry.key)
+          .firstOrNull;
+    }
+    return null;
+  }
+
+  @override
   List<String> getSupportedLanguages() {
     List<String> supportedLanguages = [];
     appModel.artifactCache.forEach((key, value) {
@@ -111,19 +128,98 @@ class EnsembleDefinitionProvider extends DefinitionProvider {
 
   @override
   void onAppLifecycleStateChanged(AppLifecycleState state) {
-    // Only run the timer when the app is in the foreground
-    if (state == AppLifecycleState.resumed) {
-      if (appModel is AppModelTimerMode) {
-        (appModel as AppModelTimerMode)._startTimer();
-      } else {
-        (appModel as AppModelListenerMode).initListeners();
+    // Reset defer flag when app resumes to allow immediate firing of pending events
+    bool wasResumed = (state == AppLifecycleState.resumed);
+    bool wasBackgrounded = (state == AppLifecycleState.paused || state == AppLifecycleState.inactive);
+
+    if (wasBackgrounded) {
+      if (kDebugMode) {
+        print('📱 App backgrounded - storing current visible screen and stopping timers');
       }
-    } else {
+      _storeVisibleScreenOnBackground();
+      // Stop timers/listeners
       if (appModel is AppModelTimerMode) {
         (appModel as AppModelTimerMode)._stopTimer();
       } else {
         (appModel as AppModelListenerMode).cancelListeners();
       }
+    } else if (wasResumed) {
+      if (kDebugMode) {
+        print('📱 App Resumed - triggering refresh events and restoring screen state');
+      }
+      // Fire any pending refresh events accumulated since last resume (async operation)
+      // Only fire events if refresh is enabled
+      if (isArtifactRefreshEnabled()) {
+        appModel._firePendingRefreshEvents().then((_) {
+          // Restore screen state after refresh events complete
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            _restoreVisibleScreenOnForeground();
+          });
+        });
+      } 
+      // Start timers/listeners
+      if (appModel is AppModelTimerMode) {
+        (appModel as AppModelTimerMode)._startTimer();
+      } else {
+        (appModel as AppModelListenerMode).initListeners();
+      }
+    }
+  }
+
+  /// Store the currently visible screen when app backgrounds
+  void _storeVisibleScreenOnBackground() {
+    final currentScreen = ScreenTracker().currentScreen;
+    if (currentScreen != null) {
+      final screenData = {
+        'screenId': currentScreen.screenId,
+        'screenName': currentScreen.screenName,
+        'viewGroupIndex': currentScreen.viewGroupIndex,
+        'timestamp': DateTime.now().millisecondsSinceEpoch,
+      };
+      StorageManager().writeToSystemStorage(AppModel._visibleScreenOnBackgroundKey, screenData);
+      if (kDebugMode) {
+        print('📦 Stored visible screen on background: ${currentScreen.screenName ?? currentScreen.screenId} (index: ${currentScreen.viewGroupIndex})');
+      }
+    }
+  }
+
+  /// Restore the screen that was visible when app was backgrounded
+  void _restoreVisibleScreenOnForeground() {
+    final storedData = StorageManager().readFromSystemStorage<Map<String, dynamic>>(AppModel._visibleScreenOnBackgroundKey);
+    if (storedData != null) {
+      final screenName = storedData['screenName'] as String?;
+      final viewGroupIndex = storedData['viewGroupIndex'] as int?;
+      if (kDebugMode) {
+        print('🔄 Restoring visible screen: $screenName (index: $viewGroupIndex)');
+      }
+      // If the screen was in a ViewGroup, restore that specific tab
+      if (viewGroupIndex != null) {
+        // Import the viewgroup notifier
+        final viewGroupNotifier = _getViewGroupNotifier();
+        if (viewGroupNotifier != null) {
+          // Update to the preserved screen index
+          viewGroupNotifier.updatePage(viewGroupIndex);
+          if (kDebugMode) {
+            print('✅ Restored ViewGroup to index: $viewGroupIndex');
+          }
+        }
+      }
+
+      // Clear the stored data after restoration
+      StorageManager().removeFromSystemStorage(AppModel._visibleScreenOnBackgroundKey);
+    }
+  }
+
+  /// Get the ViewGroup notifier
+  ViewGroupNotifier? _getViewGroupNotifier() {
+    try {
+      // This references the global viewGroupNotifier from page_group.dart
+      return viewGroupNotifier;
+    } catch (e) {
+      if (kDebugMode) {
+        print('⚠️ Could not access ViewGroup notifier: $e');
+      }
+      return null;
     }
   }
 }
@@ -132,7 +228,226 @@ class InvalidDefinition {}
 class AppModel {
   final String appId;
   AppModel(this.appId);
+
+  // Storage keys for persistent update tracking
+  static const String _lastCheckedTimeKey = 'artifact_last_checked_time';
+  static const String _updateCheckDurationKey = 'artifact_update_check_duration';
+  static const String _pendingRefreshEventsKey = 'artifact_pending_refresh_events';
+  static const String _pendingResourceRefreshEventsKey = 'artifact_pending_resource_refresh_events';
+  static const String _visibleScreenOnBackgroundKey = 'visible_screen_on_background';
+
+  // Default update check duration (60 minutes in milliseconds)
+  static const int _defaultUpdateCheckDuration = 60 * 60 * 1000;
+
+  // Store pending UI refresh events
+  List<Map<String, dynamic>> _pendingRefreshEvents = [];
+  List<Map<String, dynamic>> _pendingResourceRefreshEvents = [];
+
+  // Track if this is initial app load vs runtime update for optimal refresh logic
+  bool _isInitialLoad = true;
+
+  // Only defer UI refresh events for runtime updates, not initial loads
+  bool get _shouldDeferRefreshEvents => !_isInitialLoad;
+
+  // Get the configurable update check duration from environment or use default
+  int get _updateCheckDuration {
+    String? envDuration = appConfig?.envVariables?['UPDATE_CHECK_DURATION'];
+    if (envDuration != null) {
+      int parsedDuration = int.parse(envDuration);
+
+      // Update storage to track current env value
+      int? storedDuration = StorageManager().readFromSystemStorage<int>(_updateCheckDurationKey);
+      if (storedDuration != parsedDuration) {
+        StorageManager().writeToSystemStorage(_updateCheckDurationKey, parsedDuration);
+      }
+      return parsedDuration;
+    } else {
+      // No env variable - clear storage and use default
+      if (StorageManager().hasDataFromSystemStorage(_updateCheckDurationKey)) {
+        StorageManager().removeFromSystemStorage(_updateCheckDurationKey);
+      }
+      return _defaultUpdateCheckDuration;
+    }
+  }
+
+  // Check if artifact refresh is enabled via environment variable
+  bool get _isArtifactRefreshEnabled {
+    String? enableRefresh = appConfig?.envVariables?['ENABLE_ARTIFACT_REFRESH'];
+    if (enableRefresh != null) {
+      return enableRefresh.toLowerCase() == 'true';
+    }
+    return false; // Default: disabled
+  }
+
+  // Get the last checked time from persistent storage
+  int? get _lastCheckedTime {
+    return StorageManager().readFromSystemStorage<int>(_lastCheckedTimeKey);
+  }
+
+  // Update the last checked time in persistent storage
+  void _updateLastCheckedTime() {
+    int currentTime = DateTime.now().millisecondsSinceEpoch;
+    StorageManager().writeToSystemStorage(_lastCheckedTimeKey, currentTime);
+  }
+
+  // Check if configured time has passed since last update check
+  bool _shouldCheckForUpdates() {
+    int? lastChecked = _lastCheckedTime;
+    if (lastChecked == null) {
+      return true; // First time, should check
+    }
+    int currentTime = DateTime.now().millisecondsSinceEpoch;
+    int timeSinceLastCheck = currentTime - lastChecked;
+    return timeSinceLastCheck >= _updateCheckDuration;
+  }
+
+  /// Smart update function that respects the time duration
+  Future<void> updateAppIfNeeded() async {
+    if (_shouldCheckForUpdates()) {
+      await updateApp();
+    }
+  }
+
+  /// Load pending screen refresh events from storage
+  void _loadPendingRefreshEvents() {
+    List<dynamic>? stored = StorageManager().readFromSystemStorage<List<dynamic>>(_pendingRefreshEventsKey);
+    if (stored != null) {
+      _pendingRefreshEvents = stored.cast<Map<String, dynamic>>();
+    }
+  }
+
+  /// Save pending screen refresh events to storage
+  void _savePendingRefreshEvents() {
+    StorageManager().writeToSystemStorage(_pendingRefreshEventsKey, _pendingRefreshEvents);
+  }
+
+  /// Add a refresh event to pending list (cache already updated)
+  void _addPendingRefreshEvent(String screenId, String? screenName) {
+    // Remove any existing pending refresh for the same screen
+    _pendingRefreshEvents.removeWhere((event) =>
+        event['screenId'] == screenId ||
+        (screenName != null && event['screenName'] == screenName)
+    );
+
+    // Add new pending refresh event
+    _pendingRefreshEvents.add({
+      'screenId': screenId,
+      'screenName': screenName,
+      'timestamp': DateTime.now().millisecondsSinceEpoch,
+    });
+
+    _savePendingRefreshEvents();
+    if (kDebugMode) {
+      print('📦 Added pending UI refresh for: $screenId (${screenName ?? 'unnamed'})');
+    }
+  }
+
+  /// Fire all pending refresh events and clear the list
+  Future<void> _firePendingRefreshEvents() async {
+    int totalEvents = _pendingRefreshEvents.length + _pendingResourceRefreshEvents.length;
+    if (totalEvents == 0) return;
+
+    if (kDebugMode) {
+      print('🔄 Firing $totalEvents pending refresh events (${_pendingRefreshEvents.length} screen, ${_pendingResourceRefreshEvents.length} resource)...');
+    }
+
+    bool needsCacheClear = _pendingResourceRefreshEvents.any(
+      (event) => ['resources'].contains(event['artifactType'])
+    );
+
+    if (needsCacheClear) {
+      // Clear resource caches if requested to force re-parsing
+      Ensemble().getConfig()?.clearResourceCaches();
+      // Refresh AppBundle once (fetches from Firebase)
+      await Ensemble().getConfig()?.refreshAppBundleResources();
+    }
+
+    // Fire screen refresh events
+    for (var refreshEvent in _pendingRefreshEvents) {
+      try {
+        AppEventBus().eventBus.fire(ScreenRefreshEvent(
+          screenId: refreshEvent['screenId'],
+          screenName: refreshEvent['screenName'],
+        ));
+        if (kDebugMode) {
+          print('🎯 Fired screen refresh event for: ${refreshEvent['screenId']}');
+        }
+      } catch (e) {
+        if (kDebugMode) {
+          print('❌ Failed to fire screen refresh event for: ${refreshEvent['screenId']}: $e');
+        }
+      }
+    }
+
+    // Fire resource refresh events
+    for (var refreshEvent in _pendingResourceRefreshEvents) {
+      try {
+        AppEventBus().eventBus.fire(ResourceRefreshEvent(
+          artifactId: refreshEvent['artifactId'],
+          artifactType: refreshEvent['artifactType'],
+        ));
+        if (kDebugMode) {
+          print('🎯 Fired resource refresh event for: ${refreshEvent['artifactId']} (${refreshEvent['artifactType']})');
+        }
+      } catch (e) {
+        if (kDebugMode) {
+          print('❌ Failed to fire resource refresh event for: ${refreshEvent['artifactId']}: $e');
+        }
+      }
+    }
+
+    // Clear pending refresh events
+    _pendingRefreshEvents.clear();
+    _savePendingRefreshEvents();
+    _pendingResourceRefreshEvents.clear();
+    _savePendingResourceRefreshEvents();
+    if (kDebugMode) {
+      print('🧹 Cleared all pending refresh events');
+    }
+  }
+
+  /// Load pending resource refresh events from storage
+  void _loadPendingResourceRefreshEvents() {
+    List<dynamic>? stored = StorageManager().readFromSystemStorage<List<dynamic>>(_pendingResourceRefreshEventsKey);
+    if (stored != null) {
+      _pendingResourceRefreshEvents = stored.cast<Map<String, dynamic>>();
+    }
+  }
+
+  /// Save pending resource refresh events to storage
+  void _savePendingResourceRefreshEvents() {
+    StorageManager().writeToSystemStorage(_pendingResourceRefreshEventsKey, _pendingResourceRefreshEvents);
+  }
+
+  /// Add a resource refresh event to pending list (cache already updated)
+  void _addPendingResourceRefreshEvent(String artifactId, String artifactType) {
+    // Remove any existing pending refresh for the same artifact
+    _pendingResourceRefreshEvents.removeWhere((event) =>
+        event['artifactId'] == artifactId && event['artifactType'] == artifactType
+    );
+
+    // Add new pending resource refresh event
+    _pendingResourceRefreshEvents.add({
+      'artifactId': artifactId,
+      'artifactType': artifactType,
+      'timestamp': DateTime.now().millisecondsSinceEpoch,
+    });
+
+    _savePendingResourceRefreshEvents();
+    if (kDebugMode) {
+      print('📦 Added pending resource refresh for: $artifactId (type: $artifactType)');
+    }
+  }
+
+
   Future<void> init() async {
+    _loadPendingRefreshEvents();
+    _loadPendingResourceRefreshEvents();
+    return;
+  }
+
+  // Base updateApp method - will be overridden by subclasses
+  Future<void> updateApp() async {
     return;
   }
   // the cache for ID -> screen content
@@ -198,12 +513,13 @@ class AppModel {
 
     // since the screen name might have changed, update our mappings
     screenNameMappings.removeWhere((key, value) => (value == doc.id));
-    if (doc.data()?['name'] != null) {
+
+    if (doc.data()?['type'] == 'screen' && doc.data()?['name'] != null) {
       screenNameMappings[doc.data()!['name']] = doc.id;
     }
 
     dynamic yamlContent;
-    dynamic content = doc.data()?['content'];
+    String? content = doc.data()?['content'];
     if (content != null && content.isNotEmpty) {
       try {
         yamlContent = await loadYaml(content);
@@ -223,6 +539,25 @@ class AppModel {
       yamlContent = InvalidDefinition();
     }
     artifactCache[doc.id] = yamlContent;
+
+    // Handle refresh events - screen-specific and resource-specific
+    // Only add events if refresh is enabled
+    if (_isArtifactRefreshEnabled) {
+      String? artifactType = doc.data()?['type'];
+      if (artifactType == 'screen') {
+        String? screenName = doc.data()?['name'];
+        if (_shouldDeferRefreshEvents) {
+          // Runtime update - defer refresh until app resumes for better UX
+          _addPendingRefreshEvent(doc.id, screenName);
+        }
+      } else if (artifactType != null && ['resources', 'theme', 'config', 'secrets'].contains(artifactType)) {
+        // Handle non-screen artifacts that should trigger global refresh
+        if (_shouldDeferRefreshEvents) {
+          // Runtime update - defer refresh until app resumes
+          _addPendingResourceRefreshEvent(doc.id, artifactType);
+        }
+      }
+    }
 
     log("Cached: ${artifactCache.keys}. Home: $homeMapping. Theme: $themeMapping. Names: ${screenNameMappings.keys}");
     return Future<bool>.value(true);
@@ -417,6 +752,8 @@ class AppModelListenerMode extends AppModel {
         .where("isArchived", isEqualTo: false)
         .snapshots()
         .listen((event) {
+      bool isInitialSnapshot = _isInitialLoad;
+
       for (var change in event.docChanges) {
         if (change.type == DocumentChangeType.removed) {
           removeArtifact(change.doc);
@@ -424,6 +761,11 @@ class AppModelListenerMode extends AppModel {
           updateArtifact(
               change.doc, change.type == DocumentChangeType.modified);
         }
+      }
+
+      // Mark initial load as complete after processing first snapshot
+      if (isInitialSnapshot) {
+        _isInitialLoad = false;
       }
     }, onError: (error) {
       log("Provider listener error");
@@ -457,20 +799,26 @@ class AppModelListenerMode extends AppModel {
 class AppModelTimerMode extends AppModel {
   AppModelTimerMode(String appId): super(appId);
   Future<void> init() async {
-    await updateApp();
-    _startTimer();
+    await updateApp(); // Direct call bypasses duration check
+    await _startTimer();
   }
   /// this is latest timestamp of the updatedAt or createdAt among all artifacts
   Timestamp? lastUpdatedAt;
   Timestamp? internalArtifactLastUpdateAt;
   /// timer to check for updates
   Timer? _timer;
-  /// interval to check for updates
-  final Duration _interval = Duration(minutes: 60);
-  void _startTimer() {
+  // Interval based on configured duration
+  Duration get _interval {
+    int durationMs = _updateCheckDuration;
+    return Duration(milliseconds: durationMs);
+  }
+
+  Future<void> _startTimer() async {
+    // Call updateAppIfNeeded on resume (respects duration check)
+    await updateAppIfNeeded();
     if (_timer == null || _timer!.isActive == false) {
-      _timer = Timer.periodic(_interval, (timer) {
-        updateApp();
+      _timer = Timer.periodic(_interval, (timer) async {
+        await updateAppIfNeeded();
       });
     }
   }
@@ -533,6 +881,8 @@ class AppModelTimerMode extends AppModel {
       importCache.remove(appId);
     }
   }
+
+  @override
   Future<void> updateApp() async {
     await updateInternalArtifacts();
     QuerySnapshot<Map<String, dynamic>> snapshot;
@@ -552,6 +902,12 @@ class AppModelTimerMode extends AppModel {
     for (var doc in snapshot.docs) {
       await updateArtifact(doc, isUpdate);
       lastUpdatedAt = calculateLastUpdatedAt(doc, lastUpdatedAt);
+    }
+    _updateLastCheckedTime();
+
+    // Mark initial load as complete after first successful app load
+    if (_isInitialLoad) {
+      _isInitialLoad = false;
     }
   }
 
