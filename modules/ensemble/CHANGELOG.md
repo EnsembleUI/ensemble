@@ -1,3 +1,8 @@
+## 1.2.9
+
+ - **FIX**: homeScreen mapping for CDN provider. ([d333c165](https://github.com/ensembleUI/ensemble/commit/d333c165f43f8c68dc838fd1a9acfa5041b05b51))
+ - **FIX**: updated the ensemble artifacts logic to have presistent storage. ([bd9b5957](https://github.com/ensembleUI/ensemble/commit/bd9b5957fb85c2f6cada8243b25dc499b6f8bc2d))
+
 ## 1.2.8
 
  - **REFACTOR**: enhance navigation logic by evaluating payloads and improving menu item visibility handling. ([9992099b](https://github.com/ensembleUI/ensemble/commit/9992099b36504db84662eb7e2c4e51157b78d105))
