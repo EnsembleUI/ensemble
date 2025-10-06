@@ -43,6 +43,12 @@ class SecretsStore with Invokable {
           });
         }
       } catch (_) {}
+      // add secrets from .env.secrets file in ensemble folder
+      try {
+        await dotenv.load(fileName: 'ensemble/.env.secrets');
+        secrets.addAll(dotenv.env);
+      } catch (_) {}
+
       // add secrets from env
       try {
         await dotenv.load();
