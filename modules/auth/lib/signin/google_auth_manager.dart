@@ -1,9 +1,7 @@
-import 'dart:developer';
 import 'dart:io';
 
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/error_handling.dart';
-import 'package:ensemble/framework/stub/auth_context_manager.dart';
 import 'package:ensemble/framework/stub/oauth_controller.dart';
 import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart';
@@ -21,49 +19,63 @@ class GoogleAuthManager {
     return _instance;
   }
 
-  GoogleSignIn? _googleSignIn;
+  bool _isInitialized = false;
 
   Future<void> registerSignInListener(
       {List<String>? scopes,
       required GoogleSignInAccountCallback onAccountChanged}) async {
     // sign out (authorized scopes are still remembered the next sign in)
-    if (_googleSignIn != null) {
-      await _googleSignIn?.signOut();
+    if (_isInitialized) {
+      await GoogleSignIn.instance.signOut();
     }
 
     // create a new instance and listen to account changes
-    _googleSignIn = GoogleSignIn(
-        clientId: _getClientId(),
-        serverClientId: _getServerClientId(),
-        scopes: scopes ?? []);
-    _googleSignIn?.onCurrentUserChanged
-        .listen((account) => onAccountChanged(account));
+    await GoogleSignIn.instance.initialize(
+      clientId: _getClientId(),
+      serverClientId: _getServerClientId(),
+    );
+    _isInitialized = true;
+
+    GoogleSignIn.instance.authenticationEvents.listen((event) {
+      if (event is GoogleSignInAuthenticationEventSignIn) {
+        onAccountChanged(event.user);
+      } else if (event is GoogleSignInAuthenticationEventSignOut) {
+        onAccountChanged(null);
+      }
+    });
   }
 
   Future<GoogleSignInAccount?> signIn() async {
+    if (!_isInitialized) {
+      await GoogleSignIn.instance.initialize(
+        clientId: _getClientId(),
+        serverClientId: _getServerClientId(),
+      );
+      _isInitialized = true;
+    }
+
     if (kIsWeb) {
-      return await _googleSignIn?.signInSilently();
+      return await GoogleSignIn.instance.attemptLightweightAuthentication();
     } else {
-      return await _googleSignIn?.signIn();
+      return await GoogleSignIn.instance.authenticate();
     }
   }
 
-  Future<bool>? canAccessScopes(List<String> scopes) =>
-      _googleSignIn?.canAccessScopes(scopes);
-
   /// return the account currently signed in
-  Future<GoogleSignInAccount?> getSignedInUser() {
-    if (_googleSignIn != null) {
-      return Future.value(_googleSignIn!.currentUser);
+  Future<GoogleSignInAccount?> getSignedInUser() async {
+    if (!_isInitialized) {
+      await GoogleSignIn.instance.initialize(
+        clientId: _getClientId(),
+        serverClientId: _getServerClientId(),
+      );
+      _isInitialized = true;
     }
-    // the app starts up we don't have _googleSignIn yet, so attempt to silently
-    // sign in if the underlying platform still remember the last sign in
+
+    // get the current user via lightweight authentication
     try {
-      return GoogleSignIn()
-          .signInSilently(suppressErrors: true)
-          .then((account) => account);
+      return await GoogleSignIn.instance.attemptLightweightAuthentication();
     } catch (error) {
-      return Future.value(null);
+      return null;
     }
   }
 

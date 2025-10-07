@@ -1,21 +1,14 @@
 import 'dart:developer';
-import 'dart:io';
 
-import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/extensions.dart';
-import 'package:ensemble/framework/scope.dart';
-import 'package:ensemble/framework/storage_manager.dart';
 import 'package:ensemble/framework/stub/auth_context_manager.dart';
-import 'package:ensemble/framework/stub/oauth_controller.dart';
 import 'package:ensemble/framework/view/data_scope_widget.dart';
-import 'package:ensemble/framework/view/page.dart';
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
-import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:ensemble/widget/stub_widgets.dart';
 import 'package:ensemble_auth/signin/auth_manager.dart';
 import 'package:ensemble_auth/signin/google_auth_manager.dart';
@@ -23,15 +16,8 @@ import 'package:ensemble_auth/signin/signin_utils.dart';
 import 'package:ensemble_auth/signin/widget/google/google_sign_in_button.dart';
 import 'package:ensemble_auth/signin/widget/sign_in_button.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_core/firebase_core.dart';
-import 'package:flutter/cupertino.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-import 'dart:convert';
-import 'package:http/http.dart' as http;
 
 class SignInWithGoogleImpl extends StatefulWidget
     with
@@ -138,17 +124,38 @@ class SignInWithGoogleImplState extends EWidgetState<SignInWithGoogleImpl> {
     else {
       // Note that access token is not available on Web
       AuthToken? token;
-      if (googleAuthentication.accessToken != null) {
+      try {
+        final scopesToUse = widget._controller.scopes.isNotEmpty
+            ? widget._controller.scopes
+            : ['email', 'profile'];
+        final clientAuth =
+            await account.authorizationClient.authorizeScopes(scopesToUse);
         token = AuthToken(
-            tokenType: TokenType.bearerToken,
-            token: googleAuthentication.accessToken!);
+            tokenType: TokenType.bearerToken, token: clientAuth.accessToken);
+      } catch (e) {
+        log('Could not get access token: $e');
       }
+
       idToken = await AuthManager().signInWithSocialCredential(context,
           user: user, idToken: idToken, token: token);
     }
 
     // trigger the callback. This can be used to sign in on the server
     if (widget._controller.onSignedIn != null) {
+      // Get server auth code for server-side authentication
+      String? serverAuthCode;
+      try {
+        final scopesToUse = widget._controller.scopes.isNotEmpty
+            ? widget._controller.scopes
+            : ['email', 'profile'];
+        final serverAuth =
+            await account.authorizationClient.authorizeServer(scopesToUse);
+        serverAuthCode = serverAuth?.serverAuthCode;
+      } catch (e) {
+        // Server auth code not available
+        log('Could not get server auth code: $e');
+      }
+
       ScreenController().executeAction(context, widget._controller.onSignedIn!,
           event: EnsembleEvent(widget, data: {
             'user': user,
@@ -157,7 +164,7 @@ class SignInWithGoogleImplState extends EWidgetState<SignInWithGoogleImpl> {
             'idToken': idToken,
 
             // server can exchange this for accessToken/refreshToken
-            'serverAuthCode': account.serverAuthCode
+            'serverAuthCode': serverAuthCode
           }));
     }
   }
