@@ -112,7 +112,7 @@ class _ScreenState extends State<Screen> {
   /// Called when this screen needs to refresh due to artifact or resource updates
   void _refreshScreen() {
     if (kDebugMode) {
-      print('🔄 Refreshing Screen widget: ${widget.screenPayload?.screenId}/${widget.screenPayload?.screenName}');
+      print('Refreshing Screen widget: ${widget.screenPayload?.screenId}/${widget.screenPayload?.screenName}');
     }
     setState(() {
       // Create a new key to force FutureBuilder to rebuild completely
@@ -136,18 +136,11 @@ class _ScreenState extends State<Screen> {
 
           if (!inViewGroup && isCurrentRoute) {
             if (!_isScreenAlreadyTracked()) {
-              if (kDebugMode) {
-                print('✅ Tracking from renderScreen: ${widget.screenPayload?.screenName ?? "home screen"}');
-              }
               _trackScreenWithEnhancement();
             }
           }
         }
       });
-    } else {
-      if (kDebugMode) {
-        print('⏭️ Skipping tracking - PageGroupModel container (tabs will track themselves)');
-      }
     }
 
     //here add the js code
@@ -210,9 +203,6 @@ class _ScreenState extends State<Screen> {
       // Case 1: Null payload - create from home screen name
       final homeScreenName = _findScreenNameFromDefinitionProvider();
       if (homeScreenName != null) {
-        if (kDebugMode) {
-          print('✅ Creating payload for home screen: $homeScreenName');
-        }
         finalPayload = ScreenPayload(
           screenName: homeScreenName,
         );
@@ -272,7 +262,7 @@ class _ScreenState extends State<Screen> {
       return null;
     } catch (e) {
       if (kDebugMode) {
-        print('❌ Error accessing definition provider for screen name lookup: $e');
+        print('Error accessing definition provider for screen name lookup: $e');
       }
       return null;
     }
@@ -319,18 +309,8 @@ class _PageInitializerState extends State<PageInitializer>
       // Resources affect ALL screens, so always refresh (no condition check needed)
       _resourceRefreshSubscription = AppEventBus().eventBus.on<ResourceRefreshEvent>().listen((event) {
         if (!mounted) return;
-        if (kDebugMode) {
-          print('🔄 Resource refresh triggered for artifact: ${event.artifactId} (type: ${event.artifactType})');
-        }
         _refreshParentScreen();
       });
-      if (kDebugMode) {
-        print('📲 PageInitializer initState - refresh listeners subscribed');
-      }
-    } else {
-      if (kDebugMode) {
-        print('⏸️ PageInitializer initState - refresh disabled, no listeners created');
-      }
     }
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
@@ -348,7 +328,7 @@ class _PageInitializerState extends State<PageInitializer>
       return provider.isArtifactRefreshEnabled();
     } catch (e) {
       if (kDebugMode) {
-        print('⚠️ Could not determine artifact refresh setting, defaulting to disabled: $e');
+        print('Could not determine artifact refresh setting, defaulting to disabled: $e');
       }
       return false;
     }
@@ -377,14 +357,7 @@ class _PageInitializerState extends State<PageInitializer>
     }
 
     if (shouldRefresh) {
-      if (kDebugMode) {
-        print('🔄 Screen refresh triggered for: $matchReason');
-      }
       _refreshParentScreen();
-    } else {
-      if (kDebugMode) {
-        print('⏭️ Ignoring refresh - not for this screen (my: $myScreenId/$myScreenName, event: ${event.screenId}/${event.screenName})');
-      }
     }
   }
 
@@ -397,7 +370,7 @@ class _PageInitializerState extends State<PageInitializer>
       screenState._refreshScreen();
     } else {
       if (kDebugMode) {
-        print('⚠️ Could not find parent Screen to refresh');
+        print('Could not find parent Screen to refresh');
       }
     }
   }
