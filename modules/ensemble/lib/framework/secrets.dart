@@ -41,6 +41,10 @@ class SecretsStore with Invokable {
           appSecretsMap["secrets"].forEach((key, value) {
             secrets![key] = value;
           });
+
+          // add secrets from ${path}/.env.secrets file
+          await dotenv.load(fileName: '${path}/.env.secrets');
+          secrets.addAll(dotenv.env);
         }
       } catch (_) {}
       // add secrets from .env.secrets file in ensemble folder
