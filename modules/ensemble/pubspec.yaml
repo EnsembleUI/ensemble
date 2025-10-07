@@ -49,7 +49,7 @@ dependencies:
   mask_text_input_formatter: ^2.5.0
   ensemble_otp: ^1.0.2
   form_validator: ^2.1.1
-  flutter_svg: ^2.2.1
+  flutter_svg: ^2.2.0
   flutter_svg_provider: ^1.0.7
   qr_flutter: ^4.1.0
   device_info_plus: ^10.1.0
