@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:typed_data';
 
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/bindings.dart';
@@ -15,7 +14,7 @@ import 'package:http/http.dart' as http;
 import 'package:yaml/yaml.dart';
 import 'package:brotli/brotli.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:cryptography/cryptography.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 /// DefinitionProvider that reads the app manifest from CDN
 class CdnDefinitionProvider extends DefinitionProvider {
@@ -37,7 +36,6 @@ class CdnDefinitionProvider extends DefinitionProvider {
   // Localization & config
   String? _defaultLocale;
   UserAppConfig? _appConfig;
-  Map<String, String>? _secrets;
 
   // HTTP caching (ETag) + freshness
   String? _etag;
@@ -45,7 +43,6 @@ class CdnDefinitionProvider extends DefinitionProvider {
 
   // Background update tracking
   bool _hasPendingUpdate = false;
-
 
   // Persistent cache key
   String get _artifactCacheKey => 'cdn_provider_state_$appId';
@@ -119,7 +116,12 @@ class CdnDefinitionProvider extends DefinitionProvider {
   UserAppConfig? getAppConfig() => _appConfig;
 
   @override
-  Map<String, String> getSecrets() => _secrets ?? {};
+  Map<String, String> getSecrets() {
+    if (dotenv.isInitialized) {
+      return Map<String, String>.from(dotenv.env);
+    }
+    return {};
+  }
 
   @override
   List<String> getSupportedLanguages() => _artifactCache.keys
@@ -380,23 +382,11 @@ class CdnDefinitionProvider extends DefinitionProvider {
     _themeMapping = null;
     _defaultLocale = null;
     _appConfig = null;
-    _secrets = null;
 
     final artifacts = _asMap(root['artifacts']);
     if (artifacts == null) return;
 
-    // 1) secrets
-    final secretsPayload = _asMap(artifacts['secrets']);
-    if (secretsPayload != null && secretsPayload.isNotEmpty) {
-      decryptSecretsXChaCha(secretsPayload, appId: appId).then((decrypted) {
-        _secrets = decrypted.map((k, v) => MapEntry(k, v.toString()));
-      }).catchError((e) {
-        debugPrint('Failed to decrypt secrets: $e');
-        _secrets = {};
-      });
-    }
-
-    // 2) config
+    // 1) config
     final configMap = _asMap(artifacts['config']);
     final String? baseUrl = configMap?['baseUrl']?.toString();
     bool? useBrowserUrl;
@@ -408,13 +398,13 @@ class CdnDefinitionProvider extends DefinitionProvider {
     Map<String, dynamic> envVars = Map<String, dynamic>.from(
         _asMap(configMap?['envVariables']) ?? const {});
 
-    // 3) core artifacts
+    // 2) core artifacts
     _parseScreens(artifacts['screens']);
     _parseTheme(artifacts['theme']);
     _parseResources(artifacts['widgets'], artifacts['scripts']);
     _parseTranslations(artifacts['translations']);
 
-    // 4) finalize AppConfig
+    // 3) finalize AppConfig
     if (envVars.isNotEmpty || baseUrl != null || useBrowserUrl != null) {
       _appConfig = UserAppConfig(
         baseUrl: baseUrl,
@@ -587,60 +577,5 @@ class CdnDefinitionProvider extends DefinitionProvider {
       return Locale(parts[0], parts[1]);
     }
     return Locale(normalized);
-  }
-
-  Uint8List _b64Decode(String s) {
-    var t = s.replaceAll('-', '+').replaceAll('_', '/');
-    switch (t.length % 4) {
-      case 2:
-        t += '==';
-        break;
-      case 3:
-        t += '=';
-        break;
-    }
-    return Uint8List.fromList(base64.decode(t));
-  }
-
-  /// Decrypts the secrets payload
-  Future<Map<String, dynamic>> decryptSecretsXChaCha(
-    Map<String, dynamic> payload, {
-    required String appId,
-  }) async {
-    if (payload.isEmpty) return {};
-
-    // 1) Validate alg
-    final alg = (payload['alg'] ?? '').toString().toUpperCase();
-    if (alg != 'XCHACHA20-POLY1305') {
-      throw StateError('Unsupported alg: $alg');
-    }
-
-    // 2) Load key
-    final keyStr = 'gRet6enBqAoDobmL0x8G4Vdw7BE6NGMRKBF27Y1X7SU';
-    final keyBytes = _b64Decode(keyStr);
-    final secretKey = SecretKey(keyBytes);
-
-    // 3) Decode nonce and data
-    final nonce = _b64Decode(payload['nonce'] as String);
-    final data = _b64Decode(payload['data'] as String);
-
-    // 4) Split ciphertext and tag
-    final tagLen = 16;
-    final cipherText = Uint8List.sublistView(data, 0, data.length - tagLen);
-    final tagBytes = Uint8List.sublistView(data, data.length - tagLen);
-
-    // 5) AAD
-    final aad = utf8.encode('appId:$appId');
-
-    // 6) Decrypt
-    final algo = Xchacha20.poly1305Aead();
-    final clearBytes = await algo.decrypt(
-      SecretBox(cipherText, nonce: nonce, mac: Mac(tagBytes)),
-      secretKey: secretKey,
-      aad: aad,
-    );
-
-    final jsonStr = utf8.decode(clearBytes);
-    return jsonDecode(jsonStr) as Map<String, dynamic>;
   }
 }
