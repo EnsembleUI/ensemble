@@ -20,7 +20,7 @@ dependencies:
 
   web_socket_client: ^0.2.1
   yaml: ^3.1.2
-  flutter_svg: ^2.2.0
+  flutter_svg: ^2.2.1
   dart_openai: ^5.1.0
   http: ^1.2.1
 
