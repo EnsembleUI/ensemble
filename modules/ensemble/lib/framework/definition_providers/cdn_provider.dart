@@ -152,9 +152,6 @@ class CdnDefinitionProvider extends DefinitionProvider {
         _fireManifestRefreshEvent();
         Ensemble().notifyAppBundleChanges();
         _hasPendingUpdate = false;
-        if (kDebugMode) {
-          debugPrint('✅ CDN Provider: Pending updates applied on resume');
-        }
       }
     }
   }
@@ -256,10 +253,6 @@ class CdnDefinitionProvider extends DefinitionProvider {
   /// specific screens changed. Therefore, we fire a global refresh event that
   /// triggers all mounted screens to refresh.
   void _fireManifestRefreshEvent() {
-    if (kDebugMode) {
-      debugPrint('🔄 CDN Provider: Manifest updated - firing global refresh event');
-    }
-
     // clear Ensemble's _parsedScriptCache (parsed JavaScript) as well
     Ensemble().getConfig()?.clearResourceCaches();
     AppEventBus().eventBus.fire(ResourceRefreshEvent(

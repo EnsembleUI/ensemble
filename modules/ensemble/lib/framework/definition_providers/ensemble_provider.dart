@@ -178,7 +178,7 @@ class EnsembleDefinitionProvider extends DefinitionProvider {
       };
       StorageManager().writeToSystemStorage(AppModel._visibleScreenOnBackgroundKey, screenData);
       if (kDebugMode) {
-        print('📦 Stored visible screen on background: ${currentScreen.screenName ?? currentScreen.screenId} (index: ${currentScreen.viewGroupIndex})');
+        print('Stored visible screen on background: ${currentScreen.screenName ?? currentScreen.screenId} (index: ${currentScreen.viewGroupIndex})');
       }
     }
   }
@@ -187,11 +187,7 @@ class EnsembleDefinitionProvider extends DefinitionProvider {
   void _restoreVisibleScreenOnForeground() {
     final storedData = StorageManager().readFromSystemStorage<Map<String, dynamic>>(AppModel._visibleScreenOnBackgroundKey);
     if (storedData != null) {
-      final screenName = storedData['screenName'] as String?;
       final viewGroupIndex = storedData['viewGroupIndex'] as int?;
-      if (kDebugMode) {
-        print('🔄 Restoring visible screen: $screenName (index: $viewGroupIndex)');
-      }
       // If the screen was in a ViewGroup, restore that specific tab
       if (viewGroupIndex != null) {
         // Import the viewgroup notifier
@@ -200,7 +196,7 @@ class EnsembleDefinitionProvider extends DefinitionProvider {
           // Update to the preserved screen index
           viewGroupNotifier.updatePage(viewGroupIndex);
           if (kDebugMode) {
-            print('✅ Restored ViewGroup to index: $viewGroupIndex');
+            print('Restored ViewGroup to index: $viewGroupIndex');
           }
         }
       }
@@ -217,7 +213,7 @@ class EnsembleDefinitionProvider extends DefinitionProvider {
       return viewGroupNotifier;
     } catch (e) {
       if (kDebugMode) {
-        print('⚠️ Could not access ViewGroup notifier: $e');
+        print('Could not access ViewGroup notifier: $e');
       }
       return null;
     }
@@ -337,9 +333,6 @@ class AppModel {
     });
 
     _savePendingRefreshEvents();
-    if (kDebugMode) {
-      print('📦 Added pending UI refresh for: $screenId (${screenName ?? 'unnamed'})');
-    }
   }
 
   /// Fire all pending refresh events and clear the list
@@ -348,7 +341,7 @@ class AppModel {
     if (totalEvents == 0) return;
 
     if (kDebugMode) {
-      print('🔄 Firing $totalEvents pending refresh events (${_pendingRefreshEvents.length} screen, ${_pendingResourceRefreshEvents.length} resource)...');
+      print('Firing $totalEvents pending refresh events (${_pendingRefreshEvents.length} screen, ${_pendingResourceRefreshEvents.length} resource)...');
     }
 
     bool needsCacheClear = _pendingResourceRefreshEvents.any(
@@ -369,12 +362,9 @@ class AppModel {
           screenId: refreshEvent['screenId'],
           screenName: refreshEvent['screenName'],
         ));
-        if (kDebugMode) {
-          print('🎯 Fired screen refresh event for: ${refreshEvent['screenId']}');
-        }
       } catch (e) {
         if (kDebugMode) {
-          print('❌ Failed to fire screen refresh event for: ${refreshEvent['screenId']}: $e');
+          print('Failed to fire screen refresh event for: ${refreshEvent['screenId']}: $e');
         }
       }
     }
@@ -386,12 +376,9 @@ class AppModel {
           artifactId: refreshEvent['artifactId'],
           artifactType: refreshEvent['artifactType'],
         ));
-        if (kDebugMode) {
-          print('🎯 Fired resource refresh event for: ${refreshEvent['artifactId']} (${refreshEvent['artifactType']})');
-        }
       } catch (e) {
         if (kDebugMode) {
-          print('❌ Failed to fire resource refresh event for: ${refreshEvent['artifactId']}: $e');
+          print('Failed to fire resource refresh event for: ${refreshEvent['artifactId']}: $e');
         }
       }
     }
@@ -401,9 +388,6 @@ class AppModel {
     _savePendingRefreshEvents();
     _pendingResourceRefreshEvents.clear();
     _savePendingResourceRefreshEvents();
-    if (kDebugMode) {
-      print('🧹 Cleared all pending refresh events');
-    }
   }
 
   /// Load pending resource refresh events from storage
@@ -435,7 +419,7 @@ class AppModel {
 
     _savePendingResourceRefreshEvents();
     if (kDebugMode) {
-      print('📦 Added pending resource refresh for: $artifactId (type: $artifactType)');
+      print('Added pending resource refresh for: $artifactId (type: $artifactType)');
     }
   }
 

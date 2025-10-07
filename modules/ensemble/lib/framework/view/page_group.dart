@@ -197,9 +197,6 @@ class PageGroupState extends State<PageGroup>
   int? _getStoredViewGroupIndex() {
     final storedIndex = StorageManager().readFromSystemStorage<int>('viewgroup_current_index');
     if (storedIndex != null && storedIndex >= 0 && storedIndex < widget.menu.menuItems.length) {
-      if (kDebugMode) {
-        print('💾 Retrieved stored ViewGroup index: $storedIndex');
-      }
       return storedIndex;
     }
     return null;
@@ -208,9 +205,6 @@ class PageGroupState extends State<PageGroup>
   /// Store current ViewGroup index to persistent storage
   void _storeViewGroupIndex(int index) {
     StorageManager().writeToSystemStorage('viewgroup_current_index', index);
-    if (kDebugMode) {
-      print('💾 Stored ViewGroup index: $index');
-    }
   }
 
 
@@ -219,10 +213,6 @@ class PageGroupState extends State<PageGroup>
     if (pagePayloads.isNotEmpty && mounted) {
       final initialIndex = viewGroupNotifier.viewIndex;
       final initialPayload = pagePayloads[initialIndex];
-
-      if (kDebugMode) {
-        print('🏗️ ViewGroup _trackInitialScreen - viewIndex: $initialIndex, screen: ${initialPayload.screenName}');
-      }
 
       // Store the initial index
       _storeViewGroupIndex(initialIndex);
@@ -676,9 +666,6 @@ class ViewGroupNotifier extends ChangeNotifier {
   /// Store ViewGroup index using a simple global key for persistence
   void storeCurrentIndex() {
     StorageManager().writeToSystemStorage('viewgroup_current_index', _viewIndex);
-    if (kDebugMode) {
-      print('💾 Stored current ViewGroup index: $_viewIndex');
-    }
   }
 }
 

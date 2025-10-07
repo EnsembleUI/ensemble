@@ -87,9 +87,6 @@ class ScreenTracker {
 
     _setCurrentScreen(newScreen);
 
-    if (kDebugMode) {
-      print('📱 Screen Tracker: Now tracking ${newScreen.toString()}');
-    }
   }
 
   /// Track screen from ScreenPayload
@@ -141,10 +138,6 @@ class ScreenTracker {
       );
 
       _setCurrentScreen(restoredScreen, isRestoringFromHistory: true);
-
-      if (kDebugMode) {
-        print('📱 Screen Tracker: Restored from stack ${restoredScreen.toString()}');
-      }
       return;
     }
 
@@ -156,9 +149,6 @@ class ScreenTracker {
 
     // No screen found - clear current screen
     _setCurrentScreen(null);
-    if (kDebugMode) {
-      print('📱 Screen Tracker: No screen after pop');
-    }
   }
 
   /// Extract screen info from route and track it (helper method)
@@ -184,9 +174,6 @@ class ScreenTracker {
   /// Handle bottom navigation and ViewGroup screen changes (sidebar, drawer navigation)
   /// Tracks the screen with viewGroupIndex for proper restoration after backgrounding
   void handleBottomNavChange(String? screenId, String? screenName, {Map<String, dynamic>? arguments, int? viewGroupIndex}) {
-    if (kDebugMode) {
-      print('📱 Screen Tracker: Bottom nav change to id=$screenId, name=$screenName, index=$viewGroupIndex');
-    }
     trackScreen(
       screenId: screenId,
       screenName: screenName,
@@ -200,9 +187,7 @@ class ScreenTracker {
   /// Handle ViewGroup screen changes (sidebar, drawer navigation)
   /// Tracks the screen with viewGroupIndex for proper restoration after backgrounding
   void handleViewGroupChange(String? screenId, String? screenName, {Map<String, dynamic>? arguments, int? viewGroupIndex}) {
-    if (kDebugMode) {
-      print('📱 Screen Tracker: ViewGroup change to id=$screenId, name=$screenName, index=$viewGroupIndex');
-    }
+
     trackScreen(
       screenId: screenId,
       screenName: screenName,
@@ -216,18 +201,12 @@ class ScreenTracker {
   /// Clear current screen tracking
   void clearCurrentScreen() {
     _setCurrentScreen(null);
-    if (kDebugMode) {
-      print('📱 Screen Tracker: Cleared current screen');
-    }
   }
 
   /// Clear all tracking data (useful for testing)
   void clearAll() {
     _currentScreen = null;
     _screenStack.clear();
-    if (kDebugMode) {
-      print('📱 Screen Tracker: Cleared all tracking data');
-    }
   }
 
   /// Get screen identifier (prefer screenName over screenId)
@@ -274,9 +253,9 @@ class ScreenTracker {
     // Print current screen info for real-time tracking
     if (screen != null) {
       final identifier = screen.screenName ?? screen.screenId ?? 'unknown';
-      print('🔥 SCREEN TRACKER: $identifier');
+      print('SCREEN TRACKER: $identifier');
     } else {
-      print('🔥 SCREEN TRACKER: [NO SCREEN] - cleared');
+      print('SCREEN TRACKER: [NO SCREEN] - cleared');
     }
 
     // Notify listeners
@@ -330,15 +309,8 @@ class ScreenTrackingNavigatorObserver extends NavigatorObserver {
     // Try to extract screen information from route settings
     final settings = route.settings;
 
-    if (kDebugMode) {
-      print('📱 Extracting screen from route: name=${settings.name}, args=${settings.arguments?.runtimeType}');
-    }
-
     if (settings.arguments is ScreenPayload) {
       final payload = settings.arguments as ScreenPayload;
-      if (kDebugMode) {
-        print('📱 Found ScreenPayload: id=${payload.screenId}, name=${payload.screenName}');
-      }
       _tracker.trackScreenFromPayload(
         payload,
         route: route,
@@ -346,18 +318,12 @@ class ScreenTrackingNavigatorObserver extends NavigatorObserver {
       );
     } else if (settings.name != null && settings.name != '/') {
       // Skip generic routes like '/' as they don't provide useful screen information
-      if (kDebugMode) {
-        print('📱 Using route name as screen identifier: ${settings.name}');
-      }
       _tracker.trackScreen(
         screenName: settings.name,
         route: route,
         isModal: route.settings.name?.contains('modal') == true,
       );
     } else {
-      if (kDebugMode) {
-        print('📱 Skipping generic route: ${settings.name} - will be handled by ViewGroup or Screen widget');
-      }
       // Don't track generic routes - let ViewGroup or Screen widget handle it
     }
   }
