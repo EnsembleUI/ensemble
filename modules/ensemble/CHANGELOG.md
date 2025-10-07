@@ -1,3 +1,8 @@
+## 1.2.10
+
+ - **FEAT**: load secrets from .env.secrets file in SecretsStore class. ([16adc60b](https://github.com/ensembleUI/ensemble/commit/16adc60bb426a9a71e146d986d4332107dc4f388))
+ - **FEAT**: enhance secrets management by loading from .env.secrets file and refactor getSecrets method in CdnDefinitionProvider. ([2278ce84](https://github.com/ensembleUI/ensemble/commit/2278ce849745495d1c0f0fdae9f96e86624968c8))
+
 ## 1.2.9
 
  - **FIX**: homeScreen mapping for CDN provider. ([d333c165](https://github.com/ensembleUI/ensemble/commit/d333c165f43f8c68dc838fd1a9acfa5041b05b51))
