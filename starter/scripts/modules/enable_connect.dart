@@ -50,7 +50,7 @@ ensemble_connect:
       addImplementationDependency(
           "implementation 'org.openjsse:openjsse:1.1.10'");
       addImplementationDependency(
-          "implementation 'org.conscrypt:conscrypt-android:2.5.2'");
+          "implementation 'org.conscrypt:conscrypt-android:2.5.3'");
       updateBuildGradle(minifyEnabled: false, shrinkResources: false);
     }
 
