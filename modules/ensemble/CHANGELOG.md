@@ -1,3 +1,5 @@
+## 1.2.11
+
 ## 1.2.10
 
  - **FEAT**: load secrets from .env.secrets file in SecretsStore class. ([16adc60b](https://github.com/ensembleUI/ensemble/commit/16adc60bb426a9a71e146d986d4332107dc4f388))
