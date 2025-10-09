@@ -100,7 +100,8 @@ class LocalDefinitionProvider extends FileDefinitionProvider {
               final widgetContent =
                   await _readFile("widgets/${widgetItem["name"]}.yaml");
               if (widgetContent is YamlMap) {
-                widgets[widgetItem["name"]] = widgetContent["Widget"];
+                // Store the full YAML to preserve Import declarations
+                widgets[widgetItem["name"]] = widgetContent;
               } else {
                 debugPrint('Content in ${widgetItem["name"]} is not a YamlMap');
               }

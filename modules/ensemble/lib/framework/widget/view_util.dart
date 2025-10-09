@@ -188,7 +188,25 @@ class ViewUtil {
     List<String> inputParams = [];
     Map<String, EnsembleEvent> eventParams = {};
     List<ParsedCode>? importedCode;
-    for (MapEntry entry in (viewDefinition as YamlMap).entries) {
+
+    // CDN stores custom widgets as: { Import: [...], Widget: { inputs, body, ... } }
+    // Ensemble custom widgets use flat structure: { Import: [...], inputs, body, ... }
+    // If we find a 'Widget' key, flatten it to process like Ensemble widgets
+    YamlMap definitionToProcess = viewDefinition as YamlMap;
+    if (viewDefinition['Widget'] is YamlMap) {
+      // Merge Widget contents with root level
+      Map<dynamic, dynamic> flattened = {};
+      viewDefinition.forEach((key, value) {
+        if (key == 'Widget') {
+          (value as YamlMap).forEach((k, v) => flattened[k] = v);
+        } else {
+          flattened[key] = value;
+        }
+      });
+      definitionToProcess = YamlMap.wrap(flattened);
+    }
+
+    for (MapEntry entry in definitionToProcess.entries) {
       if (entry.key == PageModel.importToken) {
         importedCode = Ensemble().getConfig()?.processImports(entry.value);
       }
