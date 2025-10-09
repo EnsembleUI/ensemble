@@ -15,6 +15,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:ensemble/framework/widget/icon.dart' as ensemble;
 import 'package:ensemble/framework/extensions.dart';
+import 'package:ensemble/framework/services/aria_label/aria_label_service.dart';
 
 import 'package:ensemble/ensemble.dart';
 import 'bottom_nav_page_group.dart';
@@ -401,6 +402,19 @@ class PageGroupState extends State<PageGroup>
             child: ListenableBuilder(
               listenable: viewGroupNotifier,
               builder: (context, _) {
+                // After list rebuilds, apply aria-labels globally on web
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  final Map<String, String> labels = {
+                    for (final item in visibleItems)
+                      (Utils.translate(
+                              item.semantics?.label ?? item.label ?? '',
+                              context)):
+                          (Utils.translate(
+                              item.semantics?.label ?? item.label ?? '',
+                              context))
+                  };
+                  AriaLabelService.applyLabels(labels);
+                });
                 int selectedVisibleIndex = -1;
                 if (viewGroupNotifier.viewIndex >= 0 &&
                     viewGroupNotifier.viewIndex < menu.menuItems.length) {
@@ -598,6 +612,19 @@ class PageGroupState extends State<PageGroup>
                     }
                     navItems.add(menuItem);
                   }
+                  // After drawer list rebuilds, apply aria-labels globally on web
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    final Map<String, String> labels = {
+                      for (final item in visibleItems)
+                        (Utils.translate(
+                                item.semantics?.label ?? item.label ?? '',
+                                context)):
+                            (Utils.translate(
+                                item.semantics?.label ?? item.label ?? '',
+                                context))
+                    };
+                    AriaLabelService.applyLabels(labels);
+                  });
                   return ListView(children: navItems);
                 }),
           ),
