@@ -481,7 +481,9 @@ class CdnDefinitionProvider extends DefinitionProvider {
       ResourceArtifactEntry.Scripts.name: code,
     };
     if (resources.isNotEmpty) {
-      _artifactCache[ArtifactType.resources.name] = YamlMap.wrap(resources);
+      // Store as plain Map (not YamlMap) to match Ensemble provider behavior
+      // This ensures script evaluation works correctly when widgets contain Import declarations
+      _artifactCache[ArtifactType.resources.name] = resources;
     }
   }
 
