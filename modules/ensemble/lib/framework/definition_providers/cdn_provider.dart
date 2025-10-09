@@ -444,7 +444,8 @@ class CdnDefinitionProvider extends DefinitionProvider {
       widgetsRaw.forEach((k, v) {
         if (v is String && v.isNotEmpty) {
           final yaml = _tryLoadYaml(v);
-          if (yaml != null) widgets[k] = yaml['Widget'] ?? yaml;
+          // IMPORTANT: Store the full YAML to preserve Import declarations
+          if (yaml != null) widgets[k] = yaml;
         }
       });
     } else if (widgetsRaw is List) {
@@ -455,7 +456,8 @@ class CdnDefinitionProvider extends DefinitionProvider {
         final content = w['content']?.toString();
         if (name != null && content != null) {
           final yaml = _tryLoadYaml(content);
-          if (yaml != null) widgets[name] = yaml['Widget'] ?? yaml;
+          // IMPORTANT: Store the full YAML to preserve Import declarations
+          if (yaml != null) widgets[name] = yaml;
         }
       }
     }
@@ -479,7 +481,8 @@ class CdnDefinitionProvider extends DefinitionProvider {
       ResourceArtifactEntry.Scripts.name: code,
     };
     if (resources.isNotEmpty) {
-      _artifactCache[ArtifactType.resources.name] = YamlMap.wrap(resources);
+      // Store as plain Map (not YamlMap) to match Ensemble provider behavior
+      _artifactCache[ArtifactType.resources.name] = resources;
     }
   }
 
