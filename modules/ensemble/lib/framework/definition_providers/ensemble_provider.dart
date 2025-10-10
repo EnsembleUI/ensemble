@@ -611,6 +611,11 @@ class AppModel {
     FirebaseFirestore db = FirebaseFirestore.instanceFor(app: app);
     return db.collection('apps').doc(appId).collection('artifacts');
   }
+  CollectionReference<Map<String, dynamic>> _getInternalArtifacts() {
+    final app = Ensemble().ensembleFirebaseApp!;
+    FirebaseFirestore db = FirebaseFirestore.instanceFor(app: app);
+    return db.collection('apps').doc(appId).collection('internal_artifacts');
+  }
   /// App bundle for now only expects the theme, but we'll use this
   /// opportunity to also cache the home page
   Future<AppBundle> getAppBundle() async {
@@ -636,34 +641,49 @@ class AppModel {
     Map code = {};
     Map output = {};
     Map widgets = {};
+    QuerySnapshot<Map<String, dynamic>> snapshot = await _getInternalArtifacts()
+        .where('isArchived', isEqualTo: false)
+        .get();
+     for (var doc in snapshot.docs) {
+        var type = doc.data()['type'];
+        var name = doc.data()['name'];
+        var content = doc.data()['content'];
+      if (type == ArtifactType.internal_widget.name) {
+        YamlMap yamlContent = await loadYaml(content);
+        widgets[name] = yamlContent["Widget"];
+      } 
+      if (type == ArtifactType.internal_script.name) {
+        code[name] = content;
+      } 
+    }
 
-    YamlMap? resources = artifactCache[ArtifactType.resources.name];
-    resources?.forEach((key, value) {
-      if (key == ResourceArtifactEntry.Widgets.name) {
-        if (value is YamlMap) {
-          widgets.addAll(value.value);
-        }
-      } else if (key == ResourceArtifactEntry.Scripts.name) {
-        if (value is YamlMap) {
-          //code will be in the format -
-          // Scripts:
-          //  #apiUtils is the name of the code artifact
-          //  apiUtils: |-
-          //    function callAPI(name,payload) {
-          //      ensemble.invokeAPI(name, payload);
-          //    }
-          //  #common is the name of the code artifact
-          //  common: |-
-          //    function sayHello() {
-          //      return 'hello';
-          //    }
-          code.addAll(value.value);
-        }
-      } else {
-        // copy over non-Widgets
-        output[key] = value;
-      }
-    });
+    // YamlMap? resources = artifactCache[ArtifactType.resources.name];
+    // resources?.forEach((key, value) {
+    //   if (key == ResourceArtifactEntry.Widgets.name) {
+    //     if (value is YamlMap) {
+    //       widgets.addAll(value.value);
+    //     }
+    //   } else if (key == ResourceArtifactEntry.Scripts.name) {
+    //     if (value is YamlMap) {
+    //       //code will be in the format -
+    //       // Scripts:
+    //       //  #apiUtils is the name of the code artifact
+    //       //  apiUtils: |-
+    //       //    function callAPI(name,payload) {
+    //       //      ensemble.invokeAPI(name, payload);
+    //       //    }
+    //       //  #common is the name of the code artifact
+    //       //  common: |-
+    //       //    function sayHello() {
+    //       //      return 'hello';
+    //       //    }
+    //       code.addAll(value.value);
+    //     }
+    //   } else {
+    //     // copy over non-Widgets
+    //     output[key] = value;
+    //   }
+    // });
 
     // go through each imported App to include their widgets with proper namespace
     for (String appId in importCache.keys) {
