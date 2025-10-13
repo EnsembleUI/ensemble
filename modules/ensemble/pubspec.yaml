@@ -45,7 +45,7 @@ dependencies:
 
   event_bus: ^2.0.0
   flutter_layout_grid: ^2.0.3
-  email_validator: ^2.0.1
+  email_validator: ^3.0.0
   mask_text_input_formatter: ^2.5.0
   ensemble_otp: ^1.0.2
   form_validator: ^2.1.1
@@ -54,18 +54,18 @@ dependencies:
   qr_flutter: ^4.1.0
   device_info_plus: ^10.1.0
   carousel_slider: ^5.0.0
-  fluttertoast: ^8.2.10
+  fluttertoast: ^9.0.0
   video_player: ^2.6.1
   lottie: ^3.0.0
   cookie_jar: ^4.0.8
   js_widget: ^1.0.4
-  flutter_markdown: ^0.6.10+5
+  flutter_markdown: ^0.7.7+1
   provider: ^6.0.3
   cloud_firestore: ^6.0.2
   get_storage: ^2.0.3
   flutter_html: ^3.0.0
   cached_network_image: ^3.2.3
-  sensors_plus: ^3.0.0
+  sensors_plus: ^7.0.0
   mime: ^2.0.0
   flutter_cache_manager: ^3.3.0
   google_fonts: ^6.2.1
@@ -75,18 +75,18 @@ dependencies:
   workmanager: ^0.7.0
   flutter_local_notifications: ^19.4.2
   flutter_i18n: ^0.36.2
-  pointer_interceptor: ^0.9.3+4
+  pointer_interceptor: ^0.10.1+2
   flutter_secure_storage: ^9.2.2
   encrypt: ^5.0.3
   staggered_grid_view_flutter: ^0.0.4
   dart_jsonwebtoken: ^2.8.2
-  flutter_dotenv: ^5.1.0
+  flutter_dotenv: ^6.0.0
   get_it: ^8.0.0
-  custom_image_crop: ^0.0.10
+  custom_image_crop: ^0.1.1
   open_settings_plus: ^0.4.0
   firebase_messaging: ^16.0.2
   firebase_core: ^4.1.1
-  custom_refresh_indicator: ^2.2.1
+  custom_refresh_indicator: ^4.0.1
   youtube_player_iframe: ^5.2.1
   web_socket_client: ^0.2.1
   app_links: ^6.3.2
@@ -103,18 +103,18 @@ dependencies:
 
   # Current pub.dev version isn't compatible with 3.24 
   flutter_share_receiver: ^1.0.3
-  change_case: ^1.1.0
+  change_case: ^2.2.0
   crypto: ^3.0.3 
   ensemble_dropdown: ^0.1.0
   collection: ^1.17.1
   package_info_plus: ^9.0.0
-  audioplayers: ^5.2.1
+  audioplayers: ^6.5.1
   logger: ^2.2.0
   visibility_detector: ^0.4.0+2
   local_auth: ^2.2.0
   # use this convert a language code to localized language name e.g. es => Spanish/Español
   flutter_localized_locales: ^2.0.5
-  flutter_slidable: ^3.1.1
+  flutter_slidable: ^4.0.3
   accordion: ^2.6.0
   session_storage: ^0.0.1
   connectivity_plus: ^7.0.0
