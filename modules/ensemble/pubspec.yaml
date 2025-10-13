@@ -54,21 +54,21 @@ dependencies:
   qr_flutter: ^4.1.0
   device_info_plus: ^10.1.0
   carousel_slider: ^5.0.0
-  fluttertoast: ^9.0.0
+  fluttertoast: ^8.2.14
   video_player: ^2.6.1
   lottie: ^3.0.0
   cookie_jar: ^4.0.8
   js_widget: ^1.0.4
   flutter_markdown: ^0.7.7+1
   provider: ^6.0.3
-  cloud_firestore: ^6.0.2
+  cloud_firestore: ^6.0.3
   get_storage: ^2.0.3
   flutter_html: ^3.0.0
   cached_network_image: ^3.2.3
   sensors_plus: ^7.0.0
   mime: ^2.0.0
   flutter_cache_manager: ^3.3.0
-  google_fonts: ^6.2.1
+  google_fonts: ^6.3.0
   ensemble_walletconnect: ^1.0.4
   http_parser: ^4.0.2
   shared_preferences: ^2.1.1
@@ -84,8 +84,8 @@ dependencies:
   get_it: ^8.0.0
   custom_image_crop: ^0.1.1
   open_settings_plus: ^0.4.0
-  firebase_messaging: ^16.0.2
-  firebase_core: ^4.1.1
+  firebase_messaging: ^16.0.3
+  firebase_core: ^4.2.0
   custom_refresh_indicator: ^4.0.1
   youtube_player_iframe: ^5.2.1
   web_socket_client: ^0.2.1
@@ -120,8 +120,8 @@ dependencies:
   connectivity_plus: ^7.0.0
   flutter_security_checker: ^3.2.1
   safe_device: ^1.2.1
-  firebase_app_check: ^0.4.1
-  cloud_functions: ^6.0.2
+  firebase_app_check: ^0.4.1+1
+  cloud_functions: ^6.0.3
   wakelock_plus: ^1.4.0
 
 dev_dependencies:
@@ -129,8 +129,8 @@ dev_dependencies:
     sdk: flutter
   integration_test:
     sdk: flutter
-  flutter_lints: ^2.0.1
-  mockito: ^5.1.0
+  flutter_lints: ^2.0.3
+  mockito: ^5.4.5
 
 flutter:
   # The following line ensures that the Material Icons font is
