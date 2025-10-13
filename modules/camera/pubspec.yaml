@@ -23,7 +23,7 @@ dependencies:
   collection: ^1.17.1
   geolocator: ^9.0.2
   image_picker: ^0.8.7+5
-  sensors_plus: ^3.0.0
+  sensors_plus: ^7.0.0
   video_player: ^2.6.1
   mobile_scanner: ^6.0.7
   path_provider: ^2.1.5
