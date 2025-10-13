@@ -36,8 +36,8 @@ dependencies:
   get_it: ^8.0.0
   google_sign_in: ^6.1.4
   sign_in_with_apple: ^6.1.4
-  firebase_auth: ^6.1.0
-  firebase_core: ^4.1.1
+  firebase_auth: ^6.1.1
+  firebase_core: ^4.2.0
   flutter_web_auth_2: ^4.1.0
   flutter_svg: ^2.2.0
   crypto: ^3.0.3
