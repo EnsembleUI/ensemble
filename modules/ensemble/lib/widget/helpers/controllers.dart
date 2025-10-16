@@ -681,8 +681,10 @@ class EnsembleSemantics {
   bool focusable;
   String? label;
   String? hint;
+  String? role;
 
-  EnsembleSemantics({this.label, this.hint,required this.focusable});
+  EnsembleSemantics(
+      {this.label, this.hint, this.role, required this.focusable});
 
   // Factory constructor to map from YAML
   factory EnsembleSemantics.fromYaml(Map<String, dynamic>? yamlMap) {
@@ -690,6 +692,7 @@ class EnsembleSemantics {
       focusable: Utils.optionalBool(yamlMap!['focusable']) ?? true,
       label: Utils.optionalString(yamlMap['label']) ?? '',
       hint: Utils.optionalString(yamlMap['hint']) ?? '',
+      role: Utils.optionalString(yamlMap['role']) ?? '',
     );
   }
 }

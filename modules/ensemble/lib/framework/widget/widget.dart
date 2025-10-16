@@ -1,25 +1,16 @@
 import 'package:ensemble/framework/bindings.dart';
 import 'package:ensemble/framework/config.dart';
-import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/studio/studio_debugger.dart';
-import 'package:ensemble/framework/theme_manager.dart';
 import 'package:ensemble/framework/view/data_scope_widget.dart';
 import 'package:ensemble/framework/view/page_group.dart';
-import 'package:ensemble/framework/widget/icon.dart' as ensemble;
-import 'package:ensemble/framework/view/page.dart';
-import 'package:ensemble/model/item_template.dart';
 import 'package:ensemble/page_model.dart';
-import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
-import 'package:ensemble/widget/helpers/box_wrapper.dart';
 import 'package:ensemble/widget/helpers/controllers.dart';
-import 'package:ensemble/widget/helpers/widgets.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/semantics.dart';
 import 'package:pointer_interceptor/pointer_interceptor.dart';
-import 'package:yaml/yaml.dart';
+import 'package:ensemble/framework/semantics_utils.dart';
 
 /// base mixin for Ensemble Container (e.g Column)
 mixin UpdatableContainer<T extends Widget> {
@@ -181,11 +172,26 @@ abstract class EWidgetState<W extends HasController>
       // If semantics is provided, use it. Otherwise, if label exists on the controller, use it as label for aria-label.
       final String? semanticsLabel = widgetController.getSemanticsLabel();
       final semantics = widgetController.semantics;
+
       if (semanticsLabel != null && semanticsLabel.isNotEmpty) {
+        final flags = computeRoleFlags(rtn, semantics?.role);
+
         rtn = Semantics(
           label: semanticsLabel,
           hint: semantics?.hint,
           focusable: semantics?.focusable,
+          button: flags.button,
+          header: flags.header,
+          image: flags.image,
+          textField: flags.textField,
+          checked: flags.checked,
+          toggled: flags.toggled,
+          enabled: flags.enabled,
+          readOnly: flags.readOnly,
+          obscured: flags.obscured,
+          multiline: flags.multiline,
+          selected: flags.selected,
+          inMutuallyExclusiveGroup: flags.inMutuallyExclusiveGroup,
           child: semantics?.focusable == true
               ? FocusTraversalGroup(
                   policy: ReadingOrderTraversalPolicy(),
