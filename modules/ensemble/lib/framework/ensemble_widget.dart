@@ -1,4 +1,3 @@
-import 'dart:io';
 
 import 'package:ensemble/framework/config.dart';
 import 'package:ensemble/framework/error_handling.dart';
@@ -10,8 +9,8 @@ import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/semantics.dart';
 import 'package:pointer_interceptor/pointer_interceptor.dart';
+import 'package:ensemble/framework/semantics_utils.dart';
 
 abstract class EnsembleWidget<C extends EnsembleController>
     extends StatefulWidget {
@@ -144,11 +143,24 @@ abstract class EnsembleWidgetState<W extends EnsembleWidget> extends State<W> {
         );
       }
 
-      if(widgetController.semantics != null){
+      if (widgetController.semantics != null) {
+        final flags = computeRoleFlags(rtn, widgetController.semantics!.role);
         rtn = Semantics(
           label: widgetController.semantics!.label,
           hint: widgetController.semantics!.hint,
           focusable: widgetController.semantics!.focusable,
+          button: flags.button,
+          header: flags.header,
+          image: flags.image,
+          textField: flags.textField,
+          checked: flags.checked,
+          toggled: flags.toggled,
+          enabled: flags.enabled,
+          readOnly: flags.readOnly,
+          obscured: flags.obscured,
+          multiline: flags.multiline,
+          selected: flags.selected,
+          inMutuallyExclusiveGroup: flags.inMutuallyExclusiveGroup,
           child: FocusTraversalGroup(
             policy: ReadingOrderTraversalPolicy(),
             child: FocusableActionDetector(
