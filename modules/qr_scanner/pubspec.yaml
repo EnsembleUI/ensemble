@@ -1,0 +1,30 @@
+name: ensemble_qr_scanner
+description: QR Code and Barcode scanner module for Ensemble Framework. Lightweight module with minimal dependencies.
+version: 0.0.1
+homepage: https://github.com/EnsembleUI/ensemble/modules/qr_scanner
+publish_to: none
+
+environment:
+  sdk: ">=3.5.0"
+  flutter: ">=3.24.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # Ensemble core framework
+  ensemble:
+    git:
+      url: https://github.com/EnsembleUI/ensemble.git
+      ref: ensemble-v1.2.13
+      path: modules/ensemble
+
+  # QR/Barcode scanning
+  mobile_scanner: ^6.0.11
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^2.0.0
+
+flutter:

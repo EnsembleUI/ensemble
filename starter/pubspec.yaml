@@ -59,6 +59,13 @@ dependencies:
   #     ref: main
   #     path: modules/camera
 
+  # Uncomment to enable QR scanner module (lightweight - QR/Barcode scanning only)
+  # ensemble_qr_scanner:
+  #   git:
+  #     url: https://github.com/EnsembleUI/ensemble.git
+  #     ref: main
+  #     path: modules/qr_scanner
+
   # Uncomment to enable file manager module
   # ensemble_file_manager:
   #   git:

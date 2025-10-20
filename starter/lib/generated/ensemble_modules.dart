@@ -45,6 +45,10 @@ import 'package:get_it/get_it.dart';
 
 // Uncomment to enable camera services or QRCodeScanner widget
 // import 'package:ensemble_camera/camera_manager.dart';
+
+// Uncomment to enable QRCodeScanner widget (lightweight option)
+// import 'package:ensemble_qr_scanner/qr_code_scanner.dart';
+// OR use ensemble_camera (includes QR scanner via re-export for backward compatibility)
 // import 'package:ensemble_camera/qr_code_scanner.dart';
 
 // Uncomment to enable file manager services
