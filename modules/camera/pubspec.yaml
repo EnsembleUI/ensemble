@@ -20,12 +20,15 @@ dependencies:
       path: modules/ensemble
   ensemble_ts_interpreter: ^1.0.3
 
+  # QR Code scanner module (for backward compatibility re-export)
+  ensemble_qr_scanner:
+    path: ../qr_scanner
+
   collection: ^1.17.1
   geolocator: ^9.0.2
   image_picker: ^0.8.7+5
   sensors_plus: ^7.0.0
   video_player: ^2.6.1
-  mobile_scanner: ^6.0.11
   path_provider: ^2.1.5
   share_plus: ^12.0.0
 

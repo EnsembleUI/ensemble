@@ -7,5 +7,5 @@ abstract class EnsembleQRCodeScanner {
 class EnsembleQRCodeScannerStub extends StubWidget
     implements EnsembleQRCodeScanner {
   const EnsembleQRCodeScannerStub({super.key})
-      : super(moduleName: 'ensemble_camera');
+      : super(moduleName: 'ensemble_qr_scanner');
 }
