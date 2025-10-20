@@ -1,40 +1,20 @@
 # Ensemble QR Scanner
 
-A lightweight QR Code and Barcode scanner module for the Ensemble Framework.
+Lightweight QR Code and Barcode scanner module for Ensemble Framework.
 
-## Features
+## Quick Setup
 
-- **QR Code Scanning**: Scan QR codes in real-time
-- **Barcode Support**: Supports multiple barcode formats (Code 128, Code 39, Code 93, EAN, UPC, etc.)
-- **Customizable UI**: Configure scan overlay, border colors, and cutout dimensions
-- **Camera Controls**: Flash toggle, camera flip, pause/resume scanning
-- **Event Callbacks**: `onReceived`, `onInitialized`, `onPermissionSet`
-- **Lightweight**: Minimal dependencies - no location services, sensors, or ML Kit required
-
-## Dependencies
-
-- **flutter**: SDK
-- **ensemble**: Core Ensemble framework
-- **mobile_scanner**: ^6.0.11 - QR/Barcode scanning
-
-## Permissions
-
-### Android
-Add to `AndroidManifest.xml`:
-```xml
-<uses-permission android:name="android.permission.CAMERA" />
+### Using Enable Script (Recommended)
+```bash
+cd starter
+dart run scripts/modules/enable_qr_code.dart
+flutter pub get
+flutter run
 ```
 
-### iOS
-Add to `Info.plist`:
-```xml
-<key>NSCameraUsageDescription</key>
-<string>Camera permission is required for QR code scanning</string>
-```
+### Manual Installation
 
-## Installation
-
-### For new apps (lightweight option):
+1. **Add dependency to `pubspec.yaml`:**
 ```yaml
 dependencies:
   ensemble_qr_scanner:
@@ -44,93 +24,105 @@ dependencies:
       path: modules/qr_scanner
 ```
 
-### For existing apps using ensemble_camera:
-No changes needed! The camera module re-exports this module for backward compatibility.
+2. **Update `lib/generated/ensemble_modules.dart`:**
+```dart
+// Add import
+import 'package:ensemble_qr_scanner/qr_code_scanner.dart';
+
+// Set flag
+static const useCamera = true;
+
+// Register (inside useCamera block)
+GetIt.I.registerSingleton<EnsembleQRCodeScanner>(
+    EnsembleQRCodeScannerImpl.build(EnsembleQRCodeScannerController()));
+```
+
+3. **Add permissions:**
+
+**Android** (`AndroidManifest.xml`):
+```xml
+<uses-permission android:name="android.permission.CAMERA" />
+```
+
+**iOS** (`Info.plist`):
+```xml
+<key>NSCameraUsageDescription</key>
+<string>Camera permission is required for QR code scanning</string>
+```
 
 ## Usage
 
 ```yaml
-View:
-  body:
-    Column:
-      children:
-        - QRCodeScanner:
-            id: myScanner
-            initialCamera: back
-            formatsAllowed:
-              - qrcode
-              - barcode
-            cutOutHeight: 250
-            cutOutWidth: 250
-            cutOutBorderRadius: 12
-            cutOutBorderColor: 0xFF00FF00
-            onReceived: |
-              //@code
-              console.log("Scanned: " + event.data.data);
-            onInitialized: |
-              //@code
-              console.log("Scanner ready");
+QRCodeScanner:
+  id: scanner
+  initialCamera: back
+  formatsAllowed: [qrcode, barcode]
+  cutOutHeight: 250
+  cutOutWidth: 250
+  cutOutBorderRadius: 12
+  cutOutBorderColor: 0xFF00FF00
+  onReceived: |
+    //@code
+    console.log("Scanned: " + event.data.data);
 ```
 
-## Widget Properties
+## Properties
 
-| Property | Type | Description | Default |
-|----------|------|-------------|---------|
-| `id` | String | Widget identifier | - |
-| `initialCamera` | String | Initial camera (`back` or `front`) | `back` |
-| `formatsAllowed` | Array | Formats to scan (`qrcode`, `barcode`) | `[qrcode]` |
-| `cutOutHeight` | Integer | Scan area height | 200 |
-| `cutOutWidth` | Integer | Scan area width | 200 |
-| `cutOutBorderRadius` | Integer | Border radius of scan area | 0 |
-| `cutOutBorderColor` | Color | Border color | red |
-| `overlayColor` | Color | Overlay background color | - |
-| `overlayMargin` | EdgeInsets | Margin for overlay | - |
+| Property | Type | Default |
+|----------|------|---------|
+| `initialCamera` | String (`back`/`front`) | `back` |
+| `formatsAllowed` | Array (`qrcode`, `barcode`) | `[qrcode]` |
+| `cutOutHeight` | Integer | 200 |
+| `cutOutWidth` | Integer | 200 |
+| `cutOutBorderRadius` | Integer | 0 |
+| `cutOutBorderColor` | Color | red |
 
-## Widget Methods
+## Methods
 
-| Method | Description |
-|--------|-------------|
-| `flipCamera()` | Switch between front and back camera |
-| `toggleFlash()` | Toggle camera flash on/off |
-| `pauseCamera()` | Pause scanning |
-| `resumeCamera()` | Resume scanning |
+- `flipCamera()` - Switch front/back
+- `toggleFlash()` - Toggle flash
+- `pauseCamera()` - Pause scanning
+- `resumeCamera()` - Resume scanning
 
 ## Events
 
-### onReceived
-Triggered when a code is scanned successfully.
-
-**Event data:**
+**onReceived:**
 ```javascript
 {
   format: "qrCode",      // Format name
   data: "https://...",   // Decoded string
-  rawBytes: [...]        // Raw bytes (may be null)
+  rawBytes: [...]        // Raw bytes
 }
 ```
 
-### onInitialized
-Triggered when scanner is initialized and ready.
+**onInitialized:** Triggered when ready
+**onPermissionSet:** Triggered on permission change
 
-### onPermissionSet
-Triggered when camera permission is granted or denied.
+## Module Comparison
 
-## Comparison with ensemble_camera
-
-| Feature | ensemble_qr_scanner | ensemble_camera |
-|---------|---------------------|-----------------|
-| QR/Barcode scanning | ✅ | ✅ |
-| Photo/Video capture | ❌ | ✅ |
+| Feature | qr_scanner | camera |
+|---------|-----------|--------|
+| QR/Barcode | ✅ | ✅ |
+| Photo/Video | ❌ | ✅ |
 | Face detection | ❌ | ✅ |
-| Location services | ❌ | ✅ (geolocator) |
-| Accelerometer | ❌ | ✅ (sensors_plus) |
-| ML Kit / face-api.js | ❌ | ✅ (heavy) |
-| Bundle size | ~4KB | ~400KB+ |
-| Camera permission only | ✅ | ❌ (needs location/sensors) |
+| Size | ~4KB | ~400KB+ |
+| Permissions | Camera only | Camera, Location, Mic |
+| Dependencies | mobile_scanner | geolocator, sensors, ML kit |
 
-## Migration from ensemble_camera
+## When to Use
 
-If you're currently using `ensemble_camera` but only need QR scanning:
+**Use `ensemble_qr_scanner`:**
+- Only need QR/barcode scanning
+- Want minimal app size
+- Don't need extra permissions
+
+**Use `ensemble_camera`:**
+- Need photo/video capture
+- Need face detection
+- Need sensor/location features
+- (includes QR via re-export)
+
+## Migration from Camera Module
 
 **Before:**
 ```yaml
@@ -144,12 +136,16 @@ dependencies:
   ensemble_qr_scanner: ^0.0.1
 ```
 
-Your code remains the same - just update the dependency!
+Code remains the same - just update dependency!
+
+## Supported Formats
+
+- QR Code
+- Code 128, Code 39, Code 93
+- EAN-8, EAN-13
+- UPC-A, UPC-E
+- Codabar
 
 ## License
 
 See [LICENSE](LICENSE) file.
-
-## Contributing
-
-Contributions are welcome! Please submit issues and pull requests to the main Ensemble repository.
