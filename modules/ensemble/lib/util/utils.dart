@@ -1137,7 +1137,13 @@ static BoxDecoration? getBoxDecoration(dynamic style) {
         String path =
             EnsembleConfigService.config["definitions"]?['local']?["path"];
         return '${path}/assets/${stripQueryParamsFromAsset(asset)}';
-      } else {
+      }
+      else if (provider == 'remote'){
+        String path =
+            EnsembleConfigService.config["definitions"]?['remote']?["path"];
+        return '${path}/assets/${stripQueryParamsFromAsset(asset)}';
+      }
+       else {
         return 'ensemble/assets/${stripQueryParamsFromAsset(asset)}';
       }
     } catch (e) {
