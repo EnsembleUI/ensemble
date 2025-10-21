@@ -1,3 +1,7 @@
+## 1.2.14
+
+ - Created new QR_Scanner module
+
 ## 1.2.13
 
 ## 1.2.12
