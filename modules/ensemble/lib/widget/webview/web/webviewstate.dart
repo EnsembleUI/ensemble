@@ -1,7 +1,10 @@
 import 'dart:html';
 import 'dart:ui_web' as ui;
+import 'dart:js' as js;
 
+import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/widget/widget.dart';
+import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/widget/webview/webview.dart';
 import 'package:flutter/material.dart';
 
@@ -46,6 +49,8 @@ class WebViewState extends EWidgetState<EnsembleWebView> {
     _iframeElement.src = widget.controller.url ?? '';
     _iframeElement.style.border = 'none';
 
+    _setupJavaScriptChannels();
+
     // ignore: undefined_prefixed_name
     ui.platformViewRegistry.registerViewFactory(
       viewId,
@@ -56,6 +61,49 @@ class WebViewState extends EWidgetState<EnsembleWebView> {
       key: UniqueKey(),
       viewType: viewId,
     );
+  }
+
+  void _setupJavaScriptChannels() {
+    window.addEventListener('message', (event) {
+      if (event is MessageEvent) {
+        _handleWebMessage(event);
+      }
+    });
+  }
+
+  void _handleWebMessage(MessageEvent event) {
+    if (event.origin != Uri.parse(widget.controller.url ?? '').origin) {
+      return;
+    }
+
+    // Parse the message data
+    Map<String, dynamic>? messageData;
+    try {
+      if (event.data is String) {
+        messageData = js.context['JSON'].callMethod('parse', [event.data]);
+      } else if (event.data is Map) {
+        messageData = Map<String, dynamic>.from(event.data);
+      }
+    } catch (e) {
+      // If parsing fails, treat as simple string message
+      messageData = {'message': event.data};
+    }
+
+    // Find the appropriate channel and execute the action
+    for (var channel in widget.controller.javascriptChannels) {
+      if (messageData?['channel'] == channel.name) {
+        if (channel.onMessageReceived != null) {
+          ScreenController().executeAction(
+            context,
+            channel.onMessageReceived!,
+            event: EnsembleEvent(widget, data: {
+              'message': messageData?['message'],
+              'channel': channel.name,
+            }),
+          );
+        }
+      }
+    }
   }
 
   @override

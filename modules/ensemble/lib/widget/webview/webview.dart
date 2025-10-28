@@ -53,6 +53,8 @@ class EnsembleWebView extends StatefulWidget
           ensemble.EnsembleAction.from(funcDefinition, initiator: this),
       'headerOverrideRules': (value) => _controller.headerOverrideRules = 
           parseHeaderRules(value),
+      'javascriptChannels': (value) =>
+          _controller.javascriptChannels = parseJavaScriptChannels(value),
       // legacy
       'uri': (value) => _controller.url = Utils.getUrl(value),
       'allowedLaunchSchemes': (value) => _controller.schemes =
@@ -82,11 +84,40 @@ class EnsembleWebView extends StatefulWidget
       );
     }).toList();
   }
+
+  List<JavaScriptChannel> parseJavaScriptChannels(dynamic value) {
+    if (value == null) return [];
+    List<dynamic> channelsList = value is List ? value : [];
+    List<JavaScriptChannel> channels = channelsList.map((channel) {
+      var onMessageReceivedAction;
+      if (channel['onMessageReceived'] != null) {
+        onMessageReceivedAction = ensemble.EnsembleAction.from(
+            channel['onMessageReceived'],
+            initiator: this);
+      }
+
+      return JavaScriptChannel(
+        name: channel['name']?.toString() ?? '',
+        onMessageReceived: onMessageReceivedAction,
+      );
+    }).toList();
+    return channels;
+  }
 }
 
 mixin CookieMethods on EWidgetState<EnsembleWebView> {
   void clearCookie();
   void inputCookie(String? value);
+}
+
+class JavaScriptChannel {
+  final String name;
+  final ensemble.EnsembleAction? onMessageReceived;
+
+  JavaScriptChannel({
+    required this.name,
+    this.onMessageReceived,
+  });
 }
 
 class EnsembleWebViewController extends WidgetController {
@@ -107,6 +138,7 @@ class EnsembleWebViewController extends WidgetController {
   late CookieManager cookieManager;
   bool isInitialized = false;
   List<HeaderOverrideRule> headerOverrideRules = [];
+  List<JavaScriptChannel> javascriptChannels = [];
 
   ensemble.EnsembleAction? onPageStart,
       onPageFinished,

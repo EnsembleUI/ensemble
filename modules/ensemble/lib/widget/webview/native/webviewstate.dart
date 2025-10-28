@@ -91,6 +91,24 @@ class WebViewState extends EWidgetState<EnsembleWebView> with CookieMethods {
     ''';
   }
 
+  String _generateJavaScriptBridgeScript() {
+    String script = '';
+
+    for (var channel in widget.controller.javascriptChannels) {
+      script += '''
+        window.${channel.name} = {
+          postMessage: function(data) {
+            if (window.flutter_inappwebview && window.flutter_inappwebview.callHandler) {
+              window.flutter_inappwebview.callHandler('${channel.name}', data);
+            }
+          }
+        };
+      ''';
+    }
+
+    return script;
+  }
+
   Future<void> setCookie(io.Cookie? cookie) async {
     if (widget.controller.url == null) {
       return;
@@ -183,6 +201,27 @@ class WebViewState extends EWidgetState<EnsembleWebView> with CookieMethods {
         gestureRecognizers: gestureRecognizers,
         onWebViewCreated: (controller) async {
           widget.controller.webViewController = controller;
+
+          for (var channel in widget.controller.javascriptChannels) {
+            controller.addJavaScriptHandler(
+              handlerName: channel.name,
+              callback: (args) {
+                if (channel.onMessageReceived != null) {
+                  String message = '';
+                  if (args.isNotEmpty) {
+                    message = args.first.toString();
+                  }
+                  ScreenController().executeAction(
+                    context,
+                    channel.onMessageReceived!,
+                    event: EnsembleEvent(widget, data: {'message': message}),
+                  );
+                }
+                return null;
+              },
+            );
+          }
+
           if (cookieHeader != null) {
             await setCookie(cookieHeader);
           }
@@ -208,6 +247,11 @@ class WebViewState extends EWidgetState<EnsembleWebView> with CookieMethods {
           if (widget.controller.headerOverrideRules.isNotEmpty) {
             await controller.evaluateJavascript(
                 source: _generateHeaderOverrideScript());
+          }
+
+          if (widget.controller.javascriptChannels.isNotEmpty) {
+            String bridgeScript = _generateJavaScriptBridgeScript();
+            await controller.evaluateJavascript(source: bridgeScript);
           }
 
           if (widget.controller.onPageFinished != null && mounted) {
