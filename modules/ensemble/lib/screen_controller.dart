@@ -209,10 +209,10 @@ class ScreenController {
         ToastController().closeToast();
       }
       if (action.options?['dismissDialog'] != false) {
-        await EnsembleUtils.dismissDialog();
+        await EnsembleUtils.dismissDialog(null, context);
       }
       if (action.options?['dismissBottomSheet'] != false) {
-        await EnsembleUtils.dismissBottomSheet();
+        await EnsembleUtils.dismissBottomSheet(null, context);
       }
 
       /// TODO: if the initiator widget has been re-build or removed
