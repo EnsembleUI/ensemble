@@ -142,7 +142,10 @@ class DismissDialogAction extends EnsembleAction {
 
   @override
   Future execute(BuildContext context, ScopeManager scopeManager) async =>
-      EnsembleUtils.dismissDialog(scopeManager.dataContext.eval(payload));
+      EnsembleUtils.dismissDialog(
+        scopeManager.dataContext.eval(payload),
+        context,
+      );
 }
 
 /**
