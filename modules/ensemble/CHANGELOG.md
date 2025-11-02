@@ -1,3 +1,5 @@
+## 1.2.15
+
 ## 1.2.14
 
  - [Feature] QR scanner module separation
