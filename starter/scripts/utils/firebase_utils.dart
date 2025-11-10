@@ -77,13 +77,12 @@ void updateFirebaseInitialization(
   }
 
   buffer.writeln('        FirebaseOptions? selectedPayload;');
-  buffer.writeln('        if (Platform.isAndroid) {');
+  buffer.writeln('        if (kIsWeb) {');
+  buffer.writeln('          selectedPayload = webPayload;');
+  buffer.writeln('        } else if (Platform.isAndroid) {');
   buffer.writeln('          selectedPayload = androidPayload;');
   buffer.writeln('        } else if (Platform.isIOS) {');
   buffer.writeln('          selectedPayload = iosPayload;');
-  buffer.writeln('        }');
-  buffer.writeln('        if (kIsWeb) {');
-  buffer.writeln('          selectedPayload = webPayload;');
   buffer.writeln('        }');
   buffer.writeln(
       '        await Firebase.initializeApp(options: selectedPayload);');
