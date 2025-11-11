@@ -1,3 +1,7 @@
+## 1.2.17
+
+ - Bump "ensemble" to `1.2.17`.
+
 ## 1.2.16
 
  - Bump "ensemble" to `1.2.16`.
