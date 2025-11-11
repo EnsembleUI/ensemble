@@ -70,6 +70,7 @@ class Time extends StatefulWidget
       textColor: Utils.getColor(styles['textColor']),
       height: Utils.optionalDouble(styles['height']),
       padding: Utils.getInsets(styles['padding']),
+      minuteInterval: Utils.optionalInt(styles['minuteInterval'], min: 1),
     );
   }
 
@@ -165,12 +166,14 @@ class IOSTimePickerStyle {
   Color? textColor;
   double? height;
   EdgeInsets? padding;
+  int? minuteInterval;
 
   IOSTimePickerStyle({
     this.backgroundColor,
     this.textColor,
     this.height,
     this.padding,
+    this.minuteInterval,
   });
 }
 
@@ -331,6 +334,8 @@ class TimeState extends FormFieldWidgetState<Time> {
                       ),
                       mode: CupertinoDatePickerMode.time,
                       use24hFormat: widget._controller.use24hFormat,
+                      minuteInterval:
+                          widget._controller.iOSStyles?.minuteInterval ?? 1,
                       onDateTimeChanged: (DateTime newDateTime) {
                         _updateTime(TimeOfDay.fromDateTime(newDateTime));
                       },
@@ -346,6 +351,8 @@ class TimeState extends FormFieldWidgetState<Time> {
                   ),
                   mode: CupertinoDatePickerMode.time,
                   use24hFormat: widget._controller.use24hFormat,
+                  minuteInterval:
+                      widget._controller.iOSStyles?.minuteInterval ?? 1,
                   onDateTimeChanged: (DateTime newDateTime) {
                     _updateTime(TimeOfDay.fromDateTime(newDateTime));
                   },
