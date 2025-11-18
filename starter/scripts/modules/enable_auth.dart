@@ -148,15 +148,47 @@ void updateInfoPlist(String iOSClientId, String appId) {
 
     final reversedClientId = 'com.googleusercontent.apps.$cleanedClientId';
 
+    // Replace colons and spaces with hyphens for the app ID to create a valid URL scheme
     final iosAppId = appId.replaceAll(':', '-').replaceAll(' ', '');
 
-    // Replace the current iOS client ID in the Info.plist file
-    content = content.replaceAllMapped(
-      RegExp(
-          r'<string>com\.googleusercontent\.apps\.\d+-[a-zA-Z0-9]+</string>'),
-      (match) =>
-          '<string>$reversedClientId</string>\n    			<string>app-$iosAppId</string>',
-    );
+    // Pattern to match any URL scheme starting with com.googleusercontent.apps
+    // This handles both valid formats and invalid formats with colons
+    final urlSchemePattern = RegExp(
+        r'<string>com\.googleusercontent\.apps\.[^<]*</string>',
+        multiLine: true);
+
+    // Pattern to match any URL scheme starting with app- (for GOOGLE_APP_ID format)
+    final appSchemePattern =
+        RegExp(r'<string>app-[^<]*</string>', multiLine: true);
+
+    // Replace the reversed client ID scheme (handles both valid and invalid formats)
+    if (urlSchemePattern.hasMatch(content)) {
+      content = content.replaceAllMapped(
+        urlSchemePattern,
+        (match) => '<string>$reversedClientId</string>',
+      );
+    }
+
+    // Replace or add the app- scheme based on GOOGLE_APP_ID
+    if (appSchemePattern.hasMatch(content)) {
+      // Replace existing app- scheme
+      content = content.replaceAllMapped(
+        appSchemePattern,
+        (match) => '<string>app-$iosAppId</string>',
+      );
+    } else {
+      // Add new app- scheme if it doesn't exist
+      // Find the CFBundleURLSchemes array and add the app- scheme
+      final urlSchemesArrayPattern = RegExp(
+          r'(<key>CFBundleURLSchemes</key>\s*<array>\s*<string>com\.googleusercontent\.apps\.[^<]*</string>)',
+          multiLine: true);
+      if (urlSchemesArrayPattern.hasMatch(content)) {
+        content = content.replaceAllMapped(
+          urlSchemesArrayPattern,
+          (match) => '${match.group(1)}\n    			<string>app-$iosAppId</string>',
+        );
+      }
+    }
 
     file.writeAsStringSync(content);
   } catch (e) {
