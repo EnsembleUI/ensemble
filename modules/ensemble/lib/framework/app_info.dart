@@ -2,6 +2,7 @@ import 'dart:core';
 import 'dart:developer';
 
 import 'package:ensemble/ensemble.dart';
+import 'package:ensemble/framework/definition_providers/cdn_provider.dart';
 import 'package:ensemble/framework/definition_providers/ensemble_provider.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -50,6 +51,8 @@ mixin AppInfoCapability {
         _appId = (config?.definitionProvider as EnsembleDefinitionProvider?)
             ?.appModel
             .appId;
+      } else if (config?.definitionProvider is CdnDefinitionProvider) {
+        _appId = (config?.definitionProvider as CdnDefinitionProvider).appId;
       }
       _info = await PackageInfo.fromPlatform();
     } catch (e) {
