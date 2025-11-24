@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:ensemble/ensemble.dart';
+import 'package:ensemble/framework/assets_service.dart';
 import 'package:ensemble/framework/bindings.dart';
 import 'package:ensemble/framework/definition_providers/provider.dart';
 import 'package:ensemble/framework/error_handling.dart';
@@ -21,7 +22,9 @@ class CdnDefinitionProvider extends DefinitionProvider {
   CdnDefinitionProvider(
     this.appId, {
     super.initialForcedLocale,
-  });
+  }) {
+    CdnAssetsService.updateAppId(appId);
+  }
 
   final String appId;
 
@@ -143,7 +146,8 @@ class CdnDefinitionProvider extends DefinitionProvider {
 
   @override
   void onAppLifecycleStateChanged(AppLifecycleState state) {
-    if (state == AppLifecycleState.paused || state == AppLifecycleState.inactive) {
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.inactive) {
       // When app goes to background, fetch and update cache but DON'T fire events
       unawaited(_refreshIfStale());
     } else if (state == AppLifecycleState.resumed) {

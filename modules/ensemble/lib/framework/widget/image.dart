@@ -1,4 +1,5 @@
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:ensemble/framework/assets_service.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/helpers/ColorFilter_Composite.dart';
 import 'package:flutter/cupertino.dart';
@@ -40,33 +41,45 @@ class Image extends StatelessWidget {
   Widget build(BuildContext context) {
     Widget imageWidget;
     if (source.startsWith('https://') || source.startsWith('http://')) {
-      // If the asset is available locally, then use local path
-      String assetName = Utils.getAssetName(source);
-      if (Utils.isAssetAvailableLocally(assetName)) {
-        imageWidget = flutter.Image.asset(
-          Utils.getLocalAssetFullPath(assetName),
-          width: width,
-          height: height,
-          fit: fit,
-          errorBuilder: errorBuilder != null
-              ? (context, error, stackTrace) => errorBuilder!(error.toString())
-              : null,
-        );
-      } else {
-        imageWidget = CachedNetworkImage(
-          imageUrl: source,
-          width: width,
-          height: height,
-          fit: fit,
-
-          // placeholder while the image is loading
-          placeholder: placeholderBuilder,
-          errorWidget: errorBuilder != null
-              ? (context, url, error) => errorBuilder!(error.toString())
-              : null,
-          cacheManager: networkCacheManager,
-        );
-      }
+      imageWidget = FutureBuilder<AssetResolution>(
+        future: AssetResolver.resolve(source),
+        builder: (context, snapshot) {
+          if (snapshot.hasError) {
+            return errorBuilder != null
+                ? errorBuilder!(snapshot.error.toString())
+                : const SizedBox.shrink();
+          }
+          if (!snapshot.hasData) {
+            return placeholderBuilder != null
+                ? placeholderBuilder!(context, source)
+                : const SizedBox.shrink();
+          }
+          final resolved = snapshot.data!;
+          if (resolved.isAsset) {
+            return flutter.Image.asset(
+              resolved.path,
+              width: width,
+              height: height,
+              fit: fit,
+              errorBuilder: errorBuilder != null
+                  ? (context, error, stackTrace) =>
+                      errorBuilder!(error.toString())
+                  : null,
+            );
+          }
+          return CachedNetworkImage(
+            imageUrl: resolved.path,
+            width: width,
+            height: height,
+            fit: fit,
+            placeholder: placeholderBuilder,
+            errorWidget: errorBuilder != null
+                ? (context, url, error) => errorBuilder!(error.toString())
+                : null,
+            cacheManager: networkCacheManager,
+          );
+        },
+      );
     } else {
       imageWidget = flutter.Image.asset(
         Utils.getLocalAssetFullPath(source),
