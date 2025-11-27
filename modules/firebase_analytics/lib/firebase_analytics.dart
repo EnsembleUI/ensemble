@@ -398,17 +398,30 @@ class FirebaseAnalyticsProvider extends LogProvider {
     await _analytics?.logScreenView(
       screenName: config['screenName'],
       screenClass: config['screenClass'] ?? 'Flutter',
+      parameters: config['parameters'] != null
+          ? convertMap(config['parameters'])
+          : null,
     );
     print('Firebase: Logged screen view: ${config['screenName']}');
   }
 
   Future<void> _handleLogLogin(Map<String, dynamic> config) async {
-    await _analytics?.logLogin(loginMethod: config['loginMethod']);
+    await _analytics?.logLogin(
+      loginMethod: config['loginMethod'],
+      parameters: config['parameters'] != null
+          ? convertMap(config['parameters'])
+          : null,
+    );
     print('Firebase: Logged login with method: ${config['loginMethod']}');
   }
 
   Future<void> _handleLogSignUp(Map<String, dynamic> config) async {
-    await _analytics?.logSignUp(signUpMethod: config['signUpMethod']);
+    await _analytics?.logSignUp(
+      signUpMethod: config['signUpMethod'],
+      parameters: config['parameters'] != null
+          ? convertMap(config['parameters'])
+          : null,
+    );
     print('Firebase: Logged sign up with method: ${config['signUpMethod']}');
   }
 
