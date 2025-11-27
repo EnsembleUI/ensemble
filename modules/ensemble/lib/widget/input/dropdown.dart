@@ -766,8 +766,13 @@ class SelectOneState extends FormFieldWidgetState<SelectOne>
   InputBorder? getEnabledBorder() {
     if (widget._controller.borderColor != null ||
         widget._controller.borderWidth != null) {
+      InputBorder baseBorder =
+          widget._controller.variant == InputVariant.underline
+              ? UnderlineInputBorder()
+              : OutlineInputBorder();
+
       return getCustomBorder(
-        originalBorder: inputDecoration.enabledBorder!,
+        originalBorder: inputDecoration.enabledBorder ?? baseBorder,
         borderColor: widget._controller.borderColor,
         borderWidth: widget._controller.borderWidth?.toDouble(),
         borderRadius: widget._controller.borderRadius?.getValue(),

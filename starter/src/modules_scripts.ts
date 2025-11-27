@@ -275,7 +275,14 @@ export const modules: Script[] = [
   {
     name: 'qr_code',
     path: 'scripts/modules/enable_qr_code.dart',
-    parameters: [],
+    parameters: [
+      {
+        key: 'cameraDescription',
+        question: 'Please provide a camera usage description for iOS: ',
+        platform: ['ios'],
+        type: 'text',
+      },
+    ],
   },
   {
     name: 'google_maps',

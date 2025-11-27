@@ -1,6 +1,7 @@
 import 'package:collection/collection.dart';
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/action.dart';
+import 'package:ensemble/framework/apiproviders/api_provider.dart';
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/event.dart';
@@ -102,6 +103,8 @@ class ShowBottomSheetAction extends EnsembleAction {
   Future<dynamic> execute(BuildContext context, ScopeManager scopeManager) {
     if (body != null) {
       final body = getBodyWidget(scopeManager, context);
+      // Get the APIProviders from the parent context to pass down to the modal
+      final apiProviders = APIProviders.of(context);
       showModalBottomSheet(
           context: context,
           // disable the default bottom sheet styling since we use our own
@@ -117,8 +120,12 @@ class ShowBottomSheetAction extends EnsembleAction {
               padding: EdgeInsets.only(
                 bottom: MediaQuery.of(modalContext).viewInsets.bottom,
               ),
-              child: DataScopeWidget(
-                  scopeManager: scopeManager.createChildScope(), child: body),
+              // Wrap in APIProviders so the modal content has access to API providers (e.g., Firestore)
+              child: APIProviders(
+                providers: apiProviders.providers,
+                child: DataScopeWidget(
+                    scopeManager: scopeManager.createChildScope(), child: body),
+              ),
             );
           }).then((payload) {
         if (onDismiss != null) {
@@ -244,6 +251,10 @@ class DismissBottomSheetAction extends EnsembleAction {
           initiator: initiator, payload: Utils.getMap(payload?['payload']));
 
   @override
-  Future<bool> execute(BuildContext context, ScopeManager scopeManager) =>
-      EnsembleUtils.dismissBottomSheet(scopeManager.dataContext.eval(payload));
+  Future<bool> execute(BuildContext context, ScopeManager scopeManager) {
+    return EnsembleUtils.dismissBottomSheet(
+      scopeManager.dataContext.eval(payload),
+      context,
+    );
+  }
 }

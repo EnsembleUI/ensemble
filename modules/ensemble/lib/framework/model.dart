@@ -1,4 +1,5 @@
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:ensemble/framework/assets_service.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:flutter/material.dart';
@@ -54,22 +55,34 @@ class BackgroundImage {
         : null;
 
     if (Utils.isUrl(_source)) {
-      String assetName = Utils.getAssetName(_source);
-      if (Utils.isAssetAvailableLocally(assetName)) {
-        return Image.asset(
-          Utils.getLocalAssetFullPath(assetName),
-          fit: _fit,
-          alignment: _alignment,
-          errorBuilder:
-              fallbackWidget != null ? (_, __, ___) => fallbackWidget : null,
-        );
-      }
-      return CachedNetworkImage(
-        imageUrl: _source,
-        fit: _fit,
-        alignment: _alignment,
-        errorWidget:
-            fallbackWidget != null ? (_, __, ___) => fallbackWidget : null,
+      return FutureBuilder<AssetResolution>(
+        future: AssetResolver.resolve(_source),
+        builder: (context, snapshot) {
+          if (snapshot.hasError) {
+            return fallbackWidget ?? const SizedBox.shrink();
+          }
+          if (!snapshot.hasData) {
+            return fallbackWidget ?? const SizedBox.shrink();
+          }
+          final resolved = snapshot.data!;
+          if (resolved.isAsset) {
+            return Image.asset(
+              resolved.path,
+              fit: _fit,
+              alignment: _alignment,
+              errorBuilder: fallbackWidget != null
+                  ? (_, __, ___) => fallbackWidget
+                  : null,
+            );
+          }
+          return CachedNetworkImage(
+            imageUrl: resolved.path,
+            fit: _fit,
+            alignment: _alignment,
+            errorWidget:
+                fallbackWidget != null ? (_, __, ___) => fallbackWidget : null,
+          );
+        },
       );
     } else {
       return Image.asset(
