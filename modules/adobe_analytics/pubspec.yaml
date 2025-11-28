@@ -13,7 +13,7 @@ dependencies:
   ensemble:
     git:
       url: https://github.com/EnsembleUI/ensemble.git
-      ref: ensemble-v1.2.13
+      ref: ensemble-v1.2.20
       path: modules/ensemble
 
   flutter_aepcore: ^5.0.0

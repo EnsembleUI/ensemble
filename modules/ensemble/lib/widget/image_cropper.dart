@@ -4,12 +4,12 @@ import 'package:custom_image_crop/custom_image_crop.dart';
 import 'package:ensemble/action/haptic_action.dart';
 import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/widget/helpers/box_wrapper.dart';
-import 'package:ensemble/widget/helpers/widgets.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_svg_provider/flutter_svg_provider.dart';
 import 'package:path_provider/path_provider.dart';
 
 import 'package:ensemble/framework/action.dart';
+import 'package:ensemble/framework/assets_service.dart';
 import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/screen_controller.dart';
@@ -17,8 +17,6 @@ import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/material.dart';
-
-import 'widget_util.dart';
 
 // ignore: must_be_immutable
 class EnsembleImageCropper extends StatefulWidget
@@ -198,16 +196,74 @@ class EnsembleImageCropperState extends EWidgetState<EnsembleImageCropper>
     BoxFit? fit = Utils.getBoxFit(widget._controller.fit);
     final cropShape = _getCropShape();
 
-    Widget rtn;
-    rtn = SizedBox(
+    if (Utils.isUrl(source)) {
+      if (isSvg()) {
+        return FutureBuilder<AssetResolution>(
+          future: AssetResolver.resolve(source),
+          builder: (context, snapshot) {
+            if (snapshot.hasError || !snapshot.hasData) {
+              return placeholder;
+            }
+            final resolved = snapshot.data!;
+            final svg = _svgFromResolution(resolved);
+            return _buildCropper(svg, cropShape, context);
+          },
+        );
+      }
+      return FutureBuilder<AssetResolution>(
+        future: AssetResolver.resolve(source),
+        builder: (context, snapshot) {
+          if (snapshot.hasError || !snapshot.hasData) {
+            return placeholder;
+          }
+          final resolved = snapshot.data!;
+          final provider = _imageProviderFromResolution(resolved, fit);
+          return _buildCropper(provider, cropShape, context);
+        },
+      );
+    }
+
+    final provider = buildImageProvider(source, fit);
+    return _buildCropper(provider, cropShape, context);
+  }
+
+  CustomCropShape _getCropShape() {
+    String? shape =
+        capitalizeFirstLetter(widget.controller.shape.toLowerCase());
+    shape = shape == 'Rectangle' ? CustomCropShape.Ratio.name : shape;
+    return CustomCropShape.values.from(shape) ?? CustomCropShape.Circle;
+  }
+
+  String? capitalizeFirstLetter(String? value) {
+    if (value == null || value.isEmpty) return value;
+    return '${value[0].toUpperCase()}${value.substring(1).toLowerCase()}';
+  }
+
+  Ratio? _getRatio(CustomCropShape cropShape) {
+    switch (cropShape) {
+      case CustomCropShape.Ratio:
+        return Ratio(width: 19, height: 9);
+      case CustomCropShape.Square:
+        return Ratio(width: 1, height: 1);
+      case CustomCropShape.Circle:
+        return null;
+    }
+  }
+
+  bool isSvg() {
+    return widget._controller.source.endsWith('svg');
+  }
+
+  Widget _buildCropper(
+      dynamic provider, CustomCropShape cropShape, BuildContext context) {
+    Widget rtn = SizedBox(
       height: widget.controller.imageHeight,
       width: widget.controller.imageWidth,
       child: BoxWrapper(
           widget: CustomImageCrop(
             backgroundColor: widget.controller.backgroundColor ?? Colors.white,
             cropController: widget.controller.cropController,
-            image: buildImageProvider(source,
-                fit), // Any Imageprovider will work, try with a NetworkImage for example...
+            image: provider,
             shape: cropShape,
             imageFit: CustomImageFit.fillVisibleSpace,
             ratio: _getRatio(cropShape),
@@ -254,58 +310,15 @@ class EnsembleImageCropperState extends EWidgetState<EnsembleImageCropper>
     return rtn;
   }
 
-  CustomCropShape _getCropShape() {
-    String? shape =
-        capitalizeFirstLetter(widget.controller.shape.toLowerCase());
-    shape = shape == 'Rectangle' ? CustomCropShape.Ratio.name : shape;
-    return CustomCropShape.values.from(shape) ?? CustomCropShape.Circle;
-  }
-
-  String? capitalizeFirstLetter(String? value) {
-    if (value == null || value.isEmpty) return value;
-    return '${value[0].toUpperCase()}${value.substring(1).toLowerCase()}';
-  }
-
-  Ratio? _getRatio(CustomCropShape cropShape) {
-    switch (cropShape) {
-      case CustomCropShape.Ratio:
-        return Ratio(width: 19, height: 9);
-      case CustomCropShape.Square:
-        return Ratio(width: 1, height: 1);
-      case CustomCropShape.Circle:
-        return null;
-    }
-  }
-
-  bool isSvg() {
-    return widget._controller.source.endsWith('svg');
-  }
-
-  ImageProvider buildImageProvider(String source, BoxFit? fit) {
+  dynamic buildImageProvider(String source, BoxFit? fit) {
     if (isSvg()) {
       return buildSvgImageProvider(source, fit);
     }
-    return buildNonSvgImageProvider(source, fit);
+    return buildLocalImageProvider(source, fit);
   }
 
-  ImageProvider buildNonSvgImageProvider(String source, BoxFit? fit) {
-    if (source.startsWith('https://') || source.startsWith('http://')) {
-      // If the asset is available locally, then use local path
-      String assetName = Utils.getAssetName(source);
-      if (Utils.isAssetAvailableLocally(assetName)) {
-        return Image.asset(
-          Utils.getLocalAssetFullPath(assetName),
-          width: widget._controller.width?.toDouble(),
-          height: widget._controller.height?.toDouble(),
-          fit: fit,
-        ).image;
-      }
-      return Image.network(
-        source,
-        width: widget._controller.width?.toDouble(),
-        height: widget._controller.height?.toDouble(),
-      ).image;
-    } else if (Utils.isMemoryPath(widget._controller.source)) {
+  ImageProvider buildLocalImageProvider(String source, BoxFit? fit) {
+    if (Utils.isMemoryPath(widget._controller.source)) {
       return Image.file(
         io.File(widget._controller.source),
         width: widget._controller.width?.toDouble(),
@@ -320,6 +333,36 @@ class EnsembleImageCropperState extends EWidgetState<EnsembleImageCropper>
         fit: fit,
       ).image;
     }
+  }
+
+  ImageProvider _imageProviderFromResolution(
+      AssetResolution resolution, BoxFit? fit) {
+    if (resolution.isAsset) {
+      return Image.asset(
+        resolution.path,
+        width: widget._controller.width?.toDouble(),
+        height: widget._controller.height?.toDouble(),
+        fit: fit,
+      ).image;
+    }
+    return Image.network(
+      resolution.path,
+      width: widget._controller.width?.toDouble(),
+      height: widget._controller.height?.toDouble(),
+    ).image;
+  }
+
+  Svg _svgFromResolution(AssetResolution resolution) {
+    if (resolution.isAsset) {
+      return Svg(
+        resolution.path,
+        source: SvgSource.asset,
+      );
+    }
+    return Svg(
+      resolution.path,
+      source: SvgSource.network,
+    );
   }
 
   Svg buildSvgImageProvider(String source, BoxFit? fit) {

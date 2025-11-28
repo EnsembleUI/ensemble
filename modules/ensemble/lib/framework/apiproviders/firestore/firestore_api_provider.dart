@@ -168,10 +168,14 @@ class FirestoreAPIProvider extends APIProvider with LiveAPIProvider {
   List<Map<String, dynamic>> getDocuments(QuerySnapshot snapshot) {
     return snapshot.docs.map((doc) {
       return getDocument(doc);
-    }).toList();
+    }).whereType<Map<String, dynamic>>().toList(); // Filter out null documents
   }
 
-  Map<String, dynamic> getDocument(DocumentSnapshot doc) {
+  Map<String, dynamic>? getDocument(DocumentSnapshot doc) {
+    // Check if document exists
+    if (!doc.exists || doc.data() == null) {
+      return null;
+    }
     // Create a new map from the document data
     Map<String, dynamic> data =
         convertFirestoreTypes(doc.data() as Map<String, dynamic>);
@@ -261,7 +265,7 @@ class FirestoreAPIProvider extends APIProvider with LiveAPIProvider {
         listener.call(getOKResponse(apiName, snapshot));
       }));
     } else {
-      Query query = firestoreApp.getQuery(api);
+      Query query = firestoreApp.getQuery(api, isCollectionGroup: api['isCollectionGroup'] ?? false);
       _subscriptions.add(query.snapshots().listen((QuerySnapshot snapshot) {
         listener.call(getOKResponse(apiName, snapshot));
       }));

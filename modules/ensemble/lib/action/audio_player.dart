@@ -1,13 +1,13 @@
 // ignore_for_file: use_build_context_synchronously
 
 import 'package:ensemble/framework/action.dart';
+import 'package:ensemble/framework/assets_service.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:flutter/material.dart';
 import 'package:audioplayers/audioplayers.dart';
-import 'package:flutter/services.dart';
 
 // Singleton class for AudioPlayer
 class SingletonAudioPlayer {
@@ -120,17 +120,15 @@ class PlayAudio extends EnsembleAction {
   Future<dynamic> execute(
       BuildContext context, ScopeManager scopeManager) async {
     AudioCache.instance = AudioCache(prefix: '');
-    var parsedSource; // Source
-    if (source.startsWith('https://') || source.startsWith('http://')) {
-      String assetName = Utils.getAssetName(source);
-      if (Utils.isAssetAvailableLocally(assetName)) {
-        parsedSource = AssetSource(Utils.getLocalAssetFullPath(assetName));
-      } else {
-        parsedSource = UrlSource(source);
-      }
-    } else {
-      parsedSource = AssetSource(Utils.getLocalAssetFullPath(source));
+    AssetResolution resolution;
+    try {
+      resolution = await AssetResolver.resolve(source);
+    } catch (_) {
+      resolution = AssetResolution.remote(source, originalSource: source);
     }
+    final parsedSource = resolution.isAsset
+        ? AssetSource(resolution.path)
+        : UrlSource(resolution.path);
 
     await SingletonAudioPlayer.instance.play(
       id: id,

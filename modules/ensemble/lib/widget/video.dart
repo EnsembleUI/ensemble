@@ -2,6 +2,7 @@ import 'dart:developer';
 import 'dart:io';
 
 import 'package:ensemble/framework/action.dart';
+import 'package:ensemble/framework/assets_service.dart';
 import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/screen_controller.dart';
@@ -83,10 +84,35 @@ class MyController extends WidgetController {
   dynamic loadingWidget;
 
   VideoPlayerController? _playerController;
+  String? _currentSource;
+
+  void _initializeController(
+      VideoPlayerController controller, void Function() setupPlayer) {
+    _playerController = controller;
+    _playerController!.addListener(_handleControllerUpdates);
+    _playerController!.initialize().then((_) {
+      VideoPlayerValue value = _playerController!.value;
+      log(value.toString());
+      setupPlayer();
+      notifyListeners();
+    });
+  }
+
+  void _handleControllerUpdates() {
+    if (_playerController == null) {
+      return;
+    }
+    if (_playerController!.value.position ==
+        _playerController!.value.duration) {
+      notifyListeners();
+    }
+    playerCapabilities?.videoPlayerStateChange();
+  }
 
   void updateSource(String? value) {
     // always invalidate the old controller
     _playerController?.dispose();
+    _currentSource = value;
 
     if (value != null) {
       void setupPlayer() {
@@ -103,53 +129,39 @@ class MyController extends WidgetController {
       }
 
       if (value.startsWith('https://') || value.startsWith('http://')) {
-        // If the asset is available locally, then use local path
-        String assetName = Utils.getAssetName(value);
-        if (Utils.isAssetAvailableLocally(assetName)) {
-          _playerController = VideoPlayerController.asset(
-              Utils.getLocalAssetFullPath(assetName))
-            ..initialize().then((_) {
-              VideoPlayerValue value = _playerController!.value;
-              log(value.toString());
-              setupPlayer();
-              notifyListeners();
-            });
-        } else {
-          _playerController = VideoPlayerController.networkUrl(Uri.parse(value))
-            ..initialize().then((_) {
-              VideoPlayerValue value = _playerController!.value;
-              log(value.toString());
-              setupPlayer();
-              notifyListeners();
-            });
-        }
+        final requestToken = value;
+        AssetResolver.resolve(value).then((resolution) {
+          if (_currentSource != requestToken) {
+            return;
+          }
+          if (resolution.isAsset) {
+            _initializeController(
+              VideoPlayerController.asset(resolution.path),
+              setupPlayer,
+            );
+          } else {
+            _initializeController(
+              VideoPlayerController.networkUrl(Uri.parse(resolution.path)),
+              setupPlayer,
+            );
+          }
+        }).catchError((_) {
+          if (_currentSource != requestToken) {
+            return;
+          }
+          _initializeController(
+            VideoPlayerController.networkUrl(Uri.parse(value)),
+            setupPlayer,
+          );
+        });
       } else if (Utils.isMemoryPath(value)) {
-        _playerController = VideoPlayerController.file(File(value))
-          ..initialize().then((_) {
-            VideoPlayerValue value = _playerController!.value;
-            log(value.toString());
-            setupPlayer();
-            notifyListeners();
-          });
+        _initializeController(
+            VideoPlayerController.file(File(value)), setupPlayer);
       } else {
-        _playerController =
-            VideoPlayerController.asset(Utils.getLocalAssetFullPath(value))
-              ..initialize().then((_) {
-                VideoPlayerValue value = _playerController!.value;
-                log(value.toString());
-                setupPlayer();
-                notifyListeners();
-              });
+        _initializeController(
+            VideoPlayerController.asset(Utils.getLocalAssetFullPath(value)),
+            setupPlayer);
       }
-
-      _playerController!.addListener(() {
-        // finish playing, call setState() to update the status
-        if (_playerController!.value.position ==
-            _playerController!.value.duration) {
-          notifyListeners();
-        }
-        playerCapabilities?.videoPlayerStateChange();
-      });
     }
   }
 

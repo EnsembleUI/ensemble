@@ -4,6 +4,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:ensemble/action/haptic_action.dart';
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/event.dart';
+import 'package:ensemble/framework/assets_service.dart';
 import 'package:ensemble/framework/widget/colored_box_placeholder.dart';
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/screen_controller.dart';
@@ -11,7 +12,6 @@ import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/helpers/ColorFilter_Composite.dart';
 import 'package:ensemble/widget/helpers/box_wrapper.dart';
 import 'package:ensemble/widget/helpers/controllers.dart';
-import 'package:ensemble/widget/helpers/widgets.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -104,6 +104,18 @@ class ImageController extends BoxController {
 }
 
 class ImageState extends EWidgetState<EnsembleImage> {
+  final Map<String, Future<AssetResolution>> _assetResolutionFutures = {};
+
+  Future<AssetResolution> _resolveAsset(String source) {
+    if (_assetResolutionFutures.containsKey(source)) {
+      return _assetResolutionFutures[source]!;
+    }
+    final future = AssetResolver.resolve(source);
+    _assetResolutionFutures[source] = future;
+    future.whenComplete(() => _assetResolutionFutures.remove(source));
+    return future;
+  }
+
   @override
   Widget buildWidget(BuildContext context) {
     Widget image;
@@ -167,9 +179,10 @@ class ImageState extends EWidgetState<EnsembleImage> {
   }
 
   Future<String> fetch(String url) async {
-    String str = (widget.controller.source.contains("?")) ? "&" : "?";
-    final http.Response response = await http
-        .get(Uri.parse("$url${str}timeStamp=${DateTime.now().toString()}"));
+    final hasQuery = url.contains("?");
+    final separator = hasQuery ? "&" : "?";
+    final http.Response response = await http.get(
+        Uri.parse("$url${separator}timeStamp=${DateTime.now().toString()}"));
     DateTime lastModifiedDateTime =
         parseHttpDate("${response.headers['last-modified']}");
     if (widget._controller.lastModifiedCache == null ||
@@ -178,7 +191,7 @@ class ImageState extends EWidgetState<EnsembleImage> {
       widget._controller.lastModifiedCache = lastModifiedDateTime;
       await EnsembleImageCacheManager.instance.emptyCache();
     }
-    return "${widget.controller.source}${str}timeStamp=$lastModifiedDateTime";
+    return "$url${separator}timeStamp=$lastModifiedDateTime";
   }
 
   Widget buildMemoryImage(Uint8List source) {
@@ -201,18 +214,30 @@ class ImageState extends EWidgetState<EnsembleImage> {
 
   Widget buildNonSvgImage(String source, BoxFit? fit) {
     if (source.startsWith('https://') || source.startsWith('http://')) {
-      // If the asset is available locally, then use local path
-      String assetName = Utils.getAssetName(source);
-      if (Utils.isAssetAvailableLocally(assetName)) {
-        return Image.asset(Utils.getLocalAssetFullPath(assetName),
-            width: widget._controller.width?.toDouble(),
-            height: widget._controller.height?.toDouble(),
-            fit: fit,
-            errorBuilder: (context, error, stacktrace) => errorFallback());
-      }
-      int? cachedWidth = widget._controller.resizedWidth;
-      int? cachedHeight = widget._controller.resizedHeight;
-
+      return FutureBuilder<AssetResolution>(
+        future: _resolveAsset(source),
+        builder: (context, snapshot) {
+          if (snapshot.hasError) {
+            return errorFallback();
+          }
+          if (!snapshot.hasData) {
+            return ColoredBoxPlaceholder(
+              color: widget._controller.placeholderColor,
+              width: widget._controller.width?.toDouble(),
+              height: widget._controller.height?.toDouble(),
+            );
+          }
+          final resolved = snapshot.data!;
+          if (resolved.isAsset) {
+            return Image.asset(resolved.path,
+                width: widget._controller.width?.toDouble(),
+                height: widget._controller.height?.toDouble(),
+                fit: fit,
+                errorBuilder: (context, error, stacktrace) => errorFallback());
+          }
+          final resolvedUrl = resolved.path;
+          int? cachedWidth = widget._controller.resizedWidth;
+          int? cachedHeight = widget._controller.resizedHeight;
       // if user doesn't override the cache dimension, we resize all images
       // to a reasonable 800 width so loading lots of gigantic images won't crash.
       // TODO: figure out the actual dimension once so we can do min(actualWidth, 800)
@@ -242,14 +267,14 @@ class ImageState extends EWidgetState<EnsembleImage> {
 
       return (!widget.controller.cache)
           ? FutureBuilder(
-              future: fetch(widget.controller.source),
-              initialData: widget._controller.source,
+              future: fetch(resolvedUrl),
+              initialData: resolvedUrl,
               builder: (context, AsyncSnapshot snapshot) {
                 if (snapshot.connectionState == ConnectionState.done) {
                   if (snapshot.hasData) {
                     return cacheImage(snapshot.data!);
                   } else {
-                    return cacheImage(widget.controller.source);
+                    return cacheImage(resolvedUrl);
                   }
                 } else {
                   return ColoredBoxPlaceholder(
@@ -259,7 +284,9 @@ class ImageState extends EWidgetState<EnsembleImage> {
                   );
                 }
               })
-          : cacheImage(widget._controller.source);
+          : cacheImage(resolvedUrl);
+        },
+      );
     } else if (Utils.isMemoryPath(widget._controller.source)) {
       return kIsWeb
           ? Image.network(widget._controller.source,
@@ -297,24 +324,42 @@ class ImageState extends EWidgetState<EnsembleImage> {
 
     // if is URL
     if (source.startsWith('https://') || source.startsWith('http://')) {
-      // If the asset is available locally, then use local path
-      String assetName = Utils.getAssetName(source);
-      if (Utils.isAssetAvailableLocally(assetName)) {
-        return SvgPicture.asset(Utils.getLocalAssetFullPath(assetName),
+      return FutureBuilder<AssetResolution>(
+        future: _resolveAsset(source),
+        builder: (context, snapshot) {
+          if (snapshot.hasError) {
+            return ColoredBoxPlaceholder(
+              color: widget._controller.placeholderColor,
+              width: widget._controller.width?.toDouble(),
+              height: widget._controller.height?.toDouble(),
+            );
+          }
+          if (!snapshot.hasData) {
+            return ColoredBoxPlaceholder(
+              color: widget._controller.placeholderColor,
+              width: widget._controller.width?.toDouble(),
+              height: widget._controller.height?.toDouble(),
+            );
+          }
+          final resolved = snapshot.data!;
+          if (resolved.isAsset) {
+            return SvgPicture.asset(resolved.path,
+                width: widget._controller.width?.toDouble(),
+                height: widget._controller.height?.toDouble(),
+                fit: fit ?? BoxFit.contain);
+          }
+          return SvgPicture.network(
+            resolved.path,
             width: widget._controller.width?.toDouble(),
             height: widget._controller.height?.toDouble(),
-            fit: fit ?? BoxFit.contain);
-      }
-      return SvgPicture.network(
-        widget._controller.source,
-        width: widget._controller.width?.toDouble(),
-        height: widget._controller.height?.toDouble(),
-        fit: fit ?? BoxFit.contain,
-        placeholderBuilder: (_) => ColoredBoxPlaceholder(
-          color: widget._controller.placeholderColor,
-          width: widget._controller.width?.toDouble(),
-          height: widget._controller.height?.toDouble(),
-        ),
+            fit: fit ?? BoxFit.contain,
+            placeholderBuilder: (_) => ColoredBoxPlaceholder(
+              color: widget._controller.placeholderColor,
+              width: widget._controller.width?.toDouble(),
+              height: widget._controller.height?.toDouble(),
+            ),
+          );
+        },
       );
     }
     // attempt local assets

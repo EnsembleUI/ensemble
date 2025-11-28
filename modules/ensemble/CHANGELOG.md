@@ -1,3 +1,29 @@
+## 1.2.20
+
+ - Bump "ensemble" to `1.2.20`.
+
+## 1.2.19
+
+ - Bump "ensemble" to `1.2.19`.
+
+## 1.2.18
+
+ - Bump "ensemble" to `1.2.18`.
+
+## 1.2.17
+
+ - Bump "ensemble" to `1.2.17`.
+
+## 1.2.16
+
+ - Bump "ensemble" to `1.2.16`.
+
+## 1.2.15
+
+## 1.2.14
+
+ - [Feature] QR scanner module separation
+
 ## 1.2.13
 
 ## 1.2.12
