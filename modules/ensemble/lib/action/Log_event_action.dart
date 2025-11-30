@@ -90,7 +90,6 @@ class LogEvent extends ensembleAction.EnsembleAction {
 
         case 'setLocation':
         case 'setUserAttributeLocation':
-        case 'locationAttribute':
           final location = EnsembleGeoLocation.parse(value);
           if (location == null) {
             throw LanguageError('Invalid location format');
@@ -99,9 +98,18 @@ class LogEvent extends ensembleAction.EnsembleAction {
 
         case 'custom':
         case 'timestamp':
+          if (attributeKey == null) {
+            throw LanguageError('Operation $operation requires attributeKey');
+          }
+          break;
+
         case 'locationAttribute':
           if (attributeKey == null) {
             throw LanguageError('Operation $operation requires attributeKey');
+          }
+          final location = EnsembleGeoLocation.parse(value);
+          if (location == null) {
+            throw LanguageError('Invalid location format');
           }
           break;
 
@@ -485,15 +493,16 @@ class FirebaseAnalyticsValidator {
     // Screen tracking  
     'logScreenView': {
       'required': ['screenName'],
-      'optional': ['screenClass'],
+      'optional': ['screenClass', 'parameters'],
     },
     
     // User lifecycle
     'logLogin': {
-      'optional': ['loginMethod'],
+      'optional': ['loginMethod', 'parameters'],
     },
     'logSignUp': {
       'required': ['signUpMethod'],
+      'optional': ['parameters'],
     },
     'logAppOpen': {
       'optional': ['parameters'],
