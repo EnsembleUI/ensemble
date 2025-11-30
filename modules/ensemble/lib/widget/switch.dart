@@ -8,6 +8,7 @@ import 'package:ensemble/widget/helpers/form_helper.dart';
 import 'package:ensemble/framework/action.dart' as framework;
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 
 /// A toggle switch (true/false) states
 class EnsembleSwitch extends SwitchBase {
@@ -82,6 +83,8 @@ abstract class SwitchBase extends StatefulWidget
           _controller.activeThumbColor = Utils.getColor(color),
       'inactiveThumbColor': (color) =>
           _controller.inactiveThumbColor = Utils.getColor(color),
+      'useIOSStyle': (value) =>
+          _controller.useIOSStyle = Utils.getBool(value, fallback: false),
       'onChange': (definition) => _controller.onChange =
           framework.EnsembleAction.from(definition, initiator: this)
     };
@@ -177,6 +180,24 @@ class SwitchBaseState extends FormFieldWidgetState<SwitchBase> {
   }
 
   Widget get switchWidget {
+    // iOS/Cupertino style switch
+    if (widget._controller.useIOSStyle) {
+      return CupertinoSwitch(
+        value: widget._controller.value == true,
+        onChanged: isEnabled()
+            ? (value) {
+                (widget as EnsembleSwitch?)?.onToggle(value);
+                onChange();
+              }
+            : null,
+        activeTrackColor: widget._controller.activeColor,
+        inactiveTrackColor: widget._controller.inactiveColor,
+        thumbColor: widget._controller.activeThumbColor,
+        inactiveThumbColor: widget._controller.inactiveThumbColor,
+      );
+    }
+
+    // Material style switch (default)
     final WidgetStateProperty<Color?> trackColor =
         WidgetStateProperty.resolveWith<Color?>(
       (Set<WidgetState> states) {
@@ -233,6 +254,7 @@ class SwitchBaseController extends FormFieldController {
   Color? mixedColor;
   double? width = 80;
   double? height = 30;
+  bool useIOSStyle = false;
 
   framework.EnsembleAction? onChange;
 }
