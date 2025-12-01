@@ -250,14 +250,6 @@ class ScreenTracker {
       }
     }
 
-    // Print current screen info for real-time tracking
-    if (screen != null) {
-      final identifier = screen.screenName ?? screen.screenId ?? 'unknown';
-      print('SCREEN TRACKER: $identifier');
-    } else {
-      print('SCREEN TRACKER: [NO SCREEN] - cleared');
-    }
-
     // Notify listeners
     _screenChangeController.add(screen);
   }
