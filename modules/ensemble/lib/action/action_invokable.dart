@@ -34,6 +34,7 @@ abstract class ActionInvokable with Invokable {
       ActionType.clearLocale,
       ActionType.openAppSettings,
       ActionType.deviceSecurity,
+      ActionType.connectivityListener,
       ActionType.requestNotificationAccess,
       ActionType.showLocalNotification,
       ActionType.showDialog,

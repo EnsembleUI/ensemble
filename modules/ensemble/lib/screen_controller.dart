@@ -1,10 +1,8 @@
 // ignore_for_file: use_build_context_synchronously, avoid_print
 
 import 'dart:async';
-import 'dart:convert';
 
 import 'package:ensemble/action/navigation_action.dart';
-import 'package:ensemble/action/phone_contact_action.dart';
 import 'package:ensemble/action/upload_files_action.dart';
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/ensemble_app.dart';
@@ -12,15 +10,11 @@ import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/apiproviders/api_provider.dart';
 import 'package:ensemble/framework/bindings.dart';
 import 'package:ensemble/framework/data_context.dart';
-import 'package:ensemble/framework/device.dart';
 import 'package:ensemble/framework/devmode.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/event.dart';
-import 'package:ensemble/framework/permissions_manager.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/stub/camera_manager.dart';
-import 'package:ensemble/framework/stub/contacts_manager.dart';
-import 'package:ensemble/framework/stub/plaid_link_manager.dart';
 import 'package:ensemble/framework/theme/theme_loader.dart';
 import 'package:ensemble/framework/view/data_scope_widget.dart';
 import 'package:ensemble/framework/view/page.dart' as ensemble;
@@ -34,7 +28,6 @@ import 'package:ensemble/util/ensemble_utils.dart';
 import 'package:ensemble/util/notification_utils.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/stub_widgets.dart';
-import 'package:ensemble_ts_interpreter/invokables/context.dart';
 import 'package:ensemble_ts_interpreter/parser/newjs_interpreter.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -53,11 +46,23 @@ class ScreenController {
   // Singleton
   static final ScreenController _instance = ScreenController._internal();
 
+  /// Keep track of the most recent screen context so global listeners
+  /// (e.g. connectivity) can execute actions against the active screen.
+  BuildContext? _currentScreenContext;
+
   ScreenController._internal();
 
   factory ScreenController() {
     return _instance;
   }
+
+  /// Register the BuildContext for the currently visible Screen.
+  void registerCurrentScreenContext(BuildContext context) {
+    _currentScreenContext = context;
+  }
+
+  /// Get the most recently registered Screen context, if any.
+  BuildContext? get currentScreenContext => _currentScreenContext;
 
   /// get the ScopeManager given the context
   ScopeManager? getScopeManager(BuildContext context) {

@@ -208,9 +208,18 @@ class EnsembleAppState extends State<EnsembleApp> with WidgetsBindingObserver {
       });
     }
 
-    setState(() {
-      _hasInternet = hasInternetNow;
-    });
+    if (_hasInternet != hasInternetNow) {
+      setState(() {
+        _hasInternet = hasInternetNow;
+      });
+    }
+
+    // Update global connectivity state and always notify listeners so
+    // late subscribers can still read the latest status.
+    ConnectivityState().isOnline = hasInternetNow;
+    AppEventBus()
+        .eventBus
+        .fire(ConnectivityChangeEvent(isOnline: hasInternetNow));
   }
 
   @override
