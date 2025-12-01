@@ -109,12 +109,21 @@ class PageGroupState extends State<PageGroup>
     List<MenuItem> allMenuItems = widget.menu.menuItems;
 
     // Try multiple sources for the selected index (in priority order):
-    // 1. Explicit viewIndex from page arguments
-    // 2. Stored index from previous session/refresh
+    // 1. Explicit viewIndex from page arguments (if pageArgs exists)
+    // 2. Stored index from previous session/refresh (only if no explicit navigation)
     // 3. Selected item from menu definition
-    int? selectedIndex = Utils.optionalInt(widget.pageArgs?["viewIndex"],
-        min: 0, max: allMenuItems.length - 1)
-        ?? _getStoredViewGroupIndex();
+    int? selectedIndex;
+
+    // When pageArgs exists, this is explicit navigation - only check for viewIndex
+    // skip stored index to avoid stale stored data overriding the navigation.
+    // Stored index is only used when pageArgs is null/empty
+    if (widget.pageArgs != null && widget.pageArgs!.isNotEmpty) {
+      selectedIndex = Utils.optionalInt(widget.pageArgs?["viewIndex"],
+          min: 0, max: allMenuItems.length - 1);
+    } else {
+      // No explicit navigation (app restart, fresh initialization)
+      selectedIndex = _getStoredViewGroupIndex();
+    }
     // init the pages (TODO: need to update if definition changes)
     for (int i = 0; i < allMenuItems.length; i++) {
       MenuItem menuItem = allMenuItems[i];
