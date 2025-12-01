@@ -22,6 +22,7 @@ import 'package:ensemble/action/misc_action.dart';
 import 'package:ensemble/action/navigation_action.dart';
 import 'package:ensemble/action/notification_actions.dart';
 import 'package:ensemble/action/saveFile/save_file.dart';
+import 'package:ensemble/action/connectivity_action.dart';
 import 'package:ensemble/action/phone_contact_action.dart';
 import 'package:ensemble/action/secure_storage.dart';
 import 'package:ensemble/action/sign_in_out_action.dart';
@@ -33,7 +34,6 @@ import 'package:ensemble/action/disable_hardware_navigation.dart';
 import 'package:ensemble/action/close_app.dart';
 import 'package:ensemble/action/getLocation.dart';
 import 'package:ensemble/action/wakelock_action.dart';
-import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/event.dart';
@@ -45,9 +45,7 @@ import 'package:ensemble/framework/view/page_group.dart';
 import 'package:ensemble/framework/widget/view_util.dart';
 import 'package:ensemble/receive_intent_manager.dart';
 import 'package:ensemble/screen_controller.dart';
-import 'package:ensemble/util/notification_utils.dart';
 import 'package:ensemble/util/utils.dart';
-import 'package:ensemble/widget/stub_widgets.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/material.dart';
 import 'package:source_span/source_span.dart';
@@ -986,6 +984,7 @@ enum ActionType {
   seekAudio,
   logEvent,
   getNetworkInfo,
+  connectivityListener,
   deviceSecurity,
   bluetoothInit,
   bluetoothStartScan,
@@ -1219,6 +1218,9 @@ abstract class EnsembleAction {
       return ClearLocaleAction();
     } else if (actionType == ActionType.getNetworkInfo) {
       return GetNetworkInfoAction.from(initiator: initiator, payload: payload);
+    } else if (actionType == ActionType.connectivityListener) {
+      return ConnectivityListenerAction.fromYaml(
+          initiator: initiator, payload: payload);
     } else if (actionType == ActionType.deviceSecurity) {
       return DeviceSecurity.fromMap(payload: payload);
     } else if (actionType == ActionType.bluetoothInit) {

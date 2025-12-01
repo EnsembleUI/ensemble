@@ -644,6 +644,11 @@ class PageState extends State<Page>
     super.build(context);
     //log("View build() $hashCode");
 
+    // Register the current page's context as the active screen context
+    // so global listeners (e.g. connectivity) can execute actions against
+    // the currently visible page with a valid ScopeManager.
+    ScreenController().registerCurrentScreenContext(context);
+
     // drawer might be injected from the PageGroup, so check for it first.
     // Note that if the drawer already exists, we will ignore any new drawer
     Widget? _drawer = PageGroupWidget.getNavigationDrawer(context);

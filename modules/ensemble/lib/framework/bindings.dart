@@ -336,3 +336,24 @@ class ResourceRefreshEvent {
   @override
   String toString() => 'ResourceRefreshEvent(artifactId: $artifactId, type: $artifactType, time: $timestamp)';
 }
+
+/// Global connectivity change event - fired when device internet status changes
+class ConnectivityChangeEvent {
+  ConnectivityChangeEvent({required this.isOnline});
+
+  final bool isOnline;
+
+  @override
+  String toString() => 'ConnectivityChangeEvent(isOnline: $isOnline)';
+}
+
+/// Holds the last known connectivity state so late listeners can
+/// immediately react to the current status (e.g. app starts while offline).
+class ConnectivityState {
+  ConnectivityState._internal();
+  static final ConnectivityState _instance = ConnectivityState._internal();
+
+  factory ConnectivityState() => _instance;
+
+  bool? isOnline;
+}
