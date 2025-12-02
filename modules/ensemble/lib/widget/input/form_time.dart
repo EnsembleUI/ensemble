@@ -55,6 +55,8 @@ class Time extends StatefulWidget
           Utils.getBool(value, fallback: shouldUseIOSStyle()),
       'use24hFormat': (value) =>
           _controller.use24hFormat = Utils.getBool(value, fallback: false),
+      'useInlineTimePicker': (value) => _controller.useInlineTimePicker =
+          Utils.getBool(value, fallback: false),
       'iOSStyles': (value) => _controller.iOSStyles = _parseIOSStyles(value),
       'androidStyles': (value) =>
           _controller.androidStyles = _parseAndroidStyles(value),
@@ -117,6 +119,7 @@ class TimeController extends FormFieldController with HasTextPlaceholder {
   TimeOfDay? initialValue;
   EnsembleAction? onChange;
   bool useIOSStyleTimePicker = shouldUseIOSStyle();
+  bool useInlineTimePicker = false;
   bool use24hFormat = false;
   IOSTimePickerStyle? iOSStyles;
   AndroidTimePickerStyle? androidStyles;
@@ -231,6 +234,11 @@ class TimeState extends FormFieldWidgetState<Time> {
           return null;
         },
         builder: (FormFieldState<DateTime> field) {
+          // If useInlineTimePicker is true, show the inline picker instead of input field
+          if (widget._controller.useInlineTimePicker) {
+            return _buildInlineTimePicker(context, field);
+          }
+
           final hasBorderProperties = widget._controller.borderColor != null ||
               widget._controller.borderWidth != null ||
               widget._controller.borderRadius != null ||
@@ -286,7 +294,7 @@ class TimeState extends FormFieldWidgetState<Time> {
     }
   }
 
-  void _showCupertinoTimePicker(BuildContext context) {
+  Widget _buildCupertinoTimePicker(BuildContext context) {
     final iosStyles = widget._controller.iOSStyles;
     final userSetBackgroundColor = iosStyles?.backgroundColor;
     final backgroundColor = userSetBackgroundColor ??
@@ -305,6 +313,76 @@ class TimeState extends FormFieldWidgetState<Time> {
           brightness == Brightness.dark ? Colors.white : Colors.black;
     }
 
+    Widget pickerWidget = CupertinoDatePicker(
+      initialDateTime: DateTime.now().copyWith(
+        hour: widget._controller.value?.hour ?? TimeOfDay.now().hour,
+        minute: widget._controller.value?.minute ?? TimeOfDay.now().minute,
+      ),
+      mode: CupertinoDatePickerMode.time,
+      use24hFormat: widget._controller.use24hFormat,
+      minuteInterval: widget._controller.iOSStyles?.minuteInterval ?? 1,
+      onDateTimeChanged: (DateTime newDateTime) {
+        _updateTime(TimeOfDay.fromDateTime(newDateTime));
+      },
+    );
+
+    if (pickerTextColor != null) {
+      pickerWidget = DefaultTextStyle(
+        style: TextStyle(color: pickerTextColor),
+        child: CupertinoTheme(
+          data: CupertinoTheme.of(context).copyWith(
+            primaryColor: pickerTextColor,
+            brightness: ThemeData.estimateBrightnessForColor(backgroundColor) ==
+                    Brightness.dark
+                ? Brightness.dark
+                : Brightness.light,
+          ),
+          child: pickerWidget,
+        ),
+      );
+    }
+
+    return pickerWidget;
+  }
+
+  Widget _buildInlineTimePicker(
+      BuildContext context, FormFieldState<DateTime> field) {
+    final iosStyles = widget._controller.iOSStyles;
+    final userSetBackgroundColor = iosStyles?.backgroundColor;
+    final backgroundColor = userSetBackgroundColor ??
+        CupertinoTheme.of(context).scaffoldBackgroundColor;
+
+    return Container(
+      color: backgroundColor,
+      padding: iosStyles?.padding ?? const EdgeInsets.only(top: 6.0),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            height: iosStyles?.height ?? 216,
+            child: _buildCupertinoTimePicker(context),
+          ),
+          if (field.errorText != null)
+            Padding(
+              padding: const EdgeInsets.only(left: 12, top: 4),
+              child: Text(
+                field.errorText!,
+                style: widget._controller.errorStyle ??
+                    Theme.of(context).inputDecorationTheme.errorStyle,
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  void _showCupertinoTimePicker(BuildContext context) {
+    final iosStyles = widget._controller.iOSStyles;
+    final userSetBackgroundColor = iosStyles?.backgroundColor;
+    final backgroundColor = userSetBackgroundColor ??
+        CupertinoTheme.of(context).scaffoldBackgroundColor;
+
     showCupertinoModalPopup<void>(
       context: context,
       builder: (BuildContext context) => Container(
@@ -313,50 +391,7 @@ class TimeState extends FormFieldWidgetState<Time> {
         color: backgroundColor,
         child: SafeArea(
           top: false,
-          child: pickerTextColor != null
-              ? DefaultTextStyle(
-                  style: TextStyle(color: pickerTextColor),
-                  child: CupertinoTheme(
-                    data: CupertinoTheme.of(context).copyWith(
-                      primaryColor: pickerTextColor,
-                      brightness: ThemeData.estimateBrightnessForColor(
-                                  backgroundColor) ==
-                              Brightness.dark
-                          ? Brightness.dark
-                          : Brightness.light,
-                    ),
-                    child: CupertinoDatePicker(
-                      initialDateTime: DateTime.now().copyWith(
-                        hour: widget._controller.value?.hour ??
-                            TimeOfDay.now().hour,
-                        minute: widget._controller.value?.minute ??
-                            TimeOfDay.now().minute,
-                      ),
-                      mode: CupertinoDatePickerMode.time,
-                      use24hFormat: widget._controller.use24hFormat,
-                      minuteInterval:
-                          widget._controller.iOSStyles?.minuteInterval ?? 1,
-                      onDateTimeChanged: (DateTime newDateTime) {
-                        _updateTime(TimeOfDay.fromDateTime(newDateTime));
-                      },
-                    ),
-                  ),
-                )
-              : CupertinoDatePicker(
-                  initialDateTime: DateTime.now().copyWith(
-                    hour:
-                        widget._controller.value?.hour ?? TimeOfDay.now().hour,
-                    minute: widget._controller.value?.minute ??
-                        TimeOfDay.now().minute,
-                  ),
-                  mode: CupertinoDatePickerMode.time,
-                  use24hFormat: widget._controller.use24hFormat,
-                  minuteInterval:
-                      widget._controller.iOSStyles?.minuteInterval ?? 1,
-                  onDateTimeChanged: (DateTime newDateTime) {
-                    _updateTime(TimeOfDay.fromDateTime(newDateTime));
-                  },
-                ),
+          child: _buildCupertinoTimePicker(context),
         ),
       ),
     );
