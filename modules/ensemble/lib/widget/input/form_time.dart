@@ -1,6 +1,8 @@
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/extensions.dart';
+import 'package:ensemble/framework/theme/theme_manager.dart';
+import 'package:ensemble/framework/view/data_scope_widget.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/helpers/HasTextPlaceholder.dart';
@@ -62,6 +64,7 @@ class Time extends StatefulWidget
           _controller.androidStyles = _parseAndroidStyles(value),
       'textStyle': (value) => _controller.textStyle = Utils.getTextStyle(value),
       'showIcon': (value) => _controller.showIcon = Utils.optionalBool(value),
+      'valueWidget': (value) => _controller.valueWidget = value,
     });
     return setters;
   }
@@ -125,6 +128,7 @@ class TimeController extends FormFieldController with HasTextPlaceholder {
   AndroidTimePickerStyle? androidStyles;
   TextStyle? textStyle;
   bool? showIcon;
+  dynamic valueWidget;
 
   Text prettyValue(BuildContext context, TextStyle formFieldTextStyle) {
     TextStyle timeTextStyle = formFieldTextStyle;
@@ -218,6 +222,18 @@ class AndroidTimePickerStyle {
   });
 }
 
+class _BorderStyle {
+  final int borderWidth;
+  final BorderRadius borderRadius;
+  final Color borderColor;
+
+  _BorderStyle({
+    required this.borderWidth,
+    required this.borderRadius,
+    required this.borderColor,
+  });
+}
+
 class TimeState extends FormFieldWidgetState<Time> {
   @override
   Widget buildWidget(BuildContext context) {
@@ -239,15 +255,12 @@ class TimeState extends FormFieldWidgetState<Time> {
             return _buildInlineTimePicker(context, field);
           }
 
-          final hasBorderProperties = widget._controller.borderColor != null ||
-              widget._controller.borderWidth != null ||
-              widget._controller.borderRadius != null ||
-              widget._controller.variant != null ||
-              widget._controller.enabledBorderColor != null ||
-              widget._controller.disabledBorderColor != null ||
-              widget._controller.errorBorderColor != null ||
-              widget._controller.focusedBorderColor != null ||
-              widget._controller.focusedErrorBorderColor != null;
+          // If valueWidget is provided, render the custom value widget
+          if (widget._controller.valueWidget != null) {
+            return _buildCustomValueWidget(context, field);
+          }
+
+          final hasBorderProperties = _hasBorderProperties();
 
           // If no border properties are set, use InputBorder.none (default behavior)
           // Otherwise, use the inputDecoration which will respect the border properties
@@ -262,8 +275,10 @@ class TimeState extends FormFieldWidgetState<Time> {
                   enabledBorder: InputBorder.none,
                   disabledBorder: InputBorder.none,
                   focusedBorder: InputBorder.none,
-                  errorBorder: InputBorder.none,
-                  focusedErrorBorder: InputBorder.none,
+                  errorBorder:
+                      field.errorText == null ? InputBorder.none : null,
+                  focusedErrorBorder:
+                      field.errorText == null ? InputBorder.none : null,
                   errorText: field.errorText,
                   errorStyle: widget._controller.errorStyle ??
                       Theme.of(context).inputDecorationTheme.errorStyle,
@@ -283,6 +298,82 @@ class TimeState extends FormFieldWidgetState<Time> {
           );
         },
       ),
+    );
+  }
+
+  bool _hasBorderProperties() {
+    return widget._controller.borderColor != null ||
+        widget._controller.borderWidth != null ||
+        widget._controller.borderRadius != null ||
+        widget._controller.variant != null ||
+        widget._controller.enabledBorderColor != null ||
+        widget._controller.disabledBorderColor != null ||
+        widget._controller.errorBorderColor != null ||
+        widget._controller.focusedBorderColor != null ||
+        widget._controller.focusedErrorBorderColor != null;
+  }
+
+  _BorderStyle _resolveBorderStyle(BuildContext context, String? errorText) {
+    final themeDecoration = Theme.of(context).inputDecorationTheme;
+
+    final borderWidth = widget._controller.borderWidth ??
+        (themeDecoration.border?.borderSide.width.toInt() ?? 1);
+
+    BorderRadius? _themeBorderRadius;
+    if (themeDecoration.border is OutlineInputBorder) {
+      _themeBorderRadius =
+          (themeDecoration.border as OutlineInputBorder).borderRadius;
+    }
+    final borderRadius = widget._controller.borderRadius?.getValue() ??
+        _themeBorderRadius ??
+        ThemeManager().getInputDefaultBorderRadius(widget._controller.variant);
+
+    Color borderColor;
+
+    if (errorText != null) {
+      borderColor = widget._controller.errorBorderColor ??
+          themeDecoration.errorBorder?.borderSide.color ??
+          Theme.of(context).colorScheme.error;
+    } else {
+      borderColor = widget._controller.borderColor ??
+          widget._controller.enabledBorderColor ??
+          themeDecoration.border?.borderSide.color ??
+          Theme.of(context).colorScheme.outline;
+    }
+
+    return _BorderStyle(
+      borderWidth: borderWidth,
+      borderRadius: borderRadius,
+      borderColor: borderColor,
+    );
+  }
+
+  Widget _applyDisabledOpacity(Widget child) {
+    if (!isEnabled()) {
+      return Opacity(opacity: .5, child: child);
+    }
+    return child;
+  }
+
+  Widget? _buildErrorWidget(BuildContext context, String? errorText) {
+    if (errorText == null) return null;
+
+    return InputDecorator(
+      decoration: InputDecoration(
+        errorText: errorText,
+        errorStyle: widget._controller.errorStyle ??
+            Theme.of(context).inputDecorationTheme.errorStyle,
+        border: InputBorder.none,
+        enabledBorder: InputBorder.none,
+        disabledBorder: InputBorder.none,
+        focusedBorder: InputBorder.none,
+        errorBorder: InputBorder.none,
+        focusedErrorBorder: InputBorder.none,
+        contentPadding: EdgeInsets.zero,
+        isDense: true,
+      ),
+      isEmpty: false,
+      child: const SizedBox.shrink(),
     );
   }
 
@@ -456,6 +547,61 @@ class TimeState extends FormFieldWidgetState<Time> {
     }
   }
 
+  Widget _buildCustomValueWidget(
+      BuildContext context, FormFieldState<DateTime> field) {
+    // Build the custom value widget
+    Widget valueWidget = _buildValueWidget(context);
+
+    final hasBorderProperties = _hasBorderProperties();
+    final shouldShowBorder = hasBorderProperties || field.errorText != null;
+    Widget styledWidget = valueWidget;
+
+    // Apply border if border properties are set OR if there's an error
+    if (shouldShowBorder) {
+      final borderStyle = _resolveBorderStyle(context, field.errorText);
+
+      styledWidget = Container(
+        decoration: BoxDecoration(
+          color: widget._controller.fillColor,
+          borderRadius: borderStyle.borderRadius,
+          border: Border.all(
+            color: borderStyle.borderColor,
+            width: borderStyle.borderWidth.toDouble(),
+          ),
+        ),
+        padding: widget._controller.contentPadding ??
+            const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+        child: valueWidget,
+      );
+    } else if (widget._controller.fillColor != null ||
+        widget._controller.contentPadding != null) {
+      styledWidget = Container(
+        color: widget._controller.fillColor,
+        padding: widget._controller.contentPadding ??
+            const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+        child: valueWidget,
+      );
+    }
+
+    Widget clickableWidget = InkWell(
+      onTap: isEnabled() ? () => _selectTime(context) : null,
+      child: styledWidget,
+    );
+
+    clickableWidget = _applyDisabledOpacity(clickableWidget);
+
+    final errorWidget = _buildErrorWidget(context, field.errorText);
+    if (errorWidget != null) {
+      return Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [clickableWidget, errorWidget],
+      );
+    }
+
+    return clickableWidget;
+  }
+
   Widget nowBuildWidget() {
     List<Widget> children = [];
 
@@ -466,6 +612,28 @@ class TimeState extends FormFieldWidgetState<Time> {
     }
 
     children.add(widget._controller.prettyValue(context, formFieldTextStyle));
+
+    Widget rtn = Row(
+      mainAxisSize: MainAxisSize.min,
+      children: children,
+    );
+    return _applyDisabledOpacity(rtn);
+  }
+
+  Widget _buildValueWidget(BuildContext context) {
+    Widget? customWidget = DataScopeWidget.getScope(context)
+        ?.buildWidgetFromDefinition(widget._controller.valueWidget);
+
+    if (customWidget == null) {
+      return nowBuildWidget();
+    }
+
+    List<Widget> children = [];
+    if (widget._controller.showIcon != false) {
+      children.add(const Icon(Icons.alarm, color: Colors.black54));
+      children.add(const SizedBox(width: 5));
+    }
+    children.add(customWidget);
 
     Widget rtn = Row(
       mainAxisSize: MainAxisSize.min,
