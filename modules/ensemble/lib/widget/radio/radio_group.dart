@@ -11,11 +11,9 @@ import 'package:ensemble/widget/helpers/input_wrapper.dart';
 import 'package:ensemble/widget/radio/custom_radio_tile.dart';
 import 'package:flutter/material.dart';
 import 'package:ensemble/util/utils.dart';
-import 'package:ensemble/widget/helpers/widgets.dart';
 import 'package:ensemble/widget/helpers/form_helper.dart';
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
-import 'package:logger/logger.dart';
 
 class RadioGroup extends StatefulWidget
     with
@@ -64,6 +62,7 @@ class RadioGroup extends StatefulWidget
       'itemGap': (value) =>
           _controller.itemGap = Utils.optionalInt(value, min: 0),
       'size': (value) => _controller.size = Utils.optionalInt(value, min: 0),
+      'textStyle': (style) => _controller.textStyle = Utils.getTextStyle(style),
       'activeColor': (color) => _controller.activeColor = Utils.getColor(color),
       'inactiveColor': (color) =>
           _controller.inactiveColor = Utils.getColor(color),
@@ -102,6 +101,8 @@ class RadioGroupController extends FormFieldController {
 
   Color? activeColor;
   Color? inactiveColor;
+
+  TextStyle? textStyle;
 
   int? size;
 
@@ -236,7 +237,12 @@ class RadioGroupState extends FormFieldWidgetState<RadioGroup>
     var enabled = isEnabled();
     List<Widget> children = [];
 
-    TextStyle? baseLabelStyle = Theme.of(context).textTheme.titleMedium;
+    TextStyle? baseLabelStyle =
+        widget._controller.textStyle ?? Theme.of(context).textTheme.titleMedium;
+    if (!enabled && baseLabelStyle != null) {
+      baseLabelStyle =
+          baseLabelStyle.copyWith(color: Theme.of(context).disabledColor);
+    }
 
     // add the children
     if (widget._controller.items != null) {
