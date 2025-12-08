@@ -285,11 +285,32 @@ class EnsembleCalendar extends StatefulWidget
       final endDate = _getDate(end)?.firstOrNull;
 
       rawDate = _getDates(startDate, endDate);
+
+      // If both start and end dates are valid, set up range selection
+      if (startDate != null && endDate != null && rawDate != null) {
+        final normalizedStart = startDate.toDate();
+        final normalizedEnd = endDate.toDate();
+
+        if (_controller.rangeSelectionMode != RangeSelectionMode.disabled) {
+          _controller.rangeSelectionMode = RangeSelectionMode.toggledOn;
+        }
+
+        _controller.rangeStart = normalizedStart;
+        _controller.rangeEnd = normalizedEnd;
+        _controller.range =
+            DateTimeRange(start: normalizedStart, end: normalizedEnd);
+
+        _controller.selectedDays.value.clear();
+
+        _controller.update();
+        return;
+      }
     } else {
       rawDate = _getDate(value);
     }
     if (rawDate == null) return;
 
+    // For single date selection, clear range and use selectedDays
     HashSet<DateTime> updatedDisabledDays =
         HashSet<DateTime>.from(_controller.selectedDays.value);
 
