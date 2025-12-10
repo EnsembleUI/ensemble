@@ -496,14 +496,20 @@ class PageState extends State<Page>
 
     bool centerTitle =
         Utils.getBool(evaluatedHeader?['centerTitle'], fallback: true);
-    Color? backgroundColor =
-        Utils.getColor(evaluatedHeader?['backgroundColor']);
-    Color? surfaceTintColor =
-        Utils.getColor(evaluatedHeader?['surfaceTintColor']);
-    Color? color = Utils.getColor(evaluatedHeader?['color']);
-    Color? shadowColor = Utils.getColor(evaluatedHeader?['shadowColor']);
-    double? elevation =
-        Utils.optionalInt(evaluatedHeader?['elevation'], min: 0)?.toDouble();
+    // Evaluate expressions in header styles
+    final evaluatedBackgroundColor =
+        _scopeManager.dataContext.eval(evaluatedHeader?['backgroundColor']);
+    Color? backgroundColor = Utils.getColor(evaluatedBackgroundColor);
+    Color? surfaceTintColor = Utils.getColor(
+        _scopeManager.dataContext.eval(evaluatedHeader?['surfaceTintColor']));
+    Color? color = Utils.getColor(
+        _scopeManager.dataContext.eval(evaluatedHeader?['color']));
+    Color? shadowColor = Utils.getColor(
+        _scopeManager.dataContext.eval(evaluatedHeader?['shadowColor']));
+    double? elevation = Utils.optionalInt(
+            _scopeManager.dataContext.eval(evaluatedHeader?['elevation']),
+            min: 0)
+        ?.toDouble();
     ScrollMode scrollMode = Utils.getEnum<ScrollMode>(
         evaluatedHeader?['scrollMode'], ScrollMode.values);
 
