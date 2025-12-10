@@ -1,3 +1,10 @@
+## [1.0.4] - Bug Fixes
+* Updated Date class to support cloning from Date instances and improved fallback parsing logic.
+* Enhanced Console class with multiple logging methods (log, info, warn, error, debug, trace) and argument normalization.
+* Introduced private methods for argument formatting and emission to streamline logging functionality.
+* Improved context handling in JSInterpreter for better scope resolution and function declaration hoisting.
+
+
 ## [1.0.3] - Moved to packages directory
 
 ## [1.0.2] - Package Publication and Code Quality Improvements
