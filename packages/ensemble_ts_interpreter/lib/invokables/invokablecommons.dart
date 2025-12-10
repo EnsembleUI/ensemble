@@ -278,7 +278,6 @@ class Date extends Object with Invokable, SupportsPrimitiveOperations {
     };
   }
 
-  @override
   String toJson() {
     return dateTime.toUtc().toIso8601String();
   }

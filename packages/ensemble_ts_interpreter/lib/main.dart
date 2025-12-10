@@ -1,3 +1,4 @@
+// ignore_for_file: must_be_immutable
 import 'package:http/http.dart' as http;
 import 'package:ensemble_ts_interpreter/action.dart';
 import 'package:ensemble_ts_interpreter/api.dart';

@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import 'package:flutter/widgets.dart';
+// ignore_for_file: must_be_immutable
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 
 class InvokableText extends StatefulWidget

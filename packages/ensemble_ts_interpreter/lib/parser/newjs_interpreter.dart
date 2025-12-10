@@ -1,3 +1,4 @@
+// ignore_for_file: unnecessary_null_comparison, unused_catch_clause, unnecessary_non_null_assertion, unused_local_variable
 import 'dart:convert';
 import 'package:ensemble_ts_interpreter/errors.dart';
 import 'package:ensemble_ts_interpreter/invokables/context.dart';
@@ -1194,7 +1195,7 @@ class JSInterpreter extends RecursiveVisitor<dynamic> {
       val = visitObjectPropertyExpression(
           node.object, getValueFromExpression(node.property),
           computeAsPattern: computeAsPattern);
-    } on InvalidPropertyException catch (e) {
+    } on InvalidPropertyException {
       //ignore since obj['prop'] is fine even when prop does not exist. We just return null in that case
     }
     return val;
@@ -1255,9 +1256,8 @@ class JSInterpreter extends RecursiveVisitor<dynamic> {
       if (node.handler != null) {
         dynamic exceptionValue = getExceptionValue(e);
         Map<String, dynamic> ctxMap = {};
-        if (node.handler!.param != null) {
-          ctxMap[node.handler!.param.value] = JSCustomException(exceptionValue);
-        }
+        // param is non-nullable; assign directly.
+        ctxMap[node.handler!.param.value] = JSCustomException(exceptionValue);
         Context context = SimpleContext(ctxMap);
         // Clone the interpreter with this new context
         JSInterpreter interpreter =

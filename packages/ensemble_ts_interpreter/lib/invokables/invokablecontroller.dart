@@ -696,6 +696,7 @@ class _List {
     return {'length': () => list.length};
   }
 
+  // ignore: unused_element
   static List filter(List list, Function f) {
     return list.where((e) => f([e])).toList();
   }
