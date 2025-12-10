@@ -18,7 +18,7 @@ dependencies:
       url: https://github.com/EnsembleUI/ensemble.git
       ref: ensemble-v1.2.23
       path: modules/ensemble
-  ensemble_ts_interpreter: ^1.0.3
+  ensemble_ts_interpreter: ^1.0.4
 
   # QR Code scanner module (for backward compatibility re-export)
   ensemble_qr_scanner:

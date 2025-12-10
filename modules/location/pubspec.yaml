@@ -17,7 +17,7 @@ dependencies:
       ref: ensemble-v1.2.23
       path: modules/ensemble
 
-  ensemble_ts_interpreter: ^1.0.3
+  ensemble_ts_interpreter: ^1.0.4
 
   get_it: ^8.0.0
   google_maps_flutter: ^2.6.0
