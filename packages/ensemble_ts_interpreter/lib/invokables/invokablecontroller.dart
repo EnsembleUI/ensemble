@@ -272,20 +272,98 @@ class InvokableController {
   }
 }
 
-class Console extends Object with Invokable {
+class Console extends Object with Invokable, MethodExecutor {
   @override
-  Map<String, Function> getters() {
-    return {};
-  }
+  Map<String, Function> getters() => {};
 
   @override
   Map<String, Function> methods() {
-    return {'log': (val) => debugPrint(val?.toString())};
+    return {
+      'log': (dynamic args) => _log('log', _normalizeArgs(args)),
+      'info': (dynamic args) => _log('info', _normalizeArgs(args)),
+      'warn': (dynamic args) => _log('warn', _normalizeArgs(args)),
+      'error': (dynamic args) => _log('error', _normalizeArgs(args)),
+      'debug': (dynamic args) => _log('debug', _normalizeArgs(args)),
+      'trace': (dynamic args) => _trace(_normalizeArgs(args)),
+    };
   }
 
   @override
-  Map<String, Function> setters() {
-    return {};
+  Map<String, Function> setters() => {};
+
+  List<dynamic> _normalizeArgs(dynamic args) {
+    if (args == null) {
+      return [];
+    }
+    if (args is List<dynamic>) {
+      return args;
+    }
+    return [args];
+  }
+
+  String _formatArg(dynamic value) {
+    if (value == null) return 'null';
+    if (value is bool || value is num) return value.toString();
+    if (value is String) return value;
+    if (value is RegExp) return value.pattern;
+    if (value is DateTime) return value.toIso8601String();
+
+    if (value is Map || value is Iterable) {
+      try {
+        return jsonEncode(value);
+      } catch (_) {
+        // Fall through to string conversion if encoding fails
+      }
+    }
+
+    try {
+      return value.toString();
+    } catch (_) {
+      return '<unprintable>';
+    }
+  }
+
+  void _emit(String level, List<dynamic> args, {StackTrace? stack}) {
+    final formattedArgs = args.map(_formatArg).toList();
+    final message = formattedArgs.join(' ');
+    final prefix = level == 'log' ? '' : '[console.$level]';
+    final buffer = StringBuffer('$prefix$message');
+    if (stack != null) {
+      buffer.writeln();
+      buffer.write(stack.toString());
+    }
+    debugPrint(buffer.toString());
+  }
+
+  dynamic _log(String level, List<dynamic> args) {
+    _emit(level, args);
+    return null;
+  }
+
+  dynamic _trace(List<dynamic> args) {
+    _emit('trace', args, stack: StackTrace.current);
+    return null;
+  }
+
+  @override
+  dynamic callMethod(String methodName, List<dynamic> args) {
+    switch (methodName) {
+      case 'log':
+        return _log('log', args);
+      case 'info':
+        return _log('info', args);
+      case 'warn':
+        return _log('warn', args);
+      case 'error':
+        return _log('error', args);
+      case 'debug':
+        return _log('debug', args);
+      case 'trace':
+        return _trace(args);
+      default:
+        throw InvalidPropertyException(
+            'console does not have a method named $methodName');
+    }
   }
 }
 
@@ -618,6 +696,7 @@ class _List {
     return {'length': () => list.length};
   }
 
+  // ignore: unused_element
   static List filter(List list, Function f) {
     return list.where((e) => f([e])).toList();
   }

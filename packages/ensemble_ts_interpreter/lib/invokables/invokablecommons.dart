@@ -214,12 +214,20 @@ class Date extends Object with Invokable, SupportsPrimitiveOperations {
     if (arg1 == null) {
       dateTime = DateTime.now();
     } else if (arg2 == null) {
-      if (arg1 is String) {
+      if (arg1 is Date) {
+        // Clone the incoming Date instance
+        dateTime = DateTime.fromMillisecondsSinceEpoch(
+            arg1.dateTime.millisecondsSinceEpoch);
+      } else if (arg1 is DateTime) {
+        dateTime =
+            DateTime.fromMillisecondsSinceEpoch(arg1.millisecondsSinceEpoch);
+      } else if (arg1 is String) {
         dateTime = DateTime.parse(arg1);
-      } else if (arg1 is double) {
+      } else if (arg1 is num) {
         dateTime = DateTime.fromMillisecondsSinceEpoch(arg1.round());
       } else {
-        dateTime = DateTime.fromMillisecondsSinceEpoch(arg1);
+        // Fallback: try to parse anything else via toString
+        dateTime = DateTime.parse(arg1.toString());
       }
     } else {
       int year = arg1;
@@ -270,7 +278,6 @@ class Date extends Object with Invokable, SupportsPrimitiveOperations {
     };
   }
 
-  @override
   String toJson() {
     return dateTime.toUtc().toIso8601String();
   }

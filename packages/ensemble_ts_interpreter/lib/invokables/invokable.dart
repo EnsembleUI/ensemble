@@ -136,7 +136,7 @@ mixin Invokable {
             .controller
             .dispatchChanges(KeyValue(prop.toString(), val));
       } else if (this is EnsembleController) {
-        (this as EnsembleController).notifyListeners();
+        (this as EnsembleController).triggerListeners();
       }
     } else {
       throw InvalidPropertyException(
@@ -162,7 +162,10 @@ mixin HasController<C extends Controller, S extends WidgetStateMixin>
   List<String> passthroughSetters() => [];
 }
 
-abstract class EnsembleController extends ChangeNotifier with Invokable {}
+abstract class EnsembleController extends ChangeNotifier with Invokable {
+  // Expose a safe wrapper to notify listeners without violating protected API.
+  void triggerListeners() => notifyListeners();
+}
 
 abstract class Controller extends ChangeNotifier {
   KeyValue? lastSetterProperty;

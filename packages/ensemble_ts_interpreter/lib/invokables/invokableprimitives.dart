@@ -45,7 +45,6 @@ abstract class InvokablePrimitive {
           durationLocale;
     }
 
-    String? localeString = locale?.languageCode;
     return lib.prettyDuration(
       Duration(seconds: input),
       abbreviated: false,
@@ -105,7 +104,7 @@ abstract class InvokablePrimitive {
         // try parse ISO format
         try {
           return DateTime.parse(input);
-        } on FormatException catch (_, e) {}
+        } on FormatException catch (_) {}
 
         // try http date format e.g Thu, 23 Jan 2022 05:05:05 GMT+0200
 
@@ -140,7 +139,7 @@ abstract class InvokablePrimitive {
           }
           // we parsed the date as GMT, need to convert to our local time
           return gmtDateTime;
-        } catch (e) {}
+        } catch (_) {}
       }
     }
     return null;

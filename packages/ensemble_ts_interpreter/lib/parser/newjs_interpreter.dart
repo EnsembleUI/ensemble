@@ -1,3 +1,4 @@
+// ignore_for_file: unnecessary_null_comparison, unused_catch_clause, unnecessary_non_null_assertion, unused_local_variable
 import 'dart:convert';
 import 'package:ensemble_ts_interpreter/errors.dart';
 import 'package:ensemble_ts_interpreter/invokables/context.dart';
@@ -244,7 +245,8 @@ class JSInterpreter extends RecursiveVisitor<dynamic> {
   }
 
   Context getContextForScope(Scope scope) {
-    return contexts[scope]!;
+    // Some transient scopes may not have been registered; fall back to program.
+    return contexts[scope] ?? contexts[program]!;
   }
 
   void addToThisContext(Name node, dynamic value) {
@@ -293,6 +295,20 @@ class JSInterpreter extends RecursiveVisitor<dynamic> {
   }
 
   dynamic getValue(Name node) {
+    // 1) Try the node's own scope first (captures nested function declarations).
+    if (node.scope != null) {
+      final Context scopedCtx = getContextForScope(node.scope!);
+      final dynamic fromScoped = scopedCtx.getContextById(node.value);
+      if (fromScoped != null) return fromScoped;
+    }
+
+    // 2) Scan all known contexts (newest first) as a safety net.
+    for (final Scope s in contexts.keys.toList().reversed) {
+      final dynamic v = contexts[s]!.getContextById(node.value);
+      if (v != null) return v;
+    }
+
+    // 3) Fallback to the resolved scope via environment tracking.
     Scope scope = findScope(node);
     Context ctx = getContextForScope(scope);
     return ctx.getContextById(node.value);
@@ -552,7 +568,8 @@ class JSInterpreter extends RecursiveVisitor<dynamic> {
         }
       }
       Context context = SimpleContext(ctx);
-      JSInterpreter i = cloneForContext(node, context, inheritContext ?? false);
+      // Inherit parent contexts so nested functions can see outer declarations.
+      JSInterpreter i = cloneForContext(node, context, inheritContext ?? true);
       dynamic rtn;
       try {
         if (node.body != null) {
@@ -605,6 +622,12 @@ class JSInterpreter extends RecursiveVisitor<dynamic> {
   @override
   visitBlock(BlockStatement node) {
     dynamic rtn;
+    // Hoist function declarations in this block before executing statements.
+    for (Statement stmt in node.body) {
+      if (stmt is FunctionDeclaration && stmt.function.name != null) {
+        addToThisContext(stmt.function.name!, visitFunctionNode(stmt.function));
+      }
+    }
     for (Node stmt in node.body) {
       rtn = stmt.visitBy(this);
     }
@@ -1172,7 +1195,7 @@ class JSInterpreter extends RecursiveVisitor<dynamic> {
       val = visitObjectPropertyExpression(
           node.object, getValueFromExpression(node.property),
           computeAsPattern: computeAsPattern);
-    } on InvalidPropertyException catch (e) {
+    } on InvalidPropertyException {
       //ignore since obj['prop'] is fine even when prop does not exist. We just return null in that case
     }
     return val;
@@ -1233,9 +1256,8 @@ class JSInterpreter extends RecursiveVisitor<dynamic> {
       if (node.handler != null) {
         dynamic exceptionValue = getExceptionValue(e);
         Map<String, dynamic> ctxMap = {};
-        if (node.handler!.param != null) {
-          ctxMap[node.handler!.param.value] = JSCustomException(exceptionValue);
-        }
+        // param is non-nullable; assign directly.
+        ctxMap[node.handler!.param.value] = JSCustomException(exceptionValue);
         Context context = SimpleContext(ctxMap);
         // Clone the interpreter with this new context
         JSInterpreter interpreter =
