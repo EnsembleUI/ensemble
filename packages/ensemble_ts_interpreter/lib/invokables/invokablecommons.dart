@@ -12,9 +12,72 @@ class JSON extends Object with Invokable {
   @override
   Map<String, Function> methods() {
     return {
-      'stringify': (dynamic value) =>
-          (value != null) ? json.encode(value) : null,
-      'parse': (String value) => json.decode(value)
+      'stringify': (dynamic value, [dynamic replacer, dynamic space]) {
+        dynamic replacerFn;
+        if (replacer is Function) {
+          replacerFn = replacer;
+        }
+
+        int? indent;
+        if (space is num) indent = space.toInt();
+        if (space is String) indent = space.length;
+
+        dynamic applyReplacer(String key, dynamic val) {
+          if (replacerFn != null) {
+            return replacerFn([key, val]);
+          }
+          return val;
+        }
+
+        dynamic walk(dynamic key, dynamic val) {
+          val = applyReplacer(key.toString(), val);
+          if (val is Map) {
+            Map<String, dynamic> m = {};
+            val.forEach((k, v) {
+              m[k.toString()] = walk(k.toString(), v);
+            });
+            return m;
+          } else if (val is List) {
+            return val
+                .asMap()
+                .entries
+                .map((e) => walk(e.key.toString(), e.value))
+                .toList();
+          }
+          return val;
+        }
+
+        final processed = walk('', value);
+        if (indent != null && indent > 0) {
+          return const JsonEncoder.withIndent('  ').convert(processed);
+        }
+        return jsonEncode(processed);
+      },
+      'parse': (String value, [dynamic reviver]) {
+        dynamic parsed = json.decode(value);
+        if (reviver is! Function) return parsed;
+
+        dynamic walk(dynamic key, dynamic val) {
+          if (val is Map) {
+            final Map<String, dynamic> m = {};
+            val.forEach((k, v) {
+              m[k] = walk(k, v);
+            });
+            return reviver([key, m]);
+          } else if (val is List) {
+            final list = val
+                .asMap()
+                .entries
+                .map((e) => walk(e.key.toString(), e.value))
+                .toList();
+            return reviver([key, list]);
+          } else {
+            return reviver([key, val]);
+          }
+        }
+
+        return walk('', parsed);
+      }
     };
   }
 
@@ -32,7 +95,25 @@ class JSON extends Object with Invokable {
 class StaticObject extends Object with Invokable {
   @override
   Map<String, Function> methods() {
-    return {'init': () => {}};
+    return {
+      'init': () => {},
+      'assign': (dynamic target, [dynamic source, dynamic source2]) {
+        if (target is! Map) return target;
+        if (source is Map) {
+          target.addAll(Map<String, dynamic>.from(source));
+        }
+        if (source2 is Map) {
+          target.addAll(Map<String, dynamic>.from(source2));
+        }
+        return target;
+      },
+      'create': (dynamic proto) {
+        if (proto is Map) {
+          return Map<String, dynamic>.from(proto);
+        }
+        return {};
+      },
+    };
   }
 
   @override
@@ -81,6 +162,16 @@ class InvokableObject extends Object with Invokable {
               : false,
       'propertyIsEnumerable': (dynamic value, String key) =>
           (value is Map) ? value.keys.contains(key) : false,
+      'assign': (dynamic target, [dynamic source, dynamic source2]) {
+        if (target is! Map) return target;
+        if (source is Map) {
+          target.addAll(Map<String, dynamic>.from(source));
+        }
+        if (source2 is Map) {
+          target.addAll(Map<String, dynamic>.from(source2));
+        }
+        return target;
+      },
     };
   }
 

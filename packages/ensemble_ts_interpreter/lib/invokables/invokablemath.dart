@@ -62,6 +62,21 @@ class InvokableMath extends Object with Invokable, MethodExecutor {
       },
       'tan': (dynamic x) => math.tan(_toNum(x) ?? 0),
       'random': () => math.Random().nextDouble(),
+      'sign': (dynamic x) {
+        num? v = _toNum(x);
+        if (v == null || v.isNaN) return double.nan;
+        if (v == 0) return 0;
+        return v > 0 ? 1 : -1;
+      },
+      'imul': (dynamic a, dynamic b) {
+        int ai = (_toNum(a) ?? 0).toInt();
+        int bi = (_toNum(b) ?? 0).toInt();
+        return (ai * bi) & 0xffffffff;
+      },
+      'clz32': (dynamic x) {
+        int v = (_toNum(x) ?? 0).toInt() & 0xffffffff;
+        return v == 0 ? 32 : v.toRadixString(2).padLeft(32, '0').indexOf('1');
+      },
     };
   }
 

@@ -408,6 +408,28 @@ class JSInterpreter extends RecursiveVisitor<dynamic> {
 
   @override
   visitUnary(UnaryExpression node) {
+    // Handle 'delete' operator specially - it needs to work on property expressions
+    if (node.operator == 'delete') {
+      ObjectPattern? pattern;
+      if (node.argument is MemberExpression) {
+        pattern = visitMember(node.argument as MemberExpression,
+            computeAsPattern: true);
+      } else if (node.argument is IndexExpression) {
+        pattern = visitIndex(node.argument as IndexExpression,
+            computeAsPattern: true);
+      } else if (node.argument is Name || node.argument is NameExpression) {
+        // Deleting a variable name is not allowed in strict mode, but we'll return false
+        // In non-strict mode, it would delete from global scope, but we don't support that
+        return false;
+      }
+
+      if (pattern != null) {
+        return InvokableController.deleteProperty(
+            pattern.obj, pattern.property);
+      }
+      return false;
+    }
+
     dynamic val = getValueFromNode(node.argument);
     switch (node.operator) {
       case '-':
