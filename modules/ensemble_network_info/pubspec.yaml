@@ -12,7 +12,7 @@ dependencies:
   ensemble:
     git:
       url: https://github.com/EnsembleUI/ensemble.git
-      ref: ensemble-v1.2.23
+      ref: ensemble-v1.2.24
       path: modules/ensemble
 
   network_info_plus: ^5.0.3
