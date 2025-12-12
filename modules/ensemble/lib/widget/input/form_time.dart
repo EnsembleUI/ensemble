@@ -9,6 +9,7 @@ import 'package:ensemble/widget/helpers/HasTextPlaceholder.dart';
 import 'package:ensemble/widget/helpers/form_helper.dart';
 import 'package:ensemble/widget/helpers/input_wrapper.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:ensemble/util/extensions.dart';
 import 'package:flutter/cupertino.dart';
@@ -52,6 +53,8 @@ class Time extends StatefulWidget
             _controller.initialValue; // Set the current value to initialValue
       },
       'onChange': (definition) => _controller.onChange =
+          EnsembleAction.from(definition, initiator: this),
+      'onChangeEnd': (definition) => _controller.onChangeEnd =
           EnsembleAction.from(definition, initiator: this),
       'useIOSStyleTimePicker': (value) => _controller.useIOSStyleTimePicker =
           Utils.getBool(value, fallback: shouldUseIOSStyle()),
@@ -121,6 +124,7 @@ class TimeController extends FormFieldController with HasTextPlaceholder {
   TimeOfDay? value;
   TimeOfDay? initialValue;
   EnsembleAction? onChange;
+  EnsembleAction? onChangeEnd;
   bool useIOSStyleTimePicker = shouldUseIOSStyle();
   bool useInlineTimePicker = false;
   bool use24hFormat = false;
@@ -235,6 +239,14 @@ class _BorderStyle {
 }
 
 class TimeState extends FormFieldWidgetState<Time> {
+  Timer? _debounceTimer;
+
+  @override
+  void dispose() {
+    _debounceTimer?.cancel();
+    super.dispose();
+  }
+
   @override
   Widget buildWidget(BuildContext context) {
     return InputWrapper(
@@ -414,6 +426,22 @@ class TimeState extends FormFieldWidgetState<Time> {
       minuteInterval: widget._controller.iOSStyles?.minuteInterval ?? 1,
       onDateTimeChanged: (DateTime newDateTime) {
         _updateTime(TimeOfDay.fromDateTime(newDateTime));
+        final newTime = TimeOfDay.fromDateTime(newDateTime);
+        // Update the value visually during scrolling
+        setState(() {
+          widget._controller.value = newTime;
+        });
+
+        // For inline picker, use debounce to fire onChangeEnd after user stops scrolling
+        if (widget._controller.useInlineTimePicker) {
+          _debounceTimer?.cancel();
+          _debounceTimer = Timer(const Duration(milliseconds: 500), () {
+            // Fire onChangeEnd after user stops scrolling (500ms of no changes)
+            if (isEnabled() && widget._controller.value != null) {
+              _fireOnChangeEnd();
+            }
+          });
+        }
       },
     );
 
@@ -474,6 +502,9 @@ class TimeState extends FormFieldWidgetState<Time> {
     final backgroundColor = userSetBackgroundColor ??
         CupertinoTheme.of(context).scaffoldBackgroundColor;
 
+    // Store the initial value to check if it changed
+    final initialValue = widget._controller.value;
+
     showCupertinoModalPopup<void>(
       context: context,
       builder: (BuildContext context) => Container(
@@ -485,7 +516,15 @@ class TimeState extends FormFieldWidgetState<Time> {
           child: _buildCupertinoTimePicker(context),
         ),
       ),
-    );
+    ).then((_) {
+      // When modal is dismissed, fire onChangeEnd if the value changed
+      if (isEnabled() &&
+          widget._controller.value != null &&
+          (initialValue == null ||
+              initialValue.compareTo(widget._controller.value!) != 0)) {
+        _fireOnChangeEnd();
+      }
+    });
   }
 
   void _showMaterialTimePicker(BuildContext context) async {
@@ -544,6 +583,13 @@ class TimeState extends FormFieldWidgetState<Time> {
         ScreenController().executeAction(context, widget._controller.onChange!,
             event: EnsembleEvent(widget));
       }
+    }
+  }
+
+  void _fireOnChangeEnd() {
+    if (isEnabled() && widget._controller.onChangeEnd != null) {
+      ScreenController().executeAction(context, widget._controller.onChangeEnd!,
+          event: EnsembleEvent(widget));
     }
   }
 

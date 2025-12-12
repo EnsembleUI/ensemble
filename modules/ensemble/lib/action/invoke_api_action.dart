@@ -1,5 +1,3 @@
-import 'dart:developer';
-
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/apiproviders/http_api_provider.dart';
 import 'package:ensemble/framework/bindings.dart';
@@ -13,7 +11,6 @@ import 'package:ensemble/util/utils.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:yaml/yaml.dart';
-import 'package:http/http.dart' as http;
 
 import '../framework/apiproviders/api_provider.dart';
 
@@ -178,7 +175,19 @@ class InvokeAPIController {
         _onAPIError(context, action, apiDefinition, errorResponse, apiMap,
             apiScopeManager);
         debugPrint(error.toString());
-        return errorResponse;
+        // Convert error to Response if it's not already one
+        if (errorResponse is Response) {
+          return errorResponse;
+        } else {
+          // Create an error Response for non-Response errors
+          return HttpResponse.fromBody(
+            error.toString(),
+            {'Content-Type': 'text/plain'},
+            500,
+            'Internal Server Error',
+            APIState.error,
+          );
+        }
       }
     } else {
       throw RuntimeError("Unable to find api definition for ${action.apiName}");
