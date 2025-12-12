@@ -1,11 +1,6 @@
 name: ensemble_ts_interpreter
-description: >-
-  A JavaScript (ES5) interpreter written entirely in Dart for Flutter applications.
-  Execute JavaScript code inline within your Dart/Flutter app without external engines.
-  Features include primitive types, arrays, maps, function declarations, and extensible
-  context objects. Perfect for dynamic code execution, user-defined scripts, and
-  lightweight JavaScript processing in Flutter apps.
-version: 1.0.4
+description: A JavaScript (ES5) interpreter written entirely in Dart for Flutter applications. Execute JavaScript code inline within your Dart/Flutter app without external engines.
+version: 1.0.5
 
 homepage: https://ensembleui.com
 repository: https://github.com/EnsembleUI/ensemble/tree/main/modules/ensemble_ts_interpreter

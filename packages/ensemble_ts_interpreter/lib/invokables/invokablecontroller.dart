@@ -1,17 +1,21 @@
 import 'dart:convert';
 import 'dart:core';
+import 'dart:async';
 
 import 'package:ensemble_ts_interpreter/errors.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokablecommons.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokablemath.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokableprimitives.dart';
+import 'package:ensemble_ts_interpreter/invokables/invokablefetch.dart';
+import 'package:ensemble_ts_interpreter/invokables/invokablecollections.dart';
 import 'package:ensemble_ts_interpreter/parser/regex_ext.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:json_path/json_path.dart';
 import 'package:intl/intl.dart';
 
 import 'UserLocale.dart';
+import 'invokablepromises.dart';
 
 abstract class GlobalContext {
   static RegExp regExp(String regex, String options) {
@@ -74,12 +78,41 @@ abstract class GlobalContext {
     'Date': StaticDate(),
     'Object': InvokableObject(),
     'Error': JSCustomException(null),
+    'Array': StaticArray(),
+    'Number': StaticNumber(),
+    'String': StaticString(),
+    'performance': StaticPerformance(),
+    'Map': JSMapConstructor(),
+    'Set': JSSetConstructor(),
+    'queueMicrotask': (Function cb) => scheduleMicrotask(() {
+          try {
+            cb([]);
+          } catch (_) {}
+        }),
+    'isNaN': (dynamic value) {
+      if (value == null) return true;
+      final num? parsed = num.tryParse(value.toString());
+      return parsed == null || parsed.isNaN;
+    },
+    'isFinite': (dynamic value) {
+      if (value == null) return false;
+      final num? parsed = num.tryParse(value.toString());
+      return parsed != null && parsed.isFinite;
+    },
     // Encode and Decode URI Component functions
     'encodeURIComponent': (String s) => Uri.encodeComponent(s),
     'decodeURIComponent': (String s) => Uri.decodeComponent(s),
     // Encode and Decode URI functions
     'encodeURI': (String uri) => Uri.encodeFull(uri),
     'decodeURI': (String uri) => Uri.decodeFull(uri),
+    'setTimeout': TimerManager.setTimeout,
+    'clearTimeout': TimerManager.clearTimeout,
+    'setInterval': TimerManager.setInterval,
+    'clearInterval': TimerManager.clearInterval,
+    'setImmediate': TimerManager.setImmediate,
+    'clearImmediate': TimerManager.clearImmediate,
+    'Promise': JSPromiseConstructor(),
+    'fetch': Fetch.fetch,
   };
 
   static get context => _context;
@@ -135,6 +168,7 @@ class InvokableController {
 //   }
   static void addGlobals(Map<String, dynamic> context) {
     context.addAll(GlobalContext.context);
+    context['globalThis'] = context;
     // context['debug'] = () async {
     //   await waitForCondition();
     // };
@@ -245,6 +279,31 @@ class InvokableController {
       return _RegExp.setProperty(val, prop, value);
     }
     return {};
+  }
+
+  static bool deleteProperty(dynamic val, dynamic prop) {
+    if (val == null) {
+      return false;
+    } else if (val is Invokable) {
+      // For Invokable objects, try to use deleteProperty if available
+      try {
+        val.setProperty(prop, null);
+        return true;
+      } catch (e) {
+        return false;
+      }
+    } else if (val is Map) {
+      return val.remove(prop) != null;
+    } else if (val is List) {
+      // For lists, delete by index
+      if (prop is int && prop >= 0 && prop < val.length) {
+        val.removeAt(prop);
+        return true;
+      }
+      return false;
+    }
+    // For other types, deletion is not supported
+    return false;
   }
 
   static List<String> getGettableProperties(dynamic obj) {
@@ -367,6 +426,192 @@ class Console extends Object with Invokable, MethodExecutor {
   }
 }
 
+class TimerManager {
+  static final Map<int, Timer> _timers = {};
+  static final Map<int, Timer> _intervals = {};
+  static int _nextId = 1;
+
+  static int _toMilliseconds(dynamic value) {
+    if (value is num) return value.toInt();
+    if (value is String) {
+      final int? parsedInt = int.tryParse(value);
+      if (parsedInt != null) return parsedInt;
+      final double? parsedDouble = double.tryParse(value);
+      if (parsedDouble != null) return parsedDouble.toInt();
+    }
+    return 0;
+  }
+
+  static void _invokeCallback(dynamic callback, List<dynamic> args) {
+    try {
+      // Filter out trailing null optional args to avoid arity errors.
+      final filteredArgs =
+          args.takeWhile((element) => element != null).toList();
+      if (callback is Function) {
+        // JavascriptFunction._onCall expects a single List argument.
+        callback(filteredArgs);
+      }
+    } catch (_) {
+      try {
+        // Fallback: attempt positional invocation if the callback expects spread args.
+        Function.apply(callback, args);
+      } catch (_) {
+        // Swallow errors to mimic JS setTimeout behavior.
+      }
+    }
+  }
+
+  static int setTimeout(dynamic callback,
+      [dynamic delayMs = 0,
+      dynamic arg1,
+      dynamic arg2,
+      dynamic arg3,
+      dynamic arg4]) {
+    final int id = _nextId++;
+    final int ms = _toMilliseconds(delayMs);
+    _timers[id] = Timer(Duration(milliseconds: ms), () {
+      _timers.remove(id);
+      _invokeCallback(callback, [arg1, arg2, arg3, arg4]);
+    });
+    return id;
+  }
+
+  static void clearTimeout([int? id]) {
+    if (id == null) return;
+    _timers.remove(id)?.cancel();
+  }
+
+  static Map<String, dynamic> setInterval(dynamic callback,
+      [dynamic delayMs = 0,
+      dynamic arg1,
+      dynamic arg2,
+      dynamic arg3,
+      dynamic arg4]) {
+    final int id = _nextId++;
+    final int ms = _toMilliseconds(delayMs);
+    _intervals[id] = Timer.periodic(Duration(milliseconds: ms), (_) {
+      _invokeCallback(callback, [arg1, arg2, arg3, arg4]);
+    });
+    return {
+      'id': id,
+      'ref': () => null,
+      'unref': () => null,
+    };
+  }
+
+  static void clearInterval([dynamic handle]) {
+    if (handle == null) return;
+    int? id;
+    if (handle is int) {
+      id = handle;
+    } else if (handle is Map && handle['id'] is int) {
+      id = handle['id'] as int;
+    }
+    if (id == null) return;
+    _intervals.remove(id)?.cancel();
+  }
+
+  static int setImmediate(dynamic callback,
+      [dynamic arg1, dynamic arg2, dynamic arg3, dynamic arg4]) {
+    final int id = _nextId++;
+    _timers[id] = Timer(Duration.zero, () {
+      _timers.remove(id);
+      _invokeCallback(callback, [arg1, arg2, arg3, arg4]);
+    });
+    return id;
+  }
+
+  static void clearImmediate([int? id]) {
+    if (id == null) return;
+    _timers.remove(id)?.cancel();
+  }
+}
+
+class StaticArray extends Object with Invokable {
+  @override
+  Map<String, Function> getters() => {};
+
+  @override
+  Map<String, Function> methods() {
+    return {
+      'isArray': (dynamic value) => value is List,
+    };
+  }
+
+  @override
+  Map<String, Function> setters() => {};
+}
+
+class StaticNumber extends Object with Invokable {
+  @override
+  Map<String, Function> getters() => {};
+
+  @override
+  Map<String, Function> methods() {
+    return {
+      'isNaN': (dynamic value) {
+        final num? parsed = num.tryParse(value.toString());
+        return parsed != null && parsed.isNaN;
+      },
+      'isFinite': (dynamic value) {
+        final num? parsed = num.tryParse(value.toString());
+        return parsed != null && parsed.isFinite;
+      },
+      'isInteger': (dynamic value) {
+        final num? parsed = num.tryParse(value.toString());
+        if (parsed == null || parsed.isNaN || !parsed.isFinite) return false;
+        return parsed == parsed.truncate();
+      }
+    };
+  }
+
+  @override
+  Map<String, Function> setters() => {};
+}
+
+class StaticString extends Object with Invokable {
+  @override
+  Map<String, Function> getters() => {};
+
+  @override
+  Map<String, Function> methods() {
+    List<int> _normalizeCodes(dynamic first, List<dynamic> rest) {
+      if (first is List) {
+        return first.map((e) => int.tryParse(e.toString()) ?? 0).toList();
+      }
+      List<dynamic> all = [first, ...rest].where((e) => e != null).toList();
+      return all.map((e) => int.tryParse(e.toString()) ?? 0).toList();
+    }
+
+    return {
+      'fromCharCode': (dynamic a,
+              [dynamic b, dynamic c, dynamic d, dynamic e, dynamic f]) =>
+          String.fromCharCodes(_normalizeCodes(a, [b, c, d, e, f])),
+      'fromCodePoint': (dynamic a,
+              [dynamic b, dynamic c, dynamic d, dynamic e, dynamic f]) =>
+          String.fromCharCodes(_normalizeCodes(a, [b, c, d, e, f])),
+    };
+  }
+
+  @override
+  Map<String, Function> setters() => {};
+}
+
+class StaticPerformance extends Object with Invokable {
+  @override
+  Map<String, Function> getters() => {};
+
+  @override
+  Map<String, Function> methods() {
+    return {
+      'now': () => DateTime.now().microsecondsSinceEpoch / 1000,
+    };
+  }
+
+  @override
+  Map<String, Function> setters() => {};
+}
+
 class _String {
   //encodes string to base64 string
   static String btoa(String s) {
@@ -423,7 +668,12 @@ class _String {
 
   static Map<String, Function> methods(String val) {
     return {
-      'indexOf': (String str) => val.indexOf(str),
+      'indexOf': (String str, [int? fromIndex]) {
+        if (fromIndex == null) {
+          return val.indexOf(str);
+        }
+        return val.indexOf(str, fromIndex);
+      },
       'lastIndexOf': (String str, [start = -1]) =>
           (start == -1) ? val.lastIndexOf(str) : val.lastIndexOf(str, start),
       'charAt': (index) => val[index],
@@ -439,6 +689,8 @@ class _String {
       'repeat': (int count) => val * count,
       'search': (RegExp pattern) =>
           pattern.hasMatch(val) ? pattern.firstMatch(val)?.start : -1,
+      'charCodeAt': (int index) => val.codeUnitAt(index),
+      'codePointAt': (int index) => val.codeUnitAt(index),
       'slice': (int start, [int? end]) {
         int adjustedStart = start < 0 ? val.length + start : start;
         adjustedStart = adjustedStart.clamp(0, val.length);
@@ -674,7 +926,8 @@ class _Map {
           list.add({'key': key, 'value': value});
         });
         return list;
-      }
+      },
+      'hasOwnProperty': (dynamic key) => map.containsKey(key),
     };
   }
 
@@ -718,7 +971,12 @@ class _List {
           list.asMap().forEach((index, element) => f([element, index])),
       'add': (dynamic val) => list.add(val),
       'push': (dynamic val) => list.add(val),
-      'indexOf': (dynamic val) => list.indexOf(val),
+      'indexOf': (dynamic searchElement, [int? fromIndex]) {
+        if (fromIndex == null) {
+          return list.indexOf(searchElement);
+        }
+        return list.indexOf(searchElement, fromIndex);
+      },
       'lastIndexOf': (dynamic val) => list.lastIndexOf(val),
       'unique': () => list.toSet().toList(),
       'sort': ([Function? f]) {
@@ -766,6 +1024,16 @@ class _List {
               .reduce((currentValue, element) => f([currentValue, element]));
         }
       },
+      'reduceRight': (Function f, [dynamic initialValue]) {
+        List reversed = list.reversed.toList();
+        if (initialValue != null) {
+          return reversed.fold(initialValue,
+              (currentValue, element) => f([currentValue, element]));
+        } else {
+          return reversed
+              .reduce((currentValue, element) => f([currentValue, element]));
+        }
+      },
       'reverse': () => list.reversed.toList(),
       'slice': ([int? start, int? end]) {
         // If no arguments provided, create a shallow copy of the entire list
@@ -799,6 +1067,61 @@ class _List {
         for (int i = start; i < end; i++) {
           if (i >= 0 && i < list.length) {
             list[i] = value;
+          }
+        }
+        return list;
+      },
+      'flat': ([int depth = 1]) {
+        List flatten(List input, int d) {
+          if (d == 0) return List.from(input);
+          List out = [];
+          for (var e in input) {
+            if (e is List) {
+              out.addAll(flatten(e, d - 1));
+            } else {
+              out.add(e);
+            }
+          }
+          return out;
+        }
+
+        return flatten(list, depth);
+      },
+      'flatMap': (Function f) {
+        List out = [];
+        list.asMap().forEach((i, e) {
+          var mapped = f([e, i]);
+          if (mapped is List) {
+            out.addAll(mapped);
+          } else {
+            out.add(mapped);
+          }
+        });
+        return out;
+      },
+      'keys': () => list.asMap().keys.toList(),
+      'values': () => List.from(list),
+      'entries': () => list
+          .asMap()
+          .entries
+          .map((e) => {'key': e.key, 'value': e.value})
+          .toList(),
+      'copyWithin': (int target, int start, [int? end]) {
+        int len = list.length;
+        int to = target < 0 ? len + target : target;
+        int from = start < 0 ? len + start : start;
+        int finalIndex = end == null ? len : (end < 0 ? len + end : end);
+        int count = (finalIndex - from).clamp(0, len - to);
+        if (count <= 0) return list;
+        List<dynamic> slice = [];
+        for (int i = 0; i < count; i++) {
+          int src = from + i;
+          slice.add(src < len ? list[src] : null);
+        }
+        for (int i = 0; i < count; i++) {
+          int dest = to + i;
+          if (dest < len) {
+            list[dest] = slice[i];
           }
         }
         return list;
@@ -844,6 +1167,16 @@ class _RegExp {
   static Map<String, Function> methods(RegExp val) {
     return {
       'test': (String input) => val.hasMatch(input),
+      'exec': (String input) {
+        final match = val.firstMatch(input);
+        if (match == null) return null;
+        List<dynamic> groups = [];
+        for (int i = 0; i <= match.groupCount; i++) {
+          groups.add(match.group(i));
+        }
+        groups.add({'index': match.start, 'input': input});
+        return groups;
+      },
     };
   }
 
