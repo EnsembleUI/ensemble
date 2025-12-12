@@ -16,7 +16,7 @@ dependencies:
       ref: ensemble-v1.2.23
       path: modules/ensemble
 
-  ensemble_ts_interpreter: ^1.0.4
+  ensemble_ts_interpreter: ^1.0.5
 
   web_socket_client: ^0.2.1
   yaml: ^3.1.2
