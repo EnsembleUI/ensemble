@@ -16,6 +16,7 @@ import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/stub/camera_manager.dart';
 import 'package:ensemble/framework/theme/theme_loader.dart';
+import 'package:ensemble/framework/theme_manager.dart';
 import 'package:ensemble/framework/view/data_scope_widget.dart';
 import 'package:ensemble/framework/view/page.dart' as ensemble;
 import 'package:ensemble/framework/view/page_group.dart';
@@ -187,6 +188,9 @@ class ScreenController {
     if (!context.mounted) {
       context = scopeManager.dataContext.buildContext;
     }
+
+    // Automatically configure and resolve styles for actions that use HasStyles
+    EnsembleThemeManager().applyActionStyles(context, scopeManager, action);
 
     /// TODO: The below Actions should be move to their execute() functions
     if (action is NavigateExternalScreen) {

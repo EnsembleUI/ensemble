@@ -3,7 +3,6 @@ import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/theme/theme_manager.dart';
 import 'package:ensemble/page_model.dart';
-import 'package:ensemble/util/utils.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -228,6 +227,86 @@ class EnsembleThemeManager {
         .values
         .join('');
   }
+
+  /// Derive widget type from action class name
+  static String? deriveWidgetTypeFromAction(dynamic action) {
+    String className = action.runtimeType.toString();
+    return className.isEmpty ? null : className;
+  }
+
+  /// Get payload from action using dynamic property access
+  static Map? getPayloadFromAction(dynamic action) {
+    try {
+      final dynamic actionDynamic = action;
+      if (actionDynamic.payload is Map) {
+        return actionDynamic.payload;
+      }
+    } catch (e) {
+      // Property doesn't exist or isn't accessible
+    }
+    return null;
+  }
+
+  /// Automatically configure and resolve styles for actions that use HasStyles
+  void applyActionStyles(
+      BuildContext context, ScopeManager scopeManager, dynamic action) {
+    if (action is HasStyles && action is Invokable) {
+      // ignore: unnecessary_cast
+      final hasStyles = action as HasStyles;
+      final invokable = action as Invokable;
+
+      Map? payload = getPayloadFromAction(action);
+      if (payload == null) {
+        return;
+      }
+
+      String? widgetType = deriveWidgetTypeFromAction(action);
+
+      EnsembleTheme? theme = currentTheme();
+      if (theme != null) {
+        theme.configureActionStyles(
+            scopeManager.dataContext, hasStyles, payload,
+            widgetType: widgetType);
+      } else {
+        // If no theme, still configure basic properties from payload
+        if (payload['className'] != null) {
+          dynamic classListValue =
+              scopeManager.dataContext.eval(payload['className']);
+          if (classListValue is String) {
+            hasStyles.classList = HasStyles.toClassList(classListValue);
+          }
+        }
+        if (payload['styles'] != null) {
+          hasStyles.inlineStyles =
+              EnsembleThemeManager.yamlToDart(payload['styles']);
+        }
+        if (payload['id'] != null) {
+          dynamic idValue = scopeManager.dataContext.eval(payload['id']);
+          if (idValue != null) {
+            hasStyles.widgetId = idValue.toString();
+          }
+        }
+        hasStyles.stylesNeedResolving = false; // No theme to resolve from
+      }
+
+      // Resolve styles
+      hasStyles.resolveStyles(scopeManager, invokable, context);
+
+      if (hasStyles.runtimeStyles != null &&
+          hasStyles.runtimeStyles!.isNotEmpty) {
+        try {
+          payload['styles'] = hasStyles.runtimeStyles!;
+        } catch (e) {
+          // Payload is unmodifiable - this is fine, actions will use runtimeStyles from HasStyles
+        }
+
+        try {
+          final dynamic actionDynamic = action;
+          actionDynamic.styles = hasStyles.runtimeStyles!;
+        } catch (e) {}
+      }
+    }
+  }
 }
 
 class EnsembleTheme {
@@ -324,6 +403,47 @@ class EnsembleTheme {
     resolveStyles(scopeManager.dataContext, controller);
     controller.runtimeStyles = resolvedStyles;
     scopeManager.setProperties(scopeManager, widget, controller.runtimeStyles!);
+  }
+
+  /// Configure HasStyles properties from payload for actions
+  /// Similar to configureStyles but works directly with payload instead of WidgetModel
+  void configureActionStyles(
+      DataContext dataContext, HasStyles hasStyles, Map payload,
+      {String? widgetType}) {
+    // Set widget type
+    hasStyles.widgetType = widgetType;
+
+    // Extract className from payload
+    if (payload['className'] != null) {
+      dynamic classListValue = dataContext.eval(payload['className']);
+      if (classListValue is String) {
+        hasStyles.classList = HasStyles.toClassList(classListValue);
+      }
+    }
+
+    // Extract inline styles from payload
+    if (payload['styles'] != null) {
+      hasStyles.inlineStyles =
+          EnsembleThemeManager.yamlToDart(payload['styles']);
+    }
+
+    // Extract id from payload
+    if (payload['id'] != null) {
+      dynamic idValue = dataContext.eval(payload['id']);
+      if (idValue != null) {
+        hasStyles.widgetId = idValue.toString();
+      }
+    }
+
+    // Get widgetTypeStyles and idStyles from theme
+    if (widgetType != null) {
+      hasStyles.widgetTypeStyles = getWidgetTypeStyles(widgetType);
+    }
+    if (hasStyles.widgetId != null) {
+      hasStyles.idStyles = getIDStyles(hasStyles.widgetId);
+    }
+
+    hasStyles.stylesNeedResolving = true;
   }
 
   Map<String, dynamic> resolveStyles(DataContext context, HasStyles widget) {
