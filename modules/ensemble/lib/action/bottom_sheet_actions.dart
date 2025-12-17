@@ -1,13 +1,11 @@
-import 'package:collection/collection.dart';
-import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/apiproviders/api_provider.dart';
-import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/model.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/view/data_scope_widget.dart';
+import 'package:ensemble/page_model.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/ensemble_utils.dart';
 import 'package:ensemble/util/utils.dart';
@@ -15,7 +13,7 @@ import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/material.dart';
 
 /// open a Modal Bottom Sheet
-class ShowBottomSheetAction extends EnsembleAction {
+class ShowBottomSheetAction extends EnsembleAction with HasStyles, Invokable {
   ShowBottomSheetAction({
     super.initiator,
     super.inputs,
@@ -28,6 +26,21 @@ class ShowBottomSheetAction extends EnsembleAction {
   static const dragHandleHeight = 3.0;
   static const dragHandleVerticalMargin = 10.0;
 
+  @override
+  Map<String, Function> getters() {
+    return {};
+  }
+
+  @override
+  Map<String, Function> methods() {
+    return {};
+  }
+
+  @override
+  Map<String, Function> setters() {
+    return {};
+  }
+
   final Map payload;
   final dynamic body;
   final EnsembleAction? onDismiss;
@@ -38,12 +51,14 @@ class ShowBottomSheetAction extends EnsembleAction {
       throw LanguageError(
           "${ActionType.showBottomSheet.name} requires a body widget.");
     }
+    // Create a mutable copy of payload so we can update styles after resolution
+    final mutablePayload = Map<String, dynamic>.from(payload);
     return ShowBottomSheetAction(
         initiator: initiator,
         inputs: Utils.getMap(payload['inputs']),
         body: body,
         onDismiss: EnsembleAction.from(payload['onDismiss']),
-        payload: payload);
+        payload: mutablePayload);
   }
 
   EdgeInsets? margin(scopeManager) =>

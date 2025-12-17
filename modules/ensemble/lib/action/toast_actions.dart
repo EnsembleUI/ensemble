@@ -3,12 +3,14 @@ import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/widget/toast.dart';
+import 'package:ensemble/page_model.dart';
 import 'package:ensemble/util/utils.dart';
+import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/cupertino.dart';
 
 enum ToastType { success, error, warning, info }
 
-class ShowToastAction extends EnsembleAction {
+class ShowToastAction extends EnsembleAction with HasStyles, Invokable {
   ShowToastAction(
       {super.initiator,
       this.type,
@@ -18,6 +20,7 @@ class ShowToastAction extends EnsembleAction {
       this.dismissible,
       this.alignment,
       this.duration,
+      this.payload,
       this.styles});
 
   ToastType? type;
@@ -31,7 +34,24 @@ class ShowToastAction extends EnsembleAction {
 
   final Alignment? alignment;
   final int? duration; // the during in seconds before toast is dismissed
-  final Map<String, dynamic>? styles;
+  Map<String, dynamic>? styles;
+
+  final Map? payload;
+
+  @override
+  Map<String, Function> getters() {
+    return {};
+  }
+
+  @override
+  Map<String, Function> methods() {
+    return {};
+  }
+
+  @override
+  Map<String, Function> setters() {
+    return {};
+  }
 
   factory ShowToastAction.fromYaml({Map? payload}) {
     if (payload == null ||
@@ -41,6 +61,8 @@ class ShowToastAction extends EnsembleAction {
       throw LanguageError(
           "${ActionType.showToast.name} requires either a message or a body widget.");
     }
+    // Create a mutable copy of payload so we can update styles after resolution
+    final mutablePayload = Map<String, dynamic>.from(payload);
     return ShowToastAction(
         type: ToastType.values.from(payload['options']?['type']),
         title: Utils.optionalString(payload['title']),
@@ -49,7 +71,8 @@ class ShowToastAction extends EnsembleAction {
         dismissible: Utils.optionalBool(payload['options']?['dismissible']),
         alignment: Utils.getAlignment(payload['options']?['alignment']),
         duration: Utils.optionalInt(payload['options']?['duration'], min: 1),
-        styles: Utils.getMap(payload['styles']));
+        styles: Utils.getMap(payload['styles']),
+        payload: mutablePayload);
   }
 
   factory ShowToastAction.fromMap(dynamic inputs) =>
