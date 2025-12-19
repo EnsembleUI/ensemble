@@ -563,11 +563,12 @@ class JSInterpreter extends RecursiveVisitor<dynamic> {
 
   @override
   visitFunctionDeclaration(FunctionDeclaration node) {
-    JavascriptFunction? func = getValue(node.function.name!);
-    if (func == null) {
-      addToThisContext(node.function.name!, visitFunctionNode(node.function));
-    }
-    return func;
+    // Always evaluate and add the function to current context
+    // This allows Global code to overwrite Import functions, which is the correct
+    // JavaScript behavior (shadowing parent scope functions).
+    JavascriptFunction newFunc = visitFunctionNode(node.function);
+    addToThisContext(node.function.name!, newFunc);
+    return newFunc;
   }
 
   @override

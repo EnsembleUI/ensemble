@@ -188,6 +188,8 @@ class ViewUtil {
     List<String> inputParams = [];
     Map<String, EnsembleEvent> eventParams = {};
     List<ParsedCode>? importedCode;
+    String? globalCode;
+    SourceSpan? globalCodeSpan;
 
     // CDN stores custom widgets as: { Import: [...], Widget: { inputs, body, ... } }
     // Ensemble custom widgets use flat structure: { Import: [...], inputs, body, ... }
@@ -209,6 +211,14 @@ class ViewUtil {
     for (MapEntry entry in definitionToProcess.entries) {
       if (entry.key == PageModel.importToken) {
         importedCode = Ensemble().getConfig()?.processImports(entry.value);
+      }
+      // extract Global JavaScript code
+      if (entry.key == 'Global') {
+        YamlNode? globalCodeNode = definitionToProcess.nodes['Global'];
+        if (globalCodeNode != null) {
+          globalCode = Utils.optionalString(globalCodeNode.value);
+          globalCodeSpan = ViewUtil.getDefinition(globalCodeNode);
+        }
       }
       // see if the custom widget actually declare any input parameters
       if (entry.key == 'inputs' && entry.value is YamlList) {
@@ -258,7 +268,9 @@ class ViewUtil {
         inputs: inputPayload,
         parameters: inputParams,
         actions: eventPayload,
-        events: eventParams);
+        events: eventParams,
+        globalCode: globalCode,
+        globalCodeSpan: globalCodeSpan);
   }
 
   static List<WidgetModel> buildModels(
@@ -296,6 +308,14 @@ class ViewUtil {
       customWidget.controller.id = id;
       scopeNode.scope.dataContext
           .addInvokableContext(id, customWidget.controller);
+    }
+
+    // execute Global JavaScript code if present
+    // This runs after widgets are created (so IDs are available) but before
+    // scope propagation and bindings, similar to how screens handle Global code
+    if (customModel.globalCode != null && customModel.globalCodeSpan != null) {
+      customScope.dataContext
+          .evalCode(customModel.globalCode!, customModel.globalCodeSpan!);
     }
 
     // wrap it inside a DataScopeWidget
