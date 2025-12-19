@@ -2,6 +2,7 @@ import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/page_model.dart';
+import 'package:source_span/source_span.dart';
 
 class CustomWidgetModel extends WidgetModel {
   CustomWidgetModel(this.widgetModel, String type, Map<String, dynamic> props,
@@ -10,7 +11,9 @@ class CustomWidgetModel extends WidgetModel {
       this.parameters,
       this.inputs,
       this.actions,
-      this.events})
+      this.events,
+      this.globalCode,
+      this.globalCodeSpan})
       : super(widgetModel.definition, type, {}, {}, styles, [], props);
 
   List<ParsedCode>? importedCode;
@@ -19,6 +22,8 @@ class CustomWidgetModel extends WidgetModel {
   Map<String, dynamic>? inputs;
   Map<String, EnsembleEvent>? events;
   Map<String, EnsembleAction?>? actions;
+  String? globalCode;
+  SourceSpan? globalCodeSpan;
 
   WidgetModel getModel() {
     return widgetModel;
