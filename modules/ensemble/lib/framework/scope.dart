@@ -192,7 +192,9 @@ class ScopeManager extends IsScopeManager with ViewBuilder, PageBindingManager {
   /// create a copy of the parent's data scope. the initialMap is generally coming from the imports
   @override
   ScopeManager createChildScope(
-      {bool ephemeral = false, List<ParsedCode>? childImportedCode}) {
+      {bool ephemeral = false,
+      List<ParsedCode>? childImportedCode,
+      Map<String, YamlMap>? mergedApiMap}) {
     //if the same code has been imported before in the parent scope, we will not import and evaluate it
     //again in the child scope. This ensures that the child scope won't override variables defined in the parent
     //scope. This is how HTML works when js is included as <script> tags i.e. if the same js file is included
@@ -212,6 +214,19 @@ class ScopeManager extends IsScopeManager with ViewBuilder, PageBindingManager {
     //however we accumulate parent imports and the child imports and pass that to child so that nested
     //widgets further down the chain get all the accumulated imports and don't re-evaluate and override
     List<ParsedCode> combined = [...?importedCode, ...childImports];
+
+    // If mergedApiMap is provided, merge widget APIs with parent APIs
+    // Widget APIs take precedence (shadow parent APIs with same name)
+    // Since PageData is shared across all scopes on a page, we merge APIs into the existing PageData
+    // This makes widget APIs accessible within the widget and its children
+    if (mergedApiMap != null && mergedApiMap.isNotEmpty) {
+      if (pageData.apiMap == null) {
+        pageData.apiMap = {};
+      }
+      // Merge widget APIs into parent APIs (widget APIs override parent APIs with same name)
+      pageData.apiMap!.addAll(mergedApiMap);
+    }
+
     ScopeManager childScope = ScopeManager(
         dataContext.clone().evalImports(childImports), pageData,
         ephemeral: ephemeral, importedCode: combined);
@@ -236,7 +251,10 @@ abstract class IsScopeManager {
 
   List<BuildContext> get openedDialogs;
 
-  ScopeManager createChildScope();
+  ScopeManager createChildScope(
+      {bool ephemeral = false,
+      List<ParsedCode>? childImportedCode,
+      Map<String, YamlMap>? mergedApiMap});
 
   ScopeManager get me;
 }
