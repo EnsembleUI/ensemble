@@ -1,6 +1,6 @@
-import 'dart:math' as math;
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/action.dart';
+import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/ensemble_widget.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/event.dart';
@@ -190,6 +190,7 @@ class ViewUtil {
     List<ParsedCode>? importedCode;
     String? globalCode;
     SourceSpan? globalCodeSpan;
+    Map<String, YamlMap>? apiMap;
 
     // CDN stores custom widgets as: { Import: [...], Widget: { inputs, body, ... } }
     // Ensemble custom widgets use flat structure: { Import: [...], inputs, body, ... }
@@ -219,6 +220,15 @@ class ViewUtil {
           globalCode = Utils.optionalString(globalCodeNode.value);
           globalCodeSpan = ViewUtil.getDefinition(globalCodeNode);
         }
+      }
+      // extract API definitions
+      if (entry.key == 'API' && entry.value is YamlMap) {
+        apiMap = {};
+        (entry.value as YamlMap).forEach((key, value) {
+          if (value is YamlMap) {
+            apiMap![key] = value;
+          }
+        });
       }
       // see if the custom widget actually declare any input parameters
       if (entry.key == 'inputs' && entry.value is YamlList) {
@@ -270,7 +280,8 @@ class ViewUtil {
         actions: eventPayload,
         events: eventParams,
         globalCode: globalCode,
-        globalCodeSpan: globalCodeSpan);
+        globalCodeSpan: globalCodeSpan,
+        apiMap: apiMap);
   }
 
   static List<WidgetModel> buildModels(
@@ -288,8 +299,9 @@ class ViewUtil {
   static Widget buildBareCustomWidget(ScopeNode scopeNode,
       CustomWidgetModel customModel, Map<WidgetModel, ModelPayload> modelMap) {
     // create a new Scope (for our custom widget) and add to the parent
-    ScopeManager customScope = scopeNode.scope
-        .createChildScope(childImportedCode: customModel.importedCode);
+    ScopeManager customScope = scopeNode.scope.createChildScope(
+        childImportedCode: customModel.importedCode,
+        mergedApiMap: customModel.apiMap);
     ScopeNode customScopeNode = ScopeNode(customScope);
     scopeNode.addChild(customScopeNode);
 
@@ -309,6 +321,13 @@ class ViewUtil {
       scopeNode.scope.dataContext
           .addInvokableContext(id, customWidget.controller);
     }
+
+    // add all the widget API names to our context as Invokable
+    customModel.apiMap?.forEach((key, value) {
+      if (!customScope.dataContext.hasContext(key)) {
+        customScope.dataContext.addInvokableContext(key, APIResponse());
+      }
+    });
 
     // execute Global JavaScript code if present
     // This runs after widgets are created (so IDs are available) but before
