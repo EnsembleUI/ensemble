@@ -294,9 +294,16 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup>
         Utils.getColor(widget.menu.runtimeStyles?['selectedColor']) ??
             Theme.of(context).primaryColor;
 
+    // Recalculate visible menu items on each build to ensure they're up-to-date
+    // This is important when data context changes
+    final currentMenuItems = Menu.getVisibleMenuItems(
+            widget.scopeManager.dataContext, widget.menu.menuItems)
+        .where((element) => element.floating != true)
+        .toList();
+
     // final menu = widget.menu;
-    for (int i = 0; i < menuItems.length; i++) {
-      MenuItem item = menuItems[i];
+    for (int i = 0; i < currentMenuItems.length; i++) {
+      MenuItem item = currentMenuItems[i];
       final dynamic customIcon = _buildCustomIcon(item);
       final dynamic customActiveIcon = _buildCustomIcon(item, isActive: true);
 
@@ -338,7 +345,7 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup>
         int selectedVisibleIndex = -1;
         if (viewIndex >= 0 && viewIndex < widget.menu.menuItems.length) {
           MenuItem selectedItem = widget.menu.menuItems[viewIndex];
-          selectedVisibleIndex = menuItems.indexOf(selectedItem);
+          selectedVisibleIndex = currentMenuItems.indexOf(selectedItem);
         }
 
         return EnsembleBottomAppBar(
@@ -369,8 +376,8 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup>
           notchedShape: const CircularNotchedRectangle(),
           onTabSelected: (visibleIndex) {
             int actualIndex = -1;
-            if (visibleIndex >= 0 && visibleIndex < menuItems.length) {
-              MenuItem selectedItem = menuItems[visibleIndex];
+            if (visibleIndex >= 0 && visibleIndex < currentMenuItems.length) {
+              MenuItem selectedItem = currentMenuItems[visibleIndex];
               actualIndex = widget.menu.menuItems.indexOf(selectedItem);
             }
 
