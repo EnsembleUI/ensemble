@@ -17,5 +17,12 @@ A flutter plugin that enables flutter apps to receive sharing photos, videos, te
   s.dependency 'Flutter'
 
   s.ios.deployment_target = '12.0'
+  
+  # Flutter.framework does not contain a i386 slice.
+  # Ensure proper module definition and architecture exclusions
+  s.pod_target_xcconfig = { 
+    'DEFINES_MODULE' => 'YES',
+    'EXCLUDED_ARCHS[sdk=iphonesimulator*]' => 'i386'
+  }
 end
 
