@@ -1,5 +1,6 @@
 import 'package:ensemble/framework/apiproviders/firestore/firestore_api_provider.dart';
 import 'package:ensemble/framework/apiproviders/http_api_provider.dart';
+import 'package:ensemble/framework/apiproviders/sse_api_provider.dart';
 import 'package:ensemble/framework/data_context.dart';
 import 'package:flutter/widgets.dart';
 import 'package:yaml/yaml.dart';
@@ -27,11 +28,11 @@ class APIProviders extends InheritedWidget {
   APIProvider getProvider(String? provider) {
     if (provider == null) {
       return httpProvider;
-    }
-    else if(provider == 'firebaseFunction') {
+    } else if (provider == 'firebaseFunction') {
       return FirebaseFunctionsAPIProvider();
-    }
-    else {
+    } else if (provider == 'sse') {
+      return SSEAPIProvider();
+    } else {
       return providers[provider] ?? httpProvider;
     }
   }
@@ -65,6 +66,8 @@ class APIProviders extends InheritedWidget {
         return FirestoreAPIProvider();
       case 'firebase':
         return FirebaseFunctionsAPIProvider();
+      case 'sse':
+        return SSEAPIProvider();
       default:
         return null;
     }
