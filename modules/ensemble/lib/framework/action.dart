@@ -34,6 +34,10 @@ import 'package:ensemble/action/disable_hardware_navigation.dart';
 import 'package:ensemble/action/close_app.dart';
 import 'package:ensemble/action/getLocation.dart';
 import 'package:ensemble/action/wakelock_action.dart';
+import 'package:ensemble/framework/apiproviders/api_provider.dart';
+import 'package:ensemble/framework/apiproviders/http_api_provider.dart';
+import 'package:ensemble/framework/apiproviders/sse_api_provider.dart';
+import 'package:ensemble/framework/bindings.dart';
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/event.dart';
@@ -792,6 +796,47 @@ class DisconnectSocketAction extends EnsembleAction {
   }
 }
 
+class DisconnectSSEAction extends EnsembleAction {
+  final String apiName;
+
+  DisconnectSSEAction({required this.apiName});
+
+  factory DisconnectSSEAction.fromYaml({Map? payload}) {
+    if (payload == null || payload['apiName'] == null) {
+      throw ConfigError('disconnectSSE requires an apiName');
+    }
+
+    return DisconnectSSEAction(
+        apiName: Utils.getString(payload['apiName'], fallback: ''));
+  }
+
+  @override
+  Future<dynamic> execute(
+      BuildContext context, ScopeManager scopeManager) async {
+    final apiProviders = APIProviders.of(context);
+    final sseProvider = apiProviders.getProvider('sse');
+    if (sseProvider is SSEAPIProvider) {
+      await sseProvider.disconnect(apiName);
+
+      // Update API state to idle after disconnecting
+      final api = scopeManager.dataContext.getContextById(apiName);
+      if (api is APIResponse) {
+        final disconnectedResponse = HttpResponse.fromBody(
+          {'message': 'SSE connection disconnected'},
+          {'Content-Type': 'application/json'},
+          200,
+          'OK',
+          APIState.idle,
+        );
+        disconnectedResponse.apiName = apiName;
+        api.setAPIResponse(disconnectedResponse);
+        scopeManager.dispatch(ModelChangeEvent(APIBindingSource(apiName), api));
+      }
+    }
+    return Future.value(null);
+  }
+}
+
 class MessageSocketAction extends EnsembleAction {
   final String name;
   final dynamic message;
@@ -958,6 +1003,7 @@ enum ActionType {
   connectSocket,
   disconnectSocket,
   messageSocket,
+  disconnectSSE,
   updateBadgeCount,
   clearBadgeCount,
   callExternalMethod,
@@ -1152,6 +1198,8 @@ abstract class EnsembleAction {
       return DisconnectSocketAction.fromYaml(payload: payload);
     } else if (actionType == ActionType.messageSocket) {
       return MessageSocketAction.fromYaml(payload: payload);
+    } else if (actionType == ActionType.disconnectSSE) {
+      return DisconnectSSEAction.fromYaml(payload: payload);
     } else if (actionType == ActionType.updateBadgeCount) {
       return UpdateBadgeCount.from(payload: payload);
     } else if (actionType == ActionType.clearBadgeCount) {

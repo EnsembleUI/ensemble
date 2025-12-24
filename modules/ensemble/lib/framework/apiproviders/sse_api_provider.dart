@@ -24,8 +24,9 @@ import 'package:crypto/crypto.dart';
 /// Server-Sent Events (SSE) API Provider
 /// Handles streaming HTTP connections
 class SSEAPIProvider extends APIProvider with LiveAPIProvider {
-  final List<StreamSubscription> _subscriptions = [];
-  final Map<String, http.Client> _activeClients = {};
+  static final Map<String, StreamSubscription> _subscriptions = {};
+  static final Map<String, http.Client> _activeClients = {};
+  static final Set<String> _manuallyDisconnected = {};
 
   @override
   Future<void> init(String appId, Map<String, dynamic> config) async {
@@ -42,6 +43,21 @@ class SSEAPIProvider extends APIProvider with LiveAPIProvider {
   @override
   Future<Response> subscribeToApi(BuildContext context, YamlMap api,
       DataContext eContext, String apiName, ResponseListener listener) async {
+    // Clear any previous manual disconnect flag for this API when starting a new subscription
+    _manuallyDisconnected.remove(apiName);
+
+    // If there's an existing subscription or client, clean it up first
+    final existingSubscription = _subscriptions[apiName];
+    if (existingSubscription != null) {
+      await existingSubscription.cancel();
+      _subscriptions.remove(apiName);
+    }
+    final existingClient = _activeClients[apiName];
+    if (existingClient != null) {
+      existingClient.close();
+      _activeClients.remove(apiName);
+    }
+
     // Prepare headers
     Map<String, String> headers = {};
     DataContext clonedContext = eContext;
@@ -309,7 +325,7 @@ class SSEAPIProvider extends APIProvider with LiveAPIProvider {
           },
         );
 
-        _subscriptions.add(subscription);
+        _subscriptions[apiName] = subscription;
       } catch (error) {
         _handleSSEError(error, apiName, listener, options, reconnectAttempts,
             () => connect(), url, headers, eContext);
@@ -493,10 +509,31 @@ class SSEAPIProvider extends APIProvider with LiveAPIProvider {
     return SSEAPIProvider();
   }
 
+  /// Disconnect a specific SSE connection by API name
+  Future<void> disconnect(String apiName) async {
+    _manuallyDisconnected.add(apiName);
+
+    // Cancel the subscription for this API - this stops the stream
+    final subscription = _subscriptions[apiName];
+    if (subscription != null) {
+      await subscription.cancel();
+      _subscriptions.remove(apiName);
+    }
+
+    // Close the HTTP client for this API
+    final client = _activeClients[apiName];
+    if (client != null) {
+      client.close();
+      _activeClients.remove(apiName);
+    }
+  }
+
   @override
   dispose() {
+    _manuallyDisconnected.addAll(_subscriptions.keys);
+
     // Cancel all subscriptions
-    for (var subscription in _subscriptions) {
+    for (var subscription in _subscriptions.values) {
       subscription.cancel();
     }
     _subscriptions.clear();
@@ -506,6 +543,8 @@ class SSEAPIProvider extends APIProvider with LiveAPIProvider {
       client.close();
     }
     _activeClients.clear();
+
+    _manuallyDisconnected.clear();
   }
 }
 

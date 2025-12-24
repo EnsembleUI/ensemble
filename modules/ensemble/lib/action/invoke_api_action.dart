@@ -204,12 +204,18 @@ class InvokeAPIController {
       Response response,
       Map<String, YamlMap>? apiMap,
       ScopeManager scopeManager) {
+    // Preserve idle state if already set (e.g., for SSE disconnection)
+    final bool isIdle = response.apiState == APIState.idle;
+
     // first execute API's onResponse code block
     EnsembleAction? onResponse = EnsembleAction.from(
         apiDefinition['onResponse'],
         initiator: action.initiator);
     if (onResponse != null) {
-      response.apiState = APIState.success;
+      // Only set to success if not already idle
+      if (!isIdle) {
+        response.apiState = APIState.success;
+      }
       _processOnResponse(context, onResponse, response, apiMap, scopeManager,
           apiChangeHandler: dispatchAPIChanges,
           action: action,
@@ -217,7 +223,10 @@ class InvokeAPIController {
     }
     // dispatch changes even if we don't have onResponse
     else {
-      response.apiState = APIState.success;
+      // Only set to success if not already idle
+      if (!isIdle) {
+        response.apiState = APIState.success;
+      }
       dispatchAPIChanges(scopeManager, action, APIResponse(response: response));
     }
 

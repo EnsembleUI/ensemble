@@ -64,6 +64,7 @@ abstract class ActionInvokable with Invokable {
       ActionType.clearSecureStorage,
       ActionType.initializeStripe,
       ActionType.showPaymentSheet,
+      ActionType.disconnectSSE,
     ]);
   }
 
