@@ -1,5 +1,6 @@
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/apiproviders/http_api_provider.dart';
+import 'package:ensemble/framework/apiproviders/sse_api_provider.dart';
 import 'package:ensemble/framework/bindings.dart';
 import 'package:ensemble/framework/config.dart';
 import 'package:ensemble/framework/data_context.dart';
@@ -147,7 +148,8 @@ class InvokeAPIController {
             apiDefinition['mockResponse'] != null) {
           response = await apiProvider.invokeMockAPI(
               apiScopeManager.dataContext, apiDefinition['mockResponse']);
-        } else if (apiDefinition['listenForChanges'] == true &&
+        } else if ((apiDefinition['listenForChanges'] == true ||
+                apiProvider is SSEAPIProvider) &&
             apiProvider is LiveAPIProvider) {
           response = await (apiProvider as LiveAPIProvider).subscribeToApi(
               context,
