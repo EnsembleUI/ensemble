@@ -1,3 +1,7 @@
+## 1.2.26
+
+ - **FEAT**(api): add Server-Sent Events (SSE) API provider. ([c95b8789](https://github.com/ensembleUI/ensemble/commit/c95b87894108ed32de833fa6d83dc52ba3b0cf1e))
+
 ## 1.2.25
 
  - Bump "ensemble" to `1.2.25`.
