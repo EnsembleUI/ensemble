@@ -1,3 +1,7 @@
+## [1.0.6] - Allow Global code to overwrite imported functions
+
+* Allow Global code to overwrite imported functions, aligning with JavaScript behavior
+
 ## [1.0.5] - Add invokable collections and enhance JSON handling
 
 * Introduced JSMap and JSSet classes for JavaScript-like map and set functionalities, including methods for manipulation and retrieval.
