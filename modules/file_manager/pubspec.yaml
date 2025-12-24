@@ -14,7 +14,7 @@ dependencies:
   ensemble:
     git:
       url: https://github.com/EnsembleUI/ensemble.git
-      ref: ensemble-v1.2.26
+      ref: ensemble-v1.2.27
       path: modules/ensemble
   ensemble_ts_interpreter: ^1.0.6
   file_picker: ^10.1.2

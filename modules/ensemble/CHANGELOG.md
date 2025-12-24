@@ -1,3 +1,7 @@
+## 1.2.27
+
+ - **FEAT**(api): implement DisconnectSSEAction and enhance SSE management. ([e75dce32](https://github.com/ensembleUI/ensemble/commit/e75dce323021aaa7797b63222d1fee7f700a8627))
+
 ## 1.2.26
 
  - **FEAT**(api): add Server-Sent Events (SSE) API provider. ([c95b8789](https://github.com/ensembleUI/ensemble/commit/c95b87894108ed32de833fa6d83dc52ba3b0cf1e))
