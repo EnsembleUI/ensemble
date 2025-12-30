@@ -1,15 +1,20 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
 import 'dart:ui_web' as ui;
-import 'package:ensemble/framework/assets_service.dart';
+import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/helpers/box_wrapper.dart';
+import 'package:ensemble/widget/helpers/widgets.dart';
 import 'package:ensemble/widget/lottie/lottie.dart';
+import 'package:ensemble/widget/widget_util.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
+import 'package:http/http.dart';
+import 'package:js_widget/js_widget.dart';
 import 'dart:js' as js;
 import 'dart:html' as html;
 import 'package:lottie/lottie.dart';
@@ -241,15 +246,10 @@ class LottieState extends EWidgetState<EnsembleLottie>
     if (source.isNotEmpty) {
       // if is URL
       if (source.startsWith('https://') || source.startsWith('http://')) {
-        return FutureBuilder<AssetResolution>(
-          future: AssetResolver.resolve(source),
-          builder: (context, snapshot) {
-            if (snapshot.hasError || !snapshot.hasData) {
-              return placeholderImage();
-            }
-            final resolved = snapshot.data!;
-            if (resolved.isAsset) {
-              return Lottie.asset(resolved.path,
+        // If the asset is available locally, then use local path
+        String assetName = Utils.getAssetName(source);
+        if (Utils.isAssetAvailableLocally(assetName)) {
+          return Lottie.asset(Utils.getLocalAssetFullPath(assetName),
               controller: widget.controller.lottieController,
               onLoaded: (LottieComposition composition) {
                 widget.controller.initializeLottieController(composition);
@@ -264,7 +264,7 @@ class LottieState extends EWidgetState<EnsembleLottie>
         // the image will throw exception. We have to use a permanent placeholder
         // until the binding engages
         return Lottie.network(
-          resolved.path,
+          widget.controller.source,
           controller: widget.controller.lottieController,
           onLoaded: (composition) {
             widget.controller.initializeLottieController(composition);
@@ -274,8 +274,6 @@ class LottieState extends EWidgetState<EnsembleLottie>
           repeat: widget.controller.repeat,
           fit: fit,
           errorBuilder: (context, error, stacktrace) => placeholderImage(),
-            );
-          },
         );
       }
       // else attempt local asset
