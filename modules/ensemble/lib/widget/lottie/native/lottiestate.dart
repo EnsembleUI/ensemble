@@ -1,5 +1,4 @@
 import 'package:ensemble/action/haptic_action.dart';
-import 'package:ensemble/framework/assets_service.dart';
 import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/screen_controller.dart';
@@ -70,41 +69,32 @@ class LottieState extends EWidgetState<EnsembleLottie>
     if (source.isNotEmpty) {
       // if is URL
       if (source.startsWith('https://') || source.startsWith('http://')) {
-        return FutureBuilder<AssetResolution>(
-          future: AssetResolver.resolve(source),
-          builder: (context, snapshot) {
-            if (snapshot.hasError || !snapshot.hasData) {
-              return placeholderImage();
-            }
-            final resolved = snapshot.data!;
-            if (resolved.isAsset) {
-              return Lottie.asset(
-                resolved.path,
-                controller: widget.controller.lottieController,
-                onLoaded: (composition) {
-                  widget.controller.initializeLottieController(composition);
-                },
-                width: widget.controller.width?.toDouble(),
-                height: widget.controller.height?.toDouble(),
-                repeat: widget.controller.repeat,
-                fit: fit,
-                errorBuilder: (context, error, stacktrace) =>
-                    placeholderImage(),
-              );
-            }
-            return Lottie.network(resolved.path,
-                controller: widget.controller.lottieController,
-                onLoaded: (composition) {
-                  widget.controller.initializeLottieController(composition);
-                },
-                width: widget.controller.width?.toDouble(),
-                height: widget.controller.height?.toDouble(),
-                repeat: widget.controller.repeat,
-                fit: fit,
-                errorBuilder: (context, error, stacktrace) =>
-                    placeholderImage());
-          },
-        );
+        // If the asset is available locally, then use local path
+        String assetName = Utils.getAssetName(source);
+        if (Utils.isAssetAvailableLocally(assetName)) {
+          return Lottie.asset(
+            Utils.getLocalAssetFullPath(assetName),
+            controller: widget.controller.lottieController,
+            onLoaded: (composition) {
+              widget.controller.initializeLottieController(composition);
+            },
+            width: widget.controller.width?.toDouble(),
+            height: widget.controller.height?.toDouble(),
+            repeat: widget.controller.repeat,
+            fit: fit,
+            errorBuilder: (context, error, stacktrace) => placeholderImage(),
+          );
+        }
+        return Lottie.network(widget.controller.source,
+            controller: widget.controller.lottieController,
+            onLoaded: (composition) {
+              widget.controller.initializeLottieController(composition);
+            },
+            width: widget.controller.width?.toDouble(),
+            height: widget.controller.height?.toDouble(),
+            repeat: widget.controller.repeat,
+            fit: fit,
+            errorBuilder: (context, error, stacktrace) => placeholderImage());
       }
       // else attempt local asset
       else {
