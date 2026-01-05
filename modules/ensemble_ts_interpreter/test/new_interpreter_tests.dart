@@ -1,6 +1,7 @@
 import 'package:ensemble_ts_interpreter/errors.dart';
 import 'package:ensemble_ts_interpreter/invokables/context.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
+import 'package:ensemble_ts_interpreter/invokables/invokablecommons.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokablecontroller.dart';
 import 'package:ensemble_ts_interpreter/parser/newjs_interpreter.dart';
 import 'package:json_path/json_path.dart';
@@ -3158,6 +3159,116 @@ function createRandomizedTiles() {
           () => JSInterpreter.fromCode(codeToEvaluate, SimpleContext(context))
               .evaluate(),
           throwsA(isA<JSException>()));
+    });
+
+    test('throwing Error object and accessing message property', () {
+      String codeToEvaluate = """
+      try {
+        throw new Error('Something went wrong');
+      } catch (error) {
+        var errorMessage = error.message;
+      }
+    """;
+      Map<String, dynamic> context = initContext();
+      JSInterpreter.fromCode(codeToEvaluate, SimpleContext(context)).evaluate();
+      expect(context['errorMessage'], 'Something went wrong');
+    });
+
+    test('throwing Error object preserves object nature', () {
+      String codeToEvaluate = """
+      try {
+        throw new Error('Test error');
+      } catch (e) {
+        var caught = e;
+        var msg = e.message;
+      }
+    """;
+      Map<String, dynamic> context = initContext();
+      JSInterpreter.fromCode(codeToEvaluate, SimpleContext(context)).evaluate();
+      expect(context['msg'], 'Test error');
+      // The caught variable should be an Error object (JSCustomException)
+      expect(context['caught'], isA<JSCustomException>());
+    });
+
+    test('throwing primitive string unwraps to primitive', () {
+      String codeToEvaluate = """
+      try {
+        throw 'Plain string error';
+      } catch (e) {
+        var caught = e;
+      }
+    """;
+      Map<String, dynamic> context = initContext();
+      JSInterpreter.fromCode(codeToEvaluate, SimpleContext(context)).evaluate();
+      // Primitive throws should be unwrapped to the raw value
+      expect(context['caught'], 'Plain string error');
+      expect(context['caught'], isA<String>());
+    });
+
+    test('throwing primitive number unwraps to primitive', () {
+      String codeToEvaluate = """
+      try {
+        throw 42;
+      } catch (e) {
+        var caught = e;
+      }
+    """;
+      Map<String, dynamic> context = initContext();
+      JSInterpreter.fromCode(codeToEvaluate, SimpleContext(context)).evaluate();
+      expect(context['caught'], 42);
+      expect(context['caught'], isA<int>());
+    });
+
+    test('Error object message property in string concatenation', () {
+      String codeToEvaluate = """
+      try {
+        throw new Error('Division by zero');
+      } catch (error) {
+        var result = 'Caught an error: ' + error.message;
+      }
+    """;
+      Map<String, dynamic> context = initContext();
+      JSInterpreter.fromCode(codeToEvaluate, SimpleContext(context)).evaluate();
+      expect(context['result'], 'Caught an error: Division by zero');
+    });
+
+    test('rethrowing Error object preserves message', () {
+      String codeToEvaluate = """
+      var outerCaught = null;
+      try {
+        try {
+          throw new Error('Inner error');
+        } catch (e) {
+          throw e;
+        }
+      } catch (outer) {
+        outerCaught = outer.message;
+      }
+    """;
+      Map<String, dynamic> context = initContext();
+      JSInterpreter.fromCode(codeToEvaluate, SimpleContext(context)).evaluate();
+      expect(context['outerCaught'], 'Inner error');
+    });
+
+    test('mixing Error objects and primitive throws', () {
+      String codeToEvaluate = """
+      var results = [];
+
+      try {
+        throw new Error('Error object');
+      } catch (e) {
+        results.push(e.message);
+      }
+
+      try {
+        throw 'String primitive';
+      } catch (e) {
+        results.push(e);
+      }
+    """;
+      Map<String, dynamic> context = initContext();
+      JSInterpreter.fromCode(codeToEvaluate, SimpleContext(context)).evaluate();
+      expect(context['results'], ['Error object', 'String primitive']);
     });
   });
 }

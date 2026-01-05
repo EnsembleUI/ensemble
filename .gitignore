@@ -17,3 +17,17 @@ starter/package-lock.json
 # Allow GitHub workflows (override ".*" ignore rule)
 !.github/
 !.github/**
+
+# Flutter generated files in example apps
+**/example/**/Flutter/ephemeral/
+**/example/**/Flutter/Generated.xcconfig
+**/example/**/Flutter/flutter_export_environment.sh
+**/example/**/GeneratedPluginRegistrant.h
+**/example/**/GeneratedPluginRegistrant.m
+**/example/**/GeneratedPluginRegistrant.java
+**/example/android/app/src/main/java/io/
+
+# Starter app generated files
+starter/android/app/src/main/java/io/
+starter/ios/Runner/GeneratedPluginRegistrant.h
+starter/ios/Runner/GeneratedPluginRegistrant.m
