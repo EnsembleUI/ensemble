@@ -189,7 +189,10 @@ class InvokableObject extends Object with Invokable {
 // Exception class to represent custom JavaScript exceptions
 class JSCustomException with Invokable implements Exception {
   final dynamic value;
-  JSCustomException(this.value);
+  final bool isErrorObject; // True if created via new Error(), false if wrapping a throw
+
+  JSCustomException(this.value, {this.isErrorObject = false});
+
 
   @override
   Map<String, Function> getters() {
@@ -198,14 +201,14 @@ class JSCustomException with Invokable implements Exception {
         if (value is JSCustomException) {
           return value.value;
         }
-        return value;
+        return value??'';
       }
     };
   }
 
   @override
   Map<String, Function> methods() {
-    return {'init': ([message]) => JSCustomException(message)};
+    return {'init': ([message]) => JSCustomException(message, isErrorObject: true)};
   }
 
   @override
@@ -215,7 +218,7 @@ class JSCustomException with Invokable implements Exception {
 
   @override
   String toString() {
-    return value;
+    return value??'';
   }
 }
 

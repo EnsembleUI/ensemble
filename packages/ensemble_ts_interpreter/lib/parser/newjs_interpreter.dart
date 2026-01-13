@@ -1279,8 +1279,14 @@ class JSInterpreter extends RecursiveVisitor<dynamic> {
       if (node.handler != null) {
         dynamic exceptionValue = getExceptionValue(e);
         Map<String, dynamic> ctxMap = {};
-        // param is non-nullable; assign directly.
-        ctxMap[node.handler!.param.value] = JSCustomException(exceptionValue);
+        // If it's an Error object (created via new Error()), keep it as JSCustomException
+        // If it's a wrapped primitive throw, unwrap it to the raw value
+        if (e is JSCustomException && e.isErrorObject) {
+          ctxMap[node.handler!.param.value] = e;
+        } else {
+          dynamic exceptionValue = getExceptionValue(e);
+          ctxMap[node.handler!.param.value] = exceptionValue;
+        }
         Context context = SimpleContext(ctxMap);
         // Clone the interpreter with this new context
         JSInterpreter interpreter =
