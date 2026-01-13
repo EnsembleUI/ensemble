@@ -1,4 +1,5 @@
 import 'package:ensemble/ensemble.dart';
+import 'package:ensemble/ensemble_app.dart';
 import 'package:flutter/material.dart';
 
 class EnsembleUtils {
@@ -34,16 +35,19 @@ class EnsembleUtils {
   /// Accepts an optional [context] for more reliable dismissal when called from within a modal.
   /// If [context] is provided, it will first try to use the context's Navigator directly.
   /// Falls back to using the RouteObserver if context is not provided or direct method fails.
-  static Future<bool> dismissBottomSheet([Map? payload, BuildContext? context]) {
-    // Try using context's Navigator first (more reliable when inside a modal)
-    if (context != null) {
-      final navigator = Navigator.maybeOf(context);
-      if (navigator != null && navigator.canPop()) {
-        // Verify it's actually a ModalBottomSheetRoute before popping
-        final ModalRoute? currentRoute = ModalRoute.of(context);
-        if (currentRoute is ModalBottomSheetRoute) {
-          navigator.pop(payload);
-          return Future.value(true);
+  static Future<bool> dismissBottomSheet(
+      [Map? payload, BuildContext? context]) {
+    if (EnsembleApp.navigatorKey != null) {
+      // Try using context's Navigator first (more reliable when inside a modal)
+      if (context != null) {
+        final navigator = Navigator.maybeOf(context);
+        if (navigator != null && navigator.canPop()) {
+          // Verify it's actually a ModalBottomSheetRoute before popping
+          final ModalRoute? currentRoute = ModalRoute.of(context);
+          if (currentRoute is ModalBottomSheetRoute) {
+            navigator.pop(payload);
+            return Future.value(true);
+          }
         }
       }
     }

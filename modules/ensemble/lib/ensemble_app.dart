@@ -115,6 +115,8 @@ class EnsembleApp extends StatefulWidget {
     externalScrollController = screenScroller;
   }
 
+  static GlobalKey<NavigatorState>? get navigatorKey => externalAppNavigateKey;
+
   final ScreenPayload? screenPayload;
   final EnsembleConfig? ensembleConfig;
   final bool isPreview;
