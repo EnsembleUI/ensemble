@@ -1,3 +1,7 @@
+## [1.0.7] - Bug Fixes
+
+* Fixed issue where Error objects were not being properly unwrapped in catch clauses.
+
 ## [1.0.6] - Allow Global code to overwrite imported functions
 
 * Allow Global code to overwrite imported functions, aligning with JavaScript behavior
