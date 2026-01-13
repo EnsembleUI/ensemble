@@ -473,7 +473,7 @@ class HttpResponse extends Response {
     } on FormatException catch (_, e) {
       log('Warning - Only JSON response is supported');
     }
-    apiState = apiState;
+    super.apiState = apiState;
     headers = response.headers;
     statusCode = response.statusCode;
     reasonPhrase = response.reasonPhrase;
