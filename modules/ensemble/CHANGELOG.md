@@ -1,3 +1,8 @@
+## 1.2.29
+
+ - **FIX**(api): correct apiState assignment in HttpResponse class. ([07766dc5](https://github.com/ensembleUI/ensemble/commit/07766dc5d67ebc886b81482fd71fefffadebea15))
+ - **FEAT**(navigation): add static navigatorKey to EnsembleApp and update dismissBottomSheet logic. ([4ec3f9b9](https://github.com/ensembleUI/ensemble/commit/4ec3f9b9dd61f99e1eeb42781309452f036b1ab7))
+
 ## 1.2.28
 
  - Bump "ensemble" to `1.2.28`.
