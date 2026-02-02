@@ -12,6 +12,7 @@ import 'package:ensemble/framework/ensemble_widget.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/stub/location_manager.dart';
+import 'package:ensemble/framework/stub/activity_manager.dart';
 import 'package:ensemble/framework/theme_manager.dart';
 import 'package:ensemble/framework/view/data_scope_widget.dart';
 import 'package:ensemble/framework/view/page.dart';
@@ -81,6 +82,8 @@ class ScopeManager extends IsScopeManager with ViewBuilder, PageBindingManager {
 
     // cancel the screen's location listener
     pageData.locationListener?.cancel();
+    // cancel the screen's motion listener
+    pageData.motionListener?.cancel();
 
     SocketService().dispose();
   }
@@ -91,6 +94,26 @@ class ScopeManager extends IsScopeManager with ViewBuilder, PageBindingManager {
     // first cancel the previous one
     pageData.locationListener?.cancel();
     pageData.locationListener = streamSubscription;
+  }
+
+  /// only 1 motion listener per screen
+  void addMotionListener(StreamSubscription<MotionData> streamSubscription,
+      {String? id}) {
+    // first cancel the previous one
+    pageData.motionListener?.cancel();
+    pageData.motionListener = streamSubscription;
+    pageData.motionListenerId = id;
+  }
+
+  /// stop the motion listener
+  void stopMotionListener([String? id]) {
+    // if id is provided, only cancel if it matches
+    if (id != null && pageData.motionListenerId != id) {
+      return;
+    }
+    pageData.motionListener?.cancel();
+    pageData.motionListener = null;
+    pageData.motionListenerId = null;
   }
 
   // add repeating timer so we can manage it later.
@@ -707,6 +730,10 @@ class PageData {
 
   /// 1 recurring location listener per page
   StreamSubscription<LocationData>? locationListener;
+
+  /// 1 recurring motion listener per page
+  StreamSubscription<MotionData>? motionListener;
+  String? motionListenerId;
 
   // list of all opened Dialogs' contexts
   final List<BuildContext> openedDialogs = [];
