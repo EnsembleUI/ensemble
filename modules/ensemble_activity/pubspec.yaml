@@ -18,7 +18,7 @@ dependencies:
       ref: ensemble-v1.2.28
       path: modules/ensemble
 
-  ensemble_ts_interpreter: ^1.0.6
+  ensemble_ts_interpreter: ^1.0.7
 
   get_it: ^8.0.0
   sensors_plus: ^7.0.0
