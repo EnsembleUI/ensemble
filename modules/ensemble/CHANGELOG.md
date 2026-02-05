@@ -1,3 +1,7 @@
+## 1.2.30
+
+ - Bump "ensemble" to `1.2.30`
+
 ## 1.2.29
 
  - **FIX**(api): correct apiState assignment in HttpResponse class. ([07766dc5](https://github.com/ensembleUI/ensemble/commit/07766dc5d67ebc886b81482fd71fefffadebea15))
