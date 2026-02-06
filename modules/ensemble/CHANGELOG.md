@@ -1,3 +1,7 @@
+## 1.2.31
+
+ - **FEAT**: add spans support to Text widget for inline rich text and widget embedding. ([69f92b19](https://github.com/ensembleUI/ensemble/commit/69f92b19502c9b7db8248123e192f808b64d1869))
+
 ## 1.2.30
 
  - Bump "ensemble" to `1.2.30`
