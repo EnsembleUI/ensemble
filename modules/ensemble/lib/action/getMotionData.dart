@@ -44,8 +44,9 @@ class GetMotionDataAction extends EnsembleAction {
     return GetMotionDataAction(
       initiator: initiator,
       id: Utils.optionalString(payload?['id']),
-      onDataReceived: EnsembleAction.from(payload?['onDataReceived']),
-      onError: EnsembleAction.from(payload?['onError']),
+      onDataReceived:
+          EnsembleAction.from(payload?['options']?['onDataReceived']),
+      onError: EnsembleAction.from(payload?['options']?['onError']),
       recurring: Utils.optionalBool(payload?['options']?['recurring']),
       sensorType: sensorType,
       updateInterval: Utils.optionalInt(payload?['options']?['updateInterval']),

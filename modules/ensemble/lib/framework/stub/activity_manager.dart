@@ -39,12 +39,14 @@ class MotionData {
     this.accelerometer,
     this.gyroscope,
     this.magnetometer,
+    this.pedometer,
     required this.timestamp,
   });
 
   final AccelerometerData? accelerometer;
   final GyroscopeData? gyroscope;
   final MagnetometerData? magnetometer;
+  final PedometerData? pedometer;
   final DateTime timestamp;
 
   Map<String, dynamic> toJson() {
@@ -52,6 +54,7 @@ class MotionData {
       'accelerometer': accelerometer?.toJson(),
       'gyroscope': gyroscope?.toJson(),
       'magnetometer': magnetometer?.toJson(),
+      'pedometer': pedometer?.toJson(),
       'timestamp': timestamp.toIso8601String(),
     };
   }
@@ -93,9 +96,32 @@ class MagnetometerData {
   }
 }
 
+class PedometerData {
+  PedometerData(
+      {required this.steps,
+      required this.stepsOnStart,
+      required this.distanceMeters,
+      required this.status});
+
+  final int steps;
+  final int stepsOnStart;
+  final double distanceMeters;
+  final String status;
+
+  Map<String, dynamic> toJson() {
+    return {
+      'steps': steps,
+      'stepsOnStart': stepsOnStart,
+      'distanceMeters': distanceMeters,
+      'status': status
+    };
+  }
+}
+
 enum MotionSensorType {
   accelerometer,
   gyroscope,
   magnetometer,
+  pedometer,
   all,
 }

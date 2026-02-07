@@ -22,6 +22,8 @@ dependencies:
 
   get_it: ^8.0.0
   sensors_plus: ^7.0.0
+  permission_handler: ^12.0.1
+  pedometer: ^4.1.1
 
 dev_dependencies:
   flutter_test:
@@ -64,4 +66,3 @@ flutter:
   #
   # For details regarding fonts in packages, see
   # https://flutter.dev/custom-fonts/#from-packages
-
