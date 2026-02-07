@@ -313,6 +313,14 @@ class EnsembleImageCropperState extends EWidgetState<EnsembleImageCropper>
         fit: fit,
       ).image;
     } else {
+      final localSource = Utils.getLocalAssetFullPath(widget._controller.source);
+      if (Utils.isUrl(localSource)) {
+        return Image.network(
+          localSource,
+          width: widget._controller.width?.toDouble(),
+          height: widget._controller.height?.toDouble(),
+        ).image;
+      }
       return Image.asset(
         Utils.getLocalAssetFullPath(widget._controller.source),
         width: widget._controller.width?.toDouble(),
@@ -336,8 +344,12 @@ class EnsembleImageCropperState extends EWidgetState<EnsembleImageCropper>
       return Svg(widget._controller.source, source: SvgSource.network);
     }
     // attempt local assets
+    final localSource = Utils.getLocalAssetFullPath(widget._controller.source);
+    if (Utils.isUrl(localSource)) {
+      return Svg(localSource, source: SvgSource.network);
+    }
     return Svg(
-      Utils.getLocalAssetFullPath(widget._controller.source),
+      localSource,
       source: SvgSource.asset,
     );
   }

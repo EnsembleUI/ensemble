@@ -277,7 +277,21 @@ class LottieState extends EWidgetState<EnsembleLottie>
         );
       }
       // else attempt local asset
-
+      final localSource = Utils.getLocalAssetFullPath(widget.controller.source);
+      if (Utils.isUrl(localSource)) {
+        return Lottie.network(
+          localSource,
+          controller: widget.controller.lottieController,
+          onLoaded: (composition) {
+            widget.controller.initializeLottieController(composition);
+          },
+          width: widget.controller.width?.toDouble(),
+          height: widget.controller.height?.toDouble(),
+          repeat: widget.controller.repeat,
+          fit: fit,
+          errorBuilder: (context, error, stacktrace) => placeholderImage(),
+        );
+      }
       return Lottie.asset(Utils.getLocalAssetFullPath(widget.controller.source),
           controller: widget.controller.lottieController,
           onLoaded: (LottieComposition composition) {
