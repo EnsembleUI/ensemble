@@ -242,6 +242,18 @@ export const modules: Script[] = [
     ],
   },
   {
+    name: 'activity',
+    path: 'scripts/modules/enable_activity.dart',
+    parameters: [
+      {
+        key: 'motionDescription',
+        question: 'Please provide a description for motion & activity usage: ',
+        platform: ['ios'],
+        type: 'text',
+      },
+    ],
+  },
+  {
     name: 'bluetooth',
     path: 'scripts/modules/enable_bluetooth.dart',
     parameters: [

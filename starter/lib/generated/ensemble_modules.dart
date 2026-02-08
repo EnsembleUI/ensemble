@@ -14,6 +14,7 @@ import 'package:ensemble/framework/stub/contacts_manager.dart';
 import 'package:ensemble/framework/stub/plaid_link_manager.dart';
 import 'package:ensemble/module/auth_module.dart';
 import 'package:ensemble/module/location_module.dart';
+import 'package:ensemble/module/activity_module.dart';
 import 'package:ensemble/framework/stub/moengage_manager.dart';
 import 'package:ensemble/module/stripe_module.dart';
 // import 'package:ensemble_stripe/ensemble_stripe.dart';
@@ -57,6 +58,9 @@ import 'package:get_it/get_it.dart';
 // Uncomment to enable location services
 // import 'package:ensemble_location/location_manager.dart';
 
+// Uncomment to enable activity services
+// import 'package:ensemble_activity/activity_module.dart';
+
 // Uncomment to enable deeplink services
 // import 'package:ensemble_deeplink/deferred_link_manager.dart';
 
@@ -81,6 +85,7 @@ class EnsembleModules {
   static const useContacts = false;
   static const useConnect = false;
   static const useLocation = false;
+  static const useActivity = false;
   static const useDeeplink = false;
   static const useFirebaseAnalytics = false;
   static const useNotifications = false;
@@ -174,6 +179,13 @@ class EnsembleModules {
       // GetIt.I.registerSingleton<LocationModule>(LocationModuleImpl());
     } else {
       GetIt.I.registerSingleton<LocationModule>(LocationModuleStub());
+    }
+
+    if (useActivity) {
+      // Uncomment to enable ensemble_activity service
+      // GetIt.I.registerSingleton<ActivityModule>(ActivityModuleImpl());
+    } else {
+      GetIt.I.registerSingleton<ActivityModule>(ActivityModuleStub());
     }
 
     if (useDeeplink) {

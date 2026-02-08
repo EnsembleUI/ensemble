@@ -94,6 +94,13 @@ dependencies:
   #     ref: main
   #     path: modules/location
 
+  # Uncomment to enable activity module
+  # ensemble_activity:
+  #   git:
+  #     url: https://github.com/EnsembleUI/ensemble.git
+  #     ref: main
+  #     path: modules/ensemble_activity
+
   # Uncomment to enable deeplink module
   # ensemble_deeplink:
   #   git:
