@@ -30,9 +30,7 @@ class ActivityManagerImpl extends ActivityManager {
 
   static const double stepLengthMeters = 0.75;
 
-  // ---------------------------------------------------------------------------
   // Permissions
-  // ---------------------------------------------------------------------------
   Future<bool> requestActivityPermission() async {
     final status = await Permission.activityRecognition.status;
     if (status.isGranted) return true;
@@ -41,27 +39,30 @@ class ActivityManagerImpl extends ActivityManager {
     return result.isGranted;
   }
 
-  // ---------------------------------------------------------------------------
   // Public API
-  // ---------------------------------------------------------------------------
   @override
   Stream<MotionData> startMotionStream({
-    MotionSensorType? sensorType,
+    List<MotionSensorType>? sensors,
     Duration? updateInterval,
   }) {
-    // If already running, return the same stream
     if (_running && _motionController != null) {
       return _motionController!.stream;
     }
 
     _running = true;
-    final sensor = sensorType ?? MotionSensorType.all;
+
+    final activeSensors = (sensors == null || sensors.isEmpty)
+        ? MotionSensorType.values
+        : sensors;
+
+    print(
+        'Starting motion stream with sensors: $activeSensors and updateInterval: $updateInterval');
 
     _motionController = StreamController<MotionData>.broadcast(
       onCancel: stopMotionStream,
     );
 
-    _startSensors(sensor);
+    _startSensors(activeSensors);
 
     return _motionController!.stream;
   }
@@ -89,9 +90,11 @@ class ActivityManagerImpl extends ActivityManager {
   }
 
   @override
-  Future<MotionData?> getMotionData({MotionSensorType? sensorType}) async {
+  Future<MotionData?> getMotionData({
+    List<MotionSensorType>? sensors,
+  }) async {
     try {
-      final stream = startMotionStream(sensorType: sensorType);
+      final stream = startMotionStream(sensors: sensors);
       final data = await stream.first;
       stopMotionStream();
       return data;
@@ -105,9 +108,7 @@ class ActivityManagerImpl extends ActivityManager {
     stopMotionStream();
   }
 
-  // ---------------------------------------------------------------------------
   // Internal helpers
-  // ---------------------------------------------------------------------------
   void _resetState() {
     _latestAccelerometer = null;
     _latestGyroscope = null;
@@ -119,9 +120,8 @@ class ActivityManagerImpl extends ActivityManager {
     _pedestrianStatus = 'initializing';
   }
 
-  void _startSensors(MotionSensorType sensor) async {
-    if (sensor == MotionSensorType.pedometer ||
-        sensor == MotionSensorType.all) {
+  void _startSensors(List<MotionSensorType> sensors) async {
+    if (sensors.contains(MotionSensorType.pedometer)) {
       final ok = await requestActivityPermission();
       if (!ok) {
         _motionController?.addError(
@@ -129,28 +129,23 @@ class ActivityManagerImpl extends ActivityManager {
         );
         return;
       }
-      _startPedometer(sensor);
+      _startPedometer();
     }
 
-    if (sensor == MotionSensorType.accelerometer ||
-        sensor == MotionSensorType.all) {
+    if (sensors.contains(MotionSensorType.accelerometer)) {
       _accelerometerSubscription = accelerometerEvents.listen(_onAccelerometer);
     }
 
-    if (sensor == MotionSensorType.gyroscope ||
-        sensor == MotionSensorType.all) {
+    if (sensors.contains(MotionSensorType.gyroscope)) {
       _gyroscopeSubscription = gyroscopeEvents.listen(_onGyroscope);
     }
 
-    if (sensor == MotionSensorType.magnetometer ||
-        sensor == MotionSensorType.all) {
+    if (sensors.contains(MotionSensorType.magnetometer)) {
       _magnetometerSubscription = magnetometerEvents.listen(_onMagnetometer);
     }
   }
 
-  // ---------------------------------------------------------------------------
   // Sensor handlers
-  // ---------------------------------------------------------------------------
   void _onAccelerometer(AccelerometerEvent event) {
     if (!_running) return;
 
@@ -187,16 +182,16 @@ class ActivityManagerImpl extends ActivityManager {
     _emit();
   }
 
-  void _startPedometer(MotionSensorType sensor) {
+  void _startPedometer() {
     _stepsOnStart = null;
     _stepsSinceStart = 0;
     _pedestrianStatus = 'initializing';
 
     _latestPedometer = PedometerData(
       steps: 0,
-      status: 'initializing',
       stepsOnStart: 0,
       distanceMeters: 0,
+      status: 'initializing',
     );
 
     _pedometerSubscription = StreamGroup.merge([
@@ -212,18 +207,15 @@ class ActivityManagerImpl extends ActivityManager {
 
       _latestPedometer = PedometerData(
         steps: _stepsSinceStart,
-        status: _pedestrianStatus,
         stepsOnStart: _stepsOnStart ?? 0,
         distanceMeters: _stepsSinceStart * stepLengthMeters,
+        status: _pedestrianStatus,
       );
 
       _emit();
     });
   }
 
-  // ---------------------------------------------------------------------------
-  // Emit combined data
-  // ---------------------------------------------------------------------------
   void _emit() {
     if (!_running || _motionController == null) return;
 

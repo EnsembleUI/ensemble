@@ -16,8 +16,8 @@ class GetMotionDataAction extends EnsembleAction {
     this.id,
     this.onDataReceived,
     this.onError,
-    this.recurring,
-    this.sensorType,
+    this.recurring = true,
+    this.sensors,
     this.updateInterval,
   });
 
@@ -25,20 +25,25 @@ class GetMotionDataAction extends EnsembleAction {
   final EnsembleAction? onDataReceived;
   final EnsembleAction? onError;
   final bool? recurring;
-  final MotionSensorType? sensorType;
+  final List<MotionSensorType>? sensors;
   final int? updateInterval; // in milliseconds
 
-  factory GetMotionDataAction.fromYaml({Invokable? initiator, Map? payload}) {
-    MotionSensorType? sensorType;
-    if (payload?['options']?['sensorType'] != null) {
-      final sensorTypeStr = Utils.getString(
-        payload?['options']?['sensorType'],
-        fallback: 'all',
-      );
-      sensorType = MotionSensorType.values.firstWhere(
-        (e) => e.name == sensorTypeStr.toLowerCase(),
-        orElse: () => MotionSensorType.all,
-      );
+  factory GetMotionDataAction.fromYaml({
+    Invokable? initiator,
+    Map? payload,
+  }) {
+    List<MotionSensorType>? sensors;
+
+    final rawSensors = payload?['options']?['sensors'];
+    if (rawSensors is List) {
+      sensors = rawSensors
+          .map((e) => MotionSensorType.values.firstWhere(
+                (v) => v.name == e.toString().toLowerCase(),
+                orElse: () => throw LanguageError(
+                  'Invalid sensor type: $e',
+                ),
+              ))
+          .toList();
     }
 
     return GetMotionDataAction(
@@ -47,76 +52,86 @@ class GetMotionDataAction extends EnsembleAction {
       onDataReceived:
           EnsembleAction.from(payload?['options']?['onDataReceived']),
       onError: EnsembleAction.from(payload?['options']?['onError']),
-      recurring: Utils.optionalBool(payload?['options']?['recurring']),
-      sensorType: sensorType,
-      updateInterval: Utils.optionalInt(payload?['options']?['updateInterval']),
+      recurring:
+          Utils.getBool(payload?['options']?['recurring'], fallback: true),
+      sensors: sensors,
+      updateInterval: Utils.optionalInt(
+        payload?['options']?['updateInterval'],
+      ),
     );
   }
 
   @override
-  Future<void> execute(BuildContext context, ScopeManager scopeManager) async {
+  Future<void> execute(
+    BuildContext context,
+    ScopeManager scopeManager,
+  ) async {
     if (onDataReceived == null) {
       throw LanguageError(
-          '${ActionType.getMotionData.name} requires onDataReceived callback');
+        '${ActionType.getMotionData.name} requires onDataReceived callback',
+      );
     }
 
     try {
-      // Handle recurring motion updates
       if (recurring == true) {
-        StreamSubscription<MotionData> streamSubscription =
-            GetIt.I<ActivityManager>()
-                .startMotionStream(
-          sensorType: sensorType,
+        final subscription = GetIt.I<ActivityManager>()
+            .startMotionStream(
+          sensors: sensors,
           updateInterval: updateInterval != null
               ? Duration(milliseconds: updateInterval!)
               : null,
         )
-                .listen((MotionData? data) {
-          if (data != null) {
+            .listen(
+          (MotionData data) {
             ScreenController().executeActionWithScope(
               context,
               scopeManager,
               onDataReceived!,
-              event: EnsembleEvent(initiator, data: data.toJson()),
+              event: EnsembleEvent(
+                initiator,
+                data: data.toJson(),
+              ),
             );
-          } else if (onError != null) {
-            ScreenController().executeActionWithScope(
-              context,
-              scopeManager,
-              onError!,
-              event: EnsembleEvent(initiator, error: 'unknown'),
-            );
-          }
-        }, onError: (error) {
-          if (onError != null) {
-            ScreenController().executeActionWithScope(
-              context,
-              scopeManager,
-              onError!,
-              event: EnsembleEvent(initiator, error: error.toString()),
-            );
-          }
-        });
-        // Store subscription for cleanup
-        scopeManager.addMotionListener(streamSubscription, id: id);
-      }
-      // Handle one-time motion request
-      else {
-        final data = await GetIt.I<ActivityManager>()
-            .getMotionData(sensorType: sensorType);
+          },
+          onError: (error) {
+            if (onError != null) {
+              ScreenController().executeActionWithScope(
+                context,
+                scopeManager,
+                onError!,
+                event: EnsembleEvent(
+                  initiator,
+                  error: error.toString(),
+                ),
+              );
+            }
+          },
+        );
+
+        scopeManager.addMotionListener(subscription, id: id);
+      } else {
+        final data =
+            await GetIt.I<ActivityManager>().getMotionData(sensors: sensors);
+
         if (data != null) {
           ScreenController().executeActionWithScope(
             context,
             scopeManager,
             onDataReceived!,
-            event: EnsembleEvent(initiator, data: data.toJson()),
+            event: EnsembleEvent(
+              initiator,
+              data: data.toJson(),
+            ),
           );
         } else if (onError != null) {
           ScreenController().executeActionWithScope(
             context,
             scopeManager,
             onError!,
-            event: EnsembleEvent(initiator, error: 'noData'),
+            event: EnsembleEvent(
+              initiator,
+              error: 'noData',
+            ),
           );
         }
       }
@@ -126,7 +141,10 @@ class GetMotionDataAction extends EnsembleAction {
           context,
           scopeManager,
           onError!,
-          event: EnsembleEvent(initiator, error: e.toString()),
+          event: EnsembleEvent(
+            initiator,
+            error: e.toString(),
+          ),
         );
       } else {
         rethrow;
@@ -137,15 +155,12 @@ class GetMotionDataAction extends EnsembleAction {
 
 class StopMotionDataAction extends EnsembleAction {
   StopMotionDataAction({this.id});
-
   final String? id;
-
   factory StopMotionDataAction.fromYaml({Map? payload}) {
     return StopMotionDataAction(
       id: Utils.optionalString(payload?['id']),
     );
   }
-
   @override
   Future<void> execute(BuildContext context, ScopeManager scopeManager) async {
     scopeManager.stopMotionListener(id);

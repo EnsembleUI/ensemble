@@ -4,17 +4,17 @@ import 'package:ensemble/framework/error_handling.dart';
 abstract class ActivityManager {
   // Motion sensor methods
   Stream<MotionData> startMotionStream({
-    MotionSensorType? sensorType,
+    List<MotionSensorType>? sensors,
     Duration? updateInterval,
   });
   void stopMotionStream();
-  Future<MotionData?> getMotionData({MotionSensorType? sensorType});
+  Future<MotionData?> getMotionData({List<MotionSensorType>? sensors});
 }
 
 class ActivityManagerStub extends ActivityManager {
   @override
   Stream<MotionData> startMotionStream({
-    MotionSensorType? sensorType,
+    List<MotionSensorType>? sensors,
     Duration? updateInterval,
   }) {
     throw ConfigError(
@@ -28,7 +28,7 @@ class ActivityManagerStub extends ActivityManager {
   }
 
   @override
-  Future<MotionData?> getMotionData({MotionSensorType? sensorType}) {
+  Future<MotionData?> getMotionData({List<MotionSensorType>? sensors}) {
     throw ConfigError(
         "Activity Manager is not enabled. Please review the Ensemble documentation.");
   }
@@ -123,5 +123,4 @@ enum MotionSensorType {
   gyroscope,
   magnetometer,
   pedometer,
-  all,
 }

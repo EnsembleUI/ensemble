@@ -1,37 +1,41 @@
 # Ensemble Activity
 
-The Ensemble Activity module provides access to device motion and activity sensors for tracking user movement and orientation. It supports real-time streaming and one-time reads of motion data, with optional sensor selection.
+The Ensemble Activity module provides access to device motion and activity sensors for tracking user movement, orientation, and walking activity.
 
----
+It supports:
+- Real-time streaming
+- One-time motion reads
+- Selective sensor subscription
+- Automatic lifecycle management
 
 ## Features
 
 ### Motion Sensors
-- Accelerometer (x, y, z axes)
-- Gyroscope (rotation rates)
-- Magnetometer (compass / magnetic field)
+
+Supported sensors:
+- Accelerometer — device acceleration on X/Y/Z axes
+- Gyroscope — rotation rate on X/Y/Z axes
+- Magnetometer — magnetic field / compass direction
 - Pedometer
   - Step count since stream start
-  - Pedestrian status (walking, stopped, etc.)
-  - Distance estimation
+  - Walking status (walking, stopped, etc.)
+  - Estimated distance in meters
 
 ### Streaming Capabilities
-- Combined or single-sensor streams
-- Broadcast streams (multiple listeners supported)
+
+- Subscribe to one or multiple sensors
+- Merged motion stream for all selected sensors
+- Broadcast stream (multiple listeners supported)
 - Explicit start / stop lifecycle
-- Automatic cleanup on cancel
+- Automatic cleanup when stopped or cancelled
 
 ### Permissions
-- Automatically requests **Activity Recognition** permission when using:
-  - `pedometer`
-  - `all`
-- Emits an error if permission is denied
 
----
+Activity Recognition permission is automatically requested when the pedometer sensor is included. If permission is denied, the stream emits an error event.
 
 ## Motion Data Model
 
-Each emitted event contains a `MotionData` object:
+Each emitted event contains a MotionData object:
 
 ```json
 {
@@ -48,133 +52,132 @@ Each emitted event contains a `MotionData` object:
 }
 ```
 
-> Only the requested sensors will be populated. Others may be `null`.
+Notes:
+- Only requested sensors are populated
+- Non-requested sensors may be null
 
----
+## Available Actions
 
-## Available Actions (YAML)
+### getMotionData
 
-### `getMotionData`
+Starts a motion stream or performs a single motion read.
 
-Starts a motion sensor stream or retrieves motion data.
-
-#### Parameters
+**Parameters**
 
 | Field | Type | Description |
-|------|------|------------|
-| `id` | string (optional) | Identifier for the motion stream |
-| `options.recurring` | boolean | If `true`, keeps streaming until stopped |
-| `options.sensorType` | string | `accelerometer`, `gyroscope`, `magnetometer`, `pedometer`, `all` |
-| `options.updateInterval` | number | Update interval in milliseconds (default: 1000) |
-| `options.onDataReceived` | action | Executed when motion data is emitted |
-| `options.onError` | action | Executed when an error occurs |
+|-------|------|-------------|
+| id | string (optional) | Identifier for the motion stream |
+| options.sensors | string[] | List of sensors to subscribe to |
+| options.updateInterval | number | Update interval in milliseconds |
+| options.recurring | boolean (optional) | Defaults to true |
+| options.onDataReceived | action | Executed when motion data is emitted |
+| options.onError | action | Executed when an error occurs |
 
-#### Notes
-- If a stream with the same `id` is already running, the existing stream is reused
-- For `pedometer` and `all`, activity permission is requested automatically
-- Pedometer steps are reset when the stream starts
+**Sensor Values**
 
----
+Valid sensor names:
+- accelerometer
+- gyroscope
+- magnetometer
+- pedometer
 
-### Example: All Sensors (Recurring)
+**Behavior**
+
+- If a stream with the same id already exists, the existing stream is reused
+- If recurring is set to false, returns one motion event and stops automatically
+- Step counter resets when stream starts
+
+**Examples**
+
+Streaming Motion Data:
 
 ```yaml
 getMotionData:
-  id: motion_all
+  id: motion_stream
   options:
-    recurring: true
-    sensorType: all
+    sensors:
+      - accelerometer
+      - gyroscope
+      - magnetometer
     updateInterval: 1000
     onDataReceived:
       executeCode:
         body: |-
-          console.log('All motion:', event.data);
+          console.log('Motion data:', event.data);
     onError:
       executeCode:
         body: |-
           console.log('Motion error:', event.error);
 ```
 
----
-
-### Example: Pedometer Only
+Pedometer Tracking:
 
 ```yaml
 getMotionData:
   id: pedometer_stream
   options:
-    recurring: true
-    sensorType: pedometer
+    sensors:
+      - pedometer
     updateInterval: 1000
     onDataReceived:
       executeCode:
         body: |-
-          if (event.data.pedometer) {
-            console.log(
-              'Steps:',
-              event.data.pedometer.steps,
-              'Distance:',
-              event.data.pedometer.distanceMeters
-            );
+          var p = event.data && event.data.pedometer;
+          if (p) {
+            console.log('Steps:', p.steps, 'Distance:', p.distanceMeters);
           }
 ```
 
----
-
-### One-Time Motion Read
-
-Returns the first available motion event and automatically stops the stream.
+One-Time Motion Read:
 
 ```yaml
 getMotionData:
   options:
-    sensorType: accelerometer
+    recurring: false
+    sensors:
+      - accelerometer
     onDataReceived:
       executeCode:
         body: |-
-          console.log('Single accelerometer read:', event.data);
+          console.log('Single read:', event.data);
 ```
 
----
+### stopMotionData
 
-## `stopMotionData`
+Stops an active motion stream and releases sensor subscriptions.
 
-Stops a running motion stream and releases all sensor subscriptions.
-
-### Parameters
+**Parameters**
 
 | Field | Type | Description |
-|------|------|------------|
-| `id` | string (optional) | ID of the motion stream to stop |
+|-------|------|-------------|
+| id | string (optional) | ID of the stream to stop |
 
-### Behavior
-- Cancels all active sensor subscriptions
+**Behavior**
+
+- Cancels active sensor subscriptions
 - Stops pedometer tracking
-- Resets internal state (steps and cached sensor values)
-- Closes the motion stream controller
+- Clears cached motion values
+- Fully closes the motion stream
 
-### Example
+**Example**
 
 ```yaml
 stopMotionData:
-  id: motion_all
+  id: motion_stream
 ```
-
----
 
 ## Lifecycle Notes
 
-- Multiple sensors are merged into a single stream
-- A new `MotionData` event is emitted whenever any sensor updates
-- Calling `stopMotionData` fully resets the activity state
-- Cancelling the stream from the UI automatically stops motion tracking
-
----
+- Multiple sensors are merged into one stream
+- A new MotionData event is emitted whenever any sensor updates
+- Calling stopMotionData fully resets motion state
+- UI cancellation automatically stops tracking
 
 ## Platform Notes
 
-- **Android**
-  - Requires `ACTIVITY_RECOGNITION` permission for pedometer
-- **iOS**
-  - Uses Core Motion pedometer APIs
-  - Distance is estimated using a fixed step length of `0.75 meters`
+**Android**
+- Requires ACTIVITY_RECOGNITION permission for pedometer
+
+**iOS**
+- Uses Core Motion pedometer APIs
+- Distance estimated using approximately 0.75 m step length
