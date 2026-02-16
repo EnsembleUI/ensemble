@@ -1,7 +1,4 @@
-// File: lib/widget/wifi_heatmap/wifi_heatmap.dart
-
 import 'dart:async';
-
 import 'package:ensemble/framework/action.dart' as ensemble;
 import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/widget/widget.dart';
@@ -18,7 +15,6 @@ import 'visualization/wifi_heatmap_widget.dart';
 class WiFiHeatmap extends StatefulWidget
     with Invokable, HasController<WiFiHeatmapController, WiFiHeatmapState> {
   static const type = 'WiFiHeatmap';
-
   static Widget build({Key? key}) {
     return WiFiHeatmap(key: key);
   }
@@ -36,6 +32,7 @@ class WiFiHeatmap extends StatefulWidget
       'floorPlan': () => _controller.floorPlan,
       'gridSize': () => _controller.gridSize,
       'mode': () => _controller.mode,
+      'signalValues': () => _controller.signalValues,
     };
   }
 
@@ -48,12 +45,10 @@ class WiFiHeatmap extends StatefulWidget
           _controller.gridSize = Utils.optionalInt(v, min: 4, max: 40) ?? 12,
       'mode': (v) => _controller.mode = Utils.getString(v, fallback: 'setup'),
 
-      // Icons as direct properties (not in styles)
       'modemIcon': (v) => _controller.modemIcon = _parseIcon(v),
       'routerIcon': (v) => _controller.routerIcon = _parseIcon(v),
       'locationPinIcon': (v) => _controller.locationPinIcon = _parseIcon(v),
 
-      // Separate style maps
       'deviceStyles': (v) => _controller.deviceStyles = _parseDeviceStyles(v),
       'scanPointStyles': (v) =>
           _controller.scanPointStyles = _parseScanPointStyles(v),
@@ -66,12 +61,23 @@ class WiFiHeatmap extends StatefulWidget
       'signalStyles': (v) => _controller.signalStyles = _parseSignalStyles(v),
       'buttonStyles': (v) => _controller.buttonStyles = _parseButtonStyles(v),
 
+      'signalValues': (v) {
+        print(
+            'WiFiHeatmap setter signalValues called with: $v ${v.runtimeType}');
+        _controller.signalValues = _parseSignalValues(v);
+        return _controller.signalValues;
+      },
+
       // Actions
       'onMessage': (def) => _controller.onMessage =
           ensemble.EnsembleAction.from(def, initiator: this),
       'onScanComplete': (def) => _controller.onScanComplete =
           ensemble.EnsembleAction.from(def, initiator: this),
       'getSignalStrength': (def) => _controller.getSignalStrength =
+          ensemble.EnsembleAction.from(def, initiator: this),
+      'onFirstCheckpoint': (def) => _controller.onFirstCheckpoint =
+          ensemble.EnsembleAction.from(def, initiator: this),
+      'onAllGridsFilled': (def) => _controller.onAllGridsFilled =
           ensemble.EnsembleAction.from(def, initiator: this),
     };
   }
@@ -91,18 +97,56 @@ class WiFiHeatmap extends StatefulWidget
     return ensembleIcon.Icon.fromModel(iconModel);
   }
 
+  List<Map<String, dynamic>> _parseSignalValues(dynamic value) {
+    if (value == null) return [];
+
+    // If it's already a list
+    if (value is List) {
+      return value.map((item) {
+        if (item is Map) {
+          // Ensure we have both timestamp and dbm
+          final timestamp = item['timestamp'];
+          final dbm = item['dbm'] ?? item['value'];
+
+          if (timestamp != null && dbm != null) {
+            return {
+              'timestamp': timestamp is int
+                  ? timestamp
+                  : int.tryParse(timestamp.toString()) ??
+                      DateTime.now().millisecondsSinceEpoch,
+              'dbm': dbm is int ? dbm : int.tryParse(dbm.toString()) ?? -100,
+            };
+          }
+        }
+        // If item is just a number, treat it as dbm with current timestamp
+        if (item is int) {
+          return {
+            'timestamp': DateTime.now().millisecondsSinceEpoch,
+            'dbm': item,
+          };
+        }
+        return {
+          'timestamp': DateTime.now().millisecondsSinceEpoch,
+          'dbm': -100,
+        };
+      }).toList();
+    }
+
+    return [];
+  }
+
   DeviceStyles _parseDeviceStyles(dynamic value) {
     if (value is! Map) return const DeviceStyles();
     final map = value;
     return DeviceStyles(
-      markerSize: Utils.optionalDouble(map['markerSize']) ?? 36.0,
-      iconSize: Utils.optionalDouble(map['iconSize']) ?? 22.0,
-      borderWidth: Utils.optionalDouble(map['borderWidth']) ?? 2.8,
-      borderColor: Utils.getColor(map['borderColor']) ?? Colors.white,
-      modemColor: Utils.getColor(map['modemColor']) ?? Colors.red,
-      modemIconColor: Utils.getColor(map['modemIconColor']) ?? Colors.white,
-      routerColor: Utils.getColor(map['routerColor']) ?? Colors.blue,
-      routerIconColor: Utils.getColor(map['routerIconColor']) ?? Colors.white,
+      markerSize: Utils.optionalDouble(map['markerSize']),
+      iconSize: Utils.optionalDouble(map['iconSize']),
+      borderWidth: Utils.optionalDouble(map['borderWidth']),
+      borderColor: Utils.getColor(map['borderColor']),
+      modemColor: Utils.getColor(map['modemColor']),
+      modemIconColor: Utils.getColor(map['modemIconColor']),
+      routerColor: Utils.getColor(map['routerColor']),
+      routerIconColor: Utils.getColor(map['routerIconColor']),
     );
   }
 
@@ -110,11 +154,10 @@ class WiFiHeatmap extends StatefulWidget
     if (value is! Map) return const ScanPointStyles();
     final map = value;
     return ScanPointStyles(
-      dotSizeFactor: Utils.optionalDouble(map['dotSizeFactor']) ?? 0.4,
-      color: Utils.getColor(map['color']) ?? Colors.blueAccent,
-      borderColor:
-          Utils.getColor(map['borderColor']) ?? const Color(0xB3FFFFFF),
-      borderWidth: Utils.optionalDouble(map['borderWidth']) ?? 1.8,
+      dotSizeFactor: Utils.optionalDouble(map['dotSizeFactor']),
+      color: Utils.getColor(map['color']),
+      borderColor: Utils.getColor(map['borderColor']),
+      borderWidth: Utils.optionalDouble(map['borderWidth']),
     );
   }
 
@@ -122,8 +165,8 @@ class WiFiHeatmap extends StatefulWidget
     if (value is! Map) return const LocationPinStyles();
     final map = value;
     return LocationPinStyles(
-      size: Utils.optionalDouble(map['size']) ?? 44.0,
-      color: Utils.getColor(map['color']) ?? Colors.red,
+      size: Utils.optionalDouble(map['size']),
+      color: Utils.getColor(map['color']),
     );
   }
 
@@ -131,9 +174,9 @@ class WiFiHeatmap extends StatefulWidget
     if (value is! Map) return const GridStyles();
     final map = value;
     return GridStyles(
-      lineWidth: Utils.optionalDouble(map['lineWidth']) ?? 0.6,
-      alpha: Utils.optionalInt(map['alpha'], min: 0, max: 255) ?? 60,
-      lineColor: Utils.getColor(map['lineColor']) ?? Colors.black,
+      lineWidth: Utils.optionalDouble(map['lineWidth']),
+      alpha: Utils.optionalInt(map['alpha'], min: 0, max: 255),
+      lineColor: Utils.getColor(map['lineColor']),
     );
   }
 
@@ -141,7 +184,7 @@ class WiFiHeatmap extends StatefulWidget
     if (value is! Map) return const HeatmapStyles();
     final map = value;
     return HeatmapStyles(
-      fillAlpha: Utils.optionalInt(map['fillAlpha'], min: 0, max: 255) ?? 123,
+      fillAlpha: Utils.optionalInt(map['fillAlpha'], min: 0, max: 255),
     );
   }
 
@@ -149,8 +192,8 @@ class WiFiHeatmap extends StatefulWidget
     if (value is! Map) return const PathStyles();
     final map = value;
     return PathStyles(
-      color: Utils.getColor(map['color']) ?? const Color(0xFF1976D2),
-      width: Utils.optionalDouble(map['width']) ?? 2.8,
+      color: Utils.getColor(map['color']),
+      width: Utils.optionalDouble(map['width']),
     );
   }
 
@@ -158,14 +201,12 @@ class WiFiHeatmap extends StatefulWidget
     if (value is! Map) return const SignalStyles();
     final map = value;
     return SignalStyles(
-      excellentColor:
-          Utils.getColor(map['excellentColor']) ?? const Color(0xFF388E3C),
-      veryGoodColor:
-          Utils.getColor(map['veryGoodColor']) ?? const Color(0xFF66BB6A),
-      goodColor: Utils.getColor(map['goodColor']) ?? const Color(0xFFAFB42B),
-      fairColor: Utils.getColor(map['fairColor']) ?? const Color(0xFFF57C00),
-      poorColor: Utils.getColor(map['poorColor']) ?? const Color(0xFFE64A19),
-      badColor: Utils.getColor(map['badColor']) ?? const Color(0xFFC62828),
+      excellentColor: Utils.getColor(map['excellentColor']),
+      veryGoodColor: Utils.getColor(map['veryGoodColor']),
+      goodColor: Utils.getColor(map['goodColor']),
+      fairColor: Utils.getColor(map['fairColor']),
+      poorColor: Utils.getColor(map['poorColor']),
+      badColor: Utils.getColor(map['badColor']),
     );
   }
 
@@ -173,10 +214,8 @@ class WiFiHeatmap extends StatefulWidget
     if (value is! Map) return const ButtonStyles();
     final map = value;
     return ButtonStyles(
-      startScanColor:
-          Utils.getColor(map['startScanColor']) ?? const Color(0xFF388E3C),
-      addCheckpointColor:
-          Utils.getColor(map['addCheckpointColor']) ?? const Color(0xFF1976D2),
+      startScanColor: Utils.getColor(map['startScanColor']),
+      addCheckpointColor: Utils.getColor(map['addCheckpointColor']),
     );
   }
 
@@ -188,12 +227,10 @@ class WiFiHeatmapController extends BoxController {
   String floorPlan = '';
   int gridSize = 12;
   String mode = 'setup';
-
-  // Icons as direct properties (not in styles)
+  // Icons as direct
   Icon? modemIcon;
   Icon? routerIcon;
   Icon? locationPinIcon;
-
   // Separate style maps
   DeviceStyles deviceStyles = const DeviceStyles();
   ScanPointStyles scanPointStyles = const ScanPointStyles();
@@ -203,18 +240,20 @@ class WiFiHeatmapController extends BoxController {
   PathStyles pathStyles = const PathStyles();
   SignalStyles signalStyles = const SignalStyles();
   ButtonStyles buttonStyles = const ButtonStyles();
-
+  // External signal values (timestamp+dBm objects passed from outside)
+  List<Map<String, dynamic>> signalValues = [];
   // Actions
   ensemble.EnsembleAction? onMessage;
   ensemble.EnsembleAction? onScanComplete;
   ensemble.EnsembleAction? getSignalStrength;
+  ensemble.EnsembleAction? onFirstCheckpoint;
+  ensemble.EnsembleAction? onAllGridsFilled;
 
   VoidCallback? _startScanning;
   VoidCallback? _reset;
 
   void showMessage(String msg, BuildContext context) {
     print('WiFiHeatmap showMessage: $msg');
-
     if (onMessage != null) {
       ScreenController().executeAction(
         context,
@@ -227,6 +266,28 @@ class WiFiHeatmapController extends BoxController {
       );
     }
   }
+
+  void triggerFirstCheckpoint(BuildContext context) {
+    print('WiFiHeatmap triggerFirstCheckpoint');
+    if (onFirstCheckpoint != null) {
+      ScreenController().executeAction(
+        context,
+        onFirstCheckpoint!,
+        event: EnsembleEvent(null),
+      );
+    }
+  }
+
+  void triggerAllGridsFilled(BuildContext context) {
+    print('WiFiHeatmap triggerAllGridsFilled');
+    if (onAllGridsFilled != null) {
+      ScreenController().executeAction(
+        context,
+        onAllGridsFilled!,
+        event: EnsembleEvent(null),
+      );
+    }
+  }
 }
 
 class WiFiHeatmapState extends EWidgetState<WiFiHeatmap> {
@@ -235,7 +296,6 @@ class WiFiHeatmapState extends EWidgetState<WiFiHeatmap> {
   @override
   void initState() {
     super.initState();
-
     widget.controller._startScanning = () {
       if (widget.controller.mode != 'scanning' && mounted) {
         setState(() {
@@ -243,7 +303,6 @@ class WiFiHeatmapState extends EWidgetState<WiFiHeatmap> {
         });
       }
     };
-
     widget.controller._reset = () {
       if (mounted) {
         setState(() {
@@ -272,14 +331,19 @@ class WiFiHeatmapState extends EWidgetState<WiFiHeatmap> {
         modemIcon: widget.controller.modemIcon,
         routerIcon: widget.controller.routerIcon,
         locationPinIcon: widget.controller.locationPinIcon,
+        signalValues: widget.controller.signalValues,
         getSignalStrength: _getSignalStrength,
         onShowMessage: (msg) => widget.controller.showMessage(msg, context),
+        onFirstCheckpoint: () =>
+            widget.controller.triggerFirstCheckpoint(context),
+        onAllGridsFilled: () =>
+            widget.controller.triggerAllGridsFilled(context),
       ),
     );
   }
 
   Future<SignalResult> _getSignalStrength() async {
-    // Fallback random signal generation
+    // Fallback random signal generation (for backward compatibility)
     await Future.delayed(const Duration(milliseconds: 600));
     const values = [-45, -52, -58, -64, -72, -79, -88, -94];
     final rssi = values[DateTime.now().millisecond % values.length];
