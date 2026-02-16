@@ -31,171 +31,147 @@ class SignalResult {
   SignalResult(this.dBm, this.color);
 }
 
-/// WiFi Heatmap Theme Configuration
-class WiFiHeatmapTheme {
-  final double? deviceMarkerSize;
-  final double? deviceIconSize;
-  final Color? modemColor;
-  final Color? modemIconColor;
-  final Icon? modemIcon;
-  final Color? routerColor;
-  final Color? routerIconColor;
-  final Icon? routerIcon;
-  final double? deviceBorderWidth;
-  final Color? deviceBorderColor;
+/// Separate style classes
+class DeviceStyles {
+  final double markerSize;
+  final double iconSize;
+  final double borderWidth;
+  final Color borderColor;
+  final Color modemColor;
+  final Color modemIconColor;
+  final Color routerColor;
+  final Color routerIconColor;
 
-  final double? scanPointDotSizeFactor;
-  final Color? scanPointColor;
-  final Color? scanPointBorderColor;
-  final double? scanPointBorderWidth;
-
-  final double? locationPinSize;
-  final Color? locationPinColor;
-  final Icon? locationPinIcon;
-
-  final double? gridLineWidth;
-  final int? gridAlpha;
-  final Color? gridLineColor;
-
-  final int? heatmapFillAlpha;
-
-  final Color? pathColor;
-  final double? pathWidth;
-
-  final int? defaultGridSize;
-  final double? targetCellSize;
-
-  final Color? excellentSignalColor;
-  final Color? veryGoodSignalColor;
-  final Color? goodSignalColor;
-  final Color? fairSignalColor;
-  final Color? poorSignalColor;
-  final Color? badSignalColor;
-
-  final Color? startScanButtonColor;
-  final Color? addCheckpointButtonColor;
-
-  const WiFiHeatmapTheme({
-    this.deviceMarkerSize,
-    this.deviceIconSize,
-    this.modemColor,
-    this.modemIconColor,
-    this.modemIcon,
-    this.routerColor,
-    this.routerIconColor,
-    this.routerIcon,
-    this.deviceBorderWidth,
-    this.deviceBorderColor,
-    this.scanPointDotSizeFactor,
-    this.scanPointColor,
-    this.scanPointBorderColor,
-    this.scanPointBorderWidth,
-    this.locationPinSize,
-    this.locationPinColor,
-    this.locationPinIcon,
-    this.gridLineWidth,
-    this.gridAlpha,
-    this.gridLineColor,
-    this.heatmapFillAlpha,
-    this.pathColor,
-    this.pathWidth,
-    this.defaultGridSize,
-    this.targetCellSize,
-    this.excellentSignalColor,
-    this.veryGoodSignalColor,
-    this.goodSignalColor,
-    this.fairSignalColor,
-    this.poorSignalColor,
-    this.badSignalColor,
-    this.startScanButtonColor,
-    this.addCheckpointButtonColor,
+  const DeviceStyles({
+    this.markerSize = 36.0,
+    this.iconSize = 22.0,
+    this.borderWidth = 2.8,
+    this.borderColor = Colors.white,
+    this.modemColor = Colors.red,
+    this.modemIconColor = Colors.white,
+    this.routerColor = Colors.blue,
+    this.routerIconColor = Colors.white,
   });
 
-  // Default values
-  double get _deviceMarkerSize => deviceMarkerSize ?? 36.0;
-  double get _deviceIconSize => deviceIconSize ?? 22.0;
-  Color get _modemColor => modemColor ?? Colors.red;
-  Color get _modemIconColor => modemIconColor ?? Colors.white;
-  Color get _routerColor => routerColor ?? Colors.blue;
-  Color get _routerIconColor => routerIconColor ?? Colors.white;
-  double get _deviceBorderWidth => deviceBorderWidth ?? 2.8;
-  Color get _deviceBorderColor => deviceBorderColor ?? Colors.white;
+  Color getDeviceColor(Device device) =>
+      device.isModem ? modemColor : routerColor;
 
-  double get _scanPointDotSizeFactor => scanPointDotSizeFactor ?? 0.4;
-  Color get _scanPointColor => scanPointColor ?? Colors.blueAccent;
-  Color get _scanPointBorderColor =>
-      scanPointBorderColor ?? const Color(0xB3FFFFFF);
-  double get _scanPointBorderWidth => scanPointBorderWidth ?? 1.8;
+  Color getDeviceIconColor(Device device) =>
+      device.isModem ? modemIconColor : routerIconColor;
+}
 
-  double get _locationPinSize => locationPinSize ?? 44.0;
-  Color get _locationPinColor => locationPinColor ?? Colors.red;
+class ScanPointStyles {
+  final double dotSizeFactor;
+  final Color color;
+  final Color borderColor;
+  final double borderWidth;
 
-  double get _gridLineWidth => gridLineWidth ?? 0.6;
-  int get _gridAlpha => gridAlpha ?? 60;
-  Color get _gridLineColor => gridLineColor ?? Colors.black;
+  const ScanPointStyles({
+    this.dotSizeFactor = 0.4,
+    this.color = Colors.blueAccent,
+    this.borderColor = const Color(0xB3FFFFFF),
+    this.borderWidth = 1.8,
+  });
+}
 
-  int get _heatmapFillAlpha => heatmapFillAlpha ?? 123;
+class LocationPinStyles {
+  final double size;
+  final Color color;
 
-  Color get _pathColor => pathColor ?? const Color(0xFF1976D2);
-  double get _pathWidth => pathWidth ?? 2.8;
+  const LocationPinStyles({
+    this.size = 44.0,
+    this.color = Colors.red,
+  });
+}
 
-  int get _defaultGridSize => defaultGridSize ?? 12;
+class GridStyles {
+  final double lineWidth;
+  final int alpha;
+  final Color lineColor;
 
-  Color get _excellentSignalColor =>
-      excellentSignalColor ?? const Color(0xFF388E3C);
-  Color get _veryGoodSignalColor =>
-      veryGoodSignalColor ?? const Color(0xFF66BB6A);
-  Color get _goodSignalColor => goodSignalColor ?? const Color(0xFFAFB42B);
-  Color get _fairSignalColor => fairSignalColor ?? const Color(0xFFF57C00);
-  Color get _poorSignalColor => poorSignalColor ?? const Color(0xFFE64A19);
-  Color get _badSignalColor => badSignalColor ?? const Color(0xFFC62828);
+  const GridStyles({
+    this.lineWidth = 0.6,
+    this.alpha = 60,
+    this.lineColor = Colors.black,
+  });
+}
 
-  Color get _startScanButtonColor =>
-      startScanButtonColor ?? const Color(0xFF388E3C);
-  Color get _addCheckpointButtonColor =>
-      addCheckpointButtonColor ?? const Color(0xFF1976D2);
+class HeatmapStyles {
+  final int fillAlpha;
+
+  const HeatmapStyles({
+    this.fillAlpha = 123,
+  });
+}
+
+class PathStyles {
+  final Color color;
+  final double width;
+
+  const PathStyles({
+    this.color = const Color(0xFF1976D2),
+    this.width = 2.8,
+  });
+}
+
+class SignalStyles {
+  final Color excellentColor;
+  final Color veryGoodColor;
+  final Color goodColor;
+  final Color fairColor;
+  final Color poorColor;
+  final Color badColor;
+
+  const SignalStyles({
+    this.excellentColor = const Color(0xFF388E3C),
+    this.veryGoodColor = const Color(0xFF66BB6A),
+    this.goodColor = const Color(0xFFAFB42B),
+    this.fairColor = const Color(0xFFF57C00),
+    this.poorColor = const Color(0xFFE64A19),
+    this.badColor = const Color(0xFFC62828),
+  });
 
   Color getSignalColor(int dBm) {
-    if (dBm >= -50) return _excellentSignalColor;
-    if (dBm >= -60) return _veryGoodSignalColor;
-    if (dBm >= -70) return _goodSignalColor;
-    if (dBm >= -80) return _fairSignalColor;
-    if (dBm >= -90) return _poorSignalColor;
-    return _badSignalColor;
+    if (dBm >= -50) return excellentColor;
+    if (dBm >= -60) return veryGoodColor;
+    if (dBm >= -70) return goodColor;
+    if (dBm >= -80) return fairColor;
+    if (dBm >= -90) return poorColor;
+    return badColor;
   }
+}
 
-  Color getDeviceColor(Device device) =>
-      device.isModem ? _modemColor : _routerColor;
-  Color getDeviceIconColor(Device device) =>
-      device.isModem ? _modemIconColor : _routerIconColor;
+class ButtonStyles {
+  final Color startScanColor;
+  final Color addCheckpointColor;
 
-  Icon getDeviceIcon(Device device) {
-    if (device.isModem) {
-      return modemIcon ??
-          Icon(Icons.wifi, color: _modemIconColor, size: _deviceIconSize);
-    } else {
-      return routerIcon ??
-          Icon(Icons.router, color: _routerIconColor, size: _deviceIconSize);
-    }
-  }
-
-  Icon getLocationPinIcon() {
-    return locationPinIcon ??
-        Icon(
-          Icons.location_on,
-          color: _locationPinColor,
-          size: _locationPinSize,
-        );
-  }
+  const ButtonStyles({
+    this.startScanColor = const Color(0xFF388E3C),
+    this.addCheckpointColor = const Color(0xFF1976D2),
+  });
 }
 
 /// Reusable WiFi Heatmap Widget
 class WiFiHeatmapWidget extends StatefulWidget {
   final Future<SignalResult> Function()? getSignalStrength;
   final String floorPlan;
-  final int? gridSize;
+  final int gridSize;
   final Function(String message)? onShowMessage;
-  final WiFiHeatmapTheme theme;
+
+  // Separate style classes
+  final DeviceStyles deviceStyles;
+  final ScanPointStyles scanPointStyles;
+  final LocationPinStyles locationPinStyles;
+  final GridStyles gridStyles;
+  final HeatmapStyles heatmapStyles;
+  final PathStyles pathStyles;
+  final SignalStyles signalStyles;
+  final ButtonStyles buttonStyles;
+
+  // Icons moved out of styles
+  final Icon? modemIcon;
+  final Icon? routerIcon;
+  final Icon? locationPinIcon;
 
   // Error state customization
   final String errorTitle;
@@ -210,9 +186,19 @@ class WiFiHeatmapWidget extends StatefulWidget {
     super.key,
     this.getSignalStrength,
     required this.floorPlan,
-    this.gridSize,
+    this.gridSize = 12,
     this.onShowMessage,
-    this.theme = const WiFiHeatmapTheme(),
+    this.deviceStyles = const DeviceStyles(),
+    this.scanPointStyles = const ScanPointStyles(),
+    this.locationPinStyles = const LocationPinStyles(),
+    this.gridStyles = const GridStyles(),
+    this.heatmapStyles = const HeatmapStyles(),
+    this.pathStyles = const PathStyles(),
+    this.signalStyles = const SignalStyles(),
+    this.buttonStyles = const ButtonStyles(),
+    this.modemIcon,
+    this.routerIcon,
+    this.locationPinIcon,
     this.errorTitle = 'Invalid or missing floor plan',
     this.errorMessage = 'Please provide a valid image path',
     this.errorIcon = Icons.broken_image,
@@ -249,9 +235,6 @@ class _WiFiHeatmapWidgetState extends State<WiFiHeatmapWidget> {
   final _stackKey = GlobalKey();
 
   bool _imageLoadFailed = false;
-
-  int get _effectiveGridSize =>
-      widget.gridSize ?? widget.theme._defaultGridSize;
 
   @override
   void initState() {
@@ -316,10 +299,8 @@ class _WiFiHeatmapWidgetState extends State<WiFiHeatmapWidget> {
 
     if (availW <= 0 || availH <= 0) return;
 
-    // Use full available dimensions - no padding
     final newRect = Rect.fromLTWH(0, 0, availW, availH);
 
-    // Only update if rect has actually changed significantly
     if (_displayedImageRect == null ||
         (_displayedImageRect!.left - newRect.left).abs() > 1 ||
         (_displayedImageRect!.top - newRect.top).abs() > 1 ||
@@ -327,7 +308,6 @@ class _WiFiHeatmapWidgetState extends State<WiFiHeatmapWidget> {
         (_displayedImageRect!.height - newRect.height).abs() > 1) {
       _displayedImageRect = newRect;
 
-      // Recreate grid when image rect changes in scanning mode
       if (_mode == 'scanning' && _grid.isEmpty) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (mounted) {
@@ -336,6 +316,29 @@ class _WiFiHeatmapWidgetState extends State<WiFiHeatmapWidget> {
         });
       }
     }
+  }
+
+  Icon _getDeviceIcon(Device device) {
+    if (device.isModem) {
+      return widget.modemIcon ??
+          Icon(Icons.wifi,
+              color: widget.deviceStyles.modemIconColor,
+              size: widget.deviceStyles.iconSize);
+    } else {
+      return widget.routerIcon ??
+          Icon(Icons.router,
+              color: widget.deviceStyles.routerIconColor,
+              size: widget.deviceStyles.iconSize);
+    }
+  }
+
+  Icon _getLocationPinIcon() {
+    return widget.locationPinIcon ??
+        Icon(
+          Icons.location_on,
+          color: widget.locationPinStyles.color,
+          size: widget.locationPinStyles.size,
+        );
   }
 
   Widget _buildErrorState() {
@@ -393,7 +396,8 @@ class _WiFiHeatmapWidgetState extends State<WiFiHeatmapWidget> {
           DraggableDevice(
             device: _modem!,
             imageRect: _displayedImageRect!,
-            theme: widget.theme,
+            deviceStyles: widget.deviceStyles,
+            getIcon: _getDeviceIcon,
             onPositionChanged: (newPos) =>
                 setState(() => _modem!.position = newPos),
           ),
@@ -401,7 +405,8 @@ class _WiFiHeatmapWidgetState extends State<WiFiHeatmapWidget> {
           (r) => DraggableDevice(
             device: r,
             imageRect: _displayedImageRect!,
-            theme: widget.theme,
+            deviceStyles: widget.deviceStyles,
+            getIcon: _getDeviceIcon,
             onPositionChanged: (newPos) => setState(() => r.position = newPos),
           ),
         ),
@@ -435,7 +440,8 @@ class _WiFiHeatmapWidgetState extends State<WiFiHeatmapWidget> {
                 grid: _grid,
                 colWidths: _colWidths,
                 rowHeights: _rowHeights,
-                theme: widget.theme,
+                gridStyles: widget.gridStyles,
+                heatmapStyles: widget.heatmapStyles,
               ),
             ),
             if (_scannedGridPositions.length >= 2)
@@ -446,7 +452,7 @@ class _WiFiHeatmapWidgetState extends State<WiFiHeatmapWidget> {
                     gridPoints: _scannedGridPositions,
                     colWidths: _colWidths,
                     rowHeights: _rowHeights,
-                    theme: widget.theme,
+                    pathStyles: widget.pathStyles,
                   ),
                 ),
               ),
@@ -458,7 +464,7 @@ class _WiFiHeatmapWidgetState extends State<WiFiHeatmapWidget> {
                     gridPoints: [_scannedGridPositions.last, _markerGridPos!],
                     colWidths: _colWidths,
                     rowHeights: _rowHeights,
-                    theme: widget.theme,
+                    pathStyles: widget.pathStyles,
                     isDotted: true,
                   ),
                 ),
@@ -469,25 +475,28 @@ class _WiFiHeatmapWidgetState extends State<WiFiHeatmapWidget> {
                 colWidths: _colWidths,
                 rowHeights: _rowHeights,
                 imageRect: _displayedImageRect!,
-                theme: widget.theme,
+                scanPointStyles: widget.scanPointStyles,
               ),
             ),
             if (_modem != null)
               FixedDeviceMarker(
                   device: _modem!,
                   imageRect: _displayedImageRect!,
-                  theme: widget.theme),
+                  deviceStyles: widget.deviceStyles,
+                  getIcon: _getDeviceIcon),
             ..._routers.map((router) => FixedDeviceMarker(
                 device: router,
                 imageRect: _displayedImageRect!,
-                theme: widget.theme)),
+                deviceStyles: widget.deviceStyles,
+                getIcon: _getDeviceIcon)),
             if (_markerGridPos != null)
               MarkerPin(
                 gridPos: _markerGridPos!,
                 colWidths: _colWidths,
                 rowHeights: _rowHeights,
                 imageRect: _displayedImageRect!,
-                theme: widget.theme,
+                locationPinStyles: widget.locationPinStyles,
+                getIcon: _getLocationPinIcon,
               ),
           ],
           if (_displayedImageRect != null && _grid.isNotEmpty)
@@ -522,18 +531,14 @@ class _WiFiHeatmapWidgetState extends State<WiFiHeatmapWidget> {
         final double imageAspectRatio =
             _originalImageSize!.width / _originalImageSize!.height;
 
-        // Calculate image display dimensions (no padding, full width)
         final double imageDisplayWidth = availableWidth;
         final double imageDisplayHeight = imageDisplayWidth / imageAspectRatio;
 
-        // Button area height (only for scanning mode)
         const double buttonAreaHeight = 76.0;
 
-        // Total height: image + button area (only in scanning mode)
         final double totalHeight =
             imageDisplayHeight + (_mode == 'scanning' ? buttonAreaHeight : 0);
 
-        // Update displayed rect with exact image dimensions
         _updateDisplayedRect(BoxConstraints(
           maxWidth: imageDisplayWidth,
           maxHeight: imageDisplayHeight,
@@ -573,7 +578,7 @@ class _WiFiHeatmapWidgetState extends State<WiFiHeatmapWidget> {
                                 style: ElevatedButton.styleFrom(
                                   minimumSize: const Size.fromHeight(52),
                                   backgroundColor:
-                                      widget.theme._addCheckpointButtonColor,
+                                      widget.buttonStyles.addCheckpointColor,
                                   foregroundColor: Colors.white,
                                 ),
                                 onPressed: _addCheckpoint,
@@ -593,31 +598,31 @@ class _WiFiHeatmapWidgetState extends State<WiFiHeatmapWidget> {
       children: [
         FloatingActionButton(
           heroTag: 'modem',
-          backgroundColor: widget.theme._modemColor,
+          backgroundColor: widget.deviceStyles.modemColor,
           onPressed: _addModem,
-          child: widget.theme.modemIcon ??
+          child: widget.modemIcon ??
               Icon(
                 Icons.wifi,
-                color: widget.theme._modemIconColor,
-                size: widget.theme._deviceIconSize,
+                color: widget.deviceStyles.modemIconColor,
+                size: widget.deviceStyles.iconSize,
               ),
         ),
         const SizedBox(height: 12),
         FloatingActionButton(
           heroTag: 'router',
-          backgroundColor: widget.theme._routerColor,
+          backgroundColor: widget.deviceStyles.routerColor,
           onPressed: _addRouter,
-          child: widget.theme.routerIcon ??
+          child: widget.routerIcon ??
               Icon(
                 Icons.router,
-                color: widget.theme._routerIconColor,
-                size: widget.theme._deviceIconSize,
+                color: widget.deviceStyles.routerIconColor,
+                size: widget.deviceStyles.iconSize,
               ),
         ),
         const SizedBox(height: 16),
         FloatingActionButton(
           heroTag: 'start',
-          backgroundColor: widget.theme._startScanButtonColor,
+          backgroundColor: widget.buttonStyles.startScanColor,
           onPressed: _startScanning,
           child: const Icon(Icons.navigate_next_outlined, color: Colors.white),
         ),
@@ -631,7 +636,7 @@ class _WiFiHeatmapWidgetState extends State<WiFiHeatmapWidget> {
     final w = _displayedImageRect!.width;
     final h = _displayedImageRect!.height;
 
-    final n = _effectiveGridSize.clamp(4, 32);
+    final n = widget.gridSize.clamp(4, 32);
 
     _colWidths = List.generate(n, (_) => w / n);
     _rowHeights = List.generate(n, (_) => h / n);
@@ -815,7 +820,7 @@ class _WiFiHeatmapWidgetState extends State<WiFiHeatmapWidget> {
         final cell = _grid[rr][cc];
         final d = cellDbms[i];
         cell.rssi = d;
-        cell.color = widget.theme.getSignalColor(d);
+        cell.color = widget.signalStyles.getSignalColor(d);
         cell.scanned = true;
       }
     }
@@ -868,15 +873,15 @@ class _WiFiHeatmapWidgetState extends State<WiFiHeatmapWidget> {
 
     final random = Random();
     final dBm = possibleValues[random.nextInt(possibleValues.length)];
-    return SignalResult(dBm, widget.theme.getSignalColor(dBm));
+    return SignalResult(dBm, widget.signalStyles.getSignalColor(dBm));
   }
 
   void _addModem() {
     if (_displayedImageRect == null || _modem != null) return;
 
     final center = Offset(
-      (_displayedImageRect!.width - widget.theme._deviceMarkerSize) / 2,
-      (_displayedImageRect!.height - widget.theme._deviceMarkerSize) / 2,
+      (_displayedImageRect!.width - widget.deviceStyles.markerSize) / 2,
+      (_displayedImageRect!.height - widget.deviceStyles.markerSize) / 2,
     );
 
     setState(() => _modem = Device(type: 'modem', position: center));
@@ -886,8 +891,8 @@ class _WiFiHeatmapWidgetState extends State<WiFiHeatmapWidget> {
     if (_displayedImageRect == null) return;
 
     final center = Offset(
-      (_displayedImageRect!.width - widget.theme._deviceMarkerSize) / 2,
-      (_displayedImageRect!.height - widget.theme._deviceMarkerSize) / 2,
+      (_displayedImageRect!.width - widget.deviceStyles.markerSize) / 2,
+      (_displayedImageRect!.height - widget.deviceStyles.markerSize) / 2,
     );
     setState(() => _routers.add(Device(type: 'router', position: center)));
   }
@@ -900,11 +905,9 @@ class _WiFiHeatmapWidgetState extends State<WiFiHeatmapWidget> {
 
     setState(() {
       _mode = 'scanning';
-      // Clear grid to force recreation with current image rect
       _grid.clear();
     });
 
-    // Recreate grid after mode change
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted && _displayedImageRect != null) {
         setState(() => _createGrid());
@@ -917,15 +920,29 @@ class _WiFiHeatmapWidgetState extends State<WiFiHeatmapWidget> {
 class WiFiHeatmapScreen extends StatefulWidget {
   final Future<SignalResult> Function()? getSignalStrength;
   final String floorPlan;
-  final int? gridSize;
-  final WiFiHeatmapTheme? theme;
+  final int gridSize;
+  final DeviceStyles? deviceStyles;
+  final ScanPointStyles? scanPointStyles;
+  final LocationPinStyles? locationPinStyles;
+  final GridStyles? gridStyles;
+  final HeatmapStyles? heatmapStyles;
+  final PathStyles? pathStyles;
+  final SignalStyles? signalStyles;
+  final ButtonStyles? buttonStyles;
 
   const WiFiHeatmapScreen({
     super.key,
     this.getSignalStrength,
     required this.floorPlan,
-    this.gridSize,
-    this.theme,
+    this.gridSize = 12,
+    this.deviceStyles,
+    this.scanPointStyles,
+    this.locationPinStyles,
+    this.gridStyles,
+    this.heatmapStyles,
+    this.pathStyles,
+    this.signalStyles,
+    this.buttonStyles,
   });
 
   @override
@@ -941,7 +958,15 @@ class _WiFiHeatmapScreenState extends State<WiFiHeatmapScreen> {
         floorPlan: widget.floorPlan,
         gridSize: widget.gridSize,
         getSignalStrength: widget.getSignalStrength,
-        theme: widget.theme ?? const WiFiHeatmapTheme(),
+        deviceStyles: widget.deviceStyles ?? const DeviceStyles(),
+        scanPointStyles: widget.scanPointStyles ?? const ScanPointStyles(),
+        locationPinStyles:
+            widget.locationPinStyles ?? const LocationPinStyles(),
+        gridStyles: widget.gridStyles ?? const GridStyles(),
+        heatmapStyles: widget.heatmapStyles ?? const HeatmapStyles(),
+        pathStyles: widget.pathStyles ?? const PathStyles(),
+        signalStyles: widget.signalStyles ?? const SignalStyles(),
+        buttonStyles: widget.buttonStyles ?? const ButtonStyles(),
         onShowMessage: (message) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text(message)),
@@ -955,28 +980,34 @@ class _WiFiHeatmapScreenState extends State<WiFiHeatmapScreen> {
 ///  Reusable Widgets
 class DeviceMarker extends StatelessWidget {
   final Device device;
-  final WiFiHeatmapTheme theme;
+  final DeviceStyles deviceStyles;
+  final Icon Function(Device) getIcon;
 
-  const DeviceMarker({super.key, required this.device, required this.theme});
+  const DeviceMarker({
+    super.key,
+    required this.device,
+    required this.deviceStyles,
+    required this.getIcon,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: theme._deviceMarkerSize,
-      height: theme._deviceMarkerSize,
+      width: deviceStyles.markerSize,
+      height: deviceStyles.markerSize,
       decoration: BoxDecoration(
-        color: theme.getDeviceColor(device),
+        color: deviceStyles.getDeviceColor(device),
         shape: BoxShape.circle,
         border: Border.all(
-          color: theme._deviceBorderColor,
-          width: theme._deviceBorderWidth,
+          color: deviceStyles.borderColor,
+          width: deviceStyles.borderWidth,
         ),
         boxShadow: const [
           BoxShadow(color: Colors.black45, blurRadius: 6, offset: Offset(2, 3)),
         ],
       ),
       alignment: Alignment.center,
-      child: theme.getDeviceIcon(device),
+      child: getIcon(device),
     );
   }
 }
@@ -985,14 +1016,16 @@ class DraggableDevice extends StatelessWidget {
   final Device device;
   final Rect imageRect;
   final ValueChanged<Offset> onPositionChanged;
-  final WiFiHeatmapTheme theme;
+  final DeviceStyles deviceStyles;
+  final Icon Function(Device) getIcon;
 
   const DraggableDevice({
     super.key,
     required this.device,
     required this.imageRect,
     required this.onPositionChanged,
-    required this.theme,
+    required this.deviceStyles,
+    required this.getIcon,
   });
 
   @override
@@ -1005,15 +1038,16 @@ class DraggableDevice extends StatelessWidget {
         onPanUpdate: (details) {
           final newDx = (device.position.dx + details.delta.dx).clamp(
             0.0,
-            imageRect.width - theme._deviceMarkerSize,
+            imageRect.width - deviceStyles.markerSize,
           );
           final newDy = (device.position.dy + details.delta.dy).clamp(
             0.0,
-            imageRect.height - theme._deviceMarkerSize,
+            imageRect.height - deviceStyles.markerSize,
           );
           onPositionChanged(Offset(newDx, newDy));
         },
-        child: DeviceMarker(device: device, theme: theme),
+        child: DeviceMarker(
+            device: device, deviceStyles: deviceStyles, getIcon: getIcon),
       ),
     );
   }
@@ -1022,13 +1056,15 @@ class DraggableDevice extends StatelessWidget {
 class FixedDeviceMarker extends StatelessWidget {
   final Device device;
   final Rect imageRect;
-  final WiFiHeatmapTheme theme;
+  final DeviceStyles deviceStyles;
+  final Icon Function(Device) getIcon;
 
   const FixedDeviceMarker({
     super.key,
     required this.device,
     required this.imageRect,
-    required this.theme,
+    required this.deviceStyles,
+    required this.getIcon,
   });
 
   @override
@@ -1036,7 +1072,8 @@ class FixedDeviceMarker extends StatelessWidget {
     return Positioned(
       left: imageRect.left + device.position.dx,
       top: imageRect.top + device.position.dy,
-      child: DeviceMarker(device: device, theme: theme),
+      child: DeviceMarker(
+          device: device, deviceStyles: deviceStyles, getIcon: getIcon),
     );
   }
 }
@@ -1046,7 +1083,7 @@ class ScanPointDot extends StatelessWidget {
   final List<double> colWidths;
   final List<double> rowHeights;
   final Rect imageRect;
-  final WiFiHeatmapTheme theme;
+  final ScanPointStyles scanPointStyles;
 
   const ScanPointDot({
     super.key,
@@ -1054,7 +1091,7 @@ class ScanPointDot extends StatelessWidget {
     required this.colWidths,
     required this.rowHeights,
     required this.imageRect,
-    required this.theme,
+    required this.scanPointStyles,
   });
 
   @override
@@ -1068,7 +1105,7 @@ class ScanPointDot extends StatelessWidget {
 
     final cellW = colWidths[c];
     final cellH = rowHeights[r];
-    final dotSize = min(cellW, cellH) * theme._scanPointDotSizeFactor;
+    final dotSize = min(cellW, cellH) * scanPointStyles.dotSizeFactor;
 
     return Positioned(
       left: imageRect.left + x - dotSize / 2,
@@ -1078,10 +1115,10 @@ class ScanPointDot extends StatelessWidget {
         height: dotSize,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          color: theme._scanPointColor,
+          color: scanPointStyles.color,
           border: Border.all(
-            color: theme._scanPointBorderColor,
-            width: theme._scanPointBorderWidth,
+            color: scanPointStyles.borderColor,
+            width: scanPointStyles.borderWidth,
           ),
           boxShadow: const [
             BoxShadow(
@@ -1101,7 +1138,8 @@ class MarkerPin extends StatelessWidget {
   final List<double> colWidths;
   final List<double> rowHeights;
   final Rect imageRect;
-  final WiFiHeatmapTheme theme;
+  final LocationPinStyles locationPinStyles;
+  final Icon Function() getIcon;
 
   const MarkerPin({
     super.key,
@@ -1109,7 +1147,8 @@ class MarkerPin extends StatelessWidget {
     required this.colWidths,
     required this.rowHeights,
     required this.imageRect,
-    required this.theme,
+    required this.locationPinStyles,
+    required this.getIcon,
   });
 
   @override
@@ -1122,15 +1161,15 @@ class MarkerPin extends StatelessWidget {
       rowHeights.take(r).fold(0.0, (a, b) => a + b) + rowHeights[r] / 2,
     );
 
-    final icon = theme.getLocationPinIcon();
+    final icon = getIcon();
 
     return Positioned(
-      left: imageRect.left + center.dx - theme._locationPinSize / 2,
-      top: imageRect.top + center.dy - theme._locationPinSize * 0.85,
+      left: imageRect.left + center.dx - locationPinStyles.size / 2,
+      top: imageRect.top + center.dy - locationPinStyles.size * 0.85,
       child: IconTheme(
         data: IconThemeData(
-          size: theme._locationPinSize,
-          color: theme._locationPinColor,
+          size: locationPinStyles.size,
+          color: locationPinStyles.color,
           shadows: const [
             Shadow(color: Colors.black45, blurRadius: 6, offset: Offset(2, 3)),
           ],
@@ -1146,14 +1185,16 @@ class VariableGridPainterWidget extends StatelessWidget {
   final List<List<GridCell>> grid;
   final List<double> colWidths;
   final List<double> rowHeights;
-  final WiFiHeatmapTheme theme;
+  final GridStyles gridStyles;
+  final HeatmapStyles heatmapStyles;
 
   const VariableGridPainterWidget({
     super.key,
     required this.grid,
     required this.colWidths,
     required this.rowHeights,
-    required this.theme,
+    required this.gridStyles,
+    required this.heatmapStyles,
   });
 
   @override
@@ -1163,7 +1204,8 @@ class VariableGridPainterWidget extends StatelessWidget {
         grid: grid,
         colWidths: colWidths,
         rowHeights: rowHeights,
-        theme: theme,
+        gridStyles: gridStyles,
+        heatmapStyles: heatmapStyles,
       ),
       size: Size.infinite,
     );
@@ -1174,13 +1216,15 @@ class _VariableGridPainter extends CustomPainter {
   final List<List<GridCell>> grid;
   final List<double> colWidths;
   final List<double> rowHeights;
-  final WiFiHeatmapTheme theme;
+  final GridStyles gridStyles;
+  final HeatmapStyles heatmapStyles;
 
   _VariableGridPainter({
     required this.grid,
     required this.colWidths,
     required this.rowHeights,
-    required this.theme,
+    required this.gridStyles,
+    required this.heatmapStyles,
   });
 
   @override
@@ -1194,7 +1238,7 @@ class _VariableGridPainter extends CustomPainter {
         if (cell.scanned && cell.color != null) {
           canvas.drawRect(
             Rect.fromLTWH(x, y, colWidths[c], rowHeights[r]),
-            Paint()..color = cell.color!.withAlpha(theme._heatmapFillAlpha),
+            Paint()..color = cell.color!.withAlpha(heatmapStyles.fillAlpha),
           );
         }
         x += colWidths[c];
@@ -1205,8 +1249,8 @@ class _VariableGridPainter extends CustomPainter {
     // Grid lines
     final linePaint = Paint()
       ..style = PaintingStyle.stroke
-      ..color = theme._gridLineColor.withAlpha(theme._gridAlpha)
-      ..strokeWidth = theme._gridLineWidth;
+      ..color = gridStyles.lineColor.withAlpha(gridStyles.alpha)
+      ..strokeWidth = gridStyles.lineWidth;
 
     y = 0;
     for (final h in rowHeights) {
@@ -1231,14 +1275,14 @@ class PathConnectionPainter extends CustomPainter {
   final List<Offset> gridPoints;
   final List<double> colWidths;
   final List<double> rowHeights;
-  final WiFiHeatmapTheme theme;
+  final PathStyles pathStyles;
   final bool isDotted;
 
   PathConnectionPainter({
     required this.gridPoints,
     required this.colWidths,
     required this.rowHeights,
-    required this.theme,
+    required this.pathStyles,
     this.isDotted = false,
   });
 
@@ -1257,8 +1301,8 @@ class PathConnectionPainter extends CustomPainter {
     if (gridPoints.length < 2) return;
 
     final paint = Paint()
-      ..color = theme._pathColor
-      ..strokeWidth = theme._pathWidth
+      ..color = pathStyles.color
+      ..strokeWidth = pathStyles.width
       ..style = PaintingStyle.stroke;
 
     if (isDotted) {

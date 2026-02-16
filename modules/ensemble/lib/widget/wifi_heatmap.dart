@@ -45,14 +45,34 @@ class WiFiHeatmap extends StatefulWidget
       'floorPlan': (v) =>
           _controller.floorPlan = Utils.getString(v, fallback: ''),
       'gridSize': (v) =>
-          _controller.gridSize = Utils.optionalInt(v, min: 4, max: 40),
+          _controller.gridSize = Utils.optionalInt(v, min: 4, max: 40) ?? 12,
       'mode': (v) => _controller.mode = Utils.getString(v, fallback: 'setup'),
-      'theme': (v) => _controller.theme = _parseCustomTheme(v),
+
+      // Icons as direct properties (not in styles)
+      'modemIcon': (v) => _controller.modemIcon = _parseIcon(v),
+      'routerIcon': (v) => _controller.routerIcon = _parseIcon(v),
+      'locationPinIcon': (v) => _controller.locationPinIcon = _parseIcon(v),
+
+      // Separate style maps
+      'deviceStyles': (v) => _controller.deviceStyles = _parseDeviceStyles(v),
+      'scanPointStyles': (v) =>
+          _controller.scanPointStyles = _parseScanPointStyles(v),
+      'locationPinStyles': (v) =>
+          _controller.locationPinStyles = _parseLocationPinStyles(v),
+      'gridStyles': (v) => _controller.gridStyles = _parseGridStyles(v),
+      'heatmapStyles': (v) =>
+          _controller.heatmapStyles = _parseHeatmapStyles(v),
+      'pathStyles': (v) => _controller.pathStyles = _parsePathStyles(v),
+      'signalStyles': (v) => _controller.signalStyles = _parseSignalStyles(v),
+      'buttonStyles': (v) => _controller.buttonStyles = _parseButtonStyles(v),
+
+      // Actions
       'onMessage': (def) => _controller.onMessage =
           ensemble.EnsembleAction.from(def, initiator: this),
       'onScanComplete': (def) => _controller.onScanComplete =
           ensemble.EnsembleAction.from(def, initiator: this),
-      'getSignalStrength': (v) => _controller.customGetSignalStrength = v,
+      'getSignalStrength': (def) => _controller.getSignalStrength =
+          ensemble.EnsembleAction.from(def, initiator: this),
     };
   }
 
@@ -64,77 +84,99 @@ class WiFiHeatmap extends StatefulWidget
     };
   }
 
-  WiFiHeatmapTheme? _parseCustomTheme(dynamic value) {
-    if (value is! Map) return null;
+  Icon? _parseIcon(dynamic v) {
+    if (v == null) return null;
+    final iconModel = Utils.getIcon(v);
+    if (iconModel == null) return null;
+    return ensembleIcon.Icon.fromModel(iconModel);
+  }
 
+  DeviceStyles _parseDeviceStyles(dynamic value) {
+    if (value is! Map) return const DeviceStyles();
     final map = value;
+    return DeviceStyles(
+      markerSize: Utils.optionalDouble(map['markerSize']) ?? 36.0,
+      iconSize: Utils.optionalDouble(map['iconSize']) ?? 22.0,
+      borderWidth: Utils.optionalDouble(map['borderWidth']) ?? 2.8,
+      borderColor: Utils.getColor(map['borderColor']) ?? Colors.white,
+      modemColor: Utils.getColor(map['modemColor']) ?? Colors.red,
+      modemIconColor: Utils.getColor(map['modemIconColor']) ?? Colors.white,
+      routerColor: Utils.getColor(map['routerColor']) ?? Colors.blue,
+      routerIconColor: Utils.getColor(map['routerIconColor']) ?? Colors.white,
+    );
+  }
 
-    Icon? parseIcon(dynamic v) {
-      if (v == null) return null;
+  ScanPointStyles _parseScanPointStyles(dynamic value) {
+    if (value is! Map) return const ScanPointStyles();
+    final map = value;
+    return ScanPointStyles(
+      dotSizeFactor: Utils.optionalDouble(map['dotSizeFactor']) ?? 0.4,
+      color: Utils.getColor(map['color']) ?? Colors.blueAccent,
+      borderColor:
+          Utils.getColor(map['borderColor']) ?? const Color(0xB3FFFFFF),
+      borderWidth: Utils.optionalDouble(map['borderWidth']) ?? 1.8,
+    );
+  }
 
-      final iconModel = Utils.getIcon(v);
-      if (iconModel == null) return null;
-      return ensembleIcon.Icon.fromModel(iconModel);
-    }
+  LocationPinStyles _parseLocationPinStyles(dynamic value) {
+    if (value is! Map) return const LocationPinStyles();
+    final map = value;
+    return LocationPinStyles(
+      size: Utils.optionalDouble(map['size']) ?? 44.0,
+      color: Utils.getColor(map['color']) ?? Colors.red,
+    );
+  }
 
-    return WiFiHeatmapTheme(
-      // Device marker properties
-      deviceMarkerSize: Utils.optionalDouble(map['deviceMarkerSize']),
-      deviceIconSize: Utils.optionalDouble(map['deviceIconSize']),
-      deviceBorderWidth: Utils.optionalDouble(map['deviceBorderWidth']),
-      deviceBorderColor: Utils.getColor(map['deviceBorderColor']),
+  GridStyles _parseGridStyles(dynamic value) {
+    if (value is! Map) return const GridStyles();
+    final map = value;
+    return GridStyles(
+      lineWidth: Utils.optionalDouble(map['lineWidth']) ?? 0.6,
+      alpha: Utils.optionalInt(map['alpha'], min: 0, max: 255) ?? 60,
+      lineColor: Utils.getColor(map['lineColor']) ?? Colors.black,
+    );
+  }
 
-      // Modem properties
-      modemColor: Utils.getColor(map['modemColor']),
-      modemIconColor: Utils.getColor(map['modemIconColor']),
-      modemIcon: parseIcon(map['modemIcon']),
+  HeatmapStyles _parseHeatmapStyles(dynamic value) {
+    if (value is! Map) return const HeatmapStyles();
+    final map = value;
+    return HeatmapStyles(
+      fillAlpha: Utils.optionalInt(map['fillAlpha'], min: 0, max: 255) ?? 123,
+    );
+  }
 
-      // Router properties
-      routerColor: Utils.getColor(map['routerColor']),
-      routerIconColor: Utils.getColor(map['routerIconColor']),
-      routerIcon: parseIcon(map['routerIcon']),
+  PathStyles _parsePathStyles(dynamic value) {
+    if (value is! Map) return const PathStyles();
+    final map = value;
+    return PathStyles(
+      color: Utils.getColor(map['color']) ?? const Color(0xFF1976D2),
+      width: Utils.optionalDouble(map['width']) ?? 2.8,
+    );
+  }
 
-      // Scan point properties
-      scanPointDotSizeFactor:
-          Utils.optionalDouble(map['scanPointDotSizeFactor']),
-      scanPointColor: Utils.getColor(map['scanPointColor']),
-      scanPointBorderColor: Utils.getColor(map['scanPointBorderColor']),
-      scanPointBorderWidth: Utils.optionalDouble(map['scanPointBorderWidth']),
+  SignalStyles _parseSignalStyles(dynamic value) {
+    if (value is! Map) return const SignalStyles();
+    final map = value;
+    return SignalStyles(
+      excellentColor:
+          Utils.getColor(map['excellentColor']) ?? const Color(0xFF388E3C),
+      veryGoodColor:
+          Utils.getColor(map['veryGoodColor']) ?? const Color(0xFF66BB6A),
+      goodColor: Utils.getColor(map['goodColor']) ?? const Color(0xFFAFB42B),
+      fairColor: Utils.getColor(map['fairColor']) ?? const Color(0xFFF57C00),
+      poorColor: Utils.getColor(map['poorColor']) ?? const Color(0xFFE64A19),
+      badColor: Utils.getColor(map['badColor']) ?? const Color(0xFFC62828),
+    );
+  }
 
-      // Location pin properties
-      locationPinSize: Utils.optionalDouble(map['locationPinSize']),
-      locationPinColor: Utils.getColor(map['locationPinColor']),
-      locationPinIcon: parseIcon(map['locationPinIcon']),
-
-      // Grid properties
-      gridLineWidth: Utils.optionalDouble(map['gridLineWidth']),
-      gridAlpha: Utils.optionalInt(map['gridAlpha'], min: 0, max: 255),
-      gridLineColor: Utils.getColor(map['gridLineColor']),
-
-      // Heatmap properties
-      heatmapFillAlpha:
-          Utils.optionalInt(map['heatmapFillAlpha'], min: 0, max: 255),
-
-      // Path properties
-      pathColor: Utils.getColor(map['pathColor']),
-      pathWidth: Utils.optionalDouble(map['pathWidth']),
-
-      // Grid size properties
-      defaultGridSize:
-          Utils.optionalInt(map['defaultGridSize'], min: 4, max: 32),
-      targetCellSize: Utils.optionalDouble(map['targetCellSize']),
-
-      // Signal color properties
-      excellentSignalColor: Utils.getColor(map['excellentSignalColor']),
-      veryGoodSignalColor: Utils.getColor(map['veryGoodSignalColor']),
-      goodSignalColor: Utils.getColor(map['goodSignalColor']),
-      fairSignalColor: Utils.getColor(map['fairSignalColor']),
-      poorSignalColor: Utils.getColor(map['poorSignalColor']),
-      badSignalColor: Utils.getColor(map['badSignalColor']),
-
-      // Button color properties
-      startScanButtonColor: Utils.getColor(map['startScanButtonColor']),
-      addCheckpointButtonColor: Utils.getColor(map['addCheckpointButtonColor']),
+  ButtonStyles _parseButtonStyles(dynamic value) {
+    if (value is! Map) return const ButtonStyles();
+    final map = value;
+    return ButtonStyles(
+      startScanColor:
+          Utils.getColor(map['startScanColor']) ?? const Color(0xFF388E3C),
+      addCheckpointColor:
+          Utils.getColor(map['addCheckpointColor']) ?? const Color(0xFF1976D2),
     );
   }
 
@@ -144,15 +186,28 @@ class WiFiHeatmap extends StatefulWidget
 
 class WiFiHeatmapController extends BoxController {
   String floorPlan = '';
-  int? gridSize;
+  int gridSize = 12;
   String mode = 'setup';
 
-  WiFiHeatmapTheme? theme;
+  // Icons as direct properties (not in styles)
+  Icon? modemIcon;
+  Icon? routerIcon;
+  Icon? locationPinIcon;
 
+  // Separate style maps
+  DeviceStyles deviceStyles = const DeviceStyles();
+  ScanPointStyles scanPointStyles = const ScanPointStyles();
+  LocationPinStyles locationPinStyles = const LocationPinStyles();
+  GridStyles gridStyles = const GridStyles();
+  HeatmapStyles heatmapStyles = const HeatmapStyles();
+  PathStyles pathStyles = const PathStyles();
+  SignalStyles signalStyles = const SignalStyles();
+  ButtonStyles buttonStyles = const ButtonStyles();
+
+  // Actions
   ensemble.EnsembleAction? onMessage;
   ensemble.EnsembleAction? onScanComplete;
-
-  dynamic customGetSignalStrength;
+  ensemble.EnsembleAction? getSignalStrength;
 
   VoidCallback? _startScanning;
   VoidCallback? _reset;
@@ -206,7 +261,17 @@ class WiFiHeatmapState extends EWidgetState<WiFiHeatmap> {
         key: _heatmapKey,
         floorPlan: widget.controller.floorPlan,
         gridSize: widget.controller.gridSize,
-        theme: widget.controller.theme ?? const WiFiHeatmapTheme(),
+        deviceStyles: widget.controller.deviceStyles,
+        scanPointStyles: widget.controller.scanPointStyles,
+        locationPinStyles: widget.controller.locationPinStyles,
+        gridStyles: widget.controller.gridStyles,
+        heatmapStyles: widget.controller.heatmapStyles,
+        pathStyles: widget.controller.pathStyles,
+        signalStyles: widget.controller.signalStyles,
+        buttonStyles: widget.controller.buttonStyles,
+        modemIcon: widget.controller.modemIcon,
+        routerIcon: widget.controller.routerIcon,
+        locationPinIcon: widget.controller.locationPinIcon,
         getSignalStrength: _getSignalStrength,
         onShowMessage: (msg) => widget.controller.showMessage(msg, context),
       ),
@@ -214,36 +279,11 @@ class WiFiHeatmapState extends EWidgetState<WiFiHeatmap> {
   }
 
   Future<SignalResult> _getSignalStrength() async {
-    if (widget.controller.customGetSignalStrength != null) {
-      try {
-        final result = await widget.controller.customGetSignalStrength();
-        if (result is Map && result['dBm'] != null) {
-          final dBm = Utils.getInt(result['dBm'], fallback: -70);
-          final colorStr = result['color'];
-
-          Color color;
-          if (colorStr != null) {
-            color = Utils.getColor(colorStr) ??
-                widget.controller.theme?.getSignalColor(dBm) ??
-                const WiFiHeatmapTheme().getSignalColor(dBm);
-          } else {
-            color = widget.controller.theme?.getSignalColor(dBm) ??
-                const WiFiHeatmapTheme().getSignalColor(dBm);
-          }
-
-          return SignalResult(dBm, color);
-        }
-      } catch (e) {
-        print('Custom getSignalStrength failed: $e');
-      }
-    }
-
     // Fallback random signal generation
     await Future.delayed(const Duration(milliseconds: 600));
     const values = [-45, -52, -58, -64, -72, -79, -88, -94];
     final rssi = values[DateTime.now().millisecond % values.length];
-    final color = widget.controller.theme?.getSignalColor(rssi) ??
-        const WiFiHeatmapTheme().getSignalColor(rssi);
+    final color = widget.controller.signalStyles.getSignalColor(rssi);
     return SignalResult(rssi, color);
   }
 }
