@@ -274,7 +274,6 @@ class FirestoreAPIProvider extends APIProvider with LiveAPIProvider {
       'message': 'Subscribed to API',
       'documents': []
     };
-    ;
     return FirestoreResponse(
       apiState: APIState.success,
       body: body,
