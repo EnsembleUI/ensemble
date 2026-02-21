@@ -149,9 +149,27 @@ class FirestoreApp {
 
   Future<void> performSetOperation(Map evaluatedApi) async {
     String path = evaluatedApi['path'];
-    Map<String, dynamic> data = EnsembleFieldValue.prepareToSendToFirestore(evaluatedApi['data']);
+    Map<String, dynamic> data =
+        EnsembleFieldValue.prepareToSendToFirestore(evaluatedApi['data']);
     DocumentReference docRef = firestore.doc(path);
-    return await docRef.set(data);
+
+    SetOptions? setOptions;
+    Map? mergeOptions = evaluatedApi['mergeOptions'];
+
+    if (mergeOptions != null) {
+      bool hasMerge = mergeOptions['merge'] == true;
+      bool hasMergeFields = mergeOptions['mergeFields'] is List;
+
+      // mergeFields takes priority over merge if both are provided
+      if (hasMergeFields) {
+        List<String> fields = List<String>.from(mergeOptions['mergeFields']);
+        setOptions = SetOptions(mergeFields: fields);
+      } else if (hasMerge) {
+        setOptions = SetOptions(merge: true);
+      }
+    }
+
+    return await docRef.set(data, setOptions);
   }
 
   Future<void> performUpdateOperation(Map evaluatedApi) async {
