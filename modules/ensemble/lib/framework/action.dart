@@ -92,6 +92,42 @@ class ShowCameraAction extends EnsembleAction {
   }
 }
 
+class ShowFaceCameraAction extends EnsembleAction {
+  ShowFaceCameraAction({
+    Invokable? initiator,
+    this.options,
+    this.id,
+    this.onComplete,
+    this.onClose,
+    this.onCapture,
+    this.onError,
+    this.overlayWidget,
+    this.loadingWidget,
+  }) : super(initiator: initiator);
+  final Map<String, dynamic>? options;
+  String? id;
+  EnsembleAction? onComplete;
+  EnsembleAction? onClose;
+  EnsembleAction? onCapture;
+  EnsembleAction? onError;
+  dynamic overlayWidget;
+  dynamic loadingWidget;
+
+  factory ShowFaceCameraAction.fromYaml({Invokable? initiator, Map? payload}) {
+    return ShowFaceCameraAction(
+      initiator: initiator,
+      options: Utils.getMap(payload?['options']),
+      id: Utils.optionalString(payload?['id']),
+      onComplete: EnsembleAction.from(payload?['onComplete']),
+      onClose: EnsembleAction.from(payload?['onClose']),
+      onCapture: EnsembleAction.from(payload?['onCapture']),
+      onError: EnsembleAction.from(payload?['onError']),
+      overlayWidget: payload?['overlayWidget'],
+      loadingWidget: payload?['loadingWidget'],
+    );
+  }
+}
+
 class NavigateScreenAction extends BaseNavigateScreenAction {
   NavigateScreenAction(
       {super.initiator,
@@ -976,6 +1012,7 @@ enum ActionType {
   getLocation,
   openUrl,
   openCamera,
+  openFaceCamera,
   uploadFiles,
   navigateBack,
   pickFiles,
@@ -1123,6 +1160,9 @@ abstract class EnsembleAction {
       return InvokeAPIAction.fromYaml(initiator: initiator, payload: payload);
     } else if (actionType == ActionType.openCamera) {
       return ShowCameraAction.fromYaml(initiator: initiator, payload: payload);
+    } else if (actionType == ActionType.openFaceCamera) {
+      return ShowFaceCameraAction.fromYaml(
+          initiator: initiator, payload: payload);
     } else if (actionType == ActionType.showDialog) {
       return ShowDialogAction.from(initiator: initiator, payload: payload);
     } else if (actionType == ActionType.dismissDialog) {

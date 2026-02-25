@@ -6,26 +6,26 @@ Future<void> main(List<String> arguments) async {
   List<String> platforms = getPlatforms(arguments);
   String? ensembleVersion = getArgumentValue(arguments, 'ensemble_version');
 
-  final cameraStatements = {
+  final faceCameraStatements = {
     'moduleStatements': [
-      "import 'package:ensemble_camera/camera_manager.dart';",
-      "GetIt.I.registerSingleton<CameraManager>(CameraManagerImpl());",
+      "import 'package:ensemble_face_camera/ensemble_face_camera.dart';",
+      "GetIt.I.registerSingleton<FaceCameraManager>(FaceCameraManagerImpl());",
     ],
     'useStatements': [
-      'static const useCamera = true;',
+      'static const useFaceCamera = true;',
     ],
   };
 
   final pubspecDependencies = [
     {
       'statement': '''
-ensemble_camera:
+ensemble_face_camera:
     git:
       url: https://github.com/EnsembleUI/ensemble.git
       ref: ${await packageVersion(version: ensembleVersion)}
-      path: modules/camera''',
+      path: modules/face_camera''',
       'regex':
-          r'#\s*ensemble_camera:\s*\n\s*#\s*git:\s*\n\s*#\s*url:\s*https:\/\/github\.com\/EnsembleUI\/ensemble\.git\s*\n\s*#\s*ref:\s*main\s*\n\s*#\s*path:\s*modules\/camera',
+          r'#\s*ensemble_face_camera:\s*\n\s*#\s*git:\s*\n\s*#\s*url:\s*https:\/\/github\.com\/EnsembleUI\/ensemble\.git\s*\n\s*#\s*ref:\s*main\s*\n\s*#\s*path:\s*modules\/face_camera',
     }
   ];
 
@@ -47,8 +47,8 @@ ensemble_camera:
   try {
     // Update the ensemble_modules.dart file
     updateEnsembleModules(
-      cameraStatements['moduleStatements'],
-      cameraStatements['useStatements'],
+      faceCameraStatements['moduleStatements'],
+      faceCameraStatements['useStatements'],
     );
 
     // Update the pubspec.yaml file
@@ -69,13 +69,16 @@ ensemble_camera:
     // Add the face detection models to the web/index.html file
     if (platforms.contains('web')) {
       const webIndexHtml = '''
+<!-- Face Detection Scripts -->
+  <script src="assets/packages/ensemble_face_camera/web/face_api.js"></script>
+  <script src="assets/packages/ensemble_face_camera/web/face_detection.js"></script>
 <!-- Image worker Script -->
-  <script src="assets/packages/ensemble_camera/web/image_worker.js"></script>
+  <script src="assets/packages/ensemble_face_camera/web/image_worker.js"></script>
 ''';
-      updateWebIndexHtml(webIndexHtml, '<!-- Image Worker -->');
+      updateWebIndexHtml(webIndexHtml, '<!-- Face Detection -->');
     }
 
-    print('Camera module enabled successfully for ${platforms.join(', ')}! 🎉');
+    print('Face Camera module enabled successfully for ${platforms.join(', ')}! 🎉');
     exit(0);
   } catch (e) {
     print('Starter Error: $e');

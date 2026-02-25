@@ -15,6 +15,7 @@ import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/stub/camera_manager.dart';
+import 'package:ensemble/framework/stub/face_camera_manager.dart';
 import 'package:ensemble/framework/theme/theme_loader.dart';
 import 'package:ensemble/framework/theme_manager.dart';
 import 'package:ensemble/framework/view/data_scope_widget.dart';
@@ -262,6 +263,8 @@ class ScreenController {
       }
     } else if (action is ShowCameraAction) {
       GetIt.I<CameraManager>().openCamera(context, action, scopeManager);
+    } else if (action is ShowFaceCameraAction) {
+      GetIt.I<FaceCameraManager>().openFaceCamera(context, action, scopeManager);
     } else if (action is StartTimerAction) {
       // validate
       bool isRepeat = action.isRepeat(scopeManager.dataContext);
