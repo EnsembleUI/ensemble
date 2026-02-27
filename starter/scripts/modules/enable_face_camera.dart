@@ -72,13 +72,12 @@ ensemble_face_camera:
 <!-- Face Detection Scripts -->
   <script src="assets/packages/ensemble_face_camera/web/face_api.js"></script>
   <script src="assets/packages/ensemble_face_camera/web/face_detection.js"></script>
-<!-- Image worker Script -->
-  <script src="assets/packages/ensemble_face_camera/web/image_worker.js"></script>
 ''';
       updateWebIndexHtml(webIndexHtml, '<!-- Face Detection -->');
     }
 
-    print('Face Camera module enabled successfully for ${platforms.join(', ')}! 🎉');
+    print(
+        'Face Camera module enabled successfully for ${platforms.join(', ')}! 🎉');
     exit(0);
   } catch (e) {
     print('Starter Error: $e');

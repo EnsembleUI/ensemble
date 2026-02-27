@@ -2,6 +2,7 @@
 
 import 'dart:async';
 
+import 'package:ensemble/action/face_camera_actions.dart';
 import 'package:ensemble/action/navigation_action.dart';
 import 'package:ensemble/action/upload_files_action.dart';
 import 'package:ensemble/ensemble.dart';

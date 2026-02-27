@@ -10,6 +10,7 @@ import 'package:ensemble/action/device_security.dart';
 import 'package:ensemble/action/dialog_actions.dart';
 import 'package:ensemble/action/drawer_actions.dart';
 import 'package:ensemble/action/execute_action_group_action.dart';
+import 'package:ensemble/action/face_camera_actions.dart';
 import 'package:ensemble/action/file_picker_action.dart';
 import 'package:ensemble/action/get_network_info_action.dart';
 import 'package:ensemble/action/haptic_action.dart';
@@ -79,42 +80,6 @@ class ShowCameraAction extends EnsembleAction {
 
   factory ShowCameraAction.fromYaml({Invokable? initiator, Map? payload}) {
     return ShowCameraAction(
-      initiator: initiator,
-      options: Utils.getMap(payload?['options']),
-      id: Utils.optionalString(payload?['id']),
-      onComplete: EnsembleAction.from(payload?['onComplete']),
-      onClose: EnsembleAction.from(payload?['onClose']),
-      onCapture: EnsembleAction.from(payload?['onCapture']),
-      onError: EnsembleAction.from(payload?['onError']),
-      overlayWidget: payload?['overlayWidget'],
-      loadingWidget: payload?['loadingWidget'],
-    );
-  }
-}
-
-class ShowFaceCameraAction extends EnsembleAction {
-  ShowFaceCameraAction({
-    Invokable? initiator,
-    this.options,
-    this.id,
-    this.onComplete,
-    this.onClose,
-    this.onCapture,
-    this.onError,
-    this.overlayWidget,
-    this.loadingWidget,
-  }) : super(initiator: initiator);
-  final Map<String, dynamic>? options;
-  String? id;
-  EnsembleAction? onComplete;
-  EnsembleAction? onClose;
-  EnsembleAction? onCapture;
-  EnsembleAction? onError;
-  dynamic overlayWidget;
-  dynamic loadingWidget;
-
-  factory ShowFaceCameraAction.fromYaml({Invokable? initiator, Map? payload}) {
-    return ShowFaceCameraAction(
       initiator: initiator,
       options: Utils.getMap(payload?['options']),
       id: Utils.optionalString(payload?['id']),

@@ -1,5 +1,5 @@
 import 'package:camera/camera.dart';
-import 'package:ensemble/framework/action.dart';
+import 'package:ensemble/action/face_camera_actions.dart';
 import 'package:ensemble/framework/bindings.dart';
 import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/scope.dart';

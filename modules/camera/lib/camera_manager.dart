@@ -110,7 +110,7 @@ class CameraManagerImpl extends CameraManager {
           .eval(cameraAction.options?['faceDetection'])?['enabled'];
       if (Utils.getBool(faceDetection, fallback: false)) {
         debugPrint(
-            '⚠️ Face detection is now provided by the separate "ensemble_face_camera" module. Please add ensemble_face_camera to your pubspec.yaml and use "openFaceCamera" action instead.');
+            'Deprecated: Face detection is no longer available here. Use the "openFaceCamera" action instead.');
       }
       await bespokeCamera(context, cameraAction, scopeManager);
     }

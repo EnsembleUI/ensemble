@@ -31,4 +31,3 @@ flutter:
   assets:
     - web/face_api.js
     - web/face_detection.js
-    - web/image_worker.js

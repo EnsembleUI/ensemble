@@ -1,3 +1,4 @@
+import 'package:ensemble/action/face_camera_actions.dart';
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/scope.dart';

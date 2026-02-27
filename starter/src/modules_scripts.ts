@@ -33,6 +33,18 @@ export const modules: Script[] = [
     ],
   },
   {
+    name: 'face_camera',
+    path: 'scripts/modules/enable_face_camera.dart',
+    parameters: [
+      {
+        key: 'cameraDescription',
+        question: 'Please provide a camera usage description for iOS: ',
+        platform: ['ios'],
+        type: 'text',
+      },
+    ],
+  },
+  {
     name: 'file_manager',
     path: 'scripts/modules/enable_files.dart',
     parameters: [
