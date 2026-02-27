@@ -4,6 +4,7 @@ import 'package:ensemble/framework/stub/adobe_manager.dart';
 import 'package:ensemble/framework/stub/analytics_provider.dart';
 import 'package:ensemble/framework/stub/bluetooth.dart';
 import 'package:ensemble/framework/stub/camera_manager.dart';
+import 'package:ensemble/framework/stub/face_camera_manager.dart';
 import 'package:ensemble/framework/stub/ensemble_bracket.dart';
 import 'package:ensemble/framework/stub/ensemble_chat.dart';
 import 'package:ensemble/framework/stub/network_info.dart';
@@ -46,6 +47,9 @@ import 'package:get_it/get_it.dart';
 // Uncomment to enable camera services or QRCodeScanner widget
 // import 'package:ensemble_camera/camera_manager.dart';
 
+// Uncomment to enable face camera services
+// import 'package:ensemble_face_camera/ensemble_face_camera.dart';
+
 // Uncomment to enable QRCodeScanner widget (lightweight option)
 // import 'package:ensemble_qr_scanner/qr_code_scanner.dart';
 // OR use ensemble_camera (includes QR scanner via re-export for backward compatibility)
@@ -77,6 +81,7 @@ class EnsembleModules {
 
   // capabilities
   static const useCamera = false;
+  static const useFaceCamera = false;
   static const useFiles = false;
   static const useContacts = false;
   static const useConnect = false;
@@ -146,6 +151,13 @@ class EnsembleModules {
       GetIt.I.registerSingleton<CameraManager>(CameraManagerStub());
       GetIt.I.registerSingleton<EnsembleQRCodeScanner>(
           const EnsembleQRCodeScannerStub());
+    }
+
+    if (useFaceCamera) {
+      // Uncomment to enable face camera service
+      // GetIt.I.registerSingleton<FaceCameraManager>(FaceCameraManagerImpl());
+    } else {
+      GetIt.I.registerSingleton<FaceCameraManager>(FaceCameraManagerStub());
     }
 
     if (useFiles) {

@@ -60,7 +60,7 @@ class WebFaceDetection {
     final completer = Completer<void>();
 
     String getAssetPath(String filename) {
-      return 'assets/packages/ensemble_camera/web/$filename';
+      return 'assets/packages/ensemble_face_camera/web/$filename';
     }
 
     void handleScriptError(event, String scriptName) {

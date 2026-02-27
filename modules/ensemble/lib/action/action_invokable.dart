@@ -65,6 +65,7 @@ abstract class ActionInvokable with Invokable {
       ActionType.initializeStripe,
       ActionType.showPaymentSheet,
       ActionType.disconnectSSE,
+      ActionType.openFaceCamera,
     ]);
   }
 

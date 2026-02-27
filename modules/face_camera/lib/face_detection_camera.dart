@@ -38,8 +38,37 @@ class FaceDetectionCamera extends StatefulWidget
   Map<String, Function> setters() => {
         'initialCamera': (value) => controller
             .setInitialCamera(Utils.getString(value, fallback: 'front')),
-        'faceDetection': (value) =>
-            controller.setFaceDetection(Utils.getMap(value)),
+        'message': (value) =>
+            controller.updateConfig({'message': Utils.optionalString(value)}),
+        'messageStyle': (value) =>
+            controller.updateConfig({'messageStyle': value}),
+        'showControls': (value) => controller.updateConfig(
+            {'showControls': Utils.getBool(value, fallback: true)}),
+        'showCaptureControl': (value) => controller.updateConfig(
+            {'showCaptureControl': Utils.getBool(value, fallback: true)}),
+        'showFlashControl': (value) => controller.updateConfig(
+            {'showFlashControl': Utils.getBool(value, fallback: true)}),
+        'showCameraLensControl': (value) => controller.updateConfig(
+            {'showCameraLensControl': Utils.getBool(value, fallback: true)}),
+        'showStatusMessage': (value) => controller.updateConfig(
+            {'showStatusMessage': Utils.getBool(value, fallback: true)}),
+        'indicatorShape': (value) =>
+            controller.updateConfig({'indicatorShape': value}),
+        'autoDisableCaptureControl': (value) => controller.updateConfig({
+              'autoDisableCaptureControl': Utils.getBool(value, fallback: false)
+            }),
+        'autoCapture': (value) => controller.updateConfig(
+            {'autoCapture': Utils.getBool(value, fallback: false)}),
+        'imageResolution': (value) =>
+            controller.updateConfig({'imageResolution': value}),
+        'defaultFlashMode': (value) =>
+            controller.updateConfig({'defaultFlashMode': value}),
+        'orientation': (value) =>
+            controller.updateConfig({'orientation': value}),
+        'performanceMode': (value) =>
+            controller.updateConfig({'performanceMode': value}),
+        'accuracyConfig': (value) =>
+            controller.updateConfig({'accuracyConfig': value}),
       };
 }
 
@@ -163,14 +192,40 @@ class FaceDetectionController extends Controller {
     initialCamera = cameraLens == 'back' ? CameraLens.back : CameraLens.front;
   }
 
-  void setFaceDetection(Map<String, dynamic>? configMap) {
-    faceDetectionConfig = FaceDetectionConfig.fromMap(configMap);
+  void updateConfig(Map<String, dynamic> partialConfig) {
+    faceDetectionConfig = faceDetectionConfig.copyWith(
+      message: partialConfig['message'],
+      messageStyle: Utils.getTextStyle(partialConfig['messageStyle']),
+      showControls: partialConfig['showControls'],
+      showCaptureControl: partialConfig['showCaptureControl'],
+      showFlashControl: partialConfig['showFlashControl'],
+      showCameraLensControl: partialConfig['showCameraLensControl'],
+      showStatusMessage: partialConfig['showStatusMessage'],
+      indicatorShape: FaceDetectionConfig._parseIndicatorShape(
+          partialConfig['indicatorShape']),
+      autoDisableCaptureControl: partialConfig['autoDisableCaptureControl'],
+      autoCapture: partialConfig['autoCapture'],
+      imageResolution: FaceDetectionConfig._parseImageResolution(
+          partialConfig['imageResolution']),
+      defaultFlashMode: FaceDetectionConfig._parseFlashMode(
+          partialConfig['defaultFlashMode'] ?? partialConfig['flashMode']),
+      orientation:
+          FaceDetectionConfig._parseOrientation(partialConfig['orientation']),
+      performanceMode: FaceDetectionConfig._parsePerformanceMode(
+          partialConfig['performanceMode']),
+      accuracyConfig: partialConfig['accuracyConfig'] != null
+          ? (partialConfig['accuracyConfig'] is AccuracyConfig
+              ? partialConfig['accuracyConfig']
+              : FaceDetectionConfig._parseAccuracyConfig(
+                  partialConfig['accuracyConfig']))
+          : null,
+    );
 
-    // Update face detection mode for web implementation
     if (kIsWeb) {
       face_detection.WebFaceDetection.setPerformanceMode(
           faceDetectionConfig.performanceMode);
     }
+    notifyListeners();
   }
 
   void init(BuildContext context, Function(File?)? onCapture,
@@ -247,6 +302,44 @@ class FaceDetectionConfig {
     this.accuracyConfig,
   });
 
+  FaceDetectionConfig copyWith({
+    String? message,
+    TextStyle? messageStyle,
+    bool? showControls,
+    bool? showCaptureControl,
+    bool? showFlashControl,
+    bool? showCameraLensControl,
+    bool? showStatusMessage,
+    IndicatorShape? indicatorShape,
+    bool? autoDisableCaptureControl,
+    bool? autoCapture,
+    ImageResolution? imageResolution,
+    CameraFlashMode? defaultFlashMode,
+    CameraOrientation? orientation,
+    FaceDetectorMode? performanceMode,
+    AccuracyConfig? accuracyConfig,
+  }) {
+    return FaceDetectionConfig(
+      message: message ?? this.message,
+      messageStyle: messageStyle ?? this.messageStyle,
+      showControls: showControls ?? this.showControls,
+      showCaptureControl: showCaptureControl ?? this.showCaptureControl,
+      showFlashControl: showFlashControl ?? this.showFlashControl,
+      showCameraLensControl:
+          showCameraLensControl ?? this.showCameraLensControl,
+      showStatusMessage: showStatusMessage ?? this.showStatusMessage,
+      indicatorShape: indicatorShape ?? this.indicatorShape,
+      autoDisableCaptureControl:
+          autoDisableCaptureControl ?? this.autoDisableCaptureControl,
+      autoCapture: autoCapture ?? this.autoCapture,
+      imageResolution: imageResolution ?? this.imageResolution,
+      defaultFlashMode: defaultFlashMode ?? this.defaultFlashMode,
+      orientation: orientation ?? this.orientation,
+      performanceMode: performanceMode ?? this.performanceMode,
+      accuracyConfig: accuracyConfig ?? this.accuracyConfig,
+    );
+  }
+
   factory FaceDetectionConfig.fromMap(Map<String, dynamic>? map) {
     if (map == null) return FaceDetectionConfig();
 
@@ -254,29 +347,114 @@ class FaceDetectionConfig {
       message: map['message'] ?? '',
       messageStyle: Utils.getTextStyle(map['messageStyle']) ??
           const TextStyle(color: Colors.white),
-      showControls: map['showControls'] ?? true,
-      showCaptureControl: map['showCaptureControl'] ?? true,
-      showFlashControl: map['showFlashControl'] ?? true,
-      showCameraLensControl: map['showCameraLensControl'] ?? true,
-      showStatusMessage: map['showStatusMessage'] ?? true,
-      indicatorShape: map['indicatorShape'] ?? IndicatorShape.defaultShape,
-      autoDisableCaptureControl: map['autoDisableCaptureControl'] ?? false,
-      autoCapture: map['autoCapture'] ?? false,
-      imageResolution: map['imageResolution'] ?? ImageResolution.high,
-      defaultFlashMode: map['defaultFlashMode'] ?? CameraFlashMode.off,
-      orientation: map['orientation'] ?? CameraOrientation.portraitUp,
+      showControls: Utils.getBool(map['showControls'], fallback: true),
+      showCaptureControl:
+          Utils.getBool(map['showCaptureControl'], fallback: true),
+      showFlashControl: Utils.getBool(map['showFlashControl'], fallback: true),
+      showCameraLensControl:
+          Utils.getBool(map['showCameraLensControl'], fallback: true),
+      showStatusMessage:
+          Utils.getBool(map['showStatusMessage'], fallback: true),
+      indicatorShape: _parseIndicatorShape(map['indicatorShape']),
+      autoDisableCaptureControl:
+          Utils.getBool(map['autoDisableCaptureControl'], fallback: false),
+      autoCapture: Utils.getBool(map['autoCapture'], fallback: false),
+      imageResolution: _parseImageResolution(map['imageResolution']),
+      defaultFlashMode: _parseFlashMode(map['defaultFlashMode']),
+      orientation: _parseOrientation(map['orientation']),
       performanceMode: _parsePerformanceMode(map['performanceMode']),
-      accuracyConfig: map['accuracyConfig'] != null
-          ? AccuracyConfig.fromMap(
-              Map<String, dynamic>.from(map['accuracyConfig']))
-          : null,
+      accuracyConfig: _parseAccuracyConfig(map['accuracyConfig']),
     );
   }
 
   static FaceDetectorMode _parsePerformanceMode(dynamic value) {
+    if (value is FaceDetectorMode) return value;
     if (value == 'accurate') {
       return FaceDetectorMode.accurate;
     }
     return FaceDetectorMode.fast;
+  }
+
+  static ImageResolution _parseImageResolution(dynamic value) {
+    if (value is ImageResolution) return value;
+    switch (value) {
+      case 'low':
+        return ImageResolution.low;
+      case 'medium':
+        return ImageResolution.medium;
+      case 'high':
+        return ImageResolution.high;
+      case 'veryHigh':
+        return ImageResolution.veryHigh;
+      case 'ultraHigh':
+        return ImageResolution.ultraHigh;
+      case 'max':
+        return ImageResolution.max;
+    }
+    return ImageResolution.high;
+  }
+
+  static CameraFlashMode _parseFlashMode(dynamic value) {
+    if (value is CameraFlashMode) return value;
+    switch (value) {
+      case 'off':
+        return CameraFlashMode.off;
+      case 'auto':
+        return CameraFlashMode.auto;
+      case 'always':
+        return CameraFlashMode.always;
+    }
+    return CameraFlashMode.off;
+  }
+
+  static CameraOrientation _parseOrientation(dynamic value) {
+    if (value is CameraOrientation) return value;
+    switch (value) {
+      case 'portraitUp':
+        return CameraOrientation.portraitUp;
+      case 'portraitDown':
+        return CameraOrientation.portraitDown;
+      case 'landscapeLeft':
+        return CameraOrientation.landscapeLeft;
+      case 'landscapeRight':
+        return CameraOrientation.landscapeRight;
+    }
+    return CameraOrientation.portraitUp;
+  }
+
+  static IndicatorShape _parseIndicatorShape(dynamic value) {
+    if (value is IndicatorShape) return value;
+    switch (value) {
+      case 'square':
+        return IndicatorShape.square;
+      case 'circle':
+        return IndicatorShape.circle;
+    }
+    return IndicatorShape.defaultShape;
+  }
+
+  static AccuracyConfig? _parseAccuracyConfig(dynamic value) {
+    if (value == null) return null;
+    if (value is AccuracyConfig) return value;
+    final map = Map<String, dynamic>.from(value);
+
+    // Support aliases provided by user
+    final detectionThreshold = map['threshold'] ?? map['detectionThreshold'];
+    final yaw = map['yaw'] ?? map['yawUpperThreshold'];
+    final tilt = map['tilt'] ?? map['tiltAngleThreshold'];
+    final minFaceSize = map['minFaceSize'] ?? map['minFaceWidthRatio'];
+
+    return AccuracyConfig.fromMap({
+      ...map,
+      if (detectionThreshold != null)
+        'detectionThreshold':
+            Utils.getDouble(detectionThreshold, fallback: 0.6),
+      if (yaw != null)
+        'yawUpperThreshold': Utils.getDouble(yaw, fallback: 1.15),
+      if (tilt != null)
+        'tiltAngleThreshold': Utils.getDouble(tilt, fallback: 6.0),
+      if (minFaceSize != null)
+        'minFaceWidthRatio': Utils.getDouble(minFaceSize, fallback: 0.18),
+    });
   }
 }
