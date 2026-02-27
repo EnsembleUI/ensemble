@@ -35,10 +35,6 @@ ensemble_face_camera:
       'value': 'NSCameraUsageDescription',
     },
     {
-      'key': 'photoLibraryDescription',
-      'value': 'NSPhotoLibraryUsageDescription',
-    },
-    {
       'key': 'microphoneDescription',
       'value': 'NSMicrophoneUsageDescription',
     }

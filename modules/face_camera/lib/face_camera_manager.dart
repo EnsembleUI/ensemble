@@ -87,13 +87,6 @@ class FaceCameraManagerImpl extends FaceCameraManager {
       camera.setProperty(option, value);
     }
 
-    // Set properties from flat inputs
-    final inputs = action.inputs ?? {};
-    for (var input in inputs.keys) {
-      final value = scopeManager?.dataContext.eval(inputs[input]);
-      camera.setProperty(input, value);
-    }
-
     await Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => camera),

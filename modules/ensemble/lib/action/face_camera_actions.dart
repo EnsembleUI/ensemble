@@ -12,7 +12,6 @@ class ShowFaceCameraAction extends EnsembleAction {
   ShowFaceCameraAction({
     Invokable? initiator,
     this.options,
-    this.inputs,
     this.id,
     this.onComplete,
     this.onClose,
@@ -22,7 +21,6 @@ class ShowFaceCameraAction extends EnsembleAction {
     this.loadingWidget,
   }) : super(initiator: initiator);
   final Map<String, dynamic>? options;
-  final Map<String, dynamic>? inputs;
   String? id;
   EnsembleAction? onComplete;
   EnsembleAction? onClose;
@@ -32,7 +30,7 @@ class ShowFaceCameraAction extends EnsembleAction {
   dynamic loadingWidget;
 
   factory ShowFaceCameraAction.fromYaml({Invokable? initiator, Map? payload}) {
-    Map<String, dynamic> inputs = {};
+    Map<String, dynamic> options = Utils.getMap(payload?['options']) ?? {};
     payload?.forEach((key, value) {
       if (![
         'options',
@@ -44,14 +42,13 @@ class ShowFaceCameraAction extends EnsembleAction {
         'overlayWidget',
         'loadingWidget'
       ].contains(key)) {
-        inputs[key.toString()] = value;
+        options[key.toString()] = value;
       }
     });
 
     return ShowFaceCameraAction(
       initiator: initiator,
-      options: Utils.getMap(payload?['options']),
-      inputs: inputs.isNotEmpty ? inputs : null,
+      options: options.isNotEmpty ? options : null,
       id: Utils.optionalString(payload?['id']),
       onComplete: EnsembleAction.from(payload?['onComplete']),
       onClose: EnsembleAction.from(payload?['onClose']),

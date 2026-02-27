@@ -37,16 +37,41 @@ GetIt.I.registerSingleton<FaceCameraManager>(FaceCameraManagerImpl());
 
 ### YAML Action
 
+The `openFaceCamera` action consolidates all configuration into the `options` map. While top-level properties (like `message`) are still supported for backward compatibility, it is recommended to place them inside `options`.
+
 ```yaml
 onTap:
   openFaceCamera:
     id: myFaceCamera
     options:
-      initialCamera: front # front (default) or back
-    autoCapture: true
-    message: "Align your face"
-    imageResolution: high # low, medium, high, veryHigh
-    performanceMode: fast # fast or accurate
+      initialCamera: front       # front (default) or back
+      performanceMode: fast      # fast (default) or accurate
+      imageResolution: high      # low, medium, high, veryHigh, ultraHigh, max
+      defaultFlashMode: off      # off (default), auto, always
+      orientation: portraitUp    # portraitUp (default), portraitDown, landscapeLeft, landscapeRight
+      
+      message: "Align your face" # Custom message to display
+      messageStyle:              # Custom text style for the message
+        color: 0xFFFFFFFF
+        fontSize: 18
+      
+      indicatorShape: circle     # circle (default) or square
+      showStatusMessage: true    # Show/hide the detection status message
+      
+      showControls: true         # Show/hide all camera controls
+      showCaptureControl: true   # Show/hide the capture button
+      showFlashControl: true     # Show/hide the flash toggle
+      showCameraLensControl: true # Show/hide the camera switch button
+      
+      autoCapture: false         # Automatically capture when face is aligned
+      autoDisableCaptureControl: false # Disable capture button until face is detected
+
+      accuracyConfig:            # Fine-tune detection accuracy
+        threshold: 0.6           # Detection threshold (0.0 to 1.0)
+        yaw: 15                  # Maximum allowed face rotation (horizontal)
+        tilt: 15                 # Maximum allowed face tilt (vertical)
+        minFaceSize: 0.15        # Minimum face size relative to frame
+        
     onCapture: |
       print('Face captured: ' + event.data.files[0].path);
     onError: |
