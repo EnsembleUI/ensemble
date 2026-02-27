@@ -17,7 +17,6 @@ import 'package:image_picker/image_picker.dart';
 
 import './camera.dart';
 
-
 const _optionMappings = {
   'mode': 'mode',
   'initialCamera': 'initialCamera',
@@ -256,8 +255,6 @@ class CameraManagerImpl extends CameraManager {
           ModelChangeEvent(WidgetBindingSource(cameraAction.id!), camera));
     }
   }
-
-
 
   Widget? buildOverlayWidget(
       ScopeManager? scopeManager, ShowCameraAction cameraAction) {

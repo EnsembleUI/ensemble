@@ -143,7 +143,7 @@ class _SmartFaceCameraWebState extends State<SmartFaceCameraWeb> {
                         color: Colors.white,
                         iconSize: 32,
                         onPressed: (!widget.autoDisableCaptureControl ||
-                                 face_detection
+                                face_detection
                                     .WebFaceDetection.faceDetected.value)
                             ? _captureImage
                             : null,
