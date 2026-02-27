@@ -13,11 +13,6 @@ import 'package:flutter/material.dart';
 import './face_detection_camera.dart';
 
 class FaceCameraManagerImpl extends FaceCameraManager {
-  static const _optionMappings = {
-    'initialCamera': 'initialCamera',
-    'faceDetection': 'faceDetection',
-  };
-
   @override
   Future<bool?> hasPermission() async {
     bool? status;
@@ -85,13 +80,18 @@ class FaceCameraManagerImpl extends FaceCameraManager {
       },
     );
 
+    // Set properties from options
     final options = action.options ?? {};
     for (var option in options.keys) {
-      final property = _optionMappings[option];
-      if (property != null) {
-        final value = scopeManager?.dataContext.eval(options[option]);
-        camera.setProperty(property, value);
-      }
+      final value = scopeManager?.dataContext.eval(options[option]);
+      camera.setProperty(option, value);
+    }
+
+    // Set properties from flat inputs
+    final inputs = action.inputs ?? {};
+    for (var input in inputs.keys) {
+      final value = scopeManager?.dataContext.eval(inputs[input]);
+      camera.setProperty(input, value);
     }
 
     await Navigator.push(

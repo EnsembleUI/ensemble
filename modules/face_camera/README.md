@@ -43,11 +43,10 @@ onTap:
     id: myFaceCamera
     options:
       initialCamera: front # front (default) or back
-      faceDetection:
-        autoCapture: true
-        message: "Align your face"
-        imageResolution: high # low, medium, high, veryHigh
-        performanceMode: fast # fast or accurate
+    autoCapture: true
+    message: "Align your face"
+    imageResolution: high # low, medium, high, veryHigh
+    performanceMode: fast # fast or accurate
     onCapture: |
       print('Face captured: ' + event.data.files[0].path);
     onError: |

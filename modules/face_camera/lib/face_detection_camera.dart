@@ -1,3 +1,5 @@
+import 'dart:developer';
+
 import 'package:flutter/material.dart';
 import 'package:face_camera/face_camera.dart';
 import 'package:flutter/foundation.dart';
@@ -40,6 +42,37 @@ class FaceDetectionCamera extends StatefulWidget
             .setInitialCamera(Utils.getString(value, fallback: 'front')),
         'faceDetection': (value) =>
             controller.setFaceDetection(Utils.getMap(value)),
+        'message': (value) =>
+            controller.updateConfig({'message': Utils.optionalString(value)}),
+        'messageStyle': (value) =>
+            controller.updateConfig({'messageStyle': value}),
+        'showControls': (value) => controller.updateConfig(
+            {'showControls': Utils.getBool(value, fallback: true)}),
+        'showCaptureControl': (value) => controller.updateConfig(
+            {'showCaptureControl': Utils.getBool(value, fallback: true)}),
+        'showFlashControl': (value) => controller.updateConfig(
+            {'showFlashControl': Utils.getBool(value, fallback: true)}),
+        'showCameraLensControl': (value) => controller.updateConfig(
+            {'showCameraLensControl': Utils.getBool(value, fallback: true)}),
+        'showStatusMessage': (value) => controller.updateConfig(
+            {'showStatusMessage': Utils.getBool(value, fallback: true)}),
+        'indicatorShape': (value) =>
+            controller.updateConfig({'indicatorShape': value}),
+        'autoDisableCaptureControl': (value) => controller.updateConfig({
+              'autoDisableCaptureControl': Utils.getBool(value, fallback: false)
+            }),
+        'autoCapture': (value) => controller.updateConfig(
+            {'autoCapture': Utils.getBool(value, fallback: false)}),
+        'imageResolution': (value) =>
+            controller.updateConfig({'imageResolution': value}),
+        'defaultFlashMode': (value) =>
+            controller.updateConfig({'defaultFlashMode': value}),
+        'orientation': (value) =>
+            controller.updateConfig({'orientation': value}),
+        'performanceMode': (value) =>
+            controller.updateConfig({'performanceMode': value}),
+        'accuracyConfig': (value) =>
+            controller.updateConfig({'accuracyConfig': value}),
       };
 }
 
@@ -173,6 +206,48 @@ class FaceDetectionController extends Controller {
     }
   }
 
+  void updateConfig(Map<String, dynamic> partialConfig) {
+    faceDetectionConfig = faceDetectionConfig.copyWith(
+      message: partialConfig['message'],
+      messageStyle: Utils.getTextStyle(partialConfig['messageStyle']),
+      showControls: partialConfig['showControls'],
+      showCaptureControl: partialConfig['showCaptureControl'],
+      showFlashControl: partialConfig['showFlashControl'],
+      showCameraLensControl: partialConfig['showCameraLensControl'],
+      showStatusMessage: partialConfig['showStatusMessage'],
+      indicatorShape: partialConfig['indicatorShape'] is IndicatorShape
+          ? partialConfig['indicatorShape']
+          : null,
+      autoDisableCaptureControl: partialConfig['autoDisableCaptureControl'],
+      autoCapture: partialConfig['autoCapture'],
+      imageResolution: partialConfig['imageResolution'] is ImageResolution
+          ? partialConfig['imageResolution']
+          : null,
+      defaultFlashMode: partialConfig['defaultFlashMode'] is CameraFlashMode
+          ? partialConfig['defaultFlashMode']
+          : null,
+      orientation: partialConfig['orientation'] is CameraOrientation
+          ? partialConfig['orientation']
+          : null,
+      performanceMode: partialConfig['performanceMode'] != null
+          ? FaceDetectionConfig._parsePerformanceMode(
+              partialConfig['performanceMode'])
+          : null,
+      accuracyConfig: partialConfig['accuracyConfig'] != null
+          ? (partialConfig['accuracyConfig'] is AccuracyConfig
+              ? partialConfig['accuracyConfig']
+              : AccuracyConfig.fromMap(
+                  Map<String, dynamic>.from(partialConfig['accuracyConfig'])))
+          : null,
+    );
+
+    if (kIsWeb) {
+      face_detection.WebFaceDetection.setPerformanceMode(
+          faceDetectionConfig.performanceMode);
+    }
+    notifyListeners();
+  }
+
   void init(BuildContext context, Function(File?)? onCapture,
       Function(dynamic)? onError) {
     if (!kIsWeb) {
@@ -247,7 +322,46 @@ class FaceDetectionConfig {
     this.accuracyConfig,
   });
 
+  FaceDetectionConfig copyWith({
+    String? message,
+    TextStyle? messageStyle,
+    bool? showControls,
+    bool? showCaptureControl,
+    bool? showFlashControl,
+    bool? showCameraLensControl,
+    bool? showStatusMessage,
+    IndicatorShape? indicatorShape,
+    bool? autoDisableCaptureControl,
+    bool? autoCapture,
+    ImageResolution? imageResolution,
+    CameraFlashMode? defaultFlashMode,
+    CameraOrientation? orientation,
+    FaceDetectorMode? performanceMode,
+    AccuracyConfig? accuracyConfig,
+  }) {
+    return FaceDetectionConfig(
+      message: message ?? this.message,
+      messageStyle: messageStyle ?? this.messageStyle,
+      showControls: showControls ?? this.showControls,
+      showCaptureControl: showCaptureControl ?? this.showCaptureControl,
+      showFlashControl: showFlashControl ?? this.showFlashControl,
+      showCameraLensControl:
+          showCameraLensControl ?? this.showCameraLensControl,
+      showStatusMessage: showStatusMessage ?? this.showStatusMessage,
+      indicatorShape: indicatorShape ?? this.indicatorShape,
+      autoDisableCaptureControl:
+          autoDisableCaptureControl ?? this.autoDisableCaptureControl,
+      autoCapture: autoCapture ?? this.autoCapture,
+      imageResolution: imageResolution ?? this.imageResolution,
+      defaultFlashMode: defaultFlashMode ?? this.defaultFlashMode,
+      orientation: orientation ?? this.orientation,
+      performanceMode: performanceMode ?? this.performanceMode,
+      accuracyConfig: accuracyConfig ?? this.accuracyConfig,
+    );
+  }
+
   factory FaceDetectionConfig.fromMap(Map<String, dynamic>? map) {
+    log('message $map');
     if (map == null) return FaceDetectionConfig();
 
     return FaceDetectionConfig(
