@@ -30,6 +30,30 @@ Remote Config is **off** by default. To turn it on:
 3. **Firebase**  
    Ensure Firebase is set up (e.g. `GoogleService-Info.plist` / `google-services.json`). With `useRemoteConfig = true`, `Firebase.initializeApp()` is already triggered by the starter’s init.
 
+### Optional environment variables
+
+You can tune Remote Config fetch behavior via environment variables:
+
+- `remote_config_fetch_timeout` — fetch timeout in seconds (default `10`).
+- `remote_config_minimum_fetch_interval` — minimum fetch interval in seconds (default `3600`, i.e. 1 hour).
+
+Example:
+
+```yaml
+environmentVariables:
+  remote_config_fetch_timeout: 10
+  remote_config_minimum_fetch_interval: 3600
+```
+
+Notes:
+
+- These values are applied when Remote Config is initialized **and** before each
+  subsequent `fetchAndActivate()` / `ensemble.remoteConfig.refresh()`.
+- On the very first app start, Ensemble config may not be loaded yet when RC
+  initializes, so the defaults can be used for the first fetch; any later call
+  to `ensemble.remoteConfig.refresh()` re-reads and reapplies the env values.
+- For local debugging you can temporarily set `remote_config_minimum_fetch_interval: 0` to avoid throttling, but you should use a higher value in production.
+
 ## Usage in YAML
 
 In any screen or expression, use the `ensemble` object
@@ -61,7 +85,8 @@ For debugging and introspection (e.g. a developer screen):
 - `ensemble.remoteConfig.info()` → metadata such as `initialized`, `lastFetchStatus`,
   `lastFetchTime`, and fetch/interval settings.
 - `ensemble.remoteConfig.refresh()` → manually trigger a re‑fetch/activate of
-  Remote Config values (using Firebase's built‑in throttling).
+  Remote Config values (using Firebase's built‑in throttling and current env
+  settings for timeout/interval).
 
 ## Debug logging
 

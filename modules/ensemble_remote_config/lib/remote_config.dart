@@ -1,5 +1,6 @@
 library ensemble_remote_config;
 
+import 'package:ensemble/framework/config.dart';
 import 'package:ensemble/framework/stub/remote_config.dart';
 import 'package:firebase_remote_config/firebase_remote_config.dart';
 import 'package:flutter/foundation.dart';
@@ -16,17 +17,49 @@ class RemoteConfigService {
 
   FirebaseRemoteConfig? _remoteConfig;
 
+  /// Apply settings from environment variables (if present), falling back
+  /// to sensible defaults. This can be called multiple times; it will
+  /// re-read the env on each invocation.
+  Future<void> _applySettingsFromEnv(FirebaseRemoteConfig config) async {
+    // Environment variables:
+    // - remote_config_fetch_timeout (seconds)
+    // - remote_config_minimum_fetch_interval (seconds)
+    Duration _durationFromEnv(String key, Duration fallback) {
+      final dynamic value = EnvConfig().getProperty(key);
+      if (value == null || (value is String && value.isEmpty)) {
+        return fallback;
+      }
+      if (value is num) {
+        return Duration(seconds: value.toInt());
+      }
+      if (value is String) {
+        final parsed = int.tryParse(value);
+        if (parsed != null) {
+          return Duration(seconds: parsed);
+        }
+      }
+      return fallback;
+    }
+
+    final fetchTimeout = _durationFromEnv(
+        'remote_config_fetch_timeout', const Duration(seconds: 10));
+    final minimumFetchInterval = _durationFromEnv(
+        'remote_config_minimum_fetch_interval', const Duration(hours: 1));
+
+    await config.setConfigSettings(
+      RemoteConfigSettings(
+        fetchTimeout: fetchTimeout,
+        minimumFetchInterval: minimumFetchInterval,
+      ),
+    );
+  }
+
   /// Initialize Remote Config
   Future<void> ensureInitialized() async {
     if (_remoteConfig != null) return;
 
     final config = FirebaseRemoteConfig.instance;
-    await config.setConfigSettings(
-      RemoteConfigSettings(
-        fetchTimeout: const Duration(seconds: 10),
-        minimumFetchInterval: const Duration(hours: 1),
-      ),
-    );
+    await _applySettingsFromEnv(config);
     _remoteConfig = config;
   }
 
@@ -46,6 +79,9 @@ class RemoteConfigService {
     await ensureInitialized();
     if (_remoteConfig == null) return;
     try {
+      // Re-apply settings on each fetch so that environment overrides
+      // (which may load after first init) are honored.
+      await _applySettingsFromEnv(_remoteConfig!);
       await _remoteConfig!.fetchAndActivate();
       if (kDebugMode) {
         debugPrint('[RemoteConfig] Initialized');
