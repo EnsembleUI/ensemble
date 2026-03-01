@@ -28,6 +28,7 @@ import 'package:ensemble/framework/secrets.dart';
 import 'package:ensemble/framework/stub/auth_context_manager.dart';
 import 'package:ensemble/framework/stub/oauth_controller.dart';
 import 'package:ensemble/framework/stub/token_manager.dart';
+import 'package:ensemble/framework/stub/remote_config.dart';
 import 'package:ensemble/framework/storage_manager.dart';
 import 'package:ensemble/framework/widget/view_util.dart';
 import 'package:ensemble/host_platform_manager.dart';
@@ -465,6 +466,7 @@ class NativeInvokable extends ActionInvokable {
   Map<String, Function> getters() {
     return {
       'storage': () => storage,
+      'remoteConfig': () => RemoteConfigInvokable(),
       'user': () => UserInfo(),
       'formatter': () => Formatter(),
       'utils': () => _EnsembleUtils(),
@@ -688,6 +690,53 @@ class EnsembleSocketInvokable with Invokable {
   Map<String, Function> setters() {
     return {};
   }
+}
+
+/// Invokable for Remote Config
+class RemoteConfigInvokable with Invokable {
+  static RemoteConfig get _provider =>
+      GetIt.instance.isRegistered<RemoteConfig>()
+          ? GetIt.instance<RemoteConfig>()
+          : RemoteConfigStub();
+
+  @override
+  dynamic getProperty(dynamic prop) =>
+      _provider.getValue(prop?.toString() ?? '', null);
+
+  @override
+  Map<String, Function> getters() => {};
+
+  @override
+  Map<String, Function> methods() {
+    return {
+      'get': (dynamic key, [dynamic defaultValue]) {
+        final k = key?.toString() ?? '';
+        final def = defaultValue ?? '';
+        return _provider.getValue(k, def);
+      },
+      'getBool': (dynamic key, [bool defaultValue = false]) =>
+          _provider.getValue(key?.toString() ?? '', defaultValue) as bool,
+      'getInt': (dynamic key, [int defaultValue = 0]) =>
+          _provider.getValue(key?.toString() ?? '', defaultValue) as int,
+      'getDouble': (dynamic key, [double defaultValue = 0.0]) =>
+          _provider.getValue(key?.toString() ?? '', defaultValue) as double,
+      'getString': (dynamic key, [String defaultValue = '']) =>
+          _provider.getValue(key?.toString() ?? '', defaultValue) as String,
+      'all': () => _provider.getAllValues(),
+      'info': () => _provider.getInfo(),
+      'refresh': () => _provider.refresh(),
+      'setDefaults': (dynamic defaults) {
+        final map = Utils.getMap(defaults);
+        if (map == null) {
+          return null;
+        }
+        return _provider.setDefaults(Map<String, dynamic>.from(map));
+      },
+    };
+  }
+
+  @override
+  Map<String, Function> setters() => {};
 }
 
 /// Singleton handling user storage

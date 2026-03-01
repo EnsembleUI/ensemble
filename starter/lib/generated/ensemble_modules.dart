@@ -16,6 +16,7 @@ import 'package:ensemble/framework/stub/plaid_link_manager.dart';
 import 'package:ensemble/module/auth_module.dart';
 import 'package:ensemble/module/location_module.dart';
 import 'package:ensemble/framework/stub/moengage_manager.dart';
+import 'package:ensemble/framework/stub/remote_config.dart';
 import 'package:ensemble/module/stripe_module.dart';
 // import 'package:ensemble_stripe/ensemble_stripe.dart';
 //import 'package:ensemble_bluetooth/ensemble_bluetooth.dart';
@@ -71,6 +72,9 @@ import 'package:get_it/get_it.dart';
 // Uncomment to enable Adobe Analytics
 // import 'package:ensemble_adobe_analytics/adobe_analytics.dart';
 
+// Uncomment to enable Firebase Remote Config (A/B testing, feature flags)
+// import 'package:ensemble_remote_config/remote_config.dart';
+
 /// TODO: This class should be generated to enable selected Services
 class EnsembleModules {
   static final EnsembleModules _instance = EnsembleModules._internal();
@@ -97,6 +101,7 @@ class EnsembleModules {
   static const useBluetooth = false;
 
   static const useStripe = false;
+  static const useRemoteConfig = false;
 
   // widgets
   static const enableChat = false;
@@ -107,7 +112,11 @@ class EnsembleModules {
   Future<void> init() async {
     // Note that notifications is not a module
 
-    if (useMoEngage || useNotifications || useFirebaseAnalytics || useAuth) {
+    if (useMoEngage ||
+        useNotifications ||
+        useFirebaseAnalytics ||
+        useAuth ||
+        useRemoteConfig) {
       // if payload is not passed, Firebase configuration files
       // are required to be added manually to iOS and Android
       try {
@@ -240,6 +249,13 @@ class EnsembleModules {
       // GetIt.I.registerSingleton<StripeModule>(StripeModuleImpl());
     } else {
       GetIt.I.registerSingleton<StripeModule>(StripeModuleStub());
+    }
+
+    if (useRemoteConfig) {
+      // Uncomment to enable Remote Config
+      // GetIt.I.registerSingleton<RemoteConfig>(RemoteConfigImpl());
+    } else {
+      GetIt.I.registerSingleton<RemoteConfig>(RemoteConfigStub());
     }
   }
 }
