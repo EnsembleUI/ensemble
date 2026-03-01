@@ -150,6 +150,13 @@ dependencies:
   #     ref: main
   #     path: modules/adobe_analytics
 
+  # Uncomment to enable Firebase Remote Config (A/B testing, feature flags)
+  # ensemble_remote_config:
+  #   git:
+  #     url: https://github.com/EnsembleUI/ensemble.git
+  #     ref: main
+  #     path: modules/ensemble_remote_config
+
   # ensemble_stripe:
   #   git:
   #     url: https://github.com/EnsembleUI/ensemble.git
