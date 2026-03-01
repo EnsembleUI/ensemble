@@ -390,4 +390,13 @@ export const modules: Script[] = [
       },
     ],
   },
+  {
+    name: 'remote_config',
+    path: 'scripts/modules/enable_remote_config.dart',
+    parameters: [
+      ...firebaseAndroidParameters,
+      ...firebaseIOSParameters,
+      ...firebaseWebParameters,
+    ],
+  },
 ];
