@@ -333,6 +333,7 @@ class PageState extends State<Page>
           customViewDefinitions: widget._pageModel.customViewDefinitions,
           apiMap: widget._pageModel.apiMap,
           socketData: widget._pageModel.socketData,
+          actionsMap: widget._pageModel.actionsMap,
         ),
         importedCode: widget._pageModel.importedCode);
     widget.rootScopeManager = _scopeManager;

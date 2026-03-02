@@ -81,6 +81,7 @@ class LocalDefinitionProvider extends FileDefinitionProvider {
     Map code = {};
     Map output = {};
     Map widgets = {};
+    Map actions = {};
 
     try {
       // Get the manifest content
@@ -135,8 +136,46 @@ class LocalDefinitionProvider extends FileDefinitionProvider {
         debugPrint('Error processing scripts: $e');
       }
 
+      // Process App Actions (reusable global Actions)
+      try {
+        if (manifestMap['actions'] != null) {
+          final List<Map<String, dynamic>> actionsList =
+              List<Map<String, dynamic>>.from(manifestMap['actions']);
+
+          for (var actionItem in actionsList) {
+            try {
+              final String actionName = actionItem["name"];
+              final dynamic actionContent =
+                  await _readFile("actions/$actionName.yaml");
+
+              if (actionContent is! Map) {
+                debugPrint(
+                    'Content in action $actionName is not a Map/YamlMap (${actionContent.runtimeType})');
+                continue;
+              }
+
+              final dynamic actionRoot = (actionContent)['Action'];
+              if (actionRoot is! Map) {
+                debugPrint('Action root in $actionName is not a Map/YamlMap');
+                continue;
+              }
+
+              final Map rootMap = actionRoot;
+              actions[actionName] = YamlMap.wrap(rootMap);
+            } catch (e) {
+              // ignore error loading individual action
+            }
+          }
+        }
+      } catch (e) {
+        debugPrint('Error processing actions: $e');
+      }
+
       output[ResourceArtifactEntry.Widgets.name] = widgets;
       output[ResourceArtifactEntry.Scripts.name] = code;
+      if (actions.isNotEmpty) {
+        output['Actions'] = actions;
+      }
 
       return output;
     } catch (e) {

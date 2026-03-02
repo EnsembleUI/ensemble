@@ -394,7 +394,8 @@ class CdnDefinitionProvider extends DefinitionProvider {
     // 2) core artifacts
     _parseScreens(artifacts['screens']);
     _parseTheme(artifacts['theme']);
-    _parseResources(artifacts['widgets'], artifacts['scripts']);
+    _parseResources(
+        artifacts['widgets'], artifacts['scripts'], artifacts['actions']);
     _parseTranslations(artifacts['translations']);
 
     // 3) finalize AppConfig
@@ -436,9 +437,11 @@ class CdnDefinitionProvider extends DefinitionProvider {
     }
   }
 
-  void _parseResources(dynamic widgetsRaw, dynamic scriptsRaw) {
+  void _parseResources(
+      dynamic widgetsRaw, dynamic scriptsRaw, dynamic actionsRaw) {
     final widgets = <String, dynamic>{};
     final code = <String, dynamic>{};
+    final actions = <String, dynamic>{};
 
     if (widgetsRaw is Map) {
       widgetsRaw.forEach((k, v) {
@@ -476,10 +479,35 @@ class CdnDefinitionProvider extends DefinitionProvider {
       }
     }
 
-    final resources = {
+    // Parse reusable Actions
+    if (actionsRaw is List) {
+      for (final item in actionsRaw) {
+        final a = _asMap(item);
+        if (a == null) continue;
+        final name = a['name']?.toString();
+        final content = a['content'];
+        if (name == null) continue;
+
+        final YamlMap? yaml = _yamlFromUnknown(content);
+        if (yaml == null) continue;
+
+        // Flatten optional top-level "Action" wrapper
+        final dynamic root = yaml['Action'] ?? yaml;
+        if (root is YamlMap) {
+          actions[name] = root;
+        } else if (root is Map) {
+          actions[name] = YamlMap.wrap(root);
+        }
+      }
+    }
+
+    final resources = <String, dynamic>{
       ResourceArtifactEntry.Widgets.name: widgets,
       ResourceArtifactEntry.Scripts.name: code,
     };
+    if (actions.isNotEmpty) {
+      resources['Actions'] = actions;
+    }
     if (resources.isNotEmpty) {
       // Store as plain Map (not YamlMap) to match Ensemble provider behavior
       _artifactCache[ArtifactType.resources.name] = resources;

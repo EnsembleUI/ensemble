@@ -10,6 +10,7 @@ import 'package:ensemble/action/device_security.dart';
 import 'package:ensemble/action/dialog_actions.dart';
 import 'package:ensemble/action/drawer_actions.dart';
 import 'package:ensemble/action/execute_action_group_action.dart';
+import 'package:ensemble/action/execute_action.dart';
 import 'package:ensemble/action/face_camera_actions.dart';
 import 'package:ensemble/action/file_picker_action.dart';
 import 'package:ensemble/action/get_network_info_action.dart';
@@ -956,6 +957,7 @@ class SignInWithCustomTokenAction extends EnsembleAction {
 
 enum ActionType {
   invokeAPI,
+  executeAction,
   navigateScreen,
   navigateViewGroup,
   navigateExternalScreen,
@@ -1121,6 +1123,9 @@ abstract class EnsembleAction {
     } else if (actionType == ActionType.dismissBottomSheet ||
         actionType == ActionType.dismissBottomModal) {
       return DismissBottomSheetAction.from(payload: payload);
+    } else if (actionType == ActionType.executeAction) {
+      return ExecuteActionAction.fromYaml(
+          initiator: initiator, payload: payload);
     } else if (actionType == ActionType.invokeAPI) {
       return InvokeAPIAction.fromYaml(initiator: initiator, payload: payload);
     } else if (actionType == ActionType.openCamera) {

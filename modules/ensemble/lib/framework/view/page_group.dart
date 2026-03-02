@@ -102,6 +102,7 @@ class PageGroupState extends State<PageGroup>
         customViewDefinitions: widget.model.customViewDefinitions,
         apiMap: widget.model.apiMap,
         socketData: widget.model.socketData,
+        actionsMap: widget.model.actionsMap,
       ),
     );
 

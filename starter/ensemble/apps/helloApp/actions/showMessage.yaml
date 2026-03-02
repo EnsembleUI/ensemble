@@ -1,0 +1,6 @@
+Action:
+  inputs:
+    - message
+  action:
+    showToast:
+      message: ${message}

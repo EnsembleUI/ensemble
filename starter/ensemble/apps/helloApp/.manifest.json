@@ -14,5 +14,10 @@
         {
             "name": "utils"
         }
+    ],
+    "actions": [
+        {
+            "name": "showMessage"
+        }
     ]
 }
