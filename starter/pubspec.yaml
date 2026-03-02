@@ -201,6 +201,7 @@ flutter:
     - ensemble/apps/helloApp/
     - ensemble/apps/helloApp/screens/
     - ensemble/apps/helloApp/widgets/
+    - ensemble/apps/helloApp/actions/
     - ensemble/apps/helloApp/scripts/
     - ensemble/apps/helloApp/assets/
     - ensemble/apps/helloApp/translations/

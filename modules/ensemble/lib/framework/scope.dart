@@ -688,7 +688,11 @@ mixin PageBindingManager on IsScopeManager {
 
 /// data for the current Page.
 class PageData {
-  PageData({this.customViewDefinitions, this.apiMap, this.socketData}) {
+  PageData(
+      {this.customViewDefinitions,
+      this.apiMap,
+      this.socketData,
+      this.actionsMap}) {
     //log("EventBus ${eventBus.hashCode} created");
   }
 
@@ -717,6 +721,7 @@ class PageData {
   // API model mapping
   Map<String, YamlMap>? apiMap;
   Map<String, EnsembleSocket>? socketData;
+  Map<String, YamlMap>? actionsMap;
 
   // we keep track of radios's groupId on every page, since Radios can be scattered
   // anywhere on the screen
