@@ -1,3 +1,7 @@
+## 1.2.34
+
+ - **FEAT**(remote_config): add Firebase Remote Config integration. ([906f0133](https://github.com/ensembleUI/ensemble/commit/906f013322dcda45a1740db24b5e21f63ea372e5))
+
 ## 1.2.33
 
  - **FEAT**(face_camera): separate face detection from ensemble_camera into separate module. ([9857c3cc](https://github.com/ensembleUI/ensemble/commit/9857c3cc3048f2c8879feeb07d77b084181010cd))
