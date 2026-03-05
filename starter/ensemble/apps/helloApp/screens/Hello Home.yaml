@@ -80,11 +80,11 @@ View:
               height: 200
               marginTop: 24
 
-Actions:
+Action:
   callAPI:
     inputs:
       - call
-    action:
+    body:
       executeConditionalAction:
         conditions:
           - if: ${call == true}
