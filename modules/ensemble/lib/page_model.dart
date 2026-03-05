@@ -30,6 +30,7 @@ abstract class PageModel {
     'View',
     'ViewGroup',
     'Action',
+    'Actions',
     'API',
     'Socket',
     'Functions',
