@@ -30,7 +30,6 @@ abstract class PageModel {
     'View',
     'ViewGroup',
     'Action',
-    'Actions',
     'API',
     'Socket',
     'Functions',
@@ -69,7 +68,7 @@ abstract class PageModel {
   void _processModel(YamlMap docMap) {
     _processAPI(docMap['API']);
     _processSocket(docMap['Socket']);
-    _processActions(docMap['Actions']);
+    _processActions(docMap['Action']);
     YamlNode? globalCodeNode = docMap.nodes['Global'];
     if (globalCodeNode != null) {
       globalCode = Utils.optionalString(globalCodeNode.value);
