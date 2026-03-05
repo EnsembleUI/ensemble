@@ -75,17 +75,16 @@ class ExecuteActionAction extends EnsembleAction {
     }
 
     // Now resolve and execute the inner Action tree.
-    final dynamic actionNode = definition['action'];
-    if (actionNode == null) {
+    final dynamic bodyNode = definition['body'];
+    if (bodyNode == null) {
       throw LanguageError(
-          "Action '$name' must define an 'action' payload to execute.");
+          "Action '$name' must define a 'body' payload to run.");
     }
 
     final EnsembleAction? innerAction =
-        EnsembleAction.from(Utils.getYamlMap(actionNode));
+        EnsembleAction.from(Utils.getYamlMap(bodyNode));
     if (innerAction == null) {
-      throw LanguageError(
-          "Action '$name' contains an invalid 'action' payload.");
+      throw LanguageError("Action '$name' contains an invalid 'body' payload.");
     }
 
     return ScreenController()
