@@ -27,6 +27,9 @@ class FormFieldController extends WidgetController {
 
   bool? enabled;
   bool required = false;
+
+  /// TV/Accessibility: Coordinate-based navigation for form fields
+  TVOptionsComposite? tvOptions;
   String? requiredMessage;
   TextStyle? errorStyle;
   IconModel? icon;
@@ -94,6 +97,9 @@ class FormFieldController extends WidgetController {
       'labelText': (value) => labelText = Utils.optionalString(value),
       'labelHint': (value) => labelHint = Utils.optionalString(value),
       'description': (value) => description = Utils.optionalString(value),
+      // TV/Accessibility: Coordinate-based navigation for form fields
+      'tvOptions': (value) =>
+          tvOptions = value is Map ? TVOptionsComposite(this, inputs: value) : null,
     });
     return setters;
   }

@@ -61,6 +61,9 @@ class Device
       "macOsInfo": () => DeviceMacOsInfo(),
       "windowsInfo": () => DeviceWindowsInfo(),
 
+      // TV detection
+      "isTV": () => isTV,
+
       // @deprecated. backward compatibility
       DevicePlatform.web.name: () => DeviceWebInfo()
     };
@@ -74,6 +77,7 @@ class Device
       'isWeb': () => platform == DevicePlatform.web,
       'isMacOS': () => platform == DevicePlatform.macos,
       'isWindows': () => platform == DevicePlatform.windows,
+      'isTV': () => isTV,
 
       // deprecated. Should be using Action instead
       'openAppSettings': (target) => openAppSettings(target),
@@ -134,7 +138,30 @@ mixin DeviceInfoCapability {
   static MacOsDeviceInfo? macOsInfo;
   static WindowsDeviceInfo? windowsInfo;
 
+  // Android TV detection cache
+  static bool? _isTV;
+
   DevicePlatform? get platform => _platform;
+
+  /// Returns true if the device is an Android TV
+  /// Checks for TV-specific system features
+  bool get isTV {
+    if (_isTV != null) return _isTV!;
+
+    // Only Android devices can be TVs (for now)
+    if (kIsWeb || _platform != DevicePlatform.android || androidInfo == null) {
+      _isTV = false;
+      return false;
+    }
+
+    // Check for TV system features
+    final systemFeatures = androidInfo!.systemFeatures;
+    _isTV = systemFeatures.contains('android.hardware.type.television') ||
+        systemFeatures.contains('android.software.leanback') ||
+        systemFeatures.contains('android.software.leanback_only');
+
+    return _isTV!;
+  }
 
   /// initialize device info
   void initDeviceInfo() async {

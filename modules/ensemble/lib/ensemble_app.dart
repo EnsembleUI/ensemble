@@ -17,6 +17,7 @@ import 'package:ensemble/framework/event/change_locale_events.dart';
 import 'package:ensemble/framework/storage_manager.dart';
 import 'package:ensemble/framework/theme/theme_loader.dart';
 import 'package:ensemble/framework/theme_manager.dart';
+import 'package:ensemble/framework/tv/tv_focus_provider.dart';
 import 'package:ensemble/framework/widget/error_screen.dart';
 import 'package:ensemble/framework/widget/screen.dart';
 import 'package:ensemble/ios_deep_link_manager.dart';
@@ -108,6 +109,7 @@ class EnsembleApp extends StatefulWidget {
     this.onAppLoad,
     this.forcedLocale,
     this.child,
+    this.tvFocusProvider,
     GlobalKey<NavigatorState>? navigatorKey,
     ScrollController? screenScroller,
   }) {
@@ -138,6 +140,12 @@ class EnsembleApp extends StatefulWidget {
 
   /// use this if you want the App to start out with this local
   final Locale? forcedLocale;
+
+  /// Optional TV focus provider from host app.
+  /// When provided, Ensemble widgets will use the host app's focus system
+  /// instead of Ensemble's built-in TVFocusWidget. This enables seamless
+  /// D-pad navigation between host app and Ensemble content.
+  final TVFocusProvider? tvFocusProvider;
 
   @override
   State<StatefulWidget> createState() => EnsembleAppState();
@@ -421,6 +429,19 @@ class EnsembleAppState extends State<EnsembleApp> with WidgetsBindingObserver {
         EnsembleThemeManager().currentTheme()?.appThemeData == null) {
       //backward compatibility in case apps are using the old style of App level theming that is at the root level
       theme = config.getAppTheme();
+
+      // Preserve tvFocusTheme from EnsembleThemeManager if available
+      // This ensures TV focus styling works even with legacy themes
+      final currentThemeData = EnsembleThemeManager().currentTheme()?.appThemeData;
+      final tvFocusTheme = currentThemeData?.extension<EnsembleThemeExtension>()?.tvFocusTheme;
+      if (tvFocusTheme != null) {
+        final existingExtension = theme.extension<EnsembleThemeExtension>();
+        if (existingExtension != null) {
+          theme = theme.copyWith(
+            extensions: [existingExtension.copyWith(tvFocusTheme: tvFocusTheme)],
+          );
+        }
+      }
     } else {
       theme = EnsembleThemeManager().currentTheme()!.appThemeData;
     }
@@ -472,6 +493,16 @@ class EnsembleAppState extends State<EnsembleApp> with WidgetsBindingObserver {
     //     child: app,
     //   );
     // }
+
+    // Wrap with TV focus provider if provided by host app
+    // This enables host app's focus system to manage Ensemble widgets
+    if (widget.tvFocusProvider != null) {
+      app = TVFocusProviderScope(
+        provider: widget.tvFocusProvider!,
+        child: app,
+      );
+    }
+
     return app;
   }
 

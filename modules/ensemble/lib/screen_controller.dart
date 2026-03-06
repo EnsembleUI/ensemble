@@ -565,6 +565,24 @@ class ScreenController {
       isExternal: isExternal,
     );
 
+    // When navigating externally (asExternal: true), wrap screen with Theme
+    // to ensure theme (including TV focus styling) continues to work on the external navigator.
+    // Note: We intentionally do NOT wrap with TVFocusProviderScope here because:
+    // - It can interfere with TextInput and TabBar focus handling
+    // - Ensemble's built-in TVFocusWidget will be used instead, which works better
+    //   for widgets that have their own focus management (TextInput, TabBar)
+    // - The Theme wrapper provides EnsembleThemeExtension which has TV focus colors
+    if (asExternal) {
+      // Get theme from EnsembleThemeManager
+      final ensembleThemeData = EnsembleThemeManager().currentTheme()?.appThemeData;
+      if (ensembleThemeData != null) {
+        screenWidget = Theme(
+          data: ensembleThemeData,
+          child: screenWidget,
+        );
+      }
+    }
+
     Map<String, dynamic>? defaultTransitionOptions =
         Theme.of(context).extension<EnsembleThemeExtension>()?.transitions ??
             {};
