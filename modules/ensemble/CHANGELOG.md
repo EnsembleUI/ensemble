@@ -1,3 +1,9 @@
+## 1.2.35-beta.1
+
+ - **FIX**(execute_action): update payload key from 'action' to 'body' in ExecuteActionAction class. ([7e1b8466](https://github.com/ensembleUI/ensemble/commit/7e1b846611b4da27f21fa3474d8a6de05b40b768))
+ - **FIX**(page_model): add 'Actions' to the list of available types in PageModel. ([6dc07f06](https://github.com/ensembleUI/ensemble/commit/6dc07f06e447c5cdbf49be6f29a54e74fa6987e5))
+ - **FEAT**(actions): introduce reusable action execution framework. ([482d7de9](https://github.com/ensembleUI/ensemble/commit/482d7de922433bb41a282cfdd018f13866fe511f))
+
 ## 1.2.34
 
  - **FEAT**(remote_config): add Firebase Remote Config integration. ([906f0133](https://github.com/ensembleUI/ensemble/commit/906f013322dcda45a1740db24b5e21f63ea372e5))
