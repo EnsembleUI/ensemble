@@ -299,15 +299,24 @@ class GridViewState extends EWidgetState<GridView> with TemplatedWidgetState {
       ScreenController()
           .executeAction(context, widget._controller.onScrollEnd!);
     }
+
+    // Build widget first to handle null case (e.g., bad template data)
+    // before wrapping with gesture detector
+    Widget? itemWidget = buildWidgetForIndex(
+        context, _items, widget._controller.itemTemplate!, index);
+
+    if (itemWidget == null) {
+      return const SizedBox.shrink();
+    }
+
     if (widget._controller.onItemTap != null) {
-      return EnsembleGestureDetector(
+      itemWidget = EnsembleGestureDetector(
         onTap: (() => _onItemTap(index)),
-        child: buildWidgetForIndex(
-            context, _items, widget._controller.itemTemplate!, index),
+        child: itemWidget,
       );
     }
-    return buildWidgetForIndex(
-        context, _items, widget._controller.itemTemplate!, index);
+
+    return itemWidget;
   }
 
   void _onItemTap(int index) {

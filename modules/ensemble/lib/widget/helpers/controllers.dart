@@ -91,6 +91,80 @@ class BoxShadowComposite extends WidgetCompositeProperty {
   }
 }
 
+/// TV/Accessibility options for D-pad navigation (flutter_pca style).
+/// Groups all TV-related properties under styles.tvOptions.*
+/// All focus styling properties can override theme values per-widget.
+class TVOptionsComposite extends WidgetCompositeProperty {
+  TVOptionsComposite(super.widgetController, {required Map inputs}) {
+    row = inputs['row'];
+    order = inputs['order'];
+    isRowEntryPoint = inputs['isRowEntryPoint'];
+    focusBorderRadius = inputs['focusBorderRadius'];
+    focusColor = inputs['focusColor'];
+    focusBorderWidth = inputs['focusBorderWidth'];
+  }
+
+  /// Vertical position (row grouping). Items with same row navigate horizontally.
+  double? _row;
+  set row(value) => _row = Utils.optionalDouble(value);
+  double? get row => _row;
+
+  /// Horizontal position within row. Lower values = more left.
+  double? _order;
+  set order(value) => _order = Utils.optionalDouble(value);
+  double? get order => _order;
+
+  /// Marks this item as the preferred entry point when navigating into this row.
+  bool _isRowEntryPoint = false;
+  set isRowEntryPoint(value) =>
+      _isRowEntryPoint = Utils.getBool(value, fallback: false);
+  bool get isRowEntryPoint => _isRowEntryPoint;
+
+  /// Custom border radius for focus indicator. Overrides widget's borderRadius.
+  /// Use this for circular buttons (100) or custom shapes.
+  double? _focusBorderRadius;
+  set focusBorderRadius(value) =>
+      _focusBorderRadius = Utils.optionalDouble(value);
+  double? get focusBorderRadius => _focusBorderRadius;
+
+  /// Custom color for focus indicator. Overrides theme's focusColor.
+  Color? _focusColor;
+  set focusColor(value) => _focusColor = Utils.getColor(value);
+  Color? get focusColor => _focusColor;
+
+  /// Custom border width for focus indicator. Overrides theme's focusBorderWidth.
+  double? _focusBorderWidth;
+  set focusBorderWidth(value) =>
+      _focusBorderWidth = Utils.optionalDouble(value);
+  double? get focusBorderWidth => _focusBorderWidth;
+
+  /// Returns true if TV navigation is enabled (row is set)
+  bool get isEnabled => _row != null;
+
+  @override
+  Map<String, Function> getters() => {
+        'row': () => _row,
+        'order': () => _order,
+        'isRowEntryPoint': () => _isRowEntryPoint,
+        'focusBorderRadius': () => _focusBorderRadius,
+        'focusColor': () => _focusColor,
+        'focusBorderWidth': () => _focusBorderWidth,
+      };
+
+  @override
+  Map<String, Function> methods() => {};
+
+  @override
+  Map<String, Function> setters() => {
+        'row': (value) => row = value,
+        'order': (value) => order = value,
+        'isRowEntryPoint': (value) => isRowEntryPoint = value,
+        'focusBorderRadius': (value) => focusBorderRadius = value,
+        'focusColor': (value) => focusColor = value,
+        'focusBorderWidth': (value) => focusBorderWidth = value,
+      };
+}
+
 class TextStyleComposite extends WidgetCompositeProperty {
   TextStyleComposite(super.widgetController,
       {LinearGradient? textGradient,
@@ -233,6 +307,9 @@ abstract class WidgetController extends Controller with HasStyles {
   @Deprecated("don't use anymore")
   String? label;
   String? _testId;
+
+  // TV/Accessibility: autofocus support for D-pad navigation
+  bool autofocus = false;
 
   String? get testId {
     String? _ = _testId ?? id;
@@ -380,6 +457,7 @@ abstract class WidgetController extends Controller with HasStyles {
       'className': (value) => className = value,
       'tooltip': (value) => toolTip = Utils.getMap(value),
       'semantics': (value) => semantics = EnsembleSemantics.fromYaml(Utils.getMap(value)),
+      'autofocus': (value) => autofocus = Utils.getBool(value, fallback: false),
     };
   }
 
@@ -428,6 +506,10 @@ class BoxController extends WidgetController {
   BoxAnimationComposite? animation;
   Matrix4? transform;
 
+  // TV/Accessibility: Coordinate-based navigation (flutter_pca style)
+  // Use styles.tvOptions.row, styles.tvOptions.order, etc.
+  TVOptionsComposite? tvOptions;
+
   @override
   Map<String, Function> getBaseSetters() {
     Map<String, Function> setters = super.getBaseSetters();
@@ -462,7 +544,12 @@ class BoxController extends WidgetController {
       'clipContent': (value) => clipContent = Utils.optionalBool(value),
       'animation': (payload) =>
           animation = BoxAnimationComposite.from(this, payload),
-      'transform': (value) => transform = TransformMatrix.from(value)
+      'transform': (value) => transform = TransformMatrix.from(value),
+
+      // TV/Accessibility: Coordinate-based navigation
+      // Use nested syntax: tvOptions: { row: 1, order: 0, isRowEntryPoint: true }
+      'tvOptions': (value) =>
+          tvOptions = value is Map ? TVOptionsComposite(this, inputs: value) : null,
     });
     return setters;
   }

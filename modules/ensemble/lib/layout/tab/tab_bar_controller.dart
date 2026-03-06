@@ -25,6 +25,11 @@ class TabBarController extends BoxController {
   Color? dividerColor;
   int? indicatorThickness;
 
+  /// TV Navigation: The row position for tab buttons in the focus grid.
+  /// If set, tabs participate in the main page focus grid at this row.
+  /// If not set, tabs are in an isolated focus group.
+  double? tvRow;
+
   EnsembleAction? onTabSelection;
   String? onTabSelectionHaptic;
   TabBarAction? tabBarAction;
@@ -65,6 +70,7 @@ class TabBarController extends BoxController {
     var setters = super.getBaseSetters();
     setters.addAll({
       'items': (values) => items = values,
+      'tvRow': (value) => tvRow = Utils.optionalDouble(value),
     });
     return setters;
   }

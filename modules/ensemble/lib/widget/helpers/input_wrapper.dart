@@ -1,4 +1,8 @@
+import 'package:ensemble/framework/device.dart';
 import 'package:ensemble/framework/studio/studio_debugger.dart';
+import 'package:ensemble/framework/tv/tv_focus_order.dart';
+import 'package:ensemble/framework/tv/tv_focus_provider.dart';
+import 'package:ensemble/framework/tv/tv_focus_widget.dart';
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/layout/form.dart';
 import 'package:ensemble/widget/helpers/form_helper.dart';
@@ -45,7 +49,43 @@ class InputWrapper extends StatelessWidget {
           child: rtn);
     }
 
+    // TV focus support for form fields
+    if (Device().isTV && controller.tvOptions?.isEnabled == true) {
+      rtn = _wrapWithTVFocus(context, rtn);
+    }
+
     return rtn;
+  }
+
+  /// Wrap widget with TV focus navigation support
+  Widget _wrapWithTVFocus(BuildContext context, Widget child) {
+    final tvOptions = controller.tvOptions!;
+    final tvRow = tvOptions.row!;
+    final tvOrder = tvOptions.order ?? 0;
+    final isRowEntryPoint = tvOptions.isRowEntryPoint;
+
+    final externalProvider = TVFocusProviderScope.maybeOf(context);
+    final effectiveRow = externalProvider != null
+        ? tvRow + externalProvider.rowOffset
+        : tvRow;
+    final effectiveOrder = externalProvider != null
+        ? tvOrder + externalProvider.orderOffset
+        : tvOrder;
+
+    if (externalProvider != null) {
+      return externalProvider.wrapFocusable(
+        row: effectiveRow,
+        order: effectiveOrder,
+        isRowEntryPoint: isRowEntryPoint,
+        child: child,
+      );
+    }
+
+    // Use Ensemble's built-in TVFocusWidget
+    return TVFocusWidget(
+      focusOrder: TVFocusOrder.withOptions(tvRow, order: tvOrder, isRowEntryPoint: isRowEntryPoint),
+      child: child,
+    );
   }
 
   Widget buildTextWidget(context, bool isFloatLabel) {

@@ -349,9 +349,17 @@ class EnsembleTheme {
     initialized = true;
     return this;
   }
+  /// Initialize app-level ThemeData with tokens and styles.
+  /// Pass tokensOverrides so TV-related tokens (e.g., Tokens.TV.focusColor)
+  /// are parsed and included in the theme's EnsembleThemeExtension.
   void initAppThemeData() {
     YamlMap? yamlStyles = styles != null ? YamlMap.wrap(styles) : null;
-    appThemeData = ThemeManager().getAppTheme(yamlStyles,widgetOverrides: yamlStyles);
+    YamlMap? yamlTokens = tokens.isNotEmpty ? YamlMap.wrap(tokens) : null;
+    appThemeData = ThemeManager().getAppTheme(
+      yamlStyles,
+      widgetOverrides: yamlStyles,
+      tokensOverrides: yamlTokens,
+    );
   }
   Map<String, dynamic>? getIDStyles(String? id) {
     return (id == null) ? {} : styles['#$id'];

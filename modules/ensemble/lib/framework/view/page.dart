@@ -24,6 +24,9 @@ import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:ensemble/widget/helpers/unfocus.dart';
 import 'package:ensemble/framework/bindings.dart';
+import 'package:ensemble/framework/device.dart';
+import 'package:ensemble/framework/tv/tv_focus_order.dart';
+import 'package:ensemble/framework/tv/tv_focus_provider.dart';
 import 'package:flutter/material.dart';
 
 class SinglePageController extends WidgetController {
@@ -765,6 +768,23 @@ class PageState extends State<Page>
     if (Utils.optionalBool(widget._pageModel.runtimeStyles?['selectable']) ==
         true) {
       rtn = HasSelectableText(child: rtn);
+    }
+
+    // TV D-pad Navigation using flutter_pca style coordinate-based navigation
+    // Only add our own FocusTraversalGroup if no external provider is managing focus
+    // When external provider exists (e.g., PageFocusProvider from host app),
+    // we skip this wrapper so Ensemble items participate in the host app's focus grid
+    if (Device().isTV) {
+      final hasExternalProvider = TVFocusProviderScope.maybeOf(context) != null;
+      if (hasExternalProvider) {
+        debugPrint('[TV Focus] External provider detected - skipping FocusTraversalGroup wrapper');
+      } else {
+        debugPrint('[TV Focus] Using FocusTraversalGroup with TVFocusOrderTraversalPolicy');
+        rtn = FocusTraversalGroup(
+          policy: TVFocusOrderTraversalPolicy(),
+          child: rtn,
+        );
+      }
     }
 
     // if backgroundImage is set, put it outside of the Scaffold so

@@ -1,6 +1,12 @@
+import 'package:ensemble/framework/device.dart';
 import 'package:ensemble/framework/model.dart';
 import 'package:ensemble/framework/scope.dart';
+import 'package:ensemble/framework/theme/theme_loader.dart';
 import 'package:ensemble/framework/theme/theme_manager.dart';
+import 'package:ensemble/framework/tv/tv_focus_order.dart';
+import 'package:ensemble/framework/tv/tv_focus_provider.dart';
+import 'package:ensemble/framework/tv/tv_focus_theme.dart';
+import 'package:ensemble/framework/tv/tv_focus_widget.dart';
 import 'package:ensemble/framework/view/data_scope_widget.dart';
 import 'package:ensemble/framework/widget/custom_ink_splash.dart';
 import 'package:ensemble/screen_controller.dart';
@@ -110,7 +116,7 @@ class BoxWrapper extends StatelessWidget {
     final transform = boxController.transform ??
         (boxController.animation?.enabled == true ? Matrix4.identity() : null);
 
-    return boxController.animation?.enabled == true
+    Widget containerWidget = boxController.animation?.enabled == true
         ? AnimatedContainer(
             duration: boxController.animation!.duration,
             curve: boxController.animation?.curve ?? Curves.linear,
@@ -131,6 +137,29 @@ class BoxWrapper extends StatelessWidget {
             decoration: boxDecoration,
             transform: transform,
             child: childWidget);
+
+    // TV: Wrap widgets for D-pad navigation
+    if (Device().isTV && boxController.tvOptions?.isEnabled == true) {
+      // Tappable widgets get full focus handling
+      if (boxController is TapEnabledBoxController) {
+        final tapController = boxController as TapEnabledBoxController;
+        if (tapController.onTap != null || tapController.onLongPress != null) {
+          return _TapEnabledWrapper(
+            controller: tapController,
+            boxController: boxController,
+            child: containerWidget,
+            wrapEntireWidget: true,
+          );
+        }
+      }
+      // Non-tappable widgets (e.g., Button with built-in tap) get focus ordering only
+      return _TVFocusOnlyWrapper(
+        boxController: boxController,
+        child: containerWidget,
+      );
+    }
+
+    return containerWidget;
   }
 
   Widget _getWidget(BuildContext context) {
@@ -138,40 +167,50 @@ class BoxWrapper extends StatelessWidget {
         ((boxController as TapEnabledBoxController).onTap != null ||
             (boxController as TapEnabledBoxController).onLongPress != null)) {
       var controller = boxController as TapEnabledBoxController;
-      return Material(
-          color: Colors.transparent,
-          child: InkWell(
-            splashFactory: CustomInkSplashFactory(
-              splashDuration: controller.splashDuration,
-              splashFadeDuration: controller.splashFadeDuration,
-              unconfirmedSplashDuration: controller.unconfirmedSplashDuration,
-            ),
-            onLongPress: controller.onLongPress != null
-                ? () => ScreenController()
-                    .executeAction(context, controller.onLongPress!)
-                : null,
-            onTap: controller.onTap != null
-                ? () =>
-                    ScreenController().executeAction(context, controller.onTap!)
-                : null,
-            // note that splashColor has a default color if not specified
-            splashColor: controller.enableSplashFeedback
-                ? controller.splashColor
-                : Colors.transparent,
-            // not using this because button doesn't support this
-            highlightColor: Colors.transparent,
 
-            focusColor: controller.focusColor,
-            hoverColor: controller.hoverColor,
-            mouseCursor: controller.mouseCursor,
-            // padding has to be here so the effect covers it
-            child: controller.enableSplashFeedback && controller.padding != null
-                ? Padding(
-                    padding: controller.padding!,
-                    child: widget,
-                  )
-                : widget,
-          ));
+      // TV: Wrap with focus handling (build() handles box-level wrapping)
+      if (Device().isTV && boxController.tvOptions?.isEnabled == true) {
+        if (!boxController.requiresBox(
+            ignoresMargin: ignoresMargin,
+            ignoresPadding: ignoresPadding,
+            ignoresDimension: ignoresDimension)) {
+          return _TapEnabledWrapper(
+            controller: controller,
+            boxController: boxController,
+            child: widget,
+            wrapEntireWidget: true,
+          );
+        }
+        return widget; // build() will wrap the container
+      }
+
+      // Non-TV: Original Material/InkWell pattern for touch/mouse
+      return Material(
+        color: Colors.transparent,
+        child: InkWell(
+          splashFactory: CustomInkSplashFactory(
+            splashDuration: controller.splashDuration,
+            splashFadeDuration: controller.splashFadeDuration,
+            unconfirmedSplashDuration: controller.unconfirmedSplashDuration,
+          ),
+          onLongPress: controller.onLongPress != null
+              ? () => ScreenController().executeAction(context, controller.onLongPress!)
+              : null,
+          onTap: controller.onTap != null
+              ? () => ScreenController().executeAction(context, controller.onTap!)
+              : null,
+          splashColor: controller.enableSplashFeedback
+              ? controller.splashColor
+              : Colors.transparent,
+          highlightColor: Colors.transparent,
+          focusColor: controller.focusColor,
+          hoverColor: controller.hoverColor,
+          mouseCursor: controller.mouseCursor,
+          child: controller.enableSplashFeedback && controller.padding != null
+              ? Padding(padding: controller.padding!, child: widget)
+              : widget,
+        ),
+      );
     }
     return widget;
   }
@@ -312,5 +351,323 @@ class EnsembleBoxWrapper extends StatelessWidget {
             clipBehavior: Clip.hardEdge,
             child: widget)
         : widget;
+  }
+}
+
+/// Handles tap/focus for widgets with onTap.
+/// - TV: D-pad focus with visible border, auto-scroll on focus
+/// - Non-TV: Standard InkWell with splash feedback
+class _TapEnabledWrapper extends StatefulWidget {
+  const _TapEnabledWrapper({
+    required this.child,
+    required this.controller,
+    required this.boxController,
+    this.wrapEntireWidget = false,
+  });
+
+  final Widget child;
+  final TapEnabledBoxController controller;
+  final BoxController boxController;
+
+  /// TV: true = focus border outside widget, false = standard touch behavior
+  final bool wrapEntireWidget;
+
+  @override
+  State<_TapEnabledWrapper> createState() => _TapEnabledWrapperState();
+}
+
+class _TapEnabledWrapperState extends State<_TapEnabledWrapper> {
+  late final FocusNode _focusNode;
+  static int _instanceCounter = 0;
+  late final int _instanceId;
+
+  @override
+  void initState() {
+    super.initState();
+    _instanceId = ++_instanceCounter;
+    _focusNode = FocusNode(debugLabel: 'TapEnabledWrapper_$_instanceId');
+    _focusNode.addListener(_onFocusChange);
+  }
+
+  @override
+  void dispose() {
+    _focusNode.removeListener(_onFocusChange);
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  void _onFocusChange() {
+    // TV: Auto-scroll to focused item for D-pad navigation
+    if (Device().isTV && _focusNode.hasFocus && mounted) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && context.mounted) {
+          _scrollToItemIfNotVisible();
+        }
+      });
+    }
+  }
+
+  /// Scrolls to center the focused item only if it's off-screen.
+  /// Prevents unwanted scroll jerk in Flow/Grid during horizontal navigation.
+  void _scrollToItemIfNotVisible() {
+    final isVisible = _isItemFullyVisible();
+    if (isVisible) return;
+
+    Scrollable.ensureVisible(
+      context,
+      alignment: 0.5,
+      duration: const Duration(milliseconds: 200),
+      curve: Curves.easeInOut,
+    );
+  }
+
+  /// Returns true if item is fully visible on screen.
+  /// Uses screen coordinates (not scrollable viewport) to handle nested scrollables.
+  bool _isItemFullyVisible() {
+    final RenderBox? itemBox = context.findRenderObject() as RenderBox?;
+    if (itemBox == null || !itemBox.hasSize) {
+      return true;
+    }
+
+    // Get the screen/window size
+    final Size screenSize = MediaQuery.of(context).size;
+    final double screenTop = 0;
+    final double screenBottom = screenSize.height;
+    final double screenLeft = 0;
+    final double screenRight = screenSize.width;
+
+    // Get item position in screen coordinates
+    final Offset itemScreenPos = itemBox.localToGlobal(Offset.zero);
+    final Size itemSize = itemBox.size;
+
+    // Item bounds in screen coordinates
+    final double itemTop = itemScreenPos.dy;
+    final double itemBottom = itemScreenPos.dy + itemSize.height;
+    final double itemLeft = itemScreenPos.dx;
+    final double itemRight = itemScreenPos.dx + itemSize.width;
+
+    // Add padding to account for focus border (typically 3-5px) plus small margin
+    const double padding = 15.0;
+
+    // Check if item is fully within screen bounds (with padding)
+    final bool isFullyVisible =
+        itemTop >= (screenTop + padding) &&
+        itemBottom <= (screenBottom - padding) &&
+        itemLeft >= (screenLeft + padding) &&
+        itemRight <= (screenRight - padding);
+
+    return isFullyVisible;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final controller = widget.controller;
+    final boxController = widget.boxController;
+
+    if (Device().isTV && boxController.tvOptions?.isEnabled == true) {
+      return _buildTVFocusable(context, controller);
+    }
+    return _buildInkWell(context, controller);
+  }
+
+  /// TV: Focus border + D-pad navigation via TVFocusProvider or built-in TVFocusWidget.
+  /// Style priority: tvOptions > Theme > Provider > App primary color
+  Widget _buildTVFocusable(
+    BuildContext context,
+    TapEnabledBoxController controller,
+  ) {
+    final boxController = widget.boxController;
+    final tvOptions = boxController.tvOptions!;
+    final tvRow = tvOptions.row!;
+    final tvOrder = tvOptions.order ?? 0;
+    final isRowEntryPoint = tvOptions.isRowEntryPoint;
+    final autofocus = widget.boxController.autofocus;
+
+    final externalProvider = TVFocusProviderScope.maybeOf(context);
+    final effectiveRow = externalProvider != null
+        ? tvRow + externalProvider.rowOffset
+        : tvRow;
+    final effectiveOrder = externalProvider != null
+        ? tvOrder + externalProvider.orderOffset
+        : tvOrder;
+
+    // Get TV focus theme from Ensemble theme
+    final theme = Theme.of(context);
+    final themeExtension = theme.extension<EnsembleThemeExtension>();
+    final tvFocusTheme = themeExtension?.tvFocusTheme ?? const TVFocusTheme();
+
+    // Resolve focus styling with fallback chain:
+    // 1. tvOptions per-widget override (highest priority)
+    // 2. Theme configuration
+    // 3. Provider values
+    // 4. Default fallback (app primary color for color)
+    final appPrimaryColor = theme.colorScheme.primary;
+
+    // Focus color: tvOptions > Theme > Provider > App Primary Color
+    final Color focusColor;
+    if (tvOptions.focusColor != null) {
+      focusColor = tvOptions.focusColor!;
+    } else {
+      focusColor = tvFocusTheme.resolveFocusColor(
+          externalProvider?.focusColor, appPrimaryColor);
+    }
+
+    // Focus border width: tvOptions > Theme > Provider > Default
+    final double focusBorderWidth;
+    if (tvOptions.focusBorderWidth != null) {
+      focusBorderWidth = tvOptions.focusBorderWidth!;
+    } else {
+      focusBorderWidth = tvFocusTheme.resolveBorderWidth(externalProvider?.focusBorderWidth);
+    }
+
+    // Focus border radius: tvOptions > Widget's borderRadius > Theme > Default
+    final double themeFocusBorderRadius = tvFocusTheme.resolveBorderRadius(externalProvider?.focusBorderRadius);
+    final focusAnimationDuration = tvFocusTheme.resolveAnimationDuration(externalProvider?.focusAnimationDurationMs);
+
+    final BorderRadius borderRadius;
+    if (tvOptions.focusBorderRadius != null) {
+      borderRadius = BorderRadius.circular(tvOptions.focusBorderRadius!);
+    } else if (boxController.borderRadius != null) {
+      borderRadius = boxController.borderRadius!.getValue();
+    } else {
+      borderRadius = BorderRadius.circular(themeFocusBorderRadius);
+    }
+
+    // When wrapEntireWidget is true, don't add internal padding - child is already the complete widget
+    // When false (standard behavior), add padding if splash feedback is enabled
+    Widget content = widget.wrapEntireWidget
+        ? widget.child
+        : (controller.enableSplashFeedback && controller.padding != null
+            ? Padding(padding: controller.padding!, child: widget.child)
+            : widget.child);
+
+    Widget inkWell = InkWell(
+      focusNode: _focusNode,
+      autofocus: autofocus,
+      splashColor: Colors.transparent,
+      hoverColor: Colors.transparent,
+      focusColor: Colors.transparent,
+      highlightColor: Colors.transparent,
+      overlayColor: WidgetStateProperty.all(Colors.transparent),
+      splashFactory: NoSplash.splashFactory,
+      onTap: controller.onTap != null
+          ? () => ScreenController().executeAction(context, controller.onTap!)
+          : null,
+      onLongPress: controller.onLongPress != null
+          ? () => ScreenController().executeAction(context, controller.onLongPress!)
+          : null,
+      child: Builder(
+        builder: (builderContext) {
+          final hasFocus = Focus.maybeOf(builderContext)?.hasFocus ?? false;
+          return AnimatedContainer(
+            duration: focusAnimationDuration,
+            decoration: BoxDecoration(
+              border: Border.all(
+                color: hasFocus ? focusColor : Colors.transparent,
+                width: hasFocus ? focusBorderWidth : 0,
+              ),
+              borderRadius: borderRadius,
+            ),
+            child: content,
+          );
+        },
+      ),
+    );
+
+    final materialChild = Material(color: Colors.transparent, child: inkWell);
+
+    if (externalProvider != null) {
+      return externalProvider.wrapFocusable(
+        row: effectiveRow,
+        order: effectiveOrder,
+        isRowEntryPoint: isRowEntryPoint,
+        child: materialChild,
+      );
+    }
+
+    // Otherwise use Ensemble's built-in TVFocusWidget
+    return TVFocusWidget(
+      focusOrder: TVFocusOrder.withOptions(tvRow, order: tvOrder, isRowEntryPoint: isRowEntryPoint),
+      child: materialChild,
+    );
+  }
+
+  /// Non-TV: Standard InkWell with splash feedback for touch/mouse.
+  Widget _buildInkWell(BuildContext context, TapEnabledBoxController controller) {
+    Widget inkWellChild = controller.enableSplashFeedback && controller.padding != null
+        ? Padding(
+            padding: controller.padding!,
+            child: widget.child,
+          )
+        : widget.child;
+
+    Widget inkWell = InkWell(
+      focusNode: _focusNode,
+      autofocus: widget.boxController.autofocus,
+      splashFactory: CustomInkSplashFactory(
+        splashDuration: controller.splashDuration,
+        splashFadeDuration: controller.splashFadeDuration,
+        unconfirmedSplashDuration: controller.unconfirmedSplashDuration,
+      ),
+      onLongPress: controller.onLongPress != null
+          ? () => ScreenController().executeAction(context, controller.onLongPress!)
+          : null,
+      onTap: controller.onTap != null
+          ? () => ScreenController().executeAction(context, controller.onTap!)
+          : null,
+      splashColor: controller.enableSplashFeedback
+          ? controller.splashColor
+          : Colors.transparent,
+      highlightColor: Colors.transparent,
+      focusColor: controller.focusColor,
+      hoverColor: controller.hoverColor,
+      mouseCursor: controller.mouseCursor,
+      child: inkWellChild,
+    );
+
+    return Material(color: Colors.transparent, child: inkWell);
+  }
+}
+
+/// TV: D-pad navigation for widgets with built-in tap handling (e.g., Button).
+/// Only adds focus ordering; child handles its own tap and focus visuals.
+class _TVFocusOnlyWrapper extends StatelessWidget {
+  const _TVFocusOnlyWrapper({
+    required this.child,
+    required this.boxController,
+  });
+
+  final Widget child;
+  final BoxController boxController;
+
+  @override
+  Widget build(BuildContext context) {
+    final tvOptions = boxController.tvOptions!;
+    final tvRow = tvOptions.row!;
+    final tvOrder = tvOptions.order ?? 0;
+    final isRowEntryPoint = tvOptions.isRowEntryPoint;
+
+    final externalProvider = TVFocusProviderScope.maybeOf(context);
+    final effectiveRow = externalProvider != null
+        ? tvRow + externalProvider.rowOffset
+        : tvRow;
+    final effectiveOrder = externalProvider != null
+        ? tvOrder + externalProvider.orderOffset
+        : tvOrder;
+
+    if (externalProvider != null) {
+      return externalProvider.wrapFocusable(
+        row: effectiveRow,
+        order: effectiveOrder,
+        isRowEntryPoint: isRowEntryPoint,
+        child: child,
+      );
+    }
+
+    // Standalone mode: use built-in TVFocusWidget
+    return TVFocusWidget(
+      focusOrder: TVFocusOrder.withOptions(tvRow, order: tvOrder, isRowEntryPoint: isRowEntryPoint),
+      child: child,
+    );
   }
 }
