@@ -44,6 +44,7 @@ abstract class PageModel {
   Map<String, YamlMap>? apiMap;
   Map<String, EnsembleSocket> socketData = {};
   Map<String, dynamic>? customViewDefinitions;
+  Map<String, YamlMap>? actionsMap;
   String? globalCode;
   SourceSpan? globalCodeSpan;
 
@@ -67,6 +68,7 @@ abstract class PageModel {
   void _processModel(YamlMap docMap) {
     _processAPI(docMap['API']);
     _processSocket(docMap['Socket']);
+    _processActions(docMap['Action']);
     YamlNode? globalCodeNode = docMap.nodes['Global'];
     if (globalCodeNode != null) {
       globalCode = Utils.optionalString(globalCodeNode.value);
@@ -132,6 +134,31 @@ abstract class PageModel {
       socketData[key] = EnsembleSocket.fromYaml(payload: value);
     });
     SocketService.socketData = socketData;
+  }
+
+  void _processActions(YamlMap? map) {
+    // Start with global reusable Actions, if any (from app resources)
+    Map<String, YamlMap>? merged = {};
+    Map? globalResources = Ensemble().getConfig()?.getResources();
+    final dynamic globalActions = globalResources?['Actions'];
+    if (globalActions is Map) {
+      globalActions.forEach((key, value) {
+        if (value is YamlMap) {
+          merged[key] = value;
+        }
+      });
+    }
+
+    // Overlay page-level Actions from this document; page overrides global on name clash
+    if (map != null) {
+      map.forEach((key, value) {
+        if (value is YamlMap) {
+          merged[key] = value;
+        }
+      });
+    }
+
+    actionsMap = merged.isEmpty ? null : merged;
   }
 
   /// Create a map of Ensemble's custom widgets so WidgetModel can reference them

@@ -29,7 +29,8 @@
     "hasGoogleMaps": "ts-node src/dart_runner.ts google_maps",
     "generate_keystore": "ts-node src/dart_runner.ts generateKeystore",
     "hasAdobeAnalytics": "ts-node src/dart_runner.ts adobe_analytics",
-    "hasStripe": "ts-node src/dart_runner.ts stripe"
+    "hasStripe": "ts-node src/dart_runner.ts stripe",
+    "hasRemoteConfig": "ts-node src/dart_runner.ts remote_config"
   },
   "keywords": [],
   "author": "",

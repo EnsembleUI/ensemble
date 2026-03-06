@@ -4,6 +4,7 @@ import 'package:ensemble/framework/stub/adobe_manager.dart';
 import 'package:ensemble/framework/stub/analytics_provider.dart';
 import 'package:ensemble/framework/stub/bluetooth.dart';
 import 'package:ensemble/framework/stub/camera_manager.dart';
+import 'package:ensemble/framework/stub/face_camera_manager.dart';
 import 'package:ensemble/framework/stub/ensemble_bracket.dart';
 import 'package:ensemble/framework/stub/ensemble_chat.dart';
 import 'package:ensemble/framework/stub/network_info.dart';
@@ -15,6 +16,7 @@ import 'package:ensemble/framework/stub/plaid_link_manager.dart';
 import 'package:ensemble/module/auth_module.dart';
 import 'package:ensemble/module/location_module.dart';
 import 'package:ensemble/framework/stub/moengage_manager.dart';
+import 'package:ensemble/framework/stub/remote_config.dart';
 import 'package:ensemble/module/stripe_module.dart';
 // import 'package:ensemble_stripe/ensemble_stripe.dart';
 //import 'package:ensemble_bluetooth/ensemble_bluetooth.dart';
@@ -46,6 +48,9 @@ import 'package:get_it/get_it.dart';
 // Uncomment to enable camera services or QRCodeScanner widget
 // import 'package:ensemble_camera/camera_manager.dart';
 
+// Uncomment to enable face camera services
+// import 'package:ensemble_face_camera/ensemble_face_camera.dart';
+
 // Uncomment to enable QRCodeScanner widget (lightweight option)
 // import 'package:ensemble_qr_scanner/qr_code_scanner.dart';
 // OR use ensemble_camera (includes QR scanner via re-export for backward compatibility)
@@ -67,6 +72,9 @@ import 'package:get_it/get_it.dart';
 // Uncomment to enable Adobe Analytics
 // import 'package:ensemble_adobe_analytics/adobe_analytics.dart';
 
+// Uncomment to enable Firebase Remote Config (A/B testing, feature flags)
+// import 'package:ensemble_remote_config/remote_config.dart';
+
 /// TODO: This class should be generated to enable selected Services
 class EnsembleModules {
   static final EnsembleModules _instance = EnsembleModules._internal();
@@ -77,6 +85,7 @@ class EnsembleModules {
 
   // capabilities
   static const useCamera = false;
+  static const useFaceCamera = false;
   static const useFiles = false;
   static const useContacts = false;
   static const useConnect = false;
@@ -92,6 +101,7 @@ class EnsembleModules {
   static const useBluetooth = false;
 
   static const useStripe = false;
+  static const useRemoteConfig = false;
 
   // widgets
   static const enableChat = false;
@@ -102,7 +112,11 @@ class EnsembleModules {
   Future<void> init() async {
     // Note that notifications is not a module
 
-    if (useMoEngage || useNotifications || useFirebaseAnalytics || useAuth) {
+    if (useMoEngage ||
+        useNotifications ||
+        useFirebaseAnalytics ||
+        useAuth ||
+        useRemoteConfig) {
       // if payload is not passed, Firebase configuration files
       // are required to be added manually to iOS and Android
       try {
@@ -146,6 +160,13 @@ class EnsembleModules {
       GetIt.I.registerSingleton<CameraManager>(CameraManagerStub());
       GetIt.I.registerSingleton<EnsembleQRCodeScanner>(
           const EnsembleQRCodeScannerStub());
+    }
+
+    if (useFaceCamera) {
+      // Uncomment to enable face camera service
+      // GetIt.I.registerSingleton<FaceCameraManager>(FaceCameraManagerImpl());
+    } else {
+      GetIt.I.registerSingleton<FaceCameraManager>(FaceCameraManagerStub());
     }
 
     if (useFiles) {
@@ -228,6 +249,13 @@ class EnsembleModules {
       // GetIt.I.registerSingleton<StripeModule>(StripeModuleImpl());
     } else {
       GetIt.I.registerSingleton<StripeModule>(StripeModuleStub());
+    }
+
+    if (useRemoteConfig) {
+      // Uncomment to enable Remote Config
+      // GetIt.I.registerSingleton<RemoteConfig>(RemoteConfigImpl());
+    } else {
+      GetIt.I.registerSingleton<RemoteConfig>(RemoteConfigStub());
     }
   }
 }

@@ -33,6 +33,24 @@ export const modules: Script[] = [
     ],
   },
   {
+    name: 'face_camera',
+    path: 'scripts/modules/enable_face_camera.dart',
+    parameters: [
+      {
+        key: 'cameraDescription',
+        question: 'Please provide a camera usage description for iOS: ',
+        platform: ['ios'],
+        type: 'text',
+      },
+      {
+        key: 'microphoneDescription',
+        question: 'Please provide a microphone usage description: ',
+        platform: ['ios'],
+        type: 'text',
+      },
+    ],
+  },
+  {
     name: 'file_manager',
     path: 'scripts/modules/enable_files.dart',
     parameters: [
@@ -370,6 +388,15 @@ export const modules: Script[] = [
         platform: ['ios'],
         type: 'text',
       },
+    ],
+  },
+  {
+    name: 'remote_config',
+    path: 'scripts/modules/enable_remote_config.dart',
+    parameters: [
+      ...firebaseAndroidParameters,
+      ...firebaseIOSParameters,
+      ...firebaseWebParameters,
     ],
   },
 ];

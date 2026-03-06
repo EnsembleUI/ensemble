@@ -46,7 +46,22 @@ View:
             onTap: |-
               callMockMethod();
               console.log('name is ='+getName());
-              
+        - Button:
+            testId: show_message_button
+            label: Show message via reusable Action
+            onTap:
+              executeAction:
+                name: showMessage
+                inputs:
+                  message: Hello ${ensemble.storage.helloApp.name.first}
+
+        - Button:
+            label: Call API (page reusable action)
+            onTap:
+              executeAction:
+                name: callAPI
+                inputs:
+                  call: true
         - Button:
             testId: navigate_button
             label: Navigate to Goodbye Screen
@@ -64,6 +79,18 @@ View:
               width: 200
               height: 200
               marginTop: 24
+
+Action:
+  callAPI:
+    inputs:
+      - call
+    body:
+      executeConditionalAction:
+        conditions:
+          - if: ${call == true}
+            action:
+              invokeAPI:
+                name: mockAPI
 
 Global: |-
   //var myVar = myButton.label;

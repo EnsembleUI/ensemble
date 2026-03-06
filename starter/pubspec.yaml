@@ -36,7 +36,7 @@ dependencies:
   ensemble:
     git:
       url: https://github.com/EnsembleUI/ensemble.git
-      ref: ensemble-v1.2.31
+      ref: ensemble-v1.2.34
       path: modules/ensemble
 
 
@@ -58,6 +58,13 @@ dependencies:
   #     url: https://github.com/EnsembleUI/ensemble.git
   #     ref: main
   #     path: modules/camera
+
+  # Uncomment to enable face camera module
+  # ensemble_face_camera:
+  #   git:
+  #     url: https://github.com/EnsembleUI/ensemble.git
+  #     ref: main
+  #     path: modules/face_camera
 
   # Uncomment to enable QR scanner module (lightweight - QR/Barcode scanning only)
   # ensemble_qr_scanner:
@@ -143,6 +150,13 @@ dependencies:
   #     ref: main
   #     path: modules/adobe_analytics
 
+  # Uncomment to enable Firebase Remote Config (A/B testing, feature flags)
+  # ensemble_remote_config:
+  #   git:
+  #     url: https://github.com/EnsembleUI/ensemble.git
+  #     ref: main
+  #     path: modules/ensemble_remote_config
+
   # ensemble_stripe:
   #   git:
   #     url: https://github.com/EnsembleUI/ensemble.git
@@ -187,6 +201,7 @@ flutter:
     - ensemble/apps/helloApp/
     - ensemble/apps/helloApp/screens/
     - ensemble/apps/helloApp/widgets/
+    - ensemble/apps/helloApp/actions/
     - ensemble/apps/helloApp/scripts/
     - ensemble/apps/helloApp/assets/
     - ensemble/apps/helloApp/translations/
