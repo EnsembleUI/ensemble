@@ -144,7 +144,7 @@ abstract class PageModel {
     if (globalActions is Map) {
       globalActions.forEach((key, value) {
         if (value is YamlMap) {
-          merged[key] = value;
+          merged[key.toString()] = value;
         }
       });
     }
