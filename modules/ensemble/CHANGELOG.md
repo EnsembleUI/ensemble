@@ -1,3 +1,8 @@
+## 1.2.36
+
+ - **FIX**(page_model): convert keys to strings in merged global actions. ([4dcb7e4a](https://github.com/ensembleUI/ensemble/commit/4dcb7e4a888a6259cb4f1a8daceb6338731ec6c8))
+ - **FEAT**(secure_storage): enhance secure storage actions with optional encryption parameters. ([dee0bb57](https://github.com/ensembleUI/ensemble/commit/dee0bb571152e95b4cdc658924b2399c6b4f58b4))
+
 ## 1.2.35
 
  - **FIX**(page_model): convert keys to strings in merged global actions. ([4dcb7e4a](https://github.com/ensembleUI/ensemble/commit/4dcb7e4a888a6259cb4f1a8daceb6338731ec6c8))
