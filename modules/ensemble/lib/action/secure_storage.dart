@@ -6,18 +6,22 @@ import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:flutter/material.dart';
-import 'package:ensemble/util/utils.dart';
 
 class SetSecureStorage extends EnsembleAction {
   SetSecureStorage({
     required this.key,
     this.value,
+    this.algorithm,
+    this.mode,
     this.onComplete,
     this.onError,
   });
 
   final String key;
   final dynamic value;
+   // Optional encryption configuration
+  final String? algorithm;
+  final String? mode;
   final EnsembleAction? onComplete;
   final EnsembleAction? onError;
 
@@ -28,6 +32,8 @@ class SetSecureStorage extends EnsembleAction {
     return SetSecureStorage(
       key: payload['key'],
       value: payload['value'],
+      algorithm: payload['algorithm'],
+      mode: payload['mode'],
       onComplete: EnsembleAction.from(payload['onComplete']),
       onError: EnsembleAction.from(payload['onError']),
     );
@@ -39,12 +45,22 @@ class SetSecureStorage extends EnsembleAction {
     try {
       final evaluatedKey = scopeManager.dataContext.eval(key);
       final evaluatedValue = scopeManager.dataContext.eval(value);
+      final evaluatedAlgorithm =
+          algorithm != null ? scopeManager.dataContext.eval(algorithm) : null;
+      final evaluatedMode =
+          mode != null ? scopeManager.dataContext.eval(mode) : null;
       
       // Create inputs in the format expected by EncryptedStorageManager
-      final inputs = {
+      final inputs = <String, dynamic>{
         'key': evaluatedKey,
         'value': evaluatedValue,
       };
+      if (evaluatedAlgorithm != null) {
+        inputs['algorithm'] = evaluatedAlgorithm;
+      }
+      if (evaluatedMode != null) {
+        inputs['mode'] = evaluatedMode;
+      }
       
       EncryptedStorageManager.setSecureStorage(inputs);
       
@@ -64,11 +80,15 @@ class SetSecureStorage extends EnsembleAction {
 class GetSecureStorage extends EnsembleAction {
   GetSecureStorage({
     required this.key,
+    this.algorithm,
+    this.mode,
     this.onComplete,
     this.onError,
   });
 
   final String key;
+  final String? algorithm;
+  final String? mode;
   final EnsembleAction? onComplete;
   final EnsembleAction? onError;
 
@@ -78,6 +98,8 @@ class GetSecureStorage extends EnsembleAction {
     }
     return GetSecureStorage(
       key: payload['key'],
+      algorithm: payload['algorithm'],
+      mode: payload['mode'],
       onComplete: EnsembleAction.from(payload['onComplete']),
       onError: EnsembleAction.from(payload['onError']),
     );
@@ -86,12 +108,22 @@ class GetSecureStorage extends EnsembleAction {
   @override
   Future execute(BuildContext context, ScopeManager scopeManager,
       {DataContext? dataContext}) async {
-        var value;
+    var value;
     try {
       final evaluatedKey = scopeManager.dataContext.eval(key);
+      final evaluatedAlgorithm =
+          algorithm != null ? scopeManager.dataContext.eval(algorithm) : null;
+      final evaluatedMode =
+          mode != null ? scopeManager.dataContext.eval(mode) : null;
       
       // Create inputs in the format expected by EncryptedStorageManager
-      final inputs = {'key': evaluatedKey};
+      final inputs = <String, dynamic>{'key': evaluatedKey};
+      if (evaluatedAlgorithm != null) {
+        inputs['algorithm'] = evaluatedAlgorithm;
+      }
+      if (evaluatedMode != null) {
+        inputs['mode'] = evaluatedMode;
+      }
       
       value = EncryptedStorageManager.getSecureStorage(inputs);
       
@@ -112,11 +144,15 @@ class GetSecureStorage extends EnsembleAction {
 class ClearSecureStorage extends EnsembleAction {
   ClearSecureStorage({
     required this.key,
+    this.algorithm,
+    this.mode,
     this.onComplete,
     this.onError,
   });
 
   final String key;
+  final String? algorithm;
+  final String? mode;
   final EnsembleAction? onComplete;
   final EnsembleAction? onError;
 
@@ -126,6 +162,8 @@ class ClearSecureStorage extends EnsembleAction {
     }
     return ClearSecureStorage(
       key: payload['key'],
+      algorithm: payload['algorithm'],
+      mode: payload['mode'],
       onComplete: EnsembleAction.from(payload['onComplete']),
       onError: EnsembleAction.from(payload['onError']),
     );
@@ -136,9 +174,19 @@ class ClearSecureStorage extends EnsembleAction {
       {DataContext? dataContext}) async {
     try {
       final evaluatedKey = scopeManager.dataContext.eval(key);
+      final evaluatedAlgorithm =
+          algorithm != null ? scopeManager.dataContext.eval(algorithm) : null;
+      final evaluatedMode =
+          mode != null ? scopeManager.dataContext.eval(mode) : null;
       
       // Create inputs in the format expected by EncryptedStorageManager
-      final inputs = {'key': evaluatedKey};
+      final inputs = <String, dynamic>{'key': evaluatedKey};
+      if (evaluatedAlgorithm != null) {
+        inputs['algorithm'] = evaluatedAlgorithm;
+      }
+      if (evaluatedMode != null) {
+        inputs['mode'] = evaluatedMode;
+      }
       
       EncryptedStorageManager.clearSecureStorage(inputs);
       

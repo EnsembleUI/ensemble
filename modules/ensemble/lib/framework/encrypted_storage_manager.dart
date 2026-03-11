@@ -9,7 +9,6 @@ class EncryptedStorageManager {
   static final EncryptedStorageManager _instance =
       EncryptedStorageManager._internal();
   static Key? _key;
-  static Encrypter? _encrypter;
   static const String PREFIX = 'enc_';
 
   EncryptedStorageManager._internal();
@@ -17,7 +16,7 @@ class EncryptedStorageManager {
   factory EncryptedStorageManager() => _instance;
 
   static void _ensureInitialized() {
-    if (_encrypter != null) return;
+    if (_key != null) return;
 
     final keyString = SecretsStore().getProperty('encryptionKey');
 
@@ -32,18 +31,20 @@ class EncryptedStorageManager {
     }
 
     _key = Key.fromUtf8(keyString);
-    _encrypter = Encrypter(AES(_key!, mode: AESMode.cbc));
   }
 
   static void setSecureStorage(dynamic inputs) {
     String key;
     dynamic val;
+    String? algorithm;
+    String? mode;
 
     // Handle different input formats
     if (inputs is Map) {
       key = _extractKey(inputs, 'setSecureStorage');
       val = inputs['value'];
-
+      algorithm = Utils.optionalString(inputs['algorithm']);
+      mode = Utils.optionalString(inputs['mode']);
     } else if (inputs is String) {
       key = inputs;
       val = null;
@@ -57,10 +58,9 @@ class EncryptedStorageManager {
       return;
     }
 
-
-
     try {
-      final encryptedValue = _encryptValue(val);
+      final encryptedValue =
+          _encryptValue(val, algorithm: algorithm, mode: mode);
       StorageManager().write(PREFIX + key, encryptedValue);
     } catch (e) {
       throw LanguageError('Failed to encrypt and store value: ${e.toString()}');
@@ -68,12 +68,18 @@ class EncryptedStorageManager {
   }
 
   static dynamic getSecureStorage(dynamic inputs) {
+    String? algorithm;
+    String? mode;
     final key = _extractKey(inputs, 'getSecureStorage');
+    if (inputs is Map) {
+      algorithm = Utils.optionalString(inputs['algorithm']);
+      mode = Utils.optionalString(inputs['mode']);
+    }
     try {
       final storedValue = StorageManager().read(PREFIX + key);
       if (storedValue == null) return null;
 
-      return _decryptValue(storedValue);
+      return _decryptValue(storedValue, algorithm: algorithm, mode: mode);
     } catch (e) {
       // Log error for debugging but return null to avoid breaking the app
       print('Error getting secure storage for key $key: $e');
@@ -106,8 +112,24 @@ class EncryptedStorageManager {
     return key;
   }
 
-  // Utility function to convert value to encrypted string
-  static String _encryptValue(dynamic value) {
+  // Utility function to convert value to encrypted string.
+  //
+  // Supported algorithms (case-insensitive):
+  // - "aes"     (default; supports modes below)
+  // - "salsa20"
+  // - "fernet"
+  //
+  // Supported AES modes (case-insensitive, defaults to "cbc"):
+  // - cbc
+  // - cfb64
+  // - ctr
+  // - ecb
+  // - ofb64gctr
+  // - ofb64
+  // - sic
+  // - gcm
+  static String _encryptValue(dynamic value,
+      {String? algorithm, String? mode}) {
     _ensureInitialized();
 
     String plainText;
@@ -123,25 +145,118 @@ class EncryptedStorageManager {
       plainText = " "; // Handle empty strings
     }
 
-    final iv = IV.fromSecureRandom(16);
-    final encrypted = _encrypter!.encrypt(plainText, iv: iv);
-    return iv.base64 + ':' + encrypted.base64;
+    final selectedAlgorithm = (algorithm ?? 'aes').toLowerCase();
+
+    Encrypted encrypted;
+    String modeString = '';
+    String ivBase64 = '';
+
+    if (selectedAlgorithm == 'aes') {
+      final aesMode = _parseAesMode(mode);
+      final iv = IV.fromSecureRandom(16);
+      final encrypter = Encrypter(AES(_key!, mode: aesMode));
+      encrypted = encrypter.encrypt(plainText, iv: iv);
+      modeString = _aesModeToConfigString(aesMode);
+      ivBase64 = iv.base64;
+    } else if (selectedAlgorithm == 'salsa20') {
+      // Salsa20 uses an 8-byte IV/nonce.
+      final iv = IV.fromSecureRandom(8);
+      final encrypter = Encrypter(Salsa20(_key!));
+      encrypted = encrypter.encrypt(plainText, iv: iv);
+      modeString = 'default';
+      ivBase64 = iv.base64;
+    } else if (selectedAlgorithm == 'fernet') {
+      // Fernet manages IV internally; we don't need to store an IV.
+      final encrypter = Encrypter(Fernet(_key!));
+      encrypted = encrypter.encrypt(plainText);
+      modeString = 'default';
+      ivBase64 = '';
+    } else {
+      throw LanguageError(
+          'Unsupported encryption algorithm. Supported algorithms are: aes, salsa20, fernet.');
+    }
+
+    // New self-describing format:
+    // enc:v1:<algorithm>:<mode>:<ivBase64>:<cipherBase64>
+    return 'enc:v1:$selectedAlgorithm:$modeString:$ivBase64:${encrypted.base64}';
   }
 
   // Utility function to decrypt value from stored string
-  static dynamic _decryptValue(String storedValue) {
+  static dynamic _decryptValue(String storedValue,
+      {String? algorithm, String? mode}) {
     _ensureInitialized();
 
-    final parts = storedValue.split(':');
-    if (parts.length != 2) {
-      // Invalid format, possibly corrupted data
-      return null;
+    String decrypted;
+
+    if (storedValue.startsWith('enc:v1:')) {
+      // New-format value: enc:v1:<algorithm>:<mode>:<ivBase64>:<cipherBase64>
+      final parts = storedValue.split(':');
+      if (parts.length != 6) {
+        // Invalid format, possibly corrupted data
+        return null;
+      }
+
+      final storedAlgorithm = parts[2];
+      final storedMode = parts[3];
+      final ivBase64 = parts[4];
+      final cipherBase64 = parts[5];
+
+      // Decide which algorithm to use for decryption:
+      // - If the value carries an algorithm, that is the source of truth.
+      // - If the caller also passed an algorithm and it conflicts, fail fast.
+      // - If the value does not carry an algorithm (shouldn't happen for v1),
+      //   fall back to the caller's algorithm or "aes".
+      String selectedAlgorithm;
+      if (storedAlgorithm.isNotEmpty) {
+        selectedAlgorithm = storedAlgorithm.toLowerCase();
+        if (algorithm != null && algorithm.toLowerCase() != selectedAlgorithm) {
+          throw LanguageError(
+              'Configured algorithm does not match stored algorithm for this value.');
+        }
+      } else {
+        selectedAlgorithm = (algorithm ?? 'aes').toLowerCase();
+      }
+      final effectiveMode = storedMode.isNotEmpty ? storedMode : mode;
+
+      final encrypted = Encrypted.fromBase64(cipherBase64);
+
+      if (selectedAlgorithm == 'aes') {
+        final aesMode = _parseAesMode(effectiveMode);
+        if (ivBase64.isEmpty) {
+          // Missing IV for AES is invalid.
+          return null;
+        }
+        final iv = IV.fromBase64(ivBase64);
+        final encrypter = Encrypter(AES(_key!, mode: aesMode));
+        decrypted = encrypter.decrypt(encrypted, iv: iv);
+      } else if (selectedAlgorithm == 'salsa20') {
+        if (ivBase64.isEmpty) {
+          // Missing IV/nonce for Salsa20 is invalid.
+          return null;
+        }
+        final iv = IV.fromBase64(ivBase64);
+        final encrypter = Encrypter(Salsa20(_key!));
+        decrypted = encrypter.decrypt(encrypted, iv: iv);
+      } else if (selectedAlgorithm == 'fernet') {
+        final encrypter = Encrypter(Fernet(_key!));
+        decrypted = encrypter.decrypt(encrypted);
+      } else {
+        // Unknown algorithm for secure storage
+        return null;
+      }
+    } else {
+      // Legacy format: <ivBase64>:<cipherBase64>, assumed AES-CBC
+      final parts = storedValue.split(':');
+      if (parts.length != 2) {
+        // Invalid format, possibly corrupted data
+        return null;
+      }
+
+      final iv = IV.fromBase64(parts[0]);
+      final encrypted = Encrypted.fromBase64(parts[1]);
+      final encrypter = Encrypter(AES(_key!, mode: AESMode.cbc));
+      decrypted = encrypter.decrypt(encrypted, iv: iv);
     }
-
-    final iv = IV.fromBase64(parts[0]);
-    final encrypted = Encrypted.fromBase64(parts[1]);
-
-    final decrypted = _encrypter!.decrypt(encrypted, iv: iv);
 
     // Handle empty string placeholder
     if (decrypted == " ") {
@@ -159,5 +274,53 @@ class EncryptedStorageManager {
     }
 
     return decrypted;
+  }
+
+  static AESMode _parseAesMode(String? input) {
+    final value = (input ?? 'cbc').toLowerCase();
+    switch (value) {
+      case 'cbc':
+        return AESMode.cbc;
+      case 'cfb64':
+        return AESMode.cfb64;
+      case 'ctr':
+        return AESMode.ctr;
+      case 'ecb':
+        return AESMode.ecb;
+      case 'ofb64gctr':
+      case 'ofb-64/gctr':
+        return AESMode.ofb64Gctr;
+      case 'ofb64':
+      case 'ofb-64':
+        return AESMode.ofb64;
+      case 'sic':
+        return AESMode.sic;
+      case 'gcm':
+        return AESMode.gcm;
+      default:
+        throw LanguageError(
+            'Unsupported AES mode "$input". Supported modes are: cbc, cfb64, ctr, ecb, ofb64gctr, ofb64, sic, gcm.');
+    }
+  }
+
+  static String _aesModeToConfigString(AESMode mode) {
+    switch (mode) {
+      case AESMode.cbc:
+        return 'cbc';
+      case AESMode.cfb64:
+        return 'cfb64';
+      case AESMode.ctr:
+        return 'ctr';
+      case AESMode.ecb:
+        return 'ecb';
+      case AESMode.ofb64Gctr:
+        return 'ofb64gctr';
+      case AESMode.ofb64:
+        return 'ofb64';
+      case AESMode.sic:
+        return 'sic';
+      case AESMode.gcm:
+        return 'gcm';
+    }
   }
 }
