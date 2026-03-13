@@ -46,6 +46,8 @@ abstract class ActionInvokable with Invokable {
       ActionType.controlDeviceBackNavigation,
       ActionType.closeApp,
       ActionType.getLocation,
+      ActionType.getMotionData,
+      ActionType.stopMotionData,
       ActionType.pickFiles,
       ActionType.openPlaidLink,
       ActionType.updateBadgeCount,
