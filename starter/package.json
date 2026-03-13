@@ -11,6 +11,7 @@
     "build": "tsc",
     "enable": "ts-node src/dart_runner.ts enable",
     "hasCamera": "ts-node src/dart_runner.ts camera",
+    "hasFaceCamera": "ts-node src/dart_runner.ts face_camera",
     "hasFileManager": "ts-node src/dart_runner.ts file_manager",
     "hasContacts": "ts-node src/dart_runner.ts contacts",
     "hasConnect": "ts-node src/dart_runner.ts plaid_connect",
