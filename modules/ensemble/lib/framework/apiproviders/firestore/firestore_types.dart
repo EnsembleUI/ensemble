@@ -306,6 +306,8 @@ class EnsembleFieldValue with Invokable {
     data.forEach((key, value) {
       if (value is EnsembleFieldValue) {
         data[key] = value.fieldValue;
+      } else if (value is FirestoreTimestamp) {
+        data[key] = value.timestamp;
       }
     });
     return data;
