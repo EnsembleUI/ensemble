@@ -1,3 +1,7 @@
+## 1.2.37
+
+ - **FIX**(firestore_types): handle FirestoreTimestamp conversion in EnsembleFieldValue class. ([a4e8dba0](https://github.com/ensembleUI/ensemble/commit/a4e8dba0142250eee12b09fd012ae85e5ac18f2f))
+
 ## 1.2.36
 
  - **FIX**(page_model): convert keys to strings in merged global actions. ([4dcb7e4a](https://github.com/ensembleUI/ensemble/commit/4dcb7e4a888a6259cb4f1a8daceb6338731ec6c8))
