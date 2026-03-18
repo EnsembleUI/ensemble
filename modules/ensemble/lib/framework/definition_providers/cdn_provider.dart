@@ -7,6 +7,7 @@ import 'package:ensemble/framework/definition_providers/provider.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/i18n_loader.dart';
 import 'package:ensemble/framework/widget/screen.dart';
+import 'package:ensemble/util/utils.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_i18n/flutter_i18n.dart';
@@ -234,6 +235,7 @@ class CdnDefinitionProvider extends DefinitionProvider {
       final root = jsonDecode(jsonString) as Map<String, dynamic>;
 
       _rebuildFromRoot(root);
+      await _refreshTranslationsAtRuntime();
       _etag = newEtag ?? _etag;
 
       // Save to persistent cache
@@ -601,5 +603,30 @@ class CdnDefinitionProvider extends DefinitionProvider {
       return Locale(parts[0], parts[1]);
     }
     return Locale(normalized);
+  }
+
+  @visibleForTesting
+  Future<void> applyRuntimeManifestForTesting(Map<String, dynamic> root) async {
+    _rebuildFromRoot(root);
+    await _refreshTranslationsAtRuntime();
+  }
+
+  Future<void> _refreshTranslationsAtRuntime() async {
+    try {
+      final context = Utils.globalAppKey.currentContext;
+      if (context == null) {
+        if (kDebugMode) {
+          debugPrint(
+              'CdnProvider: Skip i18n runtime refresh (no app context available)');
+        }
+        return;
+      }
+
+      await FlutterI18n.refresh(context, Ensemble().locale);
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('CdnProvider: Failed to refresh i18n runtime state: $e');
+      }
+    }
   }
 }
