@@ -1,3 +1,8 @@
+## 1.2.38
+
+ - **FEAT**(env): enhance environment variable loading and parsing. ([b7666ceb](https://github.com/ensembleUI/ensemble/commit/b7666ceb292427ad24445cc3080a68e9aca8c47a))
+ - **FEAT**(cdn_provider): add runtime translation refresh and testing capabilities. ([c9ba1fd2](https://github.com/ensembleUI/ensemble/commit/c9ba1fd23c34031c96e2248f1b05cf2ba2b4bc88))
+
 ## 1.2.37
 
  - **FIX**(firestore_types): handle FirestoreTimestamp conversion in EnsembleFieldValue class. ([a4e8dba0](https://github.com/ensembleUI/ensemble/commit/a4e8dba0142250eee12b09fd012ae85e5ac18f2f))
