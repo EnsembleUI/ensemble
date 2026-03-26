@@ -18,6 +18,7 @@ import 'package:js_widget/js_widget.dart';
 import 'dart:js' as js;
 import 'dart:html' as html;
 import 'package:lottie/lottie.dart';
+import 'package:collection/collection.dart';
 
 class LottieState extends EWidgetState<EnsembleLottie>
     with SingleTickerProviderStateMixin, LottieAction {
@@ -84,6 +85,17 @@ class LottieState extends EWidgetState<EnsembleLottie>
       rtn = Padding(padding: widget.controller.margin!, child: rtn);
     }
     return rtn;
+  }
+
+  Future<LottieComposition?> _lottieDecoder(List<int> bytes) {
+    return LottieComposition.decodeZip(
+      bytes,
+      filePicker: (files) {
+        return files.firstWhereOrNull(
+          (f) => f.name.startsWith('animations/') && f.name.endsWith('.json'),
+        );
+      },
+    );
   }
 
   // Render this when the runtime is flutter web with html renderer
@@ -251,6 +263,9 @@ class LottieState extends EWidgetState<EnsembleLottie>
         if (Utils.isAssetAvailableLocally(assetName)) {
           return Lottie.asset(Utils.getLocalAssetFullPath(assetName),
               controller: widget.controller.lottieController,
+              decoder: widget.controller.source.endsWith('.lottie')
+                  ? _lottieDecoder
+                  : null,
               onLoaded: (LottieComposition composition) {
                 widget.controller.initializeLottieController(composition);
               },
@@ -266,6 +281,9 @@ class LottieState extends EWidgetState<EnsembleLottie>
         return Lottie.network(
           widget.controller.source,
           controller: widget.controller.lottieController,
+          decoder: widget.controller.source.endsWith('.lottie')
+              ? _lottieDecoder
+              : null,
           onLoaded: (composition) {
             widget.controller.initializeLottieController(composition);
           },
@@ -280,6 +298,9 @@ class LottieState extends EWidgetState<EnsembleLottie>
 
       return Lottie.asset(Utils.getLocalAssetFullPath(widget.controller.source),
           controller: widget.controller.lottieController,
+          decoder: widget.controller.source.endsWith('.lottie')
+              ? _lottieDecoder
+              : null,
           onLoaded: (LottieComposition composition) {
             widget.controller.initializeLottieController(composition);
           },

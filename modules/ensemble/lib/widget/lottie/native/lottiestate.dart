@@ -7,10 +7,22 @@ import 'package:ensemble/widget/helpers/box_wrapper.dart';
 import 'package:ensemble/widget/lottie/lottie.dart';
 import 'package:flutter/widgets.dart';
 import 'package:lottie/lottie.dart';
+import 'package:collection/collection.dart';
 
 class LottieState extends EWidgetState<EnsembleLottie>
     with SingleTickerProviderStateMixin {
   late final AnimationController _animationController;
+
+  Future<LottieComposition?> _lottieDecoder(List<int> bytes) {
+    return LottieComposition.decodeZip(
+      bytes,
+      filePicker: (files) {
+        return files.firstWhereOrNull(
+          (f) => f.name.startsWith('animations/') && f.name.endsWith('.json'),
+        );
+      },
+    );
+  }
 
   @override
   void initState() {
@@ -78,6 +90,9 @@ class LottieState extends EWidgetState<EnsembleLottie>
             onLoaded: (composition) {
               widget.controller.initializeLottieController(composition);
             },
+            decoder: widget.controller.source.endsWith('.lottie')
+                ? _lottieDecoder
+                : null,
             width: widget.controller.width?.toDouble(),
             height: widget.controller.height?.toDouble(),
             repeat: widget.controller.repeat,
@@ -87,6 +102,9 @@ class LottieState extends EWidgetState<EnsembleLottie>
         }
         return Lottie.network(widget.controller.source,
             controller: widget.controller.lottieController,
+            decoder: widget.controller.source.endsWith('.lottie')
+                ? _lottieDecoder
+                : null,
             onLoaded: (composition) {
               widget.controller.initializeLottieController(composition);
             },
@@ -101,6 +119,9 @@ class LottieState extends EWidgetState<EnsembleLottie>
         return Lottie.asset(
           Utils.getLocalAssetFullPath(widget.controller.source),
           controller: widget.controller.lottieController,
+          decoder: widget.controller.source.endsWith('.lottie')
+              ? _lottieDecoder
+              : null,
           onLoaded: (composition) {
             widget.controller.initializeLottieController(composition);
           },
