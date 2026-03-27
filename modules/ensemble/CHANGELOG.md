@@ -1,3 +1,14 @@
+## 1.2.38-beta.1
+
+ - **FIX**(phone_contact): replace RuntimeError with debugPrint for missing contact photo. ([b36b399d](https://github.com/ensembleUI/ensemble/commit/b36b399d91fad26e46e14f0845c624a3f8b768c9))
+ - **FIX**(firestore_types): handle FirestoreTimestamp conversion in EnsembleFieldValue class. ([a4e8dba0](https://github.com/ensembleUI/ensemble/commit/a4e8dba0142250eee12b09fd012ae85e5ac18f2f))
+ - **FIX**(page_model): convert keys to strings in merged global actions. ([4dcb7e4a](https://github.com/ensembleUI/ensemble/commit/4dcb7e4a888a6259cb4f1a8daceb6338731ec6c8))
+ - **FEAT**(action): add ActionType.executeAction to ActionInvokable class. ([b5cc5a4a](https://github.com/ensembleUI/ensemble/commit/b5cc5a4af5ac95b0ed4971349f5cf5ab9a481672))
+ - **FEAT**(lottie): add custom Lottie decoder for .lottie file ext support. ([cc73e7cf](https://github.com/ensembleUI/ensemble/commit/cc73e7cf87475a7e538b0c88a099a90c5c63af21))
+ - **FEAT**(env): enhance environment variable loading and parsing. ([b7666ceb](https://github.com/ensembleUI/ensemble/commit/b7666ceb292427ad24445cc3080a68e9aca8c47a))
+ - **FEAT**(cdn_provider): add runtime translation refresh and testing capabilities. ([c9ba1fd2](https://github.com/ensembleUI/ensemble/commit/c9ba1fd23c34031c96e2248f1b05cf2ba2b4bc88))
+ - **FEAT**(secure_storage): enhance secure storage actions with optional encryption parameters. ([dee0bb57](https://github.com/ensembleUI/ensemble/commit/dee0bb571152e95b4cdc658924b2399c6b4f58b4))
+
 ## 1.2.38
 
  - **FEAT**(env): enhance environment variable loading and parsing. ([b7666ceb](https://github.com/ensembleUI/ensemble/commit/b7666ceb292427ad24445cc3080a68e9aca8c47a))
