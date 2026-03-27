@@ -10,6 +10,7 @@ import 'package:ensemble/framework/stub/contacts_manager.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/src/widgets/framework.dart';
 import 'package:get_it/get_it.dart';
 
@@ -124,7 +125,9 @@ class GetPhoneContactPhotoAction extends EnsembleAction {
             id!, PhoneContactPhotoResponse(image: Uint8List.fromList([])));
         updateContactData(scopeManager, context, id!);
       }
-      throw RuntimeError('Contact Photo Error: $error');
+      if (kDebugMode) {
+        debugPrint('Contact photo missing $error');
+      }
     });
 
     return Future.value(null);

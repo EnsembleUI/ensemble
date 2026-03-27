@@ -3,6 +3,260 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## 2026-03-18
+
+### Changes
+
+---
+
+Packages with breaking changes:
+
+ - There are no breaking changes in this release.
+
+Packages with other changes:
+
+ - [`ensemble` - `v1.2.38`](#ensemble---v1238)
+ - [`ensemble_auth` - `v1.0.1`](#ensemble_auth---v101)
+ - [`ensemble_stripe` - `v1.0.1`](#ensemble_stripe---v101)
+ - [`ensemble_chat` - `v0.0.1+1`](#ensemble_chat---v0011)
+ - [`ensemble_network_info` - `v0.0.1+1`](#ensemble_network_info---v0011)
+ - [`ensemble_deeplink` - `v0.0.1+1`](#ensemble_deeplink---v0011)
+ - [`ensemble_face_camera` - `v0.0.1+1`](#ensemble_face_camera---v0011)
+ - [`ensemble_connect` - `v0.0.1+1`](#ensemble_connect---v0011)
+ - [`ensemble_camera` - `v0.0.1+1`](#ensemble_camera---v0011)
+ - [`ensemble_location` - `v0.0.1+1`](#ensemble_location---v0011)
+ - [`ensemble_file_manager` - `v0.0.1+1`](#ensemble_file_manager---v0011)
+ - [`ensemble_bluetooth` - `v0.0.1+1`](#ensemble_bluetooth---v0011)
+ - [`ensemble_contacts` - `v0.0.1+1`](#ensemble_contacts---v0011)
+
+Packages with dependency updates only:
+
+> Packages listed below depend on other packages in this workspace that have had changes. Their versions have been incremented to bump the minimum dependency versions of the packages they depend upon in this project.
+
+ - `ensemble_auth` - `v1.0.1`
+ - `ensemble_stripe` - `v1.0.1`
+ - `ensemble_chat` - `v0.0.1+1`
+ - `ensemble_network_info` - `v0.0.1+1`
+ - `ensemble_deeplink` - `v0.0.1+1`
+ - `ensemble_face_camera` - `v0.0.1+1`
+ - `ensemble_connect` - `v0.0.1+1`
+ - `ensemble_camera` - `v0.0.1+1`
+ - `ensemble_location` - `v0.0.1+1`
+ - `ensemble_file_manager` - `v0.0.1+1`
+ - `ensemble_bluetooth` - `v0.0.1+1`
+ - `ensemble_contacts` - `v0.0.1+1`
+
+---
+
+#### `ensemble` - `v1.2.38`
+
+ - **FEAT**(env): enhance environment variable loading and parsing. ([b7666ceb](https://github.com/ensembleUI/ensemble/commit/b7666ceb292427ad24445cc3080a68e9aca8c47a))
+ - **FEAT**(cdn_provider): add runtime translation refresh and testing capabilities. ([c9ba1fd2](https://github.com/ensembleUI/ensemble/commit/c9ba1fd23c34031c96e2248f1b05cf2ba2b4bc88))
+
+
+## 2026-03-15
+
+### Changes
+
+---
+
+Packages with breaking changes:
+
+ - There are no breaking changes in this release.
+
+Packages with other changes:
+
+ - [`ensemble` - `v1.2.37`](#ensemble---v1237)
+ - [`ensemble_stripe` - `v1.0.1`](#ensemble_stripe---v101)
+ - [`ensemble_chat` - `v0.0.1+1`](#ensemble_chat---v0011)
+ - [`ensemble_auth` - `v1.0.1`](#ensemble_auth---v101)
+ - [`ensemble_location` - `v0.0.1+1`](#ensemble_location---v0011)
+ - [`ensemble_contacts` - `v0.0.1+1`](#ensemble_contacts---v0011)
+ - [`ensemble_file_manager` - `v0.0.1+1`](#ensemble_file_manager---v0011)
+ - [`ensemble_camera` - `v0.0.1+1`](#ensemble_camera---v0011)
+ - [`ensemble_bluetooth` - `v0.0.1+1`](#ensemble_bluetooth---v0011)
+ - [`ensemble_face_camera` - `v0.0.1+1`](#ensemble_face_camera---v0011)
+ - [`ensemble_connect` - `v0.0.1+1`](#ensemble_connect---v0011)
+ - [`ensemble_deeplink` - `v0.0.1+1`](#ensemble_deeplink---v0011)
+ - [`ensemble_network_info` - `v0.0.1+1`](#ensemble_network_info---v0011)
+
+Packages with dependency updates only:
+
+> Packages listed below depend on other packages in this workspace that have had changes. Their versions have been incremented to bump the minimum dependency versions of the packages they depend upon in this project.
+
+ - `ensemble_stripe` - `v1.0.1`
+ - `ensemble_chat` - `v0.0.1+1`
+ - `ensemble_auth` - `v1.0.1`
+ - `ensemble_location` - `v0.0.1+1`
+ - `ensemble_contacts` - `v0.0.1+1`
+ - `ensemble_file_manager` - `v0.0.1+1`
+ - `ensemble_camera` - `v0.0.1+1`
+ - `ensemble_bluetooth` - `v0.0.1+1`
+ - `ensemble_face_camera` - `v0.0.1+1`
+ - `ensemble_connect` - `v0.0.1+1`
+ - `ensemble_deeplink` - `v0.0.1+1`
+ - `ensemble_network_info` - `v0.0.1+1`
+
+---
+
+#### `ensemble` - `v1.2.37`
+
+ - **FIX**(firestore_types): handle FirestoreTimestamp conversion in EnsembleFieldValue class. ([a4e8dba0](https://github.com/ensembleUI/ensemble/commit/a4e8dba0142250eee12b09fd012ae85e5ac18f2f))
+
+
+## 2026-03-11
+
+### Changes
+
+---
+
+Packages with breaking changes:
+
+ - There are no breaking changes in this release.
+
+Packages with other changes:
+
+ - [`ensemble` - `v1.2.36`](#ensemble---v1236)
+ - [`ensemble_chat` - `v0.0.1+1`](#ensemble_chat---v0011)
+ - [`ensemble_stripe` - `v1.0.1`](#ensemble_stripe---v101)
+ - [`ensemble_camera` - `v0.0.1+1`](#ensemble_camera---v0011)
+ - [`ensemble_face_camera` - `v0.0.1+1`](#ensemble_face_camera---v0011)
+ - [`ensemble_auth` - `v1.0.1`](#ensemble_auth---v101)
+ - [`ensemble_contacts` - `v0.0.1+1`](#ensemble_contacts---v0011)
+ - [`ensemble_file_manager` - `v0.0.1+1`](#ensemble_file_manager---v0011)
+ - [`ensemble_bluetooth` - `v0.0.1+1`](#ensemble_bluetooth---v0011)
+ - [`ensemble_location` - `v0.0.1+1`](#ensemble_location---v0011)
+ - [`ensemble_connect` - `v0.0.1+1`](#ensemble_connect---v0011)
+ - [`ensemble_deeplink` - `v0.0.1+1`](#ensemble_deeplink---v0011)
+ - [`ensemble_network_info` - `v0.0.1+1`](#ensemble_network_info---v0011)
+
+Packages with dependency updates only:
+
+> Packages listed below depend on other packages in this workspace that have had changes. Their versions have been incremented to bump the minimum dependency versions of the packages they depend upon in this project.
+
+ - `ensemble_chat` - `v0.0.1+1`
+ - `ensemble_stripe` - `v1.0.1`
+ - `ensemble_camera` - `v0.0.1+1`
+ - `ensemble_face_camera` - `v0.0.1+1`
+ - `ensemble_auth` - `v1.0.1`
+ - `ensemble_contacts` - `v0.0.1+1`
+ - `ensemble_file_manager` - `v0.0.1+1`
+ - `ensemble_bluetooth` - `v0.0.1+1`
+ - `ensemble_location` - `v0.0.1+1`
+ - `ensemble_connect` - `v0.0.1+1`
+ - `ensemble_deeplink` - `v0.0.1+1`
+ - `ensemble_network_info` - `v0.0.1+1`
+
+---
+
+#### `ensemble` - `v1.2.36`
+
+ - **FIX**(page_model): convert keys to strings in merged global actions. ([4dcb7e4a](https://github.com/ensembleUI/ensemble/commit/4dcb7e4a888a6259cb4f1a8daceb6338731ec6c8))
+ - **FEAT**(secure_storage): enhance secure storage actions with optional encryption parameters. ([dee0bb57](https://github.com/ensembleUI/ensemble/commit/dee0bb571152e95b4cdc658924b2399c6b4f58b4))
+
+
+## 2026-03-08
+
+### Changes
+
+---
+
+Packages with breaking changes:
+
+ - There are no breaking changes in this release.
+
+Packages with other changes:
+
+ - [`ensemble` - `v1.2.35`](#ensemble---v1235)
+ - [`ensemble_stripe` - `v1.0.1`](#ensemble_stripe---v101)
+ - [`ensemble_location` - `v0.0.1+1`](#ensemble_location---v0011)
+ - [`ensemble_auth` - `v1.0.1`](#ensemble_auth---v101)
+ - [`ensemble_chat` - `v0.0.1+1`](#ensemble_chat---v0011)
+ - [`ensemble_file_manager` - `v0.0.1+1`](#ensemble_file_manager---v0011)
+ - [`ensemble_bluetooth` - `v0.0.1+1`](#ensemble_bluetooth---v0011)
+ - [`ensemble_camera` - `v0.0.1+1`](#ensemble_camera---v0011)
+ - [`ensemble_contacts` - `v0.0.1+1`](#ensemble_contacts---v0011)
+ - [`ensemble_connect` - `v0.0.1+1`](#ensemble_connect---v0011)
+ - [`ensemble_deeplink` - `v0.0.1+1`](#ensemble_deeplink---v0011)
+ - [`ensemble_network_info` - `v0.0.1+1`](#ensemble_network_info---v0011)
+ - [`ensemble_face_camera` - `v0.0.1+1`](#ensemble_face_camera---v0011)
+
+Packages with dependency updates only:
+
+> Packages listed below depend on other packages in this workspace that have had changes. Their versions have been incremented to bump the minimum dependency versions of the packages they depend upon in this project.
+
+ - `ensemble_stripe` - `v1.0.1`
+ - `ensemble_location` - `v0.0.1+1`
+ - `ensemble_auth` - `v1.0.1`
+ - `ensemble_chat` - `v0.0.1+1`
+ - `ensemble_file_manager` - `v0.0.1+1`
+ - `ensemble_bluetooth` - `v0.0.1+1`
+ - `ensemble_camera` - `v0.0.1+1`
+ - `ensemble_contacts` - `v0.0.1+1`
+ - `ensemble_connect` - `v0.0.1+1`
+ - `ensemble_deeplink` - `v0.0.1+1`
+ - `ensemble_network_info` - `v0.0.1+1`
+ - `ensemble_face_camera` - `v0.0.1+1`
+
+---
+
+#### `ensemble` - `v1.2.35`
+
+ - **FIX**(page_model): convert keys to strings in merged global actions. ([4dcb7e4a](https://github.com/ensembleUI/ensemble/commit/4dcb7e4a888a6259cb4f1a8daceb6338731ec6c8))
+
+
+## 2026-03-08
+
+### Changes
+
+---
+
+Packages with breaking changes:
+
+ - There are no breaking changes in this release.
+
+Packages with other changes:
+
+ - [`ensemble` - `v1.2.35`](#ensemble---v1235)
+ - [`ensemble_stripe` - `v1.0.1`](#ensemble_stripe---v101)
+ - [`ensemble_bluetooth` - `v0.0.1+1`](#ensemble_bluetooth---v0011)
+ - [`ensemble_location` - `v0.0.1+1`](#ensemble_location---v0011)
+ - [`ensemble_face_camera` - `v0.0.1+1`](#ensemble_face_camera---v0011)
+ - [`ensemble_file_manager` - `v0.0.1+1`](#ensemble_file_manager---v0011)
+ - [`ensemble_chat` - `v0.0.1+1`](#ensemble_chat---v0011)
+ - [`ensemble_connect` - `v0.0.1+1`](#ensemble_connect---v0011)
+ - [`ensemble_contacts` - `v0.0.1+1`](#ensemble_contacts---v0011)
+ - [`ensemble_auth` - `v1.0.1`](#ensemble_auth---v101)
+ - [`ensemble_deeplink` - `v0.0.1+1`](#ensemble_deeplink---v0011)
+ - [`ensemble_camera` - `v0.0.1+1`](#ensemble_camera---v0011)
+ - [`ensemble_network_info` - `v0.0.1+1`](#ensemble_network_info---v0011)
+
+Packages with dependency updates only:
+
+> Packages listed below depend on other packages in this workspace that have had changes. Their versions have been incremented to bump the minimum dependency versions of the packages they depend upon in this project.
+
+ - `ensemble_stripe` - `v1.0.1`
+ - `ensemble_bluetooth` - `v0.0.1+1`
+ - `ensemble_location` - `v0.0.1+1`
+ - `ensemble_face_camera` - `v0.0.1+1`
+ - `ensemble_file_manager` - `v0.0.1+1`
+ - `ensemble_chat` - `v0.0.1+1`
+ - `ensemble_connect` - `v0.0.1+1`
+ - `ensemble_contacts` - `v0.0.1+1`
+ - `ensemble_auth` - `v1.0.1`
+ - `ensemble_deeplink` - `v0.0.1+1`
+ - `ensemble_camera` - `v0.0.1+1`
+ - `ensemble_network_info` - `v0.0.1+1`
+
+---
+
+#### `ensemble` - `v1.2.35`
+
+ - **FIX**(execute_action): update payload key from 'action' to 'body' in ExecuteActionAction class. ([7e1b8466](https://github.com/ensembleUI/ensemble/commit/7e1b846611b4da27f21fa3474d8a6de05b40b768))
+ - **FIX**(page_model): add 'Actions' to the list of available types in PageModel. ([6dc07f06](https://github.com/ensembleUI/ensemble/commit/6dc07f06e447c5cdbf49be6f29a54e74fa6987e5))
+ - **FEAT**(actions): introduce reusable action execution framework. ([482d7de9](https://github.com/ensembleUI/ensemble/commit/482d7de922433bb41a282cfdd018f13866fe511f))
+
+
 ## 2026-03-06
 
 ### Changes

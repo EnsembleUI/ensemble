@@ -13,6 +13,7 @@ packages:
 
 ignore:
   - modules/ensemble_ts_interpreter
+  - "**/build/**"
 
 command:
   version:

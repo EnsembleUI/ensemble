@@ -1,3 +1,27 @@
+## 1.2.38
+
+ - **FEAT**(env): enhance environment variable loading and parsing. ([b7666ceb](https://github.com/ensembleUI/ensemble/commit/b7666ceb292427ad24445cc3080a68e9aca8c47a))
+ - **FEAT**(cdn_provider): add runtime translation refresh and testing capabilities. ([c9ba1fd2](https://github.com/ensembleUI/ensemble/commit/c9ba1fd23c34031c96e2248f1b05cf2ba2b4bc88))
+
+## 1.2.37
+
+ - **FIX**(firestore_types): handle FirestoreTimestamp conversion in EnsembleFieldValue class. ([a4e8dba0](https://github.com/ensembleUI/ensemble/commit/a4e8dba0142250eee12b09fd012ae85e5ac18f2f))
+
+## 1.2.36
+
+ - **FIX**(page_model): convert keys to strings in merged global actions. ([4dcb7e4a](https://github.com/ensembleUI/ensemble/commit/4dcb7e4a888a6259cb4f1a8daceb6338731ec6c8))
+ - **FEAT**(secure_storage): enhance secure storage actions with optional encryption parameters. ([dee0bb57](https://github.com/ensembleUI/ensemble/commit/dee0bb571152e95b4cdc658924b2399c6b4f58b4))
+
+## 1.2.35
+
+ - **FIX**(page_model): convert keys to strings in merged global actions. ([4dcb7e4a](https://github.com/ensembleUI/ensemble/commit/4dcb7e4a888a6259cb4f1a8daceb6338731ec6c8))
+
+## 1.2.35
+
+ - **FIX**(execute_action): update payload key from 'action' to 'body' in ExecuteActionAction class. ([7e1b8466](https://github.com/ensembleUI/ensemble/commit/7e1b846611b4da27f21fa3474d8a6de05b40b768))
+ - **FIX**(page_model): add 'Actions' to the list of available types in PageModel. ([6dc07f06](https://github.com/ensembleUI/ensemble/commit/6dc07f06e447c5cdbf49be6f29a54e74fa6987e5))
+ - **FEAT**(actions): introduce reusable action execution framework. ([482d7de9](https://github.com/ensembleUI/ensemble/commit/482d7de922433bb41a282cfdd018f13866fe511f))
+
 ## 1.2.35-beta.1
 
  - **FIX**(execute_action): update payload key from 'action' to 'body' in ExecuteActionAction class. ([7e1b8466](https://github.com/ensembleUI/ensemble/commit/7e1b846611b4da27f21fa3474d8a6de05b40b768))

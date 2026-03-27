@@ -1,0 +1,45 @@
+# Triggers studio preview deploy in ensemble_live:
+# https://github.com/EnsembleUI/ensemble_live/actions/workflows/studio-preview-deploy.yml
+#
+# - release (published): runs automatically with deploy_env=dev for stable ensemble-v* tags
+# - workflow_dispatch: choose dev or prod
+
+name: Trigger Ensemble Preview Deploy
+
+run-name: Preview Deploy (${{ github.event_name == 'workflow_dispatch' && github.event.inputs.deploy_env || 'dev' }})
+
+on:
+  release:
+    types: [published]
+
+  workflow_dispatch:
+    inputs:
+      deploy_env:
+        description: Deploy environment (release events always use dev)
+        required: true
+        default: dev
+        type: choice
+        options:
+          - dev
+          - prod
+
+jobs:
+  dispatch-studio-preview:
+    name: Dispatch studio-preview-deploy
+    runs-on: ubuntu-latest
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'release' &&
+       startsWith(github.event.release.tag_name, 'ensemble-v') &&
+       !contains(github.event.release.tag_name, '-beta'))
+
+    steps:
+      - name: Trigger workflow in ensemble_live
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+          DEPLOY_ENV: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.deploy_env || 'dev' }}
+        run: |
+          gh workflow run studio-preview-deploy.yml \
+            --repo EnsembleUI/ensemble_live \
+            --ref main \
+            -f deploy_env="$DEPLOY_ENV"

@@ -179,27 +179,40 @@ class Ensemble extends WithEnsemble with EnsembleRouteObserver {
     }
 
     // environment variable overrides
-    Map<String, dynamic>? envOverrides;
-    dynamic env = yamlMap['environmentVariables'];
-    if (env is YamlMap) {
-      envOverrides = {};
-      env.forEach((key, value) => envOverrides![key.toString()] = value);
-    }
-    // Read environmental variables from config/appConfig.json
+    // Load all sources, then merge with precedence:
+    // 1) environmentVariables in ensemble-config.yaml
+    // 2) .env.config
+    // 3) appConfig.json envVariables
+    final Map<String, dynamic> envOverrides = {};
     try {
       dynamic path = yamlMap["definitions"]?['local']?["path"];
       final configString =
           await rootBundle.loadString('${path}/config/appConfig.json');
       final Map<String, dynamic> configMap = json.decode(configString);
-      // Loop through the envVariables from appConfig.json file and add them to the envOverrides
       if (configMap["envVariables"] != null) {
-        // Loop through the envVariables from appConfig.json file and add them to the envOverrides
         configMap["envVariables"].forEach((key, value) {
-          envOverrides![key] = value;
+          envOverrides[key] = value;
         });
       }
     } catch (e) {
-      debugPrint("appConfig.json file doesn't exist");
+      // ignore missing/invalid appConfig.json
+    }
+
+    // 2) .env.config (middle priority)
+    dynamic localPath = yamlMap["definitions"]?['local']?["path"];
+    if (localPath is String && localPath.isNotEmpty) {
+      _mergeWithOverwrite(
+          envOverrides, await _loadDotEnvConfigFile('$localPath/.env.config'));
+    }
+    _mergeWithOverwrite(
+        envOverrides, await _loadDotEnvConfigFile('.env.config'));
+    _mergeWithOverwrite(
+        envOverrides, await _loadDotEnvConfigFile('ensemble/.env.config'));
+
+    // 1) environmentVariables from ensemble-config.yaml (highest priority)
+    dynamic env = yamlMap['environmentVariables'];
+    if (env is YamlMap) {
+      env.forEach((key, value) => envOverrides[key.toString()] = value);
     }
 
     DefinitionProvider definitionProvider = DefinitionProvider.from(yamlMap);
@@ -227,6 +240,49 @@ class Ensemble extends WithEnsemble with EnsembleRouteObserver {
 
   String? getAppId(YamlMap yamlMap) {
     return yamlMap['definitions']?['ensemble']?['appId'];
+  }
+
+  Future<Map<String, String>> _loadDotEnvConfigFile(String fileName) async {
+    try {
+      final content = await rootBundle.loadString(fileName);
+      return _parseDotEnvContent(content);
+    } catch (_) {
+      return {};
+    }
+  }
+
+  Map<String, String> _parseDotEnvContent(String content) {
+    final Map<String, String> values = {};
+    for (String rawLine in content.split('\n')) {
+      String line = rawLine.trim();
+      if (line.isEmpty || line.startsWith('#')) {
+        continue;
+      }
+      if (line.startsWith('export ')) {
+        line = line.substring('export '.length).trim();
+      }
+
+      final int equalIndex = line.indexOf('=');
+      if (equalIndex <= 0) {
+        continue;
+      }
+
+      final String key = line.substring(0, equalIndex).trim();
+      String value = line.substring(equalIndex + 1).trim();
+      if ((value.startsWith('"') && value.endsWith('"')) ||
+          (value.startsWith("'") && value.endsWith("'"))) {
+        value = value.substring(1, value.length - 1);
+      }
+      values[key] = value;
+    }
+    return values;
+  }
+
+  void _mergeWithOverwrite(
+      Map<String, dynamic> target, Map<String, String> source) {
+    source.forEach((key, value) {
+      target[key] = value;
+    });
   }
 
   //configure firebase if it has been configured in the config
