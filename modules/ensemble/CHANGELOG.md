@@ -1,3 +1,7 @@
+## 1.2.38-beta.2
+
+ - Releasing new beta version 1.2.38.2
+
 ## 1.2.38-beta.1
 
  - **FIX**(phone_contact): replace RuntimeError with debugPrint for missing contact photo. ([b36b399d](https://github.com/ensembleUI/ensemble/commit/b36b399d91fad26e46e14f0845c624a3f8b768c9))
