@@ -152,9 +152,22 @@ class TVFocusWidget extends StatelessWidget {
     if (yOffset != 0) {
       // Vertical movement: find nearest row
       newY = _findNearestRow(grid, y, focusOrder.row, yOffset);
-      // When moving to a new row, look for an entry point (e.g., selected tab)
-      // If no entry point found, go to the first item (order 0)
-      newX = _findRowEntryPoint(grid[newY]);
+      // First, try to find an explicit entry point in the new row
+      final entryPointIndex = _findRowEntryPoint(grid[newY]);
+      if (entryPointIndex != -1) {
+        // Entry point found, use it
+        newX = entryPointIndex;
+      } else {
+        // No entry point: preserve current column position (order)
+        // Try to find the same order value in the new row
+        final sameOrderIndex = grid[newY].indexWhere((node) => node.order.order == focusOrder.order);
+        if (sameOrderIndex != -1) {
+          newX = sameOrderIndex;
+        } else {
+          // Same order not found, clamp to available range
+          newX = x.clamp(0, grid[newY].length - 1);
+        }
+      }
     } else {
       // Horizontal movement: stay on same row, find nearest order
       newY = y;
@@ -192,15 +205,15 @@ class TVFocusWidget extends StatelessWidget {
   }
 
   /// Find the entry point index in a row.
-  /// Returns the index of the item marked as entry point, or 0 if none found.
+  /// Returns the index of the item marked as entry point, or -1 if none found.
   int _findRowEntryPoint(List<TVFocusOrderNode> row) {
     for (int i = 0; i < row.length; i++) {
       if (row[i].order.isRowEntryPoint) {
         return i;
       }
     }
-    // No entry point found, default to first item
-    return 0;
+    // No entry point found
+    return -1;
   }
 
   /// Find the nearest row in the specified direction.

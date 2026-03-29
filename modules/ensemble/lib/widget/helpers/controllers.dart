@@ -102,6 +102,8 @@ class TVOptionsComposite extends WidgetCompositeProperty {
     focusBorderRadius = inputs['focusBorderRadius'];
     focusColor = inputs['focusColor'];
     focusBorderWidth = inputs['focusBorderWidth'];
+    fixedFocusScroll = inputs['fixedFocusScroll'];
+    fixedFocusOffset = inputs['fixedFocusOffset'];
   }
 
   /// Vertical position (row grouping). Items with same row navigate horizontally.
@@ -138,6 +140,20 @@ class TVOptionsComposite extends WidgetCompositeProperty {
       _focusBorderWidth = Utils.optionalDouble(value);
   double? get focusBorderWidth => _focusBorderWidth;
 
+  /// Enable Netflix-style fixed position scrolling for horizontal rows.
+  /// When true, focused item stays at fixed left position while content scrolls.
+  bool _fixedFocusScroll = false;
+  set fixedFocusScroll(value) =>
+      _fixedFocusScroll = Utils.getBool(value, fallback: false);
+  bool get fixedFocusScroll => _fixedFocusScroll;
+
+  /// Fixed position from left edge in pixels for Netflix-style scrolling.
+  /// Only used when fixedFocusScroll is true. Defaults to 48.0.
+  double? _fixedFocusOffset;
+  set fixedFocusOffset(value) =>
+      _fixedFocusOffset = Utils.optionalDouble(value);
+  double? get fixedFocusOffset => _fixedFocusOffset;
+
   /// Returns true if TV navigation is enabled (row is set)
   bool get isEnabled => _row != null;
 
@@ -149,6 +165,8 @@ class TVOptionsComposite extends WidgetCompositeProperty {
         'focusBorderRadius': () => _focusBorderRadius,
         'focusColor': () => _focusColor,
         'focusBorderWidth': () => _focusBorderWidth,
+        'fixedFocusScroll': () => _fixedFocusScroll,
+        'fixedFocusOffset': () => _fixedFocusOffset,
       };
 
   @override
@@ -162,6 +180,8 @@ class TVOptionsComposite extends WidgetCompositeProperty {
         'focusBorderRadius': (value) => focusBorderRadius = value,
         'focusColor': (value) => focusColor = value,
         'focusBorderWidth': (value) => focusBorderWidth = value,
+        'fixedFocusScroll': (value) => fixedFocusScroll = value,
+        'fixedFocusOffset': (value) => fixedFocusOffset = value,
       };
 }
 

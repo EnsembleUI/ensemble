@@ -131,6 +131,15 @@ abstract class TVFocusProvider {
   /// Default: null (use theme or fallback to 150ms)
   int? get focusAnimationDurationMs => null;
 
+  /// Whether the host app handles horizontal scrolling for focused items.
+  ///
+  /// When true, Ensemble will skip its horizontal scroll logic and let
+  /// the host app manage scrolling. This prevents double-scrolling when
+  /// both systems try to scroll the same content.
+  ///
+  /// Default: false (Ensemble handles horizontal scrolling)
+  bool get handlesHorizontalScroll => false;
+
   /// Disposes any resources held by this provider.
   void dispose() {}
 }
