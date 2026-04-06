@@ -21,7 +21,8 @@ class TVFocusOrder extends FocusOrder {
     this.order = 0,
     this.page = 0,
     this.pagePixels,
-  ]) : isRowEntryPoint = false;
+  ])  : isRowEntryPoint = false,
+        lockHorizontalNavigation = false;
 
   /// Creates a focus order with named parameters for optional values.
   const TVFocusOrder.withOptions(
@@ -30,6 +31,7 @@ class TVFocusOrder extends FocusOrder {
     this.page = 0,
     this.pagePixels,
     this.isRowEntryPoint = false,
+    this.lockHorizontalNavigation = false,
   });
 
   final double row;
@@ -41,6 +43,10 @@ class TVFocusOrder extends FocusOrder {
   /// Used by TabBar to focus the selected tab when entering the tab row.
   final bool isRowEntryPoint;
 
+  /// If true, prevents horizontal navigation from escaping this row at boundaries.
+  /// When at the first item, LEFT won't propagate; when at the last item, RIGHT won't propagate.
+  final bool lockHorizontalNavigation;
+
   /// Composite value for sorting: row * 10000 + order
   /// This ensures items are sorted by row first, then by order within row
   double get value => row * 10000 + order;
@@ -50,7 +56,14 @@ class TVFocusOrder extends FocusOrder {
 
   /// Create a new TVFocusOrder offset from this one
   TVFocusOrder offset({double rowOffset = 0, double orderOffset = 0}) {
-    return TVFocusOrder(row + rowOffset, order + orderOffset, page, pagePixels);
+    return TVFocusOrder.withOptions(
+      row + rowOffset,
+      order: order + orderOffset,
+      page: page,
+      pagePixels: pagePixels,
+      isRowEntryPoint: isRowEntryPoint,
+      lockHorizontalNavigation: lockHorizontalNavigation,
+    );
   }
 
   /// Request focus on the widget with this order coordinate
@@ -60,14 +73,14 @@ class TVFocusOrder extends FocusOrder {
     final root = FocusManager.instance.rootScope;
 
     for (final focusNode in root.descendants) {
-      final focusTraversalOrder =
-          focusNode.context?.findAncestorWidgetOfExactType<FocusTraversalOrder>();
+      final focusTraversalOrder = focusNode.context
+          ?.findAncestorWidgetOfExactType<FocusTraversalOrder>();
 
       if (focusTraversalOrder?.order is TVFocusOrder) {
         final gridFocusOrder = focusTraversalOrder!.order as TVFocusOrder;
         if (gridFocusOrder.value == value) {
-          final thisGroup =
-              focusNode.context?.findAncestorWidgetOfExactType<FocusTraversalGroup>();
+          final thisGroup = focusNode.context
+              ?.findAncestorWidgetOfExactType<FocusTraversalGroup>();
           if (thisGroup == group) {
             focusNode.requestFocus();
             return;
@@ -125,7 +138,8 @@ class TVFocusOrderNode {
 
     for (final element in sorted) {
       // Start a new row if this element's row differs from current
-      if (currentRow == null || currentRow.first.order.row != element.order.row) {
+      if (currentRow == null ||
+          currentRow.first.order.row != element.order.row) {
         currentRow = <TVFocusOrderNode>[];
         grid.add(currentRow);
       }

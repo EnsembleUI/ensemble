@@ -31,10 +31,15 @@ import 'package:flutter/material.dart';
 ///     required double order,
 ///     required Widget child,
 ///     bool isRowEntryPoint = false,
+///     bool lockHorizontalNavigation = false,
 ///     KeyEventResult Function(FocusNode)? onBackPressed,
 ///   }) {
 ///     return PageFocusWidget(
-///       focusOrder: PageFocusOrder(row, order, isRowEntryPoint: isRowEntryPoint),
+///       focusOrder: PageFocusOrder(
+///         row, order,
+///         isRowEntryPoint: isRowEntryPoint,
+///         lockHorizontalNavigation: lockHorizontalNavigation,
+///       ),
 ///       onBackPressed: onBackPressed,
 ///       child: child,
 ///     );
@@ -56,6 +61,9 @@ abstract class TVFocusProvider {
   /// - [isRowEntryPoint]: If true, this is the preferred focus target when
   ///   navigating INTO this row from another row. Useful for tabs where
   ///   the selected tab should receive focus.
+  /// - [lockHorizontalNavigation]: If true, prevents focus from escaping
+  ///   this row at horizontal boundaries (left/right edges). Useful for
+  ///   carousels/lanes where focus should stay locked within the row.
   /// - [child]: The widget to make focusable. Should contain an InkWell
   ///   or similar focusable widget.
   /// - [onBackPressed]: Optional callback for Android TV back button.
@@ -69,6 +77,7 @@ abstract class TVFocusProvider {
     required double order,
     required Widget child,
     bool isRowEntryPoint = false,
+    bool lockHorizontalNavigation = false,
     KeyEventResult Function(FocusNode node)? onBackPressed,
   });
 
@@ -166,8 +175,7 @@ class TVFocusProviderScope extends InheritedWidget {
 
   /// Get provider without registering dependency (for one-time lookups).
   static TVFocusProvider? maybeOf(BuildContext context) {
-    final scope =
-        context.getInheritedWidgetOfExactType<TVFocusProviderScope>();
+    final scope = context.getInheritedWidgetOfExactType<TVFocusProviderScope>();
     return scope?.provider;
   }
 

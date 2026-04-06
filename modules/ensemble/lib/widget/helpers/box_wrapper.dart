@@ -194,10 +194,12 @@ class BoxWrapper extends StatelessWidget {
             unconfirmedSplashDuration: controller.unconfirmedSplashDuration,
           ),
           onLongPress: controller.onLongPress != null
-              ? () => ScreenController().executeAction(context, controller.onLongPress!)
+              ? () => ScreenController()
+                  .executeAction(context, controller.onLongPress!)
               : null,
           onTap: controller.onTap != null
-              ? () => ScreenController().executeAction(context, controller.onTap!)
+              ? () =>
+                  ScreenController().executeAction(context, controller.onTap!)
               : null,
           splashColor: controller.enableSplashFeedback
               ? controller.splashColor
@@ -407,6 +409,34 @@ class _TapEnabledWrapperState extends State<_TapEnabledWrapper> {
     }
   }
 
+  /// Converts a curve name string to a Flutter Curve object.
+  /// Supported values: easeIn, easeOut, easeInOut, linear, decelerate, ease.
+  Curve _getCurveFromName(String? curveName,
+      {Curve defaultCurve = Curves.easeOut}) {
+    switch (curveName?.toLowerCase()) {
+      case 'easein':
+        return Curves.easeIn;
+      case 'easeout':
+        return Curves.easeOut;
+      case 'easeinout':
+        return Curves.easeInOut;
+      case 'linear':
+        return Curves.linear;
+      case 'decelerate':
+        return Curves.decelerate;
+      case 'ease':
+        return Curves.ease;
+      case 'fastoutslowin':
+        return Curves.fastOutSlowIn;
+      case 'bounceout':
+        return Curves.bounceOut;
+      case 'elasticout':
+        return Curves.elasticOut;
+      default:
+        return defaultCurve;
+    }
+  }
+
   /// Handles scrolling when focus changes.
   /// Uses Netflix-style fixed position for horizontal scrolling when enabled.
   void _handleFocusScroll() {
@@ -416,14 +446,26 @@ class _TapEnabledWrapperState extends State<_TapEnabledWrapper> {
     final tvOptions = widget.boxController.tvOptions;
     final useFixedFocusScroll = tvOptions?.fixedFocusScroll ?? false;
 
+    // Get configurable scroll properties with defaults
+    final scrollAnimationDuration = tvOptions?.scrollAnimationDuration ?? 200;
+    final horizontalScrollPadding = tvOptions?.horizontalScrollPadding ?? 16.0;
+    final scrollCurveName = tvOptions?.scrollAnimationCurve;
+
     // Check if external provider handles horizontal scrolling
     final externalProvider = TVFocusProviderScope.maybeOf(context);
-    final hostHandlesScroll = externalProvider?.handlesHorizontalScroll ?? false;
+    final hostHandlesScroll =
+        externalProvider?.handlesHorizontalScroll ?? false;
 
     // Handle vertical scrolling to ensure focused item is visible
     final verticalScrollable = _findVerticalScrollable();
     if (verticalScrollable != null) {
-      _scrollVerticalOnly(verticalScrollable, itemBox);
+      final verticalPadding = tvOptions?.verticalScrollPadding ?? 50.0;
+      final verticalCurve =
+          _getCurveFromName(scrollCurveName, defaultCurve: Curves.easeInOut);
+      _scrollVerticalOnly(verticalScrollable, itemBox,
+          verticalPadding: verticalPadding,
+          animationDuration: scrollAnimationDuration,
+          curve: verticalCurve);
     }
 
     // Handle horizontal scrolling
@@ -435,13 +477,20 @@ class _TapEnabledWrapperState extends State<_TapEnabledWrapper> {
     final horizontalScrollable = _findHorizontalScrollable();
 
     if (horizontalScrollable != null) {
+      final horizontalCurve =
+          _getCurveFromName(scrollCurveName, defaultCurve: Curves.easeOut);
       if (useFixedFocusScroll) {
         // Netflix-style: focus stays at fixed left position
         final fixedOffset = tvOptions?.fixedFocusOffset ?? 48.0;
-        _scrollHorizontalWithFixedPosition(horizontalScrollable, itemBox, fixedOffset);
+        _scrollHorizontalWithFixedPosition(
+            horizontalScrollable, itemBox, fixedOffset,
+            animationDuration: scrollAnimationDuration, curve: horizontalCurve);
       } else {
         // Default: ensure item is visible (centered when scrolling needed)
-        _scrollHorizontalIfNotVisible(horizontalScrollable, itemBox);
+        _scrollHorizontalIfNotVisible(horizontalScrollable, itemBox,
+            padding: horizontalScrollPadding,
+            animationDuration: scrollAnimationDuration,
+            curve: horizontalCurve);
       }
     }
   }
@@ -490,7 +539,14 @@ class _TapEnabledWrapperState extends State<_TapEnabledWrapper> {
 
   /// Scrolls ONLY the vertical scrollable to bring row into view.
   /// Unlike Scrollable.ensureVisible(), this does NOT affect horizontal scroll.
-  void _scrollVerticalOnly(ScrollableState scrollable, RenderBox itemBox) {
+  /// [verticalPadding] controls the threshold from screen edges (use larger
+  /// values when there's a top nav bar that items might hide behind).
+  /// [animationDuration] controls the scroll animation duration in milliseconds.
+  /// [curve] controls the animation curve (defaults to easeInOut).
+  void _scrollVerticalOnly(ScrollableState scrollable, RenderBox itemBox,
+      {double verticalPadding = 50.0,
+      int animationDuration = 200,
+      Curve curve = Curves.easeInOut}) {
     final scrollableBox = scrollable.context.findRenderObject() as RenderBox?;
     if (scrollableBox == null || !scrollableBox.hasSize) return;
 
@@ -503,11 +559,9 @@ class _TapEnabledWrapperState extends State<_TapEnabledWrapper> {
     final double itemTop = itemScreenPos.dy;
     final double itemBottom = itemTop + itemHeight;
 
-    // Padding from screen edges
-    const double verticalPadding = 50.0;
-
     final bool isAboveScreen = itemTop < verticalPadding;
-    final bool isBelowScreen = itemBottom > (screenSize.height - verticalPadding);
+    final bool isBelowScreen =
+        itemBottom > (screenSize.height - verticalPadding);
 
     // If fully visible vertically, no need to scroll
     if (!isAboveScreen && !isBelowScreen) {
@@ -524,24 +578,30 @@ class _TapEnabledWrapperState extends State<_TapEnabledWrapper> {
       scrollDelta = itemBottom - (screenSize.height - verticalPadding);
     }
 
-    final double targetScroll = (position.pixels + scrollDelta)
-        .clamp(0.0, position.maxScrollExtent);
+    final double targetScroll =
+        (position.pixels + scrollDelta).clamp(0.0, position.maxScrollExtent);
 
     // Only scroll if delta is significant (avoid micro-scrolls)
     if ((targetScroll - position.pixels).abs() > 2.0) {
       position.animateTo(
         targetScroll,
-        duration: const Duration(milliseconds: 200),
-        curve: Curves.easeInOut,
+        duration: Duration(milliseconds: animationDuration),
+        curve: curve,
       );
     }
   }
 
   /// Default horizontal scrolling: ensure item is visible, scroll only if needed.
+  /// [padding] controls the horizontal padding for visibility checks.
+  /// [animationDuration] controls the scroll animation duration in milliseconds.
+  /// [curve] controls the animation curve (defaults to easeOut).
   void _scrollHorizontalIfNotVisible(
     ScrollableState scrollable,
-    RenderBox itemBox,
-  ) {
+    RenderBox itemBox, {
+    double padding = 16.0,
+    int animationDuration = 200,
+    Curve curve = Curves.easeOut,
+  }) {
     final scrollableBox = scrollable.context.findRenderObject() as RenderBox?;
     if (scrollableBox == null || !scrollableBox.hasSize) return;
 
@@ -557,7 +617,6 @@ class _TapEnabledWrapperState extends State<_TapEnabledWrapper> {
     final double scrollableRight = scrollableLeft + scrollableBox.size.width;
 
     // Check if item is fully visible
-    const double padding = 16.0;
     final bool isFullyVisible = itemLeft >= (scrollableLeft + padding) &&
         itemRight <= (scrollableRight - padding);
 
@@ -567,18 +626,22 @@ class _TapEnabledWrapperState extends State<_TapEnabledWrapper> {
     Scrollable.ensureVisible(
       context,
       alignment: 0.5,
-      duration: const Duration(milliseconds: 200),
-      curve: Curves.easeOut,
+      duration: Duration(milliseconds: animationDuration),
+      curve: curve,
     );
   }
 
   /// Netflix-style horizontal scrolling: focus stays at fixed left position,
   /// content scrolls underneath. At boundaries, focus moves through visible items.
+  /// [animationDuration] controls the scroll animation duration in milliseconds.
+  /// [curve] controls the animation curve (defaults to easeOut).
   void _scrollHorizontalWithFixedPosition(
     ScrollableState scrollable,
     RenderBox itemBox,
-    double fixedOffset,
-  ) {
+    double fixedOffset, {
+    int animationDuration = 200,
+    Curve curve = Curves.easeOut,
+  }) {
     final scrollableBox = scrollable.context.findRenderObject() as RenderBox?;
     if (scrollableBox == null || !scrollableBox.hasSize) return;
 
@@ -600,8 +663,9 @@ class _TapEnabledWrapperState extends State<_TapEnabledWrapper> {
     const double edgePadding = 8.0;
 
     // Check if item is fully visible on screen (both edges with padding)
-    final bool isItemFullyVisible = itemLeft >= (scrollableLeft + edgePadding) &&
-        itemRight <= (scrollableRight - edgePadding);
+    final bool isItemFullyVisible =
+        itemLeft >= (scrollableLeft + edgePadding) &&
+            itemRight <= (scrollableRight - edgePadding);
 
     // Check if item's LEFT edge is visible (for START boundary)
     final bool isLeftEdgeVisible = itemLeft >= scrollableLeft;
@@ -610,7 +674,8 @@ class _TapEnabledWrapperState extends State<_TapEnabledWrapper> {
     final bool isRightEdgeVisible = itemRight <= scrollableRight;
 
     // Item is reasonably visible if both edges are on screen
-    final bool isItemReasonablyVisible = isLeftEdgeVisible && isRightEdgeVisible;
+    final bool isItemReasonablyVisible =
+        isLeftEdgeVisible && isRightEdgeVisible;
 
     // Check if we're currently at boundaries
     final bool isAtStart = position.pixels <= 2.0;
@@ -630,7 +695,9 @@ class _TapEnabledWrapperState extends State<_TapEnabledWrapper> {
     final bool wouldHitEnd = rawTargetScroll >= position.maxScrollExtent;
 
     // START BOUNDARY: Skip scroll if item is visible and at/before fixedOffset
-    if ((isAtStart || wouldHitStart) && isLeftEdgeVisible && itemLeftInViewport <= fixedOffset + edgePadding) {
+    if ((isAtStart || wouldHitStart) &&
+        isLeftEdgeVisible &&
+        itemLeftInViewport <= fixedOffset + edgePadding) {
       return;
     }
 
@@ -651,8 +718,8 @@ class _TapEnabledWrapperState extends State<_TapEnabledWrapper> {
     if ((targetScroll - position.pixels).abs() > 2.0) {
       position.animateTo(
         targetScroll,
-        duration: const Duration(milliseconds: 200),
-        curve: Curves.easeOut,
+        duration: Duration(milliseconds: animationDuration),
+        curve: curve,
       );
     }
   }
@@ -682,9 +749,8 @@ class _TapEnabledWrapperState extends State<_TapEnabledWrapper> {
     final autofocus = widget.boxController.autofocus;
 
     final externalProvider = TVFocusProviderScope.maybeOf(context);
-    final effectiveRow = externalProvider != null
-        ? tvRow + externalProvider.rowOffset
-        : tvRow;
+    final effectiveRow =
+        externalProvider != null ? tvRow + externalProvider.rowOffset : tvRow;
     final effectiveOrder = externalProvider != null
         ? tvOrder + externalProvider.orderOffset
         : tvOrder;
@@ -715,12 +781,15 @@ class _TapEnabledWrapperState extends State<_TapEnabledWrapper> {
     if (tvOptions.focusBorderWidth != null) {
       focusBorderWidth = tvOptions.focusBorderWidth!;
     } else {
-      focusBorderWidth = tvFocusTheme.resolveBorderWidth(externalProvider?.focusBorderWidth);
+      focusBorderWidth =
+          tvFocusTheme.resolveBorderWidth(externalProvider?.focusBorderWidth);
     }
 
     // Focus border radius: tvOptions > Widget's borderRadius > Theme > Default
-    final double themeFocusBorderRadius = tvFocusTheme.resolveBorderRadius(externalProvider?.focusBorderRadius);
-    final focusAnimationDuration = tvFocusTheme.resolveAnimationDuration(externalProvider?.focusAnimationDurationMs);
+    final double themeFocusBorderRadius =
+        tvFocusTheme.resolveBorderRadius(externalProvider?.focusBorderRadius);
+    final focusAnimationDuration = tvFocusTheme
+        .resolveAnimationDuration(externalProvider?.focusAnimationDurationMs);
 
     final BorderRadius borderRadius;
     if (tvOptions.focusBorderRadius != null) {
@@ -752,7 +821,8 @@ class _TapEnabledWrapperState extends State<_TapEnabledWrapper> {
           ? () => ScreenController().executeAction(context, controller.onTap!)
           : null,
       onLongPress: controller.onLongPress != null
-          ? () => ScreenController().executeAction(context, controller.onLongPress!)
+          ? () =>
+              ScreenController().executeAction(context, controller.onLongPress!)
           : null,
       child: Builder(
         builder: (builderContext) {
@@ -779,25 +849,33 @@ class _TapEnabledWrapperState extends State<_TapEnabledWrapper> {
         row: effectiveRow,
         order: effectiveOrder,
         isRowEntryPoint: isRowEntryPoint,
+        lockHorizontalNavigation: tvOptions.lockHorizontalNavigation,
         child: materialChild,
       );
     }
 
     // Otherwise use Ensemble's built-in TVFocusWidget
     return TVFocusWidget(
-      focusOrder: TVFocusOrder.withOptions(tvRow, order: tvOrder, isRowEntryPoint: isRowEntryPoint),
+      focusOrder: TVFocusOrder.withOptions(
+        tvRow,
+        order: tvOrder,
+        isRowEntryPoint: isRowEntryPoint,
+        lockHorizontalNavigation: tvOptions.lockHorizontalNavigation,
+      ),
       child: materialChild,
     );
   }
 
   /// Non-TV: Standard InkWell with splash feedback for touch/mouse.
-  Widget _buildInkWell(BuildContext context, TapEnabledBoxController controller) {
-    Widget inkWellChild = controller.enableSplashFeedback && controller.padding != null
-        ? Padding(
-            padding: controller.padding!,
-            child: widget.child,
-          )
-        : widget.child;
+  Widget _buildInkWell(
+      BuildContext context, TapEnabledBoxController controller) {
+    Widget inkWellChild =
+        controller.enableSplashFeedback && controller.padding != null
+            ? Padding(
+                padding: controller.padding!,
+                child: widget.child,
+              )
+            : widget.child;
 
     Widget inkWell = InkWell(
       focusNode: _focusNode,
@@ -808,7 +886,8 @@ class _TapEnabledWrapperState extends State<_TapEnabledWrapper> {
         unconfirmedSplashDuration: controller.unconfirmedSplashDuration,
       ),
       onLongPress: controller.onLongPress != null
-          ? () => ScreenController().executeAction(context, controller.onLongPress!)
+          ? () =>
+              ScreenController().executeAction(context, controller.onLongPress!)
           : null,
       onTap: controller.onTap != null
           ? () => ScreenController().executeAction(context, controller.onTap!)
@@ -846,9 +925,8 @@ class _TVFocusOnlyWrapper extends StatelessWidget {
     final isRowEntryPoint = tvOptions.isRowEntryPoint;
 
     final externalProvider = TVFocusProviderScope.maybeOf(context);
-    final effectiveRow = externalProvider != null
-        ? tvRow + externalProvider.rowOffset
-        : tvRow;
+    final effectiveRow =
+        externalProvider != null ? tvRow + externalProvider.rowOffset : tvRow;
     final effectiveOrder = externalProvider != null
         ? tvOrder + externalProvider.orderOffset
         : tvOrder;
@@ -858,13 +936,19 @@ class _TVFocusOnlyWrapper extends StatelessWidget {
         row: effectiveRow,
         order: effectiveOrder,
         isRowEntryPoint: isRowEntryPoint,
+        lockHorizontalNavigation: tvOptions.lockHorizontalNavigation,
         child: child,
       );
     }
 
     // Standalone mode: use built-in TVFocusWidget
     return TVFocusWidget(
-      focusOrder: TVFocusOrder.withOptions(tvRow, order: tvOrder, isRowEntryPoint: isRowEntryPoint),
+      focusOrder: TVFocusOrder.withOptions(
+        tvRow,
+        order: tvOrder,
+        isRowEntryPoint: isRowEntryPoint,
+        lockHorizontalNavigation: tvOptions.lockHorizontalNavigation,
+      ),
       child: child,
     );
   }

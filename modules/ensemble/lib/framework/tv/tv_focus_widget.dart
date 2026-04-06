@@ -91,7 +91,8 @@ class TVFocusWidget extends StatelessWidget {
     if (yOffset == -1 && focusOrder.row == 0) {
       // Check if policy blocks escape
       if (focusTraversalGroup?.policy is TVFocusOrderTraversalPolicy) {
-        final policy = focusTraversalGroup!.policy as TVFocusOrderTraversalPolicy;
+        final policy =
+            focusTraversalGroup!.policy as TVFocusOrderTraversalPolicy;
         if (policy.preventOutOfScopeTopTraversal) {
           return true; // Block the event
         }
@@ -109,13 +110,13 @@ class TVFocusWidget extends StatelessWidget {
       if (focusNode.context == null) continue;
 
       // Check if in same FocusTraversalGroup
-      final nodeGroup =
-          focusNode.context?.findAncestorWidgetOfExactType<FocusTraversalGroup>();
+      final nodeGroup = focusNode.context
+          ?.findAncestorWidgetOfExactType<FocusTraversalGroup>();
       if (nodeGroup != focusTraversalGroup) continue;
 
       // Get the TVFocusOrder for this node
-      final focusTraversalOrder =
-          focusNode.context?.findAncestorWidgetOfExactType<FocusTraversalOrder>();
+      final focusTraversalOrder = focusNode.context
+          ?.findAncestorWidgetOfExactType<FocusTraversalOrder>();
       if (focusTraversalOrder?.order is TVFocusOrder) {
         final order = focusTraversalOrder!.order as TVFocusOrder;
         inScope.add(TVFocusOrderNode(focusNode, order));
@@ -133,12 +134,14 @@ class TVFocusWidget extends StatelessWidget {
     }
 
     // Find current position in grid
-    final y = grid.indexWhere((row) => row.firstOrNull?.order.row == focusOrder.row);
+    final y =
+        grid.indexWhere((row) => row.firstOrNull?.order.row == focusOrder.row);
     if (y == -1) {
       return false;
     }
 
-    final x = grid[y].indexWhere((node) => node.order.order == focusOrder.order);
+    final x =
+        grid[y].indexWhere((node) => node.order.order == focusOrder.order);
     if (x == -1) {
       return false;
     }
@@ -160,7 +163,8 @@ class TVFocusWidget extends StatelessWidget {
       } else {
         // No entry point: preserve current column position (order)
         // Try to find the same order value in the new row
-        final sameOrderIndex = grid[newY].indexWhere((node) => node.order.order == focusOrder.order);
+        final sameOrderIndex = grid[newY]
+            .indexWhere((node) => node.order.order == focusOrder.order);
         if (sameOrderIndex != -1) {
           newX = sameOrderIndex;
         } else {
@@ -192,6 +196,11 @@ class TVFocusWidget extends StatelessWidget {
         return true;
       }
 
+      // Handle horizontal boundary locking (prevents escaping row at left/right edges)
+      if (xOffset != 0 && focusOrder.lockHorizontalNavigation) {
+        // At horizontal boundary with lockHorizontalNavigation enabled - block the event
+        return true;
+      }
       // At boundary - let event propagate to parent
       return false;
     }
