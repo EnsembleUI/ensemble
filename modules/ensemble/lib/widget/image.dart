@@ -75,7 +75,8 @@ class EnsembleImage extends StatefulWidget
           _controller.pinchToZoom = Utils.optionalBool(value),
       'colorFilter': (value) => _controller.colorFilter = ColorFilterComposite.from(value),
       'headers': (value) =>
-          _controller.headers = Utils.getMap(value)?.cast<String, String>(),
+          _controller.headers = Utils.getMap(value)
+          ?.map((key, value) => MapEntry(key.toString(), value.toString())),
 
     };
   }
