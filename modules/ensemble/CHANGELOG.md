@@ -1,3 +1,14 @@
+## 1.2.39
+
+ - **FIX**(incorrect header format): explicit convertion of header entry into string. ([84ead788](https://github.com/ensembleUI/ensemble/commit/84ead788a7cd0b1aee50292eabf07bc8ae3c490d))
+ - **FIX**(invoke_api_action): handle FirestoreResponse in error handling. ([c8cb1c7b](https://github.com/ensembleUI/ensemble/commit/c8cb1c7b1bb97405bc61893338b1aeab53838a8f))
+ - **FIX**(phone_contact): replace RuntimeError with debugPrint for missing contact photo. ([b36b399d](https://github.com/ensembleUI/ensemble/commit/b36b399d91fad26e46e14f0845c624a3f8b768c9))
+ - **FEAT**(image): enhance header evaluation for dynamic HTTP headers in image requests. ([e24544fe](https://github.com/ensembleUI/ensemble/commit/e24544fe2587a4119f6c4a8242e9b51948eef57c))
+ - **FEAT**(image): add support for custom HTTP headers in image requests. ([3a304a2c](https://github.com/ensembleUI/ensemble/commit/3a304a2cd01a2af6046a327a9380cf259cb1e37e))
+ - **FEAT**(dotenv): implement dotenv bundle parsing and refactor config loading. ([0a987c94](https://github.com/ensembleUI/ensemble/commit/0a987c94aef06e2b220fca85c1d8f43c707fd506))
+ - **FEAT**(action): add ActionType.executeAction to ActionInvokable class. ([b5cc5a4a](https://github.com/ensembleUI/ensemble/commit/b5cc5a4af5ac95b0ed4971349f5cf5ab9a481672))
+ - **FEAT**(lottie): add custom Lottie decoder for .lottie file ext support. ([cc73e7cf](https://github.com/ensembleUI/ensemble/commit/cc73e7cf87475a7e538b0c88a099a90c5c63af21))
+
 ## 1.2.38
 
  - **FEAT**(env): enhance environment variable loading and parsing. ([b7666ceb](https://github.com/ensembleUI/ensemble/commit/b7666ceb292427ad24445cc3080a68e9aca8c47a))
