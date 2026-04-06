@@ -18,6 +18,7 @@ import 'package:ensemble/framework/app_info.dart';
 import 'package:ensemble/framework/logging/console_log_provider.dart';
 import 'package:ensemble/framework/logging/log_manager.dart';
 import 'package:ensemble/framework/logging/log_provider.dart';
+import 'package:ensemble/framework/dotenv_bundle.dart';
 import 'package:ensemble/framework/ensemble_config_service.dart';
 import 'package:ensemble/framework/route_observer.dart';
 import 'package:ensemble/framework/scope.dart';
@@ -244,38 +245,11 @@ class Ensemble extends WithEnsemble with EnsembleRouteObserver {
 
   Future<Map<String, String>> _loadDotEnvConfigFile(String fileName) async {
     try {
-      final content = await rootBundle.loadString(fileName);
-      return _parseDotEnvContent(content);
+      final String content = await rootBundle.loadString(fileName);
+      return parseDotEnvBundleContent(content);
     } catch (_) {
       return {};
     }
-  }
-
-  Map<String, String> _parseDotEnvContent(String content) {
-    final Map<String, String> values = {};
-    for (String rawLine in content.split('\n')) {
-      String line = rawLine.trim();
-      if (line.isEmpty || line.startsWith('#')) {
-        continue;
-      }
-      if (line.startsWith('export ')) {
-        line = line.substring('export '.length).trim();
-      }
-
-      final int equalIndex = line.indexOf('=');
-      if (equalIndex <= 0) {
-        continue;
-      }
-
-      final String key = line.substring(0, equalIndex).trim();
-      String value = line.substring(equalIndex + 1).trim();
-      if ((value.startsWith('"') && value.endsWith('"')) ||
-          (value.startsWith("'") && value.endsWith("'"))) {
-        value = value.substring(1, value.length - 1);
-      }
-      values[key] = value;
-    }
-    return values;
   }
 
   void _mergeWithOverwrite(

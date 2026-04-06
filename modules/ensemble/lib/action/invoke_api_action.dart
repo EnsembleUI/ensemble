@@ -1,4 +1,5 @@
 import 'package:ensemble/framework/action.dart';
+import 'package:ensemble/framework/apiproviders/firestore/firestore_api_provider.dart';
 import 'package:ensemble/framework/apiproviders/http_api_provider.dart';
 import 'package:ensemble/framework/apiproviders/sse_api_provider.dart';
 import 'package:ensemble/framework/bindings.dart';
@@ -295,7 +296,7 @@ class InvokeAPIController {
 
     String? errorStr;
     dynamic data;
-    if (errorResponse is HttpResponse) {
+    if (errorResponse is HttpResponse || errorResponse is FirestoreResponse) {
       errorResponse.apiState = APIState.error;
       APIResponse apiResponse = APIResponse(response: errorResponse);
       scopeManager.dataContext.addInvokableContext('response', apiResponse);

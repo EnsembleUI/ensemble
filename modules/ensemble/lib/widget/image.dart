@@ -381,15 +381,86 @@ class ImageState extends EWidgetState<EnsembleImage> {
     }
     return fallbackWidget;
   }
+
+}
+
+/// Configuration for image caching behavior.
+/// Can be set at app level via theme.yaml:
+/// ```yaml
+/// App:
+///   imageCache:
+///     stalePeriodMinutes: 10080  # 7 days
+///     maxObjects: 500
+/// ```
+class ImageCacheConfig {
+  static final ImageCacheConfig _instance = ImageCacheConfig._internal();
+
+  factory ImageCacheConfig() => _instance;
+
+  ImageCacheConfig._internal();
+
+  // Default values - 15 minutes stale period, 50 objects max
+  static const int defaultStalePeriodMinutes = 15;
+  static const int defaultMaxObjects = 50;
+
+  int _stalePeriodMinutes = defaultStalePeriodMinutes;
+  int _maxObjects = defaultMaxObjects;
+  bool _initialized = false;
+
+  /// Gets the configured stale period in minutes
+  int get stalePeriodMinutes => _stalePeriodMinutes;
+
+  /// Gets the configured max number of cached objects
+  int get maxObjects => _maxObjects;
+
+  /// Whether the cache config has been explicitly initialized
+  bool get isInitialized => _initialized;
+
+  /// Configure the image cache settings.
+  /// Called from theme loader when parsing App.imageCache settings.
+  void configure({int? stalePeriodMinutes, int? maxObjects}) {
+    if (stalePeriodMinutes != null && stalePeriodMinutes > 0) {
+      _stalePeriodMinutes = stalePeriodMinutes;
+    }
+    if (maxObjects != null && maxObjects > 0) {
+      _maxObjects = maxObjects;
+    }
+    _initialized = true;
+
+    // Reinitialize the cache manager with new settings
+    EnsembleImageCacheManager._reinitialize();
+  }
+
+  /// Reset to default values (useful for testing)
+  void reset() {
+    _stalePeriodMinutes = defaultStalePeriodMinutes;
+    _maxObjects = defaultMaxObjects;
+    _initialized = false;
+    EnsembleImageCacheManager._reinitialize();
+  }
 }
 
 class EnsembleImageCacheManager {
   static const key = 'ensembleImageCacheKey';
-  static CacheManager instance = CacheManager(Config(
-    key,
-    stalePeriod: const Duration(minutes: 15),
-    maxNrOfCacheObjects: 50,
-  ));
+
+  static CacheManager _instance = _createCacheManager();
+
+  static CacheManager get instance => _instance;
+
+  static CacheManager _createCacheManager() {
+    final config = ImageCacheConfig();
+    return CacheManager(Config(
+      key,
+      stalePeriod: Duration(minutes: config.stalePeriodMinutes),
+      maxNrOfCacheObjects: config.maxObjects,
+    ));
+  }
+
+  /// Reinitialize the cache manager with current config settings.
+  /// Called when ImageCacheConfig.configure() is called.
+  static void _reinitialize() {
+    _instance = _createCacheManager();
+  }
 }
 
 class PinchToZoom extends StatefulWidget {

@@ -4,6 +4,7 @@ import 'package:ensemble/framework/theme/theme_manager.dart';
 import 'package:ensemble/framework/tv/tv_focus_theme.dart';
 import 'package:ensemble/model/text_scale.dart';
 import 'package:ensemble/util/utils.dart';
+import 'package:ensemble/widget/image.dart';
 import 'package:flutter/material.dart';
 import 'package:yaml/yaml.dart';
 
@@ -163,6 +164,9 @@ mixin ThemeLoader {
             maxFactor: Utils.optionalDouble(
                 getProp(appOverrides, ['textScale', 'maxFactor']),
                 min: 0)));
+    
+    // Configure image cache settings from App.imageCache
+    _configureImageCache(appOverrides);
 
     // extends ThemeData
     return customTheme.copyWith(extensions: [
@@ -536,6 +540,32 @@ mixin ThemeLoader {
     );
   }
 }
+
+  /// Configures image cache settings from App.imageCache in theme.yaml.
+  ///
+  /// Example YAML:
+  /// ```yaml
+  /// App:
+  ///   imageCache:
+  ///     stalePeriodMinutes: 10080  # 7 days (default: 15 minutes)
+  ///     maxObjects: 500            # (default: 50)
+  /// ```
+  void _configureImageCache(YamlMap? appOverrides) {
+    final imageCache = appOverrides?['imageCache'];
+    if (imageCache == null) {
+      return;
+    }
+
+    final stalePeriodMinutes = Utils.optionalInt(imageCache['stalePeriodMinutes'], min: 1);
+    final maxObjects = Utils.optionalInt(imageCache['maxObjects'], min: 1);
+
+    if (stalePeriodMinutes != null || maxObjects != null) {
+      ImageCacheConfig().configure(
+        stalePeriodMinutes: stalePeriodMinutes,
+        maxObjects: maxObjects,
+      );
+    }
+  }
 
 // add more data to checkbox theme
 extension CheckboxThemeDataExtension on CheckboxThemeData {
