@@ -11,7 +11,6 @@ import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/helpers/ColorFilter_Composite.dart';
 import 'package:ensemble/widget/helpers/box_wrapper.dart';
 import 'package:ensemble/widget/helpers/controllers.dart';
-import 'package:ensemble/widget/helpers/widgets.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -45,6 +44,7 @@ class EnsembleImage extends StatefulWidget
       'placeholderColor': () => _controller.placeholderColor,
       'colorFilter': () =>
           _controller.colorFilter?.toString() ?? 'null',
+      'headers': () => _controller.headers,
     };
   }
 
@@ -74,6 +74,8 @@ class EnsembleImage extends StatefulWidget
       'pinchToZoom': (value) =>
           _controller.pinchToZoom = Utils.optionalBool(value),
       'colorFilter': (value) => _controller.colorFilter = ColorFilterComposite.from(value),
+      'headers': (value) =>
+          _controller.headers = Utils.getMap(value)?.cast<String, String>(),
 
     };
   }
@@ -101,6 +103,7 @@ class ImageController extends BoxController {
   dynamic fallback;
   bool cache = true;
   bool? pinchToZoom;
+  Map<String, String>? headers;
 }
 
 class ImageState extends EWidgetState<EnsembleImage> {
@@ -169,7 +172,9 @@ class ImageState extends EWidgetState<EnsembleImage> {
   Future<String> fetch(String url) async {
     String str = (widget.controller.source.contains("?")) ? "&" : "?";
     final http.Response response = await http
-        .get(Uri.parse("$url${str}timeStamp=${DateTime.now().toString()}"));
+        .get(
+        Uri.parse("$url${str}timeStamp=${DateTime.now().toString()}"),
+        headers: widget._controller.headers);
     DateTime lastModifiedDateTime =
         parseHttpDate("${response.headers['last-modified']}");
     if (widget._controller.lastModifiedCache == null ||
@@ -237,6 +242,7 @@ class ImageState extends EWidgetState<EnsembleImage> {
             width: widget._controller.width?.toDouble(),
             height: widget._controller.height?.toDouble(),
           ),
+          httpHeaders: widget._controller.headers,
         );
       }
 
@@ -315,6 +321,7 @@ class ImageState extends EWidgetState<EnsembleImage> {
           width: widget._controller.width?.toDouble(),
           height: widget._controller.height?.toDouble(),
         ),
+        headers: widget._controller.headers,
       );
     }
     // attempt local assets
