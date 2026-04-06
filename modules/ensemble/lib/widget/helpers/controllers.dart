@@ -1,140 +1,861 @@
-import 'package:ensemble/framework/device.dart';
-import 'package:ensemble/framework/studio/studio_debugger.dart';
-import 'package:ensemble/framework/tv/tv_focus_order.dart';
-import 'package:ensemble/framework/tv/tv_focus_provider.dart';
-import 'package:ensemble/framework/tv/tv_focus_widget.dart';
-import 'package:ensemble/framework/widget/widget.dart';
-import 'package:ensemble/layout/form.dart';
-import 'package:ensemble/widget/helpers/form_helper.dart';
+/// This class contains helper controllers for our widgets.
+import 'package:ensemble/controller/controller_mixins.dart';
+import 'package:ensemble/framework/action.dart';
+import 'package:ensemble/framework/extensions.dart';
+import 'package:ensemble/framework/model.dart';
+import 'package:ensemble/framework/theme/theme_manager.dart';
+import 'package:ensemble/model/transform_matrix.dart';
+import 'package:ensemble/page_model.dart';
+import 'package:ensemble/util/utils.dart';
+import 'package:ensemble/widget/helpers/box_animation_composite.dart';
+import 'package:ensemble/widget/helpers/tooltip_composite.dart';
+import 'package:ensemble_ts_interpreter/errors.dart';
+import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:ensemble/layout/form.dart' as ensemble;
 
-/// wrap the input widget (which stretches 100% to its parent) to guard against
-/// the case where it is put inside a Row without expanded flag.
-class InputWrapper extends StatelessWidget {
-  const InputWrapper(
-      {super.key,
-      required this.type,
-      required this.widget,
-      required this.controller});
+import '../../model/capabilities.dart';
 
-  final String type;
-  final Widget widget;
-  final FormFieldController controller;
+/// Widget property that have nested properties should be extending this,
+/// as this allows any setters on the nested properties to trigger changes
+abstract class WidgetCompositeProperty with Invokable {
+  WidgetCompositeProperty(this.widgetController);
+
+  ChangeNotifier widgetController;
 
   @override
-  Widget build(BuildContext context) {
-    final isFloatLabel =
-        controller.floatLabel != null && controller.floatLabel == true;
-    Widget rtn = buildTextWidget(context, isFloatLabel);
+  void setProperty(prop, val) {
+    Function? func = setters()[prop];
+    if (func != null) {
+      func(val);
+      widgetController.notifyListeners();
+    } else {
+      throw InvalidPropertyException("Settable property '$prop' not found.");
+    }
+  }
+}
 
-    if (StudioDebugger().debugMode) {
-      // we'd like to use LayoutBuilder to detect layout anomaly, but certain
-      // containers don't like LayoutBuilder, since it doesn't support returning
-      // intrinsic Width/Height
-      RequiresChildWithIntrinsicDimension? requiresChildWithIntrinsicDimension =
-          context.dependOnInheritedWidgetOfExactType<
-              RequiresChildWithIntrinsicDimension>();
-      if (requiresChildWithIntrinsicDimension == null) {
-        // InputWidget takes the parent width, so if the parent is a Row
-        // it'll caused an error. Assert against this in Studio's debugMode
-        rtn = StudioDebugger().assertHasBoundedWidth(rtn, type);
+class BoxShadowComposite extends WidgetCompositeProperty {
+  BoxShadowComposite(super.widgetController, {required Map inputs}) {
+    color = inputs['color'];
+    offset = inputs['offset'];
+    blur = inputs['blur'];
+    spread = inputs['spread'];
+    blurStyle = inputs['blurStyle'];
+  }
+
+  Color? _color;
+
+  set color(value) => _color = Utils.getColor(value);
+
+  Offset? _offset;
+
+  set offset(value) => _offset = Utils.getOffset(value);
+
+  int? _blur;
+
+  set blur(value) => _blur = Utils.optionalInt(value);
+
+  int? _spread;
+
+  set spread(value) => _spread = Utils.optionalInt(value);
+
+  BlurStyle? _blurStyle;
+
+  set blurStyle(value) => _blurStyle = BlurStyle.values.from(value);
+
+  @override
+  Map<String, Function> getters() => {};
+
+  @override
+  Map<String, Function> methods() => {};
+
+  @override
+  Map<String, Function> setters() {
+    return {
+      'color': (value) => color = value,
+      'offset': (value) => offset = value,
+      'blur': (value) => blur = value,
+      'spread': (value) => spread = value,
+      'blurStyle': (value) => blurStyle = value,
+    };
+  }
+
+  BoxShadow getValue(context) {
+    return BoxShadow(
+        color: _color ?? ThemeManager().getShadowColor(context),
+        offset: _offset ?? Offset.zero,
+        blurRadius: (_blur ?? 0).toDouble(),
+        spreadRadius: (_spread ?? 0).toDouble(),
+        blurStyle: _blurStyle ?? BlurStyle.normal);
+  }
+}
+
+/// TV/Accessibility options for D-pad navigation (flutter_pca style).
+/// Groups all TV-related properties under styles.tvOptions.*
+/// All focus styling properties can override theme values per-widget.
+class TVOptionsComposite extends WidgetCompositeProperty {
+  TVOptionsComposite(super.widgetController, {required Map inputs}) {
+    row = inputs['row'];
+    order = inputs['order'];
+    isRowEntryPoint = inputs['isRowEntryPoint'];
+    focusBorderRadius = inputs['focusBorderRadius'];
+    focusColor = inputs['focusColor'];
+    focusBorderWidth = inputs['focusBorderWidth'];
+    fixedFocusScroll = inputs['fixedFocusScroll'];
+    fixedFocusOffset = inputs['fixedFocusOffset'];
+    verticalScrollPadding = inputs['verticalScrollPadding'];
+    scrollAnimationDuration = inputs['scrollAnimationDuration'];
+    scrollAnimationCurve = inputs['scrollAnimationCurve'];
+    horizontalScrollPadding = inputs['horizontalScrollPadding'];
+    lockHorizontalNavigation = inputs['lockHorizontalNavigation'];
+  }
+
+  /// Vertical position (row grouping). Items with same row navigate horizontally.
+  double? _row;
+  set row(value) => _row = Utils.optionalDouble(value);
+  double? get row => _row;
+
+  /// Horizontal position within row. Lower values = more left.
+  double? _order;
+  set order(value) => _order = Utils.optionalDouble(value);
+  double? get order => _order;
+
+  /// Marks this item as the preferred entry point when navigating into this row.
+  bool _isRowEntryPoint = false;
+  set isRowEntryPoint(value) =>
+      _isRowEntryPoint = Utils.getBool(value, fallback: false);
+  bool get isRowEntryPoint => _isRowEntryPoint;
+
+  /// Custom border radius for focus indicator. Overrides widget's borderRadius.
+  /// Use this for circular buttons (100) or custom shapes.
+  double? _focusBorderRadius;
+  set focusBorderRadius(value) =>
+      _focusBorderRadius = Utils.optionalDouble(value);
+  double? get focusBorderRadius => _focusBorderRadius;
+
+  /// Custom color for focus indicator. Overrides theme's focusColor.
+  Color? _focusColor;
+  set focusColor(value) => _focusColor = Utils.getColor(value);
+  Color? get focusColor => _focusColor;
+
+  /// Custom border width for focus indicator. Overrides theme's focusBorderWidth.
+  double? _focusBorderWidth;
+  set focusBorderWidth(value) =>
+      _focusBorderWidth = Utils.optionalDouble(value);
+  double? get focusBorderWidth => _focusBorderWidth;
+
+  /// Enable Netflix-style fixed position scrolling for horizontal rows.
+  /// When true, focused item stays at fixed left position while content scrolls.
+  bool _fixedFocusScroll = false;
+  set fixedFocusScroll(value) =>
+      _fixedFocusScroll = Utils.getBool(value, fallback: false);
+  bool get fixedFocusScroll => _fixedFocusScroll;
+
+  /// Fixed position from left edge in pixels for Netflix-style scrolling.
+  /// Only used when fixedFocusScroll is true. Defaults to 48.0.
+  double? _fixedFocusOffset;
+  set fixedFocusOffset(value) =>
+      _fixedFocusOffset = Utils.optionalDouble(value);
+  double? get fixedFocusOffset => _fixedFocusOffset;
+
+  /// Vertical padding from screen edges for scroll visibility detection.
+  /// Use a larger value (e.g., 100-120) when there's a top nav bar.
+  /// Defaults to 50.0 if not specified.
+  double? _verticalScrollPadding;
+  set verticalScrollPadding(value) =>
+      _verticalScrollPadding = Utils.optionalDouble(value);
+  double? get verticalScrollPadding => _verticalScrollPadding;
+
+  /// Duration of scroll animations in milliseconds.
+  /// Defaults to 200ms if not specified.
+  int? _scrollAnimationDuration;
+  set scrollAnimationDuration(value) =>
+      _scrollAnimationDuration = Utils.optionalInt(value);
+  int? get scrollAnimationDuration => _scrollAnimationDuration;
+
+  /// Animation curve for scroll animations.
+  /// Supported values: easeIn, easeOut, easeInOut, linear, decelerate, ease.
+  /// Defaults to 'easeOut' for horizontal, 'easeInOut' for vertical.
+  String? _scrollAnimationCurve;
+  set scrollAnimationCurve(value) =>
+      _scrollAnimationCurve = Utils.optionalString(value);
+  String? get scrollAnimationCurve => _scrollAnimationCurve;
+
+  /// Horizontal padding for visibility checks during scrolling.
+  /// Defaults to 16.0 if not specified.
+  double? _horizontalScrollPadding;
+  set horizontalScrollPadding(value) =>
+      _horizontalScrollPadding = Utils.optionalDouble(value);
+  double? get horizontalScrollPadding => _horizontalScrollPadding;
+
+  /// Prevents horizontal navigation from escaping this row at boundaries.
+  /// When true, pressing LEFT at first item or RIGHT at last item won't move focus to another row.
+  bool _lockHorizontalNavigation = false;
+  set lockHorizontalNavigation(value) =>
+      _lockHorizontalNavigation = Utils.getBool(value, fallback: false);
+  bool get lockHorizontalNavigation => _lockHorizontalNavigation;
+
+  /// Returns true if TV navigation is enabled (row is set)
+  bool get isEnabled => _row != null;
+
+  @override
+  Map<String, Function> getters() => {
+        'row': () => _row,
+        'order': () => _order,
+        'isRowEntryPoint': () => _isRowEntryPoint,
+        'focusBorderRadius': () => _focusBorderRadius,
+        'focusColor': () => _focusColor,
+        'focusBorderWidth': () => _focusBorderWidth,
+        'fixedFocusScroll': () => _fixedFocusScroll,
+        'fixedFocusOffset': () => _fixedFocusOffset,
+        'verticalScrollPadding': () => _verticalScrollPadding,
+        'scrollAnimationDuration': () => _scrollAnimationDuration,
+        'scrollAnimationCurve': () => _scrollAnimationCurve,
+        'horizontalScrollPadding': () => _horizontalScrollPadding,
+        'lockHorizontalNavigation': () => _lockHorizontalNavigation,
+      };
+
+  @override
+  Map<String, Function> methods() => {};
+
+  @override
+  Map<String, Function> setters() => {
+        'row': (value) => row = value,
+        'order': (value) => order = value,
+        'isRowEntryPoint': (value) => isRowEntryPoint = value,
+        'focusBorderRadius': (value) => focusBorderRadius = value,
+        'focusColor': (value) => focusColor = value,
+        'focusBorderWidth': (value) => focusBorderWidth = value,
+        'fixedFocusScroll': (value) => fixedFocusScroll = value,
+        'fixedFocusOffset': (value) => fixedFocusOffset = value,
+        'verticalScrollPadding': (value) => verticalScrollPadding = value,
+        'scrollAnimationDuration': (value) => scrollAnimationDuration = value,
+        'scrollAnimationCurve': (value) => scrollAnimationCurve = value,
+        'horizontalScrollPadding': (value) => horizontalScrollPadding = value,
+        'lockHorizontalNavigation': (value) => lockHorizontalNavigation = value,
+      };
+}
+
+class TextStyleComposite extends WidgetCompositeProperty {
+  TextStyleComposite(super.widgetController,
+      {LinearGradient? textGradient,
+      dynamic textAlign,
+      TextStyle? styleWithFontFamily})
+      : fontFamily = styleWithFontFamily,
+        fontSize = styleWithFontFamily?.fontSize?.toInt(),
+        lineHeightMultiple = styleWithFontFamily?.height,
+        fontWeight = styleWithFontFamily?.fontWeight,
+        isItalic = styleWithFontFamily?.fontStyle == FontStyle.italic,
+        color = textGradient == null ? styleWithFontFamily?.color : null,
+        gradient = textGradient,
+        textAlign = Utils.getTextAlignment(textAlign),
+        backgroundColor = styleWithFontFamily?.backgroundColor,
+        decoration = styleWithFontFamily?.decoration,
+        decorationStyle = styleWithFontFamily?.decorationStyle,
+        decorationColor =
+            styleWithFontFamily?.decorationColor ?? styleWithFontFamily?.color,
+        decorationThickness = styleWithFontFamily?.decorationThickness,
+        overflow = styleWithFontFamily?.overflow,
+        letterSpacing = styleWithFontFamily?.letterSpacing,
+        wordSpacing = styleWithFontFamily?.wordSpacing;
+
+  TextStyle? fontFamily;
+  int? fontSize;
+  double? lineHeightMultiple;
+  FontWeight? fontWeight;
+  bool? isItalic;
+  Color? color;
+  Color? backgroundColor;
+  LinearGradient? gradient;
+  TextDecoration? decoration;
+  TextDecorationStyle? decorationStyle;
+  Color? decorationColor;
+  double? decorationThickness;
+  TextOverflow? overflow;
+  double? letterSpacing;
+  double? wordSpacing;
+  TextAlign? textAlign;
+
+  TextStyle getTextStyle() => (fontFamily ?? const TextStyle()).copyWith(
+      fontSize: fontSize?.toDouble(),
+      height: lineHeightMultiple,
+      fontWeight: fontWeight,
+      fontStyle: isItalic == true ? FontStyle.italic : FontStyle.normal,
+      color: gradient == null ? color : null,
+      backgroundColor: backgroundColor,
+      decoration: decoration,
+      decorationStyle: decorationStyle,
+      decorationColor: decorationColor ?? color, // Default to text color
+      decorationThickness: decorationThickness,
+      overflow: overflow,
+      letterSpacing: letterSpacing,
+      wordSpacing: wordSpacing);
+
+  @override
+  Map<String, Function> setters() {
+    return {
+      'fontFamily': (value) => fontFamily = Utils.getFontFamily(value),
+      'fontSize': (value) =>
+          fontSize = Utils.optionalInt(value, min: 1, max: 1000),
+      'lineHeightMultiple': (value) =>
+          lineHeightMultiple = Utils.optionalDouble(value),
+      'fontWeight': (value) => fontWeight = Utils.getFontWeight(value),
+      'isItalic': (value) => isItalic = Utils.optionalBool(value),
+      'gradient': (value) => gradient = Utils.getBackgroundGradient(value),
+      'color': (value) =>
+          color = gradient == null ? Utils.getColor(value) : null,
+      'backgroundColor': (value) => backgroundColor = Utils.getColor(value),
+      'decoration': (value) => decoration = Utils.getDecoration(value),
+      'decorationStyle': (value) =>
+          decorationStyle = TextDecorationStyle.values.from(value),
+      'decorationColor': (value) => decorationColor = Utils.getColor(value),
+      'decorationThickness': (value) =>
+          decorationThickness = Utils.optionalDouble(value),
+      'overflow': (value) => overflow = TextOverflow.values.from(value),
+      'letterSpacing': (value) => letterSpacing = Utils.optionalDouble(value),
+      'wordSpacing': (value) => wordSpacing = Utils.optionalDouble(value),
+      'textAlign': (value) => textAlign = Utils.getTextAlignment(value),
+    };
+  }
+
+  @override
+  Map<String, Function> getters() {
+    return {};
+  }
+
+  @override
+  Map<String, Function> methods() {
+    return {};
+  }
+}
+
+enum FlexMode {
+  expanded, // default
+  flexible,
+  none,
+}
+
+/// TODO: Legacy, transition to [EnsembleWidgetController]
+/// base Controller class for your Ensemble widget
+abstract class WidgetController extends Controller with HasStyles {
+  // Note: we manage these here so the user doesn't need to do in their widgets
+  // base properties applicable to all widgets
+
+  FlexMode? flexMode;
+  int? flex;
+  @Deprecated("use flexLayout/flex instead")
+  bool expanded = false;
+
+  bool? visible;
+  Duration? visibilityTransitionDuration; // in seconds
+
+  double? opacity;
+
+  TextDirection? textDirection;
+
+  int? elevation;
+  Color? elevationShadowColor;
+  EBorderRadius? elevationBorderRadius;
+
+  String? id; // do we need this?
+
+  // wrap widget inside an Align widget
+  Alignment? alignment;
+
+  int? stackPositionTop;
+  int? stackPositionBottom;
+  int? stackPositionLeft;
+  int? stackPositionRight;
+
+  // https://pub.dev/packages/pointer_interceptor
+  bool? captureWebPointer;
+
+  // properties for tooltip
+  Map<String, dynamic>? toolTip;
+
+  EnsembleSemantics? semantics;
+  // legacy used to show as the form label if used inside Form
+  @Deprecated("don't use anymore")
+  String? label;
+  String? _testId;
+
+  // TV/Accessibility: autofocus support for D-pad navigation
+  bool autofocus = false;
+
+  String? get testId {
+    String? _ = _testId ?? id;
+    return _;
+  }
+
+  set testId(value) => _testId = value;
+
+  /// Returns the best available label for semantics/aria-label accessibility.
+  /// Widgets should set [label] if they want to participate in accessibility fallback.
+  String? getSemanticsLabel() {
+    if (semantics?.label != null && semantics!.label!.isNotEmpty) {
+      return semantics!.label;
+    }
+    if (label != null && label!.isNotEmpty) {
+      return label;
+    }
+
+    // Try to find a label by looking up the current value in the items
+    try {
+      // First, try to get the current value
+      dynamic currentValue;
+
+      // Try to access value property directly
+      try {
+        currentValue = (this as dynamic).maybeValue;
+      } catch (e) {
+        // Try getValue method
+        try {
+          currentValue = (this as dynamic).getValue();
+        } catch (e) {
+          // No value property found
+          return null;
+        }
       }
-    }
 
-    if (controller.maxWidth != null) {
-      rtn = ConstrainedBox(
-          constraints:
-              BoxConstraints(maxWidth: controller.maxWidth!.toDouble()),
-          child: rtn);
-    }
+      if (currentValue == null) return null;
 
-    // TV focus support for form fields
-    if (Device().isTV && controller.tvOptions?.isEnabled == true) {
-      rtn = _wrapWithTVFocus(context, rtn);
-    }
+      // Now try to find the items and look up the label
+      try {
+        final items = (this as dynamic).items;
+        if (items != null && items is List) {
+          for (final item in items) {
+            if (item is Map) {
+              // Handle item as Map with value/label structure
+              final itemValue = item['value'];
+              final itemLabel = item['label'];
 
-    return rtn;
+              // Compare values more robustly
+              if (itemValue != null &&
+                  (itemValue.toString() == currentValue.toString() ||
+                      itemValue == currentValue)) {
+                // Found matching item, return its label
+                if (itemLabel != null && itemLabel.toString().isNotEmpty) {
+                  return itemLabel.toString();
+                }
+                // If no label, use the value itself
+                return currentValue.toString();
+              }
+            } else {
+              // Handle custom objects
+              try {
+                // Try to access properties dynamically
+                final itemValue = (item as dynamic).value;
+                final itemLabel = (item as dynamic).label;
+
+                // Compare values more robustly
+                if (itemValue != null &&
+                    (itemValue.toString() == currentValue.toString() ||
+                        itemValue == currentValue)) {
+                  // Found matching item, return its label
+                  if (itemLabel != null && itemLabel.toString().isNotEmpty) {
+                    // Check if the label is a translation key and translate it
+                    final translatedLabel =
+                        Utils.translate(itemLabel.toString(), null);
+                    return translatedLabel;
+                  }
+                  // If no label, use the value itself
+                  return currentValue.toString();
+                }
+              } catch (e) {
+                // Try to access as simple value
+                if (item != null &&
+                    (item.toString() == currentValue.toString() ||
+                        item == currentValue)) {
+                  // Item is a simple value that matches, use it directly
+                  return currentValue.toString();
+                }
+              }
+            }
+          }
+        }
+      } catch (e) {}
+
+      return currentValue.toString();
+    } catch (e) {
+      return null;
+    }
   }
 
-  /// Wrap widget with TV focus navigation support
-  Widget _wrapWithTVFocus(BuildContext context, Widget child) {
-    final tvOptions = controller.tvOptions!;
-    final tvRow = tvOptions.row!;
-    final tvOrder = tvOptions.order ?? 0;
-    final isRowEntryPoint = tvOptions.isRowEntryPoint;
-
-    final externalProvider = TVFocusProviderScope.maybeOf(context);
-    final effectiveRow =
-        externalProvider != null ? tvRow + externalProvider.rowOffset : tvRow;
-    final effectiveOrder = externalProvider != null
-        ? tvOrder + externalProvider.orderOffset
-        : tvOrder;
-
-    if (externalProvider != null) {
-      return externalProvider.wrapFocusable(
-        row: effectiveRow,
-        order: effectiveOrder,
-        isRowEntryPoint: isRowEntryPoint,
-        child: child,
-      );
-    }
-
-    // Use Ensemble's built-in TVFocusWidget
-    return TVFocusWidget(
-      focusOrder: TVFocusOrder.withOptions(
-        tvRow,
-        order: tvOrder,
-        isRowEntryPoint: isRowEntryPoint,
-        lockHorizontalNavigation: tvOptions.lockHorizontalNavigation,
-      ),
-      child: child,
-    );
+  @override
+  Map<String, Function> getBaseGetters() {
+    return {
+      'expanded': () => expanded,
+      'visible': () => visible != false,
+      'opacity': () => opacity,
+      'className': () => className,
+      'classList': () => classList,
+      'testId': () => testId,
+      'textDirection': () => textDirection,
+    };
   }
 
-  Widget buildTextWidget(context, bool isFloatLabel) {
-    TextStyle? formLabelStyle;
+  @override
+  Map<String, Function> getBaseSetters() {
+    return {
+      'testId': (value) => testId = Utils.optionalString(value),
+      'flexMode': (value) => flexMode = FlexMode.values.from(value),
+      'flex': (value) => flex = Utils.optionalInt(value, min: 1),
+      'expanded': (value) => expanded = Utils.getBool(value, fallback: false),
+      'visible': (value) => visible = Utils.getBool(value, fallback: true),
+      'opacity': (value) =>
+          opacity = Utils.optionalDouble(value, min: 0, max: 1),
+      'visibilityTransitionDuration': (value) =>
+          visibilityTransitionDuration = Utils.getDuration(value),
+      'elevation': (value) =>
+          elevation = Utils.optionalInt(value, min: 0, max: 24),
+      'elevationShadowColor': (value) =>
+          elevationShadowColor = Utils.getColor(value),
+      'elevationBorderRadius': (value) =>
+          elevationBorderRadius = Utils.getBorderRadius(value),
+      'alignment': (value) => alignment = Utils.getAlignment(value),
+      'stackPositionTop': (value) =>
+          stackPositionTop = Utils.optionalInt(value),
+      'stackPositionBottom': (value) =>
+          stackPositionBottom = Utils.optionalInt(value),
+      'stackPositionLeft': (value) =>
+          stackPositionLeft = Utils.optionalInt(value),
+      'stackPositionRight': (value) =>
+          stackPositionRight = Utils.optionalInt(value),
+      'captureWebPointer': (value) =>
+          captureWebPointer = Utils.optionalBool(value),
+      'textDirection': (value) => textDirection = Utils.getTextDirection(value),
+      'label': (value) => label = Utils.optionalString(value),
+      'classList': (value) => classList = value,
+      'className': (value) => className = value,
+      'tooltip': (value) => toolTip = Utils.getMap(value),
+      'semantics': (value) =>
+          semantics = EnsembleSemantics.fromYaml(Utils.getMap(value)),
+      'autofocus': (value) => autofocus = Utils.getBool(value, fallback: false),
+    };
+  }
 
-    // we need to look up to the form to know whether we should show
-    // the label here, as the Form may have already showed them (side by side)
-    bool shouldShowLabel = true;
-    ensemble.FormState? formState = EnsembleForm.of(context);
-    if (formState != null) {
-      shouldShowLabel = formState.widget.shouldFormFieldShowLabel;
+  bool hasPositions() {
+    return (stackPositionTop ??
+            stackPositionBottom ??
+            stackPositionLeft ??
+            stackPositionRight) !=
+        null;
+  }
+}
 
-      // also see if the parent Form defined a labelStyle we can fall back to
-      formLabelStyle = formState.widget.labelStyle;
-    }
+/// TODO: Legacy - move to EnsembleBoxController
+/// Controller for anything with a Box around it (border, padding, shadow,...)
+/// This may be a widget itself (e.g Image), not necessary an actual Container with children
+class BoxController extends WidgetController {
+  EdgeInsets? margin;
+  EdgeInsets? padding;
 
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        if (shouldShowLabel && controller.label != null && !isFloatLabel)
-          Container(
-            margin: const EdgeInsets.only(bottom: 8.0),
-            child: Text(
-              controller.label!,
-              // use our labelStyle and fallback to the parent Form's labelStyle
-              style: controller.labelStyle ??
-                  formLabelStyle ??
-                  Theme.of(context).inputDecorationTheme.labelStyle,
-            ),
-          ),
-        // semantics for whatever text input comes through
-        MergeSemantics(
-          child: Semantics(
-            label: controller.label,
-            child: widget,
-          ),
-        ),
+  int? width;
+  int? height;
 
-        if (shouldShowLabel && controller.description != null)
-          Container(
-            margin: const EdgeInsets.only(top: 12.0),
-            child: Text(controller.description!),
-          ),
-      ],
+  Color? backgroundColor;
+  BackgroundImage? backgroundImage;
+  LinearGradient? backgroundGradient;
+
+  Color? borderColor;
+  int? borderWidth;
+  EBorderRadius? borderRadius;
+  LinearGradient? borderGradient;
+
+  BoxShadowComposite? boxShadow;
+
+  @Deprecated("use boxShadow")
+  Color? shadowColor;
+  @Deprecated("use boxShadow")
+  Offset? shadowOffset;
+  @Deprecated("use boxShadow")
+  int? shadowRadius;
+  @Deprecated("use boxShadow")
+  BlurStyle? shadowStyle;
+
+  // some children like Image don't get clipped properly with Box's clipBehavior
+  bool? clipContent;
+
+  BoxAnimationComposite? animation;
+  Matrix4? transform;
+
+  // TV/Accessibility: Coordinate-based navigation (flutter_pca style)
+  // Use styles.tvOptions.row, styles.tvOptions.order, etc.
+  TVOptionsComposite? tvOptions;
+
+  @override
+  Map<String, Function> getBaseSetters() {
+    Map<String, Function> setters = super.getBaseSetters();
+    setters.addAll({
+      // support short-hand notation margin: 10 5 10
+      'margin': (value) => margin = Utils.optionalInsets(value),
+      'padding': (value) => padding = Utils.optionalInsets(value),
+
+      'width': (value) => width = Utils.optionalInt(value),
+      'height': (value) => height = Utils.optionalInt(value),
+
+      'backgroundColor': (value) => backgroundColor = Utils.getColor(value),
+      'backgroundImage': (value) =>
+          backgroundImage = Utils.getBackgroundImage(value),
+      'backgroundGradient': (value) =>
+          backgroundGradient = Utils.getBackgroundGradient(value),
+      'borderGradient': (value) =>
+          borderGradient = Utils.getBackgroundGradient(value),
+
+      'borderColor': (value) => borderColor = Utils.getColor(value),
+      'borderWidth': (value) => borderWidth = Utils.optionalInt(value),
+      'borderRadius': (value) => borderRadius = Utils.getBorderRadius(value),
+
+      'boxShadow': (value) =>
+          boxShadow = Utils.getBoxShadowComposite(this, value),
+
+      'shadowColor': (value) => shadowColor = Utils.getColor(value),
+      'shadowOffset': (list) => shadowOffset = Utils.getOffset(list),
+      'shadowRadius': (value) => shadowRadius = Utils.optionalInt(value),
+      'shadowStyle': (value) => shadowStyle = Utils.getShadowBlurStyle(value),
+
+      'clipContent': (value) => clipContent = Utils.optionalBool(value),
+      'animation': (payload) =>
+          animation = BoxAnimationComposite.from(this, payload),
+      'transform': (value) => transform = TransformMatrix.from(value),
+
+      // TV/Accessibility: Coordinate-based navigation
+      // Use nested syntax: tvOptions: { row: 1, order: 0, isRowEntryPoint: true }
+      'tvOptions': (value) => tvOptions =
+          value is Map ? TVOptionsComposite(this, inputs: value) : null,
+    });
+    return setters;
+  }
+
+  /// optimization. This is important to review if more properties are added
+  bool requiresBox(
+          {required bool ignoresMargin,
+          required bool ignoresPadding,
+          required bool ignoresDimension}) =>
+      (!ignoresDimension && hasDimension()) ||
+      (!ignoresMargin && margin != null) ||
+      (!ignoresPadding && padding != null) ||
+      hasBoxDecoration();
+
+  bool hasDimension() => width != null || height != null;
+
+  bool hasBoxDecoration() =>
+      hasBackground() || hasBorder() || borderRadius != null || hasBoxShadow();
+
+  bool hasBackground() =>
+      backgroundColor != null ||
+      backgroundImage != null ||
+      backgroundGradient != null;
+
+  bool hasBorder() =>
+      borderGradient != null || borderColor != null || borderWidth != null;
+
+  bool hasBoxShadow() =>
+      boxShadow != null ||
+      shadowColor != null ||
+      shadowOffset != null ||
+      shadowRadius != null ||
+      shadowStyle != null;
+}
+
+class TapEnabledBoxController extends BoxController with TapEnabled {
+  @override
+  Map<String, Function> getBaseSetters() => {
+        ...super.getBaseSetters(),
+        'onTap': (action) => onTap = EnsembleAction.from(action),
+        'onLongPress': (action) => onLongPress = EnsembleAction.from(action),
+        'enableSplashFeedback': (value) => enableSplashFeedback =
+            Utils.getBool(value, fallback: enableSplashFeedback),
+        'splashColor': (color) => splashColor = Utils.getColor(color),
+        'splashDuration': (value) =>
+            splashDuration = Utils.getDurationMs(value),
+        'splashFadeDuration': (value) =>
+            splashFadeDuration = Utils.getDurationMs(value),
+        'unconfirmedSplashDuration': (value) =>
+            unconfirmedSplashDuration = Utils.getDurationMs(value),
+        'focusColor': (color) => focusColor = Utils.getColor(color),
+        'hoverColor': (color) => hoverColor = Utils.getColor(color),
+      };
+}
+
+/// Base Widget Controller
+abstract class EnsembleWidgetController extends EnsembleController
+    with HasStyles {
+  FlexMode? flexMode;
+  int? flex;
+
+  bool? visible;
+  Duration? visibilityTransitionDuration; // in seconds
+
+  double? opacity;
+
+  TextDirection? textDirection;
+
+  int? elevation;
+  Color? elevationShadowColor;
+  EBorderRadius? elevationBorderRadius;
+
+  @override
+  String? id; // do we need this?
+
+  String? _testId;
+
+  String? get testId {
+    String? _ = _testId ?? id;
+    return _;
+  }
+
+  set testId(value) => _testId = value;
+
+  // wrap widget inside an Align widget
+  Alignment? alignment;
+
+  int? stackPositionTop;
+  int? stackPositionBottom;
+  int? stackPositionLeft;
+  int? stackPositionRight;
+
+  // https://pub.dev/packages/pointer_interceptor
+  bool? captureWebPointer;
+
+  // properties for tooltip
+  Map<String, dynamic>? toolTip;
+
+  EnsembleSemantics? semantics;
+
+  @override
+  Map<String, Function> getters() {
+    return {
+      'visible': () => visible != false,
+      'opacity': () => opacity,
+      'className': () => className,
+      'classList': () => classList,
+      'testId': () => testId,
+      'textDirection': () => textDirection,
+    };
+  }
+
+  @override
+  Map<String, Function> setters() {
+    return {
+      'testId': (value) => testId = Utils.optionalString(value),
+      'flexMode': (value) => flexMode = FlexMode.values.from(value),
+      'flex': (value) => flex = Utils.optionalInt(value, min: 1),
+      'visible': (value) => visible = Utils.getBool(value, fallback: true),
+      'opacity': (value) =>
+          opacity = Utils.optionalDouble(value, min: 0, max: 1),
+      'visibilityTransitionDuration': (value) =>
+          visibilityTransitionDuration = Utils.getDuration(value),
+      'textDirection': (value) => textDirection = Utils.getTextDirection(value),
+      'elevation': (value) =>
+          elevation = Utils.optionalInt(value, min: 0, max: 24),
+      'elevationShadowColor': (value) =>
+          elevationShadowColor = Utils.getColor(value),
+      'elevationBorderRadius': (value) =>
+          elevationBorderRadius = Utils.getBorderRadius(value),
+      'alignment': (value) => alignment = Utils.getAlignment(value),
+      'stackPositionTop': (value) =>
+          stackPositionTop = Utils.optionalInt(value),
+      'stackPositionBottom': (value) =>
+          stackPositionBottom = Utils.optionalInt(value),
+      'stackPositionLeft': (value) =>
+          stackPositionLeft = Utils.optionalInt(value),
+      'stackPositionRight': (value) =>
+          stackPositionRight = Utils.optionalInt(value),
+      'captureWebPointer': (value) =>
+          captureWebPointer = Utils.optionalBool(value),
+      'classList': (value) => classList = value,
+      'className': (value) => className = value,
+      'tooltip': (value) => toolTip = Utils.getMap(value),
+      'semantics': (value) =>
+          semantics = EnsembleSemantics.fromYaml(Utils.getMap(value)),
+    };
+  }
+
+  bool hasPositions() {
+    return (stackPositionTop ??
+            stackPositionBottom ??
+            stackPositionLeft ??
+            stackPositionRight) !=
+        null;
+  }
+
+  @override
+  Map<String, Function> methods() {
+    return {};
+  }
+}
+
+/// for Controllers that need Box properties
+class EnsembleBoxController extends EnsembleWidgetController
+    with HasBackgroundController, HasBorderController, HasPassThrough {
+  EdgeInsets? margin;
+  EdgeInsets? padding;
+
+  int? width;
+  int? height;
+
+  BoxShadowComposite? boxShadow;
+
+  // some children like Image don't get clipped properly with Box's clipBehavior
+  bool? clipContent;
+
+  @override
+  Map<String, Function> setters() {
+    return Map<String, Function>.from(super.setters())
+      ..addAll(hasBackgroundSetters())
+      ..addAll(hasBorderSetters())
+      ..addAll({
+        // support short-hand notation margin: 10 5 10
+        'margin': (value) => margin = Utils.optionalInsets(value),
+        'padding': (value) => padding = Utils.optionalInsets(value),
+
+        'width': (value) => width = Utils.optionalInt(value),
+        'height': (value) => height = Utils.optionalInt(value),
+
+        'boxShadow': (value) =>
+            boxShadow = Utils.getBoxShadowComposite(this, value),
+
+        'clipContent': (value) => clipContent = Utils.optionalBool(value)
+      });
+  }
+
+  /// optimization. This is important to review if more properties are added
+  bool requiresBox(
+          {required bool ignoresMargin,
+          required bool ignoresPadding,
+          required bool ignoresDimension}) =>
+      (!ignoresDimension && hasDimension()) ||
+      (!ignoresMargin && margin != null) ||
+      (!ignoresPadding && padding != null) ||
+      hasBoxDecoration();
+
+  bool hasDimension() => width != null || height != null;
+
+  bool hasBoxDecoration() =>
+      hasBackground() ||
+      hasBorder() ||
+      borderRadius != null ||
+      boxShadow != null;
+}
+
+class EnsembleSemantics {
+  bool focusable;
+  String? label;
+  String? hint;
+  String? role;
+
+  EnsembleSemantics(
+      {this.label, this.hint, this.role, required this.focusable});
+
+  // Factory constructor to map from YAML
+  factory EnsembleSemantics.fromYaml(Map<String, dynamic>? yamlMap) {
+    return EnsembleSemantics(
+      focusable: Utils.optionalBool(yamlMap!['focusable']) ?? true,
+      label: Utils.optionalString(yamlMap['label']) ?? '',
+      hint: Utils.optionalString(yamlMap['hint']) ?? '',
+      role: Utils.optionalString(yamlMap['role']) ?? '',
     );
   }
 }

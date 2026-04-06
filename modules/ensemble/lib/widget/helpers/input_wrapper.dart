@@ -65,9 +65,8 @@ class InputWrapper extends StatelessWidget {
     final isRowEntryPoint = tvOptions.isRowEntryPoint;
 
     final externalProvider = TVFocusProviderScope.maybeOf(context);
-    final effectiveRow = externalProvider != null
-        ? tvRow + externalProvider.rowOffset
-        : tvRow;
+    final effectiveRow =
+        externalProvider != null ? tvRow + externalProvider.rowOffset : tvRow;
     final effectiveOrder = externalProvider != null
         ? tvOrder + externalProvider.orderOffset
         : tvOrder;
@@ -83,7 +82,12 @@ class InputWrapper extends StatelessWidget {
 
     // Use Ensemble's built-in TVFocusWidget
     return TVFocusWidget(
-      focusOrder: TVFocusOrder.withOptions(tvRow, order: tvOrder, isRowEntryPoint: isRowEntryPoint),
+      focusOrder: TVFocusOrder.withOptions(
+        tvRow,
+        order: tvOrder,
+        isRowEntryPoint: isRowEntryPoint,
+        lockHorizontalNavigation: tvOptions.lockHorizontalNavigation,
+      ),
       child: child,
     );
   }
@@ -120,9 +124,9 @@ class InputWrapper extends StatelessWidget {
         // semantics for whatever text input comes through
         MergeSemantics(
           child: Semantics(
-              label: controller.label,
-              child: widget,
-            ),
+            label: controller.label,
+            child: widget,
+          ),
         ),
 
         if (shouldShowLabel && controller.description != null)
