@@ -1,3 +1,8 @@
+## 1.2.38-beta.3
+
+ - **FIX**(invoke_api_action): handle FirestoreResponse in error handling. ([c8cb1c7b](https://github.com/ensembleUI/ensemble/commit/c8cb1c7b1bb97405bc61893338b1aeab53838a8f))
+ - **FEAT**(dotenv): implement dotenv bundle parsing and refactor config loading. ([0a987c94](https://github.com/ensembleUI/ensemble/commit/0a987c94aef06e2b220fca85c1d8f43c707fd506))
+
 ## 1.2.38-beta.2
 
  - Releasing new beta version 1.2.38.2
