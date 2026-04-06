@@ -1,8 +1,9 @@
-import 'dart:io';
+import 'dart:io' as io;
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:ensemble/action/haptic_action.dart';
 import 'package:ensemble/framework/action.dart';
+import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/widget/colored_box_placeholder.dart';
 import 'package:ensemble/framework/widget/widget.dart';
@@ -74,10 +75,8 @@ class EnsembleImage extends StatefulWidget
       'pinchToZoom': (value) =>
           _controller.pinchToZoom = Utils.optionalBool(value),
       'colorFilter': (value) => _controller.colorFilter = ColorFilterComposite.from(value),
-      'headers': (value) =>
-          _controller.headers = Utils.getMap(value)
+      'headers': (value) => _controller.headers = Utils.getMap(value)
           ?.map((key, value) => MapEntry(key.toString(), value.toString())),
-
     };
   }
 }
@@ -170,12 +169,30 @@ class ImageState extends EWidgetState<EnsembleImage> {
     return rtn;
   }
 
+  /// Evaluate headers using DataContext
+  Map<String, String>? _evaluateHeaders() {
+    if (widget._controller.headers == null) {
+      return null;
+    }
+
+    DataContext? dataContext = scopeManager?.dataContext;
+    if (dataContext == null) {
+      return widget._controller.headers;
+    }
+
+    Map<String, String> evaluatedHeaders = {};
+    widget._controller.headers!.forEach((key, value) {
+      evaluatedHeaders[key] = dataContext.eval(value).toString();
+    });
+    return evaluatedHeaders;
+  }
+
   Future<String> fetch(String url) async {
     String str = (widget.controller.source.contains("?")) ? "&" : "?";
     final http.Response response = await http
         .get(
         Uri.parse("$url${str}timeStamp=${DateTime.now().toString()}"),
-        headers: widget._controller.headers);
+        headers: _evaluateHeaders());
     DateTime lastModifiedDateTime =
         parseHttpDate("${response.headers['last-modified']}");
     if (widget._controller.lastModifiedCache == null ||
@@ -243,7 +260,7 @@ class ImageState extends EWidgetState<EnsembleImage> {
             width: widget._controller.width?.toDouble(),
             height: widget._controller.height?.toDouble(),
           ),
-          httpHeaders: widget._controller.headers,
+          httpHeaders: _evaluateHeaders(),
         );
       }
 
@@ -274,7 +291,7 @@ class ImageState extends EWidgetState<EnsembleImage> {
               height: widget._controller.height?.toDouble(),
               fit: fit,
               errorBuilder: (context, error, stacktrace) => errorFallback())
-          : Image.file(File(widget._controller.source),
+          : Image.file(io.File(widget._controller.source),
               width: widget._controller.width?.toDouble(),
               height: widget._controller.height?.toDouble(),
               fit: fit,
@@ -322,7 +339,7 @@ class ImageState extends EWidgetState<EnsembleImage> {
           width: widget._controller.width?.toDouble(),
           height: widget._controller.height?.toDouble(),
         ),
-        headers: widget._controller.headers,
+        headers: _evaluateHeaders(),
       );
     }
     // attempt local assets
