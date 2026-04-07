@@ -90,6 +90,8 @@ abstract class BaseTabBar extends StatefulWidget
           EnsembleAction.from(action, initiator: this),
       'onTabSelectionHaptic': (value) =>
           _controller.onTabSelectionHaptic = Utils.optionalString(value),
+      'persistentTabBar': (value) =>
+          _controller.persistentTabBar = Utils.getBool(value, fallback: false),
     };
   }
 }
@@ -282,7 +284,12 @@ class TabBarState extends BaseTabBarState {
           // builder gives us dynamic height control vs TabBarView, but
           // is sub-optimal since it recreates the tab content on each pass.
           // This means onLoad API may be called multiple times in debug mode
-          tabContent
+
+          widget._controller.persistentTabBar
+              ? Expanded(
+                  child: SingleChildScrollView(
+                      child: tabContent))
+              : tabContent,
 
           // This cause Expanded child to fail
           // Padding(
