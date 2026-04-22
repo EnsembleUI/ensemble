@@ -109,6 +109,11 @@ class TVOptionsComposite extends WidgetCompositeProperty {
     scrollAnimationCurve = inputs['scrollAnimationCurve'];
     horizontalScrollPadding = inputs['horizontalScrollPadding'];
     lockHorizontalNavigation = inputs['lockHorizontalNavigation'];
+    delegateHorizontalNavigation = inputs['delegateHorizontalNavigation'];
+    // Carousel-specific TV options
+    interceptHorizontalNav = inputs['interceptHorizontalNav'];
+    pauseAutoplayOnFocus = inputs['pauseAutoplayOnFocus'];
+    restoreFocusOnPageChange = inputs['restoreFocusOnPageChange'];
   }
 
   /// Vertical position (row grouping). Items with same row navigate horizontally.
@@ -196,6 +201,40 @@ class TVOptionsComposite extends WidgetCompositeProperty {
       _lockHorizontalNavigation = Utils.getBool(value, fallback: false);
   bool get lockHorizontalNavigation => _lockHorizontalNavigation;
 
+  /// Delegates horizontal navigation (LEFT/RIGHT) to the parent FocusScope.
+  /// Use this for items inside carousels where horizontal keys should switch slides
+  /// instead of navigating between items.
+  bool _delegateHorizontalNavigation = false;
+  set delegateHorizontalNavigation(value) =>
+      _delegateHorizontalNavigation = Utils.getBool(value, fallback: false);
+  bool get delegateHorizontalNavigation => _delegateHorizontalNavigation;
+
+  // ============ Carousel-specific TV Options ============
+
+  /// When true, LEFT/RIGHT arrow keys navigate carousel slides using smart edge detection.
+  /// At leftmost element: LEFT switches to previous slide (focus last element)
+  /// At rightmost element: RIGHT switches to next slide (focus first element)
+  /// Between elements: Normal focus traversal within the slide
+  bool _interceptHorizontalNav = false;
+  set interceptHorizontalNav(value) =>
+      _interceptHorizontalNav = Utils.getBool(value, fallback: false);
+  bool get interceptHorizontalNav => _interceptHorizontalNav;
+
+  /// When true, autoplay pauses when any element within the carousel has focus.
+  /// Resumes when focus leaves the carousel.
+  bool _pauseAutoplayOnFocus = false;
+  set pauseAutoplayOnFocus(value) =>
+      _pauseAutoplayOnFocus = Utils.getBool(value, fallback: false);
+  bool get pauseAutoplayOnFocus => _pauseAutoplayOnFocus;
+
+  /// When true, focus is restored to the appropriate element after slide changes.
+  /// For manual navigation: LEFT→last element, RIGHT→first element
+  /// For autoplay: first element of new slide
+  bool _restoreFocusOnPageChange = false;
+  set restoreFocusOnPageChange(value) =>
+      _restoreFocusOnPageChange = Utils.getBool(value, fallback: false);
+  bool get restoreFocusOnPageChange => _restoreFocusOnPageChange;
+
   /// Returns true if TV navigation is enabled (row is set)
   bool get isEnabled => _row != null;
 
@@ -214,6 +253,11 @@ class TVOptionsComposite extends WidgetCompositeProperty {
         'scrollAnimationCurve': () => _scrollAnimationCurve,
         'horizontalScrollPadding': () => _horizontalScrollPadding,
         'lockHorizontalNavigation': () => _lockHorizontalNavigation,
+        'delegateHorizontalNavigation': () => _delegateHorizontalNavigation,
+        // Carousel-specific
+        'interceptHorizontalNav': () => _interceptHorizontalNav,
+        'pauseAutoplayOnFocus': () => _pauseAutoplayOnFocus,
+        'restoreFocusOnPageChange': () => _restoreFocusOnPageChange,
       };
 
   @override
@@ -234,6 +278,12 @@ class TVOptionsComposite extends WidgetCompositeProperty {
         'scrollAnimationCurve': (value) => scrollAnimationCurve = value,
         'horizontalScrollPadding': (value) => horizontalScrollPadding = value,
         'lockHorizontalNavigation': (value) => lockHorizontalNavigation = value,
+        'delegateHorizontalNavigation': (value) =>
+            delegateHorizontalNavigation = value,
+        // Carousel-specific
+        'interceptHorizontalNav': (value) => interceptHorizontalNav = value,
+        'pauseAutoplayOnFocus': (value) => pauseAutoplayOnFocus = value,
+        'restoreFocusOnPageChange': (value) => restoreFocusOnPageChange = value,
       };
 }
 

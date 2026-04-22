@@ -63,7 +63,11 @@ abstract class TVFocusProvider {
   ///   the selected tab should receive focus.
   /// - [lockHorizontalNavigation]: If true, prevents focus from escaping
   ///   this row at horizontal boundaries (left/right edges). Useful for
-  ///   carousels/lanes where focus should stay locked within the row.
+  ///   horizontal lanes where focus should stay locked within the row.
+  /// - [delegateHorizontalNavigation]: If true, horizontal navigation events
+  ///   (LEFT/RIGHT) are delegated to the parent FocusScope instead of being
+  ///   handled locally. Useful for items inside carousels where horizontal
+  ///   keys should switch slides.
   /// - [child]: The widget to make focusable. Should contain an InkWell
   ///   or similar focusable widget.
   /// - [onBackPressed]: Optional callback for Android TV back button.
@@ -78,6 +82,7 @@ abstract class TVFocusProvider {
     required Widget child,
     bool isRowEntryPoint = false,
     bool lockHorizontalNavigation = false,
+    bool delegateHorizontalNavigation = false,
     KeyEventResult Function(FocusNode node)? onBackPressed,
   });
 

@@ -22,7 +22,8 @@ class TVFocusOrder extends FocusOrder {
     this.page = 0,
     this.pagePixels,
   ])  : isRowEntryPoint = false,
-        lockHorizontalNavigation = false;
+        lockHorizontalNavigation = false,
+        delegateHorizontalNavigation = false;
 
   /// Creates a focus order with named parameters for optional values.
   const TVFocusOrder.withOptions(
@@ -32,6 +33,7 @@ class TVFocusOrder extends FocusOrder {
     this.pagePixels,
     this.isRowEntryPoint = false,
     this.lockHorizontalNavigation = false,
+    this.delegateHorizontalNavigation = false,
   });
 
   final double row;
@@ -46,6 +48,10 @@ class TVFocusOrder extends FocusOrder {
   /// If true, prevents horizontal navigation from escaping this row at boundaries.
   /// When at the first item, LEFT won't propagate; when at the last item, RIGHT won't propagate.
   final bool lockHorizontalNavigation;
+
+  /// If true, horizontal navigation (LEFT/RIGHT) is delegated to the parent FocusScope.
+  /// Use this for items inside carousels where horizontal keys should switch slides.
+  final bool delegateHorizontalNavigation;
 
   /// Composite value for sorting: row * 10000 + order
   /// This ensures items are sorted by row first, then by order within row
@@ -63,6 +69,7 @@ class TVFocusOrder extends FocusOrder {
       pagePixels: pagePixels,
       isRowEntryPoint: isRowEntryPoint,
       lockHorizontalNavigation: lockHorizontalNavigation,
+      delegateHorizontalNavigation: delegateHorizontalNavigation,
     );
   }
 

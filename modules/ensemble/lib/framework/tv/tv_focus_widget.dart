@@ -10,6 +10,11 @@ import 'package:flutter/services.dart';
 /// - Builds a 2D grid of focusable items in the same FocusTraversalGroup
 /// - Navigates between items using row/order coordinates
 /// - Handles auto-scrolling when focus changes
+///
+/// IMPORTANT: The inner Focus widget uses `skipTraversal: true` (not `canRequestFocus: false`)
+/// so that it still receives key events but doesn't participate in tab navigation.
+/// Using `canRequestFocus: false` would cause Flutter to skip this widget entirely
+/// in the key event routing chain, breaking D-pad navigation.
 class TVFocusWidget extends StatelessWidget {
   const TVFocusWidget({
     super.key,
@@ -31,7 +36,12 @@ class TVFocusWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     return FocusTraversalOrder(
       order: focusOrder,
-      child: Focus(
+      // Use FocusScope instead of Focus so that this node becomes the PARENT
+      // of the child's focus node in the focus tree. This allows key events
+      // from the child to bubble up through this handler.
+      // With a plain Focus widget, this node would be a SIBLING to the child's
+      // focus node, and key events would bypass it entirely.
+      child: FocusScope(
         onKeyEvent: (FocusNode node, KeyEvent event) {
           if (event is KeyDownEvent) {
             // Handle back button
@@ -63,8 +73,6 @@ class TVFocusWidget extends StatelessWidget {
           }
           return KeyEventResult.ignored;
         },
-        // This Focus is for key handling only, not for actual focus
-        canRequestFocus: false,
         child: child,
       ),
     );
@@ -78,6 +86,12 @@ class TVFocusWidget extends StatelessWidget {
     int yOffset = 0,
     int xOffset = 0,
   }) {
+    // If horizontal navigation is locked, delegate to parent FocusScope
+    // This allows carousel or other containers to handle slide switching
+    if (xOffset != 0 && focusOrder.lockHorizontalNavigation) {
+      return false;
+    }
+
     // Find the FocusTraversalGroup this widget belongs to
     final focusTraversalGroup =
         current.context?.findAncestorWidgetOfExactType<FocusTraversalGroup>();
@@ -86,20 +100,6 @@ class TVFocusWidget extends StatelessWidget {
     final tvFocusScope =
         current.context?.findAncestorWidgetOfExactType<TVFocusScope>();
     final lockScope = tvFocusScope?.lockScope ?? false;
-
-    // Check if trying to exit at top boundary (UP at row 0)
-    if (yOffset == -1 && focusOrder.row == 0) {
-      // Check if policy blocks escape
-      if (focusTraversalGroup?.policy is TVFocusOrderTraversalPolicy) {
-        final policy =
-            focusTraversalGroup!.policy as TVFocusOrderTraversalPolicy;
-        if (policy.preventOutOfScopeTopTraversal) {
-          return true; // Block the event
-        }
-      }
-      // No blocking policy - let event propagate
-      return false;
-    }
 
     // Collect all focusable items in the same FocusTraversalGroup
     final root = FocusManager.instance.rootScope;
@@ -137,6 +137,13 @@ class TVFocusWidget extends StatelessWidget {
     final y =
         grid.indexWhere((row) => row.firstOrNull?.order.row == focusOrder.row);
     if (y == -1) {
+      return false;
+    }
+
+    // Check if trying to exit at top boundary (UP and at first row in grid)
+    // Let the event propagate to native focus handling (e.g., sport tab)
+    // so users can navigate back to native content from Ensemble content
+    if (yOffset == -1 && y == 0) {
       return false;
     }
 
@@ -193,12 +200,6 @@ class TVFocusWidget extends StatelessWidget {
       // Handle scope locking
       if (lockScope) {
         // Focus would stay the same, but we're locked - block the event
-        return true;
-      }
-
-      // Handle horizontal boundary locking (prevents escaping row at left/right edges)
-      if (xOffset != 0 && focusOrder.lockHorizontalNavigation) {
-        // At horizontal boundary with lockHorizontalNavigation enabled - block the event
         return true;
       }
       // At boundary - let event propagate to parent

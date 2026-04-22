@@ -907,8 +907,8 @@ class _TapEnabledWrapperState extends State<_TapEnabledWrapper> {
 }
 
 /// TV: D-pad navigation for widgets with built-in tap handling (e.g., Button).
-/// Only adds focus ordering; child handles its own tap and focus visuals.
-class _TVFocusOnlyWrapper extends StatelessWidget {
+/// Adds focus ordering and scroll-on-focus; child handles its own tap and focus visuals.
+class _TVFocusOnlyWrapper extends StatefulWidget {
   const _TVFocusOnlyWrapper({
     required this.child,
     required this.boxController,
@@ -918,8 +918,96 @@ class _TVFocusOnlyWrapper extends StatelessWidget {
   final BoxController boxController;
 
   @override
+  State<_TVFocusOnlyWrapper> createState() => _TVFocusOnlyWrapperState();
+}
+
+class _TVFocusOnlyWrapperState extends State<_TVFocusOnlyWrapper> {
+  /// Handles vertical scrolling when this widget's subtree gains focus.
+  void _handleFocusScroll(BuildContext childContext) {
+    final RenderBox? itemBox = childContext.findRenderObject() as RenderBox?;
+    if (itemBox == null || !itemBox.hasSize) return;
+
+    final tvOptions = widget.boxController.tvOptions;
+    final scrollAnimationDuration = tvOptions?.scrollAnimationDuration ?? 200;
+    final verticalPadding = tvOptions?.verticalScrollPadding ?? 50.0;
+
+    // Handle vertical scrolling to ensure focused item is visible
+    final verticalScrollable = _findVerticalScrollable();
+    if (verticalScrollable != null) {
+      _scrollVerticalOnly(verticalScrollable, itemBox,
+          verticalPadding: verticalPadding,
+          animationDuration: scrollAnimationDuration);
+    }
+  }
+
+  /// Finds the nearest vertical scrollable ancestor.
+  ScrollableState? _findVerticalScrollable() {
+    ScrollableState? scrollable;
+
+    context.visitAncestorElements((element) {
+      if (element.widget is Scrollable) {
+        final state = (element as StatefulElement).state;
+        if (state is ScrollableState) {
+          final axis = state.axisDirection;
+          if (axis == AxisDirection.up || axis == AxisDirection.down) {
+            scrollable = state;
+            return false; // Stop searching
+          }
+        }
+      }
+      return true; // Continue searching
+    });
+
+    return scrollable;
+  }
+
+  /// Scrolls ONLY the vertical scrollable to bring item into view.
+  void _scrollVerticalOnly(ScrollableState scrollable, RenderBox itemBox,
+      {double verticalPadding = 50.0, int animationDuration = 200}) {
+    final scrollableBox = scrollable.context.findRenderObject() as RenderBox?;
+    if (scrollableBox == null || !scrollableBox.hasSize) return;
+
+    final position = scrollable.position;
+    final Size screenSize = MediaQuery.of(context).size;
+
+    // Get item position relative to screen
+    final Offset itemScreenPos = itemBox.localToGlobal(Offset.zero);
+    final double itemHeight = itemBox.size.height;
+    final double itemTop = itemScreenPos.dy;
+    final double itemBottom = itemTop + itemHeight;
+
+    final bool isAboveScreen = itemTop < verticalPadding;
+    final bool isBelowScreen =
+        itemBottom > (screenSize.height - verticalPadding);
+
+    // If fully visible vertically, no need to scroll
+    if (!isAboveScreen && !isBelowScreen) {
+      return;
+    }
+
+    // Calculate how much to scroll
+    double scrollDelta = 0.0;
+    if (isAboveScreen) {
+      scrollDelta = itemTop - verticalPadding;
+    } else if (isBelowScreen) {
+      scrollDelta = itemBottom - (screenSize.height - verticalPadding);
+    }
+
+    final double targetScroll =
+        (position.pixels + scrollDelta).clamp(0.0, position.maxScrollExtent);
+
+    if ((targetScroll - position.pixels).abs() > 2.0) {
+      position.animateTo(
+        targetScroll,
+        duration: Duration(milliseconds: animationDuration),
+        curve: Curves.easeInOut,
+      );
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final tvOptions = boxController.tvOptions!;
+    final tvOptions = widget.boxController.tvOptions!;
     final tvRow = tvOptions.row!;
     final tvOrder = tvOptions.order ?? 0;
     final isRowEntryPoint = tvOptions.isRowEntryPoint;
@@ -931,13 +1019,28 @@ class _TVFocusOnlyWrapper extends StatelessWidget {
         ? tvOrder + externalProvider.orderOffset
         : tvOrder;
 
+    // Wrap child with FocusScope to detect when any descendant gains focus
+    final wrappedChild = FocusScope(
+      onFocusChange: (hasFocus) {
+        if (hasFocus && mounted) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted && context.mounted) {
+              _handleFocusScroll(context);
+            }
+          });
+        }
+      },
+      child: widget.child,
+    );
+
     if (externalProvider != null) {
       return externalProvider.wrapFocusable(
         row: effectiveRow,
         order: effectiveOrder,
         isRowEntryPoint: isRowEntryPoint,
         lockHorizontalNavigation: tvOptions.lockHorizontalNavigation,
-        child: child,
+        delegateHorizontalNavigation: tvOptions.delegateHorizontalNavigation,
+        child: wrappedChild,
       );
     }
 
@@ -948,8 +1051,9 @@ class _TVFocusOnlyWrapper extends StatelessWidget {
         order: tvOrder,
         isRowEntryPoint: isRowEntryPoint,
         lockHorizontalNavigation: tvOptions.lockHorizontalNavigation,
+        delegateHorizontalNavigation: tvOptions.delegateHorizontalNavigation,
       ),
-      child: child,
+      child: wrappedChild,
     );
   }
 }
