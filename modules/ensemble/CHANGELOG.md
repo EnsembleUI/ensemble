@@ -1,3 +1,9 @@
+## 1.2.38-beta.4
+
+ - **FIX**(incorrect header format): explicit convertion of header entry into string. ([84ead788](https://github.com/ensembleUI/ensemble/commit/84ead788a7cd0b1aee50292eabf07bc8ae3c490d))
+ - **FEAT**(image): enhance header evaluation for dynamic HTTP headers in image requests. ([e24544fe](https://github.com/ensembleUI/ensemble/commit/e24544fe2587a4119f6c4a8242e9b51948eef57c))
+ - **FEAT**(image): add support for custom HTTP headers in image requests. ([3a304a2c](https://github.com/ensembleUI/ensemble/commit/3a304a2cd01a2af6046a327a9380cf259cb1e37e))
+
 ## 1.2.39
 
  - **FIX**(incorrect header format): explicit convertion of header entry into string. ([84ead788](https://github.com/ensembleUI/ensemble/commit/84ead788a7cd0b1aee50292eabf07bc8ae3c490d))
