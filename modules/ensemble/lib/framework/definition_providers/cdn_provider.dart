@@ -16,6 +16,8 @@ import 'package:yaml/yaml.dart';
 import 'package:brotli/brotli.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:encrypt/encrypt.dart' as encrypt;
+import 'package:convert/convert.dart';
 
 /// DefinitionProvider that reads the app manifest from CDN
 class CdnDefinitionProvider extends DefinitionProvider {
@@ -45,6 +47,11 @@ class CdnDefinitionProvider extends DefinitionProvider {
   // Background update tracking
   bool _hasPendingUpdate = false;
 
+  // Encryption support for CDN secrets
+  Uint8List? _encryptionKey;
+  String? _manifestKey;
+  Map<String, String> _cdnSecrets = {};
+
   // Persistent cache key
   String get _artifactCacheKey => 'cdn_provider_state_$appId';
 
@@ -52,6 +59,16 @@ class CdnDefinitionProvider extends DefinitionProvider {
 
   @override
   Future<DefinitionProvider> init() async {
+    // Load encryption keys from dotenv (if available)
+    if (dotenv.isInitialized) {
+      _encryptionKey = _parseEncryptionKey(dotenv.env['ENSEMBLE_ENCRYPTION_KEY']);
+      _manifestKey = dotenv.env['ENSEMBLE_MANIFEST_KEY'];
+
+      if (_encryptionKey != null && kDebugMode) {
+        debugPrint('CdnProvider: Encryption key loaded, will fetch encrypted manifest');
+      }
+    }
+
     await _loadCachedState();
     if (_artifactCache.isNotEmpty) {
       unawaited(_refreshIfStale());
@@ -118,10 +135,17 @@ class CdnDefinitionProvider extends DefinitionProvider {
 
   @override
   Map<String, String> getSecrets() {
+    final secrets = <String, String>{};
+
+    // Add CDN secrets first (lower priority)
+    secrets.addAll(_cdnSecrets);
+
+    // Add dotenv secrets (higher priority - can override CDN)
     if (dotenv.isInitialized) {
-      return Map<String, String>.from(dotenv.env);
+      secrets.addAll(Map<String, String>.from(dotenv.env));
     }
-    return {};
+
+    return secrets;
   }
 
   @override
@@ -328,15 +352,30 @@ class CdnDefinitionProvider extends DefinitionProvider {
   }
 
   Future<Map<String, Object>?> _fetchManifest({String? ifNoneMatch}) async {
-    final uri = Uri.parse('$baseUrl/$appId/manifest.json');
+    // Choose endpoint based on encryption key availability
+    final useEncrypted = _encryptionKey != null;
+    final filename = useEncrypted ? 'encrypted-manifest.json' : 'manifest.json';
+    final uri = Uri.parse('$baseUrl/$appId/$filename');
 
     final headers = <String, String>{};
     if (ifNoneMatch != null && ifNoneMatch.isNotEmpty) {
       headers['If-None-Match'] = ifNoneMatch;
     }
 
+    // Add manifest key header for WAF access control (if available)
+    if (_manifestKey != null && _manifestKey!.isNotEmpty) {
+      headers['x-manifest-key'] = _manifestKey!;
+    }
+
     final resp = await http.get(uri, headers: headers);
     if (resp.statusCode == 304) return null;
+
+    // Handle WAF denial (403 Forbidden)
+    if (resp.statusCode == 403) {
+      throw ConfigError(
+          "Access denied to encrypted manifest. Please check your ENSEMBLE_MANIFEST_KEY.");
+    }
+
     if (resp.statusCode != 200 || resp.bodyBytes.isEmpty) {
       throw ConfigError(
           "Failed to fetch manifest from CDN. Please check your appId and make sure to sync app to CDN.");
@@ -345,8 +384,20 @@ class CdnDefinitionProvider extends DefinitionProvider {
     final jsonString = _decodePossiblyBrotli(resp);
     if (jsonString == null || jsonString.isEmpty) return null;
 
+    // If encrypted, decrypt to get the actual manifest JSON
+    String manifestJson;
+    if (useEncrypted) {
+      final decrypted = _decryptManifest(jsonString);
+      if (decrypted == null) {
+        throw ConfigError("Failed to decrypt manifest. Check your ENSEMBLE_ENCRYPTION_KEY.");
+      }
+      manifestJson = jsonEncode(decrypted);
+    } else {
+      manifestJson = jsonString;
+    }
+
     final etag = resp.headers['etag'] ?? resp.headers['ETag'];
-    return {'json': jsonString, 'etag': etag ?? ''};
+    return {'json': manifestJson, 'etag': etag ?? ''};
   }
 
   String? _decodePossiblyBrotli(http.Response resp) {
@@ -377,6 +428,7 @@ class CdnDefinitionProvider extends DefinitionProvider {
     _themeMapping = null;
     _defaultLocale = null;
     _appConfig = null;
+    _cdnSecrets = {};
 
     final artifacts = _asMap(root['artifacts']);
     if (artifacts == null) return;
@@ -400,7 +452,16 @@ class CdnDefinitionProvider extends DefinitionProvider {
         artifacts['widgets'], artifacts['scripts'], artifacts['actions']);
     _parseTranslations(artifacts['translations']);
 
-    // 3) finalize AppConfig
+    // 3) secrets (from encrypted manifest)
+    final secretsMap = _asMap(artifacts['secrets']);
+    if (secretsMap != null) {
+      _cdnSecrets = secretsMap.map((k, v) => MapEntry(k, v?.toString() ?? ''));
+      if (kDebugMode && _cdnSecrets.isNotEmpty) {
+        debugPrint('CdnProvider: Loaded ${_cdnSecrets.length} secrets from CDN');
+      }
+    }
+
+    // 4) finalize AppConfig
     if (envVars.isNotEmpty || baseUrl != null || useBrowserUrl != null) {
       _appConfig = UserAppConfig(
         baseUrl: baseUrl,
@@ -545,6 +606,83 @@ class CdnDefinitionProvider extends DefinitionProvider {
 
   static bool _isIncomingNewer(int? incoming, int? current) =>
       incoming != null && (current == null || incoming > current);
+
+  // --------------------------------------------------------
+  // Encryption helpers (for encrypted manifest support)
+  // --------------------------------------------------------
+
+  /// Parses a 256-bit encryption key from various formats.
+  /// Supports: 64-char hex, base64 (32 bytes), or 32-byte UTF-8 string.
+  /// Returns null if the key is invalid or not provided.
+  static Uint8List? _parseEncryptionKey(String? keyString) {
+    if (keyString == null || keyString.isEmpty) return null;
+
+    // Try hex (64 chars = 32 bytes)
+    if (RegExp(r'^[0-9a-fA-F]{64}$').hasMatch(keyString)) {
+      try {
+        return Uint8List.fromList(hex.decode(keyString));
+      } catch (_) {}
+    }
+
+    // Try base64 (decodes to 32 bytes)
+    try {
+      final decoded = base64.decode(keyString);
+      if (decoded.length == 32) return Uint8List.fromList(decoded);
+    } catch (_) {}
+
+    // Try UTF-8 (exactly 32 bytes)
+    final utf8Bytes = utf8.encode(keyString);
+    if (utf8Bytes.length == 32) return Uint8List.fromList(utf8Bytes);
+
+    debugPrint('CdnProvider: Invalid encryption key format. '
+        'Expected 64-char hex, base64 (32 bytes), or 32-byte UTF-8 string.');
+    return null;
+  }
+
+  /// Decrypts the encrypted manifest envelope and returns the inner manifest.
+  /// The envelope format: { v, alg, comp, iv, tag, ciphertext }
+  /// Returns the manifest map (same structure as public manifest, but with secrets).
+  Map<String, dynamic>? _decryptManifest(String encryptedJson) {
+    if (_encryptionKey == null) return null;
+
+    try {
+      final envelope = jsonDecode(encryptedJson) as Map<String, dynamic>;
+
+      // Validate format
+      if (envelope['v'] != 1 || envelope['alg'] != 'AES-256-GCM') {
+        throw ConfigError('Unsupported encrypted manifest format: '
+            'v=${envelope['v']}, alg=${envelope['alg']}');
+      }
+
+      // Decode components
+      final iv = encrypt.IV.fromBase64(envelope['iv'] as String);
+      final tag = base64.decode(envelope['tag'] as String);
+      final ciphertext = base64.decode(envelope['ciphertext'] as String);
+
+      // Combine ciphertext + tag (Dart encrypt package expects tag appended)
+      final combined = Uint8List.fromList([...ciphertext, ...tag]);
+
+      // Decrypt
+      final key = encrypt.Key(_encryptionKey!);
+      final encrypter = encrypt.Encrypter(encrypt.AES(key, mode: encrypt.AESMode.gcm));
+      final decryptedBytes = encrypter.decryptBytes(encrypt.Encrypted(combined), iv: iv);
+
+      // Decompress if needed (comp: "br" means Brotli compressed)
+      List<int> plaintext;
+      if (envelope['comp'] == 'br') {
+        plaintext = brotliDecode(Uint8List.fromList(decryptedBytes));
+      } else {
+        plaintext = decryptedBytes;
+      }
+
+      // Parse JSON and unwrap from 'manifest' key
+      final wrapper = jsonDecode(utf8.decode(plaintext)) as Map<String, dynamic>;
+      return wrapper['manifest'] as Map<String, dynamic>?;
+    } catch (e) {
+      debugPrint('CdnProvider: Failed to decrypt manifest: $e');
+      rethrow;
+    }
+  }
 
   static Map<String, dynamic>? _asMap(dynamic value) {
     if (value is Map<String, dynamic>) return value;
