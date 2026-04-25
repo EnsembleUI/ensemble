@@ -144,10 +144,22 @@ class CdnDefinitionProvider extends DefinitionProvider {
 
   void _applySecretsFromRoot(Map<String, dynamic> root) {
     final artifacts = _asMap(root['artifacts']);
-    if (artifacts == null) return;
+    if (artifacts == null) {
+      // No artifacts -> ensure runtime secrets can't linger.
+      if (_runtimeSecrets.isNotEmpty) {
+        _assetEnv?.removeWhere((k, _) => _runtimeSecrets.containsKey(k));
+        _runtimeSecrets.clear();
+      }
+      return;
+    }
 
     // Per requirement: artifacts.secrets is a flat key/value mapping.
     final rawSecrets = _asMap(artifacts['secrets']);
+    // Always replace runtime secrets on refresh so deleted keys don't linger.
+    if (_runtimeSecrets.isNotEmpty) {
+      _assetEnv?.removeWhere((k, _) => _runtimeSecrets.containsKey(k));
+      _runtimeSecrets.clear();
+    }
     if (rawSecrets == null || rawSecrets.isEmpty) return;
 
     rawSecrets.forEach((k, v) {
@@ -212,7 +224,6 @@ class CdnDefinitionProvider extends DefinitionProvider {
       if (cachedManifest != null && cachedManifest.isNotEmpty) {
         try {
           final root = _decodeManifestRoot(cachedManifest);
-          _applySecretsFromRoot(root);
           _rebuildFromRoot(root);
         } catch (e) {
           // Clear invalid cache
@@ -280,13 +291,20 @@ class CdnDefinitionProvider extends DefinitionProvider {
   }
 
   bool _hasEncryptionKey() {
-    final key = (_assetEnv ?? const {})['ENSEMBLE_ENCRYPTION_KEY'] ??
-        dotenv.env['ENSEMBLE_ENCRYPTION_KEY'];
-    return key != null && key.trim().isNotEmpty;
+    final fromAssets = (_assetEnv ?? const {})['ENSEMBLE_ENCRYPTION_KEY'];
+    if (fromAssets != null && fromAssets.trim().isNotEmpty) return true;
+
+    if (!dotenv.isInitialized) return false;
+    final fromDotenv = dotenv.env['ENSEMBLE_ENCRYPTION_KEY'];
+    return fromDotenv != null && fromDotenv.trim().isNotEmpty;
   }
 
   String? _getSecret(String name) {
-    return (_assetEnv ?? const {})[name] ?? dotenv.env[name];
+    final fromAssets = (_assetEnv ?? const {})[name];
+    if (fromAssets != null) return fromAssets;
+
+    if (!dotenv.isInitialized) return null;
+    return dotenv.env[name];
   }
 
   static Uint8List _b64UrlDecode(String input) {
@@ -461,7 +479,6 @@ class CdnDefinitionProvider extends DefinitionProvider {
       final newEtag = fetched['etag'] as String?;
       final root = _decodeManifestRoot(jsonString);
 
-      _applySecretsFromRoot(root);
       _rebuildFromRoot(root);
       await _refreshTranslationsAtRuntime();
       _etag = newEtag ?? _etag;
@@ -510,7 +527,6 @@ class CdnDefinitionProvider extends DefinitionProvider {
     _etag = fetched['etag'] as String?;
 
     final root = _decodeManifestRoot(jsonString);
-    _applySecretsFromRoot(root);
     _rebuildFromRoot(root);
 
     // Save to persistent cache
@@ -567,6 +583,7 @@ class CdnDefinitionProvider extends DefinitionProvider {
     }
 
     http.Response resp;
+    var fetchedEncrypted = false;
     if (shouldUseEncrypted) {
       final encryptedHeaders = Map<String, String>.from(headers);
       final manifestKey = _getSecret('ENSEMBLE_MANIFEST_KEY');
@@ -575,6 +592,7 @@ class CdnDefinitionProvider extends DefinitionProvider {
       }
 
       resp = await http.get(encryptedUri, headers: encryptedHeaders);
+      fetchedEncrypted = resp.statusCode != 404;
       // If encrypted manifest doesn't exist for this app, fall back to plain.
       if (resp.statusCode == 404) {
         resp = await http.get(plainUri, headers: headers);
@@ -597,7 +615,7 @@ class CdnDefinitionProvider extends DefinitionProvider {
     String jsonString = decodedBody;
 
     // If we fetched the encrypted-manifest endpoint successfully, decrypt it.
-    if (shouldUseEncrypted && resp.request?.url == encryptedUri) {
+    if (shouldUseEncrypted && fetchedEncrypted) {
       jsonString = _decryptEncryptedManifestEnvelope(decodedBody);
     }
     if (jsonString.isEmpty) return null;
@@ -634,6 +652,7 @@ class CdnDefinitionProvider extends DefinitionProvider {
     _themeMapping = null;
     _defaultLocale = null;
     _appConfig = null;
+    _applySecretsFromRoot(root);
 
     final artifacts = _asMap(root['artifacts']);
     if (artifacts == null) return;
