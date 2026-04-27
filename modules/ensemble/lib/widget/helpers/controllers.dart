@@ -91,6 +91,202 @@ class BoxShadowComposite extends WidgetCompositeProperty {
   }
 }
 
+/// TV/Accessibility options for D-pad navigation (flutter_pca style).
+/// Groups all TV-related properties under styles.tvOptions.*
+/// All focus styling properties can override theme values per-widget.
+class TVOptionsComposite extends WidgetCompositeProperty {
+  TVOptionsComposite(super.widgetController, {required Map inputs}) {
+    row = inputs['row'];
+    order = inputs['order'];
+    isRowEntryPoint = inputs['isRowEntryPoint'];
+    focusBorderRadius = inputs['focusBorderRadius'];
+    focusColor = inputs['focusColor'];
+    focusBorderWidth = inputs['focusBorderWidth'];
+    fixedFocusScroll = inputs['fixedFocusScroll'];
+    fixedFocusOffset = inputs['fixedFocusOffset'];
+    verticalScrollPadding = inputs['verticalScrollPadding'];
+    scrollAnimationDuration = inputs['scrollAnimationDuration'];
+    scrollAnimationCurve = inputs['scrollAnimationCurve'];
+    horizontalScrollPadding = inputs['horizontalScrollPadding'];
+    lockHorizontalNavigation = inputs['lockHorizontalNavigation'];
+    delegateHorizontalNavigation = inputs['delegateHorizontalNavigation'];
+    // Carousel-specific TV options
+    interceptHorizontalNav = inputs['interceptHorizontalNav'];
+    pauseAutoplayOnFocus = inputs['pauseAutoplayOnFocus'];
+    restoreFocusOnPageChange = inputs['restoreFocusOnPageChange'];
+  }
+
+  /// Vertical position (row grouping). Items with same row navigate horizontally.
+  double? _row;
+  set row(value) => _row = Utils.optionalDouble(value);
+  double? get row => _row;
+
+  /// Horizontal position within row. Lower values = more left.
+  double? _order;
+  set order(value) => _order = Utils.optionalDouble(value);
+  double? get order => _order;
+
+  /// Marks this item as the preferred entry point when navigating into this row.
+  bool _isRowEntryPoint = false;
+  set isRowEntryPoint(value) =>
+      _isRowEntryPoint = Utils.getBool(value, fallback: false);
+  bool get isRowEntryPoint => _isRowEntryPoint;
+
+  /// Custom border radius for focus indicator. Overrides widget's borderRadius.
+  /// Use this for circular buttons (100) or custom shapes.
+  double? _focusBorderRadius;
+  set focusBorderRadius(value) =>
+      _focusBorderRadius = Utils.optionalDouble(value);
+  double? get focusBorderRadius => _focusBorderRadius;
+
+  /// Custom color for focus indicator. Overrides theme's focusColor.
+  Color? _focusColor;
+  set focusColor(value) => _focusColor = Utils.getColor(value);
+  Color? get focusColor => _focusColor;
+
+  /// Custom border width for focus indicator. Overrides theme's focusBorderWidth.
+  double? _focusBorderWidth;
+  set focusBorderWidth(value) =>
+      _focusBorderWidth = Utils.optionalDouble(value);
+  double? get focusBorderWidth => _focusBorderWidth;
+
+  /// Enable Netflix-style fixed position scrolling for horizontal rows.
+  /// When true, focused item stays at fixed left position while content scrolls.
+  bool _fixedFocusScroll = false;
+  set fixedFocusScroll(value) =>
+      _fixedFocusScroll = Utils.getBool(value, fallback: false);
+  bool get fixedFocusScroll => _fixedFocusScroll;
+
+  /// Fixed position from left edge in pixels for Netflix-style scrolling.
+  /// Only used when fixedFocusScroll is true. Defaults to 48.0.
+  double? _fixedFocusOffset;
+  set fixedFocusOffset(value) =>
+      _fixedFocusOffset = Utils.optionalDouble(value);
+  double? get fixedFocusOffset => _fixedFocusOffset;
+
+  /// Vertical padding from screen edges for scroll visibility detection.
+  /// Use a larger value (e.g., 100-120) when there's a top nav bar.
+  /// Defaults to 50.0 if not specified.
+  double? _verticalScrollPadding;
+  set verticalScrollPadding(value) =>
+      _verticalScrollPadding = Utils.optionalDouble(value);
+  double? get verticalScrollPadding => _verticalScrollPadding;
+
+  /// Duration of scroll animations in milliseconds.
+  /// Defaults to 200ms if not specified.
+  int? _scrollAnimationDuration;
+  set scrollAnimationDuration(value) =>
+      _scrollAnimationDuration = Utils.optionalInt(value);
+  int? get scrollAnimationDuration => _scrollAnimationDuration;
+
+  /// Animation curve for scroll animations.
+  /// Supported values: easeIn, easeOut, easeInOut, linear, decelerate, ease.
+  /// Defaults to 'easeOut' for horizontal, 'easeInOut' for vertical.
+  String? _scrollAnimationCurve;
+  set scrollAnimationCurve(value) =>
+      _scrollAnimationCurve = Utils.optionalString(value);
+  String? get scrollAnimationCurve => _scrollAnimationCurve;
+
+  /// Horizontal padding for visibility checks during scrolling.
+  /// Defaults to 16.0 if not specified.
+  double? _horizontalScrollPadding;
+  set horizontalScrollPadding(value) =>
+      _horizontalScrollPadding = Utils.optionalDouble(value);
+  double? get horizontalScrollPadding => _horizontalScrollPadding;
+
+  /// Prevents horizontal navigation from escaping this row at boundaries.
+  /// When true, pressing LEFT at first item or RIGHT at last item won't move focus to another row.
+  bool _lockHorizontalNavigation = false;
+  set lockHorizontalNavigation(value) =>
+      _lockHorizontalNavigation = Utils.getBool(value, fallback: false);
+  bool get lockHorizontalNavigation => _lockHorizontalNavigation;
+
+  /// Delegates horizontal navigation (LEFT/RIGHT) to the parent FocusScope.
+  /// Use this for items inside carousels where horizontal keys should switch slides
+  /// instead of navigating between items.
+  bool _delegateHorizontalNavigation = false;
+  set delegateHorizontalNavigation(value) =>
+      _delegateHorizontalNavigation = Utils.getBool(value, fallback: false);
+  bool get delegateHorizontalNavigation => _delegateHorizontalNavigation;
+
+  // ============ Carousel-specific TV Options ============
+
+  /// When true, LEFT/RIGHT arrow keys navigate carousel slides using smart edge detection.
+  /// At leftmost element: LEFT switches to previous slide (focus last element)
+  /// At rightmost element: RIGHT switches to next slide (focus first element)
+  /// Between elements: Normal focus traversal within the slide
+  bool _interceptHorizontalNav = false;
+  set interceptHorizontalNav(value) =>
+      _interceptHorizontalNav = Utils.getBool(value, fallback: false);
+  bool get interceptHorizontalNav => _interceptHorizontalNav;
+
+  /// When true, autoplay pauses when any element within the carousel has focus.
+  /// Resumes when focus leaves the carousel.
+  bool _pauseAutoplayOnFocus = false;
+  set pauseAutoplayOnFocus(value) =>
+      _pauseAutoplayOnFocus = Utils.getBool(value, fallback: false);
+  bool get pauseAutoplayOnFocus => _pauseAutoplayOnFocus;
+
+  /// When true, focus is restored to the appropriate element after slide changes.
+  /// For manual navigation: LEFT→last element, RIGHT→first element
+  /// For autoplay: first element of new slide
+  bool _restoreFocusOnPageChange = false;
+  set restoreFocusOnPageChange(value) =>
+      _restoreFocusOnPageChange = Utils.getBool(value, fallback: false);
+  bool get restoreFocusOnPageChange => _restoreFocusOnPageChange;
+
+  /// Returns true if TV navigation is enabled (row is set)
+  bool get isEnabled => _row != null;
+
+  @override
+  Map<String, Function> getters() => {
+        'row': () => _row,
+        'order': () => _order,
+        'isRowEntryPoint': () => _isRowEntryPoint,
+        'focusBorderRadius': () => _focusBorderRadius,
+        'focusColor': () => _focusColor,
+        'focusBorderWidth': () => _focusBorderWidth,
+        'fixedFocusScroll': () => _fixedFocusScroll,
+        'fixedFocusOffset': () => _fixedFocusOffset,
+        'verticalScrollPadding': () => _verticalScrollPadding,
+        'scrollAnimationDuration': () => _scrollAnimationDuration,
+        'scrollAnimationCurve': () => _scrollAnimationCurve,
+        'horizontalScrollPadding': () => _horizontalScrollPadding,
+        'lockHorizontalNavigation': () => _lockHorizontalNavigation,
+        'delegateHorizontalNavigation': () => _delegateHorizontalNavigation,
+        // Carousel-specific
+        'interceptHorizontalNav': () => _interceptHorizontalNav,
+        'pauseAutoplayOnFocus': () => _pauseAutoplayOnFocus,
+        'restoreFocusOnPageChange': () => _restoreFocusOnPageChange,
+      };
+
+  @override
+  Map<String, Function> methods() => {};
+
+  @override
+  Map<String, Function> setters() => {
+        'row': (value) => row = value,
+        'order': (value) => order = value,
+        'isRowEntryPoint': (value) => isRowEntryPoint = value,
+        'focusBorderRadius': (value) => focusBorderRadius = value,
+        'focusColor': (value) => focusColor = value,
+        'focusBorderWidth': (value) => focusBorderWidth = value,
+        'fixedFocusScroll': (value) => fixedFocusScroll = value,
+        'fixedFocusOffset': (value) => fixedFocusOffset = value,
+        'verticalScrollPadding': (value) => verticalScrollPadding = value,
+        'scrollAnimationDuration': (value) => scrollAnimationDuration = value,
+        'scrollAnimationCurve': (value) => scrollAnimationCurve = value,
+        'horizontalScrollPadding': (value) => horizontalScrollPadding = value,
+        'lockHorizontalNavigation': (value) => lockHorizontalNavigation = value,
+        'delegateHorizontalNavigation': (value) =>
+            delegateHorizontalNavigation = value,
+        // Carousel-specific
+        'interceptHorizontalNav': (value) => interceptHorizontalNav = value,
+        'pauseAutoplayOnFocus': (value) => pauseAutoplayOnFocus = value,
+        'restoreFocusOnPageChange': (value) => restoreFocusOnPageChange = value,
+      };
+}
+
 class TextStyleComposite extends WidgetCompositeProperty {
   TextStyleComposite(super.widgetController,
       {LinearGradient? textGradient,
@@ -234,6 +430,9 @@ abstract class WidgetController extends Controller with HasStyles {
   String? label;
   String? _testId;
 
+  // TV/Accessibility: autofocus support for D-pad navigation
+  bool autofocus = false;
+
   String? get testId {
     String? _ = _testId ?? id;
     return _;
@@ -354,7 +553,8 @@ abstract class WidgetController extends Controller with HasStyles {
       'flex': (value) => flex = Utils.optionalInt(value, min: 1),
       'expanded': (value) => expanded = Utils.getBool(value, fallback: false),
       'visible': (value) => visible = Utils.getBool(value, fallback: true),
-      'opacity': (value) => opacity = Utils.optionalDouble(value, min: 0, max: 1),
+      'opacity': (value) =>
+          opacity = Utils.optionalDouble(value, min: 0, max: 1),
       'visibilityTransitionDuration': (value) =>
           visibilityTransitionDuration = Utils.getDuration(value),
       'elevation': (value) =>
@@ -379,7 +579,9 @@ abstract class WidgetController extends Controller with HasStyles {
       'classList': (value) => classList = value,
       'className': (value) => className = value,
       'tooltip': (value) => toolTip = Utils.getMap(value),
-      'semantics': (value) => semantics = EnsembleSemantics.fromYaml(Utils.getMap(value)),
+      'semantics': (value) =>
+          semantics = EnsembleSemantics.fromYaml(Utils.getMap(value)),
+      'autofocus': (value) => autofocus = Utils.getBool(value, fallback: false),
     };
   }
 
@@ -428,6 +630,10 @@ class BoxController extends WidgetController {
   BoxAnimationComposite? animation;
   Matrix4? transform;
 
+  // TV/Accessibility: Coordinate-based navigation (flutter_pca style)
+  // Use styles.tvOptions.row, styles.tvOptions.order, etc.
+  TVOptionsComposite? tvOptions;
+
   @override
   Map<String, Function> getBaseSetters() {
     Map<String, Function> setters = super.getBaseSetters();
@@ -462,7 +668,12 @@ class BoxController extends WidgetController {
       'clipContent': (value) => clipContent = Utils.optionalBool(value),
       'animation': (payload) =>
           animation = BoxAnimationComposite.from(this, payload),
-      'transform': (value) => transform = TransformMatrix.from(value)
+      'transform': (value) => transform = TransformMatrix.from(value),
+
+      // TV/Accessibility: Coordinate-based navigation
+      // Use nested syntax: tvOptions: { row: 1, order: 0, isRowEntryPoint: true }
+      'tvOptions': (value) => tvOptions =
+          value is Map ? TVOptionsComposite(this, inputs: value) : null,
     });
     return setters;
   }
@@ -582,7 +793,8 @@ abstract class EnsembleWidgetController extends EnsembleController
       'flexMode': (value) => flexMode = FlexMode.values.from(value),
       'flex': (value) => flex = Utils.optionalInt(value, min: 1),
       'visible': (value) => visible = Utils.getBool(value, fallback: true),
-      'opacity': (value) => opacity = Utils.optionalDouble(value, min: 0, max: 1),
+      'opacity': (value) =>
+          opacity = Utils.optionalDouble(value, min: 0, max: 1),
       'visibilityTransitionDuration': (value) =>
           visibilityTransitionDuration = Utils.getDuration(value),
       'textDirection': (value) => textDirection = Utils.getTextDirection(value),
@@ -606,8 +818,9 @@ abstract class EnsembleWidgetController extends EnsembleController
       'classList': (value) => classList = value,
       'className': (value) => className = value,
       'tooltip': (value) => toolTip = Utils.getMap(value),
-      'semantics': (value) => semantics = EnsembleSemantics.fromYaml(Utils.getMap(value)),
-      };
+      'semantics': (value) =>
+          semantics = EnsembleSemantics.fromYaml(Utils.getMap(value)),
+    };
   }
 
   bool hasPositions() {

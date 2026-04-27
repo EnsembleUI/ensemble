@@ -19,6 +19,7 @@ import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:ensemble/widget/helpers/widgets.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 
 class Carousel extends StatefulWidget
@@ -216,6 +217,17 @@ class CarouselState extends EWidgetState<Carousel>
 
   int indicatorIndex = 0;
 
+  // TV Focus handling
+  final FocusScopeNode _carouselFocusScopeNode = FocusScopeNode(debugLabel: 'CarouselScope');
+  bool _isAutoplayPaused = false;
+
+  /// Direction of last navigation for focus restoration
+  /// -1 = LEFT (focus last element), 1 = RIGHT (focus first element), 0 = autoplay
+  int _lastNavigationDirection = 0;
+
+  /// Track if we need to restore focus after page change
+  bool _pendingFocusRestore = false;
+
   @override
   void initState() {
     super.initState();
@@ -226,7 +238,108 @@ class CarouselState extends EWidgetState<Carousel>
         widget._controller.currentIndex == 0) {
       widget._controller.currentIndex = widget._controller.selectedItemIndex;
     }
+
+    // Set up focus listener for pauseAutoplayOnFocus feature
+    _carouselFocusScopeNode.addListener(_onCarouselFocusChanged);
   }
+
+  /// Handle focus changes for pauseAutoplayOnFocus feature
+  void _onCarouselFocusChanged() {
+    final hasFocus = _carouselFocusScopeNode.hasFocus;
+
+    if (widget._controller.tvOptions?.pauseAutoplayOnFocus != true) return;
+    if (widget._controller.autoplay != true) return;
+
+    if (hasFocus && !_isAutoplayPaused) {
+      // Focus gained - pause autoplay
+      _isAutoplayPaused = true;
+      widget._controller._carouselController.stopAutoPlay();
+    } else if (!hasFocus && _isAutoplayPaused) {
+      // Focus lost - resume autoplay
+      _isAutoplayPaused = false;
+      widget._controller._carouselController.startAutoPlay();
+    }
+  }
+
+  @override
+  void dispose() {
+    _carouselFocusScopeNode.removeListener(_onCarouselFocusChanged);
+    _carouselFocusScopeNode.dispose();
+    super.dispose();
+  }
+
+  /// Handle TV D-pad key events for interceptHorizontalNav
+  /// When a horizontal key event reaches this handler (via lockHorizontalNavigation
+  /// delegation from children), switch slides.
+  KeyEventResult _handleTVKeyEvent(FocusNode node, KeyEvent event) {
+    if (widget._controller.tvOptions?.interceptHorizontalNav != true) {
+      return KeyEventResult.ignored;
+    }
+
+    // Only handle key down events (not repeats)
+    if (event is! KeyDownEvent) {
+      return KeyEventResult.ignored;
+    }
+
+    final isLeft = event.logicalKey == LogicalKeyboardKey.arrowLeft;
+    final isRight = event.logicalKey == LogicalKeyboardKey.arrowRight;
+
+    if (!isLeft && !isRight) {
+      return KeyEventResult.ignored;
+    }
+
+    // If a horizontal key event reached this handler, it means the focused child
+    // delegated it (via delegateHorizontalNavigation). Switch slides.
+    if (isLeft) {
+      _navigateToPreviousSlide();
+    } else {
+      _navigateToNextSlide();
+    }
+    return KeyEventResult.handled;
+  }
+
+  /// Navigate to previous slide with focus restoration
+  void _navigateToPreviousSlide() {
+    final items = buildItems();
+    if (items.isEmpty) return;
+
+    _lastNavigationDirection = -1;
+    _pendingFocusRestore =
+        widget._controller.tvOptions?.restoreFocusOnPageChange == true;
+
+    final currentIndex = widget._controller.currentIndex;
+    if (currentIndex == 0) {
+      // Loop to last slide if enabled
+      if (widget._controller.enableLoop == true) {
+        widget._controller._carouselController.animateToPage(items.length - 1);
+      }
+    } else {
+      widget._controller._carouselController.previousPage();
+    }
+  }
+
+  /// Navigate to next slide with focus restoration
+  void _navigateToNextSlide() {
+    final items = buildItems();
+    if (items.isEmpty) return;
+
+    _lastNavigationDirection = 1;
+    _pendingFocusRestore =
+        widget._controller.tvOptions?.restoreFocusOnPageChange == true;
+
+    final currentIndex = widget._controller.currentIndex;
+    if (currentIndex == items.length - 1) {
+      // Loop to first slide if enabled
+      if (widget._controller.enableLoop == true) {
+        widget._controller._carouselController.animateToPage(0);
+      }
+    } else {
+      widget._controller._carouselController.nextPage();
+    }
+  }
+
+  /// Check if this is a TV platform
+  bool get _isTVPlatform => Device().isTV;
 
   @override
   void didChangeDependencies() {
@@ -305,12 +418,35 @@ class CarouselState extends EWidgetState<Carousel>
       carousel = Stack(clipBehavior: Clip.none, children: children);
     }
 
+    // Wrap with TV focus handling if on TV platform and TV features enabled
+    if (_isTVPlatform && _hasTVCarouselFeatures()) {
+      carousel = _wrapWithTVFocus(carousel);
+    }
+
     return BoxWrapper(
       widget: carousel,
       boxController: widget._controller,
       ignoresPadding: true,
       ignoresDimension:
           true, // width/height shouldn't be apply in the container
+    );
+  }
+
+  /// Check if any TV carousel features are enabled
+  bool _hasTVCarouselFeatures() {
+    final tvOptions = widget._controller.tvOptions;
+    return tvOptions?.interceptHorizontalNav == true ||
+        tvOptions?.pauseAutoplayOnFocus == true ||
+        tvOptions?.restoreFocusOnPageChange == true;
+  }
+
+  /// Wrap the carousel with TV focus handling
+  Widget _wrapWithTVFocus(Widget carousel) {
+    // FocusScope with onKeyEvent - key events from children bubble up
+    return FocusScope(
+      node: _carouselFocusScopeNode,
+      onKeyEvent: _handleTVKeyEvent,
+      child: carousel,
     );
   }
 
@@ -446,11 +582,20 @@ class CarouselState extends EWidgetState<Carousel>
       padEnds: false,
       viewportFraction: widget._controller.singleItemWidthRatio ?? 1,
       onPageChanged: (index, reason) {
+        // Track if this was an autoplay change
+        final isAutoplay = reason == CarouselPageChangedReason.timed;
+        if (isAutoplay) {
+          _lastNavigationDirection = 0;
+        }
+
         _onItemChange(index);
         setState(() {
           widget._controller.currentIndex = index;
           widget._controller.selectedItemIndex = index;
         });
+
+        // Handle focus restoration after page change
+        _handleFocusRestoration(index, isAutoplay);
       },
     );
   }
@@ -461,13 +606,58 @@ class CarouselState extends EWidgetState<Carousel>
         padEnds: false,
         pageSnapping: false,
         viewportFraction: widget._controller.multipleItemWidthRatio ?? 0.6,
-        onPageChanged: (index, _) {
+        onPageChanged: (index, reason) {
+          // Track if this was an autoplay change
+          final isAutoplay = reason == CarouselPageChangedReason.timed;
+          if (isAutoplay) {
+            _lastNavigationDirection = 0;
+          }
+
           setState(() {
             widget._controller.currentIndex = index;
             widget._controller.selectedItemIndex = index;
             updateIndicatorIndex();
           });
+
+          // Handle focus restoration after page change
+          _handleFocusRestoration(index, isAutoplay);
         });
+  }
+
+  /// Handle focus restoration after page change
+  void _handleFocusRestoration(int newIndex, bool isAutoplay) {
+    if (!_isTVPlatform) return;
+    if (widget._controller.tvOptions?.restoreFocusOnPageChange != true) return;
+
+    // Only restore focus if the carousel currently has focus
+    // This prevents stealing focus from other parts of the UI during autoplay
+    final carouselHasFocus = _carouselFocusScopeNode.hasFocus;
+    if (!carouselHasFocus) {
+      _pendingFocusRestore = false;
+      return;
+    }
+
+    // For manual navigation, we need _pendingFocusRestore flag
+    // For autoplay, we always restore if carousel has focus
+    if (!_pendingFocusRestore && !isAutoplay) return;
+
+    _pendingFocusRestore = false;
+
+    // Wait for the new slide to be built before restoring focus
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      // Re-check focus state after frame callback
+      if (!_carouselFocusScopeNode.hasFocus) return;
+
+      // Use the carousel's scope node for focus traversal
+      if (_lastNavigationDirection == -1) {
+        // LEFT navigation - focus next available element
+        _carouselFocusScopeNode.nextFocus();
+      } else {
+        // RIGHT navigation or autoplay - focus first element
+        _carouselFocusScopeNode.nextFocus();
+      }
+    });
   }
 
   /// This method will increment the indicator based on the indicatorMaxCount property
