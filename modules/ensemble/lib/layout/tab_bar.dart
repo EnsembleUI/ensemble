@@ -286,9 +286,19 @@ class TabBarState extends BaseTabBarState {
           // This means onLoad API may be called multiple times in debug mode
 
           widget._controller.persistentTabBar
-              ? Expanded(
-                  child: SingleChildScrollView(
-                      child: tabContent))
+              ? (isExpanded
+                  ? Expanded(
+                      child: Builder(
+                        key: UniqueKey(),
+                        builder: (BuildContext context) =>
+                            SingleChildScrollView(child: buildSelectedTab()),
+                      ),
+                    )
+                  : Builder(
+                      key: UniqueKey(),
+                      builder: (BuildContext context) =>
+                          SingleChildScrollView(child: buildSelectedTab()),
+                    ))
               : tabContent,
 
           // This cause Expanded child to fail
