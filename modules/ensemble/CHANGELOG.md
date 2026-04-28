@@ -1,3 +1,8 @@
+## 1.2.40
+
+ - **REFACTOR**(cdn): improve secret management and artifact handling in CdnDefinitionProvider. ([a2c87792](https://github.com/ensembleUI/ensemble/commit/a2c877925a4d2ac489aab8c5a89f3e66e4dd5a98))
+ - **FEAT**(cdn): enhance CdnDefinitionProvider with environment variable handling and secret management. ([42669188](https://github.com/ensembleUI/ensemble/commit/42669188ea423c9dba5beac449ee38853f01b88b))
+
 ## 1.2.39
 
  - **FIX**(incorrect header format): explicit convertion of header entry into string. ([84ead788](https://github.com/ensembleUI/ensemble/commit/84ead788a7cd0b1aee50292eabf07bc8ae3c490d))
