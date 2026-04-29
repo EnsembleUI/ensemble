@@ -272,7 +272,12 @@ class TabBarState extends BaseTabBarState {
       // https://stackoverflow.com/questions/55425804/using-builder-instead-of-statelesswidget
       Widget tabContent = Builder(
           key: UniqueKey(),
-          builder: (BuildContext context) => buildSelectedTab());
+          builder: (BuildContext context) {
+            if (widget._controller.persistentTabBar) {
+              return SingleChildScrollView(child: buildSelectedTab());
+            }
+            return buildSelectedTab();
+          });
       if (isExpanded) {
         tabContent = Expanded(child: tabContent);
       }
@@ -285,21 +290,7 @@ class TabBarState extends BaseTabBarState {
           // is sub-optimal since it recreates the tab content on each pass.
           // This means onLoad API may be called multiple times in debug mode
 
-          widget._controller.persistentTabBar
-              ? (isExpanded
-                  ? Expanded(
-                      child: Builder(
-                        key: UniqueKey(),
-                        builder: (BuildContext context) =>
-                            SingleChildScrollView(child: buildSelectedTab()),
-                      ),
-                    )
-                  : Builder(
-                      key: UniqueKey(),
-                      builder: (BuildContext context) =>
-                          SingleChildScrollView(child: buildSelectedTab()),
-                    ))
-              : tabContent,
+          tabContent,
 
           // This cause Expanded child to fail
           // Padding(
