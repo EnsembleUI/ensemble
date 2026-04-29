@@ -66,8 +66,6 @@ class TabBarController extends BoxController {
     var setters = super.getBaseSetters();
     setters.addAll({
       'items': (values) => items = values,
-      'useIndexedTab': (value) =>
-      useIndexedTab = Utils.getBool(value, fallback: false),
     });
     return setters;
   }
