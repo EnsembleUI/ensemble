@@ -5,6 +5,7 @@ import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/bindings.dart';
 import 'package:ensemble/framework/definition_providers/provider.dart';
 import 'package:ensemble/framework/error_handling.dart';
+import 'package:encrypt/encrypt.dart' as enc;
 import 'package:ensemble/framework/i18n_loader.dart';
 import 'package:ensemble/framework/widget/screen.dart';
 import 'package:ensemble/util/utils.dart';
@@ -16,6 +17,9 @@ import 'package:yaml/yaml.dart';
 import 'package:brotli/brotli.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:flutter/services.dart';
+
+import 'package:ensemble/framework/dotenv_bundle.dart';
 
 /// DefinitionProvider that reads the app manifest from CDN
 class CdnDefinitionProvider extends DefinitionProvider {
@@ -50,8 +54,20 @@ class CdnDefinitionProvider extends DefinitionProvider {
 
   static const String _i18nPrefix = 'i18n_';
 
+  // Cached env entries read from assets (so we can read `.env.secrets` even if
+  // dotenv was already initialized elsewhere, often from `.env`).
+  Map<String, String>? _assetEnv;
+
+  // Secrets hydrated from encrypted-manifest.json (artifacts.secrets).
+  final Map<String, String> _runtimeSecrets = {};
+
   @override
   Future<DefinitionProvider> init() async {
+    // Ensure we can decide which manifest to fetch based on
+    // ENSEMBLE_ENCRYPTION_KEY, regardless of whether dotenv was already
+    // initialized (e.g. from `.env`).
+    await _initEnvFromAssets();
+
     await _loadCachedState();
     if (_artifactCache.isNotEmpty) {
       unawaited(_refreshIfStale());
@@ -118,10 +134,41 @@ class CdnDefinitionProvider extends DefinitionProvider {
 
   @override
   Map<String, String> getSecrets() {
+    final out = <String, String>{};
+    out.addAll(_runtimeSecrets);
     if (dotenv.isInitialized) {
-      return Map<String, String>.from(dotenv.env);
+      out.addAll(dotenv.env);
     }
-    return {};
+    return out;
+  }
+
+  void _applySecretsFromRoot(Map<String, dynamic> root) {
+    final artifacts = _asMap(root['artifacts']);
+    if (artifacts == null) {
+      // No artifacts -> ensure runtime secrets can't linger.
+      if (_runtimeSecrets.isNotEmpty) {
+        _assetEnv?.removeWhere((k, _) => _runtimeSecrets.containsKey(k));
+        _runtimeSecrets.clear();
+      }
+      return;
+    }
+
+    // Per requirement: artifacts.secrets is a flat key/value mapping.
+    final rawSecrets = _asMap(artifacts['secrets']);
+    // Always replace runtime secrets on refresh so deleted keys don't linger.
+    if (_runtimeSecrets.isNotEmpty) {
+      _assetEnv?.removeWhere((k, _) => _runtimeSecrets.containsKey(k));
+      _runtimeSecrets.clear();
+    }
+    if (rawSecrets == null || rawSecrets.isEmpty) return;
+
+    rawSecrets.forEach((k, v) {
+      _runtimeSecrets[k.toString()] = v?.toString() ?? '';
+    });
+
+    // Make secrets visible to `_getSecret()` and any legacy dotenv lookups.
+    _assetEnv ??= <String, String>{};
+    _assetEnv!.addAll(_runtimeSecrets);
   }
 
   @override
@@ -176,7 +223,7 @@ class CdnDefinitionProvider extends DefinitionProvider {
 
       if (cachedManifest != null && cachedManifest.isNotEmpty) {
         try {
-          final root = jsonDecode(cachedManifest) as Map<String, dynamic>;
+          final root = _decodeManifestRoot(cachedManifest);
           _rebuildFromRoot(root);
         } catch (e) {
           // Clear invalid cache
@@ -216,6 +263,204 @@ class CdnDefinitionProvider extends DefinitionProvider {
   // Networking / manifest loading
   // --------------------------------------------------------
 
+  Future<void> _initEnvFromAssets() async {
+    if (_assetEnv != null) return;
+
+    final merged = <String, String>{};
+
+    Future<void> tryLoad(String assetPath) async {
+      try {
+        final content = await rootBundle.loadString(assetPath);
+        merged.addAll(parseDotEnvBundleContent(content));
+      } catch (_) {
+        // ignore missing/invalid asset
+      }
+    }
+
+    // Mirror SecretsStore.initialize() intent for dotenv-based secrets.
+    await tryLoad('ensemble/.env.secrets');
+    await tryLoad('.env.secrets');
+    await tryLoad('.env');
+
+    // Also merge whatever dotenv already has (if another part of the app loaded it).
+    if (dotenv.isInitialized) {
+      merged.addAll(dotenv.env);
+    }
+
+    _assetEnv = merged;
+  }
+
+  bool _hasEncryptionKey() {
+    final fromAssets = (_assetEnv ?? const {})['ENSEMBLE_ENCRYPTION_KEY'];
+    if (fromAssets != null && fromAssets.trim().isNotEmpty) return true;
+
+    if (!dotenv.isInitialized) return false;
+    final fromDotenv = dotenv.env['ENSEMBLE_ENCRYPTION_KEY'];
+    return fromDotenv != null && fromDotenv.trim().isNotEmpty;
+  }
+
+  String? _getSecret(String name) {
+    final fromAssets = (_assetEnv ?? const {})[name];
+    if (fromAssets != null) return fromAssets;
+
+    if (!dotenv.isInitialized) return null;
+    return dotenv.env[name];
+  }
+
+  static Uint8List _b64UrlDecode(String input) {
+    final normalized = input.trim().replaceAll('-', '+').replaceAll('_', '/');
+    final pad = (4 - (normalized.length % 4)) % 4;
+    return base64.decode(normalized + ('=' * pad));
+  }
+
+  static Uint8List _b64Decode(String input) => base64.decode(input.trim());
+
+  static Uint8List _b64AnyDecode(String input) {
+    final trimmed = input.trim();
+    // prefer url-safe decode first since it works for standard base64 too
+    try {
+      return _b64UrlDecode(trimmed);
+    } catch (_) {
+      return _b64Decode(trimmed);
+    }
+  }
+
+  static Map<String, dynamic> _decodeManifestRoot(String jsonString) {
+    final decoded = jsonDecode(jsonString);
+    if (decoded is! Map) {
+      throw const FormatException('Manifest root is not a JSON object.');
+    }
+
+    // Expected shape is: { artifacts: { ... } }
+    if (decoded.containsKey('artifacts')) {
+      return Map<String, dynamic>.from(decoded);
+    }
+
+    // Some endpoints wrap the real manifest under `manifest`.
+    final manifest = decoded['manifest'];
+    if (manifest is Map && manifest.containsKey('artifacts')) {
+      return Map<String, dynamic>.from(manifest);
+    }
+    if (manifest is String && manifest.trim().isNotEmpty) {
+      final inner = jsonDecode(manifest);
+      if (inner is Map && inner.containsKey('artifacts')) {
+        return Map<String, dynamic>.from(inner);
+      }
+    }
+
+    // Fall back to original map (better error messages downstream).
+    return Map<String, dynamic>.from(decoded);
+  }
+
+  static Uint8List _hexDecode(String input) {
+    final s = input.trim();
+    if (s.length.isOdd) {
+      throw const FormatException('Odd-length hex string.');
+    }
+    final out = Uint8List(s.length ~/ 2);
+    for (var i = 0; i < s.length; i += 2) {
+      final byteStr = s.substring(i, i + 2);
+      out[i ~/ 2] = int.parse(byteStr, radix: 16);
+    }
+    return out;
+  }
+
+  static enc.Key _parseAesKey(String keyStr) {
+    final trimmed = keyStr.trim();
+    if (trimmed.isEmpty) {
+      throw const FormatException('Empty key.');
+    }
+
+    // Accept common encodings:
+    // - hex (32/48/64 chars => 16/24/32 bytes)
+    // - base64/base64url (decodes to 16/24/32 bytes)
+    // - raw UTF-8 (16/24/32 bytes)
+    final isHex = RegExp(r'^[0-9a-fA-F]+$').hasMatch(trimmed);
+    if (isHex &&
+        (trimmed.length == 32 ||
+            trimmed.length == 48 ||
+            trimmed.length == 64)) {
+      final bytes = _hexDecode(trimmed);
+      return enc.Key(bytes);
+    }
+
+    try {
+      final bytes = _b64Decode(trimmed);
+      if (bytes.length == 16 || bytes.length == 24 || bytes.length == 32) {
+        return enc.Key(bytes);
+      }
+    } catch (_) {
+      // ignore - fall through
+    }
+
+    try {
+      final bytes = _b64UrlDecode(trimmed);
+      if (bytes.length == 16 || bytes.length == 24 || bytes.length == 32) {
+        return enc.Key(bytes);
+      }
+    } catch (_) {
+      // ignore - fall through
+    }
+
+    final utf8Bytes = utf8.encode(trimmed);
+    if (utf8Bytes.length == 16 ||
+        utf8Bytes.length == 24 ||
+        utf8Bytes.length == 32) {
+      return enc.Key(Uint8List.fromList(utf8Bytes));
+    }
+
+    throw FormatException(
+      'Invalid AES key length (${utf8Bytes.length} bytes). Provide a 16/24/32-byte key '
+      '(AES-128/192/256), or hex (32/48/64 chars), or base64 that decodes to 16/24/32 bytes.',
+    );
+  }
+
+  /// Decrypt encrypted-manifest envelope into manifest JSON string.
+  String _decryptEncryptedManifestEnvelope(String envelopeJson) {
+    final keyStr = _getSecret('ENSEMBLE_ENCRYPTION_KEY');
+    if (keyStr == null || keyStr.trim().isEmpty) {
+      throw ConfigError(
+          'Encrypted manifest requested but ENSEMBLE_ENCRYPTION_KEY is missing.');
+    }
+    final decoded = jsonDecode(envelopeJson);
+    if (decoded is! Map) {
+      throw ConfigError('Invalid encrypted manifest payload.');
+    }
+
+    final ivStr = decoded['iv']?.toString();
+    final tagStr = decoded['tag']?.toString();
+    final cipherStr = decoded['ciphertext']?.toString();
+
+    if (ivStr == null || tagStr == null || cipherStr == null) {
+      throw ConfigError('Encrypted manifest payload is missing fields.');
+    }
+
+    final ivBytes = _b64AnyDecode(ivStr);
+    final tagBytes = _b64AnyDecode(tagStr);
+    final cipherBytes = _b64AnyDecode(cipherStr);
+    final combined = Uint8List.fromList([...cipherBytes, ...tagBytes]);
+
+    try {
+      final key = _parseAesKey(keyStr);
+      final encrypter = enc.Encrypter(enc.AES(key, mode: enc.AESMode.gcm));
+      final decryptedBytes = encrypter.decryptBytes(
+        enc.Encrypted(combined),
+        iv: enc.IV(ivBytes),
+      );
+
+      try {
+        return utf8.decode(decryptedBytes);
+      } on FormatException {
+        // Some deployments compress the plaintext manifest before encrypting.
+        // Try brotli as a fallback before surfacing an error.
+        final decompressed = brotliDecode(decryptedBytes);
+        return utf8.decode(decompressed);
+      }
+    } catch (e) {
+      throw ConfigError('Failed to decrypt encrypted manifest: $e');
+    }
+  }
+
   /// Check for updates and update cache if available
   /// Sets _hasPendingUpdate flag if updates were fetched
   Future<void> _refreshIfStale() async {
@@ -232,7 +477,7 @@ class CdnDefinitionProvider extends DefinitionProvider {
       if (jsonString == null) return;
 
       final newEtag = fetched['etag'] as String?;
-      final root = jsonDecode(jsonString) as Map<String, dynamic>;
+      final root = _decodeManifestRoot(jsonString);
 
       _rebuildFromRoot(root);
       await _refreshTranslationsAtRuntime();
@@ -281,7 +526,7 @@ class CdnDefinitionProvider extends DefinitionProvider {
 
     _etag = fetched['etag'] as String?;
 
-    final root = jsonDecode(jsonString) as Map<String, dynamic>;
+    final root = _decodeManifestRoot(jsonString);
     _rebuildFromRoot(root);
 
     // Save to persistent cache
@@ -328,22 +573,52 @@ class CdnDefinitionProvider extends DefinitionProvider {
   }
 
   Future<Map<String, Object>?> _fetchManifest({String? ifNoneMatch}) async {
-    final uri = Uri.parse('$baseUrl/$appId/manifest.json');
+    final shouldUseEncrypted = _hasEncryptionKey();
+    final encryptedUri = Uri.parse('$baseUrl/$appId/encrypted-manifest.json');
+    final plainUri = Uri.parse('$baseUrl/$appId/manifest.json');
 
     final headers = <String, String>{};
     if (ifNoneMatch != null && ifNoneMatch.isNotEmpty) {
       headers['If-None-Match'] = ifNoneMatch;
     }
 
-    final resp = await http.get(uri, headers: headers);
+    http.Response resp;
+    var fetchedEncrypted = false;
+    if (shouldUseEncrypted) {
+      final encryptedHeaders = Map<String, String>.from(headers);
+      final manifestKey = _getSecret('ENSEMBLE_MANIFEST_KEY');
+      if (manifestKey != null && manifestKey.trim().isNotEmpty) {
+        encryptedHeaders['x-manifest-key'] = manifestKey.trim();
+      }
+
+      resp = await http.get(encryptedUri, headers: encryptedHeaders);
+      fetchedEncrypted = resp.statusCode != 404;
+      // If encrypted manifest doesn't exist for this app, fall back to plain.
+      if (resp.statusCode == 404) {
+        resp = await http.get(plainUri, headers: headers);
+      }
+    } else {
+      resp = await http.get(plainUri, headers: headers);
+    }
+
     if (resp.statusCode == 304) return null;
     if (resp.statusCode != 200 || resp.bodyBytes.isEmpty) {
       throw ConfigError(
           "Failed to fetch manifest from CDN. Please check your appId and make sure to sync app to CDN.");
     }
 
-    final jsonString = _decodePossiblyBrotli(resp);
-    if (jsonString == null || jsonString.isEmpty) return null;
+    // Decode transport-level brotli first (Content-Encoding: br).
+    // This applies to BOTH plain and encrypted-manifest endpoints.
+    final decodedBody = _decodePossiblyBrotli(resp);
+    if (decodedBody == null || decodedBody.isEmpty) return null;
+
+    String jsonString = decodedBody;
+
+    // If we fetched the encrypted-manifest endpoint successfully, decrypt it.
+    if (shouldUseEncrypted && fetchedEncrypted) {
+      jsonString = _decryptEncryptedManifestEnvelope(decodedBody);
+    }
+    if (jsonString.isEmpty) return null;
 
     final etag = resp.headers['etag'] ?? resp.headers['ETag'];
     return {'json': jsonString, 'etag': etag ?? ''};
@@ -377,6 +652,7 @@ class CdnDefinitionProvider extends DefinitionProvider {
     _themeMapping = null;
     _defaultLocale = null;
     _appConfig = null;
+    _applySecretsFromRoot(root);
 
     final artifacts = _asMap(root['artifacts']);
     if (artifacts == null) return;
