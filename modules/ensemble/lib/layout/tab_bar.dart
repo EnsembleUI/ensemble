@@ -293,11 +293,17 @@ class TabBarState extends BaseTabBarState {
     else {
       bool isExpanded = widget._controller.expanded;
 
+      // if Expanded is set, our content needs to stretch to the left-over height
+      // Note we make each Builder unique, as it tends to re-use
+      // the states (down the tree) from the previous Builder
+      // https://stackoverflow.com/questions/55425804/using-builder-instead-of-statelesswidget
+
       // Use indexed tab building if enabled, otherwise use classic single-tab rendering
       Widget tabContent = widget._controller.useIndexedTab
           ? _buildTabBodies(context)
           : Builder(
-              key: ValueKey(widget._controller.selectedIndex),
+              // Using ValueKey to rebuild only when selectedIndex changes
+              key: UniqueKey(),
               builder: (BuildContext context) => buildSelectedTab());
 
       if (isExpanded) {
@@ -308,7 +314,16 @@ class TabBarState extends BaseTabBarState {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           buildTabBar(),
-          tabContent,
+          // builder gives us dynamic height control vs TabBarView, but
+          // is sub-optimal since it recreates the tab content on each pass.
+          // This means onLoad API may be called multiple times in debug mode
+          tabContent
+
+          // This cause Expanded child to fail
+          // Padding(
+          //     padding: const EdgeInsets.only(left: 0),
+          //     child: Builder(builder: (BuildContext context) => buildSelectedTab())
+          // )
         ],
       );
       // if Expanded is set, stretch our column to left-over height
