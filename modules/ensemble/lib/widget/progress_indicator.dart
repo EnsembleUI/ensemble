@@ -74,6 +74,7 @@ class ProgressController extends WidgetController {
 class ProgressState extends EWidgetState<EnsembleProgressIndicator> {
   static const interval = 100;
   Timer? countdownTimer;
+  Timer? mainTimer;
 
   bool hasCountdown() {
     return widget._controller.countdown != null &&
@@ -88,25 +89,31 @@ class ProgressState extends EWidgetState<EnsembleProgressIndicator> {
       // status timer that waits up every 500ms and update progress
       countdownTimer =
           Timer.periodic(const Duration(milliseconds: interval), (timer) {
-        setState(() {
-          widget._controller.value = min(1,
-              timer.tick * interval / (widget._controller.countdown! * 1000));
-        });
-        if (widget._controller.value == 1) {
+        if (mounted) {
+          setState(() {
+            widget._controller.value = min(1,
+                timer.tick * interval / (widget._controller.countdown! * 1000));
+          });
+          if (widget._controller.value == 1) {
+            timer.cancel();
+          }
+        } else {
           timer.cancel();
         }
       });
 
       // main timer that stops upon countdown
-      Timer(Duration(seconds: widget._controller.countdown!), () {
+      mainTimer = Timer(Duration(seconds: widget._controller.countdown!), () {
         countdownTimer?.cancel();
-        setState(() {
-          widget._controller.value = 1;
-        });
-        if (widget._controller.onCountdownComplete != null) {
-          ScreenController().executeAction(
-              context, widget._controller.onCountdownComplete!,
-              event: EnsembleEvent(widget));
+        if (mounted) {
+          setState(() {
+            widget._controller.value = 1;
+          });
+          if (widget._controller.onCountdownComplete != null) {
+            ScreenController().executeAction(
+                context, widget._controller.onCountdownComplete!,
+                event: EnsembleEvent(widget));
+          }
         }
       });
     }
@@ -114,8 +121,9 @@ class ProgressState extends EWidgetState<EnsembleProgressIndicator> {
 
   @override
   void dispose() {
-    super.dispose();
     countdownTimer?.cancel();
+    mainTimer?.cancel();
+    super.dispose();
   }
 
   @override
