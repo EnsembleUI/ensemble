@@ -1,3 +1,10 @@
+## 1.2.41
+
+ - **REFACTOR**(tabbar): remove useIndexedTab setter  duplication from TabBarController. ([faafd299](https://github.com/ensembleUI/ensemble/commit/faafd2996c3f0a9b9609acfba4e3286165e2ca80))
+ - **FEAT**(tab): fix persistentTabBar behavior with listview. ([ed51255a](https://github.com/ensembleUI/ensemble/commit/ed51255a0b8456c9ec3654f6ddce1e315cae9d77))
+ - **FEAT**(tabbar): add indexed tab mode with on-demand tab building and caching. ([93cd430b](https://github.com/ensembleUI/ensemble/commit/93cd430b0b700ae123ddf378f627ab884067f515))
+ - **FEAT**(tab): add persistentTabBar option for keep the tab pinned. ([bbafb0d1](https://github.com/ensembleUI/ensemble/commit/bbafb0d1c3be1f321cbe92f3cc0d8598e476dde0))
+
 ## 1.2.40
 
  - **REFACTOR**(cdn): improve secret management and artifact handling in CdnDefinitionProvider. ([a2c87792](https://github.com/ensembleUI/ensemble/commit/a2c877925a4d2ac489aab8c5a89f3e66e4dd5a98))

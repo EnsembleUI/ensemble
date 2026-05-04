@@ -3,6 +3,59 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## 2026-05-04
+
+### Changes
+
+---
+
+Packages with breaking changes:
+
+ - There are no breaking changes in this release.
+
+Packages with other changes:
+
+ - [`ensemble` - `v1.2.41`](#ensemble---v1241)
+ - [`ensemble_file_manager` - `v0.0.1+1`](#ensemble_file_manager---v0011)
+ - [`ensemble_location` - `v0.0.1+1`](#ensemble_location---v0011)
+ - [`ensemble_deeplink` - `v0.0.1+1`](#ensemble_deeplink---v0011)
+ - [`ensemble_camera` - `v0.0.1+1`](#ensemble_camera---v0011)
+ - [`ensemble_stripe` - `v1.0.1`](#ensemble_stripe---v101)
+ - [`ensemble_face_camera` - `v0.0.1+1`](#ensemble_face_camera---v0011)
+ - [`ensemble_contacts` - `v0.0.1+1`](#ensemble_contacts---v0011)
+ - [`ensemble_connect` - `v0.0.1+1`](#ensemble_connect---v0011)
+ - [`ensemble_auth` - `v1.0.1`](#ensemble_auth---v101)
+ - [`ensemble_network_info` - `v0.0.1+1`](#ensemble_network_info---v0011)
+ - [`ensemble_bluetooth` - `v0.0.1+1`](#ensemble_bluetooth---v0011)
+ - [`ensemble_chat` - `v0.0.1+1`](#ensemble_chat---v0011)
+
+Packages with dependency updates only:
+
+> Packages listed below depend on other packages in this workspace that have had changes. Their versions have been incremented to bump the minimum dependency versions of the packages they depend upon in this project.
+
+ - `ensemble_file_manager` - `v0.0.1+1`
+ - `ensemble_location` - `v0.0.1+1`
+ - `ensemble_deeplink` - `v0.0.1+1`
+ - `ensemble_camera` - `v0.0.1+1`
+ - `ensemble_stripe` - `v1.0.1`
+ - `ensemble_face_camera` - `v0.0.1+1`
+ - `ensemble_contacts` - `v0.0.1+1`
+ - `ensemble_connect` - `v0.0.1+1`
+ - `ensemble_auth` - `v1.0.1`
+ - `ensemble_network_info` - `v0.0.1+1`
+ - `ensemble_bluetooth` - `v0.0.1+1`
+ - `ensemble_chat` - `v0.0.1+1`
+
+---
+
+#### `ensemble` - `v1.2.41`
+
+ - **REFACTOR**(tabbar): remove useIndexedTab setter  duplication from TabBarController. ([faafd299](https://github.com/ensembleUI/ensemble/commit/faafd2996c3f0a9b9609acfba4e3286165e2ca80))
+ - **FEAT**(tab): fix persistentTabBar behavior with listview. ([ed51255a](https://github.com/ensembleUI/ensemble/commit/ed51255a0b8456c9ec3654f6ddce1e315cae9d77))
+ - **FEAT**(tabbar): add indexed tab mode with on-demand tab building and caching. ([93cd430b](https://github.com/ensembleUI/ensemble/commit/93cd430b0b700ae123ddf378f627ab884067f515))
+ - **FEAT**(tab): add persistentTabBar option for keep the tab pinned. ([bbafb0d1](https://github.com/ensembleUI/ensemble/commit/bbafb0d1c3be1f321cbe92f3cc0d8598e476dde0))
+
+
 ## 2026-04-28
 
 ### Changes
