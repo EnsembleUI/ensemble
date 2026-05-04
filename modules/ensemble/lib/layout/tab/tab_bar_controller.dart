@@ -83,10 +83,10 @@ class TabBarController extends BoxController {
 class TabItem {
   TabItem(
       {this.icon,
-        this.label,
-        this.tabWidget,
-        this.bodyWidget,
-        this.isVisible}) {
+      this.label,
+      this.tabWidget,
+      this.bodyWidget,
+      this.isVisible}) {
     if (icon == null && label == null && tabWidget == null) {
       throw LanguageError(
           "Each tab requires either an icon, a label, or a custom tabWidget");

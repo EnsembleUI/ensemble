@@ -363,6 +363,7 @@ class TabBarState extends BaseTabBarState {
   }
 
   /// Builds tabs on-demand with caching (used when useIndexedTab is true).
+  /// - Persistent tab bar: scroll only the selected tab body
   /// - Non-expanded: Column + Offstage for hidden tabs (zero-height)
   /// - Expanded: IndexedStack (bounded height)
   Widget _buildTabBodies(BuildContext context) {
@@ -380,28 +381,40 @@ class TabBarState extends BaseTabBarState {
     // Build the selected tab now if not already cached
     _cache[selectedIndex] ??= _buildTabAt(scopeManager, items[selectedIndex]);
 
+    Widget buildTabBody(int index) {
+      final tabBody = _cache[index] ?? const SizedBox.shrink();
+      if (!widget._controller.persistentTabBar) {
+        return tabBody;
+      }
+      return SingleChildScrollView(child: tabBody);
+    }
+
+    Widget buildOffstageTabs() {
+      return Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: List.generate(items.length, (i) {
+            return Offstage(
+              offstage: i != selectedIndex,
+              child: buildTabBody(i),
+            );
+          }));
+    }
+
     // Non-expanded: lives in unconstrained scroll context
     // Use Column + Offstage to zero-out hidden tabs
     if (!widget._controller.expanded) {
-      return Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: List.generate(items.length, (i) {
-          return Offstage(
-            offstage: i != selectedIndex,
-            child: _cache[i] ?? const SizedBox.shrink(),
-          );
-        }),
-      );
+      return buildOffstageTabs();
     }
 
     // Expanded: bounded height is provided by Expanded wrapper
     // IndexedStack is safe here and stacks children in bounded space
     return IndexedStack(
       index: selectedIndex,
+      sizing: StackFit.expand,
       children: List.generate(
         items.length,
-        (i) => _cache[i] ?? const SizedBox.shrink(),
+        buildTabBody,
       ),
     );
   }
