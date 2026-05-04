@@ -32,6 +32,8 @@ class TabBarController extends BoxController {
   int selectedIndex = 0;
   bool useIndexedTab = false;
 
+  bool persistentTabBar = false;
+
   List<TabItem> _originalItems = [];
   List<TabItem> _visibleItems = [];
 
