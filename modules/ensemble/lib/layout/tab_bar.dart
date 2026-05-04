@@ -92,11 +92,16 @@ abstract class BaseTabBar extends StatefulWidget
           _controller.onTabSelectionHaptic = Utils.optionalString(value),
       'persistentTabBar': (value) =>
           _controller.persistentTabBar = Utils.getBool(value, fallback: false),
+      'useIndexedTab': (value) =>
+          _controller.useIndexedTab = Utils.getBool(value, fallback: false),
     };
   }
 }
 
 class TabBarState extends BaseTabBarState {
+  // Cache for indexed tab building mode
+  late List<Widget?> _cache;
+
   @override
   void initState() {
     super.initState();
@@ -104,8 +109,12 @@ class TabBarState extends BaseTabBarState {
   }
 
   void _initializeTabController() {
+    final safeIndex = _getValidInitialIndex();
+    if (widget.controller.useIndexedTab) {
+      _cache = List<Widget?>.filled(widget.controller.items.length, null);
+    }
     tabController = TabController(
-      initialIndex: _getValidInitialIndex(),
+      initialIndex: safeIndex,
       length: widget.controller.items.length,
       vsync: this,
     );
@@ -202,6 +211,12 @@ class TabBarState extends BaseTabBarState {
   void _reinitializeTabController() {
     tabController.removeListener(notifyListener);
     tabController.dispose();
+    // If a tab became hidden and the previously-selected index is now out of
+    // bounds, reset it before recreating the TabController and rebuilding,
+    // otherwise buildSelectedTab() will throw a RangeError.
+    if (widget._controller.selectedIndex >= widget._controller.items.length) {
+      widget._controller.selectedIndex = 0;
+    }
     _initializeTabController();
   }
 
@@ -218,6 +233,20 @@ class TabBarState extends BaseTabBarState {
     if (widget.controller.selectedIndex == index) {
       return;
     }
+
+    // If using indexed tab mode, build the tab on-demand before switching
+    if (widget.controller.useIndexedTab) {
+      final scopeManager = DataScopeWidget.getScope(context);
+      if (scopeManager != null &&
+          index < _cache.length &&
+          _cache[index] == null) {
+        final items = widget.controller.items;
+        if (index < items.length) {
+          _cache[index] = _buildTabAt(scopeManager, items[index]);
+        }
+      }
+    }
+
     setState(() {
       widget.controller.selectedIndex = index;
     });
@@ -270,14 +299,19 @@ class TabBarState extends BaseTabBarState {
       // Note we make each Builder unique, as it tends to re-use
       // the states (down the tree) from the previous Builder
       // https://stackoverflow.com/questions/55425804/using-builder-instead-of-statelesswidget
-      Widget tabContent = Builder(
-          key: UniqueKey(),
-          builder: (BuildContext context) {
-            if (widget._controller.persistentTabBar) {
-              return SingleChildScrollView(child: buildSelectedTab());
-            }
-            return buildSelectedTab();
-          });
+
+      // Use indexed tab building if enabled, otherwise use classic single-tab rendering.
+      Widget tabContent = widget._controller.useIndexedTab
+          ? _buildTabBodies(context)
+          : Builder(
+              key: UniqueKey(),
+              builder: (BuildContext context) {
+                if (widget._controller.persistentTabBar) {
+                  return SingleChildScrollView(child: buildSelectedTab());
+                }
+                return buildSelectedTab();
+              },
+            );
       if (isExpanded) {
         tabContent = Expanded(child: tabContent);
       }
@@ -289,7 +323,6 @@ class TabBarState extends BaseTabBarState {
           // builder gives us dynamic height control vs TabBarView, but
           // is sub-optimal since it recreates the tab content on each pass.
           // This means onLoad API may be called multiple times in debug mode
-
           tabContent,
 
           // This cause Expanded child to fail
@@ -327,5 +360,68 @@ class TabBarState extends BaseTabBarState {
       return scopeManager.buildWidgetFromDefinition(selectedTab.bodyWidget);
     }
     return const Text("Unknown widget for this Tab");
+  }
+
+  /// Builds tabs on-demand with caching (used when useIndexedTab is true).
+  /// - Persistent tab bar: scroll only the selected tab body
+  /// - Non-expanded: Column + Offstage for hidden tabs (zero-height)
+  /// - Expanded: IndexedStack (bounded height)
+  Widget _buildTabBodies(BuildContext context) {
+    final scopeManager = DataScopeWidget.getScope(context);
+    if (scopeManager == null) return const Text('Unknown widget for this Tab');
+
+    final items = widget._controller.items;
+    final selectedIndex = widget._controller.selectedIndex;
+
+    // Ensure cache size matches current item count
+    if (_cache.length != items.length) {
+      _cache = List<Widget?>.filled(items.length, null);
+    }
+
+    // Build the selected tab now if not already cached
+    _cache[selectedIndex] ??= _buildTabAt(scopeManager, items[selectedIndex]);
+
+    Widget buildTabBody(int index) {
+      final tabBody = _cache[index] ?? const SizedBox.shrink();
+      if (!widget._controller.persistentTabBar) {
+        return tabBody;
+      }
+      return SingleChildScrollView(child: tabBody);
+    }
+
+    Widget buildOffstageTabs() {
+      return Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: List.generate(items.length, (i) {
+            return Offstage(
+              offstage: i != selectedIndex,
+              child: buildTabBody(i),
+            );
+          }));
+    }
+
+    // Non-expanded: lives in unconstrained scroll context
+    // Use Column + Offstage to zero-out hidden tabs
+    if (!widget._controller.expanded) {
+      return buildOffstageTabs();
+    }
+
+    // Expanded: bounded height is provided by Expanded wrapper
+    // IndexedStack is safe here and stacks children in bounded space
+    return IndexedStack(
+      index: selectedIndex,
+      sizing: StackFit.expand,
+      children: List.generate(
+        items.length,
+        buildTabBody,
+      ),
+    );
+  }
+
+  /// Build a single tab at given index
+  Widget _buildTabAt(ScopeManager scopeManager, TabItem tab) {
+    if (tab.bodyWidget == null) return const SizedBox.shrink();
+    return scopeManager.buildWidgetFromDefinition(tab.bodyWidget);
   }
 }

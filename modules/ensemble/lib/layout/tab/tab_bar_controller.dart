@@ -30,6 +30,7 @@ class TabBarController extends BoxController {
   TabBarAction? tabBarAction;
 
   int selectedIndex = 0;
+  bool useIndexedTab = false;
 
   bool persistentTabBar = false;
 
