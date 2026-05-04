@@ -88,12 +88,21 @@ class ListView extends StatefulWidget
           controller.shrinkWrap = Utils.optionalBool(value),
       'nestedScroll': (value) =>
           controller.nestedScroll = Utils.optionalBool(value),
+      'initialScrollOffset': (value) =>
+          _controller.initialScrollOffset = Utils.optionalDouble(value),
+      'initialScrollIndex': (value) =>
+          _controller.initialScrollIndex = Utils.optionalInt(value),
     };
   }
 
   @override
   Map<String, Function> methods() {
-    return {};
+    return {
+      'scrollToOffset': (num offset) => _controller.scrollToOffset(offset.toDouble()),
+      'scrollToTop': () => _controller.scrollToTop(),
+      'scrollToBottom': () => _controller.scrollToBottom(),
+      'scrollToIndex': (num index) => _controller.scrollToIndex(index.toInt()),
+    };
   }
 
   @override
@@ -127,8 +136,68 @@ class ListViewController extends BoxLayoutController {
   bool? shrinkWrap;
   bool? nestedScroll;
 
+  // scroll position control
+  double? initialScrollOffset;
+  int? initialScrollIndex;
+
   void _bind(ListViewState state) {
     widgetState = state;
+  }
+
+  /// Scroll to a specific offset
+  void scrollToOffset(double offset, {bool animated = true}) {
+    if (scrollController == null || !scrollController!.hasClients) return;
+    if (animated) {
+      scrollController!.animateTo(
+        offset,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+      );
+    } else {
+      scrollController!.jumpTo(offset);
+    }
+  }
+
+  /// Scroll to the top
+  void scrollToTop({bool animated = true}) {
+    scrollToOffset(0, animated: animated);
+  }
+
+  /// Scroll to the bottom
+  void scrollToBottom({bool animated = true}) {
+    if (scrollController == null || !scrollController!.hasClients) return;
+    final maxOffset = scrollController!.position.maxScrollExtent;
+    scrollToOffset(maxOffset, animated: animated);
+  }
+
+  /// Scroll to a specific item index
+  void scrollToIndex(int index, {bool animated = true}) {
+    if (scrollController == null || !scrollController!.hasClients) return;
+    if (index < 0) index = 0;
+
+    // Get total item count from templated data
+    final count = widgetState?.templatedDataList?.length ?? 0;
+    if (count == 0) return;
+
+    // Clamp index to valid range
+    if (index >= count) index = count - 1;
+
+    final maxExtent = scrollController!.position.maxScrollExtent;
+    final viewportHeight = scrollController!.position.viewportDimension;
+    final totalContentHeight = maxExtent + viewportHeight;
+
+    // Calculate estimated item height
+    final estimatedItemHeight = totalContentHeight / count;
+
+    // Calculate target offset
+    double offset = index * estimatedItemHeight;
+
+    // Clamp to max scroll extent
+    if (offset > maxExtent) {
+      offset = maxExtent;
+    }
+
+    scrollToOffset(offset, animated: animated);
   }
 }
 
@@ -141,6 +210,10 @@ class ListViewState extends EWidgetState<ListView>
   @override
   void initState() {
     showLoading = widget._controller.showLoading;
+    // Create scroll controller with initial offset if not already set
+    widget._controller.scrollController ??= ScrollController(
+      initialScrollOffset: widget._controller.initialScrollOffset ?? 0,
+    );
     super.initState();
   }
 
@@ -159,6 +232,15 @@ class ListViewState extends EWidgetState<ListView>
         setState(() {
           templatedDataList = dataList;
         });
+      });
+    }
+
+    // Handle initialScrollIndex after first frame
+    if (widget._controller.initialScrollIndex != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          widget._controller.scrollToIndex(widget._controller.initialScrollIndex!);
+        }
       });
     }
   }
