@@ -1,4 +1,3 @@
-
 import 'package:ensemble/action/haptic_action.dart';
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/bindings.dart';
@@ -59,42 +58,42 @@ abstract class BaseTabBar extends StatefulWidget
     return {
       'id': (value) => _controller.id = Utils.optionalString(value),
       'tabPosition': (position) =>
-      _controller.tabPosition = Utils.optionalString(position),
+          _controller.tabPosition = Utils.optionalString(position),
       'tabAlignment': (alignment) =>
-      _controller.tabAlignment = Utils.optionalString(alignment),
+          _controller.tabAlignment = Utils.optionalString(alignment),
       'indicatorSize': (type) =>
-      _controller.indicatorSize = Utils.optionalString(type),
+          _controller.indicatorSize = Utils.optionalString(type),
       'margin': (margin) => _controller.margin = Utils.optionalInsets(margin),
       'tabPadding': (padding) =>
-      _controller.tabPadding = Utils.optionalInsets(padding),
+          _controller.tabPadding = Utils.optionalInsets(padding),
       'tabFontSize': (fontSize) =>
-      _controller.tabFontSize = Utils.optionalInt(fontSize),
+          _controller.tabFontSize = Utils.optionalInt(fontSize),
       'tabFontWeight': (fontWeight) =>
-      _controller.tabFontWeight = Utils.getFontWeight(fontWeight),
+          _controller.tabFontWeight = Utils.getFontWeight(fontWeight),
       'tabBackgroundColor': (bgColor) =>
-      _controller.tabBackgroundColor = Utils.getColor(bgColor),
+          _controller.tabBackgroundColor = Utils.getColor(bgColor),
       'activeTabColor': (color) =>
-      _controller.activeTabColor = Utils.getColor(color),
+          _controller.activeTabColor = Utils.getColor(color),
       'inactiveTabColor': (color) =>
-      _controller.inactiveTabColor = Utils.getColor(color),
+          _controller.inactiveTabColor = Utils.getColor(color),
       'activeTabBackgroundColor': (color) =>
-      _controller.activeTabBackgroundColor = Utils.getColor(color),
+          _controller.activeTabBackgroundColor = Utils.getColor(color),
       'dividerColor': (color) =>
-      _controller.dividerColor = Utils.getColor(color),
+          _controller.dividerColor = Utils.getColor(color),
       'indicatorColor': (color) =>
-      _controller.indicatorColor = Utils.getColor(color),
+          _controller.indicatorColor = Utils.getColor(color),
       'indicatorThickness': (thickness) =>
-      _controller.indicatorThickness = Utils.optionalInt(thickness),
+          _controller.indicatorThickness = Utils.optionalInt(thickness),
       'selectedIndex': (index) =>
-      _controller.selectedIndex = Utils.getInt(index, min: 0, fallback: 0),
+          _controller.selectedIndex = Utils.getInt(index, min: 0, fallback: 0),
       'onTabSelection': (action) => _controller.onTabSelection =
           EnsembleAction.from(action, initiator: this),
       'onTabSelectionHaptic': (value) =>
-      _controller.onTabSelectionHaptic = Utils.optionalString(value),
+          _controller.onTabSelectionHaptic = Utils.optionalString(value),
       'persistentTabBar': (value) =>
-      _controller.persistentTabBar = Utils.getBool(value, fallback: false),
+          _controller.persistentTabBar = Utils.getBool(value, fallback: false),
       'useIndexedTab': (value) =>
-      _controller.useIndexedTab = Utils.getBool(value, fallback: false),
+          _controller.useIndexedTab = Utils.getBool(value, fallback: false),
     };
   }
 }
@@ -305,14 +304,14 @@ class TabBarState extends BaseTabBarState {
       Widget tabContent = widget._controller.useIndexedTab
           ? _buildTabBodies(context)
           : Builder(
-        key: UniqueKey(),
-        builder: (BuildContext context) {
-          if (widget._controller.persistentTabBar) {
-            return SingleChildScrollView(child: buildSelectedTab());
-          }
-          return buildSelectedTab();
-        },
-      );
+              key: UniqueKey(),
+              builder: (BuildContext context) {
+                if (widget._controller.persistentTabBar) {
+                  return SingleChildScrollView(child: buildSelectedTab());
+                }
+                return buildSelectedTab();
+              },
+            );
       if (isExpanded) {
         tabContent = Expanded(child: tabContent);
       }
@@ -357,7 +356,7 @@ class TabBarState extends BaseTabBarState {
     ScopeManager? scopeManager = DataScopeWidget.getScope(context);
     if (scopeManager != null) {
       TabItem selectedTab =
-      widget._controller.items[widget._controller.selectedIndex];
+          widget._controller.items[widget._controller.selectedIndex];
       return scopeManager.buildWidgetFromDefinition(selectedTab.bodyWidget);
     }
     return const Text("Unknown widget for this Tab");
@@ -402,7 +401,7 @@ class TabBarState extends BaseTabBarState {
       index: selectedIndex,
       children: List.generate(
         items.length,
-            (i) => _cache[i] ?? const SizedBox.shrink(),
+        (i) => _cache[i] ?? const SizedBox.shrink(),
       ),
     );
   }
@@ -413,4 +412,3 @@ class TabBarState extends BaseTabBarState {
     return scopeManager.buildWidgetFromDefinition(tab.bodyWidget);
   }
 }
-
