@@ -1,37 +1,29 @@
 # Ensemble Device Preview
 
-[![Pub](https://img.shields.io/pub/v/ensemble_device_preview.svg)](https://pub.dev/packages/ensemble_device_preview)
-[![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/EnsembleUI/ensemble/blob/main/LICENSE)
-[![Flutter](https://img.shields.io/badge/Flutter-3.5+-blue.svg)](https://flutter.dev)
+`ensemble_device_preview` provides a Flutter `DevicePreview` wrapper and preview tooling for testing app layouts against different devices and settings.
 
-A Flutter package that helps you approximate how your app looks and performs on different devices. Perfect for development and testing, allowing developers to preview their Flutter apps across various screen sizes, orientations, and device types.
+## Overview
 
-Built for the Ensemble UI ecosystem, this package provides comprehensive device simulation capabilities to ensure your Flutter applications look great on all target devices.
+This is a Flutter utility package used by Ensemble development tooling. The public barrel `lib/ensemble_device_preview.dart` exports `DevicePreview`, preview state, stores, storage implementations, locales, screenshots, and toolbar sections.
 
-## ✨ Features
+## Features
 
-- **Multi-Device Simulation**: Preview your app on phones, tablets, desktops, and more
-- **Orientation Support**: Test both portrait and landscape orientations
-- **Theme Switching**: Toggle between light and dark themes
-- **Accessibility Testing**: Test with various accessibility settings
-- **Responsive Design**: Ensure your UI works across different screen sizes
-- **Development Tools**: Built-in toolbar for easy configuration
-- **Custom Devices**: Create and save custom device configurations
+- Wraps an app with `DevicePreview` for device-frame and settings previews.
+- Exposes preview state through `DevicePreviewData` and `DevicePreviewStore`.
+- Includes default toolbar tools and extension points for custom tools.
+- Supports persisted preferences through storage classes exported by the package.
 
-## 🚀 Quick Start
+## Installation / Setup
 
-### Installation
+Use this package from inside the Melos workspace:
 
-Add this to your package's `pubspec.yaml` file:
-
-```yaml
-dependencies:
-  ensemble_device_preview: ^1.1.1
+```bash
+melos bootstrap
 ```
 
-### Basic Usage
+## Usage
 
-Wrap your app with `DevicePreview`:
+A source-verified usage pattern is available in `example/lib/main.dart`:
 
 ```dart
 import 'package:ensemble_device_preview/ensemble_device_preview.dart';
@@ -39,157 +31,63 @@ import 'package:ensemble_device_preview/ensemble_device_preview.dart';
 void main() {
   runApp(
     DevicePreview(
-      enabled: true, // Enable device preview
-      builder: (context) => MyApp(),
+      enabled: true,
+      tools: [
+        ...DevicePreview.defaultTools,
+      ],
+      builder: (context) => const BasicApp(),
     ),
   );
 }
 ```
 
-### Advanced Configuration
+## Configuration
 
-```dart
-DevicePreview(
-  enabled: true,
-  builder: (context) => MyApp(),
-  data: DevicePreviewData(
-    isToolbarVisible: true,
-    isEnabled: true,
-    orientation: Orientation.portrait,
-    deviceIdentifier: 'iPhone 14',
-    locale: 'en-US',
-    isFrameVisible: true,
-    isDarkMode: false,
-    boldText: false,
-    isVirtualKeyboardVisible: false,
-    disableAnimations: false,
-    highContrast: false,
-    accessibleNavigation: false,
-    invertColors: false,
-    textScaleFactor: 1.0,
-  ),
-)
-```
+No additional configuration was found in this package. Preview behavior is configured through `DevicePreview` constructor arguments and `DevicePreviewData`.
 
-## 🎯 Use Cases
+## Platform Support
 
-- **Development Testing**: Preview your app on different devices during development
-- **Design Validation**: Ensure your UI looks good across various screen sizes
-- **QA Testing**: Test responsive behavior without needing physical devices
-- **Client Demos**: Show your app on different devices during presentations
-- **Cross-Platform Development**: Test how your app looks on different platforms
+| Platform | Supported | Notes |
+| -------- | --------: | ----- |
+| Android | Unknown | No Android project or plugin declaration is included in this package. |
+| iOS | Unknown | No iOS project or plugin declaration is included in this package. |
+| Web | Unknown | No Web project or plugin declaration is included in this package. |
+| macOS | Unknown | No macOS project or plugin declaration is included in this package. |
+| Windows | Unknown | No Windows project or plugin declaration is included in this package. |
+| Linux | Unknown | No Linux project or plugin declaration is included in this package. |
 
-## 🔧 Configuration Options
+## Permissions
 
-### Device Preview Settings
+No runtime permissions were found in this package.
 
-- **Toolbar Position**: Top, bottom, left, or right
-- **Theme**: Light or dark theme for the preview interface
-- **Background**: Customize the background appearance
+## API Reference
 
-### Device Simulation
+| API | Type | Description |
+| --- | ---- | ----------- |
+| `DevicePreview` | Widget | Main preview wrapper. |
+| `DevicePreviewData` | Class | Holds preview state such as device, locale, orientation, and accessibility settings. |
+| `DevicePreviewStore` | Class | Stores and updates preview data. |
+| `PreferencesDevicePreviewStorage` | Class | Persists preview preferences. |
+| `FileDevicePreviewStorage` | Class | File-backed preview storage implementation. |
 
-- **Frame Visibility**: Show or hide device frames
-- **Orientation**: Portrait or landscape mode
-- **Custom Devices**: Create and save custom device configurations
-
-### Accessibility Testing
-
-- **Text Scaling**: Test with different text sizes
-- **High Contrast**: Simulate high contrast mode
-- **Bold Text**: Test with bold text enabled
-- **Color Inversion**: Test with inverted colors
-
-## 📱 Supported Devices
-
-The package includes a comprehensive collection of device presets:
-
-- **iOS Devices**: iPhone, iPad models
-- **Android Devices**: Various phone and tablet sizes
-- **Desktop**: Windows, macOS, and Linux screen sizes
-- **Web**: Common browser viewport sizes
-
-## 🎨 Customization
-
-### Custom Device Creation
-
-```dart
-final customDevice = CustomDeviceInfo(
-  name: 'Custom Tablet',
-  screenSize: Size(1024, 768),
-  pixelDensity: 2.0,
-  platform: TargetPlatform.android,
-  safeAreas: EdgeInsets.all(20),
-);
-```
-
-### Theme Customization
-
-```dart
-DevicePreview(
-  builder: (context) => MyApp(),
-  data: DevicePreviewData(
-    settings: DevicePreviewSettingsData(
-      toolbarPosition: DevicePreviewToolBarPositionData.top,
-      toolbarTheme: DevicePreviewToolBarThemeData.light,
-      backgroundTheme: DevicePreviewBackgroundThemeData.dark,
-    ),
-  ),
-)
-```
-
-## 🧪 Testing
-
-Run the tests to ensure everything works correctly:
+## Development
 
 ```bash
-flutter test
+melos bootstrap
+melos exec --scope="ensemble_device_preview" -- flutter analyze
+melos exec --scope="ensemble_device_preview" -- flutter test
 ```
 
-## 📚 API Reference
+## Testing
 
-### Main Classes
+No package-specific tests were found.
 
-- `DevicePreview`: Main widget for device preview functionality
-- `DevicePreviewData`: Configuration data for device preview
-- `CustomDeviceInfo`: Custom device configuration
-- `DevicePreviewSettingsData`: Settings for the preview interface
+## Related Packages / Modules
 
-### Key Methods
+- `packages/ensemble_device_preview/example`: source-verified Flutter example for this package.
 
-- `DevicePreview.appBuilder()`: Builder function for device preview
-- `DevicePreviewData.fromJson()`: Create from JSON data
-- `CustomDeviceInfo.create()`: Create custom device
+## Notes for Contributors
 
-## 🌐 Platform Support
-
-- ✅ **iOS**: Full support
-- ✅ **Android**: Full support
-- ✅ **Web**: Full support
-- ✅ **Windows**: Full support
-- ✅ **macOS**: Full support
-- ✅ **Linux**: Full support
-
-## 🤝 Contributing
-
-We welcome contributions! Please see our [contributing guidelines](https://github.com/EnsembleUI/ensemble/blob/main/CONTRIBUTING.md) for details.
-
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 🙏 Acknowledgments
-
-- Original `device_preview` package by [Alois Deniel](https://github.com/aloisdeniel)
-- Flutter team for the amazing framework
-- Community contributors and users
-
-## 📞 Support
-
-- **Issues**: [GitHub Issues](https://github.com/EnsembleUI/ensemble/issues)
-- **Documentation**: [pub.dev](https://pub.dev/documentation/ensemble_device_preview)
-- **Community**: [Ensemble UI Discord](https://discord.gg/ensembleui)
-
----
-
-Built with ❤️ by the Ensemble UI team
+- Keep examples in sync with source code.
+- Update this README when public APIs, permissions, configuration, or platform support changes.
+- Do not document unverified behavior.

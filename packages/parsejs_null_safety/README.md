@@ -9,12 +9,12 @@
 ## ✨ Features
 
 - **Full Null Safety**: Built for Dart 3.5+ with complete null safety support
-- **Comprehensive Parsing**: Supports modern JavaScript syntax and features
+- **Comprehensive Parsing**: Parses the JavaScript syntax supported by the parser and test fixtures
 - **Efficient AST Generation**: Fast parsing with detailed node information
 - **Configurable Options**: Noise handling, annotations, expression parsing
 - **Well-Tested**: Thoroughly tested against real-world JavaScript code
 - **Lightweight**: Minimal dependencies, focused on core functionality
-- **Production Ready**: Stable and reliable for production use
+- **Parser Utilities**: Focused on AST generation for tooling and runtime use cases
 
 ## 🚀 Use Cases
 

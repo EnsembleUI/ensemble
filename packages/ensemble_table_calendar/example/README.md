@@ -1,6 +1,6 @@
 # Table Calendar example
 
-Demonstrates how to use [table_calendar](https://pub.dartlang.org/packages/table_calendar) package.
+Demonstrates how to use the local `ensemble_table_calendar` package.
 Displays **Table Calendar** widget with a `ListView` underneath it.
 
 | ![Image](https://raw.githubusercontent.com/aleksanderwozniak/table_calendar/assets/table_calendar_styles.gif) | ![Image](https://raw.githubusercontent.com/aleksanderwozniak/table_calendar/assets/table_calendar_builders.gif) |
@@ -16,4 +16,4 @@ That being said, using Builders will give you full control over Calendar's UI.
 
 This example project will show you both of aforementioned methods.
 
-For more info please refer to [API docs](https://pub.dartlang.org/documentation/table_calendar/latest/table_calendar/table_calendar-library.html).
+For more info, see the parent package README and the `ensemble_table_calendar` API documentation.

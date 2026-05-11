@@ -246,19 +246,11 @@ void main() {
 
 ```dart
 try {
-  String code = """
-    var result = undefinedFunction();
-    var invalid = 10 / 0;
-  """;
-  
+  const code = 'var result = undefinedFunction();';
   JSInterpreter.fromCode(code, context).evaluate();
 } catch (e) {
-  if (e is JSInterpreterException) {
-    print('JavaScript Error: ${e.message}');
-    print('Line: ${e.line}, Column: ${e.column}');
-  } else {
-    print('Dart Error: $e');
-  }
+  // The package does not export a package-specific JSInterpreterException.
+  print('Interpreter error: $e');
 }
 ```
 
@@ -280,10 +272,16 @@ The test suite includes examples for:
 
 ## 📱 Platform Support
 
-- ✅ **Android**: Full support
-- ✅ **iOS**: Full support
-- ✅ **Web**: Full support
-- ✅ **Desktop**: Full support
+This package has no native platform folders or plugin declarations. Use it where the Dart/Flutter runtime and its dependencies are available.
+
+| Platform | Supported | Notes |
+| -------- | --------: | ----- |
+| Android  | Unknown | No Android-specific package files were found. |
+| iOS      | Unknown | No iOS-specific package files were found. |
+| Web      | Unknown | No web-specific package files were found. |
+| macOS    | Unknown | No macOS-specific package files were found. |
+| Windows  | Unknown | No Windows-specific package files were found. |
+| Linux    | Unknown | No Linux-specific package files were found. |
 
 ## 🤝 Contributing
 

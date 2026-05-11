@@ -1,214 +1,91 @@
-[![Pub](https://img.shields.io/pub/v/ensemble_otp.svg)](https://pub.dartlang.org/packages/ensemble_otp)
-[![Flutter](https://img.shields.io/badge/Flutter-3.24+-blue.svg)](https://flutter.dev)
-[![Dart](https://img.shields.io/badge/Dart-3.5+-blue.svg)](https://dart.dev)
-[![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+# ensemble_otp
 
-# Ensemble OTP
+`ensemble_otp` provides a Flutter OTP/PIN input widget with styling, custom keyboard slots, and optional SMS autofill support.
 
-A beautiful and highly customizable Flutter widget for OTP and PIN code input fields. Features include beautiful animations, custom styling, SMS autofill, custom keyboards, and extensive customization options. Perfect for authentication flows, verification screens, and any application requiring secure PIN or OTP input.
+## Overview
 
-## ✨ Features
+This is a Flutter plugin package. The public library exports `OtpPinField`, `OtpPinFieldState`, `OtpPinFieldStyle`, input-type enums, custom keyboard helpers, and cursor painting support. The plugin declaration in `pubspec.yaml` lists Android, iOS, and web implementations.
 
-- **Beautiful Animations**: Smooth and engaging animations for better user experience
-- **Highly Customizable**: Extensive styling options for colors, borders, sizes, and more
-- **SMS Autofill**: Automatic OTP detection from SMS messages (Android & iOS)
-- **Custom Keyboards**: Built-in custom keyboard or use your own custom keyboard
-- **Multiple Input Types**: Text, password, or custom character masking
-- **Accessibility**: Full accessibility support for better user experience
-- **Cross-Platform**: Works on Android, iOS, and Web
-- **Lightweight**: Minimal dependencies and optimized performance
+## Features
 
-## 🚀 Quick Start
+- Renders configurable OTP/PIN input fields with `OtpPinField`.
+- Supports `maxLength`, callbacks for submit/change/code changes, custom styling, cursor configuration, and optional custom keyboard widgets.
+- Supports optional SMS autofill through `autoFillEnable`, `smsRegex`, and `phoneNumbersHint`.
+- Includes Android, iOS, and web plugin entries in `pubspec.yaml`.
 
-### Installation
+## Installation / Setup
 
-Add this to your `pubspec.yaml`:
+Use this package from inside the Melos workspace:
 
-```yaml
-dependencies:
-  ensemble_otp: ^1.0.2
-```
-
-Then run:
 ```bash
-flutter pub get
+melos bootstrap
 ```
 
-### Basic Usage
+## Usage
 
 ```dart
-import 'package:ensemble_otp/ensemble_otp.dart';
+import 'package:ensemble_otp/otp_pin_field.dart';
 
-class OTPVerificationScreen extends StatefulWidget {
-  @override
-  _OTPVerificationScreenState createState() => _OTPVerificationScreenState();
-}
-
-class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
-  final _otpPinFieldController = GlobalKey<OtpPinFieldState>();
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text('Verify OTP')),
-      body: Padding(
-        padding: EdgeInsets.all(20),
-        child: Column(
-          children: [
-            OtpPinField(
-              key: _otpPinFieldController,
-              fieldCount: 6,
-              onSubmit: (text) {
-                print('Entered OTP: $text');
-                // Handle OTP verification
-              },
-              onChange: (text) {
-                print('Current OTP: $text');
-              },
-            ),
-            SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: () {
-                _otpPinFieldController.currentState?.clear();
-              },
-              child: Text('Clear OTP'),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-```
-
-## 🔧 Properties
-
-| Property | Type | Default | Description |
-|----------|------|---------|-------------|
-| `fieldCount` | `int` | `4` | Total length of PIN number & number of PIN boxes |
-| `highlightBorder` | `bool` | `true` | Highlight the focused PIN box |
-| `activeFieldBorderColor` | `Color` | `Colors.black` | Color of the focused PIN box |
-| `activeFieldBackgroundColor` | `Color` | `Colors.transparent` | Background color of the focused PIN box |
-| `defaultFieldBorderColor` | `Color` | `Colors.black45` | Color of the unfocused PIN box |
-| `defaultFieldBackgroundColor` | `Color` | `Colors.transparent` | Background color of the unfocused PIN box |
-| `fieldPadding` | `double` | `20.0` | Padding for PIN box |
-| `fieldBorderRadius` | `double` | `2.0` | Border radius for PIN box |
-| `fieldBorderWidth` | `double` | `2.0` | Border width for PIN box |
-| `textStyle` | `TextStyle` | `TextStyle(fontSize: 18.0, color: Colors.black)` | TextStyle for styling PIN characters |
-| `otpPinFieldInputType` | `OtpPinFieldInputType` | `OtpPinFieldInputType.none` | Input type (none, password, custom) |
-| `otpPinInputCustom` | `String` | `"*"` | Special character to mask the PIN code |
-| `onSubmit` | `void Function(String)` | - | Callback when max length is reached |
-| `onChange` | `void Function(String)` | - | Callback when PIN changes |
-| `otpPinFieldStyle` | `OtpPinFieldStyle` | `OtpPinFieldStyle()` | Customization for individual PIN boxes |
-| `fieldHeight` | `double` | `45.0` | Height of PIN boxes |
-| `fieldWidth` | `double` | `70.0` | Width of PIN boxes |
-| `otpPinFieldDecoration` | `OtpPinFieldDecoration` | `OtpPinFieldDecoration.underlinedPinBoxDecoration` | Predefined decoration styles |
-| `keyboardType` | `TextInputType` | `TextInputType.number` | Type of input keyboard |
-| `autofocus` | `bool` | `false` | Autofocus on view entered |
-| `cursorColor` | `Color` | `Color.black` | Color of the cursor |
-| `cursorWidth` | `double` | `2` | Width of the cursor |
-| `showCursor` | `bool` | `true` | Show cursor in OTP PIN fields |
-| `mainAxisAlignment` | `MainAxisAlignment` | `MainAxisAlignment.center` | Spacing in OTP PIN fields |
-| `showCustomKeyboard` | `bool` | `false` | Show custom keyboard instead of default |
-| `customKeyboard` | `Widget` | - | Custom keyboard widget |
-| `showDefaultKeyboard` | `bool` | `true` | Show default OS keyboard |
-| `autoFillEnable` | `bool` | `false` | Enable SMS autofill functionality |
-| `smsRegex` | `String` | `'\\d{0,4}'` | Regex pattern for OTP detection |
-| `phoneNumbersHint` | `bool` | `false` | Show phone number hint for autofill |
-| `textInputAction` | `TextInputAction` | `TextInputAction.done` | Keyboard action button |
-| `filledFieldBackgroundColor` | `Color` | `Colors.transparent` | Background color of filled fields |
-| `filledFieldBorderColor` | `Color` | `Colors.transparent` | Border color of filled fields |
-
-## 🎨 Advanced Customization
-
-### Custom Styling
-
-```dart
 OtpPinField(
-  fieldCount: 6,
-  otpPinFieldStyle: OtpPinFieldStyle(
-    defaultFieldBorderColor: Colors.grey,
-    activeFieldBorderColor: Colors.blue,
-    filledFieldBackgroundColor: Colors.blue.withValues(alpha: 0.1),
-    fieldBorderRadius: 8.0,
-    fieldBorderWidth: 2.0,
-  ),
-  textStyle: TextStyle(
-    fontSize: 20.0,
-    fontWeight: FontWeight.bold,
-    color: Colors.blue,
-  ),
-  onSubmit: (text) => print('OTP: $text'),
+  maxLength: 4,
+  onSubmit: (value) {
+    // Handle the completed PIN or OTP.
+  },
+  onChange: (value) {
+    // Handle intermediate input changes.
+  },
 )
 ```
 
-### Custom Keyboard
+The example app under `example/` shows `OtpPinField`, `OtpPinFieldStyle`, `clearOtp()`, and custom keyboard slots.
 
-```dart
-OtpPinField(
-  fieldCount: 4,
-  showCustomKeyboard: true,
-  customKeyboard: CustomNumericKeyboard(
-    onKeyPressed: (value) {
-      // Handle key press
-    },
-    onBackspace: () {
-      // Handle backspace
-    },
-    onSubmit: () {
-      // Handle submit
-    },
-  ),
-  onSubmit: (text) => print('OTP: $text'),
-)
+## Configuration
+
+No package-level configuration files were found. When SMS autofill is enabled, the host app must provide any required platform permissions or entitlements.
+
+## Platform Support
+
+| Platform | Supported | Notes |
+| -------- | --------: | ----- |
+| Android | Yes | Declared in the plugin platform map. |
+| iOS | Yes | Declared in the plugin platform map. |
+| Web | Yes | Declared in the plugin platform map. |
+| macOS | Unknown | No macOS plugin declaration was found. |
+| Windows | Unknown | No Windows plugin declaration was found. |
+| Linux | Unknown | No Linux plugin declaration was found. |
+
+## Permissions
+
+No runtime permissions were declared in the package manifest. The example Android app declares `android.permission.READ_SMS` and `android.permission.RECEIVE_SMS`, which are relevant when demonstrating SMS autofill.
+
+## API Reference
+
+| API | Type | Description |
+| --- | ---- | ----------- |
+| `OtpPinField` | Widget | OTP/PIN input widget. |
+| `OtpPinFieldState` | State | Exposes methods such as `clearOtp()` through a `GlobalKey`. |
+| `OtpPinFieldStyle` | Class | Styling options for OTP/PIN boxes. |
+| `OtpPinFieldInputType` | Enum | Controls plain, password, or custom mask display. |
+| `CustomKeyboard` | Widget | Custom keyboard helper exported by the package. |
+
+## Development
+
+```bash
+melos bootstrap
+melos exec --scope="ensemble_otp" -- flutter analyze
+melos exec --scope="ensemble_otp" -- flutter test
 ```
 
-### SMS Autofill
+## Testing
 
-```dart
-OtpPinField(
-  fieldCount: 6,
-  autoFillEnable: true,
-  smsRegex: '\\d{6}', // 6-digit OTP
-  phoneNumbersHint: true, // Show phone number hint
-  onSubmit: (text) => print('OTP: $text'),
-)
-```
+No package-specific tests were found.
 
-## 📱 Platform Support
+## Related Packages / Modules
 
-- ✅ **Android**: Full support with SMS autofill
-- ✅ **iOS**: Full support with native SMS autofill
-- ✅ **Web**: Full support with web-specific optimizations
+No related packages or modules were verified from imports, dependencies, examples, or tests.
 
-## 🔍 Examples
+## Notes for Contributors
 
-Check out the `example/` directory for complete working examples:
-
-- Basic OTP input
-- Custom styling
-- Custom keyboard implementation
-- SMS autofill integration
-- Advanced customization
-
-## 🤝 Contributing
-
-We welcome contributions! Please feel free to:
-
-- Report bugs and issues
-- Suggest new features
-- Submit pull requests
-- Improve documentation
-
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 🙏 Acknowledgments
-
-- Created by Shivam Mishra [@shivbo96](https://github.com/shivbo96)
-- Part of the Ensemble UI ecosystem
-
----
-
-**Built with ❤️ for the Flutter community** 
+- Keep examples in sync with source code.
+- Update this README when public APIs, permissions, configuration, or platform support changes.
+- Do not document unverified behavior.

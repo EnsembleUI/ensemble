@@ -14,7 +14,7 @@ Ensemble Camera is a Flutter package that extends the capabilities of the [Ensem
   - Options for gallery image picking and auto-capture intervals.
 
 - **QR Code Scanning**
-  - Integrated QR code scanner using the `qr_code_scanner` package.
+  - Integrated QR code scanner through this module's `qr_code_scanner.dart` export, which re-exports `ensemble_qr_scanner`.
   - Customizable overlay, scan area, and scanning actions.
   - Built-in methods to flip the camera, toggle flash, pause, and resume scanning.
 
@@ -62,7 +62,7 @@ Below are some basic examples to help you get started:
 ### Photo & Video Capture
 
 ```dart
-import 'package:ensemble_camera/ensemble_camera.dart';
+import 'package:ensemble_camera/camera_manager.dart';
 
 // Example: Using the default camera for photo capture
 void openDefaultCamera(BuildContext context, ScopeManager scopeManager) {
@@ -84,7 +84,7 @@ void openDefaultCamera(BuildContext context, ScopeManager scopeManager) {
 ### QR Code Scanner
 
 ```dart
-import 'package:ensemble_camera/ensemble_camera.dart';
+import 'package:ensemble_camera/qr_code_scanner.dart';
 
 // Example: Instantiating the QR code scanner widget
 final qrScannerWidget = EnsembleQRCodeScannerImpl.build(myQRCodeScannerController);

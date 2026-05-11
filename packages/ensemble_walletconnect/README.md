@@ -59,7 +59,7 @@ dependencies:
 Then run:
 
 ```bash
-$ flutter pub get
+$ dart pub get
 ```
 
 ## Usage
@@ -202,9 +202,9 @@ The MIT License (MIT). Please see [License File](LICENSE) for more information.
 [pub-dev-url]: https://pub.dev/packages/ensemble_walletconnect
 [effective-dart-shield]: https://img.shields.io/badge/style-effective_dart-40c4ff.svg?style=for-the-badge
 [effective-dart-url]: https://github.com/tenhobi/effective_dart
-[stars-shield]: https://img.shields.io/github/stars/EnsembleUI/ensemble_walletconnect.svg?style=for-the-badge&logo=github&colorB=deeppink&label=stars
-[stars-url]: https://github.com/EnsembleUI/ensemble_walletconnect
-[issues-shield]: https://img.shields.io/github/issues/EnsembleUI/ensemble_walletconnect.svg?style=for-the-badge
-[issues-url]: https://github.com/EnsembleUI/ensemble_walletconnect/issues
-[license-shield]: https://img.shields.io/github/license/EnsembleUI/ensemble_walletconnect.svg?style=for-the-badge
-[license-url]: https://github.com/EnsembleUI/ensemble_walletconnect/blob/master/LICENSE
+[stars-shield]: https://img.shields.io/github/stars/EnsembleUI/ensemble.svg?style=for-the-badge&logo=github&colorB=deeppink&label=stars
+[stars-url]: https://github.com/EnsembleUI/ensemble
+[issues-shield]: https://img.shields.io/github/issues/EnsembleUI/ensemble.svg?style=for-the-badge
+[issues-url]: https://github.com/EnsembleUI/ensemble/issues
+[license-shield]: https://img.shields.io/github/license/EnsembleUI/ensemble.svg?style=for-the-badge
+[license-url]: https://github.com/EnsembleUI/ensemble/blob/main/LICENSE
