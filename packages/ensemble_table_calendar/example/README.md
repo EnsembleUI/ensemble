@@ -1,5 +1,7 @@
 # Table Calendar example
 
+Package name: `ensemble_table_calendar_example`
+
 Demonstrates how to use the local `ensemble_table_calendar` package.
 Displays **Table Calendar** widget with a `ListView` underneath it.
 
