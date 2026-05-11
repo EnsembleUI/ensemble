@@ -206,15 +206,28 @@ class ListViewState extends EWidgetState<ListView>
   // template item is created on scroll. this will store the template's data list
   List<dynamic>? templatedDataList;
   bool showLoading = false;
+  ScrollController? _ownedScrollController;
 
   @override
   void initState() {
     showLoading = widget._controller.showLoading;
-    // Create scroll controller with initial offset if not already set
-    widget._controller.scrollController ??= ScrollController(
+    _ensureScrollController();
+    super.initState();
+  }
+
+  void _ensureScrollController() {
+    if (widget._controller.scrollController != null) return;
+
+    _ownedScrollController ??= ScrollController(
       initialScrollOffset: widget._controller.initialScrollOffset ?? 0,
     );
-    super.initState();
+    widget._controller.scrollController = _ownedScrollController;
+  }
+
+  @override
+  void dispose() {
+    _ownedScrollController?.dispose();
+    super.dispose();
   }
 
   @override
@@ -249,6 +262,7 @@ class ListViewState extends EWidgetState<ListView>
   void didUpdateWidget(covariant ListView oldWidget) {
     showLoading = oldWidget._controller.showLoading;
     super.didUpdateWidget(oldWidget);
+    _ensureScrollController();
   }
 
   @override
