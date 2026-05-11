@@ -9,12 +9,13 @@ import 'download_stub.dart' if (dart.library.html) 'download_web.dart';
 
 Future<void> saveImageToDCIM(String fileName, Uint8List fileBytes) async {
   try {
+    final safeFileName = sanitizeFileName(fileName);
     if (kIsWeb) {
-      downloadFileOnWeb(fileName, fileBytes);
+      downloadFileOnWeb(safeFileName, fileBytes);
     } else {
       await GetIt.I<FileManager>().saveImage(
         fileBytes,
-        name: fileName,
+        name: safeFileName,
       );
     }
   } catch (e) {
@@ -26,6 +27,7 @@ Future<void> saveImageToDCIM(String fileName, Uint8List fileBytes) async {
 Future<void> saveDocumentToDocumentsFolder(
     String fileName, Uint8List fileBytes) async {
   try {
+    final safeFileName = sanitizeFileName(fileName);
     String filePath;
 
     if (Platform.isAndroid) {
@@ -35,15 +37,15 @@ Future<void> saveDocumentToDocumentsFolder(
         directory.createSync(
             recursive: true); // Create the directory if it doesn't exist
       }
-      filePath = '${directory.path}/$fileName';
+      filePath = '${directory.path}/$safeFileName';
     } else if (Platform.isIOS) {
       // On iOS, use the app-specific Documents directory
       final directory = await getApplicationDocumentsDirectory();
-      filePath = '${directory.path}/$fileName';
+      filePath = '${directory.path}/$safeFileName';
 
       // Optionally, use a share intent to let users save the file to their desired location
     } else if (kIsWeb) {
-      downloadFileOnWeb(fileName, fileBytes);
+      downloadFileOnWeb(safeFileName, fileBytes);
       return;
     } else {
       throw UnsupportedError('Platform not supported');
@@ -57,4 +59,22 @@ Future<void> saveDocumentToDocumentsFolder(
   } catch (e) {
     throw Exception('Failed to save document: $e');
   }
+}
+
+String sanitizeFileName(String fileName) {
+  final trimmed = fileName.trim();
+  final lowerFileName = trimmed.toLowerCase();
+  final hasUnsafeSegment = trimmed.isEmpty ||
+      trimmed == '.' ||
+      trimmed == '..' ||
+      trimmed.contains('/') ||
+      trimmed.contains(r'\') ||
+      lowerFileName.contains('%2f') ||
+      lowerFileName.contains('%5c') ||
+      RegExp(r'[\x00-\x1F\x7F]').hasMatch(trimmed);
+
+  if (hasUnsafeSegment) {
+    throw ArgumentError.value(fileName, 'fileName', 'Invalid file name');
+  }
+  return trimmed;
 }

@@ -178,8 +178,8 @@ class WebViewState extends EWidgetState<EnsembleWebView> with CookieMethods {
           // Android Specific Settings
           useHybridComposition: true,
           hardwareAcceleration: true,
-          mixedContentMode: MixedContentMode.MIXED_CONTENT_ALWAYS_ALLOW,
-          safeBrowsingEnabled: false,
+          mixedContentMode: MixedContentMode.MIXED_CONTENT_NEVER_ALLOW,
+          safeBrowsingEnabled: true,
           domStorageEnabled: true,
           databaseEnabled: true,
           supportMultipleWindows: true,
@@ -196,7 +196,7 @@ class WebViewState extends EWidgetState<EnsembleWebView> with CookieMethods {
           enableViewportScale: true,
           suppressesIncrementalRendering: false,
           allowsPictureInPictureMediaPlayback: true,
-          isFraudulentWebsiteWarningEnabled: false,
+          isFraudulentWebsiteWarningEnabled: true,
         ),
         gestureRecognizers: gestureRecognizers,
         onWebViewCreated: (controller) async {
@@ -313,10 +313,6 @@ class WebViewState extends EWidgetState<EnsembleWebView> with CookieMethods {
         },
         onProgressChanged: (controller, progress) {
           setState(() => widget.controller.loadingPercent = progress);
-        },
-        onReceivedServerTrustAuthRequest: (controller, challenge) async {
-          return ServerTrustAuthResponse(
-              action: ServerTrustAuthResponseAction.PROCEED);
         },
       ),
     );

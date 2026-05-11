@@ -193,9 +193,11 @@ class BluetoothManagerImpl extends BluetoothManager {
           _characteristicValueSubscriptions[characteristicId] =
               c.onValueReceived.listen((value) {
             final data = utf8.decode(value);
+            final handlerInput = encodeHandlerInput(data);
             const key = 'ensemble_bluetooth_handler';
             try {
-              dynamic _ = ScreenController().runGlobalScriptHandler(key, data);
+              dynamic _ =
+                  ScreenController().runGlobalScriptHandler(key, handlerInput);
             } catch (e) {
               throw Exception('Error processing ensemble_bluetooth_handler: $e');
             }
@@ -208,6 +210,14 @@ class BluetoothManagerImpl extends BluetoothManager {
       throw Exception('Characteristic not found: $characteristicId');
     } catch (e) {
       throw Exception('Failed to subscribe to characteristic: $e');
+    }
+  }
+
+  static String encodeHandlerInput(String data) {
+    try {
+      return jsonEncode(jsonDecode(data));
+    } catch (_) {
+      return jsonEncode(data);
     }
   }
 

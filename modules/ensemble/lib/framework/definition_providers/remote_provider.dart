@@ -36,6 +36,9 @@ class RemoteDefinitionProvider extends FileDefinitionProvider {
   Future<ScreenDefinition> getDefinition(
       {String? screenId, String? screenName}) async {
     String screen = screenId ?? screenName ?? appHome;
+    if (!isSafeScreenIdentifier(screen)) {
+      return ScreenDefinition(YamlMap());
+    }
 
     Completer<ScreenDefinition> completer = Completer();
     dynamic res = cache[screen];
@@ -43,7 +46,8 @@ class RemoteDefinitionProvider extends FileDefinitionProvider {
       completer.complete(res);
       return completer.future;
     }
-    http.Response response = await http.get(Uri.parse('$path$screen.yaml'));
+    http.Response response =
+        await http.get(Uri.parse('$path${Uri.encodeComponent(screen)}.yaml'));
     if (response.statusCode == 200) {
       dynamic res = ScreenDefinition(loadYaml(response.body));
       if (cacheEnabled) {
@@ -54,6 +58,17 @@ class RemoteDefinitionProvider extends FileDefinitionProvider {
       completer.complete(ScreenDefinition(YamlMap()));
     }
     return completer.future;
+  }
+
+  static bool isSafeScreenIdentifier(String screen) {
+    if (screen.isEmpty) return false;
+    final lowerScreen = screen.toLowerCase();
+    return !screen.contains('/') &&
+        !screen.contains(r'\') &&
+        !screen.contains('..') &&
+        !screen.contains('%') &&
+        !lowerScreen.contains('%2f') &&
+        !lowerScreen.contains('%5c');
   }
 
   @override
