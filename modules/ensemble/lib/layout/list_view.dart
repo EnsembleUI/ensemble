@@ -206,15 +206,25 @@ class ListViewState extends EWidgetState<ListView>
   // template item is created on scroll. this will store the template's data list
   List<dynamic>? templatedDataList;
   bool showLoading = false;
+  ScrollController? _ownedScrollController;
 
   @override
   void initState() {
     showLoading = widget._controller.showLoading;
     // Create scroll controller with initial offset if not already set
-    widget._controller.scrollController ??= ScrollController(
-      initialScrollOffset: widget._controller.initialScrollOffset ?? 0,
-    );
+    if (widget._controller.scrollController == null) {
+      _ownedScrollController = ScrollController(
+        initialScrollOffset: widget._controller.initialScrollOffset ?? 0,
+      );
+      widget._controller.scrollController = _ownedScrollController;
+    }
     super.initState();
+  }
+
+  @override
+  void dispose() {
+    _ownedScrollController?.dispose();
+    super.dispose();
   }
 
   @override
@@ -239,7 +249,8 @@ class ListViewState extends EWidgetState<ListView>
     if (widget._controller.initialScrollIndex != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
-          widget._controller.scrollToIndex(widget._controller.initialScrollIndex!);
+          widget._controller
+              .scrollToIndex(widget._controller.initialScrollIndex!);
         }
       });
     }
