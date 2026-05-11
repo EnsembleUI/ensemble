@@ -1,3 +1,4 @@
+import 'package:ensemble/framework/widget/view_util.dart';
 import 'package:ensemble/layout/list_view.dart' as ensemble;
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -5,6 +6,18 @@ import 'package:flutter_test/flutter_test.dart';
 import 'test_utils.dart';
 
 void main() {
+  ensemble.ListView listViewWithChild() {
+    final widget = ensemble.ListView();
+    widget.initChildren(
+      children: [
+        ViewUtil.buildModel({
+          'Text': {'text': 'Item'}
+        }, null),
+      ],
+    );
+    return widget;
+  }
+
   testWidgets('disposes internally-created scroll controller', (tester) async {
     final widget = ensemble.ListView();
 
@@ -33,5 +46,30 @@ void main() {
 
     expect(() => scrollController.addListener(() {}), returnsNormally);
     scrollController.dispose();
+  });
+
+  testWidgets('transfers internally-created scroll controller on widget update',
+      (tester) async {
+    final firstWidget = listViewWithChild();
+
+    await tester.pumpWidget(TestUtils.wrapTestWidgetWithScope(firstWidget));
+    final controller = firstWidget.controller.scrollController;
+    expect(controller, isNotNull);
+
+    final secondWidget = listViewWithChild();
+    await tester.pumpWidget(TestUtils.wrapTestWidgetWithScope(secondWidget));
+
+    expect(secondWidget.controller.scrollController, same(controller));
+
+    await tester.pumpWidget(TestUtils.wrapTestWidgetWithScope(
+      const SizedBox.shrink(),
+    ));
+    await tester.pump();
+    expect(tester.takeException(), isNull);
+
+    expect(
+      () => controller!.addListener(() {}),
+      throwsA(isA<FlutterError>()),
+    );
   });
 }

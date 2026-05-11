@@ -211,14 +211,17 @@ class ListViewState extends EWidgetState<ListView>
   @override
   void initState() {
     showLoading = widget._controller.showLoading;
-    // Create scroll controller with initial offset if not already set
-    if (widget._controller.scrollController == null) {
-      _ownedScrollController = ScrollController(
-        initialScrollOffset: widget._controller.initialScrollOffset ?? 0,
-      );
-      widget._controller.scrollController = _ownedScrollController;
-    }
+    _attachOwnedScrollControllerIfNeeded();
     super.initState();
+  }
+
+  void _attachOwnedScrollControllerIfNeeded() {
+    if (widget._controller.scrollController != null) return;
+
+    _ownedScrollController ??= ScrollController(
+      initialScrollOffset: widget._controller.initialScrollOffset ?? 0,
+    );
+    widget._controller.scrollController = _ownedScrollController;
   }
 
   @override
@@ -259,6 +262,7 @@ class ListViewState extends EWidgetState<ListView>
   @override
   void didUpdateWidget(covariant ListView oldWidget) {
     showLoading = oldWidget._controller.showLoading;
+    _attachOwnedScrollControllerIfNeeded();
     super.didUpdateWidget(oldWidget);
   }
 
