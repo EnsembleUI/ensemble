@@ -85,6 +85,45 @@ await provider.log({
 - [Firebase Analytics for Flutter](https://pub.dev/packages/firebase_analytics)
 - [Firebase Crashlytics for Flutter](https://pub.dev/packages/firebase_crashlytics)
 
----
+## Installation / Setup
+
+From the repository root:
+
+```bash
+melos bootstrap
+```
+
+## Platform Support
+
+| Platform | Supported | Notes |
+| -------- | --------: | ----- |
+| Android  | Yes | `android/` runner folder is present and source selects Android Firebase options. |
+| iOS      | Yes | `ios/` runner folder is present and source selects iOS Firebase options. |
+| Web      | Yes | `web/` runner folder is present and source selects web Firebase options. |
+| macOS    | Unknown | Not verified from source. |
+| Windows  | Unknown | Not verified from source. |
+| Linux    | Unknown | Not verified from source. |
+
+## Permissions
+
+No runtime permissions were found in this package.
+
+## Development
+
+```bash
+melos bootstrap
+melos exec --scope="ensemble_firebase_analytics" -- flutter analyze
+melos exec --scope="ensemble_firebase_analytics" -- flutter test
+```
+
+## Testing
+
+No package-specific tests were found.
+
+## Notes for Contributors
+
+- Keep examples in sync with source code.
+- Update this README when public APIs, permissions, configuration, or platform support changes.
+- Do not document unverified behavior.
 
 For more details, see the source code and comments in `lib/firebase_analytics.dart`.

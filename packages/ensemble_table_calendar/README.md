@@ -40,7 +40,7 @@ If you're migrating from the original `table_calendar` package, simply update yo
 
 ```yaml
 dependencies:
-  ensemble_table_calendar: ^3.1.2
+  ensemble_table_calendar: ^3.1.4
 ```
 
 Then update your imports:
@@ -61,7 +61,7 @@ Add the following line to `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  ensemble_table_calendar: ^3.1.2
+  ensemble_table_calendar: ^3.1.4
 ```
 
 ### Basic setup

@@ -26,7 +26,7 @@ Add this to your package's `pubspec.yaml` file:
 
 ```yaml
 dependencies:
-  ensemble_device_preview: ^1.1.1
+  ensemble_device_preview: ^1.1.3
 ```
 
 ### Basic Usage

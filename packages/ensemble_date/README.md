@@ -14,7 +14,7 @@ Add this to your package's `pubspec.yaml` file:
 
 ```yaml
 dependencies:
-  ensemble_date: ^1.6.0
+  ensemble_date: ^1.6.2
 ```
 
 Then run:

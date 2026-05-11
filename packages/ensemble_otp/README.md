@@ -26,7 +26,7 @@ Add this to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  ensemble_otp: ^1.0.2
+  ensemble_otp: ^1.0.3
 ```
 
 Then run:
@@ -37,7 +37,7 @@ flutter pub get
 ### Basic Usage
 
 ```dart
-import 'package:ensemble_otp/ensemble_otp.dart';
+import 'package:ensemble_otp/otp_pin_field.dart';
 
 class OTPVerificationScreen extends StatefulWidget {
   @override
@@ -57,7 +57,7 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
           children: [
             OtpPinField(
               key: _otpPinFieldController,
-              fieldCount: 6,
+              maxLength: 6,
               onSubmit: (text) {
                 print('Entered OTP: $text');
                 // Handle OTP verification
@@ -69,7 +69,7 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
             SizedBox(height: 20),
             ElevatedButton(
               onPressed: () {
-                _otpPinFieldController.currentState?.clear();
+                _otpPinFieldController.currentState?.clearOtp();
               },
               child: Text('Clear OTP'),
             ),
@@ -85,7 +85,7 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
 
 | Property | Type | Default | Description |
 |----------|------|---------|-------------|
-| `fieldCount` | `int` | `4` | Total length of PIN number & number of PIN boxes |
+| `maxLength` | `int` | `4` | Total length of PIN number & number of PIN boxes |
 | `highlightBorder` | `bool` | `true` | Highlight the focused PIN box |
 | `activeFieldBorderColor` | `Color` | `Colors.black` | Color of the focused PIN box |
 | `activeFieldBackgroundColor` | `Color` | `Colors.transparent` | Background color of the focused PIN box |
@@ -125,7 +125,7 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
 
 ```dart
 OtpPinField(
-  fieldCount: 6,
+  maxLength: 6,
   otpPinFieldStyle: OtpPinFieldStyle(
     defaultFieldBorderColor: Colors.grey,
     activeFieldBorderColor: Colors.blue,
@@ -146,7 +146,7 @@ OtpPinField(
 
 ```dart
 OtpPinField(
-  fieldCount: 4,
+  maxLength: 4,
   showCustomKeyboard: true,
   customKeyboard: CustomNumericKeyboard(
     onKeyPressed: (value) {
@@ -167,7 +167,7 @@ OtpPinField(
 
 ```dart
 OtpPinField(
-  fieldCount: 6,
+  maxLength: 6,
   autoFillEnable: true,
   smsRegex: '\\d{6}', // 6-digit OTP
   phoneNumbersHint: true, // Show phone number hint

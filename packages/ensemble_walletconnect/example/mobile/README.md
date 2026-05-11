@@ -1,16 +1,77 @@
-# example
+# mobile_dapp
 
-A new Flutter project.
+Flutter mobile dApp example for `ensemble_walletconnect`.
 
-## Getting Started
+## Overview
 
-This project is a starting point for a Flutter application.
+This example demonstrates a Flutter dApp that uses the local `ensemble_walletconnect` package along with QR/deep-link helper dependencies.
 
-A few resources to get you started if this is your first Flutter project:
+## Features
 
-- [Lab: Write your first Flutter app](https://flutter.dev/docs/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://flutter.dev/docs/cookbook)
+- Uses `ensemble_walletconnect` through a local path dependency.
+- Includes `qr_flutter`, `url_launcher`, `web3dart`, and `algorand_dart` dependencies.
+- Provides a Flutter example app with Android, iOS, and macOS runner folders.
 
-For help getting started with Flutter, view our
-[online documentation](https://flutter.dev/docs), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+## Installation / Setup
+
+From the repository root:
+
+```bash
+melos bootstrap
+```
+
+## Usage
+
+Run the example from this directory:
+
+```bash
+flutter run
+```
+
+## Configuration
+
+No additional configuration was found in this example.
+
+## Platform Support
+
+| Platform | Supported | Notes |
+| -------- | --------: | ----- |
+| Android  | Yes | `android/` example runner is present. |
+| iOS      | Yes | `ios/` example runner is present. |
+| Web      | Unknown | No `web/` runner was found. |
+| macOS    | Yes | `macos/` example runner is present. |
+| Windows  | Unknown | Not verified from source. |
+| Linux    | Unknown | Not verified from source. |
+
+## Permissions
+
+No runtime permissions were found in this example.
+
+## API Reference
+
+| API | Type | Description |
+| --- | ---- | ----------- |
+| `ensemble_walletconnect` | Package | WalletConnect package used by this example. |
+
+## Development
+
+```bash
+melos bootstrap
+melos exec --scope="mobile_dapp" -- flutter analyze
+melos exec --scope="mobile_dapp" -- flutter test
+```
+
+## Testing
+
+The example includes `test/widget_test.dart`.
+
+## Related Packages / Modules
+
+- `ensemble_walletconnect` is used through a local path dependency.
+- `qr_flutter`, `url_launcher`, `web3dart`, and `algorand_dart` are listed dependencies.
+
+## Notes for Contributors
+
+- Keep examples in sync with source code.
+- Update this README when public APIs, permissions, configuration, or platform support changes.
+- Do not document unverified behavior.

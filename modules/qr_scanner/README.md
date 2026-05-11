@@ -96,7 +96,7 @@ QRCodeScanner:
 ```
 
 **onInitialized:** Triggered when ready
-**onPermissionSet:** Triggered on permission change
+**onPermissionSet:** Setter exists on the controller, but no dispatch site was found in the current widget code.
 
 ## Module Comparison
 

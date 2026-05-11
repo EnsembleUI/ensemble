@@ -9,7 +9,7 @@ Add the following dependency to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  ensemble_dropdown: ^0.1.0
+  ensemble_dropdown: ^0.1.2
 ```
 Then run:
 ```bash

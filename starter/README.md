@@ -20,10 +20,25 @@ This starter project enables running and deploying Ensemble-powered Apps across 
 By default, Starter does not include all the modules or capabilities (e.g. camera, location). Excluding these capabilities by default reduces the App's size and not trigger any red flags during your App Store Review (e.g. camera code is present when your app doesn't use camera). Please follow the below steps carefully if your app requires these capabilities:
 - In `pubspec.yaml`, uncomment the libraries that correspond to the capabilities you need, e.g. `ensemble_camera`
 - Run `flutter pub upgrade`
-- In `lib/generated/EnsembleModules.dart`, enable your services and uncomment the lines that correspond with your capabilities. For example, if you are importing `ensemble_camera`, uncomment the import and lines relating to `CameraServiceImpl`
+- In `lib/generated/ensemble_modules.dart`, enable your services and uncomment the lines that correspond with your capabilities. For example, if you are importing `ensemble_camera`, uncomment the import and lines relating to camera services
   - TODO: these files will eventually be automatically generated during a build step
 - Run `flutter run` to verify the additional capabilities
 - Follow the [docs](https://docs.ensembleui.com/#/deploy/1-prepare-app) on deploying your app 
+
+### Platform Support
+
+| Platform | Supported | Notes |
+| -------- | --------: | ----- |
+| Android  | Yes | `android/` runner is present. |
+| iOS      | Yes | `ios/` runner is present. |
+| Web      | Yes | `web/` runner is present. |
+| macOS    | Unknown | Not fully supported according to the overview. |
+| Windows  | Unknown | Not fully supported according to the overview. |
+| Linux    | Unknown | Not fully supported according to the overview. |
+
+### Permissions
+
+The Android manifest currently declares `android.permission.ACCESS_FINE_LOCATION` and includes Google Maps metadata. Optional modules may require additional permissions when enabled.
 
 ### Getting Started with Ensemble Studio
 Ensemble Studio enables you to make changes to your pages and immediately broadcast the changes to your App (both native and web). Here's how to get started:

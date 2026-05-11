@@ -33,14 +33,14 @@ learn more.
 3. Import it Now in your Dart code, you can use:
 
 ```dart
-import 'package:otp_pin_field/otp_pin.dart';
+import 'package:otp_pin_field/otp_pin_field.dart';
 ```
 
 ## Properties
 
 | name                        | type                  | default                                          | description                                                                                                                                                                                                                                     |
 |-----------------------------|-----------------------|--------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| fieldCount                  | int                   | 4                                                | The total length of pin number & the number of pin boxes.                                                                                                                                                                                       |
+| maxLength                   | int                   | 4                                                | The total length of pin number & the number of pin boxes.                                                                                                                                                                                       |
 | highlightBorder             | bool                  | true                                             | highlight the focused pin box.                                                                                                                                                                                                                  |
 | activeFieldBorderColor      | Color                 | Colors.black                                     | Set color of the focused pin box.                                                                                                                                                                                                               |
 | activeFieldBackgroundColor  | Color                 | Colors.transparent                               | Set background color of the focused pin box.                                                                                                                                                                                                    |
@@ -214,4 +214,4 @@ refer to `example/lib/main.dart`
 
 [Pub package](https://pub.dartlang.org/packages/otp_pin_field)
 
-[Flutter documentation](https://flutter.io/).
+[Flutter documentation](https://docs.flutter.dev/).

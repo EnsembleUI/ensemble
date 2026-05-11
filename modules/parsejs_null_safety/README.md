@@ -1,8 +1,8 @@
 # JSParser
 
-**JSParser** is an updgraded version, for Dart 2.4 and above, of **ParseJS**. **ParseJS** is a JavaScript parser for Dart. It is well-tested and is reasonably efficient.
+**JSParser** is an upgraded Dart 3-compatible version of **ParseJS**. **ParseJS** is a JavaScript parser for Dart. It is well-tested and is reasonably efficient.
 Original project : https://github.com/asgerf/parsejs.dart
-This project is intended to migrate it to dart 2.4 or above
+This package is kept in the Melos workspace for parser compatibility work. Ensemble consumers generally depend on the published `parsejs_null_safety` package name from `packages/parsejs_null_safety`.
 
 ## Example Usage
 ```dart
@@ -28,7 +28,43 @@ The `jsparser` function takes the following optional arguments:
 - `parseAsExpression`: If true, the input will be parsed as an expression statement.
 
 
-## To run test cases 
-1. Open terminal and cd to parsejs.dart/test/util directory
-2. Do `npm install` 
-3. CD to parsejs.dart/test/ director and run `./runtest`
+## Installation / Setup
+
+From the repository root:
+
+```bash
+melos bootstrap
+```
+
+## Platform Support
+
+| Platform | Supported | Notes |
+| -------- | --------: | ----- |
+| Android  | Unknown | Pure Dart parser; no platform-specific files were found. |
+| iOS      | Unknown | Pure Dart parser; no platform-specific files were found. |
+| Web      | Unknown | Pure Dart parser; no platform-specific files were found. |
+| macOS    | Unknown | Pure Dart parser; no platform-specific files were found. |
+| Windows  | Unknown | Pure Dart parser; no platform-specific files were found. |
+| Linux    | Unknown | Pure Dart parser; no platform-specific files were found. |
+
+## Permissions
+
+No runtime permissions were found in this package.
+
+## Development
+
+```bash
+melos bootstrap
+melos exec --scope="jsparser" -- dart analyze
+melos exec --scope="jsparser" -- dart test
+```
+
+## Testing
+
+The package includes parser and lexer tests under `test/`.
+
+## Notes for Contributors
+
+- Keep examples in sync with source code.
+- Update this README when public APIs, permissions, configuration, or platform support changes.
+- Do not document unverified behavior.

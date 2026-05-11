@@ -19,7 +19,7 @@ Check the provided [example](./example/lib/main.dart) for more info.
 
 # Usage
 
-To use this plugin, add `flutter_share_receiver` as a [dependency in your pubspec.yaml file](https://flutter.io/platform-plugins/). For example:
+To use this plugin, add `flutter_share_receiver` as a dependency in your `pubspec.yaml` file. For example:
 
 ```yaml
 dependencies:
@@ -244,10 +244,10 @@ end
 
 
 ```swift
-// If you get no such module 'receive_sharing_intent' error. 
+// If you get no such module 'flutter_share_receiver' error.
 // Go to Build Phases of your Runner target and
 // move `Embed Foundation Extension` to the top of `Thin Binary`. 
-import receive_sharing_intent
+import flutter_share_receiver
 
 class ShareViewController: RSIShareViewController {
       
@@ -262,7 +262,7 @@ class ShareViewController: RSIShareViewController {
 
 #### Compiling issues and their fixes
 
-* Error: No such module 'receive_sharing_intent'
+* Error: No such module 'flutter_share_receiver'
   * Fix: Go to Build Phases of your Runner target and move `Embed Foundation Extension` to the top of `Thin Binary`.
   
 * Error: App does not build after adding Share Extension?
@@ -283,7 +283,7 @@ class ShareViewController: RSIShareViewController {
 import 'package:flutter/material.dart';
 import 'dart:async';
 
-import 'package:receive_sharing_intent/receive_sharing_intent.dart';
+import 'package:flutter_share_receiver/flutter_share_receiver.dart';
 
 void main() => runApp(MyApp());
 

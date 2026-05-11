@@ -40,10 +40,10 @@ import 'package:ensemble_ts_interpreter/ensemble_ts_interpreter.dart';
 
 void main() {
   // Create a context with data
-  Map<String, dynamic> context = {
+  final context = SimpleContext(<String, dynamic>{
     'items': ['one', 'two', 'three'],
     'count': 0
-  };
+  });
 
   // JavaScript code to execute
   String code = """
@@ -58,7 +58,7 @@ void main() {
   // Execute the JavaScript code
   JSInterpreter.fromCode(code, context).evaluate();
   
-  print('Count: ${context['count']}'); // Output: Count: 2
+  print('Count: ${context.getContextById('count')}'); // Output: Count: 2
 }
 ```
 
@@ -92,13 +92,13 @@ The context object is the key to the interpreter. You can pass:
 ### Filter and Transform Arrays
 
 ```dart
-Map<String, dynamic> context = {
+final context = SimpleContext(<String, dynamic>{
   'users': [
     {'name': 'Alice', 'age': 25, 'role': 'developer'},
     {'name': 'Bob', 'age': 30, 'role': 'designer'},
     {'name': 'Charlie', 'age': 28, 'role': 'developer'}
   ]
-};
+});
 
 String code = """
   var developers = users.filter(function(user) {
@@ -118,17 +118,17 @@ String code = """
 
 JSInterpreter.fromCode(code, context).evaluate();
 
-print('Developers: ${context['names']}'); // [ALICE, CHARLIE]
-print('Average age: ${context['averageAge']}'); // 26.5
+print('Developers: ${context.getContextById('names')}'); // [ALICE, CHARLIE]
+print('Average age: ${context.getContextById('averageAge')}'); // 26.5
 ```
 
 ### String Manipulation
 
 ```dart
-Map<String, dynamic> context = {
+final context = SimpleContext(<String, dynamic>{
   'text': '  Hello World  ',
   'words': ['hello', 'world', 'dart', 'flutter']
-};
+});
 
 String code = """
   var trimmed = text.trim();
@@ -142,18 +142,18 @@ String code = """
 
 JSInterpreter.fromCode(code, context).evaluate();
 
-print('Trimmed: "${context['trimmed']}"'); // "Hello World"
-print('Joined: ${context['joined']}'); // "hello-world-dart-flutter"
-print('Includes Dart: ${context['includes']}'); // true
+print('Trimmed: "${context.getContextById('trimmed')}"'); // "Hello World"
+print('Joined: ${context.getContextById('joined')}'); // "hello-world-dart-flutter"
+print('Includes Dart: ${context.getContextById('includes')}'); // true
 ```
 
 ### Function Declaration and Execution
 
 ```dart
-Map<String, dynamic> context = {
+final context = SimpleContext(<String, dynamic>{
   'numbers': [1, 2, 3, 4, 5],
   'multiplier': 2
-};
+});
 
 String code = """
   function doubleArray(arr, factor) {
@@ -175,17 +175,17 @@ String code = """
 
 JSInterpreter.fromCode(code, context).evaluate();
 
-print('Doubled: ${context['doubled']}'); // [2, 4, 6, 8, 10]
-print('Sum: ${context['sum']}'); // 30
-print('Average: ${context['average']}'); // 6.0
+print('Doubled: ${context.getContextById('doubled')}'); // [2, 4, 6, 8, 10]
+print('Sum: ${context.getContextById('sum')}'); // 30
+print('Average: ${context.getContextById('average')}'); // 6.0
 ```
 
 ### Date Manipulation
 
 ```dart
-Map<String, dynamic> context = {
+final context = SimpleContext(<String, dynamic>{
   'currentDate': DateTime.now()
-};
+});
 
 String code = """
   var date = new Date();
@@ -201,7 +201,7 @@ String code = """
 
 JSInterpreter.fromCode(code, context).evaluate();
 
-print('Formatted: ${context['formatted']}'); // Current date in YYYY-M-D format
+print('Formatted: ${context.getContextById('formatted')}'); // Current date in YYYY-M-D format
 ```
 
 ## 🔌 Advanced Usage
@@ -222,11 +222,11 @@ class Calculator extends Invokable {
 void main() {
   var calculator = Calculator();
   
-  Map<String, dynamic> context = {
+  final context = SimpleContext(<String, dynamic>{
     'calc': calculator,
     'x': 10,
     'y': 5
-  };
+  });
 
   String code = """
     var sum = calc.add(x, y);
@@ -236,9 +236,9 @@ void main() {
 
   JSInterpreter.fromCode(code, context).evaluate();
   
-  print('Sum: ${context['sum']}'); // 15
-  print('Product: ${context['product']}'); // 50
-  print('Quotient: ${context['quotient']}'); // 2.0
+  print('Sum: ${context.getContextById('sum')}'); // 15
+  print('Product: ${context.getContextById('product')}'); // 50
+  print('Quotient: ${context.getContextById('quotient')}'); // 2.0
 }
 ```
 

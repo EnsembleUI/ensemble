@@ -2,7 +2,7 @@
 
 [![Pub](https://img.shields.io/pub/v/ensemble_app_badger.svg)](https://pub.dartlang.org/packages/ensemble_app_badger)
 
-This plugin for [Flutter](https://flutter.io) adds the ability to change the badge of the app in the launcher.
+This plugin for [Flutter](https://flutter.dev) adds the ability to change the badge of the app in the launcher.
 It supports iOS, macOS, and some Android devices (the official API does not support the feature, even on Oreo).
 
 <p align="center">
