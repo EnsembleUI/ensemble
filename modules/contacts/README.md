@@ -1,39 +1,72 @@
-<!--
-This README describes the package. If you publish this package to pub.dev,
-this README's contents appear on the landing page for your package.
+# ensemble_contacts
 
-For information about how to write a good package README, see the guide for
-[writing package pages](https://dart.dev/guides/libraries/writing-package-pages).
+`ensemble_contacts` provides an Ensemble contact manager implementation backed by `fast_contacts`.
 
-For general information about developing packages, see the Dart guide for
-[creating packages](https://dart.dev/guides/libraries/create-library-packages)
-and the Flutter guide for
-[developing packages and plugins](https://flutter.dev/developing-packages).
--->
+## Overview
 
-TODO: Put a short description of the package here that helps potential users
-know whether this package might be useful for them.
+This is an optional native-capability module. `ContactManagerImpl` implements the core `ContactManager` contract and reads contacts after checking contact permission through `fast_contacts`.
 
 ## Features
 
-TODO: List what your package can do. Maybe include images, gifs, or videos.
+- Requests contact permission through `FastContacts.requestPermission()`.
+- Returns contact names, phone numbers, and email addresses as Ensemble contact models.
+- Implements the contact manager stub from the core runtime.
 
-## Getting started
+## Installation / Setup
 
-TODO: List prerequisites and provide or point to information on how to
-start using the package.
+Use this package from inside the Melos workspace:
+
+```bash
+melos bootstrap
+```
 
 ## Usage
 
-TODO: Include short and useful examples for package users. Add longer examples
-to `/example` folder.
+The verified entry point is `ContactManagerImpl` in `lib/contact_manager.dart`. No standalone Dart or Ensemble YAML example was found in this package. Usage examples are not currently available in this package. See the source files under `lib/` for implementation details.
 
-```dart
-const like = 'sample';
+## Configuration
+
+No additional configuration was found in this package. Host apps must add the platform privacy strings or manifest permissions required by their contact-access target platforms.
+
+## Platform Support
+
+| Platform | Supported | Notes |
+| -------- | --------: | ----- |
+| Android | Unknown | No Android project is included in this package; host app setup is required. |
+| iOS | Unknown | No iOS project is included in this package; host app setup is required. |
+| Web | Unknown | No web implementation was found in this package. |
+| macOS | Unknown | No macOS project is included in this package. |
+| Windows | Unknown | No Windows project is included in this package. |
+| Linux | Unknown | No Linux project is included in this package. |
+
+## Permissions
+
+The Dart source requests contact permission through `FastContacts.requestPermission()`. Platform permission names and usage descriptions are not declared in this package and must be supplied by the host app.
+
+## API Reference
+
+| API | Type | Description |
+| --- | ---- | ----------- |
+| `ContactManagerImpl` | Service | Implements Ensemble's contact manager by reading contacts through `fast_contacts`. |
+
+## Development
+
+```bash
+melos bootstrap
+melos exec --scope="ensemble_contacts" -- flutter analyze
+melos exec --scope="ensemble_contacts" -- flutter test
 ```
 
-## Additional information
+## Testing
 
-TODO: Tell users more about the package: where to find more information, how to
-contribute to the package, how to file issues, what response they can expect
-from the package authors, and more.
+A `test/` directory exists, but the current test file only contains an empty placeholder test.
+
+## Related Packages / Modules
+
+- `ensemble`: defines the `ContactManager` contract implemented by this package.
+
+## Notes for Contributors
+
+- Keep examples in sync with source code.
+- Update this README when public APIs, permissions, configuration, or platform support changes.
+- Do not document unverified behavior.
