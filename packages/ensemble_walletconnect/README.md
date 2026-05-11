@@ -189,7 +189,7 @@ Please see [CONTRIBUTING](CONTRIBUTING.md) for details.
 - [Tom Friml](https://github.com/3ph) - Original contributor
 - [juampiq6](https://github.com/juampiq6) - Original contributor
 - [Ensemble Team](https://github.com/EnsembleUI) - Maintainers
-- [All Contributors](../../contributors)
+- [All Contributors](https://github.com/EnsembleUI/ensemble/graphs/contributors)
 
 ## License
 

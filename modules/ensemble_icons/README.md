@@ -158,7 +158,7 @@ class CustomIcon extends StatelessWidget {
 ## 🔄 Updating Icon Libraries
 
 ### Remix Icons
-Follow the documentation in the [update folder](/update/) to update to the latest version.
+Follow the documentation in the [update folder](update/) to update to the latest version.
 
 ### Font Awesome
 Update the `font_awesome_flutter` dependency in `pubspec.yaml` to get the latest icons.
