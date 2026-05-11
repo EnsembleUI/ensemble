@@ -146,20 +146,14 @@ class CdnDefinitionProvider extends DefinitionProvider {
     final artifacts = _asMap(root['artifacts']);
     if (artifacts == null) {
       // No artifacts -> ensure runtime secrets can't linger.
-      if (_runtimeSecrets.isNotEmpty) {
-        _assetEnv?.removeWhere((k, _) => _runtimeSecrets.containsKey(k));
-        _runtimeSecrets.clear();
-      }
+      _clearRuntimeSecrets();
       return;
     }
 
     // Per requirement: artifacts.secrets is a flat key/value mapping.
     final rawSecrets = _asMap(artifacts['secrets']);
     // Always replace runtime secrets on refresh so deleted keys don't linger.
-    if (_runtimeSecrets.isNotEmpty) {
-      _assetEnv?.removeWhere((k, _) => _runtimeSecrets.containsKey(k));
-      _runtimeSecrets.clear();
-    }
+    _clearRuntimeSecrets();
     if (rawSecrets == null || rawSecrets.isEmpty) return;
 
     rawSecrets.forEach((k, v) {
@@ -169,6 +163,12 @@ class CdnDefinitionProvider extends DefinitionProvider {
     // Make secrets visible to `_getSecret()` and any legacy dotenv lookups.
     _assetEnv ??= <String, String>{};
     _assetEnv!.addAll(_runtimeSecrets);
+  }
+
+  void _clearRuntimeSecrets() {
+    if (_runtimeSecrets.isEmpty) return;
+    _assetEnv?.removeWhere((k, _) => _runtimeSecrets.containsKey(k));
+    _runtimeSecrets.clear();
   }
 
   @override
@@ -251,6 +251,17 @@ class CdnDefinitionProvider extends DefinitionProvider {
   }
 
   Future<void> _clearCache() async {
+    _clearRuntimeSecrets();
+    _artifactCache.clear();
+    _screenNameMappings.clear();
+    _homeMapping = null;
+    _themeMapping = null;
+    _defaultLocale = null;
+    _appConfig = null;
+    _etag = null;
+    _lastUpdatedAt = null;
+    _hasPendingUpdate = false;
+
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove(_artifactCacheKey);
@@ -886,6 +897,12 @@ class CdnDefinitionProvider extends DefinitionProvider {
     _rebuildFromRoot(root);
     await _refreshTranslationsAtRuntime();
   }
+
+  @visibleForTesting
+  Future<void> loadCachedStateForTesting() => _loadCachedState();
+
+  @visibleForTesting
+  int? get lastUpdatedAtForTesting => _lastUpdatedAt;
 
   Future<void> _refreshTranslationsAtRuntime() async {
     try {

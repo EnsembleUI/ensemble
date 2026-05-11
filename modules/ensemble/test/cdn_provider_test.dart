@@ -6,8 +6,29 @@ import 'package:flutter/material.dart';
 import 'package:flutter_i18n/flutter_i18n.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
+  group('CDN cache invalidation', () {
+    test('resets freshness metadata when persisted manifest is invalid',
+        () async {
+      const appId = 'corrupted-cache-app';
+      const cacheKey = 'cdn_provider_state_$appId';
+      SharedPreferences.setMockInitialValues({
+        cacheKey: <String>['cached-etag', '12345', '{not valid json'],
+      });
+
+      final provider = CdnDefinitionProvider(appId);
+      await provider.loadCachedStateForTesting();
+
+      expect(provider.lastUpdatedAtForTesting, isNull);
+      expect(provider.getSupportedLanguages(), isEmpty);
+
+      final prefs = await SharedPreferences.getInstance();
+      expect(prefs.getStringList(cacheKey), isNull);
+    });
+  });
+
   group('CDN translation runtime refresh', () {
     testWidgets('picks up newly added translation keys without app restart',
         (tester) async {
