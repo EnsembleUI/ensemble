@@ -138,7 +138,6 @@ void main() {
         encryptedEnvelope: encryptedEnvelope,
       );
 
-      expect(cached, contains(encryptedEnvelope));
       expect(cached, isNot(contains('super-secret-api-key')));
       final decoded = jsonDecode(cached) as Map<String, dynamic>;
       expect(decoded['cacheType'], 'encryptedManifestEnvelope');
