@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:ui';
 
 import 'package:ensemble/framework/definition_providers/cdn_provider.dart';
@@ -111,6 +112,45 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Hello updated'), findsOneWidget);
+    });
+  });
+
+  group('CDN manifest cache secrets', () {
+    test('strips runtime secrets from plaintext cache entries', () {
+      final provider = CdnDefinitionProvider('test-app');
+
+      final cached = provider.cacheManifestForTesting(_manifestWithSecrets());
+
+      expect(cached, isNot(contains('super-secret-api-key')));
+      final decoded = jsonDecode(cached) as Map<String, dynamic>;
+      final artifacts = decoded['artifacts'] as Map<String, dynamic>;
+      expect(artifacts.containsKey('secrets'), isFalse);
+      expect(artifacts.containsKey('screens'), isTrue);
+    });
+
+    test('caches encrypted envelopes instead of decrypted secret payloads', () {
+      final provider = CdnDefinitionProvider('test-app');
+      const encryptedEnvelope =
+          '{"iv":"opaque-iv","tag":"opaque-tag","ciphertext":"opaque"}';
+
+      final cached = provider.cacheManifestForTesting(
+        _manifestWithSecrets(),
+        encryptedEnvelope: encryptedEnvelope,
+      );
+
+      expect(cached, contains(encryptedEnvelope));
+      expect(cached, isNot(contains('super-secret-api-key')));
+      final decoded = jsonDecode(cached) as Map<String, dynamic>;
+      expect(decoded['cacheType'], 'encryptedManifestEnvelope');
+      expect(decoded['encryptedManifestEnvelope'], encryptedEnvelope);
+    });
+
+    test('runtime manifest still exposes secrets in memory', () async {
+      final provider = CdnDefinitionProvider('test-app');
+
+      await provider.applyRuntimeManifestForTesting(_manifestWithSecrets());
+
+      expect(provider.getSecrets()['API_KEY'], 'super-secret-api-key');
     });
   });
 }
@@ -291,5 +331,26 @@ greeting:
 ''',
           }
         ],
+      }
+    };
+
+Map<String, dynamic> _manifestWithSecrets() => {
+      'artifacts': {
+        'config': <String, dynamic>{},
+        'screens': <dynamic>[
+          {
+            'id': 'home',
+            'name': 'Home',
+            'isRoot': true,
+            'content': 'View:\n  styles:\n    scrollableView: true\n',
+          }
+        ],
+        'theme': '',
+        'widgets': <String, dynamic>{},
+        'scripts': <String, dynamic>{},
+        'actions': <dynamic>[],
+        'secrets': {
+          'API_KEY': 'super-secret-api-key',
+        },
       }
     };

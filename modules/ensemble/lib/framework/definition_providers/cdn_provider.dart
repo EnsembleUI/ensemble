@@ -223,8 +223,12 @@ class CdnDefinitionProvider extends DefinitionProvider {
 
       if (cachedManifest != null && cachedManifest.isNotEmpty) {
         try {
-          final root = _decodeManifestRoot(cachedManifest);
+          final cachedRoot = _decodeCachedManifestRoot(cachedManifest);
+          final root = cachedRoot.root;
           _rebuildFromRoot(root);
+          if (!cachedRoot.wasEncrypted && _rootContainsRuntimeSecrets(root)) {
+            await _saveCachedState(_plainManifestCacheEntryFromRoot(root));
+          }
         } catch (e) {
           // Clear invalid cache
           await _clearCache();
@@ -235,19 +239,16 @@ class CdnDefinitionProvider extends DefinitionProvider {
     }
   }
 
-  Future<void> _saveCachedState(String manifestJson) async {
-    // Fire-and-forget to avoid blocking UI
-    unawaited(() async {
-      try {
-        final prefs = await SharedPreferences.getInstance();
-        final etagVal = _etag ?? '';
-        final lastVal = (_lastUpdatedAt ?? 0).toString();
-        await prefs
-            .setStringList(_artifactCacheKey, [etagVal, lastVal, manifestJson]);
-      } catch (e) {
-        debugPrint('CdnProvider: Failed to save cached state: $e');
-      }
-    }());
+  Future<void> _saveCachedState(String cachedManifestJson) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final etagVal = _etag ?? '';
+      final lastVal = (_lastUpdatedAt ?? 0).toString();
+      await prefs.setStringList(
+          _artifactCacheKey, [etagVal, lastVal, cachedManifestJson]);
+    } catch (e) {
+      debugPrint('CdnProvider: Failed to save cached state: $e');
+    }
   }
 
   Future<void> _clearCache() async {
@@ -484,7 +485,8 @@ class CdnDefinitionProvider extends DefinitionProvider {
       _etag = newEtag ?? _etag;
 
       // Save to persistent cache
-      await _saveCachedState(jsonString);
+      await _saveCachedState((fetched['cacheJson'] as String?) ??
+          _plainManifestCacheEntryFromRoot(root));
 
       // Mark that we have updates
       _hasPendingUpdate = true;
@@ -530,7 +532,8 @@ class CdnDefinitionProvider extends DefinitionProvider {
     _rebuildFromRoot(root);
 
     // Save to persistent cache
-    await _saveCachedState(jsonString);
+    await _saveCachedState((fetched['cacheJson'] as String?) ??
+        _plainManifestCacheEntryFromRoot(root));
   }
 
   Future<bool> _shouldFetchManifest() async {
@@ -613,15 +616,21 @@ class CdnDefinitionProvider extends DefinitionProvider {
     if (decodedBody == null || decodedBody.isEmpty) return null;
 
     String jsonString = decodedBody;
+    String? cacheJsonString;
 
     // If we fetched the encrypted-manifest endpoint successfully, decrypt it.
     if (shouldUseEncrypted && fetchedEncrypted) {
+      cacheJsonString = _encryptedManifestCacheEntry(decodedBody);
       jsonString = _decryptEncryptedManifestEnvelope(decodedBody);
     }
     if (jsonString.isEmpty) return null;
 
     final etag = resp.headers['etag'] ?? resp.headers['ETag'];
-    return {'json': jsonString, 'etag': etag ?? ''};
+    final result = <String, Object>{'json': jsonString, 'etag': etag ?? ''};
+    if (cacheJsonString != null) {
+      result['cacheJson'] = cacheJsonString;
+    }
+    return result;
   }
 
   String? _decodePossiblyBrotli(http.Response resp) {
@@ -881,10 +890,70 @@ class CdnDefinitionProvider extends DefinitionProvider {
     return Locale(normalized);
   }
 
+  static const String _encryptedManifestCacheType =
+      'encryptedManifestEnvelope';
+  static const String _encryptedManifestCacheEnvelopeKey =
+      'encryptedManifestEnvelope';
+
+  String _encryptedManifestCacheEntry(String encryptedEnvelope) => jsonEncode({
+        'cacheType': _encryptedManifestCacheType,
+        'version': 1,
+        _encryptedManifestCacheEnvelopeKey: encryptedEnvelope,
+      });
+
+  _CachedManifestRoot _decodeCachedManifestRoot(String cachedManifest) {
+    final decoded = jsonDecode(cachedManifest);
+    if (decoded is Map &&
+        decoded['cacheType'] == _encryptedManifestCacheType &&
+        decoded[_encryptedManifestCacheEnvelopeKey] is String) {
+      return _CachedManifestRoot(
+        _decodeManifestRoot(
+            _decryptEncryptedManifestEnvelope(
+                decoded[_encryptedManifestCacheEnvelopeKey] as String)),
+        wasEncrypted: true,
+      );
+    }
+
+    return _CachedManifestRoot(
+      _decodeManifestRoot(cachedManifest),
+      wasEncrypted: false,
+    );
+  }
+
+  String _plainManifestCacheEntryFromRoot(Map<String, dynamic> root) =>
+      jsonEncode(_rootWithoutRuntimeSecrets(root));
+
+  Map<String, dynamic> _rootWithoutRuntimeSecrets(Map<String, dynamic> root) {
+    final sanitized = Map<String, dynamic>.from(root);
+    final artifacts = _asMap(root['artifacts']);
+    if (artifacts != null && artifacts.containsKey('secrets')) {
+      final sanitizedArtifacts = Map<String, dynamic>.from(artifacts);
+      sanitizedArtifacts.remove('secrets');
+      sanitized['artifacts'] = sanitizedArtifacts;
+    }
+    return sanitized;
+  }
+
+  bool _rootContainsRuntimeSecrets(Map<String, dynamic> root) {
+    final artifacts = _asMap(root['artifacts']);
+    if (artifacts == null) return false;
+    final rawSecrets = _asMap(artifacts['secrets']);
+    return rawSecrets != null && rawSecrets.isNotEmpty;
+  }
+
   @visibleForTesting
   Future<void> applyRuntimeManifestForTesting(Map<String, dynamic> root) async {
     _rebuildFromRoot(root);
     await _refreshTranslationsAtRuntime();
+  }
+
+  @visibleForTesting
+  String cacheManifestForTesting(Map<String, dynamic> root,
+      {String? encryptedEnvelope}) {
+    if (encryptedEnvelope != null) {
+      return _encryptedManifestCacheEntry(encryptedEnvelope);
+    }
+    return _plainManifestCacheEntryFromRoot(root);
   }
 
   Future<void> _refreshTranslationsAtRuntime() async {
@@ -905,4 +974,11 @@ class CdnDefinitionProvider extends DefinitionProvider {
       }
     }
   }
+}
+
+class _CachedManifestRoot {
+  _CachedManifestRoot(this.root, {required this.wasEncrypted});
+
+  final Map<String, dynamic> root;
+  final bool wasEncrypted;
 }
