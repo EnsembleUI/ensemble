@@ -195,7 +195,10 @@ class BluetoothManagerImpl extends BluetoothManager {
             final data = utf8.decode(value);
             const key = 'ensemble_bluetooth_handler';
             try {
-              dynamic _ = ScreenController().runGlobalScriptHandler(key, data);
+              // Pass JSON-encoded string so raw BLE bytes cannot break out of
+              // the generated `functionName(<argument>)` script snippet.
+              dynamic _ = ScreenController().runGlobalScriptHandler(
+                  key, jsonEncode(data));
             } catch (e) {
               throw Exception('Error processing ensemble_bluetooth_handler: $e');
             }
