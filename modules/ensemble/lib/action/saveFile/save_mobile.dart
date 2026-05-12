@@ -7,14 +7,28 @@ import 'package:ensemble/framework/stub/file_manager.dart';
 
 import 'download_stub.dart' if (dart.library.html) 'download_web.dart';
 
+/// Returns a single path segment for writes under a fixed parent directory.
+/// Rejects empty names, `.`, `..`, embedded `..`, and any path separators.
+String sanitizedSaveFileName(String fileName) {
+  final normalized = fileName.replaceAll(r'\', '/');
+  final slash = normalized.lastIndexOf('/');
+  final base = slash == -1 ? normalized : normalized.substring(slash + 1);
+  if (base.isEmpty || base == '.' || base == '..' || base.contains('..')) {
+    throw FormatException(
+        'Invalid fileName: only a base name is allowed (no path segments).');
+  }
+  return base;
+}
+
 Future<void> saveImageToDCIM(String fileName, Uint8List fileBytes) async {
   try {
+    final safeName = sanitizedSaveFileName(fileName);
     if (kIsWeb) {
-      downloadFileOnWeb(fileName, fileBytes);
+      downloadFileOnWeb(safeName, fileBytes);
     } else {
       await GetIt.I<FileManager>().saveImage(
         fileBytes,
-        name: fileName,
+        name: safeName,
       );
     }
   } catch (e) {
@@ -26,6 +40,7 @@ Future<void> saveImageToDCIM(String fileName, Uint8List fileBytes) async {
 Future<void> saveDocumentToDocumentsFolder(
     String fileName, Uint8List fileBytes) async {
   try {
+    final safeName = sanitizedSaveFileName(fileName);
     String filePath;
 
     if (Platform.isAndroid) {
@@ -35,15 +50,15 @@ Future<void> saveDocumentToDocumentsFolder(
         directory.createSync(
             recursive: true); // Create the directory if it doesn't exist
       }
-      filePath = '${directory.path}/$fileName';
+      filePath = '${directory.path}/$safeName';
     } else if (Platform.isIOS) {
       // On iOS, use the app-specific Documents directory
       final directory = await getApplicationDocumentsDirectory();
-      filePath = '${directory.path}/$fileName';
+      filePath = '${directory.path}/$safeName';
 
       // Optionally, use a share intent to let users save the file to their desired location
     } else if (kIsWeb) {
-      downloadFileOnWeb(fileName, fileBytes);
+      downloadFileOnWeb(safeName, fileBytes);
       return;
     } else {
       throw UnsupportedError('Platform not supported');
