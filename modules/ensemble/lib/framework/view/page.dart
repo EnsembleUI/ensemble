@@ -5,6 +5,7 @@ import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/ensemble_app.dart';
 import 'package:ensemble/framework/data_context.dart';
+import 'package:ensemble/framework/device.dart';
 import 'package:ensemble/framework/devmode.dart';
 import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/extensions.dart';
@@ -281,6 +282,36 @@ class PageState extends State<Page>
       }
       // reset inactive time
       appLastPaused = null;
+    }
+  }
+
+  @override
+  void didChangeMetrics() {
+    super.didChangeMetrics();
+    if (!mounted) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _notifyDeviceMetricBindings();
+    });
+  }
+
+  /// Re-evaluate ${device.width} / orientation after rotation.
+  void _notifyDeviceMetricBindings() {
+    final d = Device();
+    void fire(ScopeManager sm) {
+      for (final e in <(String, Object)>[
+        ('width', d.screenWidth),
+        ('height', d.screenHeight),
+        ('orientation', d.screenOrientation),
+      ]) {
+        sm.dispatch(ModelChangeEvent(DeviceBindingSource(e.$1), e.$2));
+      }
+    }
+
+    fire(_scopeManager);
+    final pageGroupScope = PageGroupWidget.getScope(context);
+    if (pageGroupScope != null && pageGroupScope != _scopeManager) {
+      fire(pageGroupScope);
     }
   }
 
