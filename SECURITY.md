@@ -15,7 +15,7 @@ If you discover a security vulnerability in Ensemble, please report it responsib
 
 ### How to Report
 
-Send an email to **security@ensembleui.com** with:
+Send an email to **sharjeel@ensembleui.com** with:
 
 - A description of the vulnerability
 - Steps to reproduce the issue
@@ -41,4 +41,4 @@ When using Ensemble in your applications:
 
 ## Scope
 
-This security policy applies to the code in the [EnsembleUI/ensemble](https://github.com/EnsembleUI/ensemble) repository. For security issues related to Ensemble Studio or other hosted services, please contact **security@ensembleui.com**.
+This security policy applies to the code in the [EnsembleUI/ensemble](https://github.com/EnsembleUI/ensemble) repository. For security issues related to Ensemble Studio or other hosted services, please contact **sharjeel@ensembleui.com**.
