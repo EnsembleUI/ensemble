@@ -1,3 +1,12 @@
+## 1.2.42
+
+ - **FIX**(device): update screenOrientation to use enum name for clarity. ([41b9dee0](https://github.com/ensembleUI/ensemble/commit/41b9dee0c974a06882db5edbd1219084ad81fc9c))
+ - **FIX**(cdn): reset invalid manifest cache state. ([4e060421](https://github.com/ensembleUI/ensemble/commit/4e060421ebf7ba2121284ba93c825db7370b8f2d))
+ - **FEAT**(device): streamline MediaQuery capability and add device metric notifications. ([991650b6](https://github.com/ensembleUI/ensemble/commit/991650b6666e615eca2e9b7f8418af847a08d3d0))
+ - **DOCS**: update package and module READMEs. ([74306617](https://github.com/ensembleUI/ensemble/commit/74306617e40588dc149587bddd7a9c7ca87fc5bf))
+ - **DOCS**: move layout widget notes out of package readme. ([fc901707](https://github.com/ensembleUI/ensemble/commit/fc9017078bd2147c6486352e886a347a04ef6dcc))
+ - **DOCS**: document layout widget scroll and tab behavior. ([ba64173e](https://github.com/ensembleUI/ensemble/commit/ba64173e4433c49d6907c78494970639d5a93748))
+
 ## 1.2.41
 
  - **REFACTOR**(tabbar): remove useIndexedTab setter  duplication from TabBarController. ([faafd299](https://github.com/ensembleUI/ensemble/commit/faafd2996c3f0a9b9609acfba4e3286165e2ca80))

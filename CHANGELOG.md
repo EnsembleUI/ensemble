@@ -3,6 +3,61 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## 2026-05-15
+
+### Changes
+
+---
+
+Packages with breaking changes:
+
+ - There are no breaking changes in this release.
+
+Packages with other changes:
+
+ - [`ensemble` - `v1.2.42`](#ensemble---v1242)
+ - [`ensemble_file_manager` - `v0.0.1+1`](#ensemble_file_manager---v0011)
+ - [`ensemble_location` - `v0.0.1+1`](#ensemble_location---v0011)
+ - [`ensemble_deeplink` - `v0.0.1+1`](#ensemble_deeplink---v0011)
+ - [`ensemble_camera` - `v0.0.1+1`](#ensemble_camera---v0011)
+ - [`ensemble_stripe` - `v1.0.1`](#ensemble_stripe---v101)
+ - [`ensemble_face_camera` - `v0.0.1+1`](#ensemble_face_camera---v0011)
+ - [`ensemble_contacts` - `v0.0.1+1`](#ensemble_contacts---v0011)
+ - [`ensemble_connect` - `v0.0.1+1`](#ensemble_connect---v0011)
+ - [`ensemble_auth` - `v1.0.1`](#ensemble_auth---v101)
+ - [`ensemble_network_info` - `v0.0.1+1`](#ensemble_network_info---v0011)
+ - [`ensemble_bluetooth` - `v0.0.1+1`](#ensemble_bluetooth---v0011)
+ - [`ensemble_chat` - `v0.0.1+1`](#ensemble_chat---v0011)
+
+Packages with dependency updates only:
+
+> Packages listed below depend on other packages in this workspace that have had changes. Their versions have been incremented to bump the minimum dependency versions of the packages they depend upon in this project.
+
+ - `ensemble_file_manager` - `v0.0.1+1`
+ - `ensemble_location` - `v0.0.1+1`
+ - `ensemble_deeplink` - `v0.0.1+1`
+ - `ensemble_camera` - `v0.0.1+1`
+ - `ensemble_stripe` - `v1.0.1`
+ - `ensemble_face_camera` - `v0.0.1+1`
+ - `ensemble_contacts` - `v0.0.1+1`
+ - `ensemble_connect` - `v0.0.1+1`
+ - `ensemble_auth` - `v1.0.1`
+ - `ensemble_network_info` - `v0.0.1+1`
+ - `ensemble_bluetooth` - `v0.0.1+1`
+ - `ensemble_chat` - `v0.0.1+1`
+
+---
+
+#### `ensemble` - `v1.2.42`
+
+ - **FIX**(device): update screenOrientation to use enum name for clarity. ([41b9dee0](https://github.com/ensembleUI/ensemble/commit/41b9dee0c974a06882db5edbd1219084ad81fc9c))
+ - **FIX**(cdn): reset invalid manifest cache state. ([4e060421](https://github.com/ensembleUI/ensemble/commit/4e060421ebf7ba2121284ba93c825db7370b8f2d))
+ - **FEAT**(device): streamline MediaQuery capability and add device metric notifications. ([991650b6](https://github.com/ensembleUI/ensemble/commit/991650b6666e615eca2e9b7f8418af847a08d3d0))
+ - **DOCS**: update package and module READMEs. ([74306617](https://github.com/ensembleUI/ensemble/commit/74306617e40588dc149587bddd7a9c7ca87fc5bf))
+ - **DOCS**: move layout widget notes out of package readme. ([fc901707](https://github.com/ensembleUI/ensemble/commit/fc9017078bd2147c6486352e886a347a04ef6dcc))
+ - **DOCS**: document layout widget scroll and tab behavior. ([ba64173e](https://github.com/ensembleUI/ensemble/commit/ba64173e4433c49d6907c78494970639d5a93748))
+
+
 ## 2026-05-04
 
 ### Changes
