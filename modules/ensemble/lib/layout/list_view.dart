@@ -208,6 +208,10 @@ class ListViewState extends EWidgetState<ListView>
   bool showLoading = false;
   ScrollController? _ownedScrollController;
 
+  // FooterScope temporarily replaces scrollController; restore when that scope is gone.
+  ScrollController? _scrollControllerOutsideFooter;
+  bool _footerScrollControllerSubstituted = false;
+
   @override
   void initState() {
     showLoading = widget._controller.showLoading;
@@ -226,8 +230,32 @@ class ListViewState extends EWidgetState<ListView>
 
   @override
   void dispose() {
+    if (_footerScrollControllerSubstituted) {
+      widget._controller.scrollController = _scrollControllerOutsideFooter;
+      _scrollControllerOutsideFooter = null;
+      _footerScrollControllerSubstituted = false;
+    }
     _ownedScrollController?.dispose();
     super.dispose();
+  }
+
+  void _syncScrollControllerWithFooterScope(FooterScope? footerScope) {
+    final shouldUseFooterScroll = footerScope != null &&
+        footerScope.isRootWithinFooter(context);
+
+    if (shouldUseFooterScroll) {
+      if (!_footerScrollControllerSubstituted) {
+        _scrollControllerOutsideFooter = widget._controller.scrollController;
+        _footerScrollControllerSubstituted = true;
+      }
+      widget._controller.scrollController = footerScope!.scrollController;
+    } else if (footerScope == null) {
+      if (_footerScrollControllerSubstituted) {
+        widget._controller.scrollController = _scrollControllerOutsideFooter;
+        _scrollControllerOutsideFooter = null;
+        _footerScrollControllerSubstituted = false;
+      }
+    }
   }
 
   @override
@@ -261,7 +289,7 @@ class ListViewState extends EWidgetState<ListView>
 
   @override
   void didUpdateWidget(covariant ListView oldWidget) {
-    showLoading = oldWidget._controller.showLoading;
+    showLoading = widget._controller.showLoading;
     _attachOwnedScrollControllerIfNeeded();
     super.didUpdateWidget(oldWidget);
   }
@@ -269,10 +297,8 @@ class ListViewState extends EWidgetState<ListView>
   @override
   Widget buildWidget(BuildContext context) {
     widget.controller._bind(this);
-    FooterScope? footerScope = FooterScope.of(context);
-    if (footerScope != null && footerScope.isRootWithinFooter(context)) {
-      widget._controller.scrollController = footerScope.scrollController;
-    }
+    final FooterScope? footerScope = FooterScope.of(context);
+    _syncScrollControllerWithFooterScope(footerScope);
 
     int itemCount = (widget._controller.children?.length ?? 0) +
         (templatedDataList?.length ?? 0);

@@ -1,3 +1,4 @@
+import 'package:ensemble/framework/view/footer.dart';
 import 'package:ensemble/framework/widget/view_util.dart';
 import 'package:ensemble/layout/list_view.dart' as ensemble;
 import 'package:flutter/widgets.dart';
@@ -71,5 +72,69 @@ void main() {
       () => controller!.addListener(() {}),
       throwsA(isA<FlutterError>()),
     );
+  });
+
+  testWidgets(
+      'restores ListView scroll controller when leaving draggable footer scope',
+      (tester) async {
+    final footerSheetScroll = ScrollController();
+    final dragOptions = DragOptions(
+      onMaxSize: null,
+      onMinSize: null,
+      maxSize: 1.0,
+      minSize: 0.25,
+      isDraggable: true,
+      initialSize: 0.5,
+      expand: false,
+      snap: false,
+      showDragHandle: false,
+      snapSizes: null,
+    );
+
+    final list = listViewWithChild();
+
+    await tester.pumpWidget(TestUtils.wrapTestWidgetWithScope(
+      SizedBox(
+        height: 400,
+        width: 400,
+        child: list,
+      ),
+    ));
+    await tester.pump();
+    final ownedScroll = list.controller.scrollController;
+    expect(ownedScroll, isNotNull);
+    expect(ownedScroll, isNot(same(footerSheetScroll)));
+
+    await tester.pumpWidget(TestUtils.wrapTestWidgetWithScope(
+      FooterScope(
+        scrollController: footerSheetScroll,
+        dragOptions: dragOptions,
+        child: SizedBox(
+          height: 400,
+          width: 400,
+          child: list,
+        ),
+      ),
+    ));
+    await tester.pump();
+
+    expect(list.controller.scrollController, same(footerSheetScroll));
+
+    await tester.pumpWidget(TestUtils.wrapTestWidgetWithScope(
+      SizedBox(
+        height: 400,
+        width: 400,
+        child: list,
+      ),
+    ));
+    await tester.pump();
+
+    expect(list.controller.scrollController, same(ownedScroll));
+    expect(list.controller.scrollController, isNot(same(footerSheetScroll)));
+
+    await tester.pumpWidget(
+        TestUtils.wrapTestWidgetWithScope(const SizedBox.shrink()));
+    await tester.pump();
+    footerSheetScroll.dispose();
   });
 }
