@@ -781,12 +781,24 @@ class EnsembleStorage with Invokable {
       'get': (String key) => StorageManager().read(key),
       'set': setProperty,
       'delete': (key) => delete(key),
+      'clear': ([dynamic _]) => clear(),
     };
   }
 
   void delete(String key) {
     StorageManager().remove(key);
     ScreenController().dispatchStorageChanges(context, key, null);
+  }
+
+  void clear() {
+    final keys = StorageManager()
+        .getKeys()
+        .where((key) => !key.startsWith('enc_'))
+        .toList();
+    StorageManager().clearPublicStorage();
+    for (final key in keys) {
+      ScreenController().dispatchStorageChanges(context, key, null);
+    }
   }
 
   @override

@@ -75,6 +75,20 @@ mixin PublicStorage {
       GetStorage().write(key, value);
 
   Future<void> remove(String key) => GetStorage().remove(key);
+
+  /// get all keys in public storage
+  Iterable<String> getKeys() => GetStorage().getKeys();
+
+  /// remove all public storage entries except those with the encrypted prefix
+  Future<void> clearPublicStorage() async {
+    const encryptedPrefix = 'enc_';
+    final keys = GetStorage().getKeys().toList();
+    for (final key in keys) {
+      if (!key.startsWith(encryptedPrefix)) {
+        await GetStorage().remove(key);
+      }
+    }
+  }
 }
 
 /// secure storage. These are async so really only use-able
