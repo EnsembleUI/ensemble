@@ -3,6 +3,7 @@ import 'dart:ui';
 
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/definition_providers/provider.dart';
+import 'package:ensemble/framework/definition_providers/screen_selector_security.dart';
 import 'package:ensemble/framework/widget/screen.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:flutter/material.dart';
@@ -35,10 +36,14 @@ class LocalDefinitionProvider extends FileDefinitionProvider {
   @override
   Future<ScreenDefinition> getDefinition(
       {String? screenId, String? screenName}) async {
+    final screen = screenId ?? screenName ?? appHome;
+    if (!isSafeRemoteScreenSelector(screen)) {
+      return ScreenDefinition(YamlMap());
+    }
     // Note: Web with local definition caches even if we disable browser cache
     // so you may need to re-run the app on definition changes
-    var pageStr = await rootBundle
-        .loadString('${path}screens/${screenId ?? screenName ?? appHome}.yaml');
+    var pageStr =
+        await rootBundle.loadString('${path}screens/$screen.yaml');
     if (pageStr.isEmpty) {
       return ScreenDefinition(YamlMap());
     }
