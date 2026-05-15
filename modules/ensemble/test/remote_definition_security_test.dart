@@ -1,4 +1,4 @@
-import 'package:ensemble/framework/definition_providers/remote_provider.dart';
+import 'package:ensemble/framework/definition_providers/screen_selector_security.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {

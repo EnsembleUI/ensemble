@@ -7,27 +7,8 @@ import 'package:ensemble/framework/widget/screen.dart';
 import 'package:flutter_i18n/flutter_i18n.dart';
 import 'package:flutter_i18n/loaders/decoders/yaml_decode_strategy.dart';
 import 'package:http/http.dart' as http;
-import 'package:meta/meta.dart';
+import 'package:ensemble/framework/definition_providers/screen_selector_security.dart';
 import 'package:yaml/yaml.dart';
-
-/// Screen ids/names used with [RemoteDefinitionProvider] must be a single path
-/// segment so they cannot traverse the configured base URL (e.g. via `../`).
-@visibleForTesting
-bool isSafeRemoteScreenSelector(String screen) {
-  if (screen.isEmpty || screen.length > 256) {
-    return false;
-  }
-  if (screen.contains('..') ||
-      screen.contains('/') ||
-      screen.contains(r'\') ||
-      screen.contains('%')) {
-    return false;
-  }
-  if (RegExp(r'[\x00-\x1f\x7f]').hasMatch(screen)) {
-    return false;
-  }
-  return true;
-}
 
 class RemoteDefinitionProvider extends FileDefinitionProvider {
   // TODO: we can fetch the whole App bundle here
