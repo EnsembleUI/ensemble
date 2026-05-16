@@ -19,6 +19,14 @@ void main() {
     test('rejects empty and control characters', () {
       expect(isSafeRemoteScreenSelector(''), isFalse);
       expect(isSafeRemoteScreenSelector('bad\u0000name'), isFalse);
+      expect(isSafeRemoteScreenSelector('bad\u007fname'), isFalse);
+    });
+
+    test('rejects overly long selectors', () {
+      final ok = List.filled(256, 'a').join();
+      final tooLong = List.filled(257, 'a').join();
+      expect(isSafeRemoteScreenSelector(ok), isTrue);
+      expect(isSafeRemoteScreenSelector(tooLong), isFalse);
     });
   });
 }
