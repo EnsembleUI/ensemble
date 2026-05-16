@@ -120,6 +120,18 @@ void main() {
 
     expect(list.controller.scrollController, same(footerSheetScroll));
 
+    final scrollableInFooter = tester.widget<Scrollable>(
+      find.descendant(
+        of: find.byType(ensemble.ListView),
+        matching: find.byType(Scrollable),
+      ).first,
+    );
+    expect(
+      scrollableInFooter.controller,
+      same(list.controller.scrollController),
+      reason: 'ListViewCore must use the same ScrollController as ListViewController',
+    );
+
     await tester.pumpWidget(TestUtils.wrapTestWidgetWithScope(
       SizedBox(
         height: 400,
@@ -131,6 +143,18 @@ void main() {
 
     expect(list.controller.scrollController, same(ownedScroll));
     expect(list.controller.scrollController, isNot(same(footerSheetScroll)));
+
+    final scrollableAfterFooter = tester.widget<Scrollable>(
+      find.descendant(
+        of: find.byType(ensemble.ListView),
+        matching: find.byType(Scrollable),
+      ).first,
+    );
+    expect(
+      scrollableAfterFooter.controller,
+      same(ownedScroll),
+      reason: 'ListViewCore must re-bind to restored controller',
+    );
 
     await tester.pumpWidget(
         TestUtils.wrapTestWidgetWithScope(const SizedBox.shrink()));
