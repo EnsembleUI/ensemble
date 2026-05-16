@@ -102,17 +102,38 @@ class ListViewCore extends StatefulWidget {
 class _ListViewCoreState extends State<ListViewCore> {
   late final Debouncer debounce;
   late final Debouncer _scrollDebouce;
-  late final ScrollController _scrollController;
+  ScrollController? _ownedController; // when [widget.scrollController] is null
+  ScrollController? _listeningOn;
 
   int? _lastFetchedIndex;
+
+  void _syncScrollControllerAttachment() {
+    final ScrollController? explicit = widget.scrollController;
+    final ScrollController target =
+        explicit ?? (_ownedController ??= ScrollController());
+
+    if (identical(_listeningOn, target)) return;
+
+    _listeningOn?.removeListener(_onScroll);
+
+    // Swapping from implicit owned controller to a caller-provided controller.
+    if (_listeningOn != null &&
+        identical(_listeningOn, _ownedController) &&
+        explicit != null) {
+      _ownedController!.dispose();
+      _ownedController = null;
+    }
+
+    _listeningOn = target;
+    _listeningOn!.addListener(_onScroll);
+  }
 
   @override
   void initState() {
     super.initState();
     debounce = Debouncer(widget.debounceDuration);
     _scrollDebouce = Debouncer(const Duration(milliseconds: 15));
-    _scrollController = widget.scrollController ?? ScrollController();
-    _scrollController.addListener(_onScroll);
+    _syncScrollControllerAttachment();
 
     attemptFetch();
   }
@@ -120,6 +141,9 @@ class _ListViewCoreState extends State<ListViewCore> {
   @override
   void didUpdateWidget(ListViewCore oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (oldWidget.scrollController != widget.scrollController) {
+      _syncScrollControllerAttachment();
+    }
     if (!widget.hasReachedMax && oldWidget.hasReachedMax) {
       attemptFetch();
     }
@@ -127,10 +151,8 @@ class _ListViewCoreState extends State<ListViewCore> {
 
   @override
   void dispose() {
-    _scrollController.removeListener(_onScroll);
-    if (widget.scrollController == null) {
-      _scrollController.dispose();
-    }
+    _listeningOn?.removeListener(_onScroll);
+    _ownedController?.dispose();
     debounce.cancel();
     _scrollDebouce.cancel();
     super.dispose();
@@ -154,7 +176,7 @@ class _ListViewCoreState extends State<ListViewCore> {
   void _onScroll() {
     if (widget.onScroll != null) {
       _scrollDebouce.run(() {
-        widget.onScroll?.call(_scrollController.position.pixels);
+        widget.onScroll?.call(_listeningOn!.position.pixels);
       });
     }
     // listView's scrollController is in sync with externalScrollController
@@ -164,7 +186,7 @@ class _ListViewCoreState extends State<ListViewCore> {
     if (externalScrollController != null &&
         widget.nestedScroll &&
         widget.shrinkWrap) {
-      final currentOffset = _scrollController.position.pixels;
+      final currentOffset = _listeningOn!.position.pixels;
 
       externalScrollController!.animateTo(
         currentOffset,
@@ -201,7 +223,7 @@ class _ListViewCoreState extends State<ListViewCore> {
       scrollDirection: widget.scrollDirection,
       reverse: widget.reverse,
       shrinkWrap: widget.shrinkWrap,
-      controller: _scrollController,
+      controller: _listeningOn,
       physics: widget.physics,
       cacheExtent: widget.cacheExtent,
       slivers: [
