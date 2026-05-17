@@ -14,6 +14,12 @@ void main() {
       expect(isSafeRemoteScreenSelector('foo/bar'), isFalse);
       expect(isSafeRemoteScreenSelector(r'foo\bar'), isFalse);
       expect(isSafeRemoteScreenSelector('foo%2fbar'), isFalse);
+      expect(isSafeRemoteScreenSelector('foo%00bar'), isFalse);
+    });
+
+    test('rejects overly long screen names', () {
+      expect(isSafeRemoteScreenSelector('a' * 256), isTrue);
+      expect(isSafeRemoteScreenSelector('a' * 257), isFalse);
     });
 
     test('rejects empty and control characters', () {
