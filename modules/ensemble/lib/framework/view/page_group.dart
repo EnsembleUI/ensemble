@@ -683,6 +683,32 @@ class PageGroupState extends State<PageGroup>
 // }
 }
 
+/// Clamps a ViewGroup tab index so navigation cannot produce [RangeError]
+/// when indexing [PageGroupState.pagePayloads] / [PageController.jumpToPage].
+///
+/// [menuItemCount] is the number of entries in the ViewGroup menu (same length
+/// as the built [pagePayloads] list).
+int clampViewGroupTabIndex(int index, int menuItemCount) {
+  if (menuItemCount <= 0) {
+    return 0;
+  }
+  if (index < 0) {
+    return 0;
+  }
+  if (index >= menuItemCount) {
+    return menuItemCount - 1;
+  }
+  return index;
+}
+
+/// Returns [PageGroup.menu.menuItems.length] for the nearest [PageGroup]
+/// ancestor of [context], or null if none exists or the menu is empty.
+int? viewGroupMenuItemCountForContext(BuildContext context) {
+  final pageGroup = context.findAncestorWidgetOfExactType<PageGroup>();
+  final n = pageGroup?.menu.menuItems.length ?? 0;
+  return n > 0 ? n : null;
+}
+
 class ViewGroupNotifier extends ChangeNotifier {
   int _viewIndex = 0;
   Map<String, dynamic>? _payload;
