@@ -20,7 +20,7 @@ This starter project enables running and deploying Ensemble-powered Apps across 
 By default, Starter does not include all the modules or capabilities (e.g. camera, location). Excluding these capabilities by default reduces the App's size and not trigger any red flags during your App Store Review (e.g. camera code is present when your app doesn't use camera). Please follow the below steps carefully if your app requires these capabilities:
 - In `pubspec.yaml`, uncomment the libraries that correspond to the capabilities you need, e.g. `ensemble_camera`
 - Run `flutter pub upgrade`
-- In `lib/generated/EnsembleModules.dart`, enable your services and uncomment the lines that correspond with your capabilities. For example, if you are importing `ensemble_camera`, uncomment the import and lines relating to `CameraServiceImpl`
+- In `lib/generated/ensemble_modules.dart`, set the matching `static const use…` flags (for example `useCamera`), uncomment the corresponding `import` lines, and uncomment the `GetIt` registrations in the commented blocks for that capability (for `ensemble_camera`, see `CameraManagerImpl` and optional QR scanner registration next to `useCamera`).
   - TODO: these files will eventually be automatically generated during a build step
 - Run `flutter run` to verify the additional capabilities
 - Follow the [docs](https://docs.ensembleui.com/#/deploy/1-prepare-app) on deploying your app 
@@ -45,7 +45,7 @@ Ensemble Studio includes an Online Editor for making changes with type-ahead sup
 ### Android Studio
 - Open Preferences and go to `Languages & Frameworks > Schemas and DTDs > JSON Schema Mappings`
 - Add a new schema
-- Under Schema URL, enter `https://raw.githubusercontent.com/EnsembleUI/ensemble/main/assets/schema/ensemble_schema.json`
+- Under Schema URL, enter `https://raw.githubusercontent.com/EnsembleUI/ensemble/main/modules/ensemble/assets/schema/ensemble_schema.json`
 - Select Schema version 7
 - Add a Directory mapping right below, pointing to `<your_folder>/starter/ensemble/apps`.
 - Editing any definition files will show the appropriate type-ahead.
@@ -100,8 +100,9 @@ flutter:
 
     # # config folder contains appConfig.json and secrets.json
     - ensemble/apps/helloApp/config/
-  ```
-  NOTE: Only add the existing paths under assets.
+```
+
+NOTE: Only add the existing paths under assets.
 #### 4. Run the App
  - Run the App with `flutter run`. Your App now fetches its pages and resources from local app files.
 
@@ -120,7 +121,7 @@ When hosting on your server, follow the following steps.
 
 ### For Flutter developers
 Use [Android Studio](https://developer.android.com/studio) to open this project and run `main.dart`.
-To incorporate Ensemble pages to your existing Flutter App, see `example_existing_app_*.dart`.
+To incorporate Ensemble pages into your existing Flutter app, see `lib/integrate_existing_app_with_Ensemble.dart`.
 
 ## Build Tips
 ### Windows
