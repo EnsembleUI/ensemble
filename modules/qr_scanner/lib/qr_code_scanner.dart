@@ -7,6 +7,7 @@ import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/helpers/box_wrapper.dart';
 import 'package:ensemble/widget/helpers/controllers.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
@@ -148,6 +149,14 @@ class EnsembleQRCodeScannerState
     widget.controller.qrCodeScannerAction = this;
   }
 
+  Rect _scanWindowForLayout(Size layoutSize, double cutOutWidth, double cutOutHeight) {
+    return Rect.fromCenter(
+      center: layoutSize.center(Offset.zero),
+      width: cutOutWidth,
+      height: cutOutHeight,
+    );
+  }
+
   @override
   Widget buildWidget(BuildContext context) {
     final cutOutHeight =
@@ -157,41 +166,54 @@ class EnsembleQRCodeScannerState
 
     return EnsembleBoxWrapper(
       boxController: widget.controller,
-      widget: MobileScanner(
-        key: qrKey,
-        controller: scannerController,
-        scanWindow: Rect.fromCenter(
-          center: MediaQuery.of(context).size.center(Offset.zero),
-          width: cutOutWidth,
-          height: cutOutHeight,
-        ),
-        onDetect: (capture) {
-          if (capture.barcodes.isNotEmpty &&
-              widget.controller.onReceived != null) {
-            final barcode = capture.barcodes.first;
-            final data = {
-              'format': barcode.format.name,
-              'data': barcode.rawValue,
-              'rawBytes': barcode.rawBytes,
-            };
+      widget: LayoutBuilder(
+        builder: (context, constraints) {
+          final layoutSize = constraints.biggest;
+          final scanWindow =
+              _scanWindowForLayout(layoutSize, cutOutWidth, cutOutHeight);
+          final isLandscape = layoutSize.width > layoutSize.height;
 
-            ScreenController().executeAction(
-              context,
-              widget.controller.onReceived!,
-              event: EnsembleEvent(widget.controller, data: data),
-            );
-          }
-        },
-        overlayBuilder: (context, constraints) {
-          return CustomPaint(
-            painter: QRScannerOverlayPainter(
-              borderColor: widget.controller.cutOutBorderColor ?? Colors.red,
-              borderRadius: Utils.getDouble(
-                  widget.controller.cutOutBorderRadius,
-                  fallback: 0),
-              cutOutSize: cutOutWidth,
-            ),
-            child: const SizedBox.expand(),
+          // Native scanWindow has incorrect hit-testing in landscape on some
+          // devices (mobile_scanner#1633). Scan the full preview instead; the
+          // overlay cutout is visual-only in landscape.
+          final useNativeScanWindow = !kIsWeb && !isLandscape;
+
+          return MobileScanner(
+            key: qrKey,
+            controller: scannerController,
+            scanWindow: useNativeScanWindow ? scanWindow : null,
+            onDetect: (capture) {
+              if (capture.barcodes.isNotEmpty &&
+                  widget.controller.onReceived != null) {
+                final barcode = capture.barcodes.first;
+                final data = {
+                  'format': barcode.format.name,
+                  'data': barcode.rawValue,
+                  'rawBytes': barcode.rawBytes,
+                };
+
+                ScreenController().executeAction(
+                  context,
+                  widget.controller.onReceived!,
+                  event: EnsembleEvent(widget.controller, data: data),
+                );
+              }
+            },
+            overlayBuilder: (context, overlayConstraints) {
+              return CustomPaint(
+                painter: QRScannerOverlayPainter(
+                  borderColor:
+                      widget.controller.cutOutBorderColor ?? Colors.red,
+                  borderRadius: Utils.getDouble(
+                    widget.controller.cutOutBorderRadius,
+                    fallback: 0,
+                  ),
+                  cutOutWidth: cutOutWidth,
+                  cutOutHeight: cutOutHeight,
+                ),
+                child: const SizedBox.expand(),
+              );
+            },
           );
         },
       ),
@@ -230,21 +252,22 @@ class EnsembleQRCodeScannerState
 class QRScannerOverlayPainter extends CustomPainter {
   final Color borderColor;
   final double borderRadius;
-  final double cutOutSize;
+  final double cutOutWidth;
+  final double cutOutHeight;
 
   QRScannerOverlayPainter({
     required this.borderColor,
     required this.borderRadius,
-    required this.cutOutSize,
+    required this.cutOutWidth,
+    required this.cutOutHeight,
   });
 
   @override
   void paint(Canvas canvas, Size size) {
-    // Calculate the rectangle in the center
     final rect = Rect.fromCenter(
       center: size.center(Offset.zero),
-      width: cutOutSize,
-      height: cutOutSize,
+      width: cutOutWidth,
+      height: cutOutHeight,
     );
 
     // Draw the scanning rectangle border
