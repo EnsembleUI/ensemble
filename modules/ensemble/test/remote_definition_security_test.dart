@@ -20,5 +20,17 @@ void main() {
       expect(isSafeRemoteScreenSelector(''), isFalse);
       expect(isSafeRemoteScreenSelector('bad\u0000name'), isFalse);
     });
+
+    test('rejects percent-encoding used to smuggle separators', () {
+      expect(isSafeRemoteScreenSelector(r'home%2f..%2fsecrets'), isFalse);
+      expect(isSafeRemoteScreenSelector(r'..%2fetc'), isFalse);
+    });
+
+    test('enforces maximum selector length', () {
+      final ok = List.filled(256, 'a').join();
+      final tooLong = List.filled(257, 'a').join();
+      expect(isSafeRemoteScreenSelector(ok), isTrue);
+      expect(isSafeRemoteScreenSelector(tooLong), isFalse);
+    });
   });
 }
