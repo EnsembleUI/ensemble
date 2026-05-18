@@ -3,6 +3,62 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## 2026-05-18
+
+### Changes
+
+---
+
+Packages with breaking changes:
+
+ - There are no breaking changes in this release.
+
+Packages with other changes:
+
+ - [`ensemble` - `v1.2.43`](#ensemble---v1243)
+ - [`ensemble_face_camera` - `v0.0.1+1`](#ensemble_face_camera---v0011)
+ - [`ensemble_deeplink` - `v0.0.1+1`](#ensemble_deeplink---v0011)
+ - [`ensemble_location` - `v0.0.1+1`](#ensemble_location---v0011)
+ - [`ensemble_connect` - `v0.0.1+1`](#ensemble_connect---v0011)
+ - [`ensemble_auth` - `v1.0.1`](#ensemble_auth---v101)
+ - [`ensemble_bluetooth` - `v0.0.1+1`](#ensemble_bluetooth---v0011)
+ - [`ensemble_camera` - `v0.0.1+1`](#ensemble_camera---v0011)
+ - [`ensemble_network_info` - `v0.0.1+1`](#ensemble_network_info---v0011)
+ - [`ensemble_contacts` - `v0.0.1+1`](#ensemble_contacts---v0011)
+ - [`ensemble_stripe` - `v1.0.1`](#ensemble_stripe---v101)
+ - [`ensemble_chat` - `v0.0.1+1`](#ensemble_chat---v0011)
+ - [`ensemble_file_manager` - `v0.0.1+1`](#ensemble_file_manager---v0011)
+
+Packages with dependency updates only:
+
+> Packages listed below depend on other packages in this workspace that have had changes. Their versions have been incremented to bump the minimum dependency versions of the packages they depend upon in this project.
+
+ - `ensemble_face_camera` - `v0.0.1+1`
+ - `ensemble_deeplink` - `v0.0.1+1`
+ - `ensemble_location` - `v0.0.1+1`
+ - `ensemble_connect` - `v0.0.1+1`
+ - `ensemble_auth` - `v1.0.1`
+ - `ensemble_bluetooth` - `v0.0.1+1`
+ - `ensemble_camera` - `v0.0.1+1`
+ - `ensemble_network_info` - `v0.0.1+1`
+ - `ensemble_contacts` - `v0.0.1+1`
+ - `ensemble_stripe` - `v1.0.1`
+ - `ensemble_chat` - `v0.0.1+1`
+ - `ensemble_file_manager` - `v0.0.1+1`
+
+---
+
+#### `ensemble` - `v1.2.43`
+
+ - **FIX**(security): block path traversal in local bundled screen resolution. ([b317c925](https://github.com/ensembleUI/ensemble/commit/b317c9256d96cd01f3183866d3f5e38bfe9b6ff7))
+ - **FIX**(layout): restore scroll controller when leaving footer scope. ([9f20ea43](https://github.com/ensembleUI/ensemble/commit/9f20ea43ddb389d6a718122dc01240fc5d3d3932))
+ - **FIX**(listview): dispose owned scroll controller. ([e5d1c101](https://github.com/ensembleUI/ensemble/commit/e5d1c101080f49ac0596f09d93c1d2df4e4dff22))
+ - **FIX**(security): reject unsafe screen selectors in remote definition fetches. ([db7de5b2](https://github.com/ensembleUI/ensemble/commit/db7de5b28f45c0dd2438ff7d0e1bea61bba1da6d))
+ - **FIX**(security): sanitize saveFile names before writing to storage. ([a3db4674](https://github.com/ensembleUI/ensemble/commit/a3db467427bd473e3b1a02c113369bcdaa75b6a4))
+ - **FIX**(security): stop WebView from bypassing TLS and unsafe-browsing defaults. ([a51ba979](https://github.com/ensembleUI/ensemble/commit/a51ba979ddb12fa3cb48af0f436e5a1cb1057fc7))
+ - **DOCS**(ensemble): document runtime security and device metric bindings. ([b7087842](https://github.com/ensembleUI/ensemble/commit/b7087842440ae498e11e1f088ddbfcc3f8d7dc5b))
+
+
 ## 2026-05-15
 
 ### Changes

@@ -1,3 +1,13 @@
+## 1.2.43
+
+ - **FIX**(security): block path traversal in local bundled screen resolution. ([b317c925](https://github.com/ensembleUI/ensemble/commit/b317c9256d96cd01f3183866d3f5e38bfe9b6ff7))
+ - **FIX**(layout): restore scroll controller when leaving footer scope. ([9f20ea43](https://github.com/ensembleUI/ensemble/commit/9f20ea43ddb389d6a718122dc01240fc5d3d3932))
+ - **FIX**(listview): dispose owned scroll controller. ([e5d1c101](https://github.com/ensembleUI/ensemble/commit/e5d1c101080f49ac0596f09d93c1d2df4e4dff22))
+ - **FIX**(security): reject unsafe screen selectors in remote definition fetches. ([db7de5b2](https://github.com/ensembleUI/ensemble/commit/db7de5b28f45c0dd2438ff7d0e1bea61bba1da6d))
+ - **FIX**(security): sanitize saveFile names before writing to storage. ([a3db4674](https://github.com/ensembleUI/ensemble/commit/a3db467427bd473e3b1a02c113369bcdaa75b6a4))
+ - **FIX**(security): stop WebView from bypassing TLS and unsafe-browsing defaults. ([a51ba979](https://github.com/ensembleUI/ensemble/commit/a51ba979ddb12fa3cb48af0f436e5a1cb1057fc7))
+ - **DOCS**(ensemble): document runtime security and device metric bindings. ([b7087842](https://github.com/ensembleUI/ensemble/commit/b7087842440ae498e11e1f088ddbfcc3f8d7dc5b))
+
 ## 1.2.42
 
  - **FIX**(device): update screenOrientation to use enum name for clarity. ([41b9dee0](https://github.com/ensembleUI/ensemble/commit/41b9dee0c974a06882db5edbd1219084ad81fc9c))
