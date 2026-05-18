@@ -12,6 +12,21 @@ import 'package:mime/mime.dart';
 typedef ProgressCallback = void Function(double progress);
 typedef OnErrorCallback = void Function(dynamic error);
 
+/// Returns true when [path] contains a `..` path segment after normalising `\`
+/// to `/`.
+///
+/// Used before [http.MultipartFile.fromPath] so partially trusted paths (for
+/// example from API JSON bound into [FileUploadAction] inputs) cannot traverse
+/// out of an intended directory when reading bytes from disk.
+bool uploadPathContainsParentSegment(String? path) {
+  if (path == null || path.isEmpty) return false;
+  final unified = path.replaceAll(r'\', '/');
+  for (final segment in unified.split('/')) {
+    if (segment == '..') return true;
+  }
+  return false;
+}
+
 int getInt(String id) {
   return id.codeUnits.reduce((a, b) => a + b);
 }
@@ -55,6 +70,10 @@ class UploadUtils {
     final multipartFiles = <http.MultipartFile>[];
 
     for (var file in files) {
+      if (file.path != null && uploadPathContainsParentSegment(file.path)) {
+        throw FormatException(
+            'Upload file path cannot contain ".." segments: ${file.path}');
+      }
       http.MultipartFile? multipartFile;
       final mimeType =
           lookupMimeType(file.path ?? '', headerBytes: file.bytes) ??
