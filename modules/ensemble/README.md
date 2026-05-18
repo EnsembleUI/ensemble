@@ -73,6 +73,11 @@ melos exec --scope="ensemble" -- flutter test
 
 This package has a substantial `test/` directory. Run package tests with `melos exec --scope="ensemble" -- flutter test`.
 
+## Additional technical documentation
+
+- [Layout widgets (tabs, ListView scroll)](docs/layout-widgets.md) — EDL layout behavior in `lib/layout`.
+- [Runtime security and data bindings](docs/runtime-security-and-data-bindings.md) — screen id validation for definition providers, `saveFile` naming, WebView TLS/reputation settings, global script handler payloads, and device metric bindings after rotation.
+
 ## Related Packages / Modules
 
 - `starter`: host app template that initializes `EnsembleModules` and `EnsembleApp`.
