@@ -66,20 +66,25 @@ class PageGroupWidgetWrapper extends StatelessWidget {
     super.key,
     required this.scopeManager,
     required this.reloadView,
+    required this.pageCount,
     required this.child,
   });
 
   final ScopeManager scopeManager;
   final bool? reloadView;
+  /// Number of tabs / [BottomNavPageGroup.children] length (used to clamp
+  /// [viewGroupNotifier.viewIndex] for [PageController.initialPage]).
+  final int pageCount;
   final Widget child;
 
   @override
   Widget build(BuildContext context) {
     if (reloadView == false) {
+      final initialPage =
+          safeViewGroupPayloadIndex(viewGroupNotifier.viewIndex, pageCount);
       return PageGroupWidget(
         scopeManager: scopeManager,
-        pageController:
-            PageController(initialPage: viewGroupNotifier.viewIndex),
+        pageController: PageController(initialPage: initialPage),
         child: child,
       );
     }
@@ -118,10 +123,12 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup>
   @override
   void initState() {
     super.initState();
+    final initialIndex = safeViewGroupPayloadIndex(
+        widget.selectedPage, widget.children.length);
     if (widget.menu.reloadView == false) {
-      controller = PageController(initialPage: widget.selectedPage);
+      controller = PageController(initialPage: initialIndex);
     }
-    viewGroupNotifier.updatePage(widget.selectedPage, isReload: false);
+    viewGroupNotifier.updatePage(initialIndex, isReload: false);
     // Filter for visible, non-floating items for display in bottom nav
     menuItems = Menu.getVisibleMenuItems(
             widget.scopeManager.dataContext, widget.menu.menuItems)
@@ -176,7 +183,8 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup>
   /// Track the initial screen when BottomNav ViewGroup loads
   void _trackInitialScreen() {
     if (widget.screenPayload.isNotEmpty && mounted) {
-      final initialIndex = viewGroupNotifier.viewIndex;
+      final initialIndex = safeViewGroupPayloadIndex(
+          viewGroupNotifier.viewIndex, widget.screenPayload.length);
       final initialPayload = widget.screenPayload[initialIndex];
 
       ScreenTracker().trackScreenFromPayload(
@@ -245,6 +253,7 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup>
     return PageGroupWidgetWrapper(
       reloadView: widget.menu.reloadView,
       scopeManager: widget.scopeManager,
+      pageCount: widget.children.length,
       child: Scaffold(
         resizeToAvoidBottomInset: true,
         backgroundColor: notchColor,
@@ -258,11 +267,12 @@ class _BottomNavPageGroupState extends State<BottomNavPageGroup>
             ? ListenableBuilder(
                 listenable: viewGroupNotifier,
                 builder: (_, __) {
-                  final screenPayload =
-                      widget.screenPayload[viewGroupNotifier.viewIndex];
+                  final safeIndex = safeViewGroupPayloadIndex(
+                      viewGroupNotifier.viewIndex, widget.screenPayload.length);
+                  final screenPayload = widget.screenPayload[safeIndex];
                   final screen = ScreenController().getScreen(
                     key: ValueKey(
-                        "${viewGroupNotifier.hashCode}:${viewGroupNotifier.viewIndex}"),
+                        "${viewGroupNotifier.hashCode}:$safeIndex"),
                     screenName: screenPayload.screenName,
                     pageArgs:
                         viewGroupNotifier.payload ?? screenPayload.arguments,

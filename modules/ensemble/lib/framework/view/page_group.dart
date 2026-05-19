@@ -222,7 +222,8 @@ class PageGroupState extends State<PageGroup>
   /// Track the initial screen when ViewGroup loads
   void _trackInitialScreen() {
     if (pagePayloads.isNotEmpty && mounted) {
-      final initialIndex = viewGroupNotifier.viewIndex;
+      final initialIndex =
+          safeViewGroupPayloadIndex(viewGroupNotifier.viewIndex, pagePayloads.length);
       final initialPayload = pagePayloads[initialIndex];
 
       // Store the initial index
@@ -235,6 +236,24 @@ class PageGroupState extends State<PageGroup>
     }
   }
 
+  /// When [viewGroupNotifier.viewIndex] is out of range for [pagePayloads],
+  /// schedule a correction so persistence and navigation stay consistent.
+  void _ensureViewGroupIndexSyncedWithPayloads() {
+    if (pagePayloads.isEmpty) return;
+    final raw = viewGroupNotifier.viewIndex;
+    final safe = safeViewGroupPayloadIndex(raw, pagePayloads.length);
+    if (safe == raw) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      if (pagePayloads.isEmpty) return;
+      final current = viewGroupNotifier.viewIndex;
+      final corrected = safeViewGroupPayloadIndex(current, pagePayloads.length);
+      if (current != corrected) {
+        viewGroupNotifier.updatePage(corrected, isReload: true);
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     EnsembleThemeManager()
@@ -242,6 +261,12 @@ class PageGroupState extends State<PageGroup>
     // Get visible items for rendering decisions
     List<MenuItem> visibleMenuItems = Menu.getVisibleMenuItems(
         _scopeManager.dataContext, widget.menu.menuItems);
+
+    _ensureViewGroupIndexSyncedWithPayloads();
+    final safeViewIndex = pagePayloads.isEmpty
+        ? 0
+        : safeViewGroupPayloadIndex(
+            viewGroupNotifier.viewIndex, pagePayloads.length);
 
     // skip rendering the menu if only 1 visible menu item, just the content itself
     if (visibleMenuItems.length == 1) {
@@ -259,7 +284,12 @@ class PageGroupState extends State<PageGroup>
         return ListenableBuilder(
           listenable: viewGroupNotifier,
           builder: (context, _) {
-            final screenPayload = pagePayloads[viewGroupNotifier.viewIndex];
+            _ensureViewGroupIndexSyncedWithPayloads();
+            final safe = pagePayloads.isEmpty
+                ? 0
+                : safeViewGroupPayloadIndex(
+                    viewGroupNotifier.viewIndex, pagePayloads.length);
+            final screenPayload = pagePayloads[safe];
             final screen = ScreenController().getScreen(
               key: UniqueKey(),
               screenName: screenPayload.screenName,
@@ -273,7 +303,7 @@ class PageGroupState extends State<PageGroup>
               child: widget.menu.reloadView == true
                   ? screen
                   : IndexedStack(
-                      index: viewGroupNotifier.viewIndex,
+                      index: safe,
                       children: pageWidgets,
                     ),
             );
@@ -288,7 +318,7 @@ class PageGroupState extends State<PageGroup>
             scopeManager: _scopeManager,
             child: BottomNavPageGroup(
               scopeManager: _scopeManager,
-              selectedPage: viewGroupNotifier.viewIndex,
+              selectedPage: safeViewIndex,
               menu: widget.menu,
               screenPayload: pagePayloads,
               children: pageWidgets,
@@ -306,7 +336,12 @@ class PageGroupState extends State<PageGroup>
       child: ListenableBuilder(
         listenable: viewGroupNotifier,
         builder: (context, _) {
-          final screenPayload = pagePayloads[viewGroupNotifier.viewIndex];
+          _ensureViewGroupIndexSyncedWithPayloads();
+          final safe = pagePayloads.isEmpty
+              ? 0
+              : safeViewGroupPayloadIndex(
+                  viewGroupNotifier.viewIndex, pagePayloads.length);
+          final screenPayload = pagePayloads[safe];
           final screen = ScreenController().getScreen(
             key: UniqueKey(),
             screenName: screenPayload.screenName,
@@ -316,7 +351,7 @@ class PageGroupState extends State<PageGroup>
           return menu.reloadView == true
               ? screen
               : IndexedStack(
-                  index: viewGroupNotifier.viewIndex,
+                  index: safe,
                   children: pageWidgets,
                 );
         },
@@ -681,6 +716,17 @@ class PageGroupState extends State<PageGroup>
 //
 //   return display;
 // }
+}
+
+/// Clamps a ViewGroup tab index for indexing [PageGroupState.pagePayloads] and
+/// [IndexedStack] children. Call sites must use this when the global
+/// [viewGroupNotifier] may hold a stale index (for example after restoring from
+/// background storage when the menu definition has fewer tabs than before).
+int safeViewGroupPayloadIndex(int index, int payloadLength) {
+  if (payloadLength <= 0) return 0;
+  if (index < 0) return 0;
+  if (index >= payloadLength) return payloadLength - 1;
+  return index;
 }
 
 class ViewGroupNotifier extends ChangeNotifier {
