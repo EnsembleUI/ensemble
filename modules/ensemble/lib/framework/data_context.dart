@@ -795,10 +795,14 @@ class EnsembleStorage with Invokable {
         .getKeys()
         .where((key) => !key.startsWith('enc_'))
         .toList();
-    StorageManager().clearPublicStorage();
-    for (final key in keys) {
-      ScreenController().dispatchStorageChanges(context, key, null);
-    }
+    // [clearPublicStorage] is async. Bindings listen for storage events then
+    // re-evaluate by reading GetStorage, so notifying before removes finish can
+    // refresh widgets from stale persisted values.
+    unawaited(StorageManager().clearPublicStorage().then((_) {
+      for (final key in keys) {
+        ScreenController().dispatchStorageChanges(context, key, null);
+      }
+    }));
   }
 
   @override
