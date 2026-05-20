@@ -761,43 +761,60 @@ class _TapEnabledWrapperState extends State<_TapEnabledWrapper> {
     final tvFocusTheme = themeExtension?.tvFocusTheme ?? const TVFocusTheme();
 
     // Resolve focus styling with fallback chain:
-    // 1. tvOptions per-widget override (highest priority)
-    // 2. Theme configuration
-    // 3. Provider values
-    // 4. Default fallback (app primary color for color)
+    // For focusColor/focusBorderWidth: tvOptions > Provider > Theme > Default
+    // For focusBorderRadius: tvOptions > Provider > Widget > Theme > Default
+    // (Widget's borderRadius takes priority so focus border matches card shape)
     final appPrimaryColor = theme.colorScheme.primary;
 
-    // Focus color: tvOptions > Theme > Provider > App Primary Color
+    // Focus color: tvOptions > Provider > Widget's borderColor > Theme > Default
     final Color focusColor;
     if (tvOptions.focusColor != null) {
       focusColor = tvOptions.focusColor!;
+    } else if (externalProvider?.focusColor != null) {
+      focusColor = externalProvider!.focusColor!;
+    } else if (boxController.borderColor != null) {
+      focusColor = boxController.borderColor!;
+    } else if (tvFocusTheme.focusColor != null) {
+      focusColor = tvFocusTheme.focusColor!;
     } else {
-      focusColor = tvFocusTheme.resolveFocusColor(
-          externalProvider?.focusColor, appPrimaryColor);
+      focusColor = appPrimaryColor;
     }
 
-    // Focus border width: tvOptions > Theme > Provider > Default
+    // Focus border width: tvOptions > Provider > Widget's borderWidth > Theme > Default
     final double focusBorderWidth;
     if (tvOptions.focusBorderWidth != null) {
       focusBorderWidth = tvOptions.focusBorderWidth!;
+    } else if (externalProvider?.focusBorderWidth != null) {
+      focusBorderWidth = externalProvider!.focusBorderWidth!;
+    } else if (boxController.borderWidth != null) {
+      focusBorderWidth = boxController.borderWidth!.toDouble();
+    } else if (tvFocusTheme.focusBorderWidth != null) {
+      focusBorderWidth = tvFocusTheme.focusBorderWidth!;
     } else {
-      focusBorderWidth =
-          tvFocusTheme.resolveBorderWidth(externalProvider?.focusBorderWidth);
+      focusBorderWidth = TVFocusTheme.defaultBorderWidth;
     }
 
-    // Focus border radius: tvOptions > Widget's borderRadius > Theme > Default
-    final double themeFocusBorderRadius =
-        tvFocusTheme.resolveBorderRadius(externalProvider?.focusBorderRadius);
+    // Focus border radius: tvOptions > Provider > Widget's borderRadius > Theme > Default
+    // Note: Widget's borderRadius comes before Theme so focus border matches card shape
     final focusAnimationDuration = tvFocusTheme
         .resolveAnimationDuration(externalProvider?.focusAnimationDurationMs);
 
     final BorderRadius borderRadius;
     if (tvOptions.focusBorderRadius != null) {
+      // 1. tvOptions (per-widget override) - HIGHEST
       borderRadius = BorderRadius.circular(tvOptions.focusBorderRadius!);
+    } else if (externalProvider?.focusBorderRadius != null) {
+      // 2. Provider (host app)
+      borderRadius = BorderRadius.circular(externalProvider!.focusBorderRadius!);
     } else if (boxController.borderRadius != null) {
+      // 3. Widget's own borderRadius (so focus matches card shape)
       borderRadius = boxController.borderRadius!.getValue();
+    } else if (tvFocusTheme.focusBorderRadius != null) {
+      // 4. Theme TV.focusBorderRadius
+      borderRadius = BorderRadius.circular(tvFocusTheme.focusBorderRadius!);
     } else {
-      borderRadius = BorderRadius.circular(themeFocusBorderRadius);
+      // 5. Default
+      borderRadius = BorderRadius.circular(TVFocusTheme.defaultBorderRadius);
     }
 
     // When wrapEntireWidget is true, don't add internal padding - child is already the complete widget
@@ -907,7 +924,7 @@ class _TapEnabledWrapperState extends State<_TapEnabledWrapper> {
 }
 
 /// TV: D-pad navigation for widgets with built-in tap handling (e.g., Button).
-/// Adds focus ordering and scroll-on-focus; child handles its own tap and focus visuals.
+/// Adds focus ordering, scroll-on-focus, and focus border styling.
 class _TVFocusOnlyWrapper extends StatefulWidget {
   const _TVFocusOnlyWrapper({
     required this.child,
@@ -922,6 +939,8 @@ class _TVFocusOnlyWrapper extends StatefulWidget {
 }
 
 class _TVFocusOnlyWrapperState extends State<_TVFocusOnlyWrapper> {
+  bool _hasFocus = false;
+
   /// Handles vertical scrolling when this widget's subtree gains focus.
   void _handleFocusScroll(BuildContext childContext) {
     final RenderBox? itemBox = childContext.findRenderObject() as RenderBox?;
@@ -1007,7 +1026,8 @@ class _TVFocusOnlyWrapperState extends State<_TVFocusOnlyWrapper> {
 
   @override
   Widget build(BuildContext context) {
-    final tvOptions = widget.boxController.tvOptions!;
+    final boxController = widget.boxController;
+    final tvOptions = boxController.tvOptions!;
     final tvRow = tvOptions.row!;
     final tvOrder = tvOptions.order ?? 0;
     final isRowEntryPoint = tvOptions.isRowEntryPoint;
@@ -1019,18 +1039,96 @@ class _TVFocusOnlyWrapperState extends State<_TVFocusOnlyWrapper> {
         ? tvOrder + externalProvider.orderOffset
         : tvOrder;
 
+    // Get TV focus theme from Ensemble theme
+    final theme = Theme.of(context);
+    final themeExtension = theme.extension<EnsembleThemeExtension>();
+    final tvFocusTheme = themeExtension?.tvFocusTheme ?? const TVFocusTheme();
+
+    // Resolve focus styling with fallback chain:
+    // For focusColor/focusBorderWidth: tvOptions > Provider > Theme > Default
+    // For focusBorderRadius: tvOptions > Provider > Widget > Theme > Default
+    // (Widget's borderRadius takes priority so focus border matches card shape)
+    final appPrimaryColor = theme.colorScheme.primary;
+
+    // Focus color: tvOptions > Provider > Widget's borderColor > Theme > Default
+    final Color focusColor;
+    if (tvOptions.focusColor != null) {
+      focusColor = tvOptions.focusColor!;
+    } else if (externalProvider?.focusColor != null) {
+      focusColor = externalProvider!.focusColor!;
+    } else if (boxController.borderColor != null) {
+      focusColor = boxController.borderColor!;
+    } else if (tvFocusTheme.focusColor != null) {
+      focusColor = tvFocusTheme.focusColor!;
+    } else {
+      focusColor = appPrimaryColor;
+    }
+
+    // Focus border width: tvOptions > Provider > Widget's borderWidth > Theme > Default
+    final double focusBorderWidth;
+    if (tvOptions.focusBorderWidth != null) {
+      focusBorderWidth = tvOptions.focusBorderWidth!;
+    } else if (externalProvider?.focusBorderWidth != null) {
+      focusBorderWidth = externalProvider!.focusBorderWidth!;
+    } else if (boxController.borderWidth != null) {
+      focusBorderWidth = boxController.borderWidth!.toDouble();
+    } else if (tvFocusTheme.focusBorderWidth != null) {
+      focusBorderWidth = tvFocusTheme.focusBorderWidth!;
+    } else {
+      focusBorderWidth = TVFocusTheme.defaultBorderWidth;
+    }
+
+    // Focus border radius: tvOptions > Provider > Widget's borderRadius > Theme > Default
+    // Note: Widget's borderRadius comes before Theme so focus border matches card shape
+    final focusAnimationDuration = tvFocusTheme
+        .resolveAnimationDuration(externalProvider?.focusAnimationDurationMs);
+
+    final BorderRadius borderRadius;
+    if (tvOptions.focusBorderRadius != null) {
+      // 1. tvOptions (per-widget override) - HIGHEST
+      borderRadius = BorderRadius.circular(tvOptions.focusBorderRadius!);
+    } else if (externalProvider?.focusBorderRadius != null) {
+      // 2. Provider (host app)
+      borderRadius = BorderRadius.circular(externalProvider!.focusBorderRadius!);
+    } else if (boxController.borderRadius != null) {
+      // 3. Widget's own borderRadius (so focus matches card shape)
+      borderRadius = boxController.borderRadius!.getValue();
+    } else if (tvFocusTheme.focusBorderRadius != null) {
+      // 4. Theme TV.focusBorderRadius
+      borderRadius = BorderRadius.circular(tvFocusTheme.focusBorderRadius!);
+    } else {
+      // 5. Default
+      borderRadius = BorderRadius.circular(TVFocusTheme.defaultBorderRadius);
+    }
+
     // Wrap child with FocusScope to detect when any descendant gains focus
+    // and render focus border
     final wrappedChild = FocusScope(
       onFocusChange: (hasFocus) {
-        if (hasFocus && mounted) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (mounted && context.mounted) {
-              _handleFocusScroll(context);
-            }
+        if (mounted) {
+          setState(() {
+            _hasFocus = hasFocus;
           });
+          if (hasFocus) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted && context.mounted) {
+                _handleFocusScroll(context);
+              }
+            });
+          }
         }
       },
-      child: widget.child,
+      child: AnimatedContainer(
+        duration: focusAnimationDuration,
+        decoration: BoxDecoration(
+          border: Border.all(
+            color: _hasFocus ? focusColor : Colors.transparent,
+            width: focusBorderWidth,
+          ),
+          borderRadius: borderRadius,
+        ),
+        child: widget.child,
+      ),
     );
 
     if (externalProvider != null) {

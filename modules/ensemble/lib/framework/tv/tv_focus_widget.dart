@@ -86,9 +86,9 @@ class TVFocusWidget extends StatelessWidget {
     int yOffset = 0,
     int xOffset = 0,
   }) {
-    // If horizontal navigation is locked, delegate to parent FocusScope
-    // This allows carousel or other containers to handle slide switching
-    if (xOffset != 0 && focusOrder.lockHorizontalNavigation) {
+    // If delegateHorizontalNavigation is true, let parent handle horizontal keys
+    // (e.g., for carousel slide switching)
+    if (xOffset != 0 && focusOrder.delegateHorizontalNavigation) {
       return false;
     }
 
@@ -202,6 +202,13 @@ class TVFocusWidget extends StatelessWidget {
         // Focus would stay the same, but we're locked - block the event
         return true;
       }
+
+      // Handle horizontal boundary locking (prevents escaping row at left/right edges)
+      if (xOffset != 0 && focusOrder.lockHorizontalNavigation) {
+        // At horizontal boundary with lockHorizontalNavigation enabled - block the event
+        return true;
+      }
+
       // At boundary - let event propagate to parent
       return false;
     }
