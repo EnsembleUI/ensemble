@@ -1,3 +1,7 @@
+## 1.2.38-beta.5
+
+ - Releasing new beta version for TV
+
 ## 1.2.38-beta.4
 
  - **FIX**(incorrect header format): explicit convertion of header entry into string. ([84ead788](https://github.com/ensembleUI/ensemble/commit/84ead788a7cd0b1aee50292eabf07bc8ae3c490d))
