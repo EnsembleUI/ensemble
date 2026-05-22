@@ -800,10 +800,14 @@ class EnsembleStorage with Invokable {
   void clear() {
     final keys =
         ensembleStorageClearDispatchKeys(StorageManager().getKeys());
-    StorageManager().clearPublicStorage();
-    for (final key in keys) {
-      ScreenController().dispatchStorageChanges(context, key, null);
-    }
+    // clearPublicStorage is async; binding listeners re-evaluate by reading
+    // GetStorage. Dispatch only after removal completes so eval() does not
+    // observe stale persisted values (see PR discussion on #2227).
+    unawaited(StorageManager().clearPublicStorage().whenComplete(() {
+      for (final key in keys) {
+        ScreenController().dispatchStorageChanges(context, key, null);
+      }
+    }));
   }
 
   @override
