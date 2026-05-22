@@ -1,3 +1,7 @@
+## 1.2.38-beta.6
+
+ - releaseing new beta version
+
 ## 1.2.38-beta.5
 
  - Releasing new beta version for TV
