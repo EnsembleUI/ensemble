@@ -14,6 +14,28 @@ import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:ensemble/widget/helpers/widgets.dart';
 import 'package:flutter/material.dart';
 
+// ─────────────────────────────────────────────────────────────────────────────
+// TV Focus Scroll Constants
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Default scroll animation duration in milliseconds
+const int kTVScrollAnimationDurationMs = 200;
+
+/// Default horizontal padding for scroll visibility checks
+const double kTVHorizontalScrollPadding = 16.0;
+
+/// Default vertical padding from screen edges for scroll detection
+const double kTVVerticalScrollPadding = 50.0;
+
+/// Default fixed focus offset for Netflix-style scrolling
+const double kTVFixedFocusOffset = 48.0;
+
+/// Edge padding for visibility checks in fixed focus scrolling
+const double kTVEdgePadding = 8.0;
+
+/// Minimum scroll delta to trigger animation (avoids micro-scrolls)
+const double kTVScrollThreshold = 2.0;
+
 /// TODO: Legacy - move to EnsembleBoxWrapper
 /// wraps around a widget and gives it common box attributes
 class BoxWrapper extends StatelessWidget {
@@ -77,11 +99,21 @@ class BoxWrapper extends StatelessWidget {
           )
         : _getClippedWidget(context);
 
+    // TV: When tvOptions has focused background styles, let the wrapper handle
+    // both focused and unfocused backgrounds for proper animation
+    final bool tvHandlesBackground = Device().isTV &&
+        boxController.tvOptions?.isEnabled == true &&
+        (boxController.tvOptions?.backgroundColor != null ||
+            boxController.tvOptions?.backgroundGradient != null);
+
     final boxDecoration = !boxController.hasBoxDecoration()
         ? null
         : BoxDecoration(
-            color: boxController.backgroundColor,
-            gradient: boxController.backgroundGradient,
+            // Skip backgroundColor if TV wrapper will handle it
+            color: tvHandlesBackground ? null : boxController.backgroundColor,
+            gradient: tvHandlesBackground
+                ? null
+                : boxController.backgroundGradient,
             border: !boxController.hasBorder()
                 ? null
                 : boxController.borderGradient != null
@@ -447,8 +479,10 @@ class _TapEnabledWrapperState extends State<_TapEnabledWrapper> {
     final useFixedFocusScroll = tvOptions?.fixedFocusScroll ?? false;
 
     // Get configurable scroll properties with defaults
-    final scrollAnimationDuration = tvOptions?.scrollAnimationDuration ?? 200;
-    final horizontalScrollPadding = tvOptions?.horizontalScrollPadding ?? 16.0;
+    final scrollAnimationDuration =
+        tvOptions?.scrollAnimationDuration ?? kTVScrollAnimationDurationMs;
+    final horizontalScrollPadding =
+        tvOptions?.horizontalScrollPadding ?? kTVHorizontalScrollPadding;
     final scrollCurveName = tvOptions?.scrollAnimationCurve;
 
     // Check if external provider handles horizontal scrolling
@@ -459,7 +493,8 @@ class _TapEnabledWrapperState extends State<_TapEnabledWrapper> {
     // Handle vertical scrolling to ensure focused item is visible
     final verticalScrollable = _findVerticalScrollable();
     if (verticalScrollable != null) {
-      final verticalPadding = tvOptions?.verticalScrollPadding ?? 50.0;
+      final verticalPadding =
+          tvOptions?.verticalScrollPadding ?? kTVVerticalScrollPadding;
       final verticalCurve =
           _getCurveFromName(scrollCurveName, defaultCurve: Curves.easeInOut);
       _scrollVerticalOnly(verticalScrollable, itemBox,
@@ -481,7 +516,7 @@ class _TapEnabledWrapperState extends State<_TapEnabledWrapper> {
           _getCurveFromName(scrollCurveName, defaultCurve: Curves.easeOut);
       if (useFixedFocusScroll) {
         // Netflix-style: focus stays at fixed left position
-        final fixedOffset = tvOptions?.fixedFocusOffset ?? 48.0;
+        final fixedOffset = tvOptions?.fixedFocusOffset ?? kTVFixedFocusOffset;
         _scrollHorizontalWithFixedPosition(
             horizontalScrollable, itemBox, fixedOffset,
             animationDuration: scrollAnimationDuration, curve: horizontalCurve);
@@ -544,8 +579,8 @@ class _TapEnabledWrapperState extends State<_TapEnabledWrapper> {
   /// [animationDuration] controls the scroll animation duration in milliseconds.
   /// [curve] controls the animation curve (defaults to easeInOut).
   void _scrollVerticalOnly(ScrollableState scrollable, RenderBox itemBox,
-      {double verticalPadding = 50.0,
-      int animationDuration = 200,
+      {double verticalPadding = kTVVerticalScrollPadding,
+      int animationDuration = kTVScrollAnimationDurationMs,
       Curve curve = Curves.easeInOut}) {
     final scrollableBox = scrollable.context.findRenderObject() as RenderBox?;
     if (scrollableBox == null || !scrollableBox.hasSize) return;
@@ -582,7 +617,7 @@ class _TapEnabledWrapperState extends State<_TapEnabledWrapper> {
         (position.pixels + scrollDelta).clamp(0.0, position.maxScrollExtent);
 
     // Only scroll if delta is significant (avoid micro-scrolls)
-    if ((targetScroll - position.pixels).abs() > 2.0) {
+    if ((targetScroll - position.pixels).abs() > kTVScrollThreshold) {
       position.animateTo(
         targetScroll,
         duration: Duration(milliseconds: animationDuration),
@@ -598,8 +633,8 @@ class _TapEnabledWrapperState extends State<_TapEnabledWrapper> {
   void _scrollHorizontalIfNotVisible(
     ScrollableState scrollable,
     RenderBox itemBox, {
-    double padding = 16.0,
-    int animationDuration = 200,
+    double padding = kTVHorizontalScrollPadding,
+    int animationDuration = kTVScrollAnimationDurationMs,
     Curve curve = Curves.easeOut,
   }) {
     final scrollableBox = scrollable.context.findRenderObject() as RenderBox?;
@@ -639,7 +674,7 @@ class _TapEnabledWrapperState extends State<_TapEnabledWrapper> {
     ScrollableState scrollable,
     RenderBox itemBox,
     double fixedOffset, {
-    int animationDuration = 200,
+    int animationDuration = kTVScrollAnimationDurationMs,
     Curve curve = Curves.easeOut,
   }) {
     final scrollableBox = scrollable.context.findRenderObject() as RenderBox?;
@@ -660,7 +695,7 @@ class _TapEnabledWrapperState extends State<_TapEnabledWrapper> {
     final double scrollableRight = scrollableLeft + scrollableWidth;
 
     // Padding for visibility checks
-    const double edgePadding = 8.0;
+    const double edgePadding = kTVEdgePadding;
 
     // Check if item is fully visible on screen (both edges with padding)
     final bool isItemFullyVisible =
@@ -678,8 +713,9 @@ class _TapEnabledWrapperState extends State<_TapEnabledWrapper> {
         isLeftEdgeVisible && isRightEdgeVisible;
 
     // Check if we're currently at boundaries
-    final bool isAtStart = position.pixels <= 2.0;
-    final bool isAtEnd = position.pixels >= position.maxScrollExtent - 2.0;
+    final bool isAtStart = position.pixels <= kTVScrollThreshold;
+    final bool isAtEnd =
+        position.pixels >= position.maxScrollExtent - kTVScrollThreshold;
 
     // Calculate item's position relative to viewport
     final double itemLeftInViewport = itemLeft - scrollableLeft;
@@ -715,7 +751,7 @@ class _TapEnabledWrapperState extends State<_TapEnabledWrapper> {
     double targetScroll = rawTargetScroll.clamp(0.0, position.maxScrollExtent);
 
     // Animate if there's a meaningful change
-    if ((targetScroll - position.pixels).abs() > 2.0) {
+    if ((targetScroll - position.pixels).abs() > kTVScrollThreshold) {
       position.animateTo(
         targetScroll,
         duration: Duration(milliseconds: animationDuration),
@@ -761,41 +797,40 @@ class _TapEnabledWrapperState extends State<_TapEnabledWrapper> {
     final tvFocusTheme = themeExtension?.tvFocusTheme ?? const TVFocusTheme();
 
     // Resolve focus styling with fallback chain:
-    // For focusColor/focusBorderWidth: tvOptions > Provider > Theme > Default
-    // For focusBorderRadius: tvOptions > Provider > Widget > Theme > Default
-    // (Widget's borderRadius takes priority so focus border matches card shape)
+    // Priority: tvOptions > Theme > Provider > Widget > Default
+    // (Ensemble theme takes precedence over host app provider)
     final appPrimaryColor = theme.colorScheme.primary;
 
-    // Focus color: tvOptions > Provider > Widget's borderColor > Theme > Default
+    // Focus color: tvOptions > Theme > Provider > Widget's borderColor > Default
     final Color focusColor;
     if (tvOptions.focusColor != null) {
       focusColor = tvOptions.focusColor!;
+    } else if (tvFocusTheme.focusColor != null) {
+      focusColor = tvFocusTheme.focusColor!;
     } else if (externalProvider?.focusColor != null) {
       focusColor = externalProvider!.focusColor!;
     } else if (boxController.borderColor != null) {
       focusColor = boxController.borderColor!;
-    } else if (tvFocusTheme.focusColor != null) {
-      focusColor = tvFocusTheme.focusColor!;
     } else {
       focusColor = appPrimaryColor;
     }
 
-    // Focus border width: tvOptions > Provider > Widget's borderWidth > Theme > Default
+    // Focus border width: tvOptions > Theme > Provider > Widget's borderWidth > Default
     final double focusBorderWidth;
     if (tvOptions.focusBorderWidth != null) {
       focusBorderWidth = tvOptions.focusBorderWidth!;
+    } else if (tvFocusTheme.focusBorderWidth != null) {
+      focusBorderWidth = tvFocusTheme.focusBorderWidth!;
     } else if (externalProvider?.focusBorderWidth != null) {
       focusBorderWidth = externalProvider!.focusBorderWidth!;
     } else if (boxController.borderWidth != null) {
       focusBorderWidth = boxController.borderWidth!.toDouble();
-    } else if (tvFocusTheme.focusBorderWidth != null) {
-      focusBorderWidth = tvFocusTheme.focusBorderWidth!;
     } else {
       focusBorderWidth = TVFocusTheme.defaultBorderWidth;
     }
 
-    // Focus border radius: tvOptions > Provider > Widget's borderRadius > Theme > Default
-    // Note: Widget's borderRadius comes before Theme so focus border matches card shape
+    // Focus border radius: tvOptions > Theme > Provider > Widget's borderRadius > Default
+    // Note: Widget's borderRadius comes before Default so focus border matches card shape
     final focusAnimationDuration = tvFocusTheme
         .resolveAnimationDuration(externalProvider?.focusAnimationDurationMs);
 
@@ -803,15 +838,15 @@ class _TapEnabledWrapperState extends State<_TapEnabledWrapper> {
     if (tvOptions.focusBorderRadius != null) {
       // 1. tvOptions (per-widget override) - HIGHEST
       borderRadius = BorderRadius.circular(tvOptions.focusBorderRadius!);
+    } else if (tvFocusTheme.focusBorderRadius != null) {
+      // 2. Theme TV.focusBorderRadius
+      borderRadius = BorderRadius.circular(tvFocusTheme.focusBorderRadius!);
     } else if (externalProvider?.focusBorderRadius != null) {
-      // 2. Provider (host app)
+      // 3. Provider (host app)
       borderRadius = BorderRadius.circular(externalProvider!.focusBorderRadius!);
     } else if (boxController.borderRadius != null) {
-      // 3. Widget's own borderRadius (so focus matches card shape)
+      // 4. Widget's own borderRadius (so focus matches card shape)
       borderRadius = boxController.borderRadius!.getValue();
-    } else if (tvFocusTheme.focusBorderRadius != null) {
-      // 4. Theme TV.focusBorderRadius
-      borderRadius = BorderRadius.circular(tvFocusTheme.focusBorderRadius!);
     } else {
       // 5. Default
       borderRadius = BorderRadius.circular(TVFocusTheme.defaultBorderRadius);
@@ -844,7 +879,9 @@ class _TapEnabledWrapperState extends State<_TapEnabledWrapper> {
       child: Builder(
         builder: (builderContext) {
           final hasFocus = Focus.maybeOf(builderContext)?.hasFocus ?? false;
-          return AnimatedContainer(
+
+          // Build the content with focus indicator border
+          Widget focusedContent = AnimatedContainer(
             duration: focusAnimationDuration,
             decoration: BoxDecoration(
               border: Border.all(
@@ -855,6 +892,70 @@ class _TapEnabledWrapperState extends State<_TapEnabledWrapper> {
             ),
             child: content,
           );
+
+          // Apply focused state styles from tvOptions
+          if (tvOptions.hasFocusedStyles) {
+            // Apply scale animation
+            if (tvOptions.scale != null) {
+              focusedContent = AnimatedScale(
+                scale: hasFocus ? tvOptions.scale! : 1.0,
+                duration: focusAnimationDuration,
+                child: focusedContent,
+              );
+            }
+
+            // Apply opacity animation
+            // Use tvOptions.opacity when focused, boxController.opacity when unfocused
+            if (tvOptions.opacity != null) {
+              focusedContent = AnimatedOpacity(
+                opacity: hasFocus
+                    ? tvOptions.opacity!
+                    : (boxController.opacity ?? 1.0),
+                duration: focusAnimationDuration,
+                child: focusedContent,
+              );
+            }
+
+            // Apply elevation
+            if (tvOptions.elevation != null) {
+              focusedContent = AnimatedPhysicalModel(
+                duration: focusAnimationDuration,
+                shape: BoxShape.rectangle,
+                elevation: hasFocus ? tvOptions.elevation!.toDouble() : 0,
+                color: Colors.transparent,
+                shadowColor: Colors.black54,
+                borderRadius: borderRadius,
+                child: focusedContent,
+              );
+            }
+
+            // Apply focused background/shadow styles
+            // When tvOptions has background, also apply unfocused background from boxController
+            if (tvOptions.backgroundColor != null ||
+                tvOptions.backgroundGradient != null ||
+                tvOptions.boxShadow != null) {
+              focusedContent = AnimatedContainer(
+                duration: focusAnimationDuration,
+                decoration: BoxDecoration(
+                  // Use tvOptions background when focused, boxController background when unfocused
+                  color: hasFocus
+                      ? tvOptions.backgroundColor
+                      : boxController.backgroundColor,
+                  gradient: hasFocus
+                      ? tvOptions.backgroundGradient
+                      : boxController.backgroundGradient,
+                  borderRadius:
+                      tvOptions.borderRadius?.getValue() ?? borderRadius,
+                  boxShadow: hasFocus && tvOptions.boxShadow != null
+                      ? [tvOptions.boxShadow!.getValue(builderContext)]
+                      : null,
+                ),
+                child: focusedContent,
+              );
+            }
+          }
+
+          return focusedContent;
         },
       ),
     );
@@ -947,8 +1048,10 @@ class _TVFocusOnlyWrapperState extends State<_TVFocusOnlyWrapper> {
     if (itemBox == null || !itemBox.hasSize) return;
 
     final tvOptions = widget.boxController.tvOptions;
-    final scrollAnimationDuration = tvOptions?.scrollAnimationDuration ?? 200;
-    final verticalPadding = tvOptions?.verticalScrollPadding ?? 50.0;
+    final scrollAnimationDuration =
+        tvOptions?.scrollAnimationDuration ?? kTVScrollAnimationDurationMs;
+    final verticalPadding =
+        tvOptions?.verticalScrollPadding ?? kTVVerticalScrollPadding;
 
     // Handle vertical scrolling to ensure focused item is visible
     final verticalScrollable = _findVerticalScrollable();
@@ -982,7 +1085,8 @@ class _TVFocusOnlyWrapperState extends State<_TVFocusOnlyWrapper> {
 
   /// Scrolls ONLY the vertical scrollable to bring item into view.
   void _scrollVerticalOnly(ScrollableState scrollable, RenderBox itemBox,
-      {double verticalPadding = 50.0, int animationDuration = 200}) {
+      {double verticalPadding = kTVVerticalScrollPadding,
+      int animationDuration = kTVScrollAnimationDurationMs}) {
     final scrollableBox = scrollable.context.findRenderObject() as RenderBox?;
     if (scrollableBox == null || !scrollableBox.hasSize) return;
 
@@ -1015,7 +1119,7 @@ class _TVFocusOnlyWrapperState extends State<_TVFocusOnlyWrapper> {
     final double targetScroll =
         (position.pixels + scrollDelta).clamp(0.0, position.maxScrollExtent);
 
-    if ((targetScroll - position.pixels).abs() > 2.0) {
+    if ((targetScroll - position.pixels).abs() > kTVScrollThreshold) {
       position.animateTo(
         targetScroll,
         duration: Duration(milliseconds: animationDuration),
@@ -1045,41 +1149,40 @@ class _TVFocusOnlyWrapperState extends State<_TVFocusOnlyWrapper> {
     final tvFocusTheme = themeExtension?.tvFocusTheme ?? const TVFocusTheme();
 
     // Resolve focus styling with fallback chain:
-    // For focusColor/focusBorderWidth: tvOptions > Provider > Theme > Default
-    // For focusBorderRadius: tvOptions > Provider > Widget > Theme > Default
-    // (Widget's borderRadius takes priority so focus border matches card shape)
+    // Priority: tvOptions > Theme > Provider > Widget > Default
+    // (Ensemble theme takes precedence over host app provider)
     final appPrimaryColor = theme.colorScheme.primary;
 
-    // Focus color: tvOptions > Provider > Widget's borderColor > Theme > Default
+    // Focus color: tvOptions > Theme > Provider > Widget's borderColor > Default
     final Color focusColor;
     if (tvOptions.focusColor != null) {
       focusColor = tvOptions.focusColor!;
+    } else if (tvFocusTheme.focusColor != null) {
+      focusColor = tvFocusTheme.focusColor!;
     } else if (externalProvider?.focusColor != null) {
       focusColor = externalProvider!.focusColor!;
     } else if (boxController.borderColor != null) {
       focusColor = boxController.borderColor!;
-    } else if (tvFocusTheme.focusColor != null) {
-      focusColor = tvFocusTheme.focusColor!;
     } else {
       focusColor = appPrimaryColor;
     }
 
-    // Focus border width: tvOptions > Provider > Widget's borderWidth > Theme > Default
+    // Focus border width: tvOptions > Theme > Provider > Widget's borderWidth > Default
     final double focusBorderWidth;
     if (tvOptions.focusBorderWidth != null) {
       focusBorderWidth = tvOptions.focusBorderWidth!;
+    } else if (tvFocusTheme.focusBorderWidth != null) {
+      focusBorderWidth = tvFocusTheme.focusBorderWidth!;
     } else if (externalProvider?.focusBorderWidth != null) {
       focusBorderWidth = externalProvider!.focusBorderWidth!;
     } else if (boxController.borderWidth != null) {
       focusBorderWidth = boxController.borderWidth!.toDouble();
-    } else if (tvFocusTheme.focusBorderWidth != null) {
-      focusBorderWidth = tvFocusTheme.focusBorderWidth!;
     } else {
       focusBorderWidth = TVFocusTheme.defaultBorderWidth;
     }
 
-    // Focus border radius: tvOptions > Provider > Widget's borderRadius > Theme > Default
-    // Note: Widget's borderRadius comes before Theme so focus border matches card shape
+    // Focus border radius: tvOptions > Theme > Provider > Widget's borderRadius > Default
+    // Note: Widget's borderRadius comes before Default so focus border matches card shape
     final focusAnimationDuration = tvFocusTheme
         .resolveAnimationDuration(externalProvider?.focusAnimationDurationMs);
 
@@ -1087,18 +1190,92 @@ class _TVFocusOnlyWrapperState extends State<_TVFocusOnlyWrapper> {
     if (tvOptions.focusBorderRadius != null) {
       // 1. tvOptions (per-widget override) - HIGHEST
       borderRadius = BorderRadius.circular(tvOptions.focusBorderRadius!);
+    } else if (tvFocusTheme.focusBorderRadius != null) {
+      // 2. Theme TV.focusBorderRadius
+      borderRadius = BorderRadius.circular(tvFocusTheme.focusBorderRadius!);
     } else if (externalProvider?.focusBorderRadius != null) {
-      // 2. Provider (host app)
+      // 3. Provider (host app)
       borderRadius = BorderRadius.circular(externalProvider!.focusBorderRadius!);
     } else if (boxController.borderRadius != null) {
-      // 3. Widget's own borderRadius (so focus matches card shape)
+      // 4. Widget's own borderRadius (so focus matches card shape)
       borderRadius = boxController.borderRadius!.getValue();
-    } else if (tvFocusTheme.focusBorderRadius != null) {
-      // 4. Theme TV.focusBorderRadius
-      borderRadius = BorderRadius.circular(tvFocusTheme.focusBorderRadius!);
     } else {
       // 5. Default
       borderRadius = BorderRadius.circular(TVFocusTheme.defaultBorderRadius);
+    }
+
+    // Build focus indicator content
+    Widget focusIndicatorContent = AnimatedContainer(
+      duration: focusAnimationDuration,
+      decoration: BoxDecoration(
+        border: Border.all(
+          color: _hasFocus ? focusColor : Colors.transparent,
+          width: focusBorderWidth,
+        ),
+        borderRadius: borderRadius,
+      ),
+      child: widget.child,
+    );
+
+    // Apply focused state styles from tvOptions
+    if (tvOptions.hasFocusedStyles) {
+      // Apply scale animation
+      if (tvOptions.scale != null) {
+        focusIndicatorContent = AnimatedScale(
+          scale: _hasFocus ? tvOptions.scale! : 1.0,
+          duration: focusAnimationDuration,
+          child: focusIndicatorContent,
+        );
+      }
+
+      // Apply opacity animation
+      // Use tvOptions.opacity when focused, boxController.opacity when unfocused
+      if (tvOptions.opacity != null) {
+        focusIndicatorContent = AnimatedOpacity(
+          opacity: _hasFocus
+              ? tvOptions.opacity!
+              : (boxController.opacity ?? 1.0),
+          duration: focusAnimationDuration,
+          child: focusIndicatorContent,
+        );
+      }
+
+      // Apply elevation
+      if (tvOptions.elevation != null) {
+        focusIndicatorContent = AnimatedPhysicalModel(
+          duration: focusAnimationDuration,
+          shape: BoxShape.rectangle,
+          elevation: _hasFocus ? tvOptions.elevation!.toDouble() : 0,
+          color: Colors.transparent,
+          shadowColor: Colors.black54,
+          borderRadius: borderRadius,
+          child: focusIndicatorContent,
+        );
+      }
+
+      // Apply focused background/shadow styles
+      // When tvOptions has background, also apply unfocused background from boxController
+      if (tvOptions.backgroundColor != null ||
+          tvOptions.backgroundGradient != null ||
+          tvOptions.boxShadow != null) {
+        focusIndicatorContent = AnimatedContainer(
+          duration: focusAnimationDuration,
+          decoration: BoxDecoration(
+            // Use tvOptions background when focused, boxController background when unfocused
+            color: _hasFocus
+                ? tvOptions.backgroundColor
+                : boxController.backgroundColor,
+            gradient: _hasFocus
+                ? tvOptions.backgroundGradient
+                : boxController.backgroundGradient,
+            borderRadius: tvOptions.borderRadius?.getValue() ?? borderRadius,
+            boxShadow: _hasFocus && tvOptions.boxShadow != null
+                ? [tvOptions.boxShadow!.getValue(context)]
+                : null,
+          ),
+          child: focusIndicatorContent,
+        );
+      }
     }
 
     // Wrap child with FocusScope to detect when any descendant gains focus
@@ -1118,17 +1295,7 @@ class _TVFocusOnlyWrapperState extends State<_TVFocusOnlyWrapper> {
           }
         }
       },
-      child: AnimatedContainer(
-        duration: focusAnimationDuration,
-        decoration: BoxDecoration(
-          border: Border.all(
-            color: _hasFocus ? focusColor : Colors.transparent,
-            width: focusBorderWidth,
-          ),
-          borderRadius: borderRadius,
-        ),
-        child: widget.child,
-      ),
+      child: focusIndicatorContent,
     );
 
     if (externalProvider != null) {
