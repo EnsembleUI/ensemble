@@ -1184,7 +1184,7 @@ class UploadFilesResponse with Invokable {
       },
       'cancelAll': () async {
         for (var task in tasks) {
-          if (task.status == UploadStatus.completed) return;
+          if (task.status == UploadStatus.completed) continue;
           task.status = UploadStatus.cancelled;
         }
         await Workmanager().cancelAll();
