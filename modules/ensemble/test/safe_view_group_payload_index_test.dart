@@ -15,5 +15,10 @@ void main() {
       expect(safeViewGroupPayloadIndex(0, 0), 0);
       expect(safeViewGroupPayloadIndex(5, 0), 0);
     });
+
+    test('returns 0 when payload length is invalid', () {
+      expect(safeViewGroupPayloadIndex(0, -1), 0);
+      expect(safeViewGroupPayloadIndex(10, -3), 0);
+    });
   });
 }
