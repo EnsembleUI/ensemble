@@ -6,7 +6,16 @@ import 'package:ensemble/layout/tab_bar.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart';
 import 'package:yaml/yaml.dart';
+
+/// [TabController] requires `length >= 1`. When conditional `visible` bindings
+/// hide every tab, the UI shows nothing but the controller still needs a valid length.
+@visibleForTesting
+int effectiveTabControllerLength(int visibleTabCount) {
+  assert(visibleTabCount >= 0);
+  return visibleTabCount == 0 ? 1 : visibleTabCount;
+}
 
 // the Controller for the TabBar
 class TabBarController extends BoxController {

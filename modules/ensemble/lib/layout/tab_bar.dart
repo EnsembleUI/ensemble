@@ -113,12 +113,17 @@ class TabBarState extends BaseTabBarState {
     if (widget.controller.useIndexedTab) {
       _cache = List<Widget?>.filled(widget.controller.items.length, null);
     }
+    final tabLength =
+        effectiveTabControllerLength(widget.controller.items.length);
     tabController = TabController(
-      initialIndex: safeIndex,
-      length: widget.controller.items.length,
+      initialIndex:
+          widget.controller.items.isEmpty ? 0 : safeIndex.clamp(0, tabLength - 1),
+      length: tabLength,
       vsync: this,
     );
-    tabController.addListener(notifyListener);
+    if (widget.controller.items.isNotEmpty) {
+      tabController.addListener(notifyListener);
+    }
   }
 
   int _getValidInitialIndex() {
