@@ -114,14 +114,19 @@ class ScrollableTabBarState extends BaseTabBarState {
   }
 
   void _initializeTabController() {
+    final tabLength =
+        effectiveTabControllerLength(widget.controller.items.length);
     tabController = TabController(
-      length: widget.controller.items.length,
+      length: tabLength,
       vsync: this,
     );
   }
 
   void _reinitializeTabController() {
     tabController.dispose();
+    if (widget._controller.selectedIndex >= widget._controller.items.length) {
+      widget._controller.selectedIndex = 0;
+    }
     _initializeTabController();
   }
 
