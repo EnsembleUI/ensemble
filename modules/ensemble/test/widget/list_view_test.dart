@@ -74,6 +74,47 @@ void main() {
     );
   });
 
+  testWidgets('ListViewCore rebinds when external scroll controller changes',
+      (tester) async {
+    final controllerA = ScrollController();
+    final controllerB = ScrollController();
+    final widget = listViewWithChild();
+    widget.setProperty('controller', controllerA);
+
+    await tester.pumpWidget(TestUtils.wrapTestWidgetWithScope(
+      SizedBox(height: 400, width: 400, child: widget),
+    ));
+    await tester.pump();
+
+    Scrollable scrollable = tester.widget<Scrollable>(
+      find.descendant(
+        of: find.byType(ensemble.ListView),
+        matching: find.byType(Scrollable),
+      ).first,
+    );
+    expect(scrollable.controller, same(controllerA));
+
+    widget.setProperty('controller', controllerB);
+    await tester.pumpWidget(TestUtils.wrapTestWidgetWithScope(
+      SizedBox(height: 400, width: 400, child: widget),
+    ));
+    await tester.pump();
+
+    scrollable = tester.widget<Scrollable>(
+      find.descendant(
+        of: find.byType(ensemble.ListView),
+        matching: find.byType(Scrollable),
+      ).first,
+    );
+    expect(scrollable.controller, same(controllerB));
+
+    await tester.pumpWidget(
+        TestUtils.wrapTestWidgetWithScope(const SizedBox.shrink()));
+    await tester.pump();
+    controllerA.dispose();
+    controllerB.dispose();
+  });
+
   testWidgets(
       'restores ListView scroll controller when leaving draggable footer scope',
       (tester) async {
