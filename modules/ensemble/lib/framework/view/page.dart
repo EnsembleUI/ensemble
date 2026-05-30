@@ -26,6 +26,7 @@ import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:ensemble/widget/helpers/unfocus.dart';
 import 'package:ensemble/framework/bindings.dart';
 import 'package:flutter/material.dart';
+import 'package:meta/meta.dart';
 
 class SinglePageController extends WidgetController {
   TextStyleComposite? _textStyle;
@@ -1143,6 +1144,22 @@ class PageState extends State<Page>
       }
     });
   }
+
+  @visibleForTesting
+  bool get isTitleBarHeightPollTimerActive =>
+      _titleBarHeightPollTimer?.isActive ?? false;
+
+  @visibleForTesting
+  bool get isHeaderVisibilityPollTimerActive =>
+      _headerVisibilityPollTimer?.isActive ?? false;
+
+  @visibleForTesting
+  bool get hasTitleBarHeightStorageSubscription =>
+      _titleBarHeightStorageSubscription != null;
+
+  @visibleForTesting
+  bool get hasHeaderVisibilityStorageSubscription =>
+      _headerVisibilityStorageSubscription != null;
 
   @override
   void dispose() {
