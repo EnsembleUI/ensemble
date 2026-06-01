@@ -76,7 +76,7 @@ This package has a substantial `test/` directory. Run package tests with `melos 
 ## Additional technical documentation
 
 - [Layout widgets (tabs, ListView scroll)](docs/layout-widgets.md) — EDL layout behavior in `lib/layout`.
-- [Runtime security and data bindings](docs/runtime-security-and-data-bindings.md) — screen id validation for definition providers, `saveFile` naming, WebView TLS/reputation settings, global script handler payloads, and device metric bindings after rotation.
+- [Runtime security and data bindings](docs/runtime-security-and-data-bindings.md) — screen id validation for definition providers, `saveFile` naming, multipart upload path checks, `ensemble.storage.clear()` behavior and binding refresh, WebView TLS/reputation settings, global script handler payloads, and device metric bindings after rotation.
 
 ## Related Packages / Modules
 
