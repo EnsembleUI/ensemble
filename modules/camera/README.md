@@ -62,6 +62,7 @@ Below are some basic examples to help you get started:
 ### Photo & Video Capture
 
 ```dart
+import 'package:ensemble/framework/action.dart';
 import 'package:ensemble_camera/camera_manager.dart';
 
 // Example: Using the default camera for photo capture

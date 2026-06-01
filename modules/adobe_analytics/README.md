@@ -54,14 +54,26 @@ flutter pub get
 
 ## Configuration
 
-Initialize Adobe Analytics in your app's `ensemble_modules.dart` file:
+### Enabling in the Starter app
+
+Adobe Analytics is **off** by default (`useAdobeAnalytics = false` registers `AdobeAnalyticsModuleStub`). To enable from the starter project:
+
+```bash
+cd starter
+npm run hasAdobeAnalytics -- adobeAnalyticsAppId=YOUR_APP_ID
+```
+
+The enable script (`starter/scripts/modules/enable_adobe_analytics.dart`) requires `adobeAnalyticsAppId`, adds the `ensemble_adobe_analytics` dependency, sets `useAdobeAnalytics = true`, and registers `AdobeAnalyticsImpl(appId: "...")` in `lib/generated/ensemble_modules.dart`.
+
+### Manual registration
+
+In `lib/generated/ensemble_modules.dart`, set `useAdobeAnalytics = true`, uncomment the import and registration inside the `if (useAdobeAnalytics)` block:
 
 ```dart
 import 'package:ensemble_adobe_analytics/adobe_analytics.dart';
 
-// Initialize Adobe Analytics
 GetIt.I.registerSingleton<AdobeAnalyticsModule>(
-  AdobeAnalyticsImpl(appId: "YOUR_APP_ID")
+  AdobeAnalyticsImpl(appId: "YOUR_APP_ID"),
 );
 ```
 

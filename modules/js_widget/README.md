@@ -19,7 +19,7 @@ Add this to your package's `pubspec.yaml` file:
 
 ```yaml
 dependencies:
-  js_widget: ^0.0.1
+  js_widget: ^1.0.4
 ```
 
 ### Import
