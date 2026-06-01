@@ -122,3 +122,25 @@ View:
   templated data.
 - `scrollToBottom` uses the current `maxScrollExtent`; if more data is loaded
   later, call it again after the list updates.
+
+### Draggable footer (`FooterScope`)
+
+When a `ListView` (or `GridView`) is the root scrollable inside a draggable
+page footer, `FooterScope` temporarily substitutes the widget's
+`ScrollController` with the footer's controller so drag and list scroll stay
+coordinated.
+
+`ListViewState._syncScrollControllerWithFooterScope`
+(`lib/layout/list_view.dart`) saves the original controller before substitution
+and restores it when the footer scope is removed. `ListViewCore`
+(`lib/layout/helpers/list_view_core.dart`) re-attaches scroll listeners when
+the parent swaps controllers in `didUpdateWidget`.
+
+If scroll helpers (`scrollToTop`, `onScroll`, etc.) stop firing after closing
+a draggable footer, verify the list is not still bound to the footer's
+controller; the runtime restores the pre-footer controller on scope exit.
+
+### Tests
+
+`test/widget/list_view_test.dart` and `test/widget/grid_view_test.dart` assert
+scroll controller restoration when leaving a draggable footer scope.

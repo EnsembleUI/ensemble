@@ -75,8 +75,10 @@ This package has a substantial `test/` directory. Run package tests with `melos 
 
 ## Additional technical documentation
 
-- [Layout widgets (tabs, ListView scroll)](docs/layout-widgets.md) — EDL layout behavior in `lib/layout`.
-- [Runtime security and data bindings](docs/runtime-security-and-data-bindings.md) — screen id validation for definition providers, `saveFile` naming, WebView TLS/reputation settings, global script handler payloads, and device metric bindings after rotation.
+- [Layout widgets (tabs, ListView scroll)](docs/layout-widgets.md) — EDL layout behavior in `lib/layout`, including `FooterScope` scroll controller handoff.
+- [Ensemble storage (`ensemble.storage`)](docs/ensemble-storage.md) — public storage API, binding refresh, `clear()`, and encrypted `enc_` key handling.
+- [ViewGroup navigation](docs/view-group-navigation.md) — tab index clamping, persisted index, and child screen callbacks.
+- [Runtime security and data bindings](docs/runtime-security-and-data-bindings.md) — screen id validation for definition providers, `saveFile` naming, multipart upload path checks, WebView TLS/reputation settings, global script handler payloads, and device metric bindings after rotation.
 
 ## Related Packages / Modules
 

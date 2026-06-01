@@ -51,6 +51,33 @@ base name is allowed.
 
 `test/save_file_name_test.dart` covers `sanitizedSaveFileName`.
 
+## Multipart upload file paths
+
+`UploadUtils.uploadFiles` (`lib/util/upload_utils.dart`) builds
+`http.MultipartFile` instances from paths supplied by `FileUploadAction`
+inputs. Before reading from disk, each path is checked with
+`uploadPathContainsParentSegment`.
+
+### Rejected
+
+- Any path whose `/`- or `\`-split segments contain `..` (for example
+  `/tmp/../etc/passwd`, `../secret`, or a lone `..` segment).
+
+When rejected, upload throws `FormatException` with a message indicating that
+`..` segments are not allowed.
+
+### Allowed
+
+- Normal absolute or relative paths without parent-directory segments (for
+  example `/tmp/photo.jpg`, `cache/image.png`, or `C:\Users\me\file.png`).
+
+Byte-based uploads (`file.bytes`) are unaffected; the check applies when
+`file.path` is used with `MultipartFile.fromPath`.
+
+### Tests
+
+`test/upload_path_security_test.dart` covers `uploadPathContainsParentSegment`.
+
 ## Native `WebView` (InAppWebView) TLS and reputation
 
 `lib/widget/webview/native/webviewstate.dart` configures `InAppWebViewSettings`.
