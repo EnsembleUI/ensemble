@@ -19,6 +19,33 @@ void main() {
     return widget;
   }
 
+  ensemble.ListView listViewWithItems(int count) {
+    final widget = ensemble.ListView();
+    widget.initChildren(
+      children: List.generate(
+        count,
+        (index) => ViewUtil.buildModel({
+          'Text': {'text': 'Item $index'}
+        }, null),
+      ),
+    );
+    return widget;
+  }
+
+  ensemble.ListView listViewWithItemTemplate(List<dynamic> data) {
+    final widget = ensemble.ListView();
+    widget.initChildren(
+      itemTemplate: {
+        'data': data,
+        'name': 'row',
+        'template': {
+          'Text': {'text': 'Cell'},
+        },
+      },
+    );
+    return widget;
+  }
+
   testWidgets('disposes internally-created scroll controller', (tester) async {
     final widget = ensemble.ListView();
 
@@ -160,5 +187,103 @@ void main() {
         TestUtils.wrapTestWidgetWithScope(const SizedBox.shrink()));
     await tester.pump();
     footerSheetScroll.dispose();
+  });
+
+  group('scroll position control', () {
+    test('scrollToOffset is a no-op without an attached scroll controller',
+        () {
+      final widget = ensemble.ListView();
+      expect(() => widget.controller.scrollToOffset(10), returnsNormally);
+    });
+
+    testWidgets('scrollToOffset jumps to the requested offset', (tester) async {
+      final list = listViewWithItems(50);
+
+      await tester.pumpWidget(TestUtils.wrapTestWidgetWithScope(
+        SizedBox(
+          height: 200,
+          width: 400,
+          child: list,
+        ),
+      ));
+      await tester.pump();
+
+      final controller = list.controller.scrollController!;
+      expect(controller.hasClients, isTrue);
+
+      list.controller.scrollToOffset(120, animated: false);
+      await tester.pump();
+
+      expect(controller.offset, 120);
+    });
+
+    testWidgets('scrollToTop and scrollToBottom move to list edges',
+        (tester) async {
+      final list = listViewWithItems(50);
+
+      await tester.pumpWidget(TestUtils.wrapTestWidgetWithScope(
+        SizedBox(
+          height: 200,
+          width: 400,
+          child: list,
+        ),
+      ));
+      await tester.pump();
+
+      final controller = list.controller.scrollController!;
+      expect(controller.offset, 0);
+
+      list.controller.scrollToBottom(animated: false);
+      await tester.pump();
+      expect(controller.offset, greaterThan(0));
+
+      list.controller.scrollToTop(animated: false);
+      await tester.pump();
+      expect(controller.offset, 0);
+    });
+
+    testWidgets('scrollToIndex clamps index without throwing for templated data',
+        (tester) async {
+      final list = listViewWithItemTemplate(
+        List.generate(50, (index) => index),
+      );
+
+      await tester.pumpWidget(TestUtils.wrapTestWidgetWithScope(
+        SizedBox(
+          height: 200,
+          width: 400,
+          child: list,
+        ),
+      ));
+      await tester.pumpAndSettle();
+
+      expect(list.controller.widgetState?.templatedDataList?.length, 50);
+
+      final controller = list.controller.scrollController!;
+
+      list.controller.scrollToIndex(0, animated: false);
+      await tester.pump();
+      expect(controller.offset, 0);
+
+      list.controller.scrollToIndex(49, animated: false);
+      await tester.pump();
+      final offsetNearEnd = controller.offset;
+      expect(offsetNearEnd, greaterThan(0));
+
+      expect(
+        () => list.controller.scrollToIndex(999, animated: false),
+        returnsNormally,
+      );
+      await tester.pump();
+      expect(controller.offset, greaterThan(0));
+      expect(
+        controller.offset,
+        lessThanOrEqualTo(controller.position.maxScrollExtent),
+      );
+
+      list.controller.scrollToIndex(-1, animated: false);
+      await tester.pump();
+      expect(controller.offset, 0);
+    });
   });
 }
