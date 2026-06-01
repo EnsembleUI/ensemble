@@ -12,6 +12,23 @@ This module provides a robust integration of Firebase Analytics and Crashlytics 
 
 ## Getting Started
 
+### Enabling in the Starter app
+
+Firebase Analytics is **off** by default (`useFirebaseAnalytics = false` registers `LogProviderStub`). To enable the module from the starter project:
+
+```bash
+cd starter
+npm run hasFirebaseAnalytics
+```
+
+The enable script (`starter/scripts/modules/enable_firebase_analytics.dart`) adds the `ensemble_firebase_analytics` dependency, sets `useFirebaseAnalytics = true`, registers `FirebaseAnalyticsProvider` in `lib/generated/ensemble_modules.dart`, and updates Firebase platform configuration for the selected platforms.
+
+For manual setup:
+
+1. Add `ensemble_firebase_analytics` to `pubspec.yaml` (see `modules/firebase_analytics/pubspec.yaml` for the package name).
+2. In `lib/generated/ensemble_modules.dart`, set `useFirebaseAnalytics = true`, uncomment the `FirebaseAnalyticsProvider` import and `GetIt` registration.
+3. Add Firebase configuration files for your platforms (see below).
+
 ### 1. Configuration
 
 Ensure you have the appropriate Firebase configuration files for your platform:
