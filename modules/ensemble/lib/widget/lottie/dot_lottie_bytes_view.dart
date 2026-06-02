@@ -140,14 +140,19 @@ class _DotLottieBytesViewState extends State<DotLottieBytesView> {
     switch (call.method) {
       case 'onComplete':
         widget.onComplete?.call();
+        break;
       case 'onLoad':
         widget.onLoad?.call();
+        break;
       case 'onLoadError':
         widget.onLoadError?.call();
+        break;
       case 'onPlay':
         widget.onPlay?.call();
+        break;
       case 'onStop':
         widget.onStop?.call();
+        break;
     }
   }
 

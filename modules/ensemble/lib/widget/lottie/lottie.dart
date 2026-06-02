@@ -4,13 +4,10 @@ import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/helpers/controllers.dart';
-import 'package:ensemble/widget/lottie/dot_lottie_bytes_view.dart';
 import 'package:ensemble/widget/lottie/ensemble_dot_lottie_controller.dart';
 import 'package:ensemble/widget/lottie/lottiestate.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'dart:convert';
-
-import 'package:dotlottie_flutter/dotlottie_flutter.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
