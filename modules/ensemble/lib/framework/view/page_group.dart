@@ -729,6 +729,14 @@ int safeViewGroupPayloadIndex(int index, int payloadLength) {
   return index;
 }
 
+/// Resolves [viewIndex] for [NavigateViewGroupAction] when the menu has
+/// [menuLen] tabs; returns [viewIndex] unchanged when [menuLen] is zero.
+@visibleForTesting
+int resolveNavigateViewGroupTabIndex(int viewIndex, int menuLen) {
+  if (menuLen <= 0) return viewIndex;
+  return safeViewGroupPayloadIndex(viewIndex, menuLen);
+}
+
 class ViewGroupNotifier extends ChangeNotifier {
   int _viewIndex = 0;
   Map<String, dynamic>? _payload;

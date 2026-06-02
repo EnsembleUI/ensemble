@@ -4,6 +4,7 @@ import 'package:ensemble/framework/apiproviders/api_provider.dart';
 import 'package:ensemble/framework/apiproviders/http_api_provider.dart';
 import 'package:ensemble/framework/data_context.dart' hide MediaType;
 import 'package:ensemble/util/notification_utils.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
@@ -18,6 +19,24 @@ typedef OnErrorCallback = void Function(dynamic error);
 /// Used before [http.MultipartFile.fromPath] so partially trusted paths (for
 /// example from API JSON bound into [FileUploadAction] inputs) cannot traverse
 /// out of an intended directory when reading bytes from disk.
+/// Splits [files] into consecutive batches of at most [batchSize] items.
+///
+/// When [batchSize] is null, returns a single batch containing all [files].
+/// Used by background upload scheduling so every batch is enqueued (see
+/// `upload_files_action` loop).
+@visibleForTesting
+List<List<T>> splitUploadFileBatches<T>(List<T> files, int? batchSize) {
+  if (batchSize == null) {
+    return [files];
+  }
+  final batches = <List<T>>[];
+  for (var i = 0; i < files.length; i += batchSize) {
+    final end = i + batchSize < files.length ? i + batchSize : files.length;
+    batches.add(files.sublist(i, end));
+  }
+  return batches;
+}
+
 bool uploadPathContainsParentSegment(String? path) {
   if (path == null || path.isEmpty) return false;
   final unified = path.replaceAll(r'\', '/');

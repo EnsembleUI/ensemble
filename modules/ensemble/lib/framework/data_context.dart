@@ -1101,6 +1101,18 @@ class UserDateTime with Invokable {
 
 enum UploadStatus { pending, running, completed, cancelled, failed }
 
+/// Marks every non-completed [tasks] entry as [UploadStatus.cancelled].
+///
+/// [UploadFilesResponse.cancelAll] skips completed tasks but must still cancel
+/// the rest and invoke Workmanager (regression: `return` vs `continue` in loop).
+@visibleForTesting
+void cancelNonCompletedUploadTasks(Iterable<UploadTask> tasks) {
+  for (final task in tasks) {
+    if (task.status == UploadStatus.completed) continue;
+    task.status = UploadStatus.cancelled;
+  }
+}
+
 class UploadTask {
   final String id;
   late UploadStatus status;
@@ -1183,10 +1195,7 @@ class UploadFilesResponse with Invokable {
         sendPort?.send({'cancel': true, 'taskId': taskId});
       },
       'cancelAll': () async {
-        for (var task in tasks) {
-          if (task.status == UploadStatus.completed) continue;
-          task.status = UploadStatus.cancelled;
-        }
+        cancelNonCompletedUploadTasks(tasks);
         await Workmanager().cancelAll();
       },
       'clear': () => tasks.clear(),
