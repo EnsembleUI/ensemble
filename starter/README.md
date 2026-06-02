@@ -11,6 +11,12 @@ This starter project enables running and deploying Ensemble-powered Apps across 
 ### Initial Setup
 - Review `/ensemble/ensemble.properties`. Update the appId as needed - this is your app's bundle ID in the format of <reversed-domain>.<project name> e.g. `com.ensembleui.myfirstapp` (all lowercase, no special characters). 
 - Run `flutter create --org com.ensembleui --project-name starter --platform=ios,android,web .` (note the period at the end). If you modified the appId, make sure the org and project name match the bundle ID.
+- **Android JitPack Setup (for dotlottie support):** To allow dotlottie-android to download, ensure you have jitpack inside your build.gradle.kts file:
+
+
+    ```kotlin
+    maven { url = uri("https://jitpack.io") }
+    ```
 - **Monorepo checkout:** From the repository root, run `melos bootstrap` before building starter. This links local `modules/` and `packages/` paths instead of the git URLs in `pubspec.yaml`. Re-run it after changing dependencies in any module.
 - Run `flutter pub upgrade`. Run this occasionally when the Ensemble framework has been updated.
 - Run the App with `flutter run`. If you currently have a running iOS or Android emulator, the command will prompt for a selection, otherwise the App will be opened in the web browser.
