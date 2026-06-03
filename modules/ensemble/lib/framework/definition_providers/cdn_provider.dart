@@ -197,11 +197,27 @@ class CdnDefinitionProvider extends DefinitionProvider {
     } else if (state == AppLifecycleState.resumed) {
       // When app comes to foreground, only fire events if enabled and we have pending updates
       if (isArtifactRefreshEnabled() && _hasPendingUpdate) {
-        _fireManifestRefreshEvent();
-        Ensemble().notifyAppBundleChanges();
-        _hasPendingUpdate = false;
+        unawaited(_handlePendingUpdate());
       }
     }
+  }
+
+  /// Handles pending CDN updates when app resumes.
+  /// CRITICAL: Must update appBundle and translations BEFORE firing refresh event
+  /// to ensure screens rebuild with the new resources (fixes race condition).
+  Future<void> _handlePendingUpdate() async {
+    // FIRST: Update appBundle with new resources from _artifactCache
+    await Ensemble().notifyAppBundleChanges();
+
+    // SECOND: Refresh translations - ensures FlutterI18n's decodedMap is updated
+    // This is needed because _refreshTranslationsAtRuntime() in _refreshIfStale()
+    // may have been skipped if context was null during background refresh
+    await _refreshTranslationsAtRuntime();
+
+    // THIRD: Fire refresh event - screens will now rebuild with NEW resources AND translations
+    _fireManifestRefreshEvent();
+
+    _hasPendingUpdate = false;
   }
 
   // --------------------------------------------------------
@@ -497,8 +513,16 @@ class CdnDefinitionProvider extends DefinitionProvider {
       // Save to persistent cache
       await _saveCachedState(jsonString);
 
-      // Mark that we have updates
-      _hasPendingUpdate = true;
+      // If artifact refresh is enabled and app is already initialized,
+      // immediately update appBundle and fire refresh event.
+      // This handles the cold start scenario where background refresh
+      // completes after initial render.
+      if (isArtifactRefreshEnabled() && Ensemble().getConfig() != null) {
+        await _handlePendingUpdate();
+      } else {
+        // Mark for later refresh on next resume
+        _hasPendingUpdate = true;
+      }
     } catch (e) {
       if (kDebugMode) {
         debugPrint('⚠️ CDN Provider: Refresh failed: $e');
