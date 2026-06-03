@@ -1,5 +1,6 @@
 import 'package:ensemble/action/haptic_action.dart';
 import 'package:ensemble/framework/action.dart' as ensemble;
+import 'package:ensemble/framework/device.dart';
 import 'package:ensemble/framework/theme/theme_manager.dart';
 import 'package:ensemble/framework/view/data_scope_widget.dart';
 import 'package:ensemble/layout/form.dart';
@@ -253,11 +254,19 @@ class ButtonState extends EWidgetState<Button> {
     // and we do not want to override the default theme if not specified
     //int borderRadius = widget._controller.borderRadius ?? defaultButtonStyle?.
 
+    // TV: When tvOptions has focused background, use transparent so wrapper handles it
+    final bool tvHandlesBackground = Device().isTV &&
+        widget._controller.tvOptions?.isEnabled == true &&
+        (widget._controller.tvOptions?.backgroundColor != null ||
+            widget._controller.tvOptions?.backgroundGradient != null);
+
     return ThemeManager().getButtonStyle(
         isOutline: isOutlineButton,
-        backgroundColor: widget._controller.backgroundGradient == null
-            ? widget._controller.backgroundColor
-            : Colors.transparent,
+        backgroundColor: tvHandlesBackground
+            ? Colors.transparent
+            : (widget._controller.backgroundGradient == null
+                ? widget._controller.backgroundColor
+                : Colors.transparent),
         border: border,
         buttonHeight: widget._controller.buttonHeight?.toDouble(),
         buttonWidth: widget._controller.buttonWidth?.toDouble(),
