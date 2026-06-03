@@ -123,8 +123,11 @@ class Ensemble extends WithEnsemble with EnsembleRouteObserver {
     }
   }
 
-  void notifyAppBundleChanges() {
-    _config?.updateAppBundle();
+  /// Updates the appBundle with latest resources from the definition provider.
+  /// This should be awaited before firing any refresh events to ensure
+  /// screens rebuild with the updated resources.
+  Future<void> notifyAppBundleChanges() async {
+    await _config?.updateAppBundle();
   }
 
   /// the configuration required to run an App

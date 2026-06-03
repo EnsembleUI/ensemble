@@ -53,7 +53,7 @@ All existing APIs remain compatible, with additional features available as optio
 
 ## Usage
 
-Make sure to check out the [examples](https://github.com/ensembleUI/table_calendar/tree/master/example/lib/pages) for more details.
+Make sure to check out the local [`example/lib/pages`](example/lib/pages) directory for more details.
 
 ### Installation
 
@@ -247,7 +247,7 @@ void _onDaySelected(DateTime selectedDay, DateTime focusedDay) {
 
 ### Custom UI with CalendarBuilders
 
-To customize the UI with your own widgets, use [CalendarBuilders](https://pub.dev/documentation/table_calendar_plus/latest/table_calendar_plus/CalendarBuilders-class.html). Each builder can be used to selectively override the UI, allowing you to implement highly specific designs with minimal hassle.
+To customize the UI with your own widgets, use [CalendarBuilders](https://pub.dev/documentation/ensemble_table_calendar/latest/ensemble_table_calendar/CalendarBuilders-class.html). Each builder can be used to selectively override the UI, allowing you to implement highly specific designs with minimal hassle.
 
 You can return `null` from any builder to use the default style. For example, the following snippet will override only the Sunday's day of the week label (Sun), leaving other dow labels unchanged:
 

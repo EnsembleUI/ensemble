@@ -7,6 +7,7 @@ import 'package:ensemble/framework/widget/screen.dart';
 import 'package:flutter_i18n/flutter_i18n.dart';
 import 'package:flutter_i18n/loaders/decoders/yaml_decode_strategy.dart';
 import 'package:http/http.dart' as http;
+import 'package:ensemble/framework/definition_providers/screen_selector_security.dart';
 import 'package:yaml/yaml.dart';
 
 class RemoteDefinitionProvider extends FileDefinitionProvider {
@@ -36,6 +37,9 @@ class RemoteDefinitionProvider extends FileDefinitionProvider {
   Future<ScreenDefinition> getDefinition(
       {String? screenId, String? screenName}) async {
     String screen = screenId ?? screenName ?? appHome;
+    if (!isSafeRemoteScreenSelector(screen)) {
+      return ScreenDefinition(YamlMap());
+    }
 
     Completer<ScreenDefinition> completer = Completer();
     dynamic res = cache[screen];

@@ -146,6 +146,38 @@ class GridViewState extends EWidgetState<GridView> with TemplatedWidgetState {
 
   List _items = [];
 
+  ScrollController? _scrollControllerOutsideFooter;
+  bool _footerScrollControllerSubstituted = false;
+
+  @override
+  void dispose() {
+    if (_footerScrollControllerSubstituted) {
+      widget._controller.scrollController = _scrollControllerOutsideFooter;
+      _scrollControllerOutsideFooter = null;
+      _footerScrollControllerSubstituted = false;
+    }
+    super.dispose();
+  }
+
+  void _syncScrollControllerWithFooterScope(FooterScope? footerScope) {
+    final shouldUseFooterScroll = footerScope != null &&
+        footerScope.isRootWithinFooter(context);
+
+    if (shouldUseFooterScroll) {
+      if (!_footerScrollControllerSubstituted) {
+        _scrollControllerOutsideFooter = widget._controller.scrollController;
+        _footerScrollControllerSubstituted = true;
+      }
+      widget._controller.scrollController = footerScope!.scrollController;
+    } else if (footerScope == null) {
+      if (_footerScrollControllerSubstituted) {
+        widget._controller.scrollController = _scrollControllerOutsideFooter;
+        _scrollControllerOutsideFooter = null;
+        _footerScrollControllerSubstituted = false;
+      }
+    }
+  }
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -210,10 +242,8 @@ class GridViewState extends EWidgetState<GridView> with TemplatedWidgetState {
 
   @override
   Widget buildWidget(BuildContext context) {
-    FooterScope? footerScope = FooterScope.of(context);
-    if (footerScope != null && footerScope.isRootWithinFooter(context)) {
-      widget._controller.scrollController = footerScope.scrollController;
-    }
+    final FooterScope? footerScope = FooterScope.of(context);
+    _syncScrollControllerWithFooterScope(footerScope);
     if (widget._controller.itemTemplate == null) {
       return const SizedBox.shrink();
     }

@@ -127,7 +127,7 @@ Future<void> uploadFiles({
         scopeManager: scopeManager,
       );
 
-      return;
+      continue;
     }
     final taskId = Utils.generateRandomId(8);
     fileResponse?.addTask(UploadTask(id: taskId));
@@ -269,7 +269,7 @@ Future<void> _setBackgroundUploadTask({
   fileResponse?.addTask(UploadTask(id: taskId, isBackground: true));
 
   await Workmanager().registerOneOffTask(
-    'uploadTask',
+    taskId,
     backgroundUploadTask,
     tag: taskId,
     inputData: {

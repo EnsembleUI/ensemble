@@ -15,6 +15,13 @@ import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:collection/collection.dart';
 import 'package:workmanager/workmanager.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:meta/meta.dart';
+
+/// JSON-encodes decoded BLE UTF-8 text so raw payloads cannot break out of
+/// `functionName(<argument>)` when passed to [ScreenController.runGlobalScriptHandler].
+@visibleForTesting
+String encodeBleUtf8PayloadForScriptHandler(String decodedUtf8) =>
+    jsonEncode(decodedUtf8);
 
 class BackgroundTaskManager {
   static final Map<String, ReceivePort> _backgroundPorts = {};
@@ -195,7 +202,10 @@ class BluetoothManagerImpl extends BluetoothManager {
             final data = utf8.decode(value);
             const key = 'ensemble_bluetooth_handler';
             try {
-              dynamic _ = ScreenController().runGlobalScriptHandler(key, data);
+              // Pass JSON-encoded string so raw BLE bytes cannot break out of
+              // the generated `functionName(<argument>)` script snippet.
+              dynamic _ = ScreenController().runGlobalScriptHandler(
+                  key, jsonEncode(data));
             } catch (e) {
               throw Exception('Error processing ensemble_bluetooth_handler: $e');
             }

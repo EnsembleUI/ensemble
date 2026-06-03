@@ -1,31 +1,91 @@
-## Getting Started
+# ensemble
 
-### For detailed instructions on how to run locally or deploy to iOS AppStore or Google Play, see this - https://github.com/EnsembleUI/ensemble_starter
+`ensemble` is the core Flutter runtime for Ensemble's declarative app definitions.
 
-This is Ensemble Runtime that is essentially an interpreter for the Ensemble Declarative Language (EDL) written in Flutter. 
+## Overview
 
-Signup for Ensemble studio here - https://studio.ensembleui.com to see how the EDL is used to build front-ends. 
+This is a core runtime package. It loads Ensemble configuration, initializes providers and managers, interprets Ensemble definitions, registers widgets and actions, and exposes navigation helpers used by host apps such as `starter`.
 
-To run Ensemble locally using Android Studio or VCS, you will need to download the Ensemble Starter repo here - https://github.com/EnsembleUI/ensemble_starter
+## Features
 
-and edit the following files as follows - 
+- Provides the `Ensemble` singleton and `EnsembleConfig` model in `lib/ensemble.dart`.
+- Initializes Ensemble managers, configuration services, local assets, API providers, Firebase, and analytics providers.
+- Defines core actions such as navigation, timers, code execution, URL opening, file upload, OAuth, sockets, permissions, camera, Plaid, and authentication actions.
+- Maintains the core widget registry, including optional module extension points resolved through `GetIt`.
 
-1. change the ensemble/appId to your app's Id. If you are just starting off, you can use the Kitchen Sink app's id as an example. It is e24402cb-75e2-404c-866c-29e6c3dd7992
-2. You can always find your app's id in the studio.ensembleui.com from the right side 3 dot menu. 
+## Installation / Setup
 
-and following the instructions in the readme of https://github.com/EnsembleUI/ensemble_starter to run locally.
+Use this package from inside the Melos workspace:
 
-# How to contribute a new widget or enhance an existing widget in Ensemble
+```bash
+melos bootstrap
+```
 
-1. All the ensemble widgets are here - https://github.com/EnsembleUI/ensemble/tree/main/lib/widget 
-2. run the Kitchen Sink app - https://studio.ensembleui.com/app/e24402cb-75e2-404c-866c-29e6c3dd7992/screens when running locally use the appId as described above. 
-3. See how each widget works and how the yaml is mapped to the Flutter widget
-4. In the studio, create your own app and screens with your widget (or enhanced widget). Make sure you can test locally and it works fine
-5. When ready, create a pull request and we will review and provide feedback. 
+## Usage
 
+A source-verified host-app pattern is shown in `starter/lib/main.dart`:
 
-# How to run test
-- Run unit test with `flutter test`.
-- For integration test:
-  - first open `.ios > Podfile` and add this entry `ENV['SWIFT_VERSION'] = '5'`.
-  - Run `flutter test integration_test`.
+```dart
+await EnsembleModules().init();
+runApp(EnsembleApp());
+```
+
+`starter/lib/integrate_existing_app_with_Ensemble.dart` also shows `Ensemble().initialize()` and `Ensemble().navigateApp(context)` for integrating Ensemble into an existing Flutter app.
+
+## Configuration
+
+Configuration is loaded through `EnsembleConfigService` and `EnsembleConfig` in `lib/ensemble.dart`. Host apps provide app IDs, local or remote definitions, Firebase options, providers, secrets, and module registration through the starter app or generated module files.
+
+## Platform Support
+
+| Platform | Supported | Notes |
+| -------- | --------: | ----- |
+| Android | Unknown | This package has no Android project; support depends on the host Flutter app. |
+| iOS | Unknown | This package has no iOS project; support depends on the host Flutter app. |
+| Web | Unknown | This package has no Web project; support depends on the host Flutter app. |
+| macOS | Unknown | This package has no macOS project; support depends on the host Flutter app. |
+| Windows | Unknown | This package has no Windows project; support depends on the host Flutter app. |
+| Linux | Unknown | This package has no Linux project; support depends on the host Flutter app. |
+
+## Permissions
+
+No package-level platform manifests were found. Runtime actions and optional modules may require host-app permissions for camera, location, contacts, files, notifications, authentication, or other native capabilities.
+
+## API Reference
+
+| API | Type | Description |
+| --- | ---- | ----------- |
+| `Ensemble` | Singleton class | Initializes runtime services and provides navigation helpers. |
+| `EnsembleConfig` | Class | Runtime configuration model. |
+| `EnsembleAction` | Base class | Base for core action execution. |
+| `ActionType` | Enum | Defines core action names parsed by the runtime. |
+| `widget_registry.dart` | Registry | Maps Ensemble widget types to Flutter widget factories and optional module implementations. |
+
+## Development
+
+```bash
+melos bootstrap
+melos exec --scope="ensemble" -- flutter analyze
+melos exec --scope="ensemble" -- flutter test
+```
+
+## Testing
+
+This package has a substantial `test/` directory. Run package tests with `melos exec --scope="ensemble" -- flutter test`.
+
+## Additional technical documentation
+
+- [Layout widgets (tabs, ListView scroll)](docs/layout-widgets.md) — EDL layout behavior in `lib/layout`.
+- [Runtime security and data bindings](docs/runtime-security-and-data-bindings.md) — screen id validation for definition providers, `saveFile` naming, multipart upload path checks, `ensemble.storage.clear()` behavior and binding refresh, WebView TLS/reputation settings, global script handler payloads, and device metric bindings after rotation.
+
+## Related Packages / Modules
+
+- `starter`: host app template that initializes `EnsembleModules` and `EnsembleApp`.
+- Optional modules under `modules/` implement runtime stubs and widgets resolved by this package.
+- Packages under `packages/` provide supporting UI, parser, date, and integration utilities.
+
+## Notes for Contributors
+
+- Keep examples in sync with source code.
+- Update this README when public APIs, permissions, configuration, or platform support changes.
+- Do not document unverified behavior.

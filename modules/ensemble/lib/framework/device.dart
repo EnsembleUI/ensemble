@@ -98,18 +98,13 @@ class Device
 }
 
 mixin MediaQueryCapability {
-  static MediaQueryData? data;
-
   MediaQueryData _getData() {
-    if (StorageManager().isPreview() == true) {
-      return MediaQuery.of(Utils.globalAppKey.currentContext!);
-    }
-    return data ??= MediaQuery.of(Utils.globalAppKey.currentContext!);
+    return MediaQuery.of(Utils.globalAppKey.currentContext!);
   }
 
   int get screenWidth => _getData().size.width.toInt();
   int get screenHeight => _getData().size.height.toInt();
-  String get screenOrientation => _getData().orientation.toString();
+  String get screenOrientation => _getData().orientation.name;
   int get safeAreaTop => _getData().padding.top.toInt();
   int get safeAreaBottom => _getData().padding.bottom.toInt();
 }

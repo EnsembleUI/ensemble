@@ -1,34 +1,82 @@
-# JSParser
+# jsparser
 
-**JSParser** is an updgraded version, for Dart 2.4 and above, of **ParseJS**. **ParseJS** is a JavaScript parser for Dart. It is well-tested and is reasonably efficient.
-Original project : https://github.com/asgerf/parsejs.dart
-This project is intended to migrate it to dart 2.4 or above
+`jsparser` is a Dart JavaScript parser that returns an AST from JavaScript source text.
 
-## Example Usage
+## Overview
+
+This is a utility package. The public library `package:jsparser/jsparser.dart` exports AST types and `ParseError`, and exposes the top-level `parsejs()` function implemented in `lib/jsparser.dart`.
+
+## Features
+
+- Parses JavaScript source into a `Program` AST.
+- Supports parser options for filename, first line, noise handling, AST annotations, and expression parsing.
+- Exports AST node types from `src/ast.dart`.
+- Includes parser and lexer tests under `test/`.
+
+## Installation / Setup
+
+Use this package from inside the Melos workspace:
+
+```bash
+melos bootstrap
+```
+
+## Usage
+
 ```dart
 import 'package:jsparser/jsparser.dart';
-import 'dart:io';
 
 void main() {
-    new File('test.js').readAsString().then((String code) {
-        Program ast = parsejs(code, filename: 'test.js');
-        // Use the AST for something
-    });
+  final ast = parsejs('var answer = 42;', filename: 'inline.js');
+  print(ast.filename);
 }
 ```
 
-## Options
+## Configuration
 
-The `jsparser` function takes the following optional arguments:
+No additional configuration was found in this package.
 
-- `filename`: An arbitrary string indicating where the source came from. For your convenience this will be available on `Node.filename` and on `ParseError.filename`.
-- `firstLine`: The line number to associate with the first line of code. Default is 1. Useful if code was extracted from an HTML file, and you prefer absolute line numbers.
-- `handleNoise`: If true, parser will try to ignore hash bangs and HTML comment tags surrounding the source code. Default is true.
-- `annotate`: If true, parser will initialize `Node.parent`, `Scope.environment`, and `Name.scope`, to simplify subsequent AST analysis. Default is true.
-- `parseAsExpression`: If true, the input will be parsed as an expression statement.
+## Platform Support
 
+| Platform | Supported | Notes |
+| -------- | --------: | ----- |
+| Android | Unknown | Pure Dart package; no Android-specific evidence was found. |
+| iOS | Unknown | Pure Dart package; no iOS-specific evidence was found. |
+| Web | Unknown | Pure Dart package; no Web-specific evidence was found. |
+| macOS | Unknown | Pure Dart package; no macOS-specific evidence was found. |
+| Windows | Unknown | Pure Dart package; no Windows-specific evidence was found. |
+| Linux | Unknown | Pure Dart package; no Linux-specific evidence was found. |
 
-## To run test cases 
-1. Open terminal and cd to parsejs.dart/test/util directory
-2. Do `npm install` 
-3. CD to parsejs.dart/test/ director and run `./runtest`
+## Permissions
+
+No runtime permissions were found in this package.
+
+## API Reference
+
+| API | Type | Description |
+| --- | ---- | ----------- |
+| `parsejs` | Function | Parses JavaScript source and returns a `Program` AST. |
+| `Program` | Class | AST root exported from `src/ast.dart`. |
+| `ParseError` | Class | Parser error exported from `src/lexer.dart`. |
+
+## Development
+
+```bash
+melos bootstrap
+melos exec --scope="jsparser" -- dart analyze
+melos exec --scope="jsparser" -- dart test
+```
+
+## Testing
+
+Tests are available under `test/`. Some compatibility tests use JavaScript fixtures under `test/testcases` and utilities under `test/util`.
+
+## Related Packages / Modules
+
+- `parsejs_null_safety`: the package variant under `packages/` exposes the same parser under a different package name.
+
+## Notes for Contributors
+
+- Keep examples in sync with source code.
+- Update this README when public APIs, permissions, configuration, or platform support changes.
+- Do not document unverified behavior.

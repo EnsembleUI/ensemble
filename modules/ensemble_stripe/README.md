@@ -20,14 +20,16 @@ npm run hasStripe
 ```
 
 This will automatically:
-- Add the dependency to `pubspec.yaml`
-- Update `ensemble_modules.dart`
-- Add iOS camera permissions
-- Enable Stripe in `ensemble-config.yaml`
+- Add the `ensemble_stripe` dependency to `pubspec.yaml`
+- Set `useStripe = true` and register `StripeModuleImpl` in `lib/generated/ensemble_modules.dart`
+- Add iOS camera permission strings (for Stripe card scanning)
+- Add Android ProGuard rules for Stripe (when enabling for Android)
+
+The enable script does **not** modify `ensemble-config.yaml`. Stripe YAML actions (`initializeStripe`, `showPaymentSheet`) are defined in the Ensemble runtime, but payment processing requires the real module implementation—not the stub.
 
 ### Option 2: Manual Installation
 
-The Stripe actions are now part of the Ensemble runtime and are available by default. To use the Stripe module implementation, add it to your Ensemble project:
+Stripe is **off** by default (`useStripe = false` registers `StripeModuleStub`). To enable the module, add it to your Ensemble project:
 
 ```yaml
 dependencies:

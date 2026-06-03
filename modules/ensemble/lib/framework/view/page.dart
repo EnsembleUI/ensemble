@@ -5,6 +5,7 @@ import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/ensemble_app.dart';
 import 'package:ensemble/framework/data_context.dart';
+import 'package:ensemble/framework/device.dart';
 import 'package:ensemble/framework/devmode.dart';
 import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/extensions.dart';
@@ -101,6 +102,11 @@ class PageState extends State<Page>
   // Track the last known header visibility for collapsibleHeader
   dynamic _lastKnownHeaderVisible;
 
+  StreamSubscription<ModelChangeEvent>? _titleBarHeightStorageSubscription;
+  StreamSubscription<ModelChangeEvent>? _headerVisibilityStorageSubscription;
+  Timer? _titleBarHeightPollTimer;
+  Timer? _headerVisibilityPollTimer;
+
   @override
   bool get wantKeepAlive => true;
 
@@ -118,30 +124,11 @@ class PageState extends State<Page>
         final storageKey =
             titleBarHeightExpression.replaceFirst('ensemble.storage.', '');
 
-        // Listen to storage changes for this key
-        _scopeManager.eventBus?.on<ModelChangeEvent>().listen((event) {
+        _titleBarHeightStorageSubscription =
+            _scopeManager.eventBus.on<ModelChangeEvent>().listen((event) {
           if (event.source is StorageBindingSource &&
               event.source.modelId == storageKey) {
-            // Trigger a rebuild when storage changes
-            setState(() {});
-          }
-        });
-
-        // Also listen to the scope manager's dispatch events
-        _scopeManager.eventBus?.on<ModelChangeEvent>().listen((event) {
-          if (event.source is StorageBindingSource &&
-              event.source.modelId == storageKey) {
-            // Trigger a rebuild when storage changes
-            setState(() {});
-          }
-        });
-
-        // Also add a direct listener to the scope manager's event bus
-        _scopeManager.eventBus?.on<ModelChangeEvent>().listen((event) {
-          if (event.source is StorageBindingSource &&
-              event.source.modelId == storageKey) {
-            // Trigger a rebuild when storage changes
-            setState(() {});
+            if (mounted) setState(() {});
           }
         });
 
@@ -166,10 +153,11 @@ class PageState extends State<Page>
       if (visibleExpr is String && visibleExpr.contains('ensemble.storage.')) {
         final storageKey = visibleExpr.replaceFirst('ensemble.storage.', '');
 
-        _scopeManager.eventBus?.on<ModelChangeEvent>().listen((event) {
+        _headerVisibilityStorageSubscription =
+            _scopeManager.eventBus.on<ModelChangeEvent>().listen((event) {
           if (event.source is StorageBindingSource &&
               event.source.modelId == storageKey) {
-            setState(() {});
+            if (mounted) setState(() {});
           }
         });
 
@@ -284,6 +272,36 @@ class PageState extends State<Page>
       }
       // reset inactive time
       appLastPaused = null;
+    }
+  }
+
+  @override
+  void didChangeMetrics() {
+    super.didChangeMetrics();
+    if (!mounted) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _notifyDeviceMetricBindings();
+    });
+  }
+
+  /// Re-evaluate ${device.width} / orientation after rotation.
+  void _notifyDeviceMetricBindings() {
+    final d = Device();
+    void fire(ScopeManager sm) {
+      for (final e in <(String, Object)>[
+        ('width', d.screenWidth),
+        ('height', d.screenHeight),
+        ('orientation', d.screenOrientation),
+      ]) {
+        sm.dispatch(ModelChangeEvent(DeviceBindingSource(e.$1), e.$2));
+      }
+    }
+
+    fire(_scopeManager);
+    final pageGroupScope = PageGroupWidget.getScope(context);
+    if (pageGroupScope != null && pageGroupScope != _scopeManager) {
+      fire(pageGroupScope);
     }
   }
 
@@ -1091,7 +1109,8 @@ class PageState extends State<Page>
   /// Set up periodic check for storage changes (as a fallback)
   void _setupPeriodicStorageCheck() {
     // Check for storage changes every 100ms as a fallback
-    Timer.periodic(Duration(milliseconds: 100), (timer) {
+    _titleBarHeightPollTimer?.cancel();
+    _titleBarHeightPollTimer = Timer.periodic(Duration(milliseconds: 100), (timer) {
       if (!mounted) {
         timer.cancel();
         return;
@@ -1120,7 +1139,9 @@ class PageState extends State<Page>
 
   /// Periodically check collapsibleHeader.visible for changes
   void _setupPeriodicVisibilityCheck() {
-    Timer.periodic(const Duration(milliseconds: 150), (timer) {
+    _headerVisibilityPollTimer?.cancel();
+    _headerVisibilityPollTimer =
+        Timer.periodic(const Duration(milliseconds: 150), (timer) {
       if (!mounted) {
         timer.cancel();
         return;
@@ -1145,6 +1166,11 @@ class PageState extends State<Page>
 
   @override
   void dispose() {
+    _titleBarHeightStorageSubscription?.cancel();
+    _headerVisibilityStorageSubscription?.cancel();
+    _titleBarHeightPollTimer?.cancel();
+    _headerVisibilityPollTimer?.cancel();
+
     viewGroupNotifier.removeListener(executeOnViewGroupUpdate);
     Ensemble().routeObserver.unsubscribe(this);
     WidgetsBinding.instance.removeObserver(this);
