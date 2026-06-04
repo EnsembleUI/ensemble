@@ -15,6 +15,21 @@ ignore:
   - modules/ensemble_ts_interpreter
   - "**/build/**"
 
+scripts:
+  ensemble:test:
+    description: Run declarative Ensemble YAML tests in starter.
+    run: cd starter && dart run ensemble_test_runner:ensemble_test
+
+  ensemble:generate-test-schema:
+    description: Regenerate ensemble_test.schema.json from the step vocabulary.
+    run: |
+      cd packages/ensemble_test_runner && dart run tool/generate_schema.dart
+
+  ensemble:generate-step-registry:
+    description: Regenerate test_step_registry.dart from tool/generate_step_registry.dart.
+    run: |
+      cd packages/ensemble_test_runner && dart run tool/generate_step_registry.dart
+
 command:
   version:
     updateGitTagRefs: true

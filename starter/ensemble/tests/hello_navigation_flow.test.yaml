@@ -1,0 +1,8 @@
+# yaml-language-server: $schema=../../../packages/ensemble_test_runner/assets/schema/ensemble_test.schema.json
+id: hello_navigation_flow
+prerequisite: hello_goodbye_back
+steps:
+  - expectVisited:
+      screen: Hello Home
+  - expectVisited:
+      screen: Goodbye

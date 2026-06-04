@@ -1,0 +1,6 @@
+# yaml-language-server: $schema=../../../packages/ensemble_test_runner/assets/schema/ensemble_test.schema.json
+id: hello_goodbye_continuation
+prerequisite: hello_home_renders
+steps:
+  - expectVisible:
+      id: goodbye_title

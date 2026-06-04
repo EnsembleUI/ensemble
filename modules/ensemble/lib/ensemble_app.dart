@@ -158,6 +158,7 @@ class EnsembleAppState extends State<EnsembleApp> with WidgetsBindingObserver {
   bool _hasInternet = true;
   late final StreamSubscription<List<ConnectivityResult>>
       _connectivitySubscription;
+  SemanticsHandle? _testSemanticsHandle;
 
   @override
   void initState() {
@@ -194,7 +195,7 @@ class EnsembleAppState extends State<EnsembleApp> with WidgetsBindingObserver {
       }
     });
     if (EnvConfig().isTestMode) {
-      SemanticsBinding.instance.ensureSemantics();
+      _testSemanticsHandle = SemanticsBinding.instance.ensureSemantics();
     }
   }
 
@@ -244,6 +245,7 @@ class EnsembleAppState extends State<EnsembleApp> with WidgetsBindingObserver {
   @override
   void dispose() {
     _connectivitySubscription.cancel();
+    _testSemanticsHandle?.dispose();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
