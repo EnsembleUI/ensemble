@@ -21,6 +21,23 @@ import 'package:flutter/widgets.dart';
 import 'package:workmanager/workmanager.dart';
 import 'package:yaml/yaml.dart';
 
+/// Splits [files] into consecutive batches of at most [batchSize] items.
+/// Background uploads enqueue one Workmanager task per batch; every batch must
+/// be scheduled (regression: early `return` skipped batches after the first).
+@visibleForTesting
+List<List<File>> splitUploadFileBatches(List<File> files, int batchSize) {
+  if (batchSize <= 0) {
+    throw ArgumentError.value(batchSize, 'batchSize', 'must be positive');
+  }
+  final batches = <List<File>>[];
+  for (var i = 0; i < files.length; i += batchSize) {
+    final end =
+        i + batchSize < files.length ? i + batchSize : files.length;
+    batches.add(files.sublist(i, end));
+  }
+  return batches;
+}
+
 Future<void> uploadFiles({
   required BuildContext context,
   required FileUploadAction action,
@@ -97,18 +114,9 @@ Future<void> uploadFiles({
       : scopeManager?.dataContext.getContextById(action.id!)
           as UploadFilesResponse;
 
-  List<List<File>> fileBatches;
-  if (action.batchSize != null) {
-    fileBatches = [];
-    for (int i = 0; i < selectedFiles.length; i += action.batchSize!) {
-      int end = (i + action.batchSize! < selectedFiles.length)
-          ? i + action.batchSize!
-          : selectedFiles.length;
-      fileBatches.add(selectedFiles.sublist(i, end));
-    }
-  } else {
-    fileBatches = [selectedFiles];
-  }
+  final fileBatches = action.batchSize != null
+      ? splitUploadFileBatches(selectedFiles, action.batchSize!)
+      : [selectedFiles];
 
   for (var fileBatch in fileBatches) {
     if (action.isBackgroundTask) {

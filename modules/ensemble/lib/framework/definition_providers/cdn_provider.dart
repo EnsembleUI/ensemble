@@ -595,7 +595,8 @@ class CdnDefinitionProvider extends DefinitionProvider {
         return true;
       }
 
-      final shouldFetch = _isIncomingNewer(remoteLastUpdate, _lastUpdatedAt);
+      final shouldFetch =
+          isCdnManifestIncomingNewer(remoteLastUpdate, _lastUpdatedAt);
 
       _lastUpdatedAt = remoteLastUpdate;
 
@@ -854,9 +855,6 @@ class CdnDefinitionProvider extends DefinitionProvider {
   // Helpers
   // --------------------------------------------------------
 
-  static bool _isIncomingNewer(int? incoming, int? current) =>
-      incoming != null && (current == null || incoming > current);
-
   static Map<String, dynamic>? _asMap(dynamic value) {
     if (value is Map<String, dynamic>) return value;
     if (value is Map) return Map<String, dynamic>.from(value);
@@ -947,3 +945,8 @@ class CdnDefinitionProvider extends DefinitionProvider {
     }
   }
 }
+
+/// Whether CDN [lastUpdateTime.json] indicates a manifest fetch is needed.
+@visibleForTesting
+bool isCdnManifestIncomingNewer(int? incoming, int? current) =>
+    incoming != null && (current == null || incoming > current);
