@@ -126,6 +126,13 @@ class TVOptionsComposite extends WidgetCompositeProperty {
     scale = inputs['scale'];
     padding = inputs['padding'];
     margin = inputs['margin'];
+    // Scrollbar options
+    if (inputs['scrollbarOptions'] != null) {
+      _scrollbarOptions = TVScrollbarOptionsComposite(
+        widgetController,
+        inputs: inputs['scrollbarOptions']
+      );
+    }
   }
 
   /// Vertical position (row grouping). Items with same row navigate horizontally.
@@ -322,6 +329,10 @@ class TVOptionsComposite extends WidgetCompositeProperty {
       _padding != null ||
       _margin != null;
 
+  /// Scrollbar options for vertical scrolling
+  TVScrollbarOptionsComposite? _scrollbarOptions;
+  TVScrollbarOptionsComposite? get scrollbarOptions => _scrollbarOptions;
+
   /// Returns true if TV navigation is enabled (row is set)
   bool get isEnabled => _row != null;
 
@@ -358,6 +369,7 @@ class TVOptionsComposite extends WidgetCompositeProperty {
         'padding': () => _padding,
         'margin': () => _margin,
         'hasFocusedStyles': () => hasFocusedStyles,
+        'scrollbarOptions': () => _scrollbarOptions,
       };
 
   @override
@@ -397,6 +409,82 @@ class TVOptionsComposite extends WidgetCompositeProperty {
         'padding': (value) => padding = value,
         'margin': (value) => margin = value,
       };
+}
+
+/// Scrollbar options for TV navigation with focusable scrollbar.
+/// Nested under styles.tvOptions.scrollbarOptions
+/// If defined, scrollbar is automatically enabled.
+class TVScrollbarOptionsComposite extends WidgetCompositeProperty {
+  TVScrollbarOptionsComposite(super.widgetController, {required Map inputs}) {
+    position = inputs['position'];
+    color = inputs['color'];
+    focusedColor = inputs['focusedColor'];
+    width = inputs['width'];
+    focusedWidth = inputs['focusedWidth'];
+    radius = inputs['radius'];
+    thumbHeight = inputs['thumbHeight'];
+  }
+
+  /// Scrollbar position: 'left' or 'right' for vertical, 'top' or 'bottom' for horizontal
+  /// Defaults to 'right' for vertical scrolling
+  String _position = 'right';
+  set position(value) => _position = Utils.getString(value, fallback: 'right');
+  String get position => _position;
+
+  /// Scrollbar color when NOT focused (default: 0xFF666666 - grey)
+  Color _color = const Color(0xFF666666);
+  set color(value) => _color = Utils.getColor(value) ?? const Color(0xFF666666);
+  Color get color => _color;
+
+  /// Scrollbar color when focused (default: 0xFFFFFFFF - white)
+  Color _focusedColor = const Color(0xFFFFFFFF);
+  set focusedColor(value) => _focusedColor = Utils.getColor(value) ?? const Color(0xFFFFFFFF);
+  Color get focusedColor => _focusedColor;
+
+  /// Scrollbar width when NOT focused (default: 3)
+  double _width = 3.0;
+  set width(value) => _width = Utils.getDouble(value, fallback: 3.0);
+  double get width => _width;
+
+  /// Scrollbar width when focused (default: 6 - wider)
+  double _focusedWidth = 6.0;
+  set focusedWidth(value) => _focusedWidth = Utils.getDouble(value, fallback: 6.0);
+  double get focusedWidth => _focusedWidth;
+
+  /// Scrollbar border radius (default: 4)
+  double _radius = 4.0;
+  set radius(value) => _radius = Utils.getDouble(value, fallback: 4.0);
+  double get radius => _radius;
+
+  /// Minimum scrollbar thumb height in pixels (default: 40)
+  double _thumbHeight = 40.0;
+  set thumbHeight(value) => _thumbHeight = Utils.getDouble(value, fallback: 40.0);
+  double get thumbHeight => _thumbHeight;
+
+  @override
+  Map<String, Function> getters() => {
+    'position': () => _position,
+    'color': () => _color,
+    'focusedColor': () => _focusedColor,
+    'width': () => _width,
+    'focusedWidth': () => _focusedWidth,
+    'radius': () => _radius,
+    'thumbHeight': () => _thumbHeight,
+  };
+
+  @override
+  Map<String, Function> setters() => {
+    'position': (value) => position = value,
+    'color': (value) => color = value,
+    'focusedColor': (value) => focusedColor = value,
+    'width': (value) => width = value,
+    'focusedWidth': (value) => focusedWidth = value,
+    'radius': (value) => radius = value,
+    'thumbHeight': (value) => thumbHeight = value,
+  };
+
+  @override
+  Map<String, Function> methods() => {};
 }
 
 class TextStyleComposite extends WidgetCompositeProperty {

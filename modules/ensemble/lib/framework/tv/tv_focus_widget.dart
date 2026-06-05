@@ -10,6 +10,7 @@ import 'package:flutter/services.dart';
 /// - Builds a 2D grid of focusable items in the same FocusTraversalGroup
 /// - Navigates between items using row/order coordinates
 /// - Handles auto-scrolling when focus changes
+/// - Supports edge handlers for navigating to widgets outside the grid (e.g., scrollbars)
 ///
 /// IMPORTANT: The inner Focus widget uses `skipTraversal: true` (not `canRequestFocus: false`)
 /// so that it still receives key events but doesn't participate in tab navigation.
@@ -21,6 +22,10 @@ class TVFocusWidget extends StatelessWidget {
     required this.focusOrder,
     required this.child,
     this.onBackPressed,
+    this.onRightEdge,
+    this.onLeftEdge,
+    this.onTopEdge,
+    this.onBottomEdge,
   });
 
   /// The focus coordinate for this widget
@@ -31,6 +36,20 @@ class TVFocusWidget extends StatelessWidget {
 
   /// Optional callback when back button is pressed
   final KeyEventResult Function(FocusNode node)? onBackPressed;
+
+  /// Optional callback when RIGHT is pressed at the rightmost edge
+  /// (when no more items exist in the row). Used for navigating to
+  /// widgets outside the grid like scrollbars.
+  final VoidCallback? onRightEdge;
+
+  /// Optional callback when LEFT is pressed at the leftmost edge
+  final VoidCallback? onLeftEdge;
+
+  /// Optional callback when UP is pressed at the topmost edge
+  final VoidCallback? onTopEdge;
+
+  /// Optional callback when DOWN is pressed at the bottommost edge
+  final VoidCallback? onBottomEdge;
 
   @override
   Widget build(BuildContext context) {
@@ -206,6 +225,36 @@ class TVFocusWidget extends StatelessWidget {
       // Handle horizontal boundary locking (prevents escaping row at left/right edges)
       if (xOffset != 0 && focusOrder.lockHorizontalNavigation) {
         // At horizontal boundary with lockHorizontalNavigation enabled - block the event
+        return true;
+      }
+
+      // Check for edge handlers before letting event propagate
+      // This allows navigation to widgets outside the grid (e.g., scrollbars)
+      // Priority: widget-level handlers > scope-level handlers
+      final rightEdgeHandler = onRightEdge ?? tvFocusScope?.onRightEdge;
+      final leftEdgeHandler = onLeftEdge ?? tvFocusScope?.onLeftEdge;
+      final bottomEdgeHandler = onBottomEdge ?? tvFocusScope?.onBottomEdge;
+      final topEdgeHandler = onTopEdge ?? tvFocusScope?.onTopEdge;
+
+      if (xOffset > 0 && rightEdgeHandler != null) {
+        // At right edge and have handler
+        debugPrint('[TVFocusWidget] At right edge - calling onRightEdge handler');
+        rightEdgeHandler();
+        return true;
+      } else if (xOffset < 0 && leftEdgeHandler != null) {
+        // At left edge and have handler
+        debugPrint('[TVFocusWidget] At left edge - calling onLeftEdge handler');
+        leftEdgeHandler();
+        return true;
+      } else if (yOffset > 0 && bottomEdgeHandler != null) {
+        // At bottom edge and have handler
+        debugPrint('[TVFocusWidget] At bottom edge - calling onBottomEdge handler');
+        bottomEdgeHandler();
+        return true;
+      } else if (yOffset < 0 && topEdgeHandler != null) {
+        // At top edge and have handler
+        debugPrint('[TVFocusWidget] At top edge - calling onTopEdge handler');
+        topEdgeHandler();
         return true;
       }
 

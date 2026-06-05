@@ -71,11 +71,18 @@ abstract class TVFocusProvider {
   /// - [child]: The widget to make focusable. Should contain an InkWell
   ///   or similar focusable widget.
   /// - [onBackPressed]: Optional callback for Android TV back button.
+  /// - [onRightEdge]: Optional callback when at right edge of grid and RIGHT pressed.
+  ///   Used for scrollbar navigation from ListView content.
+  /// - [onLeftEdge]: Optional callback when at left edge of grid and LEFT pressed.
+  ///   Used for left-positioned scrollbar navigation.
+  /// - [onTopEdge]: Optional callback when at top edge and UP pressed.
+  /// - [onBottomEdge]: Optional callback when at bottom edge and DOWN pressed.
   ///
   /// The returned widget should:
   /// - Handle D-pad key events (UP/DOWN/LEFT/RIGHT)
   /// - Participate in the host app's focus traversal grid
   /// - Support auto-scrolling to keep focused item visible
+  /// - Call edge handlers when navigation reaches grid boundaries
   Widget wrapFocusable({
     required double row,
     required double order,
@@ -84,6 +91,10 @@ abstract class TVFocusProvider {
     bool lockHorizontalNavigation = false,
     bool delegateHorizontalNavigation = false,
     KeyEventResult Function(FocusNode node)? onBackPressed,
+    VoidCallback? onRightEdge,
+    VoidCallback? onLeftEdge,
+    VoidCallback? onTopEdge,
+    VoidCallback? onBottomEdge,
   });
 
   /// Optional: Row offset for Ensemble content.

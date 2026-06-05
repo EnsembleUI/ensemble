@@ -168,16 +168,32 @@ class TVFocusOrderTraversalPolicy extends ReadingOrderTraversalPolicy {
   });
 }
 
-/// Focus scope that can lock focus within a region.
-/// Useful for dialogs or modal content.
+/// Focus scope that can lock focus within a region and handle edge navigation.
+/// Useful for dialogs, modal content, and providing edge handlers for scrollbars.
 class TVFocusScope extends FocusScope {
   /// If true, focus cannot escape this scope
   final bool lockScope;
+
+  /// Optional callback when RIGHT is pressed at the rightmost edge
+  final VoidCallback? onRightEdge;
+
+  /// Optional callback when LEFT is pressed at the leftmost edge
+  final VoidCallback? onLeftEdge;
+
+  /// Optional callback when UP is pressed at the topmost edge
+  final VoidCallback? onTopEdge;
+
+  /// Optional callback when DOWN is pressed at the bottommost edge
+  final VoidCallback? onBottomEdge;
 
   const TVFocusScope({
     super.key,
     required this.lockScope,
     required super.child,
     super.debugLabel,
+    this.onRightEdge,
+    this.onLeftEdge,
+    this.onTopEdge,
+    this.onBottomEdge,
   });
 }

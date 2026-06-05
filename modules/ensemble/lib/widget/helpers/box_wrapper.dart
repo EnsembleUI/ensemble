@@ -963,11 +963,19 @@ class _TapEnabledWrapperState extends State<_TapEnabledWrapper> {
     final materialChild = Material(color: Colors.transparent, child: inkWell);
 
     if (externalProvider != null) {
+      // Look up edge handlers from TVFocusScope (e.g., from ListView scrollbar)
+      final tvFocusScope =
+          context.findAncestorWidgetOfExactType<TVFocusScope>();
+
       return externalProvider.wrapFocusable(
         row: effectiveRow,
         order: effectiveOrder,
         isRowEntryPoint: isRowEntryPoint,
         lockHorizontalNavigation: tvOptions.lockHorizontalNavigation,
+        onRightEdge: tvFocusScope?.onRightEdge,
+        onLeftEdge: tvFocusScope?.onLeftEdge,
+        onTopEdge: tvFocusScope?.onTopEdge,
+        onBottomEdge: tvFocusScope?.onBottomEdge,
         child: materialChild,
       );
     }
@@ -1299,12 +1307,20 @@ class _TVFocusOnlyWrapperState extends State<_TVFocusOnlyWrapper> {
     );
 
     if (externalProvider != null) {
+      // Look up edge handlers from TVFocusScope (e.g., from ListView scrollbar)
+      final tvFocusScope =
+          context.findAncestorWidgetOfExactType<TVFocusScope>();
+
       return externalProvider.wrapFocusable(
         row: effectiveRow,
         order: effectiveOrder,
         isRowEntryPoint: isRowEntryPoint,
         lockHorizontalNavigation: tvOptions.lockHorizontalNavigation,
         delegateHorizontalNavigation: tvOptions.delegateHorizontalNavigation,
+        onRightEdge: tvFocusScope?.onRightEdge,
+        onLeftEdge: tvFocusScope?.onLeftEdge,
+        onTopEdge: tvFocusScope?.onTopEdge,
+        onBottomEdge: tvFocusScope?.onBottomEdge,
         child: wrappedChild,
       );
     }
