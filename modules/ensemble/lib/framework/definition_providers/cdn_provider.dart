@@ -923,6 +923,20 @@ class CdnDefinitionProvider extends DefinitionProvider {
   }
 
   @visibleForTesting
+  Future<void> handlePendingUpdateForTesting() => _handlePendingUpdate();
+
+  @visibleForTesting
+  bool get hasPendingUpdateForTesting => _hasPendingUpdate;
+
+  @visibleForTesting
+  set hasPendingUpdateForTesting(bool value) => _hasPendingUpdate = value;
+
+  @visibleForTesting
+  void rebuildManifestCacheForTesting(Map<String, dynamic> root) {
+    _rebuildFromRoot(root);
+  }
+
+  @visibleForTesting
   Future<void> loadCachedStateForTesting() => _loadCachedState();
 
   @visibleForTesting

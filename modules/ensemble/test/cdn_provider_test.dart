@@ -1,6 +1,8 @@
 import 'dart:ui';
 
+import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/definition_providers/cdn_provider.dart';
+import 'package:ensemble/framework/definition_providers/provider.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_i18n/flutter_i18n.dart';
@@ -111,6 +113,40 @@ void main() {
       expect(find.text('Hello from default EN'), findsOneWidget);
     });
 
+    testWidgets('applies pending translation updates on app resume',
+        (tester) async {
+      final provider = CdnDefinitionProvider('test-app');
+      final config = EnsembleConfig(definitionProvider: provider);
+      Ensemble().setEnsembleConfig(config);
+
+      await provider.applyRuntimeManifestForTesting(
+        _manifestWithArtifactRefresh(_manifestWithoutNewKey()),
+      );
+      await config.updateAppBundle();
+
+      final tick = await _pumpTranslationApp(
+        tester,
+        provider: provider,
+        locale: const Locale('en'),
+        translationKey: 'greeting.new',
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('__missing__'), findsOneWidget);
+
+      provider.rebuildManifestCacheForTesting(
+        _manifestWithArtifactRefresh(_manifestWithNewKey()),
+      );
+      provider.hasPendingUpdateForTesting = true;
+
+      provider.onAppLifecycleStateChanged(AppLifecycleState.resumed);
+      await tester.pumpAndSettle();
+      tick.value++;
+      await tester.pumpAndSettle();
+
+      expect(find.text('Hello from CDN'), findsOneWidget);
+      expect(provider.hasPendingUpdateForTesting, isFalse);
+    });
+
     testWidgets('updates changed value for existing translation key',
         (tester) async {
       final provider = CdnDefinitionProvider('test-app');
@@ -134,7 +170,66 @@ void main() {
       expect(find.text('Hello updated'), findsOneWidget);
     });
   });
+
+  group('CDN pending update ordering', () {
+    test('handlePendingUpdate syncs app bundle from CDN cache and fires refresh',
+        () async {
+      final provider = CdnDefinitionProvider('test-app');
+      final config = EnsembleConfig(definitionProvider: provider);
+      Ensemble().setEnsembleConfig(config);
+
+      await provider.applyRuntimeManifestForTesting(
+        _manifestWithResourceVersion('v1'),
+      );
+      await config.updateAppBundle();
+
+      expect(
+        config.getResources()?[ResourceArtifactEntry.Scripts.name]['version'],
+        'v1',
+      );
+
+      provider.rebuildManifestCacheForTesting(
+        _manifestWithResourceVersion('v2'),
+      );
+      provider.hasPendingUpdateForTesting = true;
+
+      await provider.handlePendingUpdateForTesting();
+
+      expect(
+        config.getResources()?[ResourceArtifactEntry.Scripts.name]['version'],
+        'v2',
+      );
+      expect(provider.hasPendingUpdateForTesting, isFalse);
+    });
+  });
 }
+
+Map<String, dynamic> _manifestWithArtifactRefresh(Map<String, dynamic> manifest) {
+  final artifacts =
+      Map<String, dynamic>.from(manifest['artifacts'] as Map<String, dynamic>);
+  final config =
+      Map<String, dynamic>.from(artifacts['config'] as Map? ?? <String, dynamic>{});
+  final envVariables = Map<String, dynamic>.from(
+      config['envVariables'] as Map? ?? <String, dynamic>{});
+  envVariables['ENABLE_ARTIFACT_REFRESH'] = 'true';
+  config['envVariables'] = envVariables;
+  artifacts['config'] = config;
+  return {'artifacts': artifacts};
+}
+
+Map<String, dynamic> _manifestWithResourceVersion(String version) => {
+      'artifacts': {
+        'config': <String, dynamic>{},
+        'screens': <dynamic>[],
+        'theme': '',
+        'widgets': <String, dynamic>{},
+        'scripts': <String, dynamic>{
+          'version': version,
+        },
+        'actions': <dynamic>[],
+        'translations': <dynamic>[],
+      }
+    };
 
 Future<ValueNotifier<int>> _pumpTranslationApp(
   WidgetTester tester, {
