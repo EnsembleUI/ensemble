@@ -9,6 +9,35 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
+  group('cdnShouldDeliverArtifactRefreshImmediately', () {
+    test('allows delivery when lifecycle is unknown or resumed', () {
+      expect(cdnShouldDeliverArtifactRefreshImmediately(null), isTrue);
+      expect(
+        cdnShouldDeliverArtifactRefreshImmediately(AppLifecycleState.resumed),
+        isTrue,
+      );
+    });
+
+    test('defers delivery while app is backgrounded or inactive', () {
+      expect(
+        cdnShouldDeliverArtifactRefreshImmediately(AppLifecycleState.paused),
+        isFalse,
+      );
+      expect(
+        cdnShouldDeliverArtifactRefreshImmediately(AppLifecycleState.inactive),
+        isFalse,
+      );
+      expect(
+        cdnShouldDeliverArtifactRefreshImmediately(AppLifecycleState.hidden),
+        isFalse,
+      );
+      expect(
+        cdnShouldDeliverArtifactRefreshImmediately(AppLifecycleState.detached),
+        isFalse,
+      );
+    });
+  });
+
   group('CDN cache invalidation', () {
     test('resets freshness metadata when persisted manifest is invalid',
         () async {

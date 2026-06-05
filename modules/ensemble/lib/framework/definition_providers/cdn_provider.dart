@@ -488,6 +488,15 @@ class CdnDefinitionProvider extends DefinitionProvider {
     }
   }
 
+  /// Whether a CDN artifact refresh should update appBundle and fire UI events
+  /// immediately. Background/inactive lifecycle must defer until [resumed] so
+  /// [_handlePendingUpdate] runs when a BuildContext exists for i18n refresh.
+  @visibleForTesting
+  bool shouldDeliverArtifactRefreshImmediately() =>
+      cdnShouldDeliverArtifactRefreshImmediately(
+        WidgetsBinding.instance.lifecycleState,
+      );
+
   /// Check for updates and update cache if available
   /// Sets _hasPendingUpdate flag if updates were fetched
   Future<void> _refreshIfStale() async {
@@ -513,15 +522,16 @@ class CdnDefinitionProvider extends DefinitionProvider {
       // Save to persistent cache
       await _saveCachedState(jsonString);
 
-      // If artifact refresh is enabled and app is already initialized,
-      // immediately update appBundle and fire refresh event.
-      // This handles the cold start scenario where background refresh
-      // completes after initial render.
-      if (isArtifactRefreshEnabled() && Ensemble().getConfig() != null) {
-        await _handlePendingUpdate();
-      } else {
-        // Mark for later refresh on next resume
-        _hasPendingUpdate = true;
+      // Foreground/cold-start: sync appBundle + translations before refresh event.
+      // Background: defer until resume (see onAppLifecycleStateChanged) so i18n
+      // refresh is not skipped when context is unavailable.
+      if (isArtifactRefreshEnabled()) {
+        if (shouldDeliverArtifactRefreshImmediately() &&
+            Ensemble().getConfig() != null) {
+          await _handlePendingUpdate();
+        } else {
+          _hasPendingUpdate = true;
+        }
       }
     } catch (e) {
       if (kDebugMode) {
@@ -946,4 +956,10 @@ class CdnDefinitionProvider extends DefinitionProvider {
       }
     }
   }
+}
+
+/// True when CDN artifact refresh events may be delivered immediately.
+@visibleForTesting
+bool cdnShouldDeliverArtifactRefreshImmediately(AppLifecycleState? state) {
+  return state == null || state == AppLifecycleState.resumed;
 }
