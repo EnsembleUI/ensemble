@@ -423,6 +423,7 @@ class TVScrollbarOptionsComposite extends WidgetCompositeProperty {
     focusedWidth = inputs['focusedWidth'];
     radius = inputs['radius'];
     thumbHeight = inputs['thumbHeight'];
+    autofocus = inputs['autofocus'];
   }
 
   /// Scrollbar position: 'left' or 'right' for vertical, 'top' or 'bottom' for horizontal
@@ -461,6 +462,11 @@ class TVScrollbarOptionsComposite extends WidgetCompositeProperty {
   set thumbHeight(value) => _thumbHeight = Utils.getDouble(value, fallback: 40.0);
   double get thumbHeight => _thumbHeight;
 
+  /// Whether scrollbar should receive focus automatically on load (default: false)
+  bool _autofocus = false;
+  set autofocus(value) => _autofocus = Utils.getBool(value, fallback: false);
+  bool get autofocus => _autofocus;
+
   @override
   Map<String, Function> getters() => {
     'position': () => _position,
@@ -470,6 +476,7 @@ class TVScrollbarOptionsComposite extends WidgetCompositeProperty {
     'focusedWidth': () => _focusedWidth,
     'radius': () => _radius,
     'thumbHeight': () => _thumbHeight,
+    'autofocus': () => _autofocus,
   };
 
   @override
@@ -481,6 +488,7 @@ class TVScrollbarOptionsComposite extends WidgetCompositeProperty {
     'focusedWidth': (value) => focusedWidth = value,
     'radius': (value) => radius = value,
     'thumbHeight': (value) => thumbHeight = value,
+    'autofocus': (value) => autofocus = value,
   };
 
   @override

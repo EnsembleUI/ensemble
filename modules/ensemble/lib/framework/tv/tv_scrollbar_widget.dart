@@ -201,6 +201,7 @@ class _TVScrollbarWidgetState extends State<TVScrollbarWidget> {
           },
           child: InkWell(
             focusNode: _focusNode,
+            autofocus: widget.options.autofocus,
             onTap: () {
               debugPrint('[TVScrollbar] Tapped');
             },
