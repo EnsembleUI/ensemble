@@ -11,6 +11,79 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
+  group('cdnShouldFetchManifest', () {
+    test('fetches when remote timestamp is unknown or local is unset', () {
+      expect(
+        cdnShouldFetchManifest(
+          localLastUpdatedAt: 100,
+          remoteLastUpdatedAt: null,
+        ),
+        isTrue,
+      );
+      expect(
+        cdnShouldFetchManifest(
+          localLastUpdatedAt: null,
+          remoteLastUpdatedAt: 200,
+        ),
+        isTrue,
+      );
+    });
+
+    test('fetches only when remote timestamp is newer', () {
+      expect(
+        cdnShouldFetchManifest(
+          localLastUpdatedAt: 100,
+          remoteLastUpdatedAt: 200,
+        ),
+        isTrue,
+      );
+      expect(
+        cdnShouldFetchManifest(
+          localLastUpdatedAt: 200,
+          remoteLastUpdatedAt: 200,
+        ),
+        isFalse,
+      );
+      expect(
+        cdnShouldFetchManifest(
+          localLastUpdatedAt: 300,
+          remoteLastUpdatedAt: 200,
+        ),
+        isFalse,
+      );
+    });
+  });
+
+  group('CDN lastUpdatedAt commit', () {
+    test('does not advance local timestamp until manifest fetch succeeds',
+        () async {
+      final provider = CdnDefinitionProvider('test-app');
+      expect(provider.lastUpdatedAtForTesting, isNull);
+
+      // Simulate freshness check seeing a newer remote timestamp without
+      // committing it (failed manifest download must remain retryable).
+      expect(
+        cdnShouldFetchManifest(
+          localLastUpdatedAt: provider.lastUpdatedAtForTesting,
+          remoteLastUpdatedAt: 500,
+        ),
+        isTrue,
+      );
+      expect(provider.lastUpdatedAtForTesting, isNull);
+
+      provider.commitRemoteLastUpdatedAtForTesting(500);
+      expect(provider.lastUpdatedAtForTesting, 500);
+
+      expect(
+        cdnShouldFetchManifest(
+          localLastUpdatedAt: provider.lastUpdatedAtForTesting,
+          remoteLastUpdatedAt: 500,
+        ),
+        isFalse,
+      );
+    });
+  });
+
   group('CDN cache invalidation', () {
     test('resets freshness metadata when persisted manifest is invalid',
         () async {

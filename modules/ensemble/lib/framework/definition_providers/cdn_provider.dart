@@ -492,8 +492,8 @@ class CdnDefinitionProvider extends DefinitionProvider {
   /// Sets _hasPendingUpdate flag if updates were fetched
   Future<void> _refreshIfStale() async {
     try {
-      final shouldFetch = await _shouldFetchManifest();
-      if (!shouldFetch) {
+      final freshness = await _evaluateManifestFreshness();
+      if (!freshness.shouldFetch) {
         return;
       }
 
@@ -509,6 +509,7 @@ class CdnDefinitionProvider extends DefinitionProvider {
       _rebuildFromRoot(root);
       await _refreshTranslationsAtRuntime();
       _etag = newEtag ?? _etag;
+      _commitRemoteLastUpdatedAt(freshness.remoteLastUpdatedAt);
 
       // Save to persistent cache
       await _saveCachedState(jsonString);
@@ -548,8 +549,8 @@ class CdnDefinitionProvider extends DefinitionProvider {
   }
 
   Future<void> _loadManifest() async {
-    final shouldFetch = await _shouldFetchManifest();
-    if (!shouldFetch) {
+    final freshness = await _evaluateManifestFreshness();
+    if (!freshness.shouldFetch) {
       return;
     }
 
@@ -563,47 +564,50 @@ class CdnDefinitionProvider extends DefinitionProvider {
 
     final root = _decodeManifestRoot(jsonString);
     _rebuildFromRoot(root);
+    _commitRemoteLastUpdatedAt(freshness.remoteLastUpdatedAt);
 
     // Save to persistent cache
     await _saveCachedState(jsonString);
   }
 
-  Future<bool> _shouldFetchManifest() async {
+  /// Reads CDN lastUpdateTime and decides whether to download a new manifest.
+  /// Does not mutate [_lastUpdatedAt]; commit only after a successful fetch.
+  Future<({bool shouldFetch, int? remoteLastUpdatedAt})>
+      _evaluateManifestFreshness() async {
     final lastUpdateUri = Uri.parse('$baseUrl/$appId/lastUpdateTime.json');
 
     try {
       final resp = await http.get(lastUpdateUri);
       if (resp.statusCode != 200) {
-        return true;
+        return (shouldFetch: true, remoteLastUpdatedAt: null);
       }
 
       final jsonString = _decodePossiblyBrotli(resp);
       if (jsonString == null || jsonString.isEmpty) {
-        return true;
+        return (shouldFetch: true, remoteLastUpdatedAt: null);
       }
 
       final lastUpdateData = jsonDecode(jsonString) as Map<String, dynamic>;
       final num? remoteLastUpdateNum = lastUpdateData['lastUpdatedAt'] as num?;
       final int? remoteLastUpdate = remoteLastUpdateNum?.toInt();
 
-      if (remoteLastUpdate == null) {
-        return true;
-      }
-
-      if (_lastUpdatedAt == null) {
-        _lastUpdatedAt = remoteLastUpdate;
-        return true;
-      }
-
-      final shouldFetch = _isIncomingNewer(remoteLastUpdate, _lastUpdatedAt);
-
-      _lastUpdatedAt = remoteLastUpdate;
-
-      return shouldFetch;
+      return (
+        shouldFetch: cdnShouldFetchManifest(
+          localLastUpdatedAt: _lastUpdatedAt,
+          remoteLastUpdatedAt: remoteLastUpdate,
+        ),
+        remoteLastUpdatedAt: remoteLastUpdate,
+      );
     } catch (e) {
       debugPrint(
           'CdnProvider: Error checking lastUpdateTime: $e, will fetch manifest');
-      return true;
+      return (shouldFetch: true, remoteLastUpdatedAt: null);
+    }
+  }
+
+  void _commitRemoteLastUpdatedAt(int? remoteLastUpdatedAt) {
+    if (remoteLastUpdatedAt != null) {
+      _lastUpdatedAt = remoteLastUpdatedAt;
     }
   }
 
@@ -855,7 +859,7 @@ class CdnDefinitionProvider extends DefinitionProvider {
   // --------------------------------------------------------
 
   static bool _isIncomingNewer(int? incoming, int? current) =>
-      incoming != null && (current == null || incoming > current);
+      cdnIsIncomingManifestNewer(incoming, current);
 
   static Map<String, dynamic>? _asMap(dynamic value) {
     if (value is Map<String, dynamic>) return value;
@@ -942,6 +946,14 @@ class CdnDefinitionProvider extends DefinitionProvider {
   @visibleForTesting
   int? get lastUpdatedAtForTesting => _lastUpdatedAt;
 
+  @visibleForTesting
+  Future<({bool shouldFetch, int? remoteLastUpdatedAt})>
+      evaluateManifestFreshnessForTesting() => _evaluateManifestFreshness();
+
+  @visibleForTesting
+  void commitRemoteLastUpdatedAtForTesting(int? remoteLastUpdatedAt) =>
+      _commitRemoteLastUpdatedAt(remoteLastUpdatedAt);
+
   Future<void> _refreshTranslationsAtRuntime() async {
     try {
       final context = Utils.globalAppKey.currentContext;
@@ -961,3 +973,18 @@ class CdnDefinitionProvider extends DefinitionProvider {
     }
   }
 }
+
+/// Whether the CDN manifest should be fetched based on lastUpdateTime values.
+@visibleForTesting
+bool cdnShouldFetchManifest({
+  required int? localLastUpdatedAt,
+  required int? remoteLastUpdatedAt,
+}) {
+  if (remoteLastUpdatedAt == null) return true;
+  if (localLastUpdatedAt == null) return true;
+  return cdnIsIncomingManifestNewer(remoteLastUpdatedAt, localLastUpdatedAt);
+}
+
+@visibleForTesting
+bool cdnIsIncomingManifestNewer(int? incoming, int? current) =>
+    incoming != null && (current == null || incoming > current);
