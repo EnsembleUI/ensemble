@@ -171,6 +171,81 @@ void main() {
     });
   });
 
+  group('CDN stale refresh outcome', () {
+    test('shouldApplyCdnStaleRefreshImmediately requires both flags', () {
+      final provider = CdnDefinitionProvider('test-app');
+
+      expect(
+        provider.shouldApplyCdnStaleRefreshImmediately(
+          artifactRefreshEnabled: true,
+          hasEnsembleConfig: true,
+        ),
+        isTrue,
+      );
+      expect(
+        provider.shouldApplyCdnStaleRefreshImmediately(
+          artifactRefreshEnabled: false,
+          hasEnsembleConfig: true,
+        ),
+        isFalse,
+      );
+      expect(
+        provider.shouldApplyCdnStaleRefreshImmediately(
+          artifactRefreshEnabled: true,
+          hasEnsembleConfig: false,
+        ),
+        isFalse,
+      );
+    });
+
+    test(
+        'applyStaleRefreshOutcome syncs bundle immediately when refresh enabled',
+        () async {
+      final provider = CdnDefinitionProvider('test-app');
+      final config = EnsembleConfig(definitionProvider: provider);
+      Ensemble().setEnsembleConfig(config);
+
+      await provider.applyRuntimeManifestForTesting(
+        _manifestWithArtifactRefresh(_manifestWithResourceVersion('v1')),
+      );
+      await config.updateAppBundle();
+
+      provider.rebuildManifestCacheForTesting(
+        _manifestWithArtifactRefresh(_manifestWithResourceVersion('v2')),
+      );
+
+      await provider.applyStaleRefreshOutcomeForTesting();
+
+      expect(provider.hasPendingUpdateForTesting, isFalse);
+      expect(
+        config.getResources()?[ResourceArtifactEntry.Scripts.name]['version'],
+        'v2',
+      );
+    });
+
+    test('applyStaleRefreshOutcome defers when artifact refresh is disabled',
+        () async {
+      final provider = CdnDefinitionProvider('test-app');
+      final config = EnsembleConfig(definitionProvider: provider);
+      Ensemble().setEnsembleConfig(config);
+
+      await provider.applyRuntimeManifestForTesting(
+        _manifestWithResourceVersion('v1'),
+      );
+      await config.updateAppBundle();
+
+      provider.rebuildManifestCacheForTesting(_manifestWithResourceVersion('v2'));
+
+      await provider.applyStaleRefreshOutcomeForTesting();
+
+      expect(provider.hasPendingUpdateForTesting, isTrue);
+      expect(
+        config.getResources()?[ResourceArtifactEntry.Scripts.name]['version'],
+        'v1',
+      );
+    });
+  });
+
   group('CDN pending update ordering', () {
     test('handlePendingUpdate syncs app bundle from CDN cache and fires refresh',
         () async {
