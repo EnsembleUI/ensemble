@@ -49,6 +49,9 @@ class CdnDefinitionProvider extends DefinitionProvider {
   // Background update tracking
   bool _hasPendingUpdate = false;
 
+  // Serialize overlapping refresh calls (cold start + lifecycle background).
+  Future<void> _refreshSerial = Future.value();
+
   // Persistent cache key
   String get _artifactCacheKey => 'cdn_provider_state_$appId';
 
@@ -251,19 +254,24 @@ class CdnDefinitionProvider extends DefinitionProvider {
     }
   }
 
-  Future<void> _saveCachedState(String manifestJson) async {
-    // Fire-and-forget to avoid blocking UI
-    unawaited(() async {
-      try {
-        final prefs = await SharedPreferences.getInstance();
-        final etagVal = _etag ?? '';
-        final lastVal = (_lastUpdatedAt ?? 0).toString();
-        await prefs
-            .setStringList(_artifactCacheKey, [etagVal, lastVal, manifestJson]);
-      } catch (e) {
-        debugPrint('CdnProvider: Failed to save cached state: $e');
-      }
-    }());
+  Future<void> _saveCachedState(
+    String manifestJson, {
+    required String? etag,
+    required int? lastUpdatedAt,
+  }) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setStringList(
+        _artifactCacheKey,
+        cdnPersistedCacheEntry(
+          etag: etag,
+          lastUpdatedAt: lastUpdatedAt,
+          manifestJson: manifestJson,
+        ),
+      );
+    } catch (e) {
+      debugPrint('CdnProvider: Failed to save cached state: $e');
+    }
   }
 
   Future<void> _clearCache() async {
@@ -490,7 +498,15 @@ class CdnDefinitionProvider extends DefinitionProvider {
 
   /// Check for updates and update cache if available
   /// Sets _hasPendingUpdate flag if updates were fetched
-  Future<void> _refreshIfStale() async {
+  Future<void> _refreshIfStale() {
+    final refresh = _doRefreshIfStale();
+    _refreshSerial = _refreshSerial
+        .then((_) => refresh)
+        .catchError((_) {});
+    return refresh;
+  }
+
+  Future<void> _doRefreshIfStale() async {
     try {
       final shouldFetch = await _shouldFetchManifest();
       if (!shouldFetch) {
@@ -508,10 +524,16 @@ class CdnDefinitionProvider extends DefinitionProvider {
 
       _rebuildFromRoot(root);
       await _refreshTranslationsAtRuntime();
-      _etag = newEtag ?? _etag;
+      final savedEtag = newEtag ?? _etag;
+      final savedLastUpdatedAt = _lastUpdatedAt;
+      _etag = savedEtag;
 
-      // Save to persistent cache
-      await _saveCachedState(jsonString);
+      // Save to persistent cache (snapshot etag/timestamp with manifest body)
+      await _saveCachedState(
+        jsonString,
+        etag: savedEtag,
+        lastUpdatedAt: savedLastUpdatedAt,
+      );
 
       // If artifact refresh is enabled and app is already initialized,
       // immediately update appBundle and fire refresh event.
@@ -559,13 +581,19 @@ class CdnDefinitionProvider extends DefinitionProvider {
     final jsonString = fetched['json'] as String?;
     if (jsonString == null) return;
 
-    _etag = fetched['etag'] as String?;
+    final savedEtag = fetched['etag'] as String?;
+    final savedLastUpdatedAt = _lastUpdatedAt;
+    _etag = savedEtag;
 
     final root = _decodeManifestRoot(jsonString);
     _rebuildFromRoot(root);
 
-    // Save to persistent cache
-    await _saveCachedState(jsonString);
+    // Save to persistent cache (snapshot etag/timestamp with manifest body)
+    await _saveCachedState(
+      jsonString,
+      etag: savedEtag,
+      lastUpdatedAt: savedLastUpdatedAt,
+    );
   }
 
   Future<bool> _shouldFetchManifest() async {
@@ -857,6 +885,16 @@ class CdnDefinitionProvider extends DefinitionProvider {
   static bool _isIncomingNewer(int? incoming, int? current) =>
       incoming != null && (current == null || incoming > current);
 
+  /// SharedPreferences tuple for CDN cache; etag and timestamp must match
+  /// [manifestJson] or cold-start If-None-Match can serve a mismatched body.
+  @visibleForTesting
+  static List<String> cdnPersistedCacheEntry({
+    required String? etag,
+    required int? lastUpdatedAt,
+    required String manifestJson,
+  }) =>
+      [etag ?? '', (lastUpdatedAt ?? 0).toString(), manifestJson];
+
   static Map<String, dynamic>? _asMap(dynamic value) {
     if (value is Map<String, dynamic>) return value;
     if (value is Map) return Map<String, dynamic>.from(value);
@@ -941,6 +979,21 @@ class CdnDefinitionProvider extends DefinitionProvider {
 
   @visibleForTesting
   int? get lastUpdatedAtForTesting => _lastUpdatedAt;
+
+  @visibleForTesting
+  Future<void> saveCachedStateForTesting(
+    String manifestJson, {
+    required String? etag,
+    required int? lastUpdatedAt,
+  }) =>
+      _saveCachedState(
+        manifestJson,
+        etag: etag,
+        lastUpdatedAt: lastUpdatedAt,
+      );
+
+  @visibleForTesting
+  Future<void> refreshIfStaleForTesting() => _refreshIfStale();
 
   Future<void> _refreshTranslationsAtRuntime() async {
     try {

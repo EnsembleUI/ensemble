@@ -11,6 +11,43 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
+  group('CDN persisted cache tuple', () {
+    test('cdnPersistedCacheEntry pairs manifest with snapshot metadata', () {
+      expect(
+        CdnDefinitionProvider.cdnPersistedCacheEntry(
+          etag: 'etag-a',
+          lastUpdatedAt: 42,
+          manifestJson: '{"artifacts":{}}',
+        ),
+        ['etag-a', '42', '{"artifacts":{}}'],
+      );
+    });
+
+    test('saveCachedState persists passed etag instead of later instance value',
+        () async {
+      const appId = 'snapshot-etag-app';
+      const cacheKey = 'cdn_provider_state_$appId';
+      SharedPreferences.setMockInitialValues({});
+
+      final provider = CdnDefinitionProvider(appId);
+      await provider.saveCachedStateForTesting(
+        '{"manifest":"a"}',
+        etag: 'etag-a',
+        lastUpdatedAt: 100,
+      );
+
+      final prefs = await SharedPreferences.getInstance();
+      expect(prefs.getStringList(cacheKey), ['etag-a', '100', '{"manifest":"a"}']);
+
+      await provider.saveCachedStateForTesting(
+        '{"manifest":"b"}',
+        etag: 'etag-b',
+        lastUpdatedAt: 200,
+      );
+      expect(prefs.getStringList(cacheKey), ['etag-b', '200', '{"manifest":"b"}']);
+    });
+  });
+
   group('CDN cache invalidation', () {
     test('resets freshness metadata when persisted manifest is invalid',
         () async {
