@@ -75,7 +75,9 @@ This package has a substantial `test/` directory. Run package tests with `melos 
 
 ## Additional technical documentation
 
-- [Layout widgets (tabs, ListView scroll)](docs/layout-widgets.md) — EDL layout behavior in `lib/layout`.
+- [Layout widgets (tabs, ListView scroll, ViewGroup)](docs/layout-widgets.md) — EDL layout behavior in `lib/layout`, including ViewGroup tab index clamping.
+- [CDN definition provider](docs/cdn-definition-provider.md) — `from: cdn` configuration, manifest caching, `ENABLE_ARTIFACT_REFRESH`, and pending-update lifecycle.
+- [File upload action](docs/file-upload.md) — `uploadFiles` foreground/background batches, `UploadFilesResponse` cancellation, and Workmanager constraints.
 - [Runtime security and data bindings](docs/runtime-security-and-data-bindings.md) — screen id validation for definition providers, `saveFile` naming, multipart upload path checks, `ensemble.storage.clear()` behavior and binding refresh, WebView TLS/reputation settings, global script handler payloads, and device metric bindings after rotation.
 
 ## Related Packages / Modules

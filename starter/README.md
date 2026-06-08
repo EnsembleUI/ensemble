@@ -33,6 +33,7 @@ Ensemble Studio enables you to make changes to your pages and immediately broadc
 - Open up `/ensemble/ensemble-config.yaml`. 
   - Update `definitions -> from` to `ensemble` (previously `local`)
   - Update `definitions -> ensemble -> appId` with your App ID.
+- For production builds, consider `definitions -> from: cdn` with the same `appId` under `definitions -> cdn`. CDN hosting serves a cached manifest bundle and is documented in [`modules/ensemble/docs/cdn-definition-provider.md`](../modules/ensemble/docs/cdn-definition-provider.md) (including `ENABLE_ARTIFACT_REFRESH` for live updates).
 - Run the App with `flutter run`. Your App now fetches its pages and resources from Ensemble server.
 - Go back to your App on Ensemble Studio and make any changes. Re-running the App with `flutter run` should have the latest content.
 

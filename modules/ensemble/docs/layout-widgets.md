@@ -122,3 +122,50 @@ View:
   templated data.
 - `scrollToBottom` uses the current `maxScrollExtent`; if more data is loaded
   later, call it again after the list updates.
+- When a parent widget supplies a new `ScrollController` after build,
+  `ListViewCore` re-attaches its scroll listener to the new controller so
+  `onScroll` and scroll helpers keep working.
+
+## ViewGroup tab index safety
+
+`ViewGroup` screens (bottom navigation, drawer, and similar page groups) track
+the selected tab through `ViewGroupNotifier` and `PageGroupState.pagePayloads`.
+The runtime clamps tab indices with `safeViewGroupPayloadIndex` in
+`lib/framework/view/page_group.dart` whenever the index is used to index tab
+payloads or `IndexedStack` children.
+
+### Clamping rules
+
+| Input | `payloadLength` | Result |
+| --- | --- | --- |
+| negative | any positive | `0` |
+| `0` … `length - 1` | positive | unchanged |
+| `>= length` | positive | `length - 1` |
+| any | `0` | `0` |
+
+This prevents crashes when:
+
+- `navigateViewGroup` targets a `viewIndex` outside the current menu after the
+  menu definition shrinks
+- A stored tab index is restored from `ensemble.storage` after a CDN or Studio
+  update removed tabs
+
+### `navigateViewGroup` action
+
+```yaml
+- navigateViewGroup:
+    viewIndex: 2
+    payload:
+      orderId: ${order.id}
+```
+
+When only `viewIndex` is provided (no `name`), the action resolves the index
+through `safeViewGroupPayloadIndex` against the current `PageGroup` menu length
+before calling `PageController.jumpToPage` and `viewGroupNotifier.updatePage`.
+
+When `name` is provided, navigation goes to the named screen and may include
+`viewIndex` in the page arguments payload.
+
+### Tests
+
+`test/safe_view_group_payload_index_test.dart` covers `safeViewGroupPayloadIndex`.
