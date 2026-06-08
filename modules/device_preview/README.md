@@ -1,3 +1,23 @@
+## Ensemble monorepo
+
+This directory (`modules/device_preview`) is a fork of
+[device_preview](https://pub.dev/packages/device_preview) (v1.1.0) maintained in
+the Ensemble monorepo.
+
+For Ensemble apps, prefer [`packages/ensemble_device_preview`](../../packages/ensemble_device_preview)
+(v1.1.3), which the core `ensemble` module depends on.
+
+Within this repository:
+
+```bash
+melos bootstrap
+```
+
+The usage documentation below reflects the upstream `device_preview` package API
+in this fork.
+
+---
+
 <p align="center">
   <img src="https://github.com/aloisdeniel/flutter_device_preview/raw/master/logo.png" alt="Device Preview for Flutter" />
 </p>

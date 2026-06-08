@@ -32,6 +32,27 @@ Ensemble Camera is a Flutter package that extends the capabilities of the [Ensem
 - **Flutter SDK:** >= 3.24.0
 - **Dart SDK:** >= 3.5.0
 
+### Enable from Starter (recommended)
+
+From the `starter` app, run the module enable script to add the dependency,
+register `CameraManagerImpl`, set `useCamera` in `lib/generated/ensemble_modules.dart`,
+and apply platform permissions:
+
+```bash
+cd starter
+npm run hasCamera
+flutter pub get
+```
+
+For specific platforms (for example Android, iOS, and web):
+
+```bash
+dart scripts/modules/enable_camera.dart platform=android,ios,web
+```
+
+On web, the script also adds the required script tag for
+`assets/packages/ensemble_camera/web/image_worker.js` in `web/index.html`.
+
 ### Installation
 
 Add the following dependency to your `pubspec.yaml`:
@@ -53,7 +74,22 @@ flutter pub get
 
 ### Permissions
 
-Make sure to configure the necessary permissions for camera, microphone, and location access in your project for Android and iOS.
+When enabled via the starter script, the following are added automatically:
+
+**Android** (`AndroidManifest.xml`):
+
+```xml
+<uses-permission android:name="android.permission.CAMERA" />
+```
+
+**iOS** (`Info.plist` usage descriptions):
+
+- `NSCameraUsageDescription`
+- `NSPhotoLibraryUsageDescription`
+- `NSMicrophoneUsageDescription`
+
+For manual setup, configure camera, microphone, photo library, and location
+access in your host app as required by your capture options.
 
 ## Usage
 
