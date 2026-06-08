@@ -23,7 +23,7 @@ Add this to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  ensemble_icons: ^1.0.1
+  ensemble_icons: ^1.0.2
 ```
 
 Then run:

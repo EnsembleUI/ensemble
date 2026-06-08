@@ -10,6 +10,30 @@ The `ensemble_face_camera` module provides face detection capabilities to the En
 
 ## Installation
 
+### Enable from Starter (recommended)
+
+From the `starter` app, run the module enable script to add the dependency,
+register `FaceCameraManagerImpl`, set `useFaceCamera` in
+`lib/generated/ensemble_modules.dart`, and apply platform permissions:
+
+```bash
+cd starter
+npm run hasFaceCamera
+flutter pub get
+```
+
+For specific platforms (for example Android, iOS, and web):
+
+```bash
+dart scripts/modules/enable_face_camera.dart platform=android,ios,web
+```
+
+On web, the script also adds script tags for
+`assets/packages/ensemble_face_camera/web/face_api.js` and
+`assets/packages/ensemble_face_camera/web/face_detection.js` in `web/index.html`.
+
+### Manual setup
+
 Add the following to your `pubspec.yaml`:
 
 ```yaml
