@@ -202,6 +202,16 @@ class CdnDefinitionProvider extends DefinitionProvider {
     }
   }
 
+  /// After a stale CDN fetch updates [_artifactCache], either apply changes
+  /// immediately (artifact refresh on + app initialized) or defer to resume.
+  Future<void> _applyStaleRefreshOutcome() async {
+    if (isArtifactRefreshEnabled() && Ensemble().getConfig() != null) {
+      await _handlePendingUpdate();
+    } else {
+      _hasPendingUpdate = true;
+    }
+  }
+
   /// Handles pending CDN updates when app resumes.
   /// CRITICAL: Must update appBundle and translations BEFORE firing refresh event
   /// to ensure screens rebuild with the new resources (fixes race condition).
@@ -513,16 +523,7 @@ class CdnDefinitionProvider extends DefinitionProvider {
       // Save to persistent cache
       await _saveCachedState(jsonString);
 
-      // If artifact refresh is enabled and app is already initialized,
-      // immediately update appBundle and fire refresh event.
-      // This handles the cold start scenario where background refresh
-      // completes after initial render.
-      if (isArtifactRefreshEnabled() && Ensemble().getConfig() != null) {
-        await _handlePendingUpdate();
-      } else {
-        // Mark for later refresh on next resume
-        _hasPendingUpdate = true;
-      }
+      await _applyStaleRefreshOutcome();
     } catch (e) {
       if (kDebugMode) {
         debugPrint('⚠️ CDN Provider: Refresh failed: $e');
@@ -595,7 +596,8 @@ class CdnDefinitionProvider extends DefinitionProvider {
         return true;
       }
 
-      final shouldFetch = _isIncomingNewer(remoteLastUpdate, _lastUpdatedAt);
+      final shouldFetch =
+          isCdnManifestIncomingNewer(remoteLastUpdate, _lastUpdatedAt);
 
       _lastUpdatedAt = remoteLastUpdate;
 
@@ -854,9 +856,6 @@ class CdnDefinitionProvider extends DefinitionProvider {
   // Helpers
   // --------------------------------------------------------
 
-  static bool _isIncomingNewer(int? incoming, int? current) =>
-      incoming != null && (current == null || incoming > current);
-
   static Map<String, dynamic>? _asMap(dynamic value) {
     if (value is Map<String, dynamic>) return value;
     if (value is Map) return Map<String, dynamic>.from(value);
@@ -926,6 +925,10 @@ class CdnDefinitionProvider extends DefinitionProvider {
   Future<void> handlePendingUpdateForTesting() => _handlePendingUpdate();
 
   @visibleForTesting
+  Future<void> applyStaleRefreshOutcomeForTesting() =>
+      _applyStaleRefreshOutcome();
+
+  @visibleForTesting
   bool get hasPendingUpdateForTesting => _hasPendingUpdate;
 
   @visibleForTesting
@@ -961,3 +964,8 @@ class CdnDefinitionProvider extends DefinitionProvider {
     }
   }
 }
+
+/// Whether CDN [lastUpdateTime.json] indicates a manifest fetch is needed.
+@visibleForTesting
+bool isCdnManifestIncomingNewer(int? incoming, int? current) =>
+    incoming != null && (current == null || incoming > current);

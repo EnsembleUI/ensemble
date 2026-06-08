@@ -2,6 +2,18 @@ import 'package:ensemble/framework/view/page_group.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  group('resolveNavigateViewGroupTabIndex', () {
+    test('clamps when menu has items', () {
+      expect(resolveNavigateViewGroupTabIndex(99, 3), 2);
+      expect(resolveNavigateViewGroupTabIndex(-1, 2), 0);
+    });
+
+    test('passes through when menu length is zero', () {
+      expect(resolveNavigateViewGroupTabIndex(5, 0), 5);
+      expect(resolveNavigateViewGroupTabIndex(-1, 0), -1);
+    });
+  });
+
   group('safeViewGroupPayloadIndex', () {
     test('clamps to valid range for positive lengths', () {
       expect(safeViewGroupPayloadIndex(-1, 3), 0);
