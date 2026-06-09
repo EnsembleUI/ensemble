@@ -729,6 +729,14 @@ int safeViewGroupPayloadIndex(int index, int payloadLength) {
   return index;
 }
 
+/// Resolves a [NavigateViewGroupAction] tab index against the current menu.
+/// When [menuLength] is zero (no ancestor [PageGroup]), the raw index is kept.
+@visibleForTesting
+int resolveNavigateViewGroupIndex(int viewIndex, int menuLength) =>
+    menuLength > 0
+        ? safeViewGroupPayloadIndex(viewIndex, menuLength)
+        : viewIndex;
+
 class ViewGroupNotifier extends ChangeNotifier {
   int _viewIndex = 0;
   Map<String, dynamic>? _payload;

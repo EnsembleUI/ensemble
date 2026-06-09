@@ -202,21 +202,27 @@ class CdnDefinitionProvider extends DefinitionProvider {
     }
   }
 
+  /// Runs pending CDN update steps in the order required to avoid stale UI.
+  @visibleForTesting
+  Future<void> runPendingCdnUpdateSteps({
+    required Future<void> Function() updateAppBundle,
+    required Future<void> Function() refreshTranslations,
+    required void Function() fireRefreshEvent,
+  }) async {
+    await updateAppBundle();
+    await refreshTranslations();
+    fireRefreshEvent();
+  }
+
   /// Handles pending CDN updates when app resumes.
   /// CRITICAL: Must update appBundle and translations BEFORE firing refresh event
   /// to ensure screens rebuild with the new resources (fixes race condition).
   Future<void> _handlePendingUpdate() async {
-    // FIRST: Update appBundle with new resources from _artifactCache
-    await Ensemble().notifyAppBundleChanges();
-
-    // SECOND: Refresh translations - ensures FlutterI18n's decodedMap is updated
-    // This is needed because _refreshTranslationsAtRuntime() in _refreshIfStale()
-    // may have been skipped if context was null during background refresh
-    await _refreshTranslationsAtRuntime();
-
-    // THIRD: Fire refresh event - screens will now rebuild with NEW resources AND translations
-    _fireManifestRefreshEvent();
-
+    await runPendingCdnUpdateSteps(
+      updateAppBundle: Ensemble().notifyAppBundleChanges,
+      refreshTranslations: _refreshTranslationsAtRuntime,
+      fireRefreshEvent: _fireManifestRefreshEvent,
+    );
     _hasPendingUpdate = false;
   }
 

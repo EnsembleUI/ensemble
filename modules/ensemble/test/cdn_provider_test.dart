@@ -172,6 +172,19 @@ void main() {
   });
 
   group('CDN pending update ordering', () {
+    test('runPendingCdnUpdateSteps updates bundle before translations and refresh',
+        () async {
+      final order = <String>[];
+
+      await CdnDefinitionProvider('test-app').runPendingCdnUpdateSteps(
+        updateAppBundle: () async => order.add('bundle'),
+        refreshTranslations: () async => order.add('translations'),
+        fireRefreshEvent: () => order.add('refresh'),
+      );
+
+      expect(order, ['bundle', 'translations', 'refresh']);
+    });
+
     test('handlePendingUpdate syncs app bundle from CDN cache and fires refresh',
         () async {
       final provider = CdnDefinitionProvider('test-app');

@@ -170,9 +170,7 @@ class NavigateViewGroupAction extends EnsembleAction {
     } else if (viewIndex != null) {
       final pageGroup = context.findAncestorWidgetOfExactType<PageGroup>();
       final menuLen = pageGroup?.menu.menuItems.length ?? 0;
-      final resolvedIndex = menuLen > 0
-          ? safeViewGroupPayloadIndex(viewIndex, menuLen)
-          : viewIndex;
+      final resolvedIndex = resolveNavigateViewGroupIndex(viewIndex, menuLen);
       if (payload != null) {
         // TODO: this is wrong. Can't mutate the scope like this
         scopeManager.dataContext.addDataContext(payload);

@@ -16,4 +16,17 @@ void main() {
       expect(safeViewGroupPayloadIndex(5, 0), 0);
     });
   });
+
+  group('resolveNavigateViewGroupIndex', () {
+    test('clamps when menu has tabs', () {
+      expect(resolveNavigateViewGroupIndex(99, 3), 2);
+      expect(resolveNavigateViewGroupIndex(-1, 3), 0);
+      expect(resolveNavigateViewGroupIndex(1, 3), 1);
+    });
+
+    test('returns raw index when menu length is zero', () {
+      expect(resolveNavigateViewGroupIndex(5, 0), 5);
+      expect(resolveNavigateViewGroupIndex(-1, 0), -1);
+    });
+  });
 }

@@ -746,6 +746,19 @@ class RemoteConfigInvokable with Invokable {
 List<String> ensembleStorageClearDispatchKeys(Iterable<String> allKeys) =>
     allKeys.where((key) => !key.startsWith('enc_')).toList();
 
+/// Dispatches storage binding updates only after public storage is cleared.
+@visibleForTesting
+Future<void> runStorageClearDispatches({
+  required Future<void> clearFuture,
+  required Iterable<String> keys,
+  required void Function(String key) dispatch,
+}) =>
+    clearFuture.whenComplete(() {
+      for (final key in keys) {
+        dispatch(key);
+      }
+    });
+
 /// Singleton handling user storage
 class EnsembleStorage with Invokable {
   static final EnsembleStorage _instance = EnsembleStorage._internal();
@@ -803,11 +816,12 @@ class EnsembleStorage with Invokable {
     // clearPublicStorage is async; binding listeners re-evaluate by reading
     // GetStorage. Dispatch only after removal completes so eval() does not
     // observe stale persisted values (see PR discussion on #2227).
-    unawaited(StorageManager().clearPublicStorage().whenComplete(() {
-      for (final key in keys) {
-        ScreenController().dispatchStorageChanges(context, key, null);
-      }
-    }));
+    unawaited(runStorageClearDispatches(
+      clearFuture: StorageManager().clearPublicStorage(),
+      keys: keys,
+      dispatch: (key) =>
+          ScreenController().dispatchStorageChanges(context, key, null),
+    ));
   }
 
   @override
