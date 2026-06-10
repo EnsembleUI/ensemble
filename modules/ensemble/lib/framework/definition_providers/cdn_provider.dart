@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:ensemble/action/action_scope_util.dart';
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/bindings.dart';
 import 'package:ensemble/framework/definition_providers/provider.dart';
@@ -804,13 +805,10 @@ class CdnDefinitionProvider extends DefinitionProvider {
         final YamlMap? yaml = _yamlFromUnknown(content);
         if (yaml == null) continue;
 
-        // Flatten optional top-level "Action" wrapper
+        // Flatten optional top-level "Action" wrapper and merge file-level
+        // Import, Global, and API blocks into the action definition.
         final dynamic root = yaml['Action'] ?? yaml;
-        if (root is YamlMap) {
-          actions[name] = root;
-        } else if (root is Map) {
-          actions[name] = YamlMap.wrap(root);
-        }
+        actions[name] = ActionScopeUtil.mergeCdnActionContent(yaml, root);
       }
     }
 
@@ -819,7 +817,7 @@ class CdnDefinitionProvider extends DefinitionProvider {
       ResourceArtifactEntry.Scripts.name: code,
     };
     if (actions.isNotEmpty) {
-      resources['Actions'] = actions;
+      resources[ResourceArtifactEntry.Actions.name] = actions;
     }
     if (resources.isNotEmpty) {
       // Store as plain Map (not YamlMap) to match Ensemble provider behavior

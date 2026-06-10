@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:developer';
+import 'package:ensemble/action/action_scope_util.dart';
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/bindings.dart';
 import 'package:ensemble/framework/error_handling.dart';
@@ -659,6 +660,8 @@ class AppModel {
           //    }
           code.addAll(value.value);
         }
+      } else if (key == ResourceArtifactEntry.Actions.name && value is Map) {
+        output[key] = ActionScopeUtil.normalizeActionsMap(value);
       } else {
         // copy over non-Widgets
         output[key] = value;
