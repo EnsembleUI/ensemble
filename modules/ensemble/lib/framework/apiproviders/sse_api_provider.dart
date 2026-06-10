@@ -24,9 +24,9 @@ import 'package:crypto/crypto.dart';
 /// Server-Sent Events (SSE) API Provider
 /// Handles streaming HTTP connections
 class SSEAPIProvider extends APIProvider with LiveAPIProvider {
-  static final Map<String, StreamSubscription> _subscriptions = {};
-  static final Map<String, http.Client> _activeClients = {};
-  static final Set<String> _manuallyDisconnected = {};
+  final Map<String, StreamSubscription> _subscriptions = {};
+  final Map<String, http.Client> _activeClients = {};
+  final Set<String> _manuallyDisconnected = {};
 
   @override
   Future<void> init(String appId, Map<String, dynamic> config) async {
@@ -530,21 +530,29 @@ class SSEAPIProvider extends APIProvider with LiveAPIProvider {
 
   @override
   dispose() {
-    _manuallyDisconnected.addAll(_subscriptions.keys);
+    for (final apiName in _subscriptions.keys.toList()) {
+      _manuallyDisconnected.add(apiName);
+    }
 
-    // Cancel all subscriptions
-    for (var subscription in _subscriptions.values) {
+    for (final subscription in _subscriptions.values) {
       subscription.cancel();
     }
     _subscriptions.clear();
 
-    // Close all active clients
-    for (var client in _activeClients.values) {
+    for (final client in _activeClients.values) {
       client.close();
     }
     _activeClients.clear();
 
     _manuallyDisconnected.clear();
+  }
+
+  @visibleForTesting
+  int get subscriptionCountForTesting => _subscriptions.length;
+
+  @visibleForTesting
+  void trackSubscriptionForTesting(String apiName, StreamSubscription sub) {
+    _subscriptions[apiName] = sub;
   }
 }
 
