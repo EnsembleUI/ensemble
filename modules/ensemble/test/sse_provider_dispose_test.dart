@@ -12,30 +12,29 @@ void main() {
       final providerA = SSEAPIProvider();
       final providerB = SSEAPIProvider();
 
-      final controllerA = StreamController<int>();
-      final controllerB = StreamController<int>();
       var aCanceled = false;
       var bCanceled = false;
+      final controllerA = StreamController<int>(onCancel: () => aCanceled = true);
+      final controllerB = StreamController<int>(onCancel: () => bCanceled = true);
 
       providerA.trackSubscriptionForTesting(
         'liveFeed',
-        controllerA.stream.listen((_) {}, onDone: () => aCanceled = true),
+        controllerA.stream.listen((_) {}),
       );
       providerB.trackSubscriptionForTesting(
         'metrics',
-        controllerB.stream.listen((_) {}, onDone: () => bCanceled = true),
+        controllerB.stream.listen((_) {}),
       );
 
       providerA.dispose();
 
       expect(providerA.subscriptionCountForTesting, 0);
       expect(providerB.subscriptionCountForTesting, 1);
+      expect(aCanceled, isTrue);
+      expect(bCanceled, isFalse);
 
       await controllerA.close();
       await controllerB.close();
-
-      expect(aCanceled, isTrue);
-      expect(bCanceled, isFalse);
     });
   });
 
