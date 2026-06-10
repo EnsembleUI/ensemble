@@ -33,4 +33,23 @@ void main() {
       ]);
     });
   });
+
+  group('backgroundUploadWorkUniqueName', () {
+    test('uses task id so each batch gets a distinct Workmanager name', () {
+      expect(backgroundUploadWorkUniqueName('abc123'), 'abc123');
+      expect(
+        backgroundUploadWorkUniqueName('batch-a'),
+        isNot(backgroundUploadWorkUniqueName('batch-b')),
+      );
+      expect(backgroundUploadWorkUniqueName('task-1'), isNot('uploadTask'));
+    });
+
+    test('batch count matches registrations needed for multi-batch uploads', () {
+      final batches = splitUploadFileBatches([1, 2, 3, 4, 5], 2);
+      expect(batches.length, 3);
+      final uniqueNames =
+          batches.map((_) => backgroundUploadWorkUniqueName('id-${_.hashCode}')).toSet();
+      expect(uniqueNames.length, batches.length);
+    });
+  });
 }

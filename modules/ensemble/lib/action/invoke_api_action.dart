@@ -16,6 +16,11 @@ import 'package:yaml/yaml.dart';
 
 import '../framework/apiproviders/api_provider.dart';
 
+/// Whether [InvokeAPIController._onAPIError] can expose structured API data.
+@visibleForTesting
+bool isStructuredApiErrorResponse(dynamic errorResponse) =>
+    errorResponse is HttpResponse || errorResponse is FirestoreResponse;
+
 class InvokeAPIAction extends EnsembleAction {
   InvokeAPIAction(
       {super.initiator,
@@ -296,7 +301,7 @@ class InvokeAPIController {
 
     String? errorStr;
     dynamic data;
-    if (errorResponse is HttpResponse || errorResponse is FirestoreResponse) {
+    if (isStructuredApiErrorResponse(errorResponse)) {
       errorResponse.apiState = APIState.error;
       APIResponse apiResponse = APIResponse(response: errorResponse);
       scopeManager.dataContext.addInvokableContext('response', apiResponse);

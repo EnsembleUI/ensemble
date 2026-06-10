@@ -729,6 +729,12 @@ int safeViewGroupPayloadIndex(int index, int payloadLength) {
   return index;
 }
 
+/// Resolves the tab index for [NavigateViewGroupAction] before
+/// [PageController.jumpToPage]. Clamps when the ViewGroup menu is known.
+@visibleForTesting
+int resolveNavigateViewGroupTabIndex(int viewIndex, int menuLen) =>
+    menuLen > 0 ? safeViewGroupPayloadIndex(viewIndex, menuLen) : viewIndex;
+
 class ViewGroupNotifier extends ChangeNotifier {
   int _viewIndex = 0;
   Map<String, dynamic>? _payload;

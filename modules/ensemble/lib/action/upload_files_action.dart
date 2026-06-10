@@ -259,7 +259,7 @@ Future<void> _setBackgroundUploadTask({
   fileResponse?.addTask(UploadTask(id: taskId, isBackground: true));
 
   await Workmanager().registerOneOffTask(
-    taskId,
+    backgroundUploadWorkUniqueName(taskId),
     backgroundUploadTask,
     tag: taskId,
     inputData: {

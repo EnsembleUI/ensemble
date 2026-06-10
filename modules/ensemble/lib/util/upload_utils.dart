@@ -27,6 +27,13 @@ bool uploadPathContainsParentSegment(String? path) {
   return false;
 }
 
+/// Workmanager one-off task unique name for a background upload batch.
+///
+/// Must be unique per batch so later chunks are not dropped when
+/// [splitUploadFileBatches] returns multiple lists.
+@visibleForTesting
+String backgroundUploadWorkUniqueName(String taskId) => taskId;
+
 /// Splits [files] into upload batches of at most [batchSize] items.
 ///
 /// When [batchSize] is null, returns a single batch containing all [files].

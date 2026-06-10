@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:ensemble/framework/data_context.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -21,5 +23,26 @@ void main() {
     test('empty input yields empty list', () {
       expect(ensembleStorageClearDispatchKeys([]), isEmpty);
     });
+  });
+
+  group('scheduleStorageClearDispatches', () {
+    test('dispatches only after clear future completes', () async {
+      final completer = Completer<void>();
+      final dispatched = <String>[];
+
+      scheduleStorageClearDispatches(
+        completer.future,
+        ['session', 'theme'],
+        dispatched.add,
+      );
+
+      expect(dispatched, isEmpty);
+
+      completer.complete();
+      await Future<void>.delayed(Duration.zero);
+
+      expect(dispatched, ['session', 'theme']);
+    });
+
   });
 }
