@@ -30,6 +30,7 @@ import 'package:ensemble/action/secure_storage.dart';
 import 'package:ensemble/action/sign_in_out_action.dart';
 import 'package:ensemble/action/sign_in_with_verification_code_actions.dart';
 import 'package:ensemble/action/stripe_actions.dart';
+import 'package:ensemble/action/wifi_action.dart';
 import 'package:ensemble/action/toast_actions.dart';
 import 'package:ensemble/action/take_screenshot.dart';
 import 'package:ensemble/action/disable_hardware_navigation.dart';
@@ -1059,6 +1060,9 @@ enum ActionType {
   // Stripe actions
   initializeStripe,
   showPaymentSheet,
+
+  // Wi-Fi actions
+  connectToWifi,
 }
 
 /// payload representing an Action to do (navigateToScreen, InvokeAPI, ..)
@@ -1317,6 +1321,9 @@ abstract class EnsembleAction {
           initiator: initiator, payload: payload);
     } else if (actionType == ActionType.showPaymentSheet) {
       return ShowPaymentSheetAction.fromYaml(
+          initiator: initiator, payload: payload);
+    } else if (actionType == ActionType.connectToWifi) {
+      return ConnectToWifiAction.fromYaml(
           initiator: initiator, payload: payload);
     } else {
       throw LanguageError("Invalid action.",

@@ -18,7 +18,9 @@ import 'package:ensemble/module/location_module.dart';
 import 'package:ensemble/framework/stub/moengage_manager.dart';
 import 'package:ensemble/framework/stub/remote_config.dart';
 import 'package:ensemble/module/stripe_module.dart';
+import 'package:ensemble/module/wifi_module.dart';
 // import 'package:ensemble_stripe/ensemble_stripe.dart';
+// import 'package:ensemble_wifi/ensemble_wifi.dart';
 //import 'package:ensemble_bluetooth/ensemble_bluetooth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -102,6 +104,7 @@ class EnsembleModules {
 
   static const useStripe = false;
   static const useRemoteConfig = false;
+  static const useWifi = false;
 
   // widgets
   static const enableChat = false;
@@ -256,6 +259,13 @@ class EnsembleModules {
       // GetIt.I.registerSingleton<RemoteConfig>(RemoteConfigImpl());
     } else {
       GetIt.I.registerSingleton<RemoteConfig>(RemoteConfigStub());
+    }
+
+    if (useWifi) {
+      // Uncomment to enable Wi-Fi connect module
+      // GetIt.I.registerSingleton<WifiModule>(WifiModuleImpl());
+    } else {
+      GetIt.I.registerSingleton<WifiModule>(WifiModuleStub());
     }
   }
 }
