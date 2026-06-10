@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:ui';
 
+import 'package:ensemble/action/action_scope_util.dart';
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/definition_providers/provider.dart';
 import 'package:ensemble/framework/definition_providers/screen_selector_security.dart';
@@ -159,14 +160,14 @@ class LocalDefinitionProvider extends FileDefinitionProvider {
                 continue;
               }
 
-              final dynamic actionRoot = (actionContent)['Action'];
-              if (actionRoot is! Map) {
+              final YamlMap? actionDefinition =
+                  ActionScopeUtil.mergeActionFileContent(actionContent);
+              if (actionDefinition == null) {
                 debugPrint('Action root in $actionName is not a Map/YamlMap');
                 continue;
               }
 
-              final Map rootMap = actionRoot;
-              actions[actionName] = YamlMap.wrap(rootMap);
+              actions[actionName] = actionDefinition;
             } catch (e) {
               // ignore error loading individual action
             }
@@ -179,7 +180,7 @@ class LocalDefinitionProvider extends FileDefinitionProvider {
       output[ResourceArtifactEntry.Widgets.name] = widgets;
       output[ResourceArtifactEntry.Scripts.name] = code;
       if (actions.isNotEmpty) {
-        output['Actions'] = actions;
+        output[ResourceArtifactEntry.Actions.name] = actions;
       }
 
       return output;

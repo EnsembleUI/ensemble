@@ -56,6 +56,22 @@ View:
                   message: Hello ${ensemble.storage.helloApp.name.first}
 
         - Button:
+            testId: fetch_user_action_button
+            label: Fetch user (app Action with API)
+            onTap:
+              executeAction:
+                name: fetchUser
+                inputs:
+                  userId: ${Math.floor(Math.random() * 100)}
+                events:
+                  onSuccess:
+                    showToast:
+                      message: Loaded ${event.data.user.firstName} ${event.data.user.lastName}
+                  onError:
+                    showToast:
+                      message: ${event.data.message}
+
+        - Button:
             label: Call API (page reusable action)
             onTap:
               executeAction:
