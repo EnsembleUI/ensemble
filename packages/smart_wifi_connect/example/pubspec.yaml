@@ -5,7 +5,7 @@ description: "Demonstrates how to use the smart_wifi_connect plugin."
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 
 environment:
-  sdk: ^3.10.7
+  sdk: ">=3.5.0"
 
 # Dependencies specify other packages that your package needs in order to work.
 # To automatically upgrade your package dependencies to the latest versions
