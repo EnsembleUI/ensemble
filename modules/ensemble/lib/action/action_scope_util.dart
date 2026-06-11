@@ -1,4 +1,5 @@
 import 'package:ensemble/ensemble.dart';
+import 'package:flutter/foundation.dart';
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/definition_providers/provider.dart';
@@ -90,6 +91,46 @@ class ActionScopeUtil {
   /// Merge file-level keys when an [Action] wrapper is present in CDN content.
   static YamlMap mergeCdnActionContent(YamlMap yaml, dynamic actionRoot) {
     return normalizeActionDefinition(yaml) ?? YamlMap();
+  }
+
+  /// Save page-level API entries that a reusable action will override via
+  /// [createChildScope]. Call before [prepareScope] and pair with
+  /// [restorePageApisAfterAction] in a `finally` block.
+  @visibleForTesting
+  static Map<String, YamlMap?>? snapshotPageApisForAction(
+      ScopeManager parentScope, Map<String, YamlMap>? actionApiMap) {
+    if (actionApiMap == null || actionApiMap.isEmpty) {
+      return null;
+    }
+
+    final pageApiMap = parentScope.pageData.apiMap ??= {};
+    final snapshot = <String, YamlMap?>{};
+    for (final key in actionApiMap.keys) {
+      snapshot[key] = pageApiMap.containsKey(key) ? pageApiMap[key] : null;
+    }
+    return snapshot;
+  }
+
+  /// Undo the temporary [mergedApiMap] merge performed by [prepareScope].
+  @visibleForTesting
+  static void restorePageApisAfterAction(
+      ScopeManager parentScope, Map<String, YamlMap?>? snapshot) {
+    if (snapshot == null || snapshot.isEmpty) {
+      return;
+    }
+
+    final pageApiMap = parentScope.pageData.apiMap;
+    if (pageApiMap == null) {
+      return;
+    }
+
+    snapshot.forEach((key, original) {
+      if (original == null) {
+        pageApiMap.remove(key);
+      } else {
+        pageApiMap[key] = original;
+      }
+    });
   }
 
   static Map<String, YamlMap>? parseApiMap(YamlMap definition) {
