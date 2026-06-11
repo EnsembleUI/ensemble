@@ -71,29 +71,39 @@ class ExecuteActionAction extends EnsembleAction {
       }
     }
 
-    // Build a child scope with optional Import, API, Global, and input parameters
-    final ScopeManager childScope = ActionScopeUtil.prepareScope(
-      parentScope: scopeManager,
-      definition: definition,
-      parameters: parameters,
-      callInputs: rawInputs ?? const {},
-      eventHandlers: eventHandlers,
-    );
+    final Map<String, YamlMap>? actionApiMap =
+        ActionScopeUtil.parseApiMap(definition);
+    final Map<String, YamlMap?>? apiSnapshot =
+        ActionScopeUtil.snapshotPageApisForAction(scopeManager, actionApiMap);
 
-    // Now resolve and execute the inner Action tree.
-    final dynamic bodyNode = definition['body'];
-    if (bodyNode == null) {
-      throw LanguageError(
-          "Action '$name' must define a 'body' payload to run.");
+    try {
+      // Build a child scope with optional Import, API, Global, and input parameters
+      final ScopeManager childScope = ActionScopeUtil.prepareScope(
+        parentScope: scopeManager,
+        definition: definition,
+        parameters: parameters,
+        callInputs: rawInputs ?? const {},
+        eventHandlers: eventHandlers,
+      );
+
+      // Now resolve and execute the inner Action tree.
+      final dynamic bodyNode = definition['body'];
+      if (bodyNode == null) {
+        throw LanguageError(
+            "Action '$name' must define a 'body' payload to run.");
+      }
+
+      final EnsembleAction? innerAction =
+          EnsembleAction.from(Utils.getYamlMap(bodyNode));
+      if (innerAction == null) {
+        throw LanguageError(
+            "Action '$name' contains an invalid 'body' payload.");
+      }
+
+      return ScreenController()
+          .executeActionWithScope(context, childScope, innerAction);
+    } finally {
+      ActionScopeUtil.restorePageApisAfterAction(scopeManager, apiSnapshot);
     }
-
-    final EnsembleAction? innerAction =
-        EnsembleAction.from(Utils.getYamlMap(bodyNode));
-    if (innerAction == null) {
-      throw LanguageError("Action '$name' contains an invalid 'body' payload.");
-    }
-
-    return ScreenController()
-        .executeActionWithScope(context, childScope, innerAction);
   }
 }
