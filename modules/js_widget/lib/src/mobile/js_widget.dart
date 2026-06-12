@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:js_widget/src/mobile/webview_debug_policy.dart';
 // Import for Android features.
 import 'package:webview_flutter_android/webview_flutter_android.dart';
 // Import for iOS features.
@@ -91,7 +92,9 @@ class JsWidgetState extends State<JsWidget> {
       )
       ..loadHtmlString(getHtmlContent());
     if (controller.platform is AndroidWebViewController) {
-      AndroidWebViewController.enableDebugging(true);
+      if (androidWebViewDebuggingEnabled()) {
+        AndroidWebViewController.enableDebugging(true);
+      }
       (controller.platform as AndroidWebViewController)
           .setMediaPlaybackRequiresUserGesture(false);
     }
