@@ -49,4 +49,54 @@ void main() {
       expect(identical(providers.getProvider('sse'), sse), isTrue);
     });
   });
+
+  group('SSEAPIProvider reconnect guards', () {
+    test('disconnect prevents auto-reconnect', () async {
+      final provider = SSEAPIProvider();
+      await provider.disconnect('liveFeed');
+
+      expect(
+        provider.shouldReconnectForTesting('liveFeed', SSEOptions(), 0),
+        isFalse,
+      );
+    });
+
+    test('dispose prevents auto-reconnect', () {
+      final provider = SSEAPIProvider();
+      provider.dispose();
+
+      expect(
+        provider.shouldReconnectForTesting('liveFeed', SSEOptions(), 0),
+        isFalse,
+      );
+    });
+
+    test('honors maxReconnectAttempts', () {
+      final provider = SSEAPIProvider();
+      final options = SSEOptions(maxReconnectAttempts: 3);
+
+      expect(provider.shouldReconnectForTesting('api', options, 0), isTrue);
+      expect(provider.shouldReconnectForTesting('api', options, 2), isTrue);
+      expect(provider.shouldReconnectForTesting('api', options, 3), isFalse);
+    });
+
+    test('shared reconnect counter stops after max error retries', () {
+      final provider = SSEAPIProvider();
+      final options = SSEOptions(maxReconnectAttempts: 3);
+      final attempts = <int>[0];
+
+      for (var i = 0; i < 3; i++) {
+        expect(
+          provider.shouldReconnectForTesting('api', options, attempts[0]),
+          isTrue,
+        );
+        attempts[0]++;
+      }
+
+      expect(
+        provider.shouldReconnectForTesting('api', options, attempts[0]),
+        isFalse,
+      );
+    });
+  });
 }
