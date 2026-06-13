@@ -36,6 +36,7 @@ import 'package:ensemble/action/disable_hardware_navigation.dart';
 import 'package:ensemble/action/close_app.dart';
 import 'package:ensemble/action/getLocation.dart';
 import 'package:ensemble/action/wakelock_action.dart';
+import 'package:ensemble/action/wifi_action.dart';
 import 'package:ensemble/framework/apiproviders/api_provider.dart';
 import 'package:ensemble/framework/apiproviders/http_api_provider.dart';
 import 'package:ensemble/framework/apiproviders/sse_api_provider.dart';
@@ -1038,6 +1039,7 @@ enum ActionType {
   seekAudio,
   logEvent,
   getNetworkInfo,
+  connectToWifi,
   connectivityListener,
   deviceSecurity,
   bluetoothInit,
@@ -1280,6 +1282,8 @@ abstract class EnsembleAction {
       return ClearLocaleAction();
     } else if (actionType == ActionType.getNetworkInfo) {
       return GetNetworkInfoAction.from(initiator: initiator, payload: payload);
+    } else if (actionType == ActionType.connectToWifi) {
+      return ConnectToWifiAction.from(initiator: initiator, payload: payload);
     } else if (actionType == ActionType.connectivityListener) {
       return ConnectivityListenerAction.fromYaml(
           initiator: initiator, payload: payload);
