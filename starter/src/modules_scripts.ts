@@ -399,4 +399,17 @@ export const modules: Script[] = [
       ...firebaseWebParameters,
     ],
   },
+  {
+    name: 'wifi',
+    path: 'scripts/modules/enable_wifi.dart',
+    parameters: [
+      {
+        key: 'inUseLocationDescription',
+        question:
+          'Location usage description for iOS:',
+        platform: ['ios'],
+        type: 'text',
+      },
+    ],
+  },
 ];
