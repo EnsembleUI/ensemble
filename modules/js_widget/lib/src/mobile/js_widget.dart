@@ -4,6 +4,7 @@ import 'package:webview_flutter_android/webview_flutter_android.dart';
 // Import for iOS features.
 import 'package:webview_flutter_wkwebview/webview_flutter_wkwebview.dart';
 import 'package:webview_flutter/webview_flutter.dart';
+import 'webview_debug_policy.dart';
 
 ///
 ///A generic library for exposing javascript widgets in Flutter webview.
@@ -91,7 +92,9 @@ class JsWidgetState extends State<JsWidget> {
       )
       ..loadHtmlString(getHtmlContent());
     if (controller.platform is AndroidWebViewController) {
-      AndroidWebViewController.enableDebugging(true);
+      if (androidWebViewDebuggingEnabled()) {
+        AndroidWebViewController.enableDebugging(true);
+      }
       (controller.platform as AndroidWebViewController)
           .setMediaPlaybackRequiresUserGesture(false);
     }
