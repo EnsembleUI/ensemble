@@ -1,0 +1,28 @@
+name: ensemble_wifi
+description: Ensemble Wi-Fi connect module
+version: 0.1.0
+homepage: https://github.com/EnsembleUI/ensemble/tree/main/modules/ensemble_wifi
+
+environment:
+  sdk: ">=3.5.0"
+  flutter: ">=3.24.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  ensemble:
+    git:
+      url: https://github.com/EnsembleUI/ensemble.git
+      ref: ensemble-v1.2.41
+      path: modules/ensemble
+  smart_wifi_connect:
+    git:
+      url: https://github.com/EnsembleUI/ensemble.git
+      ref: main
+      path: packages/smart_wifi_connect
+  get_it: ^8.0.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^2.0.0
