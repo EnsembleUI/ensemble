@@ -10,7 +10,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
 
-enum WifiOperation { connect, disconnect, activate, deactivate }
+enum WifiOperation { connect, disconnect }
 
 Future<dynamic> _handleWifiResult(
   BuildContext context,
@@ -27,8 +27,8 @@ Future<dynamic> _handleWifiResult(
     final message = result == null
         ? 'WiFi connection returned no result'
         : 'WiFi connection was denied or could not be verified. '
-            'Check SSID/password, approve the system join prompt, and ensure '
-            'location permission is granted.';
+            'Check SSID/password, tap Connect on the system WiFi dialog (Android), '
+            'approve the system join prompt (iOS), and ensure location permission is granted.';
     return ScreenController().executeAction(context, onError,
         event: EnsembleEvent(initiator,
             error: message,
@@ -47,18 +47,6 @@ Future<dynamic> _handleWifiError(
     return ScreenController().executeAction(context, onError,
         event: EnsembleEvent(initiator,
             error: error.toString(), data: {'status': 'error'}));
-  }
-  return Future.value(null);
-}
-
-Future<dynamic> _handleWifiVoidResult(
-  BuildContext context,
-  Invokable? initiator,
-  EnsembleAction? onSuccess,
-) {
-  if (onSuccess != null) {
-    return ScreenController().executeAction(context, onSuccess,
-        event: EnsembleEvent(initiator, data: {'status': 'success'}));
   }
   return Future.value(null);
 }
@@ -134,12 +122,6 @@ class ConnectToWifiAction extends EnsembleAction {
           final result = await wifiManager.disconnect();
           return _handleWifiResult(
               context, initiator, onSuccess, onError, result);
-        case WifiOperation.activate:
-          await wifiManager.activateWifi();
-          return _handleWifiVoidResult(context, initiator, onSuccess);
-        case WifiOperation.deactivate:
-          await wifiManager.deactivateWifi();
-          return _handleWifiVoidResult(context, initiator, onSuccess);
         case WifiOperation.connect:
           return _connect(context, scopeManager);
       }
