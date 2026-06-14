@@ -31,6 +31,10 @@ ensemble_wifi:
 
   final androidPermissions = [
     '<uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />',
+    // Legacy WiFi permissions for API 28 and below
+    '<uses-permission android:name="android.permission.ACCESS_WIFI_STATE" android:maxSdkVersion="28" />',
+    '<uses-permission android:name="android.permission.CHANGE_WIFI_STATE" android:maxSdkVersion="28" />',
+    '<uses-permission android:name="android.permission.CHANGE_NETWORK_STATE" android:maxSdkVersion="28" />',
   ];
 
   try {
@@ -46,9 +50,9 @@ ensemble_wifi:
     }
 
     if (platforms.contains('ios')) {
-      final inUseLocationDescription = getArgumentValue(
-            arguments, 'inUseLocationDescription') ??
-          'Location access is required to connect to WiFi networks.';
+      final inUseLocationDescription =
+          getArgumentValue(arguments, 'inUseLocationDescription') ??
+              'Location access is required to connect to WiFi networks.';
 
       addPermissionDescriptionToInfoPlist(
         'NSLocationWhenInUseUsageDescription',
