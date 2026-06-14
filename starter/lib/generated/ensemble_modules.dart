@@ -8,6 +8,7 @@ import 'package:ensemble/framework/stub/face_camera_manager.dart';
 import 'package:ensemble/framework/stub/ensemble_bracket.dart';
 import 'package:ensemble/framework/stub/ensemble_chat.dart';
 import 'package:ensemble/framework/stub/network_info.dart';
+import 'package:ensemble/framework/stub/wifi_manager.dart';
 import 'package:ensemble/framework/stub/qr_code_scanner.dart';
 import 'package:ensemble/framework/stub/deferred_link_manager.dart';
 import 'package:ensemble/framework/stub/file_manager.dart';
@@ -75,6 +76,9 @@ import 'package:get_it/get_it.dart';
 // Uncomment to enable Firebase Remote Config (A/B testing, feature flags)
 // import 'package:ensemble_remote_config/remote_config.dart';
 
+// Uncomment to enable WiFi module
+// import 'package:ensemble_wifi/ensemble_wifi.dart';
+
 /// TODO: This class should be generated to enable selected Services
 class EnsembleModules {
   static final EnsembleModules _instance = EnsembleModules._internal();
@@ -98,6 +102,7 @@ class EnsembleModules {
 
   static const useBracket = false;
   static const useNetworkInfo = false;
+  static const useWifi = false;
   static const useBluetooth = false;
 
   static const useStripe = false;
@@ -236,6 +241,13 @@ class EnsembleModules {
       //GetIt.I.registerSingleton<NetworkInfoManager>(NetworkInfoImpl());
     } else {
       GetIt.I.registerSingleton<NetworkInfoManager>(NetworkInfoManagerStub());
+    }
+
+    if (useWifi) {
+      // Uncomment to enable WiFi module
+      // GetIt.I.registerSingleton<WifiManager>(WifiManagerImpl());
+    } else {
+      GetIt.I.registerSingleton<WifiManager>(WifiManagerStub());
     }
 
     if (useBluetooth) {

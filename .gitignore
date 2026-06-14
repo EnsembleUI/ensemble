@@ -31,3 +31,6 @@ starter/package-lock.json
 starter/android/app/src/main/java/io/
 starter/ios/Runner/GeneratedPluginRegistrant.h
 starter/ios/Runner/GeneratedPluginRegistrant.m
+
+# remove molos .iml files
+**/melos_*.iml
