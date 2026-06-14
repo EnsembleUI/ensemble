@@ -11,6 +11,61 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
+  group('CDN User-Agent', () {
+    test('cdnUserAgent formats Ensemble version, platform, and app name', () {
+      expect(
+        CdnDefinitionProvider.cdnUserAgent(
+          version: '1.2.44',
+          platform: 'android',
+          appName: 'ensemble_live',
+        ),
+        'Ensemble/1.2.44 (android; ensemble_live)',
+      );
+    });
+
+    test('cdnUserAgent omits empty app name', () {
+      expect(
+        CdnDefinitionProvider.cdnUserAgent(
+          version: '1.2.44',
+          platform: 'ios',
+          appName: '',
+        ),
+        'Ensemble/1.2.44 (ios)',
+      );
+    });
+
+    test('cdnAppVersion formats version and build number', () {
+      expect(
+        CdnDefinitionProvider.cdnAppVersion(
+          version: '1.2.3',
+          buildNumber: '32',
+        ),
+        '1.2.3+32',
+      );
+    });
+
+    test('cdnEnsembleHeaders includes Ensemble metadata headers', () {
+      expect(
+        CdnDefinitionProvider.cdnEnsembleHeaders(
+          appId: 'e24402cb-75e2-404c-866c-29e6c3dd7992',
+          runtimeVersion: '1.2.44',
+          platform: 'android',
+          appName: 'ensemble_live',
+          appVersion: '1.2.3+32',
+          userAgent: 'Ensemble/1.2.44 (android; ensemble_live)',
+        ),
+        {
+          'User-Agent': 'Ensemble/1.2.44 (android; ensemble_live)',
+          'X-Ensemble-App-Id': 'e24402cb-75e2-404c-866c-29e6c3dd7992',
+          'X-Ensemble-Platform': 'android',
+          'X-Ensemble-App-Name': 'ensemble_live',
+          'X-Ensemble-App-Version': '1.2.3+32',
+          'X-Ensemble-Runtime-Version': '1.2.44',
+        },
+      );
+    });
+  });
+
   group('CDN persisted cache tuple', () {
     test('cdnPersistedCacheEntry pairs manifest with snapshot metadata', () {
       expect(
