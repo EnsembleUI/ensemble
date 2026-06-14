@@ -66,7 +66,7 @@ flowchart TB
 
 | Platform | Supported | Notes                                                                      |
 | -------- | --------- | -------------------------------------------------------------------------- |
-| Android  | Yes       | Android 10+ (API 29) recommended. Requires location permission at runtime. |
+| Android  | Yes       | Android 10+ (API 29) recommended. Manifest + runtime location permission required. Legacy WiFi permissions included for API 28 and below. |
 | iOS      | Yes       | iOS 11+. **Requires a physical device** — simulators cannot join WiFi.     |
 | Web      | No        | Action routes to `onError` with a web-not-supported message.               |
 
@@ -89,7 +89,7 @@ The enable script:
 
 1. Uncomments the `ensemble_wifi` dependency in `starter/pubspec.yaml`
 2. Sets `useWifi = true` and registers `WifiManagerImpl` in `starter/lib/generated/ensemble_modules.dart`
-3. Adds Android `ACCESS_FINE_LOCATION` to `AndroidManifest.xml`
+3. Adds Android WiFi permissions to `AndroidManifest.xml` (see [Android permissions](#android-permissions))
 4. Adds `NSLocationWhenInUseUsageDescription` to `Info.plist`
 5. Adds WiFi entitlements to `Runner.entitlements` and links them in the Xcode project
 
@@ -115,12 +115,38 @@ flutter run
 3. **Apple Developer portal** — enable **Hotspot Configuration** and **Access WiFi Information** for your App ID. Entitlements are written to `Runner.entitlements`, but Apple must approve Hotspot Configuration for distribution.
 4. **System join prompt** — when iOS shows “Join Network”, tap **Join**. Cancelling returns a failed result.
 
+### Android permissions
+
+The enable script adds these manifest permissions:
+
+| Permission | Scope | Purpose |
+| ---------- | ----- | ------- |
+| `ACCESS_FINE_LOCATION` | All API levels | Required on Android 10+ (API 29+) for WiFi connect APIs |
+| `ACCESS_WIFI_STATE` | API 28 and below (`maxSdkVersion="28"`) | Read WiFi state on older Android |
+| `CHANGE_WIFI_STATE` | API 28 and below | Connect/disconnect on older Android |
+| `CHANGE_NETWORK_STATE` | API 28 and below | Network changes on older Android |
+
+**Runtime:** `WifiManagerImpl` requests location permission via `Geolocator` before every connect attempt. Location services must also be enabled on the device.
+
+```mermaid
+flowchart LR
+  Manifest["AndroidManifest.xml<br/>(enable script)"]
+  Runtime["Geolocator<br/>(WifiManagerImpl)"]
+  Connect["connectToWifi"]
+
+  Manifest -->|API 29+| LocPerm["ACCESS_FINE_LOCATION"]
+  Manifest -->|API 28−| Legacy["WiFi state + change permissions"]
+  Connect --> Runtime
+  Runtime -->|grant + services on| Connect
+  LocPerm --> Connect
+  Legacy --> Connect
+```
+
 ### Android setup checklist
 
-1. **Location permission** — grant when prompted (required on Android 10+ for WiFi connect APIs).
-2. **Location services** — must be enabled on the device.
-
-For Android 9 and below, `plugin_wifi_connect` may also require `ACCESS_WIFI_STATE`, `CHANGE_WIFI_STATE`, and `CHANGE_NETWORK_STATE` if you target older API levels.
+1. **Manifest permissions** — added automatically by `enable_wifi.dart` (see table above).
+2. **Location permission** — grant when prompted at runtime (required on Android 10+).
+3. **Location services** — must be enabled on the device.
 
 ## Ensemble action: `connectToWifi`
 
@@ -358,7 +384,7 @@ onTap:
 | Web not supported                                  | Expected — use Android or iOS device                                                                       |
 | iOS `hotspotError_8` / internal error on Simulator | Expected — test on a physical iPhone                                                                       |
 | Connect fails after location granted               | Wrong SSID/password, join prompt cancelled, or Hotspot Configuration not enabled in Apple Developer portal |
-| Prefix connect fails on older Android              | May need legacy WiFi permissions in `AndroidManifest.xml` (API 28 and below)                               |
+| Prefix connect fails on older Android              | Re-run `enable_wifi.dart` to add legacy permissions, or confirm `minSdkVersion` targets API 29+             |
 
 
 ## Development
