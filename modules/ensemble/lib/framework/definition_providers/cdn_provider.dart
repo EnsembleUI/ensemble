@@ -20,6 +20,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter/services.dart';
 
+import 'package:ensemble/framework/app_info.dart';
+import 'package:ensemble/framework/device.dart';
 import 'package:ensemble/framework/dotenv_bundle.dart';
 
 /// DefinitionProvider that reads the app manifest from CDN
@@ -612,7 +614,8 @@ class CdnDefinitionProvider extends DefinitionProvider {
     final lastUpdateUri = Uri.parse('$baseUrl/$appId/lastUpdateTime.json');
 
     try {
-      final resp = await http.get(lastUpdateUri);
+      final headers = await _cdnRequestHeaders();
+      final resp = await http.get(lastUpdateUri, headers: headers);
       if (resp.statusCode != 200) {
         return true;
       }
@@ -652,10 +655,7 @@ class CdnDefinitionProvider extends DefinitionProvider {
     final encryptedUri = Uri.parse('$baseUrl/$appId/encrypted-manifest.json');
     final plainUri = Uri.parse('$baseUrl/$appId/manifest.json');
 
-    final headers = <String, String>{};
-    if (ifNoneMatch != null && ifNoneMatch.isNotEmpty) {
-      headers['If-None-Match'] = ifNoneMatch;
-    }
+    final headers = await _cdnRequestHeaders(ifNoneMatch: ifNoneMatch);
 
     http.Response resp;
     var fetchedEncrypted = false;
@@ -890,6 +890,110 @@ class CdnDefinitionProvider extends DefinitionProvider {
   // --------------------------------------------------------
   // Helpers
   // --------------------------------------------------------
+
+  static String? _cachedEnsembleVersion;
+
+  Future<Map<String, String>> _cdnRequestHeaders({String? ifNoneMatch}) async {
+    final runtimeVersion = await _loadEnsembleVersion();
+    final platform = _cdnPlatform();
+    final packageInfo = AppInfo().info;
+    final appName = packageInfo?.appName;
+    final appVersion = cdnAppVersion(
+      version: packageInfo?.version,
+      buildNumber: packageInfo?.buildNumber,
+    );
+
+    final headers = cdnEnsembleHeaders(
+      appId: appId,
+      runtimeVersion: runtimeVersion,
+      platform: platform,
+      appName: appName,
+      appVersion: appVersion,
+      userAgent: cdnUserAgent(
+        version: runtimeVersion,
+        platform: platform,
+        appName: appName,
+      ),
+    );
+    if (ifNoneMatch != null && ifNoneMatch.isNotEmpty) {
+      headers['If-None-Match'] = ifNoneMatch;
+    }
+    return headers;
+  }
+
+  /// Same source as `ensemble.version` in app definitions.
+  Future<String> _loadEnsembleVersion() async {
+    if (_cachedEnsembleVersion != null) return _cachedEnsembleVersion!;
+    try {
+      final fileContent = await rootBundle.loadString(
+        'packages/ensemble/pubspec.yaml',
+      );
+      final pubspecYaml = loadYaml(fileContent);
+      _cachedEnsembleVersion = pubspecYaml['version']?.toString();
+    } catch (_) {
+      _cachedEnsembleVersion = null;
+    }
+    return _cachedEnsembleVersion ?? 'unknown';
+  }
+
+  String _cdnPlatform() =>
+      Device().platform?.name ??
+      (kIsWeb ? DevicePlatform.web.name : defaultTargetPlatform.name);
+
+  /// Builds app version as `version+buildNumber`, e.g. `1.2.3+32`.
+  @visibleForTesting
+  static String? cdnAppVersion({String? version, String? buildNumber}) {
+    final trimmedVersion = version?.trim();
+    final trimmedBuild = buildNumber?.trim();
+    if (trimmedVersion == null || trimmedVersion.isEmpty) return null;
+    if (trimmedBuild == null || trimmedBuild.isEmpty) return trimmedVersion;
+    return '$trimmedVersion+$trimmedBuild';
+  }
+
+  /// CDN request headers identifying the Ensemble runtime and host app.
+  @visibleForTesting
+  static Map<String, String> cdnEnsembleHeaders({
+    required String appId,
+    required String runtimeVersion,
+    required String platform,
+    String? appName,
+    String? appVersion,
+    required String userAgent,
+  }) {
+    final headers = <String, String>{
+      'User-Agent': userAgent,
+      'X-Ensemble-App-Id': appId,
+      'X-Ensemble-Platform': platform,
+      'X-Ensemble-Runtime-Version': runtimeVersion,
+    };
+
+    final trimmedAppName = appName?.trim();
+    if (trimmedAppName != null && trimmedAppName.isNotEmpty) {
+      headers['X-Ensemble-App-Name'] = trimmedAppName;
+    }
+
+    final trimmedAppVersion = appVersion?.trim();
+    if (trimmedAppVersion != null && trimmedAppVersion.isNotEmpty) {
+      headers['X-Ensemble-App-Version'] = trimmedAppVersion;
+    }
+
+    return headers;
+  }
+
+  /// Builds the CDN User-Agent string, e.g.
+  /// `Ensemble/1.2.44 (android; ensemble_live)`.
+  @visibleForTesting
+  static String cdnUserAgent({
+    required String version,
+    required String platform,
+    String? appName,
+  }) {
+    final trimmedAppName = appName?.trim();
+    final suffix = trimmedAppName != null && trimmedAppName.isNotEmpty
+        ? '$platform; $trimmedAppName'
+        : platform;
+    return 'Ensemble/$version ($suffix)';
+  }
 
   static bool _isIncomingNewer(int? incoming, int? current) =>
       incoming != null && (current == null || incoming > current);
