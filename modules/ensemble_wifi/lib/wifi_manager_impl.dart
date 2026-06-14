@@ -85,14 +85,4 @@ class WifiManagerImpl implements WifiManager {
   Future<bool?> disconnect() {
     return PluginWifiConnect.disconnect();
   }
-
-  @override
-  Future<void> activateWifi() {
-    return PluginWifiConnect.activateWifi();
-  }
-
-  @override
-  Future<void> deactivateWifi() {
-    return PluginWifiConnect.deactivateWifi();
-  }
 }

@@ -31,10 +31,10 @@ ensemble_wifi:
 
   final androidPermissions = [
     '<uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />',
+    '<uses-permission android:name="android.permission.CHANGE_NETWORK_STATE" />',
     // Legacy WiFi permissions for API 28 and below
     '<uses-permission android:name="android.permission.ACCESS_WIFI_STATE" android:maxSdkVersion="28" />',
     '<uses-permission android:name="android.permission.CHANGE_WIFI_STATE" android:maxSdkVersion="28" />',
-    '<uses-permission android:name="android.permission.CHANGE_NETWORK_STATE" android:maxSdkVersion="28" />',
   ];
 
   try {

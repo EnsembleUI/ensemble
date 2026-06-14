@@ -66,7 +66,7 @@ flowchart TB
 
 | Platform | Supported | Notes                                                                      |
 | -------- | --------- | -------------------------------------------------------------------------- |
-| Android  | Yes       | Android 10+ (API 29) recommended. Manifest + runtime location permission required. Legacy WiFi permissions included for API 28 and below. |
+| Android  | Yes       | Android 10+ (API 29) recommended. Requires `CHANGE_NETWORK_STATE` + runtime location permission. Legacy WiFi permissions for API 28 and below. |
 | iOS      | Yes       | iOS 11+. **Requires a physical device** — simulators cannot join WiFi.     |
 | Web      | No        | Action routes to `onError` with a web-not-supported message.               |
 
@@ -121,12 +121,14 @@ The enable script adds these manifest permissions:
 
 | Permission | Scope | Purpose |
 | ---------- | ----- | ------- |
-| `ACCESS_FINE_LOCATION` | All API levels | Required on Android 10+ (API 29+) for WiFi connect APIs |
+| `ACCESS_FINE_LOCATION` | All API levels | Runtime location grant for WiFi connect |
+| `CHANGE_NETWORK_STATE` | All API levels | Required for `ConnectivityManager.requestNetwork()` on Android 10+ |
 | `ACCESS_WIFI_STATE` | API 28 and below (`maxSdkVersion="28"`) | Read WiFi state on older Android |
-| `CHANGE_WIFI_STATE` | API 28 and below | Connect/disconnect on older Android |
-| `CHANGE_NETWORK_STATE` | API 28 and below | Network changes on older Android |
+| `CHANGE_WIFI_STATE` | API 28 and below | Legacy connect/disconnect on older Android |
 
-**Runtime:** `WifiManagerImpl` requests location permission via `Geolocator` before every connect attempt. Location services must also be enabled on the device.
+**Runtime:** `WifiManagerImpl` requests location permission via `Geolocator` before connect. Location services must also be enabled on the device.
+
+`CHANGE_NETWORK_STATE` is a normal (install-time) permission — no runtime prompt, but it **must** be in the manifest without `maxSdkVersion="28"` or Android 10+ throws `SecurityException` on connect.
 
 ```mermaid
 flowchart LR
@@ -134,10 +136,12 @@ flowchart LR
   Runtime["Geolocator<br/>(WifiManagerImpl)"]
   Connect["connectToWifi"]
 
+  Manifest -->|all API levels| NetChange["CHANGE_NETWORK_STATE"]
   Manifest -->|API 29+| LocPerm["ACCESS_FINE_LOCATION"]
-  Manifest -->|API 28−| Legacy["WiFi state + change permissions"]
+  Manifest -->|API 28−| Legacy["ACCESS/CHANGE_WIFI_STATE"]
   Connect --> Runtime
   Runtime -->|grant + services on| Connect
+  NetChange --> Connect
   LocPerm --> Connect
   Legacy --> Connect
 ```
@@ -159,8 +163,6 @@ One action handles all WiFi operations. Set `operation` to choose the mode (defa
 | ------------ | ------------------------------------------------ | ------------ |
 | `connect`    | Join a WiFi network (default)                    | Android, iOS |
 | `disconnect` | Disconnect from a network joined via this plugin | Android, iOS |
-| `activate`   | Turn WiFi radio on                               | Android only |
-| `deactivate` | Turn WiFi radio off                              | Android only |
 
 
 ### Connect routing
@@ -180,8 +182,6 @@ flowchart TD
 
   Start --> Op
   Op -->|disconnect| Disc["disconnect()"]
-  Op -->|activate| Act["activateWifi()"]
-  Op -->|deactivate| Deact["deactivateWifi()"]
   Op -->|connect / default| Prefix
 
   Prefix -->|yes| Pwd
@@ -247,7 +247,7 @@ sequenceDiagram
 
 | Parameter     | Required                                     | Default   | Description                                                   |
 | ------------- | -------------------------------------------- | --------- | ------------------------------------------------------------- |
-| `operation`   | No                                           | `connect` | `connect`, `disconnect`, `activate`, or `deactivate`          |
+| `operation`   | No                                           | `connect` | `connect` or `disconnect` |
 | `ssid`        | One of `ssid` or `ssidPrefix` (connect only) | —         | Exact network name                                            |
 | `ssidPrefix`  | One of `ssid` or `ssidPrefix` (connect only) | —         | Match nearest network by SSID prefix (common for IoT devices) |
 | `password`    | No                                           | —         | If set, uses secured connect                                  |
@@ -268,13 +268,6 @@ All string parameters support Ensemble expressions (e.g. `${devicePassword}`).
 ```yaml
 data:
   connected: true   # connect/disconnect returned true
-```
-
-**`onSuccess` (activate / deactivate)**
-
-```yaml
-data:
-  status: success
 ```
 
 **`onError`**
@@ -384,7 +377,8 @@ onTap:
 | Web not supported                                  | Expected — use Android or iOS device                                                                       |
 | iOS `hotspotError_8` / internal error on Simulator | Expected — test on a physical iPhone                                                                       |
 | Connect fails after location granted               | Wrong SSID/password, join prompt cancelled, or Hotspot Configuration not enabled in Apple Developer portal |
-| Prefix connect fails on older Android              | Re-run `enable_wifi.dart` to add legacy permissions, or confirm `minSdkVersion` targets API 29+             |
+| `MissingPluginException` for activate/deactivate   | Not supported — use `connect` / `disconnect` only (see Operations above)                                     |
+| `SecurityException`: `CHANGE_NETWORK_STATE` not granted | Remove `maxSdkVersion="28"` from `CHANGE_NETWORK_STATE` in manifest; rebuild and reinstall |
 
 
 ## Development

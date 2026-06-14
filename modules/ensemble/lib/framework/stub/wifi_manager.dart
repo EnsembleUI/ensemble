@@ -24,10 +24,6 @@ abstract class WifiManager {
   });
 
   Future<bool?> disconnect();
-
-  Future<void> activateWifi();
-
-  Future<void> deactivateWifi();
 }
 
 class WifiManagerStub implements WifiManager {
@@ -77,16 +73,6 @@ class WifiManagerStub implements WifiManager {
 
   @override
   Future<bool?> disconnect() {
-    _throwNotEnabled();
-  }
-
-  @override
-  Future<void> activateWifi() {
-    _throwNotEnabled();
-  }
-
-  @override
-  Future<void> deactivateWifi() {
     _throwNotEnabled();
   }
 }
