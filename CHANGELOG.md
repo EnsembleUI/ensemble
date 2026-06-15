@@ -3,6 +3,64 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## 2026-06-03
+
+### Changes
+
+---
+
+Packages with breaking changes:
+
+ - There are no breaking changes in this release.
+
+Packages with other changes:
+
+ - [`ensemble` - `v1.2.44`](#ensemble---v1244)
+ - [`ensemble_bluetooth` - `v0.0.1+1`](#ensemble_bluetooth---v0011)
+ - [`ensemble_location` - `v0.0.1+1`](#ensemble_location---v0011)
+ - [`ensemble_camera` - `v0.0.1+1`](#ensemble_camera---v0011)
+ - [`ensemble_connect` - `v0.0.1+1`](#ensemble_connect---v0011)
+ - [`ensemble_face_camera` - `v0.0.1+1`](#ensemble_face_camera---v0011)
+ - [`ensemble_chat` - `v0.0.1+1`](#ensemble_chat---v0011)
+ - [`ensemble_stripe` - `v1.0.1`](#ensemble_stripe---v101)
+ - [`ensemble_deeplink` - `v0.0.1+1`](#ensemble_deeplink---v0011)
+ - [`ensemble_contacts` - `v0.0.1+1`](#ensemble_contacts---v0011)
+ - [`ensemble_network_info` - `v0.0.1+1`](#ensemble_network_info---v0011)
+ - [`ensemble_auth` - `v1.0.1`](#ensemble_auth---v101)
+ - [`ensemble_file_manager` - `v0.0.1+1`](#ensemble_file_manager---v0011)
+
+Packages with dependency updates only:
+
+> Packages listed below depend on other packages in this workspace that have had changes. Their versions have been incremented to bump the minimum dependency versions of the packages they depend upon in this project.
+
+ - `ensemble_bluetooth` - `v0.0.1+1`
+ - `ensemble_location` - `v0.0.1+1`
+ - `ensemble_camera` - `v0.0.1+1`
+ - `ensemble_connect` - `v0.0.1+1`
+ - `ensemble_face_camera` - `v0.0.1+1`
+ - `ensemble_chat` - `v0.0.1+1`
+ - `ensemble_stripe` - `v1.0.1`
+ - `ensemble_deeplink` - `v0.0.1+1`
+ - `ensemble_contacts` - `v0.0.1+1`
+ - `ensemble_network_info` - `v0.0.1+1`
+ - `ensemble_auth` - `v1.0.1`
+ - `ensemble_file_manager` - `v0.0.1+1`
+
+---
+
+#### `ensemble` - `v1.2.44`
+
+ - **FIX**(upload): scope cancelAll to upload Workmanager tags only. ([4d763ac4](https://github.com/ensembleUI/ensemble/commit/4d763ac4c883363a96a6a5b8b3c264bf8fb3f0b3))
+ - **FIX**(upload): schedule every background batch with unique Workmanager names. ([33829f9b](https://github.com/ensembleUI/ensemble/commit/33829f9b49da513c587a2e603609cf8d1af49723))
+ - **FIX**(navigation): clamp navigateViewGroup index before PageController.jumpToPage. ([0ce6723a](https://github.com/ensembleUI/ensemble/commit/0ce6723a14095823fb5d2f1ba3938c45f76c289d))
+ - **FIX**(upload): complete cancelAll when some tasks are already completed. ([93cfc387](https://github.com/ensembleUI/ensemble/commit/93cfc387e700a5a1cb1c327b85f68a8ac56011d2))
+ - **FIX**(storage): defer binding dispatches until public storage clear completes. ([8c2a52de](https://github.com/ensembleUI/ensemble/commit/8c2a52de1e84c078ff01905c3bce07428f5dc5ba))
+ - **FIX**(listview): sync ListViewCore scroll controller when parent swaps it. ([c792a8a6](https://github.com/ensembleUI/ensemble/commit/c792a8a673196a1ae2eedf92ef488be438644602))
+ - **FIX**(page): cancel header timers and dedupe storage event listeners. ([2c45e427](https://github.com/ensembleUI/ensemble/commit/2c45e4273678ff91007d486137e264dedc9c2251))
+ - **FIX**(navigation): clamp ViewGroup tab index when payloads shrink. ([2b62b4a2](https://github.com/ensembleUI/ensemble/commit/2b62b4a2072862c27e9292ca0d38cefa1d1d9fad))
+ - **DOCS**(ensemble): document storage.clear and multipart upload paths. ([d88fb624](https://github.com/ensembleUI/ensemble/commit/d88fb624b68136d3f006eac5ea7c6bc78752e1e2))
+
+
 ## 2026-05-18
 
 ### Changes

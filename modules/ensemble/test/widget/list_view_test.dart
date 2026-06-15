@@ -19,6 +19,69 @@ void main() {
     return widget;
   }
 
+  ensemble.ListView listViewWithManyChildren({int count = 20}) {
+    final widget = ensemble.ListView();
+    widget.initChildren(
+      children: List.generate(
+        count,
+        (i) => ViewUtil.buildModel({
+          'Text': {'text': 'Item $i'}
+        }, null),
+      ),
+    );
+    return widget;
+  }
+
+  test('scrollToOffset is a no-op without attached scroll clients', () {
+    final controller = ensemble.ListViewController();
+    final scrollController = ScrollController();
+    controller.scrollController = scrollController;
+
+    expect(() => controller.scrollToOffset(100), returnsNormally);
+
+    scrollController.dispose();
+  });
+
+  testWidgets('scrollToOffset jumps to pixel offset when not animated',
+      (tester) async {
+    final list = listViewWithManyChildren();
+
+    await tester.pumpWidget(TestUtils.wrapTestWidgetWithScope(
+      SizedBox(
+        height: 200,
+        width: 300,
+        child: list,
+      ),
+    ));
+    await tester.pumpAndSettle();
+
+    list.controller.scrollToOffset(80, animated: false);
+    await tester.pump();
+
+    expect(list.controller.scrollController!.offset, 80);
+  });
+
+  testWidgets('scrollToTop moves list to offset zero', (tester) async {
+    final list = listViewWithManyChildren();
+
+    await tester.pumpWidget(TestUtils.wrapTestWidgetWithScope(
+      SizedBox(
+        height: 200,
+        width: 300,
+        child: list,
+      ),
+    ));
+    await tester.pumpAndSettle();
+
+    list.controller.scrollToOffset(80, animated: false);
+    await tester.pump();
+    expect(list.controller.scrollController!.offset, greaterThan(0));
+
+    list.controller.scrollToTop(animated: false);
+    await tester.pump();
+    expect(list.controller.scrollController!.offset, 0);
+  });
+
   testWidgets('disposes internally-created scroll controller', (tester) async {
     final widget = ensemble.ListView();
 

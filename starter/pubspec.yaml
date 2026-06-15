@@ -36,7 +36,7 @@ dependencies:
   ensemble:
     git:
       url: https://github.com/EnsembleUI/ensemble.git
-      ref: ensemble-v1.2.43
+      ref: ensemble-v1.2.44
       path: modules/ensemble
 
 
@@ -51,6 +51,13 @@ dependencies:
   #     url: https://github.com/EnsembleUI/ensemble.git
   #     ref: main
   #     path: modules/ensemble_bluetooth
+
+  # Uncomment to enable WiFi module
+  # ensemble_wifi:
+  #   git:
+  #     url: https://github.com/EnsembleUI/ensemble.git
+  #     ref: main
+  #     path: modules/ensemble_wifi
 
   # Uncomment to enable camera module
   # ensemble_camera:

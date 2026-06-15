@@ -23,7 +23,7 @@ Add this to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  ensemble_icons: ^1.0.1
+  ensemble_icons: ^1.0.2
 ```
 
 Then run:
@@ -34,28 +34,13 @@ flutter pub get
 ### Basic Usage
 
 ```dart
+import 'package:flutter/material.dart';
 import 'package:ensemble_icons/ensemble_icons.dart';
 
-// Use Material Design icons
-Icon(
-  icon: MaterialIcons.home,
-  size: 24.0,
-  color: Colors.blue,
-)
-
-// Use Remix Icons
-Icon(
-  icon: RemixIcons.home,
-  size: 24.0,
-  color: Colors.green,
-)
-
-// Use Font Awesome icons
-Icon(
-  icon: FontAwesomeIcons.home,
-  size: 24.0,
-  color: Colors.orange,
-)
+// Icons are looked up by name from static iconMap tables
+Icon(MaterialIcons.iconMap['home']!, size: 24.0, color: Colors.blue);
+Icon(Remix.iconMap['home_line']!, size: 24.0, color: Colors.green);
+Icon(FontAwesome.iconMap['house']!, size: 24.0, color: Colors.orange);
 ```
 
 ## 🎨 Icon Libraries
@@ -63,17 +48,17 @@ Icon(
 ### Material Design Icons
 - **Version**: Latest Flutter SDK version
 - **Features**: Google's Material Design icon set
-- **Usage**: `MaterialIcons.iconName`
+- **Usage**: `MaterialIcons.iconMap['icon_name']`
 
 ### Remix Icons
 - **Version**: v4.2.0 (2024-03-13)
 - **Features**: Open-source icon library with 2,000+ icons
-- **Usage**: `RemixIcons.iconName`
+- **Usage**: `Remix.iconMap['icon_name']` (class `Remix` in `remixicon.dart`)
 
 ### Font Awesome Icons
 - **Version**: v6.5.1 (2024-03-11)
 - **Features**: Professional icon toolkit with 1,600+ free icons
-- **Usage**: `FontAwesomeIcons.iconName`
+- **Usage**: `FontAwesome.iconMap['icon_name']` (class `FontAwesome` in `fontAwesomeIcon.dart`)
 
 ## 🔧 Advanced Usage
 
@@ -87,42 +72,22 @@ class CustomIcon extends StatelessWidget {
   final Color? color;
 
   const CustomIcon({
-    Key? key,
+    super.key,
     required this.iconName,
     this.library = 'default',
     this.size = 24.0,
     this.color,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
-    IconData iconData;
-    
-    switch (library) {
-      case 'remix':
-        iconData = RemixIcons.values.firstWhere(
-          (icon) => icon.name == iconName,
-          orElse: () => RemixIcons.question,
-        );
-        break;
-      case 'fontAwesome':
-        iconData = FontAwesomeIcons.values.firstWhere(
-          (icon) => icon.name == iconName,
-          orElse: () => FontAwesomeIcons.question,
-        );
-        break;
-      default:
-        iconData = MaterialIcons.values.firstWhere(
-          (icon) => icon.name == iconName,
-          orElse: () => MaterialIcons.help,
-        );
-    }
-
-    return Icon(
-      iconData,
-      size: size,
-      color: color,
-    );
+    final IconData? iconData = switch (library) {
+      'remix' => Remix.iconMap[iconName],
+      'fontAwesome' => FontAwesome.iconMap[iconName],
+      _ => MaterialIcons.iconMap[iconName],
+    };
+    if (iconData == null) return const SizedBox.shrink();
+    return Icon(iconData, size: size, color: color);
   }
 }
 ```
@@ -143,9 +108,9 @@ class CustomIcon extends StatelessWidget {
 
 | Class | Description | Icons Available |
 |-------|-------------|-----------------|
-| `MaterialIcons` | Material Design icons | 1,000+ |
-| `RemixIcons` | Remix icon library | 2,000+ |
-| `FontAwesomeIcons` | Font Awesome icons | 1,600+ |
+| `MaterialIcons` | Material Design icons (`iconMap`) | 1,000+ |
+| `Remix` | Remix icon library (`iconMap`) | 2,000+ |
+| `FontAwesome` | Font Awesome icons (`iconMap`) | 1,600+ |
 
 ### Common Properties
 

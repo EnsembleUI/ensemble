@@ -800,10 +800,14 @@ class EnsembleStorage with Invokable {
   void clear() {
     final keys =
         ensembleStorageClearDispatchKeys(StorageManager().getKeys());
-    StorageManager().clearPublicStorage();
-    for (final key in keys) {
-      ScreenController().dispatchStorageChanges(context, key, null);
-    }
+    // clearPublicStorage is async; binding listeners re-evaluate by reading
+    // GetStorage. Dispatch only after removal completes so eval() does not
+    // observe stale persisted values (see PR discussion on #2227).
+    unawaited(StorageManager().clearPublicStorage().whenComplete(() {
+      for (final key in keys) {
+        ScreenController().dispatchStorageChanges(context, key, null);
+      }
+    }));
   }
 
   @override
@@ -1097,6 +1101,25 @@ class UserDateTime with Invokable {
 
 enum UploadStatus { pending, running, completed, cancelled, failed }
 
+/// Marks every non-completed [tasks] entry as [UploadStatus.cancelled].
+@visibleForTesting
+void cancelNonCompletedUploadTasks(Iterable<UploadTask> tasks) {
+  for (final task in tasks) {
+    if (task.status == UploadStatus.completed) continue;
+    task.status = UploadStatus.cancelled;
+  }
+}
+
+/// Background upload task ids that [UploadFilesResponse.cancelAll] should stop
+/// via [Workmanager.cancelByTag], not [Workmanager.cancelAll].
+@visibleForTesting
+Iterable<String> backgroundUploadWorkTagsForCancelAll(Iterable<UploadTask> tasks) {
+  return tasks
+      .where((task) =>
+          task.isBackground && task.status != UploadStatus.completed)
+      .map((task) => task.id);
+}
+
 class UploadTask {
   final String id;
   late UploadStatus status;
@@ -1179,11 +1202,14 @@ class UploadFilesResponse with Invokable {
         sendPort?.send({'cancel': true, 'taskId': taskId});
       },
       'cancelAll': () async {
-        for (var task in tasks) {
-          if (task.status == UploadStatus.completed) return;
-          task.status = UploadStatus.cancelled;
+        final backgroundTags =
+            backgroundUploadWorkTagsForCancelAll(tasks).toList();
+        cancelNonCompletedUploadTasks(tasks);
+        for (final taskId in backgroundTags) {
+          await Workmanager().cancelByTag(taskId);
+          final sendPort = IsolateNameServer.lookupPortByName(taskId);
+          sendPort?.send({'cancel': true, 'taskId': taskId});
         }
-        await Workmanager().cancelAll();
       },
       'clear': () => tasks.clear(),
     };

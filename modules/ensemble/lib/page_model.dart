@@ -1,3 +1,4 @@
+import 'package:ensemble/action/action_scope_util.dart';
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/data_utils.dart';
 import 'package:ensemble/framework/error_handling.dart';
@@ -140,20 +141,20 @@ abstract class PageModel {
     // Start with global reusable Actions, if any (from app resources)
     Map<String, YamlMap>? merged = {};
     Map? globalResources = Ensemble().getConfig()?.getResources();
-    final dynamic globalActions = globalResources?['Actions'];
+    final dynamic globalActions =
+        globalResources?[ResourceArtifactEntry.Actions.name];
     if (globalActions is Map) {
-      globalActions.forEach((key, value) {
-        if (value is YamlMap) {
-          merged[key.toString()] = value;
-        }
+      ActionScopeUtil.normalizeActionsMap(globalActions).forEach((key, value) {
+        merged[key] = value;
       });
     }
 
     // Overlay page-level Actions from this document; page overrides global on name clash
     if (map != null) {
       map.forEach((key, value) {
-        if (value is YamlMap) {
-          merged[key] = value;
+        final YamlMap? action = ActionScopeUtil.normalizeActionDefinition(value);
+        if (action != null) {
+          merged[key.toString()] = action;
         }
       });
     }

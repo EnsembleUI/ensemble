@@ -97,18 +97,8 @@ Future<void> uploadFiles({
       : scopeManager?.dataContext.getContextById(action.id!)
           as UploadFilesResponse;
 
-  List<List<File>> fileBatches;
-  if (action.batchSize != null) {
-    fileBatches = [];
-    for (int i = 0; i < selectedFiles.length; i += action.batchSize!) {
-      int end = (i + action.batchSize! < selectedFiles.length)
-          ? i + action.batchSize!
-          : selectedFiles.length;
-      fileBatches.add(selectedFiles.sublist(i, end));
-    }
-  } else {
-    fileBatches = [selectedFiles];
-  }
+  final fileBatches =
+      splitUploadFileBatches(selectedFiles, action.batchSize);
 
   for (var fileBatch in fileBatches) {
     if (action.isBackgroundTask) {
@@ -127,7 +117,7 @@ Future<void> uploadFiles({
         scopeManager: scopeManager,
       );
 
-      return;
+      continue;
     }
     final taskId = Utils.generateRandomId(8);
     fileResponse?.addTask(UploadTask(id: taskId));
@@ -269,7 +259,7 @@ Future<void> _setBackgroundUploadTask({
   fileResponse?.addTask(UploadTask(id: taskId, isBackground: true));
 
   await Workmanager().registerOneOffTask(
-    'uploadTask',
+    taskId,
     backgroundUploadTask,
     tag: taskId,
     inputData: {

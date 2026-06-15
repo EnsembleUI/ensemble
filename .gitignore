@@ -40,3 +40,6 @@ starter/GetStorage.gs
 starter/GetStorage.bak
 starter/system.gs
 starter/system.bak
+
+# remove molos .iml files
+**/melos_*.iml

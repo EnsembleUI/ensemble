@@ -24,9 +24,10 @@ import 'package:crypto/crypto.dart';
 /// Server-Sent Events (SSE) API Provider
 /// Handles streaming HTTP connections
 class SSEAPIProvider extends APIProvider with LiveAPIProvider {
-  static final Map<String, StreamSubscription> _subscriptions = {};
-  static final Map<String, http.Client> _activeClients = {};
-  static final Set<String> _manuallyDisconnected = {};
+  final Map<String, StreamSubscription> _subscriptions = {};
+  final Map<String, http.Client> _activeClients = {};
+  final Set<String> _manuallyDisconnected = {};
+  bool _disposed = false;
 
   @override
   Future<void> init(String appId, Map<String, dynamic> config) async {
@@ -206,7 +207,7 @@ class SSEAPIProvider extends APIProvider with LiveAPIProvider {
       ResponseListener listener,
       SSEOptions options,
       DataContext eContext) async {
-    int reconnectAttempts = 0;
+    final List<int> reconnectAttempts = [0];
     String? lastEventId;
 
     Future<void> connect() async {
@@ -236,7 +237,7 @@ class SSEAPIProvider extends APIProvider with LiveAPIProvider {
         }
 
         // Reset reconnect attempts on successful connection
-        reconnectAttempts = 0;
+        reconnectAttempts[0] = 0;
 
         // Parse SSE stream
         String? currentEventType;
@@ -296,18 +297,20 @@ class SSEAPIProvider extends APIProvider with LiveAPIProvider {
           onError: (error) {
             log('SSE stream error: $error');
             _handleSSEError(error, apiName, listener, options,
-                reconnectAttempts, () => connect(), url, headers, eContext);
+                reconnectAttempts, () => connect());
           },
           onDone: () {
             log('SSE stream closed');
             // Attempt reconnection if enabled
-            if (options.autoReconnect &&
-                reconnectAttempts < options.maxReconnectAttempts) {
-              reconnectAttempts++;
+            if (_shouldReconnect(apiName, options, reconnectAttempts[0])) {
+              reconnectAttempts[0]++;
               final delay = Duration(
-                  milliseconds: options.reconnectDelay * reconnectAttempts);
+                  milliseconds: options.reconnectDelay * reconnectAttempts[0]);
               Future.delayed(delay, () {
-                log('Reconnecting SSE (attempt $reconnectAttempts)...');
+                if (!_shouldReconnect(apiName, options, reconnectAttempts[0])) {
+                  return;
+                }
+                log('Reconnecting SSE (attempt ${reconnectAttempts[0]})...');
                 connect();
               });
             } else {
@@ -328,7 +331,7 @@ class SSEAPIProvider extends APIProvider with LiveAPIProvider {
         _subscriptions[apiName] = subscription;
       } catch (error) {
         _handleSSEError(error, apiName, listener, options, reconnectAttempts,
-            () => connect(), url, headers, eContext);
+            () => connect());
       }
     }
 
@@ -374,16 +377,20 @@ class SSEAPIProvider extends APIProvider with LiveAPIProvider {
     }
   }
 
+  bool _shouldReconnect(
+          String apiName, SSEOptions options, int reconnectAttempts) =>
+      !_disposed &&
+      !_manuallyDisconnected.contains(apiName) &&
+      options.autoReconnect &&
+      reconnectAttempts < options.maxReconnectAttempts;
+
   void _handleSSEError(
       dynamic error,
       String apiName,
       ResponseListener listener,
       SSEOptions options,
-      int reconnectAttempts,
-      VoidCallback reconnect,
-      String url,
-      Map<String, String> headers,
-      DataContext eContext) {
+      List<int> reconnectAttempts,
+      VoidCallback reconnect) {
     String errorMessage;
     if (error is HandshakeException || error is TlsException) {
       errorMessage =
@@ -408,13 +415,15 @@ class SSEAPIProvider extends APIProvider with LiveAPIProvider {
     listener(errorResponse);
 
     // Attempt reconnection if enabled
-    if (options.autoReconnect &&
-        reconnectAttempts < options.maxReconnectAttempts) {
-      reconnectAttempts++;
-      final delay =
-          Duration(milliseconds: options.reconnectDelay * reconnectAttempts);
+    if (_shouldReconnect(apiName, options, reconnectAttempts[0])) {
+      reconnectAttempts[0]++;
+      final delay = Duration(
+          milliseconds: options.reconnectDelay * reconnectAttempts[0]);
       Future.delayed(delay, () {
-        log('Reconnecting SSE after error (attempt $reconnectAttempts)...');
+        if (!_shouldReconnect(apiName, options, reconnectAttempts[0])) {
+          return;
+        }
+        log('Reconnecting SSE after error (attempt ${reconnectAttempts[0]})...');
         reconnect();
       });
     }
@@ -530,21 +539,33 @@ class SSEAPIProvider extends APIProvider with LiveAPIProvider {
 
   @override
   dispose() {
-    _manuallyDisconnected.addAll(_subscriptions.keys);
+    _disposed = true;
+    for (final apiName in _subscriptions.keys.toList()) {
+      _manuallyDisconnected.add(apiName);
+    }
 
-    // Cancel all subscriptions
-    for (var subscription in _subscriptions.values) {
+    for (final subscription in _subscriptions.values) {
       subscription.cancel();
     }
     _subscriptions.clear();
 
-    // Close all active clients
-    for (var client in _activeClients.values) {
+    for (final client in _activeClients.values) {
       client.close();
     }
     _activeClients.clear();
+  }
 
-    _manuallyDisconnected.clear();
+  @visibleForTesting
+  bool shouldReconnectForTesting(
+          String apiName, SSEOptions options, int reconnectAttempts) =>
+      _shouldReconnect(apiName, options, reconnectAttempts);
+
+  @visibleForTesting
+  int get subscriptionCountForTesting => _subscriptions.length;
+
+  @visibleForTesting
+  void trackSubscriptionForTesting(String apiName, StreamSubscription sub) {
+    _subscriptions[apiName] = sub;
   }
 }
 

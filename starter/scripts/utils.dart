@@ -482,7 +482,59 @@ $deeplinkEntries
 </dict>''');
       entitlementsFile.writeAsStringSync(entitlementsContent);
     }
+  } else if (module == 'wifi') {
+    ensureCodeSignEntitlements();
+
+    var updated = false;
+    if (!entitlementsContent
+        .contains('<key>com.apple.developer.networking.wifi-info</key>')) {
+      entitlementsContent = entitlementsContent.replaceFirst('</dict>', '''
+    <key>com.apple.developer.networking.wifi-info</key>
+    <true/>
+</dict>''');
+      updated = true;
+    }
+    if (!entitlementsContent.contains(
+        '<key>com.apple.developer.networking.HotspotConfiguration</key>')) {
+      entitlementsContent = entitlementsContent.replaceFirst('</dict>', '''
+    <key>com.apple.developer.networking.HotspotConfiguration</key>
+    <true/>
+</dict>''');
+      updated = true;
+    }
+    if (updated) {
+      entitlementsFile.writeAsStringSync(entitlementsContent);
+    }
   }
+}
+
+/// Ensures the Xcode project links [Runner.entitlements] for code signing.
+void ensureCodeSignEntitlements() {
+  final pbxproj = File('ios/Runner.xcodeproj/project.pbxproj');
+  if (!pbxproj.existsSync()) {
+    return;
+  }
+  var content = pbxproj.readAsStringSync();
+  if (content.contains('CODE_SIGN_ENTITLEMENTS = Runner/Runner.entitlements;')) {
+    return;
+  }
+
+  // Insert before Runner's Info.plist reference — works for any bundle identifier.
+  const entitlementsLine =
+      'CODE_SIGN_ENTITLEMENTS = Runner/Runner.entitlements;\n\t\t\t\t';
+  content = content.replaceAll(
+    'INFOPLIST_FILE = Runner/Info.plist;',
+    '${entitlementsLine}INFOPLIST_FILE = Runner/Info.plist;',
+  );
+
+  if (!content.contains('CODE_SIGN_ENTITLEMENTS = Runner/Runner.entitlements;')) {
+    throw Exception(
+        'Could not link Runner.entitlements in Xcode project. '
+        'Add CODE_SIGN_ENTITLEMENTS = Runner/Runner.entitlements; to the Runner target build settings.');
+  }
+
+  pbxproj.writeAsStringSync(content);
+  print('Linked Runner.entitlements in Xcode project.');
 }
 
 // Reads a specific key from ensemble.properties

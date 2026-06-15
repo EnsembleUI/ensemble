@@ -1,3 +1,15 @@
+## 1.2.44
+
+ - **FIX**(upload): scope cancelAll to upload Workmanager tags only. ([4d763ac4](https://github.com/ensembleUI/ensemble/commit/4d763ac4c883363a96a6a5b8b3c264bf8fb3f0b3))
+ - **FIX**(upload): schedule every background batch with unique Workmanager names. ([33829f9b](https://github.com/ensembleUI/ensemble/commit/33829f9b49da513c587a2e603609cf8d1af49723))
+ - **FIX**(navigation): clamp navigateViewGroup index before PageController.jumpToPage. ([0ce6723a](https://github.com/ensembleUI/ensemble/commit/0ce6723a14095823fb5d2f1ba3938c45f76c289d))
+ - **FIX**(upload): complete cancelAll when some tasks are already completed. ([93cfc387](https://github.com/ensembleUI/ensemble/commit/93cfc387e700a5a1cb1c327b85f68a8ac56011d2))
+ - **FIX**(storage): defer binding dispatches until public storage clear completes. ([8c2a52de](https://github.com/ensembleUI/ensemble/commit/8c2a52de1e84c078ff01905c3bce07428f5dc5ba))
+ - **FIX**(listview): sync ListViewCore scroll controller when parent swaps it. ([c792a8a6](https://github.com/ensembleUI/ensemble/commit/c792a8a673196a1ae2eedf92ef488be438644602))
+ - **FIX**(page): cancel header timers and dedupe storage event listeners. ([2c45e427](https://github.com/ensembleUI/ensemble/commit/2c45e4273678ff91007d486137e264dedc9c2251))
+ - **FIX**(navigation): clamp ViewGroup tab index when payloads shrink. ([2b62b4a2](https://github.com/ensembleUI/ensemble/commit/2b62b4a2072862c27e9292ca0d38cefa1d1d9fad))
+ - **DOCS**(ensemble): document storage.clear and multipart upload paths. ([d88fb624](https://github.com/ensembleUI/ensemble/commit/d88fb624b68136d3f006eac5ea7c6bc78752e1e2))
+
 ## 1.2.43
 
  - **FIX**(security): block path traversal in local bundled screen resolution. ([b317c925](https://github.com/ensembleUI/ensemble/commit/b317c9256d96cd01f3183866d3f5e38bfe9b6ff7))

@@ -51,6 +51,7 @@ abstract class ActionInvokable with Invokable {
       ActionType.updateBadgeCount,
       ActionType.clearBadgeCount,
       ActionType.getNetworkInfo,
+      ActionType.connectToWifi,
       ActionType.checkPermission,
       ActionType.sendVerificationCode,
       ActionType.validateVerificationCode,

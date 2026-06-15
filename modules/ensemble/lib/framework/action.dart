@@ -36,6 +36,7 @@ import 'package:ensemble/action/disable_hardware_navigation.dart';
 import 'package:ensemble/action/close_app.dart';
 import 'package:ensemble/action/getLocation.dart';
 import 'package:ensemble/action/wakelock_action.dart';
+import 'package:ensemble/action/wifi_action.dart';
 import 'package:ensemble/framework/apiproviders/api_provider.dart';
 import 'package:ensemble/framework/apiproviders/http_api_provider.dart';
 import 'package:ensemble/framework/apiproviders/sse_api_provider.dart';
@@ -168,14 +169,18 @@ class NavigateViewGroupAction extends EnsembleAction {
       ScreenController()
           .navigateToScreen(context, screenName: screenName, pageArgs: payload);
     } else if (viewIndex != null) {
+      final pageGroup = context.findAncestorWidgetOfExactType<PageGroup>();
+      final menuLen = pageGroup?.menu.menuItems.length ?? 0;
+      final resolvedIndex =
+          resolveNavigateViewGroupTabIndex(viewIndex, menuLen);
       if (payload != null) {
         // TODO: this is wrong. Can't mutate the scope like this
         scopeManager.dataContext.addDataContext(payload);
       }
       // TODO: refactor the below. Both are needed when reloadView=false, but only
       //  viewGroupNotifier is needed without. Doesn't make any sense
-      PageGroupWidget.getPageController(context)?.jumpToPage(viewIndex);
-      viewGroupNotifier.updatePage(viewIndex, payload: payload);
+      PageGroupWidget.getPageController(context)?.jumpToPage(resolvedIndex);
+      viewGroupNotifier.updatePage(resolvedIndex, payload: payload);
     }
     return Future.value(null);
   }
@@ -1034,6 +1039,7 @@ enum ActionType {
   seekAudio,
   logEvent,
   getNetworkInfo,
+  connectToWifi,
   connectivityListener,
   deviceSecurity,
   bluetoothInit,
@@ -1276,6 +1282,8 @@ abstract class EnsembleAction {
       return ClearLocaleAction();
     } else if (actionType == ActionType.getNetworkInfo) {
       return GetNetworkInfoAction.from(initiator: initiator, payload: payload);
+    } else if (actionType == ActionType.connectToWifi) {
+      return ConnectToWifiAction.from(initiator: initiator, payload: payload);
     } else if (actionType == ActionType.connectivityListener) {
       return ConnectivityListenerAction.fromYaml(
           initiator: initiator, payload: payload);

@@ -28,7 +28,11 @@ dependencies:
 
 ## Android
 
-Add the following filters to your [android/app/src/main/AndroidManifest.xml](./example/android/app/src/main/AndroidManifest.xml):
+Add the following filters to your [android/app/src/main/AndroidManifest.xml](./example/android/app/src/main/AndroidManifest.xml).
+
+Use `android:name="${applicationName}"` on the `<application>` element (as in the
+package example) for current Flutter embedding; do not use the deprecated
+`io.flutter.app.FlutterApplication` class.
 
 ```xml
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
@@ -36,7 +40,7 @@ Add the following filters to your [android/app/src/main/AndroidManifest.xml](./e
  <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
 
   <application
-        android:name="io.flutter.app.FlutterApplication"
+        android:name="${applicationName}"
         ...
         >
 <!--Set activity launchMode to singleTask, if you want to prevent creating new activity instance everytime there is a new intent.-->

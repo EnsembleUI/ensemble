@@ -23,7 +23,7 @@ enum ArtifactType {
 }
 
 // the root entries of the Resource artifact
-enum ResourceArtifactEntry { Widgets, Scripts, API }
+enum ResourceArtifactEntry { Widgets, Scripts, Actions, API }
 
 enum _Provider { local, remote, ensemble, cdn }
 
