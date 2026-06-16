@@ -96,4 +96,41 @@ void main() {
       expect(scopeManager.pageData.apiMap!['sharedApi'], same(pageApi));
     });
   });
+
+  group('executeAction async restore timing', () {
+    Future<List<String>> runWithFinally({required bool awaitInner}) async {
+      final order = <String>[];
+
+      Future<void> inner() async {
+        await Future<void>.delayed(const Duration(milliseconds: 20));
+        order.add('inner');
+      }
+
+      try {
+        if (awaitInner) {
+          await inner();
+        } else {
+          // Mirrors ExecuteActionAction returning executeActionWithScope
+          // without await: finally runs before the inner Future completes.
+          // ignore: unawaited_futures
+          inner();
+        }
+      } finally {
+        order.add('restore');
+      }
+      return order;
+    }
+
+    test('restore runs before inner work without await', () async {
+      final order = await runWithFinally(awaitInner: false);
+      await Future<void>.delayed(const Duration(milliseconds: 30));
+      expect(order.first, 'restore');
+      expect(order.last, 'inner');
+    });
+
+    test('restore runs after inner work with await', () async {
+      final order = await runWithFinally(awaitInner: true);
+      expect(order, ['inner', 'restore']);
+    });
+  });
 }
