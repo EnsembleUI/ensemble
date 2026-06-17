@@ -3,6 +3,7 @@ import 'dart:ui';
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/definition_providers/cdn_provider.dart';
 import 'package:ensemble/framework/definition_providers/provider.dart';
+import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_i18n/flutter_i18n.dart';
@@ -120,6 +121,21 @@ void main() {
 
       final prefs = await SharedPreferences.getInstance();
       expect(prefs.getStringList(cacheKey), isNull);
+    });
+
+    test('rejects manifest without artifacts before mutating in-memory cache',
+        () async {
+      final provider = CdnDefinitionProvider('missing-artifacts-app');
+      await provider.applyRuntimeManifestForTesting(_manifestWithNewKey());
+
+      expect(provider.getSupportedLanguages(), isNotEmpty);
+
+      expect(
+        () => provider.rebuildManifestCacheForTesting({}),
+        throwsA(isA<ConfigError>()),
+      );
+
+      expect(provider.getSupportedLanguages(), isNotEmpty);
     });
   });
 

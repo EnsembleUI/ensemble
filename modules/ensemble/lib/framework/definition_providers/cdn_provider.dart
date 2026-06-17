@@ -720,6 +720,14 @@ class CdnDefinitionProvider extends DefinitionProvider {
   // --------------------------------------------------------
 
   void _rebuildFromRoot(Map<String, dynamic> root) {
+    // Validate before mutating in-memory or persisted cache. A background
+    // refresh that clears first and then bails on missing artifacts would
+    // otherwise wipe a working session and persist an unusable manifest.
+    if (_asMap(root['artifacts']) == null) {
+      throw ConfigError(
+          'CDN manifest is missing a valid artifacts section.');
+    }
+
     // reset caches/state
     _artifactCache.clear();
     _screenNameMappings.clear();
@@ -729,8 +737,7 @@ class CdnDefinitionProvider extends DefinitionProvider {
     _appConfig = null;
     _applySecretsFromRoot(root);
 
-    final artifacts = _asMap(root['artifacts']);
-    if (artifacts == null) return;
+    final artifacts = _asMap(root['artifacts'])!;
 
     // 1) config
     final configMap = _asMap(artifacts['config']);
