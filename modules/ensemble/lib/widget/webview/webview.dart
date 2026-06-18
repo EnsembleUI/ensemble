@@ -40,6 +40,9 @@ class EnsembleWebView extends StatefulWidget
           _controller.singleCookie = Utils.optionalString(value),
       'cookies': (value) => _controller.cookies = getListOfMap(value),
       'url': (value) => _controller.url = Utils.getUrl(value),
+      'html': (value) => _controller.html = Utils.optionalString(value),
+      'htmlBaseUrl': (value) =>
+          _controller.htmlBaseUrl = Utils.optionalString(value),
       'height': (value) => _controller.height = Utils.optionalDouble(value),
       'width': (value) => _controller.width = Utils.optionalDouble(value),
       'onPageStart': (funcDefinition) => _controller.onPageStart =
@@ -55,6 +58,8 @@ class EnsembleWebView extends StatefulWidget
           parseHeaderRules(value),
       'javascriptChannels': (value) =>
           _controller.javascriptChannels = parseJavaScriptChannels(value),
+      'injectedJavaScript': (value) =>
+          _controller.injectedJavaScript = Utils.optionalString(value),
       // legacy
       'uri': (value) => _controller.url = Utils.getUrl(value),
       'allowedLaunchSchemes': (value) => _controller.schemes =
@@ -140,15 +145,29 @@ class EnsembleWebViewController extends WidgetController {
   List<HeaderOverrideRule> headerOverrideRules = [];
   List<JavaScriptChannel> javascriptChannels = [];
 
+  /// JavaScript injection (opt-in)
+  String? injectedJavaScript;
+
   ensemble.EnsembleAction? onPageStart,
       onPageFinished,
       onNavigationRequest,
       onWebResourceError;
 
+  String? _html;
+  String? get html => _html;
+  set html(String? value) {
+    _html = value;
+    _url = null;
+    error = null;
+  }
+
+  String? htmlBaseUrl;
+
   String? _url;
   String? get url => _url;
   set url(String? url) {
     _url = url;
+    _html = null;
     error = null;
 
     if (url != null) {
