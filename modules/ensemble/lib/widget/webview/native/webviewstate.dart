@@ -157,13 +157,24 @@ class WebViewState extends EWidgetState<EnsembleWebView> with CookieMethods {
       height: widget.controller.height ?? calculatedHeight,
       width: widget.controller.width,
       child: InAppWebView(
-        key: ValueKey('webview_${widget.controller.url}'),
-        initialUrlRequest: widget.controller.url != null
-            ? URLRequest(
-                url: WebUri(widget.controller.url!),
-                headers: widget.controller.headers,
+        key: ValueKey(
+            'webview_${widget.controller.url ?? widget.controller.htmlBaseUrl ?? 'html'}'),
+        initialData: widget.controller.html != null
+            ? InAppWebViewInitialData(
+                data: widget.controller.html!,
+                baseUrl: WebUri(
+                    widget.controller.htmlBaseUrl ?? 'https://ensemble.local/'),
+                mimeType: 'text/html',
+                encoding: 'utf-8',
               )
             : null,
+        initialUrlRequest:
+            widget.controller.html == null && widget.controller.url != null
+                ? URLRequest(
+                    url: WebUri(widget.controller.url!),
+                    headers: widget.controller.headers,
+                  )
+                : null,
         initialSettings: InAppWebViewSettings(
           // Cross Platform Settings
           useShouldOverrideUrlLoading: true,
@@ -252,6 +263,12 @@ class WebViewState extends EWidgetState<EnsembleWebView> with CookieMethods {
           if (widget.controller.javascriptChannels.isNotEmpty) {
             String bridgeScript = _generateJavaScriptBridgeScript();
             await controller.evaluateJavascript(source: bridgeScript);
+          }
+
+          String? injectedJavaScript = widget.controller.injectedJavaScript;
+          if (injectedJavaScript != null &&
+              injectedJavaScript.trim().isNotEmpty) {
+            await controller.evaluateJavascript(source: injectedJavaScript);
           }
 
           if (widget.controller.onPageFinished != null && mounted) {
