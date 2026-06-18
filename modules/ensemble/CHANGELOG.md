@@ -1,3 +1,7 @@
+## 1.2.46
+
+ - **FEAT**(webview): add HTML content and JavaScript injection support. ([b54a3297](https://github.com/ensembleUI/ensemble/commit/b54a3297de9ca1b276542cf76887cf47eecefef7))
+
 ## 1.2.45
 
  - **REFACTOR**(wifi): simplify WiFi operations and update permissions. ([628d9b1a](https://github.com/ensembleUI/ensemble/commit/628d9b1a52efd6312f04ab49a1f298c8dcaf4e9f))
