@@ -10,6 +10,7 @@ import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/helpers/box_wrapper.dart';
 import 'package:ensemble/widget/helpers/widgets.dart';
 import 'package:ensemble/widget/lottie/lottie.dart';
+import 'package:ensemble/widget/lottie/lottie_html_renderer_security.dart';
 import 'package:ensemble/widget/widget_util.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
@@ -29,7 +30,7 @@ class LottieState extends EWidgetState<EnsembleLottie>
   @override
   void initState() {
     super.initState();
-    divId = widget.controller.id ?? id;
+    divId = sanitizeLottieHtmlRendererId(widget.controller.id ?? id, id);
     if (isCanvasKit) {
       widget.controller
         ..lottieController = AnimationController(vsync: this)
@@ -48,6 +49,7 @@ class LottieState extends EWidgetState<EnsembleLottie>
   void didUpdateWidget(covariant EnsembleLottie oldWidget) {
     super.didUpdateWidget(oldWidget);
     widget.controller.lottieAction = this;
+    divId = sanitizeLottieHtmlRendererId(widget.controller.id ?? id, id);
   }
 
   @override
@@ -115,6 +117,7 @@ class LottieState extends EWidgetState<EnsembleLottie>
       // the image will throw exception. We have to use a permanent placeholder
       // until the binding engages
       // HTML & JS code for the web html renderer
+      final sourceLiteral = lottieSourceLiteral(source);
       final htmlString = '''
 <html>
   <body>
@@ -129,7 +132,7 @@ class LottieState extends EWidgetState<EnsembleLottie>
       let player_$divId = document.getElementById("$divId");
       // A counter variable which increments upon each event and thus making each event unique and allowing to segregate from old events
       let counter = 0;
-      player_$divId.load("$source");
+      player_$divId.load($sourceLiteral);
       if ($autoPlay) player_$divId.play();
       window.parent.addEventListener("message", handleMessage, false); // Hooking the event listener
       
