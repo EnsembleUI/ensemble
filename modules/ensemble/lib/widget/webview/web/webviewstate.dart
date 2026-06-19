@@ -31,6 +31,18 @@ class WebViewState extends EWidgetState<EnsembleWebView> {
   }
 
   @override
+  void didUpdateWidget(covariant EnsembleWebView oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.controller.url != widget.controller.url ||
+        oldWidget.controller.html != widget.controller.html ||
+        oldWidget.controller.htmlBaseUrl != widget.controller.htmlBaseUrl ||
+        oldWidget.controller.injectedJavaScript !=
+            widget.controller.injectedJavaScript) {
+      _loadIframeContent();
+    }
+  }
+
+  @override
   void dispose() {
     _cleanupIFrame();
     super.dispose();
@@ -45,10 +57,9 @@ class WebViewState extends EWidgetState<EnsembleWebView> {
   HtmlElementView buildIFrameWidget() {
     _iframeElement.style.width = '100%';
     _iframeElement.style.height = '100%';
-
-    _iframeElement.src = widget.controller.url ?? '';
     _iframeElement.style.border = 'none';
 
+    _loadIframeContent();
     _setupJavaScriptChannels();
 
     // ignore: undefined_prefixed_name
@@ -63,6 +74,22 @@ class WebViewState extends EWidgetState<EnsembleWebView> {
     );
   }
 
+  void _loadIframeContent() {
+    final html = widget.controller.html;
+    if (html != null && html.isNotEmpty) {
+      _iframeElement.removeAttribute('src');
+      _iframeElement.srcdoc = buildIframeHtmlDocument(
+        html: html,
+        htmlBaseUrl: widget.controller.htmlBaseUrl,
+        injectedJavaScript: widget.controller.injectedJavaScript,
+      );
+      return;
+    }
+
+    _iframeElement.removeAttribute('srcdoc');
+    _iframeElement.src = widget.controller.url ?? '';
+  }
+
   void _setupJavaScriptChannels() {
     window.addEventListener('message', (event) {
       if (event is MessageEvent) {
@@ -72,7 +99,13 @@ class WebViewState extends EWidgetState<EnsembleWebView> {
   }
 
   void _handleWebMessage(MessageEvent event) {
-    if (event.origin != Uri.parse(widget.controller.url ?? '').origin) {
+    final expectedOrigin = resolvedWebViewOrigin(
+      url: widget.controller.url,
+      htmlBaseUrl: widget.controller.htmlBaseUrl,
+    );
+    if (expectedOrigin != null &&
+        expectedOrigin.isNotEmpty &&
+        event.origin != expectedOrigin) {
       return;
     }
 
@@ -106,10 +139,14 @@ class WebViewState extends EWidgetState<EnsembleWebView> {
     }
   }
 
+  bool get _hasContent =>
+      (widget.controller.url != null && widget.controller.url!.isNotEmpty) ||
+      (widget.controller.html != null && widget.controller.html!.isNotEmpty);
+
   @override
   Widget buildWidget(BuildContext context) {
     // WebView's height will be the same as the HTML height
-    if (widget.controller.url == null) {
+    if (!_hasContent) {
       return const Text('Loading...');
     }
     return SizedBox(height: widget.controller.height, child: htmlView!);
