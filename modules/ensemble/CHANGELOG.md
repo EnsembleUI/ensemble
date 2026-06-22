@@ -1,3 +1,5 @@
+## 1.2.46-beta.2
+
 ## 1.2.46-beta.1
 
  - **REFACTOR**(wifi): simplify WiFi operations and update permissions. ([628d9b1a](https://github.com/ensembleUI/ensemble/commit/628d9b1a52efd6312f04ab49a1f298c8dcaf4e9f))
