@@ -170,6 +170,35 @@ void main() {
       }
     });
 
+    test('removes stale cache temp files on initialize', () async {
+      final tempDir = await Directory.systemTemp.createTemp('cdn_asset_cache_');
+      final staleTempFile = File(
+        '${tempDir.path}/asset_cache/asset-cache.json.tmp-123',
+      );
+      final cache = CdnAssetCache(
+        storageDirectoryProvider: () async => tempDir,
+        httpGet: (uri, {headers}) async => http.Response.bytes(const [], 404),
+      );
+
+      try {
+        await staleTempFile.parent.create(recursive: true);
+        await staleTempFile.writeAsString('{}');
+        expect(await staleTempFile.exists(), isTrue);
+
+        await cache.initialize(
+          appId: 'app-id',
+          baseUrl: 'https://cdn.example.com/manifests/apps',
+          headersProvider: () async => const {},
+        );
+
+        expect(await staleTempFile.exists(), isFalse);
+      } finally {
+        if (tempDir.existsSync()) {
+          tempDir.deleteSync(recursive: true);
+        }
+      }
+    });
+
     test('accepts numeric manifest fields encoded as strings', () async {
       final manifest = CdnAssetManifest.fromJsonString(jsonEncode({
         'updatedAt': '1718380800000',

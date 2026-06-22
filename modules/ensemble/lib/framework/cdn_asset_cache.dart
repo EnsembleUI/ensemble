@@ -61,6 +61,7 @@ class CdnAssetCache {
       }
       _rootDirectory = io.Directory('${storageRoot.path}/asset_cache');
       await _assetsDirectory.create(recursive: true);
+      await _deleteTempFilesFor(_cacheFile);
       await loadAssetManifest();
     } catch (e) {
       debugPrint('CdnAssetCache: Failed to initialize: $e');
@@ -332,11 +333,32 @@ class CdnAssetCache {
     final tempFile = io.File(
       '${file.path}.tmp-${DateTime.now().microsecondsSinceEpoch}',
     );
-    await tempFile.writeAsBytes(bytes, flush: true);
-    if (await file.exists()) {
-      await file.delete();
+    try {
+      await tempFile.writeAsBytes(bytes, flush: true);
+      if (await file.exists()) {
+        await file.delete();
+      }
+      await tempFile.rename(file.path);
+    } catch (_) {
+      if (await tempFile.exists()) {
+        await tempFile.delete();
+      }
+      rethrow;
     }
-    await tempFile.rename(file.path);
+  }
+
+  Future<void> _deleteTempFilesFor(io.File file) async {
+    final parent = file.parent;
+    if (!await parent.exists()) return;
+    final prefix = '${file.uri.pathSegments.last}.tmp-';
+    await for (final entity in parent.list()) {
+      if (entity is io.File &&
+          entity.uri.pathSegments.last.startsWith(prefix)) {
+        try {
+          await entity.delete();
+        } catch (_) {}
+      }
+    }
   }
 
   void _replaceManifest(CdnAssetManifest manifest) {
