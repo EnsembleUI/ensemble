@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:ensemble/action/action_scope_util.dart';
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/bindings.dart';
+import 'package:ensemble/framework/cdn_asset_cache.dart';
 import 'package:ensemble/framework/definition_providers/provider.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:encrypt/encrypt.dart' as enc;
@@ -48,6 +49,7 @@ class CdnDefinitionProvider extends DefinitionProvider {
   // HTTP caching (ETag) + freshness
   String? _etag;
   int? _lastUpdatedAt;
+  bool _shouldFetchAssetManifest = false;
 
   // Background update tracking
   bool _hasPendingUpdate = false;
@@ -73,9 +75,13 @@ class CdnDefinitionProvider extends DefinitionProvider {
     // ENSEMBLE_ENCRYPTION_KEY, regardless of whether dotenv was already
     // initialized (e.g. from `.env`).
     await _initEnvFromAssets();
+    await _initializeAssetCache();
 
     await _loadCachedState();
     if (_artifactCache.isNotEmpty) {
+      if (!CdnAssetCache.instance.hasAssetManifest) {
+        await _fetchAndSaveAssetManifest();
+      }
       unawaited(_refreshIfStale());
       return this;
     }
@@ -312,6 +318,7 @@ class CdnDefinitionProvider extends DefinitionProvider {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove(_artifactCacheKey);
+      await CdnAssetCache.instance.clearAssetManifest(removeCachedAssets: true);
     } catch (e) {
       debugPrint('CdnProvider: Failed to clear cache: $e');
     }
@@ -532,6 +539,10 @@ class CdnDefinitionProvider extends DefinitionProvider {
   Future<void> _doRefreshIfStale() async {
     try {
       final shouldFetch = await _shouldFetchManifest();
+      if (_shouldFetchAssetManifest ||
+          !CdnAssetCache.instance.hasAssetManifest) {
+        await _fetchAndSaveAssetManifest();
+      }
       if (!shouldFetch) {
         return;
       }
@@ -585,6 +596,10 @@ class CdnDefinitionProvider extends DefinitionProvider {
 
   Future<void> _loadManifest() async {
     final shouldFetch = await _shouldFetchManifest();
+    if (_shouldFetchAssetManifest ||
+        !CdnAssetCache.instance.hasAssetManifest) {
+      await _fetchAndSaveAssetManifest();
+    }
     if (!shouldFetch) {
       return;
     }
@@ -610,28 +625,80 @@ class CdnDefinitionProvider extends DefinitionProvider {
     );
   }
 
+  Future<void> _initializeAssetCache() async {
+    try {
+      await CdnAssetCache.instance.initialize(
+        appId: appId,
+        baseUrl: baseUrl,
+        headersProvider: _cdnRequestHeaders,
+      );
+    } catch (e) {
+      debugPrint('CdnProvider: Failed to initialize asset cache: $e');
+    }
+  }
+
+  Future<void> _fetchAndSaveAssetManifest() async {
+    final uri = Uri.parse('$baseUrl/$appId/asset-manifest.json');
+    try {
+      final response = await http.get(uri, headers: await _cdnRequestHeaders());
+      if (response.statusCode == 404) {
+        await CdnAssetCache.instance
+            .clearAssetManifest(removeCachedAssets: true);
+        return;
+      }
+      if (response.statusCode != 200 || response.bodyBytes.isEmpty) {
+        return;
+      }
+
+      final jsonString = _decodePossiblyBrotli(response);
+      if (jsonString == null || jsonString.isEmpty) {
+        return;
+      }
+
+      await CdnAssetCache.instance.saveAssetManifest(
+        _hasEncryptionKey()
+            ? _decryptEncryptedManifestEnvelope(jsonString)
+            : jsonString,
+      );
+    } catch (e) {
+      debugPrint('CdnProvider: Failed to fetch asset manifest: $e');
+    }
+  }
+
   Future<bool> _shouldFetchManifest() async {
     final lastUpdateUri = Uri.parse('$baseUrl/$appId/lastUpdateTime.json');
+    _shouldFetchAssetManifest = false;
 
     try {
       final headers = await _cdnRequestHeaders();
       final resp = await http.get(lastUpdateUri, headers: headers);
       if (resp.statusCode != 200) {
+        _shouldFetchAssetManifest = true;
         return true;
       }
 
       final jsonString = _decodePossiblyBrotli(resp);
       if (jsonString == null || jsonString.isEmpty) {
+        _shouldFetchAssetManifest = true;
         return true;
       }
 
       final lastUpdateData = jsonDecode(jsonString) as Map<String, dynamic>;
       final num? remoteLastUpdateNum = lastUpdateData['lastUpdatedAt'] as num?;
       final int? remoteLastUpdate = remoteLastUpdateNum?.toInt();
+      final num? remoteAssetsUpdateNum =
+          lastUpdateData['assetsUpdatedAt'] as num?;
+      final int? remoteAssetsUpdate = remoteAssetsUpdateNum?.toInt();
 
       if (remoteLastUpdate == null) {
+        _shouldFetchAssetManifest = true;
         return true;
       }
+
+      _shouldFetchAssetManifest = _isIncomingNewer(
+        remoteAssetsUpdate,
+        CdnAssetCache.instance.assetManifestUpdatedAt,
+      );
 
       if (_lastUpdatedAt == null) {
         _lastUpdatedAt = remoteLastUpdate;
@@ -646,6 +713,7 @@ class CdnDefinitionProvider extends DefinitionProvider {
     } catch (e) {
       debugPrint(
           'CdnProvider: Error checking lastUpdateTime: $e, will fetch manifest');
+      _shouldFetchAssetManifest = true;
       return true;
     }
   }
