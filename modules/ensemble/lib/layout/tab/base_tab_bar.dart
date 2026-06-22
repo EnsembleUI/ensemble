@@ -129,12 +129,9 @@ abstract class BaseTabBarState extends EWidgetState<BaseTabBar>
     final indicatorThickness =
         widget.controller.indicatorThickness?.toDouble() ?? 2;
 
-    // If tvOptions.row is set, tabs participate in main page grid at that row
-    // Otherwise, tabs use row 0 in an isolated FocusTraversalGroup
-    final tvRow = widget.controller.tvOptions?.row;
-    final tabRow = tvRow ?? 0.0;
-
-    debugPrint('[TV TabBar] Building ${items.length} tab buttons (tvRow=${tvRow ?? "isolated"})');
+    // Get tvOptions for row
+    final tvOptions = widget.controller.tvOptions;
+    final tvRow = tvOptions?.row ?? 0.0;
 
     // Use AnimatedBuilder to rebuild tabs when selection changes
     // This mirrors Flutter's TabBar which listens to tabController.animation
@@ -152,7 +149,7 @@ abstract class BaseTabBarState extends EWidgetState<BaseTabBar>
                 key: ValueKey('tv_tab_$index'),
                 tabItem: tabItem,
                 index: index,
-                tabRow: tabRow,
+                tabRow: tvRow,
                 isSelected: tabController.index == index,
                 autofocus: index == 0, // First tab gets autofocus
                 activeColor: activeColor,
@@ -174,10 +171,8 @@ abstract class BaseTabBarState extends EWidgetState<BaseTabBar>
       },
     );
 
-    // If tvRow is NOT set, wrap tabs in their own FocusTraversalGroup
-    // to isolate them from page content navigation.
-    // If tvRow IS set, tabs participate in the main page focus grid.
-    if (tvRow == null) {
+    // If tvRow is 0 (default), wrap tabs in their own FocusTraversalGroup
+    if (tvOptions?.row == null) {
       tabBar = FocusTraversalGroup(
         policy: TVFocusOrderTraversalPolicy(),
         child: tabBar,
@@ -280,17 +275,45 @@ class _TVTabButton extends StatefulWidget {
 
 class _TVTabButtonState extends State<_TVTabButton> {
   late final FocusNode _focusNode;
+  bool _hasReceivedFocus = false;
 
   @override
   void initState() {
     super.initState();
     _focusNode = FocusNode(debugLabel: 'TVTabButton_${widget.index}');
+    _focusNode.addListener(_onFocusChange);
   }
 
   @override
   void dispose() {
+    _focusNode.removeListener(_onFocusChange);
     _focusNode.dispose();
     super.dispose();
+  }
+
+  void _onFocusChange() {
+    // Only scroll when focus is gained (not on initial autofocus to avoid blocking content)
+    if (_focusNode.hasFocus && _hasReceivedFocus && mounted) {
+      _scrollIntoView();
+    }
+    // Mark that we've received focus at least once
+    if (_focusNode.hasFocus) {
+      _hasReceivedFocus = true;
+    }
+  }
+
+  void _scrollIntoView() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        Scrollable.ensureVisible(
+          context,
+          alignment: 0.0,
+          alignmentPolicy: ScrollPositionAlignmentPolicy.keepVisibleAtStart,
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeInOut,
+        );
+      }
+    });
   }
 
   @override
@@ -309,17 +332,11 @@ class _TVTabButtonState extends State<_TVTabButton> {
       highlightColor: Colors.transparent,
       overlayColor: WidgetStateProperty.all(Colors.transparent),
       splashFactory: NoSplash.splashFactory,
-      onTap: () {
-        debugPrint('[TV TabBar] Tab ${widget.index} tapped');
-        widget.onTap();
-      },
+      onTap: widget.onTap,
       child: Builder(
         builder: (builderContext) {
           // Get focus state from InkWell's Focus
           final hasFocus = Focus.maybeOf(builderContext)?.hasFocus ?? false;
-          if (hasFocus) {
-            debugPrint('[TV TabBar] Tab ${widget.index} focused (isSelected=${widget.isSelected})');
-          }
           return Container(
             padding: padding,
             child: Column(
