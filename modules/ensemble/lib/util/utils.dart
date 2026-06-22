@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'dart:math';
 import 'dart:ui';
@@ -5,6 +6,7 @@ import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/ensemble_app.dart';
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/assets_service.dart';
+import 'package:ensemble/framework/cdn_asset_cache.dart';
 import 'package:ensemble/framework/ensemble_config_service.dart';
 import 'package:ensemble/framework/stub/location_manager.dart';
 import 'package:ensemble/framework/theme/theme_manager.dart';
@@ -1137,6 +1139,13 @@ static BoxDecoration? getBoxDecoration(dynamic style) {
         String path =
             EnsembleConfigService.config["definitions"]?['local']?["path"];
         return '${path}/assets/${stripQueryParamsFromAsset(asset)}';
+      } else if (provider == 'cdn') {
+        final cachedCdnAsset =
+            CdnAssetCache.instance.getCachedFileIfValid(asset);
+        if (cachedCdnAsset != null) {
+          return cachedCdnAsset.path;
+        }
+        return 'ensemble/assets/${stripQueryParamsFromAsset(asset)}';
       } else {
         return 'ensemble/assets/${stripQueryParamsFromAsset(asset)}';
       }
@@ -1146,7 +1155,20 @@ static BoxDecoration? getBoxDecoration(dynamic style) {
   }
 
   static bool isAssetAvailableLocally(String? fileName) {
-    return LocalAssetsService.localAssets.contains(fileName);
+    if (fileName == null || fileName.isEmpty) return false;
+    if (LocalAssetsService.localAssets.contains(fileName)) {
+      return true;
+    }
+
+    if (CdnAssetCache.instance.getCachedFileIfValid(fileName) != null) {
+      return true;
+    }
+
+    if (CdnAssetCache.instance.isEligible(fileName)) {
+      unawaited(CdnAssetCache.instance.resolve(fileName));
+      return false;
+    }
+    return false;
   }
 
   static bool isMemoryPath(String path) {
