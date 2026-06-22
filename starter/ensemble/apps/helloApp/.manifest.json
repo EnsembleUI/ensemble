@@ -18,6 +18,9 @@
     "actions": [
         {
             "name": "showMessage"
+        },
+        {
+            "name": "fetchUser"
         }
     ]
 }

@@ -27,6 +27,21 @@ bool uploadPathContainsParentSegment(String? path) {
   return false;
 }
 
+/// Splits [files] into upload batches of at most [batchSize] items.
+///
+/// When [batchSize] is null, returns a single batch containing all [files].
+List<List<T>> splitUploadFileBatches<T>(List<T> files, int? batchSize) {
+  if (batchSize == null) {
+    return [files];
+  }
+  final batches = <List<T>>[];
+  for (var i = 0; i < files.length; i += batchSize) {
+    final end = i + batchSize < files.length ? i + batchSize : files.length;
+    batches.add(files.sublist(i, end));
+  }
+  return batches;
+}
+
 int getInt(String id) {
   return id.codeUnits.reduce((a, b) => a + b);
 }

@@ -71,13 +71,14 @@ ensemble/apps/yourAppName/
 ├── fonts/
 ├── scripts/
 ├── widgets/
+├── actions/         # Reusable app-level Actions (see modules/ensemble/docs/reusable-actions.md)
 ├── screens/
 ├── translations/
 ├── config/
 │   ├── appConfig.json
 │   ├── secrets.json
 ├── theme.yaml
-├── .manifest.json   # Required for widgets and scripts to work correctly
+├── .manifest.json   # Required for widgets, scripts, and actions to work correctly
 ```
 #### 2. Update `ensemble-config.yaml`  
 - Open `ensemble/ensemble-config.yaml` and set `from: local` under `definitions`.  
@@ -95,6 +96,7 @@ flutter:
     - ensemble/apps/helloApp/
     - ensemble/apps/helloApp/screens/
     - ensemble/apps/helloApp/widgets/
+    - ensemble/apps/helloApp/actions/
     - ensemble/apps/helloApp/scripts/
     - ensemble/apps/helloApp/assets/
     - ensemble/apps/helloApp/translations/

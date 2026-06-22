@@ -1,3 +1,4 @@
+import 'package:ensemble/action/action_scope_util.dart';
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/scope.dart';
@@ -9,10 +10,16 @@ import 'package:yaml/yaml.dart';
 
 /// Execute a named reusable Action defined under the page-level `Actions:` block and in the app's `actions` directory.
 class ExecuteActionAction extends EnsembleAction {
-  ExecuteActionAction({super.initiator, required this.name, this.rawInputs});
+  ExecuteActionAction({
+    super.initiator,
+    required this.name,
+    this.rawInputs,
+    this.eventHandlers = const {},
+  });
 
   final String name;
   final Map<String, dynamic>? rawInputs;
+  final Map<String, EnsembleAction?> eventHandlers;
 
   factory ExecuteActionAction.fromYaml({Invokable? initiator, Map? payload}) {
     if (payload == null) {
@@ -33,6 +40,8 @@ class ExecuteActionAction extends EnsembleAction {
       initiator: initiator,
       name: name,
       rawInputs: inputs,
+      eventHandlers: ActionScopeUtil.parseEventHandlers(
+          Utils.getMap(payload['events'])),
     );
   }
 
@@ -62,32 +71,39 @@ class ExecuteActionAction extends EnsembleAction {
       }
     }
 
-    // Build a child scope so parameter values are available as variables
-    final ScopeManager childScope = scopeManager.createChildScope();
+    final Map<String, YamlMap>? actionApiMap =
+        ActionScopeUtil.parseApiMap(definition);
+    final Map<String, YamlMap?>? apiSnapshot =
+        ActionScopeUtil.snapshotPageApisForAction(scopeManager, actionApiMap);
 
-    final Map<String, dynamic> callInputs = rawInputs ?? const {};
-    for (final String param in parameters) {
-      if (callInputs.containsKey(param)) {
-        final dynamic evaluated =
-            childScope.dataContext.eval(callInputs[param]);
-        childScope.dataContext.addDataContextById(param, evaluated);
+    try {
+      // Build a child scope with optional Import, API, Global, and input parameters
+      final ScopeManager childScope = ActionScopeUtil.prepareScope(
+        parentScope: scopeManager,
+        definition: definition,
+        parameters: parameters,
+        callInputs: rawInputs ?? const {},
+        eventHandlers: eventHandlers,
+      );
+
+      // Now resolve and execute the inner Action tree.
+      final dynamic bodyNode = definition['body'];
+      if (bodyNode == null) {
+        throw LanguageError(
+            "Action '$name' must define a 'body' payload to run.");
       }
-    }
 
-    // Now resolve and execute the inner Action tree.
-    final dynamic bodyNode = definition['body'];
-    if (bodyNode == null) {
-      throw LanguageError(
-          "Action '$name' must define a 'body' payload to run.");
-    }
+      final EnsembleAction? innerAction =
+          EnsembleAction.from(Utils.getYamlMap(bodyNode));
+      if (innerAction == null) {
+        throw LanguageError(
+            "Action '$name' contains an invalid 'body' payload.");
+      }
 
-    final EnsembleAction? innerAction =
-        EnsembleAction.from(Utils.getYamlMap(bodyNode));
-    if (innerAction == null) {
-      throw LanguageError("Action '$name' contains an invalid 'body' payload.");
+      return ScreenController()
+          .executeActionWithScope(context, childScope, innerAction);
+    } finally {
+      ActionScopeUtil.restorePageApisAfterAction(scopeManager, apiSnapshot);
     }
-
-    return ScreenController()
-        .executeActionWithScope(context, childScope, innerAction);
   }
 }

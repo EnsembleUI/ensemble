@@ -1,0 +1,25 @@
+name: ensemble_wifi
+description: Module that provides WiFi connection capabilities via plugin_wifi_connect.
+version: 0.0.1
+
+environment:
+  sdk: ">=3.5.0"
+  flutter: ">=3.24.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  ensemble:
+    git:
+      url: https://github.com/EnsembleUI/ensemble.git
+      ref: ensemble-v1.2.46
+      path: modules/ensemble
+  plugin_wifi_connect: ^2.0.1
+  geolocator: ^9.0.2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^2.0.0
+
+flutter:

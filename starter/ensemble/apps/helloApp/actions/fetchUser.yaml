@@ -1,0 +1,40 @@
+Import:
+  - common
+
+Action:
+  inputs:
+    - userId
+  events:
+    onSuccess:
+      data:
+        user: object
+    onError:
+      data:
+        message: string
+  body:
+    invokeAPI:
+      name: getUser
+      inputs:
+        userId: ${userId}
+      onResponse:
+        dispatchEvent:
+          onSuccess:
+            data:
+              user: ${getUser.body}
+      onError:
+        dispatchEvent:
+          onError:
+            data:
+              message: Failed to fetch user
+
+API:
+  getUser:
+    url: https://dummyjson.com/users/${userId}
+    method: GET
+    onResponse: |-
+      saveName(response.body.firstName, response.body.lastName);
+
+Global: |-
+  function formatUserName(user) {
+    return user.firstName + ' ' + user.lastName;
+  }

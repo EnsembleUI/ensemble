@@ -1,6 +1,8 @@
 import 'dart:ui';
 
+import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/definition_providers/cdn_provider.dart';
+import 'package:ensemble/framework/definition_providers/provider.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_i18n/flutter_i18n.dart';
@@ -9,6 +11,98 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
+  group('CDN User-Agent', () {
+    test('cdnUserAgent formats Ensemble version, platform, and app name', () {
+      expect(
+        CdnDefinitionProvider.cdnUserAgent(
+          version: '1.2.44',
+          platform: 'android',
+          appName: 'ensemble_live',
+        ),
+        'Ensemble/1.2.44 (android; ensemble_live)',
+      );
+    });
+
+    test('cdnUserAgent omits empty app name', () {
+      expect(
+        CdnDefinitionProvider.cdnUserAgent(
+          version: '1.2.44',
+          platform: 'ios',
+          appName: '',
+        ),
+        'Ensemble/1.2.44 (ios)',
+      );
+    });
+
+    test('cdnAppVersion formats version and build number', () {
+      expect(
+        CdnDefinitionProvider.cdnAppVersion(
+          version: '1.2.3',
+          buildNumber: '32',
+        ),
+        '1.2.3+32',
+      );
+    });
+
+    test('cdnEnsembleHeaders includes Ensemble metadata headers', () {
+      expect(
+        CdnDefinitionProvider.cdnEnsembleHeaders(
+          appId: 'e24402cb-75e2-404c-866c-29e6c3dd7992',
+          runtimeVersion: '1.2.44',
+          platform: 'android',
+          appName: 'ensemble_live',
+          appVersion: '1.2.3+32',
+          userAgent: 'Ensemble/1.2.44 (android; ensemble_live)',
+        ),
+        {
+          'User-Agent': 'Ensemble/1.2.44 (android; ensemble_live)',
+          'X-Ensemble-App-Id': 'e24402cb-75e2-404c-866c-29e6c3dd7992',
+          'X-Ensemble-Platform': 'android',
+          'X-Ensemble-App-Name': 'ensemble_live',
+          'X-Ensemble-App-Version': '1.2.3+32',
+          'X-Ensemble-Runtime-Version': '1.2.44',
+        },
+      );
+    });
+  });
+
+  group('CDN persisted cache tuple', () {
+    test('cdnPersistedCacheEntry pairs manifest with snapshot metadata', () {
+      expect(
+        CdnDefinitionProvider.cdnPersistedCacheEntry(
+          etag: 'etag-a',
+          lastUpdatedAt: 42,
+          manifestJson: '{"artifacts":{}}',
+        ),
+        ['etag-a', '42', '{"artifacts":{}}'],
+      );
+    });
+
+    test('saveCachedState persists passed etag instead of later instance value',
+        () async {
+      const appId = 'snapshot-etag-app';
+      const cacheKey = 'cdn_provider_state_$appId';
+      SharedPreferences.setMockInitialValues({});
+
+      final provider = CdnDefinitionProvider(appId);
+      await provider.saveCachedStateForTesting(
+        '{"manifest":"a"}',
+        etag: 'etag-a',
+        lastUpdatedAt: 100,
+      );
+
+      final prefs = await SharedPreferences.getInstance();
+      expect(prefs.getStringList(cacheKey), ['etag-a', '100', '{"manifest":"a"}']);
+
+      await provider.saveCachedStateForTesting(
+        '{"manifest":"b"}',
+        etag: 'etag-b',
+        lastUpdatedAt: 200,
+      );
+      expect(prefs.getStringList(cacheKey), ['etag-b', '200', '{"manifest":"b"}']);
+    });
+  });
+
   group('CDN cache invalidation', () {
     test('resets freshness metadata when persisted manifest is invalid',
         () async {
@@ -111,6 +205,40 @@ void main() {
       expect(find.text('Hello from default EN'), findsOneWidget);
     });
 
+    testWidgets('applies pending translation updates on app resume',
+        (tester) async {
+      final provider = CdnDefinitionProvider('test-app');
+      final config = EnsembleConfig(definitionProvider: provider);
+      Ensemble().setEnsembleConfig(config);
+
+      await provider.applyRuntimeManifestForTesting(
+        _manifestWithArtifactRefresh(_manifestWithoutNewKey()),
+      );
+      await config.updateAppBundle();
+
+      final tick = await _pumpTranslationApp(
+        tester,
+        provider: provider,
+        locale: const Locale('en'),
+        translationKey: 'greeting.new',
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('__missing__'), findsOneWidget);
+
+      provider.rebuildManifestCacheForTesting(
+        _manifestWithArtifactRefresh(_manifestWithNewKey()),
+      );
+      provider.hasPendingUpdateForTesting = true;
+
+      provider.onAppLifecycleStateChanged(AppLifecycleState.resumed);
+      await tester.pumpAndSettle();
+      tick.value++;
+      await tester.pumpAndSettle();
+
+      expect(find.text('Hello from CDN'), findsOneWidget);
+      expect(provider.hasPendingUpdateForTesting, isFalse);
+    });
+
     testWidgets('updates changed value for existing translation key',
         (tester) async {
       final provider = CdnDefinitionProvider('test-app');
@@ -134,7 +262,141 @@ void main() {
       expect(find.text('Hello updated'), findsOneWidget);
     });
   });
+
+  group('CDN stale refresh outcome', () {
+    test('shouldApplyCdnStaleRefreshImmediately requires both flags', () {
+      final provider = CdnDefinitionProvider('test-app');
+
+      expect(
+        provider.shouldApplyCdnStaleRefreshImmediately(
+          artifactRefreshEnabled: true,
+          hasEnsembleConfig: true,
+        ),
+        isTrue,
+      );
+      expect(
+        provider.shouldApplyCdnStaleRefreshImmediately(
+          artifactRefreshEnabled: false,
+          hasEnsembleConfig: true,
+        ),
+        isFalse,
+      );
+      expect(
+        provider.shouldApplyCdnStaleRefreshImmediately(
+          artifactRefreshEnabled: true,
+          hasEnsembleConfig: false,
+        ),
+        isFalse,
+      );
+    });
+
+    test(
+        'applyStaleRefreshOutcome syncs bundle immediately when refresh enabled',
+        () async {
+      final provider = CdnDefinitionProvider('test-app');
+      final config = EnsembleConfig(definitionProvider: provider);
+      Ensemble().setEnsembleConfig(config);
+
+      await provider.applyRuntimeManifestForTesting(
+        _manifestWithArtifactRefresh(_manifestWithResourceVersion('v1')),
+      );
+      await config.updateAppBundle();
+
+      provider.rebuildManifestCacheForTesting(
+        _manifestWithArtifactRefresh(_manifestWithResourceVersion('v2')),
+      );
+
+      await provider.applyStaleRefreshOutcomeForTesting();
+
+      expect(provider.hasPendingUpdateForTesting, isFalse);
+      expect(
+        config.getResources()?[ResourceArtifactEntry.Scripts.name]['version'],
+        'v2',
+      );
+    });
+
+    test('applyStaleRefreshOutcome defers when artifact refresh is disabled',
+        () async {
+      final provider = CdnDefinitionProvider('test-app');
+      final config = EnsembleConfig(definitionProvider: provider);
+      Ensemble().setEnsembleConfig(config);
+
+      await provider.applyRuntimeManifestForTesting(
+        _manifestWithResourceVersion('v1'),
+      );
+      await config.updateAppBundle();
+
+      provider.rebuildManifestCacheForTesting(_manifestWithResourceVersion('v2'));
+
+      await provider.applyStaleRefreshOutcomeForTesting();
+
+      expect(provider.hasPendingUpdateForTesting, isTrue);
+      expect(
+        config.getResources()?[ResourceArtifactEntry.Scripts.name]['version'],
+        'v1',
+      );
+    });
+  });
+
+  group('CDN pending update ordering', () {
+    test('handlePendingUpdate syncs app bundle from CDN cache and fires refresh',
+        () async {
+      final provider = CdnDefinitionProvider('test-app');
+      final config = EnsembleConfig(definitionProvider: provider);
+      Ensemble().setEnsembleConfig(config);
+
+      await provider.applyRuntimeManifestForTesting(
+        _manifestWithResourceVersion('v1'),
+      );
+      await config.updateAppBundle();
+
+      expect(
+        config.getResources()?[ResourceArtifactEntry.Scripts.name]['version'],
+        'v1',
+      );
+
+      provider.rebuildManifestCacheForTesting(
+        _manifestWithResourceVersion('v2'),
+      );
+      provider.hasPendingUpdateForTesting = true;
+
+      await provider.handlePendingUpdateForTesting();
+
+      expect(
+        config.getResources()?[ResourceArtifactEntry.Scripts.name]['version'],
+        'v2',
+      );
+      expect(provider.hasPendingUpdateForTesting, isFalse);
+    });
+  });
 }
+
+Map<String, dynamic> _manifestWithArtifactRefresh(Map<String, dynamic> manifest) {
+  final artifacts =
+      Map<String, dynamic>.from(manifest['artifacts'] as Map<String, dynamic>);
+  final config =
+      Map<String, dynamic>.from(artifacts['config'] as Map? ?? <String, dynamic>{});
+  final envVariables = Map<String, dynamic>.from(
+      config['envVariables'] as Map? ?? <String, dynamic>{});
+  envVariables['ENABLE_ARTIFACT_REFRESH'] = 'true';
+  config['envVariables'] = envVariables;
+  artifacts['config'] = config;
+  return {'artifacts': artifacts};
+}
+
+Map<String, dynamic> _manifestWithResourceVersion(String version) => {
+      'artifacts': {
+        'config': <String, dynamic>{},
+        'screens': <dynamic>[],
+        'theme': '',
+        'widgets': <String, dynamic>{},
+        'scripts': <String, dynamic>{
+          'version': version,
+        },
+        'actions': <dynamic>[],
+        'translations': <dynamic>[],
+      }
+    };
 
 Future<ValueNotifier<int>> _pumpTranslationApp(
   WidgetTester tester, {

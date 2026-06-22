@@ -107,6 +107,12 @@ class PageState extends State<Page>
   Timer? _titleBarHeightPollTimer;
   Timer? _headerVisibilityPollTimer;
 
+  // Last dispatched device metrics. We only want to notify bindings when the
+  // actual screen dimensions/orientation change, not when the keyboard opens.
+  int? _lastDeviceWidth;
+  int? _lastDeviceHeight;
+  String? _lastDeviceOrientation;
+
   @override
   bool get wantKeepAlive => true;
 
@@ -281,8 +287,26 @@ class PageState extends State<Page>
     if (!mounted) return;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
+      if (!_didDeviceMetricsChange()) return;
       _notifyDeviceMetricBindings();
     });
+  }
+
+  bool _didDeviceMetricsChange() {
+    final d = Device();
+    final width = d.screenWidth;
+    final height = d.screenHeight;
+    final orientation = d.screenOrientation;
+
+    final changed = width != _lastDeviceWidth ||
+        height != _lastDeviceHeight ||
+        orientation != _lastDeviceOrientation;
+
+    _lastDeviceWidth = width;
+    _lastDeviceHeight = height;
+    _lastDeviceOrientation = orientation;
+
+    return changed;
   }
 
   /// Re-evaluate ${device.width} / orientation after rotation.
@@ -439,6 +463,13 @@ class PageState extends State<Page>
     // Adding a listener for [viewGroupNotifier] so we can execute
     // onViewGroupUpdate when change in parent ViewGroup occurs
     viewGroupNotifier.addListener(executeOnViewGroupUpdate);
+
+    // Capture the initial device metrics after the first frame so later metric
+    // callbacks can ignore keyboard-only updates.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _didDeviceMetricsChange();
+    });
   }
 
   /// This is a callback because we need the widget to be first instantiate

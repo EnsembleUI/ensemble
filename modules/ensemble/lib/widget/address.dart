@@ -12,6 +12,7 @@ import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:get_it/get_it.dart';
+import 'package:ensemble/widget/address_url_builder.dart';
 import 'package:http/http.dart' as http;
 
 class Address extends StatefulWidget
@@ -103,22 +104,13 @@ class AddressState extends EWidgetState<Address> {
             latitude: widget._controller.getLastLocation()!.latitude,
             longitude: widget._controller.getLastLocation()!.longitude);
       }
-      String locationBiasStr = '';
-      if (center != null) {
-        locationBiasStr =
-            '&locationbias=circle:${widget._controller.proximitySearchRadius ?? 20000}@${center.latitude},${center.longitude}';
-      }
-
-      // filter by country
-      String countryFilterStr = '';
-      if (widget._controller._countryFilter?.isNotEmpty ?? false) {
-        countryFilterStr =
-            '&components=${widget._controller._countryFilter!.map((e) => 'country:$e').join('|')}';
-      }
-
-      var url =
-          'https://services-googleplacesautocomplete-2czdl2akpq-uc.a.run.app?input=$query$locationBiasStr$countryFilterStr';
-      var response = await http.get(Uri.parse(url));
+      final uri = buildPlacesAutocompleteUri(
+        input: query,
+        center: center,
+        proximityRadiusMeters: widget._controller.proximitySearchRadius,
+        countryFilter: widget._controller._countryFilter,
+      );
+      var response = await http.get(uri);
       if (response.statusCode == 200) {
         var jsonResponse = json.decode(response.body);
         if (jsonResponse['error_message'] != null) {
@@ -137,9 +129,7 @@ class AddressState extends EWidgetState<Address> {
   }
 
   Future<Place> _getPlaceDetail(PlaceSummary placeSummary) async {
-    var url =
-        'https://services-googleplacesdetail-2czdl2akpq-uc.a.run.app?placeId=${placeSummary.placeId}';
-    var response = await http.get(Uri.parse(url));
+    var response = await http.get(buildPlacesDetailUri(placeSummary.placeId));
     if (response.statusCode == 200) {
       var jsonResponse = json.decode(response.body);
       if (jsonResponse['error_message'] == null) {

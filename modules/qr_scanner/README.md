@@ -100,14 +100,16 @@ QRCodeScanner:
 
 ## Module Comparison
 
-| Feature | qr_scanner | camera |
-|---------|-----------|--------|
-| QR/Barcode | ✅ | ✅ |
-| Photo/Video | ❌ | ✅ |
-| Face detection | ❌ | ✅ |
-| Size | ~4KB | ~400KB+ |
-| Permissions | Camera only | Camera, Location, Mic |
-| Dependencies | mobile_scanner | geolocator, sensors, ML kit |
+| Feature | qr_scanner | camera | face_camera |
+|---------|-----------|--------|-------------|
+| QR/Barcode | ✅ | ✅ | ❌ |
+| Photo/Video | ❌ | ✅ | ❌ |
+| Face detection | ❌ | ❌ | ✅ |
+| Size | ~4KB | ~400KB+ | varies |
+| Permissions | Camera only | Camera, Location, Mic | Camera, Mic |
+| Dependencies | mobile_scanner | geolocator, sensors | face detection models |
+
+> Face detection was moved out of `ensemble_camera` into the standalone `ensemble_face_camera` module. Using `faceDetection: enabled: true` in `openCamera` now logs a warning and falls back to the standard camera.
 
 ## When to Use
 
@@ -118,9 +120,11 @@ QRCodeScanner:
 
 **Use `ensemble_camera`:**
 - Need photo/video capture
-- Need face detection
 - Need sensor/location features
 - (includes QR via re-export)
+
+**Use `ensemble_face_camera`:**
+- Need real-time face detection and `openFaceCamera`
 
 ## Migration from Camera Module
 

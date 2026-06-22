@@ -97,18 +97,8 @@ Future<void> uploadFiles({
       : scopeManager?.dataContext.getContextById(action.id!)
           as UploadFilesResponse;
 
-  List<List<File>> fileBatches;
-  if (action.batchSize != null) {
-    fileBatches = [];
-    for (int i = 0; i < selectedFiles.length; i += action.batchSize!) {
-      int end = (i + action.batchSize! < selectedFiles.length)
-          ? i + action.batchSize!
-          : selectedFiles.length;
-      fileBatches.add(selectedFiles.sublist(i, end));
-    }
-  } else {
-    fileBatches = [selectedFiles];
-  }
+  final fileBatches =
+      splitUploadFileBatches(selectedFiles, action.batchSize);
 
   for (var fileBatch in fileBatches) {
     if (action.isBackgroundTask) {

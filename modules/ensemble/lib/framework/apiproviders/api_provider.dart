@@ -31,7 +31,7 @@ class APIProviders extends InheritedWidget {
     } else if (provider == 'firebaseFunction') {
       return FirebaseFunctionsAPIProvider();
     } else if (provider == 'sse') {
-      return SSEAPIProvider();
+      return providers[provider] ?? SSEAPIProvider();
     } else {
       return providers[provider] ?? httpProvider;
     }

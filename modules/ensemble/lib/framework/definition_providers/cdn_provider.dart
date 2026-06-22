@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:ensemble/action/action_scope_util.dart';
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/bindings.dart';
 import 'package:ensemble/framework/definition_providers/provider.dart';
@@ -19,6 +20,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter/services.dart';
 
+import 'package:ensemble/framework/app_info.dart';
+import 'package:ensemble/framework/device.dart';
 import 'package:ensemble/framework/dotenv_bundle.dart';
 
 /// DefinitionProvider that reads the app manifest from CDN
@@ -48,6 +51,9 @@ class CdnDefinitionProvider extends DefinitionProvider {
 
   // Background update tracking
   bool _hasPendingUpdate = false;
+
+  // Serialize overlapping refresh calls (cold start + lifecycle background).
+  Future<void> _refreshSerial = Future.value();
 
   // Persistent cache key
   String get _artifactCacheKey => 'cdn_provider_state_$appId';
@@ -202,6 +208,26 @@ class CdnDefinitionProvider extends DefinitionProvider {
     }
   }
 
+  /// Whether a stale CDN refresh should apply immediately (cold start after init)
+  /// instead of deferring until the next app resume.
+  @visibleForTesting
+  bool shouldApplyCdnStaleRefreshImmediately({
+    required bool artifactRefreshEnabled,
+    required bool hasEnsembleConfig,
+  }) =>
+      artifactRefreshEnabled && hasEnsembleConfig;
+
+  Future<void> _applyStaleRefreshOutcome() async {
+    if (shouldApplyCdnStaleRefreshImmediately(
+      artifactRefreshEnabled: isArtifactRefreshEnabled(),
+      hasEnsembleConfig: Ensemble().getConfig() != null,
+    )) {
+      await _handlePendingUpdate();
+    } else {
+      _hasPendingUpdate = true;
+    }
+  }
+
   /// Handles pending CDN updates when app resumes.
   /// CRITICAL: Must update appBundle and translations BEFORE firing refresh event
   /// to ensure screens rebuild with the new resources (fixes race condition).
@@ -251,19 +277,24 @@ class CdnDefinitionProvider extends DefinitionProvider {
     }
   }
 
-  Future<void> _saveCachedState(String manifestJson) async {
-    // Fire-and-forget to avoid blocking UI
-    unawaited(() async {
-      try {
-        final prefs = await SharedPreferences.getInstance();
-        final etagVal = _etag ?? '';
-        final lastVal = (_lastUpdatedAt ?? 0).toString();
-        await prefs
-            .setStringList(_artifactCacheKey, [etagVal, lastVal, manifestJson]);
-      } catch (e) {
-        debugPrint('CdnProvider: Failed to save cached state: $e');
-      }
-    }());
+  Future<void> _saveCachedState(
+    String manifestJson, {
+    required String? etag,
+    required int? lastUpdatedAt,
+  }) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setStringList(
+        _artifactCacheKey,
+        cdnPersistedCacheEntry(
+          etag: etag,
+          lastUpdatedAt: lastUpdatedAt,
+          manifestJson: manifestJson,
+        ),
+      );
+    } catch (e) {
+      debugPrint('CdnProvider: Failed to save cached state: $e');
+    }
   }
 
   Future<void> _clearCache() async {
@@ -490,7 +521,15 @@ class CdnDefinitionProvider extends DefinitionProvider {
 
   /// Check for updates and update cache if available
   /// Sets _hasPendingUpdate flag if updates were fetched
-  Future<void> _refreshIfStale() async {
+  Future<void> _refreshIfStale() {
+    final refresh = _doRefreshIfStale();
+    _refreshSerial = _refreshSerial
+        .then((_) => refresh)
+        .catchError((_) {});
+    return refresh;
+  }
+
+  Future<void> _doRefreshIfStale() async {
     try {
       final shouldFetch = await _shouldFetchManifest();
       if (!shouldFetch) {
@@ -508,21 +547,18 @@ class CdnDefinitionProvider extends DefinitionProvider {
 
       _rebuildFromRoot(root);
       await _refreshTranslationsAtRuntime();
-      _etag = newEtag ?? _etag;
+      final savedEtag = newEtag ?? _etag;
+      final savedLastUpdatedAt = _lastUpdatedAt;
+      _etag = savedEtag;
 
-      // Save to persistent cache
-      await _saveCachedState(jsonString);
+      // Save to persistent cache (snapshot etag/timestamp with manifest body)
+      await _saveCachedState(
+        jsonString,
+        etag: savedEtag,
+        lastUpdatedAt: savedLastUpdatedAt,
+      );
 
-      // If artifact refresh is enabled and app is already initialized,
-      // immediately update appBundle and fire refresh event.
-      // This handles the cold start scenario where background refresh
-      // completes after initial render.
-      if (isArtifactRefreshEnabled() && Ensemble().getConfig() != null) {
-        await _handlePendingUpdate();
-      } else {
-        // Mark for later refresh on next resume
-        _hasPendingUpdate = true;
-      }
+      await _applyStaleRefreshOutcome();
     } catch (e) {
       if (kDebugMode) {
         debugPrint('⚠️ CDN Provider: Refresh failed: $e');
@@ -559,20 +595,27 @@ class CdnDefinitionProvider extends DefinitionProvider {
     final jsonString = fetched['json'] as String?;
     if (jsonString == null) return;
 
-    _etag = fetched['etag'] as String?;
+    final savedEtag = fetched['etag'] as String?;
+    final savedLastUpdatedAt = _lastUpdatedAt;
+    _etag = savedEtag;
 
     final root = _decodeManifestRoot(jsonString);
     _rebuildFromRoot(root);
 
-    // Save to persistent cache
-    await _saveCachedState(jsonString);
+    // Save to persistent cache (snapshot etag/timestamp with manifest body)
+    await _saveCachedState(
+      jsonString,
+      etag: savedEtag,
+      lastUpdatedAt: savedLastUpdatedAt,
+    );
   }
 
   Future<bool> _shouldFetchManifest() async {
     final lastUpdateUri = Uri.parse('$baseUrl/$appId/lastUpdateTime.json');
 
     try {
-      final resp = await http.get(lastUpdateUri);
+      final headers = await _cdnRequestHeaders();
+      final resp = await http.get(lastUpdateUri, headers: headers);
       if (resp.statusCode != 200) {
         return true;
       }
@@ -612,10 +655,7 @@ class CdnDefinitionProvider extends DefinitionProvider {
     final encryptedUri = Uri.parse('$baseUrl/$appId/encrypted-manifest.json');
     final plainUri = Uri.parse('$baseUrl/$appId/manifest.json');
 
-    final headers = <String, String>{};
-    if (ifNoneMatch != null && ifNoneMatch.isNotEmpty) {
-      headers['If-None-Match'] = ifNoneMatch;
-    }
+    final headers = await _cdnRequestHeaders(ifNoneMatch: ifNoneMatch);
 
     http.Response resp;
     var fetchedEncrypted = false;
@@ -804,13 +844,10 @@ class CdnDefinitionProvider extends DefinitionProvider {
         final YamlMap? yaml = _yamlFromUnknown(content);
         if (yaml == null) continue;
 
-        // Flatten optional top-level "Action" wrapper
+        // Flatten optional top-level "Action" wrapper and merge file-level
+        // Import, Global, and API blocks into the action definition.
         final dynamic root = yaml['Action'] ?? yaml;
-        if (root is YamlMap) {
-          actions[name] = root;
-        } else if (root is Map) {
-          actions[name] = YamlMap.wrap(root);
-        }
+        actions[name] = ActionScopeUtil.mergeCdnActionContent(yaml, root);
       }
     }
 
@@ -819,7 +856,7 @@ class CdnDefinitionProvider extends DefinitionProvider {
       ResourceArtifactEntry.Scripts.name: code,
     };
     if (actions.isNotEmpty) {
-      resources['Actions'] = actions;
+      resources[ResourceArtifactEntry.Actions.name] = actions;
     }
     if (resources.isNotEmpty) {
       // Store as plain Map (not YamlMap) to match Ensemble provider behavior
@@ -854,8 +891,122 @@ class CdnDefinitionProvider extends DefinitionProvider {
   // Helpers
   // --------------------------------------------------------
 
+  static String? _cachedEnsembleVersion;
+
+  Future<Map<String, String>> _cdnRequestHeaders({String? ifNoneMatch}) async {
+    final runtimeVersion = await _loadEnsembleVersion();
+    final platform = _cdnPlatform();
+    final packageInfo = AppInfo().info;
+    final appName = packageInfo?.appName;
+    final appVersion = cdnAppVersion(
+      version: packageInfo?.version,
+      buildNumber: packageInfo?.buildNumber,
+    );
+
+    final headers = cdnEnsembleHeaders(
+      appId: appId,
+      runtimeVersion: runtimeVersion,
+      platform: platform,
+      appName: appName,
+      appVersion: appVersion,
+      userAgent: cdnUserAgent(
+        version: runtimeVersion,
+        platform: platform,
+        appName: appName,
+      ),
+    );
+    if (ifNoneMatch != null && ifNoneMatch.isNotEmpty) {
+      headers['If-None-Match'] = ifNoneMatch;
+    }
+    return headers;
+  }
+
+  /// Same source as `ensemble.version` in app definitions.
+  Future<String> _loadEnsembleVersion() async {
+    if (_cachedEnsembleVersion != null) return _cachedEnsembleVersion!;
+    try {
+      final fileContent = await rootBundle.loadString(
+        'packages/ensemble/pubspec.yaml',
+      );
+      final pubspecYaml = loadYaml(fileContent);
+      _cachedEnsembleVersion = pubspecYaml['version']?.toString();
+    } catch (_) {
+      _cachedEnsembleVersion = null;
+    }
+    return _cachedEnsembleVersion ?? 'unknown';
+  }
+
+  String _cdnPlatform() =>
+      Device().platform?.name ??
+      (kIsWeb ? DevicePlatform.web.name : defaultTargetPlatform.name);
+
+  /// Builds app version as `version+buildNumber`, e.g. `1.2.3+32`.
+  @visibleForTesting
+  static String? cdnAppVersion({String? version, String? buildNumber}) {
+    final trimmedVersion = version?.trim();
+    final trimmedBuild = buildNumber?.trim();
+    if (trimmedVersion == null || trimmedVersion.isEmpty) return null;
+    if (trimmedBuild == null || trimmedBuild.isEmpty) return trimmedVersion;
+    return '$trimmedVersion+$trimmedBuild';
+  }
+
+  /// CDN request headers identifying the Ensemble runtime and host app.
+  @visibleForTesting
+  static Map<String, String> cdnEnsembleHeaders({
+    required String appId,
+    required String runtimeVersion,
+    required String platform,
+    String? appName,
+    String? appVersion,
+    required String userAgent,
+  }) {
+    final headers = <String, String>{
+      'User-Agent': userAgent,
+      'X-Ensemble-App-Id': appId,
+      'X-Ensemble-Platform': platform,
+      'X-Ensemble-Runtime-Version': runtimeVersion,
+    };
+
+    final trimmedAppName = appName?.trim();
+    if (trimmedAppName != null && trimmedAppName.isNotEmpty) {
+      headers['X-Ensemble-App-Name'] = trimmedAppName;
+    }
+
+    final trimmedAppVersion = appVersion?.trim();
+    if (trimmedAppVersion != null && trimmedAppVersion.isNotEmpty) {
+      headers['X-Ensemble-App-Version'] = trimmedAppVersion;
+    }
+
+    return headers;
+  }
+
+  /// Builds the CDN User-Agent string, e.g.
+  /// `Ensemble/1.2.44 (android; ensemble_live)`.
+  @visibleForTesting
+  static String cdnUserAgent({
+    required String version,
+    required String platform,
+    String? appName,
+  }) {
+    final trimmedAppName = appName?.trim();
+    final suffix = trimmedAppName != null && trimmedAppName.isNotEmpty
+        ? '$platform; $trimmedAppName'
+        : platform;
+    return 'Ensemble/$version ($suffix)';
+  }
+
   static bool _isIncomingNewer(int? incoming, int? current) =>
       incoming != null && (current == null || incoming > current);
+
+  /// SharedPreferences tuple for CDN cache; etag and timestamp must match
+  /// [manifestJson] or cold-start If-None-Match can serve a mismatched body.
+  @visibleForTesting
+  static List<String> cdnPersistedCacheEntry({
+    required String? etag,
+    required int? lastUpdatedAt,
+    required String manifestJson,
+  }) =>
+      [etag ?? '', (lastUpdatedAt ?? 0).toString(), manifestJson];
 
   static Map<String, dynamic>? _asMap(dynamic value) {
     if (value is Map<String, dynamic>) return value;
@@ -923,10 +1074,43 @@ class CdnDefinitionProvider extends DefinitionProvider {
   }
 
   @visibleForTesting
+  Future<void> handlePendingUpdateForTesting() => _handlePendingUpdate();
+
+  @visibleForTesting
+  Future<void> applyStaleRefreshOutcomeForTesting() =>
+      _applyStaleRefreshOutcome();
+
+  @visibleForTesting
+  bool get hasPendingUpdateForTesting => _hasPendingUpdate;
+
+  @visibleForTesting
+  set hasPendingUpdateForTesting(bool value) => _hasPendingUpdate = value;
+
+  @visibleForTesting
+  void rebuildManifestCacheForTesting(Map<String, dynamic> root) {
+    _rebuildFromRoot(root);
+  }
+
+  @visibleForTesting
   Future<void> loadCachedStateForTesting() => _loadCachedState();
 
   @visibleForTesting
   int? get lastUpdatedAtForTesting => _lastUpdatedAt;
+
+  @visibleForTesting
+  Future<void> saveCachedStateForTesting(
+    String manifestJson, {
+    required String? etag,
+    required int? lastUpdatedAt,
+  }) =>
+      _saveCachedState(
+        manifestJson,
+        etag: etag,
+        lastUpdatedAt: lastUpdatedAt,
+      );
+
+  @visibleForTesting
+  Future<void> refreshIfStaleForTesting() => _refreshIfStale();
 
   Future<void> _refreshTranslationsAtRuntime() async {
     try {
