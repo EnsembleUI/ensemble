@@ -110,10 +110,15 @@ class WebViewState extends EWidgetState<EnsembleWebView> with CookieMethods {
   }
 
   Future<void> setCookie(io.Cookie? cookie) async {
-    if (widget.controller.url == null) {
+    final cookieBaseUrl = resolvedWebViewCookieBaseUrl(
+      url: widget.controller.url,
+      html: widget.controller.html,
+      htmlBaseUrl: widget.controller.htmlBaseUrl,
+    );
+    if (cookieBaseUrl == null) {
       return;
     }
-    final mainUrl = WebUri(widget.controller.url!);
+    final mainUrl = WebUri(cookieBaseUrl);
     final protocol = mainUrl.scheme; // Get the actual protocol (http or https)
 
     if (cookie != null) {
