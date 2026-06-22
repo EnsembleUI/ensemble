@@ -527,6 +527,10 @@ mixin ViewBuilder on IsScopeManager {
           scopeManager, BindingDestination(widget, key), expression);
       // evaluate the binding as the initial value
       value = scopeManager.dataContext.eval(value);
+    } else if (value is Map || value is List) {
+      // Maps and Lists may contain expressions that need evaluation
+      // (e.g., tvOptions: { row: ${matchIndex + 1} })
+      value = scopeManager.dataContext.eval(value);
     }
     InvokableController.setProperty(widget, key, value);
   }

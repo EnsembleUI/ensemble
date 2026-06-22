@@ -181,33 +181,56 @@ class TVFocusWidget extends StatelessWidget {
     if (yOffset != 0) {
       // Vertical movement: find nearest row
       newY = _findNearestRow(grid, y, focusOrder.row, yOffset);
-      // First, try to find an explicit entry point in the new row
-      final entryPointIndex = _findRowEntryPoint(grid[newY]);
-      if (entryPointIndex != -1) {
-        // Entry point found, use it
-        newX = entryPointIndex;
+      // Priority: preserve current column (order) > entry point > clamp
+      // Try to find the same order value in the new row first
+      final sameOrderIndex = grid[newY]
+          .indexWhere((node) => node.order.order == focusOrder.order);
+      if (sameOrderIndex != -1) {
+        // Same order found in target row - stay in same column
+        newX = sameOrderIndex;
       } else {
-        // No entry point: preserve current column position (order)
-        // Try to find the same order value in the new row
-        final sameOrderIndex = grid[newY]
-            .indexWhere((node) => node.order.order == focusOrder.order);
-        if (sameOrderIndex != -1) {
-          newX = sameOrderIndex;
+        // Same order not in target row - try entry point as fallback
+        final entryPointIndex = _findRowEntryPoint(grid[newY]);
+        if (entryPointIndex != -1) {
+          newX = entryPointIndex;
         } else {
-          // Same order not found, clamp to available range
+          // No entry point either, clamp to available range
           newX = x.clamp(0, grid[newY].length - 1);
         }
       }
     } else {
-      // Horizontal movement: stay on same row, find nearest order
+      // Horizontal movement: try to find target order in same row first
       newY = y;
       final targetOrder = focusOrder.order + xOffset;
       final nX = grid[y].indexWhere((node) => node.order.order == targetOrder);
       if (nX != -1) {
+        // Found target order in same row
         newX = nX;
       } else {
-        // Clamp to row boundaries
-        newX = (x + xOffset).clamp(0, grid[y].length - 1);
+        // Target order not in current row - find nearest row that has it
+        // This handles cases like 8th Finals row 5 → Quarter Finals (which only has rows 1-4)
+        int? nearestRowWithTarget;
+        int nearestDistance = 999999;
+
+        for (int rowIdx = 0; rowIdx < grid.length; rowIdx++) {
+          final hasTargetOrder = grid[rowIdx].any((node) => node.order.order == targetOrder);
+          if (hasTargetOrder) {
+            final distance = (rowIdx - y).abs();
+            if (distance < nearestDistance) {
+              nearestDistance = distance;
+              nearestRowWithTarget = rowIdx;
+            }
+          }
+        }
+
+        if (nearestRowWithTarget != null) {
+          // Found a row with the target order - jump to it
+          newY = nearestRowWithTarget;
+          newX = grid[newY].indexWhere((node) => node.order.order == targetOrder);
+        } else {
+          // No row has the target order - clamp to current row boundaries
+          newX = (x + xOffset).clamp(0, grid[y].length - 1);
+        }
       }
     }
 
@@ -237,23 +260,15 @@ class TVFocusWidget extends StatelessWidget {
       final topEdgeHandler = onTopEdge ?? tvFocusScope?.onTopEdge;
 
       if (xOffset > 0 && rightEdgeHandler != null) {
-        // At right edge and have handler
-        debugPrint('[TVFocusWidget] At right edge - calling onRightEdge handler');
         rightEdgeHandler();
         return true;
       } else if (xOffset < 0 && leftEdgeHandler != null) {
-        // At left edge and have handler
-        debugPrint('[TVFocusWidget] At left edge - calling onLeftEdge handler');
         leftEdgeHandler();
         return true;
       } else if (yOffset > 0 && bottomEdgeHandler != null) {
-        // At bottom edge and have handler
-        debugPrint('[TVFocusWidget] At bottom edge - calling onBottomEdge handler');
         bottomEdgeHandler();
         return true;
       } else if (yOffset < 0 && topEdgeHandler != null) {
-        // At top edge and have handler
-        debugPrint('[TVFocusWidget] At top edge - calling onTopEdge handler');
         topEdgeHandler();
         return true;
       }

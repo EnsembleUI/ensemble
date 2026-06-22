@@ -880,8 +880,11 @@ class BoxController extends WidgetController {
 
       // TV/Accessibility: Coordinate-based navigation
       // Use nested syntax: tvOptions: { row: 1, order: 0, isRowEntryPoint: true }
-      'tvOptions': (value) => tvOptions =
-          value is Map ? TVOptionsComposite(this, inputs: value) : null,
+      // IMPORTANT: Skip if already set to prevent re-evaluation with wrong scope
+      'tvOptions': (value) {
+        if (tvOptions != null) return; // Don't overwrite existing value
+        tvOptions = value is Map ? TVOptionsComposite(this, inputs: value) : null;
+      },
     });
     return setters;
   }
@@ -1059,6 +1062,10 @@ class EnsembleBoxController extends EnsembleWidgetController
   // some children like Image don't get clipped properly with Box's clipBehavior
   bool? clipContent;
 
+  // TV/Accessibility: Coordinate-based navigation (flutter_pca style)
+  // Use styles.tvOptions.row, styles.tvOptions.order, etc.
+  TVOptionsComposite? tvOptions;
+
   @override
   Map<String, Function> setters() {
     return Map<String, Function>.from(super.setters())
@@ -1075,7 +1082,15 @@ class EnsembleBoxController extends EnsembleWidgetController
         'boxShadow': (value) =>
             boxShadow = Utils.getBoxShadowComposite(this, value),
 
-        'clipContent': (value) => clipContent = Utils.optionalBool(value)
+        'clipContent': (value) => clipContent = Utils.optionalBool(value),
+
+        // TV/Accessibility: Coordinate-based navigation
+        // Use nested syntax: tvOptions: { row: 1, order: 0, isRowEntryPoint: true }
+        // IMPORTANT: Skip if already set to prevent re-evaluation with wrong scope
+        'tvOptions': (value) {
+          if (tvOptions != null) return; // Don't overwrite existing value
+          tvOptions = value is Map ? TVOptionsComposite(this, inputs: value) : null;
+        },
       });
   }
 

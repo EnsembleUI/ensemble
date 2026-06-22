@@ -972,6 +972,7 @@ class _TapEnabledWrapperState extends State<_TapEnabledWrapper> {
         order: effectiveOrder,
         isRowEntryPoint: isRowEntryPoint,
         lockHorizontalNavigation: tvOptions.lockHorizontalNavigation,
+        delegateHorizontalNavigation: tvOptions.delegateHorizontalNavigation,
         onRightEdge: tvFocusScope?.onRightEdge,
         onLeftEdge: tvFocusScope?.onLeftEdge,
         onTopEdge: tvFocusScope?.onTopEdge,
@@ -987,6 +988,7 @@ class _TapEnabledWrapperState extends State<_TapEnabledWrapper> {
         order: tvOrder,
         isRowEntryPoint: isRowEntryPoint,
         lockHorizontalNavigation: tvOptions.lockHorizontalNavigation,
+        delegateHorizontalNavigation: tvOptions.delegateHorizontalNavigation,
       ),
       child: materialChild,
     );
