@@ -1,3 +1,17 @@
+## 1.2.46-beta.1
+
+ - **REFACTOR**(wifi): simplify WiFi operations and update permissions. ([628d9b1a](https://github.com/ensembleUI/ensemble/commit/628d9b1a52efd6312f04ab49a1f298c8dcaf4e9f))
+ - **REFACTOR**(api): enhance provider resolution and improve SSE cancellation handling. ([cc167aba](https://github.com/ensembleUI/ensemble/commit/cc167abac6cbe01191c50c2c118ff2464c6d8233))
+ - **FIX**(action): restore page apiMap after executeAction completes. ([d1792947](https://github.com/ensembleUI/ensemble/commit/d179294746c602ea42588191365e6ed366d616d3))
+ - **FIX**(sse): honor disconnect/dispose and cap error-path reconnects. ([01e667e3](https://github.com/ensembleUI/ensemble/commit/01e667e3ecc44c0e5470b97099742880e9c58de0))
+ - **FIX**(security): encode Address widget Places proxy query parameters. ([1718c914](https://github.com/ensembleUI/ensemble/commit/1718c91414c9f961681ff9e6c8bcd8c49832b978))
+ - **FIX**(cdn): serialize refresh and snapshot persisted cache metadata. ([4031a3a4](https://github.com/ensembleUI/ensemble/commit/4031a3a42b949d6f35b1b68dcf045b2b110b663a))
+ - **FIX**(sse): scope dispose to per-screen provider instance. ([49c0d730](https://github.com/ensembleUI/ensemble/commit/49c0d73006bf82b9f65b3a2911971a3c8ce5ed30))
+ - **FEAT**(webview): add HTML content and JavaScript injection support. ([b54a3297](https://github.com/ensembleUI/ensemble/commit/b54a3297de9ca1b276542cf76887cf47eecefef7))
+ - **FEAT**(wifi): add WiFi connection capabilities. ([b4194289](https://github.com/ensembleUI/ensemble/commit/b41942890e2c1ea15a804eadf183b9b81d779948))
+ - **FEAT**(cdn): enhance CDN request handling with dynamic headers and versioning. ([f6635c76](https://github.com/ensembleUI/ensemble/commit/f6635c76cced1c921a61ac9e198d4e6bbf4202ea))
+ - **FEAT**(ensemble): enhance reusable Actions handling. ([00973129](https://github.com/ensembleUI/ensemble/commit/009731290782caa46ac2bef5e4ec5658714850b2))
+
 ## 1.2.46
 
  - **FEAT**(webview): add HTML content and JavaScript injection support. ([b54a3297](https://github.com/ensembleUI/ensemble/commit/b54a3297de9ca1b276542cf76887cf47eecefef7))
