@@ -35,7 +35,7 @@ Machine-readable registry (single source): `lib/vocabulary/test_step_registry.da
 
 ### JSON Schema (editor validation)
 
-A JSON Schema for `*.test.yaml` lives at [`assets/schema/ensemble_test.schema.json`](assets/schema/ensemble_test.schema.json). It is generated from the step registry:
+A JSON Schema for `*.test.yaml` is hosted at `https://cdn.ensembleui.com/schemas/ensemble_tests_schema.json`. The committed copy lives at [`assets/schema/ensemble_tests_schema.json`](assets/schema/ensemble_tests_schema.json) and is generated from the step registry:
 
 ```bash
 cd packages/ensemble_test_runner && dart run tool/generate_schema.dart
@@ -44,7 +44,7 @@ cd packages/ensemble_test_runner && dart run tool/generate_schema.dart
 Or per file at the top of a test:
 
 ```yaml
-# yaml-language-server: $schema=...
+# yaml-language-server: $schema=https://cdn.ensembleui.com/schemas/ensemble_tests_schema.json
 ```
 
 ## App setup

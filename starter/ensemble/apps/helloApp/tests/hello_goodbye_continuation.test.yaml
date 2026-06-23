@@ -1,4 +1,4 @@
-# yaml-language-server: $schema=../../../../../packages/ensemble_test_runner/assets/schema/ensemble_test.schema.json
+# yaml-language-server: $schema=https://cdn.ensembleui.com/schemas/ensemble_tests_schema.json
 id: hello_goodbye_continuation
 prerequisite: hello_home_renders
 steps:

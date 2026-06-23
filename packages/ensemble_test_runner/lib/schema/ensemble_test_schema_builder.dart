@@ -4,7 +4,8 @@ import 'package:ensemble_test_runner/vocabulary/test_step_vocabulary.dart';
 
 /// Builds JSON Schema for app-local `tests/*.test.yaml` files.
 class EnsembleTestSchemaBuilder {
-  static const schemaId = 'https://ensembleui.com/ensemble_test.schema.json';
+  static const schemaId =
+      'https://cdn.ensembleui.com/schemas/ensemble_tests_schema.json';
   static const schemaVersion = 'https://json-schema.org/draft/2020-12/schema';
 
   static Map<String, dynamic> build() {

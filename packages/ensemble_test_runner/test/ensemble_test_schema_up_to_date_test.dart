@@ -5,8 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   test('committed schema matches generator output', () {
-    final path =
-        'assets/schema/ensemble_test.schema.json';
+    final path = 'assets/schema/ensemble_tests_schema.json';
     final committed = File(path).readAsStringSync().trim();
     final generated = EnsembleTestSchemaBuilder.buildJson().trim();
     expect(
