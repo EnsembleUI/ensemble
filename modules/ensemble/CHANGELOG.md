@@ -1,3 +1,7 @@
+## 1.2.46-beta.3
+
+ - Bump "ensemble" to `1.2.46-beta.3`.
+
 ## 1.2.46-beta.2
 
 ## 1.2.46-beta.1
