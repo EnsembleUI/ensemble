@@ -539,11 +539,16 @@ class CdnDefinitionProvider extends DefinitionProvider {
   Future<void> _doRefreshIfStale() async {
     try {
       final shouldFetch = await _shouldFetchManifest();
+      final shouldFetchAssetManifest =
+          _shouldFetchAssetManifest || !CdnAssetCache.instance.hasAssetManifest;
       if (_shouldFetchAssetManifest ||
           !CdnAssetCache.instance.hasAssetManifest) {
         await _fetchAndSaveAssetManifest();
       }
       if (!shouldFetch) {
+        if (shouldFetchAssetManifest) {
+          _fireManifestRefreshEvent();
+        }
         return;
       }
 

@@ -351,16 +351,22 @@ void main() {
       }
     });
 
-    test('removes cached files when manifest hash changes', () async {
+    test('refreshes cached files when manifest hash changes', () async {
       final tempDir = await Directory.systemTemp.createTemp('cdn_asset_cache_');
       final originalBytes = utf8.encode('original bytes');
+      final updatedBytes = utf8.encode('updated bytes');
       final originalHash = sha256.convert(originalBytes).toString();
-      final updatedHash =
-          sha256.convert(utf8.encode('updated bytes')).toString();
+      final updatedHash = sha256.convert(updatedBytes).toString();
+      var requestCount = 0;
       final cache = CdnAssetCache(
         storageDirectoryProvider: () async => tempDir,
-        httpGet: (uri, {headers}) async =>
-            http.Response.bytes(originalBytes, 200),
+        httpGet: (uri, {headers}) async {
+          requestCount++;
+          return http.Response.bytes(
+            requestCount == 1 ? originalBytes : updatedBytes,
+            200,
+          );
+        },
       );
 
       try {
@@ -381,12 +387,14 @@ void main() {
           'logo.png': {'hash': updatedHash, 'size': originalBytes.length},
         }));
 
-        expect(await file.exists(), isFalse);
+        expect(await file.exists(), isTrue);
+        expect(await file.readAsBytes(), updatedBytes);
         expect(
           cache.getCachedFileIfValid(
               'https://cdn.example.com/manifests/apps/app-id/assets/logo.png'),
-          isNull,
+          isNotNull,
         );
+        expect(requestCount, 2);
       } finally {
         if (tempDir.existsSync()) {
           tempDir.deleteSync(recursive: true);
