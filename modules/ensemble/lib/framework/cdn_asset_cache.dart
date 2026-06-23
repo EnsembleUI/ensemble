@@ -201,8 +201,9 @@ class CdnAssetCache {
     _replaceManifest(manifest);
     _hasAssetManifest = true;
     await _writeCacheFile();
-    await cleanupStaleAssets();
+    final staleAssetKeys = await cleanupStaleAssets();
     await _validateCachedAssets();
+    await _downloadAssets(staleAssetKeys);
   }
 
   Future<void> clearAssetManifest({bool removeCachedAssets = false}) async {
@@ -225,8 +226,8 @@ class CdnAssetCache {
     }
   }
 
-  Future<void> cleanupStaleAssets() async {
-    if (kIsWeb || _rootDirectory == null) return;
+  Future<List<String>> cleanupStaleAssets() async {
+    if (kIsWeb || _rootDirectory == null) return const [];
     final staleFileNames = _cacheState.entries
         .where((entry) {
           final metadata = _assets[entry.key];
@@ -238,7 +239,7 @@ class CdnAssetCache {
     for (final fileName in staleFileNames) {
       try {
         final file = _assetFile(fileName);
-        _evictImageCache(fileName, file);
+        await _evictImageCache(file);
         if (await file.exists()) {
           await file.delete();
         }
@@ -249,6 +250,13 @@ class CdnAssetCache {
     }
 
     await _writeCacheFile();
+    return staleFileNames;
+  }
+
+  Future<void> _downloadAssets(List<String> assetKeys) async {
+    for (final assetKey in assetKeys) {
+      await resolve(assetKey);
+    }
   }
 
   Future<void> _validateCachedAssets() async {
@@ -475,18 +483,10 @@ class CdnAssetCache {
     return Uri.parse('$resolvedBaseUrl/$resolvedAppId/assets/$encodedPath');
   }
 
-  void _evictImageCache(String fileName, io.File file) {
+  Future<void> _evictImageCache(io.File file) async {
     try {
-      unawaited(AssetImage(file.path).evict().catchError((_) => false));
-      unawaited(FileImage(file).evict().catchError((_) => false));
-
-      final appId = _appId;
-      final baseUrl = _baseUrl;
-      if (appId != null && baseUrl != null) {
-        unawaited(NetworkImage(_assetUri(fileName).toString())
-            .evict()
-            .catchError((_) => false));
-      }
+      await AssetImage(file.path).evict();
+      await FileImage(file).evict();
     } catch (_) {}
   }
 
