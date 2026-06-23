@@ -3,6 +3,119 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## 2026-06-18
+
+### Changes
+
+---
+
+Packages with breaking changes:
+
+ - There are no breaking changes in this release.
+
+Packages with other changes:
+
+ - [`ensemble` - `v1.2.46`](#ensemble---v1246)
+ - [`ensemble_network_info` - `v0.0.1+1`](#ensemble_network_info---v0011)
+ - [`ensemble_stripe` - `v1.0.1`](#ensemble_stripe---v101)
+ - [`ensemble_file_manager` - `v0.0.1+1`](#ensemble_file_manager---v0011)
+ - [`ensemble_chat` - `v0.0.1+1`](#ensemble_chat---v0011)
+ - [`ensemble_auth` - `v1.0.1`](#ensemble_auth---v101)
+ - [`ensemble_bluetooth` - `v0.0.1+1`](#ensemble_bluetooth---v0011)
+ - [`ensemble_wifi` - `v0.0.1+1`](#ensemble_wifi---v0011)
+ - [`ensemble_face_camera` - `v0.0.1+1`](#ensemble_face_camera---v0011)
+ - [`ensemble_connect` - `v0.0.1+1`](#ensemble_connect---v0011)
+ - [`ensemble_contacts` - `v0.0.1+1`](#ensemble_contacts---v0011)
+ - [`ensemble_location` - `v0.0.1+1`](#ensemble_location---v0011)
+ - [`ensemble_camera` - `v0.0.1+1`](#ensemble_camera---v0011)
+ - [`ensemble_deeplink` - `v0.0.1+1`](#ensemble_deeplink---v0011)
+
+Packages with dependency updates only:
+
+> Packages listed below depend on other packages in this workspace that have had changes. Their versions have been incremented to bump the minimum dependency versions of the packages they depend upon in this project.
+
+ - `ensemble_network_info` - `v0.0.1+1`
+ - `ensemble_stripe` - `v1.0.1`
+ - `ensemble_file_manager` - `v0.0.1+1`
+ - `ensemble_chat` - `v0.0.1+1`
+ - `ensemble_auth` - `v1.0.1`
+ - `ensemble_bluetooth` - `v0.0.1+1`
+ - `ensemble_wifi` - `v0.0.1+1`
+ - `ensemble_face_camera` - `v0.0.1+1`
+ - `ensemble_connect` - `v0.0.1+1`
+ - `ensemble_contacts` - `v0.0.1+1`
+ - `ensemble_location` - `v0.0.1+1`
+ - `ensemble_camera` - `v0.0.1+1`
+ - `ensemble_deeplink` - `v0.0.1+1`
+
+---
+
+#### `ensemble` - `v1.2.46`
+
+ - **FEAT**(webview): add HTML content and JavaScript injection support. ([b54a3297](https://github.com/ensembleUI/ensemble/commit/b54a3297de9ca1b276542cf76887cf47eecefef7))
+
+
+## 2026-06-18
+
+### Changes
+
+---
+
+Packages with breaking changes:
+
+ - There are no breaking changes in this release.
+
+Packages with other changes:
+
+ - [`ensemble` - `v1.2.45`](#ensemble---v1245)
+ - [`ensemble_network_info` - `v0.0.1+1`](#ensemble_network_info---v0011)
+ - [`ensemble_stripe` - `v1.0.1`](#ensemble_stripe---v101)
+ - [`ensemble_file_manager` - `v0.0.1+1`](#ensemble_file_manager---v0011)
+ - [`ensemble_chat` - `v0.0.1+1`](#ensemble_chat---v0011)
+ - [`ensemble_auth` - `v1.0.1`](#ensemble_auth---v101)
+ - [`ensemble_bluetooth` - `v0.0.1+1`](#ensemble_bluetooth---v0011)
+ - [`ensemble_wifi` - `v0.0.1+1`](#ensemble_wifi---v0011)
+ - [`ensemble_face_camera` - `v0.0.1+1`](#ensemble_face_camera---v0011)
+ - [`ensemble_connect` - `v0.0.1+1`](#ensemble_connect---v0011)
+ - [`ensemble_contacts` - `v0.0.1+1`](#ensemble_contacts---v0011)
+ - [`ensemble_location` - `v0.0.1+1`](#ensemble_location---v0011)
+ - [`ensemble_camera` - `v0.0.1+1`](#ensemble_camera---v0011)
+ - [`ensemble_deeplink` - `v0.0.1+1`](#ensemble_deeplink---v0011)
+
+Packages with dependency updates only:
+
+> Packages listed below depend on other packages in this workspace that have had changes. Their versions have been incremented to bump the minimum dependency versions of the packages they depend upon in this project.
+
+ - `ensemble_network_info` - `v0.0.1+1`
+ - `ensemble_stripe` - `v1.0.1`
+ - `ensemble_file_manager` - `v0.0.1+1`
+ - `ensemble_chat` - `v0.0.1+1`
+ - `ensemble_auth` - `v1.0.1`
+ - `ensemble_bluetooth` - `v0.0.1+1`
+ - `ensemble_wifi` - `v0.0.1+1`
+ - `ensemble_face_camera` - `v0.0.1+1`
+ - `ensemble_connect` - `v0.0.1+1`
+ - `ensemble_contacts` - `v0.0.1+1`
+ - `ensemble_location` - `v0.0.1+1`
+ - `ensemble_camera` - `v0.0.1+1`
+ - `ensemble_deeplink` - `v0.0.1+1`
+
+---
+
+#### `ensemble` - `v1.2.45`
+
+ - **REFACTOR**(wifi): simplify WiFi operations and update permissions. ([628d9b1a](https://github.com/ensembleUI/ensemble/commit/628d9b1a52efd6312f04ab49a1f298c8dcaf4e9f))
+ - **REFACTOR**(api): enhance provider resolution and improve SSE cancellation handling. ([cc167aba](https://github.com/ensembleUI/ensemble/commit/cc167abac6cbe01191c50c2c118ff2464c6d8233))
+ - **FIX**(action): restore page apiMap after executeAction completes. ([d1792947](https://github.com/ensembleUI/ensemble/commit/d179294746c602ea42588191365e6ed366d616d3))
+ - **FIX**(sse): honor disconnect/dispose and cap error-path reconnects. ([01e667e3](https://github.com/ensembleUI/ensemble/commit/01e667e3ecc44c0e5470b97099742880e9c58de0))
+ - **FIX**(security): encode Address widget Places proxy query parameters. ([1718c914](https://github.com/ensembleUI/ensemble/commit/1718c91414c9f961681ff9e6c8bcd8c49832b978))
+ - **FIX**(cdn): serialize refresh and snapshot persisted cache metadata. ([4031a3a4](https://github.com/ensembleUI/ensemble/commit/4031a3a42b949d6f35b1b68dcf045b2b110b663a))
+ - **FIX**(sse): scope dispose to per-screen provider instance. ([49c0d730](https://github.com/ensembleUI/ensemble/commit/49c0d73006bf82b9f65b3a2911971a3c8ce5ed30))
+ - **FEAT**(wifi): add WiFi connection capabilities. ([b4194289](https://github.com/ensembleUI/ensemble/commit/b41942890e2c1ea15a804eadf183b9b81d779948))
+ - **FEAT**(cdn): enhance CDN request handling with dynamic headers and versioning. ([f6635c76](https://github.com/ensembleUI/ensemble/commit/f6635c76cced1c921a61ac9e198d4e6bbf4202ea))
+ - **FEAT**(ensemble): enhance reusable Actions handling. ([00973129](https://github.com/ensembleUI/ensemble/commit/009731290782caa46ac2bef5e4ec5658714850b2))
+
+
 ## 2026-06-03
 
 ### Changes

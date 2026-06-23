@@ -1,5 +1,5 @@
 # Automates Releasing a New Version
-#   melos version ensemble <version>
+#   melos version ensemble [version]
 #   git push --follow-tags origin main
 
 name: Release Ensemble Version
@@ -8,8 +8,8 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: New semver (e.g. 1.2.39)
-        required: true
+        description: Optional new semver (e.g. 1.2.39). Defaults to latest release + patch bump.
+        required: false
         type: string
 
 concurrency:
@@ -47,8 +47,44 @@ jobs:
       - name: Bootstrap
         run: melos bootstrap
 
+      - name: Resolve version
+        id: resolve-version
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          version="${{ inputs.version }}"
+
+          if [ -z "$version" ]; then
+            latest_tag="$(gh release list \
+              --repo "$GITHUB_REPOSITORY" \
+              --limit 100 \
+              --json tagName,isDraft \
+              --jq '[.[] | select(.isDraft | not) | .tagName | select(test("^ensemble-v[0-9]+\\.[0-9]+\\.[0-9]+$"))][0] // ""')"
+
+            if [ -z "$latest_tag" ]; then
+              latest_tag="$(git tag --list 'ensemble-v[0-9]*' --sort=-v:refname | sed -n '1p')"
+            fi
+
+            if [[ ! "$latest_tag" =~ ^ensemble-v([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
+              echo "::error::Could not find a latest ensemble release/tag to bump."
+              exit 1
+            fi
+
+            version="${BASH_REMATCH[1]}.${BASH_REMATCH[2]}.$((BASH_REMATCH[3] + 1))"
+          fi
+
+          if [[ ! "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::Version must be a stable semver value like 1.2.39. For beta releases, use 'Release Beta Version' workflow."
+            exit 1
+          fi
+
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "Resolved ensemble version: $version"
+
       - name: Version packages
-        run: melos version ensemble "${{ inputs.version }}" --yes
+        run: melos version ensemble "${{ steps.resolve-version.outputs.version }}" --yes
 
       - name: Push branch and tags
         run: git push origin main --follow-tags
