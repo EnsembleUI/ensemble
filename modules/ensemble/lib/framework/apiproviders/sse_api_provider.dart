@@ -5,6 +5,7 @@ import 'dart:io';
 
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/apiproviders/api_provider.dart';
+import 'package:ensemble/framework/apiproviders/api_query_parameters.dart';
 import 'package:ensemble/framework/apiproviders/http_api_provider.dart';
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/error_handling.dart';
@@ -134,11 +135,7 @@ class SSEAPIProvider extends APIProvider with LiveAPIProvider {
 
     // Append query parameters to URL
     if (params.isNotEmpty) {
-      StringBuffer urlParams = StringBuffer(url.contains('?') ? '' : '?');
-      params.forEach((key, value) {
-        urlParams.write('&$key=$value');
-      });
-      url += urlParams.toString();
+      url = appendEncodedQueryParameters(url, params);
     }
 
     log("SSE GET $url");

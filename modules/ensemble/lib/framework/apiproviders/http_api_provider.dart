@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:crypto/crypto.dart';
 import 'package:ensemble/framework/apiproviders/api_provider.dart';
+import 'package:ensemble/framework/apiproviders/api_query_parameters.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'dart:developer';
@@ -139,11 +140,7 @@ class HTTPAPIProvider extends APIProvider {
     // params should be appended to the URL for GET and DELETE
     if (method == 'GET' || method == 'DELETE') {
       if (params.isNotEmpty) {
-        StringBuffer urlParams = StringBuffer(url.contains('?') ? '' : '?');
-        params.forEach((key, value) {
-          urlParams.write('&$key=$value');
-        });
-        url += urlParams.toString();
+        url = appendEncodedQueryParameters(url, params);
       }
       log("$method $url");
     } else {
