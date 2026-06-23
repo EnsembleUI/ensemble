@@ -3,6 +3,7 @@ library;
 
 const suiteReportStart = '┌─ Ensemble YAML tests';
 const screenTrackerPrefix = 'SCREEN TRACKER:';
+const noDeclarativeTestsPrefix = 'No declarative tests found.';
 
 /// Strips Flutter test framework noise; keeps navigation logs and the suite report.
 String extractSuiteReport(String output) {
@@ -31,15 +32,24 @@ String extractSuiteReport(String output) {
 }
 
 /// Whether the user asked for full subprocess output (`--verbose`).
-bool isVerboseCli(List<String> arguments) =>
-    arguments.contains('--verbose');
+bool isVerboseCli(List<String> arguments) => arguments.contains('--verbose');
+
+/// Extracts known actionable failures from Flutter's framework error output.
+String extractKnownFailure(String output) {
+  final noTests = RegExp(
+    r'No declarative tests found\. Add \*\.test\.yaml files under [^\r\n]+',
+  ).firstMatch(output);
+  if (noTests != null) {
+    return noTests.group(0)!;
+  }
+  return '';
+}
 
 /// Arguments forwarded to `flutter test` (CLI-only flags removed).
 List<String> flutterTestArguments(List<String> arguments) {
   return arguments
       .where(
-        (a) =>
-            !a.startsWith('--app-dir') && a != '--verbose' && a != '--quiet',
+        (a) => !a.startsWith('--app-dir') && a != '--verbose' && a != '--quiet',
       )
       .toList();
 }

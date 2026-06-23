@@ -36,4 +36,23 @@ name is ={first: John}
       ['--name', 'x'],
     );
   });
+
+  test('extractKnownFailure keeps no-tests message only', () {
+    const noisy = '''
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════
+The following EnsembleTestFailure was thrown running a test:
+No declarative tests found. Add *.test.yaml files under ensemble/apps/inhome/tests/
+
+When the exception was thrown, this was the stack:
+#0      EnsembleTestExecutionPlanner.build
+The test description was:
+  Ensemble app *.test.yaml
+════════════════════════════════════════════════════════════════════════════════
+''';
+
+    expect(
+      extractKnownFailure(noisy),
+      'No declarative tests found. Add *.test.yaml files under ensemble/apps/inhome/tests/',
+    );
+  });
 }

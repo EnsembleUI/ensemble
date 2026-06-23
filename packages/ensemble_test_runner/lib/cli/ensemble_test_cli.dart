@@ -36,11 +36,8 @@ Future<void> runEnsembleYamlTestsCli(List<String> arguments) async {
 
   if (!patcher.hasTestYamlOnDisk) {
     stderr.writeln(
-      'No Ensemble YAML tests found.\n'
-      'Expected at least one *.test.yaml file under:\n'
-      '  $testsDirRelative/\n\n'
-      'Example:\n'
-      '  $testsDirRelative/login_flow.test.yaml',
+      'No declarative tests found. Add *.test.yaml files under '
+      '$testsDirRelative/',
     );
     exit(1);
   }
@@ -80,7 +77,16 @@ Future<void> runEnsembleYamlTestsCli(List<String> arguments) async {
       workingDirectory: appDir,
     );
 
-    if (verbose || testRun.exitCode != 0) {
+    if (testRun.exitCode != 0 && !verbose) {
+      final knownFailure = extractKnownFailure(
+        '${testRun.stdout ?? ''}\n${testRun.stderr ?? ''}',
+      );
+      if (knownFailure.isNotEmpty) {
+        stderr.writeln(knownFailure);
+      } else {
+        _writeProcessStreams(testRun);
+      }
+    } else if (verbose || testRun.exitCode != 0) {
       _writeProcessStreams(testRun);
     } else {
       final out = testRun.stdout?.toString() ?? '';
