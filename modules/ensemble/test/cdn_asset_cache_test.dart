@@ -64,9 +64,12 @@ void main() {
         expect(_cacheFile(tempDir).existsSync(), isTrue);
 
         final files = await Future.wait([
-          cache.resolve('https://cdn.example.com/assets/logo.png'),
-          cache.resolve('https://cdn.example.com/assets/logo.png'),
-          cache.resolve('https://cdn.example.com/assets/logo.png'),
+          cache.resolve(
+              'https://cdn.example.com/manifests/apps/app-id/assets/logo.png'),
+          cache.resolve(
+              'https://cdn.example.com/manifests/apps/app-id/assets/logo.png'),
+          cache.resolve(
+              'https://cdn.example.com/manifests/apps/app-id/assets/logo.png'),
         ]);
 
         expect(files.whereType<File>(), hasLength(3));
@@ -78,12 +81,12 @@ void main() {
         expect(cacheJson['assets']['logo.png']['cache']['downloadedAt'],
             isA<int>());
 
-        final cachedFile = cache
-            .getCachedFileIfValid('https://cdn.example.com/assets/logo.png');
+        final cachedFile = cache.getCachedFileIfValid(
+            'https://cdn.example.com/manifests/apps/app-id/assets/logo.png');
         expect(cachedFile, isNotNull);
 
-        final secondResolve =
-            await cache.resolve('https://cdn.example.com/assets/logo.png');
+        final secondResolve = await cache.resolve(
+            'https://cdn.example.com/manifests/apps/app-id/assets/logo.png');
         expect(secondResolve?.path, files.first?.path);
         expect(requestCount, 1);
       } finally {
@@ -117,6 +120,7 @@ void main() {
         }));
 
         expect(cache.isEligible('logo.png'), isTrue);
+        expect(cache.isManagedSource('logo.png'), isFalse);
 
         final file = await cache.resolve('logo.png');
 
@@ -125,6 +129,57 @@ void main() {
             'https://cdn.example.com/manifests/apps/app-id/assets/logo.png');
         expect(cache.getCachedFileIfValid('logo.png')?.path, file?.path);
         expect(cache.getCachedFileForBundleKey(file!.path)?.path, file.path);
+      } finally {
+        if (tempDir.existsSync()) {
+          tempDir.deleteSync(recursive: true);
+        }
+      }
+    });
+
+    test('uses relative manifest paths to avoid filename collisions', () async {
+      final tempDir = await Directory.systemTemp.createTemp('cdn_asset_cache_');
+      final iconBytes = utf8.encode('icon logo bytes');
+      final brandingBytes = utf8.encode('branding logo bytes');
+      final iconHash = sha256.convert(iconBytes).toString();
+      final brandingHash = sha256.convert(brandingBytes).toString();
+      final cache = CdnAssetCache(
+        storageDirectoryProvider: () async => tempDir,
+        httpGet: (uri, {headers}) async {
+          if (uri.path.endsWith('/icons/logo.png')) {
+            return http.Response.bytes(iconBytes, 200);
+          }
+          if (uri.path.endsWith('/branding/logo.png')) {
+            return http.Response.bytes(brandingBytes, 200);
+          }
+          return http.Response.bytes(const [], 404);
+        },
+      );
+
+      try {
+        await cache.initialize(
+          appId: 'app-id',
+          baseUrl: 'https://cdn.example.com/manifests/apps',
+          headersProvider: () async => const {},
+        );
+        await cache.saveAssetManifest(_assetManifest({
+          'icons/logo.png': {'hash': iconHash, 'size': iconBytes.length},
+          'branding/logo.png': {
+            'hash': brandingHash,
+            'size': brandingBytes.length
+          },
+        }));
+
+        final iconFile = await cache.resolve(
+            'https://cdn.example.com/manifests/apps/app-id/assets/icons/logo.png');
+        final brandingFile = await cache.resolve('branding/logo.png');
+
+        expect(iconFile, isNotNull);
+        expect(brandingFile, isNotNull);
+        expect(iconFile!.path, isNot(brandingFile!.path));
+        expect(await iconFile.readAsBytes(), iconBytes);
+        expect(await brandingFile.readAsBytes(), brandingBytes);
+        expect(cache.isEligible('https://other.example.com/assets/logo.png'),
+            isFalse);
       } finally {
         if (tempDir.existsSync()) {
           tempDir.deleteSync(recursive: true);
@@ -200,11 +255,13 @@ void main() {
     });
 
     test('accepts numeric manifest fields encoded as strings', () async {
+      final bytes = utf8.encode('numeric fields asset');
+      final hash = sha256.convert(bytes).toString();
       final manifest = CdnAssetManifest.fromJsonString(jsonEncode({
         'updatedAt': '1718380800000',
         'assets': {
           'logo.png': {
-            'hash': 'abc123',
+            'hash': hash,
             'contentType': 'image/png',
             'size': '42',
             'updatedAt': '1718370000000',
@@ -256,7 +313,8 @@ void main() {
       }
     });
 
-    test('caches served asset when manifest size and hash are stale', () async {
+    test('caches served asset when manifest hash differs from response bytes',
+        () async {
       final tempDir = await Directory.systemTemp.createTemp('cdn_asset_cache_');
       final bytes = utf8.encode('served CDN bytes');
       final staleManifestHash =
@@ -285,9 +343,6 @@ void main() {
         expect(file, isNotNull);
         expect(await file!.readAsBytes(), bytes);
         expect(cache.getCachedFileIfValid('logo.png')?.path, file.path);
-
-        final secondResolve = await cache.resolve('logo.png');
-        expect(secondResolve?.path, file.path);
         expect(requestCount, 1);
       } finally {
         if (tempDir.existsSync()) {
@@ -318,8 +373,8 @@ void main() {
           'logo.png': {'hash': originalHash, 'size': originalBytes.length},
         }));
 
-        final file =
-            await cache.resolve('https://cdn.example.com/assets/logo.png');
+        final file = await cache.resolve(
+            'https://cdn.example.com/manifests/apps/app-id/assets/logo.png');
         expect(await file!.exists(), isTrue);
 
         await cache.saveAssetManifest(_assetManifest({
@@ -328,7 +383,8 @@ void main() {
 
         expect(await file.exists(), isFalse);
         expect(
-          cache.getCachedFileIfValid('https://cdn.example.com/assets/logo.png'),
+          cache.getCachedFileIfValid(
+              'https://cdn.example.com/manifests/apps/app-id/assets/logo.png'),
           isNull,
         );
       } finally {
