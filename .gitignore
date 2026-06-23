@@ -34,6 +34,8 @@ starter/package-lock.json
 starter/android/app/src/main/java/io/
 starter/ios/Runner/GeneratedPluginRegistrant.h
 starter/ios/Runner/GeneratedPluginRegistrant.m
+starter/macos/Flutter/ephemeral/Flutter-Generated.xcconfig
+starter/macos/Flutter/ephemeral/flutter_export_environment.sh
 
 # GetStorage local persistence (runtime-generated when running starter)
 starter/GetStorage.gs
