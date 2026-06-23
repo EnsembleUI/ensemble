@@ -31,8 +31,10 @@ steps:
       };
 
       final order = EnsembleTestExecutionPlanner.orderIdsForTest(byId);
-      expect(order.indexOf('chain_root'), lessThan(order.indexOf('chain_child')));
-      expect(order.indexOf('chain_child'), lessThan(order.indexOf('standalone')));
+      expect(
+          order.indexOf('chain_root'), lessThan(order.indexOf('chain_child')));
+      expect(
+          order.indexOf('chain_child'), lessThan(order.indexOf('standalone')));
     });
 
     test('detects circular prerequisites', () {
@@ -57,6 +59,44 @@ steps:
         () => EnsembleTestExecutionPlanner.orderIdsForTest(byId),
         throwsA(isA<EnsembleTestFailure>()),
       );
+    });
+
+    test('selection includes prerequisite chain', () {
+      final byId = {
+        'login': _def('auth/login.test.yaml', '''
+id: login
+feature: auth
+tags: [smoke]
+startScreen: Login
+steps:
+  - expectVisible:
+      id: login_button
+'''),
+        'profile': _def('auth/profile.test.yaml', '''
+id: profile
+feature: profile
+tags: [regression]
+prerequisite: login
+steps:
+  - expectVisible:
+      id: profile_title
+'''),
+        'settings': _def('settings/settings.test.yaml', '''
+id: settings
+feature: settings
+startScreen: Settings
+steps:
+  - expectVisible:
+      id: settings_title
+'''),
+      };
+
+      final order = EnsembleTestExecutionPlanner.selectAndOrderIdsForTest(
+        byId,
+        const EnsembleTestSelection(features: {'profile'}),
+      );
+
+      expect(order, ['login', 'profile']);
     });
   });
 }

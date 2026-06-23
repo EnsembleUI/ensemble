@@ -22,11 +22,29 @@ class EnsembleTestExecutionPlan {
   const EnsembleTestExecutionPlan({required this.ordered});
 }
 
+class EnsembleTestSelection {
+  final Set<String> ids;
+  final Set<String> features;
+  final Set<String> tags;
+  final Set<String> paths;
+
+  const EnsembleTestSelection({
+    this.ids = const {},
+    this.features = const {},
+    this.tags = const {},
+    this.paths = const {},
+  });
+
+  bool get isEmpty =>
+      ids.isEmpty && features.isEmpty && tags.isEmpty && paths.isEmpty;
+}
+
 /// Builds a dependency-ordered execution plan for all declarative tests.
 class EnsembleTestExecutionPlanner {
   /// Discovers assets, parses every file, validates graph, returns run order.
   static Future<EnsembleTestExecutionPlan> build({
     EnsembleTestAppTarget? target,
+    EnsembleTestSelection selection = const EnsembleTestSelection(),
   }) async {
     final resolvedTarget =
         target ?? await EnsembleTestDiscovery.loadAppTarget();
@@ -55,9 +73,11 @@ class EnsembleTestExecutionPlanner {
       );
     }
 
-    for (final def in byId.values) {
+    final selectedById = _applySelection(byId, selection);
+
+    for (final def in selectedById.values) {
       final prereq = def.testCase.prerequisite;
-      if (prereq != null && !byId.containsKey(prereq)) {
+      if (prereq != null && !selectedById.containsKey(prereq)) {
         throw EnsembleTestFailure(
           'Test "${def.testCase.id}" in ${def.assetPath} references unknown '
           'prerequisite "$prereq"',
@@ -65,8 +85,60 @@ class EnsembleTestExecutionPlanner {
       }
     }
 
-    final ordered = _topologicalSort(byId);
+    final ordered = _topologicalSort(selectedById);
     return EnsembleTestExecutionPlan(ordered: ordered);
+  }
+
+  static Map<String, EnsembleTestDefinition> _applySelection(
+    Map<String, EnsembleTestDefinition> byId,
+    EnsembleTestSelection selection,
+  ) {
+    if (selection.isEmpty) return byId;
+
+    final selectedIds = byId.entries
+        .where((entry) => _matchesSelection(entry.value, selection))
+        .map((entry) => entry.key)
+        .toSet();
+    if (selectedIds.isEmpty) {
+      throw EnsembleTestFailure(
+          'No tests matched the provided selection flags');
+    }
+
+    void includePrerequisites(String id) {
+      final prereq = byId[id]?.testCase.prerequisite;
+      if (prereq == null) return;
+      if (!byId.containsKey(prereq)) {
+        throw EnsembleTestFailure(
+          'Selected test "$id" references unknown prerequisite "$prereq"',
+        );
+      }
+      if (selectedIds.add(prereq)) includePrerequisites(prereq);
+    }
+
+    for (final id in selectedIds.toList()) {
+      includePrerequisites(id);
+    }
+
+    return {
+      for (final id in byId.keys)
+        if (selectedIds.contains(id)) id: byId[id]!,
+    };
+  }
+
+  static bool _matchesSelection(
+    EnsembleTestDefinition def,
+    EnsembleTestSelection selection,
+  ) {
+    final test = def.testCase;
+    final idMatches =
+        selection.ids.isNotEmpty && selection.ids.contains(test.id);
+    final featureMatches = selection.features.isNotEmpty &&
+        selection.features.contains(test.feature);
+    final tagMatches = selection.tags.isNotEmpty &&
+        test.tags.any((tag) => selection.tags.contains(tag));
+    final pathMatches = selection.paths.isNotEmpty &&
+        selection.paths.any((path) => def.assetPath.contains(path));
+    return idMatches || featureMatches || tagMatches || pathMatches;
   }
 
   /// IDs that participate in a shared session (`prerequisite` chain).
@@ -172,5 +244,15 @@ class EnsembleTestExecutionPlanner {
     Map<String, EnsembleTestDefinition> byId,
   ) {
     return _topologicalSort(byId).map((d) => d.testCase.id).toList();
+  }
+
+  @visibleForTesting
+  static List<String> selectAndOrderIdsForTest(
+    Map<String, EnsembleTestDefinition> byId,
+    EnsembleTestSelection selection,
+  ) {
+    return _topologicalSort(_applySelection(byId, selection))
+        .map((d) => d.testCase.id)
+        .toList();
   }
 }

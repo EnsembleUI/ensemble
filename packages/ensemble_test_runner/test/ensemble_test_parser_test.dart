@@ -47,6 +47,29 @@ steps:
       );
     });
 
+    test('parses AI-friendly metadata fields', () {
+      const yaml = '''
+id: login_valid
+feature: login
+tags: [smoke, auth]
+description: Valid user can log in
+owner: qa
+priority: high
+startScreen: Login
+steps:
+  - expectVisible:
+      id: login_button
+''';
+
+      final test = EnsembleTestParser.parseString(yaml);
+      expect(test.feature, 'login');
+      expect(test.tags, ['smoke', 'auth']);
+      expect(test.description, 'Valid user can log in');
+      expect(test.owner, 'qa');
+      expect(test.priority, 'high');
+      expect(test.metadataJson['feature'], 'login');
+    });
+
     test('rejects legacy tests wrapper', () {
       expect(
         () => EnsembleTestParser.parseString('''

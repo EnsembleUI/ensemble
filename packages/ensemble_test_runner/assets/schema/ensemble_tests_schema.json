@@ -14,6 +14,37 @@
     "type": {
       "type": "string"
     },
+    "feature": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Feature or flow name, e.g. login or wifi"
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Free-form labels for filtering and organization"
+    },
+    "description": {
+      "type": "string"
+    },
+    "owner": {
+      "type": "string"
+    },
+    "priority": {
+      "type": "string",
+      "enum": [
+        "p0",
+        "p1",
+        "p2",
+        "p3",
+        "critical",
+        "high",
+        "medium",
+        "low"
+      ]
+    },
     "startScreen": {
       "type": "string",
       "minLength": 1,
@@ -1487,7 +1518,7 @@
       "examples": [
         {
           "name": "users",
-          "fixture": "fixtures/users.json"
+          "fixture": "users.json"
         }
       ]
     },
@@ -2476,7 +2507,7 @@
       "description": "Load a JSON fixture into the test fixture map",
       "examples": [
         {
-          "fixture": "fixtures/user.json"
+          "fixture": "user.json"
         }
       ]
     },
@@ -2501,7 +2532,7 @@
       "description": "Apply all keys from a JSON fixture to state",
       "examples": [
         {
-          "fixture": "fixtures/user.json"
+          "fixture": "user.json"
         }
       ]
     },
@@ -2526,7 +2557,7 @@
       "description": "Assert state or path matches a JSON fixture",
       "examples": [
         {
-          "fixture": "fixtures/user.json"
+          "fixture": "user.json"
         }
       ]
     },
@@ -4510,7 +4541,7 @@
             {
               "mockApiFromFixture": {
                 "name": "users",
-                "fixture": "fixtures/users.json"
+                "fixture": "users.json"
               }
             }
           ],
@@ -4524,7 +4555,7 @@
               "examples": [
                 {
                   "name": "users",
-                  "fixture": "fixtures/users.json"
+                  "fixture": "users.json"
                 }
               ]
             }
@@ -6039,7 +6070,7 @@
           "examples": [
             {
               "loadFixture": {
-                "fixture": "fixtures/user.json"
+                "fixture": "user.json"
               }
             }
           ],
@@ -6052,7 +6083,7 @@
               "description": "Load a JSON fixture into the test fixture map",
               "examples": [
                 {
-                  "fixture": "fixtures/user.json"
+                  "fixture": "user.json"
                 }
               ]
             }
@@ -6068,7 +6099,7 @@
           "examples": [
             {
               "setStateFromFixture": {
-                "fixture": "fixtures/user.json"
+                "fixture": "user.json"
               }
             }
           ],
@@ -6081,7 +6112,7 @@
               "description": "Apply all keys from a JSON fixture to state",
               "examples": [
                 {
-                  "fixture": "fixtures/user.json"
+                  "fixture": "user.json"
                 }
               ]
             }
@@ -6097,7 +6128,7 @@
           "examples": [
             {
               "expectMatchesFixture": {
-                "fixture": "fixtures/user.json"
+                "fixture": "user.json"
               }
             }
           ],
@@ -6110,7 +6141,7 @@
               "description": "Assert state or path matches a JSON fixture",
               "examples": [
                 {
-                  "fixture": "fixtures/user.json"
+                  "fixture": "user.json"
                 }
               ]
             }

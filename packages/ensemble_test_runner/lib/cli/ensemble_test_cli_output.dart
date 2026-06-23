@@ -5,6 +5,7 @@ const suiteReportStart = '┌─ Ensemble YAML tests';
 const screenTrackerPrefix = 'SCREEN TRACKER:';
 const noDeclarativeTestsPrefix = 'No declarative tests found.';
 const jsonReportPrefix = 'ENSEMBLE_TEST_JSON_REPORT:';
+const junitReportPrefix = 'ENSEMBLE_TEST_JUNIT_REPORT:';
 
 /// Strips Flutter test framework noise; keeps navigation logs and the suite report.
 String extractSuiteReport(String output) {
@@ -47,9 +48,18 @@ String extractKnownFailure(String output) {
 }
 
 String extractJsonReport(String output) {
+  return _extractPrefixedReport(output, jsonReportPrefix);
+}
+
+String extractJunitReport(String output) {
+  return _extractPrefixedReport(output, junitReportPrefix)
+      .replaceAll(r'\n', '\n');
+}
+
+String _extractPrefixedReport(String output, String prefix) {
   for (final line in output.split('\n')) {
-    if (line.startsWith(jsonReportPrefix)) {
-      return line.substring(jsonReportPrefix.length);
+    if (line.startsWith(prefix)) {
+      return line.substring(prefix.length);
     }
   }
   return '';
@@ -63,6 +73,15 @@ List<String> flutterTestArguments(List<String> arguments) {
             !a.startsWith('--app-dir') &&
             !a.startsWith('--report') &&
             a != '--doctor' &&
+            a != '--inspect-app' &&
+            a != '--validate-only' &&
+            a != '--scaffold-test' &&
+            !a.startsWith('--scaffold-test=') &&
+            !a.startsWith('--screen=') &&
+            !a.startsWith('--id=') &&
+            !a.startsWith('--feature=') &&
+            !a.startsWith('--tag=') &&
+            !a.startsWith('--path=') &&
             a != '--verbose' &&
             a != '--quiet',
       )

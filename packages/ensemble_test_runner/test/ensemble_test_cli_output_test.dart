@@ -31,12 +31,28 @@ name is ={first: John}
         '--verbose',
         '--quiet',
         '--doctor',
+        '--inspect-app',
+        '--validate-only',
+        '--scaffold-test=login',
         '--report=json',
         '--report-file=build/results.json',
+        '--id=login',
+        '--feature=auth',
+        '--tag=smoke',
+        '--path=auth/',
         '--name',
         'x',
       ]),
       ['--name', 'x'],
+    );
+  });
+
+  test('extractJunitReport reads escaped marker line', () {
+    expect(
+      extractJunitReport(
+        'noise\nENSEMBLE_TEST_JUNIT_REPORT:<testsuite>\\n</testsuite>\\n',
+      ),
+      '<testsuite>\n</testsuite>\n',
     );
   });
 

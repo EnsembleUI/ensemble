@@ -87,6 +87,29 @@ It checks the wrapper app, `ensemble-config.yaml`, `definitions.local`, test
 folder, YAML parsing, duplicate IDs, prerequisites, schema comments, and obvious
 widget `id`/`testId` references.
 
+For generated tests, use fast validation without booting Flutter:
+
+```bash
+dart run ensemble_test_runner:ensemble_test --validate-only
+dart run ensemble_test_runner:ensemble_test --validate-only --report=json
+```
+
+### App inspection and scaffolding
+
+Emit app metadata for test authors:
+
+```bash
+dart run ensemble_test_runner:ensemble_test --inspect-app
+```
+
+Create a starter test under `definitions.local.path/tests/`:
+
+```bash
+dart run ensemble_test_runner:ensemble_test --scaffold-test=login_valid --feature=login --tag=smoke --screen=Login
+```
+
+See [`docs/TEST_AUTHORING.md`](docs/TEST_AUTHORING.md) for the test authoring workflow, fixture conventions, validation rules, and repair-loop output.
+
 ### CI output
 
 For machine-readable results:
@@ -94,10 +117,26 @@ For machine-readable results:
 ```bash
 dart run ensemble_test_runner:ensemble_test --report=json
 dart run ensemble_test_runner:ensemble_test --report-file=build/ensemble_test_results.json
+dart run ensemble_test_runner:ensemble_test --report=junit --report-file=build/ensemble_test_results.xml
 ```
 
-`--report=json` prints the final run result as JSON. `--report-file` writes the
-same JSON to disk while keeping the normal console report.
+`--report=json` prints the final run result as JSON. `--report=junit` prints
+JUnit XML. `--report-file` writes the selected machine report to disk while
+keeping the normal console report.
+
+Stable exit codes: `0` pass, `1` test failures, `2` setup/config/validation
+failures, `3` internal runner errors.
+
+Run a subset:
+
+```bash
+dart run ensemble_test_runner:ensemble_test --id=login_valid
+dart run ensemble_test_runner:ensemble_test --feature=login
+dart run ensemble_test_runner:ensemble_test --tag=smoke
+dart run ensemble_test_runner:ensemble_test --path=auth/
+```
+
+Prerequisite tests are included automatically for selected continuation tests.
 
 On success the console prints one consolidated boxed report for the suite: each test id (with YAML path), timing, **start screen** or **prerequisite**, **navigation flow**, and a numbered **step outline**.
 

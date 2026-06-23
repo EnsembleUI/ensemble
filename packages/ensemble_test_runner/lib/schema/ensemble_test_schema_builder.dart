@@ -59,6 +59,31 @@ class EnsembleTestSchemaBuilder {
             'description': 'Unique test identifier',
           },
           'type': {'type': 'string'},
+          'feature': {
+            'type': 'string',
+            'minLength': 1,
+            'description': 'Feature or flow name, e.g. login or wifi',
+          },
+          'tags': {
+            'type': 'array',
+            'items': {'type': 'string'},
+            'description': 'Free-form labels for filtering and organization',
+          },
+          'description': {'type': 'string'},
+          'owner': {'type': 'string'},
+          'priority': {
+            'type': 'string',
+            'enum': [
+              'p0',
+              'p1',
+              'p2',
+              'p3',
+              'critical',
+              'high',
+              'medium',
+              'low'
+            ],
+          },
           'startScreen': {
             'type': 'string',
             'minLength': 1,

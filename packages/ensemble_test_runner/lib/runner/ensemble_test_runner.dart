@@ -40,6 +40,7 @@ class EnsembleTestRunner {
         if (prereqResult.status == TestStatus.failed) {
           resultsById[test.id] = EnsembleSingleTestResult.failed(
             testId: test.id,
+            metadata: test.metadataJson,
             error: 'Prerequisite "$prereq" failed',
             durationMs: 0,
             report: buildTestReportDetails(test),
@@ -106,6 +107,7 @@ class EnsembleTestRunner {
       return (
         result: EnsembleSingleTestResult.failed(
           testId: test.id,
+          metadata: test.metadataJson,
           error: error.toString(),
           stackTrace: stackTrace.toString(),
           durationMs: stopwatch.elapsedMilliseconds,
@@ -141,6 +143,7 @@ class EnsembleTestRunner {
       } catch (error, stackTrace) {
         return EnsembleSingleTestResult.failed(
           testId: test.id,
+          metadata: test.metadataJson,
           failedStepIndex: i,
           failedStep: step,
           error: error.toString(),
@@ -154,6 +157,7 @@ class EnsembleTestRunner {
 
     return EnsembleSingleTestResult.passed(
       testId: test.id,
+      metadata: test.metadataJson,
       durationMs: stopwatch.elapsedMilliseconds,
       logs: ctx.logger.logs,
       report: buildTestReportDetails(test),

@@ -133,7 +133,8 @@ class ExtendedStepHandlers {
         );
         return true;
       case 'expectListItem':
-        executor.assertions.expectVisible(step.args['itemId']?.toString() ?? '');
+        executor.assertions
+            .expectVisible(step.args['itemId']?.toString() ?? '');
         return true;
       case 'expectEmpty':
         executor.assertions.expectListCount(
@@ -157,9 +158,7 @@ class ExtendedStepHandlers {
         return true;
       case 'expectBackStack':
         executor.assertions.expectBackStack(
-          (step.args['screens'] as List?)
-                  ?.map((e) => e.toString())
-                  .toList() ??
+          (step.args['screens'] as List?)?.map((e) => e.toString()).toList() ??
               [],
         );
         return true;
@@ -204,11 +203,13 @@ class ExtendedStepHandlers {
         );
         return true;
       case 'expectLastApiCall':
-        executor.assertions.expectLastApiCall(step.args['name']?.toString() ?? '');
+        executor.assertions
+            .expectLastApiCall(step.args['name']?.toString() ?? '');
         return true;
       case 'removeStorage':
         final key = step.args['key']?.toString();
-        if (key == null) throw EnsembleTestFailure('removeStorage requires "key"');
+        if (key == null)
+          throw EnsembleTestFailure('removeStorage requires "key"');
         executor.context.removeStorage(key);
         return true;
       case 'clearStorage':
@@ -221,7 +222,8 @@ class ExtendedStepHandlers {
         );
         return true;
       case 'expectStateExists':
-        executor.assertions.expectStateExists(step.args['path']?.toString() ?? '');
+        executor.assertions
+            .expectStateExists(step.args['path']?.toString() ?? '');
         return true;
       case 'expectStateNotExists':
         executor.assertions.expectStateNotExists(
@@ -257,7 +259,8 @@ class ExtendedStepHandlers {
         _runScript(executor, step, expectResult: true);
         return true;
       case 'expectConsoleLog':
-        executor.assertions.expectConsoleLog(step.args['contains']?.toString() ?? '');
+        executor.assertions
+            .expectConsoleLog(step.args['contains']?.toString() ?? '');
         return true;
       case 'loadFixture':
         await _loadFixture(executor, step);
@@ -319,8 +322,8 @@ class ExtendedStepHandlers {
 
   static Future<void> _reloadScreen(TestStepExecutor e) async {
     final tracker = ScreenTracker();
-    final current = tracker.getCurrentScreenIdentifier() ??
-        e.context.testCase.startScreen;
+    final current =
+        tracker.getCurrentScreenIdentifier() ?? e.context.testCase.startScreen;
     if (current == null || current.isEmpty) {
       throw EnsembleTestFailure('No current screen to reload');
     }
@@ -395,12 +398,14 @@ class ExtendedStepHandlers {
     final id = e.requireId(step);
     final value = (step.args['value'] as num?)?.toDouble() ?? 0.5;
     final finder = e.assertions.finderForId(id);
-    final sliderFinder = find.descendant(of: finder, matching: find.byType(Slider));
+    final sliderFinder =
+        find.descendant(of: finder, matching: find.byType(Slider));
     if (sliderFinder.evaluate().isEmpty) {
       throw EnsembleTestFailure('setSlider: no Slider under id "$id"');
     }
     final slider = e.tester.widget<Slider>(sliderFinder);
-    final target = slider.min + (slider.max - slider.min) * value.clamp(0.0, 1.0);
+    final target =
+        slider.min + (slider.max - slider.min) * value.clamp(0.0, 1.0);
     await e.tester.drag(sliderFinder, Offset(target * 50, 0));
     await e.settle();
   }
@@ -471,13 +476,15 @@ class ExtendedStepHandlers {
     throw EnsembleTestFailure('goBack: no navigator or active scope');
   }
 
-  static Future<void> _mockApiFromFixture(TestStepExecutor e, TestStep step) async {
+  static Future<void> _mockApiFromFixture(
+      TestStepExecutor e, TestStep step) async {
     final name = step.args['name']?.toString();
     final fixture = step.args['fixture']?.toString();
     if (name == null || fixture == null) {
-      throw EnsembleTestFailure('mockApiFromFixture requires "name" and "fixture"');
+      throw EnsembleTestFailure(
+          'mockApiFromFixture requires "name" and "fixture"');
     }
-    final body = await _readFixture(fixture);
+    final body = await _readFixture(e, fixture);
     e.context.mockApiProvider.setMock(
       name,
       MockAPIResponse(
@@ -487,9 +494,11 @@ class ExtendedStepHandlers {
     );
   }
 
-  static Future<void> _mockApiException(TestStepExecutor e, TestStep step) async {
+  static Future<void> _mockApiException(
+      TestStepExecutor e, TestStep step) async {
     final name = step.args['name']?.toString();
-    if (name == null) throw EnsembleTestFailure('mockApiException requires "name"');
+    if (name == null)
+      throw EnsembleTestFailure('mockApiException requires "name"');
     e.context.mockApiProvider.setApiException(
       name,
       Exception(step.args['message']?.toString() ?? 'API exception (test)'),
@@ -555,7 +564,8 @@ class ExtendedStepHandlers {
   }
 
   static void _setTheme(TestStepExecutor e, TestStep step) {
-    final theme = step.args['mode']?.toString() ?? step.args['theme']?.toString();
+    final theme =
+        step.args['mode']?.toString() ?? step.args['theme']?.toString();
     if (theme != null) {
       e.context.setEnv('APP_THEME', theme);
       e.context.runtime.themeMode = theme;
@@ -571,7 +581,8 @@ class ExtendedStepHandlers {
     if (scope == null) {
       throw EnsembleTestFailure('runScript requires an active Ensemble screen');
     }
-    final script = step.args['script']?.toString() ?? step.args['path']?.toString();
+    final script =
+        step.args['script']?.toString() ?? step.args['path']?.toString();
     if (script == null) {
       throw EnsembleTestFailure('runScript requires "script" or "path"');
     }
@@ -586,27 +597,56 @@ class ExtendedStepHandlers {
     }
   }
 
-  static Future<dynamic> _readFixture(String path) async {
-    final normalized = path.startsWith('ensemble/') ? path : 'ensemble/$path';
-    final raw = await rootBundle.loadString(normalized);
-    return json.decode(raw);
+  static Future<dynamic> _readFixture(TestStepExecutor e, String path) async {
+    Object? lastError;
+    for (final candidate in _fixtureAssetCandidates(e, path)) {
+      try {
+        final raw = await rootBundle.loadString(candidate);
+        return json.decode(raw);
+      } catch (error) {
+        lastError = error;
+      }
+    }
+    throw EnsembleTestFailure(
+      'Fixture not found: $path. Use tests/fixtures/<name>.json. $lastError',
+    );
+  }
+
+  static List<String> _fixtureAssetCandidates(TestStepExecutor e, String path) {
+    final sourcePath = e.context.testCase.sourcePath;
+    final candidates = <String>[];
+    if (sourcePath != null && sourcePath.contains('/')) {
+      final testDir = sourcePath.substring(0, sourcePath.lastIndexOf('/'));
+      candidates.add(
+        path.startsWith('fixtures/')
+            ? '$testDir/$path'
+            : '$testDir/fixtures/$path',
+      );
+    }
+    candidates.add(path);
+    if (!path.startsWith('ensemble/')) candidates.add('ensemble/$path');
+    return candidates.toSet().toList();
   }
 
   static Future<void> _loadFixture(TestStepExecutor e, TestStep step) async {
     final key = step.args['key']?.toString();
-    final path = step.args['path']?.toString() ?? step.args['fixture']?.toString();
+    final path =
+        step.args['path']?.toString() ?? step.args['fixture']?.toString();
     if (key == null || path == null) {
       throw EnsembleTestFailure('loadFixture requires "key" and "path"');
     }
-    e.context.runtime.fixtures[key] = await _readFixture(path);
+    e.context.runtime.fixtures[key] = await _readFixture(e, path);
   }
 
-  static Future<void> _setStateFromFixture(TestStepExecutor e, TestStep step) async {
-    final path = step.args['fixture']?.toString() ?? step.args['path']?.toString();
+  static Future<void> _setStateFromFixture(
+      TestStepExecutor e, TestStep step) async {
+    final path =
+        step.args['fixture']?.toString() ?? step.args['path']?.toString();
     if (path == null) {
-      throw EnsembleTestFailure('setStateFromFixture requires "fixture" or "path"');
+      throw EnsembleTestFailure(
+          'setStateFromFixture requires "fixture" or "path"');
     }
-    final data = await _readFixture(path);
+    final data = await _readFixture(e, path);
     if (data is! Map) {
       throw EnsembleTestFailure('Fixture must be a JSON object');
     }
@@ -624,16 +664,19 @@ class ExtendedStepHandlers {
     TestStepExecutor e,
     TestStep step,
   ) async {
-    final path = step.args['fixture']?.toString() ?? step.args['path']?.toString();
+    final path =
+        step.args['fixture']?.toString() ?? step.args['path']?.toString();
     final statePath = step.args['statePath']?.toString();
     if (path == null) {
-      throw EnsembleTestFailure('expectMatchesFixture requires "fixture" or "path"');
+      throw EnsembleTestFailure(
+          'expectMatchesFixture requires "fixture" or "path"');
     }
-    final expected = await _readFixture(path);
+    final expected = await _readFixture(e, path);
     if (statePath != null) {
       e.assertions.expectState(statePath, expected);
     } else {
-      final actual = e.assertions.readState(step.args['path']?.toString() ?? '');
+      final actual =
+          e.assertions.readState(step.args['path']?.toString() ?? '');
       if (!_deepEquals(actual, expected)) {
         throw EnsembleTestFailure(
           'State does not match fixture $path: expected $expected, got $actual',

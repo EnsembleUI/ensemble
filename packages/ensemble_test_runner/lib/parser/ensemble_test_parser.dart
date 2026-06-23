@@ -50,21 +50,19 @@ class EnsembleTestParser {
       );
     }
 
-    return _parseTestCase(doc);
+    return _parseTestCase(doc, sourcePath: sourcePath);
   }
 
-  static EnsembleTestCase _parseTestCase(YamlMap map) {
+  static EnsembleTestCase _parseTestCase(YamlMap map, {String? sourcePath}) {
     final id = map['id']?.toString();
     if (id == null || id.isEmpty) {
       throw EnsembleTestFailure('Each test must have an "id"');
     }
 
     final startScreen = map['startScreen']?.toString();
-    final hasStartScreen =
-        startScreen != null && startScreen.isNotEmpty;
+    final hasStartScreen = startScreen != null && startScreen.isNotEmpty;
     final prerequisite = map['prerequisite']?.toString();
-    final hasPrerequisite =
-        prerequisite != null && prerequisite.isNotEmpty;
+    final hasPrerequisite = prerequisite != null && prerequisite.isNotEmpty;
 
     if (hasStartScreen && hasPrerequisite) {
       throw EnsembleTestFailure(
@@ -79,12 +77,19 @@ class EnsembleTestParser {
 
     final stepsNode = map['steps'];
     if (stepsNode is! YamlList || stepsNode.isEmpty) {
-      throw EnsembleTestFailure('Test "$id" must have a non-empty "steps" list');
+      throw EnsembleTestFailure(
+          'Test "$id" must have a non-empty "steps" list');
     }
 
     return EnsembleTestCase(
       id: id,
+      sourcePath: sourcePath,
       type: map['type']?.toString(),
+      feature: map['feature']?.toString(),
+      tags: _toStringList(map['tags']),
+      description: map['description']?.toString(),
+      owner: map['owner']?.toString(),
+      priority: map['priority']?.toString(),
       startScreen: hasStartScreen ? startScreen : null,
       prerequisite: hasPrerequisite ? prerequisite : null,
       initialState: _toStringDynamicMap(map['initialState']),
@@ -135,9 +140,11 @@ class EnsembleTestParser {
   static List<TestStep> _parseSteps(YamlList steps, {required String testId}) =>
       _parseStepsList(steps, testId: testId);
 
-  static List<TestStep> _parseStepsList(dynamic steps, {required String testId}) {
+  static List<TestStep> _parseStepsList(dynamic steps,
+      {required String testId}) {
     if (steps is! List || steps.isEmpty) {
-      throw EnsembleTestFailure('Test "$testId" requires a non-empty "steps" list');
+      throw EnsembleTestFailure(
+          'Test "$testId" requires a non-empty "steps" list');
     }
     final result = <TestStep>[];
     for (var i = 0; i < steps.length; i++) {
@@ -146,7 +153,8 @@ class EnsembleTestParser {
     return result;
   }
 
-  static TestStep _parseStep(dynamic step, {required String testId, int? index}) {
+  static TestStep _parseStep(dynamic step,
+      {required String testId, int? index}) {
     final String type;
     final dynamic argsNode;
 
@@ -212,6 +220,14 @@ class EnsembleTestParser {
       out[key.toString()] = _unwrapYaml(value);
     });
     return out;
+  }
+
+  static List<String> _toStringList(dynamic node) {
+    if (node == null) return const [];
+    if (node is! Iterable) {
+      throw EnsembleTestFailure('Expected a list');
+    }
+    return node.map((value) => value.toString()).toList();
   }
 
   static dynamic _unwrapYaml(dynamic value) {

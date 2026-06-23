@@ -25,7 +25,13 @@ class EnsembleTestEnvironment {
 
 class EnsembleTestCase {
   final String id;
+  final String? sourcePath;
   final String? type;
+  final String? feature;
+  final List<String> tags;
+  final String? description;
+  final String? owner;
+  final String? priority;
 
   /// Cold-start screen. Omit when [prerequisite] is set.
   final String? startScreen;
@@ -38,7 +44,13 @@ class EnsembleTestCase {
 
   const EnsembleTestCase({
     required this.id,
+    this.sourcePath,
     this.type,
+    this.feature,
+    this.tags = const [],
+    this.description,
+    this.owner,
+    this.priority,
     this.startScreen,
     this.prerequisite,
     this.initialState = const {},
@@ -49,6 +61,14 @@ class EnsembleTestCase {
   bool get hasStartScreen => startScreen != null && startScreen!.isNotEmpty;
 
   bool get hasPrerequisite => prerequisite != null && prerequisite!.isNotEmpty;
+
+  Map<String, dynamic> get metadataJson => {
+        if (feature != null) 'feature': feature,
+        if (tags.isNotEmpty) 'tags': tags,
+        if (description != null) 'description': description,
+        if (owner != null) 'owner': owner,
+        if (priority != null) 'priority': priority,
+      };
 }
 
 class TestMocks {
@@ -127,6 +147,7 @@ enum TestStatus { passed, failed }
 
 class EnsembleSingleTestResult {
   final String testId;
+  final Map<String, dynamic> metadata;
   final TestStatus status;
   final int durationMs;
   final int? failedStepIndex;
@@ -138,6 +159,7 @@ class EnsembleSingleTestResult {
 
   const EnsembleSingleTestResult({
     required this.testId,
+    this.metadata = const {},
     required this.status,
     required this.durationMs,
     this.failedStepIndex,
@@ -150,12 +172,14 @@ class EnsembleSingleTestResult {
 
   factory EnsembleSingleTestResult.passed({
     required String testId,
+    Map<String, dynamic> metadata = const {},
     required int durationMs,
     List<String> logs = const [],
     EnsembleTestReportDetails? report,
   }) =>
       EnsembleSingleTestResult(
         testId: testId,
+        metadata: metadata,
         status: TestStatus.passed,
         durationMs: durationMs,
         logs: logs,
@@ -164,6 +188,7 @@ class EnsembleSingleTestResult {
 
   factory EnsembleSingleTestResult.failed({
     required String testId,
+    Map<String, dynamic> metadata = const {},
     required int durationMs,
     int? failedStepIndex,
     TestStep? failedStep,
@@ -174,6 +199,7 @@ class EnsembleSingleTestResult {
   }) =>
       EnsembleSingleTestResult(
         testId: testId,
+        metadata: metadata,
         status: TestStatus.failed,
         durationMs: durationMs,
         failedStepIndex: failedStepIndex,
@@ -186,15 +212,95 @@ class EnsembleSingleTestResult {
 
   Map<String, dynamic> toJson() => {
         'testId': testId,
+        if (metadata.isNotEmpty) 'metadata': metadata,
         'status': status.name,
         'durationMs': durationMs,
         if (failedStepIndex != null) 'failedStepIndex': failedStepIndex,
         if (failedStep != null) 'failedStep': failedStep!.toJson(),
         if (message != null) 'message': message,
+        if (status == TestStatus.failed) 'failure': _failureJson(),
         if (stackTrace != null) 'stackTrace': stackTrace,
         'logs': logs,
         if (report != null) 'report': report!.toJson(),
       };
+
+  Map<String, dynamic> _failureJson() {
+    final text = message ?? '';
+    final kind = _failureKind(text);
+    return {
+      'kind': kind,
+      if (failedStep != null) 'step': failedStep!.type,
+      if (failedStepIndex != null) 'stepIndex': failedStepIndex,
+      if (failedStep?.args['id'] != null) 'expected': failedStep!.args['id'],
+      'actual': text,
+      'suggestions': _failureSuggestions(kind, failedStep),
+      if (report != null)
+        'context': {
+          'currentScreen': report!.endScreen ?? report!.startScreen,
+          'screensVisited': report!.screensVisited,
+        },
+    };
+  }
+
+  String _failureKind(String text) {
+    final lower = text.toLowerCase();
+    if (lower.contains('fixture')) return 'parseError';
+    if (lower.contains('timeout') || lower.contains('timed out')) {
+      return 'timeout';
+    }
+    if (lower.contains('api')) return 'apiMismatch';
+    if (lower.contains('navigation') ||
+        lower.contains('navigated') ||
+        lower.contains('screen')) {
+      return 'navigationMismatch';
+    }
+    if (lower.contains('widget') ||
+        lower.contains('visible') ||
+        lower.contains('finder')) {
+      return 'missingWidget';
+    }
+    if (lower.contains('yaml') ||
+        lower.contains('parse') ||
+        lower.contains('invalid')) {
+      return 'parseError';
+    }
+    return 'assertionFailure';
+  }
+
+  List<String> _failureSuggestions(String kind, TestStep? step) {
+    switch (kind) {
+      case 'missingWidget':
+        final id = step?.args['id'];
+        return [
+          if (id != null)
+            'Verify "$id" exists as id/testId on the active screen.',
+          'Run --inspect-app to list available widget ids.',
+        ];
+      case 'apiMismatch':
+        return [
+          'Check API name spelling against --inspect-app output.',
+          'Use root mocks.apis for onLoad APIs and mockApi for later user-triggered APIs.',
+        ];
+      case 'navigationMismatch':
+        return [
+          'Check expected screen name against --inspect-app navigation targets.',
+          'Add waitForNavigation after navigation-triggering actions.',
+        ];
+      case 'timeout':
+        return [
+          'Wait for a stable widget or API completion before asserting.',
+          'Increase timeoutMs only after confirming the expected UI appears.',
+        ];
+      case 'parseError':
+        return [
+          'Run --validate-only to find schema, fixture, and prerequisite issues.',
+        ];
+      default:
+        return [
+          'Inspect the failedStep and report context to repair the test.'
+        ];
+    }
+  }
 }
 
 /// Human-readable run metadata for console reports (see [TestReporter]).
