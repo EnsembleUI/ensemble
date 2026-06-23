@@ -57,7 +57,6 @@ View:
 
         - Button:
             testId: call_api_button
-            testId: fetch_user_action_button
             label: Fetch user (app Action with API)
             onTap:
               executeAction:

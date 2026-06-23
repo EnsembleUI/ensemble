@@ -4,7 +4,7 @@ import 'package:ensemble_test_runner/runner/test_runtime_state.dart';
 import 'package:ensemble_test_runner/runner/yaml_test_session.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-/// Flutter test entry: discovers `ensemble/tests/*.test.yaml` and runs them.
+/// Flutter test entry: discovers app-local `tests/*.test.yaml` and runs them.
 void runEnsembleYamlTests() {
   EnsembleTestHarness.ensureTestPlugins();
   tearDown(() {
@@ -14,10 +14,10 @@ void runEnsembleYamlTests() {
   });
 
   testWidgets(
-    'ensemble/tests/*.test.yaml',
+    'Ensemble app *.test.yaml',
     (tester) async {
-      final plan = await EnsembleTestExecutionPlanner.build();
       final target = await EnsembleTestDiscovery.loadAppTarget();
+      final plan = await EnsembleTestExecutionPlanner.build(target: target);
       final harness = EnsembleTestHarness(
         appPath: target.appPath,
         appHome: target.appHome,
@@ -53,7 +53,7 @@ void runEnsembleYamlTests() {
 
       final suiteSummary = TestReporter().formatSummary(
         EnsembleTestRunResult(results: orderedResults),
-        testFile: 'ensemble/tests/*.test.yaml',
+        testFile: '${target.testsAssetPrefix}*.test.yaml',
       );
       print(suiteSummary);
 

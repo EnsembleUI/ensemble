@@ -19,8 +19,11 @@ flutter:
     - ensemble/
 ''';
     File('${dir.path}/pubspec.yaml').writeAsStringSync(pubspec);
-    Directory('${dir.path}/ensemble/tests').createSync(recursive: true);
-    File('${dir.path}/ensemble/tests/sample.test.yaml').writeAsStringSync('''
+    _writeConfig(dir);
+    Directory('${dir.path}/ensemble/apps/helloApp/tests')
+        .createSync(recursive: true);
+    File('${dir.path}/ensemble/apps/helloApp/tests/sample.test.yaml')
+        .writeAsStringSync('''
 id: sample
 startScreen: Home
 steps: []
@@ -31,7 +34,14 @@ steps: []
 
     expect(patcher.pubspecChanged, isTrue);
     final enabled = File('${dir.path}/pubspec.yaml').readAsStringSync();
-    expect(enabled, contains(YamlTestAppPatcher.testsAssetLine));
+    expect(
+      enabled,
+      contains(
+        YamlTestAppPatcher.testsAssetLineFor(
+          'ensemble/apps/helloApp/tests',
+        ),
+      ),
+    );
     expect(
       File('${dir.path}/${YamlTestAppPatcher.testEntryRelativePath}')
           .readAsStringSync(),
@@ -42,7 +52,8 @@ steps: []
 
     expect(File('${dir.path}/pubspec.yaml').readAsStringSync(), pubspec);
     expect(
-      File('${dir.path}/${YamlTestAppPatcher.testEntryRelativePath}').existsSync(),
+      File('${dir.path}/${YamlTestAppPatcher.testEntryRelativePath}')
+          .existsSync(),
       isFalse,
     );
   });
@@ -60,8 +71,11 @@ flutter:
   assets:
     - ensemble/
 ''');
-    Directory('${dir.path}/ensemble/tests').createSync(recursive: true);
-    File('${dir.path}/ensemble/tests/sample.test.yaml').writeAsStringSync('''
+    _writeConfig(dir);
+    Directory('${dir.path}/ensemble/apps/helloApp/tests')
+        .createSync(recursive: true);
+    File('${dir.path}/ensemble/apps/helloApp/tests/sample.test.yaml')
+        .writeAsStringSync('''
 id: sample
 startScreen: Home
 steps: []
@@ -75,7 +89,8 @@ steps: []
     patcher.restore();
 
     expect(
-      File('${dir.path}/${YamlTestAppPatcher.testEntryRelativePath}').existsSync(),
+      File('${dir.path}/${YamlTestAppPatcher.testEntryRelativePath}')
+          .existsSync(),
       isFalse,
     );
   });
@@ -93,11 +108,14 @@ dev_dependencies:
 flutter:
   assets:
     - ensemble/
-    - ensemble/tests/
+    - ensemble/apps/helloApp/tests/
 ''';
     File('${dir.path}/pubspec.yaml').writeAsStringSync(pubspec);
-    Directory('${dir.path}/ensemble/tests').createSync(recursive: true);
-    File('${dir.path}/ensemble/tests/sample.test.yaml').writeAsStringSync('''
+    _writeConfig(dir);
+    Directory('${dir.path}/ensemble/apps/helloApp/tests')
+        .createSync(recursive: true);
+    File('${dir.path}/ensemble/apps/helloApp/tests/sample.test.yaml')
+        .writeAsStringSync('''
 id: sample
 startScreen: Home
 steps: []
@@ -111,4 +129,14 @@ steps: []
 
     patcher.restore();
   });
+}
+
+void _writeConfig(Directory dir) {
+  Directory('${dir.path}/ensemble').createSync(recursive: true);
+  File('${dir.path}/ensemble/ensemble-config.yaml').writeAsStringSync('''
+definitions:
+  local:
+    path: ensemble/apps/helloApp
+    appHome: Home
+''');
 }

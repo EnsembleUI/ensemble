@@ -25,11 +25,18 @@ class EnsembleTestExecutionPlan {
 /// Builds a dependency-ordered execution plan for all declarative tests.
 class EnsembleTestExecutionPlanner {
   /// Discovers assets, parses every file, validates graph, returns run order.
-  static Future<EnsembleTestExecutionPlan> build() async {
-    final paths = await EnsembleTestDiscovery.findTestYamlAssets();
+  static Future<EnsembleTestExecutionPlan> build({
+    EnsembleTestAppTarget? target,
+  }) async {
+    final resolvedTarget =
+        target ?? await EnsembleTestDiscovery.loadAppTarget();
+    final paths = await EnsembleTestDiscovery.findTestYamlAssets(
+      resolvedTarget.testsAssetPrefix,
+    );
     if (paths.isEmpty) {
       throw EnsembleTestFailure(
-        'No declarative tests found. Add *.test.yaml files under ensemble/tests/ ',
+        'No declarative tests found. Add *.test.yaml files under '
+        '${resolvedTarget.testsAssetPrefix}',
       );
     }
 

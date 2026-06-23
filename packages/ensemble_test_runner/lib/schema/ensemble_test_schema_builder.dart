@@ -2,7 +2,7 @@ import 'dart:convert';
 
 import 'package:ensemble_test_runner/vocabulary/test_step_vocabulary.dart';
 
-/// Builds JSON Schema for `ensemble/tests/*.test.yaml` files.
+/// Builds JSON Schema for app-local `tests/*.test.yaml` files.
 class EnsembleTestSchemaBuilder {
   static const schemaId = 'https://ensembleui.com/ensemble_test.schema.json';
   static const schemaVersion = 'https://json-schema.org/draft/2020-12/schema';
@@ -145,17 +145,16 @@ class EnsembleTestSchemaBuilder {
       '\$id': schemaId,
       'title': 'Ensemble declarative test file',
       'description':
-          'Schema for ensemble/tests/*.test.yaml — one test per file; '
-          'see packages/ensemble_test_runner/STEP_VOCABULARY.md',
+          'Schema for app-local tests/*.test.yaml — one test per file; '
+              'see packages/ensemble_test_runner/STEP_VOCABULARY.md',
       ...testCase,
       '\$defs': defs,
     };
   }
 
   static String buildJson({bool pretty = true}) {
-    final encoder = pretty
-        ? const JsonEncoder.withIndent('  ')
-        : const JsonEncoder();
+    final encoder =
+        pretty ? const JsonEncoder.withIndent('  ') : const JsonEncoder();
     return encoder.convert(build());
   }
 }

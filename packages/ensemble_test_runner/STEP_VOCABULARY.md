@@ -1,6 +1,6 @@
 # Ensemble declarative test step vocabulary
 
-Official step catalog for `ensemble/tests/*.test.yaml`. Every step in [`TestStepRegistry.entries`](lib/vocabulary/test_step_registry.dart) is **implemented** (tier `core` or `extended`).
+Official step catalog for app-local `tests/*.test.yaml` files, for example `ensemble/apps/helloApp/tests/*.test.yaml`. Every step in [`TestStepRegistry.entries`](lib/vocabulary/test_step_registry.dart) is **implemented** (tier `core` or `extended`).
 
 | Tier | Meaning |
 |------|---------|

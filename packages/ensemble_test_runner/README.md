@@ -6,7 +6,8 @@ This package is **not** a dependency of `modules/ensemble`. It is a **dev-only**
 
 ## Write tests (YAML only)
 
-Add `*.test.yaml` files under `ensemble/tests/` in your app:
+Add `*.test.yaml` files under the configured local app path's `tests/`
+directory, for example `ensemble/apps/helloApp/tests/`:
 
 ```yaml
 id: hello_home_renders
@@ -48,7 +49,8 @@ Or per file at the top of a test:
 
 ## App setup
 
-1. Add `*.test.yaml` files under `ensemble/tests/`.
+1. Add `*.test.yaml` files under `definitions.local.path/tests/`, for example
+   `ensemble/apps/helloApp/tests/`.
 2. Configure `definitions.local` in `ensemble/ensemble-config.yaml` (`path`, `appHome`, `i18n.path`).
 3. Add `ensemble_test_runner` to `dev_dependencies` (same git `url`/`ref` as your `ensemble:` dependency).
 4. Run `flutter pub get`.
@@ -61,7 +63,7 @@ From your app directory (e.g. `starter/`):
 dart run ensemble_test_runner:ensemble_test
 ```
 
-The CLI temporarily bundles `ensemble/tests/` as an asset (if needed), writes `test/ensemble_tests.dart`, runs `flutter test`, then restores your `pubspec.yaml` and removes the generated test file.
+The CLI temporarily bundles `definitions.local.path/tests/` as an asset (if needed), writes `test/ensemble_tests.dart`, runs `flutter test`, then restores your `pubspec.yaml` and removes the generated test file.
 
 By default, output is quiet: no `pub get` package list, no Flutter test progress lines — `SCREEN TRACKER` navigation logs plus the boxed suite report. Use `--verbose` for full subprocess output (useful when debugging).
 

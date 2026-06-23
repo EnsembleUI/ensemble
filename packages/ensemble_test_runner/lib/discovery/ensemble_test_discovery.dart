@@ -14,14 +14,16 @@ class EnsembleTestAppTarget {
     required this.appHome,
     this.i18nPath,
   });
+
+  String get testsAssetPrefix =>
+      '${EnsembleTestHarness.normalizeAppPath(appPath)}tests/';
 }
 
 /// Discovers declarative tests and app settings from the host Flutter app bundle.
 class EnsembleTestDiscovery {
-  static const String testsAssetPrefix = 'ensemble/tests/';
-
   /// All `*.test.yaml` files bundled under [testsAssetPrefix].
-  static Future<List<String>> findTestYamlAssets() async {
+  static Future<List<String>> findTestYamlAssets(
+      String testsAssetPrefix) async {
     final manifest = await AssetManifest.loadFromAssetBundle(rootBundle);
     final files = manifest
         .listAssets()
