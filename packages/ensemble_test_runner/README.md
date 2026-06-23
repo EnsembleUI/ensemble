@@ -63,13 +63,109 @@ From your app directory (e.g. `starter/`):
 dart run ensemble_test_runner:ensemble_test
 ```
 
+The command must run from the Flutter wrapper app root — the directory with
+`pubspec.yaml` and `ensemble/ensemble-config.yaml`. Dart resolves
+`ensemble_test_runner:ensemble_test` from the current package's
+`dev_dependencies`, so running the command from `ensemble/apps/<app>` will fail
+before the runner starts.
+
 The CLI temporarily bundles `definitions.local.path/tests/` as an asset (if needed), writes `test/ensemble_tests.dart`, runs `flutter test`, then restores your `pubspec.yaml` and removes the generated test file.
 
 By default, output is quiet: no `pub get` package list, no Flutter test progress lines — `SCREEN TRACKER` navigation logs plus the boxed suite report. Use `--verbose` for full subprocess output (useful when debugging).
 
 Optional: `--app-dir=<path>` when not running from the app root.
 
+### Validate setup
+
+Run doctor when setting up a new app or debugging discovery issues:
+
+```bash
+dart run ensemble_test_runner:ensemble_test --doctor
+```
+
+It checks the wrapper app, `ensemble-config.yaml`, `definitions.local`, test
+folder, YAML parsing, duplicate IDs, prerequisites, schema comments, and obvious
+widget `id`/`testId` references.
+
+### CI output
+
+For machine-readable results:
+
+```bash
+dart run ensemble_test_runner:ensemble_test --report=json
+dart run ensemble_test_runner:ensemble_test --report-file=build/ensemble_test_results.json
+```
+
+`--report=json` prints the final run result as JSON. `--report-file` writes the
+same JSON to disk while keeping the normal console report.
+
 On success the console prints one consolidated boxed report for the suite: each test id (with YAML path), timing, **start screen** or **prerequisite**, **navigation flow**, and a numbered **step outline**.
+
+## Examples
+
+### Login flow
+
+```yaml
+# yaml-language-server: $schema=https://cdn.ensembleui.com/schemas/ensemble_tests_schema.json
+id: login_flow
+startScreen: Login
+steps:
+  - mockApi:
+      name: login
+      response:
+        statusCode: 200
+        body:
+          token: test-token
+  - enterText:
+      id: email_field
+      value: user@test.com
+  - enterText:
+      id: password_field
+      value: password
+  - tap:
+      id: login_button
+  - expectApiCalled:
+      name: login
+  - expectVisible:
+      id: dashboard_title
+```
+
+### Storage/env setup
+
+```yaml
+id: logged_in_home
+startScreen: Home
+initialState:
+  env:
+    apiURL: https://example.test
+  storage:
+    auth:
+      token: test-token
+steps:
+  - expectVisible:
+      id: welcome_text
+```
+
+### Multi-file prerequisite chain
+
+```yaml
+id: login_start
+startScreen: Login
+steps:
+  - enterText:
+      id: email_field
+      value: user@test.com
+```
+
+```yaml
+id: login_submit
+prerequisite: login_start
+steps:
+  - tap:
+      id: login_button
+  - expectVisible:
+      id: dashboard_title
+```
 
 ## Package layout
 

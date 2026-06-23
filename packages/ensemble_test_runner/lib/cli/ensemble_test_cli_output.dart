@@ -4,6 +4,7 @@ library;
 const suiteReportStart = '┌─ Ensemble YAML tests';
 const screenTrackerPrefix = 'SCREEN TRACKER:';
 const noDeclarativeTestsPrefix = 'No declarative tests found.';
+const jsonReportPrefix = 'ENSEMBLE_TEST_JSON_REPORT:';
 
 /// Strips Flutter test framework noise; keeps navigation logs and the suite report.
 String extractSuiteReport(String output) {
@@ -45,11 +46,25 @@ String extractKnownFailure(String output) {
   return '';
 }
 
+String extractJsonReport(String output) {
+  for (final line in output.split('\n')) {
+    if (line.startsWith(jsonReportPrefix)) {
+      return line.substring(jsonReportPrefix.length);
+    }
+  }
+  return '';
+}
+
 /// Arguments forwarded to `flutter test` (CLI-only flags removed).
 List<String> flutterTestArguments(List<String> arguments) {
   return arguments
       .where(
-        (a) => !a.startsWith('--app-dir') && a != '--verbose' && a != '--quiet',
+        (a) =>
+            !a.startsWith('--app-dir') &&
+            !a.startsWith('--report') &&
+            a != '--doctor' &&
+            a != '--verbose' &&
+            a != '--quiet',
       )
       .toList();
 }

@@ -126,8 +126,8 @@ class TestStepExecutor {
         );
         return;
       case 'expectScreen':
-        final screen = step.args['name']?.toString() ??
-            step.args['screen']?.toString();
+        final screen =
+            step.args['name']?.toString() ?? step.args['screen']?.toString();
         if (screen == null) {
           throw EnsembleTestFailure('expectScreen requires "name" or "screen"');
         }
@@ -381,14 +381,14 @@ class TestStepExecutor {
 
   Future<void> longPressWidget(String id) async {
     final finder = assertions.finderForId(id);
-    expect(finder, findsOneWidget);
+    _expectSingleWidget(finder, id, 'longPress');
     await tester.longPress(finder);
     await _settle();
   }
 
   Future<void> focusWidget(String id) async {
     final finder = assertions.finderForId(id);
-    expect(finder, findsOneWidget);
+    _expectSingleWidget(finder, id, 'focus');
     await tester.tap(finder);
     await _settle();
   }
@@ -444,14 +444,15 @@ class TestStepExecutor {
         timeoutMs: config.defaultWaitTimeout.inMilliseconds,
       );
     }
-    expect(finder, findsOneWidget);
+    _expectSingleWidget(finder, id, 'tap');
     await tester.tap(finder);
     await _settle();
   }
 
-  Future<void> _enterText(String id, String value, {bool submit = false}) async {
+  Future<void> _enterText(String id, String value,
+      {bool submit = false}) async {
     final finder = assertions.finderForId(id);
-    expect(finder, findsOneWidget);
+    _expectSingleWidget(finder, id, 'enterText');
     await tester.enterText(finder, value);
     if (submit) {
       await tester.testTextInput.receiveAction(TextInputAction.done);
@@ -461,7 +462,7 @@ class TestStepExecutor {
 
   Future<void> _submitText(String id) async {
     final finder = assertions.finderForId(id);
-    expect(finder, findsOneWidget);
+    _expectSingleWidget(finder, id, 'submitText');
     await tester.tap(finder);
     await tester.testTextInput.receiveAction(TextInputAction.done);
     await _settle();
@@ -469,7 +470,7 @@ class TestStepExecutor {
 
   Future<void> _clearText(String id) async {
     final finder = assertions.finderForId(id);
-    expect(finder, findsOneWidget);
+    _expectSingleWidget(finder, id, 'clearText');
     await tester.enterText(finder, '');
     await _settle();
   }
@@ -523,13 +524,24 @@ class TestStepExecutor {
             ? 'id "$id"'
             : 'text "$text"';
     throw EnsembleTestFailure(
-      'Timed out after ${timeoutMs}ms waiting for $target',
+      'Timed out after ${timeoutMs}ms waiting for $target. '
+      '${assertions.visibleWidgetIdSummary()}',
     );
   }
 
+  void _expectSingleWidget(Finder finder, String id, String stepType) {
+    final count = finder.evaluate().length;
+    if (count != 1) {
+      throw EnsembleTestFailure(
+        '$stepType expected exactly one widget with id "$id", but found $count. '
+        '${assertions.visibleWidgetIdSummary()}',
+      );
+    }
+  }
+
   Future<void> _openScreen(TestStep step) async {
-    final screen = step.args['name']?.toString() ??
-        step.args['screen']?.toString();
+    final screen =
+        step.args['name']?.toString() ?? step.args['screen']?.toString();
     if (screen == null || screen.isEmpty) {
       throw EnsembleTestFailure('openScreen requires "name" or "screen"');
     }

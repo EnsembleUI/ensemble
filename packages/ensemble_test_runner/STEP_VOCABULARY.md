@@ -72,6 +72,11 @@ steps:
 
 Editor validation: `https://cdn.ensembleui.com/schemas/ensemble_tests_schema.json` (committed copy at [`assets/schema/ensemble_tests_schema.json`](assets/schema/ensemble_tests_schema.json), regenerate with `dart run tool/generate_schema.dart`). Arg shapes come from [`TestStepArgKind`](lib/vocabulary/test_step_arg_kind.dart) on each [`TestStepRegistryEntry`](lib/vocabulary/test_step_registry.dart).
 
+Before running a new suite, use `dart run ensemble_test_runner:ensemble_test --doctor`
+from the Flutter wrapper app root to validate config, test discovery, duplicate
+IDs, prerequisites, schema comments, and obvious widget IDs. CI can request JSON
+with `--report=json` or `--report-file=build/ensemble_test_results.json`.
+
 Each `*.test.yaml` file is a single test case and must provide **exactly one** of:
 
 - `startScreen` — cold-starts the app on the given screen and runs steps

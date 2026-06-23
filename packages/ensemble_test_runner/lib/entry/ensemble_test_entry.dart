@@ -1,3 +1,6 @@
+import 'dart:convert';
+import 'dart:io';
+
 import 'package:ensemble_test_runner/discovery/ensemble_test_execution_planner.dart';
 import 'package:ensemble_test_runner/ensemble_test_runner.dart';
 import 'package:ensemble_test_runner/runner/test_runtime_state.dart';
@@ -51,11 +54,13 @@ void runEnsembleYamlTests() {
         }
       }
 
+      final runResult = EnsembleTestRunResult(results: orderedResults);
       final suiteSummary = TestReporter().formatSummary(
-        EnsembleTestRunResult(results: orderedResults),
+        runResult,
         testFile: '${target.testsAssetPrefix}*.test.yaml',
       );
       print(suiteSummary);
+      _emitMachineReport(runResult);
 
       if (failures.isNotEmpty) {
         fail(
@@ -67,4 +72,20 @@ void runEnsembleYamlTests() {
     },
     timeout: const Timeout(Duration(minutes: 10)),
   );
+}
+
+void _emitMachineReport(EnsembleTestRunResult result) {
+  const reportMode = String.fromEnvironment('ensembleTestReport');
+  const reportFile = String.fromEnvironment('ensembleTestReportFile');
+  final jsonReport = json.encode(result.toJson());
+
+  if (reportFile.isNotEmpty) {
+    final file = File(reportFile);
+    file.parent.createSync(recursive: true);
+    file.writeAsStringSync(jsonReport);
+  }
+
+  if (reportMode == 'json') {
+    print('ENSEMBLE_TEST_JSON_REPORT:$jsonReport');
+  }
 }

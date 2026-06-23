@@ -26,7 +26,10 @@ class AssertionEngine {
   void expectVisible(String id) {
     final finder = finderForId(id);
     if (finder.evaluate().isEmpty) {
-      throw EnsembleTestFailure('Expected widget with id "$id" to be visible.');
+      throw EnsembleTestFailure(
+        'Expected widget with id "$id" to be visible. '
+        '${visibleWidgetIdSummary()}',
+      );
     }
   }
 
@@ -133,7 +136,8 @@ class AssertionEngine {
     final actual = context.mockApiProvider.callCount(apiName);
     if (actual != times) {
       throw EnsembleTestFailure(
-        'Expected API "$apiName" to be called $times times, but it was called $actual times.',
+        'Expected API "$apiName" to be called $times times, but it was called $actual times. '
+        '${apiCallSummary()}',
       );
     }
   }
@@ -201,7 +205,9 @@ class AssertionEngine {
 
   void expectExists(String id) {
     if (finderForId(id).evaluate().isEmpty) {
-      throw EnsembleTestFailure('Expected widget with id "$id" to exist.');
+      throw EnsembleTestFailure(
+        'Expected widget with id "$id" to exist. ${visibleWidgetIdSummary()}',
+      );
     }
   }
 
@@ -264,7 +270,11 @@ class AssertionEngine {
             .descendant(of: listFinder, matching: finderForId(itemId))
             .evaluate()
             .length
-        : find.descendant(of: listFinder, matching: find.byWidgetPredicate((_) => true)).evaluate().length;
+        : find
+            .descendant(
+                of: listFinder, matching: find.byWidgetPredicate((_) => true))
+            .evaluate()
+            .length;
     if (atLeast) {
       if (count < expected) {
         throw EnsembleTestFailure(
@@ -282,7 +292,8 @@ class AssertionEngine {
 
   void expectListContains({required String listId, required String text}) {
     final listFinder = finderForId(listId);
-    final match = find.descendant(of: listFinder, matching: find.textContaining(text));
+    final match =
+        find.descendant(of: listFinder, matching: find.textContaining(text));
     if (match.evaluate().isEmpty) {
       throw EnsembleTestFailure(
         'Expected list "$listId" to contain text "$text".',
@@ -461,8 +472,7 @@ class AssertionEngine {
     if (errors.isEmpty) {
       throw EnsembleTestFailure('Expected a recorded error, but none found.');
     }
-    if (contains != null &&
-        !errors.any((e) => e.contains(contains))) {
+    if (contains != null && !errors.any((e) => e.contains(contains))) {
       throw EnsembleTestFailure(
         'Expected error containing "$contains", got: $errors',
       );
@@ -552,7 +562,7 @@ class AssertionEngine {
           .toList();
       throw EnsembleTestFailure(
         'Expected navigation to "$screenName", but current screen is "$current". '
-        'History: $history',
+        'History: $history. Navigation flow: ${YamlTestSession.navigationFlow.flow}',
       );
     }
   }
@@ -566,6 +576,29 @@ class AssertionEngine {
         '$flow',
       );
     }
+  }
+
+  String visibleWidgetIdSummary({int limit = 20}) {
+    final ids = tester.allWidgets
+        .map((widget) => widget.key)
+        .whereType<ValueKey>()
+        .map((key) => key.value.toString())
+        .where((value) => value.isNotEmpty)
+        .toSet()
+        .toList()
+      ..sort();
+    if (ids.isEmpty) return 'No keyed test widgets are currently visible.';
+    final shown = ids.take(limit).join(', ');
+    final suffix = ids.length > limit ? ', ... (${ids.length} total)' : '';
+    return 'Visible widget ids: $shown$suffix.';
+  }
+
+  String apiCallSummary({int limit = 10}) {
+    final calls = context.mockApiProvider.calls;
+    if (calls.isEmpty) return 'No API calls were recorded.';
+    final names = calls.take(limit).map((call) => call.name).join(', ');
+    final suffix = calls.length > limit ? ', ... (${calls.length} total)' : '';
+    return 'Recorded API calls: $names$suffix.';
   }
 
   ScopeManager? _activeScope() {

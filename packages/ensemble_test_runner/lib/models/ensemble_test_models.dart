@@ -26,8 +26,10 @@ class EnsembleTestEnvironment {
 class EnsembleTestCase {
   final String id;
   final String? type;
+
   /// Cold-start screen. Omit when [prerequisite] is set.
   final String? startScreen;
+
   /// Test [id] that must run before this one (same app session).
   final String? prerequisite;
   final Map<String, dynamic> initialState;
@@ -44,11 +46,9 @@ class EnsembleTestCase {
     required this.steps,
   });
 
-  bool get hasStartScreen =>
-      startScreen != null && startScreen!.isNotEmpty;
+  bool get hasStartScreen => startScreen != null && startScreen!.isNotEmpty;
 
-  bool get hasPrerequisite =>
-      prerequisite != null && prerequisite!.isNotEmpty;
+  bool get hasPrerequisite => prerequisite != null && prerequisite!.isNotEmpty;
 }
 
 class TestMocks {
@@ -106,8 +106,10 @@ class EnsembleTestRunResult {
 
   const EnsembleTestRunResult({required this.results});
 
-  int get passedCount => results.where((r) => r.status == TestStatus.passed).length;
-  int get failedCount => results.where((r) => r.status == TestStatus.failed).length;
+  int get passedCount =>
+      results.where((r) => r.status == TestStatus.passed).length;
+  int get failedCount =>
+      results.where((r) => r.status == TestStatus.failed).length;
 
   String get summary =>
       '$passedCount passed, $failedCount failed (${results.length} total)';
@@ -191,6 +193,7 @@ class EnsembleSingleTestResult {
         if (message != null) 'message': message,
         if (stackTrace != null) 'stackTrace': stackTrace,
         'logs': logs,
+        if (report != null) 'report': report!.toJson(),
       };
 }
 
@@ -210,6 +213,14 @@ class EnsembleTestReportDetails {
     this.screensVisited = const [],
     this.stepsOutline = const [],
   });
+
+  Map<String, dynamic> toJson() => {
+        'startScreen': startScreen,
+        if (endScreen != null) 'endScreen': endScreen,
+        if (prerequisite != null) 'prerequisite': prerequisite,
+        'screensVisited': screensVisited,
+        'stepsOutline': stepsOutline,
+      };
 }
 
 /// Thrown when a test step or assertion fails.

@@ -30,10 +30,21 @@ name is ={first: John}
         '--app-dir=foo',
         '--verbose',
         '--quiet',
+        '--doctor',
+        '--report=json',
+        '--report-file=build/results.json',
         '--name',
         'x',
       ]),
       ['--name', 'x'],
+    );
+  });
+
+  test('extractJsonReport reads marker line', () {
+    expect(
+      extractJsonReport(
+          'noise\nENSEMBLE_TEST_JSON_REPORT:{"status":"passed"}\n'),
+      '{"status":"passed"}',
     );
   });
 
