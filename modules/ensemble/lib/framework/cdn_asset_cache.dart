@@ -15,6 +15,23 @@ typedef CdnAssetHttpGet = Future<http.Response> Function(
 });
 typedef CdnAssetStorageDirectoryProvider = Future<io.Directory?> Function();
 
+String? _normalizeCdnAssetKey(String key) {
+  var candidate = key.trim();
+  try {
+    candidate = Uri.decodeComponent(candidate);
+  } catch (_) {}
+
+  if (candidate.isEmpty || candidate.contains(r'\')) {
+    return null;
+  }
+  final segments = candidate.split('/');
+  if (segments
+      .any((segment) => segment.isEmpty || segment == '.' || segment == '..')) {
+    return null;
+  }
+  return candidate;
+}
+
 class CdnAssetCache {
   CdnAssetCache({
     CdnAssetHttpGet? httpGet,
@@ -41,7 +58,6 @@ class CdnAssetCache {
 
   bool get hasAssetManifest => _hasAssetManifest;
   int? get assetManifestUpdatedAt => _assetManifest?.updatedAt;
-
   Future<void> initialize({
     required String appId,
     required String baseUrl,
@@ -69,20 +85,25 @@ class CdnAssetCache {
   }
 
   bool isEligible(String source) {
-    final fileName = _fileNameFromSource(source);
-    return fileName != null && _assets.containsKey(fileName);
+    final assetKey = _assetKeyFromSource(source);
+    return assetKey != null && _assets.containsKey(assetKey);
+  }
+
+  bool isManagedSource(String source) {
+    final assetKey = _assetKeyFromManagedSource(source);
+    return assetKey != null && _assets.containsKey(assetKey);
   }
 
   io.File? getCachedFileIfValid(String source) {
     if (kIsWeb || !_initialized || _rootDirectory == null) {
       return null;
     }
-    final fileName = _fileNameFromSource(source);
-    if (fileName == null) {
+    final assetKey = _assetKeyFromSource(source);
+    if (assetKey == null) {
       return null;
     }
-    final metadata = _assets[fileName];
-    final state = _cacheState[fileName];
+    final metadata = _assets[assetKey];
+    final state = _cacheState[assetKey];
     if (metadata == null) {
       return null;
     }
@@ -93,7 +114,7 @@ class CdnAssetCache {
       return null;
     }
 
-    final file = _assetFile(fileName);
+    final file = _assetFile(assetKey);
     try {
       if (file.existsSync()) {
         return file;
@@ -109,8 +130,10 @@ class CdnAssetCache {
     final assetsPath = '${_assetsDirectory.path}${io.Platform.pathSeparator}';
     if (!key.startsWith(assetsPath)) return null;
 
-    final fileName = key.substring(assetsPath.length);
-    final cachedFile = getCachedFileIfValid(fileName);
+    final assetKey = key
+        .substring(assetsPath.length)
+        .replaceAll(io.Platform.pathSeparator, '/');
+    final cachedFile = getCachedFileIfValid(assetKey);
     if (cachedFile?.path == key) {
       return cachedFile;
     }
@@ -121,8 +144,9 @@ class CdnAssetCache {
     if (kIsWeb || !_initialized || _rootDirectory == null) {
       return Future.value(null);
     }
-    final fileName = _fileNameFromSource(source);
-    if (fileName == null || !_assets.containsKey(fileName)) {
+    final assetKey = _assetKeyFromSource(source);
+    final metadata = assetKey != null ? _assets[assetKey] : null;
+    if (assetKey == null || metadata == null) {
       return Future.value(null);
     }
 
@@ -131,11 +155,12 @@ class CdnAssetCache {
       return Future.value(cached);
     }
 
+    final inFlightKey = '$assetKey:${metadata.hash}';
     return _inFlightDownloads.putIfAbsent(
-      fileName,
-      () => _resolveFile(fileName).whenComplete(
+      inFlightKey,
+      () => _resolveFile(assetKey).whenComplete(
         () {
-          _inFlightDownloads.remove(fileName);
+          _inFlightDownloads.remove(inFlightKey);
         },
       ),
     );
@@ -157,6 +182,7 @@ class CdnAssetCache {
       }
       _replaceManifest(manifest);
       _hasAssetManifest = true;
+      await _validateCachedAssets();
     } catch (e) {
       debugPrint('CdnAssetCache: Failed to load asset manifest: $e');
       _assets.clear();
@@ -176,6 +202,7 @@ class CdnAssetCache {
     _hasAssetManifest = true;
     await _writeCacheFile();
     await cleanupStaleAssets();
+    await _validateCachedAssets();
   }
 
   Future<void> clearAssetManifest({bool removeCachedAssets = false}) async {
@@ -224,43 +251,62 @@ class CdnAssetCache {
     await _writeCacheFile();
   }
 
-  Future<io.File?> _resolveFile(String fileName) async {
-    final metadata = _assets[fileName];
+  Future<void> _validateCachedAssets() async {
+    if (kIsWeb || _rootDirectory == null) return;
+    var changed = false;
+    final cachedAssetKeys = _cacheState.keys.toList();
+    for (final assetKey in cachedAssetKeys) {
+      final metadata = _assets[assetKey];
+      if (metadata == null) {
+        _cacheState.remove(assetKey);
+        changed = true;
+        continue;
+      }
+      final validFile = await _validateCachedFile(
+        assetKey,
+        metadata,
+        writeCacheFile: false,
+      );
+      if (validFile == null) {
+        changed = true;
+      }
+    }
+    if (changed) {
+      await _writeCacheFile();
+    }
+  }
+
+  Future<io.File?> _resolveFile(String assetKey) async {
+    final metadata = _assets[assetKey];
     if (metadata == null) {
       return null;
     }
 
-    final validFile = await _validateCachedFile(fileName, metadata);
+    final validFile = await _validateCachedFile(assetKey, metadata);
     if (validFile != null) {
       return validFile;
     }
 
-    return _downloadAndStore(fileName, metadata);
+    return _downloadAndStore(assetKey, metadata);
   }
 
   Future<io.File?> _validateCachedFile(
-    String fileName,
-    CdnAssetMetadata metadata,
-  ) async {
-    final file = _assetFile(fileName);
+    String assetKey,
+    CdnAssetMetadata metadata, {
+    bool writeCacheFile = true,
+  }) async {
+    final file = _assetFile(assetKey);
     if (!await file.exists()) {
       return null;
     }
 
     try {
-      final state = _cacheState[fileName];
+      final state = _cacheState[assetKey];
       if (state != null && state.hash == metadata.hash) {
         return file;
       }
-
-      _cacheState[fileName] = CdnAssetCacheState(
-        hash: metadata.hash,
-        downloadedAt: DateTime.now().millisecondsSinceEpoch,
-      );
-      await _writeCacheFile();
-      return file;
     } catch (e) {
-      debugPrint('CdnAssetCache: Failed to validate asset $fileName: $e');
+      debugPrint('CdnAssetCache: Failed to validate asset $assetKey: $e');
     }
 
     try {
@@ -268,13 +314,15 @@ class CdnAssetCache {
         await file.delete();
       }
     } catch (_) {}
-    _cacheState.remove(fileName);
-    await _writeCacheFile();
+    _cacheState.remove(assetKey);
+    if (writeCacheFile) {
+      await _writeCacheFile();
+    }
     return null;
   }
 
   Future<io.File?> _downloadAndStore(
-    String fileName,
+    String assetKey,
     CdnAssetMetadata metadata,
   ) async {
     final appId = _appId;
@@ -285,23 +333,23 @@ class CdnAssetCache {
 
     try {
       final headers = await _headersProvider();
-      final uri = _assetUri(fileName, appId: appId, baseUrl: baseUrl);
+      final uri = _assetUri(assetKey, appId: appId, baseUrl: baseUrl);
       final response = await _httpGet(uri, headers: headers);
       if (response.statusCode != 200 || response.bodyBytes.isEmpty) {
         return null;
       }
       final bytes = response.bodyBytes;
 
-      final file = _assetFile(fileName);
+      final file = _assetFile(assetKey);
       await _writeFileAtomically(file, bytes);
-      _cacheState[fileName] = CdnAssetCacheState(
+      _cacheState[assetKey] = CdnAssetCacheState(
         hash: metadata.hash,
         downloadedAt: DateTime.now().millisecondsSinceEpoch,
       );
       await _writeCacheFile();
       return file;
     } catch (e) {
-      debugPrint('CdnAssetCache: Failed to download asset $fileName: $e');
+      debugPrint('CdnAssetCache: Failed to download asset $assetKey: $e');
       return null;
     }
   }
@@ -368,55 +416,76 @@ class CdnAssetCache {
       ..addAll(manifest.assets);
   }
 
-  String? _fileNameFromSource(String source) {
+  String? _assetKeyFromSource(String source) {
     final trimmed = source.trim();
     if (trimmed.isEmpty) return null;
 
-    String candidate;
-    try {
-      final uri = Uri.parse(trimmed);
-      candidate = uri.pathSegments.isNotEmpty
-          ? uri.pathSegments.last
-          : uri.path.split('/').last;
-    } catch (_) {
-      candidate = trimmed.split('?').first.split('/').last;
+    final uri = Uri.tryParse(trimmed);
+    if (uri != null && uri.hasScheme) {
+      if (uri.scheme != 'http' && uri.scheme != 'https') {
+        return null;
+      }
+      return _assetKeyFromManagedUri(uri);
     }
 
-    try {
-      candidate = Uri.decodeComponent(candidate);
-    } catch (_) {}
-
-    if (candidate.isEmpty ||
-        candidate == '.' ||
-        candidate == '..' ||
-        candidate.contains('/') ||
-        candidate.contains(r'\')) {
-      return null;
-    }
-    return candidate;
+    return _normalizeCdnAssetKey(trimmed.split('?').first.split('#').first);
   }
 
-  io.File _assetFile(String fileName) =>
-      io.File('${_assetsDirectory.path}/$fileName');
+  String? _assetKeyFromManagedSource(String source) {
+    final uri = Uri.tryParse(source.trim());
+    if (uri == null ||
+        !uri.hasScheme ||
+        (uri.scheme != 'http' && uri.scheme != 'https')) {
+      return null;
+    }
+    return _assetKeyFromManagedUri(uri);
+  }
 
-  Uri _assetUri(String fileName, {String? appId, String? baseUrl}) {
+  String? _assetKeyFromManagedUri(Uri uri) {
+    final appId = _appId;
+    final baseUrl = _baseUrl;
+    if (appId == null || baseUrl == null) return null;
+
+    final baseUri = Uri.tryParse('$baseUrl/$appId/assets/');
+    if (baseUri == null ||
+        uri.scheme != baseUri.scheme ||
+        uri.host != baseUri.host ||
+        uri.port != baseUri.port) {
+      return null;
+    }
+
+    final baseSegments =
+        baseUri.pathSegments.where((s) => s.isNotEmpty).toList();
+    final uriSegments = uri.pathSegments.where((s) => s.isNotEmpty).toList();
+    if (uriSegments.length <= baseSegments.length) return null;
+    for (var i = 0; i < baseSegments.length; i++) {
+      if (uriSegments[i] != baseSegments[i]) return null;
+    }
+    return _normalizeCdnAssetKey(
+        uriSegments.skip(baseSegments.length).join('/'));
+  }
+
+  io.File _assetFile(String assetKey) =>
+      io.File('${_assetsDirectory.path}/$assetKey');
+
+  Uri _assetUri(String assetKey, {String? appId, String? baseUrl}) {
     final resolvedAppId = appId ?? _appId;
     final resolvedBaseUrl = baseUrl ?? _baseUrl;
-    return Uri.parse(
-      '$resolvedBaseUrl/$resolvedAppId/assets/${Uri.encodeComponent(fileName)}',
-    );
+    final encodedPath = assetKey.split('/').map(Uri.encodeComponent).join('/');
+    return Uri.parse('$resolvedBaseUrl/$resolvedAppId/assets/$encodedPath');
   }
 
   void _evictImageCache(String fileName, io.File file) {
     try {
-      PaintingBinding.instance.imageCache.clear();
-      PaintingBinding.instance.imageCache.clearLiveImages();
-      unawaited(AssetImage(file.path).evict());
+      unawaited(AssetImage(file.path).evict().catchError((_) => false));
+      unawaited(FileImage(file).evict().catchError((_) => false));
 
       final appId = _appId;
       final baseUrl = _baseUrl;
       if (appId != null && baseUrl != null) {
-        unawaited(NetworkImage(_assetUri(fileName).toString()).evict());
+        unawaited(NetworkImage(_assetUri(fileName).toString())
+            .evict()
+            .catchError((_) => false));
       }
     } catch (_) {}
   }
@@ -455,7 +524,8 @@ class CdnAssetManifest {
     final assets = <String, CdnAssetMetadata>{};
     if (rawAssets is Map) {
       rawAssets.forEach((key, value) {
-        final fileName = key.toString();
+        final fileName = _normalizeCdnAssetKey(key.toString());
+        if (fileName == null) return;
         final metadata = CdnAssetMetadata.fromJson(value);
         if (metadata != null) {
           assets[fileName] = metadata;
@@ -498,7 +568,8 @@ class CdnAssetCacheFile {
     if (rawAssets is Map) {
       rawAssets.forEach((key, value) {
         if (value is Map) {
-          final fileName = key.toString();
+          final fileName = _normalizeCdnAssetKey(key.toString());
+          if (fileName == null) return;
           final metadata = manifest.assets[fileName];
           if (metadata == null) return;
           final cacheState = CdnAssetCacheState.fromJson(
@@ -571,13 +642,17 @@ class CdnAssetMetadata {
   final int size;
   final String? contentType;
   final int? updatedAt;
+  static final RegExp _sha256Pattern = RegExp(r'^[a-f0-9]{64}$');
 
   static CdnAssetMetadata? fromJson(dynamic value) {
     if (value is! Map) return null;
 
-    final hash = value['hash']?.toString().trim();
+    final hash = value['hash']?.toString().trim().toLowerCase();
     final size = _intFromJson(value['size']);
-    if (hash == null || hash.isEmpty || size == null || size < 0) {
+    if (hash == null ||
+        !_sha256Pattern.hasMatch(hash) ||
+        size == null ||
+        size < 0) {
       return null;
     }
 
