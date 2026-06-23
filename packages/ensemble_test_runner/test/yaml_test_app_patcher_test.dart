@@ -129,6 +129,36 @@ steps: []
 
     patcher.restore();
   });
+
+  test('exposes configured tests directory and test presence', () {
+    final dir = Directory.systemTemp.createTempSync('yaml_test_patcher_');
+    addTearDown(() => dir.deleteSync(recursive: true));
+
+    File('${dir.path}/pubspec.yaml').writeAsStringSync('''
+name: sample_app
+flutter:
+  assets:
+    - ensemble/
+''');
+    _writeConfig(dir);
+
+    final patcher = YamlTestAppPatcher(dir.path);
+    expect(patcher.testsDirRelative, 'ensemble/apps/helloApp/tests');
+    expect(patcher.hasTestYamlOnDisk, isFalse);
+
+    Directory('${dir.path}/ensemble/apps/helloApp/tests')
+        .createSync(recursive: true);
+    File('${dir.path}/ensemble/apps/helloApp/tests/login_flow.test.yaml')
+        .writeAsStringSync('''
+id: login_flow
+startScreen: Login
+steps:
+  - expectVisible:
+      id: login_button
+''');
+
+    expect(patcher.hasTestYamlOnDisk, isTrue);
+  });
 }
 
 void _writeConfig(Directory dir) {

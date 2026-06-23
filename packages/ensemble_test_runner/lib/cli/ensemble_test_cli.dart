@@ -25,6 +25,26 @@ Future<void> runEnsembleYamlTestsCli(List<String> arguments) async {
     exit(1);
   }
 
+  final testsDirRelative = patcher.testsDirRelative;
+  if (testsDirRelative == null) {
+    stderr.writeln(
+      'Could not find definitions.local.path in ensemble/ensemble-config.yaml.\n'
+      'Declarative tests must live under definitions.local.path/tests.',
+    );
+    exit(1);
+  }
+
+  if (!patcher.hasTestYamlOnDisk) {
+    stderr.writeln(
+      'No Ensemble YAML tests found.\n'
+      'Expected at least one *.test.yaml file under:\n'
+      '  $testsDirRelative/\n\n'
+      'Example:\n'
+      '  $testsDirRelative/login_flow.test.yaml',
+    );
+    exit(1);
+  }
+
   var exitCode = 0;
   try {
     patcher.enable();

@@ -27,6 +27,19 @@ void main() => runEnsembleYamlTests();
 
   bool get pubspecChanged => _pubspecChanged;
 
+  String? get testsDirRelative => _testsDirRelative;
+
+  String? get testsDirPath {
+    final relative = testsDirRelative;
+    if (relative == null) return null;
+    return p.join(appDir, relative);
+  }
+
+  bool get hasTestYamlOnDisk {
+    final testsDir = testsDirRelative;
+    return testsDir != null && _hasTestYamlOnDisk(testsDir);
+  }
+
   String get _pubspecPath => p.join(appDir, 'pubspec.yaml');
   String get _testEntryPath => p.join(appDir, testEntryRelativePath);
   String get _testDirPath => p.join(appDir, 'test');
@@ -106,7 +119,7 @@ void main() => runEnsembleYamlTests();
   }
 
   String _activatePubspec(String content) {
-    final testsDir = _testsDirRelative;
+    final testsDir = testsDirRelative;
     if (testsDir != null && _hasTestYamlOnDisk(testsDir)) {
       return _activateTestAssets(content, testsDir);
     }
