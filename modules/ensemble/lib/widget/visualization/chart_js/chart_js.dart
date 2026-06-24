@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/screen_controller.dart';
+import 'package:ensemble/util/chart_utils.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
@@ -21,6 +22,7 @@ class ChartJsController extends WidgetController {
   String get chartDiv => 'div_$id';
   String get chartId => id!;
   dynamic config = '';
+  bool configFromMap = false;
   Function? evalScript;
   EnsembleAction? onTap;
 }
@@ -139,8 +141,15 @@ class ChartJs extends StatefulWidget
   @override
   Map<String, Function> setters() {
     return {
-      'id': (value) =>
-          _controller.id = Utils.getString(value, fallback: _controller.id!),
+      'id': (value) {
+        final id = Utils.getString(value, fallback: _controller.id!);
+        if (!ChartUtils.isSafeChartId(id)) {
+          throw FormatException(
+            'Chart id must contain only letters, numbers, and underscores',
+          );
+        }
+        _controller.id = id;
+      },
       'width': (value) =>
           _controller.width = Utils.getInt(value, fallback: defaultSize),
       'height': (value) =>
@@ -148,8 +157,10 @@ class ChartJs extends StatefulWidget
       'config': (value) {
         if (value is Map) {
           _controller.config = JSInterpreter.toJSString(value);
+          _controller.configFromMap = true;
         } else {
           _controller.config = value;
+          _controller.configFromMap = false;
         }
       },
       'onTap': (funcDefinition) => _controller.onTap =
