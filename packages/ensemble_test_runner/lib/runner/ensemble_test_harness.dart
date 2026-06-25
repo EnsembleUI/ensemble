@@ -265,6 +265,9 @@ class EnsembleTestHarness {
       );
     }
 
+    // Let EnsembleApp load the bundle through its existing config path, which
+    // preserves the test-installed API providers and avoids real provider init.
+    config.appBundle = null;
     await tester.pumpWidget(
       EnsembleApp(
         ensembleConfig: config,
