@@ -1,7 +1,6 @@
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble_test_runner/actions/test_step_executor.dart';
 import 'package:ensemble_test_runner/assertions/assertion_engine.dart';
-import 'package:ensemble_test_runner/debug/agent_debug_log.dart';
 import 'package:ensemble_test_runner/discovery/ensemble_test_execution_planner.dart';
 import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
 import 'package:ensemble_test_runner/reporters/test_reporter.dart';
@@ -26,18 +25,7 @@ class EnsembleTestRunner {
     WidgetTester tester,
   ) async {
     final resultsById = <String, EnsembleSingleTestResult>{};
-    // #region agent log
-    agentDebugLog('H2', 'runner/ensemble_test_runner.dart:29',
-        'runPlan before initial buildConfig', {
-      'testCount': plan.ordered.length,
-      'tests': plan.ordered.map((def) => def.testCase.id).toList(),
-    });
-    // #endregion
     var config = await harness.buildConfig();
-    // #region agent log
-    agentDebugLog('H2', 'runner/ensemble_test_runner.dart:35',
-        'runPlan after initial buildConfig', {});
-    // #endregion
 
     for (final def in plan.ordered) {
       final test = def.testCase;
@@ -83,17 +71,6 @@ class EnsembleTestRunner {
     final stopwatch = Stopwatch()..start();
 
     try {
-      // #region agent log
-      agentDebugLog(
-          'H5', 'runner/ensemble_test_runner.dart:82', 'runOne start', {
-        'testId': test.id,
-        'startScreen': test.startScreen,
-        'prerequisite': test.prerequisite,
-        'continuation': continuation,
-        'stepCount': test.steps.length,
-        'firstStep': test.steps.isEmpty ? null : test.steps.first.type,
-      });
-      // #endregion
       final ctx = EnsembleTestContext.fromTestCase(test);
       TestErrorTracker.install(ctx.runtime);
 
@@ -162,25 +139,7 @@ class EnsembleTestRunner {
     for (var i = 0; i < test.steps.length; i++) {
       final step = test.steps[i];
       try {
-        // #region agent log
-        agentDebugLog(
-            'H5', 'runner/ensemble_test_runner.dart:160', 'executing step', {
-          'testId': test.id,
-          'stepIndex': i,
-          'stepType': step.type,
-          'args':
-              step.args.map((key, value) => MapEntry(key, value?.toString())),
-        });
-        // #endregion
         await executor.execute(step);
-        // #region agent log
-        agentDebugLog(
-            'H7', 'runner/ensemble_test_runner.dart:170', 'step completed', {
-          'testId': test.id,
-          'stepIndex': i,
-          'stepType': step.type,
-        });
-        // #endregion
       } catch (error, stackTrace) {
         return EnsembleSingleTestResult.failed(
           testId: test.id,
@@ -196,13 +155,6 @@ class EnsembleTestRunner {
       }
     }
 
-    // #region agent log
-    agentDebugLog('H8', 'runner/ensemble_test_runner.dart:188',
-        'all steps complete before passed result report', {
-      'testId': test.id,
-      'durationMs': stopwatch.elapsedMilliseconds,
-    });
-    // #endregion
     return EnsembleSingleTestResult.passed(
       testId: test.id,
       metadata: test.metadataJson,

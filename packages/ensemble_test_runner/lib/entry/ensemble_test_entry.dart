@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:ensemble_test_runner/debug/agent_debug_log.dart';
 import 'package:ensemble_test_runner/discovery/ensemble_test_execution_planner.dart';
 import 'package:ensemble_test_runner/ensemble_test_runner.dart';
 import 'package:ensemble_test_runner/runner/test_runtime_state.dart';
@@ -26,24 +25,11 @@ void runEnsembleYamlTests() {
   testWidgets(
     'Ensemble app *.test.yaml',
     (tester) async {
-      // #region agent log
-      agentDebugLog('H1', 'entry/ensemble_test_entry.dart:22',
-          'widget test body entered', {});
-      // #endregion
       final target = await EnsembleTestDiscovery.loadAppTarget();
       final plan = await EnsembleTestExecutionPlanner.build(
         target: target,
         selection: _selectionFromEnvironment(),
       );
-      // #region agent log
-      agentDebugLog(
-          'H1', 'entry/ensemble_test_entry.dart:28', 'execution plan ready', {
-        'appPath': target.appPath,
-        'appHome': target.appHome,
-        'testCount': plan.ordered.length,
-        'tests': plan.ordered.map((def) => def.testCase.id).toList(),
-      });
-      // #endregion
       final harness = EnsembleTestHarness(
         appPath: target.appPath,
         appHome: target.appHome,
@@ -52,13 +38,6 @@ void runEnsembleYamlTests() {
 
       final runner = EnsembleTestRunner(harness: harness);
       final resultsById = await runner.runPlan(plan, tester);
-      // #region agent log
-      agentDebugLog(
-          'H8', 'entry/ensemble_test_entry.dart:39', 'runPlan returned', {
-        'resultCount': resultsById.length,
-        'resultIds': resultsById.keys.toList(),
-      });
-      // #endregion
 
       final failures = <String>[];
       final orderedResults = <EnsembleSingleTestResult>[];
@@ -90,13 +69,6 @@ void runEnsembleYamlTests() {
         runResult,
         testFile: '${target.testsAssetPrefix}*.test.yaml',
       );
-      // #region agent log
-      agentDebugLog('H8', 'entry/ensemble_test_entry.dart:75',
-          'suite summary formatted', {
-        'resultCount': orderedResults.length,
-        'failureCount': failures.length,
-      });
-      // #endregion
       print(suiteSummary);
       _emitMachineReport(runResult);
 

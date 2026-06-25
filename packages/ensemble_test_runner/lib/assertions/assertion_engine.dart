@@ -5,7 +5,6 @@ import 'package:ensemble/framework/screen_tracker.dart';
 import 'package:ensemble/framework/storage_manager.dart';
 import 'package:ensemble/framework/view/data_scope_widget.dart';
 import 'package:ensemble/framework/view/page_group.dart';
-import 'package:ensemble_test_runner/debug/agent_debug_log.dart';
 import 'package:ensemble_test_runner/mocks/mock_api_provider.dart';
 import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
 import 'package:ensemble_test_runner/runner/ensemble_test_context.dart';
@@ -569,13 +568,6 @@ class AssertionEngine {
   }
 
   void expectVisited(String screenName) {
-    // #region agent log
-    agentDebugLog(
-        'H7', 'assertions/assertion_engine.dart:571', 'expectVisited start', {
-      'screenName': screenName,
-      'flow': YamlTestSession.navigationFlow.flow,
-    });
-    // #endregion
     final flow = YamlTestSession.navigationFlow.flow;
     final visited = flow.contains(screenName);
     if (!visited) {
@@ -584,13 +576,6 @@ class AssertionEngine {
         '$flow',
       );
     }
-    // #region agent log
-    agentDebugLog(
-        'H7', 'assertions/assertion_engine.dart:582', 'expectVisited done', {
-      'screenName': screenName,
-      'flow': flow,
-    });
-    // #endregion
   }
 
   String visibleWidgetIdSummary({int limit = 20}) {

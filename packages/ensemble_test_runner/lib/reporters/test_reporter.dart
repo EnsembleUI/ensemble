@@ -1,17 +1,8 @@
 import 'package:ensemble/framework/screen_tracker.dart';
-import 'package:ensemble_test_runner/debug/agent_debug_log.dart';
 import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
 import 'package:ensemble_test_runner/runner/yaml_test_session.dart';
 
 EnsembleTestReportDetails buildTestReportDetails(EnsembleTestCase testCase) {
-  // #region agent log
-  agentDebugLog(
-      'H8', 'reporters/test_reporter.dart:7', 'buildTestReportDetails start', {
-    'testId': testCase.id,
-    'startScreen': testCase.startScreen,
-    'prerequisite': testCase.prerequisite,
-  });
-  // #endregion
   final effectiveStart = testCase.startScreen ??
       ScreenTracker().getCurrentScreenIdentifier() ??
       '(unknown)';
@@ -22,14 +13,6 @@ EnsembleTestReportDetails buildTestReportDetails(EnsembleTestCase testCase) {
     screensVisited: collectScreensVisited(effectiveStart),
     stepsOutline: outlineSteps(testCase.steps),
   );
-  // #region agent log
-  agentDebugLog(
-      'H8', 'reporters/test_reporter.dart:23', 'buildTestReportDetails done', {
-    'testId': testCase.id,
-    'screensVisited': details.screensVisited,
-    'stepsOutlineCount': details.stepsOutline.length,
-  });
-  // #endregion
   return details;
 }
 

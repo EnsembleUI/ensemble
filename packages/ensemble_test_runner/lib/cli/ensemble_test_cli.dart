@@ -4,7 +4,6 @@ import 'package:ensemble_test_runner/cli/ensemble_test_doctor.dart';
 import 'package:ensemble_test_runner/cli/ensemble_test_cli_output.dart';
 import 'package:ensemble_test_runner/cli/yaml_test_app_patcher.dart';
 import 'package:ensemble_test_runner/cli/ensemble_test_scaffold.dart';
-import 'package:ensemble_test_runner/debug/agent_debug_log.dart';
 import 'package:ensemble_test_runner/inspect/ensemble_app_inspector.dart';
 import 'package:ensemble_test_runner/validation/ensemble_test_validator.dart';
 
@@ -27,18 +26,6 @@ import 'package:ensemble_test_runner/validation/ensemble_test_validator.dart';
 ///   --timeout=<duration> Test suite timeout, e.g. 30s, 5m, 1h (default: 10m)
 ///   --verbose          Full `flutter pub get` / `flutter test` output
 Future<void> runEnsembleYamlTestsCli(List<String> arguments) async {
-  // #region agent log
-  agentDebugLog(
-    'H6',
-    'cli/ensemble_test_cli.dart:31',
-    'cli startup source marker',
-    {
-      'marker': 'cli-instrumentation-v2',
-      'cwd': Directory.current.path,
-      'arguments': arguments,
-    },
-  );
-  // #endregion
   final verbose = isVerboseCli(arguments);
   final reportMode = _resolveReportMode(arguments);
   final jsonReport = reportMode == 'json';
@@ -148,18 +135,6 @@ Future<void> runEnsembleYamlTestsCli(List<String> arguments) async {
       ...flutterTestArguments(arguments),
     ];
 
-    // #region agent log
-    agentDebugLog(
-      'H6',
-      'cli/ensemble_test_cli.dart:147',
-      'before flutter test process',
-      {
-        'marker': 'cli-instrumentation-v2',
-        'appDir': appDir,
-        'testArgs': testArgs,
-      },
-    );
-    // #endregion
     final testRun = await _runProcess(
       'flutter',
       testArgs,

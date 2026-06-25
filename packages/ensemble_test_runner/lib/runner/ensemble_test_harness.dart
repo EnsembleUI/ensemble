@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/ensemble_app.dart';
 import 'package:ensemble/framework/apiproviders/http_api_provider.dart';
@@ -5,7 +7,6 @@ import 'package:ensemble/framework/definition_providers/local_provider.dart';
 import 'package:ensemble/framework/screen_tracker.dart';
 import 'package:ensemble/framework/storage_manager.dart';
 import 'package:ensemble/page_model.dart';
-import 'package:ensemble_test_runner/debug/agent_debug_log.dart';
 import 'package:ensemble_test_runner/mocks/mock_api_provider.dart';
 import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
 import 'package:ensemble_test_runner/runner/ensemble_test_context.dart';
@@ -67,6 +68,108 @@ class EnsembleTestHarness {
       return null;
     });
 
+    final secureStorage = <String, String>{};
+    const secureStorageChannel =
+        MethodChannel('plugins.it_nomads.com/flutter_secure_storage');
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(secureStorageChannel, (call) async {
+      final args = Map<String, Object?>.from(call.arguments as Map? ?? {});
+      final key = args['key']?.toString();
+      switch (call.method) {
+        case 'write':
+          if (key != null) {
+            secureStorage[key] = args['value']?.toString() ?? '';
+          }
+          return null;
+        case 'read':
+          return key == null ? null : secureStorage[key];
+        case 'readAll':
+          return Map<String, String>.from(secureStorage);
+        case 'delete':
+          if (key != null) secureStorage.remove(key);
+          return null;
+        case 'deleteAll':
+          secureStorage.clear();
+          return null;
+        case 'containsKey':
+          return key != null && secureStorage.containsKey(key);
+        default:
+          return null;
+      }
+    });
+
+    const deviceInfoChannel =
+        MethodChannel('dev.fluttercommunity.plus/device_info');
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(deviceInfoChannel, (call) async {
+      if (call.method == 'getDeviceInfo') {
+        return {
+          'computerName': 'Ensemble Test',
+          'hostName': 'ensemble-test',
+          'arch': 'arm64',
+          'model': 'Mac',
+          'kernelVersion': 'test',
+          'osRelease': 'test',
+          'majorVersion': 15,
+          'minorVersion': 0,
+          'patchVersion': 0,
+          'activeCPUs': 8,
+          'memorySize': 8589934592,
+          'cpuFrequency': 0,
+          'systemGUID': 'ensemble-test-device',
+        };
+      }
+      return null;
+    });
+
+    const connectivityChannel =
+        MethodChannel('dev.fluttercommunity.plus/connectivity');
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(connectivityChannel, (call) async {
+      if (call.method == 'check') {
+        return ['wifi'];
+      }
+      return null;
+    });
+
+    const connectivityStatusChannel =
+        MethodChannel('dev.fluttercommunity.plus/connectivity_status');
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(connectivityStatusChannel, (call) async {
+      switch (call.method) {
+        case 'listen':
+        case 'cancel':
+          return null;
+        default:
+          return null;
+      }
+    });
+
+    const appLinksEventsChannel =
+        MethodChannel('com.llfbandit.app_links/events');
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(appLinksEventsChannel, (call) async {
+      switch (call.method) {
+        case 'listen':
+        case 'cancel':
+          return null;
+        default:
+          return null;
+      }
+    });
+
+    const workmanagerChannel = MethodChannel(
+        'be.tramckrijte.workmanager/foreground_channel_work_manager');
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(workmanagerChannel, (call) async {
+      switch (call.method) {
+        case 'initialize':
+          return true;
+        default:
+          return null;
+      }
+    });
+
     YamlTestSession.navigationFlow.startListening();
   }
 
@@ -87,19 +190,6 @@ class EnsembleTestHarness {
 
   Future<EnsembleConfig> buildConfig({Locale? forcedLocale}) async {
     final normalized = normalizeAppPath(appPath);
-    // #region agent log
-    agentDebugLog(
-      'H2',
-      'runner/ensemble_test_harness.dart:89',
-      'buildConfig start',
-      {
-        'appPath': appPath,
-        'normalizedAppPath': normalized,
-        'appHome': appHome,
-        'i18nPath': i18nPath,
-      },
-    );
-    // #endregion
     final i18n = I18nProps(i18nPath ?? '${normalized}translations');
 
     final provider = await LocalDefinitionProvider(
@@ -110,27 +200,7 @@ class EnsembleTestHarness {
     ).init();
 
     final config = EnsembleConfig(definitionProvider: provider);
-    // #region agent log
-    agentDebugLog(
-      'H2A',
-      'runner/ensemble_test_harness.dart:113',
-      'buildConfig before updateAppBundle await',
-      {'appPath': appPath, 'appHome': appHome},
-    );
-    // #endregion
     final updated = await config.updateAppBundle();
-    // #region agent log
-    agentDebugLog(
-      'H2',
-      'runner/ensemble_test_harness.dart:106',
-      'buildConfig after updateAppBundle await',
-      {
-        'appPath': appPath,
-        'appHome': appHome,
-        'hasAppBundle': updated.appBundle != null,
-      },
-    );
-    // #endregion
     return updated;
   }
 
@@ -151,18 +221,6 @@ class EnsembleTestHarness {
   }) async {
     ensureTestPlugins();
 
-    // #region agent log
-    agentDebugLog(
-      'H3',
-      'runner/ensemble_test_harness.dart:134',
-      'bootstrapRuntime before initManagers',
-      {
-        'hasHttpMock': httpMock != null,
-        'envOverrideCount': setup.envOverrides?.length ?? 0,
-        'storageSeedCount': setup.initialPublicStorage?.length ?? 0,
-      },
-    );
-    // #endregion
     applyYamlTestBootstrap(config, setup);
     Ensemble().setEnsembleConfig(config);
 
@@ -171,14 +229,6 @@ class EnsembleTestHarness {
     }
 
     await Ensemble().initManagers();
-    // #region agent log
-    agentDebugLog(
-      'H3',
-      'runner/ensemble_test_harness.dart:154',
-      'bootstrapRuntime after initManagers',
-      {'hasApiProviders': config.apiProviders != null},
-    );
-    // #endregion
 
     config.apiProviders ??= {'http': HTTPAPIProvider()};
     config.apiProviders!.putIfAbsent('http', () => HTTPAPIProvider());
@@ -221,14 +271,6 @@ class EnsembleTestHarness {
         screenPayload: ScreenPayload(screenId: startScreen),
       ),
     );
-    // #region agent log
-    agentDebugLog(
-      'H4',
-      'runner/ensemble_test_harness.dart:188',
-      'pumpWidget completed',
-      {'testId': testCase.id, 'startScreen': startScreen},
-    );
-    // #endregion
 
     await waitForInitialWidgets(tester, testCase: testCase);
     return config;
@@ -249,35 +291,17 @@ class EnsembleTestHarness {
       }
     }
 
-    // #region agent log
-    agentDebugLog(
-      'H4',
-      'runner/ensemble_test_harness.dart:208',
-      'waitForInitialWidgets start',
-      {'testId': testCase?.id, 'keysToWait': keysToWait},
-    );
-    // #endregion
     await tester.pump();
+    await _yieldToRealAsyncWork(tester);
     for (var i = 0; i < 80; i++) {
       if (keysToWait.isEmpty ||
           keysToWait.every(
             (id) => find.byKey(ValueKey(id)).evaluate().isNotEmpty,
           )) {
-        // #region agent log
-        agentDebugLog(
-          'H4',
-          'runner/ensemble_test_harness.dart:219',
-          'waitForInitialWidgets done',
-          {
-            'testId': testCase?.id,
-            'iterations': i,
-            'keysToWait': keysToWait,
-          },
-        );
-        // #endregion
         return;
       }
       await tester.pump(const Duration(milliseconds: 100));
+      await _yieldToRealAsyncWork(tester);
     }
 
     if (keysToWait.isNotEmpty) {
@@ -285,6 +309,12 @@ class EnsembleTestHarness {
         'Timed out waiting for widgets: ${keysToWait.join(", ")}',
       );
     }
+  }
+
+  static Future<void> _yieldToRealAsyncWork(WidgetTester tester) async {
+    await tester.runAsync(() async {
+      await Future<void>.delayed(Duration.zero);
+    });
   }
 
   static void applyInPlaceSetup(EnsembleTestContext ctx) {
