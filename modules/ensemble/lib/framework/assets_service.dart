@@ -7,6 +7,9 @@ class LocalAssetsService {
   static List<String> localAssets = [];
   static bool _isInitialized = false;
 
+  /// Builds the env map used for local asset discovery.
+  /// Values from `.env.assets` intentionally override app config values so
+  /// local assets can replace remote URLs during local development.
   static Map<String, dynamic> mergeAssetEnvVariables(
     Map<String, dynamic>? envVariables,
     Iterable<Map<String, String>> envAssetSources,
@@ -21,6 +24,8 @@ class LocalAssetsService {
     return assetEnvVariables;
   }
 
+  /// Scans configured asset environment values and records only the assets
+  /// that are actually bundled with the app.
   static Future<void> initialize(
       Map<String, dynamic>? envVariables, YamlMap definations) async {
     final Map<String, String> envAssets = await _loadEnvAssets(definations);
@@ -55,6 +60,7 @@ class LocalAssetsService {
     _isInitialized = true;
   }
 
+  /// `.env.assets` is only supported for bundled local definitions
   static Future<Map<String, String>> _loadEnvAssets(YamlMap definations) async {
     try {
       String provider = definations['definitions']?['from'];
@@ -73,6 +79,7 @@ class LocalAssetsService {
     }
   }
 
+  /// Returns whether a candidate asset path can be loaded from Flutter's bundle.
   static Future<bool> _assetExists(String path) async {
     try {
       await rootBundle.load(path);
@@ -82,5 +89,6 @@ class LocalAssetsService {
     }
   }
 
+  /// Used by startup code to avoid repeating bundle scans.
   static bool get isInitialized => _isInitialized;
 }
