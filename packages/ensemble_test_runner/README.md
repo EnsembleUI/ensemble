@@ -75,6 +75,15 @@ By default, output is quiet: no `pub get` package list, no Flutter test progress
 
 Optional: `--app-dir=<path>` when not running from the app root.
 
+The default suite timeout is 10 minutes. Override it when a flow should fail
+faster or when a long chain needs more time:
+
+```bash
+dart run ensemble_test_runner:ensemble_test --timeout=30s
+dart run ensemble_test_runner:ensemble_test --timeout=15m
+dart run ensemble_test_runner:ensemble_test --timeout=1h
+```
+
 ### Validate setup
 
 Run doctor when setting up a new app or debugging discovery issues:

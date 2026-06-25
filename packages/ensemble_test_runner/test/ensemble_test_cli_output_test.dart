@@ -40,6 +40,7 @@ name is ={first: John}
         '--feature=auth',
         '--tag=smoke',
         '--path=auth/',
+        '--timeout=30s',
         '--name',
         'x',
       ]),

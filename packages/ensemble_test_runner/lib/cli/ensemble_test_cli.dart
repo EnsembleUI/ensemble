@@ -23,6 +23,7 @@ import 'package:ensemble_test_runner/validation/ensemble_test_validator.dart';
 ///   --feature=<name>   Run matching feature(s); repeatable
 ///   --tag=<tag>        Run matching tag(s); repeatable
 ///   --path=<path>      Run matching test asset path(s); repeatable
+///   --timeout=<duration> Test suite timeout, e.g. 30s, 5m, 1h (default: 10m)
 ///   --verbose          Full `flutter pub get` / `flutter test` output
 Future<void> runEnsembleYamlTestsCli(List<String> arguments) async {
   final verbose = isVerboseCli(arguments);
@@ -31,6 +32,7 @@ Future<void> runEnsembleYamlTestsCli(List<String> arguments) async {
   final junitReport = reportMode == 'junit';
   final reportFile = _resolveReportFile(arguments);
   final appDir = _resolveAppDir(arguments);
+  final timeoutSeconds = _resolveTimeoutSeconds(arguments);
   final patcher = YamlTestAppPatcher(appDir);
 
   if (!Directory(appDir).existsSync()) {
@@ -125,6 +127,8 @@ Future<void> runEnsembleYamlTestsCli(List<String> arguments) async {
       if (reportMode != null) '--dart-define=ensembleTestReport=$reportMode',
       if (reportFile != null)
         '--dart-define=ensembleTestReportFile=$reportFile',
+      if (timeoutSeconds != null)
+        '--dart-define=ensembleTestTimeoutSeconds=$timeoutSeconds',
       ..._selectionDartDefines(arguments),
       '--reporter',
       verbose ? 'expanded' : 'silent',
@@ -243,6 +247,39 @@ String? _resolveReportFile(List<String> arguments) {
     }
   }
   return null;
+}
+
+int? _resolveTimeoutSeconds(List<String> arguments) {
+  String? value;
+  for (final arg in arguments) {
+    if (arg.startsWith('--timeout=')) {
+      value = arg.substring('--timeout='.length);
+    }
+  }
+  if (value == null || value.isEmpty) return null;
+
+  final match = RegExp(r'^(\d+)(ms|s|m|h)?$').firstMatch(value);
+  if (match == null) {
+    stderr.writeln(
+      'Invalid --timeout value "$value". Use a duration like 30s, 5m, or 1h.',
+    );
+    exit(2);
+  }
+
+  final amount = int.parse(match.group(1)!);
+  final unit = match.group(2) ?? 's';
+  final seconds = switch (unit) {
+    'ms' => (amount / 1000).ceil(),
+    's' => amount,
+    'm' => amount * 60,
+    'h' => amount * 60 * 60,
+    _ => amount,
+  };
+  if (seconds <= 0) {
+    stderr.writeln('--timeout must be greater than zero.');
+    exit(2);
+  }
+  return seconds;
 }
 
 void _writeProcessStreams(ProcessResult result) {

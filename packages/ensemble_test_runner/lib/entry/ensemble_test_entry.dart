@@ -7,6 +7,12 @@ import 'package:ensemble_test_runner/runner/test_runtime_state.dart';
 import 'package:ensemble_test_runner/runner/yaml_test_session.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+const _defaultTimeoutSeconds = 10 * 60;
+const _timeoutSeconds = int.fromEnvironment(
+  'ensembleTestTimeoutSeconds',
+  defaultValue: _defaultTimeoutSeconds,
+);
+
 /// Flutter test entry: discovers app-local `tests/*.test.yaml` and runs them.
 void runEnsembleYamlTests() {
   EnsembleTestHarness.ensureTestPlugins();
@@ -74,7 +80,7 @@ void runEnsembleYamlTests() {
         );
       }
     },
-    timeout: const Timeout(Duration(minutes: 10)),
+    timeout: Timeout(Duration(seconds: _timeoutSeconds)),
   );
 }
 

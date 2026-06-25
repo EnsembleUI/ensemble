@@ -82,6 +82,7 @@ List<String> flutterTestArguments(List<String> arguments) {
             !a.startsWith('--feature=') &&
             !a.startsWith('--tag=') &&
             !a.startsWith('--path=') &&
+            !a.startsWith('--timeout=') &&
             a != '--verbose' &&
             a != '--quiet',
       )
