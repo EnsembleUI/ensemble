@@ -41,7 +41,8 @@ class LocalDefinitionProvider extends FileDefinitionProvider {
     }
     // Note: Web with local definition caches even if we disable browser cache
     // so you may need to re-run the app on definition changes
-    var pageStr = await _loadLocalAssetString('${path}screens/$screen.yaml');
+    var pageStr =
+        await rootBundle.loadString('${path}screens/$screen.yaml');
     if (pageStr.isEmpty) {
       return ScreenDefinition(YamlMap());
     }
@@ -52,7 +53,7 @@ class LocalDefinitionProvider extends FileDefinitionProvider {
   Future<AppBundle> getAppBundle({bool? bypassCache = false}) async {
     try {
       final configString =
-          await _loadLocalAssetString('${path}config/appConfig.json');
+          await rootBundle.loadString('${path}config/appConfig.json');
       final Map<String, dynamic> appConfigMap = json.decode(configString);
       if (appConfigMap.isNotEmpty) {
         appConfig = UserAppConfig(
@@ -64,18 +65,15 @@ class LocalDefinitionProvider extends FileDefinitionProvider {
       // ignore error
     }
 
-    final theme = await _readFile('theme.yaml');
-    final resources = await getCombinedAppBundle();
     return AppBundle(
-      theme: theme,
-      resources:
-          resources, // get the combined app bundle for local scripts and widgets
+      theme: await _readFile('theme.yaml'),
+      resources: await getCombinedAppBundle(), // get the combined app bundle for local scripts and widgets
     );
   }
 
   Future<YamlMap?> _readFile(String file) async {
     try {
-      var value = await _loadLocalAssetString(path + file);
+      var value = await rootBundle.loadString(path + file);
       return loadYaml(value);
     } catch (error) {
       // ignore error
@@ -92,7 +90,7 @@ class LocalDefinitionProvider extends FileDefinitionProvider {
     try {
       // Get the manifest content
       final manifestContent =
-          await _loadLocalAssetString(path + '.manifest.json');
+          await rootBundle.loadString(path + '.manifest.json');
       final Map<String, dynamic> manifestMap = json.decode(manifestContent);
 
       // Process App Widgets
@@ -130,8 +128,8 @@ class LocalDefinitionProvider extends FileDefinitionProvider {
           for (var script in scriptsList) {
             try {
               // Load the script content in string
-              final scriptContent = await _loadLocalAssetString(
-                  "${path}scripts/${script["name"]}.js");
+              final scriptContent = await rootBundle
+                  .loadString("${path}scripts/${script["name"]}.js");
               code[script["name"]] = scriptContent;
             } catch (e) {
               // ignore error
@@ -208,9 +206,4 @@ class LocalDefinitionProvider extends FileDefinitionProvider {
   Future<DefinitionProvider> init() async {
     return this;
   }
-}
-
-Future<String> _loadLocalAssetString(String key) async {
-  final data = await rootBundle.load(key);
-  return utf8.decode(data.buffer.asUint8List());
 }
