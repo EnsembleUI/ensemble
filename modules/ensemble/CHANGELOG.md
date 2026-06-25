@@ -1,7 +1,3 @@
-## 1.2.46-beta.1
-
- - Bump "ensemble" to `1.2.46-beta.1`.
-
 ## 1.2.46
 
  - **FEAT**(webview): add HTML content and JavaScript injection support. ([b54a3297](https://github.com/ensembleUI/ensemble/commit/b54a3297de9ca1b276542cf76887cf47eecefef7))
