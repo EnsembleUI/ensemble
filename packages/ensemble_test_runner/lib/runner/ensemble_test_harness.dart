@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/ensemble_app.dart';
@@ -37,6 +38,9 @@ void applyYamlTestBootstrap(EnsembleConfig config, EnsembleTestSetup setup) {
 
 /// Boots the real Ensemble runtime for widget tests.
 class EnsembleTestHarness {
+  static final String _testStoragePath =
+      Directory.systemTemp.createTempSync('ensemble_test_runner_storage_').path;
+
   static void ensureTestPlugins() {
     TestWidgetsFlutterBinding.ensureInitialized();
     const pathProviderChannel =
@@ -47,7 +51,7 @@ class EnsembleTestHarness {
         case 'getApplicationDocumentsDirectory':
         case 'getTemporaryDirectory':
         case 'getApplicationSupportDirectory':
-          return '.';
+          return _testStoragePath;
         default:
           return null;
       }
