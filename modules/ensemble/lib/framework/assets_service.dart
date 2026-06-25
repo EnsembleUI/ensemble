@@ -1,3 +1,4 @@
+import 'package:ensemble/framework/dotenv_bundle.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:flutter/services.dart';
 import 'package:yaml/yaml.dart';
@@ -6,11 +7,34 @@ class LocalAssetsService {
   static List<String> localAssets = [];
   static bool _isInitialized = false;
 
+  static Map<String, dynamic> mergeAssetEnvVariables(
+    Map<String, dynamic>? envVariables,
+    Iterable<Map<String, String>> envAssetSources,
+  ) {
+    final Map<String, dynamic> assetEnvVariables = {};
+    if (envVariables != null) {
+      assetEnvVariables.addAll(envVariables);
+    }
+    for (final source in envAssetSources) {
+      assetEnvVariables.addAll(source);
+    }
+    return assetEnvVariables;
+  }
+
   static Future<void> initialize(
       Map<String, dynamic>? envVariables, YamlMap definations) async {
+    final Map<String, String> envAssets = await _loadEnvAssets(definations);
+    if (envVariables != null && envAssets.isNotEmpty) {
+      envVariables.addAll(envAssets);
+    }
+    final Map<String, dynamic> assetEnvVariables = mergeAssetEnvVariables(
+      envVariables,
+      [envAssets],
+    );
+
     List<String> foundAssets = [];
-    if (envVariables != null) {
-      for (var entry in envVariables.entries) {
+    if (assetEnvVariables.isNotEmpty) {
+      for (var entry in assetEnvVariables.entries) {
         String assetName =
             Utils.getAssetName(entry.value); // Get the asset name
         String provider = definations['definitions']?['from'];
@@ -29,6 +53,24 @@ class LocalAssetsService {
 
     localAssets = foundAssets;
     _isInitialized = true;
+  }
+
+  static Future<Map<String, String>> _loadEnvAssets(YamlMap definations) async {
+    try {
+      String provider = definations['definitions']?['from'];
+      if (provider != 'local') {
+        return {};
+      }
+      String path = definations['definitions']?['local']['path'];
+      if (path.endsWith('/')) {
+        path = path.substring(0, path.length - 1);
+      }
+      final String assetPath = '$path/.env.assets';
+      final String content = await rootBundle.loadString(assetPath);
+      return parseDotEnvBundleContent(content);
+    } catch (_) {
+      return {};
+    }
   }
 
   static Future<bool> _assetExists(String path) async {
