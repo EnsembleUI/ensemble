@@ -43,8 +43,7 @@ class LocalDefinitionProvider extends FileDefinitionProvider {
     }
     // Note: Web with local definition caches even if we disable browser cache
     // so you may need to re-run the app on definition changes
-    var pageStr =
-        await rootBundle.loadString('${path}screens/$screen.yaml');
+    var pageStr = await rootBundle.loadString('${path}screens/$screen.yaml');
     if (pageStr.isEmpty) {
       return ScreenDefinition(YamlMap());
     }
@@ -53,9 +52,19 @@ class LocalDefinitionProvider extends FileDefinitionProvider {
 
   @override
   Future<AppBundle> getAppBundle({bool? bypassCache = false}) async {
+    // #region agent log
+    _agentDebugLog('H2B', 'local_provider.dart:57', 'getAppBundle start',
+        {'path': path, 'appHome': appHome});
+    // #endregion
     try {
       final configString =
           await rootBundle.loadString('${path}config/appConfig.json');
+      // #region agent log
+      _agentDebugLog('H2B', 'local_provider.dart:62', 'appConfig loaded', {
+        'path': '${path}config/appConfig.json',
+        'length': configString.length
+      });
+      // #endregion
       final Map<String, dynamic> appConfigMap = json.decode(configString);
       if (appConfigMap.isNotEmpty) {
         appConfig = UserAppConfig(
@@ -64,12 +73,37 @@ class LocalDefinitionProvider extends FileDefinitionProvider {
             envVariables: appConfigMap["envVariables"]);
       }
     } catch (e) {
+      // #region agent log
+      _agentDebugLog(
+          'H2B',
+          'local_provider.dart:72',
+          'appConfig missing or invalid',
+          {'path': '${path}config/appConfig.json', 'error': e.toString()});
+      // #endregion
       // ignore error
     }
 
+    // #region agent log
+    _agentDebugLog('H2C', 'local_provider.dart:77',
+        'before theme and combined bundle', {'path': path});
+    // #endregion
+    final theme = await _readFile('theme.yaml');
+    // #region agent log
+    _agentDebugLog('H2C', 'local_provider.dart:82', 'theme read complete',
+        {'hasTheme': theme != null});
+    // #endregion
+    final resources = await getCombinedAppBundle();
+    // #region agent log
+    _agentDebugLog(
+        'H2C', 'local_provider.dart:87', 'combined bundle complete', {
+      'hasResources': resources != null,
+      'resourceKeys': resources?.keys.map((e) => e.toString()).toList()
+    });
+    // #endregion
     return AppBundle(
-      theme: await _readFile('theme.yaml'),
-      resources: await getCombinedAppBundle(), // get the combined app bundle for local scripts and widgets
+      theme: theme,
+      resources:
+          resources, // get the combined app bundle for local scripts and widgets
     );
   }
 
@@ -90,10 +124,22 @@ class LocalDefinitionProvider extends FileDefinitionProvider {
     Map actions = {};
 
     try {
+      // #region agent log
+      _agentDebugLog('H2D', 'local_provider.dart:103', 'before manifest load',
+          {'path': path + '.manifest.json'});
+      // #endregion
       // Get the manifest content
       final manifestContent =
           await rootBundle.loadString(path + '.manifest.json');
       final Map<String, dynamic> manifestMap = json.decode(manifestContent);
+      // #region agent log
+      _agentDebugLog('H2D', 'local_provider.dart:110', 'manifest loaded', {
+        'length': manifestContent.length,
+        'widgetCount': (manifestMap['widgets'] as List?)?.length ?? 0,
+        'scriptCount': (manifestMap['scripts'] as List?)?.length ?? 0,
+        'actionCount': (manifestMap['actions'] as List?)?.length ?? 0,
+      });
+      // #endregion
 
       // Process App Widgets
       try {
@@ -103,9 +149,23 @@ class LocalDefinitionProvider extends FileDefinitionProvider {
 
           for (var widgetItem in widgetsList) {
             try {
+              // #region agent log
+              _agentDebugLog(
+                  'H2E',
+                  'local_provider.dart:124',
+                  'before widget load',
+                  {'name': widgetItem["name"]?.toString()});
+              // #endregion
               // Load the widget content in YamlMap
               final widgetContent =
                   await _readFile("widgets/${widgetItem["name"]}.yaml");
+              // #region agent log
+              _agentDebugLog(
+                  'H2E', 'local_provider.dart:130', 'after widget load', {
+                'name': widgetItem["name"]?.toString(),
+                'isYamlMap': widgetContent is YamlMap
+              });
+              // #endregion
               if (widgetContent is YamlMap) {
                 // Store the full YAML to preserve Import declarations
                 widgets[widgetItem["name"]] = widgetContent;
@@ -129,10 +189,21 @@ class LocalDefinitionProvider extends FileDefinitionProvider {
 
           for (var script in scriptsList) {
             try {
+              // #region agent log
+              _agentDebugLog('H2F', 'local_provider.dart:154',
+                  'before script load', {'name': script["name"]?.toString()});
+              // #endregion
               // Load the script content in string
               final scriptContent = await rootBundle
                   .loadString("${path}scripts/${script["name"]}.js");
               code[script["name"]] = scriptContent;
+              // #region agent log
+              _agentDebugLog(
+                  'H2F', 'local_provider.dart:161', 'after script load', {
+                'name': script["name"]?.toString(),
+                'length': scriptContent.length
+              });
+              // #endregion
             } catch (e) {
               // ignore error
             }
@@ -151,8 +222,19 @@ class LocalDefinitionProvider extends FileDefinitionProvider {
           for (var actionItem in actionsList) {
             try {
               final String actionName = actionItem["name"];
+              // #region agent log
+              _agentDebugLog('H2G', 'local_provider.dart:182',
+                  'before action load', {'name': actionName});
+              // #endregion
               final dynamic actionContent =
                   await _readFile("actions/$actionName.yaml");
+              // #region agent log
+              _agentDebugLog(
+                  'H2G',
+                  'local_provider.dart:187',
+                  'after action load',
+                  {'name': actionName, 'isMap': actionContent is Map});
+              // #endregion
 
               if (actionContent is! Map) {
                 debugPrint(
@@ -183,8 +265,20 @@ class LocalDefinitionProvider extends FileDefinitionProvider {
         output[ResourceArtifactEntry.Actions.name] = actions;
       }
 
+      // #region agent log
+      _agentDebugLog(
+          'H2D', 'local_provider.dart:220', 'getCombinedAppBundle returning', {
+        'widgets': widgets.length,
+        'scripts': code.length,
+        'actions': actions.length
+      });
+      // #endregion
       return output;
     } catch (e) {
+      // #region agent log
+      _agentDebugLog('H2D', 'local_provider.dart:224',
+          'getCombinedAppBundle failed', {'error': e.toString()});
+      // #endregion
       return null;
     }
   }
@@ -209,3 +303,29 @@ class LocalDefinitionProvider extends FileDefinitionProvider {
     return this;
   }
 }
+
+// #region agent log
+void _agentDebugLog(
+  String hypothesisId,
+  String location,
+  String message,
+  Map<String, Object?> data,
+) {
+  final payload = <String, Object?>{
+    'sessionId': 'cab532',
+    'id': 'log_${DateTime.now().microsecondsSinceEpoch}',
+    'timestamp': DateTime.now().millisecondsSinceEpoch,
+    'runId': 'timeout-analysis-2',
+    'hypothesisId': hypothesisId,
+    'location': location,
+    'message': message,
+    'data': data,
+  };
+  try {
+    File(
+        '/Users/sharjeelyunus/Desktop/Ensemble/ensemble/.cursor/debug-cab532.log')
+      ..parent.createSync(recursive: true)
+      ..writeAsStringSync('${jsonEncode(payload)}\n', mode: FileMode.append);
+  } catch (_) {}
+}
+// #endregion

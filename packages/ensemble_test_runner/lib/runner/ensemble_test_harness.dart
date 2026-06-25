@@ -110,13 +110,25 @@ class EnsembleTestHarness {
     ).init();
 
     final config = EnsembleConfig(definitionProvider: provider);
-    final updated = config.updateAppBundle();
+    // #region agent log
+    agentDebugLog(
+      'H2A',
+      'runner/ensemble_test_harness.dart:113',
+      'buildConfig before updateAppBundle await',
+      {'appPath': appPath, 'appHome': appHome},
+    );
+    // #endregion
+    final updated = await config.updateAppBundle();
     // #region agent log
     agentDebugLog(
       'H2',
       'runner/ensemble_test_harness.dart:106',
-      'buildConfig done',
-      {'appPath': appPath, 'appHome': appHome},
+      'buildConfig after updateAppBundle await',
+      {
+        'appPath': appPath,
+        'appHome': appHome,
+        'hasAppBundle': updated.appBundle != null,
+      },
     );
     // #endregion
     return updated;
