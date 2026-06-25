@@ -52,6 +52,13 @@ void runEnsembleYamlTests() {
 
       final runner = EnsembleTestRunner(harness: harness);
       final resultsById = await runner.runPlan(plan, tester);
+      // #region agent log
+      agentDebugLog(
+          'H8', 'entry/ensemble_test_entry.dart:39', 'runPlan returned', {
+        'resultCount': resultsById.length,
+        'resultIds': resultsById.keys.toList(),
+      });
+      // #endregion
 
       final failures = <String>[];
       final orderedResults = <EnsembleSingleTestResult>[];
@@ -83,6 +90,13 @@ void runEnsembleYamlTests() {
         runResult,
         testFile: '${target.testsAssetPrefix}*.test.yaml',
       );
+      // #region agent log
+      agentDebugLog('H8', 'entry/ensemble_test_entry.dart:75',
+          'suite summary formatted', {
+        'resultCount': orderedResults.length,
+        'failureCount': failures.length,
+      });
+      // #endregion
       print(suiteSummary);
       _emitMachineReport(runResult);
 

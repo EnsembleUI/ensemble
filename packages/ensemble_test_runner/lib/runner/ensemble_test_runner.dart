@@ -173,6 +173,14 @@ class EnsembleTestRunner {
         });
         // #endregion
         await executor.execute(step);
+        // #region agent log
+        agentDebugLog(
+            'H7', 'runner/ensemble_test_runner.dart:170', 'step completed', {
+          'testId': test.id,
+          'stepIndex': i,
+          'stepType': step.type,
+        });
+        // #endregion
       } catch (error, stackTrace) {
         return EnsembleSingleTestResult.failed(
           testId: test.id,
@@ -188,6 +196,13 @@ class EnsembleTestRunner {
       }
     }
 
+    // #region agent log
+    agentDebugLog('H8', 'runner/ensemble_test_runner.dart:188',
+        'all steps complete before passed result report', {
+      'testId': test.id,
+      'durationMs': stopwatch.elapsedMilliseconds,
+    });
+    // #endregion
     return EnsembleSingleTestResult.passed(
       testId: test.id,
       metadata: test.metadataJson,

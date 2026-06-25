@@ -1,18 +1,36 @@
 import 'package:ensemble/framework/screen_tracker.dart';
+import 'package:ensemble_test_runner/debug/agent_debug_log.dart';
 import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
 import 'package:ensemble_test_runner/runner/yaml_test_session.dart';
 
 EnsembleTestReportDetails buildTestReportDetails(EnsembleTestCase testCase) {
+  // #region agent log
+  agentDebugLog(
+      'H8', 'reporters/test_reporter.dart:7', 'buildTestReportDetails start', {
+    'testId': testCase.id,
+    'startScreen': testCase.startScreen,
+    'prerequisite': testCase.prerequisite,
+  });
+  // #endregion
   final effectiveStart = testCase.startScreen ??
       ScreenTracker().getCurrentScreenIdentifier() ??
       '(unknown)';
-  return EnsembleTestReportDetails(
+  final details = EnsembleTestReportDetails(
     startScreen: effectiveStart,
     endScreen: ScreenTracker().getCurrentScreenIdentifier(),
     prerequisite: testCase.prerequisite,
     screensVisited: collectScreensVisited(effectiveStart),
     stepsOutline: outlineSteps(testCase.steps),
   );
+  // #region agent log
+  agentDebugLog(
+      'H8', 'reporters/test_reporter.dart:23', 'buildTestReportDetails done', {
+    'testId': testCase.id,
+    'screensVisited': details.screensVisited,
+    'stepsOutlineCount': details.stepsOutline.length,
+  });
+  // #endregion
+  return details;
 }
 
 List<String> collectScreensVisited(String effectiveStart) {
@@ -84,8 +102,7 @@ class TestReporter {
     String? testFile,
   }) {
     final buffer = StringBuffer();
-    final totalMs =
-        result.results.fold<int>(0, (sum, r) => sum + r.durationMs);
+    final totalMs = result.results.fold<int>(0, (sum, r) => sum + r.durationMs);
 
     buffer.writeln('┌─ Ensemble YAML tests ─────────────────────────────');
     if (testFile != null) {
@@ -125,8 +142,7 @@ class TestReporter {
       if (report.stepsOutline.isNotEmpty) {
         buffer.writeln('│     steps (${report.stepsOutline.length}):');
         for (var i = 0; i < report.stepsOutline.length; i++) {
-          final prefix = r.status == TestStatus.failed &&
-                  r.failedStepIndex == i
+          final prefix = r.status == TestStatus.failed && r.failedStepIndex == i
               ? '>>'
               : '  ';
           buffer.writeln('│       $prefix ${i + 1}. ${report.stepsOutline[i]}');
