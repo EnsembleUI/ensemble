@@ -5,6 +5,7 @@ import 'package:ensemble/framework/definition_providers/local_provider.dart';
 import 'package:ensemble/framework/screen_tracker.dart';
 import 'package:ensemble/framework/storage_manager.dart';
 import 'package:ensemble/page_model.dart';
+import 'package:ensemble_test_runner/debug/agent_debug_log.dart';
 import 'package:ensemble_test_runner/mocks/mock_api_provider.dart';
 import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
 import 'package:ensemble_test_runner/runner/ensemble_test_context.dart';
@@ -86,6 +87,19 @@ class EnsembleTestHarness {
 
   Future<EnsembleConfig> buildConfig({Locale? forcedLocale}) async {
     final normalized = normalizeAppPath(appPath);
+    // #region agent log
+    agentDebugLog(
+      'H2',
+      'runner/ensemble_test_harness.dart:89',
+      'buildConfig start',
+      {
+        'appPath': appPath,
+        'normalizedAppPath': normalized,
+        'appHome': appHome,
+        'i18nPath': i18nPath,
+      },
+    );
+    // #endregion
     final i18n = I18nProps(i18nPath ?? '${normalized}translations');
 
     final provider = await LocalDefinitionProvider(
@@ -96,7 +110,16 @@ class EnsembleTestHarness {
     ).init();
 
     final config = EnsembleConfig(definitionProvider: provider);
-    return config.updateAppBundle();
+    final updated = config.updateAppBundle();
+    // #region agent log
+    agentDebugLog(
+      'H2',
+      'runner/ensemble_test_harness.dart:106',
+      'buildConfig done',
+      {'appPath': appPath, 'appHome': appHome},
+    );
+    // #endregion
+    return updated;
   }
 
   static void installHttpMockProvider(
@@ -116,6 +139,18 @@ class EnsembleTestHarness {
   }) async {
     ensureTestPlugins();
 
+    // #region agent log
+    agentDebugLog(
+      'H3',
+      'runner/ensemble_test_harness.dart:134',
+      'bootstrapRuntime before initManagers',
+      {
+        'hasHttpMock': httpMock != null,
+        'envOverrideCount': setup.envOverrides?.length ?? 0,
+        'storageSeedCount': setup.initialPublicStorage?.length ?? 0,
+      },
+    );
+    // #endregion
     applyYamlTestBootstrap(config, setup);
     Ensemble().setEnsembleConfig(config);
 
@@ -124,6 +159,14 @@ class EnsembleTestHarness {
     }
 
     await Ensemble().initManagers();
+    // #region agent log
+    agentDebugLog(
+      'H3',
+      'runner/ensemble_test_harness.dart:154',
+      'bootstrapRuntime after initManagers',
+      {'hasApiProviders': config.apiProviders != null},
+    );
+    // #endregion
 
     config.apiProviders ??= {'http': HTTPAPIProvider()};
     config.apiProviders!.putIfAbsent('http', () => HTTPAPIProvider());
@@ -166,6 +209,14 @@ class EnsembleTestHarness {
         screenPayload: ScreenPayload(screenId: startScreen),
       ),
     );
+    // #region agent log
+    agentDebugLog(
+      'H4',
+      'runner/ensemble_test_harness.dart:188',
+      'pumpWidget completed',
+      {'testId': testCase.id, 'startScreen': startScreen},
+    );
+    // #endregion
 
     await waitForInitialWidgets(tester, testCase: testCase);
     return config;
@@ -186,12 +237,32 @@ class EnsembleTestHarness {
       }
     }
 
+    // #region agent log
+    agentDebugLog(
+      'H4',
+      'runner/ensemble_test_harness.dart:208',
+      'waitForInitialWidgets start',
+      {'testId': testCase?.id, 'keysToWait': keysToWait},
+    );
+    // #endregion
     await tester.pump();
     for (var i = 0; i < 80; i++) {
       if (keysToWait.isEmpty ||
           keysToWait.every(
             (id) => find.byKey(ValueKey(id)).evaluate().isNotEmpty,
           )) {
+        // #region agent log
+        agentDebugLog(
+          'H4',
+          'runner/ensemble_test_harness.dart:219',
+          'waitForInitialWidgets done',
+          {
+            'testId': testCase?.id,
+            'iterations': i,
+            'keysToWait': keysToWait,
+          },
+        );
+        // #endregion
         return;
       }
       await tester.pump(const Duration(milliseconds: 100));

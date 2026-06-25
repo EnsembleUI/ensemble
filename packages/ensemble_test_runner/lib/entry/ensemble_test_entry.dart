@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:ensemble_test_runner/debug/agent_debug_log.dart';
 import 'package:ensemble_test_runner/discovery/ensemble_test_execution_planner.dart';
 import 'package:ensemble_test_runner/ensemble_test_runner.dart';
 import 'package:ensemble_test_runner/runner/test_runtime_state.dart';
@@ -25,11 +26,24 @@ void runEnsembleYamlTests() {
   testWidgets(
     'Ensemble app *.test.yaml',
     (tester) async {
+      // #region agent log
+      agentDebugLog('H1', 'entry/ensemble_test_entry.dart:22',
+          'widget test body entered', {});
+      // #endregion
       final target = await EnsembleTestDiscovery.loadAppTarget();
       final plan = await EnsembleTestExecutionPlanner.build(
         target: target,
         selection: _selectionFromEnvironment(),
       );
+      // #region agent log
+      agentDebugLog(
+          'H1', 'entry/ensemble_test_entry.dart:28', 'execution plan ready', {
+        'appPath': target.appPath,
+        'appHome': target.appHome,
+        'testCount': plan.ordered.length,
+        'tests': plan.ordered.map((def) => def.testCase.id).toList(),
+      });
+      // #endregion
       final harness = EnsembleTestHarness(
         appPath: target.appPath,
         appHome: target.appHome,
