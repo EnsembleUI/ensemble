@@ -58,7 +58,6 @@ dependencies:
   brotli: ^0.6.0
   flutter_rating_bar: ^4.0.0
   fl_chart: ^0.69.0
-  font_awesome_flutter: ^10.9.0
   signature: ^5.5.0
 
   ensemble_icons: ^1.0.1
