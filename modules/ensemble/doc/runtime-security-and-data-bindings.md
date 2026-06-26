@@ -21,7 +21,7 @@ selector is validated by `isSafeRemoteScreenSelector` in
 
 - Empty strings, `..`, forward or backslash path separators, the `%`
   character (including percent-encoded separators), and ASCII control
-  characters (`0x00`–`0x1f`, `0x7f`).
+  characters (`0x00`-`0x1f`, `0x7f`).
 
 ### Runtime effect when invalid
 
