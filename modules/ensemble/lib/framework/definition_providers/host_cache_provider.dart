@@ -5,7 +5,8 @@ import 'package:ensemble/framework/definition_providers/ensemble_provider.dart';
 import 'package:ensemble/framework/definition_providers/provider.dart';
 import 'package:ensemble/framework/widget/screen.dart';
 import 'package:ensemble/util/utils.dart';
-import 'package:session_storage/session_storage.dart';
+import 'package:flutter/foundation.dart';
+import 'package:universal_html/html.dart' as html;
 import 'package:yaml/yaml.dart';
 
 /// Connecting to Ensemble-hosted definitions with a host persistent cache
@@ -13,7 +14,7 @@ class HostCachedEnsembleProvider extends EnsembleDefinitionProvider {
   HostCachedEnsembleProvider._create(String appId)
       : super(appId, isListenerMode: true);
 
-  late SessionStorage hostCache;
+  late _HostSessionCache hostCache;
 
   static Future<HostCachedEnsembleProvider> create(
       String appId, I18nProps i18nProps) async {
@@ -24,7 +25,7 @@ class HostCachedEnsembleProvider extends EnsembleDefinitionProvider {
   }
 
   _initCache() async {
-    hostCache = SessionStorage();
+    hostCache = _HostSessionCache();
     _loadAppConfig();
     _loadSecrets();
   }
@@ -247,5 +248,24 @@ class HostCachedEnsembleProvider extends EnsembleDefinitionProvider {
     } catch (_) {
       // ignore
     }
+  }
+}
+
+class _HostSessionCache {
+  final Map<String, String> _memoryCache = {};
+
+  String? operator [](String key) {
+    if (kIsWeb) {
+      return html.window.sessionStorage[key];
+    }
+    return _memoryCache[key];
+  }
+
+  void addAll(Map<String, String> values) {
+    if (kIsWeb) {
+      html.window.sessionStorage.addAll(values);
+      return;
+    }
+    _memoryCache.addAll(values);
   }
 }

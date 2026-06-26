@@ -15,7 +15,13 @@ This is a core runtime package. It loads Ensemble configuration, initializes pro
 
 ## Installation / Setup
 
-Use this package from inside the Melos workspace:
+Add the runtime to a Flutter host app:
+
+```bash
+flutter pub add ensemble
+```
+
+For local development inside this repository, bootstrap the Melos workspace:
 
 ```bash
 melos bootstrap
@@ -35,6 +41,8 @@ runApp(EnsembleApp());
 ## Configuration
 
 Configuration is loaded through `EnsembleConfigService` and `EnsembleConfig` in `lib/ensemble.dart`. Host apps provide app IDs, local or remote definitions, Firebase options, providers, secrets, and module registration through the starter app or generated module files.
+
+When `definitions.from` is `ensemble`, the runtime initializes Firebase with the bundled public Ensemble project options in `lib/firebase_options.dart`. Firebase API keys identify the public demo project and are not treated as secrets; production host apps should provide their own project configuration where needed.
 
 ## Platform Support
 
@@ -75,9 +83,9 @@ This package has a substantial `test/` directory. Run package tests with `melos 
 
 ## Additional technical documentation
 
-- [Reusable Actions](docs/reusable-actions.md) — app-level and page-level Actions, `executeAction`, scoped `Import`/`Global`/`API`, and events.
-- [Layout widgets (tabs, ListView scroll)](docs/layout-widgets.md) — EDL layout behavior in `lib/layout`.
-- [Runtime security and data bindings](docs/runtime-security-and-data-bindings.md) — screen id validation for definition providers, `saveFile` naming, multipart upload path checks, `ensemble.storage.clear()` behavior and binding refresh, WebView TLS/reputation settings, global script handler payloads, and device metric bindings after rotation.
+- [Reusable Actions](doc/reusable-actions.md) — app-level and page-level Actions, `executeAction`, scoped `Import`/`Global`/`API`, and events.
+- [Layout widgets (tabs, ListView scroll)](doc/layout-widgets.md) — EDL layout behavior in `lib/layout`.
+- [Runtime security and data bindings](doc/runtime-security-and-data-bindings.md) — screen id validation for definition providers, `saveFile` naming, multipart upload path checks, `ensemble.storage.clear()` behavior and binding refresh, WebView TLS/reputation settings, global script handler payloads, and device metric bindings after rotation.
 
 ## Related Packages / Modules
 
