@@ -1,0 +1,6156 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cdn.ensembleui.com/schemas/ensemble_tests_schema.json",
+  "title": "Ensemble declarative test file",
+  "description": "Schema for app-local tests/*.test.yaml — one test per file; see packages/ensemble_test_runner/STEP_VOCABULARY.md",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Unique test identifier"
+    },
+    "type": {
+      "type": "string"
+    },
+    "feature": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Feature or flow name, e.g. login or wifi"
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Free-form labels for filtering and organization"
+    },
+    "description": {
+      "type": "string"
+    },
+    "owner": {
+      "type": "string"
+    },
+    "priority": {
+      "type": "string",
+      "enum": [
+        "p0",
+        "p1",
+        "p2",
+        "p3",
+        "critical",
+        "high",
+        "medium",
+        "low"
+      ]
+    },
+    "startScreen": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Ensemble screen name or id to load first"
+    },
+    "prerequisite": {
+      "type": "string",
+      "minLength": 1,
+      "description": "ID of another test that must run before this one in the same app session"
+    },
+    "initialState": {
+      "$ref": "#/$defs/initialState"
+    },
+    "mocks": {
+      "$ref": "#/$defs/mocks"
+    },
+    "steps": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/step"
+      }
+    }
+  },
+  "required": [
+    "id",
+    "steps"
+  ],
+  "oneOf": [
+    {
+      "required": [
+        "startScreen"
+      ],
+      "not": {
+        "required": [
+          "prerequisite"
+        ]
+      }
+    },
+    {
+      "required": [
+        "prerequisite"
+      ],
+      "not": {
+        "required": [
+          "startScreen"
+        ]
+      }
+    }
+  ],
+  "$defs": {
+    "mockResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "statusCode": {
+          "type": "integer"
+        },
+        "body": true,
+        "headers": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      }
+    },
+    "mockApiEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "response": {
+          "$ref": "#/$defs/mockResponse"
+        },
+        "delayMs": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "response"
+      ]
+    },
+    "initialState": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "storage": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "env": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      }
+    },
+    "mocks": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "apis": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/mockApiEntry"
+          }
+        }
+      }
+    },
+    "args_openScreen": {
+      "type": "object",
+      "properties": {
+        "screen": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "title": "openScreen",
+      "description": "Navigate to another screen by name or id mid-test",
+      "examples": [
+        {
+          "screen": "Home"
+        }
+      ]
+    },
+    "args_reloadScreen": {
+      "type": "object",
+      "additionalProperties": false,
+      "title": "reloadScreen",
+      "description": "Reload the current screen (same as re-opening it)",
+      "examples": [
+        {}
+      ]
+    },
+    "args_restartApp": {
+      "type": "object",
+      "additionalProperties": false,
+      "title": "restartApp",
+      "description": "Reset runtime and reopen the test case start screen",
+      "examples": [
+        {}
+      ]
+    },
+    "args_resetAppState": {
+      "type": "object",
+      "additionalProperties": false,
+      "title": "resetAppState",
+      "description": "Clear screen tracker, API call log, and public storage",
+      "examples": [
+        {}
+      ]
+    },
+    "args_trigger": {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "enum": [
+            "onLoad",
+            "onTap",
+            "onLongPress"
+          ]
+        },
+        "id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "action"
+      ],
+      "additionalProperties": false,
+      "title": "trigger",
+      "description": "Fire a widget action (onLoad, onTap, onLongPress) by testId",
+      "examples": [
+        {
+          "action": "onTap",
+          "id": "submit_button"
+        }
+      ]
+    },
+    "args_launchApp": {
+      "type": "object",
+      "additionalProperties": false,
+      "title": "launchApp",
+      "description": "Alias for restartApp — bootstrap from startScreen again",
+      "examples": [
+        {}
+      ]
+    },
+    "args_tap": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "additionalProperties": false,
+      "title": "tap",
+      "description": "Tap a widget by testId (ValueKey)",
+      "examples": [
+        {
+          "id": "my_widget"
+        }
+      ]
+    },
+    "args_doubleTap": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "additionalProperties": false,
+      "title": "doubleTap",
+      "description": "Double-tap a widget by testId",
+      "examples": [
+        {
+          "id": "my_widget"
+        }
+      ]
+    },
+    "args_longPress": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "additionalProperties": false,
+      "title": "longPress",
+      "description": "Long-press a widget by testId",
+      "examples": [
+        {
+          "id": "my_widget"
+        }
+      ]
+    },
+    "args_enterText": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "value": true,
+        "submit": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "additionalProperties": false,
+      "title": "enterText",
+      "description": "Type text into an input field by testId",
+      "examples": [
+        {
+          "id": "email_field",
+          "value": "user@test.com"
+        }
+      ]
+    },
+    "args_clearText": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "additionalProperties": false,
+      "title": "clearText",
+      "description": "Clear text in an input field by testId",
+      "examples": [
+        {
+          "id": "my_widget"
+        }
+      ]
+    },
+    "args_replaceText": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "value": true,
+        "submit": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "additionalProperties": false,
+      "title": "replaceText",
+      "description": "Replace the full contents of an input field",
+      "examples": [
+        {
+          "id": "email_field",
+          "value": "user@test.com"
+        }
+      ]
+    },
+    "args_submitText": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "additionalProperties": false,
+      "title": "submitText",
+      "description": "Submit an input field (TextInputAction.done)",
+      "examples": [
+        {
+          "id": "my_widget"
+        }
+      ]
+    },
+    "args_focus": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "additionalProperties": false,
+      "title": "focus",
+      "description": "Focus an input field by testId",
+      "examples": [
+        {
+          "id": "my_widget"
+        }
+      ]
+    },
+    "args_unfocus": {
+      "type": "object",
+      "additionalProperties": false,
+      "title": "unfocus",
+      "description": "Remove focus from the current field",
+      "examples": [
+        {}
+      ]
+    },
+    "args_select": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "value": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "value"
+      ],
+      "additionalProperties": false,
+      "title": "select",
+      "description": "Open a dropdown and choose an option by visible label",
+      "examples": [
+        {
+          "id": "country_dropdown",
+          "value": "USA"
+        }
+      ]
+    },
+    "args_selectIndex": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "index": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "additionalProperties": false,
+      "title": "selectIndex",
+      "description": "Open a dropdown and choose the option at index",
+      "examples": [
+        {
+          "id": "country_dropdown",
+          "index": 0
+        }
+      ]
+    },
+    "args_check": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "additionalProperties": false,
+      "title": "check",
+      "description": "Check a checkbox or toggle by testId",
+      "examples": [
+        {
+          "id": "my_widget"
+        }
+      ]
+    },
+    "args_uncheck": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "additionalProperties": false,
+      "title": "uncheck",
+      "description": "Uncheck a checkbox by testId if currently checked",
+      "examples": [
+        {
+          "id": "my_widget"
+        }
+      ]
+    },
+    "args_toggle": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "additionalProperties": false,
+      "title": "toggle",
+      "description": "Tap to toggle a switch or checkbox by testId",
+      "examples": [
+        {
+          "id": "my_widget"
+        }
+      ]
+    },
+    "args_setSlider": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "value": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "additionalProperties": false,
+      "title": "setSlider",
+      "description": "Move a slider under testId to a normalized value (0–1)",
+      "examples": [
+        {
+          "id": "volume_slider",
+          "value": 0.5
+        }
+      ]
+    },
+    "args_chooseDate": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "value": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "value"
+      ],
+      "additionalProperties": false,
+      "title": "chooseDate",
+      "description": "Set a date field by testId to the given value string",
+      "examples": [
+        {
+          "id": "birth_date",
+          "value": "2024-01-15"
+        }
+      ]
+    },
+    "args_chooseTime": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "value": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "value"
+      ],
+      "additionalProperties": false,
+      "title": "chooseTime",
+      "description": "Set a time field by testId to the given value string",
+      "examples": [
+        {
+          "id": "birth_date",
+          "value": "2024-01-15"
+        }
+      ]
+    },
+    "args_scroll": {
+      "type": "object",
+      "properties": {
+        "delta": {
+          "type": "integer"
+        }
+      },
+      "additionalProperties": false,
+      "title": "scroll",
+      "description": "Drag the first Scrollable by delta pixels",
+      "examples": [
+        {
+          "delta": 300
+        }
+      ]
+    },
+    "args_scrollUntilVisible": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "additionalProperties": false,
+      "title": "scrollUntilVisible",
+      "description": "Scroll until a widget with testId is visible",
+      "examples": [
+        {
+          "id": "my_widget"
+        }
+      ]
+    },
+    "args_swipe": {
+      "type": "object",
+      "properties": {
+        "direction": {
+          "type": "string",
+          "enum": [
+            "left",
+            "right",
+            "up",
+            "down"
+          ]
+        },
+        "id": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "title": "swipe",
+      "description": "Swipe on a scrollable or widget (direction: left/right/up/down)",
+      "examples": [
+        {
+          "direction": "left",
+          "id": "carousel"
+        }
+      ]
+    },
+    "args_drag": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "dx": {
+          "type": "number"
+        },
+        "dy": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "additionalProperties": false,
+      "title": "drag",
+      "description": "Drag a widget by testId by dx/dy offset",
+      "examples": [
+        {
+          "id": "handle",
+          "dx": 50,
+          "dy": 0
+        }
+      ]
+    },
+    "args_pullToRefresh": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "title": "pullToRefresh",
+      "description": "Pull down on a scrollable to trigger refresh",
+      "examples": [
+        {
+          "id": "scroll_view"
+        }
+      ]
+    },
+    "args_wait": {
+      "type": "object",
+      "properties": {
+        "durationMs": {
+          "type": "integer"
+        }
+      },
+      "additionalProperties": false,
+      "title": "wait",
+      "description": "Alias for pump — advance frame clock by durationMs",
+      "examples": [
+        {
+          "durationMs": 100
+        }
+      ]
+    },
+    "args_pump": {
+      "type": "object",
+      "properties": {
+        "durationMs": {
+          "type": "integer"
+        }
+      },
+      "additionalProperties": false,
+      "title": "pump",
+      "description": "Advance the Flutter frame clock by durationMs",
+      "examples": [
+        {
+          "durationMs": 100
+        }
+      ]
+    },
+    "args_settle": {
+      "type": "object",
+      "properties": {
+        "timeoutMs": {
+          "type": "integer"
+        }
+      },
+      "additionalProperties": false,
+      "title": "settle",
+      "description": "Run pumpAndSettle until idle or timeout",
+      "examples": [
+        {
+          "timeoutMs": 5000
+        }
+      ]
+    },
+    "args_waitFor": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "text": {
+          "type": "string"
+        },
+        "timeoutMs": {
+          "type": "integer"
+        }
+      },
+      "additionalProperties": false,
+      "title": "waitFor",
+      "description": "Poll until a widget id and/or text appears",
+      "examples": [
+        {
+          "id": "loading_spinner",
+          "timeoutMs": 5000
+        }
+      ]
+    },
+    "args_waitForText": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "text": {
+          "type": "string"
+        },
+        "timeoutMs": {
+          "type": "integer"
+        }
+      },
+      "additionalProperties": false,
+      "title": "waitForText",
+      "description": "Poll until the given text appears on screen",
+      "examples": [
+        {
+          "id": "loading_spinner",
+          "timeoutMs": 5000
+        }
+      ]
+    },
+    "args_waitForGone": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "timeoutMs": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "additionalProperties": false,
+      "title": "waitForGone",
+      "description": "Poll until a widget with testId is removed from the tree",
+      "examples": [
+        {
+          "id": "loading_spinner",
+          "timeoutMs": 5000
+        }
+      ]
+    },
+    "args_waitForApi": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "times": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "additionalProperties": false,
+      "title": "waitForApi",
+      "description": "Poll until a mocked API is called N times",
+      "examples": [
+        {
+          "name": "login",
+          "times": 1
+        }
+      ]
+    },
+    "args_waitForNavigation": {
+      "type": "object",
+      "properties": {
+        "screen": {
+          "type": "string"
+        },
+        "timeoutMs": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "screen"
+      ],
+      "additionalProperties": false,
+      "title": "waitForNavigation",
+      "description": "Poll until the given screen is visible",
+      "examples": [
+        {
+          "screen": "Home",
+          "timeoutMs": 5000
+        }
+      ]
+    },
+    "args_waitUntil": {
+      "type": "object",
+      "properties": {
+        "path": {
+          "type": "string"
+        },
+        "equals": true,
+        "state": {
+          "type": "object",
+          "properties": {
+            "path": {
+              "type": "string"
+            },
+            "equals": true
+          },
+          "additionalProperties": false
+        },
+        "timeoutMs": {
+          "type": "integer"
+        }
+      },
+      "additionalProperties": false,
+      "title": "waitUntil",
+      "description": "Poll until app state at path equals expected value",
+      "examples": [
+        {
+          "path": "user.name",
+          "equals": "Jane"
+        }
+      ]
+    },
+    "args_expectVisible": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "additionalProperties": false,
+      "title": "expectVisible",
+      "description": "Assert a widget with testId is visible",
+      "examples": [
+        {
+          "id": "my_widget"
+        }
+      ]
+    },
+    "args_expectNotVisible": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "additionalProperties": false,
+      "title": "expectNotVisible",
+      "description": "Assert a widget with testId is not visible",
+      "examples": [
+        {
+          "id": "my_widget"
+        }
+      ]
+    },
+    "args_expectExists": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "additionalProperties": false,
+      "title": "expectExists",
+      "description": "Assert a widget with testId exists in the tree",
+      "examples": [
+        {
+          "id": "my_widget"
+        }
+      ]
+    },
+    "args_expectNotExists": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "additionalProperties": false,
+      "title": "expectNotExists",
+      "description": "Assert no widget with testId exists",
+      "examples": [
+        {
+          "id": "my_widget"
+        }
+      ]
+    },
+    "args_expectText": {
+      "type": "object",
+      "properties": {
+        "text": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "text"
+      ],
+      "additionalProperties": false,
+      "title": "expectText",
+      "description": "Assert exact text is shown",
+      "examples": [
+        {
+          "text": "Welcome"
+        }
+      ]
+    },
+    "args_expectNoText": {
+      "type": "object",
+      "properties": {
+        "text": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "text"
+      ],
+      "additionalProperties": false,
+      "title": "expectNoText",
+      "description": "Assert text is not shown",
+      "examples": [
+        {
+          "text": "Welcome"
+        }
+      ]
+    },
+    "args_expectTextContains": {
+      "type": "object",
+      "properties": {
+        "text": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "text"
+      ],
+      "additionalProperties": false,
+      "title": "expectTextContains",
+      "description": "Assert some text containing the given substring",
+      "examples": [
+        {
+          "text": "Welcome"
+        }
+      ]
+    },
+    "args_expectEnabled": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "additionalProperties": false,
+      "title": "expectEnabled",
+      "description": "Assert widget semantics report enabled",
+      "examples": [
+        {
+          "id": "my_widget"
+        }
+      ]
+    },
+    "args_expectDisabled": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "additionalProperties": false,
+      "title": "expectDisabled",
+      "description": "Assert widget semantics report disabled",
+      "examples": [
+        {
+          "id": "my_widget"
+        }
+      ]
+    },
+    "args_expectValue": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "equals": true
+      },
+      "required": [
+        "id",
+        "equals"
+      ],
+      "additionalProperties": false,
+      "title": "expectValue",
+      "description": "Assert input value equals expected (EditableText/TextField)",
+      "examples": [
+        {
+          "id": "email_field",
+          "equals": "user@test.com"
+        }
+      ]
+    },
+    "args_expectChecked": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "equals": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "additionalProperties": false,
+      "title": "expectChecked",
+      "description": "Assert checkbox checked state matches equals",
+      "examples": [
+        {
+          "id": "terms_checkbox",
+          "equals": true
+        }
+      ]
+    },
+    "args_expectProperty": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "property": {
+          "type": "string"
+        },
+        "equals": true
+      },
+      "required": [
+        "id",
+        "equals"
+      ],
+      "additionalProperties": false,
+      "title": "expectProperty",
+      "description": "Assert a widget property (e.g. label) equals expected",
+      "examples": [
+        {
+          "id": "title",
+          "property": "label",
+          "equals": "Hello"
+        }
+      ]
+    },
+    "args_expectStyle": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "property": {
+          "type": "string"
+        },
+        "equals": true
+      },
+      "required": [
+        "id",
+        "equals"
+      ],
+      "additionalProperties": false,
+      "title": "expectStyle",
+      "description": "Assert style-related property equals expected",
+      "examples": [
+        {
+          "id": "title",
+          "property": "label",
+          "equals": "Hello"
+        }
+      ]
+    },
+    "args_expectSelected": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "equals": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "additionalProperties": false,
+      "title": "expectSelected",
+      "description": "Assert selected/checked state matches equals",
+      "examples": [
+        {
+          "id": "terms_checkbox",
+          "equals": true
+        }
+      ]
+    },
+    "args_expectCount": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "equals": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "id",
+        "equals"
+      ],
+      "additionalProperties": false,
+      "title": "expectCount",
+      "description": "Assert count of widgets with the same testId",
+      "examples": [
+        {
+          "id": "badge",
+          "equals": 2
+        }
+      ]
+    },
+    "args_expectListCount": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "itemId": {
+          "type": "string"
+        },
+        "equals": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "equals"
+      ],
+      "additionalProperties": false,
+      "title": "expectListCount",
+      "description": "Assert number of list items under a list testId",
+      "examples": [
+        {
+          "id": "items_list",
+          "equals": 3
+        }
+      ]
+    },
+    "args_expectListContains": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "text": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "text"
+      ],
+      "additionalProperties": false,
+      "title": "expectListContains",
+      "description": "Assert list contains text",
+      "examples": [
+        {
+          "id": "items_list",
+          "text": "Item 1"
+        }
+      ]
+    },
+    "args_expectListItem": {
+      "type": "object",
+      "properties": {
+        "itemId": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "itemId"
+      ],
+      "additionalProperties": false,
+      "title": "expectListItem",
+      "description": "Assert a list item widget with itemId is visible",
+      "examples": [
+        {
+          "itemId": "row_0"
+        }
+      ]
+    },
+    "args_expectEmpty": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "additionalProperties": false,
+      "title": "expectEmpty",
+      "description": "Assert a list has zero items",
+      "examples": [
+        {
+          "id": "my_widget"
+        }
+      ]
+    },
+    "args_expectNotEmpty": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "additionalProperties": false,
+      "title": "expectNotEmpty",
+      "description": "Assert a list has at least one item",
+      "examples": [
+        {
+          "id": "my_widget"
+        }
+      ]
+    },
+    "args_expectScreen": {
+      "type": "object",
+      "properties": {
+        "screen": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "screen"
+      ],
+      "additionalProperties": false,
+      "title": "expectScreen",
+      "description": "Alias for expectNavigateTo — assert current screen",
+      "examples": [
+        {
+          "screen": "Home"
+        }
+      ]
+    },
+    "args_expectNavigateTo": {
+      "type": "object",
+      "properties": {
+        "screen": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "screen"
+      ],
+      "additionalProperties": false,
+      "title": "expectNavigateTo",
+      "description": "Assert the current visible screen name/id",
+      "examples": [
+        {
+          "screen": "Home"
+        }
+      ]
+    },
+    "args_expectVisited": {
+      "type": "object",
+      "properties": {
+        "screen": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "screen"
+      ],
+      "additionalProperties": false,
+      "title": "expectVisited",
+      "description": "Assert a screen appears in navigation history",
+      "examples": [
+        {
+          "screen": "Login"
+        }
+      ]
+    },
+    "args_expectNotVisited": {
+      "type": "object",
+      "properties": {
+        "screen": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "screen"
+      ],
+      "additionalProperties": false,
+      "title": "expectNotVisited",
+      "description": "Assert a screen was never visited",
+      "examples": [
+        {
+          "screen": "Login"
+        }
+      ]
+    },
+    "args_expectBackStack": {
+      "type": "object",
+      "properties": {
+        "screens": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1
+        }
+      },
+      "required": [
+        "screens"
+      ],
+      "additionalProperties": false,
+      "title": "expectBackStack",
+      "description": "Assert navigation history suffix matches screens",
+      "examples": [
+        {
+          "screens": [
+            "Home",
+            "Details"
+          ]
+        }
+      ]
+    },
+    "args_expectCanGoBack": {
+      "type": "object",
+      "properties": {
+        "equals": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false,
+      "title": "expectCanGoBack",
+      "description": "Assert whether back navigation is possible",
+      "examples": [
+        {
+          "equals": true
+        }
+      ]
+    },
+    "args_goBack": {
+      "type": "object",
+      "additionalProperties": false,
+      "title": "goBack",
+      "description": "Navigate back (Ensemble navigateBack or Navigator.pop)",
+      "examples": [
+        {}
+      ]
+    },
+    "args_mockApi": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "response": {
+          "$ref": "#/$defs/mockResponse"
+        },
+        "delayMs": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "name",
+        "response"
+      ],
+      "additionalProperties": false,
+      "title": "mockApi",
+      "description": "Register a mock HTTP API response by API name",
+      "examples": [
+        {
+          "name": "login",
+          "response": {
+            "statusCode": 200,
+            "body": {
+              "token": "test-token"
+            }
+          }
+        }
+      ]
+    },
+    "args_mockApiError": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "statusCode": {
+          "type": "integer"
+        },
+        "body": true,
+        "delayMs": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "additionalProperties": false,
+      "title": "mockApiError",
+      "description": "Mock an API to return an error status/body",
+      "examples": [
+        {
+          "name": "login",
+          "statusCode": 401,
+          "body": {
+            "error": "Unauthorized"
+          }
+        }
+      ]
+    },
+    "args_mockApiFromFixture": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "fixture": {
+          "type": "string"
+        },
+        "statusCode": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "name",
+        "fixture"
+      ],
+      "additionalProperties": false,
+      "title": "mockApiFromFixture",
+      "description": "Load mock response body from a JSON fixture asset",
+      "examples": [
+        {
+          "name": "users",
+          "fixture": "users.json"
+        }
+      ]
+    },
+    "args_mockApiException": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "additionalProperties": false,
+      "title": "mockApiException",
+      "description": "Force an API call to throw an exception",
+      "examples": [
+        {
+          "name": "login",
+          "message": "Network error"
+        }
+      ]
+    },
+    "args_mockTimeout": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "delayMs": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "additionalProperties": false,
+      "title": "mockTimeout",
+      "description": "Mock an API with a long delay (simulate timeout)",
+      "examples": [
+        {
+          "name": "slow_api",
+          "delayMs": 60000
+        }
+      ]
+    },
+    "args_mockNetworkOffline": {
+      "type": "object",
+      "additionalProperties": false,
+      "title": "mockNetworkOffline",
+      "description": "Simulate offline network for API calls",
+      "examples": [
+        {}
+      ]
+    },
+    "args_mockNetworkOnline": {
+      "type": "object",
+      "additionalProperties": false,
+      "title": "mockNetworkOnline",
+      "description": "Restore online network for API calls",
+      "examples": [
+        {}
+      ]
+    },
+    "args_resetApiCalls": {
+      "type": "object",
+      "additionalProperties": false,
+      "title": "resetApiCalls",
+      "description": "Clear recorded API call history",
+      "examples": [
+        {}
+      ]
+    },
+    "args_clearApiMocks": {
+      "type": "object",
+      "additionalProperties": false,
+      "title": "clearApiMocks",
+      "description": "Remove all registered API mocks",
+      "examples": [
+        {}
+      ]
+    },
+    "args_expectApiCalled": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "times": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "additionalProperties": false,
+      "title": "expectApiCalled",
+      "description": "Assert an API was called an exact number of times",
+      "examples": [
+        {
+          "name": "login",
+          "times": 1
+        }
+      ]
+    },
+    "args_expectApiNotCalled": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "times": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "additionalProperties": false,
+      "title": "expectApiNotCalled",
+      "description": "Assert an API was never called",
+      "examples": [
+        {
+          "name": "login",
+          "times": 1
+        }
+      ]
+    },
+    "args_expectApiRequest": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "body": true,
+        "query": true,
+        "headers": true,
+        "times": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "additionalProperties": false,
+      "title": "expectApiRequest",
+      "description": "Assert last API request body/query/headers match",
+      "examples": [
+        {
+          "name": "login",
+          "body": {
+            "email": "user@test.com",
+            "password": "secret"
+          }
+        }
+      ]
+    },
+    "args_expectApiRequestContains": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "body": true,
+        "query": true,
+        "headers": true,
+        "times": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "additionalProperties": false,
+      "title": "expectApiRequestContains",
+      "description": "Assert API request contains partial body/query",
+      "examples": [
+        {
+          "name": "login",
+          "body": {
+            "email": "user@test.com",
+            "password": "secret"
+          }
+        }
+      ]
+    },
+    "args_expectApiHeader": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "header": {
+          "type": "string"
+        },
+        "equals": true,
+        "times": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "name",
+        "header",
+        "equals"
+      ],
+      "additionalProperties": false,
+      "title": "expectApiHeader",
+      "description": "Assert an API request header equals expected",
+      "examples": [
+        {
+          "name": "login",
+          "header": "Authorization",
+          "equals": "Bearer test-token"
+        }
+      ]
+    },
+    "args_expectApiCallOrder": {
+      "type": "object",
+      "properties": {
+        "names": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1
+        }
+      },
+      "required": [
+        "names"
+      ],
+      "additionalProperties": false,
+      "title": "expectApiCallOrder",
+      "description": "Assert APIs were called in order",
+      "examples": [
+        {
+          "names": [
+            "auth",
+            "profile"
+          ]
+        }
+      ]
+    },
+    "args_expectLastApiCall": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "times": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "additionalProperties": false,
+      "title": "expectLastApiCall",
+      "description": "Assert the most recent API call name",
+      "examples": [
+        {
+          "name": "login",
+          "times": 1
+        }
+      ]
+    },
+    "args_setState": {
+      "type": "object",
+      "properties": {
+        "path": {
+          "type": "string"
+        },
+        "value": true
+      },
+      "required": [
+        "path"
+      ],
+      "additionalProperties": false,
+      "title": "setState",
+      "description": "Set app data-context state at path to value",
+      "examples": [
+        {
+          "path": "user.name",
+          "value": "Jane"
+        }
+      ]
+    },
+    "args_expectState": {
+      "type": "object",
+      "properties": {
+        "path": {
+          "type": "string"
+        },
+        "equals": true,
+        "contains": true
+      },
+      "required": [
+        "path"
+      ],
+      "additionalProperties": false,
+      "title": "expectState",
+      "description": "Assert app state at path equals expected",
+      "examples": [
+        {
+          "path": "user.name",
+          "equals": "Jane"
+        }
+      ]
+    },
+    "args_expectStateContains": {
+      "type": "object",
+      "properties": {
+        "path": {
+          "type": "string"
+        },
+        "equals": true,
+        "contains": true
+      },
+      "required": [
+        "path"
+      ],
+      "additionalProperties": false,
+      "title": "expectStateContains",
+      "description": "Assert app state at path contains subset",
+      "examples": [
+        {
+          "path": "user.name",
+          "equals": "Jane"
+        }
+      ]
+    },
+    "args_expectStateExists": {
+      "type": "object",
+      "properties": {
+        "path": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "path"
+      ],
+      "additionalProperties": false,
+      "title": "expectStateExists",
+      "description": "Assert state path resolves without error",
+      "examples": [
+        {
+          "path": "user.id"
+        }
+      ]
+    },
+    "args_expectStateNotExists": {
+      "type": "object",
+      "properties": {
+        "path": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "path"
+      ],
+      "additionalProperties": false,
+      "title": "expectStateNotExists",
+      "description": "Assert state path is null or absent",
+      "examples": [
+        {
+          "path": "user.id"
+        }
+      ]
+    },
+    "args_resetState": {
+      "type": "object",
+      "properties": {
+        "path": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "title": "resetState",
+      "description": "Clear state at path (set to null)",
+      "examples": [
+        {
+          "path": "cart"
+        }
+      ]
+    },
+    "args_setStorage": {
+      "type": "object",
+      "properties": {
+        "key": {
+          "type": "string"
+        },
+        "equals": true,
+        "value": true
+      },
+      "required": [
+        "key"
+      ],
+      "additionalProperties": false,
+      "title": "setStorage",
+      "description": "Write a value to public GetStorage by key",
+      "examples": [
+        {
+          "key": "onboarding_done",
+          "value": true
+        }
+      ]
+    },
+    "args_expectStorage": {
+      "type": "object",
+      "properties": {
+        "key": {
+          "type": "string"
+        },
+        "equals": true,
+        "value": true
+      },
+      "required": [
+        "key"
+      ],
+      "additionalProperties": false,
+      "title": "expectStorage",
+      "description": "Assert public storage key equals expected",
+      "examples": [
+        {
+          "key": "onboarding_done",
+          "value": true
+        }
+      ]
+    },
+    "args_removeStorage": {
+      "type": "object",
+      "properties": {
+        "key": {
+          "type": "string"
+        },
+        "equals": true,
+        "value": true
+      },
+      "required": [
+        "key"
+      ],
+      "additionalProperties": false,
+      "title": "removeStorage",
+      "description": "Remove a key from public storage",
+      "examples": [
+        {
+          "key": "onboarding_done",
+          "value": true
+        }
+      ]
+    },
+    "args_clearStorage": {
+      "type": "object",
+      "additionalProperties": false,
+      "title": "clearStorage",
+      "description": "Clear all non-encrypted public storage keys",
+      "examples": [
+        {}
+      ]
+    },
+    "args_setEnv": {
+      "type": "object",
+      "properties": {
+        "key": {
+          "type": "string"
+        },
+        "equals": true,
+        "value": true
+      },
+      "required": [
+        "key"
+      ],
+      "additionalProperties": false,
+      "title": "setEnv",
+      "description": "Override an environment variable for the test",
+      "examples": [
+        {
+          "key": "onboarding_done",
+          "value": true
+        }
+      ]
+    },
+    "args_setAuth": {
+      "type": "object",
+      "properties": {
+        "user": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      },
+      "required": [
+        "user"
+      ],
+      "additionalProperties": false,
+      "title": "setAuth",
+      "description": "Simulate a signed-in user",
+      "examples": [
+        {
+          "user": {
+            "id": "1",
+            "email": "user@test.com"
+          }
+        }
+      ]
+    },
+    "args_clearAuth": {
+      "type": "object",
+      "additionalProperties": false,
+      "title": "clearAuth",
+      "description": "Clear the signed-in user",
+      "examples": [
+        {}
+      ]
+    },
+    "args_setPermission": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "value": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "additionalProperties": false,
+      "title": "setPermission",
+      "description": "Set a permission flag for the test runtime",
+      "examples": [
+        {
+          "name": "camera",
+          "value": "granted"
+        }
+      ]
+    },
+    "args_setDevice": {
+      "type": "object",
+      "properties": {
+        "width": {
+          "type": "number"
+        },
+        "height": {
+          "type": "number"
+        }
+      },
+      "additionalProperties": false,
+      "title": "setDevice",
+      "description": "Override viewport physical size (width/height)",
+      "examples": [
+        {
+          "width": 390,
+          "height": 844
+        }
+      ]
+    },
+    "args_setLocale": {
+      "type": "object",
+      "properties": {
+        "locale": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "title": "setLocale",
+      "description": "Set APP_LOCALE environment override",
+      "examples": [
+        {
+          "locale": "en_US"
+        }
+      ]
+    },
+    "args_setTheme": {
+      "type": "object",
+      "properties": {
+        "mode": {
+          "type": "string"
+        },
+        "theme": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "title": "setTheme",
+      "description": "Set APP_THEME / theme mode override",
+      "examples": [
+        {
+          "mode": "dark"
+        }
+      ]
+    },
+    "args_runScript": {
+      "type": "object",
+      "properties": {
+        "script": {
+          "type": "string"
+        },
+        "path": {
+          "type": "string"
+        },
+        "equals": true
+      },
+      "additionalProperties": false,
+      "title": "runScript",
+      "description": "Evaluate a script expression in the data context",
+      "examples": [
+        {
+          "script": "1 + 1",
+          "equals": 2
+        }
+      ]
+    },
+    "args_expectScriptResult": {
+      "type": "object",
+      "properties": {
+        "script": {
+          "type": "string"
+        },
+        "path": {
+          "type": "string"
+        },
+        "equals": true
+      },
+      "additionalProperties": false,
+      "title": "expectScriptResult",
+      "description": "Evaluate script and assert result equals expected",
+      "examples": [
+        {
+          "script": "1 + 1",
+          "equals": 2
+        }
+      ]
+    },
+    "args_expectConsoleLog": {
+      "type": "object",
+      "properties": {
+        "contains": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "contains"
+      ],
+      "additionalProperties": false,
+      "title": "expectConsoleLog",
+      "description": "Assert a console log line contains text",
+      "examples": [
+        {
+          "contains": "Screen loaded"
+        }
+      ]
+    },
+    "args_group": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "steps": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/step"
+          },
+          "minItems": 1
+        }
+      },
+      "required": [
+        "steps"
+      ],
+      "additionalProperties": false,
+      "title": "group",
+      "description": "Run nested steps as a named group",
+      "examples": [
+        {
+          "name": "login_flow",
+          "steps": [
+            {
+              "tap": {
+                "id": "login_button"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "args_repeat": {
+      "type": "object",
+      "properties": {
+        "times": {
+          "type": "integer"
+        },
+        "steps": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/step"
+          },
+          "minItems": 1
+        }
+      },
+      "required": [
+        "times",
+        "steps"
+      ],
+      "additionalProperties": false,
+      "title": "repeat",
+      "description": "Repeat nested steps N times",
+      "examples": [
+        {
+          "times": 3,
+          "steps": [
+            {
+              "tap": {
+                "id": "next_button"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "args_optional": {
+      "type": "object",
+      "properties": {
+        "step": {
+          "$ref": "#/$defs/step"
+        },
+        "steps": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/step"
+          },
+          "minItems": 1
+        }
+      },
+      "additionalProperties": false,
+      "title": "optional",
+      "description": "Run nested steps; swallow failures",
+      "examples": [
+        {
+          "steps": [
+            {
+              "tap": {
+                "id": "dismiss_banner"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "args_ifVisible": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "step": {
+          "$ref": "#/$defs/step"
+        },
+        "steps": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/step"
+          },
+          "minItems": 1
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "additionalProperties": false,
+      "title": "ifVisible",
+      "description": "Run nested steps only if testId is visible",
+      "examples": [
+        {
+          "id": "promo_banner",
+          "steps": [
+            {
+              "tap": {
+                "id": "close_banner"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "args_logApiCalls": {
+      "type": "object",
+      "additionalProperties": false,
+      "title": "logApiCalls",
+      "description": "Log all recorded API calls to the test log",
+      "examples": [
+        {}
+      ]
+    },
+    "args_screenshot": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "title": "screenshot",
+      "description": "Capture golden or dump widget tree for debugging",
+      "examples": [
+        {
+          "name": "home_screen"
+        }
+      ]
+    },
+    "args_dumpTree": {
+      "type": "object",
+      "additionalProperties": false,
+      "title": "dumpTree",
+      "description": "Print the widget tree to the debug console",
+      "examples": [
+        {}
+      ]
+    },
+    "args_logState": {
+      "type": "object",
+      "properties": {
+        "path": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "path"
+      ],
+      "additionalProperties": false,
+      "title": "logState",
+      "description": "Log resolved state at path",
+      "examples": [
+        {
+          "path": "user.id"
+        }
+      ]
+    },
+    "args_logStorage": {
+      "type": "object",
+      "properties": {
+        "key": {
+          "type": "string"
+        },
+        "equals": true,
+        "value": true
+      },
+      "required": [
+        "key"
+      ],
+      "additionalProperties": false,
+      "title": "logStorage",
+      "description": "Log public storage value for key",
+      "examples": [
+        {
+          "key": "onboarding_done",
+          "value": true
+        }
+      ]
+    },
+    "args_expectNoConsoleErrors": {
+      "type": "object",
+      "additionalProperties": false,
+      "title": "expectNoConsoleErrors",
+      "description": "Assert no console errors were recorded",
+      "examples": [
+        {}
+      ]
+    },
+    "args_expectNoRenderErrors": {
+      "type": "object",
+      "additionalProperties": false,
+      "title": "expectNoRenderErrors",
+      "description": "Assert no Flutter render errors were recorded",
+      "examples": [
+        {}
+      ]
+    },
+    "args_expectError": {
+      "type": "object",
+      "properties": {
+        "contains": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "title": "expectError",
+      "description": "Assert a Flutter error was recorded (optional filter)",
+      "examples": [
+        {
+          "contains": "overflow"
+        }
+      ]
+    },
+    "args_expectNoErrors": {
+      "type": "object",
+      "additionalProperties": false,
+      "title": "expectNoErrors",
+      "description": "Alias for expectNoRenderErrors",
+      "examples": [
+        {}
+      ]
+    },
+    "args_expectAccessible": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "additionalProperties": false,
+      "title": "expectAccessible",
+      "description": "Assert widget has accessibility label or value",
+      "examples": [
+        {
+          "id": "my_widget"
+        }
+      ]
+    },
+    "args_expectSemanticsLabel": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "label"
+      ],
+      "additionalProperties": false,
+      "title": "expectSemanticsLabel",
+      "description": "Assert semantics label equals expected",
+      "examples": [
+        {
+          "id": "submit_button",
+          "label": "Submit"
+        }
+      ]
+    },
+    "args_expectNoOverflow": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "additionalProperties": false,
+      "title": "expectNoOverflow",
+      "description": "Assert widget renders without overflow issues",
+      "examples": [
+        {
+          "id": "my_widget"
+        }
+      ]
+    },
+    "args_loadFixture": {
+      "type": "object",
+      "properties": {
+        "key": {
+          "type": "string"
+        },
+        "path": {
+          "type": "string"
+        },
+        "fixture": {
+          "type": "string"
+        },
+        "statePath": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "title": "loadFixture",
+      "description": "Load a JSON fixture into the test fixture map",
+      "examples": [
+        {
+          "fixture": "user.json"
+        }
+      ]
+    },
+    "args_setStateFromFixture": {
+      "type": "object",
+      "properties": {
+        "key": {
+          "type": "string"
+        },
+        "path": {
+          "type": "string"
+        },
+        "fixture": {
+          "type": "string"
+        },
+        "statePath": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "title": "setStateFromFixture",
+      "description": "Apply all keys from a JSON fixture to state",
+      "examples": [
+        {
+          "fixture": "user.json"
+        }
+      ]
+    },
+    "args_expectMatchesFixture": {
+      "type": "object",
+      "properties": {
+        "key": {
+          "type": "string"
+        },
+        "path": {
+          "type": "string"
+        },
+        "fixture": {
+          "type": "string"
+        },
+        "statePath": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "title": "expectMatchesFixture",
+      "description": "Assert state or path matches a JSON fixture",
+      "examples": [
+        {
+          "fixture": "user.json"
+        }
+      ]
+    },
+    "step": {
+      "oneOf": [
+        {
+          "type": "object",
+          "title": "openScreen",
+          "description": "Navigate to another screen by name or id mid-test",
+          "examples": [
+            {
+              "openScreen": {
+                "screen": "Home"
+              }
+            }
+          ],
+          "additionalProperties": false,
+          "minProperties": 1,
+          "maxProperties": 1,
+          "properties": {
+            "openScreen": {
+              "$ref": "#/$defs/args_openScreen",
+              "description": "Navigate to another screen by name or id mid-test",
+              "examples": [
+                {
+                  "screen": "Home"
+                }
+              ]
+            }
+          },
+          "required": [
+            "openScreen"
+          ]
+        },
+        {
+          "type": "object",
+          "title": "reloadScreen",
+          "description": "Reload the current screen (same as re-opening it)",
+          "examples": [
+            {
+              "reloadScreen": {}
+            }
+          ],
+          "additionalProperties": false,
+          "minProperties": 1,
+          "maxProperties": 1,
+          "properties": {
+            "reloadScreen": {
+              "$ref": "#/$defs/args_reloadScreen",
+              "description": "Reload the current screen (same as re-opening it)",
+              "examples": [
+                {}
+              ]
+            }
+          },
+          "required": [
+            "reloadScreen"
+          ]
+        },
+        {
+          "type": "object",
+          "title": "restartApp",
+          "description": "Reset runtime and reopen the test case start screen",
+          "examples": [
+            {
+              "restartApp": {}
+            }
+          ],
+          "additionalProperties": false,
+          "minProperties": 1,
+          "maxProperties": 1,
+          "properties": {
+            "restartApp": {
+              "$ref": "#/$defs/args_restartApp",
+              "description": "Reset runtime and reopen the test case start screen",
+              "examples": [
+                {}
+              ]
+            }
+          },
+          "required": [
+            "restartApp"
+          ]
+        },
+        {
+          "type": "object",
+          "title": "resetAppState",
+          "description": "Clear screen tracker, API call log, and public storage",
+          "examples": [
+            {
+              "resetAppState": {}
+            }
+          ],
+          "additionalProperties": false,
+          "minProperties": 1,
+          "maxProperties": 1,
+          "properties": {
+            "resetAppState": {
+              "$ref": "#/$defs/args_resetAppState",
+              "description": "Clear screen tracker, API call log, and public storage",
+              "examples": [
+                {}
+              ]
+            }
+          },
+          "required": [
+            "resetAppState"
+          ]
+        },
+        {
+          "type": "object",
+          "title": "trigger",
+          "description": "Fire a widget action (onLoad, onTap, onLongPress) by testId",
+          "examples": [
+            {
+              "trigger": {
+                "action": "onTap",
+                "id": "submit_button"
+              }
+            }
+          ],
+          "additionalProperties": false,
+          "minProperties": 1,
+          "maxProperties": 1,
+          "properties": {
+            "trigger": {
+              "$ref": "#/$defs/args_trigger",
+              "description": "Fire a widget action (onLoad, onTap, onLongPress) by testId",
+              "examples": [
+                {
+                  "action": "onTap",
+                  "id": "submit_button"
+                }
+              ]
+            }
+          },
+          "required": [
+            "trigger"
+          ]
+        },
+        {
+          "type": "object",
+          "title": "launchApp",
+          "description": "Alias for restartApp — bootstrap from startScreen again",
+          "examples": [
+            {
+              "launchApp": {}
+            }
+          ],
+          "additionalProperties": false,
+          "minProperties": 1,
+          "maxProperties": 1,
+          "properties": {
+            "launchApp": {
+              "$ref": "#/$defs/args_launchApp",
+              "description": "Alias for restartApp — bootstrap from startScreen again",
+              "examples": [
+                {}
+              ]
+            }
+          },
+          "required": [
+            "launchApp"
+          ]
+        },
+        {
+          "type": "object",
+          "title": "tap",
+          "description": "Tap a widget by testId (ValueKey)",
+          "examples": [
+            {
+              "tap": {
+                "id": "my_widget"
+              }
+            }
+          ],
+          "additionalProperties": false,
+          "minProperties": 1,
+          "maxProperties": 1,
+          "properties": {
+            "tap": {
+              "$ref": "#/$defs/args_tap",
+              "description": "Tap a widget by testId (ValueKey)",
+              "examples": [
+                {
+                  "id": "my_widget"
+                }
+              ]
+            }
+          },
+          "required": [
+            "tap"
+          ]
+        },
+        {
+          "type": "object",
+          "title": "doubleTap",
+          "description": "Double-tap a widget by testId",
+          "examples": [
+            {
+              "doubleTap": {
+                "id": "my_widget"
+              }
+            }
+          ],
+          "additionalProperties": false,
+          "minProperties": 1,
+          "maxProperties": 1,
+          "properties": {
+            "doubleTap": {
+              "$ref": "#/$defs/args_doubleTap",
+              "description": "Double-tap a widget by testId",
+              "examples": [
+                {
+                  "id": "my_widget"
+                }
+              ]
+            }
+          },
+          "required": [
+            "doubleTap"
+          ]
+        },
+        {
+          "type": "object",
+          "title": "longPress",
+          "description": "Long-press a widget by testId",
+          "examples": [
+            {
+              "longPress": {
+                "id": "my_widget"
+              }
+            }
+          ],
+          "additionalProperties": false,
+          "minProperties": 1,
+          "maxProperties": 1,
+          "properties": {
+            "longPress": {
+              "$ref": "#/$defs/args_longPress",
+              "description": "Long-press a widget by testId",
+              "examples": [
+                {
+                  "id": "my_widget"
+                }
+              ]
+            }
+          },
+          "required": [
+            "longPress"
+          ]
+        },
+        {
+          "type": "object",
+          "title": "enterText",
+          "description": "Type text into an input field by testId",
+          "examples": [
+            {
+              "enterText": {
+                "id": "email_field",
+                "value": "user@test.com"
+              }
+            }
+          ],
+          "additionalProperties": false,
+          "minProperties": 1,
+          "maxProperties": 1,
+          "properties": {
+            "enterText": {
+              "$ref": "#/$defs/args_enterText",
+              "description": "Type text into an input field by testId",
+              "examples": [
+                {
+                  "id": "email_field",
+                  "value": "user@test.com"
+                }
+              ]
+            }
+          },
+          "required": [
+            "enterText"
+          ]
+        },
+        {
+          "type": "object",
+          "title": "clearText",
+          "description": "Clear text in an input field by testId",
+          "examples": [
+            {
+              "clearText": {
+                "id": "my_widget"
+              }
+            }
+          ],
+          "additionalProperties": false,
+          "minProperties": 1,
+          "maxProperties": 1,
+          "properties": {
+            "clearText": {
+              "$ref": "#/$defs/args_clearText",
+              "description": "Clear text in an input field by testId",
+              "examples": [
+                {
+                  "id": "my_widget"
+                }
+              ]
+            }
+          },
+          "required": [
+            "clearText"
+          ]
+        },
+        {
+          "type": "object",
+          "title": "replaceText",
+          "description": "Replace the full contents of an input field",
+          "examples": [
+            {
+              "replaceText": {
+                "id": "email_field",
+                "value": "user@test.com"
+              }
+            }
+          ],
+          "additionalProperties": false,
+          "minProperties": 1,
+          "maxProperties": 1,
+          "properties": {
+            "replaceText": {
+              "$ref": "#/$defs/args_replaceText",
+              "description": "Replace the full contents of an input field",
+              "examples": [
+                {
+                  "id": "email_field",
+                  "value": "user@test.com"
+                }
+              ]
+            }
+          },
+          "required": [
+            "replaceText"
+          ]
+        },
+        {
+          "type": "object",
+          "title": "submitText",
+          "description": "Submit an input field (TextInputAction.done)",
+          "examples": [
+            {
+              "submitText": {
+                "id": "my_widget"
+              }
+            }
+          ],
+          "additionalProperties": false,
+          "minProperties": 1,
+          "maxProperties": 1,
+          "properties": {
+            "submitText": {
+              "$ref": "#/$defs/args_submitText",
+              "description": "Submit an input field (TextInputAction.done)",
+              "examples": [
+                {
+                  "id": "my_widget"
+                }
+              ]
+            }
+          },
+          "required": [
+            "submitText"
+          ]
+        },
+        {
+          "type": "object",
+          "title": "focus",
+          "description": "Focus an input field by testId",
+          "examples": [
+            {
+              "focus": {
+                "id": "my_widget"
+              }
+            }
+          ],
+          "additionalProperties": false,
+          "minProperties": 1,
+          "maxProperties": 1,
+          "properties": {
+            "focus": {
+              "$ref": "#/$defs/args_focus",
+              "description": "Focus an input field by testId",
+              "examples": [
+                {
+                  "id": "my_widget"
+                }
+              ]
+            }
+          },
+          "required": [
+            "focus"
+          ]
+        },
+        {
+          "type": "object",
+          "title": "unfocus",
+          "description": "Remove focus from the current field",
+          "examples": [
+            {
+              "unfocus": {}
+            }
+          ],
+          "additionalProperties": false,
+          "minProperties": 1,
+          "maxProperties": 1,
+          "properties": {
+            "unfocus": {
+              "$ref": "#/$defs/args_unfocus",
+              "description": "Remove focus from the current field",
+              "examples": [
+                {}
+              ]
+            }
+          },
+          "required": [
+            "unfocus"
+          ]
+        },
+        {
+          "type": "object",
+          "title": "select",
+          "description": "Open a dropdown and choose an option by visible label",
+          "examples": [
+            {
+              "select": {
+                "id": "country_dropdown",
+                "value": "USA"
+              }
+            }
+          ],
+          "additionalProperties": false,
+          "minProperties": 1,
+          "maxProperties": 1,
+          "properties": {
+            "select": {
+              "$ref": "#/$defs/args_select",
+              "description": "Open a dropdown and choose an option by visible label",
+              "examples": [
+                {
+                  "id": "country_dropdown",
+                  "value": "USA"
+                }
+              ]
+            }
+          },
+          "required": [
+            "select"
+          ]
+        },
+        {
+          "type": "object",
+          "title": "selectIndex",
+          "description": "Open a dropdown and choose the option at index",
+          "examples": [
+            {
+              "selectIndex": {
+                "id": "country_dropdown",
+                "index": 0
+              }
+            }
+          ],
+          "additionalProperties": false,
+          "minProperties": 1,
+          "maxProperties": 1,
+          "properties": {
+            "selectIndex": {
+              "$ref": "#/$defs/args_selectIndex",
+              "description": "Open a dropdown and choose the option at index",
+              "examples": [
+                {
+                  "id": "country_dropdown",
+                  "index": 0
+                }
+              ]
+            }
+          },
+          "required": [
+            "selectIndex"
+          ]
+        },
+        {
+          "type": "object",
+          "title": "check",
+          "description": "Check a checkbox or toggle by testId",
+          "examples": [
+            {
+              "check": {
+                "id": "my_widget"
+              }
+            }
+          ],
+          "additionalProperties": false,
+          "minProperties": 1,
+          "maxProperties": 1,
+          "properties": {
+            "check": {
+              "$ref": "#/$defs/args_check",
+              "description": "Check a checkbox or toggle by testId",
+              "examples": [
+                {
+                  "id": "my_widget"
+                }
+              ]
+            }
+          },
+          "required": [
+            "check"
+          ]
+        },
+        {
+          "type": "object",
+          "title": "uncheck",
+          "description": "Uncheck a checkbox by testId if currently checked",
+          "examples": [
+            {
+              "uncheck": {
+                "id": "my_widget"
+              }
+            }
+          ],
+          "additionalProperties": false,
+          "minProperties": 1,
+          "maxProperties": 1,
+          "properties": {
+            "uncheck": {
+              "$ref": "#/$defs/args_uncheck",
+              "description": "Uncheck a checkbox by testId if currently checked",
+              "examples": [
+                {
+                  "id": "my_widget"
+                }
+              ]
+            }
+          },
+          "required": [
+            "uncheck"
+          ]
+        },
+        {
+          "type": "object",
+          "title": "toggle",
+          "description": "Tap to toggle a switch or checkbox by testId",
+          "examples": [
+            {
+              "toggle": {
+                "id": "my_widget"
+              }
+            }
+          ],
+          "additionalProperties": false,
+          "minProperties": 1,
+          "maxProperties": 1,
+          "properties": {
+            "toggle": {
+              "$ref": "#/$defs/args_toggle",
+              "description": "Tap to toggle a switch or checkbox by testId",
+              "examples": [
+                {
+                  "id": "my_widget"
+                }
+              ]
+            }
+          },
+          "required": [
+            "toggle"
+          ]
+        },
+        {
+          "type": "object",
+          "title": "setSlider",
+          "description": "Move a slider under testId to a normalized value (0–1)",
+          "examples": [
+            {
+              "setSlider": {
+                "id": "volume_slider",
+                "value": 0.5
+              }
+            }
+          ],
+          "additionalProperties": false,
+          "minProperties": 1,
+          "maxProperties": 1,
+          "properties": {
+            "setSlider": {
+              "$ref": "#/$defs/args_setSlider",
+              "description": "Move a slider under testId to a normalized value (0–1)",
+              "examples": [
+                {
+                  "id": "volume_slider",
+                  "value": 0.5
+                }
+              ]
+            }
+          },
+          "required": [
+            "setSlider"
+          ]
+        },
+        {
+          "type": "object",
+          "title": "chooseDate",
+          "description": "Set a date field by testId to the given value string",
+          "examples": [
+            {
+              "chooseDate": {
+                "id": "birth_date",
+                "value": "2024-01-15"
+              }
+            }
+          ],
+          "additionalProperties": false,
+          "minProperties": 1,
+          "maxProperties": 1,
+          "properties": {
+            "chooseDate": {
+              "$ref": "#/$defs/args_chooseDate",
+              "description": "Set a date field by testId to the given value string",
+              "examples": [
+                {
+                  "id": "birth_date",
+                  "value": "2024-01-15"
+                }
+              ]
+            }
+          },
+          "required": [
+            "chooseDate"
+          ]
+        },
+        {
+          "type": "object",
+          "title": "chooseTime",
+          "description": "Set a time field by testId to the given value string",
+          "examples": [
+            {
+              "chooseTime": {
+                "id": "birth_date",
+                "value": "2024-01-15"
+              }
+            }
+          ],
+          "additionalProperties": false,
+          "minProperties": 1,
+          "maxProperties": 1,
+          "properties": {
+            "chooseTime": {
+              "$ref": "#/$defs/args_chooseTime",
+              "description": "Set a time field by testId to the given value string",
+              "examples": [
+                {
+                  "id": "birth_date",
+                  "value": "2024-01-15"
+                }
+              ]
+            }
+          },
+          "required": [
+            "chooseTime"
+          ]
+        },
+        {
+          "type": "object",
+          "title": "scroll",
+          "description": "Drag the first Scrollable by delta pixels",
+          "examples": [
+            {
+              "scroll": {
+                "delta": 300
+              }
+            }
+          ],
+          "additionalProperties": false,
+          "minProperties": 1,
+          "maxProperties": 1,
+          "properties": {
+            "scroll": {
+              "$ref": "#/$defs/args_scroll",
+              "description": "Drag the first Scrollable by delta pixels",
+              "examples": [
+                {
+                  "delta": 300
+                }
+              ]
+            }
+          },
+          "required": [
+            "scroll"
+          ]
+        },
+        {
+          "type": "object",
+          "title": "scrollUntilVisible",
+          "description": "Scroll until a widget with testId is visible",
+          "examples": [
+            {
+              "scrollUntilVisible": {
+                "id": "my_widget"
+              }
+            }
+          ],
+          "additionalProperties": false,
+          "minProperties": 1,
+          "maxProperties": 1,
+          "properties": {
+            "scrollUntilVisible": {
+              "$ref": "#/$defs/args_scrollUntilVisible",
+              "description": "Scroll until a widget with testId is visible",
+              "examples": [
+                {
+                  "id": "my_widget"
+                }
+              ]
+            }
+          },
+          "required": [
+            "scrollUntilVisible"
+          ]
+        },
+        {
+          "type": "object",
+          "title": "swipe",
+          "description": "Swipe on a scrollable or widget (direction: left/right/up/down)",
+          "examples": [
+            {
+              "swipe": {
+                "direction": "left",
+                "id": "carousel"
+              }
+            }
+          ],
+          "additionalProperties": false,
+          "minProperties": 1,
+          "maxProperties": 1,
+          "properties": {
+            "swipe": {
+              "$ref": "#/$defs/args_swipe",
+              "description": "Swipe on a scrollable or widget (direction: left/right/up/down)",
+              "examples": [
+                {
+                  "direction": "left",
+                  "id": "carousel"
+                }
+              ]
+            }
+          },
+          "required": [
+            "swipe"
+          ]
+        },
+        {
+          "type": "object",
+          "title": "drag",
+          "description": "Drag a widget by testId by dx/dy offset",
+          "examples": [
+            {
+              "drag": {
+                "id": "handle",
+                "dx": 50,
+                "dy": 0
+              }
+            }
+          ],
+          "additionalProperties": false,
+          "minProperties": 1,
+          "maxProperties": 1,
+          "properties": {
+            "drag": {
+              "$ref": "#/$defs/args_drag",
+              "description": "Drag a widget by testId by dx/dy offset",
+              "examples": [
+                {
+                  "id": "handle",
+                  "dx": 50,
+                  "dy": 0
+                }
+              ]
+            }
+          },
+          "required": [
+            "drag"
+          ]
+        },
+        {
+          "type": "object",
+          "title": "pullToRefresh",
+          "description": "Pull down on a scrollable to trigger refresh",
+          "examples": [
+            {
+              "pullToRefresh": {
+                "id": "scroll_view"
+              }
+            }
+          ],
+          "additionalProperties": false,
+          "minProperties": 1,
+          "maxProperties": 1,
+          "properties": {
+            "pullToRefresh": {
+              "$ref": "#/$defs/args_pullToRefresh",
+              "description": "Pull down on a scrollable to trigger refresh",
+              "examples": [
+                {
+                  "id": "scroll_view"
+                }
+              ]
+            }
+          },
+          "required": [
+            "pullToRefresh"
+          ]
+        },
+        {
+          "type": "object",
+          "title": "wait",
+          "description": "Alias for pump — advance frame clock by durationMs",
+          "examples": [
+            {
+              "wait": {
+                "durationMs": 100
+              }
+            }
+          ],
+          "additionalProperties": false,
+          "minProperties": 1,
+          "maxProperties": 1,
+          "properties": {
+            "wait": {
+              "$ref": "#/$defs/args_wait",
+              "description": "Alias for pump — advance frame clock by durationMs",
+              "examples": [
+                {
+                  "durationMs": 100
+                }
+              ]
+            }
+          },
+          "required": [
+            "wait"
+          ]
+        },
+        {
+          "type": "object",
+          "title": "pump",
+          "description": "Advance the Flutter frame clock by durationMs",
+          "examples": [
+            {
+              "pump": {
+                "durationMs": 100
+              }
+            }
+          ],
+          "additionalProperties": false,
+          "minProperties": 1,
+          "maxProperties": 1,
+          "properties": {
+            "pump": {
+              "$ref": "#/$defs/args_pump",
+              "description": "Advance the Flutter frame clock by durationMs",
+              "examples": [
+                {
+                  "durationMs": 100
+                }
+              ]
+            }
+          },
+          "required": [
+            "pump"
+          ]
+        },
+        {
+          "type": "object",
+          "title": "settle",
+          "description": "Run pumpAndSettle until idle or timeout",
+          "examples": [
+            {
+              "settle": {
+                "timeoutMs": 5000
+              }
+            }
+          ],
+          "additionalProperties": false,
+          "minProperties": 1,
+          "maxProperties": 1,
+          "properties": {
+            "settle": {
+              "$ref": "#/$defs/args_settle",
+              "description": "Run pumpAndSettle until idle or timeout",
+              "examples": [
+                {
+                  "timeoutMs": 5000
+                }
+              ]
+            }
+          },
+          "required": [
+            "settle"
+          ]
+        },
+        {
+          "type": "object",
+          "title": "waitFor",
+          "description": "Poll until a widget id and/or text appears",
+          "examples": [
+            {
+              "waitFor": {
+                "id": "loading_spinner",
+                "timeoutMs": 5000
+              }
+            }
+          ],
+          "additionalProperties": false,
+          "minProperties": 1,
+          "maxProperties": 1,
+          "properties": {
+            "waitFor": {
+              "$ref": "#/$defs/args_waitFor",
+              "description": "Poll until a widget id and/or text appears",
+              "examples": [
+                {
+                  "id": "loading_spinner",
+                  "timeoutMs": 5000
+                }
+              ]
+            }
+          },
+          "required": [
+            "waitFor"
+          ]
+        },
+        {
+          "type": "object",
+          "title": "waitForText",
+          "description": "Poll until the given text appears on screen",
+          "examples": [
+            {
+              "waitForText": {
+                "id": "loading_spinner",
+                "timeoutMs": 5000
+              }
+            }
+          ],
+          "additionalProperties": false,
+          "minProperties": 1,
+          "maxProperties": 1,
+          "properties": {
+            "waitForText": {
+              "$ref": "#/$defs/args_waitForText",
+              "description": "Poll until the given text appears on screen",
+              "examples": [
+                {
+                  "id": "loading_spinner",
+                  "timeoutMs": 5000
+                }
+              ]
+            }
+          },
+          "required": [
+            "waitForText"
+          ]
+        },
+        {
+          "type": "object",
+          "title": "waitForGone",
+          "description": "Poll until a widget with testId is removed from the tree",
+          "examples": [
+            {
+              "waitForGone": {
+                "id": "loading_spinner",
+                "timeoutMs": 5000
+              }
+            }
+          ],
+          "additionalProperties": false,
+          "minProperties": 1,
+          "maxProperties": 1,
+          "properties": {
+            "waitForGone": {
+              "$ref": "#/$defs/args_waitForGone",
+              "description": "Poll until a widget with testId is removed from the tree",
+              "examples": [
+                {
+                  "id": "loading_spinner",
+                  "timeoutMs": 5000
+                }
+              ]
+            }
+          },
+          "required": [
+            "waitForGone"
+          ]
+        },
+        {
+          "type": "object",
+          "title": "waitForApi",
+          "description": "Poll until a mocked API is called N times",
+          "examples": [
+            {
+              "waitForApi": {
+                "name": "login",
+                "times": 1
+              }
+            }
+          ],
+          "additionalProperties": false,
+          "minProperties": 1,
+          "maxProperties": 1,
+          "properties": {
+            "waitForApi": {
+              "$ref": "#/$defs/args_waitForApi",
+              "description": "Poll until a mocked API is called N times",
+              "examples": [
+                {
+                  "name": "login",
+                  "times": 1
+                }
+              ]
+            }
+          },
+          "required": [
+            "waitForApi"
+          ]
+        },
+        {
+          "type": "object",
+          "title": "waitForNavigation",
+          "description": "Poll until the given screen is visible",
+          "examples": [
+            {
+              "waitForNavigation": {
+                "screen": "Home",
+                "timeoutMs": 5000
+              }
+            }
+          ],
+          "additionalProperties": false,
+          "minProperties": 1,
+          "maxProperties": 1,
+          "properties": {
+            "waitForNavigation": {
+              "$ref": "#/$defs/args_waitForNavigation",
+              "description": "Poll until the given screen is visible",
+              "examples": [
+                {
+                  "screen": "Home",
+                  "timeoutMs": 5000
+                }
+              ]
+            }
+          },
+          "required": [
+            "waitForNavigation"
+          ]
+        },
+        {
+          "type": "object",
+          "title": "waitUntil",
+          "description": "Poll until app state at path equals expected value",
+          "examples": [
+            {
+              "waitUntil": {
+                "path": "user.name",
+                "equals": "Jane"
+              }
+            }
+          ],
+          "additionalProperties": false,
+          "minProperties": 1,
+          "maxProperties": 1,
+          "properties": {
+            "waitUntil": {
+              "$ref": "#/$defs/args_waitUntil",
+              "description": "Poll until app state at path equals expected value",
+              "examples": [
+                {
+                  "path": "user.name",
+                  "equals": "Jane"
+                }
+              ]
+            }
+          },
+          "required": [
+            "waitUntil"
+          ]
+        },
+        {
+          "type": "object",
+          "title": "expectVisible",
+          "description": "Assert a widget with testId is visible",
+          "examples": [
+            {
+              "expectVisible": {
+                "id": "my_widget"
+              }
+            }
+          ],
+          "additionalProperties": false,
+          "minProperties": 1,
+          "maxProperties": 1,
+          "properties": {
+            "expectVisible": {
+              "$ref": "#/$defs/args_expectVisible",
+              "description": "Assert a widget with testId is visible",
+              "examples": [
+                {
+                  "id": "my_widget"
+                }
+              ]
+            }
+          },
+          "required": [
+            "expectVisible"
+          ]
+        },
+        {
+          "type": "object",
+          "title": "expectNotVisible",
+          "description": "Assert a widget with testId is not visible",
+          "examples": [
+            {
+              "expectNotVisible": {
+                "id": "my_widget"
+              }
+            }
+          ],
+          "additionalProperties": false,
+          "minProperties": 1,
+          "maxProperties": 1,
+          "properties": {
+            "expectNotVisible": {
+              "$ref": "#/$defs/args_expectNotVisible",
+              "description": "Assert a widget with testId is not visible",
+              "examples": [
+                {
+                  "id": "my_widget"
+                }
+              ]
+            }
+          },
+          "required": [
+            "expectNotVisible"
+          ]
+        },
+        {
+          "type": "object",
+          "title": "expectExists",
+          "description": "Assert a widget with testId exists in the tree",
+          "examples": [
+            {
+              "expectExists": {
+                "id": "my_widget"
+              }
+            }
+          ],
+          "additionalProperties": false,
+          "minProperties": 1,
+          "maxProperties": 1,
+          "properties": {
+            "expectExists": {
+              "$ref": "#/$defs/args_expectExists",
+              "description": "Assert a widget with testId exists in the tree",
+              "examples": [
+                {
+                  "id": "my_widget"
+                }
+              ]
+            }
+          },
+          "required": [
+            "expectExists"
+          ]
+        },
+        {
+          "type": "object",
+          "title": "expectNotExists",
+          "description": "Assert no widget with testId exists",
+          "examples": [
+            {
+              "expectNotExists": {
+                "id": "my_widget"
+              }
+            }
+          ],
+          "additionalProperties": false,
+          "minProperties": 1,
+          "maxProperties": 1,
+          "properties": {
+            "expectNotExists": {
+              "$ref": "#/$defs/args_expectNotExists",
+              "description": "Assert no widget with testId exists",
+              "examples": [
+                {
+                  "id": "my_widget"
+                }
+              ]
+            }
+          },
+          "required": [
+            "expectNotExists"
+          ]
+        },
+        {
+          "type": "object",
+          "title": "expectText",
+          "description": "Assert exact text is shown",
+          "examples": [
+            {
+              "expectText": {
+                "text": "Welcome"
+              }
+            }
+          ],
+          "additionalProperties": false,
+          "minProperties": 1,
+          "maxProperties": 1,
+          "properties": {
+            "expectText": {
+              "$ref": "#/$defs/args_expectText",
+              "description": "Assert exact text is shown",
+              "examples": [
+                {
+                  "text": "Welcome"
+                }
+              ]
+            }
+          },
+          "required": [
+            "expectText"
+          ]
+        },
+        {
+          "type": "object",
+          "title": "expectNoText",
+          "description": "Assert text is not shown",
+          "examples": [
+            {
+              "expectNoText": {
+                "text": "Welcome"
+              }
+            }
+          ],
+          "additionalProperties": false,
+          "minProperties": 1,
+          "maxProperties": 1,
+          "properties": {
+            "expectNoText": {
+              "$ref": "#/$defs/args_expectNoText",
+              "description": "Assert text is not shown",
+              "examples": [
+                {
+                  "text": "Welcome"
+                }
+              ]
+            }
+          },
+          "required": [
+            "expectNoText"
+          ]
+        },
+        {
+          "type": "object",
+          "title": "expectTextContains",
+          "description": "Assert some text containing the given substring",
+          "examples": [
+            {
+              "expectTextContains": {
+                "text": "Welcome"
+              }
+            }
+          ],
+          "additionalProperties": false,
+          "minProperties": 1,
+          "maxProperties": 1,
+          "properties": {
+            "expectTextContains": {
+              "$ref": "#/$defs/args_expectTextContains",
+              "description": "Assert some text containing the given substring",
+              "examples": [
+                {
+                  "text": "Welcome"
+                }
+              ]
+            }
+          },
+          "required": [
+            "expectTextContains"
+          ]
+        },
+        {
+          "type": "object",
+          "title": "expectEnabled",
+          "description": "Assert widget semantics report enabled",
+          "examples": [
+            {
+              "expectEnabled": {
+                "id": "my_widget"
+              }
+            }
+          ],
+          "additionalProperties": false,
+          "minProperties": 1,
+          "maxProperties": 1,
+          "properties": {
+            "expectEnabled": {
+              "$ref": "#/$defs/args_expectEnabled",
+              "description": "Assert widget semantics report enabled",
+              "examples": [
+                {
+                  "id": "my_widget"
+                }
+              ]
+            }
+          },
+          "required": [
+            "expectEnabled"
+          ]
+        },
+        {
+          "type": "object",
+          "title": "expectDisabled",
+          "description": "Assert widget semantics report disabled",
+          "examples": [
+            {
+              "expectDisabled": {
+                "id": "my_widget"
+              }
+            }
+          ],
+          "additionalProperties": false,
+          "minProperties": 1,
+          "maxProperties": 1,
+          "properties": {
+            "expectDisabled": {
+              "$ref": "#/$defs/args_expectDisabled",
+              "description": "Assert widget semantics report disabled",
+              "examples": [
+                {
+                  "id": "my_widget"
+                }
+              ]
+            }
+          },
+          "required": [
+            "expectDisabled"
+          ]
+        },
+        {
+          "type": "object",
+          "title": "expectValue",
+          "description": "Assert input value equals expected (EditableText/TextField)",
+          "examples": [
+            {
+              "expectValue": {
+                "id": "email_field",
+                "equals": "user@test.com"
+              }
+            }
+          ],
+          "additionalProperties": false,
+          "minProperties": 1,
+          "maxProperties": 1,
+          "properties": {
+            "expectValue": {
+              "$ref": "#/$defs/args_expectValue",
+              "description": "Assert input value equals expected (EditableText/TextField)",
+              "examples": [
+                {
+                  "id": "email_field",
+                  "equals": "user@test.com"
+                }
+              ]
+            }
+          },
+          "required": [
+            "expectValue"
+          ]
+        },
+        {
+          "type": "object",
+          "title": "expectChecked",
+          "description": "Assert checkbox checked state matches equals",
+          "examples": [
+            {
+              "expectChecked": {
+                "id": "terms_checkbox",
+                "equals": true
+              }
+            }
+          ],
+          "additionalProperties": false,
+          "minProperties": 1,
+          "maxProperties": 1,
+          "properties": {
+            "expectChecked": {
+              "$ref": "#/$defs/args_expectChecked",
+              "description": "Assert checkbox checked state matches equals",
+              "examples": [
+                {
+                  "id": "terms_checkbox",
+                  "equals": true
+                }
+              ]
+            }
+          },
+          "required": [
+            "expectChecked"
+          ]
+        },
+        {
+          "type": "object",
+          "title": "expectProperty",
+          "description": "Assert a widget property (e.g. label) equals expected",
+          "examples": [
+            {
+              "expectProperty": {
+                "id": "title",
+                "property": "label",
+                "equals": "Hello"
+              }
+            }
+          ],
+          "additionalProperties": false,
+          "minProperties": 1,
+          "maxProperties": 1,
+          "properties": {
+            "expectProperty": {
+              "$ref": "#/$defs/args_expectProperty",
+              "description": "Assert a widget property (e.g. label) equals expected",
+              "examples": [
+                {
+                  "id": "title",
+                  "property": "label",
+                  "equals": "Hello"
+                }
+              ]
+            }
+          },
+          "required": [
+            "expectProperty"
+          ]
+        },
+        {
+          "type": "object",
+          "title": "expectStyle",
+          "description": "Assert style-related property equals expected",
+          "examples": [
+            {
+              "expectStyle": {
+                "id": "title",
+                "property": "label",
+                "equals": "Hello"
+              }
+            }
+          ],
+          "additionalProperties": false,
+          "minProperties": 1,
+          "maxProperties": 1,
+          "properties": {
+            "expectStyle": {
+              "$ref": "#/$defs/args_expectStyle",
+              "description": "Assert style-related property equals expected",
+              "examples": [
+                {
+                  "id": "title",
+                  "property": "label",
+                  "equals": "Hello"
+                }
+              ]
+            }
+          },
+          "required": [
+            "expectStyle"
+          ]
+        },
+        {
+          "type": "object",
+          "title": "expectSelected",
+          "description": "Assert selected/checked state matches equals",
+          "examples": [
+            {
+              "expectSelected": {
+                "id": "terms_checkbox",
+                "equals": true
+              }
+            }
+          ],
+          "additionalProperties": false,
+          "minProperties": 1,
+          "maxProperties": 1,
+          "properties": {
+            "expectSelected": {
+              "$ref": "#/$defs/args_expectSelected",
+              "description": "Assert selected/checked state matches equals",
+              "examples": [
+                {
+                  "id": "terms_checkbox",
+                  "equals": true
+                }
+              ]
+            }
+          },
+          "required": [
+            "expectSelected"
+          ]
+        },
+        {
+          "type": "object",
+          "title": "expectCount",
+          "description": "Assert count of widgets with the same testId",
+          "examples": [
+            {
+              "expectCount": {
+                "id": "badge",
+                "equals": 2
+              }
+            }
+          ],
+          "additionalProperties": false,
+          "minProperties": 1,
+          "maxProperties": 1,
+          "properties": {
+            "expectCount": {
+              "$ref": "#/$defs/args_expectCount",
+              "description": "Assert count of widgets with the same testId",
+              "examples": [
+                {
+                  "id": "badge",
+                  "equals": 2
+                }
+              ]
+            }
+          },
+          "required": [
+            "expectCount"
+          ]
+        },
+        {
+          "type": "object",
+          "title": "expectListCount",
+          "description": "Assert number of list items under a list testId",
+          "examples": [
+            {
+              "expectListCount": {
+                "id": "items_list",
+                "equals": 3
+              }
+            }
+          ],
+          "additionalProperties": false,
+          "minProperties": 1,
+          "maxProperties": 1,
+          "properties": {
+            "expectListCount": {
+              "$ref": "#/$defs/args_expectListCount",
+              "description": "Assert number of list items under a list testId",
+              "examples": [
+                {
+                  "id": "items_list",
+                  "equals": 3
+                }
+              ]
+            }
+          },
+          "required": [
+            "expectListCount"
+          ]
+        },
+        {
+          "type": "object",
+          "title": "expectListContains",
+          "description": "Assert list contains text",
+          "examples": [
+            {
+              "expectListContains": {
+                "id": "items_list",
+                "text": "Item 1"
+              }
+            }
+          ],
+          "additionalProperties": false,
+          "minProperties": 1,
+          "maxProperties": 1,
+          "properties": {
+            "expectListContains": {
+              "$ref": "#/$defs/args_expectListContains",
+              "description": "Assert list contains text",
+              "examples": [
+                {
+                  "id": "items_list",
+                  "text": "Item 1"
+                }
+              ]
+            }
+          },
+          "required": [
+            "expectListContains"
+          ]
+        },
+        {
+          "type": "object",
+          "title": "expectListItem",
+          "description": "Assert a list item widget with itemId is visible",
+          "examples": [
+            {
+              "expectListItem": {
+                "itemId": "row_0"
+              }
+            }
+          ],
+          "additionalProperties": false,
+          "minProperties": 1,
+          "maxProperties": 1,
+          "properties": {
+            "expectListItem": {
+              "$ref": "#/$defs/args_expectListItem",
+              "description": "Assert a list item widget with itemId is visible",
+              "examples": [
+                {
+                  "itemId": "row_0"
+                }
+              ]
+            }
+          },
+          "required": [
+            "expectListItem"
+          ]
+        },
+        {
+          "type": "object",
+          "title": "expectEmpty",
+          "description": "Assert a list has zero items",
+          "examples": [
+            {
+              "expectEmpty": {
+                "id": "my_widget"
+              }
+            }
+          ],
+          "additionalProperties": false,
+          "minProperties": 1,
+          "maxProperties": 1,
+          "properties": {
+            "expectEmpty": {
+              "$ref": "#/$defs/args_expectEmpty",
+              "description": "Assert a list has zero items",
+              "examples": [
+                {
+                  "id": "my_widget"
+                }
+              ]
+            }
+          },
+          "required": [
+            "expectEmpty"
+          ]
+        },
+        {
+          "type": "object",
+          "title": "expectNotEmpty",
+          "description": "Assert a list has at least one item",
+          "examples": [
+            {
+              "expectNotEmpty": {
+                "id": "my_widget"
+              }
+            }
+          ],
+          "additionalProperties": false,
+          "minProperties": 1,
+          "maxProperties": 1,
+          "properties": {
+            "expectNotEmpty": {
+              "$ref": "#/$defs/args_expectNotEmpty",
+              "description": "Assert a list has at least one item",
+              "examples": [
+                {
+                  "id": "my_widget"
+                }
+              ]
+            }
+          },
+          "required": [
+            "expectNotEmpty"
+          ]
+        },
+        {
+          "type": "object",
+          "title": "expectScreen",
+          "description": "Alias for expectNavigateTo — assert current screen",
+          "examples": [
+            {
+              "expectScreen": {
+                "screen": "Home"
+              }
+            }
+          ],
+          "additionalProperties": false,
+          "minProperties": 1,
+          "maxProperties": 1,
+          "properties": {
+            "expectScreen": {
+              "$ref": "#/$defs/args_expectScreen",
+              "description": "Alias for expectNavigateTo — assert current screen",
+              "examples": [
+                {
+                  "screen": "Home"
+                }
+              ]
+            }
+          },
+          "required": [
+            "expectScreen"
+          ]
+        },
+        {
+          "type": "object",
+          "title": "expectNavigateTo",
+          "description": "Assert the current visible screen name/id",
+          "examples": [
+            {
+              "expectNavigateTo": {
+                "screen": "Home"
+              }
+            }
+          ],
+          "additionalProperties": false,
+          "minProperties": 1,
+          "maxProperties": 1,
+          "properties": {
+            "expectNavigateTo": {
+              "$ref": "#/$defs/args_expectNavigateTo",
+              "description": "Assert the current visible screen name/id",
+              "examples": [
+                {
+                  "screen": "Home"
+                }
+              ]
+            }
+          },
+          "required": [
+            "expectNavigateTo"
+          ]
+        },
+        {
+          "type": "object",
+          "title": "expectVisited",
+          "description": "Assert a screen appears in navigation history",
+          "examples": [
+            {
+              "expectVisited": {
+                "screen": "Login"
+              }
+            }
+          ],
+          "additionalProperties": false,
+          "minProperties": 1,
+          "maxProperties": 1,
+          "properties": {
+            "expectVisited": {
+              "$ref": "#/$defs/args_expectVisited",
+              "description": "Assert a screen appears in navigation history",
+              "examples": [
+                {
+                  "screen": "Login"
+                }
+              ]
+            }
+          },
+          "required": [
+            "expectVisited"
+          ]
+        },
+        {
+          "type": "object",
+          "title": "expectNotVisited",
+          "description": "Assert a screen was never visited",
+          "examples": [
+            {
+              "expectNotVisited": {
+                "screen": "Login"
+              }
+            }
+          ],
+          "additionalProperties": false,
+          "minProperties": 1,
+          "maxProperties": 1,
+          "properties": {
+            "expectNotVisited": {
+              "$ref": "#/$defs/args_expectNotVisited",
+              "description": "Assert a screen was never visited",
+              "examples": [
+                {
+                  "screen": "Login"
+                }
+              ]
+            }
+          },
+          "required": [
+            "expectNotVisited"
+          ]
+        },
+        {
+          "type": "object",
+          "title": "expectBackStack",
+          "description": "Assert navigation history suffix matches screens",
+          "examples": [
+            {
+              "expectBackStack": {
+                "screens": [
+                  "Home",
+                  "Details"
+                ]
+              }
+            }
+          ],
+          "additionalProperties": false,
+          "minProperties": 1,
+          "maxProperties": 1,
+          "properties": {
+            "expectBackStack": {
+              "$ref": "#/$defs/args_expectBackStack",
+              "description": "Assert navigation history suffix matches screens",
+              "examples": [
+                {
+                  "screens": [
+                    "Home",
+                    "Details"
+                  ]
+                }
+              ]
+            }
+          },
+          "required": [
+            "expectBackStack"
+          ]
+        },
+        {
+          "type": "object",
+          "title": "expectCanGoBack",
+          "description": "Assert whether back navigation is possible",
+          "examples": [
+            {
+              "expectCanGoBack": {
+                "equals": true
+              }
+            }
+          ],
+          "additionalProperties": false,
+          "minProperties": 1,
+          "maxProperties": 1,
+          "properties": {
+            "expectCanGoBack": {
+              "$ref": "#/$defs/args_expectCanGoBack",
+              "description": "Assert whether back navigation is possible",
+              "examples": [
+                {
+                  "equals": true
+                }
+              ]
+            }
+          },
+          "required": [
+            "expectCanGoBack"
+          ]
+        },
+        {
+          "type": "object",
+          "title": "goBack",
+          "description": "Navigate back (Ensemble navigateBack or Navigator.pop)",
+          "examples": [
+            {
+              "goBack": {}
+            }
+          ],
+          "additionalProperties": false,
+          "minProperties": 1,
+          "maxProperties": 1,
+          "properties": {
+            "goBack": {
+              "$ref": "#/$defs/args_goBack",
+              "description": "Navigate back (Ensemble navigateBack or Navigator.pop)",
+              "examples": [
+                {}
+              ]
+            }
+          },
+          "required": [
+            "goBack"
+          ]
+        },
+        {
+          "type": "object",
+          "title": "mockApi",
+          "description": "Register a mock HTTP API response by API name",
+          "examples": [
+            {
+              "mockApi": {
+                "name": "login",
+                "response": {
+                  "statusCode": 200,
+                  "body": {
+                    "token": "test-token"
+                  }
+                }
+              }
+            }
+          ],
+          "additionalProperties": false,
+          "minProperties": 1,
+          "maxProperties": 1,
+          "properties": {
+            "mockApi": {
+              "$ref": "#/$defs/args_mockApi",
+              "description": "Register a mock HTTP API response by API name",
+              "examples": [
+                {
+                  "name": "login",
+                  "response": {
+                    "statusCode": 200,
+                    "body": {
+                      "token": "test-token"
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          "required": [
+            "mockApi"
+          ]
+        },
+        {
+          "type": "object",
+          "title": "mockApiError",
+          "description": "Mock an API to return an error status/body",
+          "examples": [
+            {
+              "mockApiError": {
+                "name": "login",
+                "statusCode": 401,
+                "body": {
+                  "error": "Unauthorized"
+                }
+              }
+            }
+          ],
+          "additionalProperties": false,
+          "minProperties": 1,
+          "maxProperties": 1,
+          "properties": {
+            "mockApiError": {
+              "$ref": "#/$defs/args_mockApiError",
+              "description": "Mock an API to return an error status/body",
+              "examples": [
+                {
+                  "name": "login",
+                  "statusCode": 401,
+                  "body": {
+                    "error": "Unauthorized"
+                  }
+                }
+              ]
+            }
+          },
+          "required": [
+            "mockApiError"
+          ]
+        },
+        {
+          "type": "object",
+          "title": "mockApiFromFixture",
+          "description": "Load mock response body from a JSON fixture asset",
+          "examples": [
+            {
+              "mockApiFromFixture": {
+                "name": "users",
+                "fixture": "users.json"
+              }
+            }
+          ],
+          "additionalProperties": false,
+          "minProperties": 1,
+          "maxProperties": 1,
+          "properties": {
+            "mockApiFromFixture": {
+              "$ref": "#/$defs/args_mockApiFromFixture",
+              "description": "Load mock response body from a JSON fixture asset",
+              "examples": [
+                {
+                  "name": "users",
+                  "fixture": "users.json"
+                }
+              ]
+            }
+          },
+          "required": [
+            "mockApiFromFixture"
+          ]
+        },
+        {
+          "type": "object",
+          "title": "mockApiException",
+          "description": "Force an API call to throw an exception",
+          "examples": [
+            {
+              "mockApiException": {
+                "name": "login",
+                "message": "Network error"
+              }
+            }
+          ],
+          "additionalProperties": false,
+          "minProperties": 1,
+          "maxProperties": 1,
+          "properties": {
+            "mockApiException": {
+              "$ref": "#/$defs/args_mockApiException",
+              "description": "Force an API call to throw an exception",
+              "examples": [
+                {
+                  "name": "login",
+                  "message": "Network error"
+                }
+              ]
+            }
+          },
+          "required": [
+            "mockApiException"
+          ]
+        },
+        {
+          "type": "object",
+          "title": "mockTimeout",
+          "description": "Mock an API with a long delay (simulate timeout)",
+          "examples": [
+            {
+              "mockTimeout": {
+                "name": "slow_api",
+                "delayMs": 60000
+              }
+            }
+          ],
+          "additionalProperties": false,
+          "minProperties": 1,
+          "maxProperties": 1,
+          "properties": {
+            "mockTimeout": {
+              "$ref": "#/$defs/args_mockTimeout",
+              "description": "Mock an API with a long delay (simulate timeout)",
+              "examples": [
+                {
+                  "name": "slow_api",
+                  "delayMs": 60000
+                }
+              ]
+            }
+          },
+          "required": [
+            "mockTimeout"
+          ]
+        },
+        {
+          "type": "object",
+          "title": "mockNetworkOffline",
+          "description": "Simulate offline network for API calls",
+          "examples": [
+            {
+              "mockNetworkOffline": {}
+            }
+          ],
+          "additionalProperties": false,
+          "minProperties": 1,
+          "maxProperties": 1,
+          "properties": {
+            "mockNetworkOffline": {
+              "$ref": "#/$defs/args_mockNetworkOffline",
+              "description": "Simulate offline network for API calls",
+              "examples": [
+                {}
+              ]
+            }
+          },
+          "required": [
+            "mockNetworkOffline"
+          ]
+        },
+        {
+          "type": "object",
+          "title": "mockNetworkOnline",
+          "description": "Restore online network for API calls",
+          "examples": [
+            {
+              "mockNetworkOnline": {}
+            }
+          ],
+          "additionalProperties": false,
+          "minProperties": 1,
+          "maxProperties": 1,
+          "properties": {
+            "mockNetworkOnline": {
+              "$ref": "#/$defs/args_mockNetworkOnline",
+              "description": "Restore online network for API calls",
+              "examples": [
+                {}
+              ]
+            }
+          },
+          "required": [
+            "mockNetworkOnline"
+          ]
+        },
+        {
+          "type": "object",
+          "title": "resetApiCalls",
+          "description": "Clear recorded API call history",
+          "examples": [
+            {
+              "resetApiCalls": {}
+            }
+          ],
+          "additionalProperties": false,
+          "minProperties": 1,
+          "maxProperties": 1,
+          "properties": {
+            "resetApiCalls": {
+              "$ref": "#/$defs/args_resetApiCalls",
+              "description": "Clear recorded API call history",
+              "examples": [
+                {}
+              ]
+            }
+          },
+          "required": [
+            "resetApiCalls"
+          ]
+        },
+        {
+          "type": "object",
+          "title": "clearApiMocks",
+          "description": "Remove all registered API mocks",
+          "examples": [
+            {
+              "clearApiMocks": {}
+            }
+          ],
+          "additionalProperties": false,
+          "minProperties": 1,
+          "maxProperties": 1,
+          "properties": {
+            "clearApiMocks": {
+              "$ref": "#/$defs/args_clearApiMocks",
+              "description": "Remove all registered API mocks",
+              "examples": [
+                {}
+              ]
+            }
+          },
+          "required": [
+            "clearApiMocks"
+          ]
+        },
+        {
+          "type": "object",
+          "title": "expectApiCalled",
+          "description": "Assert an API was called an exact number of times",
+          "examples": [
+            {
+              "expectApiCalled": {
+                "name": "login",
+                "times": 1
+              }
+            }
+          ],
+          "additionalProperties": false,
+          "minProperties": 1,
+          "maxProperties": 1,
+          "properties": {
+            "expectApiCalled": {
+              "$ref": "#/$defs/args_expectApiCalled",
+              "description": "Assert an API was called an exact number of times",
+              "examples": [
+                {
+                  "name": "login",
+                  "times": 1
+                }
+              ]
+            }
+          },
+          "required": [
+            "expectApiCalled"
+          ]
+        },
+        {
+          "type": "object",
+          "title": "expectApiNotCalled",
+          "description": "Assert an API was never called",
+          "examples": [
+            {
+              "expectApiNotCalled": {
+                "name": "login",
+                "times": 1
+              }
+            }
+          ],
+          "additionalProperties": false,
+          "minProperties": 1,
+          "maxProperties": 1,
+          "properties": {
+            "expectApiNotCalled": {
+              "$ref": "#/$defs/args_expectApiNotCalled",
+              "description": "Assert an API was never called",
+              "examples": [
+                {
+                  "name": "login",
+                  "times": 1
+                }
+              ]
+            }
+          },
+          "required": [
+            "expectApiNotCalled"
+          ]
+        },
+        {
+          "type": "object",
+          "title": "expectApiRequest",
+          "description": "Assert last API request body/query/headers match",
+          "examples": [
+            {
+              "expectApiRequest": {
+                "name": "login",
+                "body": {
+                  "email": "user@test.com",
+                  "password": "secret"
+                }
+              }
+            }
+          ],
+          "additionalProperties": false,
+          "minProperties": 1,
+          "maxProperties": 1,
+          "properties": {
+            "expectApiRequest": {
+              "$ref": "#/$defs/args_expectApiRequest",
+              "description": "Assert last API request body/query/headers match",
+              "examples": [
+                {
+                  "name": "login",
+                  "body": {
+                    "email": "user@test.com",
+                    "password": "secret"
+                  }
+                }
+              ]
+            }
+          },
+          "required": [
+            "expectApiRequest"
+          ]
+        },
+        {
+          "type": "object",
+          "title": "expectApiRequestContains",
+          "description": "Assert API request contains partial body/query",
+          "examples": [
+            {
+              "expectApiRequestContains": {
+                "name": "login",
+                "body": {
+                  "email": "user@test.com",
+                  "password": "secret"
+                }
+              }
+            }
+          ],
+          "additionalProperties": false,
+          "minProperties": 1,
+          "maxProperties": 1,
+          "properties": {
+            "expectApiRequestContains": {
+              "$ref": "#/$defs/args_expectApiRequestContains",
+              "description": "Assert API request contains partial body/query",
+              "examples": [
+                {
+                  "name": "login",
+                  "body": {
+                    "email": "user@test.com",
+                    "password": "secret"
+                  }
+                }
+              ]
+            }
+          },
+          "required": [
+            "expectApiRequestContains"
+          ]
+        },
+        {
+          "type": "object",
+          "title": "expectApiHeader",
+          "description": "Assert an API request header equals expected",
+          "examples": [
+            {
+              "expectApiHeader": {
+                "name": "login",
+                "header": "Authorization",
+                "equals": "Bearer test-token"
+              }
+            }
+          ],
+          "additionalProperties": false,
+          "minProperties": 1,
+          "maxProperties": 1,
+          "properties": {
+            "expectApiHeader": {
+              "$ref": "#/$defs/args_expectApiHeader",
+              "description": "Assert an API request header equals expected",
+              "examples": [
+                {
+                  "name": "login",
+                  "header": "Authorization",
+                  "equals": "Bearer test-token"
+                }
+              ]
+            }
+          },
+          "required": [
+            "expectApiHeader"
+          ]
+        },
+        {
+          "type": "object",
+          "title": "expectApiCallOrder",
+          "description": "Assert APIs were called in order",
+          "examples": [
+            {
+              "expectApiCallOrder": {
+                "names": [
+                  "auth",
+                  "profile"
+                ]
+              }
+            }
+          ],
+          "additionalProperties": false,
+          "minProperties": 1,
+          "maxProperties": 1,
+          "properties": {
+            "expectApiCallOrder": {
+              "$ref": "#/$defs/args_expectApiCallOrder",
+              "description": "Assert APIs were called in order",
+              "examples": [
+                {
+                  "names": [
+                    "auth",
+                    "profile"
+                  ]
+                }
+              ]
+            }
+          },
+          "required": [
+            "expectApiCallOrder"
+          ]
+        },
+        {
+          "type": "object",
+          "title": "expectLastApiCall",
+          "description": "Assert the most recent API call name",
+          "examples": [
+            {
+              "expectLastApiCall": {
+                "name": "login",
+                "times": 1
+              }
+            }
+          ],
+          "additionalProperties": false,
+          "minProperties": 1,
+          "maxProperties": 1,
+          "properties": {
+            "expectLastApiCall": {
+              "$ref": "#/$defs/args_expectLastApiCall",
+              "description": "Assert the most recent API call name",
+              "examples": [
+                {
+                  "name": "login",
+                  "times": 1
+                }
+              ]
+            }
+          },
+          "required": [
+            "expectLastApiCall"
+          ]
+        },
+        {
+          "type": "object",
+          "title": "setState",
+          "description": "Set app data-context state at path to value",
+          "examples": [
+            {
+              "setState": {
+                "path": "user.name",
+                "value": "Jane"
+              }
+            }
+          ],
+          "additionalProperties": false,
+          "minProperties": 1,
+          "maxProperties": 1,
+          "properties": {
+            "setState": {
+              "$ref": "#/$defs/args_setState",
+              "description": "Set app data-context state at path to value",
+              "examples": [
+                {
+                  "path": "user.name",
+                  "value": "Jane"
+                }
+              ]
+            }
+          },
+          "required": [
+            "setState"
+          ]
+        },
+        {
+          "type": "object",
+          "title": "expectState",
+          "description": "Assert app state at path equals expected",
+          "examples": [
+            {
+              "expectState": {
+                "path": "user.name",
+                "equals": "Jane"
+              }
+            }
+          ],
+          "additionalProperties": false,
+          "minProperties": 1,
+          "maxProperties": 1,
+          "properties": {
+            "expectState": {
+              "$ref": "#/$defs/args_expectState",
+              "description": "Assert app state at path equals expected",
+              "examples": [
+                {
+                  "path": "user.name",
+                  "equals": "Jane"
+                }
+              ]
+            }
+          },
+          "required": [
+            "expectState"
+          ]
+        },
+        {
+          "type": "object",
+          "title": "expectStateContains",
+          "description": "Assert app state at path contains subset",
+          "examples": [
+            {
+              "expectStateContains": {
+                "path": "user.name",
+                "equals": "Jane"
+              }
+            }
+          ],
+          "additionalProperties": false,
+          "minProperties": 1,
+          "maxProperties": 1,
+          "properties": {
+            "expectStateContains": {
+              "$ref": "#/$defs/args_expectStateContains",
+              "description": "Assert app state at path contains subset",
+              "examples": [
+                {
+                  "path": "user.name",
+                  "equals": "Jane"
+                }
+              ]
+            }
+          },
+          "required": [
+            "expectStateContains"
+          ]
+        },
+        {
+          "type": "object",
+          "title": "expectStateExists",
+          "description": "Assert state path resolves without error",
+          "examples": [
+            {
+              "expectStateExists": {
+                "path": "user.id"
+              }
+            }
+          ],
+          "additionalProperties": false,
+          "minProperties": 1,
+          "maxProperties": 1,
+          "properties": {
+            "expectStateExists": {
+              "$ref": "#/$defs/args_expectStateExists",
+              "description": "Assert state path resolves without error",
+              "examples": [
+                {
+                  "path": "user.id"
+                }
+              ]
+            }
+          },
+          "required": [
+            "expectStateExists"
+          ]
+        },
+        {
+          "type": "object",
+          "title": "expectStateNotExists",
+          "description": "Assert state path is null or absent",
+          "examples": [
+            {
+              "expectStateNotExists": {
+                "path": "user.id"
+              }
+            }
+          ],
+          "additionalProperties": false,
+          "minProperties": 1,
+          "maxProperties": 1,
+          "properties": {
+            "expectStateNotExists": {
+              "$ref": "#/$defs/args_expectStateNotExists",
+              "description": "Assert state path is null or absent",
+              "examples": [
+                {
+                  "path": "user.id"
+                }
+              ]
+            }
+          },
+          "required": [
+            "expectStateNotExists"
+          ]
+        },
+        {
+          "type": "object",
+          "title": "resetState",
+          "description": "Clear state at path (set to null)",
+          "examples": [
+            {
+              "resetState": {
+                "path": "cart"
+              }
+            }
+          ],
+          "additionalProperties": false,
+          "minProperties": 1,
+          "maxProperties": 1,
+          "properties": {
+            "resetState": {
+              "$ref": "#/$defs/args_resetState",
+              "description": "Clear state at path (set to null)",
+              "examples": [
+                {
+                  "path": "cart"
+                }
+              ]
+            }
+          },
+          "required": [
+            "resetState"
+          ]
+        },
+        {
+          "type": "object",
+          "title": "setStorage",
+          "description": "Write a value to public GetStorage by key",
+          "examples": [
+            {
+              "setStorage": {
+                "key": "onboarding_done",
+                "value": true
+              }
+            }
+          ],
+          "additionalProperties": false,
+          "minProperties": 1,
+          "maxProperties": 1,
+          "properties": {
+            "setStorage": {
+              "$ref": "#/$defs/args_setStorage",
+              "description": "Write a value to public GetStorage by key",
+              "examples": [
+                {
+                  "key": "onboarding_done",
+                  "value": true
+                }
+              ]
+            }
+          },
+          "required": [
+            "setStorage"
+          ]
+        },
+        {
+          "type": "object",
+          "title": "expectStorage",
+          "description": "Assert public storage key equals expected",
+          "examples": [
+            {
+              "expectStorage": {
+                "key": "onboarding_done",
+                "value": true
+              }
+            }
+          ],
+          "additionalProperties": false,
+          "minProperties": 1,
+          "maxProperties": 1,
+          "properties": {
+            "expectStorage": {
+              "$ref": "#/$defs/args_expectStorage",
+              "description": "Assert public storage key equals expected",
+              "examples": [
+                {
+                  "key": "onboarding_done",
+                  "value": true
+                }
+              ]
+            }
+          },
+          "required": [
+            "expectStorage"
+          ]
+        },
+        {
+          "type": "object",
+          "title": "removeStorage",
+          "description": "Remove a key from public storage",
+          "examples": [
+            {
+              "removeStorage": {
+                "key": "onboarding_done",
+                "value": true
+              }
+            }
+          ],
+          "additionalProperties": false,
+          "minProperties": 1,
+          "maxProperties": 1,
+          "properties": {
+            "removeStorage": {
+              "$ref": "#/$defs/args_removeStorage",
+              "description": "Remove a key from public storage",
+              "examples": [
+                {
+                  "key": "onboarding_done",
+                  "value": true
+                }
+              ]
+            }
+          },
+          "required": [
+            "removeStorage"
+          ]
+        },
+        {
+          "type": "object",
+          "title": "clearStorage",
+          "description": "Clear all non-encrypted public storage keys",
+          "examples": [
+            {
+              "clearStorage": {}
+            }
+          ],
+          "additionalProperties": false,
+          "minProperties": 1,
+          "maxProperties": 1,
+          "properties": {
+            "clearStorage": {
+              "$ref": "#/$defs/args_clearStorage",
+              "description": "Clear all non-encrypted public storage keys",
+              "examples": [
+                {}
+              ]
+            }
+          },
+          "required": [
+            "clearStorage"
+          ]
+        },
+        {
+          "type": "object",
+          "title": "setEnv",
+          "description": "Override an environment variable for the test",
+          "examples": [
+            {
+              "setEnv": {
+                "key": "onboarding_done",
+                "value": true
+              }
+            }
+          ],
+          "additionalProperties": false,
+          "minProperties": 1,
+          "maxProperties": 1,
+          "properties": {
+            "setEnv": {
+              "$ref": "#/$defs/args_setEnv",
+              "description": "Override an environment variable for the test",
+              "examples": [
+                {
+                  "key": "onboarding_done",
+                  "value": true
+                }
+              ]
+            }
+          },
+          "required": [
+            "setEnv"
+          ]
+        },
+        {
+          "type": "object",
+          "title": "setAuth",
+          "description": "Simulate a signed-in user",
+          "examples": [
+            {
+              "setAuth": {
+                "user": {
+                  "id": "1",
+                  "email": "user@test.com"
+                }
+              }
+            }
+          ],
+          "additionalProperties": false,
+          "minProperties": 1,
+          "maxProperties": 1,
+          "properties": {
+            "setAuth": {
+              "$ref": "#/$defs/args_setAuth",
+              "description": "Simulate a signed-in user",
+              "examples": [
+                {
+                  "user": {
+                    "id": "1",
+                    "email": "user@test.com"
+                  }
+                }
+              ]
+            }
+          },
+          "required": [
+            "setAuth"
+          ]
+        },
+        {
+          "type": "object",
+          "title": "clearAuth",
+          "description": "Clear the signed-in user",
+          "examples": [
+            {
+              "clearAuth": {}
+            }
+          ],
+          "additionalProperties": false,
+          "minProperties": 1,
+          "maxProperties": 1,
+          "properties": {
+            "clearAuth": {
+              "$ref": "#/$defs/args_clearAuth",
+              "description": "Clear the signed-in user",
+              "examples": [
+                {}
+              ]
+            }
+          },
+          "required": [
+            "clearAuth"
+          ]
+        },
+        {
+          "type": "object",
+          "title": "setPermission",
+          "description": "Set a permission flag for the test runtime",
+          "examples": [
+            {
+              "setPermission": {
+                "name": "camera",
+                "value": "granted"
+              }
+            }
+          ],
+          "additionalProperties": false,
+          "minProperties": 1,
+          "maxProperties": 1,
+          "properties": {
+            "setPermission": {
+              "$ref": "#/$defs/args_setPermission",
+              "description": "Set a permission flag for the test runtime",
+              "examples": [
+                {
+                  "name": "camera",
+                  "value": "granted"
+                }
+              ]
+            }
+          },
+          "required": [
+            "setPermission"
+          ]
+        },
+        {
+          "type": "object",
+          "title": "setDevice",
+          "description": "Override viewport physical size (width/height)",
+          "examples": [
+            {
+              "setDevice": {
+                "width": 390,
+                "height": 844
+              }
+            }
+          ],
+          "additionalProperties": false,
+          "minProperties": 1,
+          "maxProperties": 1,
+          "properties": {
+            "setDevice": {
+              "$ref": "#/$defs/args_setDevice",
+              "description": "Override viewport physical size (width/height)",
+              "examples": [
+                {
+                  "width": 390,
+                  "height": 844
+                }
+              ]
+            }
+          },
+          "required": [
+            "setDevice"
+          ]
+        },
+        {
+          "type": "object",
+          "title": "setLocale",
+          "description": "Set APP_LOCALE environment override",
+          "examples": [
+            {
+              "setLocale": {
+                "locale": "en_US"
+              }
+            }
+          ],
+          "additionalProperties": false,
+          "minProperties": 1,
+          "maxProperties": 1,
+          "properties": {
+            "setLocale": {
+              "$ref": "#/$defs/args_setLocale",
+              "description": "Set APP_LOCALE environment override",
+              "examples": [
+                {
+                  "locale": "en_US"
+                }
+              ]
+            }
+          },
+          "required": [
+            "setLocale"
+          ]
+        },
+        {
+          "type": "object",
+          "title": "setTheme",
+          "description": "Set APP_THEME / theme mode override",
+          "examples": [
+            {
+              "setTheme": {
+                "mode": "dark"
+              }
+            }
+          ],
+          "additionalProperties": false,
+          "minProperties": 1,
+          "maxProperties": 1,
+          "properties": {
+            "setTheme": {
+              "$ref": "#/$defs/args_setTheme",
+              "description": "Set APP_THEME / theme mode override",
+              "examples": [
+                {
+                  "mode": "dark"
+                }
+              ]
+            }
+          },
+          "required": [
+            "setTheme"
+          ]
+        },
+        {
+          "type": "object",
+          "title": "runScript",
+          "description": "Evaluate a script expression in the data context",
+          "examples": [
+            {
+              "runScript": {
+                "script": "1 + 1",
+                "equals": 2
+              }
+            }
+          ],
+          "additionalProperties": false,
+          "minProperties": 1,
+          "maxProperties": 1,
+          "properties": {
+            "runScript": {
+              "$ref": "#/$defs/args_runScript",
+              "description": "Evaluate a script expression in the data context",
+              "examples": [
+                {
+                  "script": "1 + 1",
+                  "equals": 2
+                }
+              ]
+            }
+          },
+          "required": [
+            "runScript"
+          ]
+        },
+        {
+          "type": "object",
+          "title": "expectScriptResult",
+          "description": "Evaluate script and assert result equals expected",
+          "examples": [
+            {
+              "expectScriptResult": {
+                "script": "1 + 1",
+                "equals": 2
+              }
+            }
+          ],
+          "additionalProperties": false,
+          "minProperties": 1,
+          "maxProperties": 1,
+          "properties": {
+            "expectScriptResult": {
+              "$ref": "#/$defs/args_expectScriptResult",
+              "description": "Evaluate script and assert result equals expected",
+              "examples": [
+                {
+                  "script": "1 + 1",
+                  "equals": 2
+                }
+              ]
+            }
+          },
+          "required": [
+            "expectScriptResult"
+          ]
+        },
+        {
+          "type": "object",
+          "title": "expectConsoleLog",
+          "description": "Assert a console log line contains text",
+          "examples": [
+            {
+              "expectConsoleLog": {
+                "contains": "Screen loaded"
+              }
+            }
+          ],
+          "additionalProperties": false,
+          "minProperties": 1,
+          "maxProperties": 1,
+          "properties": {
+            "expectConsoleLog": {
+              "$ref": "#/$defs/args_expectConsoleLog",
+              "description": "Assert a console log line contains text",
+              "examples": [
+                {
+                  "contains": "Screen loaded"
+                }
+              ]
+            }
+          },
+          "required": [
+            "expectConsoleLog"
+          ]
+        },
+        {
+          "type": "object",
+          "title": "group",
+          "description": "Run nested steps as a named group",
+          "examples": [
+            {
+              "group": {
+                "name": "login_flow",
+                "steps": [
+                  {
+                    "tap": {
+                      "id": "login_button"
+                    }
+                  }
+                ]
+              }
+            }
+          ],
+          "additionalProperties": false,
+          "minProperties": 1,
+          "maxProperties": 1,
+          "properties": {
+            "group": {
+              "$ref": "#/$defs/args_group",
+              "description": "Run nested steps as a named group",
+              "examples": [
+                {
+                  "name": "login_flow",
+                  "steps": [
+                    {
+                      "tap": {
+                        "id": "login_button"
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          },
+          "required": [
+            "group"
+          ]
+        },
+        {
+          "type": "object",
+          "title": "repeat",
+          "description": "Repeat nested steps N times",
+          "examples": [
+            {
+              "repeat": {
+                "times": 3,
+                "steps": [
+                  {
+                    "tap": {
+                      "id": "next_button"
+                    }
+                  }
+                ]
+              }
+            }
+          ],
+          "additionalProperties": false,
+          "minProperties": 1,
+          "maxProperties": 1,
+          "properties": {
+            "repeat": {
+              "$ref": "#/$defs/args_repeat",
+              "description": "Repeat nested steps N times",
+              "examples": [
+                {
+                  "times": 3,
+                  "steps": [
+                    {
+                      "tap": {
+                        "id": "next_button"
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          },
+          "required": [
+            "repeat"
+          ]
+        },
+        {
+          "type": "object",
+          "title": "optional",
+          "description": "Run nested steps; swallow failures",
+          "examples": [
+            {
+              "optional": {
+                "steps": [
+                  {
+                    "tap": {
+                      "id": "dismiss_banner"
+                    }
+                  }
+                ]
+              }
+            }
+          ],
+          "additionalProperties": false,
+          "minProperties": 1,
+          "maxProperties": 1,
+          "properties": {
+            "optional": {
+              "$ref": "#/$defs/args_optional",
+              "description": "Run nested steps; swallow failures",
+              "examples": [
+                {
+                  "steps": [
+                    {
+                      "tap": {
+                        "id": "dismiss_banner"
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          },
+          "required": [
+            "optional"
+          ]
+        },
+        {
+          "type": "object",
+          "title": "ifVisible",
+          "description": "Run nested steps only if testId is visible",
+          "examples": [
+            {
+              "ifVisible": {
+                "id": "promo_banner",
+                "steps": [
+                  {
+                    "tap": {
+                      "id": "close_banner"
+                    }
+                  }
+                ]
+              }
+            }
+          ],
+          "additionalProperties": false,
+          "minProperties": 1,
+          "maxProperties": 1,
+          "properties": {
+            "ifVisible": {
+              "$ref": "#/$defs/args_ifVisible",
+              "description": "Run nested steps only if testId is visible",
+              "examples": [
+                {
+                  "id": "promo_banner",
+                  "steps": [
+                    {
+                      "tap": {
+                        "id": "close_banner"
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          },
+          "required": [
+            "ifVisible"
+          ]
+        },
+        {
+          "type": "object",
+          "title": "logApiCalls",
+          "description": "Log all recorded API calls to the test log",
+          "examples": [
+            {
+              "logApiCalls": {}
+            }
+          ],
+          "additionalProperties": false,
+          "minProperties": 1,
+          "maxProperties": 1,
+          "properties": {
+            "logApiCalls": {
+              "$ref": "#/$defs/args_logApiCalls",
+              "description": "Log all recorded API calls to the test log",
+              "examples": [
+                {}
+              ]
+            }
+          },
+          "required": [
+            "logApiCalls"
+          ]
+        },
+        {
+          "type": "object",
+          "title": "screenshot",
+          "description": "Capture golden or dump widget tree for debugging",
+          "examples": [
+            {
+              "screenshot": {
+                "name": "home_screen"
+              }
+            }
+          ],
+          "additionalProperties": false,
+          "minProperties": 1,
+          "maxProperties": 1,
+          "properties": {
+            "screenshot": {
+              "$ref": "#/$defs/args_screenshot",
+              "description": "Capture golden or dump widget tree for debugging",
+              "examples": [
+                {
+                  "name": "home_screen"
+                }
+              ]
+            }
+          },
+          "required": [
+            "screenshot"
+          ]
+        },
+        {
+          "type": "object",
+          "title": "dumpTree",
+          "description": "Print the widget tree to the debug console",
+          "examples": [
+            {
+              "dumpTree": {}
+            }
+          ],
+          "additionalProperties": false,
+          "minProperties": 1,
+          "maxProperties": 1,
+          "properties": {
+            "dumpTree": {
+              "$ref": "#/$defs/args_dumpTree",
+              "description": "Print the widget tree to the debug console",
+              "examples": [
+                {}
+              ]
+            }
+          },
+          "required": [
+            "dumpTree"
+          ]
+        },
+        {
+          "type": "object",
+          "title": "logState",
+          "description": "Log resolved state at path",
+          "examples": [
+            {
+              "logState": {
+                "path": "user.id"
+              }
+            }
+          ],
+          "additionalProperties": false,
+          "minProperties": 1,
+          "maxProperties": 1,
+          "properties": {
+            "logState": {
+              "$ref": "#/$defs/args_logState",
+              "description": "Log resolved state at path",
+              "examples": [
+                {
+                  "path": "user.id"
+                }
+              ]
+            }
+          },
+          "required": [
+            "logState"
+          ]
+        },
+        {
+          "type": "object",
+          "title": "logStorage",
+          "description": "Log public storage value for key",
+          "examples": [
+            {
+              "logStorage": {
+                "key": "onboarding_done",
+                "value": true
+              }
+            }
+          ],
+          "additionalProperties": false,
+          "minProperties": 1,
+          "maxProperties": 1,
+          "properties": {
+            "logStorage": {
+              "$ref": "#/$defs/args_logStorage",
+              "description": "Log public storage value for key",
+              "examples": [
+                {
+                  "key": "onboarding_done",
+                  "value": true
+                }
+              ]
+            }
+          },
+          "required": [
+            "logStorage"
+          ]
+        },
+        {
+          "type": "object",
+          "title": "expectNoConsoleErrors",
+          "description": "Assert no console errors were recorded",
+          "examples": [
+            {
+              "expectNoConsoleErrors": {}
+            }
+          ],
+          "additionalProperties": false,
+          "minProperties": 1,
+          "maxProperties": 1,
+          "properties": {
+            "expectNoConsoleErrors": {
+              "$ref": "#/$defs/args_expectNoConsoleErrors",
+              "description": "Assert no console errors were recorded",
+              "examples": [
+                {}
+              ]
+            }
+          },
+          "required": [
+            "expectNoConsoleErrors"
+          ]
+        },
+        {
+          "type": "object",
+          "title": "expectNoRenderErrors",
+          "description": "Assert no Flutter render errors were recorded",
+          "examples": [
+            {
+              "expectNoRenderErrors": {}
+            }
+          ],
+          "additionalProperties": false,
+          "minProperties": 1,
+          "maxProperties": 1,
+          "properties": {
+            "expectNoRenderErrors": {
+              "$ref": "#/$defs/args_expectNoRenderErrors",
+              "description": "Assert no Flutter render errors were recorded",
+              "examples": [
+                {}
+              ]
+            }
+          },
+          "required": [
+            "expectNoRenderErrors"
+          ]
+        },
+        {
+          "type": "object",
+          "title": "expectError",
+          "description": "Assert a Flutter error was recorded (optional filter)",
+          "examples": [
+            {
+              "expectError": {
+                "contains": "overflow"
+              }
+            }
+          ],
+          "additionalProperties": false,
+          "minProperties": 1,
+          "maxProperties": 1,
+          "properties": {
+            "expectError": {
+              "$ref": "#/$defs/args_expectError",
+              "description": "Assert a Flutter error was recorded (optional filter)",
+              "examples": [
+                {
+                  "contains": "overflow"
+                }
+              ]
+            }
+          },
+          "required": [
+            "expectError"
+          ]
+        },
+        {
+          "type": "object",
+          "title": "expectNoErrors",
+          "description": "Alias for expectNoRenderErrors",
+          "examples": [
+            {
+              "expectNoErrors": {}
+            }
+          ],
+          "additionalProperties": false,
+          "minProperties": 1,
+          "maxProperties": 1,
+          "properties": {
+            "expectNoErrors": {
+              "$ref": "#/$defs/args_expectNoErrors",
+              "description": "Alias for expectNoRenderErrors",
+              "examples": [
+                {}
+              ]
+            }
+          },
+          "required": [
+            "expectNoErrors"
+          ]
+        },
+        {
+          "type": "object",
+          "title": "expectAccessible",
+          "description": "Assert widget has accessibility label or value",
+          "examples": [
+            {
+              "expectAccessible": {
+                "id": "my_widget"
+              }
+            }
+          ],
+          "additionalProperties": false,
+          "minProperties": 1,
+          "maxProperties": 1,
+          "properties": {
+            "expectAccessible": {
+              "$ref": "#/$defs/args_expectAccessible",
+              "description": "Assert widget has accessibility label or value",
+              "examples": [
+                {
+                  "id": "my_widget"
+                }
+              ]
+            }
+          },
+          "required": [
+            "expectAccessible"
+          ]
+        },
+        {
+          "type": "object",
+          "title": "expectSemanticsLabel",
+          "description": "Assert semantics label equals expected",
+          "examples": [
+            {
+              "expectSemanticsLabel": {
+                "id": "submit_button",
+                "label": "Submit"
+              }
+            }
+          ],
+          "additionalProperties": false,
+          "minProperties": 1,
+          "maxProperties": 1,
+          "properties": {
+            "expectSemanticsLabel": {
+              "$ref": "#/$defs/args_expectSemanticsLabel",
+              "description": "Assert semantics label equals expected",
+              "examples": [
+                {
+                  "id": "submit_button",
+                  "label": "Submit"
+                }
+              ]
+            }
+          },
+          "required": [
+            "expectSemanticsLabel"
+          ]
+        },
+        {
+          "type": "object",
+          "title": "expectNoOverflow",
+          "description": "Assert widget renders without overflow issues",
+          "examples": [
+            {
+              "expectNoOverflow": {
+                "id": "my_widget"
+              }
+            }
+          ],
+          "additionalProperties": false,
+          "minProperties": 1,
+          "maxProperties": 1,
+          "properties": {
+            "expectNoOverflow": {
+              "$ref": "#/$defs/args_expectNoOverflow",
+              "description": "Assert widget renders without overflow issues",
+              "examples": [
+                {
+                  "id": "my_widget"
+                }
+              ]
+            }
+          },
+          "required": [
+            "expectNoOverflow"
+          ]
+        },
+        {
+          "type": "object",
+          "title": "loadFixture",
+          "description": "Load a JSON fixture into the test fixture map",
+          "examples": [
+            {
+              "loadFixture": {
+                "fixture": "user.json"
+              }
+            }
+          ],
+          "additionalProperties": false,
+          "minProperties": 1,
+          "maxProperties": 1,
+          "properties": {
+            "loadFixture": {
+              "$ref": "#/$defs/args_loadFixture",
+              "description": "Load a JSON fixture into the test fixture map",
+              "examples": [
+                {
+                  "fixture": "user.json"
+                }
+              ]
+            }
+          },
+          "required": [
+            "loadFixture"
+          ]
+        },
+        {
+          "type": "object",
+          "title": "setStateFromFixture",
+          "description": "Apply all keys from a JSON fixture to state",
+          "examples": [
+            {
+              "setStateFromFixture": {
+                "fixture": "user.json"
+              }
+            }
+          ],
+          "additionalProperties": false,
+          "minProperties": 1,
+          "maxProperties": 1,
+          "properties": {
+            "setStateFromFixture": {
+              "$ref": "#/$defs/args_setStateFromFixture",
+              "description": "Apply all keys from a JSON fixture to state",
+              "examples": [
+                {
+                  "fixture": "user.json"
+                }
+              ]
+            }
+          },
+          "required": [
+            "setStateFromFixture"
+          ]
+        },
+        {
+          "type": "object",
+          "title": "expectMatchesFixture",
+          "description": "Assert state or path matches a JSON fixture",
+          "examples": [
+            {
+              "expectMatchesFixture": {
+                "fixture": "user.json"
+              }
+            }
+          ],
+          "additionalProperties": false,
+          "minProperties": 1,
+          "maxProperties": 1,
+          "properties": {
+            "expectMatchesFixture": {
+              "$ref": "#/$defs/args_expectMatchesFixture",
+              "description": "Assert state or path matches a JSON fixture",
+              "examples": [
+                {
+                  "fixture": "user.json"
+                }
+              ]
+            }
+          },
+          "required": [
+            "expectMatchesFixture"
+          ]
+        }
+      ]
+    }
+  }
+}

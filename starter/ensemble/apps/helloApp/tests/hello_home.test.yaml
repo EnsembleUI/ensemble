@@ -1,0 +1,19 @@
+# yaml-language-server: $schema=https://cdn.ensembleui.com/schemas/ensemble_tests_schema.json
+id: hello_home_renders
+startScreen: Hello Home
+steps:
+  - expectVisible:
+      id: greeting_text
+
+  - expectVisible:
+      id: description_text
+
+  - expectVisible:
+      id: navigate_button
+  - trigger:
+      action: onTap
+      id: call_api_button
+  - tap:
+      id: navigate_button
+  - expectVisible:
+      id: goodbye_title
