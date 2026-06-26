@@ -1,0 +1,45 @@
+name: Publish Ensemble to pub.dev
+
+on:
+  push:
+    tags:
+      - "ensemble-v*"
+
+concurrency:
+  group: pubdev-ensemble-${{ github.ref_name }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish:
+    name: Publish ensemble runtime
+    runs-on: ubuntu-latest
+    if: "!contains(github.ref_name, '-beta')"
+
+    steps:
+      - name: Validate release tag
+        run: |
+          set -euo pipefail
+
+          if [[ ! "${{ github.ref_name }}" =~ ^ensemble-v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::Expected a stable ensemble tag like ensemble-v1.2.47."
+            exit 1
+          fi
+
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+
+      - name: Setup Flutter SDK
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.32.5"
+          cache: true
+
+      - name: Publish to pub.dev
+        working-directory: modules/ensemble
+        run: flutter pub publish --force
