@@ -1,100 +1,129 @@
-# ensemble
+# Ensemble Runtime
 
-`ensemble` is the core Flutter runtime for Ensemble's declarative app definitions.
+Build Flutter apps from Ensemble's declarative YAML definitions.
 
-## Overview
+The `ensemble` package is the core runtime used by Ensemble host apps. It loads app configuration, fetches or reads screen definitions, interprets Ensemble Declarative Language (EDL), registers built-in widgets/actions, manages runtime state, and provides navigation helpers for embedding Ensemble screens in a Flutter app.
 
-This is a core runtime package. It loads Ensemble configuration, initializes providers and managers, interprets Ensemble definitions, registers widgets and actions, and exposes navigation helpers used by host apps such as `starter`.
+## When To Use This Package
+
+Use `ensemble` when you want a Flutter host app to render Ensemble definitions from:
+
+- CDN-hosted app bundle
+- local YAML files bundled with your Flutter app
+
+For a complete runnable host app, start from the Ensemble starter app in the repository. This package is the runtime dependency that powers that host app.
 
 ## Features
 
-- Provides the `Ensemble` singleton and `EnsembleConfig` model in `lib/ensemble.dart`.
-- Initializes Ensemble managers, configuration services, local assets, API providers, Firebase, and analytics providers.
-- Defines core actions such as navigation, timers, code execution, URL opening, file upload, OAuth, sockets, permissions, camera, Plaid, and authentication actions.
-- Maintains the core widget registry, including optional module extension points resolved through `GetIt`.
+- Loads local, remote, CDN, and Ensemble-hosted app definitions.
+- Renders the core Ensemble widget set, including forms, layouts, navigation, media, charts, calendars, web views, and rich inputs.
+- Executes built-in actions for navigation, API calls, storage, files, notifications, permissions, sockets, authentication hooks, and more.
+- Provides runtime services for theming, data binding, localization, storage, secrets, app configuration, and module extension points.
+- Supports optional modules through `GetIt` registration while keeping the core runtime usable on its own.
 
-## Installation / Setup
+## Installation
 
-Add the runtime to a Flutter host app:
+Add the runtime to your Flutter app:
 
 ```bash
 flutter pub add ensemble
 ```
 
-For local development inside this repository, bootstrap the Melos workspace:
-
-```bash
-melos bootstrap
-```
-
-## Usage
-
-A source-verified host-app pattern is shown in `starter/lib/main.dart`:
+Then import the runtime:
 
 ```dart
-await EnsembleModules().init();
-runApp(EnsembleApp());
+import 'package:ensemble/ensemble.dart';
+import 'package:ensemble/ensemble_app.dart';
 ```
 
-`starter/lib/integrate_existing_app_with_Ensemble.dart` also shows `Ensemble().initialize()` and `Ensemble().navigateApp(context)` for integrating Ensemble into an existing Flutter app.
+## Basic Usage
+
+The simplest host-app pattern initializes any optional modules first, then runs `EnsembleApp`:
+
+```dart
+import 'package:ensemble/ensemble_app.dart';
+import 'package:flutter/material.dart';
+
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  runApp(EnsembleApp());
+}
+```
+
+To embed Ensemble in an existing Flutter app, initialize the runtime and navigate into the configured Ensemble app:
+
+```dart
+await Ensemble().initialize();
+await Ensemble().navigateApp(context);
+```
 
 ## Configuration
 
-Configuration is loaded through `EnsembleConfigService` and `EnsembleConfig` in `lib/ensemble.dart`. Host apps provide app IDs, local or remote definitions, Firebase options, providers, secrets, and module registration through the starter app or generated module files.
+The runtime reads `ensemble/ensemble-config.yaml` from your Flutter app bundle. A typical local configuration looks like this:
 
-When `definitions.from` is `ensemble`, the runtime initializes Firebase with the bundled public Ensemble project options in `lib/firebase_options.dart`. Firebase API keys identify the public demo project and are not treated as secrets; production host apps should provide their own project configuration where needed.
+```yaml
+definitions:
+  from: local
+  local:
+    path: ensemble/apps/my_app
+```
 
-## Platform Support
+For Ensemble Cloud / Studio apps, configure `definitions.from: ensemble` with the app id and account settings required by your project.
 
-| Platform | Supported | Notes |
-| -------- | --------: | ----- |
-| Android | Unknown | This package has no Android project; support depends on the host Flutter app. |
-| iOS | Unknown | This package has no iOS project; support depends on the host Flutter app. |
-| Web | Unknown | This package has no Web project; support depends on the host Flutter app. |
-| macOS | Unknown | This package has no macOS project; support depends on the host Flutter app. |
-| Windows | Unknown | This package has no Windows project; support depends on the host Flutter app. |
-| Linux | Unknown | This package has no Linux project; support depends on the host Flutter app. |
+When `definitions.from` is `ensemble`, the runtime initializes Firebase with Ensemble's bundled public project options. These Firebase API keys identify the public Ensemble backend project and are not treated as private secrets. Production host apps that use their own Firebase services should provide their own configuration where needed.
 
-## Permissions
+## Bundled Assets
 
-No package-level platform manifests were found. Runtime actions and optional modules may require host-app permissions for camera, location, contacts, files, notifications, authentication, or other native capabilities.
+Host apps should include their Ensemble app files and configuration as Flutter assets. For example:
 
-## API Reference
+```yaml
+flutter:
+  assets:
+    - ensemble/
+```
 
-| API | Type | Description |
-| --- | ---- | ----------- |
-| `Ensemble` | Singleton class | Initializes runtime services and provides navigation helpers. |
-| `EnsembleConfig` | Class | Runtime configuration model. |
-| `EnsembleAction` | Base class | Base for core action execution. |
-| `ActionType` | Enum | Defines core action names parsed by the runtime. |
-| `widget_registry.dart` | Registry | Maps Ensemble widget types to Flutter widget factories and optional module implementations. |
+The runtime package also ships default images, fonts, icon fonts, schemas, and localization assets used by built-in widgets.
+
+## Platform Notes
+
+`ensemble` is a Flutter package, not a platform plugin. It is designed to run inside a host Flutter app. Android, iOS, and web support depends on the host app configuration and on which runtime actions/widgets are used.
+
+Some features require host-app platform setup, such as camera, location, contacts, files, notifications, deep links, authentication, local network, or background work permissions.
+
+## Optional Modules
+
+Some integrations are implemented as separate Ensemble modules and are registered at app startup. Examples include auth providers, analytics, camera, contacts, location, Bluetooth, Stripe, and other native integrations.
+
+The core runtime includes stubs and extension points for these modules so apps can include only the integrations they need.
+
+## Main APIs
+
+- `Ensemble` initializes runtime services and exposes navigation helpers.
+- `EnsembleApp` provides the standard app widget for rendering a configured Ensemble app.
+- `EnsembleConfig` represents runtime configuration loaded from `ensemble-config.yaml`.
+- `EnsembleAction` and `ActionType` define the core action model used by EDL.
+
+## Documentation
+
+- [Reusable Actions](doc/reusable-actions.md)
+- [Layout widgets](doc/layout-widgets.md)
+- [Runtime security and data bindings](doc/runtime-security-and-data-bindings.md)
 
 ## Development
 
+For repository development, bootstrap the Melos workspace first:
+
 ```bash
 melos bootstrap
+```
+
+Useful package-level commands:
+
+```bash
 melos exec --scope="ensemble" -- flutter analyze
 melos exec --scope="ensemble" -- flutter test
 ```
 
-## Testing
+## Repository
 
-This package has a substantial `test/` directory. Run package tests with `melos exec --scope="ensemble" -- flutter test`.
-
-## Additional technical documentation
-
-- [Reusable Actions](doc/reusable-actions.md) — app-level and page-level Actions, `executeAction`, scoped `Import`/`Global`/`API`, and events.
-- [Layout widgets (tabs, ListView scroll)](doc/layout-widgets.md) — EDL layout behavior in `lib/layout`.
-- [Runtime security and data bindings](doc/runtime-security-and-data-bindings.md) — screen id validation for definition providers, `saveFile` naming, multipart upload path checks, `ensemble.storage.clear()` behavior and binding refresh, WebView TLS/reputation settings, global script handler payloads, and device metric bindings after rotation.
-
-## Related Packages / Modules
-
-- `starter`: host app template that initializes `EnsembleModules` and `EnsembleApp`.
-- Optional modules under `modules/` implement runtime stubs and widgets resolved by this package.
-- Packages under `packages/` provide supporting UI, parser, date, and integration utilities.
-
-## Notes for Contributors
-
-- Keep examples in sync with source code.
-- Update this README when public APIs, permissions, configuration, or platform support changes.
-- Do not document unverified behavior.
+Source code, starter app, optional modules, and supporting packages are maintained in the [Ensemble repository](https://github.com/EnsembleUI/ensemble).
