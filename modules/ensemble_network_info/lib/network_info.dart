@@ -11,7 +11,7 @@ import 'package:network_info_plus/network_info_plus.dart';
 
 class NetworkInfoImpl implements ensembleNetWorkInfo.NetworkInfoManager {
   final NetworkInfo _networkInfo = NetworkInfo();
-  @override
+
   Future<String?> getWifiBSSID() async {
     if (kIsWeb) {
       return Future.value(null); //not supported on the web
@@ -28,11 +28,10 @@ class NetworkInfoImpl implements ensembleNetWorkInfo.NetworkInfoManager {
           code: 'Failed to get Wifi BSSID',
           message: e.message,
           details: e.details);
-      print('Failed to get Wifi BSSID');
     }
+    return null;
   }
 
-  @override
   Future<String?> getWifiBroadcast() async {
     try {
       return await _networkInfo.getWifiBroadcast();
@@ -44,7 +43,6 @@ class NetworkInfoImpl implements ensembleNetWorkInfo.NetworkInfoManager {
     }
   }
 
-  @override
   Future<String?> getWifiGatewayIP() async {
     try {
       return await _networkInfo.getWifiGatewayIP();
@@ -56,7 +54,6 @@ class NetworkInfoImpl implements ensembleNetWorkInfo.NetworkInfoManager {
     }
   }
 
-  @override
   Future<String?> getWifiIPv4() async {
     try {
       return await _networkInfo.getWifiIP();
@@ -68,7 +65,6 @@ class NetworkInfoImpl implements ensembleNetWorkInfo.NetworkInfoManager {
     }
   }
 
-  @override
   Future<String?> getWifiIPv6() async {
     try {
       return await _networkInfo.getWifiIPv6();
@@ -80,7 +76,6 @@ class NetworkInfoImpl implements ensembleNetWorkInfo.NetworkInfoManager {
     }
   }
 
-  @override
   Future<String?> getWifiName() async {
     if (kIsWeb) {
       return Future.value(null); //not supported on the web
@@ -106,11 +101,10 @@ class NetworkInfoImpl implements ensembleNetWorkInfo.NetworkInfoManager {
           code: 'Failed to get Wifi name',
           message: e.message,
           details: e.details);
-      print('Failed to get Wifi BSSID');
     }
+    return null;
   }
 
-  @override
   Future<String?> getWifiSubmask() async {
     try {
       return await _networkInfo.getWifiSubmask();
@@ -122,6 +116,7 @@ class NetworkInfoImpl implements ensembleNetWorkInfo.NetworkInfoManager {
     }
   }
 
+  @override
   Future<LocationPermissionStatus> checkPermission() async {
     final permission = await Geolocator.checkPermission();
     return LocationPermissionStatus.values
