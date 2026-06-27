@@ -12,6 +12,3 @@
  - **FEAT**: implement phone verification actions with firebase phone auth. ([5927c37c](https://github.com/ensembleUI/ensemble/commit/5927c37c9b636f7acf7c480d26db9c8d0217c90e))
  - **DOCS**: update package and module READMEs. ([74306617](https://github.com/ensembleUI/ensemble/commit/74306617e40588dc149587bddd7a9c7ca87fc5bf))
 
-# 1.2.46
-
-- Publish `ensemble_auth` as a pub.dev package aligned with the Ensemble runtime release.
