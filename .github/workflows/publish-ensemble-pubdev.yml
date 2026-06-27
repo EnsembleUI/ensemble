@@ -40,6 +40,129 @@ jobs:
           flutter-version: "3.32.5"
           cache: true
 
+      - name: Build pub.dev example from starter
+        run: |
+          set -euo pipefail
+
+          example_dir="modules/ensemble/example"
+          rm -rf "$example_dir"
+          mkdir -p "$example_dir"
+
+          cp -R starter/lib "$example_dir/"
+          cp -R starter/ensemble "$example_dir/"
+          cp -R starter/web "$example_dir/"
+          cp starter/analysis_options.yaml "$example_dir/"
+          cp starter/LICENSE "$example_dir/"
+          cp starter/custom_http_server.py "$example_dir/"
+
+          python3 <<'PY'
+          from pathlib import Path
+
+          example = Path("modules/ensemble/example")
+
+          (example / "pubspec.yaml").write_text("""name: ensemble_example
+          description: Example app for the Ensemble runtime package.
+          publish_to: 'none'
+          version: 1.0.0+1
+
+          environment:
+            sdk: ">=3.5.0 <4.0.0"
+            flutter: ">=3.24.0"
+
+          dependencies:
+            flutter:
+              sdk: flutter
+            flutter_localizations:
+              sdk: flutter
+            ensemble:
+              path: ../
+            firebase_core: ^4.2.0
+            get_it: ^8.0.0
+
+          dev_dependencies:
+            flutter_test:
+              sdk: flutter
+            flutter_lints: ^2.0.3
+
+          flutter:
+            uses-material-design: true
+            assets:
+              - ensemble/
+              - ensemble/assets/
+              - ensemble/apps/helloApp/
+              - ensemble/apps/helloApp/screens/
+              - ensemble/apps/helloApp/widgets/
+              - ensemble/apps/helloApp/actions/
+              - ensemble/apps/helloApp/scripts/
+              - ensemble/apps/helloApp/assets/
+              - ensemble/apps/helloApp/translations/
+              - ensemble/apps/helloApp/config/
+          """)
+
+          (example / "README.md").write_text("""# Ensemble Runtime Example
+
+          This is a curated copy of the Ensemble starter app for the `ensemble`
+          package. It keeps the real starter structure and sample YAML
+          definitions, while omitting large generated folders such as `build/`,
+          `node_modules/`, and platform projects.
+
+          ## Run
+
+          From this directory:
+
+          ```sh
+          flutter pub get
+          flutter run -d chrome
+          ```
+
+          The example loads local definitions from `ensemble/apps/helloApp`.
+
+          To generate native platform folders for local experimentation, run:
+
+          ```sh
+          flutter create --platforms=ios,android .
+          ```
+          """)
+
+          main = example / "lib/main.dart"
+          main.write_text(main.read_text().replace(
+              "package:ensemble_starter/generated/ensemble_modules.dart",
+              "package:ensemble_example/generated/ensemble_modules.dart",
+          ).replace(
+              'debugPrint("Async Error: " + error.toString());',
+              'debugPrint("Async Error: $error");',
+          ))
+
+          modules = example / "lib/generated/ensemble_modules.dart"
+          modules_text = modules.read_text().replace(
+              "import 'package:firebase_messaging/firebase_messaging.dart';\n",
+              "",
+          ).replace(
+              "import 'package:get_it/get_it.dart';",
+              "import 'package:flutter/foundation.dart';\nimport 'package:get_it/get_it.dart';",
+          ).replace(
+              "        print(\n",
+              "        debugPrint(\n",
+          )
+          modules.write_text(modules_text)
+
+          integration = example / "lib/integrate_existing_app_with_Ensemble.dart"
+          if integration.exists():
+              integration_text = integration.read_text()
+              integration_text = integration_text.replace(
+                  "import 'package:ensemble/util/utils.dart';\n", ""
+              ).replace(
+                  "import 'package:flutter_i18n/flutter_i18n.dart';\n", ""
+              ).replace(
+                  "import 'package:flutter_localizations/flutter_localizations.dart';\n", ""
+              )
+              (example / "lib/integrate_existing_app_with_ensemble.dart").write_text(integration_text)
+              integration.unlink()
+
+          config = example / "ensemble/ensemble-config.yaml"
+          config.write_text(config.read_text().replace("from: ensemble", "from: local", 1))
+          PY
+
       - name: Publish to pub.dev
         working-directory: modules/ensemble
         run: flutter pub publish --force

@@ -9,20 +9,27 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 
+/// Ensemble action that initializes Bluetooth services and streams.
 class InitializeBluetoothAction extends EnsembleAction {
+  /// Bluetooth manager used to run Bluetooth operations.
   BluetoothManager bluetoothManager = GetIt.I<BluetoothManager>();
 
+  /// Action executed when the operation fails.
   EnsembleAction? onError;
+  /// Action executed when stream data is emitted by a native integration.
   EnsembleAction? onDataStream;
 
+  /// Creates a [InitializeBluetoothAction] action.
   InitializeBluetoothAction(
       {super.initiator, super.inputs, this.onError, this.onDataStream});
 
+  /// Creates a [InitializeBluetoothAction] from a YAML or map action payload.
   factory InitializeBluetoothAction.from(
           {Invokable? initiator, dynamic payload}) =>
       InitializeBluetoothAction.fromYaml(
           initiator: initiator, payload: Utils.getYamlMap(payload));
 
+  /// Creates a [InitializeBluetoothAction] from a YAML or map action payload.
   factory InitializeBluetoothAction.fromYaml(
       {Invokable? initiator, Map? payload}) {
     return InitializeBluetoothAction(
@@ -34,6 +41,7 @@ class InitializeBluetoothAction extends EnsembleAction {
     );
   }
 
+  /// Runs this action with the current Flutter context and Ensemble scope.
   Future<dynamic> execute(
       BuildContext context, ScopeManager scopeManager) async {
     if (kIsWeb && onError != null) {
@@ -64,20 +72,27 @@ class InitializeBluetoothAction extends EnsembleAction {
   }
 }
 
+/// Ensemble action that starts scanning for nearby Bluetooth devices.
 class StartScanBluetoothAction extends EnsembleAction {
+  /// Bluetooth manager used to run Bluetooth operations.
   BluetoothManager bluetoothManager = GetIt.I<BluetoothManager>();
 
+  /// Action executed when the operation fails.
   EnsembleAction? onError;
+  /// Action executed when stream data is emitted by a native integration.
   EnsembleAction? onDataStream;
 
+  /// Creates a [StartScanBluetoothAction] action.
   StartScanBluetoothAction(
       {super.initiator, super.inputs, this.onError, this.onDataStream});
 
+  /// Creates a [StartScanBluetoothAction] from a YAML or map action payload.
   factory StartScanBluetoothAction.from(
           {Invokable? initiator, dynamic payload}) =>
       StartScanBluetoothAction.fromYaml(
           initiator: initiator, payload: Utils.getYamlMap(payload));
 
+  /// Creates a [StartScanBluetoothAction] from a YAML or map action payload.
   factory StartScanBluetoothAction.fromYaml(
       {Invokable? initiator, Map? payload}) {
     return StartScanBluetoothAction(
@@ -89,6 +104,7 @@ class StartScanBluetoothAction extends EnsembleAction {
     );
   }
 
+  /// Runs this action with the current Flutter context and Ensemble scope.
   Future<dynamic> execute(
       BuildContext context, ScopeManager scopeManager) async {
     if (kIsWeb && onError != null) {
@@ -124,17 +140,26 @@ class StartScanBluetoothAction extends EnsembleAction {
   }
 }
 
+/// Ensemble action that connects to a Bluetooth device.
 class ConnectBluetoothAction extends EnsembleAction {
+  /// Bluetooth manager used to run Bluetooth operations.
   BluetoothManager bluetoothManager = GetIt.I<BluetoothManager>();
 
+  /// Action executed when the operation fails.
   EnsembleAction? onError;
+  /// Action executed when stream data is emitted by a native integration.
   EnsembleAction? onDataStream;
+  /// Action executed when Bluetooth connection state changes.
   EnsembleAction? onConnectionStream;
 
+  /// Bluetooth device identifier targeted by the action.
   final String? deviceId;
+  /// Whether Bluetooth should reconnect automatically when possible.
   final bool autoConnect;
+  /// Connection timeout in seconds or milliseconds, depending on platform support.
   final int timeout;
 
+  /// Creates a [ConnectBluetoothAction] action.
   ConnectBluetoothAction({
     super.initiator,
     super.inputs,
@@ -146,11 +171,13 @@ class ConnectBluetoothAction extends EnsembleAction {
     required this.timeout,
   });
 
+  /// Creates a [ConnectBluetoothAction] from a YAML or map action payload.
   factory ConnectBluetoothAction.from(
           {Invokable? initiator, dynamic payload}) =>
       ConnectBluetoothAction.fromYaml(
           initiator: initiator, payload: Utils.getYamlMap(payload));
 
+  /// Creates a [ConnectBluetoothAction] from a YAML or map action payload.
   factory ConnectBluetoothAction.fromYaml(
       {Invokable? initiator, Map? payload}) {
     return ConnectBluetoothAction(
@@ -167,6 +194,7 @@ class ConnectBluetoothAction extends EnsembleAction {
     );
   }
 
+  /// Runs this action with the current Flutter context and Ensemble scope.
   Future<dynamic> execute(
       BuildContext context, ScopeManager scopeManager) async {
     if (deviceId == null) {
@@ -220,19 +248,26 @@ class ConnectBluetoothAction extends EnsembleAction {
   }
 }
 
+/// Ensemble action that disconnects from a Bluetooth device.
 class DisconnectBluetoothAction extends EnsembleAction {
+  /// Bluetooth manager used to run Bluetooth operations.
   BluetoothManager bluetoothManager = GetIt.I<BluetoothManager>();
 
+  /// Action executed when the operation fails.
   EnsembleAction? onError;
+  /// Bluetooth device identifier targeted by the action.
   final String? deviceId;
+  /// Creates a [DisconnectBluetoothAction] action.
   DisconnectBluetoothAction(
       {super.initiator, super.inputs, this.onError, this.deviceId});
 
+  /// Creates a [DisconnectBluetoothAction] from a YAML or map action payload.
   factory DisconnectBluetoothAction.from(
           {Invokable? initiator, dynamic payload}) =>
       DisconnectBluetoothAction.fromYaml(
           initiator: initiator, payload: Utils.getYamlMap(payload));
 
+  /// Creates a [DisconnectBluetoothAction] from a YAML or map action payload.
   factory DisconnectBluetoothAction.fromYaml(
       {Invokable? initiator, Map? payload}) {
     return DisconnectBluetoothAction(
@@ -243,6 +278,7 @@ class DisconnectBluetoothAction extends EnsembleAction {
     );
   }
 
+  /// Runs this action with the current Flutter context and Ensemble scope.
   Future<dynamic> execute(
       BuildContext context, ScopeManager scopeManager) async {
     if (kIsWeb && onError != null) {
@@ -270,15 +306,22 @@ class DisconnectBluetoothAction extends EnsembleAction {
   }
 }
 
+/// Ensemble action that subscribes to Bluetooth characteristic updates.
 class SubscribeBluetoothCharacteristicsAction extends EnsembleAction {
+  /// Bluetooth manager used to run Bluetooth operations.
   BluetoothManager bluetoothManager = GetIt.I<BluetoothManager>();
 
+  /// Action executed after the operation completes successfully.
   EnsembleAction? onComplete;
+  /// Action executed when the operation fails.
   EnsembleAction? onError;
+  /// Action executed when stream data is emitted by a native integration.
   EnsembleAction? onDataStream;
 
+  /// Bluetooth characteristic identifier targeted by subscription actions.
   final String? characteristicsId;
 
+  /// Creates a [SubscribeBluetoothCharacteristicsAction] action.
   SubscribeBluetoothCharacteristicsAction(
       {super.initiator,
       super.inputs,
@@ -287,11 +330,13 @@ class SubscribeBluetoothCharacteristicsAction extends EnsembleAction {
       this.onDataStream,
       required this.characteristicsId});
 
+  /// Creates a [SubscribeBluetoothCharacteristicsAction] from a YAML or map action payload.
   factory SubscribeBluetoothCharacteristicsAction.from(
           {Invokable? initiator, dynamic payload}) =>
       SubscribeBluetoothCharacteristicsAction.fromYaml(
           initiator: initiator, payload: Utils.getYamlMap(payload));
 
+  /// Creates a [SubscribeBluetoothCharacteristicsAction] from a YAML or map action payload.
   factory SubscribeBluetoothCharacteristicsAction.fromYaml(
       {Invokable? initiator, Map? payload}) {
     return SubscribeBluetoothCharacteristicsAction(
@@ -306,6 +351,7 @@ class SubscribeBluetoothCharacteristicsAction extends EnsembleAction {
     );
   }
 
+  /// Runs this action with the current Flutter context and Ensemble scope.
   Future<dynamic> execute(
       BuildContext context, ScopeManager scopeManager) async {
     if (characteristicsId == null) {
@@ -358,14 +404,20 @@ class SubscribeBluetoothCharacteristicsAction extends EnsembleAction {
   }
 }
 
+/// Ensemble action that unsubscribes from Bluetooth characteristic updates.
 class UnSubscribeBluetoothCharacteristicsAction extends EnsembleAction {
+  /// Bluetooth manager used to run Bluetooth operations.
   BluetoothManager bluetoothManager = GetIt.I<BluetoothManager>();
 
+  /// Action executed after the operation completes successfully.
   EnsembleAction? onComplete;
+  /// Action executed when the operation fails.
   EnsembleAction? onError;
 
+  /// Bluetooth characteristic identifier targeted by subscription actions.
   final String? characteristicsId;
 
+  /// Creates a [UnSubscribeBluetoothCharacteristicsAction] action.
   UnSubscribeBluetoothCharacteristicsAction(
       {super.initiator,
       super.inputs,
@@ -373,11 +425,13 @@ class UnSubscribeBluetoothCharacteristicsAction extends EnsembleAction {
       this.onError,
       required this.characteristicsId});
 
+  /// Creates a [UnSubscribeBluetoothCharacteristicsAction] from a YAML or map action payload.
   factory UnSubscribeBluetoothCharacteristicsAction.from(
           {Invokable? initiator, dynamic payload}) =>
       UnSubscribeBluetoothCharacteristicsAction.fromYaml(
           initiator: initiator, payload: Utils.getYamlMap(payload));
 
+  /// Creates a [UnSubscribeBluetoothCharacteristicsAction] from a YAML or map action payload.
   factory UnSubscribeBluetoothCharacteristicsAction.fromYaml(
       {Invokable? initiator, Map? payload}) {
     return UnSubscribeBluetoothCharacteristicsAction(
@@ -390,6 +444,7 @@ class UnSubscribeBluetoothCharacteristicsAction extends EnsembleAction {
     );
   }
 
+  /// Runs this action with the current Flutter context and Ensemble scope.
   Future<dynamic> execute(
       BuildContext context, ScopeManager scopeManager) async {
     final charId = scopeManager.dataContext.eval(characteristicsId);

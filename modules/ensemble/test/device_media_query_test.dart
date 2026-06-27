@@ -11,7 +11,6 @@ void main() {
         builder: (context, child) {
           return MediaQuery(
             data: MediaQuery.of(context).copyWith(
-              orientation: Orientation.portraitUp,
               size: const Size(390, 844),
             ),
             child: child!,
@@ -21,7 +20,7 @@ void main() {
       ),
     );
 
-    expect(Device().screenOrientation, Orientation.portraitUp.name);
+    expect(Device().screenOrientation, Orientation.portrait.name);
     expect(Device().screenWidth, 390);
     expect(Device().screenHeight, 844);
   });
@@ -33,7 +32,6 @@ void main() {
         builder: (context, child) {
           return MediaQuery(
             data: MediaQuery.of(context).copyWith(
-              orientation: Orientation.landscapeLeft,
               size: const Size(844, 390),
             ),
             child: child!,
@@ -43,7 +41,7 @@ void main() {
       ),
     );
 
-    expect(Device().screenOrientation, Orientation.landscapeLeft.name);
+    expect(Device().screenOrientation, Orientation.landscape.name);
     expect(Device().screenWidth, 844);
     expect(Device().screenHeight, 390);
   });

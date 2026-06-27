@@ -9,6 +9,8 @@ import 'package:yaml/yaml.dart';
 class _MockBuildContext extends Mock implements BuildContext {}
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
   group('reusable action scoped API restore', () {
     late ScopeManager scopeManager;
     late YamlMap pageApi;

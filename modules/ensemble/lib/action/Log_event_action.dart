@@ -13,19 +13,30 @@ import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:ensemble/framework/stub/moengage_manager.dart';
 
+/// Ensemble action that sends analytics, attribution, or engagement events to the configured provider.
 class LogEvent extends ensembleAction.EnsembleAction {
+  /// Analytics event name sent to the selected provider.
   final String? eventName;
+  /// Provider-specific analytics parameters evaluated from the YAML payload.
   final Map<dynamic, dynamic>? parameters;
+  /// Provider selected by the YAML payload.
   final String? provider;
+  /// Requested Wi-Fi or provider operation.
   final String? operation;
+  /// User identifier associated with the analytics or engagement event.
   final String? userId;
+  /// Severity level used when forwarding the event to logging providers.
   final String logLevel;
+  /// Value written, logged, or passed to the target integration.
   final dynamic value;
+  /// User attribute key updated by the analytics provider.
   final String? attributeKey;
+  /// Original YAML payload retained for provider-specific validation.
   final Map? originalPayload;
   final ensembleAction.EnsembleAction? onSuccess;
   final ensembleAction.EnsembleAction? onError;
 
+  /// Creates a [LogEvent] object.
   LogEvent({
     required Invokable? initiator,
     this.eventName,
@@ -41,6 +52,7 @@ class LogEvent extends ensembleAction.EnsembleAction {
     this.onError,
   }) : super(initiator: initiator);
 
+  /// Creates a [LogEvent] from a YAML or map action payload.
   factory LogEvent.from({Invokable? initiator, Map? payload}) {
     payload = Utils.convertYamlToDart(payload);
     String? eventName = payload?['name'];
@@ -161,6 +173,7 @@ class LogEvent extends ensembleAction.EnsembleAction {
     return logging.LogLevel.info;
   }
 
+  /// Runs this action and sends the configured event to its analytics provider.
   @override
   Future<void> execute(BuildContext context, ScopeManager scopeManager) async {
     try {
@@ -481,7 +494,9 @@ Future<dynamic> _handleAdobeOperations(
 }
 
 /// Firebase Analytics Validator handles ALL Firebase operations in one place
+/// Validates Firebase Analytics event names and parameters before events are logged.
 class FirebaseAnalyticsValidator {
+  /// Validation rules keyed by Firebase Analytics operation name.
   static const Map<String, Map<String, dynamic>> validationRules = {
     'logEvent': {
       'required': ['name'],
@@ -662,6 +677,7 @@ class FirebaseAnalyticsValidator {
     },
   };
 
+  /// Validates that [payload] contains the required parameters for [operation].
   static void validate(String operation, Map<String, dynamic> payload) {
     final rule = validationRules[operation];
     if (rule == null) {
@@ -695,113 +711,187 @@ class FirebaseAnalyticsValidator {
   }
 }
 
-// Operations that don't require value parameter
+/// Analytics SDK operations that do not require a separate value parameter.
 enum NoValueOperations {
+  /// Displays a configured in-app message without requiring an additional value.
   showInApp,
+  /// Displays a configured nudge message without requiring an additional value.
   showNudge,
+  /// Resets the analytics or engagement SDK context.
   resetContext,
+  /// Sets SDK context from the provided action payload.
   setContext,
+  /// Logs the current user out of the engagement SDK.
   logout,
+  /// Deletes the current user profile from the engagement SDK.
   deleteUser,
+  /// Enables the engagement SDK at runtime.
   enableSdk,
+  /// Disables the engagement SDK at runtime.
   disableSdk,
+  /// Turns on data tracking in the engagement SDK.
   enableDataTracking,
+  /// Turns off data tracking in the engagement SDK.
   disableDataTracking,
+  /// Turns on device identifier tracking.
   enableDeviceIdTracking,
+  /// Turns off device identifier tracking.
   disableDeviceIdTracking,
+  /// Turns on Android ID tracking.
   enableAndroidIdTracking,
+  /// Turns off Android ID tracking.
   disableAndroidIdTracking,
+  /// Turns on advertising identifier tracking.
   enableAdIdTracking,
+  /// Turns off advertising identifier tracking.
   disableAdIdTracking,
+  /// Requests push notification permission through the SDK.
   requestPushPermission,
+  /// Tracks an analytics event using the event payload.
   trackEvent,
+  /// Registers the device for push notifications.
   registerForPush,
+  /// Registers for provisional push authorization on supported platforms.
   registerForProvisionalPush,
+  /// Passes a Firebase Cloud Messaging token to the SDK.
   passFCMToken,
+  /// Passes an iOS PushKit token to the SDK.
   passPushKitToken,
+  /// Passes a Firebase push payload to the SDK for processing.
   passFCMPushPayload,
+  /// Updates the SDK count of permission prompt attempts.
   updatePermissionCount,
+  /// Reports the user's push permission response to the SDK.
   pushPermissionResponse,
 }
 
-// Firebase-specific parameters enum
+/// Firebase Analytics parameter names recognized by the log-event action.
 enum FirebaseParams {
-  // Screen tracking
+  /// Names the screen for Firebase Analytics screen_view events.
   screenName,
+  /// Identifies the screen class for Firebase Analytics screen tracking.
   screenClass,
   
-  // User lifecycle
+  /// Records the sign-in method used by a login event.
   loginMethod,
+  /// Records the registration method used by a sign-up event.
   signUpMethod,
   
-  // Content interaction
+  /// Describes the type of content involved in the event.
   contentType,
+  /// Identifies the item involved in a content or commerce event.
   itemId,
+  /// Records the method used for sharing, login, signup, or similar events.
   method,
+  /// Stores the search query used for a search event.
   searchTerm,
   
-  // Gaming and achievements
+  /// Records a game or course level number.
   level,
+  /// Records a game character selected by the user.
   character,
+  /// Records a human-readable level name.
   levelName,
+  /// Indicates whether the operation represented by the event succeeded.
   success,
+  /// Records a score associated with a game or achievement event.
   score,
+  /// Identifies an unlocked achievement.
   achievementId,
+  /// Names the virtual currency used in a game economy event.
   virtualCurrencyName,
+  /// Names the item involved in a commerce or content event.
   itemName,
   
-  // Social features
+  /// Identifies a group involved in a social event.
   groupId,
   
-  // Commerce
+  /// Specifies the ISO currency code for monetary event values.
   currency,
+  /// Stores the numeric value associated with a commerce or conversion event.
   value,
+  /// Records the campaign or traffic source.
   source,
+  /// Records the marketing medium.
   medium,
+  /// Records the campaign name.
   campaign,
+  /// Records the paid search term.
   term,
+  /// Records campaign content or creative variant.
   content,
+  /// Stores the app campaign click identifier.
   aclid,
+  /// Stores Firebase campaign parameter cp1.
   cp1,
   
-  // Advertising
+  /// Identifies the advertising platform.
   adPlatform,
+  /// Identifies the ad source or network.
   adSource,
+  /// Identifies the ad format such as banner, interstitial, or rewarded.
   adFormat,
+  /// Names the ad unit associated with an ad event.
   adUnitName,
   
-  // E-commerce
+  /// Records the coupon code used in a purchase or checkout event.
   coupon,
+  /// Records the payment method selected by the user.
   paymentType,
+  /// Records the shipping option selected by the user.
   shippingTier,
+  /// Contains the Firebase Analytics item list for commerce events.
   items,
+  /// Records the tax amount for a purchase event.
   tax,
+  /// Records the shipping amount for a purchase event.
   shipping,
+  /// Identifies a purchase or refund transaction.
   transactionId,
+  /// Records the store or affiliation for a commerce event.
   affiliation,
+  /// Identifies the list that presented commerce items.
   itemListId,
+  /// Names the list that presented commerce items.
   itemListName,
+  /// Names the creative used in a promotion event.
   creativeName,
+  /// Identifies the placement slot for a promotion creative.
   creativeSlot,
+  /// Identifies a physical or logical location for the event.
   locationId,
+  /// Identifies a promotion shown to the user.
   promotionId,
+  /// Names a promotion shown to the user.
   promotionName,
   
-  // Configuration
+  /// Names a user property being set or cleared.
   propertyName,
+  /// Stores the value assigned to a user property.
   propertyValue,
+  /// Controls whether analytics collection is enabled.
   enabled,
+  /// Reports consent for advertising storage.
   adStorageConsentGranted,
+  /// Reports consent for analytics storage.
   analyticsStorageConsentGranted,
+  /// Reports consent for ad personalization signals.
   adPersonalizationSignalsConsentGranted,
+  /// Reports consent for advertising user data.
   adUserDataConsentGranted,
+  /// Provides default parameters attached to future analytics events.
   defaultParameters,
+  /// Configures an operation timeout in milliseconds.
   timeoutMilliseconds,
+  /// Configures an operation timeout value.
   timeout,
   
-  // iOS conversion tracking
+  /// Passes an email address for iOS conversion tracking when supported.
   emailAddress,
+  /// Passes a phone number for iOS conversion tracking when supported.
   phoneNumber,
+  /// Passes a hashed email address for privacy-preserving conversion tracking.
   hashedEmailAddress,
+  /// Passes a hashed phone number for privacy-preserving conversion tracking.
   hashedPhoneNumber,
 }

@@ -8,12 +8,16 @@ import 'package:flutter/cupertino.dart';
 
 /// execute a group of actions, either in porallel or in order.
 class ExecuteActionGroupAction extends EnsembleAction {
+  /// Creates a [ExecuteActionGroupAction] action.
   ExecuteActionGroupAction(
       {super.initiator, this.executeInOrder, required this.actions});
 
+  /// Actions included in an action group.
   List<EnsembleAction> actions;
+  /// Whether grouped actions should wait for each previous action.
   dynamic executeInOrder;
 
+  /// Creates a [ExecuteActionGroupAction] from a YAML or map action payload.
   factory ExecuteActionGroupAction.from({Invokable? initiator, Map? payload}) {
     if (payload == null || payload['actions'] == null) {
       throw LanguageError(
@@ -47,6 +51,7 @@ class ExecuteActionGroupAction extends EnsembleAction {
         executeInOrder: payload['executeInOrder']);
   }
 
+  /// Runs this action and runs each action in the configured group.
   @override
   Future<void> execute(BuildContext context, ScopeManager scopeManager) async {
     final _executeInOrder =

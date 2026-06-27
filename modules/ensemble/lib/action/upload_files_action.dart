@@ -334,6 +334,7 @@ Future<void> _setBackgroundUploadTask({
   });
 }
 
+/// Converts upload network constraints into Workmanager network types.
 extension NetworkTypeExtension on NetworkType {
   static NetworkType fromString(String? str) {
     if (str == null) return NetworkType.connected;
