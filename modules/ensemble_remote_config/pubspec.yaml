@@ -1,5 +1,14 @@
 name: ensemble_remote_config
 description: "Ensemble Firebase Remote Config integration."
+homepage: https://ensembleui.com
+repository: https://github.com/EnsembleUI/ensemble
+issue_tracker: https://github.com/EnsembleUI/ensemble/issues
+documentation: https://github.com/EnsembleUI/ensemble/tree/main/modules/ensemble_remote_config#readme
+topics:
+  - remote-config
+  - firebase
+  - low-code
+  - ensemble
 
 version: 1.2.47
 
@@ -11,7 +20,7 @@ dependencies:
   flutter:
     sdk: flutter
 
-  firebase_core: 
+  firebase_core: ^4.2.0
   firebase_remote_config: ^6.1.4
 
   ensemble:

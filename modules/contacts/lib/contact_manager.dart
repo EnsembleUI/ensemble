@@ -1,5 +1,3 @@
-import 'dart:developer';
-
 import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/framework/stub/contacts_manager.dart';
 import 'package:ensemble/framework/stub/contacts_manager.dart' as manager;
