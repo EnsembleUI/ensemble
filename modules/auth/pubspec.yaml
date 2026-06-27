@@ -1,5 +1,15 @@
 name: ensemble_auth
-description: A new Flutter module project.
+description: Authentication services and sign-in widgets for Ensemble apps.
+homepage: https://ensembleui.com
+repository: https://github.com/EnsembleUI/ensemble
+issue_tracker: https://github.com/EnsembleUI/ensemble/issues
+documentation: https://github.com/EnsembleUI/ensemble/tree/main/modules/auth#readme
+topics:
+  - authentication
+  - oauth
+  - firebase-auth
+  - low-code
+  - ensemble
 
 # The following defines the version and build number for your application.
 # A version number is three numbers separated by dots, like 1.2.43
@@ -15,10 +25,10 @@ description: A new Flutter module project.
 # This version is used _only_ for the Runner app, which is used if you just do
 # a `flutter run` or a `flutter make-host-app-editable`. It has no impact
 # on any other native host app that you embed your Flutter project into.
-version: 1.0.0+1
+version: 1.2.46
 
 environment:
-  sdk: ">=3.5.0"
+  sdk: ">=3.5.0 <4.0.0"
   flutter: ">=3.24.0"
 
 dependencies:
@@ -41,6 +51,12 @@ dependencies:
   flutter_web_auth_2: ^4.1.0
   flutter_svg: ^2.2.0
   crypto: ^3.0.3
+  flutter_secure_storage: ^9.2.4
+  http: ^1.6.0
+  collection: ^1.19.1
+  google_sign_in_platform_interface: ^2.5.0
+  google_sign_in_web: ^0.12.4+4
+  yaml: ^3.1.3
   # auth0_flutter: ^1.2.1
 
 dev_dependencies:

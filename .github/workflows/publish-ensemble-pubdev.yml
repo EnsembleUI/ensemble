@@ -4,6 +4,7 @@ on:
   push:
     tags:
       - "ensemble-v*"
+      - "ensemble_auth-v*"
 
 concurrency:
   group: pubdev-ensemble-${{ github.ref_name }}
@@ -17,7 +18,7 @@ jobs:
   publish:
     name: Publish ensemble runtime
     runs-on: ubuntu-latest
-    if: "!contains(github.ref_name, '-beta')"
+    if: "startsWith(github.ref_name, 'ensemble-v') && !contains(github.ref_name, '-beta')"
 
     steps:
       - name: Validate release tag
@@ -165,4 +166,82 @@ jobs:
 
       - name: Publish to pub.dev
         working-directory: modules/ensemble
+        run: flutter pub publish --force
+
+  publish-auth:
+    name: Publish ensemble_auth
+    runs-on: ubuntu-latest
+    if: "startsWith(github.ref_name, 'ensemble_auth-v') && !contains(github.ref_name, '-beta')"
+
+    steps:
+      - name: Validate release tag
+        id: validate-release-tag
+        run: |
+          set -euo pipefail
+
+          if [[ ! "${{ github.ref_name }}" =~ ^ensemble_auth-v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::Expected a stable ensemble_auth tag like ensemble_auth-v1.2.47."
+            exit 1
+          fi
+
+          echo "version=${GITHUB_REF_NAME#ensemble_auth-v}" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+
+      - name: Setup Flutter SDK
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.32.5"
+          cache: true
+
+      - name: Prepare ensemble_auth for pub.dev
+        env:
+          RELEASE_VERSION: ${{ steps.validate-release-tag.outputs.version }}
+        run: |
+          set -euo pipefail
+
+          rm -f modules/auth/pubspec_overrides.yaml modules/auth/pubspec.lock
+
+          python3 <<'PY'
+          import os
+          from pathlib import Path
+
+          version = os.environ["RELEASE_VERSION"]
+          pubspec = Path("modules/auth/pubspec.yaml")
+          text = pubspec.read_text()
+
+          ensemble_start = text.index("\n  ensemble:\n")
+          next_dependency = text.index("\n  ", ensemble_start + len("\n  ensemble:\n"))
+          while next_dependency < len(text) and text[next_dependency + 3:next_dependency + 4] == " ":
+              next_dependency = text.index("\n  ", next_dependency + 1)
+
+          text = (
+              text[:ensemble_start]
+              + f"\n  ensemble: {version}\n"
+              + text[next_dependency:]
+          )
+          pubspec.write_text(text)
+          PY
+
+      - name: Resolve ensemble_auth dependencies
+        working-directory: modules/auth
+        run: |
+          set -euo pipefail
+
+          for attempt in {1..12}; do
+            if flutter pub get; then
+              exit 0
+            fi
+
+            echo "Waiting for ensemble ${{ steps.validate-release-tag.outputs.version }} to resolve from pub.dev..."
+            sleep 10
+          done
+
+          flutter pub get
+
+      - name: Publish ensemble_auth to pub.dev
+        working-directory: modules/auth
         run: flutter pub publish --force
