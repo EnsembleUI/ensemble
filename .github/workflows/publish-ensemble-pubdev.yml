@@ -45,6 +45,9 @@ jobs:
           flutter-version: "3.32.5"
           cache: true
 
+      - name: Setup pub.dev credentials
+        uses: dart-lang/setup-dart@v1
+
       - name: Build pub.dev example from starter
         run: |
           set -euo pipefail
@@ -211,6 +214,9 @@ jobs:
         with:
           flutter-version: "3.32.5"
           cache: true
+
+      - name: Setup pub.dev credentials
+        uses: dart-lang/setup-dart@v1
 
       - name: Prepare ensemble_auth for pub.dev
         env:
