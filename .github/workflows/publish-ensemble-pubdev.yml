@@ -167,13 +167,27 @@ jobs:
 
           config = example / "ensemble/ensemble-config.yaml"
           config_text = config.read_text().replace("from: ensemble", "from: local", 1)
-          for key in ("iOSClientId", "androidClientId", "webClientId", "serverClientId"):
+          for key in ("iOSClientId", "androidClientId", "webClientId", "serverClientId", "clientId"):
               config_text = re.sub(
                   rf"({key}:\s*).+",
-                  rf"\1example-{key}.apps.googleusercontent.com",
+                  rf"\1example-{key}",
                   config_text,
               )
           config.write_text(config_text)
+
+          web_index = example / "web/index.html"
+          web_index_text = web_index.read_text()
+          web_index_text = re.sub(
+              r'(<meta name="google-signin-client_id" content=")[^"]+(">)',
+              r'\1example-webClientId\2',
+              web_index_text,
+          )
+          web_index_text = re.sub(
+              r"(https://maps\.googleapis\.com/maps/api/js\?key=)[^\"']+",
+              r"\1example-google-maps-api-key",
+              web_index_text,
+          )
+          web_index.write_text(web_index_text)
           PY
 
       - name: Publish to pub.dev
