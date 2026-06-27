@@ -4,7 +4,6 @@ on:
   push:
     tags:
       - "ensemble-v*"
-      - "ensemble_auth-v*"
 
 concurrency:
   group: pubdev-ensemble-${{ github.ref_name }}
@@ -18,10 +17,13 @@ jobs:
   publish:
     name: Publish ensemble runtime
     runs-on: ubuntu-latest
-    if: "startsWith(github.ref_name, 'ensemble-v') && !contains(github.ref_name, '-beta')"
+    if: "!contains(github.ref_name, '-beta')"
+    outputs:
+      version: ${{ steps.validate-release-tag.outputs.version }}
 
     steps:
       - name: Validate release tag
+        id: validate-release-tag
         run: |
           set -euo pipefail
 
@@ -29,6 +31,8 @@ jobs:
             echo "::error::Expected a stable ensemble tag like ensemble-v1.2.47."
             exit 1
           fi
+
+          echo "version=${GITHUB_REF_NAME#ensemble-v}" >> "$GITHUB_OUTPUT"
 
       - name: Checkout
         uses: actions/checkout@v4
@@ -52,9 +56,9 @@ jobs:
           cp -R starter/lib "$example_dir/"
           cp -R starter/ensemble "$example_dir/"
           cp -R starter/web "$example_dir/"
-          cp starter/analysis_options.yaml "$example_dir/"
-          cp starter/LICENSE "$example_dir/"
-          cp starter/custom_http_server.py "$example_dir/"
+          [ -f starter/analysis_options.yaml ] && cp starter/analysis_options.yaml "$example_dir/"
+          [ -f starter/LICENSE ] && cp starter/LICENSE "$example_dir/"
+          [ -f starter/custom_http_server.py ] && cp starter/custom_http_server.py "$example_dir/"
 
           python3 <<'PY'
           from pathlib import Path
@@ -171,25 +175,14 @@ jobs:
   publish-auth:
     name: Publish ensemble_auth
     runs-on: ubuntu-latest
-    if: "startsWith(github.ref_name, 'ensemble_auth-v') && !contains(github.ref_name, '-beta')"
+    needs: publish
+    if: "!contains(github.ref_name, '-beta')"
 
     steps:
-      - name: Validate release tag
-        id: validate-release-tag
-        run: |
-          set -euo pipefail
-
-          if [[ ! "${{ github.ref_name }}" =~ ^ensemble_auth-v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            echo "::error::Expected a stable ensemble_auth tag like ensemble_auth-v1.2.47."
-            exit 1
-          fi
-
-          echo "version=${GITHUB_REF_NAME#ensemble_auth-v}" >> "$GITHUB_OUTPUT"
-
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.ref_name }}
+          ref: ensemble_auth-v${{ needs.publish.outputs.version }}
 
       - name: Setup Flutter SDK
         uses: subosito/flutter-action@v2
@@ -199,7 +192,7 @@ jobs:
 
       - name: Prepare ensemble_auth for pub.dev
         env:
-          RELEASE_VERSION: ${{ steps.validate-release-tag.outputs.version }}
+          RELEASE_VERSION: ${{ needs.publish.outputs.version }}
         run: |
           set -euo pipefail
 
@@ -231,12 +224,12 @@ jobs:
         run: |
           set -euo pipefail
 
-          for attempt in {1..12}; do
+          for attempt in {1..60}; do
             if flutter pub get; then
               exit 0
             fi
 
-            echo "Waiting for ensemble ${{ steps.validate-release-tag.outputs.version }} to resolve from pub.dev..."
+            echo "Waiting for ensemble ${{ needs.publish.outputs.version }} to resolve from pub.dev..."
             sleep 10
           done
 
