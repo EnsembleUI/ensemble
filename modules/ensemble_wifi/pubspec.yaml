@@ -1,6 +1,6 @@
 name: ensemble_wifi
 description: Module that provides WiFi connection capabilities via plugin_wifi_connect.
-version: 0.0.1
+version: 1.2.47
 
 environment:
   sdk: ">=3.5.0"

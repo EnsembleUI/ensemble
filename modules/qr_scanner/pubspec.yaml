@@ -1,8 +1,7 @@
 name: ensemble_qr_scanner
 description: QR Code and Barcode scanner module for Ensemble Framework. Lightweight module with minimal dependencies.
-version: 0.0.1
+version: 1.2.47
 homepage: https://github.com/EnsembleUI/ensemble/modules/qr_scanner
-publish_to: none
 
 environment:
   sdk: ">=3.5.0"

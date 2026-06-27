@@ -1,8 +1,6 @@
 name: ensemble_bracket
 description: "A package for elimination style tournament brackets in ensemble"
-version: 0.0.1
-
-publish_to: none
+version: 1.2.47
 
 environment:
   sdk: ">=3.5.0"
