@@ -84,7 +84,9 @@ jobs:
           echo "Resolved ensemble version: $version"
 
       - name: Version packages
-        run: melos version ensemble "${{ steps.resolve-version.outputs.version }}" --yes
+        run: |
+          melos version ensemble "${{ steps.resolve-version.outputs.version }}" --yes
+          melos version ensemble_auth "${{ steps.resolve-version.outputs.version }}" --yes
 
       - name: Push branch and tags
         run: git push origin main --follow-tags
