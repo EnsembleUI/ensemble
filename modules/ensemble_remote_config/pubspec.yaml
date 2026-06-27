@@ -1,8 +1,7 @@
 name: ensemble_remote_config
 description: "Ensemble Firebase Remote Config integration."
-publish_to: 'none'
 
-version: 1.0.0+1
+version: 1.2.47
 
 environment:
   sdk: '>=3.5.0 <4.0.0'

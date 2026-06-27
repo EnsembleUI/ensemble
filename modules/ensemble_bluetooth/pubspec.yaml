@@ -1,6 +1,6 @@
 name: ensemble_bluetooth
 description: An Ensemble package for BLE connection
-version: 0.0.1
+version: 1.2.47
 homepage: https://github.com/EnsembleUI/ensemble/modules/ensemble_bluetooth
 
 environment:

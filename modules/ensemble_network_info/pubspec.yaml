@@ -1,6 +1,6 @@
 name: ensemble_network_info
 description: Module that provides wifi related information such as wifi name, SSID etc.
-version: 0.0.1
+version: 1.2.47
 
 environment:
   sdk: ">=3.5.0"

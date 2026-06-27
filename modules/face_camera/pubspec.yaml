@@ -1,6 +1,6 @@
 name: ensemble_face_camera
 description: A standalone face detection camera module for Ensemble.
-version: 0.0.1
+version: 1.2.47
 homepage: https://github.com/EnsembleUI/ensemble/modules/face_camera
 
 environment:
