@@ -61,6 +61,7 @@ jobs:
           [ -f starter/custom_http_server.py ] && cp starter/custom_http_server.py "$example_dir/"
 
           python3 <<'PY'
+          import re
           from pathlib import Path
 
           example = Path("modules/ensemble/example")
@@ -165,7 +166,14 @@ jobs:
               integration.unlink()
 
           config = example / "ensemble/ensemble-config.yaml"
-          config.write_text(config.read_text().replace("from: ensemble", "from: local", 1))
+          config_text = config.read_text().replace("from: ensemble", "from: local", 1)
+          for key in ("iOSClientId", "androidClientId", "webClientId", "serverClientId"):
+              config_text = re.sub(
+                  rf"({key}:\s*).+",
+                  rf"\1example-{key}.apps.googleusercontent.com",
+                  config_text,
+              )
+          config.write_text(config_text)
           PY
 
       - name: Publish to pub.dev
