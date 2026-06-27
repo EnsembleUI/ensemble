@@ -52,7 +52,6 @@ dependencies:
   intl: '>=0.17.0 <=0.20.2'
   source_span: ^1.10.0
   parsejs_null_safety: ^2.0.4
-  meta: ^1.16.0
   path: ^1.9.0
 
   # The following adds the Cupertino Icons font to your application.
