@@ -7,7 +7,9 @@ import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:flutter/material.dart';
 
+/// Ensemble action that writes an encrypted value to secure storage.
 class SetSecureStorage extends EnsembleAction {
+  /// Creates a [SetSecureStorage] action.
   SetSecureStorage({
     required this.key,
     this.value,
@@ -17,14 +19,20 @@ class SetSecureStorage extends EnsembleAction {
     this.onError,
   });
 
+  /// Storage key used by keychain or secure storage actions.
   final String key;
+  /// Value written, logged, or passed to the target integration.
   final dynamic value;
-   // Optional encryption configuration
+  /// Encryption algorithm used for secure storage, when configured.
   final String? algorithm;
+  /// Encryption mode used for secure storage, when configured.
   final String? mode;
+  /// Action executed after the operation completes successfully.
   final EnsembleAction? onComplete;
+  /// Action executed when the operation fails.
   final EnsembleAction? onError;
 
+  /// Creates a [SetSecureStorage] from a YAML or map action payload.
   factory SetSecureStorage.fromYaml({Map? payload}) {
     if (payload == null || payload['key'] == null) {
       throw ConfigError('setSecureStorage requires a key.');
@@ -39,6 +47,7 @@ class SetSecureStorage extends EnsembleAction {
     );
   }
 
+  /// Runs this action and performs the set secure storage operation.
   @override
   Future execute(BuildContext context, ScopeManager scopeManager,
       {DataContext? dataContext}) async {
@@ -77,7 +86,9 @@ class SetSecureStorage extends EnsembleAction {
   }
 }
 
+/// Ensemble action that reads an encrypted value from secure storage.
 class GetSecureStorage extends EnsembleAction {
+  /// Creates a [GetSecureStorage] action.
   GetSecureStorage({
     required this.key,
     this.algorithm,
@@ -86,12 +97,18 @@ class GetSecureStorage extends EnsembleAction {
     this.onError,
   });
 
+  /// Storage key used by keychain or secure storage actions.
   final String key;
+  /// Encryption algorithm used for secure storage, when configured.
   final String? algorithm;
+  /// Encryption mode used for secure storage, when configured.
   final String? mode;
+  /// Action executed after the operation completes successfully.
   final EnsembleAction? onComplete;
+  /// Action executed when the operation fails.
   final EnsembleAction? onError;
 
+  /// Creates a [GetSecureStorage] from a YAML or map action payload.
   factory GetSecureStorage.fromYaml({Map? payload}) {
     if (payload == null || payload['key'] == null) {
       throw ConfigError('getSecureStorage requires a key.');
@@ -105,6 +122,7 @@ class GetSecureStorage extends EnsembleAction {
     );
   }
 
+  /// Runs this action and performs the get secure storage operation.
   @override
   Future execute(BuildContext context, ScopeManager scopeManager,
       {DataContext? dataContext}) async {
@@ -141,7 +159,9 @@ class GetSecureStorage extends EnsembleAction {
   }
 }
 
+/// Ensemble action that removes an encrypted value from secure storage.
 class ClearSecureStorage extends EnsembleAction {
+  /// Creates a [ClearSecureStorage] action.
   ClearSecureStorage({
     required this.key,
     this.algorithm,
@@ -150,12 +170,18 @@ class ClearSecureStorage extends EnsembleAction {
     this.onError,
   });
 
+  /// Storage key used by keychain or secure storage actions.
   final String key;
+  /// Encryption algorithm used for secure storage, when configured.
   final String? algorithm;
+  /// Encryption mode used for secure storage, when configured.
   final String? mode;
+  /// Action executed after the operation completes successfully.
   final EnsembleAction? onComplete;
+  /// Action executed when the operation fails.
   final EnsembleAction? onError;
 
+  /// Creates a [ClearSecureStorage] from a YAML or map action payload.
   factory ClearSecureStorage.fromYaml({Map? payload}) {
     if (payload == null || payload['key'] == null) {
       throw ConfigError('clearSecureStorage requires a key.');
@@ -169,6 +195,7 @@ class ClearSecureStorage extends EnsembleAction {
     );
   }
 
+  /// Runs this action and performs the clear secure storage operation.
   @override
   Future execute(BuildContext context, ScopeManager scopeManager,
       {DataContext? dataContext}) async {

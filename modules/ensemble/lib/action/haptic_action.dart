@@ -6,20 +6,31 @@ import 'package:ensemble/util/utils.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
 
+/// Haptic feedback patterns supported by the haptic action.
 enum HapticType {
+  /// Triggers a strong impact haptic feedback.
   heavyImpact,
+  /// Triggers a medium impact haptic feedback.
   mediumImpact,
+  /// Triggers a light impact haptic feedback.
   lightImpact,
+  /// Triggers the platform selection-click feedback.
   selectionClick,
+  /// Triggers the generic platform vibration feedback.
   vibrate
 }
 
+/// Ensemble action that triggers platform haptic feedback.
 class HapticAction extends EnsembleAction {
+  /// Creates a [HapticAction] action.
   HapticAction({required this.type, required this.onComplete});
 
+  /// Action-specific type such as toast style, haptic type, or file type.
   final String type;
+  /// Action executed after the operation completes successfully.
   final EnsembleAction? onComplete;
 
+  /// Creates a [HapticAction] from a YAML or map action payload.
   factory HapticAction.from(dynamic inputs) {
     Map? payload;
 
@@ -36,6 +47,7 @@ class HapticAction extends EnsembleAction {
     );
   }
 
+  /// Runs this action and performs the haptic operation.
   @override
   Future<dynamic> execute(BuildContext context, ScopeManager scopeManager) {
     final evaluatedString = scopeManager.dataContext.eval(type);

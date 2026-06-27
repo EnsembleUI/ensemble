@@ -14,14 +14,19 @@ import 'package:share_plus/share_plus.dart';
 import 'package:flutter/foundation.dart';
 import 'package:mime/mime.dart';
 
+/// Ensemble action that copies evaluated text to the clipboard.
 class CopyToClipboardAction extends EnsembleAction {
+  /// Creates a [CopyToClipboardAction] action.
   CopyToClipboardAction(this._value,
       {super.initiator, this.onSuccess, this.onFailure});
 
   dynamic _value;
+  /// Action executed when the operation succeeds.
   EnsembleAction? onSuccess;
+  /// Action executed when the operation fails.
   EnsembleAction? onFailure;
 
+  /// Creates a [CopyToClipboardAction] from a YAML or map action payload.
   factory CopyToClipboardAction.from({Map? payload}) {
     if (payload == null || payload['value'] == null) {
       throw LanguageError(
@@ -34,6 +39,7 @@ class CopyToClipboardAction extends EnsembleAction {
     );
   }
 
+  /// Runs this action and performs the copy to clipboard operation.
   @override
   Future execute(BuildContext context, ScopeManager scopeManager) {
     String? value = Utils.optionalString(scopeManager.dataContext.eval(_value));
@@ -61,6 +67,7 @@ class CopyToClipboardAction extends EnsembleAction {
 
 /// Share text and files (an optionally a title) to external Apps
 class ShareAction extends EnsembleAction {
+  /// Creates a [ShareAction] action.
   ShareAction(this._text, {String? title, dynamic files})
       : _title = title,
         _files = files;
@@ -68,6 +75,7 @@ class ShareAction extends EnsembleAction {
   dynamic _text;
   dynamic _files;
 
+  /// Creates a [ShareAction] from a YAML or map action payload.
   factory ShareAction.from({Map? payload}) {
     if (payload == null ||
         (payload['text'] == null && payload['files'] == null)) {
@@ -82,7 +90,7 @@ class ShareAction extends EnsembleAction {
     );
   }
 
-  // Helper method to create XFile from file data
+  /// Creates an [XFile] from a YAML file payload.
   XFile? createXFile(dynamic file) {
     final mimeType =
         lookupMimeType(file["path"] ?? '', headerBytes: file["bytes"]) ??
@@ -116,6 +124,7 @@ class ShareAction extends EnsembleAction {
     return null;
   }
 
+  /// Runs this action and performs the share operation.
   @override
   Future<void> execute(BuildContext context, ScopeManager scopeManager) async {
     try {
@@ -201,6 +210,7 @@ class ShareAction extends EnsembleAction {
 
 /// Rate an App (currently only works for iOS)
 class RateAppAction extends EnsembleAction {
+  /// Creates a [RateAppAction] action.
   RateAppAction({dynamic title, dynamic message})
       : _title = title,
         _message = message;
@@ -209,11 +219,13 @@ class RateAppAction extends EnsembleAction {
   final dynamic _title;
   final dynamic _message;
 
+  /// Creates a [RateAppAction] from a YAML or map action payload.
   factory RateAppAction.from({Map? payload}) {
     return RateAppAction(
         title: payload?['title'], message: payload?['message']);
   }
 
+  /// Runs this action and performs the rate app operation.
   @override
   Future<dynamic> execute(BuildContext context, ScopeManager scopeManager) {
     // what a mess of options on Android. TODO: add them

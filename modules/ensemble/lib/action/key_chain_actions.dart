@@ -9,7 +9,9 @@ import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:flutter/widgets.dart';
 
+/// Ensemble action that writes a value to the platform keychain.
 class SaveKeychain extends EnsembleAction {
+  /// Creates a [SaveKeychain] action.
   SaveKeychain({
     required this.key,
     this.value,
@@ -17,11 +19,16 @@ class SaveKeychain extends EnsembleAction {
     this.onError,
   });
 
+  /// Storage key used by keychain or secure storage actions.
   final String key;
+  /// Value written, logged, or passed to the target integration.
   final dynamic value;
+  /// Action executed after the operation completes successfully.
   final EnsembleAction? onComplete;
+  /// Action executed when the operation fails.
   final EnsembleAction? onError;
 
+  /// Creates a [SaveKeychain] from a YAML or map action payload.
   factory SaveKeychain.fromYaml({Map? payload}) {
     if (payload == null || payload['key'] == null) {
       throw ConfigError('${ActionType.saveKeychain} requires a key.');
@@ -34,6 +41,7 @@ class SaveKeychain extends EnsembleAction {
     );
   }
 
+  /// Runs this action and performs the save keychain operation.
   @override
   Future execute(BuildContext context, ScopeManager scopeManager,
       {DataContext? dataContext}) async {
@@ -65,20 +73,23 @@ class SaveKeychain extends EnsembleAction {
   }
 }
 
-// The ReadKeychain action retrieves a value from the keychain using the provided key.
-// It is only available in YAML, as this calls a async function whose return type is Future and we use callbacks to handle the result.
-// Our JS is sync and we cannot use async/await in JS. 
+/// Ensemble action that reads a value from the platform keychain.
 class ReadKeychain extends EnsembleAction {
+  /// Creates a [ReadKeychain] action.
   ReadKeychain({
     required this.key,
     this.onComplete,
     this.onError,
   });
 
+  /// Storage key used by keychain or secure storage actions.
   final String key;
+  /// Action executed after the operation completes successfully.
   final EnsembleAction? onComplete;
+  /// Action executed when the operation fails.
   final EnsembleAction? onError;
 
+  /// Creates a [ReadKeychain] from a YAML or map action payload.
   factory ReadKeychain.fromYaml({Map? payload}) {
     if (payload == null || payload['key'] == null) {
       throw ConfigError('${ActionType.readKeychain} requires a key.');
@@ -90,6 +101,7 @@ class ReadKeychain extends EnsembleAction {
     );
   }
 
+  /// Runs this action and performs the read keychain operation.
   @override
   Future execute(BuildContext context, ScopeManager scopeManager,
       {DataContext? dataContext}) async {
@@ -124,17 +136,23 @@ class ReadKeychain extends EnsembleAction {
 }
 
 
+/// Ensemble action that removes a value from the platform keychain.
 class ClearKeychain extends EnsembleAction {
+  /// Creates a [ClearKeychain] action.
   ClearKeychain({
     required this.key,
     this.onComplete,
     this.onError,
   });
 
+  /// Storage key used by keychain or secure storage actions.
   final String key;
+  /// Action executed after the operation completes successfully.
   final EnsembleAction? onComplete;
+  /// Action executed when the operation fails.
   final EnsembleAction? onError;
 
+  /// Creates a [ClearKeychain] from a YAML or map action payload.
   factory ClearKeychain.fromYaml({Map? payload}) {
     if (payload == null || payload['key'] == null) {
       throw ConfigError('${ActionType.clearKeychain} requires a key.');
@@ -146,6 +164,7 @@ class ClearKeychain extends EnsembleAction {
     );
   }
 
+  /// Runs this action and performs the clear keychain operation.
   @override
   Future execute(BuildContext context, ScopeManager scopeManager,
       {DataContext? dataContext}) async {

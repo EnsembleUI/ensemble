@@ -1,23 +1,40 @@
 import 'package:flutter/material.dart';
 
+/// Route transition animations supported by Ensemble navigation.
 enum PageTransitionType {
+  /// Uses Flutter's platform/theme page transition for the route.
   theme,
+  /// Fades the new page in without directional movement.
   fade,
+  /// Slides the new page in from the right edge.
   rightToLeft,
+  /// Slides the new page in from the left edge.
   leftToRight,
+  /// Slides the new page in from the top edge.
   topToBottom,
+  /// Slides the new page in from the bottom edge.
   bottomToTop,
+  /// Scales the new page in around the configured alignment.
   scale,
+  /// Rotates the new page into view during the transition.
   rotate,
+  /// Reveals the new page by animating its size.
   size,
+  /// Slides from right to left while fading in.
   rightToLeftWithFade,
+  /// Slides from left to right while fading in.
   leftToRightWithFade,
+  /// Uses a left-to-right motion for the pop transition.
   leftToRightPop,
+  /// Uses a right-to-left motion for the pop transition.
   rightToLeftPop,
+  /// Uses a top-to-bottom motion for the pop transition.
   topToBottomPop,
+  /// Uses a bottom-to-top motion for the pop transition.
   bottomToTopPop,
 }
 
+/// Parses YAML transition names into [PageTransitionType] values.
 extension PageTransitionTypeX on PageTransitionType {
   static PageTransitionType? fromString(String? name) {
     if (name == null) return PageTransitionType.theme;
@@ -58,25 +75,38 @@ extension PageTransitionTypeX on PageTransitionType {
   }
 }
 
+/// Page route builder that presents a screen without transition animation.
 class EnsemblePageRouteNoTransitionBuilder extends PageRouteBuilder {
+  /// Creates a [EnsemblePageRouteNoTransitionBuilder] object.
   EnsemblePageRouteNoTransitionBuilder({required Widget screenWidget})
       : super(
           pageBuilder: (context, animation, secondaryAnimation) => screenWidget,
         );
 }
 
+/// Page route builder that applies Ensemble-configured transition animations.
 class EnsemblePageRouteBuilder<T> extends PageRouteBuilder<T> {
+  /// Widget displayed by the generated page route.
   final Widget child;
+  /// Flutter transition builder used for theme-matching transitions.
   final PageTransitionsBuilder matchingBuilder;
 
+  /// Selected transition animation for this route.
   final PageTransitionType transitionType;
+  /// Animation curve applied to the route transition.
   final Curve curve;
+  /// Screen alignment used to position the visual element.
   final Alignment alignment;
+  /// Duration in seconds or milliseconds for a timed visual or media operation.
   final Duration duration;
+  /// Duration used when the route is popped.
   final Duration reverseDuration;
+  /// Build context used to find the active Ensemble scope.
   final BuildContext? context;
+  /// Whether the route should capture inherited themes from the source context.
   final bool inheritTheme;
 
+  /// Creates a [EnsemblePageRouteBuilder] object.
   EnsemblePageRouteBuilder({
     Key? key,
     required this.child,
@@ -91,7 +121,10 @@ class EnsemblePageRouteBuilder<T> extends PageRouteBuilder<T> {
     super.opaque = false,
     super.barrierColor,
     super.barrierDismissible,
-    this.matchingBuilder = const CupertinoPageTransitionsBuilder(),
+    // This field is retained for API compatibility; transitions are selected in
+    // buildTransitions below. Use a stable builder so pub.dev analysis passes
+    // across Flutter SDK versions.
+    this.matchingBuilder = const FadeUpwardsPageTransitionsBuilder(),
     RouteSettings? settings,
   }) : super(
           pageBuilder: (BuildContext context, Animation<double> animation,

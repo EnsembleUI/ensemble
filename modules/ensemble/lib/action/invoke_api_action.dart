@@ -16,7 +16,9 @@ import 'package:yaml/yaml.dart';
 
 import '../framework/apiproviders/api_provider.dart';
 
+/// Ensemble action that invokes a named API definition.
 class InvokeAPIAction extends EnsembleAction {
+  /// Creates a [InvokeAPIAction] action.
   InvokeAPIAction(
       {super.initiator,
       required this.apiName,
@@ -25,11 +27,16 @@ class InvokeAPIAction extends EnsembleAction {
       this.onResponse,
       this.onError});
 
+  /// Identifier used to store results, target an existing resource, or correlate callbacks.
   String? id;
+  /// Name of the API definition to invoke.
   final String apiName;
+  /// Action executed with the API response payload.
   EnsembleAction? onResponse;
+  /// Action executed when the operation fails.
   EnsembleAction? onError;
 
+  /// Creates a [InvokeAPIAction] from a YAML or map action payload.
   factory InvokeAPIAction.fromYaml({Invokable? initiator, Map? payload}) {
     if (payload == null || payload['name'] == null) {
       throw LanguageError(
@@ -46,6 +53,7 @@ class InvokeAPIAction extends EnsembleAction {
         onError: EnsembleAction.from(payload['onError'], initiator: initiator));
   }
 
+  /// Runs this action and invokes the configured API and dispatches callbacks.
   @override
   Future execute(BuildContext context, ScopeManager scopeManager) {
     var evalApiName = scopeManager.dataContext.eval(apiName);
@@ -61,7 +69,10 @@ class InvokeAPIAction extends EnsembleAction {
   }
 }
 
+/// Controller that resolves API definitions and dispatches API responses.
+/// Resolves API definitions, executes providers, and dispatches API state changes.
 class InvokeAPIController {
+  /// Invokes an API using an explicit data context.
   Future<Response> executeWithContext(
       BuildContext context, InvokeAPIAction action,
       {Map<String, dynamic>? additionalInputs}) {
@@ -84,11 +95,13 @@ class InvokeAPIController {
     throw Exception('Unable to execute API from context');
   }
 
+  /// Returns the provider used by the resolved API definition.
   APIProvider getAPIProvider(BuildContext context, YamlMap apiDefinition) {
     String? provider = apiDefinition['type'];
     return APIProviders.of(context).getProvider(provider);
   }
 
+  /// Runs this action with the current Flutter context and Ensemble scope.
   Future<Response> execute(InvokeAPIAction action, BuildContext context,
       ScopeManager scopeManager, Map<String, YamlMap>? apiMap) async {
     YamlMap? apiDefinition = apiMap?[action.apiName];
@@ -331,6 +344,7 @@ class InvokeAPIController {
     // silently fail if error handle is not defined? or should we alert user?
   }
 
+  /// Dispatches API response updates to listeners and bound widgets.
   void dispatchAPIChanges(ScopeManager? scopeManager, InvokeAPIAction action,
       APIResponse apiResponse) {
     // update the API response in our DataContext and fire changes to all listeners.

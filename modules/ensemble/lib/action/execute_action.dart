@@ -10,6 +10,7 @@ import 'package:yaml/yaml.dart';
 
 /// Execute a named reusable Action defined under the page-level `Actions:` block and in the app's `actions` directory.
 class ExecuteActionAction extends EnsembleAction {
+  /// Creates a [ExecuteActionAction] action.
   ExecuteActionAction({
     super.initiator,
     required this.name,
@@ -17,10 +18,14 @@ class ExecuteActionAction extends EnsembleAction {
     this.eventHandlers = const {},
   });
 
+  /// Structured name fields for the contact.
   final String name;
+  /// Payload value for raw inputs used by this action.
   final Map<String, dynamic>? rawInputs;
+  /// Payload value for event handlers used by this action.
   final Map<String, EnsembleAction?> eventHandlers;
 
+  /// Creates a [ExecuteActionAction] from a YAML or map action payload.
   factory ExecuteActionAction.fromYaml({Invokable? initiator, Map? payload}) {
     if (payload == null) {
       throw LanguageError(
@@ -45,6 +50,7 @@ class ExecuteActionAction extends EnsembleAction {
     );
   }
 
+  /// Runs this action and resolves and runs a reusable action definition.
   @override
   Future<dynamic> execute(
       BuildContext context, ScopeManager scopeManager) async {

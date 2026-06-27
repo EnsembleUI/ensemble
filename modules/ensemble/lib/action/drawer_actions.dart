@@ -8,12 +8,15 @@ import 'package:flutter/material.dart';
 /// Action to open drawer in the current context
 /// Will open screen-level drawer if exists, otherwise app-level drawer
 class OpenDrawerAction extends EnsembleAction {
+  /// Creates a [OpenDrawerAction] action.
   OpenDrawerAction({super.initiator});
 
+  /// Creates a [OpenDrawerAction] from a YAML or map action payload.
   factory OpenDrawerAction.from({Invokable? initiator, Map? payload}) {
     return OpenDrawerAction(initiator: initiator);
   }
 
+  /// Runs this action and opens the current page drawer.
   @override
   Future<void> execute(BuildContext context, ScopeManager scopeManager) {
     try {
@@ -31,13 +34,17 @@ class OpenDrawerAction extends EnsembleAction {
   }
 }
 
+/// Ensemble action that closes the current page drawer.
 class CloseDrawerAction extends EnsembleAction {
+  /// Creates a [CloseDrawerAction] action.
   CloseDrawerAction({super.initiator});
 
+  /// Creates a [CloseDrawerAction] from a YAML or map action payload.
   factory CloseDrawerAction.from({Invokable? initiator, Map? payload}) {
     return CloseDrawerAction(initiator: initiator);
   }
 
+  /// Runs this action and closes the current page drawer.
   @override
   Future execute(BuildContext context, ScopeManager scopeManager) async {
     try {
