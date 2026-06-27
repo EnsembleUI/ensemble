@@ -15,6 +15,67 @@ Packages with breaking changes:
 
 Packages with other changes:
 
+ - [`ensemble` - `v1.2.47`](#ensemble---v1247)
+ - [`ensemble_network_info` - `v0.0.1+1`](#ensemble_network_info---v0011)
+ - [`ensemble_stripe` - `v1.0.1`](#ensemble_stripe---v101)
+ - [`ensemble_file_manager` - `v0.0.1+1`](#ensemble_file_manager---v0011)
+ - [`ensemble_chat` - `v0.0.1+1`](#ensemble_chat---v0011)
+ - [`ensemble_auth` - `v1.2.47`](#ensemble_auth---v1247)
+ - [`ensemble_bluetooth` - `v0.0.1+1`](#ensemble_bluetooth---v0011)
+ - [`ensemble_wifi` - `v0.0.1+1`](#ensemble_wifi---v0011)
+ - [`ensemble_face_camera` - `v0.0.1+1`](#ensemble_face_camera---v0011)
+ - [`ensemble_connect` - `v0.0.1+1`](#ensemble_connect---v0011)
+ - [`ensemble_contacts` - `v0.0.1+1`](#ensemble_contacts---v0011)
+ - [`ensemble_location` - `v0.0.1+1`](#ensemble_location---v0011)
+ - [`ensemble_camera` - `v0.0.1+1`](#ensemble_camera---v0011)
+ - [`ensemble_deeplink` - `v0.0.1+1`](#ensemble_deeplink---v0011)
+
+Packages with dependency updates only:
+
+> Packages listed below depend on other packages in this workspace that have had changes. Their versions have been incremented to bump the minimum dependency versions of the packages they depend upon in this project.
+
+ - `ensemble_network_info` - `v0.0.1+1`
+ - `ensemble_stripe` - `v1.0.1`
+ - `ensemble_file_manager` - `v0.0.1+1`
+ - `ensemble_chat` - `v0.0.1+1`
+ - `ensemble_auth` - `v1.2.47`
+ - `ensemble_bluetooth` - `v0.0.1+1`
+ - `ensemble_wifi` - `v0.0.1+1`
+ - `ensemble_face_camera` - `v0.0.1+1`
+ - `ensemble_connect` - `v0.0.1+1`
+ - `ensemble_contacts` - `v0.0.1+1`
+ - `ensemble_location` - `v0.0.1+1`
+ - `ensemble_camera` - `v0.0.1+1`
+ - `ensemble_deeplink` - `v0.0.1+1`
+
+---
+
+#### `ensemble` - `v1.2.47`
+
+ - **REFACTOR**: update dependencies and improve import statements. ([712e0bb8](https://github.com/ensembleUI/ensemble/commit/712e0bb8e2c42b0cef55b2dd93d5df76ef029ad0))
+ - **REFACTOR**: remove font_awesome_flutter dependency and update icon usage. ([a5d66023](https://github.com/ensembleUI/ensemble/commit/a5d66023cff5da18f5390682cfe2ee1e536572b6))
+ - **FEAT**: update .gitignore and enhance ensemble module structure. ([5ec1b8eb](https://github.com/ensembleUI/ensemble/commit/5ec1b8eb926b00d2d0de4ea7f922f5f6e7e5ed9e))
+ - **FEAT**: enhance LocalAssetsService with environment variable merging and asset loading. ([359793a3](https://github.com/ensembleUI/ensemble/commit/359793a3b6e801e8f97b985da1f1663213e5580b))
+ - **FEAT**(cdn): improve asset cache management and cleanup. ([24f09d4c](https://github.com/ensembleUI/ensemble/commit/24f09d4cdefd1746c1700538b103769e20dc0ad4))
+ - **FEAT**(cdn): enhance asset key management and prefetching. ([280d35c6](https://github.com/ensembleUI/ensemble/commit/280d35c6c09c8d191892f10d13d0c79de9c99ad2))
+ - **FEAT**(cdn): enhance asset cache initialization and cleanup. ([9737308c](https://github.com/ensembleUI/ensemble/commit/9737308cd5442f4b1f489e067048ac50b8a991aa))
+ - **FEAT**(cdn): implement CDN asset caching mechanism. ([7cc9f878](https://github.com/ensembleUI/ensemble/commit/7cc9f878591c71d6eb26ec2571e069e427d50e76))
+ - **DOCS**: update README.md for Ensemble runtime. ([d6581847](https://github.com/ensembleUI/ensemble/commit/d6581847c621994ba6941023bcb3dc86b0706089))
+ - **DOCS**: add comments to clarify asset management methods in LocalAssetsService. ([52ab49bd](https://github.com/ensembleUI/ensemble/commit/52ab49bd0a4a973fc9094393c8872d7e76db9f1a))
+
+
+## 2026-06-27
+
+### Changes
+
+---
+
+Packages with breaking changes:
+
+ - There are no breaking changes in this release.
+
+Packages with other changes:
+
  - [`ensemble_auth` - `v1.2.46`](#ensemble_auth---v1246)
 
 ---
