@@ -19,7 +19,7 @@ platforms:
   web:
   windows:
 
-version: 1.2.47
+version: 1.2.48
 
 environment:
   sdk: ">=3.5.0 <4.0.0"
@@ -33,7 +33,7 @@ dependencies:
   ensemble:
     git:
       url: https://github.com/EnsembleUI/ensemble.git
-      ref: ensemble-v1.2.47
+      ref: ensemble-v1.2.48
       path: modules/ensemble
 
   # QR/Barcode scanning

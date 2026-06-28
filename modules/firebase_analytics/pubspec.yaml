@@ -21,7 +21,7 @@ topics:
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 1.2.47
+version: 1.2.48
 
 environment:
   sdk: '>=3.5.0 <4.0.0'
@@ -47,7 +47,7 @@ dependencies:
   ensemble:
     git:
       url: https://github.com/EnsembleUI/ensemble.git
-      ref: ensemble-v1.2.47
+      ref: ensemble-v1.2.48
       path: modules/ensemble
 
 dev_dependencies:

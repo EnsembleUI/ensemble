@@ -1,3 +1,7 @@
+## 1.2.48
+
+ - Bump "ensemble_auth" to `1.2.48`.
+
 ## 1.2.47
 
  - **REVERT**: downgrade Google Sign-In and Apple Sign-In dependencies to support Flutter 3.27.2. ([a9e183e6](https://github.com/ensembleUI/ensemble/commit/a9e183e62df683760de2e24a31e8bb4c1b6d2e1c))

@@ -1,3 +1,7 @@
+## 1.2.48
+
+ - Bump "ensemble" to `1.2.48`.
+
 ## 1.2.47
 
  - **REFACTOR**: update dependencies and improve import statements. ([712e0bb8](https://github.com/ensembleUI/ensemble/commit/712e0bb8e2c42b0cef55b2dd93d5df76ef029ad0))
