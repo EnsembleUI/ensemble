@@ -1,3 +1,6 @@
+/// Wi-Fi connection implementation for Ensemble apps.
+library wifi_manager_impl;
+
 import 'dart:io';
 
 import 'package:ensemble/framework/stub/wifi_manager.dart';
@@ -5,6 +8,7 @@ import 'package:flutter/foundation.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:plugin_wifi_connect/plugin_wifi_connect.dart';
 
+/// Connects and disconnects Wi-Fi networks using `plugin_wifi_connect`.
 class WifiManagerImpl implements WifiManager {
   Future<void> _ensureLocationPermission() async {
     if (kIsWeb || (!Platform.isIOS && !Platform.isAndroid)) {
@@ -33,18 +37,21 @@ class WifiManagerImpl implements WifiManager {
     return connect();
   }
 
+  /// Connects to an open Wi-Fi network by SSID.
   @override
   Future<bool?> connect(String ssid, {bool saveNetwork = false}) {
     return _connect(
         () => PluginWifiConnect.connect(ssid, saveNetwork: saveNetwork));
   }
 
+  /// Connects to an open Wi-Fi network whose SSID starts with [ssidPrefix].
   @override
   Future<bool?> connectByPrefix(String ssidPrefix, {bool saveNetwork = false}) {
     return _connect(() => PluginWifiConnect.connectByPrefix(ssidPrefix,
         saveNetwork: saveNetwork));
   }
 
+  /// Connects to a secured Wi-Fi network by SSID and password.
   @override
   Future<bool?> connectToSecureNetwork(
     String ssid,
@@ -64,6 +71,7 @@ class WifiManagerImpl implements WifiManager {
         ));
   }
 
+  /// Connects to a secured Wi-Fi network whose SSID starts with [ssidPrefix].
   @override
   Future<bool?> connectToSecureNetworkByPrefix(
     String ssidPrefix,
@@ -81,6 +89,7 @@ class WifiManagerImpl implements WifiManager {
         ));
   }
 
+  /// Disconnects from the current Wi-Fi network.
   @override
   Future<bool?> disconnect() {
     return PluginWifiConnect.disconnect();
