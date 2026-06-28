@@ -15,7 +15,6 @@ import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:collection/collection.dart';
 import 'package:workmanager/workmanager.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:meta/meta.dart';
 
 /// JSON-encodes decoded BLE UTF-8 text so raw payloads cannot break out of
 /// `functionName(<argument>)` when passed to [ScreenController.runGlobalScriptHandler].
