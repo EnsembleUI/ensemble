@@ -6,6 +6,10 @@ Ensemble Camera is a Flutter package that extends the capabilities of the [Ensem
 > **Face Detection has been moved!**
 > Real-time face detection is now provided by the standalone `ensemble_face_camera` module. Please see `ensemble_face_camera` for details.
 
+> [!WARNING]
+> **QR Code Scanning has been moved!**
+> QR Code Scanning is now provided by the standalone `ensemble_qr_scanner` module. Please see `ensemble_qr_scanner` for details.
+
 ## Features
 
 - **Photo & Video Capture**
