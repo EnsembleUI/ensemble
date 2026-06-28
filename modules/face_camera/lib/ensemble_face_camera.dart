@@ -1,3 +1,4 @@
+/// Entry point for Ensemble's face camera module.
 library ensemble_face_camera;
 
 export 'face_detection_camera.dart';
