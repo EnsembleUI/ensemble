@@ -1,12 +1,17 @@
+/// Typing indicator widgets for chat conversations.
+library typing_indicator;
+
 import 'package:flutter/material.dart';
 
+/// Animated typing indicator.
 class TypingIndicator extends StatefulWidget {
+  /// Creates a typing indicator.
   const TypingIndicator({
     super.key,
     required this.showIndicator,
   });
 
-  /// Used to hide indicator when the [options.typingUsers] is empty.
+  /// Whether the typing indicator should be visible.
   final bool showIndicator;
 
   @override
@@ -160,14 +165,19 @@ class _TypingIndicatorState extends State<TypingIndicator>
       );
 }
 
+/// A single animated dot in the typing indicator.
 class AnimatedCircles extends StatelessWidget {
+  /// Creates an animated dot.
   const AnimatedCircles({
     super.key,
     required this.circlesColor,
     required this.animationOffset,
   });
 
+  /// Dot color.
   final Color circlesColor;
+
+  /// Animation used to move the dot vertically.
   final Animation<Offset> animationOffset;
   @override
   Widget build(BuildContext context) => SlideTransition(

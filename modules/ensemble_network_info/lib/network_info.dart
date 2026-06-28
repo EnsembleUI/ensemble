@@ -1,4 +1,8 @@
+/// Network metadata provider for Ensemble apps.
+library network_info;
+
 import 'dart:io';
+
 import 'package:ensemble/action/get_network_info_action.dart';
 import 'package:ensemble/framework/device.dart';
 import 'package:ensemble/framework/stub/location_manager.dart';
@@ -9,16 +13,21 @@ import 'package:flutter/services.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:network_info_plus/network_info_plus.dart';
 
+/// Provides Wi-Fi and network metadata through `network_info_plus`.
 class NetworkInfoImpl implements ensembleNetWorkInfo.NetworkInfoManager {
+  /// Creates a network-info manager backed by the platform implementation.
+  NetworkInfoImpl();
+
   final NetworkInfo _networkInfo = NetworkInfo();
 
+  /// Returns the current Wi-Fi BSSID when the platform exposes it.
   Future<String?> getWifiBSSID() async {
     if (kIsWeb) {
       return Future.value(null); //not supported on the web
     }
     try {
       if (Platform.isAndroid || Platform.isIOS) {
-        if (await getLocationStatus() == LocationStatus.ready) {
+        if (await getLocationStatus() == LocationStatus.ready.name) {
           return await _networkInfo.getWifiBSSID();
         }
         return await _networkInfo.getWifiBSSID();
@@ -32,6 +41,7 @@ class NetworkInfoImpl implements ensembleNetWorkInfo.NetworkInfoManager {
     return null;
   }
 
+  /// Returns the current Wi-Fi broadcast address.
   Future<String?> getWifiBroadcast() async {
     try {
       return await _networkInfo.getWifiBroadcast();
@@ -43,6 +53,7 @@ class NetworkInfoImpl implements ensembleNetWorkInfo.NetworkInfoManager {
     }
   }
 
+  /// Returns the current Wi-Fi gateway IP address.
   Future<String?> getWifiGatewayIP() async {
     try {
       return await _networkInfo.getWifiGatewayIP();
@@ -54,6 +65,7 @@ class NetworkInfoImpl implements ensembleNetWorkInfo.NetworkInfoManager {
     }
   }
 
+  /// Returns the current Wi-Fi IPv4 address.
   Future<String?> getWifiIPv4() async {
     try {
       return await _networkInfo.getWifiIP();
@@ -65,6 +77,7 @@ class NetworkInfoImpl implements ensembleNetWorkInfo.NetworkInfoManager {
     }
   }
 
+  /// Returns the current Wi-Fi IPv6 address.
   Future<String?> getWifiIPv6() async {
     try {
       return await _networkInfo.getWifiIPv6();
@@ -76,6 +89,7 @@ class NetworkInfoImpl implements ensembleNetWorkInfo.NetworkInfoManager {
     }
   }
 
+  /// Returns the current Wi-Fi network name.
   Future<String?> getWifiName() async {
     if (kIsWeb) {
       return Future.value(null); //not supported on the web
@@ -83,7 +97,7 @@ class NetworkInfoImpl implements ensembleNetWorkInfo.NetworkInfoManager {
     try {
       if (Platform.isAndroid || Platform.isIOS) {
         String? wifiName;
-        if (await getLocationStatus() == LocationStatus.ready) {
+        if (await getLocationStatus() == LocationStatus.ready.name) {
           wifiName = await _networkInfo.getWifiName();
         } else {
           wifiName = await _networkInfo.getWifiName();
@@ -105,6 +119,7 @@ class NetworkInfoImpl implements ensembleNetWorkInfo.NetworkInfoManager {
     return null;
   }
 
+  /// Returns the current Wi-Fi subnet mask.
   Future<String?> getWifiSubmask() async {
     try {
       return await _networkInfo.getWifiSubmask();
@@ -116,6 +131,7 @@ class NetworkInfoImpl implements ensembleNetWorkInfo.NetworkInfoManager {
     }
   }
 
+  /// Returns the raw location permission status reported by the platform.
   @override
   Future<LocationPermissionStatus> checkPermission() async {
     final permission = await Geolocator.checkPermission();
@@ -123,6 +139,7 @@ class NetworkInfoImpl implements ensembleNetWorkInfo.NetworkInfoManager {
         .firstWhere((element) => element.name == permission.name);
   }
 
+  /// Returns whether location services are ready, disabled, or denied.
   @override
   Future<String> getLocationStatus() async {
     if (await Geolocator.isLocationServiceEnabled()) {
@@ -131,11 +148,17 @@ class NetworkInfoImpl implements ensembleNetWorkInfo.NetworkInfoManager {
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
       }
-      return permission.name;
+      if (permission == LocationPermission.denied ||
+          permission == LocationPermission.deniedForever ||
+          permission == LocationPermission.unableToDetermine) {
+        return permission.name;
+      }
+      return LocationStatus.ready.name;
     }
     return LocationStatus.disabled.name;
   }
 
+  /// Returns the available Wi-Fi metadata as an invokable Ensemble payload.
   @override
   Future<InvokableNetworkInfo> getNetworkInfo() async {
     return InvokableNetworkInfo(

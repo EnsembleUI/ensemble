@@ -1,3 +1,6 @@
+/// Bluetooth manager implementation for Ensemble apps.
+library ensemble_bluetooth;
+
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
@@ -15,7 +18,6 @@ import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:collection/collection.dart';
 import 'package:workmanager/workmanager.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:meta/meta.dart';
 
 /// JSON-encodes decoded BLE UTF-8 text so raw payloads cannot break out of
 /// `functionName(<argument>)` when passed to [ScreenController.runGlobalScriptHandler].
@@ -23,14 +25,17 @@ import 'package:meta/meta.dart';
 String encodeBleUtf8PayloadForScriptHandler(String decodedUtf8) =>
     jsonEncode(decodedUtf8);
 
+/// Tracks background isolate ports used by Bluetooth subscriptions.
 class BackgroundTaskManager {
   static final Map<String, ReceivePort> _backgroundPorts = {};
 
+  /// Registers a background isolate port for a Bluetooth task.
   static void registerTask(String taskId, ReceivePort port) {
     _backgroundPorts[taskId] = port;
     IsolateNameServer.registerPortWithName(port.sendPort, taskId);
   }
 
+  /// Cleans up a registered Bluetooth background task.
   static void cleanupTask(String taskId) {
     final port = _backgroundPorts.remove(taskId);
     if (port != null) {
@@ -39,6 +44,7 @@ class BackgroundTaskManager {
     }
   }
 
+  /// Cleans up all registered Bluetooth background tasks.
   static void cleanupAllTasks() {
     for (final taskId in _backgroundPorts.keys.toList()) {
       cleanupTask(taskId);
@@ -46,6 +52,7 @@ class BackgroundTaskManager {
   }
 }
 
+/// Implements Ensemble Bluetooth operations using `flutter_blue_plus`.
 class BluetoothManagerImpl extends BluetoothManager {
   static BluetoothManagerImpl? _instance;
   BluetoothAdapterState _adapterState = BluetoothAdapterState.unknown;
@@ -251,7 +258,7 @@ class BluetoothManagerImpl extends BluetoothManager {
       final c = service.characteristics.firstWhereOrNull(
           (element) => element.characteristicUuid.str == characteristicId);
       if (c != null) {
-        deviceId = c.deviceId.str;
+        deviceId = c.remoteId.str;
         break;
       }
     }

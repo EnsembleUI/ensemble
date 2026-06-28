@@ -1,4 +1,5 @@
-// ignore_for_file: avoid_print
+/// Chat page widgets and style controller composites.
+library chat_page;
 
 import 'dart:async';
 import 'dart:convert';
@@ -13,7 +14,9 @@ import 'package:yaml/yaml.dart';
 
 import 'helpers/bubble_container.dart';
 
+/// Displays a chat conversation and message composer.
 class ChatPage extends StatefulWidget {
+  /// Creates a chat page for the provided messages and controller.
   const ChatPage({
     super.key,
     required this.messages,
@@ -21,25 +24,44 @@ class ChatPage extends StatefulWidget {
     required this.controller,
   });
 
+  /// Messages rendered in the conversation.
   final List<InternalMessage> messages;
+
+  /// Callback invoked when the user sends a message.
   final Function(String value) onMessageSend;
+
+  /// Controller that stores chat configuration and styles.
   final EnsembleChatController controller;
 
   @override
   State<ChatPage> createState() => _ChatPageState();
 }
 
+/// Style configuration for a chat bubble.
 class BubbleStyleComposite extends WidgetCompositeProperty {
+  /// Creates a bubble style composite attached to [widgetController].
   BubbleStyleComposite(ChangeNotifier widgetController)
       : super(widgetController);
 
+  /// Bubble background color.
   Color? backgroundColor;
+
+  /// Bubble text color.
   Color? textColor;
+
+  /// Bubble corner radius.
   double borderRadius = 20.0;
+
+  /// Optional full text style for bubble content.
   TextStyle? textStyle;
+
+  /// Inner spacing for bubble content.
   EdgeInsets padding = const EdgeInsets.symmetric(horizontal: 16, vertical: 12);
+
+  /// Outer spacing around each bubble.
   EdgeInsets margin = const EdgeInsets.symmetric(vertical: 4);
 
+  /// Creates a style composite from an Ensemble payload.
   factory BubbleStyleComposite.from(
       ChangeNotifier widgetController, dynamic payload) {
     BubbleStyleComposite composite = BubbleStyleComposite(widgetController);
@@ -106,8 +128,9 @@ class _ChatPageState extends State<ChatPage> {
                     return ValueListenableBuilder<bool>(
                       valueListenable: widget.controller.isLoading,
                       builder: (context, isLoading, _) {
-                        if (!widget.controller.showLoading)
+                        if (!widget.controller.showLoading) {
                           return const SizedBox.shrink();
+                        }
 
                         return Container(
                           margin: const EdgeInsets.symmetric(vertical: 8),
@@ -128,9 +151,13 @@ class _ChatPageState extends State<ChatPage> {
                     );
                   }
                   // Adjust index for messages to account for loading indicator
-                  final visibleMessages = widget.messages.where((m) => m.visible).toList();
-                  final effectiveIndex = visibleMessages.length - 1 - (widget.controller.isLoading.value ? index - 1 : index);
-                  final message = visibleMessages[effectiveIndex];
+                  final List<InternalMessage> visibleMessages =
+                      widget.messages.where((m) => m.visible).toList();
+                  final int effectiveIndex = visibleMessages.length -
+                      1 -
+                      (widget.controller.isLoading.value ? index - 1 : index);
+                  final InternalMessage message =
+                      visibleMessages[effectiveIndex];
                   return Container(
                     margin: const EdgeInsets.only(top: 8.0),
                     child: MessageWidget(
@@ -211,20 +238,27 @@ class _ChatPageState extends State<ChatPage> {
   }
 
   void _handleSubmit([String? value]) {
-    if (_textController.text.trim().isEmpty) return;
+    if (_textController.text.trim().isEmpty) {
+      return;
+    }
     widget.onMessageSend.call(_textController.text);
     _textController.clear();
   }
 }
 
+/// Renders a single chat message using the configured role style.
 class MessageWidget extends StatelessWidget {
+  /// Creates a message widget.
   const MessageWidget({
     super.key,
     required this.message,
     required this.controller,
   });
 
+  /// Message to render.
   final InternalMessage message;
+
+  /// Controller that provides style configuration.
   final EnsembleChatController controller;
 
   BubbleStyleComposite _getStyleForRole() {
