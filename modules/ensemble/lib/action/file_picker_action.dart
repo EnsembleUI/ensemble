@@ -38,6 +38,7 @@ class FilePickerAction extends EnsembleAction {
   /// Whether multiple files can be selected.
   bool? allowMultiple;
   /// Whether selected media may be compressed by the picker.
+  @Deprecated('allowCompression is deprecated and has no effect.') 
   bool? allowCompression;
   /// Action executed after the operation completes successfully.
   EnsembleAction? onComplete;
