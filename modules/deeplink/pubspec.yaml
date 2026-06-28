@@ -9,6 +9,10 @@ topics:
   - deferred-links
   - low-code
   - ensemble
+platforms:
+  android:
+  ios:
+  web:
 version: 1.2.47
 
 environment:
