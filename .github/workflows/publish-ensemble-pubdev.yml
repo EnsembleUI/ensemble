@@ -262,7 +262,7 @@ jobs:
 
           # Replace local/git dependencies on any versioned ensemble module with the release version
           pattern = r"(\n  ensemble[_a-zA-Z0-9]*:)\s*\n\s+git:\s*\n\s+url:\s*https://github\.com/EnsembleUI/ensemble\.git\s*\n\s+ref:[^\n]+\n\s+path:[^\n]+"
-          text = re.sub(pattern, rf"\1 {version}", text)
+          text = re.sub(pattern, rf"\1 ^{version}", text)
           
           pubspec.write_text(text)
           PY
