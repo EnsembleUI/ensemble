@@ -495,8 +495,6 @@ class WebFaceDetection {
       case CameraFlashMode.auto:
         flashMode = FlashMode.auto;
         break;
-      default:
-        flashMode = FlashMode.off;
     }
 
     // Update flash mode if camera is initialized

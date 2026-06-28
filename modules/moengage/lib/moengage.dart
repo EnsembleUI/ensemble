@@ -5,11 +5,7 @@ import 'package:ensemble/util/moengage_utils.dart';
 import 'package:ensemble_moengage/moengage_notification_handler.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
-import 'package:moengage_flutter/moengage_flutter.dart' hide LogLevel;
-import 'package:moengage_flutter_platform_interface/src/log_level.dart';
-import 'package:moengage_cards/moengage_cards.dart';
-import 'package:moengage_inbox/moengage_inbox.dart';
-import 'package:moengage_geofence/moengage_geofence.dart';
+import 'package:moengage_flutter/moengage_flutter.dart';
 
 class MoEngageImpl implements MoEngageModule {
   static final MoEngageImpl _instance = MoEngageImpl._internal();
@@ -18,7 +14,6 @@ class MoEngageImpl implements MoEngageModule {
   late MoEngageFlutter _moengagePlugin;
 
   bool _initialized = false;
-  String? _workspaceId;
 
   void _checkInitialization() {
     if (!_initialized) {
@@ -39,8 +34,6 @@ class MoEngageImpl implements MoEngageModule {
   }
 
   void _initialize(String workspaceId, bool enableLogs) {
-    _workspaceId = workspaceId;
-    
     // 1. Create plugin instance
     _moengagePlugin = MoEngageFlutter(
       workspaceId,

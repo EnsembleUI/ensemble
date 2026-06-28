@@ -1,9 +1,18 @@
 name: ensemble_wifi
-description: Module that provides WiFi connection capabilities via plugin_wifi_connect.
+description: Programmatic WiFi connection support for Ensemble apps.
+homepage: https://ensembleui.com
+repository: https://github.com/EnsembleUI/ensemble
+issue_tracker: https://github.com/EnsembleUI/ensemble/issues
+documentation: https://github.com/EnsembleUI/ensemble/tree/main/modules/ensemble_wifi#readme
+topics:
+  - wifi
+  - connectivity
+  - low-code
+  - ensemble
 version: 1.2.47
 
 environment:
-  sdk: ">=3.5.0"
+  sdk: ">=3.5.0 <4.0.0"
   flutter: ">=3.24.0"
 
 dependencies:

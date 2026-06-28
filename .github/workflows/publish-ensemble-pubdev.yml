@@ -197,17 +197,40 @@ jobs:
         working-directory: modules/ensemble
         run: flutter pub publish --force
 
-  publish-auth:
-    name: Publish ensemble_auth
+  publish-modules:
+    name: Publish ${{ matrix.package.name }}
     runs-on: ubuntu-latest
     needs: publish
     if: "!contains(github.ref_name, '-beta')"
+    strategy:
+      fail-fast: false
+      matrix:
+        package:
+          - { name: "ensemble_network_info", path: "modules/ensemble_network_info" }
+          - { name: "ensemble_stripe", path: "modules/ensemble_stripe" }
+          - { name: "ensemble_file_manager", path: "modules/file_manager" }
+          - { name: "ensemble_chat", path: "modules/chat" }
+          - { name: "ensemble_auth", path: "modules/auth" }
+          - { name: "ensemble_bluetooth", path: "modules/ensemble_bluetooth" }
+          - { name: "ensemble_wifi", path: "modules/ensemble_wifi" }
+          - { name: "ensemble_face_camera", path: "modules/face_camera" }
+          - { name: "ensemble_connect", path: "modules/connect" }
+          - { name: "ensemble_contacts", path: "modules/contacts" }
+          - { name: "ensemble_location", path: "modules/location" }
+          - { name: "ensemble_camera", path: "modules/camera" }
+          - { name: "ensemble_deeplink", path: "modules/deeplink" }
+          - { name: "ensemble_remote_config", path: "modules/ensemble_remote_config" }
+          - { name: "ensemble_firebase_analytics", path: "modules/firebase_analytics" }
+          - { name: "ensemble_qr_scanner", path: "modules/qr_scanner" }
+          - { name: "ensemble_adobe_analytics", path: "modules/adobe_analytics" }
+          - { name: "ensemble_moengage", path: "modules/moengage" }
+          - { name: "ensemble_bracket", path: "modules/bracket" }
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          ref: ensemble_auth-v${{ needs.publish.outputs.version }}
+          ref: ${{ matrix.package.name }}-v${{ needs.publish.outputs.version }}
 
       - name: Setup Flutter SDK
         uses: subosito/flutter-action@v2
@@ -218,37 +241,34 @@ jobs:
       - name: Setup pub.dev credentials
         uses: dart-lang/setup-dart@v1
 
-      - name: Prepare ensemble_auth for pub.dev
+      - name: Prepare package for pub.dev
         env:
           RELEASE_VERSION: ${{ needs.publish.outputs.version }}
+          PACKAGE_PATH: ${{ matrix.package.path }}
         run: |
           set -euo pipefail
 
-          rm -f modules/auth/pubspec_overrides.yaml modules/auth/pubspec.lock
+          rm -f "${PACKAGE_PATH}/pubspec_overrides.yaml" "${PACKAGE_PATH}/pubspec.lock"
 
           python3 <<'PY'
           import os
+          import re
           from pathlib import Path
 
           version = os.environ["RELEASE_VERSION"]
-          pubspec = Path("modules/auth/pubspec.yaml")
+          path = os.environ["PACKAGE_PATH"]
+          pubspec = Path(path) / "pubspec.yaml"
           text = pubspec.read_text()
 
-          ensemble_start = text.index("\n  ensemble:\n")
-          next_dependency = text.index("\n  ", ensemble_start + len("\n  ensemble:\n"))
-          while next_dependency < len(text) and text[next_dependency + 3:next_dependency + 4] == " ":
-              next_dependency = text.index("\n  ", next_dependency + 1)
-
-          text = (
-              text[:ensemble_start]
-              + f"\n  ensemble: {version}\n"
-              + text[next_dependency:]
-          )
+          # Replace local/git dependencies on any versioned ensemble module with the release version
+          pattern = r"(\n  ensemble[_a-zA-Z0-9]*:)\s*\n\s+git:\s*\n\s+url:\s*https://github\.com/EnsembleUI/ensemble\.git\s*\n\s+ref:[^\n]+\n\s+path:[^\n]+"
+          text = re.sub(pattern, rf"\1 {version}", text)
+          
           pubspec.write_text(text)
           PY
 
-      - name: Resolve ensemble_auth dependencies
-        working-directory: modules/auth
+      - name: Resolve dependencies
+        working-directory: ${{ matrix.package.path }}
         run: |
           set -euo pipefail
 
@@ -257,12 +277,12 @@ jobs:
               exit 0
             fi
 
-            echo "Waiting for ensemble ${{ needs.publish.outputs.version }} to resolve from pub.dev..."
+            echo "Waiting for dependencies of ${{ matrix.package.name }} to resolve from pub.dev..."
             sleep 10
           done
 
           flutter pub get
 
-      - name: Publish ensemble_auth to pub.dev
-        working-directory: modules/auth
+      - name: Publish ${{ matrix.package.name }} to pub.dev
+        working-directory: ${{ matrix.package.path }}
         run: flutter pub publish --force
