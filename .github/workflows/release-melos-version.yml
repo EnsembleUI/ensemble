@@ -129,4 +129,7 @@ jobs:
             --yes
 
       - name: Push branch and tags
-        run: git push origin main --follow-tags
+        run: |
+          git push origin main
+          git push origin ensemble-v${{ steps.resolve-version.outputs.version }}
+          git push origin --tags
