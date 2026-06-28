@@ -11,10 +11,12 @@ import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:flutter/material.dart';
 
+/// Implementation of the tournament bracket widget for Ensemble.
 class EnsembleBracketImpl extends EnsembleWidget<BracketController>
     implements EnsembleBracket {
   const EnsembleBracketImpl._(super.controller);
 
+  /// Factory constructor to build the [EnsembleBracketImpl] widget.
   factory EnsembleBracketImpl.build([dynamic controller]) =>
       EnsembleBracketImpl._(
           controller is BracketController ? controller : BracketController());
@@ -23,10 +25,14 @@ class EnsembleBracketImpl extends EnsembleWidget<BracketController>
   State<StatefulWidget> createState() => BracketState();
 }
 
+/// Template representing a round in the tournament bracket.
 class RoundTemplate extends ItemTemplate {
+  /// The title of the round.
   final String? title;
+  /// The matches within the round.
   final MatchTemplate matches;
 
+  /// Creates a [RoundTemplate].
   RoundTemplate({
     required String? data,
     required String name,
@@ -36,17 +42,25 @@ class RoundTemplate extends ItemTemplate {
   }) : super(data, name, template);
 }
 
+/// Template representing a match within a round.
 class MatchTemplate extends ItemTemplate {
+  /// The height of the match container.
   final double height;
 
+  /// Creates a [MatchTemplate].
   MatchTemplate(super.data, super.name, super.template, this.height);
 }
 
+/// Data object containing resolved information for a round.
 class RoundData {
+  /// The title of the round.
   final String title;
+  /// The match template configuration.
   final MatchTemplate matches;
+  /// The local scope manager for evaluated variables in the round.
   final ScopeManager localScope;
 
+  /// Creates a [RoundData] object.
   RoundData({
     required this.title,
     required this.matches,
@@ -54,11 +68,15 @@ class RoundData {
   });
 }
 
+/// Controller managing styling and properties of the [EnsembleBracketImpl] widget.
 class BracketController extends EnsembleBoxController {
+  /// Padding for the bracket tabs.
   EdgeInsets? tabPadding;
 
+  /// Gap between tabs.
   double tabGap = 12;
 
+  /// Creates a [BracketController].
   BracketController();
 
   RoundTemplate? roundTemplate;
@@ -147,7 +165,7 @@ class BracketState extends EnsembleWidgetState<EnsembleBracketImpl>
     super.didChangeDependencies();
   }
 
-  _buildRoundConfig(BuildContext context, List dataList) {
+  List<RoundData> _buildRoundConfig(BuildContext context, List dataList) {
     List<RoundData> roundDataConfig = [];
 
     RoundTemplate? itemTemplate = widget.controller.roundTemplate;
