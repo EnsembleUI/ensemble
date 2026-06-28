@@ -1,9 +1,13 @@
+/// Contact manager implementation for Ensemble apps.
+library contact_manager;
+
 import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/framework/stub/contacts_manager.dart';
 import 'package:ensemble/framework/stub/contacts_manager.dart' as manager;
 import 'package:fast_contacts/fast_contacts.dart' as fc;
 import 'package:flutter_contacts/flutter_contacts.dart' as fcontacts;
 
+/// Reads contacts and contact photos from the device.
 class ContactManagerImpl extends ContactManager {
   // @override
   // void getPhoneContacts(
@@ -33,6 +37,7 @@ class ContactManagerImpl extends ContactManager {
   //   }
   // }
 
+  /// Requests permission and returns phone contacts.
   @override
   Future<void> getPhoneContacts(
       ContactSuccessCallback onSuccess, ContactErrorCallback onError) async {
@@ -49,6 +54,7 @@ class ContactManagerImpl extends ContactManager {
     }
   }
 
+  /// Fetches a contact photo by contact identifier.
   @override
   Future<void> getContactPhoto(String id, ContactPhotoSuccessCallback onSuccess,
       ContactPhotoErrorCallback onError) async {
@@ -95,6 +101,7 @@ class ContactManagerImpl extends ContactManager {
       ? contact.displayName
       : (contact.organization?.company ?? '');
 
+  /// Requests read access to device contacts.
   @override
   Future<bool> requestPermission() async {
     try {
