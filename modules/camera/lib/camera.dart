@@ -263,6 +263,9 @@ class CameraState extends EWidgetState<Camera> with WidgetsBindingObserver {
   void initCameras() async {
     try {
       cameras = await availableCameras();
+      if (cameras.isEmpty) {
+        throw CameraException('NoCamera', 'No cameras available on this device.');
+      }
       setCameraInit();
     } catch (e) {
       if (e is CameraException && e.code == 'CameraAccessDenied') {
