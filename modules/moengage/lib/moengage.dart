@@ -1,3 +1,6 @@
+/// MoEngage implementation classes.
+library moengage;
+
 import 'dart:io';
 
 import 'package:ensemble/framework/stub/moengage_manager.dart';
@@ -7,6 +10,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:moengage_flutter/moengage_flutter.dart';
 
+/// Implementation of MoEngage integration for the Ensemble framework.
 class MoEngageImpl implements MoEngageModule {
   static final MoEngageImpl _instance = MoEngageImpl._internal();
   MoEngageImpl._internal();
@@ -21,6 +25,7 @@ class MoEngageImpl implements MoEngageModule {
     }
   }
 
+  /// Creates or returns the singleton instance of [MoEngageImpl].
   factory MoEngageImpl({required String workspaceId, bool enableLogs = false}) {
     if (!_instance._initialized) {
       try {
@@ -405,6 +410,7 @@ Future<bool> deleteUser() async {
 }
 }
 
+/// Extension to handle type conversion between Ensemble types and MoEngage types.
 extension EnsembleTypeConversion on MoEngageImpl {
   MoEGender _convertGender(EnsembleGender gender) {
     switch (gender) {

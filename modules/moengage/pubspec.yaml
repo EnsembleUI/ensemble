@@ -1,7 +1,7 @@
 name: ensemble_moengage
-description: MoEngage integration for Ensemble Framework
+description: MoEngage analytics and push notifications integration module for the Ensemble low-code framework.
 homepage: https://ensembleui.com
-repository: https://github.com/EnsembleUI/ensemble
+repository: https://github.com/ensembleUI/ensemble/tree/main/modules/moengage
 issue_tracker: https://github.com/EnsembleUI/ensemble/issues
 documentation: https://github.com/EnsembleUI/ensemble/tree/main/modules/moengage#readme
 topics:
