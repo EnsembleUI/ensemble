@@ -53,6 +53,27 @@ The following packages have been migrated from `modules/` to `packages/`:
 - **Purpose**: Device preview and testing utilities
 - **Status**: ✅ Published for pub.dev
 
+### 5. **ensemble_icons**
+
+- **Old Location**: `modules/ensemble_icons/`
+- **New Location**: `packages/ensemble_icons/`
+- **Purpose**: Shared icon package used by the Ensemble runtime
+- **Status**: ✅ Moved to packages
+
+### 6. **ensemble_dropdown**
+
+- **Old Location**: `modules/ensemble_dropdown/`
+- **New Location**: `packages/ensemble_dropdown/`
+- **Purpose**: Shared dropdown widget package used by the Ensemble runtime
+- **Status**: ✅ Moved to packages
+
+### 7. **js_widget**
+
+- **Old Location**: `modules/js_widget/`
+- **New Location**: `packages/js_widget/`
+- **Purpose**: Shared widget package used by the Ensemble runtime
+- **Status**: ✅ Moved to packages
+
 ## Current State
 
 ### **Dual Package Strategy**
@@ -116,4 +137,4 @@ This migration strategy provides a balanced approach to modernizing the Ensemble
 
 ---
 
-**Last Updated**: Aug 15 2025
+**Last Updated**: June 29 2026
