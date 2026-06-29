@@ -225,7 +225,7 @@ jobs:
           - { name: "ensemble_adobe_analytics", path: "modules/adobe_analytics" }
           - { name: "ensemble_moengage", path: "modules/moengage" }
           - { name: "ensemble_bracket", path: "modules/bracket" }
-          - { name: "ensemble_test_runner", path: "packages/ensemble_test_runner" }
+          - { name: "ensemble_test_runner", path: "tools/ensemble_test_runner" }
 
     steps:
       - name: Checkout

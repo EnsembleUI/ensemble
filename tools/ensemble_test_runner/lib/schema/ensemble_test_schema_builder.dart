@@ -172,7 +172,7 @@ class EnsembleTestSchemaBuilder {
       'title': 'Ensemble declarative test file',
       'description':
           'Schema for app-local tests/*.test.yaml — one test per file; '
-              'see packages/ensemble_test_runner/STEP_VOCABULARY.md',
+              'see tools/ensemble_test_runner/STEP_VOCABULARY.md',
       ...testCase,
       '\$defs': defs,
     };

@@ -1,4 +1,3 @@
-import 'package:ensemble_test_runner/vocabulary/test_step_registry.dart';
 import 'package:ensemble_test_runner/vocabulary/test_step_vocabulary.dart';
 import 'package:flutter_test/flutter_test.dart';
 
