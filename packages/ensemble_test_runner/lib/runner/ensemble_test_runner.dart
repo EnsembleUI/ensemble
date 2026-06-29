@@ -15,11 +15,15 @@ typedef EnsembleTestRunOutput = ({
   EnsembleConfig config,
 });
 
+/// Executes parsed Ensemble YAML test plans against a widget tester.
 class EnsembleTestRunner {
+  /// Harness used to boot and reset the real Ensemble runtime.
   final EnsembleTestHarness harness;
 
+  /// Creates a runner backed by [harness].
   EnsembleTestRunner({required this.harness});
 
+  /// Runs every test in [plan] and returns results keyed by test id.
   Future<Map<String, EnsembleSingleTestResult>> runPlan(
     EnsembleTestExecutionPlan plan,
     WidgetTester tester,
@@ -62,6 +66,7 @@ class EnsembleTestRunner {
     return resultsById;
   }
 
+  /// Runs a single [test], optionally continuing an existing app session.
   Future<EnsembleTestRunOutput> runOne(
     EnsembleTestCase test,
     WidgetTester tester, {

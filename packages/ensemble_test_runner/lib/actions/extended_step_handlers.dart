@@ -460,6 +460,7 @@ class ExtendedStepHandlers {
     final scope = e.assertions.activeScope();
     if (scope != null) {
       ScreenController().executeAction(
+        // ignore: deprecated_member_use
         scope.dataContext.buildContext,
         NavigateBackAction.from(payload: null),
       );

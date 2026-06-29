@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:io';
 
 import 'package:ensemble/ensemble.dart';
@@ -27,6 +26,7 @@ class EnsembleTestSetup {
   });
 }
 
+/// Applies YAML test environment and storage bootstrap data to [config].
 void applyYamlTestBootstrap(EnsembleConfig config, EnsembleTestSetup setup) {
   if (setup.envOverrides != null && setup.envOverrides!.isNotEmpty) {
     config.updateEnvOverrides(setup.envOverrides!);

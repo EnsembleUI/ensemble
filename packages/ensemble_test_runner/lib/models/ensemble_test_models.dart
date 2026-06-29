@@ -1,6 +1,7 @@
 /// Declarative test document and run results.
 library;
 
+/// Request object describing an Ensemble YAML test run.
 class EnsembleTestRunRequest {
   final String? appPath;
   final String? appHome;
@@ -17,12 +18,14 @@ class EnsembleTestRunRequest {
   });
 }
 
+/// Environment overrides applied to a YAML test run.
 class EnsembleTestEnvironment {
   final Map<String, dynamic> env;
 
   const EnsembleTestEnvironment({this.env = const {}});
 }
 
+/// Parsed definition of a single YAML test case.
 class EnsembleTestCase {
   final String id;
   final String? sourcePath;
@@ -71,12 +74,14 @@ class EnsembleTestCase {
       };
 }
 
+/// Mock configuration attached to a test case.
 class TestMocks {
   final Map<String, MockAPIResponse> apis;
 
   const TestMocks({this.apis = const {}});
 }
 
+/// Mock API response returned by the test HTTP provider.
 class MockAPIResponse {
   final int statusCode;
   final dynamic body;
@@ -91,12 +96,13 @@ class MockAPIResponse {
   });
 }
 
+/// Single executable step from a YAML test file.
 class TestStep {
   /// YAML step key (e.g. `expectVisible`, `group`).
   final String type;
   final Map<String, dynamic> args;
 
-  /// Nested steps for [group], [repeat], [optional], [ifVisible].
+  /// Nested steps for control-flow step types such as `group` and `repeat`.
   final List<TestStep> nestedSteps;
 
   const TestStep({
@@ -121,6 +127,7 @@ class TestStep {
       };
 }
 
+/// Aggregate result for a YAML test run.
 class EnsembleTestRunResult {
   final List<EnsembleSingleTestResult> results;
 
@@ -143,8 +150,10 @@ class EnsembleTestRunResult {
       };
 }
 
+/// Status of a completed test case.
 enum TestStatus { passed, failed }
 
+/// Result for one executed YAML test case.
 class EnsembleSingleTestResult {
   final String testId;
   final Map<String, dynamic> metadata;

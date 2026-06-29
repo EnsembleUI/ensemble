@@ -1,3 +1,4 @@
+/// Public API for running declarative YAML tests against Ensemble apps.
 library ensemble_test_runner;
 
 export 'discovery/ensemble_test_discovery.dart';
