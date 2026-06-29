@@ -1,3 +1,6 @@
+/// Helpers for wiring Ensemble YAML tests into `flutter_test`.
+library;
+
 import 'dart:convert';
 import 'dart:io';
 
