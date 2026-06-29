@@ -8,7 +8,6 @@ import 'package:ensemble/model/transform_matrix.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/helpers/box_animation_composite.dart';
-import 'package:ensemble/widget/helpers/tooltip_composite.dart';
 import 'package:ensemble_ts_interpreter/errors.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/cupertino.dart';

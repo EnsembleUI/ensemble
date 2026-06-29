@@ -1,4 +1,3 @@
-import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/screen_controller.dart';
@@ -11,9 +10,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter/material.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
-import 'dart:convert';
 
-import 'package:yaml/yaml.dart';
 
 class Markdown extends StatefulWidget
     with Invokable, HasController<MarkdownController, MarkdownState> {

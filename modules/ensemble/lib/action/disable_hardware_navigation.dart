@@ -1,11 +1,9 @@
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/error_handling.dart';
-import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/util/utils.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 /// Ensemble action that enables or disables device back navigation.

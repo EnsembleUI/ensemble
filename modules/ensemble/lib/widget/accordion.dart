@@ -10,7 +10,6 @@ import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
-import 'package:yaml/yaml.dart';
 import 'package:ensemble/framework/widget/icon.dart' as ensembleIcon;
 
 // HeaderStyleComposite class to handle header styling

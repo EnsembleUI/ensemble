@@ -9,16 +9,12 @@ import 'package:ensemble/framework/widget/widget.dart' as framework;
 import 'package:ensemble/widget/helpers/ColorFilter_Composite.dart';
 import 'package:ensemble/widget/helpers/box_wrapper.dart';
 import 'package:ensemble/widget/helpers/controllers.dart';
-import 'package:ensemble/widget/helpers/widgets.dart';
 import 'package:ensemble/widget/text/expandable_text.dart';
 import 'package:ensemble/widget/text/span_definition.dart';
-import 'package:ensemble/widget/widget_util.dart' as util;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
-import 'package:flutter_html/flutter_html.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 class EnsembleText extends StatefulWidget
     with Invokable, HasController<TextController, EnsembleTextState> {
