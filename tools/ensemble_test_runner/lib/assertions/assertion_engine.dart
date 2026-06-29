@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:ui' show SemanticsFlag;
 
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/screen_tracker.dart';
@@ -71,7 +72,7 @@ class AssertionEngine {
       );
     }
     final semantics = tester.getSemantics(finder);
-    final isEnabled = semantics.flagsCollection.isEnabled;
+    final isEnabled = semantics.hasFlag(SemanticsFlag.isEnabled);
     if (isEnabled != enabled) {
       throw EnsembleTestFailure(
         'Expected widget "$id" to be ${enabled ? 'enabled' : 'disabled'}, '
@@ -229,7 +230,7 @@ class AssertionEngine {
       throw EnsembleTestFailure('expectChecked: widget "$id" not found.');
     }
     final semantics = tester.getSemantics(finder);
-    final isChecked = semantics.flagsCollection.isChecked;
+    final isChecked = semantics.hasFlag(SemanticsFlag.isChecked);
     if (isChecked != expected) {
       throw EnsembleTestFailure(
         'Expected "$id" checked=$expected, got $isChecked.',

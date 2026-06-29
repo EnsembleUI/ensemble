@@ -9,7 +9,7 @@ import 'package:ensemble_test_runner/schema/ensemble_test_schema_builder.dart';
 void main() {
   final packageRoot = Directory.current;
   if (!File('${packageRoot.path}/pubspec.yaml').existsSync()) {
-    stderr.writeln('Run from packages/ensemble_test_runner');
+    stderr.writeln('Run from tools/ensemble_test_runner');
     exit(1);
   }
 

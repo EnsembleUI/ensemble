@@ -74,26 +74,17 @@ The following packages have been migrated from `modules/` to `packages/`:
 - **Purpose**: Shared widget package used by the Ensemble runtime
 - **Status**: ✅ Moved to packages
 
-## Current State
+## Ensemble Tooling
 
-### **Dual Package Strategy**
+The following package is kept under `tools/` because it is not a runtime module
+and is not a general-purpose Flutter package. It is Ensemble-specific developer
+tooling that depends on the Ensemble runtime.
 
-- **`modules/` versions**: Kept for backward compatibility with older Ensemble runtime versions
-- **`packages/` versions**: New, actively maintained versions intended for pub.dev publication
+### **ensemble_test_runner**
 
-### **Melos Configuration**
-
-The `melos.yaml` has been updated to exclude deprecated packages from the workspace:
-
-```yaml
-packages:
-  - modules/**
-  - starter
-  - packages/**
-
-ignore:
-  - modules/ensemble_ts_interpreter
-```
+- **Location**: `tools/ensemble_test_runner/`
+- **Purpose**: Dev-only CLI and test harness for running declarative Ensemble app tests
+- **Status**: ✅ Moved to tools
 
 ## What This Means for Developers
 

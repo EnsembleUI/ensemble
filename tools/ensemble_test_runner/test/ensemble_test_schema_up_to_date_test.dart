@@ -12,7 +12,7 @@ void main() {
       committed,
       generated,
       reason:
-          'Run: cd packages/ensemble_test_runner && dart run tool/generate_schema.dart',
+          'Run: cd tools/ensemble_test_runner && dart run tool/generate_schema.dart',
     );
   });
 }

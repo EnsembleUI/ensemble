@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://cdn.ensembleui.com/schemas/ensemble_tests_schema.json",
   "title": "Ensemble declarative test file",
-  "description": "Schema for app-local tests/*.test.yaml — one test per file; see packages/ensemble_test_runner/STEP_VOCABULARY.md",
+  "description": "Schema for app-local tests/*.test.yaml — one test per file; see tools/ensemble_test_runner/STEP_VOCABULARY.md",
   "type": "object",
   "additionalProperties": false,
   "properties": {

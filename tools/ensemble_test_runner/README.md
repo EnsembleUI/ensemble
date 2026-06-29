@@ -1,6 +1,6 @@
 # ensemble_test_runner
 
-Standalone declarative YAML test runner for Ensemble apps. Wraps the **real** Ensemble runtime (`EnsembleApp`), injects mocks via runtime override hooks, and asserts on rendered UI, navigation, APIs, and storage.
+Dev-only declarative YAML test runner for Ensemble apps. Wraps the **real** Ensemble runtime (`EnsembleApp`), injects mocks via runtime override hooks, and asserts on rendered UI, navigation, APIs, and storage.
 
 This package is **not** a dependency of `modules/ensemble`. It is a **dev-only** dependency — not shipped in release builds.
 
@@ -38,7 +38,7 @@ Machine-readable registry (single source): `lib/vocabulary/test_step_registry.da
 A JSON Schema for `*.test.yaml` is hosted at `https://cdn.ensembleui.com/schemas/ensemble_tests_schema.json`. The committed copy lives at [`assets/schema/ensemble_tests_schema.json`](assets/schema/ensemble_tests_schema.json) and is generated from the step registry:
 
 ```bash
-cd packages/ensemble_test_runner && dart run tool/generate_schema.dart
+cd tools/ensemble_test_runner && dart run tool/generate_schema.dart
 ```
 
 Or per file at the top of a test:
