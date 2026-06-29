@@ -1,6 +1,5 @@
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/model.dart';
-import 'package:ensemble/layout/box/base_box_layout.dart';
 import 'package:ensemble/widget/widget_util.dart';
 import 'package:flutter/material.dart';
 

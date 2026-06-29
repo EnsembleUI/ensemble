@@ -1,4 +1,3 @@
-import 'package:ensemble/ensemble_theme.dart';
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/theme/theme_manager.dart';

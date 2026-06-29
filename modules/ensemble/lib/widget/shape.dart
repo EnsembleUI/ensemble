@@ -4,18 +4,13 @@ import 'package:ensemble/controller/controller_mixins.dart';
 import 'package:ensemble/framework/ensemble_widget.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/extensions.dart';
-import 'package:ensemble/framework/model.dart';
-import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/theme/theme_manager.dart';
-import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/helpers/ColorFilter_Composite.dart';
 import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:ensemble/widget/helpers/widgets.dart';
-import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/material.dart';
 
-import '../framework/view/page.dart';
 
 class Shape extends EnsembleWidget<ShapeController> {
   static const type = 'Shape';

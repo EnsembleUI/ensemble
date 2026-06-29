@@ -7,7 +7,6 @@ import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:flutter/material.dart';
 import 'package:audioplayers/audioplayers.dart';
-import 'package:flutter/services.dart';
 
 /// Shared audio player registry used by audio actions.
 class SingletonAudioPlayer {

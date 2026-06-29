@@ -4,7 +4,6 @@ import 'package:custom_image_crop/custom_image_crop.dart';
 import 'package:ensemble/action/haptic_action.dart';
 import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/widget/helpers/box_wrapper.dart';
-import 'package:ensemble/widget/helpers/widgets.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_svg_provider/flutter_svg_provider.dart';
 import 'package:path_provider/path_provider.dart';
@@ -18,7 +17,6 @@ import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/material.dart';
 
-import 'widget_util.dart';
 
 // ignore: must_be_immutable
 class EnsembleImageCropper extends StatefulWidget

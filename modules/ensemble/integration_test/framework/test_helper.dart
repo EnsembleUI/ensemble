@@ -2,12 +2,9 @@ import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/ensemble_app.dart';
 import 'package:ensemble/framework/definition_providers/local_provider.dart';
 import 'package:ensemble/page_model.dart';
-import 'package:ensemble/framework/definition_providers/provider.dart';
-import 'package:ensemble/widget/input/dropdown.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:integration_test/integration_test.dart';
 import 'package:mockito/mockito.dart';
 import 'package:collection/collection.dart';
 
