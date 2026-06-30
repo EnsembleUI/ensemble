@@ -393,6 +393,14 @@ class _TVTabButtonState extends State<_TVTabButton> {
       color: textColor,
     );
 
+    // If a custom tabWidget is defined, render it instead of icon+label
+    if (widget.tabItem.tabWidget != null) {
+      ScopeManager? scopeManager = DataScopeWidget.getScope(context);
+      if (scopeManager != null) {
+        return scopeManager.buildWidgetFromDefinition(widget.tabItem.tabWidget);
+      }
+    }
+
     // Build icon if present
     Widget? iconWidget;
     if (widget.tabItem.icon != null) {
