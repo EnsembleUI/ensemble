@@ -586,7 +586,11 @@ class _TapEnabledWrapperState extends State<_TapEnabledWrapper> {
     if (scrollableBox == null || !scrollableBox.hasSize) return;
 
     final position = scrollable.position;
-    final Size screenSize = MediaQuery.of(context).size;
+
+    // Get scrollable viewport position relative to screen
+    final Offset scrollableScreenPos = scrollableBox.localToGlobal(Offset.zero);
+    final double viewportTop = scrollableScreenPos.dy;
+    final double viewportBottom = viewportTop + scrollableBox.size.height;
 
     // Get item position relative to screen
     final Offset itemScreenPos = itemBox.localToGlobal(Offset.zero);
@@ -594,9 +598,8 @@ class _TapEnabledWrapperState extends State<_TapEnabledWrapper> {
     final double itemTop = itemScreenPos.dy;
     final double itemBottom = itemTop + itemHeight;
 
-    final bool isAboveScreen = itemTop < verticalPadding;
-    final bool isBelowScreen =
-        itemBottom > (screenSize.height - verticalPadding);
+    final bool isAboveScreen = itemTop < viewportTop;
+    final bool isBelowScreen = itemBottom > viewportBottom;
 
     // If fully visible vertically, no need to scroll
     if (!isAboveScreen && !isBelowScreen) {
@@ -604,13 +607,15 @@ class _TapEnabledWrapperState extends State<_TapEnabledWrapper> {
     }
 
     // Calculate how much to scroll
+    // Use verticalPadding to position the item nicely within the viewport,
+    // not as a trigger threshold - so horizontal navigation doesn't jitter.
     double scrollDelta = 0.0;
     if (isAboveScreen) {
       // Item is above visible area - scroll up (decrease scroll position)
-      scrollDelta = itemTop - verticalPadding;
+      scrollDelta = itemTop - (viewportTop + verticalPadding);
     } else if (isBelowScreen) {
       // Item is below visible area - scroll down (increase scroll position)
-      scrollDelta = itemBottom - (screenSize.height - verticalPadding);
+      scrollDelta = itemBottom - (viewportBottom - verticalPadding);
     }
 
     final double targetScroll =
@@ -1099,7 +1104,11 @@ class _TVFocusOnlyWrapperState extends State<_TVFocusOnlyWrapper> {
     if (scrollableBox == null || !scrollableBox.hasSize) return;
 
     final position = scrollable.position;
-    final Size screenSize = MediaQuery.of(context).size;
+
+    // Get scrollable viewport position relative to screen
+    final Offset scrollableScreenPos = scrollableBox.localToGlobal(Offset.zero);
+    final double viewportTop = scrollableScreenPos.dy;
+    final double viewportBottom = viewportTop + scrollableBox.size.height;
 
     // Get item position relative to screen
     final Offset itemScreenPos = itemBox.localToGlobal(Offset.zero);
@@ -1107,9 +1116,8 @@ class _TVFocusOnlyWrapperState extends State<_TVFocusOnlyWrapper> {
     final double itemTop = itemScreenPos.dy;
     final double itemBottom = itemTop + itemHeight;
 
-    final bool isAboveScreen = itemTop < verticalPadding;
-    final bool isBelowScreen =
-        itemBottom > (screenSize.height - verticalPadding);
+    final bool isAboveScreen = itemTop < viewportTop;
+    final bool isBelowScreen = itemBottom > viewportBottom;
 
     // If fully visible vertically, no need to scroll
     if (!isAboveScreen && !isBelowScreen) {
@@ -1117,11 +1125,13 @@ class _TVFocusOnlyWrapperState extends State<_TVFocusOnlyWrapper> {
     }
 
     // Calculate how much to scroll
+    // Use verticalPadding to position the item nicely within the viewport,
+    // not as a trigger threshold - so horizontal navigation doesn't jitter.
     double scrollDelta = 0.0;
     if (isAboveScreen) {
-      scrollDelta = itemTop - verticalPadding;
+      scrollDelta = itemTop - (viewportTop + verticalPadding);
     } else if (isBelowScreen) {
-      scrollDelta = itemBottom - (screenSize.height - verticalPadding);
+      scrollDelta = itemBottom - (viewportBottom - verticalPadding);
     }
 
     final double targetScroll =
