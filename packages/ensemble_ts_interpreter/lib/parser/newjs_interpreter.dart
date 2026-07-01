@@ -1144,7 +1144,7 @@ class JSInterpreter extends RecursiveVisitor<dynamic> {
       throw JSException(node.line ?? 1, 'with statement requires an object');
     }
     final dynamicContext = <String, dynamic>{};
-    (obj as Map).forEach((key, value) {
+    obj.forEach((key, value) {
       dynamicContext[key.toString()] = value;
     });
     final context = SimpleContext(dynamicContext);

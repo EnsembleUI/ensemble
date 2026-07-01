@@ -7,7 +7,7 @@
 * Preserved existing Ensemble interop and selected ES6+ conveniences such as arrow functions, `Map`, `Set`, and `Promise`.
 * Added runtime safety guards for circular `JSON.stringify` inputs and extremely large sparse-array expansion.
 * Added package-level performance smoke coverage and made primitive date tests timezone-stable.
-* Added `docs/known_supported_js.md` to describe supported JS, ES6+ conveniences, and known unsupported areas.
+* Added `doc/known_supported_js.md` to describe supported JS, ES6+ conveniences, and known unsupported areas.
 
 ## [1.0.7] - Bug Fixes
 

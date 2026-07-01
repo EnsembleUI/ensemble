@@ -74,7 +74,7 @@ The context object is the key to the interpreter. You can pass:
 
 ### JavaScript Support
 
-See [Known Supported JavaScript](docs/known_supported_js.md) for the current support matrix.
+See [Known Supported JavaScript](doc/known_supported_js.md) for the current support matrix.
 
 - ✅ **Primitive Types**: String, Number, Boolean, null, undefined
 - ✅ **Arrays**: Common array methods (filter, map, reduce, etc.), including practical sparse-array behavior
