@@ -1,4 +1,5 @@
 // Stub implementation for non-web platforms
+/// Stub web helpers for non-web platforms.
 library web;
 
 class Blob {

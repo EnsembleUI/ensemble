@@ -1,11 +1,19 @@
 name: ensemble_bluetooth
-description: An Ensemble package for BLE connection
-version: 0.0.1
-homepage: https://github.com/EnsembleUI/ensemble/modules/ensemble_bluetooth
+description: Bluetooth Low Energy scanning and connection support for Ensemble apps.
+homepage: https://ensembleui.com
+repository: https://github.com/EnsembleUI/ensemble/tree/main/modules/ensemble_bluetooth
+issue_tracker: https://github.com/EnsembleUI/ensemble/issues
+documentation: https://github.com/EnsembleUI/ensemble/tree/main/modules/ensemble_bluetooth#readme
+topics:
+  - bluetooth
+  - ble
+  - low-code
+  - ensemble
+version: 1.2.48
 
 environment:
-  sdk: ">=2.17.0 <4.0.0"
-  flutter: ">=1.17.0"
+  sdk: ">=3.5.0 <4.0.0"
+  flutter: ">=3.24.0"
 
 dependencies:
   flutter:
@@ -22,6 +30,7 @@ dependencies:
   flutter_blue_plus: ^1.33.4
   workmanager: ^0.7.0
   permission_handler: ^11.3.1
+  meta: ^1.16.0
 
 dev_dependencies:
   flutter_test:

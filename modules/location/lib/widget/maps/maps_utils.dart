@@ -1,4 +1,5 @@
-import 'dart:developer';
+// ignore_for_file: deprecated_member_use
+
 import 'dart:io';
 import 'dart:math' as math;
 import 'dart:ui';
@@ -7,7 +8,6 @@ import 'package:ensemble/util/utils.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
-import 'package:http/http.dart' as http;
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 class MapsUtils {
@@ -97,14 +97,6 @@ class MapsUtils {
       final Uint8List resizedImageBytes = byteData.buffer.asUint8List();
       return BitmapDescriptor.fromBytes(resizedImageBytes);
     }
-  }
-
-  static Future<Uint8List?> _getBytesFromUrl(String url) async {
-    final response = await http.get(Uri.parse(url));
-    if (response.statusCode == 200) {
-      return response.bodyBytes;
-    }
-    log('Failed to load image from url: $url');
     return null;
   }
 

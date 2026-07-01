@@ -1,5 +1,3 @@
-import 'package:meta/meta.dart';
-
 /// Returns true when [screen] is a single safe path segment for resolving
 /// screen YAML from a remote base URL or from bundled assets under
 /// `.../screens/<screen>.yaml`.
@@ -7,7 +5,6 @@ import 'package:meta/meta.dart';
 /// Rejects empty values, `..`, path separators, percent-encoded separators, and
 /// ASCII control characters so untrusted inputs cannot traverse outside the
 /// intended screens directory.
-@visibleForTesting
 bool isSafeRemoteScreenSelector(String screen) {
   if (screen.isEmpty || screen.length > 256) {
     return false;

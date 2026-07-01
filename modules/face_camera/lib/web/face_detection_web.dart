@@ -1,9 +1,12 @@
+// ignore_for_file: deprecated_member_use
+
 import 'dart:async';
 import 'dart:html' as html;
+import 'dart:js_util' as js_util;
+
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
 import 'package:js/js.dart';
-import 'package:js/js_util.dart' as js_util;
 import 'package:face_camera/face_camera.dart';
 import 'accuracy_config.dart';
 import 'package:ensemble/framework/data_context.dart';
@@ -495,8 +498,6 @@ class WebFaceDetection {
       case CameraFlashMode.auto:
         flashMode = FlashMode.auto;
         break;
-      default:
-        flashMode = FlashMode.off;
     }
 
     // Update flash mode if camera is initialized

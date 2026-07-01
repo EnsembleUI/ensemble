@@ -1,9 +1,14 @@
 name: ensemble_firebase_analytics
-description: "A new Flutter project."
-# The following line prevents the package from being accidentally published to
-# pub.dev using `flutter pub publish`. This is preferred for private packages.
-publish_to: 'none' # Remove this line if you wish to publish to pub.dev
-
+description: Firebase Analytics and Crashlytics logging provider for Ensemble apps.
+homepage: https://ensembleui.com
+repository: https://github.com/EnsembleUI/ensemble
+issue_tracker: https://github.com/EnsembleUI/ensemble/issues
+documentation: https://github.com/EnsembleUI/ensemble/tree/main/modules/firebase_analytics#readme
+topics:
+  - firebase-analytics
+  - crashlytics
+  - low-code
+  - ensemble
 # The following defines the version and build number for your application.
 # A version number is three numbers separated by dots, like 1.2.43
 # followed by an optional build number separated by a +.
@@ -16,10 +21,10 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 1.0.0+1
+version: 1.2.48
 
 environment:
-  sdk: '>=3.5.0'
+  sdk: '>=3.5.0 <4.0.0'
   flutter: '>=3.24.0'
 
 # Dependencies specify other packages that your package needs in order to work.
@@ -37,6 +42,7 @@ dependencies:
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.6
   firebase_analytics: ^12.0.2
+  firebase_core: ^4.2.0
   firebase_crashlytics: ^5.0.2
   ensemble:
     git:

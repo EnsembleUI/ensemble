@@ -10,7 +10,9 @@ import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 
+/// Ensemble action that requests the current device location.
 class GetLocationAction extends EnsembleAction {
+  /// Creates a [GetLocationAction] action.
   GetLocationAction({
     super.initiator,
     this.onLocationReceived,
@@ -19,11 +21,16 @@ class GetLocationAction extends EnsembleAction {
     this.recurringDistanceFilter,
   });
 
+  /// Action executed with the location result.
   final EnsembleAction? onLocationReceived;
+  /// Action executed when the operation fails.
   final EnsembleAction? onError;
+  /// Whether location updates should continue after the first result.
   final bool? recurring;
+  /// Minimum movement distance before recurring location updates fire.
   final int? recurringDistanceFilter;
 
+  /// Creates a [GetLocationAction] from a YAML or map action payload.
   factory GetLocationAction.fromYaml({Invokable? initiator, Map? payload}) {
     return GetLocationAction(
       initiator: initiator,
@@ -36,6 +43,7 @@ class GetLocationAction extends EnsembleAction {
     );
   }
 
+  /// Runs this action and requests device location and dispatches callbacks.
   @override
   Future<void> execute(BuildContext context, ScopeManager scopeManager) async {
     if (onLocationReceived == null) {

@@ -1,8 +1,5 @@
-import 'dart:developer';
 
-import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/action.dart';
-import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/scope.dart';
@@ -13,13 +10,17 @@ import 'package:flutter/cupertino.dart';
 
 /// Call a native methods (defined in Host Platform) from inside Ensemble
 class CallNativeMethod extends EnsembleAction {
+  /// Creates a [CallNativeMethod] object.
   CallNativeMethod(this._name, this._payload, {this.onComplete, this.onError});
 
   final dynamic _name;
   final Map? _payload;
+  /// Action executed after the operation completes successfully.
   final EnsembleAction? onComplete;
+  /// Action executed when the operation fails.
   final EnsembleAction? onError;
 
+  /// Creates a [CallNativeMethod] from a YAML or map action payload.
   factory CallNativeMethod.from({Map? payload}) {
     dynamic name = payload?['name'];
     if (name == null) {
@@ -32,6 +33,7 @@ class CallNativeMethod extends EnsembleAction {
         onError: EnsembleAction.from(payload?['onError']));
   }
 
+  /// Runs this action and calls the configured native method-channel handler.
   @override
   Future execute(BuildContext context, ScopeManager scopeManager) async {
     String? name = Utils.optionalString(scopeManager.dataContext.eval(_name));

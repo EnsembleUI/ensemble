@@ -14,6 +14,7 @@ import 'package:flutter/material.dart';
 
 /// open a Modal Bottom Sheet
 class ShowBottomSheetAction extends EnsembleAction with HasStyles, Invokable {
+  /// Creates a [ShowBottomSheetAction] action.
   ShowBottomSheetAction({
     super.initiator,
     super.inputs,
@@ -22,8 +23,11 @@ class ShowBottomSheetAction extends EnsembleAction with HasStyles, Invokable {
     this.onDismiss,
   });
 
+  /// Default top corner radius for modal bottom sheets.
   static const defaultTopBorderRadius = Radius.circular(16);
+  /// Default height of the bottom-sheet drag handle.
   static const dragHandleHeight = 3.0;
+  /// Vertical margin around the bottom-sheet drag handle.
   static const dragHandleVerticalMargin = 10.0;
 
   @override
@@ -41,10 +45,14 @@ class ShowBottomSheetAction extends EnsembleAction with HasStyles, Invokable {
     return {};
   }
 
+  /// Raw action payload passed to the action implementation.
   final Map payload;
+  /// Widget or content body rendered by a toast, dialog, or bottom sheet.
   final dynamic body;
+  /// Action executed when the presented sheet or modal is dismissed.
   final EnsembleAction? onDismiss;
 
+  /// Creates a [ShowBottomSheetAction] from a YAML or map action payload.
   factory ShowBottomSheetAction.from({Invokable? initiator, Map? payload}) {
     dynamic body = payload?['body'] ?? payload?['widget'];
     if (payload == null || body == null) {
@@ -61,32 +69,41 @@ class ShowBottomSheetAction extends EnsembleAction with HasStyles, Invokable {
         payload: mutablePayload);
   }
 
+  /// Evaluates bottom-sheet margin from the current data context.
   EdgeInsets? margin(scopeManager) =>
       Utils.optionalInsets(eval(payload["styles"]?["margin"], scopeManager));
 
+  /// Evaluates bottom-sheet padding from the current data context.
   EdgeInsets? padding(scopeManager) =>
       Utils.optionalInsets(eval(payload["styles"]?["padding"], scopeManager));
 
+  /// Evaluates bottom-sheet border radius from the current data context.
   EBorderRadius? borderRadius(scopeManager) => Utils.getBorderRadius(
       eval(payload["styles"]?["borderRadius"], scopeManager));
 
+  /// Whether the bottom sheet should respect safe-area insets.
   bool useSafeArea(scopeManager) =>
       Utils.getBool(eval(payload["styles"]?["useSafeArea"], scopeManager),
           fallback: false);
 
+  /// Evaluates the modal barrier color.
   Color? getBarrierColor(scopeManager) =>
       Utils.getColor(eval(payload["styles"]?['barrierColor'], scopeManager));
 
+  /// Evaluates the bottom-sheet background color.
   Color? getBackgroundColor(scopeManager) =>
       Utils.getColor(eval(payload["styles"]?['backgroundColor'], scopeManager));
 
+  /// Whether the bottom sheet should show a drag handle.
   bool showDragHandle(scopeManager) =>
       Utils.getBool(eval(payload["styles"]?["showDragHandle"], scopeManager),
           fallback: true);
 
+  /// Evaluates the bottom-sheet drag handle color.
   Color? dragHandleColor(scopeManager) =>
       Utils.getColor(eval(payload["styles"]?["dragHandleColor"], scopeManager));
 
+  /// Whether the bottom-sheet body should be scroll controlled.
   bool? isScrollable(scopeManager) =>
       Utils.optionalBool(eval(payload["scrollable"], scopeManager));
 
@@ -106,14 +123,17 @@ class ShowBottomSheetAction extends EnsembleAction with HasStyles, Invokable {
       min: 0,
       max: 1);
 
+  /// Whether draggable bottom sheet snapping is enabled.
   bool isSnap(scopeManager) =>
       Utils.optionalBool(
           eval(payload["scrollOptions"]?["snap"], scopeManager)) ??
       false;
 
+  /// Additional snap sizes for a draggable bottom sheet.
   List<double>? additionalSnaps(scopeManager) => Utils.getList<double>(
       eval(payload["scrollOptions"]?["additionalViewportSnaps"], scopeManager));
 
+  /// Runs this action and builds and presents the configured bottom sheet.
   @override
   Future<dynamic> execute(BuildContext context, ScopeManager scopeManager) {
     if (body != null) {
@@ -153,6 +173,7 @@ class ShowBottomSheetAction extends EnsembleAction with HasStyles, Invokable {
     return Future.value(null);
   }
 
+  /// Builds the widget used as bottom-sheet body content.
   Widget getBodyWidget(ScopeManager scopeManager, BuildContext context) {
     // We have to handle the BottomSheet's padding directly around the widget,
     // such that it is inside the Scrollable area to be able to move up and down.
@@ -213,7 +234,7 @@ class ShowBottomSheetAction extends EnsembleAction with HasStyles, Invokable {
         child: widget, isScrollable: false);
   }
 
-  // This is the root container where all the root styling happen
+  /// Builds the root container around bottom-sheet content.
   Widget buildRootContainer(ScopeManager scopeManager, BuildContext context,
       {required Widget child, required bool isScrollable}) {
     Widget rootWidget = Container(
@@ -257,14 +278,18 @@ class ShowBottomSheetAction extends EnsembleAction with HasStyles, Invokable {
 
 /// Dismiss the Bottom Modal (if the context is a descendant, no-op otherwise)
 class DismissBottomSheetAction extends EnsembleAction {
+  /// Creates a [DismissBottomSheetAction] action.
   DismissBottomSheetAction({super.initiator, this.payload});
 
+  /// Raw action payload passed to the action implementation.
   Map? payload;
 
+  /// Creates a [DismissBottomSheetAction] from a YAML or map action payload.
   factory DismissBottomSheetAction.from({Invokable? initiator, Map? payload}) =>
       DismissBottomSheetAction(
           initiator: initiator, payload: Utils.getMap(payload?['payload']));
 
+  /// Runs this action and closes the active bottom sheet.
   @override
   Future<bool> execute(BuildContext context, ScopeManager scopeManager) {
     return EnsembleUtils.dismissBottomSheet(

@@ -56,7 +56,7 @@ View:
                   message: Hello ${ensemble.storage.helloApp.name.first}
 
         - Button:
-            testId: fetch_user_action_button
+            testId: call_api_button
             label: Fetch user (app Action with API)
             onTap:
               executeAction:

@@ -1,10 +1,18 @@
 name: ensemble_camera
-description: A new Flutter package project.
-version: 0.0.1
-homepage: https://github.com/EnsembleUI/ensemble/modules/camera
+description: Camera and media capture bridge for Ensemble apps.
+homepage: https://ensembleui.com
+repository: https://github.com/EnsembleUI/ensemble
+issue_tracker: https://github.com/EnsembleUI/ensemble/issues
+documentation: https://github.com/EnsembleUI/ensemble/tree/main/modules/camera#readme
+topics:
+  - camera
+  - media
+  - low-code
+  - ensemble
+version: 1.2.48
 
 environment:
-  sdk: ">=3.5.0"
+  sdk: ">=3.5.0 <4.0.0"
   flutter: ">=3.24.0"
 
 dependencies:
@@ -28,6 +36,7 @@ dependencies:
 
   collection: ^1.17.1
   geolocator: ^9.0.2
+  image: ^4.8.0
   image_picker: ^0.8.7+5
   sensors_plus: ^7.0.0
   video_player: ^2.6.1

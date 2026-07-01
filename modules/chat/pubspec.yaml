@@ -1,9 +1,18 @@
 name: ensemble_chat
-description: A new Flutter package project.
-version: 0.0.1
+description: Chat widget and AI chat helpers for Ensemble apps.
+homepage: https://ensembleui.com
+repository: https://github.com/EnsembleUI/ensemble/tree/main/modules/chat
+issue_tracker: https://github.com/EnsembleUI/ensemble/issues
+documentation: https://github.com/EnsembleUI/ensemble/tree/main/modules/chat#readme
+topics:
+  - chat
+  - ai-chat
+  - low-code
+  - ensemble
+version: 1.2.48
 
 environment:
-  sdk: ">=3.5.0"
+  sdk: ">=3.5.0 <4.0.0"
   flutter: ">=3.24.0"
 
 dependencies:
@@ -23,10 +32,8 @@ dependencies:
   flutter_svg: ^2.2.0
   dart_openai: ^5.1.0
   http: ^1.2.1
+  collection: ^1.19.1
 
-dependency_overrides:
-  web_socket_channel: 2.3.0
-  
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -37,7 +44,4 @@ dev_dependencies:
 
 # The following section is specific to Flutter packages.
 flutter:
-  # To add assets to your package, add an assets section, like this:
-  assets:
-    # - assets/images/
-  #   - images/a_dot_ham.jpeg
+  # No assets needed for this module.

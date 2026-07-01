@@ -1,3 +1,6 @@
+/// MoEngage implementation classes.
+library moengage;
+
 import 'dart:io';
 
 import 'package:ensemble/framework/stub/moengage_manager.dart';
@@ -5,12 +8,9 @@ import 'package:ensemble/util/moengage_utils.dart';
 import 'package:ensemble_moengage/moengage_notification_handler.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
-import 'package:moengage_flutter/moengage_flutter.dart' hide LogLevel;
-import 'package:moengage_flutter_platform_interface/src/log_level.dart';
-import 'package:moengage_cards/moengage_cards.dart';
-import 'package:moengage_inbox/moengage_inbox.dart';
-import 'package:moengage_geofence/moengage_geofence.dart';
+import 'package:moengage_flutter/moengage_flutter.dart';
 
+/// Implementation of MoEngage integration for the Ensemble framework.
 class MoEngageImpl implements MoEngageModule {
   static final MoEngageImpl _instance = MoEngageImpl._internal();
   MoEngageImpl._internal();
@@ -18,7 +18,6 @@ class MoEngageImpl implements MoEngageModule {
   late MoEngageFlutter _moengagePlugin;
 
   bool _initialized = false;
-  String? _workspaceId;
 
   void _checkInitialization() {
     if (!_initialized) {
@@ -26,6 +25,7 @@ class MoEngageImpl implements MoEngageModule {
     }
   }
 
+  /// Creates or returns the singleton instance of [MoEngageImpl].
   factory MoEngageImpl({required String workspaceId, bool enableLogs = false}) {
     if (!_instance._initialized) {
       try {
@@ -39,8 +39,6 @@ class MoEngageImpl implements MoEngageModule {
   }
 
   void _initialize(String workspaceId, bool enableLogs) {
-    _workspaceId = workspaceId;
-    
     // 1. Create plugin instance
     _moengagePlugin = MoEngageFlutter(
       workspaceId,
@@ -412,6 +410,7 @@ Future<bool> deleteUser() async {
 }
 }
 
+/// Extension to handle type conversion between Ensemble types and MoEngage types.
 extension EnsembleTypeConversion on MoEngageImpl {
   MoEGender _convertGender(EnsembleGender gender) {
     switch (gender) {

@@ -31,7 +31,8 @@
     "generate_keystore": "ts-node src/dart_runner.ts generateKeystore",
     "hasAdobeAnalytics": "ts-node src/dart_runner.ts adobe_analytics",
     "hasStripe": "ts-node src/dart_runner.ts stripe",
-    "hasRemoteConfig": "ts-node src/dart_runner.ts remote_config"
+    "hasRemoteConfig": "ts-node src/dart_runner.ts remote_config",
+    "hasWiFi": "ts-node src/dart_runner.ts wifi"
   },
   "keywords": [],
   "author": "",

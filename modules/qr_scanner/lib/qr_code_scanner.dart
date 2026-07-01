@@ -14,7 +14,7 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 class EnsembleQRCodeScannerImpl
     extends EnsembleWidget<EnsembleQRCodeScannerController>
     implements EnsembleQRCodeScanner {
-  const EnsembleQRCodeScannerImpl._(super.controller, {super.key});
+  const EnsembleQRCodeScannerImpl._(super.controller);
 
   factory EnsembleQRCodeScannerImpl.build(dynamic controller) =>
       EnsembleQRCodeScannerImpl._(controller is EnsembleQRCodeScannerController
@@ -189,6 +189,9 @@ class EnsembleQRCodeScannerState
                 final data = {
                   'format': barcode.format.name,
                   'data': barcode.rawValue,
+                  // Keep the existing event payload compatible with the
+                  // mobile_scanner version resolved by the workspace.
+                  // ignore: deprecated_member_use
                   'rawBytes': barcode.rawBytes,
                 };
 

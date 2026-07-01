@@ -1,4 +1,5 @@
-library ensemble_remote_config;
+/// Firebase Remote Config implementation for Ensemble apps.
+library remote_config;
 
 import 'package:ensemble/framework/config.dart';
 import 'package:ensemble/framework/stub/remote_config.dart';
@@ -190,8 +191,9 @@ extension RemoteConfigServiceDebug on RemoteConfigService {
   }
 }
 
-/// Implementation of [RemoteConfig] for use when the module is enabled
-/// via [EnsembleModules]. Register with GetIt in the starter's init.
+/// Implementation of [RemoteConfig] for use when the module is enabled.
+///
+/// Register with GetIt in the project's init.
 ///
 /// When registered, initializes and fetches Remote Config in the background;
 /// [getValue] uses cached values (or defaults until fetch completes).
@@ -200,19 +202,24 @@ class RemoteConfigImpl implements RemoteConfig {
     RemoteConfigService().fetchAndActivate();
   }
 
+  // Get a Remote Config value
   @override
   dynamic getValue(String key, dynamic defaultValue) =>
       RemoteConfigService().getValue(key, defaultValue);
 
+  // Return all currently known values, using the same typing rules as [getValue] with a `null` default (i.e. minimal inference).
   @override
   Map<String, dynamic> getAllValues() => RemoteConfigService().getAllValues();
 
+  // Debug information about the current RC state.
   @override
   Map<String, dynamic> getInfo() => RemoteConfigService().getInfo();
 
+  // Manually trigger a refresh/fetch of Remote Config values.
   @override
   Future<void> refresh() => RemoteConfigService().fetchAndActivate();
 
+  // Optionally register a map of default values.
   @override
   Future<void> setDefaults(Map<String, dynamic> defaults) =>
       RemoteConfigService().setDefaults(defaults);

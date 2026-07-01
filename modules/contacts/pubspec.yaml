@@ -1,10 +1,18 @@
 name: ensemble_contacts
-description: A new Flutter package project.
-version: 0.0.1
-homepage: https://github.com/EnsembleUI/ensemble_contacts
+description: Contact access and selection support for Ensemble apps.
+homepage: https://ensembleui.com
+repository: https://github.com/EnsembleUI/ensemble
+issue_tracker: https://github.com/EnsembleUI/ensemble/issues
+documentation: https://github.com/EnsembleUI/ensemble/tree/main/modules/contacts#readme
+topics:
+  - contacts
+  - address-book
+  - low-code
+  - ensemble
+version: 1.2.48
 
 environment:
-  sdk: ">=3.5.0"
+  sdk: ">=3.5.0 <4.0.0"
   flutter: ">=3.24.0"
 
 dependencies:

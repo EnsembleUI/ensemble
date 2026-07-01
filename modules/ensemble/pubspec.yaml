@@ -1,5 +1,24 @@
 name: ensemble
-description: Ensemble Runtime
+description: Runtime for building Flutter apps from Ensemble's declarative YAML definitions.
+homepage: https://ensembleui.com
+repository: https://github.com/EnsembleUI/ensemble
+issue_tracker: https://github.com/EnsembleUI/ensemble/issues
+documentation: https://github.com/EnsembleUI/ensemble/tree/main/modules/ensemble#readme
+topics:
+  - low-code
+  - runtime
+  - yaml
+  - flutter
+  - ensemble
+platforms:
+  android:
+  ios:
+  web:
+  macos:
+  windows:
+false_secrets:
+  - lib/firebase_options.dart
+  - lib/framework/apiproviders/firestore/firestore_test_app.dart
 
 # The following defines the version and build number for your application.
 # A version number is three numbers separated by dots, like 1.2.43
@@ -18,22 +37,29 @@ description: Ensemble Runtime
 version: 1.2.46-beta.3
 
 environment:
-  sdk: ">=3.5.0"
+  sdk: ">=3.5.0 <4.0.0"
   flutter: '>=3.24.0'
 
 dependencies:
   flutter:
+    sdk: flutter
+  flutter_localizations:
     sdk: flutter
 
   ensemble_device_preview: ^1.1.2
 
   yaml: ^3.1.2
   intl: '>=0.17.0 <=0.20.2'
+  source_span: ^1.10.0
+  parsejs_null_safety: ^2.0.4
+  path: ^1.9.0
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.2
   http: ^1.2.1
+  url_launcher: ^6.3.2
+  path_provider: ^2.1.5
   brotli: ^0.6.0
   flutter_rating_bar: ^4.0.0
   fl_chart: ^0.69.0
@@ -88,6 +114,7 @@ dependencies:
   firebase_core: ^4.2.0
   custom_refresh_indicator: ^4.0.1
   youtube_player_iframe: ^5.2.1
+  youtube_player_iframe_web: ^3.1.2
   web_socket_client: ^0.2.1
   app_links: ^6.3.2
   share_plus: ^12.0.0
@@ -98,6 +125,8 @@ dependencies:
   ensemble_table_calendar: ^3.1.3
 
   flutter_inappwebview: ^6.1.5
+  webview_flutter: ^4.13.0
+  webview_flutter_platform_interface: ^2.14.0
   # old app_badger is unsupported so using a supported fork
   ensemble_app_badger: ^1.6.1
 
@@ -116,7 +145,6 @@ dependencies:
   flutter_localized_locales: ^2.0.5
   flutter_slidable: ^4.0.3
   accordion: ^2.6.0
-  session_storage: ^0.0.1
   connectivity_plus: ^7.0.0
   flutter_security_checker: ^3.2.1
   safe_device: ^1.2.1
@@ -140,16 +168,6 @@ flutter:
 
   assets:
     - assets/images/
-
-    # integration tests (TODO - exclude from build)
-    - integration_test/local/defaultApp/
-    - integration_test/local/themedApp/
-    - integration_test/local/dialogsAndToast/
-    - integration_test/local/widgets/
-    - integration_test/local/translation/
-    - integration_test/local/translation/i18n/
-    - integration_test/local/bottomNav/
-
     - pubspec.yaml
 
   fonts:

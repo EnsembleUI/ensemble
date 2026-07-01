@@ -8,9 +8,21 @@ import 'package:ensemble/util/utils.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/cupertino.dart';
 
-enum ToastType { success, error, warning, info }
+/// Visual styles supported by the show-toast action.
+enum ToastType {
+  /// Styles a toast as a successful outcome.
+  success,
+  /// Styles a toast as an error outcome.
+  error,
+  /// Styles a toast as a warning message.
+  warning,
+  /// Styles a toast as informational feedback.
+  info
+}
 
+/// Ensemble action that displays a transient toast message.
 class ShowToastAction extends EnsembleAction with HasStyles, Invokable {
+  /// Creates a [ShowToastAction] action.
   ShowToastAction(
       {super.initiator,
       this.type,
@@ -23,19 +35,27 @@ class ShowToastAction extends EnsembleAction with HasStyles, Invokable {
       this.payload,
       this.styles});
 
+  /// Action-specific type such as toast style, haptic type, or file type.
   ToastType? type;
+  /// Title text shown in a toast, dialog, or notification.
   final String? title;
 
-  // either message or widget is needed
+  /// Message text shown to the user.
   final String? message;
+  /// Widget or content body rendered by a toast, dialog, or bottom sheet.
   final dynamic body;
 
+  /// Whether the user can dismiss the UI without completing the flow.
   final bool? dismissible;
 
+  /// Screen alignment used to position the visual element.
   final Alignment? alignment;
+  /// Duration in seconds or milliseconds for a timed visual or media operation.
   final int? duration; // the during in seconds before toast is dismissed
+  /// Resolved style overrides applied to the generated widget.
   Map<String, dynamic>? styles;
 
+  /// Raw action payload passed to the action implementation.
   final Map? payload;
 
   @override
@@ -53,6 +73,7 @@ class ShowToastAction extends EnsembleAction with HasStyles, Invokable {
     return {};
   }
 
+  /// Creates a [ShowToastAction] from a YAML or map action payload.
   factory ShowToastAction.fromYaml({Map? payload}) {
     if (payload == null ||
         (payload['message'] == null &&
@@ -75,9 +96,11 @@ class ShowToastAction extends EnsembleAction with HasStyles, Invokable {
         payload: mutablePayload);
   }
 
+  /// Creates a [ShowToastAction] from a YAML or map action payload.
   factory ShowToastAction.fromMap(dynamic inputs) =>
       ShowToastAction.fromYaml(payload: Utils.getYamlMap(inputs));
 
+  /// Runs this action and renders the toast and applies its configured style.
   @override
   Future execute(BuildContext context, ScopeManager scopeManager) {
     Widget? customToastBody;

@@ -1,14 +1,14 @@
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/error_handling.dart';
-import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/util/utils.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
+/// Ensemble action that enables or disables device back navigation.
 class ControlBackNavigation extends EnsembleAction {
+  /// Creates a [ControlBackNavigation] object.
   ControlBackNavigation({
     super.initiator,
     this.disable = false,
@@ -17,10 +17,14 @@ class ControlBackNavigation extends EnsembleAction {
   });
 
   static WillPopCallback? _disableCallback; // Store the callback instance
+  /// Whether device back navigation should be disabled.
   final bool disable;
+  /// Action executed after the operation completes successfully.
   final EnsembleAction? onComplete;
+  /// Action executed when the operation fails.
   final EnsembleAction? onFailure;
 
+  /// Creates a [ControlBackNavigation] from a YAML or map action payload.
   factory ControlBackNavigation.from({Map? payload}) {
     return ControlBackNavigation(
       disable: payload?['disable'] ?? true,
@@ -33,9 +37,11 @@ class ControlBackNavigation extends EnsembleAction {
     );
   }
 
+  /// Creates a [ControlBackNavigation] from a YAML or map action payload.
   factory ControlBackNavigation.fromMap(dynamic inputs) =>
       ControlBackNavigation.from(payload: Utils.getYamlMap(inputs));
 
+  /// Runs this action and performs the control back navigation operation.
   @override
   Future<void> execute(BuildContext context, ScopeManager scopeManager) async {
     try {

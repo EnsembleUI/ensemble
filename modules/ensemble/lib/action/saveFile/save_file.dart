@@ -13,13 +13,20 @@ import 'save_mobile.dart';
 
 /// Custom action to save files (images and documents) in platform-specific accessible directories
 class SaveToFileSystemAction extends EnsembleAction {
+  /// Suggested output file name.
   final String? fileName;
+  /// Raw binary or base64 content to save.
   final dynamic blobData;
+  /// File source, URL, or audio source used by the action.
   final String? source; // Optional source for URL if blobData is not available
+  /// Action-specific type such as toast style, haptic type, or file type.
   final String? type; // file type
+  /// Action executed after the operation completes successfully.
   final EnsembleAction? onComplete;
+  /// Action executed when the operation fails.
   final EnsembleAction? onError;
 
+  /// Creates a [SaveToFileSystemAction] action.
   SaveToFileSystemAction({
     required this.fileName,
     this.blobData,
@@ -29,6 +36,7 @@ class SaveToFileSystemAction extends EnsembleAction {
     this.onError,
   });
 
+  /// Creates a [SaveToFileSystemAction] from a YAML or map action payload.
   factory SaveToFileSystemAction.from({Map? payload}) {
     if (payload == null || payload['fileName'] == null) {
       throw LanguageError('${ActionType.saveFile.name} requires fileName.');
@@ -44,6 +52,7 @@ class SaveToFileSystemAction extends EnsembleAction {
     );
   }
 
+  /// Runs this action and performs the save to file system operation.
   @override
   Future<void> execute(BuildContext context, ScopeManager scopeManager) async {
     try {

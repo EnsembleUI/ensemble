@@ -1,22 +1,25 @@
+/// Notification handler implementation for MoEngage.
+library moengage_notification_handler;
+
 import 'dart:convert';
 import 'dart:io';
 import 'package:ensemble/framework/notification_manager.dart';
-import 'package:ensemble/screen_controller.dart';
-import 'package:ensemble/util/utils.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:moengage_flutter/moengage_flutter.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
 
+/// Handles notification callbacks and setup for MoEngage integration.
 class MoEngageNotificationHandler {
   static final MoEngageNotificationHandler _instance =
       MoEngageNotificationHandler._internal();
+  /// Factory constructor to get the singleton instance.
   factory MoEngageNotificationHandler() => _instance;
   MoEngageNotificationHandler._internal();
 
   MoEngageFlutter? _moengagePlugin;
   bool _initialized = false;
 
+  /// Initializes the MoEngage notification handler.
   Future<void> initialize(MoEngageFlutter moengagePlugin) async {
     if (_initialized) {
       debugPrint('MoEngage notifications already initialized');
@@ -97,5 +100,6 @@ class MoEngageNotificationHandler {
     }
   }
 
+  /// Returns whether the notification handler has been initialized.
   bool get isInitialized => _initialized;
 }

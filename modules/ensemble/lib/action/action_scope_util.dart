@@ -13,6 +13,7 @@ import 'package:yaml/yaml.dart';
 
 /// Utilities for reusable Action definitions that support scoped
 /// [Import], [Global], and [API] blocks (similar to custom widgets).
+/// Utilities for resolving action imports, scoped APIs, and event handler payloads.
 class ActionScopeUtil {
   static const List<String> _fileLevelKeys = [
     PageModel.importToken,
@@ -111,7 +112,7 @@ class ActionScopeUtil {
     return snapshot;
   }
 
-  /// Undo the temporary [mergedApiMap] merge performed by [prepareScope].
+  /// Restores page API definitions after a reusable action finishes.
   @visibleForTesting
   static void restorePageApisAfterAction(
       ScopeManager parentScope, Map<String, YamlMap?>? snapshot) {

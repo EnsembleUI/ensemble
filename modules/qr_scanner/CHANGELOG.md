@@ -1,3 +1,15 @@
+## 1.2.48
+
+ - **REFACTOR**(qr_scanner): improve scan window handling and layout for QR code scanner. ([a54f86b0](https://github.com/ensembleUI/ensemble/commit/a54f86b03c2d8255fad5dfb50c35d452be1a4e64))
+ - **FIX**(qr_scanner): upgrade mobile_scanner dependency in qr_scanner. ([ec22c726](https://github.com/ensembleUI/ensemble/commit/ec22c726dc6b1ec5a9c687d7dfeef9aa8f7c882c))
+ - **DOCS**: update package and module READMEs. ([2f7e2dec](https://github.com/ensembleUI/ensemble/commit/2f7e2deccf3110badc169d78c22afb64870897f6))
+
+## 1.2.47
+
+ - **REFACTOR**(qr_scanner): improve scan window handling and layout for QR code scanner. ([a54f86b0](https://github.com/ensembleUI/ensemble/commit/a54f86b03c2d8255fad5dfb50c35d452be1a4e64))
+ - **FIX**(qr_scanner): upgrade mobile_scanner dependency in qr_scanner. ([ec22c726](https://github.com/ensembleUI/ensemble/commit/ec22c726dc6b1ec5a9c687d7dfeef9aa8f7c882c))
+ - **DOCS**: update package and module READMEs. ([2f7e2dec](https://github.com/ensembleUI/ensemble/commit/2f7e2deccf3110badc169d78c22afb64870897f6))
+
 # Changelog
 
 All notable changes to the ensemble_qr_scanner module will be documented in this file.

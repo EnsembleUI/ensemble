@@ -1,10 +1,22 @@
 name: ensemble_face_camera
 description: A standalone face detection camera module for Ensemble.
-version: 0.0.1
-homepage: https://github.com/EnsembleUI/ensemble/modules/face_camera
+homepage: https://ensembleui.com
+repository: https://github.com/EnsembleUI/ensemble
+issue_tracker: https://github.com/EnsembleUI/ensemble/issues
+documentation: https://github.com/EnsembleUI/ensemble/tree/main/modules/face_camera#readme
+topics:
+  - face-detection
+  - camera
+  - low-code
+  - ensemble
+platforms:
+  android:
+  ios:
+  web:
+version: 1.2.48
 
 environment:
-  sdk: ">=3.5.0"
+  sdk: ">=3.5.0 <4.0.0"
   flutter: ">=3.24.0"
 
 dependencies:
@@ -21,6 +33,7 @@ dependencies:
   ensemble_ts_interpreter: ^1.0.7
   collection: ^1.17.1
   image_picker: ^0.8.7+5
+  js: ^0.6.7
 
 dev_dependencies:
   flutter_test:

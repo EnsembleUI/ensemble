@@ -1,3 +1,5 @@
+// ignore_for_file: deprecated_member_use
+
 import 'dart:async';
 import 'dart:math' as math;
 import 'package:image/image.dart' as img;
@@ -30,6 +32,8 @@ enum CameraMode { photo, video, both }
 
 enum InitialCamera { back, front }
 
+// Invokable carries mutable runtime definition fields.
+// ignore: must_be_immutable
 class Camera extends StatefulWidget
     with Invokable, HasController<MyCameraController, CameraState> {
   static const type = 'Camera';
@@ -259,6 +263,9 @@ class CameraState extends EWidgetState<Camera> with WidgetsBindingObserver {
   void initCameras() async {
     try {
       cameras = await availableCameras();
+      if (cameras.isEmpty) {
+        throw CameraException('NoCamera', 'No cameras available on this device.');
+      }
       setCameraInit();
     } catch (e) {
       if (e is CameraException && e.code == 'CameraAccessDenied') {
