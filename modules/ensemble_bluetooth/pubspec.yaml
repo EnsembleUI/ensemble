@@ -24,7 +24,7 @@ dependencies:
       url: https://github.com/EnsembleUI/ensemble.git
       ref: ensemble-v1.2.48
       path: modules/ensemble
-  ensemble_ts_interpreter: ^1.0.7
+  ensemble_ts_interpreter: ^1.2.0
 
   collection: ^1.17.1
   flutter_blue_plus: ^1.33.4
