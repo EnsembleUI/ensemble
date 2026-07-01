@@ -2,14 +2,17 @@ import 'package:ensemble_ts_interpreter/invokables/invokablecommons.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokableprimitives.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/date_symbol_data_local.dart';
+import 'package:intl/intl.dart';
 
 import 'test_utils.dart';
 
 void main() {
   test('date parsing', () {
-    // output is not UTC/GMT
-    expect(InvokablePrimitive.parseDateTime(1654841398)!.toIso8601String(),
-        '2022-06-09T23:09:58.000');
+    // output is local time and varies by machine timezone
+    expect(
+        InvokablePrimitive.parseDateTime(1654841398)!.toIso8601String(),
+        DateTime.fromMillisecondsSinceEpoch(1654841398 * 1000)
+            .toIso8601String());
     expect(
         InvokablePrimitive.parseDateTime('2022-06-16T19:00:00')!
             .toIso8601String(),
@@ -41,16 +44,14 @@ void main() {
   });
 
   test('date formatter', () {
-    // date formatter can insert NBSP or NNBSP
-    var expected = RegExp(
-        r'Jun 16, 2022, 12:00' + TestUtils.non_breaking_spaces_regex + r'PM');
-    expect(
-        expected.hasMatch(
-            InvokablePrimitive.prettyDateTime('2022-06-16T12:00:00-0700')),
-        isTrue);
+    const input = '2022-06-16T12:00:00-0700';
+    final expectedDateTime = InvokablePrimitive.parseDateTime(input)!.toLocal();
+    final expectedDate = DateFormat.yMMMd().format(expectedDateTime);
+    final expectedTime = DateFormat.jm().format(expectedDateTime);
 
-    expect(InvokablePrimitive.prettyDate('2022-06-16T12:00:00-0700'),
-        'Jun 16, 2022');
+    expect(InvokablePrimitive.prettyDateTime(input),
+        '$expectedDate, $expectedTime');
+    expect(InvokablePrimitive.prettyDate(input), expectedDate);
   });
 
   test('duration', () {
