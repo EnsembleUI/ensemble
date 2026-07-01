@@ -1,3 +1,19 @@
+## 1.2.48-beta.1
+
+ - **REFACTOR**: Remove unused imports across various files to clean up code… ([#2317](https://github.com/ensembleUI/ensemble/issues/2317)). ([e68b584c](https://github.com/ensembleUI/ensemble/commit/e68b584c5d8ac9c6ecb2e014027512481c2193dd))
+ - **REFACTOR**: update dependencies and improve import statements. ([712e0bb8](https://github.com/ensembleUI/ensemble/commit/712e0bb8e2c42b0cef55b2dd93d5df76ef029ad0))
+ - **REFACTOR**: remove font_awesome_flutter dependency and update icon usage. ([a5d66023](https://github.com/ensembleUI/ensemble/commit/a5d66023cff5da18f5390682cfe2ee1e536572b6))
+ - **FIX**(tv): use viewport position instead of screen size for scroll visibility. ([75dce03c](https://github.com/ensembleUI/ensemble/commit/75dce03c5d3229bdf3ba2c28f46f554cc983d9f1))
+ - **FIX**(tv): render custom tabWidget in TV tab bar buttons. ([7781d19f](https://github.com/ensembleUI/ensemble/commit/7781d19f41178023f65c5d9ff3c2590820c93acb))
+ - **FEAT**: update .gitignore and enhance ensemble module structure. ([5ec1b8eb](https://github.com/ensembleUI/ensemble/commit/5ec1b8eb926b00d2d0de4ea7f922f5f6e7e5ed9e))
+ - **FEAT**: enhance LocalAssetsService with environment variable merging and asset loading. ([359793a3](https://github.com/ensembleUI/ensemble/commit/359793a3b6e801e8f97b985da1f1663213e5580b))
+ - **FEAT**(cdn): improve asset cache management and cleanup. ([24f09d4c](https://github.com/ensembleUI/ensemble/commit/24f09d4cdefd1746c1700538b103769e20dc0ad4))
+ - **FEAT**(cdn): enhance asset key management and prefetching. ([280d35c6](https://github.com/ensembleUI/ensemble/commit/280d35c6c09c8d191892f10d13d0c79de9c99ad2))
+ - **FEAT**(cdn): enhance asset cache initialization and cleanup. ([9737308c](https://github.com/ensembleUI/ensemble/commit/9737308cd5442f4b1f489e067048ac50b8a991aa))
+ - **FEAT**(cdn): implement CDN asset caching mechanism. ([7cc9f878](https://github.com/ensembleUI/ensemble/commit/7cc9f878591c71d6eb26ec2571e069e427d50e76))
+ - **DOCS**: update README.md for Ensemble runtime. ([d6581847](https://github.com/ensembleUI/ensemble/commit/d6581847c621994ba6941023bcb3dc86b0706089))
+ - **DOCS**: add comments to clarify asset management methods in LocalAssetsService. ([52ab49bd](https://github.com/ensembleUI/ensemble/commit/52ab49bd0a4a973fc9094393c8872d7e76db9f1a))
+
 ## 1.2.48
 
  - Bump "ensemble" to `1.2.48`.
