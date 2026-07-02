@@ -1,3 +1,14 @@
+## [1.2.0] - Practical ES5 Runtime Stability
+
+* Added a documented practical ES5 compatibility baseline with focused regression tests.
+* Improved interpreter semantics for ES5 control flow, operators, functions, `this`, constructors, `arguments`, object descriptors, accessors, prototypes, sparse arrays, and JSON behavior.
+* Added practical support for `Object.create`, `Object.assign`, `Object.getPrototypeOf`, `Object.defineProperty`, `Object.getOwnPropertyDescriptor`, `hasOwnProperty`, `propertyIsEnumerable`, and `Function.prototype.call/apply/bind`.
+* Hardened array and string behavior around sparse arrays, holes, negative indexes, optional bounds, string indexes, and JS-style numeric parsing/coercion.
+* Preserved existing Ensemble interop and selected ES6+ conveniences such as arrow functions, `Map`, `Set`, and `Promise`.
+* Added runtime safety guards for circular `JSON.stringify` inputs and extremely large sparse-array expansion.
+* Added package-level performance smoke coverage and made primitive date tests timezone-stable.
+* Added `doc/known_supported_js.md` to describe supported JS, ES6+ conveniences, and known unsupported areas.
+
 ## [1.0.7] - Bug Fixes
 
 * Fixed issue where Error objects were not being properly unwrapped in catch clauses.

@@ -9,7 +9,9 @@ import 'package:ensemble/util/utils.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:get_it/get_it.dart';
 
+/// Ensemble action that initializes a deep-link provider and listeners.
 class DeepLinkInitAction extends EnsembleAction {
+  /// Creates a [DeepLinkInitAction] action.
   DeepLinkInitAction({
     super.initiator,
     required this.provider,
@@ -19,12 +21,18 @@ class DeepLinkInitAction extends EnsembleAction {
     this.options,
   });
 
+  /// Provider selected by the YAML payload.
   DeepLinkProvider provider;
+  /// Provider-specific options passed through from the action payload.
   Map<String, dynamic>? options;
+  /// Action executed when the operation succeeds.
   EnsembleAction? onSuccess;
+  /// Action executed when the operation fails.
   EnsembleAction? onError;
+  /// Action executed when a deep link is received.
   EnsembleAction? onLinkReceived;
 
+  /// Creates a [DeepLinkInitAction] from a YAML or map action payload.
   factory DeepLinkInitAction.fromMap({dynamic payload}) {
     if (payload is Map) {
       DeepLinkProvider? provider = DeepLinkProvider.values
@@ -49,6 +57,7 @@ class DeepLinkInitAction extends EnsembleAction {
     throw LanguageError('DeferredDeepLink: Missing inputs for initDeepLink');
   }
 
+  /// Runs this action and performs the deep link init operation.
   @override
   Future execute(BuildContext context, ScopeManager scopeManager) async {
     try {
@@ -69,7 +78,9 @@ class DeepLinkInitAction extends EnsembleAction {
   }
 }
 
+/// Ensemble action that handles an incoming deep-link URL.
 class DeepLinkHandleAction extends EnsembleAction {
+  /// Creates a [DeepLinkHandleAction] action.
   DeepLinkHandleAction({
     super.initiator,
     required this.url,
@@ -77,11 +88,16 @@ class DeepLinkHandleAction extends EnsembleAction {
     this.onError,
   });
 
+  /// URL handled, opened, or converted into a deep link.
   String? url;
+  /// Action executed when the operation succeeds.
   EnsembleAction? onSuccess;
+  /// Action executed when a deep link is received.
   EnsembleAction? onLinkReceived;
+  /// Action executed when the operation fails.
   EnsembleAction? onError;
 
+  /// Creates a [DeepLinkHandleAction] from a YAML or map action payload.
   factory DeepLinkHandleAction.fromMap({dynamic payload}) {
     if (payload is Map) {
       String? url = Utils.optionalString(payload['url']);
@@ -105,6 +121,7 @@ class DeepLinkHandleAction extends EnsembleAction {
     throw LanguageError('DeferredDeepLink: Missing inputs for handleDeepLink');
   }
 
+  /// Runs this action and performs the deep link handle operation.
   @override
   Future execute(BuildContext context, ScopeManager scopeManager) async {
     try {
@@ -125,7 +142,9 @@ class DeepLinkHandleAction extends EnsembleAction {
   }
 }
 
+/// Ensemble action that creates a deep link with provider-specific properties.
 class CreateDeeplinkAction extends EnsembleAction {
+  /// Creates a [CreateDeeplinkAction] action.
   CreateDeeplinkAction({
     super.initiator,
     required this.provider,
@@ -135,12 +154,18 @@ class CreateDeeplinkAction extends EnsembleAction {
     this.linkProps,
   });
 
+  /// Provider selected by the YAML payload.
   DeepLinkProvider provider;
+  /// Action executed when the operation succeeds.
   EnsembleAction? onSuccess;
+  /// Action executed when the operation fails.
   EnsembleAction? onError;
+  /// Provider-agnostic deep-link properties.
   Map<String, dynamic>? universalProps;
+  /// Provider-specific deep-link properties.
   Map<String, dynamic>? linkProps;
 
+  /// Creates a [CreateDeeplinkAction] from a YAML or map action payload.
   factory CreateDeeplinkAction.fromMap({dynamic payload}) {
     if (payload is Map) {
       DeepLinkProvider? provider = DeepLinkProvider.values
@@ -166,6 +191,7 @@ class CreateDeeplinkAction extends EnsembleAction {
     throw LanguageError('DeferredDeepLink: Missing inputs for createDeepLink');
   }
 
+  /// Runs this action and performs the create deeplink operation.
   @override
   Future execute(BuildContext context, ScopeManager scopeManager) async {
     try {

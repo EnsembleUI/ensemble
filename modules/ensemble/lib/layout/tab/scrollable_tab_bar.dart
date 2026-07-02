@@ -11,7 +11,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 import 'dart:developer';
-import 'package:ensemble/framework/widget/icon.dart' as ensemble;
 
 class ScrollableTabBar extends BaseTabBar {
   static const type = 'ScrollableTabBar';

@@ -11,12 +11,18 @@ import 'package:ensemble/framework/event.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'dart:io' show Platform;
 
+/// Ensemble action that checks device integrity and app-signature signals.
 class DeviceSecurity extends EnsembleAction with Invokable {
+  /// Action executed when the operation succeeds.
   EnsembleAction? onSuccess;
+  /// Action executed when the operation fails.
   EnsembleAction? onError;
+  /// Package name used during device security checks.
   String? packageName;
+  /// Expected app signature used during security checks.
   String? signature;
 
+  /// Creates a [DeviceSecurity] object.
   DeviceSecurity({
     this.onSuccess,
     this.onError,
@@ -24,6 +30,7 @@ class DeviceSecurity extends EnsembleAction with Invokable {
     this.signature,
   });
 
+  /// Runs this action and performs the device security operation.
   @override
   Future<void> execute(BuildContext context, ScopeManager scopeManager) async {
     if (kIsWeb) {
@@ -109,6 +116,7 @@ class DeviceSecurity extends EnsembleAction with Invokable {
     }
   }
 
+  /// Creates the device-security action from a YAML payload.
   static EnsembleAction? fromMap({Map? payload}) {
     if (payload == null) {
       print("DeviceSecurity: payload is required");

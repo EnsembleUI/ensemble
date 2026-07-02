@@ -1,4 +1,5 @@
-library ensemble_file_manager;
+/// File picking and gallery-saving implementation for Ensemble apps.
+library file_manager;
 
 import 'dart:typed_data';
 
@@ -13,7 +14,12 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:vision_gallery_saver/vision_gallery_saver.dart';
 
+/// Implements Ensemble file-picking and image-saving actions.
 class FileManagerImpl extends FileManager {
+  /// Creates a file manager backed by `file_picker` and gallery saver plugins.
+  FileManagerImpl();
+
+  /// Resolves the platform picker type for an Ensemble file picker action.
   FileType pickType(FilePickerAction action) {
     if (action.source == FileSource.gallery) {
       if (action.allowedExtensions != null) {
@@ -21,12 +27,14 @@ class FileManagerImpl extends FileManager {
         List<String> videoExtensions = ["mp4", "avi", "mkv", "flv", "wmv"];
 
         if (action.allowedExtensions!
-            .any((element) => imageExtensions.contains(element)))
+            .any((element) => imageExtensions.contains(element))) {
           return FileType.image;
+        }
 
         if (action.allowedExtensions!
-            .any((element) => videoExtensions.contains(element)))
+            .any((element) => videoExtensions.contains(element))) {
           return FileType.video;
+        }
       }
       return FileType.media;
     }
@@ -37,6 +45,7 @@ class FileManagerImpl extends FileManager {
     return FileType.any;
   }
 
+  /// Opens the platform file picker and stores selected files in the action scope.
   @override
   Future<void> pickFiles(BuildContext context, FilePickerAction action,
       ScopeManager? scopeManager) async {
@@ -46,13 +55,13 @@ class FileManagerImpl extends FileManager {
       type: type,
       allowedExtensions:
           type == FileType.custom ? action.allowedExtensions : null,
-      allowCompression: action.allowCompression ?? true,
       allowMultiple: action.allowMultiple ?? false,
     )
         .then((result) {
       if (result == null || result.files.isEmpty) {
-        if (action.onError != null)
+        if (action.onError != null) {
           ScreenController().executeAction(context, action.onError!);
+        }
         return;
       }
 
@@ -70,6 +79,7 @@ class FileManagerImpl extends FileManager {
     });
   }
 
+  /// Saves image bytes to the user's gallery.
   @override
   Future<void> saveImage(Uint8List fileBytes, {String? name}) async {
     await VisionGallerySaver.saveImage(fileBytes, name: name);

@@ -1,4 +1,3 @@
-import 'package:ensemble/action/invoke_api_action.dart';
 import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/framework/model.dart';
 import 'package:ensemble/util/utils.dart';
@@ -9,7 +8,6 @@ import 'package:flutter/material.dart' show Colors;
 import 'package:flutter_svg/svg.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 
-import '../auth_manager.dart';
 import '../sign_in_with_server_api_action.dart';
 
 // Button that mimic Apple button's styles for consistency

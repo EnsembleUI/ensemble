@@ -1,4 +1,3 @@
-import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/stub/oauth_controller.dart';
 

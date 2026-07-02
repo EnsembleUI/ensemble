@@ -10,16 +10,26 @@ import 'package:flutter/src/widgets/framework.dart';
 import 'package:local_auth/local_auth.dart';
 import 'package:local_auth/error_codes.dart' as auth_error;
 
+/// Ensemble action that prompts the user for biometric or local authentication.
 class AuthenticateByBiometric extends EnsembleAction {
+  /// Action executed after successful authentication.
   EnsembleAction? onAuthenticated;
+  /// Action executed when biometric authentication fails.
   EnsembleAction? onAuthenticationFailed;
+  /// Action executed when biometric hardware is unavailable.
   EnsembleAction? onSensorNotAvailable;
+  /// Action executed when biometric authentication is not configured.
   EnsembleAction? onSensorNotConfigured;
+  /// Action executed when the operation fails.
   EnsembleAction? onError;
+  /// Whether users may open settings to configure biometric auth.
   bool? allowConfiguration;
+  /// Text label displayed to the user.
   String? label;
+  /// Android prompt title shown during biometric authentication.
   String? androidTitle;
 
+  /// Creates a [AuthenticateByBiometric] object.
   AuthenticateByBiometric({
     this.onAuthenticated,
     this.onAuthenticationFailed,
@@ -31,6 +41,7 @@ class AuthenticateByBiometric extends EnsembleAction {
     this.onSensorNotConfigured,
   });
 
+  /// Runs this action and performs the authenticate by biometric operation.
   @override
   Future execute(BuildContext context, ScopeManager scopeManager) async {
     if (kIsWeb) {
@@ -82,6 +93,7 @@ class AuthenticateByBiometric extends EnsembleAction {
     return;
   }
 
+  /// Creates the biometric authentication action from a YAML payload.
   static EnsembleAction? fromMap({Map? payload}) {
     if (payload == null || payload['onAuthenticated'] == null) {
       print("authenticateByBiometric: onAuthenticated is required");

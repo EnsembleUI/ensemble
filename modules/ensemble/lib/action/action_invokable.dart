@@ -6,9 +6,13 @@ import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/cupertino.dart';
 
 /// expose Ensemble Actions as Invokables
+/// Base invokable wrapper that exposes action properties to the interpreter.
 abstract class ActionInvokable with Invokable {
+  /// Creates a [ActionInvokable] object.
   ActionInvokable(this.buildContext);
 
+  /// Build context associated with an invokable action.
+  /// Build context used to resolve the active screen scope.
   final BuildContext buildContext;
 
   @override

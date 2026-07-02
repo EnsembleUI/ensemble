@@ -17,6 +17,7 @@ import 'package:flutter/material.dart';
 ///   onOffline: ...
 ///   onChange: ...
 class ConnectivityListenerAction extends EnsembleAction {
+  /// Creates a [ConnectivityListenerAction] action.
   ConnectivityListenerAction({
     super.initiator,
     this.onOnline,
@@ -24,13 +25,17 @@ class ConnectivityListenerAction extends EnsembleAction {
     this.onChange,
   });
 
+  /// Action executed when connectivity changes to online.
   final EnsembleAction? onOnline;
+  /// Action executed when connectivity changes to offline.
   final EnsembleAction? onOffline;
+  /// Action executed whenever the input or connectivity state changes.
   final EnsembleAction? onChange;
 
   // Single global subscription for the whole app.
   static StreamSubscription<ConnectivityChangeEvent>? _subscription;
 
+  /// Creates a [ConnectivityListenerAction] from a YAML or map action payload.
   factory ConnectivityListenerAction.fromYaml(
       {Invokable? initiator, Map? payload}) {
     return ConnectivityListenerAction(
@@ -42,6 +47,7 @@ class ConnectivityListenerAction extends EnsembleAction {
     );
   }
 
+  /// Runs this action and performs the connectivity listener operation.
   @override
   Future execute(BuildContext context, ScopeManager scopeManager) async {
     // Cancel any existing listener so we don't leak or duplicate callbacks.

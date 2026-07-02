@@ -1,9 +1,7 @@
-import 'dart:developer';
 
 import 'package:ensemble/framework/bindings.dart';
 import 'package:ensemble/framework/ensemble_widget.dart';
 import 'package:ensemble/framework/scope.dart';
-import 'package:ensemble/framework/view/data_scope_widget.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/widget/custom_widget/custom_widget_model.dart';
 import 'package:ensemble/widget/helpers/controllers.dart';

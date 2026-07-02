@@ -1,5 +1,4 @@
 import 'package:ensemble/action/get_network_info_action.dart';
-import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/stub/location_manager.dart';
 import 'package:flutter/foundation.dart';

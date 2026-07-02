@@ -23,7 +23,7 @@ melos bootstrap
 
 ## Usage
 
-The verified entry point is `NetworkInfoImpl` in `lib/network_info.dart`. The core runtime contains network-info action wiring, but this package does not include a complete Ensemble YAML example. Usage examples are not currently available in this package. See the source files under `lib/` for implementation details.
+The package entry point is `package:ensemble_network_info/ensemble_network_info.dart`, which exports `NetworkInfoImpl`. The core runtime contains network-info action wiring, but this package does not include a complete Ensemble YAML example. Usage examples are not currently available in this package. See the source files under `lib/` for implementation details.
 
 ## Configuration
 

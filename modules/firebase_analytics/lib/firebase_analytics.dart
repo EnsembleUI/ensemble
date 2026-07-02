@@ -1,3 +1,6 @@
+/// Firebase Analytics and Crashlytics logging provider for Ensemble apps.
+library firebase_analytics;
+
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
@@ -13,11 +16,15 @@ import 'package:flutter/foundation.dart';
 /// - Source library (engine/flutter core errors may be fatal)
 /// - Error context (UI errors, widget errors = non-fatal)
 class FirebaseAnalyticsProvider extends LogProvider {
+  /// Firebase options resolved from the Ensemble configuration.
   FirebaseOptions? firebaseOptions;
   FirebaseAnalytics? _analytics;
   final FirebaseApp? _providedFirebaseApp; // Store the provided Firebase app
 
-  // Constructor accepts optional Firebase app (called from EnsembleModules)
+  /// Creates a Firebase analytics provider.
+  ///
+  /// The optional app is used when Firebase has already been initialized by
+  /// the host application.
   FirebaseAnalyticsProvider([this._providedFirebaseApp]);
 
   void _init({Map? options, String? ensembleAppId, bool shouldAwait = false}) {
@@ -85,6 +92,7 @@ class FirebaseAnalyticsProvider extends LogProvider {
     return false;
   }
 
+  /// Initializes Firebase Analytics and Crashlytics error handling.
   @override
   Future<void> init(
       {Map? options, String? ensembleAppId, bool shouldAwait = false}) async {
@@ -177,23 +185,27 @@ class FirebaseAnalyticsProvider extends LogProvider {
     return false;
   }
 
+  /// Converts non-null dynamic map values into Firebase parameter values.
   Map<String, Object> convertMap(Map<String, dynamic> input) {
     return Map<String, Object>.fromEntries(input.entries
         .where((entry) => entry.value != null)
         .map((entry) => MapEntry(entry.key, entry.value as Object)));
   }
 
+  /// Logs a Firebase Analytics event.
   Future<void> logEvent(
       String event, Map<String, dynamic> parameters, LogLevel level) async {
     await _analytics?.logEvent(name: event, parameters: convertMap(parameters));
     print('Firebase: Logged event: $event with parameters: $parameters');
   }
 
+  /// Sets the Firebase Analytics user identifier.
   Future<void> setUserId(String userId) async {
     await _analytics?.setUserId(id: userId);
     print('Firebase: Set user ID: $userId');
   }
 
+  /// Handles an Ensemble logging configuration payload.
   @override
   Future<void> log(Map<String, dynamic> config) async {
     final operation = config['operation'] ?? 'logEvent';

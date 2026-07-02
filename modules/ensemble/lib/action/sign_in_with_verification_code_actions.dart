@@ -44,12 +44,18 @@ void _handleError(
 /// - [onSuccess] is executed when the code is sent successfully
 /// - [onError] is executed when there is a failure
 class SendVerificationCodeAction extends EnsembleAction {
+  /// Provider selected by the YAML payload.
   final String provider;
+  /// Verification or provider method selected by the action.
   final String method;
+  /// Phone number used by verification-code flows.
   final String? phoneNumber;
+  /// Action executed when the operation succeeds.
   final EnsembleAction? onSuccess;
+  /// Action executed when the operation fails.
   final EnsembleAction? onError;
 
+  /// Creates a [SendVerificationCodeAction] action.
   SendVerificationCodeAction({
     super.initiator,
     required this.provider,
@@ -59,6 +65,7 @@ class SendVerificationCodeAction extends EnsembleAction {
     this.onError,
   });
 
+  /// Creates a [SendVerificationCodeAction] from a YAML or map action payload.
   factory SendVerificationCodeAction.fromYaml({
     Invokable? initiator,
     Map? payload,
@@ -73,6 +80,7 @@ class SendVerificationCodeAction extends EnsembleAction {
     );
   }
 
+  /// Runs this action and performs the send verification code operation.
   @override
   Future<void> execute(BuildContext context, ScopeManager scopeManager) async {
     if (GetIt.instance.isRegistered<AuthContextManager>()) {
@@ -118,14 +126,22 @@ class SendVerificationCodeAction extends EnsembleAction {
 /// - [onSuccess] is executed when verification succeeds
 /// - [onError] is executed when there is a failure
 class ValidateVerificationCodeAction extends EnsembleAction {
+  /// Provider selected by the YAML payload.
   final String provider;
+  /// Verification or provider method selected by the action.
   final String method;
+  /// Verification code entered by the user.
   final String code;
+  /// Provider verification session identifier.
   final String verificationId;
+  /// Action executed when the operation succeeds.
   final EnsembleAction? onSuccess;
+  /// Action executed when the operation fails.
   final EnsembleAction? onError;
+  /// Action executed when verification fails after a provider response.
   final EnsembleAction? onVerificationFailure;
 
+  /// Creates a [ValidateVerificationCodeAction] action.
   ValidateVerificationCodeAction({
     super.initiator,
     required this.provider,
@@ -137,6 +153,7 @@ class ValidateVerificationCodeAction extends EnsembleAction {
     this.onVerificationFailure,
   });
 
+  /// Creates a [ValidateVerificationCodeAction] from a YAML or map action payload.
   factory ValidateVerificationCodeAction.fromYaml({
     Invokable? initiator,
     Map? payload,
@@ -154,6 +171,7 @@ class ValidateVerificationCodeAction extends EnsembleAction {
     );
   }
 
+  /// Runs this action and performs the validate verification code operation.
   @override
   Future<void> execute(BuildContext context, ScopeManager scopeManager) async {
     if (GetIt.instance.isRegistered<AuthContextManager>()) {
@@ -217,13 +235,20 @@ class ValidateVerificationCodeAction extends EnsembleAction {
 /// - [onSuccess] is executed when the code is resent successfully
 /// - [onError] is executed when there is a failure
 class ResendVerificationCodeAction extends EnsembleAction {
+  /// Phone number used by verification-code flows.
   final String? phoneNumber;
+  /// Provider token used to resend a verification code.
   final String resendToken;
+  /// Provider selected by the YAML payload.
   final String provider;
+  /// Verification or provider method selected by the action.
   final String method;
+  /// Action executed when the operation succeeds.
   final EnsembleAction? onSuccess;
+  /// Action executed when the operation fails.
   final EnsembleAction? onError;
 
+  /// Creates a [ResendVerificationCodeAction] action.
   ResendVerificationCodeAction({
     super.initiator,
     this.phoneNumber,
@@ -234,6 +259,7 @@ class ResendVerificationCodeAction extends EnsembleAction {
     this.onError,
   });
 
+  /// Creates a [ResendVerificationCodeAction] from a YAML or map action payload.
   factory ResendVerificationCodeAction.fromYaml({
     Invokable? initiator,
     Map? payload,
@@ -249,6 +275,7 @@ class ResendVerificationCodeAction extends EnsembleAction {
     );
   }
 
+  /// Runs this action and performs the resend verification code operation.
   @override
   Future<void> execute(BuildContext context, ScopeManager scopeManager) async {
     if (GetIt.instance.isRegistered<AuthContextManager>()) {

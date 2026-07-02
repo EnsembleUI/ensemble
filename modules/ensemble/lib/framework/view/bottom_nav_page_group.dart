@@ -1,4 +1,3 @@
-import 'dart:developer';
 
 import 'package:ensemble/action/haptic_action.dart';
 import 'package:ensemble/ensemble.dart';
@@ -8,13 +7,11 @@ import 'package:ensemble/framework/menu.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/screen_tracker.dart';
 import 'package:ensemble/framework/view/bottom_nav_page_view.dart';
-import 'package:ensemble/framework/view/data_scope_widget.dart';
 import 'package:ensemble/framework/view/page_group.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/framework/widget/icon.dart' as ensemble;
-import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:flutter/material.dart';
 
 class BottomNavBarItem {

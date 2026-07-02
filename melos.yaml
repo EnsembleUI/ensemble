@@ -9,10 +9,10 @@ repository:
 packages:
   - starter
   - packages/**
+  - tools/**
   - modules/**
 
 ignore:
-  - modules/ensemble_ts_interpreter
   - "**/build/**"
 
 scripts:
@@ -23,12 +23,12 @@ scripts:
   ensemble:generate-test-schema:
     description: Regenerate ensemble_tests_schema.json from the step vocabulary.
     run: |
-      cd packages/ensemble_test_runner && dart run tool/generate_schema.dart
+      cd tools/ensemble_test_runner && dart run tool/generate_schema.dart
 
   ensemble:generate-step-registry:
     description: Regenerate test_step_registry.dart from tool/generate_step_registry.dart.
     run: |
-      cd packages/ensemble_test_runner && dart run tool/generate_step_registry.dart
+      cd tools/ensemble_test_runner && dart run tool/generate_step_registry.dart
 
 command:
   version:

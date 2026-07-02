@@ -12,7 +12,9 @@ import 'package:intl/intl.dart';
 import 'package:screenshot/screenshot.dart';
 import 'saveFile/save_mobile.dart';
 
+/// Ensemble action that captures a widget or screen as an image.
 class TakeScreenshotAction extends EnsembleAction {
+  /// Creates a [TakeScreenshotAction] action.
   TakeScreenshotAction({
     super.initiator,
     required this.widgetId,
@@ -21,11 +23,16 @@ class TakeScreenshotAction extends EnsembleAction {
     this.onError,
   });
 
+  /// Widget identifier to capture for screenshots.
   final dynamic widgetId;
+  /// Screenshot scale factor used when rendering image bytes.
   final double? pixelRatio;
+  /// Action executed when the operation succeeds.
   final EnsembleAction? onSuccess;
+  /// Action executed when the operation fails.
   final EnsembleAction? onError;
 
+  /// Creates a [TakeScreenshotAction] from a YAML or map action payload.
   factory TakeScreenshotAction.fromYaml({Map? payload}) {
     if (payload == null || payload['widgetId'] == null) {
       throw LanguageError(
@@ -43,6 +50,7 @@ class TakeScreenshotAction extends EnsembleAction {
     );
   }
 
+  /// Runs this action and captures the configured widget or screen area.
   @override
   Future<void> execute(BuildContext context, ScopeManager scopeManager) async {
     final screenshotController = ScreenshotController();

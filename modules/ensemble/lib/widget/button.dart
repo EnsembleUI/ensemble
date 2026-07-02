@@ -1,7 +1,6 @@
 import 'package:ensemble/action/haptic_action.dart';
 import 'package:ensemble/framework/action.dart' as ensemble;
 import 'package:ensemble/framework/theme/theme_manager.dart';
-import 'package:ensemble/framework/view/data_scope_widget.dart';
 import 'package:ensemble/layout/form.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
@@ -16,9 +15,6 @@ import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 
 import '../framework/event.dart';
 import '../framework/model.dart';
-import '../framework/scope.dart';
-import '../framework/view/page.dart';
-import 'helpers/widgets.dart';
 
 class Button extends StatefulWidget
     with Invokable, HasController<ButtonController, ButtonState> {

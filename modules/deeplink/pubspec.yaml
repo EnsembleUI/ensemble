@@ -1,10 +1,22 @@
 name: ensemble_deeplink
-description: "A new Flutter package project."
-version: 0.0.1
-homepage: https://github.com/EnsembleUI/ensemble_deeplink
+description: Deferred deep link handling for Ensemble apps.
+homepage: https://ensembleui.com
+repository: https://github.com/EnsembleUI/ensemble
+issue_tracker: https://github.com/EnsembleUI/ensemble/issues
+documentation: https://github.com/EnsembleUI/ensemble/tree/main/modules/deeplink#readme
+topics:
+  - deep-link
+  - deferred-links
+  - low-code
+  - ensemble
+platforms:
+  android:
+  ios:
+  web:
+version: 1.2.48
 
 environment:
-  sdk: ">=3.5.0"
+  sdk: ">=3.5.0 <4.0.0"
   flutter: ">=3.24.0"
 
 dependencies:
@@ -13,7 +25,7 @@ dependencies:
   ensemble:
     git:
       url: https://github.com/EnsembleUI/ensemble.git
-      ref: ensemble-v1.2.46
+      ref: ensemble-v1.2.48
       path: modules/ensemble
 
   flutter_branch_sdk: ^7.0.1

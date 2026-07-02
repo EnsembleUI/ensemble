@@ -1,10 +1,19 @@
 name: ensemble_network_info
-description: Module that provides wifi related information such as wifi name, SSID etc.
-version: 0.0.1
+description: Wi-Fi and network metadata provider for Ensemble apps.
+homepage: https://ensembleui.com
+repository: https://github.com/EnsembleUI/ensemble/tree/main/modules/ensemble_network_info
+issue_tracker: https://github.com/EnsembleUI/ensemble/issues
+documentation: https://github.com/EnsembleUI/ensemble/tree/main/modules/ensemble_network_info#readme
+topics:
+  - wifi
+  - network-info
+  - low-code
+  - ensemble
+version: 1.2.48
 
 environment:
-  sdk: ">=3.5.0"
-  flutter: "3.24.0"
+  sdk: ">=3.5.0 <4.0.0"
+  flutter: ">=3.24.0"
 
 dependencies:
   flutter:
@@ -12,7 +21,7 @@ dependencies:
   ensemble:
     git:
       url: https://github.com/EnsembleUI/ensemble.git
-      ref: ensemble-v1.2.46
+      ref: ensemble-v1.2.48
       path: modules/ensemble
 
   network_info_plus: ^5.0.3

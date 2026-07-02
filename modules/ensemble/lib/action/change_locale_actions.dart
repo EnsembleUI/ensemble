@@ -4,13 +4,17 @@ import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:flutter/cupertino.dart';
 
-// Set the locale at runtime
+/// Ensemble action that changes the active application locale.
 class SetLocaleAction extends EnsembleAction {
+  /// Creates a [SetLocaleAction] action.
   SetLocaleAction({required this.languageCode, this.countryCode});
 
+  /// Language code for the locale override.
   String languageCode;
+  /// Optional country code for the locale override.
   String? countryCode;
 
+  /// Runs this action and performs the set locale operation.
   @override
   Future execute(BuildContext context, ScopeManager scopeManager) {
     var realLanguageCode = scopeManager.dataContext.eval(languageCode);
@@ -29,8 +33,9 @@ class SetLocaleAction extends EnsembleAction {
   }
 }
 
-// Clear the runtime locale if applicable
+/// Ensemble action that clears the stored locale override.
 class ClearLocaleAction extends EnsembleAction {
+  /// Runs this action and performs the clear locale operation.
   @override
   Future execute(BuildContext context, ScopeManager scopeManager) {
     Ensemble().clearLocale();

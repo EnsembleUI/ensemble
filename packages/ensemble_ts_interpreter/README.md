@@ -10,7 +10,7 @@ A JavaScript (ES5) interpreter written entirely in Dart for Flutter applications
 ## ✨ Features
 
 - **Pure Dart Implementation**: No external JavaScript engines or bridges required
-- **ES5 Compatibility**: Full support for JavaScript ES5 syntax and features
+- **Practical ES5 Compatibility**: ES5 is the baseline, with selected ES6+ conveniences where tested
 - **High Performance**: Runs in the same process as your Dart/Flutter code
 - **Extensible Context**: Pass JSON objects or custom Dart objects with the `Invokable` mixin
 - **Primitive Types**: Support for strings, numbers, arrays, maps, dates, and more
@@ -25,7 +25,7 @@ Add this to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  ensemble_ts_interpreter: ^1.0.7
+  ensemble_ts_interpreter: ^1.2.0
 ```
 
 Then run:
@@ -74,18 +74,20 @@ The context object is the key to the interpreter. You can pass:
 
 ### JavaScript Support
 
+See [Known Supported JavaScript](doc/known_supported_js.md) for the current support matrix.
+
 - ✅ **Primitive Types**: String, Number, Boolean, null, undefined
-- ✅ **Arrays**: All standard array methods (filter, map, reduce, etc.)
-- ✅ **Objects/Maps**: Property access, method calls
+- ✅ **Arrays**: Common array methods (filter, map, reduce, etc.), including practical sparse-array behavior
+- ✅ **Objects/Maps**: Property access, method calls, descriptors, and prototype lookup
 - ✅ **Functions**: Declaration, execution, and closures
 - ✅ **Control Flow**: if/else, loops, switch statements
-- ✅ **Date Objects**: Full date manipulation support
+- ✅ **Date Objects**: Common date parsing and manipulation support
 
 ### Limitations
 
 - ❌ **Classes**: No class declaration or instantiation
 - ❌ **Modules**: No import/require statements
-- ❌ **ES6+ Features**: Limited to ES5 syntax
+- ❌ **Full ES6+ Conformance**: Selected conveniences may work, but full ES6 behavior is not guaranteed
 
 ## 📚 Examples
 
@@ -303,4 +305,3 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ---
 
 **Built with ❤️ for the Flutter community**
-
