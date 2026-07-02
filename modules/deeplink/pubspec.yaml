@@ -25,7 +25,7 @@ dependencies:
   ensemble:
     git:
       url: https://github.com/EnsembleUI/ensemble.git
-      ref: ensemble-v1.2.48
+      ref: ensemble-v1.2.48-beta.2
       path: modules/ensemble
 
   flutter_branch_sdk: ^7.0.1

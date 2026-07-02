@@ -1,6 +1,7 @@
 import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/framework/theme/default_theme.dart';
 import 'package:ensemble/framework/theme/theme_manager.dart';
+import 'package:ensemble/framework/tv/tv_focus_theme.dart';
 import 'package:ensemble/model/text_scale.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/image.dart';
@@ -23,6 +24,7 @@ mixin ThemeLoader {
         YamlMap? colorOverrides,
         YamlMap? screenOverrides,
         YamlMap? widgetOverrides,
+        YamlMap? tokensOverrides,
       }) {
 
     if (appOverrides == null) {
@@ -36,6 +38,9 @@ mixin ThemeLoader {
     }
     if (widgetOverrides == null) {
       widgetOverrides =  overrides?['Widgets'];
+    }
+    if (tokensOverrides == null) {
+      tokensOverrides = overrides?['Tokens'];
     }
     final seedColor = Utils.getColor(colorOverrides?['seed']);
     String _defaultFontFamily = appOverrides?['fontFamily']?? appOverrides?['textStyle']?['fontFamily'] ?? 'Inter';
@@ -174,6 +179,7 @@ mixin ThemeLoader {
         loadingScreenIndicatorColor: Utils.getColor(
             colorOverrides?['loadingScreenIndicatorColor']),
         transitions: Utils.getMap(overrides?['Transitions']),
+        tvFocusTheme: _parseTVFocusTheme(tokensOverrides),
       )
     ]);
   }
@@ -509,6 +515,30 @@ mixin ThemeLoader {
   ///------------  publicly available theme getters -------------
   BorderRadius getInputDefaultBorderRadius(InputVariant? variant) =>
       BorderRadius.all(Radius.circular(variant == InputVariant.box ? 8 : 0));
+
+  /// Parses TV focus theme configuration from theme tokens.
+  ///
+  /// Looks for TV configuration under Tokens.TV in the theme YAML:
+  /// ```yaml
+  /// Tokens:
+  ///   TV:
+  ///     focusColor: 0xFF00AAFF
+  ///     focusBorderWidth: 3
+  ///     focusBorderRadius: 8
+  ///     focusAnimationDuration: 150
+  /// ```
+  TVFocusTheme? _parseTVFocusTheme(YamlMap? tokens) {
+    final tvTokens = tokens?['TV'];
+    if (tvTokens == null) return null;
+
+    return TVFocusTheme(
+      focusColor: Utils.getColor(tvTokens['focusColor']),
+      focusBorderWidth: Utils.optionalDouble(tvTokens['focusBorderWidth']),
+      focusBorderRadius: Utils.optionalDouble(tvTokens['focusBorderRadius']),
+      focusAnimationDurationMs:
+          Utils.optionalInt(tvTokens['focusAnimationDuration']),
+    );
+  }
 }
 
   /// Configures image cache settings from App.imageCache in theme.yaml.
@@ -548,26 +578,36 @@ extension CheckboxThemeDataExtension on CheckboxThemeData {
 
 /// extend Theme to add our own special color parameters
 class EnsembleThemeExtension extends ThemeExtension<EnsembleThemeExtension> {
-  EnsembleThemeExtension(
-      {this.appTheme,
-        this.loadingScreenBackgroundColor,
-        this.loadingScreenIndicatorColor,
-        this.transitions});
+  EnsembleThemeExtension({
+    this.appTheme,
+    this.loadingScreenBackgroundColor,
+    this.loadingScreenIndicatorColor,
+    this.transitions,
+    this.tvFocusTheme,
+  });
 
   final AppTheme? appTheme;
   final Color? loadingScreenBackgroundColor;
   final Color? loadingScreenIndicatorColor; // should deprecate this
   final Map<String, dynamic>? transitions;
 
+  /// TV focus styling configuration parsed from theme.yaml.
+  /// Used as the highest priority source for TV focus indicator styling.
+  final TVFocusTheme? tvFocusTheme;
+
   @override
-  ThemeExtension<EnsembleThemeExtension> copyWith(
-      {Color? loadingScreenBackgroundColor,
-        Color? loadingScreenIndicatorColor}) {
+  ThemeExtension<EnsembleThemeExtension> copyWith({
+    Color? loadingScreenBackgroundColor,
+    Color? loadingScreenIndicatorColor,
+    TVFocusTheme? tvFocusTheme,
+  }) {
     return EnsembleThemeExtension(
-        loadingScreenBackgroundColor:
-        loadingScreenBackgroundColor ?? this.loadingScreenBackgroundColor,
-        loadingScreenIndicatorColor:
-        loadingScreenIndicatorColor ?? this.loadingScreenIndicatorColor);
+      loadingScreenBackgroundColor:
+          loadingScreenBackgroundColor ?? this.loadingScreenBackgroundColor,
+      loadingScreenIndicatorColor:
+          loadingScreenIndicatorColor ?? this.loadingScreenIndicatorColor,
+      tvFocusTheme: tvFocusTheme ?? this.tvFocusTheme,
+    );
   }
 
   @override
@@ -581,6 +621,8 @@ class EnsembleThemeExtension extends ThemeExtension<EnsembleThemeExtension> {
           loadingScreenBackgroundColor, other.loadingScreenBackgroundColor, t),
       loadingScreenIndicatorColor: Color.lerp(
           loadingScreenIndicatorColor, other.loadingScreenIndicatorColor, t),
+      // TV focus theme doesn't need lerping - use target value
+      tvFocusTheme: t < 0.5 ? tvFocusTheme : other.tvFocusTheme,
     );
   }
 }
