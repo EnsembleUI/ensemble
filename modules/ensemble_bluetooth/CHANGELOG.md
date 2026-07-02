@@ -1,3 +1,7 @@
+## 1.2.49
+
+ - Bump "ensemble_bluetooth" to `1.2.49`.
+
 ## 1.2.48
 
  - **FIX**(security): JSON-encode BLE data passed into global script handler. ([0bebe7ba](https://github.com/ensembleUI/ensemble/commit/0bebe7baafb1e66ff97a5652221c401695d32ff4))

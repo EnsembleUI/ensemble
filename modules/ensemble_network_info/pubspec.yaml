@@ -9,7 +9,7 @@ topics:
   - network-info
   - low-code
   - ensemble
-version: 1.2.48
+version: 1.2.49
 
 environment:
   sdk: ">=3.5.0 <4.0.0"
@@ -21,7 +21,7 @@ dependencies:
   ensemble:
     git:
       url: https://github.com/EnsembleUI/ensemble.git
-      ref: ensemble-v1.2.48
+      ref: ensemble-v1.2.49
       path: modules/ensemble
 
   network_info_plus: ^5.0.3

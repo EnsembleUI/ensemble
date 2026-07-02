@@ -1,3 +1,7 @@
+## 1.2.49
+
+ - Bump "ensemble_adobe_analytics" to `1.2.49`.
+
 ## 1.2.48
 
  - **REFACTOR**(adobe_analytics): streamline initialization and remove redundant checks. ([5714a3fc](https://github.com/ensembleUI/ensemble/commit/5714a3fc1820bb7522f3f08183d46dc727c300df))

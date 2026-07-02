@@ -1,3 +1,7 @@
+## 1.2.49
+
+ - Bump "ensemble_stripe" to `1.2.49`.
+
 ## 1.2.48
 
  - **REFACTOR**(stripe): rename onComplete to onSuccess in ShowPaymentSheetAction. ([deddd07c](https://github.com/ensembleUI/ensemble/commit/deddd07cd498d249aca5b15f33319b981adace47))
