@@ -80,6 +80,8 @@ void main() {
         expect(cacheJson['assets']['logo.png']['hash'], hash);
         expect(cacheJson['assets']['logo.png']['cache']['downloadedAt'],
             isA<int>());
+        expect(
+            cacheJson['assets']['logo.png']['cache']['lastUsedAt'], isA<int>());
 
         final cachedFile = cache.getCachedFileIfValid(
             'https://cdn.example.com/manifests/apps/app-id/assets/logo.png');
@@ -89,6 +91,143 @@ void main() {
             'https://cdn.example.com/manifests/apps/app-id/assets/logo.png');
         expect(secondResolve?.path, files.first?.path);
         expect(requestCount, 1);
+      } finally {
+        if (tempDir.existsSync()) {
+          tempDir.deleteSync(recursive: true);
+        }
+      }
+    });
+
+    test('migrates missing last used timestamp from downloaded timestamp', () {
+      final downloadedAt = DateTime.now()
+          .subtract(const Duration(days: 7))
+          .millisecondsSinceEpoch;
+      final hash = sha256.convert(utf8.encode('legacy cache')).toString();
+      final cacheFile = CdnAssetCacheFile.fromJsonString(jsonEncode({
+        'updatedAt': 1718380800000,
+        'assets': {
+          'logo.png': {
+            'hash': hash,
+            'contentType': 'image/png',
+            'size': 42,
+            'updatedAt': 1718370000000,
+            'cache': {
+              'downloadedAt': downloadedAt,
+            },
+          },
+        },
+      }));
+
+      expect(cacheFile.cacheStates['logo.png']?.downloadedAt, downloadedAt);
+      expect(cacheFile.cacheStates['logo.png']?.lastUsedAt, downloadedAt);
+    });
+
+    test('refreshes stale last used timestamp on cache hit', () async {
+      final tempDir = await Directory.systemTemp.createTemp('cdn_asset_cache_');
+      final bytes = utf8.encode('touch cached asset');
+      final hash = sha256.convert(bytes).toString();
+      final oldLastUsedAt = DateTime.now()
+          .subtract(const Duration(days: 2))
+          .millisecondsSinceEpoch;
+      final cache = CdnAssetCache(
+        storageDirectoryProvider: () async => tempDir,
+        httpGet: (uri, {headers}) async => http.Response.bytes(bytes, 200),
+      );
+
+      try {
+        await cache.initialize(
+          appId: 'app-id',
+          baseUrl: 'https://cdn.example.com/manifests/apps',
+          headersProvider: () async => const {},
+        );
+        await cache.saveAssetManifest(_assetManifest({
+          'logo.png': {'hash': hash, 'size': bytes.length},
+        }));
+        await cache.resolve('logo.png');
+
+        final cacheJson = jsonDecode(await _cacheFile(tempDir).readAsString());
+        cacheJson['assets']['logo.png']['cache']['lastUsedAt'] = oldLastUsedAt;
+        await _cacheFile(tempDir).writeAsString(jsonEncode(cacheJson));
+
+        final reloadedCache = CdnAssetCache(
+          storageDirectoryProvider: () async => tempDir,
+          httpGet: (uri, {headers}) async => http.Response.bytes(bytes, 200),
+        );
+        await reloadedCache.initialize(
+          appId: 'app-id',
+          baseUrl: 'https://cdn.example.com/manifests/apps',
+          headersProvider: () async => const {},
+        );
+
+        expect(reloadedCache.getCachedFileIfValid('logo.png'), isNotNull);
+        await Future<void>.delayed(const Duration(milliseconds: 50));
+
+        final touchedJson =
+            jsonDecode(await _cacheFile(tempDir).readAsString());
+        expect(touchedJson['assets']['logo.png']['cache']['lastUsedAt'],
+            greaterThan(oldLastUsedAt));
+      } finally {
+        if (tempDir.existsSync()) {
+          tempDir.deleteSync(recursive: true);
+        }
+      }
+    });
+
+    test('expires unused assets without eager redownload', () async {
+      final tempDir = await Directory.systemTemp.createTemp('cdn_asset_cache_');
+      final bytes = utf8.encode('expiring cached asset');
+      final hash = sha256.convert(bytes).toString();
+      final expiredLastUsedAt = DateTime.now()
+          .subtract(const Duration(days: 31))
+          .millisecondsSinceEpoch;
+      var requestCount = 0;
+      final cache = CdnAssetCache(
+        storageDirectoryProvider: () async => tempDir,
+        httpGet: (uri, {headers}) async {
+          requestCount++;
+          return http.Response.bytes(bytes, 200);
+        },
+      );
+
+      try {
+        await cache.initialize(
+          appId: 'app-id',
+          baseUrl: 'https://cdn.example.com/manifests/apps',
+          headersProvider: () async => const {},
+        );
+        await cache.saveAssetManifest(_assetManifest({
+          'logo.png': {'hash': hash, 'size': bytes.length},
+        }));
+        final originalFile = await cache.resolve('logo.png');
+        expect(originalFile, isNotNull);
+        expect(requestCount, 1);
+
+        final cacheJson = jsonDecode(await _cacheFile(tempDir).readAsString());
+        cacheJson['assets']['logo.png']['cache']['lastUsedAt'] =
+            expiredLastUsedAt;
+        await _cacheFile(tempDir).writeAsString(jsonEncode(cacheJson));
+
+        final reloadedCache = CdnAssetCache(
+          storageDirectoryProvider: () async => tempDir,
+          httpGet: (uri, {headers}) async {
+            requestCount++;
+            return http.Response.bytes(bytes, 200);
+          },
+        );
+        await reloadedCache.initialize(
+          appId: 'app-id',
+          baseUrl: 'https://cdn.example.com/manifests/apps',
+          headersProvider: () async => const {},
+        );
+        await reloadedCache.cleanupExpiredAssets();
+
+        expect(requestCount, 1);
+        expect(await originalFile!.exists(), isFalse);
+        expect(reloadedCache.getCachedFileIfValid('logo.png'), isNull);
+
+        final redownloadedFile = await reloadedCache.resolve('logo.png');
+        expect(redownloadedFile, isNotNull);
+        expect(requestCount, 2);
       } finally {
         if (tempDir.existsSync()) {
           tempDir.deleteSync(recursive: true);
@@ -120,7 +259,6 @@ void main() {
         }));
 
         expect(cache.isEligible('logo.png'), isTrue);
-        expect(cache.isManagedSource('logo.png'), isFalse);
 
         final file = await cache.resolve('logo.png');
 
@@ -274,6 +412,75 @@ void main() {
       expect(manifest.assets['logo.png']?.updatedAt, 1718370000000);
     });
 
+    test('loads screen mappings from asset manifest', () {
+      final hash = sha256.convert(utf8.encode('screen asset')).toString();
+      final manifest = CdnAssetManifest.fromJsonString(jsonEncode({
+        'updatedAt': 1718380800000,
+        'assets': {
+          'logo.png': {
+            'hash': hash,
+            'contentType': 'image/png',
+            'size': 42,
+            'updatedAt': 1718370000000,
+            'screens': ['BLE', 'Home', 'BLE'],
+          },
+        },
+      }));
+
+      expect(manifest.assets['logo.png']?.screens, ['BLE', 'Home']);
+      expect(
+          manifest.toJson()['assets']['logo.png']['screens'], ['BLE', 'Home']);
+    });
+
+    test('returns prefetch candidates for a screen from manifest metadata',
+        () async {
+      final tempDir = await Directory.systemTemp.createTemp('cdn_asset_cache_');
+      final logoHash = sha256.convert(utf8.encode('logo')).toString();
+      final markerHash = sha256.convert(utf8.encode('marker')).toString();
+      final otherHash = sha256.convert(utf8.encode('other')).toString();
+      final cache = CdnAssetCache(
+        storageDirectoryProvider: () async => tempDir,
+        httpGet: (uri, {headers}) async => http.Response.bytes(const [], 404),
+      );
+
+      try {
+        await cache.initialize(
+          appId: 'app-id',
+          baseUrl: 'https://cdn.example.com/manifests/apps',
+          headersProvider: () async => const {},
+        );
+        await cache.saveAssetManifest(_assetManifest({
+          'logo.png': {
+            'hash': logoHash,
+            'size': 100,
+            'screens': ['BLE'],
+          },
+          'marker_pin.png': {
+            'hash': markerHash,
+            'size': 200,
+            'screens': ['Home'],
+          },
+          'other.png': {
+            'hash': otherHash,
+            'size': 300,
+            'screens': [],
+          },
+        }));
+
+        final bleAssets = cache.getPrefetchInfosForScreen('BLE');
+        final homeAssets = cache.getPrefetchInfosForScreen('Home');
+
+        expect(bleAssets.map((asset) => asset.fileName), ['logo.png']);
+        expect(bleAssets.first.size, 100);
+        expect(homeAssets.map((asset) => asset.fileName), ['marker_pin.png']);
+        expect(cache.getPrefetchInfosForScreen('Missing'), isEmpty);
+      } finally {
+        if (tempDir.existsSync()) {
+          tempDir.deleteSync(recursive: true);
+        }
+      }
+    });
+
     test('caches asset when manifest size is stale but hash matches', () async {
       final tempDir = await Directory.systemTemp.createTemp('cdn_asset_cache_');
       final bytes = utf8.encode('asset bytes with stale manifest size');
@@ -389,11 +596,17 @@ void main() {
 
         expect(await file.exists(), isTrue);
         expect(await file.readAsBytes(), updatedBytes);
+        var cacheJson = jsonDecode(await _cacheFile(tempDir).readAsString());
+        expect(cacheJson['assets']['logo.png']['cache']['lastUsedAt'], isNull);
         expect(
           cache.getCachedFileIfValid(
               'https://cdn.example.com/manifests/apps/app-id/assets/logo.png'),
           isNotNull,
         );
+        await Future<void>.delayed(const Duration(milliseconds: 50));
+        cacheJson = jsonDecode(await _cacheFile(tempDir).readAsString());
+        expect(
+            cacheJson['assets']['logo.png']['cache']['lastUsedAt'], isA<int>());
         expect(requestCount, 2);
       } finally {
         if (tempDir.existsSync()) {
@@ -413,6 +626,7 @@ String _assetManifest(Map<String, Map<String, Object>> assets) {
         'contentType': 'image/png',
         'size': value['size'],
         'updatedAt': 1718370000000,
+        if (value.containsKey('screens')) 'screens': value['screens'],
       }),
     ),
   });
