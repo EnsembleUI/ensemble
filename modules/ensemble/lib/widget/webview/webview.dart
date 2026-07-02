@@ -219,6 +219,48 @@ Map<String, String> parseYamlMap(value) {
   return result;
 }
 
+/// Default base URL for inline HTML WebViews when [htmlBaseUrl] is not set.
+const String kWebViewHtmlDefaultBaseUrl = 'https://ensemble.local/';
+
+/// Resolve the expected postMessage origin for a WebView URL or inline HTML base.
+@visibleForTesting
+String? resolvedWebViewOrigin({String? url, String? htmlBaseUrl}) {
+  if (url != null && url.isNotEmpty) {
+    return Uri.tryParse(url)?.origin;
+  }
+  final base = htmlBaseUrl?.trim();
+  return Uri.tryParse(
+    (base == null || base.isEmpty) ? kWebViewHtmlDefaultBaseUrl : base,
+  )?.origin;
+}
+
+/// Build a full HTML document for iframe `srcdoc` rendering on web.
+@visibleForTesting
+String buildIframeHtmlDocument({
+  required String html,
+  String? htmlBaseUrl,
+  String? injectedJavaScript,
+}) {
+  final base = htmlBaseUrl?.trim();
+  final resolvedBase = (base == null || base.isEmpty)
+      ? kWebViewHtmlDefaultBaseUrl
+      : base;
+  final buffer = StringBuffer()
+    ..write('<!DOCTYPE html><html><head><base href="')
+    ..write(_escapeHtmlAttribute(resolvedBase))
+    ..write('"></head><body>')
+    ..write(html);
+  final script = injectedJavaScript?.trim();
+  if (script != null && script.isNotEmpty) {
+    buffer.write('<script>$script</script>');
+  }
+  buffer.write('</body></html>');
+  return buffer.toString();
+}
+
+String _escapeHtmlAttribute(String value) =>
+    value.replaceAll('&', '&amp;').replaceAll('"', '&quot;');
+
 enum HeaderMatchType { CONTAINS, EXACT, REGEX }
 class HeaderOverrideRule {
   final String urlPattern;
