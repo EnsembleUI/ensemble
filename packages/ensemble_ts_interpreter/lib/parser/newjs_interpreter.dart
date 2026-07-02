@@ -132,6 +132,8 @@ class JSInterpreter extends RecursiveVisitor<dynamic> {
   late String code;
   late Program program;
   Map<Scope, Context> contexts = {};
+  final List<Context> _dynamicContexts = [];
+  String? _nextStatementLabel;
   @override
   defaultNode(Node node) {
     dynamic rtn;
@@ -217,6 +219,7 @@ class JSInterpreter extends RecursiveVisitor<dynamic> {
       Scope scope, Context ctx, bool inheritContexts) {
     JSInterpreter i = JSInterpreter(
         this.code, this.program, getContextForScope(this.program));
+    i._dynamicContexts.addAll(_dynamicContexts);
     if (inheritContexts) {
       contexts.keys.forEach((key) {
         i.contexts[key] = contexts[key]!;
@@ -255,6 +258,19 @@ class JSInterpreter extends RecursiveVisitor<dynamic> {
   }
 
   void addToContext(Name node, dynamic value) {
+    for (final Context candidate in _dynamicContexts.reversed) {
+      if (candidate.hasContext(node.value)) {
+        candidate.addDataContextById(node.value, value);
+        return;
+      }
+    }
+    for (final Scope s in contexts.keys.toList().reversed) {
+      final Context candidate = contexts[s]!;
+      if (candidate.hasContext(node.value)) {
+        candidate.addDataContextById(node.value, value);
+        return;
+      }
+    }
     Context ctx = getContextForScope(node.scope!);
     ctx.addDataContextById(node.value, value);
   }
@@ -290,25 +306,51 @@ class JSInterpreter extends RecursiveVisitor<dynamic> {
   }
 
   dynamic getValueFromString(String name) {
+    for (final Context ctx in _dynamicContexts.reversed) {
+      if (ctx.hasContext(name)) return ctx.getContextById(name);
+    }
+    for (final Scope s in contexts.keys.toList().reversed) {
+      if (contexts[s]!.hasContext(name))
+        return contexts[s]!.getContextById(name);
+    }
     Context ctx = getContextForScope(program);
     return ctx.getContextById(name);
   }
 
+  bool _hasName(String name) {
+    for (final Context ctx in _dynamicContexts.reversed) {
+      if (ctx.hasContext(name)) return true;
+    }
+    for (final Scope s in contexts.keys.toList().reversed) {
+      if (contexts[s]!.hasContext(name)) return true;
+    }
+    return getContextForScope(program).hasContext(name);
+  }
+
   dynamic getValue(Name node) {
-    // 1) Try the node's own scope first (captures nested function declarations).
+    // 1) Dynamic object scopes from `with` shadow lexical scopes.
+    for (final Context ctx in _dynamicContexts.reversed) {
+      if (ctx.hasContext(node.value)) {
+        return ctx.getContextById(node.value);
+      }
+    }
+
+    // 2) Try the node's own scope next (captures nested function declarations).
     if (node.scope != null) {
       final Context scopedCtx = getContextForScope(node.scope!);
-      final dynamic fromScoped = scopedCtx.getContextById(node.value);
-      if (fromScoped != null) return fromScoped;
+      if (scopedCtx.hasContext(node.value)) {
+        return scopedCtx.getContextById(node.value);
+      }
     }
 
-    // 2) Scan all known contexts (newest first) as a safety net.
+    // 3) Scan all known contexts (newest first) as a safety net.
     for (final Scope s in contexts.keys.toList().reversed) {
-      final dynamic v = contexts[s]!.getContextById(node.value);
-      if (v != null) return v;
+      if (contexts[s]!.hasContext(node.value)) {
+        return contexts[s]!.getContextById(node.value);
+      }
     }
 
-    // 3) Fallback to the resolved scope via environment tracking.
+    // 4) Fallback to the resolved scope via environment tracking.
     Scope scope = findScope(node);
     Context ctx = getContextForScope(scope);
     return ctx.getContextById(node.value);
@@ -364,6 +406,34 @@ class JSInterpreter extends RecursiveVisitor<dynamic> {
   }
 
   @override
+  visitSequence(SequenceExpression node) {
+    dynamic rtn;
+    for (final Expression expression in node.expressions) {
+      rtn = getValueFromExpression(expression);
+    }
+    return rtn;
+  }
+
+  @override
+  visitDebugger(DebuggerStatement node) {
+    return null;
+  }
+
+  @override
+  visitLabeledStatement(LabeledStatement node) {
+    final oldLabel = _nextStatementLabel;
+    _nextStatementLabel = node.label.value;
+    try {
+      return node.body.visitBy(this);
+    } on ControlFlowBreakException catch (e) {
+      if (e.label == node.label.value) return null;
+      rethrow;
+    } finally {
+      _nextStatementLabel = oldLabel;
+    }
+  }
+
+  @override
   visitConditional(ConditionalExpression node) {
     return executeConditional(node.condition, node.then, node.otherwise);
   }
@@ -384,7 +454,37 @@ class JSInterpreter extends RecursiveVisitor<dynamic> {
       throw JSException(node.line ?? -1,
           'Property of object ${node.toString()} is not supported. Only Name or LiteralExpression are supported.');
     }
-    return {'key': key, 'value': getValueFromNode(node.value)};
+    if (node.isGetter) {
+      return {
+        'key': key,
+        'descriptor': JSPropertyDescriptor(
+          get: _wrapJavascriptFunction(
+              visitFunctionNode(node.function, inheritContext: true)),
+          enumerable: true,
+          configurable: true,
+        )
+      };
+    }
+    if (node.isSetter) {
+      return {
+        'key': key,
+        'descriptor': JSPropertyDescriptor(
+          set: _wrapJavascriptFunction(
+              visitFunctionNode(node.function, inheritContext: true)),
+          enumerable: true,
+          configurable: true,
+        )
+      };
+    }
+    return {
+      'key': key,
+      'descriptor': JSPropertyDescriptor(
+        value: getValueFromNode(node.value),
+        writable: true,
+        enumerable: true,
+        configurable: true,
+      )
+    };
   }
 
   @override
@@ -392,9 +492,18 @@ class JSInterpreter extends RecursiveVisitor<dynamic> {
     Map obj = {};
     for (Property property in node.properties) {
       Map prop = visitProperty(property);
-      obj[prop['key']] = prop['value'];
+      InvokableController.defineProperty(
+          obj, prop['key'], prop['descriptor'] as JSPropertyDescriptor);
     }
     return obj;
+  }
+
+  Function _wrapJavascriptFunction(dynamic fn) {
+    if (fn is JavascriptFunction) {
+      return (List<dynamic> args, [dynamic thisArg]) =>
+          fn.callWithThis(args, thisArg);
+    }
+    return fn as Function;
   }
 
   @override
@@ -418,9 +527,7 @@ class JSInterpreter extends RecursiveVisitor<dynamic> {
         pattern = visitIndex(node.argument as IndexExpression,
             computeAsPattern: true);
       } else if (node.argument is Name || node.argument is NameExpression) {
-        // Deleting a variable name is not allowed in strict mode, but we'll return false
-        // In non-strict mode, it would delete from global scope, but we don't support that
-        return false;
+        return true;
       }
 
       if (pattern != null) {
@@ -432,6 +539,9 @@ class JSInterpreter extends RecursiveVisitor<dynamic> {
 
     dynamic val = getValueFromNode(node.argument);
     switch (node.operator) {
+      case 'void':
+        val = null;
+        break;
       case '-':
         val = (val is num) ? -val : -toNumber(val);
         break;
@@ -448,7 +558,12 @@ class JSInterpreter extends RecursiveVisitor<dynamic> {
         val = (val is int) ? ~val : ~toNumber(val).toInt();
         break;
       case 'typeof':
-        val = _jsTypeOf(val);
+        if (node.argument is NameExpression) {
+          final name = (node.argument as NameExpression).name.value;
+          val = _hasName(name) ? _jsTypeOf(val) : 'undefined';
+        } else {
+          val = _jsTypeOf(val);
+        }
         break;
       case '!':
         val = !toBoolean(val);
@@ -466,6 +581,7 @@ class JSInterpreter extends RecursiveVisitor<dynamic> {
     if (val is num) return 'number';
     if (val is String) return 'string';
     if (val is bool) return 'boolean';
+    if (val is JavascriptFunction) return 'function';
     // Add other types as necessary, like 'function' for callable objects
     return 'object';
   }
@@ -490,10 +606,51 @@ class JSInterpreter extends RecursiveVisitor<dynamic> {
     } else if (val is num) {
       return val;
     } else if (val is String) {
+      if (val.trim().isEmpty) return 0;
       return num.tryParse(val) ?? double.nan;
+    } else if (val is bool) {
+      return val ? 1 : 0;
     }
     // Add additional type conversions as necessary
     return 0;
+  }
+
+  int _toInt32(dynamic val) => toNumber(val).toInt() & 0xffffffff;
+
+  bool _strictEquals(dynamic left, dynamic right) {
+    if (left == null || right == null) return left == null && right == null;
+    if (left.runtimeType != right.runtimeType) return false;
+    if (left is num && right is num && (left.isNaN || right.isNaN)) {
+      return false;
+    }
+    return identical(left, right) || left == right;
+  }
+
+  bool _looseEquals(dynamic left, dynamic right) {
+    if (left == null && right == null) return true;
+    if (left is num && right is num && (left.isNaN || right.isNaN)) {
+      return false;
+    }
+    if (left.runtimeType == right.runtimeType) return left == right;
+    if (left is bool) return _looseEquals(toNumber(left ? 1 : 0), right);
+    if (right is bool) return _looseEquals(left, toNumber(right ? 1 : 0));
+    if (left is num && right is String) return left == toNumber(right);
+    if (left is String && right is num) return toNumber(left) == right;
+    return false;
+  }
+
+  bool _hasProperty(dynamic obj, dynamic property) =>
+      InvokableController.hasProperty(obj, property);
+
+  bool _isInstanceOf(dynamic obj, dynamic constructor) {
+    if (constructor is Invokable) {
+      if (constructor is StaticArray) return obj is List;
+      return obj is Invokable;
+    }
+    if (constructor is JavascriptFunction) {
+      return InvokableController.isPrototypeInChain(obj, constructor.prototype);
+    }
+    return false;
   }
 
   @override
@@ -574,7 +731,8 @@ class JSInterpreter extends RecursiveVisitor<dynamic> {
   @override
   visitFunctionNode(FunctionNode node, {bool? inheritContext}) {
     final List<dynamic> args = computeArguments(node.params);
-    return JavascriptFunction((List<dynamic>? _params) {
+    late JavascriptFunction fn;
+    fn = JavascriptFunction((List<dynamic>? _params, [dynamic thisArg]) {
       /*
         1. create a map, parmValueMap
         2. go through params and create a args[i]: parm[i] entry in the map
@@ -590,6 +748,8 @@ class JSInterpreter extends RecursiveVisitor<dynamic> {
           ctx[node.params[i].value] = i < params.length ? params[i] : null;
         }
       }
+      ctx['arguments'] = _buildArgumentsObject(params, fn);
+      ctx['this'] = thisArg ?? getContextForScope(program).getContextMap();
       Context context = SimpleContext(ctx);
       // Inherit parent contexts so nested functions can see outer declarations.
       JSInterpreter i = cloneForContext(node, context, inheritContext ?? true);
@@ -606,6 +766,19 @@ class JSInterpreter extends RecursiveVisitor<dynamic> {
       }
       return rtn;
     }, code.substring(node.start!, node.end));
+    return fn;
+  }
+
+  Map<dynamic, dynamic> _buildArgumentsObject(
+      List<dynamic> params, JavascriptFunction callee) {
+    final Map<dynamic, dynamic> args = {};
+    for (int i = 0; i < params.length; i++) {
+      args[i.toString()] = params[i];
+      args[i] = params[i];
+    }
+    args['length'] = params.length;
+    args['callee'] = callee;
+    return args;
   }
 
   @override
@@ -616,7 +789,7 @@ class JSInterpreter extends RecursiveVisitor<dynamic> {
   @override
   visitArrowFunctionNode(ArrowFunctionNode node) {
     final List<dynamic> args = computeArguments(node.params);
-    return JavascriptFunction((List<dynamic>? _params) {
+    return JavascriptFunction((List<dynamic>? _params, [dynamic thisArg]) {
       List<dynamic> params = _params ?? [];
       Map<String, dynamic> ctx = {};
       if (node.params != null) {
@@ -742,16 +915,16 @@ class JSInterpreter extends RecursiveVisitor<dynamic> {
       bool done = true;
       switch (node.operator) {
         case '==':
-          rtn = left == right;
+          rtn = _looseEquals(left, right);
           break;
         case '===':
-          rtn = left == right;
+          rtn = _strictEquals(left, right);
           break;
         case '!=':
-          rtn = left != right;
+          rtn = !_looseEquals(left, right);
           break;
         case '!==':
-          rtn = left != right;
+          rtn = !_strictEquals(left, right);
           break;
         case '<':
           rtn = left < right;
@@ -792,8 +965,17 @@ class JSInterpreter extends RecursiveVisitor<dynamic> {
         case '>>':
           rtn = left >> right;
           break;
+        case '>>>':
+          rtn = (_toInt32(left) & 0xffffffff) >> (toNumber(right).toInt() & 31);
+          break;
         case '&':
           rtn = left & right;
+          break;
+        case 'in':
+          rtn = _hasProperty(right, left);
+          break;
+        case 'instanceof':
+          rtn = _isInstanceOf(left, right);
           break;
         default:
           done = false;
@@ -814,25 +996,35 @@ class JSInterpreter extends RecursiveVisitor<dynamic> {
 
   @override
   visitBreak(BreakStatement node) {
-    throw ControlFlowBreakException(node.line ?? 1, '');
+    throw ControlFlowBreakException(node.line ?? 1, '', node.label?.value);
   }
 
   @override
   visitContinue(ContinueStatement node) {
-    throw ControlFlowContinueException(node.line ?? 1, '');
+    throw ControlFlowContinueException(node.line ?? 1, '', node.label?.value);
   }
 
   @override
   visitFor(ForStatement node) {
+    final String? loopLabel = _nextStatementLabel;
+    _nextStatementLabel = null;
     if (node.init != null) {
       node.init!.visitBy(this);
     }
-    while (node.condition != null && getValueFromNode(node.condition!)) {
+    while (node.condition == null ||
+        toBoolean(getValueFromNode(node.condition!))) {
       try {
         node.body.visitBy(this);
       } on ControlFlowBreakException catch (e) {
+        if (e.label == loopLabel) break;
+        if (e.label != null) rethrow;
         break;
       } on ControlFlowContinueException catch (e) {
+        if (e.label == loopLabel) {
+          // continue to update
+        } else if (e.label != null) {
+          rethrow;
+        }
         //skip as we are executing the update anyway
       }
       // Execute the update expression after each loop iteration
@@ -845,12 +1037,18 @@ class JSInterpreter extends RecursiveVisitor<dynamic> {
 
   @override
   visitWhile(WhileStatement node) {
-    while (getValueFromNode(node.condition)) {
+    final String? loopLabel = _nextStatementLabel;
+    _nextStatementLabel = null;
+    while (toBoolean(getValueFromNode(node.condition))) {
       try {
         node.body.visitBy(this);
       } on ControlFlowBreakException catch (e) {
+        if (e.label == loopLabel) break;
+        if (e.label != null) rethrow;
         break;
       } on ControlFlowContinueException catch (e) {
+        if (e.label == loopLabel) continue;
+        if (e.label != null) rethrow;
         continue;
       }
     }
@@ -858,15 +1056,21 @@ class JSInterpreter extends RecursiveVisitor<dynamic> {
 
   @override
   visitDoWhile(DoWhileStatement node) {
+    final String? loopLabel = _nextStatementLabel;
+    _nextStatementLabel = null;
     do {
       try {
         node.body.visitBy(this);
       } on ControlFlowBreakException catch (e) {
+        if (e.label == loopLabel) break;
+        if (e.label != null) rethrow;
         break;
       } on ControlFlowContinueException catch (e) {
+        if (e.label == loopLabel) continue;
+        if (e.label != null) rethrow;
         continue;
       }
-    } while (getValueFromNode(node.condition));
+    } while (toBoolean(getValueFromNode(node.condition)));
   }
 
   @override
@@ -883,18 +1087,77 @@ class JSInterpreter extends RecursiveVisitor<dynamic> {
           'left side in the for...in expression must be a name node. $node.left is not name',
           detailedError: 'Code: ${getCode(node)}');
     }
-    Map map = right;
-    for (dynamic key in map.keys) {
+    final Map map = right;
+    for (dynamic key in InvokableController.enumerableKeys(map)) {
       addToContext(left, key);
       try {
         node.body.visitBy(this);
       } on ControlFlowBreakException catch (e) {
+        if (e.label != null) rethrow;
         break;
       } on ControlFlowContinueException catch (e) {
+        if (e.label != null) rethrow;
         continue;
       }
     }
     //removeFromContext(left);
+  }
+
+  @override
+  visitSwitch(SwitchStatement node) {
+    final dynamic argument = getValueFromExpression(node.argument);
+    var matched = false;
+    var defaultIndex = -1;
+    for (var i = 0; i < node.cases.length; i++) {
+      if (node.cases[i].isDefault) {
+        defaultIndex = i;
+        continue;
+      }
+      if (_strictEquals(
+          argument, getValueFromExpression(node.cases[i].expression!))) {
+        matched = true;
+        defaultIndex = i;
+        break;
+      }
+    }
+    if (defaultIndex == -1) return null;
+    dynamic rtn;
+    for (var i = defaultIndex; i < node.cases.length; i++) {
+      if (!matched && !node.cases[i].isDefault) continue;
+      matched = true;
+      try {
+        for (final Statement stmt in node.cases[i].body) {
+          rtn = stmt.visitBy(this);
+        }
+      } on ControlFlowBreakException catch (e) {
+        if (e.label != null) rethrow;
+        return rtn;
+      }
+    }
+    return rtn;
+  }
+
+  @override
+  visitWith(WithStatement node) {
+    final dynamic obj = getValueFromExpression(node.object);
+    if (obj is! Map) {
+      throw JSException(node.line ?? 1, 'with statement requires an object');
+    }
+    final dynamicContext = <String, dynamic>{};
+    obj.forEach((key, value) {
+      dynamicContext[key.toString()] = value;
+    });
+    final context = SimpleContext(dynamicContext);
+    _dynamicContexts.add(context);
+    try {
+      final rtn = node.body.visitBy(this);
+      context.getContextMap().forEach((key, value) {
+        obj[key] = value;
+      });
+      return rtn;
+    } finally {
+      _dynamicContexts.removeLast();
+    }
   }
 
   @override
@@ -946,9 +1209,12 @@ class JSInterpreter extends RecursiveVisitor<dynamic> {
   }
 
   executeMethod(dynamic method, List<Expression> declaredArguments,
-      {String? methodName, MethodExecutor? executor}) {
+      {String? methodName, MethodExecutor? executor, dynamic thisArg}) {
     List<dynamic> arguments =
         computeArguments(declaredArguments, resolveNames: true);
+    if (method is JavascriptFunction) {
+      return method.callWithThis(arguments, thisArg);
+    }
     if (methodName != null && executor != null) {
       return executor.callMethod(methodName, arguments);
     }
@@ -968,6 +1234,49 @@ class JSInterpreter extends RecursiveVisitor<dynamic> {
     }
   }
 
+  dynamic _callAnyFunction(dynamic fn, List<dynamic> args, [dynamic thisArg]) {
+    if (fn is JavascriptFunction) {
+      return fn.callWithThis(args, thisArg);
+    }
+    if (fn is Function) {
+      return Function.apply(fn, args);
+    }
+    return Function.apply(fn, args);
+  }
+
+  JavascriptFunction _functionMethod(dynamic fn, dynamic property) {
+    switch (property) {
+      case 'call':
+        return JavascriptFunction((List<dynamic>? args, [dynamic thisArg]) {
+          final params = args ?? [];
+          final callThis = params.isNotEmpty ? params.first : null;
+          return _callAnyFunction(fn, params.skip(1).toList(), callThis);
+        }, 'function call() { [native code] }');
+      case 'apply':
+        return JavascriptFunction((List<dynamic>? args, [dynamic thisArg]) {
+          final params = args ?? [];
+          final callThis = params.isNotEmpty ? params.first : null;
+          final appliedArgs = params.length > 1 && params[1] is List
+              ? List<dynamic>.from(params[1] as List)
+              : <dynamic>[];
+          return _callAnyFunction(fn, appliedArgs, callThis);
+        }, 'function apply() { [native code] }');
+      case 'bind':
+        return JavascriptFunction((List<dynamic>? args, [dynamic thisArg]) {
+          final params = args ?? [];
+          final boundThis = params.isNotEmpty ? params.first : null;
+          final boundArgs = params.skip(1).toList();
+          return JavascriptFunction((List<dynamic>? callArgs, [dynamic _]) {
+            return _callAnyFunction(
+                fn, [...boundArgs, ...(callArgs ?? [])], boundThis);
+          }, 'function bound() { [native code] }');
+        }, 'function bind() { [native code] }');
+      default:
+        throw InvalidPropertyException(
+            'Function does not have a gettable property named $property');
+    }
+  }
+
   @override
   visitCall(CallExpression node) {
     dynamic val;
@@ -981,6 +1290,18 @@ class JSInterpreter extends RecursiveVisitor<dynamic> {
             throw JSException(node.line ?? -1,
                 'Cannot instantiate object of class ${(node.callee as NameExpression).name} No definition found for class in code ${getCode(node)}.',
                 recovery: 'Check your syntax and try again.');
+          }
+          if (_class is JavascriptFunction) {
+            final Map<String, dynamic> instance = {};
+            InvokableController.setPrototype(instance, _class.prototype);
+            final dynamic constructed = _class.callWithThis(
+                computeArguments(node.arguments, resolveNames: true), instance);
+            val = constructed is Map ||
+                    constructed is Invokable ||
+                    constructed is List
+                ? constructed
+                : instance;
+            return val;
           }
           if (!(_class is Invokable)) {
             throw JSException(node.line ?? -1,
@@ -1001,7 +1322,12 @@ class JSInterpreter extends RecursiveVisitor<dynamic> {
                 recovery: 'Check your syntax and try again.');
           }
         }
-        val = executeMethod(method, node.arguments);
+        val = executeMethod(method, node.arguments,
+            thisArg: getContextForScope(program).getContextMap());
+      } else if (node.callee is FunctionExpression) {
+        method = visitFunctionExpression(node.callee as FunctionExpression);
+        val = executeMethod(method, node.arguments,
+            thisArg: getContextForScope(program).getContextMap());
       } else if (node.callee is MemberExpression ||
           node.callee is IndexExpression) {
         ObjectPattern? pattern;
@@ -1014,15 +1340,31 @@ class JSInterpreter extends RecursiveVisitor<dynamic> {
           if (pattern!.obj is MethodExecutor) {
             methodExecutor = pattern!.obj as MethodExecutor;
             methodName = pattern.property;
+          } else if ((pattern.obj is JavascriptFunction ||
+                  pattern.obj is Function) &&
+              (pattern.property == 'call' ||
+                  pattern.property == 'apply' ||
+                  pattern.property == 'bind')) {
+            method = _functionMethod(pattern.obj, pattern.property);
           } else {
             method = InvokableController.methods(pattern.obj)[pattern.property];
           }
-          method = InvokableController.methods(pattern!.obj)[pattern.property];
+          method ??=
+              InvokableController.methods(pattern!.obj)[pattern.property];
+          method ??=
+              InvokableController.getProperty(pattern.obj, pattern.property);
         } else if (node.callee is IndexExpression) {
           pattern = visitIndex(node.callee as IndexExpression,
               computeAsPattern: true);
-          method =
-              InvokableController.getProperty(pattern!.obj, pattern.property);
+          if ((pattern!.obj is JavascriptFunction || pattern.obj is Function) &&
+              (pattern.property == 'call' ||
+                  pattern.property == 'apply' ||
+                  pattern.property == 'bind')) {
+            method = _functionMethod(pattern.obj, pattern.property);
+          } else {
+            method =
+                InvokableController.getProperty(pattern.obj, pattern.property);
+          }
           //old: method = pattern!.obj.getProperty(pattern.property);
         }
         if (method == null) {
@@ -1037,7 +1379,9 @@ class JSInterpreter extends RecursiveVisitor<dynamic> {
         }
         try {
           val = executeMethod(method, node.arguments,
-              methodName: methodName, executor: methodExecutor);
+              methodName: methodName,
+              executor: methodExecutor,
+              thisArg: pattern?.obj);
         } on JSException catch (e) {
           rethrow;
         } catch (e) {
@@ -1232,6 +1576,15 @@ class JSInterpreter extends RecursiveVisitor<dynamic> {
       throw InvalidPropertyException(
           '${getCode(object)} is undefined. Check your syntax.');
     }
+    if (obj is JavascriptFunction && property == 'prototype') {
+      return computeAsPattern ? ObjectPattern(obj, property) : obj.prototype;
+    }
+    if ((obj is JavascriptFunction || obj is Function) &&
+        (property == 'call' || property == 'apply' || property == 'bind')) {
+      return computeAsPattern
+          ? ObjectPattern(obj, property)
+          : _functionMethod(obj, property);
+    }
     if (computeAsPattern) {
       val = ObjectPattern(obj, property);
     } else {
@@ -1359,11 +1712,15 @@ class ControlFlowReturnException extends JSException {
 }
 
 class ControlFlowBreakException extends JSException {
-  ControlFlowBreakException(int line, String message) : super(line, message);
+  final String? label;
+  ControlFlowBreakException(int line, String message, [this.label])
+      : super(line, message);
 }
 
 class ControlFlowContinueException extends JSException {
-  ControlFlowContinueException(int line, String message) : super(line, message);
+  final String? label;
+  ControlFlowContinueException(int line, String message, [this.label])
+      : super(line, message);
 }
 
 class ObjectPattern {
@@ -1372,20 +1729,25 @@ class ObjectPattern {
   ObjectPattern(this.obj, this.property);
 }
 
-typedef OnCall = dynamic Function(List arguments);
+typedef OnCall = dynamic Function(List arguments, [dynamic thisArg]);
 
 class JavascriptFunction {
-  JavascriptFunction(this._onCall, this.functionCode);
+  JavascriptFunction(this._onCall, this.functionCode)
+      : prototype = <String, dynamic>{};
 
   final OnCall _onCall;
   final String functionCode;
+  final Map<String, dynamic> prototype;
+
+  dynamic callWithThis(List arguments, [dynamic thisArg]) =>
+      _onCall(arguments, thisArg);
 
   noSuchMethod(Invocation invocation) {
     if (!invocation.isMethod || invocation.namedArguments.isNotEmpty)
       super.noSuchMethod(invocation);
     final arguments = invocation.positionalArguments;
     if (arguments.length > 0) {
-      return _onCall(arguments[0]);
+      return _onCall(arguments[0] is List ? arguments[0] : arguments);
     } else {
       return _onCall(arguments);
     }

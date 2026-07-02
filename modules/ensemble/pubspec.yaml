@@ -67,7 +67,7 @@ dependencies:
 
   ensemble_icons: ^1.0.1
 
-  ensemble_ts_interpreter: ^1.0.7
+  ensemble_ts_interpreter: ^1.2.0
 
   event_bus: ^2.0.0
   flutter_layout_grid: ^2.0.3
