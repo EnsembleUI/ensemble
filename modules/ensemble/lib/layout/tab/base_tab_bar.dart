@@ -137,7 +137,7 @@ abstract class BaseTabBarState extends EWidgetState<BaseTabBar>
     Widget tabBar = AnimatedBuilder(
       animation: tabController,
       builder: (context, child) {
-        return SingleChildScrollView(
+        Widget tabRow = SingleChildScrollView(
           scrollDirection: Axis.horizontal,
           child: Row(
             mainAxisSize: MainAxisSize.min,
@@ -167,6 +167,16 @@ abstract class BaseTabBarState extends EWidgetState<BaseTabBar>
             }),
           ),
         );
+
+        // Apply tabBarPadding to the tabs row only (not content area)
+        if (widget.controller.tabBarPadding != null) {
+          tabRow = Padding(
+            padding: widget.controller.tabBarPadding!,
+            child: tabRow,
+          );
+        }
+
+        return tabRow;
       },
     );
 

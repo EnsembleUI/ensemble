@@ -52,6 +52,8 @@ class ScrollableTabBar extends BaseTabBar {
       'margin': (margin) => _controller.margin = Utils.optionalInsets(margin),
       'tabPadding': (padding) =>
           _controller.tabPadding = Utils.optionalInsets(padding),
+      'tabBarPadding': (padding) =>
+          _controller.tabBarPadding = Utils.optionalInsets(padding),
       'tabFontSize': (fontSize) =>
           _controller.tabFontSize = Utils.optionalInt(fontSize),
       'tabFontWeight': (fontWeight) =>

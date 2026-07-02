@@ -14,6 +14,7 @@ class TabBarController extends BoxController {
   String? indicatorSize;
   String? tabType;
   EdgeInsets? tabPadding;
+  EdgeInsets? tabBarPadding; // Padding around the entire tab bar row (not content)
   int? tabFontSize;
   FontWeight? tabFontWeight;
   Color? tabBackgroundColor;
