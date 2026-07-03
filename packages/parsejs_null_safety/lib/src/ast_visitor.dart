@@ -30,19 +30,28 @@ abstract class Visitor<T> {
   T visitDoWhile(DoWhileStatement node);
   T visitFor(ForStatement node);
   T visitForIn(ForInStatement node);
+  T visitForOf(ForOfStatement node);
   T visitFunctionDeclaration(FunctionDeclaration node);
   T visitArrowFunctionNode(ArrowFunctionNode node);
   T visitVariableDeclaration(VariableDeclaration node);
   T visitVariableDeclarator(VariableDeclarator node);
+  T visitDefaultParameter(DefaultParameter node);
+  T visitRestParameter(RestParameter node);
+  T visitObjectPattern(ObjectPattern node);
+  T visitArrayPattern(ArrayPattern node);
   T visitDebugger(DebuggerStatement node);
 
   T visitThis(ThisExpression node);
   T visitArray(ArrayExpression node);
+  T visitSpread(SpreadExpression node);
+  T visitTemplateLiteral(TemplateLiteral node);
+  T visitTaggedTemplate(TaggedTemplateExpression node);
   T visitObject(ObjectExpression node);
   T visitProperty(Property node);
   T visitFunctionExpression(FunctionExpression node);
   T visitSequence(SequenceExpression node);
   T visitUnary(UnaryExpression node);
+  T visitAwait(AwaitExpression node);
   T visitBinary(BinaryExpression node);
   T visitAssignment(AssignmentExpression node);
   T visitUpdateExpression(UpdateExpression node);
@@ -87,19 +96,28 @@ class BaseVisitor<T> implements Visitor<T?> {
   T? visitDoWhile(DoWhileStatement node) => defaultNode(node);
   T? visitFor(ForStatement node) => defaultNode(node);
   T? visitForIn(ForInStatement node) => defaultNode(node);
+  T? visitForOf(ForOfStatement node) => defaultNode(node);
   T? visitFunctionDeclaration(FunctionDeclaration node) => defaultNode(node);
   T? visitVariableDeclaration(VariableDeclaration node) => defaultNode(node);
   T? visitVariableDeclarator(VariableDeclarator node) => defaultNode(node);
+  T? visitDefaultParameter(DefaultParameter node) => defaultNode(node);
+  T? visitRestParameter(RestParameter node) => defaultNode(node);
+  T? visitObjectPattern(ObjectPattern node) => defaultNode(node);
+  T? visitArrayPattern(ArrayPattern node) => defaultNode(node);
   T? visitDebugger(DebuggerStatement node) => defaultNode(node);
 
   T? visitThis(ThisExpression node) => defaultNode(node);
   T? visitArray(ArrayExpression node) => defaultNode(node);
+  T? visitSpread(SpreadExpression node) => defaultNode(node);
+  T? visitTemplateLiteral(TemplateLiteral node) => defaultNode(node);
+  T? visitTaggedTemplate(TaggedTemplateExpression node) => defaultNode(node);
   T? visitObject(ObjectExpression node) => defaultNode(node);
   T? visitProperty(Property node) => defaultNode(node);
   T? visitFunctionExpression(FunctionExpression node) => defaultNode(node);
   T? visitArrowFunctionNode(ArrowFunctionNode node) => defaultNode(node);
   T? visitSequence(SequenceExpression node) => defaultNode(node);
   T? visitUnary(UnaryExpression node) => defaultNode(node);
+  T? visitAwait(AwaitExpression node) => defaultNode(node);
   T? visitBinary(BinaryExpression node) => defaultNode(node);
   T? visitAssignment(AssignmentExpression node) => defaultNode(node);
   T? visitUpdateExpression(UpdateExpression node) => defaultNode(node);
@@ -168,19 +186,28 @@ abstract class Visitor1<T, A> {
   T visitDoWhile(DoWhileStatement node, A arg);
   T visitFor(ForStatement node, A arg);
   T visitForIn(ForInStatement node, A arg);
+  T visitForOf(ForOfStatement node, A arg);
   T visitFunctionDeclaration(FunctionDeclaration node, A arg);
   T visitArrowFunctionNode(ArrowFunctionNode node, A arg);
   T visitVariableDeclaration(VariableDeclaration node, A arg);
   T visitVariableDeclarator(VariableDeclarator node, A arg);
+  T visitDefaultParameter(DefaultParameter node, A arg);
+  T visitRestParameter(RestParameter node, A arg);
+  T visitObjectPattern(ObjectPattern node, A arg);
+  T visitArrayPattern(ArrayPattern node, A arg);
   T visitDebugger(DebuggerStatement node, A arg);
 
   T visitThis(ThisExpression node, A arg);
   T visitArray(ArrayExpression node, A arg);
+  T visitSpread(SpreadExpression node, A arg);
+  T visitTemplateLiteral(TemplateLiteral node, A arg);
+  T visitTaggedTemplate(TaggedTemplateExpression node, A arg);
   T visitObject(ObjectExpression node, A arg);
   T visitProperty(Property node, A arg);
   T visitFunctionExpression(FunctionExpression node, A arg);
   T visitSequence(SequenceExpression node, A arg);
   T visitUnary(UnaryExpression node, A arg);
+  T visitAwait(AwaitExpression node, A arg);
   T visitBinary(BinaryExpression node, A arg);
   T visitAssignment(AssignmentExpression node, A arg);
   T visitUpdateExpression(UpdateExpression node, A arg);
@@ -228,6 +255,7 @@ class BaseVisitor1<T, A> implements Visitor1<T, A> {
   T visitDoWhile(DoWhileStatement node, A arg) => defaultNode(node, arg);
   T visitFor(ForStatement node, A arg) => defaultNode(node, arg);
   T visitForIn(ForInStatement node, A arg) => defaultNode(node, arg);
+  T visitForOf(ForOfStatement node, A arg) => defaultNode(node, arg);
   T visitFunctionDeclaration(FunctionDeclaration node, A arg) =>
       defaultNode(node, arg);
   T visitArrowFunctionNode(ArrowFunctionNode node, A arg) =>
@@ -236,16 +264,26 @@ class BaseVisitor1<T, A> implements Visitor1<T, A> {
       defaultNode(node, arg);
   T visitVariableDeclarator(VariableDeclarator node, A arg) =>
       defaultNode(node, arg);
+  T visitDefaultParameter(DefaultParameter node, A arg) =>
+      defaultNode(node, arg);
+  T visitRestParameter(RestParameter node, A arg) => defaultNode(node, arg);
+  T visitObjectPattern(ObjectPattern node, A arg) => defaultNode(node, arg);
+  T visitArrayPattern(ArrayPattern node, A arg) => defaultNode(node, arg);
   T visitDebugger(DebuggerStatement node, A arg) => defaultNode(node, arg);
 
   T visitThis(ThisExpression node, A arg) => defaultNode(node, arg);
   T visitArray(ArrayExpression node, A arg) => defaultNode(node, arg);
+  T visitSpread(SpreadExpression node, A arg) => defaultNode(node, arg);
+  T visitTemplateLiteral(TemplateLiteral node, A arg) => defaultNode(node, arg);
+  T visitTaggedTemplate(TaggedTemplateExpression node, A arg) =>
+      defaultNode(node, arg);
   T visitObject(ObjectExpression node, A arg) => defaultNode(node, arg);
   T visitProperty(Property node, A arg) => defaultNode(node, arg);
   T visitFunctionExpression(FunctionExpression node, A arg) =>
       defaultNode(node, arg);
   T visitSequence(SequenceExpression node, A arg) => defaultNode(node, arg);
   T visitUnary(UnaryExpression node, A arg) => defaultNode(node, arg);
+  T visitAwait(AwaitExpression node, A arg) => defaultNode(node, arg);
   T visitBinary(BinaryExpression node, A arg) => defaultNode(node, arg);
   T visitAssignment(AssignmentExpression node, A arg) => defaultNode(node, arg);
   T visitUpdateExpression(UpdateExpression node, A arg) =>

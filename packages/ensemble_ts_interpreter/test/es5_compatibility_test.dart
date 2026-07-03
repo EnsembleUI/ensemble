@@ -857,18 +857,14 @@ void main() {
       skip: 'Direct eval scope semantics are not supported yet.',
     );
 
-    test(
-      'ES6 declarations remain outside the ES5 compatibility contract',
-      () {
-        final context = <String, dynamic>{};
-        evalJs('''
-          let x = 1;
-          const y = 2;
-          var result = x + y;
-        ''', context);
-        expect(context['result'], 3);
-      },
-      skip: 'let/const/block scoping are part of the future ES6+ track.',
-    );
+    test('ES6+ declarations work as supported conveniences', () {
+      final context = <String, dynamic>{};
+      evalJs('''
+        let x = 1;
+        const y = 2;
+        var result = x + y;
+      ''', context);
+      expect(context['result'], 3);
+    });
   });
 }

@@ -107,6 +107,91 @@ void main() {
       expect(ast.body.length, equals(3));
     });
 
+    test('should parse ES6 syntax', () {
+      const code = r'''
+        let x = 1;
+        const y = `value ${x}`;
+        function collect(prefix = 'x', ...items) {
+          for (let item of items) {
+            prefix = prefix + item;
+          }
+          return [prefix, ...items];
+        }
+        var arrow = (value = 1, ...rest) => `${value}:${rest.length}`;
+        var single = value => value * 2;
+        const { name, address: { city } } = person;
+        const [first, , third, ...rest] = values;
+        const user = { name, [key]: value, add(a, b) { return a + b; } };
+        async function load() { return await Promise.resolve(1); }
+        const loadArrow = async value => await value;
+        const names = users.map(({ name }) => name);
+        [a, b] = [b, a];
+        const copied = { ...user, city: 'Lahore' };
+        const price = currency`Price: ${amount}`;
+        const { label = 'Guest', ...rest } = user;
+        const [first = 1] = values;
+        for (const [key, value] of Object.entries(copied)) {}
+      ''';
+      final ast = parsejs(code);
+
+      expect(ast, isNotNull);
+      expect(ast.body.length, equals(17));
+      expect((ast.body.first as VariableDeclaration).kind, equals('let'));
+      expect((ast.body[1] as VariableDeclaration).kind, equals('const'));
+    });
+
+    test('should parse tagged template expressions', () {
+      const code = r'''
+        var result = currency`Price: ${amount}`;
+      ''';
+      final ast = parsejs(code);
+
+      final declaration = ast.body.single as VariableDeclaration;
+      expect(declaration.declarations.single.init,
+          isA<TaggedTemplateExpression>());
+    });
+
+    test('arrow expression body stops before call argument comma', () {
+      const code = '''
+        numbers.reduce((total, value) => total + value, 0);
+      ''';
+      final ast = parsejs(code);
+
+      final statement = ast.body.single as ExpressionStatement;
+      final call = statement.expression as CallExpression;
+      expect(call.arguments.length, equals(2));
+      final callback = call.arguments.first as FunctionExpression;
+      final block = callback.function.body as BlockStatement;
+      final returnStatement = block.body.single as ReturnStatement;
+      expect(returnStatement.argument, isA<BinaryExpression>());
+    });
+
+    test('should parse optional chaining and nullish coalescing', () {
+      const code = '''
+        var value = user?.profile?.name ?? "Guest";
+        var first = items?.[0];
+        var result = handler?.(value);
+      ''';
+      final ast = parsejs(code);
+
+      expect(ast.body.length, equals(3));
+      final valueDecl = ast.body.first as VariableDeclaration;
+      final coalesce = valueDecl.declarations.single.init as BinaryExpression;
+      expect(coalesce.operator, equals('??'));
+      final nameAccess = coalesce.left as MemberExpression;
+      expect(nameAccess.optional, isTrue);
+      final profileAccess = nameAccess.object as MemberExpression;
+      expect(profileAccess.optional, isTrue);
+
+      final firstDecl = ast.body[1] as VariableDeclaration;
+      final indexAccess = firstDecl.declarations.single.init as IndexExpression;
+      expect(indexAccess.optional, isTrue);
+
+      final resultDecl = ast.body[2] as VariableDeclaration;
+      final call = resultDecl.declarations.single.init as CallExpression;
+      expect(call.optional, isTrue);
+    });
+
     test('should parse function expressions', () {
       const code = '''
         var add = function(a, b) {

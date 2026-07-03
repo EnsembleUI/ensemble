@@ -47,6 +47,18 @@ class CodeError extends EnsembleError {
     error =
         'Line: $line in YAML and Line: ${exception.line} within the code block. Error Message: $error';
   }
+
+  @override
+  String toString() {
+    final buffer = StringBuffer(error);
+    if (detailedError != null && detailedError!.trim().isNotEmpty) {
+      buffer.write('\n\nDetails:\n${detailedError!.trim()}');
+    }
+    if (recovery != null && recovery!.trim().isNotEmpty) {
+      buffer.write('\n\nRecovery:\n${recovery!.trim()}');
+    }
+    return buffer.toString();
+  }
 }
 
 class RuntimeError extends EnsembleError {

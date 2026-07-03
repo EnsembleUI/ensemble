@@ -37,7 +37,8 @@ class Ast2Json extends Visitor<Object?> {
         'body': visit(node.body),
         'rest': null,
         'generator': false,
-        'expression': false
+        'expression': false,
+        'async': node.isAsync
       };
 
   visitProgram(Program node) => {'type': 'Program', 'body': list(node.body)};
@@ -139,6 +140,14 @@ class Ast2Json extends Visitor<Object?> {
         'each': false
       };
 
+  visitForOf(ForOfStatement node) => {
+        'type': 'ForOfStatement',
+        'left': visit(node.left),
+        'right': visit(node.right),
+        'body': visit(node.body),
+        'await': false
+      };
+
   visitFunctionDeclaration(FunctionDeclaration node) => {
         'type': 'FunctionDeclaration',
         'id': visit(node.function.name),
@@ -147,13 +156,14 @@ class Ast2Json extends Visitor<Object?> {
         'body': visit(node.function.body),
         'rest': null,
         'generator': false,
-        'expression': false
+        'expression': false,
+        'async': node.function.isAsync
       };
 
   visitVariableDeclaration(VariableDeclaration node) => {
         'type': 'VariableDeclaration',
         'declarations': list(node.declarations),
-        'kind': 'var'
+        'kind': node.kind
       };
 
   visitVariableDeclarator(VariableDeclarator node) => {
@@ -162,12 +172,47 @@ class Ast2Json extends Visitor<Object?> {
         'init': visit(node.init)
       };
 
+  visitDefaultParameter(DefaultParameter node) => {
+        'type': 'AssignmentPattern',
+        'left': visit(node.name),
+        'right': visit(node.defaultValue)
+      };
+
+  visitRestParameter(RestParameter node) =>
+      {'type': 'RestElement', 'argument': visit(node.name)};
+
+  visitObjectPattern(ObjectPattern node) =>
+      {'type': 'ObjectPattern', 'properties': list(node.properties)};
+
+  visitArrayPattern(ArrayPattern node) =>
+      {'type': 'ArrayPattern', 'elements': list(node.elements)};
+
   visitDebugger(DebuggerStatement node) => {'type': 'DebuggerStatement'};
 
   visitThis(ThisExpression node) => {'type': 'ThisExpression'};
 
   visitArray(ArrayExpression node) =>
       {'type': 'ArrayExpression', 'elements': list(node.expressions)};
+
+  visitSpread(SpreadExpression node) =>
+      {'type': 'SpreadElement', 'argument': visit(node.argument)};
+
+  visitTemplateLiteral(TemplateLiteral node) => {
+        'type': 'TemplateLiteral',
+        'quasis': node.strings
+            .map((value) => {
+                  'type': 'TemplateElement',
+                  'value': {'raw': value, 'cooked': value}
+                })
+            .toList(),
+        'expressions': list(node.expressions)
+      };
+
+  visitTaggedTemplate(TaggedTemplateExpression node) => {
+        'type': 'TaggedTemplateExpression',
+        'tag': visit(node.tag),
+        'quasi': visit(node.template)
+      };
 
   visitObject(ObjectExpression node) =>
       {'type': 'ObjectExpression', 'properties': list(node.properties)};
@@ -176,7 +221,13 @@ class Ast2Json extends Visitor<Object?> {
         'type': 'Property',
         'key': visit(node.key),
         'value': visit(node.value),
-        'kind': node.kind
+        'kind': node.kind,
+        'computed': node.computed,
+        'method': node.method,
+        'shorthand': node.key is Name &&
+            node.value is NameExpression &&
+            (node.value as NameExpression).name.value ==
+                (node.key as Name).value
       };
 
   visitFunctionExpression(FunctionExpression node) => visit(node.function);
@@ -190,6 +241,9 @@ class Ast2Json extends Visitor<Object?> {
         'argument': visit(node.argument),
         'prefix': true
       };
+
+  visitAwait(AwaitExpression node) =>
+      {'type': 'AwaitExpression', 'argument': visit(node.argument)};
 
   visitBinary(BinaryExpression node) => {
         'type': (node.operator == '&&' || node.operator == '||')
@@ -224,7 +278,8 @@ class Ast2Json extends Visitor<Object?> {
   visitCall(CallExpression node) => {
         'type': node.isNew ? 'NewExpression' : 'CallExpression',
         'callee': visit(node.callee),
-        'arguments': list(node.arguments)
+        'arguments': list(node.arguments),
+        'optional': node.optional,
       };
 
   visitMember(MemberExpression node) => {
@@ -232,6 +287,7 @@ class Ast2Json extends Visitor<Object?> {
         'computed': false,
         'object': visit(node.object),
         'property': visit(node.property),
+        'optional': node.optional,
       };
 
   visitIndex(IndexExpression node) => {
@@ -239,13 +295,16 @@ class Ast2Json extends Visitor<Object?> {
         'computed': true,
         'object': visit(node.object),
         'property': visit(node.property),
+        'optional': node.optional,
       };
 
   visitNameExpression(NameExpression node) => visit(node.name);
 
   // Some values cannot be encoded in JSON. We simply represent these as null.
   bool isUnencodable(Object? x) =>
-      x == double.infinity || x == double.negativeInfinity || x == double.nan;
+      x == double.infinity ||
+      x == double.negativeInfinity ||
+      (x is double && x.isNaN);
 
   visitLiteral(LiteralExpression node) => <String, Object?>{
         'type': 'Literal',
@@ -257,5 +316,5 @@ class Ast2Json extends Visitor<Object?> {
       {'type': 'Literal', 'value': <String, Object>{}, 'raw': node.regexp};
 
   @override
-  Object? visitArrowFunctionNode(ArrowFunctionNode node) {}
+  Object? visitArrowFunctionNode(ArrowFunctionNode node) => null;
 }
