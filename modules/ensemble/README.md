@@ -108,6 +108,7 @@ The core runtime includes stubs and extension points for these modules so apps c
 - [Reusable Actions](doc/reusable-actions.md)
 - [Layout widgets](doc/layout-widgets.md)
 - [Runtime security and data bindings](doc/runtime-security-and-data-bindings.md)
+- [Asset cache and prefetcher](doc/asset-cache-and-prefetcher.md)
 
 ## Development
 

@@ -1,3 +1,7 @@
+## 1.2.49
+
+ - Bump "ensemble_file_manager" to `1.2.49`.
+
 ## 1.2.48
 
  - **DOCS**: document file manager module. ([6bd21d86](https://github.com/ensembleUI/ensemble/commit/6bd21d860c4d0d5c98371cefb2ce9a51d27fca3f))

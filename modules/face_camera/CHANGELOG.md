@@ -1,3 +1,7 @@
+## 1.2.49
+
+ - Bump "ensemble_face_camera" to `1.2.49`.
+
 ## 1.2.48
 
  - **FEAT**(face_camera): separate face detection from ensemble_camera into separate module. ([9857c3cc](https://github.com/ensembleUI/ensemble/commit/9857c3cc3048f2c8879feeb07d77b084181010cd))

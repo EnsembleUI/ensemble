@@ -1,3 +1,7 @@
+## 1.2.49
+
+ - Bump "ensemble_location" to `1.2.49`.
+
 ## 1.2.48
 
  - **FEAT**(maps): add draggable marker functionality. ([6da646ea](https://github.com/ensembleUI/ensemble/commit/6da646ea344a54a9434c0bcb20b3ba70e38de84b))

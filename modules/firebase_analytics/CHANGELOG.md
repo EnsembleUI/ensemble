@@ -1,3 +1,7 @@
+## 1.2.49
+
+ - Bump "ensemble_firebase_analytics" to `1.2.49`.
+
 ## 1.2.48
 
  - **FIX**: revert the name to logEvent. ([e2b4abe3](https://github.com/ensembleUI/ensemble/commit/e2b4abe3744c313dbcaeb69861518348a39dd600))

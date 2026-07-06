@@ -5,6 +5,7 @@ import 'package:ensemble/action/action_scope_util.dart';
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/bindings.dart';
 import 'package:ensemble/framework/cdn_asset_cache.dart';
+import 'package:ensemble/framework/cdn_asset_prefetcher.dart';
 import 'package:ensemble/framework/definition_providers/provider.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:encrypt/encrypt.dart' as enc;
@@ -105,7 +106,9 @@ class CdnDefinitionProvider extends DefinitionProvider {
       final cached = _artifactCache[_homeMapping];
       if (cached is YamlMap) content = cached;
     }
-    return ScreenDefinition(content ?? YamlMap());
+    final definition = content ?? YamlMap();
+    unawaited(CdnAssetPrefetcher.instance.prefetchNextScreenAssets(definition));
+    return ScreenDefinition(definition);
   }
 
   @override

@@ -1,3 +1,7 @@
+## 1.2.49
+
+ - Bump "ensemble_remote_config" to `1.2.49`.
+
 ## 1.2.48
 
  - **FEAT**(remote_config): enhance environment variable support for Remote Config. ([4e1f5dfe](https://github.com/ensembleUI/ensemble/commit/4e1f5dfe0cad4c19fe65667cc1139b022079ed67))

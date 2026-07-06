@@ -1,3 +1,7 @@
+## 1.2.49
+
+ - Bump "ensemble_auth" to `1.2.49`.
+
 ## 1.2.48
 
  - Bump "ensemble_auth" to `1.2.48`.

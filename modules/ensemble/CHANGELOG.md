@@ -1,3 +1,7 @@
+## 1.2.49
+
+ - **REFACTOR**: Remove unused imports across various files to clean up code… ([#2317](https://github.com/ensembleUI/ensemble/issues/2317)). ([e68b584c](https://github.com/ensembleUI/ensemble/commit/e68b584c5d8ac9c6ecb2e014027512481c2193dd))
+
 ## 1.2.48-beta.2
 
 ## 1.2.48-beta.1

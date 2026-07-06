@@ -19,7 +19,7 @@ platforms:
   web:
   windows:
 
-version: 1.2.48
+version: 1.2.49
 
 environment:
   sdk: ">=3.5.0 <4.0.0"

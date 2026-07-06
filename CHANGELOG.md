@@ -15,6 +15,127 @@ Packages with breaking changes:
 
 Packages with other changes:
 
+ - [`ensemble` - `v1.2.49`](#ensemble---v1249)
+ - [`ensemble_network_info` - `v1.2.49`](#ensemble_network_info---v1249)
+ - [`ensemble_stripe` - `v1.2.49`](#ensemble_stripe---v1249)
+ - [`ensemble_file_manager` - `v1.2.49`](#ensemble_file_manager---v1249)
+ - [`ensemble_chat` - `v1.2.49`](#ensemble_chat---v1249)
+ - [`ensemble_auth` - `v1.2.49`](#ensemble_auth---v1249)
+ - [`ensemble_bluetooth` - `v1.2.49`](#ensemble_bluetooth---v1249)
+ - [`ensemble_wifi` - `v1.2.49`](#ensemble_wifi---v1249)
+ - [`ensemble_face_camera` - `v1.2.49`](#ensemble_face_camera---v1249)
+ - [`ensemble_connect` - `v1.2.49`](#ensemble_connect---v1249)
+ - [`ensemble_contacts` - `v1.2.49`](#ensemble_contacts---v1249)
+ - [`ensemble_location` - `v1.2.49`](#ensemble_location---v1249)
+ - [`ensemble_camera` - `v1.2.49`](#ensemble_camera---v1249)
+ - [`ensemble_deeplink` - `v1.2.49`](#ensemble_deeplink---v1249)
+ - [`ensemble_remote_config` - `v1.2.49`](#ensemble_remote_config---v1249)
+ - [`ensemble_firebase_analytics` - `v1.2.49`](#ensemble_firebase_analytics---v1249)
+ - [`ensemble_qr_scanner` - `v1.2.49`](#ensemble_qr_scanner---v1249)
+ - [`ensemble_adobe_analytics` - `v1.2.49`](#ensemble_adobe_analytics---v1249)
+ - [`ensemble_moengage` - `v1.2.49`](#ensemble_moengage---v1249)
+ - [`ensemble_bracket` - `v1.2.49`](#ensemble_bracket---v1249)
+ - [`ensemble_test_runner` - `v1.2.49`](#ensemble_test_runner---v1249)
+
+---
+
+#### `ensemble` - `v1.2.49`
+
+ - **REFACTOR**: Remove unused imports across various files to clean up code… ([#2317](https://github.com/ensembleUI/ensemble/issues/2317)). ([e68b584c](https://github.com/ensembleUI/ensemble/commit/e68b584c5d8ac9c6ecb2e014027512481c2193dd))
+
+#### `ensemble_network_info` - `v1.2.49`
+
+ - Bump "ensemble_network_info" to `1.2.49`.
+
+#### `ensemble_stripe` - `v1.2.49`
+
+ - Bump "ensemble_stripe" to `1.2.49`.
+
+#### `ensemble_file_manager` - `v1.2.49`
+
+ - Bump "ensemble_file_manager" to `1.2.49`.
+
+#### `ensemble_chat` - `v1.2.49`
+
+ - Bump "ensemble_chat" to `1.2.49`.
+
+#### `ensemble_auth` - `v1.2.49`
+
+ - Bump "ensemble_auth" to `1.2.49`.
+
+#### `ensemble_bluetooth` - `v1.2.49`
+
+ - Bump "ensemble_bluetooth" to `1.2.49`.
+
+#### `ensemble_wifi` - `v1.2.49`
+
+ - Bump "ensemble_wifi" to `1.2.49`.
+
+#### `ensemble_face_camera` - `v1.2.49`
+
+ - Bump "ensemble_face_camera" to `1.2.49`.
+
+#### `ensemble_connect` - `v1.2.49`
+
+ - Bump "ensemble_connect" to `1.2.49`.
+
+#### `ensemble_contacts` - `v1.2.49`
+
+ - Bump "ensemble_contacts" to `1.2.49`.
+
+#### `ensemble_location` - `v1.2.49`
+
+ - Bump "ensemble_location" to `1.2.49`.
+
+#### `ensemble_camera` - `v1.2.49`
+
+ - Bump "ensemble_camera" to `1.2.49`.
+
+#### `ensemble_deeplink` - `v1.2.49`
+
+ - Bump "ensemble_deeplink" to `1.2.49`.
+
+#### `ensemble_remote_config` - `v1.2.49`
+
+ - Bump "ensemble_remote_config" to `1.2.49`.
+
+#### `ensemble_firebase_analytics` - `v1.2.49`
+
+ - Bump "ensemble_firebase_analytics" to `1.2.49`.
+
+#### `ensemble_qr_scanner` - `v1.2.49`
+
+ - Bump "ensemble_qr_scanner" to `1.2.49`.
+
+#### `ensemble_adobe_analytics` - `v1.2.49`
+
+ - Bump "ensemble_adobe_analytics" to `1.2.49`.
+
+#### `ensemble_moengage` - `v1.2.49`
+
+ - Bump "ensemble_moengage" to `1.2.49`.
+
+#### `ensemble_bracket` - `v1.2.49`
+
+ - Bump "ensemble_bracket" to `1.2.49`.
+
+#### `ensemble_test_runner` - `v1.2.49`
+
+ - Bump "ensemble_test_runner" to `1.2.49`.
+
+
+## 2026-07-02
+
+### Changes
+
+---
+
+Packages with breaking changes:
+
+ - There are no breaking changes in this release.
+
+Packages with other changes:
+
  - [`ensemble` - `v1.2.48-beta.2`](#ensemble---v1248-beta2)
  - [`ensemble_test_runner` - `v0.1.0+1`](#ensemble_test_runner---v0101)
  - [`ensemble_network_info` - `v1.2.49`](#ensemble_network_info---v1249)

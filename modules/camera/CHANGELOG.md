@@ -1,3 +1,7 @@
+## 1.2.49
+
+ - Bump "ensemble_camera" to `1.2.49`.
+
 ## 1.2.48
 
  - **REFACTOR**: update color handling in various widget files to use withValues for opacity adjustments. ([47affb3a](https://github.com/ensembleUI/ensemble/commit/47affb3a3b8e84c092c9d912b85ed8987b828e19))

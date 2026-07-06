@@ -1,3 +1,7 @@
+## 1.2.49
+
+ - Bump "ensemble_qr_scanner" to `1.2.49`.
+
 ## 1.2.48
 
  - **REFACTOR**(qr_scanner): improve scan window handling and layout for QR code scanner. ([a54f86b0](https://github.com/ensembleUI/ensemble/commit/a54f86b03c2d8255fad5dfb50c35d452be1a4e64))

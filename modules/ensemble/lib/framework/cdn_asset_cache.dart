@@ -41,12 +41,15 @@ class CdnAssetCache {
             storageDirectoryProvider ?? _defaultStorageDirectoryProvider;
 
   static final CdnAssetCache instance = CdnAssetCache();
+  static const Duration _assetExpiry = Duration(days: 30);
+  static const Duration _lastUsedWriteInterval = Duration(days: 1);
 
   final CdnAssetHttpGet _httpGet;
   final CdnAssetStorageDirectoryProvider _storageDirectoryProvider;
   final Map<String, Future<io.File?>> _inFlightDownloads = {};
   final Map<String, CdnAssetMetadata> _assets = {};
   final Map<String, CdnAssetCacheState> _cacheState = {};
+  Future<void>? _expiredAssetCleanupJob;
 
   CdnAssetHeadersProvider _headersProvider = () async => const {};
   CdnAssetManifest? _assetManifest;
@@ -58,6 +61,10 @@ class CdnAssetCache {
 
   bool get hasAssetManifest => _hasAssetManifest;
   int? get assetManifestUpdatedAt => _assetManifest?.updatedAt;
+  bool get hasActiveDownloads => _inFlightDownloads.isNotEmpty;
+
+  /// Initializes the cache for a CDN app and loads any persisted manifest and
+  /// cache state from disk.
   Future<void> initialize({
     required String appId,
     required String baseUrl,
@@ -84,17 +91,36 @@ class CdnAssetCache {
     }
   }
 
+  /// Returns whether a source can be resolved from the active asset manifest.
   bool isEligible(String source) {
     final assetKey = _assetKeyFromSource(source);
     return assetKey != null && _assets.containsKey(assetKey);
   }
 
-  bool isManagedSource(String source) {
-    final assetKey = _assetKeyFromManagedSource(source);
-    return assetKey != null && _assets.containsKey(assetKey);
+  /// Returns manifest asset names and sizes tagged for a screen, used by the
+  /// prefetcher to decide what can be warmed ahead of navigation.
+  List<({String fileName, int size})> getPrefetchInfosForScreen(
+      String screenName) {
+    final normalizedScreenName = screenName.trim();
+    if (normalizedScreenName.isEmpty) {
+      return const [];
+    }
+
+    final prefetchInfos = <({String fileName, int size})>[];
+    for (final entry in _assets.entries) {
+      final metadata = entry.value;
+      if (!metadata.screens.contains(normalizedScreenName)) continue;
+      prefetchInfos.add((fileName: entry.key, size: metadata.size));
+    }
+    return prefetchInfos;
   }
 
-  io.File? getCachedFileIfValid(String source) {
+  /// Returns the cached file for a source only when the file exists and still
+  /// matches the manifest hash, optionally recording it as user-visible usage.
+  io.File? getCachedFileIfValid(
+    String source, {
+    bool updateLastUsed = true,
+  }) {
     if (kIsWeb || !_initialized || _rootDirectory == null) {
       return null;
     }
@@ -117,6 +143,9 @@ class CdnAssetCache {
     final file = _assetFile(assetKey);
     try {
       if (file.existsSync()) {
+        if (updateLastUsed) {
+          unawaited(_touchCachedAssetIfNeeded(assetKey, state));
+        }
         return file;
       }
     } catch (_) {
@@ -125,6 +154,7 @@ class CdnAssetCache {
     return null;
   }
 
+  /// Resolves an asset-bundle file path back to a valid cached CDN asset.
   io.File? getCachedFileForBundleKey(String key) {
     if (kIsWeb || !_initialized || _rootDirectory == null) return null;
     final assetsPath = '${_assetsDirectory.path}${io.Platform.pathSeparator}';
@@ -140,7 +170,12 @@ class CdnAssetCache {
     return null;
   }
 
-  Future<io.File?> resolve(String source) {
+  /// Returns a valid cached file for a source, or downloads and stores it using
+  /// the active manifest metadata. Prefetch callers can skip usage tracking.
+  Future<io.File?> resolve(
+    String source, {
+    bool updateLastUsed = true,
+  }) {
     if (kIsWeb || !_initialized || _rootDirectory == null) {
       return Future.value(null);
     }
@@ -150,22 +185,52 @@ class CdnAssetCache {
       return Future.value(null);
     }
 
-    final cached = getCachedFileIfValid(source);
+    final cached = getCachedFileIfValid(
+      source,
+      updateLastUsed: updateLastUsed,
+    );
     if (cached != null) {
       return Future.value(cached);
     }
 
     final inFlightKey = '$assetKey:${metadata.hash}';
-    return _inFlightDownloads.putIfAbsent(
-      inFlightKey,
-      () => _resolveFile(assetKey).whenComplete(
-        () {
-          _inFlightDownloads.remove(inFlightKey);
-        },
-      ),
+    final existingDownload = _inFlightDownloads[inFlightKey];
+    if (existingDownload != null) {
+      if (!updateLastUsed) return existingDownload;
+      return existingDownload.then((file) async {
+        final state = _cacheState[assetKey];
+        if (file != null && state != null) {
+          await _touchCachedAssetIfNeeded(assetKey, state);
+        }
+        return file;
+      });
+    }
+
+    final download = _resolveFile(
+      assetKey,
+      updateLastUsed: updateLastUsed,
+    ).whenComplete(
+      () {
+        _inFlightDownloads.remove(inFlightKey);
+      },
     );
+    _inFlightDownloads[inFlightKey] = download;
+    return download;
   }
 
+  /// Waits until all currently active CDN asset downloads, including downloads
+  /// that start while waiting, have completed.
+  Future<void> waitForActiveDownloads() async {
+    while (_inFlightDownloads.isNotEmpty) {
+      final activeDownloads =
+          List<Future<io.File?>>.from(_inFlightDownloads.values);
+      await Future.wait(
+        activeDownloads.map((download) => download.catchError((_) => null)),
+      );
+    }
+  }
+
+  /// Loads the persisted asset manifest and cache state into memory.
   Future<void> loadAssetManifest() async {
     if (kIsWeb || _rootDirectory == null) return;
 
@@ -183,6 +248,7 @@ class CdnAssetCache {
       _replaceManifest(manifest);
       _hasAssetManifest = true;
       await _validateCachedAssets();
+      _scheduleExpiredAssetCleanup();
     } catch (e) {
       debugPrint('CdnAssetCache: Failed to load asset manifest: $e');
       _assets.clear();
@@ -191,6 +257,8 @@ class CdnAssetCache {
     }
   }
 
+  /// Saves a fetched asset manifest, removes stale cached assets, and refreshes
+  /// any files whose manifest hash changed.
   Future<void> saveAssetManifest(String jsonString) async {
     if (kIsWeb || _rootDirectory == null) return;
     final manifest = CdnAssetManifest.fromJsonString(jsonString);
@@ -204,8 +272,10 @@ class CdnAssetCache {
     final staleAssetKeys = await cleanupStaleAssets();
     await _validateCachedAssets();
     await _downloadAssets(staleAssetKeys);
+    _scheduleExpiredAssetCleanup();
   }
 
+  /// Clears the active asset manifest and optionally removes all cached files.
   Future<void> clearAssetManifest({bool removeCachedAssets = false}) async {
     _assets.clear();
     _assetManifest = null;
@@ -226,6 +296,8 @@ class CdnAssetCache {
     }
   }
 
+  /// Removes cached files that are no longer present in the manifest or whose
+  /// manifest hash no longer matches.
   Future<List<String>> cleanupStaleAssets() async {
     if (kIsWeb || _rootDirectory == null) return const [];
     final staleFileNames = _cacheState.entries
@@ -253,9 +325,66 @@ class CdnAssetCache {
     return staleFileNames;
   }
 
+  /// Removes cached files that have not been used within the cache expiry
+  /// window. Expired assets are downloaded again only if requested later.
+  Future<List<String>> cleanupExpiredAssets() async {
+    final activeCleanup = _expiredAssetCleanupJob;
+    if (activeCleanup != null) {
+      await activeCleanup;
+      return const [];
+    }
+    return _cleanupExpiredAssets();
+  }
+
+  Future<List<String>> _cleanupExpiredAssets() async {
+    if (kIsWeb || _rootDirectory == null) return const [];
+    final expiresBefore =
+        DateTime.now().subtract(_assetExpiry).millisecondsSinceEpoch;
+    final expiredFileNames = _cacheState.entries
+        .where((entry) =>
+            (entry.value.lastUsedAt ?? entry.value.downloadedAt) <
+            expiresBefore)
+        .map((entry) => entry.key)
+        .toList();
+
+    for (final fileName in expiredFileNames) {
+      try {
+        final file = _assetFile(fileName);
+        await _evictImageCache(file);
+        if (await file.exists()) {
+          await file.delete();
+        }
+      } catch (e) {
+        debugPrint(
+            'CdnAssetCache: Failed to delete expired asset $fileName: $e');
+      }
+      _cacheState.remove(fileName);
+    }
+
+    if (expiredFileNames.isNotEmpty) {
+      await _writeCacheFile();
+    }
+    return expiredFileNames;
+  }
+
+  void _scheduleExpiredAssetCleanup() {
+    if (kIsWeb || _rootDirectory == null || _expiredAssetCleanupJob != null) {
+      return;
+    }
+    final cleanupJob = Future<void>.delayed(Duration.zero).then((_) async {
+      await _cleanupExpiredAssets();
+    }).catchError((error) {
+      debugPrint('CdnAssetCache: Failed to cleanup expired assets: $error');
+    }).whenComplete(() {
+      _expiredAssetCleanupJob = null;
+    });
+    _expiredAssetCleanupJob = cleanupJob;
+    unawaited(cleanupJob);
+  }
+
   Future<void> _downloadAssets(List<String> assetKeys) async {
     for (final assetKey in assetKeys) {
-      await resolve(assetKey);
+      await resolve(assetKey, updateLastUsed: false);
     }
   }
 
@@ -284,7 +413,10 @@ class CdnAssetCache {
     }
   }
 
-  Future<io.File?> _resolveFile(String assetKey) async {
+  Future<io.File?> _resolveFile(
+    String assetKey, {
+    required bool updateLastUsed,
+  }) async {
     final metadata = _assets[assetKey];
     if (metadata == null) {
       return null;
@@ -295,7 +427,11 @@ class CdnAssetCache {
       return validFile;
     }
 
-    return _downloadAndStore(assetKey, metadata);
+    return _downloadAndStore(
+      assetKey,
+      metadata,
+      updateLastUsed: updateLastUsed,
+    );
   }
 
   Future<io.File?> _validateCachedFile(
@@ -331,8 +467,9 @@ class CdnAssetCache {
 
   Future<io.File?> _downloadAndStore(
     String assetKey,
-    CdnAssetMetadata metadata,
-  ) async {
+    CdnAssetMetadata metadata, {
+    required bool updateLastUsed,
+  }) async {
     final appId = _appId;
     final baseUrl = _baseUrl;
     if (appId == null || baseUrl == null) {
@@ -350,9 +487,11 @@ class CdnAssetCache {
 
       final file = _assetFile(assetKey);
       await _writeFileAtomically(file, bytes);
+      final now = DateTime.now().millisecondsSinceEpoch;
       _cacheState[assetKey] = CdnAssetCacheState(
         hash: metadata.hash,
-        downloadedAt: DateTime.now().millisecondsSinceEpoch,
+        downloadedAt: now,
+        lastUsedAt: updateLastUsed ? now : null,
       );
       await _writeCacheFile();
       return file;
@@ -417,6 +556,24 @@ class CdnAssetCache {
     }
   }
 
+  Future<void> _touchCachedAssetIfNeeded(
+    String assetKey,
+    CdnAssetCacheState state,
+  ) async {
+    final now = DateTime.now().millisecondsSinceEpoch;
+    final lastUsedAt = state.lastUsedAt;
+    final lastUsedAge = lastUsedAt != null
+        ? Duration(milliseconds: now - lastUsedAt)
+        : _lastUsedWriteInterval;
+    if (lastUsedAge < _lastUsedWriteInterval) return;
+
+    _cacheState[assetKey] = state.copyWith(lastUsedAt: now);
+    await _writeCacheFile().catchError((error) {
+      debugPrint(
+          'CdnAssetCache: Failed to update last used for $assetKey: $error');
+    });
+  }
+
   void _replaceManifest(CdnAssetManifest manifest) {
     _assetManifest = manifest;
     _assets
@@ -437,16 +594,6 @@ class CdnAssetCache {
     }
 
     return _normalizeCdnAssetKey(trimmed.split('?').first.split('#').first);
-  }
-
-  String? _assetKeyFromManagedSource(String source) {
-    final uri = Uri.tryParse(source.trim());
-    if (uri == null ||
-        !uri.hasScheme ||
-        (uri.scheme != 'http' && uri.scheme != 'https')) {
-      return null;
-    }
-    return _assetKeyFromManagedUri(uri);
   }
 
   String? _assetKeyFromManagedUri(Uri uri) {
@@ -636,12 +783,14 @@ class CdnAssetMetadata {
     required this.size,
     this.contentType,
     this.updatedAt,
+    this.screens = const [],
   });
 
   final String hash;
   final int size;
   final String? contentType;
   final int? updatedAt;
+  final List<String> screens;
   static final RegExp _sha256Pattern = RegExp(r'^[a-f0-9]{64}$');
 
   static CdnAssetMetadata? fromJson(dynamic value) {
@@ -661,6 +810,7 @@ class CdnAssetMetadata {
       size: size,
       contentType: value['contentType']?.toString(),
       updatedAt: _intFromJson(value['updatedAt']),
+      screens: _screensFromJson(value['screens']),
     );
   }
 
@@ -669,7 +819,18 @@ class CdnAssetMetadata {
         'size': size,
         if (contentType != null) 'contentType': contentType,
         if (updatedAt != null) 'updatedAt': updatedAt,
+        'screens': screens,
       };
+
+  static List<String> _screensFromJson(dynamic value) {
+    if (value is! Iterable) return const [];
+    return value
+        .map((screen) => screen?.toString().trim())
+        .whereType<String>()
+        .where((screen) => screen.isNotEmpty)
+        .toSet()
+        .toList(growable: false);
+  }
 
   static int? _intFromJson(dynamic value) {
     if (value is num) return value.toInt();
@@ -682,15 +843,31 @@ class CdnAssetCacheState {
   const CdnAssetCacheState({
     required this.hash,
     required this.downloadedAt,
+    required this.lastUsedAt,
   });
 
   /// Manifest hash used as the version/invalidation token.
   final String hash;
   final int downloadedAt;
 
+  /// Last time the asset was actually used. Null means it has only been cached,
+  /// for example by prefetch.
+  final int? lastUsedAt;
+
   Map<String, dynamic> toJson() => {
         'downloadedAt': downloadedAt,
+        'lastUsedAt': lastUsedAt,
       };
+
+  CdnAssetCacheState copyWith({
+    int? downloadedAt,
+    int? lastUsedAt,
+  }) =>
+      CdnAssetCacheState(
+        hash: hash,
+        downloadedAt: downloadedAt ?? this.downloadedAt,
+        lastUsedAt: lastUsedAt ?? this.lastUsedAt,
+      );
 
   static CdnAssetCacheState? fromJson(dynamic value, {required String hash}) {
     if (value is! Map) return null;
@@ -698,9 +875,13 @@ class CdnAssetCacheState {
     if (downloadedAt == null) {
       return null;
     }
+    final resolvedLastUsedAt = value.containsKey('lastUsedAt')
+        ? CdnAssetMetadata._intFromJson(value['lastUsedAt'])
+        : downloadedAt;
     return CdnAssetCacheState(
       hash: hash,
       downloadedAt: downloadedAt,
+      lastUsedAt: resolvedLastUsedAt,
     );
   }
 }
