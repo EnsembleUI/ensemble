@@ -3,6 +3,70 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## 2026-07-07
+
+### Changes
+
+---
+
+Packages with breaking changes:
+
+ - There are no breaking changes in this release.
+
+Packages with other changes:
+
+ - [`ensemble` - `v1.2.49-beta.1`](#ensemble---v1249-beta1)
+ - [`ensemble_test_runner` - `v1.2.50`](#ensemble_test_runner---v1250)
+ - [`ensemble_network_info` - `v1.2.50`](#ensemble_network_info---v1250)
+ - [`ensemble_stripe` - `v1.2.50`](#ensemble_stripe---v1250)
+ - [`ensemble_file_manager` - `v1.2.50`](#ensemble_file_manager---v1250)
+ - [`ensemble_chat` - `v1.2.50`](#ensemble_chat---v1250)
+ - [`ensemble_auth` - `v1.2.50`](#ensemble_auth---v1250)
+ - [`ensemble_bluetooth` - `v1.2.50`](#ensemble_bluetooth---v1250)
+ - [`ensemble_remote_config` - `v1.2.50`](#ensemble_remote_config---v1250)
+ - [`ensemble_wifi` - `v1.2.50`](#ensemble_wifi---v1250)
+ - [`ensemble_face_camera` - `v1.2.50`](#ensemble_face_camera---v1250)
+ - [`ensemble_connect` - `v1.2.50`](#ensemble_connect---v1250)
+ - [`ensemble_adobe_analytics` - `v1.2.50`](#ensemble_adobe_analytics---v1250)
+ - [`ensemble_qr_scanner` - `v1.2.50`](#ensemble_qr_scanner---v1250)
+ - [`ensemble_contacts` - `v1.2.50`](#ensemble_contacts---v1250)
+ - [`ensemble_location` - `v1.2.50`](#ensemble_location---v1250)
+ - [`ensemble_bracket` - `v1.2.50`](#ensemble_bracket---v1250)
+ - [`ensemble_camera` - `v1.2.50`](#ensemble_camera---v1250)
+ - [`ensemble_moengage` - `v1.2.50`](#ensemble_moengage---v1250)
+ - [`ensemble_deeplink` - `v1.2.50`](#ensemble_deeplink---v1250)
+ - [`ensemble_firebase_analytics` - `v1.2.50`](#ensemble_firebase_analytics---v1250)
+
+Packages with dependency updates only:
+
+> Packages listed below depend on other packages in this workspace that have had changes. Their versions have been incremented to bump the minimum dependency versions of the packages they depend upon in this project.
+
+ - `ensemble_test_runner` - `v1.2.50`
+ - `ensemble_network_info` - `v1.2.50`
+ - `ensemble_stripe` - `v1.2.50`
+ - `ensemble_file_manager` - `v1.2.50`
+ - `ensemble_chat` - `v1.2.50`
+ - `ensemble_auth` - `v1.2.50`
+ - `ensemble_bluetooth` - `v1.2.50`
+ - `ensemble_remote_config` - `v1.2.50`
+ - `ensemble_wifi` - `v1.2.50`
+ - `ensemble_face_camera` - `v1.2.50`
+ - `ensemble_connect` - `v1.2.50`
+ - `ensemble_adobe_analytics` - `v1.2.50`
+ - `ensemble_qr_scanner` - `v1.2.50`
+ - `ensemble_contacts` - `v1.2.50`
+ - `ensemble_location` - `v1.2.50`
+ - `ensemble_bracket` - `v1.2.50`
+ - `ensemble_camera` - `v1.2.50`
+ - `ensemble_moengage` - `v1.2.50`
+ - `ensemble_deeplink` - `v1.2.50`
+ - `ensemble_firebase_analytics` - `v1.2.50`
+
+---
+
+#### `ensemble` - `v1.2.49-beta.1`
+
+
 ## 2026-07-02
 
 ### Changes
