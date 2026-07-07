@@ -18,6 +18,7 @@ Comprehensive documentation for TV/D-pad navigation in the Ensemble framework, i
 10. [Pitfalls to Avoid](#10-pitfalls-to-avoid)
 11. [Testing Checklist](#11-testing-checklist)
 12. [Troubleshooting](#12-troubleshooting)
+13. [Bracket TV Implementation](#bracket-tv-implementation)
 
 ---
 
@@ -47,13 +48,13 @@ The Ensemble framework provides comprehensive TV support through:
 
 ### Core TV Framework Files
 
-| File                       | Purpose                                          |
-| -------------------------- | ------------------------------------------------ |
-| `tv_focus_provider.dart`   | Abstract interface for host app integration      |
+| File                       | Purpose                                              |
+| -------------------------- | ---------------------------------------------------- |
+| `tv_focus_provider.dart`   | Abstract interface for host app integration          |
 | `tv_focus_widget.dart`     | Built-in D-pad navigation handler with edge handlers |
-| `tv_focus_order.dart`      | Focus coordinates (row/order) and TVFocusScope   |
-| `tv_focus_theme.dart`      | Styling configuration                            |
-| `tv_scrollbar_widget.dart` | Focusable scrollbar for ListView on TV           |
+| `tv_focus_order.dart`      | Focus coordinates (row/order) and TVFocusScope       |
+| `tv_focus_theme.dart`      | Styling configuration                                |
+| `tv_scrollbar_widget.dart` | Focusable scrollbar for ListView on TV               |
 
 ### Architecture Diagram
 
@@ -168,74 +169,74 @@ tvOptions:
 
 #### Navigation Properties
 
-| Property                         | Type     | Default       | Description                                                                                                                      |
-| -------------------------------- | -------- | ------------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| **row**                          | `double` | `null`        | **Required**. Vertical position in the focus grid (0, 1, 2, ...). Items with the same row navigate horizontally with LEFT/RIGHT. |
-| **order**                        | `double` | `0`           | Horizontal position within the row (0, 1, 2, ...). Lower values = more left. Must be unique within a row.                        |
-| **isRowEntryPoint**              | `bool`   | `false`       | Marks this item as the preferred entry point when navigating INTO this row from another row.                                     |
-| **delegateHorizontalNavigation** | `bool`   | `false`       | When `true`, LEFT/RIGHT events are delegated to parent FocusScope. Use for items inside carousels.                               |
-| **lockHorizontalNavigation**     | `bool`   | `false`       | When `true`, prevents horizontal navigation from escaping row at boundaries.                                                     |
+| Property                         | Type     | Default | Description                                                                                                                      |
+| -------------------------------- | -------- | ------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| **row**                          | `double` | `null`  | **Required**. Vertical position in the focus grid (0, 1, 2, ...). Items with the same row navigate horizontally with LEFT/RIGHT. |
+| **order**                        | `double` | `0`     | Horizontal position within the row (0, 1, 2, ...). Lower values = more left. Must be unique within a row.                        |
+| **isRowEntryPoint**              | `bool`   | `false` | Marks this item as the preferred entry point when navigating INTO this row from another row.                                     |
+| **delegateHorizontalNavigation** | `bool`   | `false` | When `true`, LEFT/RIGHT events are delegated to parent FocusScope. Use for items inside carousels.                               |
+| **lockHorizontalNavigation**     | `bool`   | `false` | When `true`, prevents horizontal navigation from escaping row at boundaries.                                                     |
 
 #### Focus Indicator Styling
 
 These properties control the **focus indicator border** that appears around focused widgets.
 
-| Property                         | Type     | Default       | Description                                                                                                                      |
-| -------------------------------- | -------- | ------------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| **focusColor**                   | `Color`  | theme default | Custom color for focus indicator border. Accepts hex (0xFF00AAFF).                                                               |
-| **focusBorderWidth**             | `double` | `3.0`         | Custom border width for focus indicator (pixels).                                                                                |
-| **focusBorderRadius**            | `double` | theme default | Custom border radius for focus indicator. Use `22` for 44px circular buttons, `100` for pills.                                   |
+| Property              | Type     | Default       | Description                                                                                    |
+| --------------------- | -------- | ------------- | ---------------------------------------------------------------------------------------------- |
+| **focusColor**        | `Color`  | theme default | Custom color for focus indicator border. Accepts hex (0xFF00AAFF).                             |
+| **focusBorderWidth**  | `double` | `3.0`         | Custom border width for focus indicator (pixels).                                              |
+| **focusBorderRadius** | `double` | theme default | Custom border radius for focus indicator. Use `22` for 44px circular buttons, `100` for pills. |
 
 #### Focused State Styling
 
 These properties change the **widget's appearance** when focused (not the focus indicator, but the widget itself). When unfocused, the widget uses its normal styles.
 
-| Property                         | Type              | Default       | Description                                                                                                                      |
-| -------------------------------- | ----------------- | ------------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| **backgroundColor**              | `Color`           | `null`        | Background color when focused. Overrides widget's normal backgroundColor.                                                         |
-| **backgroundGradient**           | `Gradient`        | `null`        | Background gradient when focused. Overrides widget's normal backgroundGradient.                                                   |
-| **borderColor**                  | `Color`           | `null`        | Border color when focused (widget's own border, not the focus indicator).                                                         |
-| **borderWidth**                  | `int`             | `null`        | Border width when focused (widget's own border).                                                                                  |
-| **borderRadius**                 | `BorderRadius`    | `null`        | Border radius when focused.                                                                                                       |
-| **boxShadow**                    | `BoxShadow`       | `null`        | Box shadow when focused. Accepts shadow composite (color, offset, blur, spread).                                                 |
-| **opacity**                      | `double`          | `null`        | Opacity when focused (0.0 to 1.0). Use to fade/brighten widgets.                                                                 |
-| **elevation**                    | `int`             | `null`        | Material elevation when focused (0 to 24). Creates shadow depth.                                                                  |
-| **scale**                        | `double`          | `null`        | Scale factor when focused (e.g., 1.05 = 5% larger, 0.95 = 5% smaller).                                                           |
-| **padding**                      | `EdgeInsets`      | `null`        | Padding when focused. Overrides widget's normal padding.                                                                          |
-| **margin**                       | `EdgeInsets`      | `null`        | Margin when focused. Overrides widget's normal margin.                                                                            |
+| Property               | Type           | Default | Description                                                                      |
+| ---------------------- | -------------- | ------- | -------------------------------------------------------------------------------- |
+| **backgroundColor**    | `Color`        | `null`  | Background color when focused. Overrides widget's normal backgroundColor.        |
+| **backgroundGradient** | `Gradient`     | `null`  | Background gradient when focused. Overrides widget's normal backgroundGradient.  |
+| **borderColor**        | `Color`        | `null`  | Border color when focused (widget's own border, not the focus indicator).        |
+| **borderWidth**        | `int`          | `null`  | Border width when focused (widget's own border).                                 |
+| **borderRadius**       | `BorderRadius` | `null`  | Border radius when focused.                                                      |
+| **boxShadow**          | `BoxShadow`    | `null`  | Box shadow when focused. Accepts shadow composite (color, offset, blur, spread). |
+| **opacity**            | `double`       | `null`  | Opacity when focused (0.0 to 1.0). Use to fade/brighten widgets.                 |
+| **elevation**          | `int`          | `null`  | Material elevation when focused (0 to 24). Creates shadow depth.                 |
+| **scale**              | `double`       | `null`  | Scale factor when focused (e.g., 1.05 = 5% larger, 0.95 = 5% smaller).           |
+| **padding**            | `EdgeInsets`   | `null`  | Padding when focused. Overrides widget's normal padding.                         |
+| **margin**             | `EdgeInsets`   | `null`  | Margin when focused. Overrides widget's normal margin.                           |
 
 #### Scroll Behavior
 
-| Property                         | Type     | Default       | Description                                                                                                                      |
-| -------------------------------- | -------- | ------------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| **fixedFocusScroll**             | `bool`   | `false`       | Netflix-style scrolling where focused item stays at fixed position while content scrolls.                                        |
-| **fixedFocusOffset**             | `double` | `48.0`        | Offset from left edge where focused item stays during fixed focus scrolling.                                                     |
-| **verticalScrollPadding**        | `double` | `0.0`         | Extra padding when auto-scrolling vertically to keep focused item visible.                                                       |
-| **horizontalScrollPadding**      | `double` | `16.0`        | Horizontal padding for visibility checks during scrolling.                                                                        |
-| **scrollAnimationDuration**      | `int`    | `200`         | Duration of scroll animations in milliseconds.                                                                                    |
-| **scrollAnimationCurve**         | `String` | `easeOut`     | Animation curve: easeIn, easeOut, easeInOut, linear, decelerate, ease.                                                           |
+| Property                    | Type     | Default   | Description                                                                               |
+| --------------------------- | -------- | --------- | ----------------------------------------------------------------------------------------- |
+| **fixedFocusScroll**        | `bool`   | `false`   | Netflix-style scrolling where focused item stays at fixed position while content scrolls. |
+| **fixedFocusOffset**        | `double` | `48.0`    | Offset from left edge where focused item stays during fixed focus scrolling.              |
+| **verticalScrollPadding**   | `double` | `0.0`     | Extra padding when auto-scrolling vertically to keep focused item visible.                |
+| **horizontalScrollPadding** | `double` | `16.0`    | Horizontal padding for visibility checks during scrolling.                                |
+| **scrollAnimationDuration** | `int`    | `200`     | Duration of scroll animations in milliseconds.                                            |
+| **scrollAnimationCurve**    | `String` | `easeOut` | Animation curve: easeIn, easeOut, easeInOut, linear, decelerate, ease.                    |
 
 #### Carousel-Specific Properties
 
-| Property                         | Type     | Default       | Description                                                                                                                      |
-| -------------------------------- | -------- | ------------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| **interceptHorizontalNav**       | `bool`   | `false`       | Smart edge detection for LEFT/RIGHT navigation in carousels.                                                                     |
-| **pauseAutoplayOnFocus**         | `bool`   | `false`       | Pause carousel autoplay when any element within has focus.                                                                       |
-| **restoreFocusOnPageChange**     | `bool`   | `false`       | Restore focus after carousel slide change.                                                                                        |
+| Property                     | Type   | Default | Description                                                  |
+| ---------------------------- | ------ | ------- | ------------------------------------------------------------ |
+| **interceptHorizontalNav**   | `bool` | `false` | Smart edge detection for LEFT/RIGHT navigation in carousels. |
+| **pauseAutoplayOnFocus**     | `bool` | `false` | Pause carousel autoplay when any element within has focus.   |
+| **restoreFocusOnPageChange** | `bool` | `false` | Restore focus after carousel slide change.                   |
 
 #### ListView Scrollbar Properties
 
 These properties are set under `tvOptions.scrollbarOptions` on ListView widgets.
 
-| Property           | Type     | Default       | Description                                                                                      |
-| ------------------ | -------- | ------------- | ------------------------------------------------------------------------------------------------ |
-| **position**       | `String` | `'right'`     | Scrollbar position: `'left'` or `'right'`.                                                       |
-| **color**          | `Color`  | `0xFF666666`  | Scrollbar color when not focused.                                                                 |
-| **focusedColor**   | `Color`  | `0xFFFFFFFF`  | Scrollbar color when focused.                                                                     |
-| **width**          | `int`    | `3`           | Scrollbar width in pixels when not focused.                                                       |
-| **focusedWidth**   | `int`    | `6`           | Scrollbar width in pixels when focused (wider for visibility).                                    |
-| **radius**         | `int`    | `4`           | Border radius of scrollbar corners.                                                               |
-| **thumbHeight**    | `int`    | `40`          | Fixed height of scrollbar thumb in pixels.                                                        |
+| Property         | Type     | Default      | Description                                                    |
+| ---------------- | -------- | ------------ | -------------------------------------------------------------- |
+| **position**     | `String` | `'right'`    | Scrollbar position: `'left'` or `'right'`.                     |
+| **color**        | `Color`  | `0xFF666666` | Scrollbar color when not focused.                              |
+| **focusedColor** | `Color`  | `0xFFFFFFFF` | Scrollbar color when focused.                                  |
+| **width**        | `int`    | `3`          | Scrollbar width in pixels when not focused.                    |
+| **focusedWidth** | `int`    | `6`          | Scrollbar width in pixels when focused (wider for visibility). |
+| **radius**       | `int`    | `4`          | Border radius of scrollbar corners.                            |
+| **thumbHeight**  | `int`    | `40`         | Fixed height of scrollbar thumb in pixels.                     |
 
 ### Where to Apply tvOptions
 
@@ -556,6 +557,7 @@ The scrollbar uses **edge handlers** integrated into the TVFocusWidget grid syst
 ```
 
 **How it works:**
+
 1. User navigates through grid items using D-pad
 2. When at the rightmost item (e.g., order=1), pressing RIGHT triggers `onRightEdge`
 3. `onRightEdge` callback requests focus on the scrollbar
@@ -570,13 +572,13 @@ ListView:
         expanded: true
         tvOptions:
             scrollbarOptions:
-                position: right           # 'left' or 'right'
-                color: 0xFF666666         # Grey when not focused
-                focusedColor: 0xFFFFFFFF  # White when focused
-                width: 3                  # Thin when not focused
-                focusedWidth: 6           # Wider when focused
-                radius: 4                 # Corner radius
-                thumbHeight: 40           # Thumb size
+                position: right # 'left' or 'right'
+                color: 0xFF666666 # Grey when not focused
+                focusedColor: 0xFFFFFFFF # White when focused
+                width: 3 # Thin when not focused
+                focusedWidth: 6 # Wider when focused
+                radius: 4 # Corner radius
+                thumbHeight: 40 # Thumb size
     item-template:
         data: ${items}
         name: item
@@ -611,22 +613,23 @@ ListView:
                 children:
                     # Left column (order 0)
                     - Column:
-                        styles:
-                            tvOptions:
-                                row: ${1 + idx}
-                                order: 0
-                        onTap: ...
+                          styles:
+                              tvOptions:
+                                  row: ${1 + idx}
+                                  order: 0
+                          onTap: ...
 
                     # Right column (order 1)
                     - Column:
-                        styles:
-                            tvOptions:
-                                row: ${1 + idx}
-                                order: 1
-                        onTap: ...
+                          styles:
+                              tvOptions:
+                                  row: ${1 + idx}
+                                  order: 1
+                          onTap: ...
 ```
 
 **Navigation flow:**
+
 ```
 Item (order 0) ─RIGHT→ Item (order 1) ─RIGHT→ Scrollbar
                                               │
@@ -658,6 +661,7 @@ ListView:
 ```
 
 **Navigation flow (left position):**
+
 ```
 Scrollbar ←LEFT─ Item (order 0)
     │
@@ -666,15 +670,15 @@ Scrollbar ←LEFT─ Item (order 0)
 
 ### Scrollbar Styling Options
 
-| Property         | Default       | Description                              |
-| ---------------- | ------------- | ---------------------------------------- |
-| `position`       | `'right'`     | `'left'` or `'right'` side of ListView   |
-| `color`          | `0xFF666666`  | Track and thumb color when not focused   |
-| `focusedColor`   | `0xFFFFFFFF`  | Track and thumb color when focused       |
-| `width`          | `3`           | Width in pixels when not focused         |
-| `focusedWidth`   | `6`           | Width in pixels when focused (wider)     |
-| `radius`         | `4`           | Corner radius of scrollbar               |
-| `thumbHeight`    | `40`          | Fixed height of scrollbar thumb          |
+| Property       | Default      | Description                            |
+| -------------- | ------------ | -------------------------------------- |
+| `position`     | `'right'`    | `'left'` or `'right'` side of ListView |
+| `color`        | `0xFF666666` | Track and thumb color when not focused |
+| `focusedColor` | `0xFFFFFFFF` | Track and thumb color when focused     |
+| `width`        | `3`          | Width in pixels when not focused       |
+| `focusedWidth` | `6`          | Width in pixels when focused (wider)   |
+| `radius`       | `4`          | Corner radius of scrollbar             |
+| `thumbHeight`  | `40`         | Fixed height of scrollbar thumb        |
 
 ### Complete Example: Settings List with Scrollbar
 
@@ -697,50 +701,50 @@ View:
             children:
                 # Header
                 - Row:
-                    styles:
-                        tvOptions:
-                            row: 0
-                            order: 0
-                    onTap:
-                        navigateBack:
-                    children:
-                        - Icon:
-                            name: arrow_back
-                        - Text:
-                            text: Settings
+                      styles:
+                          tvOptions:
+                              row: 0
+                              order: 0
+                      onTap:
+                          navigateBack:
+                      children:
+                          - Icon:
+                                name: arrow_back
+                          - Text:
+                                text: Settings
 
                 # Settings list with scrollbar
                 - ListView:
-                    styles:
-                        expanded: true
-                        tvOptions:
-                            scrollbarOptions:
-                                position: right
-                                color: 0xFF444444
-                                focusedColor: 0xFF00AAFF
-                                width: 4
-                                focusedWidth: 8
-                    item-template:
-                        data: ${ensemble.storage.settings}
-                        name: setting
-                        indexId: idx
-                        template:
-                            Row:
-                                styles:
-                                    padding: 16
-                                    mainAxis: spaceBetween
-                                children:
-                                    - Text:
-                                        text: ${setting.name}
-                                    - Switch:
-                                        value: ${setting.enabled}
-                                        styles:
-                                            tvOptions:
-                                                row: ${1 + idx}
-                                                order: 0
-                                                isRowEntryPoint: ${idx == 0}
-                                        onChange: |
-                                            ensemble.storage.settings[${idx}].enabled = event.value;
+                      styles:
+                          expanded: true
+                          tvOptions:
+                              scrollbarOptions:
+                                  position: right
+                                  color: 0xFF444444
+                                  focusedColor: 0xFF00AAFF
+                                  width: 4
+                                  focusedWidth: 8
+                      item-template:
+                          data: ${ensemble.storage.settings}
+                          name: setting
+                          indexId: idx
+                          template:
+                              Row:
+                                  styles:
+                                      padding: 16
+                                      mainAxis: spaceBetween
+                                  children:
+                                      - Text:
+                                            text: ${setting.name}
+                                      - Switch:
+                                            value: ${setting.enabled}
+                                            styles:
+                                                tvOptions:
+                                                    row: ${1 + idx}
+                                                    order: 0
+                                                    isRowEntryPoint: ${idx == 0}
+                                            onChange: |
+                                                ensemble.storage.settings[${idx}].enabled = event.value;
 ```
 
 ### Key Points
@@ -931,8 +935,8 @@ MediaCard:
             order: ${index}
             # Normal widget styles above
             # Focused state styles below
-            scale: 1.05              # Grow 5% when focused
-            backgroundColor: 0xFF2A2A2A  # Lighter background
+            scale: 1.05 # Grow 5% when focused
+            backgroundColor: 0xFF2A2A2A # Lighter background
     onTap:
         navigateScreen:
             name: MediaDetails
@@ -950,10 +954,10 @@ Button:
             row: 1
             order: 0
             # Focused state
-            elevation: 8             # Add shadow depth
-            borderColor: 0xFFFFFFFF  # White border
+            elevation: 8 # Add shadow depth
+            borderColor: 0xFFFFFFFF # White border
             borderWidth: 2
-            scale: 1.02              # Slight zoom
+            scale: 1.02 # Slight zoom
 ```
 
 #### Example 3: Change Background Gradient on Focus
@@ -985,8 +989,8 @@ Card:
             row: 4
             order: ${idx}
             # Adjust spacing when focused
-            padding: 16    # More padding
-            margin: 4      # Less margin (appears to grow)
+            padding: 16 # More padding
+            margin: 4 # Less margin (appears to grow)
     onTap: ...
 ```
 
@@ -995,11 +999,11 @@ Card:
 ```yaml
 TabButton:
     styles:
-        opacity: 0.5  # Dim when not focused
+        opacity: 0.5 # Dim when not focused
         tvOptions:
             row: 0
             order: ${idx}
-            opacity: 1.0  # Full brightness when focused
+            opacity: 1.0 # Full brightness when focused
     onTap:
         executeCode:
             body: |
@@ -1047,16 +1051,19 @@ MediaCard:
 ### Focus Indicator vs Focused State
 
 **Focus Indicator** (focusColor, focusBorderWidth, focusBorderRadius):
+
 - The **border** that appears around the focused widget
 - Controlled by Ensemble's TV focus system
 - Always a simple border overlay
 
 **Focused State** (backgroundColor, scale, elevation, etc.):
+
 - Changes to the **widget itself** when focused
 - Animated transitions (150ms default)
 - Stacks with focus indicator for rich effects
 
 **Combined Example:**
+
 ```yaml
 Button:
     label: "Watch Now"
@@ -1077,6 +1084,7 @@ Button:
 ```
 
 Result when focused:
+
 1. Button grows 5% larger (scale: 1.05)
 2. Button background changes to darker blue
 3. Button gets 8px elevation shadow
@@ -1300,54 +1308,6 @@ Column:
 
 ---
 
-## 11. Testing Checklist
-
-### Navigation
-
-- [ ] All focusable elements have unique (row, order) pairs
-- [ ] D-pad UP/DOWN moves between rows correctly
-- [ ] D-pad LEFT/RIGHT moves within rows correctly
-- [ ] First item in each row has `isRowEntryPoint: true`
-- [ ] Back button is always row 0, order 0
-- [ ] Dialog focus is trapped within dialog
-
-### Focus Visual
-
-- [ ] Focus border has appropriate radius matching widget shape
-- [ ] No visual gap between focus border and widget content
-- [ ] Focus color is visible against background
-
-### Scrolling (fixedFocusScroll)
-
-- [ ] Content scrolls smoothly while focus stays fixed
-- [ ] Focus moves correctly at list boundaries
-- [ ] `fixedFocusOffset` positions the focused item appropriately
-- [ ] Scroll position resets when re-entering the row
-
-### Carousel Navigation
-
-- [ ] LEFT/RIGHT on carousel items switches slides
-- [ ] Focus is restored to new slide's button after slide change
-- [ ] Autoplay pauses when carousel item is focused
-- [ ] Autoplay resumes when focus leaves carousel
-- [ ] UP/DOWN exits carousel to adjacent rows correctly
-- [ ] `lockHorizontalNavigation` blocks escape at lane boundaries
-
-### ListView Scrollbar
-
-- [ ] Scrollbar appears on correct side (left/right based on position)
-- [ ] Scrollbar only shows on TV (not mobile/web)
-- [ ] RIGHT from rightmost item goes to scrollbar (right position)
-- [ ] LEFT from leftmost item goes to scrollbar (left position)
-- [ ] Multi-column navigation works before reaching scrollbar
-- [ ] Scrollbar visual changes when focused (color, width)
-- [ ] UP/DOWN on scrollbar scrolls content smoothly
-- [ ] LEFT from right scrollbar returns to content
-- [ ] RIGHT from left scrollbar returns to content
-- [ ] Scrollbar thumb position syncs with scroll position
-
----
-
 ## 12. Troubleshooting
 
 ### Focus not working on Ensemble widgets
@@ -1420,11 +1380,60 @@ Column:
 
 ---
 
+## Bracket TV Implementation
+
+The `Bracket` widget (tournament brackets) has built-in TV D-pad navigation:
+
+- **Tabs** (round tabs) - Navigate with LEFT/RIGHT between tabs
+- **Matches** - Navigate with UP/DOWN within a round, LEFT/RIGHT between rounds
+- **Focus Row Preservation** - When moving between rounds, focus stays on the same relative row (clamped to available matches)
+
+### Bracket tvOptions
+
+```yaml
+Bracket:
+    styles:
+        tvOptions:
+            row: 1 # Tab row, matches start at row+1
+        tabStyles:
+            focusBorderRadius: 12 # Focus indicator radius for tabs
+            # focusColor and focusBorderWidth follow the standard priority chain
+```
+
+### Match Card tvOptions
+
+Match cards inside brackets require `row: 0` for box_wrapper focus styling (actual row is set dynamically by bracket.dart):
+
+```yaml
+MatchCard:
+    body:
+        Column:
+            styles:
+                tvOptions:
+                    row: 0 # Required for focus styling (value overridden by bracket)
+                    backgroundColor: 0xff303030 # Background when focused
+```
+
+### Focus Styling Priority (Bracket Tabs)
+
+Same as other widgets:
+
+1. `tabStyles.focusColor` / `focusBorderWidth` / `focusBorderRadius`
+2. Theme (`EnsembleThemeExtension.tvFocusTheme`)
+3. Provider (`TVFocusProviderScope`)
+4. `tabStyles.borderColor` / `borderWidth` / `borderRadius`
+5. Defaults (focusBorderWidth: 2.0, focusBorderRadius: 8.0)
+
+For complete documentation, see: [modules/bracket/README.md](../modules/bracket/README.md)
+
+---
+
 ## Related Documentation
 
 - [TV_FOCUS_NAVIGATION_RULES.md](TV_FOCUS_NAVIGATION_RULES.md) - Quick reference patterns and rules for TV navigation YAML
 - [TV_IMPLEMENTATION_HISTORY.md](TV_IMPLEMENTATION_HISTORY.md) - Technical implementation details and commit history
 - [ENSEMBLE_FRAMEWORK_REFERENCE.md](ENSEMBLE_FRAMEWORK_REFERENCE.md) - General Ensemble framework reference
+- [modules/bracket/README.md](../modules/bracket/README.md) - Bracket widget documentation with TV support
 
 ---
 
