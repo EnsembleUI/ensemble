@@ -33,8 +33,6 @@ enum TestStepArgKind {
   mockApiException,
   mockTimeout,
   apiName,
-  apiRequest,
-  expectApiHeader,
   setState,
   expectState,
   storageKey,
@@ -121,7 +119,10 @@ extension TestStepArgKindSchema on TestStepArgKind {
         );
       case TestStepArgKind.setSlider:
         return _object(
-          properties: {'id': _string, 'value': {'type': 'number'}},
+          properties: {
+            'id': _string,
+            'value': {'type': 'number'}
+          },
           required: ['id'],
         );
       case TestStepArgKind.chooseValue:
@@ -258,27 +259,6 @@ extension TestStepArgKindSchema on TestStepArgKind {
         return _object(
           properties: {'name': _string, 'times': _integer},
           required: ['name'],
-        );
-      case TestStepArgKind.apiRequest:
-        return _object(
-          properties: {
-            'name': _string,
-            'body': _any,
-            'query': _any,
-            'headers': _any,
-            'times': _integer,
-          },
-          required: ['name'],
-        );
-      case TestStepArgKind.expectApiHeader:
-        return _object(
-          properties: {
-            'name': _string,
-            'header': _string,
-            'equals': _any,
-            'times': _integer,
-          },
-          required: ['name', 'header', 'equals'],
         );
       case TestStepArgKind.setState:
         return _object(

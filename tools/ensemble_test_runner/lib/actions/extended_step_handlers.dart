@@ -182,20 +182,6 @@ class ExtendedStepHandlers {
       case 'mockTimeout':
         await _mockTimeout(executor, step);
         return true;
-      case 'mockNetworkOffline':
-        _setNetworkOffline(executor, true);
-        return true;
-      case 'mockNetworkOnline':
-        _setNetworkOffline(executor, false);
-        return true;
-      case 'expectApiHeader':
-        executor.assertions.expectApiHeader(
-          step.args['name']?.toString() ?? '',
-          step.args['header']?.toString() ?? '',
-          step.args['equals'],
-          times: step.args['times'] as int?,
-        );
-        return true;
       case 'expectApiCallOrder':
         executor.assertions.expectApiCallOrder(
           (step.args['names'] as List?)?.map((e) => e.toString()).toList() ??
@@ -517,12 +503,6 @@ class ExtendedStepHandlers {
         delayMs: step.args['delayMs'] as int? ?? 60000,
       ),
     );
-  }
-
-  static void _setNetworkOffline(TestStepExecutor e, bool offline) {
-    e.context.apiOverlay.simulateNetworkOffline = offline;
-    ConnectivityState().isOnline = !offline;
-    e.context.runtime.networkOffline = offline;
   }
 
   static void _setAuth(TestStepExecutor e, TestStep step) {

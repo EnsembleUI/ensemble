@@ -87,5 +87,22 @@ void main() {
       expect(output, contains('>> 2. tap(submit)'));
       expect(output, contains('error: not found'));
     });
+
+    test('prints step logs', () {
+      final output = TestReporter().formatSummary(
+        EnsembleTestRunResult(
+          results: [
+            EnsembleSingleTestResult.passed(
+              testId: 'api_log_test',
+              durationMs: 42,
+              logs: const ['API getCompleteSchedules x1'],
+            ),
+          ],
+        ),
+      );
+
+      expect(output, contains('logs:'));
+      expect(output, contains('API getCompleteSchedules x1'));
+    });
   });
 }

@@ -63,6 +63,7 @@ Future<void> runEnsembleYamlTests({
 Future<void> runEnsembleYamlTestsWithOptions(
   EnsembleYamlTestOptions options,
 ) async {
+  LiveTestWidgetsFlutterBinding.ensureInitialized();
   EnsembleTestHarness.ensureTestPlugins();
   tearDown(() {
     TestErrorTracker.reset();

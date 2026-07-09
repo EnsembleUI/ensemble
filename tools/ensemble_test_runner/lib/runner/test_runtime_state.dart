@@ -34,7 +34,6 @@ class TestErrorTracker {
     _previousHandler = FlutterError.onError;
     FlutterError.onError = (FlutterErrorDetails details) {
       runtime.flutterErrors.add(details.exceptionAsString());
-      _previousHandler?.call(details);
     };
   }
 

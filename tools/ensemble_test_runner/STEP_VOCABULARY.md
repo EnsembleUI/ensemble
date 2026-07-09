@@ -34,7 +34,7 @@ Official step catalog for app-local `tests/*.test.yaml` files, for example `ense
 `expectScreen` (alias), `expectNavigateTo`, `expectVisited`, `expectNotVisited`, `expectBackStack`, `expectCanGoBack`, `goBack`
 
 ### API mock / assert
-`mockApi`, `mockApiError`, `mockApiFromFixture`, `mockApiException`, `mockTimeout`, `mockNetworkOffline`, `mockNetworkOnline`, `resetApiCalls`, `clearApiMocks`, `expectApiCalled`, `expectApiNotCalled`, `expectApiRequest`, `expectApiRequestContains`, `expectApiHeader`, `expectApiCallOrder`, `expectLastApiCall`, `logApiCalls`
+`mockApi`, `mockApiError`, `mockApiFromFixture`, `mockApiException`, `mockTimeout`, `resetApiCalls`, `clearApiMocks`, `expectApiCalled`, `expectApiNotCalled`, `expectApiCallOrder`, `expectLastApiCall`, `logApiCalls`
 
 ### State / storage / runtime
 `setState`, `expectState`, `expectStateContains`, `expectStateExists`, `expectStateNotExists`, `resetState`, `setStorage`, `expectStorage`, `removeStorage`, `clearStorage`, `setEnv`, `setAuth`, `clearAuth`, `setPermission`, `setDevice`, `setLocale`, `setTheme`

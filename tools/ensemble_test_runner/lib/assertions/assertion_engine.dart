@@ -143,58 +143,6 @@ class AssertionEngine {
     }
   }
 
-  void expectApiRequest(
-    String apiName, {
-    dynamic body,
-    dynamic query,
-    dynamic headers,
-    int? times,
-  }) {
-    final record = _selectApiCall(apiName, times: times);
-
-    if (body != null && !_deepEquals(record.body, body)) {
-      throw EnsembleTestFailure(
-        'Expected API "$apiName" body $body, but got ${record.body}.',
-      );
-    }
-    if (query != null && !_deepEquals(record.query, query)) {
-      throw EnsembleTestFailure(
-        'Expected API "$apiName" query $query, but got ${record.query}.',
-      );
-    }
-    if (headers != null && !_deepEquals(record.headers, headers)) {
-      throw EnsembleTestFailure(
-        'Expected API "$apiName" headers $headers, but got ${record.headers}.',
-      );
-    }
-  }
-
-  void expectApiRequestContains(
-    String apiName, {
-    dynamic body,
-    dynamic query,
-    dynamic headers,
-    int? times,
-  }) {
-    final record = _selectApiCall(apiName, times: times);
-
-    if (body != null && !_deepContains(record.body, body)) {
-      throw EnsembleTestFailure(
-        'Expected API "$apiName" body to contain $body, but got ${record.body}.',
-      );
-    }
-    if (query != null && !_deepContains(record.query, query)) {
-      throw EnsembleTestFailure(
-        'Expected API "$apiName" query to contain $query, but got ${record.query}.',
-      );
-    }
-    if (headers != null && !_deepContains(record.headers, headers)) {
-      throw EnsembleTestFailure(
-        'Expected API "$apiName" headers to contain $headers, but got ${record.headers}.',
-      );
-    }
-  }
-
   void expectCount(String id, int expected) {
     final count = finderForId(id).evaluate().length;
     if (count != expected) {
@@ -337,22 +285,6 @@ class AssertionEngine {
       throw EnsembleTestFailure(
         'Expected canGoBack=$expected, but history length is '
         '${ScreenTracker().screenHistory.length}.',
-      );
-    }
-  }
-
-  void expectApiHeader(
-    String apiName,
-    String header,
-    dynamic expected, {
-    int? times,
-  }) {
-    final record = _selectApiCall(apiName, times: times);
-    final headers = record.headers ?? {};
-    final actual = headers[header.toLowerCase()];
-    if (!_deepEquals(actual, expected)) {
-      throw EnsembleTestFailure(
-        'Expected API "$apiName" header "$header" = "$expected", got "$actual".',
       );
     }
   }

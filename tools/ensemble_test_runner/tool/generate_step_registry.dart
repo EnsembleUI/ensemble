@@ -435,18 +435,6 @@ void main() {
       'mockTimeout',
       'Mock an API with a long delay (simulate timeout)',
     ),
-    'mockNetworkOffline': step(
-      'network',
-      'core',
-      'empty',
-      'Simulate offline network for API calls',
-    ),
-    'mockNetworkOnline': step(
-      'network',
-      'core',
-      'empty',
-      'Restore online network for API calls',
-    ),
     'resetApiCalls': step(
       'apiMock',
       'core',
@@ -470,24 +458,6 @@ void main() {
       'core',
       'apiName',
       'Assert an API was never called',
-    ),
-    'expectApiRequest': step(
-      'apiAssertion',
-      'core',
-      'apiRequest',
-      'Assert last API request body/query/headers match',
-    ),
-    'expectApiRequestContains': step(
-      'apiAssertion',
-      'core',
-      'apiRequest',
-      'Assert API request contains partial body/query',
-    ),
-    'expectApiHeader': step(
-      'apiAssertion',
-      'core',
-      'expectApiHeader',
-      'Assert an API request header equals expected',
     ),
     'expectApiCallOrder': step(
       'apiAssertion',
@@ -893,17 +863,6 @@ Map<String, dynamic> defaultExampleForArg(String arg) {
       return {'name': 'slow_api', 'delayMs': 60000};
     case 'apiName':
       return {'name': 'login', 'times': 1};
-    case 'apiRequest':
-      return {
-        'name': 'login',
-        'body': {'email': 'user@test.com', 'password': 'secret'},
-      };
-    case 'expectApiHeader':
-      return {
-        'name': 'login',
-        'header': 'Authorization',
-        'equals': 'Bearer test-token',
-      };
     case 'setState':
       return {'path': 'user.name', 'value': 'Jane'};
     case 'expectState':

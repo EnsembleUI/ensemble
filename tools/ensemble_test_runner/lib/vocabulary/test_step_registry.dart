@@ -533,20 +533,6 @@ abstract final class TestStepRegistry {
       description: 'Mock an API with a long delay (simulate timeout)',
       example: const {'name': 'slow_api', 'delayMs': 60000},
     ),
-    'mockNetworkOffline': TestStepRegistryEntry(
-      category: TestStepCategory.network,
-      tier: TestStepTier.core,
-      argKind: TestStepArgKind.empty,
-      description: 'Simulate offline network for API calls',
-      example: const {},
-    ),
-    'mockNetworkOnline': TestStepRegistryEntry(
-      category: TestStepCategory.network,
-      tier: TestStepTier.core,
-      argKind: TestStepArgKind.empty,
-      description: 'Restore online network for API calls',
-      example: const {},
-    ),
     'resetApiCalls': TestStepRegistryEntry(
       category: TestStepCategory.apiMock,
       tier: TestStepTier.core,
@@ -574,37 +560,6 @@ abstract final class TestStepRegistry {
       argKind: TestStepArgKind.apiName,
       description: 'Assert an API was never called',
       example: const {'name': 'login', 'times': 1},
-    ),
-    'expectApiRequest': TestStepRegistryEntry(
-      category: TestStepCategory.apiAssertion,
-      tier: TestStepTier.core,
-      argKind: TestStepArgKind.apiRequest,
-      description: 'Assert last API request body/query/headers match',
-      example: const {
-        'name': 'login',
-        'body': const {'email': 'user@test.com', 'password': 'secret'}
-      },
-    ),
-    'expectApiRequestContains': TestStepRegistryEntry(
-      category: TestStepCategory.apiAssertion,
-      tier: TestStepTier.core,
-      argKind: TestStepArgKind.apiRequest,
-      description: 'Assert API request contains partial body/query',
-      example: const {
-        'name': 'login',
-        'body': const {'email': 'user@test.com', 'password': 'secret'}
-      },
-    ),
-    'expectApiHeader': TestStepRegistryEntry(
-      category: TestStepCategory.apiAssertion,
-      tier: TestStepTier.core,
-      argKind: TestStepArgKind.expectApiHeader,
-      description: 'Assert an API request header equals expected',
-      example: const {
-        'name': 'login',
-        'header': 'Authorization',
-        'equals': 'Bearer test-token'
-      },
     ),
     'expectApiCallOrder': TestStepRegistryEntry(
       category: TestStepCategory.apiAssertion,

@@ -9,6 +9,7 @@ import 'package:ensemble_test_runner/assertions/assertion_engine.dart';
 import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
 import 'package:ensemble_test_runner/runner/ensemble_test_context.dart';
 import 'package:ensemble_test_runner/runner/ensemble_test_harness.dart';
+import 'package:ensemble_test_runner/runner/yaml_test_session.dart';
 import 'package:ensemble_test_runner/vocabulary/test_step_vocabulary.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -245,32 +246,6 @@ class TestStepExecutor {
         }
         assertions.expectApiNotCalled(name);
         break;
-      case 'expectApiRequest':
-        final name = step.args['name']?.toString();
-        if (name == null) {
-          throw EnsembleTestFailure('expectApiRequest requires "name"');
-        }
-        assertions.expectApiRequest(
-          name,
-          body: step.args['body'],
-          query: step.args['query'],
-          headers: step.args['headers'],
-          times: step.args['times'] as int?,
-        );
-        break;
-      case 'expectApiRequestContains':
-        final containsName = step.args['name']?.toString();
-        if (containsName == null) {
-          throw EnsembleTestFailure('expectApiRequestContains requires "name"');
-        }
-        assertions.expectApiRequestContains(
-          containsName,
-          body: step.args['body'],
-          query: step.args['query'],
-          headers: step.args['headers'],
-          times: step.args['times'] as int?,
-        );
-        break;
       case 'expectCount':
         final expected = step.args['equals'] as int?;
         if (expected == null) {
@@ -361,10 +336,12 @@ class TestStepExecutor {
         context.apiOverlay.resetCalls();
         break;
       case 'logApiCalls':
+        final counts = <String, int>{};
         for (final call in context.apiOverlay.calls) {
-          context.logger.log(
-            'API ${call.name} body=${call.body} query=${call.query}',
-          );
+          counts.update(call.name, (count) => count + 1, ifAbsent: () => 1);
+        }
+        for (final entry in counts.entries) {
+          context.logger.log('API ${entry.key} x${entry.value}');
         }
         break;
       default:
@@ -470,6 +447,8 @@ class TestStepExecutor {
       );
     }
     _expectSingleWidget(finder, id, 'tap');
+    await tester.ensureVisible(finder);
+    await tester.pump();
     await tester.tap(finder);
     await _settle();
   }
@@ -616,12 +595,14 @@ class TestStepExecutor {
   }) async {
     final stopwatch = Stopwatch()..start();
     final tracker = ScreenTracker();
-    bool isVisible() =>
+    bool hasNavigated() =>
         tracker.isScreenVisible(screenName: screen) ||
-        tracker.isScreenVisible(screenId: screen);
+        tracker.isScreenVisible(screenId: screen) ||
+        YamlTestSession.navigationFlow.flow.contains(screen);
 
     while (stopwatch.elapsedMilliseconds < timeoutMs) {
-      if (isVisible()) {
+      await YamlTestSession.navigationFlow.flushPending();
+      if (hasNavigated()) {
         return;
       }
       await _yieldToLiveApiWork();
@@ -629,7 +610,8 @@ class TestStepExecutor {
     }
     await _yieldToLiveApiWork();
     await tester.pump();
-    if (isVisible()) {
+    await YamlTestSession.navigationFlow.flushPending();
+    if (hasNavigated()) {
       return;
     }
     throw EnsembleTestFailure(

@@ -143,5 +143,12 @@ class TestReporter {
         buffer.writeln('│     at step: ${r.failedStepIndex! + 1}');
       }
     }
+
+    if (r.logs.isNotEmpty) {
+      buffer.writeln('│     logs:');
+      for (final log in r.logs) {
+        buffer.writeln('│          $log');
+      }
+    }
   }
 }

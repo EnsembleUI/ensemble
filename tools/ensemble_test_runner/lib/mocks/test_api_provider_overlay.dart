@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:convert';
 
 import 'package:ensemble/framework/apiproviders/api_provider.dart';
 import 'package:ensemble/framework/apiproviders/http_api_provider.dart';
@@ -13,17 +12,11 @@ class APICallRecord {
   final String name;
   final YamlMap apiDefinition;
   final DateTime timestamp;
-  final dynamic body;
-  final Map<String, String>? query;
-  final Map<String, String>? headers;
 
   APICallRecord({
     required this.name,
     required this.apiDefinition,
     required this.timestamp,
-    this.body,
-    this.query,
-    this.headers,
   });
 }
 
@@ -89,9 +82,6 @@ class TestApiProviderOverlay extends HTTPAPIProvider {
   Future<void> init(String appId, Map<String, dynamic> config) =>
       _delegate.init(appId, config);
 
-  /// When true, [invokeApi] returns an offline error without calling the delegate.
-  bool simulateNetworkOffline = false;
-
   @override
   Future<HttpResponse> invokeApi(
     BuildContext context,
@@ -125,21 +115,6 @@ class TestApiProviderOverlay extends HTTPAPIProvider {
     DataContext eContext,
     String apiName,
   ) async {
-    if (simulateNetworkOffline) {
-      recorder.record(APICallRecord(
-        name: apiName,
-        apiDefinition: api,
-        timestamp: DateTime.now(),
-      ));
-      return HttpResponse.fromBody(
-        {'message': 'Network offline (test)'},
-        null,
-        503,
-        null,
-        APIState.error,
-      );
-    }
-
     final forced = _forcedExceptions[apiName];
     if (forced != null) {
       recorder.record(APICallRecord(
@@ -150,14 +125,10 @@ class TestApiProviderOverlay extends HTTPAPIProvider {
       throw forced;
     }
 
-    final captured = _captureRequest(api, eContext);
     recorder.record(APICallRecord(
       name: apiName,
       apiDefinition: api,
       timestamp: DateTime.now(),
-      body: captured.body,
-      query: captured.query,
-      headers: captured.headers,
     ));
 
     final mock = _mocks[apiName];
@@ -277,51 +248,4 @@ Map<String, dynamic> _toRuntimeMockResponse(MockAPIResponse mock) {
     if (mock.headers != null) 'headers': mock.headers,
     'statusCode': mock.statusCode,
   };
-}
-
-class _CapturedRequest {
-  final dynamic body;
-  final Map<String, String>? query;
-  final Map<String, String>? headers;
-
-  const _CapturedRequest({this.body, this.query, this.headers});
-}
-
-_CapturedRequest _captureRequest(YamlMap api, DataContext eContext) {
-  Map<String, String>? headers;
-  if (api['headers'] is YamlMap) {
-    headers = {};
-    (api['headers'] as YamlMap).forEach((key, value) {
-      if (value != null) {
-        headers![key.toString().toLowerCase()] =
-            eContext.eval(value)?.toString() ?? '';
-      }
-    });
-  }
-
-  dynamic body;
-  if (api['body'] != null) {
-    final evaluated = eContext.eval(api['body']);
-    if (evaluated is Map || evaluated is List) {
-      body = evaluated;
-    } else if (evaluated is String) {
-      try {
-        body = json.decode(evaluated);
-      } catch (_) {
-        body = evaluated;
-      }
-    } else {
-      body = evaluated;
-    }
-  }
-
-  Map<String, String>? query;
-  if (api['parameters'] is YamlMap) {
-    query = {};
-    (api['parameters'] as YamlMap).forEach((key, value) {
-      query![key.toString()] = eContext.eval(value)?.toString() ?? '';
-    });
-  }
-
-  return _CapturedRequest(body: body, query: query, headers: headers);
 }
