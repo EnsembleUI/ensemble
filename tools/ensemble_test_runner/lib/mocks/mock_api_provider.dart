@@ -159,13 +159,7 @@ class MockAPIProvider extends HTTPAPIProvider {
       await Future<void>.delayed(Duration(milliseconds: mock.delayMs!));
     }
 
-    return HttpResponse.fromBody(
-      mock.body,
-      mock.headers?.map((k, v) => MapEntry(k, v.toString())),
-      mock.statusCode,
-      null,
-      APIState.success,
-    );
+    return delegate.invokeMockAPI(eContext, _toRuntimeMockResponse(mock));
   }
 
   Future<Response> _invokeLiveDelegate(
@@ -259,6 +253,14 @@ class ApiMockOverlay implements APIProvider {
 
   @override
   void dispose() => _delegate.dispose();
+}
+
+Map<String, dynamic> _toRuntimeMockResponse(MockAPIResponse mock) {
+  return <String, dynamic>{
+    'body': mock.body,
+    if (mock.headers != null) 'headers': mock.headers,
+    'statusCode': mock.statusCode,
+  };
 }
 
 class _CapturedRequest {
