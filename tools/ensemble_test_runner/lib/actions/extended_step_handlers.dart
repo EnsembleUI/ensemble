@@ -174,7 +174,7 @@ class ExtendedStepHandlers {
         await _mockApiFromFixture(executor, step);
         return true;
       case 'clearApiMocks':
-        executor.context.mockApiProvider.clearMocks();
+        executor.context.apiOverlay.clearMocks();
         return true;
       case 'mockApiException':
         await _mockApiException(executor, step);
@@ -333,7 +333,7 @@ class ExtendedStepHandlers {
   static Future<void> _restartApp(TestStepExecutor e) async {
     EnsembleTestHarness.resetTestRuntime();
     e.context.runtime.clear();
-    e.context.mockApiProvider.resetCalls();
+    e.context.apiOverlay.resetCalls();
     final screen = e.context.testCase.startScreen ??
         ScreenTracker().getCurrentScreenIdentifier();
     if (screen == null || screen.isEmpty) {
@@ -346,7 +346,7 @@ class ExtendedStepHandlers {
 
   static Future<void> _resetAppState(TestStepExecutor e) async {
     ScreenTracker().clearAll();
-    e.context.mockApiProvider.resetCalls();
+    e.context.apiOverlay.resetCalls();
     e.context.runtime.clear();
     await StorageManager().clearPublicStorage();
   }
@@ -486,7 +486,7 @@ class ExtendedStepHandlers {
           'mockApiFromFixture requires "name" and "fixture"');
     }
     final body = await _readFixture(e, fixture);
-    e.context.mockApiProvider.setMock(
+    e.context.apiOverlay.setMock(
       name,
       MockAPIResponse(
         statusCode: step.args['statusCode'] as int? ?? 200,
@@ -500,7 +500,7 @@ class ExtendedStepHandlers {
     final name = step.args['name']?.toString();
     if (name == null)
       throw EnsembleTestFailure('mockApiException requires "name"');
-    e.context.mockApiProvider.setApiException(
+    e.context.apiOverlay.setApiException(
       name,
       Exception(step.args['message']?.toString() ?? 'API exception (test)'),
     );
@@ -509,7 +509,7 @@ class ExtendedStepHandlers {
   static Future<void> _mockTimeout(TestStepExecutor e, TestStep step) async {
     final name = step.args['name']?.toString();
     if (name == null) throw EnsembleTestFailure('mockTimeout requires "name"');
-    e.context.mockApiProvider.setMock(
+    e.context.apiOverlay.setMock(
       name,
       MockAPIResponse(
         statusCode: 200,
@@ -520,7 +520,7 @@ class ExtendedStepHandlers {
   }
 
   static void _setNetworkOffline(TestStepExecutor e, bool offline) {
-    e.context.mockApiProvider.simulateNetworkOffline = offline;
+    e.context.apiOverlay.simulateNetworkOffline = offline;
     ConnectivityState().isOnline = !offline;
     e.context.runtime.networkOffline = offline;
   }

@@ -6,7 +6,7 @@ import 'package:ensemble/framework/screen_tracker.dart';
 import 'package:ensemble/framework/storage_manager.dart';
 import 'package:ensemble/framework/view/data_scope_widget.dart';
 import 'package:ensemble/framework/view/page_group.dart';
-import 'package:ensemble_test_runner/mocks/mock_api_provider.dart';
+import 'package:ensemble_test_runner/mocks/test_api_provider_overlay.dart';
 import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
 import 'package:ensemble_test_runner/runner/ensemble_test_context.dart';
 import 'package:ensemble_test_runner/runner/yaml_test_session.dart';
@@ -82,7 +82,7 @@ class AssertionEngine {
   }
 
   void expectApiNotCalled(String apiName) {
-    final count = context.mockApiProvider.callCount(apiName);
+    final count = context.apiOverlay.callCount(apiName);
     if (count != 0) {
       throw EnsembleTestFailure(
         'Expected API "$apiName" not to be called, but it was called $count times.',
@@ -134,7 +134,7 @@ class AssertionEngine {
   }
 
   void expectApiCalled(String apiName, int times) {
-    final actual = context.mockApiProvider.callCount(apiName);
+    final actual = context.apiOverlay.callCount(apiName);
     if (actual != times) {
       throw EnsembleTestFailure(
         'Expected API "$apiName" to be called $times times, but it was called $actual times. '
@@ -358,7 +358,7 @@ class AssertionEngine {
   }
 
   void expectApiCallOrder(List<String> names) {
-    final actual = context.mockApiProvider.calls.map((c) => c.name).toList();
+    final actual = context.apiOverlay.calls.map((c) => c.name).toList();
     var index = 0;
     for (final name in names) {
       while (index < actual.length && actual[index] != name) {
@@ -374,7 +374,7 @@ class AssertionEngine {
   }
 
   void expectLastApiCall(String apiName) {
-    final calls = context.mockApiProvider.calls;
+    final calls = context.apiOverlay.calls;
     if (calls.isEmpty || calls.last.name != apiName) {
       throw EnsembleTestFailure(
         'Expected last API call to be "$apiName", '
@@ -481,7 +481,7 @@ class AssertionEngine {
   }
 
   APICallRecord _selectApiCall(String apiName, {int? times}) {
-    final calls = context.mockApiProvider.callsFor(apiName);
+    final calls = context.apiOverlay.callsFor(apiName);
     if (calls.isEmpty) {
       throw EnsembleTestFailure('Expected API "$apiName" to be called.');
     }
@@ -595,7 +595,7 @@ class AssertionEngine {
   }
 
   String apiCallSummary({int limit = 10}) {
-    final calls = context.mockApiProvider.calls;
+    final calls = context.apiOverlay.calls;
     if (calls.isEmpty) return 'No API calls were recorded.';
     final names = calls.take(limit).map((call) => call.name).join(', ');
     final suffix = calls.length > limit ? ', ... (${calls.length} total)' : '';

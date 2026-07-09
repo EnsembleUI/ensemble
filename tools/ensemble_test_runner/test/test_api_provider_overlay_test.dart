@@ -2,7 +2,7 @@ import 'package:ensemble/framework/apiproviders/api_provider.dart';
 import 'package:ensemble/framework/apiproviders/http_api_provider.dart';
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
-import 'package:ensemble_test_runner/mocks/mock_api_provider.dart';
+import 'package:ensemble_test_runner/mocks/test_api_provider_overlay.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:yaml/yaml.dart';
@@ -13,9 +13,10 @@ void main() {
     await tester.pumpWidget(const MaterialApp(home: SizedBox.shrink()));
 
     final delegate = _RecordingAPIProvider();
-    final provider = MockAPIProvider(mocks: {});
+    final provider = TestApiProviderOverlay(mocks: {});
     final context = tester.element(find.byType(SizedBox));
-    final api = YamlMap.wrap({'type': 'firebaseFunction', 'name': 'exampleCallable'});
+    final api =
+        YamlMap.wrap({'type': 'firebaseFunction', 'name': 'exampleCallable'});
 
     await provider.invokeApiWithDelegate(
       delegate,
@@ -34,7 +35,7 @@ void main() {
     await tester.pumpWidget(const MaterialApp(home: SizedBox.shrink()));
 
     final delegate = _RecordingAPIProvider();
-    final provider = MockAPIProvider(
+    final provider = TestApiProviderOverlay(
       mocks: {
         'login': MockAPIResponse(statusCode: 200, body: {'token': 'abc'}),
       },
@@ -66,7 +67,7 @@ void main() {
         inFlight--;
       },
     );
-    final provider = MockAPIProvider(mocks: {}, delegate: delegate);
+    final provider = TestApiProviderOverlay(mocks: {}, delegate: delegate);
     provider.liveAsyncRunner = <T>(Future<T> Function() fn) => fn();
 
     final buildContext = _FakeBuildContext();

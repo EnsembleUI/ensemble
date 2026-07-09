@@ -27,23 +27,39 @@ class APICallRecord {
   });
 }
 
-/// Records API calls, returns YAML mocks when configured, otherwise delegates.
-class MockAPIProvider extends HTTPAPIProvider {
-  MockAPIProvider({
-    required Map<String, MockAPIResponse> mocks,
-    HTTPAPIProvider? delegate,
-  })  : _mocks = mocks,
-        _delegate = delegate ?? HTTPAPIProvider();
-
-  final Map<String, MockAPIResponse> _mocks;
-  HTTPAPIProvider _delegate;
+class ApiCallRecorder {
   final List<APICallRecord> calls = [];
-  Future<T?> Function<T>(Future<T> Function())? liveAsyncRunner;
 
   int callCount(String apiName) => calls.where((c) => c.name == apiName).length;
 
   List<APICallRecord> callsFor(String apiName) =>
       calls.where((c) => c.name == apiName).toList();
+
+  void record(APICallRecord call) => calls.add(call);
+
+  void reset() => calls.clear();
+}
+
+/// Test provider overlay: observes API calls, applies test overrides, otherwise delegates.
+class TestApiProviderOverlay extends HTTPAPIProvider {
+  TestApiProviderOverlay({
+    required Map<String, MockAPIResponse> mocks,
+    HTTPAPIProvider? delegate,
+    ApiCallRecorder? recorder,
+  })  : _mocks = mocks,
+        _delegate = delegate ?? HTTPAPIProvider(),
+        recorder = recorder ?? ApiCallRecorder();
+
+  final Map<String, MockAPIResponse> _mocks;
+  HTTPAPIProvider _delegate;
+  final ApiCallRecorder recorder;
+  Future<T?> Function<T>(Future<T> Function())? liveAsyncRunner;
+
+  List<APICallRecord> get calls => recorder.calls;
+
+  int callCount(String apiName) => recorder.callCount(apiName);
+
+  List<APICallRecord> callsFor(String apiName) => recorder.callsFor(apiName);
 
   void bindHttpDelegate(HTTPAPIProvider delegate) {
     _delegate = delegate;
@@ -53,7 +69,7 @@ class MockAPIProvider extends HTTPAPIProvider {
     _mocks[apiName] = response;
   }
 
-  void resetCalls() => calls.clear();
+  void resetCalls() => recorder.reset();
 
   void clearMocks() => _mocks.clear();
 
@@ -110,7 +126,7 @@ class MockAPIProvider extends HTTPAPIProvider {
     String apiName,
   ) async {
     if (simulateNetworkOffline) {
-      calls.add(APICallRecord(
+      recorder.record(APICallRecord(
         name: apiName,
         apiDefinition: api,
         timestamp: DateTime.now(),
@@ -126,7 +142,7 @@ class MockAPIProvider extends HTTPAPIProvider {
 
     final forced = _forcedExceptions[apiName];
     if (forced != null) {
-      calls.add(APICallRecord(
+      recorder.record(APICallRecord(
         name: apiName,
         apiDefinition: api,
         timestamp: DateTime.now(),
@@ -135,7 +151,7 @@ class MockAPIProvider extends HTTPAPIProvider {
     }
 
     final captured = _captureRequest(api, eContext);
-    calls.add(APICallRecord(
+    recorder.record(APICallRecord(
       name: apiName,
       apiDefinition: api,
       timestamp: DateTime.now(),
@@ -211,17 +227,17 @@ class MockAPIProvider extends HTTPAPIProvider {
 
   /// Same instance as config — keeps call recording aligned with [EnsembleTestContext].
   @override
-  MockAPIProvider clone() => this;
+  TestApiProviderOverlay clone() => this;
 
   @override
   void dispose() => _delegate.dispose();
 }
 
-/// Delegates to a real provider unless [host] has a mock for the API name.
-class ApiMockOverlay implements APIProvider {
-  ApiMockOverlay(this._host, this._delegate);
+/// Delegates to a real provider unless [host] has a test override for the API name.
+class TestApiOverlay implements APIProvider {
+  TestApiOverlay(this._host, this._delegate);
 
-  final MockAPIProvider _host;
+  final TestApiProviderOverlay _host;
   final APIProvider _delegate;
 
   @override
@@ -249,7 +265,7 @@ class ApiMockOverlay implements APIProvider {
       _delegate.invokeMockAPI(eContext, mock);
 
   @override
-  ApiMockOverlay clone() => ApiMockOverlay(_host, _delegate.clone());
+  TestApiOverlay clone() => TestApiOverlay(_host, _delegate.clone());
 
   @override
   void dispose() => _delegate.dispose();

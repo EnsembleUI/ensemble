@@ -1,6 +1,6 @@
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/storage_manager.dart';
-import 'package:ensemble_test_runner/mocks/mock_api_provider.dart';
+import 'package:ensemble_test_runner/mocks/test_api_provider_overlay.dart';
 import 'package:ensemble_test_runner/mocks/test_logger.dart';
 import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
 import 'package:ensemble_test_runner/runner/ensemble_test_harness.dart';
@@ -8,7 +8,7 @@ import 'package:ensemble_test_runner/runner/test_runtime_state.dart';
 
 class EnsembleTestContext {
   final EnsembleTestCase testCase;
-  final MockAPIProvider mockApiProvider;
+  final TestApiProviderOverlay apiOverlay;
   final TestLogger logger;
   final EnsembleTestSetup setup;
 
@@ -19,14 +19,14 @@ class EnsembleTestContext {
 
   EnsembleTestContext({
     required this.testCase,
-    required this.mockApiProvider,
+    required this.apiOverlay,
     required this.logger,
     required this.setup,
   });
 
   factory EnsembleTestContext.fromTestCase(EnsembleTestCase testCase) {
     final logger = TestLogger();
-    final mockApi = MockAPIProvider(
+    final mockApi = TestApiProviderOverlay(
       mocks: Map<String, MockAPIResponse>.from(testCase.mocks.apis),
     );
 
@@ -34,23 +34,20 @@ class EnsembleTestContext {
     final keychain = testCase.initialState['keychain'];
     final env = testCase.initialState['env'];
 
-    final envMap = env is Map
-        ? Map<String, dynamic>.from(env)
-        : <String, dynamic>{};
+    final envMap =
+        env is Map ? Map<String, dynamic>.from(env) : <String, dynamic>{};
 
     final setup = EnsembleTestSetup(
       envOverrides: envMap.isEmpty ? null : envMap,
-      initialPublicStorage: storage is Map
-          ? Map<String, dynamic>.from(storage)
-          : null,
-      initialKeychain: keychain is Map
-          ? Map<String, dynamic>.from(keychain)
-          : null,
+      initialPublicStorage:
+          storage is Map ? Map<String, dynamic>.from(storage) : null,
+      initialKeychain:
+          keychain is Map ? Map<String, dynamic>.from(keychain) : null,
     );
 
     final ctx = EnsembleTestContext(
       testCase: testCase,
-      mockApiProvider: mockApi,
+      apiOverlay: mockApi,
       logger: logger,
       setup: setup,
     );

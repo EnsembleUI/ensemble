@@ -10,7 +10,7 @@ import 'package:ensemble/framework/storage_manager.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble_test_runner/mocks/adobe_test_setup.dart';
 import 'package:ensemble_test_runner/mocks/firebase_test_setup.dart';
-import 'package:ensemble_test_runner/mocks/mock_api_provider.dart';
+import 'package:ensemble_test_runner/mocks/test_api_provider_overlay.dart';
 import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
 import 'package:ensemble_test_runner/runner/ensemble_test_context.dart';
 import 'package:ensemble_test_runner/runner/yaml_test_session.dart';
@@ -240,9 +240,9 @@ class EnsembleTestHarness {
   }
 
   /// Wraps real providers with [mock] for call recording and optional overrides.
-  static void installApiMockOverrides(
+  static void installTestApiOverlay(
     EnsembleConfig config,
-    MockAPIProvider mock,
+    TestApiProviderOverlay mock,
   ) {
     final realProviders = Map<String, APIProvider>.from(
       config.apiProviders ?? const {},
@@ -255,7 +255,7 @@ class EnsembleTestHarness {
         installed['http'] = mock;
         continue;
       }
-      installed[entry.key] = ApiMockOverlay(mock, entry.value);
+      installed[entry.key] = TestApiOverlay(mock, entry.value);
     }
 
     if (!installed.containsKey('http')) {
@@ -266,7 +266,7 @@ class EnsembleTestHarness {
     final firebase = realProviders['firebase'];
     if (firebase != null && !installed.containsKey('firebaseFunction')) {
       installed['firebaseFunction'] =
-          installed['firebase'] ?? ApiMockOverlay(mock, firebase);
+          installed['firebase'] ?? TestApiOverlay(mock, firebase);
     }
 
     config.apiProviders = installed;
@@ -275,7 +275,7 @@ class EnsembleTestHarness {
   Future<EnsembleConfig> bootstrapRuntime(
     EnsembleConfig config,
     EnsembleTestSetup setup, {
-    MockAPIProvider? apiMockOverlay,
+    TestApiProviderOverlay? apiOverlay,
   }) async {
     ensureTestPlugins();
 
@@ -293,8 +293,8 @@ class EnsembleTestHarness {
     await Ensemble().initManagers();
     await initializeRealApiProviders(config);
 
-    if (apiMockOverlay != null) {
-      installApiMockOverrides(config, apiMockOverlay);
+    if (apiOverlay != null) {
+      installTestApiOverlay(config, apiOverlay);
     }
     await applyYamlTestStorageBootstrap(setup);
 
@@ -319,7 +319,7 @@ class EnsembleTestHarness {
       return bootstrapRuntime(
         config,
         ctx.setup,
-        apiMockOverlay: ctx.mockApiProvider,
+        apiOverlay: ctx.apiOverlay,
       );
     });
     config = bootstrapped!;
@@ -404,10 +404,11 @@ class EnsembleTestHarness {
     }
     ctx.applyRuntimeEnv();
     for (final entry in ctx.testCase.mocks.apis.entries) {
-      ctx.mockApiProvider.setMock(entry.key, entry.value);
+      ctx.apiOverlay.setMock(entry.key, entry.value);
     }
-    if (config != null && config.apiProviders?['http'] is! MockAPIProvider) {
-      installApiMockOverrides(config, ctx.mockApiProvider);
+    if (config != null &&
+        config.apiProviders?['http'] is! TestApiProviderOverlay) {
+      installTestApiOverlay(config, ctx.apiOverlay);
     }
   }
 

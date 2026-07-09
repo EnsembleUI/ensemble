@@ -338,7 +338,7 @@ class TestStepExecutor {
         if (name == null) {
           throw EnsembleTestFailure('mockApi requires "name"');
         }
-        context.mockApiProvider.setMock(
+        context.apiOverlay.setMock(
           name,
           context.mockFromStepArgs(step.args),
         );
@@ -348,7 +348,7 @@ class TestStepExecutor {
         if (name == null) {
           throw EnsembleTestFailure('mockApiError requires "name"');
         }
-        context.mockApiProvider.setMock(
+        context.apiOverlay.setMock(
           name,
           MockAPIResponse(
             statusCode: step.args['statusCode'] as int? ?? 500,
@@ -358,10 +358,10 @@ class TestStepExecutor {
         );
         break;
       case 'resetApiCalls':
-        context.mockApiProvider.resetCalls();
+        context.apiOverlay.resetCalls();
         break;
       case 'logApiCalls':
-        for (final call in context.mockApiProvider.calls) {
+        for (final call in context.apiOverlay.calls) {
           context.logger.log(
             'API ${call.name} body=${call.body} query=${call.query}',
           );
@@ -444,10 +444,10 @@ class TestStepExecutor {
   /// timers from departed screens are not advanced while draining live HTTP.
   Future<void> _yieldToLiveApiWork() async {
     for (var i = 0; i < 200; i++) {
-      final hadPending = context.mockApiProvider.hasPendingLiveCalls;
+      final hadPending = context.apiOverlay.hasPendingLiveCalls;
       if (hadPending) {
         try {
-          await context.mockApiProvider
+          await context.apiOverlay
               .waitForLiveCalls()
               .timeout(config.waitPollInterval);
         } on TimeoutException {
@@ -599,7 +599,7 @@ class TestStepExecutor {
     while (stopwatch.elapsedMilliseconds < timeoutMs) {
       await _yieldToLiveApiWork();
       await tester.pump(config.waitPollInterval);
-      if (context.mockApiProvider.callCount(name) >= times) {
+      if (context.apiOverlay.callCount(name) >= times) {
         await _yieldToLiveApiWork();
         return;
       }

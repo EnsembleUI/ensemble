@@ -78,7 +78,7 @@ class EnsembleTestRunner {
 
     try {
       final ctx = EnsembleTestContext.fromTestCase(test);
-      ctx.mockApiProvider.liveAsyncRunner = tester.runAsync;
+      ctx.apiOverlay.liveAsyncRunner = tester.runAsync;
       LiveAsyncCallSupport.runner = tester.runAsync;
       TestErrorTracker.install(ctx.runtime);
 
@@ -182,10 +182,10 @@ class EnsembleTestRunner {
     EnsembleTestContext ctx,
   ) async {
     for (var i = 0; i < 20; i++) {
-      await ctx.mockApiProvider.waitForLiveCalls();
+      await ctx.apiOverlay.waitForLiveCalls();
       await tester.pump();
       await YamlTestSession.navigationFlow.flushPending();
-      if (!ctx.mockApiProvider.hasPendingLiveCalls) {
+      if (!ctx.apiOverlay.hasPendingLiveCalls) {
         return;
       }
     }
