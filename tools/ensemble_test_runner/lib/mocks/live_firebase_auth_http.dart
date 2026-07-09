@@ -41,8 +41,6 @@ Future<Map<String, dynamic>> _postIdentityToolkitSignInOnce({
   final uri = Uri.parse(
     'https://identitytoolkit.googleapis.com/v1/accounts:signInWithCustomToken?key=$apiKey',
   );
-  final savedOverrides = HttpOverrides.current;
-  HttpOverrides.global = null;
   final client = HttpClient();
   client.connectionTimeout = const Duration(seconds: 60);
   try {
@@ -67,7 +65,6 @@ Future<Map<String, dynamic>> _postIdentityToolkitSignInOnce({
     return Map<String, dynamic>.from(decoded);
   } finally {
     client.close();
-    HttpOverrides.global = savedOverrides;
   }
 }
 

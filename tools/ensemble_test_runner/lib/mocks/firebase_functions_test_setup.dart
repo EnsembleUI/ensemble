@@ -54,8 +54,6 @@ Future<Object?> _invokeCallableOverHttp(Map<String, Object?> arguments) async {
   final parameters = arguments['parameters'];
   final timeoutMs = arguments['timeout'] as int? ?? 60000;
 
-  final savedOverrides = HttpOverrides.current;
-  HttpOverrides.global = null;
   final client = HttpClient();
   client.connectionTimeout = Duration(milliseconds: timeoutMs);
 
@@ -96,7 +94,6 @@ Future<Object?> _invokeCallableOverHttp(Map<String, Object?> arguments) async {
     return result;
   } finally {
     client.close();
-    HttpOverrides.global = savedOverrides;
   }
 }
 
@@ -125,7 +122,8 @@ Uri _resolveCallableUri(Map<String, Object?> arguments) {
     );
   }
 
-  return Uri.parse('https://$region-$projectId.cloudfunctions.net/$functionName');
+  return Uri.parse(
+      'https://$region-$projectId.cloudfunctions.net/$functionName');
 }
 
 String? _projectIdForApp(String? appName) {

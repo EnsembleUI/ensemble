@@ -60,7 +60,7 @@ class EnsembleTestHarness {
     TestWidgetsFlutterBinding.ensureInitialized();
     ensureFirebaseCoreMocksForTest();
     ensureAdobeAnalyticsMocksForTest();
-    HttpOverrides.global = _YamlTestHttpOverrides();
+    HttpOverrides.global = _RealNetworkHttpOverrides();
     const pathProviderChannel =
         MethodChannel('plugins.flutter.io/path_provider');
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
@@ -416,103 +416,9 @@ class EnsembleTestHarness {
   }
 }
 
-class _YamlTestHttpOverrides extends HttpOverrides {
+class _RealNetworkHttpOverrides extends HttpOverrides {
   @override
   HttpClient createHttpClient(SecurityContext? context) {
-    final client = super.createHttpClient(context);
-    client.connectionFactory = (
-      Uri uri,
-      String? proxyHost,
-      int? proxyPort,
-    ) {
-      // HTTP to local gateways (e.g. instellen.local) uses filtered DNS so mDNS
-      // does not prefer loopback. All HTTPS uses the platform connector so TLS
-      // handshakes (cloud APIs and local gateway cert capture) work normally.
-      if (uri.scheme == 'https') {
-        return _platformDefaultConnection(uri, proxyHost, proxyPort);
-      }
-      return _connectWithoutStaggeredLookup(uri, proxyHost, proxyPort);
-    };
-    return client;
-  }
-
-  static Future<ConnectionTask<Socket>> _platformDefaultConnection(
-    Uri uri,
-    String? proxyHost,
-    int? proxyPort,
-  ) async {
-    final savedOverrides = HttpOverrides.current;
-    HttpOverrides.global = null;
-    try {
-      return Socket.startConnect(proxyHost ?? uri.host, proxyPort ?? uri.port);
-    } finally {
-      HttpOverrides.global = savedOverrides;
-    }
-  }
-
-  static Future<ConnectionTask<Socket>> _connectWithoutStaggeredLookup(
-    Uri uri,
-    String? proxyHost,
-    int? proxyPort,
-  ) async {
-    final host = proxyHost ?? uri.host;
-    final port = proxyPort ?? uri.port;
-    final addresses = _usableAddresses(
-      host,
-      await InternetAddress.lookup(host),
-    );
-    if (addresses.isEmpty) {
-      throw const SocketException('No addresses resolved');
-    }
-    var cancelled = false;
-    final socket = _connectToFirstAvailableAddress(
-      addresses,
-      port,
-      isCancelled: () => cancelled,
-    );
-    return ConnectionTask.fromSocket(
-      socket,
-      () {
-        cancelled = true;
-      },
-    );
-  }
-
-  /// Dart's [InternetAddress.lookup] can return loopback before LAN IPs for
-  /// mDNS names like `instellen.local`, causing slow connection-refused retries.
-  static List<InternetAddress> _usableAddresses(
-    String host,
-    List<InternetAddress> addresses,
-  ) {
-    if (host == 'localhost' || host == '127.0.0.1' || host == '::1') {
-      return addresses;
-    }
-    final filtered =
-        addresses.where((address) => !address.isLoopback).toList();
-    return filtered.isEmpty ? addresses : filtered;
-  }
-
-  static Future<Socket> _connectToFirstAvailableAddress(
-    List<InternetAddress> addresses,
-    int port, {
-    required bool Function() isCancelled,
-  }) async {
-    Object? lastError;
-    StackTrace? lastStackTrace;
-    for (final address in addresses) {
-      if (isCancelled()) {
-        throw const SocketException('Connection attempt cancelled');
-      }
-      try {
-        return await Socket.connect(address, port);
-      } catch (error, stackTrace) {
-        lastError = error;
-        lastStackTrace = stackTrace;
-      }
-    }
-    Error.throwWithStackTrace(
-      lastError ?? const SocketException('Connection failed'),
-      lastStackTrace ?? StackTrace.current,
-    );
+    return super.createHttpClient(context);
   }
 }

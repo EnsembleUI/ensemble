@@ -51,9 +51,11 @@ void ensureLiveFirestoreForTest() {
   register('clearPersistence', noop);
   register('terminate', noop);
   register('waitForPendingWrites', noop);
-  register('snapshotsInSyncSetup', (_) async => <Object?>[
-        'ensemble_test_runner/firestore/snapshots-in-sync',
-      ]);
+  register(
+      'snapshotsInSyncSetup',
+      (_) async => <Object?>[
+            'ensemble_test_runner/firestore/snapshots-in-sync',
+          ]);
   register('persistenceCacheIndexManagerRequest', noop);
 
   register('documentReferenceSet', (args) async {
@@ -190,8 +192,7 @@ class _LiveFirestoreRestClient {
     final encoded = _encodeDocumentFields(request.data ?? {});
     final body = <String, dynamic>{
       if (encoded.fields.isNotEmpty) 'fields': encoded.fields,
-      if (encoded.transforms.isNotEmpty)
-        'updateTransforms': encoded.transforms,
+      if (encoded.transforms.isNotEmpty) 'updateTransforms': encoded.transforms,
     };
     await _request(
       app,
@@ -303,9 +304,8 @@ class _LiveFirestoreRestClient {
   }) async {
     final projectId = _projectIdForApp(app.appName);
     final idToken = _idTokenForApp(app.appName);
-    final encodedPath = path == null
-        ? ''
-        : path.split('/').map(Uri.encodeComponent).join('/');
+    final encodedPath =
+        path == null ? '' : path.split('/').map(Uri.encodeComponent).join('/');
     final queryParts = <String>[
       for (final fieldPath in updateMaskPaths)
         'updateMask.fieldPaths=${Uri.encodeQueryComponent(fieldPath)}',
@@ -316,8 +316,6 @@ class _LiveFirestoreRestClient {
       '${queryParts.isEmpty ? '' : '?${queryParts.join('&')}'}',
     );
 
-    final savedOverrides = HttpOverrides.current;
-    HttpOverrides.global = null;
     final client = HttpClient();
     try {
       late final HttpClientRequest request;
@@ -357,7 +355,6 @@ class _LiveFirestoreRestClient {
       return jsonDecode(responseBody);
     } finally {
       client.close();
-      HttpOverrides.global = savedOverrides;
     }
   }
 
@@ -422,7 +419,9 @@ Map<String, dynamic> _encodeValue(Object? value) {
       if (nestedKey == null || nestedKey.isEmpty) return;
       nested[nestedKey] = _encodeValue(nestedValue);
     });
-    return {'mapValue': {'fields': nested}};
+    return {
+      'mapValue': {'fields': nested}
+    };
   }
   if (value is Iterable) {
     return {
@@ -465,8 +464,7 @@ Object? _decodeValue(Object? value) {
   if (map.containsKey('stringValue')) return map['stringValue'];
   if (map.containsKey('booleanValue')) return map['booleanValue'];
   if (map.containsKey('integerValue')) {
-    return int.tryParse(map['integerValue'].toString()) ??
-        map['integerValue'];
+    return int.tryParse(map['integerValue'].toString()) ?? map['integerValue'];
   }
   if (map.containsKey('doubleValue')) {
     final raw = map['doubleValue'];

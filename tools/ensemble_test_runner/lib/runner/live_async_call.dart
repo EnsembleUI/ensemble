@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:io';
 
 /// Serializes real async work (HTTP, etc.) through [WidgetTester.runAsync].
 ///
@@ -21,18 +20,9 @@ class LiveAsyncCallSupport {
     await Future.wait(_inFlightLiveCalls.toList());
   }
 
-  /// Runs [call] on the platform HTTP stack (no test [HttpOverrides]).
-  static Future<T?> runWithPlatformHttp<T>(Future<T> Function() call) {
-    return run(() async {
-      final saved = HttpOverrides.current;
-      HttpOverrides.global = null;
-      try {
-        return await call();
-      } finally {
-        HttpOverrides.global = saved;
-      }
-    });
-  }
+  /// Backwards-compatible alias for callers that need real async work.
+  static Future<T?> runWithPlatformHttp<T>(Future<T> Function() call) =>
+      run(call);
 
   static Future<T?> run<T>(Future<T> Function() call) {
     final liveRunner = runner;

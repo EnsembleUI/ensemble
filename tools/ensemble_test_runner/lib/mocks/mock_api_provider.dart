@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io';
 
 import 'package:ensemble/framework/apiproviders/api_provider.dart';
 import 'package:ensemble/framework/apiproviders/http_api_provider.dart';
@@ -177,14 +176,8 @@ class MockAPIProvider extends HTTPAPIProvider {
     String apiName,
   ) async {
     final runner = liveAsyncRunner;
-    Future<Response> call() async {
-      final savedOverrides = _clearHttpOverridesForLiveHttps(api, eContext);
-      try {
-        return await delegate.invokeApi(context, api, eContext, apiName);
-      } finally {
-        _restoreHttpOverrides(savedOverrides);
-      }
-    }
+    Future<Response> call() =>
+        delegate.invokeApi(context, api, eContext, apiName);
 
     if (runner != null) {
       try {
@@ -216,32 +209,6 @@ class MockAPIProvider extends HTTPAPIProvider {
   Future<T?> _runLiveApiCall<T>(Future<T> Function() call) {
     LiveAsyncCallSupport.runner ??= liveAsyncRunner;
     return LiveAsyncCallSupport.run(call);
-  }
-
-  /// Remote HTTPS endpoints (e.g. api.acc.kpn.com) fail TLS under the test
-  /// harness [HttpOverrides]. Local HTTP gateways still need those overrides.
-  HttpOverrides? _clearHttpOverridesForLiveHttps(
-    YamlMap api,
-    DataContext eContext,
-  ) {
-    final rawUrl = (api['url'] ?? api['uri'] ?? '').toString().trim();
-    if (rawUrl.isEmpty) {
-      return null;
-    }
-    final url = HTTPAPIProvider.resolveUrl(eContext, rawUrl);
-    final uri = Uri.tryParse(url);
-    if (uri?.scheme != 'https') {
-      return null;
-    }
-    final saved = HttpOverrides.current;
-    HttpOverrides.global = null;
-    return saved;
-  }
-
-  void _restoreHttpOverrides(HttpOverrides? saved) {
-    if (saved != null) {
-      HttpOverrides.global = saved;
-    }
   }
 
   @override
