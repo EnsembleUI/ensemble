@@ -36,6 +36,7 @@ enum TestStepArgKind {
   setState,
   expectState,
   storageKey,
+  optionalStorageKey,
   group,
   repeat,
   optional,
@@ -274,6 +275,10 @@ extension TestStepArgKindSchema on TestStepArgKind {
         return _object(
           properties: {'key': _string, 'equals': _any, 'value': _any},
           required: ['key'],
+        );
+      case TestStepArgKind.optionalStorageKey:
+        return _object(
+          properties: {'key': _string},
         );
       case TestStepArgKind.group:
         return _object(

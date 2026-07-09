@@ -1518,7 +1518,7 @@
       "examples": [
         {
           "name": "users",
-          "fixture": "users.json"
+          "fixture": "fixtures/users.json"
         }
       ]
     },
@@ -2258,20 +2258,14 @@
       "properties": {
         "key": {
           "type": "string"
-        },
-        "equals": true,
-        "value": true
+        }
       },
-      "required": [
-        "key"
-      ],
       "additionalProperties": false,
       "title": "logStorage",
-      "description": "Log public storage value for key",
+      "description": "Log one public storage value, or all public storage when key is omitted",
       "examples": [
         {
-          "key": "onboarding_done",
-          "value": true
+          "key": "onboarding_done"
         }
       ]
     },
@@ -2401,7 +2395,7 @@
       "description": "Load a JSON fixture into the test fixture map",
       "examples": [
         {
-          "fixture": "user.json"
+          "fixture": "fixtures/user.json"
         }
       ]
     },
@@ -2426,7 +2420,7 @@
       "description": "Apply all keys from a JSON fixture to state",
       "examples": [
         {
-          "fixture": "user.json"
+          "fixture": "fixtures/user.json"
         }
       ]
     },
@@ -2451,7 +2445,7 @@
       "description": "Assert state or path matches a JSON fixture",
       "examples": [
         {
-          "fixture": "user.json"
+          "fixture": "fixtures/user.json"
         }
       ]
     },
@@ -4435,7 +4429,7 @@
             {
               "mockApiFromFixture": {
                 "name": "users",
-                "fixture": "users.json"
+                "fixture": "fixtures/users.json"
               }
             }
           ],
@@ -4449,7 +4443,7 @@
               "examples": [
                 {
                   "name": "users",
-                  "fixture": "users.json"
+                  "fixture": "fixtures/users.json"
                 }
               ]
             }
@@ -5579,12 +5573,11 @@
         {
           "type": "object",
           "title": "logStorage",
-          "description": "Log public storage value for key",
+          "description": "Log one public storage value, or all public storage when key is omitted",
           "examples": [
             {
               "logStorage": {
-                "key": "onboarding_done",
-                "value": true
+                "key": "onboarding_done"
               }
             }
           ],
@@ -5594,11 +5587,10 @@
           "properties": {
             "logStorage": {
               "$ref": "#/$defs/args_logStorage",
-              "description": "Log public storage value for key",
+              "description": "Log one public storage value, or all public storage when key is omitted",
               "examples": [
                 {
-                  "key": "onboarding_done",
-                  "value": true
+                  "key": "onboarding_done"
                 }
               ]
             }
@@ -5807,7 +5799,7 @@
           "examples": [
             {
               "loadFixture": {
-                "fixture": "user.json"
+                "fixture": "fixtures/user.json"
               }
             }
           ],
@@ -5820,7 +5812,7 @@
               "description": "Load a JSON fixture into the test fixture map",
               "examples": [
                 {
-                  "fixture": "user.json"
+                  "fixture": "fixtures/user.json"
                 }
               ]
             }
@@ -5836,7 +5828,7 @@
           "examples": [
             {
               "setStateFromFixture": {
-                "fixture": "user.json"
+                "fixture": "fixtures/user.json"
               }
             }
           ],
@@ -5849,7 +5841,7 @@
               "description": "Apply all keys from a JSON fixture to state",
               "examples": [
                 {
-                  "fixture": "user.json"
+                  "fixture": "fixtures/user.json"
                 }
               ]
             }
@@ -5865,7 +5857,7 @@
           "examples": [
             {
               "expectMatchesFixture": {
-                "fixture": "user.json"
+                "fixture": "fixtures/user.json"
               }
             }
           ],
@@ -5878,7 +5870,7 @@
               "description": "Assert state or path matches a JSON fixture",
               "examples": [
                 {
-                  "fixture": "user.json"
+                  "fixture": "fixtures/user.json"
                 }
               ]
             }

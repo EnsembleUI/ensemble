@@ -517,7 +517,7 @@ abstract final class TestStepRegistry {
       tier: TestStepTier.core,
       argKind: TestStepArgKind.mockApiFromFixture,
       description: 'Load mock response body from a JSON fixture asset',
-      example: const {'name': 'users', 'fixture': 'users.json'},
+      example: const {'name': 'users', 'fixture': 'fixtures/users.json'},
     ),
     'mockApiException': TestStepRegistryEntry(
       category: TestStepCategory.apiMock,
@@ -805,9 +805,10 @@ abstract final class TestStepRegistry {
     'logStorage': TestStepRegistryEntry(
       category: TestStepCategory.debug,
       tier: TestStepTier.core,
-      argKind: TestStepArgKind.storageKey,
-      description: 'Log public storage value for key',
-      example: const {'key': 'onboarding_done', 'value': true},
+      argKind: TestStepArgKind.optionalStorageKey,
+      description:
+          'Log one public storage value, or all public storage when key is omitted',
+      example: const {'key': 'onboarding_done'},
     ),
     'expectNoConsoleErrors': TestStepRegistryEntry(
       category: TestStepCategory.quality,
@@ -863,21 +864,21 @@ abstract final class TestStepRegistry {
       tier: TestStepTier.core,
       argKind: TestStepArgKind.fixturePath,
       description: 'Load a JSON fixture into the test fixture map',
-      example: const {'fixture': 'user.json'},
+      example: const {'fixture': 'fixtures/user.json'},
     ),
     'setStateFromFixture': TestStepRegistryEntry(
       category: TestStepCategory.fixture,
       tier: TestStepTier.core,
       argKind: TestStepArgKind.fixturePath,
       description: 'Apply all keys from a JSON fixture to state',
-      example: const {'fixture': 'user.json'},
+      example: const {'fixture': 'fixtures/user.json'},
     ),
     'expectMatchesFixture': TestStepRegistryEntry(
       category: TestStepCategory.fixture,
       tier: TestStepTier.core,
       argKind: TestStepArgKind.fixturePath,
       description: 'Assert state or path matches a JSON fixture',
-      example: const {'fixture': 'user.json'},
+      example: const {'fixture': 'fixtures/user.json'},
     ),
   };
 }

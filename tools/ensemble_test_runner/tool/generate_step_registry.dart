@@ -642,8 +642,8 @@ void main() {
     'logStorage': step(
       'debug',
       'core',
-      'storageKey',
-      'Log public storage value for key',
+      'optionalStorageKey',
+      'Log one public storage value, or all public storage when key is omitted',
     ),
     'expectNoConsoleErrors': step(
       'quality',
@@ -869,6 +869,8 @@ Map<String, dynamic> defaultExampleForArg(String arg) {
       return {'path': 'user.name', 'equals': 'Jane'};
     case 'storageKey':
       return {'key': 'onboarding_done', 'value': true};
+    case 'optionalStorageKey':
+      return {'key': 'onboarding_done'};
     case 'group':
       return {
         'name': 'login_flow',

@@ -264,9 +264,22 @@ class ExtendedStepHandlers {
         return true;
       case 'logStorage':
         final key = step.args['key']?.toString();
-        executor.context.logger.log(
-          'storage[$key]=${StorageManager().read(key ?? '')}',
-        );
+        if (key == null || key.isEmpty) {
+          final storage = StorageManager();
+          final entries = storage.getKeys().map(
+                (key) => MapEntry(key, storage.read(key)),
+              );
+          executor.context.logger.log(
+            'storage=${jsonEncode(
+              Map<String, dynamic>.fromEntries(entries),
+              toEncodable: (value) => value.toString(),
+            )}',
+          );
+        } else {
+          executor.context.logger.log(
+            'storage[$key]=${StorageManager().read(key)}',
+          );
+        }
         return true;
       case 'expectAccessible':
         executor.assertions.expectAccessible(executor.requireId(step));
