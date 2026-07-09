@@ -6,6 +6,7 @@ import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
 import 'package:ensemble_test_runner/reporters/test_reporter.dart';
 import 'package:ensemble_test_runner/runner/ensemble_test_context.dart';
 import 'package:ensemble_test_runner/runner/ensemble_test_harness.dart';
+import 'package:ensemble_test_runner/runner/live_async_call.dart';
 import 'package:ensemble_test_runner/runner/test_runtime_state.dart';
 import 'package:ensemble_test_runner/runner/yaml_test_session.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -77,6 +78,8 @@ class EnsembleTestRunner {
 
     try {
       final ctx = EnsembleTestContext.fromTestCase(test);
+      ctx.mockApiProvider.liveAsyncRunner = tester.runAsync;
+      LiveAsyncCallSupport.runner = tester.runAsync;
       TestErrorTracker.install(ctx.runtime);
 
       late final EnsembleConfig config;
@@ -87,7 +90,7 @@ class EnsembleTestRunner {
             'runtime is not bootstrapped — ensure the prerequisite test runs first',
           );
         }
-        EnsembleTestHarness.applyInPlaceSetup(ctx);
+        await EnsembleTestHarness.applyInPlaceSetup(ctx);
         config = existingConfig ?? Ensemble().getConfig()!;
         await EnsembleTestHarness.waitForInitialWidgets(tester, testCase: test);
       } else {
@@ -145,7 +148,10 @@ class EnsembleTestRunner {
       final step = test.steps[i];
       try {
         await executor.execute(step);
+        await YamlTestSession.navigationFlow.flushPending();
       } catch (error, stackTrace) {
+        await _settleLiveApiWork(tester, ctx);
+        await YamlTestSession.navigationFlow.flushPending();
         return EnsembleSingleTestResult.failed(
           testId: test.id,
           metadata: test.metadataJson,
@@ -160,6 +166,8 @@ class EnsembleTestRunner {
       }
     }
 
+    await YamlTestSession.navigationFlow.flushPending();
+
     return EnsembleSingleTestResult.passed(
       testId: test.id,
       metadata: test.metadataJson,
@@ -167,5 +175,19 @@ class EnsembleTestRunner {
       logs: ctx.logger.logs,
       report: buildTestReportDetails(test),
     );
+  }
+
+  Future<void> _settleLiveApiWork(
+    WidgetTester tester,
+    EnsembleTestContext ctx,
+  ) async {
+    for (var i = 0; i < 20; i++) {
+      await ctx.mockApiProvider.waitForLiveCalls();
+      await tester.pump();
+      await YamlTestSession.navigationFlow.flushPending();
+      if (!ctx.mockApiProvider.hasPendingLiveCalls) {
+        return;
+      }
+    }
   }
 }

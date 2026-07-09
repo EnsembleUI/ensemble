@@ -45,7 +45,7 @@ steps: []
     expect(
       File('${dir.path}/${YamlTestAppPatcher.testEntryRelativePath}')
           .readAsStringSync(),
-      contains('runEnsembleYamlTests'),
+      contains('EnsembleModules().init()'),
     );
 
     patcher.restore();
@@ -58,7 +58,7 @@ steps: []
     );
   });
 
-  test('restore deletes leftover generated test entry from a prior run', () {
+  test('upgrades legacy stub and keeps it after restore', () {
     final dir = Directory.systemTemp.createTempSync('yaml_test_patcher_');
     addTearDown(() => dir.deleteSync(recursive: true));
 
@@ -82,16 +82,68 @@ steps: []
 ''');
     Directory('${dir.path}/test').createSync(recursive: true);
     File('${dir.path}/${YamlTestAppPatcher.testEntryRelativePath}')
-        .writeAsStringSync(YamlTestAppPatcher.testEntryContents);
+        .writeAsStringSync(YamlTestAppPatcher.legacyTestEntryContents);
 
     final patcher = YamlTestAppPatcher(dir.path);
     patcher.enable();
     patcher.restore();
 
+    final restored =
+        File('${dir.path}/${YamlTestAppPatcher.testEntryRelativePath}')
+            .readAsStringSync();
+    expect(restored, contains('EnsembleModules().init()'));
+  });
+
+  test('does not overwrite a customized test entry', () {
+    final dir = Directory.systemTemp.createTempSync('yaml_test_patcher_');
+    addTearDown(() => dir.deleteSync(recursive: true));
+
+    File('${dir.path}/pubspec.yaml').writeAsStringSync('''
+name: sample_app
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+flutter:
+  assets:
+    - ensemble/
+''');
+    _writeConfig(dir);
+    Directory('${dir.path}/ensemble/apps/helloApp/tests')
+        .createSync(recursive: true);
+    File('${dir.path}/ensemble/apps/helloApp/tests/sample.test.yaml')
+        .writeAsStringSync('''
+id: sample
+startScreen: Home
+steps: []
+''');
+    const customEntry = '''
+import 'package:ensemble_test_runner/entry/ensemble_test_entry.dart';
+
+Future<void> main() async {
+  await runEnsembleYamlTests(
+    bootstrap: () async {},
+  );
+}
+''';
+    Directory('${dir.path}/test').createSync(recursive: true);
+    File('${dir.path}/${YamlTestAppPatcher.testEntryRelativePath}')
+        .writeAsStringSync(customEntry);
+
+    final patcher = YamlTestAppPatcher(dir.path);
+    patcher.enable();
+
     expect(
       File('${dir.path}/${YamlTestAppPatcher.testEntryRelativePath}')
-          .existsSync(),
-      isFalse,
+          .readAsStringSync(),
+      customEntry,
+    );
+
+    patcher.restore();
+
+    expect(
+      File('${dir.path}/${YamlTestAppPatcher.testEntryRelativePath}')
+          .readAsStringSync(),
+      customEntry,
     );
   });
 

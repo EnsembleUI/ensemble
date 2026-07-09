@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/screen_tracker.dart';
 import 'package:ensemble_test_runner/actions/extended_step_handlers.dart';
@@ -434,6 +436,29 @@ class TestStepExecutor {
       EnginePhase.sendSemanticsUpdate,
       timeout ?? config.settleTimeout,
     );
+    await _yieldToLiveApiWork();
+  }
+
+  /// Lets in-flight live HTTP (wrapped in [WidgetTester.runAsync]) finish and
+  /// pumps a frame so Ensemble can apply API state. Uses [Duration.zero] so
+  /// timers from departed screens are not advanced while draining live HTTP.
+  Future<void> _yieldToLiveApiWork() async {
+    for (var i = 0; i < 200; i++) {
+      final hadPending = context.mockApiProvider.hasPendingLiveCalls;
+      if (hadPending) {
+        try {
+          await context.mockApiProvider
+              .waitForLiveCalls()
+              .timeout(config.waitPollInterval);
+        } on TimeoutException {
+          // Keep polling; HTTP may still be in flight inside runAsync.
+        }
+      }
+      await tester.pump();
+      if (!hadPending) {
+        return;
+      }
+    }
   }
 
   Future<void> _tap(String id) async {
@@ -572,8 +597,10 @@ class TestStepExecutor {
 
     final stopwatch = Stopwatch()..start();
     while (stopwatch.elapsedMilliseconds < timeoutMs) {
+      await _yieldToLiveApiWork();
       await tester.pump(config.waitPollInterval);
       if (context.mockApiProvider.callCount(name) >= times) {
+        await _yieldToLiveApiWork();
         return;
       }
     }
@@ -589,12 +616,21 @@ class TestStepExecutor {
   }) async {
     final stopwatch = Stopwatch()..start();
     final tracker = ScreenTracker();
+    bool isVisible() =>
+        tracker.isScreenVisible(screenName: screen) ||
+        tracker.isScreenVisible(screenId: screen);
+
     while (stopwatch.elapsedMilliseconds < timeoutMs) {
-      await tester.pump(config.waitPollInterval);
-      if (tracker.isScreenVisible(screenName: screen) ||
-          tracker.isScreenVisible(screenId: screen)) {
+      if (isVisible()) {
         return;
       }
+      await _yieldToLiveApiWork();
+      await tester.pump(config.waitPollInterval);
+    }
+    await _yieldToLiveApiWork();
+    await tester.pump();
+    if (isVisible()) {
+      return;
     }
     throw EnsembleTestFailure(
       'Timed out after ${timeoutMs}ms waiting for navigation to "$screen"',

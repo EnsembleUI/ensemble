@@ -2,11 +2,14 @@ import 'dart:io';
 
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/ensemble_app.dart';
+import 'package:ensemble/framework/apiproviders/api_provider.dart';
 import 'package:ensemble/framework/apiproviders/http_api_provider.dart';
 import 'package:ensemble/framework/definition_providers/local_provider.dart';
 import 'package:ensemble/framework/screen_tracker.dart';
 import 'package:ensemble/framework/storage_manager.dart';
 import 'package:ensemble/page_model.dart';
+import 'package:ensemble_test_runner/mocks/adobe_test_setup.dart';
+import 'package:ensemble_test_runner/mocks/firebase_test_setup.dart';
 import 'package:ensemble_test_runner/mocks/mock_api_provider.dart';
 import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
 import 'package:ensemble_test_runner/runner/ensemble_test_context.dart';
@@ -19,21 +22,33 @@ import 'package:flutter_test/flutter_test.dart';
 class EnsembleTestSetup {
   final Map<String, dynamic>? envOverrides;
   final Map<String, dynamic>? initialPublicStorage;
+  final Map<String, dynamic>? initialKeychain;
 
   const EnsembleTestSetup({
     this.envOverrides,
     this.initialPublicStorage,
+    this.initialKeychain,
   });
 }
 
 /// Applies YAML test environment and storage bootstrap data to [config].
-void applyYamlTestBootstrap(EnsembleConfig config, EnsembleTestSetup setup) {
+Future<void> applyYamlTestBootstrap(
+    EnsembleConfig config, EnsembleTestSetup setup) async {
   if (setup.envOverrides != null && setup.envOverrides!.isNotEmpty) {
     config.updateEnvOverrides(setup.envOverrides!);
   }
-  setup.initialPublicStorage?.forEach((key, value) {
-    StorageManager().write(key, value);
-  });
+  await applyYamlTestStorageBootstrap(setup);
+}
+
+Future<void> applyYamlTestStorageBootstrap(EnsembleTestSetup setup) async {
+  for (final entry in setup.initialPublicStorage?.entries ??
+      const Iterable<MapEntry<String, dynamic>>.empty()) {
+    await StorageManager().write(entry.key, entry.value);
+  }
+  for (final entry in setup.initialKeychain?.entries ??
+      const Iterable<MapEntry<String, dynamic>>.empty()) {
+    await StorageManager().writeSecurely(key: entry.key, value: entry.value);
+  }
 }
 
 /// Boots the real Ensemble runtime for widget tests.
@@ -43,6 +58,9 @@ class EnsembleTestHarness {
 
   static void ensureTestPlugins() {
     TestWidgetsFlutterBinding.ensureInitialized();
+    ensureFirebaseCoreMocksForTest();
+    ensureAdobeAnalyticsMocksForTest();
+    HttpOverrides.global = _YamlTestHttpOverrides();
     const pathProviderChannel =
         MethodChannel('plugins.flutter.io/path_provider');
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
@@ -180,11 +198,13 @@ class EnsembleTestHarness {
   final String appPath;
   final String appHome;
   final String? i18nPath;
+  final Map<String, Function>? externalMethods;
 
   EnsembleTestHarness({
     required this.appPath,
     required this.appHome,
     this.i18nPath,
+    this.externalMethods,
   });
 
   static String normalizeAppPath(String path) {
@@ -208,34 +228,75 @@ class EnsembleTestHarness {
     return updated;
   }
 
-  static void installHttpMockProvider(
+  static Future<void> initializeRealApiProviders(EnsembleConfig config) async {
+    await Ensemble.initializeAPIProviders(config);
+    config.apiProviders ??= {};
+    config.apiProviders!.putIfAbsent('http', () => HTTPAPIProvider());
+
+    final firebase = config.apiProviders!['firebase'];
+    if (firebase != null) {
+      config.apiProviders!['firebaseFunction'] = firebase;
+    }
+  }
+
+  /// Wraps real providers with [mock] for call recording and optional overrides.
+  static void installApiMockOverrides(
     EnsembleConfig config,
     MockAPIProvider mock,
   ) {
-    config.apiProviders = {
-      ...?config.apiProviders,
-      'http': mock,
-    };
+    final realProviders = Map<String, APIProvider>.from(
+      config.apiProviders ?? const {},
+    );
+
+    final installed = <String, APIProvider>{};
+    for (final entry in realProviders.entries) {
+      if (entry.key == 'http') {
+        mock.bindHttpDelegate(entry.value as HTTPAPIProvider);
+        installed['http'] = mock;
+        continue;
+      }
+      installed[entry.key] = ApiMockOverlay(mock, entry.value);
+    }
+
+    if (!installed.containsKey('http')) {
+      mock.bindHttpDelegate(HTTPAPIProvider());
+      installed['http'] = mock;
+    }
+
+    final firebase = realProviders['firebase'];
+    if (firebase != null && !installed.containsKey('firebaseFunction')) {
+      installed['firebaseFunction'] =
+          installed['firebase'] ?? ApiMockOverlay(mock, firebase);
+    }
+
+    config.apiProviders = installed;
   }
 
   Future<EnsembleConfig> bootstrapRuntime(
     EnsembleConfig config,
     EnsembleTestSetup setup, {
-    MockAPIProvider? httpMock,
+    MockAPIProvider? apiMockOverlay,
   }) async {
     ensureTestPlugins();
 
-    applyYamlTestBootstrap(config, setup);
+    final env = Map<String, dynamic>.from(config.envOverrides ?? {});
+    env['firebase_app_check'] = 'false';
+    if (setup.envOverrides != null && setup.envOverrides!.isNotEmpty) {
+      env.addAll(setup.envOverrides!);
+    }
+    config.updateEnvOverrides(env);
     Ensemble().setEnsembleConfig(config);
-
-    if (httpMock != null) {
-      installHttpMockProvider(config, httpMock);
+    if (externalMethods != null && externalMethods!.isNotEmpty) {
+      Ensemble().setExternalMethods(externalMethods!);
     }
 
     await Ensemble().initManagers();
+    await initializeRealApiProviders(config);
 
-    config.apiProviders ??= {'http': HTTPAPIProvider()};
-    config.apiProviders!.putIfAbsent('http', () => HTTPAPIProvider());
+    if (apiMockOverlay != null) {
+      installApiMockOverrides(config, apiMockOverlay);
+    }
+    await applyYamlTestStorageBootstrap(setup);
 
     YamlTestSession.markRuntimeBootstrapped();
     return config;
@@ -252,12 +313,13 @@ class EnsembleTestHarness {
     YamlTestSession.navigationFlow.clear();
 
     final ctx = context ?? EnsembleTestContext.fromTestCase(testCase);
+    await _ensureDefaultViewport(tester, ctx);
     var config = existingConfig ?? await buildConfig();
     final bootstrapped = await tester.runAsync(() async {
       return bootstrapRuntime(
         config,
         ctx.setup,
-        httpMock: ctx.mockApiProvider,
+        apiMockOverlay: ctx.mockApiProvider,
       );
     });
     config = bootstrapped!;
@@ -269,8 +331,8 @@ class EnsembleTestHarness {
       );
     }
 
-    // Let EnsembleApp load the bundle through its existing config path, which
-    // preserves the test-installed API providers and avoids real provider init.
+    // Skip re-initializing providers in EnsembleApp.initApp; bootstrapRuntime
+    // already installed real providers and mock overlays.
     config.appBundle = null;
     await tester.pumpWidget(
       EnsembleApp(
@@ -281,6 +343,17 @@ class EnsembleTestHarness {
 
     await waitForInitialWidgets(tester, testCase: testCase);
     return config;
+  }
+
+  static Future<void> _ensureDefaultViewport(
+    WidgetTester tester,
+    EnsembleTestContext context,
+  ) async {
+    if (context.runtime.deviceSize != null) return;
+    const size = Size(800, 844);
+    tester.view.physicalSize = size;
+    tester.view.devicePixelRatio = 1.0;
+    context.runtime.deviceSize = size;
   }
 
   static Future<void> waitForInitialWidgets(
@@ -324,21 +397,122 @@ class EnsembleTestHarness {
     });
   }
 
-  static void applyInPlaceSetup(EnsembleTestContext ctx) {
+  static Future<void> applyInPlaceSetup(EnsembleTestContext ctx) async {
     final config = Ensemble().getConfig();
     if (config != null) {
-      applyYamlTestBootstrap(config, ctx.setup);
+      await applyYamlTestBootstrap(config, ctx.setup);
     }
     ctx.applyRuntimeEnv();
     for (final entry in ctx.testCase.mocks.apis.entries) {
       ctx.mockApiProvider.setMock(entry.key, entry.value);
     }
-    if (config != null) {
-      installHttpMockProvider(config, ctx.mockApiProvider);
+    if (config != null && config.apiProviders?['http'] is! MockAPIProvider) {
+      installApiMockOverrides(config, ctx.mockApiProvider);
     }
   }
 
   static void resetTestRuntime() {
     YamlTestSession.reset();
+  }
+}
+
+class _YamlTestHttpOverrides extends HttpOverrides {
+  @override
+  HttpClient createHttpClient(SecurityContext? context) {
+    final client = super.createHttpClient(context);
+    client.connectionFactory = (
+      Uri uri,
+      String? proxyHost,
+      int? proxyPort,
+    ) {
+      // HTTP to local gateways (e.g. instellen.local) uses filtered DNS so mDNS
+      // does not prefer loopback. All HTTPS uses the platform connector so TLS
+      // handshakes (cloud APIs and local gateway cert capture) work normally.
+      if (uri.scheme == 'https') {
+        return _platformDefaultConnection(uri, proxyHost, proxyPort);
+      }
+      return _connectWithoutStaggeredLookup(uri, proxyHost, proxyPort);
+    };
+    return client;
+  }
+
+  static Future<ConnectionTask<Socket>> _platformDefaultConnection(
+    Uri uri,
+    String? proxyHost,
+    int? proxyPort,
+  ) async {
+    final savedOverrides = HttpOverrides.current;
+    HttpOverrides.global = null;
+    try {
+      return Socket.startConnect(proxyHost ?? uri.host, proxyPort ?? uri.port);
+    } finally {
+      HttpOverrides.global = savedOverrides;
+    }
+  }
+
+  static Future<ConnectionTask<Socket>> _connectWithoutStaggeredLookup(
+    Uri uri,
+    String? proxyHost,
+    int? proxyPort,
+  ) async {
+    final host = proxyHost ?? uri.host;
+    final port = proxyPort ?? uri.port;
+    final addresses = _usableAddresses(
+      host,
+      await InternetAddress.lookup(host),
+    );
+    if (addresses.isEmpty) {
+      throw const SocketException('No addresses resolved');
+    }
+    var cancelled = false;
+    final socket = _connectToFirstAvailableAddress(
+      addresses,
+      port,
+      isCancelled: () => cancelled,
+    );
+    return ConnectionTask.fromSocket(
+      socket,
+      () {
+        cancelled = true;
+      },
+    );
+  }
+
+  /// Dart's [InternetAddress.lookup] can return loopback before LAN IPs for
+  /// mDNS names like `instellen.local`, causing slow connection-refused retries.
+  static List<InternetAddress> _usableAddresses(
+    String host,
+    List<InternetAddress> addresses,
+  ) {
+    if (host == 'localhost' || host == '127.0.0.1' || host == '::1') {
+      return addresses;
+    }
+    final filtered =
+        addresses.where((address) => !address.isLoopback).toList();
+    return filtered.isEmpty ? addresses : filtered;
+  }
+
+  static Future<Socket> _connectToFirstAvailableAddress(
+    List<InternetAddress> addresses,
+    int port, {
+    required bool Function() isCancelled,
+  }) async {
+    Object? lastError;
+    StackTrace? lastStackTrace;
+    for (final address in addresses) {
+      if (isCancelled()) {
+        throw const SocketException('Connection attempt cancelled');
+      }
+      try {
+        return await Socket.connect(address, port);
+      } catch (error, stackTrace) {
+        lastError = error;
+        lastStackTrace = stackTrace;
+      }
+    }
+    Error.throwWithStackTrace(
+      lastError ?? const SocketException('Connection failed'),
+      lastStackTrace ?? StackTrace.current,
+    );
   }
 }

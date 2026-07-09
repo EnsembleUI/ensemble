@@ -30,9 +30,17 @@ dependencies:
     sdk: flutter
   yaml: ^3.1.2
   path: ^1.9.0
+  firebase_core_platform_interface: ^7.0.1
+  cloud_functions_platform_interface: ^6.0.1
+  cloud_firestore_platform_interface: ^8.0.1
+  firebase_auth_platform_interface: ^9.0.3
+  http: ^1.2.2
+  get_it: ^8.0.3
 
 dev_dependencies:
   flutter_lints: ^2.0.3
+  cloud_functions: ^6.0.3
+  firebase_auth: ^6.5.4
 
 flutter:
   uses-material-design: true

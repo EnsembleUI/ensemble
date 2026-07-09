@@ -47,6 +47,31 @@ steps:
       );
     });
 
+    test('parses initial keychain state', () {
+      const yaml = '''
+id: resumes_session
+startScreen: Login
+initialState:
+  storage:
+    languageSet: true
+  keychain:
+    kpnPsi: test-psi
+    authPayload:
+      token: abc
+steps:
+  - expectVisible:
+      id: login_button
+''';
+
+      final test = EnsembleTestParser.parseString(yaml);
+      expect(test.initialState['keychain'], isA<Map>());
+      expect((test.initialState['keychain'] as Map)['kpnPsi'], 'test-psi');
+      expect(
+        ((test.initialState['keychain'] as Map)['authPayload'] as Map)['token'],
+        'abc',
+      );
+    });
+
     test('parses AI-friendly metadata fields', () {
       const yaml = '''
 id: login_valid

@@ -2,11 +2,14 @@ import 'dart:async';
 
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/screen_tracker.dart';
+import 'package:ensemble_test_runner/runner/live_async_call.dart';
 
 /// Records screen visits for YAML tests (including back-navigation revisits).
 class NavigationFlowRecorder {
   final List<String> _flow = [];
   StreamSubscription<VisibleScreen?>? _subscription;
+  VisibleScreen? _pendingScreen;
+  bool _flushScheduled = false;
 
   List<String> get flow => List.unmodifiable(_flow);
 
@@ -15,7 +18,11 @@ class NavigationFlowRecorder {
     _subscription = ScreenTracker().onScreenChange.listen(_onScreenChange);
   }
 
-  void clear() => _flow.clear();
+  void clear() {
+    _flow.clear();
+    _pendingScreen = null;
+    _flushScheduled = false;
+  }
 
   /// For unit tests only.
   void seed(Iterable<String> names) {
@@ -34,6 +41,24 @@ class NavigationFlowRecorder {
   void recordScreenChange(VisibleScreen? screen) => _onScreenChange(screen);
 
   void _onScreenChange(VisibleScreen? screen) {
+    if (screen == null) return;
+    _pendingScreen = screen;
+    if (_flushScheduled) return;
+    _flushScheduled = true;
+    scheduleMicrotask(_flushPendingScreen);
+  }
+
+  Future<void> flushPending() async {
+    await Future<void>.microtask(() {});
+    if (_flushScheduled) {
+      _flushPendingScreen();
+    }
+  }
+
+  void _flushPendingScreen() {
+    _flushScheduled = false;
+    final screen = _pendingScreen;
+    _pendingScreen = null;
     if (screen == null) return;
     final name = screen.screenName ?? screen.screenId;
     if (name == null) return;
@@ -59,6 +84,7 @@ class YamlTestSession {
   static void reset() {
     runtimeBootstrapped = false;
     navigationFlow.clear();
+    LiveAsyncCallSupport.reset();
     Ensemble.resetInitManagersForTest();
   }
 

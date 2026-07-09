@@ -6,6 +6,7 @@ import 'dart:io';
 
 import 'package:ensemble_test_runner/discovery/ensemble_test_execution_planner.dart';
 import 'package:ensemble_test_runner/ensemble_test_runner.dart';
+import 'package:ensemble_test_runner/mocks/firebase_test_setup.dart';
 import 'package:ensemble_test_runner/runner/test_runtime_state.dart';
 import 'package:ensemble_test_runner/runner/yaml_test_session.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -16,8 +17,52 @@ const _timeoutSeconds = int.fromEnvironment(
   defaultValue: _defaultTimeoutSeconds,
 );
 
+/// Options for [runEnsembleYamlTests], typically set from `test/ensemble_tests.dart`.
+class EnsembleYamlTestOptions {
+  /// App bootstrap, typically `() => EnsembleModules().init()` from
+  /// `lib/generated/ensemble_modules.dart` (same as `main.dart`).
+  final Future<void> Function()? bootstrap;
+
+  /// Host-app methods passed to [EnsembleApp], e.g. `captureCertificateForHost`.
+  final Map<String, Function>? externalMethods;
+
+  const EnsembleYamlTestOptions({
+    this.bootstrap,
+    this.externalMethods,
+  });
+}
+
 /// Flutter test entry: discovers app-local `tests/*.test.yaml` and runs them.
-void runEnsembleYamlTests() {
+///
+/// Mirror `main.dart` from `test/ensemble_tests.dart`:
+/// ```dart
+/// import 'package:my_app/generated/ensemble_modules.dart';
+///
+/// Future<void> main() async {
+///   await runEnsembleYamlTests(
+///     bootstrap: () => EnsembleModules().init(),
+///     externalMethods: {
+///       'captureCertificateForHost': captureCertificateForHost,
+///     },
+///   );
+/// }
+/// ```
+Future<void> runEnsembleYamlTests({
+  Future<void> Function()? bootstrap,
+  Map<String, Function>? externalMethods,
+}) {
+  return runEnsembleYamlTestsWithOptions(
+    EnsembleYamlTestOptions(
+      bootstrap: bootstrap,
+      externalMethods: externalMethods,
+    ),
+  );
+}
+
+/// Same as [runEnsembleYamlTests] with an explicit options object.
+Future<void> runEnsembleYamlTestsWithOptions(
+  EnsembleYamlTestOptions options,
+) async {
   EnsembleTestHarness.ensureTestPlugins();
   tearDown(() {
     TestErrorTracker.reset();
@@ -28,6 +73,21 @@ void runEnsembleYamlTests() {
   testWidgets(
     'Ensemble app *.test.yaml',
     (tester) async {
+      if (options.bootstrap == null) {
+        fail(
+          'Ensemble YAML tests require module bootstrap. '
+          'In test/ensemble_tests.dart call runEnsembleYamlTests with '
+          'bootstrap: () => EnsembleModules().init() '
+          '(see ensemble_test_runner README).',
+        );
+      }
+      await tester.runAsync(() async {
+        await options.bootstrap!();
+        ensureLiveAuthActionsForTest();
+        // Module constructors may schedule follow-up async init work.
+        await Future<void>.delayed(Duration.zero);
+      });
+
       final target = await EnsembleTestDiscovery.loadAppTarget();
       final plan = await EnsembleTestExecutionPlanner.build(
         target: target,
@@ -37,10 +97,13 @@ void runEnsembleYamlTests() {
         appPath: target.appPath,
         appHome: target.appHome,
         i18nPath: target.i18nPath,
+        externalMethods: options.externalMethods,
       );
 
       final runner = EnsembleTestRunner(harness: harness);
       final resultsById = await runner.runPlan(plan, tester);
+      await YamlTestSession.navigationFlow.flushPending();
+      await tester.pump();
 
       final failures = <String>[];
       final orderedResults = <EnsembleSingleTestResult>[];
