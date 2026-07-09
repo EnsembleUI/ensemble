@@ -1,9 +1,7 @@
-import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/apiproviders/firebase_functions/firebase_functions_api_provider.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/event.dart';
-import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/storage_manager.dart';
 import 'package:ensemble/framework/stub/auth_context_manager.dart';
 import 'package:ensemble/screen_controller.dart';

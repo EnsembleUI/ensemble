@@ -22,7 +22,7 @@ Official step catalog for app-local `tests/*.test.yaml` files, for example `ense
 `scroll`, `scrollUntilVisible`, `swipe`, `drag`, `pullToRefresh`
 
 ### Wait / sync
-`wait` (alias `pump`), `pump`, `settle`, `waitFor`, `waitForText`, `waitForGone`, `waitForApi`, `waitForNavigation`, `waitUntil`
+`wait` (alias `pump`), `pump`, `settle`, `waitFor`, `waitForText`, `waitForGone`, `waitForApi`, `waitForNavigation`
 
 ### UI assertions
 `expectVisible`, `expectNotVisible`, `expectExists`, `expectNotExists`, `expectText`, `expectNoText`, `expectTextContains`, `expectEnabled`, `expectDisabled`
@@ -36,11 +36,11 @@ Official step catalog for app-local `tests/*.test.yaml` files, for example `ense
 ### API mock / assert
 `mockApi`, `mockApiError`, `mockApiFromFixture`, `mockApiException`, `mockTimeout`, `resetApiCalls`, `clearApiMocks`, `expectApiCalled`, `expectApiNotCalled`, `expectApiCallOrder`, `expectLastApiCall`, `logApiCalls`
 
-### State / storage / runtime
-`setState`, `expectState`, `expectStateContains`, `expectStateExists`, `expectStateNotExists`, `resetState`, `setStorage`, `expectStorage`, `removeStorage`, `clearStorage`, `setEnv`, `setAuth`, `clearAuth`, `setPermission`, `setDevice`, `setLocale`, `setTheme`
+### Storage / runtime
+`setStorage`, `expectStorage`, `removeStorage`, `clearStorage`, `setEnv`, `setAuth`, `clearAuth`, `setPermission`, `setDevice`, `setLocale`, `setTheme`
 
 ### Scripts / fixtures / debug / quality
-`runScript`, `expectScript`, `expectScriptResult`, `expectConsoleLog`, `loadFixture`, `setStateFromFixture`, `expectMatchesFixture`, `logState`, `logStorage`, `screenshot`, `dumpTree`, `expectNoConsoleErrors`, `expectNoRenderErrors`, `expectError`, `expectNoErrors`, `expectAccessible`, `expectSemanticsLabel`, `expectNoOverflow`
+`runScript`, `expectScript`, `expectScriptResult`, `expectConsoleLog`, `logStorage`, `screenshot`, `dumpTree`, `expectNoConsoleErrors`, `expectNoRenderErrors`, `expectError`, `expectNoErrors`, `expectAccessible`, `expectSemanticsLabel`, `expectNoOverflow`
 
 ### Control flow
 `group`, `repeat`, `optional`, `ifVisible`

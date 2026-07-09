@@ -6,7 +6,6 @@ import 'package:ensemble/framework/screen_tracker.dart';
 import 'package:ensemble/framework/storage_manager.dart';
 import 'package:ensemble/framework/view/data_scope_widget.dart';
 import 'package:ensemble/framework/view/page_group.dart';
-import 'package:ensemble_test_runner/mocks/test_api_provider_overlay.dart';
 import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
 import 'package:ensemble_test_runner/runner/ensemble_test_context.dart';
 import 'package:ensemble_test_runner/runner/yaml_test_session.dart';
@@ -315,34 +314,6 @@ class AssertionEngine {
     }
   }
 
-  void expectStateContains(String path, dynamic contains) {
-    final actual = readState(path);
-    if (!_deepContains(actual, contains)) {
-      throw EnsembleTestFailure(
-        'Expected state "$path" to contain $contains, got $actual.',
-      );
-    }
-  }
-
-  void expectStateExists(String path) {
-    try {
-      readState(path);
-    } catch (_) {
-      throw EnsembleTestFailure('Expected state path "$path" to exist.');
-    }
-  }
-
-  void expectStateNotExists(String path) {
-    try {
-      final value = readState(path);
-      if (value != null) {
-        throw EnsembleTestFailure('Expected state path "$path" to be absent.');
-      }
-    } on EnsembleTestFailure {
-      // expected
-    }
-  }
-
   void expectConsoleLog(String contains) {
     final logs = context.runtime.consoleLogs;
     if (!logs.any((l) => l.contains(contains))) {
@@ -412,45 +383,6 @@ class AssertionEngine {
     }
   }
 
-  APICallRecord _selectApiCall(String apiName, {int? times}) {
-    final calls = context.apiOverlay.callsFor(apiName);
-    if (calls.isEmpty) {
-      throw EnsembleTestFailure('Expected API "$apiName" to be called.');
-    }
-    if (times != null) {
-      if (times < 1 || times > calls.length) {
-        throw EnsembleTestFailure(
-          'Expected API "$apiName" call #$times, but it was called ${calls.length} times.',
-        );
-      }
-      return calls[times - 1];
-    }
-    return calls.last;
-  }
-
-  /// Reads a data-context path without asserting.
-  dynamic readState(String path) {
-    final scope = _activeScope();
-    if (scope == null) {
-      throw EnsembleTestFailure(
-        'readState requires an active Ensemble screen (no ScopeManager found).',
-      );
-    }
-    if (path.contains(r'${') || path.contains(r'$(')) {
-      return scope.dataContext.eval(path);
-    }
-    return scope.dataContext.eval('\${$path}');
-  }
-
-  bool matchesState(String path, dynamic expected) {
-    try {
-      expectState(path, expected);
-      return true;
-    } on EnsembleTestFailure {
-      return false;
-    }
-  }
-
   void expectStorage(String key, dynamic expected) {
     final actual = StorageManager().read(key);
     if (actual != expected) {
@@ -461,28 +393,6 @@ class AssertionEngine {
   }
 
   ScopeManager? activeScope() => _activeScope();
-
-  void expectState(String path, dynamic expected) {
-    final scope = _activeScope();
-    if (scope == null) {
-      throw EnsembleTestFailure(
-        'expectState requires an active Ensemble screen (no ScopeManager found).',
-      );
-    }
-
-    dynamic actual;
-    if (path.contains(r'${') || path.contains(r'$(')) {
-      actual = scope.dataContext.eval(path);
-    } else {
-      actual = scope.dataContext.eval('\${$path}');
-    }
-
-    if (!_deepEquals(actual, expected)) {
-      throw EnsembleTestFailure(
-        'Expected state "$path" to equal "$expected", but got "$actual".',
-      );
-    }
-  }
 
   void expectNavigateTo(String screenName) {
     final tracker = ScreenTracker();
@@ -544,37 +454,6 @@ class AssertionEngine {
       if (scope != null) return scope;
     }
     return null;
-  }
-
-  /// True when [subset] is contained in [value] (maps/lists recurse).
-  bool _deepContains(dynamic value, dynamic subset) {
-    if (subset == null) return true;
-    if (value == null) return false;
-
-    final normalizedValue = _normalizeForCompare(value);
-    final normalizedSubset = _normalizeForCompare(subset);
-
-    if (normalizedSubset is Map) {
-      if (normalizedValue is! Map) return false;
-      for (final entry in normalizedSubset.entries) {
-        if (!normalizedValue.containsKey(entry.key)) return false;
-        if (!_deepContains(normalizedValue[entry.key], entry.value)) {
-          return false;
-        }
-      }
-      return true;
-    }
-
-    if (normalizedSubset is List) {
-      if (normalizedValue is! List) return false;
-      for (final item in normalizedSubset) {
-        final found = normalizedValue.any((v) => _deepContains(v, item));
-        if (!found) return false;
-      }
-      return true;
-    }
-
-    return normalizedValue == normalizedSubset;
   }
 
   bool _deepEquals(dynamic a, dynamic b) {

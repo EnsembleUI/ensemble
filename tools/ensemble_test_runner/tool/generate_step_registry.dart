@@ -237,12 +237,6 @@ void main() {
       'waitForNavigation',
       'Poll until the given screen is visible',
     ),
-    'waitUntil': step(
-      'wait',
-      'core',
-      'waitUntil',
-      'Poll until app state at path equals expected value',
-    ),
     'expectVisible': step(
       'uiAssertion',
       'core',
@@ -471,42 +465,6 @@ void main() {
       'apiName',
       'Assert the most recent API call name',
     ),
-    'setState': step(
-      'state',
-      'core',
-      'setState',
-      'Set app data-context state at path to value',
-    ),
-    'expectState': step(
-      'state',
-      'core',
-      'expectState',
-      'Assert app state at path equals expected',
-    ),
-    'expectStateContains': step(
-      'state',
-      'core',
-      'expectState',
-      'Assert app state at path contains subset',
-    ),
-    'expectStateExists': step(
-      'state',
-      'core',
-      'expectStatePath',
-      'Assert state path resolves without error',
-    ),
-    'expectStateNotExists': step(
-      'state',
-      'core',
-      'expectStatePath',
-      'Assert state path is null or absent',
-    ),
-    'resetState': step(
-      'state',
-      'core',
-      'resetStatePath',
-      'Clear state at path (set to null)',
-    ),
     'setStorage': step(
       'storage',
       'core',
@@ -633,12 +591,6 @@ void main() {
       'empty',
       'Print the widget tree to the debug console',
     ),
-    'logState': step(
-      'debug',
-      'core',
-      'expectStatePath',
-      'Log resolved state at path',
-    ),
     'logStorage': step(
       'debug',
       'core',
@@ -686,24 +638,6 @@ void main() {
       'core',
       'idRequired',
       'Assert widget renders without overflow issues',
-    ),
-    'loadFixture': step(
-      'fixture',
-      'core',
-      'fixturePath',
-      'Load a JSON fixture into the test fixture map',
-    ),
-    'setStateFromFixture': step(
-      'fixture',
-      'core',
-      'fixturePath',
-      'Apply all keys from a JSON fixture to state',
-    ),
-    'expectMatchesFixture': step(
-      'fixture',
-      'core',
-      'fixturePath',
-      'Assert state or path matches a JSON fixture',
     ),
   };
 
@@ -823,8 +757,6 @@ Map<String, dynamic> defaultExampleForArg(String arg) {
       return {'id': 'loading_spinner', 'timeoutMs': 5000};
     case 'waitForNavigation':
       return {'screen': 'Home', 'timeoutMs': 5000};
-    case 'waitUntil':
-      return {'path': 'user.name', 'equals': 'Jane'};
     case 'textRequired':
       return {'text': 'Welcome'};
     case 'expectEquals':
@@ -863,10 +795,6 @@ Map<String, dynamic> defaultExampleForArg(String arg) {
       return {'name': 'slow_api', 'delayMs': 60000};
     case 'apiName':
       return {'name': 'login', 'times': 1};
-    case 'setState':
-      return {'path': 'user.name', 'value': 'Jane'};
-    case 'expectState':
-      return {'path': 'user.name', 'equals': 'Jane'};
     case 'storageKey':
       return {'key': 'onboarding_done', 'value': true};
     case 'optionalStorageKey':
@@ -908,10 +836,6 @@ Map<String, dynamic> defaultExampleForArg(String arg) {
       };
     case 'screenshot':
       return {'name': 'home_screen'};
-    case 'expectStatePath':
-      return {'path': 'user.id'};
-    case 'resetStatePath':
-      return {'path': 'cart'};
     case 'setAuth':
       return {
         'user': {'id': '1', 'email': 'user@test.com'},
@@ -930,8 +854,6 @@ Map<String, dynamic> defaultExampleForArg(String arg) {
       return {'contains': 'Screen loaded'};
     case 'expectErrorContains':
       return {'contains': 'overflow'};
-    case 'fixturePath':
-      return {'fixture': 'fixtures/user.json'};
     case 'expectApiCallOrder':
       return {
         'names': ['auth', 'profile']

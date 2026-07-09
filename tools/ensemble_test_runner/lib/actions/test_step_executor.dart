@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/screen_tracker.dart';
 import 'package:ensemble_test_runner/actions/extended_step_handlers.dart';
-import 'package:ensemble_test_runner/actions/state_helper.dart';
 import 'package:ensemble_test_runner/actions/test_execution_config.dart';
 import 'package:ensemble_test_runner/assertions/assertion_engine.dart';
 import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
@@ -109,21 +108,6 @@ class TestStepExecutor {
         }
         await _waitForNavigation(
           screen: screen,
-          timeoutMs: step.args['timeoutMs'] as int? ??
-              config.defaultWaitTimeout.inMilliseconds,
-        );
-        return;
-      case 'waitUntil':
-        String? statePath = step.args['path']?.toString();
-        dynamic expected = step.args['equals'];
-        final stateNode = step.args['state'];
-        if (stateNode is Map) {
-          statePath ??= stateNode['path']?.toString();
-          expected ??= stateNode['equals'];
-        }
-        await _waitUntil(
-          path: statePath,
-          expected: expected,
           timeoutMs: step.args['timeoutMs'] as int? ??
               config.defaultWaitTimeout.inMilliseconds,
         );
@@ -273,26 +257,6 @@ class TestStepExecutor {
           throw EnsembleTestFailure('expectStorage requires "key"');
         }
         assertions.expectStorage(key, step.args['equals']);
-        break;
-      case 'expectState':
-        final path = step.args['path']?.toString();
-        if (path == null) {
-          throw EnsembleTestFailure('expectState requires "path"');
-        }
-        assertions.expectState(path, step.args['equals']);
-        break;
-      case 'setState':
-        final path = step.args['path']?.toString();
-        if (path == null) {
-          throw EnsembleTestFailure('setState requires "path"');
-        }
-        final scope = assertions.activeScope();
-        if (scope == null) {
-          throw EnsembleTestFailure(
-            'setState requires an active Ensemble screen.',
-          );
-        }
-        setStatePath(scope, path, step.args['value']);
         break;
       case 'setStorage':
         final key = step.args['key']?.toString();
@@ -616,28 +580,6 @@ class TestStepExecutor {
     }
     throw EnsembleTestFailure(
       'Timed out after ${timeoutMs}ms waiting for navigation to "$screen"',
-    );
-  }
-
-  Future<void> _waitUntil({
-    String? path,
-    dynamic expected,
-    required int timeoutMs,
-  }) async {
-    if (path == null || path.isEmpty) {
-      throw EnsembleTestFailure('waitUntil requires "path"');
-    }
-
-    final stopwatch = Stopwatch()..start();
-    while (stopwatch.elapsedMilliseconds < timeoutMs) {
-      await tester.pump(config.waitPollInterval);
-      if (assertions.matchesState(path, expected)) {
-        return;
-      }
-    }
-    throw EnsembleTestFailure(
-      'Timed out after ${timeoutMs}ms waiting for state "$path" '
-      'to equal "$expected"',
     );
   }
 

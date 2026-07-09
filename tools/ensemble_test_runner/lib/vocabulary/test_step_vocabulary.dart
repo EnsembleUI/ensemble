@@ -21,7 +21,6 @@ enum TestStepCategory {
   navigation,
   apiMock,
   apiAssertion,
-  state,
   storage,
   runtime,
   script,

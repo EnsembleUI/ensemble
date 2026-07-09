@@ -1,11 +1,9 @@
 import 'dart:convert';
 
 import 'package:ensemble/action/navigation_action.dart';
-import 'package:ensemble/framework/bindings.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/framework/screen_tracker.dart';
 import 'package:ensemble/framework/storage_manager.dart';
-import 'package:ensemble_test_runner/actions/state_helper.dart';
 import 'package:ensemble_test_runner/actions/test_step_executor.dart';
 import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
 import 'package:ensemble_test_runner/runner/ensemble_test_harness.dart';
@@ -201,24 +199,6 @@ class ExtendedStepHandlers {
       case 'clearStorage':
         await executor.context.clearStorage();
         return true;
-      case 'expectStateContains':
-        executor.assertions.expectStateContains(
-          step.args['path']?.toString() ?? '',
-          step.args['contains'],
-        );
-        return true;
-      case 'expectStateExists':
-        executor.assertions
-            .expectStateExists(step.args['path']?.toString() ?? '');
-        return true;
-      case 'expectStateNotExists':
-        executor.assertions.expectStateNotExists(
-          step.args['path']?.toString() ?? '',
-        );
-        return true;
-      case 'resetState':
-        await _resetState(executor, step);
-        return true;
       case 'setAuth':
         _setAuth(executor, step);
         return true;
@@ -247,20 +227,6 @@ class ExtendedStepHandlers {
       case 'expectConsoleLog':
         executor.assertions
             .expectConsoleLog(step.args['contains']?.toString() ?? '');
-        return true;
-      case 'loadFixture':
-        await _loadFixture(executor, step);
-        return true;
-      case 'setStateFromFixture':
-        await _setStateFromFixture(executor, step);
-        return true;
-      case 'expectMatchesFixture':
-        await _expectMatchesFixture(executor, step);
-        return true;
-      case 'logState':
-        executor.context.logger.log(
-          'state: ${executor.assertions.readState(step.args['path']?.toString() ?? '')}',
-        );
         return true;
       case 'logStorage':
         final key = step.args['key']?.toString();
@@ -620,75 +586,6 @@ class ExtendedStepHandlers {
     candidates.add(path);
     if (!path.startsWith('ensemble/')) candidates.add('ensemble/$path');
     return candidates.toSet().toList();
-  }
-
-  static Future<void> _loadFixture(TestStepExecutor e, TestStep step) async {
-    final key = step.args['key']?.toString();
-    final path =
-        step.args['path']?.toString() ?? step.args['fixture']?.toString();
-    if (key == null || path == null) {
-      throw EnsembleTestFailure('loadFixture requires "key" and "path"');
-    }
-    e.context.runtime.fixtures[key] = await _readFixture(e, path);
-  }
-
-  static Future<void> _setStateFromFixture(
-      TestStepExecutor e, TestStep step) async {
-    final path =
-        step.args['fixture']?.toString() ?? step.args['path']?.toString();
-    if (path == null) {
-      throw EnsembleTestFailure(
-          'setStateFromFixture requires "fixture" or "path"');
-    }
-    final data = await _readFixture(e, path);
-    if (data is! Map) {
-      throw EnsembleTestFailure('Fixture must be a JSON object');
-    }
-    final scope = e.assertions.activeScope();
-    if (scope == null) {
-      throw EnsembleTestFailure('setStateFromFixture requires active screen');
-    }
-    for (final entry in data.entries) {
-      setStatePath(scope, entry.key.toString(), entry.value);
-    }
-    await e.settle();
-  }
-
-  static Future<void> _expectMatchesFixture(
-    TestStepExecutor e,
-    TestStep step,
-  ) async {
-    final path =
-        step.args['fixture']?.toString() ?? step.args['path']?.toString();
-    final statePath = step.args['statePath']?.toString();
-    if (path == null) {
-      throw EnsembleTestFailure(
-          'expectMatchesFixture requires "fixture" or "path"');
-    }
-    final expected = await _readFixture(e, path);
-    if (statePath != null) {
-      e.assertions.expectState(statePath, expected);
-    } else {
-      final actual =
-          e.assertions.readState(step.args['path']?.toString() ?? '');
-      if (!_deepEquals(actual, expected)) {
-        throw EnsembleTestFailure(
-          'State does not match fixture $path: expected $expected, got $actual',
-        );
-      }
-    }
-  }
-
-  static Future<void> _resetState(TestStepExecutor e, TestStep step) async {
-    final path = step.args['path']?.toString();
-    final scope = e.assertions.activeScope();
-    if (scope == null) {
-      throw EnsembleTestFailure('resetState requires active screen');
-    }
-    if (path != null) {
-      setStatePath(scope, path, null);
-    }
-    await e.settle();
   }
 
   static Future<void> _screenshot(TestStepExecutor e, TestStep step) async {

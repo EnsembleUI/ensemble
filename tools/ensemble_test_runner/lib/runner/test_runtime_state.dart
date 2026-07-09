@@ -11,7 +11,6 @@ class TestRuntimeState {
   Size? deviceSize;
   Locale? locale;
   String? themeMode;
-  final Map<String, dynamic> fixtures = {};
 
   void clear() {
     networkOffline = false;
@@ -22,7 +21,6 @@ class TestRuntimeState {
     deviceSize = null;
     locale = null;
     themeMode = null;
-    fixtures.clear();
   }
 }
 
