@@ -24,6 +24,13 @@ class NavigationFlowRecorder {
     _flushScheduled = false;
   }
 
+  void beginTest(String? currentScreen) {
+    clear();
+    if (currentScreen != null && currentScreen.isNotEmpty) {
+      _flow.add(currentScreen);
+    }
+  }
+
   /// For unit tests only.
   void seed(Iterable<String> names) {
     _flow

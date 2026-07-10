@@ -1,3 +1,4 @@
+import 'package:ensemble/framework/screen_tracker.dart';
 import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
 import 'package:ensemble_test_runner/runner/yaml_test_session.dart';
 import 'package:ensemble_test_runner/reporters/test_reporter.dart';
@@ -28,6 +29,41 @@ void main() {
       expect(
         collectScreensVisited('Hello Home'),
         ['Hello Home', 'Goodbye', 'Hello Home'],
+      );
+    });
+
+    test('beginTest starts a fresh report flow for continuation tests',
+        () async {
+      YamlTestSession.navigationFlow.seed([
+        'Login',
+        'InitApp',
+        'AutoSignIn',
+        'AutoSignIn_Gateway',
+        'Home',
+      ]);
+
+      YamlTestSession.navigationFlow.beginTest('Home');
+      YamlTestSession.navigationFlow.recordScreenChange(
+        VisibleScreen(screenName: 'Devices', visibleSince: DateTime.now()),
+      );
+      await YamlTestSession.navigationFlow.flushPending();
+      YamlTestSession.navigationFlow.recordScreenChange(
+        VisibleScreen(screenName: 'Home', visibleSince: DateTime.now()),
+      );
+      await YamlTestSession.navigationFlow.flushPending();
+      YamlTestSession.navigationFlow.recordScreenChange(
+        VisibleScreen(
+            screenName: 'Settings_Wifi', visibleSince: DateTime.now()),
+      );
+      await YamlTestSession.navigationFlow.flushPending();
+      YamlTestSession.navigationFlow.recordScreenChange(
+        VisibleScreen(screenName: 'Home', visibleSince: DateTime.now()),
+      );
+      await YamlTestSession.navigationFlow.flushPending();
+
+      expect(
+        collectScreensVisited('Home'),
+        ['Home', 'Devices', 'Home', 'Settings_Wifi', 'Home'],
       );
     });
   });

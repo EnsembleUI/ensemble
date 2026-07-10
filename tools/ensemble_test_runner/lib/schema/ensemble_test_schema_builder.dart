@@ -36,6 +36,7 @@ class EnsembleTestSchemaBuilder {
         'additionalProperties': false,
         'properties': {
           'storage': {'type': 'object', 'additionalProperties': true},
+          'keychain': {'type': 'object', 'additionalProperties': true},
           'env': {'type': 'object', 'additionalProperties': true},
         },
       },

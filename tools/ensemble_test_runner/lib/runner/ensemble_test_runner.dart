@@ -1,4 +1,5 @@
 import 'package:ensemble/ensemble.dart';
+import 'package:ensemble/framework/screen_tracker.dart';
 import 'package:ensemble_test_runner/actions/test_step_executor.dart';
 import 'package:ensemble_test_runner/assertions/assertion_engine.dart';
 import 'package:ensemble_test_runner/discovery/ensemble_test_execution_planner.dart';
@@ -101,6 +102,10 @@ class EnsembleTestRunner {
           context: ctx,
         );
       }
+      await YamlTestSession.navigationFlow.flushPending();
+      YamlTestSession.navigationFlow.beginTest(
+        ScreenTracker().getCurrentScreenIdentifier(),
+      );
 
       final result = await _executeSteps(
         test: test,

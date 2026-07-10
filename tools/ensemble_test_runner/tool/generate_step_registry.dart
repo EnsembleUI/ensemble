@@ -193,7 +193,7 @@ void main() {
       'wait',
       'extended',
       'pump',
-      'Alias for pump — advance frame clock by durationMs',
+      'Real-time delay using runAsync, followed by a frame pump',
     ),
     'pump': step(
       'wait',
@@ -644,7 +644,6 @@ void main() {
   const executorAliases = <String, String>{
     'waitForText': 'waitFor',
     'expectScreen': 'expectNavigateTo',
-    'wait': 'pump',
     'launchApp': 'restartApp',
     'expectScript': 'expectScriptResult',
   };

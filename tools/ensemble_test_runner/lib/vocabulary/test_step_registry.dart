@@ -234,9 +234,8 @@ abstract final class TestStepRegistry {
       category: TestStepCategory.wait,
       tier: TestStepTier.extended,
       argKind: TestStepArgKind.pump,
-      description: 'Alias for pump — advance frame clock by durationMs',
+      description: 'Real-time delay using runAsync, followed by a frame pump',
       example: const {'durationMs': 100},
-      executorCanonical: 'pump',
     ),
     'pump': TestStepRegistryEntry(
       category: TestStepCategory.wait,

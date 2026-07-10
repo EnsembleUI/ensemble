@@ -11,12 +11,10 @@ void main() {
     final stepDef = schema['\$defs']['step'] as Map<String, dynamic>;
     final oneOf = stepDef['oneOf'] as List<dynamic>;
 
-    final yamlKeys = oneOf
-        .map((e) {
-          final props = (e as Map)['properties'] as Map;
-          return props.keys.first as String;
-        })
-        .toSet();
+    final yamlKeys = oneOf.map((e) {
+      final props = (e as Map)['properties'] as Map;
+      return props.keys.first as String;
+    }).toSet();
 
     for (final name in TestStepRegistry.entries.keys) {
       expect(yamlKeys, contains(name), reason: 'missing step $name in schema');
@@ -38,7 +36,9 @@ void main() {
     }
   });
 
-  test('generated JSON is valid and requires id, steps with XOR start/prerequisite', () {
+  test(
+      'generated JSON is valid and requires id, steps with XOR start/prerequisite',
+      () {
     final json = EnsembleTestSchemaBuilder.buildJson();
     final decoded = jsonDecode(json) as Map<String, dynamic>;
     expect(decoded['\$schema'], EnsembleTestSchemaBuilder.schemaVersion);
@@ -49,5 +49,20 @@ void main() {
     expect(decoded['properties'], contains('startScreen'));
     expect(decoded['properties'], contains('prerequisite'));
     expect(decoded['oneOf'], isA<List>());
+  });
+
+  test('initialState schema accepts storage, keychain, and env maps', () {
+    final schema = EnsembleTestSchemaBuilder.build();
+    final initialState =
+        schema['\$defs']['initialState'] as Map<String, dynamic>;
+    final properties = initialState['properties'] as Map<String, dynamic>;
+
+    expect(properties, contains('storage'));
+    expect(properties, contains('keychain'));
+    expect(properties, contains('env'));
+    expect(properties['keychain'], {
+      'type': 'object',
+      'additionalProperties': true,
+    });
   });
 }

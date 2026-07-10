@@ -250,12 +250,19 @@ class EnsembleTestHarness {
 
     final installed = <String, APIProvider>{};
     for (final entry in realProviders.entries) {
+      var delegate = entry.value;
+      if (delegate is TestApiProviderOverlay) {
+        delegate = delegate.delegate;
+      } else if (delegate is TestApiOverlay) {
+        delegate = delegate.delegate;
+      }
+
       if (entry.key == 'http') {
-        mock.bindHttpDelegate(entry.value as HTTPAPIProvider);
+        mock.bindHttpDelegate(delegate as HTTPAPIProvider);
         installed['http'] = mock;
         continue;
       }
-      installed[entry.key] = TestApiOverlay(mock, entry.value);
+      installed[entry.key] = TestApiOverlay(mock, delegate);
     }
 
     if (!installed.containsKey('http')) {
@@ -406,8 +413,7 @@ class EnsembleTestHarness {
     for (final entry in ctx.testCase.mocks.apis.entries) {
       ctx.apiOverlay.setMock(entry.key, entry.value);
     }
-    if (config != null &&
-        config.apiProviders?['http'] is! TestApiProviderOverlay) {
+    if (config != null) {
       installTestApiOverlay(config, ctx.apiOverlay);
     }
   }

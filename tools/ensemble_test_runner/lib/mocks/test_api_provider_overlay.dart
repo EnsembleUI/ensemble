@@ -45,6 +45,7 @@ class TestApiProviderOverlay extends HTTPAPIProvider {
 
   final Map<String, MockAPIResponse> _mocks;
   HTTPAPIProvider _delegate;
+  HTTPAPIProvider get delegate => _delegate;
   final ApiCallRecorder recorder;
   Future<T?> Function<T>(Future<T> Function())? liveAsyncRunner;
 
@@ -210,6 +211,7 @@ class TestApiOverlay implements APIProvider {
 
   final TestApiProviderOverlay _host;
   final APIProvider _delegate;
+  APIProvider get delegate => _delegate;
 
   @override
   Future<void> init(String appId, Map<String, dynamic> config) =>
