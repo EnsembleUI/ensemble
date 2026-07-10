@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:ensemble/ensemble.dart';
@@ -55,6 +56,7 @@ Future<void> applyYamlTestStorageBootstrap(EnsembleTestSetup setup) async {
 class EnsembleTestHarness {
   static final String _testStoragePath =
       Directory.systemTemp.createTempSync('ensemble_test_runner_storage_').path;
+  static bool _appFontsLoaded = false;
 
   static void ensureTestPlugins() {
     TestWidgetsFlutterBinding.ensureInitialized();
@@ -285,6 +287,7 @@ class EnsembleTestHarness {
     TestApiProviderOverlay? apiOverlay,
   }) async {
     ensureTestPlugins();
+    await ensureAppFontsLoaded();
 
     final env = Map<String, dynamic>.from(config.envOverrides ?? {});
     env['firebase_app_check'] = 'false';
@@ -307,6 +310,57 @@ class EnsembleTestHarness {
 
     YamlTestSession.markRuntimeBootstrapped();
     return config;
+  }
+
+  static Future<void> ensureAppFontsLoaded() async {
+    if (_appFontsLoaded) return;
+    _appFontsLoaded = true;
+
+    List<dynamic> manifest;
+    try {
+      final rawManifest = await rootBundle.loadString('FontManifest.json');
+      manifest = jsonDecode(rawManifest) as List<dynamic>;
+    } catch (_) {
+      return;
+    }
+
+    for (final familyEntry in manifest.whereType<Map>()) {
+      final family = familyEntry['family']?.toString();
+      final fonts = familyEntry['fonts'];
+      if (family == null || fonts is! List) continue;
+
+      await _loadFontFamily(family, fonts);
+
+      final lowerCaseAlias = family.toLowerCase();
+      if (lowerCaseAlias != family) {
+        await _loadFontFamily(lowerCaseAlias, fonts);
+      }
+    }
+  }
+
+  static Future<void> _loadFontFamily(
+    String family,
+    List<dynamic> fontEntries,
+  ) async {
+    final loader = FontLoader(family);
+    var hasFonts = false;
+
+    for (final fontEntry in fontEntries.whereType<Map>()) {
+      final asset = fontEntry['asset']?.toString();
+      if (asset == null || asset.isEmpty) continue;
+      try {
+        final fontData = await rootBundle.load(asset);
+        loader.addFont(Future.value(fontData));
+        hasFonts = true;
+      } catch (_) {
+        // Ignore missing assets so a bad font entry does not fail unrelated
+        // behavioral tests.
+      }
+    }
+
+    if (hasFonts) {
+      await loader.load();
+    }
   }
 
   Future<EnsembleConfig> loadScreen({

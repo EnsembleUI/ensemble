@@ -3,6 +3,13 @@ import 'package:ensemble_test_runner/runner/ensemble_test_harness.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  testWidgets('app font bootstrap is safe when font manifest is unavailable',
+      (tester) async {
+    EnsembleTestHarness.ensureTestPlugins();
+
+    await EnsembleTestHarness.ensureAppFontsLoaded();
+  });
+
   testWidgets('initial keychain state is written to secure storage',
       (tester) async {
     EnsembleTestHarness.ensureTestPlugins();
