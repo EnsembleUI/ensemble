@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:ensemble_test_runner/actions/test_step_executor.dart';
@@ -70,11 +71,14 @@ void main() {
     expect(context.logger.logs, hasLength(1));
     expect(context.logger.logs.single, startsWith('storage: '));
     final path = context.logger.logs.single.substring('storage: '.length);
+    expect(path, endsWith('.json'));
     final file = File(path);
     expect(file.existsSync(), isTrue);
     final content = file.readAsStringSync();
-    expect(content, contains('"first":"one"'));
-    expect(content, contains('"second":{"nested":true}'));
+    expect(content, contains('\n  "first": "one"'));
+    final json = jsonDecode(content) as Map<String, dynamic>;
+    expect(json['first'], 'one');
+    expect(json['second'], {'nested': true});
   });
 
   testWidgets('dumpTree writes the widget tree to test logs', (tester) async {
@@ -101,9 +105,42 @@ void main() {
 
     expect(context.logger.logs.single, startsWith('dumpTree: '));
     final path = context.logger.logs.single.substring('dumpTree: '.length);
+    expect(path, endsWith('.txt'));
     final file = File(path);
     expect(file.existsSync(), isTrue);
-    expect(file.readAsStringSync(), contains('debug target'));
+    final content = file.readAsStringSync();
+    expect(content, isNot(startsWith('dumpTree:')));
+    expect(content, contains('debug target'));
+  });
+
+  testWidgets('logApiCalls writes structured json', (tester) async {
+    final context = EnsembleTestContext.fromTestCase(
+      const EnsembleTestCase(
+        id: 'api_log_test',
+        startScreen: 'Home',
+        steps: [],
+      ),
+    );
+    final harness =
+        EnsembleTestHarness(appPath: 'ensemble/apps/', appHome: 'x');
+    final executor = TestStepExecutor(
+      tester: tester,
+      context: context,
+      assertions: AssertionEngine(tester: tester, context: context),
+      harness: harness,
+    );
+
+    await executor.execute(const TestStep(type: 'logApiCalls', args: {}));
+
+    expect(context.logger.logs.single, startsWith('apiCalls: '));
+    final path = context.logger.logs.single.substring('apiCalls: '.length);
+    expect(path, endsWith('.json'));
+    final content = File(path).readAsStringSync();
+    expect(content, isNot(contains('API ')));
+    expect(jsonDecode(content), {
+      'total': 0,
+      'calls': [],
+    });
   });
 
   testWidgets('screenshot writes a framed png by default', (tester) async {

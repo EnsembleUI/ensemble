@@ -12,10 +12,12 @@ class TestLogger {
     required String testId,
     required String name,
     required String content,
+    String extension = 'log',
   }) async {
     final directory = Directory('build/ensemble_test_runner/logs');
     await directory.create(recursive: true);
-    final fileName = '${_safeFileName(testId)}_${_safeFileName(name)}.log';
+    final fileName =
+        '${_safeFileName(testId)}_${_safeFileName(name)}.${_safeExtension(extension)}';
     final file = File('${directory.path}/$fileName');
     await file.writeAsString(content);
     return file.path;
@@ -25,5 +27,10 @@ class TestLogger {
 
   static String _safeFileName(String value) {
     return value.replaceAll(RegExp(r'[^A-Za-z0-9._-]+'), '_');
+  }
+
+  static String _safeExtension(String value) {
+    final extension = value.replaceAll(RegExp(r'[^A-Za-z0-9]+'), '');
+    return extension.isEmpty ? 'log' : extension;
   }
 }

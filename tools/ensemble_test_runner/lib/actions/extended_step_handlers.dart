@@ -240,27 +240,27 @@ class ExtendedStepHandlers {
           final entries = storage.getKeys().map(
                 (key) => MapEntry(key, storage.read(key)),
               );
-          final content = jsonEncode(
-            Map<String, dynamic>.fromEntries(entries),
-            toEncodable: (value) => value.toString(),
-          );
+          final content =
+              _prettyJson(Map<String, dynamic>.fromEntries(entries));
           final path = await executor.tester.runAsync(() {
             return executor.context.logger.writeLogFile(
               testId: executor.context.testCase.id,
               name: 'storage',
               content: content,
+              extension: 'json',
             );
           });
           executor.context.logger.log(
             'storage: $path',
           );
         } else {
-          final content = '${StorageManager().read(key)}';
+          final content = _prettyJson(StorageManager().read(key));
           final path = await executor.tester.runAsync(() {
             return executor.context.logger.writeLogFile(
               testId: executor.context.testCase.id,
               name: 'storage_$key',
               content: content,
+              extension: 'json',
             );
           });
           executor.context.logger.log(
@@ -297,6 +297,7 @@ class ExtendedStepHandlers {
             testId: executor.context.testCase.id,
             name: 'dump_tree',
             content: _captureDebugDumpApp(),
+            extension: 'txt',
           );
         });
         executor.context.logger.log('dumpTree: $path');
@@ -718,9 +719,14 @@ class ExtendedStepHandlers {
       debugPrint = previousDebugPrint;
     }
     if (lines.isEmpty) {
-      return 'dumpTree: <empty widget tree>';
+      return '<empty widget tree>';
     }
-    return 'dumpTree:\n${lines.join('\n')}';
+    return lines.join('\n');
+  }
+
+  static String _prettyJson(Object? value) {
+    return JsonEncoder.withIndent('  ', (value) => value.toString())
+        .convert(value);
   }
 
   static String _safeFileName(String value) {

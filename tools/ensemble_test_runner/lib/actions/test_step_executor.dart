@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/screen_tracker.dart';
@@ -300,18 +301,34 @@ class TestStepExecutor {
         context.apiOverlay.resetCalls();
         break;
       case 'logApiCalls':
-        final counts = <String, int>{};
-        for (final call in context.apiOverlay.calls) {
-          counts.update(call.name, (count) => count + 1, ifAbsent: () => 1);
+        final callsByName = <String, List<DateTime>>{};
+        final calls = context.apiOverlay.calls;
+        for (final call in calls) {
+          callsByName
+              .putIfAbsent(call.name, () => <DateTime>[])
+              .add(call.timestamp);
         }
-        final content = counts.entries
-            .map((entry) => 'API ${entry.key} x${entry.value}')
-            .join('\n');
+        final content = const JsonEncoder.withIndent('  ').convert({
+          'total': calls.length,
+          'calls': callsByName.entries
+              .map(
+                (entry) => {
+                  'name': entry.key,
+                  'count': entry.value.length,
+                  'timestamps': [
+                    for (final timestamp in entry.value)
+                      timestamp.toIso8601String(),
+                  ],
+                },
+              )
+              .toList(),
+        });
         final path = await tester.runAsync(() {
           return context.logger.writeLogFile(
             testId: context.testCase.id,
             name: 'api_calls',
             content: content,
+            extension: 'json',
           );
         });
         context.logger.log('apiCalls: $path');

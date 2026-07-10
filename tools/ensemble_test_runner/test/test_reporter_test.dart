@@ -132,8 +132,8 @@ void main() {
               testId: 'api_log_test',
               durationMs: 42,
               logs: const [
-                'apiCalls: build/ensemble_test_runner/logs/api_log_test_api_calls.log',
-                'dumpTree: build/ensemble_test_runner/logs/api_log_test_dump_tree.log',
+                'apiCalls: build/ensemble_test_runner/logs/api_log_test_api_calls.json',
+                'dumpTree: build/ensemble_test_runner/logs/api_log_test_dump_tree.txt',
               ],
             ),
           ],
@@ -144,7 +144,7 @@ void main() {
       expect(
           output,
           contains(
-              'apiCalls: build/ensemble_test_runner/logs/api_log_test_api_calls.log'));
+              'apiCalls: build/ensemble_test_runner/logs/api_log_test_api_calls.json'));
       expect(output, contains('dumpTree:'));
       expect(output, isNot(contains('MaterialApp')));
     });
