@@ -106,7 +106,7 @@ void main() {
     expect(file.readAsStringSync(), contains('debug target'));
   });
 
-  testWidgets('screenshot writes a png and logs the path', (tester) async {
+  testWidgets('screenshot writes a framed png by default', (tester) async {
     await tester.pumpWidget(
       const MaterialApp(home: Text('screenshot target')),
     );
@@ -135,9 +135,19 @@ void main() {
     final file = File(path);
     expect(file.existsSync(), isTrue);
     expect(file.readAsBytesSync().take(8), [137, 80, 78, 71, 13, 10, 26, 10]);
+    final dimensions = _pngDimensions(file.readAsBytesSync());
+
+    expect(
+      dimensions.$1,
+      greaterThan(tester.binding.renderViews.first.size.width),
+    );
+    expect(
+      dimensions.$2,
+      greaterThan(tester.binding.renderViews.first.size.height),
+    );
   });
 
-  testWidgets('screenshot can be wrapped in a device frame', (tester) async {
+  testWidgets('screenshot can use a custom device model', (tester) async {
     await tester.pumpWidget(
       const MaterialApp(
         home: ColoredBox(
@@ -167,7 +177,6 @@ void main() {
         type: 'screenshot',
         args: {
           'name': 'home',
-          'deviceFrame': true,
           'platform': 'android',
           'model': 'Samsung Galaxy S20',
         },

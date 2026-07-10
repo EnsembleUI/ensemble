@@ -738,7 +738,6 @@ abstract final class TestStepRegistry {
       description: 'Capture a screenshot artifact for debugging',
       example: const {
         'name': 'home_screen',
-        'deviceFrame': true,
         'platform': 'ios',
         'model': 'iPhone 15 Pro'
       },

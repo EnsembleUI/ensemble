@@ -628,8 +628,7 @@ class ExtendedStepHandlers {
     final fileName = _safeFileName('${e.context.testCase.id}_$name.png');
     final directory = Directory('build/ensemble_test_runner/screenshots');
     final file = File('${directory.path}/$fileName');
-    final useDeviceFrame = step.args['deviceFrame'] == true;
-    final device = useDeviceFrame ? resolveScreenshotDevice(step.args) : null;
+    final device = resolveScreenshotDevice(step.args);
 
     await e.tester.pump();
 
@@ -646,9 +645,7 @@ class ExtendedStepHandlers {
         renderView.paintBounds,
         pixelRatio: renderView.flutterView.devicePixelRatio,
       );
-      final byteData = device != null
-          ? await _addDeviceFrame(image, device)
-          : await image.toByteData(format: ui.ImageByteFormat.png);
+      final byteData = await _addDeviceFrame(image, device);
       image.dispose();
       if (byteData == null) {
         throw EnsembleTestFailure('Failed to encode screenshot as PNG.');

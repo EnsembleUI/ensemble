@@ -2069,9 +2069,6 @@
         "name": {
           "type": "string"
         },
-        "deviceFrame": {
-          "type": "boolean"
-        },
         "platform": {
           "type": "string"
         },
@@ -2085,7 +2082,6 @@
       "examples": [
         {
           "name": "home_screen",
-          "deviceFrame": true,
           "platform": "ios",
           "model": "iPhone 15 Pro"
         }
@@ -5056,7 +5052,6 @@
             {
               "screenshot": {
                 "name": "home_screen",
-                "deviceFrame": true,
                 "platform": "ios",
                 "model": "iPhone 15 Pro"
               }
@@ -5072,7 +5067,6 @@
               "examples": [
                 {
                   "name": "home_screen",
-                  "deviceFrame": true,
                   "platform": "ios",
                   "model": "iPhone 15 Pro"
                 }

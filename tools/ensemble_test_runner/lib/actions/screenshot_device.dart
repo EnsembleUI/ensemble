@@ -13,10 +13,7 @@ DeviceInfo? firstScreenshotDevice(List<TestStep> steps) {
 }
 
 DeviceInfo? screenshotDeviceForStep(TestStep step) {
-  if (step.type != 'screenshot' || step.args['deviceFrame'] != true) {
-    return null;
-  }
-  return resolveScreenshotDevice(step.args);
+  return step.type == 'screenshot' ? resolveScreenshotDevice(step.args) : null;
 }
 
 DeviceInfo resolveScreenshotDevice(Map<String, dynamic> args) {
@@ -51,7 +48,7 @@ DeviceInfo resolveScreenshotDevice(Map<String, dynamic> args) {
   }
 
   if (platformKey == 'android') return Devices.android.all.first;
-  return Devices.ios.iPhone13;
+  return Devices.ios.iPhone15Pro;
 }
 
 String normalizeScreenshotDeviceName(String? value) =>

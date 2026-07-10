@@ -289,7 +289,6 @@ extension TestStepArgKindSchema on TestStepArgKind {
         return _object(
           properties: {
             'name': _string,
-            'deviceFrame': _boolean,
             'platform': _string,
             'model': _string,
           },
