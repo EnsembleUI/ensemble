@@ -50,6 +50,29 @@ class EnsembleTestSchemaBuilder {
           },
         },
       },
+      'options': {
+        'type': 'object',
+        'additionalProperties': false,
+        'properties': {
+          'screenshots': {
+            'type': 'object',
+            'additionalProperties': false,
+            'properties': {
+              'enabled': {'type': 'boolean'},
+              'platform': {'type': 'string'},
+              'model': {'type': 'string'},
+              'includeSteps': {
+                'type': 'array',
+                'items': {'type': 'string'},
+              },
+              'excludeSteps': {
+                'type': 'array',
+                'items': {'type': 'string'},
+              },
+            },
+          },
+        },
+      },
       'testCase': {
         'type': 'object',
         'additionalProperties': false,
@@ -97,6 +120,7 @@ class EnsembleTestSchemaBuilder {
                 'ID of another test that must run before this one in the same app session',
           },
           'initialState': {'\$ref': '#/\$defs/initialState'},
+          'options': {'\$ref': '#/\$defs/options'},
           'mocks': {'\$ref': '#/\$defs/mocks'},
           'steps': {
             'type': 'array',

@@ -93,8 +93,31 @@ class EnsembleTestParser {
       startScreen: hasStartScreen ? startScreen : null,
       prerequisite: hasPrerequisite ? prerequisite : null,
       initialState: _toStringDynamicMap(map['initialState']),
+      options: _parseOptions(map['options']),
       mocks: _parseMocks(map['mocks']),
       steps: _parseSteps(stepsNode, testId: id),
+    );
+  }
+
+  static EnsembleTestOptions _parseOptions(dynamic node) {
+    if (node == null) return const EnsembleTestOptions();
+    if (node is! YamlMap) {
+      throw EnsembleTestFailure('"options" must be a map');
+    }
+    final screenshotsNode = node['screenshots'];
+    if (screenshotsNode == null) return const EnsembleTestOptions();
+    if (screenshotsNode is! YamlMap) {
+      throw EnsembleTestFailure('"options.screenshots" must be a map');
+    }
+
+    return EnsembleTestOptions(
+      screenshots: ScreenshotOptions(
+        enabled: screenshotsNode['enabled'] == true,
+        platform: screenshotsNode['platform']?.toString() ?? 'ios',
+        model: screenshotsNode['model']?.toString() ?? 'iPhone 15 Pro',
+        includeSteps: _toStringList(screenshotsNode['includeSteps']),
+        excludeSteps: _toStringList(screenshotsNode['excludeSteps']),
+      ),
     );
   }
 

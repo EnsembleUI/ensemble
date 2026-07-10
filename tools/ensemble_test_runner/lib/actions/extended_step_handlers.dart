@@ -621,41 +621,63 @@ class ExtendedStepHandlers {
   }
 
   static Future<void> _screenshot(TestStepExecutor e, TestStep step) async {
-    await e.tester.pump();
-    final rawName = step.args['name']?.toString();
+    final args =
+        e.context.testCase.options.screenshots.toScreenshotArgs(step.args);
+    await captureScreenshot(e, args: args);
+  }
+
+  static Future<void> captureScreenshot(
+    TestStepExecutor e, {
+    required Map<String, dynamic> args,
+    bool deferWrite = false,
+    bool pumpBeforeCapture = true,
+  }) async {
+    if (pumpBeforeCapture) {
+      await e.tester.pump();
+    }
+    final rawName = args['name']?.toString();
     final name = rawName == null || rawName.isEmpty
         ? DateTime.now().microsecondsSinceEpoch.toString()
         : rawName;
     final fileName = _safeFileName('${e.context.testCase.id}_$name.png');
     final directory = Directory('build/ensemble_test_runner/screenshots');
     final file = File('${directory.path}/$fileName');
-    final device = resolveScreenshotDevice(step.args);
+    final device = resolveScreenshotDevice(args);
 
-    await e.tester.pump();
+    if (pumpBeforeCapture) {
+      await e.tester.pump();
+    }
 
-    final path = await e.tester.runAsync(() async {
-      final renderView = e.tester.binding.renderViews.first;
-      final layer = renderView.debugLayer;
-      if (layer is! OffsetLayer) {
-        throw EnsembleTestFailure(
-          'screenshot requires a painted render view.',
-        );
-      }
-
-      final image = await layer.toImage(
-        renderView.paintBounds,
-        pixelRatio: renderView.flutterView.devicePixelRatio,
+    final renderView = e.tester.binding.renderViews.first;
+    final layer = renderView.debugLayer;
+    if (layer is! OffsetLayer) {
+      throw EnsembleTestFailure(
+        'screenshot requires a painted render view.',
       );
+    }
+
+    final image = layer.toImageSync(
+      renderView.paintBounds,
+      pixelRatio: renderView.flutterView.devicePixelRatio,
+    );
+    final path = file.path;
+
+    Future<void> writeImage() async {
       final byteData = await _addDeviceFrame(image, device);
       image.dispose();
       if (byteData == null) {
         throw EnsembleTestFailure('Failed to encode screenshot as PNG.');
       }
 
-      await directory.create(recursive: true);
-      await file.writeAsBytes(byteData.buffer.asUint8List());
-      return file.path;
-    });
+      directory.createSync(recursive: true);
+      file.writeAsBytesSync(byteData.buffer.asUint8List());
+    }
+
+    if (deferWrite) {
+      e.context.runtime.pendingScreenshotWrites.add(writeImage);
+    } else {
+      await e.tester.runAsync(writeImage);
+    }
 
     e.context.logger.log('screenshot: $path');
   }

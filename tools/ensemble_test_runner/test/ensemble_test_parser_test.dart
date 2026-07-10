@@ -72,6 +72,34 @@ steps:
       );
     });
 
+    test('parses screenshot options', () {
+      const yaml = '''
+id: visual_debug
+startScreen: Home
+options:
+  screenshots:
+    enabled: true
+    platform: android
+    model: Samsung Galaxy S20
+    includeSteps: [tap, waitForNavigation]
+    excludeSteps: [wait]
+steps:
+  - tap:
+      id: start_button
+''';
+
+      final test = EnsembleTestParser.parseString(yaml);
+      final screenshots = test.options.screenshots;
+      expect(screenshots.enabled, isTrue);
+      expect(screenshots.platform, 'android');
+      expect(screenshots.model, 'Samsung Galaxy S20');
+      expect(screenshots.includeSteps, ['tap', 'waitForNavigation']);
+      expect(screenshots.excludeSteps, ['wait']);
+      expect(screenshots.shouldCaptureStep('tap'), isTrue);
+      expect(screenshots.shouldCaptureStep('wait'), isFalse);
+      expect(screenshots.shouldCaptureStep('settle'), isFalse);
+    });
+
     test('parses AI-friendly metadata fields', () {
       const yaml = '''
 id: login_valid

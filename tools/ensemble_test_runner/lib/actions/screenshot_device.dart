@@ -12,6 +12,17 @@ DeviceInfo? firstScreenshotDevice(List<TestStep> steps) {
   return null;
 }
 
+DeviceInfo? screenshotDeviceForTestCase(EnsembleTestCase testCase) {
+  final stepDevice = firstScreenshotDevice(testCase.steps);
+  if (stepDevice != null) return stepDevice;
+  if (testCase.options.screenshots.enabled) {
+    return resolveScreenshotDevice(
+      testCase.options.screenshots.toScreenshotArgs(),
+    );
+  }
+  return null;
+}
+
 DeviceInfo? screenshotDeviceForStep(TestStep step) {
   return step.type == 'screenshot' ? resolveScreenshotDevice(step.args) : null;
 }

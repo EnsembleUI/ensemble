@@ -132,7 +132,8 @@ Future<void> runEnsembleYamlTestsWithOptions(
       }
 
       final runResult = EnsembleTestRunResult(results: orderedResults);
-      final suiteSummary = TestReporter().formatSummary(
+      final reporter = TestReporter();
+      final suiteSummary = reporter.formatSummary(
         runResult,
         testFile: '${target.testsAssetPrefix}*.test.yaml',
       );
@@ -140,15 +141,27 @@ Future<void> runEnsembleYamlTestsWithOptions(
       _emitMachineReport(runResult);
 
       if (failures.isNotEmpty) {
+        final pendingFrameworkExceptions = _drainPendingExceptions(tester);
         fail(
-          'Failed YAML tests:\n'
-          '${failures.map((p) => '- $p').join('\n')}\n\n'
-          '$suiteSummary',
+          reporter.formatFailureSummary(
+            runResult,
+            failedPaths: failures,
+            pendingFrameworkExceptions: pendingFrameworkExceptions,
+          ),
         );
       }
     },
     timeout: Timeout(Duration(seconds: _timeoutSeconds)),
   );
+}
+
+List<Object?> _drainPendingExceptions(WidgetTester tester) {
+  final exceptions = <Object?>[];
+  Object? exception;
+  while ((exception = tester.takeException()) != null) {
+    exceptions.add(exception);
+  }
+  return exceptions;
 }
 
 EnsembleTestSelection _selectionFromEnvironment() {

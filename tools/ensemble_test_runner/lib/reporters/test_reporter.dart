@@ -106,6 +106,55 @@ class TestReporter {
     return buffer.toString();
   }
 
+  /// Formats the short failure passed to Flutter's test framework.
+  ///
+  /// The full boxed report is printed separately. Keeping this compact avoids
+  /// Flutter echoing the entire report again with its framework stack trace.
+  String formatFailureSummary(
+    EnsembleTestRunResult result, {
+    Iterable<String> failedPaths = const [],
+    Iterable<Object?> pendingFrameworkExceptions = const [],
+  }) {
+    final failed = result.results
+        .where((r) => r.status == TestStatus.failed)
+        .toList(growable: false);
+    final paths = failedPaths.toList(growable: false);
+    final buffer = StringBuffer()
+      ..writeln(
+        'Failed YAML tests (${result.failedCount}/${result.results.length}):',
+      );
+
+    for (var i = 0; i < failed.length; i++) {
+      final r = failed[i];
+      final path = i < paths.length ? paths[i] : null;
+      final label = path == null || r.testId.contains(path)
+          ? r.testId
+          : '${r.testId} ($path)';
+      final failedStep = r.failedStep != null
+          ? ' (failed: ${formatStepBrief(r.failedStep!)})'
+          : r.failedStepIndex != null
+              ? ' (failed: step ${r.failedStepIndex! + 1})'
+              : '';
+      buffer.writeln('- $label: ${r.message ?? 'failed'}$failedStep');
+    }
+
+    final pending = pendingFrameworkExceptions
+        .map((e) => e?.toString().trim() ?? '')
+        .where((e) => e.isNotEmpty)
+        .toList(growable: false);
+    if (pending.isNotEmpty) {
+      buffer.writeln();
+      buffer.writeln('Pending Flutter framework exceptions:');
+      for (final exception in pending) {
+        buffer.writeln('- ${_firstLine(exception)}');
+      }
+    }
+
+    buffer.writeln();
+    buffer.write('See the Ensemble YAML tests report above.');
+    return buffer.toString();
+  }
+
   void _writeTestCase(StringBuffer buffer, EnsembleSingleTestResult r) {
     final icon = r.status == TestStatus.passed ? '✓' : '✗';
     buffer.writeln('│  $icon ${r.testId} (${r.durationMs}ms)');
@@ -151,4 +200,9 @@ class TestReporter {
       }
     }
   }
+}
+
+String _firstLine(String value) {
+  final index = value.indexOf('\n');
+  return index == -1 ? value : value.substring(0, index);
 }

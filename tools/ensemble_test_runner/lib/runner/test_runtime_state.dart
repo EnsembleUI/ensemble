@@ -6,6 +6,7 @@ class TestRuntimeState {
   bool networkOffline = false;
   final List<String> consoleLogs = [];
   final List<String> flutterErrors = [];
+  final List<Future<void> Function()> pendingScreenshotWrites = [];
   Map<String, dynamic>? authUser;
   final Map<String, String> permissions = {};
   Size? deviceSize;
@@ -16,6 +17,7 @@ class TestRuntimeState {
     networkOffline = false;
     consoleLogs.clear();
     flutterErrors.clear();
+    pendingScreenshotWrites.clear();
     authUser = null;
     permissions.clear();
     deviceSize = null;

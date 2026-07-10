@@ -42,6 +42,7 @@ class EnsembleTestCase {
   /// Test [id] that must run before this one (same app session).
   final String? prerequisite;
   final Map<String, dynamic> initialState;
+  final EnsembleTestOptions options;
   final TestMocks mocks;
   final List<TestStep> steps;
 
@@ -57,6 +58,7 @@ class EnsembleTestCase {
     this.startScreen,
     this.prerequisite,
     this.initialState = const {},
+    this.options = const EnsembleTestOptions(),
     this.mocks = const TestMocks(),
     required this.steps,
   });
@@ -71,6 +73,45 @@ class EnsembleTestCase {
         if (description != null) 'description': description,
         if (owner != null) 'owner': owner,
         if (priority != null) 'priority': priority,
+      };
+}
+
+class EnsembleTestOptions {
+  final ScreenshotOptions screenshots;
+
+  const EnsembleTestOptions({
+    this.screenshots = const ScreenshotOptions(),
+  });
+}
+
+class ScreenshotOptions {
+  final bool enabled;
+  final String platform;
+  final String model;
+  final List<String> includeSteps;
+  final List<String> excludeSteps;
+
+  const ScreenshotOptions({
+    this.enabled = false,
+    this.platform = 'ios',
+    this.model = 'iPhone 15 Pro',
+    this.includeSteps = const [],
+    this.excludeSteps = const [],
+  });
+
+  bool shouldCaptureStep(String stepType) {
+    if (!enabled) return false;
+    if (excludeSteps.contains(stepType)) return false;
+    if (includeSteps.isNotEmpty && !includeSteps.contains(stepType)) {
+      return false;
+    }
+    return true;
+  }
+
+  Map<String, dynamic> toScreenshotArgs([Map<String, dynamic>? overrides]) => {
+        'platform': platform,
+        'model': model,
+        ...?overrides,
       };
 }
 

@@ -48,4 +48,25 @@ void main() {
 
     expect(device, isNull);
   });
+
+  test('uses screenshot options device when enabled', () {
+    final device = screenshotDeviceForTestCase(
+      const EnsembleTestCase(
+        id: 'screenshots',
+        startScreen: 'Home',
+        steps: [
+          TestStep(type: 'tap', args: {'id': 'button'}),
+        ],
+        options: EnsembleTestOptions(
+          screenshots: ScreenshotOptions(
+            enabled: true,
+            platform: 'android',
+            model: 'Samsung Galaxy S20',
+          ),
+        ),
+      ),
+    );
+
+    expect(device?.name, 'Samsung Galaxy S20');
+  });
 }

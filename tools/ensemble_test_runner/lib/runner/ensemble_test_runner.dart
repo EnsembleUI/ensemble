@@ -1,5 +1,6 @@
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/screen_tracker.dart';
+import 'package:ensemble_test_runner/actions/extended_step_handlers.dart';
 import 'package:ensemble_test_runner/actions/test_step_executor.dart';
 import 'package:ensemble_test_runner/assertions/assertion_engine.dart';
 import 'package:ensemble_test_runner/discovery/ensemble_test_execution_planner.dart';
@@ -148,14 +149,19 @@ class EnsembleTestRunner {
       harness: harness,
       config: config,
     );
-
     for (var i = 0; i < test.steps.length; i++) {
       final step = test.steps[i];
       try {
         await executor.execute(step);
         await YamlTestSession.navigationFlow.flushPending();
+        await _captureAutomaticScreenshotForStep(
+          executor: executor,
+          step: step,
+          stepIndex: i,
+        );
       } catch (error, stackTrace) {
         await _settleLiveApiWork(tester, ctx);
+        await _flushPendingScreenshots(tester, ctx);
         await YamlTestSession.navigationFlow.flushPending();
         return EnsembleSingleTestResult.failed(
           testId: test.id,
@@ -172,6 +178,8 @@ class EnsembleTestRunner {
     }
 
     await YamlTestSession.navigationFlow.flushPending();
+    await _settleLiveApiWork(tester, ctx);
+    await _flushPendingScreenshots(tester, ctx);
 
     return EnsembleSingleTestResult.passed(
       testId: test.id,
@@ -181,6 +189,37 @@ class EnsembleTestRunner {
       report: buildTestReportDetails(test),
     );
   }
+
+  Future<void> _captureAutomaticScreenshotForStep({
+    required TestStepExecutor executor,
+    required TestStep step,
+    required int stepIndex,
+  }) async {
+    final options = executor.context.testCase.options.screenshots;
+    if (!options.shouldCaptureStep(step.type)) return;
+    await _captureAutomaticScreenshot(
+      executor,
+      name:
+          'step_${(stepIndex + 1).toString().padLeft(3, '0')}_${_safeArtifactName(step.type)}',
+    );
+  }
+
+  Future<void> _captureAutomaticScreenshot(
+    TestStepExecutor executor, {
+    required String name,
+  }) {
+    return ExtendedStepHandlers.captureScreenshot(
+      executor,
+      args: executor.context.testCase.options.screenshots.toScreenshotArgs({
+        'name': name,
+      }),
+      deferWrite: true,
+      pumpBeforeCapture: false,
+    );
+  }
+
+  String _safeArtifactName(String value) =>
+      value.replaceAll(RegExp(r'[^A-Za-z0-9._-]+'), '_');
 
   Future<void> _settleLiveApiWork(
     WidgetTester tester,
@@ -194,5 +233,22 @@ class EnsembleTestRunner {
         return;
       }
     }
+  }
+
+  Future<void> _flushPendingScreenshots(
+    WidgetTester tester,
+    EnsembleTestContext ctx,
+  ) async {
+    final writes = List<Future<void> Function()>.from(
+      ctx.runtime.pendingScreenshotWrites,
+    );
+    ctx.runtime.pendingScreenshotWrites.clear();
+    if (writes.isEmpty) return;
+
+    await tester.runAsync(() async {
+      for (final write in writes) {
+        await write();
+      }
+    });
   }
 }

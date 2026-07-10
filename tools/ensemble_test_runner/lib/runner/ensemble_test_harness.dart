@@ -376,7 +376,7 @@ class EnsembleTestHarness {
     YamlTestSession.navigationFlow.clear();
 
     final ctx = context ?? EnsembleTestContext.fromTestCase(testCase);
-    final screenshotDevice = firstScreenshotDevice(testCase.steps);
+    final screenshotDevice = screenshotDeviceForTestCase(testCase);
     if (screenshotDevice != null) {
       await _setViewportForDevice(tester, ctx, screenshotDevice);
     }

@@ -148,5 +148,46 @@ void main() {
       expect(output, contains('dumpTree:'));
       expect(output, isNot(contains('MaterialApp')));
     });
+
+    test('formats compact failure summary without repeating boxed report', () {
+      final output = TestReporter().formatFailureSummary(
+        EnsembleTestRunResult(
+          results: [
+            EnsembleSingleTestResult.failed(
+              testId:
+                  'login_test  (ensemble/apps/inhome/tests/signin.test.yaml)',
+              durationMs: 100,
+              failedStep: const TestStep(
+                type: 'waitForNavigation',
+                args: {'screen': 'Home'},
+              ),
+              error: 'Timed out waiting for navigation',
+            ),
+            EnsembleSingleTestResult.failed(
+              testId:
+                  'smoke_navigations  (ensemble/apps/inhome/tests/smoke.test.yaml)',
+              durationMs: 0,
+              error: 'Prerequisite "login_test" failed',
+            ),
+          ],
+        ),
+        failedPaths: const [
+          'ensemble/apps/inhome/tests/signin.test.yaml',
+          'ensemble/apps/inhome/tests/smoke.test.yaml',
+        ],
+        pendingFrameworkExceptions: const [
+          'Reentrant call to runAsync() denied.\nextra framework text',
+        ],
+      );
+
+      expect(output, contains('Failed YAML tests (2/2):'));
+      expect(output, contains('Timed out waiting for navigation'));
+      expect(output, contains('failed: waitForNavigation(Home)'));
+      expect(output, contains('Pending Flutter framework exceptions:'));
+      expect(output, contains('Reentrant call to runAsync() denied.'));
+      expect(output, contains('See the Ensemble YAML tests report above.'));
+      expect(output, isNot(contains('┌─ Ensemble YAML tests')));
+      expect(output, isNot(contains('extra framework text')));
+    });
   });
 }
