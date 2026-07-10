@@ -131,14 +131,22 @@ void main() {
             EnsembleSingleTestResult.passed(
               testId: 'api_log_test',
               durationMs: 42,
-              logs: const ['API getCompleteSchedules x1'],
+              logs: const [
+                'apiCalls: build/ensemble_test_runner/logs/api_log_test_api_calls.log',
+                'dumpTree: build/ensemble_test_runner/logs/api_log_test_dump_tree.log',
+              ],
             ),
           ],
         ),
       );
 
-      expect(output, contains('logs:'));
-      expect(output, contains('API getCompleteSchedules x1'));
+      expect(output, contains('artifacts:'));
+      expect(
+          output,
+          contains(
+              'apiCalls: build/ensemble_test_runner/logs/api_log_test_api_calls.log'));
+      expect(output, contains('dumpTree:'));
+      expect(output, isNot(contains('MaterialApp')));
     });
   });
 }

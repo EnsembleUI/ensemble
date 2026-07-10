@@ -1,4 +1,6 @@
 import 'dart:convert';
+import 'dart:io';
+import 'dart:ui' as ui;
 
 import 'package:ensemble/action/navigation_action.dart';
 import 'package:ensemble/screen_controller.dart';
@@ -8,6 +10,7 @@ import 'package:ensemble_test_runner/actions/test_step_executor.dart';
 import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
 import 'package:ensemble_test_runner/runner/ensemble_test_harness.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -235,15 +238,31 @@ class ExtendedStepHandlers {
           final entries = storage.getKeys().map(
                 (key) => MapEntry(key, storage.read(key)),
               );
+          final content = jsonEncode(
+            Map<String, dynamic>.fromEntries(entries),
+            toEncodable: (value) => value.toString(),
+          );
+          final path = await executor.tester.runAsync(() {
+            return executor.context.logger.writeLogFile(
+              testId: executor.context.testCase.id,
+              name: 'storage',
+              content: content,
+            );
+          });
           executor.context.logger.log(
-            'storage=${jsonEncode(
-              Map<String, dynamic>.fromEntries(entries),
-              toEncodable: (value) => value.toString(),
-            )}',
+            'storage: $path',
           );
         } else {
+          final content = '${StorageManager().read(key)}';
+          final path = await executor.tester.runAsync(() {
+            return executor.context.logger.writeLogFile(
+              testId: executor.context.testCase.id,
+              name: 'storage_$key',
+              content: content,
+            );
+          });
           executor.context.logger.log(
-            'storage[$key]=${StorageManager().read(key)}',
+            'storage[$key]: $path',
           );
         }
         return true;
@@ -271,8 +290,14 @@ class ExtendedStepHandlers {
         await _screenshot(executor, step);
         return true;
       case 'dumpTree':
-        debugDumpApp();
-        executor.context.logger.log('dumpTree: see debug console');
+        final path = await executor.tester.runAsync(() {
+          return executor.context.logger.writeLogFile(
+            testId: executor.context.testCase.id,
+            name: 'dump_tree',
+            content: _captureDebugDumpApp(),
+          );
+        });
+        executor.context.logger.log('dumpTree: $path');
         return true;
       case 'expectNoConsoleErrors':
         executor.assertions.expectNoConsoleErrors();
@@ -589,16 +614,60 @@ class ExtendedStepHandlers {
   }
 
   static Future<void> _screenshot(TestStepExecutor e, TestStep step) async {
-    final name = step.args['name']?.toString();
-    if (name != null && name.isNotEmpty) {
-      await expectLater(
-        find.byType(MaterialApp),
-        matchesGoldenFile('goldens/$name.png'),
+    await e.tester.pump();
+    final rawName = step.args['name']?.toString();
+    final name = rawName == null || rawName.isEmpty
+        ? DateTime.now().microsecondsSinceEpoch.toString()
+        : rawName;
+    final fileName = _safeFileName('${e.context.testCase.id}_$name.png');
+    final directory = Directory('build/ensemble_test_runner/screenshots');
+    final file = File('${directory.path}/$fileName');
+    final path = await e.tester.runAsync(() async {
+      final renderView = e.tester.binding.renderViews.first;
+      final layer = renderView.debugLayer;
+      if (layer is! OffsetLayer) {
+        throw EnsembleTestFailure('screenshot requires a painted render view.');
+      }
+
+      final image = await layer.toImage(
+        renderView.paintBounds,
+        pixelRatio: renderView.flutterView.devicePixelRatio,
       );
-    } else {
+      final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+      image.dispose();
+      if (byteData == null) {
+        throw EnsembleTestFailure('Failed to encode screenshot as PNG.');
+      }
+
+      await directory.create(recursive: true);
+      await file.writeAsBytes(byteData.buffer.asUint8List());
+      return file.path;
+    });
+
+    e.context.logger.log('screenshot: $path');
+  }
+
+  static String _captureDebugDumpApp() {
+    final previousDebugPrint = debugPrint;
+    final lines = <String>[];
+    debugPrint = (String? message, {int? wrapWidth}) {
+      if (message != null) {
+        lines.add(message);
+      }
+    };
+    try {
       debugDumpApp();
-      e.context.logger.log('screenshot: debug tree dumped (no golden name)');
+    } finally {
+      debugPrint = previousDebugPrint;
     }
+    if (lines.isEmpty) {
+      return 'dumpTree: <empty widget tree>';
+    }
+    return 'dumpTree:\n${lines.join('\n')}';
+  }
+
+  static String _safeFileName(String value) {
+    return value.replaceAll(RegExp(r'[^A-Za-z0-9._-]+'), '_');
   }
 
   static bool _deepEquals(dynamic a, dynamic b) {

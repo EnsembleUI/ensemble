@@ -145,7 +145,7 @@ class TestReporter {
     }
 
     if (r.logs.isNotEmpty) {
-      buffer.writeln('│     logs:');
+      buffer.writeln('│     artifacts:');
       for (final log in r.logs) {
         buffer.writeln('│          $log');
       }

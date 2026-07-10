@@ -304,9 +304,17 @@ class TestStepExecutor {
         for (final call in context.apiOverlay.calls) {
           counts.update(call.name, (count) => count + 1, ifAbsent: () => 1);
         }
-        for (final entry in counts.entries) {
-          context.logger.log('API ${entry.key} x${entry.value}');
-        }
+        final content = counts.entries
+            .map((entry) => 'API ${entry.key} x${entry.value}')
+            .join('\n');
+        final path = await tester.runAsync(() {
+          return context.logger.writeLogFile(
+            testId: context.testCase.id,
+            name: 'api_calls',
+            content: content,
+          );
+        });
+        context.logger.log('apiCalls: $path');
         break;
       default:
         if (await ExtendedStepHandlers.tryExecute(this, step)) {
@@ -379,7 +387,8 @@ class TestStepExecutor {
         timeout ?? config.settleTimeout,
       );
     } catch (e) {
-      if (e.toString().contains('timed out') || e.toString().contains('timeout')) {
+      if (e.toString().contains('timed out') ||
+          e.toString().contains('timeout')) {
         // Swallow timeout error because background streams/listeners (e.g. Firestore)
         // might keep the event loop active, but the UI itself has settled.
       } else {
