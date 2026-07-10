@@ -136,4 +136,94 @@ void main() {
     expect(file.existsSync(), isTrue);
     expect(file.readAsBytesSync().take(8), [137, 80, 78, 71, 13, 10, 26, 10]);
   });
+
+  testWidgets('screenshot can be wrapped in a device frame', (tester) async {
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: ColoredBox(
+          color: Colors.green,
+          child: Center(child: Text('framed screenshot target')),
+        ),
+      ),
+    );
+    final context = EnsembleTestContext.fromTestCase(
+      const EnsembleTestCase(
+        id: 'framed_debug_test',
+        startScreen: 'Home',
+        steps: [],
+      ),
+    );
+    final harness =
+        EnsembleTestHarness(appPath: 'ensemble/apps/', appHome: 'x');
+    final executor = TestStepExecutor(
+      tester: tester,
+      context: context,
+      assertions: AssertionEngine(tester: tester, context: context),
+      harness: harness,
+    );
+
+    await executor.execute(
+      const TestStep(
+        type: 'screenshot',
+        args: {
+          'name': 'home',
+          'deviceFrame': true,
+          'platform': 'android',
+          'model': 'Samsung Galaxy S20',
+        },
+      ),
+    );
+
+    final path = context.logger.logs.single.substring('screenshot: '.length);
+    final dimensions = _pngDimensions(File(path).readAsBytesSync());
+
+    expect(
+      dimensions.$1,
+      greaterThan(tester.binding.renderViews.first.size.width),
+    );
+    expect(
+      dimensions.$2,
+      greaterThan(tester.binding.renderViews.first.size.height),
+    );
+  });
+
+  testWidgets('setDevice updates the render surface size', (tester) async {
+    await tester.pumpWidget(
+      const MaterialApp(home: SizedBox.expand()),
+    );
+    final context = EnsembleTestContext.fromTestCase(
+      const EnsembleTestCase(
+        id: 'set_device_test',
+        startScreen: 'Home',
+        steps: [],
+      ),
+    );
+    final harness =
+        EnsembleTestHarness(appPath: 'ensemble/apps/', appHome: 'x');
+    final executor = TestStepExecutor(
+      tester: tester,
+      context: context,
+      assertions: AssertionEngine(tester: tester, context: context),
+      harness: harness,
+    );
+
+    await executor.execute(
+      const TestStep(
+        type: 'setDevice',
+        args: {'width': 393, 'height': 852},
+      ),
+    );
+
+    expect(tester.binding.renderViews.first.size, const Size(393, 852));
+  });
+}
+
+(int, int) _pngDimensions(List<int> bytes) {
+  int readInt32(int offset) =>
+      bytes[offset] << 24 |
+      bytes[offset + 1] << 16 |
+      bytes[offset + 2] << 8 |
+      bytes[offset + 3];
+
+  return (readInt32(16), readInt32(20));
 }

@@ -735,8 +735,13 @@ abstract final class TestStepRegistry {
       category: TestStepCategory.debug,
       tier: TestStepTier.core,
       argKind: TestStepArgKind.screenshot,
-      description: 'Capture golden or dump widget tree for debugging',
-      example: const {'name': 'home_screen'},
+      description: 'Capture a screenshot artifact for debugging',
+      example: const {
+        'name': 'home_screen',
+        'deviceFrame': true,
+        'platform': 'ios',
+        'model': 'iPhone 15 Pro'
+      },
     ),
     'dumpTree': TestStepRegistryEntry(
       category: TestStepCategory.debug,

@@ -6,6 +6,8 @@ import 'package:ensemble/action/navigation_action.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/framework/screen_tracker.dart';
 import 'package:ensemble/framework/storage_manager.dart';
+import 'package:ensemble_device_preview/ensemble_device_preview.dart';
+import 'package:ensemble_test_runner/actions/screenshot_device.dart';
 import 'package:ensemble_test_runner/actions/test_step_executor.dart';
 import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
 import 'package:ensemble_test_runner/runner/ensemble_test_harness.dart';
@@ -536,9 +538,13 @@ class ExtendedStepHandlers {
   static Future<void> _setDevice(TestStepExecutor e, TestStep step) async {
     final width = (step.args['width'] as num?)?.toDouble() ?? 390;
     final height = (step.args['height'] as num?)?.toDouble() ?? 844;
-    e.tester.view.physicalSize = Size(width, height);
+    final size = Size(width, height);
+    await e.tester.binding.setSurfaceSize(size);
+    e.tester.view.physicalSize = size;
     e.tester.view.devicePixelRatio = 1.0;
-    e.context.runtime.deviceSize = Size(width, height);
+    e.tester.view.padding = FakeViewPadding.zero;
+    e.tester.view.viewPadding = FakeViewPadding.zero;
+    e.context.runtime.deviceSize = size;
     await e.settle();
   }
 
@@ -622,18 +628,27 @@ class ExtendedStepHandlers {
     final fileName = _safeFileName('${e.context.testCase.id}_$name.png');
     final directory = Directory('build/ensemble_test_runner/screenshots');
     final file = File('${directory.path}/$fileName');
+    final useDeviceFrame = step.args['deviceFrame'] == true;
+    final device = useDeviceFrame ? resolveScreenshotDevice(step.args) : null;
+
+    await e.tester.pump();
+
     final path = await e.tester.runAsync(() async {
       final renderView = e.tester.binding.renderViews.first;
       final layer = renderView.debugLayer;
       if (layer is! OffsetLayer) {
-        throw EnsembleTestFailure('screenshot requires a painted render view.');
+        throw EnsembleTestFailure(
+          'screenshot requires a painted render view.',
+        );
       }
 
       final image = await layer.toImage(
         renderView.paintBounds,
         pixelRatio: renderView.flutterView.devicePixelRatio,
       );
-      final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+      final byteData = device != null
+          ? await _addDeviceFrame(image, device)
+          : await image.toByteData(format: ui.ImageByteFormat.png);
       image.dispose();
       if (byteData == null) {
         throw EnsembleTestFailure('Failed to encode screenshot as PNG.');
@@ -645,6 +660,51 @@ class ExtendedStepHandlers {
     });
 
     e.context.logger.log('screenshot: $path');
+  }
+
+  static Future<ByteData?> _addDeviceFrame(
+    ui.Image screenImage,
+    DeviceInfo device,
+  ) async {
+    final padding = device.frameSize.shortestSide * 0.025;
+    final outputWidth = (device.frameSize.width + padding * 2).ceil();
+    final outputHeight = (device.frameSize.height + padding * 2).ceil();
+
+    final recorder = ui.PictureRecorder();
+    final canvas = Canvas(
+      recorder,
+      Rect.fromLTWH(0, 0, outputWidth.toDouble(), outputHeight.toDouble()),
+    );
+
+    canvas.drawColor(const Color(0xFFE9EDF3), BlendMode.src);
+    canvas.save();
+    canvas.translate(padding, padding);
+    device.framePainter.paint(canvas, device.frameSize);
+
+    final screenPath = device.screenPath;
+    final screenRect = screenPath.getBounds();
+    canvas.save();
+    canvas.clipPath(screenPath);
+    canvas.drawImageRect(
+      screenImage,
+      Rect.fromLTWH(
+        0,
+        0,
+        screenImage.width.toDouble(),
+        screenImage.height.toDouble(),
+      ),
+      screenRect,
+      Paint()..filterQuality = FilterQuality.high,
+    );
+    canvas.restore();
+    canvas.restore();
+
+    final picture = recorder.endRecording();
+    final image = await picture.toImage(outputWidth, outputHeight);
+    picture.dispose();
+    final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+    image.dispose();
+    return byteData;
   }
 
   static String _captureDebugDumpApp() {

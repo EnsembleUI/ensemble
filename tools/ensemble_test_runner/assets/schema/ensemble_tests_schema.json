@@ -2068,14 +2068,26 @@
       "properties": {
         "name": {
           "type": "string"
+        },
+        "deviceFrame": {
+          "type": "boolean"
+        },
+        "platform": {
+          "type": "string"
+        },
+        "model": {
+          "type": "string"
         }
       },
       "additionalProperties": false,
       "title": "screenshot",
-      "description": "Capture golden or dump widget tree for debugging",
+      "description": "Capture a screenshot artifact for debugging",
       "examples": [
         {
-          "name": "home_screen"
+          "name": "home_screen",
+          "deviceFrame": true,
+          "platform": "ios",
+          "model": "iPhone 15 Pro"
         }
       ]
     },
@@ -5039,11 +5051,14 @@
         {
           "type": "object",
           "title": "screenshot",
-          "description": "Capture golden or dump widget tree for debugging",
+          "description": "Capture a screenshot artifact for debugging",
           "examples": [
             {
               "screenshot": {
-                "name": "home_screen"
+                "name": "home_screen",
+                "deviceFrame": true,
+                "platform": "ios",
+                "model": "iPhone 15 Pro"
               }
             }
           ],
@@ -5053,10 +5068,13 @@
           "properties": {
             "screenshot": {
               "$ref": "#/$defs/args_screenshot",
-              "description": "Capture golden or dump widget tree for debugging",
+              "description": "Capture a screenshot artifact for debugging",
               "examples": [
                 {
-                  "name": "home_screen"
+                  "name": "home_screen",
+                  "deviceFrame": true,
+                  "platform": "ios",
+                  "model": "iPhone 15 Pro"
                 }
               ]
             }

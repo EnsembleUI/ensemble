@@ -583,7 +583,7 @@ void main() {
       'debug',
       'core',
       'screenshot',
-      'Capture golden or dump widget tree for debugging',
+      'Capture a screenshot artifact for debugging',
     ),
     'dumpTree': step(
       'debug',
@@ -834,7 +834,12 @@ Map<String, dynamic> defaultExampleForArg(String arg) {
         ],
       };
     case 'screenshot':
-      return {'name': 'home_screen'};
+      return {
+        'name': 'home_screen',
+        'deviceFrame': true,
+        'platform': 'ios',
+        'model': 'iPhone 15 Pro',
+      };
     case 'setAuth':
       return {
         'user': {'id': '1', 'email': 'user@test.com'},

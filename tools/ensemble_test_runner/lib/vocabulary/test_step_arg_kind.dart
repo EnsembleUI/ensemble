@@ -286,7 +286,14 @@ extension TestStepArgKindSchema on TestStepArgKind {
           required: ['id'],
         );
       case TestStepArgKind.screenshot:
-        return _object(properties: {'name': _string});
+        return _object(
+          properties: {
+            'name': _string,
+            'deviceFrame': _boolean,
+            'platform': _string,
+            'model': _string,
+          },
+        );
       case TestStepArgKind.setAuth:
         return _object(
           properties: {

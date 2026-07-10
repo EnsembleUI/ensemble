@@ -9,6 +9,8 @@ import 'package:ensemble/framework/definition_providers/local_provider.dart';
 import 'package:ensemble/framework/screen_tracker.dart';
 import 'package:ensemble/framework/storage_manager.dart';
 import 'package:ensemble/page_model.dart';
+import 'package:ensemble_device_preview/ensemble_device_preview.dart';
+import 'package:ensemble_test_runner/actions/screenshot_device.dart';
 import 'package:ensemble_test_runner/mocks/adobe_test_setup.dart';
 import 'package:ensemble_test_runner/mocks/firebase_test_setup.dart';
 import 'package:ensemble_test_runner/mocks/test_api_provider_overlay.dart';
@@ -374,6 +376,10 @@ class EnsembleTestHarness {
     YamlTestSession.navigationFlow.clear();
 
     final ctx = context ?? EnsembleTestContext.fromTestCase(testCase);
+    final screenshotDevice = firstScreenshotDevice(testCase.steps);
+    if (screenshotDevice != null) {
+      await _setViewportForDevice(tester, ctx, screenshotDevice);
+    }
     await _ensureDefaultViewport(tester, ctx);
     var config = existingConfig ?? await buildConfig();
     final bootstrapped = await tester.runAsync(() async {
@@ -412,9 +418,34 @@ class EnsembleTestHarness {
   ) async {
     if (context.runtime.deviceSize != null) return;
     const size = Size(800, 844);
+    await tester.binding.setSurfaceSize(size);
     tester.view.physicalSize = size;
     tester.view.devicePixelRatio = 1.0;
+    _setViewPadding(tester, EdgeInsets.zero);
     context.runtime.deviceSize = size;
+  }
+
+  static Future<void> _setViewportForDevice(
+    WidgetTester tester,
+    EnsembleTestContext context,
+    DeviceInfo device,
+  ) async {
+    await tester.binding.setSurfaceSize(device.screenSize);
+    tester.view.devicePixelRatio = 1.0;
+    tester.view.physicalSize = device.screenSize;
+    _setViewPadding(tester, device.safeAreas);
+    context.runtime.deviceSize = device.screenSize;
+  }
+
+  static void _setViewPadding(WidgetTester tester, EdgeInsets padding) {
+    final viewPadding = FakeViewPadding(
+      left: padding.left,
+      top: padding.top,
+      right: padding.right,
+      bottom: padding.bottom,
+    );
+    tester.view.padding = viewPadding;
+    tester.view.viewPadding = viewPadding;
   }
 
   static Future<void> waitForInitialWidgets(
