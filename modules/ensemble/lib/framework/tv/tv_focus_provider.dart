@@ -126,11 +126,11 @@ abstract class TVFocusProvider {
 
   /// Optional: Focus indicator border color.
   ///
-  /// When provided, overrides Ensemble's default focus color.
+  /// When provided, overrides Ensemble's default focus border color.
   /// Theme configuration takes priority over this value.
   ///
   /// Default: null (use theme or fallback to Color(0xFF00E676))
-  Color? get focusColor => null;
+  Color? get focusBorderColor => null;
 
   /// Optional: Focus indicator border width.
   ///

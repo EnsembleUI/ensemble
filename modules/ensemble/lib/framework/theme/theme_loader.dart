@@ -522,7 +522,7 @@ mixin ThemeLoader {
   /// ```yaml
   /// Tokens:
   ///   TV:
-  ///     focusColor: 0xFF00AAFF
+  ///     focusBorderColor: 0xFF00AAFF
   ///     focusBorderWidth: 3
   ///     focusBorderRadius: 8
   ///     focusAnimationDuration: 150
@@ -532,7 +532,7 @@ mixin ThemeLoader {
     if (tvTokens == null) return null;
 
     return TVFocusTheme(
-      focusColor: Utils.getColor(tvTokens['focusColor']),
+      focusBorderColor: Utils.getColor(tvTokens['focusBorderColor']),
       focusBorderWidth: Utils.optionalDouble(tvTokens['focusBorderWidth']),
       focusBorderRadius: Utils.optionalDouble(tvTokens['focusBorderRadius']),
       focusAnimationDurationMs:

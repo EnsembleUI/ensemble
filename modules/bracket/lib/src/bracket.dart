@@ -145,10 +145,10 @@ class BracketController extends EnsembleBoxController {
         tabPadding = Utils.optionalInsets(data['padding']);
         tabGap = Utils.getDouble(data['gap'], fallback: 12.0);
         // Focus styling (TV D-pad)
-        // Priority: focusColor > Theme > Provider > borderColor > app primary
+        // Priority: focusBorderColor > Theme > Provider > borderColor > app primary
         // Priority: focusBorderWidth > Theme > Provider > borderWidth > default (2.0)
         // Priority: focusBorderRadius > Theme > Provider > borderRadius > default (8.0)
-        tabFocusColor = Utils.getColor(data['focusColor']);
+        tabFocusColor = Utils.getColor(data['focusBorderColor']);
         tabFocusBorderWidth = Utils.optionalDouble(data['focusBorderWidth']);
         tabFocusBorderRadius = Utils.getBorderRadius(data['focusBorderRadius']);
         tabFocusAnimationDurationMs = Utils.optionalInt(data['focusAnimationDurationMs']);
@@ -483,10 +483,10 @@ class _TVTabButtonState extends State<_TVTabButton> {
     final appPrimaryColor = theme.colorScheme.primary;
     final externalProvider = TVFocusProviderScope.maybeOf(context);
 
-    // Priority: focusColor > Theme > provider > borderColor > app primary
+    // Priority: focusBorderColor > Theme > provider > borderColor > app primary
     final focusBorderColor = widget.controller.tabFocusColor ??
-        tvFocusTheme?.focusColor ??
-        externalProvider?.focusColor ??
+        tvFocusTheme?.focusBorderColor ??
+        externalProvider?.focusBorderColor ??
         widget.controller.tabBorderColor ??
         appPrimaryColor;
     // Priority: focusBorderWidth > Theme > provider > borderWidth > default (2.0)
@@ -1025,7 +1025,7 @@ class _BracketTVFocusProvider implements TVFocusProvider {
     VoidCallback? onBottomEdge,
   }) {
     // DON'T wrap with TVFocusWidget - bracket.dart already handles TV navigation.
-    // box_wrapper has already applied focus styling (backgroundColor, focusColor, etc.)
+    // box_wrapper has already applied focus styling (backgroundColor, focusBorderColor, etc.)
     // from YAML tvOptions. Just return the styled child as-is.
     return child;
   }
@@ -1043,7 +1043,7 @@ class _BracketTVFocusProvider implements TVFocusProvider {
   double get orderOffset => 0;
 
   @override
-  Color? get focusColor => null;
+  Color? get focusBorderColor => null;
 
   @override
   double? get focusBorderWidth => null;

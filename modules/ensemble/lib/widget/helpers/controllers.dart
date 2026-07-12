@@ -99,7 +99,7 @@ class TVOptionsComposite extends WidgetCompositeProperty {
     order = inputs['order'];
     isRowEntryPoint = inputs['isRowEntryPoint'];
     focusBorderRadius = inputs['focusBorderRadius'];
-    focusColor = inputs['focusColor'];
+    focusBorderColor = inputs['focusBorderColor'];
     focusBorderWidth = inputs['focusBorderWidth'];
     fixedFocusScroll = inputs['fixedFocusScroll'];
     fixedFocusOffset = inputs['fixedFocusOffset'];
@@ -157,10 +157,10 @@ class TVOptionsComposite extends WidgetCompositeProperty {
       _focusBorderRadius = Utils.optionalDouble(value);
   double? get focusBorderRadius => _focusBorderRadius;
 
-  /// Custom color for focus indicator. Overrides theme's focusColor.
-  Color? _focusColor;
-  set focusColor(value) => _focusColor = Utils.getColor(value);
-  Color? get focusColor => _focusColor;
+  /// Custom color for focus indicator border. Overrides theme's focusBorderColor.
+  Color? _focusBorderColor;
+  set focusBorderColor(value) => _focusBorderColor = Utils.getColor(value);
+  Color? get focusBorderColor => _focusBorderColor;
 
   /// Custom border width for focus indicator. Overrides theme's focusBorderWidth.
   double? _focusBorderWidth;
@@ -341,7 +341,7 @@ class TVOptionsComposite extends WidgetCompositeProperty {
         'order': () => _order,
         'isRowEntryPoint': () => _isRowEntryPoint,
         'focusBorderRadius': () => _focusBorderRadius,
-        'focusColor': () => _focusColor,
+        'focusBorderColor': () => _focusBorderColor,
         'focusBorderWidth': () => _focusBorderWidth,
         'fixedFocusScroll': () => _fixedFocusScroll,
         'fixedFocusOffset': () => _fixedFocusOffset,
@@ -380,7 +380,7 @@ class TVOptionsComposite extends WidgetCompositeProperty {
         'order': (value) => order = value,
         'isRowEntryPoint': (value) => isRowEntryPoint = value,
         'focusBorderRadius': (value) => focusBorderRadius = value,
-        'focusColor': (value) => focusColor = value,
+        'focusBorderColor': (value) => focusBorderColor = value,
         'focusBorderWidth': (value) => focusBorderWidth = value,
         'fixedFocusScroll': (value) => fixedFocusScroll = value,
         'fixedFocusOffset': (value) => fixedFocusOffset = value,

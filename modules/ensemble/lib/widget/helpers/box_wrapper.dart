@@ -806,18 +806,18 @@ class _TapEnabledWrapperState extends State<_TapEnabledWrapper> {
     // (Ensemble theme takes precedence over host app provider)
     final appPrimaryColor = theme.colorScheme.primary;
 
-    // Focus color: tvOptions > Theme > Provider > Widget's borderColor > Default
-    final Color focusColor;
-    if (tvOptions.focusColor != null) {
-      focusColor = tvOptions.focusColor!;
-    } else if (tvFocusTheme.focusColor != null) {
-      focusColor = tvFocusTheme.focusColor!;
-    } else if (externalProvider?.focusColor != null) {
-      focusColor = externalProvider!.focusColor!;
+    // Focus border color: tvOptions > Theme > Provider > Widget's borderColor > Default
+    final Color focusBorderColor;
+    if (tvOptions.focusBorderColor != null) {
+      focusBorderColor = tvOptions.focusBorderColor!;
+    } else if (tvFocusTheme.focusBorderColor != null) {
+      focusBorderColor = tvFocusTheme.focusBorderColor!;
+    } else if (externalProvider?.focusBorderColor != null) {
+      focusBorderColor = externalProvider!.focusBorderColor!;
     } else if (boxController.borderColor != null) {
-      focusColor = boxController.borderColor!;
+      focusBorderColor = boxController.borderColor!;
     } else {
-      focusColor = appPrimaryColor;
+      focusBorderColor = appPrimaryColor;
     }
 
     // Focus border width: tvOptions > Theme > Provider > Widget's borderWidth > Default
@@ -890,7 +890,7 @@ class _TapEnabledWrapperState extends State<_TapEnabledWrapper> {
             duration: focusAnimationDuration,
             decoration: BoxDecoration(
               border: Border.all(
-                color: hasFocus ? focusColor : Colors.transparent,
+                color: hasFocus ? focusBorderColor : Colors.transparent,
                 width: focusBorderWidth,
               ),
               borderRadius: borderRadius,
@@ -1173,18 +1173,18 @@ class _TVFocusOnlyWrapperState extends State<_TVFocusOnlyWrapper> {
     // (Ensemble theme takes precedence over host app provider)
     final appPrimaryColor = theme.colorScheme.primary;
 
-    // Focus color: tvOptions > Theme > Provider > Widget's borderColor > Default
-    final Color focusColor;
-    if (tvOptions.focusColor != null) {
-      focusColor = tvOptions.focusColor!;
-    } else if (tvFocusTheme.focusColor != null) {
-      focusColor = tvFocusTheme.focusColor!;
-    } else if (externalProvider?.focusColor != null) {
-      focusColor = externalProvider!.focusColor!;
+    // Focus border color: tvOptions > Theme > Provider > Widget's borderColor > Default
+    final Color focusBorderColor;
+    if (tvOptions.focusBorderColor != null) {
+      focusBorderColor = tvOptions.focusBorderColor!;
+    } else if (tvFocusTheme.focusBorderColor != null) {
+      focusBorderColor = tvFocusTheme.focusBorderColor!;
+    } else if (externalProvider?.focusBorderColor != null) {
+      focusBorderColor = externalProvider!.focusBorderColor!;
     } else if (boxController.borderColor != null) {
-      focusColor = boxController.borderColor!;
+      focusBorderColor = boxController.borderColor!;
     } else {
-      focusColor = appPrimaryColor;
+      focusBorderColor = appPrimaryColor;
     }
 
     // Focus border width: tvOptions > Theme > Provider > Widget's borderWidth > Default
@@ -1229,7 +1229,7 @@ class _TVFocusOnlyWrapperState extends State<_TVFocusOnlyWrapper> {
       duration: focusAnimationDuration,
       decoration: BoxDecoration(
         border: Border.all(
-          color: _hasFocus ? focusColor : Colors.transparent,
+          color: _hasFocus ? focusBorderColor : Colors.transparent,
           width: focusBorderWidth,
         ),
         borderRadius: borderRadius,

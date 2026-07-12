@@ -11,21 +11,21 @@ import 'package:flutter/material.dart';
 /// Common:
 ///   Tokens:
 ///     TV:
-///       focusColor: 0xFF00AAFF
+///       focusBorderColor: 0xFF00AAFF
 ///       focusBorderWidth: 3
 ///       focusBorderRadius: 8
 ///       focusAnimationDuration: 150
 /// ```
 class TVFocusTheme {
   const TVFocusTheme({
-    this.focusColor,
+    this.focusBorderColor,
     this.focusBorderWidth,
     this.focusBorderRadius,
     this.focusAnimationDurationMs,
   });
 
   /// Focus indicator border color from theme.
-  final Color? focusColor;
+  final Color? focusBorderColor;
 
   /// Focus indicator border width from theme.
   final double? focusBorderWidth;
@@ -37,7 +37,7 @@ class TVFocusTheme {
   final int? focusAnimationDurationMs;
 
   /// Default values for border width, radius, and animation.
-  /// Note: focusColor defaults to app's primary color (passed at resolve time).
+  /// Note: focusBorderColor defaults to app's primary color (passed at resolve time).
   static const double defaultBorderWidth = 3.0;
   static const double defaultBorderRadius = 8.0;
   static const int defaultAnimationDurationMs = 150;
@@ -46,7 +46,7 @@ class TVFocusTheme {
   TVFocusTheme mergeWith(TVFocusTheme? other) {
     if (other == null) return this;
     return TVFocusTheme(
-      focusColor: other.focusColor ?? focusColor,
+      focusBorderColor: other.focusBorderColor ?? focusBorderColor,
       focusBorderWidth: other.focusBorderWidth ?? focusBorderWidth,
       focusBorderRadius: other.focusBorderRadius ?? focusBorderRadius,
       focusAnimationDurationMs:
@@ -54,13 +54,13 @@ class TVFocusTheme {
     );
   }
 
-  /// Resolves the final focus color with fallback chain.
+  /// Resolves the final focus border color with fallback chain.
   ///
-  /// Priority: this.focusColor > providerColor > appPrimaryColor
+  /// Priority: this.focusBorderColor > providerColor > appPrimaryColor
   ///
   /// [appPrimaryColor] is typically `Theme.of(context).colorScheme.primary`
-  Color resolveFocusColor(Color? providerColor, Color appPrimaryColor) {
-    return focusColor ?? providerColor ?? appPrimaryColor;
+  Color resolveFocusBorderColor(Color? providerColor, Color appPrimaryColor) {
+    return focusBorderColor ?? providerColor ?? appPrimaryColor;
   }
 
   /// Resolves the final border width with fallback chain.
@@ -85,7 +85,7 @@ class TVFocusTheme {
   bool operator ==(Object other) {
     if (identical(this, other)) return true;
     return other is TVFocusTheme &&
-        other.focusColor == focusColor &&
+        other.focusBorderColor == focusBorderColor &&
         other.focusBorderWidth == focusBorderWidth &&
         other.focusBorderRadius == focusBorderRadius &&
         other.focusAnimationDurationMs == focusAnimationDurationMs;
@@ -93,7 +93,7 @@ class TVFocusTheme {
 
   @override
   int get hashCode => Object.hash(
-        focusColor,
+        focusBorderColor,
         focusBorderWidth,
         focusBorderRadius,
         focusAnimationDurationMs,

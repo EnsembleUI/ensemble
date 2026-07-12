@@ -117,7 +117,7 @@ tvOptions:
 
     # Focus Indicator Styling (Optional)
     focusBorderRadius: 16 # Border radius for focus indicator (pixels)
-    focusColor: 0xFF00AAFF # Focus indicator border color
+    focusBorderColor: 0xFF00AAFF # Focus indicator border color
     focusBorderWidth: 2 # Focus indicator border width (pixels)
 
     # Focused State Styling (Optional - widget appearance when focused)
@@ -183,7 +183,7 @@ These properties control the **focus indicator border** that appears around focu
 
 | Property              | Type     | Default       | Description                                                                                    |
 | --------------------- | -------- | ------------- | ---------------------------------------------------------------------------------------------- |
-| **focusColor**        | `Color`  | theme default | Custom color for focus indicator border. Accepts hex (0xFF00AAFF).                             |
+| **focusBorderColor**        | `Color`  | theme default | Custom color for focus indicator border. Accepts hex (0xFF00AAFF).                             |
 | **focusBorderWidth**  | `double` | `3.0`         | Custom border width for focus indicator (pixels).                                              |
 | **focusBorderRadius** | `double` | theme default | Custom border radius for focus indicator. Use `22` for 44px circular buttons, `100` for pills. |
 
@@ -767,7 +767,7 @@ abstract class TVFocusProvider {
     double get rowOffset;      // Ensemble content starts at this row
     double get orderOffset;    // Ensemble content starts at this order
 
-    Color? get focusColor;
+    Color? get focusBorderColor;
     double? get focusBorderWidth;
     double? get focusBorderRadius;
 
@@ -797,7 +797,7 @@ class PageFocusProvider implements TVFocusProvider {
     double get orderOffset => 5.0; // Aligned with Sports tab
 
     @override
-    Color? get focusColor => AppThemeManager.currentTheme.snowGrey;
+    Color? get focusBorderColor => AppThemeManager.currentTheme.snowGrey;
 
     @override
     double? get focusBorderWidth => 1.5;
@@ -866,7 +866,7 @@ if (widget.tvFocusProvider != null) {
 The focus indicator border color, width, and radius follow this priority order:
 
 ```
-1. Per-Widget Override (styles.tvOptions.focusColor/focusBorderWidth/focusBorderRadius)
+1. Per-Widget Override (styles.tvOptions.focusBorderColor/focusBorderWidth/focusBorderRadius)
        ↓ (if not set)
 2. Theme Configuration (theme.yaml - Common.Tokens.TV.*)
        ↓ (if not set)
@@ -902,7 +902,7 @@ Focused state properties (backgroundColor, scale, elevation, etc.) have a simple
 Common:
     Tokens:
         TV:
-            focusColor: 0xFF00AAFF
+            focusBorderColor: 0xFF00AAFF
             focusBorderWidth: 3
             focusBorderRadius: 8
             focusAnimationDuration: 150
@@ -917,7 +917,7 @@ Button:
         tvOptions:
             row: 1
             order: 0
-            focusColor: 0xFFFF0000 # Red focus border
+            focusBorderColor: 0xFFFF0000 # Red focus border
             focusBorderWidth: 4
             focusBorderRadius: 24
 ```
@@ -1024,7 +1024,7 @@ MediaCard:
             order: ${itemIndex}
             isRowEntryPoint: ${itemIndex == 0}
             # Focus indicator
-            focusColor: 0xFFFFFFFF
+            focusBorderColor: 0xFFFFFFFF
             focusBorderWidth: 3
             focusBorderRadius: 12
             # Focused state (widget transformation)
@@ -1050,7 +1050,7 @@ MediaCard:
 
 ### Focus Indicator vs Focused State
 
-**Focus Indicator** (focusColor, focusBorderWidth, focusBorderRadius):
+**Focus Indicator** (focusBorderColor, focusBorderWidth, focusBorderRadius):
 
 - The **border** that appears around the focused widget
 - Controlled by Ensemble's TV focus system
@@ -1074,7 +1074,7 @@ Button:
             row: 1
             order: 0
             # Focus indicator (white border around button)
-            focusColor: 0xFFFFFFFF
+            focusBorderColor: 0xFFFFFFFF
             focusBorderWidth: 3
             focusBorderRadius: 10
             # Focused state (button itself changes)
@@ -1397,7 +1397,7 @@ Bracket:
             row: 1 # Tab row, matches start at row+1
         tabStyles:
             focusBorderRadius: 12 # Focus indicator radius for tabs
-            # focusColor and focusBorderWidth follow the standard priority chain
+            # focusBorderColor and focusBorderWidth follow the standard priority chain
 ```
 
 ### Match Card tvOptions
@@ -1418,7 +1418,7 @@ MatchCard:
 
 Same as other widgets:
 
-1. `tabStyles.focusColor` / `focusBorderWidth` / `focusBorderRadius`
+1. `tabStyles.focusBorderColor` / `focusBorderWidth` / `focusBorderRadius`
 2. Theme (`EnsembleThemeExtension.tvFocusTheme`)
 3. Provider (`TVFocusProviderScope`)
 4. `tabStyles.borderColor` / `borderWidth` / `borderRadius`
