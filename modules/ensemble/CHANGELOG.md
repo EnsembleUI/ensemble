@@ -1,3 +1,8 @@
+## 1.2.49-beta.2
+
+ - **REFACTOR**: remove debug prints related to TV scrollbar handling and updated developer docs. ([d640ad20](https://github.com/ensembleUI/ensemble/commit/d640ad20f74f9cff6c9bf8cfd8cc21443c0d3a84))
+ - **DOCS**: add comprehensive TV developer guide with navigation patterns, architecture, and examples. ([355f7e79](https://github.com/ensembleUI/ensemble/commit/355f7e792878c5cfd3e6575f8a78b2c1c1e19e76))
+
 ## 1.2.49-beta.1
 
 ## 1.2.49
