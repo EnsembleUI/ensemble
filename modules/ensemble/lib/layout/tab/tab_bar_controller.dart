@@ -7,7 +7,11 @@ import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:yaml/yaml.dart';
 
-// the Controller for the TabBar
+// =============================================================================
+// TabBarController - State & Configuration for TabBar Widget
+// =============================================================================
+
+/// Controller for TabBar widgets. Manages styling, tab items, and selection state.
 class TabBarController extends BoxController {
   String? tabPosition;
   String? tabAlignment;

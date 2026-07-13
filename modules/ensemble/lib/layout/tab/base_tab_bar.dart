@@ -11,6 +11,13 @@ import 'package:ensemble/layout/tab_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:ensemble/framework/widget/icon.dart' as ensemble;
 
+// =============================================================================
+// BaseTabBarState - Shared TabBar Logic for Mobile and TV
+// =============================================================================
+
+/// Base state for TabBar widgets. Handles tab building, styling, and navigation.
+/// On TV: Uses [_TVTabButton] with TVFocusOrder for D-pad navigation.
+/// On Mobile: Uses Flutter's standard TabBar widget.
 abstract class BaseTabBarState extends EWidgetState<BaseTabBar>
     with TickerProviderStateMixin, TabBarAction {
   late TabController tabController;
@@ -159,7 +166,6 @@ abstract class BaseTabBarState extends EWidgetState<BaseTabBar>
                 tabFontWeight: widget.controller.tabFontWeight,
                 tabPadding: widget.controller.tabPadding,
                 onTap: () {
-                  debugPrint('[TV TabBar] Tab $index tapped, switching content');
                   tabController.animateTo(index);
                   onTabChanged(index);
                 },

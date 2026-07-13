@@ -819,21 +819,15 @@ class PageState extends State<Page>
       rtn = HasSelectableText(child: rtn);
     }
 
-    // TV D-pad Navigation using flutter_pca style coordinate-based navigation
-    // Only add our own FocusTraversalGroup if no external provider is managing focus
-    // When external provider exists (e.g., PageFocusProvider from host app),
-    // we skip this wrapper so Ensemble items participate in the host app's focus grid
-    if (Device().isTV) {
-      final hasExternalProvider = TVFocusProviderScope.maybeOf(context) != null;
-      if (hasExternalProvider) {
-        debugPrint('[TV Focus] External provider detected - skipping FocusTraversalGroup wrapper');
-      } else {
-        debugPrint('[TV Focus] Using FocusTraversalGroup with TVFocusOrderTraversalPolicy');
-        rtn = FocusTraversalGroup(
-          policy: TVFocusOrderTraversalPolicy(),
-          child: rtn,
-        );
-      }
+    // TV: Wrap with FocusTraversalGroup for standalone D-pad navigation.
+    // Skip if external provider exists (host app manages its own focus grid).
+    final isStandaloneTV = Device().isTV &&
+        TVFocusProviderScope.maybeOf(context) == null;
+    if (isStandaloneTV) {
+      rtn = FocusTraversalGroup(
+        policy: TVFocusOrderTraversalPolicy(),
+        child: rtn,
+      );
     }
 
     // if backgroundImage is set, put it outside of the Scaffold so
