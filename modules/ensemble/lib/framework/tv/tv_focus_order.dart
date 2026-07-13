@@ -1,36 +1,44 @@
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 
-/// Focus coordinate for TV navigation.
-/// Based on flutter_pca's PageFocusOrder pattern.
+// =============================================================================
+// TV Focus Order - 2D Grid Coordinate System
+// =============================================================================
+
+/// 2D coordinate for TV D-pad navigation. Maps to flutter_pca's PageFocusOrder.
 ///
-/// Each focusable item gets a (row, order) coordinate:
-/// - [row] is the vertical position (0, 1, 2, ...)
-/// - [isRowEntryPoint] marks this item as the preferred entry when entering this row
-/// - [order] is the horizontal position within the row (0, 1, 2, ...)
-/// - [page] is for scroll pagination (0 = start, 1 = end)
-/// - [pagePixels] is for exact scroll offset
+/// ## Coordinate System
+/// - [row]: Vertical position (0, 1, 2...). Items in same row navigate with LEFT/RIGHT.
+/// - [order]: Horizontal position within row. Lower = more left.
+///
+/// ## Constructors
+/// - `TVFocusOrder(row, order)` - Simple positioning, all flags default false.
+/// - `TVFocusOrder.withOptions(row, ...)` - Full control over navigation flags.
+///
+/// ## Example
+/// ```dart
+/// TVFocusOrder(1, 2)                                    // Row 1, position 2
+/// TVFocusOrder.withOptions(0, order: 3, isRowEntryPoint: true)  // Tab bar entry
+/// ```
 class TVFocusOrder extends FocusOrder {
-  /// Creates a focus order with the given coordinates.
-  /// [row] describes the vertical position
-  /// [order] describes the horizontal position within the row
-  /// [page] controls scrolling (0 = start, 1 = end)
-  /// [isRowEntryPoint] marks this as the preferred item when entering this row
+  /// Creates a focus order with basic positioning.
+  ///
+  /// Use this for simple cases where you only need row/order coordinates.
+  /// For setting [isRowEntryPoint] or navigation options, use [TVFocusOrder.withOptions].
   const TVFocusOrder(
     this.row, [
     this.order = 0,
-    this.page = 0,
-    this.pagePixels,
   ])  : isRowEntryPoint = false,
         lockHorizontalNavigation = false,
         delegateHorizontalNavigation = false;
 
-  /// Creates a focus order with named parameters for optional values.
+  /// Creates a focus order with full control over all options.
+  ///
+  /// Use this when you need to set navigation behavior options like
+  /// [isRowEntryPoint], [lockHorizontalNavigation], or [delegateHorizontalNavigation].
   const TVFocusOrder.withOptions(
     this.row, {
     this.order = 0,
-    this.page = 0,
-    this.pagePixels,
     this.isRowEntryPoint = false,
     this.lockHorizontalNavigation = false,
     this.delegateHorizontalNavigation = false,
@@ -38,8 +46,6 @@ class TVFocusOrder extends FocusOrder {
 
   final double row;
   final double order;
-  final int page;
-  final double? pagePixels;
 
   /// If true, this item is the preferred entry point when navigating to this row.
   /// Used by TabBar to focus the selected tab when entering the tab row.
@@ -65,8 +71,6 @@ class TVFocusOrder extends FocusOrder {
     return TVFocusOrder.withOptions(
       row + rowOffset,
       order: order + orderOffset,
-      page: page,
-      pagePixels: pagePixels,
       isRowEntryPoint: isRowEntryPoint,
       lockHorizontalNavigation: lockHorizontalNavigation,
       delegateHorizontalNavigation: delegateHorizontalNavigation,
@@ -99,11 +103,15 @@ class TVFocusOrder extends FocusOrder {
 
   @override
   String toString({DiagnosticLevel minLevel = DiagnosticLevel.info}) {
-    return 'TVFocusOrder(row: $row, order: $order, page: $page)';
+    return 'TVFocusOrder(row: $row, order: $order)';
   }
 }
 
-/// Node wrapper for grid building
+// =============================================================================
+// Grid Building Utilities
+// =============================================================================
+
+/// Internal wrapper pairing a FocusNode with its TVFocusOrder coordinate.
 class TVFocusOrderNode {
   final FocusNode focus;
   final TVFocusOrder order;
@@ -157,10 +165,13 @@ class TVFocusOrderNode {
   }
 }
 
-/// Custom traversal policy for TV focus navigation.
-/// Prevents focus from escaping upward when at row 0.
+// =============================================================================
+// Focus Traversal Policy & Scope
+// =============================================================================
+
+/// Traversal policy that prevents UP navigation from escaping the Ensemble grid.
 class TVFocusOrderTraversalPolicy extends ReadingOrderTraversalPolicy {
-  /// When true, prevents navigating up from row 0
+  /// When true, UP at row 0 is blocked (focus stays in Ensemble content).
   final bool preventOutOfScopeTopTraversal;
 
   TVFocusOrderTraversalPolicy({
@@ -168,22 +179,29 @@ class TVFocusOrderTraversalPolicy extends ReadingOrderTraversalPolicy {
   });
 }
 
-/// Focus scope that can lock focus within a region and handle edge navigation.
-/// Useful for dialogs, modal content, and providing edge handlers for scrollbars.
+/// Focus scope with edge handlers for scrollbar navigation and focus locking.
+///
+/// Use cases:
+/// - Scrollbar navigation: onRightEdge moves focus from ListView to scrollbar
+/// - Modal dialogs: lockScope prevents focus from escaping
+///
+/// WARNING: Extends FocusScope directly (inheritance anti-pattern).
+/// Data is accessed via findAncestorWidgetOfExactType in TVFocusWidget.
+/// Future refactor: Use composition with InheritedWidget for data.
 class TVFocusScope extends FocusScope {
-  /// If true, focus cannot escape this scope
+  /// When true, focus cannot leave this scope (modal behavior).
   final bool lockScope;
 
-  /// Optional callback when RIGHT is pressed at the rightmost edge
+  /// Called when RIGHT pressed at rightmost edge. Use for right-side scrollbar.
   final VoidCallback? onRightEdge;
 
-  /// Optional callback when LEFT is pressed at the leftmost edge
+  /// Called when LEFT pressed at leftmost edge. Use for left-side scrollbar.
   final VoidCallback? onLeftEdge;
 
-  /// Optional callback when UP is pressed at the topmost edge
+  /// Called when UP pressed at top edge.
   final VoidCallback? onTopEdge;
 
-  /// Optional callback when DOWN is pressed at the bottommost edge
+  /// Called when DOWN pressed at bottom edge.
   final VoidCallback? onBottomEdge;
 
   const TVFocusScope({

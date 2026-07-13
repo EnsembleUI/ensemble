@@ -1,24 +1,31 @@
-import 'package:ensemble/framework/device.dart';
 import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-/// Focusable scrollbar widget for TV navigation.
+// =============================================================================
+// TVScrollbarWidget - Focusable Scrollbar for D-pad Navigation
+// =============================================================================
+
+/// Focusable scrollbar for TV. Syncs with ListView's ScrollController.
 ///
-/// This widget:
-/// - Renders a vertical scrollbar with two visual states (normal/focused)
-/// - Handles UP/DOWN key events to manually scroll content
-/// - Listens to ScrollController to auto-sync thumb position
-/// - Receives focus via TVFocusScope edge handlers when user navigates to boundary
-/// - Returns focus to content based on scrollbar position (LEFT for right scrollbar, RIGHT for left scrollbar)
+/// ## Visual States
+/// - Unfocused: Grey, thin (3px default)
+/// - Focused: White, wider (6px default)
 ///
-/// Visual States:
-/// - Normal: Grey color, thin width (e.g., 3px)
-/// - Focused: White color, wider width (e.g., 6px)
+/// ## Navigation Flow
+/// 1. User presses RIGHT at content edge → onRightEdge triggers → scrollbar gains focus
+/// 2. User presses UP/DOWN → scrolls content 20% per press
+/// 3. User presses LEFT → returns focus to content
 ///
-/// Navigation:
-/// - Right-positioned scrollbar: RIGHT key at content edge → Scrollbar, LEFT returns to content
-/// - Left-positioned scrollbar: LEFT key at content edge → Scrollbar, RIGHT returns to content
+/// ## YAML Configuration
+/// ```yaml
+/// styles:
+///   tvOptions:
+///     scrollbarOptions:
+///       position: right     # 'left' or 'right'
+///       color: 0xFF666666   # unfocused color
+///       focusedColor: 0xFFFFFFFF
+/// ```
 class TVScrollbarWidget extends StatefulWidget {
   const TVScrollbarWidget({
     super.key,
@@ -47,13 +54,10 @@ class _TVScrollbarWidgetState extends State<TVScrollbarWidget> {
     super.initState();
     _focusNode = FocusNode(debugLabel: 'TVScrollbar');
     widget.scrollController.addListener(_onScrollChange);
-
-    debugPrint('[TVScrollbar] initState - position=${widget.options.position}');
   }
 
   /// Public method to request focus on this scrollbar (called from ListView)
   void requestFocusOnScrollbar() {
-    debugPrint('[TVScrollbar] requestFocusOnScrollbar() called');
     _focusNode.requestFocus();
   }
 
@@ -98,22 +102,16 @@ class _TVScrollbarWidgetState extends State<TVScrollbarWidget> {
   }
 
   void _scrollDown() {
-    if (!widget.scrollController.hasClients) {
-      debugPrint('[TVScrollbar] _scrollDown - no scroll controller clients');
-      return;
-    }
+    if (!widget.scrollController.hasClients) return;
 
     final position = widget.scrollController.position;
     final viewportHeight = position.viewportDimension;
     final scrollStep = viewportHeight * 0.2; // Scroll 20% of viewport
 
-    final currentOffset = position.pixels;
-    final newOffset = (currentOffset + scrollStep).clamp(
+    final newOffset = (position.pixels + scrollStep).clamp(
       position.minScrollExtent,
       position.maxScrollExtent,
     );
-
-    debugPrint('[TVScrollbar] Scrolling DOWN: $currentOffset → $newOffset');
 
     widget.scrollController.animateTo(
       newOffset,
@@ -123,22 +121,16 @@ class _TVScrollbarWidgetState extends State<TVScrollbarWidget> {
   }
 
   void _scrollUp() {
-    if (!widget.scrollController.hasClients) {
-      debugPrint('[TVScrollbar] _scrollUp - no scroll controller clients');
-      return;
-    }
+    if (!widget.scrollController.hasClients) return;
 
     final position = widget.scrollController.position;
     final viewportHeight = position.viewportDimension;
     final scrollStep = viewportHeight * 0.2; // Scroll 20% of viewport
 
-    final currentOffset = position.pixels;
-    final newOffset = (currentOffset - scrollStep).clamp(
+    final newOffset = (position.pixels - scrollStep).clamp(
       position.minScrollExtent,
       position.maxScrollExtent,
     );
-
-    debugPrint('[TVScrollbar] Scrolling UP: $currentOffset → $newOffset');
 
     widget.scrollController.animateTo(
       newOffset,
@@ -149,11 +141,6 @@ class _TVScrollbarWidgetState extends State<TVScrollbarWidget> {
 
   @override
   Widget build(BuildContext context) {
-    // Only render on TV
-    if (!Device().isTV) {
-      return const SizedBox.shrink();
-    }
-
     // Calculate current thumb position for first render
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted && widget.scrollController.hasClients) {
@@ -175,11 +162,9 @@ class _TVScrollbarWidgetState extends State<TVScrollbarWidget> {
 
             // Handle UP/DOWN for manual scrolling
             if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
-              debugPrint('[TVScrollbar] DOWN key - scrolling down');
               _scrollDown();
               return KeyEventResult.handled;
             } else if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
-              debugPrint('[TVScrollbar] UP key - scrolling up');
               _scrollUp();
               return KeyEventResult.handled;
             }
@@ -189,11 +174,9 @@ class _TVScrollbarWidgetState extends State<TVScrollbarWidget> {
             // When scrollbar is on left, RIGHT returns to content
             if (widget.options.position == 'right' &&
                 event.logicalKey == LogicalKeyboardKey.arrowLeft) {
-              debugPrint('[TVScrollbar] LEFT key - returning focus to content (scrollbar on right)');
               return KeyEventResult.ignored; // Let focus system handle it
             } else if (widget.options.position == 'left' &&
                        event.logicalKey == LogicalKeyboardKey.arrowRight) {
-              debugPrint('[TVScrollbar] RIGHT key - returning focus to content (scrollbar on left)');
               return KeyEventResult.ignored; // Let focus system handle it
             }
 
@@ -202,11 +185,8 @@ class _TVScrollbarWidgetState extends State<TVScrollbarWidget> {
           child: InkWell(
             focusNode: _focusNode,
             autofocus: widget.options.autofocus,
-            onTap: () {
-              debugPrint('[TVScrollbar] Tapped');
-            },
+            onTap: () {},
             onFocusChange: (hasFocus) {
-              debugPrint('[TVScrollbar] onFocusChange: $hasFocus');
               if (mounted) {
                 setState(() {
                   _isFocused = hasFocus;

@@ -1,21 +1,24 @@
 import 'package:ensemble/framework/tv/tv_focus_order.dart';
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-/// Widget that wraps a focusable child with TV D-pad navigation support.
-/// Based on flutter_pca's PageFocusWidget pattern.
+// =============================================================================
+// TVFocusWidget - Ensemble's Built-in D-pad Navigation
+// =============================================================================
+
+/// Wraps a focusable child with D-pad navigation. Used when no external
+/// TVFocusProvider is supplied (standalone Ensemble apps).
 ///
-/// This widget:
-/// - Intercepts arrow key events (UP/DOWN/LEFT/RIGHT)
-/// - Builds a 2D grid of focusable items in the same FocusTraversalGroup
-/// - Navigates between items using row/order coordinates
-/// - Handles auto-scrolling when focus changes
-/// - Supports edge handlers for navigating to widgets outside the grid (e.g., scrollbars)
+/// ## How It Works
+/// 1. Intercepts arrow key events (UP/DOWN/LEFT/RIGHT)
+/// 2. Scans FocusTraversalGroup for all TVFocusOrder widgets
+/// 3. Builds 2D grid, moves focus based on row/order coordinates
+/// 4. Calls edge handlers when at grid boundaries (for scrollbar navigation)
 ///
-/// IMPORTANT: The inner Focus widget uses `skipTraversal: true` (not `canRequestFocus: false`)
-/// so that it still receives key events but doesn't participate in tab navigation.
-/// Using `canRequestFocus: false` would cause Flutter to skip this widget entirely
-/// in the key event routing chain, breaking D-pad navigation.
+/// ## Key Architecture Note
+/// Uses FocusScope (not Focus) so key events bubble up from child.
+/// With plain Focus, this node would be a sibling and miss key events.
 class TVFocusWidget extends StatelessWidget {
   const TVFocusWidget({
     super.key,
@@ -238,22 +241,30 @@ class TVFocusWidget extends StatelessWidget {
 
       if (xOffset > 0 && rightEdgeHandler != null) {
         // At right edge and have handler
-        debugPrint('[TVFocusWidget] At right edge - calling onRightEdge handler');
+        if (kDebugMode) {
+          debugPrint('[TVFocusWidget] At right edge - calling onRightEdge handler');
+        }
         rightEdgeHandler();
         return true;
       } else if (xOffset < 0 && leftEdgeHandler != null) {
         // At left edge and have handler
-        debugPrint('[TVFocusWidget] At left edge - calling onLeftEdge handler');
+        if (kDebugMode) {
+          debugPrint('[TVFocusWidget] At left edge - calling onLeftEdge handler');
+        }
         leftEdgeHandler();
         return true;
       } else if (yOffset > 0 && bottomEdgeHandler != null) {
         // At bottom edge and have handler
-        debugPrint('[TVFocusWidget] At bottom edge - calling onBottomEdge handler');
+        if (kDebugMode) {
+          debugPrint('[TVFocusWidget] At bottom edge - calling onBottomEdge handler');
+        }
         bottomEdgeHandler();
         return true;
       } else if (yOffset < 0 && topEdgeHandler != null) {
         // At top edge and have handler
-        debugPrint('[TVFocusWidget] At top edge - calling onTopEdge handler');
+        if (kDebugMode) {
+          debugPrint('[TVFocusWidget] At top edge - calling onTopEdge handler');
+        }
         topEdgeHandler();
         return true;
       }

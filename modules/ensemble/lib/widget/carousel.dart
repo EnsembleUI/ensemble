@@ -216,15 +216,22 @@ class CarouselState extends EWidgetState<Carousel>
 
   int indicatorIndex = 0;
 
-  // TV Focus handling
+  // ===========================================================================
+  // TV Focus Handling
+  // Enables: interceptHorizontalNav, pauseAutoplayOnFocus, restoreFocusOnPageChange
+  // ===========================================================================
+
+  /// FocusScope for the entire carousel. Receives delegated horizontal key events.
   final FocusScopeNode _carouselFocusScopeNode = FocusScopeNode(debugLabel: 'CarouselScope');
+
+  /// Tracks autoplay pause state for pauseAutoplayOnFocus feature.
   bool _isAutoplayPaused = false;
 
-  /// Direction of last navigation for focus restoration
-  /// -1 = LEFT (focus last element), 1 = RIGHT (focus first element), 0 = autoplay
+  /// Navigation direction for focus restoration: -1=LEFT, 1=RIGHT, 0=autoplay.
+  /// WARNING: Current implementation uses nextFocus() for both directions.
   int _lastNavigationDirection = 0;
 
-  /// Track if we need to restore focus after page change
+  /// Set true when slide change triggered by D-pad navigation.
   bool _pendingFocusRestore = false;
 
   @override
@@ -623,37 +630,42 @@ class CarouselState extends EWidgetState<Carousel>
         });
   }
 
-  /// Handle focus restoration after page change
+  /// Restores focus to the new slide after page change.
+  ///
+  /// Called after slide animation completes. Only runs if:
+  /// - restoreFocusOnPageChange is enabled
+  /// - Carousel currently has focus
+  ///
+  /// KNOWN LIMITATION: Both LEFT and RIGHT navigation use nextFocus().
+  /// Ideal behavior: LEFT→last element, RIGHT→first element.
+  /// Current behavior: Both focus "next" element (Flutter's default traversal).
+  /// Works fine for single-item slides, may need improvement for multi-item slides.
   void _handleFocusRestoration(int newIndex, bool isAutoplay) {
     if (!_isTVPlatform) return;
     if (widget._controller.tvOptions?.restoreFocusOnPageChange != true) return;
 
-    // Only restore focus if the carousel currently has focus
-    // This prevents stealing focus from other parts of the UI during autoplay
+    // Only restore if carousel has focus (prevents stealing focus during autoplay)
     final carouselHasFocus = _carouselFocusScopeNode.hasFocus;
     if (!carouselHasFocus) {
       _pendingFocusRestore = false;
       return;
     }
 
-    // For manual navigation, we need _pendingFocusRestore flag
-    // For autoplay, we always restore if carousel has focus
+    // Manual nav needs _pendingFocusRestore, autoplay always restores if has focus
     if (!_pendingFocusRestore && !isAutoplay) return;
 
     _pendingFocusRestore = false;
 
-    // Wait for the new slide to be built before restoring focus
+    // Wait one frame for new slide widgets to be built
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      // Re-check focus state after frame callback
       if (!_carouselFocusScopeNode.hasFocus) return;
 
-      // Use the carousel's scope node for focus traversal
+      // TODO: Use TVFocusOrder targeting instead of nextFocus() for proper
+      // direction-aware focus restoration (LEFT→last, RIGHT→first)
       if (_lastNavigationDirection == -1) {
-        // LEFT navigation - focus next available element
         _carouselFocusScopeNode.nextFocus();
       } else {
-        // RIGHT navigation or autoplay - focus first element
         _carouselFocusScopeNode.nextFocus();
       }
     });
