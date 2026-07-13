@@ -42,6 +42,28 @@ The Ensemble framework provides comprehensive TV support through:
 | **Fixed Focus Scroll**  | Netflix-style scrolling where focused item stays fixed |
 | **Delegate Navigation** | Passing key events to parent (for carousels)           |
 
+### Row/Order Navigation Grid
+
+```
+        order=0      order=1      order=2      order=3
+       ┌──────────┬──────────┬──────────┬──────────┐
+row=0  │ [Back]   │          │          │          │  ← D-pad LEFT/RIGHT
+       ├──────────┼──────────┼──────────┼──────────┤
+row=1  │ [Card 1] │ [Card 2] │ [Card 3] │ [Card 4] │  ← Horizontal list
+       ├──────────┼──────────┼──────────┼──────────┤
+row=2  │ [Item A] │ [Item B] │          │          │  ← Grid row
+       ├──────────┼──────────┼──────────┼──────────┤
+row=3  │ [Item C] │ [Item D] │          │          │
+       └──────────┴──────────┴──────────┴──────────┘
+           ↑
+       D-pad UP/DOWN moves between rows
+```
+
+**Navigation Rules:**
+- **UP/DOWN**: Move to adjacent row, land on entry point or nearest order
+- **LEFT/RIGHT**: Move within same row to adjacent order
+- **isRowEntryPoint**: Marks preferred landing spot when entering row
+
 ---
 
 ## 2. Architecture
@@ -237,6 +259,7 @@ These properties are set under `tvOptions.scrollbarOptions` on ListView widgets.
 | **focusedWidth** | `int`    | `6`          | Scrollbar width in pixels when focused (wider for visibility). |
 | **radius**       | `int`    | `4`          | Border radius of scrollbar corners.                            |
 | **thumbHeight**  | `int`    | `40`         | Fixed height of scrollbar thumb in pixels.                     |
+| **autofocus**    | `bool`   | `false`      | Auto-focus scrollbar on mount (rarely needed).                 |
 
 ### Where to Apply tvOptions
 
@@ -636,125 +659,11 @@ Item (order 0) ─RIGHT→ Item (order 1) ─RIGHT→ Scrollbar
 Item (order 0) ←LEFT─  Item (order 1) ←LEFT─ ─┘
 ```
 
-### Left-Positioned Scrollbar
-
-For left-side scrollbar, use `position: left`:
-
-```yaml
-ListView:
-    styles:
-        tvOptions:
-            scrollbarOptions:
-                position: left
-                color: 0xFF666666
-                focusedColor: 0xFFFFFFFF
-    item-template:
-        data: ${items}
-        indexId: idx
-        template:
-            Column:
-                styles:
-                    tvOptions:
-                        row: ${1 + idx}
-                        order: 0
-                onTap: ...
-```
-
-**Navigation flow (left position):**
-
-```
-Scrollbar ←LEFT─ Item (order 0)
-    │
-    └─RIGHT→  Item (order 0)
-```
-
-### Scrollbar Styling Options
-
-| Property       | Default      | Description                            |
-| -------------- | ------------ | -------------------------------------- |
-| `position`     | `'right'`    | `'left'` or `'right'` side of ListView |
-| `color`        | `0xFF666666` | Track and thumb color when not focused |
-| `focusedColor` | `0xFFFFFFFF` | Track and thumb color when focused     |
-| `width`        | `3`          | Width in pixels when not focused       |
-| `focusedWidth` | `6`          | Width in pixels when focused (wider)   |
-| `radius`       | `4`          | Corner radius of scrollbar             |
-| `thumbHeight`  | `40`         | Fixed height of scrollbar thumb        |
-
-### Complete Example: Settings List with Scrollbar
-
-```yaml
-View:
-    title: Settings
-
-    onLoad:
-        executeCode:
-            body: |
-                ensemble.storage.settings = [
-                    {name: 'Notifications', enabled: true},
-                    {name: 'Dark Mode', enabled: false},
-                    {name: 'Auto-play', enabled: true},
-                    # ... more settings
-                ];
-
-    body:
-        Column:
-            children:
-                # Header
-                - Row:
-                      styles:
-                          tvOptions:
-                              row: 0
-                              order: 0
-                      onTap:
-                          navigateBack:
-                      children:
-                          - Icon:
-                                name: arrow_back
-                          - Text:
-                                text: Settings
-
-                # Settings list with scrollbar
-                - ListView:
-                      styles:
-                          expanded: true
-                          tvOptions:
-                              scrollbarOptions:
-                                  position: right
-                                  color: 0xFF444444
-                                  focusedColor: 0xFF00AAFF
-                                  width: 4
-                                  focusedWidth: 8
-                      item-template:
-                          data: ${ensemble.storage.settings}
-                          name: setting
-                          indexId: idx
-                          template:
-                              Row:
-                                  styles:
-                                      padding: 16
-                                      mainAxis: spaceBetween
-                                  children:
-                                      - Text:
-                                            text: ${setting.name}
-                                      - Switch:
-                                            value: ${setting.enabled}
-                                            styles:
-                                                tvOptions:
-                                                    row: ${1 + idx}
-                                                    order: 0
-                                                    isRowEntryPoint: ${idx == 0}
-                                            onChange: |
-                                                ensemble.storage.settings[${idx}].enabled = event.value;
-```
-
 ### Key Points
 
-1. **Only on TV**: Scrollbar only renders on TV devices (not mobile/web)
-2. **ScrollController Required**: ListView must have a scroll controller (automatic for most cases)
-3. **Grid Navigation**: Works with TVFocusWidget's 2D grid system via edge handlers
-4. **Multi-Column Safe**: Correctly navigates through all columns before scrollbar
-5. **Bidirectional**: LEFT from right scrollbar (or RIGHT from left scrollbar) returns to content
-6. **Visual Feedback**: Scrollbar changes color/width when focused
+- **Only on TV**: Scrollbar only renders on TV devices
+- **Position**: Use `position: left` for left-side scrollbar (navigation reverses)
+- **Multi-Column Safe**: Navigates through all columns before reaching scrollbar
 
 ---
 
@@ -922,131 +831,37 @@ Button:
             focusBorderRadius: 24
 ```
 
-### Focused State Styling Examples
+### Focused State Styling Example
 
-#### Example 1: Scale and Brighten on Focus
-
-```yaml
-MediaCard:
-    styles:
-        backgroundColor: 0xFF1A1A1A
-        tvOptions:
-            row: 2
-            order: ${index}
-            # Normal widget styles above
-            # Focused state styles below
-            scale: 1.05 # Grow 5% when focused
-            backgroundColor: 0xFF2A2A2A # Lighter background
-    onTap:
-        navigateScreen:
-            name: MediaDetails
-```
-
-#### Example 2: Add Shadow and Border on Focus
-
-```yaml
-Button:
-    label: "Play"
-    styles:
-        backgroundColor: 0xFF2196F3
-        borderRadius: 8
-        tvOptions:
-            row: 1
-            order: 0
-            # Focused state
-            elevation: 8 # Add shadow depth
-            borderColor: 0xFFFFFFFF # White border
-            borderWidth: 2
-            scale: 1.02 # Slight zoom
-```
-
-#### Example 3: Change Background Gradient on Focus
-
-```yaml
-Column:
-    styles:
-        backgroundGradient:
-            colors: [0xFF1A1A1A, 0xFF0A0A0A]
-        tvOptions:
-            row: 3
-            order: ${idx}
-            # Different gradient when focused
-            backgroundGradient:
-                colors: [0xFF2196F3, 0xFF1976D2]
-                start: topLeft
-                end: bottomRight
-    onTap: ...
-```
-
-#### Example 4: Padding/Margin Animation on Focus
+All these properties animate when focus changes:
 
 ```yaml
 Card:
     styles:
+        backgroundColor: 0xFF1A1A1A
+        opacity: 0.7
         padding: 12
-        margin: 8
         tvOptions:
-            row: 4
+            row: 1
             order: ${idx}
-            # Adjust spacing when focused
-            padding: 16 # More padding
-            margin: 4 # Less margin (appears to grow)
+            # When focused, these override normal styles:
+            scale: 1.05              # Grow 5%
+            backgroundColor: 0xFF2A2A2A  # Lighter
+            opacity: 1.0             # Full brightness
+            elevation: 8             # Shadow
+            padding: 16              # More spacing
     onTap: ...
 ```
 
-#### Example 5: Opacity Fade on Focus
-
-```yaml
-TabButton:
-    styles:
-        opacity: 0.5 # Dim when not focused
-        tvOptions:
-            row: 0
-            order: ${idx}
-            opacity: 1.0 # Full brightness when focused
-    onTap:
-        executeCode:
-            body: |
-                switchTab(${idx});
-```
-
-#### Example 6: Complete Media Card with All Effects
-
-```yaml
-MediaCard:
-    styles:
-        width: 200
-        height: 300
-        borderRadius: 12
-        backgroundColor: 0xFF1A1A1A
-        tvOptions:
-            row: ${rowIndex}
-            order: ${itemIndex}
-            isRowEntryPoint: ${itemIndex == 0}
-            # Focus indicator
-            focusBorderColor: 0xFFFFFFFF
-            focusBorderWidth: 3
-            focusBorderRadius: 12
-            # Focused state (widget transformation)
-            scale: 1.08
-            backgroundColor: 0xFF2A2A2A
-            elevation: 12
-            boxShadow:
-                color: 0x60000000
-                offset: [0, 8]
-                blur: 16
-                spread: 2
-    onTap:
-        navigateScreen:
-            name: MediaDetails
-    children:
-        - Image:
-              source: ${media.poster}
-              styles:
-                  width: 200
-                  height: 300
-                  fit: cover
-```
+| Property | Effect When Focused |
+|----------|---------------------|
+| `scale` | Zoom in/out |
+| `backgroundColor` | Change color |
+| `backgroundGradient` | Change gradient |
+| `opacity` | Fade in/out |
+| `elevation` | Add shadow |
+| `padding`/`margin` | Adjust spacing |
+| `borderColor`/`borderWidth` | Add/change border |
 
 ### Focus Indicator vs Focused State
 
@@ -1118,37 +933,6 @@ Result when focused:
                     placeholderColor: transparent
 ```
 
-### "View All" Link with Arrow
-
-```yaml
-Row:
-    styles:
-        mainAxis: spaceBetween
-    children:
-        - Text:
-              text: Section Title
-        - Row:
-              styles:
-                  gap: 8
-                  crossAxis: center
-                  padding: 4 8
-                  tvOptions:
-                      row: 10
-                      order: 0
-                      focusBorderRadius: 16
-              onTap:
-                  navigateScreen:
-                      name: TargetScreen
-              children:
-                  - Text:
-                        text: View all
-                        className: linkTextSmall
-                  - Icon:
-                        name: arrow_forward
-                        color: 0xff00aaff
-                        size: 16
-```
-
 ### Switch in List
 
 ```yaml
@@ -1171,61 +955,27 @@ DialogWidget:
     body:
         Column:
             children:
-                # Close button (row 0)
-                - FlexRow:
-                      children:
-                          - Text:
-                                text: Title
-                                styles:
-                                    flexMode: expanded
-                          - Column:
-                                styles:
-                                    flexMode: none
-                                    tvOptions:
-                                        row: 0
-                                        order: 0
-                                onTap:
-                                    closeAllDialogs:
-                                children:
-                                    - Icon:
-                                          name: close
-
-                # Content items (row 1+)
-                - Column:
+                - Column:  # Close button (row 0)
+                      styles:
+                          tvOptions: {row: 0, order: 0}
+                      onTap:
+                          closeAllDialogs:
+                - Column:  # Content items (row 1+)
                       item-template:
                           data: ${items}
                           indexId: idx
                           template:
                               ItemWidget:
                                   inputs:
-                                      tvOptions:
-                                          row: ${1 + idx}
-                                          order: 0
-
-                # Save button (high row number)
-                - Button:
-                      label: Save
+                                      tvOptions: {row: ${1 + idx}, order: 0}
+                - Button:  # Save button (high row)
                       styles:
-                          tvOptions:
-                              row: 50
-                              order: 0
+                          tvOptions: {row: 50, order: 0}
 ```
 
 ---
 
 ## 10. Pitfalls to Avoid
-
-### Order Conflicts in Lists
-
-```yaml
-# WRONG - Creates conflicts!
-Switch:  order: ${index}      # 0, 1, 2
-Delete:  order: ${index + 1}  # 1, 2, 3  <- Item 1 Switch (1) = Item 0 Delete (1)
-
-# CORRECT - No conflicts
-Switch:  order: ${index * 2}      # 0, 2, 4
-Delete:  order: ${index * 2 + 1}  # 1, 3, 5
-```
 
 ### tvOptions on Wrong Element
 
@@ -1305,6 +1055,47 @@ Column:
                 width: 44
                 height: 44
 ```
+
+---
+
+## 11. Testing Checklist
+
+### Navigation
+
+- [ ] All focusable elements have unique (row, order) pairs
+- [ ] D-pad UP/DOWN moves between rows correctly
+- [ ] D-pad LEFT/RIGHT moves within rows correctly
+- [ ] First item in each row has `isRowEntryPoint: true` (for horizontal lists)
+- [ ] Back button is always row 0, order 0
+- [ ] Dialog focus is trapped within dialog
+
+### Focus Visual
+
+- [ ] Focus border has appropriate radius matching the widget shape
+- [ ] No visual gap between focus border and widget content
+- [ ] Focus color is visible against background
+
+### Scrolling (for fixedFocusScroll rows)
+
+- [ ] Content scrolls smoothly while focus stays fixed
+- [ ] Focus moves correctly at list boundaries (first/last items)
+- [ ] `fixedFocusOffset` positions the focused item appropriately
+- [ ] Scroll position resets when re-entering the row
+
+### Carousel Navigation
+
+**With `delegateHorizontalNavigation: true` (single button per slide):**
+- [ ] ALL LEFT/RIGHT switches slides immediately (no in-row focus movement)
+
+**With `interceptHorizontalNav: true` only (multiple buttons per slide):**
+- [ ] LEFT/RIGHT moves focus between items within the same slide
+- [ ] At leftmost/rightmost item, LEFT/RIGHT switches slides
+
+**Common checks:**
+- [ ] Focus is restored to new slide's button after slide change
+- [ ] Autoplay pauses when carousel item is focused
+- [ ] Autoplay resumes when focus leaves carousel
+- [ ] UP/DOWN exits carousel to adjacent rows correctly
 
 ---
 

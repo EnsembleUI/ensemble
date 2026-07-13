@@ -406,13 +406,10 @@ class ListViewState extends EWidgetState<ListView>
 
     // TV: Add focusable scrollbar if configured
     if (Device().isTV && widget._controller.tvOptions?.scrollbarOptions != null) {
-      debugPrint('[ListView] TV scrollbar enabled - using edge handler approach');
       final scrollbarOptions = widget._controller.tvOptions!.scrollbarOptions!;
       final scrollController = widget._controller.scrollController;
 
       if (scrollController != null) {
-        debugPrint('[ListView] Creating TVScrollbarWidget - position: ${scrollbarOptions.position}');
-
         // Store scrollbar widget with key to access later
         final scrollbarKey = flutter.GlobalKey<flutter.State<TVScrollbarWidget>>();
         final scrollbarWidget = TVScrollbarWidget(
@@ -425,7 +422,6 @@ class ListViewState extends EWidgetState<ListView>
         void requestScrollbarFocus() {
           final scrollbarState = scrollbarKey.currentState;
           if (scrollbarState != null) {
-            debugPrint('[ListView] Edge handler called - requesting focus on scrollbar');
             (scrollbarState as dynamic).requestFocusOnScrollbar();
           }
         }
@@ -461,8 +457,6 @@ class ListViewState extends EWidgetState<ListView>
                 ),
               ],
         );
-      } else {
-        debugPrint('[ListView] WARNING: scrollbarOptions defined but scrollController is null!');
       }
     }
 
