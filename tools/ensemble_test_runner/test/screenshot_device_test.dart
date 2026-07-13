@@ -49,7 +49,7 @@ void main() {
     expect(device, isNull);
   });
 
-  test('uses screenshot options device when enabled', () {
+  test('uses suite screenshot config device when enabled', () {
     final device = screenshotDeviceForTestCase(
       const EnsembleTestCase(
         id: 'screenshots',
@@ -57,12 +57,12 @@ void main() {
         steps: [
           TestStep(type: 'tap', args: {'id': 'button'}),
         ],
-        options: EnsembleTestOptions(
-          screenshots: ScreenshotOptions(
-            enabled: true,
-            platform: 'android',
-            model: 'Samsung Galaxy S20',
-          ),
+      ),
+      const EnsembleTestConfig(
+        screenshots: ScreenshotConfig(
+          enabled: true,
+          platform: 'android',
+          model: 'Samsung Galaxy S20',
         ),
       ),
     );

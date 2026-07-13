@@ -149,6 +149,28 @@ void main() {
       expect(output, isNot(contains('MaterialApp')));
     });
 
+    test('prints suite logs separately from test logs', () {
+      final output = TestReporter().formatSummary(
+        EnsembleTestRunResult(
+          results: [
+            EnsembleSingleTestResult.passed(
+              testId: 'login_test',
+              durationMs: 42,
+            ),
+          ],
+          suiteLogs: const [
+            'storage: build/ensemble_test_runner/logs/storage.json',
+          ],
+        ),
+      );
+
+      expect(output, contains('suite artifacts:'));
+      expect(
+        output,
+        contains('storage: build/ensemble_test_runner/logs/storage.json'),
+      );
+    });
+
     test('formats compact failure summary without repeating boxed report', () {
       final output = TestReporter().formatFailureSummary(
         EnsembleTestRunResult(

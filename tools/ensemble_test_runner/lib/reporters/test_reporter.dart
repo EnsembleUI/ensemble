@@ -99,6 +99,14 @@ class TestReporter {
       _writeTestCase(buffer, r);
     }
 
+    if (result.suiteLogs.isNotEmpty) {
+      buffer.writeln('│');
+      buffer.writeln('│  suite artifacts:');
+      for (final log in result.suiteLogs) {
+        buffer.writeln('│       $log');
+      }
+    }
+
     buffer.writeln('│');
     buffer.writeln(
       '└─ ${result.summary} · ${totalMs}ms total',

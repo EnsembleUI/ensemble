@@ -46,9 +46,27 @@ void main() {
     expect((decoded['required'] as List), isNot(contains('startScreen')));
     expect(decoded['properties'], contains('id'));
     expect(decoded['properties'], isNot(contains('tests')));
+    expect(decoded['properties'], isNot(contains('options')));
     expect(decoded['properties'], contains('startScreen'));
     expect(decoded['properties'], contains('prerequisite'));
     expect(decoded['oneOf'], isA<List>());
+  });
+
+  test('config schema includes suite screenshots and performance settings', () {
+    final json = EnsembleTestSchemaBuilder.buildConfigJson();
+    final decoded = jsonDecode(json) as Map<String, dynamic>;
+    final properties = decoded['properties'] as Map<String, dynamic>;
+
+    expect(decoded['\$schema'], EnsembleTestSchemaBuilder.schemaVersion);
+    expect(properties, contains('screenshots'));
+    expect(properties, contains('performance'));
+    expect(properties, contains('dumpTree'));
+    expect(properties, contains('logApiCalls'));
+    expect(properties, contains('logStorage'));
+    expect(
+      (properties['screenshots'] as Map<String, dynamic>)['properties'],
+      containsPair('model', {'type': 'string'}),
+    );
   });
 
   test('initialState schema accepts storage, keychain, and env maps', () {

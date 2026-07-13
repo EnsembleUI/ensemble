@@ -6,6 +6,8 @@ import 'package:ensemble_test_runner/vocabulary/test_step_vocabulary.dart';
 class EnsembleTestSchemaBuilder {
   static const schemaId =
       'https://cdn.ensembleui.com/schemas/ensemble_tests_schema.json';
+  static const configSchemaId =
+      'https://cdn.ensembleui.com/schemas/ensemble_test_config_schema.json';
   static const schemaVersion = 'https://json-schema.org/draft/2020-12/schema';
 
   static Map<String, dynamic> build() {
@@ -47,36 +49,6 @@ class EnsembleTestSchemaBuilder {
           'apis': {
             'type': 'object',
             'additionalProperties': {'\$ref': '#/\$defs/mockApiEntry'},
-          },
-        },
-      },
-      'options': {
-        'type': 'object',
-        'additionalProperties': false,
-        'properties': {
-          'screenshots': {
-            'type': 'object',
-            'additionalProperties': false,
-            'properties': {
-              'enabled': {'type': 'boolean'},
-              'platform': {'type': 'string'},
-              'model': {'type': 'string'},
-              'includeSteps': {
-                'type': 'array',
-                'items': {'type': 'string'},
-              },
-              'excludeSteps': {
-                'type': 'array',
-                'items': {'type': 'string'},
-              },
-            },
-          },
-          'performance': {
-            'type': 'object',
-            'additionalProperties': false,
-            'properties': {
-              'enabled': {'type': 'boolean'},
-            },
           },
         },
       },
@@ -127,7 +99,6 @@ class EnsembleTestSchemaBuilder {
                 'ID of another test that must run before this one in the same app session',
           },
           'initialState': {'\$ref': '#/\$defs/initialState'},
-          'options': {'\$ref': '#/\$defs/options'},
           'mocks': {'\$ref': '#/\$defs/mocks'},
           'steps': {
             'type': 'array',
@@ -214,5 +185,70 @@ class EnsembleTestSchemaBuilder {
     final encoder =
         pretty ? const JsonEncoder.withIndent('  ') : const JsonEncoder();
     return encoder.convert(build());
+  }
+
+  static Map<String, dynamic> buildConfig() {
+    return {
+      '\$schema': schemaVersion,
+      '\$id': configSchemaId,
+      'title': 'Ensemble declarative test config',
+      'description': 'Suite-wide config for app-local tests/config.yaml',
+      'type': 'object',
+      'additionalProperties': false,
+      'properties': {
+        'screenshots': {
+          'type': 'object',
+          'additionalProperties': false,
+          'properties': {
+            'enabled': {'type': 'boolean'},
+            'platform': {'type': 'string'},
+            'model': {'type': 'string'},
+            'includeSteps': {
+              'type': 'array',
+              'items': {'type': 'string'},
+            },
+            'excludeSteps': {
+              'type': 'array',
+              'items': {'type': 'string'},
+            },
+          },
+        },
+        'performance': {
+          'type': 'object',
+          'additionalProperties': false,
+          'properties': {
+            'enabled': {'type': 'boolean'},
+          },
+        },
+        'dumpTree': {
+          'type': 'object',
+          'additionalProperties': false,
+          'properties': {
+            'enabled': {'type': 'boolean'},
+          },
+        },
+        'logApiCalls': {
+          'type': 'object',
+          'additionalProperties': false,
+          'properties': {
+            'enabled': {'type': 'boolean'},
+          },
+        },
+        'logStorage': {
+          'type': 'object',
+          'additionalProperties': false,
+          'properties': {
+            'enabled': {'type': 'boolean'},
+            'key': {'type': 'string'},
+          },
+        },
+      },
+    };
+  }
+
+  static String buildConfigJson({bool pretty = true}) {
+    final encoder =
+        pretty ? const JsonEncoder.withIndent('  ') : const JsonEncoder();
+    return encoder.convert(buildConfig());
   }
 }

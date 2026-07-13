@@ -11,6 +11,7 @@ import 'package:ensemble_test_runner/actions/screenshot_device.dart';
 import 'package:ensemble_test_runner/actions/test_step_executor.dart';
 import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
 import 'package:ensemble_test_runner/runner/app_performance_log.dart';
+import 'package:ensemble_test_runner/runner/debug_artifact_logs.dart';
 import 'package:ensemble_test_runner/runner/ensemble_test_harness.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
@@ -236,38 +237,14 @@ class ExtendedStepHandlers {
         return true;
       case 'logStorage':
         final key = step.args['key']?.toString();
-        if (key == null || key.isEmpty) {
-          final storage = StorageManager();
-          final entries = storage.getKeys().map(
-                (key) => MapEntry(key, storage.read(key)),
-              );
-          final content =
-              _prettyJson(Map<String, dynamic>.fromEntries(entries));
-          final path = await executor.tester.runAsync(() {
-            return executor.context.logger.writeLogFile(
-              testId: executor.context.testCase.id,
-              name: 'storage',
-              content: content,
-              extension: 'json',
-            );
-          });
-          executor.context.logger.log(
-            'storage: $path',
-          );
-        } else {
-          final content = _prettyJson(StorageManager().read(key));
-          final path = await executor.tester.runAsync(() {
-            return executor.context.logger.writeLogFile(
-              testId: executor.context.testCase.id,
-              name: 'storage_$key',
-              content: content,
-              extension: 'json',
-            );
-          });
-          executor.context.logger.log(
-            'storage[$key]: $path',
-          );
-        }
+        final path = await executor.tester.runAsync(() {
+          return writeStorageLog(executor.context, key: key);
+        });
+        executor.context.logger.log(
+          key == null || key.isEmpty
+              ? 'storage: $path'
+              : 'storage[$key]: $path',
+        );
         return true;
       case 'logPerformance':
         final path = await executor.tester.runAsync(() {
@@ -300,12 +277,7 @@ class ExtendedStepHandlers {
         return true;
       case 'dumpTree':
         final path = await executor.tester.runAsync(() {
-          return executor.context.logger.writeLogFile(
-            testId: executor.context.testCase.id,
-            name: 'dump_tree',
-            content: _captureDebugDumpApp(),
-            extension: 'txt',
-          );
+          return writeDumpTreeLog(executor.context);
         });
         executor.context.logger.log('dumpTree: $path');
         return true;
@@ -628,8 +600,7 @@ class ExtendedStepHandlers {
   }
 
   static Future<void> _screenshot(TestStepExecutor e, TestStep step) async {
-    final args =
-        e.context.testCase.options.screenshots.toScreenshotArgs(step.args);
+    final args = e.context.config.screenshots.toScreenshotArgs(step.args);
     await captureScreenshot(e, args: args);
   }
 
@@ -732,30 +703,6 @@ class ExtendedStepHandlers {
     final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
     image.dispose();
     return byteData;
-  }
-
-  static String _captureDebugDumpApp() {
-    final previousDebugPrint = debugPrint;
-    final lines = <String>[];
-    debugPrint = (String? message, {int? wrapWidth}) {
-      if (message != null) {
-        lines.add(message);
-      }
-    };
-    try {
-      debugDumpApp();
-    } finally {
-      debugPrint = previousDebugPrint;
-    }
-    if (lines.isEmpty) {
-      return '<empty widget tree>';
-    }
-    return lines.join('\n');
-  }
-
-  static String _prettyJson(Object? value) {
-    return JsonEncoder.withIndent('  ', (value) => value.toString())
-        .convert(value);
   }
 
   static String _safeFileName(String value) {

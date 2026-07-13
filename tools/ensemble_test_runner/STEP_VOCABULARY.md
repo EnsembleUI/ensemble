@@ -74,12 +74,24 @@ Editor validation: `https://cdn.ensembleui.com/schemas/ensemble_tests_schema.jso
 
 `logPerformance` writes Flutter app frame timing metrics to
 `build/ensemble_test_runner/logs/<test>_app_performance.json`. To write this
-artifact automatically at the end of a test, set:
+artifact automatically once after the full suite, set this in
+`tests/config.yaml`:
 
 ```yaml
-options:
-  performance:
-    enabled: true
+performance:
+  enabled: true
+```
+
+`dumpTree`, `logApiCalls`, and `logStorage` can also be written automatically
+once after the full suite from `tests/config.yaml`:
+
+```yaml
+dumpTree:
+  enabled: true
+logApiCalls:
+  enabled: true
+logStorage:
+  enabled: true
 ```
 
 Before running a new suite, use `dart run ensemble_test_runner:ensemble_test --doctor`

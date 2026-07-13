@@ -8,6 +8,7 @@ import 'package:ensemble_test_runner/runner/test_runtime_state.dart';
 
 class EnsembleTestContext {
   final EnsembleTestCase testCase;
+  final EnsembleTestConfig config;
   final TestApiProviderOverlay apiOverlay;
   final TestLogger logger;
   final EnsembleTestSetup setup;
@@ -19,12 +20,16 @@ class EnsembleTestContext {
 
   EnsembleTestContext({
     required this.testCase,
+    this.config = const EnsembleTestConfig(),
     required this.apiOverlay,
     required this.logger,
     required this.setup,
   });
 
-  factory EnsembleTestContext.fromTestCase(EnsembleTestCase testCase) {
+  factory EnsembleTestContext.fromTestCase(
+    EnsembleTestCase testCase, {
+    EnsembleTestConfig config = const EnsembleTestConfig(),
+  }) {
     final logger = TestLogger();
     final mockApi = TestApiProviderOverlay(
       mocks: Map<String, MockAPIResponse>.from(testCase.mocks.apis),
@@ -47,6 +52,7 @@ class EnsembleTestContext {
 
     final ctx = EnsembleTestContext(
       testCase: testCase,
+      config: config,
       apiOverlay: mockApi,
       logger: logger,
       setup: setup,

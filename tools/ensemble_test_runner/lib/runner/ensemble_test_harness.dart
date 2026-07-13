@@ -370,13 +370,18 @@ class EnsembleTestHarness {
     required EnsembleTestCase testCase,
     EnsembleConfig? existingConfig,
     EnsembleTestContext? context,
+    EnsembleTestConfig suiteConfig = const EnsembleTestConfig(),
   }) async {
     resetTestRuntime();
     ScreenTracker().clearAll();
     YamlTestSession.navigationFlow.clear();
 
-    final ctx = context ?? EnsembleTestContext.fromTestCase(testCase);
-    final screenshotDevice = screenshotDeviceForTestCase(testCase);
+    final ctx = context ??
+        EnsembleTestContext.fromTestCase(
+          testCase,
+          config: suiteConfig,
+        );
+    final screenshotDevice = screenshotDeviceForTestCase(testCase, ctx.config);
     if (screenshotDevice != null) {
       await _setViewportForDevice(tester, ctx, screenshotDevice);
     }

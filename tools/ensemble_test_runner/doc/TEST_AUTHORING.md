@@ -35,6 +35,28 @@ steps:
 
 Use `startScreen` for a cold start. Use `prerequisite` when a test should continue from another test in the same app session.
 
+## Suite Config
+
+Put shared runner settings in `tests/config.yaml`, next to the `*.test.yaml`
+files:
+
+```yaml
+# yaml-language-server: $schema=https://cdn.ensembleui.com/schemas/ensemble_test_config_schema.json
+screenshots:
+  enabled: true
+  platform: ios
+  model: iPhone 15 Pro
+
+performance:
+  enabled: true
+dumpTree:
+  enabled: true
+logApiCalls:
+  enabled: true
+logStorage:
+  enabled: true
+```
+
 ## App Context
 
 `--inspect-app` emits JSON with screens, widget IDs, APIs, navigation targets, imports, storage/env references, and lifecycle hints.

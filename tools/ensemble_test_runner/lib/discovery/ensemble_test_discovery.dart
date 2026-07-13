@@ -1,5 +1,6 @@
 import 'package:ensemble/framework/ensemble_config_service.dart';
 import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
+import 'package:ensemble_test_runner/parser/ensemble_test_parser.dart';
 import 'package:ensemble_test_runner/runner/ensemble_test_harness.dart';
 import 'package:flutter/services.dart';
 
@@ -34,6 +35,22 @@ class EnsembleTestDiscovery {
         .toList()
       ..sort();
     return files;
+  }
+
+  /// Optional suite-level config bundled as `tests/config.yaml`.
+  static Future<String?> findConfigYamlAsset(String testsAssetPrefix) async {
+    final manifest = await AssetManifest.loadFromAssetBundle(rootBundle);
+    final path = '${testsAssetPrefix}config.yaml';
+    return manifest.listAssets().contains(path) ? path : null;
+  }
+
+  static Future<EnsembleTestConfig> loadTestConfig(
+    String testsAssetPrefix,
+  ) async {
+    final path = await findConfigYamlAsset(testsAssetPrefix);
+    if (path == null) return const EnsembleTestConfig();
+    final content = await rootBundle.loadString(path);
+    return EnsembleTestParser.parseConfigString(content, sourcePath: path);
   }
 
   /// Reads `definitions.local` from `ensemble/ensemble-config.yaml`.

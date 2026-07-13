@@ -7,6 +7,7 @@ class EnsembleTestRunRequest {
   final String? appHome;
   final String? i18nPath;
   final List<EnsembleTestCase> tests;
+  final EnsembleTestConfig config;
   final EnsembleTestEnvironment environment;
 
   const EnsembleTestRunRequest({
@@ -14,6 +15,7 @@ class EnsembleTestRunRequest {
     this.appHome,
     this.i18nPath,
     required this.tests,
+    this.config = const EnsembleTestConfig(),
     this.environment = const EnsembleTestEnvironment(),
   });
 }
@@ -42,7 +44,6 @@ class EnsembleTestCase {
   /// Test [id] that must run before this one (same app session).
   final String? prerequisite;
   final Map<String, dynamic> initialState;
-  final EnsembleTestOptions options;
   final TestMocks mocks;
   final List<TestStep> steps;
 
@@ -58,7 +59,6 @@ class EnsembleTestCase {
     this.startScreen,
     this.prerequisite,
     this.initialState = const {},
-    this.options = const EnsembleTestOptions(),
     this.mocks = const TestMocks(),
     required this.steps,
   });
@@ -76,32 +76,64 @@ class EnsembleTestCase {
       };
 }
 
-class EnsembleTestOptions {
-  final ScreenshotOptions screenshots;
-  final PerformanceOptions performance;
+class EnsembleTestConfig {
+  final ScreenshotConfig screenshots;
+  final PerformanceConfig performance;
+  final DumpTreeConfig dumpTree;
+  final LogApiCallsConfig logApiCalls;
+  final LogStorageConfig logStorage;
 
-  const EnsembleTestOptions({
-    this.screenshots = const ScreenshotOptions(),
-    this.performance = const PerformanceOptions(),
+  const EnsembleTestConfig({
+    this.screenshots = const ScreenshotConfig(),
+    this.performance = const PerformanceConfig(),
+    this.dumpTree = const DumpTreeConfig(),
+    this.logApiCalls = const LogApiCallsConfig(),
+    this.logStorage = const LogStorageConfig(),
   });
 }
 
-class PerformanceOptions {
+class PerformanceConfig {
   final bool enabled;
 
-  const PerformanceOptions({
+  const PerformanceConfig({
     this.enabled = false,
   });
 }
 
-class ScreenshotOptions {
+class DumpTreeConfig {
+  final bool enabled;
+
+  const DumpTreeConfig({
+    this.enabled = false,
+  });
+}
+
+class LogApiCallsConfig {
+  final bool enabled;
+
+  const LogApiCallsConfig({
+    this.enabled = false,
+  });
+}
+
+class LogStorageConfig {
+  final bool enabled;
+  final String? key;
+
+  const LogStorageConfig({
+    this.enabled = false,
+    this.key,
+  });
+}
+
+class ScreenshotConfig {
   final bool enabled;
   final String platform;
   final String model;
   final List<String> includeSteps;
   final List<String> excludeSteps;
 
-  const ScreenshotOptions({
+  const ScreenshotConfig({
     this.enabled = false,
     this.platform = 'ios',
     this.model = 'iPhone 15 Pro',
@@ -181,8 +213,12 @@ class TestStep {
 /// Aggregate result for a YAML test run.
 class EnsembleTestRunResult {
   final List<EnsembleSingleTestResult> results;
+  final List<String> suiteLogs;
 
-  const EnsembleTestRunResult({required this.results});
+  const EnsembleTestRunResult({
+    required this.results,
+    this.suiteLogs = const [],
+  });
 
   int get passedCount =>
       results.where((r) => r.status == TestStatus.passed).length;
@@ -198,6 +234,7 @@ class EnsembleTestRunResult {
         'passed': passedCount,
         'failed': failedCount,
         'results': results.map((r) => r.toJson()).toList(),
+        if (suiteLogs.isNotEmpty) 'suiteLogs': suiteLogs,
       };
 }
 

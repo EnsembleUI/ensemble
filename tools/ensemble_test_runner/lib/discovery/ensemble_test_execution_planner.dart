@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 
 import 'package:ensemble_test_runner/discovery/ensemble_test_discovery.dart';
 import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
@@ -18,8 +19,12 @@ class EnsembleTestDefinition {
 /// Topologically sorted test run order (each test id appears once).
 class EnsembleTestExecutionPlan {
   final List<EnsembleTestDefinition> ordered;
+  final EnsembleTestConfig config;
 
-  const EnsembleTestExecutionPlan({required this.ordered});
+  const EnsembleTestExecutionPlan({
+    required this.ordered,
+    this.config = const EnsembleTestConfig(),
+  });
 }
 
 class EnsembleTestSelection {
@@ -51,6 +56,9 @@ class EnsembleTestExecutionPlanner {
     final paths = await EnsembleTestDiscovery.findTestYamlAssets(
       resolvedTarget.testsAssetPrefix,
     );
+    final config = await EnsembleTestDiscovery.loadTestConfig(
+      resolvedTarget.testsAssetPrefix,
+    );
     if (paths.isEmpty) {
       throw EnsembleTestFailure(
         'No declarative tests found. Add *.test.yaml files under '
@@ -60,7 +68,11 @@ class EnsembleTestExecutionPlanner {
 
     final byId = <String, EnsembleTestDefinition>{};
     for (final path in paths) {
-      final testCase = await EnsembleTestParser.parseFile(path);
+      final content = await rootBundle.loadString(path);
+      final testCase = EnsembleTestParser.parseString(
+        content,
+        sourcePath: path,
+      );
       final existing = byId[testCase.id];
       if (existing != null) {
         throw EnsembleTestFailure(
@@ -86,7 +98,7 @@ class EnsembleTestExecutionPlanner {
     }
 
     final ordered = _topologicalSort(selectedById);
-    return EnsembleTestExecutionPlan(ordered: ordered);
+    return EnsembleTestExecutionPlan(ordered: ordered, config: config);
   }
 
   static Map<String, EnsembleTestDefinition> _applySelection(

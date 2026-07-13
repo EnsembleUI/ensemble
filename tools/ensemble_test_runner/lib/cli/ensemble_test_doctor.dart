@@ -1,10 +1,13 @@
 import 'dart:io';
 
+import 'package:ensemble_test_runner/parser/ensemble_test_parser.dart';
 import 'package:path/path.dart' as p;
 import 'package:yaml/yaml.dart';
 
 const hostedSchemaUrl =
     'https://cdn.ensembleui.com/schemas/ensemble_tests_schema.json';
+const hostedConfigSchemaUrl =
+    'https://cdn.ensembleui.com/schemas/ensemble_test_config_schema.json';
 
 class EnsembleTestDoctorResult {
   final List<String> lines;
@@ -108,6 +111,24 @@ class EnsembleTestDoctor {
     }
     ok('Found ${testFiles.length} YAML test file(s)');
 
+    final testConfigFile = File(p.join(testsDir.path, 'config.yaml'));
+    if (testConfigFile.existsSync()) {
+      final relativePath = p.relative(testConfigFile.path, from: appDir);
+      final content = testConfigFile.readAsStringSync();
+      if (!content.contains(hostedConfigSchemaUrl)) {
+        warn('$relativePath does not reference the hosted config schema URL');
+      }
+      try {
+        EnsembleTestParser.parseConfigString(
+          content,
+          sourcePath: relativePath,
+        );
+        ok('Found tests/config.yaml');
+      } catch (failure) {
+        error('$relativePath: $failure');
+      }
+    }
+
     final ids = <String, String>{};
     final prerequisites = <String, String>{};
     final referencedWidgetIds = <String>{};
@@ -187,6 +208,16 @@ _DoctorTest _parseDoctorTest(String content) {
       prerequisite: null,
       referencedWidgetIds: <String>{},
       error: 'root must be a map',
+    );
+  }
+
+  if (doc.containsKey('options')) {
+    return (
+      id: '',
+      prerequisite: null,
+      referencedWidgetIds: <String>{},
+      error:
+          'Root-level "options" is no longer supported. Move shared settings to tests/config.yaml.',
     );
   }
 

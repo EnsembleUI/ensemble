@@ -47,6 +47,28 @@ Or per file at the top of a test:
 # yaml-language-server: $schema=https://cdn.ensembleui.com/schemas/ensemble_tests_schema.json
 ```
 
+Suite-wide runner config lives in `tests/config.yaml`. The schema is hosted at
+`https://cdn.ensembleui.com/schemas/ensemble_test_config_schema.json`:
+
+```yaml
+# yaml-language-server: $schema=https://cdn.ensembleui.com/schemas/ensemble_test_config_schema.json
+screenshots:
+  enabled: true
+  platform: ios
+  model: iPhone 15 Pro
+  includeSteps: []
+  excludeSteps: []
+
+performance:
+  enabled: true
+dumpTree:
+  enabled: true
+logApiCalls:
+  enabled: true
+logStorage:
+  enabled: true
+```
+
 ## App setup
 
 1. Add `*.test.yaml` files under `definitions.local.path/tests/`, for example

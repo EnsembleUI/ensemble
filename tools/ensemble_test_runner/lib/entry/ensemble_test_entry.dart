@@ -102,7 +102,8 @@ Future<void> runEnsembleYamlTestsWithOptions(
       );
 
       final runner = EnsembleTestRunner(harness: harness);
-      final resultsById = await runner.runPlan(plan, tester);
+      final planResult = await runner.runPlan(plan, tester);
+      final resultsById = planResult.resultsById;
       await YamlTestSession.navigationFlow.flushPending();
       await tester.pump();
 
@@ -131,7 +132,10 @@ Future<void> runEnsembleYamlTestsWithOptions(
         }
       }
 
-      final runResult = EnsembleTestRunResult(results: orderedResults);
+      final runResult = EnsembleTestRunResult(
+        results: orderedResults,
+        suiteLogs: planResult.suiteLogs,
+      );
       final reporter = TestReporter();
       final suiteSummary = reporter.formatSummary(
         runResult,

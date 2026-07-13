@@ -72,7 +72,7 @@ steps:
       );
     });
 
-    test('parses screenshot options', () {
+    test('rejects root-level options in test files', () {
       const yaml = '''
 id: visual_debug
 startScreen: Home
@@ -88,8 +88,30 @@ steps:
       id: start_button
 ''';
 
-      final test = EnsembleTestParser.parseString(yaml);
-      final screenshots = test.options.screenshots;
+      expect(
+        () => EnsembleTestParser.parseString(yaml),
+        throwsA(
+          isA<EnsembleTestFailure>().having(
+            (error) => error.message,
+            'message',
+            contains('Move shared screenshots/performance settings'),
+          ),
+        ),
+      );
+    });
+
+    test('parses suite config screenshots', () {
+      const yaml = '''
+screenshots:
+  enabled: true
+  platform: android
+  model: Samsung Galaxy S20
+  includeSteps: [tap, waitForNavigation]
+  excludeSteps: [wait]
+''';
+
+      final config = EnsembleTestParser.parseConfigString(yaml);
+      final screenshots = config.screenshots;
       expect(screenshots.enabled, isTrue);
       expect(screenshots.platform, 'android');
       expect(screenshots.model, 'Samsung Galaxy S20');
@@ -100,20 +122,32 @@ steps:
       expect(screenshots.shouldCaptureStep('settle'), isFalse);
     });
 
-    test('parses performance options', () {
+    test('parses suite config performance', () {
       const yaml = '''
-id: perf_debug
-startScreen: Home
-options:
-  performance:
-    enabled: true
-steps:
-  - tap:
-      id: start_button
+performance:
+  enabled: true
 ''';
 
-      final test = EnsembleTestParser.parseString(yaml);
-      expect(test.options.performance.enabled, isTrue);
+      final config = EnsembleTestParser.parseConfigString(yaml);
+      expect(config.performance.enabled, isTrue);
+    });
+
+    test('parses suite config debug artifacts', () {
+      const yaml = '''
+dumpTree:
+  enabled: true
+logApiCalls:
+  enabled: true
+logStorage:
+  enabled: true
+  key: auth
+''';
+
+      final config = EnsembleTestParser.parseConfigString(yaml);
+      expect(config.dumpTree.enabled, isTrue);
+      expect(config.logApiCalls.enabled, isTrue);
+      expect(config.logStorage.enabled, isTrue);
+      expect(config.logStorage.key, 'auth');
     });
 
     test('parses AI-friendly metadata fields', () {

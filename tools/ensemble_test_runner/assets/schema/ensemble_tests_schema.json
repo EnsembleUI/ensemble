@@ -58,9 +58,6 @@
     "initialState": {
       "$ref": "#/$defs/initialState"
     },
-    "options": {
-      "$ref": "#/$defs/options"
-    },
     "mocks": {
       "$ref": "#/$defs/mocks"
     },
@@ -154,48 +151,6 @@
           "type": "object",
           "additionalProperties": {
             "$ref": "#/$defs/mockApiEntry"
-          }
-        }
-      }
-    },
-    "options": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "screenshots": {
-          "type": "object",
-          "additionalProperties": false,
-          "properties": {
-            "enabled": {
-              "type": "boolean"
-            },
-            "platform": {
-              "type": "string"
-            },
-            "model": {
-              "type": "string"
-            },
-            "includeSteps": {
-              "type": "array",
-              "items": {
-                "type": "string"
-              }
-            },
-            "excludeSteps": {
-              "type": "array",
-              "items": {
-                "type": "string"
-              }
-            }
-          }
-        },
-        "performance": {
-          "type": "object",
-          "additionalProperties": false,
-          "properties": {
-            "enabled": {
-              "type": "boolean"
-            }
           }
         }
       }

@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:ensemble_test_runner/inspect/ensemble_app_inspector.dart';
+import 'package:ensemble_test_runner/parser/ensemble_test_parser.dart';
 import 'package:path/path.dart' as p;
 import 'package:yaml/yaml.dart';
 
@@ -122,6 +123,23 @@ class EnsembleTestValidator {
       return EnsembleTestValidationResult(issues);
     }
 
+    final configFile = File(p.join(testsDir.path, 'config.yaml'));
+    if (configFile.existsSync()) {
+      try {
+        EnsembleTestParser.parseConfigString(
+          configFile.readAsStringSync(),
+          sourcePath: p.relative(configFile.path, from: appDir),
+        );
+      } catch (error) {
+        add(
+          ValidationSeverity.error,
+          'config',
+          error.toString(),
+          path: p.relative(configFile.path, from: appDir),
+        );
+      }
+    }
+
     final screensByName = {
       for (final screen in inspection.screens) screen.name: screen
     };
@@ -138,6 +156,16 @@ class EnsembleTestValidator {
       if (doc is! YamlMap) {
         add(ValidationSeverity.error, 'parse', 'Test root must be a map',
             path: relativePath);
+        continue;
+      }
+
+      if (doc.containsKey('options')) {
+        add(
+          ValidationSeverity.error,
+          'options',
+          'Root-level "options" is no longer supported. Move shared settings to tests/config.yaml.',
+          path: relativePath,
+        );
         continue;
       }
 

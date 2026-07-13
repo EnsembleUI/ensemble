@@ -16,8 +16,11 @@ class TestLogger {
   }) async {
     final directory = Directory('build/ensemble_test_runner/logs');
     await directory.create(recursive: true);
-    final fileName =
-        '${_safeFileName(testId)}_${_safeFileName(name)}.${_safeExtension(extension)}';
+    final safeTestId = _safeFileName(testId);
+    final safeName = _safeFileName(name);
+    final fileName = safeTestId.isEmpty
+        ? '$safeName.${_safeExtension(extension)}'
+        : '${safeTestId}_$safeName.${_safeExtension(extension)}';
     final file = File('${directory.path}/$fileName');
     await file.writeAsString(content);
     return file.path;

@@ -12,12 +12,15 @@ DeviceInfo? firstScreenshotDevice(List<TestStep> steps) {
   return null;
 }
 
-DeviceInfo? screenshotDeviceForTestCase(EnsembleTestCase testCase) {
+DeviceInfo? screenshotDeviceForTestCase(
+  EnsembleTestCase testCase,
+  EnsembleTestConfig config,
+) {
   final stepDevice = firstScreenshotDevice(testCase.steps);
   if (stepDevice != null) return stepDevice;
-  if (testCase.options.screenshots.enabled) {
+  if (config.screenshots.enabled) {
     return resolveScreenshotDevice(
-      testCase.options.screenshots.toScreenshotArgs(),
+      config.screenshots.toScreenshotArgs(),
     );
   }
   return null;

@@ -1,39 +1,16 @@
 import 'dart:io';
 
 import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
-import 'package:flutter/services.dart';
-import 'package:flutter/widgets.dart';
 import 'package:yaml/yaml.dart';
 
 class EnsembleTestParser {
-  /// Loads a test file from [rootBundle] (widget/integration tests) or [File] (CLI).
+  /// Loads a test file from disk.
   static Future<EnsembleTestCase> parseFile(String path) async {
-    Object? bundleError;
-    try {
-      final content = await rootBundle.loadString(path);
-      return parseString(content, sourcePath: path);
-    } catch (error) {
-      bundleError = error;
-    }
-
-    // dart:io can hang under widget test bindings' fake async zone.
-    if (_isWidgetTestBinding) {
-      throw EnsembleTestFailure(
-        'Test file not found in asset bundle: $path ($bundleError)',
-      );
-    }
-
     final file = File(path);
     if (!await file.exists()) {
       throw EnsembleTestFailure('Test file not found: $path');
     }
     return parseString(await file.readAsString(), sourcePath: path);
-  }
-
-  static bool get _isWidgetTestBinding {
-    final type = WidgetsBinding.instance.runtimeType.toString();
-    return type.contains('TestWidgetsFlutterBinding') ||
-        type.contains('LiveTestWidgetsFlutterBinding');
   }
 
   static EnsembleTestCase parseString(String content, {String? sourcePath}) {
@@ -54,6 +31,13 @@ class EnsembleTestParser {
   }
 
   static EnsembleTestCase _parseTestCase(YamlMap map, {String? sourcePath}) {
+    if (map.containsKey('options')) {
+      throw EnsembleTestFailure(
+        'Root-level "options" is no longer supported in *.test.yaml files. '
+        'Move shared screenshots/performance settings to tests/config.yaml.',
+      );
+    }
+
     final id = map['id']?.toString();
     if (id == null || id.isEmpty) {
       throw EnsembleTestFailure('Each test must have an "id"');
@@ -93,30 +77,52 @@ class EnsembleTestParser {
       startScreen: hasStartScreen ? startScreen : null,
       prerequisite: hasPrerequisite ? prerequisite : null,
       initialState: _toStringDynamicMap(map['initialState']),
-      options: _parseOptions(map['options']),
       mocks: _parseMocks(map['mocks']),
       steps: _parseSteps(stepsNode, testId: id),
     );
   }
 
-  static EnsembleTestOptions _parseOptions(dynamic node) {
-    if (node == null) return const EnsembleTestOptions();
-    if (node is! YamlMap) {
-      throw EnsembleTestFailure('"options" must be a map');
+  static EnsembleTestConfig parseConfigString(
+    String content, {
+    String? sourcePath,
+  }) {
+    if (content.trim().isEmpty) return const EnsembleTestConfig();
+    final dynamic doc = loadYaml(content);
+    if (doc == null) return const EnsembleTestConfig();
+    if (doc is! YamlMap) {
+      throw EnsembleTestFailure(
+        'Invalid test config${sourcePath != null ? ' ($sourcePath)' : ''}: root must be a map',
+      );
     }
+    return _parseConfig(doc);
+  }
+
+  static EnsembleTestConfig _parseConfig(YamlMap node) {
     final screenshotsNode = node['screenshots'];
     final performanceNode = node['performance'];
+    final dumpTreeNode = node['dumpTree'];
+    final logApiCallsNode = node['logApiCalls'];
+    final logStorageNode = node['logStorage'];
     if (screenshotsNode != null && screenshotsNode is! YamlMap) {
-      throw EnsembleTestFailure('"options.screenshots" must be a map');
+      throw EnsembleTestFailure('"screenshots" must be a map');
     }
     if (performanceNode != null && performanceNode is! YamlMap) {
-      throw EnsembleTestFailure('"options.performance" must be a map');
+      throw EnsembleTestFailure('"performance" must be a map');
+    }
+    if (dumpTreeNode != null && dumpTreeNode is! YamlMap) {
+      throw EnsembleTestFailure('"dumpTree" must be a map');
+    }
+    if (logApiCallsNode != null && logApiCallsNode is! YamlMap) {
+      throw EnsembleTestFailure('"logApiCalls" must be a map');
+    }
+    if (logStorageNode != null && logStorageNode is! YamlMap) {
+      throw EnsembleTestFailure('"logStorage" must be a map');
     }
 
-    return EnsembleTestOptions(
+    return EnsembleTestConfig(
       screenshots: screenshotsNode == null
-          ? const ScreenshotOptions()
-          : ScreenshotOptions(
+          ? const ScreenshotConfig()
+          : ScreenshotConfig(
               enabled: screenshotsNode['enabled'] == true,
               platform: screenshotsNode['platform']?.toString() ?? 'ios',
               model: screenshotsNode['model']?.toString() ?? 'iPhone 15 Pro',
@@ -124,9 +130,25 @@ class EnsembleTestParser {
               excludeSteps: _toStringList(screenshotsNode['excludeSteps']),
             ),
       performance: performanceNode == null
-          ? const PerformanceOptions()
-          : PerformanceOptions(
+          ? const PerformanceConfig()
+          : PerformanceConfig(
               enabled: performanceNode['enabled'] == true,
+            ),
+      dumpTree: dumpTreeNode == null
+          ? const DumpTreeConfig()
+          : DumpTreeConfig(
+              enabled: dumpTreeNode['enabled'] == true,
+            ),
+      logApiCalls: logApiCallsNode == null
+          ? const LogApiCallsConfig()
+          : LogApiCallsConfig(
+              enabled: logApiCallsNode['enabled'] == true,
+            ),
+      logStorage: logStorageNode == null
+          ? const LogStorageConfig()
+          : LogStorageConfig(
+              enabled: logStorageNode['enabled'] == true,
+              key: logStorageNode['key']?.toString(),
             ),
     );
   }

@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:convert';
 
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/screen_tracker.dart';
@@ -7,6 +6,7 @@ import 'package:ensemble_test_runner/actions/extended_step_handlers.dart';
 import 'package:ensemble_test_runner/actions/test_execution_config.dart';
 import 'package:ensemble_test_runner/assertions/assertion_engine.dart';
 import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
+import 'package:ensemble_test_runner/runner/debug_artifact_logs.dart';
 import 'package:ensemble_test_runner/runner/ensemble_test_context.dart';
 import 'package:ensemble_test_runner/runner/ensemble_test_harness.dart';
 import 'package:ensemble_test_runner/runner/yaml_test_session.dart';
@@ -301,35 +301,8 @@ class TestStepExecutor {
         context.apiOverlay.resetCalls();
         break;
       case 'logApiCalls':
-        final callsByName = <String, List<DateTime>>{};
-        final calls = context.apiOverlay.calls;
-        for (final call in calls) {
-          callsByName
-              .putIfAbsent(call.name, () => <DateTime>[])
-              .add(call.timestamp);
-        }
-        final content = const JsonEncoder.withIndent('  ').convert({
-          'total': calls.length,
-          'calls': callsByName.entries
-              .map(
-                (entry) => {
-                  'name': entry.key,
-                  'count': entry.value.length,
-                  'timestamps': [
-                    for (final timestamp in entry.value)
-                      timestamp.toIso8601String(),
-                  ],
-                },
-              )
-              .toList(),
-        });
         final path = await tester.runAsync(() {
-          return context.logger.writeLogFile(
-            testId: context.testCase.id,
-            name: 'api_calls',
-            content: content,
-            extension: 'json',
-          );
+          return writeApiCallsLog(context);
         });
         context.logger.log('apiCalls: $path');
         break;

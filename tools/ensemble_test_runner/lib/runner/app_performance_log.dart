@@ -1,15 +1,29 @@
 import 'dart:convert';
 
+import 'package:ensemble_test_runner/mocks/test_logger.dart';
 import 'package:ensemble_test_runner/runner/ensemble_test_context.dart';
 import 'package:ensemble_test_runner/runner/test_runtime_state.dart';
 
 Future<String> writeAppPerformanceLog(EnsembleTestContext context) {
-  final frames = context.runtime.appFrameTimings;
+  return writePerformanceLog(
+    logger: context.logger,
+    filePrefix: context.testCase.id,
+    name: 'app_performance',
+    frames: context.runtime.appFrameTimings,
+  );
+}
+
+Future<String> writePerformanceLog({
+  required TestLogger logger,
+  required String filePrefix,
+  required String name,
+  required List<AppFrameTimingEntry> frames,
+}) {
   final jankyFrames = frames.where((frame) => frame.isJanky).length;
   final slowestFrames = frames.toList()
     ..sort((a, b) => b.totalSpanMs.compareTo(a.totalSpanMs));
   final content = const JsonEncoder.withIndent('  ').convert({
-    'testId': context.testCase.id,
+    'testId': filePrefix.isEmpty ? 'suite' : filePrefix,
     'frameBudgetMs': AppFrameTimingEntry.frameBudgetMs,
     'totalFrames': frames.length,
     'jankyFrames': jankyFrames,
@@ -25,9 +39,9 @@ Future<String> writeAppPerformanceLog(EnsembleTestContext context) {
     'frames': frames.map((frame) => frame.toJson()).toList(),
   });
 
-  return context.logger.writeLogFile(
-    testId: context.testCase.id,
-    name: 'app_performance',
+  return logger.writeLogFile(
+    testId: filePrefix,
+    name: name,
     content: content,
     extension: 'json',
   );

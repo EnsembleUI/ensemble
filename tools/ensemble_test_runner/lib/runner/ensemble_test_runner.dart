@@ -7,8 +7,11 @@ import 'package:ensemble_test_runner/actions/test_step_executor.dart';
 import 'package:ensemble_test_runner/assertions/assertion_engine.dart';
 import 'package:ensemble_test_runner/discovery/ensemble_test_execution_planner.dart';
 import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
+import 'package:ensemble_test_runner/mocks/test_api_provider_overlay.dart';
+import 'package:ensemble_test_runner/mocks/test_logger.dart';
 import 'package:ensemble_test_runner/reporters/test_reporter.dart';
 import 'package:ensemble_test_runner/runner/app_performance_log.dart';
+import 'package:ensemble_test_runner/runner/debug_artifact_logs.dart';
 import 'package:ensemble_test_runner/runner/ensemble_test_context.dart';
 import 'package:ensemble_test_runner/runner/ensemble_test_harness.dart';
 import 'package:ensemble_test_runner/runner/live_async_call.dart';
@@ -20,7 +23,18 @@ import 'package:flutter_test/flutter_test.dart';
 typedef EnsembleTestRunOutput = ({
   EnsembleSingleTestResult result,
   EnsembleConfig config,
+  EnsembleTestContext context,
 });
+
+class EnsembleTestPlanRunResult {
+  final Map<String, EnsembleSingleTestResult> resultsById;
+  final List<String> suiteLogs;
+
+  const EnsembleTestPlanRunResult({
+    required this.resultsById,
+    this.suiteLogs = const [],
+  });
+}
 
 /// Executes parsed Ensemble YAML test plans against a widget tester.
 class EnsembleTestRunner {
@@ -31,11 +45,15 @@ class EnsembleTestRunner {
   EnsembleTestRunner({required this.harness});
 
   /// Runs every test in [plan] and returns results keyed by test id.
-  Future<Map<String, EnsembleSingleTestResult>> runPlan(
+  Future<EnsembleTestPlanRunResult> runPlan(
     EnsembleTestExecutionPlan plan,
     WidgetTester tester,
   ) async {
     final resultsById = <String, EnsembleSingleTestResult>{};
+    final suiteLogger = TestLogger();
+    final suiteFrames = <AppFrameTimingEntry>[];
+    final suiteApiCalls = <APICallRecord>[];
+    EnsembleTestContext? lastContext;
     var config = await harness.buildConfig();
 
     for (final def in plan.ordered) {
@@ -63,28 +81,48 @@ class EnsembleTestRunner {
       final out = await runOne(
         test,
         tester,
+        suiteConfig: plan.config,
         existingConfig: config,
         continuation: test.hasPrerequisite,
       );
       resultsById[test.id] = out.result;
       config = out.config;
+      lastContext = out.context;
+      _appendSuiteFrames(suiteFrames, out.context.runtime.appFrameTimings);
+      suiteApiCalls.addAll(out.context.apiOverlay.calls);
     }
 
-    return resultsById;
+    final suiteLogs = await _writeSuiteLogs(
+      tester: tester,
+      config: plan.config,
+      logger: suiteLogger,
+      frames: suiteFrames,
+      apiCalls: suiteApiCalls,
+      lastContext: lastContext,
+    );
+
+    return EnsembleTestPlanRunResult(
+      resultsById: resultsById,
+      suiteLogs: suiteLogs,
+    );
   }
 
   /// Runs a single [test], optionally continuing an existing app session.
   Future<EnsembleTestRunOutput> runOne(
     EnsembleTestCase test,
     WidgetTester tester, {
+    EnsembleTestConfig suiteConfig = const EnsembleTestConfig(),
     EnsembleConfig? existingConfig,
     bool continuation = false,
   }) async {
     final stopwatch = Stopwatch()..start();
     void Function(List<ui.FrameTiming>)? timingsCallback;
+    final ctx = EnsembleTestContext.fromTestCase(
+      test,
+      config: suiteConfig,
+    );
 
     try {
-      final ctx = EnsembleTestContext.fromTestCase(test);
       timingsCallback = (List<ui.FrameTiming> timings) {
         ctx.runtime.addFrameTimings(timings);
       };
@@ -111,6 +149,7 @@ class EnsembleTestRunner {
           testCase: test,
           existingConfig: existingConfig,
           context: ctx,
+          suiteConfig: suiteConfig,
         );
       }
       await YamlTestSession.navigationFlow.flushPending();
@@ -125,7 +164,7 @@ class EnsembleTestRunner {
         config: config,
         stopwatch: stopwatch,
       );
-      return (result: result, config: config);
+      return (result: result, config: config, context: ctx);
     } catch (error, stackTrace) {
       final config = existingConfig ?? Ensemble().getConfig();
       return (
@@ -138,6 +177,7 @@ class EnsembleTestRunner {
           report: buildTestReportDetails(test),
         ),
         config: config ?? await harness.buildConfig(),
+        context: ctx,
       );
     } finally {
       TestErrorTracker.reset();
@@ -176,7 +216,6 @@ class EnsembleTestRunner {
       } catch (error, stackTrace) {
         await _settleLiveApiWork(tester, ctx);
         await _flushPendingScreenshots(tester, ctx);
-        await _writeAutomaticPerformanceLog(tester, ctx);
         await YamlTestSession.navigationFlow.flushPending();
         return EnsembleSingleTestResult.failed(
           testId: test.id,
@@ -195,7 +234,6 @@ class EnsembleTestRunner {
     await YamlTestSession.navigationFlow.flushPending();
     await _settleLiveApiWork(tester, ctx);
     await _flushPendingScreenshots(tester, ctx);
-    await _writeAutomaticPerformanceLog(tester, ctx);
 
     return EnsembleSingleTestResult.passed(
       testId: test.id,
@@ -211,7 +249,7 @@ class EnsembleTestRunner {
     required TestStep step,
     required int stepIndex,
   }) async {
-    final options = executor.context.testCase.options.screenshots;
+    final options = executor.context.config.screenshots;
     if (!options.shouldCaptureStep(step.type)) return;
     await _captureAutomaticScreenshot(
       executor,
@@ -226,7 +264,7 @@ class EnsembleTestRunner {
   }) {
     return ExtendedStepHandlers.captureScreenshot(
       executor,
-      args: executor.context.testCase.options.screenshots.toScreenshotArgs({
+      args: executor.context.config.screenshots.toScreenshotArgs({
         'name': name,
       }),
       deferWrite: true,
@@ -237,15 +275,79 @@ class EnsembleTestRunner {
   String _safeArtifactName(String value) =>
       value.replaceAll(RegExp(r'[^A-Za-z0-9._-]+'), '_');
 
-  Future<void> _writeAutomaticPerformanceLog(
-    WidgetTester tester,
-    EnsembleTestContext ctx,
-  ) async {
-    if (!ctx.testCase.options.performance.enabled) return;
-    final path = await tester.runAsync(() {
-      return writeAppPerformanceLog(ctx);
-    });
-    ctx.logger.log('appPerformance: $path');
+  void _appendSuiteFrames(
+    List<AppFrameTimingEntry> suiteFrames,
+    List<AppFrameTimingEntry> testFrames,
+  ) {
+    for (final frame in testFrames) {
+      suiteFrames.add(
+        AppFrameTimingEntry(
+          frameNumber: suiteFrames.length + 1,
+          buildStartMicros: frame.buildStartMicros,
+          buildMs: frame.buildMs,
+          rasterMs: frame.rasterMs,
+          vsyncOverheadMs: frame.vsyncOverheadMs,
+          totalSpanMs: frame.totalSpanMs,
+        ),
+      );
+    }
+  }
+
+  Future<List<String>> _writeSuiteLogs({
+    required WidgetTester tester,
+    required EnsembleTestConfig config,
+    required TestLogger logger,
+    required List<AppFrameTimingEntry> frames,
+    required List<APICallRecord> apiCalls,
+    required EnsembleTestContext? lastContext,
+  }) async {
+    final logs = <String>[];
+
+    if (config.performance.enabled) {
+      final path = await tester.runAsync(() {
+        return writePerformanceLog(
+          logger: logger,
+          filePrefix: '',
+          name: 'app_performance',
+          frames: frames,
+        );
+      });
+      logs.add('appPerformance: $path');
+    }
+
+    if (config.dumpTree.enabled && lastContext != null) {
+      final path = await tester.runAsync(() {
+        return writeDumpTreeLogFile(logger: logger, filePrefix: '');
+      });
+      logs.add('dumpTree: $path');
+    }
+
+    if (config.logApiCalls.enabled) {
+      final path = await tester.runAsync(() {
+        return writeApiCallsLogFile(
+          logger: logger,
+          filePrefix: '',
+          calls: apiCalls,
+        );
+      });
+      logs.add('apiCalls: $path');
+    }
+
+    if (config.logStorage.enabled && lastContext != null) {
+      final key = config.logStorage.key;
+      final path = await tester.runAsync(() {
+        return writeStorageLogFile(
+          logger: logger,
+          filePrefix: '',
+          key: key,
+        );
+      });
+      logs.add(
+        key == null || key.isEmpty ? 'storage: $path' : 'storage[$key]: $path',
+      );
+    }
+
+    return logs;
   }
 
   Future<void> _settleLiveApiWork(
