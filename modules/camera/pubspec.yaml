@@ -27,7 +27,6 @@ dependencies:
       path: modules/ensemble
   ensemble_ts_interpreter: ^1.2.0
 
-
   collection: ^1.17.1
   geolocator: ^9.0.2
   image: ^4.8.0
