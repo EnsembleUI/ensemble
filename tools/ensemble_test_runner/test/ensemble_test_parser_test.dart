@@ -100,6 +100,22 @@ steps:
       expect(screenshots.shouldCaptureStep('settle'), isFalse);
     });
 
+    test('parses performance options', () {
+      const yaml = '''
+id: perf_debug
+startScreen: Home
+options:
+  performance:
+    enabled: true
+steps:
+  - tap:
+      id: start_button
+''';
+
+      final test = EnsembleTestParser.parseString(yaml);
+      expect(test.options.performance.enabled, isTrue);
+    });
+
     test('parses AI-friendly metadata fields', () {
       const yaml = '''
 id: login_valid

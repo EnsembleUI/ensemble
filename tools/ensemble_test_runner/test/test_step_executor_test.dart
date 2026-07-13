@@ -6,6 +6,7 @@ import 'package:ensemble_test_runner/assertions/assertion_engine.dart';
 import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
 import 'package:ensemble_test_runner/runner/ensemble_test_harness.dart';
 import 'package:ensemble_test_runner/runner/ensemble_test_context.dart';
+import 'package:ensemble_test_runner/runner/test_runtime_state.dart';
 import 'package:ensemble/framework/storage_manager.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -141,6 +142,50 @@ void main() {
       'total': 0,
       'calls': [],
     });
+  });
+
+  testWidgets('logPerformance writes app frame timing json', (tester) async {
+    final context = EnsembleTestContext.fromTestCase(
+      const EnsembleTestCase(
+        id: 'performance_log_test',
+        startScreen: 'Home',
+        steps: [],
+      ),
+    );
+    context.runtime.appFrameTimings.add(
+      const AppFrameTimingEntry(
+        frameNumber: 1,
+        buildStartMicros: 1000,
+        buildMs: 5,
+        rasterMs: 7,
+        vsyncOverheadMs: 1,
+        totalSpanMs: 12,
+      ),
+    );
+    final harness =
+        EnsembleTestHarness(appPath: 'ensemble/apps/', appHome: 'x');
+    final executor = TestStepExecutor(
+      tester: tester,
+      context: context,
+      assertions: AssertionEngine(tester: tester, context: context),
+      harness: harness,
+    );
+
+    await executor.execute(const TestStep(type: 'logPerformance', args: {}));
+
+    expect(context.logger.logs.single, startsWith('appPerformance: '));
+    final path =
+        context.logger.logs.single.substring('appPerformance: '.length);
+    expect(path, endsWith('.json'));
+    final content = File(path).readAsStringSync();
+    final json = jsonDecode(content) as Map<String, dynamic>;
+    expect(json['testId'], 'performance_log_test');
+    expect(json['frameBudgetMs'], 16.67);
+    expect(json['totalFrames'], 1);
+    expect(json['jankyFrames'], 0);
+    expect(json['averageBuildMs'], 5);
+    expect(json['averageRasterMs'], 7);
+    expect((json['frames'] as List).single, containsPair('totalSpanMs', 12));
   });
 
   testWidgets('screenshot writes a framed png by default', (tester) async {

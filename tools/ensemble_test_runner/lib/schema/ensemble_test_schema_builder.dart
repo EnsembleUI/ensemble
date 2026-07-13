@@ -71,6 +71,13 @@ class EnsembleTestSchemaBuilder {
               },
             },
           },
+          'performance': {
+            'type': 'object',
+            'additionalProperties': false,
+            'properties': {
+              'enabled': {'type': 'boolean'},
+            },
+          },
         },
       },
       'testCase': {

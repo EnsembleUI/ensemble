@@ -105,19 +105,29 @@ class EnsembleTestParser {
       throw EnsembleTestFailure('"options" must be a map');
     }
     final screenshotsNode = node['screenshots'];
-    if (screenshotsNode == null) return const EnsembleTestOptions();
-    if (screenshotsNode is! YamlMap) {
+    final performanceNode = node['performance'];
+    if (screenshotsNode != null && screenshotsNode is! YamlMap) {
       throw EnsembleTestFailure('"options.screenshots" must be a map');
+    }
+    if (performanceNode != null && performanceNode is! YamlMap) {
+      throw EnsembleTestFailure('"options.performance" must be a map');
     }
 
     return EnsembleTestOptions(
-      screenshots: ScreenshotOptions(
-        enabled: screenshotsNode['enabled'] == true,
-        platform: screenshotsNode['platform']?.toString() ?? 'ios',
-        model: screenshotsNode['model']?.toString() ?? 'iPhone 15 Pro',
-        includeSteps: _toStringList(screenshotsNode['includeSteps']),
-        excludeSteps: _toStringList(screenshotsNode['excludeSteps']),
-      ),
+      screenshots: screenshotsNode == null
+          ? const ScreenshotOptions()
+          : ScreenshotOptions(
+              enabled: screenshotsNode['enabled'] == true,
+              platform: screenshotsNode['platform']?.toString() ?? 'ios',
+              model: screenshotsNode['model']?.toString() ?? 'iPhone 15 Pro',
+              includeSteps: _toStringList(screenshotsNode['includeSteps']),
+              excludeSteps: _toStringList(screenshotsNode['excludeSteps']),
+            ),
+      performance: performanceNode == null
+          ? const PerformanceOptions()
+          : PerformanceOptions(
+              enabled: performanceNode['enabled'] == true,
+            ),
     );
   }
 

@@ -731,6 +731,13 @@ abstract final class TestStepRegistry {
       description: 'Log all recorded API calls to the test log',
       example: const {},
     ),
+    'logPerformance': TestStepRegistryEntry(
+      category: TestStepCategory.debug,
+      tier: TestStepTier.core,
+      argKind: TestStepArgKind.empty,
+      description: 'Write Flutter app frame timing metrics to a JSON artifact',
+      example: const {},
+    ),
     'screenshot': TestStepRegistryEntry(
       category: TestStepCategory.debug,
       tier: TestStepTier.core,

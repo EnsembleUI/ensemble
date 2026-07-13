@@ -78,9 +78,19 @@ class EnsembleTestCase {
 
 class EnsembleTestOptions {
   final ScreenshotOptions screenshots;
+  final PerformanceOptions performance;
 
   const EnsembleTestOptions({
     this.screenshots = const ScreenshotOptions(),
+    this.performance = const PerformanceOptions(),
+  });
+}
+
+class PerformanceOptions {
+  final bool enabled;
+
+  const PerformanceOptions({
+    this.enabled = false,
   });
 }
 

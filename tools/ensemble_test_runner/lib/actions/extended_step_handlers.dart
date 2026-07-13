@@ -10,6 +10,7 @@ import 'package:ensemble_device_preview/ensemble_device_preview.dart';
 import 'package:ensemble_test_runner/actions/screenshot_device.dart';
 import 'package:ensemble_test_runner/actions/test_step_executor.dart';
 import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
+import 'package:ensemble_test_runner/runner/app_performance_log.dart';
 import 'package:ensemble_test_runner/runner/ensemble_test_harness.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
@@ -267,6 +268,12 @@ class ExtendedStepHandlers {
             'storage[$key]: $path',
           );
         }
+        return true;
+      case 'logPerformance':
+        final path = await executor.tester.runAsync(() {
+          return writeAppPerformanceLog(executor.context);
+        });
+        executor.context.logger.log('appPerformance: $path');
         return true;
       case 'expectAccessible':
         executor.assertions.expectAccessible(executor.requireId(step));

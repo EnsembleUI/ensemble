@@ -579,6 +579,12 @@ void main() {
       'empty',
       'Log all recorded API calls to the test log',
     ),
+    'logPerformance': step(
+      'debug',
+      'core',
+      'empty',
+      'Write Flutter app frame timing metrics to a JSON artifact',
+    ),
     'screenshot': step(
       'debug',
       'core',
@@ -836,7 +842,6 @@ Map<String, dynamic> defaultExampleForArg(String arg) {
     case 'screenshot':
       return {
         'name': 'home_screen',
-        'deviceFrame': true,
         'platform': 'ios',
         'model': 'iPhone 15 Pro',
       };

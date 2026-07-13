@@ -1,3 +1,5 @@
+import 'dart:ui' as ui;
+
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/screen_tracker.dart';
 import 'package:ensemble_test_runner/actions/extended_step_handlers.dart';
@@ -6,11 +8,13 @@ import 'package:ensemble_test_runner/assertions/assertion_engine.dart';
 import 'package:ensemble_test_runner/discovery/ensemble_test_execution_planner.dart';
 import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
 import 'package:ensemble_test_runner/reporters/test_reporter.dart';
+import 'package:ensemble_test_runner/runner/app_performance_log.dart';
 import 'package:ensemble_test_runner/runner/ensemble_test_context.dart';
 import 'package:ensemble_test_runner/runner/ensemble_test_harness.dart';
 import 'package:ensemble_test_runner/runner/live_async_call.dart';
 import 'package:ensemble_test_runner/runner/test_runtime_state.dart';
 import 'package:ensemble_test_runner/runner/yaml_test_session.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 typedef EnsembleTestRunOutput = ({
@@ -77,9 +81,15 @@ class EnsembleTestRunner {
     bool continuation = false,
   }) async {
     final stopwatch = Stopwatch()..start();
+    void Function(List<ui.FrameTiming>)? timingsCallback;
 
     try {
       final ctx = EnsembleTestContext.fromTestCase(test);
+      timingsCallback = (List<ui.FrameTiming> timings) {
+        ctx.runtime.addFrameTimings(timings);
+      };
+
+      SchedulerBinding.instance.addTimingsCallback(timingsCallback);
       ctx.apiOverlay.liveAsyncRunner = tester.runAsync;
       LiveAsyncCallSupport.runner = tester.runAsync;
       TestErrorTracker.install(ctx.runtime);
@@ -131,6 +141,10 @@ class EnsembleTestRunner {
       );
     } finally {
       TestErrorTracker.reset();
+      final callback = timingsCallback;
+      if (callback != null) {
+        SchedulerBinding.instance.removeTimingsCallback(callback);
+      }
     }
   }
 
@@ -162,6 +176,7 @@ class EnsembleTestRunner {
       } catch (error, stackTrace) {
         await _settleLiveApiWork(tester, ctx);
         await _flushPendingScreenshots(tester, ctx);
+        await _writeAutomaticPerformanceLog(tester, ctx);
         await YamlTestSession.navigationFlow.flushPending();
         return EnsembleSingleTestResult.failed(
           testId: test.id,
@@ -180,6 +195,7 @@ class EnsembleTestRunner {
     await YamlTestSession.navigationFlow.flushPending();
     await _settleLiveApiWork(tester, ctx);
     await _flushPendingScreenshots(tester, ctx);
+    await _writeAutomaticPerformanceLog(tester, ctx);
 
     return EnsembleSingleTestResult.passed(
       testId: test.id,
@@ -220,6 +236,17 @@ class EnsembleTestRunner {
 
   String _safeArtifactName(String value) =>
       value.replaceAll(RegExp(r'[^A-Za-z0-9._-]+'), '_');
+
+  Future<void> _writeAutomaticPerformanceLog(
+    WidgetTester tester,
+    EnsembleTestContext ctx,
+  ) async {
+    if (!ctx.testCase.options.performance.enabled) return;
+    final path = await tester.runAsync(() {
+      return writeAppPerformanceLog(ctx);
+    });
+    ctx.logger.log('appPerformance: $path');
+  }
 
   Future<void> _settleLiveApiWork(
     WidgetTester tester,

@@ -188,6 +188,15 @@
               }
             }
           }
+        },
+        "performance": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            }
+          }
         }
       }
     },
@@ -2095,6 +2104,15 @@
       "additionalProperties": false,
       "title": "logApiCalls",
       "description": "Log all recorded API calls to the test log",
+      "examples": [
+        {}
+      ]
+    },
+    "args_logPerformance": {
+      "type": "object",
+      "additionalProperties": false,
+      "title": "logPerformance",
+      "description": "Write Flutter app frame timing metrics to a JSON artifact",
       "examples": [
         {}
       ]
@@ -5078,6 +5096,31 @@
           },
           "required": [
             "logApiCalls"
+          ]
+        },
+        {
+          "type": "object",
+          "title": "logPerformance",
+          "description": "Write Flutter app frame timing metrics to a JSON artifact",
+          "examples": [
+            {
+              "logPerformance": {}
+            }
+          ],
+          "additionalProperties": false,
+          "minProperties": 1,
+          "maxProperties": 1,
+          "properties": {
+            "logPerformance": {
+              "$ref": "#/$defs/args_logPerformance",
+              "description": "Write Flutter app frame timing metrics to a JSON artifact",
+              "examples": [
+                {}
+              ]
+            }
+          },
+          "required": [
+            "logPerformance"
           ]
         },
         {
