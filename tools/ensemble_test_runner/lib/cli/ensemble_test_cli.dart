@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:ensemble_test_runner/cli/ensemble_test_doctor.dart';
@@ -23,6 +24,7 @@ import 'package:ensemble_test_runner/validation/ensemble_test_validator.dart';
 ///   --feature=<name>   Run matching feature(s); repeatable
 ///   --tag=<tag>        Run matching tag(s); repeatable
 ///   --path=<path>      Run matching test asset path(s); repeatable
+///   --input key=value  Provide a test input for ${inputs.key}; repeatable
 ///   --timeout=<duration> Test suite timeout, e.g. 30s, 5m, 1h (default: 10m)
 ///   --verbose          Full `flutter pub get` / `flutter test` output
 Future<void> runEnsembleYamlTestsCli(List<String> arguments) async {
@@ -129,6 +131,7 @@ Future<void> runEnsembleYamlTestsCli(List<String> arguments) async {
         '--dart-define=ensembleTestReportFile=$reportFile',
       if (timeoutSeconds != null)
         '--dart-define=ensembleTestTimeoutSeconds=$timeoutSeconds',
+      ..._inputDartDefines(arguments),
       ..._selectionDartDefines(arguments),
       '--reporter',
       verbose ? 'expanded' : 'silent',
@@ -200,6 +203,52 @@ List<String> _selectionDartDefines(List<String> arguments) {
       if (entry.value.isNotEmpty)
         '--dart-define=${entry.key}=${entry.value.join(',')}',
   ];
+}
+
+List<String> _inputDartDefines(List<String> arguments) {
+  final inputs = _inputValues(arguments);
+  if (inputs.isEmpty) return const [];
+  final encoded = base64Url.encode(utf8.encode(jsonEncode(inputs)));
+  return ['--dart-define=ensembleTestInputs=$encoded'];
+}
+
+Map<String, dynamic> _inputValues(List<String> arguments) {
+  final inputs = <String, dynamic>{};
+  for (var i = 0; i < arguments.length; i++) {
+    final arg = arguments[i];
+    String? raw;
+    if (arg == '--input') {
+      if (i + 1 >= arguments.length) {
+        throw StateError('--input requires key=value');
+      }
+      raw = arguments[++i];
+    } else if (arg.startsWith('--input=')) {
+      raw = arg.substring('--input='.length);
+    }
+    if (raw == null) continue;
+
+    final separator = raw.indexOf('=');
+    if (separator <= 0) {
+      throw StateError('Invalid --input "$raw". Use --input key=value.');
+    }
+    final key = raw.substring(0, separator).trim();
+    if (key.isEmpty) {
+      throw StateError('Invalid --input "$raw". Input key cannot be empty.');
+    }
+    inputs[key] = _parseInputValue(raw.substring(separator + 1));
+  }
+  return inputs;
+}
+
+dynamic _parseInputValue(String value) {
+  final trimmed = value.trim();
+  if (trimmed == 'true') return true;
+  if (trimmed == 'false') return false;
+  final intValue = int.tryParse(trimmed);
+  if (intValue != null) return intValue;
+  final doubleValue = double.tryParse(trimmed);
+  if (doubleValue != null) return doubleValue;
+  return value;
 }
 
 List<String> _optionValues(List<String> arguments, String name) {

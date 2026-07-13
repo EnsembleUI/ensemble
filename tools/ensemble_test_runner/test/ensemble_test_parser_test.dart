@@ -72,6 +72,57 @@ steps:
       );
     });
 
+    test('resolves CLI inputs in initial state and steps', () {
+      const yaml = '''
+id: input_test
+startScreen: Login
+initialState:
+  keychain:
+    adminPassword: \${inputs.adminPassword}
+steps:
+  - expectText:
+      text: \${inputs.expectedDeviceCount}
+  - expectText:
+      text: "Devices: \${inputs.expectedDeviceCount}"
+''';
+
+      final test = EnsembleTestParser.parseString(
+        yaml,
+        inputs: {
+          'adminPassword': 's4C>M7U6t~',
+          'expectedDeviceCount': 2,
+        },
+      );
+
+      expect(
+        (test.initialState['keychain'] as Map)['adminPassword'],
+        's4C>M7U6t~',
+      );
+      expect(test.steps[0].args['text'], 2);
+      expect(test.steps[1].args['text'], 'Devices: 2');
+    });
+
+    test('fails clearly when CLI input is missing', () {
+      const yaml = '''
+id: input_test
+startScreen: Login
+steps:
+  - expectText:
+      text: \${inputs.expectedDeviceCount}
+''';
+
+      expect(
+        () => EnsembleTestParser.parseString(yaml),
+        throwsA(
+          isA<EnsembleTestFailure>().having(
+            (error) => error.message,
+            'message',
+            contains('Missing CLI input "expectedDeviceCount"'),
+          ),
+        ),
+      );
+    });
+
     test('rejects root-level options in test files', () {
       const yaml = '''
 id: visual_debug

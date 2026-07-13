@@ -112,6 +112,28 @@ dart run ensemble_test_runner:ensemble_test --id=login_valid
 
 Prerequisites are included automatically when a selected test depends on them.
 
+## CLI Inputs
+
+Use repeatable `--input key=value` flags for values that should come from the
+command line:
+
+```sh
+dart run ensemble_test_runner:ensemble_test \
+  --input adminPassword='s4C>M7U6t~' \
+  --input expectedDeviceCount=2
+```
+
+Reference them in test YAML with `${inputs.key}`:
+
+```yaml
+initialState:
+  keychain:
+    adminPassword: ${inputs.adminPassword}
+steps:
+  - expectText:
+      text: ${inputs.expectedDeviceCount}
+```
+
 ## CI Output
 
 Stable exit codes:

@@ -5,15 +5,26 @@ import 'package:yaml/yaml.dart';
 
 class EnsembleTestParser {
   /// Loads a test file from disk.
-  static Future<EnsembleTestCase> parseFile(String path) async {
+  static Future<EnsembleTestCase> parseFile(
+    String path, {
+    Map<String, dynamic> inputs = const {},
+  }) async {
     final file = File(path);
     if (!await file.exists()) {
       throw EnsembleTestFailure('Test file not found: $path');
     }
-    return parseString(await file.readAsString(), sourcePath: path);
+    return parseString(
+      await file.readAsString(),
+      sourcePath: path,
+      inputs: inputs,
+    );
   }
 
-  static EnsembleTestCase parseString(String content, {String? sourcePath}) {
+  static EnsembleTestCase parseString(
+    String content, {
+    String? sourcePath,
+    Map<String, dynamic> inputs = const {},
+  }) {
     final dynamic doc = loadYaml(content);
     if (doc is! YamlMap) {
       throw EnsembleTestFailure(
@@ -27,10 +38,14 @@ class EnsembleTestParser {
       );
     }
 
-    return _parseTestCase(doc, sourcePath: sourcePath);
+    return _parseTestCase(doc, sourcePath: sourcePath, inputs: inputs);
   }
 
-  static EnsembleTestCase _parseTestCase(YamlMap map, {String? sourcePath}) {
+  static EnsembleTestCase _parseTestCase(
+    YamlMap map, {
+    String? sourcePath,
+    required Map<String, dynamic> inputs,
+  }) {
     if (map.containsKey('options')) {
       throw EnsembleTestFailure(
         'Root-level "options" is no longer supported in *.test.yaml files. '
@@ -76,9 +91,9 @@ class EnsembleTestParser {
       priority: map['priority']?.toString(),
       startScreen: hasStartScreen ? startScreen : null,
       prerequisite: hasPrerequisite ? prerequisite : null,
-      initialState: _toStringDynamicMap(map['initialState']),
-      mocks: _parseMocks(map['mocks']),
-      steps: _parseSteps(stepsNode, testId: id),
+      initialState: _toStringDynamicMap(map['initialState'], inputs: inputs),
+      mocks: _parseMocks(map['mocks'], inputs: inputs),
+      steps: _parseSteps(stepsNode, testId: id, inputs: inputs),
     );
   }
 
@@ -153,7 +168,10 @@ class EnsembleTestParser {
     );
   }
 
-  static TestMocks _parseMocks(dynamic node) {
+  static TestMocks _parseMocks(
+    dynamic node, {
+    required Map<String, dynamic> inputs,
+  }) {
     if (node == null) return const TestMocks();
     if (node is! YamlMap) {
       throw EnsembleTestFailure('"mocks" must be a map');
@@ -170,13 +188,16 @@ class EnsembleTestParser {
       if (value is! YamlMap) {
         throw EnsembleTestFailure('Mock for API "$key" must be a map');
       }
-      apis[key.toString()] = _parseMockApiResponse(value);
+      apis[key.toString()] = _parseMockApiResponse(value, inputs: inputs);
     });
 
     return TestMocks(apis: apis);
   }
 
-  static MockAPIResponse _parseMockApiResponse(YamlMap map) {
+  static MockAPIResponse _parseMockApiResponse(
+    YamlMap map, {
+    required Map<String, dynamic> inputs,
+  }) {
     final response = map['response'];
     if (response is! YamlMap) {
       throw EnsembleTestFailure('API mock must include a "response" map');
@@ -184,32 +205,45 @@ class EnsembleTestParser {
 
     return MockAPIResponse(
       statusCode: response['statusCode'] as int? ?? 200,
-      body: _unwrapYaml(response['body']),
+      body: _unwrapYaml(response['body'], inputs: inputs),
       headers: response['headers'] is YamlMap
-          ? _toStringDynamicMap(response['headers'])
+          ? _toStringDynamicMap(response['headers'], inputs: inputs)
           : null,
       delayMs: map['delayMs'] as int?,
     );
   }
 
-  static List<TestStep> _parseSteps(YamlList steps, {required String testId}) =>
-      _parseStepsList(steps, testId: testId);
+  static List<TestStep> _parseSteps(
+    YamlList steps, {
+    required String testId,
+    required Map<String, dynamic> inputs,
+  }) =>
+      _parseStepsList(steps, testId: testId, inputs: inputs);
 
-  static List<TestStep> _parseStepsList(dynamic steps,
-      {required String testId}) {
+  static List<TestStep> _parseStepsList(
+    dynamic steps, {
+    required String testId,
+    required Map<String, dynamic> inputs,
+  }) {
     if (steps is! List || steps.isEmpty) {
       throw EnsembleTestFailure(
           'Test "$testId" requires a non-empty "steps" list');
     }
     final result = <TestStep>[];
     for (var i = 0; i < steps.length; i++) {
-      result.add(_parseStep(steps[i], testId: testId, index: i));
+      result.add(
+        _parseStep(steps[i], testId: testId, index: i, inputs: inputs),
+      );
     }
     return result;
   }
 
-  static TestStep _parseStep(dynamic step,
-      {required String testId, int? index}) {
+  static TestStep _parseStep(
+    dynamic step, {
+    required String testId,
+    int? index,
+    required Map<String, dynamic> inputs,
+  }) {
     final String type;
     final dynamic argsNode;
 
@@ -226,53 +260,62 @@ class EnsembleTestParser {
       );
     }
 
-    final args = _argsFromNode(argsNode);
+    final args = _argsFromNode(argsNode, inputs: inputs);
 
     List<TestStep> nested = const [];
     if (type == 'group' || type == 'repeat') {
       final stepsNode = args['steps'];
       if (stepsNode is List && stepsNode.isNotEmpty) {
-        nested = _parseStepsList(stepsNode, testId: testId);
+        nested = _parseStepsList(stepsNode, testId: testId, inputs: inputs);
       } else {
         throw EnsembleTestFailure('"$type" requires a non-empty "steps" list');
       }
     } else if (type == 'optional' || type == 'ifVisible') {
       final single = args['step'];
       if (single is YamlMap && single.length == 1) {
-        nested = [_parseStep(single, testId: testId)];
+        nested = [_parseStep(single, testId: testId, inputs: inputs)];
       } else if (single is Map && single.length == 1) {
-        nested = [_parseStep(single, testId: testId)];
+        nested = [_parseStep(single, testId: testId, inputs: inputs)];
       } else if (args['steps'] is List && (args['steps'] as List).isNotEmpty) {
-        nested = _parseStepsList(args['steps'], testId: testId);
+        nested = _parseStepsList(args['steps'], testId: testId, inputs: inputs);
       }
     }
 
     return TestStep(type: type, args: args, nestedSteps: nested);
   }
 
-  static Map<String, dynamic> _argsFromNode(dynamic node) {
+  static Map<String, dynamic> _argsFromNode(
+    dynamic node, {
+    required Map<String, dynamic> inputs,
+  }) {
     if (node is YamlMap) {
-      return _toStringDynamicMap(node);
+      return _toStringDynamicMap(node, inputs: inputs);
     }
     if (node is Map) {
       return node.map(
-        (key, value) => MapEntry(key.toString(), _unwrapYaml(value)),
+        (key, value) => MapEntry(
+          key.toString(),
+          _unwrapYaml(value, inputs: inputs),
+        ),
       );
     }
     if (node != null) {
-      return {'value': _unwrapYaml(node)};
+      return {'value': _unwrapYaml(node, inputs: inputs)};
     }
     return {};
   }
 
-  static Map<String, dynamic> _toStringDynamicMap(dynamic node) {
+  static Map<String, dynamic> _toStringDynamicMap(
+    dynamic node, {
+    required Map<String, dynamic> inputs,
+  }) {
     if (node == null) return {};
     if (node is! YamlMap) {
       throw EnsembleTestFailure('Expected a map');
     }
     final out = <String, dynamic>{};
     node.forEach((key, value) {
-      out[key.toString()] = _unwrapYaml(value);
+      out[key.toString()] = _unwrapYaml(value, inputs: inputs);
     });
     return out;
   }
@@ -285,13 +328,44 @@ class EnsembleTestParser {
     return node.map((value) => value.toString()).toList();
   }
 
-  static dynamic _unwrapYaml(dynamic value) {
+  static dynamic _unwrapYaml(
+    dynamic value, {
+    required Map<String, dynamic> inputs,
+  }) {
     if (value is YamlMap) {
-      return _toStringDynamicMap(value);
+      return _toStringDynamicMap(value, inputs: inputs);
     }
     if (value is YamlList) {
-      return value.map(_unwrapYaml).toList();
+      return value.map((item) => _unwrapYaml(item, inputs: inputs)).toList();
+    }
+    if (value is String) {
+      return _resolveInputPlaceholders(value, inputs);
     }
     return value;
+  }
+
+  static dynamic _resolveInputPlaceholders(
+    String value,
+    Map<String, dynamic> inputs,
+  ) {
+    final exact =
+        RegExp(r'^\$\{inputs\.([A-Za-z0-9_.-]+)\}$').firstMatch(value);
+    if (exact != null) {
+      return _inputValue(exact.group(1)!, inputs);
+    }
+
+    return value.replaceAllMapped(
+      RegExp(r'\$\{inputs\.([A-Za-z0-9_.-]+)\}'),
+      (match) => _inputValue(match.group(1)!, inputs).toString(),
+    );
+  }
+
+  static dynamic _inputValue(String key, Map<String, dynamic> inputs) {
+    if (!inputs.containsKey(key)) {
+      throw EnsembleTestFailure(
+        'Missing CLI input "$key". Pass it with --input $key=value.',
+      );
+    }
+    return inputs[key];
   }
 }

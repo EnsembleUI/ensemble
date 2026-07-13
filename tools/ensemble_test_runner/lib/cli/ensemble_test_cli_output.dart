@@ -67,26 +67,34 @@ String _extractPrefixedReport(String output, String prefix) {
 
 /// Arguments forwarded to `flutter test` (CLI-only flags removed).
 List<String> flutterTestArguments(List<String> arguments) {
-  return arguments
-      .where(
-        (a) =>
-            !a.startsWith('--app-dir') &&
-            !a.startsWith('--report') &&
-            a != '--doctor' &&
-            a != '--inspect-app' &&
-            a != '--validate-only' &&
-            a != '--scaffold-test' &&
-            !a.startsWith('--scaffold-test=') &&
-            !a.startsWith('--screen=') &&
-            !a.startsWith('--id=') &&
-            !a.startsWith('--feature=') &&
-            !a.startsWith('--tag=') &&
-            !a.startsWith('--path=') &&
-            !a.startsWith('--timeout=') &&
-            a != '--verbose' &&
-            a != '--quiet',
-      )
-      .toList();
+  final forwarded = <String>[];
+  for (var i = 0; i < arguments.length; i++) {
+    final a = arguments[i];
+    if (a == '--input') {
+      i++;
+      continue;
+    }
+    if (a.startsWith('--input=')) continue;
+    if (a.startsWith('--app-dir') ||
+        a.startsWith('--report') ||
+        a == '--doctor' ||
+        a == '--inspect-app' ||
+        a == '--validate-only' ||
+        a == '--scaffold-test' ||
+        a.startsWith('--scaffold-test=') ||
+        a.startsWith('--screen=') ||
+        a.startsWith('--id=') ||
+        a.startsWith('--feature=') ||
+        a.startsWith('--tag=') ||
+        a.startsWith('--path=') ||
+        a.startsWith('--timeout=') ||
+        a == '--verbose' ||
+        a == '--quiet') {
+      continue;
+    }
+    forwarded.add(a);
+  }
+  return forwarded;
 }
 
 /// Flutter sometimes prints asset cleanup warnings after a successful run.

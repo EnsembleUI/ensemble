@@ -50,6 +50,7 @@ class EnsembleTestExecutionPlanner {
   static Future<EnsembleTestExecutionPlan> build({
     EnsembleTestAppTarget? target,
     EnsembleTestSelection selection = const EnsembleTestSelection(),
+    Map<String, dynamic> inputs = const {},
   }) async {
     final resolvedTarget =
         target ?? await EnsembleTestDiscovery.loadAppTarget();
@@ -72,6 +73,7 @@ class EnsembleTestExecutionPlanner {
       final testCase = EnsembleTestParser.parseString(
         content,
         sourcePath: path,
+        inputs: inputs,
       );
       final existing = byId[testCase.id];
       if (existing != null) {

@@ -93,6 +93,7 @@ Future<void> runEnsembleYamlTestsWithOptions(
       final plan = await EnsembleTestExecutionPlanner.build(
         target: target,
         selection: _selectionFromEnvironment(),
+        inputs: _inputsFromEnvironment(),
       );
       final harness = EnsembleTestHarness(
         appPath: target.appPath,
@@ -184,6 +185,21 @@ Set<String> _csvSet(String value) {
       .map((part) => part.trim())
       .where((part) => part.isNotEmpty)
       .toSet();
+}
+
+Map<String, dynamic> _inputsFromEnvironment() {
+  const encoded = String.fromEnvironment('ensembleTestInputs');
+  if (encoded.isEmpty) return const {};
+  try {
+    final decoded = utf8.decode(base64Url.decode(encoded));
+    final value = json.decode(decoded);
+    if (value is Map) {
+      return value.map((key, value) => MapEntry(key.toString(), value));
+    }
+  } catch (_) {
+    // Fall through to the explicit failure below.
+  }
+  throw EnsembleTestFailure('Invalid ensembleTestInputs dart-define payload.');
 }
 
 void _emitMachineReport(EnsembleTestRunResult result) {

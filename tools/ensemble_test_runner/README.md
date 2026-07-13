@@ -97,6 +97,24 @@ By default, output is quiet: no `pub get` package list, no Flutter test progress
 
 Optional: `--app-dir=<path>` when not running from the app root.
 
+Pass test-runner inputs with repeatable `--input key=value` flags. Tests can
+reference them as `${inputs.key}` in `initialState`, mocks, and steps:
+
+```bash
+dart run ensemble_test_runner:ensemble_test \
+  --input adminPassword='s4C>M7U6t~' \
+  --input expectedDeviceCount=2
+```
+
+```yaml
+initialState:
+  keychain:
+    adminPassword: ${inputs.adminPassword}
+steps:
+  - expectText:
+      text: ${inputs.expectedDeviceCount}
+```
+
 The default suite timeout is 10 minutes. Override it when a flow should fail
 faster or when a long chain needs more time:
 
