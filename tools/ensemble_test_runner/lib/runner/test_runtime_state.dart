@@ -9,6 +9,7 @@ class TestRuntimeState {
   final List<String> consoleLogs = [];
   final List<String> flutterErrors = [];
   final List<AppFrameTimingEntry> appFrameTimings = [];
+  final List<PerformanceMarker> performanceMarkers = [];
   final List<Future<void> Function()> pendingScreenshotWrites = [];
   Map<String, dynamic>? authUser;
   final Map<String, String> permissions = {};
@@ -21,6 +22,7 @@ class TestRuntimeState {
     consoleLogs.clear();
     flutterErrors.clear();
     appFrameTimings.clear();
+    performanceMarkers.clear();
     pendingScreenshotWrites.clear();
     authUser = null;
     permissions.clear();
@@ -39,6 +41,67 @@ class TestRuntimeState {
       );
     }
   }
+
+  void recordPerformanceMarker(PerformanceMarker marker) {
+    performanceMarkers.add(marker);
+  }
+}
+
+class PerformanceMarker {
+  final String testId;
+  final int? stepIndex;
+  final String label;
+  final String? screen;
+  final String phase;
+  final int startFrame;
+  final int endFrame;
+  final DateTime startTime;
+  final DateTime endTime;
+
+  const PerformanceMarker({
+    required this.testId,
+    required this.stepIndex,
+    required this.label,
+    required this.screen,
+    required this.phase,
+    required this.startFrame,
+    required this.endFrame,
+    required this.startTime,
+    required this.endTime,
+  });
+
+  PerformanceMarker shiftedFrames(int offset) => PerformanceMarker(
+        testId: testId,
+        stepIndex: stepIndex,
+        label: label,
+        screen: screen,
+        phase: phase,
+        startFrame: startFrame + offset,
+        endFrame: endFrame + offset,
+        startTime: startTime,
+        endTime: endTime,
+      );
+
+  bool containsFrame(int frameNumber) =>
+      frameNumber >= startFrame && frameNumber <= endFrame;
+
+  bool overlaps(DateTime timestamp, {Duration tolerance = Duration.zero}) {
+    final lower = startTime.subtract(tolerance);
+    final upper = endTime.add(tolerance);
+    return !timestamp.isBefore(lower) && !timestamp.isAfter(upper);
+  }
+
+  Map<String, dynamic> toJson() => {
+        'testId': testId,
+        if (stepIndex != null) 'stepIndex': stepIndex,
+        'label': label,
+        if (screen != null) 'screen': screen,
+        'phase': phase,
+        'startFrame': startFrame,
+        'endFrame': endFrame,
+        'startTime': startTime.toIso8601String(),
+        'endTime': endTime.toIso8601String(),
+      };
 }
 
 class AppFrameTimingEntry {

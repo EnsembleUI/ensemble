@@ -52,6 +52,7 @@ class EnsembleTestRunner {
     final resultsById = <String, EnsembleSingleTestResult>{};
     final suiteLogger = TestLogger();
     final suiteFrames = <AppFrameTimingEntry>[];
+    final suiteMarkers = <PerformanceMarker>[];
     final suiteApiCalls = <APICallRecord>[];
     EnsembleTestContext? lastContext;
     var config = await harness.buildConfig();
@@ -88,7 +89,13 @@ class EnsembleTestRunner {
       resultsById[test.id] = out.result;
       config = out.config;
       lastContext = out.context;
+      final frameOffset = suiteFrames.length;
       _appendSuiteFrames(suiteFrames, out.context.runtime.appFrameTimings);
+      suiteMarkers.addAll(
+        out.context.runtime.performanceMarkers.map(
+          (marker) => marker.shiftedFrames(frameOffset),
+        ),
+      );
       suiteApiCalls.addAll(out.context.apiOverlay.calls);
     }
 
@@ -97,6 +104,7 @@ class EnsembleTestRunner {
       config: plan.config,
       logger: suiteLogger,
       frames: suiteFrames,
+      markers: suiteMarkers,
       apiCalls: suiteApiCalls,
       lastContext: lastContext,
     );
@@ -131,6 +139,8 @@ class EnsembleTestRunner {
       ctx.apiOverlay.liveAsyncRunner = tester.runAsync;
       LiveAsyncCallSupport.runner = tester.runAsync;
       TestErrorTracker.install(ctx.runtime);
+      final startupStartFrame = ctx.runtime.appFrameTimings.length + 1;
+      final startupStartTime = DateTime.now();
 
       late final EnsembleConfig config;
       if (continuation) {
@@ -155,6 +165,15 @@ class EnsembleTestRunner {
       await YamlTestSession.navigationFlow.flushPending();
       YamlTestSession.navigationFlow.beginTest(
         ScreenTracker().getCurrentScreenIdentifier(),
+      );
+      _recordPerformanceMarker(
+        ctx: ctx,
+        testId: test.id,
+        stepIndex: null,
+        label: '${test.id} startup',
+        phase: 'startup',
+        startFrame: startupStartFrame,
+        startTime: startupStartTime,
       );
 
       final result = await _executeSteps(
@@ -205,6 +224,8 @@ class EnsembleTestRunner {
     );
     for (var i = 0; i < test.steps.length; i++) {
       final step = test.steps[i];
+      final startFrame = ctx.runtime.appFrameTimings.length + 1;
+      final startTime = DateTime.now();
       try {
         await executor.execute(step);
         await YamlTestSession.navigationFlow.flushPending();
@@ -213,10 +234,39 @@ class EnsembleTestRunner {
           step: step,
           stepIndex: i,
         );
+        _recordPerformanceMarker(
+          ctx: ctx,
+          testId: test.id,
+          stepIndex: i + 1,
+          label: '${test.id} step ${i + 1} ${formatStepBrief(step)}',
+          phase: _phaseForStep(step),
+          startFrame: startFrame,
+          startTime: startTime,
+        );
       } catch (error, stackTrace) {
+        _recordPerformanceMarker(
+          ctx: ctx,
+          testId: test.id,
+          stepIndex: i + 1,
+          label: '${test.id} step ${i + 1} ${formatStepBrief(step)}',
+          phase: _phaseForStep(step),
+          startFrame: startFrame,
+          startTime: startTime,
+        );
+        final idleStartFrame = ctx.runtime.appFrameTimings.length + 1;
+        final idleStartTime = DateTime.now();
         await _settleLiveApiWork(tester, ctx);
         await _flushPendingScreenshots(tester, ctx);
         await YamlTestSession.navigationFlow.flushPending();
+        _recordPerformanceMarker(
+          ctx: ctx,
+          testId: test.id,
+          stepIndex: null,
+          label: '${test.id} failure cleanup',
+          phase: 'idle',
+          startFrame: idleStartFrame,
+          startTime: idleStartTime,
+        );
         return EnsembleSingleTestResult.failed(
           testId: test.id,
           metadata: test.metadataJson,
@@ -232,8 +282,19 @@ class EnsembleTestRunner {
     }
 
     await YamlTestSession.navigationFlow.flushPending();
+    final idleStartFrame = ctx.runtime.appFrameTimings.length + 1;
+    final idleStartTime = DateTime.now();
     await _settleLiveApiWork(tester, ctx);
     await _flushPendingScreenshots(tester, ctx);
+    _recordPerformanceMarker(
+      ctx: ctx,
+      testId: test.id,
+      stepIndex: null,
+      label: '${test.id} idle',
+      phase: 'idle',
+      startFrame: idleStartFrame,
+      startTime: idleStartTime,
+    );
 
     return EnsembleSingleTestResult.passed(
       testId: test.id,
@@ -275,6 +336,51 @@ class EnsembleTestRunner {
   String _safeArtifactName(String value) =>
       value.replaceAll(RegExp(r'[^A-Za-z0-9._-]+'), '_');
 
+  void _recordPerformanceMarker({
+    required EnsembleTestContext ctx,
+    required String testId,
+    required int? stepIndex,
+    required String label,
+    required String phase,
+    required int startFrame,
+    required DateTime startTime,
+  }) {
+    final endFrame = ctx.runtime.appFrameTimings.length;
+    if (endFrame < startFrame) return;
+    ctx.runtime.recordPerformanceMarker(
+      PerformanceMarker(
+        testId: testId,
+        stepIndex: stepIndex,
+        label: label,
+        screen: ScreenTracker().getCurrentScreenIdentifier(),
+        phase: phase,
+        startFrame: startFrame,
+        endFrame: endFrame,
+        startTime: startTime,
+        endTime: DateTime.now(),
+      ),
+    );
+  }
+
+  String _phaseForStep(TestStep step) {
+    switch (step.type) {
+      case 'waitForNavigation':
+      case 'openScreen':
+      case 'goBack':
+      case 'restartApp':
+      case 'reloadScreen':
+      case 'launchApp':
+        return 'navigation';
+      case 'settle':
+      case 'wait':
+      case 'waitFor':
+      case 'waitForApi':
+        return 'settle';
+      default:
+        return 'step';
+    }
+  }
+
   void _appendSuiteFrames(
     List<AppFrameTimingEntry> suiteFrames,
     List<AppFrameTimingEntry> testFrames,
@@ -298,6 +404,7 @@ class EnsembleTestRunner {
     required EnsembleTestConfig config,
     required TestLogger logger,
     required List<AppFrameTimingEntry> frames,
+    required List<PerformanceMarker> markers,
     required List<APICallRecord> apiCalls,
     required EnsembleTestContext? lastContext,
   }) async {
@@ -310,6 +417,8 @@ class EnsembleTestRunner {
           filePrefix: '',
           name: 'app_performance',
           frames: frames,
+          markers: markers,
+          apiCalls: apiCalls,
         );
       });
       logs.add('appPerformance: $path');
