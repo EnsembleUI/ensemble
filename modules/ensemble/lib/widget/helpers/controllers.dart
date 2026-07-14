@@ -144,8 +144,8 @@ class TVFocusEdgesComposite extends WidgetCompositeProperty {
   TVFocusEdgesComposite(super.widgetController, {required Map inputs}) {
     right = inputs['right'];
     left = inputs['left'];
-    top = inputs['top'] ?? inputs['up'];
-    bottom = inputs['bottom'] ?? inputs['down'];
+    top = inputs['top'];
+    bottom = inputs['bottom'];
   }
 
   TVFocusEdgeTargetComposite? _right;
@@ -176,9 +176,7 @@ class TVFocusEdgesComposite extends WidgetCompositeProperty {
         'right': () => _right,
         'left': () => _left,
         'top': () => _top,
-        'up': () => _top,
         'bottom': () => _bottom,
-        'down': () => _bottom,
       };
 
   @override
@@ -189,9 +187,7 @@ class TVFocusEdgesComposite extends WidgetCompositeProperty {
         'right': (value) => right = value,
         'left': (value) => left = value,
         'top': (value) => top = value,
-        'up': (value) => top = value,
         'bottom': (value) => bottom = value,
-        'down': (value) => bottom = value,
       };
 }
 
