@@ -19,6 +19,7 @@ import 'package:ensemble_test_runner/runner/screenshot_contact_sheet.dart';
 import 'package:ensemble_test_runner/runner/session_recording.dart';
 import 'package:ensemble_test_runner/runner/test_runtime_state.dart';
 import 'package:ensemble_test_runner/runner/yaml_test_session.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -329,12 +330,166 @@ class EnsembleTestRunner {
     if (!options.shouldCaptureStep(step.type)) return;
     if (executor.context.apiOverlay.hasPendingLiveCalls) return;
 
+    await _ensureHighlightTargetVisible(executor, step);
+
+    var image = ExtendedStepHandlers.captureScreenshotImage(executor.tester);
+    final highlightRect = _highlightRectForStep(executor, step);
+    if (highlightRect != null) {
+      try {
+        final highlighted = await _highlightScreenshotImage(
+          tester: executor.tester,
+          image: image,
+          rect: highlightRect,
+        );
+        image.dispose();
+        image = highlighted;
+      } catch (_) {
+        // Screenshot annotations must never change test behavior.
+      }
+    }
+
     executor.context.runtime.addScreenshotSheetFrame(
       ScreenshotSheetFrame(
         label: '${stepIndex + 1}. ${formatStepBrief(step)}',
-        image: ExtendedStepHandlers.captureScreenshotImage(executor.tester),
+        image: image,
       ),
     );
+  }
+
+  ui.Rect? _highlightRectForStep(TestStepExecutor executor, TestStep step) {
+    if (!_shouldHighlightStep(step)) return null;
+
+    final id = step.args['id']?.toString();
+    if (id == null || id.isEmpty) return null;
+
+    final elements = executor.assertions.finderForId(id).evaluate();
+    if (elements.isEmpty) return null;
+
+    final renderObject = elements.first.renderObject;
+    if (renderObject == null) return null;
+    return _rectForRenderObject(renderObject);
+  }
+
+  Future<void> _ensureHighlightTargetVisible(
+    TestStepExecutor executor,
+    TestStep step,
+  ) async {
+    if (!_shouldHighlightStep(step)) return;
+
+    final id = step.args['id']?.toString();
+    if (id == null || id.isEmpty) return;
+
+    final finder = executor.assertions.finderForId(id);
+    if (finder.evaluate().isEmpty) return;
+
+    await executor.tester.ensureVisible(finder);
+    await executor.tester.pump();
+  }
+
+  ui.Rect? _rectForRenderObject(RenderObject renderObject) {
+    if (renderObject is RenderBox &&
+        renderObject.hasSize &&
+        renderObject.size.longestSide > 0) {
+      final topLeft = renderObject.localToGlobal(ui.Offset.zero);
+      final rect = topLeft & renderObject.size;
+      if (rect.isFinite && !rect.isEmpty) {
+        return rect;
+      }
+    }
+
+    final rects = <ui.Rect>[];
+
+    void collect(RenderObject object) {
+      if (object is RenderBox &&
+          object.hasSize &&
+          object.size.longestSide > 0) {
+        final topLeft = object.localToGlobal(ui.Offset.zero);
+        final rect = topLeft & object.size;
+        if (rect.isFinite && !rect.isEmpty) {
+          rects.add(rect);
+        }
+      }
+      object.visitChildren(collect);
+    }
+
+    collect(renderObject);
+    if (rects.isEmpty) return null;
+
+    return rects.reduce((a, b) => a.expandToInclude(b));
+  }
+
+  bool _shouldHighlightStep(TestStep step) {
+    switch (step.type) {
+      case 'tap':
+      case 'doubleTap':
+      case 'longPress':
+      case 'toggle':
+      case 'check':
+      case 'uncheck':
+      case 'enterText':
+      case 'clearText':
+      case 'replaceText':
+      case 'submitText':
+      case 'focus':
+      case 'select':
+      case 'selectIndex':
+      case 'setSlider':
+        return true;
+      default:
+        return false;
+    }
+  }
+
+  Future<ui.Image> _highlightScreenshotImage({
+    required WidgetTester tester,
+    required ui.Image image,
+    required ui.Rect rect,
+  }) async {
+    final renderView = tester.binding.renderViews.first;
+    final paintBounds = renderView.paintBounds;
+    final scaleX = image.width / paintBounds.width;
+    final scaleY = image.height / paintBounds.height;
+    final scaledRect = ui.Rect.fromLTRB(
+      (rect.left - paintBounds.left) * scaleX,
+      (rect.top - paintBounds.top) * scaleY,
+      (rect.right - paintBounds.left) * scaleX,
+      (rect.bottom - paintBounds.top) * scaleY,
+    ).inflate(6 * scaleX);
+
+    final recorder = ui.PictureRecorder();
+    final canvas = ui.Canvas(
+      recorder,
+      ui.Rect.fromLTWH(0, 0, image.width.toDouble(), image.height.toDouble()),
+    );
+    canvas.drawImage(image, ui.Offset.zero, ui.Paint());
+
+    final radius = ui.Radius.circular(10 * scaleX);
+    final rrect = ui.RRect.fromRectAndRadius(scaledRect, radius);
+    canvas.drawRRect(
+      rrect,
+      ui.Paint()
+        ..color = const ui.Color(0x33FFD400)
+        ..style = ui.PaintingStyle.fill,
+    );
+    canvas.drawRRect(
+      rrect,
+      ui.Paint()
+        ..color = const ui.Color(0xFF006BFF)
+        ..style = ui.PaintingStyle.stroke
+        ..strokeWidth = 5 * scaleX,
+    );
+    canvas.drawCircle(
+      scaledRect.center,
+      9 * scaleX,
+      ui.Paint()
+        ..color = const ui.Color(0xFF006BFF)
+        ..style = ui.PaintingStyle.fill,
+    );
+
+    final picture = recorder.endRecording();
+    final highlighted = await picture.toImage(image.width, image.height);
+    picture.dispose();
+    return highlighted;
   }
 
   Future<void> _captureRecordingFrame(

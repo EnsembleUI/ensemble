@@ -46,8 +46,14 @@ Future<String?> writeScreenshotContactSheet({
 
   for (var i = 0; i < tiles.length; i++) {
     final tile = tiles[i];
-    final x = gap + (i % columns) * (tileWidth + gap);
-    final y = gap + (i ~/ columns) * (tileHeight + gap);
+    final row = i ~/ columns;
+    final column = i % columns;
+    final remainingTiles = tiles.length - row * columns;
+    final rowTiles = math.min(columns, remainingTiles);
+    final rowWidth = rowTiles * tileWidth + (rowTiles - 1) * gap;
+    final rowStartX = ((sheet.width - rowWidth) / 2).round();
+    final x = rowStartX + column * (tileWidth + gap);
+    final y = gap + row * (tileHeight + gap);
     img.compositeImage(sheet, tile, dstX: x, dstY: y);
   }
 
