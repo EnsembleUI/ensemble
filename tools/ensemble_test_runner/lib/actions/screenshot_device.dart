@@ -10,11 +10,6 @@ DeviceInfo? screenshotDeviceForTestCase(
       config.screenshots.toScreenshotArgs(),
     );
   }
-  if (config.record.enabled) {
-    return resolveScreenshotDevice(
-      config.record.toScreenshotArgs(),
-    );
-  }
   return null;
 }
 

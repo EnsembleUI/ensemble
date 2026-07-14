@@ -47,11 +47,6 @@ screenshots:
   platform: ios
   model: iPhone 15 Pro
 
-record:
-  enabled: true
-  platform: ios
-  model: iPhone 15 Pro
-
 performance:
   enabled: true
 dumpTree:
@@ -65,10 +60,6 @@ logStorage:
 When `screenshots.enabled` is true, the runner captures automatic step
 screenshots into one contact sheet per test case under
 `build/ensemble_test_runner/screenshots/`.
-
-When `record.enabled` is true, the runner writes
-`build/ensemble_test_runner/recordings/recording.gif` and a matching
-`recording.json` frame manifest.
 
 ## App Context
 

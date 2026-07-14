@@ -38,25 +38,4 @@ void main() {
 
     expect(device?.name, 'Samsung Galaxy S20');
   });
-
-  test('uses suite record config device when enabled', () {
-    final device = screenshotDeviceForTestCase(
-      const EnsembleTestCase(
-        id: 'recording',
-        startScreen: 'Home',
-        steps: [
-          TestStep(type: 'tap', args: {'id': 'button'}),
-        ],
-      ),
-      const EnsembleTestConfig(
-        record: RecordConfig(
-          enabled: true,
-          platform: 'android',
-          model: 'Samsung Galaxy S20',
-        ),
-      ),
-    );
-
-    expect(device?.name, 'Samsung Galaxy S20');
-  });
 }

@@ -66,7 +66,7 @@ Future<String?> writeScreenshotContactSheet({
 
 img.Image _buildTile(img.Image source, String label) {
   const width = 420;
-  const labelHeight = 56;
+  const labelHeight = 72;
   final thumbnail = img.copyResize(
     source,
     width: width,
@@ -74,20 +74,129 @@ img.Image _buildTile(img.Image source, String label) {
   );
   final tile = img.Image(width: width, height: thumbnail.height + labelHeight)
     ..clear(img.ColorRgb8(255, 255, 255));
-  img.compositeImage(tile, thumbnail, dstX: 0, dstY: labelHeight);
-  img.drawString(
+  img.fillRect(
     tile,
-    _shortLabel(label),
-    font: img.arial24,
-    x: 8,
-    y: 8,
-    color: img.ColorRgb8(0, 0, 0),
+    x1: 0,
+    y1: 0,
+    x2: width - 1,
+    y2: labelHeight - 1,
+    color: img.ColorRgb8(255, 255, 255),
   );
+  img.drawLine(
+    tile,
+    x1: 0,
+    y1: labelHeight - 1,
+    x2: width - 1,
+    y2: labelHeight - 1,
+    color: img.ColorRgb8(224, 229, 236),
+  );
+  img.compositeImage(tile, thumbnail, dstX: 0, dstY: labelHeight);
+  _drawLabel(tile, label, width: width, height: labelHeight);
   return tile;
 }
 
-String _shortLabel(String label) =>
-    label.length <= 30 ? label : '${label.substring(0, 27)}...';
+void _drawLabel(
+  img.Image image,
+  String label, {
+  required int width,
+  required int height,
+}) {
+  const horizontalPadding = 12;
+  final availableWidth = width - horizontalPadding * 2;
+  final lines = _fitLabelLines(label, img.arial24, availableWidth);
+  final lineHeight = img.arial24.lineHeight;
+  final contentHeight = lines.length * lineHeight;
+  final startY = ((height - contentHeight) / 2).round();
+
+  for (var i = 0; i < lines.length; i++) {
+    final x = ((width - _textWidth(lines[i], img.arial24)) / 2).round();
+    img.drawString(
+      image,
+      lines[i],
+      font: img.arial24,
+      x: math.max(horizontalPadding, x),
+      y: startY + i * lineHeight,
+      color: img.ColorRgb8(20, 26, 36),
+    );
+  }
+}
+
+List<String> _fitLabelLines(String label, img.BitmapFont font, int maxWidth) {
+  if (_textWidth(label, font) <= maxWidth) {
+    return [label];
+  }
+
+  final breakIndex = _bestBreakIndex(label, font, maxWidth);
+  if (breakIndex != null) {
+    final first = label.substring(0, breakIndex).trimRight();
+    final second = label.substring(breakIndex).trimLeft();
+    if (_textWidth(second, font) <= maxWidth) {
+      return [first, second];
+    }
+    return [first, _ellipsis(second, font, maxWidth)];
+  }
+
+  return [_ellipsis(label, font, maxWidth)];
+}
+
+int? _bestBreakIndex(String label, img.BitmapFont font, int maxWidth) {
+  final candidates = <int>[];
+  for (var i = 1; i < label.length; i++) {
+    final previous = label[i - 1];
+    final current = label[i];
+    if (previous == ' ' ||
+        previous == '_' ||
+        previous == '(' ||
+        current == ')' ||
+        current == '_' ||
+        current == '(') {
+      candidates.add(i);
+    }
+  }
+
+  int? best;
+  var bestScore = double.infinity;
+  for (final index in candidates) {
+    final first = label.substring(0, index).trimRight();
+    final second = label.substring(index).trimLeft();
+    if (first.isEmpty || second.isEmpty) continue;
+    if (_textWidth(first, font) > maxWidth) continue;
+
+    final overflow = math.max(0, _textWidth(second, font) - maxWidth);
+    final balance = (first.length - second.length).abs();
+    final score = overflow * 100 + balance;
+    if (score < bestScore) {
+      bestScore = score.toDouble();
+      best = index;
+    }
+  }
+  return best;
+}
+
+String _ellipsis(String text, img.BitmapFont font, int maxWidth) {
+  const suffix = '...';
+  if (_textWidth(text, font) <= maxWidth) return text;
+  if (_textWidth(suffix, font) > maxWidth) return '';
+
+  var end = text.length;
+  while (end > 0) {
+    final candidate = '${text.substring(0, end).trimRight()}$suffix';
+    if (_textWidth(candidate, font) <= maxWidth) {
+      return candidate;
+    }
+    end--;
+  }
+  return suffix;
+}
+
+int _textWidth(String text, img.BitmapFont font) {
+  var width = 0;
+  for (final codeUnit in text.codeUnits) {
+    final character = font.characters[codeUnit];
+    width += character?.xAdvance ?? font.base ~/ 2;
+  }
+  return width;
+}
 
 String _safeFileName(String value) =>
     value.replaceAll(RegExp(r'[^A-Za-z0-9._-]+'), '_');

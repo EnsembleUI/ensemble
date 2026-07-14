@@ -16,7 +16,6 @@ import 'package:ensemble_test_runner/runner/ensemble_test_context.dart';
 import 'package:ensemble_test_runner/runner/ensemble_test_harness.dart';
 import 'package:ensemble_test_runner/runner/live_async_call.dart';
 import 'package:ensemble_test_runner/runner/screenshot_contact_sheet.dart';
-import 'package:ensemble_test_runner/runner/session_recording.dart';
 import 'package:ensemble_test_runner/runner/test_runtime_state.dart';
 import 'package:ensemble_test_runner/runner/yaml_test_session.dart';
 import 'package:flutter/rendering.dart';
@@ -57,7 +56,6 @@ class EnsembleTestRunner {
     final suiteFrames = <AppFrameTimingEntry>[];
     final suiteMarkers = <PerformanceMarker>[];
     final suiteApiCalls = <APICallRecord>[];
-    final suiteRecordingFrames = <RecordingFrame>[];
     EnsembleTestContext? lastContext;
     var config = await harness.buildConfig();
 
@@ -101,7 +99,6 @@ class EnsembleTestRunner {
         ),
       );
       suiteApiCalls.addAll(out.context.apiOverlay.calls);
-      suiteRecordingFrames.addAll(out.context.runtime.recordingFrames);
     }
 
     final suiteLogs = await _writeSuiteLogs(
@@ -111,7 +108,6 @@ class EnsembleTestRunner {
       frames: suiteFrames,
       markers: suiteMarkers,
       apiCalls: suiteApiCalls,
-      recordingFrames: suiteRecordingFrames,
       lastContext: lastContext,
     );
 
@@ -228,7 +224,6 @@ class EnsembleTestRunner {
       harness: harness,
       config: config,
     );
-    await _captureRecordingFrame(executor, label: '${test.id} startup');
     for (var i = 0; i < test.steps.length; i++) {
       final step = test.steps[i];
       final startFrame = ctx.runtime.appFrameTimings.length + 1;
@@ -241,10 +236,6 @@ class EnsembleTestRunner {
         );
         await executor.execute(step);
         await YamlTestSession.navigationFlow.flushPending();
-        await _captureRecordingFrame(
-          executor,
-          label: '${test.id} step ${i + 1} ${formatStepBrief(step)}',
-        );
         _recordPerformanceMarker(
           ctx: ctx,
           testId: test.id,
@@ -269,10 +260,6 @@ class EnsembleTestRunner {
         await _settleLiveApiWork(tester, ctx);
         await _flushPendingScreenshots(ctx);
         await YamlTestSession.navigationFlow.flushPending();
-        await _captureRecordingFrame(
-          executor,
-          label: '${test.id} failure cleanup',
-        );
         _recordPerformanceMarker(
           ctx: ctx,
           testId: test.id,
@@ -301,7 +288,6 @@ class EnsembleTestRunner {
     final idleStartTime = DateTime.now();
     await _settleLiveApiWork(tester, ctx);
     await _flushPendingScreenshots(ctx);
-    await _captureRecordingFrame(executor, label: '${test.id} idle');
     _recordPerformanceMarker(
       ctx: ctx,
       testId: test.id,
@@ -491,19 +477,6 @@ class EnsembleTestRunner {
     return highlighted;
   }
 
-  Future<void> _captureRecordingFrame(
-    TestStepExecutor executor, {
-    required String label,
-  }) async {
-    if (!executor.context.config.record.enabled) return;
-    await captureRecordingFrame(
-      executor.tester,
-      executor.context,
-      label: label,
-      force: true,
-    );
-  }
-
   void _recordPerformanceMarker({
     required EnsembleTestContext ctx,
     required String testId,
@@ -574,7 +547,6 @@ class EnsembleTestRunner {
     required List<AppFrameTimingEntry> frames,
     required List<PerformanceMarker> markers,
     required List<APICallRecord> apiCalls,
-    required List<RecordingFrame> recordingFrames,
     required EnsembleTestContext? lastContext,
   }) async {
     final logs = <String>[];
@@ -615,16 +587,6 @@ class EnsembleTestRunner {
       logs.add(
         key == null || key.isEmpty ? 'storage: $path' : 'storage[$key]: $path',
       );
-    }
-
-    if (config.record.enabled) {
-      final path = await writeSessionRecording(
-        config: config.record,
-        frames: recordingFrames,
-      );
-      if (path != null) {
-        logs.add('recording: $path');
-      }
     }
 
     return logs;

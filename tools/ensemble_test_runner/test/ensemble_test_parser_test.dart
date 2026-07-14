@@ -247,19 +247,22 @@ performance:
       expect(config.performance.enabled, isTrue);
     });
 
-    test('parses suite config recording', () {
+    test('rejects removed record config', () {
       const yaml = '''
 record:
   enabled: true
-  platform: android
-  model: Samsung Galaxy S20
 ''';
 
-      final config = EnsembleTestParser.parseConfigString(yaml);
-      final record = config.record;
-      expect(record.enabled, isTrue);
-      expect(record.platform, 'android');
-      expect(record.model, 'Samsung Galaxy S20');
+      expect(
+        () => EnsembleTestParser.parseConfigString(yaml),
+        throwsA(
+          isA<EnsembleTestFailure>().having(
+            (error) => error.message,
+            'message',
+            contains('Unsupported test config key "record"'),
+          ),
+        ),
+      );
     });
 
     test('parses suite config debug artifacts', () {

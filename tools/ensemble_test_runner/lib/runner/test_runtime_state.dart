@@ -11,8 +11,6 @@ class TestRuntimeState {
   final List<AppFrameTimingEntry> appFrameTimings = [];
   final List<PerformanceMarker> performanceMarkers = [];
   final List<ScreenshotSheetFrame> screenshotSheetFrames = [];
-  final List<RecordingFrame> recordingFrames = [];
-  DateTime? lastRecordingFrameTime;
   Map<String, dynamic>? authUser;
   final Map<String, String> permissions = {};
   Size? deviceSize;
@@ -26,8 +24,6 @@ class TestRuntimeState {
     appFrameTimings.clear();
     performanceMarkers.clear();
     screenshotSheetFrames.clear();
-    recordingFrames.clear();
-    lastRecordingFrameTime = null;
     authUser = null;
     permissions.clear();
     deviceSize = null;
@@ -50,10 +46,6 @@ class TestRuntimeState {
     performanceMarkers.add(marker);
   }
 
-  void addRecordingFrame(RecordingFrame frame) {
-    recordingFrames.add(frame);
-  }
-
   void addScreenshotSheetFrame(ScreenshotSheetFrame frame) {
     screenshotSheetFrames.add(frame);
   }
@@ -66,24 +58,6 @@ class ScreenshotSheetFrame {
   const ScreenshotSheetFrame({
     required this.label,
     required this.image,
-  });
-}
-
-class RecordingFrame {
-  final String testId;
-  final String label;
-  final Uint8List? pngBytes;
-  final ui.Image? image;
-  final DateTime timestamp;
-  final int durationMs;
-
-  const RecordingFrame({
-    required this.testId,
-    required this.label,
-    this.pngBytes,
-    this.image,
-    required this.timestamp,
-    required this.durationMs,
   });
 }
 

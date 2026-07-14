@@ -9,7 +9,6 @@ import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
 import 'package:ensemble_test_runner/runner/debug_artifact_logs.dart';
 import 'package:ensemble_test_runner/runner/ensemble_test_context.dart';
 import 'package:ensemble_test_runner/runner/ensemble_test_harness.dart';
-import 'package:ensemble_test_runner/runner/session_recording.dart';
 import 'package:ensemble_test_runner/runner/yaml_test_session.dart';
 import 'package:ensemble_test_runner/vocabulary/test_step_vocabulary.dart';
 import 'package:flutter/material.dart';
@@ -79,7 +78,7 @@ class TestStepExecutor {
         await tester.runAsync(() async {
           await Future<void>.delayed(Duration(milliseconds: durationMs));
         });
-        await _pumpAndMaybeRecord(label: 'wait');
+        await _pump(label: 'wait');
         return;
       case 'waitForText':
         await _waitFor(
@@ -172,7 +171,7 @@ class TestStepExecutor {
         );
         break;
       case 'pump':
-        await _pumpAndMaybeRecord(
+        await _pump(
           duration: Duration(
             milliseconds: step.args['durationMs'] as int? ??
                 config.waitPollInterval.inMilliseconds,
@@ -350,25 +349,11 @@ class TestStepExecutor {
 
   Future<void> _settle({Duration? timeout}) async {
     try {
-      if (context.config.record.enabled) {
-        final deadline = DateTime.now().add(timeout ?? config.settleTimeout);
-        do {
-          if (DateTime.now().isAfter(deadline)) {
-            throw TimeoutException('settle timed out');
-          }
-          await _pumpAndMaybeRecord(
-            duration: config.settleStepDuration,
-            phase: EnginePhase.sendSemanticsUpdate,
-            label: 'settle',
-          );
-        } while (tester.binding.hasScheduledFrame);
-      } else {
-        await tester.pumpAndSettle(
-          config.settleStepDuration,
-          EnginePhase.sendSemanticsUpdate,
-          timeout ?? config.settleTimeout,
-        );
-      }
+      await tester.pumpAndSettle(
+        config.settleStepDuration,
+        EnginePhase.sendSemanticsUpdate,
+        timeout ?? config.settleTimeout,
+      );
     } catch (e) {
       if (e.toString().contains('timed out') ||
           e.toString().contains('timeout')) {
@@ -396,7 +381,7 @@ class TestStepExecutor {
           // Keep polling; HTTP may still be in flight inside runAsync.
         }
       }
-      await _pumpAndMaybeRecord(label: 'liveApi');
+      await _pump(label: 'liveApi');
       if (!hadPending) {
         return;
       }
@@ -413,7 +398,7 @@ class TestStepExecutor {
     }
     _expectSingleWidget(finder, id, 'tap');
     await tester.ensureVisible(finder);
-    await _pumpAndMaybeRecord(label: 'tap:before');
+    await _pump(label: 'tap:before');
     await tester.tap(finder);
     await _settle();
   }
@@ -478,8 +463,7 @@ class TestStepExecutor {
 
     final stopwatch = Stopwatch()..start();
     while (stopwatch.elapsedMilliseconds < timeoutMs) {
-      await _pumpAndMaybeRecord(
-          duration: config.waitPollInterval, label: 'waitFor');
+      await _pump(duration: config.waitPollInterval, label: 'waitFor');
       if (id != null && assertions.finderForId(id).evaluate().isNotEmpty) {
         return;
       }
@@ -544,8 +528,7 @@ class TestStepExecutor {
     final stopwatch = Stopwatch()..start();
     while (stopwatch.elapsedMilliseconds < timeoutMs) {
       await _yieldToLiveApiWork();
-      await _pumpAndMaybeRecord(
-          duration: config.waitPollInterval, label: 'waitForApi');
+      await _pump(duration: config.waitPollInterval, label: 'waitForApi');
       if (context.apiOverlay.callCount(name) >= times) {
         await _yieldToLiveApiWork();
         return;
@@ -574,13 +557,13 @@ class TestStepExecutor {
         return;
       }
       await _yieldToLiveApiWork();
-      await _pumpAndMaybeRecord(
+      await _pump(
         duration: config.waitPollInterval,
         label: 'waitForNavigation',
       );
     }
     await _yieldToLiveApiWork();
-    await _pumpAndMaybeRecord(label: 'waitForNavigation');
+    await _pump(label: 'waitForNavigation');
     await YamlTestSession.navigationFlow.flushPending();
     if (hasNavigated()) {
       return;
@@ -600,8 +583,7 @@ class TestStepExecutor {
 
     final stopwatch = Stopwatch()..start();
     while (stopwatch.elapsedMilliseconds < timeoutMs) {
-      await _pumpAndMaybeRecord(
-          duration: config.waitPollInterval, label: 'waitForGone');
+      await tester.pump(config.waitPollInterval);
       if (assertions.finderForId(id).evaluate().isEmpty) {
         return;
       }
@@ -611,19 +593,11 @@ class TestStepExecutor {
     );
   }
 
-  Future<void> _pumpAndMaybeRecord({
+  Future<void> _pump({
     Duration? duration,
     EnginePhase phase = EnginePhase.sendSemanticsUpdate,
     required String label,
   }) async {
     await tester.pump(duration, phase);
-    if (!context.config.record.enabled) {
-      return;
-    }
-    await captureRecordingFrame(
-      tester,
-      context,
-      label: label,
-    );
   }
 }

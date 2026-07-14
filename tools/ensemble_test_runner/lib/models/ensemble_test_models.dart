@@ -97,7 +97,6 @@ class TestScenario {
 
 class EnsembleTestConfig {
   final ScreenshotConfig screenshots;
-  final RecordConfig record;
   final PerformanceConfig performance;
   final DumpTreeConfig dumpTree;
   final LogApiCallsConfig logApiCalls;
@@ -105,7 +104,6 @@ class EnsembleTestConfig {
 
   const EnsembleTestConfig({
     this.screenshots = const ScreenshotConfig(),
-    this.record = const RecordConfig(),
     this.performance = const PerformanceConfig(),
     this.dumpTree = const DumpTreeConfig(),
     this.logApiCalls = const LogApiCallsConfig(),
@@ -145,24 +143,6 @@ class LogStorageConfig {
     this.enabled = false,
     this.key,
   });
-}
-
-class RecordConfig {
-  final bool enabled;
-  final String platform;
-  final String model;
-
-  const RecordConfig({
-    this.enabled = false,
-    this.platform = 'ios',
-    this.model = 'iPhone 15 Pro',
-  });
-
-  Map<String, dynamic> toScreenshotArgs([Map<String, dynamic>? overrides]) => {
-        'platform': platform,
-        'model': model,
-        ...?overrides,
-      };
 }
 
 class ScreenshotConfig {
