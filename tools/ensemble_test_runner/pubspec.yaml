@@ -32,6 +32,7 @@ dependencies:
     sdk: flutter
   yaml: ^3.1.2
   path: ^1.9.0
+  image: ^4.8.0
   firebase_core_platform_interface: ^7.0.1
   cloud_functions_platform_interface: ^6.0.1
   cloud_firestore_platform_interface: ^8.0.1

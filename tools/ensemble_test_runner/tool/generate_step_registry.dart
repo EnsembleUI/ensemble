@@ -543,30 +543,6 @@ void main() {
       'empty',
       'Log all recorded API calls to the test log',
     ),
-    'logPerformance': step(
-      'debug',
-      'core',
-      'empty',
-      'Write Flutter app frame timing metrics to a JSON artifact',
-    ),
-    'screenshot': step(
-      'debug',
-      'core',
-      'screenshot',
-      'Capture a screenshot artifact for debugging',
-    ),
-    'dumpTree': step(
-      'debug',
-      'core',
-      'empty',
-      'Print the widget tree to the debug console',
-    ),
-    'logStorage': step(
-      'debug',
-      'core',
-      'optionalStorageKey',
-      'Log one public storage value, or all public storage when key is omitted',
-    ),
     'expectNoConsoleErrors': step(
       'quality',
       'core',
@@ -746,8 +722,6 @@ Map<String, dynamic> defaultExampleForArg(String arg) {
       return {'name': 'login', 'times': 1};
     case 'storageKey':
       return {'key': 'onboarding_done', 'value': true};
-    case 'optionalStorageKey':
-      return {'key': 'onboarding_done'};
     case 'group':
       return {
         'name': 'login_flow',
@@ -782,12 +756,6 @@ Map<String, dynamic> defaultExampleForArg(String arg) {
             'tap': {'id': 'close_banner'}
           },
         ],
-      };
-    case 'screenshot':
-      return {
-        'name': 'home_screen',
-        'platform': 'ios',
-        'model': 'iPhone 15 Pro',
       };
     case 'setAuth':
       return {

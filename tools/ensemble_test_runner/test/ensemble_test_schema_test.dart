@@ -72,6 +72,7 @@ void main() {
 
     expect(decoded['\$schema'], EnsembleTestSchemaBuilder.schemaVersion);
     expect(properties, contains('screenshots'));
+    expect(properties, contains('record'));
     expect(properties, contains('performance'));
     expect(properties, contains('dumpTree'));
     expect(properties, contains('logApiCalls'));
@@ -80,6 +81,14 @@ void main() {
       (properties['screenshots'] as Map<String, dynamic>)['properties'],
       containsPair('model', {'type': 'string'}),
     );
+    final recordProperties =
+        (properties['record'] as Map<String, dynamic>)['properties'];
+    expect(recordProperties, contains('enabled'));
+    expect(recordProperties, contains('platform'));
+    expect(recordProperties, contains('model'));
+    expect(recordProperties, isNot(contains('frameDurationMs')));
+    expect(recordProperties, isNot(contains('frameIntervalMs')));
+    expect(recordProperties, isNot(contains('maxFrames')));
   });
 
   test('initialState schema accepts storage, keychain, and env maps', () {

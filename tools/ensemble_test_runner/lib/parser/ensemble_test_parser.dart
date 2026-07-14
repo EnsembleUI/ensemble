@@ -150,12 +150,16 @@ class EnsembleTestParser {
 
   static EnsembleTestConfig _parseConfig(YamlMap node) {
     final screenshotsNode = node['screenshots'];
+    final recordNode = node['record'];
     final performanceNode = node['performance'];
     final dumpTreeNode = node['dumpTree'];
     final logApiCallsNode = node['logApiCalls'];
     final logStorageNode = node['logStorage'];
     if (screenshotsNode != null && screenshotsNode is! YamlMap) {
       throw EnsembleTestFailure('"screenshots" must be a map');
+    }
+    if (recordNode != null && recordNode is! YamlMap) {
+      throw EnsembleTestFailure('"record" must be a map');
     }
     if (performanceNode != null && performanceNode is! YamlMap) {
       throw EnsembleTestFailure('"performance" must be a map');
@@ -179,6 +183,13 @@ class EnsembleTestParser {
               model: screenshotsNode['model']?.toString() ?? 'iPhone 15 Pro',
               includeSteps: _toStringList(screenshotsNode['includeSteps']),
               excludeSteps: _toStringList(screenshotsNode['excludeSteps']),
+            ),
+      record: recordNode == null
+          ? const RecordConfig()
+          : RecordConfig(
+              enabled: recordNode['enabled'] == true,
+              platform: recordNode['platform']?.toString() ?? 'ios',
+              model: recordNode['model']?.toString() ?? 'iPhone 15 Pro',
             ),
       performance: performanceNode == null
           ? const PerformanceConfig()

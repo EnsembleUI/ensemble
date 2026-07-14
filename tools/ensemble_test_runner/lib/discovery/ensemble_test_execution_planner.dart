@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:ensemble_test_runner/discovery/ensemble_test_discovery.dart';
 import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
 import 'package:ensemble_test_runner/parser/ensemble_test_parser.dart';
+import 'package:yaml/yaml.dart';
 
 typedef _AssetStringLoader = Future<String> Function(String assetPath);
 
@@ -129,6 +130,10 @@ class EnsembleTestExecutionPlanner {
     required Map<String, dynamic> inputs,
     _AssetStringLoader assetLoader = _rootBundleAssetLoader,
   }) async {
+    if (loadYaml(content) == null) {
+      return const [];
+    }
+
     final base = EnsembleTestParser.parseString(
       content,
       sourcePath: path,

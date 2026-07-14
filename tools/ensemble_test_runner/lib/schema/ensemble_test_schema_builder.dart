@@ -200,6 +200,15 @@ class EnsembleTestSchemaBuilder {
             },
           },
         },
+        'record': {
+          'type': 'object',
+          'additionalProperties': false,
+          'properties': {
+            'enabled': {'type': 'boolean'},
+            'platform': {'type': 'string'},
+            'model': {'type': 'string'},
+          },
+        },
         'performance': {
           'type': 'object',
           'additionalProperties': false,

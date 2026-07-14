@@ -15,6 +15,8 @@ import 'package:ensemble_test_runner/runner/debug_artifact_logs.dart';
 import 'package:ensemble_test_runner/runner/ensemble_test_context.dart';
 import 'package:ensemble_test_runner/runner/ensemble_test_harness.dart';
 import 'package:ensemble_test_runner/runner/live_async_call.dart';
+import 'package:ensemble_test_runner/runner/screenshot_contact_sheet.dart';
+import 'package:ensemble_test_runner/runner/session_recording.dart';
 import 'package:ensemble_test_runner/runner/test_runtime_state.dart';
 import 'package:ensemble_test_runner/runner/yaml_test_session.dart';
 import 'package:flutter/scheduler.dart';
@@ -54,6 +56,7 @@ class EnsembleTestRunner {
     final suiteFrames = <AppFrameTimingEntry>[];
     final suiteMarkers = <PerformanceMarker>[];
     final suiteApiCalls = <APICallRecord>[];
+    final suiteRecordingFrames = <RecordingFrame>[];
     EnsembleTestContext? lastContext;
     var config = await harness.buildConfig();
 
@@ -97,6 +100,7 @@ class EnsembleTestRunner {
         ),
       );
       suiteApiCalls.addAll(out.context.apiOverlay.calls);
+      suiteRecordingFrames.addAll(out.context.runtime.recordingFrames);
     }
 
     final suiteLogs = await _writeSuiteLogs(
@@ -106,6 +110,7 @@ class EnsembleTestRunner {
       frames: suiteFrames,
       markers: suiteMarkers,
       apiCalls: suiteApiCalls,
+      recordingFrames: suiteRecordingFrames,
       lastContext: lastContext,
     );
 
@@ -222,17 +227,22 @@ class EnsembleTestRunner {
       harness: harness,
       config: config,
     );
+    await _captureRecordingFrame(executor, label: '${test.id} startup');
     for (var i = 0; i < test.steps.length; i++) {
       final step = test.steps[i];
       final startFrame = ctx.runtime.appFrameTimings.length + 1;
       final startTime = DateTime.now();
       try {
-        await executor.execute(step);
-        await YamlTestSession.navigationFlow.flushPending();
         await _captureAutomaticScreenshotForStep(
           executor: executor,
           step: step,
           stepIndex: i,
+        );
+        await executor.execute(step);
+        await YamlTestSession.navigationFlow.flushPending();
+        await _captureRecordingFrame(
+          executor,
+          label: '${test.id} step ${i + 1} ${formatStepBrief(step)}',
         );
         _recordPerformanceMarker(
           ctx: ctx,
@@ -256,8 +266,12 @@ class EnsembleTestRunner {
         final idleStartFrame = ctx.runtime.appFrameTimings.length + 1;
         final idleStartTime = DateTime.now();
         await _settleLiveApiWork(tester, ctx);
-        await _flushPendingScreenshots(tester, ctx);
+        await _flushPendingScreenshots(ctx);
         await YamlTestSession.navigationFlow.flushPending();
+        await _captureRecordingFrame(
+          executor,
+          label: '${test.id} failure cleanup',
+        );
         _recordPerformanceMarker(
           ctx: ctx,
           testId: test.id,
@@ -285,7 +299,8 @@ class EnsembleTestRunner {
     final idleStartFrame = ctx.runtime.appFrameTimings.length + 1;
     final idleStartTime = DateTime.now();
     await _settleLiveApiWork(tester, ctx);
-    await _flushPendingScreenshots(tester, ctx);
+    await _flushPendingScreenshots(ctx);
+    await _captureRecordingFrame(executor, label: '${test.id} idle');
     _recordPerformanceMarker(
       ctx: ctx,
       testId: test.id,
@@ -312,29 +327,28 @@ class EnsembleTestRunner {
   }) async {
     final options = executor.context.config.screenshots;
     if (!options.shouldCaptureStep(step.type)) return;
-    await _captureAutomaticScreenshot(
-      executor,
-      name:
-          'step_${(stepIndex + 1).toString().padLeft(3, '0')}_${_safeArtifactName(step.type)}',
+    if (executor.context.apiOverlay.hasPendingLiveCalls) return;
+
+    executor.context.runtime.addScreenshotSheetFrame(
+      ScreenshotSheetFrame(
+        label: '${stepIndex + 1}. ${formatStepBrief(step)}',
+        image: ExtendedStepHandlers.captureScreenshotImage(executor.tester),
+      ),
     );
   }
 
-  Future<void> _captureAutomaticScreenshot(
+  Future<void> _captureRecordingFrame(
     TestStepExecutor executor, {
-    required String name,
-  }) {
-    return ExtendedStepHandlers.captureScreenshot(
-      executor,
-      args: executor.context.config.screenshots.toScreenshotArgs({
-        'name': name,
-      }),
-      deferWrite: true,
-      pumpBeforeCapture: false,
+    required String label,
+  }) async {
+    if (!executor.context.config.record.enabled) return;
+    await captureRecordingFrame(
+      executor.tester,
+      executor.context,
+      label: label,
+      force: true,
     );
   }
-
-  String _safeArtifactName(String value) =>
-      value.replaceAll(RegExp(r'[^A-Za-z0-9._-]+'), '_');
 
   void _recordPerformanceMarker({
     required EnsembleTestContext ctx,
@@ -406,6 +420,7 @@ class EnsembleTestRunner {
     required List<AppFrameTimingEntry> frames,
     required List<PerformanceMarker> markers,
     required List<APICallRecord> apiCalls,
+    required List<RecordingFrame> recordingFrames,
     required EnsembleTestContext? lastContext,
   }) async {
     final logs = <String>[];
@@ -448,6 +463,16 @@ class EnsembleTestRunner {
       );
     }
 
+    if (config.record.enabled) {
+      final path = await writeSessionRecording(
+        config: config.record,
+        frames: recordingFrames,
+      );
+      if (path != null) {
+        logs.add('recording: $path');
+      }
+    }
+
     return logs;
   }
 
@@ -465,20 +490,22 @@ class EnsembleTestRunner {
     }
   }
 
-  Future<void> _flushPendingScreenshots(
-    WidgetTester tester,
-    EnsembleTestContext ctx,
-  ) async {
-    final writes = List<Future<void> Function()>.from(
-      ctx.runtime.pendingScreenshotWrites,
+  Future<void> _flushPendingScreenshots(EnsembleTestContext ctx) async {
+    final sheetFrames = List<ScreenshotSheetFrame>.from(
+      ctx.runtime.screenshotSheetFrames,
     );
-    ctx.runtime.pendingScreenshotWrites.clear();
-    if (writes.isEmpty) return;
+    ctx.runtime.screenshotSheetFrames.clear();
+    if (sheetFrames.isEmpty) return;
 
-    await tester.runAsync(() async {
-      for (final write in writes) {
-        await write();
-      }
-    });
+    final path = await LiveAsyncCallSupport.run<String?>(
+      () => writeScreenshotContactSheet(
+        testId: ctx.testCase.id,
+        config: ctx.config.screenshots,
+        frames: sheetFrames,
+      ),
+    );
+    if (path != null) {
+      ctx.logger.log('screenshots: $path');
+    }
   }
 }

@@ -141,6 +141,22 @@ steps:
       expect(definitions[1].testCase.steps.single.args['text'], 0);
     });
 
+    test('skips empty discovered test files', () async {
+      final definitions =
+          await EnsembleTestExecutionPlanner.parseDefinitionsForTest(
+        'ensemble/apps/inhome/tests/commented.test.yaml',
+        '''
+# id: disabled_test
+# startScreen: Home
+# steps:
+#   - expectVisible:
+#       id: home_body
+''',
+      );
+
+      expect(definitions, isEmpty);
+    });
+
     test('loads JSON mock files and applies override order', () async {
       const yaml = '''
 id: home_scenarios

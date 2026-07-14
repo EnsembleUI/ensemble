@@ -40,7 +40,7 @@ Official step catalog for app-local `tests/*.test.yaml` files, for example `ense
 `setStorage`, `expectStorage`, `removeStorage`, `clearStorage`, `setEnv`, `setAuth`, `clearAuth`, `setPermission`, `setDevice`, `setLocale`, `setTheme`
 
 ### Scripts / debug / quality
-`runScript`, `expectScript`, `expectScriptResult`, `expectConsoleLog`, `logStorage`, `logPerformance`, `screenshot`, `dumpTree`, `expectNoConsoleErrors`, `expectNoRenderErrors`, `expectError`, `expectNoErrors`, `expectAccessible`, `expectSemanticsLabel`, `expectNoOverflow`
+`runScript`, `expectScript`, `expectScriptResult`, `expectConsoleLog`, `expectNoConsoleErrors`, `expectNoRenderErrors`, `expectError`, `expectNoErrors`, `expectAccessible`, `expectSemanticsLabel`, `expectNoOverflow`
 
 ### Control flow
 `group`, `repeat`, `optional`, `ifVisible`
@@ -66,18 +66,17 @@ steps:
 
 Editor validation: `https://cdn.ensembleui.com/schemas/ensemble_tests_schema.json` (committed copy at [`assets/schema/ensemble_tests_schema.json`](assets/schema/ensemble_tests_schema.json), regenerate with `dart run tool/generate_schema.dart`). Arg shapes come from [`TestStepArgKind`](lib/vocabulary/test_step_arg_kind.dart) on each [`TestStepRegistryEntry`](lib/vocabulary/test_step_registry.dart).
 
-`logPerformance` writes Flutter app frame timing metrics to
-`build/ensemble_test_runner/logs/<test>_app_performance.json`. To write this
-artifact automatically once after the full suite, set this in
-`tests/config.yaml`:
+Performance logging writes Flutter app frame timing metrics to
+`build/ensemble_test_runner/logs/app_performance.json`. Enable it once for the
+full suite in `tests/config.yaml`:
 
 ```yaml
 performance:
   enabled: true
 ```
 
-`dumpTree`, `logApiCalls`, and `logStorage` can also be written automatically
-once after the full suite from `tests/config.yaml`:
+`dumpTree`, `logApiCalls`, and `logStorage` are also suite-level config
+artifacts:
 
 ```yaml
 dumpTree:

@@ -18,37 +18,6 @@ void main() {
     expect(device.name, 'iPhone 15 Pro');
   });
 
-  test('finds the first screenshot in test steps', () {
-    final device = firstScreenshotDevice([
-      const TestStep(type: 'tap', args: {'id': 'open'}),
-      const TestStep(
-        type: 'group',
-        args: {},
-        nestedSteps: [
-          TestStep(
-            type: 'screenshot',
-            args: {
-              'name': 'home',
-            },
-          ),
-        ],
-      ),
-    ]);
-
-    expect(device?.name, 'iPhone 15 Pro');
-  });
-
-  test('ignores tests without screenshots', () {
-    final device = firstScreenshotDevice([
-      const TestStep(
-        type: 'tap',
-        args: {'id': 'button'},
-      ),
-    ]);
-
-    expect(device, isNull);
-  });
-
   test('uses suite screenshot config device when enabled', () {
     final device = screenshotDeviceForTestCase(
       const EnsembleTestCase(
@@ -60,6 +29,27 @@ void main() {
       ),
       const EnsembleTestConfig(
         screenshots: ScreenshotConfig(
+          enabled: true,
+          platform: 'android',
+          model: 'Samsung Galaxy S20',
+        ),
+      ),
+    );
+
+    expect(device?.name, 'Samsung Galaxy S20');
+  });
+
+  test('uses suite record config device when enabled', () {
+    final device = screenshotDeviceForTestCase(
+      const EnsembleTestCase(
+        id: 'recording',
+        startScreen: 'Home',
+        steps: [
+          TestStep(type: 'tap', args: {'id': 'button'}),
+        ],
+      ),
+      const EnsembleTestConfig(
+        record: RecordConfig(
           enabled: true,
           platform: 'android',
           model: 'Samsung Galaxy S20',

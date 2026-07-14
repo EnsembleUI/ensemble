@@ -679,39 +679,6 @@ abstract final class TestStepRegistry {
       description: 'Log all recorded API calls to the test log',
       example: const {},
     ),
-    'logPerformance': TestStepRegistryEntry(
-      category: TestStepCategory.debug,
-      tier: TestStepTier.core,
-      argKind: TestStepArgKind.empty,
-      description: 'Write Flutter app frame timing metrics to a JSON artifact',
-      example: const {},
-    ),
-    'screenshot': TestStepRegistryEntry(
-      category: TestStepCategory.debug,
-      tier: TestStepTier.core,
-      argKind: TestStepArgKind.screenshot,
-      description: 'Capture a screenshot artifact for debugging',
-      example: const {
-        'name': 'home_screen',
-        'platform': 'ios',
-        'model': 'iPhone 15 Pro'
-      },
-    ),
-    'dumpTree': TestStepRegistryEntry(
-      category: TestStepCategory.debug,
-      tier: TestStepTier.core,
-      argKind: TestStepArgKind.empty,
-      description: 'Print the widget tree to the debug console',
-      example: const {},
-    ),
-    'logStorage': TestStepRegistryEntry(
-      category: TestStepCategory.debug,
-      tier: TestStepTier.core,
-      argKind: TestStepArgKind.optionalStorageKey,
-      description:
-          'Log one public storage value, or all public storage when key is omitted',
-      example: const {'key': 'onboarding_done'},
-    ),
     'expectNoConsoleErrors': TestStepRegistryEntry(
       category: TestStepCategory.quality,
       tier: TestStepTier.core,

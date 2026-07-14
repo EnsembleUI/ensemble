@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'dart:ui' as ui;
 
 import 'package:ensemble/action/navigation_action.dart';
@@ -6,11 +5,8 @@ import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/framework/screen_tracker.dart';
 import 'package:ensemble/framework/storage_manager.dart';
 import 'package:ensemble_device_preview/ensemble_device_preview.dart';
-import 'package:ensemble_test_runner/actions/screenshot_device.dart';
 import 'package:ensemble_test_runner/actions/test_step_executor.dart';
 import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
-import 'package:ensemble_test_runner/runner/app_performance_log.dart';
-import 'package:ensemble_test_runner/runner/debug_artifact_logs.dart';
 import 'package:ensemble_test_runner/runner/ensemble_test_harness.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
@@ -222,23 +218,6 @@ class ExtendedStepHandlers {
         executor.assertions
             .expectConsoleLog(step.args['contains']?.toString() ?? '');
         return true;
-      case 'logStorage':
-        final key = step.args['key']?.toString();
-        final path = await executor.tester.runAsync(() {
-          return writeStorageLog(executor.context, key: key);
-        });
-        executor.context.logger.log(
-          key == null || key.isEmpty
-              ? 'storage: $path'
-              : 'storage[$key]: $path',
-        );
-        return true;
-      case 'logPerformance':
-        final path = await executor.tester.runAsync(() {
-          return writeAppPerformanceLog(executor.context);
-        });
-        executor.context.logger.log('appPerformance: $path');
-        return true;
       case 'expectAccessible':
         executor.assertions.expectAccessible(executor.requireId(step));
         return true;
@@ -258,15 +237,6 @@ class ExtendedStepHandlers {
         return true;
       case 'expectNoErrors':
         executor.assertions.expectNoRenderErrors();
-        return true;
-      case 'screenshot':
-        await _screenshot(executor, step);
-        return true;
-      case 'dumpTree':
-        final path = await executor.tester.runAsync(() {
-          return writeDumpTreeLog(executor.context);
-        });
-        executor.context.logger.log('dumpTree: $path');
         return true;
       case 'expectNoConsoleErrors':
         executor.assertions.expectNoConsoleErrors();
@@ -513,34 +483,20 @@ class ExtendedStepHandlers {
     }
   }
 
-  static Future<void> _screenshot(TestStepExecutor e, TestStep step) async {
-    final args = e.context.config.screenshots.toScreenshotArgs(step.args);
-    await captureScreenshot(e, args: args);
+  static Future<Uint8List> captureScreenshotBytes(
+    WidgetTester tester, {
+    required DeviceInfo device,
+  }) async {
+    final image = captureScreenshotImage(tester);
+    try {
+      return await encodeScreenshotImage(image, device);
+    } finally {
+      image.dispose();
+    }
   }
 
-  static Future<void> captureScreenshot(
-    TestStepExecutor e, {
-    required Map<String, dynamic> args,
-    bool deferWrite = false,
-    bool pumpBeforeCapture = true,
-  }) async {
-    if (pumpBeforeCapture) {
-      await e.tester.pump();
-    }
-    final rawName = args['name']?.toString();
-    final name = rawName == null || rawName.isEmpty
-        ? DateTime.now().microsecondsSinceEpoch.toString()
-        : rawName;
-    final fileName = _safeFileName('${e.context.testCase.id}_$name.png');
-    final directory = Directory('build/ensemble_test_runner/screenshots');
-    final file = File('${directory.path}/$fileName');
-    final device = resolveScreenshotDevice(args);
-
-    if (pumpBeforeCapture) {
-      await e.tester.pump();
-    }
-
-    final renderView = e.tester.binding.renderViews.first;
+  static ui.Image captureScreenshotImage(WidgetTester tester) {
+    final renderView = tester.binding.renderViews.first;
     final layer = renderView.debugLayer;
     if (layer is! OffsetLayer) {
       throw EnsembleTestFailure(
@@ -548,30 +504,21 @@ class ExtendedStepHandlers {
       );
     }
 
-    final image = layer.toImageSync(
+    return layer.toImageSync(
       renderView.paintBounds,
       pixelRatio: renderView.flutterView.devicePixelRatio,
     );
-    final path = file.path;
+  }
 
-    Future<void> writeImage() async {
-      final byteData = await _addDeviceFrame(image, device);
-      image.dispose();
-      if (byteData == null) {
-        throw EnsembleTestFailure('Failed to encode screenshot as PNG.');
-      }
-
-      directory.createSync(recursive: true);
-      file.writeAsBytesSync(byteData.buffer.asUint8List());
+  static Future<Uint8List> encodeScreenshotImage(
+    ui.Image image,
+    DeviceInfo device,
+  ) async {
+    final byteData = await _addDeviceFrame(image, device);
+    if (byteData == null) {
+      throw EnsembleTestFailure('Failed to encode screenshot as PNG.');
     }
-
-    if (deferWrite) {
-      e.context.runtime.pendingScreenshotWrites.add(writeImage);
-    } else {
-      await e.tester.runAsync(writeImage);
-    }
-
-    e.context.logger.log('screenshot: $path');
+    return byteData.buffer.asUint8List();
   }
 
   static Future<ByteData?> _addDeviceFrame(
@@ -617,10 +564,6 @@ class ExtendedStepHandlers {
     final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
     image.dispose();
     return byteData;
-  }
-
-  static String _safeFileName(String value) {
-    return value.replaceAll(RegExp(r'[^A-Za-z0-9._-]+'), '_');
   }
 
   static bool _deepEquals(dynamic a, dynamic b) {

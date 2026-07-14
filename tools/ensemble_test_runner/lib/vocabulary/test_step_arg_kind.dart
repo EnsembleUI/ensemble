@@ -28,12 +28,10 @@ enum TestStepArgKind {
   expectVisited,
   apiName,
   storageKey,
-  optionalStorageKey,
   group,
   repeat,
   optional,
   ifVisible,
-  screenshot,
   setAuth,
   setPermission,
   setDevice,
@@ -206,10 +204,6 @@ extension TestStepArgKindSchema on TestStepArgKind {
           properties: {'key': _string, 'equals': _any, 'value': _any},
           required: ['key'],
         );
-      case TestStepArgKind.optionalStorageKey:
-        return _object(
-          properties: {'key': _string},
-        );
       case TestStepArgKind.group:
         return _object(
           properties: {
@@ -241,14 +235,6 @@ extension TestStepArgKindSchema on TestStepArgKind {
             'steps': {'type': 'array', 'items': _ref('step'), 'minItems': 1},
           },
           required: ['id'],
-        );
-      case TestStepArgKind.screenshot:
-        return _object(
-          properties: {
-            'name': _string,
-            'platform': _string,
-            'model': _string,
-          },
         );
       case TestStepArgKind.setAuth:
         return _object(

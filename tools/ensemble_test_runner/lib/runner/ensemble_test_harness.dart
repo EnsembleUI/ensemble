@@ -16,6 +16,7 @@ import 'package:ensemble_test_runner/mocks/firebase_test_setup.dart';
 import 'package:ensemble_test_runner/mocks/test_api_provider_overlay.dart';
 import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
 import 'package:ensemble_test_runner/runner/ensemble_test_context.dart';
+import 'package:ensemble_test_runner/runner/live_async_call.dart';
 import 'package:ensemble_test_runner/runner/yaml_test_session.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -489,9 +490,15 @@ class EnsembleTestHarness {
   }
 
   static Future<void> _yieldToRealAsyncWork(WidgetTester tester) async {
-    await tester.runAsync(() async {
+    Future<void> yieldOnce() async {
       await Future<void>.delayed(Duration.zero);
-    });
+    }
+
+    if (LiveAsyncCallSupport.runner != null) {
+      await LiveAsyncCallSupport.run<void>(yieldOnce);
+    } else {
+      await tester.runAsync(yieldOnce);
+    }
   }
 
   static Future<void> applyInPlaceSetup(EnsembleTestContext ctx) async {

@@ -247,6 +247,21 @@ performance:
       expect(config.performance.enabled, isTrue);
     });
 
+    test('parses suite config recording', () {
+      const yaml = '''
+record:
+  enabled: true
+  platform: android
+  model: Samsung Galaxy S20
+''';
+
+      final config = EnsembleTestParser.parseConfigString(yaml);
+      final record = config.record;
+      expect(record.enabled, isTrue);
+      expect(record.platform, 'android');
+      expect(record.model, 'Samsung Galaxy S20');
+    });
+
     test('parses suite config debug artifacts', () {
       const yaml = '''
 dumpTree:

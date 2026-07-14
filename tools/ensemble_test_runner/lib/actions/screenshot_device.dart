@@ -1,33 +1,21 @@
 import 'package:ensemble_device_preview/ensemble_device_preview.dart';
 import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
 
-DeviceInfo? firstScreenshotDevice(List<TestStep> steps) {
-  for (final step in steps) {
-    final device = screenshotDeviceForStep(step);
-    if (device != null) return device;
-
-    final nestedDevice = firstScreenshotDevice(step.nestedSteps);
-    if (nestedDevice != null) return nestedDevice;
-  }
-  return null;
-}
-
 DeviceInfo? screenshotDeviceForTestCase(
-  EnsembleTestCase testCase,
+  EnsembleTestCase _,
   EnsembleTestConfig config,
 ) {
-  final stepDevice = firstScreenshotDevice(testCase.steps);
-  if (stepDevice != null) return stepDevice;
   if (config.screenshots.enabled) {
     return resolveScreenshotDevice(
       config.screenshots.toScreenshotArgs(),
     );
   }
+  if (config.record.enabled) {
+    return resolveScreenshotDevice(
+      config.record.toScreenshotArgs(),
+    );
+  }
   return null;
-}
-
-DeviceInfo? screenshotDeviceForStep(TestStep step) {
-  return step.type == 'screenshot' ? resolveScreenshotDevice(step.args) : null;
 }
 
 DeviceInfo resolveScreenshotDevice(Map<String, dynamic> args) {
