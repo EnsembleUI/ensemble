@@ -21,6 +21,7 @@ import 'package:ensemble_test_runner/runner/yaml_test_session.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:yaml/yaml.dart';
 
 /// Per-test bootstrap data applied before the widget tree mounts.
 class EnsembleTestSetup {
@@ -85,12 +86,7 @@ class EnsembleTestHarness {
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(packageInfoChannel, (call) async {
       if (call.method == 'getAll') {
-        return {
-          'appName': 'EnsembleTest',
-          'packageName': 'com.ensemble.test',
-          'version': '1.0.0',
-          'buildNumber': '1',
-        };
+        return _resolvePackageInfo(Directory.current);
       }
       return null;
     });
@@ -332,13 +328,123 @@ class EnsembleTestHarness {
       final fonts = familyEntry['fonts'];
       if (family == null || fonts is! List) continue;
 
-      await _loadFontFamily(family, fonts);
-
-      final lowerCaseAlias = family.toLowerCase();
-      if (lowerCaseAlias != family) {
-        await _loadFontFamily(lowerCaseAlias, fonts);
+      for (final alias in _fontFamilyAliases(family)) {
+        await _loadFontFamily(alias, fonts);
       }
     }
+  }
+
+  static List<String> fontFamilyAliasesForTest(String family) =>
+      _fontFamilyAliases(family);
+
+  static List<String> fontAssetCandidatesForTest(String asset) =>
+      _fontAssetCandidates(asset);
+
+  static Map<String, String> packageInfoForTest(String appDir) =>
+      _resolvePackageInfo(Directory(appDir));
+
+  static Map<String, String> _resolvePackageInfo(Directory appDir) {
+    final pubspec = _readPubspec(appDir);
+    final properties = _readProperties(
+      File('${appDir.path}/ensemble/ensemble.properties'),
+    );
+
+    final packageName =
+        properties['appId'] ?? pubspec['name'] ?? 'com.ensemble.test';
+    final appName = properties['appName'] ??
+        _titleFromPackageName(pubspec['name']) ??
+        'EnsembleTest';
+    final versionParts = _splitVersion(pubspec['version']);
+
+    return {
+      'appName': appName,
+      'packageName': packageName,
+      'version': versionParts.version,
+      'buildNumber': versionParts.buildNumber,
+    };
+  }
+
+  static Map<String, String> _readPubspec(Directory appDir) {
+    final file = File('${appDir.path}/pubspec.yaml');
+    if (!file.existsSync()) return const {};
+
+    try {
+      final yaml = loadYaml(file.readAsStringSync());
+      if (yaml is! YamlMap) return const {};
+      return {
+        for (final entry in yaml.entries)
+          if (entry.value != null) entry.key.toString(): entry.value.toString(),
+      };
+    } catch (_) {
+      return const {};
+    }
+  }
+
+  static Map<String, String> _readProperties(File file) {
+    if (!file.existsSync()) return const {};
+
+    final values = <String, String>{};
+    for (final rawLine in file.readAsLinesSync()) {
+      final line = rawLine.trim();
+      if (line.isEmpty || line.startsWith('#')) continue;
+      final separator = line.indexOf('=');
+      if (separator <= 0) continue;
+      values[line.substring(0, separator).trim()] =
+          line.substring(separator + 1).trim();
+    }
+    return values;
+  }
+
+  static ({String version, String buildNumber}) _splitVersion(String? raw) {
+    if (raw == null || raw.trim().isEmpty) {
+      return (version: '1.0.0', buildNumber: '1');
+    }
+    final parts = raw.trim().split('+');
+    final version = parts.first.trim();
+    final buildNumber = parts.length > 1 ? parts.sublist(1).join('+') : '1';
+    return (
+      version: version.isEmpty ? '1.0.0' : version,
+      buildNumber: buildNumber.trim().isEmpty ? '1' : buildNumber.trim(),
+    );
+  }
+
+  static String? _titleFromPackageName(String? name) {
+    if (name == null || name.trim().isEmpty) return null;
+    return name
+        .trim()
+        .split(RegExp(r'[_\s]+'))
+        .where((part) => part.isNotEmpty)
+        .map((part) => '${part[0].toUpperCase()}${part.substring(1)}')
+        .join(' ');
+  }
+
+  static List<String> _fontFamilyAliases(String family) {
+    final aliases = <String>{family, family.toLowerCase()};
+
+    const packagePrefix = 'packages/';
+    if (family.startsWith(packagePrefix)) {
+      final slashIndex = family.lastIndexOf('/');
+      if (slashIndex != -1 && slashIndex < family.length - 1) {
+        final unqualifiedFamily = family.substring(slashIndex + 1);
+        aliases.add(unqualifiedFamily);
+        aliases.add(unqualifiedFamily.toLowerCase());
+      }
+    }
+
+    return aliases.toList(growable: false);
+  }
+
+  static List<String> _fontAssetCandidates(String asset) {
+    final candidates = <String>{asset};
+    if (asset.contains('%')) {
+      try {
+        candidates.add(Uri.decodeFull(asset));
+      } catch (_) {
+        // Keep the manifest-provided asset key if decoding is not valid URI
+        // escaping.
+      }
+    }
+    return candidates.toList(growable: false);
   }
 
   static Future<void> _loadFontFamily(
@@ -351,13 +457,17 @@ class EnsembleTestHarness {
     for (final fontEntry in fontEntries.whereType<Map>()) {
       final asset = fontEntry['asset']?.toString();
       if (asset == null || asset.isEmpty) continue;
-      try {
-        final fontData = await rootBundle.load(asset);
-        loader.addFont(Future.value(fontData));
-        hasFonts = true;
-      } catch (_) {
-        // Ignore missing assets so a bad font entry does not fail unrelated
-        // behavioral tests.
+
+      for (final assetKey in _fontAssetCandidates(asset)) {
+        try {
+          final fontData = await rootBundle.load(assetKey);
+          loader.addFont(Future.value(fontData));
+          hasFonts = true;
+          break;
+        } catch (_) {
+          // Ignore missing assets so a bad font entry does not fail unrelated
+          // behavioral tests.
+        }
       }
     }
 
