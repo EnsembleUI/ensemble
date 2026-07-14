@@ -17,7 +17,7 @@ VoidCallback? _buildEdgeNavigationCallback(
   TVFocusProvider? provider,
   TVFocusEdgeTargetComposite? target,
 ) {
-  if (target?.row == null) {
+  if (target?.targetRow == null) {
     return null;
   }
 
@@ -27,17 +27,17 @@ VoidCallback? _buildEdgeNavigationCallback(
     rowOffset = provider.rowOffset;
     orderOffset = provider.orderOffset;
   }
-  final effectiveRow = target!.row! + rowOffset;
+  final effectiveRow = target!.targetRow! + rowOffset;
   final effectiveOrder =
-      target.order != null ? target.order! + orderOffset : null;
+      target.targetOrder != null ? target.targetOrder! + orderOffset : null;
 
   if (provider != null) {
     final p = provider;
     return () => p.requestFocusAt(
-        context, effectiveRow, effectiveOrder, target.focusGroup);
+        context, effectiveRow, effectiveOrder, target.targetFocusGroup);
   }
-  return () =>
-      requestFocusAt(context, effectiveRow, effectiveOrder, target.focusGroup);
+  return () => requestFocusAt(
+      context, effectiveRow, effectiveOrder, target.targetFocusGroup);
 }
 
 class InputWrapper extends StatelessWidget {

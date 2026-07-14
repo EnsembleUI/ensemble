@@ -97,34 +97,35 @@ class BoxShadowComposite extends WidgetCompositeProperty {
 /// tvOptions:
 ///   edges:
 ///     right:
-///       focusGroup: results
-///       row: 2
-///       order: 0
+///       targetFocusGroup: results
+///       targetRow: 2
+///       targetOrder: 0
 /// ```
 class TVFocusEdgeTargetComposite extends WidgetCompositeProperty {
   TVFocusEdgeTargetComposite(super.widgetController, {required Map inputs}) {
-    row = inputs['row'];
-    order = inputs['order'];
-    focusGroup = inputs['focusGroup'];
+    targetRow = inputs['targetRow'];
+    targetOrder = inputs['targetOrder'];
+    targetFocusGroup = inputs['targetFocusGroup'];
   }
 
-  double? _row;
-  set row(value) => _row = Utils.optionalDouble(value);
-  double? get row => _row;
+  double? _targetRow;
+  set targetRow(value) => _targetRow = Utils.optionalDouble(value);
+  double? get targetRow => _targetRow;
 
-  double? _order;
-  set order(value) => _order = Utils.optionalDouble(value);
-  double? get order => _order;
+  double? _targetOrder;
+  set targetOrder(value) => _targetOrder = Utils.optionalDouble(value);
+  double? get targetOrder => _targetOrder;
 
-  String? _focusGroup;
-  set focusGroup(value) => _focusGroup = Utils.optionalString(value);
-  String? get focusGroup => _focusGroup;
+  String? _targetFocusGroup;
+  set targetFocusGroup(value) =>
+      _targetFocusGroup = Utils.optionalString(value);
+  String? get targetFocusGroup => _targetFocusGroup;
 
   @override
   Map<String, Function> getters() => {
-        'row': () => _row,
-        'order': () => _order,
-        'focusGroup': () => _focusGroup,
+        'targetRow': () => _targetRow,
+        'targetOrder': () => _targetOrder,
+        'targetFocusGroup': () => _targetFocusGroup,
       };
 
   @override
@@ -132,9 +133,9 @@ class TVFocusEdgeTargetComposite extends WidgetCompositeProperty {
 
   @override
   Map<String, Function> setters() => {
-        'row': (value) => row = value,
-        'order': (value) => order = value,
-        'focusGroup': (value) => focusGroup = value,
+        'targetRow': (value) => targetRow = value,
+        'targetOrder': (value) => targetOrder = value,
+        'targetFocusGroup': (value) => targetFocusGroup = value,
       };
 }
 
