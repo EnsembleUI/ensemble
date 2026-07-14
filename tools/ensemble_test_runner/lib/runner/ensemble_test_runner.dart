@@ -328,7 +328,6 @@ class EnsembleTestRunner {
   }) async {
     final options = executor.context.config.screenshots;
     if (!options.shouldCaptureStep(step.type)) return;
-    if (executor.context.apiOverlay.hasPendingLiveCalls) return;
 
     await _ensureHighlightTargetVisible(executor, step);
 

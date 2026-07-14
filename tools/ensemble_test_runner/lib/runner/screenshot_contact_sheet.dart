@@ -59,18 +59,18 @@ Future<String?> writeScreenshotContactSheet({
 
   final directory = Directory('build/ensemble_test_runner/screenshots');
   directory.createSync(recursive: true);
-  final file = File('${directory.path}/${_safeFileName(testId)}_sheet.jpg');
-  file.writeAsBytesSync(img.encodeJpg(sheet, quality: 88));
+  final file = File('${directory.path}/${_safeFileName(testId)}_sheet.png');
+  file.writeAsBytesSync(img.encodePng(sheet));
   return file.path;
 }
 
 img.Image _buildTile(img.Image source, String label) {
-  const width = 240;
-  const labelHeight = 44;
+  const width = 420;
+  const labelHeight = 56;
   final thumbnail = img.copyResize(
     source,
     width: width,
-    interpolation: img.Interpolation.average,
+    interpolation: img.Interpolation.cubic,
   );
   final tile = img.Image(width: width, height: thumbnail.height + labelHeight)
     ..clear(img.ColorRgb8(255, 255, 255));
@@ -78,16 +78,16 @@ img.Image _buildTile(img.Image source, String label) {
   img.drawString(
     tile,
     _shortLabel(label),
-    font: img.arial14,
-    x: 4,
-    y: 4,
+    font: img.arial24,
+    x: 8,
+    y: 8,
     color: img.ColorRgb8(0, 0, 0),
   );
   return tile;
 }
 
 String _shortLabel(String label) =>
-    label.length <= 34 ? label : '${label.substring(0, 31)}...';
+    label.length <= 30 ? label : '${label.substring(0, 27)}...';
 
 String _safeFileName(String value) =>
     value.replaceAll(RegExp(r'[^A-Za-z0-9._-]+'), '_');
