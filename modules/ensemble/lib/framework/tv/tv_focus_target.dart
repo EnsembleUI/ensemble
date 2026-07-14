@@ -18,9 +18,6 @@ class TVFocusTarget {
   final double? row;
   final double? order;
 
-  /// Backwards-compatible alias for earlier drafts of this helper.
-  String? get group => focusGroup;
-
   bool get isValid => row != null;
 
   TVFocusTarget offset({

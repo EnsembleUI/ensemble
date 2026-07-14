@@ -105,7 +105,7 @@ class TVFocusEdgeTargetComposite extends WidgetCompositeProperty {
   TVFocusEdgeTargetComposite(super.widgetController, {required Map inputs}) {
     row = inputs['row'];
     order = inputs['order'];
-    focusGroup = inputs['focusGroup'] ?? inputs['group'] ?? inputs['section'];
+    focusGroup = inputs['focusGroup'];
   }
 
   double? _row;
@@ -125,8 +125,6 @@ class TVFocusEdgeTargetComposite extends WidgetCompositeProperty {
         'row': () => _row,
         'order': () => _order,
         'focusGroup': () => _focusGroup,
-        'group': () => _focusGroup,
-        'section': () => _focusGroup,
       };
 
   @override
@@ -137,8 +135,6 @@ class TVFocusEdgeTargetComposite extends WidgetCompositeProperty {
         'row': (value) => row = value,
         'order': (value) => order = value,
         'focusGroup': (value) => focusGroup = value,
-        'group': (value) => focusGroup = value,
-        'section': (value) => focusGroup = value,
       };
 }
 
@@ -166,15 +162,6 @@ class TVFocusEdgesComposite extends WidgetCompositeProperty {
   TVFocusEdgeTargetComposite? _bottom;
   set bottom(value) => _bottom = _parseTarget(value);
   TVFocusEdgeTargetComposite? get bottom => _bottom;
-
-  TVFocusEdgeTargetComposite ensureRight() =>
-      _right ??= TVFocusEdgeTargetComposite(widgetController, inputs: {});
-  TVFocusEdgeTargetComposite ensureLeft() =>
-      _left ??= TVFocusEdgeTargetComposite(widgetController, inputs: {});
-  TVFocusEdgeTargetComposite ensureTop() =>
-      _top ??= TVFocusEdgeTargetComposite(widgetController, inputs: {});
-  TVFocusEdgeTargetComposite ensureBottom() =>
-      _bottom ??= TVFocusEdgeTargetComposite(widgetController, inputs: {});
 
   TVFocusEdgeTargetComposite? _parseTarget(value) {
     if (value is Map) {
@@ -226,17 +213,8 @@ class TVOptionsComposite extends WidgetCompositeProperty {
     horizontalScrollPadding = inputs['horizontalScrollPadding'];
     lockHorizontalNavigation = inputs['lockHorizontalNavigation'];
     delegateHorizontalNavigation = inputs['delegateHorizontalNavigation'];
-    focusGroup = inputs['focusGroup'] ?? inputs['group'] ?? inputs['section'];
+    focusGroup = inputs['focusGroup'];
     edges = inputs['edges'];
-    // Backwards-compatible flat edge syntax.
-    rightEdgeRow = inputs['rightEdgeRow'];
-    rightEdgeOrder = inputs['rightEdgeOrder'];
-    leftEdgeRow = inputs['leftEdgeRow'];
-    leftEdgeOrder = inputs['leftEdgeOrder'];
-    topEdgeRow = inputs['topEdgeRow'];
-    topEdgeOrder = inputs['topEdgeOrder'];
-    bottomEdgeRow = inputs['bottomEdgeRow'];
-    bottomEdgeOrder = inputs['bottomEdgeOrder'];
     // Carousel-specific TV options
     interceptHorizontalNav = inputs['interceptHorizontalNav'];
     pauseAutoplayOnFocus = inputs['pauseAutoplayOnFocus'];
@@ -361,100 +339,12 @@ class TVOptionsComposite extends WidgetCompositeProperty {
   set focusGroup(value) => _focusGroup = Utils.optionalString(value);
   String? get focusGroup => _focusGroup;
 
-  /// Backwards-compatible alias for older screens.
-  set section(value) => focusGroup = value;
-  String? get section => _focusGroup;
-
   /// Edge targets for focus handoff at group boundaries.
   TVFocusEdgesComposite? _edges;
   set edges(value) => _edges = value is Map
       ? TVFocusEdgesComposite(widgetController, inputs: value)
       : null;
   TVFocusEdgesComposite? get edges => _edges;
-
-  TVFocusEdgesComposite _ensureEdges() =>
-      _edges ??= TVFocusEdgesComposite(widgetController, inputs: {});
-
-  /// Optional right-edge focus target row. When set, RIGHT at the row boundary
-  /// can hand off to another focusable item.
-  set rightEdgeRow(value) {
-    final rowValue = Utils.optionalDouble(value);
-    if (rowValue != null) {
-      _ensureEdges().ensureRight().row = rowValue;
-    }
-  }
-
-  double? get rightEdgeRow => _edges?.right?.row;
-
-  /// Optional right-edge focus target order within [rightEdgeRow].
-  set rightEdgeOrder(value) {
-    final orderValue = Utils.optionalDouble(value);
-    if (orderValue != null) {
-      _ensureEdges().ensureRight().order = orderValue;
-    }
-  }
-
-  double? get rightEdgeOrder => _edges?.right?.order;
-
-  /// Optional left-edge focus target row.
-  set leftEdgeRow(value) {
-    final rowValue = Utils.optionalDouble(value);
-    if (rowValue != null) {
-      _ensureEdges().ensureLeft().row = rowValue;
-    }
-  }
-
-  double? get leftEdgeRow => _edges?.left?.row;
-
-  /// Optional left-edge focus target order within [leftEdgeRow].
-  set leftEdgeOrder(value) {
-    final orderValue = Utils.optionalDouble(value);
-    if (orderValue != null) {
-      _ensureEdges().ensureLeft().order = orderValue;
-    }
-  }
-
-  double? get leftEdgeOrder => _edges?.left?.order;
-
-  /// Optional top-edge focus target row.
-  set topEdgeRow(value) {
-    final rowValue = Utils.optionalDouble(value);
-    if (rowValue != null) {
-      _ensureEdges().ensureTop().row = rowValue;
-    }
-  }
-
-  double? get topEdgeRow => _edges?.top?.row;
-
-  /// Optional top-edge focus target order within [topEdgeRow].
-  set topEdgeOrder(value) {
-    final orderValue = Utils.optionalDouble(value);
-    if (orderValue != null) {
-      _ensureEdges().ensureTop().order = orderValue;
-    }
-  }
-
-  double? get topEdgeOrder => _edges?.top?.order;
-
-  /// Optional bottom-edge focus target row.
-  set bottomEdgeRow(value) {
-    final rowValue = Utils.optionalDouble(value);
-    if (rowValue != null) {
-      _ensureEdges().ensureBottom().row = rowValue;
-    }
-  }
-
-  double? get bottomEdgeRow => _edges?.bottom?.row;
-
-  /// Optional bottom-edge focus target order within [bottomEdgeRow].
-  set bottomEdgeOrder(value) {
-    final orderValue = Utils.optionalDouble(value);
-    if (orderValue != null) {
-      _ensureEdges().ensureBottom().order = orderValue;
-    }
-  }
-
-  double? get bottomEdgeOrder => _edges?.bottom?.order;
 
   // ============ Carousel-specific TV Options ============
 
@@ -582,17 +472,7 @@ class TVOptionsComposite extends WidgetCompositeProperty {
         'lockHorizontalNavigation': () => _lockHorizontalNavigation,
         'delegateHorizontalNavigation': () => _delegateHorizontalNavigation,
         'focusGroup': () => _focusGroup,
-        'group': () => _focusGroup,
-        'section': () => _focusGroup,
         'edges': () => _edges,
-        'rightEdgeRow': () => rightEdgeRow,
-        'rightEdgeOrder': () => rightEdgeOrder,
-        'leftEdgeRow': () => leftEdgeRow,
-        'leftEdgeOrder': () => leftEdgeOrder,
-        'topEdgeRow': () => topEdgeRow,
-        'topEdgeOrder': () => topEdgeOrder,
-        'bottomEdgeRow': () => bottomEdgeRow,
-        'bottomEdgeOrder': () => bottomEdgeOrder,
         // Carousel-specific
         'interceptHorizontalNav': () => _interceptHorizontalNav,
         'pauseAutoplayOnFocus': () => _pauseAutoplayOnFocus,
@@ -634,17 +514,7 @@ class TVOptionsComposite extends WidgetCompositeProperty {
         'delegateHorizontalNavigation': (value) =>
             delegateHorizontalNavigation = value,
         'focusGroup': (value) => focusGroup = value,
-        'group': (value) => focusGroup = value,
-        'section': (value) => section = value,
         'edges': (value) => edges = value,
-        'rightEdgeRow': (value) => rightEdgeRow = value,
-        'rightEdgeOrder': (value) => rightEdgeOrder = value,
-        'leftEdgeRow': (value) => leftEdgeRow = value,
-        'leftEdgeOrder': (value) => leftEdgeOrder = value,
-        'topEdgeRow': (value) => topEdgeRow = value,
-        'topEdgeOrder': (value) => topEdgeOrder = value,
-        'bottomEdgeRow': (value) => bottomEdgeRow = value,
-        'bottomEdgeOrder': (value) => bottomEdgeOrder = value,
         // Carousel-specific
         'interceptHorizontalNav': (value) => interceptHorizontalNav = value,
         'pauseAutoplayOnFocus': (value) => pauseAutoplayOnFocus = value,

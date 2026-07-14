@@ -43,9 +43,8 @@ class TVFocusOrder extends FocusOrder {
     this.isRowEntryPoint = false,
     this.lockHorizontalNavigation = false,
     this.delegateHorizontalNavigation = false,
-    String? focusGroup,
-    String? section,
-  }) : focusGroup = focusGroup ?? section;
+    this.focusGroup,
+  });
 
   final double row;
   final double order;
@@ -68,9 +67,6 @@ class TVFocusOrder extends FocusOrder {
   /// This is useful for keeping two nearby UI regions separate while still allowing
   /// explicit edge callbacks to move focus between them.
   final String? focusGroup;
-
-  /// Backwards-compatible alias for older integrations.
-  String? get section => focusGroup;
 
   /// Composite value for sorting: row * 10000 + order
   /// This ensures items are sorted by row first, then by order within row

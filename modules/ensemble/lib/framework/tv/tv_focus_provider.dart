@@ -96,7 +96,6 @@ abstract class TVFocusProvider {
     bool lockHorizontalNavigation = false,
     bool delegateHorizontalNavigation = false,
     String? focusGroup,
-    String? section,
     KeyEventResult Function(FocusNode node)? onBackPressed,
     VoidCallback? onRightEdge,
     VoidCallback? onLeftEdge,
@@ -174,7 +173,7 @@ abstract class TVFocusProvider {
 
   /// Request focus on a widget at the given row/order.
   ///
-  /// Used by edge callbacks to navigate across sections/groups.
+  /// Used by edge callbacks to navigate across focus groups.
   /// The host app should find its own [PageFocusOrder] widgets at these
   /// coordinates and request focus on them.
   ///
