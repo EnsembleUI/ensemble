@@ -26,8 +26,7 @@ void main() {
     expect(content, contains('tags: [smoke]'));
     expect(content, contains('startScreen: Login'));
     expect(
-        Directory('${dir.path}/ensemble/apps/inhome/tests/fixtures')
-            .existsSync(),
+        Directory('${dir.path}/ensemble/apps/inhome/tests/mocks').existsSync(),
         isTrue);
   });
 }

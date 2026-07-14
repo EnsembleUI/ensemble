@@ -411,46 +411,38 @@ class EnsembleTestRunner {
     final logs = <String>[];
 
     if (config.performance.enabled) {
-      final path = await tester.runAsync(() {
-        return writePerformanceLog(
-          logger: logger,
-          filePrefix: '',
-          name: 'app_performance',
-          frames: frames,
-          markers: markers,
-          apiCalls: apiCalls,
-        );
-      });
+      final path = await writePerformanceLog(
+        logger: logger,
+        filePrefix: '',
+        name: 'app_performance',
+        frames: frames,
+        markers: markers,
+        apiCalls: apiCalls,
+      );
       logs.add('appPerformance: $path');
     }
 
     if (config.dumpTree.enabled && lastContext != null) {
-      final path = await tester.runAsync(() {
-        return writeDumpTreeLogFile(logger: logger, filePrefix: '');
-      });
+      final path = await writeDumpTreeLogFile(logger: logger, filePrefix: '');
       logs.add('dumpTree: $path');
     }
 
     if (config.logApiCalls.enabled) {
-      final path = await tester.runAsync(() {
-        return writeApiCallsLogFile(
-          logger: logger,
-          filePrefix: '',
-          calls: apiCalls,
-        );
-      });
+      final path = await writeApiCallsLogFile(
+        logger: logger,
+        filePrefix: '',
+        calls: apiCalls,
+      );
       logs.add('apiCalls: $path');
     }
 
     if (config.logStorage.enabled && lastContext != null) {
       final key = config.logStorage.key;
-      final path = await tester.runAsync(() {
-        return writeStorageLogFile(
-          logger: logger,
-          filePrefix: '',
-          key: key,
-        );
-      });
+      final path = await writeStorageLogFile(
+        logger: logger,
+        filePrefix: '',
+        key: key,
+      );
       logs.add(
         key == null || key.isEmpty ? 'storage: $path' : 'storage[$key]: $path',
       );

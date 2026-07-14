@@ -480,63 +480,11 @@ abstract final class TestStepRegistry {
       description: 'Navigate back (Ensemble navigateBack or Navigator.pop)',
       example: const {},
     ),
-    'mockApi': TestStepRegistryEntry(
-      category: TestStepCategory.apiMock,
-      tier: TestStepTier.core,
-      argKind: TestStepArgKind.mockApi,
-      description: 'Register a mock HTTP API response by API name',
-      example: const {
-        'name': 'login',
-        'response': const {
-          'statusCode': 200,
-          'body': const {'token': 'test-token'}
-        }
-      },
-    ),
-    'mockApiError': TestStepRegistryEntry(
-      category: TestStepCategory.apiMock,
-      tier: TestStepTier.core,
-      argKind: TestStepArgKind.mockApiError,
-      description: 'Mock an API to return an error status/body',
-      example: const {
-        'name': 'login',
-        'statusCode': 401,
-        'body': const {'error': 'Unauthorized'}
-      },
-    ),
-    'mockApiFromFixture': TestStepRegistryEntry(
-      category: TestStepCategory.fixture,
-      tier: TestStepTier.core,
-      argKind: TestStepArgKind.mockApiFromFixture,
-      description: 'Load mock response body from a JSON fixture asset',
-      example: const {'name': 'users', 'fixture': 'fixtures/users.json'},
-    ),
-    'mockApiException': TestStepRegistryEntry(
-      category: TestStepCategory.apiMock,
-      tier: TestStepTier.core,
-      argKind: TestStepArgKind.mockApiException,
-      description: 'Force an API call to throw an exception',
-      example: const {'name': 'login', 'message': 'Network error'},
-    ),
-    'mockTimeout': TestStepRegistryEntry(
-      category: TestStepCategory.network,
-      tier: TestStepTier.core,
-      argKind: TestStepArgKind.mockTimeout,
-      description: 'Mock an API with a long delay (simulate timeout)',
-      example: const {'name': 'slow_api', 'delayMs': 60000},
-    ),
     'resetApiCalls': TestStepRegistryEntry(
       category: TestStepCategory.apiMock,
       tier: TestStepTier.core,
       argKind: TestStepArgKind.empty,
       description: 'Clear recorded API call history',
-      example: const {},
-    ),
-    'clearApiMocks': TestStepRegistryEntry(
-      category: TestStepCategory.apiMock,
-      tier: TestStepTier.core,
-      argKind: TestStepArgKind.empty,
-      description: 'Remove all registered API mocks',
       example: const {},
     ),
     'expectApiCalled': TestStepRegistryEntry(

@@ -31,7 +31,7 @@ class EnsembleTestContext {
     EnsembleTestConfig config = const EnsembleTestConfig(),
   }) {
     final logger = TestLogger();
-    final mockApi = TestApiProviderOverlay(
+    final apiOverlay = TestApiProviderOverlay(
       mocks: Map<String, MockAPIResponse>.from(testCase.mocks.apis),
     );
 
@@ -53,7 +53,7 @@ class EnsembleTestContext {
     final ctx = EnsembleTestContext(
       testCase: testCase,
       config: config,
-      apiOverlay: mockApi,
+      apiOverlay: apiOverlay,
       logger: logger,
       setup: setup,
     );
@@ -81,20 +81,5 @@ class EnsembleTestContext {
 
   Future<void> clearStorage() async {
     await StorageManager().clearPublicStorage();
-  }
-
-  MockAPIResponse mockFromStepArgs(Map<String, dynamic> args) {
-    final response = args['response'];
-    if (response is! Map) {
-      throw EnsembleTestFailure('mockApi requires a "response" map');
-    }
-    return MockAPIResponse(
-      statusCode: response['statusCode'] as int? ?? 200,
-      body: response['body'],
-      headers: response['headers'] is Map
-          ? Map<String, dynamic>.from(response['headers'] as Map)
-          : null,
-      delayMs: args['delayMs'] as int?,
-    );
   }
 }

@@ -12,27 +12,6 @@ class EnsembleTestSchemaBuilder {
 
   static Map<String, dynamic> build() {
     final defs = <String, dynamic>{
-      'mockResponse': {
-        'type': 'object',
-        'additionalProperties': false,
-        'properties': {
-          'statusCode': {'type': 'integer'},
-          'body': true,
-          'headers': {
-            'type': 'object',
-            'additionalProperties': true,
-          },
-        },
-      },
-      'mockApiEntry': {
-        'type': 'object',
-        'additionalProperties': false,
-        'properties': {
-          'response': {'\$ref': '#/\$defs/mockResponse'},
-          'delayMs': {'type': 'integer'},
-        },
-        'required': ['response'],
-      },
       'initialState': {
         'type': 'object',
         'additionalProperties': false,
@@ -42,15 +21,15 @@ class EnsembleTestSchemaBuilder {
           'env': {'type': 'object', 'additionalProperties': true},
         },
       },
-      'mocks': {
+      'scenario': {
         'type': 'object',
         'additionalProperties': false,
         'properties': {
-          'apis': {
-            'type': 'object',
-            'additionalProperties': {'\$ref': '#/\$defs/mockApiEntry'},
-          },
+          'id': {'type': 'string', 'minLength': 1},
+          'description': {'type': 'string'},
+          'vars': {'type': 'object', 'additionalProperties': true},
         },
+        'required': ['id'],
       },
       'testCase': {
         'type': 'object',
@@ -99,7 +78,15 @@ class EnsembleTestSchemaBuilder {
                 'ID of another test that must run before this one in the same app session',
           },
           'initialState': {'\$ref': '#/\$defs/initialState'},
-          'mocks': {'\$ref': '#/\$defs/mocks'},
+          'mocks': {
+            'type': 'array',
+            'items': {'type': 'string', 'minLength': 1},
+          },
+          'scenarios': {
+            'type': 'array',
+            'items': {'\$ref': '#/\$defs/scenario'},
+            'minItems': 1,
+          },
           'steps': {
             'type': 'array',
             'minItems': 1,

@@ -25,7 +25,6 @@ enum TestStepCategory {
   runtime,
   script,
   network,
-  fixture,
   control,
   debug,
   quality,

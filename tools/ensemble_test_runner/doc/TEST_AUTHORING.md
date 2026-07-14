@@ -61,41 +61,65 @@ logStorage:
 
 `--inspect-app` emits JSON with screens, widget IDs, APIs, navigation targets, imports, storage/env references, and lifecycle hints.
 
-## Fixtures And Mocks
+## Mocks
 
-Put JSON fixtures under:
-
-```text
-ensemble/apps/<appName>/tests/fixtures/<name>.json
-```
-
-Reference fixtures by filename:
-
-```yaml
-steps:
-  - mockApiFromFixture:
-      name: profile
-      fixture: profile_success.json
-```
-
-Use root `mocks.apis` for APIs that may run during `onLoad` or startup. Use step-level `mockApi` or `mockApiFromFixture` for APIs triggered after user actions.
+Use `mocks` for API responses. The value is an ordered list of `.mock.json`
+files. Later files override earlier files.
 
 ```yaml
 mocks:
-  apis:
-    profile:
-      response:
-        body: {name: Jane}
-steps:
-  - mockApi:
-      name: login
-      response:
-        body: {token: test-token}
+  - mocks/common/base.mock.json
 ```
+
+For scenario-based suites, keep reusable API data in mock files. The runner does
+not know what your scenario variables mean; it only substitutes `${scenario.*}`
+values and merges mock files in order.
+
+```yaml
+id: home_scenarios
+prerequisite: signin_to_gateway
+
+mocks:
+  - mocks/common/base.mock.json
+  - mocks/devices/${scenario.device}.mock.json
+  - mocks/behaviors/${scenario.behavior}.mock.json
+
+scenarios:
+  - id: v14_online
+    vars:
+      device: v14
+      behavior: online
+      expectedDeviceCount: 2
+
+steps:
+  - expectText:
+      text: ${scenario.expectedDeviceCount}
+```
+
+Each scenario expands to its own test id, for example
+`home_scenarios[v14_online]`. When a scenario suite has a `prerequisite`, the
+first scenario depends on that prerequisite and later scenarios run after the
+previous scenario in declaration order.
+
+Mock files are JSON files. The root object maps API names to response
+overrides:
+
+```json
+{
+  "getDevices": {
+    "statusCode": 200,
+    "body": {
+      "status": []
+    }
+  }
+}
+```
+
+Later files override earlier files.
 
 ## Validation
 
-`--validate-only` checks generated tests without running Flutter. It reports blocking errors for invalid YAML shape, missing tests, duplicate IDs, unknown prerequisites, unknown screens, and missing fixtures. It reports warnings for likely unknown widget IDs/APIs and mock placement issues.
+`--validate-only` checks generated tests without running Flutter. It reports blocking errors for invalid YAML shape, missing tests, duplicate IDs, unknown prerequisites, and unknown screens. It reports warnings for likely unknown widget IDs/APIs.
 
 Warnings do not fail the command. Errors exit with code `2`.
 

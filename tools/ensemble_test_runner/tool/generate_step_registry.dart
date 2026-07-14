@@ -399,47 +399,11 @@ void main() {
       'empty',
       'Navigate back (Ensemble navigateBack or Navigator.pop)',
     ),
-    'mockApi': step(
-      'apiMock',
-      'core',
-      'mockApi',
-      'Register a mock HTTP API response by API name',
-    ),
-    'mockApiError': step(
-      'apiMock',
-      'core',
-      'mockApiError',
-      'Mock an API to return an error status/body',
-    ),
-    'mockApiFromFixture': step(
-      'fixture',
-      'core',
-      'mockApiFromFixture',
-      'Load mock response body from a JSON fixture asset',
-    ),
-    'mockApiException': step(
-      'apiMock',
-      'core',
-      'mockApiException',
-      'Force an API call to throw an exception',
-    ),
-    'mockTimeout': step(
-      'network',
-      'core',
-      'mockTimeout',
-      'Mock an API with a long delay (simulate timeout)',
-    ),
     'resetApiCalls': step(
       'apiMock',
       'core',
       'empty',
       'Clear recorded API call history',
-    ),
-    'clearApiMocks': step(
-      'apiMock',
-      'core',
-      'empty',
-      'Remove all registered API mocks',
     ),
     'expectApiCalled': step(
       'apiAssertion',
@@ -778,26 +742,6 @@ Map<String, dynamic> defaultExampleForArg(String arg) {
       return {'screen': 'Home'};
     case 'expectVisited':
       return {'screen': 'Login'};
-    case 'mockApi':
-      return {
-        'name': 'login',
-        'response': {
-          'statusCode': 200,
-          'body': {'token': 'test-token'},
-        },
-      };
-    case 'mockApiError':
-      return {
-        'name': 'login',
-        'statusCode': 401,
-        'body': {'error': 'Unauthorized'}
-      };
-    case 'mockApiFromFixture':
-      return {'name': 'users', 'fixture': 'fixtures/users.json'};
-    case 'mockApiException':
-      return {'name': 'login', 'message': 'Network error'};
-    case 'mockTimeout':
-      return {'name': 'slow_api', 'delayMs': 60000};
     case 'apiName':
       return {'name': 'login', 'times': 1};
     case 'storageKey':

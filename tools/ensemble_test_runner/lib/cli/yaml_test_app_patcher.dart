@@ -156,9 +156,29 @@ Future<void> main() async {
   String _activatePubspec(String content) {
     final testsDir = testsDirRelative;
     if (testsDir != null && _hasTestYamlOnDisk(testsDir)) {
-      return _activateTestAssets(content, testsDir);
+      return _activateTestAssets(content, testsDir, _testsAssetLines(testsDir));
     }
     return content;
+  }
+
+  List<String> _testsAssetLines(String testsDirRelative) {
+    final testsDir = Directory(p.join(appDir, testsDirRelative));
+    final dirs = <String>{_withTrailingSlash(testsDirRelative)};
+    if (testsDir.existsSync()) {
+      for (final entity in testsDir.listSync(recursive: true)) {
+        if (entity is! File) continue;
+        final dir = p.dirname(p.relative(entity.path, from: appDir));
+        dirs.add(_withTrailingSlash(p.split(dir).join('/')));
+      }
+    }
+    final sortedDirs = dirs.toList()
+      ..sort((a, b) {
+        final depthCompare = '/'.allMatches(a).length.compareTo(
+              '/'.allMatches(b).length,
+            );
+        return depthCompare == 0 ? a.compareTo(b) : depthCompare;
+      });
+    return sortedDirs.map(testsAssetLineFor).toList();
   }
 
   String? get _testsDirRelative {
@@ -188,12 +208,29 @@ Future<void> main() async {
         .any((entity) => entity.path.endsWith('.test.yaml'));
   }
 
-  static String _activateTestAssets(String content, String testsDirRelative) {
+  static String _activateTestAssets(
+    String content,
+    String testsDirRelative,
+    List<String> testAssetLines,
+  ) {
     final normalizedTestsDir = _withTrailingSlash(testsDirRelative);
     final testsAssetLine = testsAssetLineFor(normalizedTestsDir);
-    if (content.contains(testsAssetLine) ||
-        content.contains('- $normalizedTestsDir')) {
+    final missingLines = testAssetLines
+        .where(
+          (line) =>
+              !content.contains(line) && !content.contains(line.trimLeft()),
+        )
+        .toList();
+    if (missingLines.isEmpty) {
       return content;
+    }
+    final insertion = missingLines.join('\n');
+
+    if (content.contains(testsAssetLine)) {
+      return content.replaceFirst(
+        testsAssetLine,
+        '$testsAssetLine\n$insertion',
+      );
     }
 
     final localAppLine =
@@ -201,7 +238,7 @@ Future<void> main() async {
     if (content.contains(localAppLine)) {
       return content.replaceFirst(
         localAppLine,
-        '$localAppLine$testsAssetLine\n',
+        '$localAppLine$insertion\n',
       );
     }
 
@@ -209,7 +246,7 @@ Future<void> main() async {
     if (content.contains(ensembleDirLine)) {
       return content.replaceFirst(
         ensembleDirLine,
-        '$ensembleDirLine$testsAssetLine\n',
+        '$ensembleDirLine$insertion\n',
       );
     }
 
@@ -217,7 +254,7 @@ Future<void> main() async {
     if (content.contains(assetsMarker)) {
       return content.replaceFirst(
         assetsMarker,
-        '$assetsMarker$testsAssetLine\n',
+        '$assetsMarker$insertion\n',
       );
     }
 

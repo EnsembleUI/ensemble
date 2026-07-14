@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'dart:io';
 import 'dart:ui' as ui;
 
@@ -174,18 +173,6 @@ class ExtendedStepHandlers {
         return true;
       case 'goBack':
         await _goBack(executor);
-        return true;
-      case 'mockApiFromFixture':
-        await _mockApiFromFixture(executor, step);
-        return true;
-      case 'clearApiMocks':
-        executor.context.apiOverlay.clearMocks();
-        return true;
-      case 'mockApiException':
-        await _mockApiException(executor, step);
-        return true;
-      case 'mockTimeout':
-        await _mockTimeout(executor, step);
         return true;
       case 'expectApiCallOrder':
         executor.assertions.expectApiCallOrder(
@@ -449,48 +436,6 @@ class ExtendedStepHandlers {
     throw EnsembleTestFailure('goBack: no navigator or active scope');
   }
 
-  static Future<void> _mockApiFromFixture(
-      TestStepExecutor e, TestStep step) async {
-    final name = step.args['name']?.toString();
-    final fixture = step.args['fixture']?.toString();
-    if (name == null || fixture == null) {
-      throw EnsembleTestFailure(
-          'mockApiFromFixture requires "name" and "fixture"');
-    }
-    final body = await _readFixture(e, fixture);
-    e.context.apiOverlay.setMock(
-      name,
-      MockAPIResponse(
-        statusCode: step.args['statusCode'] as int? ?? 200,
-        body: body,
-      ),
-    );
-  }
-
-  static Future<void> _mockApiException(
-      TestStepExecutor e, TestStep step) async {
-    final name = step.args['name']?.toString();
-    if (name == null)
-      throw EnsembleTestFailure('mockApiException requires "name"');
-    e.context.apiOverlay.setApiException(
-      name,
-      Exception(step.args['message']?.toString() ?? 'API exception (test)'),
-    );
-  }
-
-  static Future<void> _mockTimeout(TestStepExecutor e, TestStep step) async {
-    final name = step.args['name']?.toString();
-    if (name == null) throw EnsembleTestFailure('mockTimeout requires "name"');
-    e.context.apiOverlay.setMock(
-      name,
-      MockAPIResponse(
-        statusCode: 200,
-        body: {},
-        delayMs: step.args['delayMs'] as int? ?? 60000,
-      ),
-    );
-  }
-
   static void _setAuth(TestStepExecutor e, TestStep step) {
     final user = step.args['user'];
     if (user is Map) {
@@ -566,37 +511,6 @@ class ExtendedStepHandlers {
         );
       }
     }
-  }
-
-  static Future<dynamic> _readFixture(TestStepExecutor e, String path) async {
-    Object? lastError;
-    for (final candidate in _fixtureAssetCandidates(e, path)) {
-      try {
-        final raw = await rootBundle.loadString(candidate);
-        return json.decode(raw);
-      } catch (error) {
-        lastError = error;
-      }
-    }
-    throw EnsembleTestFailure(
-      'Fixture not found: $path. Use tests/fixtures/<name>.json. $lastError',
-    );
-  }
-
-  static List<String> _fixtureAssetCandidates(TestStepExecutor e, String path) {
-    final sourcePath = e.context.testCase.sourcePath;
-    final candidates = <String>[];
-    if (sourcePath != null && sourcePath.contains('/')) {
-      final testDir = sourcePath.substring(0, sourcePath.lastIndexOf('/'));
-      candidates.add(
-        path.startsWith('fixtures/')
-            ? '$testDir/$path'
-            : '$testDir/fixtures/$path',
-      );
-    }
-    candidates.add(path);
-    if (!path.startsWith('ensemble/')) candidates.add('ensemble/$path');
-    return candidates.toSet().toList();
   }
 
   static Future<void> _screenshot(TestStepExecutor e, TestStep step) async {

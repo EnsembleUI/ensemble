@@ -273,30 +273,6 @@ class TestStepExecutor {
         }
         context.setEnv(key, step.args['value']);
         break;
-      case 'mockApi':
-        final name = step.args['name']?.toString();
-        if (name == null) {
-          throw EnsembleTestFailure('mockApi requires "name"');
-        }
-        context.apiOverlay.setMock(
-          name,
-          context.mockFromStepArgs(step.args),
-        );
-        break;
-      case 'mockApiError':
-        final name = step.args['name']?.toString();
-        if (name == null) {
-          throw EnsembleTestFailure('mockApiError requires "name"');
-        }
-        context.apiOverlay.setMock(
-          name,
-          MockAPIResponse(
-            statusCode: step.args['statusCode'] as int? ?? 500,
-            body: step.args['body'],
-            delayMs: step.args['delayMs'] as int?,
-          ),
-        );
-        break;
       case 'resetApiCalls':
         context.apiOverlay.resetCalls();
         break;
@@ -351,6 +327,7 @@ class TestStepExecutor {
       testCase: EnsembleTestCase(
         id: tc.id,
         startScreen: screen,
+        mockFiles: tc.mockFiles,
         initialState: tc.initialState,
         mocks: tc.mocks,
         steps: const [],
@@ -527,6 +504,7 @@ class TestStepExecutor {
       testCase: EnsembleTestCase(
         id: tc.id,
         startScreen: screen,
+        mockFiles: tc.mockFiles,
         initialState: tc.initialState,
         mocks: tc.mocks,
         steps: const [],

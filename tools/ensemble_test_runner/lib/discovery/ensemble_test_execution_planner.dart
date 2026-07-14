@@ -1,9 +1,13 @@
+import 'dart:convert';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
 import 'package:ensemble_test_runner/discovery/ensemble_test_discovery.dart';
 import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
 import 'package:ensemble_test_runner/parser/ensemble_test_parser.dart';
+
+typedef _AssetStringLoader = Future<String> Function(String assetPath);
 
 /// A parsed `*.test.yaml` file with its asset path.
 class EnsembleTestDefinition {
@@ -70,21 +74,21 @@ class EnsembleTestExecutionPlanner {
     final byId = <String, EnsembleTestDefinition>{};
     for (final path in paths) {
       final content = await rootBundle.loadString(path);
-      final testCase = EnsembleTestParser.parseString(
+      final definitions = await _parseDefinitionsFromAsset(
+        path,
         content,
-        sourcePath: path,
         inputs: inputs,
       );
-      final existing = byId[testCase.id];
-      if (existing != null) {
-        throw EnsembleTestFailure(
-          'Duplicate test id "${testCase.id}" in ${existing.assetPath} and $path',
-        );
+      for (final definition in definitions) {
+        final existing = byId[definition.testCase.id];
+        if (existing != null) {
+          throw EnsembleTestFailure(
+            'Duplicate test id "${definition.testCase.id}" in '
+            '${existing.assetPath} and $path',
+          );
+        }
+        byId[definition.testCase.id] = definition;
       }
-      byId[testCase.id] = EnsembleTestDefinition(
-        assetPath: path,
-        testCase: testCase,
-      );
     }
 
     final selectedById = _applySelection(byId, selection);
@@ -101,6 +105,268 @@ class EnsembleTestExecutionPlanner {
 
     final ordered = _topologicalSort(selectedById);
     return EnsembleTestExecutionPlan(ordered: ordered, config: config);
+  }
+
+  /// Exposed for unit tests only.
+  @visibleForTesting
+  static Future<List<EnsembleTestDefinition>> parseDefinitionsForTest(
+    String path,
+    String content, {
+    Map<String, dynamic> inputs = const {},
+    Future<String> Function(String assetPath)? assetLoader,
+  }) {
+    return _parseDefinitionsFromAsset(
+      path,
+      content,
+      inputs: inputs,
+      assetLoader: assetLoader ?? _rootBundleAssetLoader,
+    );
+  }
+
+  static Future<List<EnsembleTestDefinition>> _parseDefinitionsFromAsset(
+    String path,
+    String content, {
+    required Map<String, dynamic> inputs,
+    _AssetStringLoader assetLoader = _rootBundleAssetLoader,
+  }) async {
+    final base = EnsembleTestParser.parseString(
+      content,
+      sourcePath: path,
+      inputs: inputs,
+    );
+    if (base.scenarios.isEmpty) {
+      final mocks = await _mergedMocksFor(
+        assetPath: path,
+        mockFiles: base.mockFiles,
+        assetLoader: assetLoader,
+      );
+      return [
+        EnsembleTestDefinition(
+          assetPath: path,
+          testCase: _withRuntimeFields(
+            base,
+            id: base.id,
+            startScreen: base.startScreen,
+            prerequisite: base.prerequisite,
+            mocks: mocks,
+          ),
+        ),
+      ];
+    }
+
+    final definitions = <EnsembleTestDefinition>[];
+    String? previousScenarioId;
+    for (final scenario in base.scenarios) {
+      final parsed = EnsembleTestParser.parseString(
+        content,
+        sourcePath: path,
+        inputs: inputs,
+        scenario: scenario.vars,
+        scenarioId: scenario.id,
+      );
+      final parsedScenario = parsed.scenarios.firstWhere(
+        (item) => item.id == scenario.id,
+        orElse: () => scenario,
+      );
+      final id = '${base.id}[${scenario.id}]';
+      final prerequisite = parsed.prerequisite == null
+          ? null
+          : previousScenarioId ?? parsed.prerequisite;
+      final mocks = await _mergedMocksFor(
+        assetPath: path,
+        mockFiles: parsed.mockFiles,
+        assetLoader: assetLoader,
+      );
+
+      definitions.add(
+        EnsembleTestDefinition(
+          assetPath: path,
+          testCase: _withRuntimeFields(
+            parsed,
+            id: id,
+            description: parsedScenario.description ?? parsed.description,
+            startScreen:
+                parsed.prerequisite == null ? parsed.startScreen : null,
+            prerequisite: prerequisite,
+            mocks: mocks,
+          ),
+        ),
+      );
+      previousScenarioId = id;
+    }
+    return definitions;
+  }
+
+  static EnsembleTestCase _withRuntimeFields(
+    EnsembleTestCase test, {
+    required String id,
+    String? description,
+    String? startScreen,
+    String? prerequisite,
+    required TestMocks mocks,
+  }) {
+    return EnsembleTestCase(
+      id: id,
+      sourcePath: test.sourcePath,
+      type: test.type,
+      feature: test.feature,
+      tags: test.tags,
+      description: description ?? test.description,
+      owner: test.owner,
+      priority: test.priority,
+      startScreen: startScreen,
+      prerequisite: prerequisite,
+      mockFiles: test.mockFiles,
+      initialState: test.initialState,
+      mocks: mocks,
+      steps: test.steps,
+    );
+  }
+
+  static Future<TestMocks> _mergedMocksFor({
+    required String assetPath,
+    required List<String> mockFiles,
+    required _AssetStringLoader assetLoader,
+  }) async {
+    final apis = <String, MockAPIResponse>{};
+    for (final file in mockFiles) {
+      final fileMocks = await _loadMockFile(
+        assetPath,
+        file,
+        assetLoader: assetLoader,
+      );
+      apis.addAll(fileMocks.apis);
+    }
+    return TestMocks(apis: apis);
+  }
+
+  static Future<TestMocks> _loadMockFile(
+    String testAssetPath,
+    String mockFilePath, {
+    required _AssetStringLoader assetLoader,
+  }) async {
+    final assetPath = _resolveAssetPath(testAssetPath, mockFilePath);
+    final content = await _loadRequiredAsset(
+      assetPath,
+      'Mock file "$mockFilePath" referenced by $testAssetPath was not found.',
+      assetLoader: assetLoader,
+    );
+    if (!assetPath.endsWith('.mock.json')) {
+      throw EnsembleTestFailure(
+        'Mock file "$mockFilePath" must be a .mock.json file.',
+      );
+    }
+
+    final dynamic doc = _parseMockFileDocument(content, assetPath);
+    if (doc == null) return const TestMocks();
+    if (doc is! Map) {
+      throw EnsembleTestFailure('Mock file "$assetPath" root must be a map');
+    }
+
+    final apis = <String, MockAPIResponse>{};
+    for (final entry in doc.entries) {
+      if (entry.value is! Map) {
+        throw EnsembleTestFailure(
+          'Mock for API "${entry.key}" in "$assetPath" must be a map',
+        );
+      }
+      apis[entry.key.toString()] = _parseLayerMockApiResponse(
+        Map<dynamic, dynamic>.from(entry.value as Map),
+        layerAssetPath: assetPath,
+        apiName: entry.key.toString(),
+      );
+    }
+    return TestMocks(apis: apis);
+  }
+
+  static dynamic _parseMockFileDocument(String content, String assetPath) {
+    try {
+      return jsonDecode(content);
+    } on FormatException catch (error) {
+      throw EnsembleTestFailure(
+        'Mock file "$assetPath" is not valid JSON: ${error.message}',
+      );
+    }
+  }
+
+  static MockAPIResponse _parseLayerMockApiResponse(
+    Map<dynamic, dynamic> map, {
+    required String layerAssetPath,
+    required String apiName,
+  }) {
+    if (map.isEmpty) {
+      throw EnsembleTestFailure(
+        'API mock "$apiName" in "$layerAssetPath" must include a response',
+      );
+    }
+    final unknownKeys = map.keys
+        .map((key) => key.toString())
+        .where(
+          (key) =>
+              !const {'statusCode', 'body', 'headers', 'delayMs'}.contains(key),
+        )
+        .toList();
+    if (unknownKeys.isNotEmpty) {
+      throw EnsembleTestFailure(
+        'API mock "$apiName" in "$layerAssetPath" has unsupported keys: '
+        '${unknownKeys.join(", ")}. Use direct JSON shape: '
+        '{"statusCode": 200, "body": ...}.',
+      );
+    }
+
+    return MockAPIResponse(
+      statusCode: map['statusCode'] as int? ?? 200,
+      body: map.containsKey('body') ? _unwrapJsonValue(map['body']) : null,
+      headers: map['headers'] is Map
+          ? Map<String, dynamic>.from(
+              _unwrapJsonValue(map['headers']) as Map,
+            )
+          : null,
+      delayMs: map['delayMs'] as int?,
+    );
+  }
+
+  static dynamic _unwrapJsonValue(dynamic value) {
+    if (value is Map) {
+      return {
+        for (final entry in value.entries)
+          entry.key.toString(): _unwrapJsonValue(entry.value),
+      };
+    }
+    if (value is List) {
+      return value.map(_unwrapJsonValue).toList();
+    }
+    return value;
+  }
+
+  static Future<String> _loadRequiredAsset(
+    String assetPath,
+    String missingMessage, {
+    required _AssetStringLoader assetLoader,
+  }) async {
+    try {
+      return await assetLoader(assetPath);
+    } on FlutterError {
+      throw EnsembleTestFailure(missingMessage);
+    }
+  }
+
+  static Future<String> _rootBundleAssetLoader(String assetPath) {
+    return rootBundle.loadString(assetPath);
+  }
+
+  static String _resolveAssetPath(String fromAssetPath, String relativePath) {
+    if (relativePath.startsWith('/')) return relativePath.substring(1);
+    final segments = fromAssetPath.split('/')..removeLast();
+    for (final part in relativePath.split('/')) {
+      if (part.isEmpty || part == '.') continue;
+      if (part == '..') {
+        if (segments.isNotEmpty) segments.removeLast();
+      } else {
+        segments.add(part);
+      }
+    }
+    return segments.join('/');
   }
 
   static Map<String, EnsembleTestDefinition> _applySelection(
@@ -144,8 +410,10 @@ class EnsembleTestExecutionPlanner {
     EnsembleTestSelection selection,
   ) {
     final test = def.testCase;
-    final idMatches =
-        selection.ids.isNotEmpty && selection.ids.contains(test.id);
+    final idMatches = selection.ids.isNotEmpty &&
+        selection.ids.any(
+          (id) => test.id == id || test.id.startsWith('$id['),
+        );
     final featureMatches = selection.features.isNotEmpty &&
         selection.features.contains(test.feature);
     final tagMatches = selection.tags.isNotEmpty &&

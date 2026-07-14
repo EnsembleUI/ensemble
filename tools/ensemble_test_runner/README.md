@@ -29,7 +29,7 @@ Widget YAML must set `testId` (or `id`, which maps to the same `ValueKey`).
 
 ### Step vocabulary
 
-The full official catalog (lifecycle, gestures, API mocks, fixtures, debug, etc.) is in **[STEP_VOCABULARY.md](STEP_VOCABULARY.md)**.
+The full official catalog (lifecycle, gestures, API assertions, debug, etc.) is in **[STEP_VOCABULARY.md](STEP_VOCABULARY.md)**.
 
 Machine-readable registry (single source): `lib/vocabulary/test_step_registry.dart`.
 
@@ -157,7 +157,7 @@ Create a starter test under `definitions.local.path/tests/`:
 dart run ensemble_test_runner:ensemble_test --scaffold-test=login_valid --feature=login --tag=smoke --screen=Login
 ```
 
-See [`docs/TEST_AUTHORING.md`](docs/TEST_AUTHORING.md) for the test authoring workflow, fixture conventions, validation rules, and repair-loop output.
+See [`docs/TEST_AUTHORING.md`](docs/TEST_AUTHORING.md) for the test authoring workflow, mock file conventions, validation rules, and repair-loop output.
 
 ### CI output
 
@@ -197,13 +197,9 @@ On success the console prints one consolidated boxed report for the suite: each 
 # yaml-language-server: $schema=https://cdn.ensembleui.com/schemas/ensemble_tests_schema.json
 id: login_flow
 startScreen: Login
+mocks:
+  - mocks/login_success.mock.json
 steps:
-  - mockApi:
-      name: login
-      response:
-        statusCode: 200
-        body:
-          token: test-token
   - enterText:
       id: email_field
       value: user@test.com

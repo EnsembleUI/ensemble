@@ -20,7 +20,7 @@ steps:
       expect(test.steps.first.args['id'], 'emailInput');
     });
 
-    test('parses API mocks', () {
+    test('rejects inline root-level mocks', () {
       const yaml = '''
 id: login_success
 startScreen: Login
@@ -38,12 +38,15 @@ steps:
       times: 1
 ''';
 
-      final test = EnsembleTestParser.parseString(yaml);
-      expect(test.mocks.apis['loginApi']?.statusCode, 200);
-      expect(test.mocks.apis['loginApi']?.delayMs, 100);
       expect(
-        (test.mocks.apis['loginApi']?.body as Map)['token'],
-        'test-token',
+        () => EnsembleTestParser.parseString(yaml),
+        throwsA(
+          isA<EnsembleTestFailure>().having(
+            (error) => error.message,
+            'message',
+            contains('Root-level "mocks" must be a list of .mock.json files'),
+          ),
+        ),
       );
     });
 
@@ -118,6 +121,67 @@ steps:
             (error) => error.message,
             'message',
             contains('Missing CLI input "expectedDeviceCount"'),
+          ),
+        ),
+      );
+    });
+
+    test('parses scenarios and resolves scenario placeholders', () {
+      const yaml = '''
+id: home_scenarios
+startScreen: Home
+mocks:
+  - mocks/\${scenario.device}.mock.json
+scenarios:
+  - id: v14_online
+    vars:
+      device: v14
+      expectedDeviceCount: 2
+steps:
+  - expectText:
+      text: \${scenario.expectedDeviceCount}
+''';
+
+      final base = EnsembleTestParser.parseString(yaml);
+      expect(base.scenarios.single.id, 'v14_online');
+      expect(base.scenarios.single.vars['device'], 'v14');
+      expect(base.mockFiles.single, 'mocks/\${scenario.device}.mock.json');
+
+      final expanded = EnsembleTestParser.parseString(
+        yaml,
+        scenario: base.scenarios.single.vars,
+        scenarioId: base.scenarios.single.id,
+      );
+      expect(expanded.mockFiles.single, 'mocks/v14.mock.json');
+      expect(expanded.steps.single.args['text'], 2);
+    });
+
+    test('fails clearly when scenario value is missing', () {
+      const yaml = '''
+id: home_scenarios
+startScreen: Home
+scenarios:
+  - id: missing_value
+    vars: {}
+steps:
+  - expectText:
+      text: \${scenario.expectedDeviceCount}
+''';
+
+      final base = EnsembleTestParser.parseString(yaml);
+      expect(
+        () => EnsembleTestParser.parseString(
+          yaml,
+          scenario: base.scenarios.single.vars,
+          scenarioId: base.scenarios.single.id,
+        ),
+        throwsA(
+          isA<EnsembleTestFailure>().having(
+            (error) => error.message,
+            'message',
+            contains(
+              'Missing scenario value "expectedDeviceCount" in scenario "missing_value"',
+            ),
           ),
         ),
       );

@@ -98,6 +98,136 @@ steps:
 
       expect(order, ['login', 'profile']);
     });
+
+    test('expands scenarios with bracketed ids and prerequisite chain',
+        () async {
+      const yaml = '''
+id: home_scenarios
+prerequisite: signin_to_gateway
+scenarios:
+  - id: v12_online
+    vars:
+      expectedDeviceCount: 2
+  - id: v14_empty
+    vars:
+      expectedDeviceCount: 0
+steps:
+  - expectText:
+      text: \${scenario.expectedDeviceCount}
+''';
+
+      final definitions =
+          await EnsembleTestExecutionPlanner.parseDefinitionsForTest(
+        'ensemble/apps/inhome/tests/home.test.yaml',
+        yaml,
+      );
+
+      expect(
+        definitions.map((definition) => definition.testCase.id),
+        [
+          'home_scenarios[v12_online]',
+          'home_scenarios[v14_empty]',
+        ],
+      );
+      expect(
+        definitions[0].testCase.prerequisite,
+        'signin_to_gateway',
+      );
+      expect(
+        definitions[1].testCase.prerequisite,
+        'home_scenarios[v12_online]',
+      );
+      expect(definitions[0].testCase.steps.single.args['text'], 2);
+      expect(definitions[1].testCase.steps.single.args['text'], 0);
+    });
+
+    test('loads JSON mock files and applies override order', () async {
+      const yaml = '''
+id: home_scenarios
+startScreen: Home
+mocks:
+  - mocks/common.mock.json
+  - mocks/\${scenario.behavior}.mock.json
+scenarios:
+  - id: online
+    vars:
+      behavior: online
+steps:
+  - expectVisible:
+      id: home
+''';
+      final assets = {
+        'suite/tests/mocks/common.mock.json': '''
+{
+  "getDevices": {
+    "statusCode": 200,
+    "body": {"count": 1}
+  },
+  "rootApi": {
+    "body": {"from": "layer"}
+  }
+}
+''',
+        'suite/tests/mocks/online.mock.json': '''
+{
+  "getDevices": {
+    "statusCode": 200,
+    "body": {"count": 2}
+  },
+  "scenarioApi": {
+    "body": {"from": "scenario-layer"}
+  }
+}
+''',
+      };
+
+      final definitions =
+          await EnsembleTestExecutionPlanner.parseDefinitionsForTest(
+        'suite/tests/home.test.yaml',
+        yaml,
+        assetLoader: (path) async => assets[path]!,
+      );
+
+      final mocks = definitions.single.testCase.mocks.apis;
+      expect((mocks['getDevices']!.body as Map)['count'], 2);
+      expect((mocks['rootApi']!.body as Map)['from'], 'layer');
+      expect((mocks['scenarioApi']!.body as Map)['from'], 'scenario-layer');
+    });
+
+    test('selection by base scenario suite id includes expanded scenarios',
+        () async {
+      const yaml = '''
+id: home_scenarios
+startScreen: Home
+scenarios:
+  - id: first
+    vars: {}
+  - id: second
+    vars: {}
+steps:
+  - expectVisible:
+      id: home
+''';
+      final definitions =
+          await EnsembleTestExecutionPlanner.parseDefinitionsForTest(
+        'suite/tests/home.test.yaml',
+        yaml,
+      );
+      final byId = {
+        for (final definition in definitions)
+          definition.testCase.id: definition,
+      };
+
+      final order = EnsembleTestExecutionPlanner.selectAndOrderIdsForTest(
+        byId,
+        const EnsembleTestSelection(ids: {'home_scenarios'}),
+      );
+
+      expect(order, [
+        'home_scenarios[first]',
+        'home_scenarios[second]',
+      ]);
+    });
   });
 }
 

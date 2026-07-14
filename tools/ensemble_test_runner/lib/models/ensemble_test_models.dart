@@ -43,7 +43,11 @@ class EnsembleTestCase {
 
   /// Test [id] that must run before this one (same app session).
   final String? prerequisite;
+  final List<String> mockFiles;
+  final List<TestScenario> scenarios;
   final Map<String, dynamic> initialState;
+
+  /// Runtime API mocks resolved from [mockFiles].
   final TestMocks mocks;
   final List<TestStep> steps;
 
@@ -58,6 +62,8 @@ class EnsembleTestCase {
     this.priority,
     this.startScreen,
     this.prerequisite,
+    this.mockFiles = const [],
+    this.scenarios = const [],
     this.initialState = const {},
     this.mocks = const TestMocks(),
     required this.steps,
@@ -74,6 +80,19 @@ class EnsembleTestCase {
         if (owner != null) 'owner': owner,
         if (priority != null) 'priority': priority,
       };
+}
+
+/// One scenario from a scenario-based test suite.
+class TestScenario {
+  final String id;
+  final String? description;
+  final Map<String, dynamic> vars;
+
+  const TestScenario({
+    required this.id,
+    this.description,
+    this.vars = const {},
+  });
 }
 
 class EnsembleTestConfig {
@@ -341,7 +360,6 @@ class EnsembleSingleTestResult {
 
   String _failureKind(String text) {
     final lower = text.toLowerCase();
-    if (lower.contains('fixture')) return 'parseError';
     if (lower.contains('timeout') || lower.contains('timed out')) {
       return 'timeout';
     }
@@ -376,7 +394,7 @@ class EnsembleSingleTestResult {
       case 'apiMismatch':
         return [
           'Check API name spelling against --inspect-app output.',
-          'Use root mocks.apis for onLoad APIs and mockApi for later user-triggered APIs.',
+          'Use root mocks with .mock.json files for mocked API responses.',
         ];
       case 'navigationMismatch':
         return [
@@ -390,7 +408,7 @@ class EnsembleSingleTestResult {
         ];
       case 'parseError':
         return [
-          'Run --validate-only to find schema, fixture, and prerequisite issues.',
+          'Run --validate-only to find schema and prerequisite issues.',
         ];
       default:
         return [

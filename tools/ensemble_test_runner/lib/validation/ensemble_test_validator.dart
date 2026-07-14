@@ -219,6 +219,7 @@ class EnsembleTestValidator {
 
       final stepInfo = _collectStepInfo(steps);
       for (final widgetId in stepInfo.widgetIds) {
+        if (_isPlaceholder(widgetId)) continue;
         if (!knownWidgetIds.contains(widgetId)) {
           add(
             ValidationSeverity.warning,
@@ -230,44 +231,12 @@ class EnsembleTestValidator {
         }
       }
       for (final api in stepInfo.apiNames) {
+        if (_isPlaceholder(api)) continue;
         if (!knownApis.contains(api)) {
           add(
             ValidationSeverity.warning,
             'unknownApi',
             'No obvious API definition found for "$api"',
-            path: relativePath,
-            testId: id,
-          );
-        }
-      }
-      for (final fixture in stepInfo.fixtures) {
-        final fixtureFile = File(
-          fixture.startsWith('fixtures/')
-              ? p.join(testsDir.path, fixture)
-              : p.join(testsDir.path, 'fixtures', fixture),
-        );
-        if (!fixtureFile.existsSync()) {
-          add(
-            ValidationSeverity.error,
-            'missingFixture',
-            'Fixture not found: tests/fixtures/$fixture',
-            path: relativePath,
-            testId: id,
-          );
-        }
-      }
-
-      final rootMocks = _rootMockApis(doc);
-      final onLoadApis =
-          startScreen != null && screensByName[startScreen] != null
-              ? screensByName[startScreen]!.apis
-              : const <String>[];
-      for (final api in onLoadApis) {
-        if (stepInfo.mockApis.contains(api) && !rootMocks.contains(api)) {
-          add(
-            ValidationSeverity.warning,
-            'mockPlacement',
-            'API "$api" may run during onLoad. Prefer root mocks.apis for startup APIs.',
             path: relativePath,
             testId: id,
           );
@@ -294,15 +263,11 @@ class EnsembleTestValidator {
 typedef _StepInfo = ({
   Set<String> widgetIds,
   Set<String> apiNames,
-  Set<String> mockApis,
-  Set<String> fixtures,
 });
 
 _StepInfo _collectStepInfo(dynamic steps) {
   final widgetIds = <String>{};
   final apiNames = <String>{};
-  final mockApis = <String>{};
-  final fixtures = <String>{};
 
   void visit(dynamic node) {
     if (node is! Iterable) return;
@@ -317,11 +282,6 @@ _StepInfo _collectStepInfo(dynamic steps) {
         if (name != null && type.toLowerCase().contains('api')) {
           apiNames.add(name.toString());
         }
-        if (type == 'mockApi' || type == 'mockApiFromFixture') {
-          if (name != null) mockApis.add(name.toString());
-        }
-        final fixture = args['fixture'];
-        if (fixture != null) fixtures.add(fixture.toString());
         visit(args['steps']);
         final single = args['step'];
         if (single != null) visit([single]);
@@ -333,15 +293,8 @@ _StepInfo _collectStepInfo(dynamic steps) {
   return (
     widgetIds: widgetIds,
     apiNames: apiNames,
-    mockApis: mockApis,
-    fixtures: fixtures,
   );
 }
 
-Set<String> _rootMockApis(YamlMap doc) {
-  final mocks = doc['mocks'];
-  if (mocks is! YamlMap) return const {};
-  final apis = mocks['apis'];
-  if (apis is! YamlMap) return const {};
-  return apis.keys.map((key) => key.toString()).toSet();
-}
+bool _isPlaceholder(String value) =>
+    RegExp(r'\$\{(inputs|scenario)\.[A-Za-z0-9_.-]+\}').hasMatch(value);

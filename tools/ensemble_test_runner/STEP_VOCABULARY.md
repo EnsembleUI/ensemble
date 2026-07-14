@@ -33,13 +33,13 @@ Official step catalog for app-local `tests/*.test.yaml` files, for example `ense
 ### Navigation
 `expectScreen` (alias), `expectNavigateTo`, `expectVisited`, `expectNotVisited`, `expectBackStack`, `expectCanGoBack`, `goBack`
 
-### API mock / assert
-`mockApi`, `mockApiError`, `mockApiFromFixture`, `mockApiException`, `mockTimeout`, `resetApiCalls`, `clearApiMocks`, `expectApiCalled`, `expectApiNotCalled`, `expectApiCallOrder`, `expectLastApiCall`, `logApiCalls`
+### API assert / logs
+`resetApiCalls`, `expectApiCalled`, `expectApiNotCalled`, `expectApiCallOrder`, `expectLastApiCall`, `logApiCalls`
 
 ### Storage / runtime
 `setStorage`, `expectStorage`, `removeStorage`, `clearStorage`, `setEnv`, `setAuth`, `clearAuth`, `setPermission`, `setDevice`, `setLocale`, `setTheme`
 
-### Scripts / fixtures / debug / quality
+### Scripts / debug / quality
 `runScript`, `expectScript`, `expectScriptResult`, `expectConsoleLog`, `logStorage`, `logPerformance`, `screenshot`, `dumpTree`, `expectNoConsoleErrors`, `expectNoRenderErrors`, `expectError`, `expectNoErrors`, `expectAccessible`, `expectSemanticsLabel`, `expectNoOverflow`
 
 ### Control flow
@@ -51,12 +51,6 @@ Official step catalog for app-local `tests/*.test.yaml` files, for example `ense
 id: login_flow
 startScreen: Login
 steps:
-  - mockApi:
-      name: login
-      response:
-        statusCode: 200
-        body:
-          token: test
   - enterText:
       id: email_field
       value: user@test.com

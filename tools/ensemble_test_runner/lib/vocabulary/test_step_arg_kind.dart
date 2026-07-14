@@ -26,11 +26,6 @@ enum TestStepArgKind {
   expectListCount,
   screenRequired,
   expectVisited,
-  mockApi,
-  mockApiError,
-  mockApiFromFixture,
-  mockApiException,
-  mockTimeout,
   apiName,
   storageKey,
   optionalStorageKey,
@@ -200,44 +195,6 @@ extension TestStepArgKindSchema on TestStepArgKind {
         return _object(
           properties: {'screen': _string},
           required: ['screen'],
-        );
-      case TestStepArgKind.mockApi:
-        return _object(
-          properties: {
-            'name': _string,
-            'response': _ref('mockResponse'),
-            'delayMs': _integer,
-          },
-          required: ['name', 'response'],
-        );
-      case TestStepArgKind.mockApiError:
-        return _object(
-          properties: {
-            'name': _string,
-            'statusCode': _integer,
-            'body': _any,
-            'delayMs': _integer,
-          },
-          required: ['name'],
-        );
-      case TestStepArgKind.mockApiFromFixture:
-        return _object(
-          properties: {
-            'name': _string,
-            'fixture': _string,
-            'statusCode': _integer,
-          },
-          required: ['name', 'fixture'],
-        );
-      case TestStepArgKind.mockApiException:
-        return _object(
-          properties: {'name': _string, 'message': _string},
-          required: ['name'],
-        );
-      case TestStepArgKind.mockTimeout:
-        return _object(
-          properties: {'name': _string, 'delayMs': _integer},
-          required: ['name'],
         );
       case TestStepArgKind.apiName:
         return _object(

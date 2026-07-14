@@ -182,6 +182,44 @@ steps: []
     patcher.restore();
   });
 
+  test('enable adds nested test asset directories for mock files', () {
+    final dir = Directory.systemTemp.createTempSync('yaml_test_patcher_');
+    addTearDown(() => dir.deleteSync(recursive: true));
+
+    const pubspec = '''
+name: sample_app
+flutter:
+  assets:
+    - ensemble/
+    - ensemble/apps/helloApp/tests/
+''';
+    File('${dir.path}/pubspec.yaml').writeAsStringSync(pubspec);
+    _writeConfig(dir);
+    Directory('${dir.path}/ensemble/apps/helloApp/tests/mocks/common')
+        .createSync(recursive: true);
+    File('${dir.path}/ensemble/apps/helloApp/tests/sample.test.yaml')
+        .writeAsStringSync('''
+id: sample
+startScreen: Home
+steps:
+  - expectVisible:
+      id: home
+''');
+    File('${dir.path}/ensemble/apps/helloApp/tests/mocks/common/base.mock.json')
+        .writeAsStringSync('{}');
+
+    final patcher = YamlTestAppPatcher(dir.path);
+    patcher.enable();
+
+    final enabled = File('${dir.path}/pubspec.yaml').readAsStringSync();
+    expect(
+      enabled,
+      contains('    - ensemble/apps/helloApp/tests/mocks/common/'),
+    );
+
+    patcher.restore();
+  });
+
   test('exposes configured tests directory and test presence', () {
     final dir = Directory.systemTemp.createTempSync('yaml_test_patcher_');
     addTearDown(() => dir.deleteSync(recursive: true));

@@ -59,7 +59,18 @@
       "$ref": "#/$defs/initialState"
     },
     "mocks": {
-      "$ref": "#/$defs/mocks"
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "scenarios": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/scenario"
+      },
+      "minItems": 1
     },
     "steps": {
       "type": "array",
@@ -96,35 +107,6 @@
     }
   ],
   "$defs": {
-    "mockResponse": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "statusCode": {
-          "type": "integer"
-        },
-        "body": true,
-        "headers": {
-          "type": "object",
-          "additionalProperties": true
-        }
-      }
-    },
-    "mockApiEntry": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "response": {
-          "$ref": "#/$defs/mockResponse"
-        },
-        "delayMs": {
-          "type": "integer"
-        }
-      },
-      "required": [
-        "response"
-      ]
-    },
     "initialState": {
       "type": "object",
       "additionalProperties": false,
@@ -143,17 +125,25 @@
         }
       }
     },
-    "mocks": {
+    "scenario": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "apis": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description": {
+          "type": "string"
+        },
+        "vars": {
           "type": "object",
-          "additionalProperties": {
-            "$ref": "#/$defs/mockApiEntry"
-          }
+          "additionalProperties": true
         }
-      }
+      },
+      "required": [
+        "id"
+      ]
     },
     "args_openScreen": {
       "type": "object",
@@ -1406,155 +1396,11 @@
         {}
       ]
     },
-    "args_mockApi": {
-      "type": "object",
-      "properties": {
-        "name": {
-          "type": "string"
-        },
-        "response": {
-          "$ref": "#/$defs/mockResponse"
-        },
-        "delayMs": {
-          "type": "integer"
-        }
-      },
-      "required": [
-        "name",
-        "response"
-      ],
-      "additionalProperties": false,
-      "title": "mockApi",
-      "description": "Register a mock HTTP API response by API name",
-      "examples": [
-        {
-          "name": "login",
-          "response": {
-            "statusCode": 200,
-            "body": {
-              "token": "test-token"
-            }
-          }
-        }
-      ]
-    },
-    "args_mockApiError": {
-      "type": "object",
-      "properties": {
-        "name": {
-          "type": "string"
-        },
-        "statusCode": {
-          "type": "integer"
-        },
-        "body": true,
-        "delayMs": {
-          "type": "integer"
-        }
-      },
-      "required": [
-        "name"
-      ],
-      "additionalProperties": false,
-      "title": "mockApiError",
-      "description": "Mock an API to return an error status/body",
-      "examples": [
-        {
-          "name": "login",
-          "statusCode": 401,
-          "body": {
-            "error": "Unauthorized"
-          }
-        }
-      ]
-    },
-    "args_mockApiFromFixture": {
-      "type": "object",
-      "properties": {
-        "name": {
-          "type": "string"
-        },
-        "fixture": {
-          "type": "string"
-        },
-        "statusCode": {
-          "type": "integer"
-        }
-      },
-      "required": [
-        "name",
-        "fixture"
-      ],
-      "additionalProperties": false,
-      "title": "mockApiFromFixture",
-      "description": "Load mock response body from a JSON fixture asset",
-      "examples": [
-        {
-          "name": "users",
-          "fixture": "fixtures/users.json"
-        }
-      ]
-    },
-    "args_mockApiException": {
-      "type": "object",
-      "properties": {
-        "name": {
-          "type": "string"
-        },
-        "message": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "name"
-      ],
-      "additionalProperties": false,
-      "title": "mockApiException",
-      "description": "Force an API call to throw an exception",
-      "examples": [
-        {
-          "name": "login",
-          "message": "Network error"
-        }
-      ]
-    },
-    "args_mockTimeout": {
-      "type": "object",
-      "properties": {
-        "name": {
-          "type": "string"
-        },
-        "delayMs": {
-          "type": "integer"
-        }
-      },
-      "required": [
-        "name"
-      ],
-      "additionalProperties": false,
-      "title": "mockTimeout",
-      "description": "Mock an API with a long delay (simulate timeout)",
-      "examples": [
-        {
-          "name": "slow_api",
-          "delayMs": 60000
-        }
-      ]
-    },
     "args_resetApiCalls": {
       "type": "object",
       "additionalProperties": false,
       "title": "resetApiCalls",
       "description": "Clear recorded API call history",
-      "examples": [
-        {}
-      ]
-    },
-    "args_clearApiMocks": {
-      "type": "object",
-      "additionalProperties": false,
-      "title": "clearApiMocks",
-      "description": "Remove all registered API mocks",
       "examples": [
         {}
       ]
@@ -4091,177 +3937,6 @@
         },
         {
           "type": "object",
-          "title": "mockApi",
-          "description": "Register a mock HTTP API response by API name",
-          "examples": [
-            {
-              "mockApi": {
-                "name": "login",
-                "response": {
-                  "statusCode": 200,
-                  "body": {
-                    "token": "test-token"
-                  }
-                }
-              }
-            }
-          ],
-          "additionalProperties": false,
-          "minProperties": 1,
-          "maxProperties": 1,
-          "properties": {
-            "mockApi": {
-              "$ref": "#/$defs/args_mockApi",
-              "description": "Register a mock HTTP API response by API name",
-              "examples": [
-                {
-                  "name": "login",
-                  "response": {
-                    "statusCode": 200,
-                    "body": {
-                      "token": "test-token"
-                    }
-                  }
-                }
-              ]
-            }
-          },
-          "required": [
-            "mockApi"
-          ]
-        },
-        {
-          "type": "object",
-          "title": "mockApiError",
-          "description": "Mock an API to return an error status/body",
-          "examples": [
-            {
-              "mockApiError": {
-                "name": "login",
-                "statusCode": 401,
-                "body": {
-                  "error": "Unauthorized"
-                }
-              }
-            }
-          ],
-          "additionalProperties": false,
-          "minProperties": 1,
-          "maxProperties": 1,
-          "properties": {
-            "mockApiError": {
-              "$ref": "#/$defs/args_mockApiError",
-              "description": "Mock an API to return an error status/body",
-              "examples": [
-                {
-                  "name": "login",
-                  "statusCode": 401,
-                  "body": {
-                    "error": "Unauthorized"
-                  }
-                }
-              ]
-            }
-          },
-          "required": [
-            "mockApiError"
-          ]
-        },
-        {
-          "type": "object",
-          "title": "mockApiFromFixture",
-          "description": "Load mock response body from a JSON fixture asset",
-          "examples": [
-            {
-              "mockApiFromFixture": {
-                "name": "users",
-                "fixture": "fixtures/users.json"
-              }
-            }
-          ],
-          "additionalProperties": false,
-          "minProperties": 1,
-          "maxProperties": 1,
-          "properties": {
-            "mockApiFromFixture": {
-              "$ref": "#/$defs/args_mockApiFromFixture",
-              "description": "Load mock response body from a JSON fixture asset",
-              "examples": [
-                {
-                  "name": "users",
-                  "fixture": "fixtures/users.json"
-                }
-              ]
-            }
-          },
-          "required": [
-            "mockApiFromFixture"
-          ]
-        },
-        {
-          "type": "object",
-          "title": "mockApiException",
-          "description": "Force an API call to throw an exception",
-          "examples": [
-            {
-              "mockApiException": {
-                "name": "login",
-                "message": "Network error"
-              }
-            }
-          ],
-          "additionalProperties": false,
-          "minProperties": 1,
-          "maxProperties": 1,
-          "properties": {
-            "mockApiException": {
-              "$ref": "#/$defs/args_mockApiException",
-              "description": "Force an API call to throw an exception",
-              "examples": [
-                {
-                  "name": "login",
-                  "message": "Network error"
-                }
-              ]
-            }
-          },
-          "required": [
-            "mockApiException"
-          ]
-        },
-        {
-          "type": "object",
-          "title": "mockTimeout",
-          "description": "Mock an API with a long delay (simulate timeout)",
-          "examples": [
-            {
-              "mockTimeout": {
-                "name": "slow_api",
-                "delayMs": 60000
-              }
-            }
-          ],
-          "additionalProperties": false,
-          "minProperties": 1,
-          "maxProperties": 1,
-          "properties": {
-            "mockTimeout": {
-              "$ref": "#/$defs/args_mockTimeout",
-              "description": "Mock an API with a long delay (simulate timeout)",
-              "examples": [
-                {
-                  "name": "slow_api",
-                  "delayMs": 60000
-                }
-              ]
-            }
-          },
-          "required": [
-            "mockTimeout"
-          ]
-        },
-        {
-          "type": "object",
           "title": "resetApiCalls",
           "description": "Clear recorded API call history",
           "examples": [
@@ -4283,31 +3958,6 @@
           },
           "required": [
             "resetApiCalls"
-          ]
-        },
-        {
-          "type": "object",
-          "title": "clearApiMocks",
-          "description": "Remove all registered API mocks",
-          "examples": [
-            {
-              "clearApiMocks": {}
-            }
-          ],
-          "additionalProperties": false,
-          "minProperties": 1,
-          "maxProperties": 1,
-          "properties": {
-            "clearApiMocks": {
-              "$ref": "#/$defs/args_clearApiMocks",
-              "description": "Remove all registered API mocks",
-              "examples": [
-                {}
-              ]
-            }
-          },
-          "required": [
-            "clearApiMocks"
           ]
         },
         {

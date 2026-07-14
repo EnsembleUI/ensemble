@@ -47,9 +47,22 @@ void main() {
     expect(decoded['properties'], contains('id'));
     expect(decoded['properties'], isNot(contains('tests')));
     expect(decoded['properties'], isNot(contains('options')));
+    expect(decoded['properties'], contains('mocks'));
     expect(decoded['properties'], contains('startScreen'));
     expect(decoded['properties'], contains('prerequisite'));
+    expect(decoded['properties'], isNot(contains('mockLayers')));
+    expect(decoded['properties'], contains('scenarios'));
     expect(decoded['oneOf'], isA<List>());
+  });
+
+  test('schema keeps mocks at the root only', () {
+    final schema = EnsembleTestSchemaBuilder.build();
+    final defs = schema['\$defs'] as Map<String, dynamic>;
+    final scenario = defs['scenario'] as Map<String, dynamic>;
+    final scenarioProperties = scenario['properties'] as Map<String, dynamic>;
+
+    expect(scenarioProperties, contains('vars'));
+    expect(scenarioProperties, isNot(contains('mocks')));
   });
 
   test('config schema includes suite screenshots and performance settings', () {
