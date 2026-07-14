@@ -30,7 +30,8 @@ class TVFocusOrder extends FocusOrder {
     this.order = 0,
   ])  : isRowEntryPoint = false,
         lockHorizontalNavigation = false,
-        delegateHorizontalNavigation = false;
+        delegateHorizontalNavigation = false,
+        section = null;
 
   /// Creates a focus order with full control over all options.
   ///
@@ -42,6 +43,7 @@ class TVFocusOrder extends FocusOrder {
     this.isRowEntryPoint = false,
     this.lockHorizontalNavigation = false,
     this.delegateHorizontalNavigation = false,
+    this.section,
   });
 
   final double row;
@@ -59,6 +61,13 @@ class TVFocusOrder extends FocusOrder {
   /// Use this for items inside carousels where horizontal keys should switch slides.
   final bool delegateHorizontalNavigation;
 
+  /// Optional navigation section.
+  ///
+  /// When set, focus movement only considers widgets that share the same section.
+  /// This is useful for keeping two nearby UI regions separate while still allowing
+  /// explicit edge callbacks to move focus between them.
+  final String? section;
+
   /// Composite value for sorting: row * 10000 + order
   /// This ensures items are sorted by row first, then by order within row
   double get value => row * 10000 + order;
@@ -74,37 +83,101 @@ class TVFocusOrder extends FocusOrder {
       isRowEntryPoint: isRowEntryPoint,
       lockHorizontalNavigation: lockHorizontalNavigation,
       delegateHorizontalNavigation: delegateHorizontalNavigation,
+      section: section,
     );
   }
 
-  /// Request focus on the widget with this order coordinate
-  /// Searches within the same FocusTraversalGroup
+  /// Request focus on the widget with this order coordinate.
+  /// Scoped to current [FocusScope] to prevent stealing focus from other routes.
   void requestFocus(BuildContext context) {
-    final group = context.findAncestorWidgetOfExactType<FocusTraversalGroup>();
+    final scope = FocusScope.of(context);
     final root = FocusManager.instance.rootScope;
 
     for (final focusNode in root.descendants) {
+      if (focusNode.context == null) continue;
+      if (!_isInScope(focusNode, scope)) continue;
+
       final focusTraversalOrder = focusNode.context
           ?.findAncestorWidgetOfExactType<FocusTraversalOrder>();
-
       if (focusTraversalOrder?.order is TVFocusOrder) {
         final gridFocusOrder = focusTraversalOrder!.order as TVFocusOrder;
         if (gridFocusOrder.value == value) {
-          final thisGroup = focusNode.context
-              ?.findAncestorWidgetOfExactType<FocusTraversalGroup>();
-          if (thisGroup == group) {
-            focusNode.requestFocus();
-            return;
-          }
+          focusNode.requestFocus();
+          return;
         }
       }
     }
   }
 
+  /// Request focus on a specific row/order.
+  /// Scoped to current [FocusScope] to prevent stealing focus from other routes.
+  /// If [order] is omitted, the row's entry point is used when available.
+  void requestFocusAt(BuildContext context, double row, [double? order]) {
+    final scope = FocusScope.of(context);
+    final root = FocusManager.instance.rootScope;
+    final rowNodes = <FocusNode>[];
+
+    for (final focusNode in root.descendants) {
+      if (focusNode.context == null) continue;
+      if (!_isInScope(focusNode, scope)) continue;
+
+      final focusTraversalOrder = focusNode.context
+          ?.findAncestorWidgetOfExactType<FocusTraversalOrder>();
+      if (focusTraversalOrder?.order is TVFocusOrder) {
+        final gridFocusOrder = focusTraversalOrder!.order as TVFocusOrder;
+        if (gridFocusOrder.row != row) continue;
+
+        if (order != null) {
+          if (gridFocusOrder.order == order) {
+            focusNode.requestFocus();
+            return;
+          }
+        } else {
+          rowNodes.add(focusNode);
+        }
+      }
+    }
+
+    if (rowNodes.isEmpty) {
+      return;
+    }
+
+    for (final focusNode in rowNodes) {
+      final focusTraversalOrder = focusNode.context
+          ?.findAncestorWidgetOfExactType<FocusTraversalOrder>();
+      final gridFocusOrder = focusTraversalOrder!.order as TVFocusOrder;
+      if (gridFocusOrder.isRowEntryPoint) {
+        focusNode.requestFocus();
+        return;
+      }
+    }
+
+    rowNodes.first.requestFocus();
+  }
+
+  /// Check if [node] is a descendant of [scope] in the focus tree.
+  static bool _isInScope(FocusNode node, FocusScopeNode scope) {
+    FocusNode? current = node;
+    while (current != null) {
+      if (identical(current, scope)) return true;
+      current = current.parent;
+    }
+    return false;
+  }
+
   @override
   String toString({DiagnosticLevel minLevel = DiagnosticLevel.info}) {
-    return 'TVFocusOrder(row: $row, order: $order)';
+    return 'TVFocusOrder(row: $row, order: $order, section: $section)';
   }
+}
+
+/// Request focus for a row/order pair inside the current FocusTraversalGroup.
+///
+/// This is a convenience wrapper around [TVFocusOrder.requestFocusAt] so
+/// callers can jump to a target coordinate without constructing a temporary
+/// order object at the call site.
+void requestFocusAt(BuildContext context, double row, [double? order]) {
+  const TVFocusOrder(0).requestFocusAt(context, row, order);
 }
 
 // =============================================================================
@@ -123,10 +196,12 @@ class TVFocusOrderNode {
 
   @override
   bool operator ==(Object other) =>
-      other is TVFocusOrderNode && order.value == other.order.value;
+      other is TVFocusOrderNode &&
+      order.value == other.order.value &&
+      order.section == other.order.section;
 
   @override
-  int get hashCode => order.value.hashCode;
+  int get hashCode => Object.hash(order.value, order.section);
 
   /// Build a 2D grid from an iterable of focus order nodes.
   /// Items are grouped by row and sorted by order within each row.

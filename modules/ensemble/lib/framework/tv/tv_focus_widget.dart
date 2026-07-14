@@ -122,6 +122,17 @@ class TVFocusWidget extends StatelessWidget {
     final tvFocusScope =
         current.context?.findAncestorWidgetOfExactType<TVFocusScope>();
     final lockScope = tvFocusScope?.lockScope ?? false;
+    final rightEdgeHandler = onRightEdge ?? tvFocusScope?.onRightEdge;
+    final leftEdgeHandler = onLeftEdge ?? tvFocusScope?.onLeftEdge;
+    final bottomEdgeHandler = onBottomEdge ?? tvFocusScope?.onBottomEdge;
+    final topEdgeHandler = onTopEdge ?? tvFocusScope?.onTopEdge;
+    final currentSection = focusOrder.section;
+    bool matchesSection(TVFocusOrder order) {
+      if (currentSection == null) {
+        return true;
+      }
+      return order.section == currentSection;
+    }
 
     // Collect all focusable items in the same FocusTraversalGroup
     final root = FocusManager.instance.rootScope;
@@ -141,6 +152,9 @@ class TVFocusWidget extends StatelessWidget {
           ?.findAncestorWidgetOfExactType<FocusTraversalOrder>();
       if (focusTraversalOrder?.order is TVFocusOrder) {
         final order = focusTraversalOrder!.order as TVFocusOrder;
+        if (!matchesSection(order)) {
+          continue;
+        }
         inScope.add(TVFocusOrderNode(focusNode, order));
       }
     }
@@ -166,6 +180,10 @@ class TVFocusWidget extends StatelessWidget {
     // Let the event propagate to native focus handling (e.g., sport tab)
     // so users can navigate back to native content from Ensemble content
     if (yOffset == -1 && y == 0) {
+      if (topEdgeHandler != null) {
+        topEdgeHandler();
+        return true;
+      }
       return false;
     }
 
@@ -219,44 +237,30 @@ class TVFocusWidget extends StatelessWidget {
 
     // Check if we're at a boundary (focus wouldn't move)
     if (oldTarget == target) {
-      // Handle scope locking
-      if (lockScope) {
-        // Focus would stay the same, but we're locked - block the event
-        return true;
-      }
-
-      // Handle horizontal boundary locking (prevents escaping row at left/right edges)
-      if (xOffset != 0 && focusOrder.lockHorizontalNavigation) {
-        // At horizontal boundary with lockHorizontalNavigation enabled - block the event
-        return true;
-      }
-
       // Check for edge handlers before letting event propagate
       // This allows navigation to widgets outside the grid (e.g., scrollbars)
       // Priority: widget-level handlers > scope-level handlers
-      final rightEdgeHandler = onRightEdge ?? tvFocusScope?.onRightEdge;
-      final leftEdgeHandler = onLeftEdge ?? tvFocusScope?.onLeftEdge;
-      final bottomEdgeHandler = onBottomEdge ?? tvFocusScope?.onBottomEdge;
-      final topEdgeHandler = onTopEdge ?? tvFocusScope?.onTopEdge;
-
       if (xOffset > 0 && rightEdgeHandler != null) {
         // At right edge and have handler
         if (kDebugMode) {
-          debugPrint('[TVFocusWidget] At right edge - calling onRightEdge handler');
+          debugPrint(
+              '[TVFocusWidget] At right edge - calling onRightEdge handler');
         }
         rightEdgeHandler();
         return true;
       } else if (xOffset < 0 && leftEdgeHandler != null) {
         // At left edge and have handler
         if (kDebugMode) {
-          debugPrint('[TVFocusWidget] At left edge - calling onLeftEdge handler');
+          debugPrint(
+              '[TVFocusWidget] At left edge - calling onLeftEdge handler');
         }
         leftEdgeHandler();
         return true;
       } else if (yOffset > 0 && bottomEdgeHandler != null) {
         // At bottom edge and have handler
         if (kDebugMode) {
-          debugPrint('[TVFocusWidget] At bottom edge - calling onBottomEdge handler');
+          debugPrint(
+              '[TVFocusWidget] At bottom edge - calling onBottomEdge handler');
         }
         bottomEdgeHandler();
         return true;
@@ -269,7 +273,13 @@ class TVFocusWidget extends StatelessWidget {
         return true;
       }
 
-      // At boundary - let event propagate to parent
+      // At boundary - let event propagate to parent, unless locked
+      if (lockScope) {
+        return true;
+      }
+      if (xOffset != 0 && focusOrder.lockHorizontalNavigation) {
+        return true;
+      }
       return false;
     }
 

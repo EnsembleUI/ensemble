@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'tv_focus_order.dart';
 
 /// Abstract interface for TV focus navigation systems.
 ///
@@ -32,6 +33,7 @@ import 'package:flutter/material.dart';
 ///     required Widget child,
 ///     bool isRowEntryPoint = false,
 ///     bool lockHorizontalNavigation = false,
+///     String? section,
 ///     KeyEventResult Function(FocusNode)? onBackPressed,
 ///   }) {
 ///     return PageFocusWidget(
@@ -90,6 +92,7 @@ abstract class TVFocusProvider {
     bool isRowEntryPoint = false,
     bool lockHorizontalNavigation = false,
     bool delegateHorizontalNavigation = false,
+    String? section,
     KeyEventResult Function(FocusNode node)? onBackPressed,
     VoidCallback? onRightEdge,
     VoidCallback? onLeftEdge,
@@ -164,6 +167,18 @@ abstract class TVFocusProvider {
   ///
   /// Default: false (Ensemble handles horizontal scrolling)
   bool get handlesHorizontalScroll => false;
+
+  /// Request focus on a widget at the given row/order.
+  ///
+  /// Used by edge callbacks to navigate across sections/groups.
+  /// The host app should find its own [PageFocusOrder] widgets at these
+  /// coordinates and request focus on them.
+  ///
+  /// Default implementation uses the framework's [TVFocusOrder.requestFocusAt].
+  /// Override if host app uses a different order type (e.g., [PageFocusOrder]).
+  void requestFocusAt(BuildContext context, double row, [double? order]) {
+    const TVFocusOrder(0).requestFocusAt(context, row, order);
+  }
 
   /// Disposes any resources held by this provider.
   void dispose() {}

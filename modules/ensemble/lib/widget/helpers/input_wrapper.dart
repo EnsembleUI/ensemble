@@ -11,6 +11,32 @@ import 'package:ensemble/layout/form.dart' as ensemble;
 
 /// wrap the input widget (which stretches 100% to its parent) to guard against
 /// the case where it is put inside a Row without expanded flag.
+VoidCallback? _buildEdgeNavigationCallback(
+  BuildContext context,
+  TVFocusProvider? provider,
+  double? targetRow,
+  double? targetOrder,
+) {
+  if (targetRow == null) {
+    return null;
+  }
+
+  double rowOffset = 0;
+  double orderOffset = 0;
+  if (provider != null) {
+    rowOffset = provider.rowOffset;
+    orderOffset = provider.orderOffset;
+  }
+  final effectiveRow = targetRow + rowOffset;
+  final effectiveOrder = targetOrder != null ? targetOrder + orderOffset : null;
+
+  if (provider != null) {
+    final p = provider;
+    return () => p.requestFocusAt(context, effectiveRow, effectiveOrder);
+  }
+  return () => requestFocusAt(context, effectiveRow, effectiveOrder);
+}
+
 class InputWrapper extends StatelessWidget {
   const InputWrapper(
       {super.key,
@@ -70,12 +96,48 @@ class InputWrapper extends StatelessWidget {
     final effectiveOrder = externalProvider != null
         ? tvOrder + externalProvider.orderOffset
         : tvOrder;
+    final tvFocusScope = context.findAncestorWidgetOfExactType<TVFocusScope>();
+    final rightEdgeHandler = _buildEdgeNavigationCallback(
+          context,
+          externalProvider,
+          tvOptions.rightEdgeRow,
+          tvOptions.rightEdgeOrder,
+        ) ??
+        tvFocusScope?.onRightEdge;
+    final leftEdgeHandler = _buildEdgeNavigationCallback(
+          context,
+          externalProvider,
+          tvOptions.leftEdgeRow,
+          tvOptions.leftEdgeOrder,
+        ) ??
+        tvFocusScope?.onLeftEdge;
+    final topEdgeHandler = _buildEdgeNavigationCallback(
+          context,
+          externalProvider,
+          tvOptions.topEdgeRow,
+          tvOptions.topEdgeOrder,
+        ) ??
+        tvFocusScope?.onTopEdge;
+    final bottomEdgeHandler = _buildEdgeNavigationCallback(
+          context,
+          externalProvider,
+          tvOptions.bottomEdgeRow,
+          tvOptions.bottomEdgeOrder,
+        ) ??
+        tvFocusScope?.onBottomEdge;
 
     if (externalProvider != null) {
       return externalProvider.wrapFocusable(
         row: effectiveRow,
         order: effectiveOrder,
         isRowEntryPoint: isRowEntryPoint,
+        lockHorizontalNavigation: tvOptions.lockHorizontalNavigation,
+        delegateHorizontalNavigation: tvOptions.delegateHorizontalNavigation,
+        section: tvOptions.section,
+        onRightEdge: rightEdgeHandler,
+        onLeftEdge: leftEdgeHandler,
+        onTopEdge: topEdgeHandler,
+        onBottomEdge: bottomEdgeHandler,
         child: child,
       );
     }
@@ -87,7 +149,13 @@ class InputWrapper extends StatelessWidget {
         order: tvOrder,
         isRowEntryPoint: isRowEntryPoint,
         lockHorizontalNavigation: tvOptions.lockHorizontalNavigation,
+        delegateHorizontalNavigation: tvOptions.delegateHorizontalNavigation,
+        section: tvOptions.section,
       ),
+      onRightEdge: rightEdgeHandler,
+      onLeftEdge: leftEdgeHandler,
+      onTopEdge: topEdgeHandler,
+      onBottomEdge: bottomEdgeHandler,
       child: child,
     );
   }
