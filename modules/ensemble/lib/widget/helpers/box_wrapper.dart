@@ -29,10 +29,9 @@ const double kTVScrollThreshold = 2.0; // Min delta to trigger scroll
 VoidCallback? _buildEdgeNavigationCallback(
   BuildContext context,
   TVFocusProvider? provider,
-  double? targetRow,
-  double? targetOrder,
+  TVFocusEdgeTargetComposite? target,
 ) {
-  if (targetRow == null) {
+  if (target?.row == null) {
     return null;
   }
 
@@ -42,14 +41,17 @@ VoidCallback? _buildEdgeNavigationCallback(
     rowOffset = provider.rowOffset;
     orderOffset = provider.orderOffset;
   }
-  final effectiveRow = targetRow + rowOffset;
-  final effectiveOrder = targetOrder != null ? targetOrder + orderOffset : null;
+  final effectiveRow = target!.row! + rowOffset;
+  final effectiveOrder =
+      target.order != null ? target.order! + orderOffset : null;
 
   if (provider != null) {
     final p = provider;
-    return () => p.requestFocusAt(context, effectiveRow, effectiveOrder);
+    return () => p.requestFocusAt(
+        context, effectiveRow, effectiveOrder, target.focusGroup);
   }
-  return () => requestFocusAt(context, effectiveRow, effectiveOrder);
+  return () =>
+      requestFocusAt(context, effectiveRow, effectiveOrder, target.focusGroup);
 }
 
 // =============================================================================
@@ -1016,29 +1018,25 @@ class _TapEnabledWrapperState extends State<_TapEnabledWrapper> {
     final rightEdgeHandler = _buildEdgeNavigationCallback(
           context,
           externalProvider,
-          tvOptions.rightEdgeRow,
-          tvOptions.rightEdgeOrder,
+          tvOptions.edges?.right,
         ) ??
         tvFocusScope?.onRightEdge;
     final leftEdgeHandler = _buildEdgeNavigationCallback(
           context,
           externalProvider,
-          tvOptions.leftEdgeRow,
-          tvOptions.leftEdgeOrder,
+          tvOptions.edges?.left,
         ) ??
         tvFocusScope?.onLeftEdge;
     final topEdgeHandler = _buildEdgeNavigationCallback(
           context,
           externalProvider,
-          tvOptions.topEdgeRow,
-          tvOptions.topEdgeOrder,
+          tvOptions.edges?.top,
         ) ??
         tvFocusScope?.onTopEdge;
     final bottomEdgeHandler = _buildEdgeNavigationCallback(
           context,
           externalProvider,
-          tvOptions.bottomEdgeRow,
-          tvOptions.bottomEdgeOrder,
+          tvOptions.edges?.bottom,
         ) ??
         tvFocusScope?.onBottomEdge;
 
@@ -1049,7 +1047,7 @@ class _TapEnabledWrapperState extends State<_TapEnabledWrapper> {
         isRowEntryPoint: isRowEntryPoint,
         lockHorizontalNavigation: tvOptions.lockHorizontalNavigation,
         delegateHorizontalNavigation: tvOptions.delegateHorizontalNavigation,
-        section: tvOptions.section,
+        focusGroup: tvOptions.focusGroup,
         onRightEdge: rightEdgeHandler,
         onLeftEdge: leftEdgeHandler,
         onTopEdge: topEdgeHandler,
@@ -1066,7 +1064,7 @@ class _TapEnabledWrapperState extends State<_TapEnabledWrapper> {
         isRowEntryPoint: isRowEntryPoint,
         lockHorizontalNavigation: tvOptions.lockHorizontalNavigation,
         delegateHorizontalNavigation: tvOptions.delegateHorizontalNavigation,
-        section: tvOptions.section,
+        focusGroup: tvOptions.focusGroup,
       ),
       onRightEdge: rightEdgeHandler,
       onLeftEdge: leftEdgeHandler,
@@ -1365,29 +1363,25 @@ class _TVFocusOnlyWrapperState extends State<_TVFocusOnlyWrapper> {
     final rightEdgeHandler = _buildEdgeNavigationCallback(
           context,
           externalProvider,
-          tvOptions.rightEdgeRow,
-          tvOptions.rightEdgeOrder,
+          tvOptions.edges?.right,
         ) ??
         tvFocusScope?.onRightEdge;
     final leftEdgeHandler = _buildEdgeNavigationCallback(
           context,
           externalProvider,
-          tvOptions.leftEdgeRow,
-          tvOptions.leftEdgeOrder,
+          tvOptions.edges?.left,
         ) ??
         tvFocusScope?.onLeftEdge;
     final topEdgeHandler = _buildEdgeNavigationCallback(
           context,
           externalProvider,
-          tvOptions.topEdgeRow,
-          tvOptions.topEdgeOrder,
+          tvOptions.edges?.top,
         ) ??
         tvFocusScope?.onTopEdge;
     final bottomEdgeHandler = _buildEdgeNavigationCallback(
           context,
           externalProvider,
-          tvOptions.bottomEdgeRow,
-          tvOptions.bottomEdgeOrder,
+          tvOptions.edges?.bottom,
         ) ??
         tvFocusScope?.onBottomEdge;
 
@@ -1398,7 +1392,7 @@ class _TVFocusOnlyWrapperState extends State<_TVFocusOnlyWrapper> {
         isRowEntryPoint: isRowEntryPoint,
         lockHorizontalNavigation: tvOptions.lockHorizontalNavigation,
         delegateHorizontalNavigation: tvOptions.delegateHorizontalNavigation,
-        section: tvOptions.section,
+        focusGroup: tvOptions.focusGroup,
         onRightEdge: rightEdgeHandler,
         onLeftEdge: leftEdgeHandler,
         onTopEdge: topEdgeHandler,
@@ -1415,7 +1409,7 @@ class _TVFocusOnlyWrapperState extends State<_TVFocusOnlyWrapper> {
         isRowEntryPoint: isRowEntryPoint,
         lockHorizontalNavigation: tvOptions.lockHorizontalNavigation,
         delegateHorizontalNavigation: tvOptions.delegateHorizontalNavigation,
-        section: tvOptions.section,
+        focusGroup: tvOptions.focusGroup,
       ),
       onRightEdge: rightEdgeHandler,
       onLeftEdge: leftEdgeHandler,

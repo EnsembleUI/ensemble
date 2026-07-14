@@ -126,12 +126,12 @@ class TVFocusWidget extends StatelessWidget {
     final leftEdgeHandler = onLeftEdge ?? tvFocusScope?.onLeftEdge;
     final bottomEdgeHandler = onBottomEdge ?? tvFocusScope?.onBottomEdge;
     final topEdgeHandler = onTopEdge ?? tvFocusScope?.onTopEdge;
-    final currentSection = focusOrder.section;
+    final currentFocusGroup = focusOrder.focusGroup;
     bool matchesSection(TVFocusOrder order) {
-      if (currentSection == null) {
+      if (currentFocusGroup == null) {
         return true;
       }
-      return order.section == currentSection;
+      return order.focusGroup == currentFocusGroup;
     }
 
     // Collect all focusable items in the same FocusTraversalGroup

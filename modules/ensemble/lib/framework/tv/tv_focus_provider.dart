@@ -33,7 +33,7 @@ import 'tv_focus_order.dart';
 ///     required Widget child,
 ///     bool isRowEntryPoint = false,
 ///     bool lockHorizontalNavigation = false,
-///     String? section,
+///     String? focusGroup,
 ///     KeyEventResult Function(FocusNode)? onBackPressed,
 ///   }) {
 ///     return PageFocusWidget(
@@ -70,6 +70,9 @@ abstract class TVFocusProvider {
   ///   (LEFT/RIGHT) are delegated to the parent FocusScope instead of being
   ///   handled locally. Useful for items inside carousels where horizontal
   ///   keys should switch slides.
+  /// - [focusGroup]: Optional logical group. When set, D-pad traversal only
+  ///   considers focusables in the same group unless an edge handler moves
+  ///   focus explicitly.
   /// - [child]: The widget to make focusable. Should contain an InkWell
   ///   or similar focusable widget.
   /// - [onBackPressed]: Optional callback for Android TV back button.
@@ -92,6 +95,7 @@ abstract class TVFocusProvider {
     bool isRowEntryPoint = false,
     bool lockHorizontalNavigation = false,
     bool delegateHorizontalNavigation = false,
+    String? focusGroup,
     String? section,
     KeyEventResult Function(FocusNode node)? onBackPressed,
     VoidCallback? onRightEdge,
@@ -176,8 +180,9 @@ abstract class TVFocusProvider {
   ///
   /// Default implementation uses the framework's [TVFocusOrder.requestFocusAt].
   /// Override if host app uses a different order type (e.g., [PageFocusOrder]).
-  void requestFocusAt(BuildContext context, double row, [double? order]) {
-    const TVFocusOrder(0).requestFocusAt(context, row, order);
+  void requestFocusAt(BuildContext context, double row,
+      [double? order, String? focusGroup]) {
+    const TVFocusOrder(0).requestFocusAt(context, row, order, focusGroup);
   }
 
   /// Disposes any resources held by this provider.

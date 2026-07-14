@@ -1036,6 +1036,7 @@ class _BracketTVFocusProvider implements TVFocusProvider {
     bool isRowEntryPoint = false,
     bool lockHorizontalNavigation = false,
     bool delegateHorizontalNavigation = false,
+    String? focusGroup,
     String? section,
     KeyEventResult Function(FocusNode node)? onBackPressed,
     VoidCallback? onRightEdge,
@@ -1075,9 +1076,10 @@ class _BracketTVFocusProvider implements TVFocusProvider {
 
   @override
   void dispose() {}
-  
+
   @override
-  void requestFocusAt(BuildContext context, double row, [double? order]) {
+  void requestFocusAt(BuildContext context, double row,
+      [double? order, String? focusGroup]) {
     // TODO: implement requestFocusAt
   }
 }

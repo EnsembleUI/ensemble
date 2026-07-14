@@ -5,6 +5,7 @@ import 'package:ensemble/framework/tv/tv_focus_provider.dart';
 import 'package:ensemble/framework/tv/tv_focus_widget.dart';
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/layout/form.dart';
+import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:ensemble/widget/helpers/form_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:ensemble/layout/form.dart' as ensemble;
@@ -14,10 +15,9 @@ import 'package:ensemble/layout/form.dart' as ensemble;
 VoidCallback? _buildEdgeNavigationCallback(
   BuildContext context,
   TVFocusProvider? provider,
-  double? targetRow,
-  double? targetOrder,
+  TVFocusEdgeTargetComposite? target,
 ) {
-  if (targetRow == null) {
+  if (target?.row == null) {
     return null;
   }
 
@@ -27,14 +27,17 @@ VoidCallback? _buildEdgeNavigationCallback(
     rowOffset = provider.rowOffset;
     orderOffset = provider.orderOffset;
   }
-  final effectiveRow = targetRow + rowOffset;
-  final effectiveOrder = targetOrder != null ? targetOrder + orderOffset : null;
+  final effectiveRow = target!.row! + rowOffset;
+  final effectiveOrder =
+      target.order != null ? target.order! + orderOffset : null;
 
   if (provider != null) {
     final p = provider;
-    return () => p.requestFocusAt(context, effectiveRow, effectiveOrder);
+    return () => p.requestFocusAt(
+        context, effectiveRow, effectiveOrder, target.focusGroup);
   }
-  return () => requestFocusAt(context, effectiveRow, effectiveOrder);
+  return () =>
+      requestFocusAt(context, effectiveRow, effectiveOrder, target.focusGroup);
 }
 
 class InputWrapper extends StatelessWidget {
@@ -100,29 +103,25 @@ class InputWrapper extends StatelessWidget {
     final rightEdgeHandler = _buildEdgeNavigationCallback(
           context,
           externalProvider,
-          tvOptions.rightEdgeRow,
-          tvOptions.rightEdgeOrder,
+          tvOptions.edges?.right,
         ) ??
         tvFocusScope?.onRightEdge;
     final leftEdgeHandler = _buildEdgeNavigationCallback(
           context,
           externalProvider,
-          tvOptions.leftEdgeRow,
-          tvOptions.leftEdgeOrder,
+          tvOptions.edges?.left,
         ) ??
         tvFocusScope?.onLeftEdge;
     final topEdgeHandler = _buildEdgeNavigationCallback(
           context,
           externalProvider,
-          tvOptions.topEdgeRow,
-          tvOptions.topEdgeOrder,
+          tvOptions.edges?.top,
         ) ??
         tvFocusScope?.onTopEdge;
     final bottomEdgeHandler = _buildEdgeNavigationCallback(
           context,
           externalProvider,
-          tvOptions.bottomEdgeRow,
-          tvOptions.bottomEdgeOrder,
+          tvOptions.edges?.bottom,
         ) ??
         tvFocusScope?.onBottomEdge;
 
@@ -133,7 +132,7 @@ class InputWrapper extends StatelessWidget {
         isRowEntryPoint: isRowEntryPoint,
         lockHorizontalNavigation: tvOptions.lockHorizontalNavigation,
         delegateHorizontalNavigation: tvOptions.delegateHorizontalNavigation,
-        section: tvOptions.section,
+        focusGroup: tvOptions.focusGroup,
         onRightEdge: rightEdgeHandler,
         onLeftEdge: leftEdgeHandler,
         onTopEdge: topEdgeHandler,
@@ -150,7 +149,7 @@ class InputWrapper extends StatelessWidget {
         isRowEntryPoint: isRowEntryPoint,
         lockHorizontalNavigation: tvOptions.lockHorizontalNavigation,
         delegateHorizontalNavigation: tvOptions.delegateHorizontalNavigation,
-        section: tvOptions.section,
+        focusGroup: tvOptions.focusGroup,
       ),
       onRightEdge: rightEdgeHandler,
       onLeftEdge: leftEdgeHandler,
