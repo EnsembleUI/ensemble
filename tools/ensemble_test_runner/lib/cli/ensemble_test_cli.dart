@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -29,9 +30,12 @@ import 'package:ensemble_test_runner/validation/ensemble_test_validator.dart';
 ///   --verbose          Full `flutter pub get` / `flutter test` output
 Future<void> runEnsembleYamlTestsCli(List<String> arguments) async {
   final verbose = isVerboseCli(arguments);
+  final quiet = arguments.contains('--quiet');
   final reportMode = _resolveReportMode(arguments);
   final jsonReport = reportMode == 'json';
   final junitReport = reportMode == 'junit';
+  final machineReport = jsonReport || junitReport;
+  final streamLiveOutput = !quiet && !machineReport;
   final reportFile = _resolveReportFile(arguments);
   final appDir = _resolveAppDir(arguments);
   final timeoutSeconds = _resolveTimeoutSeconds(arguments);
@@ -104,9 +108,19 @@ Future<void> runEnsembleYamlTestsCli(List<String> arguments) async {
 
   var exitCode = 0;
   try {
+    _writeStatus(
+      'Preparing Ensemble YAML tests...',
+      quiet: quiet,
+      machineReport: machineReport,
+    );
     patcher.enable();
 
     if (patcher.pubspecChanged) {
+      _writeStatus(
+        'Resolving Flutter dependencies...',
+        quiet: quiet,
+        machineReport: machineReport,
+      );
       final pubGet = await _runProcess(
         'flutter',
         ['pub', 'get', '--suppress-analytics'],
@@ -138,28 +152,46 @@ Future<void> runEnsembleYamlTestsCli(List<String> arguments) async {
       ...flutterTestArguments(arguments),
     ];
 
-    final testRun = await _runProcess(
+    _writeStatus(
+      'Running Ensemble YAML tests...',
+      quiet: quiet,
+      machineReport: machineReport,
+    );
+    final testRun = await _runFlutterTestProcess(
       'flutter',
       testArgs,
       workingDirectory: appDir,
+      streamOutput: streamLiveOutput,
+      verbose: verbose,
     );
 
     if (testRun.exitCode != 0 && !verbose) {
       final output = '${testRun.stdout ?? ''}\n${testRun.stderr ?? ''}';
       final json = jsonReport ? extractJsonReport(output) : '';
       final junit = junitReport ? extractJunitReport(output) : '';
+      final report = machineReport
+          ? ''
+          : extractSuiteReport(
+              output,
+              includeScreenTracker: !streamLiveOutput,
+            );
       final knownFailure = extractKnownFailure(output);
       if (junit.isNotEmpty) {
         stdout.writeln(junit);
       } else if (json.isNotEmpty) {
         stdout.writeln(json);
+      } else if (report.isNotEmpty) {
+        stdout.write(report);
+        if (!report.endsWith('\n')) stdout.writeln();
       } else if (knownFailure.isNotEmpty) {
         stderr.writeln(knownFailure);
       } else {
         _writeProcessStreams(testRun);
       }
-    } else if (verbose || testRun.exitCode != 0) {
+    } else if (!verbose && testRun.exitCode != 0) {
       _writeProcessStreams(testRun);
+    } else if (verbose) {
+      // Output was already streamed live.
     } else {
       final out = testRun.stdout?.toString() ?? '';
       final json = jsonReport ? extractJsonReport(out) : '';
@@ -168,7 +200,10 @@ Future<void> runEnsembleYamlTestsCli(List<String> arguments) async {
           ? junit
           : json.isNotEmpty
               ? json
-              : extractSuiteReport(out);
+              : extractSuiteReport(
+                  out,
+                  includeScreenTracker: !streamLiveOutput,
+                );
       if (report.isNotEmpty) {
         stdout.write(report);
         if (!report.endsWith('\n')) stdout.writeln();
@@ -259,6 +294,75 @@ List<String> _optionValues(List<String> arguments, String name) {
       .toList();
 }
 
+Future<ProcessResult> _runFlutterTestProcess(
+  String executable,
+  List<String> arguments, {
+  required String workingDirectory,
+  required bool streamOutput,
+  required bool verbose,
+}) async {
+  final process = await Process.start(
+    executable,
+    arguments,
+    workingDirectory: workingDirectory,
+    runInShell: false,
+  );
+  final stdoutBuffer = StringBuffer();
+  final stderrBuffer = StringBuffer();
+  final liveFilter = LiveFlutterTestOutputFilter();
+  final elapsed = Stopwatch()..start();
+  var lastLiveOutput = DateTime.now();
+  Timer? heartbeat;
+
+  if (streamOutput && !verbose) {
+    heartbeat = Timer.periodic(const Duration(seconds: 10), (_) {
+      final idleFor = DateTime.now().difference(lastLiveOutput);
+      if (idleFor.inSeconds >= 10) {
+        stderr.writeln(
+          'Still running Flutter tests (${elapsed.elapsed.inSeconds}s)...',
+        );
+      }
+    });
+  }
+
+  try {
+    final stdoutDone = process.stdout
+        .transform(utf8.decoder)
+        .transform(const LineSplitter())
+        .listen((line) {
+      stdoutBuffer.writeln(line);
+      if (verbose) {
+        stdout.writeln(line);
+      } else if (streamOutput && liveFilter.shouldEmit(line)) {
+        lastLiveOutput = DateTime.now();
+        stderr.writeln(line);
+      }
+    }).asFuture<void>();
+
+    final stderrDone = process.stderr
+        .transform(utf8.decoder)
+        .transform(const LineSplitter())
+        .listen((line) {
+      stderrBuffer.writeln(line);
+      if (verbose) {
+        stderr.writeln(line);
+      }
+    }).asFuture<void>();
+
+    final exitCode = await process.exitCode;
+    await Future.wait([stdoutDone, stderrDone]);
+
+    return ProcessResult(
+      process.pid,
+      exitCode,
+      stdoutBuffer.toString(),
+      stderrBuffer.toString(),
+    );
+  } finally {
+    heartbeat?.cancel();
+  }
+}
+
 Future<ProcessResult> _runProcess(
   String executable,
   List<String> arguments, {
@@ -329,6 +433,15 @@ int? _resolveTimeoutSeconds(List<String> arguments) {
     exit(2);
   }
   return seconds;
+}
+
+void _writeStatus(
+  String message, {
+  required bool quiet,
+  required bool machineReport,
+}) {
+  if (quiet || machineReport) return;
+  stderr.writeln(message);
 }
 
 void _writeProcessStreams(ProcessResult result) {

@@ -34,6 +34,16 @@ Future<String?> writeScreenshotContactSheet({
 
   if (tiles.isEmpty) return null;
 
+  final sheet = _composeSheet(tiles);
+
+  final directory = Directory('build/ensemble_test_runner/screenshots');
+  directory.createSync(recursive: true);
+  final file = File('${directory.path}/${_safeFileName(testId)}_sheet.png');
+  file.writeAsBytesSync(img.encodePng(sheet, level: 1));
+  return file.path;
+}
+
+img.Image _composeSheet(List<img.Image> tiles) {
   const columns = 5;
   const gap = 16;
   final rows = (tiles.length / columns).ceil();
@@ -57,11 +67,7 @@ Future<String?> writeScreenshotContactSheet({
     img.compositeImage(sheet, tile, dstX: x, dstY: y);
   }
 
-  final directory = Directory('build/ensemble_test_runner/screenshots');
-  directory.createSync(recursive: true);
-  final file = File('${directory.path}/${_safeFileName(testId)}_sheet.png');
-  file.writeAsBytesSync(img.encodePng(sheet));
-  return file.path;
+  return sheet;
 }
 
 img.Image _buildTile(img.Image source, String label) {
@@ -70,7 +76,7 @@ img.Image _buildTile(img.Image source, String label) {
   final thumbnail = img.copyResize(
     source,
     width: width,
-    interpolation: img.Interpolation.cubic,
+    interpolation: img.Interpolation.linear,
   );
   final tile = img.Image(width: width, height: thumbnail.height + labelHeight)
     ..clear(img.ColorRgb8(255, 255, 255));
