@@ -172,6 +172,7 @@ steps:
 {
   "getDevices": {
     "statusCode": 200,
+    "delayMs": 125,
     "body": {"count": 2}
   },
   "scenarioApi": {
@@ -190,6 +191,7 @@ steps:
 
       final mocks = definitions.single.testCase.mocks.apis;
       expect((mocks['getDevices']!.body as Map)['count'], 2);
+      expect(mocks['getDevices']!.delayMs, 125);
       expect((mocks['rootApi']!.body as Map)['from'], 'layer');
       expect((mocks['scenarioApi']!.body as Map)['from'], 'scenario-layer');
     });

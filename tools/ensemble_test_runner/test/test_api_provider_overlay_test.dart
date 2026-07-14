@@ -53,6 +53,43 @@ void main() {
     expect(response.body, {'token': 'abc'});
   });
 
+  test('mocked APIs honor delayMs before returning', () async {
+    final delegate = _RecordingAPIProvider();
+    final provider = TestApiProviderOverlay(
+      mocks: {
+        'slowProfile': MockAPIResponse(
+          statusCode: 200,
+          body: {'name': 'Jane'},
+          delayMs: 50,
+        ),
+      },
+      delegate: delegate,
+    );
+    final context = _FakeBuildContext();
+    var completed = false;
+
+    final responseFuture = provider
+        .invokeApiWithDelegate(
+      delegate,
+      context,
+      YamlMap.wrap({'type': 'http', 'url': 'https://example.test/profile'}),
+      DataContext(buildContext: context),
+      'slowProfile',
+    )
+        .then((response) {
+      completed = true;
+      return response;
+    });
+
+    await Future<void>.delayed(const Duration(milliseconds: 10));
+    expect(completed, isFalse);
+
+    final response = await responseFuture;
+    expect(completed, isTrue);
+    expect(delegate.invoked, isFalse);
+    expect(response.body, {'name': 'Jane'});
+  });
+
   test('serializes live runner calls to avoid reentrant runAsync', () async {
     var inFlight = 0;
     var maxInFlight = 0;

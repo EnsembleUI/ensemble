@@ -108,6 +108,7 @@ overrides:
 {
   "getDevices": {
     "statusCode": 200,
+    "delayMs": 300,
     "body": {
       "status": []
     }
@@ -115,7 +116,8 @@ overrides:
 }
 ```
 
-Later files override earlier files.
+Later files override earlier files. Use `delayMs` when a mock should stay
+pending briefly before returning, matching the loading behavior of a real API.
 
 ## Validation
 
