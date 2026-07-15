@@ -127,6 +127,8 @@ class TVFocusWidget extends StatelessWidget {
     final bottomEdgeHandler = onBottomEdge ?? tvFocusScope?.onBottomEdge;
     final topEdgeHandler = onTopEdge ?? tvFocusScope?.onTopEdge;
     final currentFocusGroup = focusOrder.focusGroup;
+    final route =
+        current.context != null ? ModalRoute.of(current.context!) : null;
     bool matchesFocusGroup(TVFocusOrder order) {
       if (currentFocusGroup == null) {
         return true;
@@ -136,11 +138,13 @@ class TVFocusWidget extends StatelessWidget {
 
     // Collect all focusable items in the same FocusTraversalGroup
     final root = FocusManager.instance.rootScope;
-    final inScope = <TVFocusOrderNode>{};
+    final inScopeByOrder = <TVFocusOrderNode, TVFocusOrderNode>{};
 
     for (final focusNode in root.descendants) {
       // Check if this node is mounted and has context
       if (focusNode.context == null) continue;
+      if (!focusNode.canRequestFocus) continue;
+      if (!TVFocusOrder.isInRoute(focusNode.context!, route)) continue;
 
       // Check if in same FocusTraversalGroup
       final nodeGroup = focusNode.context
@@ -155,16 +159,19 @@ class TVFocusWidget extends StatelessWidget {
         if (!matchesFocusGroup(order)) {
           continue;
         }
-        inScope.add(TVFocusOrderNode(focusNode, order));
+        TVFocusOrderNode.addPreferredCandidate(
+          inScopeByOrder,
+          TVFocusOrderNode(focusNode, order),
+        );
       }
     }
 
-    if (inScope.isEmpty) {
+    if (inScopeByOrder.isEmpty) {
       return false;
     }
 
     // Build 2D grid from collected items
-    final grid = TVFocusOrderNode.buildGrid(inScope);
+    final grid = TVFocusOrderNode.buildGrid(inScopeByOrder.values);
     if (grid.isEmpty) {
       return false;
     }
