@@ -53,6 +53,9 @@ class Token {
   static const int STRING = 7;
   static const int REGEXP = 8;
   static const int ARROW = 9;
+  static const int ELLIPSIS = 10;
+  static const int TEMPLATE = 11;
+  static const int OPTIONAL_CHAIN = 12;
 
   // Tokens without a text have type equal to their corresponding char code
   // All these are >31
@@ -89,6 +92,12 @@ class Token {
         return 'unary operator';
       case STRING:
         return 'string literal';
+      case ELLIPSIS:
+        return '...';
+      case TEMPLATE:
+        return 'template literal';
+      case OPTIONAL_CHAIN:
+        return '?.';
       default:
         return '[type $type]';
     }
@@ -99,6 +108,7 @@ class Precedence {
   static const int EXPRESSION = 0;
   static const int CONDITIONAL = 1;
   static const int LOGICAL_OR = 2;
+  static const int NULLISH_COALESCING = 2;
   static const int LOGICAL_AND = 3;
   static const int BITWISE_OR = 4;
   static const int BITWISE_XOR = 5;
@@ -176,7 +186,7 @@ bool isEOL(int x) {
 
 class Lexer {
   Lexer(String text,
-      {this.filename, this.currentLine=1, this.index= 0, this.endOfFile}) {
+      {this.filename, this.currentLine = 1, this.index = 0, this.endOfFile}) {
     input = text.codeUnits;
     if (endOfFile == null) {
       endOfFile = input.length;
@@ -566,6 +576,14 @@ class Lexer {
 
         case char.DOT:
           x = next();
+          if (x == char.DOT) {
+            x = next();
+            if (x == char.DOT) {
+              ++index;
+              return emitToken(Token.ELLIPSIS, '...');
+            }
+            fail("Unexpected '..'");
+          }
           if (isDigit(x)) {
             return scanDecimalPart(x);
           }
@@ -574,6 +592,9 @@ class Lexer {
         case char.SQUOTE:
         case char.DQUOTE:
           return scanStringLiteral(x);
+
+        case char.BACKTICK:
+          return scanTemplateLiteral(x);
 
         case char.LPAREN:
         case char.RPAREN:
@@ -584,9 +605,22 @@ class Lexer {
         case char.COMMA:
         case char.COLON:
         case char.SEMICOLON:
-        case char.QUESTION:
           ++index;
           return emitToken(x);
+
+        case char.QUESTION:
+          x = index + 1 == endOfFile ? char.NULL : input[index + 1];
+          if (x == char.DOT) {
+            index += 2;
+            return emitToken(Token.OPTIONAL_CHAIN, '?.');
+          }
+          if (x == char.QUESTION) {
+            index += 2;
+            return emitToken(Token.BINARY, '??')
+              ..binaryPrecedence = Precedence.NULLISH_COALESCING;
+          }
+          ++index;
+          return emitToken(Token.QUESTION);
 
         case char.BACKSLASH:
           return scanComplexName(x);
@@ -742,5 +776,52 @@ class Lexer {
     ++index; // skip ending quote
     String value = new String.fromCharCodes(buffer);
     return emitValueToken(Token.STRING)..value = value;
+  }
+
+  Token scanTemplateLiteral(int x) {
+    List<int> buffer = <int>[];
+    int braceDepth = 0;
+    x = next();
+    while (true) {
+      if (x == char.NULL) {
+        fail("Unterminated template literal");
+      }
+      if (x == char.BACKSLASH) {
+        buffer.add(x);
+        x = next();
+        if (x == char.NULL) fail("Unterminated template literal");
+        buffer.add(x);
+        if (x == char.CR || x == char.LF || x == char.LS || x == char.PS) {
+          ++currentLine;
+        }
+        x = next();
+        continue;
+      }
+      if (x == char.DOLLAR) {
+        buffer.add(x);
+        x = next();
+        if (x == char.LBRACE) {
+          braceDepth++;
+        }
+        buffer.add(x);
+        x = next();
+        continue;
+      }
+      if (x == char.LBRACE && braceDepth > 0) {
+        braceDepth++;
+      } else if (x == char.RBRACE && braceDepth > 0) {
+        braceDepth--;
+      } else if (x == char.BACKTICK && braceDepth == 0) {
+        ++index;
+        Token tok = emitValueToken(Token.TEMPLATE);
+        tok.value = new String.fromCharCodes(
+            input.getRange(tokenStart! + 1, index - 1));
+        return tok;
+      } else if (x == char.CR || x == char.LF || x == char.LS || x == char.PS) {
+        ++currentLine;
+      }
+      buffer.add(x);
+      x = next();
+    }
   }
 }

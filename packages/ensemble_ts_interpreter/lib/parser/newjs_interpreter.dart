@@ -1,10 +1,12 @@
 // ignore_for_file: unnecessary_null_comparison, unused_catch_clause, unnecessary_non_null_assertion, unused_local_variable
+import 'dart:async';
 import 'dart:convert';
 import 'package:ensemble_ts_interpreter/errors.dart';
 import 'package:ensemble_ts_interpreter/invokables/context.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokablecommons.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokablecontroller.dart';
+import 'package:ensemble_ts_interpreter/invokables/invokablepromises.dart';
 import 'package:parsejs_null_safety/jsparser.dart';
 import 'package:ensemble_ts_interpreter/parser/regex_ext.dart';
 
@@ -25,9 +27,31 @@ class Bindings extends RecursiveVisitor<dynamic> {
 
   @override
   visitVariableDeclarator(VariableDeclarator node) {
-    String name = visitName(node.name);
-    bindings.add(name);
-    return name;
+    final names = _bindingNames(node.name).map(visitName).toList();
+    bindings.addAll(names);
+    return names.join(',');
+  }
+
+  List<Name> _bindingNames(Node binding) {
+    if (binding is Name) return [binding];
+    if (binding is ObjectPattern) {
+      return binding.properties.expand((property) {
+        final value = property.value;
+        if (value is Name) return [value];
+        return _bindingNames(value);
+      }).toList();
+    }
+    if (binding is ArrayPattern) {
+      return binding.elements
+          .whereType<Node>()
+          .expand((element) => element is RestParameter
+              ? _bindingNames(element.name)
+              : _bindingNames(element))
+          .toList();
+    }
+    if (binding is DefaultParameter) return _bindingNames(binding.name);
+    if (binding is RestParameter) return _bindingNames(binding.name);
+    return <Name>[];
   }
 
   @override
@@ -128,12 +152,79 @@ class Bindings extends RecursiveVisitor<dynamic> {
   }
 }
 
+class _LexicalBinding {
+  dynamic value;
+  final bool mutable;
+  bool initialized;
+
+  _LexicalBinding.uninitialized({required this.mutable})
+      : initialized = false,
+        value = null;
+
+  _LexicalBinding.initialized(this.value, {required this.mutable})
+      : initialized = true;
+}
+
+class _LexicalContext {
+  final Map<String, _LexicalBinding> bindings = {};
+
+  bool has(String name) => bindings.containsKey(name);
+
+  dynamic get(String name, int line) {
+    final binding = bindings[name]!;
+    if (!binding.initialized) {
+      throw JSException(line,
+          "Cannot access lexical variable '$name' before initialization.");
+    }
+    return binding.value;
+  }
+
+  void declare(String name, {required bool mutable}) {
+    bindings.putIfAbsent(
+        name, () => _LexicalBinding.uninitialized(mutable: mutable));
+  }
+
+  void initialize(String name, dynamic value, {required bool mutable}) {
+    bindings[name] = _LexicalBinding.initialized(value, mutable: mutable);
+  }
+
+  void set(String name, dynamic value, int line) {
+    final binding = bindings[name]!;
+    if (!binding.mutable && binding.initialized) {
+      throw JSException(line, "Assignment to constant variable '$name'.");
+    }
+    binding.value = value;
+    binding.initialized = true;
+  }
+
+  _LexicalContext snapshot() {
+    final next = _LexicalContext();
+    bindings.forEach((key, binding) {
+      next.bindings[key] =
+          _LexicalBinding.uninitialized(mutable: binding.mutable)
+            ..value = binding.value
+            ..initialized = binding.initialized;
+    });
+    return next;
+  }
+}
+
+class _ForLoopBinding {
+  final Node binding;
+  final String kind;
+  final VariableDeclaration? declaration;
+
+  _ForLoopBinding(this.binding, this.kind, this.declaration);
+}
+
 class JSInterpreter extends RecursiveVisitor<dynamic> {
   late String code;
   late Program program;
   Map<Scope, Context> contexts = {};
   final List<Context> _dynamicContexts = [];
+  final List<_LexicalContext> _lexicalContexts = [];
   String? _nextStatementLabel;
+  String _currentDeclarationKind = 'var';
   @override
   defaultNode(Node node) {
     dynamic rtn;
@@ -154,9 +245,10 @@ class JSInterpreter extends RecursiveVisitor<dynamic> {
     InvokableController.addGlobals(programContext.getContextMap());
     InvokableController.updateLocale(programContext.getContextMap());
   }
-  static const String parsingErrorAppendage = "Only ES5 is supported. "
-      "Key words such as let, const, operators such as -> and templated strings are not yet supported. "
-      "Here's a full list of features that are only available in ES6 and are therefore NOT supported in Ensemble at this time. https://www.w3schools.com/js/js_es6.asp";
+  static const String parsingErrorAppendage =
+      "ES5 is the compatibility baseline. "
+      "Selected ES6+ conveniences such as arrow functions, let/const, template literals, tagged templates, destructuring declarations, object shorthand/methods, computed property names, default/rest parameters, spread in arrays/calls, for...of, optional chaining, nullish coalescing, Symbol keys, Promises, and practical async/await are supported. "
+      "Classes, modules, generators, and full ES6+ conformance are not supported yet.";
   JSInterpreter.fromCode(String code, Context programContext)
       : this(code, parseCode(code), programContext);
   static Program parseCode(String code) {
@@ -167,18 +259,48 @@ class JSInterpreter extends RecursiveVisitor<dynamic> {
     try {
       return parsejs(code);
     } on ParseError catch (e) {
+      final line = e.line ?? 1;
+      final column = _columnForOffset(code, e.startOffset);
       throw JSException(
-          e.line ?? 1,
-          "Parsing error Occurred while parsing javascript code block. "
-          "Error Message: ${e.message}",
-          detailedError: 'Code: $code . FYI: $parsingErrorAppendage');
+        line,
+        "JavaScript parse error: ${e.message}.",
+        column: column,
+        recovery: parsingErrorAppendage,
+        detailedError: _formatParseDetails(code, line, column),
+        originalError: e,
+      );
     } catch (error) {
       throw JSException(
-          1,
-          "Parsing error Occurred while parsing javascript code block. "
-          "Error Message: ${error.toString()}",
-          detailedError: 'Code: $code . FYI: $parsingErrorAppendage');
+        1,
+        "JavaScript parse error: ${error.toString()}.",
+        recovery: parsingErrorAppendage,
+        detailedError: _formatParseDetails(code, 1, 1),
+        originalError: error,
+      );
     }
+  }
+
+  static int _columnForOffset(String code, int? offset) {
+    if (offset == null || offset < 0 || offset > code.length) return 1;
+    final lineStart = code.lastIndexOf('\n', offset - 1) + 1;
+    return offset - lineStart + 1;
+  }
+
+  static String _formatParseDetails(String code, int line, int column) {
+    final lines = code.split('\n');
+    if (lines.isEmpty) return parsingErrorAppendage;
+    final index = (line - 1).clamp(0, lines.length - 1);
+    final start = (index - 1).clamp(0, lines.length - 1);
+    final end = (index + 1).clamp(0, lines.length - 1);
+    final buffer = StringBuffer('Near line $line, column $column:\n');
+    for (var i = start; i <= end; i++) {
+      final lineNumber = i + 1;
+      buffer.writeln('${lineNumber.toString().padLeft(4)} | ${lines[i]}');
+      if (i == index) {
+        buffer.writeln('     | ${' ' * (column - 1)}^');
+      }
+    }
+    return buffer.toString();
   }
 
   static String toJSString(Map map) {
@@ -220,6 +342,7 @@ class JSInterpreter extends RecursiveVisitor<dynamic> {
     JSInterpreter i = JSInterpreter(
         this.code, this.program, getContextForScope(this.program));
     i._dynamicContexts.addAll(_dynamicContexts);
+    i._lexicalContexts.addAll(_lexicalContexts);
     if (inheritContexts) {
       contexts.keys.forEach((key) {
         i.contexts[key] = contexts[key]!;
@@ -258,6 +381,12 @@ class JSInterpreter extends RecursiveVisitor<dynamic> {
   }
 
   void addToContext(Name node, dynamic value) {
+    for (final _LexicalContext lexical in _lexicalContexts.reversed) {
+      if (lexical.has(node.value)) {
+        lexical.set(node.value, value, node.line ?? 1);
+        return;
+      }
+    }
     for (final Context candidate in _dynamicContexts.reversed) {
       if (candidate.hasContext(node.value)) {
         candidate.addDataContextById(node.value, value);
@@ -273,6 +402,216 @@ class JSInterpreter extends RecursiveVisitor<dynamic> {
     }
     Context ctx = getContextForScope(node.scope!);
     ctx.addDataContextById(node.value, value);
+  }
+
+  List<Name> _bindingNames(Node binding) {
+    if (binding is Name) return [binding];
+    if (binding is ObjectPattern) {
+      return binding.properties.expand((property) {
+        final value = property.value;
+        if (value is Name) return [value];
+        return _bindingNames(value);
+      }).toList();
+    }
+    if (binding is ArrayPattern) {
+      return binding.elements
+          .whereType<Node>()
+          .expand((element) => element is RestParameter
+              ? _bindingNames(element.name)
+              : _bindingNames(element))
+          .toList();
+    }
+    if (binding is DefaultParameter) return _bindingNames(binding.name);
+    if (binding is RestParameter) return _bindingNames(binding.name);
+    throw JSException(binding.line ?? 1, 'Unsupported binding pattern.');
+  }
+
+  void _bindPattern(Node binding, dynamic value,
+      {required bool lexical, required bool mutable, required int line}) {
+    if (binding is Name) {
+      if (lexical) {
+        for (final lexicalContext in _lexicalContexts.reversed) {
+          if (lexicalContext.has(binding.value)) {
+            lexicalContext.set(binding.value, value, line);
+            return;
+          }
+        }
+        final lexicalContext = _LexicalContext();
+        lexicalContext.initialize(binding.value, value, mutable: mutable);
+        _lexicalContexts.add(lexicalContext);
+      } else {
+        addToThisContext(binding, value);
+      }
+      return;
+    }
+    if (binding is ObjectPattern) {
+      final excludedKeys = <dynamic>{};
+      for (final property in binding.properties) {
+        if (property.isSpread) {
+          final rest = <dynamic, dynamic>{};
+          if (value is Map) {
+            for (final key in InvokableController.ownEnumerableKeys(value)) {
+              if (!excludedKeys.contains(key)) {
+                rest[key] = InvokableController.getProperty(value, key);
+              }
+            }
+          }
+          _bindPattern(property.value, rest,
+              lexical: lexical, mutable: mutable, line: line);
+          continue;
+        }
+        final key = _propertyKey(property);
+        excludedKeys.add(key);
+        final propertyValue =
+            value == null || !InvokableController.hasProperty(value, key)
+                ? jsUndefined
+                : InvokableController.getProperty(value, key);
+        _bindPattern(property.value, propertyValue,
+            lexical: lexical, mutable: mutable, line: line);
+      }
+      return;
+    }
+    if (binding is ArrayPattern) {
+      final values = value is List ? value : <dynamic>[];
+      for (int i = 0; i < binding.elements.length; i++) {
+        final element = binding.elements[i];
+        if (element == null) continue;
+        if (element is RestParameter) {
+          _bindPattern(element.name, values.skip(i).toList(),
+              lexical: lexical, mutable: mutable, line: line);
+          break;
+        }
+        final elementValue = i < values.length ? values[i] : jsUndefined;
+        _bindPattern(element, elementValue,
+            lexical: lexical, mutable: mutable, line: line);
+      }
+      return;
+    }
+    if (binding is RestParameter) {
+      _bindPattern(binding.name, value,
+          lexical: lexical, mutable: mutable, line: line);
+      return;
+    }
+    if (binding is DefaultParameter) {
+      final actualValue = isJSUndefined(value)
+          ? getValueFromExpression(binding.defaultValue)
+          : value;
+      _bindPattern(binding.name, actualValue,
+          lexical: lexical, mutable: mutable, line: line);
+      return;
+    }
+    throw JSException(binding.line ?? line, 'Unsupported binding pattern.');
+  }
+
+  void _bindParameter(Map<String, dynamic> ctx, Node binding, dynamic value,
+      {required int line}) {
+    if (binding is Name) {
+      ctx[binding.value] = value;
+      return;
+    }
+    if (binding is ObjectPattern) {
+      final excludedKeys = <dynamic>{};
+      for (final property in binding.properties) {
+        if (property.isSpread) {
+          final rest = <dynamic, dynamic>{};
+          if (value is Map) {
+            for (final key in InvokableController.ownEnumerableKeys(value)) {
+              if (!excludedKeys.contains(key)) {
+                rest[key] = InvokableController.getProperty(value, key);
+              }
+            }
+          }
+          _bindParameter(ctx, property.value, rest, line: line);
+          continue;
+        }
+        final key = _propertyKey(property);
+        excludedKeys.add(key);
+        final propertyValue =
+            value == null || !InvokableController.hasProperty(value, key)
+                ? jsUndefined
+                : InvokableController.getProperty(value, key);
+        _bindParameter(ctx, property.value, propertyValue, line: line);
+      }
+      return;
+    }
+    if (binding is ArrayPattern) {
+      final values = value is List ? value : <dynamic>[];
+      for (int i = 0; i < binding.elements.length; i++) {
+        final element = binding.elements[i];
+        if (element == null) continue;
+        if (element is RestParameter) {
+          _bindParameter(ctx, element.name, values.skip(i).toList(),
+              line: line);
+          break;
+        }
+        _bindParameter(
+            ctx, element, i < values.length ? values[i] : jsUndefined,
+            line: line);
+      }
+      return;
+    }
+    if (binding is RestParameter) {
+      _bindParameter(ctx, binding.name, value, line: line);
+      return;
+    }
+    if (binding is DefaultParameter) {
+      final actualValue = isJSUndefined(value) || value == null
+          ? getValueFromExpression(binding.defaultValue)
+          : value;
+      _bindParameter(ctx, binding.name, actualValue, line: line);
+      return;
+    }
+    throw JSException(binding.line ?? line, 'Unsupported function parameter.');
+  }
+
+  void _assignPattern(Expression pattern, dynamic value, int line) {
+    if (pattern is NameExpression) {
+      addToContext(pattern.name, value);
+      return;
+    }
+    if (pattern is ArrayExpression) {
+      final values = value is List ? value : <dynamic>[];
+      for (int i = 0; i < pattern.expressions.length; i++) {
+        final element = pattern.expressions[i];
+        if (element == null) continue;
+        if (element is SpreadExpression) {
+          _assignPattern(element.argument, values.skip(i).toList(), line);
+          break;
+        }
+        _assignPattern(
+            element, i < values.length ? values[i] : jsUndefined, line);
+      }
+      return;
+    }
+    if (pattern is ObjectExpression) {
+      for (final property in pattern.properties) {
+        if (property.isSpread) {
+          throw JSException(line,
+              'Rest properties in destructuring assignment are not supported yet.');
+        }
+        final key = _propertyKey(property);
+        final propertyValue = value == null
+            ? jsUndefined
+            : InvokableController.getProperty(value, key);
+        if (property.value is NameExpression) {
+          _assignPattern(property.value as NameExpression, propertyValue, line);
+        } else {
+          throw JSException(line,
+              'Nested object destructuring assignment is not supported yet.');
+        }
+      }
+      return;
+    }
+    throw JSException(line, 'Unsupported destructuring assignment target.');
+  }
+
+  void _hoistBinding(Node binding, dynamic value) {
+    for (final name in _bindingNames(binding)) {
+      final ctx = getContextForScope(name.scope!);
+      if (!ctx.hasContext(name.value)) {
+        addToThisContext(name, value);
+      }
+    }
   }
 
   // dynamic removeFromContext(Name node) {
@@ -306,6 +645,9 @@ class JSInterpreter extends RecursiveVisitor<dynamic> {
   }
 
   dynamic getValueFromString(String name) {
+    for (final _LexicalContext lexical in _lexicalContexts.reversed) {
+      if (lexical.has(name)) return lexical.get(name, 1);
+    }
     for (final Context ctx in _dynamicContexts.reversed) {
       if (ctx.hasContext(name)) return ctx.getContextById(name);
     }
@@ -318,6 +660,9 @@ class JSInterpreter extends RecursiveVisitor<dynamic> {
   }
 
   bool _hasName(String name) {
+    for (final _LexicalContext lexical in _lexicalContexts.reversed) {
+      if (lexical.has(name)) return true;
+    }
     for (final Context ctx in _dynamicContexts.reversed) {
       if (ctx.hasContext(name)) return true;
     }
@@ -328,6 +673,12 @@ class JSInterpreter extends RecursiveVisitor<dynamic> {
   }
 
   dynamic getValue(Name node) {
+    for (final _LexicalContext lexical in _lexicalContexts.reversed) {
+      if (lexical.has(node.value)) {
+        return lexical.get(node.value, node.line ?? 1);
+      }
+    }
+
     // 1) Dynamic object scopes from `with` shadow lexical scopes.
     for (final Context ctx in _dynamicContexts.reversed) {
       if (ctx.hasContext(node.value)) {
@@ -445,15 +796,7 @@ class JSInterpreter extends RecursiveVisitor<dynamic> {
 
   @override
   visitProperty(Property node) {
-    String key;
-    if (node.key is Name) {
-      key = (node.key as Name).value;
-    } else if (node.key is LiteralExpression) {
-      key = (node.key as LiteralExpression).value;
-    } else {
-      throw JSException(node.line ?? -1,
-          'Property of object ${node.toString()} is not supported. Only Name or LiteralExpression are supported.');
-    }
+    final key = _propertyKey(node);
     if (node.isGetter) {
       return {
         'key': key,
@@ -479,7 +822,10 @@ class JSInterpreter extends RecursiveVisitor<dynamic> {
     return {
       'key': key,
       'descriptor': JSPropertyDescriptor(
-        value: getValueFromNode(node.value),
+        value: node.value is FunctionNode
+            ? visitFunctionNode(node.value as FunctionNode,
+                inheritContext: true)
+            : getValueFromNode(node.value),
         writable: true,
         enumerable: true,
         configurable: true,
@@ -487,10 +833,34 @@ class JSInterpreter extends RecursiveVisitor<dynamic> {
     };
   }
 
+  dynamic _propertyKey(Property node) {
+    if (node.computed) {
+      return getValueFromNode(node.key);
+    }
+    if (node.key is Name) {
+      return (node.key as Name).value;
+    }
+    if (node.key is LiteralExpression) {
+      return (node.key as LiteralExpression).value;
+    }
+    throw JSException(node.line ?? -1,
+        'Property of object ${node.toString()} is not supported.');
+  }
+
   @override
   visitObject(ObjectExpression node) {
     Map obj = {};
     for (Property property in node.properties) {
+      if (property.isSpread) {
+        final source = getValueFromNode(property.value);
+        if (source is Map) {
+          for (final key in InvokableController.ownEnumerableKeys(source)) {
+            InvokableController.setProperty(
+                obj, key, InvokableController.getProperty(source, key));
+          }
+        }
+        continue;
+      }
       Map prop = visitProperty(property);
       InvokableController.defineProperty(
           obj, prop['key'], prop['descriptor'] as JSPropertyDescriptor);
@@ -519,7 +889,7 @@ class JSInterpreter extends RecursiveVisitor<dynamic> {
   visitUnary(UnaryExpression node) {
     // Handle 'delete' operator specially - it needs to work on property expressions
     if (node.operator == 'delete') {
-      ObjectPattern? pattern;
+      PropertyPattern? pattern;
       if (node.argument is MemberExpression) {
         pattern = visitMember(node.argument as MemberExpression,
             computeAsPattern: true);
@@ -577,6 +947,7 @@ class JSInterpreter extends RecursiveVisitor<dynamic> {
   }
 
   String _jsTypeOf(dynamic val) {
+    if (isJSUndefined(val)) return 'undefined';
     if (val == null) return 'object'; // In JavaScript, typeof null is 'object'
     if (val is num) return 'number';
     if (val is String) return 'string';
@@ -587,7 +958,7 @@ class JSInterpreter extends RecursiveVisitor<dynamic> {
   }
 
   bool toBoolean(dynamic val) {
-    if (val == null ||
+    if (_isNullish(val) ||
         val == 0 ||
         val == false ||
         val == '' ||
@@ -601,7 +972,9 @@ class JSInterpreter extends RecursiveVisitor<dynamic> {
   }
 
   num toNumber(dynamic val) {
-    if (val == null) {
+    if (isJSUndefined(val)) {
+      return double.nan;
+    } else if (val == null) {
       return 0;
     } else if (val is num) {
       return val;
@@ -618,6 +991,9 @@ class JSInterpreter extends RecursiveVisitor<dynamic> {
   int _toInt32(dynamic val) => toNumber(val).toInt() & 0xffffffff;
 
   bool _strictEquals(dynamic left, dynamic right) {
+    if (isJSUndefined(left) || isJSUndefined(right)) {
+      return isJSUndefined(left) && isJSUndefined(right);
+    }
     if (left == null || right == null) return left == null && right == null;
     if (left.runtimeType != right.runtimeType) return false;
     if (left is num && right is num && (left.isNaN || right.isNaN)) {
@@ -627,6 +1003,7 @@ class JSInterpreter extends RecursiveVisitor<dynamic> {
   }
 
   bool _looseEquals(dynamic left, dynamic right) {
+    if (_isNullish(left) && _isNullish(right)) return true;
     if (left == null && right == null) return true;
     if (left is num && right is num && (left.isNaN || right.isNaN)) {
       return false;
@@ -638,6 +1015,8 @@ class JSInterpreter extends RecursiveVisitor<dynamic> {
     if (left is String && right is num) return toNumber(left) == right;
     return false;
   }
+
+  bool _isNullish(dynamic value) => value == null || isJSUndefined(value);
 
   bool _hasProperty(dynamic obj, dynamic property) =>
       InvokableController.hasProperty(obj, property);
@@ -656,7 +1035,7 @@ class JSInterpreter extends RecursiveVisitor<dynamic> {
   @override
   visitUpdateExpression(UpdateExpression node) {
     dynamic val = getValueFromExpression(node.argument!);
-    ObjectPattern? pattern;
+    PropertyPattern? pattern;
     num number;
     num originalNumber;
     if (val is num) {
@@ -731,6 +1110,8 @@ class JSInterpreter extends RecursiveVisitor<dynamic> {
   @override
   visitFunctionNode(FunctionNode node, {bool? inheritContext}) {
     final List<dynamic> args = computeArguments(node.params);
+    final capturedLexicalContexts =
+        List<_LexicalContext>.from(_lexicalContexts);
     late JavascriptFunction fn;
     fn = JavascriptFunction((List<dynamic>? _params, [dynamic thisArg]) {
       /*
@@ -744,8 +1125,19 @@ class JSInterpreter extends RecursiveVisitor<dynamic> {
 
       if (node.params != null) {
         for (int i = 0; i < node.params.length; i++) {
-          // Use the value from params if available, otherwise use null
-          ctx[node.params[i].value] = i < params.length ? params[i] : null;
+          final param = node.params[i];
+          if (param is RestParameter) {
+            _bindParameter(ctx, param.name, params.skip(i).toList(),
+                line: param.line ?? node.line ?? 1);
+            break;
+          }
+          dynamic value = i < params.length ? params[i] : null;
+          if (param is DefaultParameter && value == null) {
+            value = getValueFromExpression(param.defaultValue);
+          }
+          _bindParameter(
+              ctx, param is DefaultParameter ? param.name : param, value,
+              line: param.line ?? node.line ?? 1);
         }
       }
       ctx['arguments'] = _buildArgumentsObject(params, fn);
@@ -753,6 +1145,12 @@ class JSInterpreter extends RecursiveVisitor<dynamic> {
       Context context = SimpleContext(ctx);
       // Inherit parent contexts so nested functions can see outer declarations.
       JSInterpreter i = cloneForContext(node, context, inheritContext ?? true);
+      i._lexicalContexts
+        ..clear()
+        ..addAll(capturedLexicalContexts);
+      if (node.isAsync) {
+        return JSPromise.fromFuture(i._executeAsyncBody(node.body));
+      }
       dynamic rtn;
       try {
         if (node.body != null) {
@@ -786,20 +1184,187 @@ class JSInterpreter extends RecursiveVisitor<dynamic> {
     return visitFunctionNode(node.function, inheritContext: true);
   }
 
+  Future<dynamic> _executeAsyncBody(Statement body) async {
+    try {
+      if (body is BlockStatement) {
+        dynamic rtn;
+        final lexicalContext = _LexicalContext();
+        for (Statement stmt in body.body) {
+          if (stmt is VariableDeclaration && stmt.kind != 'var') {
+            for (final declarator in stmt.declarations) {
+              for (final name in _bindingNames(declarator.name)) {
+                lexicalContext.declare(name.value,
+                    mutable: stmt.kind != 'const');
+              }
+            }
+          }
+        }
+        _lexicalContexts.add(lexicalContext);
+        try {
+          for (final stmt in body.body) {
+            rtn = await _executeAsyncStatement(stmt);
+          }
+          return rtn;
+        } finally {
+          _lexicalContexts.removeLast();
+        }
+      }
+      return await _executeAsyncStatement(body);
+    } on ControlFlowReturnException catch (e) {
+      return e.returnValue;
+    }
+  }
+
+  Future<dynamic> _executeAsyncStatement(Statement stmt) async {
+    if (!_containsAwait(stmt)) {
+      return stmt.visitBy(this);
+    }
+    if (stmt is ReturnStatement) {
+      final value = stmt.argument == null
+          ? null
+          : await _getValueFromExpressionAsync(stmt.argument!);
+      throw ControlFlowReturnException(stmt.line ?? -1, '', value);
+    }
+    if (stmt is ExpressionStatement) {
+      return _getValueFromExpressionAsync(stmt.expression);
+    }
+    if (stmt is VariableDeclaration) {
+      final previousKind = _currentDeclarationKind;
+      _currentDeclarationKind = stmt.kind;
+      try {
+        for (final declarator in stmt.declarations) {
+          final value = declarator.init == null
+              ? null
+              : await _getValueFromExpressionAsync(declarator.init!);
+          _bindPattern(declarator.name, value,
+              lexical: stmt.kind != 'var',
+              mutable: stmt.kind != 'const',
+              line: declarator.line ?? stmt.line ?? 1);
+        }
+      } finally {
+        _currentDeclarationKind = previousKind;
+      }
+      return null;
+    }
+    if (stmt is IfStatement) {
+      final condition = await _getValueFromExpressionAsync(stmt.condition);
+      if (toBoolean(condition)) {
+        return _executeAsyncStatement(stmt.then);
+      }
+      if (stmt.otherwise != null) {
+        return _executeAsyncStatement(stmt.otherwise!);
+      }
+      return null;
+    }
+    if (stmt is ThrowStatement) {
+      final value = await _getValueFromExpressionAsync(stmt.argument);
+      if (value is JSCustomException) throw value;
+      throw JSCustomException(value);
+    }
+    throw JSException(
+        stmt.line ?? 1, 'await is not supported in this statement form yet.',
+        detailedError: 'Code: ${getCode(stmt)}');
+  }
+
+  Future<dynamic> _getValueFromExpressionAsync(Expression expression) async {
+    if (expression is AwaitExpression) {
+      final value = await _getValueFromExpressionAsync(expression.argument);
+      return _awaitJsValue(value);
+    }
+    if (!_containsAwait(expression)) {
+      return getValueFromExpression(expression);
+    }
+    if (expression is BinaryExpression) {
+      final left = await _getValueFromExpressionAsync(expression.left);
+      if (expression.operator == '&&' && !toBoolean(left)) return left;
+      if (expression.operator == '||' && toBoolean(left)) return left;
+      if (expression.operator == '??' && !_isNullish(left)) return left;
+      final right = await _getValueFromExpressionAsync(expression.right);
+      return BinaryExpression(LiteralExpression(left), expression.operator,
+              LiteralExpression(right))
+          .visitBy(this);
+    }
+    if (expression is TemplateLiteral) {
+      final buffer = StringBuffer();
+      for (int i = 0; i < expression.strings.length; i++) {
+        buffer.write(expression.strings[i]);
+        if (i < expression.expressions.length) {
+          final value =
+              await _getValueFromExpressionAsync(expression.expressions[i]);
+          buffer.write(value?.toString() ?? 'null');
+        }
+      }
+      return buffer.toString();
+    }
+    if (expression is ConditionalExpression) {
+      final condition =
+          await _getValueFromExpressionAsync(expression.condition);
+      return toBoolean(condition)
+          ? _getValueFromExpressionAsync(expression.then)
+          : _getValueFromExpressionAsync(expression.otherwise);
+    }
+    throw JSException(expression.line ?? 1,
+        'await is not supported in this expression form yet.',
+        detailedError: 'Code: ${getCode(expression)}');
+  }
+
+  Future<dynamic> _awaitJsValue(dynamic value) {
+    if (value is JSPromise) return value.toFuture();
+    if (value is Future) return value;
+    return Future<dynamic>.value(value);
+  }
+
+  bool _containsAwait(Node node) {
+    var found = false;
+    void walk(Node child) {
+      if (found) return;
+      if (child is AwaitExpression) {
+        found = true;
+        return;
+      }
+      child.forEach(walk);
+    }
+
+    walk(node);
+    return found;
+  }
+
+  @override
+  visitAwait(AwaitExpression node) {
+    throw JSException(
+        node.line ?? 1, 'await can only be used inside async functions.');
+  }
+
   @override
   visitArrowFunctionNode(ArrowFunctionNode node) {
     final List<dynamic> args = computeArguments(node.params);
+    final capturedLexicalContexts =
+        List<_LexicalContext>.from(_lexicalContexts);
     return JavascriptFunction((List<dynamic>? _params, [dynamic thisArg]) {
       List<dynamic> params = _params ?? [];
       Map<String, dynamic> ctx = {};
       if (node.params != null) {
         for (int i = 0; i < node.params.length; i++) {
-          // Use the value from params if available, otherwise use null
-          ctx[node.params[i].value] = i < params.length ? params[i] : null;
+          final param = node.params[i];
+          if (param is RestParameter) {
+            _bindParameter(ctx, param.name, params.skip(i).toList(),
+                line: param.line ?? node.line ?? 1);
+            break;
+          }
+          dynamic value = i < params.length ? params[i] : null;
+          if (param is DefaultParameter && value == null) {
+            value = getValueFromExpression(param.defaultValue);
+          }
+          _bindParameter(
+              ctx, param is DefaultParameter ? param.name : param, value,
+              line: param.line ?? node.line ?? 1);
         }
       }
       Context context = SimpleContext(ctx);
       JSInterpreter i = cloneForContext(node, context, true);
+      i._lexicalContexts
+        ..clear()
+        ..addAll(capturedLexicalContexts);
       dynamic rtn;
       try {
         if (node.body != null) {
@@ -818,34 +1383,77 @@ class JSInterpreter extends RecursiveVisitor<dynamic> {
   @override
   visitBlock(BlockStatement node) {
     dynamic rtn;
-    // Hoist function declarations in this block before executing statements.
+    final lexicalContext = _LexicalContext();
     for (Statement stmt in node.body) {
-      if (stmt is FunctionDeclaration && stmt.function.name != null) {
-        addToThisContext(stmt.function.name!, visitFunctionNode(stmt.function));
+      if (stmt is VariableDeclaration && stmt.kind != 'var') {
+        for (final declarator in stmt.declarations) {
+          for (final name in _bindingNames(declarator.name)) {
+            lexicalContext.declare(name.value, mutable: stmt.kind != 'const');
+          }
+        }
       }
     }
-    for (Node stmt in node.body) {
-      rtn = stmt.visitBy(this);
+    _lexicalContexts.add(lexicalContext);
+    // Hoist function declarations in this block before executing statements.
+    try {
+      for (Statement stmt in node.body) {
+        if (stmt is FunctionDeclaration && stmt.function.name != null) {
+          addToThisContext(
+              stmt.function.name!, visitFunctionNode(stmt.function));
+        }
+      }
+      for (Node stmt in node.body) {
+        rtn = stmt.visitBy(this);
+      }
+      return rtn;
+    } finally {
+      _lexicalContexts.removeLast();
+    }
+  }
+
+  @override
+  visitVariableDeclaration(VariableDeclaration node) {
+    final previousKind = _currentDeclarationKind;
+    _currentDeclarationKind = node.kind;
+    dynamic rtn;
+    try {
+      for (final declarator in node.declarations) {
+        rtn = declarator.visitBy(this);
+      }
+    } finally {
+      _currentDeclarationKind = previousKind;
     }
     return rtn;
   }
 
   @override
   visitVariableDeclarator(VariableDeclarator node) {
-    Name name = node.name;
+    Node binding = node.name;
     dynamic value;
+    if (_currentDeclarationKind != 'var') {
+      value = node.init != null ? getValueFromExpression(node.init!) : null;
+      _bindPattern(binding, value,
+          lexical: true,
+          mutable: _currentDeclarationKind != 'const',
+          line: node.line ?? 1);
+      return binding;
+    }
     if (node.init != null) {
       value = getValueFromExpression(node.init!);
-      addToThisContext(name, value);
+      _bindPattern(binding, value,
+          lexical: false, mutable: true, line: node.line ?? 1);
     } else {
       //hoisting
-      Context ctx = getContextForScope(name.scope!);
-      if (!ctx.hasContext(name.value)) {
-        addToThisContext(name, value);
-      }
+      _hoistBinding(binding, value);
     }
-    return name;
+    return binding;
   }
+
+  @override
+  visitObjectPattern(ObjectPattern node) => node;
+
+  @override
+  visitArrayPattern(ArrayPattern node) => node;
 
   @override
   visitBinary(BinaryExpression node) {
@@ -855,7 +1463,7 @@ class JSInterpreter extends RecursiveVisitor<dynamic> {
       //https://github.com/EnsembleUI/ensemble/issues/574
       if (node.operator == '||') {
         if (left != false &&
-            left != null &&
+            !_isNullish(left) &&
             left != 0 &&
             left != '' &&
             !(left is num && left.isNaN)) {
@@ -865,7 +1473,7 @@ class JSInterpreter extends RecursiveVisitor<dynamic> {
         }
       } else if (node.operator == '&&') {
         if (left == false ||
-            left == null ||
+            _isNullish(left) ||
             left == 0 ||
             left == '' ||
             (left is num && left.isNaN)) {
@@ -873,6 +1481,8 @@ class JSInterpreter extends RecursiveVisitor<dynamic> {
         } else {
           return getValueFromExpression(node.right);
         }
+      } else if (node.operator == '??') {
+        return _isNullish(left) ? getValueFromExpression(node.right) : left;
       }
       dynamic right = getValueFromExpression(node.right);
       dynamic rtn = false;
@@ -1008,14 +1618,31 @@ class JSInterpreter extends RecursiveVisitor<dynamic> {
   visitFor(ForStatement node) {
     final String? loopLabel = _nextStatementLabel;
     _nextStatementLabel = null;
+    final List<String> loopLetNames = node.init is VariableDeclaration &&
+            (node.init as VariableDeclaration).kind == 'let'
+        ? (node.init as VariableDeclaration)
+            .declarations
+            .expand((declaration) => _bindingNames(declaration.name))
+            .map((name) => name.value)
+            .toList()
+        : <String>[];
     if (node.init != null) {
       node.init!.visitBy(this);
     }
     while (node.condition == null ||
         toBoolean(getValueFromNode(node.condition!))) {
+      _LexicalContext? iterationContext;
+      if (loopLetNames.isNotEmpty) {
+        iterationContext = _snapshotLoopBindings(loopLetNames);
+        _lexicalContexts.add(iterationContext);
+      }
       try {
         node.body.visitBy(this);
       } on ControlFlowBreakException catch (e) {
+        if (iterationContext != null) {
+          _copyLoopBindings(iterationContext, loopLetNames);
+          _lexicalContexts.removeLast();
+        }
         if (e.label == loopLabel) break;
         if (e.label != null) rethrow;
         break;
@@ -1026,11 +1653,50 @@ class JSInterpreter extends RecursiveVisitor<dynamic> {
           rethrow;
         }
         //skip as we are executing the update anyway
+      } finally {
+        if (iterationContext != null &&
+            identical(_lexicalContexts.last, iterationContext)) {
+          _copyLoopBindings(iterationContext, loopLetNames);
+          _lexicalContexts.removeLast();
+        }
       }
       // Execute the update expression after each loop iteration
       // see https://github.com/EnsembleUI/ensemble/issues/1704
       if (node.update != null) {
         node.update!.visitBy(this);
+      }
+    }
+  }
+
+  _LexicalContext _snapshotLoopBindings(List<String> names) {
+    final iteration = _LexicalContext();
+    for (final name in names) {
+      for (final lexical in _lexicalContexts.reversed) {
+        if (lexical.has(name)) {
+          final binding = lexical.bindings[name]!;
+          iteration.bindings[name] =
+              _LexicalBinding.uninitialized(mutable: binding.mutable)
+                ..value = binding.value
+                ..initialized = binding.initialized;
+          break;
+        }
+      }
+    }
+    return iteration;
+  }
+
+  void _copyLoopBindings(_LexicalContext iteration, List<String> names) {
+    for (final name in names) {
+      if (!iteration.has(name)) continue;
+      for (final lexical in _lexicalContexts.reversed.skip(1)) {
+        if (lexical.has(name)) {
+          final binding = iteration.bindings[name]!;
+          lexical.bindings[name] =
+              _LexicalBinding.uninitialized(mutable: binding.mutable)
+                ..value = binding.value
+                ..initialized = binding.initialized;
+          break;
+        }
       }
     }
   }
@@ -1104,6 +1770,111 @@ class JSInterpreter extends RecursiveVisitor<dynamic> {
   }
 
   @override
+  visitForOf(ForOfStatement node) {
+    final String? loopLabel = _nextStatementLabel;
+    _nextStatementLabel = null;
+    final dynamic right = getValueFromNode(node.right);
+    final List<dynamic> values = _toForOfValues(right, node);
+    final _ForLoopBinding binding = _forLoopBinding(node.left, node);
+
+    if (binding.kind == 'var') {
+      binding.declaration?.visitBy(this);
+    }
+
+    for (final value in values) {
+      _LexicalContext? iterationContext;
+      if (binding.kind == 'assignment' && binding.binding is Expression) {
+        _assignPattern(binding.binding as Expression, value, node.line ?? 1);
+      } else if (binding.kind != 'var') {
+        iterationContext = _LexicalContext();
+        for (final name in _bindingNames(binding.binding)) {
+          iterationContext.declare(name.value,
+              mutable: binding.kind != 'const');
+        }
+        _lexicalContexts.add(iterationContext);
+        _bindPattern(binding.binding, value,
+            lexical: true,
+            mutable: binding.kind != 'const',
+            line: node.line ?? 1);
+      } else {
+        _bindPattern(binding.binding, value,
+            lexical: false, mutable: true, line: node.line ?? 1);
+      }
+
+      try {
+        node.body.visitBy(this);
+      } on ControlFlowBreakException catch (e) {
+        if (iterationContext != null) {
+          _lexicalContexts.removeLast();
+        }
+        if (e.label == loopLabel) break;
+        if (e.label != null) rethrow;
+        break;
+      } on ControlFlowContinueException catch (e) {
+        if (e.label == loopLabel) {
+          // Continue with the next iterable value.
+        } else if (e.label != null) {
+          rethrow;
+        }
+      } finally {
+        if (iterationContext != null &&
+            _lexicalContexts.isNotEmpty &&
+            identical(_lexicalContexts.last, iterationContext)) {
+          _lexicalContexts.removeLast();
+        }
+      }
+    }
+  }
+
+  List<dynamic> _toForOfValues(dynamic value, Node node) {
+    if (value is List) return List<dynamic>.from(value);
+    if (value is String) return value.split('');
+    if (value is Invokable) {
+      final methods = InvokableController.methods(value);
+      final isMapLike =
+          methods.containsKey('get') && methods.containsKey('set');
+      final values = methods['values'];
+      final entries = methods['entries'];
+      if (isMapLike && entries != null) {
+        final result = Function.apply(entries, const []);
+        if (result is List) return List<dynamic>.from(result);
+      }
+      if (!isMapLike && values != null) {
+        final result = Function.apply(values, const []);
+        if (result is List) return List<dynamic>.from(result);
+      }
+      if (entries != null) {
+        final result = Function.apply(entries, const []);
+        if (result is List) return List<dynamic>.from(result);
+      }
+    }
+    throw JSException(node.line ?? 1,
+        'for...of requires a practical iterable value such as an array, string, Map, or Set.',
+        detailedError: 'Code: ${getCode(node)}');
+  }
+
+  _ForLoopBinding _forLoopBinding(Node left, Node node) {
+    if (left is VariableDeclaration) {
+      if (left.declarations.length != 1) {
+        throw JSException(
+            node.line ?? 1, 'for...of supports one loop variable.');
+      }
+      return _ForLoopBinding(left.declarations.first.name, left.kind, left);
+    }
+    if (left is NameExpression) {
+      return _ForLoopBinding(left.name, 'var', null);
+    }
+    if (left is ArrayExpression || left is ObjectExpression) {
+      return _ForLoopBinding(left, 'assignment', null);
+    }
+    if (left is Name) {
+      return _ForLoopBinding(left, 'var', null);
+    }
+    throw JSException(
+        node.line ?? 1, 'left side in for...of must be a variable name.');
+  }
+
+  @override
   visitSwitch(SwitchStatement node) {
     final dynamic argument = getValueFromExpression(node.argument);
     var matched = false;
@@ -1174,10 +1945,72 @@ class JSInterpreter extends RecursiveVisitor<dynamic> {
   }
 
   @override
+  visitTemplateLiteral(TemplateLiteral node) {
+    final buffer = StringBuffer();
+    for (int i = 0; i < node.strings.length; i++) {
+      buffer.write(node.strings[i]);
+      if (i < node.expressions.length) {
+        final value = getValueFromExpression(node.expressions[i]);
+        buffer.write(value?.toString() ?? 'null');
+      }
+    }
+    return buffer.toString();
+  }
+
+  @override
+  visitTaggedTemplate(TaggedTemplateExpression node) {
+    dynamic tag;
+    dynamic thisArg = getContextForScope(program).getContextMap();
+
+    if (node.tag is MemberExpression) {
+      final pattern =
+          visitMember(node.tag as MemberExpression, computeAsPattern: true);
+      if (pattern == null) return jsUndefined;
+      thisArg = pattern.obj;
+      tag = InvokableController.methods(pattern.obj)[pattern.property];
+      tag ??= InvokableController.getProperty(pattern.obj, pattern.property);
+    } else if (node.tag is IndexExpression) {
+      final pattern =
+          visitIndex(node.tag as IndexExpression, computeAsPattern: true);
+      if (pattern == null) return jsUndefined;
+      thisArg = pattern.obj;
+      tag = InvokableController.getProperty(pattern.obj, pattern.property);
+    } else {
+      tag = getValueFromExpression(node.tag);
+    }
+
+    if (tag == null || identical(tag, jsUndefined)) {
+      throw JSException(
+          node.line ?? -1, 'Tagged template tag is not callable.');
+    }
+
+    final strings = List<dynamic>.from(node.template.strings);
+    final values = node.template.expressions
+        .map((expression) => getValueFromExpression(expression))
+        .toList();
+    return _callAnyFunction(tag, [strings, ...values], thisArg);
+  }
+
+  @override
+  visitSpread(SpreadExpression node) {
+    return getValueFromExpression(node.argument);
+  }
+
+  @override
   visitArray(ArrayExpression node) {
     List arr = [];
     node.forEach((node) {
-      arr.add(node.visitBy(this));
+      if (node is SpreadExpression) {
+        final spreadValue = getValueFromExpression(node.argument);
+        if (spreadValue is List) {
+          arr.addAll(spreadValue);
+        } else {
+          throw JSException(node.line ?? 1,
+              'Spread in array literals requires a list value.');
+        }
+      } else {
+        arr.add(node.visitBy(this));
+      }
     });
     return arr;
   }
@@ -1192,6 +2025,15 @@ class JSInterpreter extends RecursiveVisitor<dynamic> {
     for (Node node in args) {
       if (resolveNames) {
         if (node is Expression) {
+          if (node is SpreadExpression) {
+            dynamic spreadValue = getValueFromExpression(node.argument);
+            if (spreadValue is List) {
+              l.addAll(spreadValue);
+              continue;
+            }
+            throw JSException(node.line ?? 1,
+                'Spread in function calls requires a list value.');
+          }
           dynamic v = getValueFromExpression(node);
           if (v is JavascriptFunction) {
             l.add(v._onCall);
@@ -1220,10 +2062,14 @@ class JSInterpreter extends RecursiveVisitor<dynamic> {
     }
     if (method is Function) {
       //functions being called from js to dart
-      if (arguments.length == 0) {
-        return Function.apply(method, null);
-      } else {
-        return Function.apply(method, arguments);
+      try {
+        if (arguments.length == 0) {
+          return Function.apply(method, null);
+        } else {
+          return Function.apply(method, arguments);
+        }
+      } catch (_) {
+        return Function.apply(method, [arguments, thisArg]);
       }
     } else {
       if (arguments.length == 0) {
@@ -1317,6 +2163,7 @@ class JSInterpreter extends RecursiveVisitor<dynamic> {
         } else {
           method = getValue((node.callee as NameExpression).name);
           if (method == null) {
+            if (node.optional) return jsUndefined;
             throw JSException(
                 node.line ?? -1, 'No definition found for ${getCode(node)}.',
                 recovery: 'Check your syntax and try again.');
@@ -1330,13 +2177,14 @@ class JSInterpreter extends RecursiveVisitor<dynamic> {
             thisArg: getContextForScope(program).getContextMap());
       } else if (node.callee is MemberExpression ||
           node.callee is IndexExpression) {
-        ObjectPattern? pattern;
+        PropertyPattern? pattern;
         dynamic method;
         MethodExecutor? methodExecutor;
         String? methodName;
         if (node.callee is MemberExpression) {
           pattern = visitMember(node.callee as MemberExpression,
               computeAsPattern: true);
+          if (pattern == null) return jsUndefined;
           if (pattern!.obj is MethodExecutor) {
             methodExecutor = pattern!.obj as MethodExecutor;
             methodName = pattern.property;
@@ -1356,6 +2204,7 @@ class JSInterpreter extends RecursiveVisitor<dynamic> {
         } else if (node.callee is IndexExpression) {
           pattern = visitIndex(node.callee as IndexExpression,
               computeAsPattern: true);
+          if (pattern == null) return jsUndefined;
           if ((pattern!.obj is JavascriptFunction || pattern.obj is Function) &&
               (pattern.property == 'call' ||
                   pattern.property == 'apply' ||
@@ -1368,6 +2217,7 @@ class JSInterpreter extends RecursiveVisitor<dynamic> {
           //old: method = pattern!.obj.getProperty(pattern.property);
         }
         if (method == null) {
+          if (node.optional) return jsUndefined;
           throw JSException(
               node.line ?? -1,
               "cannot compute statement=" +
@@ -1446,7 +2296,7 @@ class JSInterpreter extends RecursiveVisitor<dynamic> {
   visitAssignment(AssignmentExpression node) {
     try {
       dynamic val = getValueFromExpression(node.right);
-      ObjectPattern? pattern;
+      PropertyPattern? pattern;
       if (node.left is MemberExpression) {
         pattern =
             visitMember(node.left as MemberExpression, computeAsPattern: true);
@@ -1480,7 +2330,11 @@ class JSInterpreter extends RecursiveVisitor<dynamic> {
               value, val, node.operator!, node.line ?? -1, getCode(node));
         }
         addToContext(n, value);
+      } else if (node.operator == '=' &&
+          (node.left is ArrayExpression || node.left is ObjectExpression)) {
+        _assignPattern(node.left, val, node.line ?? 1);
       }
+      return val;
     } on JSException catch (e) {
       rethrow;
     } on InvalidPropertyException catch (e) {
@@ -1559,6 +2413,13 @@ class JSInterpreter extends RecursiveVisitor<dynamic> {
   visitIndex(IndexExpression node, {bool computeAsPattern = false}) {
     dynamic val;
     try {
+      if (node.optional) {
+        final obj = getValueFromExpression(node.object);
+        if (_isNullish(obj)) return computeAsPattern ? null : jsUndefined;
+        final property = getValueFromExpression(node.property);
+        return _getObjectPropertyValue(obj, property,
+            computeAsPattern: computeAsPattern);
+      }
       val = visitObjectPropertyExpression(
           node.object, getValueFromExpression(node.property),
           computeAsPattern: computeAsPattern);
@@ -1571,30 +2432,38 @@ class JSInterpreter extends RecursiveVisitor<dynamic> {
   visitObjectPropertyExpression(Expression object, dynamic property,
       {bool computeAsPattern = false}) {
     dynamic obj = getValueFromExpression(object);
-    dynamic val;
-    if (obj == null) {
+    if (_isNullish(obj)) {
       throw InvalidPropertyException(
           '${getCode(object)} is undefined. Check your syntax.');
     }
+    return _getObjectPropertyValue(obj, property,
+        computeAsPattern: computeAsPattern);
+  }
+
+  dynamic _getObjectPropertyValue(dynamic obj, dynamic property,
+      {bool computeAsPattern = false}) {
     if (obj is JavascriptFunction && property == 'prototype') {
-      return computeAsPattern ? ObjectPattern(obj, property) : obj.prototype;
+      return computeAsPattern ? PropertyPattern(obj, property) : obj.prototype;
     }
     if ((obj is JavascriptFunction || obj is Function) &&
         (property == 'call' || property == 'apply' || property == 'bind')) {
       return computeAsPattern
-          ? ObjectPattern(obj, property)
+          ? PropertyPattern(obj, property)
           : _functionMethod(obj, property);
     }
-    if (computeAsPattern) {
-      val = ObjectPattern(obj, property);
-    } else {
-      val = InvokableController.getProperty(obj, property);
-    }
-    return val;
+    return computeAsPattern
+        ? PropertyPattern(obj, property)
+        : InvokableController.getProperty(obj, property);
   }
 
   @override
   visitMember(MemberExpression node, {bool computeAsPattern = false}) {
+    if (node.optional) {
+      final obj = getValueFromExpression(node.object);
+      if (_isNullish(obj)) return computeAsPattern ? null : jsUndefined;
+      return _getObjectPropertyValue(obj, node.property.value,
+          computeAsPattern: computeAsPattern);
+    }
     return visitObjectPropertyExpression(node.object, node.property.value,
         computeAsPattern: computeAsPattern);
   }
@@ -1723,10 +2592,14 @@ class ControlFlowContinueException extends JSException {
       : super(line, message);
 }
 
-class ObjectPattern {
+/// Represents a key-value pattern resolved from a property access.
+class PropertyPattern {
+  /// The target object of the property.
   Object obj;
+  /// The key/property name.
   dynamic property;
-  ObjectPattern(this.obj, this.property);
+  /// Creates a property pattern with the given object and property.
+  PropertyPattern(this.obj, this.property);
 }
 
 typedef OnCall = dynamic Function(List arguments, [dynamic thisArg]);
