@@ -96,6 +96,7 @@ abstract class TVFocusProvider {
     bool lockHorizontalNavigation = false,
     bool delegateHorizontalNavigation = false,
     String? focusGroup,
+    FocusNode? primaryFocusNode,
     KeyEventResult Function(FocusNode node)? onBackPressed,
     VoidCallback? onRightEdge,
     VoidCallback? onLeftEdge,

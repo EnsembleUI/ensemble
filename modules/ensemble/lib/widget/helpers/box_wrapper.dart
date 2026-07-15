@@ -1054,6 +1054,7 @@ class _TapEnabledWrapperState extends State<_TapEnabledWrapper> {
         lockHorizontalNavigation: tvOptions.lockHorizontalNavigation,
         delegateHorizontalNavigation: tvOptions.delegateHorizontalNavigation,
         focusGroup: focusGroup,
+        primaryFocusNode: _focusNode,
         onRightEdge: rightEdgeHandler,
         onLeftEdge: leftEdgeHandler,
         onTopEdge: topEdgeHandler,
@@ -1076,6 +1077,7 @@ class _TapEnabledWrapperState extends State<_TapEnabledWrapper> {
       onLeftEdge: leftEdgeHandler,
       onTopEdge: topEdgeHandler,
       onBottomEdge: bottomEdgeHandler,
+      primaryFocusNode: _focusNode,
       child: materialChild,
     );
   }

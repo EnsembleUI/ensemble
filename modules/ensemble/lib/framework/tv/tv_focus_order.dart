@@ -1,6 +1,8 @@
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 
+import 'tv_focus_registry.dart';
+
 // =============================================================================
 // TV Focus Order - 2D Grid Coordinate System
 // =============================================================================
@@ -99,7 +101,21 @@ class TVFocusOrder extends FocusOrder {
   void requestFocus(BuildContext context) {
     final route = ModalRoute.of(context);
     final root = FocusManager.instance.rootScope;
-    TVFocusOrderNode? targetNode;
+    final candidatesByOrder = <TVFocusOrderNode, TVFocusOrderNode>{};
+
+    for (final target in TVFocusRegistry.targets<TVFocusOrder>(
+      route: route,
+    )) {
+      final gridFocusOrder = target.focusOrder as TVFocusOrder;
+      TVFocusOrderNode.addPreferredCandidate(
+        candidatesByOrder,
+        TVFocusOrderNode(
+          target.focusNode,
+          gridFocusOrder,
+          isRegisteredTarget: true,
+        ),
+      );
+    }
 
     for (final focusNode in root.descendants) {
       if (focusNode.context == null) continue;
@@ -110,18 +126,17 @@ class TVFocusOrder extends FocusOrder {
           ?.findAncestorWidgetOfExactType<FocusTraversalOrder>();
       if (focusTraversalOrder?.order is TVFocusOrder) {
         final gridFocusOrder = focusTraversalOrder!.order as TVFocusOrder;
-        if (gridFocusOrder.value == value &&
-            gridFocusOrder.focusGroup == focusGroup) {
-          final candidate = TVFocusOrderNode(focusNode, gridFocusOrder);
-          if (targetNode == null ||
-              TVFocusOrderNode.isBetterFocusCandidate(
-                  candidate.focus, targetNode.focus)) {
-            targetNode = candidate;
-          }
-        }
+        TVFocusOrderNode.addPreferredCandidate(
+          candidatesByOrder,
+          TVFocusOrderNode(focusNode, gridFocusOrder),
+        );
       }
     }
 
+    final targetNode = candidatesByOrder.values.firstWhereOrNull(
+      (node) =>
+          node.order.value == value && node.order.focusGroup == focusGroup,
+    );
     targetNode?.focus.requestFocus();
   }
 
@@ -134,6 +149,21 @@ class TVFocusOrder extends FocusOrder {
     final root = FocusManager.instance.rootScope;
     final candidatesByOrder = <TVFocusOrderNode, TVFocusOrderNode>{};
     final rowNodesByOrder = <TVFocusOrderNode, TVFocusOrderNode>{};
+
+    for (final target in TVFocusRegistry.targets<TVFocusOrder>(
+      route: route,
+      focusGroup: focusGroup,
+    )) {
+      final gridFocusOrder = target.focusOrder as TVFocusOrder;
+      final node = TVFocusOrderNode(
+        target.focusNode,
+        gridFocusOrder,
+        isRegisteredTarget: true,
+      );
+      TVFocusOrderNode.addPreferredCandidate(candidatesByOrder, node);
+      if (gridFocusOrder.row != row) continue;
+      TVFocusOrderNode.addPreferredCandidate(rowNodesByOrder, node);
+    }
 
     for (final focusNode in root.descendants) {
       if (focusNode.context == null) continue;
@@ -205,6 +235,21 @@ class TVFocusOrder extends FocusOrder {
     final route = ModalRoute.of(context);
     final root = FocusManager.instance.rootScope;
     final candidatesByOrder = <TVFocusOrderNode, TVFocusOrderNode>{};
+
+    for (final target in TVFocusRegistry.targets<TVFocusOrder>(
+      route: route,
+      focusGroup: targetFocusGroup,
+    )) {
+      final gridFocusOrder = target.focusOrder as TVFocusOrder;
+      TVFocusOrderNode.addPreferredCandidate(
+        candidatesByOrder,
+        TVFocusOrderNode(
+          target.focusNode,
+          gridFocusOrder,
+          isRegisteredTarget: true,
+        ),
+      );
+    }
 
     for (final focusNode in root.descendants) {
       if (focusNode.context == null) continue;
@@ -453,8 +498,13 @@ void requestFocusByEdge(
 class TVFocusOrderNode {
   final FocusNode focus;
   final TVFocusOrder order;
+  final bool isRegisteredTarget;
 
-  const TVFocusOrderNode(this.focus, this.order);
+  const TVFocusOrderNode(
+    this.focus,
+    this.order, {
+    this.isRegisteredTarget = false,
+  });
 
   @override
   String toString() => 'TVFocusOrderNode(${order.value}, ${focus.hashCode})';
@@ -473,10 +523,25 @@ class TVFocusOrderNode {
     TVFocusOrderNode candidate,
   ) {
     final existing = candidates[candidate];
-    if (existing == null ||
-        isBetterFocusCandidate(candidate.focus, existing.focus)) {
+    if (existing == null || isBetterCandidateNode(candidate, existing)) {
       candidates[candidate] = candidate;
     }
+  }
+
+  static bool isBetterCandidateNode(
+    TVFocusOrderNode candidate,
+    TVFocusOrderNode existing,
+  ) {
+    if (candidate.focus.hasPrimaryFocus != existing.focus.hasPrimaryFocus) {
+      return candidate.focus.hasPrimaryFocus;
+    }
+    if (candidate.focus.hasFocus != existing.focus.hasFocus) {
+      return candidate.focus.hasFocus;
+    }
+    if (candidate.isRegisteredTarget != existing.isRegisteredTarget) {
+      return candidate.isRegisteredTarget;
+    }
+    return _focusNodeDepth(candidate.focus) > _focusNodeDepth(existing.focus);
   }
 
   static bool isBetterFocusCandidate(FocusNode candidate, FocusNode existing) {
@@ -485,16 +550,6 @@ class TVFocusOrderNode {
     }
     if (candidate.hasFocus != existing.hasFocus) {
       return candidate.hasFocus;
-    }
-
-    final candidateLabel = candidate.debugLabel ?? '';
-    final existingLabel = existing.debugLabel ?? '';
-    final candidateIsEnsembleTapNode =
-        candidateLabel.startsWith('TapEnabledWrapper_');
-    final existingIsEnsembleTapNode =
-        existingLabel.startsWith('TapEnabledWrapper_');
-    if (candidateIsEnsembleTapNode != existingIsEnsembleTapNode) {
-      return candidateIsEnsembleTapNode;
     }
 
     return _focusNodeDepth(candidate) > _focusNodeDepth(existing);

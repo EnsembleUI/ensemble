@@ -1,4 +1,5 @@
 import 'package:ensemble/framework/tv/tv_focus_order.dart';
+import 'package:ensemble/framework/tv/tv_focus_registry.dart';
 import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -29,6 +30,7 @@ class TVFocusWidget extends StatelessWidget {
     this.onLeftEdge,
     this.onTopEdge,
     this.onBottomEdge,
+    this.primaryFocusNode,
   });
 
   /// The focus coordinate for this widget
@@ -54,9 +56,12 @@ class TVFocusWidget extends StatelessWidget {
   /// Optional callback when DOWN is pressed at the bottommost edge
   final VoidCallback? onBottomEdge;
 
+  /// Explicit requestable node for this coordinate, when the child owns one.
+  final FocusNode? primaryFocusNode;
+
   @override
   Widget build(BuildContext context) {
-    return FocusTraversalOrder(
+    final focusTraversalWidget = FocusTraversalOrder(
       order: focusOrder,
       // Use FocusScope instead of Focus so that this node becomes the PARENT
       // of the child's focus node in the focus tree. This allows key events
@@ -97,6 +102,23 @@ class TVFocusWidget extends StatelessWidget {
         },
         child: child,
       ),
+    );
+
+    final registeredFocusNode = primaryFocusNode;
+    if (registeredFocusNode == null) {
+      return focusTraversalWidget;
+    }
+
+    return TVFocusTargetRegistrar(
+      focusNode: registeredFocusNode,
+      focusOrder: focusOrder,
+      row: focusOrder.row,
+      order: focusOrder.order,
+      focusGroup: focusOrder.focusGroup,
+      isRowEntryPoint: focusOrder.isRowEntryPoint,
+      lockHorizontalNavigation: focusOrder.lockHorizontalNavigation,
+      delegateHorizontalNavigation: focusOrder.delegateHorizontalNavigation,
+      child: focusTraversalWidget,
     );
   }
 
@@ -139,6 +161,22 @@ class TVFocusWidget extends StatelessWidget {
     // Collect all focusable items in the same FocusTraversalGroup
     final root = FocusManager.instance.rootScope;
     final inScopeByOrder = <TVFocusOrderNode, TVFocusOrderNode>{};
+
+    for (final target in TVFocusRegistry.targets<TVFocusOrder>(
+      route: route,
+      traversalGroup: focusTraversalGroup,
+      focusGroup: currentFocusGroup,
+    )) {
+      final order = target.focusOrder as TVFocusOrder;
+      TVFocusOrderNode.addPreferredCandidate(
+        inScopeByOrder,
+        TVFocusOrderNode(
+          target.focusNode,
+          order,
+          isRegisteredTarget: true,
+        ),
+      );
+    }
 
     for (final focusNode in root.descendants) {
       // Check if this node is mounted and has context
