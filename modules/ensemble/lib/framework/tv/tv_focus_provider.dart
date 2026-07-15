@@ -184,6 +184,31 @@ abstract class TVFocusProvider {
     const TVFocusOrder(0).requestFocusAt(context, row, order, focusGroup);
   }
 
+  /// Request focus from an edge into a target focus group.
+  ///
+  /// [targetRow] and [targetOrder] are optional hints. When omitted, the
+  /// implementation should pick a deterministic target inside
+  /// [targetFocusGroup] based on [direction].
+  void requestFocusByEdge(
+    BuildContext context, {
+    required TVFocusDirection direction,
+    String? targetFocusGroup,
+    double? targetRow,
+    double? targetOrder,
+    double? currentRow,
+    double? currentOrder,
+  }) {
+    const TVFocusOrder(0).requestFocusByEdge(
+      context,
+      direction: direction,
+      targetFocusGroup: targetFocusGroup,
+      targetRow: targetRow,
+      targetOrder: targetOrder,
+      currentRow: currentRow,
+      currentOrder: currentOrder,
+    );
+  }
+
   /// Disposes any resources held by this provider.
   void dispose() {}
 }

@@ -5,6 +5,13 @@ import 'package:flutter/material.dart';
 // TV Focus Order - 2D Grid Coordinate System
 // =============================================================================
 
+enum TVFocusDirection {
+  left,
+  right,
+  top,
+  bottom,
+}
+
 /// 2D coordinate for TV D-pad navigation. Maps to flutter_pca's PageFocusOrder.
 ///
 /// ## Coordinate System
@@ -164,6 +171,153 @@ class TVFocusOrder extends FocusOrder {
     _requestBestNodeInRow(rowNodes, order);
   }
 
+  /// Request focus from an edge into another focus group.
+  ///
+  /// Unlike [requestFocusAt], [targetRow] and [targetOrder] are optional hints.
+  /// When they are omitted, the target is selected deterministically from the
+  /// requested group based on the direction of travel.
+  void requestFocusByEdge(
+    BuildContext context, {
+    required TVFocusDirection direction,
+    String? targetFocusGroup,
+    double? targetRow,
+    double? targetOrder,
+    double? currentRow,
+    double? currentOrder,
+  }) {
+    final route = ModalRoute.of(context);
+    final root = FocusManager.instance.rootScope;
+    final candidates = <TVFocusOrderNode>[];
+
+    for (final focusNode in root.descendants) {
+      if (focusNode.context == null) continue;
+      if (!_isInRoute(focusNode.context!, route)) continue;
+
+      final focusTraversalOrder = focusNode.context
+          ?.findAncestorWidgetOfExactType<FocusTraversalOrder>();
+      if (focusTraversalOrder?.order is TVFocusOrder) {
+        final gridFocusOrder = focusTraversalOrder!.order as TVFocusOrder;
+        if (targetFocusGroup != null &&
+            gridFocusOrder.focusGroup != targetFocusGroup) {
+          continue;
+        }
+        candidates.add(TVFocusOrderNode(focusNode, gridFocusOrder));
+      }
+    }
+
+    if (candidates.isEmpty) {
+      return;
+    }
+
+    final grid = TVFocusOrderNode.buildGrid(candidates);
+    if (grid.isEmpty) {
+      return;
+    }
+
+    final targetRowNodes = _selectRowForEdge(
+      grid,
+      direction: direction,
+      targetRow: targetRow,
+      currentRow: currentRow,
+    );
+    if (targetRowNodes == null || targetRowNodes.isEmpty) {
+      return;
+    }
+
+    final targetNode = _selectNodeForEdge(
+      targetRowNodes,
+      direction: direction,
+      targetOrder: targetOrder,
+      currentOrder: currentOrder,
+    );
+    targetNode?.focus.requestFocus();
+  }
+
+  static List<TVFocusOrderNode>? _selectRowForEdge(
+    List<List<TVFocusOrderNode>> grid, {
+    required TVFocusDirection direction,
+    double? targetRow,
+    double? currentRow,
+  }) {
+    if (targetRow != null) {
+      List<TVFocusOrderNode>? nearest;
+      var nearestDiff = double.infinity;
+      for (final rowNodes in grid) {
+        final diff = (rowNodes.first.order.row - targetRow).abs();
+        if (diff < nearestDiff) {
+          nearest = rowNodes;
+          nearestDiff = diff;
+        }
+      }
+      return nearest;
+    }
+
+    switch (direction) {
+      case TVFocusDirection.right:
+      case TVFocusDirection.left:
+        if (currentRow == null) {
+          return grid.first;
+        }
+        return _findNearestRow(
+          grid.expand((row) => row).toList(),
+          currentRow,
+        );
+      case TVFocusDirection.bottom:
+        return grid.first;
+      case TVFocusDirection.top:
+        return grid.last;
+    }
+  }
+
+  static TVFocusOrderNode? _selectNodeForEdge(
+    List<TVFocusOrderNode> rowNodes, {
+    required TVFocusDirection direction,
+    double? targetOrder,
+    double? currentOrder,
+  }) {
+    if (rowNodes.isEmpty) {
+      return null;
+    }
+
+    if (targetOrder != null) {
+      return _nearestNodeByOrder(rowNodes, targetOrder);
+    }
+
+    switch (direction) {
+      case TVFocusDirection.right:
+        return rowNodes.first;
+      case TVFocusDirection.left:
+        return rowNodes.last;
+      case TVFocusDirection.top:
+      case TVFocusDirection.bottom:
+        for (final node in rowNodes) {
+          if (node.order.isRowEntryPoint) {
+            return node;
+          }
+        }
+        if (currentOrder != null) {
+          return _nearestNodeByOrder(rowNodes, currentOrder);
+        }
+        return rowNodes.first;
+    }
+  }
+
+  static TVFocusOrderNode? _nearestNodeByOrder(
+    List<TVFocusOrderNode> rowNodes,
+    double targetOrder,
+  ) {
+    TVFocusOrderNode? nearest;
+    var nearestDiff = double.infinity;
+    for (final node in rowNodes) {
+      final diff = (node.order.order - targetOrder).abs();
+      if (diff < nearestDiff) {
+        nearest = node;
+        nearestDiff = diff;
+      }
+    }
+    return nearest;
+  }
+
   static List<TVFocusOrderNode>? _findNearestRow(
     List<TVFocusOrderNode> candidates,
     double targetRow,
@@ -249,6 +403,26 @@ class TVFocusOrder extends FocusOrder {
 void requestFocusAt(BuildContext context, double row,
     [double? order, String? focusGroup]) {
   const TVFocusOrder(0).requestFocusAt(context, row, order, focusGroup);
+}
+
+void requestFocusByEdge(
+  BuildContext context, {
+  required TVFocusDirection direction,
+  String? targetFocusGroup,
+  double? targetRow,
+  double? targetOrder,
+  double? currentRow,
+  double? currentOrder,
+}) {
+  const TVFocusOrder(0).requestFocusByEdge(
+    context,
+    direction: direction,
+    targetFocusGroup: targetFocusGroup,
+    targetRow: targetRow,
+    targetOrder: targetOrder,
+    currentRow: currentRow,
+    currentOrder: currentOrder,
+  );
 }
 
 // =============================================================================

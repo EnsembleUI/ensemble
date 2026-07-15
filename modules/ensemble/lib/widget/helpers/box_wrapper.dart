@@ -3,6 +3,7 @@ import 'package:ensemble/framework/model.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/theme/theme_loader.dart';
 import 'package:ensemble/framework/theme/theme_manager.dart';
+import 'package:ensemble/framework/tv/tv_focus_navigation.dart';
 import 'package:ensemble/framework/tv/tv_focus_order.dart';
 import 'package:ensemble/framework/tv/tv_focus_provider.dart';
 import 'package:ensemble/framework/tv/tv_focus_theme.dart';
@@ -25,34 +26,6 @@ const double kTVVerticalScrollPadding = 50.0; // Vertical visibility padding
 const double kTVFixedFocusOffset = 48.0; // Netflix-style fixed position
 const double kTVEdgePadding = 8.0; // Edge visibility buffer
 const double kTVScrollThreshold = 2.0; // Min delta to trigger scroll
-
-VoidCallback? _buildEdgeNavigationCallback(
-  BuildContext context,
-  TVFocusProvider? provider,
-  TVFocusEdgeTargetComposite? target,
-) {
-  if (target?.targetRow == null) {
-    return null;
-  }
-
-  double rowOffset = 0;
-  double orderOffset = 0;
-  if (provider != null) {
-    rowOffset = provider.rowOffset;
-    orderOffset = provider.orderOffset;
-  }
-  final effectiveRow = target!.targetRow! + rowOffset;
-  final effectiveOrder =
-      target.targetOrder != null ? target.targetOrder! + orderOffset : null;
-
-  if (provider != null) {
-    final p = provider;
-    return () => p.requestFocusAt(
-        context, effectiveRow, effectiveOrder, target.targetFocusGroup);
-  }
-  return () => requestFocusAt(
-      context, effectiveRow, effectiveOrder, target.targetFocusGroup);
-}
 
 // =============================================================================
 // TV Focus - Styling Resolver
@@ -158,7 +131,11 @@ class BoxWrapper extends StatelessWidget {
         ignoresMargin: ignoresMargin,
         ignoresPadding: ignoresPadding,
         ignoresDimension: ignoresDimension)) {
-      return _getWidget(context);
+      return wrapWithTVFocusContext(
+        context: context,
+        tvOptions: boxController.tvOptions,
+        child: _getWidget(context),
+      );
     }
     // when we have a border radius, we need to clip the decoration.
     // Note that this clip only apply to the background decoration.
@@ -264,22 +241,34 @@ class BoxWrapper extends StatelessWidget {
       if (boxController is TapEnabledBoxController) {
         final tapController = boxController as TapEnabledBoxController;
         if (tapController.onTap != null || tapController.onLongPress != null) {
-          return _TapEnabledWrapper(
-            controller: tapController,
-            boxController: boxController,
-            child: containerWidget,
-            wrapEntireWidget: true,
+          return wrapWithTVFocusContext(
+            context: context,
+            tvOptions: boxController.tvOptions,
+            child: _TapEnabledWrapper(
+              controller: tapController,
+              boxController: boxController,
+              child: containerWidget,
+              wrapEntireWidget: true,
+            ),
           );
         }
       }
       // Non-tappable widgets (e.g., Button with built-in tap) get focus ordering only
-      return _TVFocusOnlyWrapper(
-        boxController: boxController,
-        child: containerWidget,
+      return wrapWithTVFocusContext(
+        context: context,
+        tvOptions: boxController.tvOptions,
+        child: _TVFocusOnlyWrapper(
+          boxController: boxController,
+          child: containerWidget,
+        ),
       );
     }
 
-    return containerWidget;
+    return wrapWithTVFocusContext(
+      context: context,
+      tvOptions: boxController.tvOptions,
+      child: containerWidget,
+    );
   }
 
   Widget _getWidget(BuildContext context) {
@@ -879,6 +868,7 @@ class _TapEnabledWrapperState extends State<_TapEnabledWrapper> {
     final tvOrder = tvOptions.order ?? 0;
     final isRowEntryPoint = tvOptions.isRowEntryPoint;
     final autofocus = widget.boxController.autofocus;
+    final focusGroup = resolveTVFocusGroup(context, tvOptions);
 
     final externalProvider = TVFocusProviderScope.maybeOf(context);
     final effectiveRow =
@@ -1015,28 +1005,44 @@ class _TapEnabledWrapperState extends State<_TapEnabledWrapper> {
 
     final materialChild = Material(color: Colors.transparent, child: inkWell);
     final tvFocusScope = context.findAncestorWidgetOfExactType<TVFocusScope>();
-    final rightEdgeHandler = _buildEdgeNavigationCallback(
-          context,
-          externalProvider,
-          tvOptions.edges?.right,
+    final rightEdgeHandler = buildTVEdgeNavigationCallback(
+          context: context,
+          provider: externalProvider,
+          direction: TVFocusDirection.right,
+          target: resolveTVFocusEdgeTarget(
+              context, tvOptions, TVFocusDirection.right),
+          currentRow: effectiveRow,
+          currentOrder: effectiveOrder,
         ) ??
         tvFocusScope?.onRightEdge;
-    final leftEdgeHandler = _buildEdgeNavigationCallback(
-          context,
-          externalProvider,
-          tvOptions.edges?.left,
+    final leftEdgeHandler = buildTVEdgeNavigationCallback(
+          context: context,
+          provider: externalProvider,
+          direction: TVFocusDirection.left,
+          target: resolveTVFocusEdgeTarget(
+              context, tvOptions, TVFocusDirection.left),
+          currentRow: effectiveRow,
+          currentOrder: effectiveOrder,
         ) ??
         tvFocusScope?.onLeftEdge;
-    final topEdgeHandler = _buildEdgeNavigationCallback(
-          context,
-          externalProvider,
-          tvOptions.edges?.top,
+    final topEdgeHandler = buildTVEdgeNavigationCallback(
+          context: context,
+          provider: externalProvider,
+          direction: TVFocusDirection.top,
+          target: resolveTVFocusEdgeTarget(
+              context, tvOptions, TVFocusDirection.top),
+          currentRow: effectiveRow,
+          currentOrder: effectiveOrder,
         ) ??
         tvFocusScope?.onTopEdge;
-    final bottomEdgeHandler = _buildEdgeNavigationCallback(
-          context,
-          externalProvider,
-          tvOptions.edges?.bottom,
+    final bottomEdgeHandler = buildTVEdgeNavigationCallback(
+          context: context,
+          provider: externalProvider,
+          direction: TVFocusDirection.bottom,
+          target: resolveTVFocusEdgeTarget(
+              context, tvOptions, TVFocusDirection.bottom),
+          currentRow: effectiveRow,
+          currentOrder: effectiveOrder,
         ) ??
         tvFocusScope?.onBottomEdge;
 
@@ -1047,7 +1053,7 @@ class _TapEnabledWrapperState extends State<_TapEnabledWrapper> {
         isRowEntryPoint: isRowEntryPoint,
         lockHorizontalNavigation: tvOptions.lockHorizontalNavigation,
         delegateHorizontalNavigation: tvOptions.delegateHorizontalNavigation,
-        focusGroup: tvOptions.focusGroup,
+        focusGroup: focusGroup,
         onRightEdge: rightEdgeHandler,
         onLeftEdge: leftEdgeHandler,
         onTopEdge: topEdgeHandler,
@@ -1064,7 +1070,7 @@ class _TapEnabledWrapperState extends State<_TapEnabledWrapper> {
         isRowEntryPoint: isRowEntryPoint,
         lockHorizontalNavigation: tvOptions.lockHorizontalNavigation,
         delegateHorizontalNavigation: tvOptions.delegateHorizontalNavigation,
-        focusGroup: tvOptions.focusGroup,
+        focusGroup: focusGroup,
       ),
       onRightEdge: rightEdgeHandler,
       onLeftEdge: leftEdgeHandler,
@@ -1240,6 +1246,7 @@ class _TVFocusOnlyWrapperState extends State<_TVFocusOnlyWrapper> {
     final tvRow = tvOptions.row!;
     final tvOrder = tvOptions.order ?? 0;
     final isRowEntryPoint = tvOptions.isRowEntryPoint;
+    final focusGroup = resolveTVFocusGroup(context, tvOptions);
 
     final externalProvider = TVFocusProviderScope.maybeOf(context);
     final effectiveRow =
@@ -1360,28 +1367,44 @@ class _TVFocusOnlyWrapperState extends State<_TVFocusOnlyWrapper> {
     );
 
     final tvFocusScope = context.findAncestorWidgetOfExactType<TVFocusScope>();
-    final rightEdgeHandler = _buildEdgeNavigationCallback(
-          context,
-          externalProvider,
-          tvOptions.edges?.right,
+    final rightEdgeHandler = buildTVEdgeNavigationCallback(
+          context: context,
+          provider: externalProvider,
+          direction: TVFocusDirection.right,
+          target: resolveTVFocusEdgeTarget(
+              context, tvOptions, TVFocusDirection.right),
+          currentRow: effectiveRow,
+          currentOrder: effectiveOrder,
         ) ??
         tvFocusScope?.onRightEdge;
-    final leftEdgeHandler = _buildEdgeNavigationCallback(
-          context,
-          externalProvider,
-          tvOptions.edges?.left,
+    final leftEdgeHandler = buildTVEdgeNavigationCallback(
+          context: context,
+          provider: externalProvider,
+          direction: TVFocusDirection.left,
+          target: resolveTVFocusEdgeTarget(
+              context, tvOptions, TVFocusDirection.left),
+          currentRow: effectiveRow,
+          currentOrder: effectiveOrder,
         ) ??
         tvFocusScope?.onLeftEdge;
-    final topEdgeHandler = _buildEdgeNavigationCallback(
-          context,
-          externalProvider,
-          tvOptions.edges?.top,
+    final topEdgeHandler = buildTVEdgeNavigationCallback(
+          context: context,
+          provider: externalProvider,
+          direction: TVFocusDirection.top,
+          target: resolveTVFocusEdgeTarget(
+              context, tvOptions, TVFocusDirection.top),
+          currentRow: effectiveRow,
+          currentOrder: effectiveOrder,
         ) ??
         tvFocusScope?.onTopEdge;
-    final bottomEdgeHandler = _buildEdgeNavigationCallback(
-          context,
-          externalProvider,
-          tvOptions.edges?.bottom,
+    final bottomEdgeHandler = buildTVEdgeNavigationCallback(
+          context: context,
+          provider: externalProvider,
+          direction: TVFocusDirection.bottom,
+          target: resolveTVFocusEdgeTarget(
+              context, tvOptions, TVFocusDirection.bottom),
+          currentRow: effectiveRow,
+          currentOrder: effectiveOrder,
         ) ??
         tvFocusScope?.onBottomEdge;
 
@@ -1392,7 +1415,7 @@ class _TVFocusOnlyWrapperState extends State<_TVFocusOnlyWrapper> {
         isRowEntryPoint: isRowEntryPoint,
         lockHorizontalNavigation: tvOptions.lockHorizontalNavigation,
         delegateHorizontalNavigation: tvOptions.delegateHorizontalNavigation,
-        focusGroup: tvOptions.focusGroup,
+        focusGroup: focusGroup,
         onRightEdge: rightEdgeHandler,
         onLeftEdge: leftEdgeHandler,
         onTopEdge: topEdgeHandler,
@@ -1409,7 +1432,7 @@ class _TVFocusOnlyWrapperState extends State<_TVFocusOnlyWrapper> {
         isRowEntryPoint: isRowEntryPoint,
         lockHorizontalNavigation: tvOptions.lockHorizontalNavigation,
         delegateHorizontalNavigation: tvOptions.delegateHorizontalNavigation,
-        focusGroup: tvOptions.focusGroup,
+        focusGroup: focusGroup,
       ),
       onRightEdge: rightEdgeHandler,
       onLeftEdge: leftEdgeHandler,

@@ -1080,6 +1080,27 @@ class _BracketTVFocusProvider implements TVFocusProvider {
   @override
   void requestFocusAt(BuildContext context, double row,
       [double? order, String? focusGroup]) {
-    // TODO: implement requestFocusAt
+    const TVFocusOrder(0).requestFocusAt(context, row, order, focusGroup);
+  }
+
+  @override
+  void requestFocusByEdge(
+    BuildContext context, {
+    required TVFocusDirection direction,
+    String? targetFocusGroup,
+    double? targetRow,
+    double? targetOrder,
+    double? currentRow,
+    double? currentOrder,
+  }) {
+    const TVFocusOrder(0).requestFocusByEdge(
+      context,
+      direction: direction,
+      targetFocusGroup: targetFocusGroup,
+      targetRow: targetRow,
+      targetOrder: targetOrder,
+      currentRow: currentRow,
+      currentOrder: currentOrder,
+    );
   }
 }

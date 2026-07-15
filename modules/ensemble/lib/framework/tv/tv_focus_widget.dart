@@ -127,7 +127,7 @@ class TVFocusWidget extends StatelessWidget {
     final bottomEdgeHandler = onBottomEdge ?? tvFocusScope?.onBottomEdge;
     final topEdgeHandler = onTopEdge ?? tvFocusScope?.onTopEdge;
     final currentFocusGroup = focusOrder.focusGroup;
-    bool matchesSection(TVFocusOrder order) {
+    bool matchesFocusGroup(TVFocusOrder order) {
       if (currentFocusGroup == null) {
         return true;
       }
@@ -152,7 +152,7 @@ class TVFocusWidget extends StatelessWidget {
           ?.findAncestorWidgetOfExactType<FocusTraversalOrder>();
       if (focusTraversalOrder?.order is TVFocusOrder) {
         final order = focusTraversalOrder!.order as TVFocusOrder;
-        if (!matchesSection(order)) {
+        if (!matchesFocusGroup(order)) {
           continue;
         }
         inScope.add(TVFocusOrderNode(focusNode, order));
