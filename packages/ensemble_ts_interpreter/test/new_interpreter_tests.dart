@@ -2551,7 +2551,7 @@ function createRandomizedTiles() {
     JSInterpreter.fromCode(codeToEvaluate, SimpleContext(context)).evaluate();
     expect(context['area'], 200);
   });
-  test('arrow function with one parm, no parentheses and automatic return',
+  test('arrow function with one parm, parenthesized and automatic return',
       () async {
     String codeToEvaluate = """
       var numbers = [1, 2, 3, 4, 5];
@@ -3099,7 +3099,7 @@ function createRandomizedTiles() {
     """;
       Map<String, dynamic> context = initContext();
       JSInterpreter.fromCode(codeToEvaluate, SimpleContext(context)).evaluate();
-      expect(context['caught'], null);
+      expect(isJSUndefined(context['caught']), isTrue);
     });
 
     test('throwing null', () {

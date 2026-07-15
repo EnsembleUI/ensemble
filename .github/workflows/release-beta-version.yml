@@ -1,6 +1,12 @@
 # Automates Releasing a Beta Version on a Feature Branch
-#   melos version ensemble [version]
-#   git push --follow-tags origin [branch]
+#
+# Creates a version commit and tag WITHOUT modifying the branch.
+# Uses detached HEAD so the branch stays clean - only the tag is pushed.
+#
+# Flow:
+#   1. Checkout branch, detach HEAD
+#   2. melos version creates commit + tag on detached HEAD
+#   3. Push only the tag (branch unchanged)
 
 name: Release Beta Version
 
@@ -88,8 +94,17 @@ jobs:
       - name: Bootstrap
         run: melos bootstrap
 
-      - name: Version packages
-        run: melos version ensemble "${{ inputs.version }}" --yes
+      - name: Version packages on detached HEAD
+        run: |
+          # Detach HEAD so branch ref won't move when melos commits
+          # Not strictly necessary since we only push the tag, but keeps intent clear
+          git checkout --detach HEAD
 
-      - name: Push to feature branch
-        run: git push origin ${{ inputs.branch }} --follow-tags
+          # Melos creates version commit + tag on detached HEAD
+          melos version ensemble "${{ inputs.version }}" --yes
+
+      - name: Push tag only
+        run: |
+          # Push only the tag - branch remains unchanged
+          # 'tag' keyword ensures we push a tag, not a branch
+          git push origin tag ensemble-v${{ inputs.version }}

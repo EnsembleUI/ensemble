@@ -39,9 +39,22 @@ class EnvironmentBuilder extends RecursiveVisitor<Null> {
     if (node.isExpression && node.name != null) {
       addVar(node.name!);
     }
-    node.params.forEach(addVar);
+    node.params.forEach(addParam);
     visit(node.body);
     currentScope = oldScope;
+  }
+
+  void addParam(Node node) {
+    if (node is Name) {
+      addVar(node);
+    } else if (node is DefaultParameter) {
+      bindingNames(node.name).forEach(addVar);
+      visit(node.defaultValue);
+    } else if (node is RestParameter) {
+      bindingNames(node.name).forEach(addVar);
+    } else {
+      bindingNames(node).forEach(addVar);
+    }
   }
 
   visitFunctionDeclaration(FunctionDeclaration node) {
@@ -54,7 +67,7 @@ class EnvironmentBuilder extends RecursiveVisitor<Null> {
   }
 
   visitVariableDeclarator(VariableDeclarator node) {
-    addVar(node.name);
+    bindingNames(node.name).forEach(addVar);
     node.forEach(visit);
   }
 
@@ -63,6 +76,28 @@ class EnvironmentBuilder extends RecursiveVisitor<Null> {
     node.environment!.add(node.param.value);
     node.forEach(visit);
   }
+}
+
+List<Name> bindingNames(Node binding) {
+  if (binding is Name) return [binding];
+  if (binding is ObjectPattern) {
+    return binding.properties.expand((property) {
+      final value = property.value;
+      if (value is Name) return [value];
+      return bindingNames(value);
+    }).toList();
+  }
+  if (binding is ArrayPattern) {
+    return binding.elements
+        .whereType<Node>()
+        .expand((element) => element is RestParameter
+            ? bindingNames(element.name)
+            : bindingNames(element))
+        .toList();
+  }
+  if (binding is DefaultParameter) return bindingNames(binding.name);
+  if (binding is RestParameter) return bindingNames(binding.name);
+  return <Name>[];
 }
 
 /// Initializes the [Name.scope] link on all [Name] nodes.

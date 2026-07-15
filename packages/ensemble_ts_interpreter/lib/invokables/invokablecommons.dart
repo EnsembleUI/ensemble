@@ -170,6 +170,29 @@ class InvokableObject extends Object with Invokable {
               .map((key) => [key, InvokableController.getProperty(value, key)])
               .toList()
           : (value == null ? [] : null),
+      'fromEntries': (dynamic entries) {
+        final result = <dynamic, dynamic>{};
+        List<dynamic> entryList = [];
+        if (entries is List) {
+          entryList = entries;
+        } else if (entries is Invokable) {
+          final method = entries.methods()['entries'];
+          final value =
+              method == null ? null : Function.apply(method, const []);
+          if (value is List) entryList = value;
+        }
+        for (final entry in entryList) {
+          if (entry is List && entry.length >= 2) {
+            result[entry[0]] = entry[1];
+          } else if (entry is Map) {
+            final key = entry.containsKey('key') ? entry['key'] : entry[0];
+            final value =
+                entry.containsKey('value') ? entry['value'] : entry[1];
+            result[key] = value;
+          }
+        }
+        return result;
+      },
       'create': (dynamic proto) {
         final Map<String, dynamic> obj = {};
         if (proto != null) {
@@ -179,8 +202,13 @@ class InvokableObject extends Object with Invokable {
       },
       'getPrototypeOf': (dynamic value) =>
           InvokableController.getPrototype(value),
+      'hasOwn': (dynamic value, dynamic key) =>
+          InvokableController.hasOwnProperty(value, key),
       'hasOwnProperty': (dynamic value, String key) =>
           InvokableController.hasOwnProperty(value, key),
+      'getOwnPropertyNames': (dynamic value) => (value is Map)
+          ? InvokableController.ownPropertyKeys(value)
+          : (value == null ? [] : null),
       'getPropertyNames': (dynamic value) => (value is Map)
           ? InvokableController.ownPropertyKeys(value)
           : (value == null ? [] : null),

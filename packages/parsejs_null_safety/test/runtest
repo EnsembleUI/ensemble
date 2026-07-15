@@ -36,7 +36,7 @@ do
 	path=$(python -c "import os.path; print os.path.relpath('$file', '$BASEDIR')")
 	printf "%-50s" $path
 
-	if dart parser_test.dart --json $file > tmp/mine.json 2> tmp/$name.err; then
+	if dart parser_tool.dart --json $file > tmp/mine.json 2> tmp/$name.err; then
 		rm -f tmp/$name.err
 	else
 		echo "[EXCEPTION]"

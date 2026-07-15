@@ -116,6 +116,10 @@ mixin Invokable {
     if (func != null) {
       return func();
     }
+    final method = getMethod(prop);
+    if (method != null) {
+      return (dynamic args) => method(args);
+    }
     throw InvalidPropertyException(
         'Object with id:${id ?? ''} does not have a gettable property named $prop');
   }

@@ -85,6 +85,28 @@ class Parser {
     }
   }
 
+  Token peekToken([int distance = 1]) {
+    Token? savedToken = token;
+    int? savedEndOffset = endOffset;
+    int savedIndex = lexer.index;
+    int savedCurrentLine = lexer.currentLine;
+    int? savedTokenStart = lexer.tokenStart;
+    int? savedTokenLine = lexer.tokenLine;
+    bool? savedSeenLinebreak = lexer.seenLinebreak;
+    Token peeked = token!;
+    for (int i = 0; i < distance; i++) {
+      peeked = lexer.scan();
+    }
+    token = savedToken;
+    endOffset = savedEndOffset;
+    lexer.index = savedIndex;
+    lexer.currentLine = savedCurrentLine;
+    lexer.tokenStart = savedTokenStart;
+    lexer.tokenLine = savedTokenLine;
+    lexer.seenLinebreak = savedSeenLinebreak;
+    return peeked;
+  }
+
   Name makeName(Token tok) => new Name(tok.value!)
     ..start = tok.startOffset
     ..end = tok.endOffset
@@ -94,17 +116,41 @@ class Parser {
 
   ///// FUNCTIONS //////
 
-  List<Name> parseParameters() {
+  List<Node> parseParameters() {
     consume(Token.LPAREN);
-    List<Name> list = <Name>[];
+    List<Node> list = <Node>[];
     while (token!.type != Token.RPAREN) {
       if (list.isNotEmpty) {
         consume(Token.COMMA);
       }
-      list.add(parseName());
+      list.add(parseParameter());
+      if (list.last is RestParameter && token!.type != Token.RPAREN) {
+        fail(message: 'Rest parameter must be last');
+      }
     }
     consume(Token.RPAREN);
     return list;
+  }
+
+  Node parseParameter() {
+    if (token!.type == Token.ELLIPSIS) {
+      Token tok = next();
+      Node name = parseBindingTarget();
+      return new RestParameter(name)
+        ..start = tok.startOffset
+        ..end = endOffset
+        ..line = tok.line;
+    }
+    Node name = parseBindingTarget();
+    if (token!.type == Token.ASSIGN && token!.text == '=') {
+      next();
+      Expression defaultValue = parseAssignment();
+      return new DefaultParameter(name, defaultValue)
+        ..start = name.start
+        ..end = endOffset
+        ..line = name.line;
+    }
+    return name;
   }
 
   BlockStatement parseFunctionBody() {
@@ -115,35 +161,25 @@ class Parser {
     if (token!.type == Token.LBRACE) {
       return parseBlock();
     }
-    Expression exp = parseExpression();
+    Expression exp = parseExpression(allowComma: false);
     if (token!.type == Token.SEMICOLON) {
       consumeSemicolon();
     }
     return new BlockStatement([new ReturnStatement(exp)]);
   }
 
-  FunctionNode parseArrowFunction(Expression? exp) {
+  FunctionNode parseArrowFunction(Expression? exp, {bool isAsync = false}) {
     int? start = token!.startOffset;
-    // List<Name> params;
-    // if (token!.type == Token.LPAREN) {
-    //   params = parseParameters();
-    // } else {
-    //   params = <Name>[];
-    // }
-    List<Name> params = <Name>[];
+    List<Node> params = <Node>[];
     if (exp != null) {
       if (exp is SequenceExpression) {
         for (var e in exp.expressions) {
-          if (e is NameExpression) {
-            params.add(e.name);
-          } else {
-            throw fail();
-          }
+          params.add(_expressionToParameter(e));
         }
       } else if (exp is NameExpression) {
         params.add(exp.name);
       } else {
-        throw fail();
+        params.add(_expressionToParameter(exp));
       }
     }
     consume(Token.ARROW);
@@ -151,23 +187,144 @@ class Parser {
     //Expression body = parseExpression();
     //return new FunctionNode(null, params, new BlockStatement([new ReturnStatement(body)]))
     BlockStatement body = parseArrowFunctionBody();
-    return new FunctionNode(null, params, body)
+    return new FunctionNode(null, params, body, isAsync: isAsync)
       ..start = start
       ..end = endOffset
       ..line = token!.line;
   }
 
-  FunctionNode parseFunction() {
+  FunctionNode parseArrowFunctionFromParams(List<Node> params, int? start,
+      {bool isAsync = false}) {
+    consume(Token.ARROW);
+    next();
+    BlockStatement body = parseArrowFunctionBody();
+    return new FunctionNode(null, params, body, isAsync: isAsync)
+      ..start = start
+      ..end = endOffset
+      ..line = token!.line;
+  }
+
+  Node _expressionToParameter(Expression exp) {
+    if (exp is NameExpression) return exp.name;
+    if (exp is AssignmentExpression &&
+        exp.operator == '=' &&
+        exp.left is NameExpression) {
+      return new DefaultParameter((exp.left as NameExpression).name, exp.right)
+        ..start = exp.start
+        ..end = exp.end
+        ..line = exp.line;
+    }
+    throw fail(message: 'Invalid arrow function parameter');
+  }
+
+  Node parseBindingTarget() {
+    if (token!.type == Token.LBRACE) return parseObjectBindingPattern();
+    if (token!.type == Token.LBRACKET) return parseArrayBindingPattern();
+    return parseName();
+  }
+
+  ObjectPattern parseObjectBindingPattern() {
     int? start = token!.startOffset;
+    Token open = requireNext(Token.LBRACE);
+    List<Property> properties = <Property>[];
+    while (token!.type != Token.RBRACE) {
+      if (properties.isNotEmpty) consume(Token.COMMA);
+      if (token!.type == Token.RBRACE) break;
+      if (token!.type == Token.ELLIPSIS) {
+        Token rest = next();
+        Node value = parseBindingTarget();
+        properties.add(new Property(new LiteralExpression('__rest__'),
+            new RestParameter(value), 'spread')
+          ..start = rest.startOffset
+          ..end = endOffset
+          ..line = rest.line);
+        if (token!.type != Token.RBRACE) {
+          fail(message: 'Rest property must be last');
+        }
+        break;
+      }
+      Token keyTok = next();
+      Node key = makePropertyName(keyTok);
+      Node value;
+      if (token!.type == Token.COLON) {
+        next();
+        value = parseBindingTarget();
+      } else if (key is Name) {
+        value = new Name(key.value)
+          ..start = key.start
+          ..end = key.end
+          ..line = key.line;
+      } else {
+        throw fail(tok: keyTok, message: 'Invalid destructuring binding');
+      }
+      if (token!.type == Token.ASSIGN && token!.text == '=') {
+        next();
+        Expression defaultValue = parseAssignment();
+        value = new DefaultParameter(value, defaultValue)
+          ..start = value.start
+          ..end = endOffset
+          ..line = value.line;
+      }
+      properties.add(new Property(key, value)
+        ..start = key.start
+        ..end = endOffset
+        ..line = key.line);
+    }
+    consume(Token.RBRACE);
+    return new ObjectPattern(properties)
+      ..start = start
+      ..end = endOffset
+      ..line = open.line;
+  }
+
+  ArrayPattern parseArrayBindingPattern() {
+    int? start = token!.startOffset;
+    Token open = requireNext(Token.LBRACKET);
+    List<Node?> elements = <Node?>[];
+    while (token!.type != Token.RBRACKET) {
+      if (token!.type == Token.COMMA) {
+        next();
+        elements.add(null);
+        continue;
+      }
+      if (token!.type == Token.ELLIPSIS) {
+        Token rest = next();
+        elements.add(new RestParameter(parseBindingTarget())
+          ..start = rest.startOffset
+          ..end = endOffset
+          ..line = rest.line);
+      } else {
+        Node element = parseBindingTarget();
+        if (token!.type == Token.ASSIGN && token!.text == '=') {
+          next();
+          Expression defaultValue = parseAssignment();
+          element = new DefaultParameter(element, defaultValue)
+            ..start = element.start
+            ..end = endOffset
+            ..line = element.line;
+        }
+        elements.add(element);
+      }
+      if (token!.type != Token.RBRACKET) consume(Token.COMMA);
+    }
+    consume(Token.RBRACKET);
+    return new ArrayPattern(elements)
+      ..start = start
+      ..end = endOffset
+      ..line = open.line;
+  }
+
+  FunctionNode parseFunction({bool isAsync = false, int? asyncStart}) {
+    int? start = asyncStart ?? token!.startOffset;
     assert(token!.text == 'function');
     Token funToken = next();
     Name? name;
     if (token!.type == Token.NAME) {
       name = parseName();
     }
-    List<Name> params = parseParameters();
+    List<Node> params = parseParameters();
     BlockStatement body = parseFunctionBody();
-    return new FunctionNode(name, params, body)
+    return new FunctionNode(name, params, body, isAsync: isAsync)
       ..start = start
       ..end = endOffset
       ..line = funToken.line;
@@ -180,6 +337,29 @@ class Parser {
     switch (token!.type) {
       case Token.NAME:
         switch (token!.text) {
+          case 'async':
+            if (peekToken().type == Token.NAME &&
+                peekToken().text == 'function') {
+              Token asyncTok = next();
+              return new FunctionExpression(parseFunction(
+                  isAsync: true, asyncStart: asyncTok.startOffset));
+            }
+            if (peekToken().type == Token.LPAREN && _asyncParenIsArrow()) {
+              Token asyncTok = next();
+              List<Node> params = parseParameters();
+              return new FunctionExpression(parseArrowFunctionFromParams(
+                  params, asyncTok.startOffset,
+                  isAsync: true));
+            }
+            if (peekToken().type == Token.NAME &&
+                peekToken(2).type == Token.ARROW) {
+              Token asyncTok = next();
+              Name param = parseName();
+              return new FunctionExpression(parseArrowFunctionFromParams(
+                  <Node>[param], asyncTok.startOffset,
+                  isAsync: true));
+            }
+            break;
           case 'this':
             Token tok = next();
             return new ThisExpression()
@@ -227,6 +407,9 @@ class Parser {
           ..end = endOffset
           ..line = tok.line;
 
+      case Token.TEMPLATE:
+        return parseTemplateLiteral();
+
       case Token.LBRACKET:
         return parseArrayLiteral();
 
@@ -234,6 +417,12 @@ class Parser {
         return parseObjectLiteral();
 
       case Token.LPAREN:
+        if (_parenIsArrowParameters()) {
+          int? arrowStart = token!.startOffset;
+          List<Node> params = parseParameters();
+          return new FunctionExpression(
+              parseArrowFunctionFromParams(params, arrowStart));
+        }
         next();
         Expression? exp;
         if (token!.type != Token.RPAREN) {
@@ -264,6 +453,127 @@ class Parser {
     }
   }
 
+  bool _parenIsArrowParameters() {
+    int depth = 0;
+    for (int i = token!.startOffset!; i < lexer.endOfFile!; i++) {
+      int ch = lexer.input[i];
+      if (ch == 40) depth++;
+      if (ch == 41) {
+        depth--;
+        if (depth == 0) {
+          int j = i + 1;
+          while (j < lexer.endOfFile!) {
+            int ws = lexer.input[j];
+            if (ws == 32 || ws == 9 || ws == 10 || ws == 13) {
+              j++;
+              continue;
+            }
+            return ws == 61 &&
+                j + 1 < lexer.endOfFile! &&
+                lexer.input[j + 1] == 62;
+          }
+          return false;
+        }
+      }
+    }
+    return false;
+  }
+
+  bool _asyncParenIsArrow() {
+    int depth = 0;
+    for (int i = peekToken().startOffset!; i < lexer.endOfFile!; i++) {
+      int ch = lexer.input[i];
+      if (ch == 40) depth++;
+      if (ch == 41) {
+        depth--;
+        if (depth == 0) {
+          int j = i + 1;
+          while (j < lexer.endOfFile!) {
+            int ws = lexer.input[j];
+            if (ws == 32 || ws == 9 || ws == 10 || ws == 13) {
+              j++;
+              continue;
+            }
+            return ws == 61 &&
+                j + 1 < lexer.endOfFile! &&
+                lexer.input[j + 1] == 62;
+          }
+          return false;
+        }
+      }
+    }
+    return false;
+  }
+
+  Expression parseTemplateLiteral() {
+    int? start = token!.startOffset;
+    Token tok = next();
+    List<String> strings = <String>[];
+    List<Expression> expressions = <Expression>[];
+    String raw = tok.value ?? '';
+    StringBuffer current = new StringBuffer();
+    int i = 0;
+    while (i < raw.length) {
+      String ch = raw[i];
+      if (ch == '\\' && i + 1 < raw.length) {
+        current.write(_templateEscape(raw[i + 1]));
+        i += 2;
+        continue;
+      }
+      if (ch == r'$' && i + 1 < raw.length && raw[i + 1] == '{') {
+        strings.add(current.toString());
+        current = new StringBuffer();
+        i += 2;
+        int expressionStart = i;
+        int depth = 1;
+        while (i < raw.length && depth > 0) {
+          if (raw[i] == '\\') {
+            i += 2;
+            continue;
+          }
+          if (raw[i] == '{') depth++;
+          if (raw[i] == '}') depth--;
+          if (depth > 0) i++;
+        }
+        if (depth != 0)
+          fail(tok: tok, message: 'Unterminated template expression');
+        String expressionSource = raw.substring(expressionStart, i);
+        Parser expressionParser = new Parser(new Lexer(expressionSource));
+        expressions.add(expressionParser.parseExpression());
+        i++;
+        continue;
+      }
+      current.write(ch);
+      i++;
+    }
+    strings.add(current.toString());
+    return new TemplateLiteral(strings, expressions)
+      ..start = start
+      ..end = endOffset
+      ..line = tok.line;
+  }
+
+  String _templateEscape(String ch) {
+    switch (ch) {
+      case 'n':
+        return '\n';
+      case 'r':
+        return '\r';
+      case 't':
+        return '\t';
+      case 'b':
+        return '\b';
+      case 'f':
+        return '\f';
+      case '`':
+        return '`';
+      case '\\':
+        return '\\';
+      default:
+        return ch;
+    }
+  }
+
   Expression parseArrayLiteral() {
     int? start = token!.startOffset;
     Token open = requireNext(Token.LBRACKET);
@@ -273,7 +583,15 @@ class Parser {
         next();
         expressions.add(null);
       } else {
-        expressions.add(parseAssignment());
+        if (token!.type == Token.ELLIPSIS) {
+          Token spread = next();
+          expressions.add(new SpreadExpression(parseAssignment())
+            ..start = spread.startOffset
+            ..end = endOffset
+            ..line = spread.line);
+        } else {
+          expressions.add(parseAssignment());
+        }
         if (token!.type != Token.RBRACKET) {
           consume(Token.COMMA);
         }
@@ -315,6 +633,39 @@ class Parser {
 
   Property parseProperty() {
     int? start = token!.startOffset;
+    if (token!.type == Token.ELLIPSIS) {
+      Token spread = next();
+      Expression value = parseAssignment();
+      return new Property(
+          new LiteralExpression('__spread__', '__spread__'), value, 'spread')
+        ..start = start
+        ..end = endOffset
+        ..line = spread.line;
+    }
+    if (token!.type == Token.LBRACKET) {
+      Token open = next();
+      Expression key = parseExpression();
+      consume(Token.RBRACKET);
+      if (token!.type == Token.LPAREN) {
+        int? lparen = token!.startOffset;
+        List<Node> params = parseParameters();
+        BlockStatement body = parseFunctionBody();
+        Node value = new FunctionNode(null, params, body)
+          ..start = lparen
+          ..end = endOffset
+          ..line = open.line;
+        return new Property(key, value, 'init', true, true)
+          ..start = start
+          ..end = endOffset
+          ..line = open.line;
+      }
+      consume(Token.COLON);
+      Expression value = parseAssignment();
+      return new Property(key, value, 'init', true)
+        ..start = start
+        ..end = endOffset
+        ..line = open.line;
+    }
     Token nameTok = next();
     if (token!.type == Token.COLON) {
       int? line = token!.line;
@@ -326,6 +677,20 @@ class Parser {
         ..end = endOffset
         ..line = line;
     }
+    if (nameTok.type == Token.NAME && token!.type == Token.LPAREN) {
+      Node name = makePropertyName(nameTok);
+      int? lparen = token!.startOffset;
+      List<Node> params = parseParameters();
+      BlockStatement body = parseFunctionBody();
+      Node value = new FunctionNode(null, params, body)
+        ..start = lparen
+        ..end = endOffset
+        ..line = name.line;
+      return new Property(name, value, 'init', false, true)
+        ..start = start
+        ..end = endOffset
+        ..line = name.line;
+    }
     if (nameTok.type == Token.NAME &&
         (nameTok.text == 'get' || nameTok.text == 'set')) {
       Token kindTok = nameTok;
@@ -334,7 +699,7 @@ class Parser {
       nameTok = next();
       Node name = makePropertyName(nameTok);
       int? lparen = token!.startOffset;
-      List<Name> params = parseParameters();
+      List<Node> params = parseParameters();
       BlockStatement body = parseFunctionBody();
       Node value = new FunctionNode(null, params, body)
         ..start = lparen
@@ -344,6 +709,14 @@ class Parser {
         ..start = start
         ..end = endOffset
         ..line = kindTok.line;
+    }
+    if (nameTok.type == Token.NAME) {
+      Name key = makeName(nameTok);
+      Name value = makeName(nameTok);
+      return new Property(key, new NameExpression(value))
+        ..start = start
+        ..end = endOffset
+        ..line = key.line;
     }
     throw fail(expected: 'property', tok: nameTok);
   }
@@ -373,7 +746,15 @@ class Parser {
       if (list.length > 0) {
         consume(Token.COMMA);
       }
-      list.add(parseAssignment());
+      if (token!.type == Token.ELLIPSIS) {
+        Token spread = next();
+        list.add(new SpreadExpression(parseAssignment())
+          ..start = spread.startOffset
+          ..end = endOffset
+          ..line = spread.line);
+      } else {
+        list.add(parseAssignment());
+      }
     }
     consume(Token.RPAREN);
     return list;
@@ -393,6 +774,31 @@ class Parser {
             ..start = start
             ..end = endOffset
             ..line = line;
+          break;
+
+        case Token.OPTIONAL_CHAIN:
+          next();
+          if (token!.type == Token.LBRACKET) {
+            next();
+            Expression index = parseExpression();
+            requireNext(Token.RBRACKET);
+            exp = new IndexExpression(exp, index, optional: true)
+              ..start = start
+              ..end = endOffset
+              ..line = line;
+          } else if (token!.type == Token.LPAREN) {
+            List<Expression> args = parseArguments();
+            exp = new CallExpression(exp, args, optional: true)
+              ..start = start
+              ..end = endOffset
+              ..line = line;
+          } else {
+            Name name = parseName();
+            exp = new MemberExpression(exp, name, optional: true)
+              ..start = start
+              ..end = endOffset
+              ..line = line;
+          }
           break;
 
         case Token.LBRACKET:
@@ -420,6 +826,17 @@ class Parser {
               ..end = endOffset
               ..line = line;
           }
+          break;
+
+        case Token.TEMPLATE:
+          if (newTok != null) {
+            break loop;
+          }
+          exp = new TaggedTemplateExpression(
+              exp, parseTemplateLiteral() as TemplateLiteral)
+            ..start = start
+            ..end = endOffset
+            ..line = line;
           break;
 
         default:
@@ -488,6 +905,14 @@ class Parser {
           ..line = operator.line;
 
       case Token.NAME:
+        if (token!.text == 'await') {
+          Token operator = next();
+          Expression exp = parseUnary();
+          return new AwaitExpression(exp)
+            ..start = operator.startOffset
+            ..end = endOffset
+            ..line = operator.line;
+        }
         if (token!.text == 'delete' ||
             token!.text == 'void' ||
             token!.text == 'typeof') {
@@ -542,6 +967,16 @@ class Parser {
   Expression parseAssignment({bool allowIn = true}) {
     int? start = token!.startOffset;
     Expression exp = parseConditional(allowIn);
+    if (token!.type == Token.ARROW) {
+      if (exp is! NameExpression) {
+        fail(message: 'Invalid arrow function parameter');
+      }
+      exp = new FunctionExpression(parseArrowFunction(exp))
+        ..start = start
+        ..end = endOffset
+        ..line = exp.line;
+      return exp;
+    }
     if (token!.type == Token.ASSIGN) {
       Token operator = next();
       Expression right = parseAssignment(allowIn: allowIn);
@@ -553,10 +988,10 @@ class Parser {
     return exp;
   }
 
-  Expression parseExpression({bool allowIn = true}) {
+  Expression parseExpression({bool allowIn = true, bool allowComma = true}) {
     int? start = token!.startOffset;
     Expression exp = parseAssignment(allowIn: allowIn);
-    if (token!.type == Token.COMMA) {
+    if (allowComma && token!.type == Token.COMMA) {
       List<Expression> expressions = <Expression>[exp];
       while (token!.type == Token.COMMA) {
         next();
@@ -590,11 +1025,13 @@ class Parser {
   VariableDeclaration parseVariableDeclarationList({bool allowIn = true}) {
     int? start = token!.startOffset;
     int? line = token!.line;
-    assert(token!.text == 'var');
+    assert(
+        token!.text == 'var' || token!.text == 'let' || token!.text == 'const');
+    String kind = token!.text!;
     consume(Token.NAME);
     List<VariableDeclarator> list = <VariableDeclarator>[];
     while (true) {
-      Name name = parseName();
+      Node name = parseBindingTarget();
       Expression? init = null;
       if (token!.type == Token.ASSIGN) {
         if (token!.text != '=') {
@@ -610,7 +1047,7 @@ class Parser {
       if (token!.type != Token.COMMA) break;
       next();
     }
-    return new VariableDeclaration(list)
+    return new VariableDeclaration(list, kind)
       ..start = start
       ..end = endOffset
       ..line = line;
@@ -719,7 +1156,7 @@ class Parser {
     consume(Token.NAME);
     consume(Token.LPAREN);
     Node? exp1;
-    if (peekName('var')) {
+    if (peekName('var') || peekName('let') || peekName('const')) {
       exp1 = parseVariableDeclarationList(allowIn: false);
     } else if (token!.type != Token.SEMICOLON) {
       exp1 = parseExpression(allowIn: false);
@@ -732,6 +1169,17 @@ class Parser {
       consume(Token.RPAREN);
       Statement body = parseStatement();
       return new ForInStatement(exp1, exp2, body)
+        ..start = start
+        ..end = endOffset
+        ..line = line;
+    } else if (exp1 != null && tryName('of')) {
+      if (exp1 is VariableDeclaration && exp1.declarations.length > 1) {
+        fail(message: 'Multiple vars declared in for-of loop');
+      }
+      Expression exp2 = parseExpression();
+      consume(Token.RPAREN);
+      Statement body = parseStatement();
+      return new ForOfStatement(exp1, exp2, body)
         ..start = start
         ..end = endOffset
         ..line = line;
@@ -936,12 +1384,46 @@ class Parser {
       ..line = line;
   }
 
+  Statement parseAsyncFunctionDeclaration() {
+    int? start = token!.startOffset;
+    int? line = token!.line;
+    assert(token!.text == 'async');
+    Token asyncTok = next();
+    consumeName('function');
+    FunctionNode func = parseFunctionAfterKeyword(
+        isAsync: true, asyncStart: asyncTok.startOffset);
+    if (func.name == null) {
+      fail(message: 'Function declaration must have a name');
+    }
+    return new FunctionDeclaration(func)
+      ..start = start
+      ..end = endOffset
+      ..line = line;
+  }
+
+  FunctionNode parseFunctionAfterKeyword(
+      {bool isAsync = false, int? asyncStart}) {
+    int? start = asyncStart ?? token!.startOffset;
+    Name? name;
+    if (token!.type == Token.NAME) {
+      name = parseName();
+    }
+    List<Node> params = parseParameters();
+    BlockStatement body = parseFunctionBody();
+    return new FunctionNode(name, params, body, isAsync: isAsync)
+      ..start = start
+      ..end = endOffset
+      ..line = name?.line;
+  }
+
   Statement parseStatement() {
     if (token!.type == Token.LBRACE) return parseBlock();
     if (token!.type == Token.SEMICOLON) return parseEmptyStatement();
     if (token!.type != Token.NAME) return parseExpressionStatement();
     switch (token!.value) {
       case 'var':
+      case 'let':
+      case 'const':
         return parseVariableDeclarationStatement();
       case 'if':
         return parseIf();
@@ -969,6 +1451,11 @@ class Parser {
         return parseDebuggerStatement();
       case 'function':
         return parseFunctionDeclaration();
+      case 'async':
+        if (peekToken().type == Token.NAME && peekToken().text == 'function') {
+          return parseAsyncFunctionDeclaration();
+        }
+        return parseExpressionOrLabeledStatement();
       default:
         return parseExpressionOrLabeledStatement();
     }
