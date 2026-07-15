@@ -8,8 +8,12 @@ import 'package:flutter/services.dart';
 
 /// Focusable scrollbar for TV. Syncs with ListView's ScrollController.
 ///
-/// ## Visual States
-/// - Unfocused: Grey, thin (3px default)
+/// ## Visibility
+/// - **Hidden** when content fits in viewport (no scrolling needed)
+/// - **Visible** when content overflows (scrolling available)
+///
+/// ## Visual States (when visible)
+/// - Unfocused: Grey, thin (3px default) - always visible if scrollable
 /// - Focused: White, wider (6px default)
 ///
 /// ## Navigation Flow
@@ -23,7 +27,7 @@ import 'package:flutter/services.dart';
 ///   tvOptions:
 ///     scrollbarOptions:
 ///       position: right     # 'left' or 'right'
-///       color: 0xFF666666   # unfocused color
+///       color: 0xFF666666   # unfocused color (visible when scrollable)
 ///       focusedColor: 0xFFFFFFFF
 /// ```
 class TVScrollbarWidget extends StatefulWidget {
@@ -48,12 +52,34 @@ class _TVScrollbarWidgetState extends State<TVScrollbarWidget> {
   bool _isFocused = false;
   double _thumbOffset = 0.0;
   double _thumbHeight = 0.0;
+  bool _isScrollable = false;
+  bool _isInitialized = false;
 
   @override
   void initState() {
     super.initState();
     _focusNode = FocusNode(debugLabel: 'TVScrollbar');
     widget.scrollController.addListener(_onScrollChange);
+
+    // Initialize thumb position once controller is ready
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _initializeIfReady();
+    });
+  }
+
+  void _initializeIfReady() {
+    if (_isInitialized || !mounted) return;
+
+    if (widget.scrollController.hasClients) {
+      _isInitialized = true;
+      _updateThumbPosition();
+      setState(() {});
+    } else {
+      // Controller not ready yet, try again next frame
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _initializeIfReady();
+      });
+    }
   }
 
   /// Public method to request focus on this scrollbar (called from ListView)
@@ -84,6 +110,16 @@ class _TVScrollbarWidgetState extends State<TVScrollbarWidget> {
     final contentHeight = position.maxScrollExtent + viewportHeight;
     final scrollOffset = position.pixels;
 
+    // Check if content is scrollable (content exceeds viewport)
+    _isScrollable = position.maxScrollExtent > 0;
+
+    if (!_isScrollable) {
+      // No scrollable content, hide the thumb
+      _thumbHeight = 0.0;
+      _thumbOffset = 0.0;
+      return;
+    }
+
     // Calculate thumb height (proportional to viewport/content ratio)
     final thumbRatio = viewportHeight / contentHeight;
     _thumbHeight = (viewportHeight * thumbRatio).clamp(
@@ -97,8 +133,6 @@ class _TVScrollbarWidgetState extends State<TVScrollbarWidget> {
         ? scrollOffset / (contentHeight - viewportHeight)
         : 0.0;
     _thumbOffset = (maxThumbOffset * scrollRatio).clamp(0.0, maxThumbOffset);
-
-    // Removed excessive logging - thumb updates constantly during scroll
   }
 
   void _scrollDown() {
@@ -141,12 +175,10 @@ class _TVScrollbarWidgetState extends State<TVScrollbarWidget> {
 
   @override
   Widget build(BuildContext context) {
-    // Calculate current thumb position for first render
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted && widget.scrollController.hasClients) {
-        _updateThumbPosition();
-      }
-    });
+    // Hide scrollbar completely if content is not scrollable
+    if (!_isScrollable) {
+      return const SizedBox.shrink();
+    }
 
     // Focus is requested via TVFocusScope edge handlers when user navigates to content boundary
     return LayoutBuilder(
