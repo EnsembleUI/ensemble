@@ -10,11 +10,60 @@ import 'package:ensemble_test_runner/runner/app_performance_log.dart';
 import 'package:ensemble_test_runner/runner/ensemble_test_context.dart';
 import 'package:ensemble_test_runner/runner/ensemble_test_harness.dart';
 import 'package:ensemble_test_runner/runner/test_runtime_state.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:yaml/yaml.dart';
 
 void main() {
+  testWidgets('toggle taps the switch inside a keyed input wrapper',
+      (tester) async {
+    var value = false;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: StatefulBuilder(
+          builder: (context, setState) => Scaffold(
+            body: KeyedSubtree(
+              key: const ValueKey('notifications'),
+              child: SizedBox(
+                width: 400,
+                child: Row(
+                  children: [
+                    const Expanded(child: Text('Notifications')),
+                    CupertinoSwitch(
+                      value: value,
+                      onChanged: (next) => setState(() => value = next),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    final context = EnsembleTestContext.fromTestCase(
+      const EnsembleTestCase(
+        id: 't',
+        startScreen: 'Home',
+        steps: [],
+      ),
+    );
+    final executor = TestStepExecutor(
+      tester: tester,
+      context: context,
+      assertions: AssertionEngine(tester: tester, context: context),
+      harness: EnsembleTestHarness(appPath: 'ensemble/apps/', appHome: 'x'),
+    );
+
+    await executor.execute(
+      const TestStep(type: 'toggle', args: {'id': 'notifications'}),
+    );
+
+    expect(value, isTrue);
+  });
+
   testWidgets('waitFor requires id or text', (tester) async {
     final context = EnsembleTestContext.fromTestCase(
       const EnsembleTestCase(

@@ -11,6 +11,7 @@ import 'package:ensemble_test_runner/runner/ensemble_test_context.dart';
 import 'package:ensemble_test_runner/runner/ensemble_test_harness.dart';
 import 'package:ensemble_test_runner/runner/yaml_test_session.dart';
 import 'package:ensemble_test_runner/vocabulary/test_step_vocabulary.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -160,7 +161,7 @@ class TestStepExecutor {
         await _select(_requireId(step), step.args['value']?.toString());
         break;
       case 'toggle':
-        await _tap(_requireId(step));
+        await _toggle(_requireId(step));
         break;
       case 'waitFor':
         await _waitFor(
@@ -400,6 +401,29 @@ class TestStepExecutor {
     await tester.ensureVisible(finder);
     await _pump(label: 'tap:before');
     await tester.tap(finder);
+    await _settle();
+  }
+
+  Future<void> _toggle(String id) async {
+    final finder = assertions.finderForId(id);
+    if (finder.evaluate().isEmpty) {
+      await _waitFor(
+        id: id,
+        timeoutMs: config.defaultWaitTimeout.inMilliseconds,
+      );
+    }
+    _expectSingleWidget(finder, id, 'toggle');
+    await tester.ensureVisible(finder);
+    await _pump(label: 'toggle:before');
+
+    final control = find.descendant(
+      of: finder,
+      matching: find.byWidgetPredicate(
+        (widget) =>
+            widget is Switch || widget is CupertinoSwitch || widget is Checkbox,
+      ),
+    );
+    await tester.tap(control.evaluate().isNotEmpty ? control.first : finder);
     await _settle();
   }
 

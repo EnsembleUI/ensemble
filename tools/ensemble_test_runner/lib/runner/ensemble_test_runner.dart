@@ -18,6 +18,8 @@ import 'package:ensemble_test_runner/runner/live_async_call.dart';
 import 'package:ensemble_test_runner/runner/screenshot_contact_sheet.dart';
 import 'package:ensemble_test_runner/runner/test_runtime_state.dart';
 import 'package:ensemble_test_runner/runner/yaml_test_session.dart';
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -229,6 +231,9 @@ class EnsembleTestRunner {
       final startFrame = ctx.runtime.appFrameTimings.length + 1;
       final startTime = DateTime.now();
       try {
+        if (i == 0 && ctx.config.screenshots.enabled) {
+          await executor.settle();
+        }
         await _captureAutomaticScreenshotForStep(
           executor: executor,
           step: step,
@@ -367,7 +372,27 @@ class EnsembleTestRunner {
     final finder = executor.assertions.finderForId(id);
     if (finder.evaluate().isEmpty) return;
 
-    await executor.tester.ensureVisible(finder);
+    var visibilityTarget = finder;
+    if (step.type == 'toggle' ||
+        step.type == 'check' ||
+        step.type == 'uncheck') {
+      final control = find.descendant(
+        of: finder,
+        matching: find.byWidgetPredicate(
+          (widget) =>
+              widget is Switch ||
+              widget is CupertinoSwitch ||
+              widget is Checkbox,
+        ),
+      );
+      if (control.evaluate().isNotEmpty) {
+        visibilityTarget = control.first;
+      }
+    }
+
+    if (visibilityTarget.hitTestable().evaluate().isNotEmpty) return;
+
+    await executor.tester.ensureVisible(visibilityTarget);
     await executor.tester.pump();
   }
 
