@@ -1,9 +1,18 @@
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 
+import 'tv_focus_registry.dart';
+
 // =============================================================================
 // TV Focus Order - 2D Grid Coordinate System
 // =============================================================================
+
+enum TVFocusDirection {
+  left,
+  right,
+  top,
+  bottom,
+}
 
 /// 2D coordinate for TV D-pad navigation. Maps to flutter_pca's PageFocusOrder.
 ///
@@ -30,7 +39,8 @@ class TVFocusOrder extends FocusOrder {
     this.order = 0,
   ])  : isRowEntryPoint = false,
         lockHorizontalNavigation = false,
-        delegateHorizontalNavigation = false;
+        delegateHorizontalNavigation = false,
+        focusGroup = null;
 
   /// Creates a focus order with full control over all options.
   ///
@@ -42,6 +52,7 @@ class TVFocusOrder extends FocusOrder {
     this.isRowEntryPoint = false,
     this.lockHorizontalNavigation = false,
     this.delegateHorizontalNavigation = false,
+    this.focusGroup,
   });
 
   final double row;
@@ -59,6 +70,13 @@ class TVFocusOrder extends FocusOrder {
   /// Use this for items inside carousels where horizontal keys should switch slides.
   final bool delegateHorizontalNavigation;
 
+  /// Optional focus group.
+  ///
+  /// When set, focus movement only considers widgets that share the same group.
+  /// This is useful for keeping two nearby UI regions separate while still allowing
+  /// explicit edge callbacks to move focus between them.
+  final String? focusGroup;
+
   /// Composite value for sorting: row * 10000 + order
   /// This ensures items are sorted by row first, then by order within row
   double get value => row * 10000 + order;
@@ -74,37 +92,402 @@ class TVFocusOrder extends FocusOrder {
       isRowEntryPoint: isRowEntryPoint,
       lockHorizontalNavigation: lockHorizontalNavigation,
       delegateHorizontalNavigation: delegateHorizontalNavigation,
+      focusGroup: focusGroup,
     );
   }
 
-  /// Request focus on the widget with this order coordinate
-  /// Searches within the same FocusTraversalGroup
+  /// Request focus on the widget with this order coordinate.
+  /// Scoped to current route to prevent stealing focus from other screens.
   void requestFocus(BuildContext context) {
-    final group = context.findAncestorWidgetOfExactType<FocusTraversalGroup>();
+    final route = ModalRoute.of(context);
     final root = FocusManager.instance.rootScope;
+    final candidatesByOrder = <TVFocusOrderNode, TVFocusOrderNode>{};
+
+    for (final target in TVFocusRegistry.targets<TVFocusOrder>(
+      route: route,
+    )) {
+      final gridFocusOrder = target.focusOrder as TVFocusOrder;
+      TVFocusOrderNode.addPreferredCandidate(
+        candidatesByOrder,
+        TVFocusOrderNode(
+          target.focusNode,
+          gridFocusOrder,
+          isRegisteredTarget: true,
+        ),
+      );
+    }
 
     for (final focusNode in root.descendants) {
+      if (focusNode.context == null) continue;
+      if (!focusNode.canRequestFocus) continue;
+      if (!_isInRoute(focusNode.context!, route)) continue;
+
       final focusTraversalOrder = focusNode.context
           ?.findAncestorWidgetOfExactType<FocusTraversalOrder>();
-
       if (focusTraversalOrder?.order is TVFocusOrder) {
         final gridFocusOrder = focusTraversalOrder!.order as TVFocusOrder;
-        if (gridFocusOrder.value == value) {
-          final thisGroup = focusNode.context
-              ?.findAncestorWidgetOfExactType<FocusTraversalGroup>();
-          if (thisGroup == group) {
-            focusNode.requestFocus();
-            return;
-          }
-        }
+        TVFocusOrderNode.addPreferredCandidate(
+          candidatesByOrder,
+          TVFocusOrderNode(focusNode, gridFocusOrder),
+        );
       }
     }
+
+    final targetNode = candidatesByOrder.values.firstWhereOrNull(
+      (node) =>
+          node.order.value == value && node.order.focusGroup == focusGroup,
+    );
+    targetNode?.focus.requestFocus();
+  }
+
+  /// Request focus on a specific row/order.
+  /// Scoped to current route to prevent stealing focus from other screens.
+  /// If [order] is omitted, the row's entry point is used when available.
+  void requestFocusAt(BuildContext context, double row,
+      [double? order, String? focusGroup]) {
+    final route = ModalRoute.of(context);
+    final root = FocusManager.instance.rootScope;
+    final candidatesByOrder = <TVFocusOrderNode, TVFocusOrderNode>{};
+    final rowNodesByOrder = <TVFocusOrderNode, TVFocusOrderNode>{};
+
+    for (final target in TVFocusRegistry.targets<TVFocusOrder>(
+      route: route,
+      focusGroup: focusGroup,
+    )) {
+      final gridFocusOrder = target.focusOrder as TVFocusOrder;
+      final node = TVFocusOrderNode(
+        target.focusNode,
+        gridFocusOrder,
+        isRegisteredTarget: true,
+      );
+      TVFocusOrderNode.addPreferredCandidate(candidatesByOrder, node);
+      if (gridFocusOrder.row != row) continue;
+      TVFocusOrderNode.addPreferredCandidate(rowNodesByOrder, node);
+    }
+
+    for (final focusNode in root.descendants) {
+      if (focusNode.context == null) continue;
+      if (!focusNode.canRequestFocus) continue;
+      if (!_isInRoute(focusNode.context!, route)) continue;
+
+      final focusTraversalOrder = focusNode.context
+          ?.findAncestorWidgetOfExactType<FocusTraversalOrder>();
+      if (focusTraversalOrder?.order is TVFocusOrder) {
+        final gridFocusOrder = focusTraversalOrder!.order as TVFocusOrder;
+        if (focusGroup != null && gridFocusOrder.focusGroup != focusGroup) {
+          continue;
+        }
+        final node = TVFocusOrderNode(focusNode, gridFocusOrder);
+        TVFocusOrderNode.addPreferredCandidate(candidatesByOrder, node);
+        if (gridFocusOrder.row != row) continue;
+        TVFocusOrderNode.addPreferredCandidate(rowNodesByOrder, node);
+      }
+    }
+
+    final candidates = candidatesByOrder.values.toList();
+    final rowNodes = rowNodesByOrder.values.toList();
+
+    if (order != null) {
+      TVFocusOrderNode? exactNode;
+      for (final node in rowNodes) {
+        if (node.order.order == order) {
+          exactNode = node;
+          break;
+        }
+      }
+      if (exactNode != null) {
+        exactNode.focus.requestFocus();
+        return;
+      }
+    }
+
+    if (order != null && rowNodes.isNotEmpty) {
+      _requestBestNodeInRow(rowNodes, order);
+      return;
+    }
+
+    if (rowNodes.isEmpty) {
+      final nearestRow = _findNearestRow(candidates, row);
+      if (nearestRow == null) {
+        return;
+      }
+      _requestBestNodeInRow(nearestRow, order);
+      return;
+    }
+
+    _requestBestNodeInRow(rowNodes, order);
+  }
+
+  /// Request focus from an edge into another focus group.
+  ///
+  /// Unlike [requestFocusAt], [targetRow] and [targetOrder] are optional hints.
+  /// When they are omitted, the target is selected deterministically from the
+  /// requested group based on the direction of travel.
+  void requestFocusByEdge(
+    BuildContext context, {
+    required TVFocusDirection direction,
+    String? targetFocusGroup,
+    double? targetRow,
+    double? targetOrder,
+    double? currentRow,
+    double? currentOrder,
+  }) {
+    final route = ModalRoute.of(context);
+    final root = FocusManager.instance.rootScope;
+    final candidatesByOrder = <TVFocusOrderNode, TVFocusOrderNode>{};
+
+    for (final target in TVFocusRegistry.targets<TVFocusOrder>(
+      route: route,
+      focusGroup: targetFocusGroup,
+    )) {
+      final gridFocusOrder = target.focusOrder as TVFocusOrder;
+      TVFocusOrderNode.addPreferredCandidate(
+        candidatesByOrder,
+        TVFocusOrderNode(
+          target.focusNode,
+          gridFocusOrder,
+          isRegisteredTarget: true,
+        ),
+      );
+    }
+
+    for (final focusNode in root.descendants) {
+      if (focusNode.context == null) continue;
+      if (!focusNode.canRequestFocus) continue;
+      if (!_isInRoute(focusNode.context!, route)) continue;
+
+      final focusTraversalOrder = focusNode.context
+          ?.findAncestorWidgetOfExactType<FocusTraversalOrder>();
+      if (focusTraversalOrder?.order is TVFocusOrder) {
+        final gridFocusOrder = focusTraversalOrder!.order as TVFocusOrder;
+        if (targetFocusGroup != null &&
+            gridFocusOrder.focusGroup != targetFocusGroup) {
+          continue;
+        }
+        TVFocusOrderNode.addPreferredCandidate(
+          candidatesByOrder,
+          TVFocusOrderNode(focusNode, gridFocusOrder),
+        );
+      }
+    }
+
+    final candidates = candidatesByOrder.values.toList();
+    if (candidates.isEmpty) {
+      return;
+    }
+
+    final grid = TVFocusOrderNode.buildGrid(candidates);
+    if (grid.isEmpty) {
+      return;
+    }
+
+    final targetRowNodes = _selectRowForEdge(
+      grid,
+      direction: direction,
+      targetRow: targetRow,
+      currentRow: currentRow,
+    );
+    if (targetRowNodes == null || targetRowNodes.isEmpty) {
+      return;
+    }
+
+    final targetNode = _selectNodeForEdge(
+      targetRowNodes,
+      direction: direction,
+      targetOrder: targetOrder,
+      currentOrder: currentOrder,
+    );
+    targetNode?.focus.requestFocus();
+  }
+
+  static List<TVFocusOrderNode>? _selectRowForEdge(
+    List<List<TVFocusOrderNode>> grid, {
+    required TVFocusDirection direction,
+    double? targetRow,
+    double? currentRow,
+  }) {
+    if (targetRow != null) {
+      List<TVFocusOrderNode>? nearest;
+      var nearestDiff = double.infinity;
+      for (final rowNodes in grid) {
+        final diff = (rowNodes.first.order.row - targetRow).abs();
+        if (diff < nearestDiff) {
+          nearest = rowNodes;
+          nearestDiff = diff;
+        }
+      }
+      return nearest;
+    }
+
+    switch (direction) {
+      case TVFocusDirection.right:
+      case TVFocusDirection.left:
+        if (currentRow == null) {
+          return grid.first;
+        }
+        return _findNearestRow(
+          grid.expand((row) => row).toList(),
+          currentRow,
+        );
+      case TVFocusDirection.bottom:
+        return grid.first;
+      case TVFocusDirection.top:
+        return grid.last;
+    }
+  }
+
+  static TVFocusOrderNode? _selectNodeForEdge(
+    List<TVFocusOrderNode> rowNodes, {
+    required TVFocusDirection direction,
+    double? targetOrder,
+    double? currentOrder,
+  }) {
+    if (rowNodes.isEmpty) {
+      return null;
+    }
+
+    if (targetOrder != null) {
+      return _nearestNodeByOrder(rowNodes, targetOrder);
+    }
+
+    switch (direction) {
+      case TVFocusDirection.right:
+        return rowNodes.first;
+      case TVFocusDirection.left:
+        return rowNodes.last;
+      case TVFocusDirection.top:
+      case TVFocusDirection.bottom:
+        for (final node in rowNodes) {
+          if (node.order.isRowEntryPoint) {
+            return node;
+          }
+        }
+        if (currentOrder != null) {
+          return _nearestNodeByOrder(rowNodes, currentOrder);
+        }
+        return rowNodes.first;
+    }
+  }
+
+  static TVFocusOrderNode? _nearestNodeByOrder(
+    List<TVFocusOrderNode> rowNodes,
+    double targetOrder,
+  ) {
+    TVFocusOrderNode? nearest;
+    var nearestDiff = double.infinity;
+    for (final node in rowNodes) {
+      final diff = (node.order.order - targetOrder).abs();
+      if (diff < nearestDiff) {
+        nearest = node;
+        nearestDiff = diff;
+      }
+    }
+    return nearest;
+  }
+
+  static List<TVFocusOrderNode>? _findNearestRow(
+    List<TVFocusOrderNode> candidates,
+    double targetRow,
+  ) {
+    if (candidates.isEmpty) {
+      return null;
+    }
+
+    final grid = TVFocusOrderNode.buildGrid(candidates);
+    if (grid.isEmpty) {
+      return null;
+    }
+
+    List<TVFocusOrderNode>? nearest;
+    var nearestDiff = double.infinity;
+    for (final rowNodes in grid) {
+      final diff = (rowNodes.first.order.row - targetRow).abs();
+      if (diff < nearestDiff) {
+        nearest = rowNodes;
+        nearestDiff = diff;
+      }
+    }
+    return nearest;
+  }
+
+  static void _requestBestNodeInRow(
+    Iterable<TVFocusOrderNode> rowNodes, [
+    double? targetOrder,
+  ]) {
+    final nodes = rowNodes.toList();
+    if (nodes.isEmpty) {
+      return;
+    }
+
+    if (targetOrder != null) {
+      TVFocusOrderNode? nearest;
+      var nearestDiff = double.infinity;
+      for (final node in nodes) {
+        final diff = (node.order.order - targetOrder).abs();
+        if (diff < nearestDiff) {
+          nearest = node;
+          nearestDiff = diff;
+        }
+      }
+      nearest?.focus.requestFocus();
+      return;
+    }
+
+    for (final node in rowNodes) {
+      if (node.order.isRowEntryPoint) {
+        node.focus.requestFocus();
+        return;
+      }
+    }
+
+    nodes.first.focus.requestFocus();
+  }
+
+  static bool _isInRoute(BuildContext context, ModalRoute<dynamic>? route) {
+    if (route == null) {
+      return true;
+    }
+    return ModalRoute.of(context) == route;
+  }
+
+  static bool isInRoute(BuildContext context, ModalRoute<dynamic>? route) {
+    return _isInRoute(context, route);
   }
 
   @override
   String toString({DiagnosticLevel minLevel = DiagnosticLevel.info}) {
-    return 'TVFocusOrder(row: $row, order: $order)';
+    return 'TVFocusOrder(row: $row, order: $order, focusGroup: $focusGroup)';
   }
+}
+
+/// Request focus for a row/order pair inside the current FocusTraversalGroup.
+///
+/// This is a convenience wrapper around [TVFocusOrder.requestFocusAt] so
+/// callers can jump to a target coordinate without constructing a temporary
+/// order object at the call site.
+void requestFocusAt(BuildContext context, double row,
+    [double? order, String? focusGroup]) {
+  const TVFocusOrder(0).requestFocusAt(context, row, order, focusGroup);
+}
+
+void requestFocusByEdge(
+  BuildContext context, {
+  required TVFocusDirection direction,
+  String? targetFocusGroup,
+  double? targetRow,
+  double? targetOrder,
+  double? currentRow,
+  double? currentOrder,
+}) {
+  const TVFocusOrder(0).requestFocusByEdge(
+    context,
+    direction: direction,
+    targetFocusGroup: targetFocusGroup,
+    targetRow: targetRow,
+    targetOrder: targetOrder,
+    currentRow: currentRow,
+    currentOrder: currentOrder,
+  );
 }
 
 // =============================================================================
@@ -115,18 +498,71 @@ class TVFocusOrder extends FocusOrder {
 class TVFocusOrderNode {
   final FocusNode focus;
   final TVFocusOrder order;
+  final bool isRegisteredTarget;
 
-  const TVFocusOrderNode(this.focus, this.order);
+  const TVFocusOrderNode(
+    this.focus,
+    this.order, {
+    this.isRegisteredTarget = false,
+  });
 
   @override
   String toString() => 'TVFocusOrderNode(${order.value}, ${focus.hashCode})';
 
   @override
   bool operator ==(Object other) =>
-      other is TVFocusOrderNode && order.value == other.order.value;
+      other is TVFocusOrderNode &&
+      order.value == other.order.value &&
+      order.focusGroup == other.order.focusGroup;
 
   @override
-  int get hashCode => order.value.hashCode;
+  int get hashCode => Object.hash(order.value, order.focusGroup);
+
+  static void addPreferredCandidate(
+    Map<TVFocusOrderNode, TVFocusOrderNode> candidates,
+    TVFocusOrderNode candidate,
+  ) {
+    final existing = candidates[candidate];
+    if (existing == null || isBetterCandidateNode(candidate, existing)) {
+      candidates[candidate] = candidate;
+    }
+  }
+
+  static bool isBetterCandidateNode(
+    TVFocusOrderNode candidate,
+    TVFocusOrderNode existing,
+  ) {
+    if (candidate.focus.hasPrimaryFocus != existing.focus.hasPrimaryFocus) {
+      return candidate.focus.hasPrimaryFocus;
+    }
+    if (candidate.focus.hasFocus != existing.focus.hasFocus) {
+      return candidate.focus.hasFocus;
+    }
+    if (candidate.isRegisteredTarget != existing.isRegisteredTarget) {
+      return candidate.isRegisteredTarget;
+    }
+    return _focusNodeDepth(candidate.focus) > _focusNodeDepth(existing.focus);
+  }
+
+  static bool isBetterFocusCandidate(FocusNode candidate, FocusNode existing) {
+    if (candidate.hasPrimaryFocus != existing.hasPrimaryFocus) {
+      return candidate.hasPrimaryFocus;
+    }
+    if (candidate.hasFocus != existing.hasFocus) {
+      return candidate.hasFocus;
+    }
+
+    return _focusNodeDepth(candidate) > _focusNodeDepth(existing);
+  }
+
+  static int _focusNodeDepth(FocusNode focusNode) {
+    var depth = 0;
+    focusNode.context?.visitAncestorElements((_) {
+      depth++;
+      return true;
+    });
+    return depth;
+  }
 
   /// Build a 2D grid from an iterable of focus order nodes.
   /// Items are grouped by row and sorted by order within each row.

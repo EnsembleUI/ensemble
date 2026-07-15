@@ -1,4 +1,5 @@
 import 'package:ensemble/framework/tv/tv_focus_order.dart';
+import 'package:ensemble/framework/tv/tv_focus_registry.dart';
 import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -29,6 +30,7 @@ class TVFocusWidget extends StatelessWidget {
     this.onLeftEdge,
     this.onTopEdge,
     this.onBottomEdge,
+    this.primaryFocusNode,
   });
 
   /// The focus coordinate for this widget
@@ -54,9 +56,12 @@ class TVFocusWidget extends StatelessWidget {
   /// Optional callback when DOWN is pressed at the bottommost edge
   final VoidCallback? onBottomEdge;
 
+  /// Explicit requestable node for this coordinate, when the child owns one.
+  final FocusNode? primaryFocusNode;
+
   @override
   Widget build(BuildContext context) {
-    return FocusTraversalOrder(
+    final focusTraversalWidget = FocusTraversalOrder(
       order: focusOrder,
       // Use FocusScope instead of Focus so that this node becomes the PARENT
       // of the child's focus node in the focus tree. This allows key events
@@ -98,6 +103,23 @@ class TVFocusWidget extends StatelessWidget {
         child: child,
       ),
     );
+
+    final registeredFocusNode = primaryFocusNode;
+    if (registeredFocusNode == null) {
+      return focusTraversalWidget;
+    }
+
+    return TVFocusTargetRegistrar(
+      focusNode: registeredFocusNode,
+      focusOrder: focusOrder,
+      row: focusOrder.row,
+      order: focusOrder.order,
+      focusGroup: focusOrder.focusGroup,
+      isRowEntryPoint: focusOrder.isRowEntryPoint,
+      lockHorizontalNavigation: focusOrder.lockHorizontalNavigation,
+      delegateHorizontalNavigation: focusOrder.delegateHorizontalNavigation,
+      child: focusTraversalWidget,
+    );
   }
 
   /// Move focus in the specified direction.
@@ -122,14 +144,45 @@ class TVFocusWidget extends StatelessWidget {
     final tvFocusScope =
         current.context?.findAncestorWidgetOfExactType<TVFocusScope>();
     final lockScope = tvFocusScope?.lockScope ?? false;
+    final rightEdgeHandler = onRightEdge ?? tvFocusScope?.onRightEdge;
+    final leftEdgeHandler = onLeftEdge ?? tvFocusScope?.onLeftEdge;
+    final bottomEdgeHandler = onBottomEdge ?? tvFocusScope?.onBottomEdge;
+    final topEdgeHandler = onTopEdge ?? tvFocusScope?.onTopEdge;
+    final currentFocusGroup = focusOrder.focusGroup;
+    final route =
+        current.context != null ? ModalRoute.of(current.context!) : null;
+    bool matchesFocusGroup(TVFocusOrder order) {
+      if (currentFocusGroup == null) {
+        return true;
+      }
+      return order.focusGroup == currentFocusGroup;
+    }
 
     // Collect all focusable items in the same FocusTraversalGroup
     final root = FocusManager.instance.rootScope;
-    final inScope = <TVFocusOrderNode>{};
+    final inScopeByOrder = <TVFocusOrderNode, TVFocusOrderNode>{};
+
+    for (final target in TVFocusRegistry.targets<TVFocusOrder>(
+      route: route,
+      traversalGroup: focusTraversalGroup,
+      focusGroup: currentFocusGroup,
+    )) {
+      final order = target.focusOrder as TVFocusOrder;
+      TVFocusOrderNode.addPreferredCandidate(
+        inScopeByOrder,
+        TVFocusOrderNode(
+          target.focusNode,
+          order,
+          isRegisteredTarget: true,
+        ),
+      );
+    }
 
     for (final focusNode in root.descendants) {
       // Check if this node is mounted and has context
       if (focusNode.context == null) continue;
+      if (!focusNode.canRequestFocus) continue;
+      if (!TVFocusOrder.isInRoute(focusNode.context!, route)) continue;
 
       // Check if in same FocusTraversalGroup
       final nodeGroup = focusNode.context
@@ -141,16 +194,22 @@ class TVFocusWidget extends StatelessWidget {
           ?.findAncestorWidgetOfExactType<FocusTraversalOrder>();
       if (focusTraversalOrder?.order is TVFocusOrder) {
         final order = focusTraversalOrder!.order as TVFocusOrder;
-        inScope.add(TVFocusOrderNode(focusNode, order));
+        if (!matchesFocusGroup(order)) {
+          continue;
+        }
+        TVFocusOrderNode.addPreferredCandidate(
+          inScopeByOrder,
+          TVFocusOrderNode(focusNode, order),
+        );
       }
     }
 
-    if (inScope.isEmpty) {
+    if (inScopeByOrder.isEmpty) {
       return false;
     }
 
     // Build 2D grid from collected items
-    final grid = TVFocusOrderNode.buildGrid(inScope);
+    final grid = TVFocusOrderNode.buildGrid(inScopeByOrder.values);
     if (grid.isEmpty) {
       return false;
     }
@@ -166,6 +225,10 @@ class TVFocusWidget extends StatelessWidget {
     // Let the event propagate to native focus handling (e.g., sport tab)
     // so users can navigate back to native content from Ensemble content
     if (yOffset == -1 && y == 0) {
+      if (topEdgeHandler != null) {
+        topEdgeHandler();
+        return true;
+      }
       return false;
     }
 
@@ -219,44 +282,30 @@ class TVFocusWidget extends StatelessWidget {
 
     // Check if we're at a boundary (focus wouldn't move)
     if (oldTarget == target) {
-      // Handle scope locking
-      if (lockScope) {
-        // Focus would stay the same, but we're locked - block the event
-        return true;
-      }
-
-      // Handle horizontal boundary locking (prevents escaping row at left/right edges)
-      if (xOffset != 0 && focusOrder.lockHorizontalNavigation) {
-        // At horizontal boundary with lockHorizontalNavigation enabled - block the event
-        return true;
-      }
-
       // Check for edge handlers before letting event propagate
       // This allows navigation to widgets outside the grid (e.g., scrollbars)
       // Priority: widget-level handlers > scope-level handlers
-      final rightEdgeHandler = onRightEdge ?? tvFocusScope?.onRightEdge;
-      final leftEdgeHandler = onLeftEdge ?? tvFocusScope?.onLeftEdge;
-      final bottomEdgeHandler = onBottomEdge ?? tvFocusScope?.onBottomEdge;
-      final topEdgeHandler = onTopEdge ?? tvFocusScope?.onTopEdge;
-
       if (xOffset > 0 && rightEdgeHandler != null) {
         // At right edge and have handler
         if (kDebugMode) {
-          debugPrint('[TVFocusWidget] At right edge - calling onRightEdge handler');
+          debugPrint(
+              '[TVFocusWidget] At right edge - calling onRightEdge handler');
         }
         rightEdgeHandler();
         return true;
       } else if (xOffset < 0 && leftEdgeHandler != null) {
         // At left edge and have handler
         if (kDebugMode) {
-          debugPrint('[TVFocusWidget] At left edge - calling onLeftEdge handler');
+          debugPrint(
+              '[TVFocusWidget] At left edge - calling onLeftEdge handler');
         }
         leftEdgeHandler();
         return true;
       } else if (yOffset > 0 && bottomEdgeHandler != null) {
         // At bottom edge and have handler
         if (kDebugMode) {
-          debugPrint('[TVFocusWidget] At bottom edge - calling onBottomEdge handler');
+          debugPrint(
+              '[TVFocusWidget] At bottom edge - calling onBottomEdge handler');
         }
         bottomEdgeHandler();
         return true;
@@ -269,7 +318,13 @@ class TVFocusWidget extends StatelessWidget {
         return true;
       }
 
-      // At boundary - let event propagate to parent
+      // At boundary - let event propagate to parent, unless locked
+      if (lockScope) {
+        return true;
+      }
+      if (xOffset != 0 && focusOrder.lockHorizontalNavigation) {
+        return true;
+      }
       return false;
     }
 

@@ -1,5 +1,6 @@
 import 'package:ensemble/framework/device.dart';
 import 'package:ensemble/framework/studio/studio_debugger.dart';
+import 'package:ensemble/framework/tv/tv_focus_navigation.dart';
 import 'package:ensemble/framework/tv/tv_focus_order.dart';
 import 'package:ensemble/framework/tv/tv_focus_provider.dart';
 import 'package:ensemble/framework/tv/tv_focus_widget.dart';
@@ -9,8 +10,6 @@ import 'package:ensemble/widget/helpers/form_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:ensemble/layout/form.dart' as ensemble;
 
-/// wrap the input widget (which stretches 100% to its parent) to guard against
-/// the case where it is put inside a Row without expanded flag.
 class InputWrapper extends StatelessWidget {
   const InputWrapper(
       {super.key,
@@ -63,6 +62,7 @@ class InputWrapper extends StatelessWidget {
     final tvRow = tvOptions.row!;
     final tvOrder = tvOptions.order ?? 0;
     final isRowEntryPoint = tvOptions.isRowEntryPoint;
+    final focusGroup = resolveTVFocusGroup(context, tvOptions);
 
     final externalProvider = TVFocusProviderScope.maybeOf(context);
     final effectiveRow =
@@ -70,12 +70,60 @@ class InputWrapper extends StatelessWidget {
     final effectiveOrder = externalProvider != null
         ? tvOrder + externalProvider.orderOffset
         : tvOrder;
+    final tvFocusScope = context.findAncestorWidgetOfExactType<TVFocusScope>();
+    final rightEdgeHandler = buildTVEdgeNavigationCallback(
+          context: context,
+          provider: externalProvider,
+          direction: TVFocusDirection.right,
+          target: resolveTVFocusEdgeTarget(
+              context, tvOptions, TVFocusDirection.right),
+          currentRow: effectiveRow,
+          currentOrder: effectiveOrder,
+        ) ??
+        tvFocusScope?.onRightEdge;
+    final leftEdgeHandler = buildTVEdgeNavigationCallback(
+          context: context,
+          provider: externalProvider,
+          direction: TVFocusDirection.left,
+          target: resolveTVFocusEdgeTarget(
+              context, tvOptions, TVFocusDirection.left),
+          currentRow: effectiveRow,
+          currentOrder: effectiveOrder,
+        ) ??
+        tvFocusScope?.onLeftEdge;
+    final topEdgeHandler = buildTVEdgeNavigationCallback(
+          context: context,
+          provider: externalProvider,
+          direction: TVFocusDirection.top,
+          target: resolveTVFocusEdgeTarget(
+              context, tvOptions, TVFocusDirection.top),
+          currentRow: effectiveRow,
+          currentOrder: effectiveOrder,
+        ) ??
+        tvFocusScope?.onTopEdge;
+    final bottomEdgeHandler = buildTVEdgeNavigationCallback(
+          context: context,
+          provider: externalProvider,
+          direction: TVFocusDirection.bottom,
+          target: resolveTVFocusEdgeTarget(
+              context, tvOptions, TVFocusDirection.bottom),
+          currentRow: effectiveRow,
+          currentOrder: effectiveOrder,
+        ) ??
+        tvFocusScope?.onBottomEdge;
 
     if (externalProvider != null) {
       return externalProvider.wrapFocusable(
         row: effectiveRow,
         order: effectiveOrder,
         isRowEntryPoint: isRowEntryPoint,
+        lockHorizontalNavigation: tvOptions.lockHorizontalNavigation,
+        delegateHorizontalNavigation: tvOptions.delegateHorizontalNavigation,
+        focusGroup: focusGroup,
+        onRightEdge: rightEdgeHandler,
+        onLeftEdge: leftEdgeHandler,
+        onTopEdge: topEdgeHandler,
+        onBottomEdge: bottomEdgeHandler,
         child: child,
       );
     }
@@ -87,7 +135,13 @@ class InputWrapper extends StatelessWidget {
         order: tvOrder,
         isRowEntryPoint: isRowEntryPoint,
         lockHorizontalNavigation: tvOptions.lockHorizontalNavigation,
+        delegateHorizontalNavigation: tvOptions.delegateHorizontalNavigation,
+        focusGroup: focusGroup,
       ),
+      onRightEdge: rightEdgeHandler,
+      onLeftEdge: leftEdgeHandler,
+      onTopEdge: topEdgeHandler,
+      onBottomEdge: bottomEdgeHandler,
       child: child,
     );
   }

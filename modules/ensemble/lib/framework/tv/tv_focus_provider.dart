@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'tv_focus_order.dart';
 
 /// Abstract interface for TV focus navigation systems.
 ///
@@ -32,6 +33,7 @@ import 'package:flutter/material.dart';
 ///     required Widget child,
 ///     bool isRowEntryPoint = false,
 ///     bool lockHorizontalNavigation = false,
+///     String? focusGroup,
 ///     KeyEventResult Function(FocusNode)? onBackPressed,
 ///   }) {
 ///     return PageFocusWidget(
@@ -68,6 +70,9 @@ abstract class TVFocusProvider {
   ///   (LEFT/RIGHT) are delegated to the parent FocusScope instead of being
   ///   handled locally. Useful for items inside carousels where horizontal
   ///   keys should switch slides.
+  /// - [focusGroup]: Optional logical group. When set, D-pad traversal only
+  ///   considers focusables in the same group unless an edge handler moves
+  ///   focus explicitly.
   /// - [child]: The widget to make focusable. Should contain an InkWell
   ///   or similar focusable widget.
   /// - [onBackPressed]: Optional callback for Android TV back button.
@@ -90,6 +95,8 @@ abstract class TVFocusProvider {
     bool isRowEntryPoint = false,
     bool lockHorizontalNavigation = false,
     bool delegateHorizontalNavigation = false,
+    String? focusGroup,
+    FocusNode? primaryFocusNode,
     KeyEventResult Function(FocusNode node)? onBackPressed,
     VoidCallback? onRightEdge,
     VoidCallback? onLeftEdge,
@@ -164,6 +171,44 @@ abstract class TVFocusProvider {
   ///
   /// Default: false (Ensemble handles horizontal scrolling)
   bool get handlesHorizontalScroll => false;
+
+  /// Request focus on a widget at the given row/order.
+  ///
+  /// Used by edge callbacks to navigate across focus groups.
+  /// The host app should find its own [PageFocusOrder] widgets at these
+  /// coordinates and request focus on them.
+  ///
+  /// Default implementation uses the framework's [TVFocusOrder.requestFocusAt].
+  /// Override if host app uses a different order type (e.g., [PageFocusOrder]).
+  void requestFocusAt(BuildContext context, double row,
+      [double? order, String? focusGroup]) {
+    const TVFocusOrder(0).requestFocusAt(context, row, order, focusGroup);
+  }
+
+  /// Request focus from an edge into a target focus group.
+  ///
+  /// [targetRow] and [targetOrder] are optional hints. When omitted, the
+  /// implementation should pick a deterministic target inside
+  /// [targetFocusGroup] based on [direction].
+  void requestFocusByEdge(
+    BuildContext context, {
+    required TVFocusDirection direction,
+    String? targetFocusGroup,
+    double? targetRow,
+    double? targetOrder,
+    double? currentRow,
+    double? currentOrder,
+  }) {
+    const TVFocusOrder(0).requestFocusByEdge(
+      context,
+      direction: direction,
+      targetFocusGroup: targetFocusGroup,
+      targetRow: targetRow,
+      targetOrder: targetOrder,
+      currentRow: currentRow,
+      currentOrder: currentOrder,
+    );
+  }
 
   /// Disposes any resources held by this provider.
   void dispose() {}

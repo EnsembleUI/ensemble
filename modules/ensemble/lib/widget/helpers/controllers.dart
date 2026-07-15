@@ -90,6 +90,107 @@ class BoxShadowComposite extends WidgetCompositeProperty {
   }
 }
 
+/// Target used by tvOptions.edges.*.
+///
+/// Example:
+/// ```yaml
+/// tvOptions:
+///   edges:
+///     right:
+///       targetFocusGroup: results
+///       targetRow: 2
+///       targetOrder: 0
+/// ```
+class TVFocusEdgeTargetComposite extends WidgetCompositeProperty {
+  TVFocusEdgeTargetComposite(super.widgetController, {required Map inputs}) {
+    targetRow = inputs['targetRow'];
+    targetOrder = inputs['targetOrder'];
+    targetFocusGroup = inputs['targetFocusGroup'];
+  }
+
+  double? _targetRow;
+  set targetRow(value) => _targetRow = Utils.optionalDouble(value);
+  double? get targetRow => _targetRow;
+
+  double? _targetOrder;
+  set targetOrder(value) => _targetOrder = Utils.optionalDouble(value);
+  double? get targetOrder => _targetOrder;
+
+  String? _targetFocusGroup;
+  set targetFocusGroup(value) =>
+      _targetFocusGroup = Utils.optionalString(value);
+  String? get targetFocusGroup => _targetFocusGroup;
+
+  @override
+  Map<String, Function> getters() => {
+        'targetRow': () => _targetRow,
+        'targetOrder': () => _targetOrder,
+        'targetFocusGroup': () => _targetFocusGroup,
+      };
+
+  @override
+  Map<String, Function> methods() => {};
+
+  @override
+  Map<String, Function> setters() => {
+        'targetRow': (value) => targetRow = value,
+        'targetOrder': (value) => targetOrder = value,
+        'targetFocusGroup': (value) => targetFocusGroup = value,
+      };
+}
+
+/// Edge targets for TV focus handoff at traversal boundaries.
+class TVFocusEdgesComposite extends WidgetCompositeProperty {
+  TVFocusEdgesComposite(super.widgetController, {required Map inputs}) {
+    right = inputs['right'];
+    left = inputs['left'];
+    top = inputs['top'];
+    bottom = inputs['bottom'];
+  }
+
+  TVFocusEdgeTargetComposite? _right;
+  set right(value) => _right = _parseTarget(value);
+  TVFocusEdgeTargetComposite? get right => _right;
+
+  TVFocusEdgeTargetComposite? _left;
+  set left(value) => _left = _parseTarget(value);
+  TVFocusEdgeTargetComposite? get left => _left;
+
+  TVFocusEdgeTargetComposite? _top;
+  set top(value) => _top = _parseTarget(value);
+  TVFocusEdgeTargetComposite? get top => _top;
+
+  TVFocusEdgeTargetComposite? _bottom;
+  set bottom(value) => _bottom = _parseTarget(value);
+  TVFocusEdgeTargetComposite? get bottom => _bottom;
+
+  TVFocusEdgeTargetComposite? _parseTarget(value) {
+    if (value is Map) {
+      return TVFocusEdgeTargetComposite(widgetController, inputs: value);
+    }
+    return null;
+  }
+
+  @override
+  Map<String, Function> getters() => {
+        'right': () => _right,
+        'left': () => _left,
+        'top': () => _top,
+        'bottom': () => _bottom,
+      };
+
+  @override
+  Map<String, Function> methods() => {};
+
+  @override
+  Map<String, Function> setters() => {
+        'right': (value) => right = value,
+        'left': (value) => left = value,
+        'top': (value) => top = value,
+        'bottom': (value) => bottom = value,
+      };
+}
+
 /// TV/Accessibility options for D-pad navigation (flutter_pca style).
 /// Groups all TV-related properties under styles.tvOptions.*
 /// All focus styling properties can override theme values per-widget.
@@ -109,6 +210,8 @@ class TVOptionsComposite extends WidgetCompositeProperty {
     horizontalScrollPadding = inputs['horizontalScrollPadding'];
     lockHorizontalNavigation = inputs['lockHorizontalNavigation'];
     delegateHorizontalNavigation = inputs['delegateHorizontalNavigation'];
+    focusGroup = inputs['focusGroup'];
+    edges = inputs['edges'];
     // Carousel-specific TV options
     interceptHorizontalNav = inputs['interceptHorizontalNav'];
     pauseAutoplayOnFocus = inputs['pauseAutoplayOnFocus'];
@@ -127,10 +230,8 @@ class TVOptionsComposite extends WidgetCompositeProperty {
     margin = inputs['margin'];
     // Scrollbar options
     if (inputs['scrollbarOptions'] != null) {
-      _scrollbarOptions = TVScrollbarOptionsComposite(
-        widgetController,
-        inputs: inputs['scrollbarOptions']
-      );
+      _scrollbarOptions = TVScrollbarOptionsComposite(widgetController,
+          inputs: inputs['scrollbarOptions']);
     }
   }
 
@@ -227,6 +328,21 @@ class TVOptionsComposite extends WidgetCompositeProperty {
       _delegateHorizontalNavigation = Utils.getBool(value, fallback: false);
   bool get delegateHorizontalNavigation => _delegateHorizontalNavigation;
 
+  /// Optional focus navigation group.
+  ///
+  /// When set, this item only participates in focus movement with widgets
+  /// that share the same focus group.
+  String? _focusGroup;
+  set focusGroup(value) => _focusGroup = Utils.optionalString(value);
+  String? get focusGroup => _focusGroup;
+
+  /// Edge targets for focus handoff at group boundaries.
+  TVFocusEdgesComposite? _edges;
+  set edges(value) => _edges = value is Map
+      ? TVFocusEdgesComposite(widgetController, inputs: value)
+      : null;
+  TVFocusEdgesComposite? get edges => _edges;
+
   // ============ Carousel-specific TV Options ============
 
   /// When true, LEFT/RIGHT arrow keys navigate carousel slides using smart edge detection.
@@ -296,7 +412,8 @@ class TVOptionsComposite extends WidgetCompositeProperty {
 
   /// Elevation when focused (0 to 24).
   int? _elevation;
-  set elevation(value) => _elevation = Utils.optionalInt(value, min: 0, max: 24);
+  set elevation(value) =>
+      _elevation = Utils.optionalInt(value, min: 0, max: 24);
   int? get elevation => _elevation;
 
   /// Scale factor when focused (e.g., 1.05 for 5% zoom).
@@ -351,6 +468,8 @@ class TVOptionsComposite extends WidgetCompositeProperty {
         'horizontalScrollPadding': () => _horizontalScrollPadding,
         'lockHorizontalNavigation': () => _lockHorizontalNavigation,
         'delegateHorizontalNavigation': () => _delegateHorizontalNavigation,
+        'focusGroup': () => _focusGroup,
+        'edges': () => _edges,
         // Carousel-specific
         'interceptHorizontalNav': () => _interceptHorizontalNav,
         'pauseAutoplayOnFocus': () => _pauseAutoplayOnFocus,
@@ -391,6 +510,8 @@ class TVOptionsComposite extends WidgetCompositeProperty {
         'lockHorizontalNavigation': (value) => lockHorizontalNavigation = value,
         'delegateHorizontalNavigation': (value) =>
             delegateHorizontalNavigation = value,
+        'focusGroup': (value) => focusGroup = value,
+        'edges': (value) => edges = value,
         // Carousel-specific
         'interceptHorizontalNav': (value) => interceptHorizontalNav = value,
         'pauseAutoplayOnFocus': (value) => pauseAutoplayOnFocus = value,
@@ -438,7 +559,8 @@ class TVScrollbarOptionsComposite extends WidgetCompositeProperty {
 
   /// Scrollbar color when focused (default: 0xFFFFFFFF - white)
   Color _focusedColor = const Color(0xFFFFFFFF);
-  set focusedColor(value) => _focusedColor = Utils.getColor(value) ?? const Color(0xFFFFFFFF);
+  set focusedColor(value) =>
+      _focusedColor = Utils.getColor(value) ?? const Color(0xFFFFFFFF);
   Color get focusedColor => _focusedColor;
 
   /// Scrollbar width when NOT focused (default: 3)
@@ -448,7 +570,8 @@ class TVScrollbarOptionsComposite extends WidgetCompositeProperty {
 
   /// Scrollbar width when focused (default: 6 - wider)
   double _focusedWidth = 6.0;
-  set focusedWidth(value) => _focusedWidth = Utils.getDouble(value, fallback: 6.0);
+  set focusedWidth(value) =>
+      _focusedWidth = Utils.getDouble(value, fallback: 6.0);
   double get focusedWidth => _focusedWidth;
 
   /// Scrollbar border radius (default: 4)
@@ -458,7 +581,8 @@ class TVScrollbarOptionsComposite extends WidgetCompositeProperty {
 
   /// Minimum scrollbar thumb height in pixels (default: 40)
   double _thumbHeight = 40.0;
-  set thumbHeight(value) => _thumbHeight = Utils.getDouble(value, fallback: 40.0);
+  set thumbHeight(value) =>
+      _thumbHeight = Utils.getDouble(value, fallback: 40.0);
   double get thumbHeight => _thumbHeight;
 
   /// Whether scrollbar should receive focus automatically on load (default: false)
@@ -468,27 +592,27 @@ class TVScrollbarOptionsComposite extends WidgetCompositeProperty {
 
   @override
   Map<String, Function> getters() => {
-    'position': () => _position,
-    'color': () => _color,
-    'focusedColor': () => _focusedColor,
-    'width': () => _width,
-    'focusedWidth': () => _focusedWidth,
-    'radius': () => _radius,
-    'thumbHeight': () => _thumbHeight,
-    'autofocus': () => _autofocus,
-  };
+        'position': () => _position,
+        'color': () => _color,
+        'focusedColor': () => _focusedColor,
+        'width': () => _width,
+        'focusedWidth': () => _focusedWidth,
+        'radius': () => _radius,
+        'thumbHeight': () => _thumbHeight,
+        'autofocus': () => _autofocus,
+      };
 
   @override
   Map<String, Function> setters() => {
-    'position': (value) => position = value,
-    'color': (value) => color = value,
-    'focusedColor': (value) => focusedColor = value,
-    'width': (value) => width = value,
-    'focusedWidth': (value) => focusedWidth = value,
-    'radius': (value) => radius = value,
-    'thumbHeight': (value) => thumbHeight = value,
-    'autofocus': (value) => autofocus = value,
-  };
+        'position': (value) => position = value,
+        'color': (value) => color = value,
+        'focusedColor': (value) => focusedColor = value,
+        'width': (value) => width = value,
+        'focusedWidth': (value) => focusedWidth = value,
+        'radius': (value) => radius = value,
+        'thumbHeight': (value) => thumbHeight = value,
+        'autofocus': (value) => autofocus = value,
+      };
 
   @override
   Map<String, Function> methods() => {};

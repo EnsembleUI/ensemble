@@ -35,6 +35,7 @@ class EnsembleBracketImpl extends EnsembleWidget<BracketController>
 class RoundTemplate extends ItemTemplate {
   /// The title of the round.
   final String? title;
+
   /// The matches within the round.
   final MatchTemplate matches;
 
@@ -61,8 +62,10 @@ class MatchTemplate extends ItemTemplate {
 class RoundData {
   /// The title of the round.
   final String title;
+
   /// The match template configuration.
   final MatchTemplate matches;
+
   /// The local scope manager for evaluated variables in the round.
   final ScopeManager localScope;
 
@@ -151,7 +154,8 @@ class BracketController extends EnsembleBoxController {
         tabFocusColor = Utils.getColor(data['focusBorderColor']);
         tabFocusBorderWidth = Utils.optionalDouble(data['focusBorderWidth']);
         tabFocusBorderRadius = Utils.getBorderRadius(data['focusBorderRadius']);
-        tabFocusAnimationDurationMs = Utils.optionalInt(data['focusAnimationDurationMs']);
+        tabFocusAnimationDurationMs =
+            Utils.optionalInt(data['focusAnimationDurationMs']);
         tabFocusBackgroundColor = Utils.getColor(data['focusBackgroundColor']);
         tabFocusTextStyle = Utils.getTextStyle(data['focusTextStyle']);
       },
@@ -618,7 +622,8 @@ class _BracketsPageState extends State<BracketsPage> {
     if (index < _scrollControllers.length &&
         _scrollControllers[index].hasClients) {
       _scrollControllers[index].animateTo(0.0,
-          duration: const Duration(milliseconds: 600), curve: Curves.decelerate);
+          duration: const Duration(milliseconds: 600),
+          curve: Curves.decelerate);
       _scrollControllers[index].animateTo(0.1,
           duration: const Duration(milliseconds: 10), curve: Curves.decelerate);
     }
@@ -634,13 +639,15 @@ class _BracketsPageState extends State<BracketsPage> {
   void _focusRowInCurrentPage(int targetRow, int columnIndex) {
     // Number of matches in this round determines max row
     final matchCount = widget.data[columnIndex].matches.data;
-    final evalData = widget.data[columnIndex].localScope.dataContext.eval(matchCount);
+    final evalData =
+        widget.data[columnIndex].localScope.dataContext.eval(matchCount);
     final numMatches = (evalData as List?)?.length ?? 1;
 
     // Clamp targetRow to available match rows
     // Tabs are at tvRowOffset, matches start at tvRowOffset + 1
     final matchRowStart = widget.tvRowOffset + 1;
-    final clampedRow = targetRow.clamp(matchRowStart, matchRowStart + numMatches - 1);
+    final clampedRow =
+        targetRow.clamp(matchRowStart, matchRowStart + numMatches - 1);
 
     // Find the focusable item with this row and column (order)
     // We need to find the INNERMOST focusable descendant that has this TVFocusOrder,
@@ -652,12 +659,13 @@ class _BracketsPageState extends State<BracketsPage> {
     for (final focusNode in root.descendants) {
       if (focusNode.context == null) continue;
 
-      final focusTraversalOrder =
-          focusNode.context?.findAncestorWidgetOfExactType<FocusTraversalOrder>();
+      final focusTraversalOrder = focusNode.context
+          ?.findAncestorWidgetOfExactType<FocusTraversalOrder>();
       if (focusTraversalOrder?.order is TVFocusOrder) {
         final order = focusTraversalOrder!.order as TVFocusOrder;
         // Match by row and order (column = roundIndex)
-        if (order.row.toInt() == clampedRow && order.order.toInt() == columnIndex) {
+        if (order.row.toInt() == clampedRow &&
+            order.order.toInt() == columnIndex) {
           // Calculate depth of this node (deeper = better for visual styling)
           int depth = 0;
           FocusNode? parent = focusNode.parent;
@@ -698,11 +706,13 @@ class _BracketsPageState extends State<BracketsPage> {
         // Get current focused row to restore after page change
         final focusRow = _getCurrentFocusedRow(node);
         final targetPage = currentPage + 1;
-        widget.pageController.animateToPage(
+        widget.pageController
+            .animateToPage(
           targetPage,
           duration: const Duration(milliseconds: 300),
           curve: Curves.easeOut,
-        ).then((_) {
+        )
+            .then((_) {
           // After animation completes, wait for widget tree to rebuild
           // then transfer focus to the new page
           if (focusRow != null) {
@@ -719,11 +729,13 @@ class _BracketsPageState extends State<BracketsPage> {
         // Get current focused row to restore after page change
         final focusRow = _getCurrentFocusedRow(node);
         final targetPage = currentPage - 1;
-        widget.pageController.animateToPage(
+        widget.pageController
+            .animateToPage(
           targetPage,
           duration: const Duration(milliseconds: 300),
           curve: Curves.easeOut,
-        ).then((_) {
+        )
+            .then((_) {
           // After animation completes, wait for widget tree to rebuild
           // then transfer focus to the new page
           if (focusRow != null) {
@@ -879,14 +891,17 @@ class _BracketsColumnPageState extends State<BracketsColumnPage> {
               final matchScope = widget.roundData.localScope.createChildScope();
               matchScope.dataContext
                   .addDataContextById(widget.roundData.matches.name, matchData);
-              matchScope.dataContext.addDataContextById('matchIndex', matchIndex);
-              matchScope.dataContext.addDataContextById('roundIndex', widget.columnIndex);
+              matchScope.dataContext
+                  .addDataContextById('matchIndex', matchIndex);
+              matchScope.dataContext
+                  .addDataContextById('roundIndex', widget.columnIndex);
 
               // Build the widget model and widget, then wrap in DataScopeWidget
               // This allows the widget to access the scope's data context for expressions
               final widgetModel = matchScope.buildWidgetModelFromDefinition(
                   widget.roundData.matches.template);
-              final templatedWidget = matchScope.buildWidgetFromModel(widgetModel);
+              final templatedWidget =
+                  matchScope.buildWidgetFromModel(widgetModel);
               final cellWidget = DataScopeWidget(
                 scopeManager: matchScope,
                 child: templatedWidget,
@@ -901,10 +916,13 @@ class _BracketsColumnPageState extends State<BracketsColumnPage> {
               if (Device().isTV) {
                 matchWidget = TVFocusWidget(
                   focusOrder: TVFocusOrder.withOptions(
-                    (widget.tvRowOffset + 1 + matchIndex).toDouble(), // matches start at tvRowOffset + 1
+                    (widget.tvRowOffset + 1 + matchIndex)
+                        .toDouble(), // matches start at tvRowOffset + 1
                     order: widget.columnIndex.toDouble(), // column = roundIndex
-                    isRowEntryPoint: matchIndex == 0, // first match is entry point
-                    delegateHorizontalNavigation: true, // let bracket handle LEFT/RIGHT
+                    isRowEntryPoint:
+                        matchIndex == 0, // first match is entry point
+                    delegateHorizontalNavigation:
+                        true, // let bracket handle LEFT/RIGHT
                   ),
                   child: matchWidget,
                 );
@@ -1018,6 +1036,8 @@ class _BracketTVFocusProvider implements TVFocusProvider {
     bool isRowEntryPoint = false,
     bool lockHorizontalNavigation = false,
     bool delegateHorizontalNavigation = false,
+    String? focusGroup,
+    FocusNode? primaryFocusNode,
     KeyEventResult Function(FocusNode node)? onBackPressed,
     VoidCallback? onRightEdge,
     VoidCallback? onLeftEdge,
@@ -1056,4 +1076,31 @@ class _BracketTVFocusProvider implements TVFocusProvider {
 
   @override
   void dispose() {}
+
+  @override
+  void requestFocusAt(BuildContext context, double row,
+      [double? order, String? focusGroup]) {
+    const TVFocusOrder(0).requestFocusAt(context, row, order, focusGroup);
+  }
+
+  @override
+  void requestFocusByEdge(
+    BuildContext context, {
+    required TVFocusDirection direction,
+    String? targetFocusGroup,
+    double? targetRow,
+    double? targetOrder,
+    double? currentRow,
+    double? currentOrder,
+  }) {
+    const TVFocusOrder(0).requestFocusByEdge(
+      context,
+      direction: direction,
+      targetFocusGroup: targetFocusGroup,
+      targetRow: targetRow,
+      targetOrder: targetOrder,
+      currentRow: currentRow,
+      currentOrder: currentOrder,
+    );
+  }
 }
