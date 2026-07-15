@@ -36,7 +36,35 @@ class JSArrayHole {
 }
 
 const Object _missingDescriptorValue = _MissingDescriptorValue();
+const Object _missingArrayItem = Object();
 const JSArrayHole jsArrayHole = JSArrayHole();
+/// Constant representing the JavaScript `undefined` value.
+const JSUndefined jsUndefined = JSUndefined();
+
+/// Represents the JavaScript `undefined` type.
+class JSUndefined {
+  /// Creates a constant `undefined` value.
+  const JSUndefined();
+
+  @override
+  String toString() => 'undefined';
+}
+
+/// Returns true if the given value is JavaScript `undefined`.
+bool isJSUndefined(dynamic value) => value is JSUndefined;
+
+/// Represents an ES6 Symbol value in the interpreter runtime.
+class JSSymbol {
+  /// Creates an ES6 Symbol with an optional description.
+  JSSymbol([this.description]);
+
+  /// The description of the Symbol.
+  final String? description;
+
+  @override
+  String toString() =>
+      description == null ? 'Symbol()' : 'Symbol($description)';
+}
 
 class JSPropertyDescriptor {
   JSPropertyDescriptor({
@@ -179,6 +207,8 @@ abstract class GlobalContext {
     'performance': StaticPerformance(),
     'Map': JSMapConstructor(),
     'Set': JSSetConstructor(),
+    'Symbol': ([dynamic description]) =>
+        JSSymbol(description == null ? null : description.toString()),
     'queueMicrotask': (Function cb) => scheduleMicrotask(() {
           try {
             cb([]);
@@ -262,6 +292,7 @@ class InvokableController {
   static void addGlobals(Map<String, dynamic> context) {
     context.addAll(GlobalContext.context);
     context['globalThis'] = context;
+    context['undefined'] = jsUndefined;
     // context['debug'] = () async {
     //   await waitForCondition();
     // };
@@ -662,6 +693,7 @@ class Console extends Object with Invokable, MethodExecutor {
   }
 
   String _formatArg(dynamic value) {
+    if (isJSUndefined(value)) return 'undefined';
     if (value == null) return 'null';
     if (value is bool || value is num) return value.toString();
     if (value is String) return value;
@@ -835,7 +867,74 @@ class StaticArray extends Object with Invokable {
   @override
   Map<String, Function> methods() {
     return {
+      'init': (
+          [dynamic first,
+          dynamic second = _missingArrayItem,
+          dynamic third = _missingArrayItem,
+          dynamic fourth = _missingArrayItem,
+          dynamic fifth = _missingArrayItem]) {
+        final values = [first, second, third, fourth, fifth]
+            .where((value) => !identical(value, _missingArrayItem))
+            .toList();
+        if (values.length == 1 && values.first is num) {
+          final length = (values.first as num).toInt();
+          _List._checkArrayLength(length);
+          return List<dynamic>.filled(length, jsArrayHole);
+        }
+        return values;
+      },
       'isArray': (dynamic value) => value is List,
+      'from': (dynamic value, [Function? mapFn]) {
+        List<dynamic> list;
+        if (value is String) {
+          list = value.split('');
+        } else if (value is List) {
+          list = value.map(_List._visibleValue).toList();
+        } else if (value is Iterable) {
+          list = value.toList();
+        } else if (value is Invokable) {
+          final methods = value.methods();
+          final isMapLike =
+              methods.containsKey('get') && methods.containsKey('set');
+          final iteratorMethod =
+              isMapLike ? methods['entries'] : methods['values'];
+          final result = iteratorMethod == null
+              ? null
+              : Function.apply(iteratorMethod, const []);
+          list = result is List ? List<dynamic>.from(result) : <dynamic>[];
+        } else if (value is Map && value['length'] is num) {
+          final length = (value['length'] as num).toInt();
+          _List._checkArrayLength(length);
+          list = List<dynamic>.generate(length, (index) {
+            if (InvokableController.hasProperty(value, index)) {
+              return InvokableController.getProperty(value, index);
+            }
+            return InvokableController.getProperty(value, index.toString());
+          });
+        } else {
+          list = [];
+        }
+        if (mapFn != null) {
+          return list
+              .asMap()
+              .entries
+              .map((entry) => mapFn([entry.value, entry.key]))
+              .toList();
+        }
+        return list;
+      },
+      'of': (
+              [dynamic first = _missingArrayItem,
+              dynamic second = _missingArrayItem,
+              dynamic third = _missingArrayItem,
+              dynamic fourth = _missingArrayItem,
+              dynamic fifth = _missingArrayItem,
+              dynamic sixth = _missingArrayItem,
+              dynamic seventh = _missingArrayItem,
+              dynamic eighth = _missingArrayItem]) =>
+          [first, second, third, fourth, fifth, sixth, seventh, eighth]
+              .where((value) => !identical(value, _missingArrayItem))
+              .toList(),
     };
   }
 
@@ -1459,6 +1558,18 @@ class _List {
         }
         return -1;
       },
+      'findLast': (Function f) {
+        for (final entry in _presentEntries(list).toList().reversed) {
+          if (f([entry.value, entry.key, list])) return entry.value;
+        }
+        return null;
+      },
+      'findLastIndex': (Function f) {
+        for (final entry in _presentEntries(list).toList().reversed) {
+          if (f([entry.value, entry.key, list])) return entry.key;
+        }
+        return -1;
+      },
       'includes': (dynamic v) => _presentValues(list).contains(v),
       'contains': (dynamic v) => _presentValues(list).contains(v),
       'join': ([String str = ',']) => list.join(str),
@@ -1641,7 +1752,7 @@ class _List {
   static dynamic getProperty(List list, dynamic prop) {
     prop = InvokableController._normalizeIndexProperty(prop);
     if (prop is int) {
-      if (prop < 0 || prop >= list.length) return null;
+      if (prop < 0 || prop >= list.length) return jsUndefined;
       return _visibleValue(list[prop]);
     }
     Function? f = getters(list)[prop];

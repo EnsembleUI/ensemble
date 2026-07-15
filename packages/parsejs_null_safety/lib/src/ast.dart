@@ -103,10 +103,11 @@ class Program extends Scope {
 /// A function, which may occur as a function expression, function declaration, or property accessor in an object literal.
 class FunctionNode extends Scope {
   Name? name;
-  List<Name> params;
+  List<Node> params;
   Statement body;
+  bool isAsync;
 
-  FunctionNode(this.name, this.params, this.body);
+  FunctionNode(this.name, this.params, this.body, {this.isAsync = false});
 
   bool get isExpression => parent is FunctionExpression;
   bool get isDeclaration => parent is FunctionDeclaration;
@@ -125,10 +126,11 @@ class FunctionNode extends Scope {
 }
 
 class ArrowFunctionNode extends Scope {
-  final List<Name> params;
+  final List<Node> params;
   final Statement body;
+  final bool isAsync;
 
-  ArrowFunctionNode(this.params, this.body);
+  ArrowFunctionNode(this.params, this.body, {this.isAsync = false});
 
   bool get isExpression => true; // Arrow functions are always expressions
   bool get isDeclaration => false; // Arrow functions are not declarations
@@ -161,7 +163,13 @@ class Name extends Node {
   bool get isVariable =>
       parent is NameExpression ||
       parent is FunctionNode ||
+      parent is DefaultParameter ||
+      parent is RestParameter ||
       parent is VariableDeclarator ||
+      (parent is Property &&
+          parent!.parent is ObjectPattern &&
+          (parent as Property).value == this) ||
+      parent is ArrayPattern ||
       parent is CatchClause;
 
   /// True if this refers to a property name.
@@ -502,6 +510,27 @@ class ForInStatement extends Statement {
   visitBy1<T, A>(Visitor1<T, A> v, A arg) => v.visitForIn(this, arg);
 }
 
+/// Statement of form: `for ([left] of [right]) [body]`
+class ForOfStatement extends Statement {
+  /// May be VariableDeclaration or Expression.
+  Node left;
+  Expression right;
+  Statement body;
+
+  ForOfStatement(this.left, this.right, this.body);
+
+  forEach(callback) {
+    callback(left);
+    callback(right);
+    callback(body);
+  }
+
+  String toString() => 'ForOfStatement';
+
+  visitBy<T>(Visitor<T> v) => v.visitForOf(this);
+  visitBy1<T, A>(Visitor1<T, A> v, A arg) => v.visitForOf(this, arg);
+}
+
 /// Statement of form: `function [function.name])([function.params]) { [function.body] }`.
 class FunctionDeclaration extends Statement {
   FunctionNode function;
@@ -519,9 +548,10 @@ class FunctionDeclaration extends Statement {
 
 /// Statement of form: `var [declarations];`
 class VariableDeclaration extends Statement {
+  String kind;
   List<VariableDeclarator> declarations;
 
-  VariableDeclaration(this.declarations);
+  VariableDeclaration(this.declarations, [this.kind = 'var']);
 
   forEach(callback) => declarations.forEach(callback);
 
@@ -532,9 +562,78 @@ class VariableDeclaration extends Statement {
       v.visitVariableDeclaration(this, arg);
 }
 
+/// Represents a default parameter value in a function declaration or destructuring pattern (e.g. `x = 1`).
+class DefaultParameter extends Node {
+  /// The parameter name or binding pattern.
+  Node name;
+  /// The default expression evaluated when the parameter is undefined.
+  Expression defaultValue;
+
+  DefaultParameter(this.name, this.defaultValue);
+
+  forEach(callback) {
+    callback(name);
+    callback(defaultValue);
+  }
+
+  String toString() => 'DefaultParameter';
+
+  visitBy<T>(Visitor<T> v) => v.visitDefaultParameter(this);
+  visitBy1<T, A>(Visitor1<T, A> v, A arg) => v.visitDefaultParameter(this, arg);
+}
+
+/// Represents a rest parameter or rest property (e.g. `...rest`).
+class RestParameter extends Node {
+  /// The binding target name or pattern for the rest parameters.
+  Node name;
+
+  RestParameter(this.name);
+
+  forEach(callback) => callback(name);
+
+  String toString() => 'RestParameter';
+
+  visitBy<T>(Visitor<T> v) => v.visitRestParameter(this);
+  visitBy1<T, A>(Visitor1<T, A> v, A arg) => v.visitRestParameter(this, arg);
+}
+
+/// Represents an object destructuring pattern (e.g. `{ name, age }`).
+class ObjectPattern extends Node {
+  /// The list of properties being destructured.
+  List<Property> properties;
+
+  ObjectPattern(this.properties);
+
+  forEach(callback) => properties.forEach(callback);
+
+  String toString() => 'ObjectPattern';
+
+  visitBy<T>(Visitor<T> v) => v.visitObjectPattern(this);
+  visitBy1<T, A>(Visitor1<T, A> v, A arg) => v.visitObjectPattern(this, arg);
+}
+
+/// Represents an array destructuring pattern (e.g. `[first, , third]`).
+class ArrayPattern extends Node {
+  /// The elements in the array pattern, where null represents a hole/skipped element.
+  List<Node?> elements;
+
+  ArrayPattern(this.elements);
+
+  forEach(callback) {
+    for (Node? element in elements) {
+      if (element != null) callback(element);
+    }
+  }
+
+  String toString() => 'ArrayPattern';
+
+  visitBy<T>(Visitor<T> v) => v.visitArrayPattern(this);
+  visitBy1<T, A>(Visitor1<T, A> v, A arg) => v.visitArrayPattern(this, arg);
+}
+
 /// Variable declaration: `[name]` or `[name] = [init]`.
 class VariableDeclarator extends Node {
-  Name name;
+  Node name;
   Expression? init; // May be null.
 
   VariableDeclarator(this.name, this.init);
@@ -597,6 +696,58 @@ class ArrayExpression extends Expression {
   visitBy1<T, A>(Visitor1<T, A> v, A arg) => v.visitArray(this, arg);
 }
 
+/// Represents a spread expression (e.g. `...items` in an array literal or function call).
+class SpreadExpression extends Expression {
+  /// The expression being spread.
+  Expression argument;
+
+  SpreadExpression(this.argument);
+
+  forEach(callback) => callback(argument);
+
+  String toString() => 'SpreadExpression';
+
+  visitBy<T>(Visitor<T> v) => v.visitSpread(this);
+  visitBy1<T, A>(Visitor1<T, A> v, A arg) => v.visitSpread(this, arg);
+}
+
+/// Represents a template literal (e.g. ``value ${x}``).
+class TemplateLiteral extends Expression {
+  /// The raw static text parts of the template literal.
+  List<String> strings;
+  /// The dynamic expressions evaluated between string segments.
+  List<Expression> expressions;
+
+  TemplateLiteral(this.strings, this.expressions);
+
+  forEach(callback) => expressions.forEach(callback);
+
+  String toString() => 'TemplateLiteral';
+
+  visitBy<T>(Visitor<T> v) => v.visitTemplateLiteral(this);
+  visitBy1<T, A>(Visitor1<T, A> v, A arg) => v.visitTemplateLiteral(this, arg);
+}
+
+/// Represents a tagged template expression (e.g. `html`template``).
+class TaggedTemplateExpression extends Expression {
+  /// The tag function expression invoked with the template literal.
+  Expression tag;
+  /// The template literal being tagged.
+  TemplateLiteral template;
+
+  TaggedTemplateExpression(this.tag, this.template);
+
+  forEach(callback) {
+    callback(tag);
+    callback(template);
+  }
+
+  String toString() => 'TaggedTemplateExpression';
+
+  visitBy<T>(Visitor<T> v) => v.visitTaggedTemplate(this);
+  visitBy1<T, A>(Visitor1<T, A> v, A arg) => v.visitTaggedTemplate(this, arg);
+}
+
 /// Expression of form: `{ [properties] }`
 class ObjectExpression extends Expression {
   List<Property> properties;
@@ -624,18 +775,26 @@ class Property extends Node {
   /// May be "init", "get", or "set".
   String kind;
 
-  Property(this.key, this.value, [this.kind = 'init']);
+  bool computed;
+  bool method;
+
+  Property(this.key, this.value,
+      [this.kind = 'init', this.computed = false, this.method = false]);
 //  Property.getter(this.key, FunctionExpression this.value) : kind = 'get';
 //  Property.setter(this.key, FunctionExpression this.value) : kind = 'set';
 
   bool get isInit => kind == 'init';
   bool get isGetter => kind == 'get';
   bool get isSetter => kind == 'set';
+  bool get isSpread => kind == 'spread';
   bool get isAccessor => isGetter || isSetter;
 
-  String? get nameString => key is Name
-      ? (key as Name).value
-      : (key as LiteralExpression).value.toString();
+  String? get nameString {
+    if (key is Name) return (key as Name).value;
+    if (key is LiteralExpression)
+      return (key as LiteralExpression).value.toString();
+    return null;
+  }
 
   /// Returns the value as a FunctionNode. Useful for getters/setters.
   FunctionNode get function => value as FunctionNode;
@@ -697,6 +856,21 @@ class UnaryExpression extends Expression {
 
   visitBy<T>(Visitor<T> v) => v.visitUnary(this);
   visitBy1<T, A>(Visitor1<T, A> v, A arg) => v.visitUnary(this, arg);
+}
+
+/// Represents an await expression (e.g. `await promise`).
+class AwaitExpression extends Expression {
+  /// The promise/value expression being awaited.
+  Expression argument;
+
+  AwaitExpression(this.argument);
+
+  forEach(callback) => callback(argument);
+
+  String toString() => 'AwaitExpression';
+
+  visitBy<T>(Visitor<T> v) => v.visitAwait(this);
+  visitBy1<T, A>(Visitor1<T, A> v, A arg) => v.visitAwait(this, arg);
 }
 
 /// Expression of form: `[left] + [right]`, or using any of the binary operators:
@@ -783,11 +957,15 @@ class ConditionalExpression extends Expression {
 /// Expression of form: `[callee](..[arguments]..)` or `new [callee](..[arguments]..)`.
 class CallExpression extends Expression {
   bool isNew;
+  bool optional;
   Expression callee;
   List<Expression> arguments;
 
-  CallExpression(this.callee, this.arguments, {this.isNew = false});
-  CallExpression.newCall(this.callee, this.arguments) : isNew = true;
+  CallExpression(this.callee, this.arguments,
+      {this.isNew = false, this.optional = false});
+  CallExpression.newCall(this.callee, this.arguments)
+      : isNew = true,
+        optional = false;
 
   forEach(callback) {
     callback(callee);
@@ -804,8 +982,9 @@ class CallExpression extends Expression {
 class MemberExpression extends Expression {
   Expression object;
   Name property;
+  bool optional;
 
-  MemberExpression(this.object, this.property);
+  MemberExpression(this.object, this.property, {this.optional = false});
 
   forEach(callback) {
     callback(object);
@@ -822,8 +1001,9 @@ class MemberExpression extends Expression {
 class IndexExpression extends Expression {
   Expression object;
   Expression property;
+  bool optional;
 
-  IndexExpression(this.object, this.property);
+  IndexExpression(this.object, this.property, {this.optional = false});
 
   forEach(callback) {
     callback(object);
