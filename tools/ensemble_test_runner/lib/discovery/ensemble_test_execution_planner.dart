@@ -79,6 +79,7 @@ class EnsembleTestExecutionPlanner {
         path,
         content,
         inputs: inputs,
+        services: config.services,
       );
       for (final definition in definitions) {
         final existing = byId[definition.testCase.id];
@@ -102,6 +103,13 @@ class EnsembleTestExecutionPlanner {
           'prerequisite "$prereq"',
         );
       }
+      final session = def.testCase.session;
+      if (session != null && !selectedById.containsKey(session)) {
+        throw EnsembleTestFailure(
+          'Test "${def.testCase.id}" in ${def.assetPath} references unknown '
+          'session "$session"',
+        );
+      }
     }
 
     final ordered = _topologicalSort(selectedById);
@@ -114,12 +122,14 @@ class EnsembleTestExecutionPlanner {
     String path,
     String content, {
     Map<String, dynamic> inputs = const {},
+    List<TestServiceConfig> services = const [],
     Future<String> Function(String assetPath)? assetLoader,
   }) {
     return _parseDefinitionsFromAsset(
       path,
       content,
       inputs: inputs,
+      services: services,
       assetLoader: assetLoader ?? _rootBundleAssetLoader,
     );
   }
@@ -128,14 +138,16 @@ class EnsembleTestExecutionPlanner {
     String path,
     String content, {
     required Map<String, dynamic> inputs,
+    List<TestServiceConfig> services = const [],
     _AssetStringLoader assetLoader = _rootBundleAssetLoader,
   }) async {
-    if (loadYaml(content) == null) {
+    final resolvedContent = _resolveServicePlaceholders(content, services);
+    if (loadYaml(resolvedContent) == null) {
       return const [];
     }
 
     final base = EnsembleTestParser.parseString(
-      content,
+      resolvedContent,
       sourcePath: path,
       inputs: inputs,
     );
@@ -153,6 +165,7 @@ class EnsembleTestExecutionPlanner {
             id: base.id,
             startScreen: base.startScreen,
             prerequisite: base.prerequisite,
+            session: base.session,
             mocks: mocks,
           ),
         ),
@@ -163,7 +176,7 @@ class EnsembleTestExecutionPlanner {
     String? previousScenarioId;
     for (final scenario in base.scenarios) {
       final parsed = EnsembleTestParser.parseString(
-        content,
+        resolvedContent,
         sourcePath: path,
         inputs: inputs,
         scenario: scenario.vars,
@@ -193,6 +206,7 @@ class EnsembleTestExecutionPlanner {
             startScreen:
                 parsed.prerequisite == null ? parsed.startScreen : null,
             prerequisite: prerequisite,
+            session: parsed.session,
             mocks: mocks,
           ),
         ),
@@ -202,12 +216,45 @@ class EnsembleTestExecutionPlanner {
     return definitions;
   }
 
+  static String _resolveServicePlaceholders(
+    String content,
+    List<TestServiceConfig> services,
+  ) {
+    final urls = {
+      for (final service in services)
+        if (service.url != null && service.url!.isNotEmpty)
+          service.name: service.url!,
+    };
+    final resolved = content.replaceAllMapped(
+      RegExp(r'\$\{services\.([^.}]+)\.url\}'),
+      (match) {
+        final name = match.group(1)!;
+        final url = urls[name];
+        if (url == null) {
+          throw EnsembleTestFailure(
+            'Test references service "$name" without a configured url.',
+          );
+        }
+        return url;
+      },
+    );
+    final unsupported = RegExp(r'\$\{services\.([^}]+)\}').firstMatch(resolved);
+    if (unsupported != null) {
+      throw EnsembleTestFailure(
+        'Unsupported service value "${unsupported.group(0)}". '
+        'Use \${services.<name>.url}.',
+      );
+    }
+    return resolved;
+  }
+
   static EnsembleTestCase _withRuntimeFields(
     EnsembleTestCase test, {
     required String id,
     String? description,
     String? startScreen,
     String? prerequisite,
+    String? session,
     required TestMocks mocks,
   }) {
     return EnsembleTestCase(
@@ -219,10 +266,16 @@ class EnsembleTestExecutionPlanner {
       description: description ?? test.description,
       owner: test.owner,
       priority: test.priority,
+      parallel: test.parallel,
+      retry: test.retry,
       startScreen: startScreen,
+      startScreenInputs: test.startScreenInputs,
       prerequisite: prerequisite,
+      session: session,
       mockFiles: test.mockFiles,
+      scenarios: test.scenarios,
       initialState: test.initialState,
+      setupSteps: test.setupSteps,
       mocks: mocks,
       steps: test.steps,
     );
@@ -389,19 +442,24 @@ class EnsembleTestExecutionPlanner {
           'No tests matched the provided selection flags');
     }
 
-    void includePrerequisites(String id) {
-      final prereq = byId[id]?.testCase.prerequisite;
-      if (prereq == null) return;
-      if (!byId.containsKey(prereq)) {
-        throw EnsembleTestFailure(
-          'Selected test "$id" references unknown prerequisite "$prereq"',
-        );
+    void includeDependencies(String id) {
+      final test = byId[id]?.testCase;
+      final dependencies = <String>[
+        if (test?.prerequisite != null) test!.prerequisite!,
+        if (test?.session != null) test!.session!,
+      ];
+      for (final dependency in dependencies) {
+        if (!byId.containsKey(dependency)) {
+          throw EnsembleTestFailure(
+            'Selected test "$id" references unknown dependency "$dependency"',
+          );
+        }
+        if (selectedIds.add(dependency)) includeDependencies(dependency);
       }
-      if (selectedIds.add(prereq)) includePrerequisites(prereq);
     }
 
     for (final id in selectedIds.toList()) {
-      includePrerequisites(id);
+      includeDependencies(id);
     }
 
     return {
@@ -472,10 +530,15 @@ class EnsembleTestExecutionPlanner {
     }
 
     for (final entry in byId.entries) {
-      final prereq = entry.value.testCase.prerequisite;
-      if (prereq == null) continue;
-      inDegree[entry.key] = (inDegree[entry.key] ?? 0) + 1;
-      dependents[prereq]!.add(entry.key);
+      final test = entry.value.testCase;
+      final dependencies = <String>[
+        if (test.prerequisite != null) test.prerequisite!,
+        if (test.session != null) test.session!,
+      ];
+      for (final dependency in dependencies) {
+        inDegree[entry.key] = (inDegree[entry.key] ?? 0) + 1;
+        dependents[dependency]!.add(entry.key);
+      }
     }
 
     bool sessionChainComplete(List<String> ordered) {
@@ -517,7 +580,7 @@ class EnsembleTestExecutionPlanner {
 
     if (orderedIds.length != byId.length) {
       throw EnsembleTestFailure(
-        'Circular prerequisite dependency among tests: '
+        'Circular test dependency among tests: '
         '${byId.keys.where((id) => !orderedIds.contains(id)).join(", ")}',
       );
     }

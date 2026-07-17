@@ -1,8 +1,12 @@
+import 'dart:async';
+import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/screen_tracker.dart';
 import 'package:ensemble_test_runner/actions/extended_step_handlers.dart';
+import 'package:ensemble_test_runner/actions/http_request_action.dart';
+import 'package:ensemble_test_runner/actions/run_command_action.dart';
 import 'package:ensemble_test_runner/actions/test_step_executor.dart';
 import 'package:ensemble_test_runner/assertions/assertion_engine.dart';
 import 'package:ensemble_test_runner/discovery/ensemble_test_execution_planner.dart';
@@ -11,12 +15,14 @@ import 'package:ensemble_test_runner/mocks/test_api_provider_overlay.dart';
 import 'package:ensemble_test_runner/mocks/test_logger.dart';
 import 'package:ensemble_test_runner/reporters/test_reporter.dart';
 import 'package:ensemble_test_runner/runner/app_performance_log.dart';
+import 'package:ensemble_test_runner/runner/app_session_snapshot.dart';
 import 'package:ensemble_test_runner/runner/debug_artifact_logs.dart';
 import 'package:ensemble_test_runner/runner/ensemble_test_context.dart';
 import 'package:ensemble_test_runner/runner/ensemble_test_harness.dart';
 import 'package:ensemble_test_runner/runner/live_async_call.dart';
 import 'package:ensemble_test_runner/runner/screenshot_contact_sheet.dart';
 import 'package:ensemble_test_runner/runner/test_runtime_state.dart';
+import 'package:ensemble_test_runner/runner/test_service_manager.dart';
 import 'package:ensemble_test_runner/runner/yaml_test_session.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -29,6 +35,11 @@ typedef EnsembleTestRunOutput = ({
   EnsembleConfig config,
   EnsembleTestContext context,
 });
+
+typedef EnsembleTestProgressListener = FutureOr<void> Function(
+  EnsembleTestDefinition definition,
+  EnsembleSingleTestResult result,
+);
 
 class EnsembleTestPlanRunResult {
   final Map<String, EnsembleSingleTestResult> resultsById;
@@ -51,13 +62,37 @@ class EnsembleTestRunner {
   /// Runs every test in [plan] and returns results keyed by test id.
   Future<EnsembleTestPlanRunResult> runPlan(
     EnsembleTestExecutionPlan plan,
-    WidgetTester tester,
-  ) async {
+    WidgetTester tester, {
+    EnsembleTestProgressListener? onTestComplete,
+  }) async {
+    final services = TestServiceManager(plan.config.services);
+    await tester.runAsync(services.startAll);
+    try {
+      return await _runPlan(
+        plan,
+        tester,
+        onTestComplete: onTestComplete,
+      );
+    } finally {
+      await LiveAsyncCallSupport.run<void>(services.stopAll);
+    }
+  }
+
+  Future<EnsembleTestPlanRunResult> _runPlan(
+    EnsembleTestExecutionPlan plan,
+    WidgetTester tester, {
+    EnsembleTestProgressListener? onTestComplete,
+  }) async {
     final resultsById = <String, EnsembleSingleTestResult>{};
     final suiteLogger = TestLogger();
     final suiteFrames = <AppFrameTimingEntry>[];
     final suiteMarkers = <PerformanceMarker>[];
     final suiteApiCalls = <APICallRecord>[];
+    final sessionSnapshots = <String, AppSessionSnapshot>{};
+    final requestedSessions = plan.ordered
+        .map((definition) => definition.testCase.session)
+        .whereType<String>()
+        .toSet();
     EnsembleTestContext? lastContext;
     var config = await harness.buildConfig();
 
@@ -72,25 +107,80 @@ class EnsembleTestRunner {
           );
         }
         if (prereqResult.status == TestStatus.failed) {
-          resultsById[test.id] = EnsembleSingleTestResult.failed(
+          final result = EnsembleSingleTestResult.failed(
             testId: test.id,
             metadata: test.metadataJson,
             error: 'Prerequisite "$prereq" failed',
             durationMs: 0,
             report: buildTestReportDetails(test),
           );
+          resultsById[test.id] = result;
+          await onTestComplete?.call(def, result);
           continue;
         }
       }
 
-      final out = await runOne(
-        test,
-        tester,
-        suiteConfig: plan.config,
-        existingConfig: config,
-        continuation: test.hasPrerequisite,
-      );
+      final session = test.session;
+      AppSessionSnapshot? sessionSnapshot;
+      if (session != null) {
+        final sessionResult = resultsById[session];
+        if (sessionResult == null) {
+          throw EnsembleTestFailure(
+            'Internal error: session "$session" for "${test.id}" was not scheduled',
+          );
+        }
+        if (sessionResult.status == TestStatus.failed) {
+          final result = EnsembleSingleTestResult.failed(
+            testId: test.id,
+            metadata: test.metadataJson,
+            error: 'Session "$session" failed',
+            durationMs: 0,
+            report: buildTestReportDetails(test),
+          );
+          resultsById[test.id] = result;
+          await onTestComplete?.call(def, result);
+          continue;
+        }
+        sessionSnapshot = sessionSnapshots[session];
+        if (sessionSnapshot == null) {
+          throw EnsembleTestFailure(
+            'Internal error: session "$session" completed without a snapshot',
+          );
+        }
+      }
+
+      late final EnsembleTestRunOutput out;
+      try {
+        out = await _runOneWithRetries(
+          test,
+          tester,
+          suiteConfig: plan.config,
+          existingConfig: config,
+          continuation: test.hasPrerequisite,
+          sessionSnapshot: sessionSnapshot,
+        );
+      } catch (error, stackTrace) {
+        final logs = await _writeEmergencyFailureScreenshot(
+          tester: tester,
+          test: test,
+          config: plan.config,
+          error: error,
+        );
+        final result = EnsembleSingleTestResult.failed(
+          testId: test.id,
+          metadata: test.metadataJson,
+          error: error.toString(),
+          stackTrace: stackTrace.toString(),
+          durationMs: 0,
+          logs: logs,
+          report: buildTestReportDetails(test),
+        );
+        resultsById[test.id] = result;
+        await onTestComplete?.call(def, result);
+        continue;
+      }
       resultsById[test.id] = out.result;
+      await onTestComplete?.call(def, out.result);
       config = out.config;
       lastContext = out.context;
       final frameOffset = suiteFrames.length;
@@ -101,6 +191,10 @@ class EnsembleTestRunner {
         ),
       );
       suiteApiCalls.addAll(out.context.apiOverlay.calls);
+      if (out.result.status == TestStatus.passed &&
+          requestedSessions.contains(test.id)) {
+        sessionSnapshots[test.id] = await AppSessionSnapshot.capture();
+      }
     }
 
     final suiteLogs = await _writeSuiteLogs(
@@ -126,6 +220,7 @@ class EnsembleTestRunner {
     EnsembleTestConfig suiteConfig = const EnsembleTestConfig(),
     EnsembleConfig? existingConfig,
     bool continuation = false,
+    AppSessionSnapshot? sessionSnapshot,
   }) async {
     final stopwatch = Stopwatch()..start();
     void Function(List<ui.FrameTiming>)? timingsCallback;
@@ -142,7 +237,6 @@ class EnsembleTestRunner {
       SchedulerBinding.instance.addTimingsCallback(timingsCallback);
       ctx.apiOverlay.liveAsyncRunner = tester.runAsync;
       LiveAsyncCallSupport.runner = tester.runAsync;
-      TestErrorTracker.install(ctx.runtime);
       final startupStartFrame = ctx.runtime.appFrameTimings.length + 1;
       final startupStartTime = DateTime.now();
 
@@ -157,6 +251,17 @@ class EnsembleTestRunner {
         await EnsembleTestHarness.applyInPlaceSetup(ctx);
         config = existingConfig ?? Ensemble().getConfig()!;
         await EnsembleTestHarness.waitForInitialWidgets(tester, testCase: test);
+      } else if (sessionSnapshot != null) {
+        if (!YamlTestSession.runtimeBootstrapped) {
+          throw EnsembleTestFailure(
+            'Test "${test.id}" requires a mounted session runtime',
+          );
+        }
+        await sessionSnapshot.restore();
+        await _executeSetup(test);
+        await EnsembleTestHarness.applyInPlaceSetup(ctx);
+        config = existingConfig ?? Ensemble().getConfig()!;
+        await EnsembleTestHarness.openSessionScreen(tester, test);
       } else {
         config = await harness.loadScreen(
           tester: tester,
@@ -164,8 +269,14 @@ class EnsembleTestRunner {
           existingConfig: existingConfig,
           context: ctx,
           suiteConfig: suiteConfig,
+          beforeBootstrap: () async {
+            await sessionSnapshot?.restore();
+            await _executeSetup(test);
+          },
+          forcedLocale: sessionSnapshot?.locale ?? ctx.runtime.locale,
         );
       }
+      _drainPendingFlutterExceptions(tester);
       await YamlTestSession.navigationFlow.flushPending();
       YamlTestSession.navigationFlow.beginTest(
         ScreenTracker().getCurrentScreenIdentifier(),
@@ -190,24 +301,153 @@ class EnsembleTestRunner {
       return (result: result, config: config, context: ctx);
     } catch (error, stackTrace) {
       final config = existingConfig ?? Ensemble().getConfig();
+      final errorMessage = error.toString();
+      final logs = <String>[];
+      try {
+        await _settleLiveApiWorkBestEffort(tester, ctx);
+        final hadScreenshotFrames =
+            ctx.runtime.screenshotSheetFrames.isNotEmpty;
+        await _flushPendingScreenshots(
+          ctx,
+          status: TestStatus.failed,
+          durationMs: stopwatch.elapsedMilliseconds,
+          failedStepLabel: 'Startup/setup',
+          failureMessage: errorMessage,
+        );
+        logs.addAll(ctx.logger.logs);
+        if (!hadScreenshotFrames) {
+          logs.addAll(
+            await _writeEmergencyFailureScreenshot(
+              tester: tester,
+              test: test,
+              config: suiteConfig,
+              error: error,
+            ),
+          );
+        }
+      } catch (_) {
+        logs.addAll(ctx.logger.logs);
+      }
       return (
         result: EnsembleSingleTestResult.failed(
           testId: test.id,
           metadata: test.metadataJson,
-          error: error.toString(),
+          error: errorMessage,
           stackTrace: stackTrace.toString(),
           durationMs: stopwatch.elapsedMilliseconds,
+          logs: logs,
           report: buildTestReportDetails(test),
         ),
         config: config ?? await harness.buildConfig(),
         context: ctx,
       );
     } finally {
-      TestErrorTracker.reset();
       final callback = timingsCallback;
       if (callback != null) {
         SchedulerBinding.instance.removeTimingsCallback(callback);
       }
+    }
+  }
+
+  Future<EnsembleTestRunOutput> _runOneWithRetries(
+    EnsembleTestCase test,
+    WidgetTester tester, {
+    required EnsembleTestConfig suiteConfig,
+    EnsembleConfig? existingConfig,
+    required bool continuation,
+    AppSessionSnapshot? sessionSnapshot,
+  }) async {
+    final maxAttempts = test.retry + 1;
+    var totalDurationMs = 0;
+    EnsembleTestRunOutput? lastOutput;
+
+    for (var attempt = 1; attempt <= maxAttempts; attempt++) {
+      final out = await runOne(
+        test,
+        tester,
+        suiteConfig: suiteConfig,
+        existingConfig: existingConfig,
+        continuation: continuation,
+        sessionSnapshot: sessionSnapshot,
+      );
+      totalDurationMs += out.result.durationMs;
+      lastOutput = out;
+      existingConfig = out.config;
+
+      if (out.result.status == TestStatus.passed || attempt == maxAttempts) {
+        return (
+          result: _withRetryMetadata(
+            out.result,
+            attempts: attempt,
+            retry: test.retry,
+            durationMs: totalDurationMs,
+          ),
+          config: out.config,
+          context: out.context,
+        );
+      }
+    }
+
+    return lastOutput!;
+  }
+
+  EnsembleSingleTestResult _withRetryMetadata(
+    EnsembleSingleTestResult result, {
+    required int attempts,
+    required int retry,
+    required int durationMs,
+  }) {
+    return EnsembleSingleTestResult(
+      testId: result.testId,
+      metadata: result.metadata,
+      status: result.status,
+      durationMs: durationMs,
+      attempts: attempts,
+      retry: retry,
+      failedStepIndex: result.failedStepIndex,
+      failedStep: result.failedStep,
+      message: result.message,
+      stackTrace: result.stackTrace,
+      logs: result.logs,
+      report: result.report,
+    );
+  }
+
+  Future<void> _executeSetup(EnsembleTestCase test) async {
+    for (var i = 0; i < test.setupSteps.length; i++) {
+      final step = test.setupSteps[i];
+      try {
+        await _executeSetupStep(step);
+      } catch (error) {
+        throw EnsembleTestFailure(
+          'Setup ${i + 1} ${formatStepBrief(step)} failed: $error',
+        );
+      }
+    }
+  }
+
+  Future<void> _executeSetupStep(TestStep step) async {
+    switch (step.type) {
+      case 'httpRequest':
+        await HttpRequestAction.execute(step.args);
+      case 'runCommand':
+        await RunCommandAction.execute(step.args);
+      case 'group':
+        for (final nested in step.nestedSteps) {
+          await _executeSetupStep(nested);
+        }
+      case 'optional':
+        try {
+          for (final nested in step.nestedSteps) {
+            await _executeSetupStep(nested);
+          }
+        } catch (_) {
+          // Optional setup is best effort.
+        }
+      default:
+        throw EnsembleTestFailure(
+          'Unsupported setup action "${step.type}"',
+        );
     }
   }
 
@@ -230,16 +470,48 @@ class EnsembleTestRunner {
       final step = test.steps[i];
       final startFrame = ctx.runtime.appFrameTimings.length + 1;
       final startTime = DateTime.now();
+      var capturedStep = false;
       try {
+        _drainPendingFlutterExceptions(tester);
         if (i == 0 && ctx.config.screenshots.enabled) {
           await executor.settle();
         }
-        await _captureAutomaticScreenshotForStep(
-          executor: executor,
-          step: step,
-          stepIndex: i,
-        );
-        await executor.execute(step);
+        final captureBeforeStep = _shouldCaptureBeforeStep(step);
+        if (captureBeforeStep) {
+          await _captureAutomaticScreenshotForStep(
+            executor: executor,
+            step: step,
+            stepIndex: i,
+          );
+          capturedStep = true;
+        }
+        if (step.type == 'waitForText') {
+          executor.onWaitForTextMatched = (matchedStep) async {
+            if (capturedStep) return;
+            await _waitForHighlightTargetToPaint(executor, matchedStep);
+            await _captureAutomaticScreenshotForStepBestEffort(
+              executor: executor,
+              step: matchedStep,
+              stepIndex: i,
+            );
+            capturedStep = true;
+          };
+        }
+        try {
+          await executor.execute(step);
+        } finally {
+          executor.onWaitForTextMatched = null;
+        }
+        _drainPendingFlutterExceptions(tester);
+        if (!captureBeforeStep && !capturedStep) {
+          await _captureAutomaticScreenshotForStep(
+            executor: executor,
+            step: step,
+            stepIndex: i,
+            pumpBeforeCapture: _shouldPumpBeforePostStepCapture(step),
+          );
+          capturedStep = true;
+        }
         await YamlTestSession.navigationFlow.flushPending();
         _recordPerformanceMarker(
           ctx: ctx,
@@ -262,8 +534,25 @@ class EnsembleTestRunner {
         );
         final idleStartFrame = ctx.runtime.appFrameTimings.length + 1;
         final idleStartTime = DateTime.now();
-        await _settleLiveApiWork(tester, ctx);
-        await _flushPendingScreenshots(ctx);
+        await _settleLiveApiWorkBestEffort(tester, ctx);
+        _drainPendingFlutterExceptions(tester);
+        if (!capturedStep) {
+          await _captureAutomaticScreenshotForStepBestEffort(
+            executor: executor,
+            step: step,
+            stepIndex: i,
+            pumpBeforeCapture: true,
+            ensureTargetVisible: false,
+          );
+        }
+        await _flushPendingScreenshots(
+          ctx,
+          status: TestStatus.failed,
+          durationMs: stopwatch.elapsedMilliseconds,
+          failedStepIndex: i,
+          failedStepLabel: formatStepBrief(step),
+          failureMessage: error.toString(),
+        );
         await YamlTestSession.navigationFlow.flushPending();
         _recordPerformanceMarker(
           ctx: ctx,
@@ -291,8 +580,13 @@ class EnsembleTestRunner {
     await YamlTestSession.navigationFlow.flushPending();
     final idleStartFrame = ctx.runtime.appFrameTimings.length + 1;
     final idleStartTime = DateTime.now();
-    await _settleLiveApiWork(tester, ctx);
-    await _flushPendingScreenshots(ctx);
+    await _settleLiveApiWorkBestEffort(tester, ctx);
+    _drainPendingFlutterExceptions(tester);
+    await _flushPendingScreenshots(
+      ctx,
+      status: TestStatus.passed,
+      durationMs: stopwatch.elapsedMilliseconds,
+    );
     _recordPerformanceMarker(
       ctx: ctx,
       testId: test.id,
@@ -316,11 +610,19 @@ class EnsembleTestRunner {
     required TestStepExecutor executor,
     required TestStep step,
     required int stepIndex,
+    bool pumpBeforeCapture = false,
+    bool ensureTargetVisible = true,
   }) async {
     final options = executor.context.config.screenshots;
     if (!options.shouldCaptureStep(step.type)) return;
 
-    await _ensureHighlightTargetVisible(executor, step);
+    if (pumpBeforeCapture) {
+      await executor.tester.pump();
+    }
+
+    if (ensureTargetVisible) {
+      await _ensureHighlightTargetVisible(executor, step);
+    }
 
     var image = ExtendedStepHandlers.captureScreenshotImage(executor.tester);
     final highlightRect = _highlightRectForStep(executor, step);
@@ -330,6 +632,7 @@ class EnsembleTestRunner {
           tester: executor.tester,
           image: image,
           rect: highlightRect,
+          step: step,
         );
         image.dispose();
         image = highlighted;
@@ -340,24 +643,96 @@ class EnsembleTestRunner {
 
     executor.context.runtime.addScreenshotSheetFrame(
       ScreenshotSheetFrame(
+        stepIndex: stepIndex,
         label: '${stepIndex + 1}. ${formatStepBrief(step)}',
         image: image,
       ),
     );
   }
 
+  Future<void> _captureAutomaticScreenshotForStepBestEffort({
+    required TestStepExecutor executor,
+    required TestStep step,
+    required int stepIndex,
+    bool pumpBeforeCapture = false,
+    bool ensureTargetVisible = true,
+  }) async {
+    try {
+      await _captureAutomaticScreenshotForStep(
+        executor: executor,
+        step: step,
+        stepIndex: stepIndex,
+        pumpBeforeCapture: pumpBeforeCapture,
+        ensureTargetVisible: ensureTargetVisible,
+      );
+    } catch (_) {
+      // Screenshot capture must never replace the real test failure.
+    }
+  }
+
+  bool _shouldCaptureBeforeStep(TestStep step) => _isUserActionStep(step);
+
+  bool _shouldPumpBeforePostStepCapture(TestStep step) =>
+      step.type != 'waitForText';
+
+  Future<void> _waitForHighlightTargetToPaint(
+    TestStepExecutor executor,
+    TestStep step,
+  ) async {
+    if (step.type != 'waitForText') return;
+
+    for (var i = 0; i < 8; i++) {
+      final finder = _highlightFinder(executor, step);
+      final elements = finder?.evaluate().toList() ?? const <Element>[];
+      if (elements.isEmpty) return;
+      if (_effectiveOpacity(elements.first) >= 0.85) return;
+
+      await executor.tester.pump(const Duration(milliseconds: 50));
+    }
+  }
+
+  double _effectiveOpacity(Element element) {
+    var opacity = 1.0;
+    element.visitAncestorElements((ancestor) {
+      final renderObject = ancestor.renderObject;
+      if (renderObject is RenderOpacity) {
+        opacity *= renderObject.opacity;
+      } else if (renderObject != null &&
+          renderObject.runtimeType.toString() == 'RenderAnimatedOpacity') {
+        try {
+          final animatedOpacity = (renderObject as dynamic).opacity;
+          if (animatedOpacity is Animation<double>) {
+            opacity *= animatedOpacity.value;
+          } else if (animatedOpacity is double) {
+            opacity *= animatedOpacity;
+          }
+        } catch (_) {
+          // Keep the known opacity from other ancestors.
+        }
+      }
+      return true;
+    });
+    return opacity;
+  }
+
   ui.Rect? _highlightRectForStep(TestStepExecutor executor, TestStep step) {
     if (!_shouldHighlightStep(step)) return null;
 
-    final id = step.args['id']?.toString();
-    if (id == null || id.isEmpty) return null;
-
-    final elements = executor.assertions.finderForId(id).evaluate();
+    final finder = _highlightFinder(executor, step);
+    if (finder == null) return null;
+    final elements = finder.evaluate();
     if (elements.isEmpty) return null;
 
-    final renderObject = elements.first.renderObject;
-    if (renderObject == null) return null;
-    return _rectForRenderObject(renderObject);
+    try {
+      final rect = executor.tester.getRect(finder.first);
+      if (rect.isFinite && !rect.isEmpty) {
+        return rect;
+      }
+    } catch (_) {
+      // Fall back to render-object traversal below.
+    }
+
+    return _rectForElement(elements.first);
   }
 
   Future<void> _ensureHighlightTargetVisible(
@@ -366,10 +741,8 @@ class EnsembleTestRunner {
   ) async {
     if (!_shouldHighlightStep(step)) return;
 
-    final id = step.args['id']?.toString();
-    if (id == null || id.isEmpty) return;
-
-    final finder = executor.assertions.finderForId(id);
+    final finder = _highlightFinder(executor, step);
+    if (finder == null) return;
     if (finder.evaluate().isEmpty) return;
 
     var visibilityTarget = finder;
@@ -394,6 +767,53 @@ class EnsembleTestRunner {
 
     await executor.tester.ensureVisible(visibilityTarget);
     await executor.tester.pump();
+  }
+
+  Finder? _highlightFinder(TestStepExecutor executor, TestStep step) {
+    final id = step.args['id']?.toString();
+    if (id != null && id.isNotEmpty) {
+      return executor.assertions.finderForId(id);
+    }
+    final text = step.args['text']?.toString();
+    if (text != null && text.isNotEmpty) {
+      if (step.type == 'expectTextContains') {
+        final hitTestableText = find.textContaining(text).hitTestable();
+        if (hitTestableText.evaluate().isNotEmpty) {
+          return hitTestableText;
+        }
+        return find.textContaining(text);
+      } else if (step.type == 'waitForText' || step.type == 'expectText') {
+        final hitTestableText = find.text(text).hitTestable();
+        if (hitTestableText.evaluate().isNotEmpty) {
+          return hitTestableText;
+        }
+        return find.text(text);
+      }
+    }
+    return null;
+  }
+
+  ui.Rect? _rectForElement(Element element) {
+    final renderObject = element.renderObject;
+    if (renderObject != null) {
+      final rect = _rectForRenderObject(renderObject);
+      if (rect != null) return rect;
+    }
+
+    final rects = <ui.Rect>[];
+
+    void collect(Element child) {
+      final childRenderObject = child.renderObject;
+      if (childRenderObject != null) {
+        final rect = _rectForRenderObject(childRenderObject);
+        if (rect != null) rects.add(rect);
+      }
+      child.visitChildren(collect);
+    }
+
+    element.visitChildren(collect);
+    if (rects.isEmpty) return null;
+    return rects.reduce((a, b) => a.expandToInclude(b));
   }
 
   ui.Rect? _rectForRenderObject(RenderObject renderObject) {
@@ -429,6 +849,18 @@ class EnsembleTestRunner {
   }
 
   bool _shouldHighlightStep(TestStep step) {
+    if (step.type == 'waitForText' ||
+        step.type == 'expectText' ||
+        step.type == 'expectTextContains' ||
+        step.type == 'expectVisible') {
+      final text = step.args['text']?.toString();
+      final id = step.args['id']?.toString();
+      return (text != null && text.isNotEmpty) || (id != null && id.isNotEmpty);
+    }
+    return _isUserActionStep(step);
+  }
+
+  bool _isUserActionStep(TestStep step) {
     switch (step.type) {
       case 'tap':
       case 'doubleTap':
@@ -454,6 +886,7 @@ class EnsembleTestRunner {
     required WidgetTester tester,
     required ui.Image image,
     required ui.Rect rect,
+    required TestStep step,
   }) async {
     final renderView = tester.binding.renderViews.first;
     final paintBounds = renderView.paintBounds;
@@ -473,28 +906,125 @@ class EnsembleTestRunner {
     );
     canvas.drawImage(image, ui.Offset.zero, ui.Paint());
 
-    final radius = ui.Radius.circular(10 * scaleX);
-    final rrect = ui.RRect.fromRectAndRadius(scaledRect, radius);
-    canvas.drawRRect(
-      rrect,
-      ui.Paint()
-        ..color = const ui.Color(0x33FFD400)
-        ..style = ui.PaintingStyle.fill,
-    );
-    canvas.drawRRect(
-      rrect,
-      ui.Paint()
-        ..color = const ui.Color(0xFF006BFF)
+    final isVerification =
+        step.type == 'waitForText' || step.type.startsWith('expect');
+
+    void drawCornerBrackets(
+        ui.Canvas canvas, ui.Rect rect, ui.Paint paint, double scale) {
+      final left = rect.left;
+      final top = rect.top;
+      final right = rect.right;
+      final bottom = rect.bottom;
+      final maxLen = math.min(rect.width, rect.height) / 2.0;
+      final len = math.min(math.max(24.0 * scale, rect.width / 4.0), maxLen);
+
+      // Top-Left
+      canvas.drawLine(ui.Offset(left, top), ui.Offset(left + len, top), paint);
+      canvas.drawLine(ui.Offset(left, top), ui.Offset(left, top + len), paint);
+
+      // Top-Right
+      canvas.drawLine(
+          ui.Offset(right - len, top), ui.Offset(right, top), paint);
+      canvas.drawLine(
+          ui.Offset(right, top), ui.Offset(right, top + len), paint);
+
+      // Bottom-Left
+      canvas.drawLine(
+          ui.Offset(left, bottom), ui.Offset(left + len, bottom), paint);
+      canvas.drawLine(
+          ui.Offset(left, bottom - len), ui.Offset(left, bottom), paint);
+
+      // Bottom-Right
+      canvas.drawLine(
+          ui.Offset(right - len, bottom), ui.Offset(right, bottom), paint);
+      canvas.drawLine(
+          ui.Offset(right, bottom - len), ui.Offset(right, bottom), paint);
+    }
+
+    if (isVerification) {
+      // 1. Verification (expect/waitForText): Thick Mint green HUD corner brackets
+      final paint = ui.Paint()
+        ..color = const ui.Color(0xFF10B981) // Emerald green
         ..style = ui.PaintingStyle.stroke
-        ..strokeWidth = 5 * scaleX,
-    );
-    canvas.drawCircle(
-      scaledRect.center,
-      9 * scaleX,
-      ui.Paint()
-        ..color = const ui.Color(0xFF006BFF)
-        ..style = ui.PaintingStyle.fill,
-    );
+        ..strokeWidth = 4.0 * scaleX;
+
+      // Distinct green overlay (~15% opacity) to immediately highlight the element block
+      canvas.drawRect(
+        scaledRect,
+        ui.Paint()
+          ..color = const ui.Color(0x2610B981)
+          ..style = ui.PaintingStyle.fill,
+      );
+
+      drawCornerBrackets(canvas, scaledRect, paint, scaleX);
+    } else {
+      // 2. Taps/Gestures: Thick Neon Rose HUD corner brackets, concentric ripple circles & crosshair reticle
+      final paint = ui.Paint()
+        ..color = const ui.Color(0xFFF43F5E) // Rose red
+        ..style = ui.PaintingStyle.stroke
+        ..strokeWidth = 3.5 * scaleX;
+
+      // Translucent rose overlay (~10% opacity)
+      canvas.drawRect(
+        scaledRect,
+        ui.Paint()
+          ..color = const ui.Color(0x1AD51F5E)
+          ..style = ui.PaintingStyle.fill,
+      );
+
+      drawCornerBrackets(canvas, scaledRect, paint, scaleX);
+
+      final center = scaledRect.center;
+
+      // Outer concentric ripple ring (larger and thicker)
+      canvas.drawCircle(
+        center,
+        35 * scaleX,
+        ui.Paint()
+          ..color = const ui.Color(0x4DF43F5E) // ~30% opacity
+          ..style = ui.PaintingStyle.stroke
+          ..strokeWidth = 2.0 * scaleX,
+      );
+
+      // Inner concentric ripple ring
+      canvas.drawCircle(
+        center,
+        20 * scaleX,
+        ui.Paint()
+          ..color = const ui.Color(0x88F43F5E) // ~53% opacity
+          ..style = ui.PaintingStyle.stroke
+          ..strokeWidth = 3.0 * scaleX,
+      );
+
+      // Precision target dot
+      canvas.drawCircle(
+        center,
+        5.0 * scaleX,
+        ui.Paint()
+          ..color = const ui.Color(0xFFF43F5E)
+          ..style = ui.PaintingStyle.fill,
+      );
+
+      // Horizontal crosshair line of "+"
+      canvas.drawLine(
+        ui.Offset(center.dx - 10 * scaleX, center.dy),
+        ui.Offset(center.dx + 10 * scaleX, center.dy),
+        ui.Paint()
+          ..color = const ui.Color(0xFFF43F5E)
+          ..style = ui.PaintingStyle.stroke
+          ..strokeWidth = 3.0 * scaleX,
+      );
+
+      // Vertical crosshair line of "+"
+      canvas.drawLine(
+        ui.Offset(center.dx, center.dy - 10 * scaleX),
+        ui.Offset(center.dx, center.dy + 10 * scaleX),
+        ui.Paint()
+          ..color = const ui.Color(0xFFF43F5E)
+          ..style = ui.PaintingStyle.stroke
+          ..strokeWidth = 3.0 * scaleX,
+      );
+    }
 
     final picture = recorder.endRecording();
     final highlighted = await picture.toImage(image.width, image.height);
@@ -631,7 +1161,36 @@ class EnsembleTestRunner {
     }
   }
 
-  Future<void> _flushPendingScreenshots(EnsembleTestContext ctx) async {
+  Future<void> _settleLiveApiWorkBestEffort(
+    WidgetTester tester,
+    EnsembleTestContext ctx,
+  ) async {
+    try {
+      await _settleLiveApiWork(tester, ctx);
+    } catch (_) {
+      // Cleanup settling is only to give async work a chance to finish before
+      // screenshots/logs are written. It must not decide the test result.
+    }
+    _drainPendingFlutterExceptions(tester);
+  }
+
+  void _drainPendingFlutterExceptions(WidgetTester tester) {
+    while (tester.takeException() != null) {
+      // The app may catch/report async framework errors itself. Draining here
+      // prevents Flutter's test binding from failing the YAML suite with a raw
+      // framework dump after the declarative assertions have already decided
+      // the test result.
+    }
+  }
+
+  Future<void> _flushPendingScreenshots(
+    EnsembleTestContext ctx, {
+    required TestStatus status,
+    required int durationMs,
+    int? failedStepIndex,
+    String? failedStepLabel,
+    String? failureMessage,
+  }) async {
     final sheetFrames = List<ScreenshotSheetFrame>.from(
       ctx.runtime.screenshotSheetFrames,
     );
@@ -643,10 +1202,48 @@ class EnsembleTestRunner {
         testId: ctx.testCase.id,
         config: ctx.config.screenshots,
         frames: sheetFrames,
+        status: status,
+        durationMs: durationMs,
+        failedStepIndex: failedStepIndex,
+        failedStepLabel: failedStepLabel,
+        failureMessage: failureMessage,
       ),
     );
     if (path != null) {
       ctx.logger.log('screenshots: $path');
+    }
+  }
+
+  Future<List<String>> _writeEmergencyFailureScreenshot({
+    required WidgetTester tester,
+    required EnsembleTestCase test,
+    required EnsembleTestConfig config,
+    required Object error,
+  }) async {
+    if (!config.screenshots.enabled) return const [];
+    try {
+      final image = ExtendedStepHandlers.captureScreenshotImage(tester);
+      final path = await LiveAsyncCallSupport.run<String?>(
+        () => writeScreenshotContactSheet(
+          testId: test.id,
+          config: config.screenshots,
+          frames: [
+            ScreenshotSheetFrame(
+              stepIndex: 0,
+              label: 'Runner failure',
+              image: image,
+            ),
+          ],
+          status: TestStatus.failed,
+          durationMs: 0,
+          failedStepIndex: 0,
+          failedStepLabel: 'Runner failure',
+          failureMessage: error.toString(),
+        ),
+      );
+      return path == null ? const [] : ['screenshots: $path'];
+    } catch (_) {
+      return const [];
     }
   }
 }

@@ -20,6 +20,65 @@ steps:
       expect(test.steps.first.args['id'], 'emailInput');
     });
 
+    test('parses retry count', () {
+      const yaml = '''
+id: signin_to_gateway
+startScreen: Login
+retry: 3
+steps:
+  - tap:
+      id: login_with_test_token
+''';
+
+      final test = EnsembleTestParser.parseString(yaml);
+      expect(test.retry, 3);
+    });
+
+    test('rejects negative retry count', () {
+      const yaml = '''
+id: signin_to_gateway
+startScreen: Login
+retry: -1
+steps:
+  - tap:
+      id: login_with_test_token
+''';
+
+      expect(
+        () => EnsembleTestParser.parseString(yaml),
+        throwsA(
+          isA<EnsembleTestFailure>().having(
+            (error) => error.message,
+            'message',
+            contains(
+                '"signin_to_gateway.retry" must be a non-negative integer'),
+          ),
+        ),
+      );
+    });
+
+    test('parses start screen inputs', () {
+      const yaml = '''
+id: offline_result
+startScreen: ZTP_Connection_Result_State
+startScreenInputs:
+  signalStrength: offline
+  apiUrl: \${inputs.apiUrl}
+steps:
+  - expectVisible:
+      id: retry_button
+''';
+
+      final test = EnsembleTestParser.parseString(
+        yaml,
+        inputs: const {'apiUrl': 'http://127.0.0.1:5001'},
+      );
+      expect(test.startScreenInputs, {
+        'signalStrength': 'offline',
+        'apiUrl': 'http://127.0.0.1:5001',
+      });
+    });
+
     test('rejects inline root-level mocks', () {
       const yaml = '''
 id: login_success
@@ -72,6 +131,96 @@ steps:
       expect(
         ((test.initialState['keychain'] as Map)['authPayload'] as Map)['token'],
         'abc',
+      );
+    });
+
+    test('parses a reusable session and pre-screen setup', () {
+      const yaml = '''
+id: home_from_session
+session: signin
+startScreen: Home
+setup:
+  - httpRequest:
+      method: POST
+      url: http://127.0.0.1:5001/reset
+  - runCommand:
+      command: true
+steps:
+  - expectVisible:
+      id: home
+''';
+
+      final test = EnsembleTestParser.parseString(yaml);
+      expect(test.session, 'signin');
+      expect(test.setupSteps.map((step) => step.type), [
+        'httpRequest',
+        'runCommand',
+      ]);
+    });
+
+    test('rejects widget actions in pre-screen setup', () {
+      const yaml = '''
+id: invalid_setup
+startScreen: Home
+setup:
+  - tap:
+      id: button
+steps:
+  - expectVisible:
+      id: home
+''';
+
+      expect(
+        () => EnsembleTestParser.parseString(yaml),
+        throwsA(
+          isA<EnsembleTestFailure>().having(
+            (error) => error.message,
+            'message',
+            contains('setup only supports httpRequest, runCommand'),
+          ),
+        ),
+      );
+    });
+
+    test('rejects runCommand in test steps', () {
+      const yaml = '''
+id: command_step
+startScreen: Home
+steps:
+  - runCommand:
+      command: echo
+''';
+
+      expect(
+        () => EnsembleTestParser.parseString(yaml),
+        throwsA(
+          isA<EnsembleTestFailure>().having(
+            (error) => error.message,
+            'message',
+            contains('runCommand is only supported in root-level setup'),
+          ),
+        ),
+      );
+    });
+
+    test('rejects session without a start screen', () {
+      const yaml = '''
+id: invalid_session
+session: signin
+steps:
+  - expectVisible:
+      id: home
+''';
+
+      expect(
+        () => EnsembleTestParser.parseString(yaml),
+        throwsA(
+          isA<EnsembleTestFailure>().having(
+            (error) => error.message,
+            'message',
+            contains('must have either "startScreen" or "prerequisite"'),
+          ),
+        ),
       );
     });
 
@@ -237,6 +386,31 @@ screenshots:
       expect(screenshots.shouldCaptureStep('settle'), isFalse);
     });
 
+    test('parses suite test services', () {
+      const yaml = '''
+services:
+  - name: modemStub
+    command: .venv/bin/python
+    arguments: [modemstub/app.py]
+    workingDirectory: ensemble/apps/inhome/autotests
+    readyUrl: /ping
+    readyTimeoutMs: 15000
+''';
+
+      final service =
+          EnsembleTestParser.parseConfigString(yaml).services.single;
+      expect(service.name, 'modemStub');
+      expect(service.command, '.venv/bin/python');
+      expect(service.url, isNull);
+      expect(service.arguments, ['modemstub/app.py']);
+      expect(service.workingDirectory, 'ensemble/apps/inhome/autotests');
+      expect(service.environment, isEmpty);
+      expect(service.resolvedEnvironment, isEmpty);
+      expect(service.readyUrl, '/ping');
+      expect(service.resolvedReadyUrl, '/ping');
+      expect(service.readyTimeoutMs, 15000);
+    });
+
     test('parses suite config performance', () {
       const yaml = '''
 performance:
@@ -245,6 +419,20 @@ performance:
 
       final config = EnsembleTestParser.parseConfigString(yaml);
       expect(config.performance.enabled, isTrue);
+    });
+
+    test('parses suite config timer rewrites', () {
+      const yaml = '''
+timers:
+  enabled: true
+  maxStartAfterSeconds: 2
+  maxRepeatIntervalSeconds: 3
+''';
+
+      final config = EnsembleTestParser.parseConfigString(yaml);
+      expect(config.timers.enabled, isTrue);
+      expect(config.timers.maxStartAfterSeconds, 2);
+      expect(config.timers.maxRepeatIntervalSeconds, 3);
     });
 
     test('rejects removed record config', () {

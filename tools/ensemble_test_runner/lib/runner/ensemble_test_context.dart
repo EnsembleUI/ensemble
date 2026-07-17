@@ -5,6 +5,7 @@ import 'package:ensemble_test_runner/mocks/test_logger.dart';
 import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
 import 'package:ensemble_test_runner/runner/ensemble_test_harness.dart';
 import 'package:ensemble_test_runner/runner/test_runtime_state.dart';
+import 'package:flutter/widgets.dart';
 
 class EnsembleTestContext {
   final EnsembleTestCase testCase;
@@ -58,7 +59,18 @@ class EnsembleTestContext {
       setup: setup,
     );
     ctx.envOverrides.addAll(envMap);
+    ctx.runtime.locale = _localeFromEnv(envMap['APP_LOCALE']);
     return ctx;
+  }
+
+  static Locale? _localeFromEnv(dynamic value) {
+    final locale = value?.toString();
+    if (locale == null || locale.isEmpty) return null;
+    final normalized = locale.replaceAll('-', '_');
+    final parts = normalized.split('_');
+    final languageCode = parts.first;
+    if (languageCode.isEmpty) return null;
+    return Locale(languageCode, parts.length > 1 ? parts[1] : null);
   }
 
   void applyRuntimeEnv() {

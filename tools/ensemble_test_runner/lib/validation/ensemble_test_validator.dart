@@ -148,6 +148,7 @@ class EnsembleTestValidator {
     final knownApis = inspection.screens.expand((s) => s.apis).toSet();
     final ids = <String, String>{};
     final prerequisites = <String, String>{};
+    final sessions = <String, String>{};
 
     for (final file in testFiles) {
       final relativePath =
@@ -192,6 +193,10 @@ class EnsembleTestValidator {
       final prerequisite = doc['prerequisite']?.toString();
       if (prerequisite != null && prerequisite.isNotEmpty) {
         prerequisites[id] = prerequisite;
+      }
+      final session = doc['session']?.toString();
+      if (session != null && session.isNotEmpty) {
+        sessions[id] = session;
       }
       if (startScreen != null &&
           startScreen.isNotEmpty &&
@@ -250,6 +255,17 @@ class EnsembleTestValidator {
           ValidationSeverity.error,
           'unknownPrerequisite',
           'Unknown prerequisite "${entry.value}"',
+          path: ids[entry.key],
+          testId: entry.key,
+        );
+      }
+    }
+    for (final entry in sessions.entries) {
+      if (!ids.containsKey(entry.value)) {
+        add(
+          ValidationSeverity.error,
+          'unknownSession',
+          'Unknown session "${entry.value}"',
           path: ids[entry.key],
           testId: entry.key,
         );

@@ -16,9 +16,19 @@ void main() {
       return props.keys.first as String;
     }).toSet();
 
-    for (final name in TestStepRegistry.entries.keys) {
+    for (final name in TestStepRegistry.entries.keys.where(
+      (name) => name != 'runCommand',
+    )) {
       expect(yamlKeys, contains(name), reason: 'missing step $name in schema');
     }
+    expect(yamlKeys, isNot(contains('runCommand')));
+
+    final setupDef = schema['\$defs']['setupStep'] as Map<String, dynamic>;
+    final setupKeys = (setupDef['oneOf'] as List<dynamic>).map((variant) {
+      final properties = (variant as Map)['properties'] as Map;
+      return properties.keys.first as String;
+    });
+    expect(setupKeys, contains('runCommand'));
 
     for (final variant in oneOf) {
       final map = variant as Map<String, dynamic>;
@@ -48,6 +58,7 @@ void main() {
     expect(decoded['properties'], isNot(contains('tests')));
     expect(decoded['properties'], isNot(contains('options')));
     expect(decoded['properties'], contains('mocks'));
+    expect(decoded['properties'], contains('retry'));
     expect(decoded['properties'], contains('startScreen'));
     expect(decoded['properties'], contains('prerequisite'));
     expect(decoded['properties'], isNot(contains('mockLayers')));
@@ -72,8 +83,10 @@ void main() {
 
     expect(decoded['\$schema'], EnsembleTestSchemaBuilder.schemaVersion);
     expect(properties, contains('screenshots'));
+    expect(properties, contains('services'));
     expect(properties, isNot(contains('record')));
     expect(properties, contains('performance'));
+    expect(properties, contains('timers'));
     expect(properties, contains('dumpTree'));
     expect(properties, contains('logApiCalls'));
     expect(properties, contains('logStorage'));
@@ -81,6 +94,9 @@ void main() {
       (properties['screenshots'] as Map<String, dynamic>)['properties'],
       containsPair('model', {'type': 'string'}),
     );
+    final serviceItems = (properties['services']
+        as Map<String, dynamic>)['items'] as Map<String, dynamic>;
+    expect(serviceItems['properties'], contains('url'));
   });
 
   test('initialState schema accepts storage, keychain, and env maps', () {

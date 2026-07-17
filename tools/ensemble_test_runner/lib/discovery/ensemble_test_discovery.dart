@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:ensemble/framework/ensemble_config_service.dart';
 import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
 import 'package:ensemble_test_runner/parser/ensemble_test_parser.dart';
@@ -50,7 +52,111 @@ class EnsembleTestDiscovery {
     final path = await findConfigYamlAsset(testsAssetPrefix);
     if (path == null) return const EnsembleTestConfig();
     final content = await rootBundle.loadString(path);
-    return EnsembleTestParser.parseConfigString(content, sourcePath: path);
+    final config = EnsembleTestParser.parseConfigString(
+      content,
+      sourcePath: path,
+    );
+    final overridden = _withServiceOverrides(config);
+    if (overridden != null) return overridden;
+    return _withWorkerIsolation(config);
+  }
+
+  static EnsembleTestConfig? _withServiceOverrides(EnsembleTestConfig config) {
+    const rawOverrides = String.fromEnvironment('ensembleTestServiceOverrides');
+    if (rawOverrides.isEmpty || config.services.isEmpty) return null;
+
+    final dynamic decoded = json.decode(rawOverrides);
+    if (decoded is! Map) return null;
+    final overrides = Map<String, dynamic>.from(decoded);
+    if (overrides.isEmpty) return null;
+
+    return EnsembleTestConfig(
+      services: [
+        for (final service in config.services)
+          _serviceWithOverride(
+            service,
+            overrides[service.name],
+          ),
+      ],
+      screenshots: config.screenshots,
+      performance: config.performance,
+      timers: config.timers,
+      dumpTree: config.dumpTree,
+      logApiCalls: config.logApiCalls,
+      logStorage: config.logStorage,
+    );
+  }
+
+  static TestServiceConfig _serviceWithOverride(
+    TestServiceConfig service,
+    dynamic override,
+  ) {
+    if (override is! Map) return service;
+    final map = Map<String, dynamic>.from(override);
+    final url = map['url']?.toString();
+    final environment = {
+      ...service.environment,
+      if (map['environment'] is Map)
+        for (final entry in (map['environment'] as Map).entries)
+          entry.key.toString(): entry.value.toString(),
+    };
+    return TestServiceConfig(
+      name: service.name,
+      command: service.command,
+      url: url == null || url.isEmpty ? service.url : url,
+      arguments: service.arguments,
+      workingDirectory: service.workingDirectory,
+      environment: environment,
+      readyUrl: service.readyUrl,
+      readyTimeoutMs: service.readyTimeoutMs,
+    );
+  }
+
+  static EnsembleTestConfig _withWorkerIsolation(EnsembleTestConfig config) {
+    const workerIndex = int.fromEnvironment(
+      'ensembleTestWorkerIndex',
+      defaultValue: 0,
+    );
+    if (workerIndex <= 0 || config.services.isEmpty) return config;
+
+    return EnsembleTestConfig(
+      services: [
+        for (final service in config.services)
+          TestServiceConfig(
+            name: service.name,
+            command: service.command,
+            url: _offsetUrlPort(service.url, workerIndex),
+            arguments: service.arguments,
+            workingDirectory: service.workingDirectory,
+            environment: {
+              for (final entry in service.environment.entries)
+                entry.key: entry.key == 'PORT'
+                    ? _offsetPortString(entry.value, workerIndex)
+                    : entry.value,
+            },
+            readyUrl: service.readyUrl,
+            readyTimeoutMs: service.readyTimeoutMs,
+          ),
+      ],
+      screenshots: config.screenshots,
+      performance: config.performance,
+      timers: config.timers,
+      dumpTree: config.dumpTree,
+      logApiCalls: config.logApiCalls,
+      logStorage: config.logStorage,
+    );
+  }
+
+  static String? _offsetUrlPort(String? value, int offset) {
+    if (value == null || value.isEmpty) return value;
+    final uri = Uri.tryParse(value);
+    if (uri == null || !uri.hasPort) return value;
+    return uri.replace(port: uri.port + offset).toString();
+  }
+
+  static String _offsetPortString(String value, int offset) {
+    final port = int.tryParse(value);
+    return port == null ? value : '${port + offset}';
   }
 
   /// Reads `definitions.local` from `ensemble/ensemble-config.yaml`.

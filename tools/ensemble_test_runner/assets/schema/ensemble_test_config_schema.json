@@ -6,6 +6,51 @@
   "type": "object",
   "additionalProperties": false,
   "properties": {
+    "services": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "command"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "command": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string",
+            "format": "uri"
+          },
+          "arguments": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "workingDirectory": {
+            "type": "string"
+          },
+          "environment": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "readyUrl": {
+            "type": "string"
+          },
+          "readyTimeoutMs": {
+            "type": "integer",
+            "minimum": 1
+          }
+        }
+      }
+    },
     "screenshots": {
       "type": "object",
       "additionalProperties": false,
@@ -39,6 +84,23 @@
       "properties": {
         "enabled": {
           "type": "boolean"
+        }
+      }
+    },
+    "timers": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "maxStartAfterSeconds": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "maxRepeatIntervalSeconds": {
+          "type": "integer",
+          "minimum": 0
         }
       }
     },

@@ -15,6 +15,8 @@ enum TestStepArgKind {
   drag,
   pump,
   timeoutOptional,
+  httpRequest,
+  runCommand,
   waitFor,
   waitForGone,
   waitForNavigation,
@@ -143,6 +145,51 @@ extension TestStepArgKindSchema on TestStepArgKind {
         return _object(properties: {'durationMs': _integer});
       case TestStepArgKind.timeoutOptional:
         return _object(properties: {'timeoutMs': _integer});
+      case TestStepArgKind.httpRequest:
+        return _object(
+          properties: {
+            'url': _string,
+            'method': {
+              'type': 'string',
+              'enum': [
+                'GET',
+                'POST',
+                'PUT',
+                'PATCH',
+                'DELETE',
+                'HEAD',
+                'OPTIONS',
+              ],
+            },
+            'headers': {
+              'type': 'object',
+              'additionalProperties': true,
+            },
+            'body': _any,
+            'timeoutMs': _integer,
+            'expectStatus': _integer,
+            'expectBodyContains': _string,
+          },
+          required: ['url'],
+        );
+      case TestStepArgKind.runCommand:
+        return _object(
+          properties: {
+            'command': _string,
+            'arguments': {
+              'type': 'array',
+              'items': _any,
+            },
+            'workingDirectory': _string,
+            'environment': {
+              'type': 'object',
+              'additionalProperties': true,
+            },
+            'timeoutMs': _integer,
+            'expectExitCode': _integer,
+          },
+          required: ['command'],
+        );
       case TestStepArgKind.waitFor:
         return _object(
           properties: {'id': _string, 'text': _string, 'timeoutMs': _integer},

@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
 import 'package:path/path.dart' as p;
 import 'package:yaml/yaml.dart';
 
@@ -107,6 +108,10 @@ Future<void> main() async {
     } else {
       _restore(_testEntryPath);
     }
+    for (final path in _backups.keys.toList()) {
+      if (path == _pubspecPath || path == _testEntryPath) continue;
+      _restore(path);
+    }
 
     _backups.clear();
     _enabled = false;
@@ -115,6 +120,7 @@ Future<void> main() async {
   }
 
   void _backup(String path, {bool optional = false}) {
+    if (_backups.containsKey(path)) return;
     final file = File(path);
     if (!file.existsSync()) {
       if (!optional) {
@@ -151,6 +157,90 @@ Future<void> main() async {
     if (testDir.existsSync() && testDir.listSync().isEmpty) {
       testDir.deleteSync();
     }
+  }
+
+  TimerRewriteConfig get timerRewriteConfig => _readTimerRewriteConfig();
+
+  bool get hasTimerRewrites => timerRewriteConfig.enabled;
+
+  void rewriteTimersIn(String targetAppDir) {
+    final config = _readTimerRewriteConfig();
+    if (!config.enabled) return;
+
+    final testsDir = testsDirRelative;
+    if (testsDir == null) return;
+    final screensDir = Directory(
+      p.join(
+        p.normalize(p.absolute(targetAppDir)),
+        p.dirname(_withoutTrailingSlash(testsDir)),
+        'screens',
+      ),
+    );
+    if (!screensDir.existsSync()) return;
+
+    for (final entity in screensDir.listSync(recursive: true)) {
+      if (entity is! File || !entity.path.endsWith('.yaml')) continue;
+      final original = entity.readAsStringSync();
+      final rewritten = _capTimerValues(original, config);
+      if (rewritten == original) continue;
+      entity.writeAsStringSync(rewritten);
+    }
+  }
+
+  TimerRewriteConfig _readTimerRewriteConfig() {
+    final path =
+        testsDirPath == null ? null : p.join(testsDirPath!, 'config.yaml');
+    if (path == null) return const TimerRewriteConfig();
+
+    final file = File(path);
+    if (!file.existsSync()) return const TimerRewriteConfig();
+    final dynamic config = loadYaml(file.readAsStringSync());
+    if (config is! YamlMap) return const TimerRewriteConfig();
+    final timers = config['timers'];
+    if (timers is! YamlMap) return const TimerRewriteConfig();
+    return TimerRewriteConfig(
+      enabled: timers['enabled'] == true,
+      maxStartAfterSeconds: _parseNonNegativeInt(
+        timers['maxStartAfterSeconds'],
+        fallback: 1,
+      ),
+      maxRepeatIntervalSeconds: _parseNonNegativeInt(
+        timers['maxRepeatIntervalSeconds'],
+        fallback: 1,
+      ),
+    );
+  }
+
+  static String _capTimerValues(
+    String content,
+    TimerRewriteConfig config,
+  ) {
+    final startAfter =
+        RegExp(r'^(\s*startAfter:\s*)(\d+)(\s*)$', multiLine: true);
+    final repeatInterval =
+        RegExp(r'^(\s*repeatInterval:\s*)(\d+)(\s*)$', multiLine: true);
+    return content
+        .replaceAllMapped(
+          startAfter,
+          (match) => _capTimerLine(match, config.maxStartAfterSeconds),
+        )
+        .replaceAllMapped(
+          repeatInterval,
+          (match) => _capTimerLine(match, config.maxRepeatIntervalSeconds),
+        );
+  }
+
+  static String _capTimerLine(Match match, int maxValue) {
+    final current = int.parse(match.group(2)!);
+    if (current <= maxValue) return match.group(0)!;
+    return '${match.group(1)}$maxValue${match.group(3)}';
+  }
+
+  static int _parseNonNegativeInt(dynamic value, {required int fallback}) {
+    if (value == null) return fallback;
+    final parsed = value is int ? value : int.tryParse(value.toString());
+    if (parsed == null || parsed < 0) return fallback;
+    return parsed;
   }
 
   String _activatePubspec(String content) {

@@ -535,7 +535,7 @@ class ExtendedStepHandlers {
       Rect.fromLTWH(0, 0, outputWidth.toDouble(), outputHeight.toDouble()),
     );
 
-    canvas.drawColor(const Color(0xFFE9EDF3), BlendMode.src);
+    canvas.drawColor(const Color(0x00000000), BlendMode.src);
     canvas.save();
     canvas.translate(padding, padding);
     device.framePainter.paint(canvas, device.frameSize);

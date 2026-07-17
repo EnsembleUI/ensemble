@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/screen_tracker.dart';
 import 'package:ensemble_test_runner/actions/extended_step_handlers.dart';
+import 'package:ensemble_test_runner/actions/http_request_action.dart';
 import 'package:ensemble_test_runner/actions/test_execution_config.dart';
 import 'package:ensemble_test_runner/assertions/assertion_engine.dart';
 import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
@@ -23,6 +24,7 @@ class TestStepExecutor {
   final EnsembleTestHarness harness;
   final TestExecutionConfig config;
   EnsembleConfig? _config;
+  FutureOr<void> Function(TestStep step)? onWaitForTextMatched;
 
   TestStepExecutor({
     required this.tester,
@@ -74,6 +76,9 @@ class TestStepExecutor {
     }
 
     switch (step.type) {
+      case 'httpRequest':
+        await HttpRequestAction.execute(step.args);
+        return;
       case 'wait':
         final durationMs = step.args['durationMs'] as int? ?? 500;
         await tester.runAsync(() async {
@@ -83,6 +88,7 @@ class TestStepExecutor {
         return;
       case 'waitForText':
         await _waitFor(
+          step: step,
           text: step.args['text']?.toString(),
           timeoutMs: step.args['timeoutMs'] as int? ??
               config.defaultWaitTimeout.inMilliseconds,
@@ -165,6 +171,7 @@ class TestStepExecutor {
         break;
       case 'waitFor':
         await _waitFor(
+          step: step,
           id: step.args['id']?.toString(),
           text: step.args['text']?.toString(),
           timeoutMs: step.args['timeoutMs'] as int? ??
@@ -390,31 +397,49 @@ class TestStepExecutor {
   }
 
   Future<void> _tap(String id) async {
-    final finder = assertions.finderForId(id);
-    if (finder.evaluate().isEmpty) {
+    final baseFinder = assertions.finderForId(id);
+    if (baseFinder.evaluate().isEmpty) {
       await _waitFor(
         id: id,
         timeoutMs: config.defaultWaitTimeout.inMilliseconds,
       );
     }
+    var finder = _interactiveFinder(baseFinder);
     _expectSingleWidget(finder, id, 'tap');
     await tester.ensureVisible(finder);
-    await _pump(label: 'tap:before');
+    await _pump(label: 'tap.ensureVisible');
+    finder = _hitTestableFinderForTap(finder, id);
     await tester.tap(finder);
     await _settle();
   }
 
+  Finder _hitTestableFinderForTap(Finder finder, String id) {
+    final hitTestable = finder.hitTestable();
+    final hitTestableCount = hitTestable.evaluate().length;
+    if (hitTestableCount == 1) return hitTestable;
+    if (hitTestableCount > 1) {
+      throw EnsembleTestFailure(
+        'tap expected exactly one hit-testable widget with id "$id", '
+        'but found $hitTestableCount.',
+      );
+    }
+    throw EnsembleTestFailure(
+      'tap found widget with id "$id", but it is not hit-testable. '
+      'It may be off-screen, disabled, or covered by another widget.',
+    );
+  }
+
   Future<void> _toggle(String id) async {
-    final finder = assertions.finderForId(id);
-    if (finder.evaluate().isEmpty) {
+    final baseFinder = assertions.finderForId(id);
+    if (baseFinder.evaluate().isEmpty) {
       await _waitFor(
         id: id,
         timeoutMs: config.defaultWaitTimeout.inMilliseconds,
       );
     }
+    final finder = _interactiveFinder(baseFinder);
     _expectSingleWidget(finder, id, 'toggle');
     await tester.ensureVisible(finder);
-    await _pump(label: 'toggle:before');
 
     final control = find.descendant(
       of: finder,
@@ -477,6 +502,7 @@ class TestStepExecutor {
   }
 
   Future<void> _waitFor({
+    TestStep? step,
     String? id,
     String? text,
     required int timeoutMs,
@@ -488,10 +514,14 @@ class TestStepExecutor {
     final stopwatch = Stopwatch()..start();
     while (stopwatch.elapsedMilliseconds < timeoutMs) {
       await _pump(duration: config.waitPollInterval, label: 'waitFor');
-      if (id != null && assertions.finderForId(id).evaluate().isNotEmpty) {
+      if (id != null &&
+          assertions.finderForId(id).hitTestable().evaluate().isNotEmpty) {
         return;
       }
-      if (text != null && find.text(text).evaluate().isNotEmpty) {
+      if (text != null && assertions.isTextVisible(text)) {
+        if (step?.type == 'waitForText' && onWaitForTextMatched != null) {
+          await onWaitForTextMatched!(step!);
+        }
         return;
       }
     }
@@ -503,7 +533,8 @@ class TestStepExecutor {
             : 'text "$text"';
     throw EnsembleTestFailure(
       'Timed out after ${timeoutMs}ms waiting for $target. '
-      '${assertions.visibleWidgetIdSummary()}',
+      '${assertions.visibleWidgetIdSummary()} '
+      '${assertions.visibleTextSummary()}',
     );
   }
 
@@ -515,6 +546,12 @@ class TestStepExecutor {
         '${assertions.visibleWidgetIdSummary()}',
       );
     }
+  }
+
+  Finder _interactiveFinder(Finder finder) {
+    if (finder.evaluate().length <= 1) return finder;
+    final hitTestable = finder.hitTestable();
+    return hitTestable.evaluate().length == 1 ? hitTestable : finder;
   }
 
   Future<void> _openScreen(TestStep step) async {
@@ -585,6 +622,10 @@ class TestStepExecutor {
         duration: config.waitPollInterval,
         label: 'waitForNavigation',
       );
+      await YamlTestSession.navigationFlow.flushPending();
+      if (hasNavigated()) {
+        return;
+      }
     }
     await _yieldToLiveApiWork();
     await _pump(label: 'waitForNavigation');

@@ -23,7 +23,25 @@ steps:
       id: greeting_text
 ```
 
-Each `*.test.yaml` file is **one** test — `id`, `steps`, and **either** `startScreen` **or** `prerequisite` are at the root (no `tests:` array). A test with `prerequisite: <other_test_id>` runs after that test on the **same** app session, applying only `initialState`/`mocks` in-place before executing its steps.
+Each `*.test.yaml` file is **one** test (no `tests:` array). It either
+cold-starts with `startScreen`, continues a mounted flow with `prerequisite`, or
+restores reusable app state with `session` and starts on its own `startScreen`.
+
+Use root-level `setup` for commands and HTTP requests that must complete before
+the screen is mounted. This is useful for resetting or configuring a stub server:
+
+```yaml
+id: authenticated_home
+session: signin
+startScreen: Home
+setup:
+  - httpRequest:
+      method: POST
+      url: ${services.modemStub.url}/api/v1/stub/scenario
+      body: {testcase: home, responsename: offline}
+steps:
+  - expectVisible: {id: offline_message}
+```
 
 Widget YAML must set `testId` (or `id`, which maps to the same `ValueKey`).
 
@@ -52,6 +70,16 @@ Suite-wide runner config lives in `tests/config.yaml`. The schema is hosted at
 
 ```yaml
 # yaml-language-server: $schema=https://cdn.ensembleui.com/schemas/ensemble_test_config_schema.json
+services:
+  - name: modemStub
+    command: .venv/bin/python
+    arguments: [modemstub/app.py]
+    workingDirectory: ensemble/apps/inhome/autotests
+    readyUrl: /ping
+
+The runner assigns a free local port. Tests can reference that resolved endpoint
+as `${services.modemStub.url}`.
+
 screenshots:
   enabled: true
   platform: ios
@@ -61,6 +89,10 @@ screenshots:
 
 performance:
   enabled: true
+timers:
+  enabled: true
+  maxStartAfterSeconds: 1
+  maxRepeatIntervalSeconds: 1
 dumpTree:
   enabled: true
 logApiCalls:
@@ -115,8 +147,8 @@ steps:
       text: ${inputs.expectedDeviceCount}
 ```
 
-The default suite timeout is 10 minutes. Override it when a flow should fail
-faster or when a long chain needs more time:
+There is no implicit whole-suite timeout; individual steps and services keep
+their own bounded timeouts. Add one when CI should enforce a suite deadline:
 
 ```bash
 dart run ensemble_test_runner:ensemble_test --timeout=30s
@@ -187,7 +219,7 @@ dart run ensemble_test_runner:ensemble_test --path=auth/
 
 Prerequisite tests are included automatically for selected continuation tests.
 
-On success the console prints one consolidated boxed report for the suite: each test id (with YAML path), timing, **start screen** or **prerequisite**, **navigation flow**, and a numbered **step outline**.
+On success the console prints one consolidated boxed report for the suite: each test id (with YAML path), timing, **start screen** or **prerequisite**, **navigation flow**, and a numbered **step outline**. Raw app console output is written to `build/ensemble_test_runner/logs/app_console*.log` and listed as an `appLogs` suite artifact.
 
 ## Examples
 
@@ -197,6 +229,7 @@ On success the console prints one consolidated boxed report for the suite: each 
 # yaml-language-server: $schema=https://cdn.ensembleui.com/schemas/ensemble_tests_schema.json
 id: login_flow
 startScreen: Login
+retry: 3
 mocks:
   - mocks/login_success.mock.json
 steps:
@@ -251,6 +284,36 @@ steps:
       id: dashboard_title
 ```
 
+### Reusable authenticated session
+
+The session producer runs once. After it passes, the runner captures public
+storage, keychain values, and locale in memory. Each consumer restores that
+snapshot, runs its `setup`, and mounts a fresh requested screen.
+
+```yaml
+id: signin
+startScreen: Login
+steps:
+  - tap: {id: login_button}
+  - waitForNavigation: {screen: Home}
+```
+
+```yaml
+id: devices
+session: signin
+startScreen: Home
+setup:
+  - httpRequest:
+      method: POST
+      url: ${services.modemStub.url}/api/v1/stub/reset
+steps:
+  - tap: {id: devices_button}
+```
+
+Use `prerequisite` when the second test must continue the exact mounted UI
+state. Use `session` when tests need the same signed-in data but should otherwise
+start independently. Session snapshots are not written to disk.
+
 ## Package layout
 
 ```
@@ -276,7 +339,6 @@ The runner uses small, optional hooks in the core module — not a package depen
 
 - Test harness applies `EnsembleTestSetup` (storage seeds, env overrides) before `EnsembleApp` mounts
 - Test harness installs `MockAPIProvider` on `EnsembleConfig.apiProviders['http']`
-- Test mode via `--dart-define=testmode=true` (added automatically by the CLI)
 - Navigation flow for `expectVisited` is recorded in the test runner via `ScreenTracker.onScreenChange`
 
 `EnsembleTestHarness` runs storage init inside `tester.runAsync()` so `GetStorage` can finish under the widget test binding.

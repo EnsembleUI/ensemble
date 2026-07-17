@@ -37,15 +37,24 @@ class EnsembleTestCase {
   final String? description;
   final String? owner;
   final String? priority;
+  final bool parallel;
+  final int retry;
 
   /// Cold-start screen. Omit when [prerequisite] is set.
   final String? startScreen;
+  final Map<String, dynamic> startScreenInputs;
 
   /// Test [id] that must run before this one (same app session).
   final String? prerequisite;
+
+  /// Test [id] whose captured storage state is restored before [startScreen].
+  final String? session;
   final List<String> mockFiles;
   final List<TestScenario> scenarios;
   final Map<String, dynamic> initialState;
+
+  /// Headless actions executed before the start screen is mounted.
+  final List<TestStep> setupSteps;
 
   /// Runtime API mocks resolved from [mockFiles].
   final TestMocks mocks;
@@ -60,11 +69,16 @@ class EnsembleTestCase {
     this.description,
     this.owner,
     this.priority,
+    this.parallel = true,
+    this.retry = 0,
     this.startScreen,
+    this.startScreenInputs = const {},
     this.prerequisite,
+    this.session,
     this.mockFiles = const [],
     this.scenarios = const [],
     this.initialState = const {},
+    this.setupSteps = const [],
     this.mocks = const TestMocks(),
     required this.steps,
   });
@@ -73,12 +87,15 @@ class EnsembleTestCase {
 
   bool get hasPrerequisite => prerequisite != null && prerequisite!.isNotEmpty;
 
+  bool get hasSession => session != null && session!.isNotEmpty;
+
   Map<String, dynamic> get metadataJson => {
         if (feature != null) 'feature': feature,
         if (tags.isNotEmpty) 'tags': tags,
         if (description != null) 'description': description,
         if (owner != null) 'owner': owner,
         if (priority != null) 'priority': priority,
+        if (retry > 0) 'retry': retry,
       };
 }
 
@@ -96,19 +113,66 @@ class TestScenario {
 }
 
 class EnsembleTestConfig {
+  final List<TestServiceConfig> services;
   final ScreenshotConfig screenshots;
   final PerformanceConfig performance;
   final DumpTreeConfig dumpTree;
   final LogApiCallsConfig logApiCalls;
   final LogStorageConfig logStorage;
+  final TimerRewriteConfig timers;
 
   const EnsembleTestConfig({
+    this.services = const [],
     this.screenshots = const ScreenshotConfig(),
     this.performance = const PerformanceConfig(),
     this.dumpTree = const DumpTreeConfig(),
     this.logApiCalls = const LogApiCallsConfig(),
     this.logStorage = const LogStorageConfig(),
+    this.timers = const TimerRewriteConfig(),
   });
+}
+
+class TestServiceConfig {
+  final String name;
+  final String command;
+  final String? url;
+  final List<String> arguments;
+  final String? workingDirectory;
+  final Map<String, String> environment;
+  final String? readyUrl;
+  final int readyTimeoutMs;
+
+  const TestServiceConfig({
+    required this.name,
+    required this.command,
+    this.url,
+    this.arguments = const [],
+    this.workingDirectory,
+    this.environment = const {},
+    this.readyUrl,
+    this.readyTimeoutMs = 10000,
+  });
+
+  String? get resolvedReadyUrl {
+    final value = readyUrl;
+    if (value == null ||
+        value.isEmpty ||
+        Uri.tryParse(value)?.isAbsolute == true) {
+      return value;
+    }
+    final base = url;
+    if (base == null || base.isEmpty) return value;
+    return Uri.parse(base).resolve(value).toString();
+  }
+
+  Map<String, String> get resolvedEnvironment {
+    final resolved = {...environment};
+    final uri = url == null ? null : Uri.tryParse(url!);
+    if (!resolved.containsKey('PORT') && uri != null && uri.hasPort) {
+      resolved['PORT'] = '${uri.port}';
+    }
+    return resolved;
+  }
 }
 
 class PerformanceConfig {
@@ -116,6 +180,18 @@ class PerformanceConfig {
 
   const PerformanceConfig({
     this.enabled = false,
+  });
+}
+
+class TimerRewriteConfig {
+  final bool enabled;
+  final int maxStartAfterSeconds;
+  final int maxRepeatIntervalSeconds;
+
+  const TimerRewriteConfig({
+    this.enabled = false,
+    this.maxStartAfterSeconds = 1,
+    this.maxRepeatIntervalSeconds = 1,
   });
 }
 
@@ -266,6 +342,8 @@ class EnsembleSingleTestResult {
   final Map<String, dynamic> metadata;
   final TestStatus status;
   final int durationMs;
+  final int attempts;
+  final int retry;
   final int? failedStepIndex;
   final TestStep? failedStep;
   final String? message;
@@ -278,6 +356,8 @@ class EnsembleSingleTestResult {
     this.metadata = const {},
     required this.status,
     required this.durationMs,
+    this.attempts = 1,
+    this.retry = 0,
     this.failedStepIndex,
     this.failedStep,
     this.message,
@@ -290,6 +370,8 @@ class EnsembleSingleTestResult {
     required String testId,
     Map<String, dynamic> metadata = const {},
     required int durationMs,
+    int attempts = 1,
+    int retry = 0,
     List<String> logs = const [],
     EnsembleTestReportDetails? report,
   }) =>
@@ -298,6 +380,8 @@ class EnsembleSingleTestResult {
         metadata: metadata,
         status: TestStatus.passed,
         durationMs: durationMs,
+        attempts: attempts,
+        retry: retry,
         logs: logs,
         report: report,
       );
@@ -306,6 +390,8 @@ class EnsembleSingleTestResult {
     required String testId,
     Map<String, dynamic> metadata = const {},
     required int durationMs,
+    int attempts = 1,
+    int retry = 0,
     int? failedStepIndex,
     TestStep? failedStep,
     String? error,
@@ -318,6 +404,8 @@ class EnsembleSingleTestResult {
         metadata: metadata,
         status: TestStatus.failed,
         durationMs: durationMs,
+        attempts: attempts,
+        retry: retry,
         failedStepIndex: failedStepIndex,
         failedStep: failedStep,
         message: error,
@@ -331,6 +419,8 @@ class EnsembleSingleTestResult {
         if (metadata.isNotEmpty) 'metadata': metadata,
         'status': status.name,
         'durationMs': durationMs,
+        if (attempts > 1) 'attempts': attempts,
+        if (retry > 0) 'retry': retry,
         if (failedStepIndex != null) 'failedStepIndex': failedStepIndex,
         if (failedStep != null) 'failedStep': failedStep!.toJson(),
         if (message != null) 'message': message,
@@ -424,6 +514,7 @@ class EnsembleTestReportDetails {
   final String startScreen;
   final String? endScreen;
   final String? prerequisite;
+  final String? session;
   final List<String> screensVisited;
   final List<String> stepsOutline;
 
@@ -431,6 +522,7 @@ class EnsembleTestReportDetails {
     required this.startScreen,
     this.endScreen,
     this.prerequisite,
+    this.session,
     this.screensVisited = const [],
     this.stepsOutline = const [],
   });
@@ -439,6 +531,7 @@ class EnsembleTestReportDetails {
         'startScreen': startScreen,
         if (endScreen != null) 'endScreen': endScreen,
         if (prerequisite != null) 'prerequisite': prerequisite,
+        if (session != null) 'session': session,
         'screensVisited': screensVisited,
         'stepsOutline': stepsOutline,
       };

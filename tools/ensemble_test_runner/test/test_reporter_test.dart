@@ -124,6 +124,23 @@ void main() {
       expect(output, contains('error: not found'));
     });
 
+    test('prints retry attempts when a test needed retry', () {
+      final output = TestReporter().formatSummary(
+        EnsembleTestRunResult(
+          results: [
+            EnsembleSingleTestResult.passed(
+              testId: 'signin_to_gateway',
+              durationMs: 1200,
+              attempts: 2,
+              retry: 3,
+            ),
+          ],
+        ),
+      );
+
+      expect(output, contains('attempts: 2/4'));
+    });
+
     test('prints step logs', () {
       final output = TestReporter().formatSummary(
         EnsembleTestRunResult(

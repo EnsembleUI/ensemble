@@ -66,10 +66,26 @@ class EnsembleTestSchemaBuilder {
               'low'
             ],
           },
+          'parallel': {
+            'type': 'boolean',
+            'description':
+                'Set false for tests that mutate shared external state and must not run in a parallel worker shard.',
+          },
+          'retry': {
+            'type': 'integer',
+            'minimum': 0,
+            'description':
+                'Number of additional attempts after the first failure.',
+          },
           'startScreen': {
             'type': 'string',
             'minLength': 1,
             'description': 'Ensemble screen name or id to load first',
+          },
+          'startScreenInputs': {
+            'type': 'object',
+            'additionalProperties': true,
+            'description': 'Inputs passed to startScreen',
           },
           'prerequisite': {
             'type': 'string',
@@ -77,7 +93,20 @@ class EnsembleTestSchemaBuilder {
             'description':
                 'ID of another test that must run before this one in the same app session',
           },
+          'session': {
+            'type': 'string',
+            'minLength': 1,
+            'description':
+                'ID of a successful test whose captured app state is restored before startScreen',
+          },
           'initialState': {'\$ref': '#/\$defs/initialState'},
+          'setup': {
+            'type': 'array',
+            'minItems': 1,
+            'items': {'\$ref': '#/\$defs/setupStep'},
+            'description':
+                'Headless httpRequest or runCommand actions executed before startScreen mounts',
+          },
           'mocks': {
             'type': 'array',
             'items': {'type': 'string', 'minLength': 1},
@@ -108,6 +137,9 @@ class EnsembleTestSchemaBuilder {
             },
           },
         ],
+        'not': {
+          'required': ['prerequisite', 'session'],
+        },
       },
     };
 
@@ -152,7 +184,19 @@ class EnsembleTestSchemaBuilder {
       });
     }
 
-    defs['step'] = {'oneOf': stepOneOf};
+    defs['step'] = {
+      'oneOf':
+          stepOneOf.where((step) => step['title'] != 'runCommand').toList(),
+    };
+    defs['setupStep'] = {
+      'oneOf': stepOneOf
+          .where((step) =>
+              step['title'] == 'httpRequest' ||
+              step['title'] == 'runCommand' ||
+              step['title'] == 'group' ||
+              step['title'] == 'optional')
+          .toList(),
+    };
 
     final testCase = defs.remove('testCase') as Map<String, dynamic>;
 
@@ -183,6 +227,30 @@ class EnsembleTestSchemaBuilder {
       'type': 'object',
       'additionalProperties': false,
       'properties': {
+        'services': {
+          'type': 'array',
+          'items': {
+            'type': 'object',
+            'additionalProperties': false,
+            'required': ['name', 'command'],
+            'properties': {
+              'name': {'type': 'string'},
+              'command': {'type': 'string'},
+              'url': {'type': 'string', 'format': 'uri'},
+              'arguments': {
+                'type': 'array',
+                'items': {'type': 'string'},
+              },
+              'workingDirectory': {'type': 'string'},
+              'environment': {
+                'type': 'object',
+                'additionalProperties': {'type': 'string'},
+              },
+              'readyUrl': {'type': 'string'},
+              'readyTimeoutMs': {'type': 'integer', 'minimum': 1},
+            },
+          },
+        },
         'screenshots': {
           'type': 'object',
           'additionalProperties': false,
@@ -205,6 +273,15 @@ class EnsembleTestSchemaBuilder {
           'additionalProperties': false,
           'properties': {
             'enabled': {'type': 'boolean'},
+          },
+        },
+        'timers': {
+          'type': 'object',
+          'additionalProperties': false,
+          'properties': {
+            'enabled': {'type': 'boolean'},
+            'maxStartAfterSeconds': {'type': 'integer', 'minimum': 0},
+            'maxRepeatIntervalSeconds': {'type': 'integer', 'minimum': 0},
           },
         },
         'dumpTree': {

@@ -1,6 +1,5 @@
 import 'dart:ui' as ui;
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 /// Mutable runtime flags and logs for declarative test steps.
@@ -52,10 +51,12 @@ class TestRuntimeState {
 }
 
 class ScreenshotSheetFrame {
+  final int stepIndex;
   final String label;
   final ui.Image image;
 
   const ScreenshotSheetFrame({
+    required this.stepIndex,
     required this.label,
     required this.image,
   });
@@ -168,23 +169,4 @@ class AppFrameTimingEntry {
 
   static double _durationMs(Duration duration) =>
       double.parse((duration.inMicroseconds / 1000).toStringAsFixed(3));
-}
-
-/// Captures Flutter framework errors for quality assertion steps.
-class TestErrorTracker {
-  static FlutterExceptionHandler? _previousHandler;
-
-  static void install(TestRuntimeState runtime) {
-    _previousHandler = FlutterError.onError;
-    FlutterError.onError = (FlutterErrorDetails details) {
-      runtime.flutterErrors.add(details.exceptionAsString());
-    };
-  }
-
-  static void reset() {
-    if (_previousHandler != null) {
-      FlutterError.onError = _previousHandler;
-      _previousHandler = null;
-    }
-  }
 }

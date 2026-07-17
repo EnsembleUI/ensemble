@@ -249,6 +249,83 @@ steps:
 
     expect(patcher.hasTestYamlOnDisk, isTrue);
   });
+
+  test('caps configured app timers in a target directory only', () {
+    final dir = Directory.systemTemp.createTempSync('yaml_test_patcher_');
+    addTearDown(() => dir.deleteSync(recursive: true));
+
+    File('${dir.path}/pubspec.yaml').writeAsStringSync('''
+name: sample_app
+flutter:
+  assets:
+    - ensemble/
+''');
+    _writeConfig(dir);
+    Directory('${dir.path}/ensemble/apps/helloApp/tests')
+        .createSync(recursive: true);
+    File('${dir.path}/ensemble/apps/helloApp/tests/config.yaml')
+        .writeAsStringSync('''
+timers:
+  enabled: true
+  maxStartAfterSeconds: 1
+  maxRepeatIntervalSeconds: 2
+''');
+    File('${dir.path}/ensemble/apps/helloApp/tests/sample.test.yaml')
+        .writeAsStringSync('''
+id: sample
+startScreen: Home
+steps: []
+''');
+    Directory('${dir.path}/ensemble/apps/helloApp/screens')
+        .createSync(recursive: true);
+    const screen = '''
+View:
+  onLoad:
+    startAfter: 60
+    repeatInterval: 30
+    # startAfter: 120
+    nested:
+      startAfter: 0
+''';
+    final screenFile =
+        File('${dir.path}/ensemble/apps/helloApp/screens/Reset.yaml');
+    screenFile.writeAsStringSync(screen);
+
+    final workerDir = Directory('${dir.path}/worker')..createSync();
+    Directory('${workerDir.path}/ensemble/apps/helloApp/screens')
+        .createSync(recursive: true);
+    final workerScreenFile =
+        File('${workerDir.path}/ensemble/apps/helloApp/screens/Reset.yaml');
+    workerScreenFile.writeAsStringSync(screen);
+
+    final patcher = YamlTestAppPatcher(dir.path);
+    patcher.enable();
+    patcher.rewriteTimersIn(workerDir.path);
+
+    expect(screenFile.readAsStringSync(), screen);
+    expect(workerScreenFile.readAsStringSync(), '''
+View:
+  onLoad:
+    startAfter: 1
+    repeatInterval: 2
+    # startAfter: 120
+    nested:
+      startAfter: 0
+''');
+
+    patcher.restore();
+
+    expect(screenFile.readAsStringSync(), screen);
+    expect(workerScreenFile.readAsStringSync(), '''
+View:
+  onLoad:
+    startAfter: 1
+    repeatInterval: 2
+    # startAfter: 120
+    nested:
+      startAfter: 0
+''');
+  });
 }
 
 void _writeConfig(Directory dir) {

@@ -99,6 +99,31 @@ steps:
       expect(order, ['login', 'profile']);
     });
 
+    test('orders and selects a reusable session producer', () {
+      final byId = {
+        'signin': _def('auth/signin.test.yaml', '''
+id: signin
+startScreen: Login
+steps:
+  - expectVisible: {id: login}
+'''),
+        'home': _def('home/home.test.yaml', '''
+id: home
+session: signin
+startScreen: Home
+steps:
+  - expectVisible: {id: home}
+'''),
+      };
+
+      final order = EnsembleTestExecutionPlanner.selectAndOrderIdsForTest(
+        byId,
+        const EnsembleTestSelection(ids: {'home'}),
+      );
+
+      expect(order, ['signin', 'home']);
+    });
+
     test('expands scenarios with bracketed ids and prerequisite chain',
         () async {
       const yaml = '''
@@ -155,6 +180,32 @@ steps:
       );
 
       expect(definitions, isEmpty);
+    });
+
+    test('resolves service URLs in test values', () async {
+      final definitions =
+          await EnsembleTestExecutionPlanner.parseDefinitionsForTest(
+        'suite/tests/service.test.yaml',
+        '''
+id: service_url
+startScreen: Login
+steps:
+  - httpRequest:
+      url: \${services.modemStub.url}/reset
+''',
+        services: const [
+          TestServiceConfig(
+            name: 'modemStub',
+            command: 'python',
+            url: 'http://127.0.0.1:5001',
+          ),
+        ],
+      );
+
+      expect(
+        definitions.single.testCase.steps.single.args['url'],
+        'http://127.0.0.1:5001/reset',
+      );
     });
 
     test('loads JSON mock files and applies override order', () async {

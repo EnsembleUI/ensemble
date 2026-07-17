@@ -39,6 +39,7 @@ dependencies:
   firebase_auth_platform_interface: ^9.0.3
   http: ^1.2.2
   get_it: ^8.0.3
+  sqflite_common_ffi: ^2.3.6
 
 dev_dependencies:
   flutter_lints: ^2.0.3

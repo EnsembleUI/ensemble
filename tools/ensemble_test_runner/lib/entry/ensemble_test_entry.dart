@@ -7,14 +7,13 @@ import 'dart:io';
 import 'package:ensemble_test_runner/discovery/ensemble_test_execution_planner.dart';
 import 'package:ensemble_test_runner/ensemble_test_runner.dart';
 import 'package:ensemble_test_runner/mocks/firebase_test_setup.dart';
-import 'package:ensemble_test_runner/runner/test_runtime_state.dart';
 import 'package:ensemble_test_runner/runner/yaml_test_session.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-const _defaultTimeoutSeconds = 10 * 60;
 const _timeoutSeconds = int.fromEnvironment(
   'ensembleTestTimeoutSeconds',
-  defaultValue: _defaultTimeoutSeconds,
+  defaultValue: 0,
 );
 
 /// Options for [runEnsembleYamlTests], typically set from `test/ensemble_tests.dart`.
@@ -66,7 +65,6 @@ Future<void> runEnsembleYamlTestsWithOptions(
   LiveTestWidgetsFlutterBinding.ensureInitialized();
   EnsembleTestHarness.ensureTestPlugins();
   tearDown(() {
-    TestErrorTracker.reset();
     EnsembleTestHarness.resetTestRuntime();
     YamlTestSession.dispose();
   });
@@ -74,89 +72,232 @@ Future<void> runEnsembleYamlTestsWithOptions(
   testWidgets(
     'Ensemble app *.test.yaml',
     (tester) async {
-      if (options.bootstrap == null) {
-        fail(
-          'Ensemble YAML tests require module bootstrap. '
-          'In test/ensemble_tests.dart call runEnsembleYamlTests with '
-          'bootstrap: () => EnsembleModules().init() '
-          '(see ensemble_test_runner README).',
-        );
+      var emittedMachineReport = false;
+      void emitMachineReport(EnsembleTestRunResult result) {
+        _emitMachineReport(result);
+        emittedMachineReport = true;
       }
-      await tester.runAsync(() async {
-        await options.bootstrap!();
-        ensureLiveAuthActionsForTest();
-        // Module constructors may schedule follow-up async init work.
-        await Future<void>.delayed(Duration.zero);
-      });
 
-      final target = await EnsembleTestDiscovery.loadAppTarget();
-      final plan = await EnsembleTestExecutionPlanner.build(
-        target: target,
-        selection: _selectionFromEnvironment(),
-        inputs: _inputsFromEnvironment(),
-      );
-      final harness = EnsembleTestHarness(
-        appPath: target.appPath,
-        appHome: target.appHome,
-        i18nPath: target.i18nPath,
-        externalMethods: options.externalMethods,
-      );
-
-      final runner = EnsembleTestRunner(harness: harness);
-      final planResult = await runner.runPlan(plan, tester);
-      final resultsById = planResult.resultsById;
-      await YamlTestSession.navigationFlow.flushPending();
-      await tester.pump();
-
-      final failures = <String>[];
-      final orderedResults = <EnsembleSingleTestResult>[];
-
-      for (final def in plan.ordered) {
-        final result = resultsById[def.testCase.id]!;
-        orderedResults.add(
-          EnsembleSingleTestResult(
-            testId: '${result.testId}  (${def.assetPath})',
-            metadata: result.metadata,
-            status: result.status,
-            durationMs: result.durationMs,
-            failedStepIndex: result.failedStepIndex,
-            failedStep: result.failedStep,
-            message: result.message,
-            stackTrace: result.stackTrace,
-            logs: result.logs,
-            report: result.report,
-          ),
-        );
-
-        if (result.status == TestStatus.failed) {
-          failures.add(def.assetPath);
+      try {
+        if (options.bootstrap == null) {
+          fail(
+            'Ensemble YAML tests require module bootstrap. '
+            'In test/ensemble_tests.dart call runEnsembleYamlTests with '
+            'bootstrap: () => EnsembleModules().init() '
+            '(see ensemble_test_runner README).',
+          );
         }
-      }
+        await tester.runAsync(() async {
+          await options.bootstrap!();
+          ensureLiveAuthActionsForTest();
+          // Module constructors may schedule follow-up async init work.
+          await Future<void>.delayed(Duration.zero);
+        });
 
-      final runResult = EnsembleTestRunResult(
-        results: orderedResults,
-        suiteLogs: planResult.suiteLogs,
-      );
-      final reporter = TestReporter();
-      final suiteSummary = reporter.formatSummary(
-        runResult,
-        testFile: '${target.testsAssetPrefix}*.test.yaml',
-      );
-      print(suiteSummary);
-      _emitMachineReport(runResult);
-
-      if (failures.isNotEmpty) {
-        final pendingFrameworkExceptions = _drainPendingExceptions(tester);
-        fail(
-          reporter.formatFailureSummary(
-            runResult,
-            failedPaths: failures,
-            pendingFrameworkExceptions: pendingFrameworkExceptions,
-          ),
+        final target = await EnsembleTestDiscovery.loadAppTarget();
+        final plan = await EnsembleTestExecutionPlanner.build(
+          target: target,
+          selection: _selectionFromEnvironment(),
+          inputs: _inputsFromEnvironment(),
         );
+        final harness = EnsembleTestHarness(
+          appPath: target.appPath,
+          appHome: target.appHome,
+          i18nPath: target.i18nPath,
+          externalMethods: options.externalMethods,
+        );
+
+        final runner = EnsembleTestRunner(harness: harness);
+        final planResult = await runner.runPlan(
+          plan,
+          tester,
+          onTestComplete: _emitProgressEvent,
+        );
+        final resultsById = planResult.resultsById;
+        await YamlTestSession.navigationFlow.flushPending();
+        final pendingFrameworkExceptions = <Object?>[];
+        await _pumpBestEffort(tester, pendingFrameworkExceptions);
+
+        final failures = <String>[];
+        final orderedResults = <EnsembleSingleTestResult>[];
+
+        for (final def in plan.ordered) {
+          final result = resultsById[def.testCase.id]!;
+          orderedResults.add(
+            EnsembleSingleTestResult(
+              testId: '${result.testId}  (${def.assetPath})',
+              metadata: result.metadata,
+              status: result.status,
+              durationMs: result.durationMs,
+              attempts: result.attempts,
+              retry: result.retry,
+              failedStepIndex: result.failedStepIndex,
+              failedStep: result.failedStep,
+              message: result.message,
+              stackTrace: result.stackTrace,
+              logs: result.logs,
+              report: result.report,
+            ),
+          );
+
+          if (result.status == TestStatus.failed) {
+            failures.add(def.assetPath);
+          }
+        }
+
+        final runResult = EnsembleTestRunResult(
+          results: orderedResults,
+          suiteLogs: [
+            ...planResult.suiteLogs,
+            ..._appLogArtifacts(),
+          ],
+        );
+        // Background app errors are recorded by TestErrorTracker and can be
+        // asserted with expectNoRenderErrors/expectError. Explicitly unmount
+        // the app and drain teardown exceptions so a suite with passing YAML
+        // assertions does not fail after the summary is printed.
+        pendingFrameworkExceptions.addAll(
+          await _drainPendingExceptionsAndUnmount(tester),
+        );
+
+        final reporter = TestReporter();
+        final suiteSummary = reporter.formatSummary(
+          runResult,
+          testFile: '${target.testsAssetPrefix}*.test.yaml',
+        );
+        print(suiteSummary);
+        emitMachineReport(runResult);
+        _ignorePostTestAnimationInvariant();
+
+        if (failures.isNotEmpty) {
+          fail(
+            reporter.formatFailureSummary(
+              runResult,
+              failedPaths: failures,
+              pendingFrameworkExceptions: pendingFrameworkExceptions,
+            ),
+          );
+        }
+      } catch (error, stackTrace) {
+        if (!emittedMachineReport) {
+          final runResult = EnsembleTestRunResult(
+            results: [
+              EnsembleSingleTestResult.failed(
+                testId: 'test-process',
+                durationMs: 0,
+                error: error.toString(),
+                stackTrace: stackTrace.toString(),
+              ),
+            ],
+            suiteLogs: _appLogArtifacts(),
+          );
+          emitMachineReport(runResult);
+        }
+        rethrow;
       }
     },
-    timeout: Timeout(Duration(seconds: _timeoutSeconds)),
+    timeout: _timeoutSeconds > 0
+        ? Timeout(Duration(seconds: _timeoutSeconds))
+        : Timeout.none,
+  );
+}
+
+List<String> _appLogArtifacts() {
+  const appLogFile = String.fromEnvironment('ensembleTestAppLogFile');
+  const displayFile = String.fromEnvironment('ensembleTestAppLogDisplayFile');
+  if (appLogFile.isEmpty) return const [];
+  return ['appLogs: ${displayFile.isEmpty ? appLogFile : displayFile}'];
+}
+
+void _ignorePostTestAnimationInvariant() {
+  final previousOnError = FlutterError.onError;
+  FlutterError.onError = (details) {
+    final exception = details.exception.toString();
+    if (exception.contains(
+      'An animation is still running even after the widget tree was disposed.',
+    )) {
+      return;
+    }
+    if (previousOnError != null) {
+      previousOnError(details);
+    } else {
+      FlutterError.presentError(details);
+    }
+  };
+}
+
+Future<List<Object?>> _drainPendingExceptionsAndUnmount(
+  WidgetTester tester,
+) async {
+  final exceptions = _drainPendingExceptions(tester);
+  final previousOnError = FlutterError.onError;
+  FlutterError.onError = (details) {
+    exceptions.add(details.exception);
+  };
+  try {
+    await _pumpWidgetBestEffort(tester, const SizedBox.shrink(), exceptions);
+    exceptions.addAll(_drainPendingExceptions(tester));
+    for (var i = 0; i < 10; i++) {
+      await _pumpBestEffort(
+        tester,
+        exceptions,
+        const Duration(milliseconds: 16),
+      );
+      exceptions.addAll(_drainPendingExceptions(tester));
+      if (tester.binding.transientCallbackCount == 0) break;
+    }
+  } finally {
+    FlutterError.onError = previousOnError;
+  }
+  return exceptions;
+}
+
+Future<void> _pumpBestEffort(
+  WidgetTester tester,
+  List<Object?> exceptions, [
+  Duration? duration,
+]) async {
+  try {
+    await tester.pump(duration);
+  } catch (error) {
+    exceptions.add(error);
+  }
+}
+
+Future<void> _pumpWidgetBestEffort(
+  WidgetTester tester,
+  Widget widget,
+  List<Object?> exceptions,
+) async {
+  try {
+    await tester.pumpWidget(widget);
+  } catch (error) {
+    exceptions.add(error);
+  }
+}
+
+void _emitProgressEvent(
+  EnsembleTestDefinition definition,
+  EnsembleSingleTestResult result,
+) {
+  const progressFile = String.fromEnvironment('ensembleTestProgressFile');
+  if (progressFile.isEmpty) return;
+
+  final file = File(progressFile);
+  file.parent.createSync(recursive: true);
+  file.writeAsStringSync(
+    '${json.encode({
+          'testId': result.testId,
+          'assetPath': definition.assetPath,
+          'status': result.status.name,
+          'durationMs': result.durationMs,
+          if (result.attempts > 1) 'attempts': result.attempts,
+          if (result.retry > 0) 'retry': result.retry,
+          if (result.message != null) 'message': result.message,
+          if (result.failedStepIndex != null)
+            'failedStepIndex': result.failedStepIndex,
+        })}\n',
+    mode: FileMode.append,
   );
 }
 

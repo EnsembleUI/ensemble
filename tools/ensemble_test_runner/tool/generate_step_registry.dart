@@ -231,6 +231,18 @@ void main() {
       'apiName',
       'Poll until a mocked API is called N times',
     ),
+    'httpRequest': step(
+      'runtime',
+      'core',
+      'httpRequest',
+      'Send an HTTP request to a test support service',
+    ),
+    'runCommand': step(
+      'runtime',
+      'core',
+      'runCommand',
+      'Run a finite external test setup command',
+    ),
     'waitForNavigation': step(
       'wait',
       'core',
@@ -653,7 +665,6 @@ abstract final class TestStepRegistry {
 
   buffer.writeln('  };');
   buffer.writeln('}');
-  buffer.writeln();
 
   File('lib/vocabulary/test_step_registry.dart')
       .writeAsStringSync(buffer.toString());
@@ -696,6 +707,19 @@ Map<String, dynamic> defaultExampleForArg(String arg) {
       return {'durationMs': 100};
     case 'timeoutOptional':
       return {'timeoutMs': 5000};
+    case 'httpRequest':
+      return {
+        'method': 'POST',
+        'url': 'http://127.0.0.1:5001/api/test/reset',
+        'body': {'enabled': true},
+        'expectStatus': 200,
+      };
+    case 'runCommand':
+      return {
+        'command': 'dart',
+        'arguments': ['--version'],
+        'expectExitCode': 0,
+      };
     case 'waitFor':
       return {'id': 'loading_spinner', 'timeoutMs': 5000};
     case 'waitForGone':

@@ -45,18 +45,45 @@
         "low"
       ]
     },
+    "parallel": {
+      "type": "boolean",
+      "description": "Set false for tests that mutate shared external state and must not run in a parallel worker shard."
+    },
+    "retry": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Number of additional attempts after the first failure."
+    },
     "startScreen": {
       "type": "string",
       "minLength": 1,
       "description": "Ensemble screen name or id to load first"
+    },
+    "startScreenInputs": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "Inputs passed to startScreen"
     },
     "prerequisite": {
       "type": "string",
       "minLength": 1,
       "description": "ID of another test that must run before this one in the same app session"
     },
+    "session": {
+      "type": "string",
+      "minLength": 1,
+      "description": "ID of a successful test whose captured app state is restored before startScreen"
+    },
     "initialState": {
       "$ref": "#/$defs/initialState"
+    },
+    "setup": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/setupStep"
+      },
+      "description": "Headless httpRequest or runCommand actions executed before startScreen mounts"
     },
     "mocks": {
       "type": "array",
@@ -106,6 +133,12 @@
       }
     }
   ],
+  "not": {
+    "required": [
+      "prerequisite",
+      "session"
+    ]
+  },
   "$defs": {
     "initialState": {
       "type": "object",
@@ -815,6 +848,96 @@
         {
           "name": "login",
           "times": 1
+        }
+      ]
+    },
+    "args_httpRequest": {
+      "type": "object",
+      "properties": {
+        "url": {
+          "type": "string"
+        },
+        "method": {
+          "type": "string",
+          "enum": [
+            "GET",
+            "POST",
+            "PUT",
+            "PATCH",
+            "DELETE",
+            "HEAD",
+            "OPTIONS"
+          ]
+        },
+        "headers": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "body": true,
+        "timeoutMs": {
+          "type": "integer"
+        },
+        "expectStatus": {
+          "type": "integer"
+        },
+        "expectBodyContains": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "url"
+      ],
+      "additionalProperties": false,
+      "title": "httpRequest",
+      "description": "Send an HTTP request to a test support service",
+      "examples": [
+        {
+          "method": "POST",
+          "url": "http://127.0.0.1:5001/api/test/reset",
+          "body": {
+            "enabled": true
+          },
+          "expectStatus": 200
+        }
+      ]
+    },
+    "args_runCommand": {
+      "type": "object",
+      "properties": {
+        "command": {
+          "type": "string"
+        },
+        "arguments": {
+          "type": "array",
+          "items": true
+        },
+        "workingDirectory": {
+          "type": "string"
+        },
+        "environment": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "timeoutMs": {
+          "type": "integer"
+        },
+        "expectExitCode": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "command"
+      ],
+      "additionalProperties": false,
+      "title": "runCommand",
+      "description": "Run a finite external test setup command",
+      "examples": [
+        {
+          "command": "dart",
+          "arguments": [
+            "--version"
+          ],
+          "expectExitCode": 0
         }
       ]
     },
@@ -3043,6 +3166,45 @@
         },
         {
           "type": "object",
+          "title": "httpRequest",
+          "description": "Send an HTTP request to a test support service",
+          "examples": [
+            {
+              "httpRequest": {
+                "method": "POST",
+                "url": "http://127.0.0.1:5001/api/test/reset",
+                "body": {
+                  "enabled": true
+                },
+                "expectStatus": 200
+              }
+            }
+          ],
+          "additionalProperties": false,
+          "minProperties": 1,
+          "maxProperties": 1,
+          "properties": {
+            "httpRequest": {
+              "$ref": "#/$defs/args_httpRequest",
+              "description": "Send an HTTP request to a test support service",
+              "examples": [
+                {
+                  "method": "POST",
+                  "url": "http://127.0.0.1:5001/api/test/reset",
+                  "body": {
+                    "enabled": true
+                  },
+                  "expectStatus": 200
+                }
+              ]
+            }
+          },
+          "required": [
+            "httpRequest"
+          ]
+        },
+        {
+          "type": "object",
           "title": "waitForNavigation",
           "description": "Poll until the given screen is visible",
           "examples": [
@@ -4836,6 +4998,170 @@
           },
           "required": [
             "expectNoOverflow"
+          ]
+        }
+      ]
+    },
+    "setupStep": {
+      "oneOf": [
+        {
+          "type": "object",
+          "title": "httpRequest",
+          "description": "Send an HTTP request to a test support service",
+          "examples": [
+            {
+              "httpRequest": {
+                "method": "POST",
+                "url": "http://127.0.0.1:5001/api/test/reset",
+                "body": {
+                  "enabled": true
+                },
+                "expectStatus": 200
+              }
+            }
+          ],
+          "additionalProperties": false,
+          "minProperties": 1,
+          "maxProperties": 1,
+          "properties": {
+            "httpRequest": {
+              "$ref": "#/$defs/args_httpRequest",
+              "description": "Send an HTTP request to a test support service",
+              "examples": [
+                {
+                  "method": "POST",
+                  "url": "http://127.0.0.1:5001/api/test/reset",
+                  "body": {
+                    "enabled": true
+                  },
+                  "expectStatus": 200
+                }
+              ]
+            }
+          },
+          "required": [
+            "httpRequest"
+          ]
+        },
+        {
+          "type": "object",
+          "title": "runCommand",
+          "description": "Run a finite external test setup command",
+          "examples": [
+            {
+              "runCommand": {
+                "command": "dart",
+                "arguments": [
+                  "--version"
+                ],
+                "expectExitCode": 0
+              }
+            }
+          ],
+          "additionalProperties": false,
+          "minProperties": 1,
+          "maxProperties": 1,
+          "properties": {
+            "runCommand": {
+              "$ref": "#/$defs/args_runCommand",
+              "description": "Run a finite external test setup command",
+              "examples": [
+                {
+                  "command": "dart",
+                  "arguments": [
+                    "--version"
+                  ],
+                  "expectExitCode": 0
+                }
+              ]
+            }
+          },
+          "required": [
+            "runCommand"
+          ]
+        },
+        {
+          "type": "object",
+          "title": "group",
+          "description": "Run nested steps as a named group",
+          "examples": [
+            {
+              "group": {
+                "name": "login_flow",
+                "steps": [
+                  {
+                    "tap": {
+                      "id": "login_button"
+                    }
+                  }
+                ]
+              }
+            }
+          ],
+          "additionalProperties": false,
+          "minProperties": 1,
+          "maxProperties": 1,
+          "properties": {
+            "group": {
+              "$ref": "#/$defs/args_group",
+              "description": "Run nested steps as a named group",
+              "examples": [
+                {
+                  "name": "login_flow",
+                  "steps": [
+                    {
+                      "tap": {
+                        "id": "login_button"
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          },
+          "required": [
+            "group"
+          ]
+        },
+        {
+          "type": "object",
+          "title": "optional",
+          "description": "Run nested steps; swallow failures",
+          "examples": [
+            {
+              "optional": {
+                "steps": [
+                  {
+                    "tap": {
+                      "id": "dismiss_banner"
+                    }
+                  }
+                ]
+              }
+            }
+          ],
+          "additionalProperties": false,
+          "minProperties": 1,
+          "maxProperties": 1,
+          "properties": {
+            "optional": {
+              "$ref": "#/$defs/args_optional",
+              "description": "Run nested steps; swallow failures",
+              "examples": [
+                {
+                  "steps": [
+                    {
+                      "tap": {
+                        "id": "dismiss_banner"
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          },
+          "required": [
+            "optional"
           ]
         }
       ]

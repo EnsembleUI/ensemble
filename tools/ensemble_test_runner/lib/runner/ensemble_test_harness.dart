@@ -9,6 +9,8 @@ import 'package:ensemble/framework/definition_providers/local_provider.dart';
 import 'package:ensemble/framework/screen_tracker.dart';
 import 'package:ensemble/framework/storage_manager.dart';
 import 'package:ensemble/page_model.dart';
+import 'package:ensemble/screen_controller.dart';
+import 'package:ensemble/util/utils.dart';
 import 'package:ensemble_device_preview/ensemble_device_preview.dart';
 import 'package:ensemble_test_runner/actions/screenshot_device.dart';
 import 'package:ensemble_test_runner/mocks/adobe_test_setup.dart';
@@ -21,6 +23,7 @@ import 'package:ensemble_test_runner/runner/yaml_test_session.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:yaml/yaml.dart';
 
 /// Per-test bootstrap data applied before the widget tree mounts.
@@ -61,9 +64,16 @@ class EnsembleTestHarness {
   static final String _testStoragePath =
       Directory.systemTemp.createTempSync('ensemble_test_runner_storage_').path;
   static bool _appFontsLoaded = false;
+  static bool _sqfliteInitialized = false;
+  static final Map<String, String> _secureStorage = {};
 
   static void ensureTestPlugins() {
     TestWidgetsFlutterBinding.ensureInitialized();
+    if (!_sqfliteInitialized) {
+      sqfliteFfiInit();
+      databaseFactory = databaseFactoryFfi;
+      _sqfliteInitialized = true;
+    }
     ensureFirebaseCoreMocksForTest();
     ensureAdobeAnalyticsMocksForTest();
     HttpOverrides.global = _RealNetworkHttpOverrides();
@@ -91,7 +101,6 @@ class EnsembleTestHarness {
       return null;
     });
 
-    final secureStorage = <String, String>{};
     const secureStorageChannel =
         MethodChannel('plugins.it_nomads.com/flutter_secure_storage');
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
@@ -101,21 +110,21 @@ class EnsembleTestHarness {
       switch (call.method) {
         case 'write':
           if (key != null) {
-            secureStorage[key] = args['value']?.toString() ?? '';
+            _secureStorage[key] = args['value']?.toString() ?? '';
           }
           return null;
         case 'read':
-          return key == null ? null : secureStorage[key];
+          return key == null ? null : _secureStorage[key];
         case 'readAll':
-          return Map<String, String>.from(secureStorage);
+          return Map<String, String>.from(_secureStorage);
         case 'delete':
-          if (key != null) secureStorage.remove(key);
+          if (key != null) _secureStorage.remove(key);
           return null;
         case 'deleteAll':
-          secureStorage.clear();
+          _secureStorage.clear();
           return null;
         case 'containsKey':
-          return key != null && secureStorage.containsKey(key);
+          return key != null && _secureStorage.containsKey(key);
         default:
           return null;
       }
@@ -482,10 +491,17 @@ class EnsembleTestHarness {
     EnsembleConfig? existingConfig,
     EnsembleTestContext? context,
     EnsembleTestConfig suiteConfig = const EnsembleTestConfig(),
+    Future<void> Function()? beforeBootstrap,
+    Locale? forcedLocale,
   }) async {
+    // Independent tests need a new EnsembleApp state. Pumping another
+    // EnsembleApp of the same type would otherwise reuse the prior route.
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump();
     resetTestRuntime();
     ScreenTracker().clearAll();
     YamlTestSession.navigationFlow.clear();
+    await beforeBootstrap?.call();
 
     final ctx = context ??
         EnsembleTestContext.fromTestCase(
@@ -520,12 +536,45 @@ class EnsembleTestHarness {
     await tester.pumpWidget(
       EnsembleApp(
         ensembleConfig: config,
-        screenPayload: ScreenPayload(screenId: startScreen),
+        screenPayload: ScreenPayload(
+          screenId: startScreen,
+          arguments: testCase.startScreenInputs,
+        ),
+        forcedLocale: forcedLocale,
       ),
     );
 
     await waitForInitialWidgets(tester, testCase: testCase);
     return config;
+  }
+
+  static Future<void> openSessionScreen(
+    WidgetTester tester,
+    EnsembleTestCase testCase,
+  ) async {
+    final startScreen = testCase.startScreen;
+    if (startScreen == null || startScreen.isEmpty) {
+      throw EnsembleTestFailure(
+        'Session test "${testCase.id}" requires startScreen',
+      );
+    }
+    final context = Utils.globalAppKey.currentContext;
+    if (context == null) {
+      throw EnsembleTestFailure(
+        'Cannot open "$startScreen" because the saved app session is not mounted',
+      );
+    }
+
+    ScreenTracker().clearAll();
+    YamlTestSession.navigationFlow.clear();
+    ScreenController().navigateToScreen(
+      context,
+      screenId: startScreen,
+      pageArgs: testCase.startScreenInputs,
+      routeOption: RouteOption.clearAllScreens,
+    );
+    await tester.pump();
+    await waitForInitialWidgets(tester, testCase: testCase);
   }
 
   static Future<void> _ensureDefaultViewport(
@@ -571,7 +620,7 @@ class EnsembleTestHarness {
     final keysToWait = <String>[];
     if (testCase != null) {
       for (final step in testCase.steps) {
-        if (step.type != 'expectVisible' && step.type != 'tap') {
+        if (step.type != 'expectVisible') {
           break;
         }
         final id = step.args['id']?.toString();

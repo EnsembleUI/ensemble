@@ -10,6 +10,7 @@ EnsembleTestReportDetails buildTestReportDetails(EnsembleTestCase testCase) {
     startScreen: effectiveStart,
     endScreen: ScreenTracker().getCurrentScreenIdentifier(),
     prerequisite: testCase.prerequisite,
+    session: testCase.session,
     screensVisited: collectScreensVisited(effectiveStart),
     stepsOutline: outlineSteps(testCase.steps),
   );
@@ -166,11 +167,17 @@ class TestReporter {
   void _writeTestCase(StringBuffer buffer, EnsembleSingleTestResult r) {
     final icon = r.status == TestStatus.passed ? '✓' : '✗';
     buffer.writeln('│  $icon ${r.testId} (${r.durationMs}ms)');
+    if (r.attempts > 1) {
+      buffer.writeln('│     attempts: ${r.attempts}/${r.retry + 1}');
+    }
 
     final report = r.report;
     if (report != null) {
       if (report.prerequisite != null) {
         buffer.writeln('│     after: ${report.prerequisite}');
+      }
+      if (report.session != null) {
+        buffer.writeln('│     session: ${report.session}');
       }
       buffer.writeln('│     start: ${report.startScreen}');
       if (report.endScreen != null && report.endScreen != report.startScreen) {

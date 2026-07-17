@@ -131,6 +131,7 @@ class EnsembleTestDoctor {
 
     final ids = <String, String>{};
     final prerequisites = <String, String>{};
+    final sessions = <String, String>{};
     final referencedWidgetIds = <String>{};
 
     for (final file in testFiles) {
@@ -157,6 +158,9 @@ class EnsembleTestDoctor {
         if (test.prerequisite != null) {
           prerequisites[test.id] = test.prerequisite!;
         }
+        if (test.session != null) {
+          sessions[test.id] = test.session!;
+        }
         referencedWidgetIds.addAll(test.referencedWidgetIds);
       } catch (failure) {
         error('$relativePath: $failure');
@@ -167,6 +171,12 @@ class EnsembleTestDoctor {
       if (!ids.containsKey(entry.value)) {
         error(
             'Test "${entry.key}" references unknown prerequisite "${entry.value}"');
+      }
+    }
+    for (final entry in sessions.entries) {
+      if (!ids.containsKey(entry.value)) {
+        error(
+            'Test "${entry.key}" references unknown session "${entry.value}"');
       }
     }
 
@@ -196,6 +206,7 @@ class EnsembleTestDoctor {
 typedef _DoctorTest = ({
   String id,
   String? prerequisite,
+  String? session,
   Set<String> referencedWidgetIds,
   String? error,
 });
@@ -206,6 +217,7 @@ _DoctorTest _parseDoctorTest(String content) {
     return (
       id: '',
       prerequisite: null,
+      session: null,
       referencedWidgetIds: <String>{},
       error: 'root must be a map',
     );
@@ -215,6 +227,7 @@ _DoctorTest _parseDoctorTest(String content) {
     return (
       id: '',
       prerequisite: null,
+      session: null,
       referencedWidgetIds: <String>{},
       error:
           'Root-level "options" is no longer supported. Move shared settings to tests/config.yaml.',
@@ -226,6 +239,7 @@ _DoctorTest _parseDoctorTest(String content) {
     return (
       id: '',
       prerequisite: null,
+      session: null,
       referencedWidgetIds: <String>{},
       error: 'Each test must have an "id"',
     );
@@ -233,12 +247,14 @@ _DoctorTest _parseDoctorTest(String content) {
 
   final startScreen = doc['startScreen']?.toString();
   final prerequisite = doc['prerequisite']?.toString();
+  final session = doc['session']?.toString();
   final hasStartScreen = startScreen != null && startScreen.isNotEmpty;
   final hasPrerequisite = prerequisite != null && prerequisite.isNotEmpty;
   if (hasStartScreen == hasPrerequisite) {
     return (
       id: id,
       prerequisite: prerequisite,
+      session: session,
       referencedWidgetIds: <String>{},
       error: 'Test "$id" must have either "startScreen" or "prerequisite"',
     );
@@ -249,6 +265,7 @@ _DoctorTest _parseDoctorTest(String content) {
     return (
       id: id,
       prerequisite: prerequisite,
+      session: session,
       referencedWidgetIds: <String>{},
       error: 'Test "$id" must have a non-empty "steps" list',
     );
@@ -257,6 +274,7 @@ _DoctorTest _parseDoctorTest(String content) {
   return (
     id: id,
     prerequisite: hasPrerequisite ? prerequisite : null,
+    session: session == null || session.isEmpty ? null : session,
     referencedWidgetIds: _collectReferencedWidgetIds(steps),
     error: null,
   );

@@ -1,6 +1,4 @@
 import 'dart:convert';
-import 'dart:ui' show SemanticsFlag;
-
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/screen_tracker.dart';
 import 'package:ensemble/framework/storage_manager.dart';
@@ -10,6 +8,7 @@ import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
 import 'package:ensemble_test_runner/runner/ensemble_test_context.dart';
 import 'package:ensemble_test_runner/runner/yaml_test_session.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 class AssertionEngine {
@@ -24,7 +23,7 @@ class AssertionEngine {
   Finder finderForId(String id) => find.byKey(ValueKey(id));
 
   void expectVisible(String id) {
-    final finder = finderForId(id);
+    final finder = finderForId(id).hitTestable();
     if (finder.evaluate().isEmpty) {
       throw EnsembleTestFailure(
         'Expected widget with id "$id" to be visible. '
@@ -34,7 +33,7 @@ class AssertionEngine {
   }
 
   void expectNotVisible(String id) {
-    final finder = finderForId(id);
+    final finder = finderForId(id).hitTestable();
     if (finder.evaluate().isNotEmpty) {
       throw EnsembleTestFailure(
         'Expected widget with id "$id" to not be visible.',
@@ -43,14 +42,13 @@ class AssertionEngine {
   }
 
   void expectText(String text) {
-    final finder = find.text(text);
-    if (finder.evaluate().isEmpty) {
+    if (!isTextVisible(text)) {
       throw EnsembleTestFailure('Expected text "$text" to be visible.');
     }
   }
 
   void expectNoText(String text) {
-    if (find.text(text).evaluate().isNotEmpty) {
+    if (isTextVisible(text)) {
       throw EnsembleTestFailure('Expected text "$text" to not be visible.');
     }
   }
@@ -70,8 +68,9 @@ class AssertionEngine {
         'Expected widget with id "$id" to exist for enabled check.',
       );
     }
-    final semantics = tester.getSemantics(finder);
-    final isEnabled = semantics.hasFlag(SemanticsFlag.isEnabled);
+    final isEnabled = _readSemantics(
+      () => tester.getSemantics(finder).hasFlag(SemanticsFlag.isEnabled),
+    );
     if (isEnabled != enabled) {
       throw EnsembleTestFailure(
         'Expected widget "$id" to be ${enabled ? 'enabled' : 'disabled'}, '
@@ -166,9 +165,79 @@ class AssertionEngine {
   }
 
   void expectTextContains(String text) {
-    if (find.textContaining(text).evaluate().isEmpty) {
+    if (!isTextContainingVisible(text)) {
       throw EnsembleTestFailure('Expected text containing "$text".');
     }
+  }
+
+  bool isTextVisible(String text) => _hasVisiblePaintedElement(find.text(text));
+
+  bool isTextContainingVisible(String text) =>
+      _hasVisiblePaintedElement(find.textContaining(text));
+
+  bool _hasVisiblePaintedElement(Finder finder) {
+    return finder.evaluate().any(_isElementInViewport);
+  }
+
+  bool _isElementInViewport(Element element) {
+    final route = ModalRoute.of(element);
+    if (route != null && !route.isCurrent) return false;
+    if (_isUnderOffstageAncestor(element)) return false;
+
+    final renderObject = element.renderObject;
+    if (renderObject is! RenderBox ||
+        !renderObject.hasSize ||
+        renderObject.size.isEmpty) {
+      return false;
+    }
+    if (_effectiveOpacity(element) <= 0.01) return false;
+
+    final topLeft = renderObject.localToGlobal(Offset.zero);
+    final rect = topLeft & renderObject.size;
+    if (!rect.isFinite || rect.isEmpty) return false;
+
+    final viewport = tester.binding.renderViews.first.paintBounds;
+    final visibleRect = rect.intersect(viewport);
+    return visibleRect != Rect.zero &&
+        visibleRect.width > 0 &&
+        visibleRect.height > 0;
+  }
+
+  bool _isUnderOffstageAncestor(Element element) {
+    var isOffstage = false;
+    element.visitAncestorElements((ancestor) {
+      final renderObject = ancestor.renderObject;
+      if (renderObject is RenderOffstage && renderObject.offstage) {
+        isOffstage = true;
+        return false;
+      }
+      return true;
+    });
+    return isOffstage;
+  }
+
+  double _effectiveOpacity(Element element) {
+    var opacity = 1.0;
+    element.visitAncestorElements((ancestor) {
+      final renderObject = ancestor.renderObject;
+      if (renderObject is RenderOpacity) {
+        opacity *= renderObject.opacity;
+      } else if (renderObject != null &&
+          renderObject.runtimeType.toString() == 'RenderAnimatedOpacity') {
+        try {
+          final animatedOpacity = (renderObject as dynamic).opacity;
+          if (animatedOpacity is Animation<double>) {
+            opacity *= animatedOpacity.value;
+          } else if (animatedOpacity is double) {
+            opacity *= animatedOpacity;
+          }
+        } catch (_) {
+          // Keep the opacity already collected from other ancestors.
+        }
+      }
+      return opacity > 0.01;
+    });
+    return opacity;
   }
 
   void expectChecked(String id, bool expected) {
@@ -176,8 +245,9 @@ class AssertionEngine {
     if (finder.evaluate().isEmpty) {
       throw EnsembleTestFailure('expectChecked: widget "$id" not found.');
     }
-    final semantics = tester.getSemantics(finder);
-    final isChecked = semantics.hasFlag(SemanticsFlag.isChecked);
+    final isChecked = _readSemantics(
+      () => tester.getSemantics(finder).hasFlag(SemanticsFlag.isChecked),
+    );
     if (isChecked != expected) {
       throw EnsembleTestFailure(
         'Expected "$id" checked=$expected, got $isChecked.',
@@ -191,8 +261,7 @@ class AssertionEngine {
       throw EnsembleTestFailure('expectProperty: widget "$id" not found.');
     }
     if (property == 'label') {
-      final semantics = tester.getSemantics(finder);
-      final label = semantics.label;
+      final label = _readSemantics(() => tester.getSemantics(finder).label);
       if (label != expected?.toString()) {
         throw EnsembleTestFailure(
           'Expected label "$expected", got "$label".',
@@ -328,8 +397,11 @@ class AssertionEngine {
     if (finder.evaluate().isEmpty) {
       throw EnsembleTestFailure('expectAccessible: "$id" not found.');
     }
-    final semantics = tester.getSemantics(finder);
-    if (semantics.label.isEmpty && semantics.value.isEmpty) {
+    final hasAccessibleText = _readSemantics(() {
+      final semantics = tester.getSemantics(finder);
+      return semantics.label.isNotEmpty || semantics.value.isNotEmpty;
+    });
+    if (!hasAccessibleText) {
       throw EnsembleTestFailure(
         'Widget "$id" has no accessibility label or value.',
       );
@@ -338,11 +410,20 @@ class AssertionEngine {
 
   void expectSemanticsLabel(String id, String label) {
     final finder = finderForId(id);
-    final semantics = tester.getSemantics(finder);
-    if (semantics.label != label) {
+    final actual = _readSemantics(() => tester.getSemantics(finder).label);
+    if (actual != label) {
       throw EnsembleTestFailure(
-        'Expected semantics label "$label", got "${semantics.label}".',
+        'Expected semantics label "$label", got "$actual".',
       );
+    }
+  }
+
+  T _readSemantics<T>(T Function() read) {
+    final handle = tester.ensureSemantics();
+    try {
+      return read();
+    } finally {
+      handle.dispose();
     }
   }
 
@@ -434,6 +515,19 @@ class AssertionEngine {
     final shown = ids.take(limit).join(', ');
     final suffix = ids.length > limit ? ', ... (${ids.length} total)' : '';
     return 'Visible widget ids: $shown$suffix.';
+  }
+
+  String visibleTextSummary({int limit = 10}) {
+    final texts = tester.allWidgets
+        .whereType<Text>()
+        .map((widget) => widget.data)
+        .whereType<String>()
+        .where((value) => value.isNotEmpty)
+        .toSet()
+        .take(limit)
+        .toList();
+    if (texts.isEmpty) return 'No Text widgets are currently visible.';
+    return 'Visible text: ${texts.map(jsonEncode).join(', ')}.';
   }
 
   String apiCallSummary({int limit = 10}) {

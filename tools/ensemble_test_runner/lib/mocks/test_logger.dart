@@ -1,7 +1,11 @@
-import 'dart:io';
+import 'package:ensemble_test_runner/runner/test_artifacts.dart';
 
 /// Simple in-memory logger for test runs.
 class TestLogger {
+  static const _artifactSuffix = String.fromEnvironment(
+    'ensembleTestWorkerSuffix',
+  );
+
   final List<String> logs = [];
 
   void log(String message) {
@@ -14,16 +18,18 @@ class TestLogger {
     required String content,
     String extension = 'log',
   }) async {
-    final directory = Directory('build/ensemble_test_runner/logs');
+    final directory = ensembleTestArtifactDirectory('logs');
     await directory.create(recursive: true);
     final safeTestId = _safeFileName(testId);
     final safeName = _safeFileName(name);
+    final suffix = _safeFileName(_artifactSuffix);
+    final suffixPart = suffix.isEmpty ? '' : '_$suffix';
     final fileName = safeTestId.isEmpty
-        ? '$safeName.${_safeExtension(extension)}'
-        : '${safeTestId}_$safeName.${_safeExtension(extension)}';
-    final file = File('${directory.path}/$fileName');
+        ? '$safeName$suffixPart.${_safeExtension(extension)}'
+        : '${safeTestId}_$safeName$suffixPart.${_safeExtension(extension)}';
+    final file = ensembleTestArtifactFile('logs', fileName);
     await file.writeAsString(content);
-    return file.path;
+    return ensembleTestArtifactDisplayPath('logs', fileName);
   }
 
   void clear() => logs.clear();

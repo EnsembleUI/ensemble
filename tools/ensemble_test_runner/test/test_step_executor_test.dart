@@ -2,6 +2,8 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:ensemble_test_runner/actions/test_step_executor.dart';
+import 'package:ensemble_test_runner/actions/http_request_action.dart';
+import 'package:ensemble_test_runner/actions/run_command_action.dart';
 import 'package:ensemble_test_runner/assertions/assertion_engine.dart';
 import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
 import 'package:ensemble_test_runner/mocks/test_api_provider_overlay.dart';
@@ -16,6 +18,69 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:yaml/yaml.dart';
 
 void main() {
+  test('runCommand executes a finite process', () async {
+    await RunCommandAction.execute({
+      'command':
+          '${Platform.environment['FLUTTER_ROOT']}/bin/cache/dart-sdk/bin/dart',
+      'arguments': ['--version'],
+      'expectExitCode': 0,
+    });
+  });
+
+  test('runCommand stops a process when it times out', () async {
+    final temp = await Directory.systemTemp.createTemp('run_command_timeout');
+    final script = File('${temp.path}/wait.dart');
+    await script.writeAsString('''
+Future<void> main() async {
+  await Future<void>.delayed(const Duration(seconds: 30));
+}
+''');
+
+    try {
+      await expectLater(
+        RunCommandAction.execute({
+          'command':
+              '${Platform.environment['FLUTTER_ROOT']}/bin/cache/dart-sdk/bin/dart',
+          'arguments': [script.path],
+          'timeoutMs': 100,
+        }),
+        throwsA(isA<EnsembleTestFailure>()),
+      );
+    } finally {
+      await temp.delete(recursive: true);
+    }
+  });
+
+  test('httpRequest sends JSON and validates the response', () async {
+    EnsembleTestHarness.ensureTestPlugins();
+    final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+    late Map<String, dynamic> receivedBody;
+    late ContentType receivedContentType;
+    server.listen((request) async {
+      receivedContentType = request.headers.contentType!;
+      receivedBody = jsonDecode(await utf8.decoder.bind(request).join())
+          as Map<String, dynamic>;
+      request.response
+        ..statusCode = HttpStatus.created
+        ..write('{"ready":true}');
+      await request.response.close();
+    });
+
+    try {
+      await HttpRequestAction.execute({
+        'method': 'POST',
+        'url': 'http://127.0.0.1:${server.port}/control',
+        'body': {'state': 'ready'},
+        'expectStatus': 201,
+        'expectBodyContains': 'ready',
+      });
+      expect(receivedBody, {'state': 'ready'});
+      expect(receivedContentType.mimeType, ContentType.json.mimeType);
+    } finally {
+      await server.close(force: true);
+    }
+  });
+
   testWidgets('toggle taps the switch inside a keyed input wrapper',
       (tester) async {
     var value = false;
@@ -62,6 +127,85 @@ void main() {
     );
 
     expect(value, isTrue);
+  });
+
+  testWidgets('tap targets the only hit-testable widget when ids repeat',
+      (tester) async {
+    var taps = 0;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Stack(
+          children: [
+            IgnorePointer(
+              child: TextButton(
+                key: const ValueKey('repeated_button'),
+                onPressed: () => taps += 100,
+                child: const Text('Old route'),
+              ),
+            ),
+            Align(
+              alignment: Alignment.bottomCenter,
+              child: TextButton(
+                key: const ValueKey('repeated_button'),
+                onPressed: () => taps++,
+                child: const Text('Current route'),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    final context = EnsembleTestContext.fromTestCase(
+      const EnsembleTestCase(
+        id: 'repeated_id',
+        startScreen: 'Home',
+        steps: [],
+      ),
+    );
+    final executor = TestStepExecutor(
+      tester: tester,
+      context: context,
+      assertions: AssertionEngine(tester: tester, context: context),
+      harness: EnsembleTestHarness(appPath: 'unused', appHome: 'Home'),
+    );
+    await executor.tapWidget('repeated_button');
+    expect(taps, 1);
+  });
+
+  testWidgets('text assertions use visual visibility, not hit testing',
+      (tester) async {
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: Stack(
+          children: [
+            Offstage(child: Text('Old route text')),
+            IgnorePointer(child: Text('Visible non-interactive text')),
+            Align(
+              alignment: Alignment.bottomCenter,
+              child: Text('Current route text'),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    final context = EnsembleTestContext.fromTestCase(
+      const EnsembleTestCase(
+        id: 'visible_text',
+        startScreen: 'Home',
+        steps: [],
+      ),
+    );
+    final assertions = AssertionEngine(tester: tester, context: context);
+
+    assertions.expectText('Current route text');
+    assertions.expectText('Visible non-interactive text');
+    assertions.expectNoText('Old route text');
+    expect(
+      () => assertions.expectText('Old route text'),
+      throwsA(isA<EnsembleTestFailure>()),
+    );
   });
 
   testWidgets('waitFor requires id or text', (tester) async {

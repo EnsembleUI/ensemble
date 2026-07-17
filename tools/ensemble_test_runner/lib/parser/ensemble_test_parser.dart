@@ -81,6 +81,8 @@ class EnsembleTestParser {
     final hasStartScreen = startScreen != null && startScreen.isNotEmpty;
     final prerequisite = map['prerequisite']?.toString();
     final hasPrerequisite = prerequisite != null && prerequisite.isNotEmpty;
+    final session = map['session']?.toString();
+    final hasSession = session != null && session.isNotEmpty;
 
     if (hasStartScreen && hasPrerequisite) {
       throw EnsembleTestFailure(
@@ -92,6 +94,27 @@ class EnsembleTestParser {
         'Test "$id" must have either "startScreen" or "prerequisite"',
       );
     }
+    if (hasPrerequisite && hasSession) {
+      throw EnsembleTestFailure(
+        'Test "$id" cannot use both "prerequisite" and "session"',
+      );
+    }
+    if (hasSession && !hasStartScreen) {
+      throw EnsembleTestFailure(
+        'Test "$id" must have "startScreen" when "session" is set',
+      );
+    }
+
+    final setupNode = map['setup'];
+    final setupSteps = setupNode == null
+        ? const <TestStep>[]
+        : _parseSetupSteps(
+            setupNode,
+            testId: id,
+            inputs: inputs,
+            scenario: scenario,
+            scenarioId: scenarioId,
+          );
 
     final stepsNode = map['steps'];
     if (stepsNode is! YamlList || stepsNode.isEmpty) {
@@ -108,8 +131,21 @@ class EnsembleTestParser {
       description: map['description']?.toString(),
       owner: map['owner']?.toString(),
       priority: map['priority']?.toString(),
+      parallel: map['parallel'] == false ? false : true,
+      retry: _optionalNonNegativeInt(
+        map['retry'],
+        fallback: 0,
+        fieldName: '$id.retry',
+      ),
       startScreen: hasStartScreen ? startScreen : null,
+      startScreenInputs: _toStringDynamicMap(
+        map['startScreenInputs'],
+        inputs: inputs,
+        scenario: scenario,
+        scenarioId: scenarioId,
+      ),
       prerequisite: hasPrerequisite ? prerequisite : null,
+      session: hasSession ? session : null,
       mockFiles: _toStringList(
         map['mocks'],
         inputs: inputs,
@@ -123,6 +159,7 @@ class EnsembleTestParser {
         scenario: scenario,
         scenarioId: scenarioId,
       ),
+      setupSteps: setupSteps,
       steps: _parseSteps(
         stepsNode,
         testId: id,
@@ -150,8 +187,10 @@ class EnsembleTestParser {
 
   static EnsembleTestConfig _parseConfig(YamlMap node) {
     const allowedKeys = {
+      'services',
       'screenshots',
       'performance',
+      'timers',
       'dumpTree',
       'logApiCalls',
       'logStorage',
@@ -165,16 +204,24 @@ class EnsembleTestParser {
       }
     }
 
+    final servicesNode = node['services'];
     final screenshotsNode = node['screenshots'];
     final performanceNode = node['performance'];
+    final timersNode = node['timers'];
     final dumpTreeNode = node['dumpTree'];
     final logApiCallsNode = node['logApiCalls'];
     final logStorageNode = node['logStorage'];
+    if (servicesNode != null && servicesNode is! YamlList) {
+      throw EnsembleTestFailure('"services" must be a list');
+    }
     if (screenshotsNode != null && screenshotsNode is! YamlMap) {
       throw EnsembleTestFailure('"screenshots" must be a map');
     }
     if (performanceNode != null && performanceNode is! YamlMap) {
       throw EnsembleTestFailure('"performance" must be a map');
+    }
+    if (timersNode != null && timersNode is! YamlMap) {
+      throw EnsembleTestFailure('"timers" must be a map');
     }
     if (dumpTreeNode != null && dumpTreeNode is! YamlMap) {
       throw EnsembleTestFailure('"dumpTree" must be a map');
@@ -187,6 +234,7 @@ class EnsembleTestParser {
     }
 
     return EnsembleTestConfig(
+      services: _parseServices(servicesNode),
       screenshots: screenshotsNode == null
           ? const ScreenshotConfig()
           : ScreenshotConfig(
@@ -200,6 +248,21 @@ class EnsembleTestParser {
           ? const PerformanceConfig()
           : PerformanceConfig(
               enabled: performanceNode['enabled'] == true,
+            ),
+      timers: timersNode == null
+          ? const TimerRewriteConfig()
+          : TimerRewriteConfig(
+              enabled: timersNode['enabled'] == true,
+              maxStartAfterSeconds: _optionalNonNegativeInt(
+                timersNode['maxStartAfterSeconds'],
+                fallback: 1,
+                fieldName: 'timers.maxStartAfterSeconds',
+              ),
+              maxRepeatIntervalSeconds: _optionalNonNegativeInt(
+                timersNode['maxRepeatIntervalSeconds'],
+                fallback: 1,
+                fieldName: 'timers.maxRepeatIntervalSeconds',
+              ),
             ),
       dumpTree: dumpTreeNode == null
           ? const DumpTreeConfig()
@@ -218,6 +281,100 @@ class EnsembleTestParser {
               key: logStorageNode['key']?.toString(),
             ),
     );
+  }
+
+  static int _optionalNonNegativeInt(
+    dynamic value, {
+    required int fallback,
+    required String fieldName,
+  }) {
+    if (value == null) return fallback;
+    final parsed = value is int ? value : int.tryParse(value.toString());
+    if (parsed == null || parsed < 0) {
+      throw EnsembleTestFailure('"$fieldName" must be a non-negative integer');
+    }
+    return parsed;
+  }
+
+  static List<TestServiceConfig> _parseServices(dynamic node) {
+    if (node == null) return const [];
+    final services = <TestServiceConfig>[];
+    final names = <String>{};
+    for (final item in node as YamlList) {
+      if (item is! YamlMap) {
+        throw EnsembleTestFailure('Each service must be a map');
+      }
+      const allowedKeys = {
+        'name',
+        'command',
+        'url',
+        'arguments',
+        'workingDirectory',
+        'environment',
+        'readyUrl',
+        'readyTimeoutMs',
+      };
+      for (final key in item.keys) {
+        if (!allowedKeys.contains(key)) {
+          throw EnsembleTestFailure(
+            'Unsupported service key "$key". Supported keys: '
+            '${allowedKeys.join(', ')}',
+          );
+        }
+      }
+
+      final name = item['name']?.toString();
+      final command = item['command']?.toString();
+      if (name == null || name.isEmpty) {
+        throw EnsembleTestFailure('Each service requires "name"');
+      }
+      if (!names.add(name)) {
+        throw EnsembleTestFailure('Duplicate service name "$name"');
+      }
+      if (command == null || command.isEmpty) {
+        throw EnsembleTestFailure('Service "$name" requires "command"');
+      }
+
+      final argumentsNode = item['arguments'];
+      if (argumentsNode != null && argumentsNode is! YamlList) {
+        throw EnsembleTestFailure(
+          'Service "$name" "arguments" must be a list',
+        );
+      }
+      final environmentNode = item['environment'];
+      if (environmentNode != null && environmentNode is! YamlMap) {
+        throw EnsembleTestFailure(
+          'Service "$name" "environment" must be a map',
+        );
+      }
+      final timeout = item['readyTimeoutMs'];
+      if (timeout != null && (timeout is! int || timeout <= 0)) {
+        throw EnsembleTestFailure(
+          'Service "$name" "readyTimeoutMs" must be a positive integer',
+        );
+      }
+
+      services.add(
+        TestServiceConfig(
+          name: name,
+          command: command,
+          url: item['url']?.toString(),
+          arguments: argumentsNode == null
+              ? const []
+              : argumentsNode.map<String>((value) => value.toString()).toList(),
+          workingDirectory: item['workingDirectory']?.toString(),
+          environment: environmentNode == null
+              ? const {}
+              : {
+                  for (final entry in environmentNode.entries)
+                    entry.key.toString(): entry.value.toString(),
+                },
+          readyUrl: item['readyUrl']?.toString(),
+          readyTimeoutMs: timeout as int? ?? 10000,
+        ),
+      );
+    }
+    return services;
   }
 
   static List<TestScenario> _parseScenarios(
@@ -264,14 +421,65 @@ class EnsembleTestParser {
     required Map<String, dynamic> inputs,
     required Map<String, dynamic> scenario,
     String? scenarioId,
-  }) =>
-      _parseStepsList(
-        steps,
-        testId: testId,
-        inputs: inputs,
-        scenario: scenario,
-        scenarioId: scenarioId,
+  }) {
+    final parsed = _parseStepsList(
+      steps,
+      testId: testId,
+      inputs: inputs,
+      scenario: scenario,
+      scenarioId: scenarioId,
+    );
+    for (final step in parsed) {
+      _validateTestStep(step, testId);
+    }
+    return parsed;
+  }
+
+  static void _validateTestStep(TestStep step, String testId) {
+    if (step.type == 'runCommand') {
+      throw EnsembleTestFailure(
+        'Test "$testId" runCommand is only supported in root-level setup',
       );
+    }
+    for (final nested in step.nestedSteps) {
+      _validateTestStep(nested, testId);
+    }
+  }
+
+  static List<TestStep> _parseSetupSteps(
+    dynamic steps, {
+    required String testId,
+    required Map<String, dynamic> inputs,
+    required Map<String, dynamic> scenario,
+    String? scenarioId,
+  }) {
+    final parsed = _parseStepsList(
+      steps,
+      testId: testId,
+      inputs: inputs,
+      scenario: scenario,
+      scenarioId: scenarioId,
+      listName: 'setup',
+    );
+    for (final step in parsed) {
+      _validateSetupStep(step, testId);
+    }
+    return parsed;
+  }
+
+  static void _validateSetupStep(TestStep step, String testId) {
+    if (step.type == 'httpRequest' || step.type == 'runCommand') return;
+    if (step.type == 'group' || step.type == 'optional') {
+      for (final nested in step.nestedSteps) {
+        _validateSetupStep(nested, testId);
+      }
+      return;
+    }
+    throw EnsembleTestFailure(
+      'Test "$testId" setup only supports httpRequest, runCommand, group, '
+      'and optional, but found "${step.type}"',
+    );
+  }
 
   static List<TestStep> _parseStepsList(
     dynamic steps, {
@@ -279,10 +487,11 @@ class EnsembleTestParser {
     required Map<String, dynamic> inputs,
     required Map<String, dynamic> scenario,
     String? scenarioId,
+    String listName = 'steps',
   }) {
     if (steps is! List || steps.isEmpty) {
       throw EnsembleTestFailure(
-          'Test "$testId" requires a non-empty "steps" list');
+          'Test "$testId" requires a non-empty "$listName" list');
     }
     final result = <TestStep>[];
     for (var i = 0; i < steps.length; i++) {

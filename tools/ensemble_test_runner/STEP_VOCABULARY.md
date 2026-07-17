@@ -34,7 +34,7 @@ Official step catalog for app-local `tests/*.test.yaml` files, for example `ense
 `expectScreen` (alias), `expectNavigateTo`, `expectVisited`, `expectNotVisited`, `expectBackStack`, `expectCanGoBack`, `goBack`
 
 ### API assert / logs
-`resetApiCalls`, `expectApiCalled`, `expectApiNotCalled`, `expectApiCallOrder`, `expectLastApiCall`, `logApiCalls`
+`httpRequest`, `resetApiCalls`, `expectApiCalled`, `expectApiNotCalled`, `expectApiCallOrder`, `expectLastApiCall`, `logApiCalls`
 
 ### Storage / runtime
 `setStorage`, `expectStorage`, `removeStorage`, `clearStorage`, `setEnv`, `setAuth`, `clearAuth`, `setPermission`, `setDevice`, `setLocale`, `setTheme`
@@ -75,6 +75,16 @@ performance:
   enabled: true
 ```
 
+Long app timers can be capped during the test run without changing the checked
+in screen YAML:
+
+```yaml
+timers:
+  enabled: true
+  maxStartAfterSeconds: 1
+  maxRepeatIntervalSeconds: 1
+```
+
 `dumpTree`, `logApiCalls`, and `logStorage` are also suite-level config
 artifacts:
 
@@ -87,6 +97,45 @@ logStorage:
   enabled: true
 ```
 
+Long-running test support processes belong in `tests/config.yaml`. They start
+once before the suite, must answer the optional readiness URL, and are stopped
+after the suite:
+
+```yaml
+services:
+  - name: modemStub
+    command: .venv/bin/python
+    arguments: [modemstub/app.py]
+    workingDirectory: ensemble/apps/inhome/autotests
+    readyUrl: /ping
+```
+
+The runner assigns a free local port. Use `${services.modemStub.url}` in test
+steps instead of repeating the endpoint.
+
+Use `httpRequest` for finite setup or state changes during a test:
+
+```yaml
+- httpRequest:
+    method: POST
+    url: ${services.modemStub.url}/api/v1/stub/hard-reset
+    body:
+      loadDefaults: true
+    expectStatus: 200
+```
+
+Use `runCommand` only in root-level `setup` for a finite setup command. It does
+not invoke a shell; pass arguments separately. Long-running servers belong in
+`services` instead:
+
+```yaml
+setup:
+  - runCommand:
+      command: .venv/bin/python
+      arguments: [tools/clear_test_state.py]
+      timeoutMs: 30000
+```
+
 Before running a new suite, use `dart run ensemble_test_runner:ensemble_test --doctor`
 from the Flutter wrapper app root to validate config, test discovery, duplicate
 IDs, prerequisites, schema comments, and obvious widget IDs. CI can request JSON
@@ -96,8 +145,16 @@ Each `*.test.yaml` file is a single test case and must provide **exactly one** o
 
 - `startScreen` — cold-starts the app on the given screen and runs steps
 - `prerequisite` — ID of another test that must run first; the runner reuses the same app session, applies `initialState`/`mocks` in-place, and then runs this test's steps only
+- `session` with `startScreen` — runs the referenced test once, restores its captured storage/keychain/locale for this test, runs `setup`, and mounts a fresh requested screen
+- `retry` — number of additional attempts after a failed run, e.g. `retry: 3`
 
-When multiple tests declare `prerequisite` chains, the runner discovers all YAML files, builds a dependency graph by `id`/`prerequisite`, and executes tests once each in topological order.
+Root-level `setup` supports `httpRequest`, `runCommand`, `group`, and `optional`.
+It runs before the test screen is mounted; it is intended for external service
+and stub configuration, not widget actions.
+
+The runner discovers all YAML files, builds a dependency graph from
+`prerequisite` and `session` references, and executes each test once in
+topological order.
 
 ## Adding a step
 

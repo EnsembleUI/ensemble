@@ -28,12 +28,15 @@ tags: [smoke, auth]
 description: Valid user can log in and reach Home
 priority: high
 startScreen: Login
+retry: 3
 steps:
   - expectVisible:
       id: email_field
 ```
 
 Use `startScreen` for a cold start. Use `prerequisite` when a test should continue from another test in the same app session.
+Use `retry` for known flaky external flows; `retry: 3` means one initial attempt
+plus up to three additional attempts.
 
 ## Suite Config
 
@@ -49,6 +52,10 @@ screenshots:
 
 performance:
   enabled: true
+timers:
+  enabled: true
+  maxStartAfterSeconds: 1
+  maxRepeatIntervalSeconds: 1
 dumpTree:
   enabled: true
 logApiCalls:
@@ -60,6 +67,10 @@ logStorage:
 When `screenshots.enabled` is true, the runner captures automatic step
 screenshots into one contact sheet per test case under
 `build/ensemble_test_runner/screenshots/`.
+
+When `timers.enabled` is true, the CLI temporarily caps numeric
+`startAfter` and `repeatInterval` values in local app screen YAML while the test
+process runs, then restores the original files.
 
 ## App Context
 
