@@ -111,6 +111,17 @@ class BracketController extends EnsembleBoxController {
   // TV navigation row offset - tabs will be at this row, matches at row+1, row+2, etc.
   int tvRowOffset = 0;
 
+  // Layout scale (0.1 - 1.0). Baseline 0.75 = current defaults.
+  // Controls viewportFraction, matchCardWidthFraction, and connectorLength proportionally.
+  double? _scale;
+
+  // Computed layout values based on scale
+  // Baseline: scale=0.75 → viewportFraction=0.75, cardWidth=0.6, connector=25
+  double get viewportFraction => _scale ?? 0.75;
+  double get matchCardWidthFraction =>
+      _scale != null ? 0.6 * (_scale! / 0.75) : 0.6;
+  double get connectorLength => _scale != null ? 25.0 * (_scale! / 0.75) : 25.0;
+
   @override
   List<String> passthroughSetters() => ['items'];
 
@@ -127,6 +138,12 @@ class BracketController extends EnsembleBoxController {
   @override
   Map<String, Function> setters() => Map<String, Function>.from(super.setters())
     ..addAll({
+      'scale': (value) {
+        final parsed = Utils.optionalDouble(value);
+        if (parsed != null) {
+          _scale = parsed.clamp(0.1, 1.0);
+        }
+      },
       'tvOptions': (data) {
         if (data is Map) {
           tvRowOffset = Utils.getInt(data['row'], fallback: 0);
@@ -280,6 +297,8 @@ class BracketsView extends StatefulWidget {
 class _BracketsViewState extends State<BracketsView> {
   late PageController _pageController;
   int _currentPageIndex = 0;
+  // Tracks the target page for animation - controls column expansion
+  int _prevColumnIndex = 0;
   List<GlobalKey> _tabKeys = [];
   // Provider to tell children that bracket handles horizontal scrolling
   final _bracketTVFocusProvider = _BracketTVFocusProvider();
@@ -287,8 +306,27 @@ class _BracketsViewState extends State<BracketsView> {
   @override
   void initState() {
     super.initState();
-    _pageController = PageController(viewportFraction: 0.75);
+    _pageController = PageController(
+      viewportFraction: widget.controller.viewportFraction,
+    );
     _pageController.addListener(_updatePageIndex);
+  }
+
+  @override
+  void didUpdateWidget(covariant BracketsView oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Recreate PageController if viewportFraction changed
+    if (oldWidget.controller.viewportFraction !=
+        widget.controller.viewportFraction) {
+      final currentPage = _pageController.page?.round() ?? 0;
+      _pageController.removeListener(_updatePageIndex);
+      _pageController.dispose();
+      _pageController = PageController(
+        viewportFraction: widget.controller.viewportFraction,
+        initialPage: currentPage,
+      );
+      _pageController.addListener(_updatePageIndex);
+    }
   }
 
   @override
@@ -325,6 +363,10 @@ class _BracketsViewState extends State<BracketsView> {
   }
 
   void _animateToPage(int index) {
+    // Update _prevColumnIndex BEFORE animation to trigger column expansion
+    setState(() {
+      _prevColumnIndex = index;
+    });
     _pageController.animateToPage(
       index,
       duration: const Duration(milliseconds: 300),
@@ -408,6 +450,12 @@ class _BracketsViewState extends State<BracketsView> {
                     pageController: _pageController,
                     data: widget.data,
                     tvRowOffset: widget.tvRowOffset,
+                    prevColumnIndex: _prevColumnIndex,
+                    onPrevColumnIndexChanged: (index) {
+                      setState(() {
+                        _prevColumnIndex = index;
+                      });
+                    },
                   ),
                 )
               : BracketsPage(
@@ -415,6 +463,12 @@ class _BracketsViewState extends State<BracketsView> {
                   pageController: _pageController,
                   data: widget.data,
                   tvRowOffset: widget.tvRowOffset,
+                  prevColumnIndex: _prevColumnIndex,
+                  onPrevColumnIndexChanged: (index) {
+                    setState(() {
+                      _prevColumnIndex = index;
+                    });
+                  },
                 ),
         ),
       ],
@@ -584,6 +638,8 @@ class BracketsPage extends StatefulWidget {
   final PageController pageController;
   final BracketController controller;
   final int tvRowOffset;
+  final int prevColumnIndex;
+  final ValueChanged<int>? onPrevColumnIndexChanged;
 
   const BracketsPage({
     super.key,
@@ -591,6 +647,8 @@ class BracketsPage extends StatefulWidget {
     required this.pageController,
     required this.controller,
     this.tvRowOffset = 0,
+    this.prevColumnIndex = 0,
+    this.onPrevColumnIndexChanged,
   });
 
   @override
@@ -607,7 +665,6 @@ class CustomScrollNotification extends Notification {
 }
 
 class _BracketsPageState extends State<BracketsPage> {
-  int _prevColumnIndex = 0;
   late List<ScrollController> _scrollControllers;
 
   @override
@@ -628,10 +685,11 @@ class _BracketsPageState extends State<BracketsPage> {
           duration: const Duration(milliseconds: 10), curve: Curves.decelerate);
     }
 
-    setState(() {
-      _prevColumnIndex = index;
-    });
-    // Focus transfer is handled in _handleKeyEvent after animation completes
+    // Note: prevColumnIndex is managed by parent (_BracketsViewState) and updated:
+    // 1. Via _animateToPage when tabs are clicked
+    // 2. Via onPrevColumnIndexChanged callback when keyboard navigation occurs
+    // We don't update it here because onPageChanged fires unreliably with small
+    // viewportFraction and padEnds=false (doesn't fire for clamped pages like page 3).
   }
 
   /// Find and focus an item in the current page at the given row.
@@ -650,8 +708,8 @@ class _BracketsPageState extends State<BracketsPage> {
         targetRow.clamp(matchRowStart, matchRowStart + numMatches - 1);
 
     // Find the focusable item with this row and column (order)
-    // We need to find the INNERMOST focusable descendant that has this TVFocusOrder,
-    // because the visual styling is on box_wrapper's Focus, not TVFocusWidget's.
+    // We find the DEEPEST focusable descendant that has this TVFocusOrder,
+    // as this corresponds to the innermost Focus widget with visual styling.
     final root = FocusManager.instance.rootScope;
     FocusNode? bestMatch;
     int bestDepth = -1;
@@ -663,6 +721,7 @@ class _BracketsPageState extends State<BracketsPage> {
           ?.findAncestorWidgetOfExactType<FocusTraversalOrder>();
       if (focusTraversalOrder?.order is TVFocusOrder) {
         final order = focusTraversalOrder!.order as TVFocusOrder;
+
         // Match by row and order (column = roundIndex)
         if (order.row.toInt() == clampedRow &&
             order.order.toInt() == columnIndex) {
@@ -700,12 +759,18 @@ class _BracketsPageState extends State<BracketsPage> {
   KeyEventResult _handleKeyEvent(FocusNode node, KeyEvent event) {
     if (event is! KeyDownEvent) return KeyEventResult.ignored;
 
+    // Use widget.prevColumnIndex instead of pageController.page because with small viewportFraction
+    // and padEnds=false, pageController.page gets clamped (e.g., max 1.5 with 4 pages at 0.4 fraction)
     if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
-      final currentPage = widget.pageController.page?.round() ?? 0;
+      final currentPage = widget.prevColumnIndex;
       if (currentPage < widget.data.length - 1) {
-        // Get current focused row to restore after page change
         final focusRow = _getCurrentFocusedRow(node);
         final targetPage = currentPage + 1;
+
+        // Notify parent to update prevColumnIndex BEFORE animation starts.
+        // This ensures correct navigation even if onPageChanged doesn't fire (clamped pages).
+        widget.onPrevColumnIndexChanged?.call(targetPage);
+
         widget.pageController
             .animateToPage(
           targetPage,
@@ -713,8 +778,7 @@ class _BracketsPageState extends State<BracketsPage> {
           curve: Curves.easeOut,
         )
             .then((_) {
-          // After animation completes, wait for widget tree to rebuild
-          // then transfer focus to the new page
+          // After animation completes, transfer focus to the new page
           if (focusRow != null) {
             WidgetsBinding.instance.addPostFrameCallback((_) {
               _focusRowInCurrentPage(focusRow, targetPage);
@@ -724,11 +788,15 @@ class _BracketsPageState extends State<BracketsPage> {
         return KeyEventResult.handled;
       }
     } else if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
-      final currentPage = widget.pageController.page?.round() ?? 0;
+      final currentPage = widget.prevColumnIndex;
       if (currentPage > 0) {
-        // Get current focused row to restore after page change
         final focusRow = _getCurrentFocusedRow(node);
         final targetPage = currentPage - 1;
+
+        // Notify parent to update prevColumnIndex BEFORE animation starts.
+        // This ensures correct navigation even if onPageChanged doesn't fire (clamped pages).
+        widget.onPrevColumnIndexChanged?.call(targetPage);
+
         widget.pageController
             .animateToPage(
           targetPage,
@@ -736,8 +804,7 @@ class _BracketsPageState extends State<BracketsPage> {
           curve: Curves.easeOut,
         )
             .then((_) {
-          // After animation completes, wait for widget tree to rebuild
-          // then transfer focus to the new page
+          // After animation completes, transfer focus to the new page
           if (focusRow != null) {
             WidgetsBinding.instance.addPostFrameCallback((_) {
               _focusRowInCurrentPage(focusRow, targetPage);
@@ -777,11 +844,12 @@ class _BracketsPageState extends State<BracketsPage> {
     Widget pageView = NotificationListener<CustomScrollNotification>(
       onNotification: (CustomScrollNotification notification) {
         int currentPage = widget.pageController.page?.round() ?? 0;
-        // Only sync scroll if next page exists and controller is attached
-        final nextPageIndex = currentPage + 1;
-        if (nextPageIndex < _scrollControllers.length &&
-            _scrollControllers[nextPageIndex].hasClients) {
-          _scrollControllers[nextPageIndex].jumpTo(notification.scrollPosition);
+        // Sync scroll to ALL columns after the current one (not just the next)
+        // This ensures Semi Finals and Final scroll with 8th Finals and Quarter Finals
+        for (int i = currentPage + 1; i < _scrollControllers.length; i++) {
+          if (_scrollControllers[i].hasClients) {
+            _scrollControllers[i].jumpTo(notification.scrollPosition);
+          }
         }
         return true;
       },
@@ -795,7 +863,7 @@ class _BracketsPageState extends State<BracketsPage> {
             controller: widget.controller,
             roundData: widget.data[columnIndex],
             columnIndex: columnIndex,
-            prevColumnIndex: _prevColumnIndex,
+            prevColumnIndex: widget.prevColumnIndex,
             totalColumns: widget.data.length,
             scrollController: _scrollControllers[columnIndex],
             tvRowOffset: widget.tvRowOffset,
@@ -854,8 +922,6 @@ class _BracketsColumnPageState extends State<BracketsColumnPage> {
 
   @override
   Widget build(BuildContext context) {
-    bool isNextColumn = widget.columnIndex == widget.prevColumnIndex + 1;
-
     return NotificationListener(
       onNotification: (ScrollNotification notification) {
         if (notification is ScrollUpdateNotification) {
@@ -879,11 +945,26 @@ class _BracketsColumnPageState extends State<BracketsColumnPage> {
               final matchIndex = entry.key;
               final matchData = entry.value;
 
+              // Calculate vertical MARGIN to center cards between previous column's matches
+              // Uses prevColumnIndex for animation effect - stages "expand" as you navigate to them
+              //
+              // Key insight: In a Column, margin.top is RELATIVE to the previous element,
+              // not an absolute position from the top. So we need:
+              // - Match 0: margin = initialOffset (where to start from top)
+              // - Match i > 0: margin = gap between cards
+              //
+              // Where: initialOffset = cardHeight * 0.5 * (multiplier - 1)
+              //        gap = cardHeight * (multiplier - 1)
               double topOffset = 0;
               if (widget.prevColumnIndex < widget.columnIndex) {
-                topOffset = topOffset + (matchCardHeight / 2);
-                if (matchIndex > 0) {
-                  topOffset = topOffset + matchCardHeight / 2;
+                final distance = widget.columnIndex - widget.prevColumnIndex;
+                final multiplier = 1 << distance; // 2^distance
+                if (matchIndex == 0) {
+                  // First match: position from top of container
+                  topOffset = matchCardHeight * 0.5 * (multiplier - 1);
+                } else {
+                  // Subsequent matches: gap between cards (relative to previous)
+                  topOffset = matchCardHeight * (multiplier - 1);
                 }
               }
 
@@ -930,27 +1011,46 @@ class _BracketsColumnPageState extends State<BracketsColumnPage> {
 
               return AnimatedContainer(
                 height: matchCardHeight,
-                width: MediaQuery.of(context).size.width * 0.6,
+                width: MediaQuery.of(context).size.width *
+                    widget.controller.matchCardWidthFraction,
                 duration: const Duration(milliseconds: 300),
                 margin: EdgeInsets.only(
-                    top: topOffset, left: !isNextColumn ? 0 : 15),
+                    top: topOffset,
+                    // Left margin animates with navigation - expands when moving forward, collapses when moving back
+                    left: widget.prevColumnIndex < widget.columnIndex
+                        ? widget.controller.connectorLength
+                        : 0),
                 child: CustomPaint(
                   painter: BracketPainter(
                     isTopBracket: widget.columnIndex + 1 == widget.totalColumns
                         ? null
                         : !(matchIndex % 2 == 0),
+                    // Uses prevColumnIndex for animation - left line appears as you navigate forward
                     showLeftBorder: widget.prevColumnIndex < widget.columnIndex,
                     lineColor: widget.controller.lineColor ?? Colors.black,
                     borderColor: widget.controller.borderColor ?? Colors.black,
                     lineWidth: widget.controller.lineWidth ?? 2.0,
                     borderWidth:
                         widget.controller.borderWidth?.toDouble() ?? 2.0,
+                    connectorLength: widget.controller.connectorLength,
+                    columnIndex: widget.columnIndex,
+                    prevColumnIndex: widget.prevColumnIndex,
                   ),
                   child: matchWidget,
                 ),
               );
             }),
-            if (isNextColumn) SizedBox(height: matchCardHeight),
+            // Add bottom padding to equalize content heights across columns
+            // This ensures all columns can scroll together without one running out of content
+            // Bottom padding = first match's top margin = cardHeight * 0.5 * (multiplier - 1)
+            if (widget.prevColumnIndex < widget.columnIndex) ...[
+              Builder(builder: (context) {
+                final distance = widget.columnIndex - widget.prevColumnIndex;
+                final multiplier = 1 << distance;
+                final bottomPadding = matchCardHeight * 0.5 * (multiplier - 1);
+                return SizedBox(height: bottomPadding);
+              }),
+            ],
           ],
         ),
       ),
@@ -958,13 +1058,30 @@ class _BracketsColumnPageState extends State<BracketsColumnPage> {
   }
 }
 
+/// Paints bracket connector lines between tournament matches.
+///
+/// Draws:
+/// - Border rectangle around the match card
+/// - Right-side horizontal + vertical connector (toward next round)
+/// - Left-side horizontal connector (from previous round)
+///
+/// [columnIndex] - The index of the current column being rendered.
+/// [prevColumnIndex] - The index of the currently focused/visible page.
+/// Used to calculate dynamic vertical line length when columns are "expanded"
+/// (i.e., when viewing later rounds where card spacing increases).
 class BracketPainter extends CustomPainter {
+  // Baseline connector length used as default
+  static const _baselineConnectorLength = 25.0;
+
   final bool? isTopBracket;
   final bool showLeftBorder;
   final Color lineColor;
   final double lineWidth;
   final Color borderColor;
   final double borderWidth;
+  final double connectorLength;
+  final int columnIndex;
+  final int prevColumnIndex;
 
   BracketPainter({
     this.isTopBracket,
@@ -973,6 +1090,9 @@ class BracketPainter extends CustomPainter {
     this.lineWidth = 2.0,
     this.borderColor = Colors.black,
     this.borderWidth = 2.0,
+    this.connectorLength = _baselineConnectorLength,
+    this.columnIndex = 0,
+    this.prevColumnIndex = 0,
   });
 
   @override
@@ -992,11 +1112,24 @@ class BracketPainter extends CustomPainter {
 
     if (isTopBracket != null) {
       final startPoint = Offset(size.width, size.height / 2);
-      final endPoint = Offset(size.width + 25, size.height / 2);
+      final endPoint = Offset(size.width + connectorLength, size.height / 2);
       canvas.drawLine(startPoint, endPoint, linePaint);
 
-      const double verticalLength = 40;
       final verticalStartPoint = endPoint;
+      // Calculate vertical line length based on card spacing
+      // Cards double in spacing with each column distance
+      // Vertical line needs to reach halfway to the adjacent card
+      final cardHeight = size.height;
+      double verticalLength;
+      if (prevColumnIndex < columnIndex) {
+        // When expanded, cards have gaps - use spacing multiplier
+        final distance = columnIndex - prevColumnIndex;
+        final multiplier = 1 << distance; // 2^distance
+        verticalLength = cardHeight * 0.5 * multiplier;
+      } else {
+        // Non-expanded: cards stacked with no gap, use half card height
+        verticalLength = cardHeight * 0.5;
+      }
       final verticalEndPoint = isTopBracket!
           ? Offset(endPoint.dx, endPoint.dy - verticalLength)
           : Offset(endPoint.dx, endPoint.dy + verticalLength);
@@ -1004,15 +1137,22 @@ class BracketPainter extends CustomPainter {
     }
     if (showLeftBorder) {
       final leftStartPoint = Offset(0, size.height / 2);
-      final leftEndPoint = Offset(-25, size.height / 2);
+      final leftEndPoint = Offset(-connectorLength, size.height / 2);
       canvas.drawLine(leftStartPoint, leftEndPoint, linePaint);
     }
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) {
-    return false;
-  }
+  bool shouldRepaint(covariant BracketPainter oldDelegate) =>
+      oldDelegate.columnIndex != columnIndex ||
+      oldDelegate.prevColumnIndex != prevColumnIndex ||
+      oldDelegate.isTopBracket != isTopBracket ||
+      oldDelegate.showLeftBorder != showLeftBorder ||
+      oldDelegate.connectorLength != connectorLength ||
+      oldDelegate.lineColor != lineColor ||
+      oldDelegate.lineWidth != lineWidth ||
+      oldDelegate.borderColor != borderColor ||
+      oldDelegate.borderWidth != borderWidth;
 }
 
 /// Simple TV focus provider for the Bracket widget.

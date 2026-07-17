@@ -35,6 +35,7 @@ import 'package:ensemble_bracket/ensemble_bracket.dart';
 Bracket:
     id: bracket
     styles:
+        scale: 0.75 # Layout scale (0.1 - 1.0)
         borderColor: transparent
         borderWidth: 2
         lineStyles:
@@ -69,6 +70,7 @@ Bracket:
 Bracket:
     id: bracket
     styles:
+        scale: 0.4 # Smaller scale for TV (more columns visible)
         borderColor: transparent
         borderWidth: 2
         tvOptions:
@@ -109,12 +111,20 @@ Bracket:
 | `borderColor` | Color  |     | Border color around match cards |
 | `borderWidth` | Number |     | Border width around match cards |
 
+### Scale (`scale`)
+
+| Property | Type   | Description                                                                                                          |
+| -------- | ------ | -------------------------------------------------------------------------------------------------------------------- |
+| `scale`  | Number | Layout scale (0.1 - 1.0, default: 0.75). Controls viewportFraction, card width, and connector length proportionally. |
+
 ### Line Styles (`lineStyles`)
 
-| Property | Type   | TV  | Description                      |
-| -------- | ------ | :-: | -------------------------------- |
-| `color`  | Color  |     | Color of bracket connector lines |
-| `width`  | Number |     | Width of bracket connector lines |
+| Property | Type   | Description                      |
+| -------- | ------ | -------------------------------- |
+| `color`  | Color  | Color of bracket connector lines |
+| `width`  | Number | Width of bracket connector lines |
+
+> **Note**: Vertical connector lines automatically scale based on card spacing when navigating between rounds, ensuring lines always connect properly at any scale.
 
 ### Tab Styles (`tabStyles`)
 
@@ -129,7 +139,7 @@ Bracket:
 | `borderWidth`              | Number     |     | Border width of tabs                          |
 | `padding`                  | EdgeInsets |     | Padding inside tabs                           |
 | `gap`                      | Number     |     | Gap between tabs (default: 12)                |
-| `focusBorderColor`               | Color      | ✅  | Focus border color when navigating with D-pad |
+| `focusBorderColor`         | Color      | ✅  | Focus border color when navigating with D-pad |
 | `focusBorderWidth`         | Number     | ✅  | Focus border width (default: 2.0)             |
 | `focusBorderRadius`        | Number     | ✅  | Focus border radius (default: 8.0)            |
 | `focusBackgroundColor`     | Color      | ✅  | Background color when focused                 |
