@@ -16,9 +16,7 @@ void main() {
       return props.keys.first as String;
     }).toSet();
 
-    for (final name in TestStepRegistry.entries.keys.where(
-      (name) => name != 'runCommand',
-    )) {
+    for (final name in TestStepRegistry.entries.keys) {
       expect(yamlKeys, contains(name), reason: 'missing step $name in schema');
     }
     expect(yamlKeys, isNot(contains('runCommand')));
@@ -28,7 +26,8 @@ void main() {
       final properties = (variant as Map)['properties'] as Map;
       return properties.keys.first as String;
     });
-    expect(setupKeys, contains('runCommand'));
+    expect(setupKeys, contains('httpRequest'));
+    expect(setupKeys, isNot(contains('runCommand')));
 
     for (final variant in oneOf) {
       final map = variant as Map<String, dynamic>;

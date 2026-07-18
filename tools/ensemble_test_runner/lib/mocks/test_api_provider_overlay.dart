@@ -48,6 +48,7 @@ class TestApiProviderOverlay extends HTTPAPIProvider {
   HTTPAPIProvider get delegate => _delegate;
   final ApiCallRecorder recorder;
   Future<T?> Function<T>(Future<T> Function())? liveAsyncRunner;
+  final Map<String, int> _mockCallIndexes = {};
 
   List<APICallRecord> get calls => recorder.calls;
 
@@ -61,11 +62,15 @@ class TestApiProviderOverlay extends HTTPAPIProvider {
 
   void setMock(String apiName, MockAPIResponse response) {
     _mocks[apiName] = response;
+    _mockCallIndexes.remove(apiName);
   }
 
   void resetCalls() => recorder.reset();
 
-  void clearMocks() => _mocks.clear();
+  void clearMocks() {
+    _mocks.clear();
+    _mockCallIndexes.clear();
+  }
 
   final Map<String, Exception> _forcedExceptions = {};
 
@@ -143,11 +148,30 @@ class TestApiProviderOverlay extends HTTPAPIProvider {
       );
     }
 
-    if (mock.delayMs != null && mock.delayMs! > 0) {
-      await Future<void>.delayed(Duration(milliseconds: mock.delayMs!));
+    final response = _nextMockResponse(apiName, mock);
+    if (response.delayMs != null && response.delayMs! > 0) {
+      await Future<void>.delayed(Duration(milliseconds: response.delayMs!));
     }
 
-    return delegate.invokeMockAPI(eContext, _toRuntimeMockResponse(mock));
+    if (delegate is HTTPAPIProvider) {
+      return delegate.invokeMockAPI(eContext, _toRuntimeMockResponse(response));
+    }
+    return HttpResponse.fromBody(
+      response.body,
+      response.headers,
+      response.statusCode,
+      null,
+      APIState.success,
+    );
+  }
+
+  MockAPIResponse _nextMockResponse(String apiName, MockAPIResponse mock) {
+    final responses = mock.responses;
+    if (responses.isEmpty) return mock;
+
+    final index = _mockCallIndexes[apiName] ?? 0;
+    _mockCallIndexes[apiName] = index + 1;
+    return responses[index < responses.length ? index : responses.length - 1];
   }
 
   Future<Response> _invokeLiveDelegate(

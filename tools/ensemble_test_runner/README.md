@@ -231,7 +231,9 @@ id: login_flow
 startScreen: Login
 retry: 3
 mocks:
-  - mocks/login_success.mock.json
+  login:
+    body:
+      token: test-token
 steps:
   - enterText:
       id: email_field

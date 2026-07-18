@@ -16,7 +16,6 @@ enum TestStepArgKind {
   pump,
   timeoutOptional,
   httpRequest,
-  runCommand,
   waitFor,
   waitForGone,
   waitForNavigation,
@@ -171,24 +170,6 @@ extension TestStepArgKindSchema on TestStepArgKind {
             'expectBodyContains': _string,
           },
           required: ['url'],
-        );
-      case TestStepArgKind.runCommand:
-        return _object(
-          properties: {
-            'command': _string,
-            'arguments': {
-              'type': 'array',
-              'items': _any,
-            },
-            'workingDirectory': _string,
-            'environment': {
-              'type': 'object',
-              'additionalProperties': true,
-            },
-            'timeoutMs': _integer,
-            'expectExitCode': _integer,
-          },
-          required: ['command'],
         );
       case TestStepArgKind.waitFor:
         return _object(

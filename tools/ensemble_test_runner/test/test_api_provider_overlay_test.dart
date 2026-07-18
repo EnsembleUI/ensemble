@@ -90,6 +90,78 @@ void main() {
     expect(response.body, {'name': 'Jane'});
   });
 
+  test('mocked API sequences return responses in call order', () async {
+    final delegate = _RecordingAPIProvider();
+    final provider = TestApiProviderOverlay(
+      mocks: {
+        'profile': MockAPIResponse(
+          responses: const [
+            MockAPIResponse(body: {'name': 'first'}),
+            MockAPIResponse(body: {'name': 'second'}),
+          ],
+        ),
+      },
+      delegate: delegate,
+    );
+    final context = _FakeBuildContext();
+
+    final first = await provider.invokeApiWithDelegate(
+      delegate,
+      context,
+      YamlMap.wrap({'type': 'http', 'url': 'https://example.test/profile'}),
+      DataContext(buildContext: context),
+      'profile',
+    );
+    final second = await provider.invokeApiWithDelegate(
+      delegate,
+      context,
+      YamlMap.wrap({'type': 'http', 'url': 'https://example.test/profile'}),
+      DataContext(buildContext: context),
+      'profile',
+    );
+    final third = await provider.invokeApiWithDelegate(
+      delegate,
+      context,
+      YamlMap.wrap({'type': 'http', 'url': 'https://example.test/profile'}),
+      DataContext(buildContext: context),
+      'profile',
+    );
+
+    expect(delegate.invoked, isFalse);
+    expect(first.body, {'name': 'first'});
+    expect(second.body, {'name': 'second'});
+    expect(third.body, {'name': 'second'});
+  });
+
+  test('mocked non-http APIs return configured responses without delegating',
+      () async {
+    final delegate = _RecordingGenericAPIProvider();
+    final provider = TestApiProviderOverlay(
+      mocks: {
+        'listenForRecommendations': MockAPIResponse(
+          body: {
+            'document': {'active': []},
+          },
+        ),
+      },
+    );
+    final context = _FakeBuildContext();
+
+    final response = await provider.invokeApiWithDelegate(
+      delegate,
+      context,
+      YamlMap.wrap(
+          {'type': 'firestore', 'path': 'users/u/recommendations/current'}),
+      DataContext(buildContext: context),
+      'listenForRecommendations',
+    );
+
+    expect(delegate.invoked, isFalse);
+    expect(response.body, {
+      'document': {'active': []},
+    });
+  });
+
   test('serializes live runner calls to avoid reentrant runAsync', () async {
     var inFlight = 0;
     var maxInFlight = 0;
@@ -179,6 +251,41 @@ class _RecordingAPIProvider extends HTTPAPIProvider {
       APIState.success,
     );
   }
+}
+
+class _RecordingGenericAPIProvider implements APIProvider {
+  bool invoked = false;
+
+  @override
+  Future<void> init(String appId, Map<String, dynamic> config) async {}
+
+  @override
+  Future<Response> invokeApi(
+    BuildContext context,
+    YamlMap api,
+    DataContext eContext,
+    String apiName,
+  ) async {
+    invoked = true;
+    return HttpResponse.fromBody(
+      {'ok': true},
+      {'Content-Type': 'application/json'},
+      200,
+      null,
+      APIState.success,
+    );
+  }
+
+  @override
+  Future<Response> invokeMockAPI(DataContext eContext, dynamic mock) {
+    throw UnimplementedError();
+  }
+
+  @override
+  APIProvider clone() => this;
+
+  @override
+  void dispose() {}
 }
 
 class _FakeBuildContext extends Fake implements BuildContext {}

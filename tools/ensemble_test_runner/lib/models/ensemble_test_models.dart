@@ -50,6 +50,7 @@ class EnsembleTestCase {
   /// Test [id] whose captured storage state is restored before [startScreen].
   final String? session;
   final List<String> mockFiles;
+  final Map<String, dynamic> inlineMocks;
   final List<TestScenario> scenarios;
   final Map<String, dynamic> initialState;
 
@@ -76,6 +77,7 @@ class EnsembleTestCase {
     this.prerequisite,
     this.session,
     this.mockFiles = const [],
+    this.inlineMocks = const {},
     this.scenarios = const [],
     this.initialState = const {},
     this.setupSteps = const [],
@@ -265,12 +267,14 @@ class MockAPIResponse {
   final dynamic body;
   final Map<String, dynamic>? headers;
   final int? delayMs;
+  final List<MockAPIResponse> responses;
 
   const MockAPIResponse({
     this.statusCode = 200,
     this.body,
     this.headers,
     this.delayMs,
+    this.responses = const [],
   });
 }
 

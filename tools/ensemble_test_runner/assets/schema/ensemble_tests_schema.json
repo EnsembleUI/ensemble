@@ -83,14 +83,28 @@
       "items": {
         "$ref": "#/$defs/setupStep"
       },
-      "description": "Headless httpRequest or runCommand actions executed before startScreen mounts"
+      "description": "Headless httpRequest actions executed before startScreen mounts"
     },
     "mocks": {
-      "type": "array",
-      "items": {
-        "type": "string",
-        "minLength": 1
-      }
+      "oneOf": [
+        {
+          "type": "array",
+          "items": {
+            "oneOf": [
+              {
+                "type": "string",
+                "minLength": 1
+              },
+              {
+                "$ref": "#/$defs/inlineMocks"
+              }
+            ]
+          }
+        },
+        {
+          "$ref": "#/$defs/inlineMocks"
+        }
+      ]
     },
     "scenarios": {
       "type": "array",
@@ -177,6 +191,37 @@
       "required": [
         "id"
       ]
+    },
+    "mockResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "statusCode": {
+          "type": "integer"
+        },
+        "body": true,
+        "headers": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "delayMs": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "responses": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/mockResponse"
+          }
+        }
+      }
+    },
+    "inlineMocks": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/$defs/mockResponse"
+      }
     },
     "args_openScreen": {
       "type": "object",
@@ -898,46 +943,6 @@
             "enabled": true
           },
           "expectStatus": 200
-        }
-      ]
-    },
-    "args_runCommand": {
-      "type": "object",
-      "properties": {
-        "command": {
-          "type": "string"
-        },
-        "arguments": {
-          "type": "array",
-          "items": true
-        },
-        "workingDirectory": {
-          "type": "string"
-        },
-        "environment": {
-          "type": "object",
-          "additionalProperties": true
-        },
-        "timeoutMs": {
-          "type": "integer"
-        },
-        "expectExitCode": {
-          "type": "integer"
-        }
-      },
-      "required": [
-        "command"
-      ],
-      "additionalProperties": false,
-      "title": "runCommand",
-      "description": "Run a finite external test setup command",
-      "examples": [
-        {
-          "command": "dart",
-          "arguments": [
-            "--version"
-          ],
-          "expectExitCode": 0
         }
       ]
     },
@@ -5041,43 +5046,6 @@
           },
           "required": [
             "httpRequest"
-          ]
-        },
-        {
-          "type": "object",
-          "title": "runCommand",
-          "description": "Run a finite external test setup command",
-          "examples": [
-            {
-              "runCommand": {
-                "command": "dart",
-                "arguments": [
-                  "--version"
-                ],
-                "expectExitCode": 0
-              }
-            }
-          ],
-          "additionalProperties": false,
-          "minProperties": 1,
-          "maxProperties": 1,
-          "properties": {
-            "runCommand": {
-              "$ref": "#/$defs/args_runCommand",
-              "description": "Run a finite external test setup command",
-              "examples": [
-                {
-                  "command": "dart",
-                  "arguments": [
-                    "--version"
-                  ],
-                  "expectExitCode": 0
-                }
-              ]
-            }
-          },
-          "required": [
-            "runCommand"
           ]
         },
         {

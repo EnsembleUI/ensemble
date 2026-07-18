@@ -79,33 +79,29 @@ steps:
       });
     });
 
-    test('rejects inline root-level mocks', () {
+    test('parses inline root-level mocks', () {
       const yaml = '''
 id: login_success
 startScreen: Login
 mocks:
-  apis:
-    loginApi:
-      delayMs: 100
-      response:
-        statusCode: 200
-        body:
-          token: test-token
+  loginApi:
+    delayMs: 100
+    statusCode: 200
+    body:
+      token: test-token
 steps:
   - expectApiCalled:
       name: loginApi
       times: 1
 ''';
 
+      final test = EnsembleTestParser.parseString(yaml);
+
+      expect(test.mockFiles, isEmpty);
+      expect((test.inlineMocks['loginApi'] as Map)['delayMs'], 100);
       expect(
-        () => EnsembleTestParser.parseString(yaml),
-        throwsA(
-          isA<EnsembleTestFailure>().having(
-            (error) => error.message,
-            'message',
-            contains('Root-level "mocks" must be a list of .mock.json files'),
-          ),
-        ),
+        ((test.inlineMocks['loginApi'] as Map)['body'] as Map)['token'],
+        'test-token',
       );
     });
 
@@ -143,8 +139,6 @@ setup:
   - httpRequest:
       method: POST
       url: http://127.0.0.1:5001/reset
-  - runCommand:
-      command: true
 steps:
   - expectVisible:
       id: home
@@ -154,7 +148,6 @@ steps:
       expect(test.session, 'signin');
       expect(test.setupSteps.map((step) => step.type), [
         'httpRequest',
-        'runCommand',
       ]);
     });
 
@@ -176,28 +169,7 @@ steps:
           isA<EnsembleTestFailure>().having(
             (error) => error.message,
             'message',
-            contains('setup only supports httpRequest, runCommand'),
-          ),
-        ),
-      );
-    });
-
-    test('rejects runCommand in test steps', () {
-      const yaml = '''
-id: command_step
-startScreen: Home
-steps:
-  - runCommand:
-      command: echo
-''';
-
-      expect(
-        () => EnsembleTestParser.parseString(yaml),
-        throwsA(
-          isA<EnsembleTestFailure>().having(
-            (error) => error.message,
-            'message',
-            contains('runCommand is only supported in root-level setup'),
+            contains('setup only supports httpRequest, group, and optional'),
           ),
         ),
       );

@@ -5,7 +5,7 @@ import 'dart:io';
 Future<Map<String, dynamic>> postIdentityToolkitSignInWithCustomToken({
   required String customToken,
   required String apiKey,
-  int maxAttempts = 3,
+  int maxAttempts = 5,
 }) async {
   Object? lastError;
   for (var attempt = 1; attempt <= maxAttempts; attempt++) {

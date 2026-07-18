@@ -31,6 +31,25 @@ class EnsembleTestSchemaBuilder {
         },
         'required': ['id'],
       },
+      'mockResponse': {
+        'type': 'object',
+        'additionalProperties': false,
+        'properties': {
+          'statusCode': {'type': 'integer'},
+          'body': true,
+          'headers': {'type': 'object', 'additionalProperties': true},
+          'delayMs': {'type': 'integer', 'minimum': 0},
+          'responses': {
+            'type': 'array',
+            'minItems': 1,
+            'items': {'\$ref': '#/\$defs/mockResponse'},
+          },
+        },
+      },
+      'inlineMocks': {
+        'type': 'object',
+        'additionalProperties': {'\$ref': '#/\$defs/mockResponse'},
+      },
       'testCase': {
         'type': 'object',
         'additionalProperties': false,
@@ -105,11 +124,21 @@ class EnsembleTestSchemaBuilder {
             'minItems': 1,
             'items': {'\$ref': '#/\$defs/setupStep'},
             'description':
-                'Headless httpRequest or runCommand actions executed before startScreen mounts',
+                'Headless httpRequest actions executed before startScreen mounts',
           },
           'mocks': {
-            'type': 'array',
-            'items': {'type': 'string', 'minLength': 1},
+            'oneOf': [
+              {
+                'type': 'array',
+                'items': {
+                  'oneOf': [
+                    {'type': 'string', 'minLength': 1},
+                    {'\$ref': '#/\$defs/inlineMocks'},
+                  ],
+                },
+              },
+              {'\$ref': '#/\$defs/inlineMocks'},
+            ],
           },
           'scenarios': {
             'type': 'array',
@@ -184,15 +213,11 @@ class EnsembleTestSchemaBuilder {
       });
     }
 
-    defs['step'] = {
-      'oneOf':
-          stepOneOf.where((step) => step['title'] != 'runCommand').toList(),
-    };
+    defs['step'] = {'oneOf': stepOneOf};
     defs['setupStep'] = {
       'oneOf': stepOneOf
           .where((step) =>
               step['title'] == 'httpRequest' ||
-              step['title'] == 'runCommand' ||
               step['title'] == 'group' ||
               step['title'] == 'optional')
           .toList(),

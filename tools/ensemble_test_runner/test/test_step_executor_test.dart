@@ -3,7 +3,6 @@ import 'dart:io';
 
 import 'package:ensemble_test_runner/actions/test_step_executor.dart';
 import 'package:ensemble_test_runner/actions/http_request_action.dart';
-import 'package:ensemble_test_runner/actions/run_command_action.dart';
 import 'package:ensemble_test_runner/assertions/assertion_engine.dart';
 import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
 import 'package:ensemble_test_runner/mocks/test_api_provider_overlay.dart';
@@ -18,39 +17,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:yaml/yaml.dart';
 
 void main() {
-  test('runCommand executes a finite process', () async {
-    await RunCommandAction.execute({
-      'command':
-          '${Platform.environment['FLUTTER_ROOT']}/bin/cache/dart-sdk/bin/dart',
-      'arguments': ['--version'],
-      'expectExitCode': 0,
-    });
-  });
-
-  test('runCommand stops a process when it times out', () async {
-    final temp = await Directory.systemTemp.createTemp('run_command_timeout');
-    final script = File('${temp.path}/wait.dart');
-    await script.writeAsString('''
-Future<void> main() async {
-  await Future<void>.delayed(const Duration(seconds: 30));
-}
-''');
-
-    try {
-      await expectLater(
-        RunCommandAction.execute({
-          'command':
-              '${Platform.environment['FLUTTER_ROOT']}/bin/cache/dart-sdk/bin/dart',
-          'arguments': [script.path],
-          'timeoutMs': 100,
-        }),
-        throwsA(isA<EnsembleTestFailure>()),
-      );
-    } finally {
-      await temp.delete(recursive: true);
-    }
-  });
-
   test('httpRequest sends JSON and validates the response', () async {
     EnsembleTestHarness.ensureTestPlugins();
     final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);

@@ -124,18 +124,6 @@ Use `httpRequest` for finite setup or state changes during a test:
     expectStatus: 200
 ```
 
-Use `runCommand` only in root-level `setup` for a finite setup command. It does
-not invoke a shell; pass arguments separately. Long-running servers belong in
-`services` instead:
-
-```yaml
-setup:
-  - runCommand:
-      command: .venv/bin/python
-      arguments: [tools/clear_test_state.py]
-      timeoutMs: 30000
-```
-
 Before running a new suite, use `dart run ensemble_test_runner:ensemble_test --doctor`
 from the Flutter wrapper app root to validate config, test discovery, duplicate
 IDs, prerequisites, schema comments, and obvious widget IDs. CI can request JSON
@@ -148,9 +136,9 @@ Each `*.test.yaml` file is a single test case and must provide **exactly one** o
 - `session` with `startScreen` — runs the referenced test once, restores its captured storage/keychain/locale for this test, runs `setup`, and mounts a fresh requested screen
 - `retry` — number of additional attempts after a failed run, e.g. `retry: 3`
 
-Root-level `setup` supports `httpRequest`, `runCommand`, `group`, and `optional`.
-It runs before the test screen is mounted; it is intended for external service
-and stub configuration, not widget actions.
+Root-level `setup` supports `httpRequest`, `group`, and `optional`. It runs
+before the test screen is mounted; it is intended for external service and stub
+configuration, not widget actions.
 
 The runner discovers all YAML files, builds a dependency graph from
 `prerequisite` and `session` references, and executes each test once in

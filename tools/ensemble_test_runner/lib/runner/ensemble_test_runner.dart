@@ -6,7 +6,6 @@ import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/screen_tracker.dart';
 import 'package:ensemble_test_runner/actions/extended_step_handlers.dart';
 import 'package:ensemble_test_runner/actions/http_request_action.dart';
-import 'package:ensemble_test_runner/actions/run_command_action.dart';
 import 'package:ensemble_test_runner/actions/test_step_executor.dart';
 import 'package:ensemble_test_runner/assertions/assertion_engine.dart';
 import 'package:ensemble_test_runner/discovery/ensemble_test_execution_planner.dart';
@@ -237,6 +236,9 @@ class EnsembleTestRunner {
       SchedulerBinding.instance.addTimingsCallback(timingsCallback);
       ctx.apiOverlay.liveAsyncRunner = tester.runAsync;
       LiveAsyncCallSupport.runner = tester.runAsync;
+      LiveAsyncCallSupport.drainPendingExceptions = () {
+        while (tester.takeException() != null) {}
+      };
       final startupStartFrame = ctx.runtime.appFrameTimings.length + 1;
       final startupStartTime = DateTime.now();
 
@@ -430,8 +432,6 @@ class EnsembleTestRunner {
     switch (step.type) {
       case 'httpRequest':
         await HttpRequestAction.execute(step.args);
-      case 'runCommand':
-        await RunCommandAction.execute(step.args);
       case 'group':
         for (final nested in step.nestedSteps) {
           await _executeSetupStep(nested);

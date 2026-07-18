@@ -66,9 +66,12 @@ class EnsembleTestParser {
         'Move shared screenshots/performance settings to tests/config.yaml.',
       );
     }
-    if (map.containsKey('mocks') && map['mocks'] is! YamlList) {
+    if (map.containsKey('mocks') &&
+        map['mocks'] is! YamlList &&
+        map['mocks'] is! YamlMap) {
       throw EnsembleTestFailure(
-        'Root-level "mocks" must be a list of .mock.json files.',
+        'Root-level "mocks" must be either a list of .mock.json files or an '
+        'inline map of API mock responses.',
       );
     }
 
@@ -121,6 +124,13 @@ class EnsembleTestParser {
       throw EnsembleTestFailure(
           'Test "$id" must have a non-empty "steps" list');
     }
+    final parsedMocks = _parseMocks(
+      map['mocks'],
+      testId: id,
+      inputs: inputs,
+      scenario: scenario,
+      scenarioId: scenarioId,
+    );
 
     return EnsembleTestCase(
       id: id,
@@ -146,12 +156,8 @@ class EnsembleTestParser {
       ),
       prerequisite: hasPrerequisite ? prerequisite : null,
       session: hasSession ? session : null,
-      mockFiles: _toStringList(
-        map['mocks'],
-        inputs: inputs,
-        scenario: scenario,
-        scenarioId: scenarioId,
-      ),
+      mockFiles: parsedMocks.files,
+      inlineMocks: parsedMocks.inline,
       scenarios: _parseScenarios(map['scenarios'], inputs: inputs),
       initialState: _toStringDynamicMap(
         map['initialState'],
@@ -168,6 +174,55 @@ class EnsembleTestParser {
         scenarioId: scenarioId,
       ),
     );
+  }
+
+  static ({List<String> files, Map<String, dynamic> inline}) _parseMocks(
+    dynamic node, {
+    required String testId,
+    required Map<String, dynamic> inputs,
+    required Map<String, dynamic> scenario,
+    String? scenarioId,
+  }) {
+    if (node == null) return (files: const [], inline: const {});
+    if (node is YamlMap) {
+      return (
+        files: const [],
+        inline: _toStringDynamicMap(
+          node,
+          inputs: inputs,
+          scenario: scenario,
+          scenarioId: scenarioId,
+        ),
+      );
+    }
+    if (node is! YamlList) {
+      throw EnsembleTestFailure(
+        'Test "$testId" mocks must be a list of .mock.json files/inline maps '
+        'or an inline API mock map.',
+      );
+    }
+
+    final files = <String>[];
+    final inline = <String, dynamic>{};
+    for (final entry in node) {
+      final value = _unwrapYaml(
+        entry,
+        inputs: inputs,
+        scenario: scenario,
+        scenarioId: scenarioId,
+      );
+      if (value is String) {
+        files.add(value);
+      } else if (value is Map) {
+        inline.addAll(Map<String, dynamic>.from(value));
+      } else {
+        throw EnsembleTestFailure(
+          'Test "$testId" mocks entries must be .mock.json file paths or '
+          'inline API mock maps.',
+        );
+      }
+    }
+    return (files: files, inline: inline);
   }
 
   static EnsembleTestConfig parseConfigString(
@@ -436,11 +491,6 @@ class EnsembleTestParser {
   }
 
   static void _validateTestStep(TestStep step, String testId) {
-    if (step.type == 'runCommand') {
-      throw EnsembleTestFailure(
-        'Test "$testId" runCommand is only supported in root-level setup',
-      );
-    }
     for (final nested in step.nestedSteps) {
       _validateTestStep(nested, testId);
     }
@@ -468,7 +518,7 @@ class EnsembleTestParser {
   }
 
   static void _validateSetupStep(TestStep step, String testId) {
-    if (step.type == 'httpRequest' || step.type == 'runCommand') return;
+    if (step.type == 'httpRequest') return;
     if (step.type == 'group' || step.type == 'optional') {
       for (final nested in step.nestedSteps) {
         _validateSetupStep(nested, testId);
@@ -476,8 +526,8 @@ class EnsembleTestParser {
       return;
     }
     throw EnsembleTestFailure(
-      'Test "$testId" setup only supports httpRequest, runCommand, group, '
-      'and optional, but found "${step.type}"',
+      'Test "$testId" setup only supports httpRequest, group, and optional, '
+      'but found "${step.type}"',
     );
   }
 

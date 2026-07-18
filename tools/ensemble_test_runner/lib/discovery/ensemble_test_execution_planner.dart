@@ -155,6 +155,7 @@ class EnsembleTestExecutionPlanner {
       final mocks = await _mergedMocksFor(
         assetPath: path,
         mockFiles: base.mockFiles,
+        inlineMocks: base.inlineMocks,
         assetLoader: assetLoader,
       );
       return [
@@ -193,6 +194,7 @@ class EnsembleTestExecutionPlanner {
       final mocks = await _mergedMocksFor(
         assetPath: path,
         mockFiles: parsed.mockFiles,
+        inlineMocks: parsed.inlineMocks,
         assetLoader: assetLoader,
       );
 
@@ -284,6 +286,7 @@ class EnsembleTestExecutionPlanner {
   static Future<TestMocks> _mergedMocksFor({
     required String assetPath,
     required List<String> mockFiles,
+    required Map<String, dynamic> inlineMocks,
     required _AssetStringLoader assetLoader,
   }) async {
     final apis = <String, MockAPIResponse>{};
@@ -295,6 +298,12 @@ class EnsembleTestExecutionPlanner {
       );
       apis.addAll(fileMocks.apis);
     }
+    apis.addAll(
+      _parseMockApisMap(
+        inlineMocks,
+        sourceLabel: assetPath,
+      ).apis,
+    );
     return TestMocks(apis: apis);
   }
 
@@ -321,16 +330,26 @@ class EnsembleTestExecutionPlanner {
       throw EnsembleTestFailure('Mock file "$assetPath" root must be a map');
     }
 
+    return _parseMockApisMap(
+      Map<dynamic, dynamic>.from(doc),
+      sourceLabel: assetPath,
+    );
+  }
+
+  static TestMocks _parseMockApisMap(
+    Map<dynamic, dynamic> doc, {
+    required String sourceLabel,
+  }) {
     final apis = <String, MockAPIResponse>{};
     for (final entry in doc.entries) {
       if (entry.value is! Map) {
         throw EnsembleTestFailure(
-          'Mock for API "${entry.key}" in "$assetPath" must be a map',
+          'Mock for API "${entry.key}" in "$sourceLabel" must be a map',
         );
       }
       apis[entry.key.toString()] = _parseLayerMockApiResponse(
         Map<dynamic, dynamic>.from(entry.value as Map),
-        layerAssetPath: assetPath,
+        layerAssetPath: sourceLabel,
         apiName: entry.key.toString(),
       );
     }
@@ -360,8 +379,13 @@ class EnsembleTestExecutionPlanner {
     final unknownKeys = map.keys
         .map((key) => key.toString())
         .where(
-          (key) =>
-              !const {'statusCode', 'body', 'headers', 'delayMs'}.contains(key),
+          (key) => !const {
+            'statusCode',
+            'body',
+            'headers',
+            'delayMs',
+            'responses',
+          }.contains(key),
         )
         .toList();
     if (unknownKeys.isNotEmpty) {
@@ -369,6 +393,30 @@ class EnsembleTestExecutionPlanner {
         'API mock "$apiName" in "$layerAssetPath" has unsupported keys: '
         '${unknownKeys.join(", ")}. Use direct JSON shape: '
         '{"statusCode": 200, "body": ...}.',
+      );
+    }
+
+    final responses = map['responses'];
+    if (responses != null) {
+      if (responses is! List || responses.isEmpty) {
+        throw EnsembleTestFailure(
+          'API mock "$apiName" in "$layerAssetPath" responses must be a non-empty list',
+        );
+      }
+      return MockAPIResponse(
+        responses: [
+          for (final entry in responses)
+            if (entry is Map)
+              _parseLayerMockApiResponse(
+                Map<dynamic, dynamic>.from(entry),
+                layerAssetPath: layerAssetPath,
+                apiName: apiName,
+              )
+            else
+              throw EnsembleTestFailure(
+                'API mock "$apiName" in "$layerAssetPath" responses entries must be objects',
+              ),
+        ],
       );
     }
 

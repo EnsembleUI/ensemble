@@ -263,6 +263,91 @@ steps:
       expect((mocks['scenarioApi']!.body as Map)['from'], 'scenario-layer');
     });
 
+    test('merges file and inline mocks with inline overrides', () async {
+      const yaml = '''
+id: home_inline_mocks
+startScreen: Home
+mocks:
+  - mocks/common.mock.json
+  - getDevices:
+      body: {count: 3}
+    inlineOnly:
+      delayMs: 25
+      body: {from: inline}
+steps:
+  - expectVisible:
+      id: home
+''';
+      final assets = {
+        'suite/tests/mocks/common.mock.json': '''
+{
+  "getDevices": {
+    "body": {"count": 1}
+  },
+  "fileOnly": {
+    "body": {"from": "file"}
+  }
+}
+''',
+      };
+
+      final definitions =
+          await EnsembleTestExecutionPlanner.parseDefinitionsForTest(
+        'suite/tests/home.test.yaml',
+        yaml,
+        assetLoader: (path) async => assets[path]!,
+      );
+
+      final mocks = definitions.single.testCase.mocks.apis;
+      expect((mocks['getDevices']!.body as Map)['count'], 3);
+      expect((mocks['fileOnly']!.body as Map)['from'], 'file');
+      expect(mocks['inlineOnly']!.delayMs, 25);
+      expect((mocks['inlineOnly']!.body as Map)['from'], 'inline');
+    });
+
+    test('loads sequential JSON mock responses', () async {
+      const yaml = '''
+id: recommendation_flow
+startScreen: Home
+mocks:
+  - mocks/recommendations.mock.json
+steps:
+  - expectVisible:
+      id: home
+''';
+      final assets = {
+        'suite/tests/mocks/recommendations.mock.json': '''
+{
+  "listenForRecommendations": {
+    "responses": [
+      {"body": {"active": [{"type": "first"}]}},
+      {"delayMs": 50, "body": {"active": [{"type": "second"}]}}
+    ]
+  }
+}
+''',
+      };
+
+      final definitions =
+          await EnsembleTestExecutionPlanner.parseDefinitionsForTest(
+        'suite/tests/home.test.yaml',
+        yaml,
+        assetLoader: (path) async => assets[path]!,
+      );
+
+      final responses = definitions
+          .single.testCase.mocks.apis['listenForRecommendations']!.responses;
+
+      expect(responses, hasLength(2));
+      expect((responses.first.body as Map)['active'], [
+        {'type': 'first'},
+      ]);
+      expect(responses.last.delayMs, 50);
+      expect((responses.last.body as Map)['active'], [
+        {'type': 'second'},
+      ]);
+    });
+
     test('selection by base scenario suite id includes expanded scenarios',
         () async {
       const yaml = '''

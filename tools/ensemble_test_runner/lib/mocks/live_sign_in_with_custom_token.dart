@@ -70,7 +70,7 @@ class LiveSignInWithCustomToken implements SignInWithCustomToken {
           provider: SignInProvider.firebase,
           id: localId,
         );
-        ScreenController().executeAction(
+        await ScreenController().executeAction(
           context,
           action.onAuthenticated!,
           event: EnsembleEvent(
@@ -81,7 +81,7 @@ class LiveSignInWithCustomToken implements SignInWithCustomToken {
       }
     } catch (error) {
       if (action.onError != null) {
-        ScreenController().executeAction(
+        await ScreenController().executeAction(
           context,
           action.onError!,
           event: EnsembleEvent(

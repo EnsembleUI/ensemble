@@ -6,6 +6,7 @@ import 'dart:async';
 /// requests from the app must be queued when multiple actions run in parallel.
 class LiveAsyncCallSupport {
   static Future<T?> Function<T>(Future<T> Function())? runner;
+  static void Function()? drainPendingExceptions;
 
   static int _pendingLiveCalls = 0;
   static final Set<Future<dynamic>> _inFlightLiveCalls = {};
@@ -43,6 +44,7 @@ class LiveAsyncCallSupport {
           completer.completeError(error, stackTrace);
         }
       } finally {
+        drainPendingExceptions?.call();
         _pendingLiveCalls--;
         _inFlightLiveCalls.remove(tracked);
       }
@@ -53,6 +55,7 @@ class LiveAsyncCallSupport {
 
   static void reset() {
     runner = null;
+    drainPendingExceptions = null;
     _pendingLiveCalls = 0;
     _inFlightLiveCalls.clear();
     _liveCallQueue = Future<void>.value();

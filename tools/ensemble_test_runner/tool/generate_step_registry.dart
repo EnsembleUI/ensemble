@@ -237,12 +237,6 @@ void main() {
       'httpRequest',
       'Send an HTTP request to a test support service',
     ),
-    'runCommand': step(
-      'runtime',
-      'core',
-      'runCommand',
-      'Run a finite external test setup command',
-    ),
     'waitForNavigation': step(
       'wait',
       'core',
@@ -713,12 +707,6 @@ Map<String, dynamic> defaultExampleForArg(String arg) {
         'url': 'http://127.0.0.1:5001/api/test/reset',
         'body': {'enabled': true},
         'expectStatus': 200,
-      };
-    case 'runCommand':
-      return {
-        'command': 'dart',
-        'arguments': ['--version'],
-        'expectExitCode': 0,
       };
     case 'waitFor':
       return {'id': 'loading_spinner', 'timeoutMs': 5000};

@@ -78,17 +78,36 @@ process runs, then restores the original files.
 
 ## Mocks
 
-Use `mocks` for API responses. The value is an ordered list of `.mock.json`
-files. Later files override earlier files.
+Use `mocks` for API responses. For small mocks, define them inline:
+
+```yaml
+mocks:
+  getDevices:
+    body:
+      count: 2
+```
+
+For larger suites, use an ordered list of `.mock.json` files. Later entries
+override earlier entries.
 
 ```yaml
 mocks:
   - mocks/common/base.mock.json
 ```
 
+You can also mix both forms in one list:
+
+```yaml
+mocks:
+  - mocks/common/base.mock.json
+  - getDevices:
+      body:
+        count: 3
+```
+
 For scenario-based suites, keep reusable API data in mock files. The runner does
 not know what your scenario variables mean; it only substitutes `${scenario.*}`
-values and merges mock files in order.
+values and merges mock entries in order.
 
 ```yaml
 id: home_scenarios
