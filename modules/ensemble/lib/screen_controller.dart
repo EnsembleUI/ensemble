@@ -361,9 +361,9 @@ class ScreenController {
           apiMap: apiMap,
           scopeManager: scopeManager);
     } else if (action is SignInAnonymousAction) {
-      GetIt.I<SignInAnonymous>().signInAnonymously(context, action: action);
+      await GetIt.I<SignInAnonymous>().signInAnonymously(context, action: action);
     } else if (action is SignInWithCustomTokenAction) {
-      GetIt.I<SignInWithCustomToken>().signInWithCustomToken(context, action: action);
+      await GetIt.I<SignInWithCustomToken>().signInWithCustomToken(context, action: action);
     } else if (action is WalletConnectAction) {
       //  TODO store session:  WalletConnectSession? session = await sessionStorage.getSession();
 
