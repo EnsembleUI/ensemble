@@ -34,7 +34,8 @@ steps:
       id: email_field
 ```
 
-Use `startScreen` for a cold start. Use `prerequisite` when a test should continue from another test in the same app session.
+Use `startScreen` to choose where the test starts. Use `session` when the test
+needs captured app state from another test before mounting that screen.
 Use `retry` for known flaky external flows; `retry: 3` means one initial attempt
 plus up to three additional attempts.
 
@@ -111,7 +112,8 @@ values and merges mock entries in order.
 
 ```yaml
 id: home_scenarios
-prerequisite: signin_to_gateway
+session: signin_to_gateway
+startScreen: Home
 
 mocks:
   - mocks/common/base.mock.json
@@ -131,9 +133,7 @@ steps:
 ```
 
 Each scenario expands to its own test id, for example
-`home_scenarios[v14_online]`. When a scenario suite has a `prerequisite`, the
-first scenario depends on that prerequisite and later scenarios run after the
-previous scenario in declaration order.
+`home_scenarios[v14_online]`.
 
 Mock files are JSON files. The root object maps API names to response
 overrides:
@@ -155,7 +155,7 @@ pending briefly before returning, matching the loading behavior of a real API.
 
 ## Validation
 
-`--validate-only` checks generated tests without running Flutter. It reports blocking errors for invalid YAML shape, missing tests, duplicate IDs, unknown prerequisites, and unknown screens. It reports warnings for likely unknown widget IDs/APIs.
+`--validate-only` checks generated tests without running Flutter. It reports blocking errors for invalid YAML shape, missing tests, duplicate IDs, unknown sessions, and unknown screens. It reports warnings for likely unknown widget IDs/APIs.
 
 Warnings do not fail the command. Errors exit with code `2`.
 

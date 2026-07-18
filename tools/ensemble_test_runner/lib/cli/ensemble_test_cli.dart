@@ -1116,7 +1116,6 @@ _ShardedTestFiles _testFilesForSharding(
   final docsByPath = <String, YamlMap?>{};
   final pathById = <String, String>{};
   final referencedSessionIds = <String>{};
-  final referencedPrerequisiteIds = <String>{};
   for (final file in files) {
     final relative = p.relative(file.path, from: appDir).replaceAll('\\', '/');
     final doc = _readTestYamlMap(file);
@@ -1129,18 +1128,8 @@ _ShardedTestFiles _testFilesForSharding(
     if (session != null && session.isNotEmpty) {
       referencedSessionIds.add(session);
     }
-    final prerequisite = doc?['prerequisite']?.toString();
-    if (prerequisite != null && prerequisite.isNotEmpty) {
-      referencedPrerequisiteIds.add(prerequisite);
-    }
   }
 
-  final prerequisiteLinkedPaths = <String>{
-    for (final entry in docsByPath.entries)
-      if (_hasPrerequisite(entry.value)) entry.key,
-    for (final id in referencedPrerequisiteIds)
-      if (pathById[id] != null) pathById[id]!,
-  };
   final sessionProducerPaths = <String>{
     for (final id in referencedSessionIds)
       if (pathById[id] != null) pathById[id]!,
@@ -1149,7 +1138,6 @@ _ShardedTestFiles _testFilesForSharding(
   for (final file in files) {
     final relative = p.relative(file.path, from: appDir).replaceAll('\\', '/');
     if (_isParallelTestFile(file, doc: docsByPath[relative]) &&
-        !prerequisiteLinkedPaths.contains(relative) &&
         !sessionProducerPaths.contains(relative)) {
       parallel.add(
         _ShardableTestFile(
@@ -1162,7 +1150,7 @@ _ShardedTestFiles _testFilesForSharding(
         ),
       );
     } else if (sessionProducerPaths.contains(relative) &&
-        !prerequisiteLinkedPaths.contains(relative)) {
+        _isParallelTestFile(file, doc: docsByPath[relative])) {
       // Session producers are selected automatically by each shard that needs
       // them. Running them as standalone files would waste a worker lane.
       continue;
@@ -1181,12 +1169,6 @@ YamlMap? _readTestYamlMap(File file) {
     // Let the real parser report invalid YAML with source context.
   }
   return null;
-}
-
-bool _hasPrerequisite(YamlMap? doc) {
-  if (doc == null) return false;
-  final prerequisite = doc['prerequisite']?.toString();
-  return prerequisite != null && prerequisite.isNotEmpty;
 }
 
 bool _isParallelTestFile(File file, {YamlMap? doc}) {
@@ -1258,7 +1240,7 @@ int _estimateTestFileDurationMs(
     if (doc is! YamlMap) return 30000;
     final steps = doc['steps'];
     var estimate = doc['startScreen'] == 'Login' ? 18000 : 6000;
-    if (doc['prerequisite'] != null || doc['session'] != null) estimate += 4000;
+    if (doc['session'] != null) estimate += 4000;
     if (steps is YamlList) {
       for (final step in steps) {
         estimate += _estimateStepDurationMs(step);
@@ -1455,9 +1437,6 @@ void _writeCliTestCase(StringBuffer buffer, EnsembleSingleTestResult r) {
 
   final report = r.report;
   if (report != null) {
-    if (report.prerequisite != null) {
-      buffer.writeln('│     after: ${report.prerequisite}');
-    }
     if (report.session != null) {
       buffer.writeln('│     session: ${report.session}');
     }
@@ -1537,7 +1516,6 @@ EnsembleTestReportDetails _reportDetailsFromJson(Map<String, dynamic> json) {
   return EnsembleTestReportDetails(
     startScreen: json['startScreen']?.toString() ?? '(unknown)',
     endScreen: json['endScreen']?.toString(),
-    prerequisite: json['prerequisite']?.toString(),
     session: json['session']?.toString(),
     screensVisited: (json['screensVisited'] as List<dynamic>? ?? const [])
         .map((value) => value.toString())

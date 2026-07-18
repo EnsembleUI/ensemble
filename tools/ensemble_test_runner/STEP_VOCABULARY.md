@@ -126,23 +126,21 @@ Use `httpRequest` for finite setup or state changes during a test:
 
 Before running a new suite, use `dart run ensemble_test_runner:ensemble_test --doctor`
 from the Flutter wrapper app root to validate config, test discovery, duplicate
-IDs, prerequisites, schema comments, and obvious widget IDs. CI can request JSON
+IDs, sessions, schema comments, and obvious widget IDs. CI can request JSON
 with `--report=json` or `--report-file=build/ensemble_test_results.json`.
 
-Each `*.test.yaml` file is a single test case and must provide **exactly one** of:
+Each `*.test.yaml` file is a single test case and must provide:
 
 - `startScreen` — cold-starts the app on the given screen and runs steps
-- `prerequisite` — ID of another test that must run first; the runner reuses the same app session, applies `initialState`/`mocks` in-place, and then runs this test's steps only
-- `session` with `startScreen` — runs the referenced test once, restores its captured storage/keychain/locale for this test, runs `setup`, and mounts a fresh requested screen
+- `session` — optional; runs the referenced test once, restores its captured storage/keychain/locale for this test, runs `setup`, and mounts the requested `startScreen`
 - `retry` — number of additional attempts after a failed run, e.g. `retry: 3`
 
 Root-level `setup` supports `httpRequest`, `group`, and `optional`. It runs
 before the test screen is mounted; it is intended for external service and stub
 configuration, not widget actions.
 
-The runner discovers all YAML files, builds a dependency graph from
-`prerequisite` and `session` references, and executes each test once in
-topological order.
+The runner discovers all YAML files, builds a dependency graph from `session`
+references, and executes each test once in topological order.
 
 ## Adding a step
 

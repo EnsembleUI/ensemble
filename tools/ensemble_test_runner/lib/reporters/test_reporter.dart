@@ -9,7 +9,6 @@ EnsembleTestReportDetails buildTestReportDetails(EnsembleTestCase testCase) {
   final details = EnsembleTestReportDetails(
     startScreen: effectiveStart,
     endScreen: ScreenTracker().getCurrentScreenIdentifier(),
-    prerequisite: testCase.prerequisite,
     session: testCase.session,
     screensVisited: collectScreensVisited(effectiveStart),
     stepsOutline: outlineSteps(testCase.steps),
@@ -173,9 +172,6 @@ class TestReporter {
 
     final report = r.report;
     if (report != null) {
-      if (report.prerequisite != null) {
-        buffer.writeln('│     after: ${report.prerequisite}');
-      }
       if (report.session != null) {
         buffer.writeln('│     session: ${report.session}');
       }

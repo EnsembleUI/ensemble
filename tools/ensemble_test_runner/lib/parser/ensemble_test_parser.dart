@@ -60,13 +60,14 @@ class EnsembleTestParser {
     required Map<String, dynamic> scenario,
     String? scenarioId,
   }) {
-    if (map.containsKey('options')) {
+    final unsupportedKeys = _unsupportedTestRootKeys(map);
+    if (unsupportedKeys.isNotEmpty) {
       throw EnsembleTestFailure(
-        'Root-level "options" is no longer supported in *.test.yaml files. '
-        'Move shared screenshots/performance settings to tests/config.yaml.',
+        'Unsupported root key${unsupportedKeys.length == 1 ? '' : 's'} '
+        '${unsupportedKeys.map((key) => '"$key"').join(', ')} in *.test.yaml file.',
       );
     }
-    if (map.containsKey('mocks') &&
+    if (_hasYamlKey(map, 'mocks') &&
         map['mocks'] is! YamlList &&
         map['mocks'] is! YamlMap) {
       throw EnsembleTestFailure(
@@ -82,29 +83,12 @@ class EnsembleTestParser {
 
     final startScreen = map['startScreen']?.toString();
     final hasStartScreen = startScreen != null && startScreen.isNotEmpty;
-    final prerequisite = map['prerequisite']?.toString();
-    final hasPrerequisite = prerequisite != null && prerequisite.isNotEmpty;
     final session = map['session']?.toString();
     final hasSession = session != null && session.isNotEmpty;
 
-    if (hasStartScreen && hasPrerequisite) {
+    if (!hasStartScreen) {
       throw EnsembleTestFailure(
-        'Test "$id" must have either "startScreen" or "prerequisite", not both',
-      );
-    }
-    if (!hasStartScreen && !hasPrerequisite) {
-      throw EnsembleTestFailure(
-        'Test "$id" must have either "startScreen" or "prerequisite"',
-      );
-    }
-    if (hasPrerequisite && hasSession) {
-      throw EnsembleTestFailure(
-        'Test "$id" cannot use both "prerequisite" and "session"',
-      );
-    }
-    if (hasSession && !hasStartScreen) {
-      throw EnsembleTestFailure(
-        'Test "$id" must have "startScreen" when "session" is set',
+        'Test "$id" must have "startScreen"',
       );
     }
 
@@ -154,7 +138,6 @@ class EnsembleTestParser {
         scenario: scenario,
         scenarioId: scenarioId,
       ),
-      prerequisite: hasPrerequisite ? prerequisite : null,
       session: hasSession ? session : null,
       mockFiles: parsedMocks.files,
       inlineMocks: parsedMocks.inline,
@@ -816,5 +799,35 @@ class EnsembleTestParser {
       );
     }
     return scenario[key];
+  }
+
+  static bool _hasYamlKey(YamlMap map, String key) {
+    return map.keys.any((candidate) => candidate.toString() == key);
+  }
+
+  static List<String> _unsupportedTestRootKeys(YamlMap map) {
+    const supported = {
+      'id',
+      'type',
+      'feature',
+      'tags',
+      'description',
+      'owner',
+      'priority',
+      'parallel',
+      'retry',
+      'startScreen',
+      'startScreenInputs',
+      'session',
+      'initialState',
+      'setup',
+      'mocks',
+      'scenarios',
+      'steps',
+    };
+    return map.keys
+        .map((key) => key.toString())
+        .where((key) => !supported.contains(key))
+        .toList();
   }
 }

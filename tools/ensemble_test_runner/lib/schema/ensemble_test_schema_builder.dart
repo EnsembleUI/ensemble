@@ -106,12 +106,6 @@ class EnsembleTestSchemaBuilder {
             'additionalProperties': true,
             'description': 'Inputs passed to startScreen',
           },
-          'prerequisite': {
-            'type': 'string',
-            'minLength': 1,
-            'description':
-                'ID of another test that must run before this one in the same app session',
-          },
           'session': {
             'type': 'string',
             'minLength': 1,
@@ -151,24 +145,7 @@ class EnsembleTestSchemaBuilder {
             'items': {'\$ref': '#/\$defs/step'},
           },
         },
-        'required': ['id', 'steps'],
-        'oneOf': [
-          {
-            'required': ['startScreen'],
-            'not': {
-              'required': ['prerequisite'],
-            },
-          },
-          {
-            'required': ['prerequisite'],
-            'not': {
-              'required': ['startScreen'],
-            },
-          },
-        ],
-        'not': {
-          'required': ['prerequisite', 'session'],
-        },
+        'required': ['id', 'startScreen', 'steps'],
       },
     };
 

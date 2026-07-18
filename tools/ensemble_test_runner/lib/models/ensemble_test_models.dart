@@ -40,12 +40,9 @@ class EnsembleTestCase {
   final bool parallel;
   final int retry;
 
-  /// Cold-start screen. Omit when [prerequisite] is set.
+  /// Cold-start screen.
   final String? startScreen;
   final Map<String, dynamic> startScreenInputs;
-
-  /// Test [id] that must run before this one (same app session).
-  final String? prerequisite;
 
   /// Test [id] whose captured storage state is restored before [startScreen].
   final String? session;
@@ -74,7 +71,6 @@ class EnsembleTestCase {
     this.retry = 0,
     this.startScreen,
     this.startScreenInputs = const {},
-    this.prerequisite,
     this.session,
     this.mockFiles = const [],
     this.inlineMocks = const {},
@@ -86,8 +82,6 @@ class EnsembleTestCase {
   });
 
   bool get hasStartScreen => startScreen != null && startScreen!.isNotEmpty;
-
-  bool get hasPrerequisite => prerequisite != null && prerequisite!.isNotEmpty;
 
   bool get hasSession => session != null && session!.isNotEmpty;
 
@@ -502,7 +496,7 @@ class EnsembleSingleTestResult {
         ];
       case 'parseError':
         return [
-          'Run --validate-only to find schema and prerequisite issues.',
+          'Run --validate-only to find schema issues.',
         ];
       default:
         return [
@@ -517,7 +511,6 @@ class EnsembleTestReportDetails {
   /// Display start screen (explicit or inherited from runtime).
   final String startScreen;
   final String? endScreen;
-  final String? prerequisite;
   final String? session;
   final List<String> screensVisited;
   final List<String> stepsOutline;
@@ -525,7 +518,6 @@ class EnsembleTestReportDetails {
   const EnsembleTestReportDetails({
     required this.startScreen,
     this.endScreen,
-    this.prerequisite,
     this.session,
     this.screensVisited = const [],
     this.stepsOutline = const [],
@@ -534,7 +526,6 @@ class EnsembleTestReportDetails {
   Map<String, dynamic> toJson() => {
         'startScreen': startScreen,
         if (endScreen != null) 'endScreen': endScreen,
-        if (prerequisite != null) 'prerequisite': prerequisite,
         if (session != null) 'session': session,
         'screensVisited': screensVisited,
         'stepsOutline': stepsOutline,

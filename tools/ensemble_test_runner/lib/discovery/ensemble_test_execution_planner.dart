@@ -96,13 +96,6 @@ class EnsembleTestExecutionPlanner {
     final selectedById = _applySelection(byId, selection);
 
     for (final def in selectedById.values) {
-      final prereq = def.testCase.prerequisite;
-      if (prereq != null && !selectedById.containsKey(prereq)) {
-        throw EnsembleTestFailure(
-          'Test "${def.testCase.id}" in ${def.assetPath} references unknown '
-          'prerequisite "$prereq"',
-        );
-      }
       final session = def.testCase.session;
       if (session != null && !selectedById.containsKey(session)) {
         throw EnsembleTestFailure(
@@ -165,7 +158,6 @@ class EnsembleTestExecutionPlanner {
             base,
             id: base.id,
             startScreen: base.startScreen,
-            prerequisite: base.prerequisite,
             session: base.session,
             mocks: mocks,
           ),
@@ -174,7 +166,6 @@ class EnsembleTestExecutionPlanner {
     }
 
     final definitions = <EnsembleTestDefinition>[];
-    String? previousScenarioId;
     for (final scenario in base.scenarios) {
       final parsed = EnsembleTestParser.parseString(
         resolvedContent,
@@ -188,9 +179,6 @@ class EnsembleTestExecutionPlanner {
         orElse: () => scenario,
       );
       final id = '${base.id}[${scenario.id}]';
-      final prerequisite = parsed.prerequisite == null
-          ? null
-          : previousScenarioId ?? parsed.prerequisite;
       final mocks = await _mergedMocksFor(
         assetPath: path,
         mockFiles: parsed.mockFiles,
@@ -205,15 +193,12 @@ class EnsembleTestExecutionPlanner {
             parsed,
             id: id,
             description: parsedScenario.description ?? parsed.description,
-            startScreen:
-                parsed.prerequisite == null ? parsed.startScreen : null,
-            prerequisite: prerequisite,
+            startScreen: parsed.startScreen,
             session: parsed.session,
             mocks: mocks,
           ),
         ),
       );
-      previousScenarioId = id;
     }
     return definitions;
   }
@@ -255,7 +240,6 @@ class EnsembleTestExecutionPlanner {
     required String id,
     String? description,
     String? startScreen,
-    String? prerequisite,
     String? session,
     required TestMocks mocks,
   }) {
@@ -272,7 +256,6 @@ class EnsembleTestExecutionPlanner {
       retry: test.retry,
       startScreen: startScreen,
       startScreenInputs: test.startScreenInputs,
-      prerequisite: prerequisite,
       session: session,
       mockFiles: test.mockFiles,
       scenarios: test.scenarios,
@@ -493,7 +476,6 @@ class EnsembleTestExecutionPlanner {
     void includeDependencies(String id) {
       final test = byId[id]?.testCase;
       final dependencies = <String>[
-        if (test?.prerequisite != null) test!.prerequisite!,
         if (test?.session != null) test!.session!,
       ];
       for (final dependency in dependencies) {
@@ -534,41 +516,10 @@ class EnsembleTestExecutionPlanner {
     return idMatches || featureMatches || tagMatches || pathMatches;
   }
 
-  /// IDs that participate in a shared session (`prerequisite` chain).
-  static Set<String> _sessionConnectedIds(
-    Map<String, EnsembleTestDefinition> byId,
-  ) {
-    final connected = <String>{};
-    for (final def in byId.values) {
-      final prereq = def.testCase.prerequisite;
-      if (prereq == null) continue;
-      connected.add(def.testCase.id);
-      connected.add(prereq);
-    }
-    var expanded = true;
-    while (expanded) {
-      expanded = false;
-      for (final def in byId.values) {
-        final prereq = def.testCase.prerequisite;
-        if (prereq != null &&
-            connected.contains(prereq) &&
-            connected.add(def.testCase.id)) {
-          expanded = true;
-        }
-      }
-    }
-    return connected;
-  }
-
-  /// Kahn's algorithm: edge from test → its prerequisite (prereq runs first).
-  ///
-  /// Tests with [EnsembleTestCase.hasStartScreen] that are not in a prerequisite
-  /// chain run **after** the chain so [EnsembleTestHarness.loadScreen] does not
-  /// reset the session for continuation tests.
+  /// Kahn's algorithm: edge from test → its session producer.
   static List<EnsembleTestDefinition> _topologicalSort(
     Map<String, EnsembleTestDefinition> byId,
   ) {
-    final sessionConnected = _sessionConnectedIds(byId);
     final inDegree = <String, int>{};
     final dependents = <String, List<String>>{};
 
@@ -580,7 +531,6 @@ class EnsembleTestExecutionPlanner {
     for (final entry in byId.entries) {
       final test = entry.value.testCase;
       final dependencies = <String>[
-        if (test.prerequisite != null) test.prerequisite!,
         if (test.session != null) test.session!,
       ];
       for (final dependency in dependencies) {
@@ -589,20 +539,9 @@ class EnsembleTestExecutionPlanner {
       }
     }
 
-    bool sessionChainComplete(List<String> ordered) {
-      if (sessionConnected.isEmpty) return true;
-      return sessionConnected.every(ordered.contains);
-    }
-
-    bool canSchedule(String id, List<String> ordered) {
-      if (inDegree[id] != 0) return false;
-      if (sessionConnected.contains(id)) return true;
-      return sessionChainComplete(ordered);
-    }
-
     final ready = <String>[];
     for (final id in byId.keys) {
-      if (canSchedule(id, const [])) ready.add(id);
+      if (inDegree[id] == 0) ready.add(id);
     }
     ready.sort((a, b) => byId[a]!.assetPath.compareTo(byId[b]!.assetPath));
 
@@ -613,15 +552,8 @@ class EnsembleTestExecutionPlanner {
       orderedIds.add(id);
       for (final dependent in dependents[id]!) {
         inDegree[dependent] = inDegree[dependent]! - 1;
-        if (inDegree[dependent] == 0 && canSchedule(dependent, orderedIds)) {
+        if (inDegree[dependent] == 0) {
           ready.add(dependent);
-        }
-      }
-      for (final candidate in byId.keys) {
-        if (!orderedIds.contains(candidate) &&
-            !ready.contains(candidate) &&
-            canSchedule(candidate, orderedIds)) {
-          ready.add(candidate);
         }
       }
     }

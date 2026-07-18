@@ -147,7 +147,6 @@ class EnsembleTestValidator {
     final knownWidgetIds = inspection.screens.expand((s) => s.testIds).toSet();
     final knownApis = inspection.screens.expand((s) => s.apis).toSet();
     final ids = <String, String>{};
-    final prerequisites = <String, String>{};
     final sessions = <String, String>{};
 
     for (final file in testFiles) {
@@ -160,11 +159,13 @@ class EnsembleTestValidator {
         continue;
       }
 
-      if (doc.containsKey('options')) {
+      final unsupportedKeys = _unsupportedTestRootKeys(doc);
+      if (unsupportedKeys.isNotEmpty) {
         add(
           ValidationSeverity.error,
-          'options',
-          'Root-level "options" is no longer supported. Move shared settings to tests/config.yaml.',
+          'unsupportedRootKey',
+          'Unsupported root key${unsupportedKeys.length == 1 ? '' : 's'} '
+              '${unsupportedKeys.map((key) => '"$key"').join(', ')}',
           path: relativePath,
         );
         continue;
@@ -190,10 +191,6 @@ class EnsembleTestValidator {
       }
 
       final startScreen = doc['startScreen']?.toString();
-      final prerequisite = doc['prerequisite']?.toString();
-      if (prerequisite != null && prerequisite.isNotEmpty) {
-        prerequisites[id] = prerequisite;
-      }
       final session = doc['session']?.toString();
       if (session != null && session.isNotEmpty) {
         sessions[id] = session;
@@ -249,17 +246,6 @@ class EnsembleTestValidator {
       }
     }
 
-    for (final entry in prerequisites.entries) {
-      if (!ids.containsKey(entry.value)) {
-        add(
-          ValidationSeverity.error,
-          'unknownPrerequisite',
-          'Unknown prerequisite "${entry.value}"',
-          path: ids[entry.key],
-          testId: entry.key,
-        );
-      }
-    }
     for (final entry in sessions.entries) {
       if (!ids.containsKey(entry.value)) {
         add(
@@ -314,3 +300,29 @@ _StepInfo _collectStepInfo(dynamic steps) {
 
 bool _isPlaceholder(String value) =>
     RegExp(r'\$\{(inputs|scenario)\.[A-Za-z0-9_.-]+\}').hasMatch(value);
+
+List<String> _unsupportedTestRootKeys(YamlMap map) {
+  const supported = {
+    'id',
+    'type',
+    'feature',
+    'tags',
+    'description',
+    'owner',
+    'priority',
+    'parallel',
+    'retry',
+    'startScreen',
+    'startScreenInputs',
+    'session',
+    'initialState',
+    'setup',
+    'mocks',
+    'scenarios',
+    'steps',
+  };
+  return map.keys
+      .map((key) => key.toString())
+      .where((key) => !supported.contains(key))
+      .toList();
+}

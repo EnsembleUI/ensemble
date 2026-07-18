@@ -23,9 +23,8 @@ steps:
       id: greeting_text
 ```
 
-Each `*.test.yaml` file is **one** test (no `tests:` array). It either
-cold-starts with `startScreen`, continues a mounted flow with `prerequisite`, or
-restores reusable app state with `session` and starts on its own `startScreen`.
+Each `*.test.yaml` file is **one** test (no `tests:` array). It starts with
+`startScreen`; tests that need reusable app state can also set `session`.
 
 Use root-level `setup` for commands and HTTP requests that must complete before
 the screen is mounted. This is useful for resetting or configuring a stub server:
@@ -165,7 +164,7 @@ dart run ensemble_test_runner:ensemble_test --doctor
 ```
 
 It checks the wrapper app, `ensemble-config.yaml`, `definitions.local`, test
-folder, YAML parsing, duplicate IDs, prerequisites, schema comments, and obvious
+folder, YAML parsing, duplicate IDs, sessions, schema comments, and obvious
 widget `id`/`testId` references.
 
 For generated tests, use fast validation without booting Flutter:
@@ -217,9 +216,9 @@ dart run ensemble_test_runner:ensemble_test --tag=smoke
 dart run ensemble_test_runner:ensemble_test --path=auth/
 ```
 
-Prerequisite tests are included automatically for selected continuation tests.
+Session producer tests are included automatically for selected session tests.
 
-On success the console prints one consolidated boxed report for the suite: each test id (with YAML path), timing, **start screen** or **prerequisite**, **navigation flow**, and a numbered **step outline**. Raw app console output is written to `build/ensemble_test_runner/logs/app_console*.log` and listed as an `appLogs` suite artifact.
+On success the console prints one consolidated boxed report for the suite: each test id (with YAML path), timing, **start screen**, optional **session**, **navigation flow**, and a numbered **step outline**. Raw app console output is written to `build/ensemble_test_runner/logs/app_console*.log` and listed as an `appLogs` suite artifact.
 
 ## Examples
 
@@ -265,27 +264,6 @@ steps:
       id: welcome_text
 ```
 
-### Multi-file prerequisite chain
-
-```yaml
-id: login_start
-startScreen: Login
-steps:
-  - enterText:
-      id: email_field
-      value: user@test.com
-```
-
-```yaml
-id: login_submit
-prerequisite: login_start
-steps:
-  - tap:
-      id: login_button
-  - expectVisible:
-      id: dashboard_title
-```
-
 ### Reusable authenticated session
 
 The session producer runs once. After it passes, the runner captures public
@@ -312,9 +290,8 @@ steps:
   - tap: {id: devices_button}
 ```
 
-Use `prerequisite` when the second test must continue the exact mounted UI
-state. Use `session` when tests need the same signed-in data but should otherwise
-start independently. Session snapshots are not written to disk.
+Use `session` when tests need the same signed-in data but should otherwise start
+independently. Session snapshots are not written to disk.
 
 ## Package layout
 

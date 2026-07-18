@@ -97,28 +97,6 @@ class EnsembleTestRunner {
 
     for (final def in plan.ordered) {
       final test = def.testCase;
-      final prereq = test.prerequisite;
-      if (prereq != null) {
-        final prereqResult = resultsById[prereq];
-        if (prereqResult == null) {
-          throw EnsembleTestFailure(
-            'Internal error: prerequisite "$prereq" for "${test.id}" was not scheduled',
-          );
-        }
-        if (prereqResult.status == TestStatus.failed) {
-          final result = EnsembleSingleTestResult.failed(
-            testId: test.id,
-            metadata: test.metadataJson,
-            error: 'Prerequisite "$prereq" failed',
-            durationMs: 0,
-            report: buildTestReportDetails(test),
-          );
-          resultsById[test.id] = result;
-          await onTestComplete?.call(def, result);
-          continue;
-        }
-      }
-
       final session = test.session;
       AppSessionSnapshot? sessionSnapshot;
       if (session != null) {
@@ -155,7 +133,6 @@ class EnsembleTestRunner {
           tester,
           suiteConfig: plan.config,
           existingConfig: config,
-          continuation: test.hasPrerequisite,
           sessionSnapshot: sessionSnapshot,
         );
       } catch (error, stackTrace) {
@@ -218,7 +195,6 @@ class EnsembleTestRunner {
     WidgetTester tester, {
     EnsembleTestConfig suiteConfig = const EnsembleTestConfig(),
     EnsembleConfig? existingConfig,
-    bool continuation = false,
     AppSessionSnapshot? sessionSnapshot,
   }) async {
     final stopwatch = Stopwatch()..start();
@@ -243,17 +219,7 @@ class EnsembleTestRunner {
       final startupStartTime = DateTime.now();
 
       late final EnsembleConfig config;
-      if (continuation) {
-        if (!YamlTestSession.runtimeBootstrapped) {
-          throw EnsembleTestFailure(
-            'Test "${test.id}" has prerequisite "${test.prerequisite}" but the '
-            'runtime is not bootstrapped — ensure the prerequisite test runs first',
-          );
-        }
-        await EnsembleTestHarness.applyInPlaceSetup(ctx);
-        config = existingConfig ?? Ensemble().getConfig()!;
-        await EnsembleTestHarness.waitForInitialWidgets(tester, testCase: test);
-      } else if (sessionSnapshot != null) {
+      if (sessionSnapshot != null) {
         if (!YamlTestSession.runtimeBootstrapped) {
           throw EnsembleTestFailure(
             'Test "${test.id}" requires a mounted session runtime',
@@ -356,7 +322,6 @@ class EnsembleTestRunner {
     WidgetTester tester, {
     required EnsembleTestConfig suiteConfig,
     EnsembleConfig? existingConfig,
-    required bool continuation,
     AppSessionSnapshot? sessionSnapshot,
   }) async {
     final maxAttempts = test.retry + 1;
@@ -369,7 +334,6 @@ class EnsembleTestRunner {
         tester,
         suiteConfig: suiteConfig,
         existingConfig: existingConfig,
-        continuation: continuation,
         sessionSnapshot: sessionSnapshot,
       );
       totalDurationMs += out.result.durationMs;

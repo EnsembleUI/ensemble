@@ -45,24 +45,20 @@ void main() {
     }
   });
 
-  test(
-      'generated JSON is valid and requires id, steps with XOR start/prerequisite',
-      () {
+  test('generated JSON is valid and requires id, startScreen, and steps', () {
     final json = EnsembleTestSchemaBuilder.buildJson();
     final decoded = jsonDecode(json) as Map<String, dynamic>;
     expect(decoded['\$schema'], EnsembleTestSchemaBuilder.schemaVersion);
-    expect(decoded['required'], containsAll(<String>['id', 'steps']));
-    expect((decoded['required'] as List), isNot(contains('startScreen')));
+    expect(decoded['required'],
+        containsAll(<String>['id', 'startScreen', 'steps']));
     expect(decoded['properties'], contains('id'));
     expect(decoded['properties'], isNot(contains('tests')));
-    expect(decoded['properties'], isNot(contains('options')));
     expect(decoded['properties'], contains('mocks'));
     expect(decoded['properties'], contains('retry'));
     expect(decoded['properties'], contains('startScreen'));
-    expect(decoded['properties'], contains('prerequisite'));
     expect(decoded['properties'], isNot(contains('mockLayers')));
     expect(decoded['properties'], contains('scenarios'));
-    expect(decoded['oneOf'], isA<List>());
+    expect(decoded, isNot(contains('oneOf')));
   });
 
   test('schema keeps mocks at the root only', () {

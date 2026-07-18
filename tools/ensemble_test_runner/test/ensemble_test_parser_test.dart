@@ -190,7 +190,7 @@ steps:
           isA<EnsembleTestFailure>().having(
             (error) => error.message,
             'message',
-            contains('must have either "startScreen" or "prerequisite"'),
+            contains('must have "startScreen"'),
           ),
         ),
       );
@@ -308,17 +308,11 @@ steps:
       );
     });
 
-    test('rejects root-level options in test files', () {
+    test('rejects unsupported root keys in test files', () {
       const yaml = '''
 id: visual_debug
 startScreen: Home
-options:
-  screenshots:
-    enabled: true
-    platform: android
-    model: Samsung Galaxy S20
-    includeSteps: [tap, waitForNavigation]
-    excludeSteps: [wait]
+unknownSetting: true
 steps:
   - tap:
       id: start_button
@@ -330,7 +324,7 @@ steps:
           isA<EnsembleTestFailure>().having(
             (error) => error.message,
             'message',
-            contains('Move shared screenshots/performance settings'),
+            contains('Unsupported root key "unknownSetting"'),
           ),
         ),
       );
@@ -487,46 +481,8 @@ tests:
     });
   });
 
-  group('prerequisite and startScreen XOR', () {
-    test('parses prerequisite-only test', () {
-      const yaml = '''
-id: continuation_flow
-prerequisite: hello_home_renders
-steps:
-  - expectVisible:
-      id: goodbye_title
-''';
-
-      final test = EnsembleTestParser.parseString(yaml);
-      expect(test.id, 'continuation_flow');
-      expect(test.startScreen, isNull);
-      expect(test.prerequisite, 'hello_home_renders');
-      expect(test.steps.single.type, 'expectVisible');
-    });
-
-    test('rejects when both startScreen and prerequisite are set', () {
-      const yaml = '''
-id: invalid_both
-startScreen: Home
-prerequisite: other
-steps:
-  - expectVisible:
-      id: x
-''';
-
-      expect(
-        () => EnsembleTestParser.parseString(yaml),
-        throwsA(
-          isA<EnsembleTestFailure>().having(
-            (e) => e.message,
-            'message',
-            contains('startScreen'),
-          ),
-        ),
-      );
-    });
-
-    test('rejects when neither startScreen nor prerequisite is set', () {
+  group('startScreen', () {
+    test('rejects when startScreen is missing', () {
       const yaml = '''
 id: invalid_neither
 steps:

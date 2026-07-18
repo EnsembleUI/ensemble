@@ -37,7 +37,7 @@ steps:
     );
   });
 
-  test('doctor reports duplicate ids and unknown prerequisites', () async {
+  test('doctor reports duplicate ids and unknown sessions', () async {
     final dir = _createApp();
     addTearDown(() => dir.deleteSync(recursive: true));
     _writeTest(dir, 'a.test.yaml', '''
@@ -49,7 +49,8 @@ steps:
 ''');
     _writeTest(dir, 'b.test.yaml', '''
 id: duplicate
-prerequisite: missing
+startScreen: Home
+session: missing
 steps:
   - expectVisible:
       id: login_button
@@ -60,7 +61,28 @@ steps:
 
     expect(result.hasErrors, isTrue);
     expect(output, contains('Duplicate test id "duplicate"'));
-    expect(output, contains('references unknown prerequisite "missing"'));
+    expect(output, contains('references unknown session "missing"'));
+  });
+
+  test('doctor rejects unsupported root keys', () async {
+    final dir = _createApp();
+    addTearDown(() => dir.deleteSync(recursive: true));
+    _writeTest(dir, 'unsupported.test.yaml', '''
+id: unsupported
+startScreen: Login
+unknownSetting: true
+steps:
+  - expectVisible:
+      id: login_button
+''');
+
+    final result = await EnsembleTestDoctor(dir.path).run();
+
+    expect(result.hasErrors, isTrue);
+    expect(
+      result.lines.join('\n'),
+      contains('Unsupported root key "unknownSetting"'),
+    );
   });
 }
 

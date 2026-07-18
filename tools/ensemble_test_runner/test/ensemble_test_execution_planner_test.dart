@@ -5,18 +5,19 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('EnsembleTestExecutionPlanner', () {
-    test('orders prerequisite chain before independent startScreen tests', () {
+    test('orders session producer before session consumers', () {
       final byId = {
-        'chain_root': _def('a/chain_root.test.yaml', '''
-id: chain_root
+        'signin': _def('a/signin.test.yaml', '''
+id: signin
 startScreen: Home
 steps:
   - expectVisible:
       id: x
 '''),
-        'chain_child': _def('b/chain_child.test.yaml', '''
-id: chain_child
-prerequisite: chain_root
+        'home': _def('b/home.test.yaml', '''
+id: home
+session: signin
+startScreen: Home
 steps:
   - expectVisible:
       id: y
@@ -31,24 +32,23 @@ steps:
       };
 
       final order = EnsembleTestExecutionPlanner.orderIdsForTest(byId);
-      expect(
-          order.indexOf('chain_root'), lessThan(order.indexOf('chain_child')));
-      expect(
-          order.indexOf('chain_child'), lessThan(order.indexOf('standalone')));
+      expect(order.indexOf('signin'), lessThan(order.indexOf('home')));
     });
 
-    test('detects circular prerequisites', () {
+    test('detects circular sessions', () {
       final byId = {
         'a': _def('a.test.yaml', '''
 id: a
-prerequisite: b
+session: b
+startScreen: Home
 steps:
   - expectVisible:
       id: x
 '''),
         'b': _def('b.test.yaml', '''
 id: b
-prerequisite: a
+session: a
+startScreen: Home
 steps:
   - expectVisible:
       id: y
@@ -61,7 +61,7 @@ steps:
       );
     });
 
-    test('selection includes prerequisite chain', () {
+    test('selection includes session producer', () {
       final byId = {
         'login': _def('auth/login.test.yaml', '''
 id: login
@@ -76,7 +76,8 @@ steps:
 id: profile
 feature: profile
 tags: [regression]
-prerequisite: login
+session: login
+startScreen: Profile
 steps:
   - expectVisible:
       id: profile_title
@@ -124,11 +125,11 @@ steps:
       expect(order, ['signin', 'home']);
     });
 
-    test('expands scenarios with bracketed ids and prerequisite chain',
-        () async {
+    test('expands scenarios with bracketed ids', () async {
       const yaml = '''
 id: home_scenarios
-prerequisite: signin_to_gateway
+session: signin_to_gateway
+startScreen: Home
 scenarios:
   - id: v12_online
     vars:
@@ -154,14 +155,8 @@ steps:
           'home_scenarios[v14_empty]',
         ],
       );
-      expect(
-        definitions[0].testCase.prerequisite,
-        'signin_to_gateway',
-      );
-      expect(
-        definitions[1].testCase.prerequisite,
-        'home_scenarios[v12_online]',
-      );
+      expect(definitions[0].testCase.session, 'signin_to_gateway');
+      expect(definitions[1].testCase.session, 'signin_to_gateway');
       expect(definitions[0].testCase.steps.single.args['text'], 2);
       expect(definitions[1].testCase.steps.single.args['text'], 0);
     });
