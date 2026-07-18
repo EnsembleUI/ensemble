@@ -482,6 +482,7 @@ class EnsembleTestRunner {
             executor: executor,
             step: step,
             stepIndex: i,
+            waitForTarget: true,
           );
           capturedStep = true;
         }
@@ -612,12 +613,17 @@ class EnsembleTestRunner {
     required int stepIndex,
     bool pumpBeforeCapture = false,
     bool ensureTargetVisible = true,
+    bool waitForTarget = false,
   }) async {
     final options = executor.context.config.screenshots;
     if (!options.shouldCaptureStep(step.type)) return;
 
     if (pumpBeforeCapture) {
       await executor.tester.pump();
+    }
+
+    if (waitForTarget) {
+      await _waitForScreenshotTarget(executor, step);
     }
 
     if (ensureTargetVisible) {
@@ -648,6 +654,8 @@ class EnsembleTestRunner {
         image: image,
       ),
     );
+
+    _updatePendingScreenshotSheet(executor.context);
   }
 
   Future<void> _captureAutomaticScreenshotForStepBestEffort({
@@ -656,6 +664,7 @@ class EnsembleTestRunner {
     required int stepIndex,
     bool pumpBeforeCapture = false,
     bool ensureTargetVisible = true,
+    bool waitForTarget = false,
   }) async {
     try {
       await _captureAutomaticScreenshotForStep(
@@ -664,6 +673,7 @@ class EnsembleTestRunner {
         stepIndex: stepIndex,
         pumpBeforeCapture: pumpBeforeCapture,
         ensureTargetVisible: ensureTargetVisible,
+        waitForTarget: waitForTarget,
       );
     } catch (_) {
       // Screenshot capture must never replace the real test failure.
@@ -674,6 +684,33 @@ class EnsembleTestRunner {
 
   bool _shouldPumpBeforePostStepCapture(TestStep step) =>
       step.type != 'waitForText';
+
+  Future<void> _waitForScreenshotTarget(
+    TestStepExecutor executor,
+    TestStep step,
+  ) async {
+    if (!_shouldHighlightStep(step)) return;
+
+    final finder = _highlightFinder(executor, step);
+    if (finder == null) return;
+    if (finder.evaluate().isNotEmpty) return;
+
+    final waitsForHitTestable = _isUserActionStep(step);
+    final timeoutMs = step.args['timeoutMs'] as int? ??
+        executor.config.defaultWaitTimeout.inMilliseconds;
+    final stopwatch = Stopwatch()..start();
+    while (stopwatch.elapsedMilliseconds < timeoutMs) {
+      await executor.tester.pump(executor.config.waitPollInterval);
+      if (_isScreenshotTargetReady(finder, waitsForHitTestable)) return;
+    }
+  }
+
+  bool _isScreenshotTargetReady(Finder finder, bool waitsForHitTestable) {
+    if (waitsForHitTestable) {
+      return finder.hitTestable().evaluate().isNotEmpty;
+    }
+    return finder.evaluate().isNotEmpty;
+  }
 
   Future<void> _waitForHighlightTargetToPaint(
     TestStepExecutor executor,
@@ -782,7 +819,7 @@ class EnsembleTestRunner {
           return hitTestableText;
         }
         return find.textContaining(text);
-      } else if (step.type == 'waitForText' || step.type == 'expectText') {
+      } else {
         final hitTestableText = find.text(text).hitTestable();
         if (hitTestableText.evaluate().isNotEmpty) {
           return hitTestableText;
@@ -851,7 +888,9 @@ class EnsembleTestRunner {
   bool _shouldHighlightStep(TestStep step) {
     if (step.type == 'waitForText' ||
         step.type == 'expectText' ||
+        step.type == 'waitFor' ||
         step.type == 'expectTextContains' ||
+        step.type == 'scrollUntilVisible' ||
         step.type == 'expectVisible') {
       final text = step.args['text']?.toString();
       final id = step.args['id']?.toString();
@@ -906,8 +945,10 @@ class EnsembleTestRunner {
     );
     canvas.drawImage(image, ui.Offset.zero, ui.Paint());
 
-    final isVerification =
-        step.type == 'waitForText' || step.type.startsWith('expect');
+    final isTapStep = step.type == 'tap' ||
+        step.type == 'doubleTap' ||
+        step.type == 'longPress' ||
+        step.type == 'tapAt';
 
     void drawCornerBrackets(
         ui.Canvas canvas, ui.Rect rect, ui.Paint paint, double scale) {
@@ -941,8 +982,8 @@ class EnsembleTestRunner {
           ui.Offset(right, bottom - len), ui.Offset(right, bottom), paint);
     }
 
-    if (isVerification) {
-      // 1. Verification (expect/waitForText): Thick Mint green HUD corner brackets
+    if (!isTapStep) {
+      // 1. Verification/Wait/Scroll: Thick Mint green HUD corner brackets
       final paint = ui.Paint()
         ..color = const ui.Color(0xFF10B981) // Emerald green
         ..style = ui.PaintingStyle.stroke
@@ -1212,6 +1253,27 @@ class EnsembleTestRunner {
     if (path != null) {
       ctx.logger.log('screenshots: $path');
     }
+  }
+
+  void _updatePendingScreenshotSheet(EnsembleTestContext ctx) {
+    if (!ctx.config.screenshots.enabled) return;
+    final frames = List<ScreenshotSheetFrame>.from(
+      ctx.runtime.screenshotSheetFrames,
+    );
+    if (frames.isEmpty) return;
+
+    final testId = ctx.testCase.id;
+    final config = ctx.config.screenshots;
+
+    LiveAsyncCallSupport.run<String?>(
+      () => writeScreenshotContactSheet(
+        testId: testId,
+        config: config,
+        frames: frames,
+        status: TestStatus.pending,
+        durationMs: 0,
+      ),
+    ).catchError((_) => null);
   }
 
   Future<List<String>> _writeEmergencyFailureScreenshot({

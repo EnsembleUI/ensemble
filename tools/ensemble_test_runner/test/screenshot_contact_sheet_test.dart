@@ -89,6 +89,39 @@ void main() {
 
     File(path).deleteSync();
   });
+
+  testWidgets('writes a pending sheet with Amber RUNNING status and keeps frame images intact',
+      (tester) async {
+    const testId = 'contact_sheet_pending_test';
+    final image = await _testImage(color: Colors.amber);
+    final path = await tester.runAsync(
+      () => writeScreenshotContactSheet(
+        testId: testId,
+        config: const ScreenshotConfig(enabled: true),
+        frames: [
+          ScreenshotSheetFrame(
+            stepIndex: 0,
+            label: '1. tap(button)',
+            image: image,
+          ),
+        ],
+        status: TestStatus.pending,
+        durationMs: 0,
+      ),
+    );
+
+    expect(path, endsWith('/$testId.png'));
+    final sheet = img.decodePng(File(path!).readAsBytesSync())!;
+    final headerAccent = sheet.getPixel(20, 20);
+    expect(headerAccent.r, greaterThan(200));
+    expect(headerAccent.g, greaterThan(140));
+
+    // Verify image was NOT disposed during pending run
+    expect(image.width, greaterThan(0));
+
+    File(path).deleteSync();
+    image.dispose();
+  });
 }
 
 Future<ui.Image> _testImage({Color color = Colors.white}) async {

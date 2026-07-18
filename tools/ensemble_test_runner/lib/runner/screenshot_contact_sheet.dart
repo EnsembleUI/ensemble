@@ -39,8 +39,12 @@ Future<String?> writeScreenshotContactSheet({
       );
     }
   } finally {
-    for (final frame in frames) {
-      frame.image.dispose();
+    if (status != TestStatus.pending) {
+      for (final frame in frames) {
+        try {
+          frame.image.dispose();
+        } catch (_) {}
+      }
     }
   }
 
@@ -391,15 +395,18 @@ void _drawSummaryHeader(
 }) {
   const margin = 16;
   final passed = status == TestStatus.passed;
+  final pending = status == TestStatus.pending;
 
   final x1 = margin;
   final y1 = margin;
   final x2 = sheet.width - margin - 1;
   final y2 = height - 1;
 
-  final accentColor = passed
-      ? img.ColorRgb8(16, 185, 129) // Emerald 500
-      : img.ColorRgb8(244, 63, 94); // Rose 500
+  final accentColor = pending
+      ? img.ColorRgb8(245, 158, 11) // Amber 500
+      : passed
+          ? img.ColorRgb8(16, 185, 129) // Emerald 500
+          : img.ColorRgb8(244, 63, 94); // Rose 500
 
   final cardBgColor = img.ColorRgb8(30, 41, 59); // Slate 800
   final cardBorderColor = img.ColorRgb8(51, 65, 85); // Slate 700
@@ -437,18 +444,22 @@ void _drawSummaryHeader(
     color: accentColor,
   );
 
-  // Status badge pill (wider for indicator dot)
+  // Status badge pill (wider for RUNNING text & indicator dot)
   final badgeX1 = x1 + 32;
   final badgeY1 = y1 + 24;
-  final badgeX2 = badgeX1 + 130;
+  final badgeX2 = badgeX1 + (pending ? 145 : 130);
   final badgeY2 = badgeY1 + 36;
 
-  final badgeBgColor = passed
-      ? img.ColorRgb8(6, 78, 59) // Emerald 900
-      : img.ColorRgb8(136, 19, 55); // Rose 900
-  final badgeBorderColor = passed
-      ? img.ColorRgb8(16, 185, 129) // Emerald 500
-      : img.ColorRgb8(244, 63, 94); // Rose 500
+  final badgeBgColor = pending
+      ? img.ColorRgb8(120, 53, 15) // Amber 900
+      : passed
+          ? img.ColorRgb8(6, 78, 59) // Emerald 900
+          : img.ColorRgb8(136, 19, 55); // Rose 900
+  final badgeBorderColor = pending
+      ? img.ColorRgb8(245, 158, 11) // Amber 500
+      : passed
+          ? img.ColorRgb8(16, 185, 129) // Emerald 500
+          : img.ColorRgb8(244, 63, 94); // Rose 500
 
   _drawCardWithBorder(
     sheet,
@@ -464,9 +475,11 @@ void _drawSummaryHeader(
   );
 
   // Draw active indicator status dot inside the badge pill
-  final dotColor = passed
-      ? img.ColorRgb8(52, 211, 153) // Emerald 400
-      : img.ColorRgb8(251, 113, 133); // Rose 400
+  final dotColor = pending
+      ? img.ColorRgb8(251, 191, 36) // Amber 400
+      : passed
+          ? img.ColorRgb8(52, 211, 153) // Emerald 400
+          : img.ColorRgb8(251, 113, 133); // Rose 400
   img.fillCircle(
     sheet,
     x: badgeX1 + 18,
@@ -475,7 +488,7 @@ void _drawSummaryHeader(
     color: dotColor,
   );
 
-  final statusText = passed ? 'PASSED' : 'FAILED';
+  final statusText = pending ? 'RUNNING' : (passed ? 'PASSED' : 'FAILED');
   final textX = badgeX1 + 32;
   final textY = badgeY1 + (badgeY2 - badgeY1 - img.arial14.lineHeight) ~/ 2;
   img.drawString(
@@ -490,7 +503,7 @@ void _drawSummaryHeader(
   // Test Case ID title
   final testIdX = badgeX2 + 20;
   final testIdY = badgeY1 + (badgeY2 - badgeY1 - img.arial24.lineHeight) ~/ 2;
-  final testIdWidth = passed
+  final testIdWidth = (passed || pending)
       ? sheet.width - testIdX - 32
       : (sheet.width / 2) - testIdX - 20;
   img.drawString(
@@ -505,16 +518,19 @@ void _drawSummaryHeader(
   // Duration
   final durationX = badgeX1;
   final durationY = badgeY2 + 20;
+  final durationStr = pending
+      ? 'In progress...'
+      : 'Duration: ${_formatDuration(durationMs)}';
   img.drawString(
     sheet,
-    'Duration: ${_formatDuration(durationMs)}',
+    durationStr,
     font: img.arial14,
     x: durationX,
     y: durationY,
     color: img.ColorRgb8(203, 213, 225), // Slate 300
   );
 
-  if (!passed) {
+  if (status == TestStatus.failed) {
     // Details block (right half)
     final detailsX = (sheet.width / 2).round();
     final detailsWidth = sheet.width - detailsX - 32;
