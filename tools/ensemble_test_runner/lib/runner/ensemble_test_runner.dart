@@ -20,6 +20,7 @@ import 'package:ensemble_test_runner/runner/ensemble_test_context.dart';
 import 'package:ensemble_test_runner/runner/ensemble_test_harness.dart';
 import 'package:ensemble_test_runner/runner/live_async_call.dart';
 import 'package:ensemble_test_runner/runner/screenshot_contact_sheet.dart';
+import 'package:ensemble_test_runner/runner/screenshot_sheet_write_queue.dart';
 import 'package:ensemble_test_runner/runner/test_runtime_state.dart';
 import 'package:ensemble_test_runner/runner/test_service_manager.dart';
 import 'package:ensemble_test_runner/runner/yaml_test_session.dart';
@@ -54,6 +55,8 @@ class EnsembleTestPlanRunResult {
 class EnsembleTestRunner {
   /// Harness used to boot and reset the real Ensemble runtime.
   final EnsembleTestHarness harness;
+  final ScreenshotSheetWriteQueue _screenshotSheetWrites =
+      ScreenshotSheetWriteQueue();
 
   /// Creates a runner backed by [harness].
   EnsembleTestRunner({required this.harness});
@@ -132,7 +135,7 @@ class EnsembleTestRunner {
           test,
           tester,
           suiteConfig: plan.config,
-          existingConfig: config,
+          existingConfig: sessionSnapshot == null ? null : config,
           sessionSnapshot: sessionSnapshot,
         );
       } catch (error, stackTrace) {
@@ -270,6 +273,7 @@ class EnsembleTestRunner {
         config: config,
         stopwatch: stopwatch,
       );
+      await _settleLiveApiWorkBestEffort(tester, ctx);
       return (result: result, config: config, context: ctx);
     } catch (error, stackTrace) {
       final config = existingConfig ?? Ensemble().getConfig();
@@ -515,13 +519,17 @@ class EnsembleTestRunner {
             ensureTargetVisible: false,
           );
         }
+        final failureMessage = _failureMessageWithFlutterErrors(
+          error.toString(),
+          ctx,
+        );
         await _flushPendingScreenshots(
           ctx,
           status: TestStatus.failed,
           durationMs: stopwatch.elapsedMilliseconds,
           failedStepIndex: i,
           failedStepLabel: formatStepBrief(step),
-          failureMessage: error.toString(),
+          failureMessage: failureMessage,
         );
         await YamlTestSession.navigationFlow.flushPending();
         _recordPerformanceMarker(
@@ -538,7 +546,7 @@ class EnsembleTestRunner {
           metadata: test.metadataJson,
           failedStepIndex: i,
           failedStep: step,
-          error: error.toString(),
+          error: failureMessage,
           stackTrace: stackTrace.toString(),
           durationMs: stopwatch.elapsedMilliseconds,
           logs: ctx.logger.logs,
@@ -624,7 +632,11 @@ class EnsembleTestRunner {
       ),
     );
 
-    _updatePendingScreenshotSheet(executor.context);
+    _screenshotSheetWrites.schedulePending(
+      testId: executor.context.testCase.id,
+      config: options,
+      frames: executor.context.runtime.screenshotSheetFrames,
+    );
   }
 
   Future<void> _captureAutomaticScreenshotForStepBestEffort({
@@ -1200,6 +1212,15 @@ class EnsembleTestRunner {
     return '$context: $exception';
   }
 
+  String _failureMessageWithFlutterErrors(
+    String message,
+    EnsembleTestContext ctx,
+  ) {
+    final errors = ctx.runtime.flutterErrors;
+    if (errors.isEmpty) return message;
+    return '$message\nFlutter errors:\n- ${errors.take(3).join('\n- ')}';
+  }
+
   Future<void> _flushPendingScreenshots(
     EnsembleTestContext ctx, {
     required TestStatus status,
@@ -1214,42 +1235,22 @@ class EnsembleTestRunner {
     ctx.runtime.screenshotSheetFrames.clear();
     if (sheetFrames.isEmpty) return;
 
-    final path = await LiveAsyncCallSupport.run<String?>(
-      () => writeScreenshotContactSheet(
-        testId: ctx.testCase.id,
-        config: ctx.config.screenshots,
-        frames: sheetFrames,
-        status: status,
-        durationMs: durationMs,
-        failedStepIndex: failedStepIndex,
-        failedStepLabel: failedStepLabel,
-        failureMessage: failureMessage,
-      ),
+    _screenshotSheetWrites.invalidate(ctx.testCase.id);
+    await _screenshotSheetWrites.drain();
+
+    final path = await writeScreenshotContactSheet(
+      testId: ctx.testCase.id,
+      config: ctx.config.screenshots,
+      frames: sheetFrames,
+      status: status,
+      durationMs: durationMs,
+      failedStepIndex: failedStepIndex,
+      failedStepLabel: failedStepLabel,
+      failureMessage: failureMessage,
     );
     if (path != null) {
       ctx.logger.log('screenshots: $path');
     }
-  }
-
-  void _updatePendingScreenshotSheet(EnsembleTestContext ctx) {
-    if (!ctx.config.screenshots.enabled) return;
-    final frames = List<ScreenshotSheetFrame>.from(
-      ctx.runtime.screenshotSheetFrames,
-    );
-    if (frames.isEmpty) return;
-
-    final testId = ctx.testCase.id;
-    final config = ctx.config.screenshots;
-
-    LiveAsyncCallSupport.run<String?>(
-      () => writeScreenshotContactSheet(
-        testId: testId,
-        config: config,
-        frames: frames,
-        status: TestStatus.pending,
-        durationMs: 0,
-      ),
-    ).catchError((_) => null);
   }
 
   Future<List<String>> _writeEmergencyFailureScreenshot({
@@ -1261,23 +1262,21 @@ class EnsembleTestRunner {
     if (!config.screenshots.enabled) return const [];
     try {
       final image = ExtendedStepHandlers.captureScreenshotImage(tester);
-      final path = await LiveAsyncCallSupport.run<String?>(
-        () => writeScreenshotContactSheet(
-          testId: test.id,
-          config: config.screenshots,
-          frames: [
-            ScreenshotSheetFrame(
-              stepIndex: 0,
-              label: 'Runner failure',
-              image: image,
-            ),
-          ],
-          status: TestStatus.failed,
-          durationMs: 0,
-          failedStepIndex: 0,
-          failedStepLabel: 'Runner failure',
-          failureMessage: error.toString(),
-        ),
+      final path = await writeScreenshotContactSheet(
+        testId: test.id,
+        config: config.screenshots,
+        frames: [
+          ScreenshotSheetFrame(
+            stepIndex: 0,
+            label: 'Runner failure',
+            image: image,
+          ),
+        ],
+        status: TestStatus.failed,
+        durationMs: 0,
+        failedStepIndex: 0,
+        failedStepLabel: 'Runner failure',
+        failureMessage: error.toString(),
       );
       return path == null ? const [] : ['screenshots: $path'];
     } catch (_) {

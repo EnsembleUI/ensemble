@@ -1,8 +1,11 @@
+import 'dart:async';
+
 import 'package:ensemble/framework/apiproviders/api_provider.dart';
 import 'package:ensemble/framework/apiproviders/http_api_provider.dart';
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
 import 'package:ensemble_test_runner/mocks/test_api_provider_overlay.dart';
+import 'package:ensemble_test_runner/runner/live_async_call.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:yaml/yaml.dart';
@@ -198,6 +201,39 @@ void main() {
     await Future.wait([first, second]);
     expect(maxInFlight, 1);
     expect(delegate.invoked, 2);
+  });
+
+  test('untracked runAsync work serializes without blocking live waits',
+      () async {
+    final events = <String>[];
+    final gate = Completer<void>();
+    LiveAsyncCallSupport.runner = <T>(Future<T> Function() fn) => fn();
+
+    try {
+      final artifact = LiveAsyncCallSupport.runUntracked<void>(() async {
+        events.add('artifact-start');
+        await gate.future;
+        events.add('artifact-end');
+      });
+      await Future<void>.delayed(Duration.zero);
+
+      expect(LiveAsyncCallSupport.hasPendingLiveCalls, isFalse);
+      await LiveAsyncCallSupport.waitForLiveCalls();
+      expect(events, ['artifact-start']);
+
+      final live = LiveAsyncCallSupport.run<void>(() async {
+        events.add('live');
+      });
+
+      expect(LiveAsyncCallSupport.hasPendingLiveCalls, isTrue);
+      gate.complete();
+      await Future.wait([artifact, live]);
+
+      expect(events, ['artifact-start', 'artifact-end', 'live']);
+      expect(LiveAsyncCallSupport.hasPendingLiveCalls, isFalse);
+    } finally {
+      LiveAsyncCallSupport.reset();
+    }
   });
 }
 

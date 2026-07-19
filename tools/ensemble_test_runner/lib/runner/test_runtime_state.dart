@@ -1,3 +1,4 @@
+import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
@@ -54,8 +55,9 @@ class ScreenshotSheetFrame {
   final int stepIndex;
   final String label;
   final ui.Image image;
+  Uint8List? encodedPngBytes;
 
-  const ScreenshotSheetFrame({
+  ScreenshotSheetFrame({
     required this.stepIndex,
     required this.label,
     required this.image,

@@ -1,11 +1,18 @@
 import 'dart:math' as math;
+import 'dart:typed_data';
 
+import 'package:ensemble_device_preview/ensemble_device_preview.dart';
 import 'package:ensemble_test_runner/actions/extended_step_handlers.dart';
 import 'package:ensemble_test_runner/actions/screenshot_device.dart';
 import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
+import 'package:ensemble_test_runner/runner/live_async_call.dart';
 import 'package:ensemble_test_runner/runner/test_artifacts.dart';
 import 'package:ensemble_test_runner/runner/test_runtime_state.dart';
 import 'package:image/image.dart' as img;
+
+final Expando<img.Image> _normalTileCache = Expando<img.Image>(
+  'screenshot-contact-sheet-normal-tile',
+);
 
 Future<String?> writeScreenshotContactSheet({
   required String testId,
@@ -23,20 +30,30 @@ Future<String?> writeScreenshotContactSheet({
   final device = resolveScreenshotDevice(config.toScreenshotArgs());
   try {
     for (final frame in frames) {
-      final pngBytes = await ExtendedStepHandlers.encodeScreenshotImage(
-        frame.image,
-        device,
-      );
+      final failedFrame =
+          status == TestStatus.failed && frame.stepIndex == failedStepIndex;
+      final cachedTile = failedFrame ? null : _normalTileCache[frame];
+      if (cachedTile != null) {
+        tiles.add(cachedTile);
+        continue;
+      }
+      final pngBytes = frame.encodedPngBytes ??
+          await _encodeFrameImage(
+            frame,
+            device,
+          );
+      frame.encodedPngBytes ??= pngBytes;
       final source = img.decodePng(pngBytes);
       if (source == null) continue;
-      tiles.add(
-        _buildTile(
-          source,
-          frame.label,
-          failed:
-              status == TestStatus.failed && frame.stepIndex == failedStepIndex,
-        ),
+      final tile = _buildTile(
+        source,
+        frame.label,
+        failed: failedFrame,
       );
+      if (!failedFrame) {
+        _normalTileCache[frame] = tile;
+      }
+      tiles.add(tile);
     }
   } finally {
     if (status != TestStatus.pending) {
@@ -76,6 +93,19 @@ Future<String?> writeScreenshotContactSheet({
 }
 
 // --- Custom Drawing Helper Functions ---
+
+Future<Uint8List> _encodeFrameImage(
+  ScreenshotSheetFrame frame,
+  DeviceInfo device,
+) async {
+  final bytes = await LiveAsyncCallSupport.runUntracked(
+    () => ExtendedStepHandlers.encodeScreenshotImage(frame.image, device),
+  );
+  if (bytes == null) {
+    throw EnsembleTestFailure('Failed to encode screenshot as PNG.');
+  }
+  return bytes;
+}
 
 void _drawGradientBackground(img.Image sheet) {
   final height = sheet.height;

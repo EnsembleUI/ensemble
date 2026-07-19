@@ -25,16 +25,30 @@ class LiveAsyncCallSupport {
   static Future<T?> runWithPlatformHttp<T>(Future<T> Function() call) =>
       run(call);
 
-  static Future<T?> run<T>(Future<T> Function() call) {
+  static Future<T?> run<T>(Future<T> Function() call) =>
+      _run(call, trackAsLiveCall: true);
+
+  /// Queues work through the same runAsync lane without counting it as live
+  /// app work. Use this for best-effort artifact generation so API settling
+  /// does not wait for screenshots.
+  static Future<T?> runUntracked<T>(Future<T> Function() call) =>
+      _run(call, trackAsLiveCall: false);
+
+  static Future<T?> _run<T>(
+    Future<T> Function() call, {
+    required bool trackAsLiveCall,
+  }) {
     final liveRunner = runner;
     if (liveRunner == null) {
       return call();
     }
 
-    _pendingLiveCalls++;
     final completer = Completer<T?>();
-    final tracked = completer.future;
-    _inFlightLiveCalls.add(tracked);
+    final trackedFuture = completer.future;
+    if (trackAsLiveCall) {
+      _pendingLiveCalls++;
+      _inFlightLiveCalls.add(trackedFuture);
+    }
 
     _liveCallQueue = _liveCallQueue.then((_) async {
       try {
@@ -45,12 +59,14 @@ class LiveAsyncCallSupport {
         }
       } finally {
         drainPendingExceptions?.call();
-        _pendingLiveCalls--;
-        _inFlightLiveCalls.remove(tracked);
+        if (trackAsLiveCall) {
+          _pendingLiveCalls--;
+          _inFlightLiveCalls.remove(trackedFuture);
+        }
       }
     });
 
-    return tracked;
+    return trackedFuture;
   }
 
   static void reset() {
