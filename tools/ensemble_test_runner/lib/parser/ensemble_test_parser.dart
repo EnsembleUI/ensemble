@@ -234,6 +234,7 @@ class EnsembleTestParser {
       'services',
       'mocks',
       'initialState',
+      'devices',
       'screenshots',
       'performance',
       'timers',
@@ -253,6 +254,7 @@ class EnsembleTestParser {
     final servicesNode = node['services'];
     final mocksNode = node['mocks'];
     final initialStateNode = node['initialState'];
+    final devicesNode = node['devices'];
     final screenshotsNode = node['screenshots'];
     final performanceNode = node['performance'];
     final timersNode = node['timers'];
@@ -271,8 +273,21 @@ class EnsembleTestParser {
     if (initialStateNode != null && initialStateNode is! YamlMap) {
       throw EnsembleTestFailure('"initialState" must be a map');
     }
+    if (devicesNode != null && devicesNode is! YamlList) {
+      throw EnsembleTestFailure('"devices" must be a list');
+    }
     if (screenshotsNode != null && screenshotsNode is! YamlMap) {
       throw EnsembleTestFailure('"screenshots" must be a map');
+    }
+    if (screenshotsNode is YamlMap) {
+      for (final key in const ['platform', 'model', 'devices']) {
+        if (screenshotsNode.containsKey(key)) {
+          throw EnsembleTestFailure(
+            '"screenshots.$key" is no longer supported. Define devices at the '
+            'config root under "devices" (platform, model, optional locale).',
+          );
+        }
+      }
     }
     if (performanceNode != null && performanceNode is! YamlMap) {
       throw EnsembleTestFailure('"performance" must be a map');
@@ -305,12 +320,11 @@ class EnsembleTestParser {
         initialStateNode,
         inputs: const {},
       ),
+      devices: _parseDevices(devicesNode),
       screenshots: screenshotsNode == null
           ? const ScreenshotConfig()
           : ScreenshotConfig(
               enabled: screenshotsNode['enabled'] == true,
-              platform: screenshotsNode['platform']?.toString() ?? 'ios',
-              model: screenshotsNode['model']?.toString() ?? 'iPhone 15 Pro',
               includeSteps: _toStringList(screenshotsNode['includeSteps']),
               excludeSteps: _toStringList(screenshotsNode['excludeSteps']),
             ),
@@ -364,6 +378,84 @@ class EnsembleTestParser {
       throw EnsembleTestFailure('"$fieldName" must be a non-negative integer');
     }
     return parsed;
+  }
+
+  static List<TestDeviceTarget> _parseDevices(dynamic node) {
+    if (node == null) return const [];
+    if (node is! YamlList) {
+      throw EnsembleTestFailure('"devices" must be a list');
+    }
+    final devices = <TestDeviceTarget>[];
+    final ids = <String>{};
+    for (var i = 0; i < node.length; i++) {
+      final item = node[i];
+      if (item is! YamlMap) {
+        throw EnsembleTestFailure(
+          'Each devices entry must be a map',
+        );
+      }
+      const allowedKeys = {'id', 'platform', 'model', 'locale'};
+      for (final key in item.keys) {
+        if (!allowedKeys.contains(key.toString())) {
+          throw EnsembleTestFailure(
+            'Unsupported devices key "$key"',
+          );
+        }
+      }
+      final platform = item['platform']?.toString().trim() ?? '';
+      if (platform.isEmpty) {
+        throw EnsembleTestFailure(
+          'devices[$i].platform is required',
+        );
+      }
+      final model = item['model']?.toString().trim() ?? '';
+      if (model.isEmpty) {
+        throw EnsembleTestFailure(
+          'devices[$i].model is required',
+        );
+      }
+      final locale = item['locale']?.toString().trim();
+      final idRaw = item['id']?.toString().trim();
+      final id = (idRaw == null || idRaw.isEmpty)
+          ? _defaultDeviceId(
+              platform: platform,
+              locale: locale,
+              index: i,
+            )
+          : idRaw;
+      if (!ids.add(id)) {
+        throw EnsembleTestFailure(
+          'Duplicate devices id "$id"',
+        );
+      }
+      devices.add(
+        TestDeviceTarget(
+          id: id,
+          platform: platform,
+          model: model,
+          locale: (locale == null || locale.isEmpty) ? null : locale,
+        ),
+      );
+    }
+    return devices;
+  }
+
+  static String _defaultDeviceId({
+    required String platform,
+    required String? locale,
+    required int index,
+  }) {
+    final platformKey = platform.toLowerCase().replaceAll(
+          RegExp(r'[^a-z0-9]+'),
+          '_',
+        );
+    final localeKey = (locale == null || locale.isEmpty)
+        ? null
+        : locale.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]+'), '_');
+    if (localeKey == null) {
+      return '${platformKey}_$index';
+    }
+    return '${platformKey}_$localeKey';
   }
 
   static List<TestServiceConfig> _parseServices(dynamic node) {

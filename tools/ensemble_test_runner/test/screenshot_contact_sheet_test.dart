@@ -80,7 +80,7 @@ void main() {
     const headerHeight = 220;
     final tileX =
         ((columns * tileWidth + (columns + 1) * gap - tileWidth) / 2).round();
-    final tileBorder = sheet.getPixel(tileX, headerHeight + gap * 2);
+    final tileBorder = sheet.getPixel(tileX, headerHeight + gap);
     expect(tileBorder.r, greaterThan(tileBorder.g));
 
     // Copy to artifact directory for visual inspection
@@ -121,6 +121,46 @@ void main() {
 
     File(path).deleteSync();
     image.dispose();
+  });
+
+  testWidgets('groups multi-device frames into labeled sections',
+      (tester) async {
+    const testId = 'contact_sheet_multi_device';
+    final android = await _testImage(color: Colors.green);
+    final iphone = await _testImage(color: Colors.blue);
+    final path = await tester.runAsync(
+      () => writeScreenshotContactSheet(
+        testId: testId,
+        config: const ScreenshotConfig(enabled: true),
+        frames: [
+          ScreenshotSheetFrame(
+            stepIndex: 0,
+            label: '1. tap(button)',
+            image: android,
+            deviceId: 'android_nl',
+            deviceLabel: 'Samsung Galaxy S20 · nl',
+            platform: 'android',
+            model: 'Samsung Galaxy S20',
+          ),
+          ScreenshotSheetFrame(
+            stepIndex: 0,
+            label: '1. tap(button)',
+            image: iphone,
+            deviceId: 'iphone_en',
+            deviceLabel: 'iPhone 15 Pro · en',
+            platform: 'ios',
+            model: 'iPhone 15 Pro',
+          ),
+        ],
+        status: TestStatus.passed,
+        durationMs: 1200,
+      ),
+    );
+
+    expect(path, endsWith('/$testId.png'));
+    final sheet = img.decodePng(File(path!).readAsBytesSync())!;
+    expect(sheet.height, greaterThan(900));
+    File(path).deleteSync();
   });
 }
 

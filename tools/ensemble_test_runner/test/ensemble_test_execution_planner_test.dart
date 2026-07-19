@@ -341,6 +341,113 @@ steps:
       expect((initialState['env'] as Map)['DEBUG'], true);
     });
 
+    test('expands devices into per-device runs', () async {
+      const yaml = '''
+id: home_devices
+startScreen: Home
+session: signed_in
+steps:
+  - expectVisible:
+      id: home
+''';
+
+      final definitions =
+          await EnsembleTestExecutionPlanner.parseDefinitionsForTest(
+        'suite/tests/home.test.yaml',
+        yaml,
+        suiteInitialState: const {
+          'env': {'APP_LOCALE': 'nl'},
+        },
+        suiteDevices: const [
+          TestDeviceTarget(
+            id: 'android_nl',
+            platform: 'android',
+            model: 'Samsung Galaxy S20',
+            locale: 'nl',
+          ),
+          TestDeviceTarget(
+            id: 'iphone_en',
+            platform: 'ios',
+            model: 'iPhone 15 Pro',
+            locale: 'en',
+          ),
+        ],
+      );
+
+      expect(definitions.map((d) => d.testCase.id), [
+        'home_devices[android_nl]',
+        'home_devices[iphone_en]',
+      ]);
+      expect(
+        definitions.map((d) => d.testCase.session),
+        ['signed_in[android_nl]', 'signed_in[iphone_en]'],
+      );
+      expect(
+        definitions.map((d) => d.testCase.resolvedScreenshotSheetId).toSet(),
+        {'home_devices'},
+      );
+      expect(
+        (definitions[0].testCase.initialState['env'] as Map)['APP_LOCALE'],
+        'nl',
+      );
+      expect(
+        (definitions[1].testCase.initialState['env'] as Map)['APP_LOCALE'],
+        'en',
+      );
+      expect(definitions[0].testCase.deviceTarget?.model, 'Samsung Galaxy S20');
+      expect(definitions[1].testCase.deviceTarget?.model, 'iPhone 15 Pro');
+      expect(
+        definitions[0].testCase.startScreenInputs['languageCode'],
+        'nl-NL',
+      );
+      expect(
+        definitions[1].testCase.startScreenInputs['languageCode'],
+        'en-US',
+      );
+    });
+
+    test('device matrix overrides startScreenInputs languageCode', () async {
+      const yaml = '''
+id: init_locale
+startScreen: InitApp
+startScreenInputs:
+  languageCode: nl-NL
+  token: abc
+steps:
+  - expectVisible:
+      id: home
+''';
+
+      final definitions =
+          await EnsembleTestExecutionPlanner.parseDefinitionsForTest(
+        'suite/tests/init.test.yaml',
+        yaml,
+        suiteDevices: const [
+          TestDeviceTarget(
+            id: 'android_nl',
+            platform: 'android',
+            model: 'Samsung Galaxy S20',
+            locale: 'nl',
+          ),
+          TestDeviceTarget(
+            id: 'iphone_en',
+            platform: 'ios',
+            model: 'iPhone 15 Pro',
+            locale: 'en',
+          ),
+        ],
+      );
+
+      expect(
+        definitions[0].testCase.startScreenInputs['languageCode'],
+        'nl-NL',
+      );
+      expect(
+        definitions[1].testCase.startScreenInputs['languageCode'],
+        'en-US',
+      );
+    });
+
     test('merges file and inline mocks with inline overrides', () async {
       const yaml = '''
 id: home_inline_mocks

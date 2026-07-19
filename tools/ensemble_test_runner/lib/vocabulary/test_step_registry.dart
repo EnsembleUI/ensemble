@@ -290,11 +290,7 @@ abstract final class TestStepRegistry {
       tier: TestStepTier.core,
       argKind: TestStepArgKind.empty,
       description: 'Replace active API mocks for subsequent steps',
-      example: const {
-        'getDevices': {
-          'body': {'count': 2},
-        },
-      },
+      example: const {'getDevices': const {'body': const {'count': 2}}},
     ),
     'waitForNavigation': TestStepRegistryEntry(
       category: TestStepCategory.wait,
@@ -334,22 +330,22 @@ abstract final class TestStepRegistry {
     'expectText': TestStepRegistryEntry(
       category: TestStepCategory.uiAssertion,
       tier: TestStepTier.core,
-      argKind: TestStepArgKind.textRequired,
-      description: 'Assert exact text is shown',
+      argKind: TestStepArgKind.textOrAnyOf,
+      description: 'Assert exact text is shown (or anyOf list)',
       example: const {'text': 'Welcome'},
     ),
     'expectNoText': TestStepRegistryEntry(
       category: TestStepCategory.uiAssertion,
       tier: TestStepTier.core,
-      argKind: TestStepArgKind.textRequired,
-      description: 'Assert text is not shown',
+      argKind: TestStepArgKind.textOrAnyOf,
+      description: 'Assert text is not shown (or none of anyOf)',
       example: const {'text': 'Welcome'},
     ),
     'expectTextContains': TestStepRegistryEntry(
       category: TestStepCategory.uiAssertion,
       tier: TestStepTier.core,
-      argKind: TestStepArgKind.textRequired,
-      description: 'Assert some text containing the given substring',
+      argKind: TestStepArgKind.textOrAnyOf,
+      description: 'Assert some text containing the given substring (or anyOf list)',
       example: const {'text': 'Welcome'},
     ),
     'expectEnabled': TestStepRegistryEntry(

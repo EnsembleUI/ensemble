@@ -90,10 +90,20 @@ as `${services.modemStub.url}`.
 
 screenshots:
   enabled: true
-  platform: ios
-  model: iPhone 15 Pro
   includeSteps: []
   excludeSteps: []
+
+# Device matrix (viewport + optional locale). One entry = single device;
+# multiple entries expand each test and share one contact sheet.
+devices:
+  - id: android_nl
+    platform: android
+    model: Samsung Galaxy S20
+    locale: nl
+  - id: iphone_en
+    platform: ios
+    model: iPhone 15 Pro
+    locale: en
 
 performance:
   enabled: true
@@ -112,6 +122,12 @@ logStorage:
 `mocks` and `initialState` in `config.yaml` apply to every test. Test-file
 `mocks` / `initialState` values override suite values for the same API name or
 storage/keychain/env key.
+
+When `devices` is set, each test expands to one run per device (ids look like
+`home[android_nl]` when there is more than one device). Device `locale` sets
+`APP_LOCALE` for that run. All device runs of a logical test share one contact
+sheet named after the base test id (for example `home.png`), with a section per
+device.
 
 ## App setup
 

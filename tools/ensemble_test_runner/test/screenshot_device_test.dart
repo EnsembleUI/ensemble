@@ -18,7 +18,7 @@ void main() {
     expect(device.name, 'iPhone 15 Pro');
   });
 
-  test('uses suite screenshot config device when enabled', () {
+  test('uses suite devices when screenshots enabled', () {
     final device = screenshotDeviceForTestCase(
       const EnsembleTestCase(
         id: 'screenshots',
@@ -28,11 +28,44 @@ void main() {
         ],
       ),
       const EnsembleTestConfig(
-        screenshots: ScreenshotConfig(
-          enabled: true,
+        screenshots: ScreenshotConfig(enabled: true),
+        devices: [
+          TestDeviceTarget(
+            id: 'android',
+            platform: 'android',
+            model: 'Samsung Galaxy S20',
+          ),
+        ],
+      ),
+    );
+
+    expect(device?.name, 'Samsung Galaxy S20');
+  });
+
+  test('uses per-test deviceTarget over suite devices', () {
+    final device = screenshotDeviceForTestCase(
+      const EnsembleTestCase(
+        id: 'screenshots[android_nl]',
+        startScreen: 'Home',
+        steps: [
+          TestStep(type: 'tap', args: {'id': 'button'}),
+        ],
+        deviceTarget: TestDeviceTarget(
+          id: 'android_nl',
           platform: 'android',
           model: 'Samsung Galaxy S20',
+          locale: 'nl',
         ),
+      ),
+      const EnsembleTestConfig(
+        screenshots: ScreenshotConfig(enabled: true),
+        devices: [
+          TestDeviceTarget(
+            id: 'iphone',
+            platform: 'ios',
+            model: 'iPhone 15 Pro',
+          ),
+        ],
       ),
     );
 

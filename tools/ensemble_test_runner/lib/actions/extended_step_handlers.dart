@@ -86,9 +86,22 @@ class ExtendedStepHandlers {
         executor.assertions.expectNotExists(executor.requireId(step));
         return true;
       case 'expectTextContains':
+        final anyOfRaw = step.args['anyOf'];
+        final anyOf = <String>[
+          if (anyOfRaw is List)
+            for (final item in anyOfRaw)
+              if (item != null && item.toString().trim().isNotEmpty)
+                item.toString(),
+        ];
         final text = step.args['text']?.toString();
+        if (anyOf.isNotEmpty) {
+          executor.assertions.expectTextContainsAny(anyOf);
+          return true;
+        }
         if (text == null) {
-          throw EnsembleTestFailure('expectTextContains requires "text"');
+          throw EnsembleTestFailure(
+            'expectTextContains requires "text" or "anyOf"',
+          );
         }
         executor.assertions.expectTextContains(text);
         return true;

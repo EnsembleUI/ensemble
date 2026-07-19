@@ -279,13 +279,19 @@ class EnsembleTestSchemaBuilder {
               'Suite-wide storage/keychain/env applied before each test '
               'initialState. Test values override suite values per key.',
         },
+        'devices': {
+          'type': 'array',
+          'description':
+              'Suite device matrix. Each test runs once per entry with that '
+              'platform/model viewport and optional locale (APP_LOCALE). '
+              'Multiple devices share one contact sheet per logical test id.',
+          'items': {'\$ref': '#/\$defs/testDevice'},
+        },
         'screenshots': {
           'type': 'object',
           'additionalProperties': false,
           'properties': {
             'enabled': {'type': 'boolean'},
-            'platform': {'type': 'string'},
-            'model': {'type': 'string'},
             'includeSteps': {
               'type': 'array',
               'items': {'type': 'string'},
@@ -343,6 +349,27 @@ class EnsembleTestSchemaBuilder {
             'storage': {'type': 'object', 'additionalProperties': true},
             'keychain': {'type': 'object', 'additionalProperties': true},
             'env': {'type': 'object', 'additionalProperties': true},
+          },
+        },
+        'testDevice': {
+          'type': 'object',
+          'additionalProperties': false,
+          'required': ['platform', 'model'],
+          'properties': {
+            'id': {
+              'type': 'string',
+              'description':
+                  'Stable id used in test ids when multiple devices are '
+                  'configured (e.g. home[android_nl]). Defaults to '
+                  'platform_locale.',
+            },
+            'platform': {'type': 'string'},
+            'model': {'type': 'string'},
+            'locale': {
+              'type': 'string',
+              'description':
+                  'Sets APP_LOCALE / forcedLocale for this device run.',
+            },
           },
         },
         'mockResponse': {

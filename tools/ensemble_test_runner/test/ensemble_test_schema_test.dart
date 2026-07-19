@@ -107,9 +107,15 @@ void main() {
     expect(defs, contains('inlineMocks'));
     expect(defs, contains('mockResponse'));
     expect(defs, contains('initialState'));
+    expect(defs, contains('testDevice'));
+    expect(properties, contains('devices'));
     expect(
       (properties['screenshots'] as Map<String, dynamic>)['properties'],
-      containsPair('model', {'type': 'string'}),
+      isNot(contains('platform')),
+    );
+    expect(
+      (properties['screenshots'] as Map<String, dynamic>)['properties'],
+      isNot(contains('devices')),
     );
     final serviceItems = (properties['services']
         as Map<String, dynamic>)['items'] as Map<String, dynamic>;

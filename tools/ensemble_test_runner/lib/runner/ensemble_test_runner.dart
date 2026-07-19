@@ -20,7 +20,7 @@ import 'package:ensemble_test_runner/runner/ensemble_test_context.dart';
 import 'package:ensemble_test_runner/runner/ensemble_test_harness.dart';
 import 'package:ensemble_test_runner/runner/live_async_call.dart';
 import 'package:ensemble_test_runner/runner/screenshot_contact_sheet.dart';
-import 'package:ensemble_test_runner/runner/screenshot_sheet_write_queue.dart';
+import 'package:ensemble_test_runner/runner/screenshot_sheet_aggregator.dart';
 import 'package:ensemble_test_runner/runner/test_runtime_state.dart';
 import 'package:ensemble_test_runner/runner/test_service_manager.dart';
 import 'package:ensemble_test_runner/runner/yaml_test_session.dart';
@@ -55,8 +55,7 @@ class EnsembleTestPlanRunResult {
 class EnsembleTestRunner {
   /// Harness used to boot and reset the real Ensemble runtime.
   final EnsembleTestHarness harness;
-  final ScreenshotSheetWriteQueue _screenshotSheetWrites =
-      ScreenshotSheetWriteQueue();
+  ScreenshotSheetAggregator? _activeScreenshotSheets;
 
   /// Creates a runner backed by [harness].
   EnsembleTestRunner({required this.harness});
@@ -69,6 +68,10 @@ class EnsembleTestRunner {
   }) async {
     final services = TestServiceManager(plan.config.services);
     await tester.runAsync(services.startAll);
+    _activeScreenshotSheets = ScreenshotSheetAggregator(
+      screenshots: plan.config.screenshots,
+      devices: plan.config.devices,
+    );
     try {
       return await _runPlan(
         plan,
@@ -76,6 +79,8 @@ class EnsembleTestRunner {
         onTestComplete: onTestComplete,
       );
     } finally {
+      await _activeScreenshotSheets?.flushRemaining();
+      _activeScreenshotSheets = null;
       await LiveAsyncCallSupport.run<void>(services.stopAll);
     }
   }
@@ -610,19 +615,43 @@ class EnsembleTestRunner {
       }
     }
 
+    final device = _screenshotDeviceTarget(executor.context);
     executor.context.runtime.addScreenshotSheetFrame(
       ScreenshotSheetFrame(
         stepIndex: stepIndex,
         label: '${stepIndex + 1}. ${formatStepBrief(step)}',
         image: image,
+        deviceId: device?.id,
+        deviceLabel: device?.displayLabel,
+        platform: device?.platform,
+        model: device?.model,
       ),
     );
 
-    _screenshotSheetWrites.schedulePending(
-      testId: executor.context.testCase.id,
-      config: options,
+    _screenshotSheetsFor(executor.context.config).schedulePending(
+      testCase: executor.context.testCase,
       frames: executor.context.runtime.screenshotSheetFrames,
     );
+  }
+
+  TestDeviceTarget? _screenshotDeviceTarget(EnsembleTestContext ctx) {
+    final target = ctx.testCase.deviceTarget;
+    if (target != null) return target;
+    if (ctx.config.devices.length == 1) return ctx.config.devices.single;
+    if (!ctx.config.screenshots.enabled) return null;
+    return const TestDeviceTarget(
+      id: 'ios',
+      platform: 'ios',
+      model: 'iPhone 15 Pro',
+    );
+  }
+
+  ScreenshotSheetAggregator _screenshotSheetsFor(EnsembleTestConfig config) {
+    return _activeScreenshotSheets ??
+        ScreenshotSheetAggregator(
+          screenshots: config.screenshots,
+          devices: config.devices,
+        );
   }
 
   Future<void> _captureAutomaticScreenshotForStepBestEffort({
@@ -778,20 +807,29 @@ class EnsembleTestRunner {
     if (id != null && id.isNotEmpty) {
       return executor.assertions.finderForId(id);
     }
-    final text = step.args['text']?.toString();
-    if (text != null && text.isNotEmpty) {
+    final texts = <String>[
+      if (step.args['text']?.toString().trim().isNotEmpty == true)
+        step.args['text'].toString(),
+      if (step.args['anyOf'] is List)
+        for (final item in step.args['anyOf'] as List)
+          if (item != null && item.toString().trim().isNotEmpty)
+            item.toString(),
+    ];
+    for (final text in texts) {
       if (step.type == 'expectTextContains') {
         final hitTestableText = find.textContaining(text).hitTestable();
         if (hitTestableText.evaluate().isNotEmpty) {
           return hitTestableText;
         }
-        return find.textContaining(text);
+        final containing = find.textContaining(text);
+        if (containing.evaluate().isNotEmpty) return containing;
       } else {
         final hitTestableText = find.text(text).hitTestable();
         if (hitTestableText.evaluate().isNotEmpty) {
           return hitTestableText;
         }
-        return find.text(text);
+        final exact = find.text(text);
+        if (exact.evaluate().isNotEmpty) return exact;
       }
     }
     return null;
@@ -860,8 +898,12 @@ class EnsembleTestRunner {
         step.type == 'scrollUntilVisible' ||
         step.type == 'expectVisible') {
       final text = step.args['text']?.toString();
+      final anyOf = step.args['anyOf'];
       final id = step.args['id']?.toString();
-      return (text != null && text.isNotEmpty) || (id != null && id.isNotEmpty);
+      final hasAnyOf = anyOf is List && anyOf.isNotEmpty;
+      return (text != null && text.isNotEmpty) ||
+          hasAnyOf ||
+          (id != null && id.isNotEmpty);
     }
     return _isUserActionStep(step);
   }
@@ -1219,14 +1261,12 @@ class EnsembleTestRunner {
       ctx.runtime.screenshotSheetFrames,
     );
     ctx.runtime.screenshotSheetFrames.clear();
-    if (sheetFrames.isEmpty) return;
+    if (sheetFrames.isEmpty && !ctx.config.hasDeviceMatrix) {
+      return;
+    }
 
-    _screenshotSheetWrites.invalidate(ctx.testCase.id);
-    await _screenshotSheetWrites.drain();
-
-    final path = await writeScreenshotContactSheet(
-      testId: ctx.testCase.id,
-      config: ctx.config.screenshots,
+    final path = await _screenshotSheetsFor(ctx.config).completeRun(
+      testCase: ctx.testCase,
       frames: sheetFrames,
       status: status,
       durationMs: durationMs,
@@ -1249,13 +1289,23 @@ class EnsembleTestRunner {
     try {
       final image = ExtendedStepHandlers.captureScreenshotImage(tester);
       final path = await writeScreenshotContactSheet(
-        testId: test.id,
+        testId: test.resolvedScreenshotSheetId,
         config: config.screenshots,
         frames: [
           ScreenshotSheetFrame(
             stepIndex: 0,
             label: 'Runner failure',
             image: image,
+            deviceId: test.deviceTarget?.id,
+            deviceLabel: test.deviceTarget?.displayLabel,
+            platform: test.deviceTarget?.platform ??
+                (config.devices.isNotEmpty
+                    ? config.devices.first.platform
+                    : 'ios'),
+            model: test.deviceTarget?.model ??
+                (config.devices.isNotEmpty
+                    ? config.devices.first.model
+                    : 'iPhone 15 Pro'),
           ),
         ],
         status: TestStatus.failed,
@@ -1263,6 +1313,7 @@ class EnsembleTestRunner {
         failedStepIndex: 0,
         failedStepLabel: 'Runner failure',
         failureMessage: error.toString(),
+        failedDeviceId: test.deviceTarget?.id,
       );
       return path == null ? const [] : ['screenshots: $path'];
     } catch (_) {

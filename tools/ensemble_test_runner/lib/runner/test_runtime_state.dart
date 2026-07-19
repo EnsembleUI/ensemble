@@ -55,12 +55,20 @@ class ScreenshotSheetFrame {
   final int stepIndex;
   final String label;
   final ui.Image image;
+  final String? deviceId;
+  final String? deviceLabel;
+  final String? platform;
+  final String? model;
   Uint8List? encodedPngBytes;
 
   ScreenshotSheetFrame({
     required this.stepIndex,
     required this.label,
     required this.image,
+    this.deviceId,
+    this.deviceLabel,
+    this.platform,
+    this.model,
   });
 }
 

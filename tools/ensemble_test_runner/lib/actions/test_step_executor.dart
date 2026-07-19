@@ -93,6 +93,7 @@ class TestStepExecutor {
         await _waitFor(
           step: step,
           text: step.args['text']?.toString(),
+          anyOf: _stringListArg(step.args['anyOf']),
           timeoutMs: step.args['timeoutMs'] as int? ??
               config.defaultWaitTimeout.inMilliseconds,
         );
@@ -177,6 +178,7 @@ class TestStepExecutor {
           step: step,
           id: step.args['id']?.toString(),
           text: step.args['text']?.toString(),
+          anyOf: _stringListArg(step.args['anyOf']),
           timeoutMs: step.args['timeoutMs'] as int? ??
               config.defaultWaitTimeout.inMilliseconds,
         );
@@ -207,18 +209,26 @@ class TestStepExecutor {
         assertions.expectNotVisible(_requireId(step));
         break;
       case 'expectText':
+        final anyOf = _stringListArg(step.args['anyOf']);
         final text = step.args['text']?.toString();
-        if (text == null) {
-          throw EnsembleTestFailure('expectText requires "text"');
+        if (anyOf.isNotEmpty) {
+          assertions.expectTextAny(anyOf);
+        } else if (text != null) {
+          assertions.expectText(text);
+        } else {
+          throw EnsembleTestFailure('expectText requires "text" or "anyOf"');
         }
-        assertions.expectText(text);
         break;
       case 'expectNoText':
+        final anyOf = _stringListArg(step.args['anyOf']);
         final text = step.args['text']?.toString();
-        if (text == null) {
-          throw EnsembleTestFailure('expectNoText requires "text"');
+        if (anyOf.isNotEmpty) {
+          assertions.expectNoTextAny(anyOf);
+        } else if (text != null) {
+          assertions.expectNoText(text);
+        } else {
+          throw EnsembleTestFailure('expectNoText requires "text" or "anyOf"');
         }
-        assertions.expectNoText(text);
         break;
       case 'expectEnabled':
         assertions.expectEnabled(_requireId(step));
@@ -514,10 +524,17 @@ class TestStepExecutor {
     TestStep? step,
     String? id,
     String? text,
+    List<String> anyOf = const [],
     required int timeoutMs,
   }) async {
-    if (id == null && text == null) {
-      throw EnsembleTestFailure('waitFor requires either "id" or "text"');
+    final textCandidates = <String>[
+      if (text != null && text.trim().isNotEmpty) text,
+      ...anyOf.where((value) => value.trim().isNotEmpty),
+    ];
+    if (id == null && textCandidates.isEmpty) {
+      throw EnsembleTestFailure(
+        'waitFor requires either "id", "text", or "anyOf"',
+      );
     }
 
     final stopwatch = Stopwatch()..start();
@@ -527,7 +544,8 @@ class TestStepExecutor {
           assertions.finderForId(id).hitTestable().evaluate().isNotEmpty) {
         return;
       }
-      if (text != null && assertions.isTextVisible(text)) {
+      if (textCandidates.isNotEmpty &&
+          assertions.isAnyTextVisible(textCandidates)) {
         if (step?.type == 'waitForText' && onWaitForTextMatched != null) {
           await onWaitForTextMatched!(step!);
         }
@@ -535,16 +553,29 @@ class TestStepExecutor {
       }
     }
 
-    final target = id != null && text != null
-        ? 'id "$id" or text "$text"'
+    final textLabel = textCandidates.isEmpty
+        ? null
+        : textCandidates.length == 1
+            ? 'text "${textCandidates.single}"'
+            : 'any text in ${textCandidates.map((t) => '"$t"').join(', ')}';
+    final target = id != null && textLabel != null
+        ? 'id "$id" or $textLabel'
         : id != null
             ? 'id "$id"'
-            : 'text "$text"';
+            : textLabel!;
     throw EnsembleTestFailure(
       'Timed out after ${timeoutMs}ms waiting for $target. '
       '${assertions.visibleWidgetIdSummary()} '
       '${assertions.visibleTextSummary()}',
     );
+  }
+
+  static List<String> _stringListArg(dynamic value) {
+    if (value is! List) return const [];
+    return [
+      for (final item in value)
+        if (item != null && item.toString().trim().isNotEmpty) item.toString(),
+    ];
   }
 
   void _expectSingleWidget(Finder finder, String id, String stepType) {

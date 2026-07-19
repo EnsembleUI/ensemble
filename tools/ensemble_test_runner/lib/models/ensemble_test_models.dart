@@ -58,6 +58,12 @@ class EnsembleTestCase {
   final TestMocks mocks;
   final List<TestStep> steps;
 
+  /// Set when suite `devices` expands this test for one device.
+  final TestDeviceTarget? deviceTarget;
+
+  /// Shared contact-sheet id across device-matrix runs (defaults to [id]).
+  final String? screenshotSheetId;
+
   const EnsembleTestCase({
     required this.id,
     this.sourcePath,
@@ -79,11 +85,16 @@ class EnsembleTestCase {
     this.setupSteps = const [],
     this.mocks = const TestMocks(),
     required this.steps,
+    this.deviceTarget,
+    this.screenshotSheetId,
   });
 
   bool get hasStartScreen => startScreen != null && startScreen!.isNotEmpty;
 
   bool get hasSession => session != null && session!.isNotEmpty;
+
+  /// Contact sheet filename / aggregation key.
+  String get resolvedScreenshotSheetId => screenshotSheetId ?? id;
 
   Map<String, dynamic> get metadataJson => {
         if (feature != null) 'feature': feature,
@@ -92,6 +103,7 @@ class EnsembleTestCase {
         if (owner != null) 'owner': owner,
         if (priority != null) 'priority': priority,
         if (retry > 0) 'retry': retry,
+        if (deviceTarget != null) 'device': deviceTarget!.id,
       };
 }
 
@@ -113,6 +125,10 @@ class EnsembleTestConfig {
   final List<String> mockFiles;
   final Map<String, dynamic> inlineMocks;
   final Map<String, dynamic> initialState;
+
+  /// Suite device matrix (platform/model + optional locale). When non-empty,
+  /// each test runs once per entry.
+  final List<TestDeviceTarget> devices;
   final ScreenshotConfig screenshots;
   final PerformanceConfig performance;
   final DumpTreeConfig dumpTree;
@@ -125,6 +141,7 @@ class EnsembleTestConfig {
     this.mockFiles = const [],
     this.inlineMocks = const {},
     this.initialState = const {},
+    this.devices = const [],
     this.screenshots = const ScreenshotConfig(),
     this.performance = const PerformanceConfig(),
     this.dumpTree = const DumpTreeConfig(),
@@ -132,6 +149,8 @@ class EnsembleTestConfig {
     this.logStorage = const LogStorageConfig(),
     this.timers = const TimerRewriteConfig(),
   });
+
+  bool get hasDeviceMatrix => devices.isNotEmpty;
 }
 
 class TestServiceConfig {
@@ -223,17 +242,39 @@ class LogStorageConfig {
   });
 }
 
-class ScreenshotConfig {
-  final bool enabled;
+/// One device (+ optional locale) in a suite run matrix.
+class TestDeviceTarget {
+  final String id;
   final String platform;
   final String model;
+  final String? locale;
+
+  const TestDeviceTarget({
+    required this.id,
+    required this.platform,
+    required this.model,
+    this.locale,
+  });
+
+  String get displayLabel {
+    final localeValue = locale?.trim();
+    if (localeValue == null || localeValue.isEmpty) return model;
+    return '$model · $localeValue';
+  }
+
+  Map<String, dynamic> toScreenshotArgs() => {
+        'platform': platform,
+        'model': model,
+      };
+}
+
+class ScreenshotConfig {
+  final bool enabled;
   final List<String> includeSteps;
   final List<String> excludeSteps;
 
   const ScreenshotConfig({
     this.enabled = false,
-    this.platform = 'ios',
-    this.model = 'iPhone 15 Pro',
     this.includeSteps = const [],
     this.excludeSteps = const [],
   });
@@ -246,12 +287,6 @@ class ScreenshotConfig {
     }
     return true;
   }
-
-  Map<String, dynamic> toScreenshotArgs([Map<String, dynamic>? overrides]) => {
-        'platform': platform,
-        'model': model,
-        ...?overrides,
-      };
 }
 
 /// Mock configuration attached to a test case.

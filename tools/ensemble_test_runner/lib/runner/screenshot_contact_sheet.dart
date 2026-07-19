@@ -23,24 +23,33 @@ Future<String?> writeScreenshotContactSheet({
   int? failedStepIndex,
   String? failedStepLabel,
   String? failureMessage,
+  String? failedDeviceId,
 }) async {
   if (frames.isEmpty) return null;
 
-  final tiles = <img.Image>[];
-  final device = resolveScreenshotDevice(config.toScreenshotArgs());
+  final defaultDevice = resolveScreenshotDevice(const {});
+  final tileEntries = <_SheetTileEntry>[];
   try {
     for (final frame in frames) {
-      final failedFrame =
-          status == TestStatus.failed && frame.stepIndex == failedStepIndex;
+      final failedFrame = status == TestStatus.failed &&
+          frame.stepIndex == failedStepIndex &&
+          (failedDeviceId == null || frame.deviceId == failedDeviceId);
       final cachedTile = failedFrame ? null : _normalTileCache[frame];
       if (cachedTile != null) {
-        tiles.add(cachedTile);
+        tileEntries.add(
+          _SheetTileEntry(
+            tile: cachedTile,
+            deviceId: frame.deviceId,
+            deviceLabel: frame.deviceLabel,
+          ),
+        );
         continue;
       }
+      final frameDevice = _deviceForFrame(frame, defaultDevice);
       final pngBytes = frame.encodedPngBytes ??
           await _encodeFrameImage(
             frame,
-            device,
+            frameDevice,
           );
       frame.encodedPngBytes ??= pngBytes;
       final source = img.decodePng(pngBytes);
@@ -53,7 +62,13 @@ Future<String?> writeScreenshotContactSheet({
       if (!failedFrame) {
         _normalTileCache[frame] = tile;
       }
-      tiles.add(tile);
+      tileEntries.add(
+        _SheetTileEntry(
+          tile: tile,
+          deviceId: frame.deviceId,
+          deviceLabel: frame.deviceLabel,
+        ),
+      );
     }
   } finally {
     if (status != TestStatus.pending) {
@@ -65,13 +80,13 @@ Future<String?> writeScreenshotContactSheet({
     }
   }
 
-  if (tiles.isEmpty) return null;
+  if (tileEntries.isEmpty) return null;
 
   final sheet = _composeSheet(
     testId: testId,
     status: status,
     durationMs: durationMs,
-    tiles: tiles,
+    tiles: tileEntries,
     failedStepIndex: failedStepIndex,
     failedStepLabel: failedStepLabel,
     failureMessage: failureMessage,
@@ -90,6 +105,34 @@ Future<String?> writeScreenshotContactSheet({
   final file = ensembleTestArtifactFile('screenshots', '$safeTestId.png');
   file.writeAsBytesSync(img.encodePng(sheet, level: 1));
   return ensembleTestArtifactDisplayPath('screenshots', '$safeTestId.png');
+}
+
+class _SheetTileEntry {
+  final img.Image tile;
+  final String? deviceId;
+  final String? deviceLabel;
+
+  const _SheetTileEntry({
+    required this.tile,
+    this.deviceId,
+    this.deviceLabel,
+  });
+}
+
+DeviceInfo _deviceForFrame(
+  ScreenshotSheetFrame frame,
+  DeviceInfo fallback,
+) {
+  final platform = frame.platform;
+  final model = frame.model;
+  if ((platform == null || platform.isEmpty) &&
+      (model == null || model.isEmpty)) {
+    return fallback;
+  }
+  return resolveScreenshotDevice({
+    if (platform != null && platform.isNotEmpty) 'platform': platform,
+    if (model != null && model.isNotEmpty) 'model': model,
+  });
 }
 
 // --- Custom Drawing Helper Functions ---
@@ -229,24 +272,34 @@ img.Image _composeSheet({
   required String testId,
   required TestStatus status,
   required int durationMs,
-  required List<img.Image> tiles,
+  required List<_SheetTileEntry> tiles,
   int? failedStepIndex,
   String? failedStepLabel,
   String? failureMessage,
 }) {
   const columns = 5;
   const gap = 16;
+  const sectionHeaderHeight = 48;
   final headerHeight = status == TestStatus.failed ? 220 : 150;
-  final rows = (tiles.length / columns).ceil();
-  final tileWidth = tiles.map((tile) => tile.width).reduce(math.max);
-  final tileHeight = tiles.map((tile) => tile.height).reduce(math.max);
+  final tileWidth = tiles.map((entry) => entry.tile.width).reduce(math.max);
+  final tileHeight = tiles.map((entry) => entry.tile.height).reduce(math.max);
+
+  final sections = _groupTilesByDevice(tiles);
+  final multiDevice = sections.length > 1 ||
+      (sections.length == 1 && sections.first.deviceId != null);
+
+  var bodyHeight = gap;
+  for (final section in sections) {
+    if (multiDevice) bodyHeight += sectionHeaderHeight + gap;
+    final rows = (section.tiles.length / columns).ceil();
+    bodyHeight += rows * tileHeight + (rows + 1) * gap;
+  }
 
   final sheet = img.Image(
     width: columns * tileWidth + (columns + 1) * gap,
-    height: headerHeight + rows * tileHeight + (rows + 2) * gap,
+    height: headerHeight + bodyHeight,
   );
 
-  // Draw premium gradient background
   _drawGradientBackground(sheet);
 
   _drawSummaryHeader(
@@ -260,20 +313,113 @@ img.Image _composeSheet({
     failureMessage: failureMessage,
   );
 
-  for (var i = 0; i < tiles.length; i++) {
-    final tile = tiles[i];
-    final row = i ~/ columns;
-    final column = i % columns;
-    final remainingTiles = tiles.length - row * columns;
-    final rowTiles = math.min(columns, remainingTiles);
-    final rowWidth = rowTiles * tileWidth + (rowTiles - 1) * gap;
-    final rowStartX = ((sheet.width - rowWidth) / 2).round();
-    final x = rowStartX + column * (tileWidth + gap);
-    final y = headerHeight + gap * 2 + row * (tileHeight + gap);
-    img.compositeImage(sheet, tile, dstX: x, dstY: y);
+  var y = headerHeight + gap;
+  for (final section in sections) {
+    if (multiDevice) {
+      _drawDeviceSectionHeader(
+        sheet,
+        label: section.deviceLabel ?? section.deviceId ?? 'Device',
+        y: y,
+        height: sectionHeaderHeight,
+      );
+      y += sectionHeaderHeight + gap;
+    }
+
+    for (var i = 0; i < section.tiles.length; i++) {
+      final tile = section.tiles[i];
+      final row = i ~/ columns;
+      final column = i % columns;
+      final remainingTiles = section.tiles.length - row * columns;
+      final rowTiles = math.min(columns, remainingTiles);
+      final rowWidth = rowTiles * tileWidth + (rowTiles - 1) * gap;
+      final rowStartX = ((sheet.width - rowWidth) / 2).round();
+      final x = rowStartX + column * (tileWidth + gap);
+      final tileY = y + row * (tileHeight + gap);
+      img.compositeImage(sheet, tile, dstX: x, dstY: tileY);
+    }
+
+    final rows = (section.tiles.length / columns).ceil();
+    y += rows * tileHeight + (rows + 1) * gap;
   }
 
   return sheet;
+}
+
+class _DeviceTileSection {
+  final String? deviceId;
+  final String? deviceLabel;
+  final List<img.Image> tiles;
+
+  const _DeviceTileSection({
+    required this.deviceId,
+    required this.deviceLabel,
+    required this.tiles,
+  });
+}
+
+List<_DeviceTileSection> _groupTilesByDevice(List<_SheetTileEntry> tiles) {
+  final sections = <_DeviceTileSection>[];
+  String? currentId;
+  String? currentLabel;
+  var currentTiles = <img.Image>[];
+
+  void flush() {
+    if (currentTiles.isEmpty) return;
+    sections.add(
+      _DeviceTileSection(
+        deviceId: currentId,
+        deviceLabel: currentLabel,
+        tiles: currentTiles,
+      ),
+    );
+    currentTiles = <img.Image>[];
+  }
+
+  for (final entry in tiles) {
+    if (currentTiles.isNotEmpty && entry.deviceId != currentId) {
+      flush();
+    }
+    currentId = entry.deviceId;
+    currentLabel = entry.deviceLabel ?? entry.deviceId;
+    currentTiles.add(entry.tile);
+  }
+  flush();
+  return sections;
+}
+
+void _drawDeviceSectionHeader(
+  img.Image sheet, {
+  required String label,
+  required int y,
+  required int height,
+}) {
+  const margin = 16;
+  final x1 = margin;
+  final y1 = y;
+  final x2 = sheet.width - margin - 1;
+  final y2 = y + height - 1;
+
+  _drawCardWithBorder(
+    sheet,
+    x1: x1,
+    y1: y1,
+    x2: x2,
+    y2: y2,
+    radius: 10,
+    borderThickness: 1,
+    borderColor: img.ColorRgb8(51, 65, 85),
+    fillColor: img.ColorRgb8(30, 41, 59),
+    drawShadow: false,
+  );
+
+  img.drawString(
+    sheet,
+    _ellipsis(label, img.arial14, x2 - x1 - 32),
+    font: img.arial14,
+    x: x1 + 16,
+    y: y1 + (height - img.arial14.lineHeight) ~/ 2,
+    color: img.ColorRgb8(226, 232, 240),
+  );
 }
 
 img.Image _buildTile(

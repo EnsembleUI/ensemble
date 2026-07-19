@@ -57,8 +57,17 @@ initialState:
 
 screenshots:
   enabled: true
-  platform: ios
-  model: iPhone 15 Pro
+
+# Device matrix (viewport + optional locale). Use one entry for a single device.
+devices:
+  - id: android_nl
+    platform: android
+    model: Samsung Galaxy S20
+    locale: nl
+  - id: iphone_en
+    platform: ios
+    model: iPhone 15 Pro
+    locale: en
 
 performance:
   enabled: true
@@ -81,6 +90,26 @@ test-level `storage` / `keychain` / `env` keys override suite values.
 When `screenshots.enabled` is true, the runner captures automatic step
 screenshots into one contact sheet per test case under
 `build/ensemble_test_runner/screenshots/`.
+
+When `devices` is set, each test runs once per device (test ids become
+`id[deviceId]` when there is more than one device). Device `locale` overrides
+`APP_LOCALE` for that run (and InitApp `languageCode` when present). All device
+runs share one sheet named after the logical test id, with a labeled section
+per device.
+
+For multi-locale suites, use `anyOf` on text assertions so both languages pass:
+
+```yaml
+- waitForText:
+    anyOf: [Zwak signaal, Weak signal]
+    timeoutMs: 30000
+- expectText:
+    anyOf: [Verbeter je wifi, Improve your wifi]
+- expectNoText:
+    anyOf: [IPv6 staat nog uit, IPv6 is still off]
+- expectTextContains:
+    anyOf: [niet op de beste plek, not in the best location]
+```
 
 When `timers.enabled` is true, the CLI temporarily caps numeric
 `startAfter` and `repeatInterval` values in local app screen YAML while the test

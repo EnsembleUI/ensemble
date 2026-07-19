@@ -2,13 +2,17 @@ import 'package:ensemble_device_preview/ensemble_device_preview.dart';
 import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
 
 DeviceInfo? screenshotDeviceForTestCase(
-  EnsembleTestCase _,
+  EnsembleTestCase testCase,
   EnsembleTestConfig config,
 ) {
+  final target = testCase.deviceTarget ??
+      (config.devices.length == 1 ? config.devices.single : null);
+  if (target != null) {
+    return resolveScreenshotDevice(target.toScreenshotArgs());
+  }
   if (config.screenshots.enabled) {
-    return resolveScreenshotDevice(
-      config.screenshots.toScreenshotArgs(),
-    );
+    // No suite devices configured — frame with the default iPhone.
+    return resolveScreenshotDevice(const {});
   }
   return null;
 }

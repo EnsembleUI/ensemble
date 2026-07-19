@@ -47,10 +47,82 @@ class AssertionEngine {
     }
   }
 
+  void expectTextAny(List<String> texts) {
+    final candidates = _nonEmptyTexts(texts);
+    for (final text in candidates) {
+      if (isTextVisible(text)) return;
+    }
+    throw EnsembleTestFailure(
+      'Expected one of these texts to be visible: '
+      '${candidates.map((t) => '"$t"').join(', ')}.',
+    );
+  }
+
   void expectNoText(String text) {
     if (isTextVisible(text)) {
       throw EnsembleTestFailure('Expected text "$text" to not be visible.');
     }
+  }
+
+  void expectNoTextAny(List<String> texts) {
+    final candidates = _nonEmptyTexts(texts);
+    final visible = <String>[];
+    for (final text in candidates) {
+      if (isTextVisible(text)) visible.add(text);
+    }
+    if (visible.isNotEmpty) {
+      throw EnsembleTestFailure(
+        'Expected none of these texts to be visible, but found: '
+        '${visible.map((t) => '"$t"').join(', ')}.',
+      );
+    }
+  }
+
+  void expectTextContains(String text) {
+    if (!isTextContainingVisible(text)) {
+      throw EnsembleTestFailure('Expected text containing "$text".');
+    }
+  }
+
+  void expectTextContainsAny(List<String> texts) {
+    final candidates = _nonEmptyTexts(texts);
+    for (final text in candidates) {
+      if (isTextContainingVisible(text)) return;
+    }
+    throw EnsembleTestFailure(
+      'Expected text containing one of: '
+      '${candidates.map((t) => '"$t"').join(', ')}.',
+    );
+  }
+
+  bool isTextVisible(String text) => _hasVisiblePaintedElement(find.text(text));
+
+  bool isTextContainingVisible(String text) =>
+      _hasVisiblePaintedElement(find.textContaining(text));
+
+  bool isAnyTextVisible(List<String> texts) {
+    for (final text in _nonEmptyTexts(texts)) {
+      if (isTextVisible(text)) return true;
+    }
+    return false;
+  }
+
+  bool isAnyTextContainingVisible(List<String> texts) {
+    for (final text in _nonEmptyTexts(texts)) {
+      if (isTextContainingVisible(text)) return true;
+    }
+    return false;
+  }
+
+  static List<String> _nonEmptyTexts(List<String> texts) {
+    final candidates = texts
+        .map((text) => text.trim())
+        .where((text) => text.isNotEmpty)
+        .toList();
+    if (candidates.isEmpty) {
+      throw EnsembleTestFailure('Text anyOf must not be empty.');
+    }
+    return candidates;
   }
 
   void expectEnabled(String id) {
@@ -163,17 +235,6 @@ class AssertionEngine {
       throw EnsembleTestFailure('Expected widget with id "$id" to not exist.');
     }
   }
-
-  void expectTextContains(String text) {
-    if (!isTextContainingVisible(text)) {
-      throw EnsembleTestFailure('Expected text containing "$text".');
-    }
-  }
-
-  bool isTextVisible(String text) => _hasVisiblePaintedElement(find.text(text));
-
-  bool isTextContainingVisible(String text) =>
-      _hasVisiblePaintedElement(find.textContaining(text));
 
   bool _hasVisiblePaintedElement(Finder finder) {
     return finder.evaluate().any(_isElementInViewport);

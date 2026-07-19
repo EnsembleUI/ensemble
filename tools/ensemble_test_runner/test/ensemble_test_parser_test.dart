@@ -334,8 +334,6 @@ steps:
       const yaml = '''
 screenshots:
   enabled: true
-  platform: android
-  model: Samsung Galaxy S20
   includeSteps: [tap, waitForNavigation]
   excludeSteps: [wait]
 ''';
@@ -343,13 +341,52 @@ screenshots:
       final config = EnsembleTestParser.parseConfigString(yaml);
       final screenshots = config.screenshots;
       expect(screenshots.enabled, isTrue);
-      expect(screenshots.platform, 'android');
-      expect(screenshots.model, 'Samsung Galaxy S20');
       expect(screenshots.includeSteps, ['tap', 'waitForNavigation']);
       expect(screenshots.excludeSteps, ['wait']);
       expect(screenshots.shouldCaptureStep('tap'), isTrue);
       expect(screenshots.shouldCaptureStep('wait'), isFalse);
       expect(screenshots.shouldCaptureStep('settle'), isFalse);
+    });
+
+    test('parses suite devices matrix', () {
+      const yaml = '''
+devices:
+  - id: android_nl
+    platform: android
+    model: Samsung Galaxy S20
+    locale: nl
+  - platform: ios
+    model: iPhone 15 Pro
+    locale: en
+''';
+
+      final devices = EnsembleTestParser.parseConfigString(yaml).devices;
+      expect(devices, hasLength(2));
+      expect(devices[0].id, 'android_nl');
+      expect(devices[0].platform, 'android');
+      expect(devices[0].model, 'Samsung Galaxy S20');
+      expect(devices[0].locale, 'nl');
+      expect(devices[1].id, 'ios_en');
+      expect(devices[1].platform, 'ios');
+      expect(devices[1].locale, 'en');
+    });
+
+    test('rejects screenshots.platform/model/devices', () {
+      const yaml = '''
+screenshots:
+  enabled: true
+  platform: ios
+''';
+      expect(
+        () => EnsembleTestParser.parseConfigString(yaml),
+        throwsA(
+          isA<EnsembleTestFailure>().having(
+            (error) => error.message,
+            'message',
+            contains('screenshots.platform'),
+          ),
+        ),
+      );
     });
 
     test('parses suite test services', () {

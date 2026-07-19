@@ -237,6 +237,17 @@ void main() {
       'httpRequest',
       'Send an HTTP request to a test support service',
     ),
+    'mocks': step(
+      'apiMock',
+      'core',
+      'empty',
+      'Replace active API mocks for subsequent steps',
+      example: const {
+        'getDevices': {
+          'body': {'count': 2},
+        },
+      },
+    ),
     'waitForNavigation': step(
       'wait',
       'core',
@@ -270,20 +281,20 @@ void main() {
     'expectText': step(
       'uiAssertion',
       'core',
-      'textRequired',
-      'Assert exact text is shown',
+      'textOrAnyOf',
+      'Assert exact text is shown (or anyOf list)',
     ),
     'expectNoText': step(
       'uiAssertion',
       'core',
-      'textRequired',
-      'Assert text is not shown',
+      'textOrAnyOf',
+      'Assert text is not shown (or none of anyOf)',
     ),
     'expectTextContains': step(
       'uiAssertion',
       'core',
-      'textRequired',
-      'Assert some text containing the given substring',
+      'textOrAnyOf',
+      'Assert some text containing the given substring (or anyOf list)',
     ),
     'expectEnabled': step(
       'uiAssertion',
@@ -715,6 +726,8 @@ Map<String, dynamic> defaultExampleForArg(String arg) {
     case 'waitForNavigation':
       return {'screen': 'Home', 'timeoutMs': 5000};
     case 'textRequired':
+      return {'text': 'Welcome'};
+    case 'textOrAnyOf':
       return {'text': 'Welcome'};
     case 'expectEquals':
       return {'id': 'email_field', 'equals': 'user@test.com'};

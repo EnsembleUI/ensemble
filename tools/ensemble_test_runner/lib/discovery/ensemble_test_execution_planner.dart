@@ -83,6 +83,7 @@ class EnsembleTestExecutionPlanner {
         suiteMockFiles: config.mockFiles,
         suiteInlineMocks: config.inlineMocks,
         suiteInitialState: config.initialState,
+        suiteDevices: config.devices,
       );
       for (final definition in definitions) {
         final existing = byId[definition.testCase.id];
@@ -122,6 +123,7 @@ class EnsembleTestExecutionPlanner {
     List<String> suiteMockFiles = const [],
     Map<String, dynamic> suiteInlineMocks = const {},
     Map<String, dynamic> suiteInitialState = const {},
+    List<TestDeviceTarget> suiteDevices = const [],
     Future<String> Function(String assetPath)? assetLoader,
   }) {
     return _parseDefinitionsFromAsset(
@@ -132,6 +134,7 @@ class EnsembleTestExecutionPlanner {
       suiteMockFiles: suiteMockFiles,
       suiteInlineMocks: suiteInlineMocks,
       suiteInitialState: suiteInitialState,
+      suiteDevices: suiteDevices,
       assetLoader: assetLoader ?? _rootBundleAssetLoader,
     );
   }
@@ -144,6 +147,7 @@ class EnsembleTestExecutionPlanner {
     List<String> suiteMockFiles = const [],
     Map<String, dynamic> suiteInlineMocks = const {},
     Map<String, dynamic> suiteInitialState = const {},
+    List<TestDeviceTarget> suiteDevices = const [],
     _AssetStringLoader assetLoader = _rootBundleAssetLoader,
   }) async {
     final resolvedContent = _resolveServicePlaceholders(content, services);
@@ -156,6 +160,7 @@ class EnsembleTestExecutionPlanner {
       sourcePath: path,
       inputs: inputs,
     );
+    final List<EnsembleTestDefinition> definitions;
     if (base.scenarios.isEmpty) {
       final mocks = await _mergedMocksFor(
         assetPath: path,
@@ -170,7 +175,7 @@ class EnsembleTestExecutionPlanner {
         steps: base.steps,
         assetLoader: assetLoader,
       );
-      return [
+      definitions = [
         EnsembleTestDefinition(
           assetPath: path,
           testCase: _withRuntimeFields(
@@ -187,56 +192,138 @@ class EnsembleTestExecutionPlanner {
           ),
         ),
       ];
-    }
-
-    final definitions = <EnsembleTestDefinition>[];
-    for (final scenario in base.scenarios) {
-      final parsed = EnsembleTestParser.parseString(
-        resolvedContent,
-        sourcePath: path,
-        inputs: inputs,
-        scenario: scenario.vars,
-        scenarioId: scenario.id,
-      );
-      final parsedScenario = parsed.scenarios.firstWhere(
-        (item) => item.id == scenario.id,
-        orElse: () => scenario,
-      );
-      final id = '${base.id}[${scenario.id}]';
-      final mocks = await _mergedMocksFor(
-        assetPath: path,
-        suiteMockFiles: suiteMockFiles,
-        suiteInlineMocks: suiteInlineMocks,
-        mockFiles: parsed.mockFiles,
-        inlineMocks: parsed.inlineMocks,
-        assetLoader: assetLoader,
-      );
-      final steps = await _resolveStepMocks(
-        assetPath: path,
-        steps: parsed.steps,
-        assetLoader: assetLoader,
-      );
-
-      definitions.add(
-        EnsembleTestDefinition(
+    } else {
+      definitions = <EnsembleTestDefinition>[];
+      for (final scenario in base.scenarios) {
+        final parsed = EnsembleTestParser.parseString(
+          resolvedContent,
+          sourcePath: path,
+          inputs: inputs,
+          scenario: scenario.vars,
+          scenarioId: scenario.id,
+        );
+        final parsedScenario = parsed.scenarios.firstWhere(
+          (item) => item.id == scenario.id,
+          orElse: () => scenario,
+        );
+        final id = '${base.id}[${scenario.id}]';
+        final mocks = await _mergedMocksFor(
           assetPath: path,
-          testCase: _withRuntimeFields(
-            parsed,
-            id: id,
-            description: parsedScenario.description ?? parsed.description,
-            startScreen: parsed.startScreen,
-            session: parsed.session,
-            mocks: mocks,
-            steps: steps,
-            initialState: mergedInitialState(
-              suiteInitialState,
-              parsed.initialState,
+          suiteMockFiles: suiteMockFiles,
+          suiteInlineMocks: suiteInlineMocks,
+          mockFiles: parsed.mockFiles,
+          inlineMocks: parsed.inlineMocks,
+          assetLoader: assetLoader,
+        );
+        final steps = await _resolveStepMocks(
+          assetPath: path,
+          steps: parsed.steps,
+          assetLoader: assetLoader,
+        );
+
+        definitions.add(
+          EnsembleTestDefinition(
+            assetPath: path,
+            testCase: _withRuntimeFields(
+              parsed,
+              id: id,
+              description: parsedScenario.description ?? parsed.description,
+              startScreen: parsed.startScreen,
+              session: parsed.session,
+              mocks: mocks,
+              steps: steps,
+              initialState: mergedInitialState(
+                suiteInitialState,
+                parsed.initialState,
+              ),
             ),
           ),
-        ),
-      );
+        );
+      }
     }
-    return definitions;
+
+    return expandDeviceMatrix(definitions, suiteDevices);
+  }
+
+  /// Expands each definition once per suite `devices` entry.
+  @visibleForTesting
+  static List<EnsembleTestDefinition> expandDeviceMatrix(
+    List<EnsembleTestDefinition> definitions,
+    List<TestDeviceTarget> devices,
+  ) {
+    if (devices.isEmpty) return definitions;
+
+    final expanded = <EnsembleTestDefinition>[];
+    for (final definition in definitions) {
+      final test = definition.testCase;
+      for (final device in devices) {
+        final multi = devices.length > 1;
+        expanded.add(
+          EnsembleTestDefinition(
+            assetPath: definition.assetPath,
+            testCase: _withRuntimeFields(
+              test,
+              id: multi ? '${test.id}[${device.id}]' : test.id,
+              startScreen: test.startScreen,
+              session: !multi || test.session == null
+                  ? test.session
+                  : '${test.session}[${device.id}]',
+              mocks: test.mocks,
+              steps: test.steps,
+              initialState: _withDeviceLocale(test.initialState, device),
+              startScreenInputs: _withDeviceLanguageInput(
+                test.startScreenInputs,
+                device,
+              ),
+              deviceTarget: device,
+              screenshotSheetId: multi
+                  ? test.resolvedScreenshotSheetId
+                  : test.screenshotSheetId,
+            ),
+          ),
+        );
+      }
+    }
+    return expanded;
+  }
+
+  static Map<String, dynamic> _withDeviceLocale(
+    Map<String, dynamic> initialState,
+    TestDeviceTarget device,
+  ) {
+    final locale = device.locale?.trim();
+    if (locale == null || locale.isEmpty) {
+      return Map<String, dynamic>.from(initialState);
+    }
+    return mergedInitialState(
+      initialState,
+      {
+        'env': {'APP_LOCALE': locale},
+      },
+    );
+  }
+
+  /// Maps device locale onto InitApp-style `languageCode` screen inputs
+  /// (`nl` → `nl-NL`, `en` → `en-US`) so deep-link locale matches the matrix.
+  static Map<String, dynamic> _withDeviceLanguageInput(
+    Map<String, dynamic> inputs,
+    TestDeviceTarget device,
+  ) {
+    final locale = device.locale?.trim();
+    if (locale == null || locale.isEmpty) {
+      return Map<String, dynamic>.from(inputs);
+    }
+    final languageCode = switch (locale.toLowerCase()) {
+      'en' || 'en_us' || 'en-us' => 'en-US',
+      'nl' || 'nl_nl' || 'nl-nl' => 'nl-NL',
+      _ => locale.contains('-') || locale.contains('_')
+          ? locale.replaceAll('_', '-')
+          : locale,
+    };
+    return <String, dynamic>{
+      ...inputs,
+      'languageCode': languageCode,
+    };
   }
 
   static String _resolveServicePlaceholders(
@@ -280,6 +367,9 @@ class EnsembleTestExecutionPlanner {
     required TestMocks mocks,
     required List<TestStep> steps,
     Map<String, dynamic>? initialState,
+    Map<String, dynamic>? startScreenInputs,
+    TestDeviceTarget? deviceTarget,
+    String? screenshotSheetId,
   }) {
     return EnsembleTestCase(
       id: id,
@@ -293,7 +383,7 @@ class EnsembleTestExecutionPlanner {
       parallel: test.parallel,
       retry: test.retry,
       startScreen: startScreen,
-      startScreenInputs: test.startScreenInputs,
+      startScreenInputs: startScreenInputs ?? test.startScreenInputs,
       session: session,
       mockFiles: test.mockFiles,
       scenarios: test.scenarios,
@@ -301,6 +391,8 @@ class EnsembleTestExecutionPlanner {
       setupSteps: test.setupSteps,
       mocks: mocks,
       steps: steps,
+      deviceTarget: deviceTarget ?? test.deviceTarget,
+      screenshotSheetId: screenshotSheetId ?? test.screenshotSheetId,
     );
   }
 

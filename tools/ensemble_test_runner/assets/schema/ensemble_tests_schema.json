@@ -781,6 +781,13 @@
         "text": {
           "type": "string"
         },
+        "anyOf": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1
+        },
         "timeoutMs": {
           "type": "integer"
         }
@@ -803,6 +810,13 @@
         },
         "text": {
           "type": "string"
+        },
+        "anyOf": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1
         },
         "timeoutMs": {
           "type": "integer"
@@ -1047,17 +1061,33 @@
     },
     "args_expectText": {
       "type": "object",
+      "additionalProperties": false,
       "properties": {
         "text": {
           "type": "string"
+        },
+        "anyOf": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1
         }
       },
-      "required": [
-        "text"
+      "anyOf": [
+        {
+          "required": [
+            "text"
+          ]
+        },
+        {
+          "required": [
+            "anyOf"
+          ]
+        }
       ],
-      "additionalProperties": false,
       "title": "expectText",
-      "description": "Assert exact text is shown",
+      "description": "Assert exact text is shown (or anyOf list)",
       "examples": [
         {
           "text": "Welcome"
@@ -1066,17 +1096,33 @@
     },
     "args_expectNoText": {
       "type": "object",
+      "additionalProperties": false,
       "properties": {
         "text": {
           "type": "string"
+        },
+        "anyOf": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1
         }
       },
-      "required": [
-        "text"
+      "anyOf": [
+        {
+          "required": [
+            "text"
+          ]
+        },
+        {
+          "required": [
+            "anyOf"
+          ]
+        }
       ],
-      "additionalProperties": false,
       "title": "expectNoText",
-      "description": "Assert text is not shown",
+      "description": "Assert text is not shown (or none of anyOf)",
       "examples": [
         {
           "text": "Welcome"
@@ -1085,17 +1131,33 @@
     },
     "args_expectTextContains": {
       "type": "object",
+      "additionalProperties": false,
       "properties": {
         "text": {
           "type": "string"
+        },
+        "anyOf": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1
         }
       },
-      "required": [
-        "text"
+      "anyOf": [
+        {
+          "required": [
+            "text"
+          ]
+        },
+        {
+          "required": [
+            "anyOf"
+          ]
+        }
       ],
-      "additionalProperties": false,
       "title": "expectTextContains",
-      "description": "Assert some text containing the given substring",
+      "description": "Assert some text containing the given substring (or anyOf list)",
       "examples": [
         {
           "text": "Welcome"
@@ -3395,7 +3457,7 @@
         {
           "type": "object",
           "title": "expectText",
-          "description": "Assert exact text is shown",
+          "description": "Assert exact text is shown (or anyOf list)",
           "examples": [
             {
               "expectText": {
@@ -3409,7 +3471,7 @@
           "properties": {
             "expectText": {
               "$ref": "#/$defs/args_expectText",
-              "description": "Assert exact text is shown",
+              "description": "Assert exact text is shown (or anyOf list)",
               "examples": [
                 {
                   "text": "Welcome"
@@ -3424,7 +3486,7 @@
         {
           "type": "object",
           "title": "expectNoText",
-          "description": "Assert text is not shown",
+          "description": "Assert text is not shown (or none of anyOf)",
           "examples": [
             {
               "expectNoText": {
@@ -3438,7 +3500,7 @@
           "properties": {
             "expectNoText": {
               "$ref": "#/$defs/args_expectNoText",
-              "description": "Assert text is not shown",
+              "description": "Assert text is not shown (or none of anyOf)",
               "examples": [
                 {
                   "text": "Welcome"
@@ -3453,7 +3515,7 @@
         {
           "type": "object",
           "title": "expectTextContains",
-          "description": "Assert some text containing the given substring",
+          "description": "Assert some text containing the given substring (or anyOf list)",
           "examples": [
             {
               "expectTextContains": {
@@ -3467,7 +3529,7 @@
           "properties": {
             "expectTextContains": {
               "$ref": "#/$defs/args_expectTextContains",
-              "description": "Assert some text containing the given substring",
+              "description": "Assert some text containing the given substring (or anyOf list)",
               "examples": [
                 {
                   "text": "Welcome"

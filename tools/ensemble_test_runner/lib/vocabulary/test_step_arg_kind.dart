@@ -20,6 +20,7 @@ enum TestStepArgKind {
   waitForGone,
   waitForNavigation,
   textRequired,
+  textOrAnyOf,
   expectEquals,
   expectChecked,
   expectProperty,
@@ -173,7 +174,16 @@ extension TestStepArgKindSchema on TestStepArgKind {
         );
       case TestStepArgKind.waitFor:
         return _object(
-          properties: {'id': _string, 'text': _string, 'timeoutMs': _integer},
+          properties: {
+            'id': _string,
+            'text': _string,
+            'anyOf': {
+              'type': 'array',
+              'items': _string,
+              'minItems': 1,
+            },
+            'timeoutMs': _integer,
+          },
         );
       case TestStepArgKind.waitForGone:
         return _object(
@@ -187,6 +197,27 @@ extension TestStepArgKindSchema on TestStepArgKind {
         );
       case TestStepArgKind.textRequired:
         return _object(properties: {'text': _string}, required: ['text']);
+      case TestStepArgKind.textOrAnyOf:
+        return {
+          'type': 'object',
+          'additionalProperties': false,
+          'properties': {
+            'text': _string,
+            'anyOf': {
+              'type': 'array',
+              'items': _string,
+              'minItems': 1,
+            },
+          },
+          'anyOf': [
+            {
+              'required': ['text'],
+            },
+            {
+              'required': ['anyOf'],
+            },
+          ],
+        };
       case TestStepArgKind.expectEquals:
         return _object(
           properties: {'id': _string, 'equals': _any},
