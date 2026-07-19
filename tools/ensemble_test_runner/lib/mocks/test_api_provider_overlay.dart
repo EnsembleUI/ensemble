@@ -12,11 +12,19 @@ class APICallRecord {
   final String name;
   final YamlMap apiDefinition;
   final DateTime timestamp;
+  bool? mocked;
+  int? statusCode;
+  String? error;
+  Object? responseBody;
 
   APICallRecord({
     required this.name,
     required this.apiDefinition,
     required this.timestamp,
+    this.mocked,
+    this.statusCode,
+    this.error,
+    this.responseBody,
   });
 }
 
@@ -129,25 +137,30 @@ class TestApiProviderOverlay extends HTTPAPIProvider {
         name: apiName,
         apiDefinition: api,
         timestamp: DateTime.now(),
+        mocked: false,
+        error: forced.toString(),
       ));
       throw forced;
     }
 
-    recorder.record(APICallRecord(
+    final record = APICallRecord(
       name: apiName,
       apiDefinition: api,
       timestamp: DateTime.now(),
-    ));
+    );
+    recorder.record(record);
 
     final mock = _mocks[apiName];
     if (mock == null) {
-      return _invokeLiveDelegate(
+      final response = await _invokeLiveDelegate(
         delegate,
         context,
         api,
         eContext,
         apiName,
       );
+      _completeRecord(record, response, mocked: false);
+      return response;
     }
 
     final response = _nextMockResponse(apiName, mock);
@@ -156,15 +169,33 @@ class TestApiProviderOverlay extends HTTPAPIProvider {
     }
 
     if (delegate is HTTPAPIProvider) {
-      return delegate.invokeMockAPI(eContext, _toRuntimeMockResponse(response));
+      final runtimeResponse = await delegate.invokeMockAPI(
+          eContext, _toRuntimeMockResponse(response));
+      _completeRecord(record, runtimeResponse, mocked: true);
+      return runtimeResponse;
     }
-    return HttpResponse.fromBody(
+    final runtimeResponse = HttpResponse.fromBody(
       response.body,
       response.headers,
       response.statusCode,
       null,
       APIState.success,
     );
+    _completeRecord(record, runtimeResponse, mocked: true);
+    return runtimeResponse;
+  }
+
+  void _completeRecord(
+    APICallRecord record,
+    Response response, {
+    required bool mocked,
+  }) {
+    record.mocked = mocked;
+    record.statusCode = response.statusCode;
+    record.responseBody = response.body;
+    if (!response.isOkay) {
+      record.error = response.reasonPhrase ?? response.body?.toString();
+    }
   }
 
   MockAPIResponse _nextMockResponse(String apiName, MockAPIResponse mock) {

@@ -232,6 +232,8 @@ class EnsembleTestParser {
   static EnsembleTestConfig _parseConfig(YamlMap node) {
     const allowedKeys = {
       'services',
+      'mocks',
+      'initialState',
       'screenshots',
       'performance',
       'timers',
@@ -249,6 +251,8 @@ class EnsembleTestParser {
     }
 
     final servicesNode = node['services'];
+    final mocksNode = node['mocks'];
+    final initialStateNode = node['initialState'];
     final screenshotsNode = node['screenshots'];
     final performanceNode = node['performance'];
     final timersNode = node['timers'];
@@ -257,6 +261,15 @@ class EnsembleTestParser {
     final logStorageNode = node['logStorage'];
     if (servicesNode != null && servicesNode is! YamlList) {
       throw EnsembleTestFailure('"services" must be a list');
+    }
+    if (mocksNode != null && mocksNode is! YamlList && mocksNode is! YamlMap) {
+      throw EnsembleTestFailure(
+        '"mocks" must be either a list of .mock.json files or an inline map '
+        'of API mock responses.',
+      );
+    }
+    if (initialStateNode != null && initialStateNode is! YamlMap) {
+      throw EnsembleTestFailure('"initialState" must be a map');
     }
     if (screenshotsNode != null && screenshotsNode is! YamlMap) {
       throw EnsembleTestFailure('"screenshots" must be a map');
@@ -277,8 +290,21 @@ class EnsembleTestParser {
       throw EnsembleTestFailure('"logStorage" must be a map');
     }
 
+    final parsedMocks = parseMocksNode(
+      mocksNode,
+      testId: 'tests/config.yaml',
+      inputs: const {},
+      scenario: const {},
+    );
+
     return EnsembleTestConfig(
       services: _parseServices(servicesNode),
+      mockFiles: parsedMocks.files,
+      inlineMocks: parsedMocks.inline,
+      initialState: _toStringDynamicMap(
+        initialStateNode,
+        inputs: const {},
+      ),
       screenshots: screenshotsNode == null
           ? const ScreenshotConfig()
           : ScreenshotConfig(

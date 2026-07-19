@@ -80,6 +80,9 @@ class EnsembleTestExecutionPlanner {
         content,
         inputs: inputs,
         services: config.services,
+        suiteMockFiles: config.mockFiles,
+        suiteInlineMocks: config.inlineMocks,
+        suiteInitialState: config.initialState,
       );
       for (final definition in definitions) {
         final existing = byId[definition.testCase.id];
@@ -116,6 +119,9 @@ class EnsembleTestExecutionPlanner {
     String content, {
     Map<String, dynamic> inputs = const {},
     List<TestServiceConfig> services = const [],
+    List<String> suiteMockFiles = const [],
+    Map<String, dynamic> suiteInlineMocks = const {},
+    Map<String, dynamic> suiteInitialState = const {},
     Future<String> Function(String assetPath)? assetLoader,
   }) {
     return _parseDefinitionsFromAsset(
@@ -123,6 +129,9 @@ class EnsembleTestExecutionPlanner {
       content,
       inputs: inputs,
       services: services,
+      suiteMockFiles: suiteMockFiles,
+      suiteInlineMocks: suiteInlineMocks,
+      suiteInitialState: suiteInitialState,
       assetLoader: assetLoader ?? _rootBundleAssetLoader,
     );
   }
@@ -132,6 +141,9 @@ class EnsembleTestExecutionPlanner {
     String content, {
     required Map<String, dynamic> inputs,
     List<TestServiceConfig> services = const [],
+    List<String> suiteMockFiles = const [],
+    Map<String, dynamic> suiteInlineMocks = const {},
+    Map<String, dynamic> suiteInitialState = const {},
     _AssetStringLoader assetLoader = _rootBundleAssetLoader,
   }) async {
     final resolvedContent = _resolveServicePlaceholders(content, services);
@@ -147,6 +159,8 @@ class EnsembleTestExecutionPlanner {
     if (base.scenarios.isEmpty) {
       final mocks = await _mergedMocksFor(
         assetPath: path,
+        suiteMockFiles: suiteMockFiles,
+        suiteInlineMocks: suiteInlineMocks,
         mockFiles: base.mockFiles,
         inlineMocks: base.inlineMocks,
         assetLoader: assetLoader,
@@ -166,6 +180,10 @@ class EnsembleTestExecutionPlanner {
             session: base.session,
             mocks: mocks,
             steps: steps,
+            initialState: mergedInitialState(
+              suiteInitialState,
+              base.initialState,
+            ),
           ),
         ),
       ];
@@ -187,6 +205,8 @@ class EnsembleTestExecutionPlanner {
       final id = '${base.id}[${scenario.id}]';
       final mocks = await _mergedMocksFor(
         assetPath: path,
+        suiteMockFiles: suiteMockFiles,
+        suiteInlineMocks: suiteInlineMocks,
         mockFiles: parsed.mockFiles,
         inlineMocks: parsed.inlineMocks,
         assetLoader: assetLoader,
@@ -208,6 +228,10 @@ class EnsembleTestExecutionPlanner {
             session: parsed.session,
             mocks: mocks,
             steps: steps,
+            initialState: mergedInitialState(
+              suiteInitialState,
+              parsed.initialState,
+            ),
           ),
         ),
       );
@@ -255,6 +279,7 @@ class EnsembleTestExecutionPlanner {
     String? session,
     required TestMocks mocks,
     required List<TestStep> steps,
+    Map<String, dynamic>? initialState,
   }) {
     return EnsembleTestCase(
       id: id,
@@ -272,11 +297,47 @@ class EnsembleTestExecutionPlanner {
       session: session,
       mockFiles: test.mockFiles,
       scenarios: test.scenarios,
-      initialState: test.initialState,
+      initialState: initialState ?? test.initialState,
       setupSteps: test.setupSteps,
       mocks: mocks,
       steps: steps,
     );
+  }
+
+  /// Suite [initialState] is the base; test values override per key within
+  /// `storage`, `keychain`, and `env`.
+  @visibleForTesting
+  static Map<String, dynamic> mergedInitialState(
+    Map<String, dynamic> suite,
+    Map<String, dynamic> test,
+  ) {
+    if (suite.isEmpty) return test;
+    if (test.isEmpty) return Map<String, dynamic>.from(suite);
+
+    Map<String, dynamic> section(String key) {
+      final suiteSection = _asStringKeyedMap(suite[key]);
+      final testSection = _asStringKeyedMap(test[key]);
+      if (suiteSection.isEmpty && testSection.isEmpty) {
+        return const <String, dynamic>{};
+      }
+      return <String, dynamic>{...suiteSection, ...testSection};
+    }
+
+    final merged = <String, dynamic>{};
+    for (final key in const ['storage', 'keychain', 'env']) {
+      final value = section(key);
+      if (value.isNotEmpty) {
+        merged[key] = value;
+      }
+    }
+    return merged;
+  }
+
+  static Map<String, dynamic> _asStringKeyedMap(dynamic value) {
+    if (value is! Map) return const <String, dynamic>{};
+    return <String, dynamic>{
+      for (final entry in value.entries) entry.key.toString(): entry.value,
+    };
   }
 
   static Future<List<TestStep>> _resolveStepMocks({
@@ -333,11 +394,27 @@ class EnsembleTestExecutionPlanner {
 
   static Future<TestMocks> _mergedMocksFor({
     required String assetPath,
+    List<String> suiteMockFiles = const [],
+    Map<String, dynamic> suiteInlineMocks = const {},
     required List<String> mockFiles,
     required Map<String, dynamic> inlineMocks,
     required _AssetStringLoader assetLoader,
   }) async {
     final apis = <String, MockAPIResponse>{};
+    for (final file in suiteMockFiles) {
+      final fileMocks = await _loadMockFile(
+        assetPath,
+        file,
+        assetLoader: assetLoader,
+      );
+      apis.addAll(fileMocks.apis);
+    }
+    apis.addAll(
+      _parseMockApisMap(
+        suiteInlineMocks,
+        sourceLabel: 'tests/config.yaml',
+      ).apis,
+    );
     for (final file in mockFiles) {
       final fileMocks = await _loadMockFile(
         assetPath,

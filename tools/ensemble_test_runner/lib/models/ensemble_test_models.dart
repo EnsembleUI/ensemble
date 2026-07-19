@@ -110,6 +110,9 @@ class TestScenario {
 
 class EnsembleTestConfig {
   final List<TestServiceConfig> services;
+  final List<String> mockFiles;
+  final Map<String, dynamic> inlineMocks;
+  final Map<String, dynamic> initialState;
   final ScreenshotConfig screenshots;
   final PerformanceConfig performance;
   final DumpTreeConfig dumpTree;
@@ -119,6 +122,9 @@ class EnsembleTestConfig {
 
   const EnsembleTestConfig({
     this.services = const [],
+    this.mockFiles = const [],
+    this.inlineMocks = const {},
+    this.initialState = const {},
     this.screenshots = const ScreenshotConfig(),
     this.performance = const PerformanceConfig(),
     this.dumpTree = const DumpTreeConfig(),

@@ -135,7 +135,7 @@ class EnsembleTestRunner {
           test,
           tester,
           suiteConfig: plan.config,
-          existingConfig: sessionSnapshot == null ? null : config,
+          existingConfig: null,
           sessionSnapshot: sessionSnapshot,
         );
       } catch (error, stackTrace) {
@@ -225,32 +225,18 @@ class EnsembleTestRunner {
       final startupStartFrame = ctx.runtime.appFrameTimings.length + 1;
       final startupStartTime = DateTime.now();
 
-      late final EnsembleConfig config;
-      if (sessionSnapshot != null) {
-        if (!YamlTestSession.runtimeBootstrapped) {
-          throw EnsembleTestFailure(
-            'Test "${test.id}" requires a mounted session runtime',
-          );
-        }
-        await sessionSnapshot.restore();
-        await _executeSetup(test);
-        await EnsembleTestHarness.applyInPlaceSetup(ctx);
-        config = existingConfig ?? Ensemble().getConfig()!;
-        await EnsembleTestHarness.openSessionScreen(tester, test);
-      } else {
-        config = await harness.loadScreen(
-          tester: tester,
-          testCase: test,
-          existingConfig: existingConfig,
-          context: ctx,
-          suiteConfig: suiteConfig,
-          beforeBootstrap: () async {
-            await sessionSnapshot?.restore();
-            await _executeSetup(test);
-          },
-          forcedLocale: sessionSnapshot?.locale ?? ctx.runtime.locale,
-        );
-      }
+      final config = await harness.loadScreen(
+        tester: tester,
+        testCase: test,
+        existingConfig: existingConfig,
+        context: ctx,
+        suiteConfig: suiteConfig,
+        beforeBootstrap: () async {
+          await sessionSnapshot?.restore();
+          await _executeSetup(test);
+        },
+        forcedLocale: sessionSnapshot?.locale ?? ctx.runtime.locale,
+      );
       _drainPendingFlutterExceptions(tester);
       await YamlTestSession.navigationFlow.flushPending();
       YamlTestSession.navigationFlow.beginTest(

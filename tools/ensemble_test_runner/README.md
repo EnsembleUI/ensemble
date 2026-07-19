@@ -69,6 +69,15 @@ Suite-wide runner config lives in `tests/config.yaml`. The schema is hosted at
 
 ```yaml
 # yaml-language-server: $schema=https://cdn.ensembleui.com/schemas/ensemble_test_config_schema.json
+mocks:
+  - mocks/common/base.mock.json
+
+initialState:
+  storage:
+    apiUrl: http://ensemble.test/ws/NeMo/Intf/lan:getMIBs
+  env:
+    APP_LOCALE: nl
+
 services:
   - name: modemStub
     command: .venv/bin/python
@@ -99,6 +108,10 @@ logApiCalls:
 logStorage:
   enabled: true
 ```
+
+`mocks` and `initialState` in `config.yaml` apply to every test. Test-file
+`mocks` / `initialState` values override suite values for the same API name or
+storage/keychain/env key.
 
 ## App setup
 
@@ -250,12 +263,21 @@ steps:
 
 ### Storage/env setup
 
+Shared defaults belong in `tests/config.yaml` `initialState`. Per-test values
+override suite keys:
+
 ```yaml
+# tests/config.yaml
+initialState:
+  storage:
+    apiUrl: http://ensemble.test/ws/NeMo/Intf/lan:getMIBs
+  env:
+    APP_LOCALE: nl
+
+# *.test.yaml — only deltas
 id: logged_in_home
 startScreen: Home
 initialState:
-  env:
-    apiURL: https://example.test
   storage:
     auth:
       token: test-token

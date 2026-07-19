@@ -377,6 +377,41 @@ services:
       expect(service.readyTimeoutMs, 15000);
     });
 
+    test('parses suite mocks', () {
+      const yaml = '''
+mocks:
+  - mocks/common.mock.json
+  - getDevices:
+      body: {count: 3}
+''';
+
+      final config = EnsembleTestParser.parseConfigString(yaml);
+      expect(config.mockFiles, ['mocks/common.mock.json']);
+      expect(
+        config.inlineMocks['getDevices'],
+        {
+          'body': {'count': 3}
+        },
+      );
+    });
+
+    test('parses suite initialState', () {
+      const yaml = '''
+initialState:
+  storage:
+    apiUrl: http://ensemble.test/ws
+  env:
+    APP_LOCALE: nl
+''';
+
+      final config = EnsembleTestParser.parseConfigString(yaml);
+      expect(
+        (config.initialState['storage'] as Map)['apiUrl'],
+        'http://ensemble.test/ws',
+      );
+      expect((config.initialState['env'] as Map)['APP_LOCALE'], 'nl');
+    });
+
     test('parses suite config performance', () {
       const yaml = '''
 performance:

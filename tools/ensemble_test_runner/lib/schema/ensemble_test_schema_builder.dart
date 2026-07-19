@@ -257,6 +257,28 @@ class EnsembleTestSchemaBuilder {
             },
           },
         },
+        'mocks': {
+          'oneOf': [
+            {
+              'type': 'array',
+              'items': {
+                'oneOf': [
+                  {'type': 'string', 'minLength': 1},
+                  {'\$ref': '#/\$defs/inlineMocks'},
+                ],
+              },
+            },
+            {'\$ref': '#/\$defs/inlineMocks'},
+          ],
+          'description':
+              'Suite-wide API mocks applied before each test file mocks',
+        },
+        'initialState': {
+          '\$ref': '#/\$defs/initialState',
+          'description':
+              'Suite-wide storage/keychain/env applied before each test '
+              'initialState. Test values override suite values per key.',
+        },
         'screenshots': {
           'type': 'object',
           'additionalProperties': false,
@@ -311,6 +333,36 @@ class EnsembleTestSchemaBuilder {
             'enabled': {'type': 'boolean'},
             'key': {'type': 'string'},
           },
+        },
+      },
+      '\$defs': {
+        'initialState': {
+          'type': 'object',
+          'additionalProperties': false,
+          'properties': {
+            'storage': {'type': 'object', 'additionalProperties': true},
+            'keychain': {'type': 'object', 'additionalProperties': true},
+            'env': {'type': 'object', 'additionalProperties': true},
+          },
+        },
+        'mockResponse': {
+          'type': 'object',
+          'additionalProperties': false,
+          'properties': {
+            'statusCode': {'type': 'integer'},
+            'body': true,
+            'headers': {'type': 'object', 'additionalProperties': true},
+            'delayMs': {'type': 'integer', 'minimum': 0},
+            'responses': {
+              'type': 'array',
+              'minItems': 1,
+              'items': {'\$ref': '#/\$defs/mockResponse'},
+            },
+          },
+        },
+        'inlineMocks': {
+          'type': 'object',
+          'additionalProperties': {'\$ref': '#/\$defs/mockResponse'},
         },
       },
     };

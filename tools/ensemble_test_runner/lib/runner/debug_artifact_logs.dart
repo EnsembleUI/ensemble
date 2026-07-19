@@ -55,6 +55,19 @@ Future<String> writeApiCallsLogFile({
           },
         )
         .toList(),
+    'events': [
+      for (var i = 0; i < calls.length; i++)
+        {
+          'index': i + 1,
+          'name': calls[i].name,
+          'timestamp': calls[i].timestamp.toIso8601String(),
+          if (calls[i].mocked != null) 'mocked': calls[i].mocked,
+          if (calls[i].statusCode != null) 'statusCode': calls[i].statusCode,
+          if (calls[i].error != null) 'error': calls[i].error,
+          if (calls[i].responseBody != null)
+            'responseBody': _loggableResponseBody(calls[i].responseBody),
+        },
+    ],
   });
 
   return logger.writeLogFile(
@@ -124,4 +137,11 @@ String captureDebugDumpApp() {
 String _prettyJson(Object? value) {
   return JsonEncoder.withIndent('  ', (value) => value.toString())
       .convert(value);
+}
+
+Object? _loggableResponseBody(Object? value) {
+  if (value is String && value.length > 2000) {
+    return '${value.substring(0, 2000)}...';
+  }
+  return value;
 }

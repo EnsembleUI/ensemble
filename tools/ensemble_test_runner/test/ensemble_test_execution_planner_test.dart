@@ -258,6 +258,89 @@ steps:
       expect((mocks['scenarioApi']!.body as Map)['from'], 'scenario-layer');
     });
 
+    test('applies suite mocks before test mocks', () async {
+      const yaml = '''
+id: home_suite_mocks
+startScreen: Home
+mocks:
+  - mocks/test.mock.json
+steps:
+  - expectVisible:
+      id: home
+''';
+      final assets = {
+        'suite/tests/mocks/suite.mock.json': '''
+{
+  "getDevices": {
+    "body": {"count": 1}
+  },
+  "suiteOnly": {
+    "body": {"from": "suite"}
+  }
+}
+''',
+        'suite/tests/mocks/test.mock.json': '''
+{
+  "getDevices": {
+    "body": {"count": 2}
+  }
+}
+''',
+      };
+
+      final definitions =
+          await EnsembleTestExecutionPlanner.parseDefinitionsForTest(
+        'suite/tests/home.test.yaml',
+        yaml,
+        suiteMockFiles: const ['mocks/suite.mock.json'],
+        assetLoader: (path) async => assets[path]!,
+      );
+
+      final mocks = definitions.single.testCase.mocks.apis;
+      expect((mocks['getDevices']!.body as Map)['count'], 2);
+      expect((mocks['suiteOnly']!.body as Map)['from'], 'suite');
+    });
+
+    test('applies suite initialState before test initialState', () async {
+      const yaml = '''
+id: home_suite_initial_state
+startScreen: Home
+initialState:
+  storage:
+    targetExtenderSerial: JB1
+  env:
+    DEBUG: true
+steps:
+  - expectVisible:
+      id: home
+''';
+
+      final definitions =
+          await EnsembleTestExecutionPlanner.parseDefinitionsForTest(
+        'suite/tests/home.test.yaml',
+        yaml,
+        suiteInitialState: const {
+          'storage': {
+            'apiUrl': 'http://ensemble.test/ws',
+            'targetExtenderSerial': 'SUITE',
+          },
+          'env': {'APP_LOCALE': 'nl'},
+        },
+      );
+
+      final initialState = definitions.single.testCase.initialState;
+      expect(
+        (initialState['storage'] as Map)['apiUrl'],
+        'http://ensemble.test/ws',
+      );
+      expect(
+        (initialState['storage'] as Map)['targetExtenderSerial'],
+        'JB1',
+      );
+      expect((initialState['env'] as Map)['APP_LOCALE'], 'nl');
+      expect((initialState['env'] as Map)['DEBUG'], true);
+    });
+
     test('merges file and inline mocks with inline overrides', () async {
       const yaml = '''
 id: home_inline_mocks

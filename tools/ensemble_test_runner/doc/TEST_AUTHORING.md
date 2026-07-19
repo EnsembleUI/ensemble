@@ -46,6 +46,15 @@ files:
 
 ```yaml
 # yaml-language-server: $schema=https://cdn.ensembleui.com/schemas/ensemble_test_config_schema.json
+mocks:
+  - mocks/common/base.mock.json
+
+initialState:
+  storage:
+    apiUrl: http://ensemble.test/ws/NeMo/Intf/lan:getMIBs
+  env:
+    APP_LOCALE: nl
+
 screenshots:
   enabled: true
   platform: ios
@@ -65,6 +74,10 @@ logStorage:
   enabled: true
 ```
 
+Suite `mocks` are applied before each test file's `mocks` (later entries win for
+the same API name). Suite `initialState` is the base for every test;
+test-level `storage` / `keychain` / `env` keys override suite values.
+
 When `screenshots.enabled` is true, the runner captures automatic step
 screenshots into one contact sheet per test case under
 `build/ensemble_test_runner/screenshots/`.
@@ -79,7 +92,10 @@ process runs, then restores the original files.
 
 ## Mocks
 
-Use `mocks` for API responses. For small mocks, define them inline:
+Use `mocks` for API responses. Put shared defaults in `tests/config.yaml`, then
+override per test when needed.
+
+For small mocks, define them inline:
 
 ```yaml
 mocks:
@@ -200,6 +216,7 @@ dart run ensemble_test_runner:ensemble_test \
 Reference them in test YAML with `${inputs.key}`:
 
 ```yaml
+# Shared apiUrl / APP_LOCALE can live in tests/config.yaml initialState.
 initialState:
   keychain:
     adminPassword: ${inputs.adminPassword}

@@ -91,16 +91,22 @@ void main() {
     final json = EnsembleTestSchemaBuilder.buildConfigJson();
     final decoded = jsonDecode(json) as Map<String, dynamic>;
     final properties = decoded['properties'] as Map<String, dynamic>;
+    final defs = decoded['\$defs'] as Map<String, dynamic>;
 
     expect(decoded['\$schema'], EnsembleTestSchemaBuilder.schemaVersion);
     expect(properties, contains('screenshots'));
     expect(properties, contains('services'));
+    expect(properties, contains('mocks'));
+    expect(properties, contains('initialState'));
     expect(properties, isNot(contains('record')));
     expect(properties, contains('performance'));
     expect(properties, contains('timers'));
     expect(properties, contains('dumpTree'));
     expect(properties, contains('logApiCalls'));
     expect(properties, contains('logStorage'));
+    expect(defs, contains('inlineMocks'));
+    expect(defs, contains('mockResponse'));
+    expect(defs, contains('initialState'));
     expect(
       (properties['screenshots'] as Map<String, dynamic>)['properties'],
       containsPair('model', {'type': 'string'}),
