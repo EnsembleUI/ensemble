@@ -1,3 +1,4 @@
+import 'package:ensemble/framework/bindings.dart';
 import 'package:ensemble/framework/device.dart';
 import 'package:ensemble/framework/model.dart';
 import 'package:ensemble/framework/scope.dart';
@@ -165,20 +166,11 @@ class BoxWrapper extends StatelessWidget {
           )
         : _getClippedWidget(context);
 
-    // TV: When tvOptions has focused background styles, let the wrapper handle
-    // both focused and unfocused backgrounds for proper animation
-    final bool tvHandlesBackground = Device().isTV &&
-        boxController.tvOptions?.isEnabled == true &&
-        (boxController.tvOptions?.backgroundColor != null ||
-            boxController.tvOptions?.backgroundGradient != null);
-
     final boxDecoration = !boxController.hasBoxDecoration()
         ? null
         : BoxDecoration(
-            // Skip backgroundColor if TV wrapper will handle it
-            color: tvHandlesBackground ? null : boxController.backgroundColor,
-            gradient:
-                tvHandlesBackground ? null : boxController.backgroundGradient,
+            color: boxController.backgroundColor,
+            gradient: boxController.backgroundGradient,
             border: !boxController.hasBorder()
                 ? null
                 : boxController.borderGradient != null
@@ -509,8 +501,28 @@ class _TapEnabledWrapperState extends State<_TapEnabledWrapper> {
   }
 
   void _onFocusChange() {
+    final hasFocus = _focusNode.hasFocus;
+
+    // Update controller's hasFocus state and dispatch binding event
+    if (widget.boxController.hasFocus != hasFocus) {
+      widget.boxController.hasFocus = hasFocus;
+
+      // Dispatch focus change for expression bindings like ${myWidget.hasFocus}
+      final widgetId = widget.boxController.id;
+      if (widgetId != null) {
+        final scopeManager = DataScopeWidget.getScope(context);
+        scopeManager?.dispatch(
+          ModelChangeEvent(
+            WidgetBindingSource(widgetId, property: 'hasFocus'),
+            hasFocus,
+            bindingScope: scopeManager,
+          ),
+        );
+      }
+    }
+
     // Auto-scroll to keep focused item visible during D-pad navigation
-    if (Device().isTV && _focusNode.hasFocus && mounted) {
+    if (Device().isTV && hasFocus && mounted) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted && context.mounted) {
           _handleFocusScroll();
@@ -971,31 +983,6 @@ class _TapEnabledWrapperState extends State<_TapEnabledWrapper> {
                 child: focusedContent,
               );
             }
-
-            // Apply focused background/shadow styles
-            // When tvOptions has background, also apply unfocused background from boxController
-            if (tvOptions.backgroundColor != null ||
-                tvOptions.backgroundGradient != null ||
-                tvOptions.boxShadow != null) {
-              focusedContent = AnimatedContainer(
-                duration: focusAnimationDuration,
-                decoration: BoxDecoration(
-                  // Use tvOptions background when focused, boxController background when unfocused
-                  color: hasFocus
-                      ? tvOptions.backgroundColor
-                      : boxController.backgroundColor,
-                  gradient: hasFocus
-                      ? tvOptions.backgroundGradient
-                      : boxController.backgroundGradient,
-                  borderRadius:
-                      tvOptions.borderRadius?.getValue() ?? borderRadius,
-                  boxShadow: hasFocus && tvOptions.boxShadow != null
-                      ? [tvOptions.boxShadow!.getValue(builderContext)]
-                      : null,
-                ),
-                child: focusedContent,
-              );
-            }
           }
 
           return focusedContent;
@@ -1322,30 +1309,6 @@ class _TVFocusOnlyWrapperState extends State<_TVFocusOnlyWrapper> {
           child: focusIndicatorContent,
         );
       }
-
-      // Apply focused background/shadow styles
-      // When tvOptions has background, also apply unfocused background from boxController
-      if (tvOptions.backgroundColor != null ||
-          tvOptions.backgroundGradient != null ||
-          tvOptions.boxShadow != null) {
-        focusIndicatorContent = AnimatedContainer(
-          duration: focusAnimationDuration,
-          decoration: BoxDecoration(
-            // Use tvOptions background when focused, boxController background when unfocused
-            color: _hasFocus
-                ? tvOptions.backgroundColor
-                : boxController.backgroundColor,
-            gradient: _hasFocus
-                ? tvOptions.backgroundGradient
-                : boxController.backgroundGradient,
-            borderRadius: tvOptions.borderRadius?.getValue() ?? borderRadius,
-            boxShadow: _hasFocus && tvOptions.boxShadow != null
-                ? [tvOptions.boxShadow!.getValue(context)]
-                : null,
-          ),
-          child: focusIndicatorContent,
-        );
-      }
     }
 
     // Wrap child with FocusScope to detect when any descendant gains focus
@@ -1356,6 +1319,25 @@ class _TVFocusOnlyWrapperState extends State<_TVFocusOnlyWrapper> {
           setState(() {
             _hasFocus = hasFocus;
           });
+
+          // Update controller's hasFocus state and dispatch binding event
+          if (widget.boxController.hasFocus != hasFocus) {
+            widget.boxController.hasFocus = hasFocus;
+
+            // Dispatch focus change for expression bindings like ${myWidget.hasFocus}
+            final widgetId = widget.boxController.id;
+            if (widgetId != null) {
+              final scopeManager = DataScopeWidget.getScope(context);
+              scopeManager?.dispatch(
+                ModelChangeEvent(
+                  WidgetBindingSource(widgetId, property: 'hasFocus'),
+                  hasFocus,
+                  bindingScope: scopeManager,
+                ),
+              );
+            }
+          }
+
           if (hasFocus) {
             WidgetsBinding.instance.addPostFrameCallback((_) {
               if (mounted && context.mounted) {

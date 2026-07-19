@@ -216,18 +216,10 @@ class TVOptionsComposite extends WidgetCompositeProperty {
     interceptHorizontalNav = inputs['interceptHorizontalNav'];
     pauseAutoplayOnFocus = inputs['pauseAutoplayOnFocus'];
     restoreFocusOnPageChange = inputs['restoreFocusOnPageChange'];
-    // Focused state styles
-    backgroundColor = inputs['backgroundColor'];
-    backgroundGradient = inputs['backgroundGradient'];
-    borderColor = inputs['borderColor'];
-    borderWidth = inputs['borderWidth'];
-    borderRadius = inputs['borderRadius'];
-    boxShadow = inputs['boxShadow'];
+    // Focused state styles (only properties that require wrapper widgets)
     opacity = inputs['opacity'];
     elevation = inputs['elevation'];
     scale = inputs['scale'];
-    padding = inputs['padding'];
-    margin = inputs['margin'];
     // Scrollbar options
     if (inputs['scrollbarOptions'] != null) {
       _scrollbarOptions = TVScrollbarOptionsComposite(widgetController,
@@ -370,80 +362,29 @@ class TVOptionsComposite extends WidgetCompositeProperty {
   bool get restoreFocusOnPageChange => _restoreFocusOnPageChange;
 
   // ============ Focused State Styles ============
-  // These styles are applied to the widget when it has focus.
-  // When unfocused, the widget uses its normal styles from the parent.
+  // Only properties that require wrapper widgets (can't use expression bindings).
+  // For other styles (backgroundColor, borderColor, etc.), use expression bindings:
+  // e.g., backgroundColor: "${widget.hasFocus ? '0xFFRED' : '0xFFGRAY'}"
 
-  /// Background color when focused. Overrides widget's backgroundColor.
-  Color? _backgroundColor;
-  set backgroundColor(value) => _backgroundColor = Utils.getColor(value);
-  Color? get backgroundColor => _backgroundColor;
-
-  /// Background gradient when focused. Overrides widget's backgroundGradient.
-  LinearGradient? _backgroundGradient;
-  set backgroundGradient(value) =>
-      _backgroundGradient = Utils.getBackgroundGradient(value);
-  LinearGradient? get backgroundGradient => _backgroundGradient;
-
-  /// Border color when focused (widget's own border, not the focus indicator).
-  Color? _borderColor;
-  set borderColor(value) => _borderColor = Utils.getColor(value);
-  Color? get borderColor => _borderColor;
-
-  /// Border width when focused.
-  int? _borderWidth;
-  set borderWidth(value) => _borderWidth = Utils.optionalInt(value);
-  int? get borderWidth => _borderWidth;
-
-  /// Border radius when focused.
-  EBorderRadius? _borderRadius;
-  set borderRadius(value) => _borderRadius = Utils.getBorderRadius(value);
-  EBorderRadius? get borderRadius => _borderRadius;
-
-  /// Box shadow when focused.
-  BoxShadowComposite? _boxShadow;
-  set boxShadow(value) =>
-      _boxShadow = Utils.getBoxShadowComposite(widgetController, value);
-  BoxShadowComposite? get boxShadow => _boxShadow;
-
-  /// Opacity when focused (0.0 to 1.0).
+  /// Opacity when focused (0.0 to 1.0). Uses Opacity widget wrapper.
   double? _opacity;
   set opacity(value) => _opacity = Utils.optionalDouble(value, min: 0, max: 1);
   double? get opacity => _opacity;
 
-  /// Elevation when focused (0 to 24).
+  /// Elevation when focused (0 to 24). Uses Material widget wrapper.
   int? _elevation;
   set elevation(value) =>
       _elevation = Utils.optionalInt(value, min: 0, max: 24);
   int? get elevation => _elevation;
 
-  /// Scale factor when focused (e.g., 1.05 for 5% zoom).
+  /// Scale factor when focused (e.g., 1.05 for 5% zoom). Uses Transform widget.
   double? _scale;
   set scale(value) => _scale = Utils.optionalDouble(value);
   double? get scale => _scale;
 
-  /// Padding when focused.
-  EdgeInsets? _padding;
-  set padding(value) => _padding = Utils.optionalInsets(value);
-  EdgeInsets? get padding => _padding;
-
-  /// Margin when focused.
-  EdgeInsets? _margin;
-  set margin(value) => _margin = Utils.optionalInsets(value);
-  EdgeInsets? get margin => _margin;
-
   /// Returns true if any focused style is defined
   bool get hasFocusedStyles =>
-      _backgroundColor != null ||
-      _backgroundGradient != null ||
-      _borderColor != null ||
-      _borderWidth != null ||
-      _borderRadius != null ||
-      _boxShadow != null ||
-      _opacity != null ||
-      _elevation != null ||
-      _scale != null ||
-      _padding != null ||
-      _margin != null;
+      _opacity != null || _elevation != null || _scale != null;
 
   /// Scrollbar options for vertical scrolling
   TVScrollbarOptionsComposite? _scrollbarOptions;
@@ -474,18 +415,10 @@ class TVOptionsComposite extends WidgetCompositeProperty {
         'interceptHorizontalNav': () => _interceptHorizontalNav,
         'pauseAutoplayOnFocus': () => _pauseAutoplayOnFocus,
         'restoreFocusOnPageChange': () => _restoreFocusOnPageChange,
-        // Focused state styles
-        'backgroundColor': () => _backgroundColor,
-        'backgroundGradient': () => _backgroundGradient,
-        'borderColor': () => _borderColor,
-        'borderWidth': () => _borderWidth,
-        'borderRadius': () => _borderRadius,
-        'boxShadow': () => _boxShadow,
+        // Focused state styles (wrapper-based only)
         'opacity': () => _opacity,
         'elevation': () => _elevation,
         'scale': () => _scale,
-        'padding': () => _padding,
-        'margin': () => _margin,
         'hasFocusedStyles': () => hasFocusedStyles,
         'scrollbarOptions': () => _scrollbarOptions,
       };
@@ -516,18 +449,10 @@ class TVOptionsComposite extends WidgetCompositeProperty {
         'interceptHorizontalNav': (value) => interceptHorizontalNav = value,
         'pauseAutoplayOnFocus': (value) => pauseAutoplayOnFocus = value,
         'restoreFocusOnPageChange': (value) => restoreFocusOnPageChange = value,
-        // Focused state styles
-        'backgroundColor': (value) => backgroundColor = value,
-        'backgroundGradient': (value) => backgroundGradient = value,
-        'borderColor': (value) => borderColor = value,
-        'borderWidth': (value) => borderWidth = value,
-        'borderRadius': (value) => borderRadius = value,
-        'boxShadow': (value) => boxShadow = value,
+        // Focused state styles (wrapper-based only)
         'opacity': (value) => opacity = value,
         'elevation': (value) => elevation = value,
         'scale': (value) => scale = value,
-        'padding': (value) => padding = value,
-        'margin': (value) => margin = value,
       };
 }
 
@@ -764,6 +689,10 @@ abstract class WidgetController extends Controller with HasStyles {
   // TV/Accessibility: autofocus support for D-pad navigation
   bool autofocus = false;
 
+  // TV/Accessibility: tracks whether widget currently has focus (for TV D-pad navigation)
+  // Updated by BoxWrapper when focus changes, used for expression bindings like ${myWidget.hasFocus}
+  bool hasFocus = false;
+
   String? get testId {
     String? _ = _testId ?? id;
     return _;
@@ -873,6 +802,7 @@ abstract class WidgetController extends Controller with HasStyles {
       'classList': () => classList,
       'testId': () => testId,
       'textDirection': () => textDirection,
+      'hasFocus': () => hasFocus,
     };
   }
 

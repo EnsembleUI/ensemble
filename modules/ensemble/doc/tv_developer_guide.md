@@ -792,18 +792,35 @@ The focus indicator border color, width, and radius follow this priority order:
 
 **Source:** [box_wrapper.dart:799-850](../modules/ensemble/lib/widget/helpers/box_wrapper.dart)
 
-### Focused State Styling Priority
+### Focused State Styling
 
-Focused state properties (backgroundColor, scale, elevation, etc.) have a simpler chain:
+For focused state styling, there are two approaches:
 
+**1. Expression Bindings (Recommended)** - For most style properties:
+```yaml
+Column:
+    id: card
+    styles:
+        backgroundColor: "${card.hasFocus ? '0xFF2A2A2A' : '0xFF1A1A1A'}"
+        padding: "${card.hasFocus ? 16 : 12}"
+        tvOptions:
+            row: 1
+            order: 0
 ```
-1. Per-Widget Override (styles.tvOptions.backgroundColor/scale/elevation/...)
-       ↓ (if not set)
-2. Widget's Normal Styles (styles.backgroundColor/padding/margin/...)
-       ↓ (unfocused state)
+
+**2. tvOptions Properties** - For wrapper-based effects (scale, elevation, opacity):
+```yaml
+Column:
+    styles:
+        tvOptions:
+            row: 1
+            order: 0
+            scale: 1.05      # Zoom when focused
+            elevation: 8     # Shadow when focused
+            opacity: 1.0     # Full brightness when focused
 ```
 
-**Note:** When focused, tvOptions properties override the widget's normal styles. When unfocused, the widget uses its normal styles from the `styles` section.
+**Note:** Use expression bindings (`${widget.hasFocus ? ... : ...}`) for backgroundColor, borderColor, padding, margin, and all text/icon styles. Use tvOptions only for scale, elevation, and opacity which require wrapper widgets.
 
 ### Theme Configuration (theme.yaml)
 
@@ -833,35 +850,37 @@ Button:
 
 ### Focused State Styling Example
 
-All these properties animate when focus changes:
+Using expression bindings with tvOptions wrapper effects:
 
 ```yaml
-Card:
+Column:
+    id: card
     styles:
-        backgroundColor: 0xFF1A1A1A
-        opacity: 0.7
-        padding: 12
+        # Expression bindings for regular styles
+        backgroundColor: "${card.hasFocus ? '0xFF2A2A2A' : '0xFF1A1A1A'}"
+        padding: "${card.hasFocus ? 16 : 12}"
         tvOptions:
             row: 1
             order: ${idx}
-            # When focused, these override normal styles:
-            scale: 1.05              # Grow 5%
-            backgroundColor: 0xFF2A2A2A  # Lighter
-            opacity: 1.0             # Full brightness
-            elevation: 8             # Shadow
-            padding: 16              # More spacing
+            # Wrapper-based effects (can't use expression bindings)
+            scale: 1.05              # Grow 5% when focused
+            opacity: 1.0             # Full brightness when focused
+            elevation: 8             # Shadow when focused
+    children:
+        - Text:
+            text: "Card Title"
+            styles:
+                textStyle:
+                    # Child widgets use parent's hasFocus
+                    color: "${card.hasFocus ? '0xFFFFFFFF' : '0xFF888888'}"
+                    fontSize: "${card.hasFocus ? 18 : 14}"
     onTap: ...
 ```
 
-| Property | Effect When Focused |
-|----------|---------------------|
-| `scale` | Zoom in/out |
-| `backgroundColor` | Change color |
-| `backgroundGradient` | Change gradient |
-| `opacity` | Fade in/out |
-| `elevation` | Add shadow |
-| `padding`/`margin` | Adjust spacing |
-| `borderColor`/`borderWidth` | Add/change border |
+| Approach | Properties | When to Use |
+|----------|-----------|-------------|
+| **Expression Bindings** | backgroundColor, borderColor, padding, margin, textStyle, etc. | Most style changes |
+| **tvOptions** | scale, elevation, opacity | Wrapper-based effects only |
 
 ### Focus Indicator vs Focused State
 
@@ -871,20 +890,23 @@ Card:
 - Controlled by Ensemble's TV focus system
 - Always a simple border overlay
 
-**Focused State** (backgroundColor, scale, elevation, etc.):
+**Focused State Styling:**
 
-- Changes to the **widget itself** when focused
-- Animated transitions (150ms default)
+- Use **expression bindings** for most styles (backgroundColor, textStyle, etc.)
+- Use **tvOptions** only for scale, elevation, opacity (wrapper-based effects)
 - Stacks with focus indicator for rich effects
 
 **Combined Example:**
 
 ```yaml
 Button:
-    label: "Watch Now"
+    id: watchBtn
+    label: "${watchBtn.hasFocus ? 'WATCH NOW' : 'Watch Now'}"
     styles:
-        backgroundColor: 0xFF2196F3
+        backgroundColor: "${watchBtn.hasFocus ? '0xFF1E88E5' : '0xFF2196F3'}"
         borderRadius: 8
+        labelStyle:
+            fontWeight: "${watchBtn.hasFocus ? 'bold' : 'normal'}"
         tvOptions:
             row: 1
             order: 0
@@ -892,18 +914,18 @@ Button:
             focusBorderColor: 0xFFFFFFFF
             focusBorderWidth: 3
             focusBorderRadius: 10
-            # Focused state (button itself changes)
+            # Wrapper-based effects
             scale: 1.05
-            backgroundColor: 0xFF1E88E5
             elevation: 8
 ```
 
 Result when focused:
 
 1. Button grows 5% larger (scale: 1.05)
-2. Button background changes to darker blue
-3. Button gets 8px elevation shadow
-4. **Then** white 3px focus border appears around it
+2. Button background changes to darker blue (expression binding)
+3. Button text becomes bold and uppercase (expression binding)
+4. Button gets 8px elevation shadow
+5. **Then** white 3px focus border appears around it
 
 ---
 
