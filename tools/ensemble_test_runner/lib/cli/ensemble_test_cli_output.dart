@@ -6,8 +6,7 @@ const screenTrackerPrefix = 'SCREEN TRACKER:';
 const noDeclarativeTestsPrefix = 'No declarative tests found.';
 const jsonReportPrefix = 'ENSEMBLE_TEST_JSON_REPORT:';
 const junitReportPrefix = 'ENSEMBLE_TEST_JUNIT_REPORT:';
-const flutterTestExceptionStart =
-    '══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK';
+const flutterExceptionStart = '══╡ EXCEPTION CAUGHT BY ';
 const flutterTakeExceptionHint =
     '(The following exception is now available via WidgetTester.takeException:)';
 
@@ -26,7 +25,7 @@ class LiveFlutterTestOutputFilter {
       return false;
     }
     if (line.startsWith(suiteReportStart) ||
-        line.startsWith(flutterTestExceptionStart)) {
+        line.startsWith(flutterExceptionStart)) {
       _suppressRest = true;
       return false;
     }

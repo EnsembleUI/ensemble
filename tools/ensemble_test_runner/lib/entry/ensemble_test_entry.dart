@@ -346,6 +346,7 @@ Map<String, dynamic> _inputsFromEnvironment() {
 void _emitMachineReport(EnsembleTestRunResult result) {
   const reportMode = String.fromEnvironment('ensembleTestReport');
   const reportFile = String.fromEnvironment('ensembleTestReportFile');
+  const emitJsonReport = bool.fromEnvironment('ensembleTestEmitJsonReport');
   final jsonReport = json.encode(result.toJson());
   final junitReport = _junitReport(result);
 
@@ -355,9 +356,10 @@ void _emitMachineReport(EnsembleTestRunResult result) {
     file.writeAsStringSync(reportMode == 'junit' ? junitReport : jsonReport);
   }
 
-  if (reportMode == 'json') {
+  if (reportMode == 'json' || emitJsonReport) {
     print('ENSEMBLE_TEST_JSON_REPORT:$jsonReport');
-  } else if (reportMode == 'junit') {
+  }
+  if (reportMode == 'junit') {
     print('ENSEMBLE_TEST_JUNIT_REPORT:${junitReport.replaceAll('\n', r'\n')}');
   }
 }

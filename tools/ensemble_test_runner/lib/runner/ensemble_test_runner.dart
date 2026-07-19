@@ -203,8 +203,12 @@ class EnsembleTestRunner {
       test,
       config: suiteConfig,
     );
+    final previousOnError = FlutterError.onError;
 
     try {
+      FlutterError.onError = (details) {
+        ctx.runtime.flutterErrors.add(_formatFlutterError(details));
+      };
       timingsCallback = (List<ui.FrameTiming> timings) {
         ctx.runtime.addFrameTimings(timings);
       };
@@ -314,6 +318,7 @@ class EnsembleTestRunner {
       if (callback != null) {
         SchedulerBinding.instance.removeTimingsCallback(callback);
       }
+      FlutterError.onError = previousOnError;
     }
   }
 
@@ -1186,6 +1191,13 @@ class EnsembleTestRunner {
       // framework dump after the declarative assertions have already decided
       // the test result.
     }
+  }
+
+  String _formatFlutterError(FlutterErrorDetails details) {
+    final context = details.context?.toDescription();
+    final exception = details.exceptionAsString();
+    if (context == null || context.isEmpty) return exception;
+    return '$context: $exception';
   }
 
   Future<void> _flushPendingScreenshots(

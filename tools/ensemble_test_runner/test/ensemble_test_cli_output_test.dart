@@ -153,4 +153,19 @@ When the exception was thrown, this was the stack:
     );
     expect(filter.shouldEmit('The following TestFailure was thrown'), isFalse);
   });
+
+  test('live output filter suppresses widget exception noise', () {
+    final filter = LiveFlutterTestOutputFilter();
+
+    expect(filter.shouldEmit('SCREEN TRACKER: Login'), isTrue);
+    expect(
+      filter.shouldEmit('══╡ EXCEPTION CAUGHT BY WIDGETS LIBRARY ╞══════'),
+      isFalse,
+    );
+    expect(
+      filter
+          .shouldEmit('A RadioButtonController was used after being disposed.'),
+      isFalse,
+    );
+  });
 }

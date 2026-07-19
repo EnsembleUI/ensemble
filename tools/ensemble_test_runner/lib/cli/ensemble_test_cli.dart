@@ -203,7 +203,8 @@ Future<void> runEnsembleYamlTestsCli(List<String> arguments) async {
 
     if (testRun.exitCode != 0 && !verbose) {
       final output = '${testRun.stdout ?? ''}\n${testRun.stderr ?? ''}';
-      final json = jsonReport ? extractJsonReport(output) : '';
+      final rawJson = extractJsonReport(output);
+      final json = jsonReport ? rawJson : '';
       final junit = junitReport ? extractJunitReport(output) : '';
       final report = machineReport
           ? ''
@@ -230,7 +231,8 @@ Future<void> runEnsembleYamlTestsCli(List<String> arguments) async {
       // Output was already streamed live.
     } else {
       final out = testRun.stdout?.toString() ?? '';
-      final json = jsonReport ? extractJsonReport(out) : '';
+      final rawJson = extractJsonReport(out);
+      final json = jsonReport ? rawJson : '';
       final junit = junitReport ? extractJunitReport(out) : '';
       final report = junit.isNotEmpty
           ? junit
@@ -252,7 +254,10 @@ Future<void> runEnsembleYamlTestsCli(List<String> arguments) async {
       }
     }
 
-    exitCode = testRun.exitCode == 0 ? 0 : 1;
+    final machineResult = _runResultFromProcessOutput(testRun);
+    exitCode = machineResult == null
+        ? (testRun.exitCode == 0 ? 0 : 1)
+        : (machineResult.failedCount == 0 ? 0 : 1);
   } on StateError catch (error) {
     stderr.writeln(error.message);
     exitCode = 3;
@@ -296,6 +301,7 @@ List<String> _buildFlutterTestArgs(
     YamlTestAppPatcher.testEntryRelativePath,
     '--no-pub',
     if (reportMode != null) '--dart-define=ensembleTestReport=$reportMode',
+    '--dart-define=ensembleTestEmitJsonReport=true',
     if (reportFile != null) '--dart-define=ensembleTestReportFile=$reportFile',
     if (timeoutSeconds != null)
       '--dart-define=ensembleTestTimeoutSeconds=$timeoutSeconds',
@@ -1475,6 +1481,21 @@ bool _isRepeatedDependency(String testId) => testId == 'signin_to_gateway';
 String _baseTestId(String value) {
   final index = value.indexOf('  (');
   return index == -1 ? value : value.substring(0, index);
+}
+
+EnsembleTestRunResult? _runResultFromProcessOutput(ProcessResult result) {
+  final rawJson =
+      extractJsonReport('${result.stdout ?? ''}\n${result.stderr ?? ''}');
+  if (rawJson.isEmpty) return null;
+  try {
+    final decoded = json.decode(rawJson);
+    if (decoded is Map<String, dynamic>) {
+      return _runResultFromJson(decoded);
+    }
+  } catch (_) {
+    // Ignore malformed subprocess report and fall back to process exit code.
+  }
+  return null;
 }
 
 EnsembleTestRunResult _runResultFromJson(Map<String, dynamic> json) {
