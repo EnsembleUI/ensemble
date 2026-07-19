@@ -343,6 +343,63 @@ steps:
       ]);
     });
 
+    test('loads inline step mocks', () async {
+      const yaml = '''
+id: step_inline_mocks
+startScreen: Home
+steps:
+  - mocks:
+      getDevices:
+        delayMs: 10
+        body: {count: 2}
+  - waitForApi:
+      name: getDevices
+''';
+
+      final definitions =
+          await EnsembleTestExecutionPlanner.parseDefinitionsForTest(
+        'suite/tests/home.test.yaml',
+        yaml,
+      );
+
+      final step = definitions.single.testCase.steps.first;
+      expect(step.type, 'mocks');
+      expect(step.mocks.apis['getDevices']!.delayMs, 10);
+      expect((step.mocks.apis['getDevices']!.body as Map)['count'], 2);
+    });
+
+    test('loads file-based step mocks', () async {
+      const yaml = '''
+id: step_file_mocks
+startScreen: Home
+steps:
+  - mocks:
+      - mocks/devices.mock.json
+  - waitForApi:
+      name: getDevices
+''';
+      final assets = {
+        'suite/tests/mocks/devices.mock.json': '''
+{
+  "getDevices": {
+    "body": {"count": 4}
+  }
+}
+''',
+      };
+
+      final definitions =
+          await EnsembleTestExecutionPlanner.parseDefinitionsForTest(
+        'suite/tests/home.test.yaml',
+        yaml,
+        assetLoader: (path) async => assets[path]!,
+      );
+
+      final step = definitions.single.testCase.steps.first;
+      expect(step.type, 'mocks');
+      expect((step.mocks.apis['getDevices']!.body as Map)['count'], 4);
+    });
+
     test('selection by base scenario suite id includes expanded scenarios',
         () async {
       const yaml = '''

@@ -277,6 +277,7 @@ class TestStep {
   /// YAML step key (e.g. `expectVisible`, `group`).
   final String type;
   final Map<String, dynamic> args;
+  final TestMocks mocks;
 
   /// Nested steps for control-flow step types such as `group` and `repeat`.
   final List<TestStep> nestedSteps;
@@ -284,6 +285,7 @@ class TestStep {
   const TestStep({
     required this.type,
     required this.args,
+    this.mocks = const TestMocks(),
     this.nestedSteps = const [],
   });
 
@@ -293,6 +295,7 @@ class TestStep {
   TestStep withCanonicalType(String canonical) => TestStep(
         type: canonical,
         args: args,
+        mocks: mocks,
         nestedSteps: nestedSteps,
       );
 

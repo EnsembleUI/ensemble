@@ -108,7 +108,7 @@ class EnsembleTestParser {
       throw EnsembleTestFailure(
           'Test "$id" must have a non-empty "steps" list');
     }
-    final parsedMocks = _parseMocks(
+    final parsedMocks = parseMocksNode(
       map['mocks'],
       testId: id,
       inputs: inputs,
@@ -159,7 +159,7 @@ class EnsembleTestParser {
     );
   }
 
-  static ({List<String> files, Map<String, dynamic> inline}) _parseMocks(
+  static ({List<String> files, Map<String, dynamic> inline}) parseMocksNode(
     dynamic node, {
     required String testId,
     required Map<String, dynamic> inputs,
@@ -178,7 +178,13 @@ class EnsembleTestParser {
         ),
       );
     }
-    if (node is! YamlList) {
+    if (node is Map) {
+      return (
+        files: const [],
+        inline: Map<String, dynamic>.from(node),
+      );
+    }
+    if (node is! List) {
       throw EnsembleTestFailure(
         'Test "$testId" mocks must be a list of .mock.json files/inline maps '
         'or an inline API mock map.',

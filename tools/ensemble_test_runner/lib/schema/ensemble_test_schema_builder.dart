@@ -152,11 +152,15 @@ class EnsembleTestSchemaBuilder {
     // Register per-step arg defs and step wrappers.
     final stepOneOf = <Map<String, dynamic>>[];
     final registeredArgDefs = <String>{};
+    final mocksSchema = Map<String, dynamic>.from(
+        (defs['testCase'] as Map)['properties']['mocks']);
 
     for (final yamlKey in TestStepVocabulary.yamlStepKeys) {
       final entry = TestStepRegistry.entries[yamlKey]!;
       final description = entry.description;
-      final argsSchema = TestStepVocabulary.argJsonSchemaForYamlKey(yamlKey);
+      final argsSchema = yamlKey == 'mocks'
+          ? mocksSchema
+          : TestStepVocabulary.argJsonSchemaForYamlKey(yamlKey);
       final argsDefName = 'args_$yamlKey';
 
       final exampleArgs = Map<String, dynamic>.from(entry.example);

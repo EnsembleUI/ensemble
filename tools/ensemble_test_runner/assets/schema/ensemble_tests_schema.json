@@ -914,6 +914,38 @@
         }
       ]
     },
+    "args_mocks": {
+      "oneOf": [
+        {
+          "type": "array",
+          "items": {
+            "oneOf": [
+              {
+                "type": "string",
+                "minLength": 1
+              },
+              {
+                "$ref": "#/$defs/inlineMocks"
+              }
+            ]
+          }
+        },
+        {
+          "$ref": "#/$defs/inlineMocks"
+        }
+      ],
+      "title": "mocks",
+      "description": "Replace active API mocks for subsequent steps",
+      "examples": [
+        {
+          "getDevices": {
+            "body": {
+              "count": 2
+            }
+          }
+        }
+      ]
+    },
     "args_waitForNavigation": {
       "type": "object",
       "properties": {
@@ -3174,6 +3206,43 @@
           },
           "required": [
             "httpRequest"
+          ]
+        },
+        {
+          "type": "object",
+          "title": "mocks",
+          "description": "Replace active API mocks for subsequent steps",
+          "examples": [
+            {
+              "mocks": {
+                "getDevices": {
+                  "body": {
+                    "count": 2
+                  }
+                }
+              }
+            }
+          ],
+          "additionalProperties": false,
+          "minProperties": 1,
+          "maxProperties": 1,
+          "properties": {
+            "mocks": {
+              "$ref": "#/$defs/args_mocks",
+              "description": "Replace active API mocks for subsequent steps",
+              "examples": [
+                {
+                  "getDevices": {
+                    "body": {
+                      "count": 2
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          "required": [
+            "mocks"
           ]
         },
         {

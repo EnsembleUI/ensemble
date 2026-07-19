@@ -76,6 +76,9 @@ class TestStepExecutor {
     }
 
     switch (step.type) {
+      case 'mocks':
+        _applyMocks(step.mocks);
+        return;
       case 'httpRequest':
         await HttpRequestAction.execute(step.args);
         return;
@@ -328,6 +331,12 @@ class TestStepExecutor {
       _enterText(id, value, submit: false);
 
   Future<void> settle({Duration? timeout}) => _settle(timeout: timeout);
+
+  void _applyMocks(TestMocks mocks) {
+    for (final entry in mocks.apis.entries) {
+      context.apiOverlay.setMock(entry.key, entry.value);
+    }
+  }
 
   Future<void> openScreenByName(String screen) async {
     final tc = context.testCase;

@@ -151,6 +151,11 @@ class EnsembleTestExecutionPlanner {
         inlineMocks: base.inlineMocks,
         assetLoader: assetLoader,
       );
+      final steps = await _resolveStepMocks(
+        assetPath: path,
+        steps: base.steps,
+        assetLoader: assetLoader,
+      );
       return [
         EnsembleTestDefinition(
           assetPath: path,
@@ -160,6 +165,7 @@ class EnsembleTestExecutionPlanner {
             startScreen: base.startScreen,
             session: base.session,
             mocks: mocks,
+            steps: steps,
           ),
         ),
       ];
@@ -185,6 +191,11 @@ class EnsembleTestExecutionPlanner {
         inlineMocks: parsed.inlineMocks,
         assetLoader: assetLoader,
       );
+      final steps = await _resolveStepMocks(
+        assetPath: path,
+        steps: parsed.steps,
+        assetLoader: assetLoader,
+      );
 
       definitions.add(
         EnsembleTestDefinition(
@@ -196,6 +207,7 @@ class EnsembleTestExecutionPlanner {
             startScreen: parsed.startScreen,
             session: parsed.session,
             mocks: mocks,
+            steps: steps,
           ),
         ),
       );
@@ -242,6 +254,7 @@ class EnsembleTestExecutionPlanner {
     String? startScreen,
     String? session,
     required TestMocks mocks,
+    required List<TestStep> steps,
   }) {
     return EnsembleTestCase(
       id: id,
@@ -262,7 +275,59 @@ class EnsembleTestExecutionPlanner {
       initialState: test.initialState,
       setupSteps: test.setupSteps,
       mocks: mocks,
-      steps: test.steps,
+      steps: steps,
+    );
+  }
+
+  static Future<List<TestStep>> _resolveStepMocks({
+    required String assetPath,
+    required List<TestStep> steps,
+    required _AssetStringLoader assetLoader,
+  }) async {
+    final resolved = <TestStep>[];
+    for (final step in steps) {
+      final mocks = await _mocksForStep(
+        assetPath: assetPath,
+        step: step,
+        assetLoader: assetLoader,
+      );
+      final nestedSteps = await _resolveStepMocks(
+        assetPath: assetPath,
+        steps: step.nestedSteps,
+        assetLoader: assetLoader,
+      );
+      resolved.add(
+        TestStep(
+          type: step.type,
+          args: step.args,
+          mocks: mocks,
+          nestedSteps: nestedSteps,
+        ),
+      );
+    }
+    return resolved;
+  }
+
+  static Future<TestMocks> _mocksForStep({
+    required String assetPath,
+    required TestStep step,
+    required _AssetStringLoader assetLoader,
+  }) async {
+    if (step.type != 'mocks') return const TestMocks();
+    final node = step.args.length == 1 && step.args.containsKey('value')
+        ? step.args['value']
+        : step.args;
+    final parsed = EnsembleTestParser.parseMocksNode(
+      node,
+      testId: assetPath,
+      inputs: const {},
+      scenario: const {},
+    );
+    return _mergedMocksFor(
+      assetPath: assetPath,
+      mockFiles: parsed.files,
+      inlineMocks: parsed.inline,
+      assetLoader: assetLoader,
     );
   }
 

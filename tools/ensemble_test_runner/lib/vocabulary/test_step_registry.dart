@@ -285,6 +285,17 @@ abstract final class TestStepRegistry {
       description: 'Send an HTTP request to a test support service',
       example: const {'method': 'POST', 'url': 'http://127.0.0.1:5001/api/test/reset', 'body': const {'enabled': true}, 'expectStatus': 200},
     ),
+    'mocks': TestStepRegistryEntry(
+      category: TestStepCategory.apiMock,
+      tier: TestStepTier.core,
+      argKind: TestStepArgKind.empty,
+      description: 'Replace active API mocks for subsequent steps',
+      example: const {
+        'getDevices': {
+          'body': {'count': 2},
+        },
+      },
+    ),
     'waitForNavigation': TestStepRegistryEntry(
       category: TestStepCategory.wait,
       tier: TestStepTier.core,

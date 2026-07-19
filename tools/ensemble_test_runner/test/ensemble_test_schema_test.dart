@@ -61,7 +61,7 @@ void main() {
     expect(decoded, isNot(contains('oneOf')));
   });
 
-  test('schema keeps mocks at the root only', () {
+  test('schema rejects scenario-level mocks', () {
     final schema = EnsembleTestSchemaBuilder.build();
     final defs = schema['\$defs'] as Map<String, dynamic>;
     final scenario = defs['scenario'] as Map<String, dynamic>;
@@ -69,6 +69,22 @@ void main() {
 
     expect(scenarioProperties, contains('vars'));
     expect(scenarioProperties, isNot(contains('mocks')));
+  });
+
+  test('schema allows mocks as a step', () {
+    final schema = EnsembleTestSchemaBuilder.build();
+    final defs = schema['\$defs'] as Map<String, dynamic>;
+    final stepDef = defs['step'] as Map<String, dynamic>;
+    final oneOf = stepDef['oneOf'] as List<dynamic>;
+    final mocksStep = oneOf.cast<Map<String, dynamic>>().singleWhere((variant) {
+      final properties = variant['properties'] as Map<String, dynamic>;
+      return properties.containsKey('mocks');
+    });
+
+    final mocksProperty =
+        (mocksStep['properties'] as Map<String, dynamic>)['mocks'];
+    expect(mocksProperty['\$ref'], '#/\$defs/args_mocks');
+    expect(defs, contains('args_mocks'));
   });
 
   test('config schema includes suite screenshots and performance settings', () {

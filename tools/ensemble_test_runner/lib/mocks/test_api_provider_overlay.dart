@@ -56,6 +56,8 @@ class TestApiProviderOverlay extends HTTPAPIProvider {
 
   List<APICallRecord> callsFor(String apiName) => recorder.callsFor(apiName);
 
+  bool hasMock(String apiName) => _mocks.containsKey(apiName);
+
   void bindHttpDelegate(HTTPAPIProvider delegate) {
     _delegate = delegate;
   }

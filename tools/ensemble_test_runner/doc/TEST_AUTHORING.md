@@ -106,6 +106,20 @@ mocks:
         count: 3
 ```
 
+Use a `mocks` step when a test needs to change API responses mid-flow. Step
+mocks use the same inline and file-based shapes as root-level mocks, and apply
+to subsequent API calls.
+
+```yaml
+steps:
+  - mocks:
+      getDevices:
+        body:
+          count: 4
+  - tap:
+      id: refresh_devices
+```
+
 For scenario-based suites, keep reusable API data in mock files. The runner does
 not know what your scenario variables mean; it only substitutes `${scenario.*}`
 values and merges mock entries in order.

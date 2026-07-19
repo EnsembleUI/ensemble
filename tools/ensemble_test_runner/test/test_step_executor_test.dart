@@ -95,6 +95,41 @@ void main() {
     expect(value, isTrue);
   });
 
+  testWidgets('mocks step updates active API mocks', (tester) async {
+    final context = EnsembleTestContext.fromTestCase(
+      const EnsembleTestCase(
+        id: 'step_mocks',
+        startScreen: 'Home',
+        steps: [],
+      ),
+    );
+    final executor = TestStepExecutor(
+      tester: tester,
+      context: context,
+      assertions: AssertionEngine(tester: tester, context: context),
+      harness: EnsembleTestHarness(appPath: 'unused', appHome: 'Home'),
+    );
+
+    await executor.execute(
+      const TestStep(
+        type: 'mocks',
+        args: {
+          'getDevices': {
+            'body': {'count': 2}
+          },
+        },
+        mocks: TestMocks(
+          apis: {
+            'getDevices': MockAPIResponse(body: {'count': 2}),
+          },
+        ),
+      ),
+    );
+
+    expect(context.apiOverlay.callCount('getDevices'), 0);
+    expect(context.apiOverlay.hasMock('getDevices'), isTrue);
+  });
+
   testWidgets('tap targets the only hit-testable widget when ids repeat',
       (tester) async {
     var taps = 0;

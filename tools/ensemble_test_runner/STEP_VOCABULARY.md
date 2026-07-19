@@ -33,8 +33,8 @@ Official step catalog for app-local `tests/*.test.yaml` files, for example `ense
 ### Navigation
 `expectScreen` (alias), `expectNavigateTo`, `expectVisited`, `expectNotVisited`, `expectBackStack`, `expectCanGoBack`, `goBack`
 
-### API assert / logs
-`httpRequest`, `resetApiCalls`, `expectApiCalled`, `expectApiNotCalled`, `expectApiCallOrder`, `expectLastApiCall`, `logApiCalls`
+### API mocks / assert / logs
+`mocks`, `httpRequest`, `resetApiCalls`, `expectApiCalled`, `expectApiNotCalled`, `expectApiCallOrder`, `expectLastApiCall`, `logApiCalls`
 
 ### Storage / runtime
 `setStorage`, `expectStorage`, `removeStorage`, `clearStorage`, `setEnv`, `setAuth`, `clearAuth`, `setPermission`, `setDevice`, `setLocale`, `setTheme`
@@ -122,6 +122,17 @@ Use `httpRequest` for finite setup or state changes during a test:
     body:
       loadDefaults: true
     expectStatus: 200
+```
+
+Use `mocks` when the app API response should change during a test. It supports
+the same inline and `.mock.json` file shapes as root-level `mocks`, and applies
+to later app API calls:
+
+```yaml
+- mocks:
+    getDevices:
+      body:
+        count: 4
 ```
 
 Before running a new suite, use `dart run ensemble_test_runner:ensemble_test --doctor`
