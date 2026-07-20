@@ -59,6 +59,7 @@ String? applyEnsembleTestTheme(String? raw) {
     registeredNames: manager.getThemeNames(),
   );
   if (name == null) return null;
+  if (manager.currentThemeName == name) return name;
   manager.setTheme(name);
   return name;
 }
