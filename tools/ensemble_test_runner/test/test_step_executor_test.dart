@@ -232,7 +232,7 @@ void main() {
         isA<EnsembleTestFailure>().having(
           (e) => e.message,
           'message',
-          contains('either "id" or "text"'),
+          contains('waitFor requires either'),
         ),
       ),
     );

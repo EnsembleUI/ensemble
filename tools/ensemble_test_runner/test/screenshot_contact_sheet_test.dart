@@ -74,7 +74,7 @@ void main() {
     final headerAccent = sheet.getPixel(20, 20);
     expect(headerAccent.r, greaterThan(headerAccent.g));
 
-    const columns = 5;
+    const columns = 6;
     const tileWidth = 420;
     const gap = 16;
     const headerHeight = 220;
@@ -160,6 +160,11 @@ void main() {
     expect(path, endsWith('/$testId.png'));
     final sheet = img.decodePng(File(path!).readAsBytesSync())!;
     expect(sheet.height, greaterThan(900));
+
+    // Copy to artifact directory for visual inspection
+    final artifactFile = File('/Users/sharjeelyunus/Desktop/Ensemble/ensemble/generated_multidevice_sheet.png');
+    artifactFile.writeAsBytesSync(File(path).readAsBytesSync());
+
     File(path).deleteSync();
   });
 }
