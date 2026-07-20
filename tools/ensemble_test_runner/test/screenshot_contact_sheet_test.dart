@@ -77,7 +77,7 @@ void main() {
     const columns = 6;
     const tileWidth = 420;
     const gap = 16;
-    const headerHeight = 220;
+    const headerHeight = 260;
     final tileX =
         ((columns * tileWidth + (columns + 1) * gap - tileWidth) / 2).round();
     final tileBorder = sheet.getPixel(tileX, headerHeight + gap);
