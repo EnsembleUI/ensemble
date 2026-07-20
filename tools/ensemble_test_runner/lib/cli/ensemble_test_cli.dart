@@ -262,6 +262,8 @@ Future<void> runEnsembleYamlTestsCli(List<String> arguments) async {
     stderr.writeln(error.message);
     exitCode = 3;
   } finally {
+    // Serial timer-rewrite runs also use a worker sandbox; always drop leftovers.
+    _cleanWorkerDirectories(appDir);
     patcher.restore();
   }
   exit(exitCode);
@@ -601,8 +603,15 @@ Future<ProcessResult> _runParallelFlutterTests(
   runDone = true;
   await progressPoller;
 
-  for (var i = 0; i < workerReportFiles.length; i++) {
-    _copyWorkerArtifacts(appDir, i);
+  try {
+    for (var i = 0; i < workerReportFiles.length; i++) {
+      _copyWorkerArtifacts(appDir, i);
+    }
+  } finally {
+    // Worker sandboxes only exist to isolate Flutter build/ output and timer
+    // rewrites. Artifacts are copied above; drop the trees so they do not keep
+    // multi‑GB compile caches around after the run.
+    _cleanWorkerDirectories(appDir);
   }
   var merged = _mergeWorkerReports(
     workerResults,
@@ -825,6 +834,20 @@ void _cleanParallelRunArtifacts(String appDir) {
   ]) {
     final directory = Directory(p.join(root.path, name));
     if (directory.existsSync()) directory.deleteSync(recursive: true);
+  }
+}
+
+/// Deletes `build/ensemble_test_runner/workers/` after a run.
+///
+/// Worker directories are disposable sandboxes (symlinked sources + per-worker
+/// Flutter `build/` caches). Suite artifacts are copied out first; keeping the
+/// trees only wastes disk.
+void _cleanWorkerDirectories(String appDir) {
+  final directory = Directory(
+    p.join(appDir, 'build', 'ensemble_test_runner', 'workers'),
+  );
+  if (directory.existsSync()) {
+    directory.deleteSync(recursive: true);
   }
 }
 
