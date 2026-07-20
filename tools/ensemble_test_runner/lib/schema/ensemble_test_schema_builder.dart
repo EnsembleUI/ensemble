@@ -44,10 +44,31 @@ class EnsembleTestSchemaBuilder {
             'minItems': 1,
             'items': {'\$ref': '#/\$defs/mockResponse'},
           },
+          r'$merge': {
+            'type': 'object',
+            'additionalProperties': true,
+            'description':
+                'Path → value patches applied onto the extended/current mock '
+                'for this API (e.g. body.status[0].Active).',
+          },
         },
       },
       'inlineMocks': {
         'type': 'object',
+        'properties': {
+          r'$extends': {
+            'description':
+                'Base mock file path (or list of paths) to layer before these APIs.',
+            'oneOf': [
+              {'type': 'string', 'minLength': 1},
+              {
+                'type': 'array',
+                'minItems': 1,
+                'items': {'type': 'string', 'minLength': 1},
+              },
+            ],
+          },
+        },
         'additionalProperties': {'\$ref': '#/\$defs/mockResponse'},
       },
       'testCase': {

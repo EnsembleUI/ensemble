@@ -1,9 +1,8 @@
-import 'dart:convert';
-
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
 import 'package:ensemble_test_runner/discovery/ensemble_test_discovery.dart';
+import 'package:ensemble_test_runner/mocks/mock_composition.dart';
 import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
 import 'package:ensemble_test_runner/parser/ensemble_test_parser.dart';
 import 'package:yaml/yaml.dart';
@@ -466,186 +465,110 @@ class EnsembleTestExecutionPlanner {
     required Map<String, dynamic> inlineMocks,
     required _AssetStringLoader assetLoader,
   }) async {
-    final apis = <String, MockAPIResponse>{};
+    final raw = <String, Map<String, dynamic>>{};
     for (final file in suiteMockFiles) {
-      final fileMocks = await _loadMockFile(
-        assetPath,
-        file,
+      await _mergeMockFile(
+        into: raw,
+        fromAssetPath: assetPath,
+        mockFilePath: file,
         assetLoader: assetLoader,
       );
-      apis.addAll(fileMocks.apis);
     }
-    apis.addAll(
-      _parseMockApisMap(
-        suiteInlineMocks,
-        sourceLabel: 'tests/config.yaml',
-      ).apis,
-    );
-    for (final file in mockFiles) {
-      final fileMocks = await _loadMockFile(
-        assetPath,
-        file,
-        assetLoader: assetLoader,
-      );
-      apis.addAll(fileMocks.apis);
-    }
-    apis.addAll(
-      _parseMockApisMap(
-        inlineMocks,
-        sourceLabel: assetPath,
-      ).apis,
-    );
-    return TestMocks(apis: apis);
-  }
-
-  static Future<TestMocks> _loadMockFile(
-    String testAssetPath,
-    String mockFilePath, {
-    required _AssetStringLoader assetLoader,
-  }) async {
-    final assetPath = _resolveAssetPath(testAssetPath, mockFilePath);
-    final content = await _loadRequiredAsset(
-      assetPath,
-      'Mock file "$mockFilePath" referenced by $testAssetPath was not found.',
+    await _mergeInlineMocks(
+      into: raw,
+      inlineMocks: suiteInlineMocks,
+      sourceLabel: 'tests/config.yaml',
+      fromAssetPath: assetPath,
       assetLoader: assetLoader,
     );
-    if (!assetPath.endsWith('.mock.json')) {
-      throw EnsembleTestFailure(
-        'Mock file "$mockFilePath" must be a .mock.json file.',
+    for (final file in mockFiles) {
+      await _mergeMockFile(
+        into: raw,
+        fromAssetPath: assetPath,
+        mockFilePath: file,
+        assetLoader: assetLoader,
       );
     }
-
-    final dynamic doc = _parseMockFileDocument(content, assetPath);
-    if (doc == null) return const TestMocks();
-    if (doc is! Map) {
-      throw EnsembleTestFailure('Mock file "$assetPath" root must be a map');
-    }
-
-    return _parseMockApisMap(
-      Map<dynamic, dynamic>.from(doc),
+    await _mergeInlineMocks(
+      into: raw,
+      inlineMocks: inlineMocks,
       sourceLabel: assetPath,
+      fromAssetPath: assetPath,
+      assetLoader: assetLoader,
+    );
+    return TestMocks(
+      apis: MockComposition.toMockApis(raw, sourceLabel: assetPath),
     );
   }
 
-  static TestMocks _parseMockApisMap(
-    Map<dynamic, dynamic> doc, {
+  static Future<void> _mergeMockFile({
+    required Map<String, Map<String, dynamic>> into,
+    required String fromAssetPath,
+    required String mockFilePath,
+    required _AssetStringLoader assetLoader,
+  }) async {
+    try {
+      final resolved = await MockComposition.resolveFile(
+        testAssetPath: fromAssetPath,
+        mockFilePath: mockFilePath,
+        assetLoader: assetLoader,
+        resolveAssetPath: _resolveAssetPath,
+      );
+      MockComposition.mergeApiMaps(
+        into,
+        resolved,
+        sourceLabel: _resolveAssetPath(fromAssetPath, mockFilePath),
+      );
+    } on FlutterError {
+      throw EnsembleTestFailure(
+        'Mock file "$mockFilePath" referenced by $fromAssetPath was not found.',
+      );
+    }
+  }
+
+  static Future<void> _mergeInlineMocks({
+    required Map<String, Map<String, dynamic>> into,
+    required Map<String, dynamic> inlineMocks,
     required String sourceLabel,
-  }) {
-    final apis = <String, MockAPIResponse>{};
-    for (final entry in doc.entries) {
+    required String fromAssetPath,
+    required _AssetStringLoader assetLoader,
+  }) async {
+    if (inlineMocks.isEmpty) return;
+
+    // `$extends` must be resolved in isolation first, then layered onto [into].
+    // `$merge` without `$extends` patches APIs already present in [into]
+    // (suite/test/file layers loaded earlier in this merge).
+    if (inlineMocks.containsKey(MockComposition.extendsKey)) {
+      final resolved = await MockComposition.resolveDocument(
+        Map<dynamic, dynamic>.from(inlineMocks),
+        sourceLabel: sourceLabel,
+        testAssetPath: fromAssetPath,
+        assetLoader: assetLoader,
+        resolveAssetPath: _resolveAssetPath,
+      );
+      MockComposition.mergeApiMaps(
+        into,
+        resolved,
+        sourceLabel: sourceLabel,
+      );
+      return;
+    }
+
+    final incoming = <String, Map<String, dynamic>>{};
+    for (final entry in inlineMocks.entries) {
       if (entry.value is! Map) {
         throw EnsembleTestFailure(
           'Mock for API "${entry.key}" in "$sourceLabel" must be a map',
         );
       }
-      apis[entry.key.toString()] = _parseLayerMockApiResponse(
-        Map<dynamic, dynamic>.from(entry.value as Map),
-        layerAssetPath: sourceLabel,
-        apiName: entry.key.toString(),
-      );
+      incoming[entry.key.toString()] = MockComposition.deepCopy(entry.value)
+          as Map<String, dynamic>;
     }
-    return TestMocks(apis: apis);
-  }
-
-  static dynamic _parseMockFileDocument(String content, String assetPath) {
-    try {
-      return jsonDecode(content);
-    } on FormatException catch (error) {
-      throw EnsembleTestFailure(
-        'Mock file "$assetPath" is not valid JSON: ${error.message}',
-      );
-    }
-  }
-
-  static MockAPIResponse _parseLayerMockApiResponse(
-    Map<dynamic, dynamic> map, {
-    required String layerAssetPath,
-    required String apiName,
-  }) {
-    if (map.isEmpty) {
-      throw EnsembleTestFailure(
-        'API mock "$apiName" in "$layerAssetPath" must include a response',
-      );
-    }
-    final unknownKeys = map.keys
-        .map((key) => key.toString())
-        .where(
-          (key) => !const {
-            'statusCode',
-            'body',
-            'headers',
-            'delayMs',
-            'responses',
-          }.contains(key),
-        )
-        .toList();
-    if (unknownKeys.isNotEmpty) {
-      throw EnsembleTestFailure(
-        'API mock "$apiName" in "$layerAssetPath" has unsupported keys: '
-        '${unknownKeys.join(", ")}. Use direct JSON shape: '
-        '{"statusCode": 200, "body": ...}.',
-      );
-    }
-
-    final responses = map['responses'];
-    if (responses != null) {
-      if (responses is! List || responses.isEmpty) {
-        throw EnsembleTestFailure(
-          'API mock "$apiName" in "$layerAssetPath" responses must be a non-empty list',
-        );
-      }
-      return MockAPIResponse(
-        responses: [
-          for (final entry in responses)
-            if (entry is Map)
-              _parseLayerMockApiResponse(
-                Map<dynamic, dynamic>.from(entry),
-                layerAssetPath: layerAssetPath,
-                apiName: apiName,
-              )
-            else
-              throw EnsembleTestFailure(
-                'API mock "$apiName" in "$layerAssetPath" responses entries must be objects',
-              ),
-        ],
-      );
-    }
-
-    return MockAPIResponse(
-      statusCode: map['statusCode'] as int? ?? 200,
-      body: map.containsKey('body') ? _unwrapJsonValue(map['body']) : null,
-      headers: map['headers'] is Map
-          ? Map<String, dynamic>.from(
-              _unwrapJsonValue(map['headers']) as Map,
-            )
-          : null,
-      delayMs: map['delayMs'] as int?,
+    MockComposition.mergeApiMaps(
+      into,
+      incoming,
+      sourceLabel: sourceLabel,
     );
-  }
-
-  static dynamic _unwrapJsonValue(dynamic value) {
-    if (value is Map) {
-      return {
-        for (final entry in value.entries)
-          entry.key.toString(): _unwrapJsonValue(entry.value),
-      };
-    }
-    if (value is List) {
-      return value.map(_unwrapJsonValue).toList();
-    }
-    return value;
-  }
-
-  static Future<String> _loadRequiredAsset(
-    String assetPath,
-    String missingMessage, {
-    required _AssetStringLoader assetLoader,
-  }) async {
-    try {
-      return await assetLoader(assetPath);
-    } on FlutterError {
-      throw EnsembleTestFailure(missingMessage);
-    }
   }
 
   static Future<String> _rootBundleAssetLoader(String assetPath) {

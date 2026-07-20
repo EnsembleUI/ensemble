@@ -217,6 +217,42 @@ overrides:
 Later files override earlier files. Use `delayMs` when a mock should stay
 pending briefly before returning, matching the loading behavior of a real API.
 
+### `$extends` and `$merge`
+
+To avoid duplicating large captured payloads, a mock file can extend another
+and patch only the fields that change:
+
+```json
+{
+  "$extends": "mocks/extender-positioning/one_toofar_one_good.mock.json",
+  "getExtenderPositioning": {
+    "$merge": {
+      "body.status[0].Children[1].Children[1].SignalStrength": -65
+    }
+  }
+}
+```
+
+- `$extends` — string or list of `.mock.json` paths, using the same paths as
+  test-level `mocks:` entries (relative to the tests folder). Parents are
+  layered in order before local APIs.
+- `$merge` — map of path → value applied onto the existing response for that
+  API. Paths use dotted keys and `[index]` segments (JSON Pointer `/a/0/b`
+  also works).
+- Without `$merge`, an API entry fully replaces the previous response for that
+  name.
+
+Inline mocks in a test or step can also use `$merge` against APIs already
+loaded from earlier files in the same mocks list:
+
+```yaml
+mocks:
+  - mocks/extender-positioning/one_too_close.mock.json
+  - getExtenderPositioning:
+      $merge:
+        body.status[0].Children[1].Children[0].SSW.State: Paired
+```
+
 ## Validation
 
 `--validate-only` checks generated tests without running Flutter. It reports blocking errors for invalid YAML shape, missing tests, duplicate IDs, unknown sessions, and unknown screens. It reports warnings for likely unknown widget IDs/APIs.

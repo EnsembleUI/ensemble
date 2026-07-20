@@ -500,6 +500,97 @@ steps:
       expect((mocks['inlineOnly']!.body as Map)['from'], 'inline');
     });
 
+    test('resolves \$extends and \$merge mock composition', () async {
+      const yaml = '''
+id: home_extends_merge
+startScreen: Home
+mocks:
+  - mocks/patch.mock.json
+steps:
+  - expectVisible:
+      id: home
+''';
+      final assets = {
+        'suite/tests/mocks/base.mock.json': '''
+{
+  "getDevices": {
+    "body": {
+      "status": [
+        { "Name": "A", "Active": true, "SignalStrength": -70 }
+      ]
+    }
+  }
+}
+''',
+        'suite/tests/mocks/patch.mock.json': '''
+{
+  "\$extends": "mocks/base.mock.json",
+  "getDevices": {
+    "\$merge": {
+      "body.status[0].SignalStrength": -26,
+      "body.status[0].Active": false
+    }
+  }
+}
+''',
+      };
+
+      final definitions =
+          await EnsembleTestExecutionPlanner.parseDefinitionsForTest(
+        'suite/tests/home.test.yaml',
+        yaml,
+        assetLoader: (path) async => assets[path]!,
+      );
+
+      final device = (((definitions.single.testCase.mocks.apis['getDevices']!
+              .body as Map)['status'] as List)
+          .single) as Map;
+      expect(device['Name'], 'A');
+      expect(device['SignalStrength'], -26);
+      expect(device['Active'], isFalse);
+    });
+
+    test('applies inline \$merge onto prior mock files', () async {
+      const yaml = '''
+id: home_inline_merge
+startScreen: Home
+mocks:
+  - mocks/base.mock.json
+  - getDevices:
+      \$merge:
+        body.status[0].SignalStrength: -65
+steps:
+  - expectVisible:
+      id: home
+''';
+      final assets = {
+        'suite/tests/mocks/base.mock.json': '''
+{
+  "getDevices": {
+    "body": {
+      "status": [
+        { "Name": "A", "SignalStrength": -78 }
+      ]
+    }
+  }
+}
+''',
+      };
+
+      final definitions =
+          await EnsembleTestExecutionPlanner.parseDefinitionsForTest(
+        'suite/tests/home.test.yaml',
+        yaml,
+        assetLoader: (path) async => assets[path]!,
+      );
+
+      final device = (((definitions.single.testCase.mocks.apis['getDevices']!
+              .body as Map)['status'] as List)
+          .single) as Map;
+      expect(device['Name'], 'A');
+      expect(device['SignalStrength'], -65);
+    });
+
     test('loads sequential JSON mock responses', () async {
       const yaml = '''
 id: recommendation_flow
