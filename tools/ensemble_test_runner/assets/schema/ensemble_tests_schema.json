@@ -279,6 +279,11 @@
       "properties": {
         "id": {
           "type": "string"
+        },
+        "timeoutMs": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Poll until the widget is hit-testable before tapping (default: defaultWaitTimeout)"
         }
       },
       "required": [

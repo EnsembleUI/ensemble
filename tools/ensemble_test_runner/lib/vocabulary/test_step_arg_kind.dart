@@ -89,7 +89,10 @@ extension TestStepArgKindSchema on TestStepArgKind {
           required: ['action'],
         );
       case TestStepArgKind.idRequired:
-        return _object(properties: {'id': _string}, required: ['id']);
+        return _object(
+          properties: {'id': _string, 'timeoutMs': _integer},
+          required: ['id'],
+        );
       case TestStepArgKind.idOptional:
         return _object(properties: {'id': _string});
       case TestStepArgKind.enterText:

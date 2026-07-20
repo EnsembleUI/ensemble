@@ -79,7 +79,7 @@ abstract final class TestStepRegistry {
       tier: TestStepTier.core,
       argKind: TestStepArgKind.idRequired,
       description: 'Tap a widget by testId (ValueKey)',
-      example: const {'id': 'my_widget'},
+      example: const {'id': 'my_widget', 'timeoutMs': 5000},
     ),
     'doubleTap': TestStepRegistryEntry(
       category: TestStepCategory.interaction,

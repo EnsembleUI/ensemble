@@ -144,7 +144,10 @@ class TestStepExecutor {
         await _openScreen(step);
         break;
       case 'tap':
-        await _tap(_requireId(step));
+        await _tap(
+          _requireId(step),
+          timeoutMs: step.args['timeoutMs'] as int?,
+        );
         break;
       case 'enterText':
         await _enterText(
@@ -316,7 +319,7 @@ class TestStepExecutor {
 
   String requireId(TestStep step) => _requireId(step);
 
-  Future<void> tapWidget(String id) => _tap(id);
+  Future<void> tapWidget(String id, {int? timeoutMs}) => _tap(id, timeoutMs: timeoutMs);
 
   Future<void> longPressWidget(String id) async {
     final finder = assertions.finderForId(id);
@@ -446,21 +449,64 @@ class TestStepExecutor {
     }
   }
 
-  Future<void> _tap(String id) async {
-    final baseFinder = assertions.finderForId(id);
-    if (baseFinder.evaluate().isEmpty) {
-      await _waitFor(
-        id: id,
-        timeoutMs: config.defaultWaitTimeout.inMilliseconds,
+  Future<void> _tap(String id, {int? timeoutMs}) async {
+    final effectiveTimeout =
+        timeoutMs ?? config.defaultWaitTimeout.inMilliseconds;
+    final stopwatch = Stopwatch()..start();
+    Finder? tappableFinder;
+
+    while (stopwatch.elapsedMilliseconds < effectiveTimeout) {
+      await _pump(duration: config.waitPollInterval, label: 'tap');
+      tappableFinder = _findTappableFinder(id);
+      if (tappableFinder != null) break;
+    }
+
+    if (tappableFinder == null) {
+      final baseFinder = assertions.finderForId(id);
+      if (baseFinder.evaluate().isEmpty) {
+        throw EnsembleTestFailure(
+          'Timed out after ${effectiveTimeout}ms waiting for id "$id". '
+          '${assertions.visibleWidgetIdSummary()}',
+        );
+      }
+      throw EnsembleTestFailure(
+        'Timed out after ${effectiveTimeout}ms waiting for id "$id" to become '
+        'hit-testable. It may be off-screen, disabled, or covered by another widget. '
+        '${assertions.visibleWidgetIdSummary()}',
       );
     }
-    var finder = _interactiveFinder(baseFinder);
-    _expectSingleWidget(finder, id, 'tap');
-    await tester.ensureVisible(finder);
+
+    await tester.ensureVisible(tappableFinder);
     await _pump(label: 'tap.ensureVisible');
-    finder = _hitTestableFinderForTap(finder, id);
-    await tester.tap(finder);
+    tappableFinder = _hitTestableFinderForTap(
+      _interactiveFinder(assertions.finderForId(id)),
+      id,
+    );
+    await tester.tap(tappableFinder);
     await _settle();
+  }
+
+  Finder? _findTappableFinder(String id) {
+    final baseFinder = assertions.finderForId(id);
+    if (baseFinder.evaluate().isEmpty) return null;
+
+    final finder = _interactiveFinder(baseFinder);
+    final count = finder.evaluate().length;
+    if (count == 0) return null;
+    if (count > 1) {
+      final hitTestable = finder.hitTestable();
+      final hitTestableCount = hitTestable.evaluate().length;
+      if (hitTestableCount > 1) {
+        throw EnsembleTestFailure(
+          'tap expected exactly one hit-testable widget with id "$id", '
+          'but found $hitTestableCount.',
+        );
+      }
+      return hitTestableCount == 1 ? hitTestable : null;
+    }
+
+    final hitTestable = finder.hitTestable();
+    return hitTestable.evaluate().length == 1 ? hitTestable : null;
   }
 
   Finder _hitTestableFinderForTap(Finder finder, String id) {

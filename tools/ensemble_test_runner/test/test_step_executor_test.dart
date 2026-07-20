@@ -174,6 +174,34 @@ void main() {
     expect(taps, 1);
   });
 
+  testWidgets('tap waits until widget becomes hit-testable', (tester) async {
+    var tapped = false;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: _DelayedTappableButton(
+          onTap: () => tapped = true,
+        ),
+      ),
+    );
+
+    final context = EnsembleTestContext.fromTestCase(
+      const EnsembleTestCase(
+        id: 'delayed_tap',
+        startScreen: 'Home',
+        steps: [],
+      ),
+    );
+    final executor = TestStepExecutor(
+      tester: tester,
+      context: context,
+      assertions: AssertionEngine(tester: tester, context: context),
+      harness: EnsembleTestHarness(appPath: 'unused', appHome: 'Home'),
+    );
+
+    await executor.tapWidget('delayed_button');
+    expect(tapped, isTrue);
+  });
+
   testWidgets('text assertions use visual visibility, not hit testing',
       (tester) async {
     await tester.pumpWidget(
@@ -379,4 +407,37 @@ void main() {
 
     expect(tester.binding.renderViews.first.size, const Size(393, 852));
   });
+}
+
+class _DelayedTappableButton extends StatefulWidget {
+  const _DelayedTappableButton({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  State<_DelayedTappableButton> createState() => _DelayedTappableButtonState();
+}
+
+class _DelayedTappableButtonState extends State<_DelayedTappableButton> {
+  var _enabled = false;
+
+  @override
+  void initState() {
+    super.initState();
+    Future<void>.delayed(const Duration(milliseconds: 150), () {
+      if (mounted) setState(() => _enabled = true);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return IgnorePointer(
+      ignoring: !_enabled,
+      child: TextButton(
+        key: const ValueKey('delayed_button'),
+        onPressed: widget.onTap,
+        child: const Text('Delayed'),
+      ),
+    );
+  }
 }
