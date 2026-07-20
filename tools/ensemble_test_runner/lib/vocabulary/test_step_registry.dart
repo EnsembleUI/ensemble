@@ -598,7 +598,7 @@ abstract final class TestStepRegistry {
       category: TestStepCategory.runtime,
       tier: TestStepTier.core,
       argKind: TestStepArgKind.setTheme,
-      description: 'Set APP_THEME / theme mode override',
+      description: 'Set Ensemble theme via EnsembleThemeManager (e.g. light/dark)',
       example: const {'mode': 'dark'},
     ),
     'runScript': TestStepRegistryEntry(

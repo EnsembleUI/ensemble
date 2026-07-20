@@ -93,17 +93,19 @@ screenshots:
   includeSteps: []
   excludeSteps: []
 
-# Device matrix (viewport + optional locale). One entry = single device;
+# Device matrix (viewport + optional locale/theme). One entry = single device;
 # multiple entries expand each test and share one contact sheet.
 devices:
   - id: android_nl
     platform: android
     model: Samsung Galaxy S20
     locale: nl
+    theme: light
   - id: iphone_en
     platform: ios
     model: iPhone 15 Pro
     locale: en
+    theme: dark
 
 performance:
   enabled: true
@@ -125,7 +127,9 @@ storage/keychain/env key.
 
 When `devices` is set, each test expands to one run per device (ids look like
 `home[android_nl]` when there is more than one device). Device `locale` sets
-`APP_LOCALE` for that run. All device runs of a logical test share one contact
+`APP_LOCALE` for that run without rewriting `startScreenInputs`. Device `theme`
+(`light` / `dark`) is applied through `EnsembleThemeManager` after boot (any
+start screen). All device runs of a logical test share one contact
 sheet named after the base test id (for example `home.png`), with a section per
 device.
 

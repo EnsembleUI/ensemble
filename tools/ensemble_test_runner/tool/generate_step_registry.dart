@@ -510,7 +510,7 @@ void main() {
       'runtime',
       'core',
       'setTheme',
-      'Set APP_THEME / theme mode override',
+      'Set Ensemble theme via EnsembleThemeManager (e.g. light/dark)',
     ),
     'runScript': step(
       'script',

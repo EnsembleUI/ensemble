@@ -242,24 +242,35 @@ class LogStorageConfig {
   });
 }
 
-/// One device (+ optional locale) in a suite run matrix.
+/// One device (+ optional locale/theme) in a suite run matrix.
 class TestDeviceTarget {
   final String id;
   final String platform;
   final String model;
   final String? locale;
 
+  /// Ensemble theme name or alias (`light` / `dark` → `Light` / `Dark`).
+  final String? theme;
+
   const TestDeviceTarget({
     required this.id,
     required this.platform,
     required this.model,
     this.locale,
+    this.theme,
   });
 
   String get displayLabel {
+    final parts = <String>[model];
     final localeValue = locale?.trim();
-    if (localeValue == null || localeValue.isEmpty) return model;
-    return '$model · $localeValue';
+    if (localeValue != null && localeValue.isNotEmpty) {
+      parts.add(localeValue);
+    }
+    final themeValue = theme?.trim();
+    if (themeValue != null && themeValue.isNotEmpty) {
+      parts.add(themeValue);
+    }
+    return parts.join(' · ');
   }
 
   Map<String, dynamic> toScreenshotArgs() => {

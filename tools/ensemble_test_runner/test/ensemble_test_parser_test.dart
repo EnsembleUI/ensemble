@@ -355,9 +355,11 @@ devices:
     platform: android
     model: Samsung Galaxy S20
     locale: nl
+    theme: light
   - platform: ios
     model: iPhone 15 Pro
     locale: en
+    theme: dark
 ''';
 
       final devices = EnsembleTestParser.parseConfigString(yaml).devices;
@@ -366,9 +368,12 @@ devices:
       expect(devices[0].platform, 'android');
       expect(devices[0].model, 'Samsung Galaxy S20');
       expect(devices[0].locale, 'nl');
+      expect(devices[0].theme, 'light');
+      expect(devices[0].displayLabel, 'Samsung Galaxy S20 · nl · light');
       expect(devices[1].id, 'ios_en');
       expect(devices[1].platform, 'ios');
       expect(devices[1].locale, 'en');
+      expect(devices[1].theme, 'dark');
     });
 
     test('rejects screenshots.platform/model/devices', () {

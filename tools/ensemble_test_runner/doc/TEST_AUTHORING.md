@@ -58,16 +58,18 @@ initialState:
 screenshots:
   enabled: true
 
-# Device matrix (viewport + optional locale). Use one entry for a single device.
+# Device matrix (viewport + optional locale/theme). Use one entry for a single device.
 devices:
   - id: android_nl
     platform: android
     model: Samsung Galaxy S20
     locale: nl
+    theme: light
   - id: iphone_en
     platform: ios
     model: iPhone 15 Pro
     locale: en
+    theme: dark
 
 performance:
   enabled: true
@@ -92,10 +94,13 @@ screenshots into one contact sheet per test case under
 `build/ensemble_test_runner/screenshots/`.
 
 When `devices` is set, each test runs once per device (test ids become
-`id[deviceId]` when there is more than one device). Device `locale` overrides
-`APP_LOCALE` for that run (and InitApp `languageCode` when present). All device
-runs share one sheet named after the logical test id, with a labeled section
-per device.
+`id[deviceId]` when there is more than one device). Device `locale` sets
+`APP_LOCALE` / forcedLocale for that run; it does not rewrite
+`startScreenInputs`. Device `theme` (`light` / `dark`, or an exact Themes name
+like `Light` / `Dark`) is applied via `EnsembleThemeManager` after the app
+boots, so it works for any `startScreen`. Explicit test `languageCode` /
+`themeMode` inputs are left as written. All device runs share one sheet named
+after the logical test id, with a labeled section per device.
 
 For multi-locale suites, use `anyOf` on text assertions so both languages pass:
 

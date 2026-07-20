@@ -271,10 +271,7 @@ class EnsembleTestExecutionPlanner {
               mocks: test.mocks,
               steps: test.steps,
               initialState: _withDeviceLocale(test.initialState, device),
-              startScreenInputs: _withDeviceLanguageInput(
-                test.startScreenInputs,
-                device,
-              ),
+              startScreenInputs: test.startScreenInputs,
               deviceTarget: device,
               screenshotSheetId: multi
                   ? test.resolvedScreenshotSheetId
@@ -301,29 +298,6 @@ class EnsembleTestExecutionPlanner {
         'env': {'APP_LOCALE': locale},
       },
     );
-  }
-
-  /// Maps device locale onto InitApp-style `languageCode` screen inputs
-  /// (`nl` → `nl-NL`, `en` → `en-US`) so deep-link locale matches the matrix.
-  static Map<String, dynamic> _withDeviceLanguageInput(
-    Map<String, dynamic> inputs,
-    TestDeviceTarget device,
-  ) {
-    final locale = device.locale?.trim();
-    if (locale == null || locale.isEmpty) {
-      return Map<String, dynamic>.from(inputs);
-    }
-    final languageCode = switch (locale.toLowerCase()) {
-      'en' || 'en_us' || 'en-us' => 'en-US',
-      'nl' || 'nl_nl' || 'nl-nl' => 'nl-NL',
-      _ => locale.contains('-') || locale.contains('_')
-          ? locale.replaceAll('_', '-')
-          : locale,
-    };
-    return <String, dynamic>{
-      ...inputs,
-      'languageCode': languageCode,
-    };
   }
 
   static String _resolveServicePlaceholders(

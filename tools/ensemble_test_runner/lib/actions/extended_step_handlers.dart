@@ -6,6 +6,7 @@ import 'package:ensemble/framework/screen_tracker.dart';
 import 'package:ensemble/framework/storage_manager.dart';
 import 'package:ensemble_device_preview/ensemble_device_preview.dart';
 import 'package:ensemble_test_runner/actions/test_step_executor.dart';
+import 'package:ensemble_test_runner/actions/test_theme.dart';
 import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
 import 'package:ensemble_test_runner/runner/ensemble_test_harness.dart';
 import 'package:flutter/material.dart';
@@ -218,7 +219,7 @@ class ExtendedStepHandlers {
         await _setLocale(executor, step);
         return true;
       case 'setTheme':
-        _setTheme(executor, step);
+        await _setTheme(executor, step);
         return true;
       case 'runScript':
         _runScript(executor, step, expectResult: false);
@@ -462,12 +463,16 @@ class ExtendedStepHandlers {
     e.context.runtime.locale = Locale(locale.split('_').first);
   }
 
-  static void _setTheme(TestStepExecutor e, TestStep step) {
+  static Future<void> _setTheme(TestStepExecutor e, TestStep step) async {
     final theme =
         step.args['mode']?.toString() ?? step.args['theme']?.toString();
-    if (theme != null) {
-      e.context.setEnv('APP_THEME', theme);
-      e.context.runtime.themeMode = theme;
+    if (theme == null || theme.trim().isEmpty) return;
+
+    e.context.setEnv('APP_THEME', theme);
+    final applied = applyEnsembleTestTheme(theme);
+    e.context.runtime.themeMode = applied ?? theme;
+    if (applied != null) {
+      await e.tester.pump();
     }
   }
 

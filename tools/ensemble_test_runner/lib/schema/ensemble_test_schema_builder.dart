@@ -283,7 +283,8 @@ class EnsembleTestSchemaBuilder {
           'type': 'array',
           'description':
               'Suite device matrix. Each test runs once per entry with that '
-              'platform/model viewport and optional locale (APP_LOCALE). '
+              'platform/model viewport, optional locale (APP_LOCALE), and '
+              'optional theme (EnsembleThemeManager Light/Dark). '
               'Multiple devices share one contact sheet per logical test id.',
           'items': {'\$ref': '#/\$defs/testDevice'},
         },
@@ -369,6 +370,13 @@ class EnsembleTestSchemaBuilder {
               'type': 'string',
               'description':
                   'Sets APP_LOCALE / forcedLocale for this device run.',
+            },
+            'theme': {
+              'type': 'string',
+              'description':
+                  'Ensemble theme for this device run (e.g. light/dark or '
+                  'Light/Dark). Applied via EnsembleThemeManager for any '
+                  'startScreen.',
             },
           },
         },

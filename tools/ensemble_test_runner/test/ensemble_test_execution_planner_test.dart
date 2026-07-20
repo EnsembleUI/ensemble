@@ -364,12 +364,14 @@ steps:
             platform: 'android',
             model: 'Samsung Galaxy S20',
             locale: 'nl',
+            theme: 'light',
           ),
           TestDeviceTarget(
             id: 'iphone_en',
             platform: 'ios',
             model: 'iPhone 15 Pro',
             locale: 'en',
+            theme: 'dark',
           ),
         ],
       );
@@ -387,6 +389,16 @@ steps:
         {'home_devices'},
       );
       expect(
+        definitions.map((d) => d.testCase.deviceTarget?.theme),
+        ['light', 'dark'],
+      );
+      expect(
+        definitions.every(
+          (d) => !d.testCase.startScreenInputs.containsKey('themeMode'),
+        ),
+        isTrue,
+      );
+      expect(
         (definitions[0].testCase.initialState['env'] as Map)['APP_LOCALE'],
         'nl',
       );
@@ -396,17 +408,10 @@ steps:
       );
       expect(definitions[0].testCase.deviceTarget?.model, 'Samsung Galaxy S20');
       expect(definitions[1].testCase.deviceTarget?.model, 'iPhone 15 Pro');
-      expect(
-        definitions[0].testCase.startScreenInputs['languageCode'],
-        'nl-NL',
-      );
-      expect(
-        definitions[1].testCase.startScreenInputs['languageCode'],
-        'en-US',
-      );
     });
 
-    test('device matrix overrides startScreenInputs languageCode', () async {
+    test('device matrix leaves startScreenInputs languageCode unchanged',
+        () async {
       const yaml = '''
 id: init_locale
 startScreen: InitApp
@@ -439,12 +444,17 @@ steps:
       );
 
       expect(
-        definitions[0].testCase.startScreenInputs['languageCode'],
-        'nl-NL',
+        definitions.map((d) => d.testCase.startScreenInputs['languageCode']),
+        ['nl-NL', 'nl-NL'],
+      );
+      expect(definitions[0].testCase.startScreenInputs['token'], 'abc');
+      expect(
+        (definitions[0].testCase.initialState['env'] as Map?)?['APP_LOCALE'],
+        'nl',
       );
       expect(
-        definitions[1].testCase.startScreenInputs['languageCode'],
-        'en-US',
+        (definitions[1].testCase.initialState['env'] as Map?)?['APP_LOCALE'],
+        'en',
       );
     });
 

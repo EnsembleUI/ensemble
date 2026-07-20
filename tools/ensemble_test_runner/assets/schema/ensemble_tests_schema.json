@@ -1890,7 +1890,7 @@
       },
       "additionalProperties": false,
       "title": "setTheme",
-      "description": "Set APP_THEME / theme mode override",
+      "description": "Set Ensemble theme via EnsembleThemeManager (e.g. light/dark)",
       "examples": [
         {
           "mode": "dark"
@@ -4599,7 +4599,7 @@
         {
           "type": "object",
           "title": "setTheme",
-          "description": "Set APP_THEME / theme mode override",
+          "description": "Set Ensemble theme via EnsembleThemeManager (e.g. light/dark)",
           "examples": [
             {
               "setTheme": {
@@ -4613,7 +4613,7 @@
           "properties": {
             "setTheme": {
               "$ref": "#/$defs/args_setTheme",
-              "description": "Set APP_THEME / theme mode override",
+              "description": "Set Ensemble theme via EnsembleThemeManager (e.g. light/dark)",
               "examples": [
                 {
                   "mode": "dark"

@@ -284,7 +284,8 @@ class EnsembleTestParser {
         if (screenshotsNode.containsKey(key)) {
           throw EnsembleTestFailure(
             '"screenshots.$key" is no longer supported. Define devices at the '
-            'config root under "devices" (platform, model, optional locale).',
+            'config root under "devices" (platform, model, optional locale/'
+            'theme).',
           );
         }
       }
@@ -394,7 +395,7 @@ class EnsembleTestParser {
           'Each devices entry must be a map',
         );
       }
-      const allowedKeys = {'id', 'platform', 'model', 'locale'};
+      const allowedKeys = {'id', 'platform', 'model', 'locale', 'theme'};
       for (final key in item.keys) {
         if (!allowedKeys.contains(key.toString())) {
           throw EnsembleTestFailure(
@@ -415,6 +416,7 @@ class EnsembleTestParser {
         );
       }
       final locale = item['locale']?.toString().trim();
+      final theme = _parseDeviceTheme(item['theme'], index: i);
       final idRaw = item['id']?.toString().trim();
       final id = (idRaw == null || idRaw.isEmpty)
           ? _defaultDeviceId(
@@ -434,6 +436,7 @@ class EnsembleTestParser {
           platform: platform,
           model: model,
           locale: (locale == null || locale.isEmpty) ? null : locale,
+          theme: theme,
         ),
       );
     }
@@ -456,6 +459,15 @@ class EnsembleTestParser {
       return '${platformKey}_$index';
     }
     return '${platformKey}_$localeKey';
+  }
+
+  /// Optional `devices[].theme`. Empty is ignored; non-empty values are kept
+  /// as written (harness resolves aliases like `light` → `Light`).
+  static String? _parseDeviceTheme(dynamic value, {required int index}) {
+    if (value == null) return null;
+    final theme = value.toString().trim();
+    if (theme.isEmpty) return null;
+    return theme;
   }
 
   static List<TestServiceConfig> _parseServices(dynamic node) {

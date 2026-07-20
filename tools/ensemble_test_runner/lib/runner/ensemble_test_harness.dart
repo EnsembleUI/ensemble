@@ -13,6 +13,7 @@ import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble_device_preview/ensemble_device_preview.dart';
 import 'package:ensemble_test_runner/actions/screenshot_device.dart';
+import 'package:ensemble_test_runner/actions/test_theme.dart';
 import 'package:ensemble_test_runner/mocks/adobe_test_setup.dart';
 import 'package:ensemble_test_runner/mocks/firebase_test_setup.dart';
 import 'package:ensemble_test_runner/mocks/test_api_provider_overlay.dart';
@@ -530,6 +531,9 @@ class EnsembleTestHarness {
       );
     }
 
+    final deviceTheme = testCase.deviceTarget?.theme;
+    await tester.runAsync(() => seedEnsembleTestTheme(deviceTheme));
+
     // Skip re-initializing providers in EnsembleApp.initApp; bootstrapRuntime
     // already installed real providers and mock overlays.
     config.appBundle = null;
@@ -545,6 +549,11 @@ class EnsembleTestHarness {
     );
 
     await waitForInitialWidgets(tester, testCase: testCase);
+    final appliedTheme = applyDeviceThemeForTestCase(testCase);
+    if (appliedTheme != null) {
+      ctx.runtime.themeMode = appliedTheme;
+      await tester.pump();
+    }
     return config;
   }
 
