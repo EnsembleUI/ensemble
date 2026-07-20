@@ -95,6 +95,15 @@ class ExtendedStepHandlers {
                 item.toString(),
         ];
         final text = step.args['text']?.toString();
+        final timeoutMs = step.args['timeoutMs'] as int?;
+        if (timeoutMs != null && timeoutMs > 0) {
+          await executor.waitForTextContains(
+            text: text,
+            anyOf: anyOf,
+            timeoutMs: timeoutMs,
+          );
+          return true;
+        }
         if (anyOf.isNotEmpty) {
           executor.assertions.expectTextContainsAny(anyOf);
           return true;

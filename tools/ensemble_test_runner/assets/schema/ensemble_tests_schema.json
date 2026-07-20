@@ -1142,6 +1142,11 @@
             "type": "string"
           },
           "minItems": 1
+        },
+        "timeoutMs": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "When set, poll until matching text is visible (default: instant assert)"
         }
       },
       "anyOf": [

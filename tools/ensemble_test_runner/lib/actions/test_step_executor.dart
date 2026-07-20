@@ -332,6 +332,37 @@ class TestStepExecutor {
     await _settle();
   }
 
+  Future<void> waitForTextContains({
+    String? text,
+    List<String> anyOf = const [],
+    required int timeoutMs,
+  }) async {
+    final textCandidates = <String>[
+      if (text != null && text.trim().isNotEmpty) text,
+      ...anyOf.where((value) => value.trim().isNotEmpty),
+    ];
+    if (textCandidates.isEmpty) {
+      throw EnsembleTestFailure(
+        'expectTextContains requires "text" or "anyOf"',
+      );
+    }
+
+    final stopwatch = Stopwatch()..start();
+    while (stopwatch.elapsedMilliseconds < timeoutMs) {
+      await _pump(duration: config.waitPollInterval, label: 'expectTextContains');
+      if (assertions.isAnyTextContainingVisible(textCandidates)) {
+        return;
+      }
+    }
+
+    throw EnsembleTestFailure(
+      'Timed out after ${timeoutMs}ms waiting for text containing one of: '
+      '${textCandidates.map((t) => '"$t"').join(', ')}. '
+      '${assertions.visibleWidgetIdSummary()} '
+      '${assertions.visibleTextSummary()}',
+    );
+  }
+
   Future<void> unfocus() async {
     FocusManager.instance.primaryFocus?.unfocus();
     await _settle();
