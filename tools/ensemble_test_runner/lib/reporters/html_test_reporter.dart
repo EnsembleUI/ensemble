@@ -546,11 +546,17 @@ class HtmlTestReporter {
                         timePart = '[${timeMatch.group(1)}] ';
                       }
 
-                      final badgeClass = mocked ? 'info' : (statusCode == 200 ? 'passed' : 'failed');
-                      final badgeText = mocked ? 'MOCK' : 'API';
-                      final statusColor = statusCode == 200 ? 'var(--pass)' : 'var(--fail)';
+                      final hasError = ev['error'] != null || ev['failed'] == true || ev['exception'] != null;
+                      final isSuccess = statusCode != null
+                          ? (statusCode is int && statusCode >= 200 && statusCode < 300)
+                          : !hasError;
+                      final displayStatus = statusCode != null ? '$statusCode' : (isSuccess ? '200' : 'ERROR');
 
-                      buffer.writeln('          <div class="terminal-row"><span class="terminal-timestamp">${_escape(timePart)}</span><span class="terminal-badge $badgeClass">$badgeText</span><span style="font-weight: 700; color: #fff;">${_escape(name)}</span> · <span style="color: $statusColor; font-weight: 700;">${statusCode ?? "ERROR"}</span></div>');
+                      final badgeClass = mocked ? 'info' : (isSuccess ? 'passed' : 'failed');
+                      final badgeText = mocked ? 'MOCK' : 'API';
+                      final statusColor = isSuccess ? 'var(--pass)' : 'var(--fail)';
+
+                      buffer.writeln('          <div class="terminal-row"><span class="terminal-timestamp">${_escape(timePart)}</span><span class="terminal-badge $badgeClass">$badgeText</span><span style="font-weight: 700; color: #fff;">${_escape(name)}</span> · <span style="color: $statusColor; font-weight: 700;">$displayStatus</span></div>');
                     }
                   }
                 }
