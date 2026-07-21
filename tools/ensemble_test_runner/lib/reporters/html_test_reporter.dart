@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
+import 'package:ensemble_test_runner/reporters/step_outline_format.dart';
 import 'package:ensemble_test_runner/runner/test_artifacts.dart';
 import 'package:path/path.dart' as p;
 
@@ -434,13 +435,39 @@ class HtmlTestReporter {
             ..writeln('    <div class="timeline-steps-container">')
             ..writeln('      <div class="timeline-header">Steps Outline</div>')
             ..writeln('      <div class="timeline-steps-track">');
-          for (var j = 0; j < report.stepsOutline.length; j++) {
-            final failed = !passed && test.failedStepIndex == j;
+          var j = 0;
+          for (final line in stepOutlineDisplayLines(
+            stepsOutline: report.stepsOutline,
+            stepDurationsMs: report.stepDurationsMs,
+            failedStepIndex: !passed ? test.failedStepIndex : null,
+          )) {
+            final formattedText = _formatStepText(report.stepsOutline[j]);
+            final speedClass = line.durationMs == null
+                ? 'fast'
+                : (line.durationMs! < 500
+                    ? 'fast'
+                    : (line.durationMs! < 2000 ? 'normal' : 'slow'));
+
             buffer
-              ..writeln('        <div class="timeline-step-row ${failed ? 'failed-step' : ''}">')
+              ..writeln('        <div class="timeline-step-row ${line.failed ? 'failed-step' : ''}">')
               ..writeln('          <div class="timeline-marker"><span class="marker-dot"></span></div>')
-              ..writeln('          <div class="step-outline-text">${_escape(report.stepsOutline[j])}</div>')
+              ..writeln('          <div class="step-outline-body">')
+              ..writeln('            <div class="step-outline-top-row">')
+              ..writeln('              <div class="step-outline-text">$formattedText</div>');
+
+            if (line.durationMs != null) {
+              buffer.writeln('              <span class="step-duration $speedClass">${_escape(_formatDuration(line.durationMs!))}</span>');
+            }
+            buffer.writeln('            </div>');
+
+            if (line.failed && test.message != null) {
+              buffer.writeln('            <div class="step-error-reason">${_escape(test.message!)}</div>');
+            }
+
+            buffer
+              ..writeln('          </div>')
               ..writeln('        </div>');
+            j++;
           }
           buffer.writeln('      </div>');
           buffer.writeln('    </div>');
@@ -694,6 +721,17 @@ class HtmlTestReporter {
       .replaceAll('>', '&gt;')
       .replaceAll('"', '&quot;')
       .replaceAll("'", '&#39;');
+
+  String _formatStepText(String text) {
+    final escaped = _escape(text);
+    final parenIndex = escaped.indexOf('(');
+    if (parenIndex == -1) {
+      return '<span class="step-action">$escaped</span>';
+    }
+    final action = escaped.substring(0, parenIndex);
+    final args = escaped.substring(parenIndex);
+    return '<span class="step-action">$action</span><span class="step-args">$args</span>';
+  }
 
   String _formatDuration(int durationMs) {
     if (durationMs < 1000) return '${durationMs}ms';
@@ -1343,16 +1381,28 @@ body {
 .timeline-step-row {
   display: flex;
   position: relative;
-  padding-bottom: 12px;
+  padding: 10px 12px;
+  margin-bottom: 8px;
   align-items: flex-start;
+  border-radius: 8px;
+  transition: background 0.2s ease, border 0.2s ease;
+  border: 1px solid transparent;
+}
+.timeline-step-row:hover {
+  background: rgba(255, 255, 255, 0.02);
+}
+.timeline-step-row.failed-step {
+  background: rgba(244, 63, 94, 0.03);
+  border: 1px solid rgba(244, 63, 94, 0.15);
+  box-shadow: 0 0 10px rgba(244, 63, 94, 0.05);
 }
 .timeline-step-row:last-child {
-  padding-bottom: 0;
+  margin-bottom: 0;
 }
 .timeline-marker {
   position: absolute;
   left: -20px;
-  top: 6px;
+  top: 14px;
   width: 12px;
   height: 12px;
   display: flex;
@@ -1376,15 +1426,77 @@ body {
   50% { transform: scale(1.3); opacity: 0.6; }
   100% { transform: scale(1); opacity: 1; }
 }
+.step-outline-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+}
+.step-outline-top-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+}
 .step-outline-text {
   font-family: var(--font-code);
-  font-size: 0.85rem;
-  color: #cbd5e1;
-  padding-left: 10px;
+  font-size: 0.88rem;
+  color: #e2e8f0;
+  padding-left: 8px;
 }
-.failed-step .step-outline-text {
-  color: var(--fail);
+.step-outline-text .step-action {
+  color: var(--accent);
   font-weight: 700;
+}
+.step-outline-text .step-args {
+  color: #94a3b8;
+  font-weight: 400;
+}
+.failed-step .step-outline-text .step-action {
+  color: var(--fail);
+}
+.step-duration {
+  flex-shrink: 0;
+  font-family: var(--font-code);
+  font-size: 0.75rem;
+  font-weight: 600;
+  border-radius: 999px;
+  padding: 2px 8px;
+  background: rgba(255, 255, 255, 0.03);
+}
+.step-duration.fast {
+  color: var(--text-muted, #9ca3af);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+.step-duration.normal {
+  color: var(--accent);
+  border: 1px solid rgba(6, 182, 212, 0.25);
+  background: rgba(6, 182, 212, 0.03);
+}
+.step-duration.slow {
+  color: #f59e0b;
+  border: 1px solid rgba(245, 158, 11, 0.25);
+  background: rgba(245, 158, 11, 0.03);
+}
+.failed-step .step-duration {
+  color: var(--fail);
+  border-color: rgba(244, 63, 94, 0.35);
+  background: rgba(244, 63, 94, 0.03);
+}
+.step-error-reason {
+  font-family: var(--font-code);
+  font-size: 0.8rem;
+  color: #fda4af;
+  background: rgba(244, 63, 94, 0.08);
+  border-left: 3px solid var(--fail);
+  border-radius: 4px;
+  padding: 8px 12px;
+  margin-top: 4px;
+  width: 100%;
+  white-space: pre-wrap;
+  word-break: break-all;
 }
 
 /* Terminal logs split pane styling */

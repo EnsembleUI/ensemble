@@ -10,6 +10,7 @@ import 'package:ensemble_test_runner/inspect/ensemble_app_inspector.dart';
 import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
 import 'package:ensemble_test_runner/parser/ensemble_test_parser.dart';
 import 'package:ensemble_test_runner/reporters/html_test_reporter.dart';
+import 'package:ensemble_test_runner/reporters/step_outline_format.dart';
 import 'package:ensemble_test_runner/validation/ensemble_test_validator.dart';
 import 'package:path/path.dart' as p;
 import 'package:yaml/yaml.dart';
@@ -1420,11 +1421,16 @@ void _writeCliTestCase(StringBuffer buffer, EnsembleSingleTestResult r) {
     }
     if (report.stepsOutline.isNotEmpty) {
       buffer.writeln('│     steps (${report.stepsOutline.length}):');
-      for (var i = 0; i < report.stepsOutline.length; i++) {
-        final prefix = r.status == TestStatus.failed && r.failedStepIndex == i
-            ? '>>'
-            : '  ';
-        buffer.writeln('│       $prefix ${i + 1}. ${report.stepsOutline[i]}');
+      var i = 0;
+      for (final line in stepOutlineDisplayLines(
+        stepsOutline: report.stepsOutline,
+        stepDurationsMs: report.stepDurationsMs,
+        failedStepIndex:
+            r.status == TestStatus.failed ? r.failedStepIndex : null,
+      )) {
+        final prefix = line.failed ? '>>' : '  ';
+        buffer.writeln('│       $prefix ${i + 1}. ${line.text}');
+        i++;
       }
     }
   }
@@ -1508,6 +1514,9 @@ EnsembleTestReportDetails _reportDetailsFromJson(Map<String, dynamic> json) {
         .toList(),
     stepsOutline: (json['stepsOutline'] as List<dynamic>? ?? const [])
         .map((value) => value.toString())
+        .toList(),
+    stepDurationsMs: (json['stepDurationsMs'] as List<dynamic>? ?? const [])
+        .map((value) => value is int ? value : int.tryParse('$value') ?? 0)
         .toList(),
   );
 }

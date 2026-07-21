@@ -455,6 +455,7 @@ class EnsembleTestRunner {
       harness: harness,
       config: config,
     );
+    final stepDurationsMs = <int>[];
     for (var i = 0; i < test.steps.length; i++) {
       final step = test.steps[i];
       final startFrame = ctx.runtime.appFrameTimings.length + 1;
@@ -503,6 +504,9 @@ class EnsembleTestRunner {
           capturedStep = true;
         }
         await YamlTestSession.navigationFlow.flushPending();
+        stepDurationsMs.add(
+          DateTime.now().difference(startTime).inMilliseconds,
+        );
         _recordPerformanceMarker(
           ctx: ctx,
           testId: test.id,
@@ -513,6 +517,9 @@ class EnsembleTestRunner {
           startTime: startTime,
         );
       } catch (error, stackTrace) {
+        stepDurationsMs.add(
+          DateTime.now().difference(startTime).inMilliseconds,
+        );
         _recordPerformanceMarker(
           ctx: ctx,
           testId: test.id,
@@ -567,7 +574,10 @@ class EnsembleTestRunner {
           stackTrace: stackTrace.toString(),
           durationMs: stopwatch.elapsedMilliseconds,
           logs: ctx.logger.logs,
-          report: buildTestReportDetails(test),
+          report: buildTestReportDetails(
+            test,
+            stepDurationsMs: stepDurationsMs,
+          ),
         );
       }
     }
@@ -598,7 +608,10 @@ class EnsembleTestRunner {
       metadata: test.metadataJson,
       durationMs: stopwatch.elapsedMilliseconds,
       logs: ctx.logger.logs,
-      report: buildTestReportDetails(test),
+      report: buildTestReportDetails(
+        test,
+        stepDurationsMs: stepDurationsMs,
+      ),
     );
   }
 

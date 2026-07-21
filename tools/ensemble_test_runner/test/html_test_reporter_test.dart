@@ -45,6 +45,7 @@ void main() {
           report: const EnsembleTestReportDetails(
             startScreen: 'Home',
             stepsOutline: ['expectVisible(title)'],
+            stepDurationsMs: [85],
           ),
         ),
         EnsembleSingleTestResult.failed(
@@ -65,6 +66,7 @@ void main() {
               'enterText(email_field)',
               'tap(login_button)',
             ],
+            stepDurationsMs: [120, 3280],
           ),
         ),
       ],
@@ -93,6 +95,9 @@ void main() {
     expect(html, contains('ok_home'));
     expect(html, contains('Timed out waiting for dashboard'));
     expect(html, contains('failed-step'));
+    expect(html, contains('step-duration'));
+    expect(html, contains('85ms'));
+    expect(html, contains('3.3s'));
     expect(html, contains('../screenshots/login_flow.png'));
     expect(html, contains('../logs/login_flow_api_calls.json'));
     expect(html, contains('../logs/login_flow_storage.json'));

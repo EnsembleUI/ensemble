@@ -600,12 +600,17 @@ class EnsembleTestReportDetails {
   final List<String> screensVisited;
   final List<String> stepsOutline;
 
+  /// Wall-clock ms for each top-level step (same order as [EnsembleTestCase.steps]).
+  /// Shorter than the step list when the run failed mid-suite.
+  final List<int> stepDurationsMs;
+
   const EnsembleTestReportDetails({
     required this.startScreen,
     this.endScreen,
     this.session,
     this.screensVisited = const [],
     this.stepsOutline = const [],
+    this.stepDurationsMs = const [],
   });
 
   Map<String, dynamic> toJson() => {
@@ -614,6 +619,7 @@ class EnsembleTestReportDetails {
         if (session != null) 'session': session,
         'screensVisited': screensVisited,
         'stepsOutline': stepsOutline,
+        if (stepDurationsMs.isNotEmpty) 'stepDurationsMs': stepDurationsMs,
       };
 }
 

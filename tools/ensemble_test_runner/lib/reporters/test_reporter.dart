@@ -1,8 +1,14 @@
 import 'package:ensemble/framework/screen_tracker.dart';
 import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
+import 'package:ensemble_test_runner/reporters/step_outline_format.dart';
 import 'package:ensemble_test_runner/runner/yaml_test_session.dart';
 
-EnsembleTestReportDetails buildTestReportDetails(EnsembleTestCase testCase) {
+export 'package:ensemble_test_runner/reporters/step_outline_format.dart';
+
+EnsembleTestReportDetails buildTestReportDetails(
+  EnsembleTestCase testCase, {
+  List<int> stepDurationsMs = const [],
+}) {
   final effectiveStart = testCase.startScreen ??
       ScreenTracker().getCurrentScreenIdentifier() ??
       '(unknown)';
@@ -12,6 +18,7 @@ EnsembleTestReportDetails buildTestReportDetails(EnsembleTestCase testCase) {
     session: testCase.session,
     screensVisited: collectScreensVisited(effectiveStart),
     stepsOutline: outlineSteps(testCase.steps),
+    stepDurationsMs: stepDurationsMs,
   );
   return details;
 }
@@ -184,11 +191,16 @@ class TestReporter {
       }
       if (report.stepsOutline.isNotEmpty) {
         buffer.writeln('│     steps (${report.stepsOutline.length}):');
-        for (var i = 0; i < report.stepsOutline.length; i++) {
-          final prefix = r.status == TestStatus.failed && r.failedStepIndex == i
-              ? '>>'
-              : '  ';
-          buffer.writeln('│       $prefix ${i + 1}. ${report.stepsOutline[i]}');
+        var i = 0;
+        for (final line in stepOutlineDisplayLines(
+          stepsOutline: report.stepsOutline,
+          stepDurationsMs: report.stepDurationsMs,
+          failedStepIndex:
+              r.status == TestStatus.failed ? r.failedStepIndex : null,
+        )) {
+          final prefix = line.failed ? '>>' : '  ';
+          buffer.writeln('│       $prefix ${i + 1}. ${line.text}');
+          i++;
         }
       }
     }

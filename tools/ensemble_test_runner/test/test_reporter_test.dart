@@ -78,6 +78,7 @@ void main() {
           'expectVisible(greeting_text)',
           'trigger(onTap navigate_button)',
         ],
+        stepDurationsMs: const [42, 118],
       );
       final output = TestReporter().formatSummary(
         EnsembleTestRunResult(
@@ -95,7 +96,8 @@ void main() {
       expect(output, contains('hello_home.test.yaml'));
       expect(output, contains('hello_home_renders'));
       expect(output, contains('Hello Home → Goodbye → Hello Home'));
-      expect(output, contains('expectVisible(greeting_text)'));
+      expect(output, contains('expectVisible(greeting_text) (42ms)'));
+      expect(output, contains('trigger(onTap navigate_button) (118ms)'));
       expect(output, contains('1 passed, 0 failed'));
       expect(output, contains('610ms total'));
     });
@@ -104,6 +106,7 @@ void main() {
       final report = EnsembleTestReportDetails(
         startScreen: 'Login',
         stepsOutline: ['tap(email)', 'tap(submit)'],
+        stepDurationsMs: const [10, 55],
       );
       final output = TestReporter().formatSummary(
         EnsembleTestRunResult(
@@ -120,8 +123,17 @@ void main() {
         ),
       );
 
-      expect(output, contains('>> 2. tap(submit)'));
+      expect(output, contains('>> 2. tap(submit) (55ms)'));
       expect(output, contains('error: not found'));
+    });
+
+    test('report JSON includes stepDurationsMs', () {
+      const report = EnsembleTestReportDetails(
+        startScreen: 'Home',
+        stepsOutline: ['waitFor(a)', 'tap(b)'],
+        stepDurationsMs: [12, 34],
+      );
+      expect(report.toJson()['stepDurationsMs'], [12, 34]);
     });
 
     test('prints retry attempts when a test needed retry', () {
