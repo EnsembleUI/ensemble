@@ -12,6 +12,7 @@ import 'package:ensemble_test_runner/discovery/ensemble_test_execution_planner.d
 import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
 import 'package:ensemble_test_runner/mocks/test_api_provider_overlay.dart';
 import 'package:ensemble_test_runner/mocks/test_logger.dart';
+import 'package:ensemble_test_runner/mocks/wifi_test_setup.dart';
 import 'package:ensemble_test_runner/reporters/test_reporter.dart';
 import 'package:ensemble_test_runner/runner/app_performance_log.dart';
 import 'package:ensemble_test_runner/runner/app_session_snapshot.dart';
@@ -217,6 +218,7 @@ class EnsembleTestRunner {
       FlutterError.onError = (details) {
         ctx.runtime.flutterErrors.add(_formatFlutterError(details));
       };
+      applyWifiTestConfig(suiteConfig.wifi);
       timingsCallback = (List<ui.FrameTiming> timings) {
         ctx.runtime.addFrameTimings(timings);
       };

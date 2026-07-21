@@ -305,9 +305,7 @@
           "type": "string"
         },
         "timeoutMs": {
-          "type": "integer",
-          "minimum": 0,
-          "description": "Poll until the widget is hit-testable before tapping (default: defaultWaitTimeout)"
+          "type": "integer"
         }
       },
       "required": [
@@ -318,7 +316,8 @@
       "description": "Tap a widget by testId (ValueKey)",
       "examples": [
         {
-          "id": "my_widget"
+          "id": "my_widget",
+          "timeoutMs": 5000
         }
       ]
     },
@@ -327,6 +326,9 @@
       "properties": {
         "id": {
           "type": "string"
+        },
+        "timeoutMs": {
+          "type": "integer"
         }
       },
       "required": [
@@ -346,6 +348,9 @@
       "properties": {
         "id": {
           "type": "string"
+        },
+        "timeoutMs": {
+          "type": "integer"
         }
       },
       "required": [
@@ -389,6 +394,9 @@
       "properties": {
         "id": {
           "type": "string"
+        },
+        "timeoutMs": {
+          "type": "integer"
         }
       },
       "required": [
@@ -432,6 +440,9 @@
       "properties": {
         "id": {
           "type": "string"
+        },
+        "timeoutMs": {
+          "type": "integer"
         }
       },
       "required": [
@@ -451,6 +462,9 @@
       "properties": {
         "id": {
           "type": "string"
+        },
+        "timeoutMs": {
+          "type": "integer"
         }
       },
       "required": [
@@ -526,6 +540,9 @@
       "properties": {
         "id": {
           "type": "string"
+        },
+        "timeoutMs": {
+          "type": "integer"
         }
       },
       "required": [
@@ -545,6 +562,9 @@
       "properties": {
         "id": {
           "type": "string"
+        },
+        "timeoutMs": {
+          "type": "integer"
         }
       },
       "required": [
@@ -564,6 +584,9 @@
       "properties": {
         "id": {
           "type": "string"
+        },
+        "timeoutMs": {
+          "type": "integer"
         }
       },
       "required": [
@@ -670,6 +693,9 @@
       "properties": {
         "id": {
           "type": "string"
+        },
+        "timeoutMs": {
+          "type": "integer"
         }
       },
       "required": [
@@ -1017,6 +1043,9 @@
       "properties": {
         "id": {
           "type": "string"
+        },
+        "timeoutMs": {
+          "type": "integer"
         }
       },
       "required": [
@@ -1036,6 +1065,9 @@
       "properties": {
         "id": {
           "type": "string"
+        },
+        "timeoutMs": {
+          "type": "integer"
         }
       },
       "required": [
@@ -1055,6 +1087,9 @@
       "properties": {
         "id": {
           "type": "string"
+        },
+        "timeoutMs": {
+          "type": "integer"
         }
       },
       "required": [
@@ -1074,6 +1109,9 @@
       "properties": {
         "id": {
           "type": "string"
+        },
+        "timeoutMs": {
+          "type": "integer"
         }
       },
       "required": [
@@ -1173,9 +1211,7 @@
           "minItems": 1
         },
         "timeoutMs": {
-          "type": "integer",
-          "minimum": 0,
-          "description": "When set, poll until matching text is visible (default: instant assert)"
+          "type": "integer"
         }
       },
       "anyOf": [
@@ -1194,7 +1230,8 @@
       "description": "Assert some text containing the given substring (or anyOf list)",
       "examples": [
         {
-          "text": "Welcome"
+          "text": "Welcome",
+          "timeoutMs": 5000
         }
       ]
     },
@@ -1203,6 +1240,9 @@
       "properties": {
         "id": {
           "type": "string"
+        },
+        "timeoutMs": {
+          "type": "integer"
         }
       },
       "required": [
@@ -1222,6 +1262,9 @@
       "properties": {
         "id": {
           "type": "string"
+        },
+        "timeoutMs": {
+          "type": "integer"
         }
       },
       "required": [
@@ -1454,6 +1497,9 @@
       "properties": {
         "id": {
           "type": "string"
+        },
+        "timeoutMs": {
+          "type": "integer"
         }
       },
       "required": [
@@ -1473,6 +1519,9 @@
       "properties": {
         "id": {
           "type": "string"
+        },
+        "timeoutMs": {
+          "type": "integer"
         }
       },
       "required": [
@@ -2181,6 +2230,9 @@
       "properties": {
         "id": {
           "type": "string"
+        },
+        "timeoutMs": {
+          "type": "integer"
         }
       },
       "required": [
@@ -2224,6 +2276,9 @@
       "properties": {
         "id": {
           "type": "string"
+        },
+        "timeoutMs": {
+          "type": "integer"
         }
       },
       "required": [
@@ -2407,7 +2462,8 @@
           "examples": [
             {
               "tap": {
-                "id": "my_widget"
+                "id": "my_widget",
+                "timeoutMs": 5000
               }
             }
           ],
@@ -2420,7 +2476,8 @@
               "description": "Tap a widget by testId (ValueKey)",
               "examples": [
                 {
-                  "id": "my_widget"
+                  "id": "my_widget",
+                  "timeoutMs": 5000
                 }
               ]
             }
@@ -3553,7 +3610,8 @@
           "examples": [
             {
               "expectTextContains": {
-                "text": "Welcome"
+                "text": "Welcome",
+                "timeoutMs": 5000
               }
             }
           ],
@@ -3566,7 +3624,8 @@
               "description": "Assert some text containing the given substring (or anyOf list)",
               "examples": [
                 {
-                  "text": "Welcome"
+                  "text": "Welcome",
+                  "timeoutMs": 5000
                 }
               ]
             }

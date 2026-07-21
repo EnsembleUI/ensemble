@@ -10,9 +10,7 @@ class EnsembleTestSchemaBuilder {
       'https://cdn.ensembleui.com/schemas/ensemble_test_config_schema.json';
   static const schemaVersion = 'https://json-schema.org/draft/2020-12/schema';
 
-  static Map<String, dynamic> build() {
-    final defs = <String, dynamic>{
-      'initialState': {
+  static Map<String, dynamic> _initialStateDef() => {
         'type': 'object',
         'additionalProperties': false,
         'properties': {
@@ -20,18 +18,9 @@ class EnsembleTestSchemaBuilder {
           'keychain': {'type': 'object', 'additionalProperties': true},
           'env': {'type': 'object', 'additionalProperties': true},
         },
-      },
-      'scenario': {
-        'type': 'object',
-        'additionalProperties': false,
-        'properties': {
-          'id': {'type': 'string', 'minLength': 1},
-          'description': {'type': 'string'},
-          'vars': {'type': 'object', 'additionalProperties': true},
-        },
-        'required': ['id'],
-      },
-      'mockResponse': {
+      };
+
+  static Map<String, dynamic> _mockResponseDef() => {
         'type': 'object',
         'additionalProperties': false,
         'properties': {
@@ -52,8 +41,9 @@ class EnsembleTestSchemaBuilder {
                 'for this API (e.g. body.status[0].Active).',
           },
         },
-      },
-      'inlineMocks': {
+      };
+
+  static Map<String, dynamic> _inlineMocksDef() => {
         'type': 'object',
         'properties': {
           r'$extends': {
@@ -70,7 +60,88 @@ class EnsembleTestSchemaBuilder {
           },
         },
         'additionalProperties': {'\$ref': '#/\$defs/mockResponse'},
+      };
+
+  static Map<String, dynamic> _wifiDef() => {
+        'type': 'object',
+        'additionalProperties': false,
+        'required': ['ssid'],
+        'properties': {
+          'ssid': {'type': 'string', 'minLength': 1},
+          'verifyFailSsid': {
+            'type': 'string',
+            'minLength': 1,
+            'description':
+                'SSID reported by getNetworkInfo when storage mode is verify_fail.',
+          },
+          'modeStorageKey': {
+            'type': 'string',
+            'minLength': 1,
+            'description':
+                'initialState.storage key for per-test mode (success, connect_fail, verify_fail).',
+          },
+        },
+      };
+
+  static Map<String, dynamic> _testDeviceDef() => {
+        'type': 'object',
+        'additionalProperties': false,
+        'required': ['platform', 'model'],
+        'properties': {
+          'id': {
+            'type': 'string',
+            'description':
+                'Stable id used in test ids when multiple devices are '
+                'configured (e.g. home[android_nl]). Defaults to '
+                'platform_locale.',
+          },
+          'platform': {'type': 'string'},
+          'model': {'type': 'string'},
+          'locale': {
+            'type': 'string',
+            'description':
+                'Sets APP_LOCALE / forcedLocale for this device run.',
+          },
+          'theme': {
+            'type': 'string',
+            'description':
+                'Ensemble theme for this device run (e.g. light/dark or '
+                'Light/Dark). Applied via EnsembleThemeManager for any '
+                'startScreen.',
+          },
+        },
+      };
+
+  static Map<String, dynamic> _mocksPropertySchema() => {
+        'oneOf': [
+          {
+            'type': 'array',
+            'items': {
+              'oneOf': [
+                {'type': 'string', 'minLength': 1},
+                {'\$ref': '#/\$defs/inlineMocks'},
+              ],
+            },
+          },
+          {'\$ref': '#/\$defs/inlineMocks'},
+        ],
+      };
+
+  static Map<String, dynamic> build() {
+    final defs = <String, dynamic>{
+      'initialState': _initialStateDef(),
+      'scenario': {
+        'type': 'object',
+        'additionalProperties': false,
+        'properties': {
+          'id': {'type': 'string', 'minLength': 1},
+          'description': {'type': 'string'},
+          'vars': {'type': 'object', 'additionalProperties': true},
+        },
+        'required': ['id'],
       },
+      'mockResponse': _mockResponseDef(),
+      'inlineMocks': _inlineMocksDef(),
       'testCase': {
         'type': 'object',
         'additionalProperties': false,
@@ -141,20 +212,7 @@ class EnsembleTestSchemaBuilder {
             'description':
                 'Headless httpRequest actions executed before startScreen mounts',
           },
-          'mocks': {
-            'oneOf': [
-              {
-                'type': 'array',
-                'items': {
-                  'oneOf': [
-                    {'type': 'string', 'minLength': 1},
-                    {'\$ref': '#/\$defs/inlineMocks'},
-                  ],
-                },
-              },
-              {'\$ref': '#/\$defs/inlineMocks'},
-            ],
-          },
+          'mocks': _mocksPropertySchema(),
           'scenarios': {
             'type': 'array',
             'items': {'\$ref': '#/\$defs/scenario'},
@@ -279,18 +337,7 @@ class EnsembleTestSchemaBuilder {
           },
         },
         'mocks': {
-          'oneOf': [
-            {
-              'type': 'array',
-              'items': {
-                'oneOf': [
-                  {'type': 'string', 'minLength': 1},
-                  {'\$ref': '#/\$defs/inlineMocks'},
-                ],
-              },
-            },
-            {'\$ref': '#/\$defs/inlineMocks'},
-          ],
+          ..._mocksPropertySchema(),
           'description':
               'Suite-wide API mocks applied before each test file mocks',
         },
@@ -362,64 +409,18 @@ class EnsembleTestSchemaBuilder {
             'key': {'type': 'string'},
           },
         },
+        'wifi': {
+          '\$ref': '#/\$defs/wifi',
+          'description':
+              'Wi-Fi test double settings for connectToWifi / getNetworkInfo under flutter test.',
+        },
       },
       '\$defs': {
-        'initialState': {
-          'type': 'object',
-          'additionalProperties': false,
-          'properties': {
-            'storage': {'type': 'object', 'additionalProperties': true},
-            'keychain': {'type': 'object', 'additionalProperties': true},
-            'env': {'type': 'object', 'additionalProperties': true},
-          },
-        },
-        'testDevice': {
-          'type': 'object',
-          'additionalProperties': false,
-          'required': ['platform', 'model'],
-          'properties': {
-            'id': {
-              'type': 'string',
-              'description':
-                  'Stable id used in test ids when multiple devices are '
-                  'configured (e.g. home[android_nl]). Defaults to '
-                  'platform_locale.',
-            },
-            'platform': {'type': 'string'},
-            'model': {'type': 'string'},
-            'locale': {
-              'type': 'string',
-              'description':
-                  'Sets APP_LOCALE / forcedLocale for this device run.',
-            },
-            'theme': {
-              'type': 'string',
-              'description':
-                  'Ensemble theme for this device run (e.g. light/dark or '
-                  'Light/Dark). Applied via EnsembleThemeManager for any '
-                  'startScreen.',
-            },
-          },
-        },
-        'mockResponse': {
-          'type': 'object',
-          'additionalProperties': false,
-          'properties': {
-            'statusCode': {'type': 'integer'},
-            'body': true,
-            'headers': {'type': 'object', 'additionalProperties': true},
-            'delayMs': {'type': 'integer', 'minimum': 0},
-            'responses': {
-              'type': 'array',
-              'minItems': 1,
-              'items': {'\$ref': '#/\$defs/mockResponse'},
-            },
-          },
-        },
-        'inlineMocks': {
-          'type': 'object',
-          'additionalProperties': {'\$ref': '#/\$defs/mockResponse'},
-        },
+        'initialState': _initialStateDef(),
+        'testDevice': _testDeviceDef(),
+        'wifi': _wifiDef(),
+        'mockResponse': _mockResponseDef(),
+        'inlineMocks': _inlineMocksDef(),
       },
     };
   }

@@ -241,6 +241,7 @@ class EnsembleTestParser {
       'dumpTree',
       'logApiCalls',
       'logStorage',
+      'wifi',
     };
     for (final key in node.keys) {
       if (!allowedKeys.contains(key)) {
@@ -261,6 +262,7 @@ class EnsembleTestParser {
     final dumpTreeNode = node['dumpTree'];
     final logApiCallsNode = node['logApiCalls'];
     final logStorageNode = node['logStorage'];
+    final wifiNode = node['wifi'];
     if (servicesNode != null && servicesNode is! YamlList) {
       throw EnsembleTestFailure('"services" must be a list');
     }
@@ -304,6 +306,9 @@ class EnsembleTestParser {
     }
     if (logStorageNode != null && logStorageNode is! YamlMap) {
       throw EnsembleTestFailure('"logStorage" must be a map');
+    }
+    if (wifiNode != null && wifiNode is! YamlMap) {
+      throw EnsembleTestFailure('"wifi" must be a map');
     }
 
     final parsedMocks = parseMocksNode(
@@ -365,6 +370,48 @@ class EnsembleTestParser {
               enabled: logStorageNode['enabled'] == true,
               key: logStorageNode['key']?.toString(),
             ),
+      wifi: _parseWifiConfig(
+        wifiNode,
+        sourceLabel: 'tests/config.yaml',
+      ),
+    );
+  }
+
+  static WifiTestConfig _parseWifiConfig(
+    dynamic node, {
+    required String sourceLabel,
+  }) {
+    if (node == null) return const WifiTestConfig();
+    if (node is! YamlMap) {
+      throw EnsembleTestFailure('"$sourceLabel" wifi must be a map');
+    }
+    const allowedKeys = {'ssid', 'verifyFailSsid', 'modeStorageKey'};
+    for (final key in node.keys) {
+      if (!allowedKeys.contains(key.toString())) {
+        throw EnsembleTestFailure(
+          'Unsupported wifi key "$key" in $sourceLabel',
+        );
+      }
+    }
+    final ssid = node['ssid']?.toString().trim() ?? '';
+    final verifyFailSsid =
+        node['verifyFailSsid']?.toString().trim() ?? 'Wrong_Network';
+    final modeStorageKey = node['modeStorageKey']?.toString().trim();
+    if (ssid.isEmpty) {
+      throw EnsembleTestFailure(
+        '$sourceLabel wifi.ssid is required',
+      );
+    }
+    if (modeStorageKey != null && modeStorageKey.isEmpty) {
+      throw EnsembleTestFailure(
+        '$sourceLabel wifi.modeStorageKey must not be empty',
+      );
+    }
+    return WifiTestConfig(
+      ssid: ssid,
+      verifyFailSsid: verifyFailSsid,
+      modeStorageKey:
+          modeStorageKey ?? WifiTestConfig.defaultModeStorageKey,
     );
   }
 

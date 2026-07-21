@@ -21,6 +21,7 @@ enum TestStepArgKind {
   waitForNavigation,
   textRequired,
   textOrAnyOf,
+  textContains,
   expectEquals,
   expectChecked,
   expectProperty,
@@ -211,6 +212,28 @@ extension TestStepArgKindSchema on TestStepArgKind {
               'items': _string,
               'minItems': 1,
             },
+          },
+          'anyOf': [
+            {
+              'required': ['text'],
+            },
+            {
+              'required': ['anyOf'],
+            },
+          ],
+        };
+      case TestStepArgKind.textContains:
+        return {
+          'type': 'object',
+          'additionalProperties': false,
+          'properties': {
+            'text': _string,
+            'anyOf': {
+              'type': 'array',
+              'items': _string,
+              'minItems': 1,
+            },
+            'timeoutMs': _integer,
           },
           'anyOf': [
             {

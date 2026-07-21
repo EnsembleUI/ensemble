@@ -104,10 +104,20 @@ void main() {
     expect(properties, contains('dumpTree'));
     expect(properties, contains('logApiCalls'));
     expect(properties, contains('logStorage'));
+    expect(properties, contains('wifi'));
     expect(defs, contains('inlineMocks'));
     expect(defs, contains('mockResponse'));
     expect(defs, contains('initialState'));
     expect(defs, contains('testDevice'));
+    expect(defs, contains('wifi'));
+    expect(
+      ((defs['mockResponse'] as Map)['properties'] as Map).keys,
+      contains(r'$merge'),
+    );
+    expect(
+      ((defs['inlineMocks'] as Map)['properties'] as Map).keys,
+      contains(r'$extends'),
+    );
     expect(properties, contains('devices'));
     expect(
       (properties['screenshots'] as Map<String, dynamic>)['properties'],

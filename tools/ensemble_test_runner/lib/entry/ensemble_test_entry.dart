@@ -7,6 +7,7 @@ import 'dart:io';
 import 'package:ensemble_test_runner/discovery/ensemble_test_execution_planner.dart';
 import 'package:ensemble_test_runner/ensemble_test_runner.dart';
 import 'package:ensemble_test_runner/mocks/firebase_test_setup.dart';
+import 'package:ensemble_test_runner/mocks/wifi_test_setup.dart';
 import 'package:ensemble_test_runner/runner/yaml_test_session.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -89,6 +90,7 @@ Future<void> runEnsembleYamlTestsWithOptions(
         }
         await tester.runAsync(() async {
           await options.bootstrap!();
+          ensureWifiTestDoublesForTest();
           ensureLiveAuthActionsForTest();
           // Module constructors may schedule follow-up async init work.
           await Future<void>.delayed(Duration.zero);

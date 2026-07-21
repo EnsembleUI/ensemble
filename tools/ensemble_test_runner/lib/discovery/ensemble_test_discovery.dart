@@ -102,6 +102,7 @@ class EnsembleTestDiscovery {
       dumpTree: config.dumpTree,
       logApiCalls: config.logApiCalls,
       logStorage: config.logStorage,
+      wifi: config.wifi,
     );
   }
 
@@ -142,6 +143,7 @@ class EnsembleTestDiscovery {
       dumpTree: config.dumpTree,
       logApiCalls: config.logApiCalls,
       logStorage: config.logStorage,
+      wifi: config.wifi,
     );
   }
 
@@ -206,6 +208,7 @@ class EnsembleTestDiscovery {
       dumpTree: config.dumpTree,
       logApiCalls: config.logApiCalls,
       logStorage: config.logStorage,
+      wifi: config.wifi,
     );
   }
 

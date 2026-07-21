@@ -344,9 +344,9 @@ abstract final class TestStepRegistry {
     'expectTextContains': TestStepRegistryEntry(
       category: TestStepCategory.uiAssertion,
       tier: TestStepTier.core,
-      argKind: TestStepArgKind.textOrAnyOf,
+      argKind: TestStepArgKind.textContains,
       description: 'Assert some text containing the given substring (or anyOf list)',
-      example: const {'text': 'Welcome'},
+      example: const {'text': 'Welcome', 'timeoutMs': 5000},
     ),
     'expectEnabled': TestStepRegistryEntry(
       category: TestStepCategory.uiAssertion,

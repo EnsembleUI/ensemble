@@ -293,7 +293,7 @@ void main() {
     'expectTextContains': step(
       'uiAssertion',
       'core',
-      'textOrAnyOf',
+      'textContains',
       'Assert some text containing the given substring (or anyOf list)',
     ),
     'expectEnabled': step(
@@ -729,6 +729,8 @@ Map<String, dynamic> defaultExampleForArg(String arg) {
       return {'text': 'Welcome'};
     case 'textOrAnyOf':
       return {'text': 'Welcome'};
+    case 'textContains':
+      return {'text': 'Welcome', 'timeoutMs': 5000};
     case 'expectEquals':
       return {'id': 'email_field', 'equals': 'user@test.com'};
     case 'expectChecked':

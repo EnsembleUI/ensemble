@@ -160,6 +160,10 @@
           "type": "string"
         }
       }
+    },
+    "wifi": {
+      "$ref": "#/$defs/wifi",
+      "description": "Wi-Fi test double settings for connectToWifi / getNetworkInfo under flutter test."
     }
   },
   "$defs": {
@@ -206,6 +210,29 @@
         "theme": {
           "type": "string",
           "description": "Ensemble theme for this device run (e.g. light/dark or Light/Dark). Applied via EnsembleThemeManager for any startScreen."
+        }
+      }
+    },
+    "wifi": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ssid"
+      ],
+      "properties": {
+        "ssid": {
+          "type": "string",
+          "minLength": 1
+        },
+        "verifyFailSsid": {
+          "type": "string",
+          "minLength": 1,
+          "description": "SSID reported by getNetworkInfo when storage mode is verify_fail."
+        },
+        "modeStorageKey": {
+          "type": "string",
+          "minLength": 1,
+          "description": "initialState.storage key for per-test mode (success, connect_fail, verify_fail)."
         }
       }
     },

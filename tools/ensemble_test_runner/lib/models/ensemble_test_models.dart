@@ -135,6 +135,7 @@ class EnsembleTestConfig {
   final LogApiCallsConfig logApiCalls;
   final LogStorageConfig logStorage;
   final TimerRewriteConfig timers;
+  final WifiTestConfig wifi;
 
   const EnsembleTestConfig({
     this.services = const [],
@@ -148,9 +149,38 @@ class EnsembleTestConfig {
     this.logApiCalls = const LogApiCallsConfig(),
     this.logStorage = const LogStorageConfig(),
     this.timers = const TimerRewriteConfig(),
+    this.wifi = const WifiTestConfig(),
   });
 
   bool get hasDeviceMatrix => devices.isNotEmpty;
+}
+
+/// Suite Wi-Fi test double settings from `tests/config.yaml`.
+///
+/// Doubles are installed only when the app's wifi module is enabled
+/// (`useWifi`, not a stub). Per-test behavior is controlled via
+/// [modeStorageKey] in `initialState.storage` (`connect_fail`,
+/// `verify_fail`; default is success).
+class WifiTestConfig {
+  static const successMode = 'success';
+  static const connectFailMode = 'connect_fail';
+  static const verifyFailMode = 'verify_fail';
+  static const defaultModeStorageKey = 'wifiTestMode';
+  static const supportedModes = {
+    successMode,
+    connectFailMode,
+    verifyFailMode,
+  };
+
+  final String ssid;
+  final String verifyFailSsid;
+  final String modeStorageKey;
+
+  const WifiTestConfig({
+    this.ssid = '',
+    this.verifyFailSsid = 'Wrong_Network',
+    this.modeStorageKey = defaultModeStorageKey,
+  });
 }
 
 class TestServiceConfig {
