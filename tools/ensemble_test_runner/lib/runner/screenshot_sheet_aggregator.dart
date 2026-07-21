@@ -3,8 +3,10 @@ import 'package:ensemble_test_runner/runner/screenshot_contact_sheet.dart';
 import 'package:ensemble_test_runner/runner/screenshot_sheet_write_queue.dart';
 import 'package:ensemble_test_runner/runner/test_runtime_state.dart';
 
-/// Accumulates device-matrix screenshot frames into one contact sheet per
-/// logical test id.
+/// Accumulates screenshot frames and writes one contact sheet per test run.
+///
+/// Device-matrix runs use distinct test ids (e.g. `home[android_nl]`), so each
+/// device gets its own sheet rather than merging into a shared multi-device PNG.
 class ScreenshotSheetAggregator {
   ScreenshotSheetAggregator({
     required this.screenshots,
@@ -17,7 +19,7 @@ class ScreenshotSheetAggregator {
   final ScreenshotSheetWriteQueue _writeQueue;
   final Map<String, _SheetGroup> _groups = {};
 
-  int get expectedRunsPerSheet => devices.isEmpty ? 1 : devices.length;
+  static const expectedRunsPerSheet = 1;
 
   void schedulePending({
     required EnsembleTestCase testCase,

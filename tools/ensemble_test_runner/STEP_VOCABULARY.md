@@ -85,8 +85,8 @@ timers:
   maxRepeatIntervalSeconds: 1
 ```
 
-`dumpTree`, `logApiCalls`, and `logStorage` are also suite-level config
-artifacts:
+`dumpTree` is a suite-level config artifact. `logApiCalls` and `logStorage`
+write **per-test** files (attached to each test result / HTML card):
 
 ```yaml
 dumpTree:
@@ -97,6 +97,9 @@ logStorage:
   enabled: true
 ```
 
+Example paths: `home_wifi[android_nl]_api_calls.json`,
+`home_wifi[android_nl]_storage.json`, plus always-on
+`home_wifi[android_nl]_app_console.log` for that run's prints.
 Long-running test support processes belong in `tests/config.yaml`. They start
 once before the suite, must answer the optional readiness URL, and are stopped
 after the suite:

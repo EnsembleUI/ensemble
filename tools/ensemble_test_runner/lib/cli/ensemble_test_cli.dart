@@ -9,6 +9,7 @@ import 'package:ensemble_test_runner/cli/ensemble_test_scaffold.dart';
 import 'package:ensemble_test_runner/inspect/ensemble_app_inspector.dart';
 import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
 import 'package:ensemble_test_runner/parser/ensemble_test_parser.dart';
+import 'package:ensemble_test_runner/reporters/html_test_reporter.dart';
 import 'package:ensemble_test_runner/validation/ensemble_test_validator.dart';
 import 'package:path/path.dart' as p;
 import 'package:yaml/yaml.dart';
@@ -620,7 +621,8 @@ Future<ProcessResult> _runParallelFlutterTests(
     reportFiles: workerReportFiles,
     appDir: appDir,
   );
-  merged = _mergeParallelSuiteArtifacts(appDir, merged);
+  merged = _mergeParallelSuiteArtifacts(merged);
+  merged = _withHtmlReport(appDir, merged, wallTimeMs: elapsed.elapsedMilliseconds);
   _writeHistoricalDurations(appDir, merged);
   final output = StringBuffer();
   if (reportMode == 'json') {
@@ -683,122 +685,25 @@ String _workerReportFile(String appDir, int workerIndex) {
   );
 }
 
+/// Drops legacy suite-level apiCalls/storage/appLogs links; those artifacts are
+/// now attached per test (and copied from workers as `{testId}_*.json/.log`).
 EnsembleTestRunResult _mergeParallelSuiteArtifacts(
-  String appDir,
   EnsembleTestRunResult result,
 ) {
-  final logs = <String>[];
-  final apiCallsPath = _mergeApiCallLogs(appDir);
-  final storagePath = _mergeStorageLogs(appDir);
-
-  final hasApiCalls =
-      result.suiteLogs.any((log) => log.startsWith('apiCalls:'));
-  final hasStorage = result.suiteLogs.any((log) => log.startsWith('storage:'));
-  if (hasApiCalls && apiCallsPath != null) {
-    logs.add('apiCalls: $apiCallsPath');
-  }
-  if (hasStorage && storagePath != null) {
-    logs.add('storage: $storagePath');
-  }
-
-  for (final log in result.suiteLogs) {
-    if (log.startsWith('apiCalls:') || log.startsWith('storage:')) continue;
-    logs.add(log);
-  }
+  final logs = result.suiteLogs
+      .where(
+        (log) =>
+            !log.startsWith('apiCalls:') &&
+            !log.startsWith('storage:') &&
+            !log.startsWith('storage[') &&
+            !log.startsWith('appLogs:'),
+      )
+      .toList();
 
   return EnsembleTestRunResult(
     results: result.results,
     suiteLogs: logs,
   );
-}
-
-String? _mergeApiCallLogs(String appDir) {
-  final logsDir =
-      Directory(p.join(appDir, 'build', 'ensemble_test_runner', 'logs'));
-  if (!logsDir.existsSync()) return null;
-  final files = logsDir
-      .listSync()
-      .whereType<File>()
-      .where(
-          (file) => RegExp(r'api_calls_worker\d+\.json$').hasMatch(file.path))
-      .toList()
-    ..sort((a, b) => a.path.compareTo(b.path));
-  if (files.isEmpty) return null;
-
-  final callsByName = <String, List<String>>{};
-  var total = 0;
-  for (final file in files) {
-    try {
-      final decoded = json.decode(file.readAsStringSync());
-      if (decoded is! Map) continue;
-      total += decoded['total'] is int ? decoded['total'] as int : 0;
-      final calls = decoded['calls'];
-      if (calls is! List) continue;
-      for (final call in calls.whereType<Map>()) {
-        final name = call['name']?.toString();
-        if (name == null || name.isEmpty) continue;
-        final timestamps = call['timestamps'];
-        callsByName.putIfAbsent(name, () => <String>[]).addAll(
-              timestamps is List
-                  ? timestamps.map((value) => value.toString())
-                  : const <String>[],
-            );
-      }
-    } catch (_) {
-      // Ignore malformed partial worker logs.
-    }
-  }
-
-  final output = File(p.join(logsDir.path, 'api_calls.json'));
-  output.writeAsStringSync(
-    const JsonEncoder.withIndent('  ').convert({
-      'total': total,
-      'calls': [
-        for (final entry in callsByName.entries)
-          {
-            'name': entry.key,
-            'count': entry.value.length,
-            'timestamps': entry.value..sort(),
-          },
-      ],
-    }),
-  );
-  for (final file in files) {
-    file.deleteSync();
-  }
-  return p.relative(output.path, from: appDir).replaceAll('\\', '/');
-}
-
-String? _mergeStorageLogs(String appDir) {
-  final logsDir =
-      Directory(p.join(appDir, 'build', 'ensemble_test_runner', 'logs'));
-  if (!logsDir.existsSync()) return null;
-  final files = logsDir
-      .listSync()
-      .whereType<File>()
-      .where((file) => RegExp(r'storage_worker\d+\.json$').hasMatch(file.path))
-      .toList()
-    ..sort((a, b) => a.path.compareTo(b.path));
-  if (files.isEmpty) return null;
-
-  final merged = <String, dynamic>{};
-  for (final file in files) {
-    try {
-      final decoded = json.decode(file.readAsStringSync());
-      if (decoded is Map) {
-        merged.addAll(Map<String, dynamic>.from(decoded));
-      }
-    } catch (_) {
-      // Ignore malformed partial worker logs.
-    }
-  }
-
-  final output = File(p.join(logsDir.path, 'storage.json'));
-  output.writeAsStringSync(const JsonEncoder.withIndent('  ').convert(merged));
-  for (final file in files) {
-    file.deleteSync();
-  }
-  return p.relative(output.path, from: appDir).replaceAll('\\', '/');
 }
 
 Future<ProcessResult> _runTimedFlutterTestProcess({
@@ -1424,6 +1329,25 @@ String? _writeWorkerOutputLog(String appDir, int workerIndex, String output) {
   file.parent.createSync(recursive: true);
   file.writeAsStringSync(output);
   return p.relative(file.path, from: appDir).replaceAll('\\', '/');
+}
+
+EnsembleTestRunResult _withHtmlReport(
+  String appDir,
+  EnsembleTestRunResult result, {
+  int? wallTimeMs,
+}) {
+  final htmlPath = HtmlTestReporter().write(
+    result,
+    artifactRoot: _artifactRootPath(appDir),
+    wallTimeMs: wallTimeMs,
+  );
+  if (result.suiteLogs.any((log) => log.startsWith('htmlReport:'))) {
+    return result;
+  }
+  return EnsembleTestRunResult(
+    results: result.results,
+    suiteLogs: [...result.suiteLogs, 'htmlReport: $htmlPath'],
+  );
 }
 
 String _formatCliSummary(

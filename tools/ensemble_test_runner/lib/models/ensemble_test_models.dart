@@ -61,7 +61,7 @@ class EnsembleTestCase {
   /// Set when suite `devices` expands this test for one device.
   final TestDeviceTarget? deviceTarget;
 
-  /// Shared contact-sheet id across device-matrix runs (defaults to [id]).
+  /// Optional contact-sheet filename key (defaults to [id]).
   final String? screenshotSheetId;
 
   const EnsembleTestCase({

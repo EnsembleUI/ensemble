@@ -85,6 +85,9 @@ logStorage:
   enabled: true
 ```
 
+`logApiCalls` / `logStorage` emit one file per test case (not a suite-wide dump).
+App console lines printed during a test are always written as
+`{testId}_app_console.log` on that test's artifacts.
 Suite `mocks` are applied before each test file's `mocks` (later entries win for
 the same API name). Suite `initialState` is the base for every test;
 test-level `storage` / `keychain` / `env` keys override suite values.
@@ -99,8 +102,8 @@ When `devices` is set, each test runs once per device (test ids become
 `startScreenInputs`. Device `theme` (`light` / `dark`, or an exact Themes name
 like `Light` / `Dark`) is applied via `EnsembleThemeManager` after the app
 boots, so it works for any `startScreen`. Explicit test `languageCode` /
-`themeMode` inputs are left as written. All device runs share one sheet named
-after the logical test id, with a labeled section per device.
+`themeMode` inputs are left as written. Each device run writes its own screenshot
+sheet named after the expanded test id (for example `home[android_nl].png`).
 
 For multi-locale suites, use `anyOf` on text assertions so both languages pass:
 

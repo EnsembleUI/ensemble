@@ -94,7 +94,7 @@ screenshots:
   excludeSteps: []
 
 # Device matrix (viewport + optional locale/theme). One entry = single device;
-# multiple entries expand each test and share one contact sheet.
+# multiple entries expand each test once per device with its own screenshot sheet.
 devices:
   - id: android_nl
     platform: android
@@ -129,9 +129,8 @@ When `devices` is set, each test expands to one run per device (ids look like
 `home[android_nl]` when there is more than one device). Device `locale` sets
 `APP_LOCALE` for that run without rewriting `startScreenInputs`. Device `theme`
 (`light` / `dark`) is applied through `EnsembleThemeManager` after boot (any
-start screen). All device runs of a logical test share one contact
-sheet named after the base test id (for example `home.png`), with a section per
-device.
+start screen). Each device run writes its own screenshot contact sheet (for
+example `home[android_nl].png` and `home[iphone_en].png`).
 
 ## App setup
 
@@ -255,7 +254,17 @@ comma-separated). Default is all configured devices.
 
 Session producer tests are included automatically for selected session tests.
 
-On success the console prints one consolidated boxed report for the suite: each test id (with YAML path), timing, **start screen**, optional **session**, **navigation flow**, and a numbered **step outline**. Raw app console output is written to `build/ensemble_test_runner/logs/app_console*.log` and listed as an `appLogs` suite artifact.
+On success the console prints one consolidated boxed report for the suite: each test id (with YAML path), timing, **start screen**, optional **session**, **navigation flow**, and a numbered **step outline**.
+
+Per-test artifacts (linked under each test in the HTML report):
+- screenshots contact sheet
+- `{testId}_api_calls.json` when `logApiCalls.enabled`
+- `{testId}_storage.json` when `logStorage.enabled`
+- `{testId}_app_console.log` (prints captured during that test)
+
+Every run also writes a browsable HTML report at
+`build/ensemble_test_runner/report/index.html` (listed as `htmlReport` under suite
+artifacts).
 
 ## Examples
 

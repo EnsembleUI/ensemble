@@ -214,9 +214,16 @@ class EnsembleTestRunner {
     );
     final previousOnError = FlutterError.onError;
 
+    final previousDebugPrint = debugPrint;
     try {
       FlutterError.onError = (details) {
         ctx.runtime.flutterErrors.add(_formatFlutterError(details));
+      };
+      debugPrint = (String? message, {int? wrapWidth}) {
+        if (message != null) {
+          ctx.runtime.consoleLogs.add(message);
+        }
+        previousDebugPrint(message, wrapWidth: wrapWidth);
       };
       applyWifiTestConfig(suiteConfig.wifi);
       timingsCallback = (List<ui.FrameTiming> timings) {
@@ -229,45 +236,56 @@ class EnsembleTestRunner {
       LiveAsyncCallSupport.drainPendingExceptions = () {
         while (tester.takeException() != null) {}
       };
-      final startupStartFrame = ctx.runtime.appFrameTimings.length + 1;
-      final startupStartTime = DateTime.now();
 
-      final config = await harness.loadScreen(
-        tester: tester,
-        testCase: test,
-        existingConfig: existingConfig,
-        context: ctx,
-        suiteConfig: suiteConfig,
-        beforeBootstrap: () async {
-          await sessionSnapshot?.restore();
-          await _executeSetup(test);
+      return await runZoned(
+        () async {
+          final startupStartFrame = ctx.runtime.appFrameTimings.length + 1;
+          final startupStartTime = DateTime.now();
+
+          final config = await harness.loadScreen(
+            tester: tester,
+            testCase: test,
+            existingConfig: existingConfig,
+            context: ctx,
+            suiteConfig: suiteConfig,
+            beforeBootstrap: () async {
+              await sessionSnapshot?.restore();
+              await _executeSetup(test);
+            },
+            forcedLocale: sessionSnapshot?.locale ?? ctx.runtime.locale,
+          );
+          _drainPendingFlutterExceptions(tester);
+          await YamlTestSession.navigationFlow.flushPending();
+          YamlTestSession.navigationFlow.beginTest(
+            ScreenTracker().getCurrentScreenIdentifier(),
+          );
+          _recordPerformanceMarker(
+            ctx: ctx,
+            testId: test.id,
+            stepIndex: null,
+            label: '${test.id} startup',
+            phase: 'startup',
+            startFrame: startupStartFrame,
+            startTime: startupStartTime,
+          );
+
+          final result = await _executeSteps(
+            test: test,
+            tester: tester,
+            ctx: ctx,
+            config: config,
+            stopwatch: stopwatch,
+          );
+          await _settleLiveApiWorkBestEffort(tester, ctx);
+          return (result: result, config: config, context: ctx);
         },
-        forcedLocale: sessionSnapshot?.locale ?? ctx.runtime.locale,
+        zoneSpecification: ZoneSpecification(
+          print: (self, parent, zone, line) {
+            ctx.runtime.consoleLogs.add(line);
+            parent.print(zone, line);
+          },
+        ),
       );
-      _drainPendingFlutterExceptions(tester);
-      await YamlTestSession.navigationFlow.flushPending();
-      YamlTestSession.navigationFlow.beginTest(
-        ScreenTracker().getCurrentScreenIdentifier(),
-      );
-      _recordPerformanceMarker(
-        ctx: ctx,
-        testId: test.id,
-        stepIndex: null,
-        label: '${test.id} startup',
-        phase: 'startup',
-        startFrame: startupStartFrame,
-        startTime: startupStartTime,
-      );
-
-      final result = await _executeSteps(
-        test: test,
-        tester: tester,
-        ctx: ctx,
-        config: config,
-        stopwatch: stopwatch,
-      );
-      await _settleLiveApiWorkBestEffort(tester, ctx);
-      return (result: result, config: config, context: ctx);
     } catch (error, stackTrace) {
       final config = existingConfig ?? Ensemble().getConfig();
       final errorMessage = error.toString();
@@ -283,6 +301,7 @@ class EnsembleTestRunner {
           failedStepLabel: 'Startup/setup',
           failureMessage: errorMessage,
         );
+        await _attachPerTestDebugArtifacts(ctx);
         logs.addAll(ctx.logger.logs);
         if (!hadScreenshotFrames) {
           logs.addAll(
@@ -295,6 +314,9 @@ class EnsembleTestRunner {
           );
         }
       } catch (_) {
+        try {
+          await _attachPerTestDebugArtifacts(ctx);
+        } catch (_) {}
         logs.addAll(ctx.logger.logs);
       }
       return (
@@ -311,6 +333,7 @@ class EnsembleTestRunner {
         context: ctx,
       );
     } finally {
+      debugPrint = previousDebugPrint;
       final callback = timingsCallback;
       if (callback != null) {
         SchedulerBinding.instance.removeTimingsCallback(callback);
@@ -534,6 +557,7 @@ class EnsembleTestRunner {
           startFrame: idleStartFrame,
           startTime: idleStartTime,
         );
+        await _attachPerTestDebugArtifacts(ctx);
         return EnsembleSingleTestResult.failed(
           testId: test.id,
           metadata: test.metadataJson,
@@ -567,6 +591,7 @@ class EnsembleTestRunner {
       startFrame: idleStartFrame,
       startTime: idleStartTime,
     );
+    await _attachPerTestDebugArtifacts(ctx);
 
     return EnsembleSingleTestResult.passed(
       testId: test.id,
@@ -1156,6 +1181,38 @@ class EnsembleTestRunner {
     }
   }
 
+  /// Writes apiCalls / storage / appLogs for a single test onto [ctx.logger].
+  Future<void> _attachPerTestDebugArtifacts(EnsembleTestContext ctx) async {
+    final config = ctx.config;
+
+    if (config.logApiCalls.enabled) {
+      final path = await writeApiCallsLog(ctx);
+      _replaceArtifactLog(ctx.logger, 'apiCalls', path);
+    }
+
+    if (config.logStorage.enabled) {
+      final key = config.logStorage.key;
+      final path = await writeStorageLog(ctx, key: key);
+      if (key == null || key.isEmpty) {
+        _replaceArtifactLog(ctx.logger, 'storage', path);
+      } else {
+        _replaceArtifactLog(ctx.logger, 'storage[$key]', path);
+      }
+    }
+
+    final appLogPath = await writeAppConsoleLog(ctx);
+    _replaceArtifactLog(ctx.logger, 'appLogs', appLogPath);
+  }
+
+  void _replaceArtifactLog(TestLogger logger, String label, String path) {
+    logger.logs.removeWhere((entry) {
+      final separator = entry.indexOf(':');
+      if (separator <= 0) return false;
+      return entry.substring(0, separator).trim() == label;
+    });
+    logger.log('$label: $path');
+  }
+
   Future<List<String>> _writeSuiteLogs({
     required WidgetTester tester,
     required EnsembleTestConfig config,
@@ -1182,27 +1239,6 @@ class EnsembleTestRunner {
     if (config.dumpTree.enabled && lastContext != null) {
       final path = await writeDumpTreeLogFile(logger: logger, filePrefix: '');
       logs.add('dumpTree: $path');
-    }
-
-    if (config.logApiCalls.enabled) {
-      final path = await writeApiCallsLogFile(
-        logger: logger,
-        filePrefix: '',
-        calls: apiCalls,
-      );
-      logs.add('apiCalls: $path');
-    }
-
-    if (config.logStorage.enabled && lastContext != null) {
-      final key = config.logStorage.key;
-      final path = await writeStorageLogFile(
-        logger: logger,
-        filePrefix: '',
-        key: key,
-      );
-      logs.add(
-        key == null || key.isEmpty ? 'storage: $path' : 'storage[$key]: $path',
-      );
     }
 
     return logs;

@@ -353,7 +353,7 @@ class EnsembleTestSchemaBuilder {
               'Suite device matrix. Each test runs once per entry with that '
               'platform/model viewport, optional locale (APP_LOCALE), and '
               'optional theme (EnsembleThemeManager Light/Dark). '
-              'Multiple devices share one contact sheet per logical test id.',
+              'Each device run writes its own screenshot contact sheet.',
           'items': {'\$ref': '#/\$defs/testDevice'},
         },
         'screenshots': {
@@ -397,6 +397,8 @@ class EnsembleTestSchemaBuilder {
         'logApiCalls': {
           'type': 'object',
           'additionalProperties': false,
+          'description':
+              'When enabled, write a per-test API call log attached to each result.',
           'properties': {
             'enabled': {'type': 'boolean'},
           },
@@ -404,6 +406,8 @@ class EnsembleTestSchemaBuilder {
         'logStorage': {
           'type': 'object',
           'additionalProperties': false,
+          'description':
+              'When enabled, write a per-test storage snapshot attached to each result.',
           'properties': {
             'enabled': {'type': 'boolean'},
             'key': {'type': 'string'},

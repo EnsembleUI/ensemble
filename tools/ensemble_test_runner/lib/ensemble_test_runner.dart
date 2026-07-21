@@ -12,6 +12,7 @@ export 'mocks/test_api_provider_overlay.dart';
 export 'mocks/test_logger.dart';
 export 'parser/ensemble_test_parser.dart';
 export 'schema/ensemble_test_schema_builder.dart';
+export 'reporters/html_test_reporter.dart';
 export 'reporters/test_reporter.dart';
 export 'runner/ensemble_test_context.dart';
 export 'runner/ensemble_test_harness.dart';

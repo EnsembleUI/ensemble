@@ -176,7 +176,7 @@ void main() {
             ),
           ],
           suiteLogs: const [
-            'storage: build/ensemble_test_runner/logs/storage.json',
+            'appPerformance: build/ensemble_test_runner/logs/app_performance.json',
           ],
         ),
       );
@@ -184,7 +184,9 @@ void main() {
       expect(output, contains('suite artifacts:'));
       expect(
         output,
-        contains('storage: build/ensemble_test_runner/logs/storage.json'),
+        contains(
+          'appPerformance: build/ensemble_test_runner/logs/app_performance.json',
+        ),
       );
     });
 

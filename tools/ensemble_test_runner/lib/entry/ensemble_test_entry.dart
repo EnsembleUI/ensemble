@@ -147,12 +147,21 @@ Future<void> runEnsembleYamlTestsWithOptions(
           }
         }
 
+        final suiteLogs = <String>[
+          ...planResult.suiteLogs,
+        ];
+        if (!isEnsembleTestParallelWorker()) {
+          final htmlPath = HtmlTestReporter().write(
+            EnsembleTestRunResult(
+              results: orderedResults,
+              suiteLogs: suiteLogs,
+            ),
+          );
+          suiteLogs.add('htmlReport: $htmlPath');
+        }
         final runResult = EnsembleTestRunResult(
           results: orderedResults,
-          suiteLogs: [
-            ...planResult.suiteLogs,
-            ..._appLogArtifacts(),
-          ],
+          suiteLogs: suiteLogs,
         );
         // Background app errors are recorded by TestErrorTracker and can be
         // asserted with expectNoRenderErrors/expectError. Explicitly unmount
@@ -191,7 +200,7 @@ Future<void> runEnsembleYamlTestsWithOptions(
                 stackTrace: stackTrace.toString(),
               ),
             ],
-            suiteLogs: _appLogArtifacts(),
+            suiteLogs: const [],
           );
           emitMachineReport(runResult);
         }
@@ -202,13 +211,6 @@ Future<void> runEnsembleYamlTestsWithOptions(
         ? Timeout(Duration(seconds: _timeoutSeconds))
         : Timeout.none,
   );
-}
-
-List<String> _appLogArtifacts() {
-  const appLogFile = String.fromEnvironment('ensembleTestAppLogFile');
-  const displayFile = String.fromEnvironment('ensembleTestAppLogDisplayFile');
-  if (appLogFile.isEmpty) return const [];
-  return ['appLogs: ${displayFile.isEmpty ? appLogFile : displayFile}'];
 }
 
 void _ignorePostTestAnimationInvariant() {

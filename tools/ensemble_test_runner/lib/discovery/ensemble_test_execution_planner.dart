@@ -176,7 +176,9 @@ class EnsembleTestExecutionPlanner {
         assetLoader: assetLoader,
       );
       for (final definition in definitions) {
-        if (!selectedIds.contains(definition.testCase.id)) continue;
+        if (!_idBelongsToSelection(definition.testCase.id, selectedIds)) {
+          continue;
+        }
         final existing = selectedById[definition.testCase.id];
         if (existing != null) {
           throw EnsembleTestFailure(
@@ -186,6 +188,13 @@ class EnsembleTestExecutionPlanner {
         }
         selectedById[definition.testCase.id] = definition;
       }
+    }
+
+    if (selectedById.isEmpty) {
+      throw EnsembleTestFailure(
+        'No tests remained after applying selection '
+        '(check device matrix vs --id/--path filters)',
+      );
     }
 
     for (final def in selectedById.values) {
@@ -427,9 +436,9 @@ class EnsembleTestExecutionPlanner {
               initialState: _withDeviceLocale(test.initialState, device),
               startScreenInputs: test.startScreenInputs,
               deviceTarget: device,
-              screenshotSheetId: multi
-                  ? test.resolvedScreenshotSheetId
-                  : test.screenshotSheetId,
+              // One screenshot sheet per device run (not a shared multi-device
+              // sheet). resolvedScreenshotSheetId falls back to the expanded id.
+              screenshotSheetId: test.screenshotSheetId,
             ),
           ),
         );
@@ -782,6 +791,16 @@ class EnsembleTestExecutionPlanner {
       for (final id in byId.keys)
         if (selectedIds.contains(id)) id: byId[id]!,
     };
+  }
+
+  static bool _idBelongsToSelection(String testId, Set<String> selectedIds) {
+    if (selectedIds.contains(testId)) return true;
+    for (final selectedId in selectedIds) {
+      // Preview selection uses base ids / scenario ids; full parse may expand
+      // them with a device suffix (e.g. home → home[android_nl]).
+      if (testId.startsWith('$selectedId[')) return true;
+    }
+    return false;
   }
 
   static bool _matchesSelection(

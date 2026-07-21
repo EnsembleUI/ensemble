@@ -89,6 +89,28 @@ Future<String> writeStorageLog(
   );
 }
 
+Future<String> writeAppConsoleLog(EnsembleTestContext context) {
+  final buffer = StringBuffer();
+  for (final line in context.runtime.consoleLogs) {
+    buffer.writeln(line);
+  }
+  if (context.runtime.flutterErrors.isNotEmpty) {
+    if (buffer.isNotEmpty) {
+      buffer.writeln();
+    }
+    buffer.writeln('--- flutter errors ---');
+    for (final error in context.runtime.flutterErrors) {
+      buffer.writeln(error);
+    }
+  }
+  return context.logger.writeLogFile(
+    testId: context.testCase.id,
+    name: 'app_console',
+    content: buffer.isEmpty ? '<no console output>\n' : buffer.toString(),
+    extension: 'log',
+  );
+}
+
 Future<String> writeStorageLogFile({
   required TestLogger logger,
   required String filePrefix,

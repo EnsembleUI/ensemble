@@ -79,7 +79,7 @@
     },
     "devices": {
       "type": "array",
-      "description": "Suite device matrix. Each test runs once per entry with that platform/model viewport, optional locale (APP_LOCALE), and optional theme (EnsembleThemeManager Light/Dark). Multiple devices share one contact sheet per logical test id.",
+      "description": "Suite device matrix. Each test runs once per entry with that platform/model viewport, optional locale (APP_LOCALE), and optional theme (EnsembleThemeManager Light/Dark). Each device run writes its own screenshot contact sheet.",
       "items": {
         "$ref": "#/$defs/testDevice"
       }
@@ -143,6 +143,7 @@
     "logApiCalls": {
       "type": "object",
       "additionalProperties": false,
+      "description": "When enabled, write a per-test API call log attached to each result.",
       "properties": {
         "enabled": {
           "type": "boolean"
@@ -152,6 +153,7 @@
     "logStorage": {
       "type": "object",
       "additionalProperties": false,
+      "description": "When enabled, write a per-test storage snapshot attached to each result.",
       "properties": {
         "enabled": {
           "type": "boolean"

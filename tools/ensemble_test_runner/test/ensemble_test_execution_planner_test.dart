@@ -385,8 +385,8 @@ steps:
         ['signed_in[android_nl]', 'signed_in[iphone_en]'],
       );
       expect(
-        definitions.map((d) => d.testCase.resolvedScreenshotSheetId).toSet(),
-        {'home_devices'},
+        definitions.map((d) => d.testCase.resolvedScreenshotSheetId).toList(),
+        ['home_devices[android_nl]', 'home_devices[iphone_en]'],
       );
       expect(
         definitions.map((d) => d.testCase.deviceTarget?.theme),
@@ -755,6 +755,54 @@ steps:
       expect(
         plan.ordered.map((definition) => definition.testCase.id).toList(),
         ['selected_test'],
+      );
+    });
+
+    test('path selection keeps device-expanded ids (parallel shard case)',
+        () async {
+      final assets = <String, String>{
+        'suite/tests/home.test.yaml': '''
+id: home_wifi
+startScreen: Home
+steps:
+  - expectVisible:
+      id: home
+''',
+        'suite/tests/other.test.yaml': '''
+id: other_flow
+startScreen: Other
+steps:
+  - expectVisible:
+      id: other
+''',
+      };
+
+      final plan = await EnsembleTestExecutionPlanner.buildForTest(
+        assetContents: assets,
+        config: const EnsembleTestConfig(
+          devices: [
+            TestDeviceTarget(
+              id: 'android_nl',
+              platform: 'android',
+              model: 'Samsung Galaxy S20',
+              locale: 'nl',
+            ),
+            TestDeviceTarget(
+              id: 'iphone_en',
+              platform: 'ios',
+              model: 'iPhone 15 Pro',
+              locale: 'en',
+            ),
+          ],
+        ),
+        selection: const EnsembleTestSelection(
+          paths: {'suite/tests/home.test.yaml'},
+        ),
+      );
+
+      expect(
+        plan.ordered.map((definition) => definition.testCase.id).toList(),
+        ['home_wifi[android_nl]', 'home_wifi[iphone_en]'],
       );
     });
   });
