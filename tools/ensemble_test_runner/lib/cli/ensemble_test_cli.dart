@@ -33,6 +33,7 @@ final _disabledAppConsoleLogs = <String>{};
 ///   --feature=<name>   Run matching feature(s); repeatable
 ///   --tag=<tag>        Run matching tag(s); repeatable
 ///   --path=<path>      Run matching test asset path(s); repeatable
+///   --device=<id>      Run only these suite device id(s); repeatable (default: all)
 ///   --input key=value  Provide a test input for ${inputs.key}; repeatable
 ///   --jobs=<n|auto>    Concurrent job count (default: auto for full suites; 1 disables)
 ///   --timeout=<duration> Test suite timeout, e.g. 30s, 5m, 1h (default: 10m)
@@ -275,6 +276,7 @@ List<String> _selectionDartDefines(List<String> arguments) {
     'ensembleTestFeature': _optionValues(arguments, '--feature'),
     'ensembleTestTag': _optionValues(arguments, '--tag'),
     'ensembleTestPath': _optionValues(arguments, '--path'),
+    'ensembleTestDevice': _optionValues(arguments, '--device'),
   };
   return [
     for (final entry in values.entries)

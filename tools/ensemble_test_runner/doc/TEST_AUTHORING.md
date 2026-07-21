@@ -268,7 +268,11 @@ dart run ensemble_test_runner:ensemble_test --feature=login
 dart run ensemble_test_runner:ensemble_test --tag=smoke
 dart run ensemble_test_runner:ensemble_test --path=auth/
 dart run ensemble_test_runner:ensemble_test --id=login_valid
+dart run ensemble_test_runner:ensemble_test --device=android_nl
 ```
+
+`--device` limits the suite device matrix to the given id(s) from
+`tests/config.yaml` (repeatable / comma-separated). Default is all devices.
 
 Prerequisites are included automatically when a selected test depends on them.
 

@@ -4,6 +4,7 @@ import 'package:ensemble/framework/ensemble_config_service.dart';
 import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
 import 'package:ensemble_test_runner/parser/ensemble_test_parser.dart';
 import 'package:ensemble_test_runner/runner/ensemble_test_harness.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
 /// App target resolved from `ensemble/ensemble-config.yaml` (`definitions.local`).
@@ -57,8 +58,61 @@ class EnsembleTestDiscovery {
       sourcePath: path,
     );
     final overridden = _withServiceOverrides(config);
-    if (overridden != null) return overridden;
-    return _withWorkerIsolation(config);
+    final withIsolation = overridden ?? _withWorkerIsolation(config);
+    return applyDeviceFilter(
+      withIsolation,
+      _deviceIdsFromEnvironment(),
+    );
+  }
+
+  /// Keeps only suite `devices` whose ids are in [selectedIds].
+  ///
+  /// Empty [selectedIds] means all devices (CLI default). Unknown ids throw.
+  @visibleForTesting
+  static EnsembleTestConfig applyDeviceFilter(
+    EnsembleTestConfig config,
+    Set<String> selectedIds,
+  ) {
+    if (selectedIds.isEmpty) return config;
+    if (config.devices.isEmpty) {
+      throw EnsembleTestFailure(
+        '`--device` was set but tests/config.yaml has no devices.',
+      );
+    }
+    final known = {for (final device in config.devices) device.id};
+    final unknown = selectedIds.difference(known);
+    if (unknown.isNotEmpty) {
+      final knownList = config.devices.map((d) => d.id).join(', ');
+      throw EnsembleTestFailure(
+        'Unknown device id(s): ${unknown.join(', ')}. Known: $knownList',
+      );
+    }
+    return EnsembleTestConfig(
+      services: config.services,
+      mockFiles: config.mockFiles,
+      inlineMocks: config.inlineMocks,
+      initialState: config.initialState,
+      devices: [
+        for (final device in config.devices)
+          if (selectedIds.contains(device.id)) device,
+      ],
+      screenshots: config.screenshots,
+      performance: config.performance,
+      timers: config.timers,
+      dumpTree: config.dumpTree,
+      logApiCalls: config.logApiCalls,
+      logStorage: config.logStorage,
+    );
+  }
+
+  static Set<String> _deviceIdsFromEnvironment() {
+    const raw = String.fromEnvironment('ensembleTestDevice');
+    if (raw.isEmpty) return const {};
+    return raw
+        .split(',')
+        .map((part) => part.trim())
+        .where((part) => part.isNotEmpty)
+        .toSet();
   }
 
   static EnsembleTestConfig? _withServiceOverrides(EnsembleTestConfig config) {

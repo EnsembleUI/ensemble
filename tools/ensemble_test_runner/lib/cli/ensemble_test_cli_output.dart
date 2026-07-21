@@ -134,6 +134,7 @@ List<String> flutterTestArguments(List<String> arguments) {
         a.startsWith('--feature=') ||
         a.startsWith('--tag=') ||
         a.startsWith('--path=') ||
+        a.startsWith('--device=') ||
         a.startsWith('--jobs=') ||
         a.startsWith('--timeout=') ||
         a == '--verbose' ||

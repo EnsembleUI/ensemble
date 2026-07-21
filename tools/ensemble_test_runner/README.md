@@ -247,7 +247,11 @@ dart run ensemble_test_runner:ensemble_test --id=login_valid
 dart run ensemble_test_runner:ensemble_test --feature=login
 dart run ensemble_test_runner:ensemble_test --tag=smoke
 dart run ensemble_test_runner:ensemble_test --path=auth/
+dart run ensemble_test_runner:ensemble_test --device=android_nl
 ```
+
+`--device` selects suite device id(s) from `tests/config.yaml` (repeatable, or
+comma-separated). Default is all configured devices.
 
 Session producer tests are included automatically for selected session tests.
 
