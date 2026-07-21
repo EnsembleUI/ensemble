@@ -7,7 +7,6 @@ import 'package:path/path.dart' as p;
 
 /// Writes a browsable HTML report that links existing suite artifacts.
 class HtmlTestReporter {
-  static const _maxEmbedBytes = 256 * 1024;
 
   /// Writes `report/index.html` under [artifactRoot] and returns the display path.
   String write(
@@ -15,6 +14,7 @@ class HtmlTestReporter {
     String? artifactRoot,
     String? displayRoot,
     int? wallTimeMs,
+    bool isSuiteRunning = false,
   }) {
     final root = artifactRoot ?? ensembleTestArtifactRoot;
     final display = displayRoot ?? _defaultDisplayRoot;
@@ -27,18 +27,49 @@ class HtmlTestReporter {
         artifactRoot: root,
         displayRoot: display,
         wallTimeMs: wallTimeMs,
+        isSuiteRunning: isSuiteRunning,
       ),
     );
     return p.join(display, 'report', 'index.html').replaceAll('\\', '/');
   }
 
-  /// Builds HTML for [result]. Exposed for unit tests.
   String buildHtml(
     EnsembleTestRunResult result, {
     required String artifactRoot,
     required String displayRoot,
     int? wallTimeMs,
+    bool isSuiteRunning = false,
   }) {
+    if (isSuiteRunning) {
+      final loadingBuffer = StringBuffer()
+        ..writeln('<!DOCTYPE html>')
+        ..writeln('<html lang="en">')
+        ..writeln('<head>')
+        ..writeln('<meta charset="utf-8"/>')
+        ..writeln('<meta name="viewport" content="width=device-width, initial-scale=1"/>')
+        ..writeln('<meta http-equiv="refresh" content="3"/>')
+        ..writeln('<title>Running Ensemble YAML Tests</title>')
+        ..writeln('<link rel="preconnect" href="https://fonts.googleapis.com">')
+        ..writeln('<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>')
+        ..writeln('<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300..800&display=swap" rel="stylesheet">')
+        ..writeln('<style>${_css()}</style>')
+        ..writeln('</head>')
+        ..writeln('<body>')
+        ..writeln('<div class="grid-overlay"></div>')
+        ..writeln('<div class="full-page-loader">')
+        ..writeln('  <div class="spinner"></div>')
+        ..writeln('  <h1>Ensemble YAML Tests</h1>')
+        ..writeln('  <p class="subtitle">Test Suite Execution in Progress</p>')
+        ..writeln('  <div class="loader-progress-info">Running all declarative tests on configured device targets. The dashboard will populate automatically when finished.</div>')
+        ..writeln('  <div class="skeleton-line-full"></div>')
+        ..writeln('  <div class="skeleton-line-full"></div>')
+        ..writeln('  <div class="skeleton-line-full"></div>')
+        ..writeln('</div>')
+        ..writeln('</body>')
+        ..writeln('</html>');
+      return loadingBuffer.toString();
+    }
+
     final totalMs = result.results.fold<int>(0, (sum, r) => sum + r.durationMs);
     final displayMs = wallTimeMs ?? totalMs;
     final ordered = [
@@ -57,7 +88,15 @@ class HtmlTestReporter {
     final totalTests = result.results.length;
     final passedCount = result.results.where((r) => r.status == TestStatus.passed).length;
     final failedCount = result.failedCount;
+    final pendingCount = result.results.where((r) => r.status == TestStatus.pending).length;
     final successRate = totalTests > 0 ? (passedCount / totalTests * 100).toStringAsFixed(0) : '0';
+
+    final summaryText = pendingCount > 0
+        ? '$passedCount passed, $failedCount failed, $pendingCount running ($totalTests total)'
+        : '$passedCount passed, $failedCount failed ($totalTests total)';
+    final summaryClass = pendingCount > 0
+        ? 'running'
+        : (failedCount == 0 ? 'passed' : 'failed');
 
     final buffer = StringBuffer()
       ..writeln('<!DOCTYPE html>')
@@ -76,8 +115,8 @@ class HtmlTestReporter {
       ..writeln('<header class="hero">')
       ..writeln('  <div class="hero-header">')
       ..writeln('    <h1>Ensemble YAML Tests</h1>')
-      ..writeln('    <p class="summary ${_statusClass(result.failedCount == 0)}">')
-      ..writeln('      ${_escape(result.summary)} · ${totalMs}ms')
+      ..writeln('    <p class="summary $summaryClass">')
+      ..writeln('      ${_escape(summaryText)} · ${_formatDuration(totalMs)}')
       ..writeln('    </p>')
       ..writeln('  </div>')
       ..writeln('</header>');
@@ -89,7 +128,17 @@ class HtmlTestReporter {
       ..writeln('    <div class="metric-card">')
       ..writeln('      <div class="metric-val">$totalTests</div>')
       ..writeln('      <div class="metric-label">Total Tests</div>')
-      ..writeln('    </div>')
+      ..writeln('    </div>');
+
+    if (pendingCount > 0) {
+      buffer
+        ..writeln('    <div class="metric-card metric-running">')
+        ..writeln('      <div class="metric-val">$pendingCount</div>')
+        ..writeln('      <div class="metric-label">Running</div>')
+        ..writeln('    </div>');
+    }
+
+    buffer
       ..writeln('    <div class="metric-card metric-passed">')
       ..writeln('      <div class="metric-val">$passedCount</div>')
       ..writeln('      <div class="metric-label">Passed</div>')
@@ -212,21 +261,8 @@ class HtmlTestReporter {
         ..writeln('          <div class="artifact-item-header">')
         ..writeln('            <span class="label">${_escape(artifact.label)}</span>: ')
         ..writeln('            <a href="${_escape(href)}">${_escape(artifact.path)}</a>')
-        ..writeln('          </div>');
-
-      final embed = _maybeEmbed(
-        artifact,
-        artifactRoot: artifactRoot,
-        displayRoot: displayRoot,
-      );
-      if (embed != null) {
-        buffer
-          ..writeln('          <details class="embed">')
-          ..writeln('            <summary>Preview</summary>')
-          ..writeln('            <pre>${_escape(embed)}</pre>')
-          ..writeln('          </details>');
-      }
-      buffer.writeln('        </li>');
+        ..writeln('          </div>')
+        ..writeln('        </li>');
     }
 
     buffer
@@ -238,9 +274,12 @@ class HtmlTestReporter {
 
   void _writeTestCard(StringBuffer buffer, String base, List<EnsembleSingleTestResult> runs) {
     final firstRun = runs.first;
+    final hasPending = runs.any((r) => r.status == TestStatus.pending);
     final groupPassed = runs.every((r) => r.status == TestStatus.passed);
     final cardId = _anchorId(firstRun.testId);
-    final statusClass = _statusClass(groupPassed);
+    final statusClass = hasPending
+        ? 'pending'
+        : (groupPassed ? 'passed' : 'failed');
 
     // Literal match for test assertions: "<article class="test failed" id="login_flow_tests_login_test_yaml_">"
     buffer
@@ -257,7 +296,7 @@ class HtmlTestReporter {
       ..writeln('      <div class="card-info">')
       ..writeln('        <div class="card-title">${_escape(base)}</div>')
       ..writeln('        <div class="card-meta">')
-      ..writeln('          <span class="card-duration">${firstRun.durationMs}ms</span>');
+      ..writeln('          <span class="card-duration">${_formatDuration(firstRun.durationMs)}</span>');
 
     // Render device badges as mini-pills under card title
     for (final run in runs) {
@@ -312,6 +351,7 @@ class HtmlTestReporter {
     for (var i = 0; i < runs.length; i++) {
       final test = runs[i];
       final passed = test.status == TestStatus.passed;
+      final isPending = test.status == TestStatus.pending;
       final badge = _deviceBadgeOf(test.testId);
       final filePath = _filePathOf(test.testId);
 
@@ -320,7 +360,7 @@ class HtmlTestReporter {
         ..writeln('    <div class="test-card-header">')
         ..writeln('      <div class="title-section">')
         ..writeln('        <h2>')
-        ..writeln('          <span class="icon">${passed ? '✓' : '✗'}</span> ')
+        ..writeln('          <span class="icon">${isPending ? '🔄' : (passed ? '✓' : '✗')}</span> ')
         ..writeln('          ${_escape(base)}')
         ..writeln('        </h2>');
 
@@ -334,19 +374,33 @@ class HtmlTestReporter {
         buffer.writeln('        <span class="device-pill $badgeClass">$iconName · ${_escape(badge.toUpperCase())}$flagStr</span>');
       }
 
+      final statusText = isPending ? 'RUNNING' : (passed ? 'PASSED' : 'FAILED');
+      final statusCapsuleClass = isPending ? 'pending' : (passed ? 'passed' : 'failed');
+
       buffer
         ..writeln('      </div>')
-        ..writeln('      <div class="status-capsule ${passed ? 'passed' : 'failed'}">${passed ? 'PASSED' : 'FAILED'}</div>')
+        ..writeln('      <div class="status-capsule $statusCapsuleClass">$statusText</div>')
         ..writeln('    </div>');
 
       if (filePath.isNotEmpty) {
         buffer.writeln('    <p class="file-path-sub"><span>File:</span> ${_escape(filePath)}</p>');
       }
 
-      buffer
-        ..writeln('    <p class="meta">${test.durationMs}ms'
-            '${test.attempts > 1 ? ' · attempts ${test.attempts}/${test.retry + 1}' : ''}'
-            '</p>');
+      if (isPending) {
+        buffer
+          ..writeln('    <div class="pending-detail-loader">')
+          ..writeln('      <div class="spinner"></div>')
+          ..writeln('      <h3>Test Execution in Progress</h3>')
+          ..writeln('      <p>This test case is currently running on the device. Please wait for the execution to finish.</p>')
+          ..writeln('      <div class="skeleton-line"></div>')
+          ..writeln('      <div class="skeleton-line"></div>')
+          ..writeln('      <div class="skeleton-line"></div>')
+          ..writeln('    </div>');
+      } else {
+        buffer
+          ..writeln('    <p class="meta">${_formatDuration(test.durationMs)}'
+              '${test.attempts > 1 ? ' · attempts ${test.attempts}/${test.retry + 1}' : ''}'
+              '</p>');
 
       final report = test.report;
       if (report != null) {
@@ -409,48 +463,159 @@ class HtmlTestReporter {
             a.path.toLowerCase().endsWith('.webp')).toList();
         final logs = artifacts.where((a) => !screenshots.contains(a)).toList();
 
-        if (logs.isNotEmpty) {
-          buffer.writeln('    <div class="log-artifacts-row">');
-          for (final artifact in logs) {
-            final href = _relativeHref(artifact.path, displayRoot);
-            final friendlyTitle = artifact.label == 'apiCalls'
-                ? 'API Calls Logs'
-                : (artifact.label == 'storage' ? 'Local State Storage' : 'App Console Logs');
-            final cardIcon = artifact.label == 'apiCalls' ? '📄' : (artifact.label == 'storage' ? '💾' : '📝');
+        // 3. Render side-by-side terminal logs widget
+        final appLogRef = logs.firstWhere((a) => a.label == 'appLogs', orElse: () => _ArtifactRef(label: '', path: ''));
+        final apiCallsRef = logs.firstWhere((a) => a.label == 'apiCalls', orElse: () => _ArtifactRef(label: '', path: ''));
+        final storageRef = logs.firstWhere((a) => a.label == 'storage', orElse: () => _ArtifactRef(label: '', path: ''));
 
-            buffer
-              ..writeln('      <div class="artifact log-artifact-card">')
-              ..writeln('        <div class="label">$cardIcon $friendlyTitle <span class="raw-label">(${_escape(artifact.label)})</span></div>')
-              ..writeln('        <div class="artifact-action-row">')
-              ..writeln('          <a class="action-btn-link" href="${_escape(href)}">View File</a>')
-              ..writeln('        </div>');
+        buffer.writeln('    <div class="logs-grid-container">');
 
-            final embed = _maybeEmbed(
-              artifact,
-              artifactRoot: artifactRoot,
-              displayRoot: displayRoot,
-            );
-            if (embed != null) {
-              buffer
-                ..writeln('        <details class="embed" style="display: none;">')
-                ..writeln('          <summary>Preview file content</summary>')
-                ..writeln('          <pre>${_escape(embed)}</pre>')
-                ..writeln('        </details>');
+        // Actions & Console logs pane
+        final appLogsHref = appLogRef.path.isNotEmpty ? _relativeHref(appLogRef.path, displayRoot) : '';
+        buffer
+          ..writeln('      <div class="logs-card-pane">')
+          ..writeln('        <div class="logs-pane-title">')
+          ..writeln('          <span>📝 Actions & Console Logs <span class="raw-label">(appLogs)</span></span>');
+        if (appLogsHref.isNotEmpty) {
+          buffer.writeln('          <a class="terminal-header-link" href="${_escape(appLogsHref)}">View File</a>');
+        }
+        buffer
+          ..writeln('        </div>')
+          ..writeln('        <div class="logs-terminal">');
+
+        if (appLogRef.path.isNotEmpty) {
+          final fsPath = _filesystemPath(appLogRef.path, artifactRoot: artifactRoot, displayRoot: displayRoot);
+          if (fsPath != null && File(fsPath).existsSync()) {
+            final lines = File(fsPath).readAsLinesSync();
+            if (lines.isEmpty) {
+              buffer.writeln('          <div class="terminal-row" style="color: var(--text-muted);">&lt;no console output&gt;</div>');
+            } else {
+              for (final line in lines) {
+                if (line.startsWith('SCREEN TRACKER:')) {
+                  final text = line.replaceAll('SCREEN TRACKER:', '').trim();
+                  buffer.writeln('          <div class="terminal-row"><span class="terminal-badge info">SCREEN</span> <span style="color: var(--accent); font-weight: 700;">${_escape(text)}</span></div>');
+                } else if (line.toLowerCase().contains('error') || line.toLowerCase().contains('exception')) {
+                  buffer.writeln('          <div class="terminal-row"><span class="terminal-badge failed">ERROR</span> <span style="color: var(--fail);">${_escape(line)}</span></div>');
+                } else {
+                  buffer.writeln('          <div class="terminal-row">${_escape(line)}</div>');
+                }
+              }
             }
-            buffer.writeln('      </div>');
+          } else {
+            buffer.writeln('          <div class="terminal-row" style="color: var(--text-muted);">&lt;no console output&gt;</div>');
           }
-          buffer.writeln('    </div>');
+        } else {
+          buffer.writeln('          <div class="terminal-row" style="color: var(--text-muted);">&lt;no console output&gt;</div>');
+        }
+        buffer
+          ..writeln('        </div>')
+          ..writeln('      </div>');
+
+        // Network Logs / API Calls terminal pane
+        final apiCallsHref = apiCallsRef.path.isNotEmpty ? _relativeHref(apiCallsRef.path, displayRoot) : '';
+        buffer
+          ..writeln('      <div class="logs-card-pane">')
+          ..writeln('        <div class="logs-pane-title">')
+          ..writeln('          <span>🌐 Network API Logs <span class="raw-label">(apiCalls)</span></span>');
+        if (apiCallsHref.isNotEmpty) {
+          buffer.writeln('          <a class="terminal-header-link" href="${_escape(apiCallsHref)}">View File</a>');
+        }
+        buffer
+          ..writeln('        </div>')
+          ..writeln('        <div class="logs-terminal">');
+
+        var hasApiEvents = false;
+        if (apiCallsRef.path.isNotEmpty) {
+          final fsPath = _filesystemPath(apiCallsRef.path, artifactRoot: artifactRoot, displayRoot: displayRoot);
+          if (fsPath != null && File(fsPath).existsSync()) {
+            try {
+              final decoded = json.decode(File(fsPath).readAsStringSync());
+              if (decoded is Map && decoded['events'] is List) {
+                final events = decoded['events'] as List;
+                if (events.isNotEmpty) {
+                  hasApiEvents = true;
+                  for (final ev in events) {
+                    if (ev is Map) {
+                      final name = ev['name']?.toString() ?? 'API';
+                      final statusCode = ev['statusCode'];
+                      final mocked = ev['mocked'] == true;
+                      final timestamp = ev['timestamp']?.toString() ?? '';
+                      var timePart = '';
+                      final timeMatch = RegExp(r'T(\d{2}:\d{2}:\d{2})').firstMatch(timestamp);
+                      if (timeMatch != null) {
+                        timePart = '[${timeMatch.group(1)}] ';
+                      }
+
+                      final badgeClass = mocked ? 'info' : (statusCode == 200 ? 'passed' : 'failed');
+                      final badgeText = mocked ? 'MOCK' : 'API';
+                      final statusColor = statusCode == 200 ? 'var(--pass)' : 'var(--fail)';
+
+                      buffer.writeln('          <div class="terminal-row"><span class="terminal-timestamp">${_escape(timePart)}</span><span class="terminal-badge $badgeClass">$badgeText</span><span style="font-weight: 700; color: #fff;">${_escape(name)}</span> · <span style="color: $statusColor; font-weight: 700;">${statusCode ?? "ERROR"}</span></div>');
+                    }
+                  }
+                }
+              }
+            } catch (_) {}
+          }
         }
 
+        if (!hasApiEvents) {
+          buffer.writeln('          <div class="terminal-row" style="color: var(--text-muted);">&lt;no API requests recorded&gt;</div>');
+        }
+
+        buffer
+          ..writeln('        </div>')
+          ..writeln('      </div>')
+          ..writeln('    </div>');
+
+        // Extra local storage log view at the bottom if present
+        if (storageRef.path.isNotEmpty) {
+          final storageHref = _relativeHref(storageRef.path, displayRoot);
+          var storageContent = '';
+          final fsPath = _filesystemPath(storageRef.path, artifactRoot: artifactRoot, displayRoot: displayRoot);
+          if (fsPath != null && File(fsPath).existsSync()) {
+            try {
+              final raw = File(fsPath).readAsStringSync();
+              final decoded = json.decode(raw);
+              storageContent = const JsonEncoder.withIndent('  ').convert(decoded);
+            } catch (_) {
+              storageContent = File(fsPath).readAsStringSync();
+            }
+          }
+
+          buffer
+            ..writeln('    <div style="margin-top: 16px;">')
+            ..writeln('      <div class="logs-card-pane" style="height: 240px;">')
+            ..writeln('        <div class="logs-pane-title">')
+            ..writeln('          <span>💾 Local State Storage <span class="raw-label">(storage)</span></span>')
+            ..writeln('          <a class="terminal-header-link" href="${_escape(storageHref)}">View Storage File</a>')
+            ..writeln('        </div>')
+            ..writeln('        <div class="logs-terminal">');
+
+          if (storageContent.isNotEmpty) {
+            for (final line in storageContent.split('\n')) {
+              buffer.writeln('          <div class="terminal-row">${_escape(line)}</div>');
+            }
+          } else {
+            buffer.writeln('          <div class="terminal-row" style="color: var(--text-muted);">&lt;empty local storage state&gt;</div>');
+          }
+
+          buffer
+            ..writeln('        </div>')
+            ..writeln('      </div>')
+            ..writeln('    </div>');
+        }
+
+        // 4. Render full-width screenshots contact sheet on its own line below logs
         if (screenshots.isNotEmpty) {
           buffer.writeln('    <div class="screenshot-artifacts-row">');
           for (final artifact in screenshots) {
             final href = _relativeHref(artifact.path, displayRoot);
             buffer
               ..writeln('      <div class="artifact screenshot-artifact-card">')
-              ..writeln('        <div class="label">🖼️ Screenshots Contact Sheet <span class="raw-label">(${_escape(artifact.label)})</span></div>')
-              ..writeln('        <div class="artifact-action-row">')
-              ..writeln('          <a class="action-btn-link" href="${_escape(href)}">View File</a>')
+              ..writeln('        <div class="logs-pane-title" style="border: none; padding: 0 0 12px 0;">')
+              ..writeln('          <span style="font-weight: 800; font-size: 0.8rem; text-transform: uppercase; color: var(--accent); letter-spacing: 0.08em;">🖼️ Screenshots Contact Sheet <span class="raw-label">(${_escape(artifact.label)})</span></span>')
+              ..writeln('          <a class="terminal-header-link" href="${_escape(href)}">View File</a>')
               ..writeln('        </div>');
 
             final fsPath = _filesystemPath(
@@ -467,6 +632,7 @@ class HtmlTestReporter {
           }
           buffer.writeln('    </div>');
         }
+      }
       }
 
       buffer.writeln('  </div>');
@@ -512,39 +678,6 @@ class HtmlTestReporter {
     }
     return p.normalize(p.join(artifactRoot, relative));
   }
-
-  String? _maybeEmbed(
-    _ArtifactRef artifact, {
-    required String artifactRoot,
-    required String displayRoot,
-  }) {
-    final lower = artifact.path.toLowerCase();
-    final isText = lower.endsWith('.json') ||
-        lower.endsWith('.log') ||
-        lower.endsWith('.txt');
-    if (!isText) return null;
-    final fsPath = _filesystemPath(
-      artifact.path,
-      artifactRoot: artifactRoot,
-      displayRoot: displayRoot,
-    );
-    if (fsPath == null) return null;
-    final file = File(fsPath);
-    if (!file.existsSync()) return null;
-    final length = file.lengthSync();
-    if (length <= 0 || length > _maxEmbedBytes) return null;
-    final raw = file.readAsStringSync();
-    if (lower.endsWith('.json')) {
-      try {
-        return const JsonEncoder.withIndent('  ').convert(json.decode(raw));
-      } catch (_) {
-        return raw;
-      }
-    }
-    return raw;
-  }
-
-  String _statusClass(bool passed) => passed ? 'passed' : 'failed';
 
   String _anchorId(String testId) =>
       testId.replaceAll(RegExp(r'[^A-Za-z0-9_-]+'), '_');
@@ -647,7 +780,7 @@ body {
 }
 
 .hero, .dashboard, .controls, .suite-artifacts-container {
-  max-width: 1200px;
+  max-width: 1600px;
   margin: 0 auto;
   padding: 16px 24px;
   width: 100%;
@@ -828,7 +961,7 @@ body {
 /* Master-Detail Split Screen Layout */
 .dashboard-container {
   display: flex;
-  max-width: 1200px;
+  max-width: 1600px;
   margin: 0 auto;
   gap: 24px;
   padding: 0 24px 24px 24px;
@@ -839,7 +972,7 @@ body {
 
 /* Left Sidebar Pane */
 .test-list-pane {
-  width: 380px;
+  width: 400px;
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
@@ -885,6 +1018,7 @@ body {
 .test.active {
   background: rgba(6, 182, 212, 0.08);
   border-color: var(--accent);
+  box-shadow: 0 0 12px rgba(6, 182, 212, 0.25);
 }
 .card-status-dot {
   width: 8px;
@@ -1247,78 +1381,99 @@ body {
   font-weight: 700;
 }
 
-/* Terminal logs and error boxes */
-.error, pre {
-  background: var(--code);
-  border: 1px solid var(--border);
-  color: #f3f4f6;
-  padding: 20px;
-  border-radius: 12px;
-  overflow-x: auto;
-  font-family: var(--font-code);
-  font-size: 0.85rem;
-  white-space: pre-wrap;
-  margin-top: 16px;
-  box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.8);
+/* Terminal logs split pane styling */
+.logs-grid-container {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-top: 24px;
 }
-.error {
-  border-left: 4px solid var(--fail);
-  background: rgba(244, 63, 94, 0.03);
+.logs-card-pane {
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  height: 360px;
+  overflow: hidden;
+}
+.logs-pane-title {
+  font-size: 0.8rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  color: var(--accent);
+  letter-spacing: 0.05em;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.terminal-header-link {
+  font-size: 0.75rem;
+  color: var(--accent);
+  text-decoration: none;
+  font-weight: 700;
+}
+.terminal-header-link:hover {
+  text-decoration: underline;
+  color: #fff;
+}
+.logs-terminal {
+  flex: 1;
+  padding: 12px 16px;
+  overflow-y: auto;
+  font-family: var(--font-code);
+  font-size: 0.8rem;
+  background: var(--code);
+  color: #cbd5e1;
+}
+.terminal-row {
+  margin-bottom: 6px;
+  line-height: 1.4;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+.terminal-timestamp {
+  color: var(--text-muted);
+  margin-right: 8px;
+}
+.terminal-badge {
+  display: inline-block;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.65rem;
+  font-weight: 800;
+  margin-right: 6px;
+}
+.terminal-badge.passed {
+  background: var(--pass-bg);
+  color: var(--pass);
+}
+.terminal-badge.failed {
+  background: var(--fail-bg);
+  color: var(--fail);
+}
+.terminal-badge.info {
+  background: rgba(6, 182, 212, 0.1);
+  color: var(--accent);
 }
 
 /* Artifact Layout styling */
-.log-artifacts-row {
-  display: flex;
-  gap: 16px;
-  flex-wrap: wrap;
-  margin-top: 24px;
-}
-.log-artifact-card {
-  flex: 1;
-  min-width: 240px;
-}
 .screenshot-artifacts-row {
-  margin-top: 16px;
+  margin-top: 24px;
   width: 100%;
 }
 .screenshot-artifact-card {
   width: 100%;
 }
 .artifact {
-  background: rgba(0, 0, 0, 0.3);
+  background: rgba(0, 0, 0, 0.35);
   border: 1px solid var(--border);
-  border-radius: 14px;
+  border-radius: 12px;
   padding: 20px;
   display: flex;
   flex-direction: column;
-}
-.artifact .label {
-  font-weight: 800;
-  font-size: 0.8rem;
-  text-transform: uppercase;
-  color: var(--accent);
-  letter-spacing: 0.08em;
-  margin-bottom: 8px;
-}
-.artifact-action-row {
-  margin-bottom: 12px;
-}
-.action-btn-link {
-  display: inline-flex;
-  align-items: center;
-  background: rgba(6, 182, 212, 0.08);
-  border: 1px solid rgba(6, 182, 212, 0.3);
-  color: var(--accent);
-  padding: 6px 14px;
-  border-radius: 8px;
-  font-size: 0.8rem;
-  font-weight: 700;
-  transition: all 0.2s ease;
-}
-.action-btn-link:hover {
-  background: var(--accent);
-  color: #000;
-  text-decoration: none;
 }
 .image-wrapper {
   overflow: hidden;
@@ -1334,17 +1489,6 @@ body {
 }
 .artifact img:hover {
   transform: scale(1.04);
-}
-
-.embed {
-  margin-top: 16px;
-}
-.embed summary {
-  font-size: 0.8rem;
-  cursor: pointer;
-  color: var(--accent);
-  font-weight: 700;
-  user-select: none;
 }
 
 .raw-label {
@@ -1366,6 +1510,160 @@ a {
 a:hover {
   color: #7dd3fc;
   text-decoration: underline;
+}
+
+/* Pending Loading State details */
+.metric-running .metric-val {
+  color: var(--accent);
+  animation: pulse-glow 1.5s infinite;
+}
+.summary.running {
+  color: var(--accent);
+}
+.test.pending {
+  border-left: 4px solid var(--accent);
+}
+.test.pending .card-status-dot {
+  background: var(--accent);
+  box-shadow: 0 0 6px var(--accent);
+  animation: pulse-glow 1.5s infinite;
+}
+.status-capsule.pending {
+  background: rgba(6, 182, 212, 0.1);
+  border: 1px solid var(--accent);
+  color: var(--accent);
+}
+
+.pending-detail-loader {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 40px;
+  text-align: center;
+}
+.pending-detail-loader .spinner {
+  width: 48px;
+  height: 48px;
+  border: 4px solid rgba(6, 182, 212, 0.1);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 24px;
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+.pending-detail-loader h3 {
+  margin: 0 0 8px 0;
+  font-size: 1.4rem;
+  color: #fff;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+.pending-detail-loader p {
+  color: var(--text-muted);
+  font-size: 0.95rem;
+  max-width: 400px;
+  margin: 0 0 32px 0;
+}
+.skeleton-line {
+  height: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  width: 80%;
+  margin-bottom: 12px;
+  position: relative;
+  overflow: hidden;
+}
+.skeleton-line::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.05), transparent);
+  transform: translateX(-100%);
+  animation: shimmer 1.6s infinite;
+}
+@keyframes shimmer {
+  100% { transform: translateX(100%); }
+}
+@keyframes pulse-glow {
+  0% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.2); opacity: 0.6; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.full-page-loader {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  width: 100vw;
+  background: var(--bg);
+  color: var(--text);
+  text-align: center;
+  padding: 40px;
+}
+.full-page-loader .spinner {
+  width: 64px;
+  height: 64px;
+  border: 4px solid rgba(6, 182, 212, 0.1);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 32px;
+  box-shadow: 0 0 20px rgba(6, 182, 212, 0.2);
+}
+.full-page-loader h1 {
+  margin: 0 0 12px 0;
+  font-size: 2.5rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  background: linear-gradient(135deg, #ffffff 30%, #a1a1aa 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.full-page-loader .subtitle {
+  color: var(--accent);
+  font-size: 1.2rem;
+  font-weight: 700;
+  margin: 0 0 20px 0;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+.full-page-loader .loader-progress-info {
+  color: var(--text-muted);
+  font-size: 1rem;
+  max-width: 480px;
+  margin: 0 0 48px 0;
+  line-height: 1.6;
+}
+.skeleton-line-full {
+  height: 16px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  width: 60%;
+  max-width: 600px;
+  margin-bottom: 16px;
+  position: relative;
+  overflow: hidden;
+}
+.skeleton-line-full::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.04), transparent);
+  transform: translateX(-100%);
+  animation: shimmer 1.6s infinite;
 }
 ''';
 

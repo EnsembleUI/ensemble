@@ -152,6 +152,20 @@ Future<void> runEnsembleYamlTestsCli(List<String> arguments) async {
       quiet: quiet,
       machineReport: machineReport,
     );
+
+    if (!machineReport) {
+      try {
+        final discovered = _discoverAllTestRuns(appDir, patcher);
+        if (discovered.isNotEmpty) {
+          _withHtmlReport(
+            appDir,
+            EnsembleTestRunResult(results: discovered),
+            wallTimeMs: 0,
+            isSuiteRunning: true,
+          );
+        }
+      } catch (_) {}
+    }
     if (_hasSelection(arguments) && jobs != null && jobs > 1) {
       throw StateError(
         '--jobs currently runs full suites only. Remove --id/--feature/--tag/--path '
@@ -1335,11 +1349,13 @@ EnsembleTestRunResult _withHtmlReport(
   String appDir,
   EnsembleTestRunResult result, {
   int? wallTimeMs,
+  bool isSuiteRunning = false,
 }) {
   final htmlPath = HtmlTestReporter().write(
     result,
     artifactRoot: _artifactRootPath(appDir),
     wallTimeMs: wallTimeMs,
+    isSuiteRunning: isSuiteRunning,
   );
   if (result.suiteLogs.any((log) => log.startsWith('htmlReport:'))) {
     return result;
@@ -1817,4 +1833,57 @@ void _writeProcessStreams(ProcessResult result) {
   final err = result.stderr?.toString() ?? '';
   if (out.isNotEmpty) stdout.write(out);
   if (err.isNotEmpty) stderr.write(err);
+}
+
+List<EnsembleSingleTestResult> _discoverAllTestRuns(
+  String appDir,
+  YamlTestAppPatcher patcher,
+) {
+  final testsDir = patcher.testsDirPath;
+  if (testsDir == null) return [];
+  final configFile = File(p.join(testsDir, 'config.yaml'));
+  final devices = <String>[];
+  if (configFile.existsSync()) {
+    try {
+      final config = EnsembleTestParser.parseConfigString(
+        configFile.readAsStringSync(),
+        sourcePath: configFile.path,
+      );
+      for (final dev in config.devices) {
+        devices.add(dev.id);
+      }
+    } catch (_) {}
+  }
+
+  final files = Directory(testsDir)
+      .listSync(recursive: true)
+      .whereType<File>()
+      .where((file) => file.path.endsWith('.test.yaml'))
+      .toList()
+    ..sort((a, b) => a.path.compareTo(b.path));
+
+  final results = <EnsembleSingleTestResult>[];
+  for (final file in files) {
+    final relative = p.relative(file.path, from: appDir).replaceAll('\\', '/');
+    final doc = _readTestYamlMap(file);
+    final id = doc?['id']?.toString();
+    if (id == null || id.isEmpty) continue;
+
+    if (devices.isEmpty) {
+      results.add(EnsembleSingleTestResult(
+        testId: '$id  ($relative)',
+        status: TestStatus.pending,
+        durationMs: 0,
+      ));
+    } else {
+      for (final devId in devices) {
+        results.add(EnsembleSingleTestResult(
+          testId: '$id [$devId]  ($relative)',
+          status: TestStatus.pending,
+          durationMs: 0,
+        ));
+      }
+    }
+  }
+  return results;
 }

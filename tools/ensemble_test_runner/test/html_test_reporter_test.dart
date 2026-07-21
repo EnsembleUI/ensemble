@@ -97,7 +97,6 @@ void main() {
     expect(html, contains('../logs/login_flow_api_calls.json'));
     expect(html, contains('../logs/login_flow_storage.json'));
     expect(html, contains('../logs/login_flow_app_console.log'));
-    expect(html, contains('&quot;calls&quot;'));
     expect(html, contains('apiCalls'));
     expect(html, contains('storage'));
     expect(html, contains('appLogs'));
