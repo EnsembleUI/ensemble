@@ -70,10 +70,100 @@ class EnsembleTestExecutionPlanner {
         '${resolvedTarget.testsAssetPrefix}',
       );
     }
-
-    final byId = <String, EnsembleTestDefinition>{};
+    final assetContents = <String, String>{};
     for (final path in paths) {
-      final content = await rootBundle.loadString(path);
+      assetContents[path] = await rootBundle.loadString(path);
+    }
+    return _buildFromResolvedAssets(
+      assetContents: assetContents,
+      config: config,
+      selection: selection,
+      inputs: inputs,
+    );
+  }
+
+  @visibleForTesting
+  static Future<EnsembleTestExecutionPlan> buildForTest({
+    required Map<String, String> assetContents,
+    EnsembleTestConfig config = const EnsembleTestConfig(),
+    EnsembleTestSelection selection = const EnsembleTestSelection(),
+    Map<String, dynamic> inputs = const {},
+    Future<String> Function(String assetPath)? assetLoader,
+  }) {
+    return _buildFromResolvedAssets(
+      assetContents: assetContents,
+      config: config,
+      selection: selection,
+      inputs: inputs,
+      assetLoader: assetLoader ?? _rootBundleAssetLoader,
+    );
+  }
+
+  static Future<EnsembleTestExecutionPlan> _buildFromResolvedAssets({
+    required Map<String, String> assetContents,
+    required EnsembleTestConfig config,
+    required EnsembleTestSelection selection,
+    required Map<String, dynamic> inputs,
+    _AssetStringLoader assetLoader = _rootBundleAssetLoader,
+  }) async {
+    final paths = assetContents.keys.toList()..sort();
+
+    if (selection.isEmpty) {
+      final byId = <String, EnsembleTestDefinition>{};
+      for (final path in paths) {
+        final content = assetContents[path]!;
+        final definitions = await _parseDefinitionsFromAsset(
+          path,
+          content,
+          inputs: inputs,
+          services: config.services,
+          suiteMockFiles: config.mockFiles,
+          suiteInlineMocks: config.inlineMocks,
+          suiteInitialState: config.initialState,
+          suiteDevices: config.devices,
+          assetLoader: assetLoader,
+        );
+        for (final definition in definitions) {
+          final existing = byId[definition.testCase.id];
+          if (existing != null) {
+            throw EnsembleTestFailure(
+              'Duplicate test id "${definition.testCase.id}" in '
+              '${existing.assetPath} and $path',
+            );
+          }
+          byId[definition.testCase.id] = definition;
+        }
+      }
+
+      final ordered = _topologicalSort(byId);
+      return EnsembleTestExecutionPlan(ordered: ordered, config: config);
+    }
+
+    final previewById = <String, EnsembleTestDefinition>{};
+    for (final path in paths) {
+      final content = assetContents[path]!;
+      final definitions = _previewDefinitionsFromAsset(path, content);
+      for (final definition in definitions) {
+        final existing = previewById[definition.testCase.id];
+        if (existing != null) {
+          throw EnsembleTestFailure(
+            'Duplicate test id "${definition.testCase.id}" in '
+            '${existing.assetPath} and $path',
+          );
+        }
+        previewById[definition.testCase.id] = definition;
+      }
+    }
+
+    final selectedPreviewById = _applySelection(previewById, selection);
+
+    final selectedAssetPaths = selectedPreviewById.values
+        .map((definition) => definition.assetPath)
+        .toSet();
+    final selectedIds = selectedPreviewById.keys.toSet();
+    final selectedById = <String, EnsembleTestDefinition>{};
+    for (final path in selectedAssetPaths) {
+      final content = assetContents[path]!;
       final definitions = await _parseDefinitionsFromAsset(
         path,
         content,
@@ -83,20 +173,20 @@ class EnsembleTestExecutionPlanner {
         suiteInlineMocks: config.inlineMocks,
         suiteInitialState: config.initialState,
         suiteDevices: config.devices,
+        assetLoader: assetLoader,
       );
       for (final definition in definitions) {
-        final existing = byId[definition.testCase.id];
+        if (!selectedIds.contains(definition.testCase.id)) continue;
+        final existing = selectedById[definition.testCase.id];
         if (existing != null) {
           throw EnsembleTestFailure(
             'Duplicate test id "${definition.testCase.id}" in '
             '${existing.assetPath} and $path',
           );
         }
-        byId[definition.testCase.id] = definition;
+        selectedById[definition.testCase.id] = definition;
       }
     }
-
-    final selectedById = _applySelection(byId, selection);
 
     for (final def in selectedById.values) {
       final session = def.testCase.session;
@@ -136,6 +226,71 @@ class EnsembleTestExecutionPlanner {
       suiteDevices: suiteDevices,
       assetLoader: assetLoader ?? _rootBundleAssetLoader,
     );
+  }
+
+  static List<EnsembleTestDefinition> _previewDefinitionsFromAsset(
+    String path,
+    String content,
+  ) {
+    final dynamic doc = loadYaml(content);
+    if (doc == null) return const [];
+    if (doc is! YamlMap) {
+      throw EnsembleTestFailure(
+        'Invalid test file ($path): root must be a map',
+      );
+    }
+
+    final id = doc['id']?.toString();
+    if (id == null || id.isEmpty) {
+      throw EnsembleTestFailure('Each test must have an "id"');
+    }
+
+    final feature = doc['feature']?.toString();
+    final tags = _yamlStringList(doc['tags']);
+    final sessionValue = doc['session']?.toString();
+    final session =
+        sessionValue == null || sessionValue.isEmpty ? null : sessionValue;
+    final scenarios = doc['scenarios'];
+    if (scenarios is YamlList && scenarios.isNotEmpty) {
+      return [
+        for (final entry in scenarios)
+          if (entry is YamlMap)
+            EnsembleTestDefinition(
+              assetPath: path,
+              testCase: EnsembleTestCase(
+                id: '$id[${entry['id']}]',
+                sourcePath: path,
+                feature: feature,
+                tags: tags,
+                session: session,
+                steps: const [],
+              ),
+            ),
+      ];
+    }
+
+    return [
+      EnsembleTestDefinition(
+        assetPath: path,
+        testCase: EnsembleTestCase(
+          id: id,
+          sourcePath: path,
+          feature: feature,
+          tags: tags,
+          session: session,
+          steps: const [],
+        ),
+      ),
+    ];
+  }
+
+  static List<String> _yamlStringList(dynamic node) {
+    if (node is! YamlList) return const [];
+    return node
+        .map((item) => item?.toString())
+        .whereType<String>()
+        .where((value) => value.isNotEmpty)
+        .toList();
   }
 
   static Future<List<EnsembleTestDefinition>> _parseDefinitionsFromAsset(

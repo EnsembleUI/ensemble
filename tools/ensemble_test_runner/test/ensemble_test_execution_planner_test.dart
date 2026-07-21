@@ -725,6 +725,38 @@ steps:
         'home_scenarios[second]',
       ]);
     });
+
+    test('selection ignores missing CLI inputs in unrelated tests', () async {
+      final assets = <String, String>{
+        'suite/tests/selected.test.yaml': '''
+id: selected_test
+startScreen: Home
+steps:
+  - expectVisible:
+      id: home
+''',
+        'suite/tests/unrelated.test.yaml': r'''
+id: unrelated_test
+startScreen: Login
+initialState:
+  keychain:
+    adminPassword: ${inputs.password}
+steps:
+  - expectVisible:
+      id: login
+''',
+      };
+
+      final plan = await EnsembleTestExecutionPlanner.buildForTest(
+        assetContents: assets,
+        selection: const EnsembleTestSelection(ids: {'selected_test'}),
+      );
+
+      expect(
+        plan.ordered.map((definition) => definition.testCase.id).toList(),
+        ['selected_test'],
+      );
+    });
   });
 }
 

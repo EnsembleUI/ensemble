@@ -689,15 +689,17 @@ class EnsembleTestRunner {
 
     final finder = _highlightFinder(executor, step);
     if (finder == null) return;
-    if (finder.evaluate().isNotEmpty) return;
 
     final waitsForHitTestable = _isUserActionStep(step);
     final timeoutMs = step.args['timeoutMs'] as int? ??
         executor.config.defaultWaitTimeout.inMilliseconds;
     final stopwatch = Stopwatch()..start();
     while (stopwatch.elapsedMilliseconds < timeoutMs) {
+      if (_isScreenshotTargetReady(finder, waitsForHitTestable) &&
+          _isHighlightTargetPainted(finder, waitsForHitTestable)) {
+        return;
+      }
       await executor.tester.pump(executor.config.waitPollInterval);
-      if (_isScreenshotTargetReady(finder, waitsForHitTestable)) return;
     }
   }
 
@@ -722,6 +724,13 @@ class EnsembleTestRunner {
 
       await executor.tester.pump(const Duration(milliseconds: 50));
     }
+  }
+
+  bool _isHighlightTargetPainted(Finder finder, bool prefersHitTestable) {
+    final candidate = prefersHitTestable ? finder.hitTestable() : finder;
+    final elements = candidate.evaluate().toList();
+    if (elements.isEmpty) return false;
+    return _effectiveOpacity(elements.first) >= 0.85;
   }
 
   double _effectiveOpacity(Element element) {

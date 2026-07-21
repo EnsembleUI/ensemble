@@ -293,6 +293,7 @@ void main() {
     expect(jsonDecode(content), {
       'total': 0,
       'calls': [],
+      'events': [],
     });
   });
 
