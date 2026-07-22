@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 
+import 'package:ensemble_test_runner/runner/storage_step_diff.dart';
 import 'package:flutter/material.dart';
 
 /// Mutable runtime flags and logs for declarative test steps.
@@ -17,6 +18,13 @@ class TestRuntimeState {
   Locale? locale;
   String? themeMode;
 
+  /// Active top-level step index while [_executeSteps] runs (0-based).
+  /// Used to attribute API calls and console lines to Step Details.
+  int? currentStepIndex;
+
+  /// Public-storage diffs captured at the end of each top-level step.
+  final List<StorageStepDiff> storageStepDiffs = [];
+
   void clear() {
     networkOffline = false;
     consoleLogs.clear();
@@ -29,6 +37,16 @@ class TestRuntimeState {
     deviceSize = null;
     locale = null;
     themeMode = null;
+    currentStepIndex = null;
+    storageStepDiffs.clear();
+  }
+
+  /// Console prefix with ISO timestamp and optional `[step=N]` tag.
+  String formatConsoleLine(String message) {
+    final ts = DateTime.now().toIso8601String();
+    final step = currentStepIndex;
+    if (step == null) return '[$ts] $message';
+    return '[$ts][step=$step] $message';
   }
 
   void addFrameTimings(List<ui.FrameTiming> timings) {

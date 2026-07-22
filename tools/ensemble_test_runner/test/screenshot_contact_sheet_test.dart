@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 import 'dart:ui' as ui;
 
@@ -6,18 +7,21 @@ import 'package:ensemble_test_runner/runner/screenshot_contact_sheet.dart';
 import 'package:ensemble_test_runner/runner/test_runtime_state.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:image/image.dart' as img;
 
 void main() {
-  testWidgets('writes a passed sheet using only the test id', (tester) async {
+  testWidgets('writes per-step PNGs and frames.json (no composite sheet)',
+      (tester) async {
     const testId = 'contact_sheet_passed_test';
     final legacyFile = File(
       'build/ensemble_test_runner/screenshots/${testId}_sheet.png',
     )..createSync(recursive: true);
+    final legacyComposite = File(
+      'build/ensemble_test_runner/screenshots/$testId.png',
+    )..createSync(recursive: true);
 
     final image = await _testImage(color: Colors.blue);
     final path = await tester.runAsync(
-      () => writeScreenshotContactSheet(
+      () => writeScreenshotFrames(
         testId: testId,
         config: const ScreenshotConfig(enabled: true),
         frames: [
@@ -28,74 +32,87 @@ void main() {
           ),
         ],
         status: TestStatus.passed,
-        durationMs: 8421,
       ),
     );
 
-    expect(path, endsWith('/$testId.png'));
-    expect(path, isNot(contains('_sheet.png')));
+    expect(path, endsWith('/${testId}_frames.json'));
     expect(legacyFile.existsSync(), isFalse);
+    expect(legacyComposite.existsSync(), isFalse);
 
-    final sheet = img.decodePng(File(path!).readAsBytesSync())!;
-    final accent = sheet.getPixel(20, 20);
-    expect(accent.g, greaterThan(accent.r));
+    final framesManifest = File(
+      'build/ensemble_test_runner/screenshots/${testId}_frames.json',
+    );
+    expect(framesManifest.existsSync(), isTrue);
+    final framesJson =
+        jsonDecode(framesManifest.readAsStringSync()) as Map<String, dynamic>;
+    expect(framesJson['status'], 'passed');
+    final frames = framesJson['frames'] as List<dynamic>;
+    expect(frames, hasLength(1));
+    expect(frames.single['stepIndex'], 0);
+    expect(frames.single['file'], '${testId}_step0_0.png');
+    expect(frames.single['failed'], isNull);
+    final stepPng = File(
+      'build/ensemble_test_runner/screenshots/${testId}_step0_0.png',
+    );
+    expect(stepPng.existsSync(), isTrue);
+    expect(stepPng.lengthSync(), greaterThan(100));
 
-    // Copy to artifact directory for visual inspection
-    final artifactFile = File('/Users/sharjeelyunus/Desktop/Ensemble/ensemble/generated_passed_sheet.png');
-    artifactFile.writeAsBytesSync(File(path).readAsBytesSync());
-
-    File(path).deleteSync();
+    framesManifest.deleteSync();
+    stepPng.deleteSync();
   });
 
-  testWidgets('marks a failed sheet and its failed step in red',
-      (tester) async {
+  testWidgets('marks failed step in frames.json', (tester) async {
     const testId = 'contact_sheet_failed_test';
-    final image = await _testImage(color: Colors.red);
+    final image0 = await _testImage(color: Colors.red);
+    final image1 = await _testImage(color: Colors.grey);
     final path = await tester.runAsync(
-      () => writeScreenshotContactSheet(
+      () => writeScreenshotFrames(
         testId: testId,
         config: const ScreenshotConfig(enabled: true),
         frames: [
           ScreenshotSheetFrame(
             stepIndex: 0,
             label: '1. tap(button)',
-            image: image,
+            image: image0,
+          ),
+          ScreenshotSheetFrame(
+            stepIndex: 1,
+            label: '2. expectVisible(title)',
+            image: image1,
           ),
         ],
         status: TestStatus.failed,
-        durationMs: 97321,
         failedStepIndex: 0,
         failedStepLabel: 'tap(button)',
         failureMessage: 'Expected button to be visible.',
       ),
     );
 
-    final sheet = img.decodePng(File(path!).readAsBytesSync())!;
-    final headerAccent = sheet.getPixel(20, 20);
-    expect(headerAccent.r, greaterThan(headerAccent.g));
+    expect(path, endsWith('/${testId}_frames.json'));
+    final framesManifest = File(
+      'build/ensemble_test_runner/screenshots/${testId}_frames.json',
+    );
+    final framesJson =
+        jsonDecode(framesManifest.readAsStringSync()) as Map<String, dynamic>;
+    expect(framesJson['status'], 'failed');
+    expect(framesJson['failedStepIndex'], 0);
+    final frames = framesJson['frames'] as List<dynamic>;
+    expect(frames, hasLength(2));
+    expect(frames[0]['failed'], isTrue);
+    expect(frames[1]['failed'], isNull);
 
-    const columns = 6;
-    const tileWidth = 420;
-    const gap = 16;
-    const headerHeight = 260;
-    final tileX =
-        ((columns * tileWidth + (columns + 1) * gap - tileWidth) / 2).round();
-    final tileBorder = sheet.getPixel(tileX, headerHeight + gap);
-    expect(tileBorder.r, greaterThan(tileBorder.g));
-
-    // Copy to artifact directory for visual inspection
-    final artifactFile = File('/Users/sharjeelyunus/Desktop/Ensemble/ensemble/generated_failed_sheet.png');
-    artifactFile.writeAsBytesSync(File(path).readAsBytesSync());
-
-    File(path).deleteSync();
+    framesManifest.deleteSync();
+    File('build/ensemble_test_runner/screenshots/${testId}_step0_0.png')
+        .deleteSync();
+    File('build/ensemble_test_runner/screenshots/${testId}_step1_0.png')
+        .deleteSync();
   });
 
-  testWidgets('writes a pending sheet with Amber RUNNING status and keeps frame images intact',
-      (tester) async {
+  testWidgets('pending status keeps frame images intact', (tester) async {
     const testId = 'contact_sheet_pending_test';
     final image = await _testImage(color: Colors.amber);
     final path = await tester.runAsync(
-      () => writeScreenshotContactSheet(
+      () => writeScreenshotFrames(
         testId: testId,
         config: const ScreenshotConfig(enabled: true),
         frames: [
@@ -106,30 +123,30 @@ void main() {
           ),
         ],
         status: TestStatus.pending,
-        durationMs: 0,
       ),
     );
 
-    expect(path, endsWith('/$testId.png'));
-    final sheet = img.decodePng(File(path!).readAsBytesSync())!;
-    final headerAccent = sheet.getPixel(20, 20);
-    expect(headerAccent.r, greaterThan(200));
-    expect(headerAccent.g, greaterThan(140));
-
+    expect(path, endsWith('/${testId}_frames.json'));
     // Verify image was NOT disposed during pending run
     expect(image.width, greaterThan(0));
 
-    File(path).deleteSync();
+    final framesManifest = File(
+      'build/ensemble_test_runner/screenshots/${testId}_frames.json',
+    );
+    if (framesManifest.existsSync()) framesManifest.deleteSync();
+    final stepPng = File(
+      'build/ensemble_test_runner/screenshots/${testId}_step0_0.png',
+    );
+    if (stepPng.existsSync()) stepPng.deleteSync();
     image.dispose();
   });
 
-  testWidgets('groups multi-device frames into labeled sections',
-      (tester) async {
+  testWidgets('records multi-device labels on frames', (tester) async {
     const testId = 'contact_sheet_multi_device';
     final android = await _testImage(color: Colors.green);
     final iphone = await _testImage(color: Colors.blue);
     final path = await tester.runAsync(
-      () => writeScreenshotContactSheet(
+      () => writeScreenshotFrames(
         testId: testId,
         config: const ScreenshotConfig(enabled: true),
         frames: [
@@ -153,19 +170,25 @@ void main() {
           ),
         ],
         status: TestStatus.passed,
-        durationMs: 1200,
       ),
     );
 
-    expect(path, endsWith('/$testId.png'));
-    final sheet = img.decodePng(File(path!).readAsBytesSync())!;
-    expect(sheet.height, greaterThan(900));
+    expect(path, endsWith('/${testId}_frames.json'));
+    final framesManifest = File(
+      'build/ensemble_test_runner/screenshots/${testId}_frames.json',
+    );
+    final framesJson =
+        jsonDecode(framesManifest.readAsStringSync()) as Map<String, dynamic>;
+    final frames = framesJson['frames'] as List<dynamic>;
+    expect(frames, hasLength(2));
+    expect(frames[0]['deviceId'], 'android_nl');
+    expect(frames[1]['deviceLabel'], 'iPhone 15 Pro · en');
 
-    // Copy to artifact directory for visual inspection
-    final artifactFile = File('/Users/sharjeelyunus/Desktop/Ensemble/ensemble/generated_multidevice_sheet.png');
-    artifactFile.writeAsBytesSync(File(path).readAsBytesSync());
-
-    File(path).deleteSync();
+    framesManifest.deleteSync();
+    File('build/ensemble_test_runner/screenshots/${testId}_step0_0.png')
+        .deleteSync();
+    File('build/ensemble_test_runner/screenshots/${testId}_step0_1.png')
+        .deleteSync();
   });
 }
 
@@ -176,14 +199,13 @@ Future<ui.Image> _testImage({Color color = Colors.white}) async {
     const Rect.fromLTWH(0, 0, 390, 844),
     Paint()..color = color,
   );
-  // Draw some basic contents to look like a screen mock
   canvas.drawRect(
     const Rect.fromLTWH(20, 100, 350, 60),
-    Paint()..color = Colors.grey.withOpacity(0.3),
+    Paint()..color = Colors.grey.withValues(alpha: 0.3),
   );
   canvas.drawRect(
     const Rect.fromLTWH(20, 200, 350, 400),
-    Paint()..color = Colors.grey.withOpacity(0.1),
+    Paint()..color = Colors.grey.withValues(alpha: 0.1),
   );
   final picture = recorder.endRecording();
   final image = await picture.toImage(390, 844);

@@ -12,21 +12,26 @@ class APICallRecord {
   final String name;
   final YamlMap apiDefinition;
   final DateTime timestamp;
+  /// Top-level step index (0-based) active when the call started, if any.
+  final int? stepIndex;
   bool? mocked;
   int? statusCode;
   String? error;
   Object? responseBody;
   String? type;
+  String? resolvedUrl;
 
   APICallRecord({
     required this.name,
     required this.apiDefinition,
     required this.timestamp,
+    this.stepIndex,
     this.mocked,
     this.statusCode,
     this.error,
     this.responseBody,
     this.type,
+    this.resolvedUrl,
   });
 }
 
@@ -49,6 +54,7 @@ class TestApiProviderOverlay extends HTTPAPIProvider {
     required Map<String, MockAPIResponse> mocks,
     HTTPAPIProvider? delegate,
     ApiCallRecorder? recorder,
+    this.stepIndexProvider,
   })  : _mocks = mocks,
         _delegate = delegate ?? HTTPAPIProvider(),
         recorder = recorder ?? ApiCallRecorder();
@@ -58,6 +64,8 @@ class TestApiProviderOverlay extends HTTPAPIProvider {
   HTTPAPIProvider get delegate => _delegate;
   final ApiCallRecorder recorder;
   Future<T?> Function<T>(Future<T> Function())? liveAsyncRunner;
+  /// Returns the active top-level step index for attribution, if any.
+  int? Function()? stepIndexProvider;
   final Map<String, int> _mockCallIndexes = {};
 
   List<APICallRecord> get calls => recorder.calls;
@@ -143,15 +151,30 @@ class TestApiProviderOverlay extends HTTPAPIProvider {
       type = 'api';
     }
 
+    final String? resolvedUrl;
+    if (type == 'firestore') {
+      final rawPath = api['path'] ?? api['firestore']?['path'] ?? '';
+      resolvedUrl = eContext.eval(rawPath)?.toString();
+    } else if (type == 'functions') {
+      final rawName = api['name'] ?? api['function']?['name'] ?? '';
+      resolvedUrl = eContext.eval(rawName)?.toString();
+    } else {
+      final rawUrl = api['url'] ?? api['uri'] ?? '';
+      resolvedUrl = HTTPAPIProvider.resolveUrl(eContext, rawUrl.toString());
+    }
+
+    final stepIndex = stepIndexProvider?.call();
     final forced = _forcedExceptions[apiName];
     if (forced != null) {
       recorder.record(APICallRecord(
         name: apiName,
         apiDefinition: api,
         timestamp: DateTime.now(),
+        stepIndex: stepIndex,
         mocked: false,
         error: forced.toString(),
         type: type,
+        resolvedUrl: resolvedUrl,
       ));
       throw forced;
     }
@@ -160,7 +183,9 @@ class TestApiProviderOverlay extends HTTPAPIProvider {
       name: apiName,
       apiDefinition: api,
       timestamp: DateTime.now(),
+      stepIndex: stepIndex,
       type: type,
+      resolvedUrl: resolvedUrl,
     );
     recorder.record(record);
 

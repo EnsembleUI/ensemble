@@ -353,7 +353,7 @@ class EnsembleTestSchemaBuilder {
               'Suite device matrix. Each test runs once per entry with that '
               'platform/model viewport, optional locale (APP_LOCALE), and '
               'optional theme (EnsembleThemeManager Light/Dark). '
-              'Each device run writes its own screenshot contact sheet.',
+              'Each device run writes its own screenshot frames (HTML gallery).',
           'items': {'\$ref': '#/\$defs/testDevice'},
         },
         'screenshots': {

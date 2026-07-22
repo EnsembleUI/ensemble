@@ -8,6 +8,7 @@ export 'package:ensemble_test_runner/reporters/step_outline_format.dart';
 EnsembleTestReportDetails buildTestReportDetails(
   EnsembleTestCase testCase, {
   List<int> stepDurationsMs = const [],
+  List<String> stepStartTimes = const [],
 }) {
   final effectiveStart = testCase.startScreen ??
       ScreenTracker().getCurrentScreenIdentifier() ??
@@ -19,6 +20,7 @@ EnsembleTestReportDetails buildTestReportDetails(
     screensVisited: collectScreensVisited(effectiveStart),
     stepsOutline: outlineSteps(testCase.steps),
     stepDurationsMs: stepDurationsMs,
+    stepStartTimes: stepStartTimes,
   );
   return details;
 }

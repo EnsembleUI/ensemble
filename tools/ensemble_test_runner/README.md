@@ -129,8 +129,9 @@ When `devices` is set, each test expands to one run per device (ids look like
 `home[android_nl]` when there is more than one device). Device `locale` sets
 `APP_LOCALE` for that run without rewriting `startScreenInputs`. Device `theme`
 (`light` / `dark`) is applied through `EnsembleThemeManager` after boot (any
-start screen). Each device run writes its own screenshot contact sheet (for
-example `home[android_nl].png` and `home[iphone_en].png`).
+start screen). Each device run writes its own screenshot frames manifest (for
+example `home[android_nl]_frames.json` and `home[iphone_en]_frames.json`); the
+HTML report builds the contact-sheet gallery from those per-step PNGs.
 
 ## App setup
 
@@ -257,7 +258,7 @@ Session producer tests are included automatically for selected session tests.
 On success the console prints one consolidated boxed report for the suite: each test id (with YAML path), timing, **start screen**, optional **session**, **navigation flow**, and a numbered **step outline**.
 
 Per-test artifacts (linked under each test in the HTML report):
-- screenshots contact sheet
+- screenshot frames (`{testId}_frames.json` + per-step PNGs; HTML gallery)
 - `{testId}_api_calls.json` when `logApiCalls.enabled`
 - `{testId}_storage.json` when `logStorage.enabled`
 - `{testId}_app_console.log` (prints captured during that test)

@@ -93,8 +93,9 @@ the same API name). Suite `initialState` is the base for every test;
 test-level `storage` / `keychain` / `env` keys override suite values.
 
 When `screenshots.enabled` is true, the runner captures automatic step
-screenshots into one contact sheet per test case under
-`build/ensemble_test_runner/screenshots/`.
+screenshots as per-step PNGs plus a `{testId}_frames.json` manifest under
+`build/ensemble_test_runner/screenshots/`. The HTML report builds a contact-sheet
+gallery from those frames (no composite sheet PNG).
 
 When `devices` is set, each test runs once per device (test ids become
 `id[deviceId]` when there is more than one device). Device `locale` sets
@@ -102,8 +103,8 @@ When `devices` is set, each test runs once per device (test ids become
 `startScreenInputs`. Device `theme` (`light` / `dark`, or an exact Themes name
 like `Light` / `Dark`) is applied via `EnsembleThemeManager` after the app
 boots, so it works for any `startScreen`. Explicit test `languageCode` /
-`themeMode` inputs are left as written. Each device run writes its own screenshot
-sheet named after the expanded test id (for example `home[android_nl].png`).
+`themeMode` inputs are left as written. Each device run writes its own frames
+set named after the expanded test id (for example `home[android_nl]_frames.json`).
 
 For multi-locale suites, use `anyOf` on text assertions so both languages pass:
 

@@ -23,6 +23,7 @@ import 'package:ensemble_test_runner/runner/live_async_call.dart';
 import 'package:ensemble_test_runner/runner/screenshot_contact_sheet.dart';
 import 'package:ensemble_test_runner/runner/screenshot_lottie_ready.dart';
 import 'package:ensemble_test_runner/runner/screenshot_sheet_aggregator.dart';
+import 'package:ensemble_test_runner/runner/storage_step_diff.dart';
 import 'package:ensemble_test_runner/runner/test_runtime_state.dart';
 import 'package:ensemble_test_runner/runner/test_service_manager.dart';
 import 'package:ensemble_test_runner/runner/yaml_test_session.dart';
@@ -220,7 +221,7 @@ class EnsembleTestRunner {
       };
       debugPrint = (String? message, {int? wrapWidth}) {
         if (message != null) {
-          ctx.runtime.consoleLogs.add(message);
+          ctx.runtime.consoleLogs.add(ctx.runtime.formatConsoleLine(message));
         }
         previousDebugPrint(message, wrapWidth: wrapWidth);
       };
@@ -280,7 +281,7 @@ class EnsembleTestRunner {
         },
         zoneSpecification: ZoneSpecification(
           print: (self, parent, zone, line) {
-            ctx.runtime.consoleLogs.add(line);
+            ctx.runtime.consoleLogs.add(ctx.runtime.formatConsoleLine(line));
             parent.print(zone, line);
           },
         ),
@@ -455,10 +456,14 @@ class EnsembleTestRunner {
       config: config,
     );
     final stepDurationsMs = <int>[];
+    final stepStartTimes = <String>[];
     for (var i = 0; i < test.steps.length; i++) {
       final step = test.steps[i];
       final startFrame = ctx.runtime.appFrameTimings.length + 1;
       final startTime = DateTime.now();
+      ctx.runtime.currentStepIndex = i;
+      stepStartTimes.add(startTime.toIso8601String());
+      final storageBefore = capturePublicStorage();
       var capturedStep = false;
       try {
         _drainPendingFlutterExceptions(tester);
@@ -483,6 +488,7 @@ class EnsembleTestRunner {
               executor: executor,
               step: matchedStep,
               stepIndex: i,
+              stabilize: false,
             );
             capturedStep = true;
           };
@@ -520,10 +526,16 @@ class EnsembleTestRunner {
             // Prefer mid-wait capture for navigation; if we missed it, still
             // avoid a long Lottie wait that advances to the next screen.
             waitForLottie: step.type != 'waitForNavigation',
+            stabilize: !_isTextVerificationStep(step),
           );
           capturedStep = true;
         }
         await YamlTestSession.navigationFlow.flushPending();
+        _recordStorageStepDiff(
+          ctx: ctx,
+          stepIndex: i,
+          before: storageBefore,
+        );
         stepDurationsMs.add(
           DateTime.now().difference(startTime).inMilliseconds,
         );
@@ -537,6 +549,11 @@ class EnsembleTestRunner {
           startTime: startTime,
         );
       } catch (error, stackTrace) {
+        _recordStorageStepDiff(
+          ctx: ctx,
+          stepIndex: i,
+          before: storageBefore,
+        );
         stepDurationsMs.add(
           DateTime.now().difference(startTime).inMilliseconds,
         );
@@ -597,10 +614,12 @@ class EnsembleTestRunner {
           report: buildTestReportDetails(
             test,
             stepDurationsMs: stepDurationsMs,
+            stepStartTimes: stepStartTimes,
           ),
         );
       }
     }
+    ctx.runtime.currentStepIndex = null;
 
     await YamlTestSession.navigationFlow.flushPending();
     final idleStartFrame = ctx.runtime.appFrameTimings.length + 1;
@@ -631,6 +650,7 @@ class EnsembleTestRunner {
       report: buildTestReportDetails(
         test,
         stepDurationsMs: stepDurationsMs,
+        stepStartTimes: stepStartTimes,
       ),
     );
   }
@@ -832,6 +852,11 @@ class EnsembleTestRunner {
   bool _shouldPumpBeforePostStepCapture(TestStep step) =>
       step.type != 'waitForText';
 
+  bool _isTextVerificationStep(TestStep step) =>
+      step.type == 'expectText' ||
+      step.type == 'expectTextContains' ||
+      step.type == 'waitForText';
+
   Future<void> _stabilizeScreenshotFrame(
     TestStepExecutor executor, {
     bool waitForLottie = true,
@@ -851,7 +876,7 @@ class EnsembleTestRunner {
         return;
       }
       // Local Lottie.asset is still async; with an external AnimationController
-      // nothing paints until onLoaded. Wait so contact sheets are not blank.
+      // nothing paints until onLoaded. Wait so step screenshots are not blank.
       await waitForVisibleLottiesReady(executor.tester);
     } catch (_) {
       // Stabilization is best-effort for screenshots only.
@@ -983,11 +1008,19 @@ class EnsembleTestRunner {
     if (finder == null) return;
 
     final requireHitTestable = _isUserActionStep(step);
-    if (executor.assertions.firstVisuallyActionableElement(
-          finder,
-          requireHitTestable: requireHitTestable,
-        ) !=
-        null) {
+    final visibleElement = executor.assertions.firstVisuallyActionableElement(
+      finder,
+      requireHitTestable: requireHitTestable,
+    );
+    if (visibleElement != null) {
+      if (_isTextVerificationStep(step)) {
+        await Scrollable.ensureVisible(
+          visibleElement,
+          alignment: 0.45,
+          duration: Duration.zero,
+        );
+        await executor.tester.pump();
+      }
       return;
     }
 
@@ -1313,25 +1346,32 @@ class EnsembleTestRunner {
 
   /// Writes apiCalls / storage / appLogs for a single test onto [ctx.logger].
   Future<void> _attachPerTestDebugArtifacts(EnsembleTestContext ctx) async {
-    final config = ctx.config;
+    // Always write API calls so HTML Step Details can attribute them per step.
+    final apiPath = await writeApiCallsLog(ctx);
+    _replaceArtifactLog(ctx.logger, 'apiCalls', apiPath);
 
-    if (config.logApiCalls.enabled) {
-      final path = await writeApiCallsLog(ctx);
-      _replaceArtifactLog(ctx.logger, 'apiCalls', path);
-    }
-
-    if (config.logStorage.enabled) {
-      final key = config.logStorage.key;
-      final path = await writeStorageLog(ctx, key: key);
-      if (key == null || key.isEmpty) {
-        _replaceArtifactLog(ctx.logger, 'storage', path);
-      } else {
-        _replaceArtifactLog(ctx.logger, 'storage[$key]', path);
-      }
-    }
+    // Always write storage (keys + per-step diffs) for Step Details.
+    final storagePath = await writeStorageLog(ctx);
+    _replaceArtifactLog(ctx.logger, 'storage', storagePath);
 
     final appLogPath = await writeAppConsoleLog(ctx);
     _replaceArtifactLog(ctx.logger, 'appLogs', appLogPath);
+  }
+
+  void _recordStorageStepDiff({
+    required EnsembleTestContext ctx,
+    required int stepIndex,
+    required Map<String, dynamic> before,
+  }) {
+    final changes = diffStorage(before, capturePublicStorage());
+    if (changes.isEmpty) return;
+    ctx.runtime.storageStepDiffs.add(
+      StorageStepDiff(
+        stepIndex: stepIndex,
+        timestamp: DateTime.now(),
+        changes: changes,
+      ),
+    );
   }
 
   void _replaceArtifactLog(TestLogger logger, String label, String path) {
@@ -1452,7 +1492,9 @@ class EnsembleTestRunner {
       failureMessage: failureMessage,
     );
     if (path != null) {
+      // Primary artifact is the frames manifest; HTML builds the gallery from it.
       ctx.logger.log('screenshots: $path');
+      ctx.logger.log('screenshotFrames: $path');
     }
   }
 
@@ -1465,7 +1507,7 @@ class EnsembleTestRunner {
     if (!config.screenshots.enabled) return const [];
     try {
       final image = ExtendedStepHandlers.captureScreenshotImage(tester);
-      final path = await writeScreenshotContactSheet(
+      final path = await writeScreenshotFrames(
         testId: test.resolvedScreenshotSheetId,
         config: config.screenshots,
         frames: [
@@ -1486,13 +1528,14 @@ class EnsembleTestRunner {
           ),
         ],
         status: TestStatus.failed,
-        durationMs: 0,
         failedStepIndex: 0,
         failedStepLabel: 'Runner failure',
         failureMessage: error.toString(),
         failedDeviceId: test.deviceTarget?.id,
       );
-      return path == null ? const [] : ['screenshots: $path'];
+      return path == null
+          ? const []
+          : ['screenshots: $path', 'screenshotFrames: $path'];
     } catch (_) {
       return const [];
     }

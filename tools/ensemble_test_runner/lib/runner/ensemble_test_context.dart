@@ -58,6 +58,7 @@ class EnsembleTestContext {
       logger: logger,
       setup: setup,
     );
+    apiOverlay.stepIndexProvider = () => ctx.runtime.currentStepIndex;
     ctx.envOverrides.addAll(envMap);
     ctx.runtime.locale = _localeFromEnv(envMap['APP_LOCALE']);
     return ctx;

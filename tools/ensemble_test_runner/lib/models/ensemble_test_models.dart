@@ -603,6 +603,7 @@ class EnsembleTestReportDetails {
   /// Wall-clock ms for each top-level step (same order as [EnsembleTestCase.steps]).
   /// Shorter than the step list when the run failed mid-suite.
   final List<int> stepDurationsMs;
+  final List<String> stepStartTimes;
 
   const EnsembleTestReportDetails({
     required this.startScreen,
@@ -611,7 +612,28 @@ class EnsembleTestReportDetails {
     this.screensVisited = const [],
     this.stepsOutline = const [],
     this.stepDurationsMs = const [],
+    this.stepStartTimes = const [],
   });
+
+  factory EnsembleTestReportDetails.fromJson(Map<String, dynamic> json) {
+    return EnsembleTestReportDetails(
+      startScreen: json['startScreen']?.toString() ?? '(unknown)',
+      endScreen: json['endScreen']?.toString(),
+      session: json['session']?.toString(),
+      screensVisited: (json['screensVisited'] as List<dynamic>? ?? const [])
+          .map((value) => value.toString())
+          .toList(),
+      stepsOutline: (json['stepsOutline'] as List<dynamic>? ?? const [])
+          .map((value) => value.toString())
+          .toList(),
+      stepDurationsMs: (json['stepDurationsMs'] as List<dynamic>? ?? const [])
+          .map((value) => value is int ? value : int.tryParse('$value') ?? 0)
+          .toList(),
+      stepStartTimes: (json['stepStartTimes'] as List<dynamic>? ?? const [])
+          .map((value) => value.toString())
+          .toList(),
+    );
+  }
 
   Map<String, dynamic> toJson() => {
         'startScreen': startScreen,
@@ -620,6 +642,7 @@ class EnsembleTestReportDetails {
         'screensVisited': screensVisited,
         'stepsOutline': stepsOutline,
         if (stepDurationsMs.isNotEmpty) 'stepDurationsMs': stepDurationsMs,
+        if (stepStartTimes.isNotEmpty) 'stepStartTimes': stepStartTimes,
       };
 }
 

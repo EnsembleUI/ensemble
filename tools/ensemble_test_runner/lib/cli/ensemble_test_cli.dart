@@ -637,7 +637,11 @@ Future<ProcessResult> _runParallelFlutterTests(
     appDir: appDir,
   );
   merged = _mergeParallelSuiteArtifacts(merged);
-  merged = _withHtmlReport(appDir, merged, wallTimeMs: elapsed.elapsedMilliseconds);
+  merged = _withHtmlReport(
+    appDir,
+    merged,
+    wallTimeMs: elapsed.elapsedMilliseconds,
+  );
   _writeHistoricalDurations(appDir, merged);
   final output = StringBuffer();
   if (reportMode == 'json') {
@@ -1498,26 +1502,9 @@ EnsembleSingleTestResult _singleResultFromJson(Map<String, dynamic> json) {
         .map((value) => value.toString())
         .toList(),
     report: json['report'] is Map
-        ? _reportDetailsFromJson(
+        ? EnsembleTestReportDetails.fromJson(
             Map<String, dynamic>.from(json['report'] as Map))
         : null,
-  );
-}
-
-EnsembleTestReportDetails _reportDetailsFromJson(Map<String, dynamic> json) {
-  return EnsembleTestReportDetails(
-    startScreen: json['startScreen']?.toString() ?? '(unknown)',
-    endScreen: json['endScreen']?.toString(),
-    session: json['session']?.toString(),
-    screensVisited: (json['screensVisited'] as List<dynamic>? ?? const [])
-        .map((value) => value.toString())
-        .toList(),
-    stepsOutline: (json['stepsOutline'] as List<dynamic>? ?? const [])
-        .map((value) => value.toString())
-        .toList(),
-    stepDurationsMs: (json['stepDurationsMs'] as List<dynamic>? ?? const [])
-        .map((value) => value is int ? value : int.tryParse('$value') ?? 0)
-        .toList(),
   );
 }
 

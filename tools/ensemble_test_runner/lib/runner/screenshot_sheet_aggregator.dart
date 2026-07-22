@@ -2,10 +2,10 @@ import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
 import 'package:ensemble_test_runner/runner/screenshot_contact_sheet.dart';
 import 'package:ensemble_test_runner/runner/test_runtime_state.dart';
 
-/// Accumulates screenshot frames and writes one contact sheet per test run.
+/// Accumulates screenshot frames and writes per-step PNGs + a frames manifest.
 ///
 /// Device-matrix runs use distinct test ids (e.g. `home[android_nl]`), so each
-/// device gets its own sheet rather than merging into a shared multi-device PNG.
+/// device gets its own frames set rather than a shared multi-device PNG.
 class ScreenshotSheetAggregator {
   ScreenshotSheetAggregator({
     required this.screenshots,
@@ -18,8 +18,10 @@ class ScreenshotSheetAggregator {
 
   static const expectedRunsPerSheet = 1;
 
-  /// Merges [frames] from one device/test run. Writes the final sheet when all
+  /// Merges [frames] from one device/test run. Writes step PNGs when all
   /// expected runs for the sheet id have completed.
+  ///
+  /// Returns the display path of `*_frames.json`, or null if not ready / disabled.
   Future<String?> completeRun({
     required EnsembleTestCase testCase,
     required List<ScreenshotSheetFrame> frames,
@@ -73,12 +75,11 @@ class ScreenshotSheetAggregator {
       return null;
     }
 
-    final path = await writeScreenshotContactSheet(
+    final path = await writeScreenshotFrames(
       testId: sheetId,
       config: screenshots,
       frames: List<ScreenshotSheetFrame>.from(group.frames),
       status: group.status,
-      durationMs: group.totalDurationMs,
       failedStepIndex: group.failedStepIndex,
       failedStepLabel: group.failedStepLabel,
       failureMessage: group.failureMessage,
@@ -96,14 +97,13 @@ class ScreenshotSheetAggregator {
         _groups.remove(sheetId);
         continue;
       }
-      await writeScreenshotContactSheet(
+      await writeScreenshotFrames(
         testId: sheetId,
         config: screenshots,
         frames: List<ScreenshotSheetFrame>.from(group.frames),
         status: group.status == TestStatus.pending
             ? TestStatus.failed
             : group.status,
-        durationMs: group.totalDurationMs,
         failedStepIndex: group.failedStepIndex,
         failedStepLabel: group.failedStepLabel,
         failureMessage: group.failureMessage ??
