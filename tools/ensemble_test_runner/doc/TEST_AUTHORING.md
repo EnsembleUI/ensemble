@@ -93,9 +93,8 @@ the same API name). Suite `initialState` is the base for every test;
 test-level `storage` / `keychain` / `env` keys override suite values.
 
 When `screenshots.enabled` is true, the runner captures automatic step
-screenshots as per-step PNGs plus a `{testId}_frames.json` manifest under
-`build/ensemble_test_runner/screenshots/`. The HTML report builds a contact-sheet
-gallery from those frames (no composite sheet PNG).
+screenshots as per-step PNGs under `build/ensemble_test_runner/screenshots/`.
+Frame metadata is folded into `report/results.json` (no leftover `*_frames.json`).
 
 When `devices` is set, each test runs once per device (test ids become
 `id[deviceId]` when there is more than one device). Device `locale` sets

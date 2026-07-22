@@ -1356,18 +1356,49 @@ EnsembleTestRunResult _withHtmlReport(
   int? wallTimeMs,
   bool isSuiteRunning = false,
 }) {
-  final htmlPath = HtmlTestReporter().write(
-    result,
-    artifactRoot: _artifactRootPath(appDir),
-    wallTimeMs: wallTimeMs,
-    isSuiteRunning: isSuiteRunning,
-  );
-  if (result.suiteLogs.any((log) => log.startsWith('htmlReport:'))) {
+  final reporter = HtmlTestReporter();
+  final artifactRoot = _artifactRootPath(appDir);
+  final displayRoot = p
+      .join('build', 'ensemble_test_runner')
+      .replaceAll('\\', '/');
+  final htmlPath = p
+      .join(displayRoot, 'report', 'index.html')
+      .replaceAll('\\', '/');
+  final resultsPath = p
+      .join(displayRoot, 'report', 'results.json')
+      .replaceAll('\\', '/');
+
+  if (isSuiteRunning) {
+    reporter.write(
+      result,
+      artifactRoot: artifactRoot,
+      displayRoot: displayRoot,
+      wallTimeMs: wallTimeMs,
+      isSuiteRunning: true,
+    );
+  } else {
+    // Shell was written at suite start; only refresh the results DB.
+    reporter.writeResultsOnly(
+      result,
+      artifactRoot: artifactRoot,
+      displayRoot: displayRoot,
+      wallTimeMs: wallTimeMs,
+    );
+  }
+
+  var suiteLogs = result.suiteLogs;
+  if (!suiteLogs.any((log) => log.startsWith('htmlReport:'))) {
+    suiteLogs = [...suiteLogs, 'htmlReport: $htmlPath'];
+  }
+  if (!suiteLogs.any((log) => log.startsWith('results:'))) {
+    suiteLogs = [...suiteLogs, 'results: $resultsPath'];
+  }
+  if (identical(suiteLogs, result.suiteLogs)) {
     return result;
   }
   return EnsembleTestRunResult(
     results: result.results,
-    suiteLogs: [...result.suiteLogs, 'htmlReport: $htmlPath'],
+    suiteLogs: suiteLogs,
   );
 }
 

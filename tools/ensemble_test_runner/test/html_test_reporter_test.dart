@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
 import 'package:ensemble_test_runner/reporters/html_test_reporter.dart';
+import 'package:ensemble_test_runner/reporters/test_report_document.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 
@@ -19,12 +20,90 @@ void main() {
     }
   });
 
-  test(
-      'writes index.html with summary, failed tests first, and screenshot gallery',
-      () {
+  Map<String, dynamic> readResultsJson() {
+    final file = File(p.join(tempDir.path, 'report', 'results.json'));
+    expect(file.existsSync(), isTrue);
+    return json.decode(file.readAsStringSync()) as Map<String, dynamic>;
+  }
+
+  test('suite start writes shell + loading results without rewriting later', () {
+    const displayRoot = 'build/ensemble_test_runner';
+    final reporter = HtmlTestReporter();
+
+    final htmlPath = reporter.write(
+      const EnsembleTestRunResult(results: []),
+      artifactRoot: tempDir.path,
+      displayRoot: displayRoot,
+      isSuiteRunning: true,
+      wallTimeMs: 0,
+    );
+    expect(htmlPath, '$displayRoot/report/index.html');
+
+    final htmlFile = File(p.join(tempDir.path, 'report', 'index.html'));
+    expect(htmlFile.existsSync(), isTrue);
+    final shell = htmlFile.readAsStringSync();
+    expect(shell, contains('results.json'));
+    expect(shell, contains("fetch('results.json"));
+    expect(shell, contains('report-loader'));
+    expect(shell, isNot(contains('ensembleHtmlTestReportAppJs')));
+    expect(shell, contains('pollAndRender'));
+    expect(shell.length, lessThan(200000));
+    expect(File(p.join(tempDir.path, 'report', 'results.js')).existsSync(),
+        isFalse);
+
+    final loading = readResultsJson();
+    expect(loading['state'], 'loading');
+    expect(loading['tests'], isEmpty);
+
+    final shellBefore = shell;
+    final mtimeBefore = htmlFile.lastModifiedSync();
+
+    // Finish: results only.
+    Directory(p.join(tempDir.path, 'logs')).createSync(recursive: true);
+    File(p.join(tempDir.path, 'logs', 'ok_app_console.log'))
+        .writeAsStringSync('done\n');
+
+    reporter.writeResultsOnly(
+      EnsembleTestRunResult(
+        results: [
+          EnsembleSingleTestResult.passed(
+            testId: 'ok',
+            durationMs: 100,
+            logs: ['appLogs: $displayRoot/logs/ok_app_console.log'],
+            report: const EnsembleTestReportDetails(
+              startScreen: 'Home',
+              stepsOutline: ['expectVisible(title)'],
+              stepDurationsMs: [50],
+            ),
+          ),
+        ],
+      ),
+      artifactRoot: tempDir.path,
+      displayRoot: displayRoot,
+    );
+
+    expect(htmlFile.readAsStringSync(), shellBefore);
+    expect(
+      htmlFile.lastModifiedSync().isBefore(mtimeBefore.add(const Duration(seconds: 1))) ||
+          htmlFile.readAsStringSync() == shellBefore,
+      isTrue,
+    );
+
+    final complete = readResultsJson();
+    expect(complete['state'], 'complete');
+    expect(complete['tests'], hasLength(1));
+    expect(complete['tests'][0]['id'], 'ok');
+    expect(complete['summary']['passed'], 1);
+    // Sidecars folded into results.json are removed after the complete write.
+    expect(Directory(p.join(tempDir.path, 'logs')).existsSync(), isFalse);
+  });
+
+  test('complete results aggregate api/storage/console/screenshots/steps', () {
     final screenshotsDir = Directory(p.join(tempDir.path, 'screenshots'))
       ..createSync(recursive: true);
     File(p.join(screenshotsDir.path, 'login_flow_step0_0.png'))
+        .writeAsBytesSync([137, 80, 78, 71, 13, 10, 26, 10]);
+    File(p.join(screenshotsDir.path, 'login_flow_step1_0.png'))
         .writeAsBytesSync([137, 80, 78, 71, 13, 10, 26, 10]);
     File(p.join(screenshotsDir.path, 'login_flow_frames.json'))
         .writeAsStringSync(
@@ -46,16 +125,39 @@ void main() {
         ],
       }),
     );
-    File(p.join(screenshotsDir.path, 'login_flow_step1_0.png'))
-        .writeAsBytesSync([137, 80, 78, 71, 13, 10, 26, 10]);
     final logsDir = Directory(p.join(tempDir.path, 'logs'))
       ..createSync(recursive: true);
-    final apiCalls = File(p.join(logsDir.path, 'login_flow_api_calls.json'))
-      ..writeAsStringSync('{"calls":[]}');
-    final storage = File(p.join(logsDir.path, 'login_flow_storage.json'))
-      ..writeAsStringSync('{"token":"abc"}');
-    final appLogs = File(p.join(logsDir.path, 'login_flow_app_console.log'))
-      ..writeAsStringSync('SCREEN TRACKER: Login\n');
+    File(p.join(logsDir.path, 'login_flow_api_calls.json')).writeAsStringSync(
+      jsonEncode({
+        'events': [
+          {
+            'name': 'login',
+            'timestamp': '2026-07-22T12:00:00.050',
+            'stepIndex': 1,
+            'statusCode': 200,
+            'mocked': true,
+          },
+        ],
+      }),
+    );
+    File(p.join(logsDir.path, 'login_flow_storage.json')).writeAsStringSync(
+      jsonEncode({
+        'keys': {'token': 'abc'},
+        'steps': [
+          {
+            'stepIndex': 1,
+            'timestamp': '2026-07-22T12:00:01.000',
+            'changes': [
+              {'key': 'token', 'change': 'added', 'after': 'abc'},
+            ],
+          },
+        ],
+      }),
+    );
+    File(p.join(logsDir.path, 'login_flow_app_console.log'))
+        .writeAsStringSync('[2026-07-22T12:00:00.050][step=1] during wait\n');
+    File(p.join(logsDir.path, 'ok_home_app_console.log'))
+        .writeAsStringSync('<no console output>\n');
 
     const displayRoot = 'build/ensemble_test_runner';
     final result = EnsembleTestRunResult(
@@ -92,61 +194,74 @@ void main() {
               'tap(login_button)',
             ],
             stepDurationsMs: [120, 3280],
+            stepStartTimes: [
+              '2026-07-22T12:00:00.000',
+              '2026-07-22T12:00:01.000',
+            ],
           ),
         ),
       ],
-      suiteLogs: const [
-        'htmlReport: build/ensemble_test_runner/report/index.html',
-      ],
     );
 
-    File(p.join(logsDir.path, 'ok_home_app_console.log'))
-        .writeAsStringSync('<no console output>\n');
-
     final reporter = HtmlTestReporter();
-    final displayPath = reporter.write(
+    reporter.write(
       result,
       artifactRoot: tempDir.path,
       displayRoot: displayRoot,
     );
-    expect(displayPath, '$displayRoot/report/index.html');
 
-    final htmlFile = File(p.join(tempDir.path, 'report', 'index.html'));
-    expect(htmlFile.existsSync(), isTrue);
-    final html = htmlFile.readAsStringSync();
+    final html = File(p.join(tempDir.path, 'report', 'index.html'))
+        .readAsStringSync();
+    expect(html, contains('results.json'));
+    expect(html, contains("fetch('results.json"));
+    expect(html, contains('switchModalTab(\'screenshots\')'));
+    expect(html, isNot(contains('Timed out waiting for dashboard')));
+    expect(html, isNot(contains('"name":"login"')));
 
-    expect(html, contains('1 passed, 1 failed (2 total)'));
-    expect(html, contains('login_flow'));
-    expect(html, contains('ok_home'));
-    expect(html, contains('Timed out waiting for dashboard'));
-    expect(html, contains('failed-step'));
-    expect(html, contains('step-duration'));
-    expect(html, contains('85ms'));
-    expect(html, contains('3.3s'));
-    expect(html, contains('screenshot-gallery'));
-    expect(html, contains('../screenshots/login_flow_step0_0.png'));
-    expect(html, contains('../screenshots/login_flow_step1_0.png'));
-    expect(html, isNot(contains('../screenshots/login_flow_frames.json')));
-    expect(html, contains('screenshot-gallery-tile failed'));
-    expect(html, isNot(contains('../logs/login_flow_api_calls.json')));
-    expect(html, isNot(contains('../logs/login_flow_storage.json')));
-    expect(html, isNot(contains('../logs/login_flow_app_console.log')));
-    expect(html, contains('apiCalls'));
-    expect(html, contains('storage'));
-    expect(html, contains('appLogs'));
-    expect(html, isNot(contains('../logs/api_calls.json')));
+    final doc = readResultsJson();
+    expect(doc['state'], 'complete');
+    expect(doc['summary']['passed'], 1);
+    expect(doc['summary']['failed'], 1);
 
-    // Failed test appears before passed test.
+    final tests = doc['tests'] as List;
+    expect(tests.first['id'], contains('login_flow'));
+    expect(tests.last['id'], contains('ok_home'));
+
+    final failed = tests.first as Map<String, dynamic>;
+    expect(failed['message'], 'Timed out waiting for dashboard');
+    expect(failed['console'], contains('[2026-07-22T12:00:00.050][step=1] during wait'));
+    expect((failed['api'] as Map)['events'], hasLength(1));
+    expect(((failed['api'] as Map)['events'] as List).first['name'], 'login');
+    expect((failed['storage'] as Map)['keys']['token'], 'abc');
+    expect((failed['screenshots'] as Map)['frames'], hasLength(2));
+    final frames = (failed['screenshots'] as Map)['frames'] as List;
+    expect(frames[1]['failed'], isTrue);
+    expect(frames[0]['href'], contains('../screenshots/login_flow_step0_0.png'));
+
+    final steps = failed['steps'] as List;
+    expect(steps, hasLength(2));
+    expect((steps[0] as Map)['apiCalls'], isEmpty);
+    expect(((steps[1] as Map)['apiCalls'] as List).first['name'], 'login');
+    expect((steps[1] as Map)['appLogs'], isNotEmpty);
     expect(
-      html.indexOf('login_flow'),
-      lessThan(html.indexOf('ok_home')),
+      ((steps[1] as Map)['storageChanges'] as List).first['change'],
+      'added',
     );
-    expect(apiCalls.existsSync(), isTrue);
-    expect(storage.existsSync(), isTrue);
-    expect(appLogs.existsSync(), isTrue);
+    expect((steps[0] as Map)['screenshots'], isNotEmpty);
+
+    // Transients cleaned; durable artifacts remain.
+    expect(Directory(p.join(tempDir.path, 'logs')).existsSync(), isFalse);
+    expect(
+      File(p.join(screenshotsDir.path, 'login_flow_frames.json')).existsSync(),
+      isFalse,
+    );
+    expect(
+      File(p.join(screenshotsDir.path, 'login_flow_step0_0.png')).existsSync(),
+      isTrue,
+    );
   });
 
-  test('buildHtml escapes untrusted text', () {
+  test('buildHtml escapes untrusted text inside results payload', () {
     final html = HtmlTestReporter().buildHtml(
       EnsembleTestRunResult(
         results: [
@@ -161,191 +276,73 @@ void main() {
       displayRoot: 'build/ensemble_test_runner',
     );
     expect(html, isNot(contains('bad<script>')));
-    expect(html, contains('&lt;script&gt;'));
-    expect(html, contains('&lt;img src=x'));
+    // Payload is not inlined into HTML.
+    expect(html, isNot(contains('<img src=x')));
+
+    final doc = readResultsJson();
+    final test = (doc['tests'] as List).first as Map<String, dynamic>;
+    expect(test['id'], 'bad<script>');
+    expect(test['message'], '<img src=x onerror=alert(1)>');
+    // Viewer script includes escapeHtml for rendering untrusted strings.
+    expect(html, contains('function escapeHtml'));
   });
 
-  test('Step Details groups API/console by stepIndex', () {
-    const displayRoot = 'build/ensemble_test_runner';
-    final logsDir = Directory(p.join(tempDir.path, 'logs'))
-      ..createSync(recursive: true);
-    File(p.join(logsDir.path, 'nav_wait_api_calls.json')).writeAsStringSync(
-      jsonEncode({
-        'events': [
-          {
-            'name': 'login',
-            'timestamp': '2026-07-22T12:00:00.050',
-            'stepIndex': 1,
-          },
-        ],
-      }),
-    );
-    File(p.join(logsDir.path, 'nav_wait_app_console.log')).writeAsStringSync(
-      '[2026-07-22T12:00:00.050][step=1] during wait\n',
-    );
+  test('TestReportDocument loading and complete builders', () {
+    final loading = TestReportDocument.buildLoading(wallTimeMs: 0);
+    expect(loading['state'], 'loading');
+    expect(loading['tests'], isEmpty);
 
-    final html = HtmlTestReporter().buildHtml(
+    final dir = Directory(p.join(tempDir.path, 'report'))
+      ..createSync(recursive: true);
+    TestReportDocument.writeResults(dir, loading);
+    expect(File(p.join(dir.path, 'results.json')).existsSync(), isTrue);
+    expect(File(p.join(dir.path, 'results.js')).existsSync(), isFalse);
+
+    final complete = TestReportDocument.buildComplete(
       EnsembleTestRunResult(
         results: [
           EnsembleSingleTestResult.passed(
-            testId: 'nav_wait',
-            durationMs: 500,
-            logs: [
-              'apiCalls: $displayRoot/logs/nav_wait_api_calls.json',
-              'appLogs: $displayRoot/logs/nav_wait_app_console.log',
-            ],
-            report: const EnsembleTestReportDetails(
-              startScreen: 'Login',
-              endScreen: 'Home',
-              stepsOutline: ['tap(login)', 'waitForNavigation(Home)'],
-              stepDurationsMs: [100, 400],
-              // Mismatched times so timestamp fallback would put logs on step 0.
-              stepStartTimes: [
-                '2026-07-22T12:00:00.000',
-                '2026-07-22T12:00:10.000',
-              ],
-            ),
+            testId: 't1',
+            durationMs: 10,
           ),
         ],
       ),
       artifactRoot: tempDir.path,
-      displayRoot: displayRoot,
+      displayRoot: 'build/ensemble_test_runner',
     );
+    expect(complete['state'], 'complete');
+    expect(complete['summary']['passed'], 1);
+    expect((complete['tests'] as List).first['id'], 't1');
+  });
 
-    expect(html, contains('"name":"login"'));
-    expect(html, contains('during wait'));
-    // First step bucket empty; second has the attributed events.
-    expect(html, contains('"storageChanges":[]'));
+  test('cleanTransientArtifacts keeps report, PNGs, and durations', () {
+    final root = tempDir.path;
+    Directory(p.join(root, 'logs')).createSync(recursive: true);
+    File(p.join(root, 'logs', 'x_api_calls.json')).writeAsStringSync('{}');
+    Directory(p.join(root, 'worker_progress')).createSync(recursive: true);
+    Directory(p.join(root, 'worker_reports')).createSync(recursive: true);
+    File(p.join(root, 'worker_reports', 'worker1.json')).writeAsStringSync('{}');
+    Directory(p.join(root, 'report')).createSync(recursive: true);
+    File(p.join(root, 'report', 'results.json')).writeAsStringSync('{}');
+    File(p.join(root, 'report', 'index.html')).writeAsStringSync('<html></html>');
+    File(p.join(root, 'test_durations.json')).writeAsStringSync('{}');
+    Directory(p.join(root, 'screenshots')).createSync(recursive: true);
+    File(p.join(root, 'screenshots', 't_frames.json')).writeAsStringSync('{}');
+    File(p.join(root, 'screenshots', 't_step0_0.png')).writeAsBytesSync([1]);
+
+    TestReportDocument.cleanTransientArtifacts(root);
+
+    expect(Directory(p.join(root, 'logs')).existsSync(), isFalse);
+    expect(Directory(p.join(root, 'worker_progress')).existsSync(), isFalse);
+    expect(Directory(p.join(root, 'worker_reports')).existsSync(), isFalse);
+    expect(File(p.join(root, 'report', 'results.json')).existsSync(), isTrue);
+    expect(File(p.join(root, 'report', 'index.html')).existsSync(), isTrue);
+    expect(File(p.join(root, 'test_durations.json')).existsSync(), isTrue);
+    expect(File(p.join(root, 'screenshots', 't_frames.json')).existsSync(),
+        isFalse);
     expect(
-      html,
-      contains('"apiCalls":[{"name":"login"'),
-    );
-  });
-
-  test('Step Details groups storage diffs by stepIndex with change kinds', () {
-    const displayRoot = 'build/ensemble_test_runner';
-    final logsDir = Directory(p.join(tempDir.path, 'logs'))
-      ..createSync(recursive: true);
-    File(p.join(logsDir.path, 'store_step_storage.json')).writeAsStringSync(
-      jsonEncode({
-        'keys': {'token': 'abc', 'count': 2},
-        'steps': [
-          {
-            'stepIndex': 1,
-            'timestamp': '2026-07-22T12:00:01.000',
-            'changes': [
-              {'key': 'token', 'change': 'added', 'after': 'abc'},
-              {
-                'key': 'count',
-                'change': 'modified',
-                'before': 1,
-                'after': 2,
-              },
-            ],
-          },
-        ],
-      }),
-    );
-    File(p.join(logsDir.path, 'store_step_app_console.log'))
-        .writeAsStringSync('<no console output>\n');
-    File(p.join(logsDir.path, 'store_step_api_calls.json'))
-        .writeAsStringSync('{"events":[]}');
-
-    final html = HtmlTestReporter().buildHtml(
-      EnsembleTestRunResult(
-        results: [
-          EnsembleSingleTestResult.passed(
-            testId: 'store_step',
-            durationMs: 400,
-            logs: [
-              'apiCalls: $displayRoot/logs/store_step_api_calls.json',
-              'storage: $displayRoot/logs/store_step_storage.json',
-              'appLogs: $displayRoot/logs/store_step_app_console.log',
-            ],
-            report: const EnsembleTestReportDetails(
-              startScreen: 'Home',
-              stepsOutline: ['tap(a)', 'setStorage(token)'],
-              stepDurationsMs: [100, 300],
-              stepStartTimes: [
-                '2026-07-22T12:00:00.000',
-                '2026-07-22T12:00:01.000',
-              ],
-            ),
-          ),
-        ],
-      ),
-      artifactRoot: tempDir.path,
-      displayRoot: displayRoot,
-    );
-
-    expect(html, contains('switchModalTab(\'storage\')'));
-    expect(html, contains('"change":"added"'));
-    expect(html, contains('"change":"modified"'));
-    expect(html, contains('"key":"token"'));
-    // End-of-test panel shows keys snapshot (HTML-escaped).
-    expect(html, contains('&quot;token&quot;: &quot;abc&quot;'));
-    expect(html, isNot(contains('&quot;steps&quot;:')));
-  });
-
-  test('Step Details embeds per-step screenshot hrefs from frames.json', () {
-    const displayRoot = 'build/ensemble_test_runner';
-    final logsDir = Directory(p.join(tempDir.path, 'logs'))
-      ..createSync(recursive: true);
-    final shotsDir = Directory(p.join(tempDir.path, 'screenshots'))
-      ..createSync(recursive: true);
-    File(p.join(shotsDir.path, 'shot_nav_step1_0.png'))
-        .writeAsBytesSync([4, 5, 6]);
-    File(p.join(shotsDir.path, 'shot_nav_frames.json')).writeAsStringSync(
-      jsonEncode({
-        'frames': [
-          {
-            'stepIndex': 1,
-            'label': '2. waitForNavigation(Home)',
-            'file': 'shot_nav_step1_0.png',
-          },
-        ],
-      }),
-    );
-    File(p.join(logsDir.path, 'shot_nav_app_console.log'))
-        .writeAsStringSync('<no console output>\n');
-    File(p.join(logsDir.path, 'shot_nav_api_calls.json'))
-        .writeAsStringSync('{"events":[]}');
-
-    final html = HtmlTestReporter().buildHtml(
-      EnsembleTestRunResult(
-        results: [
-          EnsembleSingleTestResult.passed(
-            testId: 'shot_nav',
-            durationMs: 400,
-            logs: [
-              'apiCalls: $displayRoot/logs/shot_nav_api_calls.json',
-              'appLogs: $displayRoot/logs/shot_nav_app_console.log',
-              'screenshots: $displayRoot/screenshots/shot_nav_frames.json',
-              'screenshotFrames: $displayRoot/screenshots/shot_nav_frames.json',
-            ],
-            report: const EnsembleTestReportDetails(
-              startScreen: 'Login',
-              stepsOutline: ['tap(login)', 'waitForNavigation(Home)'],
-              stepDurationsMs: [100, 300],
-              stepStartTimes: [
-                '2026-07-22T12:00:00.000',
-                '2026-07-22T12:00:01.000',
-              ],
-            ),
-          ),
-        ],
-      ),
-      artifactRoot: tempDir.path,
-      displayRoot: displayRoot,
-    );
-
-    expect(html, contains('switchModalTab(\'screenshots\')'));
-    expect(html, contains('data-tab="screenshots"'));
-    expect(html, contains('../screenshots/shot_nav_step1_0.png'));
-    expect(html, contains('"screenshots":[]'));
-    expect(
-      html,
-      contains('"file":"shot_nav_step1_0.png"'),
+      File(p.join(root, 'screenshots', 't_step0_0.png')).existsSync(),
+      isTrue,
     );
   });
 }

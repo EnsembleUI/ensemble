@@ -257,15 +257,12 @@ Session producer tests are included automatically for selected session tests.
 
 On success the console prints one consolidated boxed report for the suite: each test id (with YAML path), timing, **start screen**, optional **session**, **navigation flow**, and a numbered **step outline**.
 
-Per-test artifacts (linked under each test in the HTML report):
-- screenshot frames (`{testId}_frames.json` + per-step PNGs; HTML gallery)
-- `{testId}_api_calls.json` when `logApiCalls.enabled`
-- `{testId}_storage.json` when `logStorage.enabled`
-- `{testId}_app_console.log` (prints captured during that test)
+Per-test sidecars under `logs/` and parallel `worker_*` folders are written
+during the run, folded into `report/results.json`, then deleted. What remains:
 
-Every run also writes a browsable HTML report at
-`build/ensemble_test_runner/report/index.html` (listed as `htmlReport` under suite
-artifacts).
+- `report/index.html` + `report/results.json`
+- `screenshots/*.png` (when screenshots are enabled)
+- `test_durations.json` (used to order the next run)
 
 ## Examples
 
