@@ -248,6 +248,22 @@ body {
   gap: 10px;
   overflow-y: auto;
   padding-right: 8px;
+  position: sticky;
+  top: 10px;
+  max-height: calc(100vh - 20px);
+}
+.test-list-pane::-webkit-scrollbar {
+  width: 6px;
+}
+.test-list-pane::-webkit-scrollbar-track {
+  background: transparent;
+}
+.test-list-pane::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+}
+.test-list-pane::-webkit-scrollbar-thumb:hover {
+  background: rgba(6, 182, 212, 0.3);
 }
 
 /* Right Detail Pane */
@@ -258,7 +274,6 @@ body {
   border-radius: 16px;
   padding: 28px;
   backdrop-filter: blur(12px);
-  overflow-y: auto;
 }
 
 /* Compact Test Card (Left sidebar) */
@@ -344,15 +359,16 @@ body {
   display: flex;
   align-items: center;
   gap: 12px;
-  background: rgba(15, 23, 42, 0.9);
+  background: rgba(15, 23, 42, 0.95);
   border: 1px solid var(--border);
   border-radius: 12px;
   padding: 12px 16px;
   margin-bottom: 24px;
   position: sticky;
-  top: -28px;
+  top: 10px;
   z-index: 100;
   backdrop-filter: blur(12px);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
 }
 .selector-label {
   font-size: 0.75rem;
