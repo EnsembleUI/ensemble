@@ -22,6 +22,51 @@ class AssertionEngine {
 
   Finder finderForId(String id) => find.byKey(ValueKey(id));
 
+  /// First matching element that is on the current route and visually actionable.
+  ///
+  /// Used by screenshot highlights so we never annotate off-route / covered
+  /// widgets while another screen is painted.
+  Element? firstVisuallyActionableElement(
+    Finder finder, {
+    bool requireHitTestable = false,
+  }) {
+    final candidates = requireHitTestable
+        ? finder.hitTestable().evaluate()
+        : finder.evaluate();
+    for (final element in candidates) {
+      if (isElementVisuallyActionable(element)) {
+        return element;
+      }
+    }
+    return null;
+  }
+
+  /// Bounds for [firstVisuallyActionableElement], or null when none qualify.
+  Rect? rectForVisuallyActionable(
+    Finder finder, {
+    bool requireHitTestable = false,
+  }) {
+    final element = firstVisuallyActionableElement(
+      finder,
+      requireHitTestable: requireHitTestable,
+    );
+    if (element == null) return null;
+    final renderObject = element.renderObject;
+    if (renderObject is! RenderBox ||
+        !renderObject.hasSize ||
+        renderObject.size.isEmpty) {
+      return null;
+    }
+    final topLeft = renderObject.localToGlobal(Offset.zero);
+    final rect = topLeft & renderObject.size;
+    if (!rect.isFinite || rect.isEmpty) return null;
+    return rect;
+  }
+
+  /// Whether [element] is on the current modal route, not offstage, and on-screen.
+  bool isElementVisuallyActionable(Element element) =>
+      _isElementInViewport(element);
+
   void expectVisible(String id) {
     final finder = finderForId(id).hitTestable();
     if (finder.evaluate().isEmpty) {

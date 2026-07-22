@@ -638,6 +638,9 @@ class EnsembleTestRunner {
       await _ensureHighlightTargetVisible(executor, step);
     }
 
+    // Finish route transitions so the captured pixels match the highlight target.
+    await _stabilizeScreenshotFrame(executor);
+
     var image = ExtendedStepHandlers.captureScreenshotImage(executor.tester);
     final highlightRect = _highlightRectForStep(executor, step);
     if (highlightRect != null) {
@@ -721,6 +724,17 @@ class EnsembleTestRunner {
   bool _shouldPumpBeforePostStepCapture(TestStep step) =>
       step.type != 'waitForText';
 
+  Future<void> _stabilizeScreenshotFrame(TestStepExecutor executor) async {
+    try {
+      // Two short pumps cover typical push/fade transitions without a full
+      // pumpAndSettle (which can hang on repeating animations).
+      await executor.tester.pump(const Duration(milliseconds: 50));
+      await executor.tester.pump(const Duration(milliseconds: 50));
+    } catch (_) {
+      // Stabilization is best-effort for screenshots only.
+    }
+  }
+
   Future<void> _waitForScreenshotTarget(
     TestStepExecutor executor,
     TestStep step,
@@ -735,19 +749,28 @@ class EnsembleTestRunner {
         executor.config.defaultWaitTimeout.inMilliseconds;
     final stopwatch = Stopwatch()..start();
     while (stopwatch.elapsedMilliseconds < timeoutMs) {
-      if (_isScreenshotTargetReady(finder, waitsForHitTestable) &&
-          _isHighlightTargetPainted(finder, waitsForHitTestable)) {
+      if (_isScreenshotTargetReady(
+            executor,
+            finder,
+            waitsForHitTestable,
+          ) &&
+          _isHighlightTargetPainted(executor, finder, waitsForHitTestable)) {
         return;
       }
       await executor.tester.pump(executor.config.waitPollInterval);
     }
   }
 
-  bool _isScreenshotTargetReady(Finder finder, bool waitsForHitTestable) {
-    if (waitsForHitTestable) {
-      return finder.hitTestable().evaluate().isNotEmpty;
-    }
-    return finder.evaluate().isNotEmpty;
+  bool _isScreenshotTargetReady(
+    TestStepExecutor executor,
+    Finder finder,
+    bool waitsForHitTestable,
+  ) {
+    return executor.assertions.firstVisuallyActionableElement(
+          finder,
+          requireHitTestable: waitsForHitTestable,
+        ) !=
+        null;
   }
 
   Future<void> _waitForHighlightTargetToPaint(
@@ -758,19 +781,27 @@ class EnsembleTestRunner {
 
     for (var i = 0; i < 8; i++) {
       final finder = _highlightFinder(executor, step);
-      final elements = finder?.evaluate().toList() ?? const <Element>[];
-      if (elements.isEmpty) return;
-      if (_effectiveOpacity(elements.first) >= 0.85) return;
+      final element = finder == null
+          ? null
+          : executor.assertions.firstVisuallyActionableElement(finder);
+      if (element == null) return;
+      if (_effectiveOpacity(element) >= 0.85) return;
 
       await executor.tester.pump(const Duration(milliseconds: 50));
     }
   }
 
-  bool _isHighlightTargetPainted(Finder finder, bool prefersHitTestable) {
-    final candidate = prefersHitTestable ? finder.hitTestable() : finder;
-    final elements = candidate.evaluate().toList();
-    if (elements.isEmpty) return false;
-    return _effectiveOpacity(elements.first) >= 0.85;
+  bool _isHighlightTargetPainted(
+    TestStepExecutor executor,
+    Finder finder,
+    bool prefersHitTestable,
+  ) {
+    final element = executor.assertions.firstVisuallyActionableElement(
+      finder,
+      requireHitTestable: prefersHitTestable,
+    );
+    if (element == null) return false;
+    return _effectiveOpacity(element) >= 0.85;
   }
 
   double _effectiveOpacity(Element element) {
@@ -802,19 +833,21 @@ class EnsembleTestRunner {
 
     final finder = _highlightFinder(executor, step);
     if (finder == null) return null;
-    final elements = finder.evaluate();
-    if (elements.isEmpty) return null;
 
-    try {
-      final rect = executor.tester.getRect(finder.first);
-      if (rect.isFinite && !rect.isEmpty) {
-        return rect;
-      }
-    } catch (_) {
-      // Fall back to render-object traversal below.
+    // Prefer the same visibility rules as taps: current route, on-screen, and
+    // hit-testable for user actions. Never fall back to off-route finder.first.
+    final requireHitTestable = _isUserActionStep(step);
+    final rect = executor.assertions.rectForVisuallyActionable(
+      finder,
+      requireHitTestable: requireHitTestable,
+    );
+    if (rect != null) return rect;
+
+    // Non-action asserts may highlight a visible but non-hit-testable widget.
+    if (!requireHitTestable) {
+      return executor.assertions.rectForVisuallyActionable(finder);
     }
-
-    return _rectForElement(elements.first);
+    return null;
   }
 
   Future<void> _ensureHighlightTargetVisible(
@@ -825,14 +858,32 @@ class EnsembleTestRunner {
 
     final finder = _highlightFinder(executor, step);
     if (finder == null) return;
-    if (finder.evaluate().isEmpty) return;
 
-    var visibilityTarget = finder;
+    final requireHitTestable = _isUserActionStep(step);
+    if (executor.assertions.firstVisuallyActionableElement(
+          finder,
+          requireHitTestable: requireHitTestable,
+        ) !=
+        null) {
+      return;
+    }
+
+    // Scroll a current-route match into view when it exists but is off-screen.
+    Element? currentRouteMatch;
+    for (final candidate in finder.evaluate()) {
+      final route = ModalRoute.of(candidate);
+      if (route != null && !route.isCurrent) continue;
+      currentRouteMatch = candidate;
+      break;
+    }
+    if (currentRouteMatch == null) return;
+
+    var visibilityTarget = find.byWidget(currentRouteMatch.widget);
     if (step.type == 'toggle' ||
         step.type == 'check' ||
         step.type == 'uncheck') {
       final control = find.descendant(
-        of: finder,
+        of: visibilityTarget,
         matching: find.byWidgetPredicate(
           (widget) =>
               widget is Switch ||
@@ -844,8 +895,6 @@ class EnsembleTestRunner {
         visibilityTarget = control.first;
       }
     }
-
-    if (visibilityTarget.hitTestable().evaluate().isNotEmpty) return;
 
     await executor.tester.ensureVisible(visibilityTarget);
     await executor.tester.pump();
@@ -882,61 +931,6 @@ class EnsembleTestRunner {
       }
     }
     return null;
-  }
-
-  ui.Rect? _rectForElement(Element element) {
-    final renderObject = element.renderObject;
-    if (renderObject != null) {
-      final rect = _rectForRenderObject(renderObject);
-      if (rect != null) return rect;
-    }
-
-    final rects = <ui.Rect>[];
-
-    void collect(Element child) {
-      final childRenderObject = child.renderObject;
-      if (childRenderObject != null) {
-        final rect = _rectForRenderObject(childRenderObject);
-        if (rect != null) rects.add(rect);
-      }
-      child.visitChildren(collect);
-    }
-
-    element.visitChildren(collect);
-    if (rects.isEmpty) return null;
-    return rects.reduce((a, b) => a.expandToInclude(b));
-  }
-
-  ui.Rect? _rectForRenderObject(RenderObject renderObject) {
-    if (renderObject is RenderBox &&
-        renderObject.hasSize &&
-        renderObject.size.longestSide > 0) {
-      final topLeft = renderObject.localToGlobal(ui.Offset.zero);
-      final rect = topLeft & renderObject.size;
-      if (rect.isFinite && !rect.isEmpty) {
-        return rect;
-      }
-    }
-
-    final rects = <ui.Rect>[];
-
-    void collect(RenderObject object) {
-      if (object is RenderBox &&
-          object.hasSize &&
-          object.size.longestSide > 0) {
-        final topLeft = object.localToGlobal(ui.Offset.zero);
-        final rect = topLeft & object.size;
-        if (rect.isFinite && !rect.isEmpty) {
-          rects.add(rect);
-        }
-      }
-      object.visitChildren(collect);
-    }
-
-    collect(renderObject);
-    if (rects.isEmpty) return null;
-
-    return rects.reduce((a, b) => a.expandToInclude(b));
   }
 
   bool _shouldHighlightStep(TestStep step) {
