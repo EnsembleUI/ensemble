@@ -159,6 +159,9 @@ class EnsembleAppState extends State<EnsembleApp> with WidgetsBindingObserver {
   bool _hasInternet = true;
   late final StreamSubscription<List<ConnectivityResult>>
       _connectivitySubscription;
+  StreamSubscription<ThemeChangeEvent>? _themeChangeSubscription;
+  StreamSubscription<SetLocaleEvent>? _setLocaleSubscription;
+  StreamSubscription<ClearLocaleEvent>? _clearLocaleSubscription;
   SemanticsHandle? _testSemanticsHandle;
 
   @override
@@ -178,18 +181,30 @@ class EnsembleAppState extends State<EnsembleApp> with WidgetsBindingObserver {
       Workmanager().initialize(callbackDispatcher, isInDebugMode: false);
       initDeepLink(AppLifecycleState.resumed);
     }
-    AppEventBus().eventBus.on<ThemeChangeEvent>().listen((event) {
+    _themeChangeSubscription =
+        AppEventBus().eventBus.on<ThemeChangeEvent>().listen((event) {
+      if (!mounted) {
+        return;
+      }
       setState(() {});
     });
 
     // selecting a Locale at run time
-    AppEventBus().eventBus.on<SetLocaleEvent>().listen((event) async {
+    _setLocaleSubscription =
+        AppEventBus().eventBus.on<SetLocaleEvent>().listen((event) {
+      if (!mounted) {
+        return;
+      }
       if (runtimeLocale != event.locale) {
         runtimeLocale = event.locale;
         rebuildApp();
       }
     });
-    AppEventBus().eventBus.on<ClearLocaleEvent>().listen((event) {
+    _clearLocaleSubscription =
+        AppEventBus().eventBus.on<ClearLocaleEvent>().listen((event) {
+      if (!mounted) {
+        return;
+      }
       if (runtimeLocale != null) {
         runtimeLocale = null;
         rebuildApp();
@@ -203,6 +218,9 @@ class EnsembleAppState extends State<EnsembleApp> with WidgetsBindingObserver {
   /// Check the device’s connectivity and update the state.
   Future<void> _updateConnectivity() async {
     final result = await Connectivity().checkConnectivity();
+    if (!mounted) {
+      return;
+    }
     final hasInternetNow = result.any((r) => r != ConnectivityResult.none);
 
     // If connectivity has been restored, reinitialize the app
@@ -246,6 +264,9 @@ class EnsembleAppState extends State<EnsembleApp> with WidgetsBindingObserver {
   @override
   void dispose() {
     _connectivitySubscription.cancel();
+    _themeChangeSubscription?.cancel();
+    _setLocaleSubscription?.cancel();
+    _clearLocaleSubscription?.cancel();
     _testSemanticsHandle?.dispose();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
@@ -289,6 +310,9 @@ class EnsembleAppState extends State<EnsembleApp> with WidgetsBindingObserver {
    * at runtime where a complete rebuild is needed.
    */
   void rebuildApp() {
+    if (!mounted) {
+      return;
+    }
     setState(() {
       appKey = UniqueKey();
     });
