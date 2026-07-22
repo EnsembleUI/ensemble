@@ -263,6 +263,45 @@ void main() {
       expect(events.single['stepIndex'], 3);
       expect(events.single['name'], 'login');
     });
+
+    test('stringifies non-JSON response / request values', () async {
+      final logger = TestLogger();
+      final displayPath = await writeApiCallsLogFile(
+        logger: logger,
+        filePrefix: 'field_value',
+        calls: [
+          APICallRecord(
+            name: 'writeDoc',
+            apiDefinition: YamlMap.wrap({}),
+            timestamp: DateTime.parse('2026-07-22T12:00:00.000'),
+            stepIndex: 1,
+            resolvedBody: {
+              'updatedAt': _FakeEnsembleFieldValue('serverTimestamp'),
+            },
+            responseBody: {
+              'status': {
+                'ts': _FakeEnsembleFieldValue('serverTimestamp'),
+                'ok': true,
+              },
+            },
+          ),
+        ],
+      );
+
+      final file = ensembleTestArtifactFile('logs', p.basename(displayPath));
+      final decoded =
+          json.decode(file.readAsStringSync()) as Map<String, dynamic>;
+      final event = (decoded['events'] as List).single as Map<String, dynamic>;
+      expect(
+        event['responseBody']['status']['ts'],
+        contains('serverTimestamp'),
+      );
+      expect(event['responseBody']['status']['ok'], isTrue);
+      expect(
+        event['request']['body']['updatedAt'],
+        contains('serverTimestamp'),
+      );
+    });
   });
 
   group('EnsembleTestReportDetails.fromJson', () {
@@ -284,4 +323,12 @@ void main() {
       expect(restored.stepsOutline, original.stepsOutline);
     });
   });
+}
+
+class _FakeEnsembleFieldValue {
+  final String label;
+  _FakeEnsembleFieldValue(this.label);
+
+  @override
+  String toString() => 'EnsembleFieldValue($label)';
 }

@@ -89,6 +89,21 @@ dynamic _copy(dynamic value) {
   if (value == null || value is num || value is bool || value is String) {
     return value;
   }
+  if (value is DateTime) {
+    return value.toIso8601String();
+  }
+  if (value is Map) {
+    return {
+      for (final entry in value.entries)
+        entry.key.toString(): _copy(entry.value),
+    };
+  }
+  if (value is List) {
+    return [for (final item in value) _copy(item)];
+  }
+  if (value is Iterable) {
+    return [for (final item in value) _copy(item)];
+  }
   try {
     return jsonDecode(jsonEncode(value));
   } catch (_) {
@@ -100,7 +115,7 @@ bool _deepEquals(Object? a, Object? b) {
   if (identical(a, b)) return true;
   if (a == null || b == null) return a == b;
   try {
-    return jsonEncode(a) == jsonEncode(b);
+    return jsonEncode(_copy(a)) == jsonEncode(_copy(b));
   } catch (_) {
     return a == b;
   }

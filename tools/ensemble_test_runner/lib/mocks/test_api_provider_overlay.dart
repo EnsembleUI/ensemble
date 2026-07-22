@@ -20,6 +20,9 @@ class APICallRecord {
   Object? responseBody;
   String? type;
   String? resolvedUrl;
+  Map<String, dynamic>? resolvedHeaders;
+  Map<String, dynamic>? resolvedParameters;
+  dynamic resolvedBody;
 
   APICallRecord({
     required this.name,
@@ -32,6 +35,9 @@ class APICallRecord {
     this.responseBody,
     this.type,
     this.resolvedUrl,
+    this.resolvedHeaders,
+    this.resolvedParameters,
+    this.resolvedBody,
   });
 }
 
@@ -163,6 +169,14 @@ class TestApiProviderOverlay extends HTTPAPIProvider {
       resolvedUrl = HTTPAPIProvider.resolveUrl(eContext, rawUrl.toString());
     }
 
+    final rawHeaders = api['headers'] ?? api['firestore']?['headers'] ?? api['function']?['headers'];
+    final rawParams = api['parameters'] ?? api['query'] ?? api['firestore']?['parameters'] ?? api['firestore']?['query'] ?? api['function']?['parameters'] ?? api['function']?['query'];
+    final rawBody = api['body'] ?? api['data'] ?? api['firestore']?['body'] ?? api['firestore']?['data'] ?? api['function']?['body'] ?? api['function']?['data'];
+
+    final resolvedHeaders = _resolveValue(rawHeaders, eContext) as Map<String, dynamic>?;
+    final resolvedParameters = _resolveValue(rawParams, eContext) as Map<String, dynamic>?;
+    final resolvedBody = _resolveValue(rawBody, eContext);
+
     final stepIndex = stepIndexProvider?.call();
     final forced = _forcedExceptions[apiName];
     if (forced != null) {
@@ -175,6 +189,9 @@ class TestApiProviderOverlay extends HTTPAPIProvider {
         error: forced.toString(),
         type: type,
         resolvedUrl: resolvedUrl,
+        resolvedHeaders: resolvedHeaders,
+        resolvedParameters: resolvedParameters,
+        resolvedBody: resolvedBody,
       ));
       throw forced;
     }
@@ -186,6 +203,9 @@ class TestApiProviderOverlay extends HTTPAPIProvider {
       stepIndex: stepIndex,
       type: type,
       resolvedUrl: resolvedUrl,
+      resolvedHeaders: resolvedHeaders,
+      resolvedParameters: resolvedParameters,
+      resolvedBody: resolvedBody,
     );
     recorder.record(record);
 
@@ -296,6 +316,24 @@ class TestApiProviderOverlay extends HTTPAPIProvider {
   /// Same instance as config — keeps call recording aligned with [EnsembleTestContext].
   @override
   TestApiProviderOverlay clone() => this;
+
+  dynamic _resolveValue(dynamic value, DataContext eContext) {
+    if (value == null) return null;
+    if (value is String) {
+      return eContext.eval(value);
+    }
+    if (value is Map) {
+      final result = <String, dynamic>{};
+      value.forEach((k, v) {
+        result[k.toString()] = _resolveValue(v, eContext);
+      });
+      return result;
+    }
+    if (value is List) {
+      return value.map((item) => _resolveValue(item, eContext)).toList();
+    }
+    return value;
+  }
 
   @override
   void dispose() => _delegate.dispose();

@@ -1346,16 +1346,28 @@ class EnsembleTestRunner {
 
   /// Writes apiCalls / storage / appLogs for a single test onto [ctx.logger].
   Future<void> _attachPerTestDebugArtifacts(EnsembleTestContext ctx) async {
-    // Always write API calls so HTML Step Details can attribute them per step.
-    final apiPath = await writeApiCallsLog(ctx);
-    _replaceArtifactLog(ctx.logger, 'apiCalls', apiPath);
+    // Isolate each writer so one JSON encoding failure cannot drop the rest
+    // (failed tests are when these logs matter most).
+    try {
+      final apiPath = await writeApiCallsLog(ctx);
+      _replaceArtifactLog(ctx.logger, 'apiCalls', apiPath);
+    } catch (error) {
+      ctx.logger.log('apiCallsError: $error');
+    }
 
-    // Always write storage (keys + per-step diffs) for Step Details.
-    final storagePath = await writeStorageLog(ctx);
-    _replaceArtifactLog(ctx.logger, 'storage', storagePath);
+    try {
+      final storagePath = await writeStorageLog(ctx);
+      _replaceArtifactLog(ctx.logger, 'storage', storagePath);
+    } catch (error) {
+      ctx.logger.log('storageError: $error');
+    }
 
-    final appLogPath = await writeAppConsoleLog(ctx);
-    _replaceArtifactLog(ctx.logger, 'appLogs', appLogPath);
+    try {
+      final appLogPath = await writeAppConsoleLog(ctx);
+      _replaceArtifactLog(ctx.logger, 'appLogs', appLogPath);
+    } catch (error) {
+      ctx.logger.log('appLogsError: $error');
+    }
   }
 
   void _recordStorageStepDiff({
