@@ -62,10 +62,11 @@ class TestReportDocument {
     };
   }
 
-  /// Writes [document] as `results.json` under [reportDir].
+  /// Writes [document] as compact `results.json` under [reportDir].
   static void writeResults(Directory reportDir, Map<String, dynamic> document) {
     reportDir.createSync(recursive: true);
-    final jsonText = const JsonEncoder.withIndent('  ').convert(document);
+    // Compact JSON — indentation roughly doubles size for large suites.
+    final jsonText = json.encode(document);
     File(p.join(reportDir.path, 'results.json')).writeAsStringSync(jsonText);
     // Drop legacy results.js from earlier dual-file reports.
     final legacyJs = File(p.join(reportDir.path, 'results.js'));
@@ -144,6 +145,9 @@ class TestReportDocument {
             screenshotFrames: frames,
           );
 
+    // Store payloads once under `steps` (Step Details + flatten for end-of-test
+    // panels). Avoid duplicating api/console/screenshots at the test root.
+    // Keep end-of-test storage keys snapshot only (diffs live in steps).
     return {
       'id': test.testId,
       'baseId': baseTestId(test.testId),
@@ -156,10 +160,11 @@ class TestReportDocument {
       if (test.message != null) 'message': test.message,
       if (test.failedStepIndex != null) 'failedStepIndex': test.failedStepIndex,
       if (report != null) 'report': report.toJson(),
-      'console': console,
-      'api': {'events': apiEvents},
-      'storage': storage,
-      'screenshots': {'frames': frames},
+      'storage': {
+        'keys': storage['keys'] is Map
+            ? Map<String, dynamic>.from(storage['keys'] as Map)
+            : <String, dynamic>{},
+      },
       'steps': steps,
     };
   }

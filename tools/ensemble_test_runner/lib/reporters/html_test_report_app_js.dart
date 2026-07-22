@@ -367,9 +367,22 @@ const ensembleHtmlTestReportAppJs = r'''
     }).join('');
   }
 
+  function flattenStepField(test, field) {
+    const out = [];
+    const steps = test.steps || [];
+    for (let i = 0; i < steps.length; i++) {
+      const step = steps[i] || {};
+      // Nested outline rows inherit parent payloads — skip to avoid double-counting.
+      if (String(step.stepText || '').startsWith('  ')) continue;
+      const items = step[field] || [];
+      for (let j = 0; j < items.length; j++) out.push(items[j]);
+    }
+    return out;
+  }
+
   function renderTerminals(test) {
-    const consoleLines = test.console || [];
-    const events = (test.api && test.api.events) || [];
+    const consoleLines = flattenStepField(test, 'appLogs');
+    const events = flattenStepField(test, 'apiCalls');
     const storage = test.storage || {};
     const keys = storage.keys || {};
     let storageContent = '';
@@ -384,7 +397,7 @@ const ensembleHtmlTestReportAppJs = r'''
     html += '<button class="fullscreen-sheet-btn" onclick="openFullscreenCard(this, \'apis\')">⛶ Open Fullscreen</button></div>';
     html += '<div class="logs-terminal">' + renderApiRows(events) + '</div></div></div>';
 
-    if (Object.keys(keys).length > 0 || (storage.steps && storage.steps.length)) {
+    if (Object.keys(keys).length > 0) {
       html += '<div class="logs-grid-container" style="margin-top:16px;"><div class="logs-card-pane" style="grid-column:1/-1;"><div class="logs-pane-title"><span>💾 Local State Storage <span class="raw-label">(storage)</span></span>';
       html += '<button class="fullscreen-sheet-btn" onclick="openFullscreenCard(this, \'storage\')">⛶ Open Fullscreen</button></div>';
       html += '<div class="logs-terminal"><div class="terminal-row">' + escapeHtml(storageContent) + '</div></div></div></div>';
@@ -393,7 +406,7 @@ const ensembleHtmlTestReportAppJs = r'''
   }
 
   function renderScreenshotGallery(test) {
-    const frames = (test.screenshots && test.screenshots.frames) || [];
+    const frames = flattenStepField(test, 'screenshots');
     if (!frames.length) return '';
     let html = '<div class="screenshot-artifacts-row"><div class="artifact screenshot-artifact-card">';
     html += '<div class="logs-pane-title" style="border:none;padding:0 0 12px 0;"><span style="font-weight:800;font-size:0.8rem;text-transform:uppercase;color:var(--accent);letter-spacing:0.08em;">🖼️ Screenshots <span class="raw-label">(screenshots)</span></span>';

@@ -229,14 +229,11 @@ void main() {
 
     final failed = tests.first as Map<String, dynamic>;
     expect(failed['message'], 'Timed out waiting for dashboard');
-    expect(failed['console'], contains('[2026-07-22T12:00:00.050][step=1] during wait'));
-    expect((failed['api'] as Map)['events'], hasLength(1));
-    expect(((failed['api'] as Map)['events'] as List).first['name'], 'login');
+    expect(failed.containsKey('api'), isFalse);
+    expect(failed.containsKey('console'), isFalse);
+    expect(failed.containsKey('screenshots'), isFalse);
+    expect((failed['storage'] as Map).containsKey('steps'), isFalse);
     expect((failed['storage'] as Map)['keys']['token'], 'abc');
-    expect((failed['screenshots'] as Map)['frames'], hasLength(2));
-    final frames = (failed['screenshots'] as Map)['frames'] as List;
-    expect(frames[1]['failed'], isTrue);
-    expect(frames[0]['href'], contains('../screenshots/login_flow_step0_0.png'));
 
     final steps = failed['steps'] as List;
     expect(steps, hasLength(2));
@@ -244,10 +241,22 @@ void main() {
     expect(((steps[1] as Map)['apiCalls'] as List).first['name'], 'login');
     expect((steps[1] as Map)['appLogs'], isNotEmpty);
     expect(
+      (steps[1] as Map)['appLogs'],
+      contains('[2026-07-22T12:00:00.050][step=1] during wait'),
+    );
+    expect(
       ((steps[1] as Map)['storageChanges'] as List).first['change'],
       'added',
     );
     expect((steps[0] as Map)['screenshots'], isNotEmpty);
+    final frames = (steps[0] as Map)['screenshots'] as List;
+    expect(frames.first['href'], contains('../screenshots/login_flow_step0_0.png'));
+    expect(((steps[1] as Map)['screenshots'] as List).first['failed'], isTrue);
+
+    // Compact JSON (no pretty-print indentation).
+    final raw =
+        File(p.join(tempDir.path, 'report', 'results.json')).readAsStringSync();
+    expect(raw.startsWith('{\n  '), isFalse);
 
     // Transients cleaned; durable artifacts remain.
     expect(Directory(p.join(tempDir.path, 'logs')).existsSync(), isFalse);
