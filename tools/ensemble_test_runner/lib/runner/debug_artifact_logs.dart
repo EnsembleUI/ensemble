@@ -66,6 +66,7 @@ Future<String> writeApiCallsLogFile({
           if (calls[i].error != null) 'error': calls[i].error,
           if (calls[i].responseBody != null)
             'responseBody': _loggableResponseBody(calls[i].responseBody),
+          if (calls[i].type != null) 'type': calls[i].type,
         },
     ],
   });

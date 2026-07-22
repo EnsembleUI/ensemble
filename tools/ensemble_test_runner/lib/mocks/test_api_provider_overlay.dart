@@ -16,6 +16,7 @@ class APICallRecord {
   int? statusCode;
   String? error;
   Object? responseBody;
+  String? type;
 
   APICallRecord({
     required this.name,
@@ -25,6 +26,7 @@ class APICallRecord {
     this.statusCode,
     this.error,
     this.responseBody,
+    this.type,
   });
 }
 
@@ -131,6 +133,16 @@ class TestApiProviderOverlay extends HTTPAPIProvider {
     DataContext eContext,
     String apiName,
   ) async {
+    final String type;
+    final delegateTypeStr = delegate.runtimeType.toString();
+    if (delegateTypeStr.contains('Firestore')) {
+      type = 'firestore';
+    } else if (delegateTypeStr.contains('Functions') || delegateTypeStr.contains('Function')) {
+      type = 'functions';
+    } else {
+      type = 'api';
+    }
+
     final forced = _forcedExceptions[apiName];
     if (forced != null) {
       recorder.record(APICallRecord(
@@ -139,6 +151,7 @@ class TestApiProviderOverlay extends HTTPAPIProvider {
         timestamp: DateTime.now(),
         mocked: false,
         error: forced.toString(),
+        type: type,
       ));
       throw forced;
     }
@@ -147,6 +160,7 @@ class TestApiProviderOverlay extends HTTPAPIProvider {
       name: apiName,
       apiDefinition: api,
       timestamp: DateTime.now(),
+      type: type,
     );
     recorder.record(record);
 

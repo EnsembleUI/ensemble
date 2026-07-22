@@ -585,7 +585,19 @@ class HtmlTestReporter {
                       final displayStatus = statusCode != null ? '$statusCode' : (isSuccess ? '200' : 'ERROR');
 
                       final badgeClass = mocked ? 'info' : (isSuccess ? 'passed' : 'failed');
-                      final badgeText = mocked ? 'MOCK' : 'API';
+                      final String badgeText;
+                      if (mocked) {
+                        badgeText = 'MOCK';
+                      } else {
+                        final type = ev['type']?.toString().toLowerCase();
+                        if (type == 'firestore') {
+                          badgeText = 'FIRESTORE';
+                        } else if (type == 'functions') {
+                          badgeText = 'FUNC';
+                        } else {
+                          badgeText = 'API';
+                        }
+                      }
                       final statusColor = isSuccess ? 'var(--pass)' : 'var(--fail)';
 
                       buffer.writeln('          <div class="terminal-row"><span class="terminal-timestamp">${_escape(timePart)}</span><span class="terminal-badge $badgeClass">$badgeText</span><span style="font-weight: 700; color: #fff;">${_escape(name)}</span> · <span style="color: $statusColor; font-weight: 700;">$displayStatus</span></div>');
