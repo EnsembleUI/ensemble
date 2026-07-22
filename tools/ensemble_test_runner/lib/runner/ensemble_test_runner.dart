@@ -21,6 +21,7 @@ import 'package:ensemble_test_runner/runner/ensemble_test_context.dart';
 import 'package:ensemble_test_runner/runner/ensemble_test_harness.dart';
 import 'package:ensemble_test_runner/runner/live_async_call.dart';
 import 'package:ensemble_test_runner/runner/screenshot_contact_sheet.dart';
+import 'package:ensemble_test_runner/runner/screenshot_lottie_ready.dart';
 import 'package:ensemble_test_runner/runner/screenshot_sheet_aggregator.dart';
 import 'package:ensemble_test_runner/runner/test_runtime_state.dart';
 import 'package:ensemble_test_runner/runner/test_service_manager.dart';
@@ -730,6 +731,9 @@ class EnsembleTestRunner {
       // pumpAndSettle (which can hang on repeating animations).
       await executor.tester.pump(const Duration(milliseconds: 50));
       await executor.tester.pump(const Duration(milliseconds: 50));
+      // Local Lottie.asset is still async; with an external AnimationController
+      // nothing paints until onLoaded. Wait so contact sheets are not blank.
+      await waitForVisibleLottiesReady(executor.tester);
     } catch (_) {
       // Stabilization is best-effort for screenshots only.
     }
