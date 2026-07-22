@@ -487,10 +487,28 @@ class EnsembleTestRunner {
             capturedStep = true;
           };
         }
+        if (step.type == 'waitForNavigation') {
+          // Capture while the target screen is still the current route.
+          // Immediate pixels are wrong for durable screens (Home) whose tracker
+          // updates before paint; long waits are wrong for transient screens
+          // (AutoSignIn_Gateway → Home). Paint briefly, then choose.
+          executor.onWaitForNavigationMatched = (matchedStep) async {
+            if (capturedStep) return;
+            final didCapture = await _captureWaitForNavigationScreenshot(
+              executor: executor,
+              step: matchedStep,
+              stepIndex: i,
+            );
+            if (didCapture) {
+              capturedStep = true;
+            }
+          };
+        }
         try {
           await executor.execute(step);
         } finally {
           executor.onWaitForTextMatched = null;
+          executor.onWaitForNavigationMatched = null;
         }
         _drainPendingFlutterExceptions(tester);
         if (!captureBeforeStep && !capturedStep) {
@@ -499,6 +517,9 @@ class EnsembleTestRunner {
             step: step,
             stepIndex: i,
             pumpBeforeCapture: _shouldPumpBeforePostStepCapture(step),
+            // Prefer mid-wait capture for navigation; if we missed it, still
+            // avoid a long Lottie wait that advances to the next screen.
+            waitForLottie: step.type != 'waitForNavigation',
           );
           capturedStep = true;
         }
@@ -614,6 +635,88 @@ class EnsembleTestRunner {
     );
   }
 
+  /// Screenshots for [waitForNavigation]: durable screens need a paint pass;
+  /// transient screens must keep a pre-navigation frame.
+  ///
+  /// Returns whether a frame was recorded.
+  Future<bool> _captureWaitForNavigationScreenshot({
+    required TestStepExecutor executor,
+    required TestStep step,
+    required int stepIndex,
+  }) async {
+    final options = executor.context.config.screenshots;
+    if (!options.shouldCaptureStep(step.type)) return false;
+
+    final screen = step.args['screen']?.toString();
+    if (screen == null || screen.isEmpty) return false;
+
+    final tracker = ScreenTracker();
+    bool isTargetVisible() =>
+        tracker.isScreenVisible(screenName: screen) ||
+        tracker.isScreenVisible(screenId: screen);
+
+    if (!isTargetVisible()) return false;
+
+    // Hold a frame from the moment the tracker reports the target. Transient
+    // screens (AutoSignIn_Gateway) often leave during the paint pumps below.
+    ui.Image? earlyImage;
+    try {
+      earlyImage = ExtendedStepHandlers.captureScreenshotImage(executor.tester);
+    } catch (_) {
+      earlyImage = null;
+    }
+
+    try {
+      // Tracker often updates before the new route paints. Give durable
+      // destinations a few frames; re-check visibility so transient screens
+      // that leave mid-wait keep the early frame instead.
+      for (var i = 0; i < 6; i++) {
+        await executor.tester.pump(const Duration(milliseconds: 50));
+        if (!isTargetVisible()) break;
+      }
+      if (isTargetVisible() && areVisibleLottiesReady(executor.tester)) {
+        seekVisibleLottiesForScreenshot(executor.tester);
+        await executor.tester.pump();
+      }
+    } catch (_) {
+      // Best-effort paint only.
+    }
+
+    if (isTargetVisible()) {
+      // Still on target after paint — prefer the painted frame (Home, etc.).
+      earlyImage?.dispose();
+      earlyImage = null;
+      await _captureAutomaticScreenshotForStepBestEffort(
+        executor: executor,
+        step: step,
+        stepIndex: stepIndex,
+        ensureTargetVisible: false,
+        waitForLottie: false,
+        stabilize: false,
+      );
+      return executor.context.runtime.screenshotSheetFrames
+          .any((frame) => frame.stepIndex == stepIndex);
+    }
+
+    // Left during paint — commit the early frame so the step is not labeled
+    // with the next screen's pixels.
+    if (earlyImage == null) return false;
+
+    final device = _screenshotDeviceTarget(executor.context);
+    executor.context.runtime.addScreenshotSheetFrame(
+      ScreenshotSheetFrame(
+        stepIndex: stepIndex,
+        label: '${stepIndex + 1}. ${formatStepBrief(step)}',
+        image: earlyImage,
+        deviceId: device?.id,
+        deviceLabel: device?.displayLabel,
+        platform: device?.platform,
+        model: device?.model,
+      ),
+    );
+    return true;
+  }
+
   Future<void> _captureAutomaticScreenshotForStep({
     required TestStepExecutor executor,
     required TestStep step,
@@ -621,6 +724,8 @@ class EnsembleTestRunner {
     bool pumpBeforeCapture = false,
     bool ensureTargetVisible = true,
     bool waitForTarget = false,
+    bool waitForLottie = true,
+    bool stabilize = true,
   }) async {
     final options = executor.context.config.screenshots;
     if (!options.shouldCaptureStep(step.type)) return;
@@ -637,8 +742,13 @@ class EnsembleTestRunner {
       await _ensureHighlightTargetVisible(executor, step);
     }
 
-    // Finish route transitions so the captured pixels match the highlight target.
-    await _stabilizeScreenshotFrame(executor);
+    if (stabilize) {
+      // Finish route transitions so the captured pixels match the highlight target.
+      await _stabilizeScreenshotFrame(
+        executor,
+        waitForLottie: waitForLottie,
+      );
+    }
 
     var image = ExtendedStepHandlers.captureScreenshotImage(executor.tester);
     final highlightRect = _highlightRectForStep(executor, step);
@@ -698,6 +808,8 @@ class EnsembleTestRunner {
     bool pumpBeforeCapture = false,
     bool ensureTargetVisible = true,
     bool waitForTarget = false,
+    bool waitForLottie = true,
+    bool stabilize = true,
   }) async {
     try {
       await _captureAutomaticScreenshotForStep(
@@ -707,6 +819,8 @@ class EnsembleTestRunner {
         pumpBeforeCapture: pumpBeforeCapture,
         ensureTargetVisible: ensureTargetVisible,
         waitForTarget: waitForTarget,
+        waitForLottie: waitForLottie,
+        stabilize: stabilize,
       );
     } catch (_) {
       // Screenshot capture must never replace the real test failure.
@@ -718,12 +832,24 @@ class EnsembleTestRunner {
   bool _shouldPumpBeforePostStepCapture(TestStep step) =>
       step.type != 'waitForText';
 
-  Future<void> _stabilizeScreenshotFrame(TestStepExecutor executor) async {
+  Future<void> _stabilizeScreenshotFrame(
+    TestStepExecutor executor, {
+    bool waitForLottie = true,
+  }) async {
     try {
       // Two short pumps cover typical push/fade transitions without a full
       // pumpAndSettle (which can hang on repeating animations).
       await executor.tester.pump(const Duration(milliseconds: 50));
       await executor.tester.pump(const Duration(milliseconds: 50));
+      if (!waitForLottie) {
+        // Transient navigation screens leave during a long Lottie wait; if the
+        // composition is already ready, still seek past intro-only frames.
+        if (areVisibleLottiesReady(executor.tester)) {
+          seekVisibleLottiesForScreenshot(executor.tester);
+          await executor.tester.pump();
+        }
+        return;
+      }
       // Local Lottie.asset is still async; with an external AnimationController
       // nothing paints until onLoaded. Wait so contact sheets are not blank.
       await waitForVisibleLottiesReady(executor.tester);

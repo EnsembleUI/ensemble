@@ -25,6 +25,7 @@ class TestStepExecutor {
   final TestExecutionConfig config;
   EnsembleConfig? _config;
   FutureOr<void> Function(TestStep step)? onWaitForTextMatched;
+  FutureOr<void> Function(TestStep step)? onWaitForNavigationMatched;
 
   TestStepExecutor({
     required this.tester,
@@ -119,6 +120,7 @@ class TestStepExecutor {
           throw EnsembleTestFailure('waitForNavigation requires "screen"');
         }
         await _waitForNavigation(
+          step: step,
           screen: screen,
           timeoutMs: step.args['timeoutMs'] as int? ??
               config.defaultWaitTimeout.inMilliseconds,
@@ -719,40 +721,97 @@ class TestStepExecutor {
   }
 
   Future<void> _waitForNavigation({
+    required TestStep step,
     required String screen,
     required int timeoutMs,
   }) async {
     final stopwatch = Stopwatch()..start();
     final tracker = ScreenTracker();
-    bool hasNavigated() =>
+    var captureFired = false;
+
+    bool isTargetVisible() =>
         tracker.isScreenVisible(screenName: screen) ||
-        tracker.isScreenVisible(screenId: screen) ||
+        tracker.isScreenVisible(screenId: screen);
+
+    bool hasNavigated() =>
+        isTargetVisible() ||
         YamlTestSession.navigationFlow.flow.contains(screen);
 
-    while (stopwatch.elapsedMilliseconds < timeoutMs) {
-      await YamlTestSession.navigationFlow.flushPending();
-      if (hasNavigated()) {
+    Future<void> captureIfVisible() async {
+      if (captureFired || onWaitForNavigationMatched == null) return;
+      if (!isTargetVisible()) return;
+      captureFired = true;
+      await onWaitForNavigationMatched!(step);
+    }
+
+    // Capture as soon as ScreenTracker reports the target — before the next
+    // navigateScreen (e.g. AutoSignIn_Gateway → Home) can replace the pixels.
+    final screenSub = tracker.onScreenChange.listen((visible) async {
+      final name = visible?.screenName ?? visible?.screenId;
+      if (name == screen) {
+        await captureIfVisible();
+      }
+    });
+
+    final previousOnScreenAdded = YamlTestSession.navigationFlow.onScreenAdded;
+    YamlTestSession.navigationFlow.onScreenAdded = (name) async {
+      final prior = previousOnScreenAdded;
+      if (prior != null) {
+        await prior(name);
+      }
+      if (name == screen) {
+        await captureIfVisible();
+      }
+    };
+
+    try {
+      // Target may already be visible when the step starts.
+      if (isTargetVisible()) {
+        await captureIfVisible();
         return;
+      }
+
+      while (stopwatch.elapsedMilliseconds < timeoutMs) {
+        await YamlTestSession.navigationFlow.flushPending();
+        if (isTargetVisible()) {
+          await captureIfVisible();
+          return;
+        }
+        if (hasNavigated()) {
+          // Visited but already left — do not take a late Home screenshot.
+          return;
+        }
+        await _yieldToLiveApiWork();
+        await _pump(
+          duration: config.waitPollInterval,
+          label: 'waitForNavigation',
+        );
+        await YamlTestSession.navigationFlow.flushPending();
+        if (isTargetVisible()) {
+          await captureIfVisible();
+          return;
+        }
+        if (hasNavigated()) {
+          return;
+        }
       }
       await _yieldToLiveApiWork();
-      await _pump(
-        duration: config.waitPollInterval,
-        label: 'waitForNavigation',
-      );
+      await _pump(label: 'waitForNavigation');
       await YamlTestSession.navigationFlow.flushPending();
+      if (isTargetVisible()) {
+        await captureIfVisible();
+        return;
+      }
       if (hasNavigated()) {
         return;
       }
+      throw EnsembleTestFailure(
+        'Timed out after ${timeoutMs}ms waiting for navigation to "$screen"',
+      );
+    } finally {
+      await screenSub.cancel();
+      YamlTestSession.navigationFlow.onScreenAdded = previousOnScreenAdded;
     }
-    await _yieldToLiveApiWork();
-    await _pump(label: 'waitForNavigation');
-    await YamlTestSession.navigationFlow.flushPending();
-    if (hasNavigated()) {
-      return;
-    }
-    throw EnsembleTestFailure(
-      'Timed out after ${timeoutMs}ms waiting for navigation to "$screen"',
-    );
   }
 
   Future<void> _waitForGone({
