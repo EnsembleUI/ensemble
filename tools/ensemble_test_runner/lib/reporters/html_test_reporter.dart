@@ -1124,11 +1124,15 @@ body {
   display: flex;
   align-items: center;
   gap: 12px;
-  background: rgba(0, 0, 0, 0.25);
+  background: rgba(15, 23, 42, 0.9);
   border: 1px solid var(--border);
   border-radius: 12px;
   padding: 12px 16px;
   margin-bottom: 24px;
+  position: sticky;
+  top: -28px;
+  z-index: 100;
+  backdrop-filter: blur(12px);
 }
 .selector-label {
   font-size: 0.75rem;

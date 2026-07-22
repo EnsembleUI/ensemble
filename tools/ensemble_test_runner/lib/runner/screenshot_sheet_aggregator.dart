@@ -1,6 +1,5 @@
 import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
 import 'package:ensemble_test_runner/runner/screenshot_contact_sheet.dart';
-import 'package:ensemble_test_runner/runner/screenshot_sheet_write_queue.dart';
 import 'package:ensemble_test_runner/runner/test_runtime_state.dart';
 
 /// Accumulates screenshot frames and writes one contact sheet per test run.
@@ -11,33 +10,13 @@ class ScreenshotSheetAggregator {
   ScreenshotSheetAggregator({
     required this.screenshots,
     required this.devices,
-    ScreenshotSheetWriteQueue? writeQueue,
-  }) : _writeQueue = writeQueue ?? ScreenshotSheetWriteQueue();
+  });
 
   final ScreenshotConfig screenshots;
   final List<TestDeviceTarget> devices;
-  final ScreenshotSheetWriteQueue _writeQueue;
   final Map<String, _SheetGroup> _groups = {};
 
   static const expectedRunsPerSheet = 1;
-
-  void schedulePending({
-    required EnsembleTestCase testCase,
-    required List<ScreenshotSheetFrame> frames,
-  }) {
-    if (!screenshots.enabled || frames.isEmpty) return;
-    final sheetId = testCase.resolvedScreenshotSheetId;
-    final group = _groupFor(sheetId);
-    final pendingFrames = [
-      ...group.frames,
-      ...frames,
-    ];
-    _writeQueue.schedulePending(
-      testId: sheetId,
-      config: screenshots,
-      frames: pendingFrames,
-    );
-  }
 
   /// Merges [frames] from one device/test run. Writes the final sheet when all
   /// expected runs for the sheet id have completed.
@@ -91,16 +70,8 @@ class ScreenshotSheetAggregator {
 
     final ready = group.completedRunIds.length >= expectedRunsPerSheet;
     if (!ready) {
-      _writeQueue.schedulePending(
-        testId: sheetId,
-        config: screenshots,
-        frames: List<ScreenshotSheetFrame>.from(group.frames),
-      );
       return null;
     }
-
-    _writeQueue.invalidate(sheetId);
-    await _writeQueue.drain();
 
     final path = await writeScreenshotContactSheet(
       testId: sheetId,
@@ -118,7 +89,6 @@ class ScreenshotSheetAggregator {
   }
 
   Future<void> flushRemaining() async {
-    await _writeQueue.drain();
     for (final entry in _groups.entries.toList()) {
       final sheetId = entry.key;
       final group = entry.value;
@@ -126,8 +96,6 @@ class ScreenshotSheetAggregator {
         _groups.remove(sheetId);
         continue;
       }
-      _writeQueue.invalidate(sheetId);
-      await _writeQueue.drain();
       await writeScreenshotContactSheet(
         testId: sheetId,
         config: screenshots,

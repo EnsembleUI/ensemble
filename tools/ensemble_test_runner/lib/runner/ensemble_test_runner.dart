@@ -103,7 +103,6 @@ class EnsembleTestRunner {
         .whereType<String>()
         .toSet();
     EnsembleTestContext? lastContext;
-    var config = await harness.buildConfig();
 
     for (final def in plan.ordered) {
       final test = def.testCase;
@@ -167,7 +166,6 @@ class EnsembleTestRunner {
       }
       resultsById[test.id] = out.result;
       await onTestComplete?.call(def, out.result);
-      config = out.config;
       lastContext = out.context;
       final frameOffset = suiteFrames.length;
       _appendSuiteFrames(suiteFrames, out.context.runtime.appFrameTimings);
@@ -670,11 +668,6 @@ class EnsembleTestRunner {
         platform: device?.platform,
         model: device?.model,
       ),
-    );
-
-    _screenshotSheetsFor(executor.context.config).schedulePending(
-      testCase: executor.context.testCase,
-      frames: executor.context.runtime.screenshotSheetFrames,
     );
   }
 
