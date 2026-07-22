@@ -2,12 +2,14 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
+import 'package:ensemble_test_runner/reporters/report_json_optimizer.dart';
 import 'package:ensemble_test_runner/reporters/step_log_grouping.dart';
 import 'package:ensemble_test_runner/runner/test_artifacts.dart';
 import 'package:path/path.dart' as p;
 
-/// Builds and writes the suite report document (`results.json`).
+/// Builds and writes the suite report document (`results.json.gz`).
 class TestReportDocument {
+  static const resultsFileName = 'results.json.gz';
   /// Seed document while the suite is still running.
   static Map<String, dynamic> buildLoading({int? wallTimeMs}) {
     return {
@@ -62,20 +64,32 @@ class TestReportDocument {
     };
   }
 
-  /// Writes [document] as compact `results.json` under [reportDir].
+  /// Writes optimized, gzip-compressed results under [reportDir].
   static void writeResults(Directory reportDir, Map<String, dynamic> document) {
     reportDir.createSync(recursive: true);
-    // Compact JSON — indentation roughly doubles size for large suites.
-    final jsonText = json.encode(document);
-    File(p.join(reportDir.path, 'results.json')).writeAsStringSync(jsonText);
-    // Drop legacy results.js from earlier dual-file reports.
-    final legacyJs = File(p.join(reportDir.path, 'results.js'));
-    if (legacyJs.existsSync()) {
-      legacyJs.deleteSync();
+    final optimized = ReportJsonOptimizer.optimize(document);
+    final jsonText = json.encode(optimized);
+    final gzPath = p.join(reportDir.path, resultsFileName);
+    File(gzPath).writeAsBytesSync(gzip.encode(utf8.encode(jsonText)));
+    // Drop legacy uncompressed / dual-file reports.
+    for (final name in const ['results.json', 'results.js']) {
+      final legacy = File(p.join(reportDir.path, name));
+      if (legacy.existsSync()) legacy.deleteSync();
     }
   }
 
-  /// Removes runner intermediates that are no longer needed after results.json.
+  /// Reads and expands [resultsFileName] for tests and tooling.
+  static Map<String, dynamic> readResults(Directory reportDir) {
+    final file = File(p.join(reportDir.path, resultsFileName));
+    final jsonText = utf8.decode(gzip.decode(file.readAsBytesSync()));
+    final decoded = json.decode(jsonText);
+    if (decoded is! Map) {
+      throw FormatException('Invalid ${resultsFileName} payload');
+    }
+    return ReportJsonOptimizer.expand(Map<String, dynamic>.from(decoded));
+  }
+
+  /// Removes runner intermediates that are no longer needed after results write.
   ///
   /// Keeps `report/`, screenshot PNGs, and `test_durations.json`.
   static void cleanTransientArtifacts(String artifactRoot) {

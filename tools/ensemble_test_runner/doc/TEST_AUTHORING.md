@@ -94,7 +94,7 @@ test-level `storage` / `keychain` / `env` keys override suite values.
 
 When `screenshots.enabled` is true, the runner captures automatic step
 screenshots as per-step PNGs under `build/ensemble_test_runner/screenshots/`.
-Frame metadata is folded into `report/results.json` (no leftover `*_frames.json`).
+Frame metadata is folded into `report/results.json.gz` (no leftover `*_frames.json`).
 
 When `devices` is set, each test runs once per device (test ids become
 `id[deviceId]` when there is more than one device). Device `locale` sets

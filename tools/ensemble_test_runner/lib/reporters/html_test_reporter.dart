@@ -7,7 +7,7 @@ import 'package:ensemble_test_runner/reporters/test_report_document.dart';
 import 'package:ensemble_test_runner/runner/test_artifacts.dart';
 import 'package:path/path.dart' as p;
 
-/// Writes a thin HTML report shell once; test data lives in results.json.
+/// Writes a thin HTML report shell once; test data lives in results.json.gz.
 class HtmlTestReporter {
   /// Writes the HTML shell (if needed) and results.
   ///
@@ -76,7 +76,8 @@ class HtmlTestReporter {
       ),
     );
     TestReportDocument.cleanTransientArtifacts(root);
-    return p.join(display, 'report', 'results.json').replaceAll('\\', '/');
+    return p.join(display, 'report', TestReportDocument.resultsFileName)
+        .replaceAll('\\', '/');
   }
 
   /// Thin HTML shell (no embedded test payload).
@@ -106,7 +107,7 @@ class HtmlTestReporter {
       ..writeln('  <h1>Ensemble Test Runner</h1>')
       ..writeln('  <p class="subtitle">Test Suite Execution in Progress</p>')
       ..writeln(
-          '  <div class="loader-progress-info">Running declarative tests. This page updates automatically when results.json is ready.</div>')
+          '  <div class="loader-progress-info">Running declarative tests. This page updates automatically when results.json.gz is ready.</div>')
       ..writeln('  <div class="skeleton-line-full"></div>')
       ..writeln('  <div class="skeleton-line-full"></div>')
       ..writeln('  <div class="skeleton-line-full"></div>')

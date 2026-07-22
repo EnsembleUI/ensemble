@@ -34,12 +34,79 @@ const ensembleHtmlTestReportAppJs = r'''
     return String(testId).replace(/[^A-Za-z0-9_-]+/g, '_');
   }
 
-  function loadResults() {
-    return fetch('results.json?t=' + Date.now(), { cache: 'no-store' })
-      .then((res) => {
-        if (!res.ok) throw new Error('HTTP ' + res.status);
-        return res.json();
-      });
+  function resolveBlobValue(value, blobs) {
+    if (value && typeof value === 'object' && !Array.isArray(value)) {
+      if (Object.keys(value).length === 1 && typeof value['$b'] === 'string') {
+        return resolveBlobValue(blobs[value['$b']], blobs);
+      }
+      const out = {};
+      Object.keys(value).forEach((k) => { out[k] = resolveBlobValue(value[k], blobs); });
+      return out;
+    }
+    if (Array.isArray(value)) {
+      return value.map((item) => resolveBlobValue(item, blobs));
+    }
+    return value;
+  }
+
+  function inheritNestedStepPayloads(tests) {
+    (tests || []).forEach((test) => {
+      const steps = test.steps || [];
+      let parent = null;
+      for (let i = 0; i < steps.length; i++) {
+        const step = steps[i] || {};
+        const nested = String(step.stepText || '').startsWith('  ');
+        if (!nested) {
+          parent = {
+            apiCalls: step.apiCalls || [],
+            appLogs: step.appLogs || [],
+            storageChanges: step.storageChanges || [],
+            screenshots: step.screenshots || []
+          };
+          step.apiCalls = parent.apiCalls;
+          step.appLogs = parent.appLogs;
+          step.storageChanges = parent.storageChanges;
+          step.screenshots = parent.screenshots;
+        } else if (parent) {
+          step.apiCalls = parent.apiCalls;
+          step.appLogs = parent.appLogs;
+          step.storageChanges = parent.storageChanges;
+          step.screenshots = parent.screenshots;
+        } else {
+          step.apiCalls = [];
+          step.appLogs = [];
+          step.storageChanges = [];
+          step.screenshots = [];
+        }
+        steps[i] = step;
+      }
+      test.steps = steps;
+    });
+  }
+
+  function hydrateReport(report) {
+    const blobs = report.blobs || {};
+    const resolved = resolveBlobValue(report, blobs);
+    delete resolved.blobs;
+    inheritNestedStepPayloads(resolved.tests || []);
+    return resolved;
+  }
+
+  async function gunzipToText(buffer) {
+    if (typeof DecompressionStream === 'undefined') {
+      throw new Error('Gzip decompression is not supported in this browser');
+    }
+    const ds = new DecompressionStream('gzip');
+    const stream = new Blob([buffer]).stream().pipeThrough(ds);
+    return await new Response(stream).text();
+  }
+
+  async function loadResults() {
+    const res = await fetch('results.json.gz?t=' + Date.now(), { cache: 'no-store' });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const bytes = await res.arrayBuffer();
+    const text = await gunzipToText(bytes);
+    return hydrateReport(JSON.parse(text));
   }
 
   async function pollAndRender() {
@@ -59,7 +126,7 @@ const ensembleHtmlTestReportAppJs = r'''
       }
       showLoading();
     } catch (e) {
-      showError('Waiting for results.json… Serve the report folder over HTTP (e.g. Live Server).');
+      showError('Waiting for results.json.gz… Serve the report folder over HTTP (e.g. Live Server).');
     }
   }
 

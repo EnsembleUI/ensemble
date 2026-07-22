@@ -1365,7 +1365,7 @@ EnsembleTestRunResult _withHtmlReport(
       .join(displayRoot, 'report', 'index.html')
       .replaceAll('\\', '/');
   final resultsPath = p
-      .join(displayRoot, 'report', 'results.json')
+      .join(displayRoot, 'report', 'results.json.gz')
       .replaceAll('\\', '/');
 
   if (isSuiteRunning) {

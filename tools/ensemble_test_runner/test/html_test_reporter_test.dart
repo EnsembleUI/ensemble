@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
 import 'package:ensemble_test_runner/reporters/html_test_reporter.dart';
+import 'package:ensemble_test_runner/reporters/report_json_optimizer.dart';
 import 'package:ensemble_test_runner/reporters/test_report_document.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
@@ -20,13 +21,26 @@ void main() {
     }
   });
 
-  Map<String, dynamic> readResultsJson() {
-    final file = File(p.join(tempDir.path, 'report', 'results.json'));
-    expect(file.existsSync(), isTrue);
-    return json.decode(file.readAsStringSync()) as Map<String, dynamic>;
+  Map<String, dynamic> readExpandedResults() {
+    final reportDir = Directory(p.join(tempDir.path, 'report'));
+    expect(
+      File(p.join(reportDir.path, TestReportDocument.resultsFileName))
+          .existsSync(),
+      isTrue,
+    );
+    expect(File(p.join(reportDir.path, 'results.json')).existsSync(), isFalse);
+    return TestReportDocument.readResults(reportDir);
   }
 
-  test('suite start writes shell + loading results without rewriting later', () {
+  Map<String, dynamic> readRawOptimized() {
+    final file =
+        File(p.join(tempDir.path, 'report', TestReportDocument.resultsFileName));
+    final jsonText = utf8.decode(gzip.decode(file.readAsBytesSync()));
+    return json.decode(jsonText) as Map<String, dynamic>;
+  }
+
+  test('suite start writes shell + loading results without rewriting later',
+      () {
     const displayRoot = 'build/ensemble_test_runner';
     final reporter = HtmlTestReporter();
 
@@ -42,8 +56,9 @@ void main() {
     final htmlFile = File(p.join(tempDir.path, 'report', 'index.html'));
     expect(htmlFile.existsSync(), isTrue);
     final shell = htmlFile.readAsStringSync();
-    expect(shell, contains('results.json'));
-    expect(shell, contains("fetch('results.json"));
+    expect(shell, contains('results.json.gz'));
+    expect(shell, contains("fetch('results.json.gz"));
+    expect(shell, contains('DecompressionStream'));
     expect(shell, contains('report-loader'));
     expect(shell, isNot(contains('ensembleHtmlTestReportAppJs')));
     expect(shell, contains('pollAndRender'));
@@ -51,14 +66,13 @@ void main() {
     expect(File(p.join(tempDir.path, 'report', 'results.js')).existsSync(),
         isFalse);
 
-    final loading = readResultsJson();
+    final loading = readExpandedResults();
     expect(loading['state'], 'loading');
     expect(loading['tests'], isEmpty);
 
     final shellBefore = shell;
     final mtimeBefore = htmlFile.lastModifiedSync();
 
-    // Finish: results only.
     Directory(p.join(tempDir.path, 'logs')).createSync(recursive: true);
     File(p.join(tempDir.path, 'logs', 'ok_app_console.log'))
         .writeAsStringSync('done\n');
@@ -84,17 +98,17 @@ void main() {
 
     expect(htmlFile.readAsStringSync(), shellBefore);
     expect(
-      htmlFile.lastModifiedSync().isBefore(mtimeBefore.add(const Duration(seconds: 1))) ||
+      htmlFile.lastModifiedSync().isBefore(
+              mtimeBefore.add(const Duration(seconds: 1))) ||
           htmlFile.readAsStringSync() == shellBefore,
       isTrue,
     );
 
-    final complete = readResultsJson();
+    final complete = readExpandedResults();
     expect(complete['state'], 'complete');
     expect(complete['tests'], hasLength(1));
     expect(complete['tests'][0]['id'], 'ok');
     expect(complete['summary']['passed'], 1);
-    // Sidecars folded into results.json are removed after the complete write.
     expect(Directory(p.join(tempDir.path, 'logs')).existsSync(), isFalse);
   });
 
@@ -136,6 +150,16 @@ void main() {
             'stepIndex': 1,
             'statusCode': 200,
             'mocked': true,
+            'request': {
+              'url': 'https://example.test/login',
+              'method': 'POST',
+              'headers': {'Content-Type': 'application/json'},
+              'body': {'user': 'a', 'password': 'b'},
+            },
+            'responseBody': {
+              'token': 'abc',
+              'profile': {'id': 1, 'roles': ['admin', 'user']},
+            },
           },
         ],
       }),
@@ -212,13 +236,13 @@ void main() {
 
     final html = File(p.join(tempDir.path, 'report', 'index.html'))
         .readAsStringSync();
-    expect(html, contains('results.json'));
-    expect(html, contains("fetch('results.json"));
+    expect(html, contains('results.json.gz'));
+    expect(html, contains("fetch('results.json.gz"));
     expect(html, contains('switchModalTab(\'screenshots\')'));
     expect(html, isNot(contains('Timed out waiting for dashboard')));
     expect(html, isNot(contains('"name":"login"')));
 
-    final doc = readResultsJson();
+    final doc = readExpandedResults();
     expect(doc['state'], 'complete');
     expect(doc['summary']['passed'], 1);
     expect(doc['summary']['failed'], 1);
@@ -239,6 +263,10 @@ void main() {
     expect(steps, hasLength(2));
     expect((steps[0] as Map)['apiCalls'], isEmpty);
     expect(((steps[1] as Map)['apiCalls'] as List).first['name'], 'login');
+    expect(
+      ((steps[1] as Map)['apiCalls'] as List).first['responseBody']['token'],
+      'abc',
+    );
     expect((steps[1] as Map)['appLogs'], isNotEmpty);
     expect(
       (steps[1] as Map)['appLogs'],
@@ -250,15 +278,18 @@ void main() {
     );
     expect((steps[0] as Map)['screenshots'], isNotEmpty);
     final frames = (steps[0] as Map)['screenshots'] as List;
-    expect(frames.first['href'], contains('../screenshots/login_flow_step0_0.png'));
+    expect(
+        frames.first['href'], contains('../screenshots/login_flow_step0_0.png'));
     expect(((steps[1] as Map)['screenshots'] as List).first['failed'], isTrue);
 
-    // Compact JSON (no pretty-print indentation).
-    final raw =
-        File(p.join(tempDir.path, 'report', 'results.json')).readAsStringSync();
-    expect(raw.startsWith('{\n  '), isFalse);
+    final raw = readRawOptimized();
+    expect(raw.containsKey('blobs'), isTrue);
+    final api = (((raw['tests'] as List).first as Map)['steps'] as List)[1]
+        as Map<String, dynamic>;
+    final ev = (api['apiCalls'] as List).first as Map<String, dynamic>;
+    expect(ev['responseBody'], isA<Map>());
+    expect((ev['responseBody'] as Map).containsKey(r'$b'), isTrue);
 
-    // Transients cleaned; durable artifacts remain.
     expect(Directory(p.join(tempDir.path, 'logs')).existsSync(), isFalse);
     expect(
       File(p.join(screenshotsDir.path, 'login_flow_frames.json')).existsSync(),
@@ -285,15 +316,80 @@ void main() {
       displayRoot: 'build/ensemble_test_runner',
     );
     expect(html, isNot(contains('bad<script>')));
-    // Payload is not inlined into HTML.
     expect(html, isNot(contains('<img src=x')));
 
-    final doc = readResultsJson();
+    final doc = readExpandedResults();
     final test = (doc['tests'] as List).first as Map<String, dynamic>;
     expect(test['id'], 'bad<script>');
     expect(test['message'], '<img src=x onerror=alert(1)>');
-    // Viewer script includes escapeHtml for rendering untrusted strings.
     expect(html, contains('function escapeHtml'));
+  });
+
+  test('optimizer dedupes repeated bodies and expand restores them', () {
+    final body = {
+      'status': List.generate(40, (i) => {'id': i, 'name': 'device_$i'}),
+    };
+    final doc = {
+      'state': 'complete',
+      'summary': {'passed': 1, 'failed': 0, 'pending': 0, 'totalMs': 1},
+      'tests': [
+        {
+          'id': 't1',
+          'baseId': 't1',
+          'status': 'passed',
+          'durationMs': 1,
+          'attempts': 1,
+          'retry': 0,
+          'steps': [
+            {
+              'stepText': 'tap(a)',
+              'apiCalls': [
+                {
+                  'name': 'a',
+                  'responseBody': body,
+                  'request': {'headers': {'A': '1'}, 'body': body},
+                },
+                {
+                  'name': 'b',
+                  'responseBody': body,
+                  'request': {'headers': {'A': '1'}, 'body': body},
+                },
+              ],
+              'appLogs': <String>[],
+              'storageChanges': <Map<String, dynamic>>[],
+              'screenshots': <Map<String, dynamic>>[],
+            },
+            {
+              'stepText': '  nested(x)',
+              'apiCalls': [
+                {'name': 'a', 'responseBody': body},
+              ],
+              'appLogs': <String>[],
+              'storageChanges': <Map<String, dynamic>>[],
+              'screenshots': <Map<String, dynamic>>[],
+            },
+          ],
+        },
+      ],
+    };
+
+    final optimized = ReportJsonOptimizer.optimize(doc);
+    expect(optimized['blobs'], isA<Map>());
+    expect((optimized['blobs'] as Map).length, lessThan(5));
+    final nested = (((optimized['tests'] as List).first as Map)['steps']
+        as List)[1] as Map;
+    expect(nested.containsKey('apiCalls'), isFalse);
+
+    final expanded = ReportJsonOptimizer.expand(optimized);
+    final steps = (expanded['tests'] as List).first['steps'] as List;
+    expect(
+      (steps[0] as Map)['apiCalls'][0]['responseBody'],
+      body,
+    );
+    expect(
+      (steps[1] as Map)['apiCalls'][0]['responseBody'],
+      body,
+    );
   });
 
   test('TestReportDocument loading and complete builders', () {
@@ -304,7 +400,11 @@ void main() {
     final dir = Directory(p.join(tempDir.path, 'report'))
       ..createSync(recursive: true);
     TestReportDocument.writeResults(dir, loading);
-    expect(File(p.join(dir.path, 'results.json')).existsSync(), isTrue);
+    expect(
+      File(p.join(dir.path, TestReportDocument.resultsFileName)).existsSync(),
+      isTrue,
+    );
+    expect(File(p.join(dir.path, 'results.json')).existsSync(), isFalse);
     expect(File(p.join(dir.path, 'results.js')).existsSync(), isFalse);
 
     final complete = TestReportDocument.buildComplete(
@@ -332,7 +432,8 @@ void main() {
     Directory(p.join(root, 'worker_reports')).createSync(recursive: true);
     File(p.join(root, 'worker_reports', 'worker1.json')).writeAsStringSync('{}');
     Directory(p.join(root, 'report')).createSync(recursive: true);
-    File(p.join(root, 'report', 'results.json')).writeAsStringSync('{}');
+    File(p.join(root, 'report', TestReportDocument.resultsFileName))
+        .writeAsBytesSync([1, 2, 3]);
     File(p.join(root, 'report', 'index.html')).writeAsStringSync('<html></html>');
     File(p.join(root, 'test_durations.json')).writeAsStringSync('{}');
     Directory(p.join(root, 'screenshots')).createSync(recursive: true);
@@ -344,7 +445,11 @@ void main() {
     expect(Directory(p.join(root, 'logs')).existsSync(), isFalse);
     expect(Directory(p.join(root, 'worker_progress')).existsSync(), isFalse);
     expect(Directory(p.join(root, 'worker_reports')).existsSync(), isFalse);
-    expect(File(p.join(root, 'report', 'results.json')).existsSync(), isTrue);
+    expect(
+      File(p.join(root, 'report', TestReportDocument.resultsFileName))
+          .existsSync(),
+      isTrue,
+    );
     expect(File(p.join(root, 'report', 'index.html')).existsSync(), isTrue);
     expect(File(p.join(root, 'test_durations.json')).existsSync(), isTrue);
     expect(File(p.join(root, 'screenshots', 't_frames.json')).existsSync(),

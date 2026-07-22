@@ -189,27 +189,20 @@ List<Map<String, dynamic>> groupLogsByStep({
     (buckets[outlineIndex]['screenshots'] as List).add(frame);
   }
 
-  // Nested outline lines inherit the parent top-level step's logs.
+  // Nested outline rows keep stepText only — payloads stay on the parent
+  // non-nested step (viewers expand/inherit when rendering Step Details).
   for (var i = 0; i < indexes.length; i++) {
     if (!indexes[i].nested) {
       result.add(buckets[i]);
       continue;
     }
-    final parentOutline = outlineIndexForTopLevel(indexes[i].topLevelIndex);
-    if (parentOutline == null) {
-      result.add({
-        'stepText': indexes[i].line,
-        'apiCalls': [],
-        'appLogs': [],
-        'storageChanges': [],
-        'screenshots': [],
-      });
-    } else {
-      result.add({
-        ...buckets[parentOutline],
-        'stepText': indexes[i].line,
-      });
-    }
+    result.add({
+      'stepText': indexes[i].line,
+      'apiCalls': <Map<String, dynamic>>[],
+      'appLogs': <String>[],
+      'storageChanges': <Map<String, dynamic>>[],
+      'screenshots': <Map<String, dynamic>>[],
+    });
   }
 
   return result;

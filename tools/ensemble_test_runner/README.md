@@ -258,9 +258,9 @@ Session producer tests are included automatically for selected session tests.
 On success the console prints one consolidated boxed report for the suite: each test id (with YAML path), timing, **start screen**, optional **session**, **navigation flow**, and a numbered **step outline**.
 
 Per-test sidecars under `logs/` and parallel `worker_*` folders are written
-during the run, folded into `report/results.json`, then deleted. What remains:
+during the run, folded into `report/results.json.gz`, then deleted. What remains:
 
-- `report/index.html` + `report/results.json`
+- `report/index.html` + `report/results.json.gz`
 - `screenshots/*.png` (when screenshots are enabled)
 - `test_durations.json` (used to order the next run)
 
