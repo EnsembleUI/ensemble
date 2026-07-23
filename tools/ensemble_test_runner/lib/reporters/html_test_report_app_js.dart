@@ -352,6 +352,9 @@ const ensembleHtmlTestReportAppJs = r'''
     if (test.filePath) {
       html += '<p class="file-path-sub"><span>File:</span> ' + escapeHtml(test.filePath) + '</p>';
     }
+    if (test.description) {
+      html += '<p class="test-description">' + escapeHtml(test.description) + '</p>';
+    }
 
     if (isPending) {
       html += '<div class="pending-detail-loader"><div class="spinner"></div><h3>Test Execution in Progress</h3><p>This test case is currently running on the device.</p></div>';

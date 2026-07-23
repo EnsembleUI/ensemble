@@ -10,6 +10,7 @@ import 'package:path/path.dart' as p;
 /// Builds and writes the suite report document (`results.json.gz`).
 class TestReportDocument {
   static const resultsFileName = 'results.json.gz';
+
   /// Seed document while the suite is still running.
   static Map<String, dynamic> buildLoading({int? wallTimeMs}) {
     return {
@@ -189,6 +190,8 @@ class TestReportDocument {
       'durationMs': test.durationMs,
       'attempts': test.attempts,
       'retry': test.retry,
+      if (test.metadata['description'] != null)
+        'description': test.metadata['description'].toString(),
       if (test.message != null) 'message': test.message,
       if (test.failedStepIndex != null) 'failedStepIndex': test.failedStepIndex,
       if (report != null) 'report': report.toJson(),

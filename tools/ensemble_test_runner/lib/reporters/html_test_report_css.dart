@@ -512,6 +512,13 @@ body {
 .test-card-header .icon {
   font-size: 1.4rem;
 }
+.test-description {
+  margin: 12px 0 0;
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+  line-height: 1.55;
+  max-width: 860px;
+}
 
 /* Status capsule */
 .status-capsule {

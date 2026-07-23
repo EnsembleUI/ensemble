@@ -130,8 +130,7 @@ class ReportJsonOptimizer {
         final optimizedCalls = <Map<String, dynamic>>[];
         for (final ev in apiCalls) {
           if (ev is! Map) continue;
-          final optimized =
-              optimizeApiCall(Map<String, dynamic>.from(ev));
+          final optimized = optimizeApiCall(Map<String, dynamic>.from(ev));
           if (optimized != null) optimizedCalls.add(optimized);
         }
         if (optimizedCalls.isNotEmpty) out['apiCalls'] = optimizedCalls;
@@ -147,8 +146,7 @@ class ReportJsonOptimizer {
         final optimizedChanges = <Map<String, dynamic>>[];
         for (final c in changes) {
           if (c is! Map) continue;
-          final optimized =
-              optimizeStorageChange(Map<String, dynamic>.from(c));
+          final optimized = optimizeStorageChange(Map<String, dynamic>.from(c));
           if (optimized != null) optimizedChanges.add(optimized);
         }
         if (optimizedChanges.isNotEmpty) {
@@ -184,6 +182,10 @@ class ReportJsonOptimizer {
       if (filePath != null && filePath.toString().isNotEmpty) {
         out['filePath'] = filePath;
       }
+      final description = test['description'];
+      if (description != null && description.toString().isNotEmpty) {
+        out['description'] = description;
+      }
       final attempts = test['attempts'];
       if (attempts is int && attempts != 1) out['attempts'] = attempts;
       final retry = test['retry'];
@@ -204,7 +206,8 @@ class ReportJsonOptimizer {
         if (keys.isNotEmpty) {
           out['storage'] = {
             'keys': {
-              for (final e in keys.entries) e.key.toString(): maybeIntern(e.value),
+              for (final e in keys.entries)
+                e.key.toString(): maybeIntern(e.value),
             },
           };
         }
@@ -222,7 +225,8 @@ class ReportJsonOptimizer {
 
     final out = <String, dynamic>{
       'state': document['state'],
-      if (document['generatedAt'] != null) 'generatedAt': document['generatedAt'],
+      if (document['generatedAt'] != null)
+        'generatedAt': document['generatedAt'],
       if (document['summary'] is Map)
         'summary': Map<String, dynamic>.from(document['summary'] as Map),
     };

@@ -33,8 +33,8 @@ void main() {
   }
 
   Map<String, dynamic> readRawOptimized() {
-    final file =
-        File(p.join(tempDir.path, 'report', TestReportDocument.resultsFileName));
+    final file = File(
+        p.join(tempDir.path, 'report', TestReportDocument.resultsFileName));
     final jsonText = utf8.decode(gzip.decode(file.readAsBytesSync()));
     return json.decode(jsonText) as Map<String, dynamic>;
   }
@@ -98,8 +98,9 @@ void main() {
 
     expect(htmlFile.readAsStringSync(), shellBefore);
     expect(
-      htmlFile.lastModifiedSync().isBefore(
-              mtimeBefore.add(const Duration(seconds: 1))) ||
+      htmlFile
+              .lastModifiedSync()
+              .isBefore(mtimeBefore.add(const Duration(seconds: 1))) ||
           htmlFile.readAsStringSync() == shellBefore,
       isTrue,
     );
@@ -158,7 +159,10 @@ void main() {
             },
             'responseBody': {
               'token': 'abc',
-              'profile': {'id': 1, 'roles': ['admin', 'user']},
+              'profile': {
+                'id': 1,
+                'roles': ['admin', 'user']
+              },
             },
           },
         ],
@@ -200,6 +204,9 @@ void main() {
         ),
         EnsembleSingleTestResult.failed(
           testId: 'login_flow  (tests/login.test.yaml)',
+          metadata: const {
+            'description': 'Logs in with a valid token and opens the dashboard',
+          },
           durationMs: 3400,
           failedStepIndex: 1,
           error: 'Timed out waiting for dashboard',
@@ -234,8 +241,8 @@ void main() {
       displayRoot: displayRoot,
     );
 
-    final html = File(p.join(tempDir.path, 'report', 'index.html'))
-        .readAsStringSync();
+    final html =
+        File(p.join(tempDir.path, 'report', 'index.html')).readAsStringSync();
     expect(html, contains('results.json.gz'));
     expect(html, contains("fetch('results.json.gz"));
     expect(html, contains('switchModalTab(\'screenshots\')'));
@@ -252,6 +259,10 @@ void main() {
     expect(tests.last['id'], contains('ok_home'));
 
     final failed = tests.first as Map<String, dynamic>;
+    expect(
+      failed['description'],
+      'Logs in with a valid token and opens the dashboard',
+    );
     expect(failed['message'], 'Timed out waiting for dashboard');
     expect(failed.containsKey('api'), isFalse);
     expect(failed.containsKey('console'), isFalse);
@@ -278,8 +289,8 @@ void main() {
     );
     expect((steps[0] as Map)['screenshots'], isNotEmpty);
     final frames = (steps[0] as Map)['screenshots'] as List;
-    expect(
-        frames.first['href'], contains('../screenshots/login_flow_step0_0.png'));
+    expect(frames.first['href'],
+        contains('../screenshots/login_flow_step0_0.png'));
     expect(((steps[1] as Map)['screenshots'] as List).first['failed'], isTrue);
 
     final raw = readRawOptimized();
@@ -347,12 +358,18 @@ void main() {
                 {
                   'name': 'a',
                   'responseBody': body,
-                  'request': {'headers': {'A': '1'}, 'body': body},
+                  'request': {
+                    'headers': {'A': '1'},
+                    'body': body
+                  },
                 },
                 {
                   'name': 'b',
                   'responseBody': body,
-                  'request': {'headers': {'A': '1'}, 'body': body},
+                  'request': {
+                    'headers': {'A': '1'},
+                    'body': body
+                  },
                 },
               ],
               'appLogs': <String>[],
@@ -424,7 +441,8 @@ void main() {
     expect((complete['tests'] as List).first['id'], 't1');
   });
 
-  test('embeds dumpTree and appPerformance per screen into results.json.gz', () {
+  test('embeds dumpTree and appPerformance per screen into results.json.gz',
+      () {
     const displayRoot = 'build/ensemble_test_runner';
 
     final reporter = HtmlTestReporter();
@@ -471,15 +489,14 @@ void main() {
     final test = (doc['tests'] as List).single as Map<String, dynamic>;
     expect(test.containsKey('performance'), isFalse);
     expect(test.containsKey('dumpTree'), isFalse);
-    final screens =
-        (test['report'] as Map)['screens'] as Map<String, dynamic>;
+    final screens = (test['report'] as Map)['screens'] as Map<String, dynamic>;
     expect(screens['Home']['debugTree'], contains('MaterialApp'));
     expect(screens['Home']['performance']['totalFrames'], 2);
     expect(screens['Login']['debugTree'], contains('LoginForm'));
     expect(screens['Login']['performance']['totalFrames'], 1);
 
-    final html = File(p.join(tempDir.path, 'report', 'index.html'))
-        .readAsStringSync();
+    final html =
+        File(p.join(tempDir.path, 'report', 'index.html')).readAsStringSync();
     expect(html, contains('openScreenDialog'));
     expect(html, isNot(contains('renderTestPerformance')));
     expect(html, isNot(contains('renderTestDumpTree')));
@@ -492,11 +509,13 @@ void main() {
     File(p.join(root, 'logs', 'x_api_calls.json')).writeAsStringSync('{}');
     Directory(p.join(root, 'worker_progress')).createSync(recursive: true);
     Directory(p.join(root, 'worker_reports')).createSync(recursive: true);
-    File(p.join(root, 'worker_reports', 'worker1.json')).writeAsStringSync('{}');
+    File(p.join(root, 'worker_reports', 'worker1.json'))
+        .writeAsStringSync('{}');
     Directory(p.join(root, 'report')).createSync(recursive: true);
     File(p.join(root, 'report', TestReportDocument.resultsFileName))
         .writeAsBytesSync([1, 2, 3]);
-    File(p.join(root, 'report', 'index.html')).writeAsStringSync('<html></html>');
+    File(p.join(root, 'report', 'index.html'))
+        .writeAsStringSync('<html></html>');
     File(p.join(root, 'test_durations.json')).writeAsStringSync('{}');
     Directory(p.join(root, 'screenshots')).createSync(recursive: true);
     File(p.join(root, 'screenshots', 't_frames.json')).writeAsStringSync('{}');
