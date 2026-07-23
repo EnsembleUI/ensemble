@@ -76,7 +76,8 @@ class HtmlTestReporter {
       ),
     );
     TestReportDocument.cleanTransientArtifacts(root);
-    return p.join(display, 'report', TestReportDocument.resultsFileName)
+    return p
+        .join(display, 'report', TestReportDocument.resultsFileName)
         .replaceAll('\\', '/');
   }
 
@@ -107,7 +108,7 @@ class HtmlTestReporter {
       ..writeln('  <h1>Ensemble Test Runner</h1>')
       ..writeln('  <p class="subtitle">Test Suite Execution in Progress</p>')
       ..writeln(
-          '  <div class="loader-progress-info">Running declarative tests. This page updates automatically when results.json.gz is ready.</div>')
+          '  <div class="loader-progress-info">Running declarative tests. This page updates automatically when test results are ready.</div>')
       ..writeln('  <div class="skeleton-line-full"></div>')
       ..writeln('  <div class="skeleton-line-full"></div>')
       ..writeln('  <div class="skeleton-line-full"></div>')
@@ -138,7 +139,8 @@ class HtmlTestReporter {
       ..writeln('    </div>')
       ..writeln('    <div class="sort-wrapper">')
       ..writeln('      <span class="sort-label">Sort:</span>')
-      ..writeln('      <select id="sort-select" onchange="applySort()" class="sort-select">')
+      ..writeln(
+          '      <select id="sort-select" onchange="applySort()" class="sort-select">')
       ..writeln('        <option value="execution">Execution Order</option>')
       ..writeln('        <option value="alphabetical">Name (A-Z)</option>')
       ..writeln('        <option value="duration">Duration (Slowest)</option>')

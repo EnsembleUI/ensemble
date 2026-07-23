@@ -127,7 +127,7 @@ const ensembleHtmlTestReportAppJs = r'''
       }
       showLoading();
     } catch (e) {
-      showError('Waiting for results.json.gz… Serve the report folder over HTTP (e.g. Live Server).');
+      showError('Waiting for test results... Serve the report folder over HTTP (e.g. Live Server).');
     }
   }
 
@@ -400,8 +400,9 @@ const ensembleHtmlTestReportAppJs = r'''
         if (!nested) top++;
         const durationMs = (!nested && top < durations.length) ? durations[top] : null;
         const failed = !nested && test.failedStepIndex != null && test.failedStepIndex === top;
+        const skipped = !nested && test.failedStepIndex != null && top > test.failedStepIndex;
         const speedClass = durationMs == null ? 'fast' : (durationMs < 500 ? 'fast' : (durationMs < 2000 ? 'normal' : 'slow'));
-        html += '<div class="timeline-step-row' + (failed ? ' failed-step' : '') + '" style="cursor:pointer;" onclick="openStepDialog(\'' + stepKey + '\', ' + j + ')">';
+        html += '<div class="timeline-step-row' + (failed ? ' failed-step' : (skipped ? ' skipped-step' : '')) + '" style="cursor:pointer;" onclick="openStepDialog(\'' + stepKey + '\', ' + j + ')">';
         html += '<div class="timeline-marker"><span class="marker-dot"></span></div><div class="step-outline-body"><div class="step-outline-top-row">';
         html += '<div class="step-outline-text">' + formatStepText(line) + '</div>';
         if (durationMs != null) html += '<span class="step-duration ' + speedClass + '">' + escapeHtml(formatDuration(durationMs)) + '</span>';
@@ -412,9 +413,6 @@ const ensembleHtmlTestReportAppJs = r'''
       html += '</div></div>';
     }
 
-    if (!passed && test.message) {
-      html += '<pre class="error">' + escapeHtml(test.message) + '</pre>';
-    }
 
     html += renderTerminals(test);
     html += renderScreenshotGallery(test);

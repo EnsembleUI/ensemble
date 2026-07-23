@@ -320,6 +320,7 @@ body {
 /* Right Detail Pane */
 .test-detail-pane {
   flex: 1;
+  min-width: 0;
   background: var(--card);
   border: 1px solid var(--border);
   border-radius: 16px;
@@ -724,6 +725,17 @@ body {
   box-shadow: 0 0 8px var(--fail);
   animation: pulse 1.5s infinite;
 }
+.skipped-step .marker-dot {
+  background: rgba(255, 255, 255, 0.15);
+  box-shadow: none;
+}
+.skipped-step .step-outline-text {
+  color: var(--text-muted);
+  opacity: 0.55;
+}
+.skipped-step .step-outline-text .step-action {
+  color: var(--text-muted);
+}
 @keyframes pulse {
   0% { transform: scale(1); opacity: 1; }
   50% { transform: scale(1.3); opacity: 0.6; }
@@ -805,7 +817,7 @@ body {
 /* Terminal logs split pane styling */
 .logs-grid-container {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 16px;
   margin-top: 24px;
 }
@@ -906,18 +918,18 @@ body {
 }
 .screenshot-gallery {
   display: grid;
-  grid-template-columns: repeat(6, 1fr);
+  grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: 16px;
   margin-top: 12px;
 }
 @media (max-width: 1200px) {
   .screenshot-gallery {
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 }
 @media (max-width: 768px) {
   .screenshot-gallery {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 .screenshot-gallery-tile {
@@ -1035,17 +1047,17 @@ body {
 }
 .fullscreen-card-content-area.grid-layout {
   display: grid;
-  grid-template-columns: repeat(6, 1fr);
+  grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: 20px;
 }
 @media (max-width: 1200px) {
   .fullscreen-card-content-area.grid-layout {
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 }
 @media (max-width: 768px) {
   .fullscreen-card-content-area.grid-layout {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 .fullscreen-sheet-tile {
