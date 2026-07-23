@@ -70,8 +70,6 @@ class Carousel extends StatefulWidget
           _controller.indicatorMargin = Utils.getInsets(value),
       'indicatorPadding': (value) =>
           _controller.indicatorPadding = Utils.getInsets(value),
-      'indicatorSpacing': (value) =>
-          _controller.indicatorSpacing = Utils.optionalInt(value, min: 0),
       'indicatorColor': (value) =>
           _controller.indicatorColor = Utils.getColor(value),
       'currentIndex': (value) =>
@@ -179,7 +177,6 @@ class MyController extends BoxController {
   int? indicatorHeight;
   EdgeInsets? indicatorMargin;
   EdgeInsets? indicatorPadding;
-  int? indicatorSpacing;
   Color? indicatorColor;
   bool? autoplay;
   bool? enableLoop;
@@ -426,25 +423,14 @@ class CarouselState extends EWidgetState<Carousel>
             );
 
       final List<Widget> indicatorChildren = [];
-      final double indicatorSpacing =
-          (widget._controller.indicatorSpacing ?? 2).toDouble();
-      final Widget indicatorSpacer = isVertical
-          ? SizedBox(height: indicatorSpacing)
-          : SizedBox(width: indicatorSpacing);
 
       if (leadingIndicatorWidget != null) {
         indicatorChildren.add(leadingIndicatorWidget!);
-        if (indicators.isNotEmpty) {
-          indicatorChildren.add(indicatorSpacer);
-        }
       }
 
       indicatorChildren.add(indicatorRow);
 
       if (trailingIndicatorWidget != null) {
-        if (indicators.isNotEmpty) {
-          indicatorChildren.add(indicatorSpacer);
-        }
         indicatorChildren.add(trailingIndicatorWidget!);
       }
 

@@ -3461,10 +3461,6 @@
                       "$ref": "#/$defs/Padding-payload",
                       "description": "The padding around the indicator"
                     },
-                    "indicatorSpacing": {
-                      "type": "integer",
-                      "description": "The spacing between the side widgets and the indicator row or column"
-                    },
                     "indicatorLeadingWidget": {
                       "type": "object",
                       "description": "Widget displayed before the indicator row or column"
