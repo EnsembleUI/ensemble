@@ -91,6 +91,31 @@ class ReportJsonOptimizer {
       return out.isEmpty ? null : out;
     }
 
+    Map<String, dynamic> optimizeReport(Map<String, dynamic> report) {
+      final out = Map<String, dynamic>.from(report);
+      final screens = report['screens'];
+      if (screens is! Map || screens.isEmpty) return out;
+      final optimizedScreens = <String, dynamic>{};
+      screens.forEach((key, value) {
+        if (value is! Map) {
+          optimizedScreens[key.toString()] = value;
+          return;
+        }
+        final screen = Map<String, dynamic>.from(value);
+        if (screen['debugTree'] != null) {
+          screen['debugTree'] = alwaysIntern(screen['debugTree']);
+        }
+        if (screen['performance'] is Map) {
+          screen['performance'] = alwaysIntern(
+            Map<String, dynamic>.from(screen['performance'] as Map),
+          );
+        }
+        optimizedScreens[key.toString()] = screen;
+      });
+      out['screens'] = optimizedScreens;
+      return out;
+    }
+
     Map<String, dynamic> optimizeStep(Map<String, dynamic> step) {
       final text = step['stepText']?.toString() ?? '';
       final nested = text.startsWith('  ');
@@ -138,10 +163,6 @@ class ReportJsonOptimizer {
             if (s is Map) Map<String, dynamic>.from(s),
         ];
       }
-      final stepPerf = step['performance'];
-      if (stepPerf is Map && stepPerf.isNotEmpty) {
-        out['performance'] = maybeIntern(Map<String, dynamic>.from(stepPerf));
-      }
       return out;
     }
 
@@ -172,7 +193,9 @@ class ReportJsonOptimizer {
         out['failedStepIndex'] = test['failedStepIndex'];
       }
       if (test['report'] is Map) {
-        out['report'] = Map<String, dynamic>.from(test['report'] as Map);
+        out['report'] = optimizeReport(
+          Map<String, dynamic>.from(test['report'] as Map),
+        );
       }
 
       final storage = test['storage'];
@@ -185,14 +208,6 @@ class ReportJsonOptimizer {
             },
           };
         }
-      }
-
-      if (test['performance'] is Map) {
-        out['performance'] =
-            alwaysIntern(Map<String, dynamic>.from(test['performance'] as Map));
-      }
-      if (test['dumpTree'] != null) {
-        out['dumpTree'] = alwaysIntern(test['dumpTree']);
       }
 
       final steps = test['steps'];
@@ -290,7 +305,6 @@ class ReportJsonOptimizer {
               'appLogs': step['appLogs'] ?? const [],
               'storageChanges': step['storageChanges'] ?? const [],
               'screenshots': step['screenshots'] ?? const [],
-              'performance': step['performance'],
             };
             step.putIfAbsent('apiCalls', () => const []);
             step.putIfAbsent('appLogs', () => const []);
@@ -301,9 +315,6 @@ class ReportJsonOptimizer {
             step['appLogs'] = parentPayload['appLogs'];
             step['storageChanges'] = parentPayload['storageChanges'];
             step['screenshots'] = parentPayload['screenshots'];
-            if (parentPayload['performance'] != null) {
-              step['performance'] = parentPayload['performance'];
-            }
           } else {
             step['apiCalls'] = const [];
             step['appLogs'] = const [];

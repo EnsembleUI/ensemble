@@ -265,8 +265,7 @@ during the run, folded into `report/results.json.gz`, then deleted. What remains
 - `test_durations.json` (used to order the next run)
 
 When `performance` / `dumpTree` are enabled, those payloads are embedded **per
-test** in `results.json.gz` (`tests[].performance`, `tests[].dumpTree`, and
-step-scoped `tests[].steps[].performance`).
+screen** in `results.json.gz` under `tests[].report.screens`.
 
 ## Examples
 

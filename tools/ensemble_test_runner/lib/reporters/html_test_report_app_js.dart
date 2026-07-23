@@ -62,26 +62,22 @@ const ensembleHtmlTestReportAppJs = r'''
             apiCalls: step.apiCalls || [],
             appLogs: step.appLogs || [],
             storageChanges: step.storageChanges || [],
-            screenshots: step.screenshots || [],
-            performance: step.performance || null
+            screenshots: step.screenshots || []
           };
           step.apiCalls = parent.apiCalls;
           step.appLogs = parent.appLogs;
           step.storageChanges = parent.storageChanges;
           step.screenshots = parent.screenshots;
-          step.performance = parent.performance;
         } else if (parent) {
           step.apiCalls = parent.apiCalls;
           step.appLogs = parent.appLogs;
           step.storageChanges = parent.storageChanges;
           step.screenshots = parent.screenshots;
-          step.performance = parent.performance;
         } else {
           step.apiCalls = [];
           step.appLogs = [];
           step.storageChanges = [];
           step.screenshots = [];
-          step.performance = null;
         }
         steps[i] = step;
       }
@@ -368,13 +364,11 @@ const ensembleHtmlTestReportAppJs = r'''
     html += '</p>';
 
     const report = test.report || {};
-    html += '<div class="meta-dashboard-rail">';
-    if (report.session) html += '<div class="rail-item"><div class="rail-label">Session</div><div class="rail-val">' + escapeHtml(report.session) + '</div></div>';
-    if (report.startScreen) html += '<div class="rail-item"><div class="rail-label">Start Screen</div><div class="rail-val highlight">' + escapeHtml(report.startScreen) + '</div></div>';
-    if (report.endScreen && report.endScreen !== report.startScreen) {
-      html += '<div class="rail-item"><div class="rail-label">End Screen</div><div class="rail-val highlight">' + escapeHtml(report.endScreen) + '</div></div>';
+    if (report.session) {
+      html += '<div class="meta-dashboard-rail">';
+      html += '<div class="rail-item"><div class="rail-label">Session</div><div class="rail-val">' + escapeHtml(report.session) + '</div></div>';
+      html += '</div>';
     }
-    html += '</div>';
 
     const visited = report.screensVisited || [];
     if (visited.length > 0) {
@@ -502,16 +496,16 @@ const ensembleHtmlTestReportAppJs = r'''
     try { storageContent = JSON.stringify(keys, null, 2); } catch (e) { storageContent = String(keys); }
 
     let html = '<div class="logs-grid-container">';
-    html += '<div class="logs-card-pane"><div class="logs-pane-title"><span>📝 Actions & Console Logs <span class="raw-label">(appLogs)</span></span>';
+    html += '<div class="logs-card-pane"><div class="logs-pane-title"><span>📝 Actions & Console Logs</span>';
     html += '<button class="fullscreen-sheet-btn" onclick="openFullscreenCard(this, \'logs\')">⛶ Open Fullscreen</button></div>';
     html += '<div class="logs-terminal">' + renderConsoleRows(consoleLines) + '</div></div>';
 
-    html += '<div class="logs-card-pane"><div class="logs-pane-title"><span>🌐 Network API Logs <span class="raw-label">(apiCalls)</span></span>';
+    html += '<div class="logs-card-pane"><div class="logs-pane-title"><span>🌐 Network API Logs</span>';
     html += '<button class="fullscreen-sheet-btn" onclick="openFullscreenCard(this, \'apis\')">⛶ Open Fullscreen</button></div>';
     html += '<div class="logs-terminal">' + renderApiRows(events) + '</div></div></div>';
 
     if (Object.keys(keys).length > 0) {
-      html += '<div class="logs-grid-container" style="margin-top:16px;"><div class="logs-card-pane" style="grid-column:1/-1;"><div class="logs-pane-title"><span>💾 Local State Storage <span class="raw-label">(storage)</span></span>';
+      html += '<div class="logs-grid-container" style="margin-top:16px;"><div class="logs-card-pane" style="grid-column:1/-1;"><div class="logs-pane-title"><span>💾 Local State Storage</span>';
       html += '<button class="fullscreen-sheet-btn" onclick="openFullscreenCard(this, \'storage\')">⛶ Open Fullscreen</button></div>';
       html += '<div class="logs-terminal"><div class="terminal-row">' + escapeHtml(storageContent) + '</div></div></div></div>';
     }
@@ -522,7 +516,7 @@ const ensembleHtmlTestReportAppJs = r'''
     const frames = flattenStepField(test, 'screenshots');
     if (!frames.length) return '';
     let html = '<div class="screenshot-artifacts-row"><div class="artifact screenshot-artifact-card">';
-    html += '<div class="logs-pane-title" style="border:none;padding:0 0 12px 0;"><span style="font-weight:800;font-size:0.8rem;text-transform:uppercase;color:var(--accent);letter-spacing:0.08em;">🖼️ Screenshots <span class="raw-label">(screenshots)</span></span>';
+    html += '<div class="logs-pane-title" style="border:none;padding:0 0 12px 0;"><span style="font-weight:800;font-size:0.8rem;text-transform:uppercase;color:var(--accent);letter-spacing:0.08em;">🖼️ Screenshots</span>';
     html += '<button class="fullscreen-sheet-btn" onclick="openFullscreenCard(this, \'screenshots\')">⛶ Open Fullscreen</button></div>';
     html += '<div class="screenshot-gallery">';
     frames.forEach((frame, idx) => {
@@ -537,60 +531,6 @@ const ensembleHtmlTestReportAppJs = r'''
       html += '</div></figure>';
     });
     html += '</div></div></div>';
-    return html;
-  }
-
-  function renderTestPerformance(test) {
-    const perf = test.performance;
-    if (!perf) return '';
-    const summary = perf.summary || {};
-    let html = '<div class="suite-panel suite-performance-panel" style="padding:0;margin:24px 0 0;">';
-    html += '<div class="suite-panel-header"><h2>⚡ Performance</h2>';
-    html += '<p class="suite-panel-sub">Frame timing for this test case (also available per step in Step Details)</p></div>';
-    html += '<div class="suite-panel-card-body" style="padding:0;">';
-    html += '<div class="perf-metrics-grid">';
-    html += perfMetric('Frames', summary.totalFrames != null ? summary.totalFrames : perf.totalFrames);
-    html += perfMetric('Janky', summary.jankyFrames != null ? summary.jankyFrames : perf.jankyFrames);
-    const avgBuild = summary.averageBuildMs != null ? summary.averageBuildMs : perf.averageBuildMs;
-    const maxSpan = summary.maxTotalSpanMs != null ? summary.maxTotalSpanMs : perf.maxTotalSpanMs;
-    if (avgBuild != null) html += perfMetric('Avg build', formatDuration(Math.round(avgBuild)));
-    if (maxSpan != null) html += perfMetric('Max span', formatDuration(Math.round(maxSpan)));
-    html += '</div>';
-    if (summary.worstStep) html += '<p class="perf-callout"><strong>Worst step:</strong> ' + escapeHtml(String(summary.worstStep)) + '</p>';
-    if (summary.worstScreen) html += '<p class="perf-callout"><strong>Worst screen:</strong> ' + escapeHtml(String(summary.worstScreen)) + '</p>';
-    const worstSteps = perf.worstSteps || [];
-    if (worstSteps.length) {
-      html += '<div class="perf-table-wrap"><div class="perf-table-title">Worst steps</div><table class="perf-table"><thead><tr><th>Step</th><th>Screen</th><th>Janky</th><th>Max span</th></tr></thead><tbody>';
-      worstSteps.slice(0, 8).forEach(row => {
-        html += '<tr><td>' + escapeHtml(row.step || '') + '</td>';
-        html += '<td>' + escapeHtml(row.screen || '') + '</td>';
-        html += '<td>' + (row.jankyFrames || 0) + '/' + (row.totalFrames || 0) + '</td>';
-        html += '<td>' + formatDuration(Math.round(row.maxTotalSpanMs || 0)) + '</td></tr>';
-      });
-      html += '</tbody></table></div>';
-    }
-    html += '</div></div>';
-    return html;
-  }
-
-  function perfMetric(label, value) {
-    if (value == null || value === '') return '';
-    return '<div class="perf-metric"><div class="perf-metric-val">' + escapeHtml(String(value)) + '</div><div class="perf-metric-label">' + escapeHtml(label) + '</div></div>';
-  }
-
-  function renderTestDumpTree(test) {
-    if (!test.dumpTree) return '';
-    let text = String(test.dumpTree);
-    const lines = text.split('\n').length;
-    const maxChars = 12000;
-    const truncated = text.length > maxChars;
-    if (truncated) text = text.substring(0, maxChars) + '\n\n… truncated (' + lines + ' lines). Full dump is in results.json.gz.';
-    let html = '<div class="suite-panel suite-dumptree-panel" style="padding:0;margin:24px 0 0;">';
-    html += '<details class="suite-panel-card" open>';
-    html += '<summary><span class="suite-panel-card-title">🌳 Widget Tree Dump</span>';
-    html += '<span class="suite-panel-card-meta">' + lines + ' lines' + (truncated ? ' · preview' : '') + '</span></summary>';
-    html += '<div class="suite-panel-card-body"><pre class="artifact-embedded dump-tree-pre">' + escapeHtml(text) + '</pre></div>';
-    html += '</details></div>';
     return html;
   }
 
@@ -779,38 +719,6 @@ const ensembleHtmlTestReportAppJs = r'''
           shotsList.appendChild(card);
         }
       });
-    }
-
-    const perfList = document.getElementById('modal-perf-list');
-    const stepPerf = data.performance || null;
-    const slowest = (stepPerf && stepPerf.slowestFrames) || [];
-    const perfCount = stepPerf ? (stepPerf.totalFrames || slowest.length || 0) : 0;
-    document.getElementById('modal-perf-count').textContent = perfCount;
-    if (!perfList) {
-      // Older shells without the performance tab.
-    } else if (!stepPerf || !perfCount) {
-      perfList.innerHTML = '<div class="terminal-row" style="color: var(--text-muted);">&lt;no performance data for this step&gt;</div>';
-    } else {
-      let html = '<div class="perf-metrics-grid" style="margin-bottom:12px;">';
-      html += perfMetric('Frames', stepPerf.totalFrames);
-      html += perfMetric('Janky', stepPerf.jankyFrames);
-      if (stepPerf.maxTotalSpanMs != null) html += perfMetric('Max span', formatDuration(Math.round(stepPerf.maxTotalSpanMs)));
-      html += '</div>';
-      const screens = stepPerf.screens || [];
-      if (screens.length) {
-        html += '<p class="perf-callout"><strong>Screens:</strong> ' + escapeHtml(screens.join(' → ')) + '</p>';
-      }
-      if (slowest.length) {
-        html += '<div class="perf-table-wrap"><div class="perf-table-title">Slowest frames</div><table class="perf-table"><thead><tr><th>#</th><th>Screen</th><th>Phase</th><th>Total</th></tr></thead><tbody>';
-        slowest.forEach(frame => {
-          html += '<tr><td>' + escapeHtml(String(frame.frameNumber != null ? frame.frameNumber : '')) + '</td>';
-          html += '<td>' + escapeHtml(frame.screen || '') + '</td>';
-          html += '<td>' + escapeHtml(frame.phase || '') + '</td>';
-          html += '<td>' + formatDuration(Math.round(frame.totalSpanMs || 0)) + '</td></tr>';
-        });
-        html += '</tbody></table></div>';
-      }
-      perfList.innerHTML = html;
     }
 
     switchModalTab(activeModalTab);

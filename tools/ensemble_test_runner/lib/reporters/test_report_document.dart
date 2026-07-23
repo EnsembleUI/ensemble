@@ -130,7 +130,8 @@ class TestReportDocument {
           ref.label == 'results' ||
           ref.label == 'appPerformance' ||
           ref.label == 'dumpTree') {
-        // Performance / dumpTree are embedded per test, not as suite links.
+        // htmlReport/results are top-level links; appPerformance/dumpTree are
+        // screen-scoped inside each test report (legacy suite labels ignored).
         continue;
       }
 
@@ -159,9 +160,6 @@ class TestReportDocument {
     final apiEvents = _readApiEvents(artifacts, artifactRoot, displayRoot);
     final storage = _readStorage(artifacts, artifactRoot, displayRoot);
     final frames = _readScreenshotFrames(artifacts, artifactRoot, displayRoot);
-    final performance =
-        _readPerformance(artifacts, artifactRoot, displayRoot);
-    final dumpTree = _readDumpTree(artifacts, artifactRoot, displayRoot);
     final report = test.report;
 
     final steps = report == null
@@ -180,12 +178,7 @@ class TestReportDocument {
             screenshotFrames: frames,
           );
 
-    if (performance != null) {
-      _attachStepPerformance(steps, performance);
-    }
-
-    // Store payloads once under `steps` (Step Details + flatten for end-of-test
-    // panels). Avoid duplicating api/console/screenshots at the test root.
+    // Performance / dumpTree live under report.screens only.
     // Keep end-of-test storage keys snapshot only (diffs live in steps).
     return {
       'id': test.testId,
@@ -204,114 +197,8 @@ class TestReportDocument {
             ? Map<String, dynamic>.from(storage['keys'] as Map)
             : <String, dynamic>{},
       },
-      if (performance != null) 'performance': _compactPerformance(performance),
-      if (dumpTree != null) 'dumpTree': dumpTree,
       'steps': steps,
     };
-  }
-
-  static Map<String, dynamic>? _readPerformance(
-    List<_ArtifactRef> artifacts,
-    String artifactRoot,
-    String displayRoot,
-  ) {
-    final ref = _first(artifacts, 'appPerformance');
-    if (ref == null) return null;
-    final fsPath = filesystemPath(ref.path,
-        artifactRoot: artifactRoot, displayRoot: displayRoot);
-    if (fsPath == null || !File(fsPath).existsSync()) return null;
-    try {
-      final decoded = json.decode(File(fsPath).readAsStringSync());
-      if (decoded is Map) return Map<String, dynamic>.from(decoded);
-    } catch (_) {}
-    return null;
-  }
-
-  static String? _readDumpTree(
-    List<_ArtifactRef> artifacts,
-    String artifactRoot,
-    String displayRoot,
-  ) {
-    final ref = _first(artifacts, 'dumpTree');
-    if (ref == null) return null;
-    final fsPath = filesystemPath(ref.path,
-        artifactRoot: artifactRoot, displayRoot: displayRoot);
-    if (fsPath == null || !File(fsPath).existsSync()) return null;
-    return File(fsPath).readAsStringSync();
-  }
-
-  /// Drop full frame list from the test-root payload (frames live on steps).
-  static Map<String, dynamic> _compactPerformance(Map<String, dynamic> perf) {
-    return {
-      for (final e in perf.entries)
-        if (e.key != 'frames') e.key: e.value,
-    };
-  }
-
-  /// Attach step/screen-scoped performance onto each non-nested step.
-  static void _attachStepPerformance(
-    List<Map<String, dynamic>> steps,
-    Map<String, dynamic> performance,
-  ) {
-    final frames = (performance['frames'] as List?)
-            ?.whereType<Map>()
-            .map((e) => Map<String, dynamic>.from(e))
-            .toList() ??
-        const <Map<String, dynamic>>[];
-    final worstSteps = (performance['worstSteps'] as List?)
-            ?.whereType<Map>()
-            .map((e) => Map<String, dynamic>.from(e))
-            .toList() ??
-        const <Map<String, dynamic>>[];
-
-    var topLevel = -1;
-    for (final step in steps) {
-      final text = step['stepText']?.toString() ?? '';
-      final nested = text.startsWith('  ');
-      if (nested) continue;
-      topLevel++;
-      final stepFrames = [
-        for (final frame in frames)
-          if (frame['stepIndex'] == topLevel) frame,
-      ];
-      final matchedWorst = [
-        for (final row in worstSteps)
-          if (row['stepIndex'] == topLevel) row,
-      ];
-      if (stepFrames.isEmpty && matchedWorst.isEmpty) continue;
-
-      final janky = stepFrames.where((f) => f['janky'] == true).length;
-      double maxSpan = 0;
-      for (final frame in stepFrames) {
-        final span = frame['totalSpanMs'];
-        final value = span is num ? span.toDouble() : 0.0;
-        if (value > maxSpan) maxSpan = value;
-      }
-      step['performance'] = {
-        'stepIndex': topLevel,
-        'totalFrames': stepFrames.length,
-        'jankyFrames': janky,
-        if (maxSpan > 0) 'maxTotalSpanMs': maxSpan,
-        if (matchedWorst.isNotEmpty) 'worst': matchedWorst.first,
-        'slowestFrames': stepFrames.length <= 10
-            ? stepFrames
-            : (List<Map<String, dynamic>>.from(stepFrames)
-                  ..sort((a, b) {
-                    final av = a['totalSpanMs'];
-                    final bv = b['totalSpanMs'];
-                    final an = av is num ? av.toDouble() : 0;
-                    final bn = bv is num ? bv.toDouble() : 0;
-                    return bn.compareTo(an);
-                  }))
-                .take(10)
-                .toList(),
-        if (stepFrames.isNotEmpty)
-          'screens': {
-            for (final frame in stepFrames)
-              if (frame['screen'] != null) frame['screen'].toString(),
-          }.toList(),
-      };
-    }
   }
 
   static List<String> _readConsole(

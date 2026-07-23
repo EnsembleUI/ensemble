@@ -1334,7 +1334,7 @@ class EnsembleTestRunner {
     }
   }
 
-  /// Writes apiCalls / storage / appLogs / performance / dumpTree for one test.
+  /// Writes apiCalls / storage / appLogs for one test.
   Future<void> _attachPerTestDebugArtifacts(EnsembleTestContext ctx) async {
     // Isolate each writer so one JSON encoding failure cannot drop the rest
     // (failed tests are when these logs matter most).
@@ -1357,24 +1357,6 @@ class EnsembleTestRunner {
       _replaceArtifactLog(ctx.logger, 'appLogs', appLogPath);
     } catch (error) {
       ctx.logger.log('appLogsError: $error');
-    }
-
-    if (ctx.config.performance.enabled) {
-      try {
-        final path = await writeAppPerformanceLog(ctx);
-        _replaceArtifactLog(ctx.logger, 'appPerformance', path);
-      } catch (error) {
-        ctx.logger.log('appPerformanceError: $error');
-      }
-    }
-
-    if (ctx.config.dumpTree.enabled) {
-      try {
-        final path = await writeDumpTreeLog(ctx);
-        _replaceArtifactLog(ctx.logger, 'dumpTree', path);
-      } catch (error) {
-        ctx.logger.log('dumpTreeError: $error');
-      }
     }
   }
 

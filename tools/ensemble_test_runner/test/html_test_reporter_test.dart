@@ -424,48 +424,8 @@ void main() {
     expect((complete['tests'] as List).first['id'], 't1');
   });
 
-  test('embeds dumpTree and appPerformance per test into results.json.gz', () {
+  test('embeds dumpTree and appPerformance per screen into results.json.gz', () {
     const displayRoot = 'build/ensemble_test_runner';
-    final logsDir = Directory(p.join(tempDir.path, 'logs'))
-      ..createSync(recursive: true);
-    File(p.join(logsDir.path, 't1_app_performance.json')).writeAsStringSync(
-      jsonEncode({
-        'summary': {
-          'totalFrames': 2,
-          'jankyFrames': 1,
-          'worstStep': 'tap(a)',
-          'worstScreen': 'Home',
-        },
-        'worstSteps': [
-          {
-            'step': 'tap(a)',
-            'stepIndex': 0,
-            'screen': 'Home',
-            'totalFrames': 2,
-            'jankyFrames': 1,
-            'maxTotalSpanMs': 22,
-          },
-        ],
-        'frames': [
-          {
-            'frameNumber': 1,
-            'stepIndex': 0,
-            'screen': 'Home',
-            'totalSpanMs': 8,
-            'janky': false,
-          },
-          {
-            'frameNumber': 2,
-            'stepIndex': 0,
-            'screen': 'Home',
-            'totalSpanMs': 22,
-            'janky': true,
-          },
-        ],
-      }),
-    );
-    File(p.join(logsDir.path, 't1_dump_tree.txt'))
-        .writeAsStringSync('MaterialApp\n  Scaffold\n');
 
     final reporter = HtmlTestReporter();
     reporter.write(
@@ -474,14 +434,29 @@ void main() {
           EnsembleSingleTestResult.passed(
             testId: 't1',
             durationMs: 10,
-            logs: const [
-              'appPerformance: $displayRoot/logs/t1_app_performance.json',
-              'dumpTree: $displayRoot/logs/t1_dump_tree.txt',
-            ],
-            report: const EnsembleTestReportDetails(
+            report: EnsembleTestReportDetails(
               startScreen: 'Home',
-              stepsOutline: ['tap(a)'],
-              stepDurationsMs: [10],
+              screensVisited: const ['Home', 'Login'],
+              stepsOutline: const ['tap(a)'],
+              stepDurationsMs: const [10],
+              screens: {
+                'Home': {
+                  'debugTree': 'MaterialApp\n  Scaffold\n',
+                  'performance': {
+                    'screen': 'Home',
+                    'totalFrames': 2,
+                    'jankyFrames': 1,
+                  },
+                },
+                'Login': {
+                  'debugTree': 'LoginForm\n',
+                  'performance': {
+                    'screen': 'Login',
+                    'totalFrames': 1,
+                    'jankyFrames': 0,
+                  },
+                },
+              },
             ),
           ),
         ],
@@ -490,26 +465,25 @@ void main() {
       displayRoot: displayRoot,
     );
 
-    expect(Directory(p.join(tempDir.path, 'logs')).existsSync(), isFalse);
-
     final doc = TestReportDocument.readResults(
       Directory(p.join(tempDir.path, 'report')),
     );
-    expect(doc['suiteArtifacts'] ?? [], isEmpty);
     final test = (doc['tests'] as List).single as Map<String, dynamic>;
-    expect(test['performance']['summary']['totalFrames'], 2);
-    expect(test['performance'].containsKey('frames'), isFalse);
-    expect(test['dumpTree'], contains('MaterialApp'));
-    final step = (test['steps'] as List).single as Map<String, dynamic>;
-    expect(step['performance']['totalFrames'], 2);
-    expect(step['performance']['jankyFrames'], 1);
-    expect(step['performance']['screens'], ['Home']);
+    expect(test.containsKey('performance'), isFalse);
+    expect(test.containsKey('dumpTree'), isFalse);
+    final screens =
+        (test['report'] as Map)['screens'] as Map<String, dynamic>;
+    expect(screens['Home']['debugTree'], contains('MaterialApp'));
+    expect(screens['Home']['performance']['totalFrames'], 2);
+    expect(screens['Login']['debugTree'], contains('LoginForm'));
+    expect(screens['Login']['performance']['totalFrames'], 1);
 
     final html = File(p.join(tempDir.path, 'report', 'index.html'))
         .readAsStringSync();
-    expect(html, contains('renderTestPerformance'));
-    expect(html, contains('renderTestDumpTree'));
-    expect(html, contains('modal-tab-performance'));
+    expect(html, contains('openScreenDialog'));
+    expect(html, isNot(contains('renderTestPerformance')));
+    expect(html, isNot(contains('renderTestDumpTree')));
+    expect(html, isNot(contains('modal-tab-performance')));
   });
 
   test('cleanTransientArtifacts keeps report, PNGs, and durations', () {

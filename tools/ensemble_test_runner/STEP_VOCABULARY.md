@@ -66,9 +66,9 @@ steps:
 
 Editor validation: `https://cdn.ensembleui.com/schemas/ensemble_tests_schema.json` (committed copy at [`assets/schema/ensemble_tests_schema.json`](assets/schema/ensemble_tests_schema.json), regenerate with `dart run tool/generate_schema.dart`). Arg shapes come from [`TestStepArgKind`](lib/vocabulary/test_step_arg_kind.dart) on each [`TestStepRegistryEntry`](lib/vocabulary/test_step_registry.dart).
 
-Performance logging writes Flutter app frame timing metrics to
-`build/ensemble_test_runner/logs/app_performance.json`. Enable it once for the
-full suite in `tests/config.yaml`:
+Performance logging captures Flutter frame timing **per screen** into
+`results.json.gz` (`tests[].report.screens`). Enable it once for the full suite
+in `tests/config.yaml`:
 
 ```yaml
 performance:
@@ -86,7 +86,7 @@ timers:
 ```
 
 `dumpTree` and `performance` are suite-level **config** flags; when enabled
-they emit **per-test** payloads (and step-scoped performance) folded into
+they emit **per-screen** payloads under `report.screens` in
 `results.json.gz`. `logApiCalls` and `logStorage` likewise attach **per-test**
 data to each test result / HTML card:
 
