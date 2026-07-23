@@ -1,6 +1,7 @@
 import 'package:ensemble/framework/screen_tracker.dart';
 import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
 import 'package:ensemble_test_runner/reporters/step_outline_format.dart';
+import 'package:ensemble_test_runner/runner/test_artifacts.dart';
 import 'package:ensemble_test_runner/runner/yaml_test_session.dart';
 
 export 'package:ensemble_test_runner/reporters/step_outline_format.dart';
@@ -108,10 +109,11 @@ class TestReporter {
       _writeTestCase(buffer, r);
     }
 
-    if (result.suiteLogs.isNotEmpty) {
+    final suiteArtifacts = durableArtifactLogs(result.suiteLogs).toList();
+    if (suiteArtifacts.isNotEmpty) {
       buffer.writeln('│');
       buffer.writeln('│  suite artifacts:');
-      for (final log in result.suiteLogs) {
+      for (final log in suiteArtifacts) {
         buffer.writeln('│       $log');
       }
     }
@@ -218,9 +220,10 @@ class TestReporter {
       }
     }
 
-    if (r.logs.isNotEmpty) {
+    final artifacts = durableArtifactLogs(r.logs).toList();
+    if (artifacts.isNotEmpty) {
       buffer.writeln('│     artifacts:');
-      for (final log in r.logs) {
+      for (final log in artifacts) {
         buffer.writeln('│          $log');
       }
     }

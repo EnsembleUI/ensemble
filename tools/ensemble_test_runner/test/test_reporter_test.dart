@@ -153,7 +153,7 @@ void main() {
       expect(output, contains('attempts: 2/4'));
     });
 
-    test('prints step logs', () {
+    test('omits transient sidecar paths folded into the HTML report', () {
       final output = TestReporter().formatSummary(
         EnsembleTestRunResult(
           results: [
@@ -162,23 +162,33 @@ void main() {
               durationMs: 42,
               logs: const [
                 'apiCalls: build/ensemble_test_runner/logs/api_log_test_api_calls.json',
+                'storage: build/ensemble_test_runner/logs/api_log_test_storage.json',
+                'appLogs: build/ensemble_test_runner/logs/api_log_test_app_console.log',
+                'screenshots: build/ensemble_test_runner/screenshots/api_log_test_frames.json',
+                'screenshotFrames: build/ensemble_test_runner/screenshots/api_log_test_frames.json',
                 'dumpTree: build/ensemble_test_runner/logs/api_log_test_dump_tree.txt',
               ],
             ),
           ],
+          suiteLogs: const [
+            'htmlReport: build/ensemble_test_runner/report/index.html',
+            'results: build/ensemble_test_runner/report/results.json.gz',
+            'appPerformance: build/ensemble_test_runner/logs/app_performance.json',
+          ],
         ),
       );
 
-      expect(output, contains('artifacts:'));
-      expect(
-          output,
-          contains(
-              'apiCalls: build/ensemble_test_runner/logs/api_log_test_api_calls.json'));
-      expect(output, contains('dumpTree:'));
-      expect(output, isNot(contains('MaterialApp')));
+      expect(output, isNot(contains('│     artifacts:')));
+      expect(output, isNot(contains('apiCalls:')));
+      expect(output, isNot(contains('appLogs:')));
+      expect(output, isNot(contains('screenshotFrames:')));
+      expect(output, isNot(contains('appPerformance:')));
+      expect(output, contains('suite artifacts:'));
+      expect(output, contains('htmlReport:'));
+      expect(output, contains('results:'));
     });
 
-    test('prints suite logs separately from test logs', () {
+    test('prints durable suite logs separately from test logs', () {
       final output = TestReporter().formatSummary(
         EnsembleTestRunResult(
           results: [
@@ -188,7 +198,8 @@ void main() {
             ),
           ],
           suiteLogs: const [
-            'appPerformance: build/ensemble_test_runner/logs/app_performance.json',
+            'htmlReport: build/ensemble_test_runner/report/index.html',
+            'results: build/ensemble_test_runner/report/results.json.gz',
           ],
         ),
       );
@@ -196,9 +207,11 @@ void main() {
       expect(output, contains('suite artifacts:'));
       expect(
         output,
-        contains(
-          'appPerformance: build/ensemble_test_runner/logs/app_performance.json',
-        ),
+        contains('htmlReport: build/ensemble_test_runner/report/index.html'),
+      );
+      expect(
+        output,
+        contains('results: build/ensemble_test_runner/report/results.json.gz'),
       );
     });
 

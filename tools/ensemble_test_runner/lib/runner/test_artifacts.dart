@@ -42,3 +42,31 @@ String screenshotFramesManifestDisplayPath(String sheetOrFramesDisplayPath) {
   }
   return '${normalized}_frames.json';
 }
+
+/// Labels for sidecars folded into `results.json.gz` then deleted from disk.
+///
+/// CLI summaries should not print these — the paths no longer exist after
+/// [TestReportDocument.cleanTransientArtifacts].
+bool isTransientArtifactLog(String log) {
+  final separator = log.indexOf(':');
+  if (separator <= 0) return false;
+  final label = log.substring(0, separator).trim();
+  if (label.startsWith('storage[')) return true;
+  if (label.endsWith('Error')) return true;
+  switch (label) {
+    case 'apiCalls':
+    case 'storage':
+    case 'appLogs':
+    case 'screenshots':
+    case 'screenshotFrames':
+    case 'dumpTree':
+    case 'appPerformance':
+      return true;
+    default:
+      return false;
+  }
+}
+
+/// Durable suite/report links kept after transient cleanup.
+Iterable<String> durableArtifactLogs(Iterable<String> logs) =>
+    logs.where((log) => !isTransientArtifactLog(log));

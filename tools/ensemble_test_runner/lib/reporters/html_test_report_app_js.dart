@@ -5,6 +5,7 @@ const ensembleHtmlTestReportAppJs = r'''
   let pollTimer = null;
   let renderedComplete = false;
   let activeFilter = 'all';
+  let activeSort = 'execution';
   let activeModalTab = 'api';
   let currentModalCardId = '';
   let currentModalStepIndex = -1;
@@ -178,6 +179,8 @@ const ensembleHtmlTestReportAppJs = r'''
 
     renderSuiteArtifacts(report.suiteArtifacts || []);
 
+    window.currentReport = report;
+
     const grouped = {};
     const groupedKeys = [];
     tests.forEach(t => {
@@ -188,6 +191,22 @@ const ensembleHtmlTestReportAppJs = r'''
       }
       grouped[base].push(t);
     });
+
+    if (activeSort === 'alphabetical') {
+      groupedKeys.sort((a, b) => a.localeCompare(b));
+    } else if (activeSort === 'duration') {
+      groupedKeys.sort((a, b) => {
+        const maxA = Math.max(...grouped[a].map(t => t.durationMs || 0));
+        const maxB = Math.max(...grouped[b].map(t => t.durationMs || 0));
+        return maxB - maxA;
+      });
+    } else if (activeSort === 'status') {
+      groupedKeys.sort((a, b) => {
+        const failedA = grouped[a].some(t => t.status === 'failed') ? 1 : 0;
+        const failedB = grouped[b].some(t => t.status === 'failed') ? 1 : 0;
+        return failedB - failedA;
+      });
+    }
 
     window.stepData = {};
     const listPane = document.getElementById('test-list-pane');
@@ -223,6 +242,7 @@ const ensembleHtmlTestReportAppJs = r'''
     const first = runs[0];
     const hasPending = runs.some(r => r.status === 'pending');
     const groupPassed = runs.every(r => r.status === 'passed');
+    const maxDurationMs = Math.max(...runs.map(r => r.durationMs || 0));
     const cardId = anchorId(first.id);
     const statusClass = hasPending ? 'pending' : (groupPassed ? 'passed' : 'failed');
     const el = document.createElement('article');
@@ -234,7 +254,7 @@ const ensembleHtmlTestReportAppJs = r'''
         badges += '<span class="card-device-badge">' + escapeHtml(String(run.deviceBadge).toUpperCase()) + '</span>';
       }
     });
-    el.innerHTML = '<div class="card-status-dot"></div><div class="card-info"><div class="card-title">' + escapeHtml(base) + '</div><div class="card-meta"><span class="card-duration">' + formatDuration(first.durationMs) + '</span>' + badges + '</div></div>';
+    el.innerHTML = '<div class="card-status-dot"></div><div class="card-info"><div class="card-title">' + escapeHtml(base) + '</div><div class="card-meta"><span class="card-duration">' + formatDuration(maxDurationMs) + '</span>' + badges + '</div></div>';
     el.onclick = function() {
       document.querySelectorAll('.test').forEach(c => c.classList.remove('active'));
       el.classList.add('active');
@@ -510,6 +530,17 @@ const ensembleHtmlTestReportAppJs = r'''
     applySearchFilter();
   }
 
+  function applySort() {
+    const select = document.getElementById('sort-select');
+    if (select) {
+      activeSort = select.value;
+    }
+    if (window.currentReport) {
+      renderComplete(window.currentReport);
+      applySearchFilter();
+    }
+  }
+
   // --- Step modal (retargeted to window.stepData) ---
   function getStorageStateAtStep(cardId, targetStepIndex) {
     const deviceData = window.stepData && window.stepData[cardId];
@@ -752,7 +783,6 @@ const ensembleHtmlTestReportAppJs = r'''
     let text;
     if (typeof value === 'string') text = value;
     else { try { text = JSON.stringify(value); } catch (e) { text = String(value); } }
-    if (text.length > 120) return text.substring(0, 117) + '...';
     return text;
   }
 

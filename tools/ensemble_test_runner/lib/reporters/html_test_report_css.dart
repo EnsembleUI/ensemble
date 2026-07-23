@@ -174,6 +174,39 @@ body {
   border-color: var(--accent);
   color: #000;
 }
+.sort-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.sort-label {
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  letter-spacing: 0.05em;
+}
+.sort-select {
+  background: rgba(0, 0, 0, 0.45);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: #fff;
+  padding: 6px 12px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  outline: none;
+  cursor: pointer;
+  font-family: var(--font-ui);
+  transition: all 0.2s ease;
+}
+.sort-select:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: var(--accent);
+}
+.sort-select option {
+  background: #0f172a;
+  color: #fff;
+}
 
 /* Collapsible Suite Artifacts */
 .suite-artifacts-container {
