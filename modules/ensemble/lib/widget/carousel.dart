@@ -70,6 +70,8 @@ class Carousel extends StatefulWidget
           _controller.indicatorMargin = Utils.getInsets(value),
       'indicatorPadding': (value) =>
           _controller.indicatorPadding = Utils.getInsets(value),
+      'indicatorSpacing': (value) =>
+          _controller.indicatorSpacing = Utils.optionalInt(value, min: 0),
       'indicatorColor': (value) =>
           _controller.indicatorColor = Utils.getColor(value),
       'currentIndex': (value) =>
@@ -85,6 +87,10 @@ class Carousel extends StatefulWidget
       'indicatorWidget': (widget) => _controller.indicatorWidget = widget,
       'selectedIndicatorWidget': (widget) =>
           _controller.selectedIndicatorWidget = widget,
+      'indicatorLeadingWidget': (widget) =>
+          _controller.indicatorLeadingWidget = widget,
+      'indicatorTrailingWidget': (widget) =>
+          _controller.indicatorTrailingWidget = widget,
       'aspectRatio': (value) =>
           _controller.aspectRatio = Utils.optionalDouble(value),
       'autoPlayAnimationDuration': (value) =>
@@ -173,6 +179,7 @@ class MyController extends BoxController {
   int? indicatorHeight;
   EdgeInsets? indicatorMargin;
   EdgeInsets? indicatorPadding;
+  int? indicatorSpacing;
   Color? indicatorColor;
   bool? autoplay;
   bool? enableLoop;
@@ -192,6 +199,8 @@ class MyController extends BoxController {
   // Custom Widget
   dynamic indicatorWidget;
   dynamic selectedIndicatorWidget;
+  dynamic indicatorLeadingWidget;
+  dynamic indicatorTrailingWidget;
 
   // for single view the current item index is dispatched,
   // for multi view this dispatch when clicking on a card
@@ -213,6 +222,8 @@ class CarouselState extends EWidgetState<Carousel>
 
   Widget? customIndicator;
   Widget? selectedCustomIndicator;
+  Widget? leadingIndicatorWidget;
+  Widget? trailingIndicatorWidget;
 
   int indicatorIndex = 0;
 
@@ -371,6 +382,10 @@ class CarouselState extends EWidgetState<Carousel>
         _buildIndicatorWidget(widget._controller.indicatorWidget, scopeManager);
     selectedCustomIndicator = _buildIndicatorWidget(
         widget._controller.selectedIndicatorWidget, scopeManager);
+    leadingIndicatorWidget = _buildIndicatorWidget(
+        widget._controller.indicatorLeadingWidget, scopeManager);
+    trailingIndicatorWidget = _buildIndicatorWidget(
+        widget._controller.indicatorTrailingWidget, scopeManager);
 
     // if we should display one at a time or multiple in the slider
     bool singleView = isSingleView();
@@ -398,6 +413,40 @@ class CarouselState extends EWidgetState<Carousel>
     if (widget._controller.indicatorType != null &&
         widget._controller.indicatorType != IndicatorType.none) {
       List<Widget> indicators = buildIndicators(items);
+      final bool isVertical =
+          widget._controller.direction == Axis.vertical.name;
+      final Widget indicatorRow = isVertical
+          ? Column(
+              mainAxisSize: MainAxisSize.min,
+              children: indicators,
+            )
+          : Row(
+              mainAxisSize: MainAxisSize.min,
+              children: indicators,
+            );
+
+      final List<Widget> indicatorChildren = [];
+      final double indicatorSpacing =
+          (widget._controller.indicatorSpacing ?? 2).toDouble();
+      final Widget indicatorSpacer = isVertical
+          ? SizedBox(height: indicatorSpacing)
+          : SizedBox(width: indicatorSpacing);
+
+      if (leadingIndicatorWidget != null) {
+        indicatorChildren.add(leadingIndicatorWidget!);
+        if (indicators.isNotEmpty) {
+          indicatorChildren.add(indicatorSpacer);
+        }
+      }
+
+      indicatorChildren.add(indicatorRow);
+
+      if (trailingIndicatorWidget != null) {
+        if (indicators.isNotEmpty) {
+          indicatorChildren.add(indicatorSpacer);
+        }
+        indicatorChildren.add(trailingIndicatorWidget!);
+      }
 
       List<Widget> children = [
         carousel,
@@ -407,15 +456,19 @@ class CarouselState extends EWidgetState<Carousel>
                 widget._controller.indicatorPosition ?? Alignment.bottomCenter,
             child: Padding(
               padding: widget._controller.indicatorPadding ?? EdgeInsets.zero,
-              child: widget._controller.direction == Axis.vertical.name
-                  ? Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: indicators,
-                    )
-                  : Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: indicators,
-                    ),
+              child: indicatorChildren.length == 1
+                  ? indicatorChildren.first
+                  : widget._controller.direction == Axis.vertical.name
+                      ? Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: indicatorChildren,
+                        )
+                      : Row(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: indicatorChildren,
+                        ),
             ),
           ),
         )
