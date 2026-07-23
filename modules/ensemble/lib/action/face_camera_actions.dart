@@ -8,7 +8,9 @@ import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 
+/// Ensemble action that opens the face-camera capture flow.
 class ShowFaceCameraAction extends EnsembleAction {
+  /// Creates a [ShowFaceCameraAction] action.
   ShowFaceCameraAction({
     Invokable? initiator,
     this.options,
@@ -20,15 +22,24 @@ class ShowFaceCameraAction extends EnsembleAction {
     this.overlayWidget,
     this.loadingWidget,
   }) : super(initiator: initiator);
+  /// Provider-specific options passed through from the action payload.
   final Map<String, dynamic>? options;
+  /// Identifier used to store results, target an existing resource, or correlate callbacks.
   String? id;
+  /// Action executed after the operation completes successfully.
   EnsembleAction? onComplete;
+  /// Action executed when the native flow closes.
   EnsembleAction? onClose;
+  /// Action executed after media is captured.
   EnsembleAction? onCapture;
+  /// Action executed when the operation fails.
   EnsembleAction? onError;
+  /// Optional widget definition rendered as an overlay in the capture flow.
   dynamic overlayWidget;
+  /// Optional widget definition rendered while the native flow loads.
   dynamic loadingWidget;
 
+  /// Creates a [ShowFaceCameraAction] from a YAML or map action payload.
   factory ShowFaceCameraAction.fromYaml({Invokable? initiator, Map? payload}) {
     Map<String, dynamic> options = Utils.getMap(payload?['options']) ?? {};
     payload?.forEach((key, value) {
@@ -58,6 +69,7 @@ class ShowFaceCameraAction extends EnsembleAction {
       loadingWidget: payload?['loadingWidget'],
     );
   }
+  /// Runs this action and performs the show face camera operation.
   @override
   Future<dynamic> execute(
       BuildContext context, ScopeManager scopeManager) async {

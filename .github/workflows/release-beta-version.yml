@@ -1,0 +1,110 @@
+# Automates Releasing a Beta Version on a Feature Branch
+#
+# Creates a version commit and tag WITHOUT modifying the branch.
+# Uses detached HEAD so the branch stays clean - only the tag is pushed.
+#
+# Flow:
+#   1. Checkout branch, detach HEAD
+#   2. melos version creates commit + tag on detached HEAD
+#   3. Push only the tag (branch unchanged)
+
+name: Release Beta Version
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: "Branch to release from (cannot be main/master)"
+        required: true
+        type: string
+        default: "feature/my-branch"
+      version:
+        description: "Beta version (must be X.Y.Z-beta.N format)"
+        required: true
+        type: string
+        default: "1.2.47-beta.1"
+
+concurrency:
+  group: melos-beta-release-${{ github.repository }}-${{ inputs.branch }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  version-and-push:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate inputs
+        run: |
+          set -euo pipefail
+
+          branch="${{ inputs.branch }}"
+          version="${{ inputs.version }}"
+
+          # Block main/master branches
+          if [[ "$branch" == "main" || "$branch" == "master" ]]; then
+            echo "::error::Cannot release beta to main/master. Use 'Release Ensemble Version' workflow instead."
+            exit 1
+          fi
+
+          # Validate beta version format
+          if [[ ! "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+-beta\.[0-9]+$ ]]; then
+            echo "::error::Version must be in format X.Y.Z-beta.N (e.g., 1.2.47-beta.1)"
+            exit 1
+          fi
+
+          echo "Branch: $branch"
+          echo "Version: $version"
+
+      - name: Check branch exists
+        run: |
+          set -euo pipefail
+
+          branch="${{ inputs.branch }}"
+
+          if ! git ls-remote --heads "https://github.com/${{ github.repository }}.git" "$branch" | grep -q "$branch"; then
+            echo "::error::Branch '$branch' does not exist on remote."
+            exit 1
+          fi
+
+          echo "Branch '$branch' exists."
+
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.branch }}
+          fetch-depth: 0
+          token: ${{ secrets.RELEASE_TOKEN }}
+
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Setup Flutter SDK
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.32.5"
+          cache: true
+
+      - name: Install Melos
+        run: dart pub global activate melos
+
+      - name: Bootstrap
+        run: melos bootstrap
+
+      - name: Version packages on detached HEAD
+        run: |
+          # Detach HEAD so branch ref won't move when melos commits
+          # Not strictly necessary since we only push the tag, but keeps intent clear
+          git checkout --detach HEAD
+
+          # Melos creates version commit + tag on detached HEAD
+          melos version ensemble "${{ inputs.version }}" --yes
+
+      - name: Push tag only
+        run: |
+          # Push only the tag - branch remains unchanged
+          # 'tag' keyword ensures we push a tag, not a branch
+          git push origin tag ensemble-v${{ inputs.version }}

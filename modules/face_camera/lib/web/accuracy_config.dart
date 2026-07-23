@@ -1,19 +1,51 @@
+/// Accuracy thresholds used by the web face-detection pipeline.
+library accuracy_config;
+
+/// Configuration values that tune face-detection quality checks.
 class AccuracyConfig {
+  /// Minimum detection confidence required for a face.
   final double detectionThreshold;
+
+  /// Required overlap ratio between the face and target frame.
   final double intersectionRatioThreshold;
+
+  /// Extra vertical frame allowance around the detected face.
   final double extraHeightFactor;
+
+  /// Input image size used by the detector.
   final int inputSize;
+
+  /// Required facial-landmark confidence ratio.
   final double landmarkRatio;
+
+  /// Allowed margin around the frame.
   final double frameMargin;
+
+  /// Maximum allowed head tilt angle.
   final double tiltAngleThreshold;
+
+  /// Allowed horizontal offset from the frame center.
   final double horizontalCenterTolerance;
+
+  /// Eye aspect ratio threshold used for quality checks.
   final double earThreshold;
+
+  /// Minimum face width relative to the frame.
   final double minFaceWidthRatio;
+
+  /// Maximum face width relative to the frame.
   final double maxFaceWidthRatio;
+
+  /// Overall quality score required to pass.
   final double qualityPassThreshold;
+
+  /// Lower yaw ratio threshold.
   final double yawLowerThreshold;
+
+  /// Upper yaw ratio threshold.
   final double yawUpperThreshold;
 
+  /// Creates accuracy settings for face detection.
   const AccuracyConfig({
     this.detectionThreshold = 0.6,
     this.intersectionRatioThreshold = 0.9,
@@ -31,6 +63,7 @@ class AccuracyConfig {
     this.yawUpperThreshold = 1.15,
   });
 
+  /// Converts this configuration to a JavaScript-friendly map.
   Map<String, dynamic> toMap() {
     return {
       'detectionThreshold': detectionThreshold,
@@ -50,6 +83,7 @@ class AccuracyConfig {
     };
   }
 
+  /// Creates accuracy settings from a map payload.
   factory AccuracyConfig.fromMap(Map<String, dynamic> map) {
     return AccuracyConfig(
       detectionThreshold: map['detectionThreshold']?.toDouble() ?? 0.6,

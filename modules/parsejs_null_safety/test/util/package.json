@@ -1,7 +1,0 @@
-{
-	"dependencies": {
-		"esprima": "1.2.2",
-		"commander": "2.3.0",
-		"json": "9.0.1"
-	}
-}

@@ -1,6 +1,4 @@
-import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/action.dart';
-import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/scope.dart';
@@ -14,7 +12,9 @@ import 'package:flutter/material.dart';
 /**
  * Show a dialog
  */
+/// Ensemble action that presents an Ensemble dialog.
 class ShowDialogAction extends EnsembleAction {
+  /// Creates a [ShowDialogAction] action.
   ShowDialogAction({
     super.initiator,
     required this.body,
@@ -23,11 +23,16 @@ class ShowDialogAction extends EnsembleAction {
     this.onDialogDismiss,
   });
 
+  /// Widget or content body rendered by a toast, dialog, or bottom sheet.
   final dynamic body;
+  /// Whether the user can dismiss the UI without completing the flow.
   final bool dismissible;
+  /// Provider-specific options passed through from the action payload.
   final Map<String, dynamic>? options;
+  /// Action executed when the dialog is dismissed.
   final EnsembleAction? onDialogDismiss;
 
+  /// Creates a [ShowDialogAction] from a YAML or map action payload.
   factory ShowDialogAction.from({Invokable? initiator, Map? payload}) {
     if (payload == null ||
         (payload['body'] == null && payload['widget'] == null)) {
@@ -46,6 +51,7 @@ class ShowDialogAction extends EnsembleAction {
     );
   }
 
+  /// Runs this action and builds and presents the configured dialog.
   @override
   Future execute(BuildContext context, ScopeManager scopeManager) {
     // get styles. TODO: make bindable
@@ -131,15 +137,20 @@ class ShowDialogAction extends EnsembleAction {
 /**
  * Dismiss a dialog. A payload can be passed to showDialog's onDismiss
  */
+/// Ensemble action that closes a specific dialog or the active dialog.
 class DismissDialogAction extends EnsembleAction {
+  /// Creates a [DismissDialogAction] action.
   DismissDialogAction({super.initiator, this.payload});
 
+  /// Raw action payload passed to the action implementation.
   final Map? payload;
 
+  /// Creates a [DismissDialogAction] from a YAML or map action payload.
   factory DismissDialogAction.from({Invokable? initiator, Map? payload}) =>
       DismissDialogAction(
           initiator: initiator, payload: Utils.getMap(payload?['payload']));
 
+  /// Runs this action and closes the active dialog.
   @override
   Future execute(BuildContext context, ScopeManager scopeManager) async =>
       EnsembleUtils.dismissDialog(
@@ -148,12 +159,12 @@ class DismissDialogAction extends EnsembleAction {
       );
 }
 
-/**
- * This class is legacy and technically not correct. You can't save the
- * BuildContext to be removed later as BuildContext can change at any time
- */
+/// Legacy action that closes every dialog tracked by the current scope.
+///
+/// Prefer [DismissDialogAction] for new definitions.
 @Deprecated("use DismissDialogAction")
 class CloseAllDialogsAction extends EnsembleAction {
+  /// Runs this action and closes all active dialogs.
   @override
   Future execute(BuildContext context, ScopeManager scopeManager) async {
     // Dialog dismiss callback also try to remove openedDialogs while we are

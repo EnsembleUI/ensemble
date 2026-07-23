@@ -1,3 +1,6 @@
+/// Deferred deep-link manager implementation for Ensemble apps.
+library deferred_link_manager;
+
 import 'package:ensemble/deep_link_manager.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/extensions.dart';
@@ -5,16 +8,19 @@ import 'package:ensemble/framework/stub/deferred_link_manager.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:flutter_branch_sdk/flutter_branch_sdk.dart';
 
+/// Routes Ensemble deferred-link calls to the configured provider.
 class DeferredLinkManagerImpl extends DeferredLinkManager {
   static final DeferredLinkManagerImpl _instance =
       DeferredLinkManagerImpl._internal();
 
   DeferredLinkManagerImpl._internal();
 
+  /// Returns the singleton deferred-link manager.
   factory DeferredLinkManagerImpl() {
     return _instance;
   }
 
+  /// Initializes the selected deferred deep-link provider.
   @override
   Future<void> init({
     required DeepLinkProvider provider,
@@ -44,6 +50,7 @@ class DeferredLinkManagerImpl extends DeferredLinkManager {
     }
   }
 
+  /// Creates a deferred deep link for the selected provider.
   @override
   Future<DeferredLinkResponse?> createDeepLink(
       {required DeepLinkProvider provider,
@@ -80,21 +87,25 @@ class DeferredLinkManagerImpl extends DeferredLinkManager {
     }
   }
 
+  /// Handles an incoming deferred-link URL.
   @override
   void handleDeferredLink(String url, DeferredDeepLink onLinkReceived) {
     BranchLinkManager().handleDeferredLink(url, onLinkReceived);
   }
 }
 
+/// Branch SDK adapter used by [DeferredLinkManagerImpl].
 class BranchLinkManager {
   static final BranchLinkManager _instance = BranchLinkManager._internal();
 
   BranchLinkManager._internal();
 
+  /// Returns the singleton Branch link manager.
   factory BranchLinkManager() {
     return _instance;
   }
 
+  /// Initializes Branch link handling.
   Future<void> init({
     bool useTestKey = false,
     bool enableLog = false,
@@ -119,10 +130,12 @@ class BranchLinkManager {
     });
   }
 
+  /// Validates the Branch SDK integration.
   void validate() {
     FlutterBranchSdk.validateSDKIntegration();
   }
 
+  /// Handles a Branch deferred-link URL.
   void handleDeferredLink(String url, DeferredDeepLink onLinkReceived) {
     FlutterBranchSdk.listSession().listen((data) {
       if (data.isNotEmpty) {
@@ -132,6 +145,7 @@ class BranchLinkManager {
     FlutterBranchSdk.handleDeepLink(url);
   }
 
+  /// Creates a short Branch deep link.
   Future<BranchResponse<dynamic>> createDeepLink(
       Map<String, dynamic> universalProps,
       Map<String, dynamic> linkProps) async {

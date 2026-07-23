@@ -98,6 +98,11 @@ class Ensemble extends WithEnsemble with EnsembleRouteObserver {
   late FirebaseApp ensembleFirebaseApp;
   static final Map<String, dynamic> externalDataContext = {};
 
+  /// Clears [initManagers] singleton state between Flutter widget tests.
+  static void resetInitManagersForTest() {
+    _instance._completer = null;
+  }
+
   /// initialize all the singleton/managers. Note that this function can be
   /// called multiple times since it's being called inside a widget.
   /// The actual code block to initialize the managers is guaranteed to run

@@ -1,0 +1,38 @@
+name: ensemble_test_runner
+description: Declarative YAML test runner for Ensemble apps with runtime mocks, widget assertions, fixtures, and CLI reporting.
+version: 1.2.49
+homepage: https://ensembleui.com
+repository: https://github.com/EnsembleUI/ensemble/tree/main/tools/ensemble_test_runner
+issue_tracker: https://github.com/EnsembleUI/ensemble/issues
+documentation: https://github.com/EnsembleUI/ensemble/tree/main/tools/ensemble_test_runner#readme
+topics:
+  - testing
+  - yaml
+  - flutter
+  - ensemble
+
+executables:
+  ensemble_test: ensemble_test
+
+environment:
+  sdk: ">=3.5.0 <4.0.0"
+  flutter: ">=3.24.0"
+
+dependencies:
+  ensemble:
+    git:
+      url: https://github.com/EnsembleUI/ensemble.git
+      ref: ensemble-v1.2.49
+      path: modules/ensemble
+  flutter:
+    sdk: flutter
+  flutter_test:
+    sdk: flutter
+  yaml: ^3.1.2
+  path: ^1.9.0
+
+dev_dependencies:
+  flutter_lints: ^2.0.3
+
+flutter:
+  uses-material-design: true

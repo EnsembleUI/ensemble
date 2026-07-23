@@ -1,0 +1,11 @@
+# yaml-language-server: $schema=https://cdn.ensembleui.com/schemas/ensemble_tests_schema.json
+id: hello_goodbye_back
+prerequisite: hello_goodbye_message
+steps:
+  - trigger:
+      action: onTap
+      id: back_button
+  - expectVisible:
+      id: greeting_text
+  - expectVisible:
+      id: navigate_button

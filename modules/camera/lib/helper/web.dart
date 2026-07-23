@@ -1,3 +1,6 @@
+/// Web helpers for browser Blob and URL APIs.
+library web;
+
 import 'stub.dart' if (dart.library.html) 'dart:html' as html;
 
 class Blob {

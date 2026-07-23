@@ -1,5 +1,4 @@
 import 'package:ensemble/framework/action.dart';
-import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/host_platform_manager.dart';
@@ -9,6 +8,7 @@ import 'package:flutter/cupertino.dart';
 
 /// Navigate to a screen outside of Ensemble (i.e. Flutter, iOS or Android screen)
 class NavigateExternalScreen extends BaseNavigateScreenAction {
+  /// Creates a [NavigateExternalScreen] object.
   NavigateExternalScreen(
       {super.initiator,
       required super.screenName,
@@ -16,6 +16,7 @@ class NavigateExternalScreen extends BaseNavigateScreenAction {
       super.options})
       : super(asModal: false, isExternal: false);
 
+  /// Creates a [NavigateExternalScreen] from a YAML or map action payload.
   factory NavigateExternalScreen.from({Invokable? initiator, Map? payload}) {
     if (payload?['name'] == null) {
       throw LanguageError(
@@ -29,6 +30,7 @@ class NavigateExternalScreen extends BaseNavigateScreenAction {
         options: Utils.getMap(payload['options']));
   }
 
+  /// Runs this action and delegates navigation to the host app.
   @override
   Future<dynamic> execute(BuildContext context, ScopeManager scopeManager) {
     Map? evaluatedPayload = payload?.map(
@@ -47,13 +49,17 @@ class NavigateExternalScreen extends BaseNavigateScreenAction {
 
 /// pop the current screen, but we abstract it as a navigate back
 class NavigateBackAction extends EnsembleAction {
+  /// Creates a [NavigateBackAction] action.
   NavigateBackAction({this.payload});
 
+  /// Raw action payload passed to the action implementation.
   Map? payload;
 
+  /// Creates a [NavigateBackAction] from a YAML or map action payload.
   factory NavigateBackAction.from({Map? payload}) =>
       NavigateBackAction(payload: payload?['payload'] ?? payload?['data']);
 
+  /// Runs this action and navigates back from the current screen.
   @override
   Future<dynamic> execute(BuildContext context, ScopeManager scopeManager) {
     return Navigator.of(context)

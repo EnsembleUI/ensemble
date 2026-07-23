@@ -60,7 +60,9 @@ class JSValidator extends RecursiveVisitor<bool> {
           _interpreter.contexts[stmt.function] = functionContext;
         } else if (stmt is VariableDeclaration) {
           for (var declarator in stmt.declarations) {
-            _interpreter.addToContext(declarator.name, true);
+            for (final name in _bindingNames(declarator.name)) {
+              _interpreter.addToContext(name, true);
+            }
           }
         }
       }
@@ -272,12 +274,36 @@ class JSValidator extends RecursiveVisitor<bool> {
   @override
   bool visitVariableDeclaration(VariableDeclaration node) {
     for (var declarator in node.declarations) {
-      _interpreter.addToContext(declarator.name, true);
+      for (final name in _bindingNames(declarator.name)) {
+        _interpreter.addToContext(name, true);
+      }
       if (declarator.init != null) {
         visit(declarator.init!);
       }
     }
     return true;
+  }
+
+  List<Name> _bindingNames(Node binding) {
+    if (binding is Name) return [binding];
+    if (binding is ObjectPattern) {
+      return binding.properties.expand((property) {
+        final value = property.value;
+        if (value is Name) return [value];
+        return _bindingNames(value);
+      }).toList();
+    }
+    if (binding is ArrayPattern) {
+      return binding.elements
+          .whereType<Node>()
+          .expand((element) => element is RestParameter
+              ? _bindingNames(element.name)
+              : _bindingNames(element))
+          .toList();
+    }
+    if (binding is DefaultParameter) return _bindingNames(binding.name);
+    if (binding is RestParameter) return _bindingNames(binding.name);
+    return <Name>[];
   }
 
   @override
@@ -381,8 +407,10 @@ class JSValidator extends RecursiveVisitor<bool> {
     }
     // Store the object properties in the context for later validation
     if (node.parent != null && node.parent is VariableDeclarator) {
-      String varName = (node.parent as VariableDeclarator).name.value;
-      context.addDataContextById(varName, objProperties);
+      final binding = (node.parent as VariableDeclarator).name;
+      if (binding is Name) {
+        context.addDataContextById(binding.value, objProperties);
+      }
     }
     return true;
   }

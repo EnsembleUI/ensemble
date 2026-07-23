@@ -1,4 +1,5 @@
-library ensemble_camera;
+/// Camera manager implementation for Ensemble apps.
+library camera_manager;
 
 // manage Camera
 import 'package:camera/camera.dart';
@@ -53,7 +54,9 @@ const _speedAssistOptions = {
   'maxSpeed': 'maxSpeed',
 };
 
+/// Opens camera experiences and maps captured files back into Ensemble state.
 class CameraManagerImpl extends CameraManager {
+  /// Checks whether a camera is available and accessible.
   @override
   Future<bool?> hasPermission() async {
     bool? status;
@@ -87,6 +90,7 @@ class CameraManagerImpl extends CameraManager {
     }
   }
 
+  /// Converts an image picker file to Ensemble file data.
   Future<File?> convertXFile(XFile element) async {
     final bytes = kIsWeb ? await element.readAsBytes() : null;
     final fileSize = await element.length();
@@ -95,6 +99,7 @@ class CameraManagerImpl extends CameraManager {
     return file;
   }
 
+  /// Opens the configured camera flow.
   @override
   Future<void> openCamera(BuildContext context, ShowCameraAction cameraAction,
       ScopeManager? scopeManager) async {
@@ -115,6 +120,7 @@ class CameraManagerImpl extends CameraManager {
     }
   }
 
+  /// Opens the platform default camera picker.
   Future<void> defaultCamera(BuildContext context,
       ShowCameraAction cameraAction, ScopeManager? scopeManager) async {
     final mode = Utils.getString(
@@ -155,6 +161,7 @@ class CameraManagerImpl extends CameraManager {
     }
   }
 
+  /// Opens Ensemble's custom camera widget.
   Future<void> bespokeCamera(BuildContext context,
       ShowCameraAction cameraAction, ScopeManager? scopeManager) async {
     Widget? overlayWidget;
@@ -256,6 +263,7 @@ class CameraManagerImpl extends CameraManager {
     }
   }
 
+  /// Builds the optional camera overlay widget.
   Widget? buildOverlayWidget(
       ScopeManager? scopeManager, ShowCameraAction cameraAction) {
     Widget? overlayWidget;
@@ -272,6 +280,7 @@ class CameraManagerImpl extends CameraManager {
     return overlayWidget;
   }
 
+  /// Builds the optional camera loading widget.
   Widget? buildLoadingWidget(
       ScopeManager? scopeManager, ShowCameraAction cameraAction) {
     Widget? loadingWidget;

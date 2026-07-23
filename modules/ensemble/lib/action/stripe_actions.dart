@@ -11,6 +11,7 @@ import 'package:flutter/material.dart';
 
 /// Show Stripe payment sheet
 class ShowPaymentSheetAction extends EnsembleAction {
+  /// Creates a [ShowPaymentSheetAction] action.
   ShowPaymentSheetAction({
     super.initiator,
     required this.clientSecret,
@@ -19,11 +20,16 @@ class ShowPaymentSheetAction extends EnsembleAction {
     this.onError,
   });
 
+  /// Stripe payment intent client secret used by PaymentSheet.
   final String clientSecret;
+  /// Provider-specific configuration map passed to the SDK.
   final Map<String, dynamic>? configuration;
+  /// Action executed when the operation succeeds.
   final EnsembleAction? onSuccess;
+  /// Action executed when the operation fails.
   final EnsembleAction? onError;
 
+  /// Creates a [ShowPaymentSheetAction] from a YAML or map action payload.
   factory ShowPaymentSheetAction.fromYaml(
       {Invokable? initiator, Map? payload}) {
     if (payload == null || payload['clientSecret'] == null) {
@@ -40,6 +46,7 @@ class ShowPaymentSheetAction extends EnsembleAction {
     );
   }
 
+  /// Runs this action and performs the show payment sheet operation.
   @override
   Future<void> execute(BuildContext context, ScopeManager scopeManager) async {
     try {
@@ -66,6 +73,7 @@ class ShowPaymentSheetAction extends EnsembleAction {
 
 /// Initialize Stripe with configuration
 class InitializeStripeAction extends EnsembleAction {
+  /// Creates a [InitializeStripeAction] action.
   InitializeStripeAction({
     super.initiator,
     this.publishableKey,
@@ -75,12 +83,18 @@ class InitializeStripeAction extends EnsembleAction {
     this.onError,
   });
 
+  /// Stripe publishable key used to initialize the SDK.
   final String? publishableKey;
+  /// Connected Stripe account identifier, when applicable.
   final String? stripeAccountId;
+  /// Apple Pay merchant identifier used by Stripe.
   final String? merchantIdentifier;
+  /// Action executed when the operation succeeds.
   final EnsembleAction? onSuccess;
+  /// Action executed when the operation fails.
   final EnsembleAction? onError;
 
+  /// Creates a [InitializeStripeAction] from a YAML or map action payload.
   factory InitializeStripeAction.fromYaml(
       {Invokable? initiator, Map? payload}) {
     return InitializeStripeAction(
@@ -95,6 +109,7 @@ class InitializeStripeAction extends EnsembleAction {
     );
   }
 
+  /// Runs this action and performs the initialize stripe operation.
   @override
   Future<void> execute(BuildContext context, ScopeManager scopeManager) async {
     try {

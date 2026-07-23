@@ -1,8 +1,6 @@
-import 'dart:developer';
 
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/action.dart';
-import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/scope.dart';
@@ -12,14 +10,18 @@ import 'package:flutter/cupertino.dart';
 
 /// Call an external methods (defined in Flutter) from inside Ensemble
 class CallExternalMethod extends EnsembleAction {
+  /// Creates a [CallExternalMethod] object.
   CallExternalMethod(this._name, this._payload,
       {this.onComplete, this.onError});
 
   final dynamic _name;
   final Map? _payload;
+  /// Action executed after the operation completes successfully.
   final EnsembleAction? onComplete;
+  /// Action executed when the operation fails.
   final EnsembleAction? onError;
 
+  /// Creates a [CallExternalMethod] from a YAML or map action payload.
   factory CallExternalMethod.from({Map? payload}) {
     dynamic name = payload?['name'];
     if (name == null) {
@@ -32,6 +34,7 @@ class CallExternalMethod extends EnsembleAction {
         onError: EnsembleAction.from(payload?['onError']));
   }
 
+  /// Runs this action and calls the configured host external method.
   @override
   Future execute(BuildContext context, ScopeManager scopeManager) async {
     String? name = Utils.optionalString(scopeManager.dataContext.eval(_name));

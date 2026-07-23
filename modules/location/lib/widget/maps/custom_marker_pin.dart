@@ -1,10 +1,15 @@
+/// Custom map marker pin widgets for Ensemble maps.
+library custom_marker_pin;
+
 import 'package:ensemble/framework/model.dart';
 import 'package:ensemble/framework/theme/theme_manager.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:flutter/material.dart';
 import 'package:ensemble/framework/widget/icon.dart' as ensemble;
 
+/// Icon and color configuration for a custom map marker pin.
 class MapMarkerIconModel extends IconModel {
+  /// Creates a custom map marker icon model.
   MapMarkerIconModel(super.icon,
       {super.library,
       super.size,
@@ -14,14 +19,19 @@ class MapMarkerIconModel extends IconModel {
       this.iconBackgroundColor,
       this.backgroundColor});
 
-  // is the background and padding around the icon
+  /// Padding around the icon inside its circular background.
   final int iconPadding;
+
+  /// Background color behind the icon.
   final Color? iconBackgroundColor;
 
-  // this is the outside padding and the pin background color
+  /// Outer padding around the marker icon.
   final int padding;
+
+  /// Pin background color.
   final Color? backgroundColor;
 
+  /// Creates a marker icon model from an Ensemble icon payload.
   static MapMarkerIconModel? from(dynamic value) {
     IconModel? iconModel = Utils.getIcon(value);
     if (iconModel != null && value is Map) {
@@ -37,12 +47,16 @@ class MapMarkerIconModel extends IconModel {
     return null;
   }
 
+  /// Default marker icon size.
   static const defaultSize = 20;
 }
 
+/// Renders a custom map marker pin.
 class CustomMarkerPin extends StatelessWidget {
+  /// Creates a marker pin for [model].
   const CustomMarkerPin(this.model, {super.key});
 
+  /// Marker icon model used by this pin.
   final MapMarkerIconModel model;
 
   @override

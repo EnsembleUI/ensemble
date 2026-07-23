@@ -1,0 +1,6 @@
+# yaml-language-server: $schema=https://cdn.ensembleui.com/schemas/ensemble_tests_schema.json
+id: hello_goodbye_message
+prerequisite: hello_goodbye_continuation
+steps:
+  - expectVisible:
+      id: goodbye_message

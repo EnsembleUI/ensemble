@@ -10,7 +10,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
 
-enum WifiOperation { connect, disconnect }
+/// Wi-Fi operations supported by the connect-to-Wi-Fi action.
+enum WifiOperation {
+  /// Connects the device to the requested Wi-Fi network.
+  connect,
+  /// Disconnects the device from the requested Wi-Fi network.
+  disconnect
+}
 
 Future<dynamic> _handleWifiResult(
   BuildContext context,
@@ -51,19 +57,32 @@ Future<dynamic> _handleWifiError(
   return Future.value(null);
 }
 
+/// Ensemble action that connects to or disconnects from a Wi-Fi network.
 class ConnectToWifiAction extends EnsembleAction {
+  /// Platform Wi-Fi manager used to execute the network operation.
   final WifiManager wifiManager = GetIt.I<WifiManager>();
+  /// Requested Wi-Fi or provider operation.
   final WifiOperation operation;
+  /// Exact Wi-Fi SSID to connect to.
   final String? ssid;
+  /// SSID prefix used when the exact network name may vary.
   final String? ssidPrefix;
+  /// Password used when joining the Wi-Fi network.
   final String? password;
+  /// Whether the Wi-Fi network uses WEP security.
   final bool isWep;
+  /// Whether the Wi-Fi network uses WPA3 security.
   final bool isWpa3;
+  /// Whether the joined network should be saved by the platform.
   final bool saveNetwork;
+  /// Whether the Wi-Fi network is hidden.
   final bool isHidden;
+  /// Action executed when the operation succeeds.
   final EnsembleAction? onSuccess;
+  /// Action executed when the operation fails.
   final EnsembleAction? onError;
 
+  /// Creates a [ConnectToWifiAction] action.
   ConnectToWifiAction({
     super.initiator,
     super.inputs,
@@ -79,10 +98,12 @@ class ConnectToWifiAction extends EnsembleAction {
     this.onError,
   });
 
+  /// Creates a [ConnectToWifiAction] from a YAML or map action payload.
   factory ConnectToWifiAction.from({Invokable? initiator, dynamic payload}) =>
       ConnectToWifiAction.fromYaml(
           initiator: initiator, payload: Utils.getYamlMap(payload));
 
+  /// Creates a [ConnectToWifiAction] from a YAML or map action payload.
   factory ConnectToWifiAction.fromYaml({Invokable? initiator, Map? payload}) {
     final operationName =
         Utils.optionalString(payload?['operation']) ?? 'connect';
@@ -108,6 +129,7 @@ class ConnectToWifiAction extends EnsembleAction {
     );
   }
 
+  /// Runs this action and performs the configured Wi-Fi operation.
   @override
   Future<dynamic> execute(
       BuildContext context, ScopeManager scopeManager) async {

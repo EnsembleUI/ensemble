@@ -9,6 +9,7 @@ import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/apiproviders/api_provider.dart';
 import 'package:ensemble/framework/app_info.dart';
 import 'package:ensemble/framework/bindings.dart';
+import 'package:ensemble/framework/cdn_asset_cache.dart';
 import 'package:ensemble/framework/config.dart';
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/definition_providers/provider.dart';
@@ -158,6 +159,7 @@ class EnsembleAppState extends State<EnsembleApp> with WidgetsBindingObserver {
   bool _hasInternet = true;
   late final StreamSubscription<List<ConnectivityResult>>
       _connectivitySubscription;
+  SemanticsHandle? _testSemanticsHandle;
 
   @override
   void initState() {
@@ -194,7 +196,7 @@ class EnsembleAppState extends State<EnsembleApp> with WidgetsBindingObserver {
       }
     });
     if (EnvConfig().isTestMode) {
-      SemanticsBinding.instance.ensureSemantics();
+      _testSemanticsHandle = SemanticsBinding.instance.ensureSemantics();
     }
   }
 
@@ -244,6 +246,7 @@ class EnsembleAppState extends State<EnsembleApp> with WidgetsBindingObserver {
   @override
   void dispose() {
     _connectivitySubscription.cancel();
+    _testSemanticsHandle?.dispose();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
@@ -443,9 +446,15 @@ class EnsembleAppState extends State<EnsembleApp> with WidgetsBindingObserver {
       },
       home: content,
       useInheritedMediaQuery: widget.isPreview,
-      builder: (context, child) => widget.isPreview
-          ? DevicePreview.appBuilder(context, child)
-          : (child ?? SizedBox.shrink()),
+      builder: (context, child) {
+        final appChild = widget.isPreview
+            ? DevicePreview.appBuilder(context, child)
+            : (child ?? SizedBox.shrink());
+        return DefaultAssetBundle(
+          bundle: EnsembleAssetBundle(parent: DefaultAssetBundle.of(context)),
+          child: appChild,
+        );
+      },
     );
 
     // adjust for text scaling globally

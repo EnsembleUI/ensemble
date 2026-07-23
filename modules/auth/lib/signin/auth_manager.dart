@@ -1,4 +1,3 @@
-import 'dart:developer';
 import 'dart:io';
 import 'package:collection/collection.dart';
 
@@ -17,15 +16,11 @@ import 'package:ensemble_auth/signin/google_auth_manager.dart';
 import 'package:ensemble_auth/signin/sign_in_with_verification_code.dart';
 import 'package:ensemble_auth/signin/sign_in_with_server_api_action.dart';
 import 'package:ensemble_auth/signin/signin_utils.dart';
-import 'package:ensemble_auth/signin/widget/sign_in_with_auth0.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/services.dart';
-import 'package:google_sign_in/google_sign_in.dart';
-import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 
 /// This abstract out different method of Sign In (local, custom, Firebase, Auth0, ...)
 class AuthManager with UserAuthentication {

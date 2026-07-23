@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:ensemble_ts_interpreter/errors.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:ensemble_date/ensemble_date.dart';
 
@@ -29,20 +30,40 @@ class JSON extends Object with Invokable {
           return val;
         }
 
+        final activeObjects = Set<Object>.identity();
+
         dynamic walk(dynamic key, dynamic val) {
           val = applyReplacer(key.toString(), val);
+          if (InvokableController.isArrayHole(val)) {
+            return null;
+          }
           if (val is Map) {
-            Map<String, dynamic> m = {};
-            val.forEach((k, v) {
-              m[k.toString()] = walk(k.toString(), v);
-            });
-            return m;
+            if (!activeObjects.add(val)) {
+              throw JSException(1, 'Converting circular structure to JSON');
+            }
+            try {
+              Map<String, dynamic> m = {};
+              for (final k in InvokableController.ownEnumerableKeys(val)) {
+                m[k.toString()] =
+                    walk(k.toString(), InvokableController.getProperty(val, k));
+              }
+              return m;
+            } finally {
+              activeObjects.remove(val);
+            }
           } else if (val is List) {
-            return val
-                .asMap()
-                .entries
-                .map((e) => walk(e.key.toString(), e.value))
-                .toList();
+            if (!activeObjects.add(val)) {
+              throw JSException(1, 'Converting circular structure to JSON');
+            }
+            try {
+              return val
+                  .asMap()
+                  .entries
+                  .map((e) => walk(e.key.toString(), e.value))
+                  .toList();
+            } finally {
+              activeObjects.remove(val);
+            }
           }
           return val;
         }
@@ -99,19 +120,23 @@ class StaticObject extends Object with Invokable {
       'init': () => {},
       'assign': (dynamic target, [dynamic source, dynamic source2]) {
         if (target is! Map) return target;
-        if (source is Map) {
-          target.addAll(Map<String, dynamic>.from(source));
-        }
-        if (source2 is Map) {
-          target.addAll(Map<String, dynamic>.from(source2));
+        for (final sourceValue in [source, source2]) {
+          if (sourceValue is Map) {
+            for (final key
+                in InvokableController.ownEnumerableKeys(sourceValue)) {
+              InvokableController.setProperty(target, key,
+                  InvokableController.getProperty(sourceValue, key));
+            }
+          }
         }
         return target;
       },
       'create': (dynamic proto) {
-        if (proto is Map) {
-          return Map<String, dynamic>.from(proto);
+        final Map<String, dynamic> obj = {};
+        if (proto != null) {
+          InvokableController.setPrototype(obj, proto);
         }
-        return {};
+        return obj;
       },
     };
   }
@@ -132,47 +157,116 @@ class InvokableObject extends Object with Invokable {
   Map<String, Function> methods() {
     return {
       'init': () => {},
-      'keys': (dynamic value) =>
-          (value is Map) ? value.keys.toList() : (value == null ? [] : null),
-      'values': (dynamic value) =>
-          (value is Map) ? value.values.toList() : (value == null ? [] : null),
-      'entries': (dynamic value) =>
-          (value is Map) ? value.entries.toList() : (value == null ? [] : null),
+      'keys': (dynamic value) => (value is Map)
+          ? InvokableController.ownEnumerableKeys(value)
+          : (value == null ? [] : null),
+      'values': (dynamic value) => (value is Map)
+          ? InvokableController.ownEnumerableKeys(value)
+              .map((key) => InvokableController.getProperty(value, key))
+              .toList()
+          : (value == null ? [] : null),
+      'entries': (dynamic value) => (value is Map)
+          ? InvokableController.ownEnumerableKeys(value)
+              .map((key) => [key, InvokableController.getProperty(value, key)])
+              .toList()
+          : (value == null ? [] : null),
+      'fromEntries': (dynamic entries) {
+        final result = <dynamic, dynamic>{};
+        List<dynamic> entryList = [];
+        if (entries is List) {
+          entryList = entries;
+        } else if (entries is Invokable) {
+          final method = entries.methods()['entries'];
+          final value =
+              method == null ? null : Function.apply(method, const []);
+          if (value is List) entryList = value;
+        }
+        for (final entry in entryList) {
+          if (entry is List && entry.length >= 2) {
+            result[entry[0]] = entry[1];
+          } else if (entry is Map) {
+            final key = entry.containsKey('key') ? entry['key'] : entry[0];
+            final value =
+                entry.containsKey('value') ? entry['value'] : entry[1];
+            result[key] = value;
+          }
+        }
+        return result;
+      },
+      'create': (dynamic proto) {
+        final Map<String, dynamic> obj = {};
+        if (proto != null) {
+          InvokableController.setPrototype(obj, proto);
+        }
+        return obj;
+      },
+      'getPrototypeOf': (dynamic value) =>
+          InvokableController.getPrototype(value),
+      'hasOwn': (dynamic value, dynamic key) =>
+          InvokableController.hasOwnProperty(value, key),
       'hasOwnProperty': (dynamic value, String key) =>
-          (value is Map) ? value.containsKey(key) : false,
-      'getPropertyNames': (dynamic value) =>
-          (value is Map) ? value.keys.toList() : (value == null ? [] : null),
+          InvokableController.hasOwnProperty(value, key),
+      'getOwnPropertyNames': (dynamic value) => (value is Map)
+          ? InvokableController.ownPropertyKeys(value)
+          : (value == null ? [] : null),
+      'getPropertyNames': (dynamic value) => (value is Map)
+          ? InvokableController.ownPropertyKeys(value)
+          : (value == null ? [] : null),
       'toString': (dynamic value) => value.toString(),
-      'toJSON': (dynamic value) => (value is Map || value is List)
-          ? jsonEncode(value)
-          : jsonEncode({'value': value}),
+      'toJSON': (dynamic value) => JSON().methods()['stringify']!(value),
       'defineProperty': (dynamic value, String key, dynamic property) {
         if (value is Map) {
-          value[key] = property;
+          InvokableController.defineProperty(
+              value, key, _descriptorFromMap(property));
         }
         return value;
       },
+      'getOwnPropertyDescriptor': (dynamic value, String key) =>
+          InvokableController.getOwnPropertyDescriptor(value, key)?.toMap(),
       'deleteProperty': (dynamic value, String key) =>
-          (value is Map) ? value.remove(key) : null,
+          InvokableController.deleteProperty(value, key),
       'has': (dynamic value, String key) =>
-          (value is Map) ? value.containsKey(key) : false,
+          InvokableController.hasProperty(value, key),
       'isPrototypeOf': (dynamic proto, dynamic value) =>
-          value is InvokableObject && proto is InvokableObject
-              ? value.runtimeType == proto.runtimeType
-              : false,
+          InvokableController.isPrototypeInChain(value, proto),
       'propertyIsEnumerable': (dynamic value, String key) =>
-          (value is Map) ? value.keys.contains(key) : false,
+          InvokableController.propertyIsEnumerable(value, key),
       'assign': (dynamic target, [dynamic source, dynamic source2]) {
         if (target is! Map) return target;
-        if (source is Map) {
-          target.addAll(Map<String, dynamic>.from(source));
-        }
-        if (source2 is Map) {
-          target.addAll(Map<String, dynamic>.from(source2));
+        for (final sourceValue in [source, source2]) {
+          if (sourceValue is Map) {
+            for (final key
+                in InvokableController.ownEnumerableKeys(sourceValue)) {
+              InvokableController.setProperty(target, key,
+                  InvokableController.getProperty(sourceValue, key));
+            }
+          }
         }
         return target;
       },
     };
+  }
+
+  JSPropertyDescriptor _descriptorFromMap(dynamic property) {
+    if (property is JSPropertyDescriptor) return property;
+    if (property is Map) {
+      final descriptor = JSPropertyDescriptor(
+        get: property['get'],
+        set: property['set'],
+        writable: property['writable'] ?? false,
+        enumerable: property['enumerable'] ?? false,
+        configurable: property['configurable'] ?? false,
+        hasWritable: property.containsKey('writable'),
+        hasEnumerable: property.containsKey('enumerable'),
+        hasConfigurable: property.containsKey('configurable'),
+      );
+      if (property.containsKey('value')) {
+        descriptor.value = property['value'];
+        descriptor.hasValue = true;
+      }
+      return descriptor;
+    }
+    return JSPropertyDescriptor(value: property);
   }
 
   @override
@@ -189,10 +283,10 @@ class InvokableObject extends Object with Invokable {
 // Exception class to represent custom JavaScript exceptions
 class JSCustomException with Invokable implements Exception {
   final dynamic value;
-  final bool isErrorObject; // True if created via new Error(), false if wrapping a throw
+  final bool
+      isErrorObject; // True if created via new Error(), false if wrapping a throw
 
   JSCustomException(this.value, {this.isErrorObject = false});
-
 
   @override
   Map<String, Function> getters() {
@@ -201,14 +295,16 @@ class JSCustomException with Invokable implements Exception {
         if (value is JSCustomException) {
           return value.value;
         }
-        return value??'';
+        return value ?? '';
       }
     };
   }
 
   @override
   Map<String, Function> methods() {
-    return {'init': ([message]) => JSCustomException(message, isErrorObject: true)};
+    return {
+      'init': ([message]) => JSCustomException(message, isErrorObject: true)
+    };
   }
 
   @override
@@ -218,7 +314,7 @@ class JSCustomException with Invokable implements Exception {
 
   @override
   String toString() {
-    return value??'';
+    return value ?? '';
   }
 }
 

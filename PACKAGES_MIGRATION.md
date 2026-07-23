@@ -53,26 +53,38 @@ The following packages have been migrated from `modules/` to `packages/`:
 - **Purpose**: Device preview and testing utilities
 - **Status**: ✅ Published for pub.dev
 
-## Current State
+### 5. **ensemble_icons**
 
-### **Dual Package Strategy**
+- **Old Location**: `modules/ensemble_icons/`
+- **New Location**: `packages/ensemble_icons/`
+- **Purpose**: Shared icon package used by the Ensemble runtime
+- **Status**: ✅ Moved to packages
 
-- **`modules/` versions**: Kept for backward compatibility with older Ensemble runtime versions
-- **`packages/` versions**: New, actively maintained versions intended for pub.dev publication
+### 6. **ensemble_dropdown**
 
-### **Melos Configuration**
+- **Old Location**: `modules/ensemble_dropdown/`
+- **New Location**: `packages/ensemble_dropdown/`
+- **Purpose**: Shared dropdown widget package used by the Ensemble runtime
+- **Status**: ✅ Moved to packages
 
-The `melos.yaml` has been updated to exclude deprecated packages from the workspace:
+### 7. **js_widget**
 
-```yaml
-packages:
-  - modules/**
-  - starter
-  - packages/**
+- **Old Location**: `modules/js_widget/`
+- **New Location**: `packages/js_widget/`
+- **Purpose**: Shared widget package used by the Ensemble runtime
+- **Status**: ✅ Moved to packages
 
-ignore:
-  - modules/ensemble_ts_interpreter
-```
+## Ensemble Tooling
+
+The following package is kept under `tools/` because it is not a runtime module
+and is not a general-purpose Flutter package. It is Ensemble-specific developer
+tooling that depends on the Ensemble runtime.
+
+### **ensemble_test_runner**
+
+- **Location**: `tools/ensemble_test_runner/`
+- **Purpose**: Dev-only CLI and test harness for running declarative Ensemble app tests
+- **Status**: ✅ Moved to tools
 
 ## What This Means for Developers
 
@@ -116,4 +128,4 @@ This migration strategy provides a balanced approach to modernizing the Ensemble
 
 ---
 
-**Last Updated**: Aug 15 2025
+**Last Updated**: June 29 2026

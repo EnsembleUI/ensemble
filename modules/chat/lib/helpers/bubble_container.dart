@@ -1,16 +1,35 @@
+/// Chat bubble widgets and alignment helpers.
+library bubble_container;
+
 import 'package:flutter/material.dart';
 
+/// Horizontal alignment for a chat bubble tail.
 enum BubbleAlignment { left, right }
 
+/// A rounded message bubble used by the Ensemble chat UI.
 class BubbleContainer extends StatelessWidget {
+  /// Radius applied to the rounded bubble corners.
   final double bubbleRadius;
+
+  /// Background color for the bubble.
   final Color color;
+
+  /// Message text displayed inside the bubble.
   final String text;
+
+  /// Text style for [text].
   final TextStyle textStyle;
+
+  /// Controls whether the bubble is aligned left or right.
   final BubbleAlignment bubbleAlignment;
+
+  /// Optional inner spacing for the bubble content.
   final EdgeInsets? padding;
+
+  /// Optional outer spacing around the bubble.
   final EdgeInsets? margin;
 
+  /// Creates a chat bubble.
   const BubbleContainer({
     Key? key,
     required this.text,
@@ -25,7 +44,6 @@ class BubbleContainer extends StatelessWidget {
     this.margin,
   }) : super(key: key);
 
-  ///chat bubble builder method
   @override
   Widget build(BuildContext context) {
     return Container(

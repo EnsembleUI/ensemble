@@ -1,11 +1,19 @@
 name: ensemble_adobe_analytics
-description: Adobe Analytics integration for Ensemble
-version: 1.0.0
-publish_to: none
+description: Adobe Analytics integration for Ensemble apps, with tracking, identity, consent, assurance, and user profile APIs.
+homepage: https://ensembleui.com
+repository: https://github.com/EnsembleUI/ensemble/tree/main/modules/adobe_analytics
+issue_tracker: https://github.com/EnsembleUI/ensemble/issues
+documentation: https://github.com/EnsembleUI/ensemble/tree/main/modules/adobe_analytics#readme
+topics:
+  - adobe-analytics
+  - analytics
+  - low-code
+  - ensemble
+version: 1.2.49
 
 environment:
-  sdk: '>=3.0.0 <4.0.0'
-  flutter: '>=3.0.0'
+  sdk: '>=3.5.0 <4.0.0'
+  flutter: '>=3.24.0'
 
 dependencies:
   flutter:
@@ -13,7 +21,7 @@ dependencies:
   ensemble:
     git:
       url: https://github.com/EnsembleUI/ensemble.git
-      ref: ensemble-v1.2.46
+      ref: ensemble-v1.2.49
       path: modules/ensemble
 
   flutter_aepcore: ^5.0.0

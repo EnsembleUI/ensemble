@@ -4,14 +4,11 @@ import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/model.dart';
 import 'package:ensemble/framework/theme/theme_manager.dart';
 import 'package:ensemble/framework/widget/icon.dart' as framework;
-import 'package:ensemble/page_model.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/helpers/form_helper.dart';
-import 'package:ensemble/widget/widget_registry.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/material.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:intl/intl.dart';
 import 'package:ensemble/util/extensions.dart';
 
@@ -89,7 +86,7 @@ class DateRangeState extends FormFieldWidgetState<DateRange> {
       decoration: inputDecoration.copyWith(
         suffixIcon: IconButton(
           icon: widget._controller.suffixIcon == null
-              ? const Icon(FontAwesomeIcons.calendarAlt)
+              ? framework.Icon('calendar', library: 'fontAwesome')
               : framework.Icon(
                   widget._controller.suffixIcon!.icon,
                   library: widget._controller.suffixIcon!.library,

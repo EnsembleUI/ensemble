@@ -1,0 +1,289 @@
+name: Publish Ensemble to pub.dev
+
+on:
+  push:
+    tags:
+      - "ensemble-v*"
+
+concurrency:
+  group: pubdev-ensemble-${{ github.ref_name }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish:
+    name: Publish ensemble runtime
+    runs-on: ubuntu-latest
+    if: "!contains(github.ref_name, '-beta')"
+    outputs:
+      version: ${{ steps.validate-release-tag.outputs.version }}
+
+    steps:
+      - name: Validate release tag
+        id: validate-release-tag
+        run: |
+          set -euo pipefail
+
+          if [[ ! "${{ github.ref_name }}" =~ ^ensemble-v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::Expected a stable ensemble tag like ensemble-v1.2.47."
+            exit 1
+          fi
+
+          echo "version=${GITHUB_REF_NAME#ensemble-v}" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+
+      - name: Setup Flutter SDK
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.32.5"
+          cache: true
+
+      - name: Setup pub.dev credentials
+        uses: dart-lang/setup-dart@v1
+
+      - name: Build pub.dev example from starter
+        run: |
+          set -euo pipefail
+
+          example_dir="modules/ensemble/example"
+          rm -rf "$example_dir"
+          mkdir -p "$example_dir"
+
+          cp -R starter/lib "$example_dir/"
+          cp -R starter/ensemble "$example_dir/"
+          cp -R starter/web "$example_dir/"
+          [ -f starter/analysis_options.yaml ] && cp starter/analysis_options.yaml "$example_dir/"
+          [ -f starter/LICENSE ] && cp starter/LICENSE "$example_dir/"
+          [ -f starter/custom_http_server.py ] && cp starter/custom_http_server.py "$example_dir/"
+
+          python3 <<'PY'
+          import re
+          from pathlib import Path
+
+          example = Path("modules/ensemble/example")
+
+          (example / "pubspec.yaml").write_text("""name: ensemble_example
+          description: Example app for the Ensemble runtime package.
+          publish_to: 'none'
+          version: 1.0.0+1
+
+          environment:
+            sdk: ">=3.5.0 <4.0.0"
+            flutter: ">=3.24.0"
+
+          dependencies:
+            flutter:
+              sdk: flutter
+            flutter_localizations:
+              sdk: flutter
+            ensemble:
+              path: ../
+            firebase_core: ^4.2.0
+            get_it: ^8.0.0
+
+          dev_dependencies:
+            flutter_test:
+              sdk: flutter
+            flutter_lints: ^2.0.3
+
+          flutter:
+            uses-material-design: true
+            assets:
+              - ensemble/
+              - ensemble/assets/
+              - ensemble/apps/helloApp/
+              - ensemble/apps/helloApp/screens/
+              - ensemble/apps/helloApp/widgets/
+              - ensemble/apps/helloApp/actions/
+              - ensemble/apps/helloApp/scripts/
+              - ensemble/apps/helloApp/assets/
+              - ensemble/apps/helloApp/translations/
+              - ensemble/apps/helloApp/config/
+          """)
+
+          (example / "README.md").write_text("""# Ensemble Runtime Example
+
+          This is a curated copy of the Ensemble starter app for the `ensemble`
+          package. It keeps the real starter structure and sample YAML
+          definitions, while omitting large generated folders such as `build/`,
+          `node_modules/`, and platform projects.
+
+          ## Run
+
+          From this directory:
+
+          ```sh
+          flutter pub get
+          flutter run -d chrome
+          ```
+
+          The example loads local definitions from `ensemble/apps/helloApp`.
+
+          To generate native platform folders for local experimentation, run:
+
+          ```sh
+          flutter create --platforms=ios,android .
+          ```
+          """)
+
+          main = example / "lib/main.dart"
+          main.write_text(main.read_text().replace(
+              "package:ensemble_starter/generated/ensemble_modules.dart",
+              "package:ensemble_example/generated/ensemble_modules.dart",
+          ).replace(
+              'debugPrint("Async Error: " + error.toString());',
+              'debugPrint("Async Error: $error");',
+          ))
+
+          modules = example / "lib/generated/ensemble_modules.dart"
+          modules_text = modules.read_text().replace(
+              "import 'package:firebase_messaging/firebase_messaging.dart';\n",
+              "",
+          ).replace(
+              "import 'package:get_it/get_it.dart';",
+              "import 'package:flutter/foundation.dart';\nimport 'package:get_it/get_it.dart';",
+          ).replace(
+              "        print(\n",
+              "        debugPrint(\n",
+          )
+          modules.write_text(modules_text)
+
+          integration = example / "lib/integrate_existing_app_with_Ensemble.dart"
+          if integration.exists():
+              integration_text = integration.read_text()
+              integration_text = integration_text.replace(
+                  "import 'package:ensemble/util/utils.dart';\n", ""
+              ).replace(
+                  "import 'package:flutter_i18n/flutter_i18n.dart';\n", ""
+              ).replace(
+                  "import 'package:flutter_localizations/flutter_localizations.dart';\n", ""
+              )
+              (example / "lib/integrate_existing_app_with_ensemble.dart").write_text(integration_text)
+              integration.unlink()
+
+          config = example / "ensemble/ensemble-config.yaml"
+          config_text = config.read_text().replace("from: ensemble", "from: local", 1)
+          for key in ("iOSClientId", "androidClientId", "webClientId", "serverClientId", "clientId"):
+              config_text = re.sub(
+                  rf"({key}:\s*).+",
+                  rf"\1example-{key}",
+                  config_text,
+              )
+          config.write_text(config_text)
+
+          web_index = example / "web/index.html"
+          web_index_text = web_index.read_text()
+          web_index_text = re.sub(
+              r'(<meta name="google-signin-client_id" content=")[^"]+(">)',
+              r'\1example-webClientId\2',
+              web_index_text,
+          )
+          web_index_text = re.sub(
+              r"(https://maps\.googleapis\.com/maps/api/js\?key=)[^\"']+",
+              r"\1example-google-maps-api-key",
+              web_index_text,
+          )
+          web_index.write_text(web_index_text)
+          PY
+
+      - name: Publish to pub.dev
+        working-directory: modules/ensemble
+        run: flutter pub publish --force
+
+  publish-modules:
+    name: Publish ${{ matrix.package.name }}
+    runs-on: ubuntu-latest
+    needs: publish
+    if: "!contains(github.ref_name, '-beta')"
+    strategy:
+      fail-fast: false
+      matrix:
+        package:
+          - { name: "ensemble_network_info", path: "modules/ensemble_network_info" }
+          - { name: "ensemble_stripe", path: "modules/ensemble_stripe" }
+          - { name: "ensemble_file_manager", path: "modules/file_manager" }
+          - { name: "ensemble_chat", path: "modules/chat" }
+          - { name: "ensemble_auth", path: "modules/auth" }
+          - { name: "ensemble_bluetooth", path: "modules/ensemble_bluetooth" }
+          - { name: "ensemble_wifi", path: "modules/ensemble_wifi" }
+          - { name: "ensemble_face_camera", path: "modules/face_camera" }
+          - { name: "ensemble_connect", path: "modules/connect" }
+          - { name: "ensemble_contacts", path: "modules/contacts" }
+          - { name: "ensemble_location", path: "modules/location" }
+          - { name: "ensemble_camera", path: "modules/camera" }
+          - { name: "ensemble_deeplink", path: "modules/deeplink" }
+          - { name: "ensemble_remote_config", path: "modules/ensemble_remote_config" }
+          - { name: "ensemble_firebase_analytics", path: "modules/firebase_analytics" }
+          - { name: "ensemble_qr_scanner", path: "modules/qr_scanner" }
+          - { name: "ensemble_adobe_analytics", path: "modules/adobe_analytics" }
+          - { name: "ensemble_moengage", path: "modules/moengage" }
+          - { name: "ensemble_bracket", path: "modules/bracket" }
+          - { name: "ensemble_test_runner", path: "tools/ensemble_test_runner" }
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ matrix.package.name }}-v${{ needs.publish.outputs.version }}
+
+      - name: Setup Flutter SDK
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.32.5"
+          cache: true
+
+      - name: Setup pub.dev credentials
+        uses: dart-lang/setup-dart@v1
+
+      - name: Prepare package for pub.dev
+        env:
+          RELEASE_VERSION: ${{ needs.publish.outputs.version }}
+          PACKAGE_PATH: ${{ matrix.package.path }}
+        run: |
+          set -euo pipefail
+
+          rm -f "${PACKAGE_PATH}/pubspec_overrides.yaml" "${PACKAGE_PATH}/pubspec.lock"
+
+          python3 <<'PY'
+          import os
+          import re
+          from pathlib import Path
+
+          version = os.environ["RELEASE_VERSION"]
+          path = os.environ["PACKAGE_PATH"]
+          pubspec = Path(path) / "pubspec.yaml"
+          text = pubspec.read_text()
+
+          # Replace local/git dependencies on any versioned ensemble module with the release version
+          pattern = r"(\n  ensemble[_a-zA-Z0-9]*:)\s*\n\s+git:\s*\n\s+url:\s*https://github\.com/EnsembleUI/ensemble\.git\s*\n\s+ref:[^\n]+\n\s+path:[^\n]+"
+          text = re.sub(pattern, rf"\1 ^{version}", text)
+          
+          pubspec.write_text(text)
+          PY
+
+      - name: Resolve dependencies
+        working-directory: ${{ matrix.package.path }}
+        run: |
+          set -euo pipefail
+
+          for attempt in {1..60}; do
+            if flutter pub get; then
+              exit 0
+            fi
+
+            echo "Waiting for dependencies of ${{ matrix.package.name }} to resolve from pub.dev..."
+            sleep 10
+          done
+
+          flutter pub get
+
+      - name: Publish ${{ matrix.package.name }} to pub.dev
+        working-directory: ${{ matrix.package.path }}
+        run: flutter pub publish --force

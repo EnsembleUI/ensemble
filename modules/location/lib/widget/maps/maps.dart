@@ -12,6 +12,8 @@ import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
+// Invokable carries mutable runtime definition fields.
+// ignore: must_be_immutable
 class EnsembleMapWidget extends StatefulWidget
     with Invokable, HasController<MyController, EnsembleMapState>
     implements EnsembleMap {

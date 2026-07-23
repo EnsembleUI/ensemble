@@ -17,49 +17,172 @@ import 'package:intl/intl.dart';
 import 'UserLocale.dart';
 import 'invokablepromises.dart';
 
+const String _descriptorKey = r'__ensemble_js_descriptors__';
+const String _prototypeKey = r'__ensemble_js_prototype__';
+final Expando<Map<dynamic, JSPropertyDescriptor>> _descriptorExpando =
+    Expando<Map<dynamic, JSPropertyDescriptor>>('ensembleJsDescriptors');
+final Expando<Object> _prototypeExpando =
+    Expando<Object>('ensembleJsPrototype');
+
+class _MissingDescriptorValue {
+  const _MissingDescriptorValue();
+}
+
+class JSArrayHole {
+  const JSArrayHole();
+
+  @override
+  String toString() => '';
+}
+
+const Object _missingDescriptorValue = _MissingDescriptorValue();
+const Object _missingArrayItem = Object();
+const JSArrayHole jsArrayHole = JSArrayHole();
+/// Constant representing the JavaScript `undefined` value.
+const JSUndefined jsUndefined = JSUndefined();
+
+/// Represents the JavaScript `undefined` type.
+class JSUndefined {
+  /// Creates a constant `undefined` value.
+  const JSUndefined();
+
+  @override
+  String toString() => 'undefined';
+}
+
+/// Returns true if the given value is JavaScript `undefined`.
+bool isJSUndefined(dynamic value) => value is JSUndefined;
+
+/// Represents an ES6 Symbol value in the interpreter runtime.
+class JSSymbol {
+  /// Creates an ES6 Symbol with an optional description.
+  JSSymbol([this.description]);
+
+  /// The description of the Symbol.
+  final String? description;
+
+  @override
+  String toString() =>
+      description == null ? 'Symbol()' : 'Symbol($description)';
+}
+
+class JSPropertyDescriptor {
+  JSPropertyDescriptor({
+    dynamic value = _missingDescriptorValue,
+    this.get,
+    this.set,
+    this.writable = true,
+    this.enumerable = true,
+    this.configurable = true,
+    bool? hasWritable,
+    bool? hasEnumerable,
+    bool? hasConfigurable,
+  })  : hasValue = !identical(value, _missingDescriptorValue),
+        value = identical(value, _missingDescriptorValue) ? null : value,
+        hasWritable = hasWritable ?? true,
+        hasEnumerable = hasEnumerable ?? true,
+        hasConfigurable = hasConfigurable ?? true;
+
+  dynamic value;
+  dynamic get;
+  dynamic set;
+  bool writable;
+  bool enumerable;
+  bool configurable;
+  bool hasValue;
+  bool hasWritable;
+  bool hasEnumerable;
+  bool hasConfigurable;
+
+  bool get isAccessor => get != null || set != null;
+
+  Map<String, dynamic> toMap() => {
+        if (hasValue) 'value': value,
+        if (get != null) 'get': get,
+        if (set != null) 'set': set,
+        'writable': writable,
+        'enumerable': enumerable,
+        'configurable': configurable,
+      };
+}
+
 abstract class GlobalContext {
   static RegExp regExp(String regex, String options) {
     RegExp r = RegExp(regex);
     return r;
   }
 
+  static num _toNumber(dynamic value) {
+    if (value == null) return 0;
+    if (value is num) return value;
+    if (value is bool) return value ? 1 : 0;
+    if (value is String) {
+      final text = value.trim();
+      if (text.isEmpty) return 0;
+      return num.tryParse(text) ?? double.nan;
+    }
+    return num.tryParse(value.toString()) ?? double.nan;
+  }
+
+  static int _digitValue(int codeUnit) {
+    if (codeUnit >= 48 && codeUnit <= 57) return codeUnit - 48;
+    if (codeUnit >= 65 && codeUnit <= 90) return codeUnit - 55;
+    if (codeUnit >= 97 && codeUnit <= 122) return codeUnit - 87;
+    return -1;
+  }
+
+  static num parseIntJs(dynamic value, [int? radix]) {
+    if (value is int && radix == null) return value;
+    var text = value?.toString().trimLeft() ?? '';
+    if (text.isEmpty) return double.nan;
+
+    var sign = 1;
+    if (text.startsWith('-') || text.startsWith('+')) {
+      if (text.startsWith('-')) sign = -1;
+      text = text.substring(1);
+    }
+
+    var effectiveRadix = radix ?? 0;
+    if (effectiveRadix != 0 && (effectiveRadix < 2 || effectiveRadix > 36)) {
+      return double.nan;
+    }
+
+    if ((effectiveRadix == 0 || effectiveRadix == 16) &&
+        (text.startsWith('0x') || text.startsWith('0X'))) {
+      effectiveRadix = 16;
+      text = text.substring(2);
+    }
+    if (effectiveRadix == 0) effectiveRadix = 10;
+
+    var result = 0;
+    var consumed = false;
+    for (var i = 0; i < text.length; i++) {
+      final digit = _digitValue(text.codeUnitAt(i));
+      if (digit < 0 || digit >= effectiveRadix) break;
+      consumed = true;
+      result = result * effectiveRadix + digit;
+    }
+    return consumed ? result * sign : double.nan;
+  }
+
+  static num parseFloatJs(dynamic value) {
+    final text = value?.toString().trimLeft() ?? '';
+    if (text.startsWith('Infinity')) return double.infinity;
+    if (text.startsWith('+Infinity')) return double.infinity;
+    if (text.startsWith('-Infinity')) return double.negativeInfinity;
+
+    final match =
+        RegExp(r'^[+-]?(?:(?:\d+\.\d*)|(?:\.\d+)|(?:\d+))(?:[eE][+-]?\d+)?')
+            .firstMatch(text);
+    if (match == null) return double.nan;
+    return double.tryParse(match.group(0)!) ?? double.nan;
+  }
+
   static Map<String, dynamic> _context = {
     'regExp': regExp,
     'Math': InvokableMath(),
-    'parseFloat': (dynamic value) {
-      if (value is String) {
-        return double.tryParse(value) ?? double.nan;
-      } else if (value is num) {
-        return value.toDouble();
-      } else {
-        return double.nan;
-      }
-    },
-    'parseInt': (dynamic value, [int? radix = 10]) {
-      // Directly return the value if it's already an integer
-      if (value is int) return value;
-
-      // Convert to string to handle both String and double inputs
-      String stringValue = value.toString();
-
-      // Handling radix for non-decimal numbers correctly requires parsing integers only
-      if (radix != null && radix >= 2 && radix <= 36) {
-        // Check if the value is a valid integer for the specified radix
-        int? parsedInt = int.tryParse(stringValue, radix: radix);
-        if (parsedInt != null) return parsedInt;
-
-        // If parsing as int fails, try double and then convert to int
-        double? parsedDouble = double.tryParse(stringValue);
-        if (parsedDouble != null) return parsedDouble.toInt();
-      } else {
-        // Fallback to parsing as a decimal number if no valid radix is provided
-        double? parsedDouble = double.tryParse(stringValue);
-        if (parsedDouble != null) return parsedDouble.toInt();
-      }
-
-      // Return 0 if all parsing attempts fail
-      return double.nan;
-    },
+    'parseFloat': parseFloatJs,
+    'parseInt': parseIntJs,
 
     'parseDouble': (dynamic value) {
       if (value is String) {
@@ -84,20 +207,20 @@ abstract class GlobalContext {
     'performance': StaticPerformance(),
     'Map': JSMapConstructor(),
     'Set': JSSetConstructor(),
+    'Symbol': ([dynamic description]) =>
+        JSSymbol(description == null ? null : description.toString()),
     'queueMicrotask': (Function cb) => scheduleMicrotask(() {
           try {
             cb([]);
           } catch (_) {}
         }),
     'isNaN': (dynamic value) {
-      if (value == null) return true;
-      final num? parsed = num.tryParse(value.toString());
-      return parsed == null || parsed.isNaN;
+      final number = _toNumber(value);
+      return number.isNaN;
     },
     'isFinite': (dynamic value) {
-      if (value == null) return false;
-      final num? parsed = num.tryParse(value.toString());
-      return parsed != null && parsed.isFinite;
+      final number = _toNumber(value);
+      return number.isFinite;
     },
     // Encode and Decode URI Component functions
     'encodeURIComponent': (String s) => Uri.encodeComponent(s),
@@ -169,9 +292,211 @@ class InvokableController {
   static void addGlobals(Map<String, dynamic> context) {
     context.addAll(GlobalContext.context);
     context['globalThis'] = context;
+    context['undefined'] = jsUndefined;
     // context['debug'] = () async {
     //   await waitForCondition();
     // };
+  }
+
+  static Map<dynamic, JSPropertyDescriptor> _descriptors(Map map) {
+    final existing = _descriptorExpando[map];
+    if (existing != null) {
+      return existing;
+    }
+    final descriptors = <dynamic, JSPropertyDescriptor>{};
+    _descriptorExpando[map] = descriptors;
+    return descriptors;
+  }
+
+  static bool isHiddenKey(dynamic key) =>
+      key == _descriptorKey || key == _prototypeKey;
+
+  static dynamic _normalizeProperty(dynamic prop) {
+    if (prop is num && prop == prop.truncateToDouble()) {
+      return prop.toInt();
+    }
+    return prop;
+  }
+
+  static dynamic _normalizeIndexProperty(dynamic prop) {
+    prop = _normalizeProperty(prop);
+    if (prop is String && RegExp(r'^(0|[1-9]\d*)$').hasMatch(prop)) {
+      return int.tryParse(prop) ?? prop;
+    }
+    return prop;
+  }
+
+  static bool isArrayHole(dynamic value) => identical(value, jsArrayHole);
+
+  static void defineProperty(
+      dynamic value, dynamic key, JSPropertyDescriptor descriptor) {
+    if (value is! Map) {
+      throw InvalidPropertyException(
+          'Object.defineProperty target must be a map/object');
+    }
+    key = _normalizeProperty(key);
+    final descriptors = _descriptors(value);
+    final existing = descriptors[key];
+    if (existing != null) {
+      final merged = JSPropertyDescriptor(
+        get: descriptor.get ?? existing.get,
+        set: descriptor.set ?? existing.set,
+        writable:
+            descriptor.hasWritable ? descriptor.writable : existing.writable,
+        enumerable: descriptor.hasEnumerable
+            ? descriptor.enumerable
+            : existing.enumerable,
+        configurable: descriptor.hasConfigurable
+            ? descriptor.configurable
+            : existing.configurable,
+        hasWritable: true,
+        hasEnumerable: true,
+        hasConfigurable: true,
+      );
+      if (descriptor.hasValue || existing.hasValue) {
+        merged.value = descriptor.hasValue ? descriptor.value : existing.value;
+        merged.hasValue = true;
+      }
+      descriptor = merged;
+    }
+    descriptors[key] = descriptor;
+    if (!descriptor.isAccessor) {
+      value[key] = descriptor.value;
+    }
+  }
+
+  static JSPropertyDescriptor? getOwnPropertyDescriptor(
+      dynamic value, dynamic key) {
+    if (value is! Map) return null;
+    key = _normalizeProperty(key);
+    return _descriptors(value)[key];
+  }
+
+  static void setPrototype(dynamic value, dynamic prototype) {
+    if (value is Map && prototype is Object) {
+      _prototypeExpando[value] = prototype;
+    }
+  }
+
+  static dynamic getPrototype(dynamic value) {
+    if (value is Map) {
+      return _prototypeExpando[value];
+    }
+    return null;
+  }
+
+  static bool isPrototypeInChain(dynamic value, dynamic prototype) {
+    dynamic cursor = value;
+    while (cursor is Map) {
+      cursor = _prototypeExpando[cursor];
+      if (identical(cursor, prototype)) return true;
+    }
+    return false;
+  }
+
+  static List<dynamic> ownEnumerableKeys(Map map) {
+    return ownPropertyKeys(map).where((key) {
+      if (isHiddenKey(key)) return false;
+      final descriptor = getOwnPropertyDescriptor(map, key);
+      return descriptor?.enumerable ?? true;
+    }).toList();
+  }
+
+  static List<dynamic> ownPropertyKeys(Map map) {
+    final keys = <dynamic>[
+      ...map.keys,
+      ..._descriptors(map).keys,
+    ];
+    return keys.where((key) => !isHiddenKey(key)).toSet().toList();
+  }
+
+  static List<dynamic> enumerableKeys(Map map) {
+    final keys = <dynamic>[];
+    dynamic cursor = map;
+    while (cursor is Map) {
+      keys.addAll(ownEnumerableKeys(cursor));
+      cursor = getPrototype(cursor);
+    }
+    return keys.toSet().toList();
+  }
+
+  static bool hasOwnProperty(dynamic value, dynamic key) {
+    key = _normalizeProperty(key);
+    if (value is Map) {
+      return value.containsKey(key) ||
+          getOwnPropertyDescriptor(value, key) != null;
+    }
+    if (value is List) {
+      key = _normalizeIndexProperty(key);
+      if (key is int) {
+        return key >= 0 && key < value.length && !isArrayHole(value[key]);
+      }
+    }
+    return false;
+  }
+
+  static bool propertyIsEnumerable(dynamic value, dynamic key) {
+    key = _normalizeProperty(key);
+    if (value is Map) {
+      if (!hasOwnProperty(value, key)) return false;
+      return getOwnPropertyDescriptor(value, key)?.enumerable ?? true;
+    }
+    if (value is List) {
+      key = _normalizeIndexProperty(key);
+      return key is int &&
+          key >= 0 &&
+          key < value.length &&
+          !isArrayHole(value[key]);
+    }
+    return false;
+  }
+
+  static bool hasProperty(dynamic value, dynamic key) {
+    key = _normalizeProperty(key);
+    if (value is Map) {
+      if (value.containsKey(key) ||
+          getOwnPropertyDescriptor(value, key) != null) {
+        return true;
+      }
+      final prototype = getPrototype(value);
+      return prototype != null && hasProperty(prototype, key);
+    }
+    if (value is List) {
+      key = _normalizeIndexProperty(key);
+      if (key is int) {
+        return key >= 0 && key < value.length && !isArrayHole(value[key]);
+      }
+      return getters(value).containsKey(key) || methods(value).containsKey(key);
+    }
+    if (value is String) {
+      key = _normalizeIndexProperty(key);
+      if (key is int) return key >= 0 && key < value.length;
+      return getters(value).containsKey(key) || methods(value).containsKey(key);
+    }
+    if (value is Invokable) {
+      return value.hasGettableProperty(key) || value.hasMethod(key);
+    }
+    return false;
+  }
+
+  static dynamic _callJsFunction(dynamic fn, List<dynamic> args,
+      [dynamic thisArg]) {
+    if (fn is! Function) {
+      try {
+        return fn.callWithThis(args, thisArg);
+      } on NoSuchMethodError {
+        return fn(args);
+      }
+    }
+    try {
+      return Function.apply(fn, [args, thisArg]);
+    } catch (_) {
+      try {
+        return Function.apply(fn, [args]);
+      } catch (_) {
+        return Function.apply(fn, args);
+      }
+    }
   }
 
   static Map<String, Function> methods(dynamic val) {
@@ -238,6 +563,7 @@ class InvokableController {
   }
 
   static dynamic getProperty(dynamic val, dynamic prop) {
+    prop = _normalizeProperty(prop);
     if (val == null) {
       throw InvalidPropertyException(
           'Cannot get a property on a null object. Property=$prop');
@@ -260,6 +586,7 @@ class InvokableController {
   }
 
   static dynamic setProperty(dynamic val, dynamic prop, dynamic value) {
+    prop = _normalizeProperty(prop);
     if (val == null) {
       throw InvalidPropertyException(
           'Cannot set a property on a null object. Property=$prop and prop value=$value');
@@ -282,6 +609,7 @@ class InvokableController {
   }
 
   static bool deleteProperty(dynamic val, dynamic prop) {
+    prop = _normalizeProperty(prop);
     if (val == null) {
       return false;
     } else if (val is Invokable) {
@@ -293,11 +621,15 @@ class InvokableController {
         return false;
       }
     } else if (val is Map) {
-      return val.remove(prop) != null;
+      final descriptor = getOwnPropertyDescriptor(val, prop);
+      if (descriptor != null && !descriptor.configurable) return false;
+      _descriptors(val).remove(prop);
+      return val.remove(prop) != null || descriptor != null;
     } else if (val is List) {
+      prop = _normalizeIndexProperty(prop);
       // For lists, delete by index
       if (prop is int && prop >= 0 && prop < val.length) {
-        val.removeAt(prop);
+        val[prop] = jsArrayHole;
         return true;
       }
       return false;
@@ -361,6 +693,7 @@ class Console extends Object with Invokable, MethodExecutor {
   }
 
   String _formatArg(dynamic value) {
+    if (isJSUndefined(value)) return 'undefined';
     if (value == null) return 'null';
     if (value is bool || value is num) return value.toString();
     if (value is String) return value;
@@ -534,7 +867,74 @@ class StaticArray extends Object with Invokable {
   @override
   Map<String, Function> methods() {
     return {
+      'init': (
+          [dynamic first,
+          dynamic second = _missingArrayItem,
+          dynamic third = _missingArrayItem,
+          dynamic fourth = _missingArrayItem,
+          dynamic fifth = _missingArrayItem]) {
+        final values = [first, second, third, fourth, fifth]
+            .where((value) => !identical(value, _missingArrayItem))
+            .toList();
+        if (values.length == 1 && values.first is num) {
+          final length = (values.first as num).toInt();
+          _List._checkArrayLength(length);
+          return List<dynamic>.filled(length, jsArrayHole);
+        }
+        return values;
+      },
       'isArray': (dynamic value) => value is List,
+      'from': (dynamic value, [Function? mapFn]) {
+        List<dynamic> list;
+        if (value is String) {
+          list = value.split('');
+        } else if (value is List) {
+          list = value.map(_List._visibleValue).toList();
+        } else if (value is Iterable) {
+          list = value.toList();
+        } else if (value is Invokable) {
+          final methods = value.methods();
+          final isMapLike =
+              methods.containsKey('get') && methods.containsKey('set');
+          final iteratorMethod =
+              isMapLike ? methods['entries'] : methods['values'];
+          final result = iteratorMethod == null
+              ? null
+              : Function.apply(iteratorMethod, const []);
+          list = result is List ? List<dynamic>.from(result) : <dynamic>[];
+        } else if (value is Map && value['length'] is num) {
+          final length = (value['length'] as num).toInt();
+          _List._checkArrayLength(length);
+          list = List<dynamic>.generate(length, (index) {
+            if (InvokableController.hasProperty(value, index)) {
+              return InvokableController.getProperty(value, index);
+            }
+            return InvokableController.getProperty(value, index.toString());
+          });
+        } else {
+          list = [];
+        }
+        if (mapFn != null) {
+          return list
+              .asMap()
+              .entries
+              .map((entry) => mapFn([entry.value, entry.key]))
+              .toList();
+        }
+        return list;
+      },
+      'of': (
+              [dynamic first = _missingArrayItem,
+              dynamic second = _missingArrayItem,
+              dynamic third = _missingArrayItem,
+              dynamic fourth = _missingArrayItem,
+              dynamic fifth = _missingArrayItem,
+              dynamic sixth = _missingArrayItem,
+              dynamic seventh = _missingArrayItem,
+              dynamic eighth = _missingArrayItem]) =>
+          [first, second, third, fourth, fifth, sixth, seventh, eighth]
+              .where((value) => !identical(value, _missingArrayItem))
+              .toList(),
     };
   }
 
@@ -626,6 +1026,10 @@ class _String {
   }
 
   static dynamic getProperty(String obj, dynamic prop) {
+    prop = InvokableController._normalizeIndexProperty(prop);
+    if (prop is int && prop >= 0 && prop < obj.length) {
+      return obj[prop];
+    }
     Function? f = getters(obj)[prop];
     if (f != null) {
       return f();
@@ -667,6 +1071,11 @@ class _String {
   }
 
   static Map<String, Function> methods(String val) {
+    int clampIndex(dynamic index, [int defaultValue = 0]) {
+      final parsed = index is num ? index.toInt() : int.tryParse('$index');
+      return (parsed ?? defaultValue).clamp(0, val.length);
+    }
+
     return {
       'indexOf': (String str, [int? fromIndex]) {
         if (fromIndex == null) {
@@ -676,7 +1085,10 @@ class _String {
       },
       'lastIndexOf': (String str, [start = -1]) =>
           (start == -1) ? val.lastIndexOf(str) : val.lastIndexOf(str, start),
-      'charAt': (index) => val[index],
+      'charAt': (index) {
+        final i = index is num ? index.toInt() : int.tryParse('$index') ?? 0;
+        return i >= 0 && i < val.length ? val[i] : '';
+      },
       'startsWith': (str) => val.startsWith(str),
       'endsWith': (str) => val.endsWith(str),
       'includes': (str) => val.contains(str),
@@ -689,8 +1101,10 @@ class _String {
       'repeat': (int count) => val * count,
       'search': (RegExp pattern) =>
           pattern.hasMatch(val) ? pattern.firstMatch(val)?.start : -1,
-      'charCodeAt': (int index) => val.codeUnitAt(index),
-      'codePointAt': (int index) => val.codeUnitAt(index),
+      'charCodeAt': (int index) =>
+          index >= 0 && index < val.length ? val.codeUnitAt(index) : double.nan,
+      'codePointAt': (int index) =>
+          index >= 0 && index < val.length ? val.codeUnitAt(index) : null,
       'slice': (int start, [int? end]) {
         int adjustedStart = start < 0 ? val.length + start : start;
         adjustedStart = adjustedStart.clamp(0, val.length);
@@ -699,8 +1113,14 @@ class _String {
         adjustedEnd = adjustedEnd.clamp(adjustedStart, val.length);
         return val.substring(adjustedStart, adjustedEnd);
       },
-      'substr': (int start, [int? length]) =>
-          val.substring(start, start + (length ?? val.length - start)),
+      'substr': (int start, [int? length]) {
+        var adjustedStart = start < 0 ? val.length + start : start;
+        adjustedStart = adjustedStart.clamp(0, val.length);
+        if (length != null && length <= 0) return '';
+        final adjustedEnd = (adjustedStart + (length ?? val.length))
+            .clamp(adjustedStart, val.length);
+        return val.substring(adjustedStart, adjustedEnd);
+      },
       'match': (regexp) {
         RegExp regex = regexp as RegExp;
         final matches = regex.allMatches(val);
@@ -720,8 +1140,16 @@ class _String {
       },
       'padStart': (n, [str = ' ']) => val.padLeft(n, str),
       'padEnd': (n, [str = ' ']) => val.padRight(n, str),
-      'substring': (start, [end = -1]) =>
-          (end == -1) ? val.substring(start) : val.substring(start, end),
+      'substring': (start, [end = -1]) {
+        var adjustedStart = clampIndex(start);
+        var adjustedEnd = end == -1 ? val.length : clampIndex(end, val.length);
+        if (adjustedStart > adjustedEnd) {
+          final tmp = adjustedStart;
+          adjustedStart = adjustedEnd;
+          adjustedEnd = tmp;
+        }
+        return val.substring(adjustedStart, adjustedEnd);
+      },
       'split': (String delimiter) => val.split(delimiter),
       'prettyCurrency': () => InvokablePrimitive.prettyCurrency(val),
       'prettyDate': () => InvokablePrimitive.prettyDate(val),
@@ -918,16 +1346,22 @@ class _Map {
                 : match.value)
             .toList();
       },
-      'keys': () => map.keys.toList(),
-      'values': () => map.values.toList(),
+      'keys': () => InvokableController.ownEnumerableKeys(map),
+      'values': () => InvokableController.ownEnumerableKeys(map)
+          .map((key) => InvokableController.getProperty(map, key))
+          .toList(),
       'entries': () {
         List<Map> list = [];
-        map.forEach((key, value) {
-          list.add({'key': key, 'value': value});
-        });
+        for (final key in InvokableController.ownEnumerableKeys(map)) {
+          list.add(
+              {'key': key, 'value': InvokableController.getProperty(map, key)});
+        }
         return list;
       },
-      'hasOwnProperty': (dynamic key) => map.containsKey(key),
+      'hasOwnProperty': (dynamic key) =>
+          InvokableController.hasOwnProperty(map, key),
+      'propertyIsEnumerable': (dynamic key) =>
+          InvokableController.propertyIsEnumerable(map, key),
     };
   }
 
@@ -936,49 +1370,156 @@ class _Map {
   }
 
   static dynamic getProperty(Map map, dynamic prop) {
-    return map[prop];
+    prop = InvokableController._normalizeProperty(prop);
+    final descriptor = InvokableController.getOwnPropertyDescriptor(map, prop);
+    if (descriptor != null) {
+      if (descriptor.isAccessor) {
+        if (descriptor.get == null) return null;
+        return InvokableController._callJsFunction(descriptor.get, [], map);
+      }
+      return descriptor.value;
+    }
+    if (map.containsKey(prop)) {
+      return map[prop];
+    }
+    final prototype = InvokableController.getPrototype(map);
+    if (prototype != null) {
+      return InvokableController.getProperty(prototype, prop);
+    }
+    return null;
   }
 
   static void setProperty(Map map, dynamic prop, dynamic val) {
+    prop = InvokableController._normalizeProperty(prop);
+    final descriptor = InvokableController.getOwnPropertyDescriptor(map, prop);
+    if (descriptor != null) {
+      if (descriptor.isAccessor) {
+        if (descriptor.set == null) {
+          throw InvalidPropertyException(
+              'Object property $prop does not have a setter');
+        }
+        InvokableController._callJsFunction(descriptor.set, [val], map);
+        return;
+      }
+      if (!descriptor.writable) {
+        return;
+      }
+      descriptor.value = val;
+    }
     map[prop] = val;
   }
 }
 
 class _List {
+  static const int maxPracticalArrayLength = 1000000;
+  static const Object _missingSpliceItem = Object();
+
+  static void _checkArrayLength(int targetLength) {
+    if (targetLength > maxPracticalArrayLength) {
+      throw InvalidPropertyException(
+          'Array length $targetLength exceeds the interpreter safety limit of $maxPracticalArrayLength');
+    }
+  }
+
   static Map<String, Function> getters(List list) {
     return {'length': () => list.length};
   }
 
+  static Iterable<MapEntry<int, dynamic>> _presentEntries(List list) sync* {
+    for (final entry in list.asMap().entries) {
+      if (!InvokableController.isArrayHole(entry.value)) {
+        yield entry;
+      }
+    }
+  }
+
+  static List _presentValues(List list) =>
+      _presentEntries(list).map((entry) => entry.value).toList();
+
+  static dynamic _visibleValue(dynamic value) =>
+      InvokableController.isArrayHole(value) ? null : value;
+
   // ignore: unused_element
   static List filter(List list, Function f) {
-    return list.where((e) => f([e])).toList();
+    return _presentValues(list).where((e) => f([e])).toList();
   }
 
   static Map<String, Function> methods(List list) {
+    int clampArrayIndex(int value) {
+      if (value < 0) return 0;
+      if (value > list.length) return list.length;
+      return value;
+    }
+
+    int normalizeStartIndex(int start) {
+      final adjusted = start < 0 ? list.length + start : start;
+      return clampArrayIndex(adjusted);
+    }
+
+    int normalizeEndIndex(int? end) {
+      if (end == null) return list.length;
+      final adjusted = end < 0 ? list.length + end : end;
+      return clampArrayIndex(adjusted);
+    }
+
+    int normalizeFromIndex(int? fromIndex) {
+      if (fromIndex == null) return 0;
+      return normalizeStartIndex(fromIndex);
+    }
+
+    int normalizeLastFromIndex(int? fromIndex) {
+      if (list.isEmpty) return -1;
+      if (fromIndex == null) return list.length - 1;
+      final adjusted = fromIndex < 0 ? list.length + fromIndex : fromIndex;
+      if (adjusted < 0) return -1;
+      if (adjusted >= list.length) return list.length - 1;
+      return adjusted;
+    }
+
     return {
-      'map': (Function f) => list
-          .asMap()
-          .entries
-          .map((entry) => f([entry.value, entry.key]))
-          .toList(),
-      'filter': (Function f) => list
-          .asMap()
-          .entries
-          .where((entry) => f([entry.value, entry.key]))
+      'map': (Function f) {
+        final mapped = List<dynamic>.filled(list.length, jsArrayHole);
+        for (final entry in _presentEntries(list)) {
+          mapped[entry.key] = f([entry.value, entry.key, list]);
+        }
+        return mapped;
+      },
+      'filter': (Function f) => _presentEntries(list)
+          .where((entry) => f([entry.value, entry.key, list]))
           .map((entry) => entry.value)
           .toList(),
-      'forEach': (Function f) =>
-          list.asMap().forEach((index, element) => f([element, index])),
-      'add': (dynamic val) => list.add(val),
-      'push': (dynamic val) => list.add(val),
-      'indexOf': (dynamic searchElement, [int? fromIndex]) {
-        if (fromIndex == null) {
-          return list.indexOf(searchElement);
+      'forEach': (Function f) {
+        for (final entry in _presentEntries(list)) {
+          f([entry.value, entry.key, list]);
         }
-        return list.indexOf(searchElement, fromIndex);
       },
-      'lastIndexOf': (dynamic val) => list.lastIndexOf(val),
-      'unique': () => list.toSet().toList(),
+      'add': (dynamic val) {
+        _checkArrayLength(list.length + 1);
+        list.add(val);
+      },
+      'push': (dynamic val) {
+        _checkArrayLength(list.length + 1);
+        list.add(val);
+        return list.length;
+      },
+      'indexOf': (dynamic searchElement, [int? fromIndex]) {
+        final start = normalizeFromIndex(fromIndex);
+        for (final entry in _presentEntries(list)) {
+          if (entry.key >= start && entry.value == searchElement) {
+            return entry.key;
+          }
+        }
+        return -1;
+      },
+      'lastIndexOf': (dynamic val, [int? fromIndex]) {
+        final end = normalizeLastFromIndex(fromIndex);
+        var index = -1;
+        for (final entry in _presentEntries(list)) {
+          if (entry.key <= end && entry.value == val) index = entry.key;
+        }
+        return index;
+      },
+      'unique': () => _presentValues(list).toSet().toList(),
       'sort': ([Function? f]) {
         if (f == null) {
           list.sort();
@@ -1004,70 +1545,144 @@ class _List {
         }
         return list;
       },
-      'at': (int index) => list[index],
+      'at': (int index) {
+        final normalized = index < 0 ? list.length + index : index;
+        return normalized >= 0 && normalized < list.length
+            ? _visibleValue(list[normalized])
+            : null;
+      },
       'concat': (List arr) => list + arr,
-      'find': (Function f) => list.firstWhere((e) => f([e]), orElse: () => -1),
-      'includes': (dynamic v) => list.contains(v),
-      'contains': (dynamic v) => list.contains(v),
+      'find': (Function f) {
+        for (final entry in _presentEntries(list)) {
+          if (f([entry.value, entry.key, list])) return entry.value;
+        }
+        return -1;
+      },
+      'findLast': (Function f) {
+        for (final entry in _presentEntries(list).toList().reversed) {
+          if (f([entry.value, entry.key, list])) return entry.value;
+        }
+        return null;
+      },
+      'findLastIndex': (Function f) {
+        for (final entry in _presentEntries(list).toList().reversed) {
+          if (f([entry.value, entry.key, list])) return entry.key;
+        }
+        return -1;
+      },
+      'includes': (dynamic v) => _presentValues(list).contains(v),
+      'contains': (dynamic v) => _presentValues(list).contains(v),
       'join': ([String str = ',']) => list.join(str),
       'pop': () => (list.isNotEmpty) ? list.removeLast() : null,
       'reduce': (Function f, [dynamic initialValue]) {
-        // Check if an initial value is provided
+        final entries = _presentEntries(list).toList();
         if (initialValue != null) {
-          // Use fold when an initial value is provided
-          return list.fold(initialValue,
-              (currentValue, element) => f([currentValue, element]));
-        } else {
-          // Use reduce directly when no initial value is provided
-          // This will throw if the list is empty, similar to JS reduce without an initial value
-          return list
-              .reduce((currentValue, element) => f([currentValue, element]));
+          var accumulator = initialValue;
+          for (final entry in entries) {
+            accumulator = f([accumulator, entry.value, entry.key, list]);
+          }
+          return accumulator;
         }
+        if (entries.isEmpty) {
+          throw StateError('Reduce of empty array with no initial value');
+        }
+        var accumulator = entries.first.value;
+        for (final entry in entries.skip(1)) {
+          accumulator = f([accumulator, entry.value, entry.key, list]);
+        }
+        return accumulator;
       },
       'reduceRight': (Function f, [dynamic initialValue]) {
-        List reversed = list.reversed.toList();
+        final entries = _presentEntries(list).toList().reversed;
         if (initialValue != null) {
-          return reversed.fold(initialValue,
-              (currentValue, element) => f([currentValue, element]));
-        } else {
-          return reversed
-              .reduce((currentValue, element) => f([currentValue, element]));
+          var accumulator = initialValue;
+          for (final entry in entries) {
+            accumulator = f([accumulator, entry.value, entry.key, list]);
+          }
+          return accumulator;
         }
+        final entryList = entries.toList();
+        if (entryList.isEmpty) {
+          throw StateError('Reduce of empty array with no initial value');
+        }
+        var accumulator = entryList.first.value;
+        for (final entry in entryList.skip(1)) {
+          accumulator = f([accumulator, entry.value, entry.key, list]);
+        }
+        return accumulator;
       },
-      'reverse': () => list.reversed.toList(),
+      'reverse': () {
+        final reversed = list.reversed.toList();
+        list
+          ..clear()
+          ..addAll(reversed);
+        return list;
+      },
       'slice': ([int? start, int? end]) {
-        // If no arguments provided, create a shallow copy of the entire list
-        if (start == null) {
-          return List.from(list);
-        }
-        return list.sublist(start, end ?? list.length);
+        final from = normalizeStartIndex(start ?? 0);
+        final to = normalizeEndIndex(end);
+        if (to <= from) return [];
+        return list.sublist(from, to);
       },
       'shift': () => list.isNotEmpty ? list.removeAt(0) : null,
       'unshift': (dynamic val) {
+        _checkArrayLength(list.length + 1);
         list.insert(0, val);
         return list.length;
       },
-      'splice': (int start, int deleteCount, [dynamic items]) {
-        var removedItems = list.sublist(start, start + deleteCount);
-        list.removeRange(start, start + deleteCount);
-        if (items != null) {
-          if (items is List) {
-            list.insertAll(start, items);
-          } else {
-            list.insert(start, items);
-          }
+      'splice': (int start,
+          [int? deleteCount,
+          dynamic item1 = _missingSpliceItem,
+          dynamic item2 = _missingSpliceItem,
+          dynamic item3 = _missingSpliceItem,
+          dynamic item4 = _missingSpliceItem,
+          dynamic item5 = _missingSpliceItem,
+          dynamic item6 = _missingSpliceItem,
+          dynamic item7 = _missingSpliceItem,
+          dynamic item8 = _missingSpliceItem]) {
+        final from = normalizeStartIndex(start);
+        final maxDeleteCount = list.length - from;
+        final actualDeleteCount =
+            (deleteCount ?? maxDeleteCount).clamp(0, maxDeleteCount);
+        var removedItems = list.sublist(from, from + actualDeleteCount);
+        list.removeRange(from, from + actualDeleteCount);
+        final rawItems = [
+          item1,
+          item2,
+          item3,
+          item4,
+          item5,
+          item6,
+          item7,
+          item8,
+        ];
+        final items = rawItems
+            .where((item) => !identical(item, _missingSpliceItem))
+            .toList();
+        if (items.length == 1 && items.first is List) {
+          _checkArrayLength(list.length + (items.first as List).length);
+          list.insertAll(from, items.first);
+        } else if (items.isNotEmpty) {
+          _checkArrayLength(list.length + items.length);
+          list.insertAll(from, items);
         }
         return removedItems;
       },
-      'some': (Function f) => list.any((element) => f([element])),
-      'every': (Function f) => list.every((element) => f([element])),
-      'findIndex': (Function f) => list.indexWhere((e) => f([e])),
+      'some': (Function f) => _presentEntries(list)
+          .any((entry) => f([entry.value, entry.key, list])),
+      'every': (Function f) => _presentEntries(list)
+          .every((entry) => f([entry.value, entry.key, list])),
+      'findIndex': (Function f) {
+        for (final entry in _presentEntries(list)) {
+          if (f([entry.value, entry.key, list])) return entry.key;
+        }
+        return -1;
+      },
       'fill': (dynamic value, [int start = 0, int? end]) {
-        end ??= list.length;
-        for (int i = start; i < end; i++) {
-          if (i >= 0 && i < list.length) {
-            list[i] = value;
-          }
+        final from = normalizeStartIndex(start);
+        final to = normalizeEndIndex(end);
+        for (int i = from; i < to; i++) {
+          list[i] = value;
         }
         return list;
       },
@@ -1076,6 +1691,7 @@ class _List {
           if (d == 0) return List.from(input);
           List out = [];
           for (var e in input) {
+            if (InvokableController.isArrayHole(e)) continue;
             if (e is List) {
               out.addAll(flatten(e, d - 1));
             } else {
@@ -1089,22 +1705,22 @@ class _List {
       },
       'flatMap': (Function f) {
         List out = [];
-        list.asMap().forEach((i, e) {
-          var mapped = f([e, i]);
+        for (final entry in _presentEntries(list)) {
+          var mapped = f([entry.value, entry.key, list]);
           if (mapped is List) {
             out.addAll(mapped);
           } else {
             out.add(mapped);
           }
-        });
+        }
         return out;
       },
-      'keys': () => list.asMap().keys.toList(),
-      'values': () => List.from(list),
+      'keys': () => List<int>.generate(list.length, (index) => index),
+      'values': () => list.map(_visibleValue).toList(),
       'entries': () => list
           .asMap()
           .entries
-          .map((e) => {'key': e.key, 'value': e.value})
+          .map((e) => {'key': e.key, 'value': _visibleValue(e.value)})
           .toList(),
       'copyWithin': (int target, int start, [int? end]) {
         int len = list.length;
@@ -1116,7 +1732,7 @@ class _List {
         List<dynamic> slice = [];
         for (int i = 0; i < count; i++) {
           int src = from + i;
-          slice.add(src < len ? list[src] : null);
+          slice.add(src < len ? _visibleValue(list[src]) : null);
         }
         for (int i = 0; i < count; i++) {
           int dest = to + i;
@@ -1134,8 +1750,10 @@ class _List {
   }
 
   static dynamic getProperty(List list, dynamic prop) {
+    prop = InvokableController._normalizeIndexProperty(prop);
     if (prop is int) {
-      return list[prop];
+      if (prop < 0 || prop >= list.length) return jsUndefined;
+      return _visibleValue(list[prop]);
     }
     Function? f = getters(list)[prop];
     if (f != null) {
@@ -1146,10 +1764,17 @@ class _List {
   }
 
   static void setProperty(List list, dynamic prop, dynamic val) {
+    prop = InvokableController._normalizeIndexProperty(prop);
     if (prop is int) {
+      _checkArrayLength(prop + 1);
       if (prop >= 0 && prop < list.length) {
         list[prop] = val;
       } else if (list.length == prop) {
+        list.add(val);
+      } else if (prop > list.length) {
+        while (list.length < prop) {
+          list.add(jsArrayHole);
+        }
         list.add(val);
       }
     } else {

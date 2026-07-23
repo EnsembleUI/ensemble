@@ -13,13 +13,20 @@ import 'package:get_it/get_it.dart';
 
 import '../framework/stub/network_info.dart';
 
+/// Ensemble action that reads network details such as Wi-Fi name and address.
 class GetNetworkInfoAction extends EnsembleAction {
+  /// Network information manager used to read platform details.
   NetworkInfoManager networkInfo = GetIt.I<NetworkInfoManager>();
+  /// Action executed when the operation succeeds.
   EnsembleAction? onSuccess;
+  /// Action executed when the operation fails.
   EnsembleAction? onError;
+  /// Action executed when permission is denied.
   EnsembleAction? onDenied;
+  /// Action callback executed when location disabled occurs.
   EnsembleAction? onLocationDisabled;
 
+  /// Creates a [GetNetworkInfoAction] action.
   GetNetworkInfoAction(
       {super.initiator,
       super.inputs,
@@ -28,9 +35,11 @@ class GetNetworkInfoAction extends EnsembleAction {
       this.onDenied,
       this.onLocationDisabled});
 
+  /// Creates a [GetNetworkInfoAction] from a YAML or map action payload.
   factory GetNetworkInfoAction.from({Invokable? initiator, dynamic payload}) =>
       GetNetworkInfoAction.fromYaml(
           initiator: initiator, payload: Utils.getYamlMap(payload));
+  /// Creates a [GetNetworkInfoAction] from a YAML or map action payload.
   factory GetNetworkInfoAction.fromYaml({Invokable? initiator, Map? payload}) {
     if (payload?['onSuccess'] == null) {
       throw LanguageError('onSuccess is required',
@@ -49,6 +58,7 @@ class GetNetworkInfoAction extends EnsembleAction {
             initiator: initiator));
   }
 
+  /// Runs this action and performs the get network info operation.
   @override
   Future<dynamic> execute(BuildContext context, ScopeManager scopeManager) {
     if (kIsWeb && onError != null) {
@@ -112,6 +122,8 @@ class GetNetworkInfoAction extends EnsembleAction {
   }
 }
 
+/// Invokable wrapper around network information exposed to expressions.
+/// Network details exposed to Ensemble expressions after a network-info action.
 class InvokableNetworkInfo extends Object with Invokable {
   String? wifiName,
       wifiIPv6,
@@ -120,6 +132,7 @@ class InvokableNetworkInfo extends Object with Invokable {
       wifiSubmask,
       wifiBroadcast,
       wifiBSSID;
+  /// Creates a [InvokableNetworkInfo] metadata object.
   InvokableNetworkInfo({
     this.wifiName,
     this.wifiIPv4,

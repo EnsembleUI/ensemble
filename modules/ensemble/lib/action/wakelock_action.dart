@@ -12,6 +12,7 @@ import 'package:wakelock_plus/wakelock_plus.dart';
 /// Action to control device screen wakelock
 /// Prevents the screen from turning off automatically when enabled
 class WakelockAction extends EnsembleAction {
+  /// Creates a [WakelockAction] action.
   WakelockAction({
     super.initiator,
     required this.enable,
@@ -19,10 +20,14 @@ class WakelockAction extends EnsembleAction {
     this.onError,
   });
 
+  /// Whether the wakelock should be enabled or disabled.
   final dynamic enable;
+  /// Action executed after the operation completes successfully.
   final EnsembleAction? onComplete;
+  /// Action executed when the operation fails.
   final EnsembleAction? onError;
 
+  /// Creates a [WakelockAction] from a YAML or map action payload.
   factory WakelockAction.from({Invokable? initiator, Map? payload}) {
     return WakelockAction(
       initiator: initiator,
@@ -32,6 +37,7 @@ class WakelockAction extends EnsembleAction {
     );
   }
 
+  /// Runs this action and performs the wakelock operation.
   @override
   Future<void> execute(BuildContext context, ScopeManager scopeManager) async {
     try {

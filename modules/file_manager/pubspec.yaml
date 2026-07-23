@@ -1,11 +1,19 @@
 name: ensemble_file_manager
-description: A new Flutter package project.
-version: 0.0.1
-homepage:
+description: File picking and gallery-saving implementation for Ensemble apps.
+homepage: https://ensembleui.com
+repository: https://github.com/EnsembleUI/ensemble/tree/main/modules/file_manager
+issue_tracker: https://github.com/EnsembleUI/ensemble/issues
+documentation: https://github.com/EnsembleUI/ensemble/tree/main/modules/file_manager#readme
+topics:
+  - file-picker
+  - file-manager
+  - low-code
+  - ensemble
+version: 1.2.49
 
 environment:
-  sdk: ">=2.17.0 <4.0.0"
-  flutter: ">=1.17.0"
+  sdk: ">=3.5.0 <4.0.0"
+  flutter: ">=3.24.0"
 
 dependencies:
   flutter:
@@ -14,9 +22,9 @@ dependencies:
   ensemble:
     git:
       url: https://github.com/EnsembleUI/ensemble.git
-      ref: ensemble-v1.2.46
+      ref: ensemble-v1.2.49
       path: modules/ensemble
-  ensemble_ts_interpreter: ^1.0.7
+  ensemble_ts_interpreter: ^1.2.0
   file_picker: ^10.1.2
   vision_gallery_saver: ^3.1.1
 

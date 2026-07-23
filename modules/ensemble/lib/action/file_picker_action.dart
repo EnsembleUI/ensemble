@@ -10,9 +10,17 @@ import 'package:yaml/yaml.dart';
 import 'package:ensemble/framework/event.dart';
 import 'package:flutter/cupertino.dart';
 
-enum FileSource { gallery, files }
+/// Sources supported by the file picker action.
+enum FileSource {
+  /// Selects media from the device gallery.
+  gallery,
+  /// Selects files from the platform file picker.
+  files
+}
 
+/// Ensemble action that opens the platform file picker and stores selected files in the data context.
 class FilePickerAction extends EnsembleAction {
+  /// Creates a [FilePickerAction] action.
   FilePickerAction({
     required this.id,
     this.allowedExtensions,
@@ -23,14 +31,23 @@ class FilePickerAction extends EnsembleAction {
     this.source,
   });
 
+  /// Identifier used to store results, target an existing resource, or correlate callbacks.
   String id;
+  /// File extensions allowed by the file picker.
   List<String>? allowedExtensions;
+  /// Whether multiple files can be selected.
   bool? allowMultiple;
+  /// Whether selected media may be compressed by the picker.
+  @Deprecated('allowCompression is deprecated and has no effect.') 
   bool? allowCompression;
+  /// Action executed after the operation completes successfully.
   EnsembleAction? onComplete;
+  /// Action executed when the operation fails.
   EnsembleAction? onError;
+  /// File source, URL, or audio source used by the action.
   FileSource? source;
 
+  /// Creates a [FilePickerAction] from a YAML or map action payload.
   factory FilePickerAction.fromYaml({Map? payload}) {
     if (payload == null || payload['id'] == null) {
       throw LanguageError("${ActionType.pickFiles.name} requires 'id'.");
@@ -58,6 +75,7 @@ class FilePickerAction extends EnsembleAction {
     );
   }
 
+  /// Runs this action and opens the platform picker and stores selected files.
   @override
   Future execute(BuildContext context, ScopeManager scopeManager) async {
     try {

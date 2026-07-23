@@ -1,5 +1,5 @@
 import 'package:ensemble/framework/stub/location_manager.dart';
-import 'package:meta/meta.dart';
+import 'package:flutter/foundation.dart' show visibleForTesting;
 
 const _placesAutocompleteHost =
     'services-googleplacesautocomplete-2czdl2akpq-uc.a.run.app';

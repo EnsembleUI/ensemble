@@ -20,6 +20,7 @@ extension ToBitmapDescriptor on Widget {
       child: this,
     ));
     final view = ui.PlatformDispatcher.instance.views.first;
+    // ignore: deprecated_member_use
     return BitmapDescriptor.fromBytes(
       pngBytes,
       size: Size(

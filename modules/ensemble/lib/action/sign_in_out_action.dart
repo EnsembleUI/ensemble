@@ -8,11 +8,15 @@ import 'package:get_it/get_it.dart';
 
 /// Verify if the user is currently signed in
 class VerifySignInAction extends EnsembleAction {
+  /// Creates a [VerifySignInAction] action.
   VerifySignInAction({super.initiator, this.onSignedIn, this.onNotSignedIn});
 
+  /// Action executed when a signed-in user is detected.
   final EnsembleAction? onSignedIn;
+  /// Action executed when no signed-in user is detected.
   final EnsembleAction? onNotSignedIn;
 
+  /// Runs this action and performs the verify sign in operation.
   @override
   Future execute(BuildContext context, ScopeManager scopeManager) async {
     if (GetIt.instance.isRegistered<AuthContextManager>()) {
@@ -41,10 +45,13 @@ class VerifySignInAction extends EnsembleAction {
 
 /// sign the user out
 class SignOutAction extends EnsembleAction {
+  /// Creates a [SignOutAction] action.
   SignOutAction({super.initiator, this.onComplete});
 
+  /// Action executed after the operation completes successfully.
   final EnsembleAction? onComplete;
 
+  /// Runs this action and performs the sign out operation.
   @override
   Future execute(BuildContext context, ScopeManager scopeManager) async {
     if (GetIt.instance.isRegistered<AuthContextManager>()) {
@@ -74,16 +81,18 @@ class SignOutAction extends EnsembleAction {
 /// 5. client sign the user into Ensemble with the idToken and the server credentials.
 /// 6. client includes the server credentials on API calls to the server
 class SignInAction extends EnsembleAction {
+  /// Creates a [SignInAction] action.
   SignInAction(
       {super.initiator,
       required this.idToken,
       required this.serverCredentials});
 
-  // can be used to store e.g. bearer token, cookies, ...
-  // It just have to be something so server can identify the client.
+  /// Credentials returned by the server-backed sign-in flow.
   final Map serverCredentials;
+  /// Identity token returned by a sign-in provider.
   final String idToken;
 
+  /// Runs this action and performs the sign in operation.
   @override
   Future execute(BuildContext context, ScopeManager scopeManager) {
     // TODO: implement execute

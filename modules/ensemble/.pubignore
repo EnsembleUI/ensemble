@@ -1,0 +1,12 @@
+build/
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.idea/
+.vscode/
+*.iml
+melos_*.iml
+pubspec.lock
+pubspec_overrides.yaml
+lefthook.yml
+integration_test/

@@ -1,9 +1,7 @@
 import 'dart:convert';
-import 'dart:developer';
 
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/action.dart';
-import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/notification_manager.dart';
@@ -19,18 +17,26 @@ import 'package:flutter/cupertino.dart';
  * request user authorization to send push notification.
  * This works for both local and server (Firebase) notifications
  */
+/// Ensemble action that requests push or local notification permission.
 class RequestNotificationAccessAction extends EnsembleAction {
+  /// Action executed when notification permission is authorized.
   EnsembleAction? onAuthorized;
+  /// Action executed when permission is denied.
   EnsembleAction? onDenied;
+  /// Action executed for provisional notification authorization.
   EnsembleAction? onProvisional;
+  /// Action executed when notification permission has not been decided.
   EnsembleAction? onNotDetermined;
 
+  /// Whether the permission request targets only local notifications.
   bool? localNotificationOnly;
 
-  // legacy
+  /// Action executed when the user accepts a permission prompt.
   EnsembleAction? onAccept;
+  /// Action executed when the user rejects a permission prompt.
   EnsembleAction? onReject;
 
+  /// Creates a [RequestNotificationAccessAction] action.
   RequestNotificationAccessAction(
       {super.initiator,
       this.onAuthorized,
@@ -43,6 +49,7 @@ class RequestNotificationAccessAction extends EnsembleAction {
       this.onAccept,
       this.onReject});
 
+  /// Creates a [RequestNotificationAccessAction] from a YAML or map action payload.
   factory RequestNotificationAccessAction.from(
       {Invokable? initiator, Map? payload}) {
     return RequestNotificationAccessAction(
@@ -55,6 +62,7 @@ class RequestNotificationAccessAction extends EnsembleAction {
     );
   }
 
+  /// Runs this action and requests notification permission and dispatches status callbacks.
   @override
   Future execute(BuildContext context, ScopeManager scopeManager) async {
     AuthorizationStatus? status;
@@ -77,6 +85,7 @@ class RequestNotificationAccessAction extends EnsembleAction {
     return executeActions(context, status, deviceToken);
   }
 
+  /// Dispatches notification permission callbacks for an authorization status.
   Future executeActions(BuildContext context, AuthorizationStatus? status,
       String? deviceToken) async {
     EnsembleEvent event = EnsembleEvent(initiator,
@@ -121,13 +130,19 @@ class RequestNotificationAccessAction extends EnsembleAction {
 /**
  * Show a notification locally from the device
  */
+/// Ensemble action that displays a local notification.
 class ShowLocalNotificationAction extends EnsembleAction {
+  /// Title text shown in a toast, dialog, or notification.
   String title;
+  /// Widget or content body rendered by a toast, dialog, or bottom sheet.
   String? body;
+  /// Raw action payload passed to the action implementation.
   Map? payload;
 
+  /// Creates a [ShowLocalNotificationAction] action.
   ShowLocalNotificationAction({required this.title, this.body, this.payload});
 
+  /// Creates a [ShowLocalNotificationAction] from a YAML or map action payload.
   factory ShowLocalNotificationAction.from({Map? payload}) {
     String? title = Utils.optionalString(payload?['title']);
     if (title == null) {
@@ -140,6 +155,7 @@ class ShowLocalNotificationAction extends EnsembleAction {
     );
   }
 
+  /// Runs this action and shows the configured local notification.
   @override
   Future execute(BuildContext context, ScopeManager scopeManager) async {
     if (await notificationUtils.initNotifications() == true) {
@@ -153,14 +169,18 @@ class ShowLocalNotificationAction extends EnsembleAction {
   }
 }
 
-// legacy
+/// Ensemble action that fetches the push notification device token.
 class GetDeviceTokenAction extends EnsembleAction {
+  /// Creates a [GetDeviceTokenAction] action.
   GetDeviceTokenAction(
       {super.initiator, required this.onSuccess, this.onError});
 
+  /// Action executed when the operation succeeds.
   EnsembleAction? onSuccess;
+  /// Action executed when the operation fails.
   EnsembleAction? onError;
 
+  /// Creates a [GetDeviceTokenAction] from a YAML or map action payload.
   factory GetDeviceTokenAction.fromMap({dynamic payload}) {
     if (payload is Map) {
       EnsembleAction? successAction = EnsembleAction.from(payload['onSuccess']);
