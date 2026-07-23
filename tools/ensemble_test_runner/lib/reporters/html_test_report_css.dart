@@ -259,6 +259,24 @@ body {
   font-family: var(--font-code);
   font-size: 0.8rem;
 }
+.artifact-source {
+  font-family: var(--font-code);
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  margin: 4px 0 8px;
+}
+.artifact-embedded {
+  margin: 0;
+  max-height: 320px;
+  overflow: auto;
+  padding: 12px;
+  border-radius: 8px;
+  background: var(--surface-2, rgba(0,0,0,0.25));
+  font-family: var(--font-code);
+  font-size: 0.75rem;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
 
 /* Master-Detail Split Screen Layout */
 .dashboard-container {
@@ -1390,7 +1408,7 @@ a:hover {
   border-bottom: 1px solid var(--border);
   margin-bottom: 20px;
 }
-.modal-tab-btn {
+.modal-tab-btn, .screen-tab-btn {
   background: transparent;
   border: none;
   color: var(--text-muted);
@@ -1401,13 +1419,13 @@ a:hover {
   position: relative;
   transition: color 0.2s;
 }
-.modal-tab-btn:hover {
+.modal-tab-btn:hover, .screen-tab-btn:hover {
   color: #fff;
 }
-.modal-tab-btn.active {
+.modal-tab-btn.active, .screen-tab-btn.active {
   color: var(--accent);
 }
-.modal-tab-btn.active::after {
+.modal-tab-btn.active::after, .screen-tab-btn.active::after {
   content: '';
   position: absolute;
   bottom: -1px;

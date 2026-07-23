@@ -62,22 +62,26 @@ const ensembleHtmlTestReportAppJs = r'''
             apiCalls: step.apiCalls || [],
             appLogs: step.appLogs || [],
             storageChanges: step.storageChanges || [],
-            screenshots: step.screenshots || []
+            screenshots: step.screenshots || [],
+            performance: step.performance || null
           };
           step.apiCalls = parent.apiCalls;
           step.appLogs = parent.appLogs;
           step.storageChanges = parent.storageChanges;
           step.screenshots = parent.screenshots;
+          step.performance = parent.performance;
         } else if (parent) {
           step.apiCalls = parent.apiCalls;
           step.appLogs = parent.appLogs;
           step.storageChanges = parent.storageChanges;
           step.screenshots = parent.screenshots;
+          step.performance = parent.performance;
         } else {
           step.apiCalls = [];
           step.appLogs = [];
           step.storageChanges = [];
           step.screenshots = [];
+          step.performance = null;
         }
         steps[i] = step;
       }
@@ -231,8 +235,23 @@ const ensembleHtmlTestReportAppJs = r'''
     html += '<summary>Show Suite Logs & Artifacts (' + artifacts.length + ')</summary>';
     html += '<div class="suite-artifacts-content"><ul>';
     artifacts.forEach(a => {
-      html += '<li><div class="artifact-item-header"><span class="label">' + escapeHtml(a.label) + '</span>: ';
-      html += '<a href="' + escapeHtml(a.href || a.path) + '">' + escapeHtml(a.path) + '</a></div></li>';
+      html += '<li><div class="artifact-item-header"><span class="label">' + escapeHtml(a.label) + '</span>';
+      if (a.content != null) {
+        html += '</div>';
+        if (a.source) {
+          html += '<div class="artifact-source">' + escapeHtml(a.source) + '</div>';
+        }
+        let body = '';
+        try {
+          body = typeof a.content === 'string' ? a.content : JSON.stringify(a.content, null, 2);
+        } catch (e) {
+          body = String(a.content);
+        }
+        html += '<pre class="artifact-embedded">' + escapeHtml(body) + '</pre>';
+      } else {
+        html += ': <a href="' + escapeHtml(a.href || a.path || '#') + '">' + escapeHtml(a.path || a.href || '') + '</a></div>';
+      }
+      html += '</li>';
     });
     html += '</ul></div></details></section>';
     host.innerHTML = html;
@@ -358,10 +377,17 @@ const ensembleHtmlTestReportAppJs = r'''
     html += '</div>';
 
     const visited = report.screensVisited || [];
-    if (visited.length > 1) {
+    if (visited.length > 0) {
       html += '<div class="flow-timeline"><div class="flow-label">Flow Journey</div><div class="flow-track">';
       visited.forEach((s, j) => {
-        html += '<span class="flow-node">' + escapeHtml(s) + '</span>';
+        const screensMap = report.screens || {};
+        const hasData = screensMap[s] !== undefined;
+        if (hasData) {
+          const escapedScreen = s.replace(/'/g, "\\'");
+          html += '<span class="flow-node interactive" style="cursor: pointer; text-decoration: underline; color: var(--accent); font-weight: 700;" title="Click to view Widget Debug Tree & Performance Logs" onclick="openScreenDialog(\'' + anchorId(test.id) + '\', \'' + escapedScreen + '\')">' + escapeHtml(s) + '</span>';
+        } else {
+          html += '<span class="flow-node">' + escapeHtml(s) + '</span>';
+        }
         if (j < visited.length - 1) html += '<span class="flow-arrow">→</span>';
       });
       html += '</div></div>';
@@ -511,6 +537,60 @@ const ensembleHtmlTestReportAppJs = r'''
       html += '</div></figure>';
     });
     html += '</div></div></div>';
+    return html;
+  }
+
+  function renderTestPerformance(test) {
+    const perf = test.performance;
+    if (!perf) return '';
+    const summary = perf.summary || {};
+    let html = '<div class="suite-panel suite-performance-panel" style="padding:0;margin:24px 0 0;">';
+    html += '<div class="suite-panel-header"><h2>⚡ Performance</h2>';
+    html += '<p class="suite-panel-sub">Frame timing for this test case (also available per step in Step Details)</p></div>';
+    html += '<div class="suite-panel-card-body" style="padding:0;">';
+    html += '<div class="perf-metrics-grid">';
+    html += perfMetric('Frames', summary.totalFrames != null ? summary.totalFrames : perf.totalFrames);
+    html += perfMetric('Janky', summary.jankyFrames != null ? summary.jankyFrames : perf.jankyFrames);
+    const avgBuild = summary.averageBuildMs != null ? summary.averageBuildMs : perf.averageBuildMs;
+    const maxSpan = summary.maxTotalSpanMs != null ? summary.maxTotalSpanMs : perf.maxTotalSpanMs;
+    if (avgBuild != null) html += perfMetric('Avg build', formatDuration(Math.round(avgBuild)));
+    if (maxSpan != null) html += perfMetric('Max span', formatDuration(Math.round(maxSpan)));
+    html += '</div>';
+    if (summary.worstStep) html += '<p class="perf-callout"><strong>Worst step:</strong> ' + escapeHtml(String(summary.worstStep)) + '</p>';
+    if (summary.worstScreen) html += '<p class="perf-callout"><strong>Worst screen:</strong> ' + escapeHtml(String(summary.worstScreen)) + '</p>';
+    const worstSteps = perf.worstSteps || [];
+    if (worstSteps.length) {
+      html += '<div class="perf-table-wrap"><div class="perf-table-title">Worst steps</div><table class="perf-table"><thead><tr><th>Step</th><th>Screen</th><th>Janky</th><th>Max span</th></tr></thead><tbody>';
+      worstSteps.slice(0, 8).forEach(row => {
+        html += '<tr><td>' + escapeHtml(row.step || '') + '</td>';
+        html += '<td>' + escapeHtml(row.screen || '') + '</td>';
+        html += '<td>' + (row.jankyFrames || 0) + '/' + (row.totalFrames || 0) + '</td>';
+        html += '<td>' + formatDuration(Math.round(row.maxTotalSpanMs || 0)) + '</td></tr>';
+      });
+      html += '</tbody></table></div>';
+    }
+    html += '</div></div>';
+    return html;
+  }
+
+  function perfMetric(label, value) {
+    if (value == null || value === '') return '';
+    return '<div class="perf-metric"><div class="perf-metric-val">' + escapeHtml(String(value)) + '</div><div class="perf-metric-label">' + escapeHtml(label) + '</div></div>';
+  }
+
+  function renderTestDumpTree(test) {
+    if (!test.dumpTree) return '';
+    let text = String(test.dumpTree);
+    const lines = text.split('\n').length;
+    const maxChars = 12000;
+    const truncated = text.length > maxChars;
+    if (truncated) text = text.substring(0, maxChars) + '\n\n… truncated (' + lines + ' lines). Full dump is in results.json.gz.';
+    let html = '<div class="suite-panel suite-dumptree-panel" style="padding:0;margin:24px 0 0;">';
+    html += '<details class="suite-panel-card" open>';
+    html += '<summary><span class="suite-panel-card-title">🌳 Widget Tree Dump</span>';
+    html += '<span class="suite-panel-card-meta">' + lines + ' lines' + (truncated ? ' · preview' : '') + '</span></summary>';
+    html += '<div class="suite-panel-card-body"><pre class="artifact-embedded dump-tree-pre">' + escapeHtml(text) + '</pre></div>';
+    html += '</details></div>';
     return html;
   }
 
@@ -701,6 +781,38 @@ const ensembleHtmlTestReportAppJs = r'''
       });
     }
 
+    const perfList = document.getElementById('modal-perf-list');
+    const stepPerf = data.performance || null;
+    const slowest = (stepPerf && stepPerf.slowestFrames) || [];
+    const perfCount = stepPerf ? (stepPerf.totalFrames || slowest.length || 0) : 0;
+    document.getElementById('modal-perf-count').textContent = perfCount;
+    if (!perfList) {
+      // Older shells without the performance tab.
+    } else if (!stepPerf || !perfCount) {
+      perfList.innerHTML = '<div class="terminal-row" style="color: var(--text-muted);">&lt;no performance data for this step&gt;</div>';
+    } else {
+      let html = '<div class="perf-metrics-grid" style="margin-bottom:12px;">';
+      html += perfMetric('Frames', stepPerf.totalFrames);
+      html += perfMetric('Janky', stepPerf.jankyFrames);
+      if (stepPerf.maxTotalSpanMs != null) html += perfMetric('Max span', formatDuration(Math.round(stepPerf.maxTotalSpanMs)));
+      html += '</div>';
+      const screens = stepPerf.screens || [];
+      if (screens.length) {
+        html += '<p class="perf-callout"><strong>Screens:</strong> ' + escapeHtml(screens.join(' → ')) + '</p>';
+      }
+      if (slowest.length) {
+        html += '<div class="perf-table-wrap"><div class="perf-table-title">Slowest frames</div><table class="perf-table"><thead><tr><th>#</th><th>Screen</th><th>Phase</th><th>Total</th></tr></thead><tbody>';
+        slowest.forEach(frame => {
+          html += '<tr><td>' + escapeHtml(String(frame.frameNumber != null ? frame.frameNumber : '')) + '</td>';
+          html += '<td>' + escapeHtml(frame.screen || '') + '</td>';
+          html += '<td>' + escapeHtml(frame.phase || '') + '</td>';
+          html += '<td>' + formatDuration(Math.round(frame.totalSpanMs || 0)) + '</td></tr>';
+        });
+        html += '</tbody></table></div>';
+      }
+      perfList.innerHTML = html;
+    }
+
     switchModalTab(activeModalTab);
     document.getElementById('step-modal-overlay').style.display = 'flex';
   }
@@ -794,6 +906,64 @@ const ensembleHtmlTestReportAppJs = r'''
       if (suffix) return suffix;
     }
     return clean;
+  }
+
+  let activeScreenTab = 'screen-debugtree';
+
+  function openScreenDialog(cardId, screenName) {
+    const tests = (window.currentReport && window.currentReport.tests) || [];
+    const test = tests.find(t => anchorId(t.id) === cardId);
+    if (!test || !test.report || !test.report.screens) return;
+    const screenData = test.report.screens[screenName];
+    if (!screenData) return;
+
+    document.getElementById('modal-screen-title').innerText = screenName;
+
+    // 1. Render Widget Debug Tree
+    const treeEl = document.getElementById('modal-screen-debugtree-content');
+    if (screenData.debugTree) {
+      treeEl.innerHTML = '<pre style="margin: 0; white-space: pre-wrap; word-break: break-all; color: #cbd5e1; text-align: left;">' + escapeHtml(screenData.debugTree) + '</pre>';
+    } else {
+      treeEl.innerHTML = '<div style="color: var(--text-muted); padding: 12px;">&lt;no debug tree captured&gt;</div>';
+    }
+
+    // 2. Render Performance Logs
+    const perfEl = document.getElementById('modal-screen-perf-content');
+    if (screenData.performance) {
+      let body = '';
+      try {
+        body = typeof screenData.performance === 'string' ? screenData.performance : JSON.stringify(screenData.performance, null, 2);
+      } catch (e) {
+        body = String(screenData.performance);
+      }
+      perfEl.innerHTML = '<pre style="margin: 0; white-space: pre-wrap; word-break: break-all; color: #cbd5e1; text-align: left;">' + escapeHtml(body) + '</pre>';
+    } else {
+      perfEl.innerHTML = '<div style="color: var(--text-muted); padding: 12px;">&lt;no performance logs captured&gt;</div>';
+    }
+
+    switchScreenTab(activeScreenTab);
+    document.getElementById('screen-modal-overlay').style.display = 'flex';
+  }
+
+  function closeScreenDialog(event) {
+    if (event) {
+      if (event.target.id !== 'screen-modal-overlay' && !event.target.classList.contains('modal-close-btn')) return;
+    }
+    document.getElementById('screen-modal-overlay').style.display = 'none';
+    activeScreenTab = 'screen-debugtree';
+  }
+
+  function switchScreenTab(tab) {
+    activeScreenTab = tab;
+    document.querySelectorAll('.screen-tab-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.getAttribute('data-tab') === tab);
+    });
+    // Hide all screen tab contents
+    document.getElementById('modal-tab-screen-debugtree').style.display = 'none';
+    document.getElementById('modal-tab-screen-perf').style.display = 'none';
+
+    const pane = document.getElementById('modal-tab-' + tab);
+    if (pane) pane.style.display = 'block';
   }
 
   window.addEventListener('DOMContentLoaded', () => {

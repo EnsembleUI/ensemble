@@ -10,6 +10,7 @@ EnsembleTestReportDetails buildTestReportDetails(
   EnsembleTestCase testCase, {
   List<int> stepDurationsMs = const [],
   List<String> stepStartTimes = const [],
+  Map<String, Map<String, dynamic>> screens = const {},
 }) {
   final effectiveStart = testCase.startScreen ??
       ScreenTracker().getCurrentScreenIdentifier() ??
@@ -22,6 +23,7 @@ EnsembleTestReportDetails buildTestReportDetails(
     stepsOutline: outlineSteps(testCase.steps),
     stepDurationsMs: stepDurationsMs,
     stepStartTimes: stepStartTimes,
+    screens: screens,
   );
   return details;
 }

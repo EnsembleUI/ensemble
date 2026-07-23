@@ -605,6 +605,9 @@ class EnsembleTestReportDetails {
   final List<int> stepDurationsMs;
   final List<String> stepStartTimes;
 
+  /// Map from screen name to its captured artifacts (debugTree, performance, etc.)
+  final Map<String, Map<String, dynamic>> screens;
+
   const EnsembleTestReportDetails({
     required this.startScreen,
     this.endScreen,
@@ -613,9 +616,18 @@ class EnsembleTestReportDetails {
     this.stepsOutline = const [],
     this.stepDurationsMs = const [],
     this.stepStartTimes = const [],
+    this.screens = const {},
   });
 
   factory EnsembleTestReportDetails.fromJson(Map<String, dynamic> json) {
+    final screensMap = <String, Map<String, dynamic>>{};
+    if (json['screens'] is Map) {
+      (json['screens'] as Map).forEach((k, v) {
+        if (v is Map) {
+          screensMap[k.toString()] = Map<String, dynamic>.from(v);
+        }
+      });
+    }
     return EnsembleTestReportDetails(
       startScreen: json['startScreen']?.toString() ?? '(unknown)',
       endScreen: json['endScreen']?.toString(),
@@ -632,6 +644,7 @@ class EnsembleTestReportDetails {
       stepStartTimes: (json['stepStartTimes'] as List<dynamic>? ?? const [])
           .map((value) => value.toString())
           .toList(),
+      screens: screensMap,
     );
   }
 
@@ -643,6 +656,7 @@ class EnsembleTestReportDetails {
         'stepsOutline': stepsOutline,
         if (stepDurationsMs.isNotEmpty) 'stepDurationsMs': stepDurationsMs,
         if (stepStartTimes.isNotEmpty) 'stepStartTimes': stepStartTimes,
+        if (screens.isNotEmpty) 'screens': screens,
       };
 }
 

@@ -305,7 +305,7 @@ void main() {
   });
 
   group('EnsembleTestReportDetails.fromJson', () {
-    test('round-trips stepStartTimes for CLI report restore', () {
+    test('round-trips stepStartTimes and screens for CLI report restore', () {
       const original = EnsembleTestReportDetails(
         startScreen: 'Login',
         endScreen: 'Home',
@@ -315,12 +315,22 @@ void main() {
           '2026-07-22T12:00:00.000',
           '2026-07-22T12:00:01.200',
         ],
+        screens: {
+          'Login': {
+            'debugTree': 'WidgetTreeA',
+            'performance': {'totalFrames': 150}
+          },
+          'Home': {
+            'debugTree': 'WidgetTreeB',
+          }
+        },
       );
 
       final restored = EnsembleTestReportDetails.fromJson(original.toJson());
       expect(restored.stepStartTimes, original.stepStartTimes);
       expect(restored.stepDurationsMs, original.stepDurationsMs);
       expect(restored.stepsOutline, original.stepsOutline);
+      expect(restored.screens, original.screens);
     });
   });
 }

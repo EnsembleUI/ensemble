@@ -16,6 +16,31 @@ Future<String> writeAppPerformanceLog(EnsembleTestContext context) {
   );
 }
 
+Map<String, dynamic> buildScreenPerformanceJson({
+  required String screenName,
+  required List<AppFrameTimingEntry> frames,
+  required List<PerformanceMarker> markers,
+}) {
+  final screenMarkers = markers.where((m) => m.screen == screenName).toList();
+  final screenFrames = frames.where((f) {
+    final marker = _markerForFrame(f, markers);
+    return marker?.screen == screenName;
+  }).toList();
+
+  final jankyFrames = screenFrames.where((frame) => frame.isJanky).length;
+  return {
+    'screen': screenName,
+    'frameBudgetMs': AppFrameTimingEntry.frameBudgetMs,
+    'totalFrames': screenFrames.length,
+    'jankyFrames': jankyFrames,
+    'jankyFrameRate': _ratio(jankyFrames, screenFrames.length),
+    'averageBuildMs': _average(screenFrames.map((frame) => frame.buildMs)),
+    'averageRasterMs': _average(screenFrames.map((frame) => frame.rasterMs)),
+    'averageTotalSpanMs': _average(screenFrames.map((frame) => frame.totalSpanMs)),
+    'markers': screenMarkers.map((m) => _markerJson(m)).toList(),
+  };
+}
+
 Future<String> writePerformanceLog({
   required TestLogger logger,
   required String filePrefix,

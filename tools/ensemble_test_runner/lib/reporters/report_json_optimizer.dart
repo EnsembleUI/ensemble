@@ -138,6 +138,10 @@ class ReportJsonOptimizer {
             if (s is Map) Map<String, dynamic>.from(s),
         ];
       }
+      final stepPerf = step['performance'];
+      if (stepPerf is Map && stepPerf.isNotEmpty) {
+        out['performance'] = maybeIntern(Map<String, dynamic>.from(stepPerf));
+      }
       return out;
     }
 
@@ -183,6 +187,14 @@ class ReportJsonOptimizer {
         }
       }
 
+      if (test['performance'] is Map) {
+        out['performance'] =
+            alwaysIntern(Map<String, dynamic>.from(test['performance'] as Map));
+      }
+      if (test['dumpTree'] != null) {
+        out['dumpTree'] = alwaysIntern(test['dumpTree']);
+      }
+
       final steps = test['steps'];
       if (steps is List && steps.isNotEmpty) {
         out['steps'] = [
@@ -202,7 +214,19 @@ class ReportJsonOptimizer {
 
     final artifacts = document['suiteArtifacts'];
     if (artifacts is List && artifacts.isNotEmpty) {
-      out['suiteArtifacts'] = artifacts;
+      final optimizedArtifacts = <Map<String, dynamic>>[];
+      for (final artifact in artifacts) {
+        if (artifact is! Map) continue;
+        final entry = <String, dynamic>{
+          'label': artifact['label'],
+        };
+        if (artifact['path'] != null) entry['path'] = artifact['path'];
+        if (artifact['href'] != null) entry['href'] = artifact['href'];
+        optimizedArtifacts.add(entry);
+      }
+      if (optimizedArtifacts.isNotEmpty) {
+        out['suiteArtifacts'] = optimizedArtifacts;
+      }
     }
 
     final tests = document['tests'];
@@ -266,6 +290,7 @@ class ReportJsonOptimizer {
               'appLogs': step['appLogs'] ?? const [],
               'storageChanges': step['storageChanges'] ?? const [],
               'screenshots': step['screenshots'] ?? const [],
+              'performance': step['performance'],
             };
             step.putIfAbsent('apiCalls', () => const []);
             step.putIfAbsent('appLogs', () => const []);
@@ -276,6 +301,9 @@ class ReportJsonOptimizer {
             step['appLogs'] = parentPayload['appLogs'];
             step['storageChanges'] = parentPayload['storageChanges'];
             step['screenshots'] = parentPayload['screenshots'];
+            if (parentPayload['performance'] != null) {
+              step['performance'] = parentPayload['performance'];
+            }
           } else {
             step['apiCalls'] = const [];
             step['appLogs'] = const [];

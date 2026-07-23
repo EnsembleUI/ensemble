@@ -264,6 +264,10 @@ during the run, folded into `report/results.json.gz`, then deleted. What remains
 - `screenshots/*.png` (when screenshots are enabled)
 - `test_durations.json` (used to order the next run)
 
+When `performance` / `dumpTree` are enabled, those payloads are embedded **per
+test** in `results.json.gz` (`tests[].performance`, `tests[].dumpTree`, and
+step-scoped `tests[].steps[].performance`).
+
 ## Examples
 
 ### Login flow

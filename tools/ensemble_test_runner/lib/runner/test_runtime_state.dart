@@ -25,6 +25,9 @@ class TestRuntimeState {
   /// Public-storage diffs captured at the end of each top-level step.
   final List<StorageStepDiff> storageStepDiffs = [];
 
+  /// Map from screen name to its captured artifacts (debugTree, performance markers, etc.)
+  final Map<String, Map<String, dynamic>> screenArtifacts = {};
+
   void clear() {
     networkOffline = false;
     consoleLogs.clear();
@@ -39,6 +42,7 @@ class TestRuntimeState {
     themeMode = null;
     currentStepIndex = null;
     storageStepDiffs.clear();
+    screenArtifacts.clear();
   }
 
   /// Console prefix with ISO timestamp and optional `[step=N]` tag.

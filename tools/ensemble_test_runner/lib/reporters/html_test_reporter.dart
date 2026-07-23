@@ -211,6 +211,7 @@ class HtmlTestReporter {
         <button class="modal-tab-btn" data-tab="logs" onclick="switchModalTab('logs')">📝 Console Logs (<span id="modal-logs-count">0</span>)</button>
         <button class="modal-tab-btn" data-tab="storage" onclick="switchModalTab('storage')">💾 Storage (<span id="modal-storage-count">0</span>)</button>
         <button class="modal-tab-btn" data-tab="screenshots" onclick="switchModalTab('screenshots')">🖼️ Screenshots (<span id="modal-screenshots-count">0</span>)</button>
+        <button class="modal-tab-btn" data-tab="performance" onclick="switchModalTab('performance')">⚡ Performance (<span id="modal-perf-count">0</span>)</button>
       </div>
       <div class="modal-tab-content" id="modal-tab-api">
         <div id="modal-api-list" class="modal-list"></div>
@@ -223,6 +224,9 @@ class HtmlTestReporter {
       </div>
       <div class="modal-tab-content" id="modal-tab-screenshots" style="display: none;">
         <div id="modal-screenshots-list" class="modal-list modal-screenshots-grid"></div>
+      </div>
+      <div class="modal-tab-content" id="modal-tab-performance" style="display: none;">
+        <div id="modal-perf-list" class="modal-list"></div>
       </div>
     </div>
   </div>
@@ -240,6 +244,30 @@ class HtmlTestReporter {
     </div>
     <div class="modal-body" style="padding: 0; overflow: hidden; display: flex; flex-direction: column;">
       <div id="fullscreen-card-content" class="fullscreen-card-content-area"></div>
+    </div>
+  </div>
+</div>
+
+<div id="screen-modal-overlay" class="modal-overlay" style="display: none;" onclick="closeScreenDialog(event)">
+  <div class="modal-card" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <div class="modal-header-left">
+        <span class="modal-badge">SCREEN DETAILS</span>
+        <h3 id="modal-screen-title"></h3>
+      </div>
+      <button class="modal-close-btn" onclick="closeScreenDialog(event)">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-tabs">
+        <button class="screen-tab-btn active" data-tab="screen-debugtree" onclick="switchScreenTab('screen-debugtree')">🌳 Widget Debug Tree</button>
+        <button class="screen-tab-btn" data-tab="screen-perf" onclick="switchScreenTab('screen-perf')">⚡ Performance Timeline</button>
+      </div>
+      <div class="modal-tab-content" id="modal-tab-screen-debugtree">
+        <div id="modal-screen-debugtree-content" class="modal-list logs-terminal" style="font-family: var(--font-code); font-size: 0.75rem; max-height: 500px; overflow: auto; text-align: left; padding: 16px; background: rgba(0,0,0,0.3); border: 1px solid var(--border); border-radius: 8px;"></div>
+      </div>
+      <div class="modal-tab-content" id="modal-tab-screen-perf" style="display: none;">
+        <div id="modal-screen-perf-content" class="modal-list logs-terminal" style="font-family: var(--font-code); font-size: 0.75rem; max-height: 500px; overflow: auto; text-align: left; padding: 16px; background: rgba(0,0,0,0.3); border: 1px solid var(--border); border-radius: 8px;"></div>
+      </div>
     </div>
   </div>
 </div>

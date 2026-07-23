@@ -85,8 +85,10 @@ timers:
   maxRepeatIntervalSeconds: 1
 ```
 
-`dumpTree` is a suite-level config artifact. `logApiCalls` and `logStorage`
-write **per-test** files (attached to each test result / HTML card):
+`dumpTree` and `performance` are suite-level **config** flags; when enabled
+they emit **per-test** payloads (and step-scoped performance) folded into
+`results.json.gz`. `logApiCalls` and `logStorage` likewise attach **per-test**
+data to each test result / HTML card:
 
 ```yaml
 dumpTree:

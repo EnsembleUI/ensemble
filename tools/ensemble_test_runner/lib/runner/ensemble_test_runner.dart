@@ -10,7 +10,6 @@ import 'package:ensemble_test_runner/actions/test_step_executor.dart';
 import 'package:ensemble_test_runner/assertions/assertion_engine.dart';
 import 'package:ensemble_test_runner/discovery/ensemble_test_execution_planner.dart';
 import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
-import 'package:ensemble_test_runner/mocks/test_api_provider_overlay.dart';
 import 'package:ensemble_test_runner/mocks/test_logger.dart';
 import 'package:ensemble_test_runner/mocks/wifi_test_setup.dart';
 import 'package:ensemble_test_runner/reporters/test_reporter.dart';
@@ -94,16 +93,11 @@ class EnsembleTestRunner {
     EnsembleTestProgressListener? onTestComplete,
   }) async {
     final resultsById = <String, EnsembleSingleTestResult>{};
-    final suiteLogger = TestLogger();
-    final suiteFrames = <AppFrameTimingEntry>[];
-    final suiteMarkers = <PerformanceMarker>[];
-    final suiteApiCalls = <APICallRecord>[];
     final sessionSnapshots = <String, AppSessionSnapshot>{};
     final requestedSessions = plan.ordered
         .map((definition) => definition.testCase.session)
         .whereType<String>()
         .toSet();
-    EnsembleTestContext? lastContext;
 
     for (final def in plan.ordered) {
       final test = def.testCase;
@@ -167,34 +161,14 @@ class EnsembleTestRunner {
       }
       resultsById[test.id] = out.result;
       await onTestComplete?.call(def, out.result);
-      lastContext = out.context;
-      final frameOffset = suiteFrames.length;
-      _appendSuiteFrames(suiteFrames, out.context.runtime.appFrameTimings);
-      suiteMarkers.addAll(
-        out.context.runtime.performanceMarkers.map(
-          (marker) => marker.shiftedFrames(frameOffset),
-        ),
-      );
-      suiteApiCalls.addAll(out.context.apiOverlay.calls);
       if (out.result.status == TestStatus.passed &&
           requestedSessions.contains(test.id)) {
         sessionSnapshots[test.id] = await AppSessionSnapshot.capture();
       }
     }
 
-    final suiteLogs = await _writeSuiteLogs(
-      tester: tester,
-      config: plan.config,
-      logger: suiteLogger,
-      frames: suiteFrames,
-      markers: suiteMarkers,
-      apiCalls: suiteApiCalls,
-      lastContext: lastContext,
-    );
-
     return EnsembleTestPlanRunResult(
       resultsById: resultsById,
-      suiteLogs: suiteLogs,
     );
   }
 
@@ -548,6 +522,7 @@ class EnsembleTestRunner {
           startFrame: startFrame,
           startTime: startTime,
         );
+        _captureScreenArtifacts(ctx);
       } catch (error, stackTrace) {
         _recordStorageStepDiff(
           ctx: ctx,
@@ -566,6 +541,7 @@ class EnsembleTestRunner {
           startFrame: startFrame,
           startTime: startTime,
         );
+        _captureScreenArtifacts(ctx);
         final idleStartFrame = ctx.runtime.appFrameTimings.length + 1;
         final idleStartTime = DateTime.now();
         await _settleLiveApiWorkBestEffort(tester, ctx);
@@ -615,6 +591,7 @@ class EnsembleTestRunner {
             test,
             stepDurationsMs: stepDurationsMs,
             stepStartTimes: stepStartTimes,
+            screens: ctx.runtime.screenArtifacts,
           ),
         );
       }
@@ -651,6 +628,7 @@ class EnsembleTestRunner {
         test,
         stepDurationsMs: stepDurationsMs,
         stepStartTimes: stepStartTimes,
+        screens: ctx.runtime.screenArtifacts,
       ),
     );
   }
@@ -1281,6 +1259,36 @@ class EnsembleTestRunner {
     return highlighted;
   }
 
+  void _captureScreenArtifacts(EnsembleTestContext ctx) {
+    final screenName = ScreenTracker().getCurrentScreenIdentifier();
+    if (screenName == null || screenName.isEmpty) return;
+
+    String? debugTree;
+    if (ctx.config.dumpTree.enabled) {
+      try {
+        debugTree = captureDebugDumpApp();
+      } catch (_) {}
+    }
+
+    Map<String, dynamic>? performance;
+    if (ctx.config.performance.enabled) {
+      try {
+        performance = buildScreenPerformanceJson(
+          screenName: screenName,
+          frames: ctx.runtime.appFrameTimings,
+          markers: ctx.runtime.performanceMarkers,
+        );
+      } catch (_) {}
+    }
+
+    if (debugTree != null || performance != null) {
+      ctx.runtime.screenArtifacts[screenName] = {
+        if (debugTree != null) 'debugTree': debugTree,
+        if (performance != null) 'performance': performance,
+      };
+    }
+  }
+
   void _recordPerformanceMarker({
     required EnsembleTestContext ctx,
     required String testId,
@@ -1326,25 +1334,7 @@ class EnsembleTestRunner {
     }
   }
 
-  void _appendSuiteFrames(
-    List<AppFrameTimingEntry> suiteFrames,
-    List<AppFrameTimingEntry> testFrames,
-  ) {
-    for (final frame in testFrames) {
-      suiteFrames.add(
-        AppFrameTimingEntry(
-          frameNumber: suiteFrames.length + 1,
-          buildStartMicros: frame.buildStartMicros,
-          buildMs: frame.buildMs,
-          rasterMs: frame.rasterMs,
-          vsyncOverheadMs: frame.vsyncOverheadMs,
-          totalSpanMs: frame.totalSpanMs,
-        ),
-      );
-    }
-  }
-
-  /// Writes apiCalls / storage / appLogs for a single test onto [ctx.logger].
+  /// Writes apiCalls / storage / appLogs / performance / dumpTree for one test.
   Future<void> _attachPerTestDebugArtifacts(EnsembleTestContext ctx) async {
     // Isolate each writer so one JSON encoding failure cannot drop the rest
     // (failed tests are when these logs matter most).
@@ -1367,6 +1357,24 @@ class EnsembleTestRunner {
       _replaceArtifactLog(ctx.logger, 'appLogs', appLogPath);
     } catch (error) {
       ctx.logger.log('appLogsError: $error');
+    }
+
+    if (ctx.config.performance.enabled) {
+      try {
+        final path = await writeAppPerformanceLog(ctx);
+        _replaceArtifactLog(ctx.logger, 'appPerformance', path);
+      } catch (error) {
+        ctx.logger.log('appPerformanceError: $error');
+      }
+    }
+
+    if (ctx.config.dumpTree.enabled) {
+      try {
+        final path = await writeDumpTreeLog(ctx);
+        _replaceArtifactLog(ctx.logger, 'dumpTree', path);
+      } catch (error) {
+        ctx.logger.log('dumpTreeError: $error');
+      }
     }
   }
 
@@ -1393,37 +1401,6 @@ class EnsembleTestRunner {
       return entry.substring(0, separator).trim() == label;
     });
     logger.log('$label: $path');
-  }
-
-  Future<List<String>> _writeSuiteLogs({
-    required WidgetTester tester,
-    required EnsembleTestConfig config,
-    required TestLogger logger,
-    required List<AppFrameTimingEntry> frames,
-    required List<PerformanceMarker> markers,
-    required List<APICallRecord> apiCalls,
-    required EnsembleTestContext? lastContext,
-  }) async {
-    final logs = <String>[];
-
-    if (config.performance.enabled) {
-      final path = await writePerformanceLog(
-        logger: logger,
-        filePrefix: '',
-        name: 'app_performance',
-        frames: frames,
-        markers: markers,
-        apiCalls: apiCalls,
-      );
-      logs.add('appPerformance: $path');
-    }
-
-    if (config.dumpTree.enabled && lastContext != null) {
-      final path = await writeDumpTreeLogFile(logger: logger, filePrefix: '');
-      logs.add('dumpTree: $path');
-    }
-
-    return logs;
   }
 
   Future<void> _settleLiveApiWork(
