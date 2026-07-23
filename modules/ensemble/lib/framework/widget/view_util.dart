@@ -171,6 +171,9 @@ class ViewUtil {
     if (callerPayload?['id'] != null) {
       props["id"] = callerPayload?['id'];
     }
+    if (callerPayload?['testId'] != null) {
+      props["testId"] = callerPayload?['testId'];
+    }
 
     Map<String, dynamic> inputPayload = {};
     if (callerPayload?['inputs'] is Map) {

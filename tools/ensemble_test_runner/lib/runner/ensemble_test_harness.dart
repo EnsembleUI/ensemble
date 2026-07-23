@@ -1,48 +1,83 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/ensemble_app.dart';
+import 'package:ensemble/framework/apiproviders/api_provider.dart';
 import 'package:ensemble/framework/apiproviders/http_api_provider.dart';
 import 'package:ensemble/framework/definition_providers/local_provider.dart';
 import 'package:ensemble/framework/screen_tracker.dart';
 import 'package:ensemble/framework/storage_manager.dart';
 import 'package:ensemble/page_model.dart';
-import 'package:ensemble_test_runner/mocks/mock_api_provider.dart';
+import 'package:ensemble/screen_controller.dart';
+import 'package:ensemble/util/utils.dart';
+import 'package:ensemble_device_preview/ensemble_device_preview.dart';
+import 'package:ensemble_test_runner/actions/screenshot_device.dart';
+import 'package:ensemble_test_runner/actions/test_theme.dart';
+import 'package:ensemble_test_runner/mocks/adobe_test_setup.dart';
+import 'package:ensemble_test_runner/mocks/firebase_test_setup.dart';
+import 'package:ensemble_test_runner/mocks/test_api_provider_overlay.dart';
 import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
 import 'package:ensemble_test_runner/runner/ensemble_test_context.dart';
+import 'package:ensemble_test_runner/runner/live_async_call.dart';
 import 'package:ensemble_test_runner/runner/yaml_test_session.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+import 'package:yaml/yaml.dart';
 
 /// Per-test bootstrap data applied before the widget tree mounts.
 class EnsembleTestSetup {
   final Map<String, dynamic>? envOverrides;
   final Map<String, dynamic>? initialPublicStorage;
+  final Map<String, dynamic>? initialKeychain;
 
   const EnsembleTestSetup({
     this.envOverrides,
     this.initialPublicStorage,
+    this.initialKeychain,
   });
 }
 
 /// Applies YAML test environment and storage bootstrap data to [config].
-void applyYamlTestBootstrap(EnsembleConfig config, EnsembleTestSetup setup) {
+Future<void> applyYamlTestBootstrap(
+    EnsembleConfig config, EnsembleTestSetup setup) async {
   if (setup.envOverrides != null && setup.envOverrides!.isNotEmpty) {
     config.updateEnvOverrides(setup.envOverrides!);
   }
-  setup.initialPublicStorage?.forEach((key, value) {
-    StorageManager().write(key, value);
-  });
+  await applyYamlTestStorageBootstrap(setup);
+}
+
+Future<void> applyYamlTestStorageBootstrap(EnsembleTestSetup setup) async {
+  for (final entry in setup.initialPublicStorage?.entries ??
+      const Iterable<MapEntry<String, dynamic>>.empty()) {
+    await StorageManager().write(entry.key, entry.value);
+  }
+  for (final entry in setup.initialKeychain?.entries ??
+      const Iterable<MapEntry<String, dynamic>>.empty()) {
+    await StorageManager().writeSecurely(key: entry.key, value: entry.value);
+  }
 }
 
 /// Boots the real Ensemble runtime for widget tests.
 class EnsembleTestHarness {
   static final String _testStoragePath =
       Directory.systemTemp.createTempSync('ensemble_test_runner_storage_').path;
+  static bool _appFontsLoaded = false;
+  static bool _sqfliteInitialized = false;
+  static final Map<String, String> _secureStorage = {};
 
   static void ensureTestPlugins() {
     TestWidgetsFlutterBinding.ensureInitialized();
+    if (!_sqfliteInitialized) {
+      sqfliteFfiInit();
+      databaseFactory = databaseFactoryFfi;
+      _sqfliteInitialized = true;
+    }
+    ensureFirebaseCoreMocksForTest();
+    ensureAdobeAnalyticsMocksForTest();
+    HttpOverrides.global = _RealNetworkHttpOverrides();
     const pathProviderChannel =
         MethodChannel('plugins.flutter.io/path_provider');
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
@@ -62,17 +97,11 @@ class EnsembleTestHarness {
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(packageInfoChannel, (call) async {
       if (call.method == 'getAll') {
-        return {
-          'appName': 'EnsembleTest',
-          'packageName': 'com.ensemble.test',
-          'version': '1.0.0',
-          'buildNumber': '1',
-        };
+        return _resolvePackageInfo(Directory.current);
       }
       return null;
     });
 
-    final secureStorage = <String, String>{};
     const secureStorageChannel =
         MethodChannel('plugins.it_nomads.com/flutter_secure_storage');
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
@@ -82,21 +111,21 @@ class EnsembleTestHarness {
       switch (call.method) {
         case 'write':
           if (key != null) {
-            secureStorage[key] = args['value']?.toString() ?? '';
+            _secureStorage[key] = args['value']?.toString() ?? '';
           }
           return null;
         case 'read':
-          return key == null ? null : secureStorage[key];
+          return key == null ? null : _secureStorage[key];
         case 'readAll':
-          return Map<String, String>.from(secureStorage);
+          return Map<String, String>.from(_secureStorage);
         case 'delete':
-          if (key != null) secureStorage.remove(key);
+          if (key != null) _secureStorage.remove(key);
           return null;
         case 'deleteAll':
-          secureStorage.clear();
+          _secureStorage.clear();
           return null;
         case 'containsKey':
-          return key != null && secureStorage.containsKey(key);
+          return key != null && _secureStorage.containsKey(key);
         default:
           return null;
       }
@@ -180,11 +209,13 @@ class EnsembleTestHarness {
   final String appPath;
   final String appHome;
   final String? i18nPath;
+  final Map<String, Function>? externalMethods;
 
   EnsembleTestHarness({
     required this.appPath,
     required this.appHome,
     this.i18nPath,
+    this.externalMethods,
   });
 
   static String normalizeAppPath(String path) {
@@ -208,37 +239,251 @@ class EnsembleTestHarness {
     return updated;
   }
 
-  static void installHttpMockProvider(
+  static Future<void> initializeRealApiProviders(EnsembleConfig config) async {
+    await Ensemble.initializeAPIProviders(config);
+    config.apiProviders ??= {};
+    config.apiProviders!.putIfAbsent('http', () => HTTPAPIProvider());
+
+    final firebase = config.apiProviders!['firebase'];
+    if (firebase != null) {
+      config.apiProviders!['firebaseFunction'] = firebase;
+    }
+  }
+
+  /// Wraps real providers with [mock] for call recording and optional overrides.
+  static void installTestApiOverlay(
     EnsembleConfig config,
-    MockAPIProvider mock,
+    TestApiProviderOverlay mock,
   ) {
-    config.apiProviders = {
-      ...?config.apiProviders,
-      'http': mock,
-    };
+    final realProviders = Map<String, APIProvider>.from(
+      config.apiProviders ?? const {},
+    );
+
+    final installed = <String, APIProvider>{};
+    for (final entry in realProviders.entries) {
+      var delegate = entry.value;
+      if (delegate is TestApiProviderOverlay) {
+        delegate = delegate.delegate;
+      } else if (delegate is TestApiOverlay) {
+        delegate = delegate.delegate;
+      }
+
+      if (entry.key == 'http') {
+        mock.bindHttpDelegate(delegate as HTTPAPIProvider);
+        installed['http'] = mock;
+        continue;
+      }
+      installed[entry.key] = TestApiOverlay(mock, delegate);
+    }
+
+    if (!installed.containsKey('http')) {
+      mock.bindHttpDelegate(HTTPAPIProvider());
+      installed['http'] = mock;
+    }
+
+    final firebase = realProviders['firebase'];
+    if (firebase != null && !installed.containsKey('firebaseFunction')) {
+      installed['firebaseFunction'] =
+          installed['firebase'] ?? TestApiOverlay(mock, firebase);
+    }
+
+    config.apiProviders = installed;
   }
 
   Future<EnsembleConfig> bootstrapRuntime(
     EnsembleConfig config,
     EnsembleTestSetup setup, {
-    MockAPIProvider? httpMock,
+    TestApiProviderOverlay? apiOverlay,
   }) async {
     ensureTestPlugins();
+    await ensureAppFontsLoaded();
 
-    applyYamlTestBootstrap(config, setup);
+    final env = Map<String, dynamic>.from(config.envOverrides ?? {});
+    env['firebase_app_check'] = 'false';
+    if (setup.envOverrides != null && setup.envOverrides!.isNotEmpty) {
+      env.addAll(setup.envOverrides!);
+    }
+    config.updateEnvOverrides(env);
     Ensemble().setEnsembleConfig(config);
-
-    if (httpMock != null) {
-      installHttpMockProvider(config, httpMock);
+    if (externalMethods != null && externalMethods!.isNotEmpty) {
+      Ensemble().setExternalMethods(externalMethods!);
     }
 
     await Ensemble().initManagers();
+    await initializeRealApiProviders(config);
 
-    config.apiProviders ??= {'http': HTTPAPIProvider()};
-    config.apiProviders!.putIfAbsent('http', () => HTTPAPIProvider());
+    if (apiOverlay != null) {
+      installTestApiOverlay(config, apiOverlay);
+    }
+    await applyYamlTestStorageBootstrap(setup);
 
     YamlTestSession.markRuntimeBootstrapped();
     return config;
+  }
+
+  static Future<void> ensureAppFontsLoaded() async {
+    if (_appFontsLoaded) return;
+    _appFontsLoaded = true;
+
+    List<dynamic> manifest;
+    try {
+      final rawManifest = await rootBundle.loadString('FontManifest.json');
+      manifest = jsonDecode(rawManifest) as List<dynamic>;
+    } catch (_) {
+      return;
+    }
+
+    for (final familyEntry in manifest.whereType<Map>()) {
+      final family = familyEntry['family']?.toString();
+      final fonts = familyEntry['fonts'];
+      if (family == null || fonts is! List) continue;
+
+      for (final alias in _fontFamilyAliases(family)) {
+        await _loadFontFamily(alias, fonts);
+      }
+    }
+  }
+
+  static List<String> fontFamilyAliasesForTest(String family) =>
+      _fontFamilyAliases(family);
+
+  static List<String> fontAssetCandidatesForTest(String asset) =>
+      _fontAssetCandidates(asset);
+
+  static Map<String, String> packageInfoForTest(String appDir) =>
+      _resolvePackageInfo(Directory(appDir));
+
+  static Map<String, String> _resolvePackageInfo(Directory appDir) {
+    final pubspec = _readPubspec(appDir);
+    final properties = _readProperties(
+      File('${appDir.path}/ensemble/ensemble.properties'),
+    );
+
+    final packageName =
+        properties['appId'] ?? pubspec['name'] ?? 'com.ensemble.test';
+    final appName = properties['appName'] ??
+        _titleFromPackageName(pubspec['name']) ??
+        'EnsembleTest';
+    final versionParts = _splitVersion(pubspec['version']);
+
+    return {
+      'appName': appName,
+      'packageName': packageName,
+      'version': versionParts.version,
+      'buildNumber': versionParts.buildNumber,
+    };
+  }
+
+  static Map<String, String> _readPubspec(Directory appDir) {
+    final file = File('${appDir.path}/pubspec.yaml');
+    if (!file.existsSync()) return const {};
+
+    try {
+      final yaml = loadYaml(file.readAsStringSync());
+      if (yaml is! YamlMap) return const {};
+      return {
+        for (final entry in yaml.entries)
+          if (entry.value != null) entry.key.toString(): entry.value.toString(),
+      };
+    } catch (_) {
+      return const {};
+    }
+  }
+
+  static Map<String, String> _readProperties(File file) {
+    if (!file.existsSync()) return const {};
+
+    final values = <String, String>{};
+    for (final rawLine in file.readAsLinesSync()) {
+      final line = rawLine.trim();
+      if (line.isEmpty || line.startsWith('#')) continue;
+      final separator = line.indexOf('=');
+      if (separator <= 0) continue;
+      values[line.substring(0, separator).trim()] =
+          line.substring(separator + 1).trim();
+    }
+    return values;
+  }
+
+  static ({String version, String buildNumber}) _splitVersion(String? raw) {
+    if (raw == null || raw.trim().isEmpty) {
+      return (version: '1.0.0', buildNumber: '1');
+    }
+    final parts = raw.trim().split('+');
+    final version = parts.first.trim();
+    final buildNumber = parts.length > 1 ? parts.sublist(1).join('+') : '1';
+    return (
+      version: version.isEmpty ? '1.0.0' : version,
+      buildNumber: buildNumber.trim().isEmpty ? '1' : buildNumber.trim(),
+    );
+  }
+
+  static String? _titleFromPackageName(String? name) {
+    if (name == null || name.trim().isEmpty) return null;
+    return name
+        .trim()
+        .split(RegExp(r'[_\s]+'))
+        .where((part) => part.isNotEmpty)
+        .map((part) => '${part[0].toUpperCase()}${part.substring(1)}')
+        .join(' ');
+  }
+
+  static List<String> _fontFamilyAliases(String family) {
+    final aliases = <String>{family, family.toLowerCase()};
+
+    const packagePrefix = 'packages/';
+    if (family.startsWith(packagePrefix)) {
+      final slashIndex = family.lastIndexOf('/');
+      if (slashIndex != -1 && slashIndex < family.length - 1) {
+        final unqualifiedFamily = family.substring(slashIndex + 1);
+        aliases.add(unqualifiedFamily);
+        aliases.add(unqualifiedFamily.toLowerCase());
+      }
+    }
+
+    return aliases.toList(growable: false);
+  }
+
+  static List<String> _fontAssetCandidates(String asset) {
+    final candidates = <String>{asset};
+    if (asset.contains('%')) {
+      try {
+        candidates.add(Uri.decodeFull(asset));
+      } catch (_) {
+        // Keep the manifest-provided asset key if decoding is not valid URI
+        // escaping.
+      }
+    }
+    return candidates.toList(growable: false);
+  }
+
+  static Future<void> _loadFontFamily(
+    String family,
+    List<dynamic> fontEntries,
+  ) async {
+    final loader = FontLoader(family);
+    var hasFonts = false;
+
+    for (final fontEntry in fontEntries.whereType<Map>()) {
+      final asset = fontEntry['asset']?.toString();
+      if (asset == null || asset.isEmpty) continue;
+
+      for (final assetKey in _fontAssetCandidates(asset)) {
+        try {
+          final fontData = await rootBundle.load(assetKey);
+          loader.addFont(Future.value(fontData));
+          hasFonts = true;
+          break;
+        } catch (_) {
+          // Ignore missing assets so a bad font entry does not fail unrelated
+          // behavioral tests.
+        }
+      }
+    }
+
+    if (hasFonts) {
+      await loader.load();
+    }
   }
 
   Future<EnsembleConfig> loadScreen({
@@ -246,18 +491,35 @@ class EnsembleTestHarness {
     required EnsembleTestCase testCase,
     EnsembleConfig? existingConfig,
     EnsembleTestContext? context,
+    EnsembleTestConfig suiteConfig = const EnsembleTestConfig(),
+    Future<void> Function()? beforeBootstrap,
+    Locale? forcedLocale,
   }) async {
+    // Independent tests need a new EnsembleApp state. Pumping another
+    // EnsembleApp of the same type would otherwise reuse the prior route.
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump();
     resetTestRuntime();
     ScreenTracker().clearAll();
     YamlTestSession.navigationFlow.clear();
+    await beforeBootstrap?.call();
 
-    final ctx = context ?? EnsembleTestContext.fromTestCase(testCase);
+    final ctx = context ??
+        EnsembleTestContext.fromTestCase(
+          testCase,
+          config: suiteConfig,
+        );
+    final screenshotDevice = screenshotDeviceForTestCase(testCase, ctx.config);
+    if (screenshotDevice != null) {
+      await _setViewportForDevice(tester, ctx, screenshotDevice);
+    }
+    await _ensureDefaultViewport(tester, ctx);
     var config = existingConfig ?? await buildConfig();
     final bootstrapped = await tester.runAsync(() async {
       return bootstrapRuntime(
         config,
         ctx.setup,
-        httpMock: ctx.mockApiProvider,
+        apiOverlay: ctx.apiOverlay,
       );
     });
     config = bootstrapped!;
@@ -269,18 +531,95 @@ class EnsembleTestHarness {
       );
     }
 
-    // Let EnsembleApp load the bundle through its existing config path, which
-    // preserves the test-installed API providers and avoids real provider init.
+    final deviceTheme = testCase.deviceTarget?.theme;
+    await tester.runAsync(() => seedEnsembleTestTheme(deviceTheme));
+
+    // Skip re-initializing providers in EnsembleApp.initApp; bootstrapRuntime
+    // already installed real providers and mock overlays.
     config.appBundle = null;
     await tester.pumpWidget(
       EnsembleApp(
         ensembleConfig: config,
-        screenPayload: ScreenPayload(screenId: startScreen),
+        screenPayload: ScreenPayload(
+          screenId: startScreen,
+          arguments: testCase.startScreenInputs,
+        ),
+        forcedLocale: forcedLocale,
       ),
     );
 
     await waitForInitialWidgets(tester, testCase: testCase);
+    final appliedTheme = applyDeviceThemeForTestCase(testCase);
+    if (appliedTheme != null) {
+      ctx.runtime.themeMode = appliedTheme;
+      await tester.pump();
+    }
     return config;
+  }
+
+  static Future<void> openSessionScreen(
+    WidgetTester tester,
+    EnsembleTestCase testCase,
+  ) async {
+    final startScreen = testCase.startScreen;
+    if (startScreen == null || startScreen.isEmpty) {
+      throw EnsembleTestFailure(
+        'Session test "${testCase.id}" requires startScreen',
+      );
+    }
+    final context = Utils.globalAppKey.currentContext;
+    if (context == null) {
+      throw EnsembleTestFailure(
+        'Cannot open "$startScreen" because the saved app session is not mounted',
+      );
+    }
+
+    ScreenTracker().clearAll();
+    YamlTestSession.navigationFlow.clear();
+    ScreenController().navigateToScreen(
+      context,
+      screenId: startScreen,
+      pageArgs: testCase.startScreenInputs,
+      routeOption: RouteOption.clearAllScreens,
+    );
+    await tester.pump();
+    await waitForInitialWidgets(tester, testCase: testCase);
+  }
+
+  static Future<void> _ensureDefaultViewport(
+    WidgetTester tester,
+    EnsembleTestContext context,
+  ) async {
+    if (context.runtime.deviceSize != null) return;
+    const size = Size(800, 844);
+    await tester.binding.setSurfaceSize(size);
+    tester.view.physicalSize = size;
+    tester.view.devicePixelRatio = 1.0;
+    _setViewPadding(tester, EdgeInsets.zero);
+    context.runtime.deviceSize = size;
+  }
+
+  static Future<void> _setViewportForDevice(
+    WidgetTester tester,
+    EnsembleTestContext context,
+    DeviceInfo device,
+  ) async {
+    await tester.binding.setSurfaceSize(device.screenSize);
+    tester.view.devicePixelRatio = 1.0;
+    tester.view.physicalSize = device.screenSize;
+    _setViewPadding(tester, device.safeAreas);
+    context.runtime.deviceSize = device.screenSize;
+  }
+
+  static void _setViewPadding(WidgetTester tester, EdgeInsets padding) {
+    final viewPadding = FakeViewPadding(
+      left: padding.left,
+      top: padding.top,
+      right: padding.right,
+      bottom: padding.bottom,
+    );
+    tester.view.padding = viewPadding;
+    tester.view.viewPadding = viewPadding;
   }
 
   static Future<void> waitForInitialWidgets(
@@ -290,7 +629,7 @@ class EnsembleTestHarness {
     final keysToWait = <String>[];
     if (testCase != null) {
       for (final step in testCase.steps) {
-        if (step.type != 'expectVisible' && step.type != 'tap') {
+        if (step.type != 'expectVisible') {
           break;
         }
         final id = step.args['id']?.toString();
@@ -319,26 +658,39 @@ class EnsembleTestHarness {
   }
 
   static Future<void> _yieldToRealAsyncWork(WidgetTester tester) async {
-    await tester.runAsync(() async {
+    Future<void> yieldOnce() async {
       await Future<void>.delayed(Duration.zero);
-    });
+    }
+
+    if (LiveAsyncCallSupport.runner != null) {
+      await LiveAsyncCallSupport.run<void>(yieldOnce);
+    } else {
+      await tester.runAsync(yieldOnce);
+    }
   }
 
-  static void applyInPlaceSetup(EnsembleTestContext ctx) {
+  static Future<void> applyInPlaceSetup(EnsembleTestContext ctx) async {
     final config = Ensemble().getConfig();
     if (config != null) {
-      applyYamlTestBootstrap(config, ctx.setup);
+      await applyYamlTestBootstrap(config, ctx.setup);
     }
     ctx.applyRuntimeEnv();
     for (final entry in ctx.testCase.mocks.apis.entries) {
-      ctx.mockApiProvider.setMock(entry.key, entry.value);
+      ctx.apiOverlay.setMock(entry.key, entry.value);
     }
     if (config != null) {
-      installHttpMockProvider(config, ctx.mockApiProvider);
+      installTestApiOverlay(config, ctx.apiOverlay);
     }
   }
 
   static void resetTestRuntime() {
     YamlTestSession.reset();
+  }
+}
+
+class _RealNetworkHttpOverrides extends HttpOverrides {
+  @override
+  HttpClient createHttpClient(SecurityContext? context) {
+    return super.createHttpClient(context);
   }
 }

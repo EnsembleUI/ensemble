@@ -1,0 +1,297 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cdn.ensembleui.com/schemas/ensemble_test_config_schema.json",
+  "title": "Ensemble declarative test config",
+  "description": "Suite-wide config for app-local tests/config.yaml",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "services": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "command"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "command": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string",
+            "format": "uri"
+          },
+          "arguments": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "workingDirectory": {
+            "type": "string"
+          },
+          "environment": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "readyUrl": {
+            "type": "string"
+          },
+          "readyTimeoutMs": {
+            "type": "integer",
+            "minimum": 1
+          }
+        }
+      }
+    },
+    "mocks": {
+      "oneOf": [
+        {
+          "type": "array",
+          "items": {
+            "oneOf": [
+              {
+                "type": "string",
+                "minLength": 1
+              },
+              {
+                "$ref": "#/$defs/inlineMocks"
+              }
+            ]
+          }
+        },
+        {
+          "$ref": "#/$defs/inlineMocks"
+        }
+      ],
+      "description": "Suite-wide API mocks applied before each test file mocks"
+    },
+    "initialState": {
+      "$ref": "#/$defs/initialState",
+      "description": "Suite-wide storage/keychain/env applied before each test initialState. Test values override suite values per key."
+    },
+    "devices": {
+      "type": "array",
+      "description": "Suite device matrix. Each test runs once per entry with that platform/model viewport, optional locale (APP_LOCALE), and optional theme (EnsembleThemeManager Light/Dark). Each device run writes its own screenshot frames (HTML gallery).",
+      "items": {
+        "$ref": "#/$defs/testDevice"
+      }
+    },
+    "screenshots": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "includeSteps": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "excludeSteps": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "performance": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        }
+      }
+    },
+    "timers": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "maxStartAfterSeconds": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "maxRepeatIntervalSeconds": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "dumpTree": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        }
+      }
+    },
+    "logApiCalls": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "When enabled, write a per-test API call log attached to each result.",
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        }
+      }
+    },
+    "logStorage": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "When enabled, write a per-test storage snapshot attached to each result.",
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "key": {
+          "type": "string"
+        }
+      }
+    },
+    "wifi": {
+      "$ref": "#/$defs/wifi",
+      "description": "Wi-Fi test double settings for connectToWifi / getNetworkInfo under flutter test."
+    }
+  },
+  "$defs": {
+    "initialState": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "storage": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "keychain": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "env": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      }
+    },
+    "testDevice": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "platform",
+        "model"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Stable id used in test ids when multiple devices are configured (e.g. home[android_nl]). Defaults to platform_locale."
+        },
+        "platform": {
+          "type": "string"
+        },
+        "model": {
+          "type": "string"
+        },
+        "locale": {
+          "type": "string",
+          "description": "Sets APP_LOCALE / forcedLocale for this device run."
+        },
+        "theme": {
+          "type": "string",
+          "description": "Ensemble theme for this device run (e.g. light/dark or Light/Dark). Applied via EnsembleThemeManager for any startScreen."
+        }
+      }
+    },
+    "wifi": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ssid"
+      ],
+      "properties": {
+        "ssid": {
+          "type": "string",
+          "minLength": 1
+        },
+        "verifyFailSsid": {
+          "type": "string",
+          "minLength": 1,
+          "description": "SSID reported by getNetworkInfo when storage mode is verify_fail."
+        },
+        "modeStorageKey": {
+          "type": "string",
+          "minLength": 1,
+          "description": "initialState.storage key for per-test mode (success, connect_fail, verify_fail)."
+        }
+      }
+    },
+    "mockResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "statusCode": {
+          "type": "integer"
+        },
+        "body": true,
+        "headers": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "delayMs": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "responses": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/mockResponse"
+          }
+        },
+        "$merge": {
+          "type": "object",
+          "additionalProperties": true,
+          "description": "Path → value patches applied onto the extended/current mock for this API (e.g. body.status[0].Active)."
+        }
+      }
+    },
+    "inlineMocks": {
+      "type": "object",
+      "properties": {
+        "$extends": {
+          "description": "Base mock file path (or list of paths) to layer before these APIs.",
+          "oneOf": [
+            {
+              "type": "string",
+              "minLength": 1
+            },
+            {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          ]
+        }
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/mockResponse"
+      }
+    }
+  }
+}

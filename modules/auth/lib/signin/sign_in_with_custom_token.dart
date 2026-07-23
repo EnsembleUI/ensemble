@@ -23,14 +23,14 @@ class SignInWithCustomTokenImpl implements SignInWithCustomToken {
       if (idToken != null) {
         if (action.onAuthenticated != null) {
           AuthenticatedUser? currentUser = AuthManager().getCurrentUser();
-          ScreenController().executeAction(context, action.onAuthenticated!,
+          await ScreenController().executeAction(context, action.onAuthenticated!,
               event: EnsembleEvent(null,
                   data: {'user': currentUser, 'idToken': idToken}));
         }
       }
     } catch (e) {
       if (action.onError != null) {
-        ScreenController().executeAction(context, action.onError!,
+        await ScreenController().executeAction(context, action.onError!,
             event: EnsembleEvent(null, error: {'error': e.toString()}));
       }
     }

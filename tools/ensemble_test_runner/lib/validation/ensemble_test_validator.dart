@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:ensemble_test_runner/inspect/ensemble_app_inspector.dart';
+import 'package:ensemble_test_runner/parser/ensemble_test_parser.dart';
 import 'package:path/path.dart' as p;
 import 'package:yaml/yaml.dart';
 
@@ -122,6 +123,23 @@ class EnsembleTestValidator {
       return EnsembleTestValidationResult(issues);
     }
 
+    final configFile = File(p.join(testsDir.path, 'config.yaml'));
+    if (configFile.existsSync()) {
+      try {
+        EnsembleTestParser.parseConfigString(
+          configFile.readAsStringSync(),
+          sourcePath: p.relative(configFile.path, from: appDir),
+        );
+      } catch (error) {
+        add(
+          ValidationSeverity.error,
+          'config',
+          error.toString(),
+          path: p.relative(configFile.path, from: appDir),
+        );
+      }
+    }
+
     final screensByName = {
       for (final screen in inspection.screens) screen.name: screen
     };
@@ -129,7 +147,7 @@ class EnsembleTestValidator {
     final knownWidgetIds = inspection.screens.expand((s) => s.testIds).toSet();
     final knownApis = inspection.screens.expand((s) => s.apis).toSet();
     final ids = <String, String>{};
-    final prerequisites = <String, String>{};
+    final sessions = <String, String>{};
 
     for (final file in testFiles) {
       final relativePath =
@@ -138,6 +156,18 @@ class EnsembleTestValidator {
       if (doc is! YamlMap) {
         add(ValidationSeverity.error, 'parse', 'Test root must be a map',
             path: relativePath);
+        continue;
+      }
+
+      final unsupportedKeys = _unsupportedTestRootKeys(doc);
+      if (unsupportedKeys.isNotEmpty) {
+        add(
+          ValidationSeverity.error,
+          'unsupportedRootKey',
+          'Unsupported root key${unsupportedKeys.length == 1 ? '' : 's'} '
+              '${unsupportedKeys.map((key) => '"$key"').join(', ')}',
+          path: relativePath,
+        );
         continue;
       }
 
@@ -161,9 +191,9 @@ class EnsembleTestValidator {
       }
 
       final startScreen = doc['startScreen']?.toString();
-      final prerequisite = doc['prerequisite']?.toString();
-      if (prerequisite != null && prerequisite.isNotEmpty) {
-        prerequisites[id] = prerequisite;
+      final session = doc['session']?.toString();
+      if (session != null && session.isNotEmpty) {
+        sessions[id] = session;
       }
       if (startScreen != null &&
           startScreen.isNotEmpty &&
@@ -191,6 +221,7 @@ class EnsembleTestValidator {
 
       final stepInfo = _collectStepInfo(steps);
       for (final widgetId in stepInfo.widgetIds) {
+        if (_isPlaceholder(widgetId)) continue;
         if (!knownWidgetIds.contains(widgetId)) {
           add(
             ValidationSeverity.warning,
@@ -202,6 +233,7 @@ class EnsembleTestValidator {
         }
       }
       for (final api in stepInfo.apiNames) {
+        if (_isPlaceholder(api)) continue;
         if (!knownApis.contains(api)) {
           add(
             ValidationSeverity.warning,
@@ -212,47 +244,14 @@ class EnsembleTestValidator {
           );
         }
       }
-      for (final fixture in stepInfo.fixtures) {
-        final fixtureFile = File(
-          fixture.startsWith('fixtures/')
-              ? p.join(testsDir.path, fixture)
-              : p.join(testsDir.path, 'fixtures', fixture),
-        );
-        if (!fixtureFile.existsSync()) {
-          add(
-            ValidationSeverity.error,
-            'missingFixture',
-            'Fixture not found: tests/fixtures/$fixture',
-            path: relativePath,
-            testId: id,
-          );
-        }
-      }
-
-      final rootMocks = _rootMockApis(doc);
-      final onLoadApis =
-          startScreen != null && screensByName[startScreen] != null
-              ? screensByName[startScreen]!.apis
-              : const <String>[];
-      for (final api in onLoadApis) {
-        if (stepInfo.mockApis.contains(api) && !rootMocks.contains(api)) {
-          add(
-            ValidationSeverity.warning,
-            'mockPlacement',
-            'API "$api" may run during onLoad. Prefer root mocks.apis for startup APIs.',
-            path: relativePath,
-            testId: id,
-          );
-        }
-      }
     }
 
-    for (final entry in prerequisites.entries) {
+    for (final entry in sessions.entries) {
       if (!ids.containsKey(entry.value)) {
         add(
           ValidationSeverity.error,
-          'unknownPrerequisite',
-          'Unknown prerequisite "${entry.value}"',
+          'unknownSession',
+          'Unknown session "${entry.value}"',
           path: ids[entry.key],
           testId: entry.key,
         );
@@ -266,15 +265,11 @@ class EnsembleTestValidator {
 typedef _StepInfo = ({
   Set<String> widgetIds,
   Set<String> apiNames,
-  Set<String> mockApis,
-  Set<String> fixtures,
 });
 
 _StepInfo _collectStepInfo(dynamic steps) {
   final widgetIds = <String>{};
   final apiNames = <String>{};
-  final mockApis = <String>{};
-  final fixtures = <String>{};
 
   void visit(dynamic node) {
     if (node is! Iterable) return;
@@ -289,11 +284,6 @@ _StepInfo _collectStepInfo(dynamic steps) {
         if (name != null && type.toLowerCase().contains('api')) {
           apiNames.add(name.toString());
         }
-        if (type == 'mockApi' || type == 'mockApiFromFixture') {
-          if (name != null) mockApis.add(name.toString());
-        }
-        final fixture = args['fixture'];
-        if (fixture != null) fixtures.add(fixture.toString());
         visit(args['steps']);
         final single = args['step'];
         if (single != null) visit([single]);
@@ -305,15 +295,34 @@ _StepInfo _collectStepInfo(dynamic steps) {
   return (
     widgetIds: widgetIds,
     apiNames: apiNames,
-    mockApis: mockApis,
-    fixtures: fixtures,
   );
 }
 
-Set<String> _rootMockApis(YamlMap doc) {
-  final mocks = doc['mocks'];
-  if (mocks is! YamlMap) return const {};
-  final apis = mocks['apis'];
-  if (apis is! YamlMap) return const {};
-  return apis.keys.map((key) => key.toString()).toSet();
+bool _isPlaceholder(String value) =>
+    RegExp(r'\$\{(inputs|scenario)\.[A-Za-z0-9_.-]+\}').hasMatch(value);
+
+List<String> _unsupportedTestRootKeys(YamlMap map) {
+  const supported = {
+    'id',
+    'type',
+    'feature',
+    'tags',
+    'description',
+    'owner',
+    'priority',
+    'parallel',
+    'retry',
+    'startScreen',
+    'startScreenInputs',
+    'session',
+    'initialState',
+    'setup',
+    'mocks',
+    'scenarios',
+    'steps',
+  };
+  return map.keys
+      .map((key) => key.toString())
+      .where((key) => !supported.contains(key))
+      .toList();
 }

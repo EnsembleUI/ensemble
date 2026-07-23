@@ -1,10 +1,13 @@
 import 'dart:io';
 
+import 'package:ensemble_test_runner/parser/ensemble_test_parser.dart';
 import 'package:path/path.dart' as p;
 import 'package:yaml/yaml.dart';
 
 const hostedSchemaUrl =
     'https://cdn.ensembleui.com/schemas/ensemble_tests_schema.json';
+const hostedConfigSchemaUrl =
+    'https://cdn.ensembleui.com/schemas/ensemble_test_config_schema.json';
 
 class EnsembleTestDoctorResult {
   final List<String> lines;
@@ -108,8 +111,26 @@ class EnsembleTestDoctor {
     }
     ok('Found ${testFiles.length} YAML test file(s)');
 
+    final testConfigFile = File(p.join(testsDir.path, 'config.yaml'));
+    if (testConfigFile.existsSync()) {
+      final relativePath = p.relative(testConfigFile.path, from: appDir);
+      final content = testConfigFile.readAsStringSync();
+      if (!content.contains(hostedConfigSchemaUrl)) {
+        warn('$relativePath does not reference the hosted config schema URL');
+      }
+      try {
+        EnsembleTestParser.parseConfigString(
+          content,
+          sourcePath: relativePath,
+        );
+        ok('Found tests/config.yaml');
+      } catch (failure) {
+        error('$relativePath: $failure');
+      }
+    }
+
     final ids = <String, String>{};
-    final prerequisites = <String, String>{};
+    final sessions = <String, String>{};
     final referencedWidgetIds = <String>{};
 
     for (final file in testFiles) {
@@ -133,8 +154,8 @@ class EnsembleTestDoctor {
         } else {
           ids[test.id] = relativePath;
         }
-        if (test.prerequisite != null) {
-          prerequisites[test.id] = test.prerequisite!;
+        if (test.session != null) {
+          sessions[test.id] = test.session!;
         }
         referencedWidgetIds.addAll(test.referencedWidgetIds);
       } catch (failure) {
@@ -142,10 +163,10 @@ class EnsembleTestDoctor {
       }
     }
 
-    for (final entry in prerequisites.entries) {
+    for (final entry in sessions.entries) {
       if (!ids.containsKey(entry.value)) {
         error(
-            'Test "${entry.key}" references unknown prerequisite "${entry.value}"');
+            'Test "${entry.key}" references unknown session "${entry.value}"');
       }
     }
 
@@ -174,7 +195,7 @@ class EnsembleTestDoctor {
 
 typedef _DoctorTest = ({
   String id,
-  String? prerequisite,
+  String? session,
   Set<String> referencedWidgetIds,
   String? error,
 });
@@ -184,9 +205,19 @@ _DoctorTest _parseDoctorTest(String content) {
   if (doc is! YamlMap) {
     return (
       id: '',
-      prerequisite: null,
+      session: null,
       referencedWidgetIds: <String>{},
       error: 'root must be a map',
+    );
+  }
+  final unsupportedKeys = _unsupportedTestRootKeys(doc);
+  if (unsupportedKeys.isNotEmpty) {
+    return (
+      id: '',
+      session: null,
+      referencedWidgetIds: <String>{},
+      error: 'Unsupported root key${unsupportedKeys.length == 1 ? '' : 's'} '
+          '${unsupportedKeys.map((key) => '"$key"').join(', ')}',
     );
   }
 
@@ -194,22 +225,21 @@ _DoctorTest _parseDoctorTest(String content) {
   if (id == null || id.isEmpty) {
     return (
       id: '',
-      prerequisite: null,
+      session: null,
       referencedWidgetIds: <String>{},
       error: 'Each test must have an "id"',
     );
   }
 
   final startScreen = doc['startScreen']?.toString();
-  final prerequisite = doc['prerequisite']?.toString();
+  final session = doc['session']?.toString();
   final hasStartScreen = startScreen != null && startScreen.isNotEmpty;
-  final hasPrerequisite = prerequisite != null && prerequisite.isNotEmpty;
-  if (hasStartScreen == hasPrerequisite) {
+  if (!hasStartScreen) {
     return (
       id: id,
-      prerequisite: prerequisite,
+      session: session,
       referencedWidgetIds: <String>{},
-      error: 'Test "$id" must have either "startScreen" or "prerequisite"',
+      error: 'Test "$id" must have "startScreen"',
     );
   }
 
@@ -217,7 +247,7 @@ _DoctorTest _parseDoctorTest(String content) {
   if (steps is! YamlList || steps.isEmpty) {
     return (
       id: id,
-      prerequisite: prerequisite,
+      session: session,
       referencedWidgetIds: <String>{},
       error: 'Test "$id" must have a non-empty "steps" list',
     );
@@ -225,7 +255,7 @@ _DoctorTest _parseDoctorTest(String content) {
 
   return (
     id: id,
-    prerequisite: hasPrerequisite ? prerequisite : null,
+    session: session == null || session.isEmpty ? null : session,
     referencedWidgetIds: _collectReferencedWidgetIds(steps),
     error: null,
   );
@@ -275,4 +305,30 @@ String _withoutTrailingSlash(String path) {
   return normalized.endsWith('/')
       ? normalized.substring(0, normalized.length - 1)
       : normalized;
+}
+
+List<String> _unsupportedTestRootKeys(YamlMap map) {
+  const supported = {
+    'id',
+    'type',
+    'feature',
+    'tags',
+    'description',
+    'owner',
+    'priority',
+    'parallel',
+    'retry',
+    'startScreen',
+    'startScreenInputs',
+    'session',
+    'initialState',
+    'setup',
+    'mocks',
+    'scenarios',
+    'steps',
+  };
+  return map.keys
+      .map((key) => key.toString())
+      .where((key) => !supported.contains(key))
+      .toList();
 }

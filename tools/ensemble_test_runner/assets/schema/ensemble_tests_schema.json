@@ -45,21 +45,68 @@
         "low"
       ]
     },
+    "parallel": {
+      "type": "boolean",
+      "description": "Set false for tests that mutate shared external state and must not run in a parallel worker shard."
+    },
+    "retry": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Number of additional attempts after the first failure."
+    },
     "startScreen": {
       "type": "string",
       "minLength": 1,
       "description": "Ensemble screen name or id to load first"
     },
-    "prerequisite": {
+    "startScreenInputs": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "Inputs passed to startScreen"
+    },
+    "session": {
       "type": "string",
       "minLength": 1,
-      "description": "ID of another test that must run before this one in the same app session"
+      "description": "ID of a successful test whose captured app state is restored before startScreen"
     },
     "initialState": {
       "$ref": "#/$defs/initialState"
     },
+    "setup": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/setupStep"
+      },
+      "description": "Headless httpRequest actions executed before startScreen mounts"
+    },
     "mocks": {
-      "$ref": "#/$defs/mocks"
+      "oneOf": [
+        {
+          "type": "array",
+          "items": {
+            "oneOf": [
+              {
+                "type": "string",
+                "minLength": 1
+              },
+              {
+                "$ref": "#/$defs/inlineMocks"
+              }
+            ]
+          }
+        },
+        {
+          "$ref": "#/$defs/inlineMocks"
+        }
+      ]
+    },
+    "scenarios": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/scenario"
+      },
+      "minItems": 1
     },
     "steps": {
       "type": "array",
@@ -71,31 +118,48 @@
   },
   "required": [
     "id",
+    "startScreen",
     "steps"
   ],
-  "oneOf": [
-    {
-      "required": [
-        "startScreen"
-      ],
-      "not": {
-        "required": [
-          "prerequisite"
-        ]
+  "$defs": {
+    "initialState": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "storage": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "keychain": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "env": {
+          "type": "object",
+          "additionalProperties": true
+        }
       }
     },
-    {
+    "scenario": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description": {
+          "type": "string"
+        },
+        "vars": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      },
       "required": [
-        "prerequisite"
-      ],
-      "not": {
-        "required": [
-          "startScreen"
-        ]
-      }
-    }
-  ],
-  "$defs": {
+        "id"
+      ]
+    },
     "mockResponse": {
       "type": "object",
       "additionalProperties": false,
@@ -107,48 +171,48 @@
         "headers": {
           "type": "object",
           "additionalProperties": true
-        }
-      }
-    },
-    "mockApiEntry": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "response": {
-          "$ref": "#/$defs/mockResponse"
         },
         "delayMs": {
-          "type": "integer"
-        }
-      },
-      "required": [
-        "response"
-      ]
-    },
-    "initialState": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "storage": {
-          "type": "object",
-          "additionalProperties": true
+          "type": "integer",
+          "minimum": 0
         },
-        "env": {
+        "responses": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/mockResponse"
+          }
+        },
+        "$merge": {
           "type": "object",
-          "additionalProperties": true
+          "additionalProperties": true,
+          "description": "Path → value patches applied onto the extended/current mock for this API (e.g. body.status[0].Active)."
         }
       }
     },
-    "mocks": {
+    "inlineMocks": {
       "type": "object",
-      "additionalProperties": false,
       "properties": {
-        "apis": {
-          "type": "object",
-          "additionalProperties": {
-            "$ref": "#/$defs/mockApiEntry"
-          }
+        "$extends": {
+          "description": "Base mock file path (or list of paths) to layer before these APIs.",
+          "oneOf": [
+            {
+              "type": "string",
+              "minLength": 1
+            },
+            {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          ]
         }
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/mockResponse"
       }
     },
     "args_openScreen": {
@@ -239,6 +303,9 @@
       "properties": {
         "id": {
           "type": "string"
+        },
+        "timeoutMs": {
+          "type": "integer"
         }
       },
       "required": [
@@ -249,7 +316,8 @@
       "description": "Tap a widget by testId (ValueKey)",
       "examples": [
         {
-          "id": "my_widget"
+          "id": "my_widget",
+          "timeoutMs": 5000
         }
       ]
     },
@@ -258,6 +326,9 @@
       "properties": {
         "id": {
           "type": "string"
+        },
+        "timeoutMs": {
+          "type": "integer"
         }
       },
       "required": [
@@ -277,6 +348,9 @@
       "properties": {
         "id": {
           "type": "string"
+        },
+        "timeoutMs": {
+          "type": "integer"
         }
       },
       "required": [
@@ -320,6 +394,9 @@
       "properties": {
         "id": {
           "type": "string"
+        },
+        "timeoutMs": {
+          "type": "integer"
         }
       },
       "required": [
@@ -363,6 +440,9 @@
       "properties": {
         "id": {
           "type": "string"
+        },
+        "timeoutMs": {
+          "type": "integer"
         }
       },
       "required": [
@@ -382,6 +462,9 @@
       "properties": {
         "id": {
           "type": "string"
+        },
+        "timeoutMs": {
+          "type": "integer"
         }
       },
       "required": [
@@ -457,6 +540,9 @@
       "properties": {
         "id": {
           "type": "string"
+        },
+        "timeoutMs": {
+          "type": "integer"
         }
       },
       "required": [
@@ -476,6 +562,9 @@
       "properties": {
         "id": {
           "type": "string"
+        },
+        "timeoutMs": {
+          "type": "integer"
         }
       },
       "required": [
@@ -495,6 +584,9 @@
       "properties": {
         "id": {
           "type": "string"
+        },
+        "timeoutMs": {
+          "type": "integer"
         }
       },
       "required": [
@@ -601,6 +693,9 @@
       "properties": {
         "id": {
           "type": "string"
+        },
+        "timeoutMs": {
+          "type": "integer"
         }
       },
       "required": [
@@ -693,7 +788,7 @@
       },
       "additionalProperties": false,
       "title": "wait",
-      "description": "Alias for pump — advance frame clock by durationMs",
+      "description": "Real-time delay using runAsync, followed by a frame pump",
       "examples": [
         {
           "durationMs": 100
@@ -741,6 +836,13 @@
         "text": {
           "type": "string"
         },
+        "anyOf": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1
+        },
         "timeoutMs": {
           "type": "integer"
         }
@@ -763,6 +865,13 @@
         },
         "text": {
           "type": "string"
+        },
+        "anyOf": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1
         },
         "timeoutMs": {
           "type": "integer"
@@ -824,6 +933,88 @@
         }
       ]
     },
+    "args_httpRequest": {
+      "type": "object",
+      "properties": {
+        "url": {
+          "type": "string"
+        },
+        "method": {
+          "type": "string",
+          "enum": [
+            "GET",
+            "POST",
+            "PUT",
+            "PATCH",
+            "DELETE",
+            "HEAD",
+            "OPTIONS"
+          ]
+        },
+        "headers": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "body": true,
+        "timeoutMs": {
+          "type": "integer"
+        },
+        "expectStatus": {
+          "type": "integer"
+        },
+        "expectBodyContains": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "url"
+      ],
+      "additionalProperties": false,
+      "title": "httpRequest",
+      "description": "Send an HTTP request to a test support service",
+      "examples": [
+        {
+          "method": "POST",
+          "url": "http://127.0.0.1:5001/api/test/reset",
+          "body": {
+            "enabled": true
+          },
+          "expectStatus": 200
+        }
+      ]
+    },
+    "args_mocks": {
+      "oneOf": [
+        {
+          "type": "array",
+          "items": {
+            "oneOf": [
+              {
+                "type": "string",
+                "minLength": 1
+              },
+              {
+                "$ref": "#/$defs/inlineMocks"
+              }
+            ]
+          }
+        },
+        {
+          "$ref": "#/$defs/inlineMocks"
+        }
+      ],
+      "title": "mocks",
+      "description": "Replace active API mocks for subsequent steps",
+      "examples": [
+        {
+          "getDevices": {
+            "body": {
+              "count": 2
+            }
+          }
+        }
+      ]
+    },
     "args_waitForNavigation": {
       "type": "object",
       "properties": {
@@ -847,42 +1038,14 @@
         }
       ]
     },
-    "args_waitUntil": {
-      "type": "object",
-      "properties": {
-        "path": {
-          "type": "string"
-        },
-        "equals": true,
-        "state": {
-          "type": "object",
-          "properties": {
-            "path": {
-              "type": "string"
-            },
-            "equals": true
-          },
-          "additionalProperties": false
-        },
-        "timeoutMs": {
-          "type": "integer"
-        }
-      },
-      "additionalProperties": false,
-      "title": "waitUntil",
-      "description": "Poll until app state at path equals expected value",
-      "examples": [
-        {
-          "path": "user.name",
-          "equals": "Jane"
-        }
-      ]
-    },
     "args_expectVisible": {
       "type": "object",
       "properties": {
         "id": {
           "type": "string"
+        },
+        "timeoutMs": {
+          "type": "integer"
         }
       },
       "required": [
@@ -902,6 +1065,9 @@
       "properties": {
         "id": {
           "type": "string"
+        },
+        "timeoutMs": {
+          "type": "integer"
         }
       },
       "required": [
@@ -921,6 +1087,9 @@
       "properties": {
         "id": {
           "type": "string"
+        },
+        "timeoutMs": {
+          "type": "integer"
         }
       },
       "required": [
@@ -940,6 +1109,9 @@
       "properties": {
         "id": {
           "type": "string"
+        },
+        "timeoutMs": {
+          "type": "integer"
         }
       },
       "required": [
@@ -956,17 +1128,33 @@
     },
     "args_expectText": {
       "type": "object",
+      "additionalProperties": false,
       "properties": {
         "text": {
           "type": "string"
+        },
+        "anyOf": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1
         }
       },
-      "required": [
-        "text"
+      "anyOf": [
+        {
+          "required": [
+            "text"
+          ]
+        },
+        {
+          "required": [
+            "anyOf"
+          ]
+        }
       ],
-      "additionalProperties": false,
       "title": "expectText",
-      "description": "Assert exact text is shown",
+      "description": "Assert exact text is shown (or anyOf list)",
       "examples": [
         {
           "text": "Welcome"
@@ -975,17 +1163,33 @@
     },
     "args_expectNoText": {
       "type": "object",
+      "additionalProperties": false,
       "properties": {
         "text": {
           "type": "string"
+        },
+        "anyOf": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1
         }
       },
-      "required": [
-        "text"
+      "anyOf": [
+        {
+          "required": [
+            "text"
+          ]
+        },
+        {
+          "required": [
+            "anyOf"
+          ]
+        }
       ],
-      "additionalProperties": false,
       "title": "expectNoText",
-      "description": "Assert text is not shown",
+      "description": "Assert text is not shown (or none of anyOf)",
       "examples": [
         {
           "text": "Welcome"
@@ -994,20 +1198,40 @@
     },
     "args_expectTextContains": {
       "type": "object",
+      "additionalProperties": false,
       "properties": {
         "text": {
           "type": "string"
+        },
+        "anyOf": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1
+        },
+        "timeoutMs": {
+          "type": "integer"
         }
       },
-      "required": [
-        "text"
+      "anyOf": [
+        {
+          "required": [
+            "text"
+          ]
+        },
+        {
+          "required": [
+            "anyOf"
+          ]
+        }
       ],
-      "additionalProperties": false,
       "title": "expectTextContains",
-      "description": "Assert some text containing the given substring",
+      "description": "Assert some text containing the given substring (or anyOf list)",
       "examples": [
         {
-          "text": "Welcome"
+          "text": "Welcome",
+          "timeoutMs": 5000
         }
       ]
     },
@@ -1016,6 +1240,9 @@
       "properties": {
         "id": {
           "type": "string"
+        },
+        "timeoutMs": {
+          "type": "integer"
         }
       },
       "required": [
@@ -1035,6 +1262,9 @@
       "properties": {
         "id": {
           "type": "string"
+        },
+        "timeoutMs": {
+          "type": "integer"
         }
       },
       "required": [
@@ -1267,6 +1497,9 @@
       "properties": {
         "id": {
           "type": "string"
+        },
+        "timeoutMs": {
+          "type": "integer"
         }
       },
       "required": [
@@ -1286,6 +1519,9 @@
       "properties": {
         "id": {
           "type": "string"
+        },
+        "timeoutMs": {
+          "type": "integer"
         }
       },
       "required": [
@@ -1433,173 +1669,11 @@
         {}
       ]
     },
-    "args_mockApi": {
-      "type": "object",
-      "properties": {
-        "name": {
-          "type": "string"
-        },
-        "response": {
-          "$ref": "#/$defs/mockResponse"
-        },
-        "delayMs": {
-          "type": "integer"
-        }
-      },
-      "required": [
-        "name",
-        "response"
-      ],
-      "additionalProperties": false,
-      "title": "mockApi",
-      "description": "Register a mock HTTP API response by API name",
-      "examples": [
-        {
-          "name": "login",
-          "response": {
-            "statusCode": 200,
-            "body": {
-              "token": "test-token"
-            }
-          }
-        }
-      ]
-    },
-    "args_mockApiError": {
-      "type": "object",
-      "properties": {
-        "name": {
-          "type": "string"
-        },
-        "statusCode": {
-          "type": "integer"
-        },
-        "body": true,
-        "delayMs": {
-          "type": "integer"
-        }
-      },
-      "required": [
-        "name"
-      ],
-      "additionalProperties": false,
-      "title": "mockApiError",
-      "description": "Mock an API to return an error status/body",
-      "examples": [
-        {
-          "name": "login",
-          "statusCode": 401,
-          "body": {
-            "error": "Unauthorized"
-          }
-        }
-      ]
-    },
-    "args_mockApiFromFixture": {
-      "type": "object",
-      "properties": {
-        "name": {
-          "type": "string"
-        },
-        "fixture": {
-          "type": "string"
-        },
-        "statusCode": {
-          "type": "integer"
-        }
-      },
-      "required": [
-        "name",
-        "fixture"
-      ],
-      "additionalProperties": false,
-      "title": "mockApiFromFixture",
-      "description": "Load mock response body from a JSON fixture asset",
-      "examples": [
-        {
-          "name": "users",
-          "fixture": "users.json"
-        }
-      ]
-    },
-    "args_mockApiException": {
-      "type": "object",
-      "properties": {
-        "name": {
-          "type": "string"
-        },
-        "message": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "name"
-      ],
-      "additionalProperties": false,
-      "title": "mockApiException",
-      "description": "Force an API call to throw an exception",
-      "examples": [
-        {
-          "name": "login",
-          "message": "Network error"
-        }
-      ]
-    },
-    "args_mockTimeout": {
-      "type": "object",
-      "properties": {
-        "name": {
-          "type": "string"
-        },
-        "delayMs": {
-          "type": "integer"
-        }
-      },
-      "required": [
-        "name"
-      ],
-      "additionalProperties": false,
-      "title": "mockTimeout",
-      "description": "Mock an API with a long delay (simulate timeout)",
-      "examples": [
-        {
-          "name": "slow_api",
-          "delayMs": 60000
-        }
-      ]
-    },
-    "args_mockNetworkOffline": {
-      "type": "object",
-      "additionalProperties": false,
-      "title": "mockNetworkOffline",
-      "description": "Simulate offline network for API calls",
-      "examples": [
-        {}
-      ]
-    },
-    "args_mockNetworkOnline": {
-      "type": "object",
-      "additionalProperties": false,
-      "title": "mockNetworkOnline",
-      "description": "Restore online network for API calls",
-      "examples": [
-        {}
-      ]
-    },
     "args_resetApiCalls": {
       "type": "object",
       "additionalProperties": false,
       "title": "resetApiCalls",
       "description": "Clear recorded API call history",
-      "examples": [
-        {}
-      ]
-    },
-    "args_clearApiMocks": {
-      "type": "object",
-      "additionalProperties": false,
-      "title": "clearApiMocks",
-      "description": "Remove all registered API mocks",
       "examples": [
         {}
       ]
@@ -1650,94 +1724,6 @@
         }
       ]
     },
-    "args_expectApiRequest": {
-      "type": "object",
-      "properties": {
-        "name": {
-          "type": "string"
-        },
-        "body": true,
-        "query": true,
-        "headers": true,
-        "times": {
-          "type": "integer"
-        }
-      },
-      "required": [
-        "name"
-      ],
-      "additionalProperties": false,
-      "title": "expectApiRequest",
-      "description": "Assert last API request body/query/headers match",
-      "examples": [
-        {
-          "name": "login",
-          "body": {
-            "email": "user@test.com",
-            "password": "secret"
-          }
-        }
-      ]
-    },
-    "args_expectApiRequestContains": {
-      "type": "object",
-      "properties": {
-        "name": {
-          "type": "string"
-        },
-        "body": true,
-        "query": true,
-        "headers": true,
-        "times": {
-          "type": "integer"
-        }
-      },
-      "required": [
-        "name"
-      ],
-      "additionalProperties": false,
-      "title": "expectApiRequestContains",
-      "description": "Assert API request contains partial body/query",
-      "examples": [
-        {
-          "name": "login",
-          "body": {
-            "email": "user@test.com",
-            "password": "secret"
-          }
-        }
-      ]
-    },
-    "args_expectApiHeader": {
-      "type": "object",
-      "properties": {
-        "name": {
-          "type": "string"
-        },
-        "header": {
-          "type": "string"
-        },
-        "equals": true,
-        "times": {
-          "type": "integer"
-        }
-      },
-      "required": [
-        "name",
-        "header",
-        "equals"
-      ],
-      "additionalProperties": false,
-      "title": "expectApiHeader",
-      "description": "Assert an API request header equals expected",
-      "examples": [
-        {
-          "name": "login",
-          "header": "Authorization",
-          "equals": "Bearer test-token"
-        }
-      ]
-    },
     "args_expectApiCallOrder": {
       "type": "object",
       "properties": {
@@ -1784,125 +1770,6 @@
         {
           "name": "login",
           "times": 1
-        }
-      ]
-    },
-    "args_setState": {
-      "type": "object",
-      "properties": {
-        "path": {
-          "type": "string"
-        },
-        "value": true
-      },
-      "required": [
-        "path"
-      ],
-      "additionalProperties": false,
-      "title": "setState",
-      "description": "Set app data-context state at path to value",
-      "examples": [
-        {
-          "path": "user.name",
-          "value": "Jane"
-        }
-      ]
-    },
-    "args_expectState": {
-      "type": "object",
-      "properties": {
-        "path": {
-          "type": "string"
-        },
-        "equals": true,
-        "contains": true
-      },
-      "required": [
-        "path"
-      ],
-      "additionalProperties": false,
-      "title": "expectState",
-      "description": "Assert app state at path equals expected",
-      "examples": [
-        {
-          "path": "user.name",
-          "equals": "Jane"
-        }
-      ]
-    },
-    "args_expectStateContains": {
-      "type": "object",
-      "properties": {
-        "path": {
-          "type": "string"
-        },
-        "equals": true,
-        "contains": true
-      },
-      "required": [
-        "path"
-      ],
-      "additionalProperties": false,
-      "title": "expectStateContains",
-      "description": "Assert app state at path contains subset",
-      "examples": [
-        {
-          "path": "user.name",
-          "equals": "Jane"
-        }
-      ]
-    },
-    "args_expectStateExists": {
-      "type": "object",
-      "properties": {
-        "path": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "path"
-      ],
-      "additionalProperties": false,
-      "title": "expectStateExists",
-      "description": "Assert state path resolves without error",
-      "examples": [
-        {
-          "path": "user.id"
-        }
-      ]
-    },
-    "args_expectStateNotExists": {
-      "type": "object",
-      "properties": {
-        "path": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "path"
-      ],
-      "additionalProperties": false,
-      "title": "expectStateNotExists",
-      "description": "Assert state path is null or absent",
-      "examples": [
-        {
-          "path": "user.id"
-        }
-      ]
-    },
-    "args_resetState": {
-      "type": "object",
-      "properties": {
-        "path": {
-          "type": "string"
-        }
-      },
-      "additionalProperties": false,
-      "title": "resetState",
-      "description": "Clear state at path (set to null)",
-      "examples": [
-        {
-          "path": "cart"
         }
       ]
     },
@@ -2106,7 +1973,7 @@
       },
       "additionalProperties": false,
       "title": "setTheme",
-      "description": "Set APP_THEME / theme mode override",
+      "description": "Set Ensemble theme via EnsembleThemeManager (e.g. light/dark)",
       "examples": [
         {
           "mode": "dark"
@@ -2315,72 +2182,6 @@
         {}
       ]
     },
-    "args_screenshot": {
-      "type": "object",
-      "properties": {
-        "name": {
-          "type": "string"
-        }
-      },
-      "additionalProperties": false,
-      "title": "screenshot",
-      "description": "Capture golden or dump widget tree for debugging",
-      "examples": [
-        {
-          "name": "home_screen"
-        }
-      ]
-    },
-    "args_dumpTree": {
-      "type": "object",
-      "additionalProperties": false,
-      "title": "dumpTree",
-      "description": "Print the widget tree to the debug console",
-      "examples": [
-        {}
-      ]
-    },
-    "args_logState": {
-      "type": "object",
-      "properties": {
-        "path": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "path"
-      ],
-      "additionalProperties": false,
-      "title": "logState",
-      "description": "Log resolved state at path",
-      "examples": [
-        {
-          "path": "user.id"
-        }
-      ]
-    },
-    "args_logStorage": {
-      "type": "object",
-      "properties": {
-        "key": {
-          "type": "string"
-        },
-        "equals": true,
-        "value": true
-      },
-      "required": [
-        "key"
-      ],
-      "additionalProperties": false,
-      "title": "logStorage",
-      "description": "Log public storage value for key",
-      "examples": [
-        {
-          "key": "onboarding_done",
-          "value": true
-        }
-      ]
-    },
     "args_expectNoConsoleErrors": {
       "type": "object",
       "additionalProperties": false,
@@ -2429,6 +2230,9 @@
       "properties": {
         "id": {
           "type": "string"
+        },
+        "timeoutMs": {
+          "type": "integer"
         }
       },
       "required": [
@@ -2472,6 +2276,9 @@
       "properties": {
         "id": {
           "type": "string"
+        },
+        "timeoutMs": {
+          "type": "integer"
         }
       },
       "required": [
@@ -2483,81 +2290,6 @@
       "examples": [
         {
           "id": "my_widget"
-        }
-      ]
-    },
-    "args_loadFixture": {
-      "type": "object",
-      "properties": {
-        "key": {
-          "type": "string"
-        },
-        "path": {
-          "type": "string"
-        },
-        "fixture": {
-          "type": "string"
-        },
-        "statePath": {
-          "type": "string"
-        }
-      },
-      "additionalProperties": false,
-      "title": "loadFixture",
-      "description": "Load a JSON fixture into the test fixture map",
-      "examples": [
-        {
-          "fixture": "user.json"
-        }
-      ]
-    },
-    "args_setStateFromFixture": {
-      "type": "object",
-      "properties": {
-        "key": {
-          "type": "string"
-        },
-        "path": {
-          "type": "string"
-        },
-        "fixture": {
-          "type": "string"
-        },
-        "statePath": {
-          "type": "string"
-        }
-      },
-      "additionalProperties": false,
-      "title": "setStateFromFixture",
-      "description": "Apply all keys from a JSON fixture to state",
-      "examples": [
-        {
-          "fixture": "user.json"
-        }
-      ]
-    },
-    "args_expectMatchesFixture": {
-      "type": "object",
-      "properties": {
-        "key": {
-          "type": "string"
-        },
-        "path": {
-          "type": "string"
-        },
-        "fixture": {
-          "type": "string"
-        },
-        "statePath": {
-          "type": "string"
-        }
-      },
-      "additionalProperties": false,
-      "title": "expectMatchesFixture",
-      "description": "Assert state or path matches a JSON fixture",
-      "examples": [
-        {
-          "fixture": "user.json"
         }
       ]
     },
@@ -2730,7 +2462,8 @@
           "examples": [
             {
               "tap": {
-                "id": "my_widget"
+                "id": "my_widget",
+                "timeoutMs": 5000
               }
             }
           ],
@@ -2743,7 +2476,8 @@
               "description": "Tap a widget by testId (ValueKey)",
               "examples": [
                 {
-                  "id": "my_widget"
+                  "id": "my_widget",
+                  "timeoutMs": 5000
                 }
               ]
             }
@@ -3380,7 +3114,7 @@
         {
           "type": "object",
           "title": "wait",
-          "description": "Alias for pump — advance frame clock by durationMs",
+          "description": "Real-time delay using runAsync, followed by a frame pump",
           "examples": [
             {
               "wait": {
@@ -3394,7 +3128,7 @@
           "properties": {
             "wait": {
               "$ref": "#/$defs/args_wait",
-              "description": "Alias for pump — advance frame clock by durationMs",
+              "description": "Real-time delay using runAsync, followed by a frame pump",
               "examples": [
                 {
                   "durationMs": 100
@@ -3590,6 +3324,82 @@
         },
         {
           "type": "object",
+          "title": "httpRequest",
+          "description": "Send an HTTP request to a test support service",
+          "examples": [
+            {
+              "httpRequest": {
+                "method": "POST",
+                "url": "http://127.0.0.1:5001/api/test/reset",
+                "body": {
+                  "enabled": true
+                },
+                "expectStatus": 200
+              }
+            }
+          ],
+          "additionalProperties": false,
+          "minProperties": 1,
+          "maxProperties": 1,
+          "properties": {
+            "httpRequest": {
+              "$ref": "#/$defs/args_httpRequest",
+              "description": "Send an HTTP request to a test support service",
+              "examples": [
+                {
+                  "method": "POST",
+                  "url": "http://127.0.0.1:5001/api/test/reset",
+                  "body": {
+                    "enabled": true
+                  },
+                  "expectStatus": 200
+                }
+              ]
+            }
+          },
+          "required": [
+            "httpRequest"
+          ]
+        },
+        {
+          "type": "object",
+          "title": "mocks",
+          "description": "Replace active API mocks for subsequent steps",
+          "examples": [
+            {
+              "mocks": {
+                "getDevices": {
+                  "body": {
+                    "count": 2
+                  }
+                }
+              }
+            }
+          ],
+          "additionalProperties": false,
+          "minProperties": 1,
+          "maxProperties": 1,
+          "properties": {
+            "mocks": {
+              "$ref": "#/$defs/args_mocks",
+              "description": "Replace active API mocks for subsequent steps",
+              "examples": [
+                {
+                  "getDevices": {
+                    "body": {
+                      "count": 2
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          "required": [
+            "mocks"
+          ]
+        },
+        {
+          "type": "object",
           "title": "waitForNavigation",
           "description": "Poll until the given screen is visible",
           "examples": [
@@ -3617,37 +3427,6 @@
           },
           "required": [
             "waitForNavigation"
-          ]
-        },
-        {
-          "type": "object",
-          "title": "waitUntil",
-          "description": "Poll until app state at path equals expected value",
-          "examples": [
-            {
-              "waitUntil": {
-                "path": "user.name",
-                "equals": "Jane"
-              }
-            }
-          ],
-          "additionalProperties": false,
-          "minProperties": 1,
-          "maxProperties": 1,
-          "properties": {
-            "waitUntil": {
-              "$ref": "#/$defs/args_waitUntil",
-              "description": "Poll until app state at path equals expected value",
-              "examples": [
-                {
-                  "path": "user.name",
-                  "equals": "Jane"
-                }
-              ]
-            }
-          },
-          "required": [
-            "waitUntil"
           ]
         },
         {
@@ -3769,7 +3548,7 @@
         {
           "type": "object",
           "title": "expectText",
-          "description": "Assert exact text is shown",
+          "description": "Assert exact text is shown (or anyOf list)",
           "examples": [
             {
               "expectText": {
@@ -3783,7 +3562,7 @@
           "properties": {
             "expectText": {
               "$ref": "#/$defs/args_expectText",
-              "description": "Assert exact text is shown",
+              "description": "Assert exact text is shown (or anyOf list)",
               "examples": [
                 {
                   "text": "Welcome"
@@ -3798,7 +3577,7 @@
         {
           "type": "object",
           "title": "expectNoText",
-          "description": "Assert text is not shown",
+          "description": "Assert text is not shown (or none of anyOf)",
           "examples": [
             {
               "expectNoText": {
@@ -3812,7 +3591,7 @@
           "properties": {
             "expectNoText": {
               "$ref": "#/$defs/args_expectNoText",
-              "description": "Assert text is not shown",
+              "description": "Assert text is not shown (or none of anyOf)",
               "examples": [
                 {
                   "text": "Welcome"
@@ -3827,11 +3606,12 @@
         {
           "type": "object",
           "title": "expectTextContains",
-          "description": "Assert some text containing the given substring",
+          "description": "Assert some text containing the given substring (or anyOf list)",
           "examples": [
             {
               "expectTextContains": {
-                "text": "Welcome"
+                "text": "Welcome",
+                "timeoutMs": 5000
               }
             }
           ],
@@ -3841,10 +3621,11 @@
           "properties": {
             "expectTextContains": {
               "$ref": "#/$defs/args_expectTextContains",
-              "description": "Assert some text containing the given substring",
+              "description": "Assert some text containing the given substring (or anyOf list)",
               "examples": [
                 {
-                  "text": "Welcome"
+                  "text": "Welcome",
+                  "timeoutMs": 5000
                 }
               ]
             }
@@ -4457,227 +4238,6 @@
         },
         {
           "type": "object",
-          "title": "mockApi",
-          "description": "Register a mock HTTP API response by API name",
-          "examples": [
-            {
-              "mockApi": {
-                "name": "login",
-                "response": {
-                  "statusCode": 200,
-                  "body": {
-                    "token": "test-token"
-                  }
-                }
-              }
-            }
-          ],
-          "additionalProperties": false,
-          "minProperties": 1,
-          "maxProperties": 1,
-          "properties": {
-            "mockApi": {
-              "$ref": "#/$defs/args_mockApi",
-              "description": "Register a mock HTTP API response by API name",
-              "examples": [
-                {
-                  "name": "login",
-                  "response": {
-                    "statusCode": 200,
-                    "body": {
-                      "token": "test-token"
-                    }
-                  }
-                }
-              ]
-            }
-          },
-          "required": [
-            "mockApi"
-          ]
-        },
-        {
-          "type": "object",
-          "title": "mockApiError",
-          "description": "Mock an API to return an error status/body",
-          "examples": [
-            {
-              "mockApiError": {
-                "name": "login",
-                "statusCode": 401,
-                "body": {
-                  "error": "Unauthorized"
-                }
-              }
-            }
-          ],
-          "additionalProperties": false,
-          "minProperties": 1,
-          "maxProperties": 1,
-          "properties": {
-            "mockApiError": {
-              "$ref": "#/$defs/args_mockApiError",
-              "description": "Mock an API to return an error status/body",
-              "examples": [
-                {
-                  "name": "login",
-                  "statusCode": 401,
-                  "body": {
-                    "error": "Unauthorized"
-                  }
-                }
-              ]
-            }
-          },
-          "required": [
-            "mockApiError"
-          ]
-        },
-        {
-          "type": "object",
-          "title": "mockApiFromFixture",
-          "description": "Load mock response body from a JSON fixture asset",
-          "examples": [
-            {
-              "mockApiFromFixture": {
-                "name": "users",
-                "fixture": "users.json"
-              }
-            }
-          ],
-          "additionalProperties": false,
-          "minProperties": 1,
-          "maxProperties": 1,
-          "properties": {
-            "mockApiFromFixture": {
-              "$ref": "#/$defs/args_mockApiFromFixture",
-              "description": "Load mock response body from a JSON fixture asset",
-              "examples": [
-                {
-                  "name": "users",
-                  "fixture": "users.json"
-                }
-              ]
-            }
-          },
-          "required": [
-            "mockApiFromFixture"
-          ]
-        },
-        {
-          "type": "object",
-          "title": "mockApiException",
-          "description": "Force an API call to throw an exception",
-          "examples": [
-            {
-              "mockApiException": {
-                "name": "login",
-                "message": "Network error"
-              }
-            }
-          ],
-          "additionalProperties": false,
-          "minProperties": 1,
-          "maxProperties": 1,
-          "properties": {
-            "mockApiException": {
-              "$ref": "#/$defs/args_mockApiException",
-              "description": "Force an API call to throw an exception",
-              "examples": [
-                {
-                  "name": "login",
-                  "message": "Network error"
-                }
-              ]
-            }
-          },
-          "required": [
-            "mockApiException"
-          ]
-        },
-        {
-          "type": "object",
-          "title": "mockTimeout",
-          "description": "Mock an API with a long delay (simulate timeout)",
-          "examples": [
-            {
-              "mockTimeout": {
-                "name": "slow_api",
-                "delayMs": 60000
-              }
-            }
-          ],
-          "additionalProperties": false,
-          "minProperties": 1,
-          "maxProperties": 1,
-          "properties": {
-            "mockTimeout": {
-              "$ref": "#/$defs/args_mockTimeout",
-              "description": "Mock an API with a long delay (simulate timeout)",
-              "examples": [
-                {
-                  "name": "slow_api",
-                  "delayMs": 60000
-                }
-              ]
-            }
-          },
-          "required": [
-            "mockTimeout"
-          ]
-        },
-        {
-          "type": "object",
-          "title": "mockNetworkOffline",
-          "description": "Simulate offline network for API calls",
-          "examples": [
-            {
-              "mockNetworkOffline": {}
-            }
-          ],
-          "additionalProperties": false,
-          "minProperties": 1,
-          "maxProperties": 1,
-          "properties": {
-            "mockNetworkOffline": {
-              "$ref": "#/$defs/args_mockNetworkOffline",
-              "description": "Simulate offline network for API calls",
-              "examples": [
-                {}
-              ]
-            }
-          },
-          "required": [
-            "mockNetworkOffline"
-          ]
-        },
-        {
-          "type": "object",
-          "title": "mockNetworkOnline",
-          "description": "Restore online network for API calls",
-          "examples": [
-            {
-              "mockNetworkOnline": {}
-            }
-          ],
-          "additionalProperties": false,
-          "minProperties": 1,
-          "maxProperties": 1,
-          "properties": {
-            "mockNetworkOnline": {
-              "$ref": "#/$defs/args_mockNetworkOnline",
-              "description": "Restore online network for API calls",
-              "examples": [
-                {}
-              ]
-            }
-          },
-          "required": [
-            "mockNetworkOnline"
-          ]
-        },
-        {
-          "type": "object",
           "title": "resetApiCalls",
           "description": "Clear recorded API call history",
           "examples": [
@@ -4699,31 +4259,6 @@
           },
           "required": [
             "resetApiCalls"
-          ]
-        },
-        {
-          "type": "object",
-          "title": "clearApiMocks",
-          "description": "Remove all registered API mocks",
-          "examples": [
-            {
-              "clearApiMocks": {}
-            }
-          ],
-          "additionalProperties": false,
-          "minProperties": 1,
-          "maxProperties": 1,
-          "properties": {
-            "clearApiMocks": {
-              "$ref": "#/$defs/args_clearApiMocks",
-              "description": "Remove all registered API mocks",
-              "examples": [
-                {}
-              ]
-            }
-          },
-          "required": [
-            "clearApiMocks"
           ]
         },
         {
@@ -4790,113 +4325,6 @@
         },
         {
           "type": "object",
-          "title": "expectApiRequest",
-          "description": "Assert last API request body/query/headers match",
-          "examples": [
-            {
-              "expectApiRequest": {
-                "name": "login",
-                "body": {
-                  "email": "user@test.com",
-                  "password": "secret"
-                }
-              }
-            }
-          ],
-          "additionalProperties": false,
-          "minProperties": 1,
-          "maxProperties": 1,
-          "properties": {
-            "expectApiRequest": {
-              "$ref": "#/$defs/args_expectApiRequest",
-              "description": "Assert last API request body/query/headers match",
-              "examples": [
-                {
-                  "name": "login",
-                  "body": {
-                    "email": "user@test.com",
-                    "password": "secret"
-                  }
-                }
-              ]
-            }
-          },
-          "required": [
-            "expectApiRequest"
-          ]
-        },
-        {
-          "type": "object",
-          "title": "expectApiRequestContains",
-          "description": "Assert API request contains partial body/query",
-          "examples": [
-            {
-              "expectApiRequestContains": {
-                "name": "login",
-                "body": {
-                  "email": "user@test.com",
-                  "password": "secret"
-                }
-              }
-            }
-          ],
-          "additionalProperties": false,
-          "minProperties": 1,
-          "maxProperties": 1,
-          "properties": {
-            "expectApiRequestContains": {
-              "$ref": "#/$defs/args_expectApiRequestContains",
-              "description": "Assert API request contains partial body/query",
-              "examples": [
-                {
-                  "name": "login",
-                  "body": {
-                    "email": "user@test.com",
-                    "password": "secret"
-                  }
-                }
-              ]
-            }
-          },
-          "required": [
-            "expectApiRequestContains"
-          ]
-        },
-        {
-          "type": "object",
-          "title": "expectApiHeader",
-          "description": "Assert an API request header equals expected",
-          "examples": [
-            {
-              "expectApiHeader": {
-                "name": "login",
-                "header": "Authorization",
-                "equals": "Bearer test-token"
-              }
-            }
-          ],
-          "additionalProperties": false,
-          "minProperties": 1,
-          "maxProperties": 1,
-          "properties": {
-            "expectApiHeader": {
-              "$ref": "#/$defs/args_expectApiHeader",
-              "description": "Assert an API request header equals expected",
-              "examples": [
-                {
-                  "name": "login",
-                  "header": "Authorization",
-                  "equals": "Bearer test-token"
-                }
-              ]
-            }
-          },
-          "required": [
-            "expectApiHeader"
-          ]
-        },
-        {
-          "type": "object",
           "title": "expectApiCallOrder",
           "description": "Assert APIs were called in order",
           "examples": [
@@ -4959,186 +4387,6 @@
           },
           "required": [
             "expectLastApiCall"
-          ]
-        },
-        {
-          "type": "object",
-          "title": "setState",
-          "description": "Set app data-context state at path to value",
-          "examples": [
-            {
-              "setState": {
-                "path": "user.name",
-                "value": "Jane"
-              }
-            }
-          ],
-          "additionalProperties": false,
-          "minProperties": 1,
-          "maxProperties": 1,
-          "properties": {
-            "setState": {
-              "$ref": "#/$defs/args_setState",
-              "description": "Set app data-context state at path to value",
-              "examples": [
-                {
-                  "path": "user.name",
-                  "value": "Jane"
-                }
-              ]
-            }
-          },
-          "required": [
-            "setState"
-          ]
-        },
-        {
-          "type": "object",
-          "title": "expectState",
-          "description": "Assert app state at path equals expected",
-          "examples": [
-            {
-              "expectState": {
-                "path": "user.name",
-                "equals": "Jane"
-              }
-            }
-          ],
-          "additionalProperties": false,
-          "minProperties": 1,
-          "maxProperties": 1,
-          "properties": {
-            "expectState": {
-              "$ref": "#/$defs/args_expectState",
-              "description": "Assert app state at path equals expected",
-              "examples": [
-                {
-                  "path": "user.name",
-                  "equals": "Jane"
-                }
-              ]
-            }
-          },
-          "required": [
-            "expectState"
-          ]
-        },
-        {
-          "type": "object",
-          "title": "expectStateContains",
-          "description": "Assert app state at path contains subset",
-          "examples": [
-            {
-              "expectStateContains": {
-                "path": "user.name",
-                "equals": "Jane"
-              }
-            }
-          ],
-          "additionalProperties": false,
-          "minProperties": 1,
-          "maxProperties": 1,
-          "properties": {
-            "expectStateContains": {
-              "$ref": "#/$defs/args_expectStateContains",
-              "description": "Assert app state at path contains subset",
-              "examples": [
-                {
-                  "path": "user.name",
-                  "equals": "Jane"
-                }
-              ]
-            }
-          },
-          "required": [
-            "expectStateContains"
-          ]
-        },
-        {
-          "type": "object",
-          "title": "expectStateExists",
-          "description": "Assert state path resolves without error",
-          "examples": [
-            {
-              "expectStateExists": {
-                "path": "user.id"
-              }
-            }
-          ],
-          "additionalProperties": false,
-          "minProperties": 1,
-          "maxProperties": 1,
-          "properties": {
-            "expectStateExists": {
-              "$ref": "#/$defs/args_expectStateExists",
-              "description": "Assert state path resolves without error",
-              "examples": [
-                {
-                  "path": "user.id"
-                }
-              ]
-            }
-          },
-          "required": [
-            "expectStateExists"
-          ]
-        },
-        {
-          "type": "object",
-          "title": "expectStateNotExists",
-          "description": "Assert state path is null or absent",
-          "examples": [
-            {
-              "expectStateNotExists": {
-                "path": "user.id"
-              }
-            }
-          ],
-          "additionalProperties": false,
-          "minProperties": 1,
-          "maxProperties": 1,
-          "properties": {
-            "expectStateNotExists": {
-              "$ref": "#/$defs/args_expectStateNotExists",
-              "description": "Assert state path is null or absent",
-              "examples": [
-                {
-                  "path": "user.id"
-                }
-              ]
-            }
-          },
-          "required": [
-            "expectStateNotExists"
-          ]
-        },
-        {
-          "type": "object",
-          "title": "resetState",
-          "description": "Clear state at path (set to null)",
-          "examples": [
-            {
-              "resetState": {
-                "path": "cart"
-              }
-            }
-          ],
-          "additionalProperties": false,
-          "minProperties": 1,
-          "maxProperties": 1,
-          "properties": {
-            "resetState": {
-              "$ref": "#/$defs/args_resetState",
-              "description": "Clear state at path (set to null)",
-              "examples": [
-                {
-                  "path": "cart"
-                }
-              ]
-            }
-          },
-          "required": [
-            "resetState"
           ]
         },
         {
@@ -5444,7 +4692,7 @@
         {
           "type": "object",
           "title": "setTheme",
-          "description": "Set APP_THEME / theme mode override",
+          "description": "Set Ensemble theme via EnsembleThemeManager (e.g. light/dark)",
           "examples": [
             {
               "setTheme": {
@@ -5458,7 +4706,7 @@
           "properties": {
             "setTheme": {
               "$ref": "#/$defs/args_setTheme",
-              "description": "Set APP_THEME / theme mode override",
+              "description": "Set Ensemble theme via EnsembleThemeManager (e.g. light/dark)",
               "examples": [
                 {
                   "mode": "dark"
@@ -5758,120 +5006,6 @@
         },
         {
           "type": "object",
-          "title": "screenshot",
-          "description": "Capture golden or dump widget tree for debugging",
-          "examples": [
-            {
-              "screenshot": {
-                "name": "home_screen"
-              }
-            }
-          ],
-          "additionalProperties": false,
-          "minProperties": 1,
-          "maxProperties": 1,
-          "properties": {
-            "screenshot": {
-              "$ref": "#/$defs/args_screenshot",
-              "description": "Capture golden or dump widget tree for debugging",
-              "examples": [
-                {
-                  "name": "home_screen"
-                }
-              ]
-            }
-          },
-          "required": [
-            "screenshot"
-          ]
-        },
-        {
-          "type": "object",
-          "title": "dumpTree",
-          "description": "Print the widget tree to the debug console",
-          "examples": [
-            {
-              "dumpTree": {}
-            }
-          ],
-          "additionalProperties": false,
-          "minProperties": 1,
-          "maxProperties": 1,
-          "properties": {
-            "dumpTree": {
-              "$ref": "#/$defs/args_dumpTree",
-              "description": "Print the widget tree to the debug console",
-              "examples": [
-                {}
-              ]
-            }
-          },
-          "required": [
-            "dumpTree"
-          ]
-        },
-        {
-          "type": "object",
-          "title": "logState",
-          "description": "Log resolved state at path",
-          "examples": [
-            {
-              "logState": {
-                "path": "user.id"
-              }
-            }
-          ],
-          "additionalProperties": false,
-          "minProperties": 1,
-          "maxProperties": 1,
-          "properties": {
-            "logState": {
-              "$ref": "#/$defs/args_logState",
-              "description": "Log resolved state at path",
-              "examples": [
-                {
-                  "path": "user.id"
-                }
-              ]
-            }
-          },
-          "required": [
-            "logState"
-          ]
-        },
-        {
-          "type": "object",
-          "title": "logStorage",
-          "description": "Log public storage value for key",
-          "examples": [
-            {
-              "logStorage": {
-                "key": "onboarding_done",
-                "value": true
-              }
-            }
-          ],
-          "additionalProperties": false,
-          "minProperties": 1,
-          "maxProperties": 1,
-          "properties": {
-            "logStorage": {
-              "$ref": "#/$defs/args_logStorage",
-              "description": "Log public storage value for key",
-              "examples": [
-                {
-                  "key": "onboarding_done",
-                  "value": true
-                }
-              ]
-            }
-          },
-          "required": [
-            "logStorage"
-          ]
-        },
-        {
-          "type": "object",
           "title": "expectNoConsoleErrors",
           "description": "Assert no console errors were recorded",
           "examples": [
@@ -6062,15 +5196,24 @@
           "required": [
             "expectNoOverflow"
           ]
-        },
+        }
+      ]
+    },
+    "setupStep": {
+      "oneOf": [
         {
           "type": "object",
-          "title": "loadFixture",
-          "description": "Load a JSON fixture into the test fixture map",
+          "title": "httpRequest",
+          "description": "Send an HTTP request to a test support service",
           "examples": [
             {
-              "loadFixture": {
-                "fixture": "user.json"
+              "httpRequest": {
+                "method": "POST",
+                "url": "http://127.0.0.1:5001/api/test/reset",
+                "body": {
+                  "enabled": true
+                },
+                "expectStatus": 200
               }
             }
           ],
@@ -6078,28 +5221,40 @@
           "minProperties": 1,
           "maxProperties": 1,
           "properties": {
-            "loadFixture": {
-              "$ref": "#/$defs/args_loadFixture",
-              "description": "Load a JSON fixture into the test fixture map",
+            "httpRequest": {
+              "$ref": "#/$defs/args_httpRequest",
+              "description": "Send an HTTP request to a test support service",
               "examples": [
                 {
-                  "fixture": "user.json"
+                  "method": "POST",
+                  "url": "http://127.0.0.1:5001/api/test/reset",
+                  "body": {
+                    "enabled": true
+                  },
+                  "expectStatus": 200
                 }
               ]
             }
           },
           "required": [
-            "loadFixture"
+            "httpRequest"
           ]
         },
         {
           "type": "object",
-          "title": "setStateFromFixture",
-          "description": "Apply all keys from a JSON fixture to state",
+          "title": "group",
+          "description": "Run nested steps as a named group",
           "examples": [
             {
-              "setStateFromFixture": {
-                "fixture": "user.json"
+              "group": {
+                "name": "login_flow",
+                "steps": [
+                  {
+                    "tap": {
+                      "id": "login_button"
+                    }
+                  }
+                ]
               }
             }
           ],
@@ -6107,28 +5262,41 @@
           "minProperties": 1,
           "maxProperties": 1,
           "properties": {
-            "setStateFromFixture": {
-              "$ref": "#/$defs/args_setStateFromFixture",
-              "description": "Apply all keys from a JSON fixture to state",
+            "group": {
+              "$ref": "#/$defs/args_group",
+              "description": "Run nested steps as a named group",
               "examples": [
                 {
-                  "fixture": "user.json"
+                  "name": "login_flow",
+                  "steps": [
+                    {
+                      "tap": {
+                        "id": "login_button"
+                      }
+                    }
+                  ]
                 }
               ]
             }
           },
           "required": [
-            "setStateFromFixture"
+            "group"
           ]
         },
         {
           "type": "object",
-          "title": "expectMatchesFixture",
-          "description": "Assert state or path matches a JSON fixture",
+          "title": "optional",
+          "description": "Run nested steps; swallow failures",
           "examples": [
             {
-              "expectMatchesFixture": {
-                "fixture": "user.json"
+              "optional": {
+                "steps": [
+                  {
+                    "tap": {
+                      "id": "dismiss_banner"
+                    }
+                  }
+                ]
               }
             }
           ],
@@ -6136,18 +5304,24 @@
           "minProperties": 1,
           "maxProperties": 1,
           "properties": {
-            "expectMatchesFixture": {
-              "$ref": "#/$defs/args_expectMatchesFixture",
-              "description": "Assert state or path matches a JSON fixture",
+            "optional": {
+              "$ref": "#/$defs/args_optional",
+              "description": "Run nested steps; swallow failures",
               "examples": [
                 {
-                  "fixture": "user.json"
+                  "steps": [
+                    {
+                      "tap": {
+                        "id": "dismiss_banner"
+                      }
+                    }
+                  ]
                 }
               ]
             }
           },
           "required": [
-            "expectMatchesFixture"
+            "optional"
           ]
         }
       ]

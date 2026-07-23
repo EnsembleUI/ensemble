@@ -193,7 +193,7 @@ void main() {
       'wait',
       'extended',
       'pump',
-      'Alias for pump — advance frame clock by durationMs',
+      'Real-time delay using runAsync, followed by a frame pump',
     ),
     'pump': step(
       'wait',
@@ -231,17 +231,28 @@ void main() {
       'apiName',
       'Poll until a mocked API is called N times',
     ),
+    'httpRequest': step(
+      'runtime',
+      'core',
+      'httpRequest',
+      'Send an HTTP request to a test support service',
+    ),
+    'mocks': step(
+      'apiMock',
+      'core',
+      'empty',
+      'Replace active API mocks for subsequent steps',
+      example: const {
+        'getDevices': {
+          'body': {'count': 2},
+        },
+      },
+    ),
     'waitForNavigation': step(
       'wait',
       'core',
       'waitForNavigation',
       'Poll until the given screen is visible',
-    ),
-    'waitUntil': step(
-      'wait',
-      'core',
-      'waitUntil',
-      'Poll until app state at path equals expected value',
     ),
     'expectVisible': step(
       'uiAssertion',
@@ -270,20 +281,20 @@ void main() {
     'expectText': step(
       'uiAssertion',
       'core',
-      'textRequired',
-      'Assert exact text is shown',
+      'textOrAnyOf',
+      'Assert exact text is shown (or anyOf list)',
     ),
     'expectNoText': step(
       'uiAssertion',
       'core',
-      'textRequired',
-      'Assert text is not shown',
+      'textOrAnyOf',
+      'Assert text is not shown (or none of anyOf)',
     ),
     'expectTextContains': step(
       'uiAssertion',
       'core',
-      'textRequired',
-      'Assert some text containing the given substring',
+      'textContains',
+      'Assert some text containing the given substring (or anyOf list)',
     ),
     'expectEnabled': step(
       'uiAssertion',
@@ -405,59 +416,11 @@ void main() {
       'empty',
       'Navigate back (Ensemble navigateBack or Navigator.pop)',
     ),
-    'mockApi': step(
-      'apiMock',
-      'core',
-      'mockApi',
-      'Register a mock HTTP API response by API name',
-    ),
-    'mockApiError': step(
-      'apiMock',
-      'core',
-      'mockApiError',
-      'Mock an API to return an error status/body',
-    ),
-    'mockApiFromFixture': step(
-      'fixture',
-      'core',
-      'mockApiFromFixture',
-      'Load mock response body from a JSON fixture asset',
-    ),
-    'mockApiException': step(
-      'apiMock',
-      'core',
-      'mockApiException',
-      'Force an API call to throw an exception',
-    ),
-    'mockTimeout': step(
-      'network',
-      'core',
-      'mockTimeout',
-      'Mock an API with a long delay (simulate timeout)',
-    ),
-    'mockNetworkOffline': step(
-      'network',
-      'core',
-      'empty',
-      'Simulate offline network for API calls',
-    ),
-    'mockNetworkOnline': step(
-      'network',
-      'core',
-      'empty',
-      'Restore online network for API calls',
-    ),
     'resetApiCalls': step(
       'apiMock',
       'core',
       'empty',
       'Clear recorded API call history',
-    ),
-    'clearApiMocks': step(
-      'apiMock',
-      'core',
-      'empty',
-      'Remove all registered API mocks',
     ),
     'expectApiCalled': step(
       'apiAssertion',
@@ -471,24 +434,6 @@ void main() {
       'apiName',
       'Assert an API was never called',
     ),
-    'expectApiRequest': step(
-      'apiAssertion',
-      'core',
-      'apiRequest',
-      'Assert last API request body/query/headers match',
-    ),
-    'expectApiRequestContains': step(
-      'apiAssertion',
-      'core',
-      'apiRequest',
-      'Assert API request contains partial body/query',
-    ),
-    'expectApiHeader': step(
-      'apiAssertion',
-      'core',
-      'expectApiHeader',
-      'Assert an API request header equals expected',
-    ),
     'expectApiCallOrder': step(
       'apiAssertion',
       'core',
@@ -500,42 +445,6 @@ void main() {
       'core',
       'apiName',
       'Assert the most recent API call name',
-    ),
-    'setState': step(
-      'state',
-      'core',
-      'setState',
-      'Set app data-context state at path to value',
-    ),
-    'expectState': step(
-      'state',
-      'core',
-      'expectState',
-      'Assert app state at path equals expected',
-    ),
-    'expectStateContains': step(
-      'state',
-      'core',
-      'expectState',
-      'Assert app state at path contains subset',
-    ),
-    'expectStateExists': step(
-      'state',
-      'core',
-      'expectStatePath',
-      'Assert state path resolves without error',
-    ),
-    'expectStateNotExists': step(
-      'state',
-      'core',
-      'expectStatePath',
-      'Assert state path is null or absent',
-    ),
-    'resetState': step(
-      'state',
-      'core',
-      'resetStatePath',
-      'Clear state at path (set to null)',
     ),
     'setStorage': step(
       'storage',
@@ -601,7 +510,7 @@ void main() {
       'runtime',
       'core',
       'setTheme',
-      'Set APP_THEME / theme mode override',
+      'Set Ensemble theme via EnsembleThemeManager (e.g. light/dark)',
     ),
     'runScript': step(
       'script',
@@ -651,30 +560,6 @@ void main() {
       'empty',
       'Log all recorded API calls to the test log',
     ),
-    'screenshot': step(
-      'debug',
-      'core',
-      'screenshot',
-      'Capture golden or dump widget tree for debugging',
-    ),
-    'dumpTree': step(
-      'debug',
-      'core',
-      'empty',
-      'Print the widget tree to the debug console',
-    ),
-    'logState': step(
-      'debug',
-      'core',
-      'expectStatePath',
-      'Log resolved state at path',
-    ),
-    'logStorage': step(
-      'debug',
-      'core',
-      'storageKey',
-      'Log public storage value for key',
-    ),
     'expectNoConsoleErrors': step(
       'quality',
       'core',
@@ -717,30 +602,11 @@ void main() {
       'idRequired',
       'Assert widget renders without overflow issues',
     ),
-    'loadFixture': step(
-      'fixture',
-      'core',
-      'fixturePath',
-      'Load a JSON fixture into the test fixture map',
-    ),
-    'setStateFromFixture': step(
-      'fixture',
-      'core',
-      'fixturePath',
-      'Apply all keys from a JSON fixture to state',
-    ),
-    'expectMatchesFixture': step(
-      'fixture',
-      'core',
-      'fixturePath',
-      'Assert state or path matches a JSON fixture',
-    ),
   };
 
   const executorAliases = <String, String>{
     'waitForText': 'waitFor',
     'expectScreen': 'expectNavigateTo',
-    'wait': 'pump',
     'launchApp': 'restartApp',
     'expectScript': 'expectScriptResult',
   };
@@ -804,7 +670,6 @@ abstract final class TestStepRegistry {
 
   buffer.writeln('  };');
   buffer.writeln('}');
-  buffer.writeln();
 
   File('lib/vocabulary/test_step_registry.dart')
       .writeAsStringSync(buffer.toString());
@@ -847,16 +712,25 @@ Map<String, dynamic> defaultExampleForArg(String arg) {
       return {'durationMs': 100};
     case 'timeoutOptional':
       return {'timeoutMs': 5000};
+    case 'httpRequest':
+      return {
+        'method': 'POST',
+        'url': 'http://127.0.0.1:5001/api/test/reset',
+        'body': {'enabled': true},
+        'expectStatus': 200,
+      };
     case 'waitFor':
       return {'id': 'loading_spinner', 'timeoutMs': 5000};
     case 'waitForGone':
       return {'id': 'loading_spinner', 'timeoutMs': 5000};
     case 'waitForNavigation':
       return {'screen': 'Home', 'timeoutMs': 5000};
-    case 'waitUntil':
-      return {'path': 'user.name', 'equals': 'Jane'};
     case 'textRequired':
       return {'text': 'Welcome'};
+    case 'textOrAnyOf':
+      return {'text': 'Welcome'};
+    case 'textContains':
+      return {'text': 'Welcome', 'timeoutMs': 5000};
     case 'expectEquals':
       return {'id': 'email_field', 'equals': 'user@test.com'};
     case 'expectChecked':
@@ -871,43 +745,8 @@ Map<String, dynamic> defaultExampleForArg(String arg) {
       return {'screen': 'Home'};
     case 'expectVisited':
       return {'screen': 'Login'};
-    case 'mockApi':
-      return {
-        'name': 'login',
-        'response': {
-          'statusCode': 200,
-          'body': {'token': 'test-token'},
-        },
-      };
-    case 'mockApiError':
-      return {
-        'name': 'login',
-        'statusCode': 401,
-        'body': {'error': 'Unauthorized'}
-      };
-    case 'mockApiFromFixture':
-      return {'name': 'users', 'fixture': 'fixtures/users.json'};
-    case 'mockApiException':
-      return {'name': 'login', 'message': 'Network error'};
-    case 'mockTimeout':
-      return {'name': 'slow_api', 'delayMs': 60000};
     case 'apiName':
       return {'name': 'login', 'times': 1};
-    case 'apiRequest':
-      return {
-        'name': 'login',
-        'body': {'email': 'user@test.com', 'password': 'secret'},
-      };
-    case 'expectApiHeader':
-      return {
-        'name': 'login',
-        'header': 'Authorization',
-        'equals': 'Bearer test-token',
-      };
-    case 'setState':
-      return {'path': 'user.name', 'value': 'Jane'};
-    case 'expectState':
-      return {'path': 'user.name', 'equals': 'Jane'};
     case 'storageKey':
       return {'key': 'onboarding_done', 'value': true};
     case 'group':
@@ -945,12 +784,6 @@ Map<String, dynamic> defaultExampleForArg(String arg) {
           },
         ],
       };
-    case 'screenshot':
-      return {'name': 'home_screen'};
-    case 'expectStatePath':
-      return {'path': 'user.id'};
-    case 'resetStatePath':
-      return {'path': 'cart'};
     case 'setAuth':
       return {
         'user': {'id': '1', 'email': 'user@test.com'},
@@ -969,8 +802,6 @@ Map<String, dynamic> defaultExampleForArg(String arg) {
       return {'contains': 'Screen loaded'};
     case 'expectErrorContains':
       return {'contains': 'overflow'};
-    case 'fixturePath':
-      return {'fixture': 'fixtures/user.json'};
     case 'expectApiCallOrder':
       return {
         'names': ['auth', 'profile']

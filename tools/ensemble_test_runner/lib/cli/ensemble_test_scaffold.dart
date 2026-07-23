@@ -32,7 +32,7 @@ class EnsembleTestScaffold {
 
     final testsDir = Directory(p.join(appDir, inspection.appPath, 'tests'));
     testsDir.createSync(recursive: true);
-    Directory(p.join(testsDir.path, 'fixtures')).createSync(recursive: true);
+    Directory(p.join(testsDir.path, 'mocks')).createSync(recursive: true);
 
     final file = File(p.join(testsDir.path, '$normalizedId.test.yaml'));
     if (file.existsSync()) {

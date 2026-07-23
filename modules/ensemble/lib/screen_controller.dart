@@ -279,7 +279,7 @@ class ScreenController {
           (isRepeat ? repeatInterval! : 0);
 
       // we always execute at least once, delayed by startAfter and fallback to repeatInterval (or immediate if startAfter is 0)
-      Timer(Duration(seconds: delay), () {
+      final timer = Timer(Duration(seconds: delay), () {
         // execute the action
         executeActionWithScope(context, scopeManager, action.onTimer);
 
@@ -298,7 +298,7 @@ class ScreenController {
           int? repeatCount = maxTimes != null ? maxTimes - 1 : null;
           if (repeatCount != 0) {
             int counter = 0;
-            final timer =
+            final periodicTimer =
                 Timer.periodic(Duration(seconds: repeatInterval), (timer) {
               // execute the action
               executeActionWithScope(context, scopeManager, action.onTimer);
@@ -317,10 +317,11 @@ class ScreenController {
 
             // save our timer to our PageData since user may want to cancel at anytime
             // and also when we navigate away from the page
-            scopeManager.addTimer(action, timer);
+            scopeManager.addTimer(action, periodicTimer);
           }
         }
       });
+      scopeManager.addTimer(action, timer);
     } else if (action is StopTimerAction) {
       try {
         scopeManager.removeTimer(action.id);
@@ -360,9 +361,9 @@ class ScreenController {
           apiMap: apiMap,
           scopeManager: scopeManager);
     } else if (action is SignInAnonymousAction) {
-      GetIt.I<SignInAnonymous>().signInAnonymously(context, action: action);
+      await GetIt.I<SignInAnonymous>().signInAnonymously(context, action: action);
     } else if (action is SignInWithCustomTokenAction) {
-      GetIt.I<SignInWithCustomToken>().signInWithCustomToken(context, action: action);
+      await GetIt.I<SignInWithCustomToken>().signInWithCustomToken(context, action: action);
     } else if (action is WalletConnectAction) {
       //  TODO store session:  WalletConnectSession? session = await sessionStorage.getSession();
 
@@ -584,12 +585,24 @@ class ScreenController {
             defaultTransitionOptions[_pageType]?['duration'],
         fallback: 250);
 
+    final routeSettings = RouteSettings(
+      name: screenName ?? screenId,
+      arguments: ScreenPayload(
+        screenId: screenId,
+        screenName: screenName,
+        pageType: pageType,
+        arguments: pageArgs,
+        isExternal: isExternal,
+      ),
+    );
+
     PageRouteBuilder route = getScreenBuilder(
       screenWidget,
       pageType: pageType,
       transitionType: transitionType,
       alignment: alignment,
       duration: duration,
+      settings: routeSettings,
     );
     // push the new route and remove all existing screens. This is suitable for logging out.
     if (routeOption == RouteOption.clearAllScreens) {
@@ -651,12 +664,14 @@ class ScreenController {
     PageTransitionType? transitionType,
     Alignment? alignment,
     int? duration,
+    RouteSettings? settings,
   }) {
     const enableTransition =
         bool.fromEnvironment('transitions', defaultValue: true);
 
     if (!enableTransition) {
-      return EnsemblePageRouteNoTransitionBuilder(screenWidget: screenWidget);
+      return EnsemblePageRouteNoTransitionBuilder(
+          screenWidget: screenWidget, settings: settings);
     }
 
     if (pageType == PageType.modal) {
@@ -669,6 +684,7 @@ class ScreenController {
         duration: Duration(milliseconds: duration ?? 250),
         barrierDismissible: true,
         barrierColor: Colors.black54,
+        settings: settings,
       );
     } else {
       return EnsemblePageRouteBuilder(
@@ -676,6 +692,7 @@ class ScreenController {
         transitionType: transitionType ?? PageTransitionType.fade,
         alignment: alignment ?? Alignment.center,
         duration: Duration(milliseconds: duration ?? 250),
+        settings: settings,
       );
     }
   }

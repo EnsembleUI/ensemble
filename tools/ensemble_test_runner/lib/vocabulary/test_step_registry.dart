@@ -63,8 +63,7 @@ abstract final class TestStepRegistry {
       category: TestStepCategory.lifecycle,
       tier: TestStepTier.core,
       argKind: TestStepArgKind.trigger,
-      description:
-          'Fire a widget action (onLoad, onTap, onLongPress) by testId',
+      description: 'Fire a widget action (onLoad, onTap, onLongPress) by testId',
       example: const {'action': 'onTap', 'id': 'submit_button'},
     ),
     'launchApp': TestStepRegistryEntry(
@@ -80,7 +79,7 @@ abstract final class TestStepRegistry {
       tier: TestStepTier.core,
       argKind: TestStepArgKind.idRequired,
       description: 'Tap a widget by testId (ValueKey)',
-      example: const {'id': 'my_widget'},
+      example: const {'id': 'my_widget', 'timeoutMs': 5000},
     ),
     'doubleTap': TestStepRegistryEntry(
       category: TestStepCategory.interaction,
@@ -212,8 +211,7 @@ abstract final class TestStepRegistry {
       category: TestStepCategory.gesture,
       tier: TestStepTier.core,
       argKind: TestStepArgKind.swipe,
-      description:
-          'Swipe on a scrollable or widget (direction: left/right/up/down)',
+      description: 'Swipe on a scrollable or widget (direction: left/right/up/down)',
       example: const {'direction': 'left', 'id': 'carousel'},
     ),
     'drag': TestStepRegistryEntry(
@@ -234,9 +232,8 @@ abstract final class TestStepRegistry {
       category: TestStepCategory.wait,
       tier: TestStepTier.extended,
       argKind: TestStepArgKind.pump,
-      description: 'Alias for pump — advance frame clock by durationMs',
+      description: 'Real-time delay using runAsync, followed by a frame pump',
       example: const {'durationMs': 100},
-      executorCanonical: 'pump',
     ),
     'pump': TestStepRegistryEntry(
       category: TestStepCategory.wait,
@@ -281,19 +278,26 @@ abstract final class TestStepRegistry {
       description: 'Poll until a mocked API is called N times',
       example: const {'name': 'login', 'times': 1},
     ),
+    'httpRequest': TestStepRegistryEntry(
+      category: TestStepCategory.runtime,
+      tier: TestStepTier.core,
+      argKind: TestStepArgKind.httpRequest,
+      description: 'Send an HTTP request to a test support service',
+      example: const {'method': 'POST', 'url': 'http://127.0.0.1:5001/api/test/reset', 'body': const {'enabled': true}, 'expectStatus': 200},
+    ),
+    'mocks': TestStepRegistryEntry(
+      category: TestStepCategory.apiMock,
+      tier: TestStepTier.core,
+      argKind: TestStepArgKind.empty,
+      description: 'Replace active API mocks for subsequent steps',
+      example: const {'getDevices': const {'body': const {'count': 2}}},
+    ),
     'waitForNavigation': TestStepRegistryEntry(
       category: TestStepCategory.wait,
       tier: TestStepTier.core,
       argKind: TestStepArgKind.waitForNavigation,
       description: 'Poll until the given screen is visible',
       example: const {'screen': 'Home', 'timeoutMs': 5000},
-    ),
-    'waitUntil': TestStepRegistryEntry(
-      category: TestStepCategory.wait,
-      tier: TestStepTier.core,
-      argKind: TestStepArgKind.waitUntil,
-      description: 'Poll until app state at path equals expected value',
-      example: const {'path': 'user.name', 'equals': 'Jane'},
     ),
     'expectVisible': TestStepRegistryEntry(
       category: TestStepCategory.uiAssertion,
@@ -326,23 +330,23 @@ abstract final class TestStepRegistry {
     'expectText': TestStepRegistryEntry(
       category: TestStepCategory.uiAssertion,
       tier: TestStepTier.core,
-      argKind: TestStepArgKind.textRequired,
-      description: 'Assert exact text is shown',
+      argKind: TestStepArgKind.textOrAnyOf,
+      description: 'Assert exact text is shown (or anyOf list)',
       example: const {'text': 'Welcome'},
     ),
     'expectNoText': TestStepRegistryEntry(
       category: TestStepCategory.uiAssertion,
       tier: TestStepTier.core,
-      argKind: TestStepArgKind.textRequired,
-      description: 'Assert text is not shown',
+      argKind: TestStepArgKind.textOrAnyOf,
+      description: 'Assert text is not shown (or none of anyOf)',
       example: const {'text': 'Welcome'},
     ),
     'expectTextContains': TestStepRegistryEntry(
       category: TestStepCategory.uiAssertion,
       tier: TestStepTier.core,
-      argKind: TestStepArgKind.textRequired,
-      description: 'Assert some text containing the given substring',
-      example: const {'text': 'Welcome'},
+      argKind: TestStepArgKind.textContains,
+      description: 'Assert some text containing the given substring (or anyOf list)',
+      example: const {'text': 'Welcome', 'timeoutMs': 5000},
     ),
     'expectEnabled': TestStepRegistryEntry(
       category: TestStepCategory.uiAssertion,
@@ -362,8 +366,7 @@ abstract final class TestStepRegistry {
       category: TestStepCategory.valueAssertion,
       tier: TestStepTier.core,
       argKind: TestStepArgKind.expectEquals,
-      description:
-          'Assert input value equals expected (EditableText/TextField)',
+      description: 'Assert input value equals expected (EditableText/TextField)',
       example: const {'id': 'email_field', 'equals': 'user@test.com'},
     ),
     'expectChecked': TestStepRegistryEntry(
@@ -470,9 +473,7 @@ abstract final class TestStepRegistry {
       tier: TestStepTier.core,
       argKind: TestStepArgKind.expectBackStack,
       description: 'Assert navigation history suffix matches screens',
-      example: const {
-        'screens': const ['Home', 'Details']
-      },
+      example: const {'screens': const ['Home', 'Details']},
     ),
     'expectCanGoBack': TestStepRegistryEntry(
       category: TestStepCategory.navigation,
@@ -488,77 +489,11 @@ abstract final class TestStepRegistry {
       description: 'Navigate back (Ensemble navigateBack or Navigator.pop)',
       example: const {},
     ),
-    'mockApi': TestStepRegistryEntry(
-      category: TestStepCategory.apiMock,
-      tier: TestStepTier.core,
-      argKind: TestStepArgKind.mockApi,
-      description: 'Register a mock HTTP API response by API name',
-      example: const {
-        'name': 'login',
-        'response': const {
-          'statusCode': 200,
-          'body': const {'token': 'test-token'}
-        }
-      },
-    ),
-    'mockApiError': TestStepRegistryEntry(
-      category: TestStepCategory.apiMock,
-      tier: TestStepTier.core,
-      argKind: TestStepArgKind.mockApiError,
-      description: 'Mock an API to return an error status/body',
-      example: const {
-        'name': 'login',
-        'statusCode': 401,
-        'body': const {'error': 'Unauthorized'}
-      },
-    ),
-    'mockApiFromFixture': TestStepRegistryEntry(
-      category: TestStepCategory.fixture,
-      tier: TestStepTier.core,
-      argKind: TestStepArgKind.mockApiFromFixture,
-      description: 'Load mock response body from a JSON fixture asset',
-      example: const {'name': 'users', 'fixture': 'users.json'},
-    ),
-    'mockApiException': TestStepRegistryEntry(
-      category: TestStepCategory.apiMock,
-      tier: TestStepTier.core,
-      argKind: TestStepArgKind.mockApiException,
-      description: 'Force an API call to throw an exception',
-      example: const {'name': 'login', 'message': 'Network error'},
-    ),
-    'mockTimeout': TestStepRegistryEntry(
-      category: TestStepCategory.network,
-      tier: TestStepTier.core,
-      argKind: TestStepArgKind.mockTimeout,
-      description: 'Mock an API with a long delay (simulate timeout)',
-      example: const {'name': 'slow_api', 'delayMs': 60000},
-    ),
-    'mockNetworkOffline': TestStepRegistryEntry(
-      category: TestStepCategory.network,
-      tier: TestStepTier.core,
-      argKind: TestStepArgKind.empty,
-      description: 'Simulate offline network for API calls',
-      example: const {},
-    ),
-    'mockNetworkOnline': TestStepRegistryEntry(
-      category: TestStepCategory.network,
-      tier: TestStepTier.core,
-      argKind: TestStepArgKind.empty,
-      description: 'Restore online network for API calls',
-      example: const {},
-    ),
     'resetApiCalls': TestStepRegistryEntry(
       category: TestStepCategory.apiMock,
       tier: TestStepTier.core,
       argKind: TestStepArgKind.empty,
       description: 'Clear recorded API call history',
-      example: const {},
-    ),
-    'clearApiMocks': TestStepRegistryEntry(
-      category: TestStepCategory.apiMock,
-      tier: TestStepTier.core,
-      argKind: TestStepArgKind.empty,
-      description: 'Remove all registered API mocks',
       example: const {},
     ),
     'expectApiCalled': TestStepRegistryEntry(
@@ -575,45 +510,12 @@ abstract final class TestStepRegistry {
       description: 'Assert an API was never called',
       example: const {'name': 'login', 'times': 1},
     ),
-    'expectApiRequest': TestStepRegistryEntry(
-      category: TestStepCategory.apiAssertion,
-      tier: TestStepTier.core,
-      argKind: TestStepArgKind.apiRequest,
-      description: 'Assert last API request body/query/headers match',
-      example: const {
-        'name': 'login',
-        'body': const {'email': 'user@test.com', 'password': 'secret'}
-      },
-    ),
-    'expectApiRequestContains': TestStepRegistryEntry(
-      category: TestStepCategory.apiAssertion,
-      tier: TestStepTier.core,
-      argKind: TestStepArgKind.apiRequest,
-      description: 'Assert API request contains partial body/query',
-      example: const {
-        'name': 'login',
-        'body': const {'email': 'user@test.com', 'password': 'secret'}
-      },
-    ),
-    'expectApiHeader': TestStepRegistryEntry(
-      category: TestStepCategory.apiAssertion,
-      tier: TestStepTier.core,
-      argKind: TestStepArgKind.expectApiHeader,
-      description: 'Assert an API request header equals expected',
-      example: const {
-        'name': 'login',
-        'header': 'Authorization',
-        'equals': 'Bearer test-token'
-      },
-    ),
     'expectApiCallOrder': TestStepRegistryEntry(
       category: TestStepCategory.apiAssertion,
       tier: TestStepTier.core,
       argKind: TestStepArgKind.expectApiCallOrder,
       description: 'Assert APIs were called in order',
-      example: const {
-        'names': const ['auth', 'profile']
-      },
+      example: const {'names': const ['auth', 'profile']},
     ),
     'expectLastApiCall': TestStepRegistryEntry(
       category: TestStepCategory.apiAssertion,
@@ -621,48 +523,6 @@ abstract final class TestStepRegistry {
       argKind: TestStepArgKind.apiName,
       description: 'Assert the most recent API call name',
       example: const {'name': 'login', 'times': 1},
-    ),
-    'setState': TestStepRegistryEntry(
-      category: TestStepCategory.state,
-      tier: TestStepTier.core,
-      argKind: TestStepArgKind.setState,
-      description: 'Set app data-context state at path to value',
-      example: const {'path': 'user.name', 'value': 'Jane'},
-    ),
-    'expectState': TestStepRegistryEntry(
-      category: TestStepCategory.state,
-      tier: TestStepTier.core,
-      argKind: TestStepArgKind.expectState,
-      description: 'Assert app state at path equals expected',
-      example: const {'path': 'user.name', 'equals': 'Jane'},
-    ),
-    'expectStateContains': TestStepRegistryEntry(
-      category: TestStepCategory.state,
-      tier: TestStepTier.core,
-      argKind: TestStepArgKind.expectState,
-      description: 'Assert app state at path contains subset',
-      example: const {'path': 'user.name', 'equals': 'Jane'},
-    ),
-    'expectStateExists': TestStepRegistryEntry(
-      category: TestStepCategory.state,
-      tier: TestStepTier.core,
-      argKind: TestStepArgKind.expectStatePath,
-      description: 'Assert state path resolves without error',
-      example: const {'path': 'user.id'},
-    ),
-    'expectStateNotExists': TestStepRegistryEntry(
-      category: TestStepCategory.state,
-      tier: TestStepTier.core,
-      argKind: TestStepArgKind.expectStatePath,
-      description: 'Assert state path is null or absent',
-      example: const {'path': 'user.id'},
-    ),
-    'resetState': TestStepRegistryEntry(
-      category: TestStepCategory.state,
-      tier: TestStepTier.core,
-      argKind: TestStepArgKind.resetStatePath,
-      description: 'Clear state at path (set to null)',
-      example: const {'path': 'cart'},
     ),
     'setStorage': TestStepRegistryEntry(
       category: TestStepCategory.storage,
@@ -704,9 +564,7 @@ abstract final class TestStepRegistry {
       tier: TestStepTier.core,
       argKind: TestStepArgKind.setAuth,
       description: 'Simulate a signed-in user',
-      example: const {
-        'user': const {'id': '1', 'email': 'user@test.com'}
-      },
+      example: const {'user': const {'id': '1', 'email': 'user@test.com'}},
     ),
     'clearAuth': TestStepRegistryEntry(
       category: TestStepCategory.runtime,
@@ -740,7 +598,7 @@ abstract final class TestStepRegistry {
       category: TestStepCategory.runtime,
       tier: TestStepTier.core,
       argKind: TestStepArgKind.setTheme,
-      description: 'Set APP_THEME / theme mode override',
+      description: 'Set Ensemble theme via EnsembleThemeManager (e.g. light/dark)',
       example: const {'mode': 'dark'},
     ),
     'runScript': TestStepRegistryEntry(
@@ -769,55 +627,28 @@ abstract final class TestStepRegistry {
       tier: TestStepTier.core,
       argKind: TestStepArgKind.group,
       description: 'Run nested steps as a named group',
-      example: const {
-        'name': 'login_flow',
-        'steps': const [
-          const {
-            'tap': const {'id': 'login_button'}
-          }
-        ]
-      },
+      example: const {'name': 'login_flow', 'steps': const [const {'tap': const {'id': 'login_button'}}]},
     ),
     'repeat': TestStepRegistryEntry(
       category: TestStepCategory.control,
       tier: TestStepTier.core,
       argKind: TestStepArgKind.repeat,
       description: 'Repeat nested steps N times',
-      example: const {
-        'times': 3,
-        'steps': const [
-          const {
-            'tap': const {'id': 'next_button'}
-          }
-        ]
-      },
+      example: const {'times': 3, 'steps': const [const {'tap': const {'id': 'next_button'}}]},
     ),
     'optional': TestStepRegistryEntry(
       category: TestStepCategory.control,
       tier: TestStepTier.core,
       argKind: TestStepArgKind.optional,
       description: 'Run nested steps; swallow failures',
-      example: const {
-        'steps': const [
-          const {
-            'tap': const {'id': 'dismiss_banner'}
-          }
-        ]
-      },
+      example: const {'steps': const [const {'tap': const {'id': 'dismiss_banner'}}]},
     ),
     'ifVisible': TestStepRegistryEntry(
       category: TestStepCategory.control,
       tier: TestStepTier.core,
       argKind: TestStepArgKind.ifVisible,
       description: 'Run nested steps only if testId is visible',
-      example: const {
-        'id': 'promo_banner',
-        'steps': const [
-          const {
-            'tap': const {'id': 'close_banner'}
-          }
-        ]
-      },
+      example: const {'id': 'promo_banner', 'steps': const [const {'tap': const {'id': 'close_banner'}}]},
     ),
     'logApiCalls': TestStepRegistryEntry(
       category: TestStepCategory.debug,
@@ -825,34 +656,6 @@ abstract final class TestStepRegistry {
       argKind: TestStepArgKind.empty,
       description: 'Log all recorded API calls to the test log',
       example: const {},
-    ),
-    'screenshot': TestStepRegistryEntry(
-      category: TestStepCategory.debug,
-      tier: TestStepTier.core,
-      argKind: TestStepArgKind.screenshot,
-      description: 'Capture golden or dump widget tree for debugging',
-      example: const {'name': 'home_screen'},
-    ),
-    'dumpTree': TestStepRegistryEntry(
-      category: TestStepCategory.debug,
-      tier: TestStepTier.core,
-      argKind: TestStepArgKind.empty,
-      description: 'Print the widget tree to the debug console',
-      example: const {},
-    ),
-    'logState': TestStepRegistryEntry(
-      category: TestStepCategory.debug,
-      tier: TestStepTier.core,
-      argKind: TestStepArgKind.expectStatePath,
-      description: 'Log resolved state at path',
-      example: const {'path': 'user.id'},
-    ),
-    'logStorage': TestStepRegistryEntry(
-      category: TestStepCategory.debug,
-      tier: TestStepTier.core,
-      argKind: TestStepArgKind.storageKey,
-      description: 'Log public storage value for key',
-      example: const {'key': 'onboarding_done', 'value': true},
     ),
     'expectNoConsoleErrors': TestStepRegistryEntry(
       category: TestStepCategory.quality,
@@ -902,27 +705,6 @@ abstract final class TestStepRegistry {
       argKind: TestStepArgKind.idRequired,
       description: 'Assert widget renders without overflow issues',
       example: const {'id': 'my_widget'},
-    ),
-    'loadFixture': TestStepRegistryEntry(
-      category: TestStepCategory.fixture,
-      tier: TestStepTier.core,
-      argKind: TestStepArgKind.fixturePath,
-      description: 'Load a JSON fixture into the test fixture map',
-      example: const {'fixture': 'user.json'},
-    ),
-    'setStateFromFixture': TestStepRegistryEntry(
-      category: TestStepCategory.fixture,
-      tier: TestStepTier.core,
-      argKind: TestStepArgKind.fixturePath,
-      description: 'Apply all keys from a JSON fixture to state',
-      example: const {'fixture': 'user.json'},
-    ),
-    'expectMatchesFixture': TestStepRegistryEntry(
-      category: TestStepCategory.fixture,
-      tier: TestStepTier.core,
-      argKind: TestStepArgKind.fixturePath,
-      description: 'Assert state or path matches a JSON fixture',
-      example: const {'fixture': 'user.json'},
     ),
   };
 }

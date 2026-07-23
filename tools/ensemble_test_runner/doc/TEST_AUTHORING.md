@@ -28,52 +28,240 @@ tags: [smoke, auth]
 description: Valid user can log in and reach Home
 priority: high
 startScreen: Login
+retry: 3
 steps:
   - expectVisible:
       id: email_field
 ```
 
-Use `startScreen` for a cold start. Use `prerequisite` when a test should continue from another test in the same app session.
+Use `startScreen` to choose where the test starts. Use `session` when the test
+needs captured app state from another test before mounting that screen.
+Use `retry` for known flaky external flows; `retry: 3` means one initial attempt
+plus up to three additional attempts.
+
+## Suite Config
+
+Put shared runner settings in `tests/config.yaml`, next to the `*.test.yaml`
+files:
+
+```yaml
+# yaml-language-server: $schema=https://cdn.ensembleui.com/schemas/ensemble_test_config_schema.json
+mocks:
+  - mocks/common/base.mock.json
+
+initialState:
+  storage:
+    apiUrl: http://ensemble.test/ws/NeMo/Intf/lan:getMIBs
+  env:
+    APP_LOCALE: nl
+
+screenshots:
+  enabled: true
+
+# Device matrix (viewport + optional locale/theme). Use one entry for a single device.
+devices:
+  - id: android_nl
+    platform: android
+    model: Samsung Galaxy S20
+    locale: nl
+    theme: light
+  - id: iphone_en
+    platform: ios
+    model: iPhone 15 Pro
+    locale: en
+    theme: dark
+
+performance:
+  enabled: true
+timers:
+  enabled: true
+  maxStartAfterSeconds: 1
+  maxRepeatIntervalSeconds: 1
+dumpTree:
+  enabled: true
+logApiCalls:
+  enabled: true
+logStorage:
+  enabled: true
+```
+
+`logApiCalls` / `logStorage` emit one file per test case (not a suite-wide dump).
+App console lines printed during a test are always written as
+`{testId}_app_console.log` on that test's artifacts.
+Suite `mocks` are applied before each test file's `mocks` (later entries win for
+the same API name). Suite `initialState` is the base for every test;
+test-level `storage` / `keychain` / `env` keys override suite values.
+
+When `screenshots.enabled` is true, the runner captures automatic step
+screenshots as per-step PNGs under `build/ensemble_test_runner/screenshots/`.
+Frame metadata is folded into `report/results.json.gz` (no leftover `*_frames.json`).
+When `performance` / `dumpTree` are enabled, those payloads are embedded **per
+screen** in the same `results.json.gz` under `tests[].report.screens` (then
+`logs/` is deleted).
+
+When `devices` is set, each test runs once per device (test ids become
+`id[deviceId]` when there is more than one device). Device `locale` sets
+`APP_LOCALE` / forcedLocale for that run; it does not rewrite
+`startScreenInputs`. Device `theme` (`light` / `dark`, or an exact Themes name
+like `Light` / `Dark`) is applied via `EnsembleThemeManager` after the app
+boots, so it works for any `startScreen`. Explicit test `languageCode` /
+`themeMode` inputs are left as written. Each device run writes its own frames
+set named after the expanded test id (for example `home[android_nl]_frames.json`).
+
+For multi-locale suites, use `anyOf` on text assertions so both languages pass:
+
+```yaml
+- waitForText:
+    anyOf: [Zwak signaal, Weak signal]
+    timeoutMs: 30000
+- expectText:
+    anyOf: [Verbeter je wifi, Improve your wifi]
+- expectNoText:
+    anyOf: [IPv6 staat nog uit, IPv6 is still off]
+- expectTextContains:
+    anyOf: [niet op de beste plek, not in the best location]
+```
+
+When `timers.enabled` is true, the CLI temporarily caps numeric
+`startAfter` and `repeatInterval` values in local app screen YAML while the test
+process runs, then restores the original files.
 
 ## App Context
 
 `--inspect-app` emits JSON with screens, widget IDs, APIs, navigation targets, imports, storage/env references, and lifecycle hints.
 
-## Fixtures And Mocks
+## Mocks
 
-Put JSON fixtures under:
+Use `mocks` for API responses. Put shared defaults in `tests/config.yaml`, then
+override per test when needed.
 
-```text
-ensemble/apps/<appName>/tests/fixtures/<name>.json
-```
-
-Reference fixtures by filename:
-
-```yaml
-steps:
-  - mockApiFromFixture:
-      name: profile
-      fixture: profile_success.json
-```
-
-Use root `mocks.apis` for APIs that may run during `onLoad` or startup. Use step-level `mockApi` or `mockApiFromFixture` for APIs triggered after user actions.
+For small mocks, define them inline:
 
 ```yaml
 mocks:
-  apis:
-    profile:
-      response:
-        body: {name: Jane}
+  getDevices:
+    body:
+      count: 2
+```
+
+For larger suites, use an ordered list of `.mock.json` files. Later entries
+override earlier entries.
+
+```yaml
+mocks:
+  - mocks/common/base.mock.json
+```
+
+You can also mix both forms in one list:
+
+```yaml
+mocks:
+  - mocks/common/base.mock.json
+  - getDevices:
+      body:
+        count: 3
+```
+
+Use a `mocks` step when a test needs to change API responses mid-flow. Step
+mocks use the same inline and file-based shapes as root-level mocks, and apply
+to subsequent API calls.
+
+```yaml
 steps:
-  - mockApi:
-      name: login
-      response:
-        body: {token: test-token}
+  - mocks:
+      getDevices:
+        body:
+          count: 4
+  - tap:
+      id: refresh_devices
+```
+
+For scenario-based suites, keep reusable API data in mock files. The runner does
+not know what your scenario variables mean; it only substitutes `${scenario.*}`
+values and merges mock entries in order.
+
+```yaml
+id: home_scenarios
+session: signin_to_gateway
+startScreen: Home
+
+mocks:
+  - mocks/common/base.mock.json
+  - mocks/devices/${scenario.device}.mock.json
+  - mocks/behaviors/${scenario.behavior}.mock.json
+
+scenarios:
+  - id: v14_online
+    vars:
+      device: v14
+      behavior: online
+      expectedDeviceCount: 2
+
+steps:
+  - expectText:
+      text: ${scenario.expectedDeviceCount}
+```
+
+Each scenario expands to its own test id, for example
+`home_scenarios[v14_online]`.
+
+Mock files are JSON files. The root object maps API names to response
+overrides:
+
+```json
+{
+  "getDevices": {
+    "statusCode": 200,
+    "delayMs": 300,
+    "body": {
+      "status": []
+    }
+  }
+}
+```
+
+Later files override earlier files. Use `delayMs` when a mock should stay
+pending briefly before returning, matching the loading behavior of a real API.
+
+### `$extends` and `$merge`
+
+To avoid duplicating large captured payloads, a mock file can extend another
+and patch only the fields that change:
+
+```json
+{
+  "$extends": "mocks/extender-positioning/one_toofar_one_good.mock.json",
+  "getExtenderPositioning": {
+    "$merge": {
+      "body.status[0].Children[1].Children[1].SignalStrength": -65
+    }
+  }
+}
+```
+
+- `$extends` — string or list of `.mock.json` paths, using the same paths as
+  test-level `mocks:` entries (relative to the tests folder). Parents are
+  layered in order before local APIs.
+- `$merge` — map of path → value applied onto the existing response for that
+  API. Paths use dotted keys and `[index]` segments (JSON Pointer `/a/0/b`
+  also works).
+- Without `$merge`, an API entry fully replaces the previous response for that
+  name.
+
+Inline mocks in a test or step can also use `$merge` against APIs already
+loaded from earlier files in the same mocks list:
+
+```yaml
+mocks:
+  - mocks/extender-positioning/one_too_close.mock.json
+  - getExtenderPositioning:
+      $merge:
+        body.status[0].Children[1].Children[0].SSW.State: Paired
 ```
 
 ## Validation
 
-`--validate-only` checks generated tests without running Flutter. It reports blocking errors for invalid YAML shape, missing tests, duplicate IDs, unknown prerequisites, unknown screens, and missing fixtures. It reports warnings for likely unknown widget IDs/APIs and mock placement issues.
+`--validate-only` checks generated tests without running Flutter. It reports blocking errors for invalid YAML shape, missing tests, duplicate IDs, unknown sessions, and unknown screens. It reports warnings for likely unknown widget IDs/APIs.
 
 Warnings do not fail the command. Errors exit with code `2`.
 
@@ -86,9 +274,36 @@ dart run ensemble_test_runner:ensemble_test --feature=login
 dart run ensemble_test_runner:ensemble_test --tag=smoke
 dart run ensemble_test_runner:ensemble_test --path=auth/
 dart run ensemble_test_runner:ensemble_test --id=login_valid
+dart run ensemble_test_runner:ensemble_test --device=android_nl
 ```
 
+`--device` limits the suite device matrix to the given id(s) from
+`tests/config.yaml` (repeatable / comma-separated). Default is all devices.
+
 Prerequisites are included automatically when a selected test depends on them.
+
+## CLI Inputs
+
+Use repeatable `--input key=value` flags for values that should come from the
+command line:
+
+```sh
+dart run ensemble_test_runner:ensemble_test \
+  --input adminPassword='s4C>M7U6t~' \
+  --input expectedDeviceCount=2
+```
+
+Reference them in test YAML with `${inputs.key}`:
+
+```yaml
+# Shared apiUrl / APP_LOCALE can live in tests/config.yaml initialState.
+initialState:
+  keychain:
+    adminPassword: ${inputs.adminPassword}
+steps:
+  - expectText:
+      text: ${inputs.expectedDeviceCount}
+```
 
 ## CI Output
 

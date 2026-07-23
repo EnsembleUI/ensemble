@@ -24,8 +24,13 @@ class EnsembleUtils {
 
     // Fallback to RouteObserver method
     final route = Ensemble().getCurrentRoute();
-    if (route is PopupRoute && route.isCurrent && route.navigator != null) {
-      return route.navigator!.maybePop(payload);
+    final navigator = route?.navigator;
+    if (route is PopupRoute &&
+        route.isCurrent &&
+        navigator != null &&
+        navigator.canPop()) {
+      navigator.pop(payload);
+      return Future.value(true);
     }
     return Future.value(false);
   }
@@ -54,10 +59,13 @@ class EnsembleUtils {
 
     // Fallback to RouteObserver method
     final route = Ensemble().getCurrentRoute();
+    final navigator = route?.navigator;
     if (route is ModalBottomSheetRoute &&
         route.isCurrent &&
-        route.navigator != null) {
-      return route.navigator!.maybePop(payload);
+        navigator != null &&
+        navigator.canPop()) {
+      navigator.pop(payload);
+      return Future.value(true);
     }
     return Future.value(false);
   }
