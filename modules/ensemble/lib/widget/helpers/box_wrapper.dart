@@ -786,16 +786,10 @@ class _TapEnabledWrapperState extends State<_TapEnabledWrapper> {
     // Get scrollable position relative to screen
     final Offset scrollableScreenPos = scrollableBox.localToGlobal(Offset.zero);
     final double scrollableLeft = scrollableScreenPos.dx;
-    final double scrollableWidth = scrollableBox.size.width;
-    final double scrollableRight = scrollableLeft + scrollableWidth;
+    final double scrollableRight = scrollableLeft + scrollableBox.size.width;
 
     // Padding for visibility checks
     const double edgePadding = kTVEdgePadding;
-
-    // Check if item is fully visible on screen (both edges with padding)
-    final bool isItemFullyVisible =
-        itemLeft >= (scrollableLeft + edgePadding) &&
-            itemRight <= (scrollableRight - edgePadding);
 
     // Check if item's LEFT edge is visible (for START boundary)
     final bool isLeftEdgeVisible = itemLeft >= scrollableLeft;
@@ -821,9 +815,8 @@ class _TapEnabledWrapperState extends State<_TapEnabledWrapper> {
     // Calculate target scroll position BEFORE clamping (for boundary detection)
     final double rawTargetScroll = itemContentPosition - fixedOffset;
 
-    // Check if target WOULD hit boundaries
+    // Check if target would hit start boundary
     final bool wouldHitStart = rawTargetScroll <= 0;
-    final bool wouldHitEnd = rawTargetScroll >= position.maxScrollExtent;
 
     // START BOUNDARY: Skip scroll if item is visible and at/before fixedOffset
     if ((isAtStart || wouldHitStart) &&
@@ -832,17 +825,16 @@ class _TapEnabledWrapperState extends State<_TapEnabledWrapper> {
       return;
     }
 
-    // END BOUNDARY: Skip if at max scroll and item is reasonably visible
+    // END BOUNDARY: Only skip scroll when we're ACTUALLY at maxScrollExtent
+    // and the item is already visible. This ensures we scroll all the way to
+    // the end before letting focus move through the remaining visible items.
     if (isAtEnd && isItemReasonablyVisible) {
       return;
     }
 
-    // Would hit end but not there yet - skip if item is fully visible
-    if (wouldHitEnd && isItemFullyVisible) {
-      return;
-    }
-
-    // Clamp to valid scroll range
+    // Clamp to valid scroll range - this will scroll to maxScrollExtent when
+    // rawTargetScroll exceeds it, ensuring content scrolls fully before
+    // focus position shifts
     double targetScroll = rawTargetScroll.clamp(0.0, position.maxScrollExtent);
 
     // Animate if there's a meaningful change
