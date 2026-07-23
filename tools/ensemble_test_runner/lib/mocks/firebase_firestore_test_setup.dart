@@ -19,7 +19,7 @@ void ensureLiveFirestoreForTest() {
 
   final messenger =
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
-  final codec = FirebaseFirestoreHostApi.pigeonChannelCodec;
+  final codec = FirebaseFirestoreHostApi.codec;
 
   void register(
     String method,
@@ -90,8 +90,8 @@ void ensureLiveFirestoreForTest() {
     final app = _decodeApp(args[0]);
     final path = args[1]! as String;
     final isCollectionGroup = args[2]! as bool;
-    final parameters = args[3]! as InternalQueryParameters;
-    final options = args[4]! as InternalGetOptions;
+    final parameters = args[3]! as PigeonQueryParameters;
+    final options = args[4]! as PigeonGetOptions;
     final snapshot = await _LiveFirestoreRestClient().queryGet(
       app,
       path: path,
@@ -210,16 +210,16 @@ class _LiveFirestoreRestClient {
     await _request(app, method: 'DELETE', path: request.path);
   }
 
-  Future<InternalDocumentSnapshot> documentGet(
+  Future<PigeonDocumentSnapshot> documentGet(
     FirestorePigeonFirebaseApp app,
     DocumentReferenceRequest request,
   ) async {
     final decoded = await _request(app, method: 'GET', path: request.path);
     if (decoded == null) {
-      return InternalDocumentSnapshot(
+      return PigeonDocumentSnapshot(
         path: request.path,
         data: null,
-        metadata: InternalSnapshotMetadata(
+        metadata: PigeonSnapshotMetadata(
           hasPendingWrites: false,
           isFromCache: false,
         ),
@@ -228,12 +228,12 @@ class _LiveFirestoreRestClient {
     return _toPigeonDocumentSnapshot(request.path, decoded);
   }
 
-  Future<InternalQuerySnapshot> queryGet(
+  Future<PigeonQuerySnapshot> queryGet(
     FirestorePigeonFirebaseApp app, {
     required String path,
     required bool isCollectionGroup,
-    required InternalQueryParameters parameters,
-    required InternalGetOptions options,
+    required PigeonQueryParameters parameters,
+    required PigeonGetOptions options,
   }) async {
     final structuredQuery = <String, dynamic>{
       'from': [
@@ -262,7 +262,7 @@ class _LiveFirestoreRestClient {
       body: body,
     );
 
-    final documents = <InternalDocumentSnapshot?>[];
+    final documents = <PigeonDocumentSnapshot?>[];
     if (decoded is List) {
       for (final entry in decoded) {
         if (entry is! Map) continue;
@@ -274,12 +274,12 @@ class _LiveFirestoreRestClient {
       }
     }
 
-    return InternalQuerySnapshot(
+    return PigeonQuerySnapshot(
       documents: documents,
       documentChanges: documents
-          .whereType<InternalDocumentSnapshot>()
+          .whereType<PigeonDocumentSnapshot>()
           .map(
-            (document) => InternalDocumentChange(
+            (document) => PigeonDocumentChange(
               type: DocumentChangeType.added,
               document: document,
               oldIndex: -1,
@@ -287,7 +287,7 @@ class _LiveFirestoreRestClient {
             ),
           )
           .toList(),
-      metadata: InternalSnapshotMetadata(
+      metadata: PigeonSnapshotMetadata(
         hasPendingWrites: false,
         isFromCache: options.source == Source.cache,
       ),
@@ -433,17 +433,17 @@ Map<String, dynamic> _encodeValue(Object? value) {
   return {'stringValue': value.toString()};
 }
 
-InternalDocumentSnapshot _toPigeonDocumentSnapshot(
+PigeonDocumentSnapshot _toPigeonDocumentSnapshot(
   String path,
   Map<dynamic, dynamic> document,
 ) {
   final fields = document['fields'];
-  return InternalDocumentSnapshot(
+  return PigeonDocumentSnapshot(
     path: path,
     data: fields is Map
         ? _decodeFields(fields.cast<Object?, Object?>())
         : <String?, Object?>{},
-    metadata: InternalSnapshotMetadata(
+    metadata: PigeonSnapshotMetadata(
       hasPendingWrites: false,
       isFromCache: false,
     ),
