@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:convert';
 import 'dart:math';
 import 'dart:ui_web' as ui;
 import 'package:ensemble/framework/event.dart';
@@ -8,6 +7,8 @@ import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/helpers/box_wrapper.dart';
 import 'package:ensemble/widget/lottie/lottie.dart';
+import 'package:ensemble/widget/lottie/lottie_post_message.dart';
+import 'package:ensemble/widget/widget_util.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
 import 'dart:js' as js;
@@ -45,14 +46,18 @@ class LottieState extends EWidgetState<EnsembleLottie>
     widget.controller.lottieAction = this;
   }
 
+  String get _postMessageOrigin => html.window.location.origin;
+
   @override
-  void forward() => html.window.postMessage('forward_$divId', "*");
+  void forward() =>
+      html.window.postMessage('forward_$divId', _postMessageOrigin);
   @override
-  void reset() => html.window.postMessage('reset_$divId', "*");
+  void reset() => html.window.postMessage('reset_$divId', _postMessageOrigin);
   @override
-  void reverse() => html.window.postMessage('reverse_$divId', "*");
+  void reverse() =>
+      html.window.postMessage('reverse_$divId', _postMessageOrigin);
   @override
-  void stop() => html.window.postMessage('stop_$divId', "*");
+  void stop() => html.window.postMessage('stop_$divId', _postMessageOrigin);
   @override
   void dispose() {
     html.window.close(); // To prevent memory leaks
@@ -110,6 +115,7 @@ class LottieState extends EWidgetState<EnsembleLottie>
       // the image will throw exception. We have to use a permanent placeholder
       // until the binding engages
       // HTML & JS code for the web html renderer
+      final parentOriginLiteral = lottieParentOriginLiteral(_postMessageOrigin);
       final htmlString = '''
 <html>
   <body>
@@ -122,6 +128,7 @@ class LottieState extends EWidgetState<EnsembleLottie>
     <script type="text/javascript">
       let direction = 1; // Variable to define the direction ie to run animation forward or backward
       let player_$divId = document.getElementById("$divId");
+      const parentOrigin = $parentOriginLiteral;
       // A counter variable which increments upon each event and thus making each event unique and allowing to segregate from old events
       let counter = 0;
       player_$divId.load("$source");
@@ -130,6 +137,9 @@ class LottieState extends EWidgetState<EnsembleLottie>
       
       // Function to handle all the messages that are received from dart to js
       function handleMessage(e) {
+        if (e.origin !== parentOrigin) {
+          return;
+        }
         var data = e.data;
         if (data == "forward_$divId") {
           direction = 1;
@@ -144,7 +154,7 @@ class LottieState extends EWidgetState<EnsembleLottie>
         }
         if (data == "stop_$divId") {
           player_$divId.pause();
-          window.parent.postMessage('{"data": "onStop", "id": ' + counter + ', "tag": "$divId"}', "*");
+          window.parent.postMessage('{"data": "onStop", "id": ' + counter + ', "tag": "$divId"}', parentOrigin);
           counter++;
         }
         if (data == "reset_$divId") {
@@ -153,20 +163,20 @@ class LottieState extends EWidgetState<EnsembleLottie>
       }
       // Event Listener for specific actions for animation like onComplete, onStart, onLoad and so on
       player_$divId.addEventListener("play", () => {
-        if (direction == 1) window.parent.postMessage('{"data": "onForward", "id": ' + counter + ', "tag": "$divId"}', "*");
-        else window.parent.postMessage('{"data": "onReverse", "id": ' + counter + ', "tag": "$divId"}', "*");
+        if (direction == 1) window.parent.postMessage('{"data": "onForward", "id": ' + counter + ', "tag": "$divId"}', parentOrigin);
+        else window.parent.postMessage('{"data": "onReverse", "id": ' + counter + ', "tag": "$divId"}', parentOrigin);
         counter++;
       });
       player_$divId.addEventListener("complete", () => {
-        window.parent.postMessage('{"data": "onComplete", "id": ' + counter + ', "tag": "$divId"}', "*");
+        window.parent.postMessage('{"data": "onComplete", "id": ' + counter + ', "tag": "$divId"}', parentOrigin);
         counter++;
       });
       player_$divId.addEventListener("pause", () => {
-        window.parent.postMessage('{"data": "onStop", "id": ' + counter + ', "tag": "$divId"}', "*");
+        window.parent.postMessage('{"data": "onStop", "id": ' + counter + ', "tag": "$divId"}', parentOrigin);
         counter++;
       });
       player_$divId.addEventListener("stop", () => {
-        window.parent.postMessage('{"data": "onStop", "id": ' + counter + ', "tag": "$divId"}', "*");
+        window.parent.postMessage('{"data": "onStop", "id": ' + counter + ', "tag": "$divId"}', parentOrigin);
         counter++;
       });
     </script>
@@ -183,13 +193,17 @@ class LottieState extends EWidgetState<EnsembleLottie>
       // Event listener for the messages that are sent from JS to Dart
       html.window.onMessage.listen(
         (event) async {
+          if (!isAllowedLottiePostMessageOrigin(
+              event.origin, _postMessageOrigin)) {
+            return;
+          }
           final String data = event.data;
-          // Need to check if the data is in json format as there are also other events from JS
-          if (data.contains('{')) {
-            final json = jsonDecode(data);
-            // Segregating the latest event from old events using then html tag and the id which is just a counter which increments by 1 for each event
-            if (lastEventId != json['id'] && divId == json['tag']) {
-              lastEventId = json['id'];
+          final json = parseLottieCallbackMessage(rawData: data, tag: divId);
+          if (json == null) {
+            return;
+          }
+          if (lastEventId != json['id']) {
+            lastEventId = json['id'];
               // Mapping the events to their respective callbacks
               if (json['data'] == "onForward" &&
                   widget.controller.onForward != null) {
@@ -223,7 +237,6 @@ class LottieState extends EWidgetState<EnsembleLottie>
                   event: EnsembleEvent(widget),
                 );
               }
-            }
           }
         },
       );
