@@ -106,7 +106,6 @@ jobs:
             --scope=ensemble_adobe_analytics \
             --scope=ensemble_moengage \
             --scope=ensemble_bracket \
-            --scope=ensemble_test_runner \
             --manual-version ensemble:${{ steps.resolve-version.outputs.version }} \
             --manual-version ensemble_network_info:${{ steps.resolve-version.outputs.version }} \
             --manual-version ensemble_stripe:${{ steps.resolve-version.outputs.version }} \
@@ -127,7 +126,6 @@ jobs:
             --manual-version ensemble_adobe_analytics:${{ steps.resolve-version.outputs.version }} \
             --manual-version ensemble_moengage:${{ steps.resolve-version.outputs.version }} \
             --manual-version ensemble_bracket:${{ steps.resolve-version.outputs.version }} \
-            --manual-version ensemble_test_runner:${{ steps.resolve-version.outputs.version }} \
             --yes
 
       - name: Push branch and tags
