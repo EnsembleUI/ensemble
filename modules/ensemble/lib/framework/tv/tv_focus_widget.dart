@@ -21,6 +21,64 @@ import 'package:flutter/services.dart';
 /// Uses FocusScope (not Focus) so key events bubble up from child.
 /// With plain Focus, this node would be a sibling and miss key events.
 class TVFocusWidget extends StatelessWidget {
+  // ─────────────────────────────────────────────────────────────────────────
+  // Row Position Memory
+  // ─────────────────────────────────────────────────────────────────────────
+  // Remembers the last focused order (horizontal position) for each row,
+  // scoped by focusGroup. When navigating UP/DOWN between rows, focus
+  // returns to the remembered position instead of always going to the
+  // entry point. Only active when focusGroup is set.
+  //
+  // Key format: "${focusGroup}_${row}" -> remembered order value
+  // ─────────────────────────────────────────────────────────────────────────
+  static final Map<String, double> _rowOrderMemory = {};
+
+  /// Creates a memory key for the given focusGroup and row.
+  static String _memoryKey(String focusGroup, double row) {
+    return '${focusGroup}_$row';
+  }
+
+  /// Saves the current order for a row (called when leaving the row).
+  static void _rememberOrder(String focusGroup, double row, double order) {
+    _rowOrderMemory[_memoryKey(focusGroup, row)] = order;
+  }
+
+  /// Retrieves the remembered order for a row, or null if not remembered.
+  static double? _recallOrder(String focusGroup, double row) {
+    return _rowOrderMemory[_memoryKey(focusGroup, row)];
+  }
+
+  /// Clears all row memory (useful for screen transitions if needed).
+  static void clearRowMemory() {
+    _rowOrderMemory.clear();
+  }
+
+  /// Clears row memory for a specific focusGroup.
+  static void clearRowMemoryForGroup(String focusGroup) {
+    _rowOrderMemory.removeWhere((key, _) => key.startsWith('${focusGroup}_'));
+  }
+
+  /// Finds the index of the item with the nearest order value to the target.
+  /// Used when the remembered order no longer exists (item was removed).
+  static int _findNearestOrderIndex(
+    List<TVFocusOrderNode> row,
+    double targetOrder,
+  ) {
+    if (row.isEmpty) return 0;
+
+    int nearestIdx = 0;
+    double nearestDiff = (row[0].order.order - targetOrder).abs();
+
+    for (int i = 1; i < row.length; i++) {
+      final diff = (row[i].order.order - targetOrder).abs();
+      if (diff < nearestDiff) {
+        nearestDiff = diff;
+        nearestIdx = i;
+      }
+    }
+    return nearestIdx;
+  }
+
   const TVFocusWidget({
     super.key,
     required this.focusOrder,
@@ -247,21 +305,53 @@ class TVFocusWidget extends StatelessWidget {
     if (yOffset != 0) {
       // Vertical movement: find nearest row
       newY = _findNearestRow(grid, y, focusOrder.row, yOffset);
-      // First, try to find an explicit entry point in the new row
-      final entryPointIndex = _findRowEntryPoint(grid[newY]);
-      if (entryPointIndex != -1) {
-        // Entry point found, use it
-        newX = entryPointIndex;
-      } else {
-        // No entry point: preserve current column position (order)
-        // Try to find the same order value in the new row
-        final sameOrderIndex = grid[newY]
-            .indexWhere((node) => node.order.order == focusOrder.order);
-        if (sameOrderIndex != -1) {
-          newX = sameOrderIndex;
+
+      // Get the target row's actual row value
+      final targetRowValue = grid[newY].first.order.row;
+
+      // SAVE current position before leaving (only if focusGroup is set)
+      if (currentFocusGroup != null) {
+        _rememberOrder(currentFocusGroup, focusOrder.row, focusOrder.order);
+      }
+
+      // Determine where to land in the new row
+      if (currentFocusGroup != null) {
+        // focusGroup is set - check for remembered position first
+        final rememberedOrder = _recallOrder(currentFocusGroup, targetRowValue);
+        if (rememberedOrder != null) {
+          // Try to find item with remembered order
+          final rememberedIndex = grid[newY].indexWhere(
+            (node) => node.order.order == rememberedOrder,
+          );
+          if (rememberedIndex != -1) {
+            // Found the remembered item
+            newX = rememberedIndex;
+          } else {
+            // Remembered order no longer exists, find nearest order
+            newX = _findNearestOrderIndex(grid[newY], rememberedOrder);
+          }
         } else {
-          // Same order not found, clamp to available range
-          newX = x.clamp(0, grid[newY].length - 1);
+          // No memory for this row - use entry point or first item
+          final entryPointIndex = _findRowEntryPoint(grid[newY]);
+          newX = entryPointIndex != -1 ? entryPointIndex : 0;
+        }
+      } else {
+        // No focusGroup - use original behavior (entry point or preserve position)
+        final entryPointIndex = _findRowEntryPoint(grid[newY]);
+        if (entryPointIndex != -1) {
+          // Entry point found, use it
+          newX = entryPointIndex;
+        } else {
+          // No entry point: preserve current column position (order)
+          // Try to find the same order value in the new row
+          final sameOrderIndex = grid[newY]
+              .indexWhere((node) => node.order.order == focusOrder.order);
+          if (sameOrderIndex != -1) {
+            newX = sameOrderIndex;
+          } else {
+            // Same order not found, clamp to available range
+            newX = x.clamp(0, grid[newY].length - 1);
+          }
         }
       }
     } else {
