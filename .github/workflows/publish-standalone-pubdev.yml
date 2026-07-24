@@ -1,0 +1,138 @@
+# Publishes a standalone package to pub.dev when its version tag is pushed.
+# Tags are created by release-standalone-package.yml:
+#   <package>-vX.Y.Z  (e.g. ensemble_date-v1.6.3)
+
+name: Publish Standalone Package to pub.dev
+
+on:
+  push:
+    tags:
+      - "ensemble_date-v*"
+      - "parsejs_null_safety-v*"
+      - "ensemble_ts_interpreter-v*"
+      - "ensemble_device_preview-v*"
+      - "ensemble_test_runner-v*"
+      - "ensemble_icons-v*"
+      - "ensemble_otp-v*"
+      - "ensemble_dropdown-v*"
+      - "ensemble_table_calendar-v*"
+      - "ensemble_app_badger-v*"
+      - "ensemble_walletconnect-v*"
+      - "flutter_share_receiver-v*"
+      - "js_widget-v*"
+
+concurrency:
+  group: pubdev-standalone-${{ github.ref_name }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish:
+    name: Publish ${{ github.ref_name }}
+    runs-on: ubuntu-latest
+    if: "!contains(github.ref_name, '-beta')"
+
+    steps:
+      - name: Resolve package from tag
+        id: resolve
+        run: |
+          set -euo pipefail
+
+          tag="${{ github.ref_name }}"
+
+          if [[ ! "$tag" =~ ^([a-z0-9_]+)-v([0-9]+\.[0-9]+\.[0-9]+)$ ]]; then
+            echo "::error::Expected a stable package tag like ensemble_date-v1.6.3 (got: $tag)"
+            exit 1
+          fi
+
+          package="${BASH_REMATCH[1]}"
+          version="${BASH_REMATCH[2]}"
+
+          case "$package" in
+            ensemble_date) path="packages/ensemble_date" ;;
+            parsejs_null_safety) path="packages/parsejs_null_safety" ;;
+            ensemble_ts_interpreter) path="packages/ensemble_ts_interpreter" ;;
+            ensemble_device_preview) path="packages/ensemble_device_preview" ;;
+            ensemble_test_runner) path="tools/ensemble_test_runner" ;;
+            ensemble_icons) path="packages/ensemble_icons" ;;
+            ensemble_otp) path="packages/ensemble_otp" ;;
+            ensemble_dropdown) path="packages/ensemble_dropdown" ;;
+            ensemble_table_calendar) path="packages/ensemble_table_calendar" ;;
+            ensemble_app_badger) path="packages/ensemble_app_badger" ;;
+            ensemble_walletconnect) path="packages/ensemble_walletconnect" ;;
+            flutter_share_receiver) path="packages/flutter_share_receiver" ;;
+            js_widget) path="packages/js_widget" ;;
+            *)
+              echo "::error::Tag $tag is not in the standalone publish allowlist."
+              exit 1
+              ;;
+          esac
+
+          echo "package=$package" >> "$GITHUB_OUTPUT"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "path=$path" >> "$GITHUB_OUTPUT"
+          echo "Publishing $package@$version from $path"
+
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+
+      - name: Setup Flutter SDK
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.32.5"
+          cache: true
+
+      - name: Setup pub.dev credentials
+        uses: dart-lang/setup-dart@v1
+
+      - name: Validate pubspec version matches tag
+        working-directory: ${{ steps.resolve.outputs.path }}
+        run: |
+          set -euo pipefail
+
+          pubspec_version="$(python3 - <<'PY'
+          from pathlib import Path
+          import re
+          text = Path("pubspec.yaml").read_text()
+          match = re.search(r"^version:\s*([^\s#+]+)", text, re.M)
+          if not match:
+              raise SystemExit("Could not read version from pubspec.yaml")
+          print(match.group(1))
+          PY
+          )"
+
+          if [ "$pubspec_version" != "${{ steps.resolve.outputs.version }}" ]; then
+            echo "::error::pubspec version ($pubspec_version) does not match tag version (${{ steps.resolve.outputs.version }})"
+            exit 1
+          fi
+
+      - name: Prepare package for pub.dev
+        working-directory: ${{ steps.resolve.outputs.path }}
+        run: |
+          set -euo pipefail
+          rm -f pubspec_overrides.yaml pubspec.lock
+
+      - name: Resolve dependencies
+        working-directory: ${{ steps.resolve.outputs.path }}
+        run: |
+          set -euo pipefail
+
+          for attempt in {1..60}; do
+            if flutter pub get; then
+              exit 0
+            fi
+
+            echo "Waiting for dependencies of ${{ steps.resolve.outputs.package }} to resolve from pub.dev..."
+            sleep 10
+          done
+
+          flutter pub get
+
+      - name: Publish ${{ steps.resolve.outputs.package }} to pub.dev
+        working-directory: ${{ steps.resolve.outputs.path }}
+        run: flutter pub publish --force

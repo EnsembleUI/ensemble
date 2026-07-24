@@ -1,0 +1,152 @@
+# Versions and tags a single standalone package (packages/* or tools/*).
+# Publishing is handled by publish-standalone-pubdev.yml on the resulting tag.
+#
+#   melos version --scope=<package> --manual-version <package>:<version> --yes
+#   git push origin main && git push origin <package>-v<version>
+
+name: Release Standalone Package
+
+on:
+  workflow_dispatch:
+    inputs:
+      package:
+        description: Package to version and tag
+        required: true
+        type: choice
+        options:
+          - ensemble_date
+          - parsejs_null_safety
+          - ensemble_ts_interpreter
+          - ensemble_device_preview
+          - ensemble_test_runner
+          - ensemble_icons
+          - ensemble_otp
+          - ensemble_dropdown
+          - ensemble_table_calendar
+          - ensemble_app_badger
+          - ensemble_walletconnect
+          - flutter_share_receiver
+          - js_widget
+      bump:
+        description: Semver bump to apply to the current package version
+        required: true
+        type: choice
+        default: patch
+        options:
+          - patch
+          - minor
+          - major
+
+concurrency:
+  group: standalone-release-${{ github.repository }}-${{ inputs.package }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  version-and-push:
+    name: Version ${{ inputs.package }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+          token: ${{ secrets.RELEASE_TOKEN }}
+
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Setup Flutter SDK
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.32.5"
+          cache: true
+
+      - name: Install Melos
+        run: dart pub global activate melos
+
+      - name: Bootstrap
+        run: melos bootstrap
+
+      - name: Resolve package path and version
+        id: resolve
+        env:
+          PACKAGE: ${{ inputs.package }}
+          BUMP: ${{ inputs.bump }}
+        run: |
+          set -euo pipefail
+
+          case "$PACKAGE" in
+            ensemble_date) path="packages/ensemble_date" ;;
+            parsejs_null_safety) path="packages/parsejs_null_safety" ;;
+            ensemble_ts_interpreter) path="packages/ensemble_ts_interpreter" ;;
+            ensemble_device_preview) path="packages/ensemble_device_preview" ;;
+            ensemble_test_runner) path="tools/ensemble_test_runner" ;;
+            ensemble_icons) path="packages/ensemble_icons" ;;
+            ensemble_otp) path="packages/ensemble_otp" ;;
+            ensemble_dropdown) path="packages/ensemble_dropdown" ;;
+            ensemble_table_calendar) path="packages/ensemble_table_calendar" ;;
+            ensemble_app_badger) path="packages/ensemble_app_badger" ;;
+            ensemble_walletconnect) path="packages/ensemble_walletconnect" ;;
+            flutter_share_receiver) path="packages/flutter_share_receiver" ;;
+            js_widget) path="packages/js_widget" ;;
+            *)
+              echo "::error::Unknown package: $PACKAGE"
+              exit 1
+              ;;
+          esac
+
+          current="$(python3 - <<PY
+          from pathlib import Path
+          import re
+          text = Path("${path}/pubspec.yaml").read_text()
+          match = re.search(r"^version:\s*([^\s#+]+)", text, re.M)
+          if not match:
+              raise SystemExit("Could not read version from ${path}/pubspec.yaml")
+          print(match.group(1))
+          PY
+          )"
+
+          IFS=. read -r major minor patch <<<"$current"
+          case "$BUMP" in
+            major) version="$((major + 1)).0.0" ;;
+            minor) version="${major}.$((minor + 1)).0" ;;
+            patch) version="${major}.${minor}.$((patch + 1))" ;;
+            *)
+              echo "::error::Unknown bump: $BUMP"
+              exit 1
+              ;;
+          esac
+
+          tag="${PACKAGE}-v${version}"
+          if git rev-parse -q --verify "refs/tags/${tag}" >/dev/null; then
+            echo "::error::Tag ${tag} already exists."
+            exit 1
+          fi
+
+          echo "package=$PACKAGE" >> "$GITHUB_OUTPUT"
+          echo "path=$path" >> "$GITHUB_OUTPUT"
+          echo "current=$current" >> "$GITHUB_OUTPUT"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "Resolved $PACKAGE: $current -> $version (tag $tag)"
+
+      - name: Version package
+        run: |
+          melos version \
+            --scope=${{ steps.resolve.outputs.package }} \
+            --manual-version ${{ steps.resolve.outputs.package }}:${{ steps.resolve.outputs.version }} \
+            --no-dependent-versions \
+            --yes
+
+      - name: Push branch and tag
+        run: |
+          set -euo pipefail
+
+          git push origin main
+          git push origin "${{ steps.resolve.outputs.tag }}"
