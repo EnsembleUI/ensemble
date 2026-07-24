@@ -258,6 +258,57 @@ steps:
       expect((mocks['scenarioApi']!.body as Map)['from'], 'scenario-layer');
     });
 
+    test('resolves mocks directory from suite root for nested test files',
+        () async {
+      const yaml = '''
+id: nested_mock_test
+startScreen: Home
+mocks:
+  - mocks/common/common.mock.json
+  - mocks/extender-positioning/weak.mock.json
+steps:
+  - expectVisible:
+      id: home
+''';
+      final assets = {
+        'suite/tests/mocks/common/common.mock.json': '''
+{
+  "getDevices": {
+    "body": {"count": 1}
+  }
+}
+''',
+        'suite/tests/mocks/extender-positioning/base.mock.json': '''
+{
+  "getSignal": {
+    "body": {"signal": "good"}
+  }
+}
+''',
+        'suite/tests/mocks/extender-positioning/weak.mock.json': '''
+{
+  "\$extends": "mocks/extender-positioning/base.mock.json",
+  "getSignal": {
+    "\$merge": {
+      "body.signal": "weak"
+    }
+  }
+}
+''',
+      };
+
+      final definitions =
+          await EnsembleTestExecutionPlanner.parseDefinitionsForTest(
+        'suite/tests/extender-positioning/extender-too-far.test.yaml',
+        yaml,
+        assetLoader: (path) async => assets[path]!,
+      );
+
+      final mocks = definitions.single.testCase.mocks.apis;
+      expect((mocks['getDevices']!.body as Map)['count'], 1);
+      expect((mocks['getSignal']!.body as Map)['signal'], 'weak');
+    });
+
     test('applies suite mocks before test mocks', () async {
       const yaml = '''
 id: home_suite_mocks

@@ -676,12 +676,12 @@ class EnsembleTestExecutionPlanner {
         testAssetPath: fromAssetPath,
         mockFilePath: mockFilePath,
         assetLoader: assetLoader,
-        resolveAssetPath: _resolveAssetPath,
+        resolveAssetPath: _resolveMockAssetPath,
       );
       MockComposition.mergeApiMaps(
         into,
         resolved,
-        sourceLabel: _resolveAssetPath(fromAssetPath, mockFilePath),
+        sourceLabel: _resolveMockAssetPath(fromAssetPath, mockFilePath),
       );
     } on FlutterError {
       throw EnsembleTestFailure(
@@ -708,7 +708,7 @@ class EnsembleTestExecutionPlanner {
         sourceLabel: sourceLabel,
         testAssetPath: fromAssetPath,
         assetLoader: assetLoader,
-        resolveAssetPath: _resolveAssetPath,
+        resolveAssetPath: _resolveMockAssetPath,
       );
       MockComposition.mergeApiMaps(
         into,
@@ -725,8 +725,8 @@ class EnsembleTestExecutionPlanner {
           'Mock for API "${entry.key}" in "$sourceLabel" must be a map',
         );
       }
-      incoming[entry.key.toString()] = MockComposition.deepCopy(entry.value)
-          as Map<String, dynamic>;
+      incoming[entry.key.toString()] =
+          MockComposition.deepCopy(entry.value) as Map<String, dynamic>;
     }
     MockComposition.mergeApiMaps(
       into,
@@ -751,6 +751,41 @@ class EnsembleTestExecutionPlanner {
       }
     }
     return segments.join('/');
+  }
+
+  static String _resolveMockAssetPath(
+    String fromAssetPath,
+    String relativePath,
+  ) {
+    if (relativePath.startsWith('/')) return relativePath.substring(1);
+    final normalized = _normalizeRelativePath(relativePath);
+    if (normalized.startsWith('mocks/')) {
+      final testsRoot = _testsRootForAsset(fromAssetPath);
+      if (testsRoot != null) {
+        return _resolveAssetPath('$testsRoot/config.yaml', normalized);
+      }
+    }
+    return _resolveAssetPath(fromAssetPath, relativePath);
+  }
+
+  static String _normalizeRelativePath(String path) {
+    final segments = <String>[];
+    for (final part in path.split('/')) {
+      if (part.isEmpty || part == '.') continue;
+      if (part == '..') {
+        if (segments.isNotEmpty) segments.removeLast();
+      } else {
+        segments.add(part);
+      }
+    }
+    return segments.join('/');
+  }
+
+  static String? _testsRootForAsset(String assetPath) {
+    const marker = '/tests/';
+    final markerIndex = assetPath.indexOf(marker);
+    if (markerIndex == -1) return null;
+    return assetPath.substring(0, markerIndex + marker.length - 1);
   }
 
   static Map<String, EnsembleTestDefinition> _applySelection(
