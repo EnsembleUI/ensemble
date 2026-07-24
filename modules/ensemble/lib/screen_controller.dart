@@ -14,6 +14,7 @@ import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/devmode.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/event.dart';
+import 'package:ensemble/framework/global_script_handler_security.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/stub/camera_manager.dart';
 import 'package:ensemble/framework/stub/face_camera_manager.dart';
@@ -111,7 +112,8 @@ class ScreenController {
 
       final library = data[0];
       final function = data[1];
-      final codeBlock = "$function($inputs)";
+      final safeInputs = toSafeJavaScriptCallArgument(inputs);
+      final codeBlock = "$function($safeInputs)";
       payload = executeGlobalFunction(
           Utils.globalAppKey.currentContext!, library, codeBlock);
       return payload;
