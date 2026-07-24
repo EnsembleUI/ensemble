@@ -642,6 +642,7 @@ class TVFocusScope extends FocusScope {
 
   const TVFocusScope({
     super.key,
+    super.node,
     required this.lockScope,
     required super.child,
     super.debugLabel,

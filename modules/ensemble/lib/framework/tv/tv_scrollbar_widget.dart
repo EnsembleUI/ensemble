@@ -35,6 +35,10 @@ class TVScrollbarWidget extends StatefulWidget {
     super.key,
     required this.scrollController,
     required this.options,
+    this.focusNode,
+    this.autofocus = false,
+    this.disableHorizontalNavigation = false,
+    this.restorePreviousFocusOnTop = false,
   });
 
   /// ScrollController from the scrollable content (ListView/Column)
@@ -42,6 +46,21 @@ class TVScrollbarWidget extends StatefulWidget {
 
   /// Scrollbar styling options from YAML
   final TVScrollbarOptionsComposite options;
+
+  /// Optional owner-supplied focus node. This lets ListView make a scrollbar
+  /// the fallback target when its content has no TV-focusable children.
+  final FocusNode? focusNode;
+
+  /// Requests focus once the scrollbar is visible and scrollable.
+  final bool autofocus;
+
+  /// Keeps horizontal navigation on the scrollbar when it is the ListView's
+  /// only TV-focusable target.
+  final bool disableHorizontalNavigation;
+
+  /// Restores the exact focus target that entered this scrollbar when UP is
+  /// pressed at the top. Used only for a ListView fallback scrollbar.
+  final bool restorePreviousFocusOnTop;
 
   @override
   State<TVScrollbarWidget> createState() => _TVScrollbarWidgetState();
@@ -54,11 +73,18 @@ class _TVScrollbarWidgetState extends State<TVScrollbarWidget> {
   double _thumbHeight = 0.0;
   bool _isScrollable = false;
   bool _isInitialized = false;
+  bool _didAutofocus = false;
+  late final bool _ownsFocusNode;
+  FocusNode? _lastPrimaryFocus;
+  FocusNode? _focusBeforeScrollbar;
 
   @override
   void initState() {
     super.initState();
-    _focusNode = FocusNode(debugLabel: 'TVScrollbar');
+    _ownsFocusNode = widget.focusNode == null;
+    _focusNode = widget.focusNode ?? FocusNode(debugLabel: 'TVScrollbar');
+    _lastPrimaryFocus = FocusManager.instance.primaryFocus;
+    FocusManager.instance.addListener(_trackFocusOrigin);
     widget.scrollController.addListener(_onScrollChange);
 
     // Initialize thumb position once controller is ready
@@ -88,10 +114,46 @@ class _TVScrollbarWidgetState extends State<TVScrollbarWidget> {
   }
 
   @override
+  void didUpdateWidget(TVScrollbarWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!oldWidget.autofocus && widget.autofocus) {
+      _requestAutofocusIfPossible();
+    }
+  }
+
+  @override
   void dispose() {
+    FocusManager.instance.removeListener(_trackFocusOrigin);
     widget.scrollController.removeListener(_onScrollChange);
-    _focusNode.dispose();
+    if (_ownsFocusNode) {
+      _focusNode.dispose();
+    }
     super.dispose();
+  }
+
+  void _trackFocusOrigin() {
+    final primaryFocus = FocusManager.instance.primaryFocus;
+    if (primaryFocus == _focusNode) {
+      final previousFocus = _lastPrimaryFocus;
+      if (previousFocus != null &&
+          previousFocus != _focusNode &&
+          previousFocus.context != null &&
+          previousFocus.canRequestFocus) {
+        _focusBeforeScrollbar = previousFocus;
+      }
+    }
+    _lastPrimaryFocus = primaryFocus;
+  }
+
+  bool _restorePreviousFocus() {
+    final previousFocus = _focusBeforeScrollbar;
+    if (previousFocus == null ||
+        previousFocus.context == null ||
+        !previousFocus.canRequestFocus) {
+      return false;
+    }
+    previousFocus.requestFocus();
+    return true;
   }
 
   void _onScrollChange() {
@@ -133,10 +195,23 @@ class _TVScrollbarWidgetState extends State<TVScrollbarWidget> {
         ? scrollOffset / (contentHeight - viewportHeight)
         : 0.0;
     _thumbOffset = (maxThumbOffset * scrollRatio).clamp(0.0, maxThumbOffset);
+    _requestAutofocusIfPossible();
   }
 
-  void _scrollDown() {
-    if (!widget.scrollController.hasClients) return;
+  void _requestAutofocusIfPossible() {
+    if (!widget.autofocus || !_isScrollable || _didAutofocus || !mounted) {
+      return;
+    }
+    _didAutofocus = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && _isScrollable) {
+        _focusNode.requestFocus();
+      }
+    });
+  }
+
+  bool _scrollDown() {
+    if (!widget.scrollController.hasClients) return false;
 
     final position = widget.scrollController.position;
     final viewportHeight = position.viewportDimension;
@@ -146,16 +221,18 @@ class _TVScrollbarWidgetState extends State<TVScrollbarWidget> {
       position.minScrollExtent,
       position.maxScrollExtent,
     );
+    if (newOffset == position.pixels) return false;
 
     widget.scrollController.animateTo(
       newOffset,
       duration: const Duration(milliseconds: 200),
       curve: Curves.easeOut,
     );
+    return true;
   }
 
-  void _scrollUp() {
-    if (!widget.scrollController.hasClients) return;
+  bool _scrollUp() {
+    if (!widget.scrollController.hasClients) return false;
 
     final position = widget.scrollController.position;
     final viewportHeight = position.viewportDimension;
@@ -165,12 +242,14 @@ class _TVScrollbarWidgetState extends State<TVScrollbarWidget> {
       position.minScrollExtent,
       position.maxScrollExtent,
     );
+    if (newOffset == position.pixels) return false;
 
     widget.scrollController.animateTo(
       newOffset,
       duration: const Duration(milliseconds: 200),
       curve: Curves.easeOut,
     );
+    return true;
   }
 
   @override
@@ -190,15 +269,26 @@ class _TVScrollbarWidgetState extends State<TVScrollbarWidget> {
         return Focus(
           onKeyEvent: (node, event) {
             // Only handle when we have focus
-            if (!_isFocused || event is! KeyDownEvent) return KeyEventResult.ignored;
+            if (!_isFocused || event is! KeyDownEvent)
+              return KeyEventResult.ignored;
+
+            if (widget.disableHorizontalNavigation &&
+                (event.logicalKey == LogicalKeyboardKey.arrowLeft ||
+                    event.logicalKey == LogicalKeyboardKey.arrowRight)) {
+              return KeyEventResult.handled;
+            }
 
             // Handle UP/DOWN for manual scrolling
             if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
-              _scrollDown();
-              return KeyEventResult.handled;
+              return _scrollDown()
+                  ? KeyEventResult.handled
+                  : KeyEventResult.ignored;
             } else if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
-              _scrollUp();
-              return KeyEventResult.handled;
+              if (_scrollUp()) return KeyEventResult.handled;
+              if (widget.restorePreviousFocusOnTop && _restorePreviousFocus()) {
+                return KeyEventResult.handled;
+              }
+              return KeyEventResult.ignored;
             }
 
             // Handle LEFT/RIGHT to return focus to content based on scrollbar position
@@ -208,7 +298,7 @@ class _TVScrollbarWidgetState extends State<TVScrollbarWidget> {
                 event.logicalKey == LogicalKeyboardKey.arrowLeft) {
               return KeyEventResult.ignored; // Let focus system handle it
             } else if (widget.options.position == 'left' &&
-                       event.logicalKey == LogicalKeyboardKey.arrowRight) {
+                event.logicalKey == LogicalKeyboardKey.arrowRight) {
               return KeyEventResult.ignored; // Let focus system handle it
             }
 
@@ -216,7 +306,9 @@ class _TVScrollbarWidgetState extends State<TVScrollbarWidget> {
           },
           child: InkWell(
             focusNode: _focusNode,
-            autofocus: widget.options.autofocus,
+            // Focus is requested after the scrollbar has established that the
+            // content overflows. An invisible scrollbar must not own focus.
+            autofocus: false,
             onTap: () {},
             onFocusChange: (hasFocus) {
               if (mounted) {
@@ -227,7 +319,9 @@ class _TVScrollbarWidgetState extends State<TVScrollbarWidget> {
             },
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 150),
-              width: _isFocused ? widget.options.focusedWidth : widget.options.width,
+              width: _isFocused
+                  ? widget.options.focusedWidth
+                  : widget.options.width,
               height: trackHeight,
               decoration: BoxDecoration(
                 color: Colors.transparent,
@@ -241,11 +335,16 @@ class _TVScrollbarWidgetState extends State<TVScrollbarWidget> {
                     top: _thumbOffset,
                     child: AnimatedContainer(
                       duration: const Duration(milliseconds: 150),
-                      width: _isFocused ? widget.options.focusedWidth : widget.options.width,
+                      width: _isFocused
+                          ? widget.options.focusedWidth
+                          : widget.options.width,
                       height: _thumbHeight,
                       decoration: BoxDecoration(
-                        color: _isFocused ? widget.options.focusedColor : widget.options.color,
-                        borderRadius: BorderRadius.circular(widget.options.radius),
+                        color: _isFocused
+                            ? widget.options.focusedColor
+                            : widget.options.color,
+                        borderRadius:
+                            BorderRadius.circular(widget.options.radius),
                       ),
                     ),
                   ),
