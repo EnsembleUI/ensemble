@@ -5,8 +5,10 @@ import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/studio/studio_debugger.dart';
+import 'package:ensemble/framework/tv/tv_focus_widget.dart';
 import 'package:ensemble/framework/tv/tv_scrollbar_widget.dart';
 import 'package:ensemble/framework/tv/tv_focus_order.dart';
+import 'package:ensemble/framework/tv/tv_tab_focus_context.dart';
 import 'package:ensemble/framework/view/data_scope_widget.dart';
 import 'package:ensemble/framework/view/footer.dart';
 import 'package:ensemble/framework/widget/has_children.dart';
@@ -509,6 +511,7 @@ class _TVListViewWithScrollbarState extends State<_TVListViewWithScrollbar> {
   late final flutter.FocusNode _scrollbarFocusNode;
   bool _hasFocusableContent = true;
   bool _hasInspectedContent = false;
+  TVFocusOrder? _fallbackFocusOrder;
 
   @override
   void initState() {
@@ -544,6 +547,26 @@ class _TVListViewWithScrollbarState extends State<_TVListViewWithScrollbar> {
     }
   }
 
+  void _setFallbackFocusOrigin(flutter.FocusNode focusNode) {
+    final traversalOrder = focusNode.context
+        ?.findAncestorWidgetOfExactType<flutter.FocusTraversalOrder>();
+    final originOrder = traversalOrder?.order;
+    if (originOrder is! TVFocusOrder) return;
+
+    final fallbackOrder = TVFocusOrder.withOptions(
+      originOrder.row + 1,
+      order: originOrder.order,
+      isRowEntryPoint: true,
+      lockHorizontalNavigation: true,
+      focusGroup: originOrder.focusGroup,
+    );
+    if (_fallbackFocusOrder?.value == fallbackOrder.value &&
+        _fallbackFocusOrder?.focusGroup == fallbackOrder.focusGroup) {
+      return;
+    }
+    setState(() => _fallbackFocusOrder = fallbackOrder);
+  }
+
   @override
   Widget build(BuildContext context) {
     // Templated ListViews can add and remove focusable items after their first
@@ -555,14 +578,41 @@ class _TVListViewWithScrollbarState extends State<_TVListViewWithScrollbar> {
     final isLeftPosition = widget.options.position == 'left';
     final useScrollbarAsFallback =
         _hasInspectedContent && !_hasFocusableContent;
-    final scrollbarWidget = TVScrollbarWidget(
+    final tabFocusContext = TVTabFocusContext.maybeOf(context);
+    final fallbackFocusOrder = tabFocusContext == null
+        ? _fallbackFocusOrder
+        : TVFocusOrder.withOptions(
+            tabFocusContext.tabRow + 1,
+            order: tabFocusContext.selectedTabOrder,
+            isRowEntryPoint: true,
+            lockHorizontalNavigation: true,
+          );
+    Widget scrollbarWidget = TVScrollbarWidget(
       scrollController: widget.scrollController,
       options: widget.options,
       focusNode: _scrollbarFocusNode,
       autofocus: widget.options.autofocus || useScrollbarAsFallback,
       disableHorizontalNavigation: useScrollbarAsFallback,
-      restorePreviousFocusOnTop: useScrollbarAsFallback,
+      restorePreviousFocusOnTop:
+          useScrollbarAsFallback && tabFocusContext == null,
+      onFocusOrigin:
+          useScrollbarAsFallback && tabFocusContext == null
+              ? _setFallbackFocusOrigin
+              : null,
+      onTopBoundary: useScrollbarAsFallback && tabFocusContext != null
+          ? () => TVFocusOrder.withOptions(
+                tabFocusContext.tabRow,
+                order: tabFocusContext.selectedTabOrder,
+              ).requestFocus(context)
+          : null,
     );
+    if (useScrollbarAsFallback && fallbackFocusOrder != null) {
+      scrollbarWidget = TVFocusWidget(
+        focusOrder: fallbackFocusOrder,
+        primaryFocusNode: _scrollbarFocusNode,
+        child: scrollbarWidget,
+      );
+    }
 
     void requestScrollbarFocus() {
       _scrollbarFocusNode.requestFocus();
@@ -576,22 +626,23 @@ class _TVListViewWithScrollbarState extends State<_TVListViewWithScrollbar> {
       child: widget.child,
     );
 
+    final scrollbarSlot = useScrollbarAsFallback
+        ? scrollbarWidget
+        : flutter.FocusTraversalGroup(
+            policy: flutter.WidgetOrderTraversalPolicy(),
+            child: scrollbarWidget,
+          );
+
     return flutter.Row(
       crossAxisAlignment: flutter.CrossAxisAlignment.stretch,
       children: isLeftPosition
           ? [
-              flutter.FocusTraversalGroup(
-                policy: flutter.WidgetOrderTraversalPolicy(),
-                child: scrollbarWidget,
-              ),
+              scrollbarSlot,
               flutter.Expanded(child: scopedContent),
             ]
           : [
               flutter.Expanded(child: scopedContent),
-              flutter.FocusTraversalGroup(
-                policy: flutter.WidgetOrderTraversalPolicy(),
-                child: scrollbarWidget,
-              ),
+              scrollbarSlot,
             ],
     );
   }

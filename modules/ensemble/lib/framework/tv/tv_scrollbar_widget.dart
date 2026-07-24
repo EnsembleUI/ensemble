@@ -39,6 +39,8 @@ class TVScrollbarWidget extends StatefulWidget {
     this.autofocus = false,
     this.disableHorizontalNavigation = false,
     this.restorePreviousFocusOnTop = false,
+    this.onFocusOrigin,
+    this.onTopBoundary,
   });
 
   /// ScrollController from the scrollable content (ListView/Column)
@@ -61,6 +63,13 @@ class TVScrollbarWidget extends StatefulWidget {
   /// Restores the exact focus target that entered this scrollbar when UP is
   /// pressed at the top. Used only for a ListView fallback scrollbar.
   final bool restorePreviousFocusOnTop;
+
+  /// Reports the focus node that entered this scrollbar.
+  final ValueChanged<FocusNode>? onFocusOrigin;
+
+  /// Called instead of the generic focus-origin restoration when UP is pressed
+  /// at the top boundary.
+  final VoidCallback? onTopBoundary;
 
   @override
   State<TVScrollbarWidget> createState() => _TVScrollbarWidgetState();
@@ -140,6 +149,11 @@ class _TVScrollbarWidgetState extends State<TVScrollbarWidget> {
           previousFocus.context != null &&
           previousFocus.canRequestFocus) {
         _focusBeforeScrollbar = previousFocus;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted && _focusBeforeScrollbar == previousFocus) {
+            widget.onFocusOrigin?.call(previousFocus);
+          }
+        });
       }
     }
     _lastPrimaryFocus = primaryFocus;
@@ -285,6 +299,10 @@ class _TVScrollbarWidgetState extends State<TVScrollbarWidget> {
                   : KeyEventResult.ignored;
             } else if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
               if (_scrollUp()) return KeyEventResult.handled;
+              if (widget.onTopBoundary != null) {
+                widget.onTopBoundary!();
+                return KeyEventResult.handled;
+              }
               if (widget.restorePreviousFocusOnTop && _restorePreviousFocus()) {
                 return KeyEventResult.handled;
               }

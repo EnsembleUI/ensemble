@@ -1,4 +1,6 @@
 import 'package:ensemble/action/haptic_action.dart';
+import 'package:ensemble/framework/device.dart';
+import 'package:ensemble/framework/tv/tv_tab_focus_context.dart';
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/bindings.dart';
 import 'package:ensemble/framework/scope.dart';
@@ -324,6 +326,15 @@ class TabBarState extends BaseTabBarState {
             );
       if (isExpanded) {
         tabContent = Expanded(child: tabContent);
+      }
+
+      final tabRow = widget.controller.tvOptions?.row;
+      if (Device().isTV && tabRow != null) {
+        tabContent = TVTabFocusContext(
+          tabRow: tabRow,
+          selectedTabOrder: widget._controller.selectedIndex.toDouble(),
+          child: tabContent,
+        );
       }
 
       tabWidget = Column(

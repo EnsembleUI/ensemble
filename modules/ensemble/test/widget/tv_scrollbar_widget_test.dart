@@ -11,6 +11,7 @@ void main() {
     final scrollController = ScrollController();
     final scrollbarFocusNode = FocusNode();
     final sourceFocusNode = FocusNode();
+    FocusNode? reportedFocusOrigin;
     final options = TVScrollbarOptionsComposite(
       ChangeNotifier(),
       inputs: const <String, dynamic>{},
@@ -59,6 +60,9 @@ void main() {
                     focusNode: scrollbarFocusNode,
                     disableHorizontalNavigation: true,
                     restorePreviousFocusOnTop: true,
+                    onFocusOrigin: (focusNode) {
+                      reportedFocusOrigin = focusNode;
+                    },
                   ),
                 ),
               ],
@@ -76,7 +80,9 @@ void main() {
 
     scrollbarFocusNode.requestFocus();
     await tester.pump();
+    await tester.pump();
     expect(scrollbarFocusNode.hasFocus, isTrue);
+    expect(reportedFocusOrigin, same(sourceFocusNode));
 
     await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
     expect(horizontalEventsAtParent, 0);
