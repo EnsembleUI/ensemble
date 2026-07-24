@@ -11,18 +11,24 @@ import 'package:ensemble/util/utils.dart';
 import 'package:ensemble_ts_interpreter/invokables/invokable.dart';
 import 'package:flutter/material.dart';
 
-/// TabBar navigation only
+// =============================================================================
+// TabBar Widgets - Navigation Tabs with Content Areas
+// =============================================================================
+
+/// TabBar navigation only (no body content). Use when tabs control external content.
 class TabBarOnly extends BaseTabBar {
   static const type = 'TabBarOnly';
   TabBarOnly({super.key});
 }
 
-/// full TabBar container
+/// Full TabBar with body content. Each tab has associated bodyWidget.
 class TabBarContainer extends BaseTabBar {
   static const type = 'TabBar';
   TabBarContainer({super.key});
 }
 
+/// Abstract base for TabBar widgets. Defines YAML setters and invokable methods.
+/// State logic is in [TabBarState], rendering is in [BaseTabBarState].
 abstract class BaseTabBar extends StatefulWidget
     with Invokable, HasController<TabBarController, TabBarState> {
   BaseTabBar({Key? key}) : super(key: key);
@@ -66,6 +72,8 @@ abstract class BaseTabBar extends StatefulWidget
       'margin': (margin) => _controller.margin = Utils.optionalInsets(margin),
       'tabPadding': (padding) =>
           _controller.tabPadding = Utils.optionalInsets(padding),
+      'tabBarPadding': (padding) =>
+          _controller.tabBarPadding = Utils.optionalInsets(padding),
       'tabFontSize': (fontSize) =>
           _controller.tabFontSize = Utils.optionalInt(fontSize),
       'tabFontWeight': (fontWeight) =>
@@ -98,8 +106,10 @@ abstract class BaseTabBar extends StatefulWidget
   }
 }
 
+/// State for TabBar widgets. Manages tab controller lifecycle, conditional tabs,
+/// and tab content building (single or indexed mode).
 class TabBarState extends BaseTabBarState {
-  // Cache for indexed tab building mode
+  /// Cache for indexed tab building mode (useIndexedTab: true)
   late List<Widget?> _cache;
 
   @override
@@ -320,16 +330,9 @@ class TabBarState extends BaseTabBarState {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           buildTabBar(),
-          // builder gives us dynamic height control vs TabBarView, but
-          // is sub-optimal since it recreates the tab content on each pass.
-          // This means onLoad API may be called multiple times in debug mode
+          // Builder gives dynamic height vs TabBarView, but recreates content each pass.
+          // onLoad may fire multiple times in debug mode.
           tabContent,
-
-          // This cause Expanded child to fail
-          // Padding(
-          //     padding: const EdgeInsets.only(left: 0),
-          //     child: Builder(builder: (BuildContext context) => buildSelectedTab())
-          // )
         ],
       );
       // if Expanded is set, stretch our column to left-over height

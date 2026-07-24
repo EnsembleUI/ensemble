@@ -1,9 +1,12 @@
 import 'package:ensemble/action/haptic_action.dart';
 import 'package:ensemble/framework/action.dart';
+import 'package:ensemble/framework/device.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/studio/studio_debugger.dart';
+import 'package:ensemble/framework/tv/tv_scrollbar_widget.dart';
+import 'package:ensemble/framework/tv/tv_focus_order.dart';
 import 'package:ensemble/framework/view/data_scope_widget.dart';
 import 'package:ensemble/framework/view/footer.dart';
 import 'package:ensemble/framework/widget/has_children.dart';
@@ -399,6 +402,62 @@ class ListViewState extends EWidgetState<ListView>
     if (pullToRefresh != null) {
       listView = PullToRefreshContainer(
           options: pullToRefresh!, contentWidget: listView);
+    }
+
+    // TV: Add focusable scrollbar if configured
+    if (Device().isTV && widget._controller.tvOptions?.scrollbarOptions != null) {
+      final scrollbarOptions = widget._controller.tvOptions!.scrollbarOptions!;
+      final scrollController = widget._controller.scrollController;
+
+      if (scrollController != null) {
+        // Store scrollbar widget with key to access later
+        final scrollbarKey = flutter.GlobalKey<flutter.State<TVScrollbarWidget>>();
+        final scrollbarWidget = TVScrollbarWidget(
+          key: scrollbarKey,
+          scrollController: scrollController,
+          options: scrollbarOptions,
+        );
+
+        // Callback to request focus on scrollbar
+        void requestScrollbarFocus() {
+          final scrollbarState = scrollbarKey.currentState;
+          if (scrollbarState != null) {
+            (scrollbarState as dynamic).requestFocusOnScrollbar();
+          }
+        }
+
+        // Determine scrollbar position and which edge handler to use
+        final isLeftPosition = scrollbarOptions.position == 'left';
+
+        // Wrap content with TVFocusScope that handles edge navigation
+        final scopedContent = TVFocusScope(
+          lockScope: false,
+          // Set edge handler based on scrollbar position
+          onRightEdge: isLeftPosition ? null : requestScrollbarFocus,
+          onLeftEdge: isLeftPosition ? requestScrollbarFocus : null,
+          child: listView,
+        );
+
+        // Build Row with scrollbar on correct side
+        listView = flutter.Row(
+          crossAxisAlignment: flutter.CrossAxisAlignment.stretch,
+          children: isLeftPosition
+            ? [
+                flutter.FocusTraversalGroup(
+                  policy: flutter.WidgetOrderTraversalPolicy(),
+                  child: scrollbarWidget,
+                ),
+                flutter.Expanded(child: scopedContent),
+              ]
+            : [
+                flutter.Expanded(child: scopedContent),
+                flutter.FocusTraversalGroup(
+                  policy: flutter.WidgetOrderTraversalPolicy(),
+                  child: scrollbarWidget,
+                ),
+              ],
+        );
+      }
     }
 
     return BoxWrapper(

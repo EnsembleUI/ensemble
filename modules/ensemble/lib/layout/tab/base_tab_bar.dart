@@ -1,6 +1,9 @@
+import 'package:ensemble/framework/device.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/framework/scope.dart';
+import 'package:ensemble/framework/tv/tv_focus_order.dart';
+import 'package:ensemble/framework/tv/tv_focus_widget.dart';
 import 'package:ensemble/framework/view/data_scope_widget.dart';
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/layout/tab/tab_bar_controller.dart';
@@ -8,6 +11,13 @@ import 'package:ensemble/layout/tab_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:ensemble/framework/widget/icon.dart' as ensemble;
 
+// =============================================================================
+// BaseTabBarState - Shared TabBar Logic for Mobile and TV
+// =============================================================================
+
+/// Base state for TabBar widgets. Handles tab building, styling, and navigation.
+/// On TV: Uses [_TVTabButton] with TVFocusOrder for D-pad navigation.
+/// On Mobile: Uses Flutter's standard TabBar widget.
 abstract class BaseTabBarState extends EWidgetState<BaseTabBar>
     with TickerProviderStateMixin, TabBarAction {
   late TabController tabController;
@@ -27,6 +37,12 @@ abstract class BaseTabBarState extends EWidgetState<BaseTabBar>
 
   /// build the Tab Bar navigation part
   Widget buildTabBar() {
+    // TV Navigation: Use custom focusable tab buttons instead of Flutter TabBar
+    // This follows flutter_pca's pattern where each tab is an individually focusable button
+    if (Device().isTV) {
+      return _buildTVTabBar();
+    }
+
     TextStyle? tabStyle = TextStyle(
         fontSize: widget.controller.tabFontSize?.toDouble(),
         fontWeight: widget.controller.tabFontWeight);
@@ -104,6 +120,104 @@ abstract class BaseTabBarState extends EWidgetState<BaseTabBar>
     return tabBar;
   }
 
+  /// Build TV-specific tab bar with individually focusable buttons.
+  /// Uses flutter_pca-style TVFocusOrder coordinates for navigation.
+  ///
+  /// If tvRow is set on the controller, tabs participate in the main page focus grid.
+  /// Otherwise, tabs are wrapped in their own FocusTraversalGroup.
+  Widget _buildTVTabBar() {
+    final items = widget.controller.items;
+    final activeColor = widget.controller.activeTabColor ??
+        Theme.of(context).colorScheme.primary;
+    final inactiveColor = widget.controller.inactiveTabColor ?? Colors.black87;
+    final indicatorColor = widget.controller.indicatorColor ?? activeColor;
+    final backgroundColor = widget.controller.tabBackgroundColor;
+    final indicatorThickness =
+        widget.controller.indicatorThickness?.toDouble() ?? 2;
+
+    // Get tvOptions for row
+    final tvOptions = widget.controller.tvOptions;
+    final tvRow = tvOptions?.row ?? 0.0;
+
+    // Use AnimatedBuilder to rebuild tabs when selection changes
+    // This mirrors Flutter's TabBar which listens to tabController.animation
+    Widget tabBar = AnimatedBuilder(
+      animation: tabController,
+      builder: (context, child) {
+        Widget tabRow = SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: List.generate(items.length, (index) {
+              final tabItem = items[index];
+
+              return _TVTabButton(
+                key: ValueKey('tv_tab_$index'),
+                tabItem: tabItem,
+                index: index,
+                tabRow: tvRow,
+                isSelected: tabController.index == index,
+                autofocus: index == 0, // First tab gets autofocus
+                activeColor: activeColor,
+                inactiveColor: inactiveColor,
+                indicatorColor: indicatorColor,
+                indicatorThickness: indicatorThickness,
+                tabFontSize: widget.controller.tabFontSize?.toDouble(),
+                tabFontWeight: widget.controller.tabFontWeight,
+                tabPadding: widget.controller.tabPadding,
+                onTap: () {
+                  tabController.animateTo(index);
+                  onTabChanged(index);
+                },
+              );
+            }),
+          ),
+        );
+
+        // Apply tabBarPadding to the tabs row only (not content area)
+        if (widget.controller.tabBarPadding != null) {
+          tabRow = Padding(
+            padding: widget.controller.tabBarPadding!,
+            child: tabRow,
+          );
+        }
+
+        return tabRow;
+      },
+    );
+
+    // If tvRow is 0 (default), wrap tabs in their own FocusTraversalGroup
+    if (tvOptions?.row == null) {
+      tabBar = FocusTraversalGroup(
+        policy: TVFocusOrderTraversalPolicy(),
+        child: tabBar,
+      );
+    }
+
+    if (backgroundColor != null) {
+      tabBar = ColoredBox(color: backgroundColor, child: tabBar);
+    }
+
+    if (widget.controller.borderRadius != null) {
+      final borderRadius = widget.controller.borderRadius?.getValue();
+      tabBar = Container(
+        decoration: BoxDecoration(
+          border: Border.all(
+            color: widget.controller.borderColor ?? Colors.transparent,
+            width: (widget.controller.borderWidth ?? 0.0).toDouble(),
+          ),
+          borderRadius: borderRadius ?? BorderRadius.zero,
+        ),
+        child: ClipRRect(
+            borderRadius: borderRadius ?? BorderRadius.zero,
+            child: tabBar
+        ),
+      );
+    }
+
+    return tabBar;
+  }
+
   List<Widget> _buildTabs(List<TabItem> items) {
     List<Widget> tabItems = [];
     for (final tabItem in items) {
@@ -132,4 +246,198 @@ abstract class BaseTabBarState extends EWidgetState<BaseTabBar>
 
 mixin TabBarAction on EWidgetState<BaseTabBar> {
   void changeTab(int index);
+}
+
+/// TV-specific focusable tab button using flutter_pca-style navigation.
+/// Each tab uses TVFocusOrder coordinates.
+/// If TabBar has tvRow set, tabs use that row in the main page grid.
+/// Otherwise, tabs use row 0 within an isolated FocusTraversalGroup.
+class _TVTabButton extends StatefulWidget {
+  const _TVTabButton({
+    super.key,
+    required this.tabItem,
+    required this.index,
+    required this.tabRow,
+    required this.isSelected,
+    required this.activeColor,
+    required this.inactiveColor,
+    required this.indicatorColor,
+    required this.indicatorThickness,
+    required this.onTap,
+    this.autofocus = false,
+    this.tabFontSize,
+    this.tabFontWeight,
+    this.tabPadding,
+  });
+
+  final TabItem tabItem;
+  final int index;
+  final double tabRow;
+  final bool isSelected;
+  final bool autofocus;
+  final Color activeColor;
+  final Color inactiveColor;
+  final Color indicatorColor;
+  final double indicatorThickness;
+  final VoidCallback onTap;
+  final double? tabFontSize;
+  final FontWeight? tabFontWeight;
+  final EdgeInsets? tabPadding;
+
+  @override
+  State<_TVTabButton> createState() => _TVTabButtonState();
+}
+
+class _TVTabButtonState extends State<_TVTabButton> {
+  late final FocusNode _focusNode;
+  bool _hasReceivedFocus = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _focusNode = FocusNode(debugLabel: 'TVTabButton_${widget.index}');
+    _focusNode.addListener(_onFocusChange);
+  }
+
+  @override
+  void dispose() {
+    _focusNode.removeListener(_onFocusChange);
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  void _onFocusChange() {
+    // Only scroll when focus is gained (not on initial autofocus to avoid blocking content)
+    if (_focusNode.hasFocus && _hasReceivedFocus && mounted) {
+      _scrollIntoView();
+    }
+    // Mark that we've received focus at least once
+    if (_focusNode.hasFocus) {
+      _hasReceivedFocus = true;
+    }
+  }
+
+  void _scrollIntoView() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        Scrollable.ensureVisible(
+          context,
+          alignment: 0.0,
+          alignmentPolicy: ScrollPositionAlignmentPolicy.keepVisibleAtStart,
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeInOut,
+        );
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final padding = widget.tabPadding ??
+        const EdgeInsets.only(left: 0, right: 30, top: 0, bottom: 0);
+
+    // Build the tab content with InkWell for focus support
+    Widget inkWell = InkWell(
+      focusNode: _focusNode,
+      autofocus: widget.autofocus,
+      // Disable visual effects - we use indicator instead
+      splashColor: Colors.transparent,
+      hoverColor: Colors.transparent,
+      focusColor: Colors.transparent,
+      highlightColor: Colors.transparent,
+      overlayColor: WidgetStateProperty.all(Colors.transparent),
+      splashFactory: NoSplash.splashFactory,
+      onTap: widget.onTap,
+      child: Builder(
+        builder: (builderContext) {
+          // Get focus state from InkWell's Focus
+          final hasFocus = Focus.maybeOf(builderContext)?.hasFocus ?? false;
+          return Container(
+            padding: padding,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Tab content (icon + label)
+                _buildTabContent(context, hasFocus),
+                const SizedBox(height: 4),
+                // Indicator line (shows when selected or focused)
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 150),
+                  height: widget.indicatorThickness,
+                  width: hasFocus ? 24 : (widget.isSelected ? 16 : 0),
+                  decoration: BoxDecoration(
+                    color: hasFocus
+                        ? Colors.blue
+                        : widget.isSelected
+                            ? widget.indicatorColor
+                            : Colors.transparent,
+                    borderRadius: BorderRadius.circular(widget.indicatorThickness / 2),
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+
+    // Wrap with TVFocusWidget for D-pad navigation.
+    // Uses tabRow from TabBar controller (either tvRow from YAML or 0 for isolated group).
+    // Order = index for left/right navigation.
+    // The selected tab is marked as entry point so it gets focus when entering the row.
+    return TVFocusWidget(
+      focusOrder: TVFocusOrder.withOptions(
+        widget.tabRow,
+        order: widget.index.toDouble(),
+        isRowEntryPoint: widget.isSelected, // selected tab is the entry point
+      ),
+      child: inkWell,
+    );
+  }
+
+  Widget _buildTabContent(BuildContext context, bool isFocused) {
+    final textColor = isFocused
+        ? Colors.white
+        : widget.isSelected
+            ? widget.activeColor
+            : widget.inactiveColor;
+
+    final textStyle = TextStyle(
+      fontSize: widget.tabFontSize ?? 14,
+      fontWeight: widget.tabFontWeight ?? (widget.isSelected ? FontWeight.w600 : FontWeight.normal),
+      color: textColor,
+    );
+
+    // If a custom tabWidget is defined, render it instead of icon+label
+    if (widget.tabItem.tabWidget != null) {
+      ScopeManager? scopeManager = DataScopeWidget.getScope(context);
+      if (scopeManager != null) {
+        return scopeManager.buildWidgetFromDefinition(widget.tabItem.tabWidget);
+      }
+    }
+
+    // Build icon if present
+    Widget? iconWidget;
+    if (widget.tabItem.icon != null) {
+      iconWidget = ensemble.Icon.fromModel(widget.tabItem.icon!);
+    }
+
+    // Build label
+    final label = widget.tabItem.label ?? '';
+
+    if (iconWidget != null && label.isNotEmpty) {
+      return Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          iconWidget,
+          const SizedBox(width: 8),
+          Text(label, style: textStyle),
+        ],
+      );
+    } else if (iconWidget != null) {
+      return iconWidget;
+    } else {
+      return Text(label, style: textStyle);
+    }
+  }
 }

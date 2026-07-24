@@ -19,6 +19,7 @@ import 'package:ensemble/framework/stub/camera_manager.dart';
 import 'package:ensemble/framework/stub/face_camera_manager.dart';
 import 'package:ensemble/framework/theme/theme_loader.dart';
 import 'package:ensemble/framework/theme_manager.dart';
+import 'package:ensemble/framework/tv/tv_focus_provider.dart';
 import 'package:ensemble/framework/view/data_scope_widget.dart';
 import 'package:ensemble/framework/view/page.dart' as ensemble;
 import 'package:ensemble/framework/view/page_group.dart';
@@ -569,6 +570,24 @@ class ScreenController {
       pageArgs: pageArgs,
       isExternal: isExternal,
     );
+
+    // When navigating externally (asExternal: true), wrap screen with Theme
+    // to ensure theme (including TV focus styling) continues to work on the external navigator.
+    //
+    // IMPORTANT: We intentionally do NOT wrap with TVFocusProviderScope here because:
+    // - TVFocusProviderScope interferes with TabBar and TextInput focus handling
+    // - For external pages, TV focus colors must come from Theme (via Tokens.TV in theme.yaml)
+    // - The TVFocusProvider from host app only works on pages inside EnsembleApp's navigator
+    if (asExternal) {
+      // Get theme from EnsembleThemeManager
+      final ensembleThemeData = EnsembleThemeManager().currentTheme()?.appThemeData;
+      if (ensembleThemeData != null) {
+        screenWidget = Theme(
+          data: ensembleThemeData,
+          child: screenWidget,
+        );
+      }
+    }
 
     Map<String, dynamic>? defaultTransitionOptions =
         Theme.of(context).extension<EnsembleThemeExtension>()?.transitions ??

@@ -7,13 +7,18 @@ import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:yaml/yaml.dart';
 
-// the Controller for the TabBar
+// =============================================================================
+// TabBarController - State & Configuration for TabBar Widget
+// =============================================================================
+
+/// Controller for TabBar widgets. Manages styling, tab items, and selection state.
 class TabBarController extends BoxController {
   String? tabPosition;
   String? tabAlignment;
   String? indicatorSize;
   String? tabType;
   EdgeInsets? tabPadding;
+  EdgeInsets? tabBarPadding; // Padding around the entire tab bar row (not content)
   int? tabFontSize;
   FontWeight? tabFontWeight;
   Color? tabBackgroundColor;
@@ -23,6 +28,11 @@ class TabBarController extends BoxController {
   Color? indicatorColor;
   Color? dividerColor;
   int? indicatorThickness;
+
+  /// TV Navigation: The row position for tab buttons in the focus grid.
+  /// If set, tabs participate in the main page focus grid at this row.
+  /// If not set, tabs are in an isolated focus group.
+  double? tvRow;
 
   EnsembleAction? onTabSelection;
   String? onTabSelectionHaptic;
@@ -67,6 +77,7 @@ class TabBarController extends BoxController {
     var setters = super.getBaseSetters();
     setters.addAll({
       'items': (values) => items = values,
+      'tvRow': (value) => tvRow = Utils.optionalDouble(value),
     });
     return setters;
   }
