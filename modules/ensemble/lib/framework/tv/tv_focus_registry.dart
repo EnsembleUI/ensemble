@@ -12,6 +12,7 @@ class TVFocusTarget {
     required this.row,
     required this.order,
     required this.context,
+    this.route,
     this.focusGroup,
     this.isRowEntryPoint = false,
     this.lockHorizontalNavigation = false,
@@ -23,6 +24,18 @@ class TVFocusTarget {
   final double row;
   final double order;
   final BuildContext context;
+
+  /// The enclosing [ModalRoute] captured at registration time.
+  ///
+  /// PHASE 3: caching the route here makes [isInRoute] an O(1) comparison
+  /// instead of a `ModalRoute.of` ancestor walk on every navigation query (which
+  /// ran for every registered target). [ModalRoute] identity is stable across
+  /// rebuilds, and the registrar re-registers on dependency changes, so this
+  /// stays current. (The enclosing FocusTraversalGroup is deliberately NOT
+  /// cached — its widget instance is recreated on rebuild, so [isInTraversalGroup]
+  /// must resolve it live.)
+  final ModalRoute<dynamic>? route;
+
   final String? focusGroup;
   final bool isRowEntryPoint;
   final bool lockHorizontalNavigation;
@@ -37,8 +50,7 @@ class TVFocusTarget {
     if (route == null) {
       return true;
     }
-    final targetContext = effectiveContext;
-    return targetContext != null && ModalRoute.of(targetContext) == route;
+    return this.route == route;
   }
 
   bool isInTraversalGroup(FocusTraversalGroup? traversalGroup) {
@@ -123,9 +135,15 @@ class TVFocusTargetRegistrar extends StatefulWidget {
 }
 
 class _TVFocusTargetRegistrarState extends State<TVFocusTargetRegistrar> {
+  // PHASE 3: captured here (not in _register) so the ModalRoute dependency is
+  // only established in didChangeDependencies, which also re-fires — and
+  // refreshes this — whenever the enclosing route changes.
+  ModalRoute<dynamic>? _route;
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    _route = ModalRoute.of(context);
     _register();
   }
 
@@ -156,6 +174,7 @@ class _TVFocusTargetRegistrarState extends State<TVFocusTargetRegistrar> {
         lockHorizontalNavigation: widget.lockHorizontalNavigation,
         delegateHorizontalNavigation: widget.delegateHorizontalNavigation,
         context: context,
+        route: _route,
       ),
     );
   }

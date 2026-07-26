@@ -391,6 +391,9 @@ class _TVTabButtonState extends State<_TVTabButton> {
         order: widget.index.toDouble(),
         isRowEntryPoint: widget.isSelected, // selected tab is the entry point
       ),
+      // PHASE 2: register the tab's own InkWell FocusNode so it appears in
+      // TVFocusRegistry (drives the descendants scan's scanUnique toward 0).
+      primaryFocusNode: _focusNode,
       child: inkWell,
     );
   }

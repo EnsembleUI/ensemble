@@ -22,40 +22,49 @@ import 'package:flutter/services.dart';
 /// With plain Focus, this node would be a sibling and miss key events.
 class TVFocusWidget extends StatelessWidget {
   // ─────────────────────────────────────────────────────────────────────────
-  // Row Position Memory
+  // Row Position Memory (opt-in via tvOptions.rememberRowPosition)
   // ─────────────────────────────────────────────────────────────────────────
-  // Remembers the last focused order (horizontal position) for each row,
-  // scoped by focusGroup. When navigating UP/DOWN between rows, focus
-  // returns to the remembered position instead of always going to the
-  // entry point. Only active when focusGroup is set.
-  //
-  // Key format: "${focusGroup}_${row}" -> remembered order value
+  // Remembers the last focused column (order) per row so vertical navigation
+  // returns to it. Enabled per-widget by `rememberRowPosition` — NOT by
+  // focusGroup. Scoped per screen: the outer map is keyed by the ModalRoute
+  // instance, so different screens (and different visits of the same screen)
+  // never share memory. Within a route it is keyed by "${focusGroup ?? ''}_$row"
+  // so multiple independent regions on one screen stay separate when they set a
+  // focusGroup — and it still works with no focusGroup at all.
   // ─────────────────────────────────────────────────────────────────────────
-  static final Map<String, double> _rowOrderMemory = {};
+  static final Map<Object, Map<String, double>> _rowOrderMemory = {};
 
-  /// Creates a memory key for the given focusGroup and row.
-  static String _memoryKey(String focusGroup, double row) {
-    return '${focusGroup}_$row';
+  /// Per-screen namespace for the memory map (route instance identity), so each
+  /// screen visit gets its own bucket.
+  static Object _routeKey(ModalRoute<dynamic>? route) =>
+      route == null ? 'noRoute' : identityHashCode(route);
+
+  /// Creates a within-route memory key for the given focusGroup and row.
+  static String _memoryKey(String? focusGroup, double row) {
+    return '${focusGroup ?? ''}_$row';
   }
 
   /// Saves the current order for a row (called when leaving the row).
-  static void _rememberOrder(String focusGroup, double row, double order) {
-    _rowOrderMemory[_memoryKey(focusGroup, row)] = order;
+  static void _rememberOrder(ModalRoute<dynamic>? route, String? focusGroup,
+      double row, double order) {
+    final bucket = _rowOrderMemory.putIfAbsent(_routeKey(route), () => {});
+    bucket[_memoryKey(focusGroup, row)] = order;
   }
 
   /// Retrieves the remembered order for a row, or null if not remembered.
-  static double? _recallOrder(String focusGroup, double row) {
-    return _rowOrderMemory[_memoryKey(focusGroup, row)];
+  static double? _recallOrder(
+      ModalRoute<dynamic>? route, String? focusGroup, double row) {
+    return _rowOrderMemory[_routeKey(route)]?[_memoryKey(focusGroup, row)];
   }
 
-  /// Clears all row memory (useful for screen transitions if needed).
+  /// Clears all row memory.
   static void clearRowMemory() {
     _rowOrderMemory.clear();
   }
 
-  /// Clears row memory for a specific focusGroup.
-  static void clearRowMemoryForGroup(String focusGroup) {
-    _rowOrderMemory.removeWhere((key, _) => key.startsWith('${focusGroup}_'));
+  /// Clears row memory for a specific screen (call on route dispose).
+  static void clearRowMemoryForRoute(ModalRoute<dynamic>? route) {
+    _rowOrderMemory.remove(_routeKey(route));
   }
 
   /// Finds the index of the item with the nearest order value to the target.
@@ -119,71 +128,79 @@ class TVFocusWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final focusTraversalWidget = FocusTraversalOrder(
-      order: focusOrder,
-      // Use FocusScope instead of Focus so that this node becomes the PARENT
-      // of the child's focus node in the focus tree. This allows key events
-      // from the child to bubble up through this handler.
-      // With a plain Focus widget, this node would be a SIBLING to the child's
-      // focus node, and key events would bypass it entirely.
-      child: FocusScope(
-        onKeyEvent: (FocusNode node, KeyEvent event) {
-          if (event is KeyDownEvent) {
-            // Handle back button
-            if (event.logicalKey == LogicalKeyboardKey.goBack) {
-              final result = onBackPressed?.call(node);
-              if (result != null) {
-                return result;
-              }
-            }
-
-            // Handle arrow keys
-            if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
-              if (_moveFocus(context, node, yOffset: 1)) {
-                return KeyEventResult.handled;
-              }
-            } else if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
-              if (_moveFocus(context, node, yOffset: -1)) {
-                return KeyEventResult.handled;
-              }
-            } else if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
-              if (_moveFocus(context, node, xOffset: 1)) {
-                return KeyEventResult.handled;
-              }
-            } else if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
-              if (_moveFocus(context, node, xOffset: -1)) {
-                return KeyEventResult.handled;
-              }
-            }
-          }
-          return KeyEventResult.ignored;
-        },
-        child: child,
-      ),
-    );
-
     final registeredFocusNode = primaryFocusNode;
-    if (registeredFocusNode == null) {
-      return focusTraversalWidget;
+
+    // Case 1: the child exposes its own requestable node (e.g. an InkWell's
+    // FocusNode passed via primaryFocusNode). Register that node directly and
+    // keep the wrapping FocusScope anonymous. (Unchanged legacy behavior.)
+    if (registeredFocusNode != null) {
+      return TVFocusTargetRegistrar(
+        focusNode: registeredFocusNode,
+        focusOrder: focusOrder,
+        row: focusOrder.row,
+        order: focusOrder.order,
+        focusGroup: focusOrder.focusGroup,
+        isRowEntryPoint: focusOrder.isRowEntryPoint,
+        lockHorizontalNavigation: focusOrder.lockHorizontalNavigation,
+        delegateHorizontalNavigation: focusOrder.delegateHorizontalNavigation,
+        child: FocusTraversalOrder(
+          order: focusOrder,
+          // Use FocusScope instead of Focus so this node becomes the PARENT of
+          // the child's focus node, letting key events bubble up through the
+          // handler instead of bypassing a sibling.
+          child: FocusScope(
+            onKeyEvent: _handleScopeKeyEvent,
+            child: child,
+          ),
+        ),
+      );
     }
 
-    return TVFocusTargetRegistrar(
-      focusNode: registeredFocusNode,
+    // Case 2 (PHASE 2): the child is a passive wrapper with no requestable node
+    // of its own (input fields, focus-only content). Own the wrapping
+    // FocusScope's node so it can be registered in TVFocusRegistry; requesting
+    // focus on that scope node delegates to the first focusable descendant.
+    // This lets these widgets appear in STEP 1 of collectInScope, so the
+    // root.descendants scan can be dropped in Phase 3.
+    return _RegisteredFocusScope(
       focusOrder: focusOrder,
-      row: focusOrder.row,
-      order: focusOrder.order,
-      focusGroup: focusOrder.focusGroup,
-      isRowEntryPoint: focusOrder.isRowEntryPoint,
-      lockHorizontalNavigation: focusOrder.lockHorizontalNavigation,
-      delegateHorizontalNavigation: focusOrder.delegateHorizontalNavigation,
-      child: focusTraversalWidget,
+      onKeyEvent: _handleScopeKeyEvent,
+      child: child,
     );
+  }
+
+  /// Handles D-pad key events arriving at the wrapping FocusScope.
+  ///
+  /// [node] is the enclosing scope node the event bubbled up to; navigation
+  /// uses it for ancestor/route lookups while this widget's [focusOrder]
+  /// identifies the current grid position.
+  KeyEventResult _handleScopeKeyEvent(FocusNode node, KeyEvent event) {
+    if (event is KeyDownEvent) {
+      // Handle back button
+      if (event.logicalKey == LogicalKeyboardKey.goBack) {
+        final result = onBackPressed?.call(node);
+        if (result != null) {
+          return result;
+        }
+      }
+
+      // Handle arrow keys
+      if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
+        if (_moveFocus(node, yOffset: 1)) return KeyEventResult.handled;
+      } else if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+        if (_moveFocus(node, yOffset: -1)) return KeyEventResult.handled;
+      } else if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
+        if (_moveFocus(node, xOffset: 1)) return KeyEventResult.handled;
+      } else if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
+        if (_moveFocus(node, xOffset: -1)) return KeyEventResult.handled;
+      }
+    }
+    return KeyEventResult.ignored;
   }
 
   /// Move focus in the specified direction.
   /// Returns true if focus was moved, false if at boundary.
   bool _moveFocus(
-    BuildContext context,
     FocusNode current, {
     int yOffset = 0,
     int xOffset = 0,
@@ -209,58 +226,12 @@ class TVFocusWidget extends StatelessWidget {
     final currentFocusGroup = focusOrder.focusGroup;
     final route =
         current.context != null ? ModalRoute.of(current.context!) : null;
-    bool matchesFocusGroup(TVFocusOrder order) {
-      if (currentFocusGroup == null) {
-        return true;
-      }
-      return order.focusGroup == currentFocusGroup;
-    }
-
-    // Collect all focusable items in the same FocusTraversalGroup
-    final root = FocusManager.instance.rootScope;
-    final inScopeByOrder = <TVFocusOrderNode, TVFocusOrderNode>{};
-
-    for (final target in TVFocusRegistry.targets<TVFocusOrder>(
+    // PHASE 1: unified collection (was registry + descendants scan inlined here).
+    final inScopeByOrder = TVFocusOrderNode.collectInScope(
       route: route,
       traversalGroup: focusTraversalGroup,
       focusGroup: currentFocusGroup,
-    )) {
-      final order = target.focusOrder as TVFocusOrder;
-      TVFocusOrderNode.addPreferredCandidate(
-        inScopeByOrder,
-        TVFocusOrderNode(
-          target.focusNode,
-          order,
-          isRegisteredTarget: true,
-        ),
-      );
-    }
-
-    for (final focusNode in root.descendants) {
-      // Check if this node is mounted and has context
-      if (focusNode.context == null) continue;
-      if (!focusNode.canRequestFocus) continue;
-      if (!TVFocusOrder.isInRoute(focusNode.context!, route)) continue;
-
-      // Check if in same FocusTraversalGroup
-      final nodeGroup = focusNode.context
-          ?.findAncestorWidgetOfExactType<FocusTraversalGroup>();
-      if (nodeGroup != focusTraversalGroup) continue;
-
-      // Get the TVFocusOrder for this node
-      final focusTraversalOrder = focusNode.context
-          ?.findAncestorWidgetOfExactType<FocusTraversalOrder>();
-      if (focusTraversalOrder?.order is TVFocusOrder) {
-        final order = focusTraversalOrder!.order as TVFocusOrder;
-        if (!matchesFocusGroup(order)) {
-          continue;
-        }
-        TVFocusOrderNode.addPreferredCandidate(
-          inScopeByOrder,
-          TVFocusOrderNode(focusNode, order),
-        );
-      }
-    }
+    );
 
     if (inScopeByOrder.isEmpty) {
       return false;
@@ -309,15 +280,15 @@ class TVFocusWidget extends StatelessWidget {
       // Get the target row's actual row value
       final targetRowValue = grid[newY].first.order.row;
 
-      // SAVE current position before leaving (only if focusGroup is set)
-      if (currentFocusGroup != null) {
-        _rememberOrder(currentFocusGroup, focusOrder.row, focusOrder.order);
-      }
+      if (focusOrder.rememberRowPosition) {
+        // Row memory (opt-in), scoped per route + focusGroup.
+        // SAVE current position before leaving.
+        _rememberOrder(
+            route, currentFocusGroup, focusOrder.row, focusOrder.order);
 
-      // Determine where to land in the new row
-      if (currentFocusGroup != null) {
-        // focusGroup is set - check for remembered position first
-        final rememberedOrder = _recallOrder(currentFocusGroup, targetRowValue);
+        // Restore the remembered column for the target row, if any.
+        final rememberedOrder =
+            _recallOrder(route, currentFocusGroup, targetRowValue);
         if (rememberedOrder != null) {
           // Try to find item with remembered order
           final rememberedIndex = grid[newY].indexWhere(
@@ -336,7 +307,7 @@ class TVFocusWidget extends StatelessWidget {
           newX = entryPointIndex != -1 ? entryPointIndex : 0;
         }
       } else {
-        // No focusGroup - use original behavior (entry point or preserve position)
+        // Default (grid) behavior: entry point → preserve current column → clamp.
         final entryPointIndex = _findRowEntryPoint(grid[newY]);
         if (entryPointIndex != -1) {
           // Entry point found, use it
@@ -467,5 +438,63 @@ class TVFocusWidget extends StatelessWidget {
       // No row found above, stay at current
       return currentY;
     }
+  }
+}
+
+/// A [FocusScope] that owns its [FocusScopeNode] and registers it as the TV
+/// focus target for [focusOrder].
+///
+/// Used by [TVFocusWidget] when the wrapped child does not expose its own
+/// requestable [FocusNode] (input fields, focus-only content wrappers). Owning
+/// the scope node lets it be registered in [TVFocusRegistry]; requesting focus
+/// on it delegates to the first focusable descendant — matching how the legacy
+/// root.descendants scan targeted these widgets, but without needing the scan.
+class _RegisteredFocusScope extends StatefulWidget {
+  const _RegisteredFocusScope({
+    required this.focusOrder,
+    required this.onKeyEvent,
+    required this.child,
+  });
+
+  final TVFocusOrder focusOrder;
+  final FocusOnKeyEventCallback onKeyEvent;
+  final Widget child;
+
+  @override
+  State<_RegisteredFocusScope> createState() => _RegisteredFocusScopeState();
+}
+
+class _RegisteredFocusScopeState extends State<_RegisteredFocusScope> {
+  final FocusScopeNode _scopeNode = FocusScopeNode(debugLabel: 'TVFocusScope');
+
+  @override
+  void dispose() {
+    _scopeNode.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final order = widget.focusOrder;
+    return FocusTraversalOrder(
+      order: order,
+      child: TVFocusTargetRegistrar(
+        focusNode: _scopeNode,
+        focusOrder: order,
+        row: order.row,
+        order: order.order,
+        focusGroup: order.focusGroup,
+        isRowEntryPoint: order.isRowEntryPoint,
+        lockHorizontalNavigation: order.lockHorizontalNavigation,
+        delegateHorizontalNavigation: order.delegateHorizontalNavigation,
+        // FocusScope (not Focus) so this node parents the child's focus node and
+        // key events bubble up to [onKeyEvent].
+        child: FocusScope(
+          node: _scopeNode,
+          onKeyEvent: widget.onKeyEvent,
+          child: widget.child,
+        ),
+      ),
+    );
   }
 }

@@ -11,6 +11,17 @@ String? resolveTVFocusGroup(
   return tvOptions.focusGroup ?? TVFocusContext.maybeOf(context)?.focusGroup;
 }
 
+/// Resolves the effective `rememberRowPosition` for a widget: its own tvOptions
+/// value if set, else the nearest inherited [TVFocusContext] value, else false.
+bool resolveTVRememberRowPosition(
+  BuildContext context,
+  TVOptionsComposite tvOptions,
+) {
+  return tvOptions.rememberRowPosition ??
+      TVFocusContext.maybeOf(context)?.rememberRowPosition ??
+      false;
+}
+
 TVFocusEdgeTargetComposite? resolveTVFocusEdgeTarget(
   BuildContext context,
   TVOptionsComposite tvOptions,
@@ -80,13 +91,17 @@ Widget wrapWithTVFocusContext({
   required Widget child,
   required TVOptionsComposite? tvOptions,
 }) {
-  if (tvOptions?.focusGroup == null && tvOptions?.edges == null) {
+  if (tvOptions?.focusGroup == null &&
+      tvOptions?.edges == null &&
+      tvOptions?.rememberRowPosition == null) {
     return child;
   }
 
   final inheritedContext = TVFocusContext.maybeOf(context);
   return TVFocusContext(
     focusGroup: tvOptions?.focusGroup ?? inheritedContext?.focusGroup,
+    rememberRowPosition:
+        tvOptions?.rememberRowPosition ?? inheritedContext?.rememberRowPosition,
     rightEdge: tvOptions?.edges?.right ?? inheritedContext?.rightEdge,
     leftEdge: tvOptions?.edges?.left ?? inheritedContext?.leftEdge,
     topEdge: tvOptions?.edges?.top ?? inheritedContext?.topEdge,

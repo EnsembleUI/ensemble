@@ -40,7 +40,8 @@ class TVFocusOrder extends FocusOrder {
   ])  : isRowEntryPoint = false,
         lockHorizontalNavigation = false,
         delegateHorizontalNavigation = false,
-        focusGroup = null;
+        focusGroup = null,
+        rememberRowPosition = false;
 
   /// Creates a focus order with full control over all options.
   ///
@@ -53,6 +54,7 @@ class TVFocusOrder extends FocusOrder {
     this.lockHorizontalNavigation = false,
     this.delegateHorizontalNavigation = false,
     this.focusGroup,
+    this.rememberRowPosition = false,
   });
 
   final double row;
@@ -77,6 +79,11 @@ class TVFocusOrder extends FocusOrder {
   /// explicit edge callbacks to move focus between them.
   final String? focusGroup;
 
+  /// When true, vertical navigation remembers the last focused column per row
+  /// (scoped per screen + [focusGroup]) and returns to it. Default false =
+  /// grid-style column preservation. Resolved from tvOptions (own ?? inherited).
+  final bool rememberRowPosition;
+
   /// Composite value for sorting: row * 10000 + order
   /// This ensures items are sorted by row first, then by order within row
   double get value => row * 10000 + order;
@@ -93,6 +100,7 @@ class TVFocusOrder extends FocusOrder {
       lockHorizontalNavigation: lockHorizontalNavigation,
       delegateHorizontalNavigation: delegateHorizontalNavigation,
       focusGroup: focusGroup,
+      rememberRowPosition: rememberRowPosition,
     );
   }
 
@@ -100,38 +108,10 @@ class TVFocusOrder extends FocusOrder {
   /// Scoped to current route to prevent stealing focus from other screens.
   void requestFocus(BuildContext context) {
     final route = ModalRoute.of(context);
-    final root = FocusManager.instance.rootScope;
-    final candidatesByOrder = <TVFocusOrderNode, TVFocusOrderNode>{};
-
-    for (final target in TVFocusRegistry.targets<TVFocusOrder>(
+    // PHASE 1: unified collection (was registry + descendants scan inlined here).
+    final candidatesByOrder = TVFocusOrderNode.collectInScope(
       route: route,
-    )) {
-      final gridFocusOrder = target.focusOrder as TVFocusOrder;
-      TVFocusOrderNode.addPreferredCandidate(
-        candidatesByOrder,
-        TVFocusOrderNode(
-          target.focusNode,
-          gridFocusOrder,
-          isRegisteredTarget: true,
-        ),
-      );
-    }
-
-    for (final focusNode in root.descendants) {
-      if (focusNode.context == null) continue;
-      if (!focusNode.canRequestFocus) continue;
-      if (!_isInRoute(focusNode.context!, route)) continue;
-
-      final focusTraversalOrder = focusNode.context
-          ?.findAncestorWidgetOfExactType<FocusTraversalOrder>();
-      if (focusTraversalOrder?.order is TVFocusOrder) {
-        final gridFocusOrder = focusTraversalOrder!.order as TVFocusOrder;
-        TVFocusOrderNode.addPreferredCandidate(
-          candidatesByOrder,
-          TVFocusOrderNode(focusNode, gridFocusOrder),
-        );
-      }
-    }
+    );
 
     final targetNode = candidatesByOrder.values.firstWhereOrNull(
       (node) =>
@@ -146,42 +126,15 @@ class TVFocusOrder extends FocusOrder {
   void requestFocusAt(BuildContext context, double row,
       [double? order, String? focusGroup]) {
     final route = ModalRoute.of(context);
-    final root = FocusManager.instance.rootScope;
-    final candidatesByOrder = <TVFocusOrderNode, TVFocusOrderNode>{};
-    final rowNodesByOrder = <TVFocusOrderNode, TVFocusOrderNode>{};
-
-    for (final target in TVFocusRegistry.targets<TVFocusOrder>(
+    // PHASE 1: unified collection (was registry + descendants scan inlined here).
+    final candidatesByOrder = TVFocusOrderNode.collectInScope(
       route: route,
       focusGroup: focusGroup,
-    )) {
-      final gridFocusOrder = target.focusOrder as TVFocusOrder;
-      final node = TVFocusOrderNode(
-        target.focusNode,
-        gridFocusOrder,
-        isRegisteredTarget: true,
-      );
-      TVFocusOrderNode.addPreferredCandidate(candidatesByOrder, node);
-      if (gridFocusOrder.row != row) continue;
+    );
+    final rowNodesByOrder = <TVFocusOrderNode, TVFocusOrderNode>{};
+    for (final node in candidatesByOrder.values) {
+      if (node.order.row != row) continue;
       TVFocusOrderNode.addPreferredCandidate(rowNodesByOrder, node);
-    }
-
-    for (final focusNode in root.descendants) {
-      if (focusNode.context == null) continue;
-      if (!focusNode.canRequestFocus) continue;
-      if (!_isInRoute(focusNode.context!, route)) continue;
-
-      final focusTraversalOrder = focusNode.context
-          ?.findAncestorWidgetOfExactType<FocusTraversalOrder>();
-      if (focusTraversalOrder?.order is TVFocusOrder) {
-        final gridFocusOrder = focusTraversalOrder!.order as TVFocusOrder;
-        if (focusGroup != null && gridFocusOrder.focusGroup != focusGroup) {
-          continue;
-        }
-        final node = TVFocusOrderNode(focusNode, gridFocusOrder);
-        TVFocusOrderNode.addPreferredCandidate(candidatesByOrder, node);
-        if (gridFocusOrder.row != row) continue;
-        TVFocusOrderNode.addPreferredCandidate(rowNodesByOrder, node);
-      }
     }
 
     final candidates = candidatesByOrder.values.toList();
@@ -233,43 +186,11 @@ class TVFocusOrder extends FocusOrder {
     double? currentOrder,
   }) {
     final route = ModalRoute.of(context);
-    final root = FocusManager.instance.rootScope;
-    final candidatesByOrder = <TVFocusOrderNode, TVFocusOrderNode>{};
-
-    for (final target in TVFocusRegistry.targets<TVFocusOrder>(
+    // PHASE 1: unified collection (was registry + descendants scan inlined here).
+    final candidatesByOrder = TVFocusOrderNode.collectInScope(
       route: route,
       focusGroup: targetFocusGroup,
-    )) {
-      final gridFocusOrder = target.focusOrder as TVFocusOrder;
-      TVFocusOrderNode.addPreferredCandidate(
-        candidatesByOrder,
-        TVFocusOrderNode(
-          target.focusNode,
-          gridFocusOrder,
-          isRegisteredTarget: true,
-        ),
-      );
-    }
-
-    for (final focusNode in root.descendants) {
-      if (focusNode.context == null) continue;
-      if (!focusNode.canRequestFocus) continue;
-      if (!_isInRoute(focusNode.context!, route)) continue;
-
-      final focusTraversalOrder = focusNode.context
-          ?.findAncestorWidgetOfExactType<FocusTraversalOrder>();
-      if (focusTraversalOrder?.order is TVFocusOrder) {
-        final gridFocusOrder = focusTraversalOrder!.order as TVFocusOrder;
-        if (targetFocusGroup != null &&
-            gridFocusOrder.focusGroup != targetFocusGroup) {
-          continue;
-        }
-        TVFocusOrderNode.addPreferredCandidate(
-          candidatesByOrder,
-          TVFocusOrderNode(focusNode, gridFocusOrder),
-        );
-      }
-    }
+    );
 
     final candidates = candidatesByOrder.values.toList();
     if (candidates.isEmpty) {
@@ -443,17 +364,6 @@ class TVFocusOrder extends FocusOrder {
     nodes.first.focus.requestFocus();
   }
 
-  static bool _isInRoute(BuildContext context, ModalRoute<dynamic>? route) {
-    if (route == null) {
-      return true;
-    }
-    return ModalRoute.of(context) == route;
-  }
-
-  static bool isInRoute(BuildContext context, ModalRoute<dynamic>? route) {
-    return _isInRoute(context, route);
-  }
-
   @override
   String toString({DiagnosticLevel minLevel = DiagnosticLevel.info}) {
     return 'TVFocusOrder(row: $row, order: $order, focusGroup: $focusGroup)';
@@ -562,6 +472,45 @@ class TVFocusOrderNode {
       return true;
     });
     return depth;
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Shared candidate collection — single source of truth for "all in-scope TV
+  // focus candidates", used by _moveFocus / requestFocus / requestFocusAt /
+  // requestFocusByEdge.
+  //
+  // PHASE 3: pure O(r) over the explicit registry. Every TV focusable registers
+  // via TVFocusWidget (Phase 2), so the former root.descendants scan (the O(n ×
+  // tree-depth) cost) was verified redundant on-device (scanUnique == 0
+  // everywhere) and removed.
+  //
+  // Arguments:
+  // - [traversalGroup] null => no FocusTraversalGroup filtering (matches the
+  //   tv_focus_order call sites). Non-null => restrict to that group (matches
+  //   _moveFocus).
+  // - [focusGroup] null => all focus groups.
+  // ─────────────────────────────────────────────────────────────────────────
+  static Map<TVFocusOrderNode, TVFocusOrderNode> collectInScope({
+    required ModalRoute<dynamic>? route,
+    FocusTraversalGroup? traversalGroup,
+    String? focusGroup,
+  }) {
+    final result = <TVFocusOrderNode, TVFocusOrderNode>{};
+
+    // Registry is the single source of truth (O(r)).
+    for (final target in TVFocusRegistry.targets<TVFocusOrder>(
+      route: route,
+      traversalGroup: traversalGroup,
+      focusGroup: focusGroup,
+    )) {
+      final order = target.focusOrder as TVFocusOrder;
+      addPreferredCandidate(
+        result,
+        TVFocusOrderNode(target.focusNode, order, isRegisteredTarget: true),
+      );
+    }
+
+    return result;
   }
 
   /// Build a 2D grid from an iterable of focus order nodes.

@@ -873,6 +873,8 @@ class _TapEnabledWrapperState extends State<_TapEnabledWrapper> {
     final isRowEntryPoint = tvOptions.isRowEntryPoint;
     final autofocus = widget.boxController.autofocus;
     final focusGroup = resolveTVFocusGroup(context, tvOptions);
+    final rememberRowPosition =
+        resolveTVRememberRowPosition(context, tvOptions);
 
     final externalProvider = TVFocusProviderScope.maybeOf(context);
     final effectiveRow =
@@ -1033,6 +1035,7 @@ class _TapEnabledWrapperState extends State<_TapEnabledWrapper> {
         lockHorizontalNavigation: tvOptions.lockHorizontalNavigation,
         delegateHorizontalNavigation: tvOptions.delegateHorizontalNavigation,
         focusGroup: focusGroup,
+        rememberRowPosition: rememberRowPosition,
         primaryFocusNode: _focusNode,
         onRightEdge: rightEdgeHandler,
         onLeftEdge: leftEdgeHandler,
@@ -1051,6 +1054,7 @@ class _TapEnabledWrapperState extends State<_TapEnabledWrapper> {
         lockHorizontalNavigation: tvOptions.lockHorizontalNavigation,
         delegateHorizontalNavigation: tvOptions.delegateHorizontalNavigation,
         focusGroup: focusGroup,
+        rememberRowPosition: rememberRowPosition,
       ),
       onRightEdge: rightEdgeHandler,
       onLeftEdge: leftEdgeHandler,
@@ -1128,6 +1132,25 @@ class _TVFocusOnlyWrapper extends StatefulWidget {
 
 class _TVFocusOnlyWrapperState extends State<_TVFocusOnlyWrapper> {
   bool _hasFocus = false;
+
+  // This widget's TV focus target: the SAME node that backs the onFocusChange
+  // FocusScope below is also the one registered (via primaryFocusNode →
+  // TVFocusWidget Case 1). That identity is the point — focusing it drives
+  // _hasFocus and boxController.hasFocus (the focus ring + ${id.hasFocus}
+  // bindings), and as a scope it delegates focus to the first focusable
+  // descendant (e.g. a Button's inner FilledButton).
+  //
+  // Regression fix: Case 2's _RegisteredFocusScope registered a SEPARATE scope
+  // node, so navigation focused a node that didn't track hasFocus — enabled
+  // Buttons then showed no focus ring or highlight.
+  final FocusScopeNode _scopeNode =
+      FocusScopeNode(debugLabel: 'TVFocusOnlyWrapper');
+
+  @override
+  void dispose() {
+    _scopeNode.dispose();
+    super.dispose();
+  }
 
   /// Handles vertical scrolling when this widget's subtree gains focus.
   void _handleFocusScroll(BuildContext childContext) {
@@ -1228,6 +1251,8 @@ class _TVFocusOnlyWrapperState extends State<_TVFocusOnlyWrapper> {
     final tvOrder = tvOptions.order ?? 0;
     final isRowEntryPoint = tvOptions.isRowEntryPoint;
     final focusGroup = resolveTVFocusGroup(context, tvOptions);
+    final rememberRowPosition =
+        resolveTVRememberRowPosition(context, tvOptions);
 
     final externalProvider = TVFocusProviderScope.maybeOf(context);
     final effectiveRow =
@@ -1306,6 +1331,8 @@ class _TVFocusOnlyWrapperState extends State<_TVFocusOnlyWrapper> {
     // Wrap child with FocusScope to detect when any descendant gains focus
     // and render focus border
     final wrappedChild = FocusScope(
+      // Explicit node so it can be registered as the TV focus target below.
+      node: _scopeNode,
       onFocusChange: (hasFocus) {
         if (mounted) {
           setState(() {
@@ -1331,6 +1358,25 @@ class _TVFocusOnlyWrapperState extends State<_TVFocusOnlyWrapper> {
           }
 
           if (hasFocus) {
+            // Delegate primary focus to the child so Select/Enter can activate
+            // it. A FocusScopeNode with no previously-focused child takes primary
+            // focus *itself* instead of a descendant (FocusScopeNode
+            // ._doRequestFocus: focusedChild == null → focuses the scope). Under
+            // pure D-pad navigation focusedChild is always null, so without this
+            // the child Button looks focused (scope.hasFocus includes the scope)
+            // but isn't actually focused — Select then reaches no button and
+            // bubbles to the app root unhandled. Redirect to the first focusable
+            // descendant (the Button's own node) to restore activation.
+            // Disabled children expose no focusable descendant, so the scope
+            // keeps focus: ring shows, nothing to activate — correct for a
+            // disabled control.
+            if (_scopeNode.hasPrimaryFocus) {
+              final childFocus = _scopeNode.traversalDescendants.isEmpty
+                  ? null
+                  : _scopeNode.traversalDescendants.first;
+              childFocus?.requestFocus();
+            }
+
             WidgetsBinding.instance.addPostFrameCallback((_) {
               if (mounted && context.mounted) {
                 _handleFocusScroll(context);
@@ -1392,6 +1438,9 @@ class _TVFocusOnlyWrapperState extends State<_TVFocusOnlyWrapper> {
         lockHorizontalNavigation: tvOptions.lockHorizontalNavigation,
         delegateHorizontalNavigation: tvOptions.delegateHorizontalNavigation,
         focusGroup: focusGroup,
+        rememberRowPosition: rememberRowPosition,
+        // Register the hasFocus-tracking node itself (Case 1); see _scopeNode.
+        primaryFocusNode: _scopeNode,
         onRightEdge: rightEdgeHandler,
         onLeftEdge: leftEdgeHandler,
         onTopEdge: topEdgeHandler,
@@ -1409,11 +1458,14 @@ class _TVFocusOnlyWrapperState extends State<_TVFocusOnlyWrapper> {
         lockHorizontalNavigation: tvOptions.lockHorizontalNavigation,
         delegateHorizontalNavigation: tvOptions.delegateHorizontalNavigation,
         focusGroup: focusGroup,
+        rememberRowPosition: rememberRowPosition,
       ),
       onRightEdge: rightEdgeHandler,
       onLeftEdge: leftEdgeHandler,
       onTopEdge: topEdgeHandler,
       onBottomEdge: bottomEdgeHandler,
+      // Register the hasFocus-tracking node itself (Case 1); see _scopeNode.
+      primaryFocusNode: _scopeNode,
       child: wrappedChild,
     );
   }

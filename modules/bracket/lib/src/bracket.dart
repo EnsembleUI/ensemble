@@ -1177,6 +1177,7 @@ class _BracketTVFocusProvider implements TVFocusProvider {
     bool lockHorizontalNavigation = false,
     bool delegateHorizontalNavigation = false,
     String? focusGroup,
+    bool rememberRowPosition = false,
     FocusNode? primaryFocusNode,
     KeyEventResult Function(FocusNode node)? onBackPressed,
     VoidCallback? onRightEdge,
