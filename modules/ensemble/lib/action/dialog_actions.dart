@@ -1,4 +1,5 @@
 import 'package:ensemble/framework/action.dart';
+import 'package:ensemble/framework/apiproviders/api_provider.dart';
 import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/scope.dart';
@@ -62,6 +63,7 @@ class ShowDialogAction extends EnsembleAction {
 
     bool useDefaultStyle = dialogStyles['style'] != 'none';
     BuildContext? dialogContext;
+    final apiProviders = APIProviders.of(context);
 
     showGeneralDialog(
         useRootNavigator: false,
@@ -113,12 +115,14 @@ class ShowDialogAction extends EnsembleAction {
                               useDefaultStyle ? const EdgeInsets.all(20) : null,
                           padding:
                               useDefaultStyle ? const EdgeInsets.all(20) : null,
-                          child: DataScopeWidget(
-                              scopeManager: scopeManager.createChildScope(),
-                              child: SingleChildScrollView(
-                                child: scopeManager
-                                    .buildWidgetFromDefinition(body),
-                              ))))));
+                          child: APIProviders(
+                              providers: apiProviders.providers,
+                              child: DataScopeWidget(
+                                  scopeManager: scopeManager.createChildScope(),
+                                  child: SingleChildScrollView(
+                                    child: scopeManager
+                                        .buildWidgetFromDefinition(body),
+                                  )))))));
         }).then((payload) {
       // remove the dialog context since we are closing them
       scopeManager.openedDialogs.remove(dialogContext);

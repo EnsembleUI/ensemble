@@ -1,14 +1,16 @@
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/storage_manager.dart';
-import 'package:ensemble_test_runner/mocks/mock_api_provider.dart';
+import 'package:ensemble_test_runner/mocks/test_api_provider_overlay.dart';
 import 'package:ensemble_test_runner/mocks/test_logger.dart';
 import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
 import 'package:ensemble_test_runner/runner/ensemble_test_harness.dart';
 import 'package:ensemble_test_runner/runner/test_runtime_state.dart';
+import 'package:flutter/widgets.dart';
 
 class EnsembleTestContext {
   final EnsembleTestCase testCase;
-  final MockAPIProvider mockApiProvider;
+  final EnsembleTestConfig config;
+  final TestApiProviderOverlay apiOverlay;
   final TestLogger logger;
   final EnsembleTestSetup setup;
 
@@ -19,39 +21,57 @@ class EnsembleTestContext {
 
   EnsembleTestContext({
     required this.testCase,
-    required this.mockApiProvider,
+    this.config = const EnsembleTestConfig(),
+    required this.apiOverlay,
     required this.logger,
     required this.setup,
   });
 
-  factory EnsembleTestContext.fromTestCase(EnsembleTestCase testCase) {
+  factory EnsembleTestContext.fromTestCase(
+    EnsembleTestCase testCase, {
+    EnsembleTestConfig config = const EnsembleTestConfig(),
+  }) {
     final logger = TestLogger();
-    final mockApi = MockAPIProvider(
+    final apiOverlay = TestApiProviderOverlay(
       mocks: Map<String, MockAPIResponse>.from(testCase.mocks.apis),
     );
 
     final storage = testCase.initialState['storage'];
+    final keychain = testCase.initialState['keychain'];
     final env = testCase.initialState['env'];
 
-    final envMap = env is Map
-        ? Map<String, dynamic>.from(env)
-        : <String, dynamic>{};
+    final envMap =
+        env is Map ? Map<String, dynamic>.from(env) : <String, dynamic>{};
 
     final setup = EnsembleTestSetup(
       envOverrides: envMap.isEmpty ? null : envMap,
-      initialPublicStorage: storage is Map
-          ? Map<String, dynamic>.from(storage)
-          : null,
+      initialPublicStorage:
+          storage is Map ? Map<String, dynamic>.from(storage) : null,
+      initialKeychain:
+          keychain is Map ? Map<String, dynamic>.from(keychain) : null,
     );
 
     final ctx = EnsembleTestContext(
       testCase: testCase,
-      mockApiProvider: mockApi,
+      config: config,
+      apiOverlay: apiOverlay,
       logger: logger,
       setup: setup,
     );
+    apiOverlay.stepIndexProvider = () => ctx.runtime.currentStepIndex;
     ctx.envOverrides.addAll(envMap);
+    ctx.runtime.locale = _localeFromEnv(envMap['APP_LOCALE']);
     return ctx;
+  }
+
+  static Locale? _localeFromEnv(dynamic value) {
+    final locale = value?.toString();
+    if (locale == null || locale.isEmpty) return null;
+    final normalized = locale.replaceAll('-', '_');
+    final parts = normalized.split('_');
+    final languageCode = parts.first;
+    if (languageCode.isEmpty) return null;
+    return Locale(languageCode, parts.length > 1 ? parts[1] : null);
   }
 
   void applyRuntimeEnv() {
@@ -74,20 +94,5 @@ class EnsembleTestContext {
 
   Future<void> clearStorage() async {
     await StorageManager().clearPublicStorage();
-  }
-
-  MockAPIResponse mockFromStepArgs(Map<String, dynamic> args) {
-    final response = args['response'];
-    if (response is! Map) {
-      throw EnsembleTestFailure('mockApi requires a "response" map');
-    }
-    return MockAPIResponse(
-      statusCode: response['statusCode'] as int? ?? 200,
-      body: response['body'],
-      headers: response['headers'] is Map
-          ? Map<String, dynamic>.from(response['headers'] as Map)
-          : null,
-      delayMs: args['delayMs'] as int?,
-    );
   }
 }

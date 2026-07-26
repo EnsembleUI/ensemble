@@ -1,7 +1,12 @@
 # yaml-language-server: $schema=https://cdn.ensembleui.com/schemas/ensemble_tests_schema.json
 id: hello_navigation_flow
-prerequisite: hello_goodbye_back
+startScreen: Hello Home
 steps:
+  - tap:
+      id: navigate_button
+  - trigger:
+      action: onTap
+      id: back_button
   - expectVisited:
       screen: Hello Home
   - expectVisited:

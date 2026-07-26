@@ -211,6 +211,7 @@ class TVOptionsComposite extends WidgetCompositeProperty {
     lockHorizontalNavigation = inputs['lockHorizontalNavigation'];
     delegateHorizontalNavigation = inputs['delegateHorizontalNavigation'];
     focusGroup = inputs['focusGroup'];
+    rememberRowPosition = inputs['rememberRowPosition'];
     edges = inputs['edges'];
     // Carousel-specific TV options
     interceptHorizontalNav = inputs['interceptHorizontalNav'];
@@ -328,6 +329,15 @@ class TVOptionsComposite extends WidgetCompositeProperty {
   set focusGroup(value) => _focusGroup = Utils.optionalString(value);
   String? get focusGroup => _focusGroup;
 
+  /// When true, remembers the last focused column per row (scoped per screen +
+  /// [focusGroup]) so vertical navigation returns to it instead of the entry
+  /// point / same column. Independent of [focusGroup]; unset (null) = inherit
+  /// from an ancestor, else default false = grid-style column preservation.
+  bool? _rememberRowPosition;
+  set rememberRowPosition(value) =>
+      _rememberRowPosition = value == null ? null : Utils.getBool(value, fallback: false);
+  bool? get rememberRowPosition => _rememberRowPosition;
+
   /// Edge targets for focus handoff at group boundaries.
   TVFocusEdgesComposite? _edges;
   set edges(value) => _edges = value is Map
@@ -410,6 +420,7 @@ class TVOptionsComposite extends WidgetCompositeProperty {
         'lockHorizontalNavigation': () => _lockHorizontalNavigation,
         'delegateHorizontalNavigation': () => _delegateHorizontalNavigation,
         'focusGroup': () => _focusGroup,
+        'rememberRowPosition': () => _rememberRowPosition,
         'edges': () => _edges,
         // Carousel-specific
         'interceptHorizontalNav': () => _interceptHorizontalNav,
@@ -444,6 +455,7 @@ class TVOptionsComposite extends WidgetCompositeProperty {
         'delegateHorizontalNavigation': (value) =>
             delegateHorizontalNavigation = value,
         'focusGroup': (value) => focusGroup = value,
+        'rememberRowPosition': (value) => rememberRowPosition = value,
         'edges': (value) => edges = value,
         // Carousel-specific
         'interceptHorizontalNav': (value) => interceptHorizontalNav = value,

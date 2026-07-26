@@ -1,15 +1,16 @@
-import 'dart:convert';
+import 'dart:ui' as ui;
 
 import 'package:ensemble/action/navigation_action.dart';
-import 'package:ensemble/framework/bindings.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/framework/screen_tracker.dart';
 import 'package:ensemble/framework/storage_manager.dart';
-import 'package:ensemble_test_runner/actions/state_helper.dart';
+import 'package:ensemble_device_preview/ensemble_device_preview.dart';
 import 'package:ensemble_test_runner/actions/test_step_executor.dart';
+import 'package:ensemble_test_runner/actions/test_theme.dart';
 import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
 import 'package:ensemble_test_runner/runner/ensemble_test_harness.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -86,9 +87,31 @@ class ExtendedStepHandlers {
         executor.assertions.expectNotExists(executor.requireId(step));
         return true;
       case 'expectTextContains':
+        final anyOfRaw = step.args['anyOf'];
+        final anyOf = <String>[
+          if (anyOfRaw is List)
+            for (final item in anyOfRaw)
+              if (item != null && item.toString().trim().isNotEmpty)
+                item.toString(),
+        ];
         final text = step.args['text']?.toString();
+        final timeoutMs = step.args['timeoutMs'] as int?;
+        if (timeoutMs != null && timeoutMs > 0) {
+          await executor.waitForTextContains(
+            text: text,
+            anyOf: anyOf,
+            timeoutMs: timeoutMs,
+          );
+          return true;
+        }
+        if (anyOf.isNotEmpty) {
+          executor.assertions.expectTextContainsAny(anyOf);
+          return true;
+        }
         if (text == null) {
-          throw EnsembleTestFailure('expectTextContains requires "text"');
+          throw EnsembleTestFailure(
+            'expectTextContains requires "text" or "anyOf"',
+          );
         }
         executor.assertions.expectTextContains(text);
         return true;
@@ -170,32 +193,6 @@ class ExtendedStepHandlers {
       case 'goBack':
         await _goBack(executor);
         return true;
-      case 'mockApiFromFixture':
-        await _mockApiFromFixture(executor, step);
-        return true;
-      case 'clearApiMocks':
-        executor.context.mockApiProvider.clearMocks();
-        return true;
-      case 'mockApiException':
-        await _mockApiException(executor, step);
-        return true;
-      case 'mockTimeout':
-        await _mockTimeout(executor, step);
-        return true;
-      case 'mockNetworkOffline':
-        _setNetworkOffline(executor, true);
-        return true;
-      case 'mockNetworkOnline':
-        _setNetworkOffline(executor, false);
-        return true;
-      case 'expectApiHeader':
-        executor.assertions.expectApiHeader(
-          step.args['name']?.toString() ?? '',
-          step.args['header']?.toString() ?? '',
-          step.args['equals'],
-          times: step.args['times'] as int?,
-        );
-        return true;
       case 'expectApiCallOrder':
         executor.assertions.expectApiCallOrder(
           (step.args['names'] as List?)?.map((e) => e.toString()).toList() ??
@@ -215,24 +212,6 @@ class ExtendedStepHandlers {
       case 'clearStorage':
         await executor.context.clearStorage();
         return true;
-      case 'expectStateContains':
-        executor.assertions.expectStateContains(
-          step.args['path']?.toString() ?? '',
-          step.args['contains'],
-        );
-        return true;
-      case 'expectStateExists':
-        executor.assertions
-            .expectStateExists(step.args['path']?.toString() ?? '');
-        return true;
-      case 'expectStateNotExists':
-        executor.assertions.expectStateNotExists(
-          step.args['path']?.toString() ?? '',
-        );
-        return true;
-      case 'resetState':
-        await _resetState(executor, step);
-        return true;
       case 'setAuth':
         _setAuth(executor, step);
         return true;
@@ -249,7 +228,7 @@ class ExtendedStepHandlers {
         await _setLocale(executor, step);
         return true;
       case 'setTheme':
-        _setTheme(executor, step);
+        await _setTheme(executor, step);
         return true;
       case 'runScript':
         _runScript(executor, step, expectResult: false);
@@ -261,26 +240,6 @@ class ExtendedStepHandlers {
       case 'expectConsoleLog':
         executor.assertions
             .expectConsoleLog(step.args['contains']?.toString() ?? '');
-        return true;
-      case 'loadFixture':
-        await _loadFixture(executor, step);
-        return true;
-      case 'setStateFromFixture':
-        await _setStateFromFixture(executor, step);
-        return true;
-      case 'expectMatchesFixture':
-        await _expectMatchesFixture(executor, step);
-        return true;
-      case 'logState':
-        executor.context.logger.log(
-          'state: ${executor.assertions.readState(step.args['path']?.toString() ?? '')}',
-        );
-        return true;
-      case 'logStorage':
-        final key = step.args['key']?.toString();
-        executor.context.logger.log(
-          'storage[$key]=${StorageManager().read(key ?? '')}',
-        );
         return true;
       case 'expectAccessible':
         executor.assertions.expectAccessible(executor.requireId(step));
@@ -301,13 +260,6 @@ class ExtendedStepHandlers {
         return true;
       case 'expectNoErrors':
         executor.assertions.expectNoRenderErrors();
-        return true;
-      case 'screenshot':
-        await _screenshot(executor, step);
-        return true;
-      case 'dumpTree':
-        debugDumpApp();
-        executor.context.logger.log('dumpTree: see debug console');
         return true;
       case 'expectNoConsoleErrors':
         executor.assertions.expectNoConsoleErrors();
@@ -333,7 +285,7 @@ class ExtendedStepHandlers {
   static Future<void> _restartApp(TestStepExecutor e) async {
     EnsembleTestHarness.resetTestRuntime();
     e.context.runtime.clear();
-    e.context.mockApiProvider.resetCalls();
+    e.context.apiOverlay.resetCalls();
     final screen = e.context.testCase.startScreen ??
         ScreenTracker().getCurrentScreenIdentifier();
     if (screen == null || screen.isEmpty) {
@@ -346,7 +298,7 @@ class ExtendedStepHandlers {
 
   static Future<void> _resetAppState(TestStepExecutor e) async {
     ScreenTracker().clearAll();
-    e.context.mockApiProvider.resetCalls();
+    e.context.apiOverlay.resetCalls();
     e.context.runtime.clear();
     await StorageManager().clearPublicStorage();
   }
@@ -477,54 +429,6 @@ class ExtendedStepHandlers {
     throw EnsembleTestFailure('goBack: no navigator or active scope');
   }
 
-  static Future<void> _mockApiFromFixture(
-      TestStepExecutor e, TestStep step) async {
-    final name = step.args['name']?.toString();
-    final fixture = step.args['fixture']?.toString();
-    if (name == null || fixture == null) {
-      throw EnsembleTestFailure(
-          'mockApiFromFixture requires "name" and "fixture"');
-    }
-    final body = await _readFixture(e, fixture);
-    e.context.mockApiProvider.setMock(
-      name,
-      MockAPIResponse(
-        statusCode: step.args['statusCode'] as int? ?? 200,
-        body: body,
-      ),
-    );
-  }
-
-  static Future<void> _mockApiException(
-      TestStepExecutor e, TestStep step) async {
-    final name = step.args['name']?.toString();
-    if (name == null)
-      throw EnsembleTestFailure('mockApiException requires "name"');
-    e.context.mockApiProvider.setApiException(
-      name,
-      Exception(step.args['message']?.toString() ?? 'API exception (test)'),
-    );
-  }
-
-  static Future<void> _mockTimeout(TestStepExecutor e, TestStep step) async {
-    final name = step.args['name']?.toString();
-    if (name == null) throw EnsembleTestFailure('mockTimeout requires "name"');
-    e.context.mockApiProvider.setMock(
-      name,
-      MockAPIResponse(
-        statusCode: 200,
-        body: {},
-        delayMs: step.args['delayMs'] as int? ?? 60000,
-      ),
-    );
-  }
-
-  static void _setNetworkOffline(TestStepExecutor e, bool offline) {
-    e.context.mockApiProvider.simulateNetworkOffline = offline;
-    ConnectivityState().isOnline = !offline;
-    e.context.runtime.networkOffline = offline;
-  }
-
   static void _setAuth(TestStepExecutor e, TestStep step) {
     final user = step.args['user'];
     if (user is Map) {
@@ -552,9 +456,13 @@ class ExtendedStepHandlers {
   static Future<void> _setDevice(TestStepExecutor e, TestStep step) async {
     final width = (step.args['width'] as num?)?.toDouble() ?? 390;
     final height = (step.args['height'] as num?)?.toDouble() ?? 844;
-    e.tester.view.physicalSize = Size(width, height);
+    final size = Size(width, height);
+    await e.tester.binding.setSurfaceSize(size);
+    e.tester.view.physicalSize = size;
     e.tester.view.devicePixelRatio = 1.0;
-    e.context.runtime.deviceSize = Size(width, height);
+    e.tester.view.padding = FakeViewPadding.zero;
+    e.tester.view.viewPadding = FakeViewPadding.zero;
+    e.context.runtime.deviceSize = size;
     await e.settle();
   }
 
@@ -564,12 +472,16 @@ class ExtendedStepHandlers {
     e.context.runtime.locale = Locale(locale.split('_').first);
   }
 
-  static void _setTheme(TestStepExecutor e, TestStep step) {
+  static Future<void> _setTheme(TestStepExecutor e, TestStep step) async {
     final theme =
         step.args['mode']?.toString() ?? step.args['theme']?.toString();
-    if (theme != null) {
-      e.context.setEnv('APP_THEME', theme);
-      e.context.runtime.themeMode = theme;
+    if (theme == null || theme.trim().isEmpty) return;
+
+    e.context.setEnv('APP_THEME', theme);
+    final applied = applyEnsembleTestTheme(theme);
+    e.context.runtime.themeMode = applied ?? theme;
+    if (applied != null) {
+      await e.tester.pump();
     }
   }
 
@@ -598,117 +510,87 @@ class ExtendedStepHandlers {
     }
   }
 
-  static Future<dynamic> _readFixture(TestStepExecutor e, String path) async {
-    Object? lastError;
-    for (final candidate in _fixtureAssetCandidates(e, path)) {
-      try {
-        final raw = await rootBundle.loadString(candidate);
-        return json.decode(raw);
-      } catch (error) {
-        lastError = error;
-      }
+  static Future<Uint8List> captureScreenshotBytes(
+    WidgetTester tester, {
+    required DeviceInfo device,
+  }) async {
+    final image = captureScreenshotImage(tester);
+    try {
+      return await encodeScreenshotImage(image, device);
+    } finally {
+      image.dispose();
     }
-    throw EnsembleTestFailure(
-      'Fixture not found: $path. Use tests/fixtures/<name>.json. $lastError',
+  }
+
+  static ui.Image captureScreenshotImage(WidgetTester tester) {
+    final renderView = tester.binding.renderViews.first;
+    final layer = renderView.debugLayer;
+    if (layer is! OffsetLayer) {
+      throw EnsembleTestFailure(
+        'screenshot requires a painted render view.',
+      );
+    }
+
+    return layer.toImageSync(
+      renderView.paintBounds,
+      pixelRatio: renderView.flutterView.devicePixelRatio,
     );
   }
 
-  static List<String> _fixtureAssetCandidates(TestStepExecutor e, String path) {
-    final sourcePath = e.context.testCase.sourcePath;
-    final candidates = <String>[];
-    if (sourcePath != null && sourcePath.contains('/')) {
-      final testDir = sourcePath.substring(0, sourcePath.lastIndexOf('/'));
-      candidates.add(
-        path.startsWith('fixtures/')
-            ? '$testDir/$path'
-            : '$testDir/fixtures/$path',
-      );
-    }
-    candidates.add(path);
-    if (!path.startsWith('ensemble/')) candidates.add('ensemble/$path');
-    return candidates.toSet().toList();
-  }
-
-  static Future<void> _loadFixture(TestStepExecutor e, TestStep step) async {
-    final key = step.args['key']?.toString();
-    final path =
-        step.args['path']?.toString() ?? step.args['fixture']?.toString();
-    if (key == null || path == null) {
-      throw EnsembleTestFailure('loadFixture requires "key" and "path"');
-    }
-    e.context.runtime.fixtures[key] = await _readFixture(e, path);
-  }
-
-  static Future<void> _setStateFromFixture(
-      TestStepExecutor e, TestStep step) async {
-    final path =
-        step.args['fixture']?.toString() ?? step.args['path']?.toString();
-    if (path == null) {
-      throw EnsembleTestFailure(
-          'setStateFromFixture requires "fixture" or "path"');
-    }
-    final data = await _readFixture(e, path);
-    if (data is! Map) {
-      throw EnsembleTestFailure('Fixture must be a JSON object');
-    }
-    final scope = e.assertions.activeScope();
-    if (scope == null) {
-      throw EnsembleTestFailure('setStateFromFixture requires active screen');
-    }
-    for (final entry in data.entries) {
-      setStatePath(scope, entry.key.toString(), entry.value);
-    }
-    await e.settle();
-  }
-
-  static Future<void> _expectMatchesFixture(
-    TestStepExecutor e,
-    TestStep step,
+  static Future<Uint8List> encodeScreenshotImage(
+    ui.Image image,
+    DeviceInfo device,
   ) async {
-    final path =
-        step.args['fixture']?.toString() ?? step.args['path']?.toString();
-    final statePath = step.args['statePath']?.toString();
-    if (path == null) {
-      throw EnsembleTestFailure(
-          'expectMatchesFixture requires "fixture" or "path"');
+    final byteData = await _addDeviceFrame(image, device);
+    if (byteData == null) {
+      throw EnsembleTestFailure('Failed to encode screenshot as PNG.');
     }
-    final expected = await _readFixture(e, path);
-    if (statePath != null) {
-      e.assertions.expectState(statePath, expected);
-    } else {
-      final actual =
-          e.assertions.readState(step.args['path']?.toString() ?? '');
-      if (!_deepEquals(actual, expected)) {
-        throw EnsembleTestFailure(
-          'State does not match fixture $path: expected $expected, got $actual',
-        );
-      }
-    }
+    return byteData.buffer.asUint8List();
   }
 
-  static Future<void> _resetState(TestStepExecutor e, TestStep step) async {
-    final path = step.args['path']?.toString();
-    final scope = e.assertions.activeScope();
-    if (scope == null) {
-      throw EnsembleTestFailure('resetState requires active screen');
-    }
-    if (path != null) {
-      setStatePath(scope, path, null);
-    }
-    await e.settle();
-  }
+  static Future<ByteData?> _addDeviceFrame(
+    ui.Image screenImage,
+    DeviceInfo device,
+  ) async {
+    final padding = device.frameSize.shortestSide * 0.025;
+    final outputWidth = (device.frameSize.width + padding * 2).ceil();
+    final outputHeight = (device.frameSize.height + padding * 2).ceil();
 
-  static Future<void> _screenshot(TestStepExecutor e, TestStep step) async {
-    final name = step.args['name']?.toString();
-    if (name != null && name.isNotEmpty) {
-      await expectLater(
-        find.byType(MaterialApp),
-        matchesGoldenFile('goldens/$name.png'),
-      );
-    } else {
-      debugDumpApp();
-      e.context.logger.log('screenshot: debug tree dumped (no golden name)');
-    }
+    final recorder = ui.PictureRecorder();
+    final canvas = Canvas(
+      recorder,
+      Rect.fromLTWH(0, 0, outputWidth.toDouble(), outputHeight.toDouble()),
+    );
+
+    canvas.drawColor(const Color(0x00000000), BlendMode.src);
+    canvas.save();
+    canvas.translate(padding, padding);
+    device.framePainter.paint(canvas, device.frameSize);
+
+    final screenPath = device.screenPath;
+    final screenRect = screenPath.getBounds();
+    canvas.save();
+    canvas.clipPath(screenPath);
+    canvas.drawImageRect(
+      screenImage,
+      Rect.fromLTWH(
+        0,
+        0,
+        screenImage.width.toDouble(),
+        screenImage.height.toDouble(),
+      ),
+      screenRect,
+      Paint()..filterQuality = FilterQuality.high,
+    );
+    canvas.restore();
+    canvas.restore();
+
+    final picture = recorder.endRecording();
+    final image = await picture.toImage(outputWidth, outputHeight);
+    picture.dispose();
+    final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+    image.dispose();
+    return byteData;
   }
 
   static bool _deepEquals(dynamic a, dynamic b) {

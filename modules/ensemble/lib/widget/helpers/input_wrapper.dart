@@ -63,6 +63,8 @@ class InputWrapper extends StatelessWidget {
     final tvOrder = tvOptions.order ?? 0;
     final isRowEntryPoint = tvOptions.isRowEntryPoint;
     final focusGroup = resolveTVFocusGroup(context, tvOptions);
+    final rememberRowPosition =
+        resolveTVRememberRowPosition(context, tvOptions);
 
     final externalProvider = TVFocusProviderScope.maybeOf(context);
     final effectiveRow =
@@ -120,6 +122,7 @@ class InputWrapper extends StatelessWidget {
         lockHorizontalNavigation: tvOptions.lockHorizontalNavigation,
         delegateHorizontalNavigation: tvOptions.delegateHorizontalNavigation,
         focusGroup: focusGroup,
+        rememberRowPosition: rememberRowPosition,
         onRightEdge: rightEdgeHandler,
         onLeftEdge: leftEdgeHandler,
         onTopEdge: topEdgeHandler,
@@ -137,6 +140,7 @@ class InputWrapper extends StatelessWidget {
         lockHorizontalNavigation: tvOptions.lockHorizontalNavigation,
         delegateHorizontalNavigation: tvOptions.delegateHorizontalNavigation,
         focusGroup: focusGroup,
+        rememberRowPosition: rememberRowPosition,
       ),
       onRightEdge: rightEdgeHandler,
       onLeftEdge: leftEdgeHandler,

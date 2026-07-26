@@ -11,6 +11,7 @@ class TVFocusContext extends InheritedWidget {
     super.key,
     required super.child,
     this.focusGroup,
+    this.rememberRowPosition,
     this.rightEdge,
     this.leftEdge,
     this.topEdge,
@@ -18,6 +19,9 @@ class TVFocusContext extends InheritedWidget {
   });
 
   final String? focusGroup;
+
+  /// Inherited row-position-memory opt-in. Null = not provided at this level.
+  final bool? rememberRowPosition;
   final TVFocusEdgeTargetComposite? rightEdge;
   final TVFocusEdgeTargetComposite? leftEdge;
   final TVFocusEdgeTargetComposite? topEdge;
@@ -30,6 +34,7 @@ class TVFocusContext extends InheritedWidget {
   @override
   bool updateShouldNotify(TVFocusContext oldWidget) {
     return focusGroup != oldWidget.focusGroup ||
+        rememberRowPosition != oldWidget.rememberRowPosition ||
         rightEdge != oldWidget.rightEdge ||
         leftEdge != oldWidget.leftEdge ||
         topEdge != oldWidget.topEdge ||

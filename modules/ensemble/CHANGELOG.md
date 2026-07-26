@@ -1,3 +1,10 @@
+## 1.2.50
+
+ - **FIX**(firestore): dedupe listenForChanges subscriptions to prevent crash ([#2257](https://github.com/ensembleUI/ensemble/issues/2257)). ([3e7a0416](https://github.com/ensembleUI/ensemble/commit/3e7a0416c04e30d24af593eabcf9a49c16d0458a))
+ - **FIX**(webview): set cookies for inline HTML on native ([#2298](https://github.com/ensembleUI/ensemble/issues/2298)). ([79519031](https://github.com/ensembleUI/ensemble/commit/79519031e370abe7aa146cadd523f2c83d58da3d))
+ - **FEAT**(test_runner): support live Firebase and HTTP under flutter test ([#2321](https://github.com/ensembleUI/ensemble/issues/2321)). ([9ffe6994](https://github.com/ensembleUI/ensemble/commit/9ffe6994322370ca32a79f1ce75eb06bee251018))
+ - **FEAT**: Add ES6 parser and interpreter runtime support ([#2320](https://github.com/ensembleUI/ensemble/issues/2320)). ([8902b10f](https://github.com/ensembleUI/ensemble/commit/8902b10f0d842dc8a1d99ffd87f05d4ed92db8b3))
+
 ## 1.2.49
 
  - **REFACTOR**: Remove unused imports across various files to clean up code… ([#2317](https://github.com/ensembleUI/ensemble/issues/2317)). ([e68b584c](https://github.com/ensembleUI/ensemble/commit/e68b584c5d8ac9c6ecb2e014027512481c2193dd))

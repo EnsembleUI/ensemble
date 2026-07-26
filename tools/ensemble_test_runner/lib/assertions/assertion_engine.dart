@@ -1,16 +1,14 @@
 import 'dart:convert';
-import 'dart:ui' show SemanticsFlag;
-
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/screen_tracker.dart';
 import 'package:ensemble/framework/storage_manager.dart';
 import 'package:ensemble/framework/view/data_scope_widget.dart';
 import 'package:ensemble/framework/view/page_group.dart';
-import 'package:ensemble_test_runner/mocks/mock_api_provider.dart';
 import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
 import 'package:ensemble_test_runner/runner/ensemble_test_context.dart';
 import 'package:ensemble_test_runner/runner/yaml_test_session.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 class AssertionEngine {
@@ -24,8 +22,53 @@ class AssertionEngine {
 
   Finder finderForId(String id) => find.byKey(ValueKey(id));
 
+  /// First matching element that is on the current route and visually actionable.
+  ///
+  /// Used by screenshot highlights so we never annotate off-route / covered
+  /// widgets while another screen is painted.
+  Element? firstVisuallyActionableElement(
+    Finder finder, {
+    bool requireHitTestable = false,
+  }) {
+    final candidates = requireHitTestable
+        ? finder.hitTestable().evaluate()
+        : finder.evaluate();
+    for (final element in candidates) {
+      if (isElementVisuallyActionable(element)) {
+        return element;
+      }
+    }
+    return null;
+  }
+
+  /// Bounds for [firstVisuallyActionableElement], or null when none qualify.
+  Rect? rectForVisuallyActionable(
+    Finder finder, {
+    bool requireHitTestable = false,
+  }) {
+    final element = firstVisuallyActionableElement(
+      finder,
+      requireHitTestable: requireHitTestable,
+    );
+    if (element == null) return null;
+    final renderObject = element.renderObject;
+    if (renderObject is! RenderBox ||
+        !renderObject.hasSize ||
+        renderObject.size.isEmpty) {
+      return null;
+    }
+    final topLeft = renderObject.localToGlobal(Offset.zero);
+    final rect = topLeft & renderObject.size;
+    if (!rect.isFinite || rect.isEmpty) return null;
+    return rect;
+  }
+
+  /// Whether [element] is on the current modal route, not offstage, and on-screen.
+  bool isElementVisuallyActionable(Element element) =>
+      _isElementInViewport(element);
+
   void expectVisible(String id) {
-    final finder = finderForId(id);
+    final finder = finderForId(id).hitTestable();
     if (finder.evaluate().isEmpty) {
       throw EnsembleTestFailure(
         'Expected widget with id "$id" to be visible. '
@@ -35,7 +78,7 @@ class AssertionEngine {
   }
 
   void expectNotVisible(String id) {
-    final finder = finderForId(id);
+    final finder = finderForId(id).hitTestable();
     if (finder.evaluate().isNotEmpty) {
       throw EnsembleTestFailure(
         'Expected widget with id "$id" to not be visible.',
@@ -44,16 +87,87 @@ class AssertionEngine {
   }
 
   void expectText(String text) {
-    final finder = find.text(text);
-    if (finder.evaluate().isEmpty) {
+    if (!isTextVisible(text)) {
       throw EnsembleTestFailure('Expected text "$text" to be visible.');
     }
   }
 
+  void expectTextAny(List<String> texts) {
+    final candidates = _nonEmptyTexts(texts);
+    for (final text in candidates) {
+      if (isTextVisible(text)) return;
+    }
+    throw EnsembleTestFailure(
+      'Expected one of these texts to be visible: '
+      '${candidates.map((t) => '"$t"').join(', ')}.',
+    );
+  }
+
   void expectNoText(String text) {
-    if (find.text(text).evaluate().isNotEmpty) {
+    if (isTextVisible(text)) {
       throw EnsembleTestFailure('Expected text "$text" to not be visible.');
     }
+  }
+
+  void expectNoTextAny(List<String> texts) {
+    final candidates = _nonEmptyTexts(texts);
+    final visible = <String>[];
+    for (final text in candidates) {
+      if (isTextVisible(text)) visible.add(text);
+    }
+    if (visible.isNotEmpty) {
+      throw EnsembleTestFailure(
+        'Expected none of these texts to be visible, but found: '
+        '${visible.map((t) => '"$t"').join(', ')}.',
+      );
+    }
+  }
+
+  void expectTextContains(String text) {
+    if (!isTextContainingVisible(text)) {
+      throw EnsembleTestFailure('Expected text containing "$text".');
+    }
+  }
+
+  void expectTextContainsAny(List<String> texts) {
+    final candidates = _nonEmptyTexts(texts);
+    for (final text in candidates) {
+      if (isTextContainingVisible(text)) return;
+    }
+    throw EnsembleTestFailure(
+      'Expected text containing one of: '
+      '${candidates.map((t) => '"$t"').join(', ')}.',
+    );
+  }
+
+  bool isTextVisible(String text) => _hasVisiblePaintedElement(find.text(text));
+
+  bool isTextContainingVisible(String text) =>
+      _hasVisiblePaintedElement(find.textContaining(text));
+
+  bool isAnyTextVisible(List<String> texts) {
+    for (final text in _nonEmptyTexts(texts)) {
+      if (isTextVisible(text)) return true;
+    }
+    return false;
+  }
+
+  bool isAnyTextContainingVisible(List<String> texts) {
+    for (final text in _nonEmptyTexts(texts)) {
+      if (isTextContainingVisible(text)) return true;
+    }
+    return false;
+  }
+
+  static List<String> _nonEmptyTexts(List<String> texts) {
+    final candidates = texts
+        .map((text) => text.trim())
+        .where((text) => text.isNotEmpty)
+        .toList();
+    if (candidates.isEmpty) {
+      throw EnsembleTestFailure('Text anyOf must not be empty.');
+    }
+    return candidates;
   }
 
   void expectEnabled(String id) {
@@ -71,8 +185,9 @@ class AssertionEngine {
         'Expected widget with id "$id" to exist for enabled check.',
       );
     }
-    final semantics = tester.getSemantics(finder);
-    final isEnabled = semantics.hasFlag(SemanticsFlag.isEnabled);
+    final isEnabled = _readSemantics(
+      () => tester.getSemantics(finder).hasFlag(SemanticsFlag.isEnabled),
+    );
     if (isEnabled != enabled) {
       throw EnsembleTestFailure(
         'Expected widget "$id" to be ${enabled ? 'enabled' : 'disabled'}, '
@@ -82,7 +197,7 @@ class AssertionEngine {
   }
 
   void expectApiNotCalled(String apiName) {
-    final count = context.mockApiProvider.callCount(apiName);
+    final count = context.apiOverlay.callCount(apiName);
     if (count != 0) {
       throw EnsembleTestFailure(
         'Expected API "$apiName" not to be called, but it was called $count times.',
@@ -134,63 +249,11 @@ class AssertionEngine {
   }
 
   void expectApiCalled(String apiName, int times) {
-    final actual = context.mockApiProvider.callCount(apiName);
+    final actual = context.apiOverlay.callCount(apiName);
     if (actual != times) {
       throw EnsembleTestFailure(
         'Expected API "$apiName" to be called $times times, but it was called $actual times. '
         '${apiCallSummary()}',
-      );
-    }
-  }
-
-  void expectApiRequest(
-    String apiName, {
-    dynamic body,
-    dynamic query,
-    dynamic headers,
-    int? times,
-  }) {
-    final record = _selectApiCall(apiName, times: times);
-
-    if (body != null && !_deepEquals(record.body, body)) {
-      throw EnsembleTestFailure(
-        'Expected API "$apiName" body $body, but got ${record.body}.',
-      );
-    }
-    if (query != null && !_deepEquals(record.query, query)) {
-      throw EnsembleTestFailure(
-        'Expected API "$apiName" query $query, but got ${record.query}.',
-      );
-    }
-    if (headers != null && !_deepEquals(record.headers, headers)) {
-      throw EnsembleTestFailure(
-        'Expected API "$apiName" headers $headers, but got ${record.headers}.',
-      );
-    }
-  }
-
-  void expectApiRequestContains(
-    String apiName, {
-    dynamic body,
-    dynamic query,
-    dynamic headers,
-    int? times,
-  }) {
-    final record = _selectApiCall(apiName, times: times);
-
-    if (body != null && !_deepContains(record.body, body)) {
-      throw EnsembleTestFailure(
-        'Expected API "$apiName" body to contain $body, but got ${record.body}.',
-      );
-    }
-    if (query != null && !_deepContains(record.query, query)) {
-      throw EnsembleTestFailure(
-        'Expected API "$apiName" query to contain $query, but got ${record.query}.',
-      );
-    }
-    if (headers != null && !_deepContains(record.headers, headers)) {
-      throw EnsembleTestFailure(
-        'Expected API "$apiName" headers to contain $headers, but got ${record.headers}.',
       );
     }
   }
@@ -218,10 +281,69 @@ class AssertionEngine {
     }
   }
 
-  void expectTextContains(String text) {
-    if (find.textContaining(text).evaluate().isEmpty) {
-      throw EnsembleTestFailure('Expected text containing "$text".');
+  bool _hasVisiblePaintedElement(Finder finder) {
+    return finder.evaluate().any(_isElementInViewport);
+  }
+
+  bool _isElementInViewport(Element element) {
+    final route = ModalRoute.of(element);
+    if (route != null && !route.isCurrent) return false;
+    if (_isUnderOffstageAncestor(element)) return false;
+
+    final renderObject = element.renderObject;
+    if (renderObject is! RenderBox ||
+        !renderObject.hasSize ||
+        renderObject.size.isEmpty) {
+      return false;
     }
+    if (_effectiveOpacity(element) <= 0.01) return false;
+
+    final topLeft = renderObject.localToGlobal(Offset.zero);
+    final rect = topLeft & renderObject.size;
+    if (!rect.isFinite || rect.isEmpty) return false;
+
+    final viewport = tester.binding.renderViews.first.paintBounds;
+    final visibleRect = rect.intersect(viewport);
+    return visibleRect != Rect.zero &&
+        visibleRect.width > 0 &&
+        visibleRect.height > 0;
+  }
+
+  bool _isUnderOffstageAncestor(Element element) {
+    var isOffstage = false;
+    element.visitAncestorElements((ancestor) {
+      final renderObject = ancestor.renderObject;
+      if (renderObject is RenderOffstage && renderObject.offstage) {
+        isOffstage = true;
+        return false;
+      }
+      return true;
+    });
+    return isOffstage;
+  }
+
+  double _effectiveOpacity(Element element) {
+    var opacity = 1.0;
+    element.visitAncestorElements((ancestor) {
+      final renderObject = ancestor.renderObject;
+      if (renderObject is RenderOpacity) {
+        opacity *= renderObject.opacity;
+      } else if (renderObject != null &&
+          renderObject.runtimeType.toString() == 'RenderAnimatedOpacity') {
+        try {
+          final animatedOpacity = (renderObject as dynamic).opacity;
+          if (animatedOpacity is Animation<double>) {
+            opacity *= animatedOpacity.value;
+          } else if (animatedOpacity is double) {
+            opacity *= animatedOpacity;
+          }
+        } catch (_) {
+          // Keep the opacity already collected from other ancestors.
+        }
+      }
+      return opacity > 0.01;
+    });
+    return opacity;
   }
 
   void expectChecked(String id, bool expected) {
@@ -229,8 +351,9 @@ class AssertionEngine {
     if (finder.evaluate().isEmpty) {
       throw EnsembleTestFailure('expectChecked: widget "$id" not found.');
     }
-    final semantics = tester.getSemantics(finder);
-    final isChecked = semantics.hasFlag(SemanticsFlag.isChecked);
+    final isChecked = _readSemantics(
+      () => tester.getSemantics(finder).hasFlag(SemanticsFlag.isChecked),
+    );
     if (isChecked != expected) {
       throw EnsembleTestFailure(
         'Expected "$id" checked=$expected, got $isChecked.',
@@ -244,8 +367,7 @@ class AssertionEngine {
       throw EnsembleTestFailure('expectProperty: widget "$id" not found.');
     }
     if (property == 'label') {
-      final semantics = tester.getSemantics(finder);
-      final label = semantics.label;
+      final label = _readSemantics(() => tester.getSemantics(finder).label);
       if (label != expected?.toString()) {
         throw EnsembleTestFailure(
           'Expected label "$expected", got "$label".',
@@ -341,24 +463,8 @@ class AssertionEngine {
     }
   }
 
-  void expectApiHeader(
-    String apiName,
-    String header,
-    dynamic expected, {
-    int? times,
-  }) {
-    final record = _selectApiCall(apiName, times: times);
-    final headers = record.headers ?? {};
-    final actual = headers[header.toLowerCase()];
-    if (!_deepEquals(actual, expected)) {
-      throw EnsembleTestFailure(
-        'Expected API "$apiName" header "$header" = "$expected", got "$actual".',
-      );
-    }
-  }
-
   void expectApiCallOrder(List<String> names) {
-    final actual = context.mockApiProvider.calls.map((c) => c.name).toList();
+    final actual = context.apiOverlay.calls.map((c) => c.name).toList();
     var index = 0;
     for (final name in names) {
       while (index < actual.length && actual[index] != name) {
@@ -374,40 +480,12 @@ class AssertionEngine {
   }
 
   void expectLastApiCall(String apiName) {
-    final calls = context.mockApiProvider.calls;
+    final calls = context.apiOverlay.calls;
     if (calls.isEmpty || calls.last.name != apiName) {
       throw EnsembleTestFailure(
         'Expected last API call to be "$apiName", '
         'but got ${calls.isEmpty ? "none" : calls.last.name}.',
       );
-    }
-  }
-
-  void expectStateContains(String path, dynamic contains) {
-    final actual = readState(path);
-    if (!_deepContains(actual, contains)) {
-      throw EnsembleTestFailure(
-        'Expected state "$path" to contain $contains, got $actual.',
-      );
-    }
-  }
-
-  void expectStateExists(String path) {
-    try {
-      readState(path);
-    } catch (_) {
-      throw EnsembleTestFailure('Expected state path "$path" to exist.');
-    }
-  }
-
-  void expectStateNotExists(String path) {
-    try {
-      final value = readState(path);
-      if (value != null) {
-        throw EnsembleTestFailure('Expected state path "$path" to be absent.');
-      }
-    } on EnsembleTestFailure {
-      // expected
     }
   }
 
@@ -425,8 +503,11 @@ class AssertionEngine {
     if (finder.evaluate().isEmpty) {
       throw EnsembleTestFailure('expectAccessible: "$id" not found.');
     }
-    final semantics = tester.getSemantics(finder);
-    if (semantics.label.isEmpty && semantics.value.isEmpty) {
+    final hasAccessibleText = _readSemantics(() {
+      final semantics = tester.getSemantics(finder);
+      return semantics.label.isNotEmpty || semantics.value.isNotEmpty;
+    });
+    if (!hasAccessibleText) {
       throw EnsembleTestFailure(
         'Widget "$id" has no accessibility label or value.',
       );
@@ -435,11 +516,20 @@ class AssertionEngine {
 
   void expectSemanticsLabel(String id, String label) {
     final finder = finderForId(id);
-    final semantics = tester.getSemantics(finder);
-    if (semantics.label != label) {
+    final actual = _readSemantics(() => tester.getSemantics(finder).label);
+    if (actual != label) {
       throw EnsembleTestFailure(
-        'Expected semantics label "$label", got "${semantics.label}".',
+        'Expected semantics label "$label", got "$actual".',
       );
+    }
+  }
+
+  T _readSemantics<T>(T Function() read) {
+    final handle = tester.ensureSemantics();
+    try {
+      return read();
+    } finally {
+      handle.dispose();
     }
   }
 
@@ -480,45 +570,6 @@ class AssertionEngine {
     }
   }
 
-  APICallRecord _selectApiCall(String apiName, {int? times}) {
-    final calls = context.mockApiProvider.callsFor(apiName);
-    if (calls.isEmpty) {
-      throw EnsembleTestFailure('Expected API "$apiName" to be called.');
-    }
-    if (times != null) {
-      if (times < 1 || times > calls.length) {
-        throw EnsembleTestFailure(
-          'Expected API "$apiName" call #$times, but it was called ${calls.length} times.',
-        );
-      }
-      return calls[times - 1];
-    }
-    return calls.last;
-  }
-
-  /// Reads a data-context path without asserting.
-  dynamic readState(String path) {
-    final scope = _activeScope();
-    if (scope == null) {
-      throw EnsembleTestFailure(
-        'readState requires an active Ensemble screen (no ScopeManager found).',
-      );
-    }
-    if (path.contains(r'${') || path.contains(r'$(')) {
-      return scope.dataContext.eval(path);
-    }
-    return scope.dataContext.eval('\${$path}');
-  }
-
-  bool matchesState(String path, dynamic expected) {
-    try {
-      expectState(path, expected);
-      return true;
-    } on EnsembleTestFailure {
-      return false;
-    }
-  }
-
   void expectStorage(String key, dynamic expected) {
     final actual = StorageManager().read(key);
     if (actual != expected) {
@@ -529,28 +580,6 @@ class AssertionEngine {
   }
 
   ScopeManager? activeScope() => _activeScope();
-
-  void expectState(String path, dynamic expected) {
-    final scope = _activeScope();
-    if (scope == null) {
-      throw EnsembleTestFailure(
-        'expectState requires an active Ensemble screen (no ScopeManager found).',
-      );
-    }
-
-    dynamic actual;
-    if (path.contains(r'${') || path.contains(r'$(')) {
-      actual = scope.dataContext.eval(path);
-    } else {
-      actual = scope.dataContext.eval('\${$path}');
-    }
-
-    if (!_deepEquals(actual, expected)) {
-      throw EnsembleTestFailure(
-        'Expected state "$path" to equal "$expected", but got "$actual".',
-      );
-    }
-  }
 
   void expectNavigateTo(String screenName) {
     final tracker = ScreenTracker();
@@ -594,8 +623,21 @@ class AssertionEngine {
     return 'Visible widget ids: $shown$suffix.';
   }
 
+  String visibleTextSummary({int limit = 10}) {
+    final texts = tester.allWidgets
+        .whereType<Text>()
+        .map((widget) => widget.data)
+        .whereType<String>()
+        .where((value) => value.isNotEmpty)
+        .toSet()
+        .take(limit)
+        .toList();
+    if (texts.isEmpty) return 'No Text widgets are currently visible.';
+    return 'Visible text: ${texts.map(jsonEncode).join(', ')}.';
+  }
+
   String apiCallSummary({int limit = 10}) {
-    final calls = context.mockApiProvider.calls;
+    final calls = context.apiOverlay.calls;
     if (calls.isEmpty) return 'No API calls were recorded.';
     final names = calls.take(limit).map((call) => call.name).join(', ');
     final suffix = calls.length > limit ? ', ... (${calls.length} total)' : '';
@@ -612,37 +654,6 @@ class AssertionEngine {
       if (scope != null) return scope;
     }
     return null;
-  }
-
-  /// True when [subset] is contained in [value] (maps/lists recurse).
-  bool _deepContains(dynamic value, dynamic subset) {
-    if (subset == null) return true;
-    if (value == null) return false;
-
-    final normalizedValue = _normalizeForCompare(value);
-    final normalizedSubset = _normalizeForCompare(subset);
-
-    if (normalizedSubset is Map) {
-      if (normalizedValue is! Map) return false;
-      for (final entry in normalizedSubset.entries) {
-        if (!normalizedValue.containsKey(entry.key)) return false;
-        if (!_deepContains(normalizedValue[entry.key], entry.value)) {
-          return false;
-        }
-      }
-      return true;
-    }
-
-    if (normalizedSubset is List) {
-      if (normalizedValue is! List) return false;
-      for (final item in normalizedSubset) {
-        final found = normalizedValue.any((v) => _deepContains(v, item));
-        if (!found) return false;
-      }
-      return true;
-    }
-
-    return normalizedValue == normalizedSubset;
   }
 
   bool _deepEquals(dynamic a, dynamic b) {

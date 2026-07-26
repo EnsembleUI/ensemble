@@ -5,14 +5,22 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   test('committed schema matches generator output', () {
-    final path = 'assets/schema/ensemble_tests_schema.json';
-    final committed = File(path).readAsStringSync().trim();
-    final generated = EnsembleTestSchemaBuilder.buildJson().trim();
-    expect(
-      committed,
-      generated,
-      reason:
-          'Run: cd tools/ensemble_test_runner && dart run tool/generate_schema.dart',
-    );
+    final schemas = {
+      'assets/schema/ensemble_tests_schema.json':
+          EnsembleTestSchemaBuilder.buildJson(),
+      'assets/schema/ensemble_test_config_schema.json':
+          EnsembleTestSchemaBuilder.buildConfigJson(),
+    };
+
+    for (final entry in schemas.entries) {
+      final committed = File(entry.key).readAsStringSync().trim();
+      final generated = entry.value.trim();
+      expect(
+        committed,
+        generated,
+        reason:
+            'Run: cd tools/ensemble_test_runner && dart run tool/generate_schema.dart',
+      );
+    }
   });
 }

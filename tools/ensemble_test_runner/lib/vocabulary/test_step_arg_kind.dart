@@ -15,11 +15,13 @@ enum TestStepArgKind {
   drag,
   pump,
   timeoutOptional,
+  httpRequest,
   waitFor,
   waitForGone,
   waitForNavigation,
-  waitUntil,
   textRequired,
+  textOrAnyOf,
+  textContains,
   expectEquals,
   expectChecked,
   expectProperty,
@@ -27,24 +29,12 @@ enum TestStepArgKind {
   expectListCount,
   screenRequired,
   expectVisited,
-  mockApi,
-  mockApiError,
-  mockApiFromFixture,
-  mockApiException,
-  mockTimeout,
   apiName,
-  apiRequest,
-  expectApiHeader,
-  setState,
-  expectState,
   storageKey,
   group,
   repeat,
   optional,
   ifVisible,
-  screenshot,
-  expectStatePath,
-  resetStatePath,
   setAuth,
   setPermission,
   setDevice,
@@ -53,7 +43,6 @@ enum TestStepArgKind {
   runScript,
   expectConsoleLog,
   expectErrorContains,
-  fixturePath,
   expectApiCallOrder,
   expectListContains,
   expectListItem,
@@ -101,7 +90,10 @@ extension TestStepArgKindSchema on TestStepArgKind {
           required: ['action'],
         );
       case TestStepArgKind.idRequired:
-        return _object(properties: {'id': _string}, required: ['id']);
+        return _object(
+          properties: {'id': _string, 'timeoutMs': _integer},
+          required: ['id'],
+        );
       case TestStepArgKind.idOptional:
         return _object(properties: {'id': _string});
       case TestStepArgKind.enterText:
@@ -121,7 +113,10 @@ extension TestStepArgKindSchema on TestStepArgKind {
         );
       case TestStepArgKind.setSlider:
         return _object(
-          properties: {'id': _string, 'value': {'type': 'number'}},
+          properties: {
+            'id': _string,
+            'value': {'type': 'number'}
+          },
           required: ['id'],
         );
       case TestStepArgKind.chooseValue:
@@ -154,9 +149,45 @@ extension TestStepArgKindSchema on TestStepArgKind {
         return _object(properties: {'durationMs': _integer});
       case TestStepArgKind.timeoutOptional:
         return _object(properties: {'timeoutMs': _integer});
+      case TestStepArgKind.httpRequest:
+        return _object(
+          properties: {
+            'url': _string,
+            'method': {
+              'type': 'string',
+              'enum': [
+                'GET',
+                'POST',
+                'PUT',
+                'PATCH',
+                'DELETE',
+                'HEAD',
+                'OPTIONS',
+              ],
+            },
+            'headers': {
+              'type': 'object',
+              'additionalProperties': true,
+            },
+            'body': _any,
+            'timeoutMs': _integer,
+            'expectStatus': _integer,
+            'expectBodyContains': _string,
+          },
+          required: ['url'],
+        );
       case TestStepArgKind.waitFor:
         return _object(
-          properties: {'id': _string, 'text': _string, 'timeoutMs': _integer},
+          properties: {
+            'id': _string,
+            'text': _string,
+            'anyOf': {
+              'type': 'array',
+              'items': _string,
+              'minItems': 1,
+            },
+            'timeoutMs': _integer,
+          },
         );
       case TestStepArgKind.waitForGone:
         return _object(
@@ -168,19 +199,51 @@ extension TestStepArgKindSchema on TestStepArgKind {
           properties: {'screen': _string, 'timeoutMs': _integer},
           required: ['screen'],
         );
-      case TestStepArgKind.waitUntil:
-        return _object(
-          properties: {
-            'path': _string,
-            'equals': _any,
-            'state': _object(
-              properties: {'path': _string, 'equals': _any},
-            ),
-            'timeoutMs': _integer,
-          },
-        );
       case TestStepArgKind.textRequired:
         return _object(properties: {'text': _string}, required: ['text']);
+      case TestStepArgKind.textOrAnyOf:
+        return {
+          'type': 'object',
+          'additionalProperties': false,
+          'properties': {
+            'text': _string,
+            'anyOf': {
+              'type': 'array',
+              'items': _string,
+              'minItems': 1,
+            },
+          },
+          'anyOf': [
+            {
+              'required': ['text'],
+            },
+            {
+              'required': ['anyOf'],
+            },
+          ],
+        };
+      case TestStepArgKind.textContains:
+        return {
+          'type': 'object',
+          'additionalProperties': false,
+          'properties': {
+            'text': _string,
+            'anyOf': {
+              'type': 'array',
+              'items': _string,
+              'minItems': 1,
+            },
+            'timeoutMs': _integer,
+          },
+          'anyOf': [
+            {
+              'required': ['text'],
+            },
+            {
+              'required': ['anyOf'],
+            },
+          ],
+        };
       case TestStepArgKind.expectEquals:
         return _object(
           properties: {'id': _string, 'equals': _any},
@@ -216,79 +279,10 @@ extension TestStepArgKindSchema on TestStepArgKind {
           properties: {'screen': _string},
           required: ['screen'],
         );
-      case TestStepArgKind.mockApi:
-        return _object(
-          properties: {
-            'name': _string,
-            'response': _ref('mockResponse'),
-            'delayMs': _integer,
-          },
-          required: ['name', 'response'],
-        );
-      case TestStepArgKind.mockApiError:
-        return _object(
-          properties: {
-            'name': _string,
-            'statusCode': _integer,
-            'body': _any,
-            'delayMs': _integer,
-          },
-          required: ['name'],
-        );
-      case TestStepArgKind.mockApiFromFixture:
-        return _object(
-          properties: {
-            'name': _string,
-            'fixture': _string,
-            'statusCode': _integer,
-          },
-          required: ['name', 'fixture'],
-        );
-      case TestStepArgKind.mockApiException:
-        return _object(
-          properties: {'name': _string, 'message': _string},
-          required: ['name'],
-        );
-      case TestStepArgKind.mockTimeout:
-        return _object(
-          properties: {'name': _string, 'delayMs': _integer},
-          required: ['name'],
-        );
       case TestStepArgKind.apiName:
         return _object(
           properties: {'name': _string, 'times': _integer},
           required: ['name'],
-        );
-      case TestStepArgKind.apiRequest:
-        return _object(
-          properties: {
-            'name': _string,
-            'body': _any,
-            'query': _any,
-            'headers': _any,
-            'times': _integer,
-          },
-          required: ['name'],
-        );
-      case TestStepArgKind.expectApiHeader:
-        return _object(
-          properties: {
-            'name': _string,
-            'header': _string,
-            'equals': _any,
-            'times': _integer,
-          },
-          required: ['name', 'header', 'equals'],
-        );
-      case TestStepArgKind.setState:
-        return _object(
-          properties: {'path': _string, 'value': _any},
-          required: ['path'],
-        );
-      case TestStepArgKind.expectState:
-        return _object(
-          properties: {'path': _string, 'equals': _any, 'contains': _any},
-          required: ['path'],
         );
       case TestStepArgKind.storageKey:
         return _object(
@@ -327,12 +321,6 @@ extension TestStepArgKindSchema on TestStepArgKind {
           },
           required: ['id'],
         );
-      case TestStepArgKind.screenshot:
-        return _object(properties: {'name': _string});
-      case TestStepArgKind.expectStatePath:
-        return _object(properties: {'path': _string}, required: ['path']);
-      case TestStepArgKind.resetStatePath:
-        return _object(properties: {'path': _string});
       case TestStepArgKind.setAuth:
         return _object(
           properties: {
@@ -367,15 +355,6 @@ extension TestStepArgKindSchema on TestStepArgKind {
         );
       case TestStepArgKind.expectErrorContains:
         return _object(properties: {'contains': _string});
-      case TestStepArgKind.fixturePath:
-        return _object(
-          properties: {
-            'key': _string,
-            'path': _string,
-            'fixture': _string,
-            'statePath': _string,
-          },
-        );
       case TestStepArgKind.expectApiCallOrder:
         return _object(
           properties: {

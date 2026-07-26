@@ -101,8 +101,8 @@ class RadioState extends FormFieldWidgetState<RadioButton> {
             errorText: field.errorText,
             errorStyle: widget._controller.errorStyle ?? Theme.of(context).inputDecorationTheme.errorStyle,
           ),
-          child: ChangeNotifierProvider(
-            create: (context) => radioButtonController,
+          child: ChangeNotifierProvider.value(
+            value: radioButtonController,
             child: Consumer<RadioButtonController>(
               builder: (context, ref, child) => StyledRadio(
                 value: widget.controller.value,

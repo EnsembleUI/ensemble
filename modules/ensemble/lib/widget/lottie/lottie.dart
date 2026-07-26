@@ -100,7 +100,7 @@ class EnsembleLottie extends StatefulWidget
   Map<String, Function> setters() {
     return {
       'source': (value) =>
-          _controller.source = Utils.getString(value, fallback: ''),
+          _controller.updateSource(Utils.getString(value, fallback: '')),
       'fit': (value) => _controller.fit = Utils.optionalString(value),
       'repeat': (value) => _controller.repeat = Utils.getBool(
             value,
@@ -146,6 +146,11 @@ class LottieController extends BoxController {
   bool repeat = true;
   bool autoPlay = true;
 
+  /// True after [initializeLottieController] runs for the current [source].
+  /// Reset when [source] changes so screenshot waits do not treat a prior
+  /// composition as ready for the new asset.
+  bool compositionReady = false;
+
   // lottieController and lottieAction are different things.
   // lottieController is a AnimationController which is used to control animation and hook callbacks for all the platforms except web html renderer
   // lottieAction is a mixin that is used to define all the methods for the html renderer. Cannot use normal AnimationController as html is rendered using iframe and doesn't use Lottie widget
@@ -157,10 +162,18 @@ class LottieController extends BoxController {
   EnsembleAction? onComplete;
   EnsembleAction? onStop;
 
+  /// Updates [source] and clears [compositionReady] when the URL/path changes.
+  void updateSource(String value) {
+    if (source == value) return;
+    source = value;
+    compositionReady = false;
+  }
+
   // method to initialize the AnimationController lottieController
   void initializeLottieController(LottieComposition composition) {
     // Setting the duration of the animation once the lottie is loaded
     lottieController?.duration = composition.duration;
+    compositionReady = true;
 
     if (autoPlay) {
       if (repeat) {

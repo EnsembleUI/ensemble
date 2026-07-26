@@ -1,13 +1,18 @@
+import 'dart:async';
+
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/screen_tracker.dart';
 import 'package:ensemble_test_runner/actions/extended_step_handlers.dart';
-import 'package:ensemble_test_runner/actions/state_helper.dart';
+import 'package:ensemble_test_runner/actions/http_request_action.dart';
 import 'package:ensemble_test_runner/actions/test_execution_config.dart';
 import 'package:ensemble_test_runner/assertions/assertion_engine.dart';
 import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
+import 'package:ensemble_test_runner/runner/debug_artifact_logs.dart';
 import 'package:ensemble_test_runner/runner/ensemble_test_context.dart';
 import 'package:ensemble_test_runner/runner/ensemble_test_harness.dart';
+import 'package:ensemble_test_runner/runner/yaml_test_session.dart';
 import 'package:ensemble_test_runner/vocabulary/test_step_vocabulary.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -19,6 +24,8 @@ class TestStepExecutor {
   final EnsembleTestHarness harness;
   final TestExecutionConfig config;
   EnsembleConfig? _config;
+  FutureOr<void> Function(TestStep step)? onWaitForTextMatched;
+  FutureOr<void> Function(TestStep step)? onWaitForNavigationMatched;
 
   TestStepExecutor({
     required this.tester,
@@ -70,16 +77,24 @@ class TestStepExecutor {
     }
 
     switch (step.type) {
+      case 'mocks':
+        _applyMocks(step.mocks);
+        return;
+      case 'httpRequest':
+        await HttpRequestAction.execute(step.args);
+        return;
       case 'wait':
-        await tester.pump(
-          Duration(
-            milliseconds: step.args['durationMs'] as int? ?? 500,
-          ),
-        );
+        final durationMs = step.args['durationMs'] as int? ?? 500;
+        await tester.runAsync(() async {
+          await Future<void>.delayed(Duration(milliseconds: durationMs));
+        });
+        await _pump(label: 'wait');
         return;
       case 'waitForText':
         await _waitFor(
+          step: step,
           text: step.args['text']?.toString(),
+          anyOf: _stringListArg(step.args['anyOf']),
           timeoutMs: step.args['timeoutMs'] as int? ??
               config.defaultWaitTimeout.inMilliseconds,
         );
@@ -105,22 +120,8 @@ class TestStepExecutor {
           throw EnsembleTestFailure('waitForNavigation requires "screen"');
         }
         await _waitForNavigation(
+          step: step,
           screen: screen,
-          timeoutMs: step.args['timeoutMs'] as int? ??
-              config.defaultWaitTimeout.inMilliseconds,
-        );
-        return;
-      case 'waitUntil':
-        String? statePath = step.args['path']?.toString();
-        dynamic expected = step.args['equals'];
-        final stateNode = step.args['state'];
-        if (stateNode is Map) {
-          statePath ??= stateNode['path']?.toString();
-          expected ??= stateNode['equals'];
-        }
-        await _waitUntil(
-          path: statePath,
-          expected: expected,
           timeoutMs: step.args['timeoutMs'] as int? ??
               config.defaultWaitTimeout.inMilliseconds,
         );
@@ -145,7 +146,10 @@ class TestStepExecutor {
         await _openScreen(step);
         break;
       case 'tap':
-        await _tap(_requireId(step));
+        await _tap(
+          _requireId(step),
+          timeoutMs: step.args['timeoutMs'] as int?,
+        );
         break;
       case 'enterText':
         await _enterText(
@@ -172,22 +176,25 @@ class TestStepExecutor {
         await _select(_requireId(step), step.args['value']?.toString());
         break;
       case 'toggle':
-        await _tap(_requireId(step));
+        await _toggle(_requireId(step));
         break;
       case 'waitFor':
         await _waitFor(
+          step: step,
           id: step.args['id']?.toString(),
           text: step.args['text']?.toString(),
+          anyOf: _stringListArg(step.args['anyOf']),
           timeoutMs: step.args['timeoutMs'] as int? ??
               config.defaultWaitTimeout.inMilliseconds,
         );
         break;
       case 'pump':
-        await tester.pump(
-          Duration(
+        await _pump(
+          duration: Duration(
             milliseconds: step.args['durationMs'] as int? ??
                 config.waitPollInterval.inMilliseconds,
           ),
+          label: 'pump',
         );
         break;
       case 'settle':
@@ -207,18 +214,26 @@ class TestStepExecutor {
         assertions.expectNotVisible(_requireId(step));
         break;
       case 'expectText':
+        final anyOf = _stringListArg(step.args['anyOf']);
         final text = step.args['text']?.toString();
-        if (text == null) {
-          throw EnsembleTestFailure('expectText requires "text"');
+        if (anyOf.isNotEmpty) {
+          assertions.expectTextAny(anyOf);
+        } else if (text != null) {
+          assertions.expectText(text);
+        } else {
+          throw EnsembleTestFailure('expectText requires "text" or "anyOf"');
         }
-        assertions.expectText(text);
         break;
       case 'expectNoText':
+        final anyOf = _stringListArg(step.args['anyOf']);
         final text = step.args['text']?.toString();
-        if (text == null) {
-          throw EnsembleTestFailure('expectNoText requires "text"');
+        if (anyOf.isNotEmpty) {
+          assertions.expectNoTextAny(anyOf);
+        } else if (text != null) {
+          assertions.expectNoText(text);
+        } else {
+          throw EnsembleTestFailure('expectNoText requires "text" or "anyOf"');
         }
-        assertions.expectNoText(text);
         break;
       case 'expectEnabled':
         assertions.expectEnabled(_requireId(step));
@@ -242,32 +257,6 @@ class TestStepExecutor {
           throw EnsembleTestFailure('expectApiNotCalled requires "name"');
         }
         assertions.expectApiNotCalled(name);
-        break;
-      case 'expectApiRequest':
-        final name = step.args['name']?.toString();
-        if (name == null) {
-          throw EnsembleTestFailure('expectApiRequest requires "name"');
-        }
-        assertions.expectApiRequest(
-          name,
-          body: step.args['body'],
-          query: step.args['query'],
-          headers: step.args['headers'],
-          times: step.args['times'] as int?,
-        );
-        break;
-      case 'expectApiRequestContains':
-        final containsName = step.args['name']?.toString();
-        if (containsName == null) {
-          throw EnsembleTestFailure('expectApiRequestContains requires "name"');
-        }
-        assertions.expectApiRequestContains(
-          containsName,
-          body: step.args['body'],
-          query: step.args['query'],
-          headers: step.args['headers'],
-          times: step.args['times'] as int?,
-        );
         break;
       case 'expectCount':
         final expected = step.args['equals'] as int?;
@@ -297,26 +286,6 @@ class TestStepExecutor {
         }
         assertions.expectStorage(key, step.args['equals']);
         break;
-      case 'expectState':
-        final path = step.args['path']?.toString();
-        if (path == null) {
-          throw EnsembleTestFailure('expectState requires "path"');
-        }
-        assertions.expectState(path, step.args['equals']);
-        break;
-      case 'setState':
-        final path = step.args['path']?.toString();
-        if (path == null) {
-          throw EnsembleTestFailure('setState requires "path"');
-        }
-        final scope = assertions.activeScope();
-        if (scope == null) {
-          throw EnsembleTestFailure(
-            'setState requires an active Ensemble screen.',
-          );
-        }
-        setStatePath(scope, path, step.args['value']);
-        break;
       case 'setStorage':
         final key = step.args['key']?.toString();
         if (key == null) {
@@ -331,39 +300,14 @@ class TestStepExecutor {
         }
         context.setEnv(key, step.args['value']);
         break;
-      case 'mockApi':
-        final name = step.args['name']?.toString();
-        if (name == null) {
-          throw EnsembleTestFailure('mockApi requires "name"');
-        }
-        context.mockApiProvider.setMock(
-          name,
-          context.mockFromStepArgs(step.args),
-        );
-        break;
-      case 'mockApiError':
-        final name = step.args['name']?.toString();
-        if (name == null) {
-          throw EnsembleTestFailure('mockApiError requires "name"');
-        }
-        context.mockApiProvider.setMock(
-          name,
-          MockAPIResponse(
-            statusCode: step.args['statusCode'] as int? ?? 500,
-            body: step.args['body'],
-            delayMs: step.args['delayMs'] as int?,
-          ),
-        );
-        break;
       case 'resetApiCalls':
-        context.mockApiProvider.resetCalls();
+        context.apiOverlay.resetCalls();
         break;
       case 'logApiCalls':
-        for (final call in context.mockApiProvider.calls) {
-          context.logger.log(
-            'API ${call.name} body=${call.body} query=${call.query}',
-          );
-        }
+        final path = await tester.runAsync(() {
+          return writeApiCallsLog(context);
+        });
+        context.logger.log('apiCalls: $path');
         break;
       default:
         if (await ExtendedStepHandlers.tryExecute(this, step)) {
@@ -377,7 +321,7 @@ class TestStepExecutor {
 
   String requireId(TestStep step) => _requireId(step);
 
-  Future<void> tapWidget(String id) => _tap(id);
+  Future<void> tapWidget(String id, {int? timeoutMs}) => _tap(id, timeoutMs: timeoutMs);
 
   Future<void> longPressWidget(String id) async {
     final finder = assertions.finderForId(id);
@@ -393,6 +337,37 @@ class TestStepExecutor {
     await _settle();
   }
 
+  Future<void> waitForTextContains({
+    String? text,
+    List<String> anyOf = const [],
+    required int timeoutMs,
+  }) async {
+    final textCandidates = <String>[
+      if (text != null && text.trim().isNotEmpty) text,
+      ...anyOf.where((value) => value.trim().isNotEmpty),
+    ];
+    if (textCandidates.isEmpty) {
+      throw EnsembleTestFailure(
+        'expectTextContains requires "text" or "anyOf"',
+      );
+    }
+
+    final stopwatch = Stopwatch()..start();
+    while (stopwatch.elapsedMilliseconds < timeoutMs) {
+      await _pump(duration: config.waitPollInterval, label: 'expectTextContains');
+      if (assertions.isAnyTextContainingVisible(textCandidates)) {
+        return;
+      }
+    }
+
+    throw EnsembleTestFailure(
+      'Timed out after ${timeoutMs}ms waiting for text containing one of: '
+      '${textCandidates.map((t) => '"$t"').join(', ')}. '
+      '${assertions.visibleWidgetIdSummary()} '
+      '${assertions.visibleTextSummary()}',
+    );
+  }
+
   Future<void> unfocus() async {
     FocusManager.instance.primaryFocus?.unfocus();
     await _settle();
@@ -403,6 +378,12 @@ class TestStepExecutor {
 
   Future<void> settle({Duration? timeout}) => _settle(timeout: timeout);
 
+  void _applyMocks(TestMocks mocks) {
+    for (final entry in mocks.apis.entries) {
+      context.apiOverlay.setMock(entry.key, entry.value);
+    }
+  }
+
   Future<void> openScreenByName(String screen) async {
     final tc = context.testCase;
     _config = await harness.loadScreen(
@@ -410,6 +391,7 @@ class TestStepExecutor {
       testCase: EnsembleTestCase(
         id: tc.id,
         startScreen: screen,
+        mockFiles: tc.mockFiles,
         initialState: tc.initialState,
         mocks: tc.mocks,
         steps: const [],
@@ -429,23 +411,142 @@ class TestStepExecutor {
   }
 
   Future<void> _settle({Duration? timeout}) async {
-    await tester.pumpAndSettle(
-      config.settleStepDuration,
-      EnginePhase.sendSemanticsUpdate,
-      timeout ?? config.settleTimeout,
+    try {
+      await tester.pumpAndSettle(
+        config.settleStepDuration,
+        EnginePhase.sendSemanticsUpdate,
+        timeout ?? config.settleTimeout,
+      );
+    } catch (e) {
+      if (e.toString().contains('timed out') ||
+          e.toString().contains('timeout')) {
+        // Swallow timeout error because background streams/listeners (e.g. Firestore)
+        // might keep the event loop active, but the UI itself has settled.
+      } else {
+        rethrow;
+      }
+    }
+    await _yieldToLiveApiWork();
+  }
+
+  /// Lets in-flight live HTTP (wrapped in [WidgetTester.runAsync]) finish and
+  /// pumps a frame so Ensemble can apply API state. Uses [Duration.zero] so
+  /// timers from departed screens are not advanced while draining live HTTP.
+  Future<void> _yieldToLiveApiWork() async {
+    for (var i = 0; i < 200; i++) {
+      final hadPending = context.apiOverlay.hasPendingLiveCalls;
+      if (hadPending) {
+        try {
+          await context.apiOverlay
+              .waitForLiveCalls()
+              .timeout(config.waitPollInterval);
+        } on TimeoutException {
+          // Keep polling; HTTP may still be in flight inside runAsync.
+        }
+      }
+      await _pump(label: 'liveApi');
+      if (!hadPending) {
+        return;
+      }
+    }
+  }
+
+  Future<void> _tap(String id, {int? timeoutMs}) async {
+    final effectiveTimeout =
+        timeoutMs ?? config.defaultWaitTimeout.inMilliseconds;
+    final stopwatch = Stopwatch()..start();
+    Finder? tappableFinder;
+
+    while (stopwatch.elapsedMilliseconds < effectiveTimeout) {
+      await _pump(duration: config.waitPollInterval, label: 'tap');
+      tappableFinder = _findTappableFinder(id);
+      if (tappableFinder != null) break;
+    }
+
+    if (tappableFinder == null) {
+      final baseFinder = assertions.finderForId(id);
+      if (baseFinder.evaluate().isEmpty) {
+        throw EnsembleTestFailure(
+          'Timed out after ${effectiveTimeout}ms waiting for id "$id". '
+          '${assertions.visibleWidgetIdSummary()}',
+        );
+      }
+      throw EnsembleTestFailure(
+        'Timed out after ${effectiveTimeout}ms waiting for id "$id" to become '
+        'hit-testable. It may be off-screen, disabled, or covered by another widget. '
+        '${assertions.visibleWidgetIdSummary()}',
+      );
+    }
+
+    await tester.ensureVisible(tappableFinder);
+    await _pump(label: 'tap.ensureVisible');
+    tappableFinder = _hitTestableFinderForTap(
+      _interactiveFinder(assertions.finderForId(id)),
+      id,
+    );
+    await tester.tap(tappableFinder);
+    await _settle();
+  }
+
+  Finder? _findTappableFinder(String id) {
+    final baseFinder = assertions.finderForId(id);
+    if (baseFinder.evaluate().isEmpty) return null;
+
+    final finder = _interactiveFinder(baseFinder);
+    final count = finder.evaluate().length;
+    if (count == 0) return null;
+    if (count > 1) {
+      final hitTestable = finder.hitTestable();
+      final hitTestableCount = hitTestable.evaluate().length;
+      if (hitTestableCount > 1) {
+        throw EnsembleTestFailure(
+          'tap expected exactly one hit-testable widget with id "$id", '
+          'but found $hitTestableCount.',
+        );
+      }
+      return hitTestableCount == 1 ? hitTestable : null;
+    }
+
+    final hitTestable = finder.hitTestable();
+    return hitTestable.evaluate().length == 1 ? hitTestable : null;
+  }
+
+  Finder _hitTestableFinderForTap(Finder finder, String id) {
+    final hitTestable = finder.hitTestable();
+    final hitTestableCount = hitTestable.evaluate().length;
+    if (hitTestableCount == 1) return hitTestable;
+    if (hitTestableCount > 1) {
+      throw EnsembleTestFailure(
+        'tap expected exactly one hit-testable widget with id "$id", '
+        'but found $hitTestableCount.',
+      );
+    }
+    throw EnsembleTestFailure(
+      'tap found widget with id "$id", but it is not hit-testable. '
+      'It may be off-screen, disabled, or covered by another widget.',
     );
   }
 
-  Future<void> _tap(String id) async {
-    final finder = assertions.finderForId(id);
-    if (finder.evaluate().isEmpty) {
+  Future<void> _toggle(String id) async {
+    final baseFinder = assertions.finderForId(id);
+    if (baseFinder.evaluate().isEmpty) {
       await _waitFor(
         id: id,
         timeoutMs: config.defaultWaitTimeout.inMilliseconds,
       );
     }
-    _expectSingleWidget(finder, id, 'tap');
-    await tester.tap(finder);
+    final finder = _interactiveFinder(baseFinder);
+    _expectSingleWidget(finder, id, 'toggle');
+    await tester.ensureVisible(finder);
+
+    final control = find.descendant(
+      of: finder,
+      matching: find.byWidgetPredicate(
+        (widget) =>
+            widget is Switch || widget is CupertinoSwitch || widget is Checkbox,
+      ),
+    );
+    await tester.tap(control.evaluate().isNotEmpty ? control.first : finder);
     await _settle();
   }
 
@@ -499,34 +600,61 @@ class TestStepExecutor {
   }
 
   Future<void> _waitFor({
+    TestStep? step,
     String? id,
     String? text,
+    List<String> anyOf = const [],
     required int timeoutMs,
   }) async {
-    if (id == null && text == null) {
-      throw EnsembleTestFailure('waitFor requires either "id" or "text"');
+    final textCandidates = <String>[
+      if (text != null && text.trim().isNotEmpty) text,
+      ...anyOf.where((value) => value.trim().isNotEmpty),
+    ];
+    if (id == null && textCandidates.isEmpty) {
+      throw EnsembleTestFailure(
+        'waitFor requires either "id", "text", or "anyOf"',
+      );
     }
 
     final stopwatch = Stopwatch()..start();
     while (stopwatch.elapsedMilliseconds < timeoutMs) {
-      await tester.pump(config.waitPollInterval);
-      if (id != null && assertions.finderForId(id).evaluate().isNotEmpty) {
+      await _pump(duration: config.waitPollInterval, label: 'waitFor');
+      if (id != null &&
+          assertions.finderForId(id).hitTestable().evaluate().isNotEmpty) {
         return;
       }
-      if (text != null && find.text(text).evaluate().isNotEmpty) {
+      if (textCandidates.isNotEmpty &&
+          assertions.isAnyTextVisible(textCandidates)) {
+        if (step?.type == 'waitForText' && onWaitForTextMatched != null) {
+          await onWaitForTextMatched!(step!);
+        }
         return;
       }
     }
 
-    final target = id != null && text != null
-        ? 'id "$id" or text "$text"'
+    final textLabel = textCandidates.isEmpty
+        ? null
+        : textCandidates.length == 1
+            ? 'text "${textCandidates.single}"'
+            : 'any text in ${textCandidates.map((t) => '"$t"').join(', ')}';
+    final target = id != null && textLabel != null
+        ? 'id "$id" or $textLabel'
         : id != null
             ? 'id "$id"'
-            : 'text "$text"';
+            : textLabel!;
     throw EnsembleTestFailure(
       'Timed out after ${timeoutMs}ms waiting for $target. '
-      '${assertions.visibleWidgetIdSummary()}',
+      '${assertions.visibleWidgetIdSummary()} '
+      '${assertions.visibleTextSummary()}',
     );
+  }
+
+  static List<String> _stringListArg(dynamic value) {
+    if (value is! List) return const [];
+    return [
+      for (final item in value)
+        if (item != null && item.toString().trim().isNotEmpty) item.toString(),
+    ];
   }
 
   void _expectSingleWidget(Finder finder, String id, String stepType) {
@@ -537,6 +665,12 @@ class TestStepExecutor {
         '${assertions.visibleWidgetIdSummary()}',
       );
     }
+  }
+
+  Finder _interactiveFinder(Finder finder) {
+    if (finder.evaluate().length <= 1) return finder;
+    final hitTestable = finder.hitTestable();
+    return hitTestable.evaluate().length == 1 ? hitTestable : finder;
   }
 
   Future<void> _openScreen(TestStep step) async {
@@ -551,6 +685,7 @@ class TestStepExecutor {
       testCase: EnsembleTestCase(
         id: tc.id,
         startScreen: screen,
+        mockFiles: tc.mockFiles,
         initialState: tc.initialState,
         mocks: tc.mocks,
         steps: const [],
@@ -572,8 +707,10 @@ class TestStepExecutor {
 
     final stopwatch = Stopwatch()..start();
     while (stopwatch.elapsedMilliseconds < timeoutMs) {
-      await tester.pump(config.waitPollInterval);
-      if (context.mockApiProvider.callCount(name) >= times) {
+      await _yieldToLiveApiWork();
+      await _pump(duration: config.waitPollInterval, label: 'waitForApi');
+      if (context.apiOverlay.callCount(name) >= times) {
+        await _yieldToLiveApiWork();
         return;
       }
     }
@@ -584,43 +721,97 @@ class TestStepExecutor {
   }
 
   Future<void> _waitForNavigation({
+    required TestStep step,
     required String screen,
     required int timeoutMs,
   }) async {
     final stopwatch = Stopwatch()..start();
     final tracker = ScreenTracker();
-    while (stopwatch.elapsedMilliseconds < timeoutMs) {
-      await tester.pump(config.waitPollInterval);
-      if (tracker.isScreenVisible(screenName: screen) ||
-          tracker.isScreenVisible(screenId: screen)) {
-        return;
-      }
-    }
-    throw EnsembleTestFailure(
-      'Timed out after ${timeoutMs}ms waiting for navigation to "$screen"',
-    );
-  }
+    var captureFired = false;
 
-  Future<void> _waitUntil({
-    String? path,
-    dynamic expected,
-    required int timeoutMs,
-  }) async {
-    if (path == null || path.isEmpty) {
-      throw EnsembleTestFailure('waitUntil requires "path"');
+    bool isTargetVisible() =>
+        tracker.isScreenVisible(screenName: screen) ||
+        tracker.isScreenVisible(screenId: screen);
+
+    bool hasNavigated() =>
+        isTargetVisible() ||
+        YamlTestSession.navigationFlow.flow.contains(screen);
+
+    Future<void> captureIfVisible() async {
+      if (captureFired || onWaitForNavigationMatched == null) return;
+      if (!isTargetVisible()) return;
+      captureFired = true;
+      await onWaitForNavigationMatched!(step);
     }
 
-    final stopwatch = Stopwatch()..start();
-    while (stopwatch.elapsedMilliseconds < timeoutMs) {
-      await tester.pump(config.waitPollInterval);
-      if (assertions.matchesState(path, expected)) {
+    // Capture as soon as ScreenTracker reports the target — before the next
+    // navigateScreen (e.g. AutoSignIn_Gateway → Home) can replace the pixels.
+    final screenSub = tracker.onScreenChange.listen((visible) async {
+      final name = visible?.screenName ?? visible?.screenId;
+      if (name == screen) {
+        await captureIfVisible();
+      }
+    });
+
+    final previousOnScreenAdded = YamlTestSession.navigationFlow.onScreenAdded;
+    YamlTestSession.navigationFlow.onScreenAdded = (name) async {
+      final prior = previousOnScreenAdded;
+      if (prior != null) {
+        await prior(name);
+      }
+      if (name == screen) {
+        await captureIfVisible();
+      }
+    };
+
+    try {
+      // Target may already be visible when the step starts.
+      if (isTargetVisible()) {
+        await captureIfVisible();
         return;
       }
+
+      while (stopwatch.elapsedMilliseconds < timeoutMs) {
+        await YamlTestSession.navigationFlow.flushPending();
+        if (isTargetVisible()) {
+          await captureIfVisible();
+          return;
+        }
+        if (hasNavigated()) {
+          // Visited but already left — do not take a late Home screenshot.
+          return;
+        }
+        await _yieldToLiveApiWork();
+        await _pump(
+          duration: config.waitPollInterval,
+          label: 'waitForNavigation',
+        );
+        await YamlTestSession.navigationFlow.flushPending();
+        if (isTargetVisible()) {
+          await captureIfVisible();
+          return;
+        }
+        if (hasNavigated()) {
+          return;
+        }
+      }
+      await _yieldToLiveApiWork();
+      await _pump(label: 'waitForNavigation');
+      await YamlTestSession.navigationFlow.flushPending();
+      if (isTargetVisible()) {
+        await captureIfVisible();
+        return;
+      }
+      if (hasNavigated()) {
+        return;
+      }
+      throw EnsembleTestFailure(
+        'Timed out after ${timeoutMs}ms waiting for navigation to "$screen"',
+      );
+    } finally {
+      await screenSub.cancel();
+      YamlTestSession.navigationFlow.onScreenAdded = previousOnScreenAdded;
     }
-    throw EnsembleTestFailure(
-      'Timed out after ${timeoutMs}ms waiting for state "$path" '
-      'to equal "$expected"',
-    );
   }
 
   Future<void> _waitForGone({
@@ -641,5 +832,13 @@ class TestStepExecutor {
     throw EnsembleTestFailure(
       'Timed out after ${timeoutMs}ms waiting for id "$id" to disappear',
     );
+  }
+
+  Future<void> _pump({
+    Duration? duration,
+    EnginePhase phase = EnginePhase.sendSemanticsUpdate,
+    required String label,
+  }) async {
+    await tester.pump(duration, phase);
   }
 }

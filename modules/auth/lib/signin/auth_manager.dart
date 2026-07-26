@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:collection/collection.dart';
 
@@ -137,8 +138,10 @@ class AuthManager with UserAuthentication {
       customFirebaseApp ??= await _initializeFirebaseSignIn();
       final _auth = FirebaseAuth.instanceFor(app: customFirebaseApp!);
 
-      UserCredential userCredential =
-          await _auth.signInWithCustomToken(evaluatedJwtToken);
+      UserCredential userCredential = await _signInWithCustomTokenWithRetry(
+        _auth,
+        evaluatedJwtToken,
+      );
       User? user = userCredential.user;
       if (user == null) {
         throw StateError('Firebase sign-in failed. User is null.');
@@ -151,6 +154,47 @@ class AuthManager with UserAuthentication {
       debugPrint('Error during Firebase sign-in: $e');
       rethrow;
     }
+  }
+
+  Future<UserCredential> _signInWithCustomTokenWithRetry(
+    FirebaseAuth auth,
+    String token, {
+    int maxAttempts = 4,
+  }) async {
+    Object? lastError;
+    for (var attempt = 1; attempt <= maxAttempts; attempt++) {
+      try {
+        return await auth.signInWithCustomToken(token);
+      } catch (error) {
+        lastError = error;
+        if (!_isRetryableFirebaseAuthError(error) || attempt >= maxAttempts) {
+          rethrow;
+        }
+        if (kDebugMode) {
+        debugPrint(
+            'Retrying Firebase custom-token sign-in after transient error '
+            '($attempt/$maxAttempts): $error',
+          );
+        }
+        await Future<void>.delayed(Duration(milliseconds: 300 * attempt));
+      }
+    }
+    throw lastError ?? StateError('Firebase custom-token sign-in failed.');
+  }
+
+  bool _isRetryableFirebaseAuthError(Object error) {
+    if (error is FirebaseAuthException) {
+      return error.code == 'network-request-failed';
+    }
+    if (error is SocketException || error is TimeoutException) {
+      return true;
+    }
+    final message = error.toString().toLowerCase();
+    return message.contains('network-request-failed') ||
+        message.contains('connection reset') ||
+        message.contains('connection closed') ||
+        message.contains('timed out') ||
+        message.contains('socketexception');
   }
 
   Future<void> updateCurrentFirebaseUser(BuildContext context, User newUser) async {

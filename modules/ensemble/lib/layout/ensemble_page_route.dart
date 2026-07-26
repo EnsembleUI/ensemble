@@ -78,8 +78,12 @@ extension PageTransitionTypeX on PageTransitionType {
 /// Page route builder that presents a screen without transition animation.
 class EnsemblePageRouteNoTransitionBuilder extends PageRouteBuilder {
   /// Creates a [EnsemblePageRouteNoTransitionBuilder] object.
-  EnsemblePageRouteNoTransitionBuilder({required Widget screenWidget})
+  EnsemblePageRouteNoTransitionBuilder({
+    required Widget screenWidget,
+    RouteSettings? settings,
+  })
       : super(
+          settings: settings,
           pageBuilder: (context, animation, secondaryAnimation) => screenWidget,
         );
 }

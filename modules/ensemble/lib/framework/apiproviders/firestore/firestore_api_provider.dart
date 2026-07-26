@@ -12,10 +12,23 @@ import 'package:yaml/yaml.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 
+/// Replaces an existing Firestore listener for [apiName], cancelling any prior
+/// subscription so repeated `listenForChanges` invocations do not accumulate.
+@visibleForTesting
+void replaceFirestoreApiSubscription(
+  Map<String, StreamSubscription> subscriptions,
+  String apiName,
+  StreamSubscription subscription,
+) {
+  subscriptions[apiName]?.cancel();
+  subscriptions[apiName] = subscription;
+}
+
 class FirestoreAPIProvider extends APIProvider with LiveAPIProvider {
   FirebaseApp? _app;
   FirebaseFirestore get firestore => FirebaseFirestore.instanceFor(app: _app!);
-  List<StreamSubscription> _subscriptions = [];
+  Map<String, StreamSubscription> _subscriptions = {};
+  bool _disposed = false;
   late FirestoreApp firestoreApp;
 
   @override
@@ -259,16 +272,26 @@ class FirestoreAPIProvider extends APIProvider with LiveAPIProvider {
     List<String> pathSegments = path.split('/');
     bool isDocumentPath = pathSegments.length % 2 == 0;
 
+    void deliverSnapshot(dynamic snapshot) {
+      if (_disposed) return;
+      listener(getOKResponse(apiName, snapshot));
+    }
+
     if (isDocumentPath) {
       DocumentReference docRef = firestore.doc(path);
-      _subscriptions.add(docRef.snapshots().listen((DocumentSnapshot snapshot) {
-        listener.call(getOKResponse(apiName, snapshot));
-      }));
+      replaceFirestoreApiSubscription(
+        _subscriptions,
+        apiName,
+        docRef.snapshots().listen(deliverSnapshot),
+      );
     } else {
-      Query query = firestoreApp.getQuery(api, isCollectionGroup: api['isCollectionGroup'] ?? false);
-      _subscriptions.add(query.snapshots().listen((QuerySnapshot snapshot) {
-        listener.call(getOKResponse(apiName, snapshot));
-      }));
+      Query query = firestoreApp.getQuery(
+          api, isCollectionGroup: api['isCollectionGroup'] ?? false);
+      replaceFirestoreApiSubscription(
+        _subscriptions,
+        apiName,
+        query.snapshots().listen(deliverSnapshot),
+      );
     }
     Map<String, dynamic> body = {
       'message': 'Subscribed to API',
@@ -284,13 +307,12 @@ class FirestoreAPIProvider extends APIProvider with LiveAPIProvider {
 
   @override
   dispose() {
+    _disposed = true;
     try {
-      if (_subscriptions.isNotEmpty) {
-        for (var subscription in _subscriptions) {
-          subscription.cancel();
-        }
+      for (final subscription in _subscriptions.values) {
+        subscription.cancel();
       }
-      _subscriptions = [];
+      _subscriptions.clear();
     } catch (e) {
       print('Error disposing FirestoreAPIProvider: $e');
     }
