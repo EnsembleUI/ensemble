@@ -136,6 +136,7 @@ tvOptions:
     row: 0 # Vertical position in focus grid
     order: 0 # Horizontal position within row
     isRowEntryPoint: true # Preferred entry point when navigating into row
+    rememberRowPosition: true # Remember the column when re-entering this row (inheritable)
 
     # Focus Indicator Styling (Optional)
     focusBorderRadius: 16 # Border radius for focus indicator (pixels)
@@ -196,6 +197,7 @@ tvOptions:
 | **row**                          | `double` | `null`  | **Required**. Vertical position in the focus grid (0, 1, 2, ...). Items with the same row navigate horizontally with LEFT/RIGHT. |
 | **order**                        | `double` | `0`     | Horizontal position within the row (0, 1, 2, ...). Lower values = more left. Must be unique within a row.                        |
 | **isRowEntryPoint**              | `bool`   | `false` | Marks this item as the preferred entry point when navigating INTO this row from another row.                                     |
+| **rememberRowPosition**          | `bool`   | `false` | When `true`, the row remembers which column (order) you were on and restores it when you return. **Inheritable** — set once on a container and all descendants inherit it. Scoped per screen; independent of `focusGroup`. See [Row-Position Memory](#row-position-memory-rememberrowposition).             |
 | **delegateHorizontalNavigation** | `bool`   | `false` | When `true`, LEFT/RIGHT events are delegated to parent FocusScope. Use for items inside carousels.                               |
 | **lockHorizontalNavigation**     | `bool`   | `false` | When `true`, prevents horizontal navigation from escaping row at boundaries.                                                     |
 
@@ -260,6 +262,74 @@ These properties are set under `tvOptions.scrollbarOptions` on ListView widgets.
 | **radius**       | `int`    | `4`          | Border radius of scrollbar corners.                            |
 | **thumbHeight**  | `int`    | `40`         | Fixed height of scrollbar thumb in pixels.                     |
 | **autofocus**    | `bool`   | `false`      | Auto-focus scrollbar on mount (rarely needed).                 |
+
+### Row-Position Memory (`rememberRowPosition`)
+
+By default, focus does **not** remember your horizontal position. Leave a row and come back, and focus
+lands on the row's entry point (same column / clamped), not where you last were.
+
+Set **`rememberRowPosition: true`** to make a region remember the column (order) you were on and restore
+it when you return to that row.
+
+**Key facts:**
+
+- **Default is `false`.** Grids that should navigate purely by column (e.g. an on-screen keyboard) must
+  leave it unset — turning it on would make UP/DOWN jump to a remembered column instead of the one
+  directly above/below.
+- **Inheritable.** Declare it once on a container and every focusable descendant inherits it — you do
+  **not** repeat it per widget. It inherits like `focusGroup` and `edges`.
+- **Independent of `focusGroup`.** Memory is scoped per **screen (route)** automatically, so it works
+  with or without `focusGroup`. Use `focusGroup` only for genuine intra-screen isolation between two
+  regions that share row numbers.
+- **Scope & lifecycle.** Keyed by the current route, so one screen's memory never leaks into another,
+  and it is freed when the screen leaves the navigation stack. Memory stays current on every entry path
+  (D-pad, taps, edge jumps, carousel restore), not just vertical D-pad moves.
+
+**Where to put it:** prefer the row itself (the container holding one lane's items). Because it inherits,
+you can also put it on a parent wrapping several rows and each row underneath remembers its own column.
+
+**Recommended — on the row itself (one lane):**
+
+```yaml
+Row:
+    styles:
+        scrollable: true
+        tvOptions:
+            rememberRowPosition: true # inherited by every card in this lane
+    item-template:
+        data: ${movies}
+        name: movie
+        indexId: idx
+        template:
+            MediaCard:
+                inputs:
+                    tvOptions:
+                        row: 2
+                        order: ${idx}
+                        isRowEntryPoint: ${idx == 0}
+```
+
+**Also valid — on a parent wrapping multiple rows:**
+
+```yaml
+Column:
+    styles:
+        tvOptions:
+            rememberRowPosition: true # inherited by row 2 AND row 3
+    children:
+        - Row: # lane 1 (row: 2) — remembers its column
+              styles: { scrollable: true }
+              item-template: { data: ${movies}, ... }
+        - Row: # lane 2 (row: 3) — remembers its column independently
+              styles: { scrollable: true }
+              item-template: { data: ${series}, ... }
+```
+
+**When to use it:** horizontal content lanes (Netflix rows) where the user scrolls right, moves to
+another lane, then returns expecting to be where they left off.
+
+**When NOT to use it:** 2D grids where the column directly above/below is expected (on-screen keyboards,
+calculator pads). Leave it `false` there.
 
 ### Where to Apply tvOptions
 
@@ -1090,6 +1160,7 @@ Column:
 - [ ] First item in each row has `isRowEntryPoint: true` (for horizontal lists)
 - [ ] Back button is always row 0, order 0
 - [ ] Dialog focus is trapped within dialog
+- [ ] `rememberRowPosition` lanes restore the last column on return; grids/keyboards (unset) still navigate by column
 
 ### Focus Visual
 
