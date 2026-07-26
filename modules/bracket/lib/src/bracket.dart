@@ -1244,4 +1244,13 @@ class _BracketTVFocusProvider implements TVFocusProvider {
       currentOrder: currentOrder,
     );
   }
+
+  // Bracket handles its own TV navigation and has no row-position memory.
+  @override
+  void saveRowPosition({
+    required ModalRoute<dynamic>? route,
+    required double row,
+    required double order,
+    String? focusGroup,
+  }) {}
 }

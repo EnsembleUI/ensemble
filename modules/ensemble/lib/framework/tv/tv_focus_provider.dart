@@ -211,6 +211,16 @@ abstract class TVFocusProvider {
     );
   }
 
+  /// Persist [row]'s current column so vertical nav can restore it
+  /// (`rememberRowPosition`). Called on focus-gain. [row]/[order] are
+  /// relative — a host with grid offsets must add them. Default no-op.
+  void saveRowPosition({
+    required ModalRoute<dynamic>? route,
+    required double row,
+    required double order,
+    String? focusGroup,
+  }) {}
+
   /// Disposes any resources held by this provider.
   void dispose() {}
 }

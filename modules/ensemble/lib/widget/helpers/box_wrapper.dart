@@ -480,6 +480,29 @@ class _TapEnabledWrapper extends StatefulWidget {
   State<_TapEnabledWrapper> createState() => _TapEnabledWrapperState();
 }
 
+/// Refresh `rememberRowPosition` memory on focus-gain (covers taps, edges,
+/// requestFocusAt/ByEdge, carousel — all land focus here), routing to the host
+/// provider or the built-in grid. Passes relative row/order; host adds offsets.
+void _saveTVRowPositionOnFocus(
+    BuildContext context, BoxController boxController) {
+  final tvOptions = boxController.tvOptions;
+  if (tvOptions == null || tvOptions.row == null) return;
+  if (!resolveTVRememberRowPosition(context, tvOptions)) return;
+
+  final route = ModalRoute.of(context);
+  final focusGroup = resolveTVFocusGroup(context, tvOptions);
+  final row = tvOptions.row!;
+  final order = tvOptions.order ?? 0;
+
+  final provider = TVFocusProviderScope.maybeOf(context);
+  if (provider != null) {
+    provider.saveRowPosition(
+        route: route, row: row, order: order, focusGroup: focusGroup);
+  } else {
+    TVFocusWidget.rememberOrder(route, focusGroup, row, order);
+  }
+}
+
 class _TapEnabledWrapperState extends State<_TapEnabledWrapper> {
   late final FocusNode _focusNode;
   static int _instanceCounter = 0;
@@ -523,6 +546,9 @@ class _TapEnabledWrapperState extends State<_TapEnabledWrapper> {
 
     // Auto-scroll to keep focused item visible during D-pad navigation
     if (Device().isTV && hasFocus && mounted) {
+      // Keep row-position memory fresh on any focus-gain.
+      _saveTVRowPositionOnFocus(context, widget.boxController);
+
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted && context.mounted) {
           _handleFocusScroll();
@@ -1358,6 +1384,9 @@ class _TVFocusOnlyWrapperState extends State<_TVFocusOnlyWrapper> {
           }
 
           if (hasFocus) {
+            // Keep row-position memory fresh on any focus-gain.
+            _saveTVRowPositionOnFocus(context, widget.boxController);
+
             // Delegate primary focus to the child so Select/Enter can activate
             // it. A FocusScopeNode with no previously-focused child takes primary
             // focus *itself* instead of a descendant (FocusScopeNode

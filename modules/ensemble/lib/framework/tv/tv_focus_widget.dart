@@ -34,9 +34,9 @@ class TVFocusWidget extends StatelessWidget {
   // ─────────────────────────────────────────────────────────────────────────
   static final Map<Object, Map<String, double>> _rowOrderMemory = {};
 
-  /// Per-screen namespace for the memory map (route instance identity), so each
-  /// screen visit gets its own bucket.
-  static Object _routeKey(ModalRoute<dynamic>? route) =>
+  /// Per-screen namespace (route instance identity). Base [Route] type so the
+  /// observer (plain Route on pop) and nav code (ModalRoute) key the same bucket.
+  static Object _routeKey(Route<dynamic>? route) =>
       route == null ? 'noRoute' : identityHashCode(route);
 
   /// Creates a within-route memory key for the given focusGroup and row.
@@ -45,7 +45,7 @@ class TVFocusWidget extends StatelessWidget {
   }
 
   /// Saves the current order for a row (called when leaving the row).
-  static void _rememberOrder(ModalRoute<dynamic>? route, String? focusGroup,
+  static void _rememberOrder(Route<dynamic>? route, String? focusGroup,
       double row, double order) {
     final bucket = _rowOrderMemory.putIfAbsent(_routeKey(route), () => {});
     bucket[_memoryKey(focusGroup, row)] = order;
@@ -53,8 +53,15 @@ class TVFocusWidget extends StatelessWidget {
 
   /// Retrieves the remembered order for a row, or null if not remembered.
   static double? _recallOrder(
-      ModalRoute<dynamic>? route, String? focusGroup, double row) {
+      Route<dynamic>? route, String? focusGroup, double row) {
     return _rowOrderMemory[_routeKey(route)]?[_memoryKey(focusGroup, row)];
+  }
+
+  /// Public save, called on focus-gain so memory stays fresh on all entry paths
+  /// (taps, edges, requestFocusAt/ByEdge, carousel), not just D-pad.
+  static void rememberOrder(
+      Route<dynamic>? route, String? focusGroup, double row, double order) {
+    _rememberOrder(route, focusGroup, row, order);
   }
 
   /// Clears all row memory.
@@ -62,8 +69,9 @@ class TVFocusWidget extends StatelessWidget {
     _rowOrderMemory.clear();
   }
 
-  /// Clears row memory for a specific screen (call on route dispose).
-  static void clearRowMemoryForRoute(ModalRoute<dynamic>? route) {
+  /// Clears a screen's memory when its route leaves the stack (via
+  /// [TVFocusRouteObserver]), so the map doesn't grow unbounded.
+  static void clearRowMemoryForRoute(Route<dynamic>? route) {
     _rowOrderMemory.remove(_routeKey(route));
   }
 
@@ -280,15 +288,18 @@ class TVFocusWidget extends StatelessWidget {
       // Get the target row's actual row value
       final targetRowValue = grid[newY].first.order.row;
 
+      // Save keyed on the SOURCE row; restore keyed on the TARGET row (its own
+      // rememberRowPosition + focusGroup) — so entering a remembering row from
+      // an ungrouped/other row (e.g. a TabBar) still restores its column.
       if (focusOrder.rememberRowPosition) {
-        // Row memory (opt-in), scoped per route + focusGroup.
-        // SAVE current position before leaving.
         _rememberOrder(
             route, currentFocusGroup, focusOrder.row, focusOrder.order);
+      }
 
-        // Restore the remembered column for the target row, if any.
+      final targetOrderMeta = grid[newY].first.order;
+      if (targetOrderMeta.rememberRowPosition) {
         final rememberedOrder =
-            _recallOrder(route, currentFocusGroup, targetRowValue);
+            _recallOrder(route, targetOrderMeta.focusGroup, targetRowValue);
         if (rememberedOrder != null) {
           // Try to find item with remembered order
           final rememberedIndex = grid[newY].indexWhere(
@@ -496,5 +507,30 @@ class _RegisteredFocusScopeState extends State<_RegisteredFocusScope> {
         ),
       ),
     );
+  }
+}
+
+/// Frees [TVFocusWidget]'s per-route row-position memory when a screen leaves
+/// the stack. Cleared at the route level (not per widget) so item-template
+/// rebuilds don't wipe live memory. Registered in [EnsembleRouteObserver].
+class TVFocusRouteObserver extends NavigatorObserver {
+  @override
+  void didPop(Route<dynamic> route, Route<dynamic>? previousRoute) {
+    super.didPop(route, previousRoute);
+    TVFocusWidget.clearRowMemoryForRoute(route);
+  }
+
+  @override
+  void didRemove(Route<dynamic> route, Route<dynamic>? previousRoute) {
+    super.didRemove(route, previousRoute);
+    TVFocusWidget.clearRowMemoryForRoute(route);
+  }
+
+  @override
+  void didReplace({Route<dynamic>? newRoute, Route<dynamic>? oldRoute}) {
+    super.didReplace(newRoute: newRoute, oldRoute: oldRoute);
+    if (oldRoute != null) {
+      TVFocusWidget.clearRowMemoryForRoute(oldRoute);
+    }
   }
 }
