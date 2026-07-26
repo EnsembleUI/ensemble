@@ -3,6 +3,86 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## 2026-07-26
+
+### Changes
+
+---
+
+Packages with breaking changes:
+
+ - There are no breaking changes in this release.
+
+Packages with other changes:
+
+ - [`ensemble` - `v1.2.50-beta.2`](#ensemble---v1250-beta2)
+ - [`ensemble_test_runner` - `v1.2.53`](#ensemble_test_runner---v1253)
+ - [`ensemble_qr_scanner` - `v1.2.51`](#ensemble_qr_scanner---v1251)
+ - [`ensemble_contacts` - `v1.2.51`](#ensemble_contacts---v1251)
+ - [`ensemble_face_camera` - `v1.2.51`](#ensemble_face_camera---v1251)
+ - [`ensemble_connect` - `v1.2.51`](#ensemble_connect---v1251)
+ - [`ensemble_network_info` - `v1.2.51`](#ensemble_network_info---v1251)
+ - [`ensemble_file_manager` - `v1.2.51`](#ensemble_file_manager---v1251)
+ - [`ensemble_stripe` - `v1.2.51`](#ensemble_stripe---v1251)
+ - [`ensemble_location` - `v1.2.51`](#ensemble_location---v1251)
+ - [`ensemble_auth` - `v1.2.51`](#ensemble_auth---v1251)
+ - [`ensemble_moengage` - `v1.2.51`](#ensemble_moengage---v1251)
+ - [`ensemble_firebase_analytics` - `v1.2.51`](#ensemble_firebase_analytics---v1251)
+ - [`ensemble_chat` - `v1.2.51`](#ensemble_chat---v1251)
+ - [`ensemble_camera` - `v1.2.51`](#ensemble_camera---v1251)
+ - [`ensemble_bracket` - `v1.2.51`](#ensemble_bracket---v1251)
+ - [`ensemble_deeplink` - `v1.2.51`](#ensemble_deeplink---v1251)
+ - [`ensemble_wifi` - `v1.2.51`](#ensemble_wifi---v1251)
+ - [`ensemble_bluetooth` - `v1.2.51`](#ensemble_bluetooth---v1251)
+ - [`ensemble_adobe_analytics` - `v1.2.51`](#ensemble_adobe_analytics---v1251)
+ - [`ensemble_remote_config` - `v1.2.51`](#ensemble_remote_config---v1251)
+
+Packages with dependency updates only:
+
+> Packages listed below depend on other packages in this workspace that have had changes. Their versions have been incremented to bump the minimum dependency versions of the packages they depend upon in this project.
+
+ - `ensemble_test_runner` - `v1.2.53`
+ - `ensemble_qr_scanner` - `v1.2.51`
+ - `ensemble_contacts` - `v1.2.51`
+ - `ensemble_face_camera` - `v1.2.51`
+ - `ensemble_connect` - `v1.2.51`
+ - `ensemble_network_info` - `v1.2.51`
+ - `ensemble_file_manager` - `v1.2.51`
+ - `ensemble_stripe` - `v1.2.51`
+ - `ensemble_location` - `v1.2.51`
+ - `ensemble_auth` - `v1.2.51`
+ - `ensemble_moengage` - `v1.2.51`
+ - `ensemble_firebase_analytics` - `v1.2.51`
+ - `ensemble_chat` - `v1.2.51`
+ - `ensemble_camera` - `v1.2.51`
+ - `ensemble_bracket` - `v1.2.51`
+ - `ensemble_deeplink` - `v1.2.51`
+ - `ensemble_wifi` - `v1.2.51`
+ - `ensemble_bluetooth` - `v1.2.51`
+ - `ensemble_adobe_analytics` - `v1.2.51`
+ - `ensemble_remote_config` - `v1.2.51`
+
+---
+
+#### `ensemble` - `v1.2.50-beta.2`
+
+ - **REFACTOR**: optimize visibility checks and boundary conditions in scroll handling. ([959f509e](https://github.com/ensembleUI/ensemble/commit/959f509ec82284b5575d89de0a4b2b38fd5709bb))
+ - **REFACTOR**: remove indicatorSpacing property from Carousel. ([994d79ef](https://github.com/ensembleUI/ensemble/commit/994d79ef27dc1790c3e51a863e2c3f5264112c29))
+ - **REFACTOR**: streamline TVOptions handling and improve focus state management. ([f5fdfbae](https://github.com/ensembleUI/ensemble/commit/f5fdfbae4cb5c27cfde8e34ce01ccafbfc3f405d))
+ - **REFACTOR**: enhance TVScrollbarWidget visibility handling and initialization logic. ([2b90d671](https://github.com/ensembleUI/ensemble/commit/2b90d67179e7474dde7f952326e68169dd4442f9))
+ - **REFACTOR**: remove fallback for top and bottom inputs in TVFocusEdgesComposite. ([a16bbf66](https://github.com/ensembleUI/ensemble/commit/a16bbf6694a30adddb30bb93abc475b1fb2328c0))
+ - **REFACTOR**: update TVFocusEdgeTargetComposite to use target properties for navigation. ([4af34749](https://github.com/ensembleUI/ensemble/commit/4af34749e880263f2936895871ff05a1ff035cda))
+ - **REFACTOR**: remove deprecated section parameter and clean up focus group handling. ([720d598f](https://github.com/ensembleUI/ensemble/commit/720d598f28778499e0ac70be64a55ce72a5c5c1b))
+ - **REFACTOR**: remove debug prints related to TV scrollbar handling and updated developer docs. ([d640ad20](https://github.com/ensembleUI/ensemble/commit/d640ad20f74f9cff6c9bf8cfd8cc21443c0d3a84))
+ - **FIX**(tv): use viewport position instead of screen size for scroll visibility. ([75dce03c](https://github.com/ensembleUI/ensemble/commit/75dce03c5d3229bdf3ba2c28f46f554cc983d9f1))
+ - **FIX**(tv): render custom tabWidget in TV tab bar buttons. ([7781d19f](https://github.com/ensembleUI/ensemble/commit/7781d19f41178023f65c5d9ff3c2590820c93acb))
+ - **FEAT**: add rememberRowPosition option for enhanced TV focus navigation and optimized the traversal. ([2f67b206](https://github.com/ensembleUI/ensemble/commit/2f67b206e08ad3c93661fc6651209ad58948ade8))
+ - **FEAT**: implement row position memory for TVFocusWidget navigation. ([f9856127](https://github.com/ensembleUI/ensemble/commit/f9856127d3af54569c88ec536699195c7896f7d2))
+ - **FEAT**: add indicatorSpacing, indicatorLeadingWidget, and indicatorTrailingWidget to Carousel. ([07b8c17f](https://github.com/ensembleUI/ensemble/commit/07b8c17fed9e2982207b7b47cc91e6d67bc27434))
+ - **FEAT**: implement edge navigation inhrit form parent. ([b927f089](https://github.com/ensembleUI/ensemble/commit/b927f08954a953e6f49e129c26046e97a0dd0881))
+ - **DOCS**: add comprehensive TV developer guide with navigation patterns, architecture, and examples. ([355f7e79](https://github.com/ensembleUI/ensemble/commit/355f7e792878c5cfd3e6575f8a78b2c1c1e19e76))
+
+
 ## 2026-07-23
 
 ### Changes
