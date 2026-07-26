@@ -663,6 +663,8 @@ mixin PageBindingManager on IsScopeManager {
 
   void dispatch(ModelChangeEvent event) {
     //log("EventBus ${eventBus.hashCode} firing $event");
+    // Page dispose closes the event bus before Screen cancels live API listeners.
+    if (eventBus.streamController.isClosed) return;
     eventBus.fire(event);
   }
 

@@ -46,3 +46,7 @@ starter/system.bak
 
 # remove molos .iml files
 **/melos_*.iml
+
+generated_failed_sheet.png
+generated_passed_sheet.png
+generated_multidevice_sheet.png

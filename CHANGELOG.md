@@ -3,6 +3,130 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## 2026-07-23
+
+### Changes
+
+---
+
+Packages with breaking changes:
+
+ - There are no breaking changes in this release.
+
+Packages with other changes:
+
+ - [`ensemble` - `v1.2.50`](#ensemble---v1250)
+ - [`ensemble_network_info` - `v1.2.50`](#ensemble_network_info---v1250)
+ - [`ensemble_stripe` - `v1.2.50`](#ensemble_stripe---v1250)
+ - [`ensemble_file_manager` - `v1.2.50`](#ensemble_file_manager---v1250)
+ - [`ensemble_chat` - `v1.2.50`](#ensemble_chat---v1250)
+ - [`ensemble_auth` - `v1.2.50`](#ensemble_auth---v1250)
+ - [`ensemble_bluetooth` - `v1.2.50`](#ensemble_bluetooth---v1250)
+ - [`ensemble_wifi` - `v1.2.50`](#ensemble_wifi---v1250)
+ - [`ensemble_face_camera` - `v1.2.50`](#ensemble_face_camera---v1250)
+ - [`ensemble_connect` - `v1.2.50`](#ensemble_connect---v1250)
+ - [`ensemble_contacts` - `v1.2.50`](#ensemble_contacts---v1250)
+ - [`ensemble_location` - `v1.2.50`](#ensemble_location---v1250)
+ - [`ensemble_camera` - `v1.2.50`](#ensemble_camera---v1250)
+ - [`ensemble_deeplink` - `v1.2.50`](#ensemble_deeplink---v1250)
+ - [`ensemble_remote_config` - `v1.2.50`](#ensemble_remote_config---v1250)
+ - [`ensemble_firebase_analytics` - `v1.2.50`](#ensemble_firebase_analytics---v1250)
+ - [`ensemble_qr_scanner` - `v1.2.50`](#ensemble_qr_scanner---v1250)
+ - [`ensemble_adobe_analytics` - `v1.2.50`](#ensemble_adobe_analytics---v1250)
+ - [`ensemble_moengage` - `v1.2.50`](#ensemble_moengage---v1250)
+ - [`ensemble_bracket` - `v1.2.50`](#ensemble_bracket---v1250)
+ - [`ensemble_test_runner` - `v1.2.50`](#ensemble_test_runner---v1250)
+
+---
+
+#### `ensemble` - `v1.2.50`
+
+ - **FIX**(firestore): dedupe listenForChanges subscriptions to prevent crash ([#2257](https://github.com/ensembleUI/ensemble/issues/2257)). ([3e7a0416](https://github.com/ensembleUI/ensemble/commit/3e7a0416c04e30d24af593eabcf9a49c16d0458a))
+ - **FIX**(webview): set cookies for inline HTML on native ([#2298](https://github.com/ensembleUI/ensemble/issues/2298)). ([79519031](https://github.com/ensembleUI/ensemble/commit/79519031e370abe7aa146cadd523f2c83d58da3d))
+ - **FEAT**(test_runner): support live Firebase and HTTP under flutter test ([#2321](https://github.com/ensembleUI/ensemble/issues/2321)). ([9ffe6994](https://github.com/ensembleUI/ensemble/commit/9ffe6994322370ca32a79f1ce75eb06bee251018))
+ - **FEAT**: Add ES6 parser and interpreter runtime support ([#2320](https://github.com/ensembleUI/ensemble/issues/2320)). ([8902b10f](https://github.com/ensembleUI/ensemble/commit/8902b10f0d842dc8a1d99ffd87f05d4ed92db8b3))
+
+#### `ensemble_network_info` - `v1.2.50`
+
+ - Bump "ensemble_network_info" to `1.2.50`.
+
+#### `ensemble_stripe` - `v1.2.50`
+
+ - Bump "ensemble_stripe" to `1.2.50`.
+
+#### `ensemble_file_manager` - `v1.2.50`
+
+ - Bump "ensemble_file_manager" to `1.2.50`.
+
+#### `ensemble_chat` - `v1.2.50`
+
+ - Bump "ensemble_chat" to `1.2.50`.
+
+#### `ensemble_auth` - `v1.2.50`
+
+ - **FEAT**(test_runner): support live Firebase and HTTP under flutter test ([#2321](https://github.com/ensembleUI/ensemble/issues/2321)). ([9ffe6994](https://github.com/ensembleUI/ensemble/commit/9ffe6994322370ca32a79f1ce75eb06bee251018))
+
+#### `ensemble_bluetooth` - `v1.2.50`
+
+ - Bump "ensemble_bluetooth" to `1.2.50`.
+
+#### `ensemble_wifi` - `v1.2.50`
+
+ - Bump "ensemble_wifi" to `1.2.50`.
+
+#### `ensemble_face_camera` - `v1.2.50`
+
+ - Bump "ensemble_face_camera" to `1.2.50`.
+
+#### `ensemble_connect` - `v1.2.50`
+
+ - Bump "ensemble_connect" to `1.2.50`.
+
+#### `ensemble_contacts` - `v1.2.50`
+
+ - Bump "ensemble_contacts" to `1.2.50`.
+
+#### `ensemble_location` - `v1.2.50`
+
+ - Bump "ensemble_location" to `1.2.50`.
+
+#### `ensemble_camera` - `v1.2.50`
+
+ - Bump "ensemble_camera" to `1.2.50`.
+
+#### `ensemble_deeplink` - `v1.2.50`
+
+ - Bump "ensemble_deeplink" to `1.2.50`.
+
+#### `ensemble_remote_config` - `v1.2.50`
+
+ - Bump "ensemble_remote_config" to `1.2.50`.
+
+#### `ensemble_firebase_analytics` - `v1.2.50`
+
+ - Bump "ensemble_firebase_analytics" to `1.2.50`.
+
+#### `ensemble_qr_scanner` - `v1.2.50`
+
+ - Bump "ensemble_qr_scanner" to `1.2.50`.
+
+#### `ensemble_adobe_analytics` - `v1.2.50`
+
+ - Bump "ensemble_adobe_analytics" to `1.2.50`.
+
+#### `ensemble_moengage` - `v1.2.50`
+
+ - Bump "ensemble_moengage" to `1.2.50`.
+
+#### `ensemble_bracket` - `v1.2.50`
+
+ - Bump "ensemble_bracket" to `1.2.50`.
+
+#### `ensemble_test_runner` - `v1.2.50`
+
+ - **FEAT**(test_runner): support live Firebase and HTTP under flutter test ([#2321](https://github.com/ensembleUI/ensemble/issues/2321)). ([9ffe6994](https://github.com/ensembleUI/ensemble/commit/9ffe6994322370ca32a79f1ce75eb06bee251018))
+
+
 ## 2026-07-02
 
 ### Changes

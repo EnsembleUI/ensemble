@@ -219,6 +219,31 @@ Map<String, String> parseYamlMap(value) {
   return result;
 }
 
+/// Default base URL for inline HTML WebViews when [htmlBaseUrl] is not set.
+const String kWebViewHtmlDefaultBaseUrl = 'https://ensemble.local/';
+
+/// Resolve the URL used for cookie domain/scheme when loading a WebView.
+///
+/// Inline HTML mode clears [url], so cookie setup must fall back to
+/// [htmlBaseUrl] (matching native [InAppWebViewInitialData.baseUrl]).
+@visibleForTesting
+String? resolvedWebViewCookieBaseUrl({
+  String? url,
+  String? html,
+  String? htmlBaseUrl,
+}) {
+  if (url != null && url.isNotEmpty) {
+    return url;
+  }
+  if (html != null && html.isNotEmpty) {
+    final base = htmlBaseUrl?.trim();
+    return (base == null || base.isEmpty)
+        ? kWebViewHtmlDefaultBaseUrl
+        : base;
+  }
+  return null;
+}
+
 enum HeaderMatchType { CONTAINS, EXACT, REGEX }
 class HeaderOverrideRule {
   final String urlPattern;
