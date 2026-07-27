@@ -393,7 +393,13 @@ class _BracketsViewState extends State<BracketsView> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.start,
               children: List.generate(widget.data.length, (index) {
-                bool isSelected = index == _currentPageIndex;
+                // On TV, tab selection follows _prevColumnIndex — the true
+                // navigation target — because _pageController.page (which drives
+                // _currentPageIndex) clamps on the last pages with padEnds:false,
+                // so the final tab would never register as selected. Mobile keeps
+                // _currentPageIndex since swipes update it directly.
+                bool isSelected = index ==
+                    (Device().isTV ? _prevColumnIndex : _currentPageIndex);
                 String? title = widget.data.elementAt(index).title;
 
                 // Wrap with TVFocusWidget for D-pad navigation on TV
@@ -455,6 +461,9 @@ class _BracketsViewState extends State<BracketsView> {
                       setState(() {
                         _prevColumnIndex = index;
                       });
+                      // Keep the selected tab in sync + scrolled into view when
+                      // navigating columns with the D-pad.
+                      _scrollToSelectedTab(index);
                     },
                   ),
                 )
@@ -667,6 +676,13 @@ class CustomScrollNotification extends Notification {
 class _BracketsPageState extends State<BracketsPage> {
   late List<ScrollController> _scrollControllers;
 
+  // Own the FocusScope that wraps this bracket's pages so navigation can search
+  // ONLY this bracket's focus subtree. A previous BracketView still mounted lower
+  // in the navigator stack has its own duplicate column tiles in the global focus
+  // tree; scanning globally can focus those off-screen ghosts (no visible ring).
+  final FocusScopeNode _pageScopeNode =
+      FocusScopeNode(debugLabel: 'BracketPageScope');
+
   @override
   void initState() {
     super.initState();
@@ -710,34 +726,60 @@ class _BracketsPageState extends State<BracketsPage> {
     // Find the focusable item with this row and column (order)
     // We find the DEEPEST focusable descendant that has this TVFocusOrder,
     // as this corresponds to the innermost Focus widget with visual styling.
-    final root = FocusManager.instance.rootScope;
+    // Search ONLY this bracket's own focus subtree, not the whole app. A previous
+    // BracketView still mounted lower in the navigator stack has its own duplicate
+    // column tiles; scanning globally can focus one of those off-screen ghosts
+    // (primary focus set, but no ring). Fall back to the root scope only if our
+    // scope isn't attached yet.
+    final Iterable<FocusNode> searchRoots = _pageScopeNode.descendants.isNotEmpty
+        ? _pageScopeNode.descendants
+        : FocusManager.instance.rootScope.descendants;
+    final double screenWidth = MediaQuery.of(context).size.width;
+
+    // Among nodes at the exact target (clampedRow, columnIndex), prefer the one
+    // that is actually VISIBLE on screen; among ties pick the deepest (the
+    // innermost Focus that carries the visual styling).
     FocusNode? bestMatch;
     int bestDepth = -1;
+    bool bestOnScreen = false;
 
-    for (final focusNode in root.descendants) {
-      if (focusNode.context == null) continue;
+    for (final focusNode in searchRoots) {
+      final ctx = focusNode.context;
+      if (ctx == null) continue;
 
-      final focusTraversalOrder = focusNode.context
-          ?.findAncestorWidgetOfExactType<FocusTraversalOrder>();
-      if (focusTraversalOrder?.order is TVFocusOrder) {
-        final order = focusTraversalOrder!.order as TVFocusOrder;
+      final order =
+          ctx.findAncestorWidgetOfExactType<FocusTraversalOrder>()?.order;
+      if (order is! TVFocusOrder) continue;
+      if (order.row.toInt() != clampedRow ||
+          order.order.toInt() != columnIndex) {
+        continue;
+      }
 
-        // Match by row and order (column = roundIndex)
-        if (order.row.toInt() == clampedRow &&
-            order.order.toInt() == columnIndex) {
-          // Calculate depth of this node (deeper = better for visual styling)
-          int depth = 0;
-          FocusNode? parent = focusNode.parent;
-          while (parent != null) {
-            depth++;
-            parent = parent.parent;
-          }
+      // Depth: deeper = the innermost Focus that carries the visual styling.
+      int depth = 0;
+      FocusNode? parent = focusNode.parent;
+      while (parent != null) {
+        depth++;
+        parent = parent.parent;
+      }
 
-          if (depth > bestDepth) {
-            bestDepth = depth;
-            bestMatch = focusNode;
-          }
-        }
+      // Visible? An off-screen duplicate has its horizontal center outside the
+      // screen bounds.
+      bool onScreen = false;
+      final renderObject = ctx.findRenderObject();
+      if (renderObject is RenderBox && renderObject.hasSize) {
+        final centerX = renderObject.localToGlobal(Offset.zero).dx +
+            renderObject.size.width / 2;
+        onScreen = centerX >= 0 && centerX < screenWidth;
+      }
+
+      // Prefer on-screen; then prefer deeper.
+      final bool better = bestMatch == null ||
+          (onScreen != bestOnScreen ? onScreen : depth > bestDepth);
+      if (better) {
+        bestMatch = focusNode;
+        bestDepth = depth;
+        bestOnScreen = onScreen;
       }
     }
 
@@ -751,6 +793,7 @@ class _BracketsPageState extends State<BracketsPage> {
     for (var controller in _scrollControllers) {
       controller.dispose();
     }
+    _pageScopeNode.dispose();
     super.dispose();
   }
 
@@ -872,9 +915,11 @@ class _BracketsPageState extends State<BracketsPage> {
       ),
     );
 
-    // On TV, wrap with FocusScope to catch delegated horizontal key events
+    // On TV, wrap with FocusScope to catch delegated horizontal key events.
+    // Own the node so navigation can scope its search to this bracket's subtree.
     if (Device().isTV) {
       return FocusScope(
+        node: _pageScopeNode,
         onKeyEvent: _handleKeyEvent,
         child: pageView,
       );
@@ -912,6 +957,16 @@ class _BracketsColumnPageState extends State<BracketsColumnPage> {
   late double matchCardHeight;
   List computedMatches = [];
 
+  // TV perf: the per-match content (scope + YAML model + widget + TVFocusWidget)
+  // is independent of prevColumnIndex, but a navigation changes prevColumnIndex
+  // and rebuilds this column — re-parsing/instantiating every tile. With 16/32
+  // tiles that synchronous rebuild is what makes the transition jank ("stuck
+  // then it happens"). So on TV we build the content once and reuse it across
+  // navigation; only the cheap margin/connector wrappers recompute each build.
+  // Invalidated when the underlying round data changes (identity). Mobile keeps
+  // building inline every frame (unchanged).
+  List<Widget>? _cachedTileContents;
+
   @override
   void initState() {
     computedMatches = widget.roundData.localScope.dataContext
@@ -921,7 +976,75 @@ class _BracketsColumnPageState extends State<BracketsColumnPage> {
   }
 
   @override
+  void didUpdateWidget(covariant BracketsColumnPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Only a real data change (new RoundData) invalidates the content cache —
+    // NOT prevColumnIndex navigation rebuilds, which keep the same roundData.
+    if (!identical(widget.roundData, oldWidget.roundData)) {
+      computedMatches = widget.roundData.localScope.dataContext
+          .eval(widget.roundData.matches.data);
+      matchCardHeight = widget.roundData.matches.height;
+      _cachedTileContents = null;
+    }
+  }
+
+  /// Builds the prevColumnIndex-independent inner content for every match: the
+  /// child scope, YAML model, widget, and (on TV) the TVFocusWidget wrapper.
+  /// The margin/connector wrappers are applied later in [build] since they DO
+  /// depend on prevColumnIndex.
+  List<Widget> _buildTileContents() {
+    return computedMatches.asMap().entries.map((entry) {
+      final matchIndex = entry.key;
+      final matchData = entry.value;
+
+      // Create a CHILD scope for each match
+      final matchScope = widget.roundData.localScope.createChildScope();
+      matchScope.dataContext
+          .addDataContextById(widget.roundData.matches.name, matchData);
+      matchScope.dataContext.addDataContextById('matchIndex', matchIndex);
+      matchScope.dataContext
+          .addDataContextById('roundIndex', widget.columnIndex);
+
+      // Build the widget model and widget, then wrap in DataScopeWidget so the
+      // widget can access the scope's data context for expressions.
+      final widgetModel = matchScope
+          .buildWidgetModelFromDefinition(widget.roundData.matches.template);
+      final templatedWidget = matchScope.buildWidgetFromModel(widgetModel);
+      Widget matchWidget = DataScopeWidget(
+        scopeManager: matchScope,
+        child: templatedWidget,
+      );
+
+      // Wrap with TVFocusWidget directly in Dart (not via YAML tvOptions). This
+      // avoids scope evaluation timing issues - matchIndex/roundIndex are
+      // available here but not during YAML re-evaluation on rebuild. Don't add
+      // an extra Focus widget here - box_wrapper's Focus handles visual styling;
+      // TVFocusWidget only provides ordering.
+      if (Device().isTV) {
+        matchWidget = TVFocusWidget(
+          focusOrder: TVFocusOrder.withOptions(
+            (widget.tvRowOffset + 1 + matchIndex)
+                .toDouble(), // matches start at tvRowOffset + 1
+            order: widget.columnIndex.toDouble(), // column = roundIndex
+            isRowEntryPoint: matchIndex == 0, // first match is entry point
+            delegateHorizontalNavigation: true, // bracket handles LEFT/RIGHT
+          ),
+          child: matchWidget,
+        );
+      }
+      return matchWidget;
+    }).toList();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    // TV: reuse cached tile content across navigation rebuilds so a
+    // prevColumnIndex change doesn't re-parse models / rebuild widgets (the
+    // 16/32-tile transition jank). Mobile builds fresh each frame (unchanged).
+    final List<Widget> tileContents = Device().isTV
+        ? (_cachedTileContents ??= _buildTileContents())
+        : _buildTileContents();
+
     return NotificationListener(
       onNotification: (ScrollNotification notification) {
         if (notification is ScrollUpdateNotification) {
@@ -943,7 +1066,6 @@ class _BracketsColumnPageState extends State<BracketsColumnPage> {
           children: [
             ...computedMatches.asMap().entries.map((entry) {
               final matchIndex = entry.key;
-              final matchData = entry.value;
 
               // Calculate vertical MARGIN to center cards between previous column's matches
               // Uses prevColumnIndex for animation effect - stages "expand" as you navigate to them
@@ -968,46 +1090,8 @@ class _BracketsColumnPageState extends State<BracketsColumnPage> {
                 }
               }
 
-              // Create a CHILD scope for each match
-              final matchScope = widget.roundData.localScope.createChildScope();
-              matchScope.dataContext
-                  .addDataContextById(widget.roundData.matches.name, matchData);
-              matchScope.dataContext
-                  .addDataContextById('matchIndex', matchIndex);
-              matchScope.dataContext
-                  .addDataContextById('roundIndex', widget.columnIndex);
-
-              // Build the widget model and widget, then wrap in DataScopeWidget
-              // This allows the widget to access the scope's data context for expressions
-              final widgetModel = matchScope.buildWidgetModelFromDefinition(
-                  widget.roundData.matches.template);
-              final templatedWidget =
-                  matchScope.buildWidgetFromModel(widgetModel);
-              final cellWidget = DataScopeWidget(
-                scopeManager: matchScope,
-                child: templatedWidget,
-              );
-
-              // Wrap with TVFocusWidget directly in Dart (not via YAML tvOptions)
-              // This avoids scope evaluation timing issues - matchIndex/roundIndex
-              // are available here but not during YAML re-evaluation on rebuild.
-              // Note: Don't add extra Focus widget here - let box_wrapper's Focus
-              // handle visual styling. TVFocusWidget only provides ordering.
-              Widget matchWidget = cellWidget;
-              if (Device().isTV) {
-                matchWidget = TVFocusWidget(
-                  focusOrder: TVFocusOrder.withOptions(
-                    (widget.tvRowOffset + 1 + matchIndex)
-                        .toDouble(), // matches start at tvRowOffset + 1
-                    order: widget.columnIndex.toDouble(), // column = roundIndex
-                    isRowEntryPoint:
-                        matchIndex == 0, // first match is entry point
-                    delegateHorizontalNavigation:
-                        true, // let bracket handle LEFT/RIGHT
-                  ),
-                  child: matchWidget,
-                );
-              }
+              // prevColumnIndex-independent content (cached on TV, see build()).
+              final Widget matchWidget = tileContents[matchIndex];
 
               return AnimatedContainer(
                 height: matchCardHeight,

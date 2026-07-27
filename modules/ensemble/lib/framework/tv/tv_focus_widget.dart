@@ -164,16 +164,21 @@ class TVFocusWidget extends StatelessWidget {
       );
     }
 
-    // Case 2 (PHASE 2): the child is a passive wrapper with no requestable node
-    // of its own (input fields, focus-only content). Own the wrapping
-    // FocusScope's node so it can be registered in TVFocusRegistry; requesting
-    // focus on that scope node delegates to the first focusable descendant.
-    // This lets these widgets appear in STEP 1 of collectInScope, so the
-    // root.descendants scan can be dropped in Phase 3.
-    return _RegisteredFocusScope(
-      focusOrder: focusOrder,
-      onKeyEvent: _handleScopeKeyEvent,
-      child: child,
+    // Case 2: the child is a passive wrapper with no requestable node of its own
+    // (e.g. bracket tiles/tabs whose real focusable leaf lives deeper in the
+    // child). Wrap in an ANONYMOUS FocusScope and do NOT register it: the child's
+    // actual leaf is discovered by the live focus-tree scan in
+    // TVFocusOrderNode.collectInScope. Registering the scope node instead would
+    // make navigation request focus on an empty scope, which focuses the scope
+    // itself and shows no ring.
+    return FocusTraversalOrder(
+      order: focusOrder,
+      // FocusScope (not Focus) so this node parents the child's focus node and
+      // D-pad key events bubble up to [_handleScopeKeyEvent].
+      child: FocusScope(
+        onKeyEvent: _handleScopeKeyEvent,
+        child: child,
+      ),
     );
   }
 
@@ -449,64 +454,6 @@ class TVFocusWidget extends StatelessWidget {
       // No row found above, stay at current
       return currentY;
     }
-  }
-}
-
-/// A [FocusScope] that owns its [FocusScopeNode] and registers it as the TV
-/// focus target for [focusOrder].
-///
-/// Used by [TVFocusWidget] when the wrapped child does not expose its own
-/// requestable [FocusNode] (input fields, focus-only content wrappers). Owning
-/// the scope node lets it be registered in [TVFocusRegistry]; requesting focus
-/// on it delegates to the first focusable descendant — matching how the legacy
-/// root.descendants scan targeted these widgets, but without needing the scan.
-class _RegisteredFocusScope extends StatefulWidget {
-  const _RegisteredFocusScope({
-    required this.focusOrder,
-    required this.onKeyEvent,
-    required this.child,
-  });
-
-  final TVFocusOrder focusOrder;
-  final FocusOnKeyEventCallback onKeyEvent;
-  final Widget child;
-
-  @override
-  State<_RegisteredFocusScope> createState() => _RegisteredFocusScopeState();
-}
-
-class _RegisteredFocusScopeState extends State<_RegisteredFocusScope> {
-  final FocusScopeNode _scopeNode = FocusScopeNode(debugLabel: 'TVFocusScope');
-
-  @override
-  void dispose() {
-    _scopeNode.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final order = widget.focusOrder;
-    return FocusTraversalOrder(
-      order: order,
-      child: TVFocusTargetRegistrar(
-        focusNode: _scopeNode,
-        focusOrder: order,
-        row: order.row,
-        order: order.order,
-        focusGroup: order.focusGroup,
-        isRowEntryPoint: order.isRowEntryPoint,
-        lockHorizontalNavigation: order.lockHorizontalNavigation,
-        delegateHorizontalNavigation: order.delegateHorizontalNavigation,
-        // FocusScope (not Focus) so this node parents the child's focus node and
-        // key events bubble up to [onKeyEvent].
-        child: FocusScope(
-          node: _scopeNode,
-          onKeyEvent: widget.onKeyEvent,
-          child: widget.child,
-        ),
-      ),
-    );
   }
 }
 

@@ -479,10 +479,18 @@ class TVFocusOrderNode {
   // focus candidates", used by _moveFocus / requestFocus / requestFocusAt /
   // requestFocusByEdge.
   //
-  // PHASE 3: pure O(r) over the explicit registry. Every TV focusable registers
-  // via TVFocusWidget (Phase 2), so the former root.descendants scan (the O(n ×
-  // tree-depth) cost) was verified redundant on-device (scanUnique == 0
-  // everywhere) and removed.
+  // Two complementary passes:
+  //   PASS 1 (registry, O(r)): Case-1 widgets that expose a real requestable
+  //     FocusNode via primaryFocusNode (e.g. box_wrapper, tabs) register it
+  //     directly. Fast and always accurate for those.
+  //   PASS 2 (live focus-tree scan): Case-2 widgets wrap passive content in an
+  //     anonymous FocusScope and do NOT register (e.g. bracket tiles/tabs); their
+  //     real focusable leaf is only reachable by walking the mounted focus tree.
+  //     Without this pass, navigation into those widgets has no candidate to
+  //     land on and focus is lost. The scan finds the actual leaf (not an empty
+  //     scope), so a visible ring is produced.
+  // Registered leaves take precedence on ties (see isBetterCandidateNode), so
+  // Case-1 widgets found by both passes resolve to the registered node.
   //
   // Arguments:
   // - [traversalGroup] null => no FocusTraversalGroup filtering (matches the
@@ -497,7 +505,7 @@ class TVFocusOrderNode {
   }) {
     final result = <TVFocusOrderNode, TVFocusOrderNode>{};
 
-    // Registry is the single source of truth (O(r)).
+    // PASS 1 — registered Case-1 targets (O(r)).
     for (final target in TVFocusRegistry.targets<TVFocusOrder>(
       route: route,
       traversalGroup: traversalGroup,
@@ -508,6 +516,25 @@ class TVFocusOrderNode {
         result,
         TVFocusOrderNode(target.focusNode, order, isRegisteredTarget: true),
       );
+    }
+
+    // PASS 2 — live focus-tree scan for unregistered Case-2 leaves.
+    for (final focusNode in FocusManager.instance.rootScope.descendants) {
+      final nodeContext = focusNode.context;
+      if (nodeContext == null) continue;
+      if (!focusNode.canRequestFocus) continue;
+      if (route != null && ModalRoute.of(nodeContext) != route) continue;
+      if (traversalGroup != null &&
+          nodeContext.findAncestorWidgetOfExactType<FocusTraversalGroup>() !=
+              traversalGroup) {
+        continue;
+      }
+      final order = nodeContext
+          .findAncestorWidgetOfExactType<FocusTraversalOrder>()
+          ?.order;
+      if (order is! TVFocusOrder) continue;
+      if (focusGroup != null && order.focusGroup != focusGroup) continue;
+      addPreferredCandidate(result, TVFocusOrderNode(focusNode, order));
     }
 
     return result;
