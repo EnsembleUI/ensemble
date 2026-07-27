@@ -99,6 +99,8 @@ class BracketController extends EnsembleBoxController {
   EBorderRadius? tabBorderRadius;
   Color? tabBorderColor;
   double? tabBorderWidth;
+  Color? tabSelectedBorderColor;
+  double? tabSelectedBorderWidth;
 
   // Tab focus styling (TV D-pad)
   Color? tabFocusColor;
@@ -162,6 +164,10 @@ class BracketController extends EnsembleBoxController {
         tabBorderRadius = Utils.getBorderRadius(data['borderRadius']);
         tabBorderColor = Utils.getColor(data['borderColor']);
         tabBorderWidth = Utils.optionalDouble(data['borderWidth']);
+        tabSelectedBorderColor =
+            Utils.getColor(data['selectedBorderColor']);
+        tabSelectedBorderWidth =
+            Utils.optionalDouble(data['selectedBorderWidth']);
         tabPadding = Utils.optionalInsets(data['padding']);
         tabGap = Utils.getDouble(data['gap'], fallback: 12.0);
         // Focus styling (TV D-pad)
@@ -412,6 +418,17 @@ class _BracketsViewState extends State<BracketsView> {
                   );
                 }
 
+                // Selected tab may override the base border; else fall back to base.
+                final Color? mobileBorderColor = isSelected
+                    ? (widget.controller.tabSelectedBorderColor ??
+                        widget.controller.tabBorderColor)
+                    : widget.controller.tabBorderColor;
+                final double mobileBorderWidth = isSelected
+                    ? (widget.controller.tabSelectedBorderWidth ??
+                        widget.controller.tabBorderWidth ??
+                        1.0)
+                    : (widget.controller.tabBorderWidth ?? 1.0);
+
                 return Container(
                   padding: EdgeInsets.only(left: widget.controller.tabGap),
                   child: ElevatedButton(
@@ -422,10 +439,20 @@ class _BracketsViewState extends State<BracketsView> {
                     },
                     style: ElevatedButton.styleFrom(
                       padding: widget.controller.tabPadding,
-                      shape: widget.controller.tabBorderRadius != null
+                      // Draw a resting border only when a border color is set, so
+                      // apps that never set it keep their previous look.
+                      shape: (widget.controller.tabBorderRadius != null ||
+                              mobileBorderColor != null)
                           ? RoundedRectangleBorder(
                               borderRadius:
-                                  widget.controller.tabBorderRadius!.getValue(),
+                                  widget.controller.tabBorderRadius?.getValue() ??
+                                      BorderRadius.zero,
+                              side: mobileBorderColor != null
+                                  ? BorderSide(
+                                      color: mobileBorderColor,
+                                      width: mobileBorderWidth,
+                                    )
+                                  : BorderSide.none,
                             )
                           : null,
                       backgroundColor: isSelected
@@ -595,9 +622,22 @@ class _TVTabButtonState extends State<_TVTabButton> {
       textStyle = widget.controller.tabTextStyle;
     }
 
-    // Border color: use focus color when focused, transparent otherwise
-    // Always render border to prevent size jerk
-    final borderColor = _isFocused ? focusBorderColor : Colors.transparent;
+    // Resting-state border comes from the base tabStyles (borderColor/
+    // borderWidth); focus overrides it. A border is always painted
+    // (transparent + focus width when unset) to prevent size jerk on focus.
+    // Selected tab may override the base border; priority focused > selected > normal.
+    final restingBorderColor = widget.isSelected
+        ? (widget.controller.tabSelectedBorderColor ??
+            widget.controller.tabBorderColor ??
+            Colors.transparent)
+        : (widget.controller.tabBorderColor ?? Colors.transparent);
+    final restingBorderWidth = widget.isSelected
+        ? (widget.controller.tabSelectedBorderWidth ??
+            widget.controller.tabBorderWidth ??
+            focusBorderWidth)
+        : (widget.controller.tabBorderWidth ?? focusBorderWidth);
+    final borderColor = _isFocused ? focusBorderColor : restingBorderColor;
+    final borderWidth = _isFocused ? focusBorderWidth : restingBorderWidth;
 
     return TVFocusWidget(
       focusOrder: TVFocusOrder.withOptions(
@@ -627,7 +667,7 @@ class _TVTabButtonState extends State<_TVTabButton> {
                 borderRadius: borderRadius,
                 side: BorderSide(
                   color: borderColor,
-                  width: focusBorderWidth,
+                  width: borderWidth,
                 ),
               ),
             ),
