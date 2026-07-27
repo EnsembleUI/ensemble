@@ -339,6 +339,8 @@ class ImageState extends EWidgetState<EnsembleImage> {
           width: widget._controller.width?.toDouble(),
           height: widget._controller.height?.toDouble(),
         ),
+        errorBuilder: (_, __, ___) => errorFallback(),
+        httpClient: RedirectBlockingHttpClient(),
         headers: _evaluateHeaders(),
       );
     }
@@ -466,7 +468,7 @@ class ImageCacheConfig {
 }
 
 class EnsembleImageCacheManager {
-  static const key = 'ensembleImageCacheKey';
+  static const key = 'ensembleImageCacheKeyNoRedirect';
 
   static CacheManager _instance = _createCacheManager();
 
@@ -478,6 +480,9 @@ class EnsembleImageCacheManager {
       key,
       stalePeriod: Duration(minutes: config.stalePeriodMinutes),
       maxNrOfCacheObjects: config.maxObjects,
+      fileService: HttpFileService(
+        httpClient: RedirectBlockingHttpClient(),
+      ),
     ));
   }
 
@@ -485,6 +490,35 @@ class EnsembleImageCacheManager {
   /// Called when ImageCacheConfig.configure() is called.
   static void _reinitialize() {
     _instance = _createCacheManager();
+  }
+}
+
+class RedirectBlockingHttpClient extends http.BaseClient {
+  RedirectBlockingHttpClient({http.Client? client})
+      : _client = client ?? http.Client();
+
+  final http.Client _client;
+
+  @override
+  Future<http.StreamedResponse> send(http.BaseRequest request) async {
+    request.followRedirects = false;
+    request.maxRedirects = 0;
+
+    final response = await _client.send(request);
+    if (response.statusCode >= 300 && response.statusCode < 400) {
+      await response.stream.drain();
+      throw http.ClientException(
+        'Redirects are not allowed for ${request.url}',
+        request.url,
+      );
+    }
+
+    return response;
+  }
+
+  @override
+  void close() {
+    _client.close();
   }
 }
 
