@@ -1,7 +1,10 @@
 import 'package:ensemble/framework/event.dart';
+import 'package:ensemble/framework/device.dart';
 import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
+import 'package:ensemble/widget/helpers/box_wrapper.dart';
+import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:ensemble/widget/helpers/input_wrapper.dart';
 import 'package:ensemble/widget/helpers/form_helper.dart';
 import 'package:ensemble/framework/action.dart' as framework;
@@ -103,7 +106,19 @@ class SwitchBaseState extends FormFieldWidgetState<SwitchBase> {
       )));
     }
 
-    children.add(widget is EnsembleSwitch ? switchWidget : tripleSwitch);
+    final Widget control =
+        widget is EnsembleSwitch ? switchWidget : tripleSwitch;
+    final bool tvFocusOnControl =
+        Device().isTV && widget._controller.tvOptions?.isEnabled == true;
+    children.add(
+      tvFocusOnControl
+          ? TVFocusOnlyBoxWrapper(
+              boxController: _SwitchTVFocusBoxController(widget._controller),
+              paintFocusBorderInForeground: true,
+              child: control,
+            )
+          : control,
+    );
 
     if (widget._controller.trailingText != null) {
       children.add(Expanded(
@@ -119,6 +134,7 @@ class SwitchBaseState extends FormFieldWidgetState<SwitchBase> {
           ? EnsembleSwitch.type
           : EnsembleTripleSwitch.type,
       controller: widget._controller,
+      wrapTVFocus: !tvFocusOnControl,
       widget: FormField<bool>(
         key: validatorKey,
         validator: (value) {
@@ -222,6 +238,23 @@ class SwitchBaseState extends FormFieldWidgetState<SwitchBase> {
         return widget._controller.inactiveThumbColor;
       },
     );
+    final bool tvFocusedSwitch =
+        Device().isTV && widget._controller.tvOptions?.isEnabled == true;
+    if (tvFocusedSwitch) {
+      return _TVSwitchControl(
+        value: widget._controller.value == true,
+        enabled: isEnabled(),
+        activeTrackColor: widget._controller.activeColor,
+        inactiveTrackColor: widget._controller.inactiveColor,
+        activeThumbColor: widget._controller.activeThumbColor,
+        inactiveThumbColor: widget._controller.inactiveThumbColor,
+        onChanged: (value) {
+          (widget as EnsembleSwitch?)?.onToggle(value);
+          onChange();
+        },
+      );
+    }
+
     return Switch(
         trackColor: trackColor,
         thumbColor: thumbColor,
@@ -256,6 +289,123 @@ class SwitchBaseController extends FormFieldController {
   bool useIOSStyle = false;
 
   framework.EnsembleAction? onChange;
+}
+
+class _SwitchTVFocusBoxController extends BoxController {
+  _SwitchTVFocusBoxController(SwitchBaseController source) : _source = source {
+    tvOptions = source.tvOptions;
+    borderColor = source.borderColor;
+    borderWidth = source.borderWidth;
+    borderRadius = source.borderRadius;
+    opacity = source.opacity;
+    elevation = source.elevation;
+    elevationShadowColor = source.elevationShadowColor;
+    elevationBorderRadius = source.elevationBorderRadius;
+    id = source.id;
+    autofocus = source.autofocus;
+  }
+
+  final SwitchBaseController _source;
+
+  @override
+  bool get hasFocus => _source.hasFocus;
+
+  @override
+  set hasFocus(bool value) => _source.hasFocus = value;
+}
+
+class _TVSwitchControl extends StatelessWidget {
+  const _TVSwitchControl({
+    required this.value,
+    required this.enabled,
+    required this.onChanged,
+    this.activeTrackColor,
+    this.inactiveTrackColor,
+    this.activeThumbColor,
+    this.inactiveThumbColor,
+  });
+
+  static const double _width = 52;
+  static const double _height = 32;
+  static const double _thumbSize = 24;
+  static const double _thumbInset = 4;
+
+  final bool value;
+  final bool enabled;
+  final ValueChanged<bool> onChanged;
+  final Color? activeTrackColor;
+  final Color? inactiveTrackColor;
+  final Color? activeThumbColor;
+  final Color? inactiveThumbColor;
+
+  @override
+  Widget build(BuildContext context) {
+    final switchTheme = SwitchTheme.of(context);
+    final activeStates = <WidgetState>{WidgetState.selected};
+    final inactiveStates = <WidgetState>{};
+    if (!enabled) {
+      activeStates.add(WidgetState.disabled);
+      inactiveStates.add(WidgetState.disabled);
+    }
+
+    final trackColor = value
+        ? activeTrackColor ??
+            switchTheme.trackColor?.resolve(activeStates) ??
+            Theme.of(context).colorScheme.primary
+        : inactiveTrackColor ??
+            switchTheme.trackColor?.resolve(inactiveStates) ??
+            const Color(0xFF777777);
+    final thumbColor = value
+        ? activeThumbColor ??
+            switchTheme.thumbColor?.resolve(activeStates) ??
+            Colors.white
+        : inactiveThumbColor ??
+            switchTheme.thumbColor?.resolve(inactiveStates) ??
+            Colors.white;
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        canRequestFocus: enabled,
+        focusColor: Colors.transparent,
+        hoverColor: Colors.transparent,
+        splashColor: Colors.transparent,
+        highlightColor: Colors.transparent,
+        onTap: enabled ? () => onChanged(!value) : null,
+        borderRadius: BorderRadius.circular(_height / 2),
+        child: SizedBox(
+          width: _width,
+          height: _height,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            curve: Curves.easeInOut,
+            decoration: BoxDecoration(
+              color: enabled ? trackColor : trackColor.withValues(alpha: 0.5),
+              borderRadius: BorderRadius.circular(_height / 2),
+            ),
+            child: AnimatedAlign(
+              duration: const Duration(milliseconds: 200),
+              curve: Curves.easeInOut,
+              alignment: value ? Alignment.centerRight : Alignment.centerLeft,
+              child: Padding(
+                padding: const EdgeInsets.all(_thumbInset),
+                child: Container(
+                  width: _thumbSize,
+                  height: _thumbSize,
+                  decoration: BoxDecoration(
+                    color: enabled
+                        ? thumbColor
+                        : thumbColor.withValues(alpha: 0.7),
+                    shape: BoxShape.circle,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 class SwitchColors {

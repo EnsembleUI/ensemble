@@ -1121,10 +1121,12 @@ class _TVFocusOnlyWrapper extends StatefulWidget {
   const _TVFocusOnlyWrapper({
     required this.child,
     required this.boxController,
+    this.paintFocusBorderInForeground = false,
   });
 
   final Widget child;
   final BoxController boxController;
+  final bool paintFocusBorderInForeground;
 
   @override
   State<_TVFocusOnlyWrapper> createState() => _TVFocusOnlyWrapperState();
@@ -1280,15 +1282,19 @@ class _TVFocusOnlyWrapperState extends State<_TVFocusOnlyWrapper> {
     final focusAnimationDuration = stylingResolver.focusAnimationDuration;
 
     // Build focus indicator content
+    final focusDecoration = BoxDecoration(
+      border: Border.all(
+        color: _hasFocus ? focusBorderColor : Colors.transparent,
+        width: focusBorderWidth,
+      ),
+      borderRadius: borderRadius,
+    );
+
     Widget focusIndicatorContent = AnimatedContainer(
       duration: focusAnimationDuration,
-      decoration: BoxDecoration(
-        border: Border.all(
-          color: _hasFocus ? focusBorderColor : Colors.transparent,
-          width: focusBorderWidth,
-        ),
-        borderRadius: borderRadius,
-      ),
+      decoration: widget.paintFocusBorderInForeground ? null : focusDecoration,
+      foregroundDecoration:
+          widget.paintFocusBorderInForeground ? focusDecoration : null,
       child: widget.child,
     );
 
@@ -1467,6 +1473,40 @@ class _TVFocusOnlyWrapperState extends State<_TVFocusOnlyWrapper> {
       // Register the hasFocus-tracking node itself (Case 1); see _scopeNode.
       primaryFocusNode: _scopeNode,
       child: wrappedChild,
+    );
+  }
+}
+
+class TVFocusOnlyBoxWrapper extends StatelessWidget {
+  const TVFocusOnlyBoxWrapper({
+    super.key,
+    required this.child,
+    required this.boxController,
+    this.paintFocusBorderInForeground = false,
+  });
+
+  final Widget child;
+  final BoxController boxController;
+  final bool paintFocusBorderInForeground;
+
+  @override
+  Widget build(BuildContext context) {
+    if (Device().isTV && boxController.tvOptions?.isEnabled == true) {
+      return wrapWithTVFocusContext(
+        context: context,
+        tvOptions: boxController.tvOptions,
+        child: _TVFocusOnlyWrapper(
+          boxController: boxController,
+          paintFocusBorderInForeground: paintFocusBorderInForeground,
+          child: child,
+        ),
+      );
+    }
+
+    return wrapWithTVFocusContext(
+      context: context,
+      tvOptions: boxController.tvOptions,
+      child: child,
     );
   }
 }

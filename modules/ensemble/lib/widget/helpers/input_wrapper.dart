@@ -15,11 +15,13 @@ class InputWrapper extends StatelessWidget {
       {super.key,
       required this.type,
       required this.widget,
-      required this.controller});
+      required this.controller,
+      this.wrapTVFocus = true});
 
   final String type;
   final Widget widget;
   final FormFieldController controller;
+  final bool wrapTVFocus;
 
   @override
   Widget build(BuildContext context) {
@@ -49,7 +51,9 @@ class InputWrapper extends StatelessWidget {
     }
 
     // TV focus support for form fields
-    if (Device().isTV && controller.tvOptions?.isEnabled == true) {
+    if (Device().isTV &&
+        controller.tvOptions?.isEnabled == true &&
+        wrapTVFocus) {
       rtn = _wrapWithTVFocus(context, rtn);
     }
 
