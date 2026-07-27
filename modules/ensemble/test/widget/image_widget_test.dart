@@ -43,6 +43,30 @@ void main() {
     });
   });
 
+  group('EnsembleImage redirects', () {
+    test('allowRedirect defaults to true and can be disabled', () {
+      final image = EnsembleImage();
+
+      expect(image.controller.allowRedirect, isTrue);
+
+      image.setProperty('allowRedirect', false);
+
+      expect(image.controller.allowRedirect, isFalse);
+    });
+
+    test('redirect-blocking client throws on redirects', () async {
+      final client =
+          RedirectBlockingHttpClient(client: _RedirectResponseClient());
+
+      addTearDown(client.close);
+
+      expect(
+        () => client.get(Uri.parse('https://example.com/redirect.png')),
+        throwsA(isA<http.ClientException>()),
+      );
+    });
+  });
+
   testWidgets('shows placeholder when source is empty', (tester) async {
     final image = EnsembleImage();
     image.setProperty('source', '   ');
@@ -50,16 +74,5 @@ void main() {
     await tester.pumpWidget(TestUtils.wrapTestWidgetWithScope(image));
 
     expect(find.byType(ColoredBoxPlaceholder), findsOneWidget);
-  });
-
-  test('redirect-blocking client throws on redirects', () async {
-    final client = RedirectBlockingHttpClient(client: _RedirectResponseClient());
-
-    addTearDown(client.close);
-
-    expect(
-      () => client.get(Uri.parse('https://example.com/redirect.png')),
-      throwsA(isA<http.ClientException>()),
-    );
   });
 }
