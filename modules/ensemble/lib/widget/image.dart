@@ -74,6 +74,8 @@ class EnsembleImage extends StatefulWidget
           _controller.onTapHaptic = Utils.optionalString(value),
       'pinchToZoom': (value) =>
           _controller.pinchToZoom = Utils.optionalBool(value),
+      'allowRedirect': (value) =>
+          _controller.allowRedirect = Utils.getBool(value, fallback: true),
       'colorFilter': (value) => _controller.colorFilter = ColorFilterComposite.from(value),
       'headers': (value) => _controller.headers = Utils.getMap(value)
           ?.map((key, value) => MapEntry(key.toString(), value.toString())),
@@ -95,6 +97,7 @@ class ImageController extends BoxController {
   EnsembleAction? onTap;
   String? onTapHaptic;
   ColorFilterComposite? colorFilter;
+  bool allowRedirect = true;
 
   // whether we should resize the image to this. Note that we should set either
   // resizedWidth or resizedHeight but not both so the aspect ratio is maintained
@@ -199,7 +202,9 @@ class ImageState extends EWidgetState<EnsembleImage> {
         lastModifiedDateTime.compareTo(widget._controller.lastModifiedCache!) ==
             1) {
       widget._controller.lastModifiedCache = lastModifiedDateTime;
-      await EnsembleImageCacheManager.instance.emptyCache();
+      await EnsembleImageCacheManager.instanceFor(
+        allowRedirect: widget._controller.allowRedirect,
+      ).emptyCache();
     }
     return "${widget.controller.source}${str}timeStamp=$lastModifiedDateTime";
   }
@@ -253,7 +258,9 @@ class ImageState extends EWidgetState<EnsembleImage> {
           // gigantic images won't run out of memory
           memCacheWidth: cachedWidth,
           memCacheHeight: cachedHeight,
-          cacheManager: EnsembleImageCacheManager.instance,
+          cacheManager: EnsembleImageCacheManager.instanceFor(
+            allowRedirect: widget._controller.allowRedirect,
+          ),
           errorWidget: (context, error, stacktrace) => errorFallback(),
           placeholder: (context, url) => ColoredBoxPlaceholder(
             color: widget._controller.placeholderColor,
@@ -339,6 +346,10 @@ class ImageState extends EWidgetState<EnsembleImage> {
           width: widget._controller.width?.toDouble(),
           height: widget._controller.height?.toDouble(),
         ),
+        errorBuilder: (_, __, ___) => errorFallback(),
+        httpClient: widget._controller.allowRedirect
+            ? null
+            : RedirectBlockingHttpClient(),
         headers: _evaluateHeaders(),
       );
     }
@@ -468,23 +479,68 @@ class ImageCacheConfig {
 class EnsembleImageCacheManager {
   static const key = 'ensembleImageCacheKey';
 
-  static CacheManager _instance = _createCacheManager();
+  static final Map<bool, CacheManager> _instances = {};
 
-  static CacheManager get instance => _instance;
+  static CacheManager get instance => instanceFor();
 
-  static CacheManager _createCacheManager() {
+  static CacheManager instanceFor({bool allowRedirect = true}) {
+    return _instances.putIfAbsent(
+      allowRedirect,
+      () => _createCacheManager(allowRedirect: allowRedirect),
+    );
+  }
+
+  static CacheManager _createCacheManager({required bool allowRedirect}) {
     final config = ImageCacheConfig();
-    return CacheManager(Config(
-      key,
-      stalePeriod: Duration(minutes: config.stalePeriodMinutes),
-      maxNrOfCacheObjects: config.maxObjects,
-    ));
+    return allowRedirect
+        ? CacheManager(Config(
+            key,
+            stalePeriod: Duration(minutes: config.stalePeriodMinutes),
+            maxNrOfCacheObjects: config.maxObjects,
+          ))
+        : CacheManager(Config(
+            '${key}_no_redirect',
+            stalePeriod: Duration(minutes: config.stalePeriodMinutes),
+            maxNrOfCacheObjects: config.maxObjects,
+            fileService: HttpFileService(
+              httpClient: RedirectBlockingHttpClient(),
+            ),
+          ));
   }
 
   /// Reinitialize the cache manager with current config settings.
   /// Called when ImageCacheConfig.configure() is called.
   static void _reinitialize() {
-    _instance = _createCacheManager();
+    _instances.clear();
+  }
+}
+
+class RedirectBlockingHttpClient extends http.BaseClient {
+  RedirectBlockingHttpClient({http.Client? client})
+      : _client = client ?? http.Client();
+
+  final http.Client _client;
+
+  @override
+  Future<http.StreamedResponse> send(http.BaseRequest request) async {
+    request.followRedirects = false;
+    request.maxRedirects = 0;
+
+    final response = await _client.send(request);
+    if (response.statusCode >= 300 && response.statusCode < 400) {
+      await response.stream.drain();
+      throw http.ClientException(
+        'Redirects are not allowed for ${request.url}',
+        request.url,
+      );
+    }
+
+    return response;
+  }
+
+  @override
+  void close() {
+    _client.close();
   }
 }
 

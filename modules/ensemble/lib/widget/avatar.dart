@@ -44,6 +44,7 @@ class AvatarController extends EnsembleBoxController {
   BoxFit? fit;
   Color? placeholderColor;
   ColorFilterComposite? colorFilter;
+  bool allowRedirect = true;
   bool? useGrayscaleFilter;
   GroupTemplate? groupTemplate;
 
@@ -72,6 +73,8 @@ class AvatarController extends EnsembleBoxController {
       'source': (value) => source = Utils.optionalString(value),
       'fit': (value) => fit = Utils.getBoxFit(value),
       'placeholderColor': (value) => placeholderColor = Utils.getColor(value),
+      'allowRedirect': (value) =>
+          allowRedirect = Utils.getBool(value, fallback: true),
       'variant': (value) => variant = AvatarVariant.values.from(value),
       'onTap': (func) => onTap = EnsembleAction.from(func, initiator: this),
       'onTapHaptic': (value) => onTapHaptic = Utils.optionalString(value),
@@ -297,7 +300,9 @@ class AvatarState extends EnsembleWidgetState<Avatar>
       source: source,
       fit: widget.controller.fit,
       colorFilter: widget.controller.colorFilter,
-      networkCacheManager: EnsembleImageCacheManager.instance,
+      networkCacheManager: EnsembleImageCacheManager.instanceFor(
+        allowRedirect: widget.controller.allowRedirect,
+      ),
       placeholderBuilder: (_, __) =>
           ColoredBoxPlaceholder(color: widget.controller.placeholderColor),
       errorBuilder: (_) => _buildFallback());
