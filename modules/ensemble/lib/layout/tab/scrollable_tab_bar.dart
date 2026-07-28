@@ -70,6 +70,10 @@ class ScrollableTabBar extends BaseTabBar {
           _controller.dividerColor = Utils.getColor(color),
       'indicatorColor': (color) =>
           _controller.indicatorColor = Utils.getColor(color),
+      'focusIndicatorColor': (color) =>
+          _controller.focusIndicatorColor = Utils.getColor(color),
+      'focusTabColor': (color) =>
+          _controller.focusTabColor = Utils.getColor(color),
       'indicatorThickness': (thickness) =>
           _controller.indicatorThickness = Utils.optionalInt(thickness),
       'selectedIndex': (index) =>
