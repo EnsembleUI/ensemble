@@ -189,6 +189,18 @@ Future<EncodedScreenshotImage> _compressedReportImage(
     img.compositeImage(background, resized);
     final visualHash = _visualHash(background);
 
+    final webPInputBytes = Uint8List.fromList(
+      img.encodePng(background, level: 1),
+    );
+    final webPBytes = await _encodeWebP(webPInputBytes);
+    if (webPBytes != null) {
+      return EncodedScreenshotImage(
+        bytes: webPBytes,
+        extension: 'webp',
+        visualHash: visualHash,
+      );
+    }
+
     final jpgBytes = Uint8List.fromList(
       img.encodeJpg(
         background,
@@ -197,7 +209,7 @@ Future<EncodedScreenshotImage> _compressedReportImage(
       ),
     );
     final optimizedPngBytes = Uint8List.fromList(
-      img.encodePng(background, level: 9),
+      img.encodePng(background, level: 6),
     );
     final candidates = <EncodedScreenshotImage>[
       EncodedScreenshotImage(
@@ -211,18 +223,6 @@ Future<EncodedScreenshotImage> _compressedReportImage(
         visualHash: visualHash,
       ),
     ];
-
-    final webPBytes = await _encodeWebP(optimizedPngBytes);
-    if (webPBytes != null) {
-      candidates.add(
-        EncodedScreenshotImage(
-          bytes: webPBytes,
-          extension: 'webp',
-          visualHash: visualHash,
-        ),
-      );
-    }
-
     candidates.sort((a, b) => a.bytes.length.compareTo(b.bytes.length));
     return candidates.first;
   } catch (_) {
@@ -245,7 +245,7 @@ Future<Uint8List?> _encodeWebP(Uint8List pngBytes) async {
       '-q',
       '$_reportScreenshotWebPQuality',
       '-m',
-      '6',
+      '4',
       '-metadata',
       'none',
       input.path,

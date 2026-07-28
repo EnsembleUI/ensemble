@@ -317,6 +317,7 @@ List<Object?> _drainPendingExceptions(WidgetTester tester) {
 EnsembleTestSelection _selectionFromEnvironment() {
   return EnsembleTestSelection(
     ids: _csvSet(const String.fromEnvironment('ensembleTestId')),
+    exactIds: _csvSet(const String.fromEnvironment('ensembleTestShardId')),
     features: _csvSet(const String.fromEnvironment('ensembleTestFeature')),
     profiles: _csvSet(const String.fromEnvironment('ensembleTestProfile')),
     tags: _csvSet(const String.fromEnvironment('ensembleTestTag')),

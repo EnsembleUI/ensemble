@@ -334,14 +334,14 @@ class TestStepExecutor {
     final finder = assertions.finderForId(id);
     _expectSingleWidget(finder, id, 'longPress');
     await tester.longPress(finder);
-    await _settle();
+    await _settleAfterAction();
   }
 
   Future<void> focusWidget(String id) async {
     final finder = assertions.finderForId(id);
     _expectSingleWidget(finder, id, 'focus');
     await tester.tap(finder);
-    await _settle();
+    await _settleAfterAction();
   }
 
   Future<void> waitForTextContains({
@@ -437,6 +437,9 @@ class TestStepExecutor {
     await _yieldToLiveApiWork();
   }
 
+  Future<void> _settleAfterAction() =>
+      _settle(timeout: config.actionSettleTimeout);
+
   /// Lets in-flight live HTTP (wrapped in [WidgetTester.runAsync]) finish and
   /// pumps a frame so Ensemble can apply API state. Uses [Duration.zero] so
   /// timers from departed screens are not advanced while draining live HTTP.
@@ -496,7 +499,7 @@ class TestStepExecutor {
       await onBeforeActionStep!(step);
     }
     await tester.tap(tappableFinder);
-    await _settle();
+    await _settleAfterAction();
   }
 
   Finder? _findTappableFinder(String id) {
@@ -558,7 +561,7 @@ class TestStepExecutor {
       ),
     );
     await tester.tap(control.evaluate().isNotEmpty ? control.first : finder);
-    await _settle();
+    await _settleAfterAction();
   }
 
   Future<void> _enterText(String id, String value,
@@ -576,7 +579,7 @@ class TestStepExecutor {
     if (submit) {
       await tester.testTextInput.receiveAction(TextInputAction.done);
     }
-    await _settle();
+    await _settleAfterAction();
   }
 
   Future<void> _submitText(String id) async {
@@ -584,14 +587,14 @@ class TestStepExecutor {
     _expectSingleWidget(finder, id, 'submitText');
     await tester.tap(finder);
     await tester.testTextInput.receiveAction(TextInputAction.done);
-    await _settle();
+    await _settleAfterAction();
   }
 
   Future<void> _clearText(String id) async {
     final finder = assertions.finderForId(id);
     _expectSingleWidget(finder, id, 'clearText');
     await tester.enterText(finder, '');
-    await _settle();
+    await _settleAfterAction();
   }
 
   Future<void> _select(String id, String? value) async {
@@ -604,7 +607,7 @@ class TestStepExecutor {
       throw EnsembleTestFailure('select could not find option "$value"');
     }
     await tester.tap(option);
-    await _settle();
+    await _settleAfterAction();
   }
 
   Future<void> _scrollUntilVisible(String id) async {
@@ -614,7 +617,7 @@ class TestStepExecutor {
       300,
       scrollable: find.byType(Scrollable).first,
     );
-    await _settle();
+    await _settleAfterAction();
   }
 
   Future<void> _waitFor({

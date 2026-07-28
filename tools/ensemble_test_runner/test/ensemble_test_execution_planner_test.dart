@@ -858,6 +858,51 @@ steps:
       });
     });
 
+    test('exact selection filters after device expansion and keeps session',
+        () async {
+      final plan = await EnsembleTestExecutionPlanner.buildForTest(
+        assetContents: const {
+          'suite/tests/login.test.yaml': '''
+id: login
+startScreen: Login
+steps:
+  - expectVisible:
+      id: login_button
+''',
+          'suite/tests/home.test.yaml': '''
+id: home
+session: login
+startScreen: Home
+steps:
+  - expectVisible:
+      id: home_body
+''',
+        },
+        config: const EnsembleTestConfig(
+          devices: [
+            TestDeviceTarget(
+              id: 'iphone',
+              platform: 'ios',
+              model: 'iPhone 15 Pro',
+            ),
+            TestDeviceTarget(
+              id: 'android',
+              platform: 'android',
+              model: 'Samsung Galaxy S20',
+            ),
+          ],
+        ),
+        selection: const EnsembleTestSelection(
+          exactIds: {'home[android]'},
+        ),
+      );
+
+      expect(
+        plan.ordered.map((definition) => definition.testCase.id),
+        ['login[android]', 'home[android]'],
+      );
+    });
+
     test('device matrix leaves startScreenInputs languageCode unchanged',
         () async {
       const yaml = '''

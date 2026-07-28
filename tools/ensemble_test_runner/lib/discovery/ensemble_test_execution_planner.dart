@@ -33,6 +33,7 @@ class EnsembleTestExecutionPlan {
 
 class EnsembleTestSelection {
   final Set<String> ids;
+  final Set<String> exactIds;
   final Set<String> features;
   final Set<String> profiles;
   final Set<String> tags;
@@ -40,6 +41,7 @@ class EnsembleTestSelection {
 
   const EnsembleTestSelection({
     this.ids = const {},
+    this.exactIds = const {},
     this.features = const {},
     this.profiles = const {},
     this.tags = const {},
@@ -48,6 +50,7 @@ class EnsembleTestSelection {
 
   bool get isEmpty =>
       ids.isEmpty &&
+      exactIds.isEmpty &&
       features.isEmpty &&
       profiles.isEmpty &&
       tags.isEmpty &&
@@ -168,24 +171,21 @@ class EnsembleTestExecutionPlanner {
       }
     }
 
-    final previewSelection = selectionWithExpandedProfiles.profiles.isEmpty
-        ? selectionWithExpandedProfiles
-        : EnsembleTestSelection(
-            ids: selectionWithExpandedProfiles.ids,
-            features: selectionWithExpandedProfiles.features,
-            tags: selectionWithExpandedProfiles.tags,
-            paths: selectionWithExpandedProfiles.paths,
-          );
-    final selectedPreviewById = selectionWithExpandedProfiles.profiles.isEmpty
-        ? _applySelection(previewById, selectionWithExpandedProfiles)
-        : previewSelection.isEmpty
-            ? previewById
-            : _applySelection(previewById, previewSelection);
+    final previewSelection = EnsembleTestSelection(
+      ids: selectionWithExpandedProfiles.ids,
+      features: selectionWithExpandedProfiles.features,
+      tags: selectionWithExpandedProfiles.tags,
+      paths: selectionWithExpandedProfiles.paths,
+    );
+    final selectedPreviewById = previewSelection.isEmpty
+        ? previewById
+        : _applySelection(previewById, previewSelection);
 
     final selectedAssetPaths = selectedPreviewById.values
         .map((definition) => definition.assetPath)
         .toSet();
     final selectedIds = selectedPreviewById.keys.toSet();
+    final parsedById = <String, EnsembleTestDefinition>{};
     final selectedById = <String, EnsembleTestDefinition>{};
     for (final path in selectedAssetPaths) {
       final content = assetContents[path]!;
@@ -204,7 +204,8 @@ class EnsembleTestExecutionPlanner {
         assetLoader: assetLoader,
       );
       for (final definition in definitions) {
-        if (!_idBelongsToSelection(definition.testCase.id, selectedIds)) {
+        if (selectionWithExpandedProfiles.exactIds.isEmpty &&
+            !_idBelongsToSelection(definition.testCase.id, selectedIds)) {
           continue;
         }
         if (!_matchesProfileSelection(
@@ -213,15 +214,26 @@ class EnsembleTestExecutionPlanner {
         )) {
           continue;
         }
-        final existing = selectedById[definition.testCase.id];
+        final existing = parsedById[definition.testCase.id];
         if (existing != null) {
           throw EnsembleTestFailure(
             'Duplicate test id "${definition.testCase.id}" in '
             '${existing.assetPath} and $path',
           );
         }
-        selectedById[definition.testCase.id] = definition;
+        parsedById[definition.testCase.id] = definition;
       }
+    }
+
+    if (selectionWithExpandedProfiles.exactIds.isNotEmpty) {
+      selectedById.addAll(
+        _applyExactIdSelection(
+          parsedById,
+          selectionWithExpandedProfiles.exactIds,
+        ),
+      );
+    } else {
+      selectedById.addAll(parsedById);
     }
 
     if (selectedById.isEmpty) {
@@ -245,8 +257,7 @@ class EnsembleTestExecutionPlanner {
     return EnsembleTestExecutionPlan(ordered: ordered, config: config);
   }
 
-  /// Exposed for unit tests only.
-  @visibleForTesting
+  /// Parses one test asset into fully expanded definitions.
   static Future<List<EnsembleTestDefinition>> parseDefinitionsForTest(
     String path,
     String content, {
@@ -1031,7 +1042,10 @@ class EnsembleTestExecutionPlanner {
     final test = def.testCase;
     final idMatches = selection.ids.isNotEmpty &&
         selection.ids.any(
-          (id) => test.id == id || test.id.startsWith('$id['),
+          (id) =>
+              test.id == id ||
+              test.id.startsWith('$id[') ||
+              id.startsWith('${test.id}['),
         );
     final featureMatches = selection.features.isNotEmpty &&
         selection.features.contains(test.feature);
@@ -1075,7 +1089,34 @@ class EnsembleTestExecutionPlanner {
       profiles: expanded,
       tags: selection.tags,
       paths: selection.paths,
+      exactIds: selection.exactIds,
     );
+  }
+
+  static Map<String, EnsembleTestDefinition> _applyExactIdSelection(
+    Map<String, EnsembleTestDefinition> byId,
+    Set<String> exactIds,
+  ) {
+    final selectedIds = <String>{};
+
+    void includeWithDependencies(String id) {
+      final definition = byId[id];
+      if (definition == null) {
+        throw EnsembleTestFailure('Selected test "$id" was not found.');
+      }
+      if (!selectedIds.add(id)) return;
+      final session = definition.testCase.session;
+      if (session != null) includeWithDependencies(session);
+    }
+
+    for (final id in exactIds) {
+      includeWithDependencies(id);
+    }
+
+    return {
+      for (final id in byId.keys)
+        if (selectedIds.contains(id)) id: byId[id]!,
+    };
   }
 
   /// Kahn's algorithm: edge from test → its session producer.
