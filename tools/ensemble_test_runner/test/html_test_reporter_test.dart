@@ -318,8 +318,7 @@ void main() {
     );
     expect((steps[0] as Map)['screenshots'], isNotEmpty);
     final frames = (steps[0] as Map)['screenshots'] as List;
-    expect(frames.first['href'],
-        contains('../screenshots/login_flow_step0_0.png'));
+    expect(frames.first['href'], 'screenshots/login_flow_step0_0.png');
     expect(((steps[1] as Map)['screenshots'] as List).first['failed'], isTrue);
 
     final raw = readRawOptimized();
@@ -337,6 +336,15 @@ void main() {
     );
     expect(
       File(p.join(screenshotsDir.path, 'login_flow_step0_0.png')).existsSync(),
+      isFalse,
+    );
+    expect(
+      File(p.join(
+        tempDir.path,
+        'report',
+        'screenshots',
+        'login_flow_step0_0.png',
+      )).existsSync(),
       isTrue,
     );
   });
@@ -532,7 +540,7 @@ void main() {
     expect(html, isNot(contains('modal-tab-performance')));
   });
 
-  test('cleanTransientArtifacts keeps report, PNGs, and durations', () {
+  test('cleanTransientArtifacts publishes screenshots under report', () {
     final root = tempDir.path;
     Directory(p.join(root, 'logs')).createSync(recursive: true);
     File(p.join(root, 'logs', 'x_api_calls.json')).writeAsStringSync('{}');
@@ -555,6 +563,7 @@ void main() {
     expect(Directory(p.join(root, 'logs')).existsSync(), isFalse);
     expect(Directory(p.join(root, 'worker_progress')).existsSync(), isFalse);
     expect(Directory(p.join(root, 'worker_reports')).existsSync(), isFalse);
+    expect(Directory(p.join(root, 'screenshots')).existsSync(), isFalse);
     expect(
       File(p.join(root, 'report', TestReportDocument.resultsFileName))
           .existsSync(),
@@ -562,11 +571,13 @@ void main() {
     );
     expect(File(p.join(root, 'report', 'index.html')).existsSync(), isTrue);
     expect(File(p.join(root, 'test_durations.json')).existsSync(), isTrue);
-    expect(File(p.join(root, 'screenshots', 't_frames.json')).existsSync(),
-        isFalse);
     expect(
-      File(p.join(root, 'screenshots', 't_step0_0.png')).existsSync(),
+      File(p.join(root, 'report', 'screenshots', 't_step0_0.png')).existsSync(),
       isTrue,
+    );
+    expect(
+      File(p.join(root, 'report', 'screenshots', 't_frames.json')).existsSync(),
+      isFalse,
     );
   });
 }

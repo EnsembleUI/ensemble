@@ -156,6 +156,8 @@ Future<void> runEnsembleYamlTestsCli(List<String> arguments) async {
       machineReport: machineReport,
     );
 
+    _cleanParallelRunArtifacts(appDir);
+
     if (!machineReport) {
       try {
         final discovered = _discoverAllTestRuns(appDir, patcher);
@@ -766,6 +768,11 @@ void _cleanParallelRunArtifacts(String appDir) {
   ]) {
     final directory = Directory(p.join(root.path, name));
     if (directory.existsSync()) directory.deleteSync(recursive: true);
+  }
+  final reportScreenshots =
+      Directory(p.join(root.path, 'report', 'screenshots'));
+  if (reportScreenshots.existsSync()) {
+    reportScreenshots.deleteSync(recursive: true);
   }
 }
 

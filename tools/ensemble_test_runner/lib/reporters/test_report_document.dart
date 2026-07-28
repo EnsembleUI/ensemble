@@ -96,25 +96,39 @@ class TestReportDocument {
 
   /// Removes runner intermediates that are no longer needed after results write.
   ///
-  /// Keeps `report/`, screenshot PNGs, and `test_durations.json`.
+  /// Keeps `report/` and `test_durations.json`.
+  ///
+  /// Screenshot PNGs are published into `report/screenshots/` so the report
+  /// directory can be deployed as a standalone static artifact.
   static void cleanTransientArtifacts(String artifactRoot) {
+    _publishScreenshotsToReport(artifactRoot);
+
     for (final name in const [
       'logs',
       'worker_progress',
       'worker_reports',
+      'screenshots',
     ]) {
       final directory = Directory(p.join(artifactRoot, name));
       if (directory.existsSync()) {
         directory.deleteSync(recursive: true);
       }
     }
-    final screenshots = Directory(p.join(artifactRoot, 'screenshots'));
-    if (!screenshots.existsSync()) return;
-    for (final entity in screenshots.listSync()) {
+  }
+
+  static void _publishScreenshotsToReport(String artifactRoot) {
+    final source = Directory(p.join(artifactRoot, 'screenshots'));
+    final target = Directory(p.join(artifactRoot, 'report', 'screenshots'));
+    if (target.existsSync()) {
+      target.deleteSync(recursive: true);
+    }
+    if (!source.existsSync()) return;
+
+    target.createSync(recursive: true);
+    for (final entity in source.listSync()) {
       if (entity is! File) continue;
-      if (entity.path.replaceAll('\\', '/').endsWith('_frames.json')) {
-        entity.deleteSync();
-      }
+      if (!entity.path.toLowerCase().endsWith('.png')) continue;
+      entity.copySync(p.join(target.path, p.basename(entity.path)));
     }
   }
 
@@ -318,15 +332,13 @@ class TestReportDocument {
     try {
       final decoded = json.decode(File(fsPath).readAsStringSync());
       if (decoded is! Map || decoded['frames'] is! List) return const [];
-      final sheetDir = p.dirname(framesDisplay);
       final frames = <Map<String, dynamic>>[];
       for (final frame in decoded['frames']) {
         if (frame is! Map) continue;
         final entry = Map<String, dynamic>.from(frame);
         final fileName = entry['file']?.toString();
         if (fileName != null && fileName.isNotEmpty) {
-          final displayPath = p.join(sheetDir, fileName).replaceAll('\\', '/');
-          entry['href'] = _relativeHref(displayPath, displayRoot);
+          entry['href'] = p.join('screenshots', fileName).replaceAll('\\', '/');
         }
         frames.add(entry);
       }
