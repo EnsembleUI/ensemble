@@ -1,4 +1,6 @@
 import 'dart:convert';
+import 'dart:ffi';
+import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:crypto/crypto.dart';
@@ -10,9 +12,14 @@ import 'package:ensemble_test_runner/runner/live_async_call.dart';
 import 'package:ensemble_test_runner/runner/test_artifacts.dart';
 import 'package:ensemble_test_runner/runner/test_runtime_state.dart';
 import 'package:image/image.dart' as img;
+import 'package:path/path.dart' as p;
 
 const _maxReportScreenshotWidth = 360;
 const _reportScreenshotJpegQuality = 82;
+const _reportScreenshotWebPQuality = 82;
+
+String? _cachedCwebpPath;
+bool _didResolveCwebpPath = false;
 
 /// Encodes each frame to a compressed device-framed image and writes a
 /// [frames.json] manifest.
@@ -153,7 +160,8 @@ Future<EncodedScreenshotImage> _encodeFrameImage(
   return _compressedReportImage(bytes);
 }
 
-EncodedScreenshotImage _compressedReportImage(Uint8List pngBytes) {
+Future<EncodedScreenshotImage> _compressedReportImage(
+    Uint8List pngBytes) async {
   try {
     final decoded = img.decodePng(pngBytes);
     if (decoded == null) {
@@ -183,13 +191,110 @@ EncodedScreenshotImage _compressedReportImage(Uint8List pngBytes) {
     final optimizedPngBytes = Uint8List.fromList(
       img.encodePng(background, level: 9),
     );
-    if (optimizedPngBytes.length < jpgBytes.length) {
-      return EncodedScreenshotImage(bytes: optimizedPngBytes, extension: 'png');
+    final candidates = <EncodedScreenshotImage>[
+      EncodedScreenshotImage(bytes: jpgBytes, extension: 'jpg'),
+      EncodedScreenshotImage(bytes: optimizedPngBytes, extension: 'png'),
+    ];
+
+    final webPBytes = await _encodeWebP(optimizedPngBytes);
+    if (webPBytes != null) {
+      candidates
+          .add(EncodedScreenshotImage(bytes: webPBytes, extension: 'webp'));
     }
 
-    return EncodedScreenshotImage(bytes: jpgBytes, extension: 'jpg');
+    candidates.sort((a, b) => a.bytes.length.compareTo(b.bytes.length));
+    return candidates.first;
   } catch (_) {
     return EncodedScreenshotImage(bytes: pngBytes, extension: 'png');
+  }
+}
+
+Future<Uint8List?> _encodeWebP(Uint8List pngBytes) async {
+  final cwebpPath = await _resolveCwebpPath();
+  if (cwebpPath == null) return null;
+
+  final tempDir = Directory.systemTemp.createTempSync('ensemble_webp_');
+  try {
+    final input = File(p.join(tempDir.path, 'input.png'));
+    final output = File(p.join(tempDir.path, 'output.webp'));
+    input.writeAsBytesSync(pngBytes);
+
+    final result = await Process.run(cwebpPath, [
+      '-quiet',
+      '-q',
+      '$_reportScreenshotWebPQuality',
+      '-m',
+      '4',
+      input.path,
+      '-o',
+      output.path,
+    ]);
+    if (result.exitCode != 0 || !output.existsSync()) {
+      return null;
+    }
+    return output.readAsBytesSync();
+  } catch (_) {
+    return null;
+  } finally {
+    try {
+      tempDir.deleteSync(recursive: true);
+    } catch (_) {}
+  }
+}
+
+Future<String?> _resolveCwebpPath() async {
+  if (_didResolveCwebpPath) return _cachedCwebpPath;
+  _didResolveCwebpPath = true;
+
+  final packageConfig = File(
+    p.join(Directory.current.path, '.dart_tool', 'package_config.json'),
+  );
+  if (!packageConfig.existsSync()) return null;
+
+  final packageConfigJson =
+      jsonDecode(packageConfig.readAsStringSync()) as Map<String, dynamic>;
+  final packages = packageConfigJson['packages'];
+  if (packages is! List) return null;
+
+  String? webpRootUri;
+  for (final package in packages) {
+    if (package is Map<String, dynamic> && package['name'] == 'webp') {
+      webpRootUri = package['rootUri'] as String?;
+      break;
+    }
+  }
+  if (webpRootUri == null) return null;
+
+  final packageRoot = p.normalize(
+    p.join(
+      packageConfig.parent.path,
+      p.fromUri(Uri.parse(webpRootUri)),
+    ),
+  );
+  final architecture = _webPArchitecture();
+  if (architecture == null) return null;
+
+  final executable = Platform.isWindows ? 'cwebp.exe' : 'cwebp';
+  final cwebp = File(p.join(packageRoot, architecture, executable));
+  if (!cwebp.existsSync()) return null;
+  _cachedCwebpPath = cwebp.path;
+  return _cachedCwebpPath;
+}
+
+String? _webPArchitecture() {
+  switch (Abi.current()) {
+    case Abi.macosArm64:
+      return 'mac-arm64';
+    case Abi.macosX64:
+      return 'mac-x86-64';
+    case Abi.linuxArm64:
+      return 'linux-aarch64';
+    case Abi.linuxX64:
+      return 'linux-x86-64';
+    case Abi.windowsX64:
+      return 'windows-x64';
+    default:
+      return null;
   }
 }
 

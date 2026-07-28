@@ -38,6 +38,7 @@ dependencies:
   http: ^1.2.2
   get_it: ^8.0.3
   sqflite_common_ffi: ^2.3.6
+  webp: ^1.0.0
 
 dev_dependencies:
   flutter_lints: ^2.0.3

@@ -59,7 +59,7 @@ void main() {
     expect(frames.single['file'], startsWith('shot_'));
     expect(
       frames.single['file'],
-      anyOf(endsWith('.jpg'), endsWith('.png')),
+      anyOf(endsWith('.jpg'), endsWith('.png'), endsWith('.webp')),
     );
     expect(frames.single['highlight']['kind'], 'action');
     expect(frames.single['highlight']['left'], 10);
