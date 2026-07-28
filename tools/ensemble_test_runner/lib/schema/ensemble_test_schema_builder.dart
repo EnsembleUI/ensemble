@@ -10,13 +10,23 @@ class EnsembleTestSchemaBuilder {
       'https://cdn.ensembleui.com/schemas/ensemble_test_config_schema.json';
   static const schemaVersion = 'https://json-schema.org/draft/2020-12/schema';
 
+  static Map<String, dynamic> _mapOrPlaceholderDef() => {
+        'oneOf': [
+          {'type': 'object', 'additionalProperties': true},
+          {
+            'type': 'string',
+            'pattern': r'^\$\{(inputs|scenario)\.[A-Za-z0-9_.-]+\}$',
+          },
+        ],
+      };
+
   static Map<String, dynamic> _initialStateDef() => {
         'type': 'object',
         'additionalProperties': false,
         'properties': {
-          'storage': {'type': 'object', 'additionalProperties': true},
-          'keychain': {'type': 'object', 'additionalProperties': true},
-          'env': {'type': 'object', 'additionalProperties': true},
+          'storage': _mapOrPlaceholderDef(),
+          'keychain': _mapOrPlaceholderDef(),
+          'env': _mapOrPlaceholderDef(),
         },
       };
 
@@ -38,7 +48,7 @@ class EnsembleTestSchemaBuilder {
             'additionalProperties': true,
             'description':
                 'Path → value patches applied onto the extended/current mock '
-                'for this API (e.g. body.status[0].Active).',
+                    'for this API (e.g. body.status[0].Active).',
           },
         },
       };
@@ -92,8 +102,8 @@ class EnsembleTestSchemaBuilder {
             'type': 'string',
             'description':
                 'Stable id used in test ids when multiple devices are '
-                'configured (e.g. home[android_nl]). Defaults to '
-                'platform_locale.',
+                    'configured (e.g. home[android_nl]). Defaults to '
+                    'platform_locale.',
           },
           'platform': {'type': 'string'},
           'model': {'type': 'string'},
@@ -106,9 +116,18 @@ class EnsembleTestSchemaBuilder {
             'type': 'string',
             'description':
                 'Ensemble theme for this device run (e.g. light/dark or '
-                'Light/Dark). Applied via EnsembleThemeManager for any '
-                'startScreen.',
+                    'Light/Dark). Applied via EnsembleThemeManager for any '
+                    'startScreen.',
           },
+        },
+      };
+
+  static Map<String, dynamic> _profileDef() => {
+        'type': 'object',
+        'additionalProperties': false,
+        'properties': {
+          'mocks': _mocksPropertySchema(),
+          'initialState': {'\$ref': '#/\$defs/initialState'},
         },
       };
 
@@ -203,6 +222,19 @@ class EnsembleTestSchemaBuilder {
             'minLength': 1,
             'description':
                 'ID of a successful test whose captured app state is restored before startScreen',
+          },
+          'profiles': {
+            'oneOf': [
+              {'type': 'string', 'minLength': 1},
+              {
+                'type': 'array',
+                'minItems': 1,
+                'items': {'type': 'string', 'minLength': 1},
+              },
+            ],
+            'description':
+                'Profile selector(s) from tests/config.yaml profiles. Each '
+                    'selector can be a concrete profile or a group.',
           },
           'initialState': {'\$ref': '#/\$defs/initialState'},
           'setup': {
@@ -345,15 +377,37 @@ class EnsembleTestSchemaBuilder {
           '\$ref': '#/\$defs/initialState',
           'description':
               'Suite-wide storage/keychain/env applied before each test '
-              'initialState. Test values override suite values per key.',
+                  'initialState. Test values override suite values per key.',
+        },
+        'profiles': {
+          'type': 'object',
+          'additionalProperties': false,
+          'description':
+              'Suite profile configuration. default selects a concrete '
+                  'profile or group for tests without a profiles selector.',
+          'properties': {
+            'default': {'type': 'string', 'minLength': 1},
+            'groups': {
+              'type': 'object',
+              'additionalProperties': {
+                'type': 'array',
+                'minItems': 1,
+                'items': {'type': 'string', 'minLength': 1},
+              },
+            },
+            'definitions': {
+              'type': 'object',
+              'additionalProperties': {'\$ref': '#/\$defs/profile'},
+            },
+          },
         },
         'devices': {
           'type': 'array',
           'description':
               'Suite device matrix. Each test runs once per entry with that '
-              'platform/model viewport, optional locale (APP_LOCALE), and '
-              'optional theme (EnsembleThemeManager Light/Dark). '
-              'Each device run writes its own screenshot frames (HTML gallery).',
+                  'platform/model viewport, optional locale (APP_LOCALE), and '
+                  'optional theme (EnsembleThemeManager Light/Dark). '
+                  'Each device run writes its own screenshot frames (HTML gallery).',
           'items': {'\$ref': '#/\$defs/testDevice'},
         },
         'screenshots': {
@@ -421,6 +475,7 @@ class EnsembleTestSchemaBuilder {
       },
       '\$defs': {
         'initialState': _initialStateDef(),
+        'profile': _profileDef(),
         'testDevice': _testDeviceDef(),
         'wifi': _wifiDef(),
         'mockResponse': _mockResponseDef(),

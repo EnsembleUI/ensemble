@@ -162,6 +162,7 @@ class TestReportDocument {
     final storage = _readStorage(artifacts, artifactRoot, displayRoot);
     final frames = _readScreenshotFrames(artifacts, artifactRoot, displayRoot);
     final report = test.report;
+    final device = _deviceMetadata(test);
 
     final steps = report == null
         ? <Map<String, dynamic>>[]
@@ -184,12 +185,21 @@ class TestReportDocument {
     return {
       'id': test.testId,
       'baseId': baseTestId(test.testId),
-      'deviceBadge': deviceBadgeOf(test.testId),
+      'deviceBadge': device['id']?.toString() ?? deviceBadgeOf(test.testId),
+      if (device.isNotEmpty) 'device': device,
       'filePath': filePathOf(test.testId),
       'status': test.status.name,
       'durationMs': test.durationMs,
       'attempts': test.attempts,
       'retry': test.retry,
+      if (test.metadata['feature'] != null)
+        'feature': test.metadata['feature'].toString(),
+      if (test.metadata['profile'] != null)
+        'profile': test.metadata['profile'].toString(),
+      if (test.metadata['scenarioId'] != null)
+        'scenarioId': test.metadata['scenarioId'].toString(),
+      if (test.metadata['scenarioDescription'] != null)
+        'scenarioDescription': test.metadata['scenarioDescription'].toString(),
       if (test.metadata['description'] != null)
         'description': test.metadata['description'].toString(),
       if (test.message != null) 'message': test.message,
@@ -202,6 +212,17 @@ class TestReportDocument {
       },
       'steps': steps,
     };
+  }
+
+  static Map<String, dynamic> _deviceMetadata(EnsembleSingleTestResult test) {
+    final device = test.metadata['device'];
+    if (device is Map) {
+      return Map<String, dynamic>.from(device);
+    }
+    if (device != null && device.toString().trim().isNotEmpty) {
+      return {'id': device.toString().trim()};
+    }
+    return const {};
   }
 
   static List<String> _readConsole(

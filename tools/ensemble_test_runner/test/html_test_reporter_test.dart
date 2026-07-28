@@ -62,6 +62,12 @@ void main() {
     expect(shell, contains('report-loader'));
     expect(shell, isNot(contains('ensembleHtmlTestReportAppJs')));
     expect(shell, contains('pollAndRender'));
+    expect(shell, contains('feature-select'));
+    expect(shell, contains('applyFeatureFilter'));
+    expect(shell, contains('profile-select'));
+    expect(shell, contains('applyProfileFilter'));
+    expect(shell, contains('features.length > 1'));
+    expect(shell, contains('profiles.length > 1'));
     expect(shell.length, lessThan(200000));
     expect(File(p.join(tempDir.path, 'report', 'results.js')).existsSync(),
         isFalse);
@@ -82,6 +88,19 @@ void main() {
         results: [
           EnsembleSingleTestResult.passed(
             testId: 'ok',
+            metadata: const {
+              'feature': 'fwa-installation',
+              'profile': 'fwa_arc',
+              'scenarioId': 'manual_connect',
+              'scenarioDescription': 'Manual Wi-Fi connection.',
+              'device': {
+                'id': 'android',
+                'platform': 'android',
+                'model': 'Samsung Galaxy S20',
+                'locale': 'nl',
+                'theme': 'light',
+              },
+            },
             durationMs: 100,
             logs: ['appLogs: $displayRoot/logs/ok_app_console.log'],
             report: const EnsembleTestReportDetails(
@@ -109,6 +128,16 @@ void main() {
     expect(complete['state'], 'complete');
     expect(complete['tests'], hasLength(1));
     expect(complete['tests'][0]['id'], 'ok');
+    expect(complete['tests'][0]['feature'], 'fwa-installation');
+    expect(complete['tests'][0]['profile'], 'fwa_arc');
+    expect(complete['tests'][0]['scenarioId'], 'manual_connect');
+    expect(
+      complete['tests'][0]['scenarioDescription'],
+      'Manual Wi-Fi connection.',
+    );
+    expect(complete['tests'][0]['device']['locale'], 'nl');
+    expect(complete['tests'][0]['device']['model'], 'Samsung Galaxy S20');
+    expect(complete['tests'][0]['deviceBadge'], 'android');
     expect(complete['summary']['passed'], 1);
     expect(Directory(p.join(tempDir.path, 'logs')).existsSync(), isFalse);
   });

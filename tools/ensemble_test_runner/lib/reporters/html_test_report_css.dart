@@ -406,15 +406,12 @@ body {
   text-transform: uppercase;
 }
 
-/* Device Selector Bar */
-.device-selector-bar {
-  display: flex;
-  align-items: center;
-  gap: 12px;
+/* Run Matrix Selector */
+.run-selector-panel {
   background: rgba(15, 23, 42, 0.95);
   border: 1px solid var(--border);
   border-radius: 12px;
-  padding: 12px 16px;
+  padding: 10px 12px;
   margin-bottom: 24px;
   position: sticky;
   top: 10px;
@@ -422,7 +419,20 @@ body {
   backdrop-filter: blur(12px);
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
 }
+.run-selector-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 34px;
+}
+.run-selector-row + .run-selector-row {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
 .selector-label {
+  width: 96px;
+  flex: 0 0 96px;
   font-size: 0.75rem;
   font-weight: 800;
   text-transform: uppercase;
@@ -439,7 +449,7 @@ body {
   border: 1px solid var(--border);
   border-radius: 8px;
   color: var(--text-muted);
-  padding: 6px 14px;
+  padding: 5px 12px;
   font-size: 0.8rem;
   font-weight: 700;
   cursor: pointer;
@@ -454,6 +464,18 @@ body {
   background: var(--accent);
   border-color: var(--accent);
   color: #000;
+}
+
+@media (max-width: 800px) {
+  .run-selector-row {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .selector-label {
+    width: auto;
+    flex: none;
+  }
 }
 
 /* Detail Placeholder */
@@ -550,6 +572,7 @@ body {
   font-size: 0.75rem;
   font-weight: 800;
   margin-top: 8px;
+  margin-right: 8px;
 }
 .device-pill.android {
   background: rgba(61, 220, 132, 0.1);

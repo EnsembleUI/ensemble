@@ -85,6 +85,7 @@ class EnsembleTestParser {
     final hasStartScreen = startScreen != null && startScreen.isNotEmpty;
     final session = map['session']?.toString();
     final hasSession = session != null && session.isNotEmpty;
+    final profiles = _toStringSelectorList(map['profiles']);
 
     if (!hasStartScreen) {
       throw EnsembleTestFailure(
@@ -116,6 +117,17 @@ class EnsembleTestParser {
       scenarioId: scenarioId,
     );
 
+    final scenarios = _parseScenarios(map['scenarios'], inputs: inputs);
+    String? scenarioDescription;
+    if (scenarioId != null) {
+      for (final item in scenarios) {
+        if (item.id == scenarioId) {
+          scenarioDescription = item.description;
+          break;
+        }
+      }
+    }
+
     return EnsembleTestCase(
       id: id,
       sourcePath: sourcePath,
@@ -139,9 +151,12 @@ class EnsembleTestParser {
         scenarioId: scenarioId,
       ),
       session: hasSession ? session : null,
+      profiles: profiles,
+      scenarioId: scenarioId,
+      scenarioDescription: scenarioDescription,
       mockFiles: parsedMocks.files,
       inlineMocks: parsedMocks.inline,
-      scenarios: _parseScenarios(map['scenarios'], inputs: inputs),
+      scenarios: scenarios,
       initialState: _toStringDynamicMap(
         map['initialState'],
         inputs: inputs,
@@ -233,6 +248,7 @@ class EnsembleTestParser {
     const allowedKeys = {
       'services',
       'mocks',
+      'profiles',
       'initialState',
       'devices',
       'screenshots',
@@ -244,7 +260,7 @@ class EnsembleTestParser {
       'wifi',
     };
     for (final key in node.keys) {
-      if (!allowedKeys.contains(key)) {
+      if (!allowedKeys.contains(key.toString())) {
         throw EnsembleTestFailure(
           'Unsupported test config key "$key". Supported keys: '
           '${allowedKeys.join(', ')}',
@@ -254,6 +270,7 @@ class EnsembleTestParser {
 
     final servicesNode = node['services'];
     final mocksNode = node['mocks'];
+    final profilesNode = node['profiles'];
     final initialStateNode = node['initialState'];
     final devicesNode = node['devices'];
     final screenshotsNode = node['screenshots'];
@@ -271,6 +288,9 @@ class EnsembleTestParser {
         '"mocks" must be either a list of .mock.json files or an inline map '
         'of API mock responses.',
       );
+    }
+    if (profilesNode != null && profilesNode is! YamlMap) {
+      throw EnsembleTestFailure('"profiles" must be a map');
     }
     if (initialStateNode != null && initialStateNode is! YamlMap) {
       throw EnsembleTestFailure('"initialState" must be a map');
@@ -318,6 +338,8 @@ class EnsembleTestParser {
       scenario: const {},
     );
 
+    final parsedProfiles = _parseProfilesConfig(profilesNode);
+
     return EnsembleTestConfig(
       services: _parseServices(servicesNode),
       mockFiles: parsedMocks.files,
@@ -326,6 +348,9 @@ class EnsembleTestParser {
         initialStateNode,
         inputs: const {},
       ),
+      defaultProfile: parsedProfiles.defaultProfile,
+      profiles: parsedProfiles.definitions,
+      profileGroups: parsedProfiles.groups,
       devices: _parseDevices(devicesNode),
       screenshots: screenshotsNode == null
           ? const ScreenshotConfig()
@@ -377,6 +402,148 @@ class EnsembleTestParser {
     );
   }
 
+  static ({
+    String? defaultProfile,
+    Map<String, List<String>> groups,
+    Map<String, TestProfile> definitions,
+  }) _parseProfilesConfig(dynamic node) {
+    if (node == null) {
+      return (
+        defaultProfile: null,
+        groups: const <String, List<String>>{},
+        definitions: const <String, TestProfile>{},
+      );
+    }
+    if (node is! YamlMap) {
+      throw EnsembleTestFailure('"profiles" must be a map');
+    }
+
+    const allowedKeys = {'default', 'groups', 'definitions'};
+    for (final key in node.keys) {
+      if (!allowedKeys.contains(key.toString())) {
+        throw EnsembleTestFailure(
+          'Unsupported profiles key "$key". Supported keys: '
+          '${allowedKeys.join(', ')}',
+        );
+      }
+    }
+
+    final defaultProfile = _optionalString(node['default']);
+    final groups = _parseProfileGroups(node['groups']);
+    final definitions = _parseProfileDefinitions(node['definitions']);
+    if (defaultProfile != null &&
+        !definitions.containsKey(defaultProfile) &&
+        !groups.containsKey(defaultProfile)) {
+      throw EnsembleTestFailure(
+        'profiles.default "$defaultProfile" must reference a profile from '
+        'profiles.definitions or a group from profiles.groups.',
+      );
+    }
+    _validateProfileGroups(groups, definitions);
+
+    return (
+      defaultProfile: defaultProfile,
+      groups: groups,
+      definitions: definitions,
+    );
+  }
+
+  static Map<String, TestProfile> _parseProfileDefinitions(dynamic node) {
+    if (node == null) return const {};
+    if (node is! YamlMap) {
+      throw EnsembleTestFailure('"profiles.definitions" must be a map');
+    }
+
+    final profiles = <String, TestProfile>{};
+    for (final entry in node.entries) {
+      final id = entry.key.toString().trim();
+      if (id.isEmpty) {
+        throw EnsembleTestFailure('Profile id must not be empty');
+      }
+      final value = entry.value;
+      if (value is! YamlMap) {
+        throw EnsembleTestFailure('Profile "$id" must be a map');
+      }
+      const allowedKeys = {'mocks', 'initialState'};
+      for (final key in value.keys) {
+        if (!allowedKeys.contains(key.toString())) {
+          throw EnsembleTestFailure(
+            'Unsupported profile key "$key" in profile "$id". Supported keys: '
+            '${allowedKeys.join(', ')}',
+          );
+        }
+      }
+      final mocksNode = value['mocks'];
+      if (mocksNode != null &&
+          mocksNode is! YamlList &&
+          mocksNode is! YamlMap) {
+        throw EnsembleTestFailure(
+          'Profile "$id" mocks must be either a list of .mock.json files or '
+          'an inline map of API mock responses.',
+        );
+      }
+      final initialStateNode = value['initialState'];
+      if (initialStateNode != null && initialStateNode is! YamlMap) {
+        throw EnsembleTestFailure('Profile "$id" initialState must be a map');
+      }
+
+      final parsedMocks = parseMocksNode(
+        mocksNode,
+        testId: 'tests/config.yaml profiles.definitions "$id"',
+        inputs: const {},
+        scenario: const {},
+      );
+      profiles[id] = TestProfile(
+        mockFiles: parsedMocks.files,
+        inlineMocks: parsedMocks.inline,
+        initialState: _toStringDynamicMap(
+          initialStateNode,
+          inputs: const {},
+        ),
+      );
+    }
+    return profiles;
+  }
+
+  static Map<String, List<String>> _parseProfileGroups(dynamic node) {
+    if (node == null) return const {};
+    if (node is! YamlMap) {
+      throw EnsembleTestFailure('"profiles.groups" must be a map');
+    }
+
+    final groups = <String, List<String>>{};
+    for (final entry in node.entries) {
+      final id = entry.key.toString().trim();
+      if (id.isEmpty) {
+        throw EnsembleTestFailure('Profile group id must not be empty');
+      }
+      final profiles = _toStringList(entry.value);
+      if (profiles.isEmpty) {
+        throw EnsembleTestFailure(
+          'profiles.groups "$id" must list at least one profile.',
+        );
+      }
+      groups[id] = profiles;
+    }
+    return groups;
+  }
+
+  static void _validateProfileGroups(
+    Map<String, List<String>> profileGroups,
+    Map<String, TestProfile> profiles,
+  ) {
+    for (final entry in profileGroups.entries) {
+      for (final profile in entry.value) {
+        if (!profiles.containsKey(profile)) {
+          throw EnsembleTestFailure(
+            'profiles.groups "${entry.key}" references unknown profile '
+            '"$profile". Define it under profiles.definitions.',
+          );
+        }
+      }
+    }
+  }
+
   static WifiTestConfig _parseWifiConfig(
     dynamic node, {
     required String sourceLabel,
@@ -410,8 +577,7 @@ class EnsembleTestParser {
     return WifiTestConfig(
       ssid: ssid,
       verifyFailSsid: verifyFailSsid,
-      modeStorageKey:
-          modeStorageKey ?? WifiTestConfig.defaultModeStorageKey,
+      modeStorageKey: modeStorageKey ?? WifiTestConfig.defaultModeStorageKey,
     );
   }
 
@@ -426,6 +592,11 @@ class EnsembleTestParser {
       throw EnsembleTestFailure('"$fieldName" must be a non-negative integer');
     }
     return parsed;
+  }
+
+  static String? _optionalString(dynamic value) {
+    final string = value?.toString().trim();
+    return string == null || string.isEmpty ? null : string;
   }
 
   static List<TestDeviceTarget> _parseDevices(dynamic node) {
@@ -890,6 +1061,15 @@ class EnsembleTestParser {
         .toList();
   }
 
+  static List<String> _toStringSelectorList(dynamic node) {
+    if (node == null) return const [];
+    if (node is String) {
+      final value = node.trim();
+      return value.isEmpty ? const [] : [value];
+    }
+    return _toStringList(node);
+  }
+
   static dynamic _unwrapYaml(
     dynamic value, {
     required Map<String, dynamic> inputs,
@@ -1002,6 +1182,7 @@ class EnsembleTestParser {
       'startScreen',
       'startScreenInputs',
       'session',
+      'profiles',
       'initialState',
       'setup',
       'mocks',

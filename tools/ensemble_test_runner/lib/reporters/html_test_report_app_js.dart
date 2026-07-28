@@ -5,6 +5,8 @@ const ensembleHtmlTestReportAppJs = r'''
   let pollTimer = null;
   let renderedComplete = false;
   let activeFilter = 'all';
+  let activeFeature = 'all';
+  let activeProfile = 'all';
   let activeSort = 'execution';
   let activeModalTab = 'api';
   let currentModalCardId = '';
@@ -180,6 +182,8 @@ const ensembleHtmlTestReportAppJs = r'''
     renderSuiteArtifacts(report.suiteArtifacts || []);
 
     window.currentReport = report;
+    updateFeatureFilterOptions(tests);
+    updateProfileFilterOptions(tests);
 
     const grouped = {};
     const groupedKeys = [];
@@ -263,6 +267,8 @@ const ensembleHtmlTestReportAppJs = r'''
     const el = document.createElement('article');
     el.className = 'test ' + statusClass;
     el.id = cardId;
+    el.dataset.features = Array.from(new Set(runs.map(run => run.feature || '').filter(Boolean))).join('|');
+    el.dataset.profiles = Array.from(new Set(runs.map(run => run.profile || '').filter(Boolean))).join('|');
     let badges = '';
     runs.forEach(run => {
       if (run.deviceBadge) {
@@ -293,6 +299,44 @@ const ensembleHtmlTestReportAppJs = r'''
     return parts.map(p => p.charAt(0).toUpperCase() + p.slice(1)).join(' ');
   }
 
+  function deviceRunLabel(run) {
+    const device = run.device || {};
+    if (device.id) return deviceButtonText(String(device.id));
+    return deviceButtonText(run.deviceBadge);
+  }
+
+  function scenarioRunLabel(run) {
+    if (!run.scenarioId) return '';
+    return String(run.scenarioId)
+      .split(/[_-]+/)
+      .filter(Boolean)
+      .map(p => p.charAt(0).toUpperCase() + p.slice(1))
+      .join(' ');
+  }
+
+  function deviceRunKey(run) {
+    const device = run.device || {};
+    return String(device.id || run.deviceBadge || 'default');
+  }
+
+  function groupedDeviceRuns(runs) {
+    const groups = [];
+    const byKey = {};
+    runs.forEach((run, runIndex) => {
+      const key = deviceRunKey(run);
+      if (!byKey[key]) {
+        byKey[key] = {
+          key: key,
+          label: deviceRunLabel(run),
+          entries: []
+        };
+        groups.push(byKey[key]);
+      }
+      byKey[key].entries.push({ run: run, runIndex: runIndex });
+    });
+    return groups;
+  }
+
   function buildDetailsGroup(base, runs) {
     const cardId = anchorId(runs[0].id);
     const wrap = document.createElement('div');
@@ -301,12 +345,32 @@ const ensembleHtmlTestReportAppJs = r'''
     wrap.style.display = 'none';
 
     let html = '';
-    if (runs.length > 1) {
-      html += '<div class="device-selector-bar"><span class="selector-label">Device Runs:</span><div class="device-tabs">';
-      runs.forEach((run, i) => {
-        html += '<button class="device-tab-btn" data-run="' + i + '">' + escapeHtml(deviceButtonText(run.deviceBadge)) + '</button>';
+    const deviceGroups = groupedDeviceRuns(runs);
+    const hasScenarioSelectors = deviceGroups.some(group => group.entries.filter(entry => entry.run.scenarioId).length > 1);
+    if (deviceGroups.length > 1 || hasScenarioSelectors) {
+      html += '<div class="run-selector-panel">';
+    }
+    if (deviceGroups.length > 1) {
+      html += '<div class="run-selector-row device-selector-row"><span class="selector-label">Device Runs</span><div class="device-tabs">';
+      deviceGroups.forEach((group, i) => {
+        html += '<button class="device-tab-btn" data-device="' + i + '">' + escapeHtml(group.label) + '</button>';
       });
       html += '</div></div>';
+    }
+
+    deviceGroups.forEach((group, deviceIndex) => {
+      const scenarioEntries = group.entries.filter(entry => entry.run.scenarioId);
+      if (scenarioEntries.length > 1) {
+        const display = deviceGroups.length === 1 ? 'flex' : 'none';
+        html += '<div class="run-selector-row scenario-selector-bar" data-device="' + deviceIndex + '" style="display: ' + display + ';"><span class="selector-label">Scenarios</span><div class="device-tabs">';
+        scenarioEntries.forEach(entry => {
+          html += '<button class="scenario-tab-btn device-tab-btn" data-run="' + entry.runIndex + '">' + escapeHtml(scenarioRunLabel(entry.run) || 'Scenario') + '</button>';
+        });
+        html += '</div></div>';
+      }
+    });
+    if (deviceGroups.length > 1 || hasScenarioSelectors) {
+      html += '</div>';
     }
 
     runs.forEach((test, i) => {
@@ -316,13 +380,44 @@ const ensembleHtmlTestReportAppJs = r'''
     });
     wrap.innerHTML = html;
 
-    wrap.querySelectorAll('.device-tab-btn').forEach(btn => {
+    function showRun(runIndex) {
+      wrap.querySelectorAll('.device-run-block').forEach(r => r.style.display = 'none');
+      const run = document.getElementById('run-' + cardId + '-' + runIndex);
+      if (run) run.style.display = 'block';
+    }
+
+    function showDevice(deviceIndex) {
+      wrap.querySelectorAll('.device-tab-btn[data-device]').forEach(b => b.classList.remove('active'));
+      const deviceBtn = wrap.querySelector('.device-tab-btn[data-device="' + deviceIndex + '"]');
+      if (deviceBtn) deviceBtn.classList.add('active');
+
+      wrap.querySelectorAll('.scenario-selector-bar').forEach(bar => bar.style.display = 'none');
+      const scenarioBar = wrap.querySelector('.scenario-selector-bar[data-device="' + deviceIndex + '"]');
+      if (scenarioBar) {
+        scenarioBar.style.display = 'flex';
+        const firstScenario = scenarioBar.querySelector('.scenario-tab-btn');
+        if (firstScenario) {
+          firstScenario.click();
+          return;
+        }
+      }
+
+      const firstEntry = deviceGroups[deviceIndex] && deviceGroups[deviceIndex].entries[0];
+      if (firstEntry) showRun(firstEntry.runIndex);
+    }
+
+    wrap.querySelectorAll('.device-tab-btn[data-device]').forEach(btn => {
       btn.onclick = function() {
-        wrap.querySelectorAll('.device-tab-btn').forEach(b => b.classList.remove('active'));
+        showDevice(Number(btn.getAttribute('data-device')));
+      };
+    });
+
+    wrap.querySelectorAll('.scenario-tab-btn').forEach(btn => {
+      btn.onclick = function() {
+        const bar = btn.closest('.scenario-selector-bar');
+        if (bar) bar.querySelectorAll('.scenario-tab-btn').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
-        wrap.querySelectorAll('.device-run-block').forEach(r => r.style.display = 'none');
-        const run = document.getElementById('run-' + cardId + '-' + btn.getAttribute('data-run'));
-        if (run) run.style.display = 'block';
+        showRun(btn.getAttribute('data-run'));
       };
     });
     return wrap;
@@ -332,18 +427,26 @@ const ensembleHtmlTestReportAppJs = r'''
     const passed = test.status === 'passed';
     const isPending = test.status === 'pending';
     const badge = test.deviceBadge || '';
+    const device = test.device || {};
     let html = '<div class="device-run-block" id="run-' + cardId + '-' + i + '" style="display: none;">';
     html += '<div class="test-card-header"><div class="title-section"><h2>';
     html += '<span class="icon">' + (isPending ? '🔄' : (passed ? '✓' : '✗')) + '</span> ' + escapeHtml(base) + '</h2>';
-    if (badge) {
-      const lower = badge.toLowerCase();
+    if (badge || device.id || device.platform) {
+      const platform = String(device.platform || badge || '').toLowerCase();
+      const id = String(device.id || badge || '').toUpperCase();
+      const locale = String(device.locale || '').toLowerCase();
+      const lower = (platform + ' ' + id).toLowerCase();
       const isAndroid = lower.includes('android') || lower.includes('samsung') || lower.includes('pixel');
       const isIos = lower.includes('ios') || lower.includes('iphone');
-      const hasNl = lower.includes('nl');
+      const hasNl = locale === 'nl' || locale.startsWith('nl_') || locale.startsWith('nl-');
+      const hasEn = locale === 'en' || locale.startsWith('en_') || locale.startsWith('en-');
       const badgeClass = isAndroid ? 'android' : (isIos ? 'ios' : 'default');
       const iconName = isAndroid ? 'Android' : (isIos ? 'iOS' : 'Device');
-      const flagStr = hasNl ? ' 🇳🇱 DUTCH (NL)' : ' 🇬🇧 ENGLISH (EN)';
-      html += '<span class="device-pill ' + badgeClass + '">' + iconName + ' · ' + escapeHtml(badge.toUpperCase()) + flagStr + '</span>';
+      const flagStr = hasNl ? ' 🇳🇱 DUTCH (NL)' : (hasEn ? ' 🇬🇧 ENGLISH (EN)' : '');
+      html += '<span class="device-pill ' + badgeClass + '">' + iconName + ' · ' + escapeHtml(id) + flagStr + '</span>';
+      if (device.model) {
+        html += '<span class="device-pill default">' + escapeHtml(device.model) + '</span>';
+      }
     }
     const statusText = isPending ? 'RUNNING' : (passed ? 'PASSED' : 'FAILED');
     const statusCapsuleClass = isPending ? 'pending' : (passed ? 'passed' : 'failed');
@@ -538,16 +641,68 @@ const ensembleHtmlTestReportAppJs = r'''
   function applySearchFilter() {
     const q = (document.getElementById('search-input').value || '').toLowerCase().trim();
     const f = activeFilter || 'all';
+    const feature = activeFeature || 'all';
+    const profile = activeProfile || 'all';
     document.querySelectorAll('.test').forEach(c => {
       const matchQ = c.id.toLowerCase().includes(q) || c.innerText.toLowerCase().includes(q);
       const matchF = f === 'all' || (f === 'passed' && c.classList.contains('passed')) || (f === 'failed' && c.classList.contains('failed'));
-      c.style.display = (matchQ && matchF) ? 'flex' : 'none';
+      const features = (c.dataset.features || '').split('|').filter(Boolean);
+      const matchFeature = feature === 'all' || features.includes(feature);
+      const profiles = (c.dataset.profiles || '').split('|').filter(Boolean);
+      const matchProfile = profile === 'all' || profiles.includes(profile);
+      c.style.display = (matchQ && matchF && matchFeature && matchProfile) ? 'flex' : 'none';
     });
   }
 
   function setFilter(f) {
     activeFilter = f;
     document.querySelectorAll('.filter-btn').forEach(b => b.classList.toggle('active', b.getAttribute('data-filter') === f));
+    applySearchFilter();
+  }
+
+  function updateFeatureFilterOptions(tests) {
+    const select = document.getElementById('feature-select');
+    if (!select) return;
+    const previous = activeFeature || select.value || 'all';
+    const features = Array.from(new Set((tests || []).map(t => t.feature).filter(Boolean))).sort((a, b) => a.localeCompare(b));
+    const wrapper = select.closest('.sort-wrapper');
+    if (wrapper) wrapper.style.display = features.length > 1 ? '' : 'none';
+    if (features.length <= 1) {
+      activeFeature = 'all';
+      select.value = 'all';
+      return;
+    }
+    select.innerHTML = '<option value="all">All Features</option>' + features.map(feature => '<option value="' + escapeHtml(feature) + '">' + escapeHtml(feature) + '</option>').join('');
+    activeFeature = features.includes(previous) ? previous : 'all';
+    select.value = activeFeature;
+  }
+
+  function applyFeatureFilter() {
+    const select = document.getElementById('feature-select');
+    activeFeature = select ? select.value : 'all';
+    applySearchFilter();
+  }
+
+  function updateProfileFilterOptions(tests) {
+    const select = document.getElementById('profile-select');
+    if (!select) return;
+    const previous = activeProfile || select.value || 'all';
+    const profiles = Array.from(new Set((tests || []).map(t => t.profile).filter(Boolean))).sort((a, b) => a.localeCompare(b));
+    const wrapper = select.closest('.sort-wrapper');
+    if (wrapper) wrapper.style.display = profiles.length > 1 ? '' : 'none';
+    if (profiles.length <= 1) {
+      activeProfile = 'all';
+      select.value = 'all';
+      return;
+    }
+    select.innerHTML = '<option value="all">All Profiles</option>' + profiles.map(profile => '<option value="' + escapeHtml(profile) + '">' + escapeHtml(profile) + '</option>').join('');
+    activeProfile = profiles.includes(previous) ? previous : 'all';
+    select.value = activeProfile;
+  }
+
+  function applyProfileFilter() {
+    const select = document.getElementById('profile-select');
+    activeProfile = select ? select.value : 'all';
     applySearchFilter();
   }
 

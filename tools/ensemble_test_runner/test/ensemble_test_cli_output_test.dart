@@ -55,6 +55,7 @@ SCREEN TRACKER: Login
         '--report-file=build/results.json',
         '--id=login',
         '--feature=auth',
+        '--profile=fwa_arc',
         '--tag=smoke',
         '--path=auth/',
         '--timeout=30s',

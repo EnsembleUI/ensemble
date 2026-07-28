@@ -312,6 +312,7 @@ List<String> _unsupportedTestRootKeys(YamlMap map) {
     'priority',
     'parallel',
     'retry',
+    'profiles',
     'startScreen',
     'startScreenInputs',
     'session',

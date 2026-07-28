@@ -34,6 +34,7 @@ final _disabledAppConsoleLogs = <String>{};
 ///   --report-file=<path> Write JSON run results to a file
 ///   --id=<id>          Run matching test id(s); repeatable
 ///   --feature=<name>   Run matching feature(s); repeatable
+///   --profile=<name>   Run matching profile(s); repeatable
 ///   --tag=<tag>        Run matching tag(s); repeatable
 ///   --path=<path>      Run matching test asset path(s); repeatable
 ///   --device=<id>      Run only these suite device id(s); repeatable (default: all)
@@ -168,13 +169,7 @@ Future<void> runEnsembleYamlTestsCli(List<String> arguments) async {
         }
       } catch (_) {}
     }
-    if (_hasSelection(arguments) && jobs != null && jobs > 1) {
-      throw StateError(
-        '--jobs currently runs full suites only. Remove --id/--feature/--tag/--path '
-        'or run the selected tests serially.',
-      );
-    }
-    final runSerial = jobs == 1 || _hasSelection(arguments);
+    final runSerial = jobs == 1;
     final serialWorkingDirectory = runSerial && patcher.hasTimerRewrites
         ? _prepareWorkerDirectory(appDir, 0, patcher)
         : appDir;
@@ -291,6 +286,7 @@ List<String> _selectionDartDefines(List<String> arguments) {
   final values = {
     'ensembleTestId': _optionValues(arguments, '--id'),
     'ensembleTestFeature': _optionValues(arguments, '--feature'),
+    'ensembleTestProfile': _optionValues(arguments, '--profile'),
     'ensembleTestTag': _optionValues(arguments, '--tag'),
     'ensembleTestPath': _optionValues(arguments, '--path'),
     'ensembleTestDevice': _optionValues(arguments, '--device'),
@@ -343,7 +339,7 @@ List<String> _buildFlutterTestArgs(
     ..._inputDartDefines(arguments),
     ..._selectionDartDefines(arguments),
     if (shardPaths.isNotEmpty)
-      '--dart-define=ensembleTestPath=${shardPaths.join(',')}',
+      '--dart-define=ensembleTestShardPath=${shardPaths.join(',')}',
     '--reporter',
     verbose ? 'expanded' : 'silent',
     ...flutterTestArguments(arguments),
@@ -452,7 +448,11 @@ Future<ProcessResult> _runParallelFlutterTests(
   required bool quiet,
   required bool machineReport,
 }) async {
-  final testFiles = _testFilesForSharding(appDir, patcher);
+  final testFiles = _testFilesForSharding(
+    appDir,
+    patcher,
+    arguments: arguments,
+  );
   final allFiles = [
     ...testFiles.parallel.map((file) => file.path),
     ...testFiles.serial,
@@ -643,7 +643,12 @@ Future<ProcessResult> _runParallelFlutterTests(
     merged,
     wallTimeMs: elapsed.elapsedMilliseconds,
   );
-  _writeHistoricalDurations(appDir, merged);
+  _writeHistoricalDurations(
+    appDir,
+    merged,
+    testsDirRelative: patcher.testsDirRelative,
+    includeCurrentRun: !_hasSelection(arguments),
+  );
   final output = StringBuffer();
   if (reportMode == 'json') {
     output.writeln(json.encode(merged.toJson()));
@@ -1056,13 +1061,15 @@ void _copyDirectoryContents(Directory source, Directory target) {
 
 _ShardedTestFiles _testFilesForSharding(
   String appDir,
-  YamlTestAppPatcher patcher,
-) {
+  YamlTestAppPatcher patcher, {
+  List<String> arguments = const [],
+}) {
   final testsDir = patcher.testsDirPath;
   if (testsDir == null) return const _ShardedTestFiles();
   final historicalDurations = _loadHistoricalDurations(appDir);
   final parallel = <_ShardableTestFile>[];
   final serial = <String>[];
+  final config = _readTestsConfig(testsDir);
   final files = Directory(testsDir)
       .listSync(recursive: true)
       .whereType<File>()
@@ -1072,6 +1079,7 @@ _ShardedTestFiles _testFilesForSharding(
   final docsByPath = <String, YamlMap?>{};
   final pathById = <String, String>{};
   final referencedSessionIds = <String>{};
+  final hasShardSelection = _hasShardSelection(arguments);
   for (final file in files) {
     final relative = p.relative(file.path, from: appDir).replaceAll('\\', '/');
     final doc = _readTestYamlMap(file);
@@ -1093,8 +1101,12 @@ _ShardedTestFiles _testFilesForSharding(
 
   for (final file in files) {
     final relative = p.relative(file.path, from: appDir).replaceAll('\\', '/');
-    if (_isParallelTestFile(file, doc: docsByPath[relative]) &&
-        !sessionProducerPaths.contains(relative)) {
+    final doc = docsByPath[relative];
+    if (!_matchesShardSelection(relative, doc, arguments, config: config)) {
+      continue;
+    }
+    if (_isParallelTestFile(file, doc: doc) &&
+        (hasShardSelection || !sessionProducerPaths.contains(relative))) {
       parallel.add(
         _ShardableTestFile(
           path: relative,
@@ -1105,8 +1117,9 @@ _ShardedTestFiles _testFilesForSharding(
           ),
         ),
       );
-    } else if (sessionProducerPaths.contains(relative) &&
-        _isParallelTestFile(file, doc: docsByPath[relative])) {
+    } else if (!hasShardSelection &&
+        sessionProducerPaths.contains(relative) &&
+        _isParallelTestFile(file, doc: doc)) {
       // Session producers are selected automatically by each shard that needs
       // them. Running them as standalone files would waste a worker lane.
       continue;
@@ -1115,6 +1128,135 @@ _ShardedTestFiles _testFilesForSharding(
     }
   }
   return _ShardedTestFiles(parallel: parallel, serial: serial);
+}
+
+bool _hasShardSelection(List<String> arguments) {
+  return _optionValueSet(arguments, '--id').isNotEmpty ||
+      _optionValueSet(arguments, '--feature').isNotEmpty ||
+      _optionValueSet(arguments, '--profile').isNotEmpty ||
+      _optionValueSet(arguments, '--tag').isNotEmpty ||
+      _optionValueSet(arguments, '--path').isNotEmpty;
+}
+
+bool _matchesShardSelection(
+  String relativePath,
+  YamlMap? doc,
+  List<String> arguments, {
+  EnsembleTestConfig? config,
+}) {
+  final ids = _optionValueSet(arguments, '--id');
+  final features = _optionValueSet(arguments, '--feature');
+  final profiles = _expandedProfileSelections(
+    _optionValueSet(arguments, '--profile'),
+    config,
+  );
+  final tags = _optionValueSet(arguments, '--tag');
+  final paths = _optionValueSet(arguments, '--path');
+  if (ids.isEmpty &&
+      features.isEmpty &&
+      profiles.isEmpty &&
+      tags.isEmpty &&
+      paths.isEmpty) {
+    return true;
+  }
+  if (paths.any(relativePath.contains)) return true;
+  if (doc == null) return false;
+
+  final id = doc['id']?.toString();
+  if (id != null && ids.any((selected) => id == selected)) {
+    return true;
+  }
+  if (_scenarioIds(doc).any(ids.contains)) return true;
+
+  final feature = doc['feature']?.toString();
+  if (feature != null && features.contains(feature)) return true;
+
+  if (_matchesProfileShardSelection(doc, profiles, config)) return true;
+
+  final docTags = _yamlStringList(doc['tags']);
+  if (docTags.any(tags.contains)) return true;
+
+  return false;
+}
+
+EnsembleTestConfig? _readTestsConfig(String testsDir) {
+  final configFile = File(p.join(testsDir, 'config.yaml'));
+  if (!configFile.existsSync()) return null;
+  try {
+    return EnsembleTestParser.parseConfigString(
+      configFile.readAsStringSync(),
+      sourcePath: configFile.path,
+    );
+  } catch (_) {
+    return null;
+  }
+}
+
+bool _matchesProfileShardSelection(
+  YamlMap doc,
+  Set<String> selectedProfiles,
+  EnsembleTestConfig? config,
+) {
+  if (selectedProfiles.isEmpty) return false;
+  if (config == null) return true;
+  final selectors = _yamlStringList(doc['profiles']);
+  final effectiveSelectors = selectors.isEmpty && config.defaultProfile != null
+      ? [config.defaultProfile!]
+      : selectors;
+  if (effectiveSelectors.isEmpty) return false;
+  final expandedProfiles = <String>{};
+  for (final selector in effectiveSelectors) {
+    final group = config.profileGroups[selector];
+    if (group != null) {
+      expandedProfiles.addAll(group);
+    } else {
+      expandedProfiles.add(selector);
+    }
+  }
+  return expandedProfiles.any(selectedProfiles.contains);
+}
+
+Set<String> _expandedProfileSelections(
+  Set<String> selectedProfiles,
+  EnsembleTestConfig? config,
+) {
+  if (selectedProfiles.isEmpty || config == null) return selectedProfiles;
+  final expanded = <String>{};
+  for (final profile in selectedProfiles) {
+    expanded.add(profile);
+    final group = config.profileGroups[profile];
+    if (group != null) expanded.addAll(group);
+  }
+  return expanded;
+}
+
+List<String> _scenarioIds(YamlMap doc) {
+  final scenarios = doc['scenarios'];
+  if (scenarios is! YamlList) return const [];
+  return [
+    for (final scenario in scenarios)
+      if (scenario is YamlMap && scenario['id'] != null)
+        scenario['id'].toString(),
+  ];
+}
+
+List<String> _yamlStringList(dynamic value) {
+  if (value is YamlList) {
+    return [
+      for (final item in value)
+        if (item != null) item.toString()
+    ];
+  }
+  if (value is List) {
+    return [
+      for (final item in value)
+        if (item != null) item.toString()
+    ];
+  }
+  if (value is String && value.trim().isNotEmpty) {
+    return [value.trim()];
+  }
+  return const [];
 }
 
 YamlMap? _readTestYamlMap(File file) {
@@ -1241,20 +1383,28 @@ Map<String, int> _loadHistoricalDurations(String appDir) {
 
 void _writeHistoricalDurations(
   String appDir,
-  EnsembleTestRunResult result,
-) {
+  EnsembleTestRunResult result, {
+  required String? testsDirRelative,
+  required bool includeCurrentRun,
+}) {
   final previousDurations = _loadHistoricalDurations(appDir);
-  final currentDurations = <String, int>{};
-  for (final test in result.results) {
-    if (test.durationMs <= 0) continue;
-    final path = _assetPathFromTestId(test.testId);
-    if (path == null) continue;
-    currentDurations[path] = (currentDurations[path] ?? 0) + test.durationMs;
-  }
-  final durations = {
-    ...previousDurations,
-    ...currentDurations,
+  final existingPaths = _existingTestAssetPaths(appDir, testsDirRelative);
+  final durations = <String, int>{
+    for (final entry in previousDurations.entries)
+      if (existingPaths == null || existingPaths.contains(entry.key))
+        entry.key: entry.value,
   };
+
+  if (includeCurrentRun) {
+    final currentDurations = <String, int>{};
+    for (final test in result.results) {
+      if (test.durationMs <= 0) continue;
+      final path = _assetPathFromTestId(test.testId);
+      if (path == null) continue;
+      currentDurations[path] = (currentDurations[path] ?? 0) + test.durationMs;
+    }
+    durations.addAll(currentDurations);
+  }
 
   final file = File(_durationCachePath(appDir));
   file.parent.createSync(recursive: true);
@@ -1264,6 +1414,18 @@ void _writeHistoricalDurations(
       'files': durations,
     }),
   );
+}
+
+Set<String>? _existingTestAssetPaths(String appDir, String? testsDirRelative) {
+  if (testsDirRelative == null) return null;
+  final testsDir = Directory(p.join(appDir, testsDirRelative));
+  if (!testsDir.existsSync()) return null;
+  return testsDir
+      .listSync(recursive: true, followLinks: false)
+      .whereType<File>()
+      .where((file) => file.path.endsWith('.test.yaml'))
+      .map((file) => p.relative(file.path, from: appDir).replaceAll('\\', '/'))
+      .toSet();
 }
 
 String _durationCachePath(String appDir) {
@@ -1277,12 +1439,16 @@ String? _assetPathFromTestId(String testId) {
 }
 
 bool _hasSelection(List<String> arguments) {
-  return arguments.any(
-    (arg) =>
-        arg.startsWith('--id=') ||
-        arg.startsWith('--feature=') ||
-        arg.startsWith('--tag=') ||
-        arg.startsWith('--path='),
+  const selectionOptions = {
+    '--id',
+    '--feature',
+    '--profile',
+    '--tag',
+    '--path',
+    '--device',
+  };
+  return selectionOptions.any(
+    (option) => _optionValueSet(arguments, option).isNotEmpty,
   );
 }
 
@@ -1359,15 +1525,12 @@ EnsembleTestRunResult _withHtmlReport(
 }) {
   final reporter = HtmlTestReporter();
   final artifactRoot = _artifactRootPath(appDir);
-  final displayRoot = p
-      .join('build', 'ensemble_test_runner')
-      .replaceAll('\\', '/');
-  final htmlPath = p
-      .join(displayRoot, 'report', 'index.html')
-      .replaceAll('\\', '/');
-  final resultsPath = p
-      .join(displayRoot, 'report', 'results.json.gz')
-      .replaceAll('\\', '/');
+  final displayRoot =
+      p.join('build', 'ensemble_test_runner').replaceAll('\\', '/');
+  final htmlPath =
+      p.join(displayRoot, 'report', 'index.html').replaceAll('\\', '/');
+  final resultsPath =
+      p.join(displayRoot, 'report', 'results.json.gz').replaceAll('\\', '/');
 
   if (isSuiteRunning) {
     reporter.write(
@@ -1629,6 +1792,14 @@ List<String> _optionValues(List<String> arguments, String name) {
       .map((arg) => arg.substring(name.length + 1))
       .where((value) => value.isNotEmpty)
       .toList();
+}
+
+Set<String> _optionValueSet(List<String> arguments, String name) {
+  return {
+    for (final value in _optionValues(arguments, name))
+      for (final part in value.split(','))
+        if (part.trim().isNotEmpty) part.trim(),
+  };
 }
 
 Future<ProcessResult> _runFlutterTestProcess(

@@ -34,18 +34,24 @@ class EnsembleTestExecutionPlan {
 class EnsembleTestSelection {
   final Set<String> ids;
   final Set<String> features;
+  final Set<String> profiles;
   final Set<String> tags;
   final Set<String> paths;
 
   const EnsembleTestSelection({
     this.ids = const {},
     this.features = const {},
+    this.profiles = const {},
     this.tags = const {},
     this.paths = const {},
   });
 
   bool get isEmpty =>
-      ids.isEmpty && features.isEmpty && tags.isEmpty && paths.isEmpty;
+      ids.isEmpty &&
+      features.isEmpty &&
+      profiles.isEmpty &&
+      tags.isEmpty &&
+      paths.isEmpty;
 }
 
 /// Builds a dependency-ordered execution plan for all declarative tests.
@@ -107,8 +113,12 @@ class EnsembleTestExecutionPlanner {
     _AssetStringLoader assetLoader = _rootBundleAssetLoader,
   }) async {
     final paths = assetContents.keys.toList()..sort();
+    final selectionWithExpandedProfiles = _expandProfileGroupSelection(
+      selection,
+      config.profileGroups,
+    );
 
-    if (selection.isEmpty) {
+    if (selectionWithExpandedProfiles.isEmpty) {
       final byId = <String, EnsembleTestDefinition>{};
       for (final path in paths) {
         final content = assetContents[path]!;
@@ -117,9 +127,12 @@ class EnsembleTestExecutionPlanner {
           content,
           inputs: inputs,
           services: config.services,
+          suiteDefaultProfile: config.defaultProfile,
           suiteMockFiles: config.mockFiles,
           suiteInlineMocks: config.inlineMocks,
           suiteInitialState: config.initialState,
+          suiteProfiles: config.profiles,
+          suiteProfileGroups: config.profileGroups,
           suiteDevices: config.devices,
           assetLoader: assetLoader,
         );
@@ -155,7 +168,19 @@ class EnsembleTestExecutionPlanner {
       }
     }
 
-    final selectedPreviewById = _applySelection(previewById, selection);
+    final previewSelection = selectionWithExpandedProfiles.profiles.isEmpty
+        ? selectionWithExpandedProfiles
+        : EnsembleTestSelection(
+            ids: selectionWithExpandedProfiles.ids,
+            features: selectionWithExpandedProfiles.features,
+            tags: selectionWithExpandedProfiles.tags,
+            paths: selectionWithExpandedProfiles.paths,
+          );
+    final selectedPreviewById = selectionWithExpandedProfiles.profiles.isEmpty
+        ? _applySelection(previewById, selectionWithExpandedProfiles)
+        : previewSelection.isEmpty
+            ? previewById
+            : _applySelection(previewById, previewSelection);
 
     final selectedAssetPaths = selectedPreviewById.values
         .map((definition) => definition.assetPath)
@@ -169,14 +194,23 @@ class EnsembleTestExecutionPlanner {
         content,
         inputs: inputs,
         services: config.services,
+        suiteDefaultProfile: config.defaultProfile,
         suiteMockFiles: config.mockFiles,
         suiteInlineMocks: config.inlineMocks,
         suiteInitialState: config.initialState,
+        suiteProfiles: config.profiles,
+        suiteProfileGroups: config.profileGroups,
         suiteDevices: config.devices,
         assetLoader: assetLoader,
       );
       for (final definition in definitions) {
         if (!_idBelongsToSelection(definition.testCase.id, selectedIds)) {
+          continue;
+        }
+        if (!_matchesProfileSelection(
+          definition.testCase,
+          selectionWithExpandedProfiles,
+        )) {
           continue;
         }
         final existing = selectedById[definition.testCase.id];
@@ -218,9 +252,12 @@ class EnsembleTestExecutionPlanner {
     String content, {
     Map<String, dynamic> inputs = const {},
     List<TestServiceConfig> services = const [],
+    String? suiteDefaultProfile,
     List<String> suiteMockFiles = const [],
     Map<String, dynamic> suiteInlineMocks = const {},
     Map<String, dynamic> suiteInitialState = const {},
+    Map<String, TestProfile> suiteProfiles = const {},
+    Map<String, List<String>> suiteProfileGroups = const {},
     List<TestDeviceTarget> suiteDevices = const [],
     Future<String> Function(String assetPath)? assetLoader,
   }) {
@@ -229,9 +266,12 @@ class EnsembleTestExecutionPlanner {
       content,
       inputs: inputs,
       services: services,
+      suiteDefaultProfile: suiteDefaultProfile,
       suiteMockFiles: suiteMockFiles,
       suiteInlineMocks: suiteInlineMocks,
       suiteInitialState: suiteInitialState,
+      suiteProfiles: suiteProfiles,
+      suiteProfileGroups: suiteProfileGroups,
       suiteDevices: suiteDevices,
       assetLoader: assetLoader ?? _rootBundleAssetLoader,
     );
@@ -307,9 +347,12 @@ class EnsembleTestExecutionPlanner {
     String content, {
     required Map<String, dynamic> inputs,
     List<TestServiceConfig> services = const [],
+    String? suiteDefaultProfile,
     List<String> suiteMockFiles = const [],
     Map<String, dynamic> suiteInlineMocks = const {},
     Map<String, dynamic> suiteInitialState = const {},
+    Map<String, TestProfile> suiteProfiles = const {},
+    Map<String, List<String>> suiteProfileGroups = const {},
     List<TestDeviceTarget> suiteDevices = const [],
     _AssetStringLoader assetLoader = _rootBundleAssetLoader,
   }) async {
@@ -323,40 +366,56 @@ class EnsembleTestExecutionPlanner {
       sourcePath: path,
       inputs: inputs,
     );
-    final List<EnsembleTestDefinition> definitions;
+    final definitions = <EnsembleTestDefinition>[];
     if (base.scenarios.isEmpty) {
-      final mocks = await _mergedMocksFor(
-        assetPath: path,
-        suiteMockFiles: suiteMockFiles,
-        suiteInlineMocks: suiteInlineMocks,
-        mockFiles: base.mockFiles,
-        inlineMocks: base.inlineMocks,
-        assetLoader: assetLoader,
+      final profileSelections = _profileSelectionsFor(
+        base,
+        suiteDefaultProfile: suiteDefaultProfile,
+        profiles: suiteProfiles,
+        profileGroups: suiteProfileGroups,
       );
-      final steps = await _resolveStepMocks(
-        assetPath: path,
-        steps: base.steps,
-        assetLoader: assetLoader,
-      );
-      definitions = [
-        EnsembleTestDefinition(
+      final multiProfile = profileSelections.length > 1;
+      for (final selection in profileSelections) {
+        final profile = selection.profile;
+        final id = multiProfile ? '${base.id}[${selection.name}]' : base.id;
+        final mocks = await _mergedMocksFor(
           assetPath: path,
-          testCase: _withRuntimeFields(
-            base,
-            id: base.id,
-            startScreen: base.startScreen,
-            session: base.session,
-            mocks: mocks,
-            steps: steps,
-            initialState: mergedInitialState(
-              suiteInitialState,
-              base.initialState,
+          suiteMockFiles: _mergedProfileMockFiles(suiteMockFiles, profile),
+          suiteInlineMocks: _mergedProfileInlineMocks(
+            suiteInlineMocks,
+            profile,
+          ),
+          mockFiles: base.mockFiles,
+          inlineMocks: base.inlineMocks,
+          assetLoader: assetLoader,
+        );
+        final steps = await _resolveStepMocks(
+          assetPath: path,
+          steps: base.steps,
+          assetLoader: assetLoader,
+        );
+        definitions.add(
+          EnsembleTestDefinition(
+            assetPath: path,
+            testCase: _withRuntimeFields(
+              base,
+              id: id,
+              startScreen: base.startScreen,
+              session: multiProfile && base.session != null
+                  ? '${base.session}[${selection.name}]'
+                  : base.session,
+              profile: selection.name,
+              mocks: mocks,
+              steps: steps,
+              initialState: mergedInitialState(
+                _mergedProfileInitialState(suiteInitialState, profile),
+                base.initialState,
+              ),
             ),
           ),
-        ),
-      ];
+        );
+      }
     } else {
-      definitions = <EnsembleTestDefinition>[];
       for (final scenario in base.scenarios) {
         final parsed = EnsembleTestParser.parseString(
           resolvedContent,
@@ -369,39 +428,59 @@ class EnsembleTestExecutionPlanner {
           (item) => item.id == scenario.id,
           orElse: () => scenario,
         );
-        final id = '${base.id}[${scenario.id}]';
-        final mocks = await _mergedMocksFor(
-          assetPath: path,
-          suiteMockFiles: suiteMockFiles,
-          suiteInlineMocks: suiteInlineMocks,
-          mockFiles: parsed.mockFiles,
-          inlineMocks: parsed.inlineMocks,
-          assetLoader: assetLoader,
+        final profileSelections = _profileSelectionsFor(
+          parsed,
+          suiteDefaultProfile: suiteDefaultProfile,
+          profiles: suiteProfiles,
+          profileGroups: suiteProfileGroups,
         );
-        final steps = await _resolveStepMocks(
-          assetPath: path,
-          steps: parsed.steps,
-          assetLoader: assetLoader,
-        );
-
-        definitions.add(
-          EnsembleTestDefinition(
+        final multiProfile = profileSelections.length > 1;
+        for (final selection in profileSelections) {
+          final profile = selection.profile;
+          final scenarioId = '${base.id}[${scenario.id}]';
+          final id =
+              multiProfile ? '$scenarioId[${selection.name}]' : scenarioId;
+          final mocks = await _mergedMocksFor(
             assetPath: path,
-            testCase: _withRuntimeFields(
-              parsed,
-              id: id,
-              description: parsedScenario.description ?? parsed.description,
-              startScreen: parsed.startScreen,
-              session: parsed.session,
-              mocks: mocks,
-              steps: steps,
-              initialState: mergedInitialState(
-                suiteInitialState,
-                parsed.initialState,
+            suiteMockFiles: _mergedProfileMockFiles(suiteMockFiles, profile),
+            suiteInlineMocks: _mergedProfileInlineMocks(
+              suiteInlineMocks,
+              profile,
+            ),
+            mockFiles: parsed.mockFiles,
+            inlineMocks: parsed.inlineMocks,
+            assetLoader: assetLoader,
+          );
+          final steps = await _resolveStepMocks(
+            assetPath: path,
+            steps: parsed.steps,
+            assetLoader: assetLoader,
+          );
+
+          definitions.add(
+            EnsembleTestDefinition(
+              assetPath: path,
+              testCase: _withRuntimeFields(
+                parsed,
+                id: id,
+                description: parsedScenario.description ?? parsed.description,
+                startScreen: parsed.startScreen,
+                session: multiProfile && parsed.session != null
+                    ? '${parsed.session}[${selection.name}]'
+                    : parsed.session,
+                profile: selection.name,
+                scenarioId: scenario.id,
+                scenarioDescription: parsedScenario.description,
+                mocks: mocks,
+                steps: steps,
+                initialState: mergedInitialState(
+                  _mergedProfileInitialState(suiteInitialState, profile),
+                  parsed.initialState,
+                ),
               ),
             ),
-          ),
-        );
+          );
+        }
       }
     }
 
@@ -436,6 +515,8 @@ class EnsembleTestExecutionPlanner {
               initialState: _withDeviceLocale(test.initialState, device),
               startScreenInputs: test.startScreenInputs,
               deviceTarget: device,
+              scenarioId: test.scenarioId,
+              scenarioDescription: test.scenarioDescription,
               // One screenshot sheet per device run (not a shared multi-device
               // sheet). resolvedScreenshotSheetId falls back to the expanded id.
               screenshotSheetId: test.screenshotSheetId,
@@ -501,6 +582,9 @@ class EnsembleTestExecutionPlanner {
     String? description,
     String? startScreen,
     String? session,
+    String? profile,
+    String? scenarioId,
+    String? scenarioDescription,
     required TestMocks mocks,
     required List<TestStep> steps,
     Map<String, dynamic>? initialState,
@@ -522,7 +606,12 @@ class EnsembleTestExecutionPlanner {
       startScreen: startScreen,
       startScreenInputs: startScreenInputs ?? test.startScreenInputs,
       session: session,
+      profile: profile ?? test.profile,
+      profiles: test.profiles,
+      scenarioId: scenarioId ?? test.scenarioId,
+      scenarioDescription: scenarioDescription ?? test.scenarioDescription,
       mockFiles: test.mockFiles,
+      inlineMocks: test.inlineMocks,
       scenarios: test.scenarios,
       initialState: initialState ?? test.initialState,
       setupSteps: test.setupSteps,
@@ -619,6 +708,103 @@ class EnsembleTestExecutionPlanner {
       inlineMocks: parsed.inline,
       assetLoader: assetLoader,
     );
+  }
+
+  static List<({String? name, TestProfile? profile})> _profileSelectionsFor(
+    EnsembleTestCase test, {
+    required String? suiteDefaultProfile,
+    required Map<String, TestProfile> profiles,
+    required Map<String, List<String>> profileGroups,
+  }) {
+    final names = _profileNamesFor(
+      test,
+      suiteDefaultProfile: suiteDefaultProfile,
+      profileGroups: profileGroups,
+    );
+    if (names.isEmpty) {
+      return const [(name: null, profile: null)];
+    }
+
+    final selections = <({String name, TestProfile profile})>[];
+    for (final name in names) {
+      final profile = profiles[name];
+      if (profile == null) {
+        throw EnsembleTestFailure(
+          'Test "${test.id}" references unknown profile "$name". '
+          'Define it under tests/config.yaml profiles.definitions.',
+        );
+      }
+      selections.add((name: name, profile: profile));
+    }
+    return selections;
+  }
+
+  static List<String> _profileNamesFor(
+    EnsembleTestCase test, {
+    required String? suiteDefaultProfile,
+    required Map<String, List<String>> profileGroups,
+  }) {
+    final selectors = test.profiles.isNotEmpty
+        ? test.profiles
+        : [if (suiteDefaultProfile != null) suiteDefaultProfile];
+    return [
+      for (final selector in selectors)
+        if (profileGroups.containsKey(selector))
+          ..._profilesForGroup(
+            selector,
+            profileGroups,
+            testId: test.id,
+          )
+        else
+          selector,
+    ];
+  }
+
+  static List<String> _profilesForGroup(
+    String group,
+    Map<String, List<String>> profileGroups, {
+    required String testId,
+  }) {
+    final profiles = profileGroups[group];
+    if (profiles == null) {
+      throw EnsembleTestFailure(
+        'Test "$testId" references unknown profile group "$group". '
+        'Define it under tests/config.yaml profiles.groups.',
+      );
+    }
+    return profiles;
+  }
+
+  static List<String> _mergedProfileMockFiles(
+    List<String> suiteMockFiles,
+    TestProfile? profile,
+  ) {
+    if (profile == null) return suiteMockFiles;
+    return [
+      ...suiteMockFiles,
+      ...profile.mockFiles,
+    ];
+  }
+
+  static Map<String, dynamic> _mergedProfileInlineMocks(
+    Map<String, dynamic> suiteInlineMocks,
+    TestProfile? profile,
+  ) {
+    if (profile == null || profile.inlineMocks.isEmpty) {
+      return suiteInlineMocks;
+    }
+    return {
+      ...suiteInlineMocks,
+      ...profile.inlineMocks,
+    };
+  }
+
+  static Map<String, dynamic> _mergedProfileInitialState(
+    Map<String, dynamic> suiteInitialState,
+    TestProfile? profile,
+  ) {
+    if (profile == null) return suiteInitialState;
+    return mergedInitialState(suiteInitialState, profile.initialState);
   }
 
   static Future<TestMocks> _mergedMocksFor({
@@ -849,11 +1035,47 @@ class EnsembleTestExecutionPlanner {
         );
     final featureMatches = selection.features.isNotEmpty &&
         selection.features.contains(test.feature);
+    final profileMatches = selection.profiles.isNotEmpty &&
+        _matchesProfileSelection(test, selection);
     final tagMatches = selection.tags.isNotEmpty &&
         test.tags.any((tag) => selection.tags.contains(tag));
     final pathMatches = selection.paths.isNotEmpty &&
         selection.paths.any((path) => def.assetPath.contains(path));
-    return idMatches || featureMatches || tagMatches || pathMatches;
+    return idMatches ||
+        featureMatches ||
+        profileMatches ||
+        tagMatches ||
+        pathMatches;
+  }
+
+  static bool _matchesProfileSelection(
+    EnsembleTestCase test,
+    EnsembleTestSelection selection,
+  ) {
+    if (selection.profiles.isEmpty) return true;
+    final profile = test.profile;
+    if (profile != null && selection.profiles.contains(profile)) return true;
+    return test.profiles.any((profile) => selection.profiles.contains(profile));
+  }
+
+  static EnsembleTestSelection _expandProfileGroupSelection(
+    EnsembleTestSelection selection,
+    Map<String, List<String>> profileGroups,
+  ) {
+    if (selection.profiles.isEmpty || profileGroups.isEmpty) return selection;
+    final expanded = <String>{};
+    for (final profile in selection.profiles) {
+      expanded.add(profile);
+      final group = profileGroups[profile];
+      if (group != null) expanded.addAll(group);
+    }
+    return EnsembleTestSelection(
+      ids: selection.ids,
+      features: selection.features,
+      profiles: expanded,
+      tags: selection.tags,
+      paths: selection.paths,
+    );
   }
 
   /// Kahn's algorithm: edge from test → its session producer.
