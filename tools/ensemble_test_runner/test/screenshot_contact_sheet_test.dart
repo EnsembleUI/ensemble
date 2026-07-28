@@ -9,7 +9,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  testWidgets('writes per-step PNGs and frames.json (no composite sheet)',
+  testWidgets('writes compressed per-step images and frames.json',
       (tester) async {
     const testId = 'contact_sheet_passed_test';
     final legacyFile = File(
@@ -29,6 +29,13 @@ void main() {
             stepIndex: 0,
             label: '1. tap(button)',
             image: image,
+            highlight: const ScreenshotHighlight(
+              kind: 'action',
+              left: 10,
+              top: 20,
+              width: 30,
+              height: 5,
+            ),
           ),
         ],
         status: TestStatus.passed,
@@ -49,16 +56,22 @@ void main() {
     final frames = framesJson['frames'] as List<dynamic>;
     expect(frames, hasLength(1));
     expect(frames.single['stepIndex'], 0);
-    expect(frames.single['file'], '${testId}_step0_0.png');
-    expect(frames.single['failed'], isNull);
-    final stepPng = File(
-      'build/ensemble_test_runner/screenshots/${testId}_step0_0.png',
+    expect(frames.single['file'], startsWith('shot_'));
+    expect(
+      frames.single['file'],
+      anyOf(endsWith('.jpg'), endsWith('.png')),
     );
-    expect(stepPng.existsSync(), isTrue);
-    expect(stepPng.lengthSync(), greaterThan(100));
+    expect(frames.single['highlight']['kind'], 'action');
+    expect(frames.single['highlight']['left'], 10);
+    expect(frames.single['failed'], isNull);
+    final stepImage = File(
+      'build/ensemble_test_runner/screenshots/${frames.single['file']}',
+    );
+    expect(stepImage.existsSync(), isTrue);
+    expect(stepImage.lengthSync(), greaterThan(100));
 
     framesManifest.deleteSync();
-    stepPng.deleteSync();
+    stepImage.deleteSync();
   });
 
   testWidgets('marks failed step in frames.json', (tester) async {
@@ -101,11 +114,50 @@ void main() {
     expect(frames[0]['failed'], isTrue);
     expect(frames[1]['failed'], isNull);
 
-    framesManifest.deleteSync();
-    File('build/ensemble_test_runner/screenshots/${testId}_step0_0.png')
-        .deleteSync();
-    File('build/ensemble_test_runner/screenshots/${testId}_step1_0.png')
-        .deleteSync();
+    _deleteArtifacts(framesManifest, frames);
+  });
+
+  testWidgets('deduplicates identical encoded screenshots', (tester) async {
+    const testId = 'contact_sheet_dedupe_test';
+    final image0 = await _testImage(color: Colors.purple);
+    final image1 = await _testImage(color: Colors.purple);
+    final path = await tester.runAsync(
+      () => writeScreenshotFrames(
+        testId: testId,
+        config: const ScreenshotConfig(enabled: true),
+        frames: [
+          ScreenshotSheetFrame(
+            stepIndex: 0,
+            label: '1. waitFor(title)',
+            image: image0,
+          ),
+          ScreenshotSheetFrame(
+            stepIndex: 1,
+            label: '2. expectVisible(title)',
+            image: image1,
+          ),
+        ],
+        status: TestStatus.passed,
+      ),
+    );
+
+    expect(path, endsWith('/${testId}_frames.json'));
+    final framesManifest = File(
+      'build/ensemble_test_runner/screenshots/${testId}_frames.json',
+    );
+    final framesJson =
+        jsonDecode(framesManifest.readAsStringSync()) as Map<String, dynamic>;
+    final frames = framesJson['frames'] as List<dynamic>;
+    expect(frames, hasLength(2));
+    expect(frames[0]['file'], frames[1]['file']);
+    expect({for (final frame in frames) (frame as Map)['file']}, hasLength(1));
+    expect(
+      File('build/ensemble_test_runner/screenshots/${frames[0]['file']}')
+          .existsSync(),
+      isTrue,
+    );
+
+    _deleteArtifacts(framesManifest, frames);
   });
 
   testWidgets('pending status keeps frame images intact', (tester) async {
@@ -133,11 +185,10 @@ void main() {
     final framesManifest = File(
       'build/ensemble_test_runner/screenshots/${testId}_frames.json',
     );
-    if (framesManifest.existsSync()) framesManifest.deleteSync();
-    final stepPng = File(
-      'build/ensemble_test_runner/screenshots/${testId}_step0_0.png',
-    );
-    if (stepPng.existsSync()) stepPng.deleteSync();
+    final framesJson =
+        jsonDecode(framesManifest.readAsStringSync()) as Map<String, dynamic>;
+    final frames = framesJson['frames'] as List<dynamic>;
+    _deleteArtifacts(framesManifest, frames);
     image.dispose();
   });
 
@@ -184,12 +235,20 @@ void main() {
     expect(frames[0]['deviceId'], 'android_nl');
     expect(frames[1]['deviceLabel'], 'iPhone 15 Pro · en');
 
-    framesManifest.deleteSync();
-    File('build/ensemble_test_runner/screenshots/${testId}_step0_0.png')
-        .deleteSync();
-    File('build/ensemble_test_runner/screenshots/${testId}_step0_1.png')
-        .deleteSync();
+    _deleteArtifacts(framesManifest, frames);
   });
+}
+
+void _deleteArtifacts(File framesManifest, List<dynamic> frames) {
+  final files = {
+    for (final frame in frames)
+      if (frame is Map && frame['file'] != null) frame['file'].toString(),
+  };
+  if (framesManifest.existsSync()) framesManifest.deleteSync();
+  for (final file in files) {
+    final image = File('build/ensemble_test_runner/screenshots/$file');
+    if (image.existsSync()) image.deleteSync();
+  }
 }
 
 Future<ui.Image> _testImage({Color color = Colors.white}) async {

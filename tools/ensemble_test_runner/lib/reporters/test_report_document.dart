@@ -98,7 +98,7 @@ class TestReportDocument {
   ///
   /// Keeps `report/` and `test_durations.json`.
   ///
-  /// Screenshot PNGs are published into `report/screenshots/` so the report
+  /// Screenshot images are published into `report/screenshots/` so the report
   /// directory can be deployed as a standalone static artifact.
   static void cleanTransientArtifacts(String artifactRoot) {
     _publishScreenshotsToReport(artifactRoot);
@@ -127,7 +127,13 @@ class TestReportDocument {
     target.createSync(recursive: true);
     for (final entity in source.listSync()) {
       if (entity is! File) continue;
-      if (!entity.path.toLowerCase().endsWith('.png')) continue;
+      final path = entity.path.toLowerCase();
+      if (!path.endsWith('.png') &&
+          !path.endsWith('.jpg') &&
+          !path.endsWith('.jpeg') &&
+          !path.endsWith('.webp')) {
+        continue;
+      }
       entity.copySync(p.join(target.path, p.basename(entity.path)));
     }
   }

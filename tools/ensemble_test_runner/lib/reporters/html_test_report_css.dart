@@ -1014,11 +1014,9 @@ body {
   border-radius: 18px;
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
   border: 1px solid rgba(255, 255, 255, 0.06);
-  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s ease, border-color 0.25s ease;
+  transition: box-shadow 0.2s ease, border-color 0.2s ease;
 }
 .screenshot-gallery-frame:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 16px 32px rgba(0, 0, 0, 0.6), 0 0 15px rgba(6, 182, 212, 0.15);
   border-color: rgba(6, 182, 212, 0.3);
 }
 .screenshot-gallery-tile.failed .screenshot-gallery-frame {
@@ -1030,6 +1028,40 @@ body {
   width: 100%;
   height: auto;
   object-fit: contain;
+}
+.screenshot-image-link {
+  display: block;
+  width: 100%;
+  text-decoration: none;
+}
+.screenshot-image-wrap {
+  display: block;
+  position: relative;
+  width: 100%;
+}
+.screenshot-highlight {
+  position: absolute;
+  pointer-events: none;
+  box-sizing: border-box;
+  border-radius: 7px;
+  background: transparent;
+  border: none;
+  outline-offset: 4px;
+}
+.screenshot-highlight::before,
+.screenshot-highlight::after {
+  display: none;
+}
+.screenshot-highlight.action {
+  outline: 3px solid #ff3f6f;
+  filter: drop-shadow(0 0 7px rgba(244, 63, 94, 0.55));
+}
+.screenshot-highlight.assertion {
+  outline: 3px solid #00d5ff;
+  filter: drop-shadow(0 0 7px rgba(6, 182, 212, 0.55));
+}
+.screenshot-highlight-dot {
+  display: none;
 }
 .fullscreen-sheet-btn {
   background: transparent;
@@ -1095,10 +1127,9 @@ body {
   border-radius: 12px;
   border: 1px solid var(--border);
   box-shadow: 0 10px 25px rgba(0,0,0,0.4);
-  transition: transform 0.2s;
+  transition: border-color 0.2s ease;
 }
 .fullscreen-sheet-tile img:hover {
-  transform: scale(1.02);
   border-color: var(--accent);
 }
 .fullscreen-sheet-tile figcaption {
@@ -1126,10 +1157,6 @@ body {
 .artifact img {
   display: block;
   max-width: 100%;
-  transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-}
-.artifact img:hover {
-  transform: scale(1.04);
 }
 
 .raw-label {

@@ -270,9 +270,14 @@ const ensembleHtmlTestReportAppJs = r'''
     el.dataset.features = Array.from(new Set(runs.map(run => run.feature || '').filter(Boolean))).join('|');
     el.dataset.profiles = Array.from(new Set(runs.map(run => run.profile || '').filter(Boolean))).join('|');
     let badges = '';
+    const seenBadges = new Set();
     runs.forEach(run => {
       if (run.deviceBadge) {
-        badges += '<span class="card-device-badge">' + escapeHtml(String(run.deviceBadge).toUpperCase()) + '</span>';
+        const badge = String(run.deviceBadge).toUpperCase();
+        if (!seenBadges.has(badge)) {
+          seenBadges.add(badge);
+          badges += '<span class="card-device-badge">' + escapeHtml(badge) + '</span>';
+        }
       }
     });
     el.innerHTML = '<div class="card-status-dot"></div><div class="card-info"><div class="card-title">' + escapeHtml(base) + '</div><div class="card-meta"><span class="card-duration">' + formatDuration(maxDurationMs) + '</span>' + badges + '</div></div>';
@@ -631,7 +636,7 @@ const ensembleHtmlTestReportAppJs = r'''
       html += '<div class="screenshot-tile-header-bar"><span class="screenshot-index-pill">' + (idx + 1) + '</span>';
       html += '<span class="screenshot-tile-caption" title="' + escapeHtml(label) + '">' + escapeHtml(label) + '</span></div>';
       html += '<div class="screenshot-gallery-frame">';
-      if (href) html += '<a href="' + escapeHtml(href) + '" target="_blank" rel="noopener"><img src="' + escapeHtml(href) + '" alt="' + escapeHtml(label) + '" loading="lazy"/></a>';
+      if (href) html += renderScreenshotImage(frame, label);
       html += '</div></figure>';
     });
     html += '</div></div></div>';
@@ -862,7 +867,7 @@ const ensembleHtmlTestReportAppJs = r'''
             let cleanLabel = getCleanScreenshotLabel(rawLabel, titleText) || ('Screenshot ' + (index + 1));
             labelHtml = '<div class="modal-screenshot-label">' + escapeHtml(cleanLabel) + '</div>';
           }
-          card.innerHTML = '<a href="' + escapeHtml(href) + '" target="_blank" rel="noopener"><img src="' + escapeHtml(href) + '" alt="' + escapeHtml(rawLabel) + '" loading="lazy"/></a>' + labelHtml;
+          card.innerHTML = renderScreenshotImage(shot, rawLabel) + labelHtml;
         } else {
           card.innerHTML = '<div class="terminal-row" style="color: var(--text-muted);">' + escapeHtml(rawLabel) + '</div>';
         }
@@ -970,6 +975,27 @@ const ensembleHtmlTestReportAppJs = r'''
       if (suffix) return suffix;
     }
     return clean;
+  }
+
+  function renderScreenshotImage(frame, label) {
+    const href = frame.href || '';
+    if (!href) return '';
+    let html = '<a class="screenshot-image-link" href="' + escapeHtml(href) + '" target="_blank" rel="noopener">';
+    html += '<span class="screenshot-image-wrap">';
+    html += '<img src="' + escapeHtml(href) + '" alt="' + escapeHtml(label) + '" loading="lazy"/>';
+    const highlight = frame.highlight || null;
+    if (highlight) {
+      const kind = highlight.kind === 'assertion' ? 'assertion' : 'action';
+      const left = Number(highlight.left || 0);
+      const top = Number(highlight.top || 0);
+      const width = Number(highlight.width || 0);
+      const height = Number(highlight.height || 0);
+      if (width > 0 && height > 0) {
+        html += '<span class="screenshot-highlight ' + kind + '" style="left:' + left.toFixed(4) + '%;top:' + top.toFixed(4) + '%;width:' + width.toFixed(4) + '%;height:' + height.toFixed(4) + '%;"><span class="screenshot-highlight-dot"></span></span>';
+      }
+    }
+    html += '</span></a>';
+    return html;
   }
 
   let activeScreenTab = 'screen-debugtree';

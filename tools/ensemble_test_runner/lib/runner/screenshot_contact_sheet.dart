@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
+import 'package:crypto/crypto.dart';
 import 'package:ensemble_device_preview/ensemble_device_preview.dart';
 import 'package:ensemble_test_runner/actions/extended_step_handlers.dart';
 import 'package:ensemble_test_runner/actions/screenshot_device.dart';
@@ -8,10 +9,15 @@ import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
 import 'package:ensemble_test_runner/runner/live_async_call.dart';
 import 'package:ensemble_test_runner/runner/test_artifacts.dart';
 import 'package:ensemble_test_runner/runner/test_runtime_state.dart';
+import 'package:image/image.dart' as img;
 
-/// Encodes each frame to a device-framed PNG and writes a [frames.json] manifest.
+const _maxReportScreenshotWidth = 360;
+const _reportScreenshotJpegQuality = 82;
+
+/// Encodes each frame to a compressed device-framed image and writes a
+/// [frames.json] manifest.
 ///
-/// Returns the display path of the frames manifest (not a composite sheet PNG).
+/// Returns the display path of the frames manifest.
 /// The HTML report builds the contact-sheet gallery from these per-step files.
 Future<String?> writeScreenshotFrames({
   required String testId,
@@ -30,7 +36,6 @@ Future<String?> writeScreenshotFrames({
   directory.createSync(recursive: true);
   final safeTestId = _safeFileName(testId);
   final frameEntries = <Map<String, dynamic>>[];
-  final stepOrdinal = <int, int>{};
 
   try {
     for (final frame in frames) {
@@ -38,15 +43,15 @@ Future<String?> writeScreenshotFrames({
           frame.stepIndex == failedStepIndex &&
           (failedDeviceId == null || frame.deviceId == failedDeviceId);
       final frameDevice = _deviceForFrame(frame, defaultDevice);
-      final pngBytes = frame.encodedPngBytes ??
+      final encoded = frame.encodedReportImage ??
           await _encodeFrameImage(frame, frameDevice);
-      frame.encodedPngBytes ??= pngBytes;
+      frame.encodedReportImage ??= encoded;
 
-      final ordinal = stepOrdinal[frame.stepIndex] ?? 0;
-      stepOrdinal[frame.stepIndex] = ordinal + 1;
-      final frameFileName = '${safeTestId}_step${frame.stepIndex}_$ordinal.png';
-      ensembleTestArtifactFile('screenshots', frameFileName)
-          .writeAsBytesSync(pngBytes);
+      final frameFileName = _dedupedImageFileName(encoded);
+      final frameFile = ensembleTestArtifactFile('screenshots', frameFileName);
+      if (!frameFile.existsSync()) {
+        frameFile.writeAsBytesSync(encoded.bytes);
+      }
       frameEntries.add({
         'stepIndex': frame.stepIndex,
         'label': frame.label,
@@ -54,6 +59,7 @@ Future<String?> writeScreenshotFrames({
         if (failedFrame) 'failed': true,
         if (frame.deviceId != null) 'deviceId': frame.deviceId,
         if (frame.deviceLabel != null) 'deviceLabel': frame.deviceLabel,
+        if (frame.highlight != null) 'highlight': frame.highlight!.toJson(),
       });
     }
   } finally {
@@ -134,7 +140,7 @@ DeviceInfo _deviceForFrame(
   });
 }
 
-Future<Uint8List> _encodeFrameImage(
+Future<EncodedScreenshotImage> _encodeFrameImage(
   ScreenshotSheetFrame frame,
   DeviceInfo device,
 ) async {
@@ -142,10 +148,55 @@ Future<Uint8List> _encodeFrameImage(
     () => ExtendedStepHandlers.encodeScreenshotImage(frame.image, device),
   );
   if (bytes == null) {
-    throw EnsembleTestFailure('Failed to encode screenshot as PNG.');
+    throw EnsembleTestFailure('Failed to encode screenshot.');
   }
-  return bytes;
+  return _compressedReportImage(bytes);
+}
+
+EncodedScreenshotImage _compressedReportImage(Uint8List pngBytes) {
+  try {
+    final decoded = img.decodePng(pngBytes);
+    if (decoded == null) {
+      return EncodedScreenshotImage(bytes: pngBytes, extension: 'png');
+    }
+
+    final resized = decoded.width > _maxReportScreenshotWidth
+        ? img.copyResize(
+            decoded,
+            width: _maxReportScreenshotWidth,
+            interpolation: img.Interpolation.average,
+          )
+        : decoded;
+
+    final background =
+        img.Image(width: resized.width, height: resized.height, numChannels: 3);
+    img.fill(background, color: img.ColorRgb8(10, 17, 31));
+    img.compositeImage(background, resized);
+
+    final jpgBytes = Uint8List.fromList(
+      img.encodeJpg(
+        background,
+        quality: _reportScreenshotJpegQuality,
+        chroma: img.JpegChroma.yuv420,
+      ),
+    );
+    final optimizedPngBytes = Uint8List.fromList(
+      img.encodePng(background, level: 9),
+    );
+    if (optimizedPngBytes.length < jpgBytes.length) {
+      return EncodedScreenshotImage(bytes: optimizedPngBytes, extension: 'png');
+    }
+
+    return EncodedScreenshotImage(bytes: jpgBytes, extension: 'jpg');
+  } catch (_) {
+    return EncodedScreenshotImage(bytes: pngBytes, extension: 'png');
+  }
 }
 
 String _safeFileName(String value) =>
     value.replaceAll(RegExp(r'[^A-Za-z0-9._-]+'), '_');
+
+String _dedupedImageFileName(EncodedScreenshotImage image) {
+  final digest = sha256.convert(image.bytes).toString();
+  return 'shot_${image.bytes.length}_$digest.${image.extension}';
+}

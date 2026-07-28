@@ -275,6 +275,8 @@ void main() {
     expect(html, contains('results.json.gz'));
     expect(html, contains("fetch('results.json.gz"));
     expect(html, contains('switchModalTab(\'screenshots\')'));
+    expect(html, contains('screenshot-highlight'));
+    expect(html, contains('renderScreenshotImage'));
     expect(html, isNot(contains('Timed out waiting for dashboard')));
     expect(html, isNot(contains('"name":"login"')));
 
