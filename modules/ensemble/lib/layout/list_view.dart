@@ -214,6 +214,12 @@ class ListViewState extends EWidgetState<ListView>
   ScrollController? _scrollControllerOutsideFooter;
   bool _footerScrollControllerSubstituted = false;
 
+  // Stable key for the TV scrollbar. Created once (not per build) so the
+  // scrollbar's State — focus, thumb position, init — survives ListView
+  // rebuilds; a fresh key each build would force it to be recreated.
+  final flutter.GlobalKey<TVScrollbarWidgetState> _scrollbarKey =
+      flutter.GlobalKey<TVScrollbarWidgetState>();
+
   @override
   void initState() {
     showLoading = widget._controller.showLoading;
@@ -410,17 +416,17 @@ class ListViewState extends EWidgetState<ListView>
       final scrollController = widget._controller.scrollController;
 
       if (scrollController != null) {
-        // Store scrollbar widget with key to access later
-        final scrollbarKey = flutter.GlobalKey<TVScrollbarWidgetState>();
+        // Uses the stable _scrollbarKey (a State field) so the scrollbar keeps
+        // its focus/thumb state across ListView rebuilds.
         final scrollbarWidget = TVScrollbarWidget(
-          key: scrollbarKey,
+          key: _scrollbarKey,
           scrollController: scrollController,
           options: scrollbarOptions,
         );
 
         // Callback to request focus on scrollbar
         void requestScrollbarFocus() {
-          scrollbarKey.currentState?.requestFocusOnScrollbar();
+          _scrollbarKey.currentState?.requestFocusOnScrollbar();
         }
 
         // Determine scrollbar position and which edge handler to use

@@ -201,17 +201,10 @@ class TVScrollbarWidgetState extends State<TVScrollbarWidget> {
               return KeyEventResult.handled;
             }
 
-            // Handle LEFT/RIGHT to return focus to content based on scrollbar position
-            // When scrollbar is on right, LEFT returns to content
-            // When scrollbar is on left, RIGHT returns to content
-            if (widget.options.position == 'right' &&
-                event.logicalKey == LogicalKeyboardKey.arrowLeft) {
-              return KeyEventResult.ignored; // Let focus system handle it
-            } else if (widget.options.position == 'left' &&
-                       event.logicalKey == LogicalKeyboardKey.arrowRight) {
-              return KeyEventResult.ignored; // Let focus system handle it
-            }
-
+            // LEFT/RIGHT are intentionally not consumed: leaving them unhandled
+            // lets the focus system move focus back to the content (the
+            // scrollbar sits beside the list, so horizontal nav naturally exits
+            // it). UP/DOWN above are the only keys this scrollbar handles.
             return KeyEventResult.ignored;
           },
           child: InkWell(

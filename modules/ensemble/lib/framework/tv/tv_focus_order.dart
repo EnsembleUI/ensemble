@@ -570,14 +570,14 @@ class TVFocusOrderNode {
 // Focus Traversal Policy & Scope
 // =============================================================================
 
-/// Traversal policy that prevents UP navigation from escaping the Ensemble grid.
+/// Named [ReadingOrderTraversalPolicy] for Ensemble's TV focus groups.
+///
+/// Currently adds no traversal overrides of its own — row/edge boundaries
+/// (including UP at row 0) are enforced by the TVFocusWidget navigation logic,
+/// not here. Kept as a named seam so TV-specific traversal can be added later
+/// without touching the FocusTraversalGroup call sites.
 class TVFocusOrderTraversalPolicy extends ReadingOrderTraversalPolicy {
-  /// When true, UP at row 0 is blocked (focus stays in Ensemble content).
-  final bool preventOutOfScopeTopTraversal;
-
-  TVFocusOrderTraversalPolicy({
-    this.preventOutOfScopeTopTraversal = true,
-  });
+  TVFocusOrderTraversalPolicy();
 }
 
 /// Focus scope with edge handlers for scrollbar navigation and focus locking.

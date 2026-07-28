@@ -823,7 +823,12 @@ class _BracketsPageState extends State<BracketsPage> {
       }
     }
 
-    if (bestMatch != null) {
+    // Only move focus if the chosen tile is actually on screen. When every
+    // match at (row, col) is off screen — the target column hasn't settled into
+    // view yet (rapid/interrupted nav) or only an off-screen ghost from a lower
+    // BracketView was found — requesting focus would land it on an invisible
+    // tile (no focus ring). In that case keep the current focus instead.
+    if (bestMatch != null && bestOnScreen) {
       bestMatch.requestFocus();
     }
   }
