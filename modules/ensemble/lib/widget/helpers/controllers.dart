@@ -387,9 +387,11 @@ class TVOptionsComposite extends WidgetCompositeProperty {
       _elevation = Utils.optionalInt(value, min: 0, max: 24);
   int? get elevation => _elevation;
 
-  /// Scale factor when focused (e.g., 1.05 for 5% zoom). Uses Transform widget.
+  /// Scale factor when focused (e.g., 1.05 for 5% zoom, clamped 0–3). Uses
+  /// Transform widget. Real TV focus zoom is ~1.025–1.2; the max guards against
+  /// runaway values (e.g. a `scale: 100` typo) like opacity/elevation above.
   double? _scale;
-  set scale(value) => _scale = Utils.optionalDouble(value);
+  set scale(value) => _scale = Utils.optionalDouble(value, min: 0, max: 3);
   double? get scale => _scale;
 
   /// Returns true if any focused style is defined

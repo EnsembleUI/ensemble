@@ -411,7 +411,7 @@ class ListViewState extends EWidgetState<ListView>
 
       if (scrollController != null) {
         // Store scrollbar widget with key to access later
-        final scrollbarKey = flutter.GlobalKey<flutter.State<TVScrollbarWidget>>();
+        final scrollbarKey = flutter.GlobalKey<TVScrollbarWidgetState>();
         final scrollbarWidget = TVScrollbarWidget(
           key: scrollbarKey,
           scrollController: scrollController,
@@ -420,10 +420,7 @@ class ListViewState extends EWidgetState<ListView>
 
         // Callback to request focus on scrollbar
         void requestScrollbarFocus() {
-          final scrollbarState = scrollbarKey.currentState;
-          if (scrollbarState != null) {
-            (scrollbarState as dynamic).requestFocusOnScrollbar();
-          }
+          scrollbarKey.currentState?.requestFocusOnScrollbar();
         }
 
         // Determine scrollbar position and which edge handler to use

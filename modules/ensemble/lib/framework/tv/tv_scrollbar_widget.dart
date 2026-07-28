@@ -44,10 +44,10 @@ class TVScrollbarWidget extends StatefulWidget {
   final TVScrollbarOptionsComposite options;
 
   @override
-  State<TVScrollbarWidget> createState() => _TVScrollbarWidgetState();
+  State<TVScrollbarWidget> createState() => TVScrollbarWidgetState();
 }
 
-class _TVScrollbarWidgetState extends State<TVScrollbarWidget> {
+class TVScrollbarWidgetState extends State<TVScrollbarWidget> {
   late final FocusNode _focusNode;
   bool _isFocused = false;
   double _thumbOffset = 0.0;
