@@ -484,14 +484,29 @@ class EnsembleTestRunner {
             }
           };
         }
+        final optionalActionStep = _singleNestedOptionalAction(step);
+        if (optionalActionStep != null) {
+          executor.onBeforeActionStep = (matchedStep) async {
+            if (capturedStep) return;
+            await _captureAutomaticScreenshotForStep(
+              executor: executor,
+              step: matchedStep,
+              labelStep: step,
+              stepIndex: i,
+              stabilize: false,
+            );
+            capturedStep = true;
+          };
+        }
         try {
           await executor.execute(step);
         } finally {
           executor.onWaitForTextMatched = null;
           executor.onWaitForNavigationMatched = null;
+          executor.onBeforeActionStep = null;
         }
         _drainPendingFlutterExceptions(tester);
-        if (!captureBeforeStep && !capturedStep) {
+        if (!captureBeforeStep && !capturedStep && optionalActionStep == null) {
           await _captureAutomaticScreenshotForStep(
             executor: executor,
             step: step,
@@ -719,6 +734,7 @@ class EnsembleTestRunner {
     required TestStepExecutor executor,
     required TestStep step,
     required int stepIndex,
+    TestStep? labelStep,
     bool pumpBeforeCapture = false,
     bool ensureTargetVisible = true,
     bool waitForTarget = false,
@@ -759,7 +775,7 @@ class EnsembleTestRunner {
     executor.context.runtime.addScreenshotSheetFrame(
       ScreenshotSheetFrame(
         stepIndex: stepIndex,
-        label: '${stepIndex + 1}. ${formatStepBrief(step)}',
+        label: '${stepIndex + 1}. ${formatStepBrief(labelStep ?? step)}',
         image: image,
         deviceId: device?.id,
         deviceLabel: device?.displayLabel,
@@ -817,6 +833,12 @@ class EnsembleTestRunner {
   }
 
   bool _shouldCaptureBeforeStep(TestStep step) => _isUserActionStep(step);
+
+  TestStep? _singleNestedOptionalAction(TestStep step) {
+    if (step.type != 'optional' || step.nestedSteps.length != 1) return null;
+    final nested = step.nestedSteps.single;
+    return _isUserActionStep(nested) ? nested : null;
+  }
 
   bool _shouldPumpBeforePostStepCapture(TestStep step) =>
       step.type != 'waitForText';

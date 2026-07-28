@@ -19,6 +19,19 @@ void main() {
         'trigger(onTap nav)',
       );
     });
+
+    test('formats single nested optional steps with child label', () {
+      const step = TestStep(
+        type: 'optional',
+        args: {},
+        nestedSteps: [
+          TestStep(type: 'tap', args: {'id': 'dismiss_banner'}),
+        ],
+      );
+
+      expect(formatStepBrief(step), 'optional(tap(dismiss_banner))');
+      expect(outlineSteps([step]), ['optional(tap(dismiss_banner))']);
+    });
   });
 
   group('collectScreensVisited', () {

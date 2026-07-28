@@ -26,6 +26,7 @@ class TestStepExecutor {
   EnsembleConfig? _config;
   FutureOr<void> Function(TestStep step)? onWaitForTextMatched;
   FutureOr<void> Function(TestStep step)? onWaitForNavigationMatched;
+  FutureOr<void> Function(TestStep step)? onBeforeActionStep;
 
   TestStepExecutor({
     required this.tester,
@@ -149,6 +150,7 @@ class TestStepExecutor {
         await _tap(
           _requireId(step),
           timeoutMs: step.args['timeoutMs'] as int?,
+          step: step,
         );
         break;
       case 'enterText':
@@ -321,7 +323,8 @@ class TestStepExecutor {
 
   String requireId(TestStep step) => _requireId(step);
 
-  Future<void> tapWidget(String id, {int? timeoutMs}) => _tap(id, timeoutMs: timeoutMs);
+  Future<void> tapWidget(String id, {int? timeoutMs}) =>
+      _tap(id, timeoutMs: timeoutMs);
 
   Future<void> longPressWidget(String id) async {
     final finder = assertions.finderForId(id);
@@ -354,7 +357,8 @@ class TestStepExecutor {
 
     final stopwatch = Stopwatch()..start();
     while (stopwatch.elapsedMilliseconds < timeoutMs) {
-      await _pump(duration: config.waitPollInterval, label: 'expectTextContains');
+      await _pump(
+          duration: config.waitPollInterval, label: 'expectTextContains');
       if (assertions.isAnyTextContainingVisible(textCandidates)) {
         return;
       }
@@ -451,7 +455,7 @@ class TestStepExecutor {
     }
   }
 
-  Future<void> _tap(String id, {int? timeoutMs}) async {
+  Future<void> _tap(String id, {int? timeoutMs, TestStep? step}) async {
     final effectiveTimeout =
         timeoutMs ?? config.defaultWaitTimeout.inMilliseconds;
     final stopwatch = Stopwatch()..start();
@@ -484,6 +488,9 @@ class TestStepExecutor {
       _interactiveFinder(assertions.finderForId(id)),
       id,
     );
+    if (step != null && onBeforeActionStep != null) {
+      await onBeforeActionStep!(step);
+    }
     await tester.tap(tappableFinder);
     await _settle();
   }
