@@ -140,13 +140,25 @@ mixin DeviceInfoCapability {
   bool get isTV {
     if (_isTV != null) return _isTV!;
 
-    // Only Android devices can be TVs (for now)
-    if (kIsWeb || _platform != DevicePlatform.android || androidInfo == null) {
+    // Web is never a TV, and it's known synchronously — safe to cache.
+    if (kIsWeb) {
       _isTV = false;
       return false;
     }
 
-    // Check for TV system features
+    // Only Android devices can be TVs. androidInfo is populated
+    // asynchronously by initDeviceInfo(), and is only ever set on Android, so
+    // androidInfo == null means either a non-Android device or Android info
+    // that hasn't loaded yet. In both cases return false WITHOUT caching:
+    // caching here would permanently disable TV mode for the whole session if
+    // any widget reads isTV before initDeviceInfo() completes. Non-Android
+    // devices simply keep returning false cheaply; Android re-evaluates once
+    // androidInfo is available.
+    if (androidInfo == null) {
+      return false;
+    }
+
+    // Check for TV system features (result is now final — cache it).
     final systemFeatures = androidInfo!.systemFeatures;
     _isTV = systemFeatures.contains('android.hardware.type.television') ||
         systemFeatures.contains('android.software.leanback') ||

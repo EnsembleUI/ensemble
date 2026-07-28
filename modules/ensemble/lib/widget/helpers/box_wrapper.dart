@@ -240,7 +240,6 @@ class BoxWrapper extends StatelessWidget {
               controller: tapController,
               boxController: boxController,
               child: containerWidget,
-              wrapEntireWidget: true,
             ),
           );
         }
@@ -279,7 +278,6 @@ class BoxWrapper extends StatelessWidget {
             controller: controller,
             boxController: boxController,
             child: widget,
-            wrapEntireWidget: true,
           );
         }
         return widget; // build() will wrap the container
@@ -457,24 +455,22 @@ class EnsembleBoxWrapper extends StatelessWidget {
   }
 }
 
-/// Handles tap/focus for widgets with onTap.
-/// - TV: D-pad focus with visible border, auto-scroll on focus
-/// - Non-TV: Standard InkWell with splash feedback
+/// Handles tap/focus for tappable widgets (onTap/onLongPress) on TV.
+///
+/// Only ever constructed when `Device().isTV && tvOptions.isEnabled` is true, so
+/// it always renders the D-pad-focusable variant (visible focus border +
+/// auto-scroll on focus). Non-TV taps are handled inline by the Material/InkWell
+/// in `_getWidget`.
 class _TapEnabledWrapper extends StatefulWidget {
   const _TapEnabledWrapper({
     required this.child,
     required this.controller,
     required this.boxController,
-    this.wrapEntireWidget = false,
   });
 
   final Widget child;
   final TapEnabledBoxController controller;
   final BoxController boxController;
-
-  /// When true, wraps entire widget with focus border (TV mode).
-  /// When false, uses standard InkWell touch behavior.
-  final bool wrapEntireWidget;
 
   @override
   State<_TapEnabledWrapper> createState() => _TapEnabledWrapperState();
@@ -875,13 +871,10 @@ class _TapEnabledWrapperState extends State<_TapEnabledWrapper> {
 
   @override
   Widget build(BuildContext context) {
-    final controller = widget.controller;
-    final boxController = widget.boxController;
-
-    if (Device().isTV && boxController.tvOptions?.isEnabled == true) {
-      return _buildTVFocusable(context, controller);
-    }
-    return _buildInkWell(context, controller);
+    // _TapEnabledWrapper is only constructed on TV with tvOptions enabled (see
+    // the guards in box_wrapper build()/_getWidget), so it always renders the
+    // TV-focusable variant. Non-TV taps are handled inline in _getWidget.
+    return _buildTVFocusable(context, widget.controller);
   }
 
   /// Builds TV-focusable widget with D-pad navigation and focus border.
@@ -927,13 +920,8 @@ class _TapEnabledWrapperState extends State<_TapEnabledWrapper> {
     final borderRadius = stylingResolver.focusBorderRadius;
     final focusAnimationDuration = stylingResolver.focusAnimationDuration;
 
-    // When wrapEntireWidget is true, don't add internal padding - child is already the complete widget
-    // When false (standard behavior), add padding if splash feedback is enabled
-    Widget content = widget.wrapEntireWidget
-        ? widget.child
-        : (controller.enableSplashFeedback && controller.padding != null
-            ? Padding(padding: controller.padding!, child: widget.child)
-            : widget.child);
+    // The child is already the complete widget; no internal padding is added.
+    Widget content = widget.child;
 
     Widget inkWell = InkWell(
       focusNode: _focusNode,
@@ -1091,44 +1079,6 @@ class _TapEnabledWrapperState extends State<_TapEnabledWrapper> {
     );
   }
 
-  /// Non-TV: Standard InkWell with splash feedback for touch/mouse.
-  Widget _buildInkWell(
-      BuildContext context, TapEnabledBoxController controller) {
-    Widget inkWellChild =
-        controller.enableSplashFeedback && controller.padding != null
-            ? Padding(
-                padding: controller.padding!,
-                child: widget.child,
-              )
-            : widget.child;
-
-    Widget inkWell = InkWell(
-      focusNode: _focusNode,
-      autofocus: widget.boxController.autofocus,
-      splashFactory: CustomInkSplashFactory(
-        splashDuration: controller.splashDuration,
-        splashFadeDuration: controller.splashFadeDuration,
-        unconfirmedSplashDuration: controller.unconfirmedSplashDuration,
-      ),
-      onLongPress: controller.onLongPress != null
-          ? () =>
-              ScreenController().executeAction(context, controller.onLongPress!)
-          : null,
-      onTap: controller.onTap != null
-          ? () => ScreenController().executeAction(context, controller.onTap!)
-          : null,
-      splashColor: controller.enableSplashFeedback
-          ? controller.splashColor
-          : Colors.transparent,
-      highlightColor: Colors.transparent,
-      focusColor: controller.focusColor,
-      hoverColor: controller.hoverColor,
-      mouseCursor: controller.mouseCursor,
-      child: inkWellChild,
-    );
-
-    return Material(color: Colors.transparent, child: inkWell);
-  }
 }
 
 // =============================================================================

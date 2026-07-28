@@ -454,17 +454,6 @@ class TVFocusOrderNode {
     return _focusNodeDepth(candidate.focus) > _focusNodeDepth(existing.focus);
   }
 
-  static bool isBetterFocusCandidate(FocusNode candidate, FocusNode existing) {
-    if (candidate.hasPrimaryFocus != existing.hasPrimaryFocus) {
-      return candidate.hasPrimaryFocus;
-    }
-    if (candidate.hasFocus != existing.hasFocus) {
-      return candidate.hasFocus;
-    }
-
-    return _focusNodeDepth(candidate) > _focusNodeDepth(existing);
-  }
-
   static int _focusNodeDepth(FocusNode focusNode) {
     var depth = 0;
     focusNode.context?.visitAncestorElements((_) {

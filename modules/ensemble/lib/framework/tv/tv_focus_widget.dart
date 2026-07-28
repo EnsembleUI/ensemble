@@ -64,11 +64,6 @@ class TVFocusWidget extends StatelessWidget {
     _rememberOrder(route, focusGroup, row, order);
   }
 
-  /// Clears all row memory.
-  static void clearRowMemory() {
-    _rowOrderMemory.clear();
-  }
-
   /// Clears a screen's memory when its route leaves the stack (via
   /// [TVFocusRouteObserver]), so the map doesn't grow unbounded.
   static void clearRowMemoryForRoute(Route<dynamic>? route) {
