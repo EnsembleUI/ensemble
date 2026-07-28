@@ -145,9 +145,12 @@ void main() {
   test('complete results aggregate api/storage/console/screenshots/steps', () {
     final screenshotsDir = Directory(p.join(tempDir.path, 'screenshots'))
       ..createSync(recursive: true);
-    File(p.join(screenshotsDir.path, 'login_flow_step0_0.png'))
+    final reportScreenshotsDir =
+        Directory(p.join(tempDir.path, 'report', 'screenshots'))
+          ..createSync(recursive: true);
+    File(p.join(reportScreenshotsDir.path, 'login_flow_step0_0.png'))
         .writeAsBytesSync([137, 80, 78, 71, 13, 10, 26, 10]);
-    File(p.join(screenshotsDir.path, 'login_flow_step1_0.png'))
+    File(p.join(reportScreenshotsDir.path, 'login_flow_step1_0.png'))
         .writeAsBytesSync([137, 80, 78, 71, 13, 10, 26, 10]);
     File(p.join(screenshotsDir.path, 'login_flow_frames.json'))
         .writeAsStringSync(
@@ -542,7 +545,7 @@ void main() {
     expect(html, isNot(contains('modal-tab-performance')));
   });
 
-  test('cleanTransientArtifacts publishes screenshots under report', () {
+  test('cleanTransientArtifacts keeps report screenshots', () {
     final root = tempDir.path;
     Directory(p.join(root, 'logs')).createSync(recursive: true);
     File(p.join(root, 'logs', 'x_api_calls.json')).writeAsStringSync('{}');
@@ -555,10 +558,13 @@ void main() {
         .writeAsBytesSync([1, 2, 3]);
     File(p.join(root, 'report', 'index.html'))
         .writeAsStringSync('<html></html>');
+    Directory(p.join(root, 'report', 'screenshots'))
+        .createSync(recursive: true);
+    File(p.join(root, 'report', 'screenshots', 't_step0_0.png'))
+        .writeAsBytesSync([1]);
     File(p.join(root, 'test_durations.json')).writeAsStringSync('{}');
     Directory(p.join(root, 'screenshots')).createSync(recursive: true);
     File(p.join(root, 'screenshots', 't_frames.json')).writeAsStringSync('{}');
-    File(p.join(root, 'screenshots', 't_step0_0.png')).writeAsBytesSync([1]);
 
     TestReportDocument.cleanTransientArtifacts(root);
 

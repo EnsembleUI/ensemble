@@ -65,7 +65,7 @@ void main() {
     expect(frames.single['highlight']['left'], 10);
     expect(frames.single['failed'], isNull);
     final stepImage = File(
-      'build/ensemble_test_runner/screenshots/${frames.single['file']}',
+      'build/ensemble_test_runner/report/screenshots/${frames.single['file']}',
     );
     expect(stepImage.existsSync(), isTrue);
     expect(stepImage.lengthSync(), greaterThan(100));
@@ -153,6 +153,11 @@ void main() {
     expect({for (final frame in frames) (frame as Map)['file']}, hasLength(1));
     expect(
       File('build/ensemble_test_runner/screenshots/${frames[0]['file']}')
+          .existsSync(),
+      isFalse,
+    );
+    expect(
+      File('build/ensemble_test_runner/report/screenshots/${frames[0]['file']}')
           .existsSync(),
       isTrue,
     );
@@ -305,7 +310,7 @@ void _deleteArtifacts(File framesManifest, List<dynamic> frames) {
   };
   if (framesManifest.existsSync()) framesManifest.deleteSync();
   for (final file in files) {
-    final image = File('build/ensemble_test_runner/screenshots/$file');
+    final image = File('build/ensemble_test_runner/report/screenshots/$file');
     if (image.existsSync()) image.deleteSync();
   }
 }

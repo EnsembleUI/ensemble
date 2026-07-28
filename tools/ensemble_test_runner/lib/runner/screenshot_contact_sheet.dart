@@ -41,8 +41,12 @@ Future<String?> writeScreenshotFrames({
   if (frames.isEmpty) return null;
 
   final defaultDevice = resolveScreenshotDevice(const {});
-  final directory = ensembleTestArtifactDirectory('screenshots');
-  directory.createSync(recursive: true);
+  final manifestDirectory = ensembleTestArtifactDirectory('screenshots');
+  manifestDirectory.createSync(recursive: true);
+  final imageDirectory = ensembleTestArtifactDirectory(
+    p.join('report', 'screenshots'),
+  );
+  imageDirectory.createSync(recursive: true);
   final safeTestId = _safeFileName(testId);
   final frameEntries = <Map<String, dynamic>>[];
   final visualDedup = <String, String>{};
@@ -62,7 +66,7 @@ Future<String?> writeScreenshotFrames({
         exactFileName: _dedupedImageFileName(encoded),
         visualDedup: visualDedup,
       );
-      final frameFile = ensembleTestArtifactFile('screenshots', frameFileName);
+      final frameFile = File(p.join(imageDirectory.path, frameFileName));
       if (!frameFile.existsSync()) {
         frameFile.writeAsBytesSync(encoded.bytes);
       }
@@ -93,7 +97,7 @@ Future<String?> writeScreenshotFrames({
     '$safeTestId.png',
     '${safeTestId}_sheet.png',
   ]) {
-    final legacy = ensembleTestArtifactFile('screenshots', legacyName);
+    final legacy = File(p.join(manifestDirectory.path, legacyName));
     if (legacy.existsSync()) {
       legacy.deleteSync();
     }
@@ -325,6 +329,12 @@ String _safeFileName(String value) =>
     value.replaceAll(RegExp(r'[^A-Za-z0-9._-]+'), '_');
 
 String _dedupedImageFileName(EncodedScreenshotImage image) {
+  final visualHash = image.visualHash;
+  if (visualHash != null && visualHash.isNotEmpty) {
+    final digest = sha1.convert(utf8.encode(visualHash)).toString();
+    return 'shot_v_$digest.${image.extension}';
+  }
+
   final digest = sha256.convert(image.bytes).toString();
   return 'shot_${image.bytes.length}_$digest.${image.extension}';
 }

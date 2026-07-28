@@ -98,11 +98,9 @@ class TestReportDocument {
   ///
   /// Keeps `report/` and `test_durations.json`.
   ///
-  /// Screenshot images are published into `report/screenshots/` so the report
-  /// directory can be deployed as a standalone static artifact.
+  /// Screenshot images are written directly into `report/screenshots/`; only
+  /// the transient frame manifests are removed here.
   static void cleanTransientArtifacts(String artifactRoot) {
-    _publishScreenshotsToReport(artifactRoot);
-
     for (final name in const [
       'logs',
       'worker_progress',
@@ -113,28 +111,6 @@ class TestReportDocument {
       if (directory.existsSync()) {
         directory.deleteSync(recursive: true);
       }
-    }
-  }
-
-  static void _publishScreenshotsToReport(String artifactRoot) {
-    final source = Directory(p.join(artifactRoot, 'screenshots'));
-    final target = Directory(p.join(artifactRoot, 'report', 'screenshots'));
-    if (target.existsSync()) {
-      target.deleteSync(recursive: true);
-    }
-    if (!source.existsSync()) return;
-
-    target.createSync(recursive: true);
-    for (final entity in source.listSync()) {
-      if (entity is! File) continue;
-      final path = entity.path.toLowerCase();
-      if (!path.endsWith('.png') &&
-          !path.endsWith('.jpg') &&
-          !path.endsWith('.jpeg') &&
-          !path.endsWith('.webp')) {
-        continue;
-      }
-      entity.copySync(p.join(target.path, p.basename(entity.path)));
     }
   }
 
