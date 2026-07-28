@@ -95,6 +95,53 @@ void main() {
     expect(value, isTrue);
   });
 
+  testWidgets('onBeforeActionStep fires before a tap is performed',
+      (tester) async {
+    var tapped = false;
+    TestStep? callbackStep;
+    bool? tappedWhenCallbackRan;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Center(
+            child: ElevatedButton(
+              key: const ValueKey('continue_button'),
+              onPressed: () => tapped = true,
+              child: const Text('Continue'),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    final context = EnsembleTestContext.fromTestCase(
+      const EnsembleTestCase(
+        id: 'tap_hook',
+        startScreen: 'Home',
+        steps: [],
+      ),
+    );
+    final executor = TestStepExecutor(
+      tester: tester,
+      context: context,
+      assertions: AssertionEngine(tester: tester, context: context),
+      harness: EnsembleTestHarness(appPath: 'unused', appHome: 'Home'),
+    )..onBeforeActionStep = (step) {
+        callbackStep = step;
+        tappedWhenCallbackRan = tapped;
+      };
+
+    await executor.execute(
+      const TestStep(type: 'tap', args: {'id': 'continue_button'}),
+    );
+
+    expect(callbackStep?.type, 'tap');
+    expect(callbackStep?.args['id'], 'continue_button');
+    expect(tappedWhenCallbackRan, isFalse);
+    expect(tapped, isTrue);
+  });
+
   testWidgets('mocks step updates active API mocks', (tester) async {
     final context = EnsembleTestContext.fromTestCase(
       const EnsembleTestCase(
