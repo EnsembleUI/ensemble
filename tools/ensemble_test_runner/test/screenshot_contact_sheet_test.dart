@@ -160,6 +160,65 @@ void main() {
     _deleteArtifacts(framesManifest, frames);
   });
 
+  testWidgets('deduplicates visually equivalent screenshots', (tester) async {
+    const testId = 'contact_sheet_visual_dedupe_test';
+    final image0 = await _testImage(
+      color: Colors.teal,
+      noiseColor: Colors.red,
+    );
+    final image1 = await _testImage(
+      color: Colors.teal,
+      noiseColor: Colors.blue,
+    );
+    final path = await tester.runAsync(
+      () => writeScreenshotFrames(
+        testId: testId,
+        config: const ScreenshotConfig(enabled: true),
+        frames: [
+          ScreenshotSheetFrame(
+            stepIndex: 0,
+            label: '1. waitFor(title)',
+            image: image0,
+            highlight: const ScreenshotHighlight(
+              kind: 'assertion',
+              left: 10,
+              top: 20,
+              width: 30,
+              height: 10,
+            ),
+          ),
+          ScreenshotSheetFrame(
+            stepIndex: 1,
+            label: '2. tap(button)',
+            image: image1,
+            highlight: const ScreenshotHighlight(
+              kind: 'action',
+              left: 80,
+              top: 90,
+              width: 100,
+              height: 20,
+            ),
+          ),
+        ],
+        status: TestStatus.passed,
+      ),
+    );
+
+    expect(path, endsWith('/${testId}_frames.json'));
+    final framesManifest = File(
+      'build/ensemble_test_runner/screenshots/${testId}_frames.json',
+    );
+    final framesJson =
+        jsonDecode(framesManifest.readAsStringSync()) as Map<String, dynamic>;
+    final frames = framesJson['frames'] as List<dynamic>;
+    expect(frames, hasLength(2));
+    expect(frames[0]['file'], frames[1]['file']);
+    expect(frames[0]['highlight']['kind'], 'assertion');
+    expect(frames[1]['highlight']['kind'], 'action');
+
+    _deleteArtifacts(framesManifest, frames);
+  });
+
   testWidgets('pending status keeps frame images intact', (tester) async {
     const testId = 'contact_sheet_pending_test';
     final image = await _testImage(color: Colors.amber);
@@ -251,7 +310,10 @@ void _deleteArtifacts(File framesManifest, List<dynamic> frames) {
   }
 }
 
-Future<ui.Image> _testImage({Color color = Colors.white}) async {
+Future<ui.Image> _testImage({
+  Color color = Colors.white,
+  Color? noiseColor,
+}) async {
   final recorder = ui.PictureRecorder();
   final canvas = Canvas(recorder);
   canvas.drawRect(
@@ -266,6 +328,12 @@ Future<ui.Image> _testImage({Color color = Colors.white}) async {
     const Rect.fromLTWH(20, 200, 350, 400),
     Paint()..color = Colors.grey.withValues(alpha: 0.1),
   );
+  if (noiseColor != null) {
+    canvas.drawRect(
+      const Rect.fromLTWH(382, 836, 4, 4),
+      Paint()..color = noiseColor,
+    );
+  }
   final picture = recorder.endRecording();
   final image = await picture.toImage(390, 844);
   picture.dispose();

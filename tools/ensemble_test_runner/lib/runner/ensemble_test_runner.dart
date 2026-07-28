@@ -486,7 +486,7 @@ class EnsembleTestRunner {
         }
         final optionalActionStep = _singleNestedOptionalAction(step);
         if (optionalActionStep != null) {
-          executor.onBeforeActionStep = (matchedStep) async {
+          Future<void> captureOptionalAction(TestStep matchedStep) async {
             if (capturedStep) return;
             await _captureAutomaticScreenshotForStep(
               executor: executor,
@@ -496,7 +496,13 @@ class EnsembleTestRunner {
               stabilize: false,
             );
             capturedStep = true;
-          };
+          }
+
+          if (_shouldCaptureBeforeStep(optionalActionStep)) {
+            executor.onBeforeActionStep = captureOptionalAction;
+          } else {
+            executor.onAfterActionStep = captureOptionalAction;
+          }
         }
         try {
           await executor.execute(step);
@@ -504,6 +510,7 @@ class EnsembleTestRunner {
           executor.onWaitForTextMatched = null;
           executor.onWaitForNavigationMatched = null;
           executor.onBeforeActionStep = null;
+          executor.onAfterActionStep = null;
         }
         _drainPendingFlutterExceptions(tester);
         if (!captureBeforeStep && !capturedStep && optionalActionStep == null) {
@@ -832,7 +839,13 @@ class EnsembleTestRunner {
     }
   }
 
-  bool _shouldCaptureBeforeStep(TestStep step) => _isUserActionStep(step);
+  bool _shouldCaptureBeforeStep(TestStep step) =>
+      _isUserActionStep(step) && !_isTextMutationStep(step);
+
+  bool _isTextMutationStep(TestStep step) =>
+      step.type == 'enterText' ||
+      step.type == 'clearText' ||
+      step.type == 'replaceText';
 
   TestStep? _singleNestedOptionalAction(TestStep step) {
     if (step.type != 'optional' || step.nestedSteps.length != 1) return null;

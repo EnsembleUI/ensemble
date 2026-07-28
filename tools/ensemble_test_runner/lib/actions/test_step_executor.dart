@@ -27,6 +27,7 @@ class TestStepExecutor {
   FutureOr<void> Function(TestStep step)? onWaitForTextMatched;
   FutureOr<void> Function(TestStep step)? onWaitForNavigationMatched;
   FutureOr<void> Function(TestStep step)? onBeforeActionStep;
+  FutureOr<void> Function(TestStep step)? onAfterActionStep;
 
   TestStepExecutor({
     required this.tester,
@@ -159,9 +160,11 @@ class TestStepExecutor {
           step.args['value']?.toString() ?? '',
           submit: step.args['submit'] == true,
         );
+        await onAfterActionStep?.call(step);
         break;
       case 'clearText':
         await _clearText(_requireId(step));
+        await onAfterActionStep?.call(step);
         break;
       case 'replaceText':
         await _clearText(_requireId(step));
@@ -170,6 +173,7 @@ class TestStepExecutor {
           step.args['value']?.toString() ?? '',
           submit: step.args['submit'] == true,
         );
+        await onAfterActionStep?.call(step);
         break;
       case 'submitText':
         await _submitText(_requireId(step));
@@ -559,7 +563,14 @@ class TestStepExecutor {
 
   Future<void> _enterText(String id, String value,
       {bool submit = false}) async {
-    final finder = assertions.finderForId(id);
+    var finder = assertions.finderForId(id);
+    if (finder.evaluate().isEmpty) {
+      await _waitFor(
+        id: id,
+        timeoutMs: config.defaultWaitTimeout.inMilliseconds,
+      );
+      finder = assertions.finderForId(id);
+    }
     _expectSingleWidget(finder, id, 'enterText');
     await tester.enterText(finder, value);
     if (submit) {

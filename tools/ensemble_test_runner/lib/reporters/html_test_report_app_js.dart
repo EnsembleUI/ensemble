@@ -632,9 +632,16 @@ const ensembleHtmlTestReportAppJs = r'''
       const href = frame.href || '';
       const label = frame.label || frame.file || ('Frame ' + (idx + 1));
       const failed = frame.failed === true;
+      let pillIndex = idx + 1;
+      let cleanLabel = label;
+      const match = label.match(/^(\d+)\.\s*(.*)$/);
+      if (match) {
+        pillIndex = match[1];
+        cleanLabel = match[2];
+      }
       html += '<figure class="screenshot-gallery-tile' + (failed ? ' failed' : '') + '">';
-      html += '<div class="screenshot-tile-header-bar"><span class="screenshot-index-pill">' + (idx + 1) + '</span>';
-      html += '<span class="screenshot-tile-caption" title="' + escapeHtml(label) + '">' + escapeHtml(label) + '</span></div>';
+      html += '<div class="screenshot-tile-header-bar"><span class="screenshot-index-pill">' + pillIndex + '</span>';
+      html += '<span class="screenshot-tile-caption" title="' + escapeHtml(label) + '">' + escapeHtml(cleanLabel) + '</span></div>';
       html += '<div class="screenshot-gallery-frame">';
       if (href) html += renderScreenshotImage(frame, label);
       html += '</div></figure>';

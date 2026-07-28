@@ -17,6 +17,8 @@ import 'package:path/path.dart' as p;
 const _maxReportScreenshotWidth = 360;
 const _reportScreenshotJpegQuality = 82;
 const _reportScreenshotWebPQuality = 82;
+const _visualHashSize = 12;
+const _visualHashMaxDistance = 2;
 
 String? _cachedCwebpPath;
 bool _didResolveCwebpPath = false;
@@ -43,6 +45,7 @@ Future<String?> writeScreenshotFrames({
   directory.createSync(recursive: true);
   final safeTestId = _safeFileName(testId);
   final frameEntries = <Map<String, dynamic>>[];
+  final visualDedup = <String, String>{};
 
   try {
     for (final frame in frames) {
@@ -54,7 +57,11 @@ Future<String?> writeScreenshotFrames({
           await _encodeFrameImage(frame, frameDevice);
       frame.encodedReportImage ??= encoded;
 
-      final frameFileName = _dedupedImageFileName(encoded);
+      final frameFileName = _dedupedVisualFileName(
+        encoded: encoded,
+        exactFileName: _dedupedImageFileName(encoded),
+        visualDedup: visualDedup,
+      );
       final frameFile = ensembleTestArtifactFile('screenshots', frameFileName);
       if (!frameFile.existsSync()) {
         frameFile.writeAsBytesSync(encoded.bytes);
@@ -180,6 +187,7 @@ Future<EncodedScreenshotImage> _compressedReportImage(
         img.Image(width: resized.width, height: resized.height, numChannels: 3);
     img.fill(background, color: img.ColorRgb8(10, 17, 31));
     img.compositeImage(background, resized);
+    final visualHash = _visualHash(background);
 
     final jpgBytes = Uint8List.fromList(
       img.encodeJpg(
@@ -192,14 +200,27 @@ Future<EncodedScreenshotImage> _compressedReportImage(
       img.encodePng(background, level: 9),
     );
     final candidates = <EncodedScreenshotImage>[
-      EncodedScreenshotImage(bytes: jpgBytes, extension: 'jpg'),
-      EncodedScreenshotImage(bytes: optimizedPngBytes, extension: 'png'),
+      EncodedScreenshotImage(
+        bytes: jpgBytes,
+        extension: 'jpg',
+        visualHash: visualHash,
+      ),
+      EncodedScreenshotImage(
+        bytes: optimizedPngBytes,
+        extension: 'png',
+        visualHash: visualHash,
+      ),
     ];
 
     final webPBytes = await _encodeWebP(optimizedPngBytes);
     if (webPBytes != null) {
-      candidates
-          .add(EncodedScreenshotImage(bytes: webPBytes, extension: 'webp'));
+      candidates.add(
+        EncodedScreenshotImage(
+          bytes: webPBytes,
+          extension: 'webp',
+          visualHash: visualHash,
+        ),
+      );
     }
 
     candidates.sort((a, b) => a.bytes.length.compareTo(b.bytes.length));
@@ -224,7 +245,9 @@ Future<Uint8List?> _encodeWebP(Uint8List pngBytes) async {
       '-q',
       '$_reportScreenshotWebPQuality',
       '-m',
-      '4',
+      '6',
+      '-metadata',
+      'none',
       input.path,
       '-o',
       output.path,
@@ -304,4 +327,60 @@ String _safeFileName(String value) =>
 String _dedupedImageFileName(EncodedScreenshotImage image) {
   final digest = sha256.convert(image.bytes).toString();
   return 'shot_${image.bytes.length}_$digest.${image.extension}';
+}
+
+String _dedupedVisualFileName({
+  required EncodedScreenshotImage encoded,
+  required String exactFileName,
+  required Map<String, String> visualDedup,
+}) {
+  final visualHash = encoded.visualHash;
+  if (visualHash == null || visualHash.isEmpty) return exactFileName;
+
+  final exactMatch = visualDedup[visualHash];
+  if (exactMatch != null) return exactMatch;
+
+  for (final entry in visualDedup.entries) {
+    if (_visualHashDistance(visualHash, entry.key) <= _visualHashMaxDistance) {
+      return entry.value;
+    }
+  }
+
+  visualDedup[visualHash] = exactFileName;
+  return exactFileName;
+}
+
+String _visualHash(img.Image image) {
+  final thumbnail = img.copyResize(
+    image,
+    width: _visualHashSize,
+    height: _visualHashSize,
+    interpolation: img.Interpolation.average,
+  );
+  final luminance = <int>[];
+  var total = 0;
+  for (var y = 0; y < thumbnail.height; y += 1) {
+    for (var x = 0; x < thumbnail.width; x += 1) {
+      final pixel = thumbnail.getPixel(x, y);
+      final value =
+          ((pixel.r * 299) + (pixel.g * 587) + (pixel.b * 114)) ~/ 1000;
+      luminance.add(value);
+      total += value;
+    }
+  }
+
+  final average = total / luminance.length;
+  return luminance.map((value) => value >= average ? '1' : '0').join();
+}
+
+int _visualHashDistance(String a, String b) {
+  if (a.length != b.length) return _visualHashMaxDistance + 1;
+  var distance = 0;
+  for (var i = 0; i < a.length; i += 1) {
+    if (a.codeUnitAt(i) != b.codeUnitAt(i)) {
+      distance += 1;
+      if (distance > _visualHashMaxDistance) return distance;
+    }
+  }
+  return distance;
 }
