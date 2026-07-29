@@ -8,7 +8,6 @@ import 'package:ensemble/framework/studio/studio_debugger.dart';
 import 'package:ensemble/framework/tv/tv_focus_navigation.dart';
 import 'package:ensemble/framework/tv/tv_scrollbar_widget.dart';
 import 'package:ensemble/framework/tv/tv_focus_order.dart';
-import 'package:ensemble/framework/tv/tv_focus_registry.dart';
 import 'package:ensemble/framework/view/data_scope_widget.dart';
 import 'package:ensemble/framework/view/footer.dart';
 import 'package:ensemble/framework/widget/has_children.dart';
@@ -213,7 +212,9 @@ class ListViewState extends EWidgetState<ListView>
   ScrollController? _ownedScrollController;
   final flutter.GlobalKey _contentFocusProbeKey =
       flutter.GlobalKey(debugLabel: 'ListViewContentFocusProbe');
-  bool _listContentHasFocusableTVTarget = true;
+  // null means content changed and needs one scoped post-frame probe.
+  bool? _listContentHasFocusableTVTarget;
+  bool _contentFocusProbeScheduled = false;
 
   // FooterScope temporarily replaces scrollController; restore when that scope is gone.
   ScrollController? _scrollControllerOutsideFooter;
@@ -285,6 +286,7 @@ class ListViewState extends EWidgetState<ListView>
 
         setState(() {
           templatedDataList = dataList;
+          _invalidateContentFocusProbe();
         });
       });
     }
@@ -304,20 +306,36 @@ class ListViewState extends EWidgetState<ListView>
   void didUpdateWidget(covariant ListView oldWidget) {
     showLoading = widget._controller.showLoading;
     _attachOwnedScrollControllerIfNeeded();
+    if (!identical(
+            oldWidget._controller.children, widget._controller.children) ||
+        !identical(oldWidget._controller.itemTemplate,
+            widget._controller.itemTemplate)) {
+      _invalidateContentFocusProbe();
+    }
     super.didUpdateWidget(oldWidget);
   }
 
-  // TODO(perf): this is scheduled on every build and _hasFocusableTVContentTarget
-  // below does a full-app focus-tree scan (rootScope.descendants + per-node
-  // ancestor walks). Rework: probe once and cache, re-run only on content/data
-  // change, and scope the scan to this list's own subtree instead of rootScope.
+  void _invalidateContentFocusProbe() {
+    _listContentHasFocusableTVTarget = null;
+  }
+
   void _scheduleContentFocusProbe() {
+    if (_listContentHasFocusableTVTarget != null ||
+        _contentFocusProbeScheduled) {
+      return;
+    }
+
+    _contentFocusProbeScheduled = true;
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      _contentFocusProbeScheduled = false;
       if (!mounted) return;
+
       final probeContext = _contentFocusProbeKey.currentContext;
-      final hasFocusableTarget = probeContext == null
-          ? true
-          : _hasFocusableTVContentTarget(probeContext);
+      // Keep the result unresolved so a later build can retry if the content
+      // boundary was removed before this frame completed.
+      if (probeContext == null) return;
+
+      final hasFocusableTarget = _hasFocusableTVContentTarget(probeContext);
 
       if (_listContentHasFocusableTVTarget != hasFocusableTarget) {
         setState(() {
@@ -328,52 +346,24 @@ class ListViewState extends EWidgetState<ListView>
   }
 
   bool _hasFocusableTVContentTarget(BuildContext probeContext) {
-    final route = flutter.ModalRoute.of(context);
-
-    for (final target in TVFocusRegistry.targets<flutter.FocusOrder>(
-      route: route,
-    )) {
-      final targetContext = target.effectiveContext;
-      if (targetContext != null &&
-          _isContextWithin(targetContext, probeContext)) {
-        return true;
-      }
-    }
-
-    for (final focusNode
-        in flutter.FocusManager.instance.rootScope.descendants) {
+    final contentScope = flutter.FocusScope.of(
+      probeContext,
+      createDependency: false,
+    );
+    for (final focusNode in contentScope.descendants) {
       final nodeContext = focusNode.context;
       if (nodeContext == null) continue;
       if (!focusNode.canRequestFocus) continue;
-      if (route != null && flutter.ModalRoute.of(nodeContext) != route) {
-        continue;
-      }
 
       final focusOrder = nodeContext
           .findAncestorWidgetOfExactType<flutter.FocusTraversalOrder>()
           ?.order;
-      if (focusOrder is! flutter.FocusOrder) continue;
-      if (_isContextWithin(nodeContext, probeContext)) {
+      if (focusOrder is flutter.FocusOrder) {
         return true;
       }
     }
 
     return false;
-  }
-
-  bool _isContextWithin(BuildContext candidate, BuildContext ancestor) {
-    if (identical(candidate, ancestor)) return true;
-    if (candidate is! Element || ancestor is! Element) return false;
-
-    var found = false;
-    candidate.visitAncestorElements((element) {
-      if (identical(element, ancestor)) {
-        found = true;
-        return false;
-      }
-      return true;
-    });
-    return found;
   }
 
   @override
@@ -496,7 +486,7 @@ class ListViewState extends EWidgetState<ListView>
         }
 
         final fallbackFocus =
-            !_listContentHasFocusableTVTarget && tvOptions.row != null
+            _listContentHasFocusableTVTarget == false && tvOptions.row != null
                 ? TVScrollbarFallbackFocusConfig(
                     row: tvOptions.row!,
                     order: tvOptions.order ?? 0,
