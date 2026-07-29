@@ -307,6 +307,10 @@ class ListViewState extends EWidgetState<ListView>
     super.didUpdateWidget(oldWidget);
   }
 
+  // TODO(perf): this is scheduled on every build and _hasFocusableTVContentTarget
+  // below does a full-app focus-tree scan (rootScope.descendants + per-node
+  // ancestor walks). Rework: probe once and cache, re-run only on content/data
+  // change, and scope the scan to this list's own subtree instead of rootScope.
   void _scheduleContentFocusProbe() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
