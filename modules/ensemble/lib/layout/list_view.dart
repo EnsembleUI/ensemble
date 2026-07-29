@@ -5,8 +5,10 @@ import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/studio/studio_debugger.dart';
+import 'package:ensemble/framework/tv/tv_focus_navigation.dart';
 import 'package:ensemble/framework/tv/tv_scrollbar_widget.dart';
 import 'package:ensemble/framework/tv/tv_focus_order.dart';
+import 'package:ensemble/framework/tv/tv_focus_registry.dart';
 import 'package:ensemble/framework/view/data_scope_widget.dart';
 import 'package:ensemble/framework/view/footer.dart';
 import 'package:ensemble/framework/widget/has_children.dart';
@@ -209,6 +211,9 @@ class ListViewState extends EWidgetState<ListView>
   List<dynamic>? templatedDataList;
   bool showLoading = false;
   ScrollController? _ownedScrollController;
+  final flutter.GlobalKey _contentFocusProbeKey =
+      flutter.GlobalKey(debugLabel: 'ListViewContentFocusProbe');
+  bool _listContentHasFocusableTVTarget = true;
 
   // FooterScope temporarily replaces scrollController; restore when that scope is gone.
   ScrollController? _scrollControllerOutsideFooter;
@@ -294,6 +299,71 @@ class ListViewState extends EWidgetState<ListView>
     showLoading = widget._controller.showLoading;
     _attachOwnedScrollControllerIfNeeded();
     super.didUpdateWidget(oldWidget);
+  }
+
+  void _scheduleContentFocusProbe() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final probeContext = _contentFocusProbeKey.currentContext;
+      final hasFocusableTarget = probeContext == null
+          ? true
+          : _hasFocusableTVContentTarget(probeContext);
+
+      if (_listContentHasFocusableTVTarget != hasFocusableTarget) {
+        setState(() {
+          _listContentHasFocusableTVTarget = hasFocusableTarget;
+        });
+      }
+    });
+  }
+
+  bool _hasFocusableTVContentTarget(BuildContext probeContext) {
+    final route = flutter.ModalRoute.of(context);
+
+    for (final target in TVFocusRegistry.targets<flutter.FocusOrder>(
+      route: route,
+    )) {
+      final targetContext = target.effectiveContext;
+      if (targetContext != null &&
+          _isContextWithin(targetContext, probeContext)) {
+        return true;
+      }
+    }
+
+    for (final focusNode
+        in flutter.FocusManager.instance.rootScope.descendants) {
+      final nodeContext = focusNode.context;
+      if (nodeContext == null) continue;
+      if (!focusNode.canRequestFocus) continue;
+      if (route != null && flutter.ModalRoute.of(nodeContext) != route) {
+        continue;
+      }
+
+      final focusOrder = nodeContext
+          .findAncestorWidgetOfExactType<flutter.FocusTraversalOrder>()
+          ?.order;
+      if (focusOrder is! flutter.FocusOrder) continue;
+      if (_isContextWithin(nodeContext, probeContext)) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  bool _isContextWithin(BuildContext candidate, BuildContext ancestor) {
+    if (identical(candidate, ancestor)) return true;
+    if (candidate is! Element || ancestor is! Element) return false;
+
+    var found = false;
+    candidate.visitAncestorElements((element) {
+      if (identical(element, ancestor)) {
+        found = true;
+        return false;
+      }
+      return true;
+    });
+    return found;
   }
 
   @override
@@ -406,17 +476,39 @@ class ListViewState extends EWidgetState<ListView>
 
     // TV: Add focusable scrollbar if configured
     if (Device().isTV && widget._controller.tvOptions?.scrollbarOptions != null) {
-      final scrollbarOptions = widget._controller.tvOptions!.scrollbarOptions!;
+      final tvOptions = widget._controller.tvOptions!;
+      final scrollbarOptions = tvOptions.scrollbarOptions!;
       final scrollController = widget._controller.scrollController;
 
       if (scrollController != null) {
+        if (tvOptions.row != null) {
+          _scheduleContentFocusProbe();
+        }
+
+        final fallbackFocus =
+            !_listContentHasFocusableTVTarget && tvOptions.row != null
+                ? TVScrollbarFallbackFocusConfig(
+                    row: tvOptions.row!,
+                    order: tvOptions.order ?? 0,
+                    focusGroup: resolveTVFocusGroup(context, tvOptions),
+                    isRowEntryPoint: tvOptions.isRowEntryPoint,
+                  )
+                : null;
+
         // Store scrollbar widget with key to access later
         final scrollbarKey = flutter.GlobalKey<flutter.State<TVScrollbarWidget>>();
         final scrollbarWidget = TVScrollbarWidget(
           key: scrollbarKey,
           scrollController: scrollController,
           options: scrollbarOptions,
+          fallbackFocus: fallbackFocus,
         );
+        final effectiveScrollbarWidget = fallbackFocus == null
+            ? flutter.FocusTraversalGroup(
+                policy: flutter.WidgetOrderTraversalPolicy(),
+                child: scrollbarWidget,
+              )
+            : scrollbarWidget;
 
         // Callback to request focus on scrollbar
         void requestScrollbarFocus() {
@@ -428,6 +520,12 @@ class ListViewState extends EWidgetState<ListView>
 
         // Determine scrollbar position and which edge handler to use
         final isLeftPosition = scrollbarOptions.position == 'left';
+        final probedContent = tvOptions.row != null
+            ? flutter.KeyedSubtree(
+                key: _contentFocusProbeKey,
+                child: listView,
+              )
+            : listView;
 
         // Wrap content with TVFocusScope that handles edge navigation
         final scopedContent = TVFocusScope(
@@ -435,7 +533,7 @@ class ListViewState extends EWidgetState<ListView>
           // Set edge handler based on scrollbar position
           onRightEdge: isLeftPosition ? null : requestScrollbarFocus,
           onLeftEdge: isLeftPosition ? requestScrollbarFocus : null,
-          child: listView,
+          child: probedContent,
         );
 
         // Build Row with scrollbar on correct side
@@ -443,18 +541,12 @@ class ListViewState extends EWidgetState<ListView>
           crossAxisAlignment: flutter.CrossAxisAlignment.stretch,
           children: isLeftPosition
             ? [
-                flutter.FocusTraversalGroup(
-                  policy: flutter.WidgetOrderTraversalPolicy(),
-                  child: scrollbarWidget,
-                ),
+                effectiveScrollbarWidget,
                 flutter.Expanded(child: scopedContent),
               ]
             : [
                 flutter.Expanded(child: scopedContent),
-                flutter.FocusTraversalGroup(
-                  policy: flutter.WidgetOrderTraversalPolicy(),
-                  child: scrollbarWidget,
-                ),
+                effectiveScrollbarWidget,
               ],
         );
       }
@@ -462,6 +554,7 @@ class ListViewState extends EWidgetState<ListView>
 
     return BoxWrapper(
         boxController: widget._controller,
+        ignoresTVFocus: widget._controller.tvOptions?.scrollbarOptions != null,
         widget: DefaultTextStyle.merge(
             style: TextStyle(
                 fontFamily: widget._controller.fontFamily,

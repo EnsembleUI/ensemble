@@ -1,3 +1,6 @@
+import 'package:ensemble/framework/tv/tv_focus_order.dart';
+import 'package:ensemble/framework/tv/tv_focus_provider.dart';
+import 'package:ensemble/framework/tv/tv_focus_widget.dart';
 import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -30,11 +33,26 @@ import 'package:flutter/services.dart';
 ///       color: 0xFF666666   # unfocused color (visible when scrollable)
 ///       focusedColor: 0xFFFFFFFF
 /// ```
+class TVScrollbarFallbackFocusConfig {
+  const TVScrollbarFallbackFocusConfig({
+    required this.row,
+    required this.order,
+    this.focusGroup,
+    this.isRowEntryPoint = false,
+  });
+
+  final double row;
+  final double order;
+  final String? focusGroup;
+  final bool isRowEntryPoint;
+}
+
 class TVScrollbarWidget extends StatefulWidget {
   const TVScrollbarWidget({
     super.key,
     required this.scrollController,
     required this.options,
+    this.fallbackFocus,
   });
 
   /// ScrollController from the scrollable content (ListView/Column)
@@ -42,6 +60,11 @@ class TVScrollbarWidget extends StatefulWidget {
 
   /// Scrollbar styling options from YAML
   final TVScrollbarOptionsComposite options;
+
+  /// Optional focus coordinate used when the owning ListView has no focusable
+  /// descendants. When omitted, focus reaches the scrollbar only via edge
+  /// handoff from a focused content item.
+  final TVScrollbarFallbackFocusConfig? fallbackFocus;
 
   @override
   State<TVScrollbarWidget> createState() => _TVScrollbarWidgetState();
@@ -85,6 +108,20 @@ class _TVScrollbarWidgetState extends State<TVScrollbarWidget> {
   /// Public method to request focus on this scrollbar (called from ListView)
   void requestFocusOnScrollbar() {
     _focusNode.requestFocus();
+  }
+
+  bool get _isFallbackFocusTarget => widget.fallbackFocus != null;
+
+  bool get _canScrollUp {
+    if (!widget.scrollController.hasClients) return false;
+    final position = widget.scrollController.position;
+    return position.pixels > position.minScrollExtent;
+  }
+
+  bool get _canScrollDown {
+    if (!widget.scrollController.hasClients) return false;
+    final position = widget.scrollController.position;
+    return position.pixels < position.maxScrollExtent;
   }
 
   @override
@@ -181,7 +218,7 @@ class _TVScrollbarWidgetState extends State<TVScrollbarWidget> {
     }
 
     // Focus is requested via TVFocusScope edge handlers when user navigates to content boundary
-    return LayoutBuilder(
+    final scrollbar = LayoutBuilder(
       builder: (context, constraints) {
         final trackHeight = constraints.maxHeight;
 
@@ -194,10 +231,22 @@ class _TVScrollbarWidgetState extends State<TVScrollbarWidget> {
 
             // Handle UP/DOWN for manual scrolling
             if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
+              if (_isFallbackFocusTarget && !_canScrollDown) {
+                return KeyEventResult.ignored;
+              }
               _scrollDown();
               return KeyEventResult.handled;
             } else if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+              if (_isFallbackFocusTarget && !_canScrollUp) {
+                return KeyEventResult.ignored;
+              }
               _scrollUp();
+              return KeyEventResult.handled;
+            }
+
+            if (_isFallbackFocusTarget &&
+                (event.logicalKey == LogicalKeyboardKey.arrowLeft ||
+                    event.logicalKey == LogicalKeyboardKey.arrowRight)) {
               return KeyEventResult.handled;
             }
 
@@ -255,6 +304,36 @@ class _TVScrollbarWidgetState extends State<TVScrollbarWidget> {
           ),
         );
       },
+    );
+
+    final fallbackFocus = widget.fallbackFocus;
+    if (fallbackFocus == null) {
+      return scrollbar;
+    }
+
+    final externalProvider = TVFocusProviderScope.maybeOf(context);
+    if (externalProvider != null) {
+      return externalProvider.wrapFocusable(
+        row: fallbackFocus.row + externalProvider.rowOffset,
+        order: fallbackFocus.order + externalProvider.orderOffset,
+        isRowEntryPoint: fallbackFocus.isRowEntryPoint,
+        lockHorizontalNavigation: true,
+        focusGroup: fallbackFocus.focusGroup,
+        primaryFocusNode: _focusNode,
+        child: scrollbar,
+      );
+    }
+
+    return TVFocusWidget(
+      focusOrder: TVFocusOrder.withOptions(
+        fallbackFocus.row,
+        order: fallbackFocus.order,
+        isRowEntryPoint: fallbackFocus.isRowEntryPoint,
+        lockHorizontalNavigation: true,
+        focusGroup: fallbackFocus.focusGroup,
+      ),
+      primaryFocusNode: _focusNode,
+      child: scrollbar,
     );
   }
 }
