@@ -3,6 +3,7 @@ import 'package:ensemble/framework/error_handling.dart';
 import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/tv/tv_focus_order.dart';
+import 'package:ensemble/framework/tv/tv_focus_provider.dart';
 import 'package:ensemble/framework/tv/tv_focus_widget.dart';
 import 'package:ensemble/framework/view/data_scope_widget.dart';
 import 'package:ensemble/framework/widget/widget.dart';
@@ -392,18 +393,29 @@ class _TVTabButtonState extends State<_TVTabButton> {
       ),
     );
 
-    // Wrap with TVFocusWidget for D-pad navigation.
-    // Uses tabRow from TabBar controller (either tvRow from YAML or 0 for isolated group).
-    // Order = index for left/right navigation.
-    // The selected tab is marked as entry point so it gets focus when entering the row.
+    // Wrap with the active TV focus system for D-pad navigation.
+    // Uses tabRow from TabBar controller (either tvRow from YAML or 0 for
+    // isolated group). Order = index for left/right navigation. The selected tab
+    // is marked as entry point so it gets focus when entering the row.
+    final externalProvider = TVFocusProviderScope.maybeOf(context);
+    if (externalProvider != null) {
+      return externalProvider.wrapFocusable(
+        row: widget.tabRow + externalProvider.rowOffset,
+        order: widget.index.toDouble() + externalProvider.orderOffset,
+        isRowEntryPoint: widget.isSelected,
+        primaryFocusNode: _focusNode,
+        child: inkWell,
+      );
+    }
+
     return TVFocusWidget(
       focusOrder: TVFocusOrder.withOptions(
         widget.tabRow,
         order: widget.index.toDouble(),
         isRowEntryPoint: widget.isSelected, // selected tab is the entry point
       ),
-      // PHASE 2: register the tab's own InkWell FocusNode so it appears in
-      // TVFocusRegistry (drives the descendants scan's scanUnique toward 0).
+      // Register the tab's own InkWell FocusNode so navigation lands on the
+      // visible tab control rather than an empty wrapper.
       primaryFocusNode: _focusNode,
       child: inkWell,
     );

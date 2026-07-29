@@ -116,7 +116,11 @@ class BoxWrapper extends StatelessWidget {
       this.ignoresMargin = false,
 
       // width/height maybe applied at the child, or not applicable
-      this.ignoresDimension = false});
+      this.ignoresDimension = false,
+
+      // some container widgets use tvOptions only to configure an internal TV
+      // focus target, such as ListView's scrollbar fallback.
+      this.ignoresTVFocus = false});
 
   final Widget widget;
   final BoxController boxController;
@@ -125,6 +129,7 @@ class BoxWrapper extends StatelessWidget {
   final bool ignoresPadding;
   final bool ignoresMargin;
   final bool ignoresDimension;
+  final bool ignoresTVFocus;
 
   @override
   Widget build(BuildContext context) {
@@ -228,7 +233,9 @@ class BoxWrapper extends StatelessWidget {
             child: childWidget);
 
     // TV: Wrap widgets for D-pad navigation
-    if (Device().isTV && boxController.tvOptions?.isEnabled == true) {
+    if (!ignoresTVFocus &&
+        Device().isTV &&
+        boxController.tvOptions?.isEnabled == true) {
       // Tappable widgets get full focus handling
       if (boxController is TapEnabledBoxController) {
         final tapController = boxController as TapEnabledBoxController;
@@ -269,7 +276,9 @@ class BoxWrapper extends StatelessWidget {
       var controller = boxController as TapEnabledBoxController;
 
       // TV: Wrap with focus handling (build() handles box-level wrapping)
-      if (Device().isTV && boxController.tvOptions?.isEnabled == true) {
+      if (!ignoresTVFocus &&
+          Device().isTV &&
+          boxController.tvOptions?.isEnabled == true) {
         if (!boxController.requiresBox(
             ignoresMargin: ignoresMargin,
             ignoresPadding: ignoresPadding,
