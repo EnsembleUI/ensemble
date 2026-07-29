@@ -139,7 +139,8 @@ abstract class BaseTabBarState extends EWidgetState<BaseTabBar>
 
     // Get tvOptions for row
     final tvOptions = widget.controller.tvOptions;
-    final tvRow = tvOptions?.row ?? 0.0;
+    // Prefer the TabBar's own `tvRow` property; fall back to tvOptions.row, then 0.
+    final tvRow = widget.controller.tvRow ?? tvOptions?.row ?? 0.0;
 
     // Use AnimatedBuilder to rebuild tabs when selection changes
     // This mirrors Flutter's TabBar which listens to tabController.animation

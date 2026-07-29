@@ -514,6 +514,12 @@ class _TapEnabledWrapperState extends State<_TapEnabledWrapper> {
 
   @override
   void dispose() {
+    // If disposed while focused, no focus-loss event fires — reset the shared
+    // controller's hasFocus so a reused controller / the ${id.hasFocus} binding
+    // don't keep a stale `true`. (No dispatch: the context is being torn down.)
+    if (widget.boxController.hasFocus) {
+      widget.boxController.hasFocus = false;
+    }
     _focusNode.removeListener(_onFocusChange);
     _focusNode.dispose();
     super.dispose();
@@ -774,13 +780,24 @@ class _TapEnabledWrapperState extends State<_TapEnabledWrapper> {
 
     if (isFullyVisible) return;
 
-    // Scroll to center the item
-    Scrollable.ensureVisible(
-      context,
-      alignment: 0.5,
-      duration: Duration(milliseconds: animationDuration),
-      curve: curve,
-    );
+    // Center the item horizontally. This mirrors Scrollable.ensureVisible(
+    // alignment: 0.5) but scrolls ONLY this horizontal scrollable. The old
+    // ensureVisible(context) was not axis-restricted — it also scrolled every
+    // enclosing vertical scrollable, undoing the padding-aware
+    // _scrollVerticalOnly done moments earlier and causing a vertical jerk.
+    final position = scrollable.position;
+    final double itemCenter = itemLeft + itemWidth / 2;
+    final double viewportCenter = scrollableLeft + scrollableBox.size.width / 2;
+    final double targetScroll = (position.pixels + (itemCenter - viewportCenter))
+        .clamp(0.0, position.maxScrollExtent);
+
+    if ((targetScroll - position.pixels).abs() > kTVScrollThreshold) {
+      position.animateTo(
+        targetScroll,
+        duration: Duration(milliseconds: animationDuration),
+        curve: curve,
+      );
+    }
   }
 
   /// Netflix-style horizontal scrolling: focus stays at fixed left position,
@@ -1124,6 +1141,10 @@ class _TVFocusOnlyWrapperState extends State<_TVFocusOnlyWrapper> {
 
   @override
   void dispose() {
+    // Reset stale focus state if disposed while focused (see _TapEnabledWrapper).
+    if (widget.boxController.hasFocus) {
+      widget.boxController.hasFocus = false;
+    }
     _scopeNode.dispose();
     super.dispose();
   }
