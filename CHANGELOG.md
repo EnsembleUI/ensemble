@@ -3,6 +3,25 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## 2026-07-29
+
+### Changes
+
+---
+
+Packages with breaking changes:
+
+ - There are no breaking changes in this release.
+
+Packages with other changes:
+
+ - [`ensemble_test_runner` - `v1.2.53`](#ensemble_test_runner---v1253)
+
+---
+
+#### `ensemble_test_runner` - `v1.2.53`
+
+
 ## 2026-07-23
 
 ### Changes

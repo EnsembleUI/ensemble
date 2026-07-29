@@ -1,3 +1,5 @@
+## 1.2.53
+
 ## 1.2.52
 
 - feat(ensemble_test_runner): implement mock asset path resolution and add tests for nested mocks
