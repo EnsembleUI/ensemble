@@ -81,7 +81,8 @@ class ScreenshotSheetFrame {
   final String? deviceLabel;
   final String? platform;
   final String? model;
-  Uint8List? encodedPngBytes;
+  final ScreenshotHighlight? highlight;
+  EncodedScreenshotImage? encodedReportImage;
 
   ScreenshotSheetFrame({
     required this.stepIndex,
@@ -91,7 +92,44 @@ class ScreenshotSheetFrame {
     this.deviceLabel,
     this.platform,
     this.model,
+    this.highlight,
   });
+}
+
+class ScreenshotHighlight {
+  const ScreenshotHighlight({
+    required this.kind,
+    required this.left,
+    required this.top,
+    required this.width,
+    required this.height,
+  });
+
+  final String kind;
+  final double left;
+  final double top;
+  final double width;
+  final double height;
+
+  Map<String, dynamic> toJson() => {
+        'kind': kind,
+        'left': left,
+        'top': top,
+        'width': width,
+        'height': height,
+      };
+}
+
+class EncodedScreenshotImage {
+  EncodedScreenshotImage({
+    required this.bytes,
+    required this.extension,
+    this.visualHash,
+  });
+
+  final Uint8List bytes;
+  final String extension;
+  final String? visualHash;
 }
 
 class PerformanceMarker {

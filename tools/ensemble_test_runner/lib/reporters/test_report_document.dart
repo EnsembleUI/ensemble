@@ -96,24 +96,20 @@ class TestReportDocument {
 
   /// Removes runner intermediates that are no longer needed after results write.
   ///
-  /// Keeps `report/`, screenshot PNGs, and `test_durations.json`.
+  /// Keeps `report/` and `test_durations.json`.
+  ///
+  /// Screenshot images are written directly into `report/screenshots/`; only
+  /// the transient frame manifests are removed here.
   static void cleanTransientArtifacts(String artifactRoot) {
     for (final name in const [
       'logs',
       'worker_progress',
       'worker_reports',
+      'screenshots',
     ]) {
       final directory = Directory(p.join(artifactRoot, name));
       if (directory.existsSync()) {
         directory.deleteSync(recursive: true);
-      }
-    }
-    final screenshots = Directory(p.join(artifactRoot, 'screenshots'));
-    if (!screenshots.existsSync()) return;
-    for (final entity in screenshots.listSync()) {
-      if (entity is! File) continue;
-      if (entity.path.replaceAll('\\', '/').endsWith('_frames.json')) {
-        entity.deleteSync();
       }
     }
   }
@@ -162,6 +158,7 @@ class TestReportDocument {
     final storage = _readStorage(artifacts, artifactRoot, displayRoot);
     final frames = _readScreenshotFrames(artifacts, artifactRoot, displayRoot);
     final report = test.report;
+    final device = _deviceMetadata(test);
 
     final steps = report == null
         ? <Map<String, dynamic>>[]
@@ -184,12 +181,21 @@ class TestReportDocument {
     return {
       'id': test.testId,
       'baseId': baseTestId(test.testId),
-      'deviceBadge': deviceBadgeOf(test.testId),
+      'deviceBadge': device['id']?.toString() ?? deviceBadgeOf(test.testId),
+      if (device.isNotEmpty) 'device': device,
       'filePath': filePathOf(test.testId),
       'status': test.status.name,
       'durationMs': test.durationMs,
       'attempts': test.attempts,
       'retry': test.retry,
+      if (test.metadata['feature'] != null)
+        'feature': test.metadata['feature'].toString(),
+      if (test.metadata['profile'] != null)
+        'profile': test.metadata['profile'].toString(),
+      if (test.metadata['scenarioId'] != null)
+        'scenarioId': test.metadata['scenarioId'].toString(),
+      if (test.metadata['scenarioDescription'] != null)
+        'scenarioDescription': test.metadata['scenarioDescription'].toString(),
       if (test.metadata['description'] != null)
         'description': test.metadata['description'].toString(),
       if (test.message != null) 'message': test.message,
@@ -202,6 +208,17 @@ class TestReportDocument {
       },
       'steps': steps,
     };
+  }
+
+  static Map<String, dynamic> _deviceMetadata(EnsembleSingleTestResult test) {
+    final device = test.metadata['device'];
+    if (device is Map) {
+      return Map<String, dynamic>.from(device);
+    }
+    if (device != null && device.toString().trim().isNotEmpty) {
+      return {'id': device.toString().trim()};
+    }
+    return const {};
   }
 
   static List<String> _readConsole(
@@ -297,15 +314,13 @@ class TestReportDocument {
     try {
       final decoded = json.decode(File(fsPath).readAsStringSync());
       if (decoded is! Map || decoded['frames'] is! List) return const [];
-      final sheetDir = p.dirname(framesDisplay);
       final frames = <Map<String, dynamic>>[];
       for (final frame in decoded['frames']) {
         if (frame is! Map) continue;
         final entry = Map<String, dynamic>.from(frame);
         final fileName = entry['file']?.toString();
         if (fileName != null && fileName.isNotEmpty) {
-          final displayPath = p.join(sheetDir, fileName).replaceAll('\\', '/');
-          entry['href'] = _relativeHref(displayPath, displayRoot);
+          entry['href'] = p.join('screenshots', fileName).replaceAll('\\', '/');
         }
         frames.add(entry);
       }

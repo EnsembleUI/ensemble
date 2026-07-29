@@ -138,6 +138,20 @@ class HtmlTestReporter {
           "      <button class=\"filter-btn\" data-filter=\"passed\" onclick=\"setFilter('passed')\">Passed</button>")
       ..writeln('    </div>')
       ..writeln('    <div class="sort-wrapper">')
+      ..writeln('      <span class="sort-label">Feature:</span>')
+      ..writeln(
+          '      <select id="feature-select" onchange="applyFeatureFilter()" class="sort-select">')
+      ..writeln('        <option value="all">All Features</option>')
+      ..writeln('      </select>')
+      ..writeln('    </div>')
+      ..writeln('    <div class="sort-wrapper">')
+      ..writeln('      <span class="sort-label">Profile:</span>')
+      ..writeln(
+          '      <select id="profile-select" onchange="applyProfileFilter()" class="sort-select">')
+      ..writeln('        <option value="all">All Profiles</option>')
+      ..writeln('      </select>')
+      ..writeln('    </div>')
+      ..writeln('    <div class="sort-wrapper">')
       ..writeln('      <span class="sort-label">Sort:</span>')
       ..writeln(
           '      <select id="sort-select" onchange="applySort()" class="sort-select">')

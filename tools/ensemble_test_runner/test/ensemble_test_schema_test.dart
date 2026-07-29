@@ -54,6 +54,7 @@ void main() {
     expect(decoded['properties'], contains('id'));
     expect(decoded['properties'], isNot(contains('tests')));
     expect(decoded['properties'], contains('mocks'));
+    expect(decoded['properties'], contains('profiles'));
     expect(decoded['properties'], contains('retry'));
     expect(decoded['properties'], contains('startScreen'));
     expect(decoded['properties'], isNot(contains('mockLayers')));
@@ -87,6 +88,15 @@ void main() {
     expect(defs, contains('args_mocks'));
   });
 
+  test('schema allows waitForApi timeoutMs', () {
+    final schema = EnsembleTestSchemaBuilder.build();
+    final defs = schema['\$defs'] as Map<String, dynamic>;
+    final args = defs['args_waitForApi'] as Map<String, dynamic>;
+    final properties = args['properties'] as Map<String, dynamic>;
+
+    expect(properties, contains('timeoutMs'));
+  });
+
   test('config schema includes suite screenshots and performance settings', () {
     final json = EnsembleTestSchemaBuilder.buildConfigJson();
     final decoded = jsonDecode(json) as Map<String, dynamic>;
@@ -97,6 +107,7 @@ void main() {
     expect(properties, contains('screenshots'));
     expect(properties, contains('services'));
     expect(properties, contains('mocks'));
+    expect(properties, contains('profiles'));
     expect(properties, contains('initialState'));
     expect(properties, isNot(contains('record')));
     expect(properties, contains('performance'));
@@ -106,6 +117,7 @@ void main() {
     expect(properties, contains('logStorage'));
     expect(properties, contains('wifi'));
     expect(defs, contains('inlineMocks'));
+    expect(defs, contains('profile'));
     expect(defs, contains('mockResponse'));
     expect(defs, contains('initialState'));
     expect(defs, contains('testDevice'));
@@ -132,7 +144,9 @@ void main() {
     expect(serviceItems['properties'], contains('url'));
   });
 
-  test('initialState schema accepts storage, keychain, and env maps', () {
+  test(
+      'initialState schema accepts storage, keychain, and env maps/placeholders',
+      () {
     final schema = EnsembleTestSchemaBuilder.build();
     final initialState =
         schema['\$defs']['initialState'] as Map<String, dynamic>;
@@ -141,9 +155,24 @@ void main() {
     expect(properties, contains('storage'));
     expect(properties, contains('keychain'));
     expect(properties, contains('env'));
-    expect(properties['keychain'], {
-      'type': 'object',
-      'additionalProperties': true,
-    });
+    expect(
+      properties['keychain'],
+      containsPair('oneOf', isA<List<dynamic>>()),
+    );
+    final keychainOptions = properties['keychain'] as Map<String, dynamic>;
+    final oneOf = keychainOptions['oneOf'] as List<dynamic>;
+    expect(
+      oneOf,
+      anyElement(equals({'type': 'object', 'additionalProperties': true})),
+    );
+    expect(
+      oneOf,
+      contains(
+        containsPair(
+          'pattern',
+          r'^\$\{(inputs|scenario)\.[A-Za-z0-9_.-]+\}$',
+        ),
+      ),
+    );
   });
 }

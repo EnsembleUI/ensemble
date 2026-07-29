@@ -48,6 +48,10 @@ List<String> outlineSteps(List<TestStep> steps) {
 }
 
 List<String> _outlineStep(TestStep step) {
+  if ((step.type == 'optional' || step.type == 'ifVisible') &&
+      step.nestedSteps.length == 1) {
+    return [formatStepBrief(step)];
+  }
   if (step.nestedSteps.isNotEmpty) {
     final nested = outlineSteps(step.nestedSteps);
     return [
@@ -62,6 +66,11 @@ List<String> _outlineStep(TestStep step) {
 String formatStepBrief(TestStep step) {
   final type = step.type;
   final args = step.args;
+
+  if ((type == 'optional' || type == 'ifVisible') &&
+      step.nestedSteps.length == 1) {
+    return '$type(${formatStepBrief(step.nestedSteps.single)})';
+  }
 
   String? detail;
   final id = args['id'];

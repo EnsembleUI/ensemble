@@ -46,6 +46,10 @@ class EnsembleTestCase {
 
   /// Test [id] whose captured storage state is restored before [startScreen].
   final String? session;
+  final String? profile;
+  final List<String> profiles;
+  final String? scenarioId;
+  final String? scenarioDescription;
   final List<String> mockFiles;
   final Map<String, dynamic> inlineMocks;
   final List<TestScenario> scenarios;
@@ -78,6 +82,10 @@ class EnsembleTestCase {
     this.startScreen,
     this.startScreenInputs = const {},
     this.session,
+    this.profile,
+    this.profiles = const [],
+    this.scenarioId,
+    this.scenarioDescription,
     this.mockFiles = const [],
     this.inlineMocks = const {},
     this.scenarios = const [],
@@ -98,12 +106,16 @@ class EnsembleTestCase {
 
   Map<String, dynamic> get metadataJson => {
         if (feature != null) 'feature': feature,
+        if (profile != null) 'profile': profile,
+        if (scenarioId != null) 'scenarioId': scenarioId,
+        if (scenarioDescription != null)
+          'scenarioDescription': scenarioDescription,
         if (tags.isNotEmpty) 'tags': tags,
         if (description != null) 'description': description,
         if (owner != null) 'owner': owner,
         if (priority != null) 'priority': priority,
         if (retry > 0) 'retry': retry,
-        if (deviceTarget != null) 'device': deviceTarget!.id,
+        if (deviceTarget != null) 'device': deviceTarget!.toJson(),
       };
 }
 
@@ -125,6 +137,9 @@ class EnsembleTestConfig {
   final List<String> mockFiles;
   final Map<String, dynamic> inlineMocks;
   final Map<String, dynamic> initialState;
+  final String? defaultProfile;
+  final Map<String, TestProfile> profiles;
+  final Map<String, List<String>> profileGroups;
 
   /// Suite device matrix (platform/model + optional locale). When non-empty,
   /// each test runs once per entry.
@@ -142,6 +157,9 @@ class EnsembleTestConfig {
     this.mockFiles = const [],
     this.inlineMocks = const {},
     this.initialState = const {},
+    this.defaultProfile,
+    this.profiles = const {},
+    this.profileGroups = const {},
     this.devices = const [],
     this.screenshots = const ScreenshotConfig(),
     this.performance = const PerformanceConfig(),
@@ -153,6 +171,18 @@ class EnsembleTestConfig {
   });
 
   bool get hasDeviceMatrix => devices.isNotEmpty;
+}
+
+class TestProfile {
+  final List<String> mockFiles;
+  final Map<String, dynamic> inlineMocks;
+  final Map<String, dynamic> initialState;
+
+  const TestProfile({
+    this.mockFiles = const [],
+    this.inlineMocks = const {},
+    this.initialState = const {},
+  });
 }
 
 /// Suite Wi-Fi test double settings from `tests/config.yaml`.
@@ -306,6 +336,15 @@ class TestDeviceTarget {
   Map<String, dynamic> toScreenshotArgs() => {
         'platform': platform,
         'model': model,
+      };
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'platform': platform,
+        'model': model,
+        if (locale != null && locale!.isNotEmpty) 'locale': locale,
+        if (theme != null && theme!.isNotEmpty) 'theme': theme,
+        'label': displayLabel,
       };
 }
 

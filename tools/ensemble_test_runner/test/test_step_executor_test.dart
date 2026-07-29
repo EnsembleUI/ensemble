@@ -95,6 +95,144 @@ void main() {
     expect(value, isTrue);
   });
 
+  testWidgets('onBeforeActionStep fires before a tap is performed',
+      (tester) async {
+    var tapped = false;
+    TestStep? callbackStep;
+    bool? tappedWhenCallbackRan;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Center(
+            child: ElevatedButton(
+              key: const ValueKey('continue_button'),
+              onPressed: () => tapped = true,
+              child: const Text('Continue'),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    final context = EnsembleTestContext.fromTestCase(
+      const EnsembleTestCase(
+        id: 'tap_hook',
+        startScreen: 'Home',
+        steps: [],
+      ),
+    );
+    final executor = TestStepExecutor(
+      tester: tester,
+      context: context,
+      assertions: AssertionEngine(tester: tester, context: context),
+      harness: EnsembleTestHarness(appPath: 'unused', appHome: 'Home'),
+    )..onBeforeActionStep = (step) {
+        callbackStep = step;
+        tappedWhenCallbackRan = tapped;
+      };
+
+    await executor.execute(
+      const TestStep(type: 'tap', args: {'id': 'continue_button'}),
+    );
+
+    expect(callbackStep?.type, 'tap');
+    expect(callbackStep?.args['id'], 'continue_button');
+    expect(tappedWhenCallbackRan, isFalse);
+    expect(tapped, isTrue);
+  });
+
+  testWidgets('onAfterActionStep fires after text is entered', (tester) async {
+    final controller = TextEditingController();
+    TestStep? callbackStep;
+    String? valueWhenCallbackRan;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Material(
+          child: TextField(
+            key: const ValueKey('admin_password'),
+            controller: controller,
+          ),
+        ),
+      ),
+    );
+
+    final context = EnsembleTestContext.fromTestCase(
+      const EnsembleTestCase(
+        id: 'enter_text_hook',
+        startScreen: 'Home',
+        steps: [],
+      ),
+    );
+    final executor = TestStepExecutor(
+      tester: tester,
+      context: context,
+      assertions: AssertionEngine(tester: tester, context: context),
+      harness: EnsembleTestHarness(appPath: 'unused', appHome: 'Home'),
+    )..onAfterActionStep = (step) {
+        callbackStep = step;
+        valueWhenCallbackRan = controller.text;
+      };
+
+    await executor.execute(
+      const TestStep(
+        type: 'enterText',
+        args: {'id': 'admin_password', 'value': 'secret'},
+      ),
+    );
+
+    expect(callbackStep?.type, 'enterText');
+    expect(valueWhenCallbackRan, 'secret');
+  });
+
+  testWidgets('enterText waits for a field that appears asynchronously',
+      (tester) async {
+    final controller = TextEditingController();
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Material(
+          child: FutureBuilder<void>(
+            future: Future<void>.delayed(const Duration(milliseconds: 100)),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState != ConnectionState.done) {
+                return const SizedBox();
+              }
+              return TextField(
+                key: const ValueKey('extenderName'),
+                controller: controller,
+              );
+            },
+          ),
+        ),
+      ),
+    );
+
+    final context = EnsembleTestContext.fromTestCase(
+      const EnsembleTestCase(
+        id: 'delayed_enter_text',
+        startScreen: 'Home',
+        steps: [],
+      ),
+    );
+    final executor = TestStepExecutor(
+      tester: tester,
+      context: context,
+      assertions: AssertionEngine(tester: tester, context: context),
+      harness: EnsembleTestHarness(appPath: 'unused', appHome: 'Home'),
+    );
+
+    await executor.execute(
+      const TestStep(
+        type: 'enterText',
+        args: {'id': 'extenderName', 'value': 'Test Extender'},
+      ),
+    );
+
+    expect(controller.text, 'Test Extender');
+  });
+
   testWidgets('mocks step updates active API mocks', (tester) async {
     final context = EnsembleTestContext.fromTestCase(
       const EnsembleTestCase(

@@ -406,15 +406,12 @@ body {
   text-transform: uppercase;
 }
 
-/* Device Selector Bar */
-.device-selector-bar {
-  display: flex;
-  align-items: center;
-  gap: 12px;
+/* Run Matrix Selector */
+.run-selector-panel {
   background: rgba(15, 23, 42, 0.95);
   border: 1px solid var(--border);
   border-radius: 12px;
-  padding: 12px 16px;
+  padding: 10px 12px;
   margin-bottom: 24px;
   position: sticky;
   top: 10px;
@@ -422,7 +419,20 @@ body {
   backdrop-filter: blur(12px);
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
 }
+.run-selector-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 34px;
+}
+.run-selector-row + .run-selector-row {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
 .selector-label {
+  width: 96px;
+  flex: 0 0 96px;
   font-size: 0.75rem;
   font-weight: 800;
   text-transform: uppercase;
@@ -439,7 +449,7 @@ body {
   border: 1px solid var(--border);
   border-radius: 8px;
   color: var(--text-muted);
-  padding: 6px 14px;
+  padding: 5px 12px;
   font-size: 0.8rem;
   font-weight: 700;
   cursor: pointer;
@@ -454,6 +464,18 @@ body {
   background: var(--accent);
   border-color: var(--accent);
   color: #000;
+}
+
+@media (max-width: 800px) {
+  .run-selector-row {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .selector-label {
+    width: auto;
+    flex: none;
+  }
 }
 
 /* Detail Placeholder */
@@ -550,6 +572,7 @@ body {
   font-size: 0.75rem;
   font-weight: 800;
   margin-top: 8px;
+  margin-right: 8px;
 }
 .device-pill.android {
   background: rgba(61, 220, 132, 0.1);
@@ -991,11 +1014,9 @@ body {
   border-radius: 18px;
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
   border: 1px solid rgba(255, 255, 255, 0.06);
-  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s ease, border-color 0.25s ease;
+  transition: box-shadow 0.2s ease, border-color 0.2s ease;
 }
 .screenshot-gallery-frame:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 16px 32px rgba(0, 0, 0, 0.6), 0 0 15px rgba(6, 182, 212, 0.15);
   border-color: rgba(6, 182, 212, 0.3);
 }
 .screenshot-gallery-tile.failed .screenshot-gallery-frame {
@@ -1007,6 +1028,40 @@ body {
   width: 100%;
   height: auto;
   object-fit: contain;
+}
+.screenshot-image-link {
+  display: block;
+  width: 100%;
+  text-decoration: none;
+}
+.screenshot-image-wrap {
+  display: block;
+  position: relative;
+  width: 100%;
+}
+.screenshot-highlight {
+  position: absolute;
+  pointer-events: none;
+  box-sizing: border-box;
+  border-radius: 7px;
+  background: transparent;
+  border: none;
+  outline-offset: 4px;
+}
+.screenshot-highlight::before,
+.screenshot-highlight::after {
+  display: none;
+}
+.screenshot-highlight.action {
+  outline: 3px solid #ff3f6f;
+  filter: drop-shadow(0 0 7px rgba(244, 63, 94, 0.55));
+}
+.screenshot-highlight.assertion {
+  outline: 3px solid #00d5ff;
+  filter: drop-shadow(0 0 7px rgba(6, 182, 212, 0.55));
+}
+.screenshot-highlight-dot {
+  display: none;
 }
 .fullscreen-sheet-btn {
   background: transparent;
@@ -1072,10 +1127,9 @@ body {
   border-radius: 12px;
   border: 1px solid var(--border);
   box-shadow: 0 10px 25px rgba(0,0,0,0.4);
-  transition: transform 0.2s;
+  transition: border-color 0.2s ease;
 }
 .fullscreen-sheet-tile img:hover {
-  transform: scale(1.02);
   border-color: var(--accent);
 }
 .fullscreen-sheet-tile figcaption {
@@ -1103,10 +1157,6 @@ body {
 .artifact img {
   display: block;
   max-width: 100%;
-  transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-}
-.artifact img:hover {
-  transform: scale(1.04);
 }
 
 .raw-label {

@@ -34,6 +34,58 @@ steps:
       expect(test.retry, 3);
     });
 
+    test('parses test profiles selector', () {
+      const yaml = '''
+id: fwa_home
+profiles: fwa_arc
+startScreen: InitApp
+steps:
+  - waitForNavigation:
+      screen: Home_FWA
+''';
+
+      final test = EnsembleTestParser.parseString(yaml);
+      expect(test.profiles, ['fwa_arc']);
+    });
+
+    test('parses test profile matrix', () {
+      const yaml = '''
+id: hgw_home
+profiles:
+  - hgw_v12
+  - hgw_v10
+startScreen: Home
+steps:
+  - expectVisible:
+      id: home
+''';
+
+      final test = EnsembleTestParser.parseString(yaml);
+      expect(test.profiles, ['hgw_v12', 'hgw_v10']);
+    });
+
+    test('rejects removed test profile key', () {
+      const yaml = '''
+id: hgw_home
+profile: hgw_v12
+startScreen: Home
+steps:
+  - expectVisible:
+      id: home
+''';
+
+      expect(
+        () => EnsembleTestParser.parseString(yaml),
+        throwsA(
+          isA<EnsembleTestFailure>().having(
+            (error) => error.message,
+            'message',
+            contains('Unsupported root key "profile"'),
+          ),
+        ),
+      );
+    });
+
     test('rejects negative retry count', () {
       const yaml = '''
 id: signin_to_gateway
@@ -255,6 +307,7 @@ mocks:
   - mocks/\${scenario.device}.mock.json
 scenarios:
   - id: v14_online
+    description: V14 online state.
     vars:
       device: v14
       expectedDeviceCount: 2
@@ -273,6 +326,8 @@ steps:
         scenario: base.scenarios.single.vars,
         scenarioId: base.scenarios.single.id,
       );
+      expect(expanded.scenarioId, 'v14_online');
+      expect(expanded.scenarioDescription, 'V14 online state.');
       expect(expanded.mockFiles.single, 'mocks/v14.mock.json');
       expect(expanded.steps.single.args['text'], 2);
     });
@@ -434,6 +489,123 @@ mocks:
         {
           'body': {'count': 3}
         },
+      );
+    });
+
+    test('parses suite profiles', () {
+      const yaml = '''
+profiles:
+  default: hgw_sah
+  groups:
+    hgw_sah:
+      - hgw_v12
+      - hgw_v10
+  definitions:
+    hgw_v12:
+      mocks:
+        - mocks/hgw/common.mock.json
+        - getDevices:
+            body: {count: 2}
+      initialState:
+        storage:
+          deviceType: HGW_SAH
+        keychain:
+          adminPassword: dummyPassword
+    hgw_v10:
+      mocks: []
+    fwa_arc:
+      mocks:
+        - mocks/fwa/common.mock.json
+      initialState:
+        storage:
+          deviceType: FWA_ARC
+        keychain:
+          fwaPassword: dummyPassword
+''';
+
+      final config = EnsembleTestParser.parseConfigString(yaml);
+      final profiles = config.profiles;
+      expect(config.defaultProfile, 'hgw_sah');
+      expect(config.profileGroups['hgw_sah'], ['hgw_v12', 'hgw_v10']);
+      expect(profiles.keys, containsAll(['hgw_v12', 'fwa_arc']));
+      expect(profiles['hgw_v12']!.mockFiles, ['mocks/hgw/common.mock.json']);
+      expect(
+        profiles['hgw_v12']!.inlineMocks['getDevices'],
+        {
+          'body': {'count': 2}
+        },
+      );
+      expect(
+        (profiles['fwa_arc']!.initialState['storage'] as Map)['deviceType'],
+        'FWA_ARC',
+      );
+    });
+
+    test('parses suite active profile group', () {
+      const yaml = '''
+profiles:
+  default: hgw_sah
+  groups:
+    hgw_sah:
+      - hgw_v12
+      - hgw_v10
+  definitions:
+    hgw_v12:
+      mocks:
+        - mocks/hgw/v12.mock.json
+    hgw_v10:
+      mocks:
+        - mocks/hgw/v10.mock.json
+''';
+
+      final config = EnsembleTestParser.parseConfigString(yaml);
+      expect(config.defaultProfile, 'hgw_sah');
+      expect(config.profileGroups['hgw_sah'], ['hgw_v12', 'hgw_v10']);
+    });
+
+    test('rejects suite default profile that is not defined', () {
+      const yaml = '''
+profiles:
+  default: hgw_v14
+  definitions:
+    hgw_v12:
+      mocks:
+        - mocks/hgw/common.mock.json
+''';
+
+      expect(
+        () => EnsembleTestParser.parseConfigString(yaml),
+        throwsA(
+          isA<EnsembleTestFailure>().having(
+            (error) => error.message,
+            'message',
+            contains('profiles.default "hgw_v14" must reference'),
+          ),
+        ),
+      );
+    });
+
+    test('rejects profile group with unknown profile', () {
+      const yaml = '''
+profiles:
+  groups:
+    hgw_sah:
+      - hgw_v12
+  definitions:
+    hgw_v10:
+      mocks:
+        - mocks/hgw/v10.mock.json
+''';
+
+      expect(
+        () => EnsembleTestParser.parseConfigString(yaml),
+        throwsA(
+          isA<EnsembleTestFailure>().having(
+            (error) => error.message,
+            'message',
+            contains('references unknown profile "hgw_v12"'),
+          ),
+        ),
       );
     });
 

@@ -69,6 +69,23 @@
       "minLength": 1,
       "description": "ID of a successful test whose captured app state is restored before startScreen"
     },
+    "profiles": {
+      "oneOf": [
+        {
+          "type": "string",
+          "minLength": 1
+        },
+        {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      ],
+      "description": "Profile selector(s) from tests/config.yaml profiles. Each selector can be a concrete profile or a group."
+    },
     "initialState": {
       "$ref": "#/$defs/initialState"
     },
@@ -127,16 +144,40 @@
       "additionalProperties": false,
       "properties": {
         "storage": {
-          "type": "object",
-          "additionalProperties": true
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": true
+            },
+            {
+              "type": "string",
+              "pattern": "^\\$\\{(inputs|scenario)\\.[A-Za-z0-9_.-]+\\}$"
+            }
+          ]
         },
         "keychain": {
-          "type": "object",
-          "additionalProperties": true
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": true
+            },
+            {
+              "type": "string",
+              "pattern": "^\\$\\{(inputs|scenario)\\.[A-Za-z0-9_.-]+\\}$"
+            }
+          ]
         },
         "env": {
-          "type": "object",
-          "additionalProperties": true
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": true
+            },
+            {
+              "type": "string",
+              "pattern": "^\\$\\{(inputs|scenario)\\.[A-Za-z0-9_.-]+\\}$"
+            }
+          ]
         }
       }
     },
@@ -918,6 +959,9 @@
         },
         "times": {
           "type": "integer"
+        },
+        "timeoutMs": {
+          "type": "integer"
         }
       },
       "required": [
@@ -929,7 +973,8 @@
       "examples": [
         {
           "name": "login",
-          "times": 1
+          "times": 1,
+          "timeoutMs": 5000
         }
       ]
     },
@@ -1686,6 +1731,9 @@
         },
         "times": {
           "type": "integer"
+        },
+        "timeoutMs": {
+          "type": "integer"
         }
       },
       "required": [
@@ -1708,6 +1756,9 @@
           "type": "string"
         },
         "times": {
+          "type": "integer"
+        },
+        "timeoutMs": {
           "type": "integer"
         }
       },
@@ -1757,6 +1808,9 @@
           "type": "string"
         },
         "times": {
+          "type": "integer"
+        },
+        "timeoutMs": {
           "type": "integer"
         }
       },
@@ -3299,7 +3353,8 @@
             {
               "waitForApi": {
                 "name": "login",
-                "times": 1
+                "times": 1,
+                "timeoutMs": 5000
               }
             }
           ],
@@ -3313,7 +3368,8 @@
               "examples": [
                 {
                   "name": "login",
-                  "times": 1
+                  "times": 1,
+                  "timeoutMs": 5000
                 }
               ]
             }
