@@ -308,10 +308,15 @@ class CarouselState extends EWidgetState<Carousel>
     return KeyEventResult.handled;
   }
 
+  /// Number of slides — cheap count from the sources, without rebuilding every
+  /// slide widget via buildItems() (which addGesture/Container-wraps 1:1).
+  int get _slideCount =>
+      (widget._controller.children?.length ?? 0) +
+      (templatedChildren?.length ?? 0);
+
   /// Navigate to previous slide with focus restoration
   void _navigateToPreviousSlide() {
-    final items = buildItems();
-    if (items.isEmpty) return;
+    if (_slideCount == 0) return;
 
     _pendingFocusRestore =
         widget._controller.tvOptions?.restoreFocusOnPageChange == true;
@@ -320,7 +325,7 @@ class CarouselState extends EWidgetState<Carousel>
     if (currentIndex == 0) {
       // Loop to last slide if enabled
       if (widget._controller.enableLoop == true) {
-        widget._controller._carouselController.animateToPage(items.length - 1);
+        widget._controller._carouselController.animateToPage(_slideCount - 1);
       }
     } else {
       widget._controller._carouselController.previousPage();
@@ -329,14 +334,13 @@ class CarouselState extends EWidgetState<Carousel>
 
   /// Navigate to next slide with focus restoration
   void _navigateToNextSlide() {
-    final items = buildItems();
-    if (items.isEmpty) return;
+    if (_slideCount == 0) return;
 
     _pendingFocusRestore =
         widget._controller.tvOptions?.restoreFocusOnPageChange == true;
 
     final currentIndex = widget._controller.currentIndex;
-    if (currentIndex == items.length - 1) {
+    if (currentIndex == _slideCount - 1) {
       // Loop to first slide if enabled
       if (widget._controller.enableLoop == true) {
         widget._controller._carouselController.animateToPage(0);

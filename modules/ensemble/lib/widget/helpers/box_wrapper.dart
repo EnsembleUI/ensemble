@@ -499,6 +499,34 @@ void _saveTVRowPositionOnFocus(
   }
 }
 
+/// Maps a curve name (from `tvOptions.scrollAnimationCurve`) to a [Curve].
+/// Supported: easeIn, easeOut, easeInOut, linear, decelerate, ease,
+/// fastOutSlowIn, bounceOut, elasticOut.
+Curve _curveFromName(String? curveName, {Curve defaultCurve = Curves.easeOut}) {
+  switch (curveName?.toLowerCase()) {
+    case 'easein':
+      return Curves.easeIn;
+    case 'easeout':
+      return Curves.easeOut;
+    case 'easeinout':
+      return Curves.easeInOut;
+    case 'linear':
+      return Curves.linear;
+    case 'decelerate':
+      return Curves.decelerate;
+    case 'ease':
+      return Curves.ease;
+    case 'fastoutslowin':
+      return Curves.fastOutSlowIn;
+    case 'bounceout':
+      return Curves.bounceOut;
+    case 'elasticout':
+      return Curves.elasticOut;
+    default:
+      return defaultCurve;
+  }
+}
+
 class _TapEnabledWrapperState extends State<_TapEnabledWrapper> {
   late final FocusNode _focusNode;
   static int _instanceCounter = 0;
@@ -562,30 +590,8 @@ class _TapEnabledWrapperState extends State<_TapEnabledWrapper> {
   /// Converts a curve name string to a Flutter Curve object.
   /// Supported values: easeIn, easeOut, easeInOut, linear, decelerate, ease.
   Curve _getCurveFromName(String? curveName,
-      {Curve defaultCurve = Curves.easeOut}) {
-    switch (curveName?.toLowerCase()) {
-      case 'easein':
-        return Curves.easeIn;
-      case 'easeout':
-        return Curves.easeOut;
-      case 'easeinout':
-        return Curves.easeInOut;
-      case 'linear':
-        return Curves.linear;
-      case 'decelerate':
-        return Curves.decelerate;
-      case 'ease':
-        return Curves.ease;
-      case 'fastoutslowin':
-        return Curves.fastOutSlowIn;
-      case 'bounceout':
-        return Curves.bounceOut;
-      case 'elasticout':
-        return Curves.elasticOut;
-      default:
-        return defaultCurve;
-    }
-  }
+          {Curve defaultCurve = Curves.easeOut}) =>
+      _curveFromName(curveName, defaultCurve: defaultCurve);
 
   /// Handles scrolling when focus changes.
   /// Uses Netflix-style fixed position for horizontal scrolling when enabled.
@@ -1159,13 +1165,17 @@ class _TVFocusOnlyWrapperState extends State<_TVFocusOnlyWrapper> {
         tvOptions?.scrollAnimationDuration ?? kTVScrollAnimationDurationMs;
     final verticalPadding =
         tvOptions?.verticalScrollPadding ?? kTVVerticalScrollPadding;
+    // Honor the configurable scrollAnimationCurve (previously hardcoded here).
+    final curve = _curveFromName(tvOptions?.scrollAnimationCurve,
+        defaultCurve: Curves.easeInOut);
 
     // Handle vertical scrolling to ensure focused item is visible
     final verticalScrollable = _findVerticalScrollable();
     if (verticalScrollable != null) {
       _scrollVerticalOnly(verticalScrollable, itemBox,
           verticalPadding: verticalPadding,
-          animationDuration: scrollAnimationDuration);
+          animationDuration: scrollAnimationDuration,
+          curve: curve);
     }
   }
 
@@ -1193,7 +1203,8 @@ class _TVFocusOnlyWrapperState extends State<_TVFocusOnlyWrapper> {
   /// Scrolls ONLY the vertical scrollable to bring item into view.
   void _scrollVerticalOnly(ScrollableState scrollable, RenderBox itemBox,
       {double verticalPadding = kTVVerticalScrollPadding,
-      int animationDuration = kTVScrollAnimationDurationMs}) {
+      int animationDuration = kTVScrollAnimationDurationMs,
+      Curve curve = Curves.easeInOut}) {
     final scrollableBox = scrollable.context.findRenderObject() as RenderBox?;
     if (scrollableBox == null || !scrollableBox.hasSize) return;
 
@@ -1235,7 +1246,7 @@ class _TVFocusOnlyWrapperState extends State<_TVFocusOnlyWrapper> {
       position.animateTo(
         targetScroll,
         duration: Duration(milliseconds: animationDuration),
-        curve: Curves.easeInOut,
+        curve: curve,
       );
     }
   }

@@ -227,11 +227,14 @@ class TVFocusOrder extends FocusOrder {
     double? targetRow,
     double? currentRow,
   }) {
-    if (targetRow != null) {
+    // Finds the row in the already-built [grid] whose row index is closest to
+    // [target]. Scans `grid` directly — no need to flatten + rebuild via
+    // _findNearestRow.
+    List<TVFocusOrderNode>? nearestRowTo(double target) {
       List<TVFocusOrderNode>? nearest;
       var nearestDiff = double.infinity;
       for (final rowNodes in grid) {
-        final diff = (rowNodes.first.order.row - targetRow).abs();
+        final diff = (rowNodes.first.order.row - target).abs();
         if (diff < nearestDiff) {
           nearest = rowNodes;
           nearestDiff = diff;
@@ -240,16 +243,17 @@ class TVFocusOrder extends FocusOrder {
       return nearest;
     }
 
+    if (targetRow != null) {
+      return nearestRowTo(targetRow);
+    }
+
     switch (direction) {
       case TVFocusDirection.right:
       case TVFocusDirection.left:
         if (currentRow == null) {
           return grid.first;
         }
-        return _findNearestRow(
-          grid.expand((row) => row).toList(),
-          currentRow,
-        );
+        return nearestRowTo(currentRow);
       case TVFocusDirection.bottom:
         return grid.first;
       case TVFocusDirection.top:

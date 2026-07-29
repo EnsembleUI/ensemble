@@ -1038,9 +1038,8 @@ class _BracketsColumnPageState extends State<BracketsColumnPage> {
   /// The margin/connector wrappers are applied later in [build] since they DO
   /// depend on prevColumnIndex.
   List<Widget> _buildTileContents() {
-    return computedMatches.asMap().entries.map((entry) {
-      final matchIndex = entry.key;
-      final matchData = entry.value;
+    return List.generate(computedMatches.length, (matchIndex) {
+      final matchData = computedMatches[matchIndex];
 
       // Create a CHILD scope for each match
       final matchScope = widget.roundData.localScope.createChildScope();
@@ -1078,7 +1077,7 @@ class _BracketsColumnPageState extends State<BracketsColumnPage> {
         );
       }
       return matchWidget;
-    }).toList();
+    });
   }
 
   @override
@@ -1109,8 +1108,7 @@ class _BracketsColumnPageState extends State<BracketsColumnPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            ...computedMatches.asMap().entries.map((entry) {
-              final matchIndex = entry.key;
+            ...List.generate(computedMatches.length, (matchIndex) {
 
               // Calculate vertical MARGIN to center cards between previous column's matches
               // Uses prevColumnIndex for animation effect - stages "expand" as you navigate to them
