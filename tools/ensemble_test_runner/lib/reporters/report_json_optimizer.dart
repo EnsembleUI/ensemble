@@ -178,9 +178,30 @@ class ReportJsonOptimizer {
       if (badge != null && badge.toString().isNotEmpty) {
         out['deviceBadge'] = badge;
       }
+      final device = test['device'];
+      if (device is Map && device.isNotEmpty) {
+        out['device'] = Map<String, dynamic>.from(device);
+      }
       final filePath = test['filePath'];
       if (filePath != null && filePath.toString().isNotEmpty) {
         out['filePath'] = filePath;
+      }
+      final feature = test['feature'];
+      if (feature != null && feature.toString().isNotEmpty) {
+        out['feature'] = feature;
+      }
+      final profile = test['profile'];
+      if (profile != null && profile.toString().isNotEmpty) {
+        out['profile'] = profile;
+      }
+      final scenarioId = test['scenarioId'];
+      if (scenarioId != null && scenarioId.toString().isNotEmpty) {
+        out['scenarioId'] = scenarioId;
+      }
+      final scenarioDescription = test['scenarioDescription'];
+      if (scenarioDescription != null &&
+          scenarioDescription.toString().isNotEmpty) {
+        out['scenarioDescription'] = scenarioDescription;
       }
       final description = test['description'];
       if (description != null && description.toString().isNotEmpty) {

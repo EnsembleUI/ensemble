@@ -29,11 +29,17 @@ class EnsembleTestDiscovery {
   static Future<List<String>> findTestYamlAssets(
       String testsAssetPrefix) async {
     final manifest = await AssetManifest.loadFromAssetBundle(rootBundle);
+    final shardPaths = _shardPathsFromEnvironment();
     final files = manifest
         .listAssets()
         .where(
           (path) =>
               path.startsWith(testsAssetPrefix) && path.endsWith('.test.yaml'),
+        )
+        .where(
+          (path) =>
+              shardPaths.isEmpty ||
+              shardPaths.any((shardPath) => path.endsWith(shardPath)),
         )
         .toList()
       ..sort();
@@ -92,6 +98,9 @@ class EnsembleTestDiscovery {
       mockFiles: config.mockFiles,
       inlineMocks: config.inlineMocks,
       initialState: config.initialState,
+      defaultProfile: config.defaultProfile,
+      profiles: config.profiles,
+      profileGroups: config.profileGroups,
       devices: [
         for (final device in config.devices)
           if (selectedIds.contains(device.id)) device,
@@ -116,6 +125,16 @@ class EnsembleTestDiscovery {
         .toSet();
   }
 
+  static Set<String> _shardPathsFromEnvironment() {
+    const raw = String.fromEnvironment('ensembleTestShardPath');
+    if (raw.isEmpty) return const {};
+    return raw
+        .split(',')
+        .map((part) => part.trim().replaceAll('\\', '/'))
+        .where((part) => part.isNotEmpty)
+        .toSet();
+  }
+
   static EnsembleTestConfig? _withServiceOverrides(EnsembleTestConfig config) {
     const rawOverrides = String.fromEnvironment('ensembleTestServiceOverrides');
     if (rawOverrides.isEmpty || config.services.isEmpty) return null;
@@ -136,6 +155,9 @@ class EnsembleTestDiscovery {
       mockFiles: config.mockFiles,
       inlineMocks: config.inlineMocks,
       initialState: config.initialState,
+      defaultProfile: config.defaultProfile,
+      profiles: config.profiles,
+      profileGroups: config.profileGroups,
       devices: config.devices,
       screenshots: config.screenshots,
       performance: config.performance,
@@ -201,6 +223,9 @@ class EnsembleTestDiscovery {
       mockFiles: config.mockFiles,
       inlineMocks: config.inlineMocks,
       initialState: config.initialState,
+      defaultProfile: config.defaultProfile,
+      profiles: config.profiles,
+      profileGroups: config.profileGroups,
       devices: config.devices,
       screenshots: config.screenshots,
       performance: config.performance,

@@ -1,11 +1,11 @@
 import 'dart:async';
-import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/screen_tracker.dart';
 import 'package:ensemble_test_runner/actions/extended_step_handlers.dart';
 import 'package:ensemble_test_runner/actions/http_request_action.dart';
+import 'package:ensemble_test_runner/actions/screenshot_device.dart';
 import 'package:ensemble_test_runner/actions/test_step_executor.dart';
 import 'package:ensemble_test_runner/assertions/assertion_engine.dart';
 import 'package:ensemble_test_runner/discovery/ensemble_test_execution_planner.dart';
@@ -484,14 +484,36 @@ class EnsembleTestRunner {
             }
           };
         }
+        final optionalActionStep = _singleNestedOptionalAction(step);
+        if (optionalActionStep != null) {
+          Future<void> captureOptionalAction(TestStep matchedStep) async {
+            if (capturedStep) return;
+            await _captureAutomaticScreenshotForStep(
+              executor: executor,
+              step: matchedStep,
+              labelStep: step,
+              stepIndex: i,
+              stabilize: false,
+            );
+            capturedStep = true;
+          }
+
+          if (_shouldCaptureBeforeStep(optionalActionStep)) {
+            executor.onBeforeActionStep = captureOptionalAction;
+          } else {
+            executor.onAfterActionStep = captureOptionalAction;
+          }
+        }
         try {
           await executor.execute(step);
         } finally {
           executor.onWaitForTextMatched = null;
           executor.onWaitForNavigationMatched = null;
+          executor.onBeforeActionStep = null;
+          executor.onAfterActionStep = null;
         }
         _drainPendingFlutterExceptions(tester);
-        if (!captureBeforeStep && !capturedStep) {
+        if (!captureBeforeStep && !capturedStep && optionalActionStep == null) {
           await _captureAutomaticScreenshotForStep(
             executor: executor,
             step: step,
@@ -719,6 +741,7 @@ class EnsembleTestRunner {
     required TestStepExecutor executor,
     required TestStep step,
     required int stepIndex,
+    TestStep? labelStep,
     bool pumpBeforeCapture = false,
     bool ensureTargetVisible = true,
     bool waitForTarget = false,
@@ -748,33 +771,24 @@ class EnsembleTestRunner {
       );
     }
 
-    var image = ExtendedStepHandlers.captureScreenshotImage(executor.tester);
-    final highlightRect = _highlightRectForStep(executor, step);
-    if (highlightRect != null) {
-      try {
-        final highlighted = await _highlightScreenshotImage(
-          tester: executor.tester,
-          image: image,
-          rect: highlightRect,
-          step: step,
-        );
-        image.dispose();
-        image = highlighted;
-      } catch (_) {
-        // Screenshot annotations must never change test behavior.
-      }
-    }
-
+    final image = ExtendedStepHandlers.captureScreenshotImage(executor.tester);
     final device = _screenshotDeviceTarget(executor.context);
+    final highlight = _highlightForStep(
+      executor: executor,
+      image: image,
+      step: step,
+      device: device,
+    );
     executor.context.runtime.addScreenshotSheetFrame(
       ScreenshotSheetFrame(
         stepIndex: stepIndex,
-        label: '${stepIndex + 1}. ${formatStepBrief(step)}',
+        label: '${stepIndex + 1}. ${formatStepBrief(labelStep ?? step)}',
         image: image,
         deviceId: device?.id,
         deviceLabel: device?.displayLabel,
         platform: device?.platform,
         model: device?.model,
+        highlight: highlight,
       ),
     );
   }
@@ -825,7 +839,19 @@ class EnsembleTestRunner {
     }
   }
 
-  bool _shouldCaptureBeforeStep(TestStep step) => _isUserActionStep(step);
+  bool _shouldCaptureBeforeStep(TestStep step) =>
+      _isUserActionStep(step) && !_isTextMutationStep(step);
+
+  bool _isTextMutationStep(TestStep step) =>
+      step.type == 'enterText' ||
+      step.type == 'clearText' ||
+      step.type == 'replaceText';
+
+  TestStep? _singleNestedOptionalAction(TestStep step) {
+    if (step.type != 'optional' || step.nestedSteps.length != 1) return null;
+    final nested = step.nestedSteps.single;
+    return _isUserActionStep(nested) ? nested : null;
+  }
 
   bool _shouldPumpBeforePostStepCapture(TestStep step) =>
       step.type != 'waitForText';
@@ -1107,12 +1133,16 @@ class EnsembleTestRunner {
     }
   }
 
-  Future<ui.Image> _highlightScreenshotImage({
-    required WidgetTester tester,
+  ScreenshotHighlight? _highlightForStep({
+    required TestStepExecutor executor,
     required ui.Image image,
-    required ui.Rect rect,
     required TestStep step,
-  }) async {
+    required TestDeviceTarget? device,
+  }) {
+    final rect = _highlightRectForStep(executor, step);
+    if (rect == null) return null;
+
+    final tester = executor.tester;
     final renderView = tester.binding.renderViews.first;
     final paintBounds = renderView.paintBounds;
     final scaleX = image.width / paintBounds.width;
@@ -1122,142 +1152,61 @@ class EnsembleTestRunner {
       (rect.top - paintBounds.top) * scaleY,
       (rect.right - paintBounds.left) * scaleX,
       (rect.bottom - paintBounds.top) * scaleY,
-    ).inflate(6 * scaleX);
-
-    final recorder = ui.PictureRecorder();
-    final canvas = ui.Canvas(
-      recorder,
-      ui.Rect.fromLTWH(0, 0, image.width.toDouble(), image.height.toDouble()),
     );
-    canvas.drawImage(image, ui.Offset.zero, ui.Paint());
 
     final isTapStep = step.type == 'tap' ||
         step.type == 'doubleTap' ||
         step.type == 'longPress' ||
         step.type == 'tapAt';
 
-    void drawCornerBrackets(
-        ui.Canvas canvas, ui.Rect rect, ui.Paint paint, double scale) {
-      final left = rect.left;
-      final top = rect.top;
-      final right = rect.right;
-      final bottom = rect.bottom;
-      final maxLen = math.min(rect.width, rect.height) / 2.0;
-      final len = math.min(math.max(24.0 * scale, rect.width / 4.0), maxLen);
+    final framedRect = _rectInFramedImage(
+      rect: scaledRect,
+      image: image,
+      device: device,
+    );
+    if (framedRect == null) return null;
 
-      // Top-Left
-      canvas.drawLine(ui.Offset(left, top), ui.Offset(left + len, top), paint);
-      canvas.drawLine(ui.Offset(left, top), ui.Offset(left, top + len), paint);
-
-      // Top-Right
-      canvas.drawLine(
-          ui.Offset(right - len, top), ui.Offset(right, top), paint);
-      canvas.drawLine(
-          ui.Offset(right, top), ui.Offset(right, top + len), paint);
-
-      // Bottom-Left
-      canvas.drawLine(
-          ui.Offset(left, bottom), ui.Offset(left + len, bottom), paint);
-      canvas.drawLine(
-          ui.Offset(left, bottom - len), ui.Offset(left, bottom), paint);
-
-      // Bottom-Right
-      canvas.drawLine(
-          ui.Offset(right - len, bottom), ui.Offset(right, bottom), paint);
-      canvas.drawLine(
-          ui.Offset(right, bottom - len), ui.Offset(right, bottom), paint);
-    }
-
-    if (!isTapStep) {
-      // 1. Verification/Wait/Scroll: Thick Mint green HUD corner brackets
-      final paint = ui.Paint()
-        ..color = const ui.Color(0xFF10B981) // Emerald green
-        ..style = ui.PaintingStyle.stroke
-        ..strokeWidth = 4.0 * scaleX;
-
-      // Distinct green overlay (~15% opacity) to immediately highlight the element block
-      canvas.drawRect(
-        scaledRect,
-        ui.Paint()
-          ..color = const ui.Color(0x2610B981)
-          ..style = ui.PaintingStyle.fill,
-      );
-
-      drawCornerBrackets(canvas, scaledRect, paint, scaleX);
-    } else {
-      // 2. Taps/Gestures: Thick Neon Rose HUD corner brackets, concentric ripple circles & crosshair reticle
-      final paint = ui.Paint()
-        ..color = const ui.Color(0xFFF43F5E) // Rose red
-        ..style = ui.PaintingStyle.stroke
-        ..strokeWidth = 3.5 * scaleX;
-
-      // Translucent rose overlay (~10% opacity)
-      canvas.drawRect(
-        scaledRect,
-        ui.Paint()
-          ..color = const ui.Color(0x1AD51F5E)
-          ..style = ui.PaintingStyle.fill,
-      );
-
-      drawCornerBrackets(canvas, scaledRect, paint, scaleX);
-
-      final center = scaledRect.center;
-
-      // Outer concentric ripple ring (larger and thicker)
-      canvas.drawCircle(
-        center,
-        35 * scaleX,
-        ui.Paint()
-          ..color = const ui.Color(0x4DF43F5E) // ~30% opacity
-          ..style = ui.PaintingStyle.stroke
-          ..strokeWidth = 2.0 * scaleX,
-      );
-
-      // Inner concentric ripple ring
-      canvas.drawCircle(
-        center,
-        20 * scaleX,
-        ui.Paint()
-          ..color = const ui.Color(0x88F43F5E) // ~53% opacity
-          ..style = ui.PaintingStyle.stroke
-          ..strokeWidth = 3.0 * scaleX,
-      );
-
-      // Precision target dot
-      canvas.drawCircle(
-        center,
-        5.0 * scaleX,
-        ui.Paint()
-          ..color = const ui.Color(0xFFF43F5E)
-          ..style = ui.PaintingStyle.fill,
-      );
-
-      // Horizontal crosshair line of "+"
-      canvas.drawLine(
-        ui.Offset(center.dx - 10 * scaleX, center.dy),
-        ui.Offset(center.dx + 10 * scaleX, center.dy),
-        ui.Paint()
-          ..color = const ui.Color(0xFFF43F5E)
-          ..style = ui.PaintingStyle.stroke
-          ..strokeWidth = 3.0 * scaleX,
-      );
-
-      // Vertical crosshair line of "+"
-      canvas.drawLine(
-        ui.Offset(center.dx, center.dy - 10 * scaleX),
-        ui.Offset(center.dx, center.dy + 10 * scaleX),
-        ui.Paint()
-          ..color = const ui.Color(0xFFF43F5E)
-          ..style = ui.PaintingStyle.stroke
-          ..strokeWidth = 3.0 * scaleX,
-      );
-    }
-
-    final picture = recorder.endRecording();
-    final highlighted = await picture.toImage(image.width, image.height);
-    picture.dispose();
-    return highlighted;
+    return ScreenshotHighlight(
+      kind: isTapStep ? 'action' : 'assertion',
+      left: framedRect.left,
+      top: framedRect.top,
+      width: framedRect.width,
+      height: framedRect.height,
+    );
   }
+
+  ui.Rect? _rectInFramedImage({
+    required ui.Rect rect,
+    required ui.Image image,
+    required TestDeviceTarget? device,
+  }) {
+    if (device == null) return null;
+    final frameDevice = resolveScreenshotDevice({
+      'platform': device.platform,
+      'model': device.model,
+    });
+    final padding = frameDevice.frameSize.shortestSide * 0.025;
+    final outputWidth = frameDevice.frameSize.width + padding * 2;
+    final outputHeight = frameDevice.frameSize.height + padding * 2;
+    final screenRect = frameDevice.screenPath.getBounds().shift(
+          ui.Offset(padding, padding),
+        );
+    final left = screenRect.left + (rect.left / image.width) * screenRect.width;
+    final top = screenRect.top + (rect.top / image.height) * screenRect.height;
+    final right =
+        screenRect.left + (rect.right / image.width) * screenRect.width;
+    final bottom =
+        screenRect.top + (rect.bottom / image.height) * screenRect.height;
+    return ui.Rect.fromLTRB(
+      _percent(left, outputWidth),
+      _percent(top, outputHeight),
+      _percent(right, outputWidth),
+      _percent(bottom, outputHeight),
+    );
+  }
+
+  double _percent(double value, double total) =>
+      total <= 0 ? 0 : (value / total * 100).clamp(0, 100).toDouble();
 
   void _captureScreenArtifacts(EnsembleTestContext ctx) {
     final screenName = ScreenTracker().getCurrentScreenIdentifier();

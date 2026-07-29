@@ -34,6 +34,7 @@ final _disabledAppConsoleLogs = <String>{};
 ///   --report-file=<path> Write JSON run results to a file
 ///   --id=<id>          Run matching test id(s); repeatable
 ///   --feature=<name>   Run matching feature(s); repeatable
+///   --profile=<name>   Run matching profile(s); repeatable
 ///   --tag=<tag>        Run matching tag(s); repeatable
 ///   --path=<path>      Run matching test asset path(s); repeatable
 ///   --device=<id>      Run only these suite device id(s); repeatable (default: all)
@@ -155,6 +156,8 @@ Future<void> runEnsembleYamlTestsCli(List<String> arguments) async {
       machineReport: machineReport,
     );
 
+    _cleanParallelRunArtifacts(appDir);
+
     if (!machineReport) {
       try {
         final discovered = _discoverAllTestRuns(appDir, patcher);
@@ -168,13 +171,7 @@ Future<void> runEnsembleYamlTestsCli(List<String> arguments) async {
         }
       } catch (_) {}
     }
-    if (_hasSelection(arguments) && jobs != null && jobs > 1) {
-      throw StateError(
-        '--jobs currently runs full suites only. Remove --id/--feature/--tag/--path '
-        'or run the selected tests serially.',
-      );
-    }
-    final runSerial = jobs == 1 || _hasSelection(arguments);
+    final runSerial = jobs == 1;
     final serialWorkingDirectory = runSerial && patcher.hasTimerRewrites
         ? _prepareWorkerDirectory(appDir, 0, patcher)
         : appDir;
@@ -291,6 +288,7 @@ List<String> _selectionDartDefines(List<String> arguments) {
   final values = {
     'ensembleTestId': _optionValues(arguments, '--id'),
     'ensembleTestFeature': _optionValues(arguments, '--feature'),
+    'ensembleTestProfile': _optionValues(arguments, '--profile'),
     'ensembleTestTag': _optionValues(arguments, '--tag'),
     'ensembleTestPath': _optionValues(arguments, '--path'),
     'ensembleTestDevice': _optionValues(arguments, '--device'),
@@ -309,6 +307,7 @@ List<String> _buildFlutterTestArgs(
   required int? timeoutSeconds,
   required bool verbose,
   List<String> shardPaths = const [],
+  List<String> shardIds = const [],
   int? workerIndex,
   String? progressFile,
   String? appLogPath,
@@ -343,7 +342,9 @@ List<String> _buildFlutterTestArgs(
     ..._inputDartDefines(arguments),
     ..._selectionDartDefines(arguments),
     if (shardPaths.isNotEmpty)
-      '--dart-define=ensembleTestPath=${shardPaths.join(',')}',
+      '--dart-define=ensembleTestShardPath=${shardPaths.join(',')}',
+    if (shardIds.isNotEmpty)
+      '--dart-define=ensembleTestShardId=${shardIds.join(',')}',
     '--reporter',
     verbose ? 'expanded' : 'silent',
     ...flutterTestArguments(arguments),
@@ -452,9 +453,13 @@ Future<ProcessResult> _runParallelFlutterTests(
   required bool quiet,
   required bool machineReport,
 }) async {
-  final testFiles = _testFilesForSharding(appDir, patcher);
+  final testFiles = await _testFilesForSharding(
+    appDir,
+    patcher,
+    arguments: arguments,
+  );
   final allFiles = [
-    ...testFiles.parallel.map((file) => file.path),
+    ...testFiles.parallel.map((file) => file.id),
     ...testFiles.serial,
   ];
   if (allFiles.length < 2) {
@@ -505,7 +510,7 @@ Future<ProcessResult> _runParallelFlutterTests(
 
   _cleanParallelRunArtifacts(appDir);
   _writeStatus(
-    'Running ${allFiles.length} test files...',
+    'Running ${allFiles.length} test runs...',
     quiet: quiet,
     machineReport: machineReport,
   );
@@ -518,8 +523,10 @@ Future<ProcessResult> _runParallelFlutterTests(
   final showProgress = !quiet && !machineReport;
   final usedServicePorts = <int>{};
   for (var i = 0; i < parallelWorkerCount; i++) {
-    final shard = shards[i].map((file) => file.path).toList();
+    final shard = shards[i];
     if (shard.isEmpty) continue;
+    final shardPaths = shard.expand((file) => file.paths).toSet().toList();
+    final shardIds = shard.map((file) => file.id).toList();
     final workerReportFile = _workerReportFile(appDir, i);
     final workerProgressFile = _workerProgressFile(appDir, i);
     _deleteIfExists(workerReportFile);
@@ -533,29 +540,27 @@ Future<ProcessResult> _runParallelFlutterTests(
       usedPorts: usedServicePorts,
     );
     futures.add(
-      _runTimedFlutterTestProcess(
-        reportFile: workerReportFile,
-        run: () => _runFlutterTestProcess(
-          'flutter',
-          _buildFlutterTestArgs(
-            arguments,
-            reportMode: 'json',
-            reportFile: workerReportFile,
-            timeoutSeconds: timeoutSeconds,
-            verbose: false,
-            shardPaths: shard,
-            workerIndex: i,
-            progressFile: showProgress ? workerProgressFile : null,
-            appLogPath: _appConsoleLogFile(appDir, workerIndex: i),
-            appLogDisplayPath: _appConsoleLogPath(workerIndex: i),
-            artifactRoot: artifactRoot,
-            serviceOverrides: serviceOverrides,
-          ),
-          workingDirectory: workerDirectory,
-          streamOutput: false,
+      _runFlutterTestProcess(
+        'flutter',
+        _buildFlutterTestArgs(
+          arguments,
+          reportMode: 'json',
+          reportFile: workerReportFile,
+          timeoutSeconds: timeoutSeconds,
           verbose: false,
-          appLogFile: _appConsoleLogFile(workerDirectory, workerIndex: i),
+          shardPaths: shardPaths,
+          shardIds: shardIds,
+          workerIndex: i,
+          progressFile: showProgress ? workerProgressFile : null,
+          appLogPath: _appConsoleLogFile(appDir, workerIndex: i),
+          appLogDisplayPath: _appConsoleLogPath(workerIndex: i),
+          artifactRoot: artifactRoot,
+          serviceOverrides: serviceOverrides,
         ),
+        workingDirectory: workerDirectory,
+        streamOutput: false,
+        verbose: false,
+        appLogFile: _appConsoleLogFile(workerDirectory, workerIndex: i),
       ),
     );
   }
@@ -576,36 +581,33 @@ Future<ProcessResult> _runParallelFlutterTests(
       usedPorts: usedServicePorts,
     );
     futures.add(
-      _runTimedFlutterTestProcess(
-        reportFile: workerReportFile,
-        run: () => _runFlutterTestProcess(
-          'flutter',
-          _buildFlutterTestArgs(
-            arguments,
-            reportMode: 'json',
-            reportFile: workerReportFile,
-            timeoutSeconds: timeoutSeconds,
-            verbose: false,
-            shardPaths: testFiles.serial,
-            workerIndex: serialWorkerIndex,
-            progressFile: showProgress ? workerProgressFile : null,
-            appLogPath: _appConsoleLogFile(
-              appDir,
-              workerIndex: serialWorkerIndex,
-            ),
-            appLogDisplayPath: _appConsoleLogPath(
-              workerIndex: serialWorkerIndex,
-            ),
-            artifactRoot: artifactRoot,
-            serviceOverrides: serviceOverrides,
-          ),
-          workingDirectory: workerDirectory,
-          streamOutput: false,
+      _runFlutterTestProcess(
+        'flutter',
+        _buildFlutterTestArgs(
+          arguments,
+          reportMode: 'json',
+          reportFile: workerReportFile,
+          timeoutSeconds: timeoutSeconds,
           verbose: false,
-          appLogFile: _appConsoleLogFile(
-            workerDirectory,
+          shardPaths: testFiles.serial,
+          workerIndex: serialWorkerIndex,
+          progressFile: showProgress ? workerProgressFile : null,
+          appLogPath: _appConsoleLogFile(
+            appDir,
             workerIndex: serialWorkerIndex,
           ),
+          appLogDisplayPath: _appConsoleLogPath(
+            workerIndex: serialWorkerIndex,
+          ),
+          artifactRoot: artifactRoot,
+          serviceOverrides: serviceOverrides,
+        ),
+        workingDirectory: workerDirectory,
+        streamOutput: false,
+        verbose: false,
+        appLogFile: _appConsoleLogFile(
+          workerDirectory,
+          workerIndex: serialWorkerIndex,
         ),
       ),
     );
@@ -643,7 +645,12 @@ Future<ProcessResult> _runParallelFlutterTests(
     merged,
     wallTimeMs: elapsed.elapsedMilliseconds,
   );
-  _writeHistoricalDurations(appDir, merged);
+  _writeHistoricalDurations(
+    appDir,
+    merged,
+    testsDirRelative: patcher.testsDirRelative,
+    includeCurrentRun: !_hasSelection(arguments),
+  );
   final output = StringBuffer();
   if (reportMode == 'json') {
     output.writeln(json.encode(merged.toJson()));
@@ -695,6 +702,49 @@ Future<ProcessResult> _runParallelFlutterTests(
   );
 }
 
+/// Returns the expanded run ids assigned to each parallel worker.
+///
+/// This is intentionally a small test hook for the CLI sharding planner. The
+/// production runner uses the same private `_testFilesForSharding` and
+/// `_balancedShards` path before launching Flutter worker processes.
+Future<List<List<String>>> planShardRunIdsForTest({
+  required String appDir,
+  List<String> arguments = const [],
+  int? jobs,
+}) async {
+  final testFiles = await _testFilesForSharding(
+    appDir,
+    YamlTestAppPatcher(appDir),
+    arguments: arguments,
+  );
+  final allRuns = [
+    ...testFiles.parallel.map((file) => file.id),
+    ...testFiles.serial,
+  ];
+  if (allRuns.isEmpty) return const [];
+  if (allRuns.length < 2) return [allRuns];
+
+  final requestedJobs = jobs ?? _autoWorkerCount(allRuns.length);
+  final totalJobCount = requestedJobs.clamp(1, allRuns.length);
+  final serialLaneCount = testFiles.serial.isNotEmpty ? 1 : 0;
+  final parallelLaneBudget = totalJobCount - serialLaneCount;
+  final parallelWorkerCount = testFiles.parallel.isNotEmpty
+      ? parallelLaneBudget.clamp(1, testFiles.parallel.length)
+      : 0;
+
+  final result = <List<String>>[
+    for (final shard in _balancedShards(
+      testFiles.parallel,
+      parallelWorkerCount,
+    ))
+      [for (final file in shard) file.id],
+  ];
+  if (testFiles.serial.isNotEmpty) {
+    result.add(testFiles.serial);
+  }
+  return result.where((shard) => shard.isNotEmpty).toList();
+}
+
 String _workerReportFile(String appDir, int workerIndex) {
   return p.join(
     appDir,
@@ -726,31 +776,6 @@ EnsembleTestRunResult _mergeParallelSuiteArtifacts(
   );
 }
 
-Future<ProcessResult> _runTimedFlutterTestProcess({
-  required String reportFile,
-  required Future<ProcessResult> Function() run,
-}) async {
-  final stopwatch = Stopwatch()..start();
-  final result = await run();
-  stopwatch.stop();
-  _annotateWorkerReportDuration(reportFile, stopwatch.elapsedMilliseconds);
-  return result;
-}
-
-void _annotateWorkerReportDuration(String reportFile, int durationMs) {
-  final file = File(reportFile);
-  if (!file.existsSync()) return;
-  try {
-    final decoded = json.decode(file.readAsStringSync());
-    if (decoded is! Map) return;
-    final updated = Map<String, dynamic>.from(decoded)
-      ..['durationMs'] = durationMs;
-    file.writeAsStringSync(json.encode(updated));
-  } catch (_) {
-    // Keep the original report if it cannot be decoded.
-  }
-}
-
 void _cleanParallelRunArtifacts(String appDir) {
   final root = Directory(p.join(appDir, 'build', 'ensemble_test_runner'));
   for (final name in const [
@@ -761,6 +786,11 @@ void _cleanParallelRunArtifacts(String appDir) {
   ]) {
     final directory = Directory(p.join(root.path, name));
     if (directory.existsSync()) directory.deleteSync(recursive: true);
+  }
+  final reportScreenshots =
+      Directory(p.join(root.path, 'report', 'screenshots'));
+  if (reportScreenshots.existsSync()) {
+    reportScreenshots.deleteSync(recursive: true);
   }
 }
 
@@ -1054,15 +1084,17 @@ void _copyDirectoryContents(Directory source, Directory target) {
   }
 }
 
-_ShardedTestFiles _testFilesForSharding(
+Future<_ShardedTestFiles> _testFilesForSharding(
   String appDir,
-  YamlTestAppPatcher patcher,
-) {
+  YamlTestAppPatcher patcher, {
+  List<String> arguments = const [],
+}) async {
   final testsDir = patcher.testsDirPath;
   if (testsDir == null) return const _ShardedTestFiles();
   final historicalDurations = _loadHistoricalDurations(appDir);
   final parallel = <_ShardableTestFile>[];
   final serial = <String>[];
+  final config = _readTestsConfig(testsDir);
   final files = Directory(testsDir)
       .listSync(recursive: true)
       .whereType<File>()
@@ -1072,6 +1104,7 @@ _ShardedTestFiles _testFilesForSharding(
   final docsByPath = <String, YamlMap?>{};
   final pathById = <String, String>{};
   final referencedSessionIds = <String>{};
+  final hasShardSelection = _hasShardSelection(arguments);
   for (final file in files) {
     final relative = p.relative(file.path, from: appDir).replaceAll('\\', '/');
     final doc = _readTestYamlMap(file);
@@ -1093,20 +1126,44 @@ _ShardedTestFiles _testFilesForSharding(
 
   for (final file in files) {
     final relative = p.relative(file.path, from: appDir).replaceAll('\\', '/');
-    if (_isParallelTestFile(file, doc: docsByPath[relative]) &&
-        !sessionProducerPaths.contains(relative)) {
-      parallel.add(
-        _ShardableTestFile(
-          path: relative,
-          estimatedDurationMs: _estimateTestFileDurationMs(
-            file,
-            relative,
-            historicalDurations,
-          ),
-        ),
+    final doc = docsByPath[relative];
+    if (!_matchesShardSelection(relative, doc, arguments, config: config)) {
+      continue;
+    }
+    if (_isParallelTestFile(file, doc: doc) &&
+        (hasShardSelection || !sessionProducerPaths.contains(relative))) {
+      final definitions = _expandedShardDefinitionsForFile(
+        doc: doc,
+        relativePath: relative,
+        config: config,
+        arguments: arguments,
       );
-    } else if (sessionProducerPaths.contains(relative) &&
-        _isParallelTestFile(file, doc: docsByPath[relative])) {
+      final fileEstimate = _estimateTestFileDurationMs(
+        file,
+        relative,
+        historicalDurations,
+      );
+      final fallbackEstimate =
+          (fileEstimate / definitions.length.clamp(1, 1000000)).round();
+      for (final definition in definitions) {
+        parallel.add(
+          _ShardableTestFile(
+            path: relative,
+            paths: _shardPathsForDefinition(
+              definition,
+              relative,
+              pathById,
+            ),
+            id: definition.id,
+            estimatedDurationMs:
+                historicalDurations.testDuration(definition.id) ??
+                    fallbackEstimate,
+          ),
+        );
+      }
+    } else if (!hasShardSelection &&
+        sessionProducerPaths.contains(relative) &&
+        _isParallelTestFile(file, doc: doc)) {
       // Session producers are selected automatically by each shard that needs
       // them. Running them as standalone files would waste a worker lane.
       continue;
@@ -1115,6 +1172,281 @@ _ShardedTestFiles _testFilesForSharding(
     }
   }
   return _ShardedTestFiles(parallel: parallel, serial: serial);
+}
+
+List<String> _shardPathsForDefinition(
+  _ExpandedShardDefinition definition,
+  String relativePath,
+  Map<String, String> pathById,
+) {
+  final paths = <String>{relativePath};
+  final session = definition.session;
+  if (session != null && session.isNotEmpty) {
+    final sessionPath = pathById[_rootExpandedId(session)];
+    if (sessionPath != null) paths.add(sessionPath);
+  }
+  return paths.toList();
+}
+
+String _rootExpandedId(String id) {
+  final bracket = id.indexOf('[');
+  return bracket == -1 ? id : id.substring(0, bracket);
+}
+
+List<_ExpandedShardDefinition> _expandedShardDefinitionsForFile({
+  required YamlMap? doc,
+  required String relativePath,
+  required EnsembleTestConfig? config,
+  required List<String> arguments,
+}) {
+  if (doc == null) return const [];
+  final baseId = doc['id']?.toString();
+  if (baseId == null || baseId.isEmpty) return const [];
+  final effectiveConfig = config ?? const EnsembleTestConfig();
+  final scenarios = _scenarioIds(doc);
+  final profileNames = _profileNamesForShard(
+    doc,
+    config: effectiveConfig,
+  );
+  final multiProfile = profileNames.length > 1;
+  final devices = effectiveConfig.devices;
+  final multiDevice = devices.length > 1;
+  final session = doc['session']?.toString();
+
+  final definitions = <_ExpandedShardDefinition>[];
+  final scenarioIds = scenarios.isEmpty ? const [null] : scenarios;
+  final profiles = profileNames.isEmpty ? const [null] : profileNames;
+  final deviceIds = devices.isEmpty
+      ? const [null]
+      : devices.map((device) => device.id).toList(growable: false);
+
+  for (final scenarioId in scenarioIds) {
+    final scenarioRunId = scenarioId == null ? baseId : '$baseId[$scenarioId]';
+    for (final profile in profiles) {
+      final profileRunId = multiProfile && profile != null
+          ? '$scenarioRunId[$profile]'
+          : scenarioRunId;
+      final profileSession = multiProfile && profile != null && session != null
+          ? '$session[$profile]'
+          : session;
+      for (final deviceId in deviceIds) {
+        definitions.add(
+          _ExpandedShardDefinition(
+            id: multiDevice && deviceId != null
+                ? '$profileRunId[$deviceId]'
+                : profileRunId,
+            assetPath: relativePath,
+            feature: doc['feature']?.toString(),
+            tags: _yamlStringList(doc['tags']),
+            profile: profile,
+            deviceId: deviceId,
+            session: multiDevice && deviceId != null && profileSession != null
+                ? '$profileSession[$deviceId]'
+                : profileSession,
+          ),
+        );
+      }
+    }
+  }
+
+  return definitions
+      .where(
+        (definition) => _matchesExpandedShardSelection(
+          definition,
+          arguments,
+          config: config,
+        ),
+      )
+      .toList();
+}
+
+bool _matchesExpandedShardSelection(
+  _ExpandedShardDefinition definition,
+  List<String> arguments, {
+  EnsembleTestConfig? config,
+}) {
+  final ids = _optionValueSet(arguments, '--id');
+  final features = _optionValueSet(arguments, '--feature');
+  final profiles = _expandedProfileSelections(
+    _optionValueSet(arguments, '--profile'),
+    config,
+  );
+  final tags = _optionValueSet(arguments, '--tag');
+  final paths = _optionValueSet(arguments, '--path');
+  final devices = _optionValueSet(arguments, '--device');
+
+  if (devices.isNotEmpty) {
+    final deviceId = definition.deviceId;
+    if (deviceId == null || !devices.contains(deviceId)) return false;
+  }
+  if (ids.isNotEmpty &&
+      !ids.any(
+          (id) => definition.id == id || definition.id.startsWith('$id['))) {
+    return false;
+  }
+  if (features.isNotEmpty && !features.contains(definition.feature)) {
+    return false;
+  }
+  if (profiles.isNotEmpty) {
+    final profile = definition.profile;
+    if (profile == null || !profiles.contains(profile)) return false;
+  }
+  if (tags.isNotEmpty && !definition.tags.any(tags.contains)) return false;
+  if (paths.isNotEmpty &&
+      !paths.any((path) => definition.assetPath.contains(path))) {
+    return false;
+  }
+  return true;
+}
+
+List<String> _profileNamesForShard(
+  YamlMap doc, {
+  required EnsembleTestConfig config,
+}) {
+  final selectors = _yamlStringList(doc['profiles']);
+  final effectiveSelectors = selectors.isEmpty && config.defaultProfile != null
+      ? [config.defaultProfile!]
+      : selectors;
+  final names = <String>[];
+  for (final selector in effectiveSelectors) {
+    final group = config.profileGroups[selector];
+    if (group != null) {
+      names.addAll(group);
+    } else {
+      names.add(selector);
+    }
+  }
+  return names;
+}
+
+bool _hasShardSelection(List<String> arguments) {
+  return _optionValueSet(arguments, '--id').isNotEmpty ||
+      _optionValueSet(arguments, '--feature').isNotEmpty ||
+      _optionValueSet(arguments, '--profile').isNotEmpty ||
+      _optionValueSet(arguments, '--tag').isNotEmpty ||
+      _optionValueSet(arguments, '--path').isNotEmpty;
+}
+
+bool _matchesShardSelection(
+  String relativePath,
+  YamlMap? doc,
+  List<String> arguments, {
+  EnsembleTestConfig? config,
+}) {
+  final ids = _optionValueSet(arguments, '--id');
+  final features = _optionValueSet(arguments, '--feature');
+  final profiles = _expandedProfileSelections(
+    _optionValueSet(arguments, '--profile'),
+    config,
+  );
+  final tags = _optionValueSet(arguments, '--tag');
+  final paths = _optionValueSet(arguments, '--path');
+  if (ids.isEmpty &&
+      features.isEmpty &&
+      profiles.isEmpty &&
+      tags.isEmpty &&
+      paths.isEmpty) {
+    return true;
+  }
+  if (paths.any(relativePath.contains)) return true;
+  if (doc == null) return false;
+
+  final id = doc['id']?.toString();
+  if (id != null &&
+      ids.any((selected) => id == selected || selected.startsWith('$id['))) {
+    return true;
+  }
+  if (_scenarioIds(doc).any(ids.contains)) return true;
+
+  final feature = doc['feature']?.toString();
+  if (feature != null && features.contains(feature)) return true;
+
+  if (_matchesProfileShardSelection(doc, profiles, config)) return true;
+
+  final docTags = _yamlStringList(doc['tags']);
+  if (docTags.any(tags.contains)) return true;
+
+  return false;
+}
+
+EnsembleTestConfig? _readTestsConfig(String testsDir) {
+  final configFile = File(p.join(testsDir, 'config.yaml'));
+  if (!configFile.existsSync()) return null;
+  try {
+    return EnsembleTestParser.parseConfigString(
+      configFile.readAsStringSync(),
+      sourcePath: configFile.path,
+    );
+  } catch (_) {
+    return null;
+  }
+}
+
+bool _matchesProfileShardSelection(
+  YamlMap doc,
+  Set<String> selectedProfiles,
+  EnsembleTestConfig? config,
+) {
+  if (selectedProfiles.isEmpty) return false;
+  if (config == null) return true;
+  final selectors = _yamlStringList(doc['profiles']);
+  final effectiveSelectors = selectors.isEmpty && config.defaultProfile != null
+      ? [config.defaultProfile!]
+      : selectors;
+  if (effectiveSelectors.isEmpty) return false;
+  final expandedProfiles = <String>{};
+  for (final selector in effectiveSelectors) {
+    final group = config.profileGroups[selector];
+    if (group != null) {
+      expandedProfiles.addAll(group);
+    } else {
+      expandedProfiles.add(selector);
+    }
+  }
+  return expandedProfiles.any(selectedProfiles.contains);
+}
+
+Set<String> _expandedProfileSelections(
+  Set<String> selectedProfiles,
+  EnsembleTestConfig? config,
+) {
+  if (selectedProfiles.isEmpty || config == null) return selectedProfiles;
+  final expanded = <String>{};
+  for (final profile in selectedProfiles) {
+    expanded.add(profile);
+    final group = config.profileGroups[profile];
+    if (group != null) expanded.addAll(group);
+  }
+  return expanded;
+}
+
+List<String> _scenarioIds(YamlMap doc) {
+  final scenarios = doc['scenarios'];
+  if (scenarios is! YamlList) return const [];
+  return [
+    for (final scenario in scenarios)
+      if (scenario is YamlMap && scenario['id'] != null)
+        scenario['id'].toString(),
+  ];
+}
+
+List<String> _yamlStringList(dynamic value) {
+  if (value is YamlList) {
+    return [
+      for (final item in value)
+        if (item != null) item.toString()
+    ];
+  }
+  if (value is List) {
+    return [
+      for (final item in value)
+        if (item != null) item.toString()
+    ];
+  }
+  if (value is String && value.trim().isNotEmpty) {
+    return [value.trim()];
+  }
+  return const [];
 }
 
 YamlMap? _readTestYamlMap(File file) {
@@ -1145,11 +1477,35 @@ class _ShardedTestFiles {
 
 class _ShardableTestFile {
   final String path;
+  final List<String> paths;
+  final String id;
   final int estimatedDurationMs;
 
   const _ShardableTestFile({
     required this.path,
+    required this.paths,
+    required this.id,
     required this.estimatedDurationMs,
+  });
+}
+
+class _ExpandedShardDefinition {
+  final String id;
+  final String assetPath;
+  final String? feature;
+  final List<String> tags;
+  final String? profile;
+  final String? deviceId;
+  final String? session;
+
+  const _ExpandedShardDefinition({
+    required this.id,
+    required this.assetPath,
+    required this.feature,
+    required this.tags,
+    required this.profile,
+    required this.deviceId,
+    required this.session,
   });
 }
 
@@ -1162,7 +1518,9 @@ List<List<_ShardableTestFile>> _balancedShards(
   final shardDurations = List.filled(workerCount, 0);
   final sorted = [...files]..sort((a, b) {
       final byDuration = b.estimatedDurationMs.compareTo(a.estimatedDurationMs);
-      return byDuration != 0 ? byDuration : a.path.compareTo(b.path);
+      if (byDuration != 0) return byDuration;
+      final byPath = a.path.compareTo(b.path);
+      return byPath != 0 ? byPath : a.id.compareTo(b.id);
     });
 
   for (final file in sorted) {
@@ -1178,17 +1536,16 @@ List<List<_ShardableTestFile>> _balancedShards(
 
 int _autoWorkerCount(int fileCount) {
   if (fileCount < 2) return 1;
-  final halfCpu = (Platform.numberOfProcessors / 2).floor();
-  final cpuBased = (halfCpu - 1).clamp(1, fileCount);
+  final cpuBased = (Platform.numberOfProcessors / 2).ceil().clamp(1, 5);
   return cpuBased.clamp(1, fileCount);
 }
 
 int _estimateTestFileDurationMs(
   File file,
   String relativePath,
-  Map<String, int> historicalDurations,
+  _HistoricalDurations historicalDurations,
 ) {
-  final historical = historicalDurations[relativePath];
+  final historical = historicalDurations.fileDuration(relativePath);
   if (historical != null && historical > 0) return historical;
 
   try {
@@ -1222,48 +1579,94 @@ int _estimateStepDurationMs(dynamic step) {
   };
 }
 
-Map<String, int> _loadHistoricalDurations(String appDir) {
+_HistoricalDurations _loadHistoricalDurations(String appDir) {
   final file = File(_durationCachePath(appDir));
-  if (!file.existsSync()) return const {};
+  if (!file.existsSync()) return const _HistoricalDurations();
   try {
     final decoded = json.decode(file.readAsStringSync());
-    if (decoded is! Map) return const {};
+    if (decoded is! Map) return const _HistoricalDurations();
     final files = decoded['files'];
-    if (files is! Map) return const {};
-    return {
-      for (final entry in files.entries)
-        if (entry.value is int) entry.key.toString(): entry.value as int,
-    };
+    final tests = decoded['tests'];
+    return _HistoricalDurations(
+      files: {
+        if (files is Map)
+          for (final entry in files.entries)
+            if (entry.value is int) entry.key.toString(): entry.value as int,
+      },
+      tests: {
+        if (tests is Map)
+          for (final entry in tests.entries)
+            if (entry.value is int) entry.key.toString(): entry.value as int,
+      },
+    );
   } catch (_) {
-    return const {};
+    return const _HistoricalDurations();
   }
 }
 
 void _writeHistoricalDurations(
   String appDir,
-  EnsembleTestRunResult result,
-) {
+  EnsembleTestRunResult result, {
+  required String? testsDirRelative,
+  required bool includeCurrentRun,
+}) {
   final previousDurations = _loadHistoricalDurations(appDir);
-  final currentDurations = <String, int>{};
-  for (final test in result.results) {
-    if (test.durationMs <= 0) continue;
-    final path = _assetPathFromTestId(test.testId);
-    if (path == null) continue;
-    currentDurations[path] = (currentDurations[path] ?? 0) + test.durationMs;
-  }
-  final durations = {
-    ...previousDurations,
-    ...currentDurations,
+  final existingPaths = _existingTestAssetPaths(appDir, testsDirRelative);
+  final fileDurations = <String, int>{
+    for (final entry in previousDurations.files.entries)
+      if (existingPaths == null || existingPaths.contains(entry.key))
+        entry.key: entry.value,
   };
+  final testDurations = <String, int>{...previousDurations.tests};
+
+  if (includeCurrentRun) {
+    final currentFileDurations = <String, int>{};
+    for (final test in result.results) {
+      if (test.durationMs <= 0) continue;
+      final path = _assetPathFromTestId(test.testId);
+      if (path == null) continue;
+      currentFileDurations[path] =
+          (currentFileDurations[path] ?? 0) + test.durationMs;
+      testDurations[_testIdWithoutAssetPath(test.testId)] = test.durationMs;
+    }
+    fileDurations.addAll(currentFileDurations);
+  }
 
   final file = File(_durationCachePath(appDir));
   file.parent.createSync(recursive: true);
   file.writeAsStringSync(
     const JsonEncoder.withIndent('  ').convert({
       'updatedAt': DateTime.now().toIso8601String(),
-      'files': durations,
+      'files': fileDurations,
+      'tests': testDurations,
     }),
   );
+}
+
+class _HistoricalDurations {
+  final Map<String, int> files;
+  final Map<String, int> tests;
+
+  const _HistoricalDurations({
+    this.files = const {},
+    this.tests = const {},
+  });
+
+  int? fileDuration(String path) => files[path];
+
+  int? testDuration(String id) => tests[id];
+}
+
+Set<String>? _existingTestAssetPaths(String appDir, String? testsDirRelative) {
+  if (testsDirRelative == null) return null;
+  final testsDir = Directory(p.join(appDir, testsDirRelative));
+  if (!testsDir.existsSync()) return null;
+  return testsDir
+      .listSync(recursive: true, followLinks: false)
+      .whereType<File>()
+      .where((file) => file.path.endsWith('.test.yaml'))
+      .map((file) => p.relative(file.path, from: appDir).replaceAll('\\', '/'))
+      .toSet();
 }
 
 String _durationCachePath(String appDir) {
@@ -1276,13 +1679,22 @@ String? _assetPathFromTestId(String testId) {
   return testId.substring(start + 3, testId.length - 1);
 }
 
+String _testIdWithoutAssetPath(String testId) {
+  final start = testId.lastIndexOf('  (');
+  return start == -1 ? testId : testId.substring(0, start);
+}
+
 bool _hasSelection(List<String> arguments) {
-  return arguments.any(
-    (arg) =>
-        arg.startsWith('--id=') ||
-        arg.startsWith('--feature=') ||
-        arg.startsWith('--tag=') ||
-        arg.startsWith('--path='),
+  const selectionOptions = {
+    '--id',
+    '--feature',
+    '--profile',
+    '--tag',
+    '--path',
+    '--device',
+  };
+  return selectionOptions.any(
+    (option) => _optionValueSet(arguments, option).isNotEmpty,
   );
 }
 
@@ -1359,15 +1771,12 @@ EnsembleTestRunResult _withHtmlReport(
 }) {
   final reporter = HtmlTestReporter();
   final artifactRoot = _artifactRootPath(appDir);
-  final displayRoot = p
-      .join('build', 'ensemble_test_runner')
-      .replaceAll('\\', '/');
-  final htmlPath = p
-      .join(displayRoot, 'report', 'index.html')
-      .replaceAll('\\', '/');
-  final resultsPath = p
-      .join(displayRoot, 'report', 'results.json.gz')
-      .replaceAll('\\', '/');
+  final displayRoot =
+      p.join('build', 'ensemble_test_runner').replaceAll('\\', '/');
+  final htmlPath =
+      p.join(displayRoot, 'report', 'index.html').replaceAll('\\', '/');
+  final resultsPath =
+      p.join(displayRoot, 'report', 'results.json.gz').replaceAll('\\', '/');
 
   if (isSuiteRunning) {
     reporter.write(
@@ -1629,6 +2038,14 @@ List<String> _optionValues(List<String> arguments, String name) {
       .map((arg) => arg.substring(name.length + 1))
       .where((value) => value.isNotEmpty)
       .toList();
+}
+
+Set<String> _optionValueSet(List<String> arguments, String name) {
+  return {
+    for (final value in _optionValues(arguments, name))
+      for (final part in value.split(','))
+        if (part.trim().isNotEmpty) part.trim(),
+  };
 }
 
 Future<ProcessResult> _runFlutterTestProcess(

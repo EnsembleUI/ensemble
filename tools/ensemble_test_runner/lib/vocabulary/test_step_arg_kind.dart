@@ -281,7 +281,11 @@ extension TestStepArgKindSchema on TestStepArgKind {
         );
       case TestStepArgKind.apiName:
         return _object(
-          properties: {'name': _string, 'times': _integer},
+          properties: {
+            'name': _string,
+            'times': _integer,
+            'timeoutMs': _integer,
+          },
           required: ['name'],
         );
       case TestStepArgKind.storageKey:

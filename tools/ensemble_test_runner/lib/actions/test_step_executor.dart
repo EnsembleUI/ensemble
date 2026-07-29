@@ -26,6 +26,8 @@ class TestStepExecutor {
   EnsembleConfig? _config;
   FutureOr<void> Function(TestStep step)? onWaitForTextMatched;
   FutureOr<void> Function(TestStep step)? onWaitForNavigationMatched;
+  FutureOr<void> Function(TestStep step)? onBeforeActionStep;
+  FutureOr<void> Function(TestStep step)? onAfterActionStep;
 
   TestStepExecutor({
     required this.tester,
@@ -149,6 +151,7 @@ class TestStepExecutor {
         await _tap(
           _requireId(step),
           timeoutMs: step.args['timeoutMs'] as int?,
+          step: step,
         );
         break;
       case 'enterText':
@@ -157,9 +160,11 @@ class TestStepExecutor {
           step.args['value']?.toString() ?? '',
           submit: step.args['submit'] == true,
         );
+        await onAfterActionStep?.call(step);
         break;
       case 'clearText':
         await _clearText(_requireId(step));
+        await onAfterActionStep?.call(step);
         break;
       case 'replaceText':
         await _clearText(_requireId(step));
@@ -168,6 +173,7 @@ class TestStepExecutor {
           step.args['value']?.toString() ?? '',
           submit: step.args['submit'] == true,
         );
+        await onAfterActionStep?.call(step);
         break;
       case 'submitText':
         await _submitText(_requireId(step));
@@ -321,20 +327,21 @@ class TestStepExecutor {
 
   String requireId(TestStep step) => _requireId(step);
 
-  Future<void> tapWidget(String id, {int? timeoutMs}) => _tap(id, timeoutMs: timeoutMs);
+  Future<void> tapWidget(String id, {int? timeoutMs}) =>
+      _tap(id, timeoutMs: timeoutMs);
 
   Future<void> longPressWidget(String id) async {
     final finder = assertions.finderForId(id);
     _expectSingleWidget(finder, id, 'longPress');
     await tester.longPress(finder);
-    await _settle();
+    await _settleAfterAction();
   }
 
   Future<void> focusWidget(String id) async {
     final finder = assertions.finderForId(id);
     _expectSingleWidget(finder, id, 'focus');
     await tester.tap(finder);
-    await _settle();
+    await _settleAfterAction();
   }
 
   Future<void> waitForTextContains({
@@ -354,7 +361,8 @@ class TestStepExecutor {
 
     final stopwatch = Stopwatch()..start();
     while (stopwatch.elapsedMilliseconds < timeoutMs) {
-      await _pump(duration: config.waitPollInterval, label: 'expectTextContains');
+      await _pump(
+          duration: config.waitPollInterval, label: 'expectTextContains');
       if (assertions.isAnyTextContainingVisible(textCandidates)) {
         return;
       }
@@ -429,6 +437,9 @@ class TestStepExecutor {
     await _yieldToLiveApiWork();
   }
 
+  Future<void> _settleAfterAction() =>
+      _settle(timeout: config.actionSettleTimeout);
+
   /// Lets in-flight live HTTP (wrapped in [WidgetTester.runAsync]) finish and
   /// pumps a frame so Ensemble can apply API state. Uses [Duration.zero] so
   /// timers from departed screens are not advanced while draining live HTTP.
@@ -451,7 +462,7 @@ class TestStepExecutor {
     }
   }
 
-  Future<void> _tap(String id, {int? timeoutMs}) async {
+  Future<void> _tap(String id, {int? timeoutMs, TestStep? step}) async {
     final effectiveTimeout =
         timeoutMs ?? config.defaultWaitTimeout.inMilliseconds;
     final stopwatch = Stopwatch()..start();
@@ -484,8 +495,11 @@ class TestStepExecutor {
       _interactiveFinder(assertions.finderForId(id)),
       id,
     );
+    if (step != null && onBeforeActionStep != null) {
+      await onBeforeActionStep!(step);
+    }
     await tester.tap(tappableFinder);
-    await _settle();
+    await _settleAfterAction();
   }
 
   Finder? _findTappableFinder(String id) {
@@ -547,18 +561,25 @@ class TestStepExecutor {
       ),
     );
     await tester.tap(control.evaluate().isNotEmpty ? control.first : finder);
-    await _settle();
+    await _settleAfterAction();
   }
 
   Future<void> _enterText(String id, String value,
       {bool submit = false}) async {
-    final finder = assertions.finderForId(id);
+    var finder = assertions.finderForId(id);
+    if (finder.evaluate().isEmpty) {
+      await _waitFor(
+        id: id,
+        timeoutMs: config.defaultWaitTimeout.inMilliseconds,
+      );
+      finder = assertions.finderForId(id);
+    }
     _expectSingleWidget(finder, id, 'enterText');
     await tester.enterText(finder, value);
     if (submit) {
       await tester.testTextInput.receiveAction(TextInputAction.done);
     }
-    await _settle();
+    await _settleAfterAction();
   }
 
   Future<void> _submitText(String id) async {
@@ -566,14 +587,14 @@ class TestStepExecutor {
     _expectSingleWidget(finder, id, 'submitText');
     await tester.tap(finder);
     await tester.testTextInput.receiveAction(TextInputAction.done);
-    await _settle();
+    await _settleAfterAction();
   }
 
   Future<void> _clearText(String id) async {
     final finder = assertions.finderForId(id);
     _expectSingleWidget(finder, id, 'clearText');
     await tester.enterText(finder, '');
-    await _settle();
+    await _settleAfterAction();
   }
 
   Future<void> _select(String id, String? value) async {
@@ -586,7 +607,7 @@ class TestStepExecutor {
       throw EnsembleTestFailure('select could not find option "$value"');
     }
     await tester.tap(option);
-    await _settle();
+    await _settleAfterAction();
   }
 
   Future<void> _scrollUntilVisible(String id) async {
@@ -596,7 +617,7 @@ class TestStepExecutor {
       300,
       scrollable: find.byType(Scrollable).first,
     );
-    await _settle();
+    await _settleAfterAction();
   }
 
   Future<void> _waitFor({

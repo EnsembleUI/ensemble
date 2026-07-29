@@ -1,5 +1,6 @@
 import 'package:ensemble/widget/lottie/lottie.dart';
 import 'package:ensemble_test_runner/runner/live_async_call.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 /// Default budget for waiting on Lottie composition load before a screenshot.
@@ -20,6 +21,7 @@ const double kScreenshotLottieProgress = 0.45;
 /// transparent.
 bool areVisibleLottiesReady(WidgetTester tester) {
   for (final element in find.byType(EnsembleLottie).evaluate()) {
+    if (!_isVisibleOnScreen(tester, element)) continue;
     final widget = element.widget;
     if (widget is! EnsembleLottie) continue;
     final controller = widget.controller;
@@ -39,12 +41,32 @@ void seekVisibleLottiesForScreenshot(
 }) {
   final clamped = progress.clamp(0.0, 1.0);
   for (final element in find.byType(EnsembleLottie).evaluate()) {
+    if (!_isVisibleOnScreen(tester, element)) continue;
     final widget = element.widget;
     if (widget is! EnsembleLottie) continue;
     final animation = widget.controller.lottieController;
     if (animation == null || animation.duration == null) continue;
     animation.value = clamped;
   }
+}
+
+bool _isVisibleOnScreen(WidgetTester tester, Element element) {
+  final renderObject = element.renderObject;
+  if (renderObject is! RenderBox ||
+      !renderObject.attached ||
+      !renderObject.hasSize ||
+      renderObject.size.isEmpty) {
+    return false;
+  }
+
+  final topLeft = renderObject.localToGlobal(Offset.zero);
+  final rect = topLeft & renderObject.size;
+  if (rect.isEmpty) return false;
+
+  final view = tester.view;
+  final screenSize = view.physicalSize / view.devicePixelRatio;
+  final screenRect = Offset.zero & screenSize;
+  return rect.overlaps(screenRect);
 }
 
 /// Best-effort wait until visible Lotties have compositions ready to paint,

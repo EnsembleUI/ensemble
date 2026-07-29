@@ -132,6 +132,7 @@ List<String> flutterTestArguments(List<String> arguments) {
         a.startsWith('--screen=') ||
         a.startsWith('--id=') ||
         a.startsWith('--feature=') ||
+        a.startsWith('--profile=') ||
         a.startsWith('--tag=') ||
         a.startsWith('--path=') ||
         a.startsWith('--device=') ||
