@@ -247,7 +247,6 @@ class BoxWrapper extends StatelessWidget {
               controller: tapController,
               boxController: boxController,
               child: containerWidget,
-              wrapEntireWidget: true,
             ),
           );
         }
@@ -288,7 +287,6 @@ class BoxWrapper extends StatelessWidget {
             controller: controller,
             boxController: boxController,
             child: widget,
-            wrapEntireWidget: true,
           );
         }
         return widget; // build() will wrap the container
@@ -466,24 +464,22 @@ class EnsembleBoxWrapper extends StatelessWidget {
   }
 }
 
-/// Handles tap/focus for widgets with onTap.
-/// - TV: D-pad focus with visible border, auto-scroll on focus
-/// - Non-TV: Standard InkWell with splash feedback
+/// Handles tap/focus for tappable widgets (onTap/onLongPress) on TV.
+///
+/// Only ever constructed when `Device().isTV && tvOptions.isEnabled` is true, so
+/// it always renders the D-pad-focusable variant (visible focus border +
+/// auto-scroll on focus). Non-TV taps are handled inline by the Material/InkWell
+/// in `_getWidget`.
 class _TapEnabledWrapper extends StatefulWidget {
   const _TapEnabledWrapper({
     required this.child,
     required this.controller,
     required this.boxController,
-    this.wrapEntireWidget = false,
   });
 
   final Widget child;
   final TapEnabledBoxController controller;
   final BoxController boxController;
-
-  /// When true, wraps entire widget with focus border (TV mode).
-  /// When false, uses standard InkWell touch behavior.
-  final bool wrapEntireWidget;
 
   @override
   State<_TapEnabledWrapper> createState() => _TapEnabledWrapperState();
@@ -512,6 +508,34 @@ void _saveTVRowPositionOnFocus(
   }
 }
 
+/// Maps a curve name (from `tvOptions.scrollAnimationCurve`) to a [Curve].
+/// Supported: easeIn, easeOut, easeInOut, linear, decelerate, ease,
+/// fastOutSlowIn, bounceOut, elasticOut.
+Curve _curveFromName(String? curveName, {Curve defaultCurve = Curves.easeOut}) {
+  switch (curveName?.toLowerCase()) {
+    case 'easein':
+      return Curves.easeIn;
+    case 'easeout':
+      return Curves.easeOut;
+    case 'easeinout':
+      return Curves.easeInOut;
+    case 'linear':
+      return Curves.linear;
+    case 'decelerate':
+      return Curves.decelerate;
+    case 'ease':
+      return Curves.ease;
+    case 'fastoutslowin':
+      return Curves.fastOutSlowIn;
+    case 'bounceout':
+      return Curves.bounceOut;
+    case 'elasticout':
+      return Curves.elasticOut;
+    default:
+      return defaultCurve;
+  }
+}
+
 class _TapEnabledWrapperState extends State<_TapEnabledWrapper> {
   late final FocusNode _focusNode;
   static int _instanceCounter = 0;
@@ -527,6 +551,12 @@ class _TapEnabledWrapperState extends State<_TapEnabledWrapper> {
 
   @override
   void dispose() {
+    // If disposed while focused, no focus-loss event fires — reset the shared
+    // controller's hasFocus so a reused controller / the ${id.hasFocus} binding
+    // don't keep a stale `true`. (No dispatch: the context is being torn down.)
+    if (widget.boxController.hasFocus) {
+      widget.boxController.hasFocus = false;
+    }
     _focusNode.removeListener(_onFocusChange);
     _focusNode.dispose();
     super.dispose();
@@ -569,30 +599,8 @@ class _TapEnabledWrapperState extends State<_TapEnabledWrapper> {
   /// Converts a curve name string to a Flutter Curve object.
   /// Supported values: easeIn, easeOut, easeInOut, linear, decelerate, ease.
   Curve _getCurveFromName(String? curveName,
-      {Curve defaultCurve = Curves.easeOut}) {
-    switch (curveName?.toLowerCase()) {
-      case 'easein':
-        return Curves.easeIn;
-      case 'easeout':
-        return Curves.easeOut;
-      case 'easeinout':
-        return Curves.easeInOut;
-      case 'linear':
-        return Curves.linear;
-      case 'decelerate':
-        return Curves.decelerate;
-      case 'ease':
-        return Curves.ease;
-      case 'fastoutslowin':
-        return Curves.fastOutSlowIn;
-      case 'bounceout':
-        return Curves.bounceOut;
-      case 'elasticout':
-        return Curves.elasticOut;
-      default:
-        return defaultCurve;
-    }
-  }
+          {Curve defaultCurve = Curves.easeOut}) =>
+      _curveFromName(curveName, defaultCurve: defaultCurve);
 
   /// Handles scrolling when focus changes.
   /// Uses Netflix-style fixed position for horizontal scrolling when enabled.
@@ -787,13 +795,24 @@ class _TapEnabledWrapperState extends State<_TapEnabledWrapper> {
 
     if (isFullyVisible) return;
 
-    // Scroll to center the item
-    Scrollable.ensureVisible(
-      context,
-      alignment: 0.5,
-      duration: Duration(milliseconds: animationDuration),
-      curve: curve,
-    );
+    // Center the item horizontally. This mirrors Scrollable.ensureVisible(
+    // alignment: 0.5) but scrolls ONLY this horizontal scrollable. The old
+    // ensureVisible(context) was not axis-restricted — it also scrolled every
+    // enclosing vertical scrollable, undoing the padding-aware
+    // _scrollVerticalOnly done moments earlier and causing a vertical jerk.
+    final position = scrollable.position;
+    final double itemCenter = itemLeft + itemWidth / 2;
+    final double viewportCenter = scrollableLeft + scrollableBox.size.width / 2;
+    final double targetScroll = (position.pixels + (itemCenter - viewportCenter))
+        .clamp(0.0, position.maxScrollExtent);
+
+    if ((targetScroll - position.pixels).abs() > kTVScrollThreshold) {
+      position.animateTo(
+        targetScroll,
+        duration: Duration(milliseconds: animationDuration),
+        curve: curve,
+      );
+    }
   }
 
   /// Netflix-style horizontal scrolling: focus stays at fixed left position,
@@ -884,13 +903,10 @@ class _TapEnabledWrapperState extends State<_TapEnabledWrapper> {
 
   @override
   Widget build(BuildContext context) {
-    final controller = widget.controller;
-    final boxController = widget.boxController;
-
-    if (Device().isTV && boxController.tvOptions?.isEnabled == true) {
-      return _buildTVFocusable(context, controller);
-    }
-    return _buildInkWell(context, controller);
+    // _TapEnabledWrapper is only constructed on TV with tvOptions enabled (see
+    // the guards in box_wrapper build()/_getWidget), so it always renders the
+    // TV-focusable variant. Non-TV taps are handled inline in _getWidget.
+    return _buildTVFocusable(context, widget.controller);
   }
 
   /// Builds TV-focusable widget with D-pad navigation and focus border.
@@ -936,13 +952,8 @@ class _TapEnabledWrapperState extends State<_TapEnabledWrapper> {
     final borderRadius = stylingResolver.focusBorderRadius;
     final focusAnimationDuration = stylingResolver.focusAnimationDuration;
 
-    // When wrapEntireWidget is true, don't add internal padding - child is already the complete widget
-    // When false (standard behavior), add padding if splash feedback is enabled
-    Widget content = widget.wrapEntireWidget
-        ? widget.child
-        : (controller.enableSplashFeedback && controller.padding != null
-            ? Padding(padding: controller.padding!, child: widget.child)
-            : widget.child);
+    // The child is already the complete widget; no internal padding is added.
+    Widget content = widget.child;
 
     Widget inkWell = InkWell(
       focusNode: _focusNode,
@@ -1100,44 +1111,6 @@ class _TapEnabledWrapperState extends State<_TapEnabledWrapper> {
     );
   }
 
-  /// Non-TV: Standard InkWell with splash feedback for touch/mouse.
-  Widget _buildInkWell(
-      BuildContext context, TapEnabledBoxController controller) {
-    Widget inkWellChild =
-        controller.enableSplashFeedback && controller.padding != null
-            ? Padding(
-                padding: controller.padding!,
-                child: widget.child,
-              )
-            : widget.child;
-
-    Widget inkWell = InkWell(
-      focusNode: _focusNode,
-      autofocus: widget.boxController.autofocus,
-      splashFactory: CustomInkSplashFactory(
-        splashDuration: controller.splashDuration,
-        splashFadeDuration: controller.splashFadeDuration,
-        unconfirmedSplashDuration: controller.unconfirmedSplashDuration,
-      ),
-      onLongPress: controller.onLongPress != null
-          ? () =>
-              ScreenController().executeAction(context, controller.onLongPress!)
-          : null,
-      onTap: controller.onTap != null
-          ? () => ScreenController().executeAction(context, controller.onTap!)
-          : null,
-      splashColor: controller.enableSplashFeedback
-          ? controller.splashColor
-          : Colors.transparent,
-      highlightColor: Colors.transparent,
-      focusColor: controller.focusColor,
-      hoverColor: controller.hoverColor,
-      mouseCursor: controller.mouseCursor,
-      child: inkWellChild,
-    );
-
-    return Material(color: Colors.transparent, child: inkWell);
-  }
 }
 
 // =============================================================================
@@ -1183,6 +1156,10 @@ class _TVFocusOnlyWrapperState extends State<_TVFocusOnlyWrapper> {
 
   @override
   void dispose() {
+    // Reset stale focus state if disposed while focused (see _TapEnabledWrapper).
+    if (widget.boxController.hasFocus) {
+      widget.boxController.hasFocus = false;
+    }
     _scopeNode.dispose();
     super.dispose();
   }
@@ -1197,13 +1174,17 @@ class _TVFocusOnlyWrapperState extends State<_TVFocusOnlyWrapper> {
         tvOptions?.scrollAnimationDuration ?? kTVScrollAnimationDurationMs;
     final verticalPadding =
         tvOptions?.verticalScrollPadding ?? kTVVerticalScrollPadding;
+    // Honor the configurable scrollAnimationCurve (previously hardcoded here).
+    final curve = _curveFromName(tvOptions?.scrollAnimationCurve,
+        defaultCurve: Curves.easeInOut);
 
     // Handle vertical scrolling to ensure focused item is visible
     final verticalScrollable = _findVerticalScrollable();
     if (verticalScrollable != null) {
       _scrollVerticalOnly(verticalScrollable, itemBox,
           verticalPadding: verticalPadding,
-          animationDuration: scrollAnimationDuration);
+          animationDuration: scrollAnimationDuration,
+          curve: curve);
     }
   }
 
@@ -1231,7 +1212,8 @@ class _TVFocusOnlyWrapperState extends State<_TVFocusOnlyWrapper> {
   /// Scrolls ONLY the vertical scrollable to bring item into view.
   void _scrollVerticalOnly(ScrollableState scrollable, RenderBox itemBox,
       {double verticalPadding = kTVVerticalScrollPadding,
-      int animationDuration = kTVScrollAnimationDurationMs}) {
+      int animationDuration = kTVScrollAnimationDurationMs,
+      Curve curve = Curves.easeInOut}) {
     final scrollableBox = scrollable.context.findRenderObject() as RenderBox?;
     if (scrollableBox == null || !scrollableBox.hasSize) return;
 
@@ -1273,7 +1255,7 @@ class _TVFocusOnlyWrapperState extends State<_TVFocusOnlyWrapper> {
       position.animateTo(
         targetScroll,
         duration: Duration(milliseconds: animationDuration),
-        curve: Curves.easeInOut,
+        curve: curve,
       );
     }
   }

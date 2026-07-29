@@ -235,10 +235,6 @@ class CarouselState extends EWidgetState<Carousel>
   /// Tracks autoplay pause state for pauseAutoplayOnFocus feature.
   bool _isAutoplayPaused = false;
 
-  /// Navigation direction for focus restoration: -1=LEFT, 1=RIGHT, 0=autoplay.
-  /// WARNING: Current implementation uses nextFocus() for both directions.
-  int _lastNavigationDirection = 0;
-
   /// Set true when slide change triggered by D-pad navigation.
   bool _pendingFocusRestore = false;
 
@@ -312,12 +308,16 @@ class CarouselState extends EWidgetState<Carousel>
     return KeyEventResult.handled;
   }
 
+  /// Number of slides — cheap count from the sources, without rebuilding every
+  /// slide widget via buildItems() (which addGesture/Container-wraps 1:1).
+  int get _slideCount =>
+      (widget._controller.children?.length ?? 0) +
+      (templatedChildren?.length ?? 0);
+
   /// Navigate to previous slide with focus restoration
   void _navigateToPreviousSlide() {
-    final items = buildItems();
-    if (items.isEmpty) return;
+    if (_slideCount == 0) return;
 
-    _lastNavigationDirection = -1;
     _pendingFocusRestore =
         widget._controller.tvOptions?.restoreFocusOnPageChange == true;
 
@@ -325,7 +325,7 @@ class CarouselState extends EWidgetState<Carousel>
     if (currentIndex == 0) {
       // Loop to last slide if enabled
       if (widget._controller.enableLoop == true) {
-        widget._controller._carouselController.animateToPage(items.length - 1);
+        widget._controller._carouselController.animateToPage(_slideCount - 1);
       }
     } else {
       widget._controller._carouselController.previousPage();
@@ -334,15 +334,13 @@ class CarouselState extends EWidgetState<Carousel>
 
   /// Navigate to next slide with focus restoration
   void _navigateToNextSlide() {
-    final items = buildItems();
-    if (items.isEmpty) return;
+    if (_slideCount == 0) return;
 
-    _lastNavigationDirection = 1;
     _pendingFocusRestore =
         widget._controller.tvOptions?.restoreFocusOnPageChange == true;
 
     final currentIndex = widget._controller.currentIndex;
-    if (currentIndex == items.length - 1) {
+    if (currentIndex == _slideCount - 1) {
       // Loop to first slide if enabled
       if (widget._controller.enableLoop == true) {
         widget._controller._carouselController.animateToPage(0);
@@ -627,11 +625,7 @@ class CarouselState extends EWidgetState<Carousel>
       padEnds: false,
       viewportFraction: widget._controller.singleItemWidthRatio ?? 1,
       onPageChanged: (index, reason) {
-        // Track if this was an autoplay change
         final isAutoplay = reason == CarouselPageChangedReason.timed;
-        if (isAutoplay) {
-          _lastNavigationDirection = 0;
-        }
 
         _onItemChange(index);
         setState(() {
@@ -652,11 +646,7 @@ class CarouselState extends EWidgetState<Carousel>
         pageSnapping: false,
         viewportFraction: widget._controller.multipleItemWidthRatio ?? 0.6,
         onPageChanged: (index, reason) {
-          // Track if this was an autoplay change
           final isAutoplay = reason == CarouselPageChangedReason.timed;
-          if (isAutoplay) {
-            _lastNavigationDirection = 0;
-          }
 
           setState(() {
             widget._controller.currentIndex = index;
@@ -675,10 +665,8 @@ class CarouselState extends EWidgetState<Carousel>
   /// - restoreFocusOnPageChange is enabled
   /// - Carousel currently has focus
   ///
-  /// KNOWN LIMITATION: Both LEFT and RIGHT navigation use nextFocus().
-  /// Ideal behavior: LEFT→last element, RIGHT→first element.
-  /// Current behavior: Both focus "next" element (Flutter's default traversal).
-  /// Works fine for single-item slides, may need improvement for multi-item slides.
+  /// Focus lands on the first focusable of the new slide (Flutter's default
+  /// forward traversal) regardless of navigation direction.
   void _handleFocusRestoration(int newIndex, bool isAutoplay) {
     if (!_isTVPlatform) return;
     if (widget._controller.tvOptions?.restoreFocusOnPageChange != true) return;
@@ -700,13 +688,9 @@ class CarouselState extends EWidgetState<Carousel>
       if (!mounted) return;
       if (!_carouselFocusScopeNode.hasFocus) return;
 
-      // TODO: Use TVFocusOrder targeting instead of nextFocus() for proper
-      // direction-aware focus restoration (LEFT→last, RIGHT→first)
-      if (_lastNavigationDirection == -1) {
-        _carouselFocusScopeNode.nextFocus();
-      } else {
-        _carouselFocusScopeNode.nextFocus();
-      }
+      // Land focus on the first focusable of the new slide (Flutter's default
+      // forward traversal). This is the intended behavior for both directions.
+      _carouselFocusScopeNode.nextFocus();
     });
   }
 

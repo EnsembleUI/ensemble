@@ -227,11 +227,14 @@ class TVFocusOrder extends FocusOrder {
     double? targetRow,
     double? currentRow,
   }) {
-    if (targetRow != null) {
+    // Finds the row in the already-built [grid] whose row index is closest to
+    // [target]. Scans `grid` directly — no need to flatten + rebuild via
+    // _findNearestRow.
+    List<TVFocusOrderNode>? nearestRowTo(double target) {
       List<TVFocusOrderNode>? nearest;
       var nearestDiff = double.infinity;
       for (final rowNodes in grid) {
-        final diff = (rowNodes.first.order.row - targetRow).abs();
+        final diff = (rowNodes.first.order.row - target).abs();
         if (diff < nearestDiff) {
           nearest = rowNodes;
           nearestDiff = diff;
@@ -240,16 +243,17 @@ class TVFocusOrder extends FocusOrder {
       return nearest;
     }
 
+    if (targetRow != null) {
+      return nearestRowTo(targetRow);
+    }
+
     switch (direction) {
       case TVFocusDirection.right:
       case TVFocusDirection.left:
         if (currentRow == null) {
           return grid.first;
         }
-        return _findNearestRow(
-          grid.expand((row) => row).toList(),
-          currentRow,
-        );
+        return nearestRowTo(currentRow);
       case TVFocusDirection.bottom:
         return grid.first;
       case TVFocusDirection.top:
@@ -454,17 +458,6 @@ class TVFocusOrderNode {
     return _focusNodeDepth(candidate.focus) > _focusNodeDepth(existing.focus);
   }
 
-  static bool isBetterFocusCandidate(FocusNode candidate, FocusNode existing) {
-    if (candidate.hasPrimaryFocus != existing.hasPrimaryFocus) {
-      return candidate.hasPrimaryFocus;
-    }
-    if (candidate.hasFocus != existing.hasFocus) {
-      return candidate.hasFocus;
-    }
-
-    return _focusNodeDepth(candidate) > _focusNodeDepth(existing);
-  }
-
   static int _focusNodeDepth(FocusNode focusNode) {
     var depth = 0;
     focusNode.context?.visitAncestorElements((_) {
@@ -581,14 +574,14 @@ class TVFocusOrderNode {
 // Focus Traversal Policy & Scope
 // =============================================================================
 
-/// Traversal policy that prevents UP navigation from escaping the Ensemble grid.
+/// Named [ReadingOrderTraversalPolicy] for Ensemble's TV focus groups.
+///
+/// Currently adds no traversal overrides of its own — row/edge boundaries
+/// (including UP at row 0) are enforced by the TVFocusWidget navigation logic,
+/// not here. Kept as a named seam so TV-specific traversal can be added later
+/// without touching the FocusTraversalGroup call sites.
 class TVFocusOrderTraversalPolicy extends ReadingOrderTraversalPolicy {
-  /// When true, UP at row 0 is blocked (focus stays in Ensemble content).
-  final bool preventOutOfScopeTopTraversal;
-
-  TVFocusOrderTraversalPolicy({
-    this.preventOutOfScopeTopTraversal = true,
-  });
+  TVFocusOrderTraversalPolicy();
 }
 
 /// Focus scope with edge handlers for scrollbar navigation and focus locking.

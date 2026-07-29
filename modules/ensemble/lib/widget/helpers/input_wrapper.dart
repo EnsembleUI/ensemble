@@ -114,6 +114,34 @@ class InputWrapper extends StatelessWidget {
         ) ??
         tvFocusScope?.onBottomEdge;
 
+    // Refresh rememberRowPosition memory when the input gains focus directly
+    // (tap / edge-jump / requestFocus). D-pad traversal records the column
+    // elsewhere, but these direct-focus paths otherwise leave a stale column.
+    // Mirrors box_wrapper's _saveTVRowPositionOnFocus; passes relative row/order
+    // (the provider adds its offsets). Non-intrusive: the Focus node can't take
+    // focus itself and is skipped in traversal.
+    Widget focusTrackedChild = child;
+    if (rememberRowPosition) {
+      final route = ModalRoute.of(context);
+      focusTrackedChild = Focus(
+        canRequestFocus: false,
+        skipTraversal: true,
+        onFocusChange: (hasFocus) {
+          if (!hasFocus) return;
+          if (externalProvider != null) {
+            externalProvider.saveRowPosition(
+                route: route,
+                row: tvRow,
+                order: tvOrder,
+                focusGroup: focusGroup);
+          } else {
+            TVFocusWidget.rememberOrder(route, focusGroup, tvRow, tvOrder);
+          }
+        },
+        child: child,
+      );
+    }
+
     if (externalProvider != null) {
       return externalProvider.wrapFocusable(
         row: effectiveRow,
@@ -127,7 +155,7 @@ class InputWrapper extends StatelessWidget {
         onLeftEdge: leftEdgeHandler,
         onTopEdge: topEdgeHandler,
         onBottomEdge: bottomEdgeHandler,
-        child: child,
+        child: focusTrackedChild,
       );
     }
 
@@ -146,7 +174,7 @@ class InputWrapper extends StatelessWidget {
       onLeftEdge: leftEdgeHandler,
       onTopEdge: topEdgeHandler,
       onBottomEdge: bottomEdgeHandler,
-      child: child,
+      child: focusTrackedChild,
     );
   }
 

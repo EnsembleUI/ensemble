@@ -132,13 +132,16 @@ abstract class BaseTabBarState extends EWidgetState<BaseTabBar>
         Theme.of(context).colorScheme.primary;
     final inactiveColor = widget.controller.inactiveTabColor ?? Colors.black87;
     final indicatorColor = widget.controller.indicatorColor ?? activeColor;
+    final focusIndicatorColor = widget.controller.focusIndicatorColor;
+    final focusTabColor = widget.controller.focusTabColor;
     final backgroundColor = widget.controller.tabBackgroundColor;
     final indicatorThickness =
         widget.controller.indicatorThickness?.toDouble() ?? 2;
 
     // Get tvOptions for row
     final tvOptions = widget.controller.tvOptions;
-    final tvRow = tvOptions?.row ?? 0.0;
+    // Prefer the TabBar's own `tvRow` property; fall back to tvOptions.row, then 0.
+    final tvRow = widget.controller.tvRow ?? tvOptions?.row ?? 0.0;
 
     // Use AnimatedBuilder to rebuild tabs when selection changes
     // This mirrors Flutter's TabBar which listens to tabController.animation
@@ -162,6 +165,8 @@ abstract class BaseTabBarState extends EWidgetState<BaseTabBar>
                 activeColor: activeColor,
                 inactiveColor: inactiveColor,
                 indicatorColor: indicatorColor,
+                focusIndicatorColor: focusIndicatorColor,
+                focusTabColor: focusTabColor,
                 indicatorThickness: indicatorThickness,
                 tabFontSize: widget.controller.tabFontSize?.toDouble(),
                 tabFontWeight: widget.controller.tabFontWeight,
@@ -230,13 +235,15 @@ abstract class BaseTabBarState extends EWidgetState<BaseTabBar>
 
   Widget _buildTabWidget(ScopeManager? scopeManager, TabItem tabItem) {
     final tabWidget = tabItem.tabWidget;
-    final label = scopeManager!.dataContext.eval(tabItem.label);
     if (scopeManager != null && tabWidget != null) {
       final customWidget = scopeManager.buildWidgetFromDefinition(tabWidget);
       return Tab(
         child: customWidget,
       );
     }
+    // Fall back to a text/icon tab. eval needs a scope; if there's none, the
+    // label degrades to null rather than crashing on a force-unwrap.
+    final label = scopeManager?.dataContext.eval(tabItem.label);
     return Tab(
       text: label,
       icon:
@@ -263,6 +270,8 @@ class _TVTabButton extends StatefulWidget {
     required this.activeColor,
     required this.inactiveColor,
     required this.indicatorColor,
+    this.focusIndicatorColor,
+    this.focusTabColor,
     required this.indicatorThickness,
     required this.onTap,
     this.autofocus = false,
@@ -279,6 +288,8 @@ class _TVTabButton extends StatefulWidget {
   final Color activeColor;
   final Color inactiveColor;
   final Color indicatorColor;
+  final Color? focusIndicatorColor;
+  final Color? focusTabColor;
   final double indicatorThickness;
   final VoidCallback onTap;
   final double? tabFontSize;
@@ -368,7 +379,7 @@ class _TVTabButtonState extends State<_TVTabButton> {
                   width: hasFocus ? 24 : (widget.isSelected ? 16 : 0),
                   decoration: BoxDecoration(
                     color: hasFocus
-                        ? Colors.blue
+                        ? (widget.focusIndicatorColor ?? Colors.blue)
                         : widget.isSelected
                             ? widget.indicatorColor
                             : Colors.transparent,
@@ -412,7 +423,7 @@ class _TVTabButtonState extends State<_TVTabButton> {
 
   Widget _buildTabContent(BuildContext context, bool isFocused) {
     final textColor = isFocused
-        ? Colors.white
+        ? (widget.focusTabColor ?? Colors.white)
         : widget.isSelected
             ? widget.activeColor
             : widget.inactiveColor;
