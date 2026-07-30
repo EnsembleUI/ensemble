@@ -350,6 +350,15 @@ class _BracketsViewState extends State<BracketsView> {
     if (newPage != _currentPageIndex) {
       setState(() {
         _currentPageIndex = newPage;
+        // On mobile, a horizontal swipe changes the page but not the reference
+        // lane used for column spacing (_prevColumnIndex). Sync it here so tiles
+        // realign after a swipe exactly as they do after a tab tap. TV drives
+        // _prevColumnIndex via the keyboard-navigation callback instead, and must
+        // not be touched here (onPageChanged/page rounding is unreliable on the
+        // clamped end pages with small viewportFraction + padEnds:false).
+        if (!Device().isTV) {
+          _prevColumnIndex = newPage;
+        }
       });
     }
     _scrollToSelectedTab(newPage);
