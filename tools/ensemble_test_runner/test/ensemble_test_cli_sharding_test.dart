@@ -76,4 +76,55 @@ steps:
       ],
     );
   });
+
+  test('device selection plans ids matching worker-side expansion', () async {
+    final root = Directory.systemTemp.createTempSync('ensemble_cli_device_');
+    addTearDown(() => root.deleteSync(recursive: true));
+
+    final appDir = root.path;
+    Directory(p.join(appDir, 'ensemble')).createSync(recursive: true);
+    final testsDir = Directory(
+      p.join(appDir, 'ensemble', 'apps', 'demo', 'tests'),
+    )..createSync(recursive: true);
+
+    File(p.join(appDir, 'ensemble', 'ensemble-config.yaml')).writeAsStringSync(
+      '''
+definitions:
+  local:
+    path: ensemble/apps/demo
+''',
+    );
+    File(p.join(testsDir.path, 'config.yaml')).writeAsStringSync(
+      '''
+devices:
+  - id: iphone
+    platform: ios
+    model: iPhone 15 Pro
+  - id: android
+    platform: android
+    model: Samsung Galaxy S20
+''',
+    );
+    for (final name in ['restore', 'reset']) {
+      File(p.join(testsDir.path, '$name.test.yaml')).writeAsStringSync(
+        '''
+id: ${name}_flow
+feature: backup-restore
+startScreen: Home
+steps:
+  - expectVisible:
+      id: home
+''',
+      );
+    }
+
+    final shards = await planShardRunIdsForTest(
+      appDir: appDir,
+      arguments: const ['--feature=backup-restore', '--device=android'],
+      jobs: 2,
+    );
+    final ids = shards.expand((shard) => shard).toList()..sort();
+
+    expect(ids, ['reset_flow', 'restore_flow']);
+  });
 }

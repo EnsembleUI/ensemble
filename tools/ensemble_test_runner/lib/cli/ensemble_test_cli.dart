@@ -463,20 +463,13 @@ Future<ProcessResult> _runParallelFlutterTests(
     ...testFiles.serial,
   ];
   if (allFiles.length < 2) {
-    return _runFlutterTestProcess(
-      'flutter',
-      _buildFlutterTestArgs(
-        arguments,
-        reportMode: reportMode,
-        reportFile: reportFile,
-        timeoutSeconds: timeoutSeconds,
-        verbose: false,
-        appLogPath: _appConsoleLogPath(),
-      ),
-      workingDirectory: appDir,
-      streamOutput: false,
-      verbose: false,
-      appLogFile: _appConsoleLogFile(appDir),
+    return _runSingleFlutterTestProcess(
+      arguments,
+      appDir: appDir,
+      patcher: patcher,
+      reportMode: reportMode,
+      reportFile: reportFile,
+      timeoutSeconds: timeoutSeconds,
     );
   }
 
@@ -490,20 +483,13 @@ Future<ProcessResult> _runParallelFlutterTests(
       ? parallelLaneBudget.clamp(1, testFiles.parallel.length)
       : 0;
   if (parallelWorkerCount <= 1 && !hasSerialFiles) {
-    return _runFlutterTestProcess(
-      'flutter',
-      _buildFlutterTestArgs(
-        arguments,
-        reportMode: reportMode,
-        reportFile: reportFile,
-        timeoutSeconds: timeoutSeconds,
-        verbose: false,
-        appLogPath: _appConsoleLogPath(),
-      ),
-      workingDirectory: appDir,
-      streamOutput: false,
-      verbose: false,
-      appLogFile: _appConsoleLogFile(appDir),
+    return _runSingleFlutterTestProcess(
+      arguments,
+      appDir: appDir,
+      patcher: patcher,
+      reportMode: reportMode,
+      reportFile: reportFile,
+      timeoutSeconds: timeoutSeconds,
     );
   }
   final shards = _balancedShards(testFiles.parallel, parallelWorkerCount);
@@ -699,6 +685,41 @@ Future<ProcessResult> _runParallelFlutterTests(
     exitCode,
     output.toString(),
     stderr.toString(),
+  );
+}
+
+Future<ProcessResult> _runSingleFlutterTestProcess(
+  List<String> arguments, {
+  required String appDir,
+  required YamlTestAppPatcher patcher,
+  required String? reportMode,
+  required String? reportFile,
+  required int? timeoutSeconds,
+}) async {
+  final useWorker = patcher.hasTimerRewrites;
+  final workingDirectory =
+      useWorker ? _prepareWorkerDirectory(appDir, 0, patcher) : appDir;
+  final serviceOverrides = await _resolveServiceOverrides(
+    patcher: patcher,
+    usedPorts: <int>{},
+  );
+  return _runFlutterTestProcess(
+    'flutter',
+    _buildFlutterTestArgs(
+      arguments,
+      reportMode: reportMode,
+      reportFile: reportFile,
+      timeoutSeconds: timeoutSeconds,
+      verbose: false,
+      appLogPath: useWorker ? _appConsoleLogFile(appDir) : _appConsoleLogPath(),
+      appLogDisplayPath: useWorker ? _appConsoleLogPath() : null,
+      artifactRoot: useWorker ? _artifactRootPath(appDir) : null,
+      serviceOverrides: serviceOverrides,
+    ),
+    workingDirectory: workingDirectory,
+    streamOutput: false,
+    verbose: false,
+    appLogFile: _appConsoleLogFile(appDir),
   );
 }
 
@@ -1095,6 +1116,12 @@ Future<_ShardedTestFiles> _testFilesForSharding(
   final parallel = <_ShardableTestFile>[];
   final serial = <String>[];
   final config = _readTestsConfig(testsDir);
+  final effectiveConfig = config == null
+      ? null
+      : _applyShardDeviceFilter(
+          config,
+          _optionValueSet(arguments, '--device'),
+        );
   final files = Directory(testsDir)
       .listSync(recursive: true)
       .whereType<File>()
@@ -1127,7 +1154,12 @@ Future<_ShardedTestFiles> _testFilesForSharding(
   for (final file in files) {
     final relative = p.relative(file.path, from: appDir).replaceAll('\\', '/');
     final doc = docsByPath[relative];
-    if (!_matchesShardSelection(relative, doc, arguments, config: config)) {
+    if (!_matchesShardSelection(
+      relative,
+      doc,
+      arguments,
+      config: effectiveConfig,
+    )) {
       continue;
     }
     if (_isParallelTestFile(file, doc: doc) &&
@@ -1135,7 +1167,7 @@ Future<_ShardedTestFiles> _testFilesForSharding(
       final definitions = _expandedShardDefinitionsForFile(
         doc: doc,
         relativePath: relative,
-        config: config,
+        config: effectiveConfig,
         arguments: arguments,
       );
       final fileEstimate = _estimateTestFileDurationMs(
@@ -1380,6 +1412,33 @@ EnsembleTestConfig? _readTestsConfig(String testsDir) {
   } catch (_) {
     return null;
   }
+}
+
+EnsembleTestConfig _applyShardDeviceFilter(
+  EnsembleTestConfig config,
+  Set<String> selectedIds,
+) {
+  if (selectedIds.isEmpty || config.devices.isEmpty) return config;
+  return EnsembleTestConfig(
+    services: config.services,
+    mockFiles: config.mockFiles,
+    inlineMocks: config.inlineMocks,
+    initialState: config.initialState,
+    defaultProfile: config.defaultProfile,
+    profiles: config.profiles,
+    profileGroups: config.profileGroups,
+    devices: [
+      for (final device in config.devices)
+        if (selectedIds.contains(device.id)) device,
+    ],
+    screenshots: config.screenshots,
+    performance: config.performance,
+    timers: config.timers,
+    dumpTree: config.dumpTree,
+    logApiCalls: config.logApiCalls,
+    logStorage: config.logStorage,
+    wifi: config.wifi,
+  );
 }
 
 bool _matchesProfileShardSelection(
