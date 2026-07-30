@@ -1,3 +1,7 @@
+## 1.2.55
+
+ - **FEAT**(ensemble_test_runner): enhance test execution with single test p… ([#2330](https://github.com/ensembleUI/ensemble/issues/2330)). ([f9aef972](https://github.com/ensembleUI/ensemble/commit/f9aef9729791f1cf5e1b4c760fd28068045b214d))
+
 ## 1.2.54
 
  - **FEAT**(ensemble_test_runner): add profile support for test execution an… ([#2328](https://github.com/ensembleUI/ensemble/issues/2328)). ([14193802](https://github.com/ensembleUI/ensemble/commit/14193802e982a590513c86b0bf663402907101f9))
