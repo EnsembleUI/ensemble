@@ -291,12 +291,22 @@ class EnsembleImageCropperState extends EWidgetState<EnsembleImageCropper>
       // If the asset is available locally, then use local path
       String assetName = Utils.getAssetName(source);
       if (Utils.isAssetAvailableLocally(assetName)) {
-        return Image.asset(
-          Utils.getLocalAssetFullPath(assetName),
-          width: widget._controller.width?.toDouble(),
-          height: widget._controller.height?.toDouble(),
-          fit: fit,
-        ).image;
+        // CDN-cached asset resolves to a device file path -> use .file, not .asset.
+        final localPath = Utils.getLocalAssetFullPath(assetName);
+        return (Utils.isMemoryPath(localPath)
+                ? Image.file(
+                    io.File(localPath),
+                    width: widget._controller.width?.toDouble(),
+                    height: widget._controller.height?.toDouble(),
+                    fit: fit,
+                  )
+                : Image.asset(
+                    localPath,
+                    width: widget._controller.width?.toDouble(),
+                    height: widget._controller.height?.toDouble(),
+                    fit: fit,
+                  ))
+            .image;
       }
       return Image.network(
         source,
@@ -311,12 +321,21 @@ class EnsembleImageCropperState extends EWidgetState<EnsembleImageCropper>
         fit: fit,
       ).image;
     } else {
-      return Image.asset(
-        Utils.getLocalAssetFullPath(widget._controller.source),
-        width: widget._controller.width?.toDouble(),
-        height: widget._controller.height?.toDouble(),
-        fit: fit,
-      ).image;
+      final localPath = Utils.getLocalAssetFullPath(widget._controller.source);
+      return (Utils.isMemoryPath(localPath)
+              ? Image.file(
+                  io.File(localPath),
+                  width: widget._controller.width?.toDouble(),
+                  height: widget._controller.height?.toDouble(),
+                  fit: fit,
+                )
+              : Image.asset(
+                  localPath,
+                  width: widget._controller.width?.toDouble(),
+                  height: widget._controller.height?.toDouble(),
+                  fit: fit,
+                ))
+          .image;
     }
   }
 
@@ -326,18 +345,19 @@ class EnsembleImageCropperState extends EWidgetState<EnsembleImageCropper>
       // If the asset is available locally, then use local path
       String assetName = Utils.getAssetName(source);
       if (Utils.isAssetAvailableLocally(assetName)) {
-        return Svg(
-          Utils.getLocalAssetFullPath(widget._controller.source),
-          source: SvgSource.asset,
-        );
+        final localSvgPath =
+            Utils.getLocalAssetFullPath(widget._controller.source);
+        return Utils.isMemoryPath(localSvgPath)
+            ? Svg(localSvgPath, source: SvgSource.file)
+            : Svg(localSvgPath, source: SvgSource.asset);
       }
       return Svg(widget._controller.source, source: SvgSource.network);
     }
     // attempt local assets
-    return Svg(
-      Utils.getLocalAssetFullPath(widget._controller.source),
-      source: SvgSource.asset,
-    );
+    final localSvgPath = Utils.getLocalAssetFullPath(widget._controller.source);
+    return Utils.isMemoryPath(localSvgPath)
+        ? Svg(localSvgPath, source: SvgSource.file)
+        : Svg(localSvgPath, source: SvgSource.asset);
   }
 
   // use modern colors as background placeholder while images are being loaded

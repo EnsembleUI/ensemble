@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:ensemble/action/haptic_action.dart';
 import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/widget/widget.dart';
@@ -84,21 +86,40 @@ class LottieState extends EWidgetState<EnsembleLottie>
         // If the asset is available locally, then use local path
         String assetName = Utils.getAssetName(source);
         if (Utils.isAssetAvailableLocally(assetName)) {
-          return Lottie.asset(
-            Utils.getLocalAssetFullPath(assetName),
-            controller: widget.controller.lottieController,
-            onLoaded: (composition) {
-              widget.controller.initializeLottieController(composition);
-            },
-            decoder: widget.controller.source.endsWith('.lottie')
-                ? _lottieDecoder
-                : null,
-            width: widget.controller.width?.toDouble(),
-            height: widget.controller.height?.toDouble(),
-            repeat: widget.controller.repeat,
-            fit: fit,
-            errorBuilder: (context, error, stacktrace) => placeholderImage(),
-          );
+          // CDN-cached asset resolves to a device file path -> use .file, not .asset.
+          final localLottiePath = Utils.getLocalAssetFullPath(assetName);
+          final lottieDecoder = widget.controller.source.endsWith('.lottie')
+              ? _lottieDecoder
+              : null;
+          return Utils.isMemoryPath(localLottiePath)
+              ? Lottie.file(
+                  File(localLottiePath),
+                  controller: widget.controller.lottieController,
+                  onLoaded: (composition) {
+                    widget.controller.initializeLottieController(composition);
+                  },
+                  decoder: lottieDecoder,
+                  width: widget.controller.width?.toDouble(),
+                  height: widget.controller.height?.toDouble(),
+                  repeat: widget.controller.repeat,
+                  fit: fit,
+                  errorBuilder: (context, error, stacktrace) =>
+                      placeholderImage(),
+                )
+              : Lottie.asset(
+                  localLottiePath,
+                  controller: widget.controller.lottieController,
+                  onLoaded: (composition) {
+                    widget.controller.initializeLottieController(composition);
+                  },
+                  decoder: lottieDecoder,
+                  width: widget.controller.width?.toDouble(),
+                  height: widget.controller.height?.toDouble(),
+                  repeat: widget.controller.repeat,
+                  fit: fit,
+                  errorBuilder: (context, error, stacktrace) =>
+                      placeholderImage(),
+                );
         }
         return Lottie.network(widget.controller.source,
             controller: widget.controller.lottieController,
@@ -116,21 +137,40 @@ class LottieState extends EWidgetState<EnsembleLottie>
       }
       // else attempt local asset
       else {
-        return Lottie.asset(
-          Utils.getLocalAssetFullPath(widget.controller.source),
-          controller: widget.controller.lottieController,
-          decoder: widget.controller.source.endsWith('.lottie')
-              ? _lottieDecoder
-              : null,
-          onLoaded: (composition) {
-            widget.controller.initializeLottieController(composition);
-          },
-          width: widget.controller.width?.toDouble(),
-          height: widget.controller.height?.toDouble(),
-          repeat: widget.controller.repeat,
-          fit: fit,
-          errorBuilder: (context, error, stacktrace) => placeholderImage(),
-        );
+        final localLottiePath =
+            Utils.getLocalAssetFullPath(widget.controller.source);
+        final lottieDecoder = widget.controller.source.endsWith('.lottie')
+            ? _lottieDecoder
+            : null;
+        return Utils.isMemoryPath(localLottiePath)
+            ? Lottie.file(
+                File(localLottiePath),
+                controller: widget.controller.lottieController,
+                decoder: lottieDecoder,
+                onLoaded: (composition) {
+                  widget.controller.initializeLottieController(composition);
+                },
+                width: widget.controller.width?.toDouble(),
+                height: widget.controller.height?.toDouble(),
+                repeat: widget.controller.repeat,
+                fit: fit,
+                errorBuilder: (context, error, stacktrace) =>
+                    placeholderImage(),
+              )
+            : Lottie.asset(
+                localLottiePath,
+                controller: widget.controller.lottieController,
+                decoder: lottieDecoder,
+                onLoaded: (composition) {
+                  widget.controller.initializeLottieController(composition);
+                },
+                width: widget.controller.width?.toDouble(),
+                height: widget.controller.height?.toDouble(),
+                repeat: widget.controller.repeat,
+                fit: fit,
+                errorBuilder: (context, error, stacktrace) =>
+                    placeholderImage(),
+              );
       }
     }
     return SizedBox(

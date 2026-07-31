@@ -1151,6 +1151,20 @@ static BoxDecoration? getBoxDecoration(dynamic style) {
     }
   }
 
+  /// Picks the right ImageProvider for a locally-resolved asset.
+  /// Why this exists:
+  /// - getLocalAssetFullPath() returns an ABSOLUTE device file path for
+  ///   CDN-cached assets, but a RELATIVE bundle key for bundled assets.
+  /// - Image.asset()/AssetImage accept bundle keys only; given a file path
+  ///   they fail silently, with no network fallback -> blank image.
+  /// => file path -> FileImage, bundle key -> AssetImage.
+  static ImageProvider getLocalImageProvider(String asset) {
+    final resolved = getLocalAssetFullPath(asset);
+    return (isMemoryPath(resolved) || p.isAbsolute(resolved))
+        ? FileImage(File(resolved))
+        : AssetImage(resolved);
+  }
+
   static bool isAssetAvailableLocally(String? fileName) {
     if (fileName == null || fileName.isEmpty) return false;
     if (LocalAssetsService.localAssets.contains(fileName)) {

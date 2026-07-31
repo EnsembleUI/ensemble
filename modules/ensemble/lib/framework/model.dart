@@ -34,12 +34,12 @@ class BackgroundImage {
       // If the asset is available locally, then use local path
       String assetName = Utils.getAssetName(_source);
       if (Utils.isAssetAvailableLocally(assetName)) {
-        imageProvider = AssetImage(Utils.getLocalAssetFullPath(assetName));
+        imageProvider = Utils.getLocalImageProvider(assetName);
       } else {
         imageProvider = NetworkImage(_source);
       }
     } else {
-      imageProvider = AssetImage(Utils.getLocalAssetFullPath(_source));
+      imageProvider = Utils.getLocalImageProvider(_source);
     }
     return DecorationImage(
       image: imageProvider,
@@ -56,8 +56,8 @@ class BackgroundImage {
     if (Utils.isUrl(_source)) {
       String assetName = Utils.getAssetName(_source);
       if (Utils.isAssetAvailableLocally(assetName)) {
-        return Image.asset(
-          Utils.getLocalAssetFullPath(assetName),
+        return Image(
+          image: Utils.getLocalImageProvider(assetName),
           fit: _fit,
           alignment: _alignment,
           errorBuilder:
@@ -72,8 +72,8 @@ class BackgroundImage {
             fallbackWidget != null ? (_, __, ___) => fallbackWidget : null,
       );
     } else {
-      return Image.asset(
-        Utils.getLocalAssetFullPath(_source),
+      return Image(
+        image: Utils.getLocalImageProvider(_source),
         fit: _fit,
         alignment: _alignment,
         errorBuilder:

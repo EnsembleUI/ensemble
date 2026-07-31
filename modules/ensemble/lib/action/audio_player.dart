@@ -139,12 +139,19 @@ class PlayAudio extends EnsembleAction {
     if (source.startsWith('https://') || source.startsWith('http://')) {
       String assetName = Utils.getAssetName(source);
       if (Utils.isAssetAvailableLocally(assetName)) {
-        parsedSource = AssetSource(Utils.getLocalAssetFullPath(assetName));
+        // CDN-cached asset resolves to a device file path -> use .file, not .asset.
+        final localAudioPath = Utils.getLocalAssetFullPath(assetName);
+        parsedSource = Utils.isMemoryPath(localAudioPath)
+            ? DeviceFileSource(localAudioPath)
+            : AssetSource(localAudioPath);
       } else {
         parsedSource = UrlSource(source);
       }
     } else {
-      parsedSource = AssetSource(Utils.getLocalAssetFullPath(source));
+      final localAudioPath = Utils.getLocalAssetFullPath(source);
+      parsedSource = Utils.isMemoryPath(localAudioPath)
+          ? DeviceFileSource(localAudioPath)
+          : AssetSource(localAudioPath);
     }
 
     await SingletonAudioPlayer.instance.play(
