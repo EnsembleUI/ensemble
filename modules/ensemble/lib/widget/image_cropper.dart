@@ -345,19 +345,18 @@ class EnsembleImageCropperState extends EWidgetState<EnsembleImageCropper>
       // If the asset is available locally, then use local path
       String assetName = Utils.getAssetName(source);
       if (Utils.isAssetAvailableLocally(assetName)) {
-        final localSvgPath =
-            Utils.getLocalAssetFullPath(widget._controller.source);
-        return Utils.isMemoryPath(localSvgPath)
-            ? Svg(localSvgPath, source: SvgSource.file)
-            : Svg(localSvgPath, source: SvgSource.asset);
+        return Svg(
+          Utils.getLocalAssetFullPath(widget._controller.source),
+          source: SvgSource.asset,
+        );
       }
       return Svg(widget._controller.source, source: SvgSource.network);
     }
     // attempt local assets
-    final localSvgPath = Utils.getLocalAssetFullPath(widget._controller.source);
-    return Utils.isMemoryPath(localSvgPath)
-        ? Svg(localSvgPath, source: SvgSource.file)
-        : Svg(localSvgPath, source: SvgSource.asset);
+    return Svg(
+      Utils.getLocalAssetFullPath(widget._controller.source),
+      source: SvgSource.asset,
+    );
   }
 
   // use modern colors as background placeholder while images are being loaded
