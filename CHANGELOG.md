@@ -3,6 +3,27 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## 2026-07-30
+
+### Changes
+
+---
+
+Packages with breaking changes:
+
+ - There are no breaking changes in this release.
+
+Packages with other changes:
+
+ - [`ensemble_test_runner` - `v1.2.55`](#ensemble_test_runner---v1255)
+
+---
+
+#### `ensemble_test_runner` - `v1.2.55`
+
+ - **FEAT**(ensemble_test_runner): enhance test execution with single test p… ([#2330](https://github.com/ensembleUI/ensemble/issues/2330)). ([f9aef972](https://github.com/ensembleUI/ensemble/commit/f9aef9729791f1cf5e1b4c760fd28068045b214d))
+
+
 ## 2026-07-29
 
 ### Changes
