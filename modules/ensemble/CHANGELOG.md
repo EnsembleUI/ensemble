@@ -1,3 +1,8 @@
+## 1.2.50-beta.7
+
+ - **FIX**: streamline SVG asset handling for local and network sources. ([28c1385e](https://github.com/ensembleUI/ensemble/commit/28c1385e8d82aaf2f281d439f13bb0127b92920b))
+ - **FEAT**: update asset handling to support CDN-cached and local assets for images, audio, video, and Lottie animations. ([692b0d95](https://github.com/ensembleUI/ensemble/commit/692b0d950b2af2e84f0eb4d0e2bd02910e9e4cc5))
+
 ## 1.2.50
 
  - **FIX**(firestore): dedupe listenForChanges subscriptions to prevent crash ([#2257](https://github.com/ensembleUI/ensemble/issues/2257)). ([3e7a0416](https://github.com/ensembleUI/ensemble/commit/3e7a0416c04e30d24af593eabcf9a49c16d0458a))

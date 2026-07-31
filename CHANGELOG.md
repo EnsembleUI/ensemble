@@ -3,6 +3,73 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## 2026-07-31
+
+### Changes
+
+---
+
+Packages with breaking changes:
+
+ - There are no breaking changes in this release.
+
+Packages with other changes:
+
+ - [`ensemble` - `v1.2.50-beta.7`](#ensemble---v1250-beta7)
+ - [`ensemble_test_runner` - `v1.2.56`](#ensemble_test_runner---v1256)
+ - [`ensemble_qr_scanner` - `v1.2.51`](#ensemble_qr_scanner---v1251)
+ - [`ensemble_contacts` - `v1.2.51`](#ensemble_contacts---v1251)
+ - [`ensemble_face_camera` - `v1.2.51`](#ensemble_face_camera---v1251)
+ - [`ensemble_connect` - `v1.2.51`](#ensemble_connect---v1251)
+ - [`ensemble_network_info` - `v1.2.51`](#ensemble_network_info---v1251)
+ - [`ensemble_file_manager` - `v1.2.51`](#ensemble_file_manager---v1251)
+ - [`ensemble_stripe` - `v1.2.51`](#ensemble_stripe---v1251)
+ - [`ensemble_location` - `v1.2.51`](#ensemble_location---v1251)
+ - [`ensemble_auth` - `v1.2.51`](#ensemble_auth---v1251)
+ - [`ensemble_moengage` - `v1.2.51`](#ensemble_moengage---v1251)
+ - [`ensemble_firebase_analytics` - `v1.2.51`](#ensemble_firebase_analytics---v1251)
+ - [`ensemble_chat` - `v1.2.51`](#ensemble_chat---v1251)
+ - [`ensemble_camera` - `v1.2.51`](#ensemble_camera---v1251)
+ - [`ensemble_bracket` - `v1.2.51`](#ensemble_bracket---v1251)
+ - [`ensemble_deeplink` - `v1.2.51`](#ensemble_deeplink---v1251)
+ - [`ensemble_wifi` - `v1.2.51`](#ensemble_wifi---v1251)
+ - [`ensemble_bluetooth` - `v1.2.51`](#ensemble_bluetooth---v1251)
+ - [`ensemble_adobe_analytics` - `v1.2.51`](#ensemble_adobe_analytics---v1251)
+ - [`ensemble_remote_config` - `v1.2.51`](#ensemble_remote_config---v1251)
+
+Packages with dependency updates only:
+
+> Packages listed below depend on other packages in this workspace that have had changes. Their versions have been incremented to bump the minimum dependency versions of the packages they depend upon in this project.
+
+ - `ensemble_test_runner` - `v1.2.56`
+ - `ensemble_qr_scanner` - `v1.2.51`
+ - `ensemble_contacts` - `v1.2.51`
+ - `ensemble_face_camera` - `v1.2.51`
+ - `ensemble_connect` - `v1.2.51`
+ - `ensemble_network_info` - `v1.2.51`
+ - `ensemble_file_manager` - `v1.2.51`
+ - `ensemble_stripe` - `v1.2.51`
+ - `ensemble_location` - `v1.2.51`
+ - `ensemble_auth` - `v1.2.51`
+ - `ensemble_moengage` - `v1.2.51`
+ - `ensemble_firebase_analytics` - `v1.2.51`
+ - `ensemble_chat` - `v1.2.51`
+ - `ensemble_camera` - `v1.2.51`
+ - `ensemble_bracket` - `v1.2.51`
+ - `ensemble_deeplink` - `v1.2.51`
+ - `ensemble_wifi` - `v1.2.51`
+ - `ensemble_bluetooth` - `v1.2.51`
+ - `ensemble_adobe_analytics` - `v1.2.51`
+ - `ensemble_remote_config` - `v1.2.51`
+
+---
+
+#### `ensemble` - `v1.2.50-beta.7`
+
+ - **FIX**: streamline SVG asset handling for local and network sources. ([28c1385e](https://github.com/ensembleUI/ensemble/commit/28c1385e8d82aaf2f281d439f13bb0127b92920b))
+ - **FEAT**: update asset handling to support CDN-cached and local assets for images, audio, video, and Lottie animations. ([692b0d95](https://github.com/ensembleUI/ensemble/commit/692b0d950b2af2e84f0eb4d0e2bd02910e9e4cc5))
+
+
 ## 2026-07-30
 
 ### Changes
