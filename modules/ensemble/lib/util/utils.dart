@@ -1151,6 +1151,17 @@ static BoxDecoration? getBoxDecoration(dynamic style) {
     }
   }
 
+  /// Returns the correct ImageProvider for a resolved local asset path.
+  /// CDN-cached assets resolve (via getLocalAssetFullPath) to an ABSOLUTE
+  /// filesystem path, which must be loaded with FileImage — handing a file
+  /// path to Image.asset() silently fails with no network fallback.
+  static ImageProvider getLocalImageProvider(String asset) {
+    final resolved = getLocalAssetFullPath(asset);
+    return (isMemoryPath(resolved) || p.isAbsolute(resolved))
+        ? FileImage(File(resolved))
+        : AssetImage(resolved);
+  }
+
   static bool isAssetAvailableLocally(String? fileName) {
     if (fileName == null || fileName.isEmpty) return false;
     if (LocalAssetsService.localAssets.contains(fileName)) {

@@ -227,7 +227,8 @@ class ImageState extends EWidgetState<EnsembleImage> {
       // If the asset is available locally, then use local path
       String assetName = Utils.getAssetName(source);
       if (Utils.isAssetAvailableLocally(assetName)) {
-        return Image.asset(Utils.getLocalAssetFullPath(assetName),
+        return Image(
+            image: Utils.getLocalImageProvider(assetName),
             width: widget._controller.width?.toDouble(),
             height: widget._controller.height?.toDouble(),
             fit: fit,
@@ -300,7 +301,8 @@ class ImageState extends EWidgetState<EnsembleImage> {
       // user might use env variables to switch between remote and local images.
       // Assets might have additional token e.g. my-image.png?x=2343
       // so we need to strip them out
-      return Image.asset(Utils.getLocalAssetFullPath(widget._controller.source),
+      return Image(
+          image: Utils.getLocalImageProvider(widget._controller.source),
           width: widget._controller.width?.toDouble(),
           height: widget._controller.height?.toDouble(),
           fit: fit,
@@ -324,10 +326,16 @@ class ImageState extends EWidgetState<EnsembleImage> {
       // If the asset is available locally, then use local path
       String assetName = Utils.getAssetName(source);
       if (Utils.isAssetAvailableLocally(assetName)) {
-        return SvgPicture.asset(Utils.getLocalAssetFullPath(assetName),
-            width: widget._controller.width?.toDouble(),
-            height: widget._controller.height?.toDouble(),
-            fit: fit ?? BoxFit.contain);
+        final localSvgPath = Utils.getLocalAssetFullPath(assetName);
+        return Utils.isMemoryPath(localSvgPath)
+            ? SvgPicture.file(io.File(localSvgPath),
+                width: widget._controller.width?.toDouble(),
+                height: widget._controller.height?.toDouble(),
+                fit: fit ?? BoxFit.contain)
+            : SvgPicture.asset(localSvgPath,
+                width: widget._controller.width?.toDouble(),
+                height: widget._controller.height?.toDouble(),
+                fit: fit ?? BoxFit.contain);
       }
       return SvgPicture.network(
         widget._controller.source,
@@ -343,11 +351,16 @@ class ImageState extends EWidgetState<EnsembleImage> {
       );
     }
     // attempt local assets
-    return SvgPicture.asset(
-        Utils.getLocalAssetFullPath(widget._controller.source),
-        width: widget._controller.width?.toDouble(),
-        height: widget._controller.height?.toDouble(),
-        fit: fit ?? BoxFit.contain);
+    final localSvgPath = Utils.getLocalAssetFullPath(widget._controller.source);
+    return Utils.isMemoryPath(localSvgPath)
+        ? SvgPicture.file(io.File(localSvgPath),
+            width: widget._controller.width?.toDouble(),
+            height: widget._controller.height?.toDouble(),
+            fit: fit ?? BoxFit.contain)
+        : SvgPicture.asset(localSvgPath,
+            width: widget._controller.width?.toDouble(),
+            height: widget._controller.height?.toDouble(),
+            fit: fit ?? BoxFit.contain);
   }
 
   bool isSvg() {

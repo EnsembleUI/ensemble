@@ -43,8 +43,8 @@ class Image extends StatelessWidget {
       // If the asset is available locally, then use local path
       String assetName = Utils.getAssetName(source);
       if (Utils.isAssetAvailableLocally(assetName)) {
-        imageWidget = flutter.Image.asset(
-          Utils.getLocalAssetFullPath(assetName),
+        imageWidget = flutter.Image(
+          image: Utils.getLocalImageProvider(assetName),
           width: width,
           height: height,
           fit: fit,
@@ -68,8 +68,8 @@ class Image extends StatelessWidget {
         );
       }
     } else {
-      imageWidget = flutter.Image.asset(
-        Utils.getLocalAssetFullPath(source),
+      imageWidget = flutter.Image(
+        image: Utils.getLocalImageProvider(source),
         width: width,
         height: height,
         fit: fit,

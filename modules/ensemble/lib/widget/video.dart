@@ -106,8 +106,10 @@ class MyController extends WidgetController {
         // If the asset is available locally, then use local path
         String assetName = Utils.getAssetName(value);
         if (Utils.isAssetAvailableLocally(assetName)) {
-          _playerController = VideoPlayerController.asset(
-              Utils.getLocalAssetFullPath(assetName))
+          final localVideoPath = Utils.getLocalAssetFullPath(assetName);
+          _playerController = (Utils.isMemoryPath(localVideoPath)
+                  ? VideoPlayerController.file(File(localVideoPath))
+                  : VideoPlayerController.asset(localVideoPath))
             ..initialize().then((_) {
               VideoPlayerValue value = _playerController!.value;
               log(value.toString());
@@ -132,8 +134,10 @@ class MyController extends WidgetController {
             notifyListeners();
           });
       } else {
-        _playerController =
-            VideoPlayerController.asset(Utils.getLocalAssetFullPath(value))
+        final localVideoPath = Utils.getLocalAssetFullPath(value);
+        _playerController = (Utils.isMemoryPath(localVideoPath)
+                ? VideoPlayerController.file(File(localVideoPath))
+                : VideoPlayerController.asset(localVideoPath))
               ..initialize().then((_) {
                 VideoPlayerValue value = _playerController!.value;
                 log(value.toString());
