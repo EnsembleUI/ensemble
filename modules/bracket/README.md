@@ -137,6 +137,8 @@ Bracket:
 | `borderRadius`             | Number     |     | Border radius of tabs                         |
 | `borderColor`              | Color      |     | Border color of tabs                          |
 | `borderWidth`              | Number     |     | Border width of tabs                          |
+| `selectedBorderColor`      | Color      |     | Border color of the selected tab              |
+| `selectedBorderWidth`      | Number     |     | Border width of the selected tab              |
 | `padding`                  | EdgeInsets |     | Padding inside tabs                           |
 | `gap`                      | Number     |     | Gap between tabs (default: 12)                |
 | `focusBorderColor`         | Color      | ✅  | Focus border color when navigating with D-pad |
@@ -162,11 +164,11 @@ Bracket:
 
 The bracket widget follows the same focus styling priority as other Ensemble widgets:
 
-1. **tabStyles focus properties** (e.g., `focusBorderColor`, `focusBorderWidth`)
+1. **tabStyles focus properties** (`focusBorderColor` / `focusBorderWidth` / `focusBorderRadius`)
 2. **Theme** (`EnsembleThemeExtension.tvFocusTheme`)
 3. **Provider** (`TVFocusProviderScope`)
-4. **tabStyles regular properties** (e.g., `borderColor`, `borderWidth`)
-5. **Default values** (focusBorderWidth: 2.0, focusBorderRadius: 8.0)
+4. **tabStyles regular border** (`borderColor` / `borderWidth` / `borderRadius`)
+5. **Terminal default (per property):** color → app primary color (`theme.colorScheme.primary`); width → `2.0`; radius → `8.0`
 
 ### Navigation Behavior
 
