@@ -462,6 +462,7 @@ class EnsembleTestRunner {
               executor: executor,
               step: matchedStep,
               stepIndex: i,
+              pumpBeforeCapture: true,
               stabilize: false,
             );
             capturedStep = true;
@@ -511,6 +512,9 @@ class EnsembleTestRunner {
           executor.onWaitForNavigationMatched = null;
           executor.onBeforeActionStep = null;
           executor.onAfterActionStep = null;
+        }
+        if (ctx.config.screenshots.enabled && _isUserActionStep(step)) {
+          await _paintAfterUserAction(executor);
         }
         _drainPendingFlutterExceptions(tester);
         if (!captureBeforeStep && !capturedStep && optionalActionStep == null) {
@@ -575,6 +579,7 @@ class EnsembleTestRunner {
             stepIndex: i,
             pumpBeforeCapture: true,
             ensureTargetVisible: false,
+            forFailure: true,
           );
         }
         final failureMessage = _failureMessageWithFlutterErrors(
@@ -747,6 +752,7 @@ class EnsembleTestRunner {
     bool waitForTarget = false,
     bool waitForLottie = true,
     bool stabilize = true,
+    bool forFailure = false,
   }) async {
     final options = executor.context.config.screenshots;
     if (!options.shouldCaptureStep(step.type)) return;
@@ -778,6 +784,7 @@ class EnsembleTestRunner {
       image: image,
       step: step,
       device: device,
+      forFailure: forFailure,
     );
     executor.context.runtime.addScreenshotSheetFrame(
       ScreenshotSheetFrame(
@@ -822,6 +829,7 @@ class EnsembleTestRunner {
     bool waitForTarget = false,
     bool waitForLottie = true,
     bool stabilize = true,
+    bool forFailure = false,
   }) async {
     try {
       await _captureAutomaticScreenshotForStep(
@@ -833,6 +841,7 @@ class EnsembleTestRunner {
         waitForTarget: waitForTarget,
         waitForLottie: waitForLottie,
         stabilize: stabilize,
+        forFailure: forFailure,
       );
     } catch (_) {
       // Screenshot capture must never replace the real test failure.
@@ -859,7 +868,8 @@ class EnsembleTestRunner {
   bool _isTextVerificationStep(TestStep step) =>
       step.type == 'expectText' ||
       step.type == 'expectTextContains' ||
-      step.type == 'waitForText';
+      step.type == 'waitForText' ||
+      step.type == 'expectNoText';
 
   Future<void> _stabilizeScreenshotFrame(
     TestStepExecutor executor, {
@@ -937,7 +947,10 @@ class EnsembleTestRunner {
           ? null
           : executor.assertions.firstVisuallyActionableElement(finder);
       if (element == null) return;
-      if (_effectiveOpacity(element) >= 0.85) return;
+      if (_effectiveOpacity(element) >= 0.85) {
+        await executor.tester.pump();
+        return;
+      }
 
       await executor.tester.pump(const Duration(milliseconds: 50));
     }
@@ -980,8 +993,12 @@ class EnsembleTestRunner {
     return opacity;
   }
 
-  ui.Rect? _highlightRectForStep(TestStepExecutor executor, TestStep step) {
-    if (!_shouldHighlightStep(step)) return null;
+  ui.Rect? _highlightRectForStep(
+    TestStepExecutor executor,
+    TestStep step, {
+    bool forFailure = false,
+  }) {
+    if (!_shouldHighlightStep(step, forFailure: forFailure)) return null;
 
     final finder = _highlightFinder(executor, step);
     if (finder == null) return null;
@@ -1075,27 +1092,49 @@ class EnsembleTestRunner {
     ];
     for (final text in texts) {
       if (step.type == 'expectTextContains') {
-        final hitTestableText = find.textContaining(text).hitTestable();
-        if (hitTestableText.evaluate().isNotEmpty) {
-          return hitTestableText;
-        }
         final containing = find.textContaining(text);
-        if (containing.evaluate().isNotEmpty) return containing;
-      } else {
-        final hitTestableText = find.text(text).hitTestable();
-        if (hitTestableText.evaluate().isNotEmpty) {
-          return hitTestableText;
+        if (_hasHighlightRect(
+          executor,
+          containing,
+        )) {
+          return containing;
         }
+      } else {
         final exact = find.text(text);
-        if (exact.evaluate().isNotEmpty) return exact;
+        if (_hasHighlightRect(
+          executor,
+          exact,
+        )) {
+          return exact;
+        }
       }
     }
     return null;
   }
 
-  bool _shouldHighlightStep(TestStep step) {
+  bool _hasHighlightRect(
+    TestStepExecutor executor,
+    Finder finder, {
+    bool requireHitTestable = false,
+  }) {
+    return executor.assertions.rectForVisuallyActionable(
+          finder,
+          requireHitTestable: requireHitTestable,
+        ) !=
+        null;
+  }
+
+  bool _shouldHighlightStep(TestStep step, {bool forFailure = false}) {
+    // On success there is nothing to point at for expectNoText; on failure the
+    // unexpectedly visible text is exactly what the screenshot should mark.
+    if (step.type == 'expectNoText' &&
+        !forFailure &&
+        (step.args['id']?.toString().isEmpty ?? true)) {
+      return false;
+    }
     if (step.type == 'waitForText' ||
         step.type == 'expectText' ||
+        step.type == 'expectNoText' ||
         step.type == 'waitFor' ||
         step.type == 'expectTextContains' ||
         step.type == 'scrollUntilVisible' ||
@@ -1133,13 +1172,20 @@ class EnsembleTestRunner {
     }
   }
 
+  Future<void> _paintAfterUserAction(TestStepExecutor executor) async {
+    await executor.tester.pump();
+    await executor.tester.pump(const Duration(milliseconds: 100));
+    await executor.tester.pump();
+  }
+
   ScreenshotHighlight? _highlightForStep({
     required TestStepExecutor executor,
     required ui.Image image,
     required TestStep step,
     required TestDeviceTarget? device,
+    bool forFailure = false,
   }) {
-    final rect = _highlightRectForStep(executor, step);
+    final rect = _highlightRectForStep(executor, step, forFailure: forFailure);
     if (rect == null) return null;
 
     final tester = executor.tester;
@@ -1167,7 +1213,11 @@ class EnsembleTestRunner {
     if (framedRect == null) return null;
 
     return ScreenshotHighlight(
-      kind: isTapStep ? 'action' : 'assertion',
+      kind: forFailure
+          ? 'failure'
+          : isTapStep
+              ? 'action'
+              : 'assertion',
       left: framedRect.left,
       top: framedRect.top,
       width: framedRect.width,
