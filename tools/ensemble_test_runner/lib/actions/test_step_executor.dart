@@ -644,10 +644,10 @@ class TestStepExecutor {
           assertions.finderForId(id).hitTestable().evaluate().isNotEmpty) {
         return;
       }
-      if (textCandidates.isNotEmpty &&
-          assertions.isAnyTextVisible(textCandidates)) {
+      final matchedText = _firstVisibleText(textCandidates);
+      if (matchedText != null) {
         if (step?.type == 'waitForText' && onWaitForTextMatched != null) {
-          await onWaitForTextMatched!(step!);
+          await onWaitForTextMatched!(_stepWithMatchedText(step!, matchedText));
         }
         return;
       }
@@ -677,6 +677,23 @@ class TestStepExecutor {
         if (item != null && item.toString().trim().isNotEmpty) item.toString(),
     ];
   }
+
+  String? _firstVisibleText(List<String> candidates) {
+    for (final text in candidates) {
+      if (assertions.isTextVisible(text)) return text;
+    }
+    return null;
+  }
+
+  TestStep _stepWithMatchedText(TestStep step, String text) => TestStep(
+        type: step.type,
+        args: {
+          ...step.args,
+          'text': text,
+        }..remove('anyOf'),
+        mocks: step.mocks,
+        nestedSteps: step.nestedSteps,
+      );
 
   void _expectSingleWidget(Finder finder, String id, String stepType) {
     final count = finder.evaluate().length;

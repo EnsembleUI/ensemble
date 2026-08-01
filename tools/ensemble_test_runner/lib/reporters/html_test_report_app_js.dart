@@ -992,7 +992,9 @@ const ensembleHtmlTestReportAppJs = r'''
     html += '<img src="' + escapeHtml(href) + '" alt="' + escapeHtml(label) + '" loading="lazy"/>';
     const highlight = frame.highlight || null;
     if (highlight) {
-      const kind = highlight.kind === 'assertion' ? 'assertion' : 'action';
+      const kind = highlight.kind === 'assertion' || highlight.kind === 'failure'
+        ? highlight.kind
+        : 'action';
       const left = Number(highlight.left || 0);
       const top = Number(highlight.top || 0);
       const width = Number(highlight.width || 0);

@@ -124,12 +124,10 @@ class EncodedScreenshotImage {
   EncodedScreenshotImage({
     required this.bytes,
     required this.extension,
-    this.visualHash,
   });
 
   final Uint8List bytes;
   final String extension;
-  final String? visualHash;
 }
 
 class PerformanceMarker {

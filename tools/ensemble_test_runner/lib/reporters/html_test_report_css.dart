@@ -1060,6 +1060,17 @@ body {
   outline: 3px solid #00d5ff;
   filter: drop-shadow(0 0 7px rgba(6, 182, 212, 0.55));
 }
+.screenshot-highlight.failure {
+  outline: 3px dashed var(--fail);
+  background: rgba(244, 63, 94, 0.14);
+  filter: drop-shadow(0 0 9px rgba(244, 63, 94, 0.75));
+  animation: failure-highlight-pulse 1.5s infinite;
+}
+@keyframes failure-highlight-pulse {
+  0% { outline-offset: 4px; opacity: 1; }
+  50% { outline-offset: 7px; opacity: 0.75; }
+  100% { outline-offset: 4px; opacity: 1; }
+}
 .screenshot-highlight-dot {
   display: none;
 }
