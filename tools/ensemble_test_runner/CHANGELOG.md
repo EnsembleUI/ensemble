@@ -1,3 +1,7 @@
+## 1.2.56
+
+ - **FEAT**(ensemble_test_runner): improve screenshot handling and text matching logic ([#2332](https://github.com/ensembleUI/ensemble/issues/2332)). ([c1ab83bf](https://github.com/ensembleUI/ensemble/commit/c1ab83bf4d021cab239a7bf14dbb497b83d22b03))
+
 ## 1.2.55
 
  - **FEAT**(ensemble_test_runner): enhance test execution with single test p… ([#2330](https://github.com/ensembleUI/ensemble/issues/2330)). ([f9aef972](https://github.com/ensembleUI/ensemble/commit/f9aef9729791f1cf5e1b4c760fd28068045b214d))

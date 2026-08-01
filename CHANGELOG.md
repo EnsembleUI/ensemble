@@ -3,6 +3,27 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## 2026-08-01
+
+### Changes
+
+---
+
+Packages with breaking changes:
+
+ - There are no breaking changes in this release.
+
+Packages with other changes:
+
+ - [`ensemble_test_runner` - `v1.2.56`](#ensemble_test_runner---v1256)
+
+---
+
+#### `ensemble_test_runner` - `v1.2.56`
+
+ - **FEAT**(ensemble_test_runner): improve screenshot handling and text matching logic ([#2332](https://github.com/ensembleUI/ensemble/issues/2332)). ([c1ab83bf](https://github.com/ensembleUI/ensemble/commit/c1ab83bf4d021cab239a7bf14dbb497b83d22b03))
+
+
 ## 2026-07-30
 
 ### Changes
