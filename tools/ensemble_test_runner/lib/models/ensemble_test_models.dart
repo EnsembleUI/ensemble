@@ -455,8 +455,8 @@ class EnsembleTestRunResult {
       };
 }
 
-/// Status of a test case (passed, failed, or pending mid-run).
-enum TestStatus { passed, failed, pending }
+/// Status of a finished test case.
+enum TestStatus { passed, failed }
 
 /// Result for one executed YAML test case.
 class EnsembleSingleTestResult {

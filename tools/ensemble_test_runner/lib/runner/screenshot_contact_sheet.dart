@@ -77,12 +77,10 @@ Future<String?> writeScreenshotFrames({
       });
     }
   } finally {
-    if (status != TestStatus.pending) {
-      for (final frame in frames) {
-        try {
-          frame.image.dispose();
-        } catch (_) {}
-      }
+    for (final frame in frames) {
+      try {
+        frame.image.dispose();
+      } catch (_) {}
     }
   }
 

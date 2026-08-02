@@ -19,7 +19,6 @@ class TestReportDocument {
       'summary': {
         'passed': 0,
         'failed': 0,
-        'pending': 0,
         'totalMs': 0,
         if (wallTimeMs != null) 'wallTimeMs': wallTimeMs,
       },
@@ -40,8 +39,6 @@ class TestReportDocument {
       ...result.results.where((r) => r.status != TestStatus.failed),
     ];
     final totalMs = result.results.fold<int>(0, (sum, r) => sum + r.durationMs);
-    final pendingCount =
-        result.results.where((r) => r.status == TestStatus.pending).length;
 
     return {
       'state': 'complete',
@@ -49,7 +46,6 @@ class TestReportDocument {
       'summary': {
         'passed': result.passedCount,
         'failed': result.failedCount,
-        'pending': pendingCount,
         'totalMs': totalMs,
         'wallTimeMs': wallTimeMs ?? totalMs,
       },
@@ -126,9 +122,11 @@ class TestReportDocument {
       if (ref.label == 'htmlReport' ||
           ref.label == 'results' ||
           ref.label == 'appPerformance' ||
-          ref.label == 'dumpTree') {
+          ref.label == 'dumpTree' ||
+          ref.label == 'history') {
         // htmlReport/results are top-level links; appPerformance/dumpTree are
-        // screen-scoped inside each test report (legacy suite labels ignored).
+        // screen-scoped inside each test report (legacy suite labels ignored);
+        // history is the sqlite db file and is skipped from logs UI download list.
         continue;
       }
 

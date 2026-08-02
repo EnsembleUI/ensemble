@@ -9,6 +9,7 @@ import 'package:ensemble_test_runner/cli/ensemble_test_scaffold.dart';
 import 'package:ensemble_test_runner/inspect/ensemble_app_inspector.dart';
 import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
 import 'package:ensemble_test_runner/parser/ensemble_test_parser.dart';
+import 'package:ensemble_test_runner/reporters/ensemble_test_history_store.dart';
 import 'package:ensemble_test_runner/reporters/html_test_reporter.dart';
 import 'package:ensemble_test_runner/reporters/step_outline_format.dart';
 import 'package:ensemble_test_runner/runner/test_artifacts.dart';
@@ -160,15 +161,12 @@ Future<void> runEnsembleYamlTestsCli(List<String> arguments) async {
 
     if (!machineReport) {
       try {
-        final discovered = _discoverAllTestRuns(appDir, patcher);
-        if (discovered.isNotEmpty) {
-          _withHtmlReport(
-            appDir,
-            EnsembleTestRunResult(results: discovered),
-            wallTimeMs: 0,
-            isSuiteRunning: true,
-          );
-        }
+        await _withHtmlReport(
+          appDir,
+          const EnsembleTestRunResult(results: []),
+          wallTimeMs: 0,
+          isSuiteRunning: true,
+        );
       } catch (_) {}
     }
     final runSerial = jobs == 1;
@@ -270,6 +268,13 @@ Future<void> runEnsembleYamlTestsCli(List<String> arguments) async {
     }
 
     final machineResult = _runResultFromProcessOutput(testRun);
+    if (runSerial && machineResult != null) {
+      if (machineReport) {
+        await _recordHistory(appDir, machineResult);
+      } else {
+        await _withHtmlReport(appDir, machineResult);
+      }
+    }
     exitCode = machineResult == null
         ? (testRun.exitCode == 0 ? 0 : 1)
         : (machineResult.failedCount == 0 ? 0 : 1);
@@ -626,7 +631,7 @@ Future<ProcessResult> _runParallelFlutterTests(
     appDir: appDir,
   );
   merged = _mergeParallelSuiteArtifacts(merged);
-  merged = _withHtmlReport(
+  merged = await _withHtmlReport(
     appDir,
     merged,
     wallTimeMs: elapsed.elapsedMilliseconds,
@@ -1822,12 +1827,12 @@ String? _writeWorkerOutputLog(String appDir, int workerIndex, String output) {
   return p.relative(file.path, from: appDir).replaceAll('\\', '/');
 }
 
-EnsembleTestRunResult _withHtmlReport(
+Future<EnsembleTestRunResult> _withHtmlReport(
   String appDir,
   EnsembleTestRunResult result, {
   int? wallTimeMs,
   bool isSuiteRunning = false,
-}) {
+}) async {
   final reporter = HtmlTestReporter();
   final artifactRoot = _artifactRootPath(appDir);
   final displayRoot =
@@ -1836,6 +1841,10 @@ EnsembleTestRunResult _withHtmlReport(
       p.join(displayRoot, 'report', 'index.html').replaceAll('\\', '/');
   final resultsPath =
       p.join(displayRoot, 'report', 'results.json.gz').replaceAll('\\', '/');
+  final historyPath = p
+      .join(displayRoot, 'report', EnsembleTestHistoryStore.fileName)
+      .replaceAll('\\', '/');
+  var historyRecorded = false;
 
   if (isSuiteRunning) {
     reporter.write(
@@ -1846,6 +1855,15 @@ EnsembleTestRunResult _withHtmlReport(
       isSuiteRunning: true,
     );
   } else {
+    historyRecorded =
+        await _recordHistory(appDir, result, wallTimeMs: wallTimeMs);
+    if (historyRecorded &&
+        !result.suiteLogs.any((log) => log.startsWith('history:'))) {
+      result = EnsembleTestRunResult(
+        results: result.results,
+        suiteLogs: [...result.suiteLogs, 'history: $historyPath'],
+      );
+    }
     // Shell was written at suite start; only refresh the results DB.
     reporter.writeResultsOnly(
       result,
@@ -1869,6 +1887,25 @@ EnsembleTestRunResult _withHtmlReport(
     results: result.results,
     suiteLogs: suiteLogs,
   );
+}
+
+Future<bool> _recordHistory(
+  String appDir,
+  EnsembleTestRunResult result, {
+  int? wallTimeMs,
+}) async {
+  try {
+    await EnsembleTestHistoryStore.recordCompletedRun(
+      appDir: appDir,
+      artifactRoot: _artifactRootPath(appDir),
+      result: result,
+      wallTimeMs: wallTimeMs,
+    );
+    return true;
+  } catch (_) {
+    // History is a convenience artifact; it must not change test outcome.
+    return false;
+  }
 }
 
 String _formatCliSummary(
@@ -2339,57 +2376,4 @@ void _writeProcessStreams(ProcessResult result) {
   final err = result.stderr?.toString() ?? '';
   if (out.isNotEmpty) stdout.write(out);
   if (err.isNotEmpty) stderr.write(err);
-}
-
-List<EnsembleSingleTestResult> _discoverAllTestRuns(
-  String appDir,
-  YamlTestAppPatcher patcher,
-) {
-  final testsDir = patcher.testsDirPath;
-  if (testsDir == null) return [];
-  final configFile = File(p.join(testsDir, 'config.yaml'));
-  final devices = <String>[];
-  if (configFile.existsSync()) {
-    try {
-      final config = EnsembleTestParser.parseConfigString(
-        configFile.readAsStringSync(),
-        sourcePath: configFile.path,
-      );
-      for (final dev in config.devices) {
-        devices.add(dev.id);
-      }
-    } catch (_) {}
-  }
-
-  final files = Directory(testsDir)
-      .listSync(recursive: true)
-      .whereType<File>()
-      .where((file) => file.path.endsWith('.test.yaml'))
-      .toList()
-    ..sort((a, b) => a.path.compareTo(b.path));
-
-  final results = <EnsembleSingleTestResult>[];
-  for (final file in files) {
-    final relative = p.relative(file.path, from: appDir).replaceAll('\\', '/');
-    final doc = _readTestYamlMap(file);
-    final id = doc?['id']?.toString();
-    if (id == null || id.isEmpty) continue;
-
-    if (devices.isEmpty) {
-      results.add(EnsembleSingleTestResult(
-        testId: '$id  ($relative)',
-        status: TestStatus.pending,
-        durationMs: 0,
-      ));
-    } else {
-      for (final devId in devices) {
-        results.add(EnsembleSingleTestResult(
-          testId: '$id [$devId]  ($relative)',
-          status: TestStatus.pending,
-          durationMs: 0,
-        ));
-      }
-    }
-  }
-  return results;
 }

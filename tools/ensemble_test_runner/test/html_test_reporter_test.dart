@@ -58,6 +58,10 @@ void main() {
     final shell = htmlFile.readAsStringSync();
     expect(shell, contains('results.json.gz'));
     expect(shell, contains("fetch('results.json.gz"));
+    expect(shell, contains('history-host'));
+    expect(shell, contains('ensemble_test_history.db'));
+    expect(shell, contains('sql-wasm.js'));
+    expect(shell, contains('Test Execution History'));
     expect(shell, contains('DecompressionStream'));
     expect(shell, contains('report-loader'));
     expect(shell, isNot(contains('ensembleHtmlTestReportAppJs')));
@@ -384,7 +388,7 @@ void main() {
     };
     final doc = {
       'state': 'complete',
-      'summary': {'passed': 1, 'failed': 0, 'pending': 0, 'totalMs': 1},
+      'summary': {'passed': 1, 'failed': 0, 'totalMs': 1},
       'tests': [
         {
           'id': 't1',
