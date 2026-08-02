@@ -839,19 +839,77 @@ const ensembleHtmlTestReportAppJs = r'''
       storageChanges.forEach(change => {
         const key = change.key || '(unknown)';
         const kind = (change.change || '').toLowerCase();
-        let badgeClass = 'info', badgeText = 'MOD', valueColor = 'var(--accent)', detail = '';
-        if (kind === 'added') { badgeClass = 'passed'; badgeText = 'ADD'; valueColor = 'var(--pass)'; detail = formatStorageValue(change.after); }
-        else if (kind === 'removed') { badgeClass = 'failed'; badgeText = 'DEL'; valueColor = 'var(--fail)'; detail = formatStorageValue(change.before); }
-        else { detail = formatStorageValue(change.before) + ' → ' + formatStorageValue(change.after); }
+        let badgeClass = 'info', badgeText = 'MOD', valueColor = 'var(--accent)';
         const row = document.createElement('div');
         row.className = 'terminal-row';
-        row.innerHTML = '<span class="terminal-badge ' + badgeClass + '">' + badgeText + '</span><span style="font-weight: 700; color: #fff;">' + escapeHtml(key) + '</span> <span style="color: ' + valueColor + ';">' + escapeHtml(detail) + '</span>';
+
+        if (kind === 'added') {
+          badgeClass = 'passed';
+          badgeText = 'ADD';
+          valueColor = 'var(--pass)';
+          const formatted = prettyFormatStorageValue(change.after);
+          const isLong = formatted.length > 80 || formatted.includes('\n');
+          if (isLong) {
+            row.className = 'terminal-row storage-collapsible';
+            row.innerHTML = '<div class="storage-header" onclick="toggleStorageDetails(this)"><span class="api-caret">▶</span><span class="terminal-badge ' + badgeClass + '">' + badgeText + '</span><span class="storage-key-name">' + escapeHtml(key) + '</span><span class="storage-summary-preview">Value added (click to view)</span></div>' +
+                            '<div class="storage-details" style="display: none;"><pre class="storage-pretty-val">' + escapeHtml(formatted) + '</pre></div>';
+          } else {
+            row.innerHTML = '<span class="terminal-badge ' + badgeClass + '">' + badgeText + '</span><span class="storage-key-name">' + escapeHtml(key) + '</span> <span style="color: ' + valueColor + ';">' + escapeHtml(formatStorageValue(change.after)) + '</span>';
+          }
+        }
+        else if (kind === 'removed') {
+          badgeClass = 'failed';
+          badgeText = 'DEL';
+          valueColor = 'var(--fail)';
+          const formatted = prettyFormatStorageValue(change.before);
+          const isLong = formatted.length > 80 || formatted.includes('\n');
+          if (isLong) {
+            row.className = 'terminal-row storage-collapsible';
+            row.innerHTML = '<div class="storage-header" onclick="toggleStorageDetails(this)"><span class="api-caret">▶</span><span class="terminal-badge ' + badgeClass + '">' + badgeText + '</span><span class="storage-key-name">' + escapeHtml(key) + '</span><span class="storage-summary-preview">Value removed (click to view)</span></div>' +
+                            '<div class="storage-details" style="display: none;"><pre class="storage-pretty-val">' + escapeHtml(formatted) + '</pre></div>';
+          } else {
+            row.innerHTML = '<span class="terminal-badge ' + badgeClass + '">' + badgeText + '</span><span class="storage-key-name">' + escapeHtml(key) + '</span> <span style="color: ' + valueColor + ';">' + escapeHtml(formatStorageValue(change.before)) + '</span>';
+          }
+        }
+        else {
+          const beforeFormatted = prettyFormatStorageValue(change.before);
+          const afterFormatted = prettyFormatStorageValue(change.after);
+          const isLong = beforeFormatted.length > 40 || afterFormatted.length > 40 || beforeFormatted.includes('\n') || afterFormatted.includes('\n');
+
+          if (isLong) {
+            row.className = 'terminal-row storage-collapsible';
+            row.innerHTML = '<div class="storage-header" onclick="toggleStorageDetails(this)"><span class="api-caret">▶</span><span class="terminal-badge ' + badgeClass + '">' + badgeText + '</span><span class="storage-key-name">' + escapeHtml(key) + '</span><span class="storage-summary-preview">Value modified (click to compare)</span></div>' +
+                            '<div class="storage-details" style="display: none;">' +
+                            '  <div class="storage-diff-container">' +
+                            '    <div class="storage-diff-pane before">' +
+                            '      <div class="storage-diff-header">Before</div>' +
+                            '      <pre class="storage-diff-pre">' + escapeHtml(beforeFormatted) + '</pre>' +
+                            '    </div>' +
+                            '    <div class="storage-diff-pane after">' +
+                            '      <div class="storage-diff-header">After</div>' +
+                            '      <pre class="storage-diff-pre">' + escapeHtml(afterFormatted) + '</pre>' +
+                            '    </div>' +
+                            '  </div>' +
+                            '</div>';
+          } else {
+            row.innerHTML = '<span class="terminal-badge ' + badgeClass + '">' + badgeText + '</span><span class="storage-key-name">' + escapeHtml(key) + '</span> <span style="color: var(--text-muted);">' + escapeHtml(formatStorageValue(change.before)) + '</span> <span style="color: var(--accent); font-weight: bold; margin: 0 6px;">→</span> <span style="color: var(--accent);">' + escapeHtml(formatStorageValue(change.after)) + '</span>';
+          }
+        }
         storageList.appendChild(row);
       });
       Object.keys(currentState).filter(k => !changedKeys.has(k)).sort().forEach(key => {
+        const val = currentState[key];
+        const formatted = prettyFormatStorageValue(val);
+        const isLong = formatted.length > 80 || formatted.includes('\n');
         const row = document.createElement('div');
         row.className = 'terminal-row';
-        row.innerHTML = '<span class="terminal-badge info" style="background: rgba(255,255,255,0.06); color: var(--text-muted); border: 1px solid rgba(255,255,255,0.15); margin-right: 6px;">VAL</span><span style="font-weight: 700; color: var(--text-muted);">' + escapeHtml(key) + '</span> <span style="color: #cbd5e1;">' + escapeHtml(formatStorageValue(currentState[key])) + '</span>';
+        if (isLong) {
+          row.className = 'terminal-row storage-collapsible';
+          row.innerHTML = '<div class="storage-header" onclick="toggleStorageDetails(this)"><span class="api-caret">▶</span><span class="terminal-badge info" style="background: rgba(255,255,255,0.06); color: var(--text-muted); border: 1px solid rgba(255,255,255,0.15); margin-right: 6px;">VAL</span><span class="storage-key-name" style="color: var(--text-muted);">' + escapeHtml(key) + '</span><span class="storage-summary-preview">Value view (click to inspect)</span></div>' +
+                          '<div class="storage-details" style="display: none;"><pre class="storage-pretty-val">' + escapeHtml(formatted) + '</pre></div>';
+        } else {
+          row.innerHTML = '<span class="terminal-badge info" style="background: rgba(255,255,255,0.06); color: var(--text-muted); border: 1px solid rgba(255,255,255,0.15); margin-right: 6px;">VAL</span><span style="font-weight: 700; color: var(--text-muted);">' + escapeHtml(key) + '</span> <span style="color: #cbd5e1;">' + escapeHtml(formatStorageValue(val)) + '</span>';
+        }
         storageList.appendChild(row);
       });
     }
@@ -972,6 +1030,32 @@ const ensembleHtmlTestReportAppJs = r'''
     if (typeof value === 'string') text = value;
     else { try { text = JSON.stringify(value); } catch (e) { text = String(value); } }
     return text;
+  }
+
+  function prettyFormatStorageValue(value) {
+    if (value === undefined || value === null) return 'null';
+    let parsed = value;
+    if (typeof value === 'string') {
+      try {
+        parsed = JSON.parse(value);
+      } catch (e) {
+        return value;
+      }
+    }
+    try {
+      return JSON.stringify(parsed, null, 2);
+    } catch (e) {
+      return String(value);
+    }
+  }
+
+  window.toggleStorageDetails = function(header) {
+    const details = header.nextElementSibling;
+    const caret = header.querySelector('.api-caret');
+    const isExpanded = details.style.display === 'block' || details.style.display === 'flex';
+    const isDiff = details.querySelector('.storage-diff-container') !== null;
+    details.style.display = isExpanded ? 'none' : (isDiff ? 'flex' : 'block');
+    caret.style.transform = isExpanded ? 'rotate(0deg)' : 'rotate(90deg)';
   }
 
   function getCleanScreenshotLabel(label, titleText) {

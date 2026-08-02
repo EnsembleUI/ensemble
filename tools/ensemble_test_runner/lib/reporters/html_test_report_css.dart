@@ -1687,4 +1687,98 @@ a:hover {
   color: #a7f3d0;
   word-break: break-all;
 }
+
+/* Storage Diff Viewer styling */
+.storage-collapsible {
+  cursor: pointer;
+  padding: 0 !important;
+}
+.storage-header {
+  padding: 10px 12px;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+.storage-header:hover {
+  background: rgba(255, 255, 255, 0.02);
+}
+.storage-details {
+  padding: 14px 16px;
+  background: rgba(0, 0, 0, 0.15);
+  border-top: 1px solid var(--border);
+}
+.storage-key-name {
+  font-weight: 700;
+  color: #fff;
+  margin-right: 12px;
+}
+.storage-summary-preview {
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  font-style: italic;
+  flex: 1;
+  text-align: right;
+  padding-right: 8px;
+}
+.storage-pretty-val {
+  margin: 0;
+  font-family: var(--font-code);
+  font-size: 0.78rem;
+  color: #cbd5e1;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+.storage-diff-container {
+  display: flex;
+  gap: 16px;
+  width: 100%;
+  flex-wrap: wrap;
+}
+.storage-diff-pane {
+  flex: 1;
+  min-width: 250px;
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.storage-diff-pane.before {
+  border-color: rgba(244, 63, 94, 0.25);
+  background: rgba(244, 63, 94, 0.02);
+}
+.storage-diff-pane.after {
+  border-color: rgba(16, 185, 129, 0.25);
+  background: rgba(16, 185, 129, 0.02);
+}
+.storage-diff-header {
+  font-size: 0.7rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--border);
+  letter-spacing: 0.05em;
+}
+.storage-diff-pane.before .storage-diff-header {
+  color: var(--fail);
+  background: rgba(244, 63, 94, 0.06);
+  border-color: rgba(244, 63, 94, 0.15);
+}
+.storage-diff-pane.after .storage-diff-header {
+  color: var(--pass);
+  background: rgba(16, 185, 129, 0.06);
+  border-color: rgba(16, 185, 129, 0.15);
+}
+.storage-diff-pre {
+  margin: 0;
+  padding: 12px;
+  font-family: var(--font-code);
+  font-size: 0.78rem;
+  color: #cbd5e1;
+  white-space: pre-wrap;
+  word-break: break-all;
+  overflow-y: auto;
+  max-height: 240px;
+}
 ''';

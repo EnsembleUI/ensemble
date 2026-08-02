@@ -371,8 +371,7 @@ class TestStepExecutor {
     throw EnsembleTestFailure(
       'Timed out after ${timeoutMs}ms waiting for text containing one of: '
       '${textCandidates.map((t) => '"$t"').join(', ')}. '
-      '${assertions.visibleWidgetIdSummary()} '
-      '${assertions.visibleTextSummary()}',
+      '${assertions.textFailureHint(textCandidates)}',
     );
   }
 
@@ -479,13 +478,13 @@ class TestStepExecutor {
       if (baseFinder.evaluate().isEmpty) {
         throw EnsembleTestFailure(
           'Timed out after ${effectiveTimeout}ms waiting for id "$id". '
-          '${assertions.visibleWidgetIdSummary()}',
+          '${assertions.widgetIdFailureHint(id)}',
         );
       }
       throw EnsembleTestFailure(
         'Timed out after ${effectiveTimeout}ms waiting for id "$id" to become '
         'hit-testable. It may be off-screen, disabled, or covered by another widget. '
-        '${assertions.visibleWidgetIdSummary()}',
+        '${assertions.widgetIdFailureHint(id)}',
       );
     }
 
@@ -665,8 +664,7 @@ class TestStepExecutor {
             : textLabel!;
     throw EnsembleTestFailure(
       'Timed out after ${timeoutMs}ms waiting for $target. '
-      '${assertions.visibleWidgetIdSummary()} '
-      '${assertions.visibleTextSummary()}',
+      '${id != null ? '${assertions.widgetIdFailureHint(id)} ${assertions.visibleTextSummary()}' : assertions.textFailureHint(textCandidates)}',
     );
   }
 
@@ -700,7 +698,7 @@ class TestStepExecutor {
     if (count != 1) {
       throw EnsembleTestFailure(
         '$stepType expected exactly one widget with id "$id", but found $count. '
-        '${assertions.visibleWidgetIdSummary()}',
+        '${assertions.widgetIdFailureHint(id)}',
       );
     }
   }
