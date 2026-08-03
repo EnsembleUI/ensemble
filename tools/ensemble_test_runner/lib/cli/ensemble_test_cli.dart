@@ -14,6 +14,7 @@ import 'package:ensemble_test_runner/reporters/atomic_file.dart';
 import 'package:ensemble_test_runner/reporters/html_test_reporter.dart';
 import 'package:ensemble_test_runner/reporters/step_outline_format.dart';
 import 'package:ensemble_test_runner/runner/test_artifacts.dart';
+import 'package:ensemble_test_runner/src/worker_capacity.dart';
 import 'package:ensemble_test_runner/validation/ensemble_test_validator.dart';
 import 'package:path/path.dart' as p;
 import 'package:yaml/yaml.dart';
@@ -41,7 +42,7 @@ final _disabledAppConsoleLogs = <String>{};
 ///   --path=<path>      Run matching test asset path(s); repeatable
 ///   --device=<id>      Run only these suite device id(s); repeatable (default: all)
 ///   --input key=value  Provide a test input for ${inputs.key}; repeatable
-///   --jobs=<n|auto>    Concurrent job count (default: auto for full suites; 1 disables)
+///   --jobs=<n|auto>    Concurrent jobs (default: adaptive CPU/memory; 1 disables)
 ///   --timeout=<duration> Test suite timeout, e.g. 30s, 5m, 1h (default: 10m)
 ///   --verbose          Full `flutter pub get` / `flutter test` output
 Future<void> runEnsembleYamlTestsCli(List<String> arguments) async {
@@ -511,7 +512,7 @@ Future<ProcessResult> _runParallelFlutterTests(
   final shards = _balancedShards(testFiles.parallel, parallelWorkerCount);
 
   _writeStatus(
-    'Running ${allFiles.length} test runs...',
+    'Running ${allFiles.length} test runs with $totalJobCount workers...',
     quiet: quiet,
     machineReport: machineReport,
   );
@@ -1683,9 +1684,11 @@ List<List<_ShardableTestFile>> _balancedShards(
 }
 
 int _autoWorkerCount(int fileCount) {
-  if (fileCount < 2) return 1;
-  final cpuBased = (Platform.numberOfProcessors / 2).ceil().clamp(1, 5);
-  return cpuBased.clamp(1, fileCount);
+  return calculateAutomaticWorkerCount(
+    testCount: fileCount,
+    logicalProcessorCount: Platform.numberOfProcessors,
+    totalMemoryBytes: detectTotalMemoryBytes(),
+  );
 }
 
 int _estimateTestFileDurationMs(
