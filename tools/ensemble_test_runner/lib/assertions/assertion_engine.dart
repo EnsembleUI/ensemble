@@ -620,6 +620,7 @@ class AssertionEngine {
         matches.isEmpty ? '' : ' Closest visible ids: ${matches.join(', ')}.';
     return 'No visible widget matched this id.$similar '
         '${visibleWidgetIdSummary(limit: limit)} '
+        '${_currentScreenSummary()} '
         'Hint: check that "$id" is on the current screen/state, or add a '
         'testId/id to the intended widget.';
   }
@@ -721,7 +722,16 @@ class AssertionEngine {
         ? ' Also verify that the test is running with the expected locale/translation.'
         : '';
     return '${visibleTextSummary(limit: limit)} '
+        '${_currentScreenSummary()} '
         'Hint: check that the app is on the expected screen/state before this assertion.$localeHint';
+  }
+
+  String _currentScreenSummary() {
+    final screen = ScreenTracker().getCurrentScreenIdentifier();
+    if (screen == null || screen.trim().isEmpty) {
+      return 'Current screen: unknown.';
+    }
+    return 'Current screen: "${screen.trim()}".';
   }
 
   bool _containsNonAscii(String value) =>

@@ -46,13 +46,13 @@ Widget YAML must set `testId` (or `id`, which maps to the same `ValueKey`).
 
 ### Step vocabulary
 
-The full official catalog (lifecycle, gestures, API assertions, debug, etc.) is in **[STEP_VOCABULARY.md](STEP_VOCABULARY.md)**.
+The full official catalog (lifecycle, gestures, API assertions, debug, etc.) is in **[STEP_VOCABULARY.md](https://github.com/EnsembleUI/ensemble/blob/main/tools/ensemble_test_runner/STEP_VOCABULARY.md)**.
 
 Machine-readable registry (single source): `lib/vocabulary/test_step_registry.dart`.
 
 ### JSON Schema (editor validation)
 
-A JSON Schema for `*.test.yaml` is hosted at `https://cdn.ensembleui.com/schemas/ensemble_tests_schema.json`. The committed copy lives at [`assets/schema/ensemble_tests_schema.json`](assets/schema/ensemble_tests_schema.json) and is generated from the step registry:
+A JSON Schema for `*.test.yaml` is hosted at `https://cdn.ensembleui.com/schemas/ensemble_tests_schema.json`. The committed copy lives at [`assets/schema/ensemble_tests_schema.json`](https://github.com/EnsembleUI/ensemble/blob/main/tools/ensemble_test_runner/assets/schema/ensemble_tests_schema.json) and is generated from the step registry:
 
 ```bash
 cd tools/ensemble_test_runner && dart run tool/generate_schema.dart
@@ -141,6 +141,34 @@ HTML report builds the contact-sheet gallery from those per-step PNGs.
 3. Add `ensemble_test_runner` to `dev_dependencies` (same git `url`/`ref` as your `ensemble:` dependency).
 4. Run `flutter pub get`.
 
+## Public Dart API
+
+The package is primarily YAML-first, but it also exposes a small Dart API for
+integrations and custom tooling through `package:ensemble_test_runner/ensemble_test_runner.dart`.
+
+- `runEnsembleYamlTests` runs a suite from a Flutter test environment.
+- `EnsembleTestParser` parses test files and suite configuration.
+- `EnsembleTestCase`, `EnsembleTestConfig`, and related model types represent
+  the supported YAML format.
+- `EnsembleTestRunner` and `EnsembleTestHarness` are available when an
+  integration needs direct control of execution.
+
+The API documentation is generated from the public declarations and is
+available on the package API tab on pub.dev.
+
+## Runnable example
+
+The [`example/`](https://github.com/EnsembleUI/ensemble/tree/main/tools/ensemble_test_runner/example) directory contains a minimal local Ensemble app,
+its screen definitions, and a YAML test. It is a useful starting point for a
+new suite and can be run with:
+
+```bash
+cd example
+flutter pub get
+flutter run
+dart run ensemble_test_runner:ensemble_test
+```
+
 ## Run
 
 From your app directory (e.g. `starter/`):
@@ -221,7 +249,7 @@ Create a starter test under `definitions.local.path/tests/`:
 dart run ensemble_test_runner:ensemble_test --scaffold-test=login_valid --feature=login --tag=smoke --screen=Login
 ```
 
-See [`docs/TEST_AUTHORING.md`](docs/TEST_AUTHORING.md) for the test authoring workflow, mock file conventions, validation rules, and repair-loop output.
+See [`docs/TEST_AUTHORING.md`](https://github.com/EnsembleUI/ensemble/blob/main/tools/ensemble_test_runner/docs/TEST_AUTHORING.md) for the test authoring workflow, mock file conventions, validation rules, and repair-loop output.
 
 ### CI output
 

@@ -1508,6 +1508,10 @@ const ensembleHtmlTestReportAppJs = r'''
           const device = ft.device || '';
           const scenario = ft.scenario || '';
           const filename = ft.file_name || '';
+          const failedStep = ft.failed_step || '';
+          const failedStepIndex = Number.isFinite(Number(ft.failed_step_index))
+            ? Number(ft.failed_step_index) + 1
+            : null;
           const errorSummary = ft.error_summary || 'Test execution failed.';
           
           html += '    <div class="run-failed-test-card">';
@@ -1517,6 +1521,12 @@ const ensembleHtmlTestReportAppJs = r'''
           html += '      </div>';
           if (filename) {
             html += '      <div class="run-failed-test-file">File: <code style="color:var(--accent); font-size:0.75rem;">' + escapeHtml(filename) + '</code></div>';
+          }
+          if (failedStep) {
+            const stepLabel = failedStepIndex == null
+              ? failedStep
+              : '#' + failedStepIndex + ' ' + failedStep;
+            html += '      <div class="run-failed-test-file">Failed step: <code style="color:var(--fail); font-size:0.75rem;">' + escapeHtml(stepLabel) + '</code></div>';
           }
           html += '      <pre class="run-failed-test-error">' + escapeHtml(errorSummary) + '</pre>';
           html += '    </div>';

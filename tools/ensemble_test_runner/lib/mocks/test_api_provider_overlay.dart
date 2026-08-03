@@ -8,10 +8,12 @@ import 'package:ensemble_test_runner/runner/live_async_call.dart';
 import 'package:flutter/widgets.dart';
 import 'package:yaml/yaml.dart';
 
+/// Diagnostic record for one API invocation observed during a test.
 class APICallRecord {
   final String name;
   final YamlMap apiDefinition;
   final DateTime timestamp;
+
   /// Top-level step index (0-based) active when the call started, if any.
   final int? stepIndex;
   bool? mocked;
@@ -41,6 +43,7 @@ class APICallRecord {
   });
 }
 
+/// In-memory API call collection used by reports and assertions.
 class ApiCallRecorder {
   final List<APICallRecord> calls = [];
 
@@ -55,6 +58,10 @@ class ApiCallRecorder {
 }
 
 /// Test provider overlay: observes API calls, applies test overrides, otherwise delegates.
+/// HTTP provider that applies test mocks and delegates all other calls.
+///
+/// The overlay keeps the real Ensemble provider contract, so applications can
+/// exercise their normal API actions while tests replace only selected APIs.
 class TestApiProviderOverlay extends HTTPAPIProvider {
   TestApiProviderOverlay({
     required Map<String, MockAPIResponse> mocks,
@@ -70,6 +77,7 @@ class TestApiProviderOverlay extends HTTPAPIProvider {
   HTTPAPIProvider get delegate => _delegate;
   final ApiCallRecorder recorder;
   Future<T?> Function<T>(Future<T> Function())? liveAsyncRunner;
+
   /// Returns the active top-level step index for attribution, if any.
   int? Function()? stepIndexProvider;
   final Map<String, int> _mockCallIndexes = {};
@@ -151,7 +159,8 @@ class TestApiProviderOverlay extends HTTPAPIProvider {
     final delegateTypeStr = delegate.runtimeType.toString();
     if (delegateTypeStr.contains('Firestore')) {
       type = 'firestore';
-    } else if (delegateTypeStr.contains('Functions') || delegateTypeStr.contains('Function')) {
+    } else if (delegateTypeStr.contains('Functions') ||
+        delegateTypeStr.contains('Function')) {
       type = 'functions';
     } else {
       type = 'api';
@@ -169,12 +178,26 @@ class TestApiProviderOverlay extends HTTPAPIProvider {
       resolvedUrl = HTTPAPIProvider.resolveUrl(eContext, rawUrl.toString());
     }
 
-    final rawHeaders = api['headers'] ?? api['firestore']?['headers'] ?? api['function']?['headers'];
-    final rawParams = api['parameters'] ?? api['query'] ?? api['firestore']?['parameters'] ?? api['firestore']?['query'] ?? api['function']?['parameters'] ?? api['function']?['query'];
-    final rawBody = api['body'] ?? api['data'] ?? api['firestore']?['body'] ?? api['firestore']?['data'] ?? api['function']?['body'] ?? api['function']?['data'];
+    final rawHeaders = api['headers'] ??
+        api['firestore']?['headers'] ??
+        api['function']?['headers'];
+    final rawParams = api['parameters'] ??
+        api['query'] ??
+        api['firestore']?['parameters'] ??
+        api['firestore']?['query'] ??
+        api['function']?['parameters'] ??
+        api['function']?['query'];
+    final rawBody = api['body'] ??
+        api['data'] ??
+        api['firestore']?['body'] ??
+        api['firestore']?['data'] ??
+        api['function']?['body'] ??
+        api['function']?['data'];
 
-    final resolvedHeaders = _resolveValue(rawHeaders, eContext) as Map<String, dynamic>?;
-    final resolvedParameters = _resolveValue(rawParams, eContext) as Map<String, dynamic>?;
+    final resolvedHeaders =
+        _resolveValue(rawHeaders, eContext) as Map<String, dynamic>?;
+    final resolvedParameters =
+        _resolveValue(rawParams, eContext) as Map<String, dynamic>?;
     final resolvedBody = _resolveValue(rawBody, eContext);
 
     final stepIndex = stepIndexProvider?.call();
@@ -339,7 +362,7 @@ class TestApiProviderOverlay extends HTTPAPIProvider {
   void dispose() => _delegate.dispose();
 }
 
-/// Delegates to a real provider unless [host] has a test override for the API name.
+/// Delegates to a real provider unless `host` has a test override for the API name.
 class TestApiOverlay implements APIProvider {
   TestApiOverlay(this._host, this._delegate);
 

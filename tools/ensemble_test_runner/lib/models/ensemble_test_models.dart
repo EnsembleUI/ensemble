@@ -120,6 +120,9 @@ class EnsembleTestCase {
 }
 
 /// One scenario from a scenario-based test suite.
+///
+/// Scenarios share the test's steps while providing different variables and
+/// mock inputs. The runner expands them into independent test results.
 class TestScenario {
   final String id;
   final String? description;
@@ -132,6 +135,11 @@ class TestScenario {
   });
 }
 
+/// Suite-wide configuration loaded from `tests/config.yaml`.
+///
+/// The configuration is applied to every discovered test. Use test-level
+/// fields only for data that genuinely belongs to one test case, such as its
+/// description, steps, and scenario selection.
 class EnsembleTestConfig {
   final List<TestServiceConfig> services;
   final List<String> mockFiles;
@@ -173,6 +181,7 @@ class EnsembleTestConfig {
   bool get hasDeviceMatrix => devices.isNotEmpty;
 }
 
+/// A named profile containing reusable mocks and initial state.
 class TestProfile {
   final List<String> mockFiles;
   final Map<String, dynamic> inlineMocks;
@@ -213,6 +222,7 @@ class WifiTestConfig {
   });
 }
 
+/// A local process that the runner starts before executing tests.
 class TestServiceConfig {
   final String name;
   final String command;
@@ -256,6 +266,7 @@ class TestServiceConfig {
   }
 }
 
+/// Controls suite-level application performance logging.
 class PerformanceConfig {
   final bool enabled;
 
@@ -264,6 +275,7 @@ class PerformanceConfig {
   });
 }
 
+/// Controls timer normalization used by the Flutter test host.
 class TimerRewriteConfig {
   final bool enabled;
   final int maxStartAfterSeconds;
@@ -276,6 +288,7 @@ class TimerRewriteConfig {
   });
 }
 
+/// Controls writing the rendered widget tree to a diagnostic artifact.
 class DumpTreeConfig {
   final bool enabled;
 
@@ -284,6 +297,7 @@ class DumpTreeConfig {
   });
 }
 
+/// Controls writing observed API calls to a diagnostic artifact.
 class LogApiCallsConfig {
   final bool enabled;
 
@@ -292,6 +306,7 @@ class LogApiCallsConfig {
   });
 }
 
+/// Controls writing the final local storage snapshot to an artifact.
 class LogStorageConfig {
   final bool enabled;
   final String? key;
@@ -348,6 +363,7 @@ class TestDeviceTarget {
       };
 }
 
+/// Controls automatic per-step screenshot capture and filtering.
 class ScreenshotConfig {
   final bool enabled;
   final List<String> includeSteps;
@@ -370,6 +386,7 @@ class ScreenshotConfig {
 }
 
 /// Mock configuration attached to a test case.
+/// API mocks attached to a test after profile and suite composition.
 class TestMocks {
   final Map<String, MockAPIResponse> apis;
 
@@ -377,6 +394,10 @@ class TestMocks {
 }
 
 /// Mock API response returned by the test HTTP provider.
+/// A deterministic API response used by the test provider.
+///
+/// [responses] can provide a sequence of responses for repeated calls, and
+/// [delayMs] simulates server latency while preserving the API loading state.
 class MockAPIResponse {
   final int statusCode;
   final dynamic body;
@@ -428,6 +449,7 @@ class TestStep {
 }
 
 /// Aggregate result for a YAML test run.
+/// Aggregate result for one complete runner invocation.
 class EnsembleTestRunResult {
   final List<EnsembleSingleTestResult> results;
   final List<String> suiteLogs;
@@ -456,9 +478,11 @@ class EnsembleTestRunResult {
 }
 
 /// Status of a finished test case.
+/// Final status of an executed test case.
 enum TestStatus { passed, failed }
 
 /// Result for one executed YAML test case.
+/// Result and diagnostics for one expanded test case run.
 class EnsembleSingleTestResult {
   final String testId;
   final Map<String, dynamic> metadata;
@@ -700,6 +724,7 @@ class EnsembleTestReportDetails {
 }
 
 /// Thrown when a test step or assertion fails.
+/// Exception used for user-facing YAML test and assertion failures.
 class EnsembleTestFailure implements Exception {
   final String message;
 

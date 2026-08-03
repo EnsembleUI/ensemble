@@ -189,6 +189,9 @@ class EnsembleTestRunner {
     final previousOnError = FlutterError.onError;
 
     final previousDebugPrint = debugPrint;
+    final previousLiveAsyncRunner = LiveAsyncCallSupport.runner;
+    final previousDrainPendingExceptions =
+        LiveAsyncCallSupport.drainPendingExceptions;
     try {
       FlutterError.onError = (details) {
         ctx.runtime.flutterErrors.add(_formatFlutterError(details));
@@ -207,9 +210,9 @@ class EnsembleTestRunner {
       SchedulerBinding.instance.addTimingsCallback(timingsCallback);
       ctx.apiOverlay.liveAsyncRunner = tester.runAsync;
       LiveAsyncCallSupport.runner = tester.runAsync;
-      LiveAsyncCallSupport.drainPendingExceptions = () {
-        while (tester.takeException() != null) {}
-      };
+      // Inspect pending framework exceptions at explicit lifecycle boundaries;
+      // do not discard them from async-call cleanup.
+      LiveAsyncCallSupport.drainPendingExceptions = null;
 
       return await runZoned(
         () async {
@@ -228,7 +231,10 @@ class EnsembleTestRunner {
             },
             forcedLocale: sessionSnapshot?.locale ?? ctx.runtime.locale,
           );
-          _drainPendingFlutterExceptions(tester);
+          _throwIfUnexpectedFlutterExceptions(
+            tester,
+            phase: 'during startup/setup',
+          );
           await YamlTestSession.navigationFlow.flushPending();
           YamlTestSession.navigationFlow.beginTest(
             ScreenTracker().getCurrentScreenIdentifier(),
@@ -313,6 +319,9 @@ class EnsembleTestRunner {
         SchedulerBinding.instance.removeTimingsCallback(callback);
       }
       FlutterError.onError = previousOnError;
+      LiveAsyncCallSupport.runner = previousLiveAsyncRunner;
+      LiveAsyncCallSupport.drainPendingExceptions =
+          previousDrainPendingExceptions;
     }
   }
 
@@ -440,7 +449,10 @@ class EnsembleTestRunner {
       final storageBefore = capturePublicStorage();
       var capturedStep = false;
       try {
-        _drainPendingFlutterExceptions(tester);
+        _throwIfUnexpectedFlutterExceptions(
+          tester,
+          phase: 'before this step',
+        );
         if (i == 0 && ctx.config.screenshots.enabled) {
           await executor.settle();
         }
@@ -516,7 +528,10 @@ class EnsembleTestRunner {
         if (ctx.config.screenshots.enabled && _isUserActionStep(step)) {
           await _paintAfterUserAction(executor);
         }
-        _drainPendingFlutterExceptions(tester);
+        _throwIfUnexpectedFlutterExceptions(
+          tester,
+          phase: 'after this step',
+        );
         if (!captureBeforeStep && !capturedStep && optionalActionStep == null) {
           await _captureAutomaticScreenshotForStep(
             executor: executor,
@@ -571,7 +586,7 @@ class EnsembleTestRunner {
         final idleStartFrame = ctx.runtime.appFrameTimings.length + 1;
         final idleStartTime = DateTime.now();
         await _settleLiveApiWorkBestEffort(tester, ctx);
-        _drainPendingFlutterExceptions(tester);
+        final frameworkErrors = _takeUnexpectedFlutterExceptions(tester);
         if (!capturedStep) {
           await _captureAutomaticScreenshotForStepBestEffort(
             executor: executor,
@@ -582,10 +597,15 @@ class EnsembleTestRunner {
             forFailure: true,
           );
         }
-        final failureMessage = _failureMessageWithFlutterErrors(
+        var failureMessage = _failureMessageWithFlutterErrors(
           error.toString(),
           ctx,
         );
+        if (frameworkErrors.isNotEmpty) {
+          failureMessage = '$failureMessage\n'
+              'Unexpected Flutter framework error: '
+              '${_compactDiagnostic(frameworkErrors.first)}';
+        }
         await _flushPendingScreenshots(
           ctx,
           status: TestStatus.failed,
@@ -629,7 +649,42 @@ class EnsembleTestRunner {
     final idleStartFrame = ctx.runtime.appFrameTimings.length + 1;
     final idleStartTime = DateTime.now();
     await _settleLiveApiWorkBestEffort(tester, ctx);
-    _drainPendingFlutterExceptions(tester);
+    final frameworkErrors = _takeUnexpectedFlutterExceptions(tester);
+    if (frameworkErrors.isNotEmpty) {
+      final failureMessage = _failureMessageWithFlutterErrors(
+        'Unexpected Flutter framework error after the final step: '
+        '${_compactDiagnostic(frameworkErrors.first)} '
+        'Hint: inspect the last screenshot and check async work started by '
+        'the final step.',
+        ctx,
+      );
+      await _flushPendingScreenshots(
+        ctx,
+        status: TestStatus.failed,
+        durationMs: stopwatch.elapsedMilliseconds,
+        failedStepIndex: test.steps.isEmpty ? null : test.steps.length - 1,
+        failedStepLabel:
+            test.steps.isEmpty ? null : formatStepBrief(test.steps.last),
+        failureMessage: failureMessage,
+      );
+      await _attachPerTestDebugArtifacts(ctx);
+      return EnsembleSingleTestResult.failed(
+        testId: test.id,
+        metadata: test.metadataJson,
+        failedStepIndex: test.steps.isEmpty ? null : test.steps.length - 1,
+        failedStep: test.steps.isEmpty ? null : test.steps.last,
+        error: failureMessage,
+        stackTrace: StackTrace.current.toString(),
+        durationMs: stopwatch.elapsedMilliseconds,
+        logs: ctx.logger.logs,
+        report: buildTestReportDetails(
+          test,
+          stepDurationsMs: stepDurationsMs,
+          stepStartTimes: stepStartTimes,
+          screens: ctx.runtime.screenArtifacts,
+        ),
+      );
+    }
     await _flushPendingScreenshots(
       ctx,
       status: TestStatus.passed,
@@ -1408,16 +1463,41 @@ class EnsembleTestRunner {
       // Cleanup settling is only to give async work a chance to finish before
       // screenshots/logs are written. It must not decide the test result.
     }
-    _drainPendingFlutterExceptions(tester);
   }
 
-  void _drainPendingFlutterExceptions(WidgetTester tester) {
-    while (tester.takeException() != null) {
-      // The app may catch/report async framework errors itself. Draining here
-      // prevents Flutter's test binding from failing the YAML suite with a raw
-      // framework dump after the declarative assertions have already decided
-      // the test result.
+  List<Object> _takeUnexpectedFlutterExceptions(WidgetTester tester) {
+    final errors = <Object>[];
+    Object? error;
+    while ((error = tester.takeException()) != null) {
+      if (!_isKnownTeardownNoise(error!)) {
+        errors.add(error);
+      }
     }
+    return errors;
+  }
+
+  void _throwIfUnexpectedFlutterExceptions(
+    WidgetTester tester, {
+    required String phase,
+  }) {
+    final errors = _takeUnexpectedFlutterExceptions(tester);
+    if (errors.isEmpty) return;
+    throw EnsembleTestFailure(
+      'Unexpected Flutter framework error $phase: '
+      '${_compactDiagnostic(errors.first)} '
+      'Hint: inspect the previous step and fix the async work or widget '
+      'lifecycle before continuing.',
+    );
+  }
+
+  bool _isKnownTeardownNoise(Object error) => error.toString().contains(
+        'An animation is still running even after the widget tree was disposed.',
+      );
+
+  String _compactDiagnostic(Object error, {int maxLength = 600}) {
+    final normalized = error.toString().replaceAll(RegExp(r'\s+'), ' ').trim();
+    if (normalized.length <= maxLength) return normalized;
+    return '${normalized.substring(0, maxLength - 3)}...';
   }
 
   String _formatFlutterError(FlutterErrorDetails details) {
@@ -1433,7 +1513,8 @@ class EnsembleTestRunner {
   ) {
     final errors = ctx.runtime.flutterErrors;
     if (errors.isEmpty) return message;
-    return '$message\nFlutter errors:\n- ${errors.take(3).join('\n- ')}';
+    return '$message\nFlutter framework error: '
+        '${_compactDiagnostic(errors.first)}';
   }
 
   Future<void> _flushPendingScreenshots(

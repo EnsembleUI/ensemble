@@ -9,6 +9,7 @@ import 'package:ensemble_test_runner/ensemble_test_runner.dart';
 import 'package:ensemble_test_runner/mocks/firebase_test_setup.dart';
 import 'package:ensemble_test_runner/mocks/wifi_test_setup.dart';
 import 'package:ensemble_test_runner/reporters/ensemble_test_history_store.dart';
+import 'package:ensemble_test_runner/reporters/atomic_file.dart';
 import 'package:ensemble_test_runner/runner/test_artifacts.dart';
 import 'package:ensemble_test_runner/runner/yaml_test_session.dart';
 import 'package:flutter/widgets.dart';
@@ -27,7 +28,7 @@ class EnsembleYamlTestOptions {
   /// `lib/generated/ensemble_modules.dart` (same as `main.dart`).
   final Future<void> Function()? bootstrap;
 
-  /// Host-app methods passed to [EnsembleApp], e.g. `captureCertificateForHost`.
+  /// Host-app methods passed to `EnsembleApp`, e.g. `captureCertificateForHost`.
   final Map<String, Function>? externalMethods;
 
   const EnsembleYamlTestOptions({
@@ -237,6 +238,7 @@ Future<bool> _recordHistory(EnsembleTestRunResult result) async {
     return true;
   } catch (_) {
     // History is a convenience artifact; it must not affect test outcome.
+    stderr.writeln('Warning: could not write the test history database.');
     return false;
   }
 }
@@ -387,7 +389,10 @@ void _emitMachineReport(EnsembleTestRunResult result) {
   if (reportFile.isNotEmpty) {
     final file = File(reportFile);
     file.parent.createSync(recursive: true);
-    file.writeAsStringSync(reportMode == 'junit' ? junitReport : jsonReport);
+    AtomicFile.writeStringSync(
+      file,
+      reportMode == 'junit' ? junitReport : jsonReport,
+    );
   }
 
   if (reportMode == 'json' || emitJsonReport) {

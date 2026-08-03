@@ -35,9 +35,11 @@ void main() {
 
       await tester.pumpWidget(
         MaterialApp(
-          home: Scaffold(body: lottie),
+          home:
+              Scaffold(body: SizedBox(width: 200, height: 200, child: lottie)),
         ),
       );
+      await tester.pump();
 
       expect(areVisibleLottiesReady(tester), isTrue);
 
@@ -58,9 +60,12 @@ void main() {
 
       await tester.pumpWidget(
         MaterialApp(
-          home: Scaffold(body: SizedBox(height: 0, child: lottie)),
+          home: Scaffold(
+            body: SizedBox(width: 200, height: 200, child: lottie),
+          ),
         ),
       );
+      await tester.pump();
 
       // LottieState owns the AnimationController after mount.
       final animation = lottie.controller.lottieController!;
@@ -80,9 +85,12 @@ void main() {
 
       await tester.pumpWidget(
         MaterialApp(
-          home: Scaffold(body: SizedBox(height: 0, child: lottie)),
+          home: Scaffold(
+            body: SizedBox(width: 200, height: 200, child: lottie),
+          ),
         ),
       );
+      await tester.pump();
 
       final animation = lottie.controller.lottieController!;
       animation.duration = const Duration(seconds: 10);

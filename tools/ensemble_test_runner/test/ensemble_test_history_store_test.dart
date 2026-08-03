@@ -39,6 +39,11 @@ void main() {
             testId:
                 'settings_flow[retry_case][iphone] (ensemble/apps/app/tests/settings.test.yaml)',
             durationMs: 700,
+            failedStepIndex: 2,
+            failedStep: const TestStep(
+              type: 'tap',
+              args: {'id': 'save_button'},
+            ),
             error: 'Timed out waiting for id "save_button".\nextra details',
             metadata: const {
               'scenarioId': 'retry_case',
@@ -73,10 +78,79 @@ void main() {
     expect(failed.single['file_name'], 'settings.test.yaml');
     expect(failed.single['device'], 'iphone');
     expect(failed.single['scenario'], 'retry_case');
+    expect(failed.single['failed_step_index'], 2);
+    expect(failed.single['failed_step'], 'tap(save_button)');
     expect(
       failed.single['error_summary'],
       'Timed out waiting for id "save_button".',
     );
+  });
+
+  test('migrates failed step columns into an existing history database',
+      () async {
+    final reportDir = Directory(p.join(tempDir.path, 'report'))
+      ..createSync(recursive: true);
+    final dbPath = p.join(reportDir.path, EnsembleTestHistoryStore.fileName);
+    final oldDb = await databaseFactoryFfi.openDatabase(dbPath);
+    await oldDb.execute('''
+CREATE TABLE runs (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  created_at TEXT NOT NULL,
+  status TEXT NOT NULL,
+  duration_ms INTEGER NOT NULL,
+  passed_tests INTEGER NOT NULL,
+  failed_tests INTEGER NOT NULL,
+  total_tests INTEGER NOT NULL,
+  commit_hash TEXT,
+  branch TEXT,
+  build_number TEXT,
+  pr_number TEXT
+)
+''');
+    await oldDb.execute('''
+CREATE TABLE failed_tests (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  run_id INTEGER NOT NULL,
+  test_id TEXT NOT NULL,
+  base_id TEXT,
+  file_name TEXT,
+  device TEXT,
+  scenario TEXT,
+  error_summary TEXT,
+  FOREIGN KEY(run_id) REFERENCES runs(id) ON DELETE CASCADE
+)
+''');
+    await oldDb.close();
+
+    await EnsembleTestHistoryStore.recordCompletedRun(
+      appDir: tempDir.path,
+      artifactRoot: tempDir.path,
+      result: EnsembleTestRunResult(
+        results: [
+          EnsembleSingleTestResult.failed(
+            testId: 'new_test (ensemble/apps/app/tests/new.test.yaml)',
+            durationMs: 100,
+            failedStepIndex: 0,
+            failedStep: const TestStep(
+              type: 'expectVisible',
+              args: {'id': 'welcome_text'},
+            ),
+            error: 'not visible',
+          ),
+        ],
+      ),
+    );
+
+    final db = await databaseFactoryFfi.openDatabase(dbPath);
+    addTearDown(db.close);
+    final columns = await db.rawQuery('PRAGMA table_info(failed_tests)');
+    expect(
+      columns.map((row) => row['name']),
+      containsAll(['failed_step_index', 'failed_step']),
+    );
+    final failed = await db.query('failed_tests');
+    expect(failed.single['failed_step_index'], 0);
+    expect(failed.single['failed_step'], 'expectVisible(welcome_text)');
   });
 
   test('keeps only the latest 50 history runs', () async {

@@ -1,4 +1,9 @@
 /// Public API for running declarative YAML tests against Ensemble apps.
+///
+/// Use [runEnsembleYamlTests] to execute a discovered suite from a Flutter
+/// test, or use [EnsembleTestParser] and the model types for tooling that needs
+/// to inspect or build test definitions. The `ensemble_test` executable is the
+/// recommended command-line entry point for application developers.
 library ensemble_test_runner;
 
 export 'discovery/ensemble_test_discovery.dart';

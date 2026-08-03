@@ -15,9 +15,9 @@ import 'package:get_it/get_it.dart';
 
 /// Signs in with a Firebase custom token via the real Identity Toolkit REST API.
 ///
-/// HTTP runs through [LiveAsyncCallSupport] (same [WidgetTester.runAsync] queue
-/// as live [invokeAPI] calls) because direct sockets from action callbacks fail
-/// under [flutter test].
+/// HTTP runs through `LiveAsyncCallSupport` (same `WidgetTester.runAsync` queue
+/// as live `invokeAPI` calls) because direct sockets from action callbacks fail
+/// under `flutter test`.
 class LiveSignInWithCustomToken implements SignInWithCustomToken {
   @override
   Future<void> signInWithCustomToken(

@@ -31,6 +31,7 @@ class EnsembleTestExecutionPlan {
   });
 }
 
+/// Filters applied while building an execution plan.
 class EnsembleTestSelection {
   final Set<String> ids;
   final Set<String> exactIds;

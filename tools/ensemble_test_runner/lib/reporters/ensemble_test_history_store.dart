@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
 import 'package:ensemble_test_runner/reporters/test_report_document.dart';
+import 'package:ensemble_test_runner/reporters/step_outline_format.dart';
 import 'package:path/path.dart' as p;
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
@@ -83,6 +84,8 @@ class EnsembleTestHistoryStore {
             'file_name': p.basename(filePathOf(test.testId)),
             'device': _deviceId(test),
             'scenario': test.metadata['scenarioId']?.toString(),
+            'failed_step_index': test.failedStepIndex,
+            'failed_step': _failedStepLabel(test),
             'error_summary': _errorSummary(test.message),
           });
         }
@@ -126,11 +129,45 @@ CREATE TABLE IF NOT EXISTS failed_tests (
   file_name TEXT,
   device TEXT,
   scenario TEXT,
+  failed_step_index INTEGER,
+  failed_step TEXT,
   error_summary TEXT,
   FOREIGN KEY(run_id) REFERENCES runs(id) ON DELETE CASCADE
 )
 ''');
+    await _migrateFailedTestsSchema(db);
     await _normalizeFailedTestIds(db);
+  }
+
+  static Future<void> _migrateFailedTestsSchema(Database db) async {
+    final tableInfo = await db.rawQuery('PRAGMA table_info(failed_tests)');
+    final columns = tableInfo
+        .map((row) => row['name']?.toString())
+        .whereType<String>()
+        .toSet();
+
+    if (!columns.contains('failed_step_index')) {
+      await db.execute(
+        'ALTER TABLE failed_tests ADD COLUMN failed_step_index INTEGER',
+      );
+    }
+    if (!columns.contains('failed_step')) {
+      await db.execute(
+        'ALTER TABLE failed_tests ADD COLUMN failed_step TEXT',
+      );
+    }
+  }
+
+  static String? _failedStepLabel(EnsembleSingleTestResult test) {
+    final step = test.failedStep;
+    if (step != null) return formatStepBrief(step);
+
+    final index = test.failedStepIndex;
+    final outline = test.report?.stepsOutline ?? const <String>[];
+    if (index != null && index >= 0 && index < outline.length) {
+      return outline[index];
+    }
+    return null;
   }
 
   static Future<void> _migrateRunsSchema(Database db) async {

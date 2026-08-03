@@ -52,8 +52,8 @@ class _PreservingFirebaseCoreHostApi implements TestFirebaseCoreHostApi {
   }
 }
 
-/// Installs Firebase Core platform mocks so [Firebase.initializeApp] works under
-/// [flutter test] (no native Firebase host). Required before app bootstrap.
+/// Installs Firebase Core platform mocks so `Firebase.initializeApp` works under
+/// `flutter test` (no native Firebase host). Required before app bootstrap.
 void ensureFirebaseCoreMocksForTest() {
   if (_firebaseCoreMocksInstalled) return;
   TestFirebaseCoreHostApi.setUp(_PreservingFirebaseCoreHostApi());
@@ -63,7 +63,7 @@ void ensureFirebaseCoreMocksForTest() {
   _firebaseCoreMocksInstalled = true;
 }
 
-/// Call after app module bootstrap so [signInWithCustomToken] uses live Firebase.
+/// Call after app module bootstrap so `signInWithCustomToken` uses live Firebase.
 void ensureLiveAuthActionsForTest() {
   ensureLiveSignInWithCustomTokenForTest();
 }

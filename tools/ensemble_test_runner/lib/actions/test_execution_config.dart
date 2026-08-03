@@ -1,4 +1,7 @@
 /// Timing defaults for [TestStepExecutor] (overridable per executor instance).
+///
+/// These values are intentionally conservative defaults for local and CI
+/// execution. Individual YAML wait steps can provide their own timeout.
 class TestExecutionConfig {
   final Duration settleStepDuration;
   final Duration settleTimeout;

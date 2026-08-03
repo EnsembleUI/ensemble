@@ -3,6 +3,11 @@ import 'dart:io';
 import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
 import 'package:yaml/yaml.dart';
 
+/// Parses test cases and suite configuration from YAML.
+///
+/// The parser is useful for tooling that wants to validate or inspect test
+/// definitions without starting Flutter. Runtime execution is provided by
+/// [runEnsembleYamlTests].
 class EnsembleTestParser {
   /// Loads a test file from disk.
   static Future<EnsembleTestCase> parseFile(
@@ -24,6 +29,7 @@ class EnsembleTestParser {
     );
   }
 
+  /// Parses one `*.test.yaml` document from [content].
   static EnsembleTestCase parseString(
     String content, {
     String? sourcePath,
@@ -229,6 +235,7 @@ class EnsembleTestParser {
     return (files: files, inline: inline);
   }
 
+  /// Parses one suite `tests/config.yaml` document from [content].
   static EnsembleTestConfig parseConfigString(
     String content, {
     String? sourcePath,

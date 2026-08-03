@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
+import 'package:ensemble_test_runner/reporters/atomic_file.dart';
 import 'package:ensemble_test_runner/reporters/html_test_report_app_js.dart';
 import 'package:ensemble_test_runner/reporters/html_test_report_css.dart';
 import 'package:ensemble_test_runner/reporters/test_report_document.dart';
@@ -27,14 +28,14 @@ class HtmlTestReporter {
     final htmlFile = File(p.join(reportDir.path, 'index.html'));
 
     if (isSuiteRunning) {
-      htmlFile.writeAsStringSync(buildShellHtml());
+      AtomicFile.writeStringSync(htmlFile, buildShellHtml());
       TestReportDocument.writeResults(
         reportDir,
         TestReportDocument.buildLoading(wallTimeMs: wallTimeMs),
       );
     } else {
       if (!htmlFile.existsSync()) {
-        htmlFile.writeAsStringSync(buildShellHtml());
+        AtomicFile.writeStringSync(htmlFile, buildShellHtml());
       }
       TestReportDocument.writeResults(
         reportDir,
@@ -64,7 +65,7 @@ class HtmlTestReporter {
     reportDir.createSync(recursive: true);
     final htmlFile = File(p.join(reportDir.path, 'index.html'));
     if (!htmlFile.existsSync()) {
-      htmlFile.writeAsStringSync(buildShellHtml());
+      AtomicFile.writeStringSync(htmlFile, buildShellHtml());
     }
     TestReportDocument.writeResults(
       reportDir,

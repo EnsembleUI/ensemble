@@ -49,7 +49,7 @@ _LiveAuthSession? liveAuthSessionForApp(String appName) =>
     _sessionsByApp[appName];
 
 /// Bridges Firebase Auth user token pigeon calls for code paths that still use
-/// [FirebaseAuth] after [LiveSignInWithCustomToken] has established a session.
+/// `FirebaseAuth` after `LiveSignInWithCustomToken` has established a session.
 void ensureLiveFirebaseAuthForTest() {
   if (_firebaseAuthBridgeInstalled) return;
   TestWidgetsFlutterBinding.ensureInitialized();

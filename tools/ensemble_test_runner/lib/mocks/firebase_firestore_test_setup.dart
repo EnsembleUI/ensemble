@@ -12,7 +12,7 @@ bool _firestoreBridgeInstalled = false;
 int _snapshotListenerCounter = 0;
 
 /// Bridges Firestore pigeon calls to the real Firestore REST API during
-/// [flutter test]. Native plugins are unavailable in the VM test binding.
+/// `flutter test`. Native plugins are unavailable in the VM test binding.
 void ensureLiveFirestoreForTest() {
   if (_firestoreBridgeInstalled) return;
   TestWidgetsFlutterBinding.ensureInitialized();

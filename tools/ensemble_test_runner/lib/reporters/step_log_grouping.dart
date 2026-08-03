@@ -5,7 +5,8 @@
 /// Walks [stepsOutline] and yields each line with its top-level step index.
 ///
 /// Nested outline lines (indented with two spaces) inherit the parent index.
-Iterable<({String line, int topLevelIndex, bool nested})> stepOutlineTopLevelIndexes(
+Iterable<({String line, int topLevelIndex, bool nested})>
+    stepOutlineTopLevelIndexes(
   List<String> stepsOutline,
 ) sync* {
   var topLevelIndex = -1;
@@ -126,9 +127,8 @@ List<Map<String, dynamic>> groupLogsByStep({
 
   int? resolveTopLevel(Map<String, dynamic> ev) {
     final stepIndexRaw = ev['stepIndex'];
-    final stepIndex = stepIndexRaw is int
-        ? stepIndexRaw
-        : int.tryParse('$stepIndexRaw');
+    final stepIndex =
+        stepIndexRaw is int ? stepIndexRaw : int.tryParse('$stepIndexRaw');
     if (stepIndex != null) return stepIndex;
     final timestampStr = ev['timestamp']?.toString();
     if (timestampStr == null) return null;
