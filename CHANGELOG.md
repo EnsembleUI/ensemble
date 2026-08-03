@@ -3,6 +3,27 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## 2026-08-03
+
+### Changes
+
+---
+
+Packages with breaking changes:
+
+ - There are no breaking changes in this release.
+
+Packages with other changes:
+
+ - [`ensemble_test_runner` - `v1.3.0`](#ensemble_test_runner---v130)
+
+---
+
+#### `ensemble_test_runner` - `v1.3.0`
+
+ - **FEAT**(ensemble_test_runner): enhance error reporting with concise hints for missing widgets and texts ([#2333](https://github.com/ensembleUI/ensemble/issues/2333)). ([7fbd0e07](https://github.com/ensembleUI/ensemble/commit/7fbd0e07c3fadd3d35243df33efd2cd7a33bc318))
+
+
 ## 2026-08-01
 
 ### Changes

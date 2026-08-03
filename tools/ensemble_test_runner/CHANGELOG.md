@@ -1,3 +1,7 @@
+## 1.3.0
+
+ - **FEAT**(ensemble_test_runner): enhance error reporting with concise hints for missing widgets and texts ([#2333](https://github.com/ensembleUI/ensemble/issues/2333)). ([7fbd0e07](https://github.com/ensembleUI/ensemble/commit/7fbd0e07c3fadd3d35243df33efd2cd7a33bc318))
+
 ## 1.2.56
 
  - **FEAT**(ensemble_test_runner): improve screenshot handling and text matching logic ([#2332](https://github.com/ensembleUI/ensemble/issues/2332)). ([c1ab83bf](https://github.com/ensembleUI/ensemble/commit/c1ab83bf4d021cab239a7bf14dbb497b83d22b03))
