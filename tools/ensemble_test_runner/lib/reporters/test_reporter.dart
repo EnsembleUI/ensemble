@@ -62,43 +62,6 @@ List<String> _outlineStep(TestStep step) {
   return [formatStepBrief(step)];
 }
 
-/// Short label for a step, e.g. `expectVisible(greeting_text)`.
-String formatStepBrief(TestStep step) {
-  final type = step.type;
-  final args = step.args;
-
-  if ((type == 'optional' || type == 'ifVisible') &&
-      step.nestedSteps.length == 1) {
-    return '$type(${formatStepBrief(step.nestedSteps.single)})';
-  }
-
-  String? detail;
-  final id = args['id'];
-  if (id != null) {
-    final action = args['action'];
-    detail = action != null ? '$action $id' : id.toString();
-  } else if (args['screen'] != null) {
-    detail = args['screen'].toString();
-  } else if (args['name'] != null) {
-    detail = args['name'].toString();
-  } else if (args['text'] != null) {
-    var text = args['text'].toString();
-    if (text.length > 40) {
-      text = '${text.substring(0, 37)}...';
-    }
-    detail = '"$text"';
-  } else if (args['value'] != null) {
-    detail = args['value'].toString();
-  }
-
-  if (detail == null && args.isNotEmpty) {
-    final entry = args.entries.first;
-    detail = '${entry.key}=${entry.value}';
-  }
-
-  return detail != null ? '$type($detail)' : type;
-}
-
 class TestReporter {
   /// Formats a multi-test run report for console output.
   String formatSummary(

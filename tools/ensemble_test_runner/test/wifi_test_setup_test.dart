@@ -1,4 +1,3 @@
-import 'package:ensemble/action/get_network_info_action.dart';
 import 'package:ensemble/framework/storage_manager.dart';
 import 'package:ensemble/framework/stub/network_info.dart';
 import 'package:ensemble/framework/stub/wifi_manager.dart';
@@ -33,7 +32,8 @@ void main() {
     _installWifiDoubles();
 
     expect(
-      await GetIt.I<WifiManager>().connectToSecureNetwork('KPN_Test_WiFi', 'pw'),
+      await GetIt.I<WifiManager>()
+          .connectToSecureNetwork('KPN_Test_WiFi', 'pw'),
       isTrue,
     );
     final info = await GetIt.I<NetworkInfoManager>().getNetworkInfo();
@@ -45,7 +45,8 @@ void main() {
     _installWifiDoubles();
 
     expect(
-      await GetIt.I<WifiManager>().connectToSecureNetwork('KPN_Test_WiFi', 'pw'),
+      await GetIt.I<WifiManager>()
+          .connectToSecureNetwork('KPN_Test_WiFi', 'pw'),
       isFalse,
     );
   });
@@ -55,7 +56,8 @@ void main() {
     _installWifiDoubles();
 
     expect(
-      await GetIt.I<WifiManager>().connectToSecureNetwork('KPN_Test_WiFi', 'pw'),
+      await GetIt.I<WifiManager>()
+          .connectToSecureNetwork('KPN_Test_WiFi', 'pw'),
       isTrue,
     );
     final info = await GetIt.I<NetworkInfoManager>().getNetworkInfo();

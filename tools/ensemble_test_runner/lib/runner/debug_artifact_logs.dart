@@ -77,23 +77,24 @@ Future<String> writeApiCallsLogFile({
                   ? calls[i].resolvedUrl!
                   : (calls[i].type == 'firestore'
                       ? ((calls[i].apiDefinition['path'] ??
-                              calls[i].apiDefinition['firestore']?['path'])
-                          ?.toString() ??
+                                  calls[i].apiDefinition['firestore']?['path'])
+                              ?.toString() ??
                           '')
                       : (calls[i].type == 'functions'
                           ? ((calls[i].apiDefinition['name'] ??
-                                  calls[i].apiDefinition['function']?['name'])
-                              ?.toString() ??
+                                      calls[i].apiDefinition['function']
+                                          ?['name'])
+                                  ?.toString() ??
                               '')
                           : (calls[i].apiDefinition['url'] ??
-                                  calls[i].apiDefinition['uri'])
-                              ?.toString() ??
+                                      calls[i].apiDefinition['uri'])
+                                  ?.toString() ??
                               '')),
               'method': calls[i].type == 'firestore'
                   ? ((calls[i].apiDefinition['operation'] ??
-                          calls[i].apiDefinition['firestore']?['operation'])
-                      ?.toString()
-                      .toUpperCase() ??
+                              calls[i].apiDefinition['firestore']?['operation'])
+                          ?.toString()
+                          .toUpperCase() ??
                       'GET')
                   : (calls[i].type == 'functions'
                       ? 'CALL'
@@ -199,10 +200,11 @@ Future<String> writeStorageLogFile({
     );
   }
 
-  final snapshot = keys ?? <String, dynamic>{
-    for (final storageKey in StorageManager().getKeys())
-      storageKey: StorageManager().read(storageKey),
-  };
+  final snapshot = keys ??
+      <String, dynamic>{
+        for (final storageKey in StorageManager().getKeys())
+          storageKey: StorageManager().read(storageKey),
+      };
   final content = _prettyJson({
     'keys': snapshot,
     'steps': [for (final diff in stepDiffs) diff.toJson()],

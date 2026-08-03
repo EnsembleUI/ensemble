@@ -1,0 +1,15 @@
+View:
+  body:
+    Column:
+      styles:
+        padding: 24
+        gap: 16
+      children:
+        - Text:
+            testId: goodbye_text
+            text: Goodbye from Ensemble
+        - Button:
+            testId: back_button
+            label: Back
+            onTap:
+              navigateBack: {}

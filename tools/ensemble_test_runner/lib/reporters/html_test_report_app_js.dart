@@ -112,6 +112,83 @@ const ensembleHtmlTestReportAppJs = r'''
     return hydrateReport(JSON.parse(text));
   }
 
+  let sqlJsPromise = null;
+
+  async function loadSqlJs() {
+    if (window.initSqlJs) {
+      return await window.initSqlJs({
+        locateFile: file => 'https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.3/' + file,
+      });
+    }
+
+    await new Promise((resolve, reject) => {
+      const script = document.createElement('script');
+      script.src = 'https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.3/sql-wasm.js';
+      script.onload = resolve;
+      script.onerror = () => reject(new Error('Could not load SQLite reader'));
+      document.head.appendChild(script);
+    });
+
+    return await window.initSqlJs({
+      locateFile: file => 'https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.3/' + file,
+    });
+  }
+
+  function rowsFromStatement(statement) {
+    const rows = [];
+    while (statement.step()) {
+      rows.push(statement.getAsObject());
+    }
+    statement.free();
+    return rows;
+  }
+
+  let cachedDbBytes = null;
+  async function getHistoryDb(forceFetch = false) {
+    const SQL = await (sqlJsPromise ||= loadSqlJs());
+    if (cachedDbBytes && !forceFetch) {
+      return new SQL.Database(cachedDbBytes);
+    }
+    try {
+      const res = await fetch('ensemble_test_history.db?t=' + Date.now(), { cache: 'no-store' });
+      if (!res.ok) return null;
+      cachedDbBytes = new Uint8Array(await res.arrayBuffer());
+      return new SQL.Database(cachedDbBytes);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  async function loadHistory(forceFetch = false) {
+    let db = null;
+    try {
+      db = await getHistoryDb(forceFetch);
+      if (!db) return null;
+      const runs = rowsFromStatement(db.prepare(`
+        SELECT
+          id,
+          created_at AS createdAt,
+          status,
+          duration_ms AS durationMs,
+          passed_tests AS passed,
+          failed_tests AS failed,
+          total_tests AS total,
+          commit_hash AS commitHash,
+          branch,
+          build_number AS buildNumber,
+          pr_number AS prNumber
+        FROM runs
+        ORDER BY id DESC
+        LIMIT 25
+      `));
+      return { runs };
+    } catch (e) {
+      return null;
+    } finally {
+      if (db) db.close();
+    }
+  }
+
   async function pollAndRender() {
     try {
       const report = await loadResults();
@@ -156,29 +233,25 @@ const ensembleHtmlTestReportAppJs = r'''
     const tests = report.tests || [];
     const passed = summary.passed || 0;
     const failed = summary.failed || 0;
-    const pending = summary.pending || 0;
     const total = tests.length;
     const displayMs = summary.wallTimeMs != null ? summary.wallTimeMs : (summary.totalMs || 0);
     const successRate = total > 0 ? Math.round((passed / total) * 100) : 0;
-    const summaryText = pending > 0
-      ? (passed + ' passed, ' + failed + ' failed, ' + pending + ' running (' + total + ' total)')
-      : (passed + ' passed, ' + failed + ' failed (' + total + ' total)');
-    const summaryClass = pending > 0 ? 'running' : (failed === 0 ? 'passed' : 'failed');
+    const summaryText = passed + ' passed, ' + failed + ' failed (' + total + ' total)';
+    const summaryClass = failed === 0 ? 'passed' : 'failed';
 
     document.getElementById('hero-summary').className = 'summary ' + summaryClass;
     document.getElementById('hero-summary').textContent = summaryText + ' · ' + formatDuration(displayMs);
 
     let metrics = '';
     metrics += '<div class="metric-card"><div class="metric-val">' + total + '</div><div class="metric-label">Total Tests</div></div>';
-    if (pending > 0) {
-      metrics += '<div class="metric-card metric-running"><div class="metric-val">' + pending + '</div><div class="metric-label">Running</div></div>';
-    }
     metrics += '<div class="metric-card metric-passed"><div class="metric-val">' + passed + '</div><div class="metric-label">Passed</div></div>';
     metrics += '<div class="metric-card metric-failed"><div class="metric-val">' + failed + '</div><div class="metric-label">Failed</div></div>';
     metrics += '<div class="metric-card metric-rate"><div class="metric-val">' + successRate + '%</div><div class="metric-label">Success Rate</div></div>';
     metrics += '<div class="metric-card metric-duration"><div class="metric-val">' + formatDuration(displayMs) + '</div><div class="metric-label">Suite Duration</div></div>';
     document.getElementById('metrics-grid').innerHTML = metrics;
 
+    renderHistory(null);
+    loadHistory().then(renderHistory);
     renderSuiteArtifacts(report.suiteArtifacts || []);
 
     window.currentReport = report;
@@ -228,6 +301,315 @@ const ensembleHtmlTestReportAppJs = r'''
     if (firstCard) firstCard.click();
   }
 
+  function formatDateTime(value) {
+    if (!value) return '';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return String(value);
+    return date.toLocaleString();
+  }
+
+  function formatDurationShort(ms) {
+    if (ms === 0) return '0s';
+    const totalSeconds = Math.round(ms / 1000);
+    if (totalSeconds < 60) return totalSeconds + 's';
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    return seconds > 0 ? minutes + 'm' + seconds + 's' : minutes + 'm';
+  }
+
+  function drawDurationChart(chartRuns) {
+    if (!chartRuns.length) return '<div class="no-chart-data">No data</div>';
+    
+    const width = 500;
+    const height = 180;
+    const paddingLeft = 45;
+    const paddingRight = 15;
+    const paddingTop = 20;
+    const paddingBottom = 30;
+    
+    const chartWidth = width - paddingLeft - paddingRight;
+    const chartHeight = height - paddingTop - paddingBottom;
+    
+    const durations = chartRuns.map(r => r.durationMs || 0);
+    const maxVal = Math.max(...durations, 1000);
+    const yMax = maxVal * 1.15; // 15% padding at top
+    
+    let yGrid = '';
+    const ySegments = 4;
+    for (let i = 0; i <= ySegments; i++) {
+      const val = yMax * (i / ySegments);
+      const y = height - paddingBottom - (val / yMax) * chartHeight;
+      yGrid += '<line x1="' + paddingLeft + '" y1="' + y + '" x2="' + (width - paddingRight) + '" y2="' + y + '" stroke="rgba(255,255,255,0.06)" stroke-dasharray="3,3"/>';
+      yGrid += '<text x="' + (paddingLeft - 8) + '" y="' + (y + 4) + '" fill="#9ca3af" font-size="9" text-anchor="end">' + formatDurationShort(val) + '</text>';
+    }
+    
+    const points = [];
+    const stepX = chartRuns.length > 1 ? chartWidth / (chartRuns.length - 1) : chartWidth;
+    
+    chartRuns.forEach((run, i) => {
+      const x = paddingLeft + i * stepX;
+      const y = height - paddingBottom - ((run.durationMs || 0) / yMax) * chartHeight;
+      points.push({ x, y, run });
+    });
+    
+    let pathD = '';
+    let fillD = '';
+    if (points.length) {
+      pathD = 'M ' + points[0].x + ' ' + points[0].y;
+      fillD = 'M ' + points[0].x + ' ' + (height - paddingBottom);
+      fillD += ' L ' + points[0].x + ' ' + points[0].y;
+      
+      for (let i = 1; i < points.length; i++) {
+        pathD += ' L ' + points[i].x + ' ' + points[i].y;
+        fillD += ' L ' + points[i].x + ' ' + points[i].y;
+      }
+      
+      fillD += ' L ' + points[points.length - 1].x + ' ' + (height - paddingBottom) + ' Z';
+    }
+    
+    let circles = '';
+    points.forEach((pt) => {
+      const tooltipTitle = 'Run #' + pt.run.id;
+      const tooltipRows = JSON.stringify([
+        { label: 'Date', val: formatDateTime(pt.run.createdAt) },
+        { label: 'Duration', val: formatDuration(pt.run.durationMs || 0) }
+      ]);
+      circles += '<circle cx="' + pt.x + '" cy="' + pt.y + '" r="4.5" fill="#06b6d4" stroke="#030712" stroke-width="1.5" class="chart-point" ' +
+        'onmouseover="showChartTooltip(event, \'' + escapeHtml(tooltipTitle) + '\', ' + escapeHtml(tooltipRows) + ')" ' +
+        'onmousemove="moveChartTooltip(event)" ' +
+        'onmouseout="hideChartTooltip()"/>';
+    });
+    
+    let xLabels = '';
+    points.forEach((pt, i) => {
+      if (points.length <= 10 || i % 2 === 0 || i === points.length - 1) {
+        xLabels += '<text x="' + pt.x + '" y="' + (height - 10) + '" fill="#9ca3af" font-size="9" text-anchor="middle">#' + pt.run.id + '</text>';
+      }
+    });
+    
+    let svg = '<svg viewBox="0 0 ' + width + ' ' + height + '" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" style="overflow: visible;">';
+    svg += '<defs>';
+    svg += '  <linearGradient id="chartGradient" x1="0" y1="0" x2="0" y2="1">';
+    svg += '    <stop offset="0%" stop-color="#06b6d4" stop-opacity="0.25"/>';
+    svg += '    <stop offset="100%" stop-color="#06b6d4" stop-opacity="0.0"/>';
+    svg += '  </linearGradient>';
+    svg += '</defs>';
+    svg += yGrid;
+    if (fillD) svg += '<path d="' + fillD + '" fill="url(#chartGradient)"/>';
+    if (pathD) svg += '<path d="' + pathD + '" fill="none" stroke="#06b6d4" stroke-width="2.5" style="filter: drop-shadow(0px 0px 4px rgba(6,182,212,0.6));"/>';
+    svg += circles;
+    svg += xLabels;
+    svg += '</svg>';
+    
+    return svg;
+  }
+
+  function drawSuccessRateChart(chartRuns) {
+    if (!chartRuns.length) return '<div class="no-chart-data">No data</div>';
+    
+    const width = 500;
+    const height = 180;
+    const paddingLeft = 45;
+    const paddingRight = 15;
+    const paddingTop = 20;
+    const paddingBottom = 30;
+    
+    const chartWidth = width - paddingLeft - paddingRight;
+    const chartHeight = height - paddingTop - paddingBottom;
+    
+    const maxTests = Math.max(...chartRuns.map(r => r.total || 0), 1);
+    let yMax = 10;
+    if (maxTests <= 5) yMax = 5;
+    else if (maxTests <= 10) yMax = 10;
+    else if (maxTests <= 25) yMax = 25;
+    else if (maxTests <= 50) yMax = 50;
+    else if (maxTests <= 100) yMax = 100;
+    else yMax = Math.ceil(maxTests / 100) * 100;
+    
+    let yGrid = '';
+    const ySegments = 4;
+    for (let i = 0; i <= ySegments; i++) {
+      const val = Math.round(yMax * (i / ySegments));
+      const y = height - paddingBottom - (val / yMax) * chartHeight;
+      yGrid += '<line x1="' + paddingLeft + '" y1="' + y + '" x2="' + (width - paddingRight) + '" y2="' + y + '" stroke="rgba(255,255,255,0.06)" stroke-dasharray="3,3"/>';
+      yGrid += '<text x="' + (paddingLeft - 8) + '" y="' + (y + 4) + '" fill="#9ca3af" font-size="9" text-anchor="end">' + val + '</text>';
+    }
+    
+    const barCount = chartRuns.length;
+    const totalBarWidth = chartWidth / barCount;
+    const singleBarWidth = Math.max(totalBarWidth * 0.35, 4);
+    const gap = Math.max(totalBarWidth * 0.05, 1);
+    
+    let bars = '';
+    let xLabels = '';
+    
+    chartRuns.forEach((run, i) => {
+      const xPass = paddingLeft + i * totalBarWidth + (totalBarWidth - 2 * singleBarWidth - gap) / 2;
+      const xFail = xPass + singleBarWidth + gap;
+      
+      const passed = Number(run.passed || 0);
+      const failed = Number(run.failed || 0);
+      const total = Number(run.total || 0);
+      
+      const passHeight = (passed / yMax) * chartHeight;
+      const failHeight = (failed / yMax) * chartHeight;
+      
+      const yPass = height - paddingBottom - passHeight;
+      const yFail = height - paddingBottom - failHeight;
+      
+      // Passed bar (green)
+      if (passed > 0) {
+        bars += '<rect x="' + xPass + '" y="' + yPass + '" width="' + singleBarWidth + '" height="' + passHeight + '" fill="#10b981" rx="2" class="chart-bar-segment"/>';
+      } else {
+        bars += '<rect x="' + xPass + '" y="' + (height - paddingBottom - 1) + '" width="' + singleBarWidth + '" height="1" fill="rgba(16, 185, 129, 0.25)"/>';
+      }
+      
+      // Failed bar (red)
+      if (failed > 0) {
+        bars += '<rect x="' + xFail + '" y="' + yFail + '" width="' + singleBarWidth + '" height="' + failHeight + '" fill="#f43f5e" rx="2" class="chart-bar-segment"/>';
+      } else {
+        bars += '<rect x="' + xFail + '" y="' + (height - paddingBottom - 1) + '" width="' + singleBarWidth + '" height="1" fill="rgba(244, 63, 94, 0.25)"/>';
+      }
+      
+      // Transparent overlay to trigger tooltip
+      const hoverWidth = 2 * singleBarWidth + gap;
+      const tooltipTitle = 'Run #' + run.id;
+      const tooltipRows = JSON.stringify([
+        { label: 'Total', val: total },
+        { label: 'Passed', val: passed },
+        { label: 'Failed', val: failed }
+      ]);
+      bars += '<rect x="' + xPass + '" y="' + (height - paddingBottom - chartHeight) + '" width="' + hoverWidth + '" height="' + chartHeight + '" fill="transparent" style="cursor: pointer;" ' +
+        'onmouseover="showChartTooltip(event, \'' + escapeHtml(tooltipTitle) + '\', ' + escapeHtml(tooltipRows) + ')" ' +
+        'onmousemove="moveChartTooltip(event)" ' +
+        'onmouseout="hideChartTooltip()"/>';
+      
+      if (barCount <= 10 || i % 2 === 0 || i === barCount - 1) {
+        xLabels += '<text x="' + (xPass + singleBarWidth + gap / 2) + '" y="' + (height - 10) + '" fill="#9ca3af" font-size="9" text-anchor="middle">#' + run.id + '</text>';
+      }
+    });
+    
+    let svg = '<svg viewBox="0 0 ' + width + ' ' + height + '" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" style="overflow: visible;">';
+    svg += yGrid;
+    svg += bars;
+    svg += xLabels;
+    svg += '</svg>';
+    
+    return svg;
+  }
+
+  async function renderHistory(history) {
+    const host = document.getElementById('history-host');
+    if (!host) return;
+    const runs = (history && Array.isArray(history.runs)) ? history.runs : [];
+    if (!runs.length) {
+      host.innerHTML = '';
+      return;
+    }
+
+    let runsCount = runs.length;
+    let overallAvgDuration = 0;
+    let overallSuccessRate = 0;
+    let chartRuns = [];
+    let db = null;
+
+    try {
+      db = await getHistoryDb();
+      if (db) {
+        const summary = rowsFromStatement(db.prepare(`
+          SELECT
+            COUNT(*) AS count,
+            AVG(duration_ms) AS avgDuration,
+            SUM(passed_tests) AS sumPassed,
+            SUM(total_tests) AS sumTotal
+          FROM runs
+        `))[0];
+        
+        runsCount = summary.count || runs.length;
+        overallAvgDuration = Math.round(summary.avgDuration || 0);
+        overallSuccessRate = (summary.sumTotal || 0) > 0 ? Math.round((summary.sumPassed / summary.sumTotal) * 100) : 0;
+      }
+    } catch (e) {
+      if (runs.length) {
+        const sumDuration = runs.reduce((sum, r) => sum + (r.durationMs || 0), 0);
+        overallAvgDuration = Math.round(sumDuration / runs.length);
+        const totalPassed = runs.reduce((sum, r) => sum + (r.passed || 0), 0);
+        const totalTests = runs.reduce((sum, r) => sum + (r.total || 0), 0);
+        overallSuccessRate = totalTests > 0 ? Math.round((totalPassed / totalTests) * 100) : 0;
+      }
+    } finally {
+      if (db) db.close();
+    }
+
+    chartRuns = [...runs].reverse().slice(-10);
+
+    let html = '<section class="history-container">';
+    html += '<div class="history-metrics-grid">';
+    html += '  <div class="metric-card"><div class="metric-val">' + runsCount + '</div><div class="metric-label">Total Runs</div></div>';
+    html += '  <div class="metric-card"><div class="metric-val">' + formatDuration(overallAvgDuration) + '</div><div class="metric-label">Average Duration</div></div>';
+    html += '  <div class="metric-card"><div class="metric-val">' + overallSuccessRate + '%</div><div class="metric-label">Overall Success Rate</div></div>';
+    html += '</div>';
+
+    html += '<div class="history-charts-row">';
+    html += '  <div class="history-chart-card">';
+    html += '    <div class="history-chart-title">Execution Duration (Last 10 Runs)</div>';
+    html += '    <div class="history-chart-body">' + drawDurationChart(chartRuns) + '</div>';
+    html += '  </div>';
+    html += '  <div class="history-chart-card">';
+    html += '    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">';
+    html += '      <div class="history-chart-title">Test Volume & Results (Last 10 Runs)</div>';
+    html += '      <div style="display:flex; gap:12px; font-size:0.7rem; font-weight:700;">';
+    html += '        <span style="display:flex; align-items:center; gap:5px; color:#94a3b8;"><span style="display:inline-block; width:8px; height:8px; background:#10b981; border-radius:2px;"></span>Passed</span>';
+    html += '        <span style="display:flex; align-items:center; gap:5px; color:#94a3b8;"><span style="display:inline-block; width:8px; height:8px; background:#f43f5e; border-radius:2px;"></span>Failed</span>';
+    html += '      </div>';
+    html += '    </div>';
+    html += '    <div class="history-chart-body">' + drawSuccessRateChart(chartRuns) + '</div>';
+    html += '  </div>';
+    html += '</div>';
+
+    html += '<div class="history-card" style="margin-top:0;">';
+    html += '<div class="history-header"><h2>Test Execution History</h2><span>' + runs.length + ' recent runs</span></div>';
+    html += '<div class="history-table-wrap"><table class="history-table">';
+    html += '<thead><tr><th>Run ID</th><th>Date & Time</th><th>Status</th><th>Duration</th><th>Tests</th><th>Commit Hash</th></tr></thead><tbody>';
+
+    runs.forEach(run => {
+      const status = String(run.status || 'unknown').toLowerCase();
+      const statusClass = status === 'passed' ? 'passed' : 'failed';
+      const passed = Number(run.passed || 0);
+      const total = Number(run.total || 0);
+      const failed = Number(run.failed || 0);
+      const testsText = failed
+        ? (passed + ' passed, ' + failed + ' failed')
+        : (passed + '/' + total);
+      const commit = run.commitHash ? String(run.commitHash) : '';
+      
+      const isCollapsible = failed > 0;
+      if (isCollapsible) {
+        html += '<tr onclick="toggleHistoryRunDetails(' + run.id + ')" style="cursor: pointer;">';
+        html += '<td><span class="history-caret" id="history-caret-' + run.id + '">▶</span>#' + escapeHtml(run.id || '') + '</td>';
+      } else {
+        html += '<tr>';
+        html += '<td>#' + escapeHtml(run.id || '') + '</td>';
+      }
+      
+      html += '<td>' + escapeHtml(formatDateTime(run.createdAt)) + '</td>';
+      html += '<td><span class="history-status ' + escapeHtml(statusClass) + '">' + escapeHtml(status) + '</span></td>';
+      html += '<td>' + escapeHtml(formatDuration(run.durationMs || 0)) + '</td>';
+      html += '<td>' + escapeHtml(testsText) + '</td>';
+      html += '<td>' + escapeHtml(commit || '-') + '</td>';
+      html += '</tr>';
+      
+      if (isCollapsible) {
+        html += '<tr class="history-detail-row" id="history-details-' + run.id + '" style="display: none;">';
+        html += '<td colspan="6"><div class="run-details-expanded-container"></div></td>';
+        html += '</tr>';
+      }
+    });
+
+    html += '</tbody></table></div></div></section>';
+    host.innerHTML = html;
+  }
+
   function renderSuiteArtifacts(artifacts) {
     const host = document.getElementById('suite-artifacts-host');
     if (!artifacts.length) { host.innerHTML = ''; return; }
@@ -259,11 +641,10 @@ const ensembleHtmlTestReportAppJs = r'''
 
   function buildSidebarCard(base, runs) {
     const first = runs[0];
-    const hasPending = runs.some(r => r.status === 'pending');
     const groupPassed = runs.every(r => r.status === 'passed');
     const maxDurationMs = Math.max(...runs.map(r => r.durationMs || 0));
     const cardId = anchorId(first.id);
-    const statusClass = hasPending ? 'pending' : (groupPassed ? 'passed' : 'failed');
+    const statusClass = groupPassed ? 'passed' : 'failed';
     const el = document.createElement('article');
     el.className = 'test ' + statusClass;
     el.id = cardId;
@@ -430,12 +811,11 @@ const ensembleHtmlTestReportAppJs = r'''
 
   function buildRunBlock(base, test, cardId, i, stepKey) {
     const passed = test.status === 'passed';
-    const isPending = test.status === 'pending';
     const badge = test.deviceBadge || '';
     const device = test.device || {};
     let html = '<div class="device-run-block" id="run-' + cardId + '-' + i + '" style="display: none;">';
     html += '<div class="test-card-header"><div class="title-section"><h2>';
-    html += '<span class="icon">' + (isPending ? '🔄' : (passed ? '✓' : '✗')) + '</span> ' + escapeHtml(base) + '</h2>';
+    html += '<span class="icon">' + (passed ? '✓' : '✗') + '</span> ' + escapeHtml(base) + '</h2>';
     if (badge || device.id || device.platform) {
       const platform = String(device.platform || badge || '').toLowerCase();
       const id = String(device.id || badge || '').toUpperCase();
@@ -453,8 +833,8 @@ const ensembleHtmlTestReportAppJs = r'''
         html += '<span class="device-pill default">' + escapeHtml(device.model) + '</span>';
       }
     }
-    const statusText = isPending ? 'RUNNING' : (passed ? 'PASSED' : 'FAILED');
-    const statusCapsuleClass = isPending ? 'pending' : (passed ? 'passed' : 'failed');
+    const statusText = passed ? 'PASSED' : 'FAILED';
+    const statusCapsuleClass = passed ? 'passed' : 'failed';
     html += '</div><div class="status-capsule ' + statusCapsuleClass + '">' + statusText + '</div></div>';
 
     if (test.filePath) {
@@ -462,12 +842,6 @@ const ensembleHtmlTestReportAppJs = r'''
     }
     if (test.description) {
       html += '<p class="test-description">' + escapeHtml(test.description) + '</p>';
-    }
-
-    if (isPending) {
-      html += '<div class="pending-detail-loader"><div class="spinner"></div><h3>Test Execution in Progress</h3><p>This test case is currently running on the device.</p></div>';
-      html += '</div>';
-      return html;
     }
 
     html += '<p class="meta">' + formatDuration(test.durationMs);
@@ -839,19 +1213,77 @@ const ensembleHtmlTestReportAppJs = r'''
       storageChanges.forEach(change => {
         const key = change.key || '(unknown)';
         const kind = (change.change || '').toLowerCase();
-        let badgeClass = 'info', badgeText = 'MOD', valueColor = 'var(--accent)', detail = '';
-        if (kind === 'added') { badgeClass = 'passed'; badgeText = 'ADD'; valueColor = 'var(--pass)'; detail = formatStorageValue(change.after); }
-        else if (kind === 'removed') { badgeClass = 'failed'; badgeText = 'DEL'; valueColor = 'var(--fail)'; detail = formatStorageValue(change.before); }
-        else { detail = formatStorageValue(change.before) + ' → ' + formatStorageValue(change.after); }
+        let badgeClass = 'info', badgeText = 'MOD', valueColor = 'var(--accent)';
         const row = document.createElement('div');
         row.className = 'terminal-row';
-        row.innerHTML = '<span class="terminal-badge ' + badgeClass + '">' + badgeText + '</span><span style="font-weight: 700; color: #fff;">' + escapeHtml(key) + '</span> <span style="color: ' + valueColor + ';">' + escapeHtml(detail) + '</span>';
+
+        if (kind === 'added') {
+          badgeClass = 'passed';
+          badgeText = 'ADD';
+          valueColor = 'var(--pass)';
+          const formatted = prettyFormatStorageValue(change.after);
+          const isLong = formatted.length > 80 || formatted.includes('\n');
+          if (isLong) {
+            row.className = 'terminal-row storage-collapsible';
+            row.innerHTML = '<div class="storage-header" onclick="toggleStorageDetails(this)"><span class="api-caret">▶</span><span class="terminal-badge ' + badgeClass + '">' + badgeText + '</span><span class="storage-key-name">' + escapeHtml(key) + '</span><span class="storage-summary-preview">Value added (click to view)</span></div>' +
+                            '<div class="storage-details" style="display: none;"><pre class="storage-pretty-val">' + escapeHtml(formatted) + '</pre></div>';
+          } else {
+            row.innerHTML = '<span class="terminal-badge ' + badgeClass + '">' + badgeText + '</span><span class="storage-key-name">' + escapeHtml(key) + '</span> <span style="color: ' + valueColor + ';">' + escapeHtml(formatStorageValue(change.after)) + '</span>';
+          }
+        }
+        else if (kind === 'removed') {
+          badgeClass = 'failed';
+          badgeText = 'DEL';
+          valueColor = 'var(--fail)';
+          const formatted = prettyFormatStorageValue(change.before);
+          const isLong = formatted.length > 80 || formatted.includes('\n');
+          if (isLong) {
+            row.className = 'terminal-row storage-collapsible';
+            row.innerHTML = '<div class="storage-header" onclick="toggleStorageDetails(this)"><span class="api-caret">▶</span><span class="terminal-badge ' + badgeClass + '">' + badgeText + '</span><span class="storage-key-name">' + escapeHtml(key) + '</span><span class="storage-summary-preview">Value removed (click to view)</span></div>' +
+                            '<div class="storage-details" style="display: none;"><pre class="storage-pretty-val">' + escapeHtml(formatted) + '</pre></div>';
+          } else {
+            row.innerHTML = '<span class="terminal-badge ' + badgeClass + '">' + badgeText + '</span><span class="storage-key-name">' + escapeHtml(key) + '</span> <span style="color: ' + valueColor + ';">' + escapeHtml(formatStorageValue(change.before)) + '</span>';
+          }
+        }
+        else {
+          const beforeFormatted = prettyFormatStorageValue(change.before);
+          const afterFormatted = prettyFormatStorageValue(change.after);
+          const isLong = beforeFormatted.length > 40 || afterFormatted.length > 40 || beforeFormatted.includes('\n') || afterFormatted.includes('\n');
+
+          if (isLong) {
+            row.className = 'terminal-row storage-collapsible';
+            row.innerHTML = '<div class="storage-header" onclick="toggleStorageDetails(this)"><span class="api-caret">▶</span><span class="terminal-badge ' + badgeClass + '">' + badgeText + '</span><span class="storage-key-name">' + escapeHtml(key) + '</span><span class="storage-summary-preview">Value modified (click to compare)</span></div>' +
+                            '<div class="storage-details" style="display: none;">' +
+                            '  <div class="storage-diff-container">' +
+                            '    <div class="storage-diff-pane before">' +
+                            '      <div class="storage-diff-header">Before</div>' +
+                            '      <pre class="storage-diff-pre">' + escapeHtml(beforeFormatted) + '</pre>' +
+                            '    </div>' +
+                            '    <div class="storage-diff-pane after">' +
+                            '      <div class="storage-diff-header">After</div>' +
+                            '      <pre class="storage-diff-pre">' + escapeHtml(afterFormatted) + '</pre>' +
+                            '    </div>' +
+                            '  </div>' +
+                            '</div>';
+          } else {
+            row.innerHTML = '<span class="terminal-badge ' + badgeClass + '">' + badgeText + '</span><span class="storage-key-name">' + escapeHtml(key) + '</span> <span style="color: var(--text-muted);">' + escapeHtml(formatStorageValue(change.before)) + '</span> <span style="color: var(--accent); font-weight: bold; margin: 0 6px;">→</span> <span style="color: var(--accent);">' + escapeHtml(formatStorageValue(change.after)) + '</span>';
+          }
+        }
         storageList.appendChild(row);
       });
       Object.keys(currentState).filter(k => !changedKeys.has(k)).sort().forEach(key => {
+        const val = currentState[key];
+        const formatted = prettyFormatStorageValue(val);
+        const isLong = formatted.length > 80 || formatted.includes('\n');
         const row = document.createElement('div');
         row.className = 'terminal-row';
-        row.innerHTML = '<span class="terminal-badge info" style="background: rgba(255,255,255,0.06); color: var(--text-muted); border: 1px solid rgba(255,255,255,0.15); margin-right: 6px;">VAL</span><span style="font-weight: 700; color: var(--text-muted);">' + escapeHtml(key) + '</span> <span style="color: #cbd5e1;">' + escapeHtml(formatStorageValue(currentState[key])) + '</span>';
+        if (isLong) {
+          row.className = 'terminal-row storage-collapsible';
+          row.innerHTML = '<div class="storage-header" onclick="toggleStorageDetails(this)"><span class="api-caret">▶</span><span class="terminal-badge info" style="background: rgba(255,255,255,0.06); color: var(--text-muted); border: 1px solid rgba(255,255,255,0.15); margin-right: 6px;">VAL</span><span class="storage-key-name" style="color: var(--text-muted);">' + escapeHtml(key) + '</span><span class="storage-summary-preview">Value view (click to inspect)</span></div>' +
+                          '<div class="storage-details" style="display: none;"><pre class="storage-pretty-val">' + escapeHtml(formatted) + '</pre></div>';
+        } else {
+          row.innerHTML = '<span class="terminal-badge info" style="background: rgba(255,255,255,0.06); color: var(--text-muted); border: 1px solid rgba(255,255,255,0.15); margin-right: 6px;">VAL</span><span style="font-weight: 700; color: var(--text-muted);">' + escapeHtml(key) + '</span> <span style="color: #cbd5e1;">' + escapeHtml(formatStorageValue(val)) + '</span>';
+        }
         storageList.appendChild(row);
       });
     }
@@ -974,6 +1406,143 @@ const ensembleHtmlTestReportAppJs = r'''
     return text;
   }
 
+  function prettyFormatStorageValue(value) {
+    if (value === undefined || value === null) return 'null';
+    let parsed = value;
+    if (typeof value === 'string') {
+      try {
+        parsed = JSON.parse(value);
+      } catch (e) {
+        return value;
+      }
+    }
+    try {
+      return JSON.stringify(parsed, null, 2);
+    } catch (e) {
+      return String(value);
+    }
+  }
+
+  window.toggleStorageDetails = function(header) {
+    const details = header.nextElementSibling;
+    const caret = header.querySelector('.api-caret');
+    const isExpanded = details.style.display === 'block' || details.style.display === 'flex';
+    const isDiff = details.querySelector('.storage-diff-container') !== null;
+    details.style.display = isExpanded ? 'none' : (isDiff ? 'flex' : 'block');
+    caret.style.transform = isExpanded ? 'rotate(0deg)' : 'rotate(90deg)';
+  }
+
+  window.switchAppTab = function(tab) {
+    document.querySelectorAll('.app-tab-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.getAttribute('data-app-tab') === tab);
+    });
+    document.querySelectorAll('.app-tab-content').forEach(content => {
+      content.style.display = content.id === 'app-tab-content-' + tab ? 'block' : 'none';
+    });
+  }
+
+  window.toggleHistoryRunDetails = function(runId) {
+    const detailRow = document.getElementById('history-details-' + runId);
+    const caret = document.getElementById('history-caret-' + runId);
+    if (!detailRow || !caret) return;
+    
+    const isExpanded = detailRow.style.display === 'table-row';
+    if (isExpanded) {
+      detailRow.style.display = 'none';
+      caret.style.transform = 'rotate(0deg)';
+    } else {
+      loadHistoryRunDetails(runId).then(detailsHtml => {
+        const container = detailRow.querySelector('.run-details-expanded-container');
+        if (container) container.innerHTML = detailsHtml;
+        detailRow.style.display = 'table-row';
+        caret.style.transform = 'rotate(90deg)';
+      });
+    }
+  }
+
+  async function loadHistoryRunDetails(runId) {
+    let db = null;
+    try {
+      db = await getHistoryDb();
+      if (!db) return '<div class="run-all-passed-banner" style="background:rgba(244,63,94,0.05); color:var(--fail); border-color:rgba(244,63,94,0.2);">Could not open history database.</div>';
+      
+      const runs = rowsFromStatement(db.prepare("SELECT * FROM runs WHERE id = " + runId));
+      if (!runs.length) return '<div class="run-all-passed-banner" style="background:rgba(244,63,94,0.05); color:var(--fail); border-color:rgba(244,63,94,0.2);">Run not found.</div>';
+      const run = runs[0];
+      
+      const failedTests = rowsFromStatement(db.prepare("SELECT * FROM failed_tests WHERE run_id = " + runId));
+      
+      let html = '<div class="run-details-expanded-content">';
+      
+      // Metadata Grid
+      html += '  <div class="run-metadata-grid">';
+      html += '    <div class="run-metadata-item"><strong>Branch:</strong> <span>' + escapeHtml(run.branch || 'N/A') + '</span></div>';
+      html += '    <div class="run-metadata-item"><strong>Commit:</strong> <span>' + escapeHtml(run.commit_hash || 'N/A') + '</span></div>';
+      html += '    <div class="run-metadata-item"><strong>Build Number:</strong> <span>' + escapeHtml(run.build_number || 'N/A') + '</span></div>';
+      html += '    <div class="run-metadata-item"><strong>PR Number:</strong> <span>' + escapeHtml(run.pr_number || 'N/A') + '</span></div>';
+      html += '    <div class="run-metadata-item"><strong>Date:</strong> <span>' + escapeHtml(formatDateTime(run.created_at)) + '</span></div>';
+      html += '    <div class="run-metadata-item"><strong>Duration:</strong> <span>' + escapeHtml(formatDuration(run.duration_ms || 0)) + '</span></div>';
+      html += '  </div>';
+      
+      // Metrics Grid for this run
+      const passed = Number(run.passed_tests || 0);
+      const failed = Number(run.failed_tests || 0);
+      const total = Number(run.total_tests || 0);
+      const successRate = total > 0 ? Math.round((passed / total) * 100) : 0;
+      
+      html += '  <div class="run-metrics-mini-grid">';
+      html += '    <div class="run-metric-mini"><div class="mini-val">' + total + '</div><div class="mini-label">Total</div></div>';
+      html += '    <div class="run-metric-mini mini-passed"><div class="mini-val">' + passed + '</div><div class="mini-label">Passed</div></div>';
+      html += '    <div class="run-metric-mini mini-failed"><div class="mini-val">' + failed + '</div><div class="mini-label">Failed</div></div>';
+      html += '    <div class="run-metric-mini mini-rate"><div class="mini-val">' + successRate + '%</div><div class="mini-label">Success Rate</div></div>';
+      html += '  </div>';
+      
+      // Failed Tests list
+      if (failed === 0) {
+        html += '  <div class="run-all-passed-banner">🎉 All ' + total + ' tests passed successfully in this run!</div>';
+      } else {
+        html += '  <div class="run-failed-tests-list">';
+        html += '    <h4>Failed Tests Details (' + failed + ')</h4>';
+        failedTests.forEach(ft => {
+          const testId = ft.test_id || '(unknown)';
+          const device = ft.device || '';
+          const scenario = ft.scenario || '';
+          const filename = ft.file_name || '';
+          const failedStep = ft.failed_step || '';
+          const failedStepIndex = Number.isFinite(Number(ft.failed_step_index))
+            ? Number(ft.failed_step_index) + 1
+            : null;
+          const errorSummary = ft.error_summary || 'Test execution failed.';
+          
+          html += '    <div class="run-failed-test-card">';
+          html += '      <div class="run-failed-test-header">';
+          html += '        <span class="run-failed-test-title">' + escapeHtml(testId) + '</span>';
+          if (device) html += '        <span class="device-badge" style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.15); color: #cbd5e1; font-size: 0.65rem; padding: 2px 6px; border-radius: 4px; font-weight: 700; margin-left: 8px;">' + escapeHtml(device) + '</span>';
+          html += '      </div>';
+          if (filename) {
+            html += '      <div class="run-failed-test-file">File: <code style="color:var(--accent); font-size:0.75rem;">' + escapeHtml(filename) + '</code></div>';
+          }
+          if (failedStep) {
+            const stepLabel = failedStepIndex == null
+              ? failedStep
+              : '#' + failedStepIndex + ' ' + failedStep;
+            html += '      <div class="run-failed-test-file">Failed step: <code style="color:var(--fail); font-size:0.75rem;">' + escapeHtml(stepLabel) + '</code></div>';
+          }
+          html += '      <pre class="run-failed-test-error">' + escapeHtml(errorSummary) + '</pre>';
+          html += '    </div>';
+        });
+        html += '  </div>';
+      }
+      
+      html += '</div>';
+      return html;
+    } catch (e) {
+      return '<div class="run-all-passed-banner" style="background:rgba(244,63,94,0.05); color:var(--fail); border-color:rgba(244,63,94,0.2);">Error loading details: ' + escapeHtml(String(e)) + '</div>';
+    } finally {
+      if (db) db.close();
+    }
+  }
+
   function getCleanScreenshotLabel(label, titleText) {
     let clean = label.replace(/^\d+\.\s*/, '').trim();
     if (clean.toLowerCase() === titleText.toLowerCase()) return '';
@@ -1063,6 +1632,54 @@ const ensembleHtmlTestReportAppJs = r'''
 
     const pane = document.getElementById('modal-tab-' + tab);
     if (pane) pane.style.display = 'block';
+  }
+
+  window.showChartTooltip = function(event, title, rows) {
+    const tooltip = document.getElementById('chart-tooltip');
+    if (!tooltip) return;
+    
+    let html = '<div class="chart-tooltip-title">' + escapeHtml(title) + '</div>';
+    rows.forEach(r => {
+      html += '<div class="chart-tooltip-row">';
+      html += '  <span class="chart-tooltip-label">' + escapeHtml(r.label) + ':</span>';
+      html += '  <span class="chart-tooltip-val">' + escapeHtml(r.val) + '</span>';
+      html += '</div>';
+    });
+    
+    tooltip.innerHTML = html;
+    tooltip.style.display = 'flex';
+    moveChartTooltip(event);
+  }
+
+  window.moveChartTooltip = function(event) {
+    const tooltip = document.getElementById('chart-tooltip');
+    if (!tooltip || tooltip.style.display === 'none') return;
+    
+    // Add offset from pointer position
+    const offsetX = 12;
+    const offsetY = 12;
+    
+    let x = event.pageX + offsetX;
+    let y = event.pageY + offsetY;
+    
+    // Boundary checks (viewport width)
+    const tooltipWidth = tooltip.offsetWidth;
+    const tooltipHeight = tooltip.offsetHeight;
+    
+    if (x + tooltipWidth > window.innerWidth + window.pageXOffset) {
+      x = event.pageX - tooltipWidth - offsetX;
+    }
+    if (y + tooltipHeight > window.innerHeight + window.pageYOffset) {
+      y = event.pageY - tooltipHeight - offsetY;
+    }
+    
+    tooltip.style.left = x + 'px';
+    tooltip.style.top = y + 'px';
+  }
+
+  window.hideChartTooltip = function() {
+    const tooltip = document.getElementById('chart-tooltip');
+    if (tooltip) tooltip.style.display = 'none';
   }
 
   window.addEventListener('DOMContentLoaded', () => {

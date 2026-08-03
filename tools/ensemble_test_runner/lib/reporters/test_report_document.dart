@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
 import 'package:ensemble_test_runner/reporters/report_json_optimizer.dart';
+import 'package:ensemble_test_runner/reporters/atomic_file.dart';
 import 'package:ensemble_test_runner/reporters/step_log_grouping.dart';
 import 'package:ensemble_test_runner/runner/test_artifacts.dart';
 import 'package:path/path.dart' as p;
@@ -19,7 +20,6 @@ class TestReportDocument {
       'summary': {
         'passed': 0,
         'failed': 0,
-        'pending': 0,
         'totalMs': 0,
         if (wallTimeMs != null) 'wallTimeMs': wallTimeMs,
       },
@@ -40,8 +40,6 @@ class TestReportDocument {
       ...result.results.where((r) => r.status != TestStatus.failed),
     ];
     final totalMs = result.results.fold<int>(0, (sum, r) => sum + r.durationMs);
-    final pendingCount =
-        result.results.where((r) => r.status == TestStatus.pending).length;
 
     return {
       'state': 'complete',
@@ -49,7 +47,6 @@ class TestReportDocument {
       'summary': {
         'passed': result.passedCount,
         'failed': result.failedCount,
-        'pending': pendingCount,
         'totalMs': totalMs,
         'wallTimeMs': wallTimeMs ?? totalMs,
       },
@@ -75,7 +72,10 @@ class TestReportDocument {
     final optimized = ReportJsonOptimizer.optimize(document);
     final jsonText = json.encode(optimized);
     final gzPath = p.join(reportDir.path, resultsFileName);
-    File(gzPath).writeAsBytesSync(gzip.encode(utf8.encode(jsonText)));
+    AtomicFile.writeBytesSync(
+      File(gzPath),
+      gzip.encode(utf8.encode(jsonText)),
+    );
     // Drop legacy uncompressed / dual-file reports.
     for (final name in const ['results.json', 'results.js']) {
       final legacy = File(p.join(reportDir.path, name));
@@ -126,9 +126,11 @@ class TestReportDocument {
       if (ref.label == 'htmlReport' ||
           ref.label == 'results' ||
           ref.label == 'appPerformance' ||
-          ref.label == 'dumpTree') {
+          ref.label == 'dumpTree' ||
+          ref.label == 'history') {
         // htmlReport/results are top-level links; appPerformance/dumpTree are
-        // screen-scoped inside each test report (legacy suite labels ignored).
+        // screen-scoped inside each test report (legacy suite labels ignored);
+        // history is the sqlite db file and is skipped from logs UI download list.
         continue;
       }
 

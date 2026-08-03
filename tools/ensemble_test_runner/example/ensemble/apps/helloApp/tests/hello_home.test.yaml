@@ -1,0 +1,11 @@
+id: hello_home_navigation
+startScreen: Hello Home
+steps:
+  - expectVisible:
+      id: greeting_text
+  - tap:
+      id: navigate_button
+  - waitForNavigation:
+      screen: Goodbye
+  - expectVisible:
+      id: goodbye_text

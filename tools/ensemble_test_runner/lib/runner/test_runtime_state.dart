@@ -18,7 +18,7 @@ class TestRuntimeState {
   Locale? locale;
   String? themeMode;
 
-  /// Active top-level step index while [_executeSteps] runs (0-based).
+  /// Active top-level step index while `_executeSteps` runs (0-based).
   /// Used to attribute API calls and console lines to Step Details.
   int? currentStepIndex;
 

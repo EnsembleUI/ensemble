@@ -10,8 +10,8 @@ import 'package:flutter_test/flutter_test.dart';
 bool _cloudFunctionsBridgeInstalled = false;
 
 /// Bridges Firebase Cloud Functions pigeon calls to real HTTPS callable endpoints
-/// during [flutter test]. Native macOS/iOS/Android plugins are unavailable in the
-/// VM test binding, so without this handler [httpsCallable] fails immediately.
+/// during `flutter test`. Native macOS/iOS/Android plugins are unavailable in the
+/// VM test binding, so without this handler `httpsCallable` fails immediately.
 void ensureLiveCloudFunctionsForTest() {
   if (_cloudFunctionsBridgeInstalled) return;
   TestWidgetsFlutterBinding.ensureInitialized();

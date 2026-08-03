@@ -1,0 +1,23 @@
+name: ensemble_test_runner_example
+description: A minimal local Ensemble app tested with ensemble_test_runner.
+publish_to: none
+
+environment:
+  sdk: ">=3.5.0 <4.0.0"
+  flutter: ">=3.24.0"
+
+dependencies:
+  ensemble:
+    hosted: https://pub.dev
+    version: ">=1.2.50 <2.0.0"
+  ensemble_test_runner:
+    path: ..
+  flutter:
+    sdk: flutter
+
+flutter:
+  uses-material-design: true
+  assets:
+    - ensemble/
+    - ensemble/apps/helloApp/screens/Goodbye.yaml
+    - ensemble/apps/helloApp/screens/Hello Home.yaml

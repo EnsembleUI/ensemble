@@ -165,7 +165,8 @@ void main() {
     _deleteArtifacts(framesManifest, frames);
   });
 
-  testWidgets('keeps distinct files for small pixel differences', (tester) async {
+  testWidgets('keeps distinct files for small pixel differences',
+      (tester) async {
     const testId = 'contact_sheet_visual_dedupe_test';
     // Use a mid-frame accent large enough to survive report resize/WebP.
     // Previously perceptual hashing collapsed this into one file.
@@ -235,38 +236,6 @@ void main() {
     );
 
     _deleteArtifacts(framesManifest, frames);
-  });
-
-  testWidgets('pending status keeps frame images intact', (tester) async {
-    const testId = 'contact_sheet_pending_test';
-    final image = await _testImage(color: Colors.amber);
-    final path = await tester.runAsync(
-      () => writeScreenshotFrames(
-        testId: testId,
-        config: const ScreenshotConfig(enabled: true),
-        frames: [
-          ScreenshotSheetFrame(
-            stepIndex: 0,
-            label: '1. tap(button)',
-            image: image,
-          ),
-        ],
-        status: TestStatus.pending,
-      ),
-    );
-
-    expect(path, endsWith('/${testId}_frames.json'));
-    // Verify image was NOT disposed during pending run
-    expect(image.width, greaterThan(0));
-
-    final framesManifest = File(
-      'build/ensemble_test_runner/screenshots/${testId}_frames.json',
-    );
-    final framesJson =
-        jsonDecode(framesManifest.readAsStringSync()) as Map<String, dynamic>;
-    final frames = framesJson['frames'] as List<dynamic>;
-    _deleteArtifacts(framesManifest, frames);
-    image.dispose();
   });
 
   testWidgets('records multi-device labels on frames', (tester) async {

@@ -115,7 +115,8 @@ class MockComposition {
       mergeApiMaps(
         raw,
         {
-          apiName: _stringifyKeys(Map<dynamic, dynamic>.from(entry.value as Map)),
+          apiName:
+              _stringifyKeys(Map<dynamic, dynamic>.from(entry.value as Map)),
         },
         sourceLabel: sourceLabel,
       );
@@ -256,7 +257,9 @@ class MockComposition {
       return [
         for (final part in trimmed.substring(1).split('/'))
           if (part.isNotEmpty)
-            int.tryParse(part) ?? Uri.decodeComponent(part.replaceAll('~1', '/').replaceAll('~0', '~')),
+            int.tryParse(part) ??
+                Uri.decodeComponent(
+                    part.replaceAll('~1', '/').replaceAll('~0', '~')),
       ];
     }
 

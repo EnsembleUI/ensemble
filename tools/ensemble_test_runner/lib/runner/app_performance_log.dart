@@ -36,7 +36,8 @@ Map<String, dynamic> buildScreenPerformanceJson({
     'jankyFrameRate': _ratio(jankyFrames, screenFrames.length),
     'averageBuildMs': _average(screenFrames.map((frame) => frame.buildMs)),
     'averageRasterMs': _average(screenFrames.map((frame) => frame.rasterMs)),
-    'averageTotalSpanMs': _average(screenFrames.map((frame) => frame.totalSpanMs)),
+    'averageTotalSpanMs':
+        _average(screenFrames.map((frame) => frame.totalSpanMs)),
     'markers': screenMarkers.map((m) => _markerJson(m)).toList(),
   };
 }

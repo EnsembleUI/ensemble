@@ -64,7 +64,7 @@ String? applyEnsembleTestTheme(String? raw) {
   return name;
 }
 
-/// Applies [testCase.deviceTarget.theme] when present.
+/// Applies `testCase.deviceTarget.theme` when present.
 String? applyDeviceThemeForTestCase(EnsembleTestCase testCase) {
   return applyEnsembleTestTheme(testCase.deviceTarget?.theme);
 }

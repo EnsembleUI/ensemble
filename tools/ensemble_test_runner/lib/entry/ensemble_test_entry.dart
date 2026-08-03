@@ -8,6 +8,9 @@ import 'package:ensemble_test_runner/discovery/ensemble_test_execution_planner.d
 import 'package:ensemble_test_runner/ensemble_test_runner.dart';
 import 'package:ensemble_test_runner/mocks/firebase_test_setup.dart';
 import 'package:ensemble_test_runner/mocks/wifi_test_setup.dart';
+import 'package:ensemble_test_runner/reporters/ensemble_test_history_store.dart';
+import 'package:ensemble_test_runner/reporters/atomic_file.dart';
+import 'package:ensemble_test_runner/runner/test_artifacts.dart';
 import 'package:ensemble_test_runner/runner/yaml_test_session.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -16,6 +19,8 @@ const _timeoutSeconds = int.fromEnvironment(
   'ensembleTestTimeoutSeconds',
   defaultValue: 0,
 );
+const _historyDisplayPath =
+    'build/ensemble_test_runner/report/${EnsembleTestHistoryStore.fileName}';
 
 /// Options for [runEnsembleYamlTests], typically set from `test/ensemble_tests.dart`.
 class EnsembleYamlTestOptions {
@@ -23,7 +28,7 @@ class EnsembleYamlTestOptions {
   /// `lib/generated/ensemble_modules.dart` (same as `main.dart`).
   final Future<void> Function()? bootstrap;
 
-  /// Host-app methods passed to [EnsembleApp], e.g. `captureCertificateForHost`.
+  /// Host-app methods passed to `EnsembleApp`, e.g. `captureCertificateForHost`.
   final Map<String, Function>? externalMethods;
 
   const EnsembleYamlTestOptions({
@@ -150,19 +155,29 @@ Future<void> runEnsembleYamlTestsWithOptions(
         final suiteLogs = <String>[
           ...planResult.suiteLogs,
         ];
-        if (!isEnsembleTestParallelWorker()) {
-          final htmlPath = HtmlTestReporter().write(
-            EnsembleTestRunResult(
-              results: orderedResults,
-              suiteLogs: suiteLogs,
-            ),
-          );
-          suiteLogs.add('htmlReport: $htmlPath');
-        }
-        final runResult = EnsembleTestRunResult(
+        var runResult = EnsembleTestRunResult(
           results: orderedResults,
           suiteLogs: suiteLogs,
         );
+        if (!isEnsembleTestParallelWorker()) {
+          if (await _recordHistory(runResult)) {
+            suiteLogs.add('history: $_historyDisplayPath');
+            runResult = EnsembleTestRunResult(
+              results: orderedResults,
+              suiteLogs: suiteLogs,
+            );
+          }
+        }
+        if (!isEnsembleTestParallelWorker()) {
+          final htmlPath = HtmlTestReporter().write(
+            runResult,
+          );
+          suiteLogs.add('htmlReport: $htmlPath');
+          runResult = EnsembleTestRunResult(
+            results: orderedResults,
+            suiteLogs: suiteLogs,
+          );
+        }
         // Background app errors are recorded by TestErrorTracker and can be
         // asserted with expectNoRenderErrors/expectError. Explicitly unmount
         // the app and drain teardown exceptions so a suite with passing YAML
@@ -211,6 +226,21 @@ Future<void> runEnsembleYamlTestsWithOptions(
         ? Timeout(Duration(seconds: _timeoutSeconds))
         : Timeout.none,
   );
+}
+
+Future<bool> _recordHistory(EnsembleTestRunResult result) async {
+  try {
+    await EnsembleTestHistoryStore.recordCompletedRun(
+      appDir: Directory.current.path,
+      artifactRoot: ensembleTestArtifactRoot,
+      result: result,
+    );
+    return true;
+  } catch (_) {
+    // History is a convenience artifact; it must not affect test outcome.
+    stderr.writeln('Warning: could not write the test history database.');
+    return false;
+  }
 }
 
 void _ignorePostTestAnimationInvariant() {
@@ -359,7 +389,10 @@ void _emitMachineReport(EnsembleTestRunResult result) {
   if (reportFile.isNotEmpty) {
     final file = File(reportFile);
     file.parent.createSync(recursive: true);
-    file.writeAsStringSync(reportMode == 'junit' ? junitReport : jsonReport);
+    AtomicFile.writeStringSync(
+      file,
+      reportMode == 'junit' ? junitReport : jsonReport,
+    );
   }
 
   if (reportMode == 'json' || emitJsonReport) {

@@ -8,6 +8,7 @@ import 'package:ensemble_device_preview/ensemble_device_preview.dart';
 import 'package:ensemble_test_runner/actions/extended_step_handlers.dart';
 import 'package:ensemble_test_runner/actions/screenshot_device.dart';
 import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
+import 'package:ensemble_test_runner/reporters/atomic_file.dart';
 import 'package:ensemble_test_runner/runner/live_async_call.dart';
 import 'package:ensemble_test_runner/runner/test_artifacts.dart';
 import 'package:ensemble_test_runner/runner/test_runtime_state.dart';
@@ -22,7 +23,7 @@ String? _cachedCwebpPath;
 bool _didResolveCwebpPath = false;
 
 /// Encodes each frame to a compressed device-framed image and writes a
-/// [frames.json] manifest.
+/// `frames.json` manifest.
 ///
 /// Returns the display path of the frames manifest.
 /// The HTML report builds the contact-sheet gallery from these per-step files.
@@ -64,7 +65,7 @@ Future<String?> writeScreenshotFrames({
       final frameFileName = _dedupedImageFileName(encoded);
       final frameFile = File(p.join(imageDirectory.path, frameFileName));
       if (!frameFile.existsSync()) {
-        frameFile.writeAsBytesSync(encoded.bytes);
+        AtomicFile.writeBytesSync(frameFile, encoded.bytes);
       }
       frameEntries.add({
         'stepIndex': frame.stepIndex,
@@ -77,12 +78,10 @@ Future<String?> writeScreenshotFrames({
       });
     }
   } finally {
-    if (status != TestStatus.pending) {
-      for (final frame in frames) {
-        try {
-          frame.image.dispose();
-        } catch (_) {}
-      }
+    for (final frame in frames) {
+      try {
+        frame.image.dispose();
+      } catch (_) {}
     }
   }
 
@@ -101,7 +100,8 @@ Future<String?> writeScreenshotFrames({
 
   final framesFileName = '${safeTestId}_frames.json';
   final framesFile = ensembleTestArtifactFile('screenshots', framesFileName);
-  framesFile.writeAsStringSync(
+  AtomicFile.writeStringSync(
+    framesFile,
     const JsonEncoder.withIndent('  ').convert({
       'status': status.name,
       if (failedStepIndex != null) 'failedStepIndex': failedStepIndex,

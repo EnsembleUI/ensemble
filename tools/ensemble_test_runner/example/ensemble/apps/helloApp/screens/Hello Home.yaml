@@ -1,0 +1,16 @@
+View:
+  body:
+    Column:
+      styles:
+        padding: 24
+        gap: 16
+      children:
+        - Text:
+            testId: greeting_text
+            text: Hello from Ensemble
+        - Button:
+            testId: navigate_button
+            label: Say goodbye
+            onTap:
+              navigateScreen:
+                name: Goodbye
