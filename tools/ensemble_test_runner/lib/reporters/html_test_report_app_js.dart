@@ -570,7 +570,7 @@ const ensembleHtmlTestReportAppJs = r'''
     html += '<div class="history-card" style="margin-top:0;">';
     html += '<div class="history-header"><h2>Test Execution History</h2><span>' + runs.length + ' recent runs</span></div>';
     html += '<div class="history-table-wrap"><table class="history-table">';
-    html += '<thead><tr><th>Run ID</th><th>Date & Time</th><th>Status</th><th>Duration</th><th>Tests</th><th>Commit Hash</th></tr></thead><tbody>';
+    html += '<thead><tr><th>Run ID</th><th>Date & Time</th><th>Status</th><th>Duration</th><th>Tests</th><th>Branch</th></tr></thead><tbody>';
 
     runs.forEach(run => {
       const status = String(run.status || 'unknown').toLowerCase();
@@ -581,7 +581,8 @@ const ensembleHtmlTestReportAppJs = r'''
       const testsText = failed
         ? (passed + ' passed, ' + failed + ' failed')
         : (passed + '/' + total);
-      const commit = run.commitHash ? String(run.commitHash) : '';
+      
+      const branch = run.branch ? String(run.branch) : '';
       
       const isCollapsible = failed > 0;
       if (isCollapsible) {
@@ -596,7 +597,7 @@ const ensembleHtmlTestReportAppJs = r'''
       html += '<td><span class="history-status ' + escapeHtml(statusClass) + '">' + escapeHtml(status) + '</span></td>';
       html += '<td>' + escapeHtml(formatDuration(run.durationMs || 0)) + '</td>';
       html += '<td>' + escapeHtml(testsText) + '</td>';
-      html += '<td>' + escapeHtml(commit || '-') + '</td>';
+      html += '<td>' + escapeHtml(branch || '-') + '</td>';
       html += '</tr>';
       
       if (isCollapsible) {
