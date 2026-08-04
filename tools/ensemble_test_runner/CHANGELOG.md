@@ -1,3 +1,8 @@
+## 1.3.1
+
+ - **FIX**(ensemble_test_runner): update test report to display branch instead of commit hash. ([2e2de9b0](https://github.com/ensembleUI/ensemble/commit/2e2de9b0351957cc5792963e5d8abff32a140f73))
+ - **FEAT**(ensemble_test_runner): implement dynamic worker count calculatio… ([#2334](https://github.com/ensembleUI/ensemble/issues/2334)). ([2041975e](https://github.com/ensembleUI/ensemble/commit/2041975e55bcf916649a21702dd689b711760dd0))
+
 ## 1.3.0
 
  - **FEAT**(ensemble_test_runner): enhance error reporting with concise hints for missing widgets and texts ([#2333](https://github.com/ensembleUI/ensemble/issues/2333)). ([7fbd0e07](https://github.com/ensembleUI/ensemble/commit/7fbd0e07c3fadd3d35243df33efd2cd7a33bc318))
