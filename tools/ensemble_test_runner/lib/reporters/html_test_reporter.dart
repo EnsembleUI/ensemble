@@ -120,13 +120,13 @@ class HtmlTestReporter {
       ..writeln('    <h1>Ensemble Test Runner</h1>')
       ..writeln('    <p class="summary" id="hero-summary"></p>')
       ..writeln('  </div>')
+      ..writeln('  <div class="app-tab-navigation">')
+      ..writeln(
+          '    <button class="app-tab-btn active" data-app-tab="latest" onclick="switchAppTab(\'latest\')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg><span>Latest Run</span></button>')
+      ..writeln(
+          '    <button class="app-tab-btn" data-app-tab="history" onclick="switchAppTab(\'history\')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg><span>Run History</span></button>')
+      ..writeln('  </div>')
       ..writeln('</header>')
-      ..writeln('<div class="app-tab-navigation">')
-      ..writeln(
-          '  <button class="app-tab-btn active" data-app-tab="latest" onclick="switchAppTab(\'latest\')">Latest Run</button>')
-      ..writeln(
-          '  <button class="app-tab-btn" data-app-tab="history" onclick="switchAppTab(\'history\')">Run History</button>')
-      ..writeln('</div>')
       ..writeln('<div id="app-tab-content-latest" class="app-tab-content">')
       ..writeln('<section class="dashboard">')
       ..writeln('  <div class="metrics-grid" id="metrics-grid"></div>')

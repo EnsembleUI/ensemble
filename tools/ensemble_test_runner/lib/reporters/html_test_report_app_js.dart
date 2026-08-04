@@ -38,6 +38,25 @@ const ensembleHtmlTestReportAppJs = r'''
     return String(testId).replace(/[^A-Za-z0-9_-]+/g, '_');
   }
 
+  /** Strip a shared screen-name prefix (e.g. ExtenderPositioning_) for readable journey chips. */
+  function shortenScreenLabels(names) {
+    const list = (names || []).map((n) => String(n || ''));
+    if (list.length < 2) return { prefix: '', labels: list };
+    let prefix = list[0];
+    for (let i = 1; i < list.length; i++) {
+      while (prefix && !list[i].startsWith(prefix)) {
+        prefix = prefix.slice(0, -1);
+      }
+      if (!prefix) break;
+    }
+    const cut = Math.max(prefix.lastIndexOf('_'), prefix.lastIndexOf('/'), prefix.lastIndexOf('.'));
+    if (cut < 2) return { prefix: '', labels: list };
+    const shared = prefix.slice(0, cut + 1);
+    const labels = list.map((n) => n.slice(shared.length) || n);
+    if (labels.some((l) => !l)) return { prefix: '', labels: list };
+    return { prefix: shared.slice(0, -1), labels: labels };
+  }
+
   function resolveBlobValue(value, blobs) {
     if (value && typeof value === 'object' && !Array.isArray(value)) {
       if (Object.keys(value).length === 1 && typeof value['$b'] === 'string') {
@@ -869,17 +888,46 @@ const ensembleHtmlTestReportAppJs = r'''
 
     const visited = report.screensVisited || [];
     if (visited.length > 0) {
-      html += '<div class="flow-timeline"><div class="flow-label">Flow Journey</div><div class="flow-track">';
+      const screensMap = report.screens || {};
+      const shortened = shortenScreenLabels(visited);
+      const uniqueCount = new Set(visited).size;
+      const seenCounts = {};
+      html += '<div class="flow-timeline">';
+      html += '<div class="flow-header"><div class="flow-label">Flow Journey</div><div class="flow-meta">';
+      html += '<span class="flow-meta-chip"><strong>' + visited.length + '</strong> screen' + (visited.length === 1 ? '' : 's') + '</span>';
+      if (uniqueCount !== visited.length) {
+        html += '<span class="flow-meta-chip"><strong>' + uniqueCount + '</strong> unique</span>';
+      }
+      if (shortened.prefix) {
+        html += '<span class="flow-meta-chip prefix" title="Shared screen prefix">' + escapeHtml(shortened.prefix) + '</span>';
+      }
+      html += '</div></div><div class="flow-track">';
       visited.forEach((s, j) => {
-        const screensMap = report.screens || {};
+        seenCounts[s] = (seenCounts[s] || 0) + 1;
+        const visitNum = seenCounts[s];
+        const isRevisit = visitNum > 1;
         const hasData = screensMap[s] !== undefined;
-        if (hasData) {
-          const escapedScreen = s.replace(/'/g, "\\'");
-          html += '<span class="flow-node interactive" style="cursor: pointer; text-decoration: underline; color: var(--accent); font-weight: 700;" title="Click to view Widget Debug Tree & Performance Logs" onclick="openScreenDialog(\'' + anchorId(test.id) + '\', \'' + escapedScreen + '\')">' + escapeHtml(s) + '</span>';
-        } else {
-          html += '<span class="flow-node">' + escapeHtml(s) + '</span>';
-        }
-        if (j < visited.length - 1) html += '<span class="flow-arrow">→</span>';
+        const label = shortened.labels[j] || s;
+        const classes = ['flow-node'];
+        if (j === 0) classes.push('start');
+        if (j === visited.length - 1) classes.push('end');
+        if (isRevisit) classes.push('revisit');
+        if (hasData) classes.push('interactive');
+        const titleParts = [s];
+        if (isRevisit) titleParts.push('visit #' + visitNum);
+        if (hasData) titleParts.push('Click for widget tree & performance');
+        const title = titleParts.join(' · ');
+        const tag = hasData ? 'button' : 'span';
+        const typeAttr = hasData ? ' type="button"' : '';
+        const clickAttr = hasData
+          ? ' onclick="openScreenDialog(\'' + anchorId(test.id) + '\', \'' + String(s).replace(/\\/g, '\\\\').replace(/'/g, "\\'") + '\')"'
+          : '';
+        html += '<' + tag + typeAttr + ' class="' + classes.join(' ') + '" title="' + escapeHtml(title) + '"' + clickAttr + '>';
+        html += '<span class="flow-idx">' + (j + 1) + '</span>';
+        html += '<span class="flow-name">' + escapeHtml(label) + '</span>';
+        if (isRevisit) html += '<span class="flow-revisit">×' + visitNum + '</span>';
+        if (hasData) html += '<span class="flow-inspect" aria-hidden="true"></span>';
+        html += '</' + tag + '>';
       });
       html += '</div></div>';
     }
