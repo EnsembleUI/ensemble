@@ -1,3 +1,7 @@
+## 1.3.2
+
+ - **FEAT**(ensemble_test_runner): add secure storage and keychain support i… ([#2335](https://github.com/ensembleUI/ensemble/issues/2335)). ([462e8dd1](https://github.com/ensembleUI/ensemble/commit/462e8dd126db4f8235397807bc04bb79c7cda640))
+
 ## 1.3.1
 
  - **FIX**(ensemble_test_runner): update test report to display branch instead of commit hash. ([2e2de9b0](https://github.com/ensembleUI/ensemble/commit/2e2de9b0351957cc5792963e5d8abff32a140f73))

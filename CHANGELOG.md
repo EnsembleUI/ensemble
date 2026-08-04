@@ -15,6 +15,27 @@ Packages with breaking changes:
 
 Packages with other changes:
 
+ - [`ensemble_test_runner` - `v1.3.2`](#ensemble_test_runner---v132)
+
+---
+
+#### `ensemble_test_runner` - `v1.3.2`
+
+ - **FEAT**(ensemble_test_runner): add secure storage and keychain support i… ([#2335](https://github.com/ensembleUI/ensemble/issues/2335)). ([462e8dd1](https://github.com/ensembleUI/ensemble/commit/462e8dd126db4f8235397807bc04bb79c7cda640))
+
+
+## 2026-08-04
+
+### Changes
+
+---
+
+Packages with breaking changes:
+
+ - There are no breaking changes in this release.
+
+Packages with other changes:
+
  - [`ensemble_test_runner` - `v1.3.1`](#ensemble_test_runner---v131)
 
 ---
