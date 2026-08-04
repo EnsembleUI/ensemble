@@ -67,6 +67,8 @@ List<Map<String, dynamic>> groupLogsByStep({
   required List<Map<String, dynamic>> apiEvents,
   required List<String> rawConsoleLines,
   List<Map<String, dynamic>> storageSteps = const [],
+  List<Map<String, dynamic>> secureStorageSteps = const [],
+  List<Map<String, dynamic>> keychainSteps = const [],
   List<Map<String, dynamic>> screenshotFrames = const [],
 }) {
   final result = <Map<String, dynamic>>[];
@@ -84,6 +86,8 @@ List<Map<String, dynamic>> groupLogsByStep({
       'apiCalls': <Map<String, dynamic>>[],
       'appLogs': <String>[],
       'storageChanges': <Map<String, dynamic>>[],
+      'secureStorageChanges': <Map<String, dynamic>>[],
+      'keychainChanges': <Map<String, dynamic>>[],
       'screenshots': <Map<String, dynamic>>[],
     },
   );
@@ -166,20 +170,29 @@ List<Map<String, dynamic>> groupLogsByStep({
     (buckets[outlineIndex]['appLogs'] as List<String>).add(line);
   }
 
-  for (final step in storageSteps) {
-    final targetTopLevel = resolveTopLevel(step);
-    if (targetTopLevel == null) continue;
-    final outlineIndex = outlineIndexForTopLevel(targetTopLevel);
-    if (outlineIndex == null) continue;
-    final changes = step['changes'];
-    if (changes is! List) continue;
-    final bucket = buckets[outlineIndex]['storageChanges'] as List;
-    for (final change in changes) {
-      if (change is Map) {
-        bucket.add(Map<String, dynamic>.from(change));
+  void addStorageSteps(
+    List<Map<String, dynamic>> steps,
+    String bucketName,
+  ) {
+    for (final step in steps) {
+      final targetTopLevel = resolveTopLevel(step);
+      if (targetTopLevel == null) continue;
+      final outlineIndex = outlineIndexForTopLevel(targetTopLevel);
+      if (outlineIndex == null) continue;
+      final changes = step['changes'];
+      if (changes is! List) continue;
+      final bucket = buckets[outlineIndex][bucketName] as List;
+      for (final change in changes) {
+        if (change is Map) {
+          bucket.add(Map<String, dynamic>.from(change));
+        }
       }
     }
   }
+
+  addStorageSteps(storageSteps, 'storageChanges');
+  addStorageSteps(secureStorageSteps, 'secureStorageChanges');
+  addStorageSteps(keychainSteps, 'keychainChanges');
 
   for (final frame in screenshotFrames) {
     final targetTopLevel = resolveTopLevel(frame);
@@ -201,6 +214,8 @@ List<Map<String, dynamic>> groupLogsByStep({
       'apiCalls': <Map<String, dynamic>>[],
       'appLogs': <String>[],
       'storageChanges': <Map<String, dynamic>>[],
+      'secureStorageChanges': <Map<String, dynamic>>[],
+      'keychainChanges': <Map<String, dynamic>>[],
       'screenshots': <Map<String, dynamic>>[],
     });
   }

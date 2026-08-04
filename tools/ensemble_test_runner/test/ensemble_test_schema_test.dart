@@ -145,7 +145,7 @@ void main() {
   });
 
   test(
-      'initialState schema accepts storage, keychain, and env maps/placeholders',
+      'initialState schema accepts storage, secureStorage, keychain, and env maps/placeholders',
       () {
     final schema = EnsembleTestSchemaBuilder.build();
     final initialState =
@@ -153,6 +153,7 @@ void main() {
     final properties = initialState['properties'] as Map<String, dynamic>;
 
     expect(properties, contains('storage'));
+    expect(properties, contains('secureStorage'));
     expect(properties, contains('keychain'));
     expect(properties, contains('env'));
     expect(

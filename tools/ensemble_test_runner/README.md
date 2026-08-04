@@ -18,6 +18,13 @@ initialState:
       name:
         first: John
         last: Doe
+  # Ensemble encrypted public storage. Keys are logical keys; values are
+  # encrypted at bootstrap and persisted internally as enc_<key>.
+  secureStorage:
+    onboardingComplete: true
+  # Platform FlutterSecureStorage, used by keychain/readSecurely actions.
+  keychain:
+    authToken: test-token
 steps:
   - expectVisible:
       id: greeting_text
@@ -123,7 +130,9 @@ logStorage:
 
 `mocks` and `initialState` in `config.yaml` apply to every test. Test-file
 `mocks` / `initialState` values override suite values for the same API name or
-storage/keychain/env key.
+storage/secureStorage/keychain/env key. `storage`, `secureStorage`, and
+`keychain` are separate backends: `secureStorage` is Ensemble's encrypted
+public-storage namespace, while `keychain` is platform secure storage.
 
 When `devices` is set, each test expands to one run per device (ids look like
 `home[android_nl]` when there is more than one device). Device `locale` sets
@@ -337,6 +346,10 @@ override suite keys:
 initialState:
   storage:
     apiUrl: http://ensemble.test/ws/NeMo/Intf/lan:getMIBs
+  secureStorage:
+    onboardingComplete: true
+  keychain:
+    authToken: test-token
   env:
     APP_LOCALE: nl
 
@@ -355,7 +368,7 @@ steps:
 ### Reusable authenticated session
 
 The session producer runs once. After it passes, the runner captures public
-storage, keychain values, and locale in memory. Each consumer restores that
+storage, encrypted secure-storage values, keychain values, and locale in memory. Each consumer restores that
 snapshot, runs its `setup`, and mounts a fresh requested screen.
 
 ```yaml

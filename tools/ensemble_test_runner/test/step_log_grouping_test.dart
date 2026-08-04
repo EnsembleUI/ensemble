@@ -172,6 +172,40 @@ void main() {
       expect(changes[1]['change'], 'modified');
     });
 
+    test('places secure storage and keychain changes under matching step', () {
+      final grouped = groupLogsByStep(
+        stepsOutline: ['tap(a)', 'tap(b)'],
+        stepDurationsMs: [10, 10],
+        stepStartTimes: [
+          '2026-07-22T12:00:00.000',
+          '2026-07-22T12:00:01.000',
+        ],
+        apiEvents: const [],
+        rawConsoleLines: const [],
+        secureStorageSteps: [
+          {
+            'stepIndex': 1,
+            'changes': [
+              {'key': 'dnsBackup', 'change': 'added', 'after': true},
+            ],
+          },
+        ],
+        keychainSteps: [
+          {
+            'stepIndex': 1,
+            'changes': [
+              {'key': 'authToken', 'change': 'modified', 'after': 'new'},
+            ],
+          },
+        ],
+      );
+
+      expect((grouped[1]['secureStorageChanges'] as List).single['key'],
+          'dnsBackup');
+      expect(
+          (grouped[1]['keychainChanges'] as List).single['key'], 'authToken');
+    });
+
     test('places screenshot frames under matching stepIndex', () {
       final grouped = groupLogsByStep(
         stepsOutline: ['tap(a)', 'waitForNavigation(Home)'],

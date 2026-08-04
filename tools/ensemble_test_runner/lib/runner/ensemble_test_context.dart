@@ -37,6 +37,7 @@ class EnsembleTestContext {
     );
 
     final storage = testCase.initialState['storage'];
+    final secureStorage = testCase.initialState['secureStorage'];
     final keychain = testCase.initialState['keychain'];
     final env = testCase.initialState['env'];
 
@@ -47,6 +48,9 @@ class EnsembleTestContext {
       envOverrides: envMap.isEmpty ? null : envMap,
       initialPublicStorage:
           storage is Map ? Map<String, dynamic>.from(storage) : null,
+      initialSecureStorage: secureStorage is Map
+          ? Map<String, dynamic>.from(secureStorage)
+          : null,
       initialKeychain:
           keychain is Map ? Map<String, dynamic>.from(keychain) : null,
     );

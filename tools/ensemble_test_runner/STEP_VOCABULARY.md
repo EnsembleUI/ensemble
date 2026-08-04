@@ -148,7 +148,7 @@ with `--report=json` or `--report-file=build/ensemble_test_results.json`.
 Each `*.test.yaml` file is a single test case and must provide:
 
 - `startScreen` — cold-starts the app on the given screen and runs steps
-- `session` — optional; runs the referenced test once, restores its captured storage/keychain/locale for this test, runs `setup`, and mounts the requested `startScreen`
+- `session` — optional; runs the referenced test once, restores its captured public storage/secure storage/keychain/locale for this test, runs `setup`, and mounts the requested `startScreen`
 - `retry` — number of additional attempts after a failed run, e.g. `retry: 3`
 
 Root-level `setup` supports `httpRequest`, `group`, and `optional`. It runs

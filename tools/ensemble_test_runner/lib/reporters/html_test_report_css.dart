@@ -541,6 +541,43 @@ body {
   border-color: var(--accent);
   color: #000;
 }
+.storage-sub-tabs {
+  display: flex;
+  gap: 8px;
+  padding: 0 0 12px;
+  border-bottom: 1px solid var(--border);
+  flex-wrap: wrap;
+}
+.storage-sub-tab-btn {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-muted);
+  padding: 7px 14px;
+  font-size: 0.78rem;
+  font-weight: 800;
+  cursor: pointer;
+  font-family: var(--font-ui);
+  transition: all 0.2s ease;
+}
+.storage-sub-tab-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+}
+.storage-sub-tab-btn.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #000;
+}
+.storage-sub-panels {
+  min-height: 80px;
+}
+.storage-sub-panel {
+  min-height: 80px;
+}
+.storage-sub-panel.logs-terminal {
+  padding: 12px 16px;
+}
 
 @media (max-width: 800px) {
   .run-selector-row {

@@ -153,6 +153,19 @@ class ReportJsonOptimizer {
           out['storageChanges'] = optimizedChanges;
         }
       }
+      for (final field in const ['secureStorageChanges', 'keychainChanges']) {
+        final secureChanges = step[field];
+        if (secureChanges is List && secureChanges.isNotEmpty) {
+          final optimizedChanges = <Map<String, dynamic>>[];
+          for (final c in secureChanges) {
+            if (c is! Map) continue;
+            final optimized =
+                optimizeStorageChange(Map<String, dynamic>.from(c));
+            if (optimized != null) optimizedChanges.add(optimized);
+          }
+          if (optimizedChanges.isNotEmpty) out[field] = optimizedChanges;
+        }
+      }
 
       final shots = step['screenshots'];
       if (shots is List && shots.isNotEmpty) {
@@ -222,16 +235,22 @@ class ReportJsonOptimizer {
       }
 
       final storage = test['storage'];
-      if (storage is Map && storage['keys'] is Map) {
-        final keys = storage['keys'] as Map;
-        if (keys.isNotEmpty) {
-          out['storage'] = {
-            'keys': {
+      if (storage is Map) {
+        final storageOut = <String, dynamic>{};
+        for (final entry in const [
+          ('keys', 'keys'),
+          ('secureStorageKeys', 'secureStorageKeys'),
+          ('keychainKeys', 'keychainKeys'),
+        ]) {
+          final keys = storage[entry.$1];
+          if (keys is Map && keys.isNotEmpty) {
+            storageOut[entry.$2] = {
               for (final e in keys.entries)
                 e.key.toString(): maybeIntern(e.value),
-            },
-          };
+            };
+          }
         }
+        if (storageOut.isNotEmpty) out['storage'] = storageOut;
       }
 
       final steps = test['steps'];
@@ -329,21 +348,30 @@ class ReportJsonOptimizer {
               'apiCalls': step['apiCalls'] ?? const [],
               'appLogs': step['appLogs'] ?? const [],
               'storageChanges': step['storageChanges'] ?? const [],
+              'secureStorageChanges': step['secureStorageChanges'] ?? const [],
+              'keychainChanges': step['keychainChanges'] ?? const [],
               'screenshots': step['screenshots'] ?? const [],
             };
             step.putIfAbsent('apiCalls', () => const []);
             step.putIfAbsent('appLogs', () => const []);
             step.putIfAbsent('storageChanges', () => const []);
+            step.putIfAbsent('secureStorageChanges', () => const []);
+            step.putIfAbsent('keychainChanges', () => const []);
             step.putIfAbsent('screenshots', () => const []);
           } else if (parentPayload != null) {
             step['apiCalls'] = parentPayload['apiCalls'];
             step['appLogs'] = parentPayload['appLogs'];
             step['storageChanges'] = parentPayload['storageChanges'];
+            step['secureStorageChanges'] =
+                parentPayload['secureStorageChanges'];
+            step['keychainChanges'] = parentPayload['keychainChanges'];
             step['screenshots'] = parentPayload['screenshots'];
           } else {
             step['apiCalls'] = const [];
             step['appLogs'] = const [];
             step['storageChanges'] = const [];
+            step['secureStorageChanges'] = const [];
+            step['keychainChanges'] = const [];
             step['screenshots'] = const [];
           }
         }

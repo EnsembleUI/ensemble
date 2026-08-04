@@ -24,6 +24,8 @@ class TestRuntimeState {
 
   /// Public-storage diffs captured at the end of each top-level step.
   final List<StorageStepDiff> storageStepDiffs = [];
+  final List<StorageStepDiff> secureStorageStepDiffs = [];
+  final List<StorageStepDiff> keychainStepDiffs = [];
 
   /// Map from screen name to its captured artifacts (debugTree, performance markers, etc.)
   final Map<String, Map<String, dynamic>> screenArtifacts = {};
@@ -42,6 +44,8 @@ class TestRuntimeState {
     themeMode = null;
     currentStepIndex = null;
     storageStepDiffs.clear();
+    secureStorageStepDiffs.clear();
+    keychainStepDiffs.clear();
     screenArtifacts.clear();
   }
 
