@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:ensemble/framework/storage_manager.dart';
+import 'package:ensemble/framework/encrypted_storage_manager.dart';
 
 /// One public-storage key change during a test step.
 class StorageKeyChange {
@@ -48,9 +49,40 @@ Map<String, dynamic> capturePublicStorage() {
   final storage = StorageManager();
   final result = <String, dynamic>{};
   for (final key in storage.getKeys()) {
-    result[key] = _copy(storage.read(key));
+    if (!key.startsWith('enc_')) {
+      result[key] = _copy(storage.read(key));
+    }
   }
   return result;
+}
+
+/// Captures Ensemble encrypted public-storage values using their logical keys.
+///
+/// The encrypted backend stores values under `enc_<key>` in public GetStorage.
+/// Reports expose the logical key and decoded value instead.
+Map<String, dynamic> captureSecureStorage() {
+  final storage = StorageManager();
+  final result = <String, dynamic>{};
+  for (final backendKey in storage.getKeys()) {
+    if (!backendKey.startsWith('enc_')) continue;
+    final key = backendKey.substring('enc_'.length);
+    final raw = storage.read(backendKey);
+    final decoded = EncryptedStorageManager.getSecureStorage(key);
+    result[key] = decoded ??
+        <String, dynamic>{
+          'value': _copy(raw),
+          'decodeError': true,
+        };
+  }
+  return result;
+}
+
+/// Captures platform keychain / FlutterSecureStorage values.
+Future<Map<String, dynamic>> captureKeychainStorage() async {
+  final values = await StorageManager().getAllFromKeychain();
+  return {
+    for (final entry in values.entries) entry.key: _copy(entry.value),
+  };
 }
 
 /// Diff of public storage maps. Returns only keys that changed.

@@ -11,6 +11,7 @@ const ensembleHtmlTestReportAppJs = r'''
   let activeModalTab = 'api';
   let currentModalCardId = '';
   let currentModalStepIndex = -1;
+  let activeStorageSubTab = 'public';
 
   function escapeHtml(str) {
     return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
@@ -35,6 +36,25 @@ const ensembleHtmlTestReportAppJs = r'''
 
   function anchorId(testId) {
     return String(testId).replace(/[^A-Za-z0-9_-]+/g, '_');
+  }
+
+  /** Strip a shared screen-name prefix (e.g. ExtenderPositioning_) for readable journey chips. */
+  function shortenScreenLabels(names) {
+    const list = (names || []).map((n) => String(n || ''));
+    if (list.length < 2) return { prefix: '', labels: list };
+    let prefix = list[0];
+    for (let i = 1; i < list.length; i++) {
+      while (prefix && !list[i].startsWith(prefix)) {
+        prefix = prefix.slice(0, -1);
+      }
+      if (!prefix) break;
+    }
+    const cut = Math.max(prefix.lastIndexOf('_'), prefix.lastIndexOf('/'), prefix.lastIndexOf('.'));
+    if (cut < 2) return { prefix: '', labels: list };
+    const shared = prefix.slice(0, cut + 1);
+    const labels = list.map((n) => n.slice(shared.length) || n);
+    if (labels.some((l) => !l)) return { prefix: '', labels: list };
+    return { prefix: shared.slice(0, -1), labels: labels };
   }
 
   function resolveBlobValue(value, blobs) {
@@ -64,21 +84,29 @@ const ensembleHtmlTestReportAppJs = r'''
             apiCalls: step.apiCalls || [],
             appLogs: step.appLogs || [],
             storageChanges: step.storageChanges || [],
+            secureStorageChanges: step.secureStorageChanges || [],
+            keychainChanges: step.keychainChanges || [],
             screenshots: step.screenshots || []
           };
           step.apiCalls = parent.apiCalls;
           step.appLogs = parent.appLogs;
           step.storageChanges = parent.storageChanges;
+          step.secureStorageChanges = parent.secureStorageChanges;
+          step.keychainChanges = parent.keychainChanges;
           step.screenshots = parent.screenshots;
         } else if (parent) {
           step.apiCalls = parent.apiCalls;
           step.appLogs = parent.appLogs;
           step.storageChanges = parent.storageChanges;
+          step.secureStorageChanges = parent.secureStorageChanges;
+          step.keychainChanges = parent.keychainChanges;
           step.screenshots = parent.screenshots;
         } else {
           step.apiCalls = [];
           step.appLogs = [];
           step.storageChanges = [];
+          step.secureStorageChanges = [];
+          step.keychainChanges = [];
           step.screenshots = [];
         }
         steps[i] = step;
@@ -179,7 +207,6 @@ const ensembleHtmlTestReportAppJs = r'''
           pr_number AS prNumber
         FROM runs
         ORDER BY id DESC
-        LIMIT 25
       `));
       return { runs };
     } catch (e) {
@@ -286,6 +313,7 @@ const ensembleHtmlTestReportAppJs = r'''
     }
 
     window.stepData = {};
+    window.storageSnapshots = {};
     const listPane = document.getElementById('test-list-pane');
     const detailPane = document.getElementById('test-detail-pane');
     listPane.innerHTML = '';
@@ -568,7 +596,7 @@ const ensembleHtmlTestReportAppJs = r'''
     html += '</div>';
 
     html += '<div class="history-card" style="margin-top:0;">';
-    html += '<div class="history-header"><h2>Test Execution History</h2><span>' + runs.length + ' recent runs</span></div>';
+    html += '<div class="history-header"><h2>Test Execution History</h2><span>' + runs.length + ' total runs</span></div>';
     html += '<div class="history-table-wrap"><table class="history-table">';
     html += '<thead><tr><th>Run ID</th><th>Date & Time</th><th>Status</th><th>Duration</th><th>Tests</th><th>Branch</th></tr></thead><tbody>';
 
@@ -763,6 +791,7 @@ const ensembleHtmlTestReportAppJs = r'''
     runs.forEach((test, i) => {
       const stepKey = cardId + '-' + i;
       window.stepData[stepKey] = test.steps || [];
+      window.storageSnapshots[stepKey] = test.storage || {};
       html += buildRunBlock(base, test, cardId, i, stepKey);
     });
     wrap.innerHTML = html;
@@ -858,17 +887,46 @@ const ensembleHtmlTestReportAppJs = r'''
 
     const visited = report.screensVisited || [];
     if (visited.length > 0) {
-      html += '<div class="flow-timeline"><div class="flow-label">Flow Journey</div><div class="flow-track">';
+      const screensMap = report.screens || {};
+      const shortened = shortenScreenLabels(visited);
+      const uniqueCount = new Set(visited).size;
+      const seenCounts = {};
+      html += '<div class="flow-timeline">';
+      html += '<div class="flow-header"><div class="flow-label">Flow Journey</div><div class="flow-meta">';
+      html += '<span class="flow-meta-chip"><strong>' + visited.length + '</strong> screen' + (visited.length === 1 ? '' : 's') + '</span>';
+      if (uniqueCount !== visited.length) {
+        html += '<span class="flow-meta-chip"><strong>' + uniqueCount + '</strong> unique</span>';
+      }
+      if (shortened.prefix) {
+        html += '<span class="flow-meta-chip prefix" title="Shared screen prefix">' + escapeHtml(shortened.prefix) + '</span>';
+      }
+      html += '</div></div><div class="flow-track">';
       visited.forEach((s, j) => {
-        const screensMap = report.screens || {};
+        seenCounts[s] = (seenCounts[s] || 0) + 1;
+        const visitNum = seenCounts[s];
+        const isRevisit = visitNum > 1;
         const hasData = screensMap[s] !== undefined;
-        if (hasData) {
-          const escapedScreen = s.replace(/'/g, "\\'");
-          html += '<span class="flow-node interactive" style="cursor: pointer; text-decoration: underline; color: var(--accent); font-weight: 700;" title="Click to view Widget Debug Tree & Performance Logs" onclick="openScreenDialog(\'' + anchorId(test.id) + '\', \'' + escapedScreen + '\')">' + escapeHtml(s) + '</span>';
-        } else {
-          html += '<span class="flow-node">' + escapeHtml(s) + '</span>';
-        }
-        if (j < visited.length - 1) html += '<span class="flow-arrow">→</span>';
+        const label = shortened.labels[j] || s;
+        const classes = ['flow-node'];
+        if (j === 0) classes.push('start');
+        if (j === visited.length - 1) classes.push('end');
+        if (isRevisit) classes.push('revisit');
+        if (hasData) classes.push('interactive');
+        const titleParts = [s];
+        if (isRevisit) titleParts.push('visit #' + visitNum);
+        if (hasData) titleParts.push('Click for widget tree & performance');
+        const title = titleParts.join(' · ');
+        const tag = hasData ? 'button' : 'span';
+        const typeAttr = hasData ? ' type="button"' : '';
+        const clickAttr = hasData
+          ? ' onclick="openScreenDialog(\'' + anchorId(test.id) + '\', \'' + String(s).replace(/\\/g, '\\\\').replace(/'/g, "\\'") + '\')"'
+          : '';
+        html += '<' + tag + typeAttr + ' class="' + classes.join(' ') + '" title="' + escapeHtml(title) + '"' + clickAttr + '>';
+        html += '<span class="flow-idx">' + (j + 1) + '</span>';
+        html += '<span class="flow-name">' + escapeHtml(label) + '</span>';
+        if (isRevisit) html += '<span class="flow-revisit">×' + visitNum + '</span>';
+        if (hasData) html += '<span class="flow-inspect" aria-hidden="true"></span>';
+        html += '</' + tag + '>';
       });
       html += '</div></div>';
     }
@@ -976,6 +1034,8 @@ const ensembleHtmlTestReportAppJs = r'''
     const events = flattenStepField(test, 'apiCalls');
     const storage = test.storage || {};
     const keys = storage.keys || {};
+    const secureKeys = storage.secureStorageKeys || {};
+    const keychainKeys = storage.keychainKeys || {};
     let storageContent = '';
     try { storageContent = JSON.stringify(keys, null, 2); } catch (e) { storageContent = String(keys); }
 
@@ -988,10 +1048,28 @@ const ensembleHtmlTestReportAppJs = r'''
     html += '<button class="fullscreen-sheet-btn" onclick="openFullscreenCard(this, \'apis\')">⛶ Open Fullscreen</button></div>';
     html += '<div class="logs-terminal">' + renderApiRows(events) + '</div></div></div>';
 
-    if (Object.keys(keys).length > 0) {
-      html += '<div class="logs-grid-container" style="margin-top:16px;"><div class="logs-card-pane" style="grid-column:1/-1;"><div class="logs-pane-title"><span>💾 Local State Storage</span>';
-      html += '<button class="fullscreen-sheet-btn" onclick="openFullscreenCard(this, \'storage\')">⛶ Open Fullscreen</button></div>';
-      html += '<div class="logs-terminal"><div class="terminal-row">' + escapeHtml(storageContent) + '</div></div></div></div>';
+    const hasKeys = Object.keys(keys).length > 0;
+    const hasSecure = Object.keys(secureKeys).length > 0;
+    const hasKeychain = Object.keys(keychainKeys).length > 0;
+
+    if (hasKeys || hasSecure || hasKeychain) {
+      html += '<div class="storage-grid-container">';
+      if (hasKeys) {
+        html += '<div class="logs-card-pane"><div class="logs-pane-title"><span>💾 Local State Storage</span>';
+        html += '<button class="fullscreen-sheet-btn" onclick="openFullscreenCard(this, \'storage\')">⛶ Open Fullscreen</button></div>';
+        html += '<div class="logs-terminal"><div class="terminal-row">' + escapeHtml(storageContent) + '</div></div></div>';
+      }
+      if (hasSecure) {
+        html += '<div class="logs-card-pane"><div class="logs-pane-title"><span>🔐 Secure Storage</span>';
+        html += '<button class="fullscreen-sheet-btn" onclick="openFullscreenCard(this, \'secureStorage\')">⛶ Open Fullscreen</button></div>';
+        html += '<div class="logs-terminal"><div class="terminal-row">' + escapeHtml(JSON.stringify(secureKeys, null, 2)) + '</div></div></div>';
+      }
+      if (hasKeychain) {
+        html += '<div class="logs-card-pane"><div class="logs-pane-title"><span>🔑 Keychain</span>';
+        html += '<button class="fullscreen-sheet-btn" onclick="openFullscreenCard(this, \'keychain\')">⛶ Open Fullscreen</button></div>';
+        html += '<div class="logs-terminal"><div class="terminal-row">' + escapeHtml(JSON.stringify(keychainKeys, null, 2)) + '</div></div></div>';
+      }
+      html += '</div>';
     }
     return html;
   }
@@ -1105,21 +1183,24 @@ const ensembleHtmlTestReportAppJs = r'''
   }
 
   // --- Step modal (retargeted to window.stepData) ---
-  function getStorageStateAtStep(cardId, targetStepIndex) {
+  function getStorageStateAtStep(cardId, targetStepIndex, field) {
     const deviceData = window.stepData && window.stepData[cardId];
     if (!deviceData) return {};
     const stepKeys = Object.keys(deviceData).map(k => parseInt(k, 10)).filter(n => !isNaN(n)).sort((a, b) => a - b);
-    const state = {};
-    for (const stepKey of stepKeys) {
-      if (stepKey > targetStepIndex) break;
-      const stepObj = deviceData[stepKey];
-      const changes = (stepObj && stepObj.storageChanges) || [];
+    const snapshot = window.storageSnapshots && window.storageSnapshots[cardId];
+    const snapshotField = field === 'secureStorageChanges' ? 'secureStorageKeys' : field === 'keychainChanges' ? 'keychainKeys' : 'keys';
+    const state = Object.assign({}, (snapshot && snapshot[snapshotField]) || {});
+    // Rewind the final snapshot to the state immediately after the requested
+    // step so initial values remain visible even if they never changed.
+    for (let i = stepKeys.length - 1; i > targetStepIndex; i--) {
+      const stepObj = deviceData[stepKeys[i]];
+      const changes = (stepObj && stepObj[field || 'storageChanges']) || [];
       for (const change of changes) {
         const key = change.key;
         if (!key) continue;
         const kind = (change.change || '').toLowerCase();
-        if (kind === 'removed') delete state[key];
-        else if (kind === 'added' || kind === 'modified') state[key] = change.after;
+        if (kind === 'added') delete state[key];
+        else if (kind === 'removed' || kind === 'modified') state[key] = change.before;
       }
     }
     return state;
@@ -1204,12 +1285,47 @@ const ensembleHtmlTestReportAppJs = r'''
 
     const storageList = document.getElementById('modal-storage-list');
     storageList.innerHTML = '';
+    storageList.className = 'modal-list storage-tab-content';
+    const storageSubTabs = document.createElement('div');
+    storageSubTabs.className = 'storage-sub-tabs';
+    const storagePanels = document.createElement('div');
+    storagePanels.className = 'storage-sub-panels';
+    const publicStoragePanel = document.createElement('div');
+    const secureStoragePanel = document.createElement('div');
+    const keychainPanel = document.createElement('div');
+    publicStoragePanel.className = 'storage-sub-panel logs-terminal';
+    secureStoragePanel.className = 'storage-sub-panel';
+    keychainPanel.className = 'storage-sub-panel';
+    const publicStorageList = publicStoragePanel;
+    const storageSubTabDefinitions = [
+      { id: 'public', label: 'Public Storage', panel: publicStoragePanel },
+      { id: 'secure', label: 'Secure Storage', panel: secureStoragePanel },
+      { id: 'keychain', label: 'Keychain', panel: keychainPanel }
+    ];
+    storageSubTabDefinitions.forEach(definition => {
+      const button = document.createElement('button');
+      button.className = 'storage-sub-tab-btn' + (definition.id === activeStorageSubTab ? ' active' : '');
+      button.textContent = definition.label;
+      button.onclick = () => {
+        activeStorageSubTab = definition.id;
+        storageSubTabDefinitions.forEach(item => {
+          item.panel.style.display = item.id === activeStorageSubTab ? 'block' : 'none';
+        });
+        storageSubTabs.querySelectorAll('.storage-sub-tab-btn').forEach(item => item.classList.remove('active'));
+        button.classList.add('active');
+      };
+      storageSubTabs.appendChild(button);
+      definition.panel.style.display = definition.id === activeStorageSubTab ? 'block' : 'none';
+      storagePanels.appendChild(definition.panel);
+    });
+    storageList.appendChild(storageSubTabs);
+    storageList.appendChild(storagePanels);
     const storageChanges = data.storageChanges || [];
     document.getElementById('modal-storage-count').textContent = storageChanges.length;
     const currentState = getStorageStateAtStep(cardId, stepIndex);
     const changedKeys = new Set(storageChanges.map(c => c.key).filter(Boolean));
     if (!storageChanges.length && Object.keys(currentState).length === 0) {
-      storageList.innerHTML = '<div class="terminal-row" style="color: var(--text-muted);">&lt;no storage changes for this step&gt;</div>';
+      publicStorageList.innerHTML = '<div class="terminal-row" style="color: var(--text-muted);">&lt;no storage changes for this step&gt;</div>';
     } else {
       storageChanges.forEach(change => {
         const key = change.key || '(unknown)';
@@ -1270,7 +1386,7 @@ const ensembleHtmlTestReportAppJs = r'''
             row.innerHTML = '<span class="terminal-badge ' + badgeClass + '">' + badgeText + '</span><span class="storage-key-name">' + escapeHtml(key) + '</span> <span style="color: var(--text-muted);">' + escapeHtml(formatStorageValue(change.before)) + '</span> <span style="color: var(--accent); font-weight: bold; margin: 0 6px;">→</span> <span style="color: var(--accent);">' + escapeHtml(formatStorageValue(change.after)) + '</span>';
           }
         }
-        storageList.appendChild(row);
+        publicStorageList.appendChild(row);
       });
       Object.keys(currentState).filter(k => !changedKeys.has(k)).sort().forEach(key => {
         const val = currentState[key];
@@ -1285,9 +1401,77 @@ const ensembleHtmlTestReportAppJs = r'''
         } else {
           row.innerHTML = '<span class="terminal-badge info" style="background: rgba(255,255,255,0.06); color: var(--text-muted); border: 1px solid rgba(255,255,255,0.15); margin-right: 6px;">VAL</span><span style="font-weight: 700; color: var(--text-muted);">' + escapeHtml(key) + '</span> <span style="color: #cbd5e1;">' + escapeHtml(formatStorageValue(val)) + '</span>';
         }
-        storageList.appendChild(row);
+        publicStorageList.appendChild(row);
       });
     }
+
+    function appendSimpleStorageSection(title, changesField, stateField, target) {
+      const changes = data[changesField] || [];
+      const state = getStorageStateAtStep(cardId, stepIndex, changesField);
+      const section = document.createElement('div');
+      section.style.marginTop = '18px';
+      const body = document.createElement('div');
+      body.className = 'logs-terminal';
+      if (!changes.length && !Object.keys(state).length) {
+        body.innerHTML = '<div class="terminal-row" style="color: var(--text-muted);">&lt;no changes&gt;</div>';
+      } else {
+        changes.forEach(change => {
+          const key = change.key || '(unknown)';
+          const row = document.createElement('div');
+          const kind = (change.change || '').toLowerCase();
+          let badgeClass = 'info', badgeText = 'MOD';
+          if (kind === 'added') {
+            badgeClass = 'passed';
+            badgeText = 'ADD';
+          } else if (kind === 'removed') {
+            badgeClass = 'failed';
+            badgeText = 'DEL';
+          }
+          const beforeFormatted = change.before === undefined ? '' : prettyFormatStorageValue(change.before);
+          const afterFormatted = change.after === undefined ? '' : prettyFormatStorageValue(change.after);
+          const isLong = beforeFormatted.length > 40 || afterFormatted.length > 40 || beforeFormatted.includes('\n') || afterFormatted.includes('\n');
+          if (isLong) {
+            row.className = 'terminal-row storage-collapsible';
+            let details = '';
+            if (kind === 'modified') {
+              details = '<div class="storage-diff-container">' +
+                '<div class="storage-diff-pane before"><div class="storage-diff-header">Before</div><pre class="storage-diff-pre">' + escapeHtml(beforeFormatted) + '</pre></div>' +
+                '<div class="storage-diff-pane after"><div class="storage-diff-header">After</div><pre class="storage-diff-pre">' + escapeHtml(afterFormatted) + '</pre></div>' +
+                '</div>';
+            } else {
+              const value = kind === 'removed' ? beforeFormatted : afterFormatted;
+              details = '<pre class="storage-pretty-val">' + escapeHtml(value) + '</pre>';
+            }
+            const summary = kind === 'added' ? 'Value added (click to view)' : kind === 'removed' ? 'Value removed (click to view)' : 'Value modified (click to compare)';
+            row.innerHTML = '<div class="storage-header" onclick="toggleStorageDetails(this)"><span class="api-caret">▶</span><span class="terminal-badge ' + badgeClass + '">' + badgeText + '</span><span class="storage-key-name">' + escapeHtml(key) + '</span><span class="storage-summary-preview">' + summary + '</span></div><div class="storage-details" style="display: none;">' + details + '</div>';
+          } else if (kind === 'modified') {
+            row.innerHTML = '<span class="terminal-badge ' + badgeClass + '">' + badgeText + '</span><span class="storage-key-name">' + escapeHtml(key) + '</span> <span style="color: var(--text-muted);">' + escapeHtml(beforeFormatted) + '</span> <span style="color: var(--accent); font-weight: bold; margin: 0 6px;">→</span> <span style="color: var(--accent);">' + escapeHtml(afterFormatted) + '</span>';
+          } else {
+            const value = kind === 'removed' ? beforeFormatted : afterFormatted;
+            const color = kind === 'added' ? 'var(--pass)' : kind === 'removed' ? 'var(--fail)' : 'var(--accent)';
+            row.innerHTML = '<span class="terminal-badge ' + badgeClass + '">' + badgeText + '</span><span class="storage-key-name">' + escapeHtml(key) + '</span> <span style="color: ' + color + ';">' + escapeHtml(value) + '</span>';
+          }
+          body.appendChild(row);
+        });
+        Object.keys(state).filter(k => !changes.some(c => c.key === k)).sort().forEach(key => {
+          const formatted = prettyFormatStorageValue(state[key]);
+          const row = document.createElement('div');
+          row.className = 'terminal-row';
+          const isLong = formatted.length > 80 || formatted.includes('\n');
+          if (isLong) {
+            row.className = 'terminal-row storage-collapsible';
+            row.innerHTML = '<div class="storage-header" onclick="toggleStorageDetails(this)"><span class="api-caret">▶</span><span class="terminal-badge info" style="background: rgba(255,255,255,0.06); color: var(--text-muted); border: 1px solid rgba(255,255,255,0.15); margin-right: 6px;">VAL</span><span class="storage-key-name" style="color: var(--text-muted);">' + escapeHtml(key) + '</span><span class="storage-summary-preview">Value view (click to inspect)</span></div><div class="storage-details" style="display: none;"><pre class="storage-pretty-val">' + escapeHtml(formatted) + '</pre></div>';
+          } else {
+            row.innerHTML = '<span class="terminal-badge info" style="background: rgba(255,255,255,0.06); color: var(--text-muted); border: 1px solid rgba(255,255,255,0.15); margin-right: 6px;">VAL</span><span class="storage-key-name" style="color: var(--text-muted);">' + escapeHtml(key) + '</span> <span style="color: #cbd5e1;">' + escapeHtml(formatStorageValue(state[key])) + '</span>';
+          }
+          body.appendChild(row);
+        });
+      }
+      section.appendChild(body);
+      target.appendChild(section);
+    }
+    appendSimpleStorageSection('Secure Storage', 'secureStorageChanges', 'secureStorage', secureStoragePanel);
+    appendSimpleStorageSection('Keychain', 'keychainChanges', 'keychain', keychainPanel);
 
     const shotsList = document.getElementById('modal-screenshots-list');
     shotsList.innerHTML = '';

@@ -75,7 +75,7 @@
     },
     "initialState": {
       "$ref": "#/$defs/initialState",
-      "description": "Suite-wide storage/keychain/env applied before each test initialState. Test values override suite values per key."
+      "description": "Suite-wide storage/secureStorage/keychain/env applied before each test initialState. Test values override suite values per key."
     },
     "profiles": {
       "type": "object",
@@ -202,6 +202,18 @@
       "additionalProperties": false,
       "properties": {
         "storage": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": true
+            },
+            {
+              "type": "string",
+              "pattern": "^\\$\\{(inputs|scenario)\\.[A-Za-z0-9_.-]+\\}$"
+            }
+          ]
+        },
+        "secureStorage": {
           "oneOf": [
             {
               "type": "object",

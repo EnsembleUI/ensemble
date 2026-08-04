@@ -155,6 +155,18 @@
             }
           ]
         },
+        "secureStorage": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": true
+            },
+            {
+              "type": "string",
+              "pattern": "^\\$\\{(inputs|scenario)\\.[A-Za-z0-9_.-]+\\}$"
+            }
+          ]
+        },
         "keychain": {
           "oneOf": [
             {

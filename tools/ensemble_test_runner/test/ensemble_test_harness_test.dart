@@ -1,6 +1,8 @@
 import 'dart:io';
 
 import 'package:ensemble/framework/storage_manager.dart';
+import 'package:ensemble/framework/encrypted_storage_manager.dart';
+import 'package:ensemble/framework/secrets.dart';
 import 'package:ensemble_test_runner/runner/ensemble_test_harness.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -101,6 +103,29 @@ appName=KPN InHome Dev
     expect(
       await StorageManager().readSecurely('authPayload'),
       {'token': 'abc'},
+    );
+  });
+
+  testWidgets('initial secureStorage state is encrypted into public storage',
+      (tester) async {
+    EnsembleTestHarness.ensureTestPlugins();
+    SecretsStore().secretCache['encryptionKey'] =
+        '7OPUScfQ3OTmGZXx9EZ5q6lTsSDwiCUA';
+
+    await tester.runAsync(
+      () => applyYamlTestStorageBootstrap(
+        const EnsembleTestSetup(
+          initialSecureStorage: {
+            'dnsBackup': {'hasBackup': true},
+          },
+        ),
+      ),
+    );
+
+    expect(StorageManager().read('enc_dnsBackup'), isA<String>());
+    expect(
+      EncryptedStorageManager.getSecureStorage('dnsBackup'),
+      {'hasBackup': true},
     );
   });
 }

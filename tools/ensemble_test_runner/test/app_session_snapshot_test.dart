@@ -6,7 +6,8 @@ import 'package:flutter_test/flutter_test.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  test('restores public storage and keychain from an isolated copy', () async {
+  test('restores public, secure storage, and keychain from an isolated copy',
+      () async {
     EnsembleTestHarness.ensureTestPlugins();
     final storage = StorageManager();
     await storage.init();
@@ -19,6 +20,7 @@ void main() {
     await storage.write('nested', {
       'values': [1, 2]
     });
+    await storage.write('enc_secureToken', 'encrypted-value');
     await storage.writeSecurely(key: 'sahCookie', value: 'original');
     final snapshot = await AppSessionSnapshot.capture();
 
@@ -26,6 +28,7 @@ void main() {
     final nested = storage.read<Map>('nested')!;
     (nested['values'] as List).add(3);
     await storage.write('extra', true);
+    await storage.write('enc_extraSecureToken', 'remove-me');
     await storage.writeSecurely(key: 'sahCookie', value: 'changed');
     await storage.writeSecurely(key: 'extraSecret', value: 'remove-me');
 
@@ -36,6 +39,8 @@ void main() {
       'values': [1, 2]
     });
     expect(storage.read('extra'), isNull);
+    expect(storage.read('enc_secureToken'), 'encrypted-value');
+    expect(storage.read('enc_extraSecureToken'), isNull);
     expect(await storage.readSecurely('sahCookie'), 'original');
     expect(await storage.readSecurely('extraSecret'), isNull);
   });

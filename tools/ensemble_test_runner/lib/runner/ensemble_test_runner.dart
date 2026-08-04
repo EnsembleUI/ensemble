@@ -447,6 +447,8 @@ class EnsembleTestRunner {
       ctx.runtime.currentStepIndex = i;
       stepStartTimes.add(startTime.toIso8601String());
       final storageBefore = capturePublicStorage();
+      final secureStorageBefore = captureSecureStorage();
+      final keychainBefore = await captureKeychainStorage();
       var capturedStep = false;
       try {
         _throwIfUnexpectedFlutterExceptions(
@@ -546,10 +548,12 @@ class EnsembleTestRunner {
           capturedStep = true;
         }
         await YamlTestSession.navigationFlow.flushPending();
-        _recordStorageStepDiff(
+        await _recordStorageStepDiff(
           ctx: ctx,
           stepIndex: i,
           before: storageBefore,
+          secureBefore: secureStorageBefore,
+          keychainBefore: keychainBefore,
         );
         stepDurationsMs.add(
           DateTime.now().difference(startTime).inMilliseconds,
@@ -565,10 +569,12 @@ class EnsembleTestRunner {
         );
         _captureScreenArtifacts(ctx);
       } catch (error, stackTrace) {
-        _recordStorageStepDiff(
+        await _recordStorageStepDiff(
           ctx: ctx,
           stepIndex: i,
           before: storageBefore,
+          secureBefore: secureStorageBefore,
+          keychainBefore: keychainBefore,
         );
         stepDurationsMs.add(
           DateTime.now().difference(startTime).inMilliseconds,
@@ -1414,20 +1420,40 @@ class EnsembleTestRunner {
     }
   }
 
-  void _recordStorageStepDiff({
+  Future<void> _recordStorageStepDiff({
     required EnsembleTestContext ctx,
     required int stepIndex,
     required Map<String, dynamic> before,
-  }) {
+    required Map<String, dynamic> secureBefore,
+    required Map<String, dynamic> keychainBefore,
+  }) async {
     final changes = diffStorage(before, capturePublicStorage());
-    if (changes.isEmpty) return;
-    ctx.runtime.storageStepDiffs.add(
-      StorageStepDiff(
+    final secureChanges = diffStorage(secureBefore, captureSecureStorage());
+    final keychainChanges = diffStorage(
+      keychainBefore,
+      await captureKeychainStorage(),
+    );
+    if (changes.isNotEmpty) {
+      ctx.runtime.storageStepDiffs.add(StorageStepDiff(
         stepIndex: stepIndex,
         timestamp: DateTime.now(),
         changes: changes,
-      ),
-    );
+      ));
+    }
+    if (secureChanges.isNotEmpty) {
+      ctx.runtime.secureStorageStepDiffs.add(StorageStepDiff(
+        stepIndex: stepIndex,
+        timestamp: DateTime.now(),
+        changes: secureChanges,
+      ));
+    }
+    if (keychainChanges.isNotEmpty) {
+      ctx.runtime.keychainStepDiffs.add(StorageStepDiff(
+        stepIndex: stepIndex,
+        timestamp: DateTime.now(),
+        changes: keychainChanges,
+      ));
+    }
   }
 
   void _replaceArtifactLog(TestLogger logger, String label, String path) {

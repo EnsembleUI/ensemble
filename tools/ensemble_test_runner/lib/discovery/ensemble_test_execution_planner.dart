@@ -635,7 +635,7 @@ class EnsembleTestExecutionPlanner {
   }
 
   /// Suite [initialState] is the base; test values override per key within
-  /// `storage`, `keychain`, and `env`.
+  /// `storage`, `secureStorage`, `keychain`, and `env`.
   @visibleForTesting
   static Map<String, dynamic> mergedInitialState(
     Map<String, dynamic> suite,
@@ -654,7 +654,7 @@ class EnsembleTestExecutionPlanner {
     }
 
     final merged = <String, dynamic>{};
-    for (final key in const ['storage', 'keychain', 'env']) {
+    for (final key in const ['storage', 'secureStorage', 'keychain', 'env']) {
       final value = section(key);
       if (value.isNotEmpty) {
         merged[key] = value;

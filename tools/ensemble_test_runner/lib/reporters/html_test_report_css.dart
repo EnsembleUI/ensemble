@@ -57,7 +57,12 @@ body {
 
 .hero {
   padding-top: 24px;
-  padding-bottom: 8px;
+  padding-bottom: 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 16px;
 }
 .hero-header h1 {
   margin: 0;
@@ -541,6 +546,43 @@ body {
   border-color: var(--accent);
   color: #000;
 }
+.storage-sub-tabs {
+  display: flex;
+  gap: 8px;
+  padding: 0 0 12px;
+  border-bottom: 1px solid var(--border);
+  flex-wrap: wrap;
+}
+.storage-sub-tab-btn {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-muted);
+  padding: 7px 14px;
+  font-size: 0.78rem;
+  font-weight: 800;
+  cursor: pointer;
+  font-family: var(--font-ui);
+  transition: all 0.2s ease;
+}
+.storage-sub-tab-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+}
+.storage-sub-tab-btn.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #000;
+}
+.storage-sub-panels {
+  min-height: 80px;
+}
+.storage-sub-panel {
+  min-height: 80px;
+}
+.storage-sub-panel.logs-terminal {
+  padding: 12px 16px;
+}
 
 @media (max-width: 800px) {
   .run-selector-row {
@@ -716,38 +758,194 @@ body {
 
 /* Screens Flow Timeline Journey */
 .flow-timeline {
-  background: rgba(0, 0, 0, 0.2);
+  background: linear-gradient(180deg, rgba(6, 182, 212, 0.04), rgba(0, 0, 0, 0.22));
   border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 16px 20px;
+  border-radius: 14px;
+  padding: 16px 18px 18px;
   margin-bottom: 20px;
+}
+.flow-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
 }
 .flow-label {
   font-size: 0.7rem;
   font-weight: 800;
   text-transform: uppercase;
   color: var(--text-muted);
-  letter-spacing: 0.05em;
-  margin-bottom: 8px;
+  letter-spacing: 0.08em;
+  margin: 0;
+}
+.flow-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.flow-meta-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 3px 10px;
+}
+.flow-meta-chip strong {
+  color: var(--text);
+  font-weight: 700;
+}
+.flow-meta-chip.prefix {
+  color: var(--accent);
+  background: rgba(6, 182, 212, 0.08);
+  border-color: rgba(6, 182, 212, 0.2);
+  font-family: var(--font-code);
+  font-size: 0.68rem;
+  max-width: 280px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .flow-track {
   display: flex;
-  align-items: center;
+  align-items: stretch;
   flex-wrap: wrap;
-  gap: 8px 12px;
-  font-size: 0.9rem;
+  gap: 10px 0;
+  row-gap: 12px;
 }
 .flow-node {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 4px 10px;
-  font-weight: 700;
-  color: #fff;
+  position: relative;
+  appearance: none;
+  -webkit-appearance: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 100%;
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  padding: 7px 12px 7px 8px;
+  color: var(--text);
+  font-family: var(--font-ui);
+  font-size: 0.82rem;
+  font-weight: 600;
+  line-height: 1.2;
+  margin: 0 28px 0 0;
+  transition: border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
 }
-.flow-arrow {
+.flow-node:last-child {
+  margin-right: 0;
+}
+.flow-node:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  left: calc(100% + 8px);
+  top: 50%;
+  width: 12px;
+  height: 2px;
+  background: linear-gradient(90deg, rgba(6, 182, 212, 0.65), rgba(6, 182, 212, 0.15));
+  border-radius: 2px;
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+.flow-node:not(:last-child)::before {
+  content: '';
+  position: absolute;
+  left: calc(100% + 16px);
+  top: 50%;
+  width: 5px;
+  height: 5px;
+  border-right: 2px solid rgba(6, 182, 212, 0.55);
+  border-top: 2px solid rgba(6, 182, 212, 0.55);
+  transform: translateY(-50%) rotate(45deg);
+  pointer-events: none;
+}
+.flow-idx {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: rgba(6, 182, 212, 0.12);
+  border: 1px solid rgba(6, 182, 212, 0.28);
   color: var(--accent);
-  font-weight: 800;
+  font-family: var(--font-code);
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+.flow-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 180px;
+}
+.flow-node.start {
+  border-color: rgba(16, 185, 129, 0.35);
+  background: rgba(16, 185, 129, 0.08);
+}
+.flow-node.start .flow-idx {
+  background: rgba(16, 185, 129, 0.18);
+  border-color: rgba(16, 185, 129, 0.4);
+  color: var(--pass);
+}
+.flow-node.end {
+  border-color: rgba(6, 182, 212, 0.4);
+  background: rgba(6, 182, 212, 0.08);
+}
+.flow-node.revisit {
+  border-style: dashed;
+}
+.flow-revisit {
+  flex-shrink: 0;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 999px;
+  padding: 2px 6px;
+}
+.flow-node.interactive {
+  cursor: pointer;
+  text-align: left;
+}
+.flow-node.interactive:hover {
+  border-color: rgba(6, 182, 212, 0.55);
+  background: rgba(6, 182, 212, 0.12);
+  box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.1);
+  transform: translateY(-1px);
+}
+.flow-node.interactive:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.flow-inspect {
+  flex-shrink: 0;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 6px rgba(6, 182, 212, 0.7);
+  opacity: 0.85;
+}
+@media (max-width: 640px) {
+  .flow-name {
+    max-width: 140px;
+  }
+  .flow-node {
+    margin-right: 22px;
+    padding: 6px 10px 6px 7px;
+  }
 }
 
 /* Timeline steps */
@@ -919,6 +1117,12 @@ body {
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 16px;
   margin-top: 24px;
+}
+.storage-grid-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 16px;
+  margin-top: 16px;
 }
 .logs-card-pane {
   background: rgba(0, 0, 0, 0.35);
@@ -1806,38 +2010,28 @@ a:hover {
 /* App Tab Navigation & History Details */
 .app-tab-navigation {
   display: flex;
-  gap: 8px;
-  background: rgba(17, 24, 39, 0.45);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 30px;
-  padding: 4px;
-  margin: 16px auto 24px auto;
-  width: fit-content;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-}
-.app-tab-btn {
-  background: transparent;
-  border: none;
-  color: #9ca3af;
-  padding: 8px 20px;
-  cursor: pointer;
-  font-size: 0.88rem;
-  font-family: var(--font-ui);
-  font-weight: 600;
-  border-radius: 20px;
-  transition: all 0.2s ease;
-  display: flex;
-  align-items: center;
   gap: 6px;
 }
+.app-tab-btn {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-muted);
+  padding: 8px 16px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: var(--font-ui);
+  transition: all 0.2s ease;
+}
 .app-tab-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
   color: #fff;
-  background: rgba(255, 255, 255, 0.05);
 }
 .app-tab-btn.active {
-  color: #fff;
   background: var(--accent);
-  box-shadow: 0 0 12px rgba(6, 182, 212, 0.35);
+  border-color: var(--accent);
+  color: #000;
 }
 .history-caret {
   display: inline-block;

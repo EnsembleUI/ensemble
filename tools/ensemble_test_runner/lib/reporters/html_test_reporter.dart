@@ -120,13 +120,13 @@ class HtmlTestReporter {
       ..writeln('    <h1>Ensemble Test Runner</h1>')
       ..writeln('    <p class="summary" id="hero-summary"></p>')
       ..writeln('  </div>')
+      ..writeln('  <div class="app-tab-navigation">')
+      ..writeln(
+          '    <button class="app-tab-btn active" data-app-tab="latest" onclick="switchAppTab(\'latest\')">Latest Run</button>')
+      ..writeln(
+          '    <button class="app-tab-btn" data-app-tab="history" onclick="switchAppTab(\'history\')">Run History</button>')
+      ..writeln('  </div>')
       ..writeln('</header>')
-      ..writeln('<div class="app-tab-navigation">')
-      ..writeln(
-          '  <button class="app-tab-btn active" data-app-tab="latest" onclick="switchAppTab(\'latest\')">Latest Run</button>')
-      ..writeln(
-          '  <button class="app-tab-btn" data-app-tab="history" onclick="switchAppTab(\'history\')">Run History</button>')
-      ..writeln('</div>')
       ..writeln('<div id="app-tab-content-latest" class="app-tab-content">')
       ..writeln('<section class="dashboard">')
       ..writeln('  <div class="metrics-grid" id="metrics-grid"></div>')

@@ -170,7 +170,17 @@ class TestReportDocument {
             stepStartTimes: report.stepStartTimes,
             apiEvents: apiEvents,
             rawConsoleLines: console,
-            storageSteps: (storage['steps'] as List?)
+            storageSteps: (storage['storageSteps'] as List?)
+                    ?.whereType<Map>()
+                    .map((e) => Map<String, dynamic>.from(e))
+                    .toList() ??
+                const [],
+            secureStorageSteps: (storage['secureStorageSteps'] as List?)
+                    ?.whereType<Map>()
+                    .map((e) => Map<String, dynamic>.from(e))
+                    .toList() ??
+                const [],
+            keychainSteps: (storage['keychainSteps'] as List?)
                     ?.whereType<Map>()
                     .map((e) => Map<String, dynamic>.from(e))
                     .toList() ??
@@ -204,8 +214,14 @@ class TestReportDocument {
       if (test.failedStepIndex != null) 'failedStepIndex': test.failedStepIndex,
       if (report != null) 'report': report.toJson(),
       'storage': {
-        'keys': storage['keys'] is Map
-            ? Map<String, dynamic>.from(storage['keys'] as Map)
+        'keys': storage['storageKeys'] is Map
+            ? Map<String, dynamic>.from(storage['storageKeys'] as Map)
+            : <String, dynamic>{},
+        'secureStorageKeys': storage['secureStorageKeys'] is Map
+            ? Map<String, dynamic>.from(storage['secureStorageKeys'] as Map)
+            : <String, dynamic>{},
+        'keychainKeys': storage['keychainKeys'] is Map
+            ? Map<String, dynamic>.from(storage['keychainKeys'] as Map)
             : <String, dynamic>{},
       },
       'steps': steps,
@@ -264,35 +280,87 @@ class TestReportDocument {
     String displayRoot,
   ) {
     final ref = _first(artifacts, 'storage');
-    if (ref == null) return {'keys': <String, dynamic>{}, 'steps': []};
+    if (ref == null) return _emptyStorageReport();
     final fsPath = filesystemPath(ref.path,
         artifactRoot: artifactRoot, displayRoot: displayRoot);
     if (fsPath == null || !File(fsPath).existsSync()) {
-      return {'keys': <String, dynamic>{}, 'steps': []};
+      return _emptyStorageReport();
     }
     try {
       final decoded = json.decode(File(fsPath).readAsStringSync());
       if (decoded is Map) {
-        if (decoded['keys'] is Map || decoded['steps'] is List) {
+        if (decoded['storage'] is Map || decoded['secureStorage'] is Map) {
+          final publicSection = decoded['storage'] is Map
+              ? Map<String, dynamic>.from(decoded['storage'] as Map)
+              : <String, dynamic>{};
+          final secureSection = decoded['secureStorage'] is Map
+              ? Map<String, dynamic>.from(decoded['secureStorage'] as Map)
+              : <String, dynamic>{};
+          final keychainSection = decoded['keychain'] is Map
+              ? Map<String, dynamic>.from(decoded['keychain'] as Map)
+              : <String, dynamic>{};
           return {
-            'keys': decoded['keys'] is Map
-                ? Map<String, dynamic>.from(decoded['keys'] as Map)
+            'storageKeys': publicSection['keys'] is Map
+                ? Map<String, dynamic>.from(publicSection['keys'] as Map)
                 : <String, dynamic>{},
-            'steps': [
-              for (final step in (decoded['steps'] as List? ?? const []))
+            'secureStorageKeys': secureSection['keys'] is Map
+                ? Map<String, dynamic>.from(secureSection['keys'] as Map)
+                : <String, dynamic>{},
+            'keychainKeys': keychainSection['keys'] is Map
+                ? Map<String, dynamic>.from(keychainSection['keys'] as Map)
+                : <String, dynamic>{},
+            'storageSteps': [
+              for (final step in (publicSection['steps'] as List? ?? const []))
+                if (step is Map) Map<String, dynamic>.from(step),
+            ],
+            'secureStorageSteps': [
+              for (final step in (secureSection['steps'] as List? ?? const []))
+                if (step is Map) Map<String, dynamic>.from(step),
+            ],
+            'keychainSteps': [
+              for (final step
+                  in (keychainSection['steps'] as List? ?? const []))
                 if (step is Map) Map<String, dynamic>.from(step),
             ],
           };
         }
+        if (decoded['keys'] is Map || decoded['steps'] is List) {
+          return {
+            'storageKeys': decoded['keys'] is Map
+                ? Map<String, dynamic>.from(decoded['keys'] as Map)
+                : <String, dynamic>{},
+            'secureStorageKeys': <String, dynamic>{},
+            'keychainKeys': <String, dynamic>{},
+            'storageSteps': [
+              for (final step in (decoded['steps'] as List? ?? const []))
+                if (step is Map) Map<String, dynamic>.from(step),
+            ],
+            'secureStorageSteps': <Map<String, dynamic>>[],
+            'keychainSteps': <Map<String, dynamic>>[],
+          };
+        }
         // Legacy flat storage snapshot.
         return {
-          'keys': Map<String, dynamic>.from(decoded),
-          'steps': <Map<String, dynamic>>[],
+          'storageKeys': Map<String, dynamic>.from(decoded),
+          'secureStorageKeys': <String, dynamic>{},
+          'keychainKeys': <String, dynamic>{},
+          'storageSteps': <Map<String, dynamic>>[],
+          'secureStorageSteps': <Map<String, dynamic>>[],
+          'keychainSteps': <Map<String, dynamic>>[],
         };
       }
     } catch (_) {}
-    return {'keys': <String, dynamic>{}, 'steps': []};
+    return _emptyStorageReport();
   }
+
+  static Map<String, dynamic> _emptyStorageReport() => {
+        'storageKeys': <String, dynamic>{},
+        'secureStorageKeys': <String, dynamic>{},
+        'keychainKeys': <String, dynamic>{},
+        'storageSteps': <Map<String, dynamic>>[],
+        'secureStorageSteps': <Map<String, dynamic>>[],
+        'keychainSteps': <Map<String, dynamic>>[],
+      };
 
   static List<Map<String, dynamic>> _readScreenshotFrames(
     List<_ArtifactRef> artifacts,
