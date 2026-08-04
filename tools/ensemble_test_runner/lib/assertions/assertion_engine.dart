@@ -192,7 +192,11 @@ class AssertionEngine {
       );
     }
     final isEnabled = _readSemantics(
-      () => tester.getSemantics(finder).hasFlag(SemanticsFlag.isEnabled),
+      () => tester
+          .getSemantics(finder)
+          .getSemanticsData()
+          .flagsCollection
+          .isEnabled,
     );
     if (isEnabled != enabled) {
       throw EnsembleTestFailure(
@@ -358,7 +362,11 @@ class AssertionEngine {
       throw EnsembleTestFailure('expectChecked: widget "$id" not found.');
     }
     final isChecked = _readSemantics(
-      () => tester.getSemantics(finder).hasFlag(SemanticsFlag.isChecked),
+      () => tester
+          .getSemantics(finder)
+          .getSemanticsData()
+          .flagsCollection
+          .isChecked,
     );
     if (isChecked != expected) {
       throw EnsembleTestFailure(

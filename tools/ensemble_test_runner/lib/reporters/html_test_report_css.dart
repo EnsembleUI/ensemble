@@ -1118,6 +1118,12 @@ body {
   gap: 16px;
   margin-top: 24px;
 }
+.storage-grid-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 16px;
+  margin-top: 16px;
+}
 .logs-card-pane {
   background: rgba(0, 0, 0, 0.35);
   border: 1px solid var(--border);
@@ -2004,41 +2010,28 @@ a:hover {
 /* App Tab Navigation & History Details */
 .app-tab-navigation {
   display: flex;
-  gap: 4px;
-  background: rgba(15, 23, 42, 0.75);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 12px;
-  padding: 4px;
-  margin: 0;
-  width: fit-content;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
-  backdrop-filter: blur(12px);
+  gap: 6px;
 }
 .app-tab-btn {
-  background: transparent;
-  border: 1px solid transparent;
-  color: #94a3b8;
-  padding: 8px 16px;
-  cursor: pointer;
-  font-size: 0.85rem;
-  font-family: var(--font-ui);
-  font-weight: 600;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border);
   border-radius: 8px;
+  color: var(--text-muted);
+  padding: 8px 16px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: var(--font-ui);
   transition: all 0.2s ease;
-  display: flex;
-  align-items: center;
-  gap: 8px;
 }
 .app-tab-btn:hover {
-  color: #f8fafc;
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
 }
 .app-tab-btn.active {
-  color: #38bdf8;
-  background: rgba(56, 189, 248, 0.12);
-  border-color: rgba(56, 189, 248, 0.35);
-  box-shadow: 0 0 12px rgba(56, 189, 248, 0.25);
-  font-weight: 700;
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #000;
 }
 .history-caret {
   display: inline-block;

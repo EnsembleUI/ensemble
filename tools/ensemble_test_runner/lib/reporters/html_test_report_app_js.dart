@@ -207,7 +207,6 @@ const ensembleHtmlTestReportAppJs = r'''
           pr_number AS prNumber
         FROM runs
         ORDER BY id DESC
-        LIMIT 25
       `));
       return { runs };
     } catch (e) {
@@ -597,7 +596,7 @@ const ensembleHtmlTestReportAppJs = r'''
     html += '</div>';
 
     html += '<div class="history-card" style="margin-top:0;">';
-    html += '<div class="history-header"><h2>Test Execution History</h2><span>' + runs.length + ' recent runs</span></div>';
+    html += '<div class="history-header"><h2>Test Execution History</h2><span>' + runs.length + ' total runs</span></div>';
     html += '<div class="history-table-wrap"><table class="history-table">';
     html += '<thead><tr><th>Run ID</th><th>Date & Time</th><th>Status</th><th>Duration</th><th>Tests</th><th>Branch</th></tr></thead><tbody>';
 
@@ -1049,16 +1048,28 @@ const ensembleHtmlTestReportAppJs = r'''
     html += '<button class="fullscreen-sheet-btn" onclick="openFullscreenCard(this, \'apis\')">⛶ Open Fullscreen</button></div>';
     html += '<div class="logs-terminal">' + renderApiRows(events) + '</div></div></div>';
 
-    if (Object.keys(keys).length > 0) {
-      html += '<div class="logs-grid-container" style="margin-top:16px;"><div class="logs-card-pane" style="grid-column:1/-1;"><div class="logs-pane-title"><span>💾 Local State Storage</span>';
-      html += '<button class="fullscreen-sheet-btn" onclick="openFullscreenCard(this, \'storage\')">⛶ Open Fullscreen</button></div>';
-      html += '<div class="logs-terminal"><div class="terminal-row">' + escapeHtml(storageContent) + '</div></div></div></div>';
-    }
-    if (Object.keys(secureKeys).length > 0) {
-      html += '<div class="logs-grid-container" style="margin-top:16px;"><div class="logs-card-pane" style="grid-column:1/-1;"><div class="logs-pane-title"><span>🔐 Secure Storage</span></div><div class="logs-terminal"><div class="terminal-row">' + escapeHtml(JSON.stringify(secureKeys, null, 2)) + '</div></div></div></div>';
-    }
-    if (Object.keys(keychainKeys).length > 0) {
-      html += '<div class="logs-grid-container" style="margin-top:16px;"><div class="logs-card-pane" style="grid-column:1/-1;"><div class="logs-pane-title"><span>🔑 Keychain</span></div><div class="logs-terminal"><div class="terminal-row">' + escapeHtml(JSON.stringify(keychainKeys, null, 2)) + '</div></div></div></div>';
+    const hasKeys = Object.keys(keys).length > 0;
+    const hasSecure = Object.keys(secureKeys).length > 0;
+    const hasKeychain = Object.keys(keychainKeys).length > 0;
+
+    if (hasKeys || hasSecure || hasKeychain) {
+      html += '<div class="storage-grid-container">';
+      if (hasKeys) {
+        html += '<div class="logs-card-pane"><div class="logs-pane-title"><span>💾 Local State Storage</span>';
+        html += '<button class="fullscreen-sheet-btn" onclick="openFullscreenCard(this, \'storage\')">⛶ Open Fullscreen</button></div>';
+        html += '<div class="logs-terminal"><div class="terminal-row">' + escapeHtml(storageContent) + '</div></div></div>';
+      }
+      if (hasSecure) {
+        html += '<div class="logs-card-pane"><div class="logs-pane-title"><span>🔐 Secure Storage</span>';
+        html += '<button class="fullscreen-sheet-btn" onclick="openFullscreenCard(this, \'secureStorage\')">⛶ Open Fullscreen</button></div>';
+        html += '<div class="logs-terminal"><div class="terminal-row">' + escapeHtml(JSON.stringify(secureKeys, null, 2)) + '</div></div></div>';
+      }
+      if (hasKeychain) {
+        html += '<div class="logs-card-pane"><div class="logs-pane-title"><span>🔑 Keychain</span>';
+        html += '<button class="fullscreen-sheet-btn" onclick="openFullscreenCard(this, \'keychain\')">⛶ Open Fullscreen</button></div>';
+        html += '<div class="logs-terminal"><div class="terminal-row">' + escapeHtml(JSON.stringify(keychainKeys, null, 2)) + '</div></div></div>';
+      }
+      html += '</div>';
     }
     return html;
   }
