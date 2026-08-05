@@ -1137,12 +1137,18 @@ static BoxDecoration? getBoxDecoration(dynamic style) {
             EnsembleConfigService.config["definitions"]?['local']?["path"];
         return '${path}/assets/${stripQueryParamsFromAsset(asset)}';
       } else if (provider == 'cdn') {
+        final assetName = stripQueryParamsFromAsset(asset);
+        // Prefer a bundled asset when present: renders instantly, no download.
+        if (LocalAssetsService.localAssets.contains(assetName)) {
+          return 'ensemble/assets/$assetName';
+        }
+        // Otherwise use the CDN cache (read via EnsembleAssetBundle).
         final cachedCdnAsset =
             CdnAssetCache.instance.getCachedFileIfValid(asset);
         if (cachedCdnAsset != null) {
           return cachedCdnAsset.path;
         }
-        return 'ensemble/assets/${stripQueryParamsFromAsset(asset)}';
+        return 'ensemble/assets/$assetName';
       } else {
         return 'ensemble/assets/${stripQueryParamsFromAsset(asset)}';
       }
