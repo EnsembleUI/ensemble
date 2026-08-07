@@ -106,7 +106,7 @@ class ExecuteActionAction extends EnsembleAction {
             "Action '$name' contains an invalid 'body' payload.");
       }
 
-      return ScreenController()
+      return await ScreenController()
           .executeActionWithScope(context, childScope, innerAction);
     } finally {
       ActionScopeUtil.restorePageApisAfterAction(scopeManager, apiSnapshot);
