@@ -1,5 +1,6 @@
 import 'package:ensemble/framework/tv/tv_focus_order.dart';
 import 'package:ensemble/framework/tv/tv_focus_provider.dart';
+import 'package:ensemble/framework/tv/tv_focus_scroll.dart';
 import 'package:ensemble/framework/tv/tv_focus_widget.dart';
 import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:flutter/material.dart';
@@ -278,6 +279,17 @@ class TVScrollbarWidgetState extends State<TVScrollbarWidget> {
                 setState(() {
                   _isFocused = hasFocus;
                 });
+                // Reveal the scrollbar in its enclosing scrollable when it
+                // gains focus (same scroll-into-view rule as other focusables).
+                // Re-check `_isFocused` at callback time in case focus has
+                // already moved away before the frame completes.
+                if (hasFocus) {
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    if (mounted && context.mounted && _isFocused) {
+                      scrollWidgetIntoView(context);
+                    }
+                  });
+                }
               }
             },
             child: AnimatedContainer(
