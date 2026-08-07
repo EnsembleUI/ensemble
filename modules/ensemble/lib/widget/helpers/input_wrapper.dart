@@ -1,12 +1,15 @@
+import 'package:ensemble/framework/device.dart';
 import 'package:ensemble/framework/studio/studio_debugger.dart';
+import 'package:ensemble/framework/tv/tv_focus_navigation.dart';
+import 'package:ensemble/framework/tv/tv_focus_order.dart';
+import 'package:ensemble/framework/tv/tv_focus_provider.dart';
+import 'package:ensemble/framework/tv/tv_focus_widget.dart';
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/layout/form.dart';
 import 'package:ensemble/widget/helpers/form_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:ensemble/layout/form.dart' as ensemble;
 
-/// wrap the input widget (which stretches 100% to its parent) to guard against
-/// the case where it is put inside a Row without expanded flag.
 class InputWrapper extends StatelessWidget {
   const InputWrapper(
       {super.key,
@@ -45,7 +48,134 @@ class InputWrapper extends StatelessWidget {
           child: rtn);
     }
 
+    // TV focus support for form fields
+    if (Device().isTV && controller.tvOptions?.isEnabled == true) {
+      rtn = _wrapWithTVFocus(context, rtn);
+    }
+
     return rtn;
+  }
+
+  /// Wrap widget with TV focus navigation support
+  Widget _wrapWithTVFocus(BuildContext context, Widget child) {
+    final tvOptions = controller.tvOptions!;
+    final tvRow = tvOptions.row!;
+    final tvOrder = tvOptions.order ?? 0;
+    final isRowEntryPoint = tvOptions.isRowEntryPoint;
+    final focusGroup = resolveTVFocusGroup(context, tvOptions);
+    final rememberRowPosition =
+        resolveTVRememberRowPosition(context, tvOptions);
+
+    final externalProvider = TVFocusProviderScope.maybeOf(context);
+    final effectiveRow =
+        externalProvider != null ? tvRow + externalProvider.rowOffset : tvRow;
+    final effectiveOrder = externalProvider != null
+        ? tvOrder + externalProvider.orderOffset
+        : tvOrder;
+    final tvFocusScope = context.findAncestorWidgetOfExactType<TVFocusScope>();
+    final rightEdgeHandler = buildTVEdgeNavigationCallback(
+          context: context,
+          provider: externalProvider,
+          direction: TVFocusDirection.right,
+          target: resolveTVFocusEdgeTarget(
+              context, tvOptions, TVFocusDirection.right),
+          currentRow: effectiveRow,
+          currentOrder: effectiveOrder,
+        ) ??
+        tvFocusScope?.onRightEdge;
+    final leftEdgeHandler = buildTVEdgeNavigationCallback(
+          context: context,
+          provider: externalProvider,
+          direction: TVFocusDirection.left,
+          target: resolveTVFocusEdgeTarget(
+              context, tvOptions, TVFocusDirection.left),
+          currentRow: effectiveRow,
+          currentOrder: effectiveOrder,
+        ) ??
+        tvFocusScope?.onLeftEdge;
+    final topEdgeHandler = buildTVEdgeNavigationCallback(
+          context: context,
+          provider: externalProvider,
+          direction: TVFocusDirection.top,
+          target: resolveTVFocusEdgeTarget(
+              context, tvOptions, TVFocusDirection.top),
+          currentRow: effectiveRow,
+          currentOrder: effectiveOrder,
+        ) ??
+        tvFocusScope?.onTopEdge;
+    final bottomEdgeHandler = buildTVEdgeNavigationCallback(
+          context: context,
+          provider: externalProvider,
+          direction: TVFocusDirection.bottom,
+          target: resolveTVFocusEdgeTarget(
+              context, tvOptions, TVFocusDirection.bottom),
+          currentRow: effectiveRow,
+          currentOrder: effectiveOrder,
+        ) ??
+        tvFocusScope?.onBottomEdge;
+
+    // Refresh rememberRowPosition memory when the input gains focus directly
+    // (tap / edge-jump / requestFocus). D-pad traversal records the column
+    // elsewhere, but these direct-focus paths otherwise leave a stale column.
+    // Mirrors box_wrapper's _saveTVRowPositionOnFocus; passes relative row/order
+    // (the provider adds its offsets). Non-intrusive: the Focus node can't take
+    // focus itself and is skipped in traversal.
+    Widget focusTrackedChild = child;
+    if (rememberRowPosition) {
+      final route = ModalRoute.of(context);
+      focusTrackedChild = Focus(
+        canRequestFocus: false,
+        skipTraversal: true,
+        onFocusChange: (hasFocus) {
+          if (!hasFocus) return;
+          if (externalProvider != null) {
+            externalProvider.saveRowPosition(
+                route: route,
+                row: tvRow,
+                order: tvOrder,
+                focusGroup: focusGroup);
+          } else {
+            TVFocusWidget.rememberOrder(route, focusGroup, tvRow, tvOrder);
+          }
+        },
+        child: child,
+      );
+    }
+
+    if (externalProvider != null) {
+      return externalProvider.wrapFocusable(
+        row: effectiveRow,
+        order: effectiveOrder,
+        isRowEntryPoint: isRowEntryPoint,
+        lockHorizontalNavigation: tvOptions.lockHorizontalNavigation,
+        delegateHorizontalNavigation: tvOptions.delegateHorizontalNavigation,
+        focusGroup: focusGroup,
+        rememberRowPosition: rememberRowPosition,
+        onRightEdge: rightEdgeHandler,
+        onLeftEdge: leftEdgeHandler,
+        onTopEdge: topEdgeHandler,
+        onBottomEdge: bottomEdgeHandler,
+        child: focusTrackedChild,
+      );
+    }
+
+    // Use Ensemble's built-in TVFocusWidget
+    return TVFocusWidget(
+      focusOrder: TVFocusOrder.withOptions(
+        tvRow,
+        order: tvOrder,
+        isRowEntryPoint: isRowEntryPoint,
+        lockHorizontalNavigation: tvOptions.lockHorizontalNavigation,
+        delegateHorizontalNavigation: tvOptions.delegateHorizontalNavigation,
+        focusGroup: focusGroup,
+        rememberRowPosition: rememberRowPosition,
+      ),
+      onRightEdge: rightEdgeHandler,
+      onLeftEdge: leftEdgeHandler,
+      onTopEdge: topEdgeHandler,
+      onBottomEdge: bottomEdgeHandler,
+      child: focusTrackedChild,
+    );
   }
 
   Widget buildTextWidget(context, bool isFloatLabel) {
@@ -80,9 +210,9 @@ class InputWrapper extends StatelessWidget {
         // semantics for whatever text input comes through
         MergeSemantics(
           child: Semantics(
-              label: controller.label,
-              child: widget,
-            ),
+            label: controller.label,
+            child: widget,
+          ),
         ),
 
         if (shouldShowLabel && controller.description != null)
