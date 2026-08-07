@@ -183,7 +183,7 @@ class TVFocusWidget extends StatelessWidget {
   /// uses it for ancestor/route lookups while this widget's [focusOrder]
   /// identifies the current grid position.
   KeyEventResult _handleScopeKeyEvent(FocusNode node, KeyEvent event) {
-    if (event is KeyDownEvent) {
+    if (event is KeyDownEvent || event is KeyRepeatEvent) {
       // Handle back button
       if (event.logicalKey == LogicalKeyboardKey.goBack) {
         final result = onBackPressed?.call(node);

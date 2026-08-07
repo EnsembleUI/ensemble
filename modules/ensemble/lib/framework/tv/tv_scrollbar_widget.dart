@@ -238,7 +238,9 @@ class TVScrollbarWidgetState extends State<TVScrollbarWidget> {
         return Focus(
           onKeyEvent: (node, event) {
             // Only handle when we have focus
-            if (!_isFocused || event is! KeyDownEvent) return KeyEventResult.ignored;
+            if (!_isFocused || (event is! KeyDownEvent && event is! KeyRepeatEvent)) {
+              return KeyEventResult.ignored;
+            }
 
             // Handle UP/DOWN for manual scrolling
             if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
