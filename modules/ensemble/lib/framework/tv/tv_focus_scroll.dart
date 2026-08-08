@@ -3,13 +3,49 @@ import 'package:flutter/material.dart';
 // =============================================================================
 // TV Focus - Scroll Into View
 // =============================================================================
-// Scroll-into-view logic used by TVScrollbarWidget so a focused scrollbar is
-// always revealed by its nearest vertical scrollable ancestor. (Regular
-// focusable widgets implement the same rule in box_wrapper.dart.)
+// Shared scroll-into-view primitives for TV D-pad focus. Both regular
+// focusables (box_wrapper.dart) and the focusable scrollbar
+// (tv_scrollbar_widget.dart) reveal a newly focused target through the SAME
+// axis-restricted rule defined here, so behavior stays consistent and a fix
+// only has to be made in one place.
 
+// TV scroll tuning defaults (single home; overridable via tvOptions in YAML).
+// Vertical/threshold/duration are used by the shared helpers below; the
+// horizontal/edge values are consumed by box_wrapper's horizontal helpers.
 const int kTVScrollAnimationDurationMs = 200; // Scroll animation duration
 const double kTVVerticalScrollPadding = 50.0; // Vertical visibility padding
 const double kTVScrollThreshold = 2.0; // Min delta to trigger scroll
+const double kTVHorizontalScrollPadding = 16.0; // Horizontal visibility padding
+const double kTVFixedFocusOffset = 48.0; // Netflix-style fixed position
+const double kTVEdgePadding = 8.0; // Edge visibility buffer
+
+/// Converts a curve name string to a Flutter [Curve].
+/// Supported: easeIn, easeOut, easeInOut, linear, decelerate, ease,
+/// fastOutSlowIn, bounceOut, elasticOut. Falls back to [defaultCurve].
+Curve curveFromName(String? curveName, {Curve defaultCurve = Curves.easeOut}) {
+  switch (curveName?.toLowerCase()) {
+    case 'easein':
+      return Curves.easeIn;
+    case 'easeout':
+      return Curves.easeOut;
+    case 'easeinout':
+      return Curves.easeInOut;
+    case 'linear':
+      return Curves.linear;
+    case 'decelerate':
+      return Curves.decelerate;
+    case 'ease':
+      return Curves.ease;
+    case 'fastoutslowin':
+      return Curves.fastOutSlowIn;
+    case 'bounceout':
+      return Curves.bounceOut;
+    case 'elasticout':
+      return Curves.elasticOut;
+    default:
+      return defaultCurve;
+  }
+}
 
 /// Finds the nearest vertical scrollable ancestor.
 ScrollableState? findNearestVerticalScrollable(BuildContext context) {
@@ -32,25 +68,19 @@ ScrollableState? findNearestVerticalScrollable(BuildContext context) {
   return scrollable;
 }
 
-/// Scrolls ONLY the nearest vertical scrollable ancestor so that
-/// [widgetContext]'s render box is fully visible within the viewport.
+/// Scrolls ONLY [scrollable] so that [itemBox] is fully visible vertically.
 /// Unlike Scrollable.ensureVisible(), this does NOT affect horizontal scroll.
 /// [verticalPadding] controls the threshold from viewport edges (use larger
 /// values when there's a top nav bar that items might hide behind).
 /// [animationDurationMs] controls the scroll animation duration in milliseconds.
 /// [curve] controls the animation curve (defaults to easeInOut).
-void scrollWidgetIntoView(
-  BuildContext widgetContext, {
+void scrollVerticalOnly(
+  ScrollableState scrollable,
+  RenderBox itemBox, {
   double verticalPadding = kTVVerticalScrollPadding,
   int animationDurationMs = kTVScrollAnimationDurationMs,
   Curve curve = Curves.easeInOut,
 }) {
-  final scrollable = findNearestVerticalScrollable(widgetContext);
-  if (scrollable == null) return;
-
-  final itemBox = widgetContext.findRenderObject() as RenderBox?;
-  if (itemBox == null || !itemBox.hasSize) return;
-
   final scrollableBox = scrollable.context.findRenderObject() as RenderBox?;
   if (scrollableBox == null || !scrollableBox.hasSize) return;
 
@@ -97,4 +127,28 @@ void scrollWidgetIntoView(
       curve: curve,
     );
   }
+}
+
+/// Convenience wrapper: resolves [widgetContext]'s nearest vertical scrollable
+/// ancestor and its render box, then reveals it via [scrollVerticalOnly].
+/// Unlike Scrollable.ensureVisible(), this does NOT affect horizontal scroll.
+void scrollWidgetIntoView(
+  BuildContext widgetContext, {
+  double verticalPadding = kTVVerticalScrollPadding,
+  int animationDurationMs = kTVScrollAnimationDurationMs,
+  Curve curve = Curves.easeInOut,
+}) {
+  final scrollable = findNearestVerticalScrollable(widgetContext);
+  if (scrollable == null) return;
+
+  final itemBox = widgetContext.findRenderObject() as RenderBox?;
+  if (itemBox == null || !itemBox.hasSize) return;
+
+  scrollVerticalOnly(
+    scrollable,
+    itemBox,
+    verticalPadding: verticalPadding,
+    animationDurationMs: animationDurationMs,
+    curve: curve,
+  );
 }

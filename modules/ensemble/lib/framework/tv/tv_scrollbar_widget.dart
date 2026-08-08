@@ -54,6 +54,9 @@ class TVScrollbarWidget extends StatefulWidget {
     required this.scrollController,
     required this.options,
     this.fallbackFocus,
+    this.verticalScrollPadding,
+    this.scrollAnimationDuration,
+    this.scrollAnimationCurve,
   });
 
   /// ScrollController from the scrollable content (ListView/Column)
@@ -66,6 +69,13 @@ class TVScrollbarWidget extends StatefulWidget {
   /// descendants. When omitted, focus reaches the scrollbar only via edge
   /// handoff from a focused content item.
   final TVScrollbarFallbackFocusConfig? fallbackFocus;
+
+  /// Scroll-into-view tuning inherited from the owning ListView's tvOptions so
+  /// the scrollbar reveals itself with the SAME padding/duration/curve as the
+  /// content items beside it. Null values fall back to the shared TV defaults.
+  final double? verticalScrollPadding;
+  final int? scrollAnimationDuration;
+  final String? scrollAnimationCurve;
 
   @override
   State<TVScrollbarWidget> createState() => TVScrollbarWidgetState();
@@ -286,7 +296,15 @@ class TVScrollbarWidgetState extends State<TVScrollbarWidget> {
                 if (hasFocus) {
                   WidgetsBinding.instance.addPostFrameCallback((_) {
                     if (mounted && context.mounted && _isFocused) {
-                      scrollWidgetIntoView(context);
+                      scrollWidgetIntoView(
+                        context,
+                        verticalPadding: widget.verticalScrollPadding ??
+                            kTVVerticalScrollPadding,
+                        animationDurationMs: widget.scrollAnimationDuration ??
+                            kTVScrollAnimationDurationMs,
+                        curve: curveFromName(widget.scrollAnimationCurve,
+                            defaultCurve: Curves.easeInOut),
+                      );
                     }
                   });
                 }

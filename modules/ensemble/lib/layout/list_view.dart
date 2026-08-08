@@ -502,6 +502,11 @@ class ListViewState extends EWidgetState<ListView>
           scrollController: scrollController,
           options: scrollbarOptions,
           fallbackFocus: fallbackFocus,
+          // Reveal the scrollbar with the same scroll tuning as the content
+          // items beside it (box_wrapper reads these same tvOptions).
+          verticalScrollPadding: tvOptions.verticalScrollPadding,
+          scrollAnimationDuration: tvOptions.scrollAnimationDuration,
+          scrollAnimationCurve: tvOptions.scrollAnimationCurve,
         );
         final effectiveScrollbarWidget = fallbackFocus == null
             ? flutter.FocusTraversalGroup(
