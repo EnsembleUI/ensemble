@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
 import 'package:ensemble_test_runner/reporters/report_json_optimizer.dart';
+import 'package:ensemble_test_runner/reporters/atomic_file.dart';
 import 'package:ensemble_test_runner/reporters/step_log_grouping.dart';
 import 'package:ensemble_test_runner/runner/test_artifacts.dart';
 import 'package:path/path.dart' as p;
@@ -19,7 +20,6 @@ class TestReportDocument {
       'summary': {
         'passed': 0,
         'failed': 0,
-        'pending': 0,
         'totalMs': 0,
         if (wallTimeMs != null) 'wallTimeMs': wallTimeMs,
       },
@@ -40,8 +40,6 @@ class TestReportDocument {
       ...result.results.where((r) => r.status != TestStatus.failed),
     ];
     final totalMs = result.results.fold<int>(0, (sum, r) => sum + r.durationMs);
-    final pendingCount =
-        result.results.where((r) => r.status == TestStatus.pending).length;
 
     return {
       'state': 'complete',
@@ -49,7 +47,6 @@ class TestReportDocument {
       'summary': {
         'passed': result.passedCount,
         'failed': result.failedCount,
-        'pending': pendingCount,
         'totalMs': totalMs,
         'wallTimeMs': wallTimeMs ?? totalMs,
       },
@@ -75,7 +72,10 @@ class TestReportDocument {
     final optimized = ReportJsonOptimizer.optimize(document);
     final jsonText = json.encode(optimized);
     final gzPath = p.join(reportDir.path, resultsFileName);
-    File(gzPath).writeAsBytesSync(gzip.encode(utf8.encode(jsonText)));
+    AtomicFile.writeBytesSync(
+      File(gzPath),
+      gzip.encode(utf8.encode(jsonText)),
+    );
     // Drop legacy uncompressed / dual-file reports.
     for (final name in const ['results.json', 'results.js']) {
       final legacy = File(p.join(reportDir.path, name));
@@ -126,9 +126,11 @@ class TestReportDocument {
       if (ref.label == 'htmlReport' ||
           ref.label == 'results' ||
           ref.label == 'appPerformance' ||
-          ref.label == 'dumpTree') {
+          ref.label == 'dumpTree' ||
+          ref.label == 'history') {
         // htmlReport/results are top-level links; appPerformance/dumpTree are
-        // screen-scoped inside each test report (legacy suite labels ignored).
+        // screen-scoped inside each test report (legacy suite labels ignored);
+        // history is the sqlite db file and is skipped from logs UI download list.
         continue;
       }
 
@@ -168,7 +170,17 @@ class TestReportDocument {
             stepStartTimes: report.stepStartTimes,
             apiEvents: apiEvents,
             rawConsoleLines: console,
-            storageSteps: (storage['steps'] as List?)
+            storageSteps: (storage['storageSteps'] as List?)
+                    ?.whereType<Map>()
+                    .map((e) => Map<String, dynamic>.from(e))
+                    .toList() ??
+                const [],
+            secureStorageSteps: (storage['secureStorageSteps'] as List?)
+                    ?.whereType<Map>()
+                    .map((e) => Map<String, dynamic>.from(e))
+                    .toList() ??
+                const [],
+            keychainSteps: (storage['keychainSteps'] as List?)
                     ?.whereType<Map>()
                     .map((e) => Map<String, dynamic>.from(e))
                     .toList() ??
@@ -202,8 +214,14 @@ class TestReportDocument {
       if (test.failedStepIndex != null) 'failedStepIndex': test.failedStepIndex,
       if (report != null) 'report': report.toJson(),
       'storage': {
-        'keys': storage['keys'] is Map
-            ? Map<String, dynamic>.from(storage['keys'] as Map)
+        'keys': storage['storageKeys'] is Map
+            ? Map<String, dynamic>.from(storage['storageKeys'] as Map)
+            : <String, dynamic>{},
+        'secureStorageKeys': storage['secureStorageKeys'] is Map
+            ? Map<String, dynamic>.from(storage['secureStorageKeys'] as Map)
+            : <String, dynamic>{},
+        'keychainKeys': storage['keychainKeys'] is Map
+            ? Map<String, dynamic>.from(storage['keychainKeys'] as Map)
             : <String, dynamic>{},
       },
       'steps': steps,
@@ -262,35 +280,87 @@ class TestReportDocument {
     String displayRoot,
   ) {
     final ref = _first(artifacts, 'storage');
-    if (ref == null) return {'keys': <String, dynamic>{}, 'steps': []};
+    if (ref == null) return _emptyStorageReport();
     final fsPath = filesystemPath(ref.path,
         artifactRoot: artifactRoot, displayRoot: displayRoot);
     if (fsPath == null || !File(fsPath).existsSync()) {
-      return {'keys': <String, dynamic>{}, 'steps': []};
+      return _emptyStorageReport();
     }
     try {
       final decoded = json.decode(File(fsPath).readAsStringSync());
       if (decoded is Map) {
-        if (decoded['keys'] is Map || decoded['steps'] is List) {
+        if (decoded['storage'] is Map || decoded['secureStorage'] is Map) {
+          final publicSection = decoded['storage'] is Map
+              ? Map<String, dynamic>.from(decoded['storage'] as Map)
+              : <String, dynamic>{};
+          final secureSection = decoded['secureStorage'] is Map
+              ? Map<String, dynamic>.from(decoded['secureStorage'] as Map)
+              : <String, dynamic>{};
+          final keychainSection = decoded['keychain'] is Map
+              ? Map<String, dynamic>.from(decoded['keychain'] as Map)
+              : <String, dynamic>{};
           return {
-            'keys': decoded['keys'] is Map
-                ? Map<String, dynamic>.from(decoded['keys'] as Map)
+            'storageKeys': publicSection['keys'] is Map
+                ? Map<String, dynamic>.from(publicSection['keys'] as Map)
                 : <String, dynamic>{},
-            'steps': [
-              for (final step in (decoded['steps'] as List? ?? const []))
+            'secureStorageKeys': secureSection['keys'] is Map
+                ? Map<String, dynamic>.from(secureSection['keys'] as Map)
+                : <String, dynamic>{},
+            'keychainKeys': keychainSection['keys'] is Map
+                ? Map<String, dynamic>.from(keychainSection['keys'] as Map)
+                : <String, dynamic>{},
+            'storageSteps': [
+              for (final step in (publicSection['steps'] as List? ?? const []))
+                if (step is Map) Map<String, dynamic>.from(step),
+            ],
+            'secureStorageSteps': [
+              for (final step in (secureSection['steps'] as List? ?? const []))
+                if (step is Map) Map<String, dynamic>.from(step),
+            ],
+            'keychainSteps': [
+              for (final step
+                  in (keychainSection['steps'] as List? ?? const []))
                 if (step is Map) Map<String, dynamic>.from(step),
             ],
           };
         }
+        if (decoded['keys'] is Map || decoded['steps'] is List) {
+          return {
+            'storageKeys': decoded['keys'] is Map
+                ? Map<String, dynamic>.from(decoded['keys'] as Map)
+                : <String, dynamic>{},
+            'secureStorageKeys': <String, dynamic>{},
+            'keychainKeys': <String, dynamic>{},
+            'storageSteps': [
+              for (final step in (decoded['steps'] as List? ?? const []))
+                if (step is Map) Map<String, dynamic>.from(step),
+            ],
+            'secureStorageSteps': <Map<String, dynamic>>[],
+            'keychainSteps': <Map<String, dynamic>>[],
+          };
+        }
         // Legacy flat storage snapshot.
         return {
-          'keys': Map<String, dynamic>.from(decoded),
-          'steps': <Map<String, dynamic>>[],
+          'storageKeys': Map<String, dynamic>.from(decoded),
+          'secureStorageKeys': <String, dynamic>{},
+          'keychainKeys': <String, dynamic>{},
+          'storageSteps': <Map<String, dynamic>>[],
+          'secureStorageSteps': <Map<String, dynamic>>[],
+          'keychainSteps': <Map<String, dynamic>>[],
         };
       }
     } catch (_) {}
-    return {'keys': <String, dynamic>{}, 'steps': []};
+    return _emptyStorageReport();
   }
+
+  static Map<String, dynamic> _emptyStorageReport() => {
+        'storageKeys': <String, dynamic>{},
+        'secureStorageKeys': <String, dynamic>{},
+        'keychainKeys': <String, dynamic>{},
+        'storageSteps': <Map<String, dynamic>>[],
+        'secureStorageSteps': <Map<String, dynamic>>[],
+        'keychainSteps': <Map<String, dynamic>>[],
+      };
 
   static List<Map<String, dynamic>> _readScreenshotFrames(
     List<_ArtifactRef> artifacts,

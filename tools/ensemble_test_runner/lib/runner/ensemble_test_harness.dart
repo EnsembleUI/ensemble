@@ -8,6 +8,7 @@ import 'package:ensemble/framework/apiproviders/http_api_provider.dart';
 import 'package:ensemble/framework/definition_providers/local_provider.dart';
 import 'package:ensemble/framework/screen_tracker.dart';
 import 'package:ensemble/framework/storage_manager.dart';
+import 'package:ensemble/framework/encrypted_storage_manager.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
@@ -31,11 +32,13 @@ import 'package:yaml/yaml.dart';
 class EnsembleTestSetup {
   final Map<String, dynamic>? envOverrides;
   final Map<String, dynamic>? initialPublicStorage;
+  final Map<String, dynamic>? initialSecureStorage;
   final Map<String, dynamic>? initialKeychain;
 
   const EnsembleTestSetup({
     this.envOverrides,
     this.initialPublicStorage,
+    this.initialSecureStorage,
     this.initialKeychain,
   });
 }
@@ -53,6 +56,20 @@ Future<void> applyYamlTestStorageBootstrap(EnsembleTestSetup setup) async {
   for (final entry in setup.initialPublicStorage?.entries ??
       const Iterable<MapEntry<String, dynamic>>.empty()) {
     await StorageManager().write(entry.key, entry.value);
+  }
+  for (final entry in setup.initialSecureStorage?.entries ??
+      const Iterable<MapEntry<String, dynamic>>.empty()) {
+    EncryptedStorageManager.setSecureStorage({
+      'key': entry.key,
+      'value': entry.value,
+    });
+    // The runtime API is synchronous for compatibility with released
+    // Ensemble versions, while GetStorage persists asynchronously. Wait for
+    // the backend entry to become observable before mounting the app.
+    for (var attempt = 0; attempt < 50; attempt++) {
+      if (StorageManager().read('enc_${entry.key}') != null) break;
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+    }
   }
   for (final entry in setup.initialKeychain?.entries ??
       const Iterable<MapEntry<String, dynamic>>.empty()) {

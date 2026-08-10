@@ -25,6 +25,7 @@ class EnsembleTestSchemaBuilder {
         'additionalProperties': false,
         'properties': {
           'storage': _mapOrPlaceholderDef(),
+          'secureStorage': _mapOrPlaceholderDef(),
           'keychain': _mapOrPlaceholderDef(),
           'env': _mapOrPlaceholderDef(),
         },
@@ -376,7 +377,7 @@ class EnsembleTestSchemaBuilder {
         'initialState': {
           '\$ref': '#/\$defs/initialState',
           'description':
-              'Suite-wide storage/keychain/env applied before each test '
+              'Suite-wide storage/secureStorage/keychain/env applied before each test '
                   'initialState. Test values override suite values per key.',
         },
         'profiles': {

@@ -4,7 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 bool _adobeMocksInstalled = false;
 
 /// Installs no-op Adobe Experience Platform method channel handlers so
-/// [AdobeAnalyticsImpl] can initialize under [flutter test] without native SDKs.
+/// `AdobeAnalyticsImpl` can initialize under `flutter test` without native SDKs.
 void ensureAdobeAnalyticsMocksForTest() {
   if (_adobeMocksInstalled) return;
 

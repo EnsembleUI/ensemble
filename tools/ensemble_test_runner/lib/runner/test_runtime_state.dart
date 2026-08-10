@@ -18,12 +18,14 @@ class TestRuntimeState {
   Locale? locale;
   String? themeMode;
 
-  /// Active top-level step index while [_executeSteps] runs (0-based).
+  /// Active top-level step index while `_executeSteps` runs (0-based).
   /// Used to attribute API calls and console lines to Step Details.
   int? currentStepIndex;
 
   /// Public-storage diffs captured at the end of each top-level step.
   final List<StorageStepDiff> storageStepDiffs = [];
+  final List<StorageStepDiff> secureStorageStepDiffs = [];
+  final List<StorageStepDiff> keychainStepDiffs = [];
 
   /// Map from screen name to its captured artifacts (debugTree, performance markers, etc.)
   final Map<String, Map<String, dynamic>> screenArtifacts = {};
@@ -42,6 +44,8 @@ class TestRuntimeState {
     themeMode = null;
     currentStepIndex = null;
     storageStepDiffs.clear();
+    secureStorageStepDiffs.clear();
+    keychainStepDiffs.clear();
     screenArtifacts.clear();
   }
 
@@ -124,12 +128,10 @@ class EncodedScreenshotImage {
   EncodedScreenshotImage({
     required this.bytes,
     required this.extension,
-    this.visualHash,
   });
 
   final Uint8List bytes;
   final String extension;
-  final String? visualHash;
 }
 
 class PerformanceMarker {

@@ -165,15 +165,18 @@ void main() {
     _deleteArtifacts(framesManifest, frames);
   });
 
-  testWidgets('deduplicates visually equivalent screenshots', (tester) async {
+  testWidgets('keeps distinct files for small pixel differences',
+      (tester) async {
     const testId = 'contact_sheet_visual_dedupe_test';
+    // Use a mid-frame accent large enough to survive report resize/WebP.
+    // Previously perceptual hashing collapsed this into one file.
     final image0 = await _testImage(
       color: Colors.teal,
-      noiseColor: Colors.red,
+      accentColor: const Color(0xFF00A0E3),
     );
     final image1 = await _testImage(
       color: Colors.teal,
-      noiseColor: Colors.blue,
+      accentColor: Colors.white,
     );
     final path = await tester.runAsync(
       () => writeScreenshotFrames(
@@ -217,43 +220,22 @@ void main() {
         jsonDecode(framesManifest.readAsStringSync()) as Map<String, dynamic>;
     final frames = framesJson['frames'] as List<dynamic>;
     expect(frames, hasLength(2));
-    expect(frames[0]['file'], frames[1]['file']);
+    // Byte-exact hashing must not collapse small UI differences.
+    expect(frames[0]['file'], isNot(frames[1]['file']));
     expect(frames[0]['highlight']['kind'], 'assertion');
     expect(frames[1]['highlight']['kind'], 'action');
-
-    _deleteArtifacts(framesManifest, frames);
-  });
-
-  testWidgets('pending status keeps frame images intact', (tester) async {
-    const testId = 'contact_sheet_pending_test';
-    final image = await _testImage(color: Colors.amber);
-    final path = await tester.runAsync(
-      () => writeScreenshotFrames(
-        testId: testId,
-        config: const ScreenshotConfig(enabled: true),
-        frames: [
-          ScreenshotSheetFrame(
-            stepIndex: 0,
-            label: '1. tap(button)',
-            image: image,
-          ),
-        ],
-        status: TestStatus.pending,
-      ),
+    expect(
+      File('build/ensemble_test_runner/report/screenshots/${frames[0]['file']}')
+          .existsSync(),
+      isTrue,
+    );
+    expect(
+      File('build/ensemble_test_runner/report/screenshots/${frames[1]['file']}')
+          .existsSync(),
+      isTrue,
     );
 
-    expect(path, endsWith('/${testId}_frames.json'));
-    // Verify image was NOT disposed during pending run
-    expect(image.width, greaterThan(0));
-
-    final framesManifest = File(
-      'build/ensemble_test_runner/screenshots/${testId}_frames.json',
-    );
-    final framesJson =
-        jsonDecode(framesManifest.readAsStringSync()) as Map<String, dynamic>;
-    final frames = framesJson['frames'] as List<dynamic>;
     _deleteArtifacts(framesManifest, frames);
-    image.dispose();
   });
 
   testWidgets('records multi-device labels on frames', (tester) async {
@@ -318,6 +300,7 @@ void _deleteArtifacts(File framesManifest, List<dynamic> frames) {
 Future<ui.Image> _testImage({
   Color color = Colors.white,
   Color? noiseColor,
+  Color? accentColor,
 }) async {
   final recorder = ui.PictureRecorder();
   final canvas = Canvas(recorder);
@@ -337,6 +320,15 @@ Future<ui.Image> _testImage({
     canvas.drawRect(
       const Rect.fromLTWH(382, 836, 4, 4),
       Paint()..color = noiseColor,
+    );
+  }
+  if (accentColor != null) {
+    // Day-button sized accent (~40x40) — small relative to the frame but
+    // large enough to remain after report compression.
+    canvas.drawCircle(
+      const Offset(220, 300),
+      20,
+      Paint()..color = accentColor,
     );
   }
   final picture = recorder.endRecording();

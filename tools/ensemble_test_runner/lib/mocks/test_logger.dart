@@ -8,6 +8,7 @@ class TestLogger {
 
   final List<String> logs = [];
 
+  /// Adds a line to the in-memory test log.
   void log(String message) {
     logs.add(message);
   }
@@ -32,6 +33,7 @@ class TestLogger {
     return ensembleTestArtifactDisplayPath('logs', fileName);
   }
 
+  /// Clears all lines collected for the current test.
   void clear() => logs.clear();
 
   static String _safeFileName(String value) {

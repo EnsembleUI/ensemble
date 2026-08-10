@@ -15,7 +15,7 @@ topics:
   - theming
 
 environment:
-  sdk: ^3.5.3
+  sdk: ">=3.5.0 <4.0.0"
   flutter: '>=1.17.0'
 
 dependencies:

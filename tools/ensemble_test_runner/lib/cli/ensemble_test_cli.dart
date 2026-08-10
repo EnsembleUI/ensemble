@@ -9,9 +9,12 @@ import 'package:ensemble_test_runner/cli/ensemble_test_scaffold.dart';
 import 'package:ensemble_test_runner/inspect/ensemble_app_inspector.dart';
 import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
 import 'package:ensemble_test_runner/parser/ensemble_test_parser.dart';
+import 'package:ensemble_test_runner/reporters/ensemble_test_history_store.dart';
+import 'package:ensemble_test_runner/reporters/atomic_file.dart';
 import 'package:ensemble_test_runner/reporters/html_test_reporter.dart';
 import 'package:ensemble_test_runner/reporters/step_outline_format.dart';
 import 'package:ensemble_test_runner/runner/test_artifacts.dart';
+import 'package:ensemble_test_runner/src/worker_capacity.dart';
 import 'package:ensemble_test_runner/validation/ensemble_test_validator.dart';
 import 'package:path/path.dart' as p;
 import 'package:yaml/yaml.dart';
@@ -39,7 +42,7 @@ final _disabledAppConsoleLogs = <String>{};
 ///   --path=<path>      Run matching test asset path(s); repeatable
 ///   --device=<id>      Run only these suite device id(s); repeatable (default: all)
 ///   --input key=value  Provide a test input for ${inputs.key}; repeatable
-///   --jobs=<n|auto>    Concurrent job count (default: auto for full suites; 1 disables)
+///   --jobs=<n|auto>    Concurrent jobs (default: adaptive CPU/memory; 1 disables)
 ///   --timeout=<duration> Test suite timeout, e.g. 30s, 5m, 1h (default: 10m)
 ///   --verbose          Full `flutter pub get` / `flutter test` output
 Future<void> runEnsembleYamlTestsCli(List<String> arguments) async {
@@ -121,6 +124,15 @@ Future<void> runEnsembleYamlTestsCli(List<String> arguments) async {
     exit(2);
   }
 
+  final artifactLock = _RunArtifactLock(appDir);
+  if (!artifactLock.acquire()) {
+    stderr.writeln(
+      'Another Ensemble test run is already using the app artifact directory. '
+      'Wait for it to finish before starting another run.',
+    );
+    exit(3);
+  }
+
   var exitCode = 0;
   try {
     _writeStatus(
@@ -160,15 +172,12 @@ Future<void> runEnsembleYamlTestsCli(List<String> arguments) async {
 
     if (!machineReport) {
       try {
-        final discovered = _discoverAllTestRuns(appDir, patcher);
-        if (discovered.isNotEmpty) {
-          _withHtmlReport(
-            appDir,
-            EnsembleTestRunResult(results: discovered),
-            wallTimeMs: 0,
-            isSuiteRunning: true,
-          );
-        }
+        await _withHtmlReport(
+          appDir,
+          const EnsembleTestRunResult(results: []),
+          wallTimeMs: 0,
+          isSuiteRunning: true,
+        );
       } catch (_) {}
     }
     final runSerial = jobs == 1;
@@ -270,6 +279,13 @@ Future<void> runEnsembleYamlTestsCli(List<String> arguments) async {
     }
 
     final machineResult = _runResultFromProcessOutput(testRun);
+    if (runSerial && machineResult != null) {
+      if (machineReport) {
+        await _recordHistory(appDir, machineResult);
+      } else {
+        await _withHtmlReport(appDir, machineResult);
+      }
+    }
     exitCode = machineResult == null
         ? (testRun.exitCode == 0 ? 0 : 1)
         : (machineResult.failedCount == 0 ? 0 : 1);
@@ -280,6 +296,7 @@ Future<void> runEnsembleYamlTestsCli(List<String> arguments) async {
     // Serial timer-rewrite runs also use a worker sandbox; always drop leftovers.
     _cleanWorkerDirectories(appDir);
     patcher.restore();
+    artifactLock.release();
   }
   exit(exitCode);
 }
@@ -494,9 +511,8 @@ Future<ProcessResult> _runParallelFlutterTests(
   }
   final shards = _balancedShards(testFiles.parallel, parallelWorkerCount);
 
-  _cleanParallelRunArtifacts(appDir);
   _writeStatus(
-    'Running ${allFiles.length} test runs...',
+    'Running ${allFiles.length} test runs with $totalJobCount workers...',
     quiet: quiet,
     machineReport: machineReport,
   );
@@ -626,7 +642,7 @@ Future<ProcessResult> _runParallelFlutterTests(
     appDir: appDir,
   );
   merged = _mergeParallelSuiteArtifacts(merged);
-  merged = _withHtmlReport(
+  merged = await _withHtmlReport(
     appDir,
     merged,
     wallTimeMs: elapsed.elapsedMilliseconds,
@@ -652,7 +668,8 @@ Future<ProcessResult> _runParallelFlutterTests(
     );
   }
   if (reportFile != null) {
-    File(reportFile).writeAsStringSync(
+    AtomicFile.writeStringSync(
+      File(reportFile),
       reportMode == 'junit'
           ? _junitReportForCli(merged)
           : json.encode(merged.toJson()),
@@ -837,6 +854,79 @@ String _workerProgressFile(String appDir, int workerIndex) {
     'worker_progress',
     'worker${workerIndex + 1}.jsonl',
   );
+}
+
+/// Prevents two CLI invocations from sharing and overwriting suite artifacts.
+/// Worker processes within one invocation do not use this lock; they write to
+/// the same coordinated artifact root by design.
+final class _RunArtifactLock {
+  _RunArtifactLock(String appDir)
+      : _file = File(
+          p.join(appDir, 'build', 'ensemble_test_runner', '.run.lock'),
+        );
+
+  final File _file;
+  bool _acquired = false;
+
+  bool acquire() {
+    try {
+      return _create();
+    } on PathExistsException {
+      if (!_removeStaleLock()) return false;
+      try {
+        return _create();
+      } on FileSystemException {
+        return false;
+      }
+    } on FileSystemException {
+      return false;
+    }
+  }
+
+  bool _create() {
+    _file.parent.createSync(recursive: true);
+    _file.createSync(exclusive: true);
+    _file.writeAsStringSync(
+      'pid=$pid\nstartedAt=${DateTime.now().toUtc().toIso8601String()}\n',
+      flush: true,
+    );
+    _acquired = true;
+    return true;
+  }
+
+  bool _removeStaleLock() {
+    try {
+      final contents = _file.readAsStringSync();
+      final match =
+          RegExp(r'^pid=(\d+)$', multiLine: true).firstMatch(contents);
+      final ownerPid = int.tryParse(match?.group(1) ?? '');
+      if (ownerPid == null) {
+        final age = DateTime.now().difference(_file.statSync().modified);
+        if (age < const Duration(seconds: 30)) return false;
+      } else if (_isProcessAlive(ownerPid)) {
+        return false;
+      }
+      _file.deleteSync();
+      return true;
+    } on FileSystemException {
+      return false;
+    }
+  }
+
+  bool _isProcessAlive(int processId) {
+    final result = Process.runSync('kill', ['-0', '$processId']);
+    return result.exitCode == 0;
+  }
+
+  void release() {
+    if (!_acquired) return;
+    try {
+      _file.deleteSync();
+    } on FileSystemException {
+      // Cleanup must not hide the test result.
+    }
+    _acquired = false;
+  }
 }
 
 String _appConsoleLogPath({int? workerIndex}) {
@@ -1594,9 +1684,11 @@ List<List<_ShardableTestFile>> _balancedShards(
 }
 
 int _autoWorkerCount(int fileCount) {
-  if (fileCount < 2) return 1;
-  final cpuBased = (Platform.numberOfProcessors / 2).ceil().clamp(1, 5);
-  return cpuBased.clamp(1, fileCount);
+  return calculateAutomaticWorkerCount(
+    testCount: fileCount,
+    logicalProcessorCount: Platform.numberOfProcessors,
+    totalMemoryBytes: detectTotalMemoryBytes(),
+  );
 }
 
 int _estimateTestFileDurationMs(
@@ -1692,8 +1784,8 @@ void _writeHistoricalDurations(
   }
 
   final file = File(_durationCachePath(appDir));
-  file.parent.createSync(recursive: true);
-  file.writeAsStringSync(
+  AtomicFile.writeStringSync(
+    file,
     const JsonEncoder.withIndent('  ').convert({
       'updatedAt': DateTime.now().toIso8601String(),
       'files': fileDurations,
@@ -1822,12 +1914,12 @@ String? _writeWorkerOutputLog(String appDir, int workerIndex, String output) {
   return p.relative(file.path, from: appDir).replaceAll('\\', '/');
 }
 
-EnsembleTestRunResult _withHtmlReport(
+Future<EnsembleTestRunResult> _withHtmlReport(
   String appDir,
   EnsembleTestRunResult result, {
   int? wallTimeMs,
   bool isSuiteRunning = false,
-}) {
+}) async {
   final reporter = HtmlTestReporter();
   final artifactRoot = _artifactRootPath(appDir);
   final displayRoot =
@@ -1836,6 +1928,10 @@ EnsembleTestRunResult _withHtmlReport(
       p.join(displayRoot, 'report', 'index.html').replaceAll('\\', '/');
   final resultsPath =
       p.join(displayRoot, 'report', 'results.json.gz').replaceAll('\\', '/');
+  final historyPath = p
+      .join(displayRoot, 'report', EnsembleTestHistoryStore.fileName)
+      .replaceAll('\\', '/');
+  var historyRecorded = false;
 
   if (isSuiteRunning) {
     reporter.write(
@@ -1846,6 +1942,15 @@ EnsembleTestRunResult _withHtmlReport(
       isSuiteRunning: true,
     );
   } else {
+    historyRecorded =
+        await _recordHistory(appDir, result, wallTimeMs: wallTimeMs);
+    if (historyRecorded &&
+        !result.suiteLogs.any((log) => log.startsWith('history:'))) {
+      result = EnsembleTestRunResult(
+        results: result.results,
+        suiteLogs: [...result.suiteLogs, 'history: $historyPath'],
+      );
+    }
     // Shell was written at suite start; only refresh the results DB.
     reporter.writeResultsOnly(
       result,
@@ -1869,6 +1974,26 @@ EnsembleTestRunResult _withHtmlReport(
     results: result.results,
     suiteLogs: suiteLogs,
   );
+}
+
+Future<bool> _recordHistory(
+  String appDir,
+  EnsembleTestRunResult result, {
+  int? wallTimeMs,
+}) async {
+  try {
+    await EnsembleTestHistoryStore.recordCompletedRun(
+      appDir: appDir,
+      artifactRoot: _artifactRootPath(appDir),
+      result: result,
+      wallTimeMs: wallTimeMs,
+    );
+    return true;
+  } catch (_) {
+    // History is a convenience artifact; it must not change test outcome.
+    stderr.writeln('Warning: could not write the test history database.');
+    return false;
+  }
 }
 
 String _formatCliSummary(
@@ -2339,57 +2464,4 @@ void _writeProcessStreams(ProcessResult result) {
   final err = result.stderr?.toString() ?? '';
   if (out.isNotEmpty) stdout.write(out);
   if (err.isNotEmpty) stderr.write(err);
-}
-
-List<EnsembleSingleTestResult> _discoverAllTestRuns(
-  String appDir,
-  YamlTestAppPatcher patcher,
-) {
-  final testsDir = patcher.testsDirPath;
-  if (testsDir == null) return [];
-  final configFile = File(p.join(testsDir, 'config.yaml'));
-  final devices = <String>[];
-  if (configFile.existsSync()) {
-    try {
-      final config = EnsembleTestParser.parseConfigString(
-        configFile.readAsStringSync(),
-        sourcePath: configFile.path,
-      );
-      for (final dev in config.devices) {
-        devices.add(dev.id);
-      }
-    } catch (_) {}
-  }
-
-  final files = Directory(testsDir)
-      .listSync(recursive: true)
-      .whereType<File>()
-      .where((file) => file.path.endsWith('.test.yaml'))
-      .toList()
-    ..sort((a, b) => a.path.compareTo(b.path));
-
-  final results = <EnsembleSingleTestResult>[];
-  for (final file in files) {
-    final relative = p.relative(file.path, from: appDir).replaceAll('\\', '/');
-    final doc = _readTestYamlMap(file);
-    final id = doc?['id']?.toString();
-    if (id == null || id.isEmpty) continue;
-
-    if (devices.isEmpty) {
-      results.add(EnsembleSingleTestResult(
-        testId: '$id  ($relative)',
-        status: TestStatus.pending,
-        durationMs: 0,
-      ));
-    } else {
-      for (final devId in devices) {
-        results.add(EnsembleSingleTestResult(
-          testId: '$id [$devId]  ($relative)',
-          status: TestStatus.pending,
-          durationMs: 0,
-        ));
-      }
-    }
-  }
-  return results;
 }

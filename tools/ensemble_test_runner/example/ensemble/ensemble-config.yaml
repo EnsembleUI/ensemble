@@ -1,0 +1,5 @@
+definitions:
+  from: local
+  local:
+    path: ensemble/apps/helloApp
+    appHome: Hello Home

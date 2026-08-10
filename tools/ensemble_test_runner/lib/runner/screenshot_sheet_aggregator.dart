@@ -79,7 +79,7 @@ class ScreenshotSheetAggregator {
       testId: sheetId,
       config: screenshots,
       frames: List<ScreenshotSheetFrame>.from(group.frames),
-      status: group.status,
+      status: group.status ?? status,
       failedStepIndex: group.failedStepIndex,
       failedStepLabel: group.failedStepLabel,
       failureMessage: group.failureMessage,
@@ -101,9 +101,7 @@ class ScreenshotSheetAggregator {
         testId: sheetId,
         config: screenshots,
         frames: List<ScreenshotSheetFrame>.from(group.frames),
-        status: group.status == TestStatus.pending
-            ? TestStatus.failed
-            : group.status,
+        status: group.status ?? TestStatus.failed,
         failedStepIndex: group.failedStepIndex,
         failedStepLabel: group.failedStepLabel,
         failureMessage: group.failureMessage ??
@@ -131,7 +129,7 @@ class _SheetGroup {
   final List<ScreenshotSheetFrame> frames = [];
   final Set<String> completedRunIds = {};
   final Map<String, int> durationByRunId = {};
-  TestStatus status = TestStatus.pending;
+  TestStatus? status;
   int? failedStepIndex;
   String? failedStepLabel;
   String? failureMessage;

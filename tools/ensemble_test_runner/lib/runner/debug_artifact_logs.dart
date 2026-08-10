@@ -77,23 +77,24 @@ Future<String> writeApiCallsLogFile({
                   ? calls[i].resolvedUrl!
                   : (calls[i].type == 'firestore'
                       ? ((calls[i].apiDefinition['path'] ??
-                              calls[i].apiDefinition['firestore']?['path'])
-                          ?.toString() ??
+                                  calls[i].apiDefinition['firestore']?['path'])
+                              ?.toString() ??
                           '')
                       : (calls[i].type == 'functions'
                           ? ((calls[i].apiDefinition['name'] ??
-                                  calls[i].apiDefinition['function']?['name'])
-                              ?.toString() ??
+                                      calls[i].apiDefinition['function']
+                                          ?['name'])
+                                  ?.toString() ??
                               '')
                           : (calls[i].apiDefinition['url'] ??
-                                  calls[i].apiDefinition['uri'])
-                              ?.toString() ??
+                                      calls[i].apiDefinition['uri'])
+                                  ?.toString() ??
                               '')),
               'method': calls[i].type == 'firestore'
                   ? ((calls[i].apiDefinition['operation'] ??
-                          calls[i].apiDefinition['firestore']?['operation'])
-                      ?.toString()
-                      .toUpperCase() ??
+                              calls[i].apiDefinition['firestore']?['operation'])
+                          ?.toString()
+                          .toUpperCase() ??
                       'GET')
                   : (calls[i].type == 'functions'
                       ? 'CALL'
@@ -158,6 +159,8 @@ Future<String> writeStorageLog(
     filePrefix: context.testCase.id,
     key: key,
     stepDiffs: context.runtime.storageStepDiffs,
+    secureStepDiffs: context.runtime.secureStorageStepDiffs,
+    keychainStepDiffs: context.runtime.keychainStepDiffs,
   );
 }
 
@@ -188,8 +191,10 @@ Future<String> writeStorageLogFile({
   required String filePrefix,
   String? key,
   List<StorageStepDiff> stepDiffs = const [],
+  List<StorageStepDiff> secureStepDiffs = const [],
+  List<StorageStepDiff> keychainStepDiffs = const [],
   Map<String, dynamic>? keys,
-}) {
+}) async {
   if (key != null && key.isNotEmpty) {
     return logger.writeLogFile(
       testId: filePrefix,
@@ -199,14 +204,27 @@ Future<String> writeStorageLogFile({
     );
   }
 
-  final snapshot = keys ?? <String, dynamic>{
-    for (final storageKey in StorageManager().getKeys())
-      storageKey: StorageManager().read(storageKey),
-  };
-  final content = _prettyJson({
+  final snapshot = keys ?? capturePublicStorage();
+  final contentMap = <String, dynamic>{
+    // Keep the legacy top-level fields for consumers that only understand
+    // public storage artifacts.
     'keys': snapshot,
     'steps': [for (final diff in stepDiffs) diff.toJson()],
-  });
+    'storage': {
+      'keys': snapshot,
+      'steps': [for (final diff in stepDiffs) diff.toJson()],
+    },
+    'secureStorage': {
+      'keys': keys == null ? captureSecureStorage() : <String, dynamic>{},
+      'steps': [for (final diff in secureStepDiffs) diff.toJson()],
+    },
+    'keychain': {
+      'keys':
+          keys == null ? await captureKeychainStorage() : <String, dynamic>{},
+      'steps': [for (final diff in keychainStepDiffs) diff.toJson()],
+    },
+  };
+  final content = _prettyJson(contentMap);
   return logger.writeLogFile(
     testId: filePrefix,
     name: 'storage',

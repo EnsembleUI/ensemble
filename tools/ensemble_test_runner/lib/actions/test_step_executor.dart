@@ -371,8 +371,7 @@ class TestStepExecutor {
     throw EnsembleTestFailure(
       'Timed out after ${timeoutMs}ms waiting for text containing one of: '
       '${textCandidates.map((t) => '"$t"').join(', ')}. '
-      '${assertions.visibleWidgetIdSummary()} '
-      '${assertions.visibleTextSummary()}',
+      '${assertions.textFailureHint(textCandidates)}',
     );
   }
 
@@ -479,13 +478,13 @@ class TestStepExecutor {
       if (baseFinder.evaluate().isEmpty) {
         throw EnsembleTestFailure(
           'Timed out after ${effectiveTimeout}ms waiting for id "$id". '
-          '${assertions.visibleWidgetIdSummary()}',
+          '${assertions.widgetIdFailureHint(id)}',
         );
       }
       throw EnsembleTestFailure(
         'Timed out after ${effectiveTimeout}ms waiting for id "$id" to become '
         'hit-testable. It may be off-screen, disabled, or covered by another widget. '
-        '${assertions.visibleWidgetIdSummary()}',
+        '${assertions.widgetIdFailureHint(id)}',
       );
     }
 
@@ -644,10 +643,10 @@ class TestStepExecutor {
           assertions.finderForId(id).hitTestable().evaluate().isNotEmpty) {
         return;
       }
-      if (textCandidates.isNotEmpty &&
-          assertions.isAnyTextVisible(textCandidates)) {
+      final matchedText = _firstVisibleText(textCandidates);
+      if (matchedText != null) {
         if (step?.type == 'waitForText' && onWaitForTextMatched != null) {
-          await onWaitForTextMatched!(step!);
+          await onWaitForTextMatched!(_stepWithMatchedText(step!, matchedText));
         }
         return;
       }
@@ -665,8 +664,7 @@ class TestStepExecutor {
             : textLabel!;
     throw EnsembleTestFailure(
       'Timed out after ${timeoutMs}ms waiting for $target. '
-      '${assertions.visibleWidgetIdSummary()} '
-      '${assertions.visibleTextSummary()}',
+      '${id != null ? '${assertions.widgetIdFailureHint(id)} ${assertions.visibleTextSummary()}' : assertions.textFailureHint(textCandidates)}',
     );
   }
 
@@ -678,12 +676,29 @@ class TestStepExecutor {
     ];
   }
 
+  String? _firstVisibleText(List<String> candidates) {
+    for (final text in candidates) {
+      if (assertions.isTextVisible(text)) return text;
+    }
+    return null;
+  }
+
+  TestStep _stepWithMatchedText(TestStep step, String text) => TestStep(
+        type: step.type,
+        args: {
+          ...step.args,
+          'text': text,
+        }..remove('anyOf'),
+        mocks: step.mocks,
+        nestedSteps: step.nestedSteps,
+      );
+
   void _expectSingleWidget(Finder finder, String id, String stepType) {
     final count = finder.evaluate().length;
     if (count != 1) {
       throw EnsembleTestFailure(
         '$stepType expected exactly one widget with id "$id", but found $count. '
-        '${assertions.visibleWidgetIdSummary()}',
+        '${assertions.widgetIdFailureHint(id)}',
       );
     }
   }

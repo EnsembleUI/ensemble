@@ -34,9 +34,8 @@ void ensureWifiTestDoublesForTest() {
 }
 
 String _wifiTestMode() {
-  final value = StorageManager()
-      .read(_activeWifiTestConfig.modeStorageKey)
-      ?.toString();
+  final value =
+      StorageManager().read(_activeWifiTestConfig.modeStorageKey)?.toString();
   if (value == null || value.isEmpty) return WifiTestConfig.successMode;
   return value;
 }
@@ -91,10 +90,9 @@ class _TestNetworkInfoManager implements NetworkInfoManager {
 
   @override
   Future<InvokableNetworkInfo> getNetworkInfo() async {
-    final reportedSsid =
-        _wifiTestMode() == WifiTestConfig.verifyFailMode
-            ? _activeWifiTestConfig.verifyFailSsid
-            : _activeWifiTestConfig.ssid;
+    final reportedSsid = _wifiTestMode() == WifiTestConfig.verifyFailMode
+        ? _activeWifiTestConfig.verifyFailSsid
+        : _activeWifiTestConfig.ssid;
     return InvokableNetworkInfo(
       wifiName: reportedSsid,
       wifiIPv4: '192.168.2.100',

@@ -18,6 +18,13 @@ initialState:
       name:
         first: John
         last: Doe
+  # Ensemble encrypted public storage. Keys are logical keys; values are
+  # encrypted at bootstrap and persisted internally as enc_<key>.
+  secureStorage:
+    onboardingComplete: true
+  # Platform FlutterSecureStorage, used by keychain/readSecurely actions.
+  keychain:
+    authToken: test-token
 steps:
   - expectVisible:
       id: greeting_text
@@ -46,13 +53,13 @@ Widget YAML must set `testId` (or `id`, which maps to the same `ValueKey`).
 
 ### Step vocabulary
 
-The full official catalog (lifecycle, gestures, API assertions, debug, etc.) is in **[STEP_VOCABULARY.md](STEP_VOCABULARY.md)**.
+The full official catalog (lifecycle, gestures, API assertions, debug, etc.) is in **[STEP_VOCABULARY.md](https://github.com/EnsembleUI/ensemble/blob/main/tools/ensemble_test_runner/STEP_VOCABULARY.md)**.
 
 Machine-readable registry (single source): `lib/vocabulary/test_step_registry.dart`.
 
 ### JSON Schema (editor validation)
 
-A JSON Schema for `*.test.yaml` is hosted at `https://cdn.ensembleui.com/schemas/ensemble_tests_schema.json`. The committed copy lives at [`assets/schema/ensemble_tests_schema.json`](assets/schema/ensemble_tests_schema.json) and is generated from the step registry:
+A JSON Schema for `*.test.yaml` is hosted at `https://cdn.ensembleui.com/schemas/ensemble_tests_schema.json`. The committed copy lives at [`assets/schema/ensemble_tests_schema.json`](https://github.com/EnsembleUI/ensemble/blob/main/tools/ensemble_test_runner/assets/schema/ensemble_tests_schema.json) and is generated from the step registry:
 
 ```bash
 cd tools/ensemble_test_runner && dart run tool/generate_schema.dart
@@ -123,7 +130,9 @@ logStorage:
 
 `mocks` and `initialState` in `config.yaml` apply to every test. Test-file
 `mocks` / `initialState` values override suite values for the same API name or
-storage/keychain/env key.
+storage/secureStorage/keychain/env key. `storage`, `secureStorage`, and
+`keychain` are separate backends: `secureStorage` is Ensemble's encrypted
+public-storage namespace, while `keychain` is platform secure storage.
 
 When `devices` is set, each test expands to one run per device (ids look like
 `home[android_nl]` when there is more than one device). Device `locale` sets
@@ -140,6 +149,34 @@ HTML report builds the contact-sheet gallery from those per-step PNGs.
 2. Configure `definitions.local` in `ensemble/ensemble-config.yaml` (`path`, `appHome`, `i18n.path`).
 3. Add `ensemble_test_runner` to `dev_dependencies` (same git `url`/`ref` as your `ensemble:` dependency).
 4. Run `flutter pub get`.
+
+## Public Dart API
+
+The package is primarily YAML-first, but it also exposes a small Dart API for
+integrations and custom tooling through `package:ensemble_test_runner/ensemble_test_runner.dart`.
+
+- `runEnsembleYamlTests` runs a suite from a Flutter test environment.
+- `EnsembleTestParser` parses test files and suite configuration.
+- `EnsembleTestCase`, `EnsembleTestConfig`, and related model types represent
+  the supported YAML format.
+- `EnsembleTestRunner` and `EnsembleTestHarness` are available when an
+  integration needs direct control of execution.
+
+The API documentation is generated from the public declarations and is
+available on the package API tab on pub.dev.
+
+## Runnable example
+
+The [`example/`](https://github.com/EnsembleUI/ensemble/tree/main/tools/ensemble_test_runner/example) directory contains a minimal local Ensemble app,
+its screen definitions, and a YAML test. It is a useful starting point for a
+new suite and can be run with:
+
+```bash
+cd example
+flutter pub get
+flutter run
+dart run ensemble_test_runner:ensemble_test
+```
 
 ## Run
 
@@ -221,7 +258,7 @@ Create a starter test under `definitions.local.path/tests/`:
 dart run ensemble_test_runner:ensemble_test --scaffold-test=login_valid --feature=login --tag=smoke --screen=Login
 ```
 
-See [`docs/TEST_AUTHORING.md`](docs/TEST_AUTHORING.md) for the test authoring workflow, mock file conventions, validation rules, and repair-loop output.
+See [`docs/TEST_AUTHORING.md`](https://github.com/EnsembleUI/ensemble/blob/main/tools/ensemble_test_runner/docs/TEST_AUTHORING.md) for the test authoring workflow, mock file conventions, validation rules, and repair-loop output.
 
 ### CI output
 
@@ -309,6 +346,10 @@ override suite keys:
 initialState:
   storage:
     apiUrl: http://ensemble.test/ws/NeMo/Intf/lan:getMIBs
+  secureStorage:
+    onboardingComplete: true
+  keychain:
+    authToken: test-token
   env:
     APP_LOCALE: nl
 
@@ -327,7 +368,7 @@ steps:
 ### Reusable authenticated session
 
 The session producer runs once. After it passes, the runner captures public
-storage, keychain values, and locale in memory. Each consumer restores that
+storage, encrypted secure-storage values, keychain values, and locale in memory. Each consumer restores that
 snapshot, runs its `setup`, and mounts a fresh requested screen.
 
 ```yaml

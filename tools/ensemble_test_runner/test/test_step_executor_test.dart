@@ -142,6 +142,175 @@ void main() {
     expect(tapped, isTrue);
   });
 
+  testWidgets('missing tap target reports concise visible id hints',
+      (tester) async {
+    final hugeKey = 'custom_widget_${'x' * 400}';
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Column(
+            children: [
+              ElevatedButton(
+                key: const ValueKey('schedule_delete_all_config_button'),
+                onPressed: () {},
+                child: const Text('Delete all'),
+              ),
+              ElevatedButton(
+                key: const ValueKey('schedules_delete_button'),
+                onPressed: () {},
+                child: const Text('Delete'),
+              ),
+              KeyedSubtree(
+                key: ValueKey(hugeKey),
+                child: const Text('Huge internal key'),
+              ),
+              const KeyedSubtree(
+                key: ValueKey('{DeleteAllSchedulesButton: null}'),
+                child: Text('Internal YAML map key'),
+              ),
+              const KeyedSubtree(
+                key: ValueKey(
+                  '{Text: {className: deviceActivityBadge, text: \${ badge }}',
+                ),
+                child: Text('Internal expression key'),
+              ),
+              const KeyedSubtree(
+                key: ValueKey('1'),
+                child: Text('Numeric internal key'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    final context = EnsembleTestContext.fromTestCase(
+      const EnsembleTestCase(
+        id: 'missing_tap',
+        startScreen: 'Home',
+        steps: [],
+      ),
+    );
+    final executor = TestStepExecutor(
+      tester: tester,
+      context: context,
+      assertions: AssertionEngine(tester: tester, context: context),
+      harness: EnsembleTestHarness(appPath: 'unused', appHome: 'Home'),
+    );
+
+    EnsembleTestFailure? failure;
+    try {
+      await executor.execute(
+        const TestStep(
+          type: 'tap',
+          args: {
+            'id': 'schedules_delete_all_button',
+            'timeoutMs': 1,
+          },
+        ),
+      );
+    } on EnsembleTestFailure catch (error) {
+      failure = error;
+    }
+
+    expect(failure, isNotNull);
+    expect(
+      failure!.message,
+      contains(
+        'Timed out after 1ms waiting for id '
+        '"schedules_delete_all_button".',
+      ),
+    );
+    expect(failure.message, contains('Closest visible ids:'));
+    expect(failure.message, contains('schedule_delete_all_config_button'));
+    expect(
+      failure.message,
+      contains(
+        'Hint: check that "schedules_delete_all_button" is on the current '
+        'screen/state, or add a testId/id to the intended widget.',
+      ),
+    );
+    expect(failure.message.length, lessThan(850));
+    expect(failure.message, isNot(contains('custom_widget_')));
+    expect(failure.message, isNot(contains('DeleteAllSchedulesButton')));
+    expect(failure.message, isNot(contains('deviceActivityBadge')));
+    expect(failure.message, isNot(contains('Visible widget ids: 1')));
+  });
+
+  testWidgets('text wait timeout reports recovery hint', (tester) async {
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: Scaffold(
+          body: Column(
+            children: [
+              Text('Parental control settings'),
+              Text('Set new schedule'),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    final context = EnsembleTestContext.fromTestCase(
+      const EnsembleTestCase(
+        id: 'missing_text',
+        startScreen: 'Home',
+        steps: [],
+      ),
+    );
+    final executor = TestStepExecutor(
+      tester: tester,
+      context: context,
+      assertions: AssertionEngine(tester: tester, context: context),
+      harness: EnsembleTestHarness(appPath: 'unused', appHome: 'Home'),
+    );
+
+    EnsembleTestFailure? failure;
+    try {
+      await executor.execute(
+        const TestStep(
+          type: 'waitFor',
+          args: {
+            'anyOf': [
+              'Alle schema’s zijn verwijderd.',
+              'All schedules have been deleted.',
+            ],
+            'timeoutMs': 1,
+          },
+        ),
+      );
+    } on EnsembleTestFailure catch (error) {
+      failure = error;
+    }
+
+    expect(failure, isNotNull);
+    expect(
+      failure!.message,
+      contains(
+        'Timed out after 1ms waiting for any text in '
+        '"Alle schema’s zijn verwijderd.", '
+        '"All schedules have been deleted.".',
+      ),
+    );
+    expect(failure.message, contains('Visible text:'));
+    expect(failure.message, contains('Parental control settings'));
+    expect(failure.message, isNot(contains('Visible widget ids:')));
+    expect(
+      failure.message,
+      contains(
+        'Hint: check that the app is on the expected screen/state before '
+        'this assertion.',
+      ),
+    );
+    expect(
+      failure.message,
+      contains(
+        'Also verify that the test is running with the expected '
+        'locale/translation.',
+      ),
+    );
+  });
+
   testWidgets('onAfterActionStep fires after text is entered', (tester) async {
     final controller = TextEditingController();
     TestStep? callbackStep;

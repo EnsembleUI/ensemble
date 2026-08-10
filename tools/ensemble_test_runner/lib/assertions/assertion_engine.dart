@@ -72,7 +72,7 @@ class AssertionEngine {
     if (finder.evaluate().isEmpty) {
       throw EnsembleTestFailure(
         'Expected widget with id "$id" to be visible. '
-        '${visibleWidgetIdSummary()}',
+        '${widgetIdFailureHint(id)}',
       );
     }
   }
@@ -88,7 +88,9 @@ class AssertionEngine {
 
   void expectText(String text) {
     if (!isTextVisible(text)) {
-      throw EnsembleTestFailure('Expected text "$text" to be visible.');
+      throw EnsembleTestFailure(
+        'Expected text "$text" to be visible. ${textFailureHint([text])}',
+      );
     }
   }
 
@@ -99,7 +101,8 @@ class AssertionEngine {
     }
     throw EnsembleTestFailure(
       'Expected one of these texts to be visible: '
-      '${candidates.map((t) => '"$t"').join(', ')}.',
+      '${candidates.map((t) => '"$t"').join(', ')}. '
+      '${textFailureHint(candidates)}',
     );
   }
 
@@ -125,7 +128,9 @@ class AssertionEngine {
 
   void expectTextContains(String text) {
     if (!isTextContainingVisible(text)) {
-      throw EnsembleTestFailure('Expected text containing "$text".');
+      throw EnsembleTestFailure(
+        'Expected text containing "$text". ${textFailureHint([text])}',
+      );
     }
   }
 
@@ -136,7 +141,8 @@ class AssertionEngine {
     }
     throw EnsembleTestFailure(
       'Expected text containing one of: '
-      '${candidates.map((t) => '"$t"').join(', ')}.',
+      '${candidates.map((t) => '"$t"').join(', ')}. '
+      '${textFailureHint(candidates)}',
     );
   }
 
@@ -186,7 +192,11 @@ class AssertionEngine {
       );
     }
     final isEnabled = _readSemantics(
-      () => tester.getSemantics(finder).hasFlag(SemanticsFlag.isEnabled),
+      () => tester
+          .getSemantics(finder)
+          .getSemanticsData()
+          .flagsCollection
+          .isEnabled,
     );
     if (isEnabled != enabled) {
       throw EnsembleTestFailure(
@@ -270,7 +280,7 @@ class AssertionEngine {
   void expectExists(String id) {
     if (finderForId(id).evaluate().isEmpty) {
       throw EnsembleTestFailure(
-        'Expected widget with id "$id" to exist. ${visibleWidgetIdSummary()}',
+        'Expected widget with id "$id" to exist. ${widgetIdFailureHint(id)}',
       );
     }
   }
@@ -352,7 +362,11 @@ class AssertionEngine {
       throw EnsembleTestFailure('expectChecked: widget "$id" not found.');
     }
     final isChecked = _readSemantics(
-      () => tester.getSemantics(finder).hasFlag(SemanticsFlag.isChecked),
+      () => tester
+          .getSemantics(finder)
+          .getSemanticsData()
+          .flagsCollection
+          .isChecked,
     );
     if (isChecked != expected) {
       throw EnsembleTestFailure(
@@ -608,20 +622,94 @@ class AssertionEngine {
     }
   }
 
-  String visibleWidgetIdSummary({int limit = 20}) {
-    final ids = tester.allWidgets
-        .map((widget) => widget.key)
-        .whereType<ValueKey>()
-        .map((key) => key.value.toString())
-        .where((value) => value.isNotEmpty)
-        .toSet()
-        .toList()
-      ..sort();
+  String widgetIdFailureHint(String id, {int limit = 12}) {
+    final matches = closestVisibleWidgetIds(id, limit: 5);
+    final similar =
+        matches.isEmpty ? '' : ' Closest visible ids: ${matches.join(', ')}.';
+    return 'No visible widget matched this id.$similar '
+        '${visibleWidgetIdSummary(limit: limit)} '
+        '${_currentScreenSummary()} '
+        'Hint: check that "$id" is on the current screen/state, or add a '
+        'testId/id to the intended widget.';
+  }
+
+  List<String> closestVisibleWidgetIds(String target, {int limit = 5}) {
+    final targetTokens = _idTokens(target);
+    if (targetTokens.isEmpty) return const [];
+
+    final scored = <({String id, int score})>[];
+    for (final id in _visibleWidgetIds()) {
+      if (id == target) continue;
+      final candidateTokens = _idTokens(id);
+      var score = 0;
+      for (final token in targetTokens) {
+        if (candidateTokens.contains(token)) {
+          score += 3;
+        } else if (candidateTokens.any(
+          (candidate) =>
+              candidate.startsWith(token) || token.startsWith(candidate),
+        )) {
+          score += 1;
+        }
+      }
+      if (score > 0) scored.add((id: id, score: score));
+    }
+
+    scored.sort((a, b) {
+      final score = b.score.compareTo(a.score);
+      if (score != 0) return score;
+      return a.id.compareTo(b.id);
+    });
+    return scored.take(limit).map((match) => match.id).toList();
+  }
+
+  String visibleWidgetIdSummary({int limit = 12}) {
+    final ids = _visibleWidgetIds();
     if (ids.isEmpty) return 'No keyed test widgets are currently visible.';
     final shown = ids.take(limit).join(', ');
     final suffix = ids.length > limit ? ', ... (${ids.length} total)' : '';
     return 'Visible widget ids: $shown$suffix.';
   }
+
+  List<String> _visibleWidgetIds() {
+    final ids = <String>{};
+    for (final widget in tester.allWidgets) {
+      final key = widget.key;
+      if (key is! ValueKey) continue;
+      final value = key.value;
+      if (value is! String) continue;
+      final id = _compactKeyValue(value);
+      if (id.isNotEmpty) ids.add(id);
+    }
+    return ids.toList()..sort();
+  }
+
+  String _compactKeyValue(String value) {
+    final singleLine = value.replaceAll(RegExp(r'\s+'), ' ').trim();
+    if (!_looksLikeUserTestId(singleLine)) return '';
+    return singleLine;
+  }
+
+  bool _looksLikeUserTestId(String value) {
+    if (value.isEmpty || value.length > 120) return false;
+    if (value.startsWith('_')) return false;
+    if (RegExp(r'\s').hasMatch(value)) return false;
+    if (value.contains('{') ||
+        value.contains('}') ||
+        value.contains('[') ||
+        value.contains(']') ||
+        value.contains(r'$')) {
+      return false;
+    }
+    return RegExp(r'^[A-Za-z][A-Za-z0-9_:.:-]*$').hasMatch(value);
+  }
+
+  List<String> _idTokens(String value) => value
+      .toLowerCase()
+      .split(RegExp(r'[^a-z0-9]+'))
+      .where((token) => token.length >= 2)
+      .toSet()
+      .toList();
 
   String visibleTextSummary({int limit = 10}) {
     final texts = tester.allWidgets
@@ -635,6 +723,27 @@ class AssertionEngine {
     if (texts.isEmpty) return 'No Text widgets are currently visible.';
     return 'Visible text: ${texts.map(jsonEncode).join(', ')}.';
   }
+
+  String textFailureHint(List<String> expectedTexts, {int limit = 10}) {
+    final expected = _nonEmptyTexts(expectedTexts);
+    final localeHint = expected.any(_containsNonAscii)
+        ? ' Also verify that the test is running with the expected locale/translation.'
+        : '';
+    return '${visibleTextSummary(limit: limit)} '
+        '${_currentScreenSummary()} '
+        'Hint: check that the app is on the expected screen/state before this assertion.$localeHint';
+  }
+
+  String _currentScreenSummary() {
+    final screen = ScreenTracker().getCurrentScreenIdentifier();
+    if (screen == null || screen.trim().isEmpty) {
+      return 'Current screen: unknown.';
+    }
+    return 'Current screen: "${screen.trim()}".';
+  }
+
+  bool _containsNonAscii(String value) =>
+      value.runes.any((codeUnit) => codeUnit > 127);
 
   String apiCallSummary({int limit = 10}) {
     final calls = context.apiOverlay.calls;

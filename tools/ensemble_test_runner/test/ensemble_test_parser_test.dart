@@ -182,6 +182,31 @@ steps:
       );
     });
 
+    test('parses secureStorage independently from keychain', () {
+      const yaml = '''
+id: encrypted_state
+startScreen: Home
+initialState:
+  storage:
+    publicFlag: true
+  secureStorage:
+    dnsBackup:
+      hasBackup: true
+  keychain:
+    authToken: secret
+steps:
+  - expectVisible:
+      id: home
+''';
+
+      final test = EnsembleTestParser.parseString(yaml);
+      expect(test.initialState['storage'], {'publicFlag': true});
+      expect(test.initialState['secureStorage'], {
+        'dnsBackup': {'hasBackup': true},
+      });
+      expect(test.initialState['keychain'], {'authToken': 'secret'});
+    });
+
     test('parses a reusable session and pre-screen setup', () {
       const yaml = '''
 id: home_from_session

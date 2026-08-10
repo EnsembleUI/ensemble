@@ -189,6 +189,9 @@ class EnsembleTestRunner {
     final previousOnError = FlutterError.onError;
 
     final previousDebugPrint = debugPrint;
+    final previousLiveAsyncRunner = LiveAsyncCallSupport.runner;
+    final previousDrainPendingExceptions =
+        LiveAsyncCallSupport.drainPendingExceptions;
     try {
       FlutterError.onError = (details) {
         ctx.runtime.flutterErrors.add(_formatFlutterError(details));
@@ -207,9 +210,9 @@ class EnsembleTestRunner {
       SchedulerBinding.instance.addTimingsCallback(timingsCallback);
       ctx.apiOverlay.liveAsyncRunner = tester.runAsync;
       LiveAsyncCallSupport.runner = tester.runAsync;
-      LiveAsyncCallSupport.drainPendingExceptions = () {
-        while (tester.takeException() != null) {}
-      };
+      // Inspect pending framework exceptions at explicit lifecycle boundaries;
+      // do not discard them from async-call cleanup.
+      LiveAsyncCallSupport.drainPendingExceptions = null;
 
       return await runZoned(
         () async {
@@ -228,7 +231,10 @@ class EnsembleTestRunner {
             },
             forcedLocale: sessionSnapshot?.locale ?? ctx.runtime.locale,
           );
-          _drainPendingFlutterExceptions(tester);
+          _throwIfUnexpectedFlutterExceptions(
+            tester,
+            phase: 'during startup/setup',
+          );
           await YamlTestSession.navigationFlow.flushPending();
           YamlTestSession.navigationFlow.beginTest(
             ScreenTracker().getCurrentScreenIdentifier(),
@@ -313,6 +319,9 @@ class EnsembleTestRunner {
         SchedulerBinding.instance.removeTimingsCallback(callback);
       }
       FlutterError.onError = previousOnError;
+      LiveAsyncCallSupport.runner = previousLiveAsyncRunner;
+      LiveAsyncCallSupport.drainPendingExceptions =
+          previousDrainPendingExceptions;
     }
   }
 
@@ -438,9 +447,14 @@ class EnsembleTestRunner {
       ctx.runtime.currentStepIndex = i;
       stepStartTimes.add(startTime.toIso8601String());
       final storageBefore = capturePublicStorage();
+      final secureStorageBefore = captureSecureStorage();
+      final keychainBefore = await captureKeychainStorage();
       var capturedStep = false;
       try {
-        _drainPendingFlutterExceptions(tester);
+        _throwIfUnexpectedFlutterExceptions(
+          tester,
+          phase: 'before this step',
+        );
         if (i == 0 && ctx.config.screenshots.enabled) {
           await executor.settle();
         }
@@ -462,6 +476,7 @@ class EnsembleTestRunner {
               executor: executor,
               step: matchedStep,
               stepIndex: i,
+              pumpBeforeCapture: true,
               stabilize: false,
             );
             capturedStep = true;
@@ -512,7 +527,13 @@ class EnsembleTestRunner {
           executor.onBeforeActionStep = null;
           executor.onAfterActionStep = null;
         }
-        _drainPendingFlutterExceptions(tester);
+        if (ctx.config.screenshots.enabled && _isUserActionStep(step)) {
+          await _paintAfterUserAction(executor);
+        }
+        _throwIfUnexpectedFlutterExceptions(
+          tester,
+          phase: 'after this step',
+        );
         if (!captureBeforeStep && !capturedStep && optionalActionStep == null) {
           await _captureAutomaticScreenshotForStep(
             executor: executor,
@@ -527,10 +548,12 @@ class EnsembleTestRunner {
           capturedStep = true;
         }
         await YamlTestSession.navigationFlow.flushPending();
-        _recordStorageStepDiff(
+        await _recordStorageStepDiff(
           ctx: ctx,
           stepIndex: i,
           before: storageBefore,
+          secureBefore: secureStorageBefore,
+          keychainBefore: keychainBefore,
         );
         stepDurationsMs.add(
           DateTime.now().difference(startTime).inMilliseconds,
@@ -546,10 +569,12 @@ class EnsembleTestRunner {
         );
         _captureScreenArtifacts(ctx);
       } catch (error, stackTrace) {
-        _recordStorageStepDiff(
+        await _recordStorageStepDiff(
           ctx: ctx,
           stepIndex: i,
           before: storageBefore,
+          secureBefore: secureStorageBefore,
+          keychainBefore: keychainBefore,
         );
         stepDurationsMs.add(
           DateTime.now().difference(startTime).inMilliseconds,
@@ -567,7 +592,7 @@ class EnsembleTestRunner {
         final idleStartFrame = ctx.runtime.appFrameTimings.length + 1;
         final idleStartTime = DateTime.now();
         await _settleLiveApiWorkBestEffort(tester, ctx);
-        _drainPendingFlutterExceptions(tester);
+        final frameworkErrors = _takeUnexpectedFlutterExceptions(tester);
         if (!capturedStep) {
           await _captureAutomaticScreenshotForStepBestEffort(
             executor: executor,
@@ -575,12 +600,18 @@ class EnsembleTestRunner {
             stepIndex: i,
             pumpBeforeCapture: true,
             ensureTargetVisible: false,
+            forFailure: true,
           );
         }
-        final failureMessage = _failureMessageWithFlutterErrors(
+        var failureMessage = _failureMessageWithFlutterErrors(
           error.toString(),
           ctx,
         );
+        if (frameworkErrors.isNotEmpty) {
+          failureMessage = '$failureMessage\n'
+              'Unexpected Flutter framework error: '
+              '${_compactDiagnostic(frameworkErrors.first)}';
+        }
         await _flushPendingScreenshots(
           ctx,
           status: TestStatus.failed,
@@ -624,7 +655,42 @@ class EnsembleTestRunner {
     final idleStartFrame = ctx.runtime.appFrameTimings.length + 1;
     final idleStartTime = DateTime.now();
     await _settleLiveApiWorkBestEffort(tester, ctx);
-    _drainPendingFlutterExceptions(tester);
+    final frameworkErrors = _takeUnexpectedFlutterExceptions(tester);
+    if (frameworkErrors.isNotEmpty) {
+      final failureMessage = _failureMessageWithFlutterErrors(
+        'Unexpected Flutter framework error after the final step: '
+        '${_compactDiagnostic(frameworkErrors.first)} '
+        'Hint: inspect the last screenshot and check async work started by '
+        'the final step.',
+        ctx,
+      );
+      await _flushPendingScreenshots(
+        ctx,
+        status: TestStatus.failed,
+        durationMs: stopwatch.elapsedMilliseconds,
+        failedStepIndex: test.steps.isEmpty ? null : test.steps.length - 1,
+        failedStepLabel:
+            test.steps.isEmpty ? null : formatStepBrief(test.steps.last),
+        failureMessage: failureMessage,
+      );
+      await _attachPerTestDebugArtifacts(ctx);
+      return EnsembleSingleTestResult.failed(
+        testId: test.id,
+        metadata: test.metadataJson,
+        failedStepIndex: test.steps.isEmpty ? null : test.steps.length - 1,
+        failedStep: test.steps.isEmpty ? null : test.steps.last,
+        error: failureMessage,
+        stackTrace: StackTrace.current.toString(),
+        durationMs: stopwatch.elapsedMilliseconds,
+        logs: ctx.logger.logs,
+        report: buildTestReportDetails(
+          test,
+          stepDurationsMs: stepDurationsMs,
+          stepStartTimes: stepStartTimes,
+          screens: ctx.runtime.screenArtifacts,
+        ),
+      );
+    }
     await _flushPendingScreenshots(
       ctx,
       status: TestStatus.passed,
@@ -747,6 +813,7 @@ class EnsembleTestRunner {
     bool waitForTarget = false,
     bool waitForLottie = true,
     bool stabilize = true,
+    bool forFailure = false,
   }) async {
     final options = executor.context.config.screenshots;
     if (!options.shouldCaptureStep(step.type)) return;
@@ -778,6 +845,7 @@ class EnsembleTestRunner {
       image: image,
       step: step,
       device: device,
+      forFailure: forFailure,
     );
     executor.context.runtime.addScreenshotSheetFrame(
       ScreenshotSheetFrame(
@@ -822,6 +890,7 @@ class EnsembleTestRunner {
     bool waitForTarget = false,
     bool waitForLottie = true,
     bool stabilize = true,
+    bool forFailure = false,
   }) async {
     try {
       await _captureAutomaticScreenshotForStep(
@@ -833,6 +902,7 @@ class EnsembleTestRunner {
         waitForTarget: waitForTarget,
         waitForLottie: waitForLottie,
         stabilize: stabilize,
+        forFailure: forFailure,
       );
     } catch (_) {
       // Screenshot capture must never replace the real test failure.
@@ -859,7 +929,8 @@ class EnsembleTestRunner {
   bool _isTextVerificationStep(TestStep step) =>
       step.type == 'expectText' ||
       step.type == 'expectTextContains' ||
-      step.type == 'waitForText';
+      step.type == 'waitForText' ||
+      step.type == 'expectNoText';
 
   Future<void> _stabilizeScreenshotFrame(
     TestStepExecutor executor, {
@@ -937,7 +1008,10 @@ class EnsembleTestRunner {
           ? null
           : executor.assertions.firstVisuallyActionableElement(finder);
       if (element == null) return;
-      if (_effectiveOpacity(element) >= 0.85) return;
+      if (_effectiveOpacity(element) >= 0.85) {
+        await executor.tester.pump();
+        return;
+      }
 
       await executor.tester.pump(const Duration(milliseconds: 50));
     }
@@ -980,8 +1054,12 @@ class EnsembleTestRunner {
     return opacity;
   }
 
-  ui.Rect? _highlightRectForStep(TestStepExecutor executor, TestStep step) {
-    if (!_shouldHighlightStep(step)) return null;
+  ui.Rect? _highlightRectForStep(
+    TestStepExecutor executor,
+    TestStep step, {
+    bool forFailure = false,
+  }) {
+    if (!_shouldHighlightStep(step, forFailure: forFailure)) return null;
 
     final finder = _highlightFinder(executor, step);
     if (finder == null) return null;
@@ -1075,27 +1153,49 @@ class EnsembleTestRunner {
     ];
     for (final text in texts) {
       if (step.type == 'expectTextContains') {
-        final hitTestableText = find.textContaining(text).hitTestable();
-        if (hitTestableText.evaluate().isNotEmpty) {
-          return hitTestableText;
-        }
         final containing = find.textContaining(text);
-        if (containing.evaluate().isNotEmpty) return containing;
-      } else {
-        final hitTestableText = find.text(text).hitTestable();
-        if (hitTestableText.evaluate().isNotEmpty) {
-          return hitTestableText;
+        if (_hasHighlightRect(
+          executor,
+          containing,
+        )) {
+          return containing;
         }
+      } else {
         final exact = find.text(text);
-        if (exact.evaluate().isNotEmpty) return exact;
+        if (_hasHighlightRect(
+          executor,
+          exact,
+        )) {
+          return exact;
+        }
       }
     }
     return null;
   }
 
-  bool _shouldHighlightStep(TestStep step) {
+  bool _hasHighlightRect(
+    TestStepExecutor executor,
+    Finder finder, {
+    bool requireHitTestable = false,
+  }) {
+    return executor.assertions.rectForVisuallyActionable(
+          finder,
+          requireHitTestable: requireHitTestable,
+        ) !=
+        null;
+  }
+
+  bool _shouldHighlightStep(TestStep step, {bool forFailure = false}) {
+    // On success there is nothing to point at for expectNoText; on failure the
+    // unexpectedly visible text is exactly what the screenshot should mark.
+    if (step.type == 'expectNoText' &&
+        !forFailure &&
+        (step.args['id']?.toString().isEmpty ?? true)) {
+      return false;
+    }
     if (step.type == 'waitForText' ||
         step.type == 'expectText' ||
+        step.type == 'expectNoText' ||
         step.type == 'waitFor' ||
         step.type == 'expectTextContains' ||
         step.type == 'scrollUntilVisible' ||
@@ -1133,13 +1233,20 @@ class EnsembleTestRunner {
     }
   }
 
+  Future<void> _paintAfterUserAction(TestStepExecutor executor) async {
+    await executor.tester.pump();
+    await executor.tester.pump(const Duration(milliseconds: 100));
+    await executor.tester.pump();
+  }
+
   ScreenshotHighlight? _highlightForStep({
     required TestStepExecutor executor,
     required ui.Image image,
     required TestStep step,
     required TestDeviceTarget? device,
+    bool forFailure = false,
   }) {
-    final rect = _highlightRectForStep(executor, step);
+    final rect = _highlightRectForStep(executor, step, forFailure: forFailure);
     if (rect == null) return null;
 
     final tester = executor.tester;
@@ -1167,7 +1274,11 @@ class EnsembleTestRunner {
     if (framedRect == null) return null;
 
     return ScreenshotHighlight(
-      kind: isTapStep ? 'action' : 'assertion',
+      kind: forFailure
+          ? 'failure'
+          : isTapStep
+              ? 'action'
+              : 'assertion',
       left: framedRect.left,
       top: framedRect.top,
       width: framedRect.width,
@@ -1309,20 +1420,40 @@ class EnsembleTestRunner {
     }
   }
 
-  void _recordStorageStepDiff({
+  Future<void> _recordStorageStepDiff({
     required EnsembleTestContext ctx,
     required int stepIndex,
     required Map<String, dynamic> before,
-  }) {
+    required Map<String, dynamic> secureBefore,
+    required Map<String, dynamic> keychainBefore,
+  }) async {
     final changes = diffStorage(before, capturePublicStorage());
-    if (changes.isEmpty) return;
-    ctx.runtime.storageStepDiffs.add(
-      StorageStepDiff(
+    final secureChanges = diffStorage(secureBefore, captureSecureStorage());
+    final keychainChanges = diffStorage(
+      keychainBefore,
+      await captureKeychainStorage(),
+    );
+    if (changes.isNotEmpty) {
+      ctx.runtime.storageStepDiffs.add(StorageStepDiff(
         stepIndex: stepIndex,
         timestamp: DateTime.now(),
         changes: changes,
-      ),
-    );
+      ));
+    }
+    if (secureChanges.isNotEmpty) {
+      ctx.runtime.secureStorageStepDiffs.add(StorageStepDiff(
+        stepIndex: stepIndex,
+        timestamp: DateTime.now(),
+        changes: secureChanges,
+      ));
+    }
+    if (keychainChanges.isNotEmpty) {
+      ctx.runtime.keychainStepDiffs.add(StorageStepDiff(
+        stepIndex: stepIndex,
+        timestamp: DateTime.now(),
+        changes: keychainChanges,
+      ));
+    }
   }
 
   void _replaceArtifactLog(TestLogger logger, String label, String path) {
@@ -1358,16 +1489,41 @@ class EnsembleTestRunner {
       // Cleanup settling is only to give async work a chance to finish before
       // screenshots/logs are written. It must not decide the test result.
     }
-    _drainPendingFlutterExceptions(tester);
   }
 
-  void _drainPendingFlutterExceptions(WidgetTester tester) {
-    while (tester.takeException() != null) {
-      // The app may catch/report async framework errors itself. Draining here
-      // prevents Flutter's test binding from failing the YAML suite with a raw
-      // framework dump after the declarative assertions have already decided
-      // the test result.
+  List<Object> _takeUnexpectedFlutterExceptions(WidgetTester tester) {
+    final errors = <Object>[];
+    Object? error;
+    while ((error = tester.takeException()) != null) {
+      if (!_isKnownTeardownNoise(error!)) {
+        errors.add(error);
+      }
     }
+    return errors;
+  }
+
+  void _throwIfUnexpectedFlutterExceptions(
+    WidgetTester tester, {
+    required String phase,
+  }) {
+    final errors = _takeUnexpectedFlutterExceptions(tester);
+    if (errors.isEmpty) return;
+    throw EnsembleTestFailure(
+      'Unexpected Flutter framework error $phase: '
+      '${_compactDiagnostic(errors.first)} '
+      'Hint: inspect the previous step and fix the async work or widget '
+      'lifecycle before continuing.',
+    );
+  }
+
+  bool _isKnownTeardownNoise(Object error) => error.toString().contains(
+        'An animation is still running even after the widget tree was disposed.',
+      );
+
+  String _compactDiagnostic(Object error, {int maxLength = 600}) {
+    final normalized = error.toString().replaceAll(RegExp(r'\s+'), ' ').trim();
+    if (normalized.length <= maxLength) return normalized;
+    return '${normalized.substring(0, maxLength - 3)}...';
   }
 
   String _formatFlutterError(FlutterErrorDetails details) {
@@ -1383,7 +1539,8 @@ class EnsembleTestRunner {
   ) {
     final errors = ctx.runtime.flutterErrors;
     if (errors.isEmpty) return message;
-    return '$message\nFlutter errors:\n- ${errors.take(3).join('\n- ')}';
+    return '$message\nFlutter framework error: '
+        '${_compactDiagnostic(errors.first)}';
   }
 
   Future<void> _flushPendingScreenshots(
