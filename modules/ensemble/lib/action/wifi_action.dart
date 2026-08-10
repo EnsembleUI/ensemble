@@ -25,9 +25,12 @@ Future<dynamic> _handleWifiResult(
   EnsembleAction? onError,
   bool? result,
 ) {
-  if (result == true && onSuccess != null) {
-    return ScreenController().executeAction(context, onSuccess,
-        event: EnsembleEvent(initiator, data: {'connected': true}));
+  if (result == true) {
+    if (onSuccess != null) {
+      return ScreenController().executeAction(context, onSuccess,
+          event: EnsembleEvent(initiator, data: {'connected': true}));
+    }
+    return Future.value(null);
   }
   if (onError != null) {
     final message = result == null
