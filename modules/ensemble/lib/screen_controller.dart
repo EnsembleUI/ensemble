@@ -586,7 +586,6 @@ class ScreenController {
         fallback: 250);
 
     final routeSettings = RouteSettings(
-      name: screenName ?? screenId,
       arguments: ScreenPayload(
         screenId: screenId,
         screenName: screenName,

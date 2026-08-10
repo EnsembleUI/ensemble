@@ -159,7 +159,7 @@ class ScreenTracker {
       trackScreenFromPayload(
         payload,
         route: route,
-        isModal: route.settings.name?.contains('modal') == true
+        isModal: payload.pageType == PageType.modal,
       );
     } else if (settings.name != null) {
       // Fallback: use route name as screen identifier
@@ -316,7 +316,7 @@ class ScreenTrackingNavigatorObserver extends NavigatorObserver {
       _tracker.trackScreenFromPayload(
         payload,
         route: route,
-        isModal: route.settings.name?.contains('modal') == true
+        isModal: payload.pageType == PageType.modal,
       );
     } else if (settings.name != null && settings.name != '/') {
       // Skip generic routes like '/' as they don't provide useful screen information
