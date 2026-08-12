@@ -91,6 +91,8 @@ class ListView extends StatefulWidget
           controller.shrinkWrap = Utils.optionalBool(value),
       'nestedScroll': (value) =>
           controller.nestedScroll = Utils.optionalBool(value),
+      'keepAlive': (value) =>
+          controller.keepAlive = Utils.optionalBool(value),
       'initialScrollOffset': (value) =>
           _controller.initialScrollOffset = Utils.optionalDouble(value),
       'initialScrollIndex': (value) =>
@@ -138,6 +140,7 @@ class ListViewController extends BoxLayoutController {
 
   bool? shrinkWrap;
   bool? nestedScroll;
+  bool? keepAlive;
 
   // scroll position control
   double? initialScrollOffset;
@@ -262,7 +265,7 @@ class ListViewState extends EWidgetState<ListView>
         _scrollControllerOutsideFooter = widget._controller.scrollController;
         _footerScrollControllerSubstituted = true;
       }
-      widget._controller.scrollController = footerScope!.scrollController;
+      widget._controller.scrollController = footerScope.scrollController;
     } else if (footerScope == null) {
       if (_footerScrollControllerSubstituted) {
         widget._controller.scrollController = _scrollControllerOutsideFooter;
@@ -383,6 +386,7 @@ class ListViewState extends EWidgetState<ListView>
       shrinkWrap: widget._controller.shrinkWrap ??
           (FooterScope.of(context) != null ? true : false),
       nestedScroll: widget._controller.nestedScroll?? false,
+      keepAlive: widget._controller.keepAlive ?? false,
       itemCount: itemCount,
       isLoading: showLoading,
       onFetchData: _fetchData,
@@ -471,7 +475,7 @@ class ListViewState extends EWidgetState<ListView>
 
     if (pullToRefresh != null) {
       listView = PullToRefreshContainer(
-          options: pullToRefresh!, contentWidget: listView);
+          options: pullToRefresh, contentWidget: listView);
     }
 
     // TV: Add focusable scrollbar if configured

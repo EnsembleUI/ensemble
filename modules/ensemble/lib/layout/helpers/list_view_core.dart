@@ -2,6 +2,7 @@ import 'package:ensemble/ensemble_app.dart';
 import 'package:ensemble/util/debouncer.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter/material.dart' as flutter;
+import 'keep_alive.dart';
 
 typedef ItemBuilder = Widget Function(BuildContext context, int index);
 
@@ -72,6 +73,7 @@ class ListViewCore extends StatefulWidget {
     this.errorBuilder,
     this.separatorBuilder,
     this.onScroll,
+    this.keepAlive = false,
   });
 
   final bool shrinkWrap;
@@ -94,6 +96,7 @@ class ListViewCore extends StatefulWidget {
   final IndexedWidgetBuilder? separatorBuilder;
   final ItemBuilder itemBuilder;
   final void Function(double)? onScroll;
+  final bool keepAlive;
 
   @override
   State<ListViewCore> createState() => _ListViewCoreState();
@@ -239,19 +242,33 @@ class _ListViewCoreState extends State<ListViewCore> {
                 }
                 if (index == lastItemIndex && showBottomWidget) {
                   if (widget.hasError) {
-                    return errorBuilder(context);
+                    return widget.keepAlive
+                        ? KeepAliveWrapper(child: errorBuilder(context))
+                        : errorBuilder(context);
                   } else if (widget.isLoading) {
-                    return loadingBuilder(context);
+                    return widget.keepAlive
+                        ? KeepAliveWrapper(child: loadingBuilder(context))
+                        : loadingBuilder(context);
                   } else {
-                    return widget.emptyBuilder!(context);
+                    final emptyWidget = widget.emptyBuilder!(context);
+                    return widget.keepAlive
+                        ? KeepAliveWrapper(child: emptyWidget)
+                        : emptyWidget;
                   }
                 } else {
                   final itemIndex =
                       !showSeparator ? index : (index / 2).floor();
                   if (showSeparator && index.isOdd) {
-                    return widget.separatorBuilder!(context, itemIndex);
+                    final separatorWidget =
+                        widget.separatorBuilder!(context, itemIndex);
+                    return widget.keepAlive
+                        ? KeepAliveWrapper(child: separatorWidget)
+                        : separatorWidget;
                   } else {
-                    return widget.itemBuilder(context, itemIndex);
+                    final itemWidget = widget.itemBuilder(context, itemIndex);
+                    return widget.keepAlive
+                        ? KeepAliveWrapper(child: itemWidget)
+                        : itemWidget;
                   }
                 }
               },

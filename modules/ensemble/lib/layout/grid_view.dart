@@ -6,6 +6,7 @@ import 'package:ensemble/framework/studio/studio_debugger.dart';
 import 'package:ensemble/framework/view/footer.dart';
 import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/layout/templated.dart';
+import 'package:ensemble/layout/helpers/keep_alive.dart';
 import 'package:ensemble/model/pull_to_refresh.dart';
 import 'package:ensemble/model/item_template.dart';
 import 'package:ensemble/page_model.dart';
@@ -86,6 +87,8 @@ class GridView extends StatefulWidget
           _controller.direction = Utils.optionalString(value),
       'shrinkWrap': (value) =>
           controller.shrinkWrap = Utils.optionalBool(value),
+      'keepAlive': (value) =>
+          _controller.keepAlive = Utils.optionalBool(value),
     };
   }
 
@@ -112,6 +115,7 @@ class GridViewController extends BoxController {
   ScrollController? scrollController;
   String? direction;
   bool? shrinkWrap;
+  bool? keepAlive;
 
   PullToRefresh? pullToRefresh;
   @Deprecated("use pullToRefresh")
@@ -333,6 +337,10 @@ class GridViewState extends EWidgetState<GridView> with TemplatedWidgetState {
 
     if (itemWidget == null) {
       return const SizedBox.shrink();
+    }
+
+    if (widget._controller.keepAlive ?? false) {
+      itemWidget = KeepAliveWrapper(child: itemWidget);
     }
 
     if (widget._controller.onItemTap != null) {
