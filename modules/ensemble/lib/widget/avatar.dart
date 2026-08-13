@@ -313,10 +313,12 @@ class AvatarState extends EnsembleWidgetState<Avatar>
           ? getScopeManager()!
               .buildWidgetFromDefinition(widget.controller.loadingWidget)
           : null,
-      networkCacheManager: widget.controller.networkCacheManager ??
-          EnsembleImageCacheManager.instanceFor(
-            allowRedirect: widget.controller.allowRedirect,
-          ),
+      networkCacheManager: widget.controller.allowRedirect
+          ? widget.controller.networkCacheManager ??
+              EnsembleImageCacheManager.instanceFor()
+          : EnsembleImageCacheManager.instanceFor(
+              allowRedirect: false,
+            ),
       placeholderBuilder: (_, __) =>
           ColoredBoxPlaceholder(color: widget.controller.placeholderColor),
       errorBuilder: (_) => _buildFallback());

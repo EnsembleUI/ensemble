@@ -301,10 +301,12 @@ class ImageState extends EWidgetState<EnsembleImage> {
           // gigantic images won't run out of memory
           memCacheWidth: cachedWidth,
           memCacheHeight: cachedHeight,
-          cacheManager: widget._controller.networkCacheManager ??
-              EnsembleImageCacheManager.instanceFor(
-                allowRedirect: widget._controller.allowRedirect,
-              ),
+          cacheManager: widget._controller.allowRedirect
+              ? widget._controller.networkCacheManager ??
+                  EnsembleImageCacheManager.instanceFor()
+              : EnsembleImageCacheManager.instanceFor(
+                  allowRedirect: false,
+                ),
           errorWidget: (context, error, stacktrace) => errorFallback(),
           placeholder: (context, url) => _buildLoadingPlaceholder(loadingWidget: loadingWidget),
           httpHeaders: _evaluateHeaders(),
