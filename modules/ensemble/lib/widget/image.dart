@@ -43,6 +43,8 @@ class EnsembleImage extends StatefulWidget
       'resizedWidth': () => _controller.resizedWidth,
       'resizedHeight': () => _controller.resizedHeight,
       'placeholderColor': () => _controller.placeholderColor,
+      'loadingWidget': () => _controller.loadingWidget,
+      'networkCacheManager': () => _controller.networkCacheManager,
       'colorFilter': () =>
           _controller.colorFilter?.toString() ?? 'null',
       'headers': () => _controller.headers,
@@ -67,6 +69,10 @@ class EnsembleImage extends StatefulWidget
           Utils.optionalInt(height, min: 0, max: 2000),
       'placeholderColor': (value) =>
           _controller.placeholderColor = Utils.getColor(value),
+      'loadingWidget': (widget) => _controller.loadingWidget = widget,
+      'networkCacheManager': (value) =>
+          _controller.networkCacheManager =
+              value is BaseCacheManager ? value : null,
       'fallback': (widget) => _controller.fallback = widget,
       'onTap': (funcDefinition) => _controller.onTap =
           EnsembleAction.from(funcDefinition, initiator: this),
@@ -94,6 +100,8 @@ class ImageController extends BoxController {
   dynamic source;
   BoxFit? fit;
   Color? placeholderColor;
+  dynamic loadingWidget;
+  BaseCacheManager? networkCacheManager;
   EnsembleAction? onTap;
   String? onTapHaptic;
   ColorFilterComposite? colorFilter;
@@ -122,7 +130,7 @@ class ImageState extends EWidgetState<EnsembleImage> {
           Utils.getString(widget._controller.source?.trim(), fallback: '');
       // use the placeholder for the initial state before binding kicks in
       if (source.isEmpty) {
-        return const ColoredBoxPlaceholder();
+        return _buildLoadingPlaceholder(includeDimensions: false);
       }
 
       if (isSvg()) {
@@ -227,6 +235,25 @@ class ImageState extends EWidgetState<EnsembleImage> {
     );
   }
 
+  Widget _buildLoadingPlaceholder({bool includeDimensions = true}) {
+    final Widget? loadingWidget = _buildLoadingWidget();
+    return loadingWidget ??
+        ColoredBoxPlaceholder(
+          color: widget._controller.placeholderColor,
+          width: includeDimensions ? widget._controller.width?.toDouble() : null,
+          height:
+              includeDimensions ? widget._controller.height?.toDouble() : null,
+        );
+  }
+
+  Widget? _buildLoadingWidget() {
+    if (widget._controller.loadingWidget == null || scopeManager == null) {
+      return null;
+    }
+    return scopeManager!
+        .buildWidgetFromDefinition(widget._controller.loadingWidget);
+  }
+
   Widget buildNonSvgImage(String source, BoxFit? fit) {
     if (source.startsWith('https://') || source.startsWith('http://')) {
       // If the asset is available locally, then use local path
@@ -258,15 +285,12 @@ class ImageState extends EWidgetState<EnsembleImage> {
           // gigantic images won't run out of memory
           memCacheWidth: cachedWidth,
           memCacheHeight: cachedHeight,
-          cacheManager: EnsembleImageCacheManager.instanceFor(
-            allowRedirect: widget._controller.allowRedirect,
-          ),
+          cacheManager: widget._controller.networkCacheManager ??
+              EnsembleImageCacheManager.instanceFor(
+                allowRedirect: widget._controller.allowRedirect,
+              ),
           errorWidget: (context, error, stacktrace) => errorFallback(),
-          placeholder: (context, url) => ColoredBoxPlaceholder(
-            color: widget._controller.placeholderColor,
-            width: widget._controller.width?.toDouble(),
-            height: widget._controller.height?.toDouble(),
-          ),
+          placeholder: (context, url) => _buildLoadingPlaceholder(),
           httpHeaders: _evaluateHeaders(),
         );
       }
@@ -283,11 +307,7 @@ class ImageState extends EWidgetState<EnsembleImage> {
                     return cacheImage(widget.controller.source);
                   }
                 } else {
-                  return ColoredBoxPlaceholder(
-                    color: widget._controller.placeholderColor,
-                    width: widget._controller.width?.toDouble(),
-                    height: widget._controller.height?.toDouble(),
-                  );
+                  return _buildLoadingPlaceholder();
                 }
               })
           : cacheImage(widget._controller.source);
@@ -341,11 +361,7 @@ class ImageState extends EWidgetState<EnsembleImage> {
         width: widget._controller.width?.toDouble(),
         height: widget._controller.height?.toDouble(),
         fit: fit ?? BoxFit.contain,
-        placeholderBuilder: (_) => ColoredBoxPlaceholder(
-          color: widget._controller.placeholderColor,
-          width: widget._controller.width?.toDouble(),
-          height: widget._controller.height?.toDouble(),
-        ),
+        placeholderBuilder: (_) => _buildLoadingPlaceholder(),
         errorBuilder: (_, __, ___) => errorFallback(),
         httpClient: widget._controller.allowRedirect
             ? null

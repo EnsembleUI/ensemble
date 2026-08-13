@@ -19,6 +19,7 @@ class Image extends StatelessWidget {
       this.fit,
       this.errorBuilder,
       this.placeholderBuilder,
+      this.loadingWidget,
       this.colorFilter,
       this.networkCacheManager});
 
@@ -32,6 +33,9 @@ class Image extends StatelessWidget {
 
   // applicable for network image only
   final Widget Function(BuildContext, String)? placeholderBuilder;
+
+  // optional widget while the image is loading
+  final Widget? loadingWidget;
 
   // optional cache manager for network image
   final BaseCacheManager? networkCacheManager;
@@ -60,7 +64,10 @@ class Image extends StatelessWidget {
           fit: fit,
 
           // placeholder while the image is loading
-          placeholder: placeholderBuilder,
+          placeholder: placeholderBuilder != null || loadingWidget != null
+              ? (context, url) =>
+                  loadingWidget ?? placeholderBuilder!(context, url)
+              : null,
           errorWidget: errorBuilder != null
               ? (context, url, error) => errorBuilder!(error.toString())
               : null,

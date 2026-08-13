@@ -2,6 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 
 /// misc models
 
@@ -19,14 +20,20 @@ class BackgroundImage {
     BoxFit? fit,
     Alignment? alignment,
     dynamic fallback,
+    dynamic loadingWidget,
+    BaseCacheManager? cacheManager,
   })  : _fit = fit ?? BoxFit.cover,
         _alignment = alignment ?? Alignment.center,
-        _fallback = fallback;
+        _fallback = fallback,
+        _loadingWidget = loadingWidget,
+        _cacheManager = cacheManager;
 
   final String _source;
   final BoxFit _fit;
   final Alignment _alignment;
   final dynamic _fallback;
+  final dynamic _loadingWidget;
+  final BaseCacheManager? _cacheManager;
 
   DecorationImage getImageAsDecorated() {
     ImageProvider imageProvider;
@@ -52,6 +59,9 @@ class BackgroundImage {
     final Widget? fallbackWidget = _fallback != null
         ? scopeManager?.buildWidgetFromDefinition(_fallback)
         : null;
+    final Widget? loadingWidget = _loadingWidget != null
+        ? scopeManager?.buildWidgetFromDefinition(_loadingWidget)
+        : null;
 
     if (Utils.isUrl(_source)) {
       String assetName = Utils.getAssetName(_source);
@@ -68,6 +78,8 @@ class BackgroundImage {
         imageUrl: _source,
         fit: _fit,
         alignment: _alignment,
+        cacheManager: _cacheManager,
+        placeholder: loadingWidget != null ? (_, __) => loadingWidget : null,
         errorWidget:
             fallbackWidget != null ? (_, __, ___) => fallbackWidget : null,
       );
