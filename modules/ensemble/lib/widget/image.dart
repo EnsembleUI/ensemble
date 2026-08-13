@@ -130,13 +130,22 @@ class ImageState extends EWidgetState<EnsembleImage> {
           Utils.getString(widget._controller.source?.trim(), fallback: '');
       // use the placeholder for the initial state before binding kicks in
       if (source.isEmpty) {
-        return _buildLoadingPlaceholder(includeDimensions: false);
+        return _buildEmptyPlaceholder(includeDimensions: false);
       }
 
+      final Widget? loadingWidget = _buildLoadingWidget();
       if (isSvg()) {
-        image = buildSvgImage(source, widget._controller.fit);
+        image = buildSvgImage(
+          source,
+          widget._controller.fit,
+          loadingWidget: loadingWidget,
+        );
       } else {
-        image = buildNonSvgImage(source, widget._controller.fit);
+        image = buildNonSvgImage(
+          source,
+          widget._controller.fit,
+          loadingWidget: loadingWidget,
+        );
       }
     }
 
@@ -235,8 +244,7 @@ class ImageState extends EWidgetState<EnsembleImage> {
     );
   }
 
-  Widget _buildLoadingPlaceholder({bool includeDimensions = true}) {
-    final Widget? loadingWidget = _buildLoadingWidget();
+  Widget _buildLoadingPlaceholder({bool includeDimensions = true, Widget? loadingWidget}) {
     return loadingWidget ??
         ColoredBoxPlaceholder(
           color: widget._controller.placeholderColor,
@@ -244,6 +252,14 @@ class ImageState extends EWidgetState<EnsembleImage> {
           height:
               includeDimensions ? widget._controller.height?.toDouble() : null,
         );
+  }
+
+  Widget _buildEmptyPlaceholder({bool includeDimensions = true}) {
+    return ColoredBoxPlaceholder(
+      color: widget._controller.placeholderColor,
+      width: includeDimensions ? widget._controller.width?.toDouble() : null,
+      height: includeDimensions ? widget._controller.height?.toDouble() : null,
+    );
   }
 
   Widget? _buildLoadingWidget() {
@@ -254,7 +270,7 @@ class ImageState extends EWidgetState<EnsembleImage> {
         .buildWidgetFromDefinition(widget._controller.loadingWidget);
   }
 
-  Widget buildNonSvgImage(String source, BoxFit? fit) {
+  Widget buildNonSvgImage(String source, BoxFit? fit, {Widget? loadingWidget}) {
     if (source.startsWith('https://') || source.startsWith('http://')) {
       // If the asset is available locally, then use local path
       String assetName = Utils.getAssetName(source);
@@ -290,7 +306,7 @@ class ImageState extends EWidgetState<EnsembleImage> {
                 allowRedirect: widget._controller.allowRedirect,
               ),
           errorWidget: (context, error, stacktrace) => errorFallback(),
-          placeholder: (context, url) => _buildLoadingPlaceholder(),
+          placeholder: (context, url) => _buildLoadingPlaceholder(loadingWidget: loadingWidget),
           httpHeaders: _evaluateHeaders(),
         );
       }
@@ -307,7 +323,7 @@ class ImageState extends EWidgetState<EnsembleImage> {
                     return cacheImage(widget.controller.source);
                   }
                 } else {
-                  return _buildLoadingPlaceholder();
+                  return _buildLoadingPlaceholder(loadingWidget: loadingWidget);
                 }
               })
           : cacheImage(widget._controller.source);
@@ -335,7 +351,7 @@ class ImageState extends EWidgetState<EnsembleImage> {
     }
   }
 
-  Widget buildSvgImage(String source, BoxFit? fit) {
+  Widget buildSvgImage(String source, BoxFit? fit, {Widget? loadingWidget}) {
     // If the source starts with '<svg', treat it as inline SVG content
     if (source.trim().toLowerCase().startsWith('<svg')) {
       return SvgPicture.string(
@@ -361,7 +377,7 @@ class ImageState extends EWidgetState<EnsembleImage> {
         width: widget._controller.width?.toDouble(),
         height: widget._controller.height?.toDouble(),
         fit: fit ?? BoxFit.contain,
-        placeholderBuilder: (_) => _buildLoadingPlaceholder(),
+        placeholderBuilder: (_) => _buildLoadingPlaceholder(loadingWidget: loadingWidget),
         errorBuilder: (_, __, ___) => errorFallback(),
         httpClient: widget._controller.allowRedirect
             ? null
