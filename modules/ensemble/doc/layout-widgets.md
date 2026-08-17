@@ -88,6 +88,7 @@ the widget id.
 | `scrollToTop()` / `scrollToBottom()` | Convenience methods for the start and current maximum scroll extent. |
 | `scrollToIndex(index)` | Estimates the offset from the templated data length and clamps the index into range. |
 | `onScroll` | Receives the current pixel offset in `event.data.pixel`. |
+| `cacheExtent` | Pixel distance (before and after the viewport) in which children are built. 
 
 ### Example
 
