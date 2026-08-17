@@ -91,6 +91,8 @@ class ListView extends StatefulWidget
           controller.shrinkWrap = Utils.optionalBool(value),
       'nestedScroll': (value) =>
           controller.nestedScroll = Utils.optionalBool(value),
+      'cacheExtent': (value) =>
+          controller.cacheExtent = Utils.optionalDouble(value),
       'initialScrollOffset': (value) =>
           _controller.initialScrollOffset = Utils.optionalDouble(value),
       'initialScrollIndex': (value) =>
@@ -138,6 +140,7 @@ class ListViewController extends BoxLayoutController {
 
   bool? shrinkWrap;
   bool? nestedScroll;
+  double? cacheExtent;
 
   // scroll position control
   double? initialScrollOffset;
@@ -383,6 +386,7 @@ class ListViewState extends EWidgetState<ListView>
       shrinkWrap: widget._controller.shrinkWrap ??
           (FooterScope.of(context) != null ? true : false),
       nestedScroll: widget._controller.nestedScroll?? false,
+      cacheExtent: widget._controller.cacheExtent,
       itemCount: itemCount,
       isLoading: showLoading,
       onFetchData: _fetchData,
