@@ -86,6 +86,8 @@ class GridView extends StatefulWidget
           _controller.direction = Utils.optionalString(value),
       'shrinkWrap': (value) =>
           controller.shrinkWrap = Utils.optionalBool(value),
+      'cacheExtent': (value) =>
+          controller.cacheExtent = Utils.optionalDouble(value),
     };
   }
 
@@ -112,6 +114,7 @@ class GridViewController extends BoxController {
   ScrollController? scrollController;
   String? direction;
   bool? shrinkWrap;
+  double? cacheExtent;
 
   PullToRefresh? pullToRefresh;
   @Deprecated("use pullToRefresh")
@@ -282,7 +285,7 @@ class GridViewState extends EWidgetState<GridView> with TemplatedWidgetState {
           scrollDirection: widget._controller.direction == 'horizontal'
               ? flutter.Axis.horizontal
               : flutter.Axis.vertical,
-          cacheExtent: cachedPixels,
+          cacheExtent: widget._controller.cacheExtent ?? cachedPixels,
           // if used inside CustomScrollView (scrollableView=true), the Grid will inject the top padding
           // to account for the titleBar's height https://github.com/flutter/flutter/issues/108222
           // We handle the titleBar ourselves already, so making sure the padding
