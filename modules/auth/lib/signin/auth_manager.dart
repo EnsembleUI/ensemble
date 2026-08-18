@@ -200,6 +200,8 @@ class AuthManager with UserAuthentication {
   Future<void> updateCurrentFirebaseUser(BuildContext context, User newUser) async {
     await StorageManager()
         .writeToSystemStorage(UserAuthentication._idKey, newUser.uid);
+    await StorageManager().writeToSystemStorage(
+        UserAuthentication._providerKey, SignInProvider.firebase.name);
     await StorageManager()
         .writeToSystemStorage(UserAuthentication._isAnonymous, newUser.isAnonymous);
   }
@@ -325,33 +327,6 @@ class AuthManager with UserAuthentication {
   /// check if the user is current signed in or not.
   Future<bool> isSignedIn() {
     return getSignedInUser().then((user) => user != null);
-
-    // AuthenticatedUser? user = getCurrentUser();
-    // if (user != null) {
-    //   // use the Provider to check sign in status
-    //   if (user.provider == SignInProvider.firebase) {
-    //     if (customFirebaseApp != null) {
-    //       return Future.value(
-    //           FirebaseAuth.instanceFor(app: customFirebaseApp!).currentUser !=
-    //               null);
-    //     }
-    //   } else if (user.provider == SignInProvider.auth0) {
-    //     return Future.value(Auth0CredentialsManager().hasCredentials());
-    //   }
-    //
-    //   // fallback to using the client to check for status
-    //   if (user.client == SignInClient.google) {
-    //     return GoogleAuthManager().isSignedIn();
-    //   } else if (user.client == SignInClient.apple) {
-    //     // nothing to do
-    //   } else if (user.client == SignInClient.microsoft) {
-    //     // TODO
-    //   }
-    //
-    //   // TODO: we have the current user in memory, does that mean signed in still?
-    //   return Future.value(true);
-    // }
-    // return Future.value(false);
   }
 
   Future<AuthenticatedUser?> getSignedInUser() async {
@@ -359,6 +334,16 @@ class AuthManager with UserAuthentication {
     if (user != null) {
       if (user.client == SignInClient.google) {
         return _getSignedInUserFromGoogle(user.provider);
+      }
+      // Storage can outlive the Firebase session — confirm Auth still has a user.
+      if (user.provider == SignInProvider.firebase ||
+          (user.provider == null && user.client == null)) {
+        final app = customFirebaseApp ??
+            (Firebase.apps.isNotEmpty ? Firebase.apps.first : null);
+        if (app == null ||
+            FirebaseAuth.instanceFor(app: app).currentUser == null) {
+          return null;
+        }
       }
     }
     return user;
