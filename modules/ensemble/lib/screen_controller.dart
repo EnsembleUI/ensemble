@@ -351,7 +351,7 @@ class ScreenController {
       newDataContext.evalCode(action.codeBlock, action.codeBlockSpan);
 
       if (action.onComplete != null) {
-        await executeActionWithScope(context, scopeManager, action.onComplete!);
+        executeActionWithScope(context, scopeManager, action.onComplete!);
       }
     } else if (action is OpenUrlAction) {
       dynamic value = scopeManager.dataContext.eval(action.url);
