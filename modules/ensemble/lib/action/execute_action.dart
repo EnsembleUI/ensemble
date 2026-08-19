@@ -81,16 +81,18 @@ class ExecuteActionAction extends EnsembleAction {
         ActionScopeUtil.parseApiMap(definition);
     final Map<String, YamlMap?>? apiSnapshot =
         ActionScopeUtil.snapshotPageApisForAction(scopeManager, actionApiMap);
+    PreparedActionScope? preparedScope;
 
     try {
       // Build a child scope with optional Import, API, Global, and input parameters
-      final ScopeManager childScope = ActionScopeUtil.prepareScope(
+      final currentScope = ActionScopeUtil.prepareScope(
         parentScope: scopeManager,
         definition: definition,
         parameters: parameters,
         callInputs: rawInputs ?? const {},
         eventHandlers: eventHandlers,
       );
+      preparedScope = currentScope;
 
       // Now resolve and execute the inner Action tree.
       final dynamic bodyNode = definition['body'];
@@ -106,9 +108,10 @@ class ExecuteActionAction extends EnsembleAction {
             "Action '$name' contains an invalid 'body' payload.");
       }
 
-      return ScreenController()
-          .executeActionWithScope(context, childScope, innerAction);
+      return await ScreenController()
+          .executeActionWithScope(context, currentScope.scope, innerAction);
     } finally {
+      preparedScope?.eventHandlerRegistration?.restore();
       ActionScopeUtil.restorePageApisAfterAction(scopeManager, apiSnapshot);
     }
   }
