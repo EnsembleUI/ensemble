@@ -49,6 +49,7 @@ import 'framework/widget/wallet_connect_modal.dart';
 class ScreenController {
   // Singleton
   static final ScreenController _instance = ScreenController._internal();
+  static const Object _executionScopeZoneKey = #ensembleExecutionScope;
 
   /// Keep track of the most recent screen context so global listeners
   /// (e.g. connectivity) can execute actions against the active screen.
@@ -141,7 +142,10 @@ class ScreenController {
   /// handle Action e.g invokeAPI
   Future<void> executeAction(BuildContext context, EnsembleAction action,
       {EnsembleEvent? event}) {
-    ScopeManager? scopeManager = getScopeManager(context);
+    final scopedExecution = Zone.current[_executionScopeZoneKey];
+    ScopeManager? scopeManager = scopedExecution is ScopeManager
+        ? scopedExecution
+        : getScopeManager(context);
     if (scopeManager != null) {
       return executeActionWithScope(context, scopeManager, action,
           event: event);
@@ -153,9 +157,12 @@ class ScreenController {
   Future<void> executeActionWithScope(
       BuildContext context, ScopeManager scopeManager, EnsembleAction action,
       {EnsembleEvent? event}) {
-    return nowExecuteAction(
-        context, action, scopeManager.pageData.apiMap, scopeManager,
-        event: event);
+    return runZoned(
+      () => nowExecuteAction(
+          context, action, scopeManager.pageData.apiMap, scopeManager,
+          event: event),
+      zoneValues: {_executionScopeZoneKey: scopeManager},
+    );
   }
 
   /// internally execute an Action

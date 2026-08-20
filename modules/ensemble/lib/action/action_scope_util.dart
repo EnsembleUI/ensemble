@@ -172,21 +172,45 @@ class ActionScopeUtil {
 
   /// Register caller-provided event handlers on the action scope.
   /// Handlers execute in the parent (caller) scope, matching custom widget behavior.
-  static void registerEventHandlers({
+  static EventHandlerRegistration? registerEventHandlers({
     required ScopeManager parentScope,
     required ScopeManager actionScope,
     required Map<String, EnsembleAction?> eventHandlers,
   }) {
+    if (eventHandlers.isEmpty) {
+      return null;
+    }
+
+    final context = actionScope.dataContext.getContextMap();
+    final previousValues = <String, dynamic>{};
+    final previousKeys = <String>{};
+    final installedHandlers = <String, EnsembleEventHandler>{};
     eventHandlers.forEach((eventName, action) {
       if (action == null) {
         return;
       }
       final handler = EnsembleEventHandler(parentScope, action);
-      actionScope.dataContext.addDataContextById(eventName, handler);
+      if (context.containsKey(eventName)) {
+        previousKeys.add(eventName);
+        previousValues[eventName] = context[eventName];
+      }
+      context[eventName] = handler;
+      installedHandlers[eventName] = handler;
     });
+
+    if (installedHandlers.isEmpty) {
+      return null;
+    }
+    return EventHandlerRegistration(
+      actionScope: actionScope,
+      previousValues: previousValues,
+      previousKeys: previousKeys,
+      installedHandlers: installedHandlers,
+    );
   }
 
-  static ({String? code, SourceSpan? span}) parseGlobalCode(YamlMap definition) {
+  static ({String? code, SourceSpan? span}) parseGlobalCode(
+      YamlMap definition) {
     final YamlNode? globalCodeNode = definition.nodes['Global'];
     if (globalCodeNode == null) {
       return (code: null, span: null);
@@ -198,7 +222,7 @@ class ActionScopeUtil {
   }
 
   /// Prepare a child scope with imports, APIs, global code, and input parameters.
-  static ScopeManager prepareScope({
+  static PreparedActionScope prepareScope({
     required ScopeManager parentScope,
     required YamlMap definition,
     required List<String> parameters,
@@ -206,7 +230,9 @@ class ActionScopeUtil {
     Map<String, EnsembleAction?> eventHandlers = const {},
   }) {
     final importedCode = definition[PageModel.importToken] != null
-        ? Ensemble().getConfig()?.processImports(definition[PageModel.importToken])
+        ? Ensemble()
+            .getConfig()
+            ?.processImports(definition[PageModel.importToken])
         : null;
     final apiMap = parseApiMap(definition);
 
@@ -223,7 +249,8 @@ class ActionScopeUtil {
 
     for (final String param in parameters) {
       if (callInputs.containsKey(param)) {
-        final dynamic evaluated = childScope.dataContext.eval(callInputs[param]);
+        final dynamic evaluated =
+            childScope.dataContext.eval(callInputs[param]);
         childScope.dataContext.addDataContextById(param, evaluated);
       }
     }
@@ -233,14 +260,58 @@ class ActionScopeUtil {
       childScope.dataContext.evalCode(global.code!, global.span!);
     }
 
-    if (eventHandlers.isNotEmpty) {
-      registerEventHandlers(
-        parentScope: parentScope,
-        actionScope: childScope,
-        eventHandlers: eventHandlers,
-      );
-    }
+    final eventHandlerRegistration = registerEventHandlers(
+      parentScope: parentScope,
+      actionScope: childScope,
+      eventHandlers: eventHandlers,
+    );
 
-    return childScope;
+    return PreparedActionScope(
+      scope: childScope,
+      eventHandlerRegistration: eventHandlerRegistration,
+    );
+  }
+}
+
+class PreparedActionScope {
+  const PreparedActionScope({
+    required this.scope,
+    this.eventHandlerRegistration,
+  });
+
+  final ScopeManager scope;
+  final EventHandlerRegistration? eventHandlerRegistration;
+}
+
+class EventHandlerRegistration {
+  EventHandlerRegistration({
+    required this.actionScope,
+    required this.previousValues,
+    required this.previousKeys,
+    required this.installedHandlers,
+  });
+
+  final ScopeManager actionScope;
+  final Map<String, dynamic> previousValues;
+  final Set<String> previousKeys;
+  final Map<String, EnsembleEventHandler> installedHandlers;
+  bool _restored = false;
+
+  void restore() {
+    if (_restored) {
+      return;
+    }
+    _restored = true;
+    final context = actionScope.dataContext.getContextMap();
+    installedHandlers.forEach((eventName, handler) {
+      if (!identical(context[eventName], handler)) {
+        return;
+      }
+      if (previousKeys.contains(eventName)) {
+        context[eventName] = previousValues[eventName];
+      } else {
+        context.remove(eventName);
+      }
+    });
   }
 }
