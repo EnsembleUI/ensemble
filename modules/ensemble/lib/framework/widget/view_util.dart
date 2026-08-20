@@ -14,6 +14,7 @@ import 'package:ensemble/framework/widget/widget.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/util/gesture_detector.dart';
 import 'package:ensemble/widget/custom_widget/custom_widget_model.dart';
+import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:ensemble/widget/radio/radio_button.dart';
 import 'package:ensemble/widget/radio/radio_button_controller.dart';
 import 'package:ensemble/widget/widget_registry.dart';
@@ -393,6 +394,14 @@ class ViewUtil {
         String? id = model.props['id']?.toString();
         if (id != null) {
           invokable.id = id;
+          // Also set the ID on the controller so BoxWrapper can access it
+          // for TV focus binding dispatch
+          if (invokable is HasController) {
+            final controller = (invokable as HasController).controller;
+            if (controller is WidgetController) {
+              controller.id = id;
+            }
+          }
           currentScope.dataContext.addInvokableContext(id, invokable);
         }
 
