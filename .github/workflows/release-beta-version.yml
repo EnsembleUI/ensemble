@@ -5,8 +5,9 @@
 #
 # Flow:
 #   1. Checkout branch, detach HEAD
-#   2. melos version creates commit + tag on detached HEAD
-#   3. Push only the tag (branch unchanged)
+#   2. melos version creates commit + tags on detached HEAD
+#   3. Repair and re-tag (.github/scripts/repair_and_retag.sh)
+#   4. Push only the ensemble-v<version> tag (branch unchanged)
 
 name: Release Beta Version
 
@@ -23,6 +24,11 @@ on:
         required: true
         type: string
         default: "1.2.47-beta.1"
+      publish_to_pubdev:
+        description: "Also publish this beta to pub.dev as a prerelease"
+        required: false
+        type: boolean
+        default: false
 
 concurrency:
   group: melos-beta-release-${{ github.repository }}-${{ inputs.branch }}
@@ -100,11 +106,25 @@ jobs:
           # Not strictly necessary since we only push the tag, but keeps intent clear
           git checkout --detach HEAD
 
-          # Melos creates version commit + tag on detached HEAD
           melos version ensemble "${{ inputs.version }}" --yes
+
+      - name: Repair melos dependency-constraint rewrite
+        run: .github/scripts/repair_and_retag.sh
 
       - name: Push tag only
         run: |
           # Push only the tag - branch remains unchanged
           # 'tag' keyword ensures we push a tag, not a branch
           git push origin tag ensemble-v${{ inputs.version }}
+
+  publish-to-pubdev:
+    name: Publish beta to pub.dev
+    needs: version-and-push
+    if: inputs.publish_to_pubdev
+    permissions:
+      contents: read
+      id-token: write
+    uses: ./.github/workflows/publish-ensemble-pubdev.yml
+    with:
+      ref: ensemble-v${{ inputs.version }}
+      allow_prerelease: true
