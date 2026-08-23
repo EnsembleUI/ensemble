@@ -4,20 +4,9 @@ on:
   push:
     tags:
       - "ensemble-v*"
-  workflow_call:
-    inputs:
-      ref:
-        description: "Git tag to publish, e.g. ensemble-v1.2.47 or ensemble-v1.2.47-beta.1"
-        required: true
-        type: string
-      allow_prerelease:
-        description: "Allow publishing a -beta.N tag as a pub.dev prerelease"
-        required: false
-        type: boolean
-        default: false
 
 concurrency:
-  group: pubdev-ensemble-${{ inputs.ref || github.ref_name }}
+  group: pubdev-ensemble-${{ github.ref_name }}
   cancel-in-progress: false
 
 permissions:
@@ -28,49 +17,58 @@ jobs:
   publish:
     name: Publish ensemble runtime
     runs-on: ubuntu-latest
-    # The tag-push trigger only ever fires for stable tags (the workflow_call
-    # path is how a beta prerelease gets opted in, from release-beta-version.yml).
-    if: "github.event_name == 'workflow_call' || !contains(github.ref_name, '-beta')"
     outputs:
       version: ${{ steps.validate-release-tag.outputs.version }}
 
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+          fetch-depth: 0
+
+      # pub.dev only trusts publishes from a workflow run that a genuine git
+      # tag push triggered, so a beta's opt-in can't be passed through as a
+      # workflow input -- it has to travel on the tag itself. A beta tag
+      # only proceeds if release-beta-version.yml annotated it with the
+      # [publish-to-pubdev] marker; stable tags always proceed.
       - name: Validate release tag
         id: validate-release-tag
-        env:
-          TAG: ${{ inputs.ref || github.ref_name }}
-          ALLOW_PRERELEASE: ${{ inputs.allow_prerelease }}
         run: |
           set -euo pipefail
 
-          if [[ "$ALLOW_PRERELEASE" == "true" ]]; then
-            pattern='^ensemble-v[0-9]+\.[0-9]+\.[0-9]+(-beta\.[0-9]+)?$'
-          else
-            pattern='^ensemble-v[0-9]+\.[0-9]+\.[0-9]+$'
-          fi
+          TAG="${GITHUB_REF_NAME}"
 
-          if [[ ! "$TAG" =~ $pattern ]]; then
-            echo "::error::Tag '$TAG' doesn't match the expected format."
+          if [[ "$TAG" =~ ^ensemble-v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "should_publish=true" >> "$GITHUB_OUTPUT"
+          elif [[ "$TAG" =~ ^ensemble-v[0-9]+\.[0-9]+\.[0-9]+-beta\.[0-9]+$ ]]; then
+            message="$(git tag -l -n1 --format='%(contents)' "$TAG")"
+            if [[ "$message" == *"[publish-to-pubdev]"* ]]; then
+              echo "should_publish=true" >> "$GITHUB_OUTPUT"
+            else
+              echo "Beta tag not opted in to pub.dev publishing; skipping."
+              echo "should_publish=false" >> "$GITHUB_OUTPUT"
+            fi
+          else
+            echo "::error::Unexpected tag '$TAG'."
             exit 1
           fi
 
           echo "version=${TAG#ensemble-v}" >> "$GITHUB_OUTPUT"
 
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ inputs.ref || github.ref_name }}
-
       - name: Setup Flutter SDK
+        if: steps.validate-release-tag.outputs.should_publish == 'true'
         uses: subosito/flutter-action@v2
         with:
           flutter-version: "3.32.5"
           cache: true
 
       - name: Setup pub.dev credentials
+        if: steps.validate-release-tag.outputs.should_publish == 'true'
         uses: dart-lang/setup-dart@v1
 
       - name: Build pub.dev example from starter
+        if: steps.validate-release-tag.outputs.should_publish == 'true'
         run: |
           set -euo pipefail
 
@@ -216,6 +214,7 @@ jobs:
           PY
 
       - name: Publish to pub.dev
+        if: steps.validate-release-tag.outputs.should_publish == 'true'
         working-directory: modules/ensemble
         run: flutter pub publish --force
 
@@ -223,9 +222,7 @@ jobs:
     name: Publish ${{ matrix.package.name }}
     runs-on: ubuntu-latest
     needs: publish
-    # Modules are never versioned/published as part of a beta ensemble
-    # release, so this only ever runs on the native stable tag-push trigger.
-    if: "github.event_name != 'workflow_call' && !contains(github.ref_name, '-beta')"
+    if: "!contains(github.ref_name, '-beta')"
     strategy:
       fail-fast: false
       matrix:
