@@ -1,9 +1,8 @@
 // melos's `version` command can leave a hosted dependency constraint
 // mangled, e.g. `^1.2.50-beta.13 <2.0.0"`, when the original was a compound
-// range (">=1.2.50 <2.0.0") rather than a bare caret -- it only replaces the
-// leading token of the old text. This repairs that shape across the
-// workspace. Anything starting with `^` that doesn't fit it exactly fails
-// loudly rather than being guessed at.
+// range rather than a bare caret -- it only replaces the leading token.
+// Repairs the syntax without touching the surviving upper bound; anything
+// starting with `^` that doesn't fit fails loudly rather than being guessed at.
 
 import 'dart:io';
 
@@ -55,24 +54,41 @@ void main(List<String> args) {
 
       if (_tryParse(logicalValue) != null) continue; // already valid
 
-      final tokenMatch = _leadingCaretToken.firstMatch(logicalValue);
-      if (tokenMatch == null || _tryParse(tokenMatch[0]!) == null) {
+      final tokenMatch = _leadingCaretToken.firstMatch(rawValue);
+      final tail = tokenMatch == null ? '' : rawValue.substring(tokenMatch.end);
+
+      // A non-empty tail without a real operator (e.g. just a stray quote)
+      // isn't evidence of a surviving range -- don't invent an unbounded one.
+      String? fixedValue;
+      if (tokenMatch != null &&
+          tail.isNotEmpty &&
+          _tryParse(tokenMatch[0]!) != null &&
+          RegExp(r'[<>=]').hasMatch(tail)) {
+        final quote = tail[tail.length - 1];
+        if (quote == '"' || quote == "'") {
+          final candidate = '$quote>=${tokenMatch[0]!.substring(1)}$tail';
+          if (_tryParse(_stripMatchedQuotes(candidate)) != null) {
+            fixedValue = candidate;
+          }
+        }
+      }
+
+      if (fixedValue == null) {
         stderr.writeln(
           '::error::${file.path}: found unparseable constraint '
           '"$rawValue" that does not match the known melos corruption '
-          'pattern (valid "^<version>" prefix). Needs manual review.',
+          'pattern. Needs manual review.',
         );
         hadUnrepairable = true;
         continue;
       }
 
-      final caretToken = tokenMatch[0]!;
-      final replacement = '${match.namedGroup('prefix')}$caretToken';
+      final replacement = '${match.namedGroup('prefix')}$fixedValue';
       updated = updated.replaceRange(match.start, match.end, replacement);
       fileChanged = true;
       constraintsFixed++;
       stdout.writeln(
-        '${file.path}: repaired "$rawValue" -> "$caretToken"',
+        '${file.path}: repaired "$rawValue" -> "$fixedValue"',
       );
     }
 
