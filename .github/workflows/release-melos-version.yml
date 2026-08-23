@@ -30,6 +30,14 @@ jobs:
           fetch-depth: 0
           token: ${{ secrets.RELEASE_TOKEN }}
 
+      # If this workflow is ever dispatched against a non-default ref while
+      # main lags behind, pull the release scripts from wherever this
+      # workflow file itself came from, not from main.
+      - name: Use release scripts from this workflow's own ref
+        run: |
+          git fetch origin ${{ github.sha }} --depth=1
+          git checkout ${{ github.sha }} -- .github/scripts
+
       - name: Configure Git
         run: |
           git config user.name "github-actions[bot]"
