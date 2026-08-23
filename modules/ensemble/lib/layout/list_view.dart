@@ -543,17 +543,27 @@ class ListViewState extends EWidgetState<ListView>
         );
 
         // Build Row with scrollbar on correct side
-        listView = flutter.Row(
-          crossAxisAlignment: flutter.CrossAxisAlignment.stretch,
-          children: isLeftPosition
-            ? [
-                effectiveScrollbarWidget,
-                flutter.Expanded(child: scopedContent),
-              ]
-            : [
-                flutter.Expanded(child: scopedContent),
-                effectiveScrollbarWidget,
-              ],
+        listView = flutter.NotificationListener<
+            flutter.ScrollMetricsNotification>(
+          onNotification: (_) {
+            // Content can grow after this cached ListView first initializes.
+            // ScrollController listeners do not fire for that metrics-only
+            // change, so refresh the sibling TV scrollbar explicitly.
+            _scrollbarKey.currentState?.updateForScrollMetrics();
+            return false;
+          },
+          child: flutter.Row(
+            crossAxisAlignment: flutter.CrossAxisAlignment.stretch,
+            children: isLeftPosition
+              ? [
+                  effectiveScrollbarWidget,
+                  flutter.Expanded(child: scopedContent),
+                ]
+              : [
+                  flutter.Expanded(child: scopedContent),
+                  effectiveScrollbarWidget,
+                ],
+          ),
         );
       }
     }

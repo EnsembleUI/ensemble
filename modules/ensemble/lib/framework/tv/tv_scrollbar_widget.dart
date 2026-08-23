@@ -126,6 +126,25 @@ class TVScrollbarWidgetState extends State<TVScrollbarWidget> {
     _focusNode.requestFocus();
   }
 
+  /// Refresh visibility when the owning scrollable's content dimensions change.
+  /// A [ScrollController] only notifies listeners for scroll-position changes,
+  /// not for a new maxScrollExtent produced by asynchronous content.
+  void updateForScrollMetrics() {
+    if (!mounted ||
+        !widget.scrollController.hasClients ||
+        !widget.scrollController.position.hasContentDimensions) {
+      return;
+    }
+
+    final wasInitialized = _isInitialized;
+    final wasScrollable = _isScrollable;
+    _isInitialized = true;
+    _updateThumbPosition();
+    if (!wasInitialized || _isScrollable != wasScrollable) {
+      setState(() {});
+    }
+  }
+
   bool get _isFallbackFocusTarget => widget.fallbackFocus != null;
 
   bool get _canScrollUp {
