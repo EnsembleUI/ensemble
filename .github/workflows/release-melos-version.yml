@@ -30,13 +30,19 @@ jobs:
           fetch-depth: 0
           token: ${{ secrets.RELEASE_TOKEN }}
 
-      # If this workflow is ever dispatched against a non-default ref while
-      # main lags behind, pull the release scripts from wherever this
-      # workflow file itself came from, not from main.
+      # Only overlay files from github.sha if it's ahead of main -- otherwise
+      # a stale dispatch ref would silently revert main's own release files.
       - name: Use release scripts from this workflow's own ref
         run: |
-          git fetch origin ${{ github.sha }} --depth=1
-          git checkout ${{ github.sha }} -- .github/scripts
+          set -euo pipefail
+          # Full history, not --depth=1: merge-base --is-ancestor can't
+          # correctly resolve ancestry across a shallow fetch boundary.
+          git fetch origin ${{ github.sha }}
+          if git merge-base --is-ancestor HEAD ${{ github.sha }}; then
+            git checkout ${{ github.sha }} -- .github/scripts .github/workflows/publish-ensemble-pubdev.yml
+          else
+            echo "::warning::Dispatched ref is not ahead of main; keeping main's own release files."
+          fi
 
       - name: Configure Git
         run: |
