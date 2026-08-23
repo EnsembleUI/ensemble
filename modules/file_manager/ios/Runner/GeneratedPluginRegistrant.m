@@ -60,8 +60,8 @@
 @import file_picker;
 #endif
 
-#if __has_include(<firebase_app_check/FLTFirebaseAppCheckPlugin.h>)
-#import <firebase_app_check/FLTFirebaseAppCheckPlugin.h>
+#if __has_include(<firebase_app_check/FirebaseAppCheckPlugin.h>)
+#import <firebase_app_check/FirebaseAppCheckPlugin.h>
 #else
 @import firebase_app_check;
 #endif
@@ -228,7 +228,7 @@
   [FlutterAppBadgerPlugin registerWithRegistrar:[registry registrarForPlugin:@"FlutterAppBadgerPlugin"]];
   [OtpPinFieldPlugin registerWithRegistrar:[registry registrarForPlugin:@"OtpPinFieldPlugin"]];
   [FilePickerPlugin registerWithRegistrar:[registry registrarForPlugin:@"FilePickerPlugin"]];
-  [FLTFirebaseAppCheckPlugin registerWithRegistrar:[registry registrarForPlugin:@"FLTFirebaseAppCheckPlugin"]];
+  [FirebaseAppCheckPlugin registerWithRegistrar:[registry registrarForPlugin:@"FirebaseAppCheckPlugin"]];
   [FLTFirebaseCorePlugin registerWithRegistrar:[registry registrarForPlugin:@"FLTFirebaseCorePlugin"]];
   [FLTFirebaseMessagingPlugin registerWithRegistrar:[registry registrarForPlugin:@"FLTFirebaseMessagingPlugin"]];
   [InAppWebViewFlutterPlugin registerWithRegistrar:[registry registrarForPlugin:@"InAppWebViewFlutterPlugin"]];
