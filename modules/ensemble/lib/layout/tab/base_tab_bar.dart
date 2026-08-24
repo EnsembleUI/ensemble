@@ -39,7 +39,7 @@ abstract class BaseTabBarState extends EWidgetState<BaseTabBar>
   /// build the Tab Bar navigation part
   Widget buildTabBar() {
     // TV Navigation: Use custom focusable tab buttons instead of Flutter TabBar
-    // This follows flutter_pca's pattern where each tab is an individually focusable button
+    // Each tab is an individually focusable button
     if (Device().isTV) {
       return _buildTVTabBar();
     }
@@ -122,7 +122,7 @@ abstract class BaseTabBarState extends EWidgetState<BaseTabBar>
   }
 
   /// Build TV-specific tab bar with individually focusable buttons.
-  /// Uses flutter_pca-style TVFocusOrder coordinates for navigation.
+  /// Uses TVFocusOrder coordinates for navigation.
   ///
   /// If tvRow is set on the controller, tabs participate in the main page focus grid.
   /// Otherwise, tabs are wrapped in their own FocusTraversalGroup.
@@ -256,7 +256,7 @@ mixin TabBarAction on EWidgetState<BaseTabBar> {
   void changeTab(int index);
 }
 
-/// TV-specific focusable tab button using flutter_pca-style navigation.
+/// TV-specific focusable tab button using row/order-based navigation.
 /// Each tab uses TVFocusOrder coordinates.
 /// If TabBar has tvRow set, tabs use that row in the main page grid.
 /// Otherwise, tabs use row 0 within an isolated FocusTraversalGroup.

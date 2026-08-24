@@ -3,8 +3,8 @@ import 'tv_focus_order.dart';
 
 /// Abstract interface for TV focus navigation systems.
 ///
-/// This allows Ensemble to integrate with a host app's focus system
-/// (e.g., flutter_pca's PageFocusWidget) instead of using its own.
+/// This allows Ensemble to integrate with a host app's own focus-wrapping
+/// widget instead of using its own.
 ///
 /// When a host app provides a [TVFocusProvider], Ensemble widgets will use
 /// the host's focus system, enabling seamless D-pad navigation between
@@ -12,7 +12,7 @@ import 'tv_focus_order.dart';
 ///
 /// ## Why This Exists
 ///
-/// When Ensemble is embedded in a host app (like flutter_pca), both apps have
+/// When Ensemble is embedded in a host app, both apps have
 /// their own TV focus systems. Without integration, they operate as separate
 /// grids with no way to navigate between them.
 ///
@@ -36,8 +36,8 @@ import 'tv_focus_order.dart';
 ///     String? focusGroup,
 ///     KeyEventResult Function(FocusNode)? onBackPressed,
 ///   }) {
-///     return PageFocusWidget(
-///       focusOrder: PageFocusOrder(
+///     return HostFocusWidget(
+///       focusOrder: HostFocusOrder(
 ///         row, order,
 ///         isRowEntryPoint: isRowEntryPoint,
 ///         lockHorizontalNavigation: lockHorizontalNavigation,
@@ -121,8 +121,8 @@ abstract class TVFocusProvider {
   /// Ensemble's YAML-defined `tvOrder` values are relative (0, 1, 2...).
   /// This offset is added to create absolute positions in the host app's grid.
   ///
-  /// Example: If Sports tab is at order 5, set orderOffset to 5
-  /// so navigating UP from Ensemble naturally lands on the Sports tab.
+  /// Example: If a host tab is at order 5, set orderOffset to 5
+  /// so navigating UP from Ensemble naturally lands on that tab.
   ///
   /// Default: 0 (no offset)
   double get orderOffset => 0;
@@ -176,11 +176,11 @@ abstract class TVFocusProvider {
   /// Request focus on a widget at the given row/order.
   ///
   /// Used by edge callbacks to navigate across focus groups.
-  /// The host app should find its own [PageFocusOrder] widgets at these
+  /// The host app should find its own focus-order widgets at these
   /// coordinates and request focus on them.
   ///
   /// Default implementation uses the framework's [TVFocusOrder.requestFocusAt].
-  /// Override if host app uses a different order type (e.g., [PageFocusOrder]).
+  /// Override if the host app uses a different order type.
   void requestFocusAt(BuildContext context, double row,
       [double? order, String? focusGroup]) {
     const TVFocusOrder(0).requestFocusAt(context, row, order, focusGroup);

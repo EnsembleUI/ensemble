@@ -14,7 +14,7 @@ enum TVFocusDirection {
   bottom,
 }
 
-/// 2D coordinate for TV D-pad navigation. Maps to flutter_pca's PageFocusOrder.
+/// 2D coordinate for TV D-pad navigation.
 ///
 /// ## Coordinate System
 /// - [row]: Vertical position (0, 1, 2...). Items in same row navigate with LEFT/RIGHT.

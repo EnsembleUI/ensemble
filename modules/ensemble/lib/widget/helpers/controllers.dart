@@ -191,7 +191,7 @@ class TVFocusEdgesComposite extends WidgetCompositeProperty {
       };
 }
 
-/// TV/Accessibility options for D-pad navigation (flutter_pca style).
+/// TV/Accessibility options for D-pad navigation.
 /// Groups all TV-related properties under styles.tvOptions.*
 /// All focus styling properties can override theme values per-widget.
 class TVOptionsComposite extends WidgetCompositeProperty {
@@ -905,7 +905,7 @@ class BoxController extends WidgetController {
   BoxAnimationComposite? animation;
   Matrix4? transform;
 
-  // TV/Accessibility: Coordinate-based navigation (flutter_pca style)
+  // TV/Accessibility: Coordinate-based navigation
   // Use styles.tvOptions.row, styles.tvOptions.order, etc.
   TVOptionsComposite? tvOptions;
 

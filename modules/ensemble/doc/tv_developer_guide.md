@@ -1,6 +1,6 @@
 # Ensemble TV Complete Guide
 
-Comprehensive documentation for TV/D-pad navigation in the Ensemble framework, including YAML patterns, framework architecture, and flutter_pca integration.
+Comprehensive documentation for TV/D-pad navigation in the Ensemble framework, including YAML patterns, framework architecture, and host app integration.
 
 ---
 
@@ -12,7 +12,7 @@ Comprehensive documentation for TV/D-pad navigation in the Ensemble framework, i
 4. [YAML Patterns & Examples](#4-yaml-patterns--examples)
 5. [Carousel TV Implementation](#5-carousel-tv-implementation)
 6. [ListView Scrollbar](#6-listview-scrollbar)
-7. [Host App Integration (flutter_pca)](#7-host-app-integration-flutter_pca)
+7. [Host App Integration](#7-host-app-integration)
 8. [Focus Styling](#8-focus-styling)
 9. [Common UI Patterns](#9-common-ui-patterns)
 10. [Pitfalls to Avoid](#10-pitfalls-to-avoid)
@@ -82,22 +82,22 @@ row=3  │ [Item C] │ [Item D] │          │          │
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                        Host App (flutter_pca)                    │
+│                            Host App                               │
 │  ┌───────────────────────────────────────────────────────────┐  │
 │  │                    TV Top Navigation Bar                   │  │
-│  │  [Home] [Live] [Movies] [Series] [Sports] [Apps]          │  │
+│  │  [Home] [Live] [Movies] [Series] [Category] [Apps]         │  │
 │  │                                    ↑ Order 5               │  │
 │  └───────────────────────────────────────────────────────────┘  │
 │                              │                                   │
 │                              ▼                                   │
 │  ┌───────────────────────────────────────────────────────────┐  │
-│  │                     Sports Tab Content                     │  │
+│  │                    Category Tab Content                    │  │
 │  │  ┌─────────────────────────────────────────────────────┐  │  │
 │  │  │              TVFocusProviderScope                    │  │  │
 │  │  │  ┌───────────────────────────────────────────────┐  │  │  │
-│  │  │  │         PageFocusProvider                     │  │  │  │
+│  │  │  │         MyFocusProvider                       │  │  │  │
 │  │  │  │  - rowOffset: 1.0 (below tab bar)            │  │  │  │
-│  │  │  │  - orderOffset: 5.0 (Sports tab align)       │  │  │  │
+│  │  │  │  - orderOffset: 5.0 (Category tab align)     │  │  │  │
 │  │  │  └───────────────────────────────────────────────┘  │  │  │
 │  │  │                      │                               │  │  │
 │  │  │                      ▼                               │  │  │
@@ -114,14 +114,14 @@ row=3  │ [Item C] │ [Item D] │          │          │
 ### Focus Grid Alignment
 
 ```
-flutter_pca Tab Bar (Row 0):
-  [Home:0] [Live:1] [Movies:2] [Series:3] [Watchlist:4] [Sports:5] [Apps:6]
+Host App Tab Bar (Row 0):
+  [Home:0] [Live:1] [Movies:2] [Series:3] [Watchlist:4] [Category:5] [Apps:6]
 
-Ensemble Content (Row 1+, aligned with Sports at order 5):
-  [Match1:5] [Match2:6] [Match3:7] [Match4:8]
+Ensemble Content (Row 1+, aligned with Category tab at order 5):
+  [Item1:5] [Item2:6] [Item3:7] [Item4:8]
 
-↑ UP from Ensemble → Sports tab
-↓ DOWN from Sports tab → Ensemble content
+↑ UP from Ensemble → Category tab
+↓ DOWN from Category tab → Ensemble content
 ```
 
 ---
@@ -737,7 +737,7 @@ Item (order 0) ←LEFT─  Item (order 1) ←LEFT─ ─┘
 
 ---
 
-## 7. Host App Integration (flutter_pca)
+## 7. Host App Integration
 
 ### TVFocusProvider Interface
 
@@ -765,18 +765,18 @@ abstract class TVFocusProvider {
 }
 ```
 
-### flutter_pca Implementation
+### Example Host App Implementation
 
 ```dart
-class PageFocusProvider implements TVFocusProvider {
+class MyFocusProvider implements TVFocusProvider {
     @override
     double get rowOffset => 1.0;   // Below tab bar
 
     @override
-    double get orderOffset => 5.0; // Aligned with Sports tab
+    double get orderOffset => 5.0; // Aligned with the active tab
 
     @override
-    Color? get focusBorderColor => AppThemeManager.currentTheme.snowGrey;
+    Color? get focusBorderColor => AppTheme.current.focusColor;
 
     @override
     double? get focusBorderWidth => 1.5;
@@ -792,8 +792,8 @@ class PageFocusProvider implements TVFocusProvider {
         KeyEventResult Function(FocusNode node)? onBackPressed,
         bool disableHostScroll = true,
     }) {
-        return PageFocusWidget(
-            focusOrder: PageFocusOrder.withOptions(
+        return MyFocusWidget(
+            focusOrder: MyFocusOrder.withOptions(
                 row,
                 order: order,
                 isRowEntryPoint: isRowEntryPoint,
@@ -812,9 +812,9 @@ class PageFocusProvider implements TVFocusProvider {
 ### Integration with EnsembleApp
 
 ```dart
-// In Sports tab
+// In the host app's tab content
 EnsembleWrapper(
-    tvFocusProvider: PageFocusProvider(),
+    tvFocusProvider: MyFocusProvider(),
     child: EnsembleScreen(payload: payload),
 )
 
@@ -827,14 +827,14 @@ if (widget.tvFocusProvider != null) {
 }
 ```
 
-### Files Changed for flutter_pca Integration
+### Integration Checklist
 
-| File                                                       | Description                                       |
-| ---------------------------------------------------------- | ------------------------------------------------- |
-| `lib/screens/widgets/custom/page_focus_provider.dart`      | Bridge between Ensemble and flutter_pca           |
-| `lib/screens/widgets/custom/pca_button.dart`               | PageFocusWidget with delegateHorizontalNavigation |
-| `lib/screens/ensemble/ensemble_wrapper.dart`               | TVFocusProvider integration                       |
-| `lib/screens/ensemble/platform.tv/ensemble.tv.screen.dart` | TV screen with focus scope                        |
+When wiring `TVFocusProvider` into a host app, expect to touch:
+
+- A provider implementation (bridges the host app's own focus system to Ensemble's `TVFocusProvider` interface).
+- The host's focusable button/wrapper widget (implements `delegateHorizontalNavigation` so carousels and rows can hand LEFT/RIGHT back to the host).
+- The integration point where `EnsembleWrapper`/`EnsembleScreen` is embedded (passes the provider in and wraps content with `TVFocusProviderScope`).
+- The TV-specific screen/route where Ensemble content is rendered (sets up the focus scope for the embedded content).
 
 ---
 
@@ -849,7 +849,7 @@ The focus indicator border color, width, and radius follow this priority order:
        ↓ (if not set)
 2. Theme Configuration (theme.yaml - Common.Tokens.TV.*)
        ↓ (if not set)
-3. TVFocusProvider (host app integration, e.g., flutter_pca)
+3. TVFocusProvider (host app integration)
        ↓ (if not set)
 4. Widget's Normal Styles (styles.borderColor/borderWidth/borderRadius)
        ↓ (if not set)
