@@ -5,3 +5,4 @@ environment:
 
 dev_dependencies:
   melos: ^3.4.0
+  pub_semver: ^2.1.4
