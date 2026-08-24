@@ -545,11 +545,16 @@ class ListViewState extends EWidgetState<ListView>
         // Build Row with scrollbar on correct side
         listView = flutter.NotificationListener<
             flutter.ScrollMetricsNotification>(
-          onNotification: (_) {
+          onNotification: (notification) {
             // Content can grow after this cached ListView first initializes.
             // ScrollController listeners do not fire for that metrics-only
-            // change, so refresh the sibling TV scrollbar explicitly.
-            _scrollbarKey.currentState?.updateForScrollMetrics();
+            // change, so refresh the sibling TV scrollbar explicitly. Only
+            // for this list's own Scrollable (depth 0) -- a nested
+            // scrollable inside an item template bubbles this notification
+            // too, and its metrics don't affect this list's scrollbar.
+            if (notification.depth == 0) {
+              _scrollbarKey.currentState?.updateForScrollMetrics();
+            }
             return false;
           },
           child: flutter.Row(
