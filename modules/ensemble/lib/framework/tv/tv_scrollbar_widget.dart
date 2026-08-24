@@ -135,14 +135,7 @@ class TVScrollbarWidgetState extends State<TVScrollbarWidget> {
         !widget.scrollController.position.hasContentDimensions) {
       return;
     }
-
-    final wasInitialized = _isInitialized;
-    final wasScrollable = _isScrollable;
-    _isInitialized = true;
-    _updateThumbPosition();
-    if (!wasInitialized || _isScrollable != wasScrollable) {
-      setState(() {});
-    }
+    _refreshVisibility(markInitialized: true);
   }
 
   bool get _isFallbackFocusTarget => widget.fallbackFocus != null;
@@ -169,11 +162,20 @@ class TVScrollbarWidgetState extends State<TVScrollbarWidget> {
 
   void _onScrollChange() {
     if (!mounted || !widget.scrollController.hasClients) return;
+    _refreshVisibility();
+  }
+
+  /// Updates the thumb and, if visibility should change, rebuilds. Shared by
+  /// [_onScrollChange] (scroll-position updates) and [updateForScrollMetrics]
+  /// (content-dimension updates) so their rebuild condition can't drift apart.
+  void _refreshVisibility({bool markInitialized = false}) {
+    final wasInitialized = _isInitialized;
     final wasScrollable = _isScrollable;
+    if (markInitialized) _isInitialized = true;
     _updateThumbPosition(); // updates _thumbVN + _isScrollable (no setState)
     // Full rebuild only when visibility toggles; thumb moves are handled by the
     // ValueListenableBuilder around the thumb.
-    if (_isScrollable != wasScrollable) {
+    if ((markInitialized && !wasInitialized) || _isScrollable != wasScrollable) {
       setState(() {});
     }
   }
