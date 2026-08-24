@@ -187,6 +187,13 @@ dev_dependencies:
   # rules and activating additional ones.
   flutter_lints: ^2.0.3
 
+# firebase_core_web 3.11.0 fails to compile for web on this project's pinned
+# Flutter/Dart SDK (a dart:js_interop `isA` extension only broadened to
+# accept Object? starting Dart 3.12.0). Pin back to 3.10.0 until upstream
+# ships a fix or this SDK is bumped to new stable flutter version.
+dependency_overrides:
+  firebase_core_web: 3.10.0
+
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
 
