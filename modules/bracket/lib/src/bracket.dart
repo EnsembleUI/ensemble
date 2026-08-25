@@ -14,6 +14,7 @@ import 'package:ensemble/layout/templated.dart';
 import 'package:ensemble/model/item_template.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/helpers/controllers.dart';
+import 'package:flutter/foundation.dart' show ValueListenable, ValueNotifier;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -85,6 +86,15 @@ class BracketController extends EnsembleBoxController {
   /// Gap between tabs.
   double tabGap = 12;
 
+  /// Leading inset inside every round page.
+  double? leftEdgePadding;
+
+  /// Trailing inset applied only to the final round page.
+  double? rightEdgePadding;
+
+  /// Symmetric inset for the round-title strip.
+  double headerPadding = 0;
+
   /// Creates a [BracketController].
   BracketController();
 
@@ -110,15 +120,12 @@ class BracketController extends EnsembleBoxController {
   Color? tabFocusBackgroundColor;
   TextStyle? tabFocusTextStyle;
 
-  // TV navigation row offset - tabs will be at this row, matches at row+1, row+2, etc.
+  // TV navigation row offset.
   int tvRowOffset = 0;
 
-  // Layout scale (0.1 - 1.0). Baseline 0.75 = current defaults.
-  // Controls viewportFraction, matchCardWidthFraction, and connectorLength proportionally.
+  // Layout scale (0.1 - 1.0).
   double? _scale;
 
-  // Computed layout values based on scale
-  // Baseline: scale=0.75 → viewportFraction=0.75, cardWidth=0.6, connector=25
   double get viewportFraction => _scale ?? 0.75;
   double get matchCardWidthFraction =>
       _scale != null ? 0.6 * (_scale! / 0.75) : 0.6;
@@ -151,6 +158,21 @@ class BracketController extends EnsembleBoxController {
           tvRowOffset = Utils.getInt(data['row'], fallback: 0);
         }
       },
+      'leftEdgePadding': (value) {
+        leftEdgePadding = (Utils.optionalDouble(value) ?? 0)
+            .clamp(0, double.infinity)
+            .toDouble();
+      },
+      'rightEdgePadding': (value) {
+        rightEdgePadding = (Utils.optionalDouble(value) ?? 0)
+            .clamp(0, double.infinity)
+            .toDouble();
+      },
+      'headerPadding': (value) {
+        headerPadding = (Utils.optionalDouble(value) ?? 0)
+            .clamp(0, double.infinity)
+            .toDouble();
+      },
       'lineStyles': (data) {
         lineColor = Utils.getColor(data['color']);
         lineWidth = Utils.optionalDouble(data['width']);
@@ -164,16 +186,11 @@ class BracketController extends EnsembleBoxController {
         tabBorderRadius = Utils.getBorderRadius(data['borderRadius']);
         tabBorderColor = Utils.getColor(data['borderColor']);
         tabBorderWidth = Utils.optionalDouble(data['borderWidth']);
-        tabSelectedBorderColor =
-            Utils.getColor(data['selectedBorderColor']);
+        tabSelectedBorderColor = Utils.getColor(data['selectedBorderColor']);
         tabSelectedBorderWidth =
             Utils.optionalDouble(data['selectedBorderWidth']);
         tabPadding = Utils.optionalInsets(data['padding']);
         tabGap = Utils.getDouble(data['gap'], fallback: 12.0);
-        // Focus styling (TV D-pad)
-        // Priority: focusBorderColor > Theme > Provider > borderColor > app primary
-        // Priority: focusBorderWidth > Theme > Provider > borderWidth > default (2.0)
-        // Priority: focusBorderRadius > Theme > Provider > borderRadius > default (8.0)
         tabFocusColor = Utils.getColor(data['focusBorderColor']);
         tabFocusBorderWidth = Utils.optionalDouble(data['focusBorderWidth']);
         tabFocusBorderRadius = Utils.getBorderRadius(data['focusBorderRadius']);
@@ -221,9 +238,6 @@ class BracketController extends EnsembleBoxController {
 class BracketState extends EnsembleWidgetState<EnsembleBracketImpl>
     with TemplatedWidgetState {
   List<RoundData> roundData = [];
-  // Keep FocusTraversalGroup stable across rebuilds - must be at this level
-  // because BracketsView is recreated when roundData changes
-  final _focusTraversalGroupKey = GlobalKey();
 
   @override
   void didChangeDependencies() {
@@ -276,7 +290,6 @@ class BracketState extends EnsembleWidgetState<EnsembleBracketImpl>
     return BracketsView(
       controller: widget.controller,
       data: roundData,
-      focusTraversalGroupKey: _focusTraversalGroupKey,
       tvRowOffset: widget.controller.tvRowOffset,
     );
   }
@@ -285,14 +298,12 @@ class BracketState extends EnsembleWidgetState<EnsembleBracketImpl>
 class BracketsView extends StatefulWidget {
   final List<RoundData> data;
   final BracketController controller;
-  final GlobalKey? focusTraversalGroupKey;
   final int tvRowOffset;
 
   const BracketsView({
     super.key,
     required this.data,
     required this.controller,
-    this.focusTraversalGroupKey,
     this.tvRowOffset = 0,
   });
 
@@ -303,10 +314,10 @@ class BracketsView extends StatefulWidget {
 class _BracketsViewState extends State<BracketsView> {
   late PageController _pageController;
   int _currentPageIndex = 0;
-  // Tracks the target page for animation - controls column expansion
+  // Target page controls column expansion.
   int _prevColumnIndex = 0;
   List<GlobalKey> _tabKeys = [];
-  // Provider to tell children that bracket handles horizontal scrolling
+  // Prevents child focus handling from scrolling horizontally.
   final _bracketTVFocusProvider = _BracketTVFocusProvider();
 
   @override
@@ -321,6 +332,7 @@ class _BracketsViewState extends State<BracketsView> {
   @override
   void didUpdateWidget(covariant BracketsView oldWidget) {
     super.didUpdateWidget(oldWidget);
+    _syncTabKeys();
     // Recreate PageController if viewportFraction changed
     if (oldWidget.controller.viewportFraction !=
         widget.controller.viewportFraction) {
@@ -338,7 +350,11 @@ class _BracketsViewState extends State<BracketsView> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // Only regenerate if data length changed
+    _syncTabKeys();
+  }
+
+  // Regenerate tab keys when the round count changes.
+  void _syncTabKeys() {
     if (_tabKeys.length != widget.data.length) {
       _tabKeys =
           List<GlobalKey>.generate(widget.data.length, (index) => GlobalKey());
@@ -350,12 +366,7 @@ class _BracketsViewState extends State<BracketsView> {
     if (newPage != _currentPageIndex) {
       setState(() {
         _currentPageIndex = newPage;
-        // On mobile, a horizontal swipe changes the page but not the reference
-        // lane used for column spacing (_prevColumnIndex). Sync it here so tiles
-        // realign after a swipe exactly as they do after a tab tap. TV drives
-        // _prevColumnIndex via the keyboard-navigation callback instead, and must
-        // not be touched here (onPageChanged/page rounding is unreliable on the
-        // clamped end pages with small viewportFraction + padEnds:false).
+        // Mobile swipes also update the spacing anchor.
         if (!Device().isTV) {
           _prevColumnIndex = newPage;
         }
@@ -403,16 +414,13 @@ class _BracketsViewState extends State<BracketsView> {
       children: [
         if (_tabKeys.isNotEmpty)
           SingleChildScrollView(
-            padding: EdgeInsets.zero,
+            padding: EdgeInsets.symmetric(
+              horizontal: widget.controller.headerPadding,
+            ),
             scrollDirection: Axis.horizontal,
             child: Row(
               mainAxisAlignment: MainAxisAlignment.start,
               children: List.generate(widget.data.length, (index) {
-                // On TV, tab selection follows _prevColumnIndex — the true
-                // navigation target — because _pageController.page (which drives
-                // _currentPageIndex) clamps on the last pages with padEnds:false,
-                // so the final tab would never register as selected. Mobile keeps
-                // _currentPageIndex since swipes update it directly.
                 bool isSelected = index ==
                     (Device().isTV ? _prevColumnIndex : _currentPageIndex);
                 String? title = widget.data.elementAt(index).title;
@@ -427,7 +435,6 @@ class _BracketsViewState extends State<BracketsView> {
                   );
                 }
 
-                // Selected tab may override the base border; else fall back to base.
                 final Color? mobileBorderColor = isSelected
                     ? (widget.controller.tabSelectedBorderColor ??
                         widget.controller.tabBorderColor)
@@ -448,14 +455,12 @@ class _BracketsViewState extends State<BracketsView> {
                     },
                     style: ElevatedButton.styleFrom(
                       padding: widget.controller.tabPadding,
-                      // Draw a resting border only when a border color is set, so
-                      // apps that never set it keep their previous look.
                       shape: (widget.controller.tabBorderRadius != null ||
                               mobileBorderColor != null)
                           ? RoundedRectangleBorder(
-                              borderRadius:
-                                  widget.controller.tabBorderRadius?.getValue() ??
-                                      BorderRadius.zero,
+                              borderRadius: widget.controller.tabBorderRadius
+                                      ?.getValue() ??
+                                  BorderRadius.zero,
                               side: mobileBorderColor != null
                                   ? BorderSide(
                                       color: mobileBorderColor,
@@ -480,10 +485,6 @@ class _BracketsViewState extends State<BracketsView> {
             ),
           ),
         Expanded(
-          // Wrap with TVFocusProviderScope to tell child widgets that
-          // the bracket handles horizontal scrolling via PageView.
-          // This prevents box_wrapper from calling Scrollable.ensureVisible()
-          // which would cause horizontal jerk when navigating UP/DOWN.
           child: Device().isTV
               ? TVFocusProviderScope(
                   provider: _bracketTVFocusProvider,
@@ -497,8 +498,6 @@ class _BracketsViewState extends State<BracketsView> {
                       setState(() {
                         _prevColumnIndex = index;
                       });
-                      // Keep the selected tab in sync + scrolled into view when
-                      // navigating columns with the D-pad.
                       _scrollToSelectedTab(index);
                     },
                   ),
@@ -518,11 +517,6 @@ class _BracketsViewState extends State<BracketsView> {
         ),
       ],
     );
-
-    // NOTE: We no longer wrap with FocusTraversalGroup here because:
-    // 1. The outer View already has a FocusTraversalGroup with TVFocusOrderTraversalPolicy
-    // 2. Nested FocusTraversalGroups isolate focus, preventing navigation from header (BackArrow) to bracket
-    // The outer View's FocusTraversalGroup handles all TV navigation using row/order from tvOptions.
 
     return content;
   }
@@ -578,27 +572,22 @@ class _TVTabButtonState extends State<_TVTabButton> {
 
   @override
   Widget build(BuildContext context) {
-    // Get focus styling from controller with fallback chain
-    // Priority: tabStyles > Theme > Provider > Widget styles > Default (same as box_wrapper.dart)
     final theme = Theme.of(context);
     final themeExtension = theme.extension<EnsembleThemeExtension>();
     final tvFocusTheme = themeExtension?.tvFocusTheme;
     final appPrimaryColor = theme.colorScheme.primary;
     final externalProvider = TVFocusProviderScope.maybeOf(context);
 
-    // Priority: focusBorderColor > Theme > provider > borderColor > app primary
     final focusBorderColor = widget.controller.tabFocusColor ??
         tvFocusTheme?.focusBorderColor ??
         externalProvider?.focusBorderColor ??
         widget.controller.tabBorderColor ??
         appPrimaryColor;
-    // Priority: focusBorderWidth > Theme > provider > borderWidth > default (2.0)
     final focusBorderWidth = widget.controller.tabFocusBorderWidth ??
         tvFocusTheme?.focusBorderWidth ??
         externalProvider?.focusBorderWidth ??
         widget.controller.tabBorderWidth ??
         2.0;
-    // Priority: focusBorderRadius > Theme > provider > borderRadius > default (8.0)
     final borderRadius = widget.controller.tabFocusBorderRadius?.getValue() ??
         (tvFocusTheme?.focusBorderRadius != null
             ? BorderRadius.circular(tvFocusTheme!.focusBorderRadius!)
@@ -609,8 +598,6 @@ class _TVTabButtonState extends State<_TVTabButton> {
         widget.controller.tabBorderRadius?.getValue() ??
         BorderRadius.circular(8);
 
-    // Determine background color based on focus and selection state
-    // Priority: focused > selected > default
     Color? backgroundColor;
     if (_isFocused && widget.controller.tabFocusBackgroundColor != null) {
       backgroundColor = widget.controller.tabFocusBackgroundColor;
@@ -620,8 +607,6 @@ class _TVTabButtonState extends State<_TVTabButton> {
       backgroundColor = widget.controller.tabBackgroundColor;
     }
 
-    // Determine text style based on focus and selection state
-    // Priority: focused > selected > default
     TextStyle? textStyle;
     if (_isFocused && widget.controller.tabFocusTextStyle != null) {
       textStyle = widget.controller.tabFocusTextStyle;
@@ -631,10 +616,6 @@ class _TVTabButtonState extends State<_TVTabButton> {
       textStyle = widget.controller.tabTextStyle;
     }
 
-    // Resting-state border comes from the base tabStyles (borderColor/
-    // borderWidth); focus overrides it. A border is always painted
-    // (transparent + focus width when unset) to prevent size jerk on focus.
-    // Selected tab may override the base border; priority focused > selected > normal.
     final restingBorderColor = widget.isSelected
         ? (widget.controller.tabSelectedBorderColor ??
             widget.controller.tabBorderColor ??
@@ -713,133 +694,247 @@ class BracketsPage extends StatefulWidget {
   State<BracketsPage> createState() => _BracketsPageState();
 }
 
-class CustomScrollNotification extends Notification {
-  final double scrollPosition;
-  final double maxScrollExtent;
-  final double visibleHeight;
-
-  CustomScrollNotification(
-      this.scrollPosition, this.maxScrollExtent, this.visibleHeight);
-}
-
-class _BracketsPageState extends State<BracketsPage> {
+class _BracketsPageState extends State<BracketsPage>
+    with SingleTickerProviderStateMixin {
   late List<ScrollController> _scrollControllers;
-
-  // Own the FocusScope that wraps this bracket's pages so navigation can search
-  // ONLY this bracket's focus subtree. A previous BracketView still mounted lower
-  // in the navigator stack has its own duplicate column tiles in the global focus
-  // tree; scanning globally can focus those off-screen ghosts (no visible ring).
   final FocusScopeNode _pageScopeNode =
       FocusScopeNode(debugLabel: 'BracketPageScope');
+  final Map<_BracketMatchKey, FocusScopeNode> _matchFocusScopes = {};
+
+  bool _scrollSyncScheduled = false;
+  bool _isSynchronizingScrolls = false;
+  int? _pendingScrollSyncColumn;
+  bool _isHorizontalTransitioning = false;
+  int _focusRequestGeneration = 0;
+  double _logicalScrollOffset = 0;
+  _BracketMatchKey? _focusedMatch;
+  late int _activeColumnIndex;
+  late final ValueNotifier<_BracketLayoutState> _layoutStateNotifier;
+  late final AnimationController _layoutAnimationController;
 
   @override
   void initState() {
     super.initState();
+    _activeColumnIndex = widget.prevColumnIndex;
+    _layoutStateNotifier = ValueNotifier(
+      _BracketLayoutState.stationary(widget.prevColumnIndex),
+    );
+    _layoutAnimationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 280),
+    )..addListener(_onLayoutAnimationTick);
     _scrollControllers =
         List.generate(widget.data.length, (index) => ScrollController());
   }
 
-  void _onPageChanged(int index) async {
-    // Only animate scroll if controller is attached
-    if (index < _scrollControllers.length &&
-        _scrollControllers[index].hasClients) {
-      _scrollControllers[index].animateTo(0.0,
-          duration: const Duration(milliseconds: 600),
-          curve: Curves.decelerate);
-      _scrollControllers[index].animateTo(0.1,
-          duration: const Duration(milliseconds: 10), curve: Curves.decelerate);
+  @override
+  void didUpdateWidget(covariant BracketsPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!_isHorizontalTransitioning &&
+        oldWidget.prevColumnIndex != widget.prevColumnIndex) {
+      _activeColumnIndex = widget.prevColumnIndex;
     }
-
-    // Note: prevColumnIndex is managed by parent (_BracketsViewState) and updated:
-    // 1. Via _animateToPage when tabs are clicked
-    // 2. Via onPrevColumnIndexChanged callback when keyboard navigation occurs
-    // We don't update it here because onPageChanged fires unreliably with small
-    // viewportFraction and padEnds=false (doesn't fire for clamped pages like page 3).
+    if (oldWidget.prevColumnIndex != widget.prevColumnIndex &&
+        !_isHorizontalTransitioning) {
+      _animateLayoutTo(widget.prevColumnIndex);
+    }
+    if (oldWidget.data.length != widget.data.length) {
+      _resizeScrollControllers();
+      if (widget.data.isNotEmpty && _activeColumnIndex >= widget.data.length) {
+        _activeColumnIndex = widget.data.length - 1;
+      }
+    }
   }
 
-  /// Find and focus an item in the current page at the given row.
-  /// If the row doesn't exist (e.g., row 8 in Quarter Finals), clamp to available rows.
-  void _focusRowInCurrentPage(int targetRow, int columnIndex) {
-    // Number of matches in this round determines max row
-    final matchCount = widget.data[columnIndex].matches.data;
-    final evalData =
-        widget.data[columnIndex].localScope.dataContext.eval(matchCount);
-    final numMatches = (evalData as List?)?.length ?? 1;
+  void _resizeScrollControllers() {
+    final oldControllers = _scrollControllers;
+    final retainedCount = oldControllers.length < widget.data.length
+        ? oldControllers.length
+        : widget.data.length;
+    final newControllers = <ScrollController>[
+      for (var i = 0; i < retainedCount; i++) oldControllers[i],
+      for (var i = retainedCount; i < widget.data.length; i++)
+        ScrollController(),
+    ];
+    for (var i = widget.data.length; i < oldControllers.length; i++) {
+      oldControllers[i].dispose();
+    }
+    _scrollControllers = newControllers;
+  }
 
-    // Clamp targetRow to available match rows
-    // Tabs are at tvRowOffset, matches start at tvRowOffset + 1
-    final matchRowStart = widget.tvRowOffset + 1;
-    final clampedRow =
-        targetRow.clamp(matchRowStart, matchRowStart + numMatches - 1);
+  void _onPageChanged(int columnIndex) {
+    // Synchronize only the newly selected column.
+    _scheduleScrollSync(columnIndex);
+  }
 
-    // Find the focusable item with this row and column (order)
-    // We find the DEEPEST focusable descendant that has this TVFocusOrder,
-    // as this corresponds to the innermost Focus widget with visual styling.
-    // Search ONLY this bracket's own focus subtree, not the whole app. A previous
-    // BracketView still mounted lower in the navigator stack has its own duplicate
-    // column tiles; scanning globally can focus one of those off-screen ghosts
-    // (primary focus set, but no ring). Fall back to the root scope only if our
-    // scope isn't attached yet.
-    final Iterable<FocusNode> searchRoots = _pageScopeNode.descendants.isNotEmpty
-        ? _pageScopeNode.descendants
-        : FocusManager.instance.rootScope.descendants;
-    final double screenWidth = MediaQuery.of(context).size.width;
+  int _matchCount(int columnIndex) {
+    final matches = widget.data[columnIndex].localScope.dataContext
+        .eval(widget.data[columnIndex].matches.data);
+    return (matches as List?)?.length ?? 0;
+  }
 
-    // Among nodes at the exact target (clampedRow, columnIndex), prefer the one
-    // that is actually VISIBLE on screen; among ties pick the deepest (the
-    // innermost Focus that carries the visual styling).
-    FocusNode? bestMatch;
-    int bestDepth = -1;
-    bool bestOnScreen = false;
+  double _slotExtent(int columnIndex) {
+    return widget.data[columnIndex].matches.height *
+        _layoutStateNotifier.value.multiplierFor(columnIndex);
+  }
 
-    for (final focusNode in searchRoots) {
-      final ctx = focusNode.context;
-      if (ctx == null) continue;
+  void _onLayoutAnimationTick() {
+    final state = _layoutStateNotifier.value;
+    _layoutStateNotifier.value = state.copyWith(
+      progress:
+          Curves.easeInOutCubic.transform(_layoutAnimationController.value),
+    );
+  }
 
-      final order =
-          ctx.findAncestorWidgetOfExactType<FocusTraversalOrder>()?.order;
-      if (order is! TVFocusOrder) continue;
-      if (order.row.toInt() != clampedRow ||
-          order.order.toInt() != columnIndex) {
-        continue;
+  void _animateLayoutTo(int targetColumn, {VoidCallback? onComplete}) {
+    final current = _layoutStateNotifier.value;
+    if (current.toColumnIndex == targetColumn && current.progress == 1) {
+      onComplete?.call();
+      return;
+    }
+    _layoutStateNotifier.value = _BracketLayoutState(
+      fromColumnIndex: current.toColumnIndex,
+      toColumnIndex: targetColumn,
+      progress: 0,
+    );
+    _layoutAnimationController.forward(from: 0).whenComplete(() {
+      if (mounted) onComplete?.call();
+    });
+  }
+
+  void _registerMatchFocus(_BracketMatchKey key, FocusScopeNode node) {
+    _matchFocusScopes[key] = node;
+  }
+
+  void _unregisterMatchFocus(_BracketMatchKey key, FocusScopeNode node) {
+    if (identical(_matchFocusScopes[key], node)) {
+      _matchFocusScopes.remove(key);
+    }
+  }
+
+  void _scheduleScrollSync(int columnIndex) {
+    if (!mounted ||
+        columnIndex < 0 ||
+        columnIndex >= _scrollControllers.length) {
+      return;
+    }
+    _pendingScrollSyncColumn = columnIndex;
+    if (_scrollSyncScheduled) return;
+    _scrollSyncScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _scrollSyncScheduled = false;
+      if (!mounted) return;
+      final pendingColumn = _pendingScrollSyncColumn;
+      _pendingScrollSyncColumn = null;
+      if (pendingColumn == null || pendingColumn >= _scrollControllers.length) {
+        return;
+      }
+      final controller = _scrollControllers[pendingColumn];
+      if (!controller.hasClients) return;
+
+      _isSynchronizingScrolls = true;
+      final position = controller.position;
+      final target = _logicalScrollOffset.clamp(
+        position.minScrollExtent,
+        position.maxScrollExtent,
+      );
+      if ((position.pixels - target).abs() > 0.5) {
+        controller.jumpTo(target);
+      }
+      _isSynchronizingScrolls = false;
+    });
+  }
+
+  void _onColumnScroll(int _, ScrollNotification notification) {
+    if (_isSynchronizingScrolls || notification.metrics.axis != Axis.vertical) {
+      return;
+    }
+    if (notification is ScrollUpdateNotification ||
+        notification is ScrollEndNotification) {
+      _logicalScrollOffset = notification.metrics.pixels;
+    }
+  }
+
+  void _requestFocusWhenMounted(
+    _BracketMatchKey key,
+    int requestGeneration, [
+    int attempt = 0,
+  ]) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || requestGeneration != _focusRequestGeneration) return;
+      final scope = _matchFocusScopes[key];
+      if (scope == null || scope.context == null) {
+        if (attempt < 4) {
+          _requestFocusWhenMounted(key, requestGeneration, attempt + 1);
+        }
+        return;
       }
 
-      // Depth: deeper = the innermost Focus that carries the visual styling.
-      int depth = 0;
-      FocusNode? parent = focusNode.parent;
-      while (parent != null) {
-        depth++;
-        parent = parent.parent;
+      if (scope.hasFocus) {
+        _focusedMatch = key;
+        return;
       }
 
-      // Visible? An off-screen duplicate has its horizontal center outside the
-      // screen bounds.
-      bool onScreen = false;
-      final renderObject = ctx.findRenderObject();
-      if (renderObject is RenderBox && renderObject.hasSize) {
-        final centerX = renderObject.localToGlobal(Offset.zero).dx +
-            renderObject.size.width / 2;
-        onScreen = centerX >= 0 && centerX < screenWidth;
+      FocusNode? target;
+      for (final node in scope.descendants) {
+        if (node != scope && node.canRequestFocus && node.context != null) {
+          target = node;
+        }
       }
+      (target ?? scope).requestFocus();
+      _focusedMatch = key;
+    });
+  }
 
-      // Prefer on-screen; then prefer deeper.
-      final bool better = bestMatch == null ||
-          (onScreen != bestOnScreen ? onScreen : depth > bestDepth);
-      if (better) {
-        bestMatch = focusNode;
-        bestDepth = depth;
-        bestOnScreen = onScreen;
+  Future<void> _focusMatch(int columnIndex, int requestedMatch) async {
+    // Ignore stale completions from repeated remote events.
+    final requestGeneration = ++_focusRequestGeneration;
+    final count = _matchCount(columnIndex);
+    if (count == 0) return;
+    final matchIndex = requestedMatch.clamp(0, count - 1);
+    final key = _BracketMatchKey(columnIndex, matchIndex);
+    _focusedMatch = key;
+
+    final controller = _scrollControllers[columnIndex];
+    Future<void>? scrollAnimation;
+    if (controller.hasClients) {
+      final position = controller.position;
+      final desiredOffset = (matchIndex * _slotExtent(columnIndex) -
+              position.viewportDimension * 0.35)
+          .clamp(position.minScrollExtent, position.maxScrollExtent);
+      _logicalScrollOffset = desiredOffset;
+      if ((position.pixels - desiredOffset).abs() > 0.5) {
+        scrollAnimation = controller.animateTo(
+          desiredOffset,
+          duration: const Duration(milliseconds: 220),
+          curve: Curves.easeOutCubic,
+        );
       }
     }
 
-    // Only move focus if the chosen tile is actually on screen. When every
-    // match at (row, col) is off screen — the target column hasn't settled into
-    // view yet (rapid/interrupted nav) or only an off-screen ghost from a lower
-    // BracketView was found — requesting focus would land it on an invisible
-    // tile (no focus ring). In that case keep the current focus instead.
-    if (bestMatch != null && bestOnScreen) {
-      bestMatch.requestFocus();
+    // Focus must react to the key event, not wait for the viewport animation.
+    _requestFocusWhenMounted(key, requestGeneration);
+
+    // A card just outside the lazy cache may mount during this scroll. Retry
+    // once the latest request's animation completes in that case.
+    if (scrollAnimation != null) {
+      await scrollAnimation;
     }
+    if (!mounted || requestGeneration != _focusRequestGeneration) return;
+    _requestFocusWhenMounted(key, requestGeneration);
+  }
+
+  bool _moveVertically(int columnIndex, int matchIndex, int direction) {
+    final activeMatch = _focusedMatch?.columnIndex == columnIndex
+        ? _focusedMatch!.matchIndex
+        : matchIndex;
+    final targetMatch = activeMatch + direction;
+    // Let the outer focus grid handle the column edges.
+    if (targetMatch < 0 || targetMatch >= _matchCount(columnIndex)) {
+      return false;
+    }
+    _focusMatch(columnIndex, targetMatch);
+    return true;
   }
 
   @override
@@ -847,6 +942,10 @@ class _BracketsPageState extends State<BracketsPage> {
     for (var controller in _scrollControllers) {
       controller.dispose();
     }
+    _layoutAnimationController
+      ..removeListener(_onLayoutAnimationTick)
+      ..dispose();
+    _layoutStateNotifier.dispose();
     _pageScopeNode.dispose();
     super.dispose();
   }
@@ -854,60 +953,20 @@ class _BracketsPageState extends State<BracketsPage> {
   /// Handle LEFT/RIGHT key events to animate PageView.
   /// Match cards set delegateHorizontalNavigation: true, so horizontal keys bubble up here.
   KeyEventResult _handleKeyEvent(FocusNode node, KeyEvent event) {
-    if (event is! KeyDownEvent) return KeyEventResult.ignored;
+    if (event is! KeyDownEvent && event is! KeyRepeatEvent) {
+      return KeyEventResult.ignored;
+    }
 
-    // Use widget.prevColumnIndex instead of pageController.page because with small viewportFraction
-    // and padEnds=false, pageController.page gets clamped (e.g., max 1.5 with 4 pages at 0.4 fraction)
+    if (_isHorizontalTransitioning) return KeyEventResult.handled;
+
     if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
-      final currentPage = widget.prevColumnIndex;
-      if (currentPage < widget.data.length - 1) {
-        final focusRow = _getCurrentFocusedRow(node);
-        final targetPage = currentPage + 1;
-
-        // Notify parent to update prevColumnIndex BEFORE animation starts.
-        // This ensures correct navigation even if onPageChanged doesn't fire (clamped pages).
-        widget.onPrevColumnIndexChanged?.call(targetPage);
-
-        widget.pageController
-            .animateToPage(
-          targetPage,
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeOut,
-        )
-            .then((_) {
-          // After animation completes, transfer focus to the new page
-          if (focusRow != null) {
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              _focusRowInCurrentPage(focusRow, targetPage);
-            });
-          }
-        });
+      if (_activeColumnIndex < widget.data.length - 1) {
+        _startHorizontalTransition(_activeColumnIndex + 1);
         return KeyEventResult.handled;
       }
     } else if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
-      final currentPage = widget.prevColumnIndex;
-      if (currentPage > 0) {
-        final focusRow = _getCurrentFocusedRow(node);
-        final targetPage = currentPage - 1;
-
-        // Notify parent to update prevColumnIndex BEFORE animation starts.
-        // This ensures correct navigation even if onPageChanged doesn't fire (clamped pages).
-        widget.onPrevColumnIndexChanged?.call(targetPage);
-
-        widget.pageController
-            .animateToPage(
-          targetPage,
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeOut,
-        )
-            .then((_) {
-          // After animation completes, transfer focus to the new page
-          if (focusRow != null) {
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              _focusRowInCurrentPage(focusRow, targetPage);
-            });
-          }
-        });
+      if (_activeColumnIndex > 0) {
+        _startHorizontalTransition(_activeColumnIndex - 1);
         return KeyEventResult.handled;
       }
     }
@@ -915,62 +974,62 @@ class _BracketsPageState extends State<BracketsPage> {
     return KeyEventResult.ignored;
   }
 
-  /// Extract the current focused row from the TVFocusOrder in the focus tree.
-  int? _getCurrentFocusedRow(FocusNode node) {
-    // Use primaryFocus instead of the passed node, because the passed node
-    // is the FocusScope's node, not the actually focused child
-    FocusNode? current = FocusManager.instance.primaryFocus;
-    while (current != null) {
-      final context = current.context;
-      if (context != null) {
-        final focusTraversalOrder =
-            context.findAncestorWidgetOfExactType<FocusTraversalOrder>();
-        if (focusTraversalOrder?.order is TVFocusOrder) {
-          final order = focusTraversalOrder!.order as TVFocusOrder;
-          // Return the row as-is (matches are at tvRowOffset + 1 + matchIndex)
-          return order.row.toInt();
-        }
-      }
-      current = current.parent;
-    }
-    return null;
+  /// Changes page and reflows the layout.
+  void _startHorizontalTransition(int targetPage) {
+    final targetMatch = _focusedMatch?.columnIndex == _activeColumnIndex
+        ? _focusedMatch!.matchIndex
+        : 0;
+
+    _isHorizontalTransitioning = true;
+    _activeColumnIndex = targetPage;
+    widget.pageController
+        .animateToPage(targetPage,
+            duration: const Duration(milliseconds: 180), curve: Curves.easeOut)
+        .whenComplete(() {
+      if (!mounted) return;
+      widget.onPrevColumnIndexChanged?.call(targetPage);
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        _animateLayoutTo(targetPage, onComplete: () {
+          if (!mounted) return;
+          _isHorizontalTransitioning = false;
+          _focusMatch(targetPage, targetMatch);
+        });
+      });
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    Widget pageView = NotificationListener<CustomScrollNotification>(
-      onNotification: (CustomScrollNotification notification) {
-        int currentPage = widget.pageController.page?.round() ?? 0;
-        // Sync scroll to ALL columns after the current one (not just the next)
-        // This ensures Semi Finals and Final scroll with 8th Finals and Quarter Finals
-        for (int i = currentPage + 1; i < _scrollControllers.length; i++) {
-          if (_scrollControllers[i].hasClients) {
-            _scrollControllers[i].jumpTo(notification.scrollPosition);
-          }
-        }
-        return true;
+    Widget pageView = PageView.builder(
+      padEnds: false,
+      controller: widget.pageController,
+      physics: Device().isTV
+          ? const NeverScrollableScrollPhysics()
+          : const PageScrollPhysics(),
+      itemCount: widget.data.length,
+      onPageChanged: _onPageChanged,
+      itemBuilder: (context, columnIndex) {
+        return BracketsColumnPage(
+          controller: widget.controller,
+          roundData: widget.data[columnIndex],
+          columnIndex: columnIndex,
+          prevColumnIndex: widget.prevColumnIndex,
+          totalColumns: widget.data.length,
+          scrollController: _scrollControllers[columnIndex],
+          tvRowOffset: widget.tvRowOffset,
+          leftEdgePadding: widget.controller.leftEdgePadding,
+          rightEdgePadding: widget.controller.rightEdgePadding,
+          layoutState: _layoutStateNotifier,
+          onScrollNotification: _onColumnScroll,
+          registerMatchFocus: _registerMatchFocus,
+          unregisterMatchFocus: _unregisterMatchFocus,
+          onMoveVertical: _moveVertically,
+          onMatchFocused: (key) => _focusedMatch = key,
+        );
       },
-      child: PageView.builder(
-        padEnds: false,
-        controller: widget.pageController,
-        itemCount: widget.data.length,
-        onPageChanged: _onPageChanged,
-        itemBuilder: (context, columnIndex) {
-          return BracketsColumnPage(
-            controller: widget.controller,
-            roundData: widget.data[columnIndex],
-            columnIndex: columnIndex,
-            prevColumnIndex: widget.prevColumnIndex,
-            totalColumns: widget.data.length,
-            scrollController: _scrollControllers[columnIndex],
-            tvRowOffset: widget.tvRowOffset,
-          );
-        },
-      ),
     );
 
-    // On TV, wrap with FocusScope to catch delegated horizontal key events.
-    // Own the node so navigation can scope its search to this bracket's subtree.
     if (Device().isTV) {
       return FocusScope(
         node: _pageScopeNode,
@@ -991,6 +1050,18 @@ class BracketsColumnPage extends StatefulWidget {
   final BracketController controller;
   final ScrollController scrollController;
   final int tvRowOffset;
+  final double? leftEdgePadding;
+  final double? rightEdgePadding;
+  final ValueListenable<_BracketLayoutState> layoutState;
+  final void Function(int columnIndex, ScrollNotification notification)?
+      onScrollNotification;
+  final void Function(_BracketMatchKey key, FocusScopeNode node)?
+      registerMatchFocus;
+  final void Function(_BracketMatchKey key, FocusScopeNode node)?
+      unregisterMatchFocus;
+  final bool Function(int columnIndex, int matchIndex, int direction)?
+      onMoveVertical;
+  final ValueChanged<_BracketMatchKey>? onMatchFocused;
 
   const BracketsColumnPage({
     super.key,
@@ -1000,7 +1071,15 @@ class BracketsColumnPage extends StatefulWidget {
     required this.totalColumns,
     required this.controller,
     required this.scrollController,
+    required this.layoutState,
     this.tvRowOffset = 0,
+    this.leftEdgePadding,
+    this.rightEdgePadding,
+    this.onScrollNotification,
+    this.registerMatchFocus,
+    this.unregisterMatchFocus,
+    this.onMoveVertical,
+    this.onMatchFocused,
   });
 
   @override
@@ -1010,201 +1089,323 @@ class BracketsColumnPage extends StatefulWidget {
 class _BracketsColumnPageState extends State<BracketsColumnPage> {
   late double matchCardHeight;
   List computedMatches = [];
-
-  // TV perf: the per-match content (scope + YAML model + widget + TVFocusWidget)
-  // is independent of prevColumnIndex, but a navigation changes prevColumnIndex
-  // and rebuilds this column — re-parsing/instantiating every tile. With 16/32
-  // tiles that synchronous rebuild is what makes the transition jank ("stuck
-  // then it happens"). So on TV we build the content once and reuse it across
-  // navigation; only the cheap margin/connector wrappers recompute each build.
-  // Invalidated when the underlying round data changes (identity). Mobile keeps
-  // building inline every frame (unchanged).
-  List<Widget>? _cachedTileContents;
+  late SliverChildBuilderDelegate _sliverDelegate;
 
   @override
   void initState() {
     computedMatches = widget.roundData.localScope.dataContext
         .eval(widget.roundData.matches.data);
     matchCardHeight = widget.roundData.matches.height;
+    _sliverDelegate = _createSliverDelegate();
     super.initState();
   }
 
   @override
   void didUpdateWidget(covariant BracketsColumnPage oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // Only a real data change (new RoundData) invalidates the content cache —
-    // NOT prevColumnIndex navigation rebuilds, which keep the same roundData.
     if (!identical(widget.roundData, oldWidget.roundData)) {
       computedMatches = widget.roundData.localScope.dataContext
           .eval(widget.roundData.matches.data);
       matchCardHeight = widget.roundData.matches.height;
-      _cachedTileContents = null;
+      _sliverDelegate = _createSliverDelegate();
     }
   }
 
-  /// Builds the prevColumnIndex-independent inner content for every match: the
-  /// child scope, YAML model, widget, and (on TV) the TVFocusWidget wrapper.
-  /// The margin/connector wrappers are applied later in [build] since they DO
-  /// depend on prevColumnIndex.
-  List<Widget> _buildTileContents() {
-    return List.generate(computedMatches.length, (matchIndex) {
-      final matchData = computedMatches[matchIndex];
-
-      // Create a CHILD scope for each match
-      final matchScope = widget.roundData.localScope.createChildScope();
-      matchScope.dataContext
-          .addDataContextById(widget.roundData.matches.name, matchData);
-      matchScope.dataContext.addDataContextById('matchIndex', matchIndex);
-      matchScope.dataContext
-          .addDataContextById('roundIndex', widget.columnIndex);
-
-      // Build the widget model and widget, then wrap in DataScopeWidget so the
-      // widget can access the scope's data context for expressions.
-      final widgetModel = matchScope
-          .buildWidgetModelFromDefinition(widget.roundData.matches.template);
-      final templatedWidget = matchScope.buildWidgetFromModel(widgetModel);
-      Widget matchWidget = DataScopeWidget(
-        scopeManager: matchScope,
-        child: templatedWidget,
+  SliverChildBuilderDelegate _createSliverDelegate() =>
+      SliverChildBuilderDelegate(
+        (context, matchIndex) => _buildMatch(context, matchIndex),
+        childCount: computedMatches.length,
+        addAutomaticKeepAlives: false,
+        addRepaintBoundaries: true,
       );
 
-      // Wrap with TVFocusWidget directly in Dart (not via YAML tvOptions). This
-      // avoids scope evaluation timing issues - matchIndex/roundIndex are
-      // available here but not during YAML re-evaluation on rebuild. Don't add
-      // an extra Focus widget here - box_wrapper's Focus handles visual styling;
-      // TVFocusWidget only provides ordering.
-      if (Device().isTV) {
-        matchWidget = TVFocusWidget(
-          focusOrder: TVFocusOrder.withOptions(
-            (widget.tvRowOffset + 1 + matchIndex)
-                .toDouble(), // matches start at tvRowOffset + 1
-            order: widget.columnIndex.toDouble(), // column = roundIndex
-            isRowEntryPoint: matchIndex == 0, // first match is entry point
-            delegateHorizontalNavigation: true, // bracket handles LEFT/RIGHT
+  Widget _buildMatch(BuildContext context, int matchIndex) {
+    final matchData = computedMatches[matchIndex];
+    final matchScope = widget.roundData.localScope.createChildScope();
+    matchScope.dataContext
+        .addDataContextById(widget.roundData.matches.name, matchData);
+    matchScope.dataContext.addDataContextById('matchIndex', matchIndex);
+    matchScope.dataContext.addDataContextById('roundIndex', widget.columnIndex);
+
+    final widgetModel = matchScope
+        .buildWidgetModelFromDefinition(widget.roundData.matches.template);
+    Widget matchWidget = DataScopeWidget(
+      scopeManager: matchScope,
+      child: matchScope.buildWidgetFromModel(widgetModel),
+    );
+
+    final key = _BracketMatchKey(widget.columnIndex, matchIndex);
+    if (Device().isTV && widget.registerMatchFocus != null) {
+      matchWidget = _BracketMatchFocusTarget(
+        key: ValueKey(key),
+        matchKey: key,
+        onMoveVertical: widget.onMoveVertical,
+        onFocused: widget.onMatchFocused,
+        focusOrder: TVFocusOrder.withOptions(
+          (widget.tvRowOffset + 1 + matchIndex).toDouble(),
+          order: widget.columnIndex.toDouble(),
+          isRowEntryPoint:
+              matchIndex == 0 && widget.columnIndex == widget.prevColumnIndex,
+          delegateHorizontalNavigation: true,
+        ),
+        register: widget.registerMatchFocus!,
+        unregister: widget.unregisterMatchFocus!,
+        child: matchWidget,
+      );
+    } else if (Device().isTV) {
+      // Keep the historic TV traversal when this column is used without the
+      // BracketsPage coordinator.
+      matchWidget = TVFocusWidget(
+        focusOrder: TVFocusOrder.withOptions(
+          (widget.tvRowOffset + 1 + matchIndex).toDouble(),
+          order: widget.columnIndex.toDouble(),
+          isRowEntryPoint: matchIndex == 0,
+          delegateHorizontalNavigation: true,
+        ),
+        child: matchWidget,
+      );
+    }
+
+    return ValueListenableBuilder<_BracketLayoutState>(
+      valueListenable: widget.layoutState,
+      child: matchWidget,
+      builder: (context, layout, card) => Align(
+        alignment: Alignment.topLeft,
+        child: SizedBox(
+          height: matchCardHeight,
+          width: MediaQuery.of(context).size.width *
+              widget.controller.matchCardWidthFraction,
+          child: Container(
+            margin: EdgeInsets.only(
+              left: widget.controller.connectorLength *
+                  layout.leftConnectorProgressFor(widget.columnIndex),
+            ),
+            child: CustomPaint(
+              painter: BracketPainter(
+                isTopBracket: widget.columnIndex + 1 == widget.totalColumns
+                    ? null
+                    : !(matchIndex.isEven),
+                showLeftBorder:
+                    layout.leftConnectorProgressFor(widget.columnIndex) > 0,
+                leftBorderOpacity:
+                    layout.leftConnectorProgressFor(widget.columnIndex),
+                lineColor: widget.controller.lineColor ?? Colors.black,
+                borderColor: widget.controller.borderColor ?? Colors.black,
+                lineWidth: widget.controller.lineWidth ?? 2.0,
+                borderWidth: widget.controller.borderWidth?.toDouble() ?? 2.0,
+                connectorLength: widget.controller.connectorLength,
+                columnIndex: widget.columnIndex,
+                prevColumnIndex: layout.toColumnIndex,
+                spacingMultiplier: layout.multiplierFor(widget.columnIndex),
+              ),
+              child: card,
+            ),
           ),
-          child: matchWidget,
-        );
-      }
-      return matchWidget;
-    });
+        ),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    // TV: reuse cached tile content across navigation rebuilds so a
-    // prevColumnIndex change doesn't re-parse models / rebuild widgets (the
-    // 16/32-tile transition jank). Mobile builds fresh each frame (unchanged).
-    final List<Widget> tileContents = Device().isTV
-        ? (_cachedTileContents ??= _buildTileContents())
-        : _buildTileContents();
+    final sliverDelegate =
+        Device().isTV ? _sliverDelegate : _createSliverDelegate();
 
-    return NotificationListener(
-      onNotification: (ScrollNotification notification) {
-        if (notification is ScrollUpdateNotification) {
-          double visibleHeight = notification.metrics.viewportDimension;
-          CustomScrollNotification(
-            notification.metrics.pixels,
-            notification.metrics.maxScrollExtent,
-            visibleHeight,
-          ).dispatch(context);
-        }
-        return true;
-      },
-      child: SingleChildScrollView(
-        scrollDirection: Axis.vertical,
-        physics: const ClampingScrollPhysics(),
-        controller: widget.scrollController,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            ...List.generate(computedMatches.length, (matchIndex) {
+    final double leftPad = widget.leftEdgePadding ?? 0.0;
+    final double rightPad = widget.columnIndex == widget.totalColumns - 1
+        ? (widget.rightEdgePadding ?? 0.0)
+        : 0.0;
 
-              // Calculate vertical MARGIN to center cards between previous column's matches
-              // Uses prevColumnIndex for animation effect - stages "expand" as you navigate to them
-              //
-              // Key insight: In a Column, margin.top is RELATIVE to the previous element,
-              // not an absolute position from the top. So we need:
-              // - Match 0: margin = initialOffset (where to start from top)
-              // - Match i > 0: margin = gap between cards
-              //
-              // Where: initialOffset = cardHeight * 0.5 * (multiplier - 1)
-              //        gap = cardHeight * (multiplier - 1)
-              double topOffset = 0;
-              if (widget.prevColumnIndex < widget.columnIndex) {
-                final distance = widget.columnIndex - widget.prevColumnIndex;
-                final multiplier = 1 << distance; // 2^distance
-                if (matchIndex == 0) {
-                  // First match: position from top of container
-                  topOffset = matchCardHeight * 0.5 * (multiplier - 1);
-                } else {
-                  // Subsequent matches: gap between cards (relative to previous)
-                  topOffset = matchCardHeight * (multiplier - 1);
-                }
-              }
-
-              // prevColumnIndex-independent content (cached on TV, see build()).
-              final Widget matchWidget = tileContents[matchIndex];
-
-              return AnimatedContainer(
-                height: matchCardHeight,
-                width: MediaQuery.of(context).size.width *
-                    widget.controller.matchCardWidthFraction,
-                duration: const Duration(milliseconds: 300),
-                margin: EdgeInsets.only(
-                    top: topOffset,
-                    // Left margin animates with navigation - expands when moving forward, collapses when moving back
-                    left: widget.prevColumnIndex < widget.columnIndex
-                        ? widget.controller.connectorLength
-                        : 0),
-                child: CustomPaint(
-                  painter: BracketPainter(
-                    isTopBracket: widget.columnIndex + 1 == widget.totalColumns
-                        ? null
-                        : !(matchIndex % 2 == 0),
-                    // Uses prevColumnIndex for animation - left line appears as you navigate forward
-                    showLeftBorder: widget.prevColumnIndex < widget.columnIndex,
-                    lineColor: widget.controller.lineColor ?? Colors.black,
-                    borderColor: widget.controller.borderColor ?? Colors.black,
-                    lineWidth: widget.controller.lineWidth ?? 2.0,
-                    borderWidth:
-                        widget.controller.borderWidth?.toDouble() ?? 2.0,
-                    connectorLength: widget.controller.connectorLength,
-                    columnIndex: widget.columnIndex,
-                    prevColumnIndex: widget.prevColumnIndex,
+    return Padding(
+      padding: EdgeInsets.only(left: leftPad, right: rightPad),
+      child: ValueListenableBuilder<_BracketLayoutState>(
+        valueListenable: widget.layoutState,
+        builder: (context, layout, _) {
+          final multiplier = layout.multiplierFor(widget.columnIndex);
+          final slotExtent = matchCardHeight * multiplier;
+          final cardTopOffset = matchCardHeight * (multiplier - 1) / 2;
+          return NotificationListener<ScrollNotification>(
+            onNotification: (notification) {
+              widget.onScrollNotification
+                  ?.call(widget.columnIndex, notification);
+              return false;
+            },
+            child: CustomScrollView(
+              controller: widget.scrollController,
+              physics: const ClampingScrollPhysics(),
+              cacheExtent: matchCardHeight * 2,
+              slivers: [
+                SliverPadding(
+                  padding: EdgeInsets.only(
+                      top: cardTopOffset, bottom: cardTopOffset),
+                  sliver: SliverFixedExtentList(
+                    itemExtent: slotExtent,
+                    delegate: sliverDelegate,
                   ),
-                  child: matchWidget,
                 ),
-              );
-            }),
-            // Add bottom padding to equalize content heights across columns
-            // This ensures all columns can scroll together without one running out of content
-            // Bottom padding = first match's top margin = cardHeight * 0.5 * (multiplier - 1)
-            if (widget.prevColumnIndex < widget.columnIndex) ...[
-              Builder(builder: (context) {
-                final distance = widget.columnIndex - widget.prevColumnIndex;
-                final multiplier = 1 << distance;
-                final bottomPadding = matchCardHeight * 0.5 * (multiplier - 1);
-                return SizedBox(height: bottomPadding);
-              }),
-            ],
-          ],
-        ),
+              ],
+            ),
+          );
+        },
       ),
     );
   }
 }
 
-/// Paints bracket connector lines between tournament matches.
-///
-/// Draws:
-/// - Border rectangle around the match card
-/// - Right-side horizontal + vertical connector (toward next round)
-/// - Left-side horizontal connector (from previous round)
-///
-/// [columnIndex] - The index of the current column being rendered.
-/// [prevColumnIndex] - The index of the currently focused/visible page.
-/// Used to calculate dynamic vertical line length when columns are "expanded"
-/// (i.e., when viewing later rounds where card spacing increases).
+/// Interpolates bracket-tree geometry during reflow.
+class _BracketLayoutState {
+  const _BracketLayoutState({
+    required this.fromColumnIndex,
+    required this.toColumnIndex,
+    required this.progress,
+  });
+
+  factory _BracketLayoutState.stationary(int columnIndex) =>
+      _BracketLayoutState(
+        fromColumnIndex: columnIndex,
+        toColumnIndex: columnIndex,
+        progress: 1,
+      );
+
+  final int fromColumnIndex;
+  final int toColumnIndex;
+  final double progress;
+
+  _BracketLayoutState copyWith({double? progress}) => _BracketLayoutState(
+        fromColumnIndex: fromColumnIndex,
+        toColumnIndex: toColumnIndex,
+        progress: progress ?? this.progress,
+      );
+
+  double multiplierFor(int columnIndex) {
+    double multiplierForAnchor(int anchor) {
+      final distance = columnIndex - anchor;
+      return distance > 0 ? (1 << distance).toDouble() : 1;
+    }
+
+    final from = multiplierForAnchor(fromColumnIndex);
+    final to = multiplierForAnchor(toColumnIndex);
+    return from + (to - from) * progress;
+  }
+
+  double leftConnectorProgressFor(int columnIndex) {
+    final from = fromColumnIndex < columnIndex ? 1.0 : 0.0;
+    final to = toColumnIndex < columnIndex ? 1.0 : 0.0;
+    return from + (to - from) * progress;
+  }
+}
+
+class _BracketMatchKey {
+  const _BracketMatchKey(this.columnIndex, this.matchIndex);
+
+  final int columnIndex;
+  final int matchIndex;
+
+  @override
+  bool operator ==(Object other) =>
+      other is _BracketMatchKey &&
+      other.columnIndex == columnIndex &&
+      other.matchIndex == matchIndex;
+
+  @override
+  int get hashCode => Object.hash(columnIndex, matchIndex);
+}
+
+/// Lightweight per-card TV focus boundary.
+class _BracketMatchFocusTarget extends StatefulWidget {
+  const _BracketMatchFocusTarget({
+    super.key,
+    required this.matchKey,
+    required this.register,
+    required this.unregister,
+    required this.child,
+    required this.focusOrder,
+    this.onMoveVertical,
+    this.onFocused,
+  });
+
+  final _BracketMatchKey matchKey;
+  final void Function(_BracketMatchKey key, FocusScopeNode node) register;
+  final void Function(_BracketMatchKey key, FocusScopeNode node) unregister;
+  final TVFocusOrder focusOrder;
+  final bool Function(int columnIndex, int matchIndex, int direction)?
+      onMoveVertical;
+  final ValueChanged<_BracketMatchKey>? onFocused;
+  final Widget child;
+
+  @override
+  State<_BracketMatchFocusTarget> createState() =>
+      _BracketMatchFocusTargetState();
+}
+
+class _BracketMatchFocusTargetState extends State<_BracketMatchFocusTarget> {
+  late final FocusScopeNode _scopeNode = FocusScopeNode(
+    debugLabel:
+        'BracketMatch(${widget.matchKey.columnIndex}, ${widget.matchKey.matchIndex})',
+  );
+
+  @override
+  void initState() {
+    super.initState();
+    widget.register(widget.matchKey, _scopeNode);
+  }
+
+  @override
+  void dispose() {
+    widget.unregister(widget.matchKey, _scopeNode);
+    _scopeNode.dispose();
+    super.dispose();
+  }
+
+  KeyEventResult _onKeyEvent(FocusNode _, KeyEvent event) {
+    if (event is! KeyDownEvent && event is! KeyRepeatEvent) {
+      return KeyEventResult.ignored;
+    }
+    if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+      final didMove = widget.onMoveVertical
+          ?.call(widget.matchKey.columnIndex, widget.matchKey.matchIndex, -1);
+      return didMove == true ? KeyEventResult.handled : KeyEventResult.ignored;
+    }
+    if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
+      widget.onMoveVertical
+          ?.call(widget.matchKey.columnIndex, widget.matchKey.matchIndex, 1);
+      // At the final card, keep focus in this column. Letting DOWN bubble into
+      // the outer focus grid can select a card in a different-length column.
+      return KeyEventResult.handled;
+    }
+    // LEFT/RIGHT deliberately bubble to BracketsPage's FocusScope.
+    return KeyEventResult.ignored;
+  }
+
+  @override
+  Widget build(BuildContext context) => TVFocusWidget(
+        focusOrder: widget.focusOrder,
+        primaryFocusNode: _scopeNode,
+        child: FocusScope(
+          node: _scopeNode,
+          onKeyEvent: _onKeyEvent,
+          onFocusChange: (hasFocus) {
+            if (!hasFocus) return;
+            widget.onFocused?.call(widget.matchKey);
+            if (_scopeNode.hasPrimaryFocus) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (!mounted || !_scopeNode.hasPrimaryFocus) return;
+                for (final node in _scopeNode.descendants) {
+                  if (node != _scopeNode &&
+                      node.canRequestFocus &&
+                      node.context != null) {
+                    node.requestFocus();
+                  }
+                }
+              });
+            }
+          },
+          child: widget.child,
+        ),
+      );
+}
+
+/// Paints bracket connector lines.
 class BracketPainter extends CustomPainter {
   // Baseline connector length used as default
   static const _baselineConnectorLength = 25.0;
@@ -1218,6 +1419,8 @@ class BracketPainter extends CustomPainter {
   final double connectorLength;
   final int columnIndex;
   final int prevColumnIndex;
+  final double? spacingMultiplier;
+  final double leftBorderOpacity;
 
   BracketPainter({
     this.isTopBracket,
@@ -1229,6 +1432,8 @@ class BracketPainter extends CustomPainter {
     this.connectorLength = _baselineConnectorLength,
     this.columnIndex = 0,
     this.prevColumnIndex = 0,
+    this.spacingMultiplier,
+    this.leftBorderOpacity = 1,
   });
 
   @override
@@ -1252,18 +1457,15 @@ class BracketPainter extends CustomPainter {
       canvas.drawLine(startPoint, endPoint, linePaint);
 
       final verticalStartPoint = endPoint;
-      // Calculate vertical line length based on card spacing
-      // Cards double in spacing with each column distance
-      // Vertical line needs to reach halfway to the adjacent card
       final cardHeight = size.height;
       double verticalLength;
-      if (prevColumnIndex < columnIndex) {
-        // When expanded, cards have gaps - use spacing multiplier
+      if (spacingMultiplier != null) {
+        verticalLength = cardHeight * 0.5 * spacingMultiplier!;
+      } else if (prevColumnIndex < columnIndex) {
         final distance = columnIndex - prevColumnIndex;
         final multiplier = 1 << distance; // 2^distance
         verticalLength = cardHeight * 0.5 * multiplier;
       } else {
-        // Non-expanded: cards stacked with no gap, use half card height
         verticalLength = cardHeight * 0.5;
       }
       final verticalEndPoint = isTopBracket!
@@ -1271,10 +1473,14 @@ class BracketPainter extends CustomPainter {
           : Offset(endPoint.dx, endPoint.dy + verticalLength);
       canvas.drawLine(verticalStartPoint, verticalEndPoint, linePaint);
     }
-    if (showLeftBorder) {
+    if (showLeftBorder && leftBorderOpacity > 0) {
       final leftStartPoint = Offset(0, size.height / 2);
       final leftEndPoint = Offset(-connectorLength, size.height / 2);
-      canvas.drawLine(leftStartPoint, leftEndPoint, linePaint);
+      final leftLinePaint = Paint()
+        ..color = lineColor.withValues(alpha: leftBorderOpacity)
+        ..strokeWidth = lineWidth
+        ..style = PaintingStyle.stroke;
+      canvas.drawLine(leftStartPoint, leftEndPoint, leftLinePaint);
     }
   }
 
@@ -1282,6 +1488,8 @@ class BracketPainter extends CustomPainter {
   bool shouldRepaint(covariant BracketPainter oldDelegate) =>
       oldDelegate.columnIndex != columnIndex ||
       oldDelegate.prevColumnIndex != prevColumnIndex ||
+      oldDelegate.spacingMultiplier != spacingMultiplier ||
+      oldDelegate.leftBorderOpacity != leftBorderOpacity ||
       oldDelegate.isTopBracket != isTopBracket ||
       oldDelegate.showLeftBorder != showLeftBorder ||
       oldDelegate.connectorLength != connectorLength ||
@@ -1291,13 +1499,7 @@ class BracketPainter extends CustomPainter {
       oldDelegate.borderWidth != borderWidth;
 }
 
-/// Simple TV focus provider for the Bracket widget.
-/// Only purpose: Set handlesHorizontalScroll = true to prevent horizontal jerk
-/// when navigating UP/DOWN (stops box_wrapper from calling Scrollable.ensureVisible).
-///
-/// Horizontal navigation is handled by:
-/// 1. Match cards set delegateHorizontalNavigation: true in YAML
-/// 2. BracketsPage FocusScope catches LEFT/RIGHT keys and animates PageView
+/// TV focus provider for the bracket.
 class _BracketTVFocusProvider implements TVFocusProvider {
   // Singleton - no state needed
   static final _instance = _BracketTVFocusProvider._();
@@ -1321,9 +1523,6 @@ class _BracketTVFocusProvider implements TVFocusProvider {
     VoidCallback? onTopEdge,
     VoidCallback? onBottomEdge,
   }) {
-    // DON'T wrap with TVFocusWidget - bracket.dart already handles TV navigation.
-    // box_wrapper has already applied focus styling (backgroundColor, focusBorderColor, etc.)
-    // from YAML tvOptions. Just return the styled child as-is.
     return child;
   }
 

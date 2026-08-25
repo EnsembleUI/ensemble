@@ -48,6 +48,8 @@ class AvatarController extends EnsembleBoxController {
   BaseCacheManager? networkCacheManager;
   ColorFilterComposite? colorFilter;
   bool allowRedirect = true;
+  int? resizedWidth;
+  int? resizedHeight;
   bool? useGrayscaleFilter;
   GroupTemplate? groupTemplate;
 
@@ -83,12 +85,15 @@ class AvatarController extends EnsembleBoxController {
           networkCacheManager = value is BaseCacheManager ? value : null,
       'allowRedirect': (value) =>
           allowRedirect = Utils.getBool(value, fallback: true),
+      'resizedWidth': (value) =>
+          resizedWidth = Utils.optionalInt(value, min: 0, max: 2000),
+      'resizedHeight': (value) =>
+          resizedHeight = Utils.optionalInt(value, min: 0, max: 2000),
       'variant': (value) => variant = AvatarVariant.values.from(value),
       'onTap': (func) => onTap = EnsembleAction.from(func, initiator: this),
       'onTapHaptic': (value) => onTapHaptic = Utils.optionalString(value),
       'group-template': (value) => setGroupAvatar(value),
       'colorFilter': (value) => colorFilter = ColorFilterComposite.from(value),
-
     });
 
   void setGroupAvatar(dynamic groupData) {
@@ -307,12 +312,14 @@ class AvatarState extends EnsembleWidgetState<Avatar>
   Widget _buildImage(String source) => framework.Image(
       source: source,
       fit: widget.controller.fit,
+      resizedWidth: widget.controller.resizedWidth,
+      resizedHeight: widget.controller.resizedHeight,
       colorFilter: widget.controller.colorFilter,
-      loadingWidget: getScopeManager() != null &&
-              widget.controller.loadingWidget != null
-          ? getScopeManager()!
-              .buildWidgetFromDefinition(widget.controller.loadingWidget)
-          : null,
+      loadingWidget:
+          getScopeManager() != null && widget.controller.loadingWidget != null
+              ? getScopeManager()!
+                  .buildWidgetFromDefinition(widget.controller.loadingWidget)
+              : null,
       networkCacheManager: widget.controller.allowRedirect
           ? widget.controller.networkCacheManager ??
               EnsembleImageCacheManager.instanceFor()
