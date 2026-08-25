@@ -5,8 +5,11 @@
 #
 # Flow:
 #   1. Checkout branch, detach HEAD
-#   2. melos version creates commit + tag on detached HEAD
-#   3. Push only the tag (branch unchanged)
+#   2. melos version creates commit + tags on detached HEAD
+#   3. Repair and re-tag (.github/scripts/repair_and_retag.sh)
+#   4. If publish_to_pubdev, mark the tag with [publish-to-pubdev] so
+#      publish-ensemble-pubdev.yml's native tag-push trigger knows to publish
+#   5. Push only the ensemble-v<version> tag (branch unchanged)
 
 name: Release Beta Version
 
@@ -23,6 +26,11 @@ on:
         required: true
         type: string
         default: "1.2.47-beta.1"
+      publish_to_pubdev:
+        description: "Also publish this beta to pub.dev as a prerelease"
+        required: false
+        type: boolean
+        default: false
 
 concurrency:
   group: melos-beta-release-${{ github.repository }}-${{ inputs.branch }}
@@ -77,6 +85,13 @@ jobs:
           fetch-depth: 0
           token: ${{ secrets.RELEASE_TOKEN }}
 
+      # inputs.branch may lack these files or have a stale copy; pull both
+      # from wherever this workflow file itself came from (github.sha).
+      - name: Use release scripts from this workflow's own ref
+        run: |
+          git fetch origin ${{ github.sha }} --depth=1
+          git checkout ${{ github.sha }} -- .github/scripts .github/workflows/publish-ensemble-pubdev.yml
+
       - name: Configure Git
         run: |
           git config user.name "github-actions[bot]"
@@ -100,8 +115,18 @@ jobs:
           # Not strictly necessary since we only push the tag, but keeps intent clear
           git checkout --detach HEAD
 
-          # Melos creates version commit + tag on detached HEAD
           melos version ensemble "${{ inputs.version }}" --yes
+
+      - name: Repair melos dependency-constraint rewrite
+        run: .github/scripts/repair_and_retag.sh
+
+      # pub.dev only trusts a publish triggered by a genuine tag push, so the
+      # opt-in can't be passed as a workflow input to that workflow -- it has
+      # to travel on the tag itself. publish-ensemble-pubdev.yml checks for
+      # this marker before publishing a beta.
+      - name: Mark tag for pub.dev publishing
+        if: inputs.publish_to_pubdev
+        run: git tag -f -a "ensemble-v${{ inputs.version }}" -m "[publish-to-pubdev]" HEAD
 
       - name: Push tag only
         run: |

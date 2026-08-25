@@ -1,6 +1,6 @@
 # Automates Releasing a New Version
-#   melos version ensemble [version]
-#   git push --follow-tags origin main
+#   melos version -> repair and re-tag (.github/scripts/repair_and_retag.sh)
+#   -> push main + tags
 
 name: Release Ensemble Version
 
@@ -29,6 +29,20 @@ jobs:
           ref: main
           fetch-depth: 0
           token: ${{ secrets.RELEASE_TOKEN }}
+
+      # Only overlay files from github.sha if it's ahead of main -- otherwise
+      # a stale dispatch ref would silently revert main's own release files.
+      - name: Use release scripts from this workflow's own ref
+        run: |
+          set -euo pipefail
+          # Full history, not --depth=1: merge-base --is-ancestor can't
+          # correctly resolve ancestry across a shallow fetch boundary.
+          git fetch origin ${{ github.sha }}
+          if git merge-base --is-ancestor HEAD ${{ github.sha }}; then
+            git checkout ${{ github.sha }} -- .github/scripts .github/workflows/publish-ensemble-pubdev.yml
+          else
+            echo "::warning::Dispatched ref is not ahead of main; keeping main's own release files."
+          fi
 
       - name: Configure Git
         run: |
@@ -127,6 +141,9 @@ jobs:
             --manual-version ensemble_moengage:${{ steps.resolve-version.outputs.version }} \
             --manual-version ensemble_bracket:${{ steps.resolve-version.outputs.version }} \
             --yes
+
+      - name: Repair melos dependency-constraint rewrite
+        run: .github/scripts/repair_and_retag.sh
 
       - name: Push branch and tags
         run: |
