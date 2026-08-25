@@ -1,3 +1,7 @@
+## 1.2.51
+
+ - Bump "ensemble_deeplink" to `1.2.51`.
+
 ## 1.2.50
 
  - Bump "ensemble_deeplink" to `1.2.50`.

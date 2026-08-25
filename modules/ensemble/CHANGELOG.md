@@ -1,3 +1,8 @@
+## 1.2.51
+
+ - **REFACTOR**: simplify modal detection logic in screen tracking ([#2339](https://github.com/ensembleUI/ensemble/issues/2339)). ([3f35c3cf](https://github.com/ensembleUI/ensemble/commit/3f35c3cf9c23009b343fa771d12193cb1ce04d85))
+ - **FEAT**(action_scope): enhance event handler registration and scope prep… ([#2344](https://github.com/ensembleUI/ensemble/issues/2344)). ([33dce9cd](https://github.com/ensembleUI/ensemble/commit/33dce9cd35a82410ec2e7ed042ac238745679c02))
+
 ## 1.2.50
 
  - **FIX**(firestore): dedupe listenForChanges subscriptions to prevent crash ([#2257](https://github.com/ensembleUI/ensemble/issues/2257)). ([3e7a0416](https://github.com/ensembleUI/ensemble/commit/3e7a0416c04e30d24af593eabcf9a49c16d0458a))
