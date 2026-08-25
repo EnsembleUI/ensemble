@@ -1,3 +1,7 @@
+## 1.3.3
+
+ - Update a dependency to the latest release.
+
 ## 1.3.2
 
  - **FEAT**(ensemble_test_runner): add secure storage and keychain support i… ([#2335](https://github.com/ensembleUI/ensemble/issues/2335)). ([462e8dd1](https://github.com/ensembleUI/ensemble/commit/462e8dd126db4f8235397807bc04bb79c7cda640))
