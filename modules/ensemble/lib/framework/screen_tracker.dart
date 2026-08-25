@@ -1,4 +1,6 @@
 import 'dart:async';
+
+import 'package:ensemble/layout/ensemble_page_route.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -151,6 +153,24 @@ class ScreenTracker {
     _setCurrentScreen(null);
   }
 
+  /// Removes a route from tracking without publishing another screen.
+  ///
+  /// This is used while Navigator is exposing a lazy historical route. The
+  /// lazy route's Screen widget will publish itself when it materializes.
+  void _removeRouteSilently(Route route) {
+    _screenStack.removeWhere((screen) => screen.route == route);
+    if (_currentScreen?.route == route) _currentScreen = null;
+  }
+
+  /// Handles programmatic removal of a route that may not be the visible one.
+  void _handleScreenRemove(Route removedRoute, Route? previousRoute) {
+    if (_currentScreen?.route == removedRoute) {
+      handleScreenPop(removedRoute, previousRoute);
+      return;
+    }
+    _screenStack.removeWhere((screen) => screen.route == removedRoute);
+  }
+
   /// Extract screen info from route and track it (helper method)
   void _extractAndTrackScreenFromRoute(Route route) {
     final settings = route.settings;
@@ -278,6 +298,10 @@ class ScreenTrackingNavigatorObserver extends NavigatorObserver {
   void didPush(Route route, Route? previousRoute) {
     super.didPush(route, previousRoute);
 
+    // Lazy routes are structural history only. They become trackable when the
+    // real Ensemble screen is materialized after Back navigation.
+    if (route is LazyEnsemblePageRouteBuilder<dynamic>) return;
+
     // Extract screen info from route if available
     _extractAndTrackScreenFromRoute(route);
   }
@@ -285,6 +309,11 @@ class ScreenTrackingNavigatorObserver extends NavigatorObserver {
   @override
   void didPop(Route route, Route? previousRoute) {
     super.didPop(route, previousRoute);
+
+    if (previousRoute is LazyEnsemblePageRouteBuilder<dynamic>) {
+      _tracker._removeRouteSilently(route);
+      return;
+    }
 
     // Handle screen pop with previous route info
     _tracker.handleScreenPop(route, previousRoute);
@@ -303,8 +332,7 @@ class ScreenTrackingNavigatorObserver extends NavigatorObserver {
   void didRemove(Route route, Route? previousRoute) {
     super.didRemove(route, previousRoute);
 
-    // Handle screen removal with previous route info
-    _tracker.handleScreenPop(route, previousRoute);
+    _tracker._handleScreenRemove(route, previousRoute);
   }
 
   void _extractAndTrackScreenFromRoute(Route route) {
