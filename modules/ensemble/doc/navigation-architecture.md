@@ -79,6 +79,7 @@ An `EnsembleRouteDescriptor` contains:
 - screen ID and/or screen name;
 - evaluated inputs;
 - the external-screen flag;
+- the route page type (`regular` or `modal`);
 - a unique route ID.
 
 The descriptor is used for reconciliation and browser snapshots. Widgets continue
@@ -193,6 +194,9 @@ requested history and returns four values:
 
 Only the longest compatible prefix is retained. The reconciler never searches
 later in the stack, reorders routes, or deduplicates repeated screens.
+Requested screen names are matched against canonical screen names, while
+requested IDs are matched against IDs. Route page type and the external-screen
+flag must also match, so a modal cannot be retained as a regular stack entry.
 
 ### Input matching is directional
 
@@ -266,7 +270,8 @@ Materialized(ScreenC)
 When the destination is popped, Flutter calls `didPopNext` on the lazy route.
 The route activates its screen builder while the outgoing destination is still
 covering it. This gives the historical screen time to initialize during the
-reverse transition.
+reverse transition. Screen tracking waits for the outgoing transition route's
+`completed` future before publishing the materialized screen as visible.
 
 For iOS interactive Back gestures, the manager's observer materializes the
 previous lazy route in `didStartUserGesture`, because it can become partially
@@ -279,7 +284,8 @@ retained route for the remainder of its lifetime.
 
 `EnsembleNavigationManager` serializes declarative transactions FIFO. Identical
 requests already pending are coalesced so rapid repeated taps do not create
-duplicate routes.
+duplicate routes. Coalescing uses deep structural equality, so map insertion
+order does not make otherwise equivalent inputs different.
 
 The transaction has two completion concepts:
 
@@ -306,6 +312,9 @@ The mutation sequence is:
 The old visible route is deliberately removed after the destination transition.
 Removing it immediately would leave a dormant transparent route underneath the
 destination and could expose the Navigator background as a black frame.
+If another navigation removes the destination mid-transition, its `popped`
+future releases the transaction queue even though Flutter disposes the animation
+without sending a final status notification.
 
 Lazy routes also return false from `canTransitionFrom` and `canTransitionTo`.
 This prevents their zero-duration animations from driving an adjacent real

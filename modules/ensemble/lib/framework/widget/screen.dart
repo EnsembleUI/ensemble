@@ -13,6 +13,7 @@ import 'package:ensemble/framework/theme/theme_loader.dart';
 import 'package:ensemble/framework/theme_manager.dart';
 import 'package:ensemble/framework/view/page_group.dart';
 import 'package:ensemble/framework/view/page.dart' as ensemble;
+import 'package:ensemble/layout/ensemble_page_route.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -44,6 +45,7 @@ class _ScreenState extends State<Screen> {
   Widget? externalScreen;
   Key _contentKey = UniqueKey();
   ScreenPayload? _enhancedPayload; // Store enhanced payload for refresh matching
+  bool _screenTrackingScheduled = false;
 
   @override
   void initState() {
@@ -129,18 +131,7 @@ class _ScreenState extends State<Screen> {
     // Track screen after we have the pageModel - this ensures we can check if it's a ViewGroup
     // Only track if NOT a ViewGroup container (ViewGroup tabs track themselves)
     if (pageModel is! PageGroupModel) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) {
-          final inViewGroup = PageGroupWidget.getScope(context) != null;
-          final isCurrentRoute = ModalRoute.of(context)?.isCurrent ?? false;
-
-          if (!inViewGroup && isCurrentRoute) {
-            if (!_isScreenAlreadyTracked()) {
-              _trackScreenWithEnhancement();
-            }
-          }
-        }
-      });
+      _scheduleScreenTracking();
     }
 
     //here add the js code
@@ -176,6 +167,38 @@ class _ScreenState extends State<Screen> {
       dataContext: dataContext,
       screenPayload: _enhancedPayload ?? widget.screenPayload,
     );
+  }
+
+  void _scheduleScreenTracking() {
+    if (_screenTrackingScheduled) return;
+    _screenTrackingScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final route = ModalRoute.of(context);
+      if (route is LazyEnsemblePageRouteBuilder<dynamic> && !route.isCurrent) {
+        // didPopNext materializes lazy history before the outgoing route has
+        // finished reversing. Wait for the route's explicit reveal signal so
+        // the one-shot visibility check cannot miss screen tracking.
+        route.revealed.whenComplete(_trackCurrentScreenAfterFrame);
+        return;
+      }
+      _trackCurrentScreen();
+    });
+  }
+
+  void _trackCurrentScreenAfterFrame() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _trackCurrentScreen();
+    });
+  }
+
+  void _trackCurrentScreen() {
+    if (PageGroupWidget.getScope(context) != null ||
+        !(ModalRoute.of(context)?.isCurrent ?? false) ||
+        _isScreenAlreadyTracked()) {
+      return;
+    }
+    _trackScreenWithEnhancement();
   }
 
   /// Check if the current screen is already being tracked

@@ -44,6 +44,7 @@ class EnsembleRouteDescriptor {
     this.screenName,
     Map<String, dynamic>? inputs,
     this.isExternal = false,
+    this.pageType = PageType.regular,
     String? routeId,
   })  : inputs =
             inputs == null ? null : Map<String, dynamic>.unmodifiable(inputs),
@@ -66,6 +67,12 @@ class EnsembleRouteDescriptor {
   /// Whether the descriptor targets a registered external Ensemble screen.
   final bool isExternal;
 
+  /// Whether this route is a regular screen or a modal screen.
+  ///
+  /// Route type participates in identity so a modal can never be retained as
+  /// a regular declarative history entry with the same screen name.
+  final PageType pageType;
+
   /// Unique identity for this descriptor instance.
   final String routeId;
 
@@ -73,12 +80,12 @@ class EnsembleRouteDescriptor {
   String get identifier => screenName ?? screenId ?? '';
 
   /// Converts typed metadata to the legacy route argument format.
-  ScreenPayload toPayload({PageType pageType = PageType.regular}) =>
+  ScreenPayload toPayload({PageType? pageType}) =>
       ScreenPayload(
         screenId: screenId,
         screenName: screenName,
         arguments: inputs,
-        pageType: pageType,
+        pageType: pageType ?? this.pageType,
         isExternal: isExternal,
       );
 
@@ -87,6 +94,7 @@ class EnsembleRouteDescriptor {
       screenId == other.screenId &&
       screenName == other.screenName &&
       isExternal == other.isExternal &&
+      pageType == other.pageType &&
       const DeepCollectionEquality().equals(inputs, other.inputs);
 
   /// Whether this existing route can satisfy a requested history entry.
@@ -95,9 +103,12 @@ class EnsembleRouteDescriptor {
   /// "retain the existing route with its current inputs". Once the request
   /// supplies inputs, they must match exactly.
   bool satisfiesHistoryRequest(EnsembleRouteDescriptor requested) {
-    if (screenId != requested.screenId ||
-        screenName != requested.screenName ||
-        isExternal != requested.isExternal) {
+    final identifierMatches = requested.screenName != null
+        ? screenName == requested.screenName
+        : requested.screenId != null && screenId == requested.screenId;
+    if (!identifierMatches ||
+        isExternal != requested.isExternal ||
+        pageType != requested.pageType) {
       return false;
     }
     if (requested.inputs == null || requested.inputs!.isEmpty) return true;
