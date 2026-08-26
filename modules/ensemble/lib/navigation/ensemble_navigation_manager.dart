@@ -1,5 +1,7 @@
 import 'dart:async';
+import 'dart:collection';
 
+import 'package:collection/collection.dart';
 import 'package:ensemble/layout/ensemble_page_route.dart';
 import 'package:ensemble/navigation/browser/navigation_browser_history.dart';
 import 'package:ensemble/navigation/navigation_models.dart';
@@ -26,8 +28,12 @@ class EnsembleNavigationManager {
   final Expando<EnsembleRouteExitReason> _exitReasons =
       Expando<EnsembleRouteExitReason>('ensembleRouteExitReason');
   final NavigationReconciler _reconciler = const NavigationReconciler();
-  final Map<String, Future<PageRouteBuilder<dynamic>>> _pendingTransactions =
-      {};
+  final Map<List<Object?>, Future<PageRouteBuilder<dynamic>>>
+      _pendingTransactions =
+      HashMap<List<Object?>, Future<PageRouteBuilder<dynamic>>>(
+    equals: const DeepCollectionEquality().equals,
+    hashCode: const DeepCollectionEquality().hash,
+  );
   Future<void> _transactionTail = Future<void>.value();
   int _transactionSequence = 0;
   bool _isCommitting = false;
@@ -185,7 +191,7 @@ class EnsembleNavigationManager {
       return;
     }
 
-    final completer = Completer<void>();
+    final transitionCompleted = Completer<void>();
     var transitionStarted = animation.status != AnimationStatus.dismissed;
     void listener(AnimationStatus status) {
       if (status == AnimationStatus.forward ||
@@ -198,11 +204,22 @@ class EnsembleNavigationManager {
         return;
       }
       animation.removeStatusListener(listener);
-      if (!completer.isCompleted) completer.complete();
+      if (!transitionCompleted.isCompleted) transitionCompleted.complete();
     }
 
     animation.addStatusListener(listener);
-    await completer.future;
+    try {
+      // A legacy navigation can remove this route while it is animating. In
+      // that case Flutter disposes the animation and clears its listeners, but
+      // still completes Route.popped. Racing both lifecycle signals prevents
+      // a removed destination from permanently blocking the FIFO queue.
+      await Future.any<void>(<Future<void>>[
+        transitionCompleted.future,
+        route.popped.then<void>((_) {}),
+      ]);
+    } finally {
+      animation.removeStatusListener(listener);
+    }
   }
 
   Future<void> _restoreFromBrowser(
@@ -256,14 +273,25 @@ class EnsembleNavigationManager {
     return true;
   }
 
-  String _transactionKey(
+  List<Object?> _transactionKey(
     List<EnsembleRouteDescriptor> history,
     EnsembleRouteDescriptor destination,
   ) {
-    String descriptorKey(EnsembleRouteDescriptor descriptor) =>
-        '${descriptor.screenId}|${descriptor.screenName}|'
-        '${descriptor.isExternal}|${descriptor.inputs}';
-    return [...history, destination].map(descriptorKey).join('>');
+    List<Object?> descriptorKey(EnsembleRouteDescriptor descriptor) =>
+        <Object?>[
+          descriptor.screenId,
+          descriptor.screenName,
+          descriptor.isExternal,
+          descriptor.pageType,
+          descriptor.inputs,
+        ];
+    return <Object?>[
+      for (final descriptor in <EnsembleRouteDescriptor>[
+        ...history,
+        destination,
+      ])
+        descriptorKey(descriptor),
+    ];
   }
 
   void _didPush(Route<dynamic> route) {

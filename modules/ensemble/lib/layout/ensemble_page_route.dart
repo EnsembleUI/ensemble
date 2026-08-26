@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 /// Route transition animations supported by Ensemble navigation.
@@ -126,6 +128,11 @@ class LazyEnsemblePageRouteBuilder<T> extends PageRouteBuilder<T> {
         );
 
   final ValueNotifier<bool> _activation;
+  final Completer<void> _revealed = Completer<void>();
+
+  /// Completes once the route above has finished popping and this route can be
+  /// treated as visible by screen tracking.
+  Future<void> get revealed => _revealed.future;
 
   /// Starts building the real screen. Calling this more than once is harmless.
   void materialize() {
@@ -146,7 +153,16 @@ class LazyEnsemblePageRouteBuilder<T> extends PageRouteBuilder<T> {
     // didPopNext runs as the route above starts its reverse transition, so the
     // historical screen can initialize while the outgoing screen is visible.
     materialize();
+    if (nextRoute is TransitionRoute<dynamic>) {
+      nextRoute.completed.whenComplete(_completeReveal);
+    } else {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _completeReveal());
+    }
     super.didPopNext(nextRoute);
+  }
+
+  void _completeReveal() {
+    if (!_revealed.isCompleted) _revealed.complete();
   }
 
   @override

@@ -1,14 +1,24 @@
 import 'package:ensemble/navigation/navigation_models.dart';
 import 'package:ensemble/navigation/navigation_reconciler.dart';
+import 'package:ensemble/page_model.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   const reconciler = NavigationReconciler();
 
-  ManagedEnsembleRoute managed(String name, {Map<String, dynamic>? inputs}) {
-    final descriptor =
-        EnsembleRouteDescriptor(screenName: name, inputs: inputs);
+  ManagedEnsembleRoute managed(
+    String? name, {
+    String? screenId,
+    Map<String, dynamic>? inputs,
+    PageType pageType = PageType.regular,
+  }) {
+    final descriptor = EnsembleRouteDescriptor(
+      screenId: screenId,
+      screenName: name,
+      inputs: inputs,
+      pageType: pageType,
+    );
     return ManagedEnsembleRoute(
       descriptor: descriptor,
       route: PageRouteBuilder<void>(
@@ -119,6 +129,39 @@ void main() {
     ];
 
     expect(reconciler.reconcile(current, requested).prefixLength, 3);
+  });
+
+  test('name request retains a route that also has a screen ID', () {
+    final result = reconciler.reconcile(
+      <ManagedEnsembleRoute>[
+        managed('Details', screenId: 'screen-123'),
+      ],
+      <EnsembleRouteDescriptor>[desired('Details')],
+    );
+
+    expect(result.prefixLength, 1);
+  });
+
+  test('ID-only route does not guess equivalence with a screen name', () {
+    final result = reconciler.reconcile(
+      <ManagedEnsembleRoute>[
+        managed(null, screenId: 'Details'),
+      ],
+      <EnsembleRouteDescriptor>[desired('Details')],
+    );
+
+    expect(result.prefixLength, 0);
+  });
+
+  test('regular request never retains a modal with the same name', () {
+    final result = reconciler.reconcile(
+      <ManagedEnsembleRoute>[
+        managed('Details', pageType: PageType.modal),
+      ],
+      <EnsembleRouteDescriptor>[desired('Details')],
+    );
+
+    expect(result.prefixLength, 0);
   });
 
   test('handles empty and unrelated histories', () {

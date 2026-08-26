@@ -786,6 +786,7 @@ class ScreenController {
       screenName: screenName,
       inputs: pageArgs,
       isExternal: isExternal,
+      pageType: pageType,
     );
     final routeSettings = EnsembleRouteSettings(
       descriptor: descriptor,

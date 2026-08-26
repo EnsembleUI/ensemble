@@ -1,4 +1,5 @@
 import 'package:ensemble/framework/screen_tracker.dart';
+import 'package:ensemble/layout/ensemble_page_route.dart';
 import 'package:ensemble/navigation/browser/navigation_browser_history.dart';
 import 'package:ensemble/navigation/ensemble_navigation_manager.dart';
 import 'package:ensemble/navigation/ensemble_route_factory.dart';
@@ -14,14 +15,14 @@ void main() {
       EnsembleRouteDescriptor(screenName: name, inputs: inputs);
 
   PageRouteBuilder<dynamic> routeFor(EnsembleRouteDescriptor descriptor,
-      {Widget? child}) {
+      {Widget? child, Duration transitionDuration = Duration.zero}) {
     return PageRouteBuilder<dynamic>(
       settings: EnsembleRouteSettings(
         descriptor: descriptor,
         payload: descriptor.toPayload(),
       ),
-      transitionDuration: Duration.zero,
-      reverseTransitionDuration: Duration.zero,
+      transitionDuration: transitionDuration,
+      reverseTransitionDuration: transitionDuration,
       pageBuilder: (_, __, ___) =>
           child ?? Scaffold(body: Text(descriptor.identifier)),
     );
@@ -259,6 +260,106 @@ void main() {
     await tester.pumpAndSettle();
     expect(manager.history.map((entry) => entry.descriptor.identifier),
         <String>['Home', 'System']);
+  });
+
+  testWidgets('coalesces equivalent inputs with different map insertion order',
+      (tester) async {
+    final navigatorKey = await pumpApp(tester);
+    final firstInputs = <String, dynamic>{
+      'filter': <String, dynamic>{'active': true, 'sort': 'name'},
+      'page': 1,
+    };
+    final secondInputs = <String, dynamic>{
+      'page': 1,
+      'filter': <String, dynamic>{'sort': 'name', 'active': true},
+    };
+
+    final first = manager.navigateWithHistory(
+      navigator: navigatorKey.currentState!,
+      history: <EnsembleRouteDescriptor>[descriptor('Home')],
+      destination: descriptor('System', inputs: firstInputs),
+      createRoute: (entry, {required animate}) => routeFor(entry),
+    );
+    final second = manager.navigateWithHistory(
+      navigator: navigatorKey.currentState!,
+      history: <EnsembleRouteDescriptor>[descriptor('Home')],
+      destination: descriptor('System', inputs: secondInputs),
+      createRoute: (entry, {required animate}) => routeFor(entry),
+    );
+
+    expect(identical(first, second), isTrue);
+    await first;
+    await tester.pumpAndSettle();
+  });
+
+  testWidgets('removed destination does not block the transaction queue',
+      (tester) async {
+    final navigatorKey = await pumpApp(tester);
+    final first = manager.navigateWithHistory(
+      navigator: navigatorKey.currentState!,
+      history: <EnsembleRouteDescriptor>[descriptor('Home')],
+      destination: descriptor('First'),
+      createRoute: (entry, {required animate}) => routeFor(
+        entry,
+        transitionDuration:
+            animate ? const Duration(seconds: 10) : Duration.zero,
+      ),
+    );
+    await tester.pump();
+    final firstRoute = await first;
+
+    navigatorKey.currentState!
+        .pushReplacement(routeFor(descriptor('LegacyReplacement')));
+    final second = manager.navigateWithHistory(
+      navigator: navigatorKey.currentState!,
+      history: <EnsembleRouteDescriptor>[descriptor('Home')],
+      destination: descriptor('Second'),
+      createRoute: (entry, {required animate}) => routeFor(entry),
+    );
+
+    await tester.pump();
+    await tester.pump();
+    final secondRoute = await second;
+    expect(firstRoute.isActive, isFalse);
+    expect(secondRoute.isActive, isTrue);
+    expect(manager.history.map((entry) => entry.descriptor.identifier),
+        <String>['Home', 'Second']);
+  });
+
+  testWidgets('lazy route reports reveal only after reverse transition',
+      (tester) async {
+    final navigatorKey = await pumpApp(tester);
+    var constructed = false;
+    final lazyDescriptor = descriptor('History');
+    final lazyRoute = LazyEnsemblePageRouteBuilder<dynamic>(
+      screenBuilder: (_) {
+        constructed = true;
+        return const Scaffold(body: Text('History'));
+      },
+      settings: EnsembleRouteSettings(
+        descriptor: lazyDescriptor,
+        payload: lazyDescriptor.toPayload(),
+      ),
+    );
+    navigatorKey.currentState!.push(lazyRoute);
+    final destination = routeFor(
+      descriptor('Destination'),
+      transitionDuration: const Duration(milliseconds: 200),
+    );
+    navigatorKey.currentState!.push(destination);
+    await tester.pumpAndSettle();
+
+    var revealed = false;
+    lazyRoute.revealed.then((_) => revealed = true);
+    navigatorKey.currentState!.pop();
+    await tester.pump();
+
+    expect(constructed, isTrue);
+    expect(revealed, isFalse);
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(revealed, isFalse);
+    await tester.pumpAndSettle();
+    expect(revealed, isTrue);
   });
 
   testWidgets('publishes a single reconciled snapshot to browser history',
