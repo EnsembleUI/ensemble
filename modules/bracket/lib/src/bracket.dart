@@ -120,12 +120,15 @@ class BracketController extends EnsembleBoxController {
   Color? tabFocusBackgroundColor;
   TextStyle? tabFocusTextStyle;
 
-  // TV navigation row offset.
+  // TV navigation row offset - tabs will be at this row, matches at row+1, row+2, etc.
   int tvRowOffset = 0;
 
-  // Layout scale (0.1 - 1.0).
+  // Layout scale (0.1 - 1.0). Baseline 0.75 = current defaults.
+  // Controls viewportFraction, matchCardWidthFraction, and connectorLength proportionally.
   double? _scale;
 
+  // Computed layout values based on scale.
+  // Baseline: scale=0.75 → viewportFraction=0.75, cardWidth=0.6, connector=25
   double get viewportFraction => _scale ?? 0.75;
   double get matchCardWidthFraction =>
       _scale != null ? 0.6 * (_scale! / 0.75) : 0.6;
@@ -366,7 +369,10 @@ class _BracketsViewState extends State<BracketsView> {
     if (newPage != _currentPageIndex) {
       setState(() {
         _currentPageIndex = newPage;
-        // Mobile swipes also update the spacing anchor.
+        // On mobile, a horizontal swipe changes the page but not the reference
+        // lane used for column spacing (_prevColumnIndex). Sync it here so tiles
+        // realign after a swipe exactly as they do after a tab tap. TV drives
+        // _prevColumnIndex via the keyboard-navigation callback instead.
         if (!Device().isTV) {
           _prevColumnIndex = newPage;
         }
@@ -421,6 +427,11 @@ class _BracketsViewState extends State<BracketsView> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.start,
               children: List.generate(widget.data.length, (index) {
+                // On TV, tab selection follows _prevColumnIndex — the true
+                // navigation target — because _pageController.page (which drives
+                // _currentPageIndex) clamps on the last pages with padEnds:false,
+                // so the final tab would never register as selected. Mobile keeps
+                // _currentPageIndex since swipes update it directly.
                 bool isSelected = index ==
                     (Device().isTV ? _prevColumnIndex : _currentPageIndex);
                 String? title = widget.data.elementAt(index).title;
@@ -455,6 +466,8 @@ class _BracketsViewState extends State<BracketsView> {
                     },
                     style: ElevatedButton.styleFrom(
                       padding: widget.controller.tabPadding,
+                      // Draw a resting border only when a border color is set, so
+                      // apps that never set it keep their previous look.
                       shape: (widget.controller.tabBorderRadius != null ||
                               mobileBorderColor != null)
                           ? RoundedRectangleBorder(
@@ -485,6 +498,10 @@ class _BracketsViewState extends State<BracketsView> {
             ),
           ),
         Expanded(
+          // Wrap with TVFocusProviderScope to tell child widgets that
+          // the bracket handles horizontal scrolling via PageView.
+          // This prevents box_wrapper from calling Scrollable.ensureVisible()
+          // which would cause horizontal jerk when navigating UP/DOWN.
           child: Device().isTV
               ? TVFocusProviderScope(
                   provider: _bracketTVFocusProvider,
@@ -517,6 +534,11 @@ class _BracketsViewState extends State<BracketsView> {
         ),
       ],
     );
+
+    // NOTE: We no longer wrap with FocusTraversalGroup here because:
+    // 1. The outer View already has a FocusTraversalGroup with TVFocusOrderTraversalPolicy
+    // 2. Nested FocusTraversalGroups isolate focus, preventing navigation from header (BackArrow) to bracket
+    // The outer View's FocusTraversalGroup handles all TV navigation using row/order from tvOptions.
 
     return content;
   }
@@ -578,16 +600,19 @@ class _TVTabButtonState extends State<_TVTabButton> {
     final appPrimaryColor = theme.colorScheme.primary;
     final externalProvider = TVFocusProviderScope.maybeOf(context);
 
+    // Priority: focusBorderColor > Theme > provider > borderColor > app primary
     final focusBorderColor = widget.controller.tabFocusColor ??
         tvFocusTheme?.focusBorderColor ??
         externalProvider?.focusBorderColor ??
         widget.controller.tabBorderColor ??
         appPrimaryColor;
+    // Priority: focusBorderWidth > Theme > provider > borderWidth > default (2.0)
     final focusBorderWidth = widget.controller.tabFocusBorderWidth ??
         tvFocusTheme?.focusBorderWidth ??
         externalProvider?.focusBorderWidth ??
         widget.controller.tabBorderWidth ??
         2.0;
+    // Priority: focusBorderRadius > Theme > provider > borderRadius > default (8.0)
     final borderRadius = widget.controller.tabFocusBorderRadius?.getValue() ??
         (tvFocusTheme?.focusBorderRadius != null
             ? BorderRadius.circular(tvFocusTheme!.focusBorderRadius!)
@@ -598,6 +623,8 @@ class _TVTabButtonState extends State<_TVTabButton> {
         widget.controller.tabBorderRadius?.getValue() ??
         BorderRadius.circular(8);
 
+    // Determine background color based on focus and selection state
+    // Priority: focused > selected > default
     Color? backgroundColor;
     if (_isFocused && widget.controller.tabFocusBackgroundColor != null) {
       backgroundColor = widget.controller.tabFocusBackgroundColor;
@@ -607,6 +634,8 @@ class _TVTabButtonState extends State<_TVTabButton> {
       backgroundColor = widget.controller.tabBackgroundColor;
     }
 
+    // Determine text style based on focus and selection state
+    // Priority: focused > selected > default
     TextStyle? textStyle;
     if (_isFocused && widget.controller.tabFocusTextStyle != null) {
       textStyle = widget.controller.tabFocusTextStyle;
@@ -616,6 +645,10 @@ class _TVTabButtonState extends State<_TVTabButton> {
       textStyle = widget.controller.tabTextStyle;
     }
 
+    // Resting-state border comes from the base tabStyles (borderColor/
+    // borderWidth); focus overrides it. A border is always painted
+    // (transparent + focus width when unset) to prevent size jerk on focus.
+    // Selected tab may override the base border; priority focused > selected > normal.
     final restingBorderColor = widget.isSelected
         ? (widget.controller.tabSelectedBorderColor ??
             widget.controller.tabBorderColor ??
@@ -697,6 +730,11 @@ class BracketsPage extends StatefulWidget {
 class _BracketsPageState extends State<BracketsPage>
     with SingleTickerProviderStateMixin {
   late List<ScrollController> _scrollControllers;
+
+  // Own the FocusScope that wraps this bracket's pages so navigation can search
+  // ONLY this bracket's focus subtree. A previous BracketView still mounted lower
+  // in the navigator stack has its own duplicate column tiles in the global focus
+  // tree; scanning globally can focus those off-screen ghosts (no visible ring).
   final FocusScopeNode _pageScopeNode =
       FocusScopeNode(debugLabel: 'BracketPageScope');
   final Map<_BracketMatchKey, FocusScopeNode> _matchFocusScopes = {};
@@ -845,14 +883,43 @@ class _BracketsPageState extends State<BracketsPage>
     });
   }
 
-  void _onColumnScroll(int _, ScrollNotification notification) {
+  void _onColumnScroll(int columnIndex, ScrollNotification notification) {
     if (_isSynchronizingScrolls || notification.metrics.axis != Axis.vertical) {
       return;
     }
     if (notification is ScrollUpdateNotification ||
         notification is ScrollEndNotification) {
       _logicalScrollOffset = notification.metrics.pixels;
+      if (notification is ScrollUpdateNotification) {
+        // Keep every other column's vertical position in sync live, while
+        // dragging - not just once a page change lands. Matches the
+        // partially-visible neighbor column(s) to the active column's
+        // scroll in real time so connector lines/match rows don't desync
+        // mid-drag.
+        _syncOtherColumns(excluding: columnIndex);
+      }
     }
+  }
+
+  void _syncOtherColumns({required int excluding}) {
+    _isSynchronizingScrolls = true;
+    // Sync ALL other columns, not just the adjacent one - this ensures e.g.
+    // Semi Finals and Final scroll with 8th Finals and Quarter Finals, so
+    // none of them are out of alignment by the time you page onto them.
+    for (var i = 0; i < _scrollControllers.length; i++) {
+      if (i == excluding) continue;
+      final controller = _scrollControllers[i];
+      if (!controller.hasClients) continue;
+      final position = controller.position;
+      final target = _logicalScrollOffset.clamp(
+        position.minScrollExtent,
+        position.maxScrollExtent,
+      );
+      if ((position.pixels - target).abs() > 0.5) {
+        controller.jumpTo(target);
+      }
+    }
+    _isSynchronizingScrolls = false;
   }
 
   void _requestFocusWhenMounted(
@@ -1030,6 +1097,8 @@ class _BracketsPageState extends State<BracketsPage>
       },
     );
 
+    // On TV, wrap with FocusScope to catch delegated horizontal key events.
+    // Own the node so navigation can scope its search to this bracket's subtree.
     if (Device().isTV) {
       return FocusScope(
         node: _pageScopeNode,
@@ -1208,6 +1277,10 @@ class _BracketsColumnPageState extends State<BracketsColumnPage> {
 
   @override
   Widget build(BuildContext context) {
+    // TV: reuse the cached delegate across navigation rebuilds so a
+    // prevColumnIndex change doesn't discard the sliver's built-child cache
+    // (re-parsing/instantiating every visible tile on every navigation).
+    // Mobile builds fresh each frame (unchanged).
     final sliverDelegate =
         Device().isTV ? _sliverDelegate : _createSliverDelegate();
 
@@ -1405,7 +1478,19 @@ class _BracketMatchFocusTargetState extends State<_BracketMatchFocusTarget> {
       );
 }
 
-/// Paints bracket connector lines.
+/// Paints bracket connector lines between tournament matches.
+///
+/// Draws:
+/// - Border rectangle around the match card
+/// - Right-side horizontal + vertical connector (toward next round)
+/// - Left-side horizontal connector (from previous round)
+///
+/// [columnIndex] - The index of the current column being rendered.
+/// [prevColumnIndex] - The index of the currently focused/visible page.
+/// [spacingMultiplier] - Live interpolated spacing from [_BracketLayoutState],
+/// used during a column transition; falls back to [prevColumnIndex] when unset.
+/// Used to calculate dynamic vertical line length when columns are "expanded"
+/// (i.e., when viewing later rounds where card spacing increases).
 class BracketPainter extends CustomPainter {
   // Baseline connector length used as default
   static const _baselineConnectorLength = 25.0;
@@ -1457,15 +1542,21 @@ class BracketPainter extends CustomPainter {
       canvas.drawLine(startPoint, endPoint, linePaint);
 
       final verticalStartPoint = endPoint;
+      // Calculate vertical line length based on card spacing.
+      // Cards double in spacing with each column distance; vertical line
+      // needs to reach halfway to the adjacent card.
       final cardHeight = size.height;
       double verticalLength;
       if (spacingMultiplier != null) {
+        // Live-interpolated spacing during a column transition.
         verticalLength = cardHeight * 0.5 * spacingMultiplier!;
       } else if (prevColumnIndex < columnIndex) {
+        // When expanded, cards have gaps - use spacing multiplier.
         final distance = columnIndex - prevColumnIndex;
         final multiplier = 1 << distance; // 2^distance
         verticalLength = cardHeight * 0.5 * multiplier;
       } else {
+        // Non-expanded: cards stacked with no gap, use half card height.
         verticalLength = cardHeight * 0.5;
       }
       final verticalEndPoint = isTopBracket!
@@ -1499,7 +1590,11 @@ class BracketPainter extends CustomPainter {
       oldDelegate.borderWidth != borderWidth;
 }
 
-/// TV focus provider for the bracket.
+/// TV focus provider for the Bracket widget.
+///
+/// Horizontal navigation is handled by:
+/// 1. Match cards set delegateHorizontalNavigation: true in YAML
+/// 2. BracketsPage FocusScope catches LEFT/RIGHT keys and animates PageView
 class _BracketTVFocusProvider implements TVFocusProvider {
   // Singleton - no state needed
   static final _instance = _BracketTVFocusProvider._();
@@ -1523,6 +1618,9 @@ class _BracketTVFocusProvider implements TVFocusProvider {
     VoidCallback? onTopEdge,
     VoidCallback? onBottomEdge,
   }) {
+    // DON'T wrap with TVFocusWidget - bracket.dart already handles TV navigation.
+    // box_wrapper has already applied focus styling (backgroundColor, focusBorderColor, etc.)
+    // from YAML tvOptions. Just return the styled child as-is.
     return child;
   }
 
