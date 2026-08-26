@@ -1,3 +1,7 @@
+## 1.2.52
+
+ - Bump "ensemble_auth" to `1.2.52`.
+
 ## 1.2.51
 
  - **FEAT**(auth_manager): enhance user session management by storing provid… ([#2340](https://github.com/ensembleUI/ensemble/issues/2340)). ([82c0da1a](https://github.com/ensembleUI/ensemble/commit/82c0da1a075a44e055a2aeaafb50dce5f798e850))
