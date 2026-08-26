@@ -21,6 +21,8 @@ import 'package:ensemble/framework/theme_manager.dart';
 import 'package:ensemble/framework/widget/error_screen.dart';
 import 'package:ensemble/framework/widget/screen.dart';
 import 'package:ensemble/ios_deep_link_manager.dart';
+import 'package:ensemble/layout/ensemble_page_route.dart';
+import 'package:ensemble/navigation/navigation_models.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/util/upload_utils.dart';
 import 'package:ensemble/util/utils.dart';
@@ -453,6 +455,18 @@ class EnsembleAppState extends State<EnsembleApp> with WidgetsBindingObserver {
     }
 
     StorageManager().setIsPreview(widget.isPreview);
+    // The root route must carry the same typed metadata as subsequently pushed
+    // Ensemble routes so reconciliation can treat it as canonical history.
+    final rootDescriptor = widget.child == null
+        ? EnsembleRouteDescriptor(
+            screenId: widget.screenPayload?.screenId,
+            screenName: widget.screenPayload?.screenName ??
+                config.definitionProvider.getHomeScreenName(),
+            inputs: widget.screenPayload?.arguments,
+            isExternal: widget.screenPayload?.isExternal ?? false,
+          )
+        : null;
+    final rootPayload = rootDescriptor?.toPayload();
     Widget app = MaterialApp(
       key: appKey,
       navigatorObservers: Ensemble().routeObservers,
@@ -468,7 +482,22 @@ class EnsembleAppState extends State<EnsembleApp> with WidgetsBindingObserver {
             definitionProvider: config.definitionProvider);
         return Ensemble().locale;
       },
-      home: content,
+      home: widget.child != null ? content : null,
+      onGenerateInitialRoutes: widget.child == null
+          ? (_) => <Route<dynamic>>[
+                EnsemblePageRouteNoTransitionBuilder(
+                  screenWidget: content,
+                  settings: EnsembleRouteSettings(
+                    descriptor: rootDescriptor!,
+                    payload: rootPayload!,
+                  ),
+                ),
+              ]
+          : null,
+      // WidgetsApp's constructor assertion does not consider
+      // onGenerateInitialRoutes a route provider. Keep this callback non-null
+      // when `home` is null; the typed root route above remains authoritative.
+      onGenerateRoute: widget.child == null ? (_) => null : null,
       useInheritedMediaQuery: widget.isPreview,
       builder: (context, child) {
         final appChild = widget.isPreview
