@@ -1,4 +1,5 @@
 /// This class contains common widgets for use with Ensemble widgets.
+import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:flutter/material.dart';
 
 /// Display a Text content followed by a clear icon.
@@ -87,6 +88,91 @@ class GradientBoxBorder extends BoxBorder with GradientBorder {
   @override
   ShapeBorder scale(double t) {
     return this;
+  }
+}
+
+/// Draws dashed or dotted borders for container box styles.
+class DashedBoxBorder extends BoxBorder {
+  const DashedBoxBorder({
+    required this.color,
+    required this.width,
+    required this.style,
+    this.dashLength = BorderStyleComposite.defaultLength,
+    this.gap = BorderStyleComposite.defaultGap,
+  });
+
+  final Color color;
+  final double width;
+  final BoxBorderStyle style;
+  final double dashLength;
+  final double gap;
+
+  @override
+  BorderSide get bottom => BorderSide.none;
+
+  @override
+  BorderSide get top => BorderSide.none;
+
+  @override
+  bool get isUniform => true;
+
+  @override
+  EdgeInsetsGeometry get dimensions => EdgeInsets.all(width);
+
+  @override
+  void paint(
+    Canvas canvas,
+    Rect rect, {
+    TextDirection? textDirection,
+    BoxShape shape = BoxShape.rectangle,
+    BorderRadius? borderRadius,
+  }) {
+    final path = Path();
+    if (borderRadius != null) {
+      path.addRRect(borderRadius.toRRect(rect).deflate(width / 2));
+    } else {
+      path.addRect(rect.deflate(width / 2));
+    }
+
+    final paint = Paint()
+      ..color = color
+      ..strokeWidth = width
+      ..style = PaintingStyle.stroke
+      ..strokeCap =
+          style == BoxBorderStyle.dotted ? StrokeCap.round : StrokeCap.butt;
+
+    final dash =
+        style == BoxBorderStyle.dotted ? width : dashLength;
+    final gapLength = style == BoxBorderStyle.dotted
+        ? (gap < width ? width : gap)
+        : gap;
+
+    for (final metric in path.computeMetrics()) {
+      double distance = 0;
+      bool draw = true;
+      while (distance < metric.length) {
+        final segment = draw ? dash : gapLength;
+        final next = distance + segment;
+        if (draw) {
+          canvas.drawPath(
+              metric.extractPath(distance, next.clamp(0, metric.length)),
+              paint);
+        }
+        distance = next;
+        draw = !draw;
+      }
+    }
+  }
+
+  @override
+  ShapeBorder scale(double t) {
+    return DashedBoxBorder(
+      color: color,
+      width: width * t,
+      style: style,
+      dashLength: dashLength * t,
+      gap: gap * t,
+    );
   }
 }
 
