@@ -1,3 +1,7 @@
+## 1.2.52
+
+ - **FEAT**(navigation): add declarative navigation stack support ([#2351](https://github.com/ensembleUI/ensemble/issues/2351)). ([6e58cfb5](https://github.com/ensembleUI/ensemble/commit/6e58cfb5a211b513423056babee9ae32fcfb4cbf))
+
 ## 1.2.51
 
  - **REFACTOR**: simplify modal detection logic in screen tracking ([#2339](https://github.com/ensembleUI/ensemble/issues/2339)). ([3f35c3cf](https://github.com/ensembleUI/ensemble/commit/3f35c3cf9c23009b343fa771d12193cb1ce04d85))

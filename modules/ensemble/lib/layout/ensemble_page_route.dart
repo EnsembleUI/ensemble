@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 /// Route transition animations supported by Ensemble navigation.
@@ -86,6 +88,88 @@ class EnsemblePageRouteNoTransitionBuilder extends PageRouteBuilder {
           settings: settings,
           pageBuilder: (context, animation, secondaryAnimation) => screenWidget,
         );
+}
+
+/// A lightweight route used for declaratively reconstructed history.
+///
+/// The route occupies its normal position in Flutter's Navigator stack, but
+/// does not construct its Ensemble screen until a later route is popped and
+/// this route is about to become visible.
+class LazyEnsemblePageRouteBuilder<T> extends PageRouteBuilder<T> {
+  factory LazyEnsemblePageRouteBuilder({
+    required WidgetBuilder screenBuilder,
+    RouteSettings? settings,
+  }) {
+    final activation = ValueNotifier<bool>(false);
+    return LazyEnsemblePageRouteBuilder<T>._(
+      activation: activation,
+      screenBuilder: screenBuilder,
+      settings: settings,
+    );
+  }
+
+  LazyEnsemblePageRouteBuilder._({
+    required ValueNotifier<bool> activation,
+    required WidgetBuilder screenBuilder,
+    RouteSettings? settings,
+  })  : _activation = activation,
+        super(
+          settings: settings,
+          opaque: false,
+          maintainState: true,
+          transitionDuration: Duration.zero,
+          reverseTransitionDuration: Duration.zero,
+          pageBuilder: (context, animation, secondaryAnimation) =>
+              ValueListenableBuilder<bool>(
+            valueListenable: activation,
+            builder: (context, active, _) =>
+                active ? screenBuilder(context) : const SizedBox.shrink(),
+          ),
+        );
+
+  final ValueNotifier<bool> _activation;
+  final Completer<void> _revealed = Completer<void>();
+
+  /// Completes once the route above has finished popping and this route can be
+  /// treated as visible by screen tracking.
+  Future<void> get revealed => _revealed.future;
+
+  /// Starts building the real screen. Calling this more than once is harmless.
+  void materialize() {
+    if (!_activation.value) _activation.value = true;
+  }
+
+  // A lazy history entry is structural, not visual. Linking its zero-duration
+  // animation to adjacent routes can instantly drive the outgoing route's
+  // secondary animation and expose the Navigator background for a frame.
+  @override
+  bool canTransitionFrom(TransitionRoute<dynamic> previousRoute) => false;
+
+  @override
+  bool canTransitionTo(TransitionRoute<dynamic> nextRoute) => false;
+
+  @override
+  void didPopNext(Route<dynamic> nextRoute) {
+    // didPopNext runs as the route above starts its reverse transition, so the
+    // historical screen can initialize while the outgoing screen is visible.
+    materialize();
+    if (nextRoute is TransitionRoute<dynamic>) {
+      nextRoute.completed.whenComplete(_completeReveal);
+    } else {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _completeReveal());
+    }
+    super.didPopNext(nextRoute);
+  }
+
+  void _completeReveal() {
+    if (!_revealed.isCompleted) _revealed.complete();
+  }
+
+  @override
+  void dispose() {
+    _activation.dispose();
+    super.dispose();
+  }
 }
 
 /// Page route builder that applies Ensemble-configured transition animations.

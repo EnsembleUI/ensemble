@@ -27,6 +27,9 @@ import 'package:ensemble/framework/widget/modal_screen.dart';
 import 'package:ensemble/framework/widget/screen.dart';
 import 'package:ensemble/framework/widget/toast.dart';
 import 'package:ensemble/layout/ensemble_page_route.dart';
+import 'package:ensemble/navigation/ensemble_navigation_manager.dart';
+import 'package:ensemble/navigation/ensemble_route_factory.dart';
+import 'package:ensemble/navigation/navigation_models.dart';
 import 'package:ensemble/page_model.dart';
 import 'package:ensemble/util/ensemble_utils.dart';
 import 'package:ensemble/util/notification_utils.dart';
@@ -213,11 +216,54 @@ class ScreenController {
       });
 
       RouteOption? routeOption;
+      // A null stack preserves legacy Navigator behavior. An explicit empty
+      // stack is meaningful and makes the destination the new root.
+      final usesCustomStack =
+          action is NavigateScreenAction && action.stack != null;
+      List<EnsembleRouteDescriptor>? desiredHistory;
+      EnsembleRouteDescriptor? destinationDescriptor;
       if (action is NavigateScreenAction) {
         if (action.options?['clearAllScreens'] == true) {
           routeOption = RouteOption.clearAllScreens;
         } else if (action.options?['replaceCurrentScreen'] == true) {
           routeOption = RouteOption.replaceCurrentScreen;
+        }
+        if (usesCustomStack) {
+          if (routeOption != null) {
+            throw LanguageError(
+                'navigateScreen.stack cannot be combined with options.clearAllScreens or options.replaceCurrentScreen.');
+          }
+          if (action.asExternal) {
+            throw LanguageError(
+                'navigateScreen.stack cannot be used with asExternal.');
+          }
+          final destinationName = _requiredEvaluatedScreenName(
+            action.screenName,
+            scopeManager,
+            'navigateScreen.name',
+          );
+          desiredHistory = <EnsembleRouteDescriptor>[];
+          for (var index = 0; index < action.stack!.length; index++) {
+            final entry = action.stack![index];
+            final screenName = _requiredEvaluatedScreenName(
+              entry.name,
+              scopeManager,
+              'navigateScreen.stack[$index].name',
+            );
+            desiredHistory.add(EnsembleRouteDescriptor(
+              screenName: screenName,
+              inputs: _evaluateNavigationInputs(entry.inputs, scopeManager),
+            ));
+          }
+          destinationDescriptor = EnsembleRouteDescriptor(
+            screenName: destinationName,
+            inputs: nextArgs,
+            isExternal: action.isExternal,
+          );
+          await _validateNavigationDescriptors(
+            desiredHistory,
+            destinationDescriptor,
+          );
         }
       }
 
@@ -241,19 +287,44 @@ class ScreenController {
         context = scopeManager.dataContext.buildContext;
       }
 
-      PageRouteBuilder routeBuilder = await navigateToScreen(
-        context,
-        screenName: scopeManager.dataContext.eval(action.screenName),
-        asModal: action.asModal,
-        routeOption: routeOption,
-        pageArgs: nextArgs,
-        transition: action.transition,
-        isExternal: action.isExternal,
-        asExternal: action.asExternal,
-      );
+      PageRouteBuilder routeBuilder;
+      if (usesCustomStack) {
+        final navigator = Utils.globalAppKey.currentState;
+        if (navigator == null) {
+          throw RuntimeError(
+              'navigateScreen.stack could not find the Ensemble navigator.');
+        }
+        routeBuilder =
+            await EnsembleNavigationManager.instance.navigateWithHistory(
+          navigator: navigator,
+          history: desiredHistory!,
+          destination: destinationDescriptor!,
+          createRoute: (descriptor, {required animate}) => createEnsembleRoute(
+            navigator.context,
+            descriptor,
+            transition: action.transition,
+            animate: animate,
+          ),
+        );
+      } else {
+        routeBuilder = await navigateToScreen(
+          context,
+          screenName: scopeManager.dataContext.eval(action.screenName),
+          asModal: action.asModal,
+          routeOption: routeOption,
+          pageArgs: nextArgs,
+          transition: action.transition,
+          isExternal: action.isExternal,
+          asExternal: action.asExternal,
+        );
+      }
 
       if (action is NavigateScreenAction && action.onNavigateBack != null) {
         routeBuilder.popped.then((data) {
+          if (EnsembleNavigationManager.instance.exitReasonFor(routeBuilder) !=
+              EnsembleRouteExitReason.back) {
+            return;
+          }
           // animating transition while executing this Action causes stutter
           // if we do some heaviy processing. Delay it
           Future.delayed(
@@ -269,6 +340,12 @@ class ScreenController {
         routeBuilder.popped.whenComplete(() {
           executeActionWithScope(context, scopeManager, action.onModalDismiss!);
         });
+      }
+      if (usesCustomStack) {
+        // Legacy navigateScreen completes when its pushed route is popped.
+        // Keep that action timing separate from the manager's transaction
+        // completion, which finishes after the destination push is accepted.
+        await routeBuilder.popped;
       }
     } else if (action is ShowCameraAction) {
       GetIt.I<CameraManager>().openCamera(context, action, scopeManager);
@@ -551,6 +628,118 @@ class ScreenController {
         SystemStorageBindingSource(key, storagePrefix: storagePrefix), value));
   }
 
+  String _requiredEvaluatedScreenName(
+    dynamic rawName,
+    ScopeManager scopeManager,
+    String path,
+  ) {
+    final evaluated = scopeManager.dataContext.eval(rawName);
+    final screenName = Utils.optionalString(evaluated)?.trim();
+    if (screenName == null || screenName.isEmpty) {
+      throw LanguageError('$path must resolve to a non-empty screen name.');
+    }
+    return screenName;
+  }
+
+  Map<String, dynamic>? _evaluateNavigationInputs(
+    Map<String, dynamic>? inputs,
+    ScopeManager scopeManager,
+  ) {
+    if (inputs == null) return null;
+    return inputs.map((key, value) =>
+        MapEntry(key, _evaluateNavigationValue(value, scopeManager)));
+  }
+
+  dynamic _evaluateNavigationValue(dynamic value, ScopeManager scopeManager) {
+    if (value is Map) {
+      return value.map((key, nestedValue) => MapEntry(
+          key.toString(), _evaluateNavigationValue(nestedValue, scopeManager)));
+    }
+    if (value is List) {
+      return value
+          .map((entry) => _evaluateNavigationValue(entry, scopeManager))
+          .toList(growable: false);
+    }
+    return scopeManager.dataContext.eval(value);
+  }
+
+  Future<void> _validateNavigationDescriptors(
+    List<EnsembleRouteDescriptor> history,
+    EnsembleRouteDescriptor destination,
+  ) async {
+    final definitionProvider = Ensemble().getConfig()?.definitionProvider;
+    if (definitionProvider == null) {
+      throw RuntimeError(
+          'navigateScreen.stack cannot resolve screens before the app is initialized.');
+    }
+
+    Future<Object?> validate(EnsembleRouteDescriptor descriptor) async {
+      try {
+        await definitionProvider.getDefinition(
+            screenName: descriptor.screenName);
+        return null;
+      } catch (error) {
+        return error;
+      }
+    }
+
+    // These lookups are independent. Running them together prevents the delay
+    // of a large declarative history from growing by one network/cache round
+    // trip per entry. Errors are inspected in declaration order below so the
+    // public indexed diagnostics remain deterministic.
+    final validations = await Future.wait<Object?>(<Future<Object?>>[
+      ...history.map(validate),
+      if (!destination.isExternal) validate(destination),
+    ]);
+
+    for (var index = 0; index < history.length; index++) {
+      final error = validations[index];
+      if (error != null) {
+        throw LanguageError(
+          'navigateScreen.stack[$index] references unknown screen "${history[index].screenName}".',
+          detailedError: error.toString(),
+        );
+      }
+    }
+
+    if (destination.isExternal) {
+      if (!Ensemble()
+          .externalScreenWidgets
+          .containsKey(destination.screenName)) {
+        throw LanguageError(
+            'navigateScreen references unknown external screen "${destination.screenName}".');
+      }
+      return;
+    }
+    final destinationError = validations.last;
+    if (destinationError != null) {
+      throw LanguageError(
+        'navigateScreen references unknown screen "${destination.screenName}".',
+        detailedError: destinationError.toString(),
+      );
+    }
+  }
+
+  PageRouteBuilder<dynamic> createEnsembleRoute(
+    BuildContext context,
+    EnsembleRouteDescriptor descriptor, {
+    Map<String, dynamic>? transition,
+    bool animate = true,
+  }) {
+    final factory = EnsembleRouteFactory((routeDescriptor) => getScreen(
+          screenId: routeDescriptor.screenId,
+          screenName: routeDescriptor.screenName,
+          pageArgs: routeDescriptor.inputs,
+          isExternal: routeDescriptor.isExternal,
+        ));
+    return factory.create(
+      context,
+      descriptor,
+      transition: transition,
+      animate: animate,
+    );
+  }
+
   /// Navigate to another
   /// [screenName] - navigate to the screen if specified, otherwise to appHome
   /// [asModal] - shows the App in a regular or modal screen
@@ -611,14 +800,16 @@ class ScreenController {
             defaultTransitionOptions[_pageType]?['duration'],
         fallback: 250);
 
-    final routeSettings = RouteSettings(
-      arguments: ScreenPayload(
-        screenId: screenId,
-        screenName: screenName,
-        pageType: pageType,
-        arguments: pageArgs,
-        isExternal: isExternal,
-      ),
+    final descriptor = EnsembleRouteDescriptor(
+      screenId: screenId,
+      screenName: screenName,
+      inputs: pageArgs,
+      isExternal: isExternal,
+      pageType: pageType,
+    );
+    final routeSettings = EnsembleRouteSettings(
+      descriptor: descriptor,
+      payload: descriptor.toPayload(pageType: pageType),
     );
 
     PageRouteBuilder route = getScreenBuilder(
@@ -635,12 +826,16 @@ class ScreenController {
         externalAppNavigateKey?.currentState
             ?.pushAndRemoveUntil(route, (route) => false);
       } else {
+        EnsembleNavigationManager.instance
+            .markAllRoutes(EnsembleRouteExitReason.rootCleared);
         await Navigator.pushAndRemoveUntil(context, route, (route) => false);
       }
     } else if (routeOption == RouteOption.replaceCurrentScreen) {
       if (asExternal) {
         externalAppNavigateKey?.currentState?.pushReplacement(route);
       } else {
+        EnsembleNavigationManager.instance
+            .markCurrentRoute(EnsembleRouteExitReason.replaced);
         await Navigator.pushReplacement(context, route);
       }
     } else {

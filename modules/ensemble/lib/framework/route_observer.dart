@@ -1,5 +1,6 @@
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/screen_tracker.dart';
+import 'package:ensemble/navigation/ensemble_navigation_manager.dart';
 import 'package:ensemble/framework/tv/tv_focus_widget.dart';
 import 'package:flutter/cupertino.dart';
 
@@ -28,6 +29,10 @@ mixin EnsembleRouteObserver on WithEnsemble {
 
     _screenTrackingObserver = ScreenTrackingNavigatorObserver();
     routeObservers.add(_screenTrackingObserver);
+
+    // Register last so tracking observes the same Navigator event before the
+    // manager publishes its canonical history snapshot.
+    routeObservers.add(EnsembleNavigationManager.instance.observer);
 
     _tvFocusRouteObserver = TVFocusRouteObserver();
     routeObservers.add(_tvFocusRouteObserver);

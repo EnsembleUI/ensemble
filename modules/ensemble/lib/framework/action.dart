@@ -50,6 +50,7 @@ import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/stub/plaid_link_manager.dart';
 import 'package:ensemble/framework/view/page_group.dart';
 import 'package:ensemble/framework/widget/view_util.dart';
+import 'package:ensemble/navigation/navigation_models.dart';
 import 'package:ensemble/receive_intent_manager.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
@@ -101,11 +102,15 @@ class NavigateScreenAction extends BaseNavigateScreenAction {
       required super.screenName,
       super.payload,
       super.options,
+      this.stack,
       this.onNavigateBack,
       super.transition,
       super.isExternal,
       super.asExternal})
       : super(asModal: false);
+
+  /// Unevaluated history requested immediately before the destination.
+  final List<NavigationStackEntry>? stack;
   EnsembleAction? onNavigateBack;
 
   factory NavigateScreenAction.fromMap({Invokable? initiator, Map? payload}) {
@@ -113,16 +118,40 @@ class NavigateScreenAction extends BaseNavigateScreenAction {
       throw LanguageError(
           "${ActionType.navigateScreen.name} requires the 'name' of the screen to navigate to.");
     }
+    List<NavigationStackEntry>? stack;
+    if (payload.containsKey('stack')) {
+      final rawStack = payload['stack'];
+      if (rawStack is! List) {
+        throw LanguageError('navigateScreen.stack must be an array.');
+      }
+      stack = <NavigationStackEntry>[
+        for (var index = 0; index < rawStack.length; index++)
+          NavigationStackEntry.from(rawStack[index], index),
+      ];
+    }
+    final options = Utils.getMap(payload['options']);
+    final asExternal = Utils.getBool(payload['asExternal'], fallback: false);
+    if (stack != null &&
+        (options?['clearAllScreens'] == true ||
+            options?['replaceCurrentScreen'] == true)) {
+      throw LanguageError(
+          'navigateScreen.stack cannot be combined with options.clearAllScreens or options.replaceCurrentScreen.');
+    }
+    if (stack != null && asExternal) {
+      throw LanguageError(
+          'navigateScreen.stack cannot be used with asExternal.');
+    }
     return NavigateScreenAction(
       initiator: initiator,
       screenName: payload['name'].toString(),
       payload:
           Utils.getMap(payload['payload']) ?? Utils.getMap(payload['inputs']),
-      options: Utils.getMap(payload['options']),
+      options: options,
+      stack: stack,
       onNavigateBack: EnsembleAction.from(payload['onNavigateBack']),
       transition: Utils.getMap(payload['transition']),
       isExternal: Utils.getBool(payload['external'], fallback: false),
-      asExternal: Utils.getBool(payload['asExternal'], fallback: false),
+      asExternal: asExternal,
     );
   }
 
