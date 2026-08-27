@@ -23,7 +23,7 @@ class Image extends StatelessWidget {
       this.placeholderBuilder,
       this.loadingWidget,
       this.colorFilter,
-      this.networkCacheManager});
+      this.cacheManager});
 
   final String source;
   final double? width;
@@ -41,8 +41,8 @@ class Image extends StatelessWidget {
   // optional widget while the image is loading
   final Widget? loadingWidget;
 
-  // optional cache manager for network image
-  final BaseCacheManager? networkCacheManager;
+  // The cache policy selected by the calling Ensemble widget.
+  final BaseCacheManager? cacheManager;
 
   @override
   Widget build(BuildContext context) {
@@ -78,7 +78,7 @@ class Image extends StatelessWidget {
           errorWidget: errorBuilder != null
               ? (context, url, error) => errorBuilder!(error.toString())
               : null,
-          cacheManager: networkCacheManager,
+          cacheManager: cacheManager,
         );
       }
     } else {

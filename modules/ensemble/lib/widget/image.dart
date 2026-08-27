@@ -68,9 +68,6 @@ class EnsembleImage extends StatefulWidget
       'placeholderColor': (value) =>
           _controller.placeholderColor = Utils.getColor(value),
       'loadingWidget': (widget) => _controller.loadingWidget = widget,
-      'networkCacheManager': (value) =>
-          _controller.networkCacheManager =
-              value is BaseCacheManager ? value : null,
       'fallback': (widget) => _controller.fallback = widget,
       'onTap': (funcDefinition) => _controller.onTap =
           EnsembleAction.from(funcDefinition, initiator: this),
@@ -99,7 +96,6 @@ class ImageController extends BoxController {
   BoxFit? fit;
   Color? placeholderColor;
   dynamic loadingWidget;
-  BaseCacheManager? networkCacheManager;
   EnsembleAction? onTap;
   String? onTapHaptic;
   ColorFilterComposite? colorFilter;
@@ -299,12 +295,9 @@ class ImageState extends EWidgetState<EnsembleImage> {
           // gigantic images won't run out of memory
           memCacheWidth: cachedWidth,
           memCacheHeight: cachedHeight,
-          cacheManager: widget._controller.allowRedirect
-              ? widget._controller.networkCacheManager ??
-                  EnsembleImageCacheManager.instanceFor()
-              : EnsembleImageCacheManager.instanceFor(
-                  allowRedirect: false,
-                ),
+          cacheManager: EnsembleImageCacheManager.instanceFor(
+            allowRedirect: widget._controller.allowRedirect,
+          ),
           errorWidget: (context, error, stacktrace) => errorFallback(),
           placeholder: (context, url) => _buildLoadingPlaceholder(loadingWidget: loadingWidget),
           httpHeaders: _evaluateHeaders(),
