@@ -18,6 +18,7 @@ mixin HasBorderController on EnsembleWidgetController {
   Color? borderColor;
   int? borderWidth;
   EBorderRadius? borderRadius;
+  BorderStyleComposite? borderStyle;
 
   Map<String, Function> hasBorderSetters() => {
         'borderGradient': (value) =>
@@ -25,6 +26,8 @@ mixin HasBorderController on EnsembleWidgetController {
         'borderColor': (value) => borderColor = Utils.getColor(value),
         'borderWidth': (value) => borderWidth = Utils.optionalInt(value),
         'borderRadius': (value) => borderRadius = Utils.getBorderRadius(value),
+        'borderStyle': (value) =>
+            borderStyle = BorderStyleComposite.from(this, value),
       };
 
   bool hasBorder() =>

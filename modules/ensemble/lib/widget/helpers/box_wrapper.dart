@@ -8,6 +8,37 @@ import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:ensemble/widget/helpers/widgets.dart';
 import 'package:flutter/material.dart';
 
+BoxBorder? _resolveBoxBorder({
+  required bool hasBorder,
+  required LinearGradient? borderGradient,
+  required Color? borderColor,
+  required int? borderWidth,
+  required BorderStyleComposite? borderStyle,
+  required BuildContext context,
+}) {
+  if (!hasBorder) return null;
+
+  final width =
+      borderWidth?.toDouble() ?? ThemeManager().getBorderThickness(context);
+
+  if (borderGradient != null) {
+    return GradientBoxBorder(gradient: borderGradient, width: width);
+  }
+
+  final color = borderColor ?? ThemeManager().getBorderColor(context);
+  if (borderStyle != null && borderStyle.isNonSolid) {
+    return DashedBoxBorder(
+      color: color,
+      width: width,
+      style: borderStyle.type,
+      dashLength: borderStyle.effectiveLength,
+      gap: borderStyle.effectiveGap,
+    );
+  }
+
+  return Border.all(color: color, width: width);
+}
+
 /// TODO: Legacy - move to EnsembleBoxWrapper
 /// wraps around a widget and gives it common box attributes
 class BoxWrapper extends StatelessWidget {
@@ -76,18 +107,14 @@ class BoxWrapper extends StatelessWidget {
         : BoxDecoration(
             color: boxController.backgroundColor,
             gradient: boxController.backgroundGradient,
-            border: !boxController.hasBorder()
-                ? null
-                : boxController.borderGradient != null
-                    ? GradientBoxBorder(
-                        gradient: boxController.borderGradient!,
-                        width: boxController.borderWidth?.toDouble() ??
-                            ThemeManager().getBorderThickness(context))
-                    : Border.all(
-                        color: boxController.borderColor ??
-                            ThemeManager().getBorderColor(context),
-                        width: boxController.borderWidth?.toDouble() ??
-                            ThemeManager().getBorderThickness(context)),
+            border: _resolveBoxBorder(
+              hasBorder: boxController.hasBorder(),
+              borderGradient: boxController.borderGradient,
+              borderColor: boxController.borderColor,
+              borderWidth: boxController.borderWidth,
+              borderStyle: boxController.borderStyle,
+              context: context,
+            ),
             borderRadius: boxController.borderRadius?.getValue(),
             boxShadow: !boxController.hasBoxShadow()
                 ? null
@@ -271,18 +298,14 @@ class EnsembleBoxWrapper extends StatelessWidget {
           : BoxDecoration(
               color: boxController.backgroundColor,
               gradient: boxController.backgroundGradient,
-              border: !boxController.hasBorder()
-                  ? null
-                  : boxController.borderGradient != null
-                      ? GradientBoxBorder(
-                          gradient: boxController.borderGradient!,
-                          width: boxController.borderWidth?.toDouble() ??
-                              ThemeManager().getBorderThickness(context))
-                      : Border.all(
-                          color: boxController.borderColor ??
-                              ThemeManager().getBorderColor(context),
-                          width: boxController.borderWidth?.toDouble() ??
-                              ThemeManager().getBorderThickness(context)),
+              border: _resolveBoxBorder(
+                hasBorder: boxController.hasBorder(),
+                borderGradient: boxController.borderGradient,
+                borderColor: boxController.borderColor,
+                borderWidth: boxController.borderWidth,
+                borderStyle: boxController.borderStyle,
+                context: context,
+              ),
               borderRadius: _borderRadius?.getValue(),
               boxShadow: boxController.boxShadow == null
                   ? null
