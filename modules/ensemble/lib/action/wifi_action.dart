@@ -47,12 +47,13 @@ Future<dynamic> _handleWifiError(
   BuildContext context,
   Invokable? initiator,
   EnsembleAction? onError,
-  Object error,
-) {
+  Object error, {
+  String status = 'error',
+}) {
   if (onError != null) {
     return ScreenController().executeAction(context, onError,
         event: EnsembleEvent(initiator,
-            error: error.toString(), data: {'status': 'error'}));
+            error: error.toString(), data: {'status': status}));
   }
   return Future.value(null);
 }
@@ -79,8 +80,12 @@ class ConnectToWifiAction extends EnsembleAction {
   final bool isHidden;
   /// Action executed when the operation succeeds.
   final EnsembleAction? onSuccess;
-  /// Action executed when the operation fails.
+  /// Action executed when the operation fails for a non-permission reason.
   final EnsembleAction? onError;
+  /// Action executed when location permission is denied.
+  final EnsembleAction? onPermissionDenied;
+  /// Action executed when device location services are disabled.
+  final EnsembleAction? onLocationDisabled;
 
   /// Creates a [ConnectToWifiAction] action.
   ConnectToWifiAction({
@@ -96,6 +101,8 @@ class ConnectToWifiAction extends EnsembleAction {
     required this.isHidden,
     this.onSuccess,
     this.onError,
+    this.onPermissionDenied,
+    this.onLocationDisabled,
   });
 
   /// Creates a [ConnectToWifiAction] from a YAML or map action payload.
@@ -126,6 +133,10 @@ class ConnectToWifiAction extends EnsembleAction {
       onSuccess:
           EnsembleAction.from(payload?['onSuccess'], initiator: initiator),
       onError: EnsembleAction.from(payload?['onError'], initiator: initiator),
+      onPermissionDenied: EnsembleAction.from(payload?['onPermissionDenied'],
+          initiator: initiator),
+      onLocationDisabled: EnsembleAction.from(payload?['onLocationDisabled'],
+          initiator: initiator),
     );
   }
 
@@ -145,8 +156,26 @@ class ConnectToWifiAction extends EnsembleAction {
           return _handleWifiResult(
               context, initiator, onSuccess, onError, result);
         case WifiOperation.connect:
-          return _connect(context, scopeManager);
+          // Must await so errors are caught below
+          // and routed to the matching callbacks.
+          return await _connect(context, scopeManager);
       }
+    } on WifiLocationDisabledException catch (e) {
+      return _handleWifiError(
+        context,
+        initiator,
+        onLocationDisabled ?? onError,
+        e.message,
+        status: 'locationDisabled',
+      );
+    } on WifiPermissionDeniedException catch (e) {
+      return _handleWifiError(
+        context,
+        initiator,
+        onPermissionDenied ?? onError,
+        e.message,
+        status: 'permissionDenied',
+      );
     } on PlatformException catch (e) {
       final message = e.message?.isNotEmpty == true ? e.message! : e.code;
       return _handleWifiError(

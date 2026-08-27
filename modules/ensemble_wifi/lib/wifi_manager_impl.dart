@@ -16,8 +16,7 @@ class WifiManagerImpl implements WifiManager {
     }
 
     if (!await Geolocator.isLocationServiceEnabled()) {
-      throw StateError(
-          'Location services are disabled. Enable location to connect to WiFi.');
+      throw WifiLocationDisabledException();
     }
 
     var permission = await Geolocator.checkPermission();
@@ -27,8 +26,7 @@ class WifiManagerImpl implements WifiManager {
 
     if (permission == LocationPermission.denied ||
         permission == LocationPermission.deniedForever) {
-      throw StateError(
-          'Location permission is required to connect to WiFi on this device.');
+      throw WifiPermissionDeniedException();
     }
   }
 

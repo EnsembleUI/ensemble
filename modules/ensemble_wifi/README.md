@@ -221,10 +221,14 @@ sequenceDiagram
   else Mobile
     Action->>Impl: connectToSecureNetwork(…)
     Impl->>Geo: check / request location permission
-    alt Permission denied
+    alt Location services disabled
+      Geo-->>Impl: disabled
+      Impl-->>Action: WifiLocationDisabledException
+      Action-->>User: onLocationDisabled (falls back to onError)
+    else Permission denied
       Geo-->>Impl: denied
-      Impl-->>Action: StateError
-      Action-->>User: onError
+      Impl-->>Action: WifiPermissionDeniedException
+      Action-->>User: onPermissionDenied (falls back to onError)
     else Permission granted
       Geo-->>Impl: granted
       Impl->>Plugin: connectToSecureNetwork(…)
@@ -245,18 +249,20 @@ sequenceDiagram
 ### Parameters
 
 
-| Parameter     | Required                                     | Default   | Description                                                   |
-| ------------- | -------------------------------------------- | --------- | ------------------------------------------------------------- |
-| `operation`   | No                                           | `connect` | `connect` or `disconnect` |
-| `ssid`        | One of `ssid` or `ssidPrefix` (connect only) | —         | Exact network name                                            |
-| `ssidPrefix`  | One of `ssid` or `ssidPrefix` (connect only) | —         | Match nearest network by SSID prefix (common for IoT devices) |
-| `password`    | No                                           | —         | If set, uses secured connect                                  |
-| `saveNetwork` | No                                           | `false`   | Remember the network on the device after connecting           |
-| `isWep`       | No                                           | `false`   | WEP encryption (not supported on Android)                     |
-| `isWpa3`      | No                                           | `false`   | WPA3 network                                                  |
-| `isHidden`    | No                                           | `false`   | Hidden SSID (exact `ssid` connect only)                       |
-| `onSuccess`   | No                                           | —         | Action run when the operation succeeds                        |
-| `onError`     | No                                           | —         | Action run when the operation fails                           |
+| Parameter             | Required                                     | Default   | Description                                                   |
+| --------------------- | -------------------------------------------- | --------- | ------------------------------------------------------------- |
+| `operation`           | No                                           | `connect` | `connect` or `disconnect` |
+| `ssid`                | One of `ssid` or `ssidPrefix` (connect only) | —         | Exact network name                                            |
+| `ssidPrefix`          | One of `ssid` or `ssidPrefix` (connect only) | —         | Match nearest network by SSID prefix (common for IoT devices) |
+| `password`            | No                                           | —         | If set, uses secured connect                                  |
+| `saveNetwork`         | No                                           | `false`   | Remember the network on the device after connecting           |
+| `isWep`               | No                                           | `false`   | WEP encryption (not supported on Android)                     |
+| `isWpa3`              | No                                           | `false`   | WPA3 network                                                  |
+| `isHidden`            | No                                           | `false`   | Hidden SSID (exact `ssid` connect only)                       |
+| `onSuccess`           | No                                           | —         | Action run when the operation succeeds                        |
+| `onError`             | No                                           | —         | Action run for connection / other failures                    |
+| `onPermissionDenied`  | No                                           | —         | Action run when location permission is denied (falls back to `onError`) |
+| `onLocationDisabled`  | No                                           | —         | Action run when location services are off (falls back to `onError`) |
 
 
 All string parameters support Ensemble expressions (e.g. `${devicePassword}`).
@@ -279,7 +285,23 @@ data:
   connected: false   # or null, when connect verification failed
 ```
 
-Use `${event.error}` and `${event.data.connected}` in nested actions (e.g. `showToast`).
+**`onPermissionDenied`**
+
+```yaml
+error: "Location permission is required to connect to WiFi on this device."
+data:
+  status: permissionDenied
+```
+
+**`onLocationDisabled`**
+
+```yaml
+error: "Location services are disabled. Enable location to connect to WiFi."
+data:
+  status: locationDisabled
+```
+
+Use `${event.error}` and `${event.data.status}` in nested actions (e.g. `showToast`).
 
 ### JavaScript
 
@@ -290,6 +312,8 @@ ensemble.connectToWifi({
   ssid: 'MyNetwork',
   password: myPassword,
   onSuccess: { showToast: { message: 'Connected' } },
+  onPermissionDenied: { showToast: { message: 'Please grant location permission' } },
+  onLocationDisabled: { showToast: { message: 'Please enable location services' } },
   onError: { showToast: { message: event.error } }
 });
 ```
@@ -325,6 +349,12 @@ onTap:
     onSuccess:
       showToast:
         message: Connected
+    onPermissionDenied:
+      showToast:
+        message: Please grant location permission to connect to WiFi
+    onLocationDisabled:
+      showToast:
+        message: Please enable location services
     onError:
       showToast:
         message: ${event.error}
