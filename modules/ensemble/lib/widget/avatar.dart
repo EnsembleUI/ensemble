@@ -61,11 +61,7 @@ class AvatarController extends EnsembleBoxController {
   List<String> passthroughSetters() => ['group-template'];
 
   @override
-  Map<String, Function> getters() {
-    return {
-      'loadingWidget': () => loadingWidget,
-    };
-  }
+  Map<String, Function> getters() => {};
 
   @override
   Map<String, Function> methods() {

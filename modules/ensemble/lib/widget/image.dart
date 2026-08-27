@@ -43,8 +43,6 @@ class EnsembleImage extends StatefulWidget
       'resizedWidth': () => _controller.resizedWidth,
       'resizedHeight': () => _controller.resizedHeight,
       'placeholderColor': () => _controller.placeholderColor,
-      'loadingWidget': () => _controller.loadingWidget,
-      'networkCacheManager': () => _controller.networkCacheManager,
       'colorFilter': () =>
           _controller.colorFilter?.toString() ?? 'null',
       'headers': () => _controller.headers,
