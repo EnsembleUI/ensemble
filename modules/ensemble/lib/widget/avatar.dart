@@ -18,7 +18,6 @@ import 'package:ensemble/widget/helpers/box_wrapper.dart';
 import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:ensemble/widget/image.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:yaml/yaml.dart';
 
 class Avatar extends EnsembleWidget<AvatarController> {
@@ -45,7 +44,6 @@ class AvatarController extends EnsembleBoxController {
   BoxFit? fit;
   Color? placeholderColor;
   dynamic loadingWidget;
-  BaseCacheManager? networkCacheManager;
   ColorFilterComposite? colorFilter;
   bool allowRedirect = true;
   int? resizedWidth;
@@ -77,8 +75,6 @@ class AvatarController extends EnsembleBoxController {
       'fit': (value) => fit = Utils.getBoxFit(value),
       'placeholderColor': (value) => placeholderColor = Utils.getColor(value),
       'loadingWidget': (value) => loadingWidget = value,
-      'networkCacheManager': (value) =>
-          networkCacheManager = value is BaseCacheManager ? value : null,
       'allowRedirect': (value) =>
           allowRedirect = Utils.getBool(value, fallback: true),
       'resizedWidth': (value) =>
@@ -316,12 +312,9 @@ class AvatarState extends EnsembleWidgetState<Avatar>
               ? getScopeManager()!
                   .buildWidgetFromDefinition(widget.controller.loadingWidget)
               : null,
-      networkCacheManager: widget.controller.allowRedirect
-          ? widget.controller.networkCacheManager ??
-              EnsembleImageCacheManager.instanceFor()
-          : EnsembleImageCacheManager.instanceFor(
-              allowRedirect: false,
-            ),
+      cacheManager: EnsembleImageCacheManager.instanceFor(
+        allowRedirect: widget.controller.allowRedirect,
+      ),
       placeholderBuilder: (_, __) =>
           ColoredBoxPlaceholder(color: widget.controller.placeholderColor),
       errorBuilder: (_) => _buildFallback());
