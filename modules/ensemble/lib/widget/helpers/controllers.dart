@@ -34,6 +34,65 @@ abstract class WidgetCompositeProperty with Invokable {
   }
 }
 
+/// Nested borderStyle map: type / length / gap
+class BorderStyleComposite extends WidgetCompositeProperty {
+  BorderStyleComposite._(super.widgetController,
+      {BoxBorderStyle? type, this.length, this.gap})
+      : type = type ?? BoxBorderStyle.solid;
+
+  static const double defaultLength = 5;
+  static const double defaultGap = 3;
+
+  BoxBorderStyle type;
+  double? length;
+  double? gap;
+
+  factory BorderStyleComposite.from(
+      ChangeNotifier widgetController, dynamic payload) {
+    if (payload is Map) {
+      return BorderStyleComposite._(
+        widgetController,
+        type: BoxBorderStyle.values.from(payload['type']) ?? BoxBorderStyle.solid,
+        length: Utils.optionalDouble(payload['length']),
+        gap: Utils.optionalDouble(payload['gap']),
+      );
+    }
+    // shorthand: borderStyle: dashed
+    if (payload is String) {
+      return BorderStyleComposite._(
+        widgetController,
+        type: BoxBorderStyle.values.from(payload) ?? BoxBorderStyle.solid,
+      );
+    }
+    return BorderStyleComposite._(widgetController);
+  }
+
+  bool get isNonSolid =>
+      type == BoxBorderStyle.dashed || type == BoxBorderStyle.dotted;
+
+  double get effectiveLength => length ?? defaultLength;
+
+  double get effectiveGap => gap ?? defaultGap;
+
+  @override
+  Map<String, Function> getters() => {
+        'type': () => type.name,
+        'length': () => length,
+        'gap': () => gap,
+      };
+
+  @override
+  Map<String, Function> methods() => {};
+
+  @override
+  Map<String, Function> setters() => {
+        'type': (value) =>
+            type = BoxBorderStyle.values.from(value) ?? BoxBorderStyle.solid,
+        'length': (value) => length = Utils.optionalDouble(value),
+        'gap': (value) => gap = Utils.optionalDouble(value),
+      };
+}
+
 class BoxShadowComposite extends WidgetCompositeProperty {
   BoxShadowComposite(super.widgetController, {required Map inputs}) {
     color = inputs['color'];
@@ -887,6 +946,7 @@ class BoxController extends WidgetController {
   int? borderWidth;
   EBorderRadius? borderRadius;
   LinearGradient? borderGradient;
+  BorderStyleComposite? borderStyle;
 
   BoxShadowComposite? boxShadow;
 
@@ -931,6 +991,8 @@ class BoxController extends WidgetController {
       'borderColor': (value) => borderColor = Utils.getColor(value),
       'borderWidth': (value) => borderWidth = Utils.optionalInt(value),
       'borderRadius': (value) => borderRadius = Utils.getBorderRadius(value),
+      'borderStyle': (value) =>
+          borderStyle = BorderStyleComposite.from(this, value),
 
       'boxShadow': (value) =>
           boxShadow = Utils.getBoxShadowComposite(this, value),
@@ -1163,6 +1225,13 @@ class EnsembleBoxController extends EnsembleWidgetController
       hasBorder() ||
       borderRadius != null ||
       boxShadow != null;
+}
+
+/// Border stroke pattern for container box styles.
+enum BoxBorderStyle {
+  solid,
+  dashed,
+  dotted,
 }
 
 class EnsembleSemantics {

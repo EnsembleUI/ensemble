@@ -92,6 +92,37 @@ class TVFocusStylingResolver {
   }
 }
 
+BoxBorder? _resolveBoxBorder({
+  required bool hasBorder,
+  required LinearGradient? borderGradient,
+  required Color? borderColor,
+  required int? borderWidth,
+  required BorderStyleComposite? borderStyle,
+  required BuildContext context,
+}) {
+  if (!hasBorder) return null;
+
+  final width =
+      borderWidth?.toDouble() ?? ThemeManager().getBorderThickness(context);
+
+  if (borderGradient != null) {
+    return GradientBoxBorder(gradient: borderGradient, width: width);
+  }
+
+  final color = borderColor ?? ThemeManager().getBorderColor(context);
+  if (borderStyle != null && borderStyle.isNonSolid) {
+    return DashedBoxBorder(
+      color: color,
+      width: width,
+      style: borderStyle.type,
+      dashLength: borderStyle.effectiveLength,
+      gap: borderStyle.effectiveGap,
+    );
+  }
+
+  return Border.all(color: color, width: width);
+}
+
 /// TODO: Legacy - move to EnsembleBoxWrapper
 /// wraps around a widget and gives it common box attributes
 class BoxWrapper extends StatelessWidget {
@@ -169,18 +200,14 @@ class BoxWrapper extends StatelessWidget {
         : BoxDecoration(
             color: boxController.backgroundColor,
             gradient: boxController.backgroundGradient,
-            border: !boxController.hasBorder()
-                ? null
-                : boxController.borderGradient != null
-                    ? GradientBoxBorder(
-                        gradient: boxController.borderGradient!,
-                        width: boxController.borderWidth?.toDouble() ??
-                            ThemeManager().getBorderThickness(context))
-                    : Border.all(
-                        color: boxController.borderColor ??
-                            ThemeManager().getBorderColor(context),
-                        width: boxController.borderWidth?.toDouble() ??
-                            ThemeManager().getBorderThickness(context)),
+            border: _resolveBoxBorder(
+              hasBorder: boxController.hasBorder(),
+              borderGradient: boxController.borderGradient,
+              borderColor: boxController.borderColor,
+              borderWidth: boxController.borderWidth,
+              borderStyle: boxController.borderStyle,
+              context: context,
+            ),
             borderRadius: boxController.borderRadius?.getValue(),
             boxShadow: !boxController.hasBoxShadow()
                 ? null
@@ -413,18 +440,14 @@ class EnsembleBoxWrapper extends StatelessWidget {
           : BoxDecoration(
               color: boxController.backgroundColor,
               gradient: boxController.backgroundGradient,
-              border: !boxController.hasBorder()
-                  ? null
-                  : boxController.borderGradient != null
-                      ? GradientBoxBorder(
-                          gradient: boxController.borderGradient!,
-                          width: boxController.borderWidth?.toDouble() ??
-                              ThemeManager().getBorderThickness(context))
-                      : Border.all(
-                          color: boxController.borderColor ??
-                              ThemeManager().getBorderColor(context),
-                          width: boxController.borderWidth?.toDouble() ??
-                              ThemeManager().getBorderThickness(context)),
+              border: _resolveBoxBorder(
+                hasBorder: boxController.hasBorder(),
+                borderGradient: boxController.borderGradient,
+                borderColor: boxController.borderColor,
+                borderWidth: boxController.borderWidth,
+                borderStyle: boxController.borderStyle,
+                context: context,
+              ),
               borderRadius: _borderRadius?.getValue(),
               boxShadow: boxController.boxShadow == null
                   ? null
@@ -506,7 +529,8 @@ void _saveTVRowPositionOnFocus(
 /// fastOutSlowIn, bounceOut, elasticOut.
 // Curve-name resolution lives in tv_focus_scroll.dart (shared with the
 // focusable scrollbar); this thin alias keeps the existing internal call sites.
-Curve _curveFromName(String? curveName, {Curve defaultCurve = Curves.easeOut}) =>
+Curve _curveFromName(String? curveName,
+        {Curve defaultCurve = Curves.easeOut}) =>
     curveFromName(curveName, defaultCurve: defaultCurve);
 
 class _TapEnabledWrapperState extends State<_TapEnabledWrapper> {
@@ -696,8 +720,9 @@ class _TapEnabledWrapperState extends State<_TapEnabledWrapper> {
     final position = scrollable.position;
     final double itemCenter = itemLeft + itemWidth / 2;
     final double viewportCenter = scrollableLeft + scrollableBox.size.width / 2;
-    final double targetScroll = (position.pixels + (itemCenter - viewportCenter))
-        .clamp(0.0, position.maxScrollExtent);
+    final double targetScroll =
+        (position.pixels + (itemCenter - viewportCenter))
+            .clamp(0.0, position.maxScrollExtent);
 
     if ((targetScroll - position.pixels).abs() > kTVScrollThreshold) {
       position.animateTo(
@@ -1003,7 +1028,6 @@ class _TapEnabledWrapperState extends State<_TapEnabledWrapper> {
       child: materialChild,
     );
   }
-
 }
 
 // =============================================================================
