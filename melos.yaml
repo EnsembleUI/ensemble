@@ -30,6 +30,10 @@ scripts:
     run: |
       cd tools/ensemble_test_runner && dart run tool/generate_step_registry.dart
 
+  licenses:
+    description: Generate LICENSES.md from the resolved Dart dependency graph.
+    run: dart scripts/generate-license-report.dart
+
 command:
   version:
     updateGitTagRefs: true
