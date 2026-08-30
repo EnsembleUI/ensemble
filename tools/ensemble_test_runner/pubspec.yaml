@@ -19,7 +19,7 @@ environment:
   flutter: ">=3.24.0"
 
 dependencies:
-  ensemble: ">=1.2.52 <2.0.0"
+  ensemble: ">=1.2.53-beta.1 <2.0.0"
   device_frame: ^1.3.0
   ensemble_device_preview: ^1.1.3
   flutter:
