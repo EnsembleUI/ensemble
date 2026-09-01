@@ -3,6 +3,131 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## 2026-08-31
+
+### Changes
+
+---
+
+Packages with breaking changes:
+
+ - There are no breaking changes in this release.
+
+Packages with other changes:
+
+ - [`ensemble` - `v1.2.53`](#ensemble---v1253)
+ - [`ensemble_network_info` - `v1.2.53`](#ensemble_network_info---v1253)
+ - [`ensemble_stripe` - `v1.2.53`](#ensemble_stripe---v1253)
+ - [`ensemble_file_manager` - `v1.2.53`](#ensemble_file_manager---v1253)
+ - [`ensemble_chat` - `v1.2.53`](#ensemble_chat---v1253)
+ - [`ensemble_auth` - `v1.2.53`](#ensemble_auth---v1253)
+ - [`ensemble_bluetooth` - `v1.2.53`](#ensemble_bluetooth---v1253)
+ - [`ensemble_wifi` - `v1.2.53`](#ensemble_wifi---v1253)
+ - [`ensemble_face_camera` - `v1.2.53`](#ensemble_face_camera---v1253)
+ - [`ensemble_connect` - `v1.2.53`](#ensemble_connect---v1253)
+ - [`ensemble_contacts` - `v1.2.53`](#ensemble_contacts---v1253)
+ - [`ensemble_location` - `v1.2.53`](#ensemble_location---v1253)
+ - [`ensemble_camera` - `v1.2.53`](#ensemble_camera---v1253)
+ - [`ensemble_deeplink` - `v1.2.53`](#ensemble_deeplink---v1253)
+ - [`ensemble_remote_config` - `v1.2.53`](#ensemble_remote_config---v1253)
+ - [`ensemble_firebase_analytics` - `v1.2.53`](#ensemble_firebase_analytics---v1253)
+ - [`ensemble_qr_scanner` - `v1.2.53`](#ensemble_qr_scanner---v1253)
+ - [`ensemble_adobe_analytics` - `v1.2.53`](#ensemble_adobe_analytics---v1253)
+ - [`ensemble_moengage` - `v1.2.53`](#ensemble_moengage---v1253)
+ - [`ensemble_bracket` - `v1.2.53`](#ensemble_bracket---v1253)
+ - [`ensemble_test_runner` - `v1.3.5`](#ensemble_test_runner---v135)
+
+Packages with dependency updates only:
+
+> Packages listed below depend on other packages in this workspace that have had changes. Their versions have been incremented to bump the minimum dependency versions of the packages they depend upon in this project.
+
+ - `ensemble_test_runner` - `v1.3.5`
+
+---
+
+#### `ensemble` - `v1.2.53`
+
+ - **FIX**(dependencies): pin html package version to avoid breaking changes with flutter_html. ([01d1dba0](https://github.com/ensembleUI/ensemble/commit/01d1dba0fe0d9935690257bd00d2d92b3dd7e9d5))
+ - **FEAT**(wifi): enhance error handling for Wi-Fi connection failures ([#2355](https://github.com/ensembleUI/ensemble/issues/2355)). ([91e71af2](https://github.com/ensembleUI/ensemble/commit/91e71af2d404b793f11318682453efe782e5b8a1))
+ - **FEAT**(border): add dashed and dotted borderStyle for container widgets ([#2356](https://github.com/ensembleUI/ensemble/issues/2356)). ([26d747ed](https://github.com/ensembleUI/ensemble/commit/26d747ed23a14d5138aa35d5833255ae337a6655))
+
+#### `ensemble_network_info` - `v1.2.53`
+
+ - Bump "ensemble_network_info" to `1.2.53`.
+
+#### `ensemble_stripe` - `v1.2.53`
+
+ - Bump "ensemble_stripe" to `1.2.53`.
+
+#### `ensemble_file_manager` - `v1.2.53`
+
+ - Bump "ensemble_file_manager" to `1.2.53`.
+
+#### `ensemble_chat` - `v1.2.53`
+
+ - Bump "ensemble_chat" to `1.2.53`.
+
+#### `ensemble_auth` - `v1.2.53`
+
+ - Bump "ensemble_auth" to `1.2.53`.
+
+#### `ensemble_bluetooth` - `v1.2.53`
+
+ - Bump "ensemble_bluetooth" to `1.2.53`.
+
+#### `ensemble_wifi` - `v1.2.53`
+
+ - **FEAT**(wifi): enhance error handling for Wi-Fi connection failures ([#2355](https://github.com/ensembleUI/ensemble/issues/2355)). ([91e71af2](https://github.com/ensembleUI/ensemble/commit/91e71af2d404b793f11318682453efe782e5b8a1))
+
+#### `ensemble_face_camera` - `v1.2.53`
+
+ - Bump "ensemble_face_camera" to `1.2.53`.
+
+#### `ensemble_connect` - `v1.2.53`
+
+ - Bump "ensemble_connect" to `1.2.53`.
+
+#### `ensemble_contacts` - `v1.2.53`
+
+ - Bump "ensemble_contacts" to `1.2.53`.
+
+#### `ensemble_location` - `v1.2.53`
+
+ - Bump "ensemble_location" to `1.2.53`.
+
+#### `ensemble_camera` - `v1.2.53`
+
+ - Bump "ensemble_camera" to `1.2.53`.
+
+#### `ensemble_deeplink` - `v1.2.53`
+
+ - Bump "ensemble_deeplink" to `1.2.53`.
+
+#### `ensemble_remote_config` - `v1.2.53`
+
+ - Bump "ensemble_remote_config" to `1.2.53`.
+
+#### `ensemble_firebase_analytics` - `v1.2.53`
+
+ - **FEAT**(licenses): add LICENSES.md generation script and update melos.yaml. ([64735d84](https://github.com/ensembleUI/ensemble/commit/64735d84fa81058de00d4d393fff7dbfb4eadbc7))
+
+#### `ensemble_qr_scanner` - `v1.2.53`
+
+ - Bump "ensemble_qr_scanner" to `1.2.53`.
+
+#### `ensemble_adobe_analytics` - `v1.2.53`
+
+ - Bump "ensemble_adobe_analytics" to `1.2.53`.
+
+#### `ensemble_moengage` - `v1.2.53`
+
+ - Bump "ensemble_moengage" to `1.2.53`.
+
+#### `ensemble_bracket` - `v1.2.53`
+
+ - Bump "ensemble_bracket" to `1.2.53`.
+
+
 ## 2026-08-26
 
 ### Changes

@@ -1,3 +1,7 @@
+## 1.2.53
+
+ - **FEAT**(licenses): add LICENSES.md generation script and update melos.yaml. ([64735d84](https://github.com/ensembleUI/ensemble/commit/64735d84fa81058de00d4d393fff7dbfb4eadbc7))
+
 ## 1.2.52
 
  - Bump "ensemble_firebase_analytics" to `1.2.52`.

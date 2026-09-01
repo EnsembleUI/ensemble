@@ -36,7 +36,7 @@ dependencies:
   ensemble:
     git:
       url: https://github.com/EnsembleUI/ensemble.git
-      ref: ensemble-v1.2.52
+      ref: ensemble-v1.2.53
       path: modules/ensemble
 
 
@@ -191,8 +191,12 @@ dev_dependencies:
 # Flutter/Dart SDK (a dart:js_interop `isA` extension only broadened to
 # accept Object? starting Dart 3.12.0). Pin back to 3.10.0 until upstream
 # ships a fix or this SDK is bumped to new stable flutter version.
+#
+# html 0.15.7 removed the internal qs.matches API that flutter_html 3.0.0 still
+# uses. Pin until flutter_html stops importing html's query_selector internals.
 dependency_overrides:
   firebase_core_web: 3.10.0
+  html: 0.15.6
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

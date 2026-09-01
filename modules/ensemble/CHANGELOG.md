@@ -1,3 +1,9 @@
+## 1.2.53
+
+ - **FIX**(dependencies): pin html package version to avoid breaking changes with flutter_html. ([01d1dba0](https://github.com/ensembleUI/ensemble/commit/01d1dba0fe0d9935690257bd00d2d92b3dd7e9d5))
+ - **FEAT**(wifi): enhance error handling for Wi-Fi connection failures ([#2355](https://github.com/ensembleUI/ensemble/issues/2355)). ([91e71af2](https://github.com/ensembleUI/ensemble/commit/91e71af2d404b793f11318682453efe782e5b8a1))
+ - **FEAT**(border): add dashed and dotted borderStyle for container widgets ([#2356](https://github.com/ensembleUI/ensemble/issues/2356)). ([26d747ed](https://github.com/ensembleUI/ensemble/commit/26d747ed23a14d5138aa35d5833255ae337a6655))
+
 ## 1.2.52
 
  - **FEAT**(navigation): add declarative navigation stack support ([#2351](https://github.com/ensembleUI/ensemble/issues/2351)). ([6e58cfb5](https://github.com/ensembleUI/ensemble/commit/6e58cfb5a211b513423056babee9ae32fcfb4cbf))

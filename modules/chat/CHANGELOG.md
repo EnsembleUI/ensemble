@@ -1,3 +1,7 @@
+## 1.2.53
+
+ - Bump "ensemble_chat" to `1.2.53`.
+
 ## 1.2.52
 
  - Bump "ensemble_chat" to `1.2.52`.
