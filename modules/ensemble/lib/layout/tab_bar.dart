@@ -96,6 +96,10 @@ abstract class BaseTabBar extends StatefulWidget
           _controller.focusTabColor = Utils.getColor(color),
       'indicatorThickness': (thickness) =>
           _controller.indicatorThickness = Utils.optionalInt(thickness),
+      'dividerThickness': (thickness) =>
+          _controller.dividerThickness = Utils.optionalInt(thickness, min: 0),
+      'dividerPadding': (padding) =>
+          _controller.dividerPadding = Utils.optionalInsets(padding),
       'selectedIndex': (index) =>
           _controller.selectedIndex = Utils.getInt(index, min: 0, fallback: 0),
       'onTabSelection': (action) => _controller.onTabSelection =

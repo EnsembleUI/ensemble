@@ -70,9 +70,15 @@ abstract class BaseTabBarState extends EWidgetState<BaseTabBar>
         TabAlignment.values.from(widget.controller.tabAlignment) ??
             TabAlignment.start;
 
+    final dividerColor = widget.controller.dividerColor ?? Colors.transparent;
+    final dividerThickness =
+        widget.controller.dividerThickness?.toDouble() ?? 1;
+    final dividerPadding = widget.controller.dividerPadding;
+
     Widget tabBar = TabBar(
         labelPadding: labelPadding,
-        dividerColor: widget.controller.dividerColor ?? Colors.transparent,
+        dividerColor: dividerPadding == null ? dividerColor : Colors.transparent,
+        dividerHeight: dividerPadding == null ? dividerThickness : 0,
         indicator: indicatorThickness == 0
             ? BoxDecoration(
                 color: widget.controller.activeTabBackgroundColor ??
@@ -95,6 +101,42 @@ abstract class BaseTabBarState extends EWidgetState<BaseTabBar>
             widget.controller.inactiveTabColor ?? Colors.black87,
         tabs: _buildTabs(widget.controller.items),
         onTap: onTabChanged);
+
+    if (dividerPadding != null) {
+      final divider = Padding(
+        padding: EdgeInsets.only(
+          left: dividerPadding.left,
+          right: dividerPadding.right,
+        ),
+        child: SizedBox(
+          height: dividerThickness,
+          child: ColoredBox(color: dividerColor),
+        ),
+      );
+
+      tabBar = dividerPadding.top > 0 || dividerPadding.bottom > 0
+          ? Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                tabBar,
+                SizedBox(height: dividerPadding.top),
+                divider,
+                SizedBox(height: dividerPadding.bottom),
+              ],
+            )
+          : Stack(
+              children: [
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  height: dividerThickness,
+                  child: divider,
+                ),
+                tabBar,
+              ],
+            );
+    }
 
     if (widget.controller.tabBackgroundColor != null) {
       tabBar = ColoredBox(
@@ -135,6 +177,10 @@ abstract class BaseTabBarState extends EWidgetState<BaseTabBar>
     final focusIndicatorColor = widget.controller.focusIndicatorColor;
     final focusTabColor = widget.controller.focusTabColor;
     final backgroundColor = widget.controller.tabBackgroundColor;
+    final dividerColor = widget.controller.dividerColor ?? Colors.transparent;
+    final dividerThickness =
+        widget.controller.dividerThickness?.toDouble() ?? 1;
+    final dividerPadding = widget.controller.dividerPadding;
     final indicatorThickness =
         widget.controller.indicatorThickness?.toDouble() ?? 2;
 
@@ -168,6 +214,7 @@ abstract class BaseTabBarState extends EWidgetState<BaseTabBar>
                 focusIndicatorColor: focusIndicatorColor,
                 focusTabColor: focusTabColor,
                 indicatorThickness: indicatorThickness,
+                indicatorGap: dividerPadding?.top ?? 0,
                 tabFontSize: widget.controller.tabFontSize?.toDouble(),
                 tabFontWeight: widget.controller.tabFontWeight,
                 tabPadding: widget.controller.tabPadding,
@@ -188,7 +235,29 @@ abstract class BaseTabBarState extends EWidgetState<BaseTabBar>
           );
         }
 
-        return tabRow;
+        final divider = Padding(
+          padding: EdgeInsets.only(
+            left: dividerPadding?.left ?? 0,
+            right: dividerPadding?.right ?? 0,
+          ),
+          child: SizedBox(
+            height: dividerThickness,
+            child: ColoredBox(color: dividerColor),
+          ),
+        );
+
+        return Stack(
+          children: [
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              height: dividerThickness,
+              child: divider,
+            ),
+            tabRow,
+          ],
+        );
       },
     );
 
@@ -273,6 +342,7 @@ class _TVTabButton extends StatefulWidget {
     this.focusIndicatorColor,
     this.focusTabColor,
     required this.indicatorThickness,
+    required this.indicatorGap,
     required this.onTap,
     this.autofocus = false,
     this.tabFontSize,
@@ -291,6 +361,7 @@ class _TVTabButton extends StatefulWidget {
   final Color? focusIndicatorColor;
   final Color? focusTabColor;
   final double indicatorThickness;
+  final double indicatorGap;
   final VoidCallback onTap;
   final double? tabFontSize;
   final FontWeight? tabFontWeight;
@@ -371,7 +442,7 @@ class _TVTabButtonState extends State<_TVTabButton> {
               children: [
                 // Tab content (icon + label)
                 _buildTabContent(context, hasFocus),
-                const SizedBox(height: 4),
+                SizedBox(height: 4 + widget.indicatorGap),
                 // Indicator line (shows when selected or focused)
                 AnimatedContainer(
                   duration: const Duration(milliseconds: 150),
