@@ -1,3 +1,7 @@
+## 1.2.54
+
+ - Bump "ensemble_wifi" to `1.2.54`.
+
 ## 1.2.53
 
  - **FEAT**(wifi): enhance error handling for Wi-Fi connection failures ([#2355](https://github.com/ensembleUI/ensemble/issues/2355)). ([91e71af2](https://github.com/ensembleUI/ensemble/commit/91e71af2d404b793f11318682453efe782e5b8a1))
