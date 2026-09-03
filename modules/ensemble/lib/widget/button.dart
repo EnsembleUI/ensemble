@@ -130,6 +130,7 @@ class ButtonState extends EWidgetState<Button> {
             ignoresPadding: true,
             ignoresMargin: true,
             widget: TextButton(
+                autofocus: widget._controller.autofocus,
                 onPressed: isEnabled() ? () => onPressed(context) : null,
                 onLongPress:
                     isEnabled() && widget._controller.onLongPress != null
@@ -145,6 +146,7 @@ class ButtonState extends EWidgetState<Button> {
             ignoresPadding: true,
             ignoresMargin: true,
             widget: FilledButton(
+                autofocus: widget._controller.autofocus,
                 onPressed: isEnabled() ? () => onPressed(context) : null,
                 style: getButtonStyle(context, isOutlineButton),
                 child: _buildButtonChild()),

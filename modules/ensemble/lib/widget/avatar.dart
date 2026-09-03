@@ -23,7 +23,7 @@ import 'package:yaml/yaml.dart';
 class Avatar extends EnsembleWidget<AvatarController> {
   static const type = 'Avatar';
 
-  const Avatar._(super.controller, {super.key});
+  const Avatar._(super.controller);
 
   factory Avatar.build(dynamic controller) => Avatar._(
       controller is AvatarController ? controller : AvatarController());
@@ -43,7 +43,11 @@ class AvatarController extends EnsembleBoxController {
   String? source;
   BoxFit? fit;
   Color? placeholderColor;
+  dynamic loadingWidget;
   ColorFilterComposite? colorFilter;
+  bool allowRedirect = true;
+  int? resizedWidth;
+  int? resizedHeight;
   bool? useGrayscaleFilter;
   GroupTemplate? groupTemplate;
 
@@ -55,9 +59,7 @@ class AvatarController extends EnsembleBoxController {
   List<String> passthroughSetters() => ['group-template'];
 
   @override
-  Map<String, Function> getters() {
-    return {};
-  }
+  Map<String, Function> getters() => {};
 
   @override
   Map<String, Function> methods() {
@@ -72,12 +74,18 @@ class AvatarController extends EnsembleBoxController {
       'source': (value) => source = Utils.optionalString(value),
       'fit': (value) => fit = Utils.getBoxFit(value),
       'placeholderColor': (value) => placeholderColor = Utils.getColor(value),
+      'loadingWidget': (value) => loadingWidget = value,
+      'allowRedirect': (value) =>
+          allowRedirect = Utils.getBool(value, fallback: true),
+      'resizedWidth': (value) =>
+          resizedWidth = Utils.optionalInt(value, min: 0, max: 2000),
+      'resizedHeight': (value) =>
+          resizedHeight = Utils.optionalInt(value, min: 0, max: 2000),
       'variant': (value) => variant = AvatarVariant.values.from(value),
       'onTap': (func) => onTap = EnsembleAction.from(func, initiator: this),
       'onTapHaptic': (value) => onTapHaptic = Utils.optionalString(value),
       'group-template': (value) => setGroupAvatar(value),
       'colorFilter': (value) => colorFilter = ColorFilterComposite.from(value),
-
     });
 
   void setGroupAvatar(dynamic groupData) {
@@ -296,8 +304,17 @@ class AvatarState extends EnsembleWidgetState<Avatar>
   Widget _buildImage(String source) => framework.Image(
       source: source,
       fit: widget.controller.fit,
+      resizedWidth: widget.controller.resizedWidth,
+      resizedHeight: widget.controller.resizedHeight,
       colorFilter: widget.controller.colorFilter,
-      networkCacheManager: EnsembleImageCacheManager.instance,
+      loadingWidget:
+          getScopeManager() != null && widget.controller.loadingWidget != null
+              ? getScopeManager()!
+                  .buildWidgetFromDefinition(widget.controller.loadingWidget)
+              : null,
+      cacheManager: EnsembleImageCacheManager.instanceFor(
+        allowRedirect: widget.controller.allowRedirect,
+      ),
       placeholderBuilder: (_, __) =>
           ColoredBoxPlaceholder(color: widget.controller.placeholderColor),
       errorBuilder: (_) => _buildFallback());

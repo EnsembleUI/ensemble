@@ -52,6 +52,8 @@ class ScrollableTabBar extends BaseTabBar {
       'margin': (margin) => _controller.margin = Utils.optionalInsets(margin),
       'tabPadding': (padding) =>
           _controller.tabPadding = Utils.optionalInsets(padding),
+      'tabBarPadding': (padding) =>
+          _controller.tabBarPadding = Utils.optionalInsets(padding),
       'tabFontSize': (fontSize) =>
           _controller.tabFontSize = Utils.optionalInt(fontSize),
       'tabFontWeight': (fontWeight) =>
@@ -68,6 +70,10 @@ class ScrollableTabBar extends BaseTabBar {
           _controller.dividerColor = Utils.getColor(color),
       'indicatorColor': (color) =>
           _controller.indicatorColor = Utils.getColor(color),
+      'focusIndicatorColor': (color) =>
+          _controller.focusIndicatorColor = Utils.getColor(color),
+      'focusTabColor': (color) =>
+          _controller.focusTabColor = Utils.getColor(color),
       'indicatorThickness': (thickness) =>
           _controller.indicatorThickness = Utils.optionalInt(thickness),
       'selectedIndex': (index) =>
