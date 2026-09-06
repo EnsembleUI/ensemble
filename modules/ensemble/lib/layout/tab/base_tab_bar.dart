@@ -70,9 +70,21 @@ abstract class BaseTabBarState extends EWidgetState<BaseTabBar>
         TabAlignment.values.from(widget.controller.tabAlignment) ??
             TabAlignment.start;
 
+    final dividerColor = widget.controller.dividerColor ?? Colors.transparent;
+    final dividerThickness =
+        widget.controller.dividerThickness?.toDouble() ?? 1;
+    final dividerPadding = widget.controller.dividerPadding;
+
+    // dividerHeight reserves no height -- Material paints the divider inside
+    // the tab row (tabs.dart:2049) -- so lay our own out below the tabs.
+    final wantsCustomDivider = widget.controller.dividerColor != null &&
+        (dividerPadding != null || widget.controller.dividerThickness != null);
+
     Widget tabBar = TabBar(
         labelPadding: labelPadding,
-        dividerColor: widget.controller.dividerColor ?? Colors.transparent,
+        dividerColor: wantsCustomDivider ? Colors.transparent : dividerColor,
+        // null keeps TabBarThemeData.dividerHeight resolving for older apps.
+        dividerHeight: wantsCustomDivider ? 0 : null,
         indicator: indicatorThickness == 0
             ? BoxDecoration(
                 color: widget.controller.activeTabBackgroundColor ??
@@ -96,6 +108,33 @@ abstract class BaseTabBarState extends EWidgetState<BaseTabBar>
         tabs: _buildTabs(widget.controller.items),
         onTap: onTabChanged);
 
+    if (wantsCustomDivider) {
+      final divider = Padding(
+        padding: EdgeInsets.only(
+          left: dividerPadding?.left ?? 0,
+          right: dividerPadding?.right ?? 0,
+        ),
+        child: SizedBox(
+          height: dividerThickness,
+          child: ColoredBox(color: dividerColor),
+        ),
+      );
+
+      // Column, not a Stack overlay: keeps the divider off the indicator, and
+      // keeps the TabBar's width tight -- under a Stack's loose constraints
+      // dividerHeight 0 makes Flutter shrink-wrap the tabs (tabs.dart:2044).
+      tabBar = Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          tabBar,
+          SizedBox(height: dividerPadding?.top ?? 0),
+          divider,
+          SizedBox(height: dividerPadding?.bottom ?? 0),
+        ],
+      );
+    }
+
     if (widget.controller.tabBackgroundColor != null) {
       tabBar = ColoredBox(
           color: widget.controller.tabBackgroundColor!, child: tabBar);
@@ -106,15 +145,14 @@ abstract class BaseTabBarState extends EWidgetState<BaseTabBar>
       tabBar = Container(
         decoration: BoxDecoration(
           border: Border.all(
-            color: widget.controller.borderColor ?? Colors.transparent, // Customize as needed
+            color: widget.controller.borderColor ??
+                Colors.transparent, // Customize as needed
             width: (widget.controller.borderWidth ?? 0.0).toDouble(),
           ),
           borderRadius: borderRadius ?? BorderRadius.zero,
         ),
         child: ClipRRect(
-            borderRadius: borderRadius ?? BorderRadius.zero,
-            child: tabBar
-        ),
+            borderRadius: borderRadius ?? BorderRadius.zero, child: tabBar),
       );
     }
 
@@ -135,6 +173,10 @@ abstract class BaseTabBarState extends EWidgetState<BaseTabBar>
     final focusIndicatorColor = widget.controller.focusIndicatorColor;
     final focusTabColor = widget.controller.focusTabColor;
     final backgroundColor = widget.controller.tabBackgroundColor;
+    final dividerColor = widget.controller.dividerColor ?? Colors.transparent;
+    final dividerThickness =
+        widget.controller.dividerThickness?.toDouble() ?? 1;
+    final dividerPadding = widget.controller.dividerPadding;
     final indicatorThickness =
         widget.controller.indicatorThickness?.toDouble() ?? 2;
 
@@ -148,11 +190,11 @@ abstract class BaseTabBarState extends EWidgetState<BaseTabBar>
     Widget tabBar = AnimatedBuilder(
       animation: tabController,
       builder: (context, child) {
-        Widget tabRow = SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: List.generate(items.length, (index) {
+        final tvTabAlignment =
+            TabAlignment.values.from(widget.controller.tabAlignment) ??
+                TabAlignment.start;
+
+        List<Widget> buildButtons() => List.generate(items.length, (index) {
               final tabItem = items[index];
 
               return _TVTabButton(
@@ -176,9 +218,43 @@ abstract class BaseTabBarState extends EWidgetState<BaseTabBar>
                   onTabChanged(index);
                 },
               );
-            }),
-          ),
-        );
+            });
+
+        // `fill` needs bounded constraints and Expanded children, which can't
+        // live in a scroll view; every other alignment keeps scrolling.
+        Widget tabRow;
+        if (tvTabAlignment == TabAlignment.fill) {
+          tabRow = Row(
+            children: [
+              for (final button in buildButtons()) Expanded(child: button),
+            ],
+          );
+        } else {
+          tabRow = LayoutBuilder(builder: (context, constraints) {
+            return SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: ConstrainedBox(
+                // Viewport-width minimum so non-start alignment has room;
+                // still scrolls on overflow.
+                constraints: constraints.hasBoundedWidth
+                    ? BoxConstraints(minWidth: constraints.maxWidth)
+                    : const BoxConstraints(),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  mainAxisAlignment: tvTabAlignment == TabAlignment.center
+                      ? MainAxisAlignment.center
+                      : MainAxisAlignment.start,
+                  children: [
+                    // 52px: the same offset Flutter uses on mobile.
+                    if (tvTabAlignment == TabAlignment.startOffset)
+                      const SizedBox(width: 52.0),
+                    ...buildButtons(),
+                  ],
+                ),
+              ),
+            );
+          });
+        }
 
         // Apply tabBarPadding to the tabs row only (not content area)
         if (widget.controller.tabBarPadding != null) {
@@ -188,12 +264,42 @@ abstract class BaseTabBarState extends EWidgetState<BaseTabBar>
           );
         }
 
-        return tabRow;
+        // Only draw when a divider property is set. dividerColor alone
+        // predates this feature and TV never drew a line for it.
+        if (widget.controller.dividerColor == null ||
+            (dividerPadding == null &&
+                widget.controller.dividerThickness == null)) {
+          return tabRow;
+        }
+
+        final divider = Padding(
+          padding: EdgeInsets.only(
+            left: dividerPadding?.left ?? 0,
+            right: dividerPadding?.right ?? 0,
+          ),
+          child: SizedBox(
+            height: dividerThickness,
+            child: ColoredBox(color: dividerColor),
+          ),
+        );
+
+        // Same as mobile: divider below the tabs, not overlaid on it.
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            tabRow,
+            SizedBox(height: dividerPadding?.top ?? 0),
+            divider,
+            SizedBox(height: dividerPadding?.bottom ?? 0),
+          ],
+        );
       },
     );
 
-    // If tvRow is 0 (default), wrap tabs in their own FocusTraversalGroup
-    if (tvOptions?.row == null) {
+    // Isolate the tabs only when no focus row was given -- either property
+    // opts in to the shared page grid.
+    if (widget.controller.tvRow == null && tvOptions?.row == null) {
       tabBar = FocusTraversalGroup(
         policy: TVFocusOrderTraversalPolicy(),
         child: tabBar,
@@ -215,9 +321,7 @@ abstract class BaseTabBarState extends EWidgetState<BaseTabBar>
           borderRadius: borderRadius ?? BorderRadius.zero,
         ),
         child: ClipRRect(
-            borderRadius: borderRadius ?? BorderRadius.zero,
-            child: tabBar
-        ),
+            borderRadius: borderRadius ?? BorderRadius.zero, child: tabBar),
       );
     }
 
@@ -383,7 +487,8 @@ class _TVTabButtonState extends State<_TVTabButton> {
                         : widget.isSelected
                             ? widget.indicatorColor
                             : Colors.transparent,
-                    borderRadius: BorderRadius.circular(widget.indicatorThickness / 2),
+                    borderRadius:
+                        BorderRadius.circular(widget.indicatorThickness / 2),
                   ),
                 ),
               ],
@@ -423,14 +528,16 @@ class _TVTabButtonState extends State<_TVTabButton> {
 
   Widget _buildTabContent(BuildContext context, bool isFocused) {
     final textColor = isFocused
-        ? (widget.focusTabColor ?? Colors.white)
+        // Not white: that's invisible on a light tab bar.
+        ? (widget.focusTabColor ?? widget.activeColor)
         : widget.isSelected
             ? widget.activeColor
             : widget.inactiveColor;
 
     final textStyle = TextStyle(
       fontSize: widget.tabFontSize ?? 14,
-      fontWeight: widget.tabFontWeight ?? (widget.isSelected ? FontWeight.w600 : FontWeight.normal),
+      fontWeight: widget.tabFontWeight ??
+          (widget.isSelected ? FontWeight.w600 : FontWeight.normal),
       color: textColor,
     );
 

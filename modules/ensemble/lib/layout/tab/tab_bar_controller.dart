@@ -27,6 +27,8 @@ class TabBarController extends BoxController {
   Color? activeTabBackgroundColor;
   Color? indicatorColor;
   Color? dividerColor;
+  int? dividerThickness;
+  EdgeInsets? dividerPadding;
   Color? focusIndicatorColor; // TV D-pad: focus-state indicator color (fallback blue)
   Color? focusTabColor; // TV D-pad: focus-state tab text color (fallback white)
   int? indicatorThickness;
