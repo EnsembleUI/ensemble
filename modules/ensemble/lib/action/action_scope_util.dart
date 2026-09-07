@@ -1,5 +1,4 @@
 import 'package:ensemble/ensemble.dart';
-import 'package:flutter/foundation.dart';
 import 'package:ensemble/framework/action.dart';
 import 'package:ensemble/framework/data_context.dart';
 import 'package:ensemble/framework/definition_providers/provider.dart';
@@ -97,7 +96,6 @@ class ActionScopeUtil {
   /// Save page-level API entries that a reusable action will override via
   /// [createChildScope]. Call before [prepareScope] and pair with
   /// [restorePageApisAfterAction] in a `finally` block.
-  @visibleForTesting
   static Map<String, YamlMap?>? snapshotPageApisForAction(
       ScopeManager parentScope, Map<String, YamlMap>? actionApiMap) {
     if (actionApiMap == null || actionApiMap.isEmpty) {
@@ -113,7 +111,6 @@ class ActionScopeUtil {
   }
 
   /// Restores page API definitions after a reusable action finishes.
-  @visibleForTesting
   static void restorePageApisAfterAction(
       ScopeManager parentScope, Map<String, YamlMap?>? snapshot) {
     if (snapshot == null || snapshot.isEmpty) {
@@ -185,11 +182,17 @@ class ActionScopeUtil {
     final previousValues = <String, dynamic>{};
     final previousKeys = <String>{};
     final installedHandlers = <String, EnsembleEventHandler>{};
+    late EventHandlerRegistration registration;
     eventHandlers.forEach((eventName, action) {
       if (action == null) {
         return;
       }
-      final handler = EnsembleEventHandler(parentScope, action);
+      late EnsembleEventHandler handler;
+      handler = EnsembleEventHandler(
+        parentScope,
+        action,
+        onHandled: () => registration.restore(),
+      );
       if (context.containsKey(eventName)) {
         previousKeys.add(eventName);
         previousValues[eventName] = context[eventName];
@@ -201,12 +204,13 @@ class ActionScopeUtil {
     if (installedHandlers.isEmpty) {
       return null;
     }
-    return EventHandlerRegistration(
+    registration = EventHandlerRegistration(
       actionScope: actionScope,
       previousValues: previousValues,
       previousKeys: previousKeys,
       installedHandlers: installedHandlers,
     );
+    return registration;
   }
 
   static ({String? code, SourceSpan? span}) parseGlobalCode(
@@ -302,16 +306,20 @@ class EventHandlerRegistration {
       return;
     }
     _restored = true;
-    final context = actionScope.dataContext.getContextMap();
     installedHandlers.forEach((eventName, handler) {
-      if (!identical(context[eventName], handler)) {
-        return;
-      }
-      if (previousKeys.contains(eventName)) {
-        context[eventName] = previousValues[eventName];
-      } else {
-        context.remove(eventName);
-      }
+      restoreEvent(eventName, handler);
     });
+  }
+
+  void restoreEvent(String eventName, EnsembleEventHandler handler) {
+    final context = actionScope.dataContext.getContextMap();
+    if (!identical(context[eventName], handler)) {
+      return;
+    }
+    if (previousKeys.contains(eventName)) {
+      context[eventName] = previousValues[eventName];
+    } else {
+      context.remove(eventName);
+    }
   }
 }

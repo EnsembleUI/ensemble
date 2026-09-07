@@ -41,12 +41,18 @@ class EnsembleEvent extends Object with Invokable {
 class EnsembleEventHandler {
   EnsembleAction action;
   ScopeManager scopeManager;
+  final void Function()? onHandled;
 
-  EnsembleEventHandler(this.scopeManager, this.action);
+  EnsembleEventHandler(this.scopeManager, this.action, {this.onHandled});
 
-  Future<dynamic> handleEvent(EnsembleEvent event, BuildContext context) {
-    return ScreenController()
-        .executeActionWithScope(context, scopeManager, action, event: event);
+  Future<dynamic> handleEvent(EnsembleEvent event, BuildContext context) async {
+    try {
+      return await ScreenController().executeActionWithScope(
+          context, scopeManager, action,
+          event: event);
+    } finally {
+      onHandled?.call();
+    }
   }
 }
 

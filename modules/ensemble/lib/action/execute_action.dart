@@ -110,8 +110,12 @@ class ExecuteActionAction extends EnsembleAction {
 
       return await ScreenController()
           .executeActionWithScope(context, currentScope.scope, innerAction);
-    } finally {
+    } catch (_) {
+      // A failed action may never dispatch its terminal event, so do not
+      // leave its handlers in the child scope.
       preparedScope?.eventHandlerRegistration?.restore();
+      rethrow;
+    } finally {
       ActionScopeUtil.restorePageApisAfterAction(scopeManager, apiSnapshot);
     }
   }

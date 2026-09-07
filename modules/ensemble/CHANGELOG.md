@@ -1,3 +1,7 @@
+## 1.2.54
+
+ - **REFACTOR**(action): improve event handler registration and error handling ([#2357](https://github.com/ensembleUI/ensemble/issues/2357)). ([ecbc0b3c](https://github.com/ensembleUI/ensemble/commit/ecbc0b3c55a4a7a697c28b6a7d99d87f3dc96587))
+
 ## 1.2.53
 
  - **FIX**(dependencies): pin html package version to avoid breaking changes with flutter_html. ([01d1dba0](https://github.com/ensembleUI/ensemble/commit/01d1dba0fe0d9935690257bd00d2d92b3dd7e9d5))
