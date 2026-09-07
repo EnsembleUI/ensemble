@@ -3,6 +3,242 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## 2026-09-07
+
+### Changes
+
+---
+
+Packages with breaking changes:
+
+ - There are no breaking changes in this release.
+
+Packages with other changes:
+
+ - [`ensemble` - `v1.2.55-beta.1`](#ensemble---v1255-beta1)
+ - [`ensemble_test_runner` - `v1.3.7`](#ensemble_test_runner---v137)
+ - [`ensemble_moengage` - `v1.2.55`](#ensemble_moengage---v1255)
+ - [`ensemble_wifi` - `v1.2.55`](#ensemble_wifi---v1255)
+ - [`ensemble_location` - `v1.2.55`](#ensemble_location---v1255)
+ - [`ensemble_network_info` - `v1.2.55`](#ensemble_network_info---v1255)
+ - [`ensemble_file_manager` - `v1.2.55`](#ensemble_file_manager---v1255)
+ - [`ensemble_bluetooth` - `v1.2.55`](#ensemble_bluetooth---v1255)
+ - [`ensemble_camera` - `v1.2.55`](#ensemble_camera---v1255)
+ - [`ensemble_firebase_analytics` - `v1.2.55`](#ensemble_firebase_analytics---v1255)
+ - [`ensemble_chat` - `v1.2.55`](#ensemble_chat---v1255)
+ - [`ensemble_contacts` - `v1.2.55`](#ensemble_contacts---v1255)
+ - [`ensemble_adobe_analytics` - `v1.2.55`](#ensemble_adobe_analytics---v1255)
+ - [`ensemble_remote_config` - `v1.2.55`](#ensemble_remote_config---v1255)
+ - [`ensemble_face_camera` - `v1.2.55`](#ensemble_face_camera---v1255)
+ - [`ensemble_auth` - `v1.2.55`](#ensemble_auth---v1255)
+ - [`ensemble_qr_scanner` - `v1.2.55`](#ensemble_qr_scanner---v1255)
+ - [`ensemble_bracket` - `v1.2.55`](#ensemble_bracket---v1255)
+ - [`ensemble_stripe` - `v1.2.55`](#ensemble_stripe---v1255)
+ - [`ensemble_deeplink` - `v1.2.55`](#ensemble_deeplink---v1255)
+ - [`ensemble_connect` - `v1.2.55`](#ensemble_connect---v1255)
+
+Packages with dependency updates only:
+
+> Packages listed below depend on other packages in this workspace that have had changes. Their versions have been incremented to bump the minimum dependency versions of the packages they depend upon in this project.
+
+ - `ensemble_test_runner` - `v1.3.7`
+ - `ensemble_moengage` - `v1.2.55`
+ - `ensemble_wifi` - `v1.2.55`
+ - `ensemble_location` - `v1.2.55`
+ - `ensemble_network_info` - `v1.2.55`
+ - `ensemble_file_manager` - `v1.2.55`
+ - `ensemble_bluetooth` - `v1.2.55`
+ - `ensemble_camera` - `v1.2.55`
+ - `ensemble_firebase_analytics` - `v1.2.55`
+ - `ensemble_chat` - `v1.2.55`
+ - `ensemble_contacts` - `v1.2.55`
+ - `ensemble_adobe_analytics` - `v1.2.55`
+ - `ensemble_remote_config` - `v1.2.55`
+ - `ensemble_face_camera` - `v1.2.55`
+ - `ensemble_auth` - `v1.2.55`
+ - `ensemble_qr_scanner` - `v1.2.55`
+ - `ensemble_bracket` - `v1.2.55`
+ - `ensemble_stripe` - `v1.2.55`
+ - `ensemble_deeplink` - `v1.2.55`
+ - `ensemble_connect` - `v1.2.55`
+
+---
+
+#### `ensemble` - `v1.2.55-beta.1`
+
+ - **REFACTOR**: update CdnDefinitionProvider to use a base URL and improve URL construction; change configuration to support CDN hosting. ([3c783cb5](https://github.com/ensembleUI/ensemble/commit/3c783cb5004a2123a8f8e448e30665fd6efa7038))
+ - **REFACTOR**: simplify modal detection logic in screen tracking ([#2339](https://github.com/ensembleUI/ensemble/issues/2339)). ([3f35c3cf](https://github.com/ensembleUI/ensemble/commit/3f35c3cf9c23009b343fa771d12193cb1ce04d85))
+ - **REFACTOR**: Remove unused imports across various files to clean up code… ([#2317](https://github.com/ensembleUI/ensemble/issues/2317)). ([e68b584c](https://github.com/ensembleUI/ensemble/commit/e68b584c5d8ac9c6ecb2e014027512481c2193dd))
+ - **REFACTOR**: update dependencies and improve import statements. ([712e0bb8](https://github.com/ensembleUI/ensemble/commit/712e0bb8e2c42b0cef55b2dd93d5df76ef029ad0))
+ - **REFACTOR**: remove font_awesome_flutter dependency and update icon usage. ([a5d66023](https://github.com/ensembleUI/ensemble/commit/a5d66023cff5da18f5390682cfe2ee1e536572b6))
+ - **REFACTOR**: rename otp verification methods. ([7e3408e0](https://github.com/ensembleUI/ensemble/commit/7e3408e01a1006700be01e1f4403395eebd13f32))
+ - **REFACTOR**: simplify payload handling in verification code actions. ([0441b40c](https://github.com/ensembleUI/ensemble/commit/0441b40c7e355eae9e7960f9ea15b41571d5d19d))
+ - **REFACTOR**: make phoneNumber optional and handle empty values in verification actions. ([49810b31](https://github.com/ensembleUI/ensemble/commit/49810b315fb461964d8839b5b619538611f63cbb))
+ - **REFACTOR**: replace offline widget with error screen for no internet connection. ([b0163a1b](https://github.com/ensembleUI/ensemble/commit/b0163a1ba20eb72c7a459afb3dfa59e1729cf9bf))
+ - **REFACTOR**(wifi): simplify WiFi operations and update permissions. ([628d9b1a](https://github.com/ensembleUI/ensemble/commit/628d9b1a52efd6312f04ab49a1f298c8dcaf4e9f))
+ - **REFACTOR**: remove no internet widget. ([e03359b2](https://github.com/ensembleUI/ensemble/commit/e03359b2dd6b1290bea39c71c69e2a3d5ad27c13))
+ - **REFACTOR**(cdn): improve secret management and artifact handling in CdnDefinitionProvider. ([a2c87792](https://github.com/ensembleUI/ensemble/commit/a2c877925a4d2ac489aab8c5a89f3e66e4dd5a98))
+ - **REFACTOR**(api): enhance provider resolution and improve SSE cancellation handling. ([cc167aba](https://github.com/ensembleUI/ensemble/commit/cc167abac6cbe01191c50c2c118ff2464c6d8233))
+ - **REFACTOR**: update validateJsCode method to remove DataContext parameter. ([ab6bc651](https://github.com/ensembleUI/ensemble/commit/ab6bc651ad44cc07954cd408d72a1f19d977f384))
+ - **REFACTOR**: update validateJsCode method to include DataContext parameter. ([cfee0493](https://github.com/ensembleUI/ensemble/commit/cfee049346da5a82528360b37bbbeb4ce0ff9cd2))
+ - **REFACTOR**: replace root_jailbreak_sniffer with safe_device for enhanced device security checks. ([2b873f56](https://github.com/ensembleUI/ensemble/commit/2b873f56083dc7c16e79efabe4addc25e66ea327))
+ - **REFACTOR**(tabbar): remove useIndexedTab setter  duplication from TabBarController. ([faafd299](https://github.com/ensembleUI/ensemble/commit/faafd2996c3f0a9b9609acfba4e3286165e2ca80))
+ - **REFACTOR**: streamline Adobe Analytics event tracking and remove unused methods. ([d22e3aa8](https://github.com/ensembleUI/ensemble/commit/d22e3aa818a96b8b836ca88fde991b687eb2248c))
+ - **REFACTOR**: remove redundant event name checks in LogEvent class. ([09001583](https://github.com/ensembleUI/ensemble/commit/09001583522736c3c6876500ce24041ef47c8438))
+ - **REFACTOR**(adobe_analytics): streamline initialization and remove redundant checks. ([5714a3fc](https://github.com/ensembleUI/ensemble/commit/5714a3fc1820bb7522f3f08183d46dc727c300df))
+ - **REFACTOR**(stripe): rename onComplete to onSuccess in ShowPaymentSheetAction. ([deddd07c](https://github.com/ensembleUI/ensemble/commit/deddd07cd498d249aca5b15f33319b981adace47))
+ - **REFACTOR**: simplify lastUpdatedAt extraction in CdnDefinitionProvider. ([83f34d09](https://github.com/ensembleUI/ensemble/commit/83f34d097632009811482a2bae70902e991f3d37))
+ - **REFACTOR**: enhance navigation logic by evaluating payloads and improving menu item visibility handling. ([9992099b](https://github.com/ensembleUI/ensemble/commit/9992099b36504db84662eb7e2c4e51157b78d105))
+ - **REFACTOR**: update color handling in various widget files to use withValues for opacity adjustments. ([47affb3a](https://github.com/ensembleUI/ensemble/commit/47affb3a3b8e84c092c9d912b85ed8987b828e19))
+ - **REFACTOR**: update color handling in widget files to use withValues for opacity adjustments. ([562d8e9e](https://github.com/ensembleUI/ensemble/commit/562d8e9e5247d56362a783f6752a3c801016d1a6))
+ - **REFACTOR**: replace MaterialState with WidgetState in theme and widget files for improved state management. ([77ece02f](https://github.com/ensembleUI/ensemble/commit/77ece02fecf121320e5f62e042ec993e5f7fd178))
+ - **REFACTOR**: streamline caching mechanism in CdnDefinitionProvider by consolidating persistent cache keys and improving state management. ([9be858b0](https://github.com/ensembleUI/ensemble/commit/9be858b0265fc8c197c08d61d269b9bfdbd7a3ce))
+ - **REFACTOR**: update CdnDefinitionProvider documentation and clean up comment formatting for improved readability. ([59ae2e98](https://github.com/ensembleUI/ensemble/commit/59ae2e98ffae67e1e3d7d638d9c6fb8a3056a33e))
+ - **REFACTOR**: update _parseTheme method to accept a Map and improve theme data handling. ([86110ff9](https://github.com/ensembleUI/ensemble/commit/86110ff9e619e88765b04a31cde0fab2683f0b0e))
+ - **REFACTOR**: enhance CdnDefinitionProvider by improving error messages, simplifying asset parsing, and refining translation handling. ([f58353c9](https://github.com/ensembleUI/ensemble/commit/f58353c960eedd8eeb1f1edbe14492c54acbc59a))
+ - **FIX**(cdn): serialize refresh and snapshot persisted cache metadata. ([4031a3a4](https://github.com/ensembleUI/ensemble/commit/4031a3a42b949d6f35b1b68dcf045b2b110b663a))
+ - **FIX**: handle exceptions in getLocalAssetFullPath. ([8844d487](https://github.com/ensembleUI/ensemble/commit/8844d4874ddde3e7a3244e663c5cdcf0ee6520b7))
+ - **FIX**(upload): scope cancelAll to upload Workmanager tags only. ([4d763ac4](https://github.com/ensembleUI/ensemble/commit/4d763ac4c883363a96a6a5b8b3c264bf8fb3f0b3))
+ - **FIX**(upload): schedule every background batch with unique Workmanager names. ([33829f9b](https://github.com/ensembleUI/ensemble/commit/33829f9b49da513c587a2e603609cf8d1af49723))
+ - **FIX**(navigation): clamp navigateViewGroup index before PageController.jumpToPage. ([0ce6723a](https://github.com/ensembleUI/ensemble/commit/0ce6723a14095823fb5d2f1ba3938c45f76c289d))
+ - **FIX**(notification_manager): initialize message handling on startup. ([9ca35acb](https://github.com/ensembleUI/ensemble/commit/9ca35acbd9b868198acb29fa618841b362ac8d19))
+ - **FIX**(upload): complete cancelAll when some tasks are already completed. ([93cfc387](https://github.com/ensembleUI/ensemble/commit/93cfc387e700a5a1cb1c327b85f68a8ac56011d2))
+ - **FIX**(storage): defer binding dispatches until public storage clear completes. ([8c2a52de](https://github.com/ensembleUI/ensemble/commit/8c2a52de1e84c078ff01905c3bce07428f5dc5ba))
+ - **FIX**(listview): sync ListViewCore scroll controller when parent swaps it. ([c792a8a6](https://github.com/ensembleUI/ensemble/commit/c792a8a673196a1ae2eedf92ef488be438644602))
+ - **FIX**(page): cancel header timers and dedupe storage event listeners. ([2c45e427](https://github.com/ensembleUI/ensemble/commit/2c45e4273678ff91007d486137e264dedc9c2251))
+ - **FIX**(navigation): clamp ViewGroup tab index when payloads shrink. ([2b62b4a2](https://github.com/ensembleUI/ensemble/commit/2b62b4a2072862c27e9292ca0d38cefa1d1d9fad))
+ - **FIX**: keep the focus sensitive field focused on dialog open. ([efc94638](https://github.com/ensembleUI/ensemble/commit/efc94638254ed69c55f8bf8d1192cd5d2c51d6ba))
+ - **FIX**(security): block path traversal in local bundled screen resolution. ([b317c925](https://github.com/ensembleUI/ensemble/commit/b317c9256d96cd01f3183866d3f5e38bfe9b6ff7))
+ - **FIX**(layout): restore scroll controller when leaving footer scope. ([9f20ea43](https://github.com/ensembleUI/ensemble/commit/9f20ea43ddb389d6a718122dc01240fc5d3d3932))
+ - **FIX**(listview): dispose owned scroll controller. ([e5d1c101](https://github.com/ensembleUI/ensemble/commit/e5d1c101080f49ac0596f09d93c1d2df4e4dff22))
+ - **FIX**(security): reject unsafe screen selectors in remote definition fetches. ([db7de5b2](https://github.com/ensembleUI/ensemble/commit/db7de5b28f45c0dd2438ff7d0e1bea61bba1da6d))
+ - **FIX**(security): sanitize saveFile names before writing to storage. ([a3db4674](https://github.com/ensembleUI/ensemble/commit/a3db467427bd473e3b1a02c113369bcdaa75b6a4))
+ - **FIX**(security): stop WebView from bypassing TLS and unsafe-browsing defaults. ([a51ba979](https://github.com/ensembleUI/ensemble/commit/a51ba979ddb12fa3cb48af0f436e5a1cb1057fc7))
+ - **FIX**(device): update screenOrientation to use enum name for clarity. ([41b9dee0](https://github.com/ensembleUI/ensemble/commit/41b9dee0c974a06882db5edbd1219084ad81fc9c))
+ - **FIX**: uninitialized getIt and handle externalKey properly. ([9b46738a](https://github.com/ensembleUI/ensemble/commit/9b46738a4a9cde57f09db7f40d174baed9e57550))
+ - **FIX**(cdn): reset invalid manifest cache state. ([4e060421](https://github.com/ensembleUI/ensemble/commit/4e060421ebf7ba2121284ba93c825db7370b8f2d))
+ - **FIX**: unreliable showpreview. ([2365d35e](https://github.com/ensembleUI/ensemble/commit/2365d35e5b44743d1924ce5c6e7875676858296b))
+ - **FIX**: typo missing semi-colon. ([76d0d99a](https://github.com/ensembleUI/ensemble/commit/76d0d99a8a7f0a2b0f583cb7888c649cfd0b3282))
+ - **FIX**: enhance package name and signature validation in DeviceSecurity class. ([1cecfd8e](https://github.com/ensembleUI/ensemble/commit/1cecfd8ee3f94f071eb292e1b450166f8244ba22))
+ - **FIX**: no need for null check. ([d889baaf](https://github.com/ensembleUI/ensemble/commit/d889baaf6a1cabbb4193476da51412d53f0d2974))
+ - **FIX**: add ActionType.getNetworkInfo to ActionInvokable. ([c7091665](https://github.com/ensembleUI/ensemble/commit/c7091665da2b933cab6aca8161c46ca16760c621))
+ - **FIX**: CheckPermission action execution logic. ([b0af7e40](https://github.com/ensembleUI/ensemble/commit/b0af7e406e5504dc45443091a9657723242f363c))
+ - **FIX**(dependencies): pin html package version to avoid breaking changes with flutter_html. ([01d1dba0](https://github.com/ensembleUI/ensemble/commit/01d1dba0fe0d9935690257bd00d2d92b3dd7e9d5))
+ - **FIX**: firebase phone auth actions invokable. ([fe94ae21](https://github.com/ensembleUI/ensemble/commit/fe94ae21627c8460028860a8452b71dd99c18cf6))
+ - **FIX**: add Bluetooth action types to ActionInvokable. ([8e662847](https://github.com/ensembleUI/ensemble/commit/8e662847ced9033b8cdbffebfec14dcb98e55f18))
+ - **FIX**(firestore): dedupe listenForChanges subscriptions to prevent crash ([#2257](https://github.com/ensembleUI/ensemble/issues/2257)). ([3e7a0416](https://github.com/ensembleUI/ensemble/commit/3e7a0416c04e30d24af593eabcf9a49c16d0458a))
+ - **FIX**(incorrect header format): explicit convertion of header entry into string. ([84ead788](https://github.com/ensembleUI/ensemble/commit/84ead788a7cd0b1aee50292eabf07bc8ae3c490d))
+ - **FIX**: multiple navigator key. ([7ae53f25](https://github.com/ensembleUI/ensemble/commit/7ae53f2542790c5fe0ec616d98f7aba69f277e3b))
+ - **FIX**(invoke_api_action): handle FirestoreResponse in error handling. ([c8cb1c7b](https://github.com/ensembleUI/ensemble/commit/c8cb1c7b1bb97405bc61893338b1aeab53838a8f))
+ - **FIX**: type comma. ([f0749e36](https://github.com/ensembleUI/ensemble/commit/f0749e36da3e1f3e39866039b1062bd8f81319ee))
+ - **FIX**(phone_contact): replace RuntimeError with debugPrint for missing contact photo. ([b36b399d](https://github.com/ensembleUI/ensemble/commit/b36b399d91fad26e46e14f0845c624a3f8b768c9))
+ - **FIX**: update ensemble_app_badger dependency to version 1.6.1. ([9df43b5f](https://github.com/ensembleUI/ensemble/commit/9df43b5fb063b9dcafb25d571267b6799980965c))
+ - **FIX**: refine route change subscription logic in PageGroupState. ([02e03f33](https://github.com/ensembleUI/ensemble/commit/02e03f3321539a01e8dafa776060395f8106a6bd))
+ - **FIX**: revert the name to logEvent. ([e2b4abe3](https://github.com/ensembleUI/ensemble/commit/e2b4abe3744c313dbcaeb69861518348a39dd600))
+ - **FIX**(page_group): ensure default value for switchScreen in condition. ([eb222828](https://github.com/ensembleUI/ensemble/commit/eb222828e52f61c144db05a4cdb6c74f8ab52521))
+ - **FIX**(firestore_types): handle FirestoreTimestamp conversion in EnsembleFieldValue class. ([a4e8dba0](https://github.com/ensembleUI/ensemble/commit/a4e8dba0142250eee12b09fd012ae85e5ac18f2f))
+ - **FIX**(widget): improve semantics label handling in EWidgetState. ([24fe4bd9](https://github.com/ensembleUI/ensemble/commit/24fe4bd914a98f3cf10bd3113bd2d0fd599f067b))
+ - **FIX**(page_model): convert keys to strings in merged global actions. ([4dcb7e4a](https://github.com/ensembleUI/ensemble/commit/4dcb7e4a888a6259cb4f1a8daceb6338731ec6c8))
+ - **FIX**(execute_action): update payload key from 'action' to 'body' in ExecuteActionAction class. ([7e1b8466](https://github.com/ensembleUI/ensemble/commit/7e1b846611b4da27f21fa3474d8a6de05b40b768))
+ - **FIX**(page_model): add 'Actions' to the list of available types in PageModel. ([6dc07f06](https://github.com/ensembleUI/ensemble/commit/6dc07f06e447c5cdbf49be6f29a54e74fa6987e5))
+ - **FIX**: bad state no element on scrollabletabbar. ([f45b71e6](https://github.com/ensembleUI/ensemble/commit/f45b71e67caef2fc7753a837a7c1f27db0eeb4a2))
+ - **FIX**(stripe): correct onSuccess callback reference in ShowPaymentSheetAction. ([60ce6612](https://github.com/ensembleUI/ensemble/commit/60ce661276fadee0d8ae863680d4a28c603597ca))
+ - **FIX**: evaluating the saveFile action properties. ([dedb9658](https://github.com/ensembleUI/ensemble/commit/dedb9658a8ba16c443de6abce0f3130256f19ad9))
+ - **FIX**: correct typo in calendar widget tooltip property. ([dc6d7312](https://github.com/ensembleUI/ensemble/commit/dc6d7312fe0712f41b81dd3c0888215146c6d173))
+ - **FIX**(api): correct apiState assignment in HttpResponse class. ([07766dc5](https://github.com/ensembleUI/ensemble/commit/07766dc5d67ebc886b81482fd71fefffadebea15))
+ - **FIX**(page-group): notify selected page on ViewGroup resume. ([ff4cbfc4](https://github.com/ensembleUI/ensemble/commit/ff4cbfc4321635db54cf70bfc4650005fb9aa1de))
+ - **FIX**: storage updates to page group as well. ([ab6e3c61](https://github.com/ensembleUI/ensemble/commit/ab6e3c613e4e33b7f5f12fe2c4cb517c75cba25c))
+ - **FIX**: converted Date objects to Timestamps. ([f59d69d3](https://github.com/ensembleUI/ensemble/commit/f59d69d37154e82a7e195275def76c0f69b19da9))
+ - **FIX**: updated the ensemble artifacts logic to have presistent storage. ([bd9b5957](https://github.com/ensembleUI/ensemble/commit/bd9b5957fb85c2f6cada8243b25dc499b6f8bc2d))
+ - **FIX**(webview): set cookies for inline HTML on native ([#2298](https://github.com/ensembleUI/ensemble/issues/2298)). ([79519031](https://github.com/ensembleUI/ensemble/commit/79519031e370abe7aa146cadd523f2c83d58da3d))
+ - **FIX**: homeScreen mapping for CDN provider. ([d333c165](https://github.com/ensembleUI/ensemble/commit/d333c165f43f8c68dc838fd1a9acfa5041b05b51))
+ - **FIX**: fluttertoast breaking changes. ([d29696d3](https://github.com/ensembleUI/ensemble/commit/d29696d3a4869ce0837c1f200e5ccfe7aa1449f7))
+ - **FIX**: SSL pinning. ([b317d22d](https://github.com/ensembleUI/ensemble/commit/b317d22d57abcfbc0104a00406a3f45aadaa2b2f))
+ - **FIX**(action): restore page apiMap after executeAction completes. ([d1792947](https://github.com/ensembleUI/ensemble/commit/d179294746c602ea42588191365e6ed366d616d3))
+ - **FIX**: ensure EnsembleConfigService is initialized before accessing config. ([1f8df899](https://github.com/ensembleUI/ensemble/commit/1f8df8997f7a9ab2dffae88ad96ac898cb49fa0a))
+ - **FIX**(sse): honor disconnect/dispose and cap error-path reconnects. ([01e667e3](https://github.com/ensembleUI/ensemble/commit/01e667e3ecc44c0e5470b97099742880e9c58de0))
+ - **FIX**(security): encode Address widget Places proxy query parameters. ([1718c914](https://github.com/ensembleUI/ensemble/commit/1718c91414c9f961681ff9e6c8bcd8c49832b978))
+ - **FIX**: added message. ([6912e744](https://github.com/ensembleUI/ensemble/commit/6912e744b5f8d1e7661f566379482a33ec9842e0))
+ - **FIX**: auto complete dropdown selected label. ([80b9c8f5](https://github.com/ensembleUI/ensemble/commit/80b9c8f54c753aca7884fd12ed449c5f019d981b))
+ - **FIX**(sse): scope dispose to per-screen provider instance. ([49c0d730](https://github.com/ensembleUI/ensemble/commit/49c0d73006bf82b9f65b3a2911971a3c8ce5ed30))
+ - **FIX**: semantics handling for aria-label. ([1ef42542](https://github.com/ensembleUI/ensemble/commit/1ef42542757da00f3f86b449764a94d7badb9eba))
+ - **FEAT**: enhance Adobe Analytics module with core, edge, and identity functionalities. ([a49e1224](https://github.com/ensembleUI/ensemble/commit/a49e1224f322b4780467d6e9b794e3896a0958fa))
+ - **FEAT**: add CDN definition provider. ([c1746d87](https://github.com/ensembleUI/ensemble/commit/c1746d87bd7886a6a20a087f772c5a5efd363804))
+ - **FEAT**: added firebase analytics rest of unsupported functions. ([04f34898](https://github.com/ensembleUI/ensemble/commit/04f34898dd4a033a130084c0656b769de99e20f1))
+ - **FEAT**: load secrets from .env.secrets file in SecretsStore class. ([16adc60b](https://github.com/ensembleUI/ensemble/commit/16adc60bb426a9a71e146d986d4332107dc4f388))
+ - **FEAT**(api): add Server-Sent Events (SSE) API provider. ([c95b8789](https://github.com/ensembleUI/ensemble/commit/c95b87894108ed32de833fa6d83dc52ba3b0cf1e))
+ - **FEAT**(api): implement DisconnectSSEAction and enhance SSE management. ([e75dce32](https://github.com/ensembleUI/ensemble/commit/e75dce323021aaa7797b63222d1fee7f700a8627))
+ - **FEAT**(page): add collapsible header support and dynamic title bar height updates. ([d35eba01](https://github.com/ensembleUI/ensemble/commit/d35eba015c0a26429aa4201504bed7c686ed096b))
+ - **FEAT**(navigation): add static navigatorKey to EnsembleApp and update dismissBottomSheet logic. ([4ec3f9b9](https://github.com/ensembleUI/ensemble/commit/4ec3f9b9dd61f99e1eeb42781309452f036b1ab7))
+ - **FEAT**: add spans support to Text widget for inline rich text and widget embedding. ([69f92b19](https://github.com/ensembleUI/ensemble/commit/69f92b19502c9b7db8248123e192f808b64d1869))
+ - **FEAT**(widget): enhance semantics label retrieval logic. ([7ddb5d55](https://github.com/ensembleUI/ensemble/commit/7ddb5d55634fe7aa0c4a3000671e37dc8f9b9e73))
+ - **FEAT**(face_camera): separate face detection from ensemble_camera into separate module. ([9857c3cc](https://github.com/ensembleUI/ensemble/commit/9857c3cc3048f2c8879feeb07d77b084181010cd))
+ - **FEAT**(remote_config): add Firebase Remote Config integration. ([906f0133](https://github.com/ensembleUI/ensemble/commit/906f013322dcda45a1740db24b5e21f63ea372e5))
+ - **FEAT**(stripe): add initializeStripe action and update payment sheet functionality. ([5622bd40](https://github.com/ensembleUI/ensemble/commit/5622bd40b4b21a21b55154444e2dbe2802b1dc68))
+ - **FEAT**(actions): introduce reusable action execution framework. ([482d7de9](https://github.com/ensembleUI/ensemble/commit/482d7de922433bb41a282cfdd018f13866fe511f))
+ - **FEAT**(stripe): add Stripe payment integration module. ([1f29b783](https://github.com/ensembleUI/ensemble/commit/1f29b783f640e4cd6227c8bd36fd328b0b3f3f57))
+ - **FEAT**(secure_storage): enhance secure storage actions with optional encryption parameters. ([dee0bb57](https://github.com/ensembleUI/ensemble/commit/dee0bb571152e95b4cdc658924b2399c6b4f58b4))
+ - **FEAT**(cdn_provider): add runtime translation refresh and testing capabilities. ([c9ba1fd2](https://github.com/ensembleUI/ensemble/commit/c9ba1fd23c34031c96e2248f1b05cf2ba2b4bc88))
+ - **FEAT**(env): enhance environment variable loading and parsing. ([b7666ceb](https://github.com/ensembleUI/ensemble/commit/b7666ceb292427ad24445cc3080a68e9aca8c47a))
+ - **FEAT**(lottie): add custom Lottie decoder for .lottie file ext support. ([cc73e7cf](https://github.com/ensembleUI/ensemble/commit/cc73e7cf87475a7e538b0c88a099a90c5c63af21))
+ - **FEAT**(action): add ActionType.executeAction to ActionInvokable class. ([b5cc5a4a](https://github.com/ensembleUI/ensemble/commit/b5cc5a4af5ac95b0ed4971349f5cf5ab9a481672))
+ - **FEAT**(dotenv): implement dotenv bundle parsing and refactor config loading. ([0a987c94](https://github.com/ensembleUI/ensemble/commit/0a987c94aef06e2b220fca85c1d8f43c707fd506))
+ - **FEAT**(image): add support for custom HTTP headers in image requests. ([3a304a2c](https://github.com/ensembleUI/ensemble/commit/3a304a2cd01a2af6046a327a9380cf259cb1e37e))
+ - **FEAT**: integrate Assurance functionality into Adobe Analytics module. ([7e16c4e9](https://github.com/ensembleUI/ensemble/commit/7e16c4e9e7b7795e3b9517f264096601c32c1f69))
+ - **FEAT**: integrate user profile management into Adobe Analytics module. ([e30660ee](https://github.com/ensembleUI/ensemble/commit/e30660ee8f201db10ad1a30e5c3e94c7a08e585b))
+ - **FEAT**: add consent management to Adobe Analytics module. ([9a8a750f](https://github.com/ensembleUI/ensemble/commit/9a8a750f94699a20ada3d1606184df57dbee3720))
+ - **FEAT**: enhance secrets management by loading from .env.secrets file and refactor getSecrets method in CdnDefinitionProvider. ([2278ce84](https://github.com/ensembleUI/ensemble/commit/2278ce849745495d1c0f0fdae9f96e86624968c8))
+ - **FEAT**: update Adobe Analytics methods to return dynamic results. ([3a9caf08](https://github.com/ensembleUI/ensemble/commit/3a9caf08fa37c03484ff3c04be4bf18bb6bd4d68))
+ - **FEAT**: add setupAssurance method to Adobe Analytics module for session management. ([9d01e220](https://github.com/ensembleUI/ensemble/commit/9d01e2201f97baf1320ace14271ee70ceae3255e))
+ - **FEAT**: enhance Adobe Analytics event tracking with timeout handling and parameter type adjustments. ([48d4880c](https://github.com/ensembleUI/ensemble/commit/48d4880c3138e463665b704681eec3d5f57188b7))
+ - **FEAT**(image): enhance header evaluation for dynamic HTTP headers in image requests. ([e24544fe](https://github.com/ensembleUI/ensemble/commit/e24544fe2587a4119f6c4a8242e9b51948eef57c))
+ - **FEAT**: add Adobe Analytics module for Ensemble integration. ([77fadddb](https://github.com/ensembleUI/ensemble/commit/77fadddb913ed20834f977db0fe78ee79c93005b))
+ - **FEAT**(tab): add persistentTabBar option for keep the tab pinned. ([bbafb0d1](https://github.com/ensembleUI/ensemble/commit/bbafb0d1c3be1f321cbe92f3cc0d8598e476dde0))
+ - **FEAT**(cdn): enhance CdnDefinitionProvider with environment variable handling and secret management. ([42669188](https://github.com/ensembleUI/ensemble/commit/42669188ea423c9dba5beac449ee38853f01b88b))
+ - **FEAT**(tabbar): add indexed tab mode with on-demand tab building and caching. ([93cd430b](https://github.com/ensembleUI/ensemble/commit/93cd430b0b700ae123ddf378f627ab884067f515))
+ - **FEAT**(tab): fix persistentTabBar behavior with listview. ([ed51255a](https://github.com/ensembleUI/ensemble/commit/ed51255a0b8456c9ec3654f6ddce1e315cae9d77))
+ - **FEAT**: add new action types for badge management. ([71c98763](https://github.com/ensembleUI/ensemble/commit/71c987631dbc0d82f1f206e8607cc9abc5a5df34))
+ - **FEAT**: implement PlaidLinkAction execution logic. ([0db8e85a](https://github.com/ensembleUI/ensemble/commit/0db8e85af03ec8275b1d30137789230518a2dedd))
+ - **FEAT**(cdn): enhance CDN request handling with dynamic headers and versioning. ([f6635c76](https://github.com/ensembleUI/ensemble/commit/f6635c76cced1c921a61ac9e198d4e6bbf4202ea))
+ - **FEAT**(wifi): enhance error handling for Wi-Fi connection failures ([#2355](https://github.com/ensembleUI/ensemble/issues/2355)). ([91e71af2](https://github.com/ensembleUI/ensemble/commit/91e71af2d404b793f11318682453efe782e5b8a1))
+ - **FEAT**: simplify EnsembleStorage method mappings and enhance JSValidator property access error handling. ([05661a5e](https://github.com/ensembleUI/ensemble/commit/05661a5e0d132cbc0342a88f90d8da5521185ec6))
+ - **FEAT**: update EnsembleStorage methods to accept dynamic values for setProperty and implement property access checks. ([1e3373a5](https://github.com/ensembleUI/ensemble/commit/1e3373a50185a2732c8468c4f4743da25e72a279))
+ - **FEAT**: refactor JSInterpreter validation logic into JSValidator for improved error handling and context-aware checks. ([b47d93ac](https://github.com/ensembleUI/ensemble/commit/b47d93ac1db79e65dc77082c127ca867c5f437a4))
+ - **FEAT**: enhance JS code validation in DevMode and add detailed error handling. ([00d0f617](https://github.com/ensembleUI/ensemble/commit/00d0f6172ff96eb2368aca85c6199da12d937db5))
+ - **FEAT**(border): add dashed and dotted borderStyle for container widgets ([#2356](https://github.com/ensembleUI/ensemble/issues/2356)). ([26d747ed](https://github.com/ensembleUI/ensemble/commit/26d747ed23a14d5138aa35d5833255ae337a6655))
+ - **FEAT**(device): streamline MediaQuery capability and add device metric notifications. ([991650b6](https://github.com/ensembleUI/ensemble/commit/991650b6666e615eca2e9b7f8418af847a08d3d0))
+ - **FEAT**: add JS code validation method in DevMode class. ([6006ffcb](https://github.com/ensembleUI/ensemble/commit/6006ffcbd1e10044d25109f0574bd858a1db43dd))
+ - **FEAT**(navigation): add declarative navigation stack support ([#2351](https://github.com/ensembleUI/ensemble/issues/2351)). ([6e58cfb5](https://github.com/ensembleUI/ensemble/commit/6e58cfb5a211b513423056babee9ae32fcfb4cbf))
+ - **FEAT**: Add reactive orientation support to Device class. ([47fc9314](https://github.com/ensembleUI/ensemble/commit/47fc93148c1eeaea7e87c4eb4131aa368726e9f7))
+ - **FEAT**(ensemble): enhance reusable Actions handling. ([00973129](https://github.com/ensembleUI/ensemble/commit/009731290782caa46ac2bef5e4ec5658714850b2))
+ - **FEAT**: implement XChaCha20-Poly1305 decryption for secrets in CdnDefinitionProvider, enhancing security and payload handling. ([94ec0b19](https://github.com/ensembleUI/ensemble/commit/94ec0b1905ae903d83618c50a828238ba65f6a05))
+ - **FEAT**(wifi): add WiFi connection capabilities. ([b4194289](https://github.com/ensembleUI/ensemble/commit/b41942890e2c1ea15a804eadf183b9b81d779948))
+ - **FEAT**: reinitialize app state when internet connectivity is restored. ([e914e337](https://github.com/ensembleUI/ensemble/commit/e914e337e54bbe539f08aa192b0a50b118708a00))
+ - **FEAT**(webview): add HTML content and JavaScript injection support. ([b54a3297](https://github.com/ensembleUI/ensemble/commit/b54a3297de9ca1b276542cf76887cf47eecefef7))
+ - **FEAT**: implement internet connectivity check in runtime. ([30204d3b](https://github.com/ensembleUI/ensemble/commit/30204d3bb29324d9ae44380fc919b450cf30cfd0))
+ - **FEAT**(cdn): implement CDN asset caching mechanism. ([7cc9f878](https://github.com/ensembleUI/ensemble/commit/7cc9f878591c71d6eb26ec2571e069e427d50e76))
+ - **FEAT**(cdn): enhance asset cache initialization and cleanup. ([9737308c](https://github.com/ensembleUI/ensemble/commit/9737308cd5442f4b1f489e067048ac50b8a991aa))
+ - **FEAT**: update validateVerificationCode to return user and idToken, enhance onSuccess callback. ([33abb106](https://github.com/ensembleUI/ensemble/commit/33abb10689de2fcb5328194a44097a6757e0298d))
+ - **FEAT**: add onVerificationFailure callback to handle verification errors more effectively. ([08bc0ac6](https://github.com/ensembleUI/ensemble/commit/08bc0ac676139b543e24694f290df58dd57d4f13))
+ - **FEAT**: add method parameter to verification code actions for improved method handling. ([976adb71](https://github.com/ensembleUI/ensemble/commit/976adb7154ac3a8007828a6bf74e8d9c6c7d5a3c))
+ - **FEAT**: add provider parameter to verification code actions for enhanced flexibility. ([440e1f32](https://github.com/ensembleUI/ensemble/commit/440e1f323706ac47243950cdceef441cc00b8694))
+ - **FEAT**(cdn): enhance asset key management and prefetching. ([280d35c6](https://github.com/ensembleUI/ensemble/commit/280d35c6c09c8d191892f10d13d0c79de9c99ad2))
+ - **FEAT**(cdn): improve asset cache management and cleanup. ([24f09d4c](https://github.com/ensembleUI/ensemble/commit/24f09d4cdefd1746c1700538b103769e20dc0ad4))
+ - **FEAT**(action_scope): enhance event handler registration and scope prep… ([#2344](https://github.com/ensembleUI/ensemble/issues/2344)). ([33dce9cd](https://github.com/ensembleUI/ensemble/commit/33dce9cd35a82410ec2e7ed042ac238745679c02))
+ - **FEAT**: implement phone verification actions with firebase phone auth. ([5927c37c](https://github.com/ensembleUI/ensemble/commit/5927c37c9b636f7acf7c480d26db9c8d0217c90e))
+ - **FEAT**(test_runner): support live Firebase and HTTP under flutter test ([#2321](https://github.com/ensembleUI/ensemble/issues/2321)). ([9ffe6994](https://github.com/ensembleUI/ensemble/commit/9ffe6994322370ca32a79f1ce75eb06bee251018))
+ - **FEAT**: update .gitignore and enhance ensemble module structure. ([5ec1b8eb](https://github.com/ensembleUI/ensemble/commit/5ec1b8eb926b00d2d0de4ea7f922f5f6e7e5ed9e))
+ - **FEAT**: Add ES6 parser and interpreter runtime support ([#2320](https://github.com/ensembleUI/ensemble/issues/2320)). ([8902b10f](https://github.com/ensembleUI/ensemble/commit/8902b10f0d842dc8a1d99ffd87f05d4ed92db8b3))
+ - **FEAT**: enhance LocalAssetsService with environment variable merging and asset loading. ([359793a3](https://github.com/ensembleUI/ensemble/commit/359793a3b6e801e8f97b985da1f1663213e5580b))
+ - **DOCS**: add comments to clarify asset management methods in LocalAssetsService. ([52ab49bd](https://github.com/ensembleUI/ensemble/commit/52ab49bd0a4a973fc9094393c8872d7e76db9f1a))
+ - **DOCS**: document layout widget scroll and tab behavior. ([ba64173e](https://github.com/ensembleUI/ensemble/commit/ba64173e4433c49d6907c78494970639d5a93748))
+ - **DOCS**(ensemble): document storage.clear and multipart upload paths. ([d88fb624](https://github.com/ensembleUI/ensemble/commit/d88fb624b68136d3f006eac5ea7c6bc78752e1e2))
+ - **DOCS**(ensemble): document runtime security and device metric bindings. ([b7087842](https://github.com/ensembleUI/ensemble/commit/b7087842440ae498e11e1f088ddbfcc3f8d7dc5b))
+ - **DOCS**: update package and module READMEs. ([74306617](https://github.com/ensembleUI/ensemble/commit/74306617e40588dc149587bddd7a9c7ca87fc5bf))
+ - **DOCS**: move layout widget notes out of package readme. ([fc901707](https://github.com/ensembleUI/ensemble/commit/fc9017078bd2147c6486352e886a347a04ef6dcc))
+ - **DOCS**: update README.md for Ensemble runtime. ([d6581847](https://github.com/ensembleUI/ensemble/commit/d6581847c621994ba6941023bcb3dc86b0706089))
+
+
 ## 2026-09-03
 
 ### Changes

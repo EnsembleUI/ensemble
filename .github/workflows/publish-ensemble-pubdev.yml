@@ -60,7 +60,7 @@ jobs:
         if: steps.validate-release-tag.outputs.should_publish == 'true'
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: "3.47.2"
+          flutter-version: "3.32.5"
           cache: true
 
       - name: Setup pub.dev credentials
@@ -256,7 +256,7 @@ jobs:
       - name: Setup Flutter SDK
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: "3.47.2"
+          flutter-version: "3.32.5"
           cache: true
 
       - name: Setup pub.dev credentials
