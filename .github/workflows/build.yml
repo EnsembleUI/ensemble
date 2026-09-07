@@ -9,7 +9,10 @@ jobs:
 
     strategy:
       matrix:
-        flutter-version: ["3.38.7"]
+        # Repo convention: this workflow has historically tested several SDKs
+        # (e.g. ["3.27.2", "3.35.5"]). These match modules/ensemble's
+        # flutter: ">=3.27.0".
+        flutter-version: ["3.27.4", "3.35.4", "3.47.2"]
         platform: ["web", "android"]
 
     steps:

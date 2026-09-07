@@ -225,6 +225,9 @@ class _ListViewCoreState extends State<ListViewCore> {
       shrinkWrap: widget.shrinkWrap,
       controller: _listeningOn,
       physics: widget.physics,
+      // TODO(flutter-upgrade): on Flutter >= 3.44 use ScrollCacheExtent.pixels(...)
+      // https://docs.flutter.dev/release/breaking-changes/scroll-cache-extent
+      // ignore: deprecated_member_use
       cacheExtent: widget.cacheExtent,
       slivers: [
         _ContextualSliverPadding(

@@ -28,7 +28,8 @@ dependencies:
   ensemble_date: ^1.6.1
   parsejs_null_safety: ^2.1.0
   source_span: ^1.9.1
-  intl: '>=0.17.0 <=0.20.2'
+  # TODO(flutter-upgrade): narrow to `^0.20.3` once all consuming apps are on Flutter >= 3.47.
+  intl: ">=0.17.0 <=0.20.3"
 
 dev_dependencies:
   flutter_test:

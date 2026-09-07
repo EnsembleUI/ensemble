@@ -20,7 +20,9 @@ jobs:
       - name: Set up Flutter SDK
         uses: subosito/flutter-action@v2
         with:
-          channel: 'stable'
+          # Pinned instead of floating on `stable` so this job tests the same
+          # SDK as every other workflow (Flutter 3.47.2).
+          flutter-version: "3.47.2"
 
       - name: Set up Node.js
         uses: actions/setup-node@v2

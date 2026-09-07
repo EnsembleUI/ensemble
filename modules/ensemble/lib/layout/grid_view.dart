@@ -282,6 +282,10 @@ class GridViewState extends EWidgetState<GridView> with TemplatedWidgetState {
           scrollDirection: widget._controller.direction == 'horizontal'
               ? flutter.Axis.horizontal
               : flutter.Axis.vertical,
+          // TODO(flutter-upgrade): on Flutter >= 3.44 use
+          //   scrollCacheExtent: const ScrollCacheExtent.pixels(cachedPixels)
+          // https://docs.flutter.dev/release/breaking-changes/scroll-cache-extent
+          // ignore: deprecated_member_use
           cacheExtent: cachedPixels,
           // if used inside CustomScrollView (scrollableView=true), the Grid will inject the top padding
           // to account for the titleBar's height https://github.com/flutter/flutter/issues/108222

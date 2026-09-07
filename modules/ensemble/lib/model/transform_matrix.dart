@@ -17,12 +17,17 @@ class TransformMatrix {
               final xy = _XY.from(value, 'translate', min: -1000, max: 1000);
               if (xy != null) {
                 (result ??= Matrix4.identity())
+                  // TODO(flutter-upgrade): on Flutter >= 3.47 use translateByDouble(x, y, 0, 1)
+                  // https://pub.dev/packages/vector_math/changelog
+                  // ignore: deprecated_member_use
                   ..translate(xy.x ?? 0.0, xy.y ?? 0.0);
               }
               break;
             case 'scale':
               final xy = _XY.from(value, 'scale', min: -10, max: 10);
               if (xy != null) {
+                // TODO(flutter-upgrade): on Flutter >= 3.47 use scaleByDouble(x, y, 1, 1)
+                // ignore: deprecated_member_use
                 (result ??= Matrix4.identity())..scale(xy.x, xy.y);
               }
               break;

@@ -30,12 +30,15 @@ topics:
 version: 1.0.2
 
 environment:
-  sdk: '>=3.5.0 <4.0.0'
+  sdk: ">=3.5.0 <4.0.0"
 
 dependencies:
   flutter:
     sdk: flutter
-  font_awesome_flutter: ^10.9.0
+  # Wide on purpose: pub picks 10.9.0 on Dart 3.6 (Flutter 3.27) and 11.0.0 on
+  # Dart >=3.9. See FontAwesome._fa() for the API difference.
+  # https://pub.dev/packages/font_awesome_flutter/changelog
+  font_awesome_flutter: ">=10.9.0 <12.0.0"
 
 dev_dependencies:
   flutter_test:

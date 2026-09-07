@@ -10,7 +10,10 @@ By participating in this project, you agree to maintain a respectful and inclusi
 
 ### Prerequisites
 
-- [Flutter](https://docs.flutter.dev/get-started/install) (>= 3.24.0)
+- [Flutter](https://docs.flutter.dev/get-started/install) **3.47.2** (the version all CI workflows pin).
+  `modules/ensemble` supports `flutter: '>=3.35.0'` and is verified on 3.35.4 and 3.47.2. Keep it that way:
+  when a deprecation's replacement needs a newer SDK, keep the deprecated call with an
+  `// ignore: deprecated_member_use` and a `TODO(flutter-upgrade)` naming the version that unlocks it.
 - [Melos](https://melos.invertase.dev/) (>= 3.4.0) — install with `dart pub global activate melos`
 
 ### Setting Up the Development Environment
