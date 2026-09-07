@@ -18,11 +18,10 @@ jobs:
         uses: actions/checkout@v2
 
       - name: Set up Flutter SDK
-        uses: subosito/flutter-action@v2
+        uses: ./.github/actions/setup-flutter
         with:
-          # Pinned instead of floating on `stable` so this job tests the same
-          # SDK as every other workflow (Flutter 3.47.2).
-          flutter-version: "3.47.2"
+          # This job installed the SDK uncached before the shared action existed.
+          cache: "false"
 
       - name: Set up Node.js
         uses: actions/setup-node@v2

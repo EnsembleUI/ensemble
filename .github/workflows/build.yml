@@ -23,10 +23,9 @@ jobs:
           java-version: '17'
 
       - name: Setup Flutter SDK
-        uses: subosito/flutter-action@v2
+        uses: ./.github/actions/setup-flutter
         with:
           flutter-version: ${{ matrix.flutter-version }}
-          cache: true
 
       - name: Install Melos
         run: dart pub global activate melos
