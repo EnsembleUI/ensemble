@@ -7,9 +7,14 @@ Ensemble is a Flutter/Dart monorepo (managed by Melos) that provides a runtime f
 
 ### Prerequisites
 - **Flutter SDK 3.47.2** must be installed at `/opt/flutter` with `/opt/flutter/bin` on `PATH`.
-  This is the version every CI workflow pins. `modules/ensemble` declares `flutter: '>=3.35.0'` and is
-  verified on both 3.35.4 and 3.47.2 — do not introduce APIs newer than 3.35 without raising that floor
-  (see the `TODO(flutter-upgrade)` markers).
+  Every CI workflow pins it; `build.yml` additionally builds the starter on 3.38.7.
+  `modules/ensemble` declares `flutter: ">=3.27.0"` and was verified manually on 3.27.4, 3.35.4 and
+  3.47.2 — do not introduce APIs newer than 3.27 there without raising that floor (see the
+  `TODO(flutter-upgrade)` markers).
+- CI does **not** test 3.27: `modules/auth`, `modules/chat` and `modules/ensemble_bluetooth` declare
+  `collection: ^1.19.1` / `meta: ^1.16.0`, which Flutter 3.27 cannot satisfy (it pins `collection 1.19.0`
+  and `meta 1.15.0` exactly). Pre-existing, unrelated to the core runtime — those modules are opt-in and
+  `modules/ensemble` does not depend on them.
 - **JDK 17** is required for Android builds (Flutter 3.38 raised the minimum).
 - **Melos** must be globally activated (`dart pub global activate melos`).
 - `PATH` must include both `/opt/flutter/bin` and `$HOME/.pub-cache/bin`.
