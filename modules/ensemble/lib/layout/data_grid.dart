@@ -304,7 +304,9 @@ class DataGridState extends EWidgetState<DataGrid>
       rows: _rows,
       horizontalMargin: widget.controller.horizontalMargin,
       headingTextStyle: _buildHeadingStyle(),
-      dataRowHeight: widget.controller.dataRowHeight,
+      // https://api.flutter.dev/flutter/material/DataTable/dataRowMinHeight.html
+      dataRowMinHeight: widget.controller.dataRowHeight,
+      dataRowMaxHeight: widget.controller.dataRowHeight,
       headingRowHeight: widget.controller.headingRowHeight,
       dataTextStyle: _buildDataStyle(),
       columnSpacing: widget.controller.columnSpacing,

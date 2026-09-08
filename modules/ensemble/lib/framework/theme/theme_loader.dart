@@ -121,8 +121,8 @@ mixin ThemeLoader {
       secondary: Utils.getColor( colorOverrides?['secondary']),
       onSecondary: Utils.getColor( colorOverrides?['onSecondary']),
     );
+    // useMaterial3 comes from `defaultTheme` above; copyWith's is deprecated.
     final customTheme = defaultTheme.copyWith(
-      useMaterial3: true,
       colorScheme: customColorScheme,
       disabledColor: Utils.getColor( colorOverrides?['disabled']),
       textTheme: defaultTheme.textTheme.merge(_buildTextTheme(widgetOverrides?['Text'], defaultFontFamily: defaultFontFamily)),

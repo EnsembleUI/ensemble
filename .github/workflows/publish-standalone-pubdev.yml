@@ -82,10 +82,7 @@ jobs:
           ref: ${{ github.ref_name }}
 
       - name: Setup Flutter SDK
-        uses: subosito/flutter-action@v2
-        with:
-          flutter-version: "3.32.5"
-          cache: true
+        uses: ./.github/actions/setup-flutter
 
       - name: Setup pub.dev credentials
         uses: dart-lang/setup-dart@v1

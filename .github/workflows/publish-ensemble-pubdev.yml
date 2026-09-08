@@ -58,10 +58,7 @@ jobs:
 
       - name: Setup Flutter SDK
         if: steps.validate-release-tag.outputs.should_publish == 'true'
-        uses: subosito/flutter-action@v2
-        with:
-          flutter-version: "3.32.5"
-          cache: true
+        uses: ./.github/actions/setup-flutter
 
       - name: Setup pub.dev credentials
         if: steps.validate-release-tag.outputs.should_publish == 'true'
@@ -254,10 +251,7 @@ jobs:
           ref: ${{ matrix.package.name }}-v${{ needs.publish.outputs.version }}
 
       - name: Setup Flutter SDK
-        uses: subosito/flutter-action@v2
-        with:
-          flutter-version: "3.32.5"
-          cache: true
+        uses: ./.github/actions/setup-flutter
 
       - name: Setup pub.dev credentials
         uses: dart-lang/setup-dart@v1

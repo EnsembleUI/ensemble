@@ -23,7 +23,8 @@ dependencies:
   flutter:
     sdk: flutter
 
-  intl: ">=0.17.0 <=0.20.2"
+  # TODO(flutter-upgrade): narrow to `^0.20.3` once all consuming apps are on Flutter >= 3.47.
+  intl: ">=0.17.0 <=0.20.3"
   simple_gesture_detector: ^0.2.0
   collection: ^1.15.0
 

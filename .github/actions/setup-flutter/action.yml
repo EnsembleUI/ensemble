@@ -1,0 +1,27 @@
+# Single source of truth for the Flutter SDK version used by CI.
+# Bump `flutter-version`'s default below and every workflow follows.
+#
+# Workflows that need a different SDK (build.yml builds the starter on the
+# oldest supported SDK as well) pass `flutter-version` explicitly.
+
+name: Setup Flutter
+description: Installs the Flutter SDK version this repository pins for CI.
+
+inputs:
+  flutter-version:
+    description: Flutter SDK version to install. Defaults to the repo-wide pin.
+    required: false
+    default: "3.47.2"
+  cache:
+    description: Cache the installed SDK between runs.
+    required: false
+    default: "true"
+
+runs:
+  using: composite
+  steps:
+    - name: Setup Flutter ${{ inputs.flutter-version }}
+      uses: subosito/flutter-action@v2
+      with:
+        flutter-version: ${{ inputs.flutter-version }}
+        cache: ${{ inputs.cache }}

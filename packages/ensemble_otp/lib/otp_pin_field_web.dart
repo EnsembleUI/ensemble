@@ -1,3 +1,6 @@
+// TODO(web-wasm): replace dart:html / package:js with package:web +
+// dart:js_interop. Blocks the WebAssembly target only; JS build is fine.
+// https://dart.dev/interop/js-interop/package-web
 // In order to *not* need this ignore, consider extracting the "web" version
 // of your plugin as a separate package, instead of inlining it in the same
 // package as the core of your plugin.
