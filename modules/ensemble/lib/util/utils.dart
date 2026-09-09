@@ -863,39 +863,39 @@ class Utils {
   }
 
   static BorderRadiusGeometry? getBorderRadiusGeometry(dynamic value) {
-  if (value is int) {
+  if (value is num) {
     // Optimize: Ignore zero border radius as it causes unnecessary clipping
     if (value != 0) {
       return BorderRadius.all(Radius.circular(value.toDouble()));
     }
   } else if (value is String) {
-    // Convert the string to a list of integers
-    List<int> numbers = stringToIntegers(value, min: 0);
+    // Convert the string to a list of non-negative numbers
+    List<double> numbers = stringToDoubles(value, min: 0);
 
     // Handle 1 to 4 values for BorderRadius
     switch (numbers.length) {
       case 1:
-        return BorderRadius.all(Radius.circular(numbers[0].toDouble()));
+        return BorderRadius.all(Radius.circular(numbers[0]));
       case 2:
         return BorderRadius.vertical(
-          top: Radius.circular(numbers[0].toDouble()),
-          bottom: Radius.circular(numbers[1].toDouble()),
+          top: Radius.circular(numbers[0]),
+          bottom: Radius.circular(numbers[1]),
         );
       case 3:
         return BorderRadius.only(
-          topLeft: Radius.circular(numbers[0].toDouble()),
-          topRight: Radius.circular(numbers[1].toDouble()),
-          bottomLeft: Radius.circular(numbers[2].toDouble()),
+          topLeft: Radius.circular(numbers[0]),
+          topRight: Radius.circular(numbers[1]),
+          bottomLeft: Radius.circular(numbers[2]),
         );
       case 4:
         return BorderRadius.only(
-          topLeft: Radius.circular(numbers[0].toDouble()),
-          topRight: Radius.circular(numbers[1].toDouble()),
-          bottomRight: Radius.circular(numbers[2].toDouble()),
-          bottomLeft: Radius.circular(numbers[3].toDouble()),
+          topLeft: Radius.circular(numbers[0]),
+          topRight: Radius.circular(numbers[1]),
+          bottomRight: Radius.circular(numbers[2]),
+          bottomLeft: Radius.circular(numbers[3]),
         );
       default:
-        throw LanguageError('borderRadius requires 1 to 4 integers');
+        throw LanguageError('borderRadius requires 1 to 4 numbers');
     }
   }
 
@@ -975,13 +975,13 @@ static BoxDecoration? getBoxDecoration(dynamic style) {
   }
 
   static EBorderRadius? getBorderRadius(dynamic value) {
-    if (value is int) {
+    if (value is num) {
       // optimize, ignore zero border radius as that causes extra processing for clipping
       if (value != 0) {
-        return EBorderRadius.all(value);
+        return EBorderRadius.all(value.toDouble());
       }
     } else if (value is String) {
-      List<int> numbers = stringToIntegers(value, min: 0);
+      List<double> numbers = stringToDoubles(value, min: 0);
       if (numbers.length == 1) {
         return EBorderRadius.all(numbers[0]);
       } else if (numbers.length == 2) {
@@ -992,7 +992,7 @@ static BoxDecoration? getBoxDecoration(dynamic style) {
         return EBorderRadius.only(
             numbers[0], numbers[1], numbers[2], numbers[3]);
       } else {
-        throw LanguageError('borderRadius requires 1 to 4 integers');
+        throw LanguageError('borderRadius requires 1 to 4 numbers');
       }
     }
     return null;
@@ -1030,6 +1030,22 @@ static BoxDecoration? getBoxDecoration(dynamic style) {
     List<String> values = value.split(' ');
     for (var val in values) {
       int? number = int.tryParse(val);
+      if (number != null &&
+          (min == null || number >= min) &&
+          (max == null || number <= max)) {
+        rtn.add(number);
+      }
+    }
+    return rtn;
+  }
+
+  /// Parse a whitespace-separated string into non-negative doubles.
+  static List<double> stringToDoubles(String value,
+      {double? min, double? max}) {
+    List<double> rtn = [];
+
+    for (var val in value.split(RegExp(r'\s+'))) {
+      double? number = double.tryParse(val);
       if (number != null &&
           (min == null || number >= min) &&
           (max == null || number <= max)) {

@@ -286,7 +286,7 @@ mixin ThemeLoader {
     BorderRadius borderRadius =
         Utils.getBorderRadius(input['borderRadius'])?.getValue() ??
             getInputDefaultBorderRadius(variant);
-    int borderWidth = Utils.optionalInt(input['borderWidth']) ?? 1;
+    double borderWidth = Utils.optionalDouble(input['borderWidth']) ?? 1;
 
     Color? borderColor = Utils.getColor(input['borderColor']);
     Color? disabledBorderColor = Utils.getColor(input['disabledBorderColor']);
@@ -305,7 +305,7 @@ mixin ThemeLoader {
                   (colorScheme.brightness == Brightness.light
                       ? Colors.black54
                       : Colors.white70),
-              width: borderWidth.toDouble()));
+              width: borderWidth));
 
       return baseInputDecoration.copyWith(
         contentPadding: contentPadding ??
@@ -341,7 +341,7 @@ mixin ThemeLoader {
                   (colorScheme.brightness == Brightness.light
                       ? Colors.black87
                       : Colors.white70),
-              width: borderWidth.toDouble()));
+              width: borderWidth));
       return baseInputDecoration.copyWith(
         contentPadding: contentPadding ??
             const EdgeInsets.symmetric(vertical: 15, horizontal: 3),
@@ -386,15 +386,13 @@ mixin ThemeLoader {
     isOutline ? null : Utils.getColor(input['backgroundColor']);
 
     RoundedRectangleBorder border = RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(
-            Utils.getInt(input['borderRadius'], fallback: _buttonBorderRadius)
-                .toDouble()),
+        borderRadius: Utils.getBorderRadius(input['borderRadius'])?.getValue() ??
+            BorderRadius.circular(_buttonBorderRadius.toDouble()),
         side: borderColor == null
             ? BorderSide.none
             : BorderSide(
             color: borderColor,
-            width: Utils.getInt(input['borderWidth'], fallback: 1)
-                .toDouble()));
+            width: Utils.optionalDouble(input['borderWidth']) ?? 1));
 
     return getButtonStyle(
         isOutline: isOutline,
@@ -407,20 +405,20 @@ mixin ThemeLoader {
   InputBorder? getInputBorder(
       {InputVariant? variant,
         Color? borderColor,
-        required int borderWidth,
+        required double borderWidth,
         required BorderRadius borderRadius}) {
     if (borderColor != null) {
       if (variant == InputVariant.box) {
         return OutlineInputBorder(
             borderRadius: borderRadius,
             borderSide:
-            BorderSide(color: borderColor, width: borderWidth.toDouble()));
+            BorderSide(color: borderColor, width: borderWidth));
       }
       // default is underline
       return UnderlineInputBorder(
           borderRadius: borderRadius,
           borderSide:
-          BorderSide(color: borderColor, width: borderWidth.toDouble()));
+          BorderSide(color: borderColor, width: borderWidth));
     }
     return null;
   }
@@ -463,21 +461,20 @@ mixin ThemeLoader {
     Color? fillColor = Utils.getColor(input?["fillColor"]);
     Color? activeColor = Utils.getColor(input?["activeColor"]);
     Color? checkColor = Utils.getColor(input?["checkColor"]);
-    int borderWidth = Utils.optionalInt(input?['borderWidth'], min: 0) ?? 2;
+    double borderWidth = Utils.optionalDouble(input?['borderWidth'], min: 0) ?? 2;
 
     var checkboxTheme = CheckboxThemeData(
       side: WidgetStateBorderSide.resolveWith((states) {
         if (states.contains(WidgetState.disabled)) {
           return BorderSide(
-              width: borderWidth.toDouble(), color: DesignSystem.disableColor);
+              width: borderWidth, color: DesignSystem.disableColor);
         }
         if (states.contains(WidgetState.error)) {
           return BorderSide(
-              width: borderWidth.toDouble(),
-              color: DesignSystem.inputErrorColor);
+              width: borderWidth, color: DesignSystem.inputErrorColor);
         }
         if (!states.contains(WidgetState.selected)) {
-          return BorderSide(width: borderWidth.toDouble(), color: borderColor);
+          return BorderSide(width: borderWidth, color: borderColor);
         }
         // use default
         return null;

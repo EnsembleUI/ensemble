@@ -85,7 +85,7 @@ class InternalShape extends StatelessWidget {
 
   final LinearGradient? borderGradient;
   final Color? borderColor;
-  final int? borderWidth;
+  final double? borderWidth;
   final BorderRadius? borderRadius;
 
   @override
