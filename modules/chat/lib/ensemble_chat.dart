@@ -54,21 +54,25 @@ class EnsembleChatState extends EnsembleWidgetState<EnsembleChatImpl> {
 
   @override
   Widget buildWidget(BuildContext context) {
-    return ValueListenableBuilder<List<InternalMessage>>(
-      valueListenable: widget.controller.messages,
-      builder: (context, messages, child) {
-        return ChatPage(
-          messages: messages.map((message) {
-            if (message.inlineWidget != null && message.widget == null) {
-              message.widget =
-                  buildWidgetsFromTemplate(context, message.inlineWidget);
-            }
-            return message;
-          }).toList(),
-          onMessageSend: sendMessage,
-          controller: widget.controller,
-        );
-      },
+    return ValueListenableBuilder<bool>(
+      valueListenable: widget.controller.isLoading,
+      builder: (context, isLoading, child) =>
+          ValueListenableBuilder<List<InternalMessage>>(
+        valueListenable: widget.controller.messages,
+        builder: (context, messages, child) {
+          return ChatPage(
+            messages: messages.map((message) {
+              if (message.inlineWidget != null && message.widget == null) {
+                message.widget =
+                    buildWidgetsFromTemplate(context, message.inlineWidget);
+              }
+              return message;
+            }).toList(),
+            onMessageSend: sendMessage,
+            controller: widget.controller,
+          );
+        },
+      ),
     );
   }
 
@@ -365,6 +369,8 @@ class EnsembleChatController extends EnsembleBoxController {
     }
 
     final double temperature = config['temperature'] ?? 1.0;
+    final String? reasoningEffort = Utils.optionalString(
+        config['reasoningEffort'] ?? config['reasoning_effort']);
     final String systemPrompt =
         config['systemPrompt'] ?? 'You are a helpful assistant';
     final List<Map<String, dynamic>>? tools =
@@ -377,6 +383,7 @@ class EnsembleChatController extends EnsembleBoxController {
       model: model,
       apiKey: apiKey,
       temperature: temperature,
+      reasoningEffort: reasoningEffort,
       systemPrompt: systemPrompt,
       tools: tools,
       getMessages: getMessages,
@@ -395,7 +402,10 @@ class EnsembleChatController extends EnsembleBoxController {
       for (final dynamic key in tool.keys) {
         final Map<dynamic, dynamic> properties = <dynamic, dynamic>{};
         tool[key]["inputs"]?.keys.forEach((inpKey) {
-          properties[inpKey] = {"type": tool[key]["inputs"][inpKey]};
+          final dynamic inputSchema = tool[key]["inputs"][inpKey];
+          properties[inpKey] = inputSchema is Map
+              ? Map<String, dynamic>.from(inputSchema)
+              : {"type": inputSchema};
         });
 
         toolMap["name"] = key;

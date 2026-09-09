@@ -21,6 +21,9 @@ abstract class AIClient {
   /// Sampling temperature for completions.
   final double? temperature;
 
+  /// Optional reasoning effort sent to compatible models.
+  final String? reasoningEffort;
+
   /// Optional tool definitions available to the model.
   final List<Map<String, dynamic>>? tools;
 
@@ -31,6 +34,7 @@ abstract class AIClient {
   AIClient({
     required this.model,
     required this.temperature,
+    this.reasoningEffort,
     this.tools,
     required this.systemPrompt,
     this.apiKey,
@@ -49,6 +53,7 @@ class OpenAIClient extends AIClient {
   OpenAIClient({
     required super.model,
     required super.temperature,
+    super.reasoningEffort,
     super.tools,
     required super.systemPrompt,
     super.apiKey,
@@ -62,15 +67,30 @@ class OpenAIClient extends AIClient {
     for (final InternalMessage message in internalMessage) {
       final String role =
           message.role == MessageRole.system ? "assistant" : message.role.name;
-      if (message.content == null) {
+
+      final dynamic responseMessage = message.rawResponse?['message'];
+      final dynamic toolCalls = responseMessage?['tool_calls'];
+      if (toolCalls is List && toolCalls.isNotEmpty) {
         messages.add({
-          "role": role,
-          "content": message.rawResponse != null
-              ? message.rawResponse['message']['tool_calls'].first['function']
-                  ['name']
-              : message.inlineWidget.keys.last,
+          "role": "assistant",
+          "content": responseMessage['content'],
+          "tool_calls": toolCalls,
         });
-      } else {
+
+        for (final dynamic toolCall in toolCalls) {
+          final dynamic toolCallId = toolCall?['id'];
+          if (toolCallId != null) {
+            messages.add({
+              "role": "tool",
+              "tool_call_id": toolCallId,
+              "content": jsonEncode({
+                "status": "displayed",
+                "message": "The requested in-app UI was shown to the user."
+              }),
+            });
+          }
+        }
+      } else if (message.content != null) {
         messages.add({"role": role, "content": message.content});
       }
     }
@@ -111,7 +131,8 @@ class OpenAIClient extends AIClient {
     final data = {
       "model": model,
       "tools": tools,
-      "messages": _getMessages(prompt)
+      "messages": _getMessages(prompt),
+      if (reasoningEffort != null) "reasoning_effort": reasoningEffort,
     };
     final headers = {
       "Content-Type": "application/json",
