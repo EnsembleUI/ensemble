@@ -348,21 +348,6 @@ class ViewUtil {
         child: customWidget);
   }
 
-  /// Returns the [WidgetController] behind [value] (a controller or a widget
-  /// that owns one via [HasController]).
-  static WidgetController? _focusControllerOf(dynamic value) {
-    if (value is WidgetController) {
-      return value;
-    }
-    if (value is HasController) {
-      final controller = value.controller;
-      if (controller is WidgetController) {
-        return controller;
-      }
-    }
-    return null;
-  }
-
   static Widget buildBareWidget(ScopeNode scopeNode, WidgetModel model,
       Map<WidgetModel, ModelPayload> modelMap) {
     if (model is CustomWidgetModel) {
@@ -371,9 +356,6 @@ class ViewUtil {
 
     Widget? w;
     Function? widgetInstance = WidgetRegistry().widgetMap[model.type];
-    // A rebuild swaps the controller while the TV focus wrapper's State/node
-    // persists. Carry `hasFocus` over so `${id.hasFocus}` doesn't read the new
-    // controller's default `false` and flash unfocused for a frame.
     final String? widgetId = model.props['id']?.toString();
     final dynamic previousContext = widgetId != null
         ? scopeNode.scope.dataContext.getContextById(widgetId)
@@ -396,15 +378,14 @@ class ViewUtil {
       }
     }
 
-    // Copy focus state onto the rebuilt controller before bindings are
-    // evaluated, so the first frame after a rebuild renders correctly.
-    if (previousContext != null && w != null) {
-      final previousFocusController = _focusControllerOf(previousContext);
-      final nextFocusController = _focusControllerOf(w);
-      if (previousFocusController != null &&
-          nextFocusController != null &&
-          previousFocusController.hasFocus) {
-        nextFocusController.hasFocus = true;
+    // Preserve ID-bound TV focus styles while a focused widget is rebuilt.
+    if (previousContext is HasController && w is HasController) {
+      final previousController = previousContext.controller;
+      final nextController = w.controller;
+      if (previousController is WidgetController &&
+          nextController is WidgetController &&
+          previousController.hasFocus) {
+        nextController.hasFocus = true;
       }
     }
 

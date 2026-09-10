@@ -524,25 +524,6 @@ void _saveTVRowPositionOnFocus(
   }
 }
 
-/// Re-asserts the live focus state on a controller swapped during a rebuild
-/// (the focus node persists, so `${id.hasFocus}` would otherwise stay stale).
-/// Dispatch is deferred to avoid `setState` during build. No-op when in sync.
-void _resyncControllerHasFocus(
-    BuildContext context, BoxController boxController, bool hasFocus) {
-  if (boxController.hasFocus == hasFocus) return;
-  boxController.hasFocus = hasFocus;
-  final widgetId = boxController.id;
-  if (widgetId == null) return;
-  final scopeManager = DataScopeWidget.getScope(context);
-  WidgetsBinding.instance.addPostFrameCallback((_) {
-    scopeManager?.dispatch(ModelChangeEvent(
-      WidgetBindingSource(widgetId, property: 'hasFocus'),
-      hasFocus,
-      bindingScope: scopeManager,
-    ));
-  });
-}
-
 /// Maps a curve name (from `tvOptions.scrollAnimationCurve`) to a [Curve].
 /// Supported: easeIn, easeOut, easeInOut, linear, decelerate, ease,
 /// fastOutSlowIn, bounceOut, elasticOut.
@@ -563,26 +544,6 @@ class _TapEnabledWrapperState extends State<_TapEnabledWrapper> {
     _instanceId = ++_instanceCounter;
     _focusNode = FocusNode(debugLabel: 'TapEnabledWrapper_$_instanceId');
     _focusNode.addListener(_onFocusChange);
-    // A new element may have inherited hasFocus from a widget with the same id.
-    // Correct it after mount (getScope() can't run in initState).
-    if (widget.boxController.hasFocus) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) {
-          _resyncControllerHasFocus(
-              context, widget.boxController, _focusNode.hasFocus);
-        }
-      });
-    }
-  }
-
-  @override
-  void didUpdateWidget(covariant _TapEnabledWrapper oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    // Rebuilt with a fresh BoxController: re-assert the live focus state.
-    if (!identical(oldWidget.boxController, widget.boxController)) {
-      _resyncControllerHasFocus(
-          context, widget.boxController, _focusNode.hasFocus);
-    }
   }
 
   @override
@@ -1109,31 +1070,6 @@ class _TVFocusOnlyWrapperState extends State<_TVFocusOnlyWrapper> {
   // Buttons then showed no focus ring or highlight.
   final FocusScopeNode _scopeNode =
       FocusScopeNode(debugLabel: 'TVFocusOnlyWrapper');
-
-  @override
-  void initState() {
-    super.initState();
-    // A new element may have inherited hasFocus from a widget with the same id.
-    // Correct it after mount (getScope() can't run in initState).
-    if (widget.boxController.hasFocus) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) {
-          _resyncControllerHasFocus(
-              context, widget.boxController, _scopeNode.hasFocus);
-        }
-      });
-    }
-  }
-
-  @override
-  void didUpdateWidget(covariant _TVFocusOnlyWrapper oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    // Rebuilt with a fresh BoxController: re-assert the live focus state.
-    if (!identical(oldWidget.boxController, widget.boxController)) {
-      _resyncControllerHasFocus(
-          context, widget.boxController, _scopeNode.hasFocus);
-    }
-  }
 
   @override
   void dispose() {
