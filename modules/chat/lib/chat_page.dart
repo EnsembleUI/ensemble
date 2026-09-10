@@ -110,6 +110,13 @@ class _ChatPageState extends State<ChatPage> {
   final ScrollController scrollController = ScrollController();
   final TextEditingController _textController = TextEditingController();
 
+  bool _isRenderableMessage(InternalMessage message) {
+    return message.visible &&
+        (message.widget != null ||
+            message.inlineWidget != null ||
+            message.content?.trim().isNotEmpty == true);
+  }
+
   @override
   Widget build(BuildContext context) {
     return SafeArea(
@@ -121,7 +128,7 @@ class _ChatPageState extends State<ChatPage> {
             Flexible(
               child: ListView.builder(
                 reverse: true,
-                itemCount: widget.messages.where((m) => m.visible).length +
+                itemCount: widget.messages.where(_isRenderableMessage).length +
                     (widget.controller.isLoading.value ? 1 : 0),
                 itemBuilder: (context, index) {
                   if (widget.controller.isLoading.value && index == 0) {
@@ -152,7 +159,7 @@ class _ChatPageState extends State<ChatPage> {
                   }
                   // Adjust index for messages to account for loading indicator
                   final List<InternalMessage> visibleMessages =
-                      widget.messages.where((m) => m.visible).toList();
+                      widget.messages.where(_isRenderableMessage).toList();
                   final int effectiveIndex = visibleMessages.length -
                       1 -
                       (widget.controller.isLoading.value ? index - 1 : index);
@@ -190,6 +197,7 @@ class _ChatPageState extends State<ChatPage> {
                       ),
                       child: TextFormField(
                         controller: _textController,
+                        enabled: widget.controller.canSendMessage.value,
                         style: widget.controller.textFieldTextStyle ??
                             const TextStyle(color: Colors.white),
                         maxLines: 5,
@@ -224,7 +232,9 @@ class _ChatPageState extends State<ChatPage> {
                       Icons.send,
                       color: widget.controller.iconColor ?? Colors.white,
                     ),
-                    onPressed: () => _handleSubmit(),
+                    onPressed: widget.controller.canSendMessage.value
+                        ? () => _handleSubmit()
+                        : null,
                     padding: const EdgeInsets.symmetric(horizontal: 16.0),
                     splashRadius: 24,
                   )

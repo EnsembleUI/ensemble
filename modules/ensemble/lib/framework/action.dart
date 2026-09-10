@@ -17,6 +17,7 @@ import 'package:ensemble/action/get_network_info_action.dart';
 import 'package:ensemble/action/haptic_action.dart';
 import 'package:ensemble/action/call_native_method.dart';
 import 'package:ensemble/action/invoke_api_action.dart';
+import 'package:ensemble/action/respond_to_tool_action.dart';
 import 'package:ensemble/action/biometric_auth_action.dart';
 import 'package:ensemble/action/change_locale_actions.dart';
 import 'package:ensemble/action/key_chain_actions.dart';
@@ -493,14 +494,15 @@ class ExecuteCodeAction extends EnsembleAction {
       throw LanguageError(
           "${ActionType.executeCode.name} requires a 'body' code block.");
     }
+    final YamlNode? bodyNode =
+        payload is YamlMap ? payload.nodes['body'] : null;
     return ExecuteCodeAction(
         initiator: initiator,
         inputs: Utils.getMap(payload['inputs']),
         codeBlock: payload['body'].toString(),
         onComplete:
             EnsembleAction.from(payload['onComplete'], initiator: initiator),
-        codeBlockSpan:
-            ViewUtil.optDefinition((payload as YamlMap).nodes['body']));
+        codeBlockSpan: ViewUtil.optDefinition(bodyNode));
   }
 }
 
@@ -991,6 +993,7 @@ class SignInWithCustomTokenAction extends EnsembleAction {
 
 enum ActionType {
   invokeAPI,
+  respondToTool,
   executeAction,
   navigateScreen,
   navigateViewGroup,
@@ -1163,6 +1166,9 @@ abstract class EnsembleAction {
           initiator: initiator, payload: payload);
     } else if (actionType == ActionType.invokeAPI) {
       return InvokeAPIAction.fromYaml(initiator: initiator, payload: payload);
+    } else if (actionType == ActionType.respondToTool) {
+      return RespondToToolAction.fromYaml(
+          initiator: initiator, payload: payload);
     } else if (actionType == ActionType.openCamera) {
       return ShowCameraAction.fromYaml(initiator: initiator, payload: payload);
     } else if (actionType == ActionType.openFaceCamera) {

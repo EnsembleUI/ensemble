@@ -6,6 +6,7 @@ library openai;
 import 'dart:convert';
 
 import 'package:ensemble_chat/ensemble_chat.dart';
+import 'package:ensemble_chat/helpers/chat_tools.dart';
 import 'package:http/http.dart' as http;
 // ignore: depend_on_referenced_packages
 import 'package:collection/collection.dart';
@@ -71,22 +72,27 @@ class OpenAIClient extends AIClient {
       final dynamic responseMessage = message.rawResponse?['message'];
       final dynamic toolCalls = responseMessage?['tool_calls'];
       if (toolCalls is List && toolCalls.isNotEmpty) {
+        final dynamic content = responseMessage?['content'];
         messages.add({
           "role": "assistant",
-          "content": responseMessage['content'],
+          if (content is String) "content": content,
           "tool_calls": toolCalls,
         });
 
         for (final dynamic toolCall in toolCalls) {
           final dynamic toolCallId = toolCall?['id'];
           if (toolCallId != null) {
+            final result = message.toolResults
+                .where((item) => item.callId == toolCallId)
+                .firstOrNull;
             messages.add({
               "role": "tool",
               "tool_call_id": toolCallId,
-              "content": jsonEncode({
-                "status": "displayed",
-                "message": "The requested in-app UI was shown to the user."
-              }),
+              "content": jsonEncode(result?.toModelOutput() ??
+                  {
+                    "status": "displayed",
+                    "message": "The requested in-app UI was shown to the user."
+                  }),
             });
           }
         }
@@ -127,13 +133,7 @@ class OpenAIClient extends AIClient {
   @override
   Future<Completion?> complete(String prompt) async {
     final url = Uri.parse("https://api.openai.com/v1/chat/completions");
-    _getMessages(prompt);
-    final data = {
-      "model": model,
-      "tools": tools,
-      "messages": _getMessages(prompt),
-      if (reasoningEffort != null) "reasoning_effort": reasoningEffort,
-    };
+    final data = buildRequestData(prompt);
     final headers = {
       "Content-Type": "application/json",
       "Authorization": "Bearer $apiKey"
@@ -148,6 +148,24 @@ class OpenAIClient extends AIClient {
     final result = Completion.fromJson(response.body);
     updateTool(result);
     return result;
+  }
+
+  /// Builds the Chat Completions payload.
+  ///
+  /// Luna defaults to a non-none reasoning effort when the field is omitted,
+  /// but Chat Completions only accepts function tools when that effort is
+  /// explicitly disabled.
+  Map<String, dynamic> buildRequestData(String prompt) {
+    final hasTools = tools?.isNotEmpty == true;
+    return {
+      "model": model,
+      "tools": tools,
+      "messages": _getMessages(prompt),
+      if (hasTools)
+        "reasoning_effort": "none"
+      else if (reasoningEffort != null)
+        "reasoning_effort": reasoningEffort,
+    };
   }
 }
 
@@ -287,6 +305,17 @@ class Choice {
     }
 
     return {function['name']: function['arguments']};
+  }
+
+  /// All tool calls requested in this choice.
+  List<ChatToolCall> get toolCalls {
+    final calls = message?['tool_calls'];
+    if (calls is! List) return const [];
+    return calls
+        .whereType<Map>()
+        .map(ChatToolCall.fromOpenAI)
+        .where((call) => call.name.isNotEmpty)
+        .toList();
   }
 }
 

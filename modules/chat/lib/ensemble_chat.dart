@@ -1,6 +1,7 @@
 /// Ensemble chat widget implementation and controller.
 library ensemble_chat;
 
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:ensemble/framework/action.dart';
@@ -10,6 +11,7 @@ import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/stub/ensemble_chat.dart';
+import 'package:ensemble/framework/tool_response.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/helpers/controllers.dart';
@@ -18,6 +20,7 @@ import 'package:ensemble_chat/helpers/openai.dart';
 import 'package:flutter/material.dart';
 
 import 'helpers/models.dart';
+import 'helpers/chat_tools.dart';
 
 /// Ensemble widget implementation for chat experiences.
 class EnsembleChatImpl extends EnsembleWidget<EnsembleChatController>
@@ -40,12 +43,19 @@ class EnsembleChatImpl extends EnsembleWidget<EnsembleChatController>
 class EnsembleChatState extends EnsembleWidgetState<EnsembleChatImpl> {
   @override
   void initState() {
+    widget.controller.activeState = this;
     widget.controller.sendMessage = sendMessage;
+    widget.controller.canSendMessage.value =
+        !widget.controller.conversationRunning;
     super.initState();
   }
 
   @override
   void dispose() {
+    if (identical(widget.controller.activeState, this)) {
+      widget.controller.activeState = null;
+      widget.controller.sendMessage = null;
+    }
     for (var message in widget.controller.messages.value) {
       message.widget = null;
     }
@@ -55,29 +65,35 @@ class EnsembleChatState extends EnsembleWidgetState<EnsembleChatImpl> {
   @override
   Widget buildWidget(BuildContext context) {
     return ValueListenableBuilder<bool>(
-      valueListenable: widget.controller.isLoading,
-      builder: (context, isLoading, child) =>
-          ValueListenableBuilder<List<InternalMessage>>(
-        valueListenable: widget.controller.messages,
-        builder: (context, messages, child) {
-          return ChatPage(
-            messages: messages.map((message) {
-              if (message.inlineWidget != null && message.widget == null) {
-                message.widget =
-                    buildWidgetsFromTemplate(context, message.inlineWidget);
-              }
-              return message;
-            }).toList(),
-            onMessageSend: sendMessage,
-            controller: widget.controller,
-          );
-        },
+      valueListenable: widget.controller.canSendMessage,
+      builder: (context, canSendMessage, child) => ValueListenableBuilder<bool>(
+        valueListenable: widget.controller.isLoading,
+        builder: (context, isLoading, child) =>
+            ValueListenableBuilder<List<InternalMessage>>(
+          valueListenable: widget.controller.messages,
+          builder: (context, messages, child) {
+            return ChatPage(
+              messages: messages.map((message) {
+                if (message.inlineWidget != null && message.widget == null) {
+                  message.widget =
+                      buildWidgetsFromTemplate(context, message.inlineWidget);
+                }
+                return message;
+              }).toList(),
+              onMessageSend: sendMessage,
+              controller: widget.controller,
+            );
+          },
+        ),
       ),
     );
   }
 
   Future<void> sendMessage(String newMessage, {bool visible = true}) async {
     if (widget.controller.isLocalChat) {
+      if (widget.controller.conversationRunning) return;
+      widget.controller.conversationRunning = true;
+      widget.controller.canSendMessage.value = false;
       widget.controller.addMessage({
         widget.controller.getMessageKey: newMessage,
         "role": MessageRole.user.name,
@@ -97,17 +113,13 @@ class EnsembleChatState extends EnsembleWidgetState<EnsembleChatImpl> {
 
       widget.controller.isLoading.value = true;
       try {
-        final Completion? response =
-            await widget.controller.client?.complete(newMessage);
-        if (response == null) {
-          return;
-        }
-        final Choice? choice = response.choices.firstOrNull;
-        handleMessageIntent(choice);
+        await _runLocalConversation();
       } on Exception catch (e) {
         print("EnsembleChat: $e");
       } finally {
         widget.controller.isLoading.value = false;
+        widget.controller.conversationRunning = false;
+        widget.controller.canSendMessage.value = true;
       }
     } else {
       final ScopeManager? scope = getScopeManager();
@@ -125,17 +137,310 @@ class EnsembleChatState extends EnsembleWidgetState<EnsembleChatImpl> {
     }
   }
 
+  Future<void> _runLocalConversation() async {
+    for (var step = 0; step < widget.controller.maxToolSteps; step++) {
+      final response = await widget.controller.client?.complete('');
+      final choice = response?.choices.firstOrNull;
+      if (choice == null) return;
+
+      final toolCalls = choice.toolCalls;
+      if (toolCalls.isEmpty) {
+        handleMessageIntent(choice);
+        return;
+      }
+
+      final protocolMessage = InternalMessage(
+        content: choice.getMessage,
+        role: MessageRole.assistant,
+        visible: choice.getMessage?.trim().isNotEmpty == true,
+      )..rawResponse = choice.toMap();
+      widget.controller.addInternalMessage(protocolMessage);
+
+      var shouldContinue = false;
+      final executor = widget.controller.activeState ?? this;
+      for (final call in toolCalls) {
+        final definition = widget.controller.toolDefinitions[call.name];
+        if (definition == null) {
+          protocolMessage.toolResults.add(ChatToolResult(
+            callId: call.id,
+            name: call.name,
+            status: 'error',
+            error: {
+              'code': 'unknown_tool',
+              'message': "Tool '${call.name}' is not registered."
+            },
+          ));
+          shouldContinue = true;
+          continue;
+        }
+
+        Map<String, dynamic> inputs;
+        try {
+          inputs = definition.prepareInputs(call.inputs);
+        } on FormatException catch (error) {
+          protocolMessage.toolResults.add(ChatToolResult(
+            callId: call.id,
+            name: call.name,
+            status: 'error',
+            error: {
+              'code': 'invalid_tool_inputs',
+              'message': error.message,
+            },
+          ));
+          shouldContinue = true;
+          continue;
+        }
+
+        switch (definition.kind) {
+          case ChatToolKind.inlineWidget:
+            final inlineWidget = {call.name: jsonEncode(inputs)};
+            widget.controller.addMessage({
+              widget.controller.getInlineKey: inlineWidget,
+              'role': MessageRole.assistant.name,
+            });
+            protocolMessage.toolResults.add(ChatToolResult(
+              callId: call.id,
+              name: call.name,
+              status: 'success',
+              data: {'rendered': true},
+            ));
+            _dispatchMessageReceived(
+                call.name, MessageRole.assistant.name, choice);
+            break;
+          case ChatToolKind.legacyAction:
+            await executor._executeLegacyAction(definition, call, inputs);
+            protocolMessage.toolResults.add(ChatToolResult(
+              callId: call.id,
+              name: call.name,
+              status: 'success',
+              data: {'executed': true},
+            ));
+            break;
+          case ChatToolKind.appTool:
+            protocolMessage.toolResults
+                .add(await executor._executeAppTool(definition, call, inputs));
+            shouldContinue = true;
+            break;
+        }
+      }
+
+      if (!shouldContinue) return;
+    }
+    throw Exception(
+        'The chat exceeded the maximum number of tool steps (${widget.controller.maxToolSteps}).');
+  }
+
+  Future<void> _executeLegacyAction(ChatToolDefinition definition,
+      ChatToolCall call, Map<String, dynamic> inputs) async {
+    final scope = getScopeManager()?.createChildScope();
+    if (scope == null || definition.action == null || !mounted) return;
+    scope.dataContext.addInvokableContext(
+      'tool',
+      EnsembleToolCallContext(callId: call.id, name: call.name, inputs: inputs),
+    );
+    await ScreenController()
+        .executeActionWithScope(context, scope, definition.action!);
+  }
+
+  Future<ChatToolResult> _executeAppTool(ChatToolDefinition definition,
+      ChatToolCall call, Map<String, dynamic> inputs) async {
+    final toolContext = EnsembleToolCallContext(
+        callId: call.id, name: call.name, inputs: inputs);
+    final confirmation = definition.confirmation;
+    final access = Utils.optionalString(definition.options['access']);
+    final needsConfirmation = confirmation == true ||
+        confirmation is Map ||
+        ((access == 'write' || access == 'destructive') &&
+            confirmation != false);
+
+    if (needsConfirmation) {
+      EnsembleToolResponse decision;
+      try {
+        decision = await _requestToolConfirmation(
+            definition, toolContext, confirmation);
+      } catch (error) {
+        return ChatToolResult(
+          callId: call.id,
+          name: call.name,
+          status: 'error',
+          error: {
+            'code': error is TimeoutException
+                ? 'tool_confirmation_timeout'
+                : 'tool_confirmation_failed',
+            'message': error.toString(),
+            'retryable': error is TimeoutException,
+          },
+        );
+      }
+      if (decision.status == 'success' ||
+          decision.status == 'error' ||
+          decision.status == 'cancelled') {
+        return ChatToolResult(
+          callId: call.id,
+          name: call.name,
+          status: decision.status,
+          data: decision.data,
+          error: decision.error,
+        );
+      }
+      if (decision.status != 'approved') {
+        return ChatToolResult(
+          callId: call.id,
+          name: call.name,
+          status: 'error',
+          error: {
+            'code': 'invalid_confirmation_result',
+            'message':
+                "Confirmation for '${call.name}' returned an unsupported status."
+          },
+        );
+      }
+    }
+
+    final scope = getScopeManager()?.createChildScope();
+    if (scope == null || definition.action == null || !mounted) {
+      return ChatToolResult(
+        callId: call.id,
+        name: call.name,
+        status: 'error',
+        error: {
+          'code': 'tool_scope_unavailable',
+          'message': 'The tool could not access the current application scope.'
+        },
+      );
+    }
+    scope.dataContext.addInvokableContext('tool', toolContext);
+
+    try {
+      final responseFuture = widget.controller.waitForToolResponse(call.id);
+      await ScreenController()
+          .executeActionWithScope(context, scope, definition.action!);
+      final response = await responseFuture
+          .timeout(Duration(seconds: definition.timeoutSeconds));
+      if (response.status != 'success' &&
+          response.status != 'error' &&
+          response.status != 'cancelled') {
+        throw LanguageError(
+            "Tool '${call.name}' must finish with success, error, or cancelled.");
+      }
+      return ChatToolResult(
+        callId: call.id,
+        name: call.name,
+        status: response.status,
+        data: response.data,
+        error: response.error,
+      );
+    } catch (error) {
+      final response = EnsembleToolResponse(
+        callId: call.id,
+        status: 'error',
+        error: {
+          'code': error is TimeoutException
+              ? 'tool_timeout'
+              : 'tool_execution_failed',
+          'message': error.toString(),
+          'retryable': error is TimeoutException,
+        },
+      );
+      return ChatToolResult(
+        callId: call.id,
+        name: call.name,
+        status: 'error',
+        error: response.error,
+      );
+    } finally {
+      widget.controller.removePendingToolResponse(call.id);
+    }
+  }
+
+  Future<EnsembleToolResponse> _requestToolConfirmation(
+      ChatToolDefinition definition,
+      EnsembleToolCallContext toolContext,
+      dynamic confirmation) async {
+    final confirmationMap = Utils.getMap(confirmation);
+    final widgetName = Utils.optionalString(confirmationMap?['widget']);
+    if (widgetName != null) {
+      // The model is no longer loading while an interactive confirmation is
+      // waiting for the user. Loading resumes after the decision so the next
+      // tool/model step can still show progress.
+      widget.controller.isLoading.value = false;
+      final responseFuture = widget.controller.waitForToolResponse(
+        toolContext.callId,
+      );
+      final message = InternalMessage(
+        inlineWidget: {
+          widgetName: jsonEncode({'tool': toolContext.toMap()})
+        },
+        role: MessageRole.assistant,
+      );
+      widget.controller.addInternalMessage(message);
+      try {
+        return await responseFuture
+            .timeout(Duration(seconds: definition.timeoutSeconds));
+      } finally {
+        widget.controller.removeMessage(message.id);
+        widget.controller.removePendingToolResponse(toolContext.callId);
+        widget.controller.isLoading.value = true;
+      }
+    }
+
+    if (!mounted) {
+      return EnsembleToolResponse(
+        callId: toolContext.callId,
+        status: 'cancelled',
+        error: {
+          'code': 'tool_confirmation_unavailable',
+          'message': 'The confirmation UI is no longer available.',
+          'retryable': false,
+        },
+      );
+    }
+
+    widget.controller.isLoading.value = false;
+    final bool approved;
+    try {
+      approved = await showDialog<bool>(
+            context: context,
+            barrierDismissible: false,
+            builder: (dialogContext) => AlertDialog(
+              title: const Text('Confirm action'),
+              content: Text('Allow ${toolContext.name}?'),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(dialogContext).pop(false),
+                  child: const Text('Cancel'),
+                ),
+                FilledButton(
+                  onPressed: () => Navigator.of(dialogContext).pop(true),
+                  child: const Text('Continue'),
+                ),
+              ],
+            ),
+          ) ??
+          false;
+    } finally {
+      if (mounted) widget.controller.isLoading.value = true;
+    }
+    return EnsembleToolResponse(
+      callId: toolContext.callId,
+      status: approved ? 'approved' : 'cancelled',
+    );
+  }
+
   /// Handles an AI completion choice returned by the configured client.
   void handleMessageIntent(Choice? choice) {
     switch (choice?.messageType) {
       case MessageType.message:
+        final message = choice?.getMessage;
+        if (message == null || message.trim().isEmpty) {
+          return;
+        }
         widget.controller.addMessage({
-          widget.controller.getMessageKey: choice?.getMessage,
+          widget.controller.getMessageKey: message,
           "role": MessageRole.assistant.name,
           "choice": choice?.toMap(),
         });
-        _dispatchMessageReceived(
-            choice?.getMessage, MessageRole.assistant.name, choice);
+        _dispatchMessageReceived(message, MessageRole.assistant.name, choice);
         break;
 
       case MessageType.inlineWidget:
@@ -192,6 +497,17 @@ class EnsembleChatState extends EnsembleWidgetState<EnsembleChatImpl> {
 
 /// Controller for Ensemble chat widget configuration and state.
 class EnsembleChatController extends EnsembleBoxController {
+  @override
+  List<String> passthroughSetters() => const ['tools'];
+
+  final Map<String, Completer<EnsembleToolResponse>> _pendingToolResponses = {};
+
+  /// Currently mounted state, used to execute a resumed tool in a valid scope.
+  EnsembleChatState? activeState;
+
+  /// Whether this controller has an unfinished local conversation turn.
+  bool conversationRunning = false;
+
   /// Current chat user.
   User? user;
 
@@ -215,6 +531,9 @@ class EnsembleChatController extends EnsembleBoxController {
 
   /// Raw chat configuration.
   Map<String, dynamic>? config;
+
+  /// App tool definitions kept raw until their actions are invoked.
+  dynamic tools;
 
   /// Chat execution mode.
   ChatType type = ChatType.local;
@@ -259,14 +578,45 @@ class EnsembleChatController extends EnsembleBoxController {
   /// AI client used for local chat mode.
   AIClient? client;
 
+  /// Model-callable widgets, legacy actions, and app-executed tools.
+  final Map<String, ChatToolDefinition> toolDefinitions = {};
+
   /// Whether to show the loading indicator while awaiting a response.
   bool showLoading = true;
+
+  /// Maximum model/tool continuation steps for one user message.
+  int maxToolSteps = 8;
 
   /// Optional custom loading widget definition.
   dynamic loadingWidget;
 
   /// Loading state notifier.
   ValueNotifier<bool> isLoading = ValueNotifier(false);
+
+  /// Whether the composer may start another conversation turn.
+  ValueNotifier<bool> canSendMessage = ValueNotifier(true);
+
+  /// Waits for an app action or confirmation widget to finish a tool call.
+  Future<EnsembleToolResponse> waitForToolResponse(String callId) {
+    final existing = _pendingToolResponses[callId];
+    if (existing != null) return existing.future;
+    final completer = Completer<EnsembleToolResponse>();
+    _pendingToolResponses[callId] = completer;
+    EnsembleToolResponseDispatcher.instance.register(callId, (response) {
+      if (!completer.isCompleted) completer.complete(response);
+    });
+    return completer.future;
+  }
+
+  /// Stops routing responses for a completed or expired tool call.
+  void removePendingToolResponse(String callId) {
+    EnsembleToolResponseDispatcher.instance.unregister(callId);
+    _pendingToolResponses.remove(callId);
+  }
+
+  /// Whether a tool call is still awaiting an app-side result.
+  bool hasPendingToolResponse(String callId) =>
+      _pendingToolResponses.containsKey(callId);
 
   @override
   Map<String, Function> getters() {
@@ -291,6 +641,16 @@ class EnsembleChatController extends EnsembleBoxController {
 
   /// Returns the current messages.
   List<InternalMessage> getMessages() => messages.value;
+
+  void addInternalMessage(InternalMessage message) {
+    messages.value.add(message);
+    messages.notifyListeners();
+  }
+
+  void removeMessage(String id) {
+    messages.value.removeWhere((message) => message.id == id);
+    messages.notifyListeners();
+  }
 
   /// Adds a message from a string or map payload.
   void addMessage(dynamic message) {
@@ -340,6 +700,12 @@ class EnsembleChatController extends EnsembleBoxController {
         }
         _createClient(config!);
       },
+      "tools": (value) {
+        tools = value;
+        if (config != null) {
+          _createClient(config!);
+        }
+      },
       "type": (value) =>
           type = ChatType.values.from(value ?? 'local') ?? ChatType.local,
       'backgroundColor': (value) => backgroundColor = Utils.getColor(value),
@@ -373,11 +739,18 @@ class EnsembleChatController extends EnsembleBoxController {
         config['reasoningEffort'] ?? config['reasoning_effort']);
     final String systemPrompt =
         config['systemPrompt'] ?? 'You are a helpful assistant';
-    final List<Map<String, dynamic>>? tools =
-        _getTools(config['inlineWidgets'], "inlineWidget");
-    final List<Map<String, dynamic>>? actionTools =
-        _getTools(config['actions'], "action");
-    tools?.addAll(actionTools ?? []);
+    final configuredMaxSteps = config['maxToolSteps'];
+    maxToolSteps = configuredMaxSteps is num && configuredMaxSteps > 0
+        ? configuredMaxSteps.toInt()
+        : 8;
+    toolDefinitions.clear();
+    _parseLegacyTools(config['inlineWidgets'], ChatToolKind.inlineWidget);
+    _parseLegacyTools(config['actions'], ChatToolKind.legacyAction);
+    _parseAppTools(config['tools']);
+    _parseAppTools(tools);
+    final openAITools = toolDefinitions.values
+        .map((definition) => definition.toOpenAITool())
+        .toList();
 
     client = OpenAIClient(
       model: model,
@@ -385,53 +758,73 @@ class EnsembleChatController extends EnsembleBoxController {
       temperature: temperature,
       reasoningEffort: reasoningEffort,
       systemPrompt: systemPrompt,
-      tools: tools,
+      tools: openAITools.isEmpty ? null : openAITools,
       getMessages: getMessages,
     );
   }
 
-  List<Map<String, dynamic>>? _getTools(dynamic config, String toolType) {
-    if (config == null) {
-      return null;
+  void _registerTool(ChatToolDefinition definition) {
+    if (definition.name.isEmpty) {
+      throw LanguageError('Chat tool name cannot be empty.');
     }
+    if (toolDefinitions.containsKey(definition.name)) {
+      throw LanguageError('Duplicate Chat tool name: ${definition.name}.');
+    }
+    toolDefinitions[definition.name] = definition;
+  }
 
-    final List<Map<String, dynamic>> tools = <Map<String, dynamic>>[];
-
-    Map<String, dynamic> getFunction(dynamic tool) {
-      final Map<String, dynamic> toolMap = <String, dynamic>{};
-      for (final dynamic key in tool.keys) {
-        final Map<dynamic, dynamic> properties = <dynamic, dynamic>{};
-        tool[key]["inputs"]?.keys.forEach((inpKey) {
-          final dynamic inputSchema = tool[key]["inputs"][inpKey];
-          properties[inpKey] = inputSchema is Map
-              ? Map<String, dynamic>.from(inputSchema)
-              : {"type": inputSchema};
-        });
-
-        toolMap["name"] = key;
-        toolMap["description"] = tool[key]["description"];
-        toolMap["parameters"] = properties.isNotEmpty
-            ? {
-                "type": "object",
-                "properties": properties,
-                "required": tool[key]["inputs"].keys.toList()
-              }
-            : {};
+  void _parseLegacyTools(dynamic config, ChatToolKind kind) {
+    if (config is! List) return;
+    for (final item in config) {
+      final tool = Utils.getMap(item);
+      if (tool == null || tool.isEmpty) continue;
+      final name = tool.keys.first;
+      final details = Utils.getMap(tool[name]) ?? {};
+      final rawInputs = Utils.getMap(details['inputs']) ?? {};
+      final inputs = <String, dynamic>{};
+      for (final entry in rawInputs.entries) {
+        final schema = entry.value is Map
+            ? Map<String, dynamic>.from(entry.value as Map)
+            : <String, dynamic>{'type': entry.value};
+        schema.putIfAbsent('required', () => true);
+        inputs[entry.key] = schema;
       }
-      toolMap['toolType'] = toolType;
-      toolMap['tool'] = tool;
-      return toolMap;
+      _registerTool(ChatToolDefinition(
+        name: name,
+        description: Utils.optionalString(details['description']) ?? '',
+        inputs: inputs,
+        kind: kind,
+        action: kind == ChatToolKind.legacyAction
+            ? EnsembleAction.from(tool)
+            : null,
+      ));
     }
+  }
 
-    for (final dynamic c in config) {
-      tools.add(
-        {
-          "type": "function",
-          "function": getFunction(c),
-        },
-      );
+  void _parseAppTools(dynamic config) {
+    if (config is! List) return;
+    for (final item in config) {
+      final tool = Utils.getMap(item);
+      if (tool == null) continue;
+      final name = Utils.optionalString(tool['name'])?.trim() ?? '';
+      final options = Utils.getMap(tool['options']) ?? {};
+      final action = EnsembleAction.from(tool['action']);
+      final confirmation = Utils.getMap(options['confirmation']);
+      final hasConfirmationWidget =
+          Utils.optionalString(confirmation?['widget']) != null;
+      if (action == null && !hasConfirmationWidget) {
+        throw LanguageError(
+            "Chat tool '$name' requires an action or a confirmation widget.");
+      }
+      _registerTool(ChatToolDefinition(
+        name: name,
+        description: Utils.optionalString(tool['description']) ?? '',
+        inputs: Utils.getMap(tool['inputs']) ?? {},
+        kind: ChatToolKind.appTool,
+        action: action,
+        options: options,
+      ));
     }
-    return tools;
   }
 }
 
@@ -463,6 +856,9 @@ class InternalMessage {
 
   /// Raw AI response payload.
   dynamic rawResponse;
+
+  /// Results associated with tool calls in [rawResponse].
+  final List<ChatToolResult> toolResults = [];
 
   /// Whether this message should be visible in the chat UI.
   final bool visible;
