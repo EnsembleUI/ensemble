@@ -379,7 +379,12 @@ class ViewUtil {
     }
 
     // Preserve ID-bound TV focus styles while a focused widget is rebuilt.
-    if (previousContext is HasController && w is HasController) {
+    // Only carry focus from a widget registered in THIS scope — an ancestor
+    // scope hit with the same id is a collision, not the widget being rebuilt.
+    if (widgetId != null &&
+        scopeNode.scope.dataContext.contextMap.containsKey(widgetId) &&
+        previousContext is HasController &&
+        w is HasController) {
       final previousController = previousContext.controller;
       final nextController = w.controller;
       if (previousController is WidgetController &&
