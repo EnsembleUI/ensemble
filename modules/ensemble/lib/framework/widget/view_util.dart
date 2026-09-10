@@ -356,14 +356,14 @@ class ViewUtil {
 
     Widget? w;
     Function? widgetInstance = WidgetRegistry().widgetMap[model.type];
+    final String? widgetId = model.props['id']?.toString();
+    final dynamic previousContext = widgetId != null
+        ? scopeNode.scope.dataContext.getContextById(widgetId)
+        : null;
     if (widgetInstance != null) {
       EnsembleController? previousController;
-      String? id = model.props['id']?.toString();
-      if (id != null) {
-        dynamic controller = scopeNode.scope.dataContext.getContextById(id);
-        if (controller is EnsembleController) {
-          previousController = controller;
-        }
+      if (previousContext is EnsembleController) {
+        previousController = previousContext;
       }
       w = Function.apply(widgetInstance, [previousController]);
     } else {
@@ -375,6 +375,22 @@ class ViewUtil {
         if (widgetInstance != null) {
           w = widgetInstance.call();
         }
+      }
+    }
+
+    // Preserve ID-bound TV focus styles while a focused widget is rebuilt.
+    // Only carry focus from a widget registered in THIS scope — an ancestor
+    // scope hit with the same id is a collision, not the widget being rebuilt.
+    if (widgetId != null &&
+        scopeNode.scope.dataContext.contextMap.containsKey(widgetId) &&
+        previousContext is HasController &&
+        w is HasController) {
+      final previousController = previousContext.controller;
+      final nextController = w.controller;
+      if (previousController is WidgetController &&
+          nextController is WidgetController &&
+          previousController.hasFocus) {
+        nextController.hasFocus = true;
       }
     }
 
