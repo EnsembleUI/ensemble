@@ -9,6 +9,21 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  group('border radius parsing', () {
+    test('preserves decimal shorthand', () {
+      expect(Utils.stringToDoubles('1.5 2.5 3.5', min: 0),
+          [1.5, 2.5, 3.5]);
+
+      final borderRadius = Utils.getBorderRadius('1.5 2.5 3.5')!.getValue();
+
+      expect(borderRadius.topLeft.x, 1.5);
+      expect(borderRadius.topRight.x, 2.5);
+      expect(borderRadius.bottomRight.x, 3.5);
+      expect(borderRadius.bottomLeft.x, 2.5);
+    });
+
+  });
+
   test('get double', () {
     dynamic value = 2.3;
     expect(Utils.getDouble(value, fallback: 0), value);

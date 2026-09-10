@@ -328,7 +328,7 @@ class TimeState extends FormFieldWidgetState<Time> {
   _BorderStyle _resolveBorderStyle(BuildContext context, String? errorText) {
     final themeDecoration = Theme.of(context).inputDecorationTheme;
 
-    final double borderWidth = widget._controller.borderWidth ??
+    final borderWidth = widget._controller.borderWidth ??
         (themeDecoration.border?.borderSide.width ?? 1);
 
     BorderRadius? _themeBorderRadius;

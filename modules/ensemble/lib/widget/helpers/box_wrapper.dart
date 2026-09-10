@@ -102,7 +102,8 @@ BoxBorder? _resolveBoxBorder({
 }) {
   if (!hasBorder) return null;
 
-  final width = borderWidth ?? ThemeManager().getBorderThickness(context);
+  final width =
+      borderWidth ?? ThemeManager().getBorderThickness(context);
 
   if (borderGradient != null) {
     return GradientBoxBorder(gradient: borderGradient, width: width);

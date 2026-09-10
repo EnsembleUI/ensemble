@@ -2057,7 +2057,7 @@
                 "$ref": "#/$defs/type-color"
               },
               "dropdownBorderWidth": {
-                "type": "integer",
+                "type": "number",
                 "minimum": 0,
                 "description": "The thickness of the dropdown border"
               },
@@ -3598,12 +3598,19 @@
                   "description": "The fill color for this input fields. This property can be defined in the theme to apply to all Input widgets."
                 },
                 "borderRadius": {
-                  "type": "integer",
-                  "minimum": 0,
+                  "oneOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "number",
+                      "minimum": 0
+                    }
+                  ],
                   "description": "The border radius for this Input widget. This property can be defined in the theme to apply to all Input widgets."
                 },
                 "borderWidth": {
-                  "type": "integer",
+                  "type": "number",
                   "minimum": 0,
                   "description": "The border width for this Input widget. This property can be defined in the theme to apply to all Input widgets."
                 },
@@ -5573,7 +5580,7 @@
                   "$ref": "#/$defs/type-color"
                 },
                 "borderWidth": {
-                  "type": "integer"
+                  "type": "number"
                 },
                 "itemDisplay": {
                   "type": "string",
@@ -7324,12 +7331,12 @@
               "type": "string"
             },
             {
-              "title": "integer",
-              "type": "integer"
+              "title": "number",
+              "type": "number"
             }
           ],
           "minimum": 0,
-          "description": "Border Radius with CSS-like notation (1 to 4 integers)"
+          "description": "Border Radius with CSS-like notation (1 to 4 numbers)"
         }
       }
     },
@@ -7849,7 +7856,7 @@
               "description": "Border color, starting with '0xFF' for full opacity"
             },
             "borderWidth": {
-              "type": "integer",
+              "type": "number",
               "minimum": 0,
               "description": "The thickness of the border"
             }

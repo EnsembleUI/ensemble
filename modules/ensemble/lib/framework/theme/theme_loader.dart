@@ -386,8 +386,10 @@ mixin ThemeLoader {
     isOutline ? null : Utils.getColor(input['backgroundColor']);
 
     RoundedRectangleBorder border = RoundedRectangleBorder(
-        borderRadius: Utils.getBorderRadius(input['borderRadius'])?.getValue() ??
-            BorderRadius.circular(_buttonBorderRadius.toDouble()),
+        borderRadius: input['borderRadius'] == 0
+            ? BorderRadius.zero
+            : Utils.getBorderRadius(input['borderRadius'])?.getValue() ??
+                BorderRadius.circular(_buttonBorderRadius.toDouble()),
         side: borderColor == null
             ? BorderSide.none
             : BorderSide(
@@ -471,7 +473,8 @@ mixin ThemeLoader {
         }
         if (states.contains(WidgetState.error)) {
           return BorderSide(
-              width: borderWidth, color: DesignSystem.inputErrorColor);
+              width: borderWidth,
+              color: DesignSystem.inputErrorColor);
         }
         if (!states.contains(WidgetState.selected)) {
           return BorderSide(width: borderWidth, color: borderColor);
