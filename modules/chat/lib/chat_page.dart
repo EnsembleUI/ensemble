@@ -109,6 +109,7 @@ class BubbleStyleComposite extends WidgetCompositeProperty {
 class _ChatPageState extends State<ChatPage> {
   final ScrollController scrollController = ScrollController();
   final TextEditingController _textController = TextEditingController();
+  final FocusNode _focusNode = FocusNode();
 
   bool _isRenderableMessage(InternalMessage message) {
     return message.visible &&
@@ -118,8 +119,41 @@ class _ChatPageState extends State<ChatPage> {
   }
 
   @override
+  void initState() {
+    super.initState();
+    if (widget.controller.autoFocus) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _focusComposer();
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _focusNode.dispose();
+    _textController.dispose();
+    scrollController.dispose();
+    super.dispose();
+  }
+
+  void _focusComposer() {
+    if (!mounted || !widget.controller.autoFocus) return;
+    if (!widget.controller.canSendMessage.value) return;
+    _focusNode.requestFocus();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    // Ensemble's page FooterLayout removes bottom padding from the body
+    // MediaQuery so a footer can sit on the home indicator. That also zeroes
+    // `viewPadding`, so the composer has to read the inset from the view.
+    final keyboardInset = MediaQuery.viewInsetsOf(context).bottom;
+    final deviceBottom =
+        MediaQueryData.fromView(View.of(context)).viewPadding.bottom;
+    final bottomPadding =
+        keyboardInset + (keyboardInset > 0 ? 8 : deviceBottom);
     return SafeArea(
+      bottom: false,
       minimum: widget.controller.padding ?? const EdgeInsets.all(0),
       child: Scaffold(
         backgroundColor: widget.controller.backgroundColor ?? Colors.black,
@@ -178,14 +212,7 @@ class _ChatPageState extends State<ChatPage> {
             ),
             const SizedBox(height: 8),
             Padding(
-              padding: EdgeInsets.fromLTRB(
-                MediaQuery.of(context).padding.left + 16,
-                0,
-                MediaQuery.of(context).padding.right + 16,
-                MediaQuery.of(context).viewInsets.bottom +
-                    MediaQuery.of(context).padding.bottom +
-                    8,
-              ),
+              padding: EdgeInsets.fromLTRB(16, 0, 16, bottomPadding),
               child: Row(
                 children: [
                   Expanded(
@@ -197,6 +224,8 @@ class _ChatPageState extends State<ChatPage> {
                       ),
                       child: TextFormField(
                         controller: _textController,
+                        focusNode: _focusNode,
+                        autofocus: widget.controller.autoFocus,
                         enabled: widget.controller.canSendMessage.value,
                         style: widget.controller.textFieldTextStyle ??
                             const TextStyle(color: Colors.white),

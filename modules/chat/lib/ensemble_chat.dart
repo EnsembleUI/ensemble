@@ -550,6 +550,9 @@ class EnsembleChatController extends EnsembleBoxController {
   /// Composer text style.
   TextStyle? textFieldTextStyle;
 
+  /// Whether the composer takes focus when the chat is first shown.
+  bool autoFocus = false;
+
   BubbleStyleComposite? _userBubbleStyle;
 
   /// Bubble style used for user messages.
@@ -715,6 +718,7 @@ class EnsembleChatController extends EnsembleBoxController {
           textFieldBackgroundColor = Utils.getColor(value),
       'textFieldTextStyle': (value) =>
           textFieldTextStyle = Utils.getTextStyle(value),
+      'autoFocus': (value) => autoFocus = Utils.getBool(value, fallback: false),
       'iconColor': (value) => iconColor = Utils.getColor(value),
       'userBubbleStyle': (value) =>
           userBubbleStyle = BubbleStyleComposite.from(this, value),
