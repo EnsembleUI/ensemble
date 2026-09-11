@@ -311,7 +311,7 @@ class DataGridState extends EWidgetState<DataGrid>
       dividerThickness: widget.controller.dividerThickness,
       border: TableBorder.all(
         color: widget.controller.borderColor ?? Colors.black,
-        width: widget.controller.borderWidth?.toDouble() ?? 1.0,
+        width: widget.controller.borderWidth ?? 1.0,
         borderRadius:
             widget.controller.borderRadius?.getValue() ?? BorderRadius.zero,
       ),
