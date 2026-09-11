@@ -126,6 +126,30 @@ respondToTool:
 Use `tools` for operations whose result must be returned to the model before it
 continues the conversation.
 
+Feedback controls are enabled for completed assistant messages by default.
+Feedback is stored on the message and can be forwarded to any backend with an
+Ensemble action:
+
+```yaml
+Chat:
+  feedback:
+    enabled: true
+    onSubmit:
+      invokeAPI:
+        name: submitChatFeedback
+        inputs:
+          messageId: ${event.data.messageId}
+          rating: ${event.data.rating}
+```
+
+`rating` is `positive`, `negative`, or `null` when the user clears a previous
+selection. The widget intentionally exposes only like and dislike controls.
+Feedback is attached to the complete assistant message, so a
+message containing text and an inline widget still has only one feedback row.
+Static `initialMessages` do not show feedback unless a message explicitly sets
+`feedbackEligible: true`. Interactive assistant widgets, including proposal and
+confirmation cards, remain feedback eligible.
+
 For Chat Completions requests containing tools, the client explicitly sends
 `reasoning_effort: none`. This is required by models such as Luna, whose default
 reasoning effort is not compatible with function tools on that endpoint.

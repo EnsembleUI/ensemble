@@ -81,11 +81,31 @@ class EnsembleChatState extends EnsembleWidgetState<EnsembleChatImpl> {
                 return message;
               }).toList(),
               onMessageSend: sendMessage,
+              onFeedback: _submitFeedback,
               controller: widget.controller,
             );
           },
         ),
       ),
+    );
+  }
+
+  Future<void> _submitFeedback(InternalMessage message, String? rating) async {
+    final action = widget.controller.onFeedback;
+    if (action == null || !mounted) return;
+
+    final scope = getScopeManager()?.createChildScope();
+    if (scope == null) return;
+
+    await ScreenController().executeActionWithScope(
+      context,
+      scope,
+      action,
+      event: EnsembleEvent(widget.controller, data: {
+        'messageId': message.id,
+        'rating': rating,
+        'message': message.toMap(),
+      }),
     );
   }
 
@@ -153,6 +173,7 @@ class EnsembleChatState extends EnsembleWidgetState<EnsembleChatImpl> {
         content: choice.getMessage,
         role: MessageRole.assistant,
         visible: choice.getMessage?.trim().isNotEmpty == true,
+        feedbackEligible: false,
       )..rawResponse = choice.toMap();
       widget.controller.addInternalMessage(protocolMessage);
 
@@ -520,6 +541,12 @@ class EnsembleChatController extends EnsembleBoxController {
   /// Action invoked when a response message is received.
   EnsembleAction? onMessageReceived;
 
+  /// Action invoked when feedback is submitted for an assistant message.
+  EnsembleAction? onFeedback;
+
+  /// Whether feedback controls are shown for completed assistant messages.
+  bool feedbackEnabled = true;
+
   /// Conversation messages.
   ValueNotifier<List<InternalMessage>> messages = ValueNotifier([]);
 
@@ -685,7 +712,11 @@ class EnsembleChatController extends EnsembleBoxController {
           return;
         }
         messages.value.addAll(value.map((data) {
-          final InternalMessage message = InternalMessage.fromMap(data, this);
+          final InternalMessage message = InternalMessage.fromMap(
+            data,
+            this,
+            defaultFeedbackEligible: false,
+          );
           return message;
         }));
         messages.notifyListeners();
@@ -693,6 +724,13 @@ class EnsembleChatController extends EnsembleBoxController {
       "onMessageSend": (value) => onMessageSend = EnsembleAction.from(value),
       "onMessageReceived": (value) =>
           onMessageReceived = EnsembleAction.from(value),
+      "feedback": (value) {
+        final feedback = Utils.getMap(value);
+        if (feedback == null) return;
+        feedbackEnabled =
+            Utils.getBool(feedback['enabled'], fallback: feedbackEnabled);
+        onFeedback = EnsembleAction.from(feedback['onSubmit']);
+      },
       "inlineWidgetKey": (value) =>
           inlineWidgetKey = Utils.optionalString(value),
       "messageKey": (value) => messageKey = Utils.optionalString(value),
@@ -867,30 +905,45 @@ class InternalMessage {
   /// Whether this message should be visible in the chat UI.
   final bool visible;
 
+  /// Whether the user can submit feedback for this message.
+  final bool feedbackEligible;
+
+  /// Currently selected feedback rating.
+  String? feedbackRating;
+
   /// Creates an internal chat message.
   InternalMessage({
     this.content,
     this.inlineWidget,
     required this.role,
     this.visible = true,
+    this.feedbackEligible = true,
+    this.feedbackRating,
   })  : id = Utils.generateRandomId(8),
         createdAt = DateTime.now();
 
   /// Creates an [InternalMessage] from an Ensemble payload.
-  static InternalMessage fromMap(Map data, dynamic controller) {
+  static InternalMessage fromMap(Map data, dynamic controller,
+      {bool defaultFeedbackEligible = true}) {
     final dynamic roleData = data.getOrNull("role");
     final MessageRole role =
         MessageRole.values.firstWhere((element) => element.name == roleData);
     final InternalMessage message = InternalMessage(
       role: role,
       visible: data['visible'] ?? true,
+      feedbackEligible: data['feedbackEligible'] ?? defaultFeedbackEligible,
     );
+
+    final suppliedId = Utils.optionalString(data['id']);
+    if (suppliedId != null) message.id = suppliedId;
 
     message.content = data.getOrNull(controller.getMessageKey);
     message.inlineWidget = data.getOrNull(controller.getInlineKey);
     message.widget = data['widget'];
     message.rawResponse = data['choice'];
     message.payload = data;
+    final feedback = Utils.getMap(data['feedback']);
+    message.feedbackRating = Utils.optionalString(feedback?['rating']);
 
     return message;
   }
@@ -905,6 +958,10 @@ class InternalMessage {
       'payload': payload,
       'role': role.name,
       'visible': visible,
+      'feedbackEligible': feedbackEligible,
+      'feedback': {
+        'rating': feedbackRating,
+      },
     };
   }
 }
