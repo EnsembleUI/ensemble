@@ -43,7 +43,7 @@ class TooltipStyleComposite extends WidgetCompositeProperty {
     padding = Utils.optionalInsets(inputs['padding']);
     margin = Utils.optionalInsets(inputs['margin']);
     borderColor = Utils.getColor(inputs['borderColor']);
-    borderWidth = Utils.optionalInt(inputs['borderWidth']);
+    borderWidth = Utils.optionalDouble(inputs['borderWidth']);
   }
 
   TextStyle? textStyle;
@@ -57,7 +57,7 @@ class TooltipStyleComposite extends WidgetCompositeProperty {
   EdgeInsets? padding;
   EdgeInsets? margin;
   Color? borderColor;
-  int? borderWidth;
+  double? borderWidth;
 
   @override
   Map<String, Function> setters() {
@@ -73,7 +73,7 @@ class TooltipStyleComposite extends WidgetCompositeProperty {
       'padding': (value) => padding = Utils.optionalInsets(value),
       'margin': (value) => margin = Utils.optionalInsets(value),
       'borderColor': (value) => borderColor = Utils.getColor(value),
-      'borderWidth': (value) => borderWidth = Utils.optionalInt(value),
+      'borderWidth': (value) => borderWidth = Utils.optionalDouble(value),
     };
   }
 

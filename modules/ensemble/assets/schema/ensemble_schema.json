@@ -2057,7 +2057,7 @@
                 "$ref": "#/$defs/type-color"
               },
               "dropdownBorderWidth": {
-                "type": "integer",
+                "type": "number",
                 "minimum": 0,
                 "description": "The thickness of the dropdown border"
               },
@@ -3460,6 +3460,14 @@
                     "indicatorPadding": {
                       "$ref": "#/$defs/Padding-payload",
                       "description": "The padding around the indicator"
+                    },
+                    "indicatorLeadingWidget": {
+                      "type": "object",
+                      "description": "Widget displayed before the indicator row or column"
+                    },
+                    "indicatorTrailingWidget": {
+                      "type": "object",
+                      "description": "Widget displayed after the indicator row or column"
                     }
                   }
                 }
@@ -3590,12 +3598,19 @@
                   "description": "The fill color for this input fields. This property can be defined in the theme to apply to all Input widgets."
                 },
                 "borderRadius": {
-                  "type": "integer",
-                  "minimum": 0,
+                  "oneOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "number",
+                      "minimum": 0
+                    }
+                  ],
                   "description": "The border radius for this Input widget. This property can be defined in the theme to apply to all Input widgets."
                 },
                 "borderWidth": {
-                  "type": "integer",
+                  "type": "number",
                   "minimum": 0,
                   "description": "The border width for this Input widget. This property can be defined in the theme to apply to all Input widgets."
                 },
@@ -5565,7 +5580,7 @@
                   "$ref": "#/$defs/type-color"
                 },
                 "borderWidth": {
-                  "type": "integer"
+                  "type": "number"
                 },
                 "itemDisplay": {
                   "type": "string",
@@ -6771,6 +6786,10 @@
                   "$ref": "#/$defs/type-color",
                   "description": "The color of the tabbar divider color"
                 },
+                "overlayIndicator": {
+                  "type": "boolean",
+                  "description": "Whether the indicator overlaps the divider"
+                },
                 "inactiveTabColor": {
                   "$ref": "#/$defs/type-color",
                   "description": "The color of the un-selected tabs' text"
@@ -7316,12 +7335,12 @@
               "type": "string"
             },
             {
-              "title": "integer",
-              "type": "integer"
+              "title": "number",
+              "type": "number"
             }
           ],
           "minimum": 0,
-          "description": "Border Radius with CSS-like notation (1 to 4 integers)"
+          "description": "Border Radius with CSS-like notation (1 to 4 numbers)"
         }
       }
     },
@@ -7841,7 +7860,7 @@
               "description": "Border color, starting with '0xFF' for full opacity"
             },
             "borderWidth": {
-              "type": "integer",
+              "type": "number",
               "minimum": 0,
               "description": "The thickness of the border"
             }

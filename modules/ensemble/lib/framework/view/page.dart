@@ -25,6 +25,9 @@ import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/helpers/controllers.dart';
 import 'package:ensemble/widget/helpers/unfocus.dart';
 import 'package:ensemble/framework/bindings.dart';
+import 'package:ensemble/framework/device.dart';
+import 'package:ensemble/framework/tv/tv_focus_order.dart';
+import 'package:ensemble/framework/tv/tv_focus_provider.dart';
 import 'package:flutter/material.dart';
 
 class SinglePageController extends WidgetController {
@@ -816,6 +819,17 @@ class PageState extends State<Page>
       rtn = HasSelectableText(child: rtn);
     }
 
+    // TV: Wrap with FocusTraversalGroup for standalone D-pad navigation.
+    // Skip if external provider exists (host app manages its own focus grid).
+    final isStandaloneTV = Device().isTV &&
+        TVFocusProviderScope.maybeOf(context) == null;
+    if (isStandaloneTV) {
+      rtn = FocusTraversalGroup(
+        policy: TVFocusOrderTraversalPolicy(),
+        child: rtn,
+      );
+    }
+
     // if backgroundImage is set, put it outside of the Scaffold so
     // keyboard sliding up (when entering value) won't resize the background
     if (backgroundImage != null) {
@@ -958,12 +972,12 @@ class PageState extends State<Page>
       // show a divider between the NavigationRail and the content
       Color? borderColor =
           Utils.getColor(widget._pageModel.menu!.runtimeStyles?['borderColor']);
-      int? borderWidth = Utils.optionalInt(
+      double? borderWidth = Utils.optionalDouble(
           widget._pageModel.menu!.runtimeStyles?['borderWidth']);
       if (borderColor != null || borderWidth != null) {
         content.add(VerticalDivider(
-            thickness: (borderWidth ?? 1).toDouble(),
-            width: (borderWidth ?? 1).toDouble(),
+            thickness: borderWidth ?? 1,
+            width: borderWidth ?? 1,
             color: borderColor));
       }
 

@@ -40,4 +40,17 @@ void main() {
     expect((children[0] as Icon).icon, Icons.star);
     expect((children[1] as Text).data, 'hello world');
   });
+
+  testWidgets('button preserves decimal border styles', (tester) async {
+    final widget = Button()
+      ..setProperty('label', 'decimal border')
+      ..setProperty('borderWidth', 1.5)
+      ..setProperty('borderRadius', 2.5);
+
+    await tester.pumpWidget(TestUtils.wrapTestWidget(widget));
+
+    expect(widget.controller.borderWidth, 1.5);
+    expect(widget.controller.borderRadius?.getValue(),
+        BorderRadius.circular(2.5));
+  });
 }

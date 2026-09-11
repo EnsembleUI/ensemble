@@ -1,6 +1,7 @@
 Widgets:
   Input:
     # default variant is Underline
-    borderRadius: 5
+    borderRadius: 5.5
+    borderWidth: 1.5
     borderColor: 0xFF404040
     focusedBorderColor: 0xFF49DEFF

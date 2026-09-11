@@ -1,5 +1,6 @@
 import 'package:ensemble/framework/bindings.dart';
 import 'package:ensemble/framework/config.dart';
+import 'package:ensemble/framework/device.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/studio/studio_debugger.dart';
 import 'package:ensemble/framework/view/data_scope_widget.dart';
@@ -114,8 +115,16 @@ abstract class EWidgetState<W extends HasController>
 
       // Handle standalone opacity
       // Apply only if visibilityTransitionDuration is NOT set (to avoid double wrapping)
+      // TV: Skip if tvOptions.opacity is set (wrapper handles both focused/unfocused)
+      final tvOptions = widgetController is BoxController
+          ? widgetController.tvOptions
+          : null;
+      final bool tvHandlesOpacity = Device().isTV &&
+          tvOptions?.isEnabled == true &&
+          tvOptions?.opacity != null;
       if (widgetController.visibilityTransitionDuration == null &&
-          widgetController.opacity != null) {
+          widgetController.opacity != null &&
+          !tvHandlesOpacity) {
         rtn = Opacity(
           opacity: Utils.optionalDouble(widgetController.opacity!, min: 0, max: 1.0) ?? 1.0,
           child: rtn,

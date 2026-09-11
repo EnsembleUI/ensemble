@@ -1,6 +1,7 @@
 import 'package:ensemble/framework/extensions.dart';
 import 'package:ensemble/framework/theme/default_theme.dart';
 import 'package:ensemble/framework/theme/theme_manager.dart';
+import 'package:ensemble/framework/tv/tv_focus_theme.dart';
 import 'package:ensemble/model/text_scale.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/image.dart';
@@ -10,7 +11,7 @@ import 'package:yaml/yaml.dart';
 mixin ThemeLoader {
   final EdgeInsets _buttonPadding =
   const EdgeInsets.only(left: 15, top: 5, right: 15, bottom: 5);
-  final int _buttonBorderRadius = 3;
+  final double _buttonBorderRadius = 3;
   final Color _buttonBorderOutlineColor = Colors.black12;
   bool hasLegacyCustomAppTheme(YamlMap? overrides) {
     return overrides?['App'] != null
@@ -23,6 +24,7 @@ mixin ThemeLoader {
         YamlMap? colorOverrides,
         YamlMap? screenOverrides,
         YamlMap? widgetOverrides,
+        YamlMap? tokensOverrides,
       }) {
 
     if (appOverrides == null) {
@@ -36,6 +38,9 @@ mixin ThemeLoader {
     }
     if (widgetOverrides == null) {
       widgetOverrides =  overrides?['Widgets'];
+    }
+    if (tokensOverrides == null) {
+      tokensOverrides = overrides?['Tokens'];
     }
     final seedColor = Utils.getColor(colorOverrides?['seed']);
     String _defaultFontFamily = appOverrides?['fontFamily']?? appOverrides?['textStyle']?['fontFamily'] ?? 'Inter';
@@ -174,6 +179,7 @@ mixin ThemeLoader {
         loadingScreenIndicatorColor: Utils.getColor(
             colorOverrides?['loadingScreenIndicatorColor']),
         transitions: Utils.getMap(overrides?['Transitions']),
+        tvFocusTheme: _parseTVFocusTheme(tokensOverrides),
       )
     ]);
   }
@@ -280,7 +286,7 @@ mixin ThemeLoader {
     BorderRadius borderRadius =
         Utils.getBorderRadius(input['borderRadius'])?.getValue() ??
             getInputDefaultBorderRadius(variant);
-    int borderWidth = Utils.optionalInt(input['borderWidth']) ?? 1;
+    double borderWidth = Utils.optionalDouble(input['borderWidth']) ?? 1;
 
     Color? borderColor = Utils.getColor(input['borderColor']);
     Color? disabledBorderColor = Utils.getColor(input['disabledBorderColor']);
@@ -299,7 +305,7 @@ mixin ThemeLoader {
                   (colorScheme.brightness == Brightness.light
                       ? Colors.black54
                       : Colors.white70),
-              width: borderWidth.toDouble()));
+              width: borderWidth));
 
       return baseInputDecoration.copyWith(
         contentPadding: contentPadding ??
@@ -335,7 +341,7 @@ mixin ThemeLoader {
                   (colorScheme.brightness == Brightness.light
                       ? Colors.black87
                       : Colors.white70),
-              width: borderWidth.toDouble()));
+              width: borderWidth));
       return baseInputDecoration.copyWith(
         contentPadding: contentPadding ??
             const EdgeInsets.symmetric(vertical: 15, horizontal: 3),
@@ -380,15 +386,15 @@ mixin ThemeLoader {
     isOutline ? null : Utils.getColor(input['backgroundColor']);
 
     RoundedRectangleBorder border = RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(
-            Utils.getInt(input['borderRadius'], fallback: _buttonBorderRadius)
-                .toDouble()),
+        borderRadius: input['borderRadius'] == 0
+            ? BorderRadius.zero
+            : Utils.getBorderRadius(input['borderRadius'])?.getValue() ??
+                BorderRadius.circular(_buttonBorderRadius),
         side: borderColor == null
             ? BorderSide.none
             : BorderSide(
             color: borderColor,
-            width: Utils.getInt(input['borderWidth'], fallback: 1)
-                .toDouble()));
+            width: Utils.getDouble(input['borderWidth'], fallback: 1)));
 
     return getButtonStyle(
         isOutline: isOutline,
@@ -401,20 +407,20 @@ mixin ThemeLoader {
   InputBorder? getInputBorder(
       {InputVariant? variant,
         Color? borderColor,
-        required int borderWidth,
+        required double borderWidth,
         required BorderRadius borderRadius}) {
     if (borderColor != null) {
       if (variant == InputVariant.box) {
         return OutlineInputBorder(
             borderRadius: borderRadius,
             borderSide:
-            BorderSide(color: borderColor, width: borderWidth.toDouble()));
+            BorderSide(color: borderColor, width: borderWidth));
       }
       // default is underline
       return UnderlineInputBorder(
           borderRadius: borderRadius,
           borderSide:
-          BorderSide(color: borderColor, width: borderWidth.toDouble()));
+          BorderSide(color: borderColor, width: borderWidth));
     }
     return null;
   }
@@ -457,21 +463,21 @@ mixin ThemeLoader {
     Color? fillColor = Utils.getColor(input?["fillColor"]);
     Color? activeColor = Utils.getColor(input?["activeColor"]);
     Color? checkColor = Utils.getColor(input?["checkColor"]);
-    int borderWidth = Utils.optionalInt(input?['borderWidth'], min: 0) ?? 2;
+    double borderWidth = Utils.optionalDouble(input?['borderWidth'], min: 0) ?? 2;
 
     var checkboxTheme = CheckboxThemeData(
       side: WidgetStateBorderSide.resolveWith((states) {
         if (states.contains(WidgetState.disabled)) {
           return BorderSide(
-              width: borderWidth.toDouble(), color: DesignSystem.disableColor);
+              width: borderWidth, color: DesignSystem.disableColor);
         }
         if (states.contains(WidgetState.error)) {
           return BorderSide(
-              width: borderWidth.toDouble(),
+              width: borderWidth,
               color: DesignSystem.inputErrorColor);
         }
         if (!states.contains(WidgetState.selected)) {
-          return BorderSide(width: borderWidth.toDouble(), color: borderColor);
+          return BorderSide(width: borderWidth, color: borderColor);
         }
         // use default
         return null;
@@ -509,6 +515,30 @@ mixin ThemeLoader {
   ///------------  publicly available theme getters -------------
   BorderRadius getInputDefaultBorderRadius(InputVariant? variant) =>
       BorderRadius.all(Radius.circular(variant == InputVariant.box ? 8 : 0));
+
+  /// Parses TV focus theme configuration from theme tokens.
+  ///
+  /// Looks for TV configuration under Tokens.TV in the theme YAML:
+  /// ```yaml
+  /// Tokens:
+  ///   TV:
+  ///     focusBorderColor: 0xFF00AAFF
+  ///     focusBorderWidth: 3
+  ///     focusBorderRadius: 8
+  ///     focusAnimationDuration: 150
+  /// ```
+  TVFocusTheme? _parseTVFocusTheme(YamlMap? tokens) {
+    final tvTokens = tokens?['TV'];
+    if (tvTokens == null) return null;
+
+    return TVFocusTheme(
+      focusBorderColor: Utils.getColor(tvTokens['focusBorderColor']),
+      focusBorderWidth: Utils.optionalDouble(tvTokens['focusBorderWidth']),
+      focusBorderRadius: Utils.optionalDouble(tvTokens['focusBorderRadius']),
+      focusAnimationDurationMs:
+          Utils.optionalInt(tvTokens['focusAnimationDuration']),
+    );
+  }
 }
 
   /// Configures image cache settings from App.imageCache in theme.yaml.
@@ -548,26 +578,36 @@ extension CheckboxThemeDataExtension on CheckboxThemeData {
 
 /// extend Theme to add our own special color parameters
 class EnsembleThemeExtension extends ThemeExtension<EnsembleThemeExtension> {
-  EnsembleThemeExtension(
-      {this.appTheme,
-        this.loadingScreenBackgroundColor,
-        this.loadingScreenIndicatorColor,
-        this.transitions});
+  EnsembleThemeExtension({
+    this.appTheme,
+    this.loadingScreenBackgroundColor,
+    this.loadingScreenIndicatorColor,
+    this.transitions,
+    this.tvFocusTheme,
+  });
 
   final AppTheme? appTheme;
   final Color? loadingScreenBackgroundColor;
   final Color? loadingScreenIndicatorColor; // should deprecate this
   final Map<String, dynamic>? transitions;
 
+  /// TV focus styling configuration parsed from theme.yaml.
+  /// Used as the highest priority source for TV focus indicator styling.
+  final TVFocusTheme? tvFocusTheme;
+
   @override
-  ThemeExtension<EnsembleThemeExtension> copyWith(
-      {Color? loadingScreenBackgroundColor,
-        Color? loadingScreenIndicatorColor}) {
+  ThemeExtension<EnsembleThemeExtension> copyWith({
+    Color? loadingScreenBackgroundColor,
+    Color? loadingScreenIndicatorColor,
+    TVFocusTheme? tvFocusTheme,
+  }) {
     return EnsembleThemeExtension(
-        loadingScreenBackgroundColor:
-        loadingScreenBackgroundColor ?? this.loadingScreenBackgroundColor,
-        loadingScreenIndicatorColor:
-        loadingScreenIndicatorColor ?? this.loadingScreenIndicatorColor);
+      loadingScreenBackgroundColor:
+          loadingScreenBackgroundColor ?? this.loadingScreenBackgroundColor,
+      loadingScreenIndicatorColor:
+          loadingScreenIndicatorColor ?? this.loadingScreenIndicatorColor,
+      tvFocusTheme: tvFocusTheme ?? this.tvFocusTheme,
+    );
   }
 
   @override
@@ -581,6 +621,8 @@ class EnsembleThemeExtension extends ThemeExtension<EnsembleThemeExtension> {
           loadingScreenBackgroundColor, other.loadingScreenBackgroundColor, t),
       loadingScreenIndicatorColor: Color.lerp(
           loadingScreenIndicatorColor, other.loadingScreenIndicatorColor, t),
+      // TV focus theme doesn't need lerping - use target value
+      tvFocusTheme: t < 0.5 ? tvFocusTheme : other.tvFocusTheme,
     );
   }
 }

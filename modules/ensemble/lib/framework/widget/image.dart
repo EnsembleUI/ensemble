@@ -17,15 +17,20 @@ class Image extends StatelessWidget {
       this.width,
       this.height,
       this.fit,
+      this.resizedWidth,
+      this.resizedHeight,
       this.errorBuilder,
       this.placeholderBuilder,
+      this.loadingWidget,
       this.colorFilter,
-      this.networkCacheManager});
+      this.cacheManager});
 
   final String source;
   final double? width;
   final double? height;
   final BoxFit? fit;
+  final int? resizedWidth;
+  final int? resizedHeight;
   final ColorFilterComposite? colorFilter;
 
   final Widget Function(String)? errorBuilder;
@@ -33,8 +38,11 @@ class Image extends StatelessWidget {
   // applicable for network image only
   final Widget Function(BuildContext, String)? placeholderBuilder;
 
-  // optional cache manager for network image
-  final BaseCacheManager? networkCacheManager;
+  // optional widget while the image is loading
+  final Widget? loadingWidget;
+
+  // The cache policy selected by the calling Ensemble widget.
+  final BaseCacheManager? cacheManager;
 
   @override
   Widget build(BuildContext context) {
@@ -48,6 +56,8 @@ class Image extends StatelessWidget {
           width: width,
           height: height,
           fit: fit,
+          cacheWidth: resizedWidth,
+          cacheHeight: resizedHeight,
           errorBuilder: errorBuilder != null
               ? (context, error, stackTrace) => errorBuilder!(error.toString())
               : null,
@@ -58,13 +68,17 @@ class Image extends StatelessWidget {
           width: width,
           height: height,
           fit: fit,
-
+          memCacheWidth: resizedWidth,
+          memCacheHeight: resizedHeight,
           // placeholder while the image is loading
-          placeholder: placeholderBuilder,
+          placeholder: placeholderBuilder != null || loadingWidget != null
+              ? (context, url) =>
+                  loadingWidget ?? placeholderBuilder!(context, url)
+              : null,
           errorWidget: errorBuilder != null
               ? (context, url, error) => errorBuilder!(error.toString())
               : null,
-          cacheManager: networkCacheManager,
+          cacheManager: cacheManager,
         );
       }
     } else {
@@ -79,10 +93,10 @@ class Image extends StatelessWidget {
       );
     }
     if (colorFilter?.color != null) {
-        imageWidget = ColorFiltered(
-          colorFilter: colorFilter!.getColorFilter()!,
-          child: imageWidget,
-        );
+      imageWidget = ColorFiltered(
+        colorFilter: colorFilter!.getColorFilter()!,
+        child: imageWidget,
+      );
     }
     return imageWidget;
   }
