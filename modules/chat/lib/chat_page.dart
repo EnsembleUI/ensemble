@@ -21,6 +21,7 @@ class ChatPage extends StatefulWidget {
     super.key,
     required this.messages,
     required this.onMessageSend,
+    required this.onFeedback,
     required this.controller,
   });
 
@@ -29,6 +30,10 @@ class ChatPage extends StatefulWidget {
 
   /// Callback invoked when the user sends a message.
   final Function(String value) onMessageSend;
+
+  /// Persists feedback for a completed assistant message.
+  final Future<void> Function(InternalMessage message, String? rating)
+      onFeedback;
 
   /// Controller that stores chat configuration and styles.
   final EnsembleChatController controller;
@@ -205,6 +210,7 @@ class _ChatPageState extends State<ChatPage> {
                       key: ValueKey(message.id),
                       message: message,
                       controller: widget.controller,
+                      onFeedback: widget.onFeedback,
                     ),
                   );
                 },
@@ -286,12 +292,13 @@ class _ChatPageState extends State<ChatPage> {
 }
 
 /// Renders a single chat message using the configured role style.
-class MessageWidget extends StatelessWidget {
+class MessageWidget extends StatefulWidget {
   /// Creates a message widget.
   const MessageWidget({
     super.key,
     required this.message,
     required this.controller,
+    required this.onFeedback,
   });
 
   /// Message to render.
@@ -300,20 +307,70 @@ class MessageWidget extends StatelessWidget {
   /// Controller that provides style configuration.
   final EnsembleChatController controller;
 
+  /// Persists feedback for this message.
+  final Future<void> Function(InternalMessage message, String? rating)
+      onFeedback;
+
+  @override
+  State<MessageWidget> createState() => _MessageWidgetState();
+}
+
+class _MessageWidgetState extends State<MessageWidget> {
+  bool _isSubmittingFeedback = false;
+
   BubbleStyleComposite _getStyleForRole() {
-    switch (message.role) {
+    switch (widget.message.role) {
       case MessageRole.user:
-        return controller.userBubbleStyle;
+        return widget.controller.userBubbleStyle;
       case MessageRole.assistant:
-        return controller.assistantBubbleStyle;
+        return widget.controller.assistantBubbleStyle;
       case MessageRole.system:
-        return controller.assistantBubbleStyle; // Fallback to assistant style
+        return widget
+            .controller.assistantBubbleStyle; // Fallback to assistant style
     }
+  }
+
+  bool get _showFeedback =>
+      widget.controller.feedbackEnabled &&
+      widget.message.feedbackEligible &&
+      widget.message.role == MessageRole.assistant;
+
+  Future<void> _submitFeedback(String? rating) async {
+    if (_isSubmittingFeedback) return;
+    final previousRating = widget.message.feedbackRating;
+
+    setState(() {
+      _isSubmittingFeedback = true;
+      widget.message.feedbackRating = rating;
+    });
+
+    try {
+      await widget.onFeedback(widget.message, rating);
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        widget.message.feedbackRating = previousRating;
+      });
+      ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+        const SnackBar(content: Text('Unable to save feedback. Try again.')),
+      );
+    } finally {
+      if (mounted) setState(() => _isSubmittingFeedback = false);
+    }
+  }
+
+  Future<void> _selectRating(String rating) async {
+    if (widget.message.feedbackRating == rating) {
+      await _submitFeedback(null);
+      return;
+    }
+    await _submitFeedback(rating);
   }
 
   @override
   Widget build(BuildContext context) {
     final bubbleStyle = _getStyleForRole();
+    final message = widget.message;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12.0),
@@ -354,6 +411,47 @@ class MessageWidget extends StatelessWidget {
                     child: Theme(
                       data: ThemeData.dark(useMaterial3: true),
                       child: message.widget ?? const SizedBox.shrink(),
+                    ),
+                  ),
+                if (_showFeedback)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 4),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          tooltip: 'Good response',
+                          visualDensity: VisualDensity.compact,
+                          onPressed: _isSubmittingFeedback
+                              ? null
+                              : () => _selectRating('positive'),
+                          icon: Icon(
+                            message.feedbackRating == 'positive'
+                                ? Icons.thumb_up
+                                : Icons.thumb_up_outlined,
+                          ),
+                        ),
+                        IconButton(
+                          tooltip: 'Could be improved',
+                          visualDensity: VisualDensity.compact,
+                          onPressed: _isSubmittingFeedback
+                              ? null
+                              : () => _selectRating('negative'),
+                          icon: Icon(
+                            message.feedbackRating == 'negative'
+                                ? Icons.thumb_down
+                                : Icons.thumb_down_outlined,
+                          ),
+                        ),
+                        if (_isSubmittingFeedback)
+                          const Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 8),
+                            child: SizedBox.square(
+                              dimension: 14,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            ),
+                          ),
+                      ],
                     ),
                   ),
               ],
