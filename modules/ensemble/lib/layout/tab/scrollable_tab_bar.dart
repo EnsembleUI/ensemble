@@ -80,6 +80,8 @@ class ScrollableTabBar extends BaseTabBar {
           _controller.dividerThickness = Utils.optionalInt(thickness, min: 0),
       'dividerPadding': (padding) =>
           _controller.dividerPadding = Utils.optionalInsets(padding),
+      'overlayIndicator': (overlay) =>
+          _controller.overlayIndicator = Utils.optionalBool(overlay),
       'selectedIndex': (index) =>
           _controller.selectedIndex = Utils.getInt(index, min: 0, fallback: 0),
       'onTabSelection': (action) => _controller.onTabSelection =

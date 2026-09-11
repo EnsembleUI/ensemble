@@ -6786,6 +6786,10 @@
                   "$ref": "#/$defs/type-color",
                   "description": "The color of the tabbar divider color"
                 },
+                "overlayIndicator": {
+                  "type": "boolean",
+                  "description": "Whether the indicator overlaps the divider"
+                },
                 "inactiveTabColor": {
                   "$ref": "#/$defs/type-color",
                   "description": "The color of the un-selected tabs' text"

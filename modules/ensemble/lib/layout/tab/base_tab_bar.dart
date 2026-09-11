@@ -69,6 +69,7 @@ abstract class BaseTabBarState extends EWidgetState<BaseTabBar>
     final tabAlignment =
         TabAlignment.values.from(widget.controller.tabAlignment) ??
             TabAlignment.start;
+    final overlayIndicator = widget.controller.overlayIndicator ?? false;
 
     final dividerColor = widget.controller.dividerColor ?? Colors.transparent;
     final dividerThickness =
@@ -78,7 +79,9 @@ abstract class BaseTabBarState extends EWidgetState<BaseTabBar>
     // dividerHeight reserves no height -- Material paints the divider inside
     // the tab row (tabs.dart:2049) -- so lay our own out below the tabs.
     final wantsCustomDivider = widget.controller.dividerColor != null &&
-        (dividerPadding != null || widget.controller.dividerThickness != null);
+        (dividerPadding != null ||
+            widget.controller.dividerThickness != null ||
+            widget.controller.overlayIndicator != null);
 
     Widget tabBar = TabBar(
         labelPadding: labelPadding,
@@ -120,19 +123,31 @@ abstract class BaseTabBarState extends EWidgetState<BaseTabBar>
         ),
       );
 
-      // Column, not a Stack overlay: keeps the divider off the indicator, and
-      // keeps the TabBar's width tight -- under a Stack's loose constraints
-      // dividerHeight 0 makes Flutter shrink-wrap the tabs (tabs.dart:2044).
-      tabBar = Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          tabBar,
-          SizedBox(height: dividerPadding?.top ?? 0),
-          divider,
-          SizedBox(height: dividerPadding?.bottom ?? 0),
-        ],
-      );
+      if (overlayIndicator) {
+        tabBar = Stack(
+          children: [
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              height: dividerThickness,
+              child: divider,
+            ),
+            tabBar,
+          ],
+        );
+      } else {
+        tabBar = Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            tabBar,
+            SizedBox(height: dividerPadding?.top ?? 0),
+            divider,
+            SizedBox(height: dividerPadding?.bottom ?? 0),
+          ],
+        );
+      }
     }
 
     if (widget.controller.tabBackgroundColor != null) {
@@ -177,6 +192,7 @@ abstract class BaseTabBarState extends EWidgetState<BaseTabBar>
     final dividerThickness =
         widget.controller.dividerThickness?.toDouble() ?? 1;
     final dividerPadding = widget.controller.dividerPadding;
+    final overlayIndicator = widget.controller.overlayIndicator ?? false;
     final indicatorThickness =
         widget.controller.indicatorThickness?.toDouble() ?? 2;
 
@@ -268,7 +284,8 @@ abstract class BaseTabBarState extends EWidgetState<BaseTabBar>
         // predates this feature and TV never drew a line for it.
         if (widget.controller.dividerColor == null ||
             (dividerPadding == null &&
-                widget.controller.dividerThickness == null)) {
+                widget.controller.dividerThickness == null &&
+                widget.controller.overlayIndicator == null)) {
           return tabRow;
         }
 
@@ -283,7 +300,21 @@ abstract class BaseTabBarState extends EWidgetState<BaseTabBar>
           ),
         );
 
-        // Same as mobile: divider below the tabs, not overlaid on it.
+        if (overlayIndicator) {
+          return Stack(
+            children: [
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: 0,
+                height: dividerThickness,
+                child: divider,
+              ),
+              tabRow,
+            ],
+          );
+        }
+
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           mainAxisSize: MainAxisSize.min,
