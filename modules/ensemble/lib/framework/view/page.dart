@@ -972,12 +972,12 @@ class PageState extends State<Page>
       // show a divider between the NavigationRail and the content
       Color? borderColor =
           Utils.getColor(widget._pageModel.menu!.runtimeStyles?['borderColor']);
-      int? borderWidth = Utils.optionalInt(
+      double? borderWidth = Utils.optionalDouble(
           widget._pageModel.menu!.runtimeStyles?['borderWidth']);
       if (borderColor != null || borderWidth != null) {
         content.add(VerticalDivider(
-            thickness: (borderWidth ?? 1).toDouble(),
-            width: (borderWidth ?? 1).toDouble(),
+            thickness: borderWidth ?? 1,
+            width: borderWidth ?? 1,
             color: borderColor));
       }
 

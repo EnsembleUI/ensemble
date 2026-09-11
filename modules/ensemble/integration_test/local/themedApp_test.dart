@@ -27,10 +27,10 @@ void main() {
       expect(
           (originalText.decoration?.border as UnderlineInputBorder)
               .borderRadius,
-          BorderRadius.circular(5));
+          BorderRadius.circular(5.5));
       expect(originalText.decoration?.border?.borderSide.color,
           const Color(0xFF404040));
-      expect(originalText.decoration?.border?.borderSide.width, 1.0);
+      expect(originalText.decoration?.border?.borderSide.width, 1.5);
       expect(originalText.decoration?.focusedBorder?.borderSide.color,
           const Color(0xFF49DEFF));
 
@@ -48,8 +48,8 @@ void main() {
       expect(
           (updatedStyleText.decoration?.border as UnderlineInputBorder)
               .borderRadius,
-          BorderRadius.circular(10));
-      expect(updatedStyleText.decoration?.border?.borderSide.width, 2.0);
+          BorderRadius.circular(10.5));
+      expect(updatedStyleText.decoration?.border?.borderSide.width, 2.5);
       expect(updatedStyleText.decoration?.border?.borderSide.color,
           const Color(0xFFCFA17B));
       expect(updatedStyleText.decoration?.focusedBorder?.borderSide.color,
@@ -63,8 +63,8 @@ void main() {
       expect(boxStyleText.decoration?.border is OutlineInputBorder, true);
       expect(
           (boxStyleText.decoration?.border as OutlineInputBorder).borderRadius,
-          BorderRadius.circular(99));
-      expect(boxStyleText.decoration?.border?.borderSide.width, 1.0);
+          BorderRadius.circular(99.5));
+      expect(boxStyleText.decoration?.border?.borderSide.width, 0.5);
     });
   });
 }

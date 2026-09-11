@@ -66,7 +66,7 @@ class TVFocusStylingResolver {
     return tvOptions.focusBorderWidth ??
         tvFocusTheme.focusBorderWidth ??
         externalProvider?.focusBorderWidth ??
-        boxController.borderWidth?.toDouble() ??
+        boxController.borderWidth ??
         TVFocusTheme.defaultBorderWidth;
   }
 
@@ -96,14 +96,14 @@ BoxBorder? _resolveBoxBorder({
   required bool hasBorder,
   required LinearGradient? borderGradient,
   required Color? borderColor,
-  required int? borderWidth,
+  required double? borderWidth,
   required BorderStyleComposite? borderStyle,
   required BuildContext context,
 }) {
   if (!hasBorder) return null;
 
   final width =
-      borderWidth?.toDouble() ?? ThemeManager().getBorderThickness(context);
+      borderWidth ?? ThemeManager().getBorderThickness(context);
 
   if (borderGradient != null) {
     return GradientBoxBorder(gradient: borderGradient, width: width);

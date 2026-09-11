@@ -40,7 +40,7 @@ class FormFieldController extends WidgetController {
   Color? fillColor;
 
   EBorderRadius? borderRadius;
-  int? borderWidth;
+  double? borderWidth;
   Color? borderColor;
 
   Color? enabledBorderColor;
@@ -77,7 +77,7 @@ class FormFieldController extends WidgetController {
       'filled': (value) => filled = Utils.optionalBool(value),
       'fillColor': (value) => fillColor = Utils.getColor(value),
       'borderRadius': (value) => borderRadius = Utils.getBorderRadius(value),
-      'borderWidth': (value) => borderWidth = Utils.optionalInt(value, min: 0),
+      'borderWidth': (value) => borderWidth = Utils.optionalDouble(value, min: 0),
       'borderColor': (color) => borderColor = Utils.getColor(color),
       'enabledBorderColor': (color) =>
           enabledBorderColor = Utils.getColor(color),
@@ -169,12 +169,12 @@ abstract class FormFieldWidgetState<W extends HasController>
       InputVariant? variant = myController.variant ?? _themeVariant;
 
       // resolve borderWidth
-      int? _themeBorderWidth = themeDecoration.border?.borderSide.width.toInt();
+      double? _themeBorderWidth = themeDecoration.border?.borderSide.width;
       if (myController.borderWidth != null &&
           myController.borderWidth != _themeBorderWidth) {
         redrawAllBorders = true;
       }
-      int borderWidth = myController.borderWidth ?? _themeBorderWidth ?? 1;
+      double borderWidth = myController.borderWidth ?? _themeBorderWidth ?? 1;
 
       // resolve borderRadius
       BorderRadius? _themeBorderRadius =

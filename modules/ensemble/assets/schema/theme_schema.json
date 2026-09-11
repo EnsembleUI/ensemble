@@ -199,12 +199,11 @@
           "description": "The fill color for applicable input fields (TextInput, Dropdown, ...)"
         },
         "borderRadius": {
-          "type": "integer",
-          "minimum": 0,
+          "$ref": "#/$defs/BorderRadius",
           "description": "The border radius for applicable Input widgets."
         },
         "borderWidth": {
-          "type": "integer",
+          "type": "number",
           "minimum": 0,
           "description": "The border width for applicable Input widgets."
         },
@@ -237,11 +236,10 @@
       "type": "object",
       "properties": {
         "borderRadius": {
-          "type": "integer",
-          "minimum": 0
+          "$ref": "#/$defs/BorderRadius"
         },
         "borderWidth": {
-          "type": "integer",
+          "type": "number",
           "minimum": 0,
           "description": "The border thickness of the button"
         },
@@ -275,7 +273,7 @@
           "description": "The border radius for this Input widget. This property can be defined in the theme to apply to all Input widgets."
         },
         "borderWidth": {
-          "type": "integer",
+          "type": "number",
           "description": "The border width for this Input widget. This property can be defined in the theme to apply to all Input widgets.",
           "minimum": 0
         },
@@ -414,11 +412,11 @@
           "type": "string"
         }
       ],
-      "description": "Border Radius with CSS-like notation (1 to 4 integers)",
+      "description": "Border Radius with CSS-like notation (1 to 4 numbers)",
       "uiType": "borderRadius"
     },
     "positiveInteger": {
-      "type": "integer",
+      "type": "number",
       "minimum": 0
     },
     "type-fontWeight": {
