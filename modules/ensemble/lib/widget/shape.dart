@@ -151,10 +151,10 @@ class InternalShape extends StatelessWidget {
       : borderGradient != null
           ? GradientBoxBorder(
               gradient: borderGradient!,
-              width: borderWidth?.toDouble() ??
+              width: borderWidth ??
                   ThemeManager().getBorderThickness(context))
           : Border.all(
               color: borderColor ?? ThemeManager().getBorderColor(context),
-              width: borderWidth?.toDouble() ??
+              width: borderWidth ??
                   ThemeManager().getBorderThickness(context));
 }

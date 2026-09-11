@@ -4,6 +4,8 @@
     "@types/yaml": "^1.9.7"
   },
   "dependencies": {
-    "fs-extra": "^11.2.0"
+    "dotenv": "^8.2.0",
+    "fs-extra": "^11.2.0",
+    "node-fetch": "^3.3.2"
   }
 }

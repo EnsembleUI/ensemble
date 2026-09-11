@@ -612,9 +612,8 @@ class Utils {
             ? Border.all(
                 color: tooltip.styles?.borderColor ??
                     ThemeManager().getBorderColor(context),
-                width: (tooltip.styles?.borderWidth ??
-                        ThemeManager().getBorderThickness(context))
-                    .toDouble(),
+                width: tooltip.styles?.borderWidth ??
+                    ThemeManager().getBorderThickness(context),
               )
             : null,
       ),
@@ -1039,14 +1038,17 @@ static BoxDecoration? getBoxDecoration(dynamic style) {
     return rtn;
   }
 
-  /// Parse a whitespace-separated string into non-negative doubles.
+  /// parse a string and return a list of doubles
   static List<double> stringToDoubles(String value,
       {double? min, double? max}) {
     List<double> rtn = [];
 
     for (var val in value.split(RegExp(r'\s+'))) {
       double? number = double.tryParse(val);
+      // isFinite: double.tryParse accepts "Infinity"/"1e400", which would reach
+      // Radius.circular and blow up in painting.
       if (number != null &&
+          number.isFinite &&
           (min == null || number >= min) &&
           (max == null || number <= max)) {
         rtn.add(number);

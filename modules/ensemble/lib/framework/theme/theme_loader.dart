@@ -11,7 +11,7 @@ import 'package:yaml/yaml.dart';
 mixin ThemeLoader {
   final EdgeInsets _buttonPadding =
   const EdgeInsets.only(left: 15, top: 5, right: 15, bottom: 5);
-  final int _buttonBorderRadius = 3;
+  final double _buttonBorderRadius = 3;
   final Color _buttonBorderOutlineColor = Colors.black12;
   bool hasLegacyCustomAppTheme(YamlMap? overrides) {
     return overrides?['App'] != null
@@ -389,12 +389,12 @@ mixin ThemeLoader {
         borderRadius: input['borderRadius'] == 0
             ? BorderRadius.zero
             : Utils.getBorderRadius(input['borderRadius'])?.getValue() ??
-                BorderRadius.circular(_buttonBorderRadius.toDouble()),
+                BorderRadius.circular(_buttonBorderRadius),
         side: borderColor == null
             ? BorderSide.none
             : BorderSide(
             color: borderColor,
-            width: Utils.optionalDouble(input['borderWidth']) ?? 1));
+            width: Utils.getDouble(input['borderWidth'], fallback: 1)));
 
     return getButtonStyle(
         isOutline: isOutline,

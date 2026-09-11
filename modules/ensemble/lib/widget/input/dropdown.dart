@@ -771,7 +771,7 @@ class SelectOneState extends FormFieldWidgetState<SelectOne>
       return getCustomBorder(
         originalBorder: inputDecoration.enabledBorder ?? baseBorder,
         borderColor: widget._controller.borderColor,
-        borderWidth: widget._controller.borderWidth?.toDouble(),
+        borderWidth: widget._controller.borderWidth,
         borderRadius: widget._controller.borderRadius?.getValue(),
       );
     }
@@ -787,7 +787,7 @@ class SelectOneState extends FormFieldWidgetState<SelectOne>
     return getCustomBorder(
       originalBorder: inputDecoration.focusedBorder ?? baseBorder,
       borderColor: widget._controller.focusedBorderColor,
-      borderWidth: widget._controller.borderWidth?.toDouble(),
+      borderWidth: widget._controller.borderWidth,
       borderRadius: widget._controller.borderRadius?.getValue(),
     );
   }

@@ -1261,7 +1261,7 @@ class _BracketsColumnPageState extends State<BracketsColumnPage> {
                 lineColor: widget.controller.lineColor ?? Colors.black,
                 borderColor: widget.controller.borderColor ?? Colors.black,
                 lineWidth: widget.controller.lineWidth ?? 2.0,
-                borderWidth: widget.controller.borderWidth?.toDouble() ?? 2.0,
+                borderWidth: widget.controller.borderWidth ?? 2.0,
                 connectorLength: widget.controller.connectorLength,
                 columnIndex: widget.columnIndex,
                 prevColumnIndex: layout.toColumnIndex,

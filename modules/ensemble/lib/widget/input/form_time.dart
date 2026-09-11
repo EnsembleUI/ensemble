@@ -612,7 +612,7 @@ class TimeState extends FormFieldWidgetState<Time> {
           borderRadius: borderStyle.borderRadius,
           border: Border.all(
             color: borderStyle.borderColor,
-            width: borderStyle.borderWidth.toDouble(),
+            width: borderStyle.borderWidth,
           ),
         ),
         padding: widget._controller.contentPadding ??

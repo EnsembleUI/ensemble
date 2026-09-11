@@ -224,7 +224,7 @@ class ButtonState extends EWidgetState<Button> {
       } else {
         borderSide = BorderSide(
             color: widget._controller.borderColor ?? defaultShape.side.color,
-            width: widget._controller.borderWidth?.toDouble() ??
+            width: widget._controller.borderWidth ??
                 defaultShape.side.width);
       }
 
