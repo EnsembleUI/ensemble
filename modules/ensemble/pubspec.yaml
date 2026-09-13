@@ -79,7 +79,10 @@ dependencies:
   flutter_svg: ^2.2.0
   flutter_svg_provider: ^1.0.7
   qr_flutter: ^4.1.0
-  device_info_plus: ^10.1.0
+  # Wide range, not a caret: pub then picks the best version per consumer SDK
+  # (Flutter 3.27 -> 11.4.0, Flutter 3.47 -> 13.x). Spans 12.0.0, which removed
+  # AndroidDeviceInfo.serialNumber - hence the `device.serialNumber` getter was dropped.
+  device_info_plus: ">=10.1.0 <14.0.0"
   carousel_slider: ^5.0.0
   fluttertoast: ^8.2.14
   video_player: ^2.6.1

@@ -216,7 +216,6 @@ class DeviceAndroidInfo with Invokable {
       'tags': () => androidInfo?.tags,
       'type': () => androidInfo?.type,
       'isPhysicalDevice': () => androidInfo?.isPhysicalDevice,
-      'serialNumber': () => androidInfo?.serialNumber,
     };
   }
 
