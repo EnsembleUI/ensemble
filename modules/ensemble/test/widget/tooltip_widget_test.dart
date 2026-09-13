@@ -179,8 +179,14 @@ void main() {
     await tester.pump();
 
     expect(find.text('Add favorites'), findsOneWidget);
-    expect(anchorFocus.hasFocus, isFalse);
-    expect(FocusManager.instance.primaryFocus, isNotNull);
+    // Real focus is inside the popover, but the anchor stays in the focus chain
+    // (shallow focus) so its `${id.hasFocus}` styling remains applied.
+    expect(anchorFocus.hasPrimaryFocus, isFalse);
+    expect(anchorFocus.hasFocus, isTrue);
+    expect(
+      FocusManager.instance.primaryFocus!.ancestors.contains(anchorFocus),
+      isTrue,
+    );
   });
 
   testWidgets('TV tooltip does not open when the anchor scope itself has focus',
@@ -418,7 +424,8 @@ void main() {
     expect(result, KeyEventResult.handled);
     expect(find.text('First'), findsOneWidget);
     expect(find.text('Second'), findsOneWidget);
-    expect(anchorFocus.hasFocus, isFalse);
+    expect(anchorFocus.hasFocus, isTrue);
+    expect(anchorFocus.hasPrimaryFocus, isFalse);
   });
 
   for (final (label, key) in [
@@ -446,7 +453,8 @@ void main() {
 
       expect(result, KeyEventResult.handled);
       expect(find.text('Add favorites'), findsOneWidget);
-      expect(anchorFocus.hasFocus, isFalse);
+      expect(anchorFocus.hasFocus, isTrue);
+      expect(anchorFocus.hasPrimaryFocus, isFalse);
     });
   }
 
@@ -626,8 +634,14 @@ void main() {
     await tester.pump();
 
     expect(find.text('Add favorites'), findsOneWidget);
-    expect(anchorFocus.hasFocus, isFalse);
-    expect(FocusManager.instance.primaryFocus, isNotNull);
+    // Real focus is inside the popover, but the anchor stays in the focus chain
+    // (shallow focus) so its `${id.hasFocus}` styling remains applied.
+    expect(anchorFocus.hasPrimaryFocus, isFalse);
+    expect(anchorFocus.hasFocus, isTrue);
+    expect(
+      FocusManager.instance.primaryFocus!.ancestors.contains(anchorFocus),
+      isTrue,
+    );
   });
 
   testWidgets('TV tooltip exposes a locking focus scope while open',
@@ -699,7 +713,8 @@ void main() {
     await tester.pump();
 
     expect(find.text('Only text'), findsOneWidget);
-    expect(anchorFocus.hasFocus, isFalse);
+    expect(anchorFocus.hasFocus, isTrue);
+    expect(anchorFocus.hasPrimaryFocus, isFalse);
     // Focus falls back to the popover scope so D-pad cannot drift to the
     // background while the popover is open.
     final scopeNode =

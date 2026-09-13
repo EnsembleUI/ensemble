@@ -612,6 +612,7 @@ class TVFocusScope extends FocusScope {
   const TVFocusScope({
     super.key,
     FocusScopeNode? node,
+    FocusNode? parentNode,
     FocusOnKeyEventCallback? onKeyEvent,
     required this.lockScope,
     required super.child,
@@ -620,5 +621,5 @@ class TVFocusScope extends FocusScope {
     this.onLeftEdge,
     this.onTopEdge,
     this.onBottomEdge,
-  }) : super(node: node, onKeyEvent: onKeyEvent);
+  }) : super(node: node, parentNode: parentNode, onKeyEvent: onKeyEvent);
 }

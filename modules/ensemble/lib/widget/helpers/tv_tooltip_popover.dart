@@ -225,6 +225,11 @@ class _TVTooltipPopoverState extends State<TVTooltipPopover>
           FocusTraversalGroup(
             child: TVFocusScope(
               node: _popoverScope,
+              // Parent the overlay scope under the anchor's focus node so the
+              // trigger stays an ancestor of the real focus while the popover
+              // is open. The trigger keeps `hasFocus` (and its focus styling)
+              // without owning the real focus; closing restores it cleanly.
+              parentNode: _anchorFocusNode,
               onKeyEvent: _onPopoverKeyEvent,
               lockScope: true,
               // Host focus providers (and the built-in TVFocusWidget) treat an
