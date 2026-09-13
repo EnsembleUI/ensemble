@@ -26,6 +26,7 @@ import 'package:ensemble/action/notification_actions.dart';
 import 'package:ensemble/action/saveFile/save_file.dart';
 import 'package:ensemble/action/connectivity_action.dart';
 import 'package:ensemble/action/phone_contact_action.dart';
+import 'package:ensemble/action/popover_actions.dart';
 import 'package:ensemble/action/secure_storage.dart';
 import 'package:ensemble/action/sign_in_out_action.dart';
 import 'package:ensemble/action/sign_in_with_verification_code_actions.dart';
@@ -1004,6 +1005,7 @@ enum ActionType {
   dismissBottomModal,
   showDialog,
   dismissDialog,
+  dismissPopover,
   @Deprecated("use dismissDialog")
   closeAllDialogs,
   startTimer,
@@ -1172,6 +1174,8 @@ abstract class EnsembleAction {
       return ShowDialogAction.from(initiator: initiator, payload: payload);
     } else if (actionType == ActionType.dismissDialog) {
       return DismissDialogAction.from(initiator: initiator, payload: payload);
+    } else if (actionType == ActionType.dismissPopover) {
+      return DismissPopoverAction.from(initiator: initiator, payload: payload);
     } else if (actionType == ActionType.closeAllDialogs) {
       return CloseAllDialogsAction();
     } else if (actionType == ActionType.startTimer) {

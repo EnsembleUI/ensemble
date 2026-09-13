@@ -9,11 +9,15 @@ class TooltipData {
   final String message;
   final TooltipStyleComposite? styles;
   final EnsembleAction? onTriggered;
+  final dynamic widget;
+  final TooltipPopoverOptions options;
 
   TooltipData({
     required this.message,
     this.styles,
     this.onTriggered,
+    this.widget,
+    this.options = const TooltipPopoverOptions(),
   });
 
   static TooltipData? from(Map<String, dynamic>? data, ChangeNotifier controller) {
@@ -25,8 +29,137 @@ class TooltipData {
         TooltipStyleComposite(controller, inputs: data['styles']) : null,
       onTriggered: data['onTriggered'] != null ? 
         EnsembleAction.from(data['onTriggered']) : null,
+      widget: data['widget'],
+      options: TooltipPopoverOptions.from(data['options']),
     );
   }
+}
+
+class TooltipPopoverOptions {
+  const TooltipPopoverOptions({
+    this.position = TooltipPopoverPosition.below,
+    this.alignment = TooltipPopoverAlignment.center,
+    this.offset = Offset.zero,
+    this.dismissOnFocusLoss = true,
+    this.dismissOnBack = true,
+    this.restoreFocus = true,
+    this.animation = const TooltipPopoverAnimation(),
+  });
+
+  factory TooltipPopoverOptions.from(dynamic value) {
+    if (value is! Map) return const TooltipPopoverOptions();
+    return TooltipPopoverOptions(
+      position: TooltipPopoverPosition.from(value['position']),
+      alignment: TooltipPopoverAlignment.from(value['alignment']),
+      offset: _getOffset(value['offset']),
+      dismissOnFocusLoss:
+          Utils.getBool(value['dismissOnFocusLoss'], fallback: true),
+      dismissOnBack: Utils.getBool(value['dismissOnBack'], fallback: true),
+      restoreFocus: Utils.getBool(value['restoreFocus'], fallback: true),
+      animation: TooltipPopoverAnimation.from(value['animation']),
+    );
+  }
+
+  final TooltipPopoverPosition position;
+  final TooltipPopoverAlignment alignment;
+  final Offset offset;
+  final bool dismissOnFocusLoss;
+  final bool dismissOnBack;
+  final bool restoreFocus;
+  final TooltipPopoverAnimation animation;
+
+  static Offset _getOffset(dynamic value) {
+    if (value is List && value.length >= 2) {
+      final x = Utils.optionalDouble(value[0]);
+      final y = Utils.optionalDouble(value[1]);
+      if (x != null && y != null && x.isFinite && y.isFinite) {
+        return Offset(x, y);
+      }
+    }
+    if (value is String) {
+      final values = Utils.stringToDoubles(value);
+      if (values.length >= 2) return Offset(values[0], values[1]);
+    }
+    return Offset.zero;
+  }
+}
+
+enum TooltipPopoverPosition {
+  below,
+  above,
+  left,
+  right;
+
+  static TooltipPopoverPosition from(dynamic value) =>
+      TooltipPopoverPosition.values.firstWhere(
+        (position) => position.name == value,
+        orElse: () => TooltipPopoverPosition.below,
+      );
+}
+
+enum TooltipPopoverAlignment {
+  start,
+  center,
+  end;
+
+  static TooltipPopoverAlignment from(dynamic value) =>
+      TooltipPopoverAlignment.values.firstWhere(
+        (alignment) => alignment.name == value,
+        orElse: () => TooltipPopoverAlignment.center,
+      );
+}
+
+class TooltipPopoverAnimation {
+  const TooltipPopoverAnimation({
+    this.type = TooltipPopoverAnimationType.none,
+    this.duration = Duration.zero,
+    this.curve = Curves.easeOut,
+  });
+
+  factory TooltipPopoverAnimation.from(dynamic value) {
+    if (value is! Map) return const TooltipPopoverAnimation();
+    return TooltipPopoverAnimation(
+      type: TooltipPopoverAnimationType.from(value['type']),
+      duration: Utils.getDurationMs(value['duration']) ?? Duration.zero,
+      curve: _getCurve(value['curve']) ?? Curves.easeOut,
+    );
+  }
+
+  final TooltipPopoverAnimationType type;
+  final Duration duration;
+  final Curve curve;
+
+  static Curve? _getCurve(dynamic value) {
+    if (value is! String) return null;
+    switch (value) {
+      case 'linear':
+        return Curves.linear;
+      case 'ease':
+        return Curves.ease;
+      case 'easeIn':
+        return Curves.easeIn;
+      case 'easeOut':
+        return Curves.easeOut;
+      case 'easeInOut':
+        return Curves.easeInOut;
+      case 'fastOutSlowIn':
+        return Curves.fastOutSlowIn;
+    }
+    return null;
+  }
+}
+
+enum TooltipPopoverAnimationType {
+  none,
+  fade,
+  scale,
+  slide;
+
+  static TooltipPopoverAnimationType from(dynamic value) =>
+      TooltipPopoverAnimationType.values.firstWhere(
+        (type) => type.name == value,
+        orElse: () => TooltipPopoverAnimationType.none,
+      );
 }
 
 // Composite class to handle tooltip styling and behavior
