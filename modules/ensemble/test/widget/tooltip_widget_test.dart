@@ -1,4 +1,8 @@
+import 'package:ensemble/framework/action.dart';
+import 'package:ensemble/framework/event.dart';
+import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/tv/tv_focus_order.dart';
+import 'package:ensemble/framework/view/data_scope_widget.dart';
 import 'package:ensemble/util/ensemble_utils.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/helpers/tooltip_composite.dart';
@@ -9,6 +13,28 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:yaml/yaml.dart';
 
 import 'test_utils.dart';
+
+/// Records the `event.data.isOpen` value each time an `onTriggered` action runs.
+class _RecordingTriggerAction extends EnsembleAction {
+  _RecordingTriggerAction(this.states, {this.onOpen});
+
+  final List<dynamic> states;
+
+  /// Invoked with the scope when the popover reports that it opened, used to
+  /// simulate a definition storing a one-time flag.
+  final void Function(ScopeManager scopeManager)? onOpen;
+
+  @override
+  Future<dynamic> execute(BuildContext context, ScopeManager scopeManager) {
+    final event = scopeManager.dataContext.getContextById('event');
+    if (event is EnsembleEvent && event.data is Map) {
+      final isOpen = (event.data as Map)['isOpen'];
+      states.add(isOpen);
+      if (isOpen == true) onOpen?.call(scopeManager);
+    }
+    return Future.value(null);
+  }
+}
 
 FocusNode popoverScope(WidgetTester tester) => tester
     .widgetList<TVFocusScope>(find.byType(TVFocusScope))
@@ -116,6 +142,7 @@ void main() {
   test('tooltip popover options parse supported values', () {
     final tooltip = TooltipData.from({
       'options': {
+        'enabled': false,
         'position': 'right',
         'alignment': 'end',
         'offset': '12 -4',
@@ -130,6 +157,7 @@ void main() {
       },
     }, ChangeNotifier())!;
 
+    expect(tooltip.options.enabled, isFalse);
     expect(tooltip.options.position, TooltipPopoverPosition.right);
     expect(tooltip.options.alignment, TooltipPopoverAlignment.end);
     expect(tooltip.options.offset, const Offset(12, -4));
@@ -140,6 +168,11 @@ void main() {
     expect(
         tooltip.options.animation.duration, const Duration(milliseconds: 150));
     expect(tooltip.options.animation.curve, Curves.easeInOut);
+  });
+
+  test('tooltip popover is enabled by default', () {
+    final tooltip = TooltipData.from({'widget': {}}, ChangeNotifier())!;
+    expect(tooltip.options.enabled, isTrue);
   });
 
   testWidgets('message tooltip continues to use Flutter Tooltip',
@@ -219,6 +252,156 @@ void main() {
     await tester.pump();
     await tester.pump();
 
+    expect(find.text('Add favorites'), findsNothing);
+  });
+
+  testWidgets('TV tooltip does not open while disabled', (tester) async {
+    final anchorFocus = FocusNode();
+    addTearDown(anchorFocus.dispose);
+
+    await tester.pumpWidget(TestUtils.wrapTestWidgetWithScope(
+      TVTooltipPopover(
+        tooltip: TooltipData(
+          message: '',
+          widget: {
+            'Button': {'label': 'Add favorites'}
+          },
+          options: const TooltipPopoverOptions(enabled: false),
+        ),
+        child: Focus(focusNode: anchorFocus, child: const SizedBox(width: 20)),
+      ),
+    ));
+
+    anchorFocus.requestFocus();
+    await tester.pump();
+    await tester.pump();
+
+    expect(find.text('Add favorites'), findsNothing);
+  });
+
+  testWidgets('TV tooltip enabled supports a binding expression',
+      (tester) async {
+    final anchorFocus = FocusNode();
+    addTearDown(anchorFocus.dispose);
+
+    await tester.pumpWidget(TestUtils.wrapTestWidgetWithScope(
+      TVTooltipPopover(
+        tooltip: TooltipData(
+          message: '',
+          widget: {
+            'Button': {'label': 'Add favorites'}
+          },
+          options: const TooltipPopoverOptions(enabled: r'${showPopover}'),
+        ),
+        child: Focus(focusNode: anchorFocus, child: const SizedBox(width: 20)),
+      ),
+    ));
+
+    final scopeManager = DataScopeWidget.getScope(
+      tester.element(find.byType(TVTooltipPopover)),
+    )!;
+    scopeManager.dataContext.addToThisContext('showPopover', false);
+
+    anchorFocus.requestFocus();
+    await tester.pump();
+    await tester.pump();
+    expect(find.text('Add favorites'), findsNothing);
+
+    // The condition is read when the trigger fires, so flipping it and
+    // re-focusing opens the popover without rebuilding the widget.
+    scopeManager.dataContext.addToThisContext('showPopover', true);
+    anchorFocus.unfocus();
+    await tester.pump();
+    anchorFocus.requestFocus();
+    await tester.pump();
+    await tester.pump();
+    expect(find.text('Add favorites'), findsOneWidget);
+  });
+
+  testWidgets('TV tooltip one-time gate set on open stays open but blocks reopen',
+      (tester) async {
+    final anchorFocus = FocusNode();
+    final states = <dynamic>[];
+    addTearDown(anchorFocus.dispose);
+
+    await tester.pumpWidget(TestUtils.wrapTestWidgetWithScope(
+      TVTooltipPopover(
+        tooltip: TooltipData(
+          message: '',
+          widget: {
+            'Button': {'label': 'Add favorites'}
+          },
+          options: const TooltipPopoverOptions(enabled: r'${!seen}'),
+          onTriggered: _RecordingTriggerAction(
+            states,
+            onOpen: (scopeManager) =>
+                scopeManager.dataContext.addToThisContext('seen', true),
+          ),
+        ),
+        child: Focus(focusNode: anchorFocus, child: const SizedBox(width: 20)),
+      ),
+    ));
+
+    anchorFocus.requestFocus();
+    await tester.pump();
+    await tester.pump();
+    // The open handler marks it seen; the gate is now false but the popover
+    // must stay open until the user dismisses it.
+    expect(find.text('Add favorites'), findsOneWidget);
+    expect(states, [true]);
+
+    await EnsembleUtils.dismissPopover(
+      tester.element(find.byType(TVTooltipPopover)),
+    );
+    await tester.pump();
+    await tester.pump();
+    await tester.pump();
+    expect(find.text('Add favorites'), findsNothing);
+    expect(states, [true, false]);
+
+    // Re-focusing no longer opens it (show only once).
+    anchorFocus.unfocus();
+    await tester.pump();
+    anchorFocus.requestFocus();
+    await tester.pump();
+    await tester.pump();
+    expect(find.text('Add favorites'), findsNothing);
+  });
+
+  testWidgets('TV tooltip onTriggered reports open and close state',
+      (tester) async {
+    final anchorFocus = FocusNode();
+    final states = <dynamic>[];
+    addTearDown(anchorFocus.dispose);
+
+    await tester.pumpWidget(TestUtils.wrapTestWidgetWithScope(
+      TVTooltipPopover(
+        tooltip: TooltipData(
+          message: '',
+          widget: {
+            'Button': {'label': 'Add favorites'}
+          },
+          onTriggered: _RecordingTriggerAction(states),
+        ),
+        child: Focus(focusNode: anchorFocus, child: const SizedBox(width: 20)),
+      ),
+    ));
+
+    anchorFocus.requestFocus();
+    await tester.pump();
+    await tester.pump();
+
+    expect(states, [true]);
+    expect(find.text('Add favorites'), findsOneWidget);
+
+    await EnsembleUtils.dismissPopover(
+      tester.element(find.byType(TVTooltipPopover)),
+    );
+    await tester.pump();
+    await tester.pump();
+    await tester.pump();
+
+    expect(states, [true, false]);
     expect(find.text('Add favorites'), findsNothing);
   });
 

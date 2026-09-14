@@ -8,6 +8,13 @@ import 'package:flutter/material.dart';
 class TooltipData {
   final String message;
   final TooltipStyleComposite? styles;
+
+  /// Action run when the tooltip is triggered.
+  ///
+  /// On TV, where a declarative [widget] renders as a focusable popover, this
+  /// runs on both open and close and receives the state as `event.data.isOpen`
+  /// so a definition can mirror it into a flag. It still runs on open only for
+  /// the non-TV Flutter tooltip, which has no close callback.
   final EnsembleAction? onTriggered;
   final dynamic widget;
   final TooltipPopoverOptions options;
@@ -37,6 +44,7 @@ class TooltipData {
 
 class TooltipPopoverOptions {
   const TooltipPopoverOptions({
+    this.enabled = true,
     this.position = TooltipPopoverPosition.below,
     this.alignment = TooltipPopoverAlignment.center,
     this.offset = Offset.zero,
@@ -49,6 +57,7 @@ class TooltipPopoverOptions {
   factory TooltipPopoverOptions.from(dynamic value) {
     if (value is! Map) return const TooltipPopoverOptions();
     return TooltipPopoverOptions(
+      enabled: value['enabled'] ?? true,
       position: TooltipPopoverPosition.from(value['position']),
       alignment: TooltipPopoverAlignment.from(value['alignment']),
       offset: _getOffset(value['offset']),
@@ -60,6 +69,18 @@ class TooltipPopoverOptions {
     );
   }
 
+  /// Whether focusing the anchor is allowed to open the popover.
+  ///
+  /// A literal `true`/`false` is used directly. A binding expression is left
+  /// unresolved here (the tooltip map is not eagerly evaluated) and resolved
+  /// against the anchor's data scope each time the trigger fires, so a
+  /// condition such as `${!ensemble.storage.seen}` stays current and can gate
+  /// the popover to a single first-time view. When false the trigger is inert;
+  /// an already-open popover is unaffected and closes through its normal
+  /// dismiss paths (Back, focus loss, or `dismissPopover`).
+  ///
+  /// TV-only: the non-TV Flutter tooltip ignores [TooltipPopoverOptions].
+  final dynamic enabled;
   final TooltipPopoverPosition position;
   final TooltipPopoverAlignment alignment;
   final Offset offset;

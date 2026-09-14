@@ -1,3 +1,4 @@
+import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/tv/tv_focus_order.dart';
 import 'package:ensemble/framework/tv/tv_popover_registry.dart';
@@ -62,6 +63,10 @@ class _TVTooltipPopoverState extends State<TVTooltipPopover>
 
   @override
   void dispose() {
+    // Disposal intentionally does not emit the close notification: running an
+    // action from teardown is unsafe with a deactivated context. Definitions
+    // that mirror `event.data.isOpen` into a flag should treat a torn-down
+    // anchor (screen replaced / conditionally removed while open) as a reset.
     _unregisterPopover();
     _animationController.dispose();
     FocusManager.instance.removeListener(_onPrimaryFocusChanged);
@@ -78,12 +83,35 @@ class _TVTooltipPopoverState extends State<TVTooltipPopover>
     }
   }
 
+  /// Resolves `options.enabled`, which may be a literal bool or a binding
+  /// expression, against the anchor's data scope. Defaults to enabled when the
+  /// expression cannot be resolved.
+  bool _isEnabled() {
+    final raw = widget.tooltip.options.enabled;
+    if (raw is bool) return raw;
+    final resolved = _scopeManager?.dataContext.eval(raw);
+    return resolved is bool ? resolved : true;
+  }
+
+  /// Runs the tooltip's `onTriggered` action with the current open state so a
+  /// definition can mirror it into a flag, e.g.
+  /// `ensemble.storage.popoverOpen = event.data.isOpen;`.
+  void _notifyTrigger(bool isOpen) {
+    final onTriggered = widget.tooltip.onTriggered;
+    if (onTriggered == null || !mounted) return;
+    ScreenController().executeAction(
+      context,
+      onTriggered,
+      event: EnsembleEvent(null, data: {'isOpen': isOpen}),
+    );
+  }
+
   void _onAnchorAndPopoverFocusChanged(bool hasFocus) {
     final gainedFocus = hasFocus && !_anchorScopeHadFocus;
     _anchorScopeHadFocus = hasFocus;
 
     if (hasFocus) {
-      if (gainedFocus && !_isOpen) {
+      if (gainedFocus && !_isOpen && _isEnabled()) {
         _anchorFocusNode = FocusManager.instance.primaryFocus;
         _popoverEntry = TVPopoverEntry(
           close: () => _close(restoreAnchorFocus: true),
@@ -92,10 +120,7 @@ class _TVTooltipPopoverState extends State<TVTooltipPopover>
         TVPopoverRegistry.register(_popoverEntry!);
         setState(() => _isOpen = true);
         _portalController.show();
-        if (widget.tooltip.onTriggered != null) {
-          ScreenController()
-              .executeAction(context, widget.tooltip.onTriggered!);
-        }
+        _notifyTrigger(true);
         _animationController
           ..duration = widget.tooltip.options.animation.duration
           ..forward(from: 0);
@@ -155,6 +180,7 @@ class _TVTooltipPopoverState extends State<TVTooltipPopover>
     setState(() => _isOpen = false);
     _closing = false;
     _unregisterPopover();
+    _notifyTrigger(false);
     if (_restoreFocusOnClose) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted && _anchorFocusNode?.canRequestFocus == true) {
