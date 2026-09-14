@@ -19,9 +19,6 @@ jobs:
 
       - name: Set up Flutter SDK
         uses: ./.github/actions/setup-flutter
-        with:
-          # This job installed the SDK uncached before the shared action existed.
-          cache: "false"
 
       - name: Set up Node.js
         uses: actions/setup-node@v2
