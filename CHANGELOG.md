@@ -15,6 +15,76 @@ Packages with breaking changes:
 
 Packages with other changes:
 
+ - [`ensemble_date` - `v1.6.4`](#ensemble_date---v164)
+ - [`ensemble_ts_interpreter` - `v1.3.1`](#ensemble_ts_interpreter---v131)
+ - [`ensemble` - `v1.2.55`](#ensemble---v1255)
+ - [`ensemble_location` - `v1.2.55`](#ensemble_location---v1255)
+ - [`ensemble_file_manager` - `v1.2.55`](#ensemble_file_manager---v1255)
+ - [`ensemble_bluetooth` - `v1.2.55`](#ensemble_bluetooth---v1255)
+ - [`ensemble_camera` - `v1.2.55`](#ensemble_camera---v1255)
+ - [`ensemble_chat` - `v1.2.55`](#ensemble_chat---v1255)
+ - [`ensemble_face_camera` - `v1.2.55`](#ensemble_face_camera---v1255)
+ - [`ensemble_auth` - `v1.2.55`](#ensemble_auth---v1255)
+ - [`ensemble_test_runner` - `v1.3.7`](#ensemble_test_runner---v137)
+ - [`ensemble_moengage` - `v1.2.55`](#ensemble_moengage---v1255)
+ - [`ensemble_wifi` - `v1.2.55`](#ensemble_wifi---v1255)
+ - [`ensemble_network_info` - `v1.2.55`](#ensemble_network_info---v1255)
+ - [`ensemble_firebase_analytics` - `v1.2.55`](#ensemble_firebase_analytics---v1255)
+ - [`ensemble_contacts` - `v1.2.55`](#ensemble_contacts---v1255)
+ - [`ensemble_adobe_analytics` - `v1.2.55`](#ensemble_adobe_analytics---v1255)
+ - [`ensemble_remote_config` - `v1.2.55`](#ensemble_remote_config---v1255)
+ - [`ensemble_qr_scanner` - `v1.2.55`](#ensemble_qr_scanner---v1255)
+ - [`ensemble_bracket` - `v1.2.55`](#ensemble_bracket---v1255)
+ - [`ensemble_stripe` - `v1.2.55`](#ensemble_stripe---v1255)
+ - [`ensemble_deeplink` - `v1.2.55`](#ensemble_deeplink---v1255)
+ - [`ensemble_connect` - `v1.2.55`](#ensemble_connect---v1255)
+
+Packages with dependency updates only:
+
+> Packages listed below depend on other packages in this workspace that have had changes. Their versions have been incremented to bump the minimum dependency versions of the packages they depend upon in this project.
+
+ - `ensemble_ts_interpreter` - `v1.3.1`
+ - `ensemble` - `v1.2.55`
+ - `ensemble_location` - `v1.2.55`
+ - `ensemble_file_manager` - `v1.2.55`
+ - `ensemble_bluetooth` - `v1.2.55`
+ - `ensemble_camera` - `v1.2.55`
+ - `ensemble_chat` - `v1.2.55`
+ - `ensemble_face_camera` - `v1.2.55`
+ - `ensemble_auth` - `v1.2.55`
+ - `ensemble_test_runner` - `v1.3.7`
+ - `ensemble_moengage` - `v1.2.55`
+ - `ensemble_wifi` - `v1.2.55`
+ - `ensemble_network_info` - `v1.2.55`
+ - `ensemble_firebase_analytics` - `v1.2.55`
+ - `ensemble_contacts` - `v1.2.55`
+ - `ensemble_adobe_analytics` - `v1.2.55`
+ - `ensemble_remote_config` - `v1.2.55`
+ - `ensemble_qr_scanner` - `v1.2.55`
+ - `ensemble_bracket` - `v1.2.55`
+ - `ensemble_stripe` - `v1.2.55`
+ - `ensemble_deeplink` - `v1.2.55`
+ - `ensemble_connect` - `v1.2.55`
+
+---
+
+#### `ensemble_date` - `v1.6.4`
+
+ - Bump "ensemble_date" to `1.6.4`.
+
+
+## 2026-09-14
+
+### Changes
+
+---
+
+Packages with breaking changes:
+
+ - There are no breaking changes in this release.
+
+Packages with other changes:
+
  - [`ensemble_date` - `v1.6.3`](#ensemble_date---v163)
  - [`ensemble_ts_interpreter` - `v1.3.1`](#ensemble_ts_interpreter---v131)
  - [`ensemble` - `v1.2.55`](#ensemble---v1255)
