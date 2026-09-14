@@ -1,3 +1,10 @@
+## 3.1.5
+
+ - **REFACTOR**: update color handling in various widget files to use withValues for opacity adjustments. ([47affb3a](https://github.com/ensembleUI/ensemble/commit/47affb3a3b8e84c092c9d912b85ed8987b828e19))
+ - **FIX**(calendar): fix event widget layout and interaction. ([138f898f](https://github.com/ensembleUI/ensemble/commit/138f898f26fc43023055a5211ea098fe0355f163))
+ - **DOCS**: fix README validation issues. ([8e87d5b1](https://github.com/ensembleUI/ensemble/commit/8e87d5b14967c6e01f1b8dea62755277539a1662))
+ - **DOCS**: update package and module READMEs. ([74306617](https://github.com/ensembleUI/ensemble/commit/74306617e40588dc149587bddd7a9c7ca87fc5bf))
+
 ## 3.1.4
 
 * Updated to Flutter 3.35.5

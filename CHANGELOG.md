@@ -15,6 +15,77 @@ Packages with breaking changes:
 
 Packages with other changes:
 
+ - [`ensemble_table_calendar` - `v3.1.5`](#ensemble_table_calendar---v315)
+ - [`ensemble` - `v1.2.55`](#ensemble---v1255)
+ - [`ensemble_test_runner` - `v1.3.7`](#ensemble_test_runner---v137)
+ - [`ensemble_moengage` - `v1.2.55`](#ensemble_moengage---v1255)
+ - [`ensemble_wifi` - `v1.2.55`](#ensemble_wifi---v1255)
+ - [`ensemble_location` - `v1.2.55`](#ensemble_location---v1255)
+ - [`ensemble_network_info` - `v1.2.55`](#ensemble_network_info---v1255)
+ - [`ensemble_file_manager` - `v1.2.55`](#ensemble_file_manager---v1255)
+ - [`ensemble_bluetooth` - `v1.2.55`](#ensemble_bluetooth---v1255)
+ - [`ensemble_camera` - `v1.2.55`](#ensemble_camera---v1255)
+ - [`ensemble_firebase_analytics` - `v1.2.55`](#ensemble_firebase_analytics---v1255)
+ - [`ensemble_chat` - `v1.2.55`](#ensemble_chat---v1255)
+ - [`ensemble_contacts` - `v1.2.55`](#ensemble_contacts---v1255)
+ - [`ensemble_adobe_analytics` - `v1.2.55`](#ensemble_adobe_analytics---v1255)
+ - [`ensemble_remote_config` - `v1.2.55`](#ensemble_remote_config---v1255)
+ - [`ensemble_face_camera` - `v1.2.55`](#ensemble_face_camera---v1255)
+ - [`ensemble_auth` - `v1.2.55`](#ensemble_auth---v1255)
+ - [`ensemble_qr_scanner` - `v1.2.55`](#ensemble_qr_scanner---v1255)
+ - [`ensemble_bracket` - `v1.2.55`](#ensemble_bracket---v1255)
+ - [`ensemble_stripe` - `v1.2.55`](#ensemble_stripe---v1255)
+ - [`ensemble_deeplink` - `v1.2.55`](#ensemble_deeplink---v1255)
+ - [`ensemble_connect` - `v1.2.55`](#ensemble_connect---v1255)
+
+Packages with dependency updates only:
+
+> Packages listed below depend on other packages in this workspace that have had changes. Their versions have been incremented to bump the minimum dependency versions of the packages they depend upon in this project.
+
+ - `ensemble` - `v1.2.55`
+ - `ensemble_test_runner` - `v1.3.7`
+ - `ensemble_moengage` - `v1.2.55`
+ - `ensemble_wifi` - `v1.2.55`
+ - `ensemble_location` - `v1.2.55`
+ - `ensemble_network_info` - `v1.2.55`
+ - `ensemble_file_manager` - `v1.2.55`
+ - `ensemble_bluetooth` - `v1.2.55`
+ - `ensemble_camera` - `v1.2.55`
+ - `ensemble_firebase_analytics` - `v1.2.55`
+ - `ensemble_chat` - `v1.2.55`
+ - `ensemble_contacts` - `v1.2.55`
+ - `ensemble_adobe_analytics` - `v1.2.55`
+ - `ensemble_remote_config` - `v1.2.55`
+ - `ensemble_face_camera` - `v1.2.55`
+ - `ensemble_auth` - `v1.2.55`
+ - `ensemble_qr_scanner` - `v1.2.55`
+ - `ensemble_bracket` - `v1.2.55`
+ - `ensemble_stripe` - `v1.2.55`
+ - `ensemble_deeplink` - `v1.2.55`
+ - `ensemble_connect` - `v1.2.55`
+
+---
+
+#### `ensemble_table_calendar` - `v3.1.5`
+
+ - **REFACTOR**: update color handling in various widget files to use withValues for opacity adjustments. ([47affb3a](https://github.com/ensembleUI/ensemble/commit/47affb3a3b8e84c092c9d912b85ed8987b828e19))
+ - **FIX**(calendar): fix event widget layout and interaction. ([138f898f](https://github.com/ensembleUI/ensemble/commit/138f898f26fc43023055a5211ea098fe0355f163))
+ - **DOCS**: fix README validation issues. ([8e87d5b1](https://github.com/ensembleUI/ensemble/commit/8e87d5b14967c6e01f1b8dea62755277539a1662))
+ - **DOCS**: update package and module READMEs. ([74306617](https://github.com/ensembleUI/ensemble/commit/74306617e40588dc149587bddd7a9c7ca87fc5bf))
+
+
+## 2026-09-14
+
+### Changes
+
+---
+
+Packages with breaking changes:
+
+ - There are no breaking changes in this release.
+
+Packages with other changes:
+
  - [`ensemble_icons` - `v1.0.4`](#ensemble_icons---v104)
  - [`ensemble` - `v1.2.55`](#ensemble---v1255)
  - [`ensemble_test_runner` - `v1.3.7`](#ensemble_test_runner---v137)
