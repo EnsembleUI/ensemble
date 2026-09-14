@@ -1,4 +1,6 @@
 import 'package:ensemble/framework/action.dart';
+import 'package:ensemble/framework/data_context.dart';
+import 'package:ensemble/framework/data_utils.dart';
 import 'package:ensemble/framework/event.dart';
 import 'package:ensemble/framework/scope.dart';
 import 'package:ensemble/framework/tv/tv_focus_order.dart';
@@ -173,6 +175,43 @@ void main() {
   test('tooltip is enabled by default', () {
     final tooltip = TooltipData.from({'widget': {}}, ChangeNotifier())!;
     expect(tooltip.options.enabled, isTrue);
+  });
+
+  test('bound message causes options.enabled to be evaluated with the map', () {
+    final scopeManager = ScopeManager(
+      DataContext(buildContext: MockBuildContext()),
+      PageData(),
+    );
+    scopeManager.dataContext.addToThisContext('name', 'Ada');
+    scopeManager.dataContext.addToThisContext('seen', false);
+
+    final withoutMessageBinding = <dynamic, dynamic>{
+      'widget': {
+        'Text': {'text': 'hi'}
+      },
+      'options': {'enabled': r'${!seen}'},
+    };
+    final withMessageBinding = <dynamic, dynamic>{
+      'message': r'Hello ${name}',
+      'widget': {
+        'Text': {'text': 'hi'}
+      },
+      'options': {'enabled': r'${!seen}'},
+    };
+
+    // Without a top-level binding the map is left raw, so `enabled` stays
+    // unresolved and TVTooltip resolves it on each trigger (lazy path).
+    expect(DataUtils.parseDataExpression(withoutMessageBinding), isNull);
+
+    // A bound message makes the whole map a data expression, so the generic
+    // pipeline eagerly evaluates nested options too. Pin the actual behavior.
+    expect(DataUtils.parseDataExpression(withMessageBinding), isNotNull);
+    final evaluated = scopeManager.dataContext.eval(withMessageBinding);
+    final tooltip = TooltipData.from(
+      Map<String, dynamic>.from(evaluated as Map),
+      ChangeNotifier(),
+    )!;
+    expect(tooltip.options.enabled, isA<bool>());
   });
 
   testWidgets('message tooltip continues to use Flutter Tooltip',
@@ -872,6 +911,57 @@ void main() {
     expect(dismissed, isTrue);
     expect(find.text('Add favorites'), findsNothing);
     expect(anchorFocus.hasFocus, isTrue);
+  });
+
+  testWidgets(
+      'dismissTooltip stays closed when focus is outside and dismissOnFocusLoss is false',
+      (tester) async {
+    final anchorFocus = FocusNode();
+    final outsideFocus = FocusNode();
+    addTearDown(anchorFocus.dispose);
+    addTearDown(outsideFocus.dispose);
+
+    await tester.pumpWidget(TestUtils.wrapTestWidgetWithScope(Row(
+      children: [
+        TVTooltip(
+          tooltip: TooltipData(
+            message: '',
+            widget: {
+              'Button': {'label': 'Add favorites'}
+            },
+            options: const TooltipOptions(dismissOnFocusLoss: false),
+          ),
+          child:
+              Focus(focusNode: anchorFocus, child: const SizedBox(width: 20)),
+        ),
+        Focus(focusNode: outsideFocus, child: const SizedBox(width: 20)),
+      ],
+    )));
+
+    anchorFocus.requestFocus();
+    await tester.pump();
+    await tester.pump();
+    expect(find.text('Add favorites'), findsOneWidget);
+
+    // With dismissOnFocusLoss false the tooltip stays open while focus moves
+    // away from the anchor.
+    outsideFocus.requestFocus();
+    await tester.pump();
+    await tester.pump();
+    expect(find.text('Add favorites'), findsOneWidget);
+
+    final dismissed = await EnsembleUtils.dismissTooltip(
+      tester.element(find.byType(TVTooltip)),
+    );
+    await tester.pump();
+    await tester.pump();
+    await tester.pump();
+
+    expect(dismissed, isTrue);
+    // The anchor never owned focus at dismiss time, so focus must not be pulled
+    // back and read as a fresh rising edge that reopens the tooltip.
+    expect(find.text('Add favorites'), findsNothing);
+    expect(outsideFocus.hasFocus, isTrue);
   });
 
   testWidgets('TV tooltip contains focus when content has no focusables',

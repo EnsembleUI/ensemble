@@ -142,16 +142,22 @@ class _TVTooltipState extends State<TVTooltip>
     }
   }
 
-  void _onPrimaryFocusChanged() {
+  /// Whether the primary focus is on a real descendant of the anchor scope.
+  ///
+  /// The scope node itself is requestable, and Flutter can land focus on it
+  /// when a focused child is removed; treating that as anchor focus would open
+  /// the tooltip without the anchor control being focused. Used both to open
+  /// the tooltip on a rising edge and to decide whether focus should be
+  /// restored on close.
+  bool get _anchorHasPrimaryFocus {
     final primaryFocus = FocusManager.instance.primaryFocus;
-    // Only count focus on a real descendant of the anchor scope. The scope
-    // node itself is requestable, and Flutter can land focus on it when a
-    // focused child is removed; treating that as anchor focus would open the
-    // tooltip without the anchor control being focused.
-    final hasFocus = primaryFocus != null &&
+    return primaryFocus != null &&
         primaryFocus != _anchorAndTooltipScope &&
         primaryFocus.ancestors.contains(_anchorAndTooltipScope);
-    _onAnchorAndTooltipFocusChanged(hasFocus);
+  }
+
+  void _onPrimaryFocusChanged() {
+    _onAnchorAndTooltipFocusChanged(_anchorHasPrimaryFocus);
   }
 
   /// Starts closing the tooltip. Returns true when this call initiated the
@@ -159,8 +165,13 @@ class _TVTooltipState extends State<TVTooltip>
   bool _close({required bool restoreAnchorFocus}) {
     if (!_isOpen || _closing) return false;
     _closing = true;
-    _restoreFocusOnClose =
-        restoreAnchorFocus && widget.tooltip.options.restoreFocus;
+    _restoreFocusOnClose = restoreAnchorFocus &&
+        widget.tooltip.options.restoreFocus &&
+        // Only pull focus back to the anchor when the anchor (or its tooltip)
+        // actually owns focus. A programmatic dismiss while focus is elsewhere
+        // (e.g. `dismissTooltip` with dismissOnFocusLoss:false) must not
+        // restore focus, which would read as a rising edge and reopen.
+        _anchorHasPrimaryFocus;
 
     if (widget.tooltip.options.animation.type ==
             TooltipAnimationType.none ||
