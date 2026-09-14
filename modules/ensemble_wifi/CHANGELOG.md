@@ -1,3 +1,7 @@
+## 1.2.55
+
+ - Bump "ensemble_wifi" to `1.2.55`.
+
 ## 1.2.54
 
  - Bump "ensemble_wifi" to `1.2.54`.

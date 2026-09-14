@@ -1,3 +1,7 @@
+## 1.2.55
+
+ - **FIX**: update device_info_plus dependency range. ([735a617a](https://github.com/ensembleUI/ensemble/commit/735a617a768f2a0440a0b9553cd48f54b6dc620e))
+
 ## 1.2.54
 
  - **REFACTOR**(action): improve event handler registration and error handling ([#2357](https://github.com/ensembleUI/ensemble/issues/2357)). ([ecbc0b3c](https://github.com/ensembleUI/ensemble/commit/ecbc0b3c55a4a7a697c28b6a7d99d87f3dc96587))

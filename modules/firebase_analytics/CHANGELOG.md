@@ -1,3 +1,5 @@
+## 1.2.55
+
 ## 1.2.54
 
  - Bump "ensemble_firebase_analytics" to `1.2.54`.
