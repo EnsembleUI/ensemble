@@ -232,10 +232,10 @@ String? resolvedWebViewCookieBaseUrl({
   String? html,
   String? htmlBaseUrl,
 }) {
-  if (url != null && url.isNotEmpty) {
+  if (url != null && url.trim().isNotEmpty) {
     return url;
   }
-  if (html != null && html.isNotEmpty) {
+  if (html != null && html.trim().isNotEmpty) {
     final base = htmlBaseUrl?.trim();
     return (base == null || base.isEmpty)
         ? kWebViewHtmlDefaultBaseUrl

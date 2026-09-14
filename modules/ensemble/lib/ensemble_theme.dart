@@ -33,8 +33,6 @@ class EnsembleTheme {
             onSecondary: Colors.white,
             error: Color(0xFFB00020),
             onError: Colors.white,
-            background: Colors.white,
-            onBackground: Color(0xFF404040),
             surface: Colors.white,
             onSurface: Color(0xFF404040)));
   }
@@ -144,7 +142,8 @@ class EnsembleTheme {
     final ThemeData base = ThemeData.light();
     return base.copyWith(
       primaryColor: primaryColor,
-      indicatorColor: Colors.white,
+      // https://docs.flutter.dev/release/breaking-changes/deprecate-themedata-indicatorcolor
+      tabBarTheme: const TabBarThemeData(indicatorColor: Colors.white),
       splashColor: Colors.white24,
       splashFactory: InkRipple.splashFactory,
       //accentColor: secondaryColor,
@@ -157,7 +156,7 @@ class EnsembleTheme {
       textTheme: _buildTextThemeOld(base.textTheme),
       primaryTextTheme: _buildTextThemeOld(base.primaryTextTheme),
       //accentTextTheme: _buildTextThemeOld(base.accentTextTheme),
-      platform: TargetPlatform.iOS, colorScheme: colorScheme.copyWith(background: const Color(0xFFFFFFFF)),
+      platform: TargetPlatform.iOS, colorScheme: colorScheme.copyWith(surface: const Color(0xFFFFFFFF)),
     );
   }
 }

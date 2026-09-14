@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 /// Ensemble's default light color scheme
+// https://api.flutter.dev/flutter/material/ColorScheme-class.html
 const ColorScheme defaultColorScheme = ColorScheme.light(
   primary: Color(0xFFE01B9D),
   onPrimary: Color(0xffffffff),
@@ -19,11 +20,9 @@ const ColorScheme defaultColorScheme = ColorScheme.light(
   errorContainer: Color(0xfffcd8df),
   onErrorContainer: Color(0xff282526),
   outline: Color(0xff5c5c62),
-  background: Color(0xffecf2fa),
-  onBackground: Color(0xff121213),
   surface: Color(0xfff5f8fc),
   onSurface: Color(0xff090909),
-  surfaceVariant: Color(0xffecf2fa),
+  surfaceContainerHighest: Color(0xffecf2fa),
   onSurfaceVariant: Color(0xff121213),
   inverseSurface: Color(0xff111417),
   onInverseSurface: Color(0xfff5f5f5),
@@ -32,6 +31,7 @@ const ColorScheme defaultColorScheme = ColorScheme.light(
 );
 
 /// Ensemble's default dark color scheme. TODO: it's the same as light :)
+// https://api.flutter.dev/flutter/material/ColorScheme-class.html
 const ColorScheme defaultDarkColorScheme = ColorScheme.dark(
   primary: Color(0xff1565c0),
   onPrimary: Color(0xffffffff),
@@ -50,11 +50,9 @@ const ColorScheme defaultDarkColorScheme = ColorScheme.dark(
   errorContainer: Color(0xfffcd8df),
   onErrorContainer: Color(0xff282526),
   outline: Color(0xff5c5c62),
-  background: Color(0xffecf2fa),
-  onBackground: Color(0xff121213),
   surface: Color(0xfff5f8fc),
   onSurface: Color(0xff090909),
-  surfaceVariant: Color(0xffecf2fa),
+  surfaceContainerHighest: Color(0xffecf2fa),
   onSurfaceVariant: Color(0xff121213),
   inverseSurface: Color(0xff111417),
   onInverseSurface: Color(0xfff5f5f5),

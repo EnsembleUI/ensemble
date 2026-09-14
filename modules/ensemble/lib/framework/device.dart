@@ -163,9 +163,10 @@ class DeviceWebInfo with Invokable {
   Map<String, Function> getters() {
     WebBrowserInfo? browserInfo = DeviceInfoCapability.browserInfo;
     return {
+      // https://docs.flutter.dev/release/breaking-changes/remove-describeEnum
       'browserName': () => browserInfo?.browserName == null
           ? null
-          : describeEnum(browserInfo!.browserName),
+          : browserInfo!.browserName.name,
       'appCodeName': () => browserInfo?.appCodeName,
       'appName': () => browserInfo?.appName,
       'appVersion': () => browserInfo?.appVersion,
@@ -215,7 +216,6 @@ class DeviceAndroidInfo with Invokable {
       'tags': () => androidInfo?.tags,
       'type': () => androidInfo?.type,
       'isPhysicalDevice': () => androidInfo?.isPhysicalDevice,
-      'serialNumber': () => androidInfo?.serialNumber,
     };
   }
 

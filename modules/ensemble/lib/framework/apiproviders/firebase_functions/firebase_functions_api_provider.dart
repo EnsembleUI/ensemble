@@ -97,15 +97,16 @@ class FirebaseFunctionsAPIProvider extends APIProvider {
       if (_app?.options.apiKey != null) {
         FirebaseAppCheck appCheck = FirebaseAppCheck.instanceFor(app: _app!);
         // Now initialize App Check
+        // https://pub.dev/packages/firebase_app_check/changelog
         if (kDebugMode) {
           await appCheck.activate(
-            androidProvider: AndroidProvider.debug,
-            appleProvider: AppleProvider.debug,
+            providerAndroid: const AndroidDebugProvider(),
+            providerApple: const AppleDebugProvider(),
           );
         } else {
           await appCheck.activate(
-            androidProvider: AndroidProvider.playIntegrity,
-            appleProvider: AppleProvider.appAttest,
+            providerAndroid: const AndroidPlayIntegrityProvider(),
+            providerApple: const AppleAppAttestProvider(),
           );
         }
 

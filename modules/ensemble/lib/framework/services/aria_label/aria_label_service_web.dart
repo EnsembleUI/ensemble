@@ -1,3 +1,6 @@
+// TODO(web-wasm): replace dart:html / package:js with package:web +
+// dart:js_interop. Blocks the WebAssembly target only; JS build is fine.
+// https://dart.dev/interop/js-interop/package-web
 // ignore: avoid_web_libraries_in_flutter
 import 'dart:js' as js;
 import 'package:flutter/foundation.dart';

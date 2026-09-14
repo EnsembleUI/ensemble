@@ -3,6 +3,11 @@ import Flutter
 // import GoogleMaps
 import flutter_local_notifications
 
+// TODO(uiscene): not migrated to the UIScene lifecycle. Flutter's migrator skips
+// a customized AppDelegate, so this app stays on the legacy UIApplication
+// lifecycle and builds fine on 3.47.2 (warning only). Apple enforces UIScene for
+// apps built with the iOS 27 SDK - migrate before that Xcode upgrade.
+// https://docs.flutter.dev/release/breaking-changes/uiscenedelegate
 @main
 @objc class AppDelegate: FlutterAppDelegate {
   static let methodChannelName: String = "com.ensembleui.host.platform"
