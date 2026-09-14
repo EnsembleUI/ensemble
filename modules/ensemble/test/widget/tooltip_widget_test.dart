@@ -140,6 +140,47 @@ final List<_PlacementSpec> _placementSpecs = [
       (r) => r.bottomRight, (r) => r.bottomLeft),
 ];
 
+/// Rebuilds a [TVTooltip] on every parent build, like `getTooltipWidget` does.
+class _TVTooltipHost extends StatefulWidget {
+  const _TVTooltipHost({
+    required this.anchorFocus,
+    this.options = const TooltipOptions(),
+  });
+
+  final FocusNode anchorFocus;
+  final TooltipOptions options;
+
+  @override
+  State<_TVTooltipHost> createState() => _TVTooltipHostState();
+}
+
+class _TVTooltipHostState extends State<_TVTooltipHost> {
+  void rebuild() => setState(() {});
+
+  @override
+  Widget build(BuildContext context) {
+    return TVTooltip(
+      tooltip: TooltipData(
+        message: '',
+        widget: {
+          'Text': {'text': r'${label}'}
+        },
+        options: widget.options,
+      ),
+      child: Focus(
+        focusNode: widget.anchorFocus,
+        child: const SizedBox(width: 20),
+      ),
+    );
+  }
+}
+
+void rebuildTVTooltipHost(WidgetTester tester) {
+  tester
+      .state<_TVTooltipHostState>(find.byType(_TVTooltipHost))
+      .rebuild();
+}
+
 void main() {
   test('tooltip options parse supported values', () {
     final tooltip = TooltipData.from({
@@ -993,5 +1034,67 @@ void main() {
     final scopeNode =
         tester.widget<TVFocusScope>(find.byType(TVFocusScope)).focusNode;
     expect(FocusManager.instance.primaryFocus, scopeNode);
+  });
+
+  testWidgets('TV tooltip content is built once per open', (tester) async {
+    final anchorFocus = FocusNode();
+    addTearDown(anchorFocus.dispose);
+
+    await tester.pumpWidget(TestUtils.wrapTestWidgetWithScope(
+      _TVTooltipHost(anchorFocus: anchorFocus),
+    ));
+
+    final scopeManager =
+        DataScopeWidget.getScope(tester.element(find.byType(TVTooltip)))!;
+    scopeManager.dataContext.addToThisContext('label', 'hi');
+
+    anchorFocus.requestFocus();
+    await tester.pump();
+    await tester.pump();
+    expect(find.text('hi'), findsOneWidget);
+    // The bound Text registers exactly one binding subscription.
+    final afterOpen = scopeManager.listenerMap.length;
+    expect(afterOpen, 1);
+
+    for (var i = 0; i < 5; i++) {
+      rebuildTVTooltipHost(tester);
+      await tester.pump();
+    }
+
+    // Rebuilding must not re-parse the content and leak subscriptions.
+    expect(find.text('hi'), findsOneWidget);
+    expect(scopeManager.listenerMap.length, afterOpen);
+  });
+
+  testWidgets('TV tooltip reuses its animation across rebuilds', (tester) async {
+    final anchorFocus = FocusNode();
+    addTearDown(anchorFocus.dispose);
+
+    await tester.pumpWidget(TestUtils.wrapTestWidgetWithScope(
+      _TVTooltipHost(
+        anchorFocus: anchorFocus,
+        options: const TooltipOptions(
+          animation: TooltipAnimation(
+            type: TooltipAnimationType.fade,
+            duration: Duration(milliseconds: 150),
+          ),
+        ),
+      ),
+    ));
+
+    anchorFocus.requestFocus();
+    await tester.pump();
+    await tester.pump();
+
+    final first =
+        tester.widget<FadeTransition>(find.byType(FadeTransition)).opacity;
+
+    rebuildTVTooltipHost(tester);
+    await tester.pump();
+
+    final second =
+        tester.widget<FadeTransition>(find.byType(FadeTransition)).opacity;
+    // The animation is created once and reused across rebuilds.
+    expect(identical(first, second), isTrue);
   });
 }

@@ -37,6 +37,10 @@ class _TVTooltipState extends State<TVTooltip>
   );
   late final AnimationController _animationController;
 
+  /// Curved view of [_animationController], created once to avoid leaking a
+  /// status listener per rebuild.
+  late final CurvedAnimation _animation;
+
   bool _isOpen = false;
   bool _closing = false;
   bool _restoreFocusOnClose = false;
@@ -47,6 +51,12 @@ class _TVTooltipState extends State<TVTooltip>
   bool _anchorScopeHadFocus = false;
   FocusNode? _anchorFocusNode;
   ScopeManager? _scopeManager;
+
+  /// Content built once per open and released on close, so parent rebuilds do
+  /// not re-parse the YAML and leak binding subscriptions or id-bound state.
+  Widget? _cachedContent;
+  ScopeManager? _cachedContentScope;
+
   TVTooltipEntry? _tooltipEntry;
 
   @override
@@ -58,6 +68,10 @@ class _TVTooltipState extends State<TVTooltip>
           _completeClose();
         }
       });
+    _animation = CurvedAnimation(
+      parent: _animationController,
+      curve: widget.tooltip.options.animation.curve,
+    );
     FocusManager.instance.addListener(_onPrimaryFocusChanged);
   }
 
@@ -68,6 +82,7 @@ class _TVTooltipState extends State<TVTooltip>
     // that mirror `event.data.isOpen` into a flag should treat a torn-down
     // anchor (screen replaced / conditionally removed while open) as a reset.
     _unregisterTooltip();
+    _animation.dispose();
     _animationController.dispose();
     FocusManager.instance.removeListener(_onPrimaryFocusChanged);
     _anchorAndTooltipScope.dispose();
@@ -142,13 +157,8 @@ class _TVTooltipState extends State<TVTooltip>
     }
   }
 
-  /// Whether the primary focus is on a real descendant of the anchor scope.
-  ///
-  /// The scope node itself is requestable, and Flutter can land focus on it
-  /// when a focused child is removed; treating that as anchor focus would open
-  /// the tooltip without the anchor control being focused. Used both to open
-  /// the tooltip on a rising edge and to decide whether focus should be
-  /// restored on close.
+  /// Whether primary focus is on a real descendant of the anchor scope (the
+  /// scope node itself doesn't count). Used for the open edge and focus restore.
   bool get _anchorHasPrimaryFocus {
     final primaryFocus = FocusManager.instance.primaryFocus;
     return primaryFocus != null &&
@@ -167,10 +177,8 @@ class _TVTooltipState extends State<TVTooltip>
     _closing = true;
     _restoreFocusOnClose = restoreAnchorFocus &&
         widget.tooltip.options.restoreFocus &&
-        // Only pull focus back to the anchor when the anchor (or its tooltip)
-        // actually owns focus. A programmatic dismiss while focus is elsewhere
-        // (e.g. `dismissTooltip` with dismissOnFocusLoss:false) must not
-        // restore focus, which would read as a rising edge and reopen.
+        // Restore only if the anchor owns focus; otherwise the restore reads as
+        // a rising edge and reopens.
         _anchorHasPrimaryFocus;
 
     if (widget.tooltip.options.animation.type ==
@@ -188,7 +196,12 @@ class _TVTooltipState extends State<TVTooltip>
   void _completeClose() {
     if (!mounted || !_closing) return;
     _portalController.hide();
-    setState(() => _isOpen = false);
+    setState(() {
+      _isOpen = false;
+      // Drop the cache so the next open rebuilds the content fresh.
+      _cachedContent = null;
+      _cachedContentScope = null;
+    });
     _closing = false;
     _unregisterTooltip();
     _notifyTrigger(false);
@@ -243,6 +256,13 @@ class _TVTooltipState extends State<TVTooltip>
       return const SizedBox.shrink();
     }
 
+    if (_cachedContent == null || _cachedContentScope != scopeManager) {
+      _cachedContent =
+          scopeManager.buildWidgetWithScopeFromDefinition(widget.tooltip.widget);
+      _cachedContentScope = scopeManager;
+    }
+    final content = _cachedContent!;
+
     final anchors = _anchors;
     // An OverlayPortal lays its overlay child out with the Overlay's tight
     // constraints, so the CompositedTransformFollower (and therefore its
@@ -276,8 +296,7 @@ class _TVTooltipState extends State<TVTooltip>
               onRightEdge: _keepFocus,
               onTopEdge: _keepFocus,
               onBottomEdge: _keepFocus,
-              child: scopeManager
-                  .buildWidgetWithScopeFromDefinition(widget.tooltip.widget),
+              child: content,
             ),
           ),
         ),
@@ -286,16 +305,12 @@ class _TVTooltipState extends State<TVTooltip>
   }
 
   Widget _animateTooltip(Widget child) {
-    final animation = CurvedAnimation(
-      parent: _animationController,
-      curve: widget.tooltip.options.animation.curve,
-    );
     switch (widget.tooltip.options.animation.type) {
       case TooltipAnimationType.fade:
-        return FadeTransition(opacity: animation, child: child);
+        return FadeTransition(opacity: _animation, child: child);
       case TooltipAnimationType.scale:
         return ScaleTransition(
-          scale: Tween<double>(begin: 0.95, end: 1).animate(animation),
+          scale: Tween<double>(begin: 0.95, end: 1).animate(_animation),
           child: child,
         );
       case TooltipAnimationType.slide:
@@ -303,7 +318,7 @@ class _TVTooltipState extends State<TVTooltip>
           position: Tween<Offset>(
             begin: _slideBeginOffset,
             end: Offset.zero,
-          ).animate(animation),
+          ).animate(_animation),
           child: child,
         );
       case TooltipAnimationType.none:
