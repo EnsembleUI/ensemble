@@ -2,7 +2,8 @@
 # Publishing is handled by publish-standalone-pubdev.yml on the resulting tag.
 #
 #   melos version --scope=<package> --manual-version <package>:<version> --yes
-#   git push origin main && git push origin <package>-v<version>
+#   -> repair and re-tag (.github/scripts/repair_and_retag.sh)
+#   -> git push origin main && git push origin <package>-v<version>
 
 name: Release Standalone Package
 
@@ -37,8 +38,14 @@ on:
           - minor
           - major
 
+# Every run of this workflow commits and pushes to main, so runs must not
+# overlap. The group must NOT include `inputs.package`: keying it per package
+# let releases of different packages run in parallel, and each one then lost the
+# push with `non-fast-forward`. The conflict is over the branch, not the
+# package. Queue rather than cancel -- a cancelled release can leave a local tag
+# that was never pushed.
 concurrency:
-  group: standalone-release-${{ github.repository }}-${{ inputs.package }}
+  group: standalone-release-${{ github.repository }}
   cancel-in-progress: false
 
 permissions:
@@ -140,6 +147,13 @@ jobs:
             --manual-version ${{ steps.resolve.outputs.package }}:${{ steps.resolve.outputs.version }} \
             --no-dependent-versions \
             --yes
+
+      # melos corrupts hosted deps written as a compound range (e.g.
+      # ensemble_test_runner's `ensemble: ">=x.y.z <2.0.0"`) when it bumps an
+      # unrelated package, so every `melos version` call site must repair its
+      # output before pushing. See .github/scripts/fix_melos_version_rewrite.dart.
+      - name: Repair melos dependency-constraint rewrite
+        run: .github/scripts/repair_and_retag.sh
 
       - name: Push branch and tag
         run: |
