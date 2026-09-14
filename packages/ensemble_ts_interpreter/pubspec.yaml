@@ -25,7 +25,7 @@ dependencies:
   http: ^1.2.1
   json_path: ^0.7.2
   duration: ^3.0.11
-  ensemble_date: ^1.6.1
+  ensemble_date: ^1.6.3
   parsejs_null_safety: ^2.1.0
   source_span: ^1.9.1
   # TODO(flutter-upgrade): narrow to `^0.20.3` once all consuming apps are on Flutter >= 3.47.
