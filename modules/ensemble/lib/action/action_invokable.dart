@@ -44,6 +44,7 @@ abstract class ActionInvokable with Invokable {
       ActionType.showDialog,
       ActionType.dismissDialog,
       ActionType.closeAllDialogs,
+      ActionType.dismissTooltip,
       ActionType.executeActionGroup,
       ActionType.takeScreenshot,
       ActionType.saveFile,
