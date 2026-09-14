@@ -1,0 +1,40 @@
+name: ensemble_agent
+description: >
+  Provider-independent Flutter runtime for on-device AI agents, including local
+  model integrations, sessions, tool calling, streaming, capability detection,
+  and standardized errors/results.
+version: 0.1.0
+homepage: https://ensembleui.com
+repository: https://github.com/EnsembleUI/ensemble/tree/main/packages/ensemble_agent
+issue_tracker: https://github.com/EnsembleUI/ensemble/issues
+documentation: https://github.com/EnsembleUI/ensemble/tree/main/packages/ensemble_agent#readme
+topics:
+  - ai
+  - agent
+  - on-device
+  - llm
+  - flutter
+
+environment:
+  sdk: ">=3.5.0 <4.0.0"
+  flutter: ">=3.24.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  plugin_platform_interface: ^2.0.2
+  uuid: ^4.5.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+
+flutter:
+  plugin:
+    platforms:
+      android:
+        package: com.ensembleui.ensemble_agent
+        pluginClass: EnsembleAgentPlugin
+      ios:
+        pluginClass: EnsembleAgentPlugin
