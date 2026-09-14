@@ -11,7 +11,7 @@ import 'package:ensemble/framework/stub/location_manager.dart';
 import 'package:ensemble/framework/theme/theme_manager.dart';
 import 'package:ensemble/screen_controller.dart';
 import 'package:ensemble/widget/helpers/tooltip_composite.dart';
-import 'package:ensemble/widget/helpers/tv_tooltip_popover.dart';
+import 'package:ensemble/widget/helpers/tv_tooltip.dart';
 import 'package:ensemble_ts_interpreter/invokables/UserLocale.dart';
 import 'package:path/path.dart' as p;
 
@@ -575,7 +575,7 @@ class Utils {
     if (tooltip == null) return child;
 
   if (Device().isTV && tooltip.widget != null) {
-    return TVTooltipPopover(child: child, tooltip: tooltip);
+    return TVTooltip(child: child, tooltip: tooltip);
   }
 
     final tooltipKey = GlobalKey();

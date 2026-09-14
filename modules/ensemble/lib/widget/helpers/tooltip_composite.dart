@@ -11,20 +11,20 @@ class TooltipData {
 
   /// Action run when the tooltip is triggered.
   ///
-  /// On TV, where a declarative [widget] renders as a focusable popover, this
+  /// On TV, where a declarative [widget] renders as a focusable tooltip, this
   /// runs on both open and close and receives the state as `event.data.isOpen`
   /// so a definition can mirror it into a flag. It still runs on open only for
   /// the non-TV Flutter tooltip, which has no close callback.
   final EnsembleAction? onTriggered;
   final dynamic widget;
-  final TooltipPopoverOptions options;
+  final TooltipOptions options;
 
   TooltipData({
     required this.message,
     this.styles,
     this.onTriggered,
     this.widget,
-    this.options = const TooltipPopoverOptions(),
+    this.options = const TooltipOptions(),
   });
 
   static TooltipData? from(Map<String, dynamic>? data, ChangeNotifier controller) {
@@ -37,57 +37,57 @@ class TooltipData {
       onTriggered: data['onTriggered'] != null ? 
         EnsembleAction.from(data['onTriggered']) : null,
       widget: data['widget'],
-      options: TooltipPopoverOptions.from(data['options']),
+      options: TooltipOptions.from(data['options']),
     );
   }
 }
 
-class TooltipPopoverOptions {
-  const TooltipPopoverOptions({
+class TooltipOptions {
+  const TooltipOptions({
     this.enabled = true,
-    this.position = TooltipPopoverPosition.below,
-    this.alignment = TooltipPopoverAlignment.center,
+    this.position = TooltipPosition.below,
+    this.alignment = TooltipAlignment.center,
     this.offset = Offset.zero,
     this.dismissOnFocusLoss = true,
     this.dismissOnBack = true,
     this.restoreFocus = true,
-    this.animation = const TooltipPopoverAnimation(),
+    this.animation = const TooltipAnimation(),
   });
 
-  factory TooltipPopoverOptions.from(dynamic value) {
-    if (value is! Map) return const TooltipPopoverOptions();
-    return TooltipPopoverOptions(
+  factory TooltipOptions.from(dynamic value) {
+    if (value is! Map) return const TooltipOptions();
+    return TooltipOptions(
       enabled: value['enabled'] ?? true,
-      position: TooltipPopoverPosition.from(value['position']),
-      alignment: TooltipPopoverAlignment.from(value['alignment']),
+      position: TooltipPosition.from(value['position']),
+      alignment: TooltipAlignment.from(value['alignment']),
       offset: _getOffset(value['offset']),
       dismissOnFocusLoss:
           Utils.getBool(value['dismissOnFocusLoss'], fallback: true),
       dismissOnBack: Utils.getBool(value['dismissOnBack'], fallback: true),
       restoreFocus: Utils.getBool(value['restoreFocus'], fallback: true),
-      animation: TooltipPopoverAnimation.from(value['animation']),
+      animation: TooltipAnimation.from(value['animation']),
     );
   }
 
-  /// Whether focusing the anchor is allowed to open the popover.
+  /// Whether focusing the anchor is allowed to open the tooltip.
   ///
   /// A literal `true`/`false` is used directly. A binding expression is left
   /// unresolved here (the tooltip map is not eagerly evaluated) and resolved
   /// against the anchor's data scope each time the trigger fires, so a
   /// condition such as `${!ensemble.storage.seen}` stays current and can gate
-  /// the popover to a single first-time view. When false the trigger is inert;
-  /// an already-open popover is unaffected and closes through its normal
-  /// dismiss paths (Back, focus loss, or `dismissPopover`).
+  /// the tooltip to a single first-time view. When false the trigger is inert;
+  /// an already-open tooltip is unaffected and closes through its normal
+  /// dismiss paths (Back, focus loss, or `dismissTooltip`).
   ///
-  /// TV-only: the non-TV Flutter tooltip ignores [TooltipPopoverOptions].
+  /// TV-only: the non-TV Flutter tooltip ignores [TooltipOptions].
   final dynamic enabled;
-  final TooltipPopoverPosition position;
-  final TooltipPopoverAlignment alignment;
+  final TooltipPosition position;
+  final TooltipAlignment alignment;
   final Offset offset;
   final bool dismissOnFocusLoss;
   final bool dismissOnBack;
   final bool restoreFocus;
-  final TooltipPopoverAnimation animation;
+  final TooltipAnimation animation;
 
   static Offset _getOffset(dynamic value) {
     if (value is List && value.length >= 2) {
@@ -105,48 +105,48 @@ class TooltipPopoverOptions {
   }
 }
 
-enum TooltipPopoverPosition {
+enum TooltipPosition {
   below,
   above,
   left,
   right;
 
-  static TooltipPopoverPosition from(dynamic value) =>
-      TooltipPopoverPosition.values.firstWhere(
+  static TooltipPosition from(dynamic value) =>
+      TooltipPosition.values.firstWhere(
         (position) => position.name == value,
-        orElse: () => TooltipPopoverPosition.below,
+        orElse: () => TooltipPosition.below,
       );
 }
 
-enum TooltipPopoverAlignment {
+enum TooltipAlignment {
   start,
   center,
   end;
 
-  static TooltipPopoverAlignment from(dynamic value) =>
-      TooltipPopoverAlignment.values.firstWhere(
+  static TooltipAlignment from(dynamic value) =>
+      TooltipAlignment.values.firstWhere(
         (alignment) => alignment.name == value,
-        orElse: () => TooltipPopoverAlignment.center,
+        orElse: () => TooltipAlignment.center,
       );
 }
 
-class TooltipPopoverAnimation {
-  const TooltipPopoverAnimation({
-    this.type = TooltipPopoverAnimationType.none,
+class TooltipAnimation {
+  const TooltipAnimation({
+    this.type = TooltipAnimationType.none,
     this.duration = Duration.zero,
     this.curve = Curves.easeOut,
   });
 
-  factory TooltipPopoverAnimation.from(dynamic value) {
-    if (value is! Map) return const TooltipPopoverAnimation();
-    return TooltipPopoverAnimation(
-      type: TooltipPopoverAnimationType.from(value['type']),
+  factory TooltipAnimation.from(dynamic value) {
+    if (value is! Map) return const TooltipAnimation();
+    return TooltipAnimation(
+      type: TooltipAnimationType.from(value['type']),
       duration: Utils.getDurationMs(value['duration']) ?? Duration.zero,
       curve: _getCurve(value['curve']) ?? Curves.easeOut,
     );
   }
 
-  final TooltipPopoverAnimationType type;
+  final TooltipAnimationType type;
   final Duration duration;
   final Curve curve;
 
@@ -170,16 +170,16 @@ class TooltipPopoverAnimation {
   }
 }
 
-enum TooltipPopoverAnimationType {
+enum TooltipAnimationType {
   none,
   fade,
   scale,
   slide;
 
-  static TooltipPopoverAnimationType from(dynamic value) =>
-      TooltipPopoverAnimationType.values.firstWhere(
+  static TooltipAnimationType from(dynamic value) =>
+      TooltipAnimationType.values.firstWhere(
         (type) => type.name == value,
-        orElse: () => TooltipPopoverAnimationType.none,
+        orElse: () => TooltipAnimationType.none,
       );
 }
 

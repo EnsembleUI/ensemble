@@ -1,6 +1,6 @@
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/ensemble_app.dart';
-import 'package:ensemble/framework/tv/tv_popover_registry.dart';
+import 'package:ensemble/framework/tv/tv_tooltip_registry.dart';
 import 'package:flutter/material.dart';
 
 class EnsembleUtils {
@@ -71,13 +71,13 @@ class EnsembleUtils {
     return Future.value(false);
   }
 
-  /// dismiss the top-most TV tooltip popover (if any)
+  /// dismiss the top-most TV tooltip (if any)
   ///
-  /// A popover is an [OverlayPortal], not a route, so it is closed through
-  /// [TVPopoverRegistry] instead of the Navigator. [context] scopes the
-  /// dismissal to the popover opened on the same route when possible.
-  static Future<bool> dismissPopover([BuildContext? context]) {
+  /// A tooltip is an [OverlayPortal], not a route, so it is closed through
+  /// [TVTooltipRegistry] instead of the Navigator. [context] scopes the
+  /// dismissal to the tooltip opened on the same route when possible.
+  static Future<bool> dismissTooltip([BuildContext? context]) {
     final route = context != null ? ModalRoute.of(context) : null;
-    return Future.value(TVPopoverRegistry.dismiss(route: route));
+    return Future.value(TVTooltipRegistry.dismiss(route: route));
   }
 }

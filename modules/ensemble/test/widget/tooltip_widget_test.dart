@@ -6,7 +6,7 @@ import 'package:ensemble/framework/view/data_scope_widget.dart';
 import 'package:ensemble/util/ensemble_utils.dart';
 import 'package:ensemble/util/utils.dart';
 import 'package:ensemble/widget/helpers/tooltip_composite.dart';
-import 'package:ensemble/widget/helpers/tv_tooltip_popover.dart';
+import 'package:ensemble/widget/helpers/tv_tooltip.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -20,7 +20,7 @@ class _RecordingTriggerAction extends EnsembleAction {
 
   final List<dynamic> states;
 
-  /// Invoked with the scope when the popover reports that it opened, used to
+  /// Invoked with the scope when the tooltip reports that it opened, used to
   /// simulate a definition storing a one-time flag.
   final void Function(ScopeManager scopeManager)? onOpen;
 
@@ -36,10 +36,10 @@ class _RecordingTriggerAction extends EnsembleAction {
   }
 }
 
-FocusNode popoverScope(WidgetTester tester) => tester
+FocusNode tooltipScope(WidgetTester tester) => tester
     .widgetList<TVFocusScope>(find.byType(TVFocusScope))
     .singleWhere(
-      (scope) => scope.focusNode?.debugLabel == 'TVTooltipPopoverScope',
+      (scope) => scope.focusNode?.debugLabel == 'TVTooltipScope',
     )
     .focusNode!;
 
@@ -49,7 +49,7 @@ KeyDownEvent _keyDown(LogicalKeyboardKey key) => KeyDownEvent(
       timeStamp: Duration.zero,
     );
 
-/// Two focusable declarative children used to exercise in-popover traversal.
+/// Two focusable declarative children used to exercise in-tooltip traversal.
 final YamlMap twoButtonWidget = loadYaml('''
 Column:
   styles:
@@ -61,20 +61,20 @@ Column:
         label: Second
 ''');
 
-/// Pumps a centered [TVTooltipPopover] with a 40x40 anchor and opens it.
+/// Pumps a centered [TVTooltip] with a 40x40 anchor and opens it.
 ///
 /// Returns the anchor's rect. The anchor is centered in the 800x600 test
 /// window, so its top-left is always (380, 280).
-Future<Rect> pumpAndOpenPopover(
+Future<Rect> pumpAndOpenTooltip(
   WidgetTester tester, {
   required FocusNode anchorFocus,
   required GlobalKey anchorKey,
-  TooltipPopoverOptions options = const TooltipPopoverOptions(),
+  TooltipOptions options = const TooltipOptions(),
   dynamic widget,
 }) async {
   await tester.pumpWidget(TestUtils.wrapTestWidgetWithScope(
     Center(
-      child: TVTooltipPopover(
+      child: TVTooltip(
         tooltip: TooltipData(
           message: '',
           widget: widget ??
@@ -102,44 +102,44 @@ class _PlacementSpec {
     this.position,
     this.alignment,
     this.anchorPoint,
-    this.popoverPoint,
+    this.tooltipPoint,
   );
 
-  final TooltipPopoverPosition position;
-  final TooltipPopoverAlignment alignment;
+  final TooltipPosition position;
+  final TooltipAlignment alignment;
   final Offset Function(Rect) anchorPoint;
-  final Offset Function(Rect) popoverPoint;
+  final Offset Function(Rect) tooltipPoint;
 }
 
 final List<_PlacementSpec> _placementSpecs = [
-  _PlacementSpec(TooltipPopoverPosition.below, TooltipPopoverAlignment.start,
+  _PlacementSpec(TooltipPosition.below, TooltipAlignment.start,
       (r) => r.bottomLeft, (r) => r.topLeft),
-  _PlacementSpec(TooltipPopoverPosition.below, TooltipPopoverAlignment.center,
+  _PlacementSpec(TooltipPosition.below, TooltipAlignment.center,
       (r) => r.bottomCenter, (r) => r.topCenter),
-  _PlacementSpec(TooltipPopoverPosition.below, TooltipPopoverAlignment.end,
+  _PlacementSpec(TooltipPosition.below, TooltipAlignment.end,
       (r) => r.bottomRight, (r) => r.topRight),
-  _PlacementSpec(TooltipPopoverPosition.above, TooltipPopoverAlignment.start,
+  _PlacementSpec(TooltipPosition.above, TooltipAlignment.start,
       (r) => r.topLeft, (r) => r.bottomLeft),
-  _PlacementSpec(TooltipPopoverPosition.above, TooltipPopoverAlignment.center,
+  _PlacementSpec(TooltipPosition.above, TooltipAlignment.center,
       (r) => r.topCenter, (r) => r.bottomCenter),
-  _PlacementSpec(TooltipPopoverPosition.above, TooltipPopoverAlignment.end,
+  _PlacementSpec(TooltipPosition.above, TooltipAlignment.end,
       (r) => r.topRight, (r) => r.bottomRight),
-  _PlacementSpec(TooltipPopoverPosition.left, TooltipPopoverAlignment.start,
+  _PlacementSpec(TooltipPosition.left, TooltipAlignment.start,
       (r) => r.topLeft, (r) => r.topRight),
-  _PlacementSpec(TooltipPopoverPosition.left, TooltipPopoverAlignment.center,
+  _PlacementSpec(TooltipPosition.left, TooltipAlignment.center,
       (r) => r.centerLeft, (r) => r.centerRight),
-  _PlacementSpec(TooltipPopoverPosition.left, TooltipPopoverAlignment.end,
+  _PlacementSpec(TooltipPosition.left, TooltipAlignment.end,
       (r) => r.bottomLeft, (r) => r.bottomRight),
-  _PlacementSpec(TooltipPopoverPosition.right, TooltipPopoverAlignment.start,
+  _PlacementSpec(TooltipPosition.right, TooltipAlignment.start,
       (r) => r.topRight, (r) => r.topLeft),
-  _PlacementSpec(TooltipPopoverPosition.right, TooltipPopoverAlignment.center,
+  _PlacementSpec(TooltipPosition.right, TooltipAlignment.center,
       (r) => r.centerRight, (r) => r.centerLeft),
-  _PlacementSpec(TooltipPopoverPosition.right, TooltipPopoverAlignment.end,
+  _PlacementSpec(TooltipPosition.right, TooltipAlignment.end,
       (r) => r.bottomRight, (r) => r.bottomLeft),
 ];
 
 void main() {
-  test('tooltip popover options parse supported values', () {
+  test('tooltip options parse supported values', () {
     final tooltip = TooltipData.from({
       'options': {
         'enabled': false,
@@ -158,19 +158,19 @@ void main() {
     }, ChangeNotifier())!;
 
     expect(tooltip.options.enabled, isFalse);
-    expect(tooltip.options.position, TooltipPopoverPosition.right);
-    expect(tooltip.options.alignment, TooltipPopoverAlignment.end);
+    expect(tooltip.options.position, TooltipPosition.right);
+    expect(tooltip.options.alignment, TooltipAlignment.end);
     expect(tooltip.options.offset, const Offset(12, -4));
     expect(tooltip.options.dismissOnFocusLoss, isFalse);
     expect(tooltip.options.dismissOnBack, isFalse);
     expect(tooltip.options.restoreFocus, isFalse);
-    expect(tooltip.options.animation.type, TooltipPopoverAnimationType.slide);
+    expect(tooltip.options.animation.type, TooltipAnimationType.slide);
     expect(
         tooltip.options.animation.duration, const Duration(milliseconds: 150));
     expect(tooltip.options.animation.curve, Curves.easeInOut);
   });
 
-  test('tooltip popover is enabled by default', () {
+  test('tooltip is enabled by default', () {
     final tooltip = TooltipData.from({'widget': {}}, ChangeNotifier())!;
     expect(tooltip.options.enabled, isTrue);
   });
@@ -196,7 +196,7 @@ void main() {
     addTearDown(anchorFocus.dispose);
 
     await tester.pumpWidget(TestUtils.wrapTestWidgetWithScope(
-      TVTooltipPopover(
+      TVTooltip(
         tooltip: TooltipData(
           message: '',
           widget: {
@@ -212,7 +212,7 @@ void main() {
     await tester.pump();
 
     expect(find.text('Add favorites'), findsOneWidget);
-    // Real focus is inside the popover, but the anchor stays in the focus chain
+    // Real focus is inside the tooltip, but the anchor stays in the focus chain
     // (shallow focus) so its `${id.hasFocus}` styling remains applied.
     expect(anchorFocus.hasPrimaryFocus, isFalse);
     expect(anchorFocus.hasFocus, isTrue);
@@ -228,7 +228,7 @@ void main() {
     addTearDown(anchorFocus.dispose);
 
     await tester.pumpWidget(TestUtils.wrapTestWidgetWithScope(
-      TVTooltipPopover(
+      TVTooltip(
         tooltip: TooltipData(
           message: '',
           widget: {
@@ -243,7 +243,7 @@ void main() {
         .widgetList<FocusScope>(find.byType(FocusScope))
         .firstWhere(
           (scope) =>
-              scope.focusNode?.debugLabel == 'TVTooltipPopoverAnchorScope',
+              scope.focusNode?.debugLabel == 'TVTooltipAnchorScope',
         )
         .focusNode!;
     // Flutter can land focus on the scope node when a focused descendant is
@@ -260,13 +260,13 @@ void main() {
     addTearDown(anchorFocus.dispose);
 
     await tester.pumpWidget(TestUtils.wrapTestWidgetWithScope(
-      TVTooltipPopover(
+      TVTooltip(
         tooltip: TooltipData(
           message: '',
           widget: {
             'Button': {'label': 'Add favorites'}
           },
-          options: const TooltipPopoverOptions(enabled: false),
+          options: const TooltipOptions(enabled: false),
         ),
         child: Focus(focusNode: anchorFocus, child: const SizedBox(width: 20)),
       ),
@@ -285,22 +285,22 @@ void main() {
     addTearDown(anchorFocus.dispose);
 
     await tester.pumpWidget(TestUtils.wrapTestWidgetWithScope(
-      TVTooltipPopover(
+      TVTooltip(
         tooltip: TooltipData(
           message: '',
           widget: {
             'Button': {'label': 'Add favorites'}
           },
-          options: const TooltipPopoverOptions(enabled: r'${showPopover}'),
+          options: const TooltipOptions(enabled: r'${showTooltip}'),
         ),
         child: Focus(focusNode: anchorFocus, child: const SizedBox(width: 20)),
       ),
     ));
 
     final scopeManager = DataScopeWidget.getScope(
-      tester.element(find.byType(TVTooltipPopover)),
+      tester.element(find.byType(TVTooltip)),
     )!;
-    scopeManager.dataContext.addToThisContext('showPopover', false);
+    scopeManager.dataContext.addToThisContext('showTooltip', false);
 
     anchorFocus.requestFocus();
     await tester.pump();
@@ -308,8 +308,8 @@ void main() {
     expect(find.text('Add favorites'), findsNothing);
 
     // The condition is read when the trigger fires, so flipping it and
-    // re-focusing opens the popover without rebuilding the widget.
-    scopeManager.dataContext.addToThisContext('showPopover', true);
+    // re-focusing opens the tooltip without rebuilding the widget.
+    scopeManager.dataContext.addToThisContext('showTooltip', true);
     anchorFocus.unfocus();
     await tester.pump();
     anchorFocus.requestFocus();
@@ -325,13 +325,13 @@ void main() {
     addTearDown(anchorFocus.dispose);
 
     await tester.pumpWidget(TestUtils.wrapTestWidgetWithScope(
-      TVTooltipPopover(
+      TVTooltip(
         tooltip: TooltipData(
           message: '',
           widget: {
             'Button': {'label': 'Add favorites'}
           },
-          options: const TooltipPopoverOptions(enabled: r'${!seen}'),
+          options: const TooltipOptions(enabled: r'${!seen}'),
           onTriggered: _RecordingTriggerAction(
             states,
             onOpen: (scopeManager) =>
@@ -345,13 +345,13 @@ void main() {
     anchorFocus.requestFocus();
     await tester.pump();
     await tester.pump();
-    // The open handler marks it seen; the gate is now false but the popover
+    // The open handler marks it seen; the gate is now false but the tooltip
     // must stay open until the user dismisses it.
     expect(find.text('Add favorites'), findsOneWidget);
     expect(states, [true]);
 
-    await EnsembleUtils.dismissPopover(
-      tester.element(find.byType(TVTooltipPopover)),
+    await EnsembleUtils.dismissTooltip(
+      tester.element(find.byType(TVTooltip)),
     );
     await tester.pump();
     await tester.pump();
@@ -375,7 +375,7 @@ void main() {
     addTearDown(anchorFocus.dispose);
 
     await tester.pumpWidget(TestUtils.wrapTestWidgetWithScope(
-      TVTooltipPopover(
+      TVTooltip(
         tooltip: TooltipData(
           message: '',
           widget: {
@@ -394,8 +394,8 @@ void main() {
     expect(states, [true]);
     expect(find.text('Add favorites'), findsOneWidget);
 
-    await EnsembleUtils.dismissPopover(
-      tester.element(find.byType(TVTooltipPopover)),
+    await EnsembleUtils.dismissTooltip(
+      tester.element(find.byType(TVTooltip)),
     );
     await tester.pump();
     await tester.pump();
@@ -411,17 +411,17 @@ void main() {
     final anchorKey = GlobalKey();
     addTearDown(anchorFocus.dispose);
 
-    await pumpAndOpenPopover(
+    await pumpAndOpenTooltip(
       tester,
       anchorFocus: anchorFocus,
       anchorKey: anchorKey,
     );
 
     // The overlay child is laid out with the Overlay's tight constraints; the
-    // popover must not be stretched to the full 800x600 test window.
-    final popoverRect = tester.getRect(find.byType(FilledButton));
-    expect(popoverRect.width, lessThan(700));
-    expect(popoverRect.height, lessThan(500));
+    // tooltip must not be stretched to the full 800x600 test window.
+    final tooltipRect = tester.getRect(find.byType(FilledButton));
+    expect(tooltipRect.width, lessThan(700));
+    expect(tooltipRect.height, lessThan(500));
   });
 
   testWidgets('TV tooltip aligns to the anchor for every placement',
@@ -431,19 +431,19 @@ void main() {
       final anchorKey = GlobalKey();
       addTearDown(anchorFocus.dispose);
 
-      final anchorRect = await pumpAndOpenPopover(
+      final anchorRect = await pumpAndOpenTooltip(
         tester,
         anchorFocus: anchorFocus,
         anchorKey: anchorKey,
-        options: TooltipPopoverOptions(
+        options: TooltipOptions(
           position: spec.position,
           alignment: spec.alignment,
         ),
       );
-      final popoverRect = tester.getRect(find.byType(FilledButton));
+      final tooltipRect = tester.getRect(find.byType(FilledButton));
 
       expect(
-        spec.popoverPoint(popoverRect),
+        spec.tooltipPoint(tooltipRect),
         spec.anchorPoint(anchorRect),
         reason: '${spec.position}/${spec.alignment}',
       );
@@ -456,19 +456,19 @@ void main() {
     addTearDown(anchorFocus.dispose);
 
     const offset = Offset(12, -4);
-    final anchorRect = await pumpAndOpenPopover(
+    final anchorRect = await pumpAndOpenTooltip(
       tester,
       anchorFocus: anchorFocus,
       anchorKey: anchorKey,
-      options: const TooltipPopoverOptions(
-        position: TooltipPopoverPosition.right,
-        alignment: TooltipPopoverAlignment.center,
+      options: const TooltipOptions(
+        position: TooltipPosition.right,
+        alignment: TooltipAlignment.center,
         offset: offset,
       ),
     );
-    final popoverRect = tester.getRect(find.byType(FilledButton));
+    final tooltipRect = tester.getRect(find.byType(FilledButton));
 
-    expect(popoverRect.centerLeft, anchorRect.centerRight + offset);
+    expect(tooltipRect.centerLeft, anchorRect.centerRight + offset);
   });
 
   testWidgets('TV tooltip applies the configured animation', (tester) async {
@@ -476,13 +476,13 @@ void main() {
     final anchorKey = GlobalKey();
     addTearDown(anchorFocus.dispose);
 
-    await pumpAndOpenPopover(
+    await pumpAndOpenTooltip(
       tester,
       anchorFocus: anchorFocus,
       anchorKey: anchorKey,
-      options: const TooltipPopoverOptions(
-        animation: TooltipPopoverAnimation(
-          type: TooltipPopoverAnimationType.fade,
+      options: const TooltipOptions(
+        animation: TooltipAnimation(
+          type: TooltipAnimationType.fade,
           duration: Duration(milliseconds: 150),
         ),
       ),
@@ -498,7 +498,7 @@ void main() {
     addTearDown(anchorFocus.dispose);
 
     await tester.pumpWidget(TestUtils.wrapTestWidgetWithScope(
-      TVTooltipPopover(
+      TVTooltip(
         tooltip: TooltipData(
           message: '',
           widget: {
@@ -512,7 +512,7 @@ void main() {
     anchorFocus.requestFocus();
     await tester.pump();
     await tester.pump();
-    final scope = popoverScope(tester);
+    final scope = tooltipScope(tester);
     final result = scope.onKeyEvent!(
       scope,
       const KeyDownEvent(
@@ -522,7 +522,7 @@ void main() {
       ),
     );
     expect(result, KeyEventResult.handled);
-    // Allow the post-frame focus restoration to settle and verify the popover
+    // Allow the post-frame focus restoration to settle and verify the tooltip
     // does not immediately reopen from that programmatic focus change.
     await tester.pump();
     await tester.pump();
@@ -532,13 +532,13 @@ void main() {
     expect(anchorFocus.hasFocus, isTrue);
   });
 
-  testWidgets('TV tooltip traverses focus inside the popover', (tester) async {
+  testWidgets('TV tooltip traverses focus inside the tooltip', (tester) async {
     final anchorFocus = FocusNode();
     addTearDown(anchorFocus.dispose);
 
     await tester.pumpWidget(TestUtils.wrapTestWidgetWithScope(
       Center(
-        child: TVTooltipPopover(
+        child: TVTooltip(
           tooltip: TooltipData(message: '', widget: twoButtonWidget),
           child: Focus(
             focusNode: anchorFocus,
@@ -552,7 +552,7 @@ void main() {
     await tester.pump();
     await tester.pump();
 
-    final scope = popoverScope(tester);
+    final scope = tooltipScope(tester);
     final first = FocusManager.instance.primaryFocus;
     expect(first, isNotNull);
 
@@ -564,7 +564,7 @@ void main() {
 
     expect(result, KeyEventResult.handled);
     expect(FocusManager.instance.primaryFocus, isNot(first));
-    // Still open: focus only moved between the popover's children.
+    // Still open: focus only moved between the tooltip's children.
     expect(find.text('First'), findsOneWidget);
     expect(find.text('Second'), findsOneWidget);
   });
@@ -575,7 +575,7 @@ void main() {
 
     await tester.pumpWidget(TestUtils.wrapTestWidgetWithScope(
       Center(
-        child: TVTooltipPopover(
+        child: TVTooltip(
           tooltip: TooltipData(message: '', widget: twoButtonWidget),
           child: Focus(
             focusNode: anchorFocus,
@@ -589,13 +589,13 @@ void main() {
     await tester.pump();
     await tester.pump();
 
-    final scope = popoverScope(tester);
+    final scope = tooltipScope(tester);
     // Move down to the last child.
     scope.onKeyEvent!(scope, _keyDown(LogicalKeyboardKey.arrowDown));
     await tester.pump();
     expect(find.text('First'), findsOneWidget);
 
-    // Another down at the edge must keep focus inside the popover rather than
+    // Another down at the edge must keep focus inside the tooltip rather than
     // dismiss it or hand focus back to the anchor.
     final result = scope.onKeyEvent!(
       scope,
@@ -617,19 +617,19 @@ void main() {
     ('left', LogicalKeyboardKey.arrowLeft),
     ('right', LogicalKeyboardKey.arrowRight),
   ]) {
-    testWidgets('TV tooltip keeps focus on $label at the popover edge',
+    testWidgets('TV tooltip keeps focus on $label at the tooltip edge',
         (tester) async {
       final anchorFocus = FocusNode();
       final anchorKey = GlobalKey();
       addTearDown(anchorFocus.dispose);
 
-      await pumpAndOpenPopover(
+      await pumpAndOpenTooltip(
         tester,
         anchorFocus: anchorFocus,
         anchorKey: anchorKey,
       );
 
-      final scope = popoverScope(tester);
+      final scope = tooltipScope(tester);
       final result = scope.onKeyEvent!(scope, _keyDown(key));
       await tester.pump();
       await tester.pump();
@@ -649,11 +649,11 @@ void main() {
 
     await tester.pumpWidget(TestUtils.wrapTestWidgetWithScope(
       Center(
-        child: TVTooltipPopover(
+        child: TVTooltip(
           tooltip: TooltipData(
             message: '',
             widget: twoButtonWidget,
-            options: const TooltipPopoverOptions(dismissOnFocusLoss: false),
+            options: const TooltipOptions(dismissOnFocusLoss: false),
           ),
           child: Focus(
             focusNode: anchorFocus,
@@ -667,7 +667,7 @@ void main() {
     await tester.pump();
     await tester.pump();
 
-    final scope = popoverScope(tester);
+    final scope = tooltipScope(tester);
     // First down moves to the second child, second down is at the edge.
     scope.onKeyEvent!(scope, _keyDown(LogicalKeyboardKey.arrowDown));
     await tester.pump();
@@ -689,13 +689,13 @@ void main() {
     addTearDown(anchorFocus.dispose);
 
     await tester.pumpWidget(TestUtils.wrapTestWidgetWithScope(
-      TVTooltipPopover(
+      TVTooltip(
         tooltip: TooltipData(
           message: '',
           widget: {
             'Button': {'label': 'Add favorites'}
           },
-          options: const TooltipPopoverOptions(dismissOnBack: false),
+          options: const TooltipOptions(dismissOnBack: false),
         ),
         child: Focus(focusNode: anchorFocus, child: const SizedBox(width: 20)),
       ),
@@ -703,7 +703,7 @@ void main() {
 
     anchorFocus.requestFocus();
     await tester.pump();
-    final scope = popoverScope(tester);
+    final scope = tooltipScope(tester);
     final result = scope.onKeyEvent!(
       scope,
       const KeyDownEvent(
@@ -725,7 +725,7 @@ void main() {
 
     await tester.pumpWidget(TestUtils.wrapTestWidgetWithScope(Row(
       children: [
-        TVTooltipPopover(
+        TVTooltip(
           tooltip: TooltipData(
             message: '',
             widget: {
@@ -759,7 +759,7 @@ void main() {
 
     await tester.pumpWidget(TestUtils.wrapTestWidgetWithScope(Row(
       children: [
-        TVTooltipPopover(
+        TVTooltip(
           tooltip: TooltipData(
             message: '',
             widget: {
@@ -796,7 +796,7 @@ void main() {
     addTearDown(anchorFocus.dispose);
 
     await tester.pumpWidget(TestUtils.wrapTestWidgetWithScope(
-      TVTooltipPopover(
+      TVTooltip(
         tooltip: TooltipData(
           message: '',
           widget: {
@@ -817,7 +817,7 @@ void main() {
     await tester.pump();
 
     expect(find.text('Add favorites'), findsOneWidget);
-    // Real focus is inside the popover, but the anchor stays in the focus chain
+    // Real focus is inside the tooltip, but the anchor stays in the focus chain
     // (shallow focus) so its `${id.hasFocus}` styling remains applied.
     expect(anchorFocus.hasPrimaryFocus, isFalse);
     expect(anchorFocus.hasFocus, isTrue);
@@ -833,7 +833,7 @@ void main() {
     final anchorKey = GlobalKey();
     addTearDown(anchorFocus.dispose);
 
-    await pumpAndOpenPopover(
+    await pumpAndOpenTooltip(
       tester,
       anchorFocus: anchorFocus,
       anchorKey: anchorKey,
@@ -847,23 +847,23 @@ void main() {
     expect(scope.onBottomEdge, isNotNull);
   });
 
-  testWidgets('dismissPopover closes the popover and restores anchor focus',
+  testWidgets('dismissTooltip closes the tooltip and restores anchor focus',
       (tester) async {
     final anchorFocus = FocusNode();
     final anchorKey = GlobalKey();
     addTearDown(anchorFocus.dispose);
 
-    await pumpAndOpenPopover(
+    await pumpAndOpenTooltip(
       tester,
       anchorFocus: anchorFocus,
       anchorKey: anchorKey,
     );
     expect(find.text('Add favorites'), findsOneWidget);
 
-    // Route-scoped programmatic dismissal, as used by the `dismissPopover`
-    // action and `ensemble.dismissPopover()`.
-    final dismissed = await EnsembleUtils.dismissPopover(
-      tester.element(find.byType(TVTooltipPopover)),
+    // Route-scoped programmatic dismissal, as used by the `dismissTooltip`
+    // action and `ensemble.dismissTooltip()`.
+    final dismissed = await EnsembleUtils.dismissTooltip(
+      tester.element(find.byType(TVTooltip)),
     );
     await tester.pump();
     await tester.pump();
@@ -880,7 +880,7 @@ void main() {
     addTearDown(anchorFocus.dispose);
 
     await tester.pumpWidget(TestUtils.wrapTestWidgetWithScope(
-      TVTooltipPopover(
+      TVTooltip(
         tooltip: TooltipData(
           message: '',
           widget: {
@@ -898,8 +898,8 @@ void main() {
     expect(find.text('Only text'), findsOneWidget);
     expect(anchorFocus.hasFocus, isTrue);
     expect(anchorFocus.hasPrimaryFocus, isFalse);
-    // Focus falls back to the popover scope so D-pad cannot drift to the
-    // background while the popover is open.
+    // Focus falls back to the tooltip scope so D-pad cannot drift to the
+    // background while the tooltip is open.
     final scopeNode =
         tester.widget<TVFocusScope>(find.byType(TVFocusScope)).focusNode;
     expect(FocusManager.instance.primaryFocus, scopeNode);
