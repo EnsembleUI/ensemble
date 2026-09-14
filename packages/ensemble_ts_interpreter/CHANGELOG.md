@@ -1,3 +1,8 @@
+## 1.3.1
+
+ - **FEAT**: Add ES6 parser and interpreter runtime support ([#2320](https://github.com/ensembleUI/ensemble/issues/2320)). ([8902b10f](https://github.com/ensembleUI/ensemble/commit/8902b10f0d842dc8a1d99ffd87f05d4ed92db8b3))
+ - **DOCS**: update package and module READMEs. ([74306617](https://github.com/ensembleUI/ensemble/commit/74306617e40588dc149587bddd7a9c7ca87fc5bf))
+
 ## [1.3.0] - ES6 Runtime Support
 
 * Added practical ES6 support for `let`, `const`, block scoping, const reassignment errors, and read-before-initialization errors.
