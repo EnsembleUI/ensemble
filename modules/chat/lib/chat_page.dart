@@ -21,6 +21,7 @@ class ChatPage extends StatefulWidget {
     super.key,
     required this.messages,
     required this.onMessageSend,
+    required this.onFeedback,
     required this.controller,
   });
 
@@ -29,6 +30,10 @@ class ChatPage extends StatefulWidget {
 
   /// Callback invoked when the user sends a message.
   final Function(String value) onMessageSend;
+
+  /// Persists feedback for a completed assistant message.
+  final Future<void> Function(InternalMessage message, String? rating)
+      onFeedback;
 
   /// Controller that stores chat configuration and styles.
   final EnsembleChatController controller;
@@ -109,10 +114,51 @@ class BubbleStyleComposite extends WidgetCompositeProperty {
 class _ChatPageState extends State<ChatPage> {
   final ScrollController scrollController = ScrollController();
   final TextEditingController _textController = TextEditingController();
+  final FocusNode _focusNode = FocusNode();
+
+  bool _isRenderableMessage(InternalMessage message) {
+    return message.visible &&
+        (message.widget != null ||
+            message.inlineWidget != null ||
+            message.content?.trim().isNotEmpty == true);
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.controller.autoFocus) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _focusComposer();
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _focusNode.dispose();
+    _textController.dispose();
+    scrollController.dispose();
+    super.dispose();
+  }
+
+  void _focusComposer() {
+    if (!mounted || !widget.controller.autoFocus) return;
+    if (!widget.controller.canSendMessage.value) return;
+    _focusNode.requestFocus();
+  }
 
   @override
   Widget build(BuildContext context) {
+    // Ensemble's page FooterLayout removes bottom padding from the body
+    // MediaQuery so a footer can sit on the home indicator. That also zeroes
+    // `viewPadding`, so the composer has to read the inset from the view.
+    final keyboardInset = MediaQuery.viewInsetsOf(context).bottom;
+    final deviceBottom =
+        MediaQueryData.fromView(View.of(context)).viewPadding.bottom;
+    final bottomPadding =
+        keyboardInset + (keyboardInset > 0 ? 8 : deviceBottom);
     return SafeArea(
+      bottom: false,
       minimum: widget.controller.padding ?? const EdgeInsets.all(0),
       child: Scaffold(
         backgroundColor: widget.controller.backgroundColor ?? Colors.black,
@@ -121,7 +167,7 @@ class _ChatPageState extends State<ChatPage> {
             Flexible(
               child: ListView.builder(
                 reverse: true,
-                itemCount: widget.messages.where((m) => m.visible).length +
+                itemCount: widget.messages.where(_isRenderableMessage).length +
                     (widget.controller.isLoading.value ? 1 : 0),
                 itemBuilder: (context, index) {
                   if (widget.controller.isLoading.value && index == 0) {
@@ -152,7 +198,7 @@ class _ChatPageState extends State<ChatPage> {
                   }
                   // Adjust index for messages to account for loading indicator
                   final List<InternalMessage> visibleMessages =
-                      widget.messages.where((m) => m.visible).toList();
+                      widget.messages.where(_isRenderableMessage).toList();
                   final int effectiveIndex = visibleMessages.length -
                       1 -
                       (widget.controller.isLoading.value ? index - 1 : index);
@@ -164,6 +210,7 @@ class _ChatPageState extends State<ChatPage> {
                       key: ValueKey(message.id),
                       message: message,
                       controller: widget.controller,
+                      onFeedback: widget.onFeedback,
                     ),
                   );
                 },
@@ -171,14 +218,7 @@ class _ChatPageState extends State<ChatPage> {
             ),
             const SizedBox(height: 8),
             Padding(
-              padding: EdgeInsets.fromLTRB(
-                MediaQuery.of(context).padding.left + 16,
-                0,
-                MediaQuery.of(context).padding.right + 16,
-                MediaQuery.of(context).viewInsets.bottom +
-                    MediaQuery.of(context).padding.bottom +
-                    8,
-              ),
+              padding: EdgeInsets.fromLTRB(16, 0, 16, bottomPadding),
               child: Row(
                 children: [
                   Expanded(
@@ -190,6 +230,9 @@ class _ChatPageState extends State<ChatPage> {
                       ),
                       child: TextFormField(
                         controller: _textController,
+                        focusNode: _focusNode,
+                        autofocus: widget.controller.autoFocus,
+                        enabled: widget.controller.canSendMessage.value,
                         style: widget.controller.textFieldTextStyle ??
                             const TextStyle(color: Colors.white),
                         maxLines: 5,
@@ -224,7 +267,9 @@ class _ChatPageState extends State<ChatPage> {
                       Icons.send,
                       color: widget.controller.iconColor ?? Colors.white,
                     ),
-                    onPressed: () => _handleSubmit(),
+                    onPressed: widget.controller.canSendMessage.value
+                        ? () => _handleSubmit()
+                        : null,
                     padding: const EdgeInsets.symmetric(horizontal: 16.0),
                     splashRadius: 24,
                   )
@@ -247,12 +292,13 @@ class _ChatPageState extends State<ChatPage> {
 }
 
 /// Renders a single chat message using the configured role style.
-class MessageWidget extends StatelessWidget {
+class MessageWidget extends StatefulWidget {
   /// Creates a message widget.
   const MessageWidget({
     super.key,
     required this.message,
     required this.controller,
+    required this.onFeedback,
   });
 
   /// Message to render.
@@ -261,20 +307,70 @@ class MessageWidget extends StatelessWidget {
   /// Controller that provides style configuration.
   final EnsembleChatController controller;
 
+  /// Persists feedback for this message.
+  final Future<void> Function(InternalMessage message, String? rating)
+      onFeedback;
+
+  @override
+  State<MessageWidget> createState() => _MessageWidgetState();
+}
+
+class _MessageWidgetState extends State<MessageWidget> {
+  bool _isSubmittingFeedback = false;
+
   BubbleStyleComposite _getStyleForRole() {
-    switch (message.role) {
+    switch (widget.message.role) {
       case MessageRole.user:
-        return controller.userBubbleStyle;
+        return widget.controller.userBubbleStyle;
       case MessageRole.assistant:
-        return controller.assistantBubbleStyle;
+        return widget.controller.assistantBubbleStyle;
       case MessageRole.system:
-        return controller.assistantBubbleStyle; // Fallback to assistant style
+        return widget
+            .controller.assistantBubbleStyle; // Fallback to assistant style
     }
+  }
+
+  bool get _showFeedback =>
+      widget.controller.feedbackEnabled &&
+      widget.message.feedbackEligible &&
+      widget.message.role == MessageRole.assistant;
+
+  Future<void> _submitFeedback(String? rating) async {
+    if (_isSubmittingFeedback) return;
+    final previousRating = widget.message.feedbackRating;
+
+    setState(() {
+      _isSubmittingFeedback = true;
+      widget.message.feedbackRating = rating;
+    });
+
+    try {
+      await widget.onFeedback(widget.message, rating);
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        widget.message.feedbackRating = previousRating;
+      });
+      ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+        const SnackBar(content: Text('Unable to save feedback. Try again.')),
+      );
+    } finally {
+      if (mounted) setState(() => _isSubmittingFeedback = false);
+    }
+  }
+
+  Future<void> _selectRating(String rating) async {
+    if (widget.message.feedbackRating == rating) {
+      await _submitFeedback(null);
+      return;
+    }
+    await _submitFeedback(rating);
   }
 
   @override
   Widget build(BuildContext context) {
     final bubbleStyle = _getStyleForRole();
+    final message = widget.message;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12.0),
@@ -315,6 +411,47 @@ class MessageWidget extends StatelessWidget {
                     child: Theme(
                       data: ThemeData.dark(useMaterial3: true),
                       child: message.widget ?? const SizedBox.shrink(),
+                    ),
+                  ),
+                if (_showFeedback)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 4),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          tooltip: 'Good response',
+                          visualDensity: VisualDensity.compact,
+                          onPressed: _isSubmittingFeedback
+                              ? null
+                              : () => _selectRating('positive'),
+                          icon: Icon(
+                            message.feedbackRating == 'positive'
+                                ? Icons.thumb_up
+                                : Icons.thumb_up_outlined,
+                          ),
+                        ),
+                        IconButton(
+                          tooltip: 'Could be improved',
+                          visualDensity: VisualDensity.compact,
+                          onPressed: _isSubmittingFeedback
+                              ? null
+                              : () => _selectRating('negative'),
+                          icon: Icon(
+                            message.feedbackRating == 'negative'
+                                ? Icons.thumb_down
+                                : Icons.thumb_down_outlined,
+                          ),
+                        ),
+                        if (_isSubmittingFeedback)
+                          const Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 8),
+                            child: SizedBox.square(
+                              dimension: 14,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            ),
+                          ),
+                      ],
                     ),
                   ),
               ],
