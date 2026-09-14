@@ -74,12 +74,13 @@ jobs:
             starter/build/app/outputs/flutter-apk/*-release.apk
           retention-days: 7
 
-  # Guards the KPN WebUI build. That project needs the HTML web renderer, which
-  # Flutter removed in 3.29, so it is pinned to 3.27.2 and uses only the core
-  # `ensemble` package. A full `melos bootstrap` cannot run on 3.27 (auth, chat
-  # and ensemble_bluetooth pin collection ^1.19.1 / meta ^1.16.0, unsatisfiable
-  # there), so the bootstrap is scoped to the starter and its dependencies.
-  buildKpnWebUi:
+  # Guards the minimum-SDK web configuration: downstream apps that still need the
+  # HTML web renderer (removed in Flutter 3.29) are pinned to 3.27.2 and consume
+  # only the core `ensemble` package. A full `melos bootstrap` cannot run on 3.27
+  # (auth, chat and ensemble_bluetooth pin collection ^1.19.1 / meta ^1.16.0,
+  # unsatisfiable there), so the bootstrap is scoped to the starter and its
+  # dependencies.
+  buildStarterWebMinSdk:
     name: Build Starter Web (Flutter 3.27.2, core only)
     runs-on: ubuntu-latest
 
@@ -97,7 +98,7 @@ jobs:
           count=$(awk '/^dependencies:/,/^dev_dependencies:/' starter/pubspec.yaml \
                   | grep -cE '^  ensemble[a-z_]*:')
           if [ "$count" -ne 1 ]; then
-            echo "::error::This job builds the KPN WebUI configuration, which uses only the core ensemble package. Found $count enabled ensemble* dependencies in starter/pubspec.yaml, expected 1."
+            echo "::error::This job builds the minimum-SDK web configuration, which uses only the core ensemble package. Found $count enabled ensemble* dependencies in starter/pubspec.yaml, expected 1."
             exit 1
           fi
 
