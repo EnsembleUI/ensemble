@@ -1,3 +1,5 @@
+## 1.0.3
+
 ## [1.0.2] - Updated to Flutter 3.35.5
 * Updated to Flutter 3.35.5
 * Removed deprecated methods
