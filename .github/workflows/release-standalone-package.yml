@@ -38,14 +38,8 @@ on:
           - minor
           - major
 
-# Every run of this workflow commits and pushes to main, so runs must not
-# overlap. The group must NOT include `inputs.package`: keying it per package
-# let releases of different packages run in parallel, and each one then lost the
-# push with `non-fast-forward`. The conflict is over the branch, not the
-# package. Queue rather than cancel -- a cancelled release can leave a local tag
-# that was never pushed.
 concurrency:
-  group: standalone-release-${{ github.repository }}
+  group: standalone-release-${{ github.repository }}-${{ inputs.package }}
   cancel-in-progress: false
 
 permissions:
