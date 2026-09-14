@@ -69,21 +69,11 @@ class TooltipOptions {
     );
   }
 
-  /// Whether focusing the anchor is allowed to open the tooltip.
-  ///
-  /// A literal `true`/`false` is used directly. A binding expression is
-  /// resolved against the anchor's data scope each time the trigger fires, so
-  /// a condition such as `${!ensemble.storage.seen}` stays current and can
-  /// gate the tooltip to a single first-time view. This lazy behavior relies
-  /// on the tooltip map containing no top-level binding. If `message` itself
-  /// uses a binding, the generic property pipeline evaluates the whole map
-  /// (including `enabled`) together, so the condition is captured when the
-  /// message binding is evaluated; use an explicit action/flag for one-time
-  /// gating in that combination. When false the trigger is inert; an
-  /// already-open tooltip is unaffected and closes through its normal dismiss
-  /// paths (Back, focus loss, or `dismissTooltip`).
-  ///
-  /// TV-only: the non-TV Flutter tooltip ignores [TooltipOptions].
+  /// Whether focusing the anchor opens the tooltip. A literal is used directly;
+  /// a binding is resolved against the anchor scope on each trigger. That lazy
+  /// resolution only holds while the tooltip map has no top-level binding — a
+  /// bound `message` makes the pipeline evaluate the whole map (including
+  /// `enabled`) together. TV-only; the non-TV Flutter tooltip ignores it.
   final dynamic enabled;
   final TooltipPosition position;
   final TooltipAlignment alignment;
