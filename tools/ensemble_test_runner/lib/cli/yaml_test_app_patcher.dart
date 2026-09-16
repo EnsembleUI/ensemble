@@ -91,8 +91,13 @@ Future<void> main() async {
   /// Validates prerequisites before mutating files. On any failure, every
   /// touched file is restored and created files are deleted — even when
   /// [enable] never reached the success path.
+  ///
+  /// [targetPlatform] is the selected device platform (`ios` / `android`).
+  /// iOS deployment require/fix runs only for integration mode when this is
+  /// `'ios'`. Null (widget mode / no device) skips the iOS gate.
   void enable({
     ExecutionMode mode = ExecutionMode.widget,
+    String? targetPlatform,
     bool fixIosDeploymentTarget = false,
   }) {
     if (_enabled) return;
@@ -130,7 +135,7 @@ Future<void> main() async {
         _removeTestEntryOnRestore = false;
       }
 
-      if (mode == ExecutionMode.integration) {
+      if (mode == ExecutionMode.integration && targetPlatform == 'ios') {
         if (fixIosDeploymentTarget) {
           _ensureIosDeploymentTarget();
         } else {

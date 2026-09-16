@@ -261,6 +261,8 @@ widget-test method-channel doubles.
 Independent integration tests restore storage to a pre-suite baseline so
 device credentials that existed before the run are preserved. Pass
 `--reset-device-storage` on disposable emulators when a full wipe is intended.
+Physical devices also require `--allow-device-storage-mutation` (or
+`--reset-device-storage`) before the suite may capture or rewrite storage.
 
 Integration results, logs, and screenshot PNGs are transported back to the
 host and written under the same `build/ensemble_test_runner/` paths as widget

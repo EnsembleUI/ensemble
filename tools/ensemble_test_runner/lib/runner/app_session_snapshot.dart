@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:ensemble/ensemble.dart';
 import 'package:ensemble/framework/storage_manager.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 
 /// In-memory app state captured from a successful session-producing test.
@@ -45,24 +46,66 @@ class AppSessionSnapshot {
   }
 
   /// Replaces current storage with this snapshot's contents.
+  ///
+  /// Failures after the clear phase rethrow a [StateError] naming which phase
+  /// failed (`clear` vs `rewrite`) so callers never see a half-restored device.
   Future<void> restoreOnto(StorageManager storage) async {
-    await storage.clearPublicStorage();
-    for (final key
-        in storage.getKeys().where((key) => key.startsWith('enc_')).toList()) {
-      await storage.remove(key);
+    await runRestorePhases(
+      clear: () async {
+        await storage.clearPublicStorage();
+        for (final key in storage
+            .getKeys()
+            .where((key) => key.startsWith('enc_'))
+            .toList()) {
+          await storage.remove(key);
+        }
+        final currentKeychain = await storage.getAllFromKeychain();
+        for (final key in currentKeychain.keys) {
+          await storage.removeSecurely(key);
+        }
+      },
+      rewrite: () async {
+        for (final entry in publicStorage.entries) {
+          await storage.write(entry.key, _copy(entry.value));
+        }
+        for (final entry in secureStorage.entries) {
+          await storage.write(entry.key, _copy(entry.value));
+        }
+        for (final entry in keychain.entries) {
+          await storage.writeSecurely(
+            key: entry.key,
+            value: _copy(entry.value),
+          );
+        }
+      },
+    );
+  }
+
+  /// Runs clear then rewrite, wrapping failures with a phase-named [StateError].
+  @visibleForTesting
+  static Future<void> runRestorePhases({
+    required Future<void> Function() clear,
+    required Future<void> Function() rewrite,
+  }) async {
+    try {
+      await clear();
+    } catch (error, stackTrace) {
+      Error.throwWithStackTrace(
+        StateError(
+          'AppSessionSnapshot restore failed during clear phase: $error',
+        ),
+        stackTrace,
+      );
     }
-    final currentKeychain = await storage.getAllFromKeychain();
-    for (final key in currentKeychain.keys) {
-      await storage.removeSecurely(key);
-    }
-    for (final entry in publicStorage.entries) {
-      await storage.write(entry.key, _copy(entry.value));
-    }
-    for (final entry in secureStorage.entries) {
-      await storage.write(entry.key, _copy(entry.value));
-    }
-    for (final entry in keychain.entries) {
-      await storage.writeSecurely(key: entry.key, value: _copy(entry.value));
+    try {
+      await rewrite();
+    } catch (error, stackTrace) {
+      Error.throwWithStackTrace(
+        StateError(
+          'AppSessionSnapshot restore failed during rewrite phase: $error',
+        ),
+        stackTrace,
+      );
     }
   }
 

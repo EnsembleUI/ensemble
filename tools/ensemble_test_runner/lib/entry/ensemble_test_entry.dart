@@ -250,6 +250,13 @@ Future<void> registerEnsembleYamlTests(EnsembleYamlTestOptions options) async {
         }
         rethrow;
       } finally {
+        try {
+          await EnsembleTestHarness.restorePreSuiteStorageAtSuiteEnd();
+        } catch (error) {
+          stderr.writeln(
+            'Warning: failed to restore pre-suite storage at suite end: $error',
+          );
+        }
         if (options.mode == ExecutionMode.integration &&
             usesDeviceArtifactTransport) {
           emitEnsembleTestArtifactTransportComplete();

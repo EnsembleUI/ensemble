@@ -14,6 +14,12 @@ const maxEnsembleTestArtifactBytes = 50 * 1024 * 1024;
 /// Maximum concurrent incomplete artifact transfers.
 const maxPendingEnsembleTestArtifacts = 64;
 
+/// Raw payload bytes per stdout/logcat chunk.
+///
+/// Android logcat drops lines over ~4 KiB, so encoded records must stay under
+/// that after JSON/base64 wrapping and the `I/flutter:` prefix.
+const ensembleTestArtifactRawChunkSize = 2048;
+
 /// Tracks artifact ids emitted during an integration run for the complete record.
 class EnsembleTestArtifactEmitter {
   EnsembleTestArtifactEmitter._();
@@ -22,6 +28,7 @@ class EnsembleTestArtifactEmitter {
       EnsembleTestArtifactEmitter._();
 
   String? _runId;
+  int _nextArtifactId = 0;
   final List<Map<String, dynamic>> _emitted = [];
   bool _begun = false;
   bool _completed = false;
@@ -31,6 +38,7 @@ class EnsembleTestArtifactEmitter {
     if (_begun) return;
     _begun = true;
     _runId = runId ?? DateTime.now().toUtc().toIso8601String();
+    _nextArtifactId = 0;
     _emitRecord({
       'event': 'begin',
       'runId': _runId,
@@ -61,7 +69,9 @@ class EnsembleTestArtifactEmitter {
     }
     final payload = Uint8List.fromList(bytes);
     final digest = sha256.convert(payload).toString();
-    final id = '${payload.length}-$digest';
+    // Transfer id is unique per emit, not content-derived, so identical
+    // screenshots under different paths do not collide.
+    final id = '$_runId-${_nextArtifactId++}';
     _emitRecord({
       'event': 'start',
       'id': id,
@@ -70,10 +80,11 @@ class EnsembleTestArtifactEmitter {
       'size': payload.length,
       'sha256': digest,
     });
-    const rawChunkSize = 36 * 1024;
-    for (var offset = 0; offset < payload.length; offset += rawChunkSize) {
-      final end = offset + rawChunkSize < payload.length
-          ? offset + rawChunkSize
+    for (var offset = 0;
+        offset < payload.length;
+        offset += ensembleTestArtifactRawChunkSize) {
+      final end = offset + ensembleTestArtifactRawChunkSize < payload.length
+          ? offset + ensembleTestArtifactRawChunkSize
           : payload.length;
       _emitRecord({
         'event': 'chunk',
@@ -105,10 +116,15 @@ class EnsembleTestArtifactEmitter {
   /// Test hook to reset emitter state between unit tests.
   void resetForTest() {
     _runId = null;
+    _nextArtifactId = 0;
     _emitted.clear();
     _begun = false;
     _completed = false;
   }
+
+  /// Test hook: transfer ids assigned since the last [begin]/ [resetForTest].
+  List<String> emittedIdsForTest() =>
+      _emitted.map((e) => e['id']!.toString()).toList();
 
   void _emitRecord(Map<String, dynamic> record) {
     print('$ensembleTestArtifactProtocolPrefix${json.encode(record)}');
@@ -199,7 +215,8 @@ Future<ArtifactTransportResult> materializeTransportedArtifacts({
   required String output,
 }) async {
   final pending = <String, _IncomingArtifact>{};
-  final received = <String>[];
+  final receivedPaths = <String>[];
+  final receivedIds = <String>{};
   final expectedByComplete = <String, Map<String, dynamic>>{};
   var sawBegin = false;
   var sawComplete = false;
@@ -251,6 +268,10 @@ Future<ArtifactTransportResult> materializeTransportedArtifacts({
             error ??= 'Integration artifact record is missing an id.';
             break;
           }
+          if (pending.containsKey(id) || receivedIds.contains(id)) {
+            error ??= 'Duplicate artifact transfer id: $id';
+            break;
+          }
           if (pending.length >= maxPendingEnsembleTestArtifacts) {
             error ??=
                 'Too many pending artifact transfers (limit $maxPendingEnsembleTestArtifacts).';
@@ -270,11 +291,13 @@ Future<ArtifactTransportResult> materializeTransportedArtifacts({
                 'Artifact $relativePath declared size $expectedSize exceeds limit.';
             break;
           }
+          // Sanitize id for temp filename (run ids may contain ':').
+          final safeTempName = id.replaceAll(RegExp(r'[^A-Za-z0-9._-]'), '_');
           final incoming = _IncomingArtifact(
             relativePath: relativePath,
             expectedSize: expectedSize,
             expectedHash: expectedHash,
-            tempFile: File(p.join(tempDir.path, id)),
+            tempFile: File(p.join(tempDir.path, safeTempName)),
           );
           await incoming.open();
           pending[id] = incoming;
@@ -330,7 +353,8 @@ Future<ArtifactTransportResult> materializeTransportedArtifacts({
               relativePath: artifact.relativePath,
               bytes: bytes,
             );
-            received.add(artifact.relativePath);
+            receivedPaths.add(artifact.relativePath);
+            receivedIds.add(id);
           } catch (e) {
             error ??= e.toString();
           } finally {
@@ -350,7 +374,7 @@ Future<ArtifactTransportResult> materializeTransportedArtifacts({
           'Integration artifact transport ended with ${pending.length} incomplete artifact(s).';
     }
 
-    if (!sawBegin && !sawComplete && received.isEmpty) {
+    if (!sawBegin && !sawComplete && receivedPaths.isEmpty) {
       return const ArtifactTransportResult(
         complete: false,
         error:
@@ -360,31 +384,29 @@ Future<ArtifactTransportResult> materializeTransportedArtifacts({
     if (!sawComplete) {
       return ArtifactTransportResult(
         complete: false,
-        receivedPaths: received,
+        receivedPaths: receivedPaths,
         error: error ??
             'Integration artifact transport finished without a complete record.',
       );
     }
-    for (final id in expectedByComplete.keys) {
-      final path = expectedByComplete[id]!['path']?.toString();
-      if (path != null && !received.contains(path)) {
-        // May have been received under path already; if not in received, fail.
-        final stillMissing = !received.contains(path);
-        if (stillMissing) {
-          error ??= 'Missing transported artifact: $path';
-        }
+    for (final entry in expectedByComplete.entries) {
+      final id = entry.key;
+      final path = entry.value['path']?.toString();
+      if (!receivedIds.contains(id)) {
+        error ??=
+            'Missing transported artifact id $id${path != null ? ' ($path)' : ''}';
       }
     }
     if (error != null) {
       return ArtifactTransportResult(
         complete: false,
-        receivedPaths: received,
+        receivedPaths: receivedPaths,
         error: error,
       );
     }
     return ArtifactTransportResult(
       complete: true,
-      receivedPaths: received,
+      receivedPaths: receivedPaths,
     );
   } finally {
     try {

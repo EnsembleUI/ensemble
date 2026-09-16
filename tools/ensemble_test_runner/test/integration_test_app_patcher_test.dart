@@ -160,7 +160,10 @@ definitions:
 
     final patcher = YamlTestAppPatcher(dir.path);
     expect(
-      () => patcher.enable(mode: ExecutionMode.integration),
+      () => patcher.enable(
+        mode: ExecutionMode.integration,
+        targetPlatform: 'ios',
+      ),
       throwsA(
         isA<StateError>().having(
           (e) => e.message,
@@ -177,6 +180,50 @@ definitions:
       'IPHONEOS_DEPLOYMENT_TARGET = 13.0;\n',
     );
   });
+
+  test(
+    'android integration enable skips iOS deployment gate with low Podfile',
+    () {
+      final dir = Directory.systemTemp.createTempSync('integration_android_');
+      addTearDown(() => dir.deleteSync(recursive: true));
+      File('${dir.path}/pubspec.yaml').writeAsStringSync('''
+name: sample_app
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+flutter:
+  assets:
+    - ensemble/
+''');
+      Directory('${dir.path}/ensemble/apps/hello/tests')
+          .createSync(recursive: true);
+      File('${dir.path}/ensemble/ensemble-config.yaml')
+        ..parent.createSync(recursive: true)
+        ..writeAsStringSync('''
+definitions:
+  local:
+    path: ensemble/apps/hello
+    appHome: Home
+''');
+      File('${dir.path}/ensemble/apps/hello/tests/home.test.yaml')
+          .writeAsStringSync('id: home\nstartScreen: Home\nsteps: []\n');
+      const podfile = "# platform :ios, '13.0'\n";
+      File('${dir.path}/ios/Podfile')
+        ..parent.createSync(recursive: true)
+        ..writeAsStringSync(podfile);
+
+      final patcher = YamlTestAppPatcher(dir.path);
+      expect(
+        () => patcher.enable(
+          mode: ExecutionMode.integration,
+          targetPlatform: 'android',
+        ),
+        returnsNormally,
+      );
+      expect(File('${dir.path}/ios/Podfile').readAsStringSync(), podfile);
+      patcher.restore();
+    },
+  );
 
   test('opt-in fix raises the iOS deployment target then restores it', () {
     final dir = Directory.systemTemp.createTempSync('integration_ios_fix_');
@@ -221,6 +268,7 @@ definitions:
     final patcher = YamlTestAppPatcher(dir.path);
     patcher.enable(
       mode: ExecutionMode.integration,
+      targetPlatform: 'ios',
       fixIosDeploymentTarget: true,
     );
 

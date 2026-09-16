@@ -140,6 +140,7 @@ List<String> flutterTestArguments(List<String> arguments) {
         a.startsWith('--device-id=') ||
         a.startsWith('--host-address=') ||
         a == '--reset-device-storage' ||
+        a == '--allow-device-storage-mutation' ||
         a.startsWith('--mode=') ||
         a.startsWith('--jobs=') ||
         a.startsWith('--timeout=') ||

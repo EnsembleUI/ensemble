@@ -1,13 +1,3 @@
-## Unreleased
-
-- Make app patching transactional with rollback on failed enable; validate entry points before mutation.
-- Stop silently rewriting iOS deployment targets; use `--doctor --fix` or set 15.0 in the host app.
-- Restore a pre-suite storage baseline between independent integration tests; add `--reset-device-storage` for disposable wipes.
-- Require artifact transport begin/complete records; stream chunks to temp files with size limits.
-- Generate a per-run test encryption key via dart-define instead of a hardcoded secret.
-- Support physical Android/iOS devices (LAN host rewrite for iPhone; adb reverse for Android).
-- Extract execution backends, device discovery/selection, and artifact transport into `lib/execution/`.
-
 ## 1.3.7
 
  - Update a dependency to the latest release.

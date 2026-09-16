@@ -158,6 +158,43 @@ class EnsembleTestHarness {
     'ensembleTestResetDeviceStorage',
   );
 
+  /// Explicit acknowledgment that integration tests may mutate storage on a
+  /// physical device (baseline capture + between-test restores).
+  static const bool allowDeviceStorageMutation = bool.fromEnvironment(
+    'ensembleTestAllowDeviceStorageMutation',
+  );
+
+  /// True when the integration target is a physical device (not emulator/sim).
+  static const bool deviceIsPhysical = bool.fromEnvironment(
+    'ensembleTestDeviceIsPhysical',
+  );
+
+  /// Physical devices require `--allow-device-storage-mutation` or
+  /// `--reset-device-storage` before storage is captured or mutated.
+  static void requirePhysicalDeviceStorageAcknowledgment() {
+    assertPhysicalDeviceStorageAcknowledged(
+      deviceIsPhysical: deviceIsPhysical,
+      allowMutation: allowDeviceStorageMutation,
+      resetStorage: resetDeviceStorage,
+    );
+  }
+
+  /// Pure gate used by [requirePhysicalDeviceStorageAcknowledgment] and tests.
+  static void assertPhysicalDeviceStorageAcknowledged({
+    required bool deviceIsPhysical,
+    required bool allowMutation,
+    required bool resetStorage,
+  }) {
+    if (!deviceIsPhysical) return;
+    if (allowMutation || resetStorage) return;
+    throw StateError(
+      'Integration tests on a physical device mutate app storage '
+      '(capture a pre-suite baseline and restore it between tests). '
+      'Pass --allow-device-storage-mutation to acknowledge this, or '
+      '--reset-device-storage to wipe storage first on a disposable device.',
+    );
+  }
+
   static void ensureTestPlugins() {
     TestWidgetsFlutterBinding.ensureInitialized();
     if (!_sqfliteInitialized) {
@@ -853,6 +890,7 @@ class EnsembleTestHarness {
   /// [resetDeviceStorage] is true, wipes first so the baseline is empty.
   static Future<void> ensurePreSuiteStorageSnapshot() async {
     if (_preSuiteStorageSnapshot != null) return;
+    requirePhysicalDeviceStorageAcknowledgment();
     if (resetDeviceStorage) {
       await wipeAllPersistentStorage();
     }
@@ -869,6 +907,13 @@ class EnsembleTestHarness {
   /// Restores the cached pre-suite storage baseline (capturing it first if needed).
   static Future<void> restorePreSuiteStorage() async {
     await ensurePreSuiteStorageSnapshot();
+    await _preSuiteStorageSnapshot!.restore();
+  }
+
+  /// Restores the pre-suite baseline at suite teardown (including after
+  /// failures) so the device returns to its pre-run storage state.
+  static Future<void> restorePreSuiteStorageAtSuiteEnd() async {
+    if (_preSuiteStorageSnapshot == null) return;
     await _preSuiteStorageSnapshot!.restore();
   }
 

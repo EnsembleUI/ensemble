@@ -69,6 +69,7 @@ String _suiteEncryptionKey(List<String> arguments) {
 ///   --device-id=<id>   Flutter target id for integration mode
 ///   --host-address=<ip> LAN address for physical iOS host services
 ///   --reset-device-storage  Wipe device storage before the suite (destructive)
+///   --allow-device-storage-mutation  Acknowledge storage mutation on physical devices
 ///   --input key=value  Provide a test input for ${inputs.key}; repeatable
 ///   --jobs=<n|auto>    Concurrent jobs (default: adaptive CPU/memory; 1 disables)
 ///   --timeout=<duration> Test suite timeout, e.g. 30s, 5m, 1h (default: 10m)
@@ -196,6 +197,16 @@ Future<void> runEnsembleYamlTestsCli(List<String> arguments) async {
         arguments: arguments,
         quiet: quiet,
       );
+      if (!integrationDevice.isVirtual &&
+          !arguments.contains('--allow-device-storage-mutation') &&
+          !arguments.contains('--reset-device-storage')) {
+        throw StateError(
+          'Physical device ${integrationDevice.display} will mutate app '
+          'storage during the suite. Pass --allow-device-storage-mutation '
+          'to acknowledge this, or --reset-device-storage to wipe storage '
+          'first on a disposable device.',
+        );
+      }
     }
   } catch (error) {
     stderr.writeln(error);
@@ -220,7 +231,10 @@ Future<void> runEnsembleYamlTestsCli(List<String> arguments) async {
       quiet: quiet,
       machineReport: machineReport,
     );
-    patcher.enable(mode: executionBackend.mode);
+    patcher.enable(
+      mode: executionBackend.mode,
+      targetPlatform: integrationDevice?.platform,
+    );
 
     if (patcher.pubspecChanged) {
       _writeStatus(
@@ -305,6 +319,7 @@ Future<void> runEnsembleYamlTestsCli(List<String> arguments) async {
           await _addAdbReverse(integrationDevice.id, uri.port);
           reversedPorts.add(uri.port);
         }
+        await _clearAdbLogcat(integrationDevice.id);
       }
     }
     final testRun = runSerial
@@ -350,10 +365,19 @@ Future<void> runEnsembleYamlTestsCli(List<String> arguments) async {
           );
 
     if (executionMode == ExecutionMode.integration) {
-      final transport = await materializeTransportedArtifacts(
+      var transport = await materializeTransportedArtifacts(
         artifactRoot: _artifactRootPath(appDir),
         output: '${testRun.stdout ?? ''}\n${testRun.stderr ?? ''}',
       );
+      if (!transport.complete && integrationDevice?.platform == 'android') {
+        final logcat = await _readAdbLogcat(integrationDevice!.id);
+        if (logcat.contains(ensembleTestArtifactProtocolPrefix)) {
+          transport = await materializeTransportedArtifacts(
+            artifactRoot: _artifactRootPath(appDir),
+            output: logcat,
+          );
+        }
+      }
       if (!transport.complete) {
         stderr.writeln(
           transport.error ??
@@ -364,6 +388,9 @@ Future<void> runEnsembleYamlTestsCli(List<String> arguments) async {
             'Kept ${transport.receivedPaths.length} valid artifact(s) that '
             'arrived before the failure.',
           );
+        }
+        if (!verbose) {
+          _writeProcessStreams(testRun);
         }
         exitCode = 3;
         return;
@@ -464,8 +491,8 @@ Future<void> runEnsembleYamlTestsCli(List<String> arguments) async {
     _cleanWorkerDirectories(appDir);
     patcher.restore();
     artifactLock.release();
+    exit(exitCode);
   }
-  exit(exitCode);
 }
 
 List<String> _selectionDartDefines(List<String> arguments) {
@@ -513,6 +540,10 @@ List<String> _buildFlutterTestArgs(
       '--dart-define=ensembleTestExecutionMode=integration',
     if (arguments.contains('--reset-device-storage'))
       '--dart-define=ensembleTestResetDeviceStorage=true',
+    if (arguments.contains('--allow-device-storage-mutation'))
+      '--dart-define=ensembleTestAllowDeviceStorageMutation=true',
+    if (physicalDevice != null && !physicalDevice.isVirtual)
+      '--dart-define=ensembleTestDeviceIsPhysical=true',
     '--dart-define=ensembleTestEncryptionKey=${_suiteEncryptionKey(arguments)}',
     if (physicalDevice != null) ...[
       '--dart-define=ensembleTestPhysicalDeviceId=${physicalDevice.id}',
@@ -2974,6 +3005,26 @@ Future<void> _removeAdbReverse(String deviceId, int port) async {
     );
   } catch (_) {
     // Best-effort cleanup must not hide the suite result.
+  }
+}
+
+Future<void> _clearAdbLogcat(String deviceId) async {
+  try {
+    await Process.run('adb', ['-s', deviceId, 'logcat', '-c']);
+  } catch (_) {
+    // Clearing is best-effort; transport can still scrape a noisy buffer.
+  }
+}
+
+Future<String> _readAdbLogcat(String deviceId) async {
+  try {
+    final result = await Process.run(
+      'adb',
+      ['-s', deviceId, 'logcat', '-d', '-v', 'brief'],
+    );
+    return '${result.stdout ?? ''}\n${result.stderr ?? ''}';
+  } catch (_) {
+    return '';
   }
 }
 

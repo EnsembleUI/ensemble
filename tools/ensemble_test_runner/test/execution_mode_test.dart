@@ -311,7 +311,7 @@ void main() {
     addTearDown(() => appDir.deleteSync(recursive: true));
     final bytes = utf8.encode('kept');
     final digest = sha256.convert(bytes).toString();
-    final id = '${bytes.length}-$digest';
+    final id = 'run-1-0';
     String record(Map<String, dynamic> value) =>
         '$ensembleTestArtifactProtocolPrefix${json.encode(value)}';
     final output = [
@@ -338,4 +338,165 @@ void main() {
       'kept',
     );
   });
+
+  test(
+    'identical content under different paths gets unique ids and both write',
+    () async {
+      final appDir = Directory.systemTemp.createTempSync('artifact_transport_');
+      addTearDown(() => appDir.deleteSync(recursive: true));
+      final bytes = utf8.encode('same-bytes');
+      final digest = sha256.convert(bytes).toString();
+      // Distinct transfer ids even when size+sha256 match.
+      const idA = 'run-dup-0';
+      const idB = 'run-dup-1';
+      String record(Map<String, dynamic> value) =>
+          '$ensembleTestArtifactProtocolPrefix${json.encode(value)}';
+
+      void appendArtifact(List<String> lines, String id, String path) {
+        lines.addAll([
+          record({
+            'event': 'start',
+            'id': id,
+            'path': path,
+            'mime': 'image/png',
+            'size': bytes.length,
+            'sha256': digest,
+          }),
+          record({'event': 'chunk', 'id': id, 'data': base64Encode(bytes)}),
+          record({'event': 'end', 'id': id}),
+        ]);
+      }
+
+      final lines = <String>[
+        record({'event': 'begin', 'runId': 'run-dup'}),
+      ];
+      appendArtifact(lines, idA, 'screenshots/a.png');
+      appendArtifact(lines, idB, 'screenshots/b.png');
+      lines.add(
+        record({
+          'event': 'complete',
+          'runId': 'run-dup',
+          'artifacts': [
+            {
+              'id': idA,
+              'path': 'screenshots/a.png',
+              'size': bytes.length,
+              'sha256': digest,
+            },
+            {
+              'id': idB,
+              'path': 'screenshots/b.png',
+              'size': bytes.length,
+              'sha256': digest,
+            },
+          ],
+        }),
+      );
+
+      await materializeTransportedArtifactsForTest(appDir.path, lines.join('\n'));
+      expect(
+        File('${appDir.path}/build/ensemble_test_runner/screenshots/a.png')
+            .readAsStringSync(),
+        'same-bytes',
+      );
+      expect(
+        File('${appDir.path}/build/ensemble_test_runner/screenshots/b.png')
+            .readAsStringSync(),
+        'same-bytes',
+      );
+    },
+  );
+
+  test('artifact chunk records fit under the Android logcat line limit', () {
+    const maxLogcatPayload = 4000;
+    final encoded = base64Encode(
+      List<int>.filled(ensembleTestArtifactRawChunkSize, 7),
+    );
+    final line =
+        '$ensembleTestArtifactProtocolPrefix${json.encode({
+      'event': 'chunk',
+      'id': '2026-09-17T00:00:00.000Z-0',
+      'data': encoded,
+    })}';
+    expect(line.length, lessThan(maxLogcatPayload));
+  });
+
+  test('emitter assigns unique run-scoped ids for identical payloads', () {
+    EnsembleTestArtifactEmitter.instance.resetForTest();
+    addTearDown(EnsembleTestArtifactEmitter.instance.resetForTest);
+    final bytes = utf8.encode('same-bytes');
+    EnsembleTestArtifactEmitter.instance.begin(runId: 'run-emit');
+    EnsembleTestArtifactEmitter.instance.emitArtifact(
+      'screenshots/a.png',
+      bytes,
+      mimeType: 'image/png',
+    );
+    EnsembleTestArtifactEmitter.instance.emitArtifact(
+      'screenshots/b.png',
+      bytes,
+      mimeType: 'image/png',
+    );
+    expect(
+      EnsembleTestArtifactEmitter.instance.emittedIdsForTest(),
+      ['run-emit-0', 'run-emit-1'],
+    );
+  });
+
+  test(
+    'complete fails when one of two same-content artifacts is missing',
+    () async {
+      final appDir = Directory.systemTemp.createTempSync('artifact_transport_');
+      addTearDown(() => appDir.deleteSync(recursive: true));
+      final bytes = utf8.encode('same-bytes');
+      final digest = sha256.convert(bytes).toString();
+      String record(Map<String, dynamic> value) =>
+          '$ensembleTestArtifactProtocolPrefix${json.encode(value)}';
+      // Only materialize the first id; complete lists both.
+      final output = [
+        record({'event': 'begin', 'runId': 'run-miss'}),
+        record({
+          'event': 'start',
+          'id': 'run-miss-0',
+          'path': 'screenshots/a.png',
+          'mime': 'image/png',
+          'size': bytes.length,
+          'sha256': digest,
+        }),
+        record({
+          'event': 'chunk',
+          'id': 'run-miss-0',
+          'data': base64Encode(bytes),
+        }),
+        record({'event': 'end', 'id': 'run-miss-0'}),
+        record({
+          'event': 'complete',
+          'runId': 'run-miss',
+          'artifacts': [
+            {
+              'id': 'run-miss-0',
+              'path': 'screenshots/a.png',
+              'size': bytes.length,
+              'sha256': digest,
+            },
+            {
+              'id': 'run-miss-1',
+              'path': 'screenshots/b.png',
+              'size': bytes.length,
+              'sha256': digest,
+            },
+          ],
+        }),
+      ].join('\n');
+
+      await expectLater(
+        () => materializeTransportedArtifactsForTest(appDir.path, output),
+        throwsStateError,
+      );
+      expect(
+        File('${appDir.path}/build/ensemble_test_runner/screenshots/a.png')
+            .readAsStringSync(),
+        'same-bytes',
+      );
+    },
+  );
 }
