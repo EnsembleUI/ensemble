@@ -51,9 +51,135 @@ definitions:
     expect(entry.existsSync(), isFalse);
   });
 
-  test('integration mode raises the iOS deployment target then restores it',
-      () {
+  test('failed enable leaves customer files unchanged', () {
+    final dir = Directory.systemTemp.createTempSync('integration_fail_');
+    addTearDown(() => dir.deleteSync(recursive: true));
+    const pubspec = '''
+name: sample_app
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+flutter:
+  assets:
+    - ensemble/
+''';
+    File('${dir.path}/pubspec.yaml').writeAsStringSync(pubspec);
+    Directory('${dir.path}/ensemble/apps/hello/tests')
+        .createSync(recursive: true);
+    File('${dir.path}/ensemble/ensemble-config.yaml')
+      ..parent.createSync(recursive: true)
+      ..writeAsStringSync('''
+definitions:
+  local:
+    path: ensemble/apps/hello
+    appHome: Home
+''');
+    File('${dir.path}/ensemble/apps/hello/tests/home.test.yaml')
+        .writeAsStringSync('id: home\nstartScreen: Home\nsteps: []\n');
+    Directory('${dir.path}/integration_test').createSync(recursive: true);
+    File(
+      '${dir.path}/${YamlTestAppPatcher.integrationTestEntryRelativePath}',
+    ).writeAsStringSync('''
+// Wrong entry — mentions the name only in a comment:
+// runEnsembleIntegrationYamlTests
+void main() {}
+''');
+    const podfile = "# platform :ios, '13.0'\n";
+    File('${dir.path}/ios/Podfile')
+      ..parent.createSync(recursive: true)
+      ..writeAsStringSync(podfile);
+    File('${dir.path}/ios/Runner.xcodeproj/project.pbxproj')
+      ..parent.createSync(recursive: true)
+      ..writeAsStringSync('IPHONEOS_DEPLOYMENT_TARGET = 13.0;\n');
+
+    final patcher = YamlTestAppPatcher(dir.path);
+    expect(
+      () => patcher.enable(mode: ExecutionMode.integration),
+      throwsStateError,
+    );
+
+    expect(File('${dir.path}/pubspec.yaml').readAsStringSync(), pubspec);
+    expect(
+      File('${dir.path}/ios/Podfile').readAsStringSync(),
+      podfile,
+    );
+    expect(
+      File('${dir.path}/ios/Runner.xcodeproj/project.pbxproj')
+          .readAsStringSync(),
+      'IPHONEOS_DEPLOYMENT_TARGET = 13.0;\n',
+    );
+    expect(
+      File(
+        '${dir.path}/${YamlTestAppPatcher.integrationTestEntryRelativePath}',
+      ).readAsStringSync(),
+      contains('void main() {}'),
+    );
+  });
+
+  test('integration mode rejects low iOS deployment without rewriting', () {
     final dir = Directory.systemTemp.createTempSync('integration_ios_');
+    addTearDown(() => dir.deleteSync(recursive: true));
+    const pubspec = '''
+name: sample_app
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+flutter:
+  assets:
+    - ensemble/
+''';
+    File('${dir.path}/pubspec.yaml').writeAsStringSync(pubspec);
+    Directory('${dir.path}/ensemble/apps/hello/tests')
+        .createSync(recursive: true);
+    File('${dir.path}/ensemble/ensemble-config.yaml')
+      ..parent.createSync(recursive: true)
+      ..writeAsStringSync('''
+definitions:
+  local:
+    path: ensemble/apps/hello
+    appHome: Home
+''');
+    File('${dir.path}/ensemble/apps/hello/tests/home.test.yaml')
+        .writeAsStringSync('id: home\nstartScreen: Home\nsteps: []\n');
+    const podfile = '''
+# Uncomment this line to define a global platform for your project
+# platform :ios, '13.0'
+''';
+    File('${dir.path}/ios/Podfile')
+      ..parent.createSync(recursive: true)
+      ..writeAsStringSync(podfile);
+    File('${dir.path}/ios/Runner.xcodeproj/project.pbxproj')
+      ..parent.createSync(recursive: true)
+      ..writeAsStringSync('IPHONEOS_DEPLOYMENT_TARGET = 13.0;\n');
+    File('${dir.path}/ios/Flutter/AppFrameworkInfo.plist')
+      ..parent.createSync(recursive: true)
+      ..writeAsStringSync('''
+<key>MinimumOSVersion</key>
+<string>13.0</string>
+''');
+
+    final patcher = YamlTestAppPatcher(dir.path);
+    expect(
+      () => patcher.enable(mode: ExecutionMode.integration),
+      throwsA(
+        isA<StateError>().having(
+          (e) => e.message,
+          'message',
+          contains('iOS deployment target'),
+        ),
+      ),
+    );
+    expect(File('${dir.path}/pubspec.yaml').readAsStringSync(), pubspec);
+    expect(File('${dir.path}/ios/Podfile').readAsStringSync(), podfile);
+    expect(
+      File('${dir.path}/ios/Runner.xcodeproj/project.pbxproj')
+          .readAsStringSync(),
+      'IPHONEOS_DEPLOYMENT_TARGET = 13.0;\n',
+    );
+  });
+
+  test('opt-in fix raises the iOS deployment target then restores it', () {
+    final dir = Directory.systemTemp.createTempSync('integration_ios_fix_');
     addTearDown(() => dir.deleteSync(recursive: true));
     File('${dir.path}/pubspec.yaml').writeAsStringSync('''
 name: sample_app
@@ -93,24 +219,19 @@ definitions:
 ''');
 
     final patcher = YamlTestAppPatcher(dir.path);
-    patcher.enable(mode: ExecutionMode.integration);
+    patcher.enable(
+      mode: ExecutionMode.integration,
+      fixIosDeploymentTarget: true,
+    );
 
     expect(
       File('${dir.path}/ios/Podfile').readAsStringSync(),
       contains("platform :ios, '15.0'"),
     );
     expect(
-      File('${dir.path}/ios/Podfile').readAsStringSync(),
-      isNot(contains("# platform :ios, '13.0'")),
-    );
-    expect(
       File('${dir.path}/ios/Runner.xcodeproj/project.pbxproj')
           .readAsStringSync(),
       contains('IPHONEOS_DEPLOYMENT_TARGET = 15.0;'),
-    );
-    expect(
-      File('${dir.path}/ios/Flutter/AppFrameworkInfo.plist').readAsStringSync(),
-      contains('<string>15.0</string>'),
     );
 
     patcher.restore();
@@ -122,6 +243,30 @@ definitions:
       File('${dir.path}/ios/Runner.xcodeproj/project.pbxproj')
           .readAsStringSync(),
       contains('IPHONEOS_DEPLOYMENT_TARGET = 13.0;'),
+    );
+  });
+
+  test('entry point validation ignores comments', () {
+    expect(
+      YamlTestAppPatcher.entryPointCallsFunction(
+        '// runEnsembleIntegrationYamlTests()\nvoid main() {}',
+        'runEnsembleIntegrationYamlTests',
+      ),
+      isFalse,
+    );
+    expect(
+      YamlTestAppPatcher.entryPointCallsFunction(
+        '/* runEnsembleIntegrationYamlTests() */\nvoid main() {}',
+        'runEnsembleIntegrationYamlTests',
+      ),
+      isFalse,
+    );
+    expect(
+      YamlTestAppPatcher.entryPointCallsFunction(
+        'Future<void> main() async {\n  await runEnsembleIntegrationYamlTests();\n}',
+        'runEnsembleIntegrationYamlTests',
+      ),
+      isTrue,
     );
   });
 

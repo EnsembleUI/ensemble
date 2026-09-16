@@ -1,9 +1,13 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
-import 'dart:typed_data';
+import 'dart:math';
 
-import 'package:crypto/crypto.dart';
+import 'package:ensemble_test_runner/execution/artifact_transport.dart';
+import 'package:ensemble_test_runner/execution/device_discovery.dart';
+import 'package:ensemble_test_runner/execution/device_selector.dart';
+import 'package:ensemble_test_runner/execution/execution_backend.dart';
+import 'package:ensemble_test_runner/execution/host_address.dart';
 import 'package:ensemble_test_runner/cli/ensemble_test_doctor.dart';
 import 'package:ensemble_test_runner/cli/ensemble_test_cli_output.dart';
 import 'package:ensemble_test_runner/cli/yaml_test_app_patcher.dart';
@@ -27,6 +31,20 @@ import 'package:yaml/yaml.dart';
 const _maxAppConsoleLogBytes = 5 * 1024 * 1024;
 final _appConsoleLogBytes = <String, int>{};
 final _disabledAppConsoleLogs = <String>{};
+String? _cachedSuiteEncryptionKey;
+
+String _suiteEncryptionKey(List<String> arguments) {
+  final existing = _cachedSuiteEncryptionKey;
+  if (existing != null) return existing;
+  const alphabet =
+      'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  final random = Random.secure();
+  final key = List.generate(
+    32,
+    (_) => alphabet[random.nextInt(alphabet.length)],
+  ).join();
+  return _cachedSuiteEncryptionKey = key;
+}
 
 /// Runs declarative YAML tests in an Ensemble app.
 ///
@@ -35,6 +53,7 @@ final _disabledAppConsoleLogs = <String>{};
 /// Options:
 ///   --app-dir=<path>   App directory (default: current directory)
 ///   --doctor           Validate test setup without running Flutter tests
+///   --fix             With --doctor, raise iOS deployment target permanently
 ///   --inspect-app      Print app metadata JSON for test generation
 ///   --validate-only    Validate YAML tests without running Flutter tests
 ///   --scaffold-test=<id> Create a starter test file
@@ -48,6 +67,8 @@ final _disabledAppConsoleLogs = <String>{};
 ///   --device=<id>      Run only these suite device id(s); repeatable (default: all)
 ///   --mode=<mode>      Execution mode: widget or integration
 ///   --device-id=<id>   Flutter target id for integration mode
+///   --host-address=<ip> LAN address for physical iOS host services
+///   --reset-device-storage  Wipe device storage before the suite (destructive)
 ///   --input key=value  Provide a test input for ${inputs.key}; repeatable
 ///   --jobs=<n|auto>    Concurrent jobs (default: adaptive CPU/memory; 1 disables)
 ///   --timeout=<duration> Test suite timeout, e.g. 30s, 5m, 1h (default: 10m)
@@ -92,7 +113,7 @@ Future<void> runEnsembleYamlTestsCli(List<String> arguments) async {
     final result = await EnsembleTestDoctor(
       appDir,
       modeOverride: modeOverride,
-    ).run();
+    ).run(fix: arguments.contains('--fix'));
     stdout.writeln(result.lines.join('\n'));
     exit(result.hasErrors ? 1 : 0);
   }
@@ -162,9 +183,9 @@ Future<void> runEnsembleYamlTestsCli(List<String> arguments) async {
     exit(2);
   }
 
-  final executionBackend = _executionBackendFor(executionMode);
+  final executionBackend = executionBackendFor(executionMode);
 
-  _FlutterDevice? integrationDevice;
+  FlutterDevice? integrationDevice;
   try {
     integrationDevice = await executionBackend.selectDevice(arguments);
     if (integrationDevice != null) {
@@ -249,10 +270,27 @@ Future<void> runEnsembleYamlTestsCli(List<String> arguments) async {
             usedPorts: <int>{},
           )
         : null;
+    var effectiveServiceOverrides =
+        serialServiceOverrides ?? const <String, dynamic>{};
     if (executionBackend.hostOwnsServices) {
+      final hostAddress = await resolveIntegrationHostAddress(
+        platform: integrationDevice!.platform,
+        emulator: integrationDevice.isVirtual,
+        explicitHostAddress: () {
+          final hosts = _optionValues(arguments, '--host-address');
+          return hosts.isEmpty ? null : hosts.single;
+        }(),
+      );
+      if (hostAddress != null) {
+        effectiveServiceOverrides = _rewriteServiceOverridesForHost(
+          effectiveServiceOverrides,
+          suiteConfig.services,
+          hostAddress,
+        );
+      }
       final resolvedServices = _resolvedHostServices(
         suiteConfig.services,
-        serialServiceOverrides ?? const {},
+        effectiveServiceOverrides,
         appDir: appDir,
       );
       hostServices = TestServiceManager(
@@ -260,7 +298,7 @@ Future<void> runEnsembleYamlTestsCli(List<String> arguments) async {
         artifactRoot: _artifactRootPath(appDir),
       );
       await hostServices.startAll();
-      if (integrationDevice!.platform == 'android') {
+      if (integrationDevice.platform == 'android') {
         for (final service in resolvedServices) {
           final uri = service.url == null ? null : Uri.tryParse(service.url!);
           if (uri == null || !uri.hasPort) continue;
@@ -290,7 +328,9 @@ Future<void> runEnsembleYamlTestsCli(List<String> arguments) async {
                   patcher.hasTimerRewrites ? _appConsoleLogPath() : null,
               artifactRoot:
                   patcher.hasTimerRewrites ? _artifactRootPath(appDir) : null,
-              serviceOverrides: serialServiceOverrides,
+              serviceOverrides: effectiveServiceOverrides.isEmpty
+                  ? null
+                  : effectiveServiceOverrides,
             ),
             workingDirectory: serialWorkingDirectory,
             streamOutput: streamLiveOutput,
@@ -310,10 +350,24 @@ Future<void> runEnsembleYamlTestsCli(List<String> arguments) async {
           );
 
     if (executionMode == ExecutionMode.integration) {
-      _materializeTransportedArtifacts(
-        appDir,
-        '${testRun.stdout ?? ''}\n${testRun.stderr ?? ''}',
+      final transport = await materializeTransportedArtifacts(
+        artifactRoot: _artifactRootPath(appDir),
+        output: '${testRun.stdout ?? ''}\n${testRun.stderr ?? ''}',
       );
+      if (!transport.complete) {
+        stderr.writeln(
+          transport.error ??
+              'Integration artifact transport was incomplete.',
+        );
+        if (transport.receivedPaths.isNotEmpty) {
+          stderr.writeln(
+            'Kept ${transport.receivedPaths.length} valid artifact(s) that '
+            'arrived before the failure.',
+          );
+        }
+        exitCode = 3;
+        return;
+      }
       await optimizeTransportedScreenshotsForHost(_artifactRootPath(appDir));
     }
 
@@ -446,7 +500,7 @@ List<String> _buildFlutterTestArgs(
   Map<String, dynamic>? serviceOverrides,
   String artifactDisplayRoot = 'build/ensemble_test_runner',
   String testEntryRelativePath = YamlTestAppPatcher.testEntryRelativePath,
-  _FlutterDevice? physicalDevice,
+  FlutterDevice? physicalDevice,
   bool hostOwnsServices = false,
 }) {
   return [
@@ -457,6 +511,9 @@ List<String> _buildFlutterTestArgs(
     if (hostOwnsServices) '--dart-define=ensembleTestHostOwnsServices=true',
     if (physicalDevice != null)
       '--dart-define=ensembleTestExecutionMode=integration',
+    if (arguments.contains('--reset-device-storage'))
+      '--dart-define=ensembleTestResetDeviceStorage=true',
+    '--dart-define=ensembleTestEncryptionKey=${_suiteEncryptionKey(arguments)}',
     if (physicalDevice != null) ...[
       '--dart-define=ensembleTestPhysicalDeviceId=${physicalDevice.id}',
       '--dart-define=ensembleTestPhysicalPlatform=${physicalDevice.platform}',
@@ -507,7 +564,7 @@ List<String> buildIntegrationFlutterTestArgsForTest({
       verbose: false,
       testEntryRelativePath:
           YamlTestAppPatcher.integrationTestEntryRelativePath,
-      physicalDevice: _FlutterDevice(
+      physicalDevice: FlutterDevice(
         id: deviceId,
         name: deviceName,
         targetPlatform: targetPlatform,
@@ -515,6 +572,34 @@ List<String> buildIntegrationFlutterTestArgsForTest({
       ),
       hostOwnsServices: true,
     );
+
+Map<String, dynamic> _rewriteServiceOverridesForHost(
+  Map<String, dynamic> overrides,
+  List<TestServiceConfig> services,
+  String hostAddress,
+) {
+  final rewritten = Map<String, dynamic>.from(overrides);
+  for (final service in services) {
+    final existing = rewritten[service.name];
+    final map = existing is Map
+        ? Map<String, dynamic>.from(existing)
+        : <String, dynamic>{};
+    final url = map['url']?.toString() ?? service.url;
+    final ready = service.readyUrl;
+    final newUrl = rewriteServiceUrlForDevice(url, hostAddress);
+    if (newUrl != null) map['url'] = newUrl;
+    // readyUrl is on the config object; override maps only carry url/env.
+    rewritten[service.name] = map;
+    // Also rewrite ready checks that use loopback by embedding in url map.
+    if (ready != null) {
+      final rewrittenReady = rewriteServiceUrlForDevice(ready, hostAddress);
+      if (rewrittenReady != null && rewrittenReady != ready) {
+        map['readyUrl'] = rewrittenReady;
+      }
+    }
+  }
+  return rewritten;
+}
 
 Future<Map<String, dynamic>> _resolveServiceOverrides({
   required YamlTestAppPatcher patcher,
@@ -2576,117 +2661,18 @@ String _jsonRecordFromLine(String raw) {
   return end < 0 ? raw.trim() : raw.substring(0, end + 1);
 }
 
-void _materializeTransportedArtifacts(String appDir, String output) {
-  final pending = <String, _IncomingArtifact>{};
-  var sawRecord = false;
-  for (final line in const LineSplitter().convert(output)) {
-    final marker = line.indexOf(ensembleTestArtifactProtocolPrefix);
-    if (marker < 0) continue;
-    sawRecord = true;
-    final raw = line.substring(
-      marker + ensembleTestArtifactProtocolPrefix.length,
-    );
-    final dynamic decoded;
-    try {
-      decoded = json.decode(_jsonRecordFromLine(raw));
-    } catch (error) {
-      throw StateError('Invalid integration artifact record: $error');
-    }
-    if (decoded is! Map) {
-      throw StateError('Invalid integration artifact record payload.');
-    }
-    final record = Map<String, dynamic>.from(decoded);
-    final event = record['event']?.toString();
-    final id = record['id']?.toString();
-    if (id == null || id.isEmpty) {
-      throw StateError('Integration artifact record is missing an id.');
-    }
-    switch (event) {
-      case 'start':
-        final relativePath = record['path']?.toString() ?? '';
-        final expectedSize = record['size'];
-        final expectedHash = record['sha256']?.toString() ?? '';
-        if (relativePath.isEmpty || expectedSize is! int || expectedSize < 0) {
-          throw StateError('Invalid integration artifact start record.');
-        }
-        pending[id] = _IncomingArtifact(
-          relativePath: relativePath,
-          expectedSize: expectedSize,
-          expectedHash: expectedHash,
-        );
-        break;
-      case 'chunk':
-        final artifact = pending[id];
-        if (artifact == null) {
-          throw StateError('Artifact chunk arrived before start for $id.');
-        }
-        try {
-          artifact.bytes.add(base64Decode(record['data']?.toString() ?? ''));
-        } catch (error) {
-          throw StateError('Invalid base64 artifact chunk for $id: $error');
-        }
-        break;
-      case 'end':
-        final artifact = pending.remove(id);
-        if (artifact == null) {
-          throw StateError('Artifact end arrived before start for $id.');
-        }
-        _writeTransportedArtifact(appDir, artifact);
-        break;
-      default:
-        throw StateError('Unknown integration artifact event "$event".');
-    }
-  }
-  if (sawRecord && pending.isNotEmpty) {
-    throw StateError(
-      'Integration artifact transport ended with ${pending.length} incomplete artifact(s).',
-    );
-  }
-}
-
 /// Test hook for the device-to-host artifact protocol.
-void materializeTransportedArtifactsForTest(String appDir, String output) =>
-    _materializeTransportedArtifacts(appDir, output);
-
-class _IncomingArtifact {
-  final String relativePath;
-  final int expectedSize;
-  final String expectedHash;
-  final BytesBuilder bytes = BytesBuilder(copy: false);
-
-  _IncomingArtifact({
-    required this.relativePath,
-    required this.expectedSize,
-    required this.expectedHash,
-  });
-}
-
-void _writeTransportedArtifact(String appDir, _IncomingArtifact artifact) {
-  final normalized = p.posix.normalize(
-    artifact.relativePath.replaceAll('\\', '/'),
+Future<void> materializeTransportedArtifactsForTest(
+  String appDir,
+  String output,
+) async {
+  final result = await materializeTransportedArtifacts(
+    artifactRoot: _artifactRootPath(appDir),
+    output: output,
   );
-  if (p.posix.isAbsolute(normalized) ||
-      normalized == '..' ||
-      normalized.startsWith('../')) {
-    throw StateError('Unsafe integration artifact path: $normalized');
+  if (!result.complete) {
+    throw StateError(result.error ?? 'Incomplete artifact transport.');
   }
-  final bytes = artifact.bytes.takeBytes();
-  if (bytes.length != artifact.expectedSize) {
-    throw StateError(
-      'Integration artifact $normalized has ${bytes.length} bytes; expected '
-      '${artifact.expectedSize}.',
-    );
-  }
-  final actualHash = sha256.convert(bytes).toString();
-  if (actualHash != artifact.expectedHash) {
-    throw StateError('Integration artifact checksum failed: $normalized');
-  }
-  final root = p.normalize(_artifactRootPath(appDir));
-  final target = p.normalize(p.join(root, p.fromUri(normalized)));
-  if (!p.isWithin(root, target)) {
-    throw StateError('Unsafe integration artifact path: $normalized');
-  }
-  AtomicFile.writeBytesSync(File(target), bytes);
 }
 
 File? _openAppConsoleLog(String? path) {
@@ -2906,188 +2892,15 @@ void validateExecutionModeOptionsForTest(
       jobs: jobs,
     );
 
-abstract class _ExecutionBackend {
-  ExecutionMode get mode;
-  bool get supportsParallel;
-  bool get hostOwnsServices;
-  String get entryRelativePath;
-
-  Future<_FlutterDevice?> selectDevice(List<String> arguments);
-}
-
-class _WidgetExecutionBackend implements _ExecutionBackend {
-  @override
-  ExecutionMode get mode => ExecutionMode.widget;
-
-  @override
-  bool get supportsParallel => true;
-
-  @override
-  bool get hostOwnsServices => false;
-
-  @override
-  String get entryRelativePath => YamlTestAppPatcher.testEntryRelativePath;
-
-  @override
-  Future<_FlutterDevice?> selectDevice(List<String> arguments) async => null;
-}
-
-class _IntegrationExecutionBackend implements _ExecutionBackend {
-  @override
-  ExecutionMode get mode => ExecutionMode.integration;
-
-  @override
-  bool get supportsParallel => false;
-
-  @override
-  bool get hostOwnsServices => true;
-
-  @override
-  String get entryRelativePath =>
-      YamlTestAppPatcher.integrationTestEntryRelativePath;
-
-  @override
-  Future<_FlutterDevice?> selectDevice(List<String> arguments) =>
-      _selectIntegrationDevice(arguments);
-}
-
-_ExecutionBackend _executionBackendFor(ExecutionMode mode) =>
-    mode == ExecutionMode.integration
-        ? _IntegrationExecutionBackend()
-        : _WidgetExecutionBackend();
-
-class _FlutterDevice {
-  final String id;
-  final String name;
-  final String targetPlatform;
-  final bool emulator;
-
-  const _FlutterDevice({
-    required this.id,
-    required this.name,
-    required this.targetPlatform,
-    required this.emulator,
-  });
-
-  String get platform =>
-      targetPlatform.startsWith('android') ? 'android' : 'ios';
-
-  bool get isSupportedVirtualTarget =>
-      emulator &&
-      (targetPlatform.startsWith('android') || targetPlatform == 'ios');
-
-  factory _FlutterDevice.fromJson(Map<String, dynamic> json) => _FlutterDevice(
-        id: json['id']?.toString() ?? '',
-        name: json['name']?.toString() ?? json['id']?.toString() ?? 'Unknown',
-        targetPlatform: json['targetPlatform']?.toString() ?? '',
-        emulator: json['emulator'] == true,
-      );
-
-  String get display => '$name ($id, $targetPlatform)';
-}
-
-Future<List<_FlutterDevice>> _discoverFlutterDevices() async {
-  final result = await Process.run('flutter', ['devices', '--machine']);
-  if (result.exitCode != 0) {
-    throw StateError(
-      'Could not discover Flutter devices:\n${result.stderr.toString().trim()}',
-    );
-  }
-  return _parseFlutterDevices(result.stdout.toString());
-}
-
-List<_FlutterDevice> _parseFlutterDevices(String machineJson) {
-  final dynamic decoded = json.decode(machineJson);
-  if (decoded is! List) {
-    throw StateError('flutter devices --machine returned invalid JSON.');
-  }
-  return decoded
-      .whereType<Map>()
-      .map((item) => _FlutterDevice.fromJson(Map<String, dynamic>.from(item)))
-      .where((device) => device.id.isNotEmpty)
-      .toList();
-}
-
 /// Test hook for deterministic device filtering and non-interactive selection.
 String selectIntegrationDeviceIdForTest(
   String machineJson, {
   String? requestedId,
-}) {
-  final devices = _parseFlutterDevices(machineJson);
-  final supported =
-      devices.where((device) => device.isSupportedVirtualTarget).toList();
-  if (requestedId != null) {
-    final matches = devices.where((device) => device.id == requestedId);
-    if (matches.isEmpty) throw StateError('Device not found: $requestedId');
-    if (!matches.single.isSupportedVirtualTarget) {
-      throw StateError('Unsupported integration device: $requestedId');
-    }
-    return matches.single.id;
-  }
-  if (supported.isEmpty) throw StateError('No supported integration target');
-  if (supported.length > 1) {
-    throw StateError('Multiple integration targets require --device-id');
-  }
-  return supported.single.id;
-}
-
-Future<_FlutterDevice> _selectIntegrationDevice(
-  List<String> arguments,
-) async {
-  final devices = await _discoverFlutterDevices();
-  final supported =
-      devices.where((device) => device.isSupportedVirtualTarget).toList();
-  final requested = _optionValues(arguments, '--device-id');
-  if (requested.isNotEmpty) {
-    final matches = devices.where((device) => device.id == requested.single);
-    if (matches.isEmpty) {
-      throw StateError(
-        'Flutter device "${requested.single}" was not found.\n'
-        '${_formatDeviceList(devices)}',
-      );
-    }
-    final selected = matches.single;
-    if (!selected.isSupportedVirtualTarget) {
-      throw StateError(
-        'Device "${selected.display}" is not supported in Phase 1. Select an '
-        'Android emulator or iOS simulator.\n${_formatDeviceList(devices)}',
-      );
-    }
-    return selected;
-  }
-  if (supported.isEmpty) {
-    throw StateError(
-      'No supported integration target is connected. Start an Android '
-      'emulator or iOS simulator.\n${_formatDeviceList(devices)}',
+}) =>
+    selectIntegrationDeviceId(
+      machineJson: machineJson,
+      requestedId: requestedId,
     );
-  }
-  if (supported.length == 1) return supported.single;
-  if (!stdin.hasTerminal) {
-    throw StateError(
-      'Multiple integration targets are connected. Select one with '
-      '--device-id=<id>:\n${_formatDeviceList(supported)}',
-    );
-  }
-  stderr.writeln('Select an integration target:');
-  for (var i = 0; i < supported.length; i++) {
-    stderr.writeln('  ${i + 1}) ${supported[i].display}');
-  }
-  stderr.write('Device: ');
-  final selection = int.tryParse(stdin.readLineSync()?.trim() ?? '');
-  if (selection == null || selection < 1 || selection > supported.length) {
-    throw StateError('No valid integration target was selected.');
-  }
-  return supported[selection - 1];
-}
-
-String _formatDeviceList(List<_FlutterDevice> devices) {
-  if (devices.isEmpty) return 'Connected devices: none';
-  return [
-    'Connected devices:',
-    for (final device in devices)
-      '  - ${device.display}${device.isSupportedVirtualTarget ? '' : ' [unsupported]'}',
-  ].join('\n');
-}
 
 void _validatePlatformProject(String appDir, String platform) {
   final requiredPath = platform == 'android'
@@ -3133,7 +2946,7 @@ List<TestServiceConfig> _resolvedHostServices(
                   ? workingDirectory
                   : p.join(appDir, workingDirectory)),
           environment: {...service.environment, ...overrideEnvironment},
-          readyUrl: service.readyUrl,
+          readyUrl: override['readyUrl']?.toString() ?? service.readyUrl,
           readyTimeoutMs: service.readyTimeoutMs,
         );
       })(),

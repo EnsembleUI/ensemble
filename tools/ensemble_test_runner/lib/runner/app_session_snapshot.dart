@@ -41,7 +41,11 @@ class AppSessionSnapshot {
   }
 
   Future<void> restore() async {
-    final storage = StorageManager();
+    await restoreOnto(StorageManager());
+  }
+
+  /// Replaces current storage with this snapshot's contents.
+  Future<void> restoreOnto(StorageManager storage) async {
     await storage.clearPublicStorage();
     for (final key
         in storage.getKeys().where((key) => key.startsWith('enc_')).toList()) {

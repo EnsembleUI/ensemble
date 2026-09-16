@@ -28,7 +28,7 @@ class EnsembleTestDoctor {
 
   EnsembleTestDoctor(this.appDir, {this.modeOverride});
 
-  Future<EnsembleTestDoctorResult> run() async {
+  Future<EnsembleTestDoctorResult> run({bool fix = false}) async {
     final lines = <String>['Ensemble test runner doctor'];
     var hasErrors = false;
 
@@ -155,6 +155,27 @@ class EnsembleTestDoctor {
         );
       }
       if (iosProject.existsSync()) {
+        if (fix) {
+          final before = YamlTestAppPatcher.iosDeploymentTargetRequirementMessage(
+            appDir,
+          );
+          if (before != null) {
+            YamlTestAppPatcher(appDir).applyIosDeploymentTargetFix();
+            // Keep the raised files permanently for doctor --fix (no restore).
+            final after =
+                YamlTestAppPatcher.iosDeploymentTargetRequirementMessage(
+              appDir,
+            );
+            if (after == null) {
+              ok(
+                'Raised iOS deployment target to '
+                '${YamlTestAppPatcher.minIntegrationIosDeploymentTarget}',
+              );
+            } else {
+              warn(after);
+            }
+          }
+        }
         _reportIosDeploymentTarget(
           appDir: appDir,
           ok: ok,
@@ -175,14 +196,15 @@ class EnsembleTestDoctor {
               ? devices.where((dynamic item) {
                   if (item is! Map) return false;
                   final platform = item['targetPlatform']?.toString() ?? '';
-                  return item['emulator'] == true &&
-                      (platform.startsWith('android') || platform == 'ios');
+                  return platform.startsWith('android') || platform == 'ios';
                 }).length
               : 0;
           if (supported == 0) {
-            warn('No Android emulator or iOS simulator is currently connected');
+            warn(
+              'No Android or iOS emulator/simulator/device is currently connected',
+            );
           } else {
-            ok('Found $supported supported virtual integration target(s)');
+            ok('Found $supported supported integration target(s)');
           }
         } catch (_) {
           error('flutter devices --machine returned invalid JSON');
@@ -358,34 +380,22 @@ void _reportIosDeploymentTarget({
   required void Function(String message) ok,
   required void Function(String message) warn,
 }) {
-  final min = YamlTestAppPatcher.minIntegrationIosDeploymentTarget;
-  final podfile = File(p.join(appDir, 'ios', 'Podfile'));
-  if (!podfile.existsSync()) {
-    warn(
-      'ios/Podfile is missing; CocoaPods will default to iOS 13.0. '
-      'Firebase plugins require $min. The runner raises it for integration runs.',
-    );
+  final message =
+      YamlTestAppPatcher.iosDeploymentTargetRequirementMessage(appDir);
+  if (message == null) {
+    final podfile = File(p.join(appDir, 'ios', 'Podfile'));
+    if (!podfile.existsSync()) {
+      ok('No iOS Podfile (skipped deployment-target check)');
+      return;
+    }
+    final match = RegExp(
+      r'''^#?\s*platform\s*:ios\s*,\s*['"]([0-9.]+)['"]''',
+      multiLine: true,
+    ).firstMatch(podfile.readAsStringSync());
+    ok('iOS deployment target is ${match?.group(1) ?? 'ok'}');
     return;
   }
-  final content = podfile.readAsStringSync();
-  final match = RegExp(
-    r'''^#?\s*platform\s*:ios\s*,\s*['"]([0-9.]+)['"]''',
-    multiLine: true,
-  ).firstMatch(content);
-  final version = match?.group(1);
-  final commented = match != null && match.group(0)!.trimLeft().startsWith('#');
-  if (version == null ||
-      commented ||
-      YamlTestAppPatcher.iosVersionLessThan(version, min)) {
-    final current =
-        version == null || commented ? 'unset (defaults to 13.0)' : version;
-    warn(
-      'iOS deployment target is $current; Firebase plugins require $min. '
-      'The runner raises it for integration runs.',
-    );
-    return;
-  }
-  ok('iOS deployment target is $version');
+  warn(message);
 }
 
 Set<String> _collectKnownWidgetIds(Directory appPath) {

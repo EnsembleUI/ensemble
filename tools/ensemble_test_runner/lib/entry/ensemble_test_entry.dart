@@ -118,6 +118,10 @@ Future<void> registerEnsembleYamlTests(EnsembleYamlTestOptions options) async {
           // Module constructors may schedule follow-up async init work.
           await Future<void>.delayed(Duration.zero);
         });
+        if (options.mode == ExecutionMode.integration &&
+            usesDeviceArtifactTransport) {
+          emitEnsembleTestArtifactTransportBegin();
+        }
 
         final target = await EnsembleTestDiscovery.loadAppTarget();
         final plan = await EnsembleTestExecutionPlanner.build(
@@ -245,6 +249,11 @@ Future<void> registerEnsembleYamlTests(EnsembleYamlTestOptions options) async {
           emitMachineReport(runResult);
         }
         rethrow;
+      } finally {
+        if (options.mode == ExecutionMode.integration &&
+            usesDeviceArtifactTransport) {
+          emitEnsembleTestArtifactTransportComplete();
+        }
       }
     },
     timeout: _timeoutSeconds > 0

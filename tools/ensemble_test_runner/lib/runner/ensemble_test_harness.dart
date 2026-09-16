@@ -20,6 +20,7 @@ import 'package:ensemble_test_runner/mocks/adobe_test_setup.dart';
 import 'package:ensemble_test_runner/mocks/firebase_test_setup.dart';
 import 'package:ensemble_test_runner/mocks/test_api_provider_overlay.dart';
 import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
+import 'package:ensemble_test_runner/runner/app_session_snapshot.dart';
 import 'package:ensemble_test_runner/runner/ensemble_test_context.dart';
 import 'package:ensemble_test_runner/runner/live_async_call.dart';
 import 'package:ensemble_test_runner/runner/yaml_test_session.dart';
@@ -96,10 +97,7 @@ Future<void> applyYamlTestStorageBootstrap(EnsembleTestSetup setup) async {
       const <MapEntry<String, dynamic>>[];
   if (secureEntries.isNotEmpty) {
     await SecretsStore().initialize();
-    SecretsStore().secretCache.putIfAbsent(
-          'encryptionKey',
-          () => '7OPUScfQ3OTmGZXx9EZ5q6lTsSDwiCUA',
-        );
+    installTestEncryptionKey();
   }
   for (final entry in secureEntries) {
     EncryptedStorageManager.setSecureStorage({
@@ -120,6 +118,30 @@ Future<void> applyYamlTestStorageBootstrap(EnsembleTestSetup setup) async {
   }
 }
 
+/// Installs the per-run test encryption key into [SecretsStore] and clears the
+/// process-cached key in [EncryptedStorageManager].
+///
+/// The key comes from `--dart-define=ensembleTestEncryptionKey=...` (generated
+/// by the CLI each run). Widget-test fixtures may pass a deterministic value.
+void installTestEncryptionKey() {
+  const fromDefine = String.fromEnvironment('ensembleTestEncryptionKey');
+  final key = fromDefine.isNotEmpty ? fromDefine : _fallbackTestEncryptionKey();
+  if (key.length != 32) {
+    throw StateError(
+      'ensembleTestEncryptionKey must be exactly 32 characters '
+      '(got ${key.length}).',
+    );
+  }
+  EncryptedStorageManager.resetCachedKey();
+  SecretsStore().secretCache['encryptionKey'] = key;
+}
+
+String _fallbackTestEncryptionKey() {
+  // Deterministic fallback for unit tests that do not go through the CLI.
+  // Never used as a production secret; process-local only.
+  return 'EnsembleTestKey00000000000000000';
+}
+
 /// Boots the real Ensemble runtime for widget tests.
 class EnsembleTestHarness {
   static final String _testStoragePath =
@@ -127,6 +149,14 @@ class EnsembleTestHarness {
   static bool _appFontsLoaded = false;
   static bool _sqfliteInitialized = false;
   static final Map<String, String> _secureStorage = {};
+
+  /// Storage present when the suite started. Independent integration tests
+  /// restore this instead of wiping the whole device keychain.
+  static AppSessionSnapshot? _preSuiteStorageSnapshot;
+
+  static const bool resetDeviceStorage = bool.fromEnvironment(
+    'ensembleTestResetDeviceStorage',
+  );
 
   static void ensureTestPlugins() {
     TestWidgetsFlutterBinding.ensureInitialized();
@@ -804,7 +834,9 @@ class EnsembleTestHarness {
     }
   }
 
-  static Future<void> _clearPersistentTestState() async {
+  /// Wipes all public / encrypted / keychain storage. Destructive — only used
+  /// when [resetDeviceStorage] is set or when capturing an empty baseline.
+  static Future<void> wipeAllPersistentStorage() async {
     final storage = StorageManager();
     await storage.clearPublicStorage();
     for (final key
@@ -816,6 +848,38 @@ class EnsembleTestHarness {
       await storage.removeSecurely(key);
     }
   }
+
+  /// Captures the pre-suite storage baseline once. When
+  /// [resetDeviceStorage] is true, wipes first so the baseline is empty.
+  static Future<void> ensurePreSuiteStorageSnapshot() async {
+    if (_preSuiteStorageSnapshot != null) return;
+    if (resetDeviceStorage) {
+      await wipeAllPersistentStorage();
+    }
+    _preSuiteStorageSnapshot = await AppSessionSnapshot.capture();
+  }
+
+  /// Restores device storage to the pre-suite baseline so independent tests
+  /// do not inherit keys written by earlier tests, while preserving whatever
+  /// already existed on the device before the suite started.
+  static Future<void> _clearPersistentTestState() async {
+    await restorePreSuiteStorage();
+  }
+
+  /// Restores the cached pre-suite storage baseline (capturing it first if needed).
+  static Future<void> restorePreSuiteStorage() async {
+    await ensurePreSuiteStorageSnapshot();
+    await _preSuiteStorageSnapshot!.restore();
+  }
+
+  /// Test hook: drop the cached baseline between unit tests.
+  static void resetPreSuiteStorageSnapshotForTest() {
+    _preSuiteStorageSnapshot = null;
+  }
+
+  /// Test hook exposing [restorePreSuiteStorage].
+  static Future<void> restorePreSuiteStorageForTest() =>
+      restorePreSuiteStorage();
 
   static void resetTestRuntime() {
     YamlTestSession.reset();

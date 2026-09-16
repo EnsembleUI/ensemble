@@ -42,7 +42,19 @@ jobs:
             dart run ensemble_test_runner:ensemble_test
             --mode=integration
             --device-id=emulator-5554
-
+      - name: Verify Android report artifacts
+        working-directory: tools/ensemble_test_runner/example
+        run: |
+          test -f build/ensemble_test_runner/report/index.html
+          test -f build/ensemble_test_runner/report/results.json.gz
+          test -d build/ensemble_test_runner/report/screenshots
+          test "$(find build/ensemble_test_runner/report/screenshots -type f | wc -l)" -gt 0
+      
+      - name: Upload Android report artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: ensemble_test_runner_example_android_report
+          path: tools/ensemble_test_runner/example/build/ensemble_test_runner/report
   ios-simulator:
     runs-on: macos-latest
     timeout-minutes: 60
@@ -97,3 +109,15 @@ jobs:
           dart run ensemble_test_runner:ensemble_test
           --mode=integration
           --device-id=${{ steps.simulator.outputs.udid }}
+      - name: Verify iOS report artifacts
+        working-directory: tools/ensemble_test_runner/example
+        run: |
+          test -f build/ensemble_test_runner/report/index.html
+          test -f build/ensemble_test_runner/report/results.json.gz
+          test -d build/ensemble_test_runner/report/screenshots
+          test "$(find build/ensemble_test_runner/report/screenshots -type f | wc -l)" -gt 0
+      - name: Upload iOS report artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: ensemble_test_runner_example_ios_report
+          path: tools/ensemble_test_runner/example/build/ensemble_test_runner/report

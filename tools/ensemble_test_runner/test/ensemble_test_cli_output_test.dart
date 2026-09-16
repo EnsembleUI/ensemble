@@ -58,6 +58,8 @@ SCREEN TRACKER: Login
         '--profile=fwa_arc',
         '--tag=smoke',
         '--path=auth/',
+        '--mode=integration',
+        '--device-id=emulator-5554',
         '--timeout=30s',
         '--input',
         'adminPassword=s4C>M7U6t~',

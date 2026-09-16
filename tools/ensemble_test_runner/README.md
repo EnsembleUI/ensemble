@@ -224,32 +224,43 @@ dart run ensemble_test_runner:ensemble_test \
 ```
 
 `--mode` takes precedence over `tests/config.yaml`. Integration mode is serial
-and supports one Android emulator or iOS simulator per invocation. If one
-eligible target is connected it is selected automatically; multiple targets
-are offered interactively, while non-interactive runs must pass `--device-id`.
+and supports one Android or iOS target per invocation (emulator, simulator, or
+physical device). If one eligible target is connected it is selected
+automatically; multiple targets are offered interactively, while non-interactive
+runs must pass `--device-id`.
 
 The existing `devices` matrix and `--device` flag still apply in integration
-mode for **locale/theme**, not viewports. The runner keeps entries whose
-`platform` matches the connected emulator/simulator, skips the rest with a
+mode for **locale/theme**, not as additional connected devices. The runner keeps
+entries whose `platform` matches the connected target, skips the rest with a
 warning, and uses that target's real display (no stock device bezel).
 `--device` filters those matching rows; `--device-id` selects the real Flutter
 target. Widget-mode screenshots still get a device frame for the HTML report.
-Physical devices and native UI such as permission dialogs are not supported in
-this first integration release.
+Native UI such as permission dialogs is not supported in this release.
+
+Physical Android devices use `adb reverse` for host services (same as emulators).
+Physical iPhones need the Mac and phone on the same LAN; pass `--host-address=`
+to override auto-detection. USB-only iOS networking and wireless debugging setup
+are not supported yet. Signing/provisioning remain Xcode/Android Studio
+prerequisites — the runner does not rewrite signing settings.
 
 Integration iOS builds need deployment target **15.0** (Firebase 12). Flutter's
 default `Podfile` still comments `platform :ios, '13.0'`, which makes CocoaPods
-fail with `cloud_firestore` / "higher minimum iOS deployment version". The
-runner temporarily raises the Podfile and Xcode target for the run. Host apps
-should set `platform :ios, '15.0'` for `flutter run` as well. Add a `version:`
-field to `pubspec.yaml` so iOS has `CFBundleShortVersionString` /
-`CFBundleVersion`.
+fail with `cloud_firestore` / "higher minimum iOS deployment version". Set
+`platform :ios, '15.0'` in the host app (and matching `IPHONEOS_DEPLOYMENT_TARGET`),
+or run `dart run ensemble_test_runner:ensemble_test --doctor --fix`. The runner
+does not silently rewrite native project files. Add a `version:` field to
+`pubspec.yaml` so iOS has `CFBundleShortVersionString` / `CFBundleVersion`.
 
-Configured test services remain host processes. Android emulator runs use
-`adb reverse` to reach them, while iOS simulators use host loopback. Ensemble
-API mocks and initial storage continue to use the shared YAML engine; native
-plugins are supplied by the installed application rather than widget-test
-method-channel doubles.
+Configured test services remain host processes. Android emulator and USB
+device runs use `adb reverse` to reach them, while iOS simulators use host
+loopback. Physical iPhones need the host LAN address (see `--host-address`).
+Ensemble API mocks and initial storage continue to use the shared YAML engine;
+native plugins are supplied by the installed application rather than
+widget-test method-channel doubles.
+
+Independent integration tests restore storage to a pre-suite baseline so
+device credentials that existed before the run are preserved. Pass
+`--reset-device-storage` on disposable emulators when a full wipe is intended.
 
 Integration results, logs, and screenshot PNGs are transported back to the
 host and written under the same `build/ensemble_test_runner/` paths as widget

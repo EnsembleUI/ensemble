@@ -1,10 +1,12 @@
 import 'dart:convert';
 import 'dart:io';
-import 'dart:typed_data';
 
-import 'package:crypto/crypto.dart';
+import 'package:ensemble_test_runner/execution/artifact_transport.dart';
 import 'package:ensemble_test_runner/reporters/atomic_file.dart';
 import 'package:path/path.dart' as p;
+
+export 'package:ensemble_test_runner/execution/artifact_transport.dart'
+    show ensembleTestArtifactProtocolPrefix;
 
 const _artifactRoot = String.fromEnvironment('ensembleTestArtifactRoot');
 const _artifactDisplayRoot = String.fromEnvironment(
@@ -15,7 +17,6 @@ const _executionMode = String.fromEnvironment(
   'ensembleTestExecutionMode',
   defaultValue: 'widget',
 );
-const ensembleTestArtifactProtocolPrefix = 'ENSEMBLE_TEST_ARTIFACT_V1:';
 const ensembleTestProgressProtocolPrefix = 'ENSEMBLE_TEST_PROGRESS_V1:';
 
 bool get usesDeviceArtifactTransport => _executionMode == 'integration';
@@ -111,39 +112,21 @@ void emitEnsembleTestArtifact(
   List<int> bytes, {
   required String mimeType,
 }) {
-  final normalized = p.posix.normalize(relativePath.replaceAll('\\', '/'));
-  if (p.posix.isAbsolute(normalized) ||
-      normalized == '..' ||
-      normalized.startsWith('../')) {
-    throw StateError('Unsafe test artifact path: $relativePath');
-  }
-  final payload = Uint8List.fromList(bytes);
-  final digest = sha256.convert(payload).toString();
-  final id = '${payload.length}-$digest';
-  _emitArtifactRecord({
-    'event': 'start',
-    'id': id,
-    'path': normalized,
-    'mime': mimeType,
-    'size': payload.length,
-    'sha256': digest,
-  });
-  const rawChunkSize = 36 * 1024;
-  for (var offset = 0; offset < payload.length; offset += rawChunkSize) {
-    final end = offset + rawChunkSize < payload.length
-        ? offset + rawChunkSize
-        : payload.length;
-    _emitArtifactRecord({
-      'event': 'chunk',
-      'id': id,
-      'data': base64Encode(payload.sublist(offset, end)),
-    });
-  }
-  _emitArtifactRecord({'event': 'end', 'id': id});
+  EnsembleTestArtifactEmitter.instance.emitArtifact(
+    relativePath,
+    bytes,
+    mimeType: mimeType,
+  );
 }
 
-void _emitArtifactRecord(Map<String, dynamic> record) {
-  print('$ensembleTestArtifactProtocolPrefix${json.encode(record)}');
+/// Emits the run-level begin record for device→host transport.
+void emitEnsembleTestArtifactTransportBegin() {
+  EnsembleTestArtifactEmitter.instance.begin();
+}
+
+/// Emits the run-level complete record for device→host transport.
+void emitEnsembleTestArtifactTransportComplete() {
+  EnsembleTestArtifactEmitter.instance.complete();
 }
 
 String ensembleTestArtifactDisplayPath(String directoryName, String fileName) {

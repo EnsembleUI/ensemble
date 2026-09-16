@@ -56,6 +56,7 @@ Future<void> main() async {
       testEntryContentsFor('your_app_package');
 
   final Map<String, String> _backups = {};
+  final Set<String> _createdPaths = {};
   bool _enabled = false;
   bool _removeTestEntryOnRestore = false;
   bool _pubspecChanged = false;
@@ -85,75 +86,169 @@ Future<void> main() async {
   String get _ensembleConfigPath =>
       p.join(appDir, 'ensemble', 'ensemble-config.yaml');
 
-  void enable({ExecutionMode mode = ExecutionMode.widget}) {
+  /// Temporarily wires the app for YAML tests.
+  ///
+  /// Validates prerequisites before mutating files. On any failure, every
+  /// touched file is restored and created files are deleted — even when
+  /// [enable] never reached the success path.
+  void enable({
+    ExecutionMode mode = ExecutionMode.widget,
+    bool fixIosDeploymentTarget = false,
+  }) {
     if (_enabled) return;
     _mode = mode;
 
-    _backup(_pubspecPath);
-    _backup(_testEntryPath, optional: true);
+    try {
+      _validateBeforeMutation(mode: mode);
 
-    final pubspec = File(_pubspecPath).readAsStringSync();
-    final activated = _activatePubspec(pubspec, mode: mode);
-    _pubspecChanged = activated != pubspec;
-    if (_pubspecChanged) {
-      File(_pubspecPath).writeAsStringSync(activated);
-    }
+      _backup(_pubspecPath);
+      _backup(_testEntryPath, optional: true);
 
-    final testEntry = File(_testEntryPath);
-    final testEntryExisted = testEntry.existsSync();
-    _removeTestEntryOnRestore = !testEntryExisted;
+      final pubspec = File(_pubspecPath).readAsStringSync();
+      final activated = _activatePubspec(pubspec, mode: mode);
+      _pubspecChanged = activated != pubspec;
+      if (_pubspecChanged) {
+        File(_pubspecPath).writeAsStringSync(activated);
+      }
 
-    if (!testEntryExisted) {
-      Directory(_testDirPath).createSync(recursive: true);
-      testEntry.writeAsStringSync(mode == ExecutionMode.integration
-          ? integrationTestEntryContentsFor(_readPackageName())
-          : testEntryContentsFor(_readPackageName()));
-    } else {
-      final content = testEntry.readAsStringSync();
-      if (mode == ExecutionMode.widget &&
-          content.trim() == legacyTestEntryContents.trim()) {
+      final testEntry = File(_testEntryPath);
+      final testEntryExisted = testEntry.existsSync();
+      _removeTestEntryOnRestore = !testEntryExisted;
+
+      if (!testEntryExisted) {
+        Directory(_testDirPath).createSync(recursive: true);
+        testEntry.writeAsStringSync(mode == ExecutionMode.integration
+            ? integrationTestEntryContentsFor(_readPackageName())
+            : testEntryContentsFor(_readPackageName()));
+        _createdPaths.add(_testEntryPath);
+      } else if (mode == ExecutionMode.widget &&
+          testEntry.readAsStringSync().trim() ==
+              legacyTestEntryContents.trim()) {
         final upgraded = testEntryContentsFor(_readPackageName());
         testEntry.writeAsStringSync(upgraded);
         _backups[_testEntryPath] = upgraded;
         _removeTestEntryOnRestore = false;
-      } else {
-        final expectedCall = mode == ExecutionMode.integration
-            ? 'runEnsembleIntegrationYamlTests'
-            : 'runEnsembleYamlTests';
-        if (!content.contains(expectedCall)) {
-          throw StateError(
-            '$activeEntryRelativePath must call $expectedCall().',
-          );
+      }
+
+      if (mode == ExecutionMode.integration) {
+        if (fixIosDeploymentTarget) {
+          _ensureIosDeploymentTarget();
+        } else {
+          _requireIosDeploymentTarget();
         }
       }
-    }
 
-    if (mode == ExecutionMode.integration) {
-      _ensureIosDeploymentTarget();
+      _enabled = true;
+    } catch (_) {
+      _rollbackMutations();
+      rethrow;
     }
-
-    _enabled = true;
   }
 
+  /// Restores every file touched by a successful [enable].
   void restore() {
     if (!_enabled) return;
+    _rollbackMutations();
+  }
 
-    _restore(_pubspecPath);
-    if (_removeTestEntryOnRestore) {
+  /// Rolls back backups and deletes created files regardless of [_enabled].
+  void _rollbackMutations() {
+    if (_removeTestEntryOnRestore || _createdPaths.contains(_testEntryPath)) {
       _deleteTestEntry();
     } else {
       _restore(_testEntryPath);
     }
+    _restore(_pubspecPath);
     for (final path in _backups.keys.toList()) {
       if (path == _pubspecPath || path == _testEntryPath) continue;
       _restore(path);
     }
+    for (final path in _createdPaths) {
+      if (path == _testEntryPath) continue;
+      final file = File(path);
+      if (file.existsSync()) file.deleteSync();
+    }
 
     _backups.clear();
+    _createdPaths.clear();
     _enabled = false;
     _removeTestEntryOnRestore = false;
     _pubspecChanged = false;
     _mode = ExecutionMode.widget;
+  }
+
+  void _validateBeforeMutation({required ExecutionMode mode}) {
+    final testEntry = File(_testEntryPath);
+    if (!testEntry.existsSync()) return;
+
+    final content = testEntry.readAsStringSync();
+    if (mode == ExecutionMode.widget &&
+        content.trim() == legacyTestEntryContents.trim()) {
+      return;
+    }
+
+    final expectedCall = mode == ExecutionMode.integration
+        ? 'runEnsembleIntegrationYamlTests'
+        : 'runEnsembleYamlTests';
+    if (!entryPointCallsFunction(content, expectedCall)) {
+      throw StateError(
+        '$activeEntryRelativePath must call $expectedCall().',
+      );
+    }
+  }
+
+  /// Whether [source] invokes [functionName] outside comments.
+  static bool entryPointCallsFunction(String source, String functionName) {
+    final stripped = stripDartComments(source);
+    return RegExp('\\b${RegExp.escape(functionName)}\\s*\\(')
+        .hasMatch(stripped);
+  }
+
+  /// Removes `//` and `/* */` comments for entry-point validation.
+  static String stripDartComments(String source) {
+    final buffer = StringBuffer();
+    var i = 0;
+    while (i < source.length) {
+      if (i + 1 < source.length && source[i] == '/' && source[i + 1] == '/') {
+        i += 2;
+        while (i < source.length && source[i] != '\n') {
+          i++;
+        }
+        continue;
+      }
+      if (i + 1 < source.length && source[i] == '/' && source[i + 1] == '*') {
+        i += 2;
+        while (i + 1 < source.length &&
+            !(source[i] == '*' && source[i + 1] == '/')) {
+          i++;
+        }
+        i = i + 2 < source.length ? i + 2 : source.length;
+        continue;
+      }
+      if (source[i] == "'" || source[i] == '"') {
+        final quote = source[i];
+        buffer.write(quote);
+        i++;
+        while (i < source.length) {
+          final ch = source[i];
+          buffer.write(ch);
+          if (ch == '\\' && i + 1 < source.length) {
+            buffer.write(source[i + 1]);
+            i += 2;
+            continue;
+          }
+          if (ch == quote) {
+            i++;
+            break;
+          }
+          i++;
+        }
+        continue;
+      }
+      buffer.write(source[i]);
+      i++;
+    }
+    return buffer.toString();
   }
 
   void _backup(String path, {bool optional = false}) {
@@ -171,7 +266,12 @@ Future<void> main() async {
 
   void _restore(String path) {
     final backup = _backups[path];
-    if (backup == null || backup.isEmpty) return;
+    if (backup == null) return;
+    if (backup.isEmpty) {
+      final file = File(path);
+      if (file.existsSync()) file.deleteSync();
+      return;
+    }
     File(path).writeAsStringSync(backup);
   }
 
@@ -294,6 +394,56 @@ Future<void> main() async {
       activated = _activateIntegrationDependency(activated);
     }
     return activated;
+  }
+
+  /// Raises iOS deployment files to [minIntegrationIosDeploymentTarget].
+  ///
+  /// Used by `ensemble_test --doctor --fix`. Integration [enable] does not
+  /// rewrite these by default; pass [fixIosDeploymentTarget] to opt in.
+  void applyIosDeploymentTargetFix() {
+    _ensureIosDeploymentTarget();
+  }
+
+  void _requireIosDeploymentTarget() {
+    final message = iosDeploymentTargetRequirementMessage(appDir);
+    if (message != null) {
+      throw StateError(message);
+    }
+  }
+
+  /// Returns an actionable error when iOS deployment is below the minimum,
+  /// or null when the project is OK / has no iOS folder.
+  static String? iosDeploymentTargetRequirementMessage(String appDir) {
+    final min = minIntegrationIosDeploymentTarget;
+    final iosDir = Directory(p.join(appDir, 'ios'));
+    if (!iosDir.existsSync()) return null;
+
+    final podfile = File(p.join(appDir, 'ios', 'Podfile'));
+    if (!podfile.existsSync()) {
+      return 'ios/Podfile is missing; CocoaPods will default to iOS 13.0. '
+          'Firebase plugins require $min. Set `platform :ios, \'$min\'` in '
+          'ios/Podfile, or run `dart run ensemble_test_runner:ensemble_test '
+          '--doctor --fix`.';
+    }
+    final content = podfile.readAsStringSync();
+    final match = RegExp(
+      r'''^#?\s*platform\s*:ios\s*,\s*['"]([0-9.]+)['"]''',
+      multiLine: true,
+    ).firstMatch(content);
+    final version = match?.group(1);
+    final commented =
+        match != null && match.group(0)!.trimLeft().startsWith('#');
+    if (version == null ||
+        commented ||
+        iosVersionLessThan(version, min)) {
+      final current =
+          version == null || commented ? 'unset (defaults to 13.0)' : version;
+      return 'iOS deployment target is $current; Firebase plugins require $min. '
+          'Set `platform :ios, \'$min\'` in ios/Podfile (and matching '
+          'IPHONEOS_DEPLOYMENT_TARGET), or run '
+          '`dart run ensemble_test_runner:ensemble_test --doctor --fix`.';
+    }
+    return null;
   }
 
   void _ensureIosDeploymentTarget() {

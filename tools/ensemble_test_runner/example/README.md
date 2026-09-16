@@ -23,9 +23,9 @@ flutter config --no-enable-swift-package-manager
 ```
 
 iOS must target 15.0+ (Firebase 12). `flutter create` still generates 13.0;
-the test runner raises it for integration runs. For `flutter run`, set
-`platform :ios, '15.0'` in `ios/Podfile` and `IPHONEOS_DEPLOYMENT_TARGET = 15.0`
-in the Xcode project.
+set `platform :ios, '15.0'` in `ios/Podfile` and `IPHONEOS_DEPLOYMENT_TARGET = 15.0`
+in the Xcode project (CI does this for the example), or run
+`dart run ensemble_test_runner:ensemble_test --doctor --fix`.
 
 Start an Android emulator or iOS simulator. If more than one is connected,
 pass `--device-id`.

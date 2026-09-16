@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:crypto/crypto.dart';
 import 'package:ensemble_test_runner/cli/ensemble_test_cli.dart';
+import 'package:ensemble_test_runner/execution/artifact_transport.dart';
 import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
 import 'package:ensemble_test_runner/parser/ensemble_test_parser.dart';
 import 'package:ensemble_test_runner/runner/test_artifacts.dart';
@@ -102,7 +103,7 @@ void main() {
     expect(source.contains('ensemble_test_discovery.dart'), isFalse);
   });
 
-  test('device discovery selects virtual mobile targets deterministically', () {
+  test('device discovery accepts android/ios physical and virtual targets', () {
     final devices = json.encode([
       {
         'id': 'emulator-5554',
@@ -123,14 +124,49 @@ void main() {
         'emulator': false,
       },
     ]);
-    expect(selectIntegrationDeviceIdForTest(devices), 'emulator-5554');
     expect(
-      () => selectIntegrationDeviceIdForTest(
+      () => selectIntegrationDeviceIdForTest(devices),
+      throwsStateError,
+    );
+    expect(
+      selectIntegrationDeviceIdForTest(
+        devices,
+        requestedId: 'emulator-5554',
+      ),
+      'emulator-5554',
+    );
+    expect(
+      selectIntegrationDeviceIdForTest(
         devices,
         requestedId: 'physical-ios',
       ),
+      'physical-ios',
+    );
+    expect(
+      () => selectIntegrationDeviceIdForTest(
+        devices,
+        requestedId: 'chrome',
+      ),
       throwsStateError,
     );
+  });
+
+  test('device discovery auto-selects a single supported target', () {
+    final devices = json.encode([
+      {
+        'id': 'emulator-5554',
+        'name': 'Pixel',
+        'targetPlatform': 'android-arm64',
+        'emulator': true,
+      },
+      {
+        'id': 'chrome',
+        'name': 'Chrome',
+        'targetPlatform': 'web-javascript',
+        'emulator': false,
+      },
+    ]);
+    expect(selectIntegrationDeviceIdForTest(devices), 'emulator-5554');
   });
 
   test('device discovery requires an id when multiple targets exist', () {
@@ -176,7 +212,7 @@ void main() {
     );
   });
 
-  test('artifact protocol materializes and verifies bytes', () {
+  test('artifact protocol materializes and verifies bytes', () async {
     final appDir = Directory.systemTemp.createTempSync('artifact_transport_');
     addTearDown(() => appDir.deleteSync(recursive: true));
     final bytes = utf8.encode('hello integration');
@@ -185,6 +221,7 @@ void main() {
     String record(Map<String, dynamic> value) =>
         '$ensembleTestArtifactProtocolPrefix${json.encode(value)}';
     final output = [
+      record({'event': 'begin', 'runId': 'run-1'}),
       record({
         'event': 'start',
         'id': id,
@@ -195,9 +232,21 @@ void main() {
       }),
       record({'event': 'chunk', 'id': id, 'data': base64Encode(bytes)}),
       record({'event': 'end', 'id': id}),
+      record({
+        'event': 'complete',
+        'runId': 'run-1',
+        'artifacts': [
+          {
+            'id': id,
+            'path': 'logs/sample.log',
+            'size': bytes.length,
+            'sha256': digest,
+          },
+        ],
+      }),
     ].join('\n');
 
-    materializeTransportedArtifactsForTest(appDir.path, output);
+    await materializeTransportedArtifactsForTest(appDir.path, output);
 
     final file = File(
       '${appDir.path}/build/ensemble_test_runner/logs/sample.log',
@@ -205,7 +254,7 @@ void main() {
     expect(file.readAsStringSync(), 'hello integration');
   });
 
-  test('artifact protocol rejects traversal', () {
+  test('artifact protocol rejects traversal', () async {
     final appDir = Directory.systemTemp.createTempSync('artifact_transport_');
     addTearDown(() => appDir.deleteSync(recursive: true));
     final bytes = utf8.encode('x');
@@ -214,6 +263,7 @@ void main() {
     String record(Map<String, dynamic> value) =>
         '$ensembleTestArtifactProtocolPrefix${json.encode(value)}';
     final output = [
+      record({'event': 'begin', 'runId': 'run-1'}),
       record({
         'event': 'start',
         'id': id,
@@ -223,14 +273,15 @@ void main() {
       }),
       record({'event': 'chunk', 'id': id, 'data': base64Encode(bytes)}),
       record({'event': 'end', 'id': id}),
+      record({'event': 'complete', 'runId': 'run-1', 'artifacts': []}),
     ].join('\n');
-    expect(
+    await expectLater(
       () => materializeTransportedArtifactsForTest(appDir.path, output),
       throwsStateError,
     );
   });
 
-  test('artifact protocol rejects an incomplete stream', () {
+  test('artifact protocol rejects an incomplete stream', () async {
     final appDir = Directory.systemTemp.createTempSync('artifact_transport_');
     addTearDown(() => appDir.deleteSync(recursive: true));
     final output = '$ensembleTestArtifactProtocolPrefix${json.encode({
@@ -240,9 +291,51 @@ void main() {
           'size': 1,
           'sha256': sha256.convert([1]).toString(),
         })}';
-    expect(
+    await expectLater(
       () => materializeTransportedArtifactsForTest(appDir.path, output),
       throwsStateError,
+    );
+  });
+
+  test('artifact protocol rejects empty output without complete', () async {
+    final appDir = Directory.systemTemp.createTempSync('artifact_transport_');
+    addTearDown(() => appDir.deleteSync(recursive: true));
+    await expectLater(
+      () => materializeTransportedArtifactsForTest(appDir.path, ''),
+      throwsStateError,
+    );
+  });
+
+  test('artifact protocol keeps valid files when complete is missing', () async {
+    final appDir = Directory.systemTemp.createTempSync('artifact_transport_');
+    addTearDown(() => appDir.deleteSync(recursive: true));
+    final bytes = utf8.encode('kept');
+    final digest = sha256.convert(bytes).toString();
+    final id = '${bytes.length}-$digest';
+    String record(Map<String, dynamic> value) =>
+        '$ensembleTestArtifactProtocolPrefix${json.encode(value)}';
+    final output = [
+      record({'event': 'begin', 'runId': 'run-1'}),
+      record({
+        'event': 'start',
+        'id': id,
+        'path': 'logs/kept.log',
+        'size': bytes.length,
+        'sha256': digest,
+      }),
+      record({'event': 'chunk', 'id': id, 'data': base64Encode(bytes)}),
+      record({'event': 'end', 'id': id}),
+    ].join('\n');
+
+    final result = await materializeTransportedArtifacts(
+      artifactRoot: '${appDir.path}/build/ensemble_test_runner',
+      output: output,
+    );
+    expect(result.complete, isFalse);
+    expect(
+      File('${appDir.path}/build/ensemble_test_runner/logs/kept.log')
+          .readAsStringSync(),
+      'kept',
     );
   });
 }

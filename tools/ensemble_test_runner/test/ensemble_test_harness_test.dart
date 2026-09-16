@@ -2,7 +2,6 @@ import 'dart:io';
 
 import 'package:ensemble/framework/storage_manager.dart';
 import 'package:ensemble/framework/encrypted_storage_manager.dart';
-import 'package:ensemble/framework/secrets.dart';
 import 'package:ensemble_test_runner/runner/ensemble_test_harness.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -109,8 +108,7 @@ appName=KPN InHome Dev
   testWidgets('initial secureStorage state is encrypted into public storage',
       (tester) async {
     EnsembleTestHarness.ensureTestPlugins();
-    SecretsStore().secretCache['encryptionKey'] =
-        '7OPUScfQ3OTmGZXx9EZ5q6lTsSDwiCUA';
+    installTestEncryptionKey();
 
     await tester.runAsync(
       () => applyYamlTestStorageBootstrap(
