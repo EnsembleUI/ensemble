@@ -7,6 +7,7 @@ import 'package:ensemble/framework/apiproviders/api_provider.dart';
 import 'package:ensemble/framework/apiproviders/http_api_provider.dart';
 import 'package:ensemble/framework/definition_providers/local_provider.dart';
 import 'package:ensemble/framework/screen_tracker.dart';
+import 'package:ensemble/framework/secrets.dart';
 import 'package:ensemble/framework/storage_manager.dart';
 import 'package:ensemble/framework/encrypted_storage_manager.dart';
 import 'package:ensemble/page_model.dart';
@@ -43,6 +44,40 @@ class EnsembleTestSetup {
   });
 }
 
+/// Execution-environment behavior used by the shared Ensemble harness.
+abstract class EnsembleTestRuntimeAdapter {
+  ExecutionMode get mode;
+  bool get usesPhysicalDisplay;
+  bool get clearsPersistentStateBetweenIndependentTests;
+  void initialize();
+}
+
+class WidgetTestRuntimeAdapter implements EnsembleTestRuntimeAdapter {
+  const WidgetTestRuntimeAdapter();
+
+  @override
+  ExecutionMode get mode => ExecutionMode.widget;
+  @override
+  bool get usesPhysicalDisplay => false;
+  @override
+  bool get clearsPersistentStateBetweenIndependentTests => false;
+  @override
+  void initialize() => EnsembleTestHarness.ensureTestPlugins();
+}
+
+class IntegrationTestRuntimeAdapter implements EnsembleTestRuntimeAdapter {
+  const IntegrationTestRuntimeAdapter();
+
+  @override
+  ExecutionMode get mode => ExecutionMode.integration;
+  @override
+  bool get usesPhysicalDisplay => true;
+  @override
+  bool get clearsPersistentStateBetweenIndependentTests => true;
+  @override
+  void initialize() => EnsembleTestHarness.ensureIntegrationRuntime();
+}
+
 /// Applies YAML test environment and storage bootstrap data to [config].
 Future<void> applyYamlTestBootstrap(
     EnsembleConfig config, EnsembleTestSetup setup) async {
@@ -57,8 +92,16 @@ Future<void> applyYamlTestStorageBootstrap(EnsembleTestSetup setup) async {
       const Iterable<MapEntry<String, dynamic>>.empty()) {
     await StorageManager().write(entry.key, entry.value);
   }
-  for (final entry in setup.initialSecureStorage?.entries ??
-      const Iterable<MapEntry<String, dynamic>>.empty()) {
+  final secureEntries = setup.initialSecureStorage?.entries.toList() ??
+      const <MapEntry<String, dynamic>>[];
+  if (secureEntries.isNotEmpty) {
+    await SecretsStore().initialize();
+    SecretsStore().secretCache.putIfAbsent(
+          'encryptionKey',
+          () => '7OPUScfQ3OTmGZXx9EZ5q6lTsSDwiCUA',
+        );
+  }
+  for (final entry in secureEntries) {
     EncryptedStorageManager.setSecureStorage({
       'key': entry.key,
       'value': entry.value,
@@ -223,16 +266,29 @@ class EnsembleTestHarness {
     YamlTestSession.navigationFlow.startListening();
   }
 
+  /// Initializes only runner-owned Dart listeners for a real application.
+  /// Native plugin channels remain registered by the Android/iOS host app.
+  static void ensureIntegrationRuntime() {
+    TestWidgetsFlutterBinding.ensureInitialized();
+    YamlTestSession.navigationFlow.startListening();
+  }
+
   final String appPath;
   final String appHome;
   final String? i18nPath;
   final Map<String, Function>? externalMethods;
+  final ExecutionMode executionMode;
+  late final EnsembleTestRuntimeAdapter runtimeAdapter =
+      executionMode == ExecutionMode.integration
+          ? const IntegrationTestRuntimeAdapter()
+          : const WidgetTestRuntimeAdapter();
 
   EnsembleTestHarness({
     required this.appPath,
     required this.appHome,
     this.i18nPath,
     this.externalMethods,
+    this.executionMode = ExecutionMode.widget,
   });
 
   static String normalizeAppPath(String path) {
@@ -311,8 +367,9 @@ class EnsembleTestHarness {
     EnsembleConfig config,
     EnsembleTestSetup setup, {
     TestApiProviderOverlay? apiOverlay,
+    bool clearPersistentState = false,
   }) async {
-    ensureTestPlugins();
+    runtimeAdapter.initialize();
     await ensureAppFontsLoaded();
 
     final env = Map<String, dynamic>.from(config.envOverrides ?? {});
@@ -327,6 +384,9 @@ class EnsembleTestHarness {
     }
 
     await Ensemble().initManagers();
+    if (clearPersistentState) {
+      await _clearPersistentTestState();
+    }
     await initializeRealApiProviders(config);
 
     if (apiOverlay != null) {
@@ -526,20 +586,33 @@ class EnsembleTestHarness {
           testCase,
           config: suiteConfig,
         );
-    final screenshotDevice = screenshotDeviceForTestCase(testCase, ctx.config);
-    if (screenshotDevice != null) {
-      await _setViewportForDevice(tester, ctx, screenshotDevice);
-    }
-    await _ensureDefaultViewport(tester, ctx);
+    await applyViewport(
+      tester,
+      ctx,
+      screenshotDevice: screenshotDeviceForTestCase(testCase, ctx.config),
+    );
     var config = existingConfig ?? await buildConfig();
     final bootstrapped = await tester.runAsync(() async {
       return bootstrapRuntime(
         config,
         ctx.setup,
         apiOverlay: ctx.apiOverlay,
+        clearPersistentState:
+            runtimeAdapter.clearsPersistentStateBetweenIndependentTests &&
+                testCase.session == null,
       );
     });
-    config = bootstrapped!;
+    if (bootstrapped == null) {
+      final bootstrapError = tester.takeException();
+      if (bootstrapError != null) throw bootstrapError;
+      if (ctx.runtime.flutterErrors.isNotEmpty) {
+        throw EnsembleTestFailure(ctx.runtime.flutterErrors.last);
+      }
+      throw EnsembleTestFailure(
+        'Ensemble runtime bootstrap completed without a configuration.',
+      );
+    }
+    config = bootstrapped;
 
     final startScreen = testCase.startScreen;
     if (startScreen == null || startScreen.isEmpty) {
@@ -559,6 +632,7 @@ class EnsembleTestHarness {
         ensembleConfig: config,
         screenPayload: ScreenPayload(
           screenId: startScreen,
+          screenName: startScreen,
           arguments: testCase.startScreenInputs,
         ),
         forcedLocale: forcedLocale,
@@ -596,11 +670,41 @@ class EnsembleTestHarness {
     ScreenController().navigateToScreen(
       context,
       screenId: startScreen,
+      screenName: startScreen,
       pageArgs: testCase.startScreenInputs,
       routeOption: RouteOption.clearAllScreens,
     );
     await tester.pump();
     await waitForInitialWidgets(tester, testCase: testCase);
+  }
+
+  /// Widget tests may emulate a screenshot device. Integration tests keep the
+  /// real simulator/emulator view so hit-testing and layout stay aligned.
+  Future<void> applyViewport(
+    WidgetTester tester,
+    EnsembleTestContext context, {
+    DeviceInfo? screenshotDevice,
+  }) async {
+    if (runtimeAdapter.usesPhysicalDisplay) {
+      _recordPhysicalDisplaySize(tester, context);
+      return;
+    }
+    if (screenshotDevice != null) {
+      await _setViewportForDevice(tester, context, screenshotDevice);
+    }
+    await _ensureDefaultViewport(tester, context);
+  }
+
+  static void _recordPhysicalDisplaySize(
+    WidgetTester tester,
+    EnsembleTestContext context,
+  ) {
+    final pixelRatio = tester.view.devicePixelRatio;
+    final physicalSize = tester.view.physicalSize;
+    context.runtime.deviceSize = Size(
+      physicalSize.width / pixelRatio,
+      physicalSize.height / pixelRatio,
+    );
   }
 
   static Future<void> _ensureDefaultViewport(
@@ -697,6 +801,19 @@ class EnsembleTestHarness {
     }
     if (config != null) {
       installTestApiOverlay(config, ctx.apiOverlay);
+    }
+  }
+
+  static Future<void> _clearPersistentTestState() async {
+    final storage = StorageManager();
+    await storage.clearPublicStorage();
+    for (final key
+        in storage.getKeys().where((key) => key.startsWith('enc_')).toList()) {
+      await storage.remove(key);
+    }
+    final keychain = await storage.getAllFromKeychain();
+    for (final key in keychain.keys) {
+      await storage.removeSecurely(key);
     }
   }
 

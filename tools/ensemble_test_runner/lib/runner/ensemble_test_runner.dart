@@ -19,10 +19,12 @@ import 'package:ensemble_test_runner/runner/debug_artifact_logs.dart';
 import 'package:ensemble_test_runner/runner/ensemble_test_context.dart';
 import 'package:ensemble_test_runner/runner/ensemble_test_harness.dart';
 import 'package:ensemble_test_runner/runner/live_async_call.dart';
+import 'package:ensemble_test_runner/runner/screenshot_capture.dart';
 import 'package:ensemble_test_runner/runner/screenshot_contact_sheet.dart';
 import 'package:ensemble_test_runner/runner/screenshot_lottie_ready.dart';
 import 'package:ensemble_test_runner/runner/screenshot_sheet_aggregator.dart';
 import 'package:ensemble_test_runner/runner/storage_step_diff.dart';
+import 'package:ensemble_test_runner/runner/test_artifacts.dart';
 import 'package:ensemble_test_runner/runner/test_runtime_state.dart';
 import 'package:ensemble_test_runner/runner/test_service_manager.dart';
 import 'package:ensemble_test_runner/runner/yaml_test_session.dart';
@@ -68,7 +70,12 @@ class EnsembleTestRunner {
     WidgetTester tester, {
     EnsembleTestProgressListener? onTestComplete,
   }) async {
-    final services = TestServiceManager(plan.config.services);
+    const hostOwnsServices = bool.fromEnvironment(
+      'ensembleTestHostOwnsServices',
+    );
+    final services = TestServiceManager(
+      hostOwnsServices ? const [] : plan.config.services,
+    );
     await tester.runAsync(services.startAll);
     _activeScreenshotSheets = ScreenshotSheetAggregator(
       screenshots: plan.config.screenshots,
@@ -1251,14 +1258,15 @@ class EnsembleTestRunner {
 
     final tester = executor.tester;
     final renderView = tester.binding.renderViews.first;
-    final paintBounds = renderView.paintBounds;
-    final scaleX = image.width / paintBounds.width;
-    final scaleY = image.height / paintBounds.height;
-    final scaledRect = ui.Rect.fromLTRB(
-      (rect.left - paintBounds.left) * scaleX,
-      (rect.top - paintBounds.top) * scaleY,
-      (rect.right - paintBounds.left) * scaleX,
-      (rect.bottom - paintBounds.top) * scaleY,
+    final scaledRect = screenshotLogicalRectToImagePixels(
+      logicalRect: Rect.fromLTRB(
+        rect.left,
+        rect.top,
+        rect.right,
+        rect.bottom,
+      ),
+      logicalSize: renderView.size,
+      imageSize: Size(image.width.toDouble(), image.height.toDouble()),
     );
 
     final isTapStep = step.type == 'tap' ||
@@ -1266,12 +1274,22 @@ class EnsembleTestRunner {
         step.type == 'longPress' ||
         step.type == 'tapAt';
 
-    final framedRect = _rectInFramedImage(
-      rect: scaledRect,
-      image: image,
-      device: device,
+    final frameDevice = !framesScreenshotsWithDeviceBezel || device == null
+        ? null
+        : resolveScreenshotDevice({
+            'platform': device.platform,
+            'model': device.model,
+          });
+    final framedRect = screenshotHighlightPercentRect(
+      rectInImagePixels: Rect.fromLTRB(
+        scaledRect.left,
+        scaledRect.top,
+        scaledRect.right,
+        scaledRect.bottom,
+      ),
+      imageSize: Size(image.width.toDouble(), image.height.toDouble()),
+      frameDevice: frameDevice,
     );
-    if (framedRect == null) return null;
 
     return ScreenshotHighlight(
       kind: forFailure
@@ -1285,39 +1303,6 @@ class EnsembleTestRunner {
       height: framedRect.height,
     );
   }
-
-  ui.Rect? _rectInFramedImage({
-    required ui.Rect rect,
-    required ui.Image image,
-    required TestDeviceTarget? device,
-  }) {
-    if (device == null) return null;
-    final frameDevice = resolveScreenshotDevice({
-      'platform': device.platform,
-      'model': device.model,
-    });
-    final padding = frameDevice.frameSize.shortestSide * 0.025;
-    final outputWidth = frameDevice.frameSize.width + padding * 2;
-    final outputHeight = frameDevice.frameSize.height + padding * 2;
-    final screenRect = frameDevice.screenPath.getBounds().shift(
-          ui.Offset(padding, padding),
-        );
-    final left = screenRect.left + (rect.left / image.width) * screenRect.width;
-    final top = screenRect.top + (rect.top / image.height) * screenRect.height;
-    final right =
-        screenRect.left + (rect.right / image.width) * screenRect.width;
-    final bottom =
-        screenRect.top + (rect.bottom / image.height) * screenRect.height;
-    return ui.Rect.fromLTRB(
-      _percent(left, outputWidth),
-      _percent(top, outputHeight),
-      _percent(right, outputWidth),
-      _percent(bottom, outputHeight),
-    );
-  }
-
-  double _percent(double value, double total) =>
-      total <= 0 ? 0 : (value / total * 100).clamp(0, 100).toDouble();
 
   void _captureScreenArtifacts(EnsembleTestContext ctx) {
     final screenName = ScreenTracker().getCurrentScreenIdentifier();

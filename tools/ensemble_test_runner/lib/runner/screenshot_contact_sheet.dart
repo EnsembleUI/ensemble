@@ -2,13 +2,13 @@ import 'dart:convert';
 import 'dart:ffi';
 import 'dart:io';
 import 'dart:typed_data';
+import 'dart:ui' as ui;
 
 import 'package:crypto/crypto.dart';
 import 'package:ensemble_device_preview/ensemble_device_preview.dart';
 import 'package:ensemble_test_runner/actions/extended_step_handlers.dart';
 import 'package:ensemble_test_runner/actions/screenshot_device.dart';
 import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
-import 'package:ensemble_test_runner/reporters/atomic_file.dart';
 import 'package:ensemble_test_runner/runner/live_async_call.dart';
 import 'package:ensemble_test_runner/runner/test_artifacts.dart';
 import 'package:ensemble_test_runner/runner/test_runtime_state.dart';
@@ -22,8 +22,10 @@ const _reportScreenshotWebPQuality = 82;
 String? _cachedCwebpPath;
 bool _didResolveCwebpPath = false;
 
-/// Encodes each frame to a compressed device-framed image and writes a
-/// `frames.json` manifest.
+/// Encodes each frame for the HTML report and writes a `frames.json` manifest.
+///
+/// Widget mode dresses frames in a device bezel. Integration mode keeps the
+/// raw simulator/emulator capture so highlights match the pixels.
 ///
 /// Returns the display path of the frames manifest.
 /// The HTML report builds the contact-sheet gallery from these per-step files.
@@ -41,11 +43,13 @@ Future<String?> writeScreenshotFrames({
 
   final defaultDevice = resolveScreenshotDevice(const {});
   final manifestDirectory = ensembleTestArtifactDirectory('screenshots');
-  manifestDirectory.createSync(recursive: true);
   final imageDirectory = ensembleTestArtifactDirectory(
     p.join('report', 'screenshots'),
   );
-  imageDirectory.createSync(recursive: true);
+  if (!usesDeviceArtifactTransport) {
+    manifestDirectory.createSync(recursive: true);
+    imageDirectory.createSync(recursive: true);
+  }
   final safeTestId = _safeFileName(testId);
   final frameEntries = <Map<String, dynamic>>[];
 
@@ -64,8 +68,13 @@ Future<String?> writeScreenshotFrames({
       // selection, success toasts) into stale frames and broke report highlights.
       final frameFileName = _dedupedImageFileName(encoded);
       final frameFile = File(p.join(imageDirectory.path, frameFileName));
-      if (!frameFile.existsSync()) {
-        AtomicFile.writeBytesSync(frameFile, encoded.bytes);
+      if (usesDeviceArtifactTransport || !frameFile.existsSync()) {
+        await writeEnsembleTestArtifactBytes(
+          p.join('report', 'screenshots'),
+          frameFileName,
+          encoded.bytes,
+          mimeType: _mimeTypeForExtension(encoded.extension),
+        );
       }
       frameEntries.add({
         'stepIndex': frame.stepIndex,
@@ -88,27 +97,30 @@ Future<String?> writeScreenshotFrames({
   if (frameEntries.isEmpty) return null;
 
   // Drop legacy composite sheet artifacts from older runner versions.
-  for (final legacyName in [
-    '$safeTestId.png',
-    '${safeTestId}_sheet.png',
-  ]) {
-    final legacy = File(p.join(manifestDirectory.path, legacyName));
-    if (legacy.existsSync()) {
-      legacy.deleteSync();
+  if (!usesDeviceArtifactTransport) {
+    for (final legacyName in [
+      '$safeTestId.png',
+      '${safeTestId}_sheet.png',
+    ]) {
+      final legacy = File(p.join(manifestDirectory.path, legacyName));
+      if (legacy.existsSync()) {
+        legacy.deleteSync();
+      }
     }
   }
 
   final framesFileName = '${safeTestId}_frames.json';
-  final framesFile = ensembleTestArtifactFile('screenshots', framesFileName);
-  AtomicFile.writeStringSync(
-    framesFile,
-    const JsonEncoder.withIndent('  ').convert({
+  await writeEnsembleTestArtifactString(
+    'screenshots',
+    framesFileName,
+    const JsonEncoder.withIndent(' ').convert({
       'status': status.name,
       if (failedStepIndex != null) 'failedStepIndex': failedStepIndex,
       if (failedStepLabel != null) 'failedStepLabel': failedStepLabel,
       if (failureMessage != null) 'failureMessage': failureMessage,
       'frames': frameEntries,
     }),
+    mimeType: 'application/json',
   );
 
   return ensembleTestArtifactDisplayPath('screenshots', framesFileName);
@@ -158,6 +170,16 @@ Future<EncodedScreenshotImage> _encodeFrameImage(
   ScreenshotSheetFrame frame,
   DeviceInfo device,
 ) async {
+  if (!framesScreenshotsWithDeviceBezel) {
+    final data = await frame.image.toByteData(format: ui.ImageByteFormat.png);
+    if (data == null) {
+      throw EnsembleTestFailure('Failed to encode integration screenshot.');
+    }
+    return EncodedScreenshotImage(
+      bytes: data.buffer.asUint8List(),
+      extension: 'png',
+    );
+  }
   final bytes = await LiveAsyncCallSupport.runUntracked(
     () => ExtendedStepHandlers.encodeScreenshotImage(frame.image, device),
   );
@@ -169,6 +191,9 @@ Future<EncodedScreenshotImage> _encodeFrameImage(
 
 Future<EncodedScreenshotImage> _compressedReportImage(
     Uint8List pngBytes) async {
+  if (usesDeviceArtifactTransport) {
+    return EncodedScreenshotImage(bytes: pngBytes, extension: 'png');
+  }
   try {
     final decoded = img.decodePng(pngBytes);
     if (decoded == null) {
@@ -225,6 +250,13 @@ Future<EncodedScreenshotImage> _compressedReportImage(
     return EncodedScreenshotImage(bytes: pngBytes, extension: 'png');
   }
 }
+
+String _mimeTypeForExtension(String extension) => switch (extension) {
+      'png' => 'image/png',
+      'jpg' || 'jpeg' => 'image/jpeg',
+      'webp' => 'image/webp',
+      _ => 'application/octet-stream',
+    };
 
 Future<Uint8List?> _encodeWebP(Uint8List pngBytes) async {
   final cwebpPath = await _resolveCwebpPath();

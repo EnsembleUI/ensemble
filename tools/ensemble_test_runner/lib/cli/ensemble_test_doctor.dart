@@ -1,6 +1,9 @@
+import 'dart:convert';
 import 'dart:io';
 
+import 'package:ensemble_test_runner/cli/yaml_test_app_patcher.dart';
 import 'package:ensemble_test_runner/parser/ensemble_test_parser.dart';
+import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
 import 'package:path/path.dart' as p;
 import 'package:yaml/yaml.dart';
 
@@ -21,8 +24,9 @@ class EnsembleTestDoctorResult {
 
 class EnsembleTestDoctor {
   final String appDir;
+  final ExecutionMode? modeOverride;
 
-  EnsembleTestDoctor(this.appDir);
+  EnsembleTestDoctor(this.appDir, {this.modeOverride});
 
   Future<EnsembleTestDoctorResult> run() async {
     final lines = <String>['Ensemble test runner doctor'];
@@ -111,6 +115,7 @@ class EnsembleTestDoctor {
     }
     ok('Found ${testFiles.length} YAML test file(s)');
 
+    var suiteConfig = const EnsembleTestConfig();
     final testConfigFile = File(p.join(testsDir.path, 'config.yaml'));
     if (testConfigFile.existsSync()) {
       final relativePath = p.relative(testConfigFile.path, from: appDir);
@@ -119,13 +124,78 @@ class EnsembleTestDoctor {
         warn('$relativePath does not reference the hosted config schema URL');
       }
       try {
-        EnsembleTestParser.parseConfigString(
+        suiteConfig = EnsembleTestParser.parseConfigString(
           content,
           sourcePath: relativePath,
         );
         ok('Found tests/config.yaml');
       } catch (failure) {
         error('$relativePath: $failure');
+      }
+    }
+
+    final executionMode = modeOverride ?? suiteConfig.mode;
+    ok('Execution mode: ${executionMode.name}');
+    if (executionMode == ExecutionMode.integration) {
+      if (suiteConfig.devices.isNotEmpty) {
+        warn(
+          'Integration mode ignores devices[].model viewport and keeps entries '
+          'whose platform matches the connected emulator/simulator; locale and '
+          'theme still apply. Other platforms are skipped.',
+        );
+      }
+      final androidProject = Directory(p.join(appDir, 'android', 'app'));
+      final iosProject = File(
+        p.join(appDir, 'ios', 'Runner.xcodeproj', 'project.pbxproj'),
+      );
+      if (!androidProject.existsSync() && !iosProject.existsSync()) {
+        error(
+          'No complete Android or iOS project found. Run '
+          '`flutter create --platforms=android,ios .` from the app root.',
+        );
+      }
+      if (iosProject.existsSync()) {
+        _reportIosDeploymentTarget(
+          appDir: appDir,
+          ok: ok,
+          warn: warn,
+        );
+      }
+      final devicesResult = await Process.run(
+        'flutter',
+        ['devices', '--machine'],
+        workingDirectory: appDir,
+      );
+      if (devicesResult.exitCode != 0) {
+        error('Could not discover Flutter devices');
+      } else {
+        try {
+          final dynamic devices = json.decode(devicesResult.stdout.toString());
+          final supported = devices is List
+              ? devices.where((dynamic item) {
+                  if (item is! Map) return false;
+                  final platform = item['targetPlatform']?.toString() ?? '';
+                  return item['emulator'] == true &&
+                      (platform.startsWith('android') || platform == 'ios');
+                }).length
+              : 0;
+          if (supported == 0) {
+            warn('No Android emulator or iOS simulator is currently connected');
+          } else {
+            ok('Found $supported supported virtual integration target(s)');
+          }
+        } catch (_) {
+          error('flutter devices --machine returned invalid JSON');
+        }
+      }
+      if (suiteConfig.services.isNotEmpty) {
+        final adb = await Process.run('which', ['adb']);
+        if (adb.exitCode == 0) {
+          ok('Found adb for Android host-service routing');
+        } else {
+          warn(
+              'adb is not on PATH; Android host services will not be routable');
+        }
       }
     }
 
@@ -281,6 +351,41 @@ Set<String> _collectReferencedWidgetIds(dynamic steps) {
     }
   }
   return ids;
+}
+
+void _reportIosDeploymentTarget({
+  required String appDir,
+  required void Function(String message) ok,
+  required void Function(String message) warn,
+}) {
+  final min = YamlTestAppPatcher.minIntegrationIosDeploymentTarget;
+  final podfile = File(p.join(appDir, 'ios', 'Podfile'));
+  if (!podfile.existsSync()) {
+    warn(
+      'ios/Podfile is missing; CocoaPods will default to iOS 13.0. '
+      'Firebase plugins require $min. The runner raises it for integration runs.',
+    );
+    return;
+  }
+  final content = podfile.readAsStringSync();
+  final match = RegExp(
+    r'''^#?\s*platform\s*:ios\s*,\s*['"]([0-9.]+)['"]''',
+    multiLine: true,
+  ).firstMatch(content);
+  final version = match?.group(1);
+  final commented = match != null && match.group(0)!.trimLeft().startsWith('#');
+  if (version == null ||
+      commented ||
+      YamlTestAppPatcher.iosVersionLessThan(version, min)) {
+    final current =
+        version == null || commented ? 'unset (defaults to 13.0)' : version;
+    warn(
+      'iOS deployment target is $current; Firebase plugins require $min. '
+      'The runner raises it for integration runs.',
+    );
+    return;
+  }
+  ok('iOS deployment target is $version');
 }
 
 Set<String> _collectKnownWidgetIds(Directory appPath) {

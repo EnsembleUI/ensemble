@@ -68,8 +68,7 @@ class AssertionEngine {
       _isElementInViewport(element);
 
   void expectVisible(String id) {
-    final finder = finderForId(id).hitTestable();
-    if (finder.evaluate().isEmpty) {
+    if (!_hasVisiblePaintedElement(finderForId(id))) {
       throw EnsembleTestFailure(
         'Expected widget with id "$id" to be visible. '
         '${widgetIdFailureHint(id)}',
@@ -78,8 +77,7 @@ class AssertionEngine {
   }
 
   void expectNotVisible(String id) {
-    final finder = finderForId(id).hitTestable();
-    if (finder.evaluate().isNotEmpty) {
+    if (_hasVisiblePaintedElement(finderForId(id))) {
       throw EnsembleTestFailure(
         'Expected widget with id "$id" to not be visible.',
       );
@@ -192,11 +190,9 @@ class AssertionEngine {
       );
     }
     final isEnabled = _readSemantics(
-      () => tester
-          .getSemantics(finder)
-          .getSemanticsData()
-          .flagsCollection
-          .isEnabled,
+      () => _semanticsIsEnabled(
+        tester.getSemantics(finder).getSemanticsData(),
+      ),
     );
     if (isEnabled != enabled) {
       throw EnsembleTestFailure(
@@ -362,16 +358,35 @@ class AssertionEngine {
       throw EnsembleTestFailure('expectChecked: widget "$id" not found.');
     }
     final isChecked = _readSemantics(
-      () => tester
-          .getSemantics(finder)
-          .getSemanticsData()
-          .flagsCollection
-          .isChecked,
+      () => _semanticsIsChecked(
+        tester.getSemantics(finder).getSemanticsData(),
+      ),
     );
     if (isChecked != expected) {
       throw EnsembleTestFailure(
         'Expected "$id" checked=$expected, got $isChecked.',
       );
+    }
+  }
+
+  // Flutter 3.47 exposes typed semantics flags through `flagsCollection`.
+  // Keep the dynamic fallback for the package's supported Flutter 3.27+
+  // range, where SemanticsData exposes the same values through `hasFlag`.
+  bool _semanticsIsEnabled(SemanticsData data) {
+    final dynamic compatibleData = data;
+    try {
+      return compatibleData.flagsCollection.isEnabled == true;
+    } on NoSuchMethodError {
+      return compatibleData.hasFlag(SemanticsFlag.isEnabled) == true;
+    }
+  }
+
+  bool _semanticsIsChecked(SemanticsData data) {
+    final dynamic compatibleData = data;
+    try {
+      return compatibleData.flagsCollection.isChecked == true;
+    } on NoSuchMethodError {
+      return compatibleData.hasFlag(SemanticsFlag.isChecked) == true;
     }
   }
 
@@ -673,8 +688,9 @@ class AssertionEngine {
 
   List<String> _visibleWidgetIds() {
     final ids = <String>{};
-    for (final widget in tester.allWidgets) {
-      final key = widget.key;
+    for (final element in tester.allElements) {
+      if (!isElementVisuallyActionable(element)) continue;
+      final key = element.widget.key;
       if (key is! ValueKey) continue;
       final value = key.value;
       if (value is! String) continue;

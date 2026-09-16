@@ -2,6 +2,14 @@
 
 `ensemble_test_runner` can act as the execution backend for test authoring. The recommended loop is:
 
+Suites may set `mode: widget` (the default) or `mode: integration` in
+`tests/config.yaml`. The CLI `--mode` option overrides that value. Integration
+mode runs the same YAML engine in an installed application on one Android
+emulator or iOS simulator selected with `--device-id`. It is serial. Suite
+`devices` entries whose platform matches the connected target still apply
+locale/theme; viewport/model are ignored, and other platforms are skipped.
+`--device` filters those matching rows.
+
 1. Inspect the app:
    ```sh
    dart run ensemble_test_runner:ensemble_test --inspect-app
@@ -107,6 +115,8 @@ like `Light` / `Dark`) is applied via `EnsembleThemeManager` after the app
 boots, so it works for any `startScreen`. Explicit test `languageCode` /
 `themeMode` inputs are left as written. Each device run writes its own frames
 set named after the expanded test id (for example `home[android_nl]_frames.json`).
+In integration mode, only entries whose `platform` matches the connected
+emulator/simulator run; viewport/model are ignored.
 
 For multi-locale suites, use `anyOf` on text assertions so both languages pass:
 

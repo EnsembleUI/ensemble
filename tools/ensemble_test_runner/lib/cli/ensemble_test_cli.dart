@@ -1,11 +1,14 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 
+import 'package:crypto/crypto.dart';
 import 'package:ensemble_test_runner/cli/ensemble_test_doctor.dart';
 import 'package:ensemble_test_runner/cli/ensemble_test_cli_output.dart';
 import 'package:ensemble_test_runner/cli/yaml_test_app_patcher.dart';
 import 'package:ensemble_test_runner/cli/ensemble_test_scaffold.dart';
+import 'package:ensemble_test_runner/discovery/device_matrix.dart';
 import 'package:ensemble_test_runner/inspect/ensemble_app_inspector.dart';
 import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
 import 'package:ensemble_test_runner/parser/ensemble_test_parser.dart';
@@ -14,6 +17,8 @@ import 'package:ensemble_test_runner/reporters/atomic_file.dart';
 import 'package:ensemble_test_runner/reporters/html_test_reporter.dart';
 import 'package:ensemble_test_runner/reporters/step_outline_format.dart';
 import 'package:ensemble_test_runner/runner/test_artifacts.dart';
+import 'package:ensemble_test_runner/runner/test_service_manager.dart';
+import 'package:ensemble_test_runner/runner/host_screenshot_optimizer.dart';
 import 'package:ensemble_test_runner/src/worker_capacity.dart';
 import 'package:ensemble_test_runner/validation/ensemble_test_validator.dart';
 import 'package:path/path.dart' as p;
@@ -41,6 +46,8 @@ final _disabledAppConsoleLogs = <String>{};
 ///   --tag=<tag>        Run matching tag(s); repeatable
 ///   --path=<path>      Run matching test asset path(s); repeatable
 ///   --device=<id>      Run only these suite device id(s); repeatable (default: all)
+///   --mode=<mode>      Execution mode: widget or integration
+///   --device-id=<id>   Flutter target id for integration mode
 ///   --input key=value  Provide a test input for ${inputs.key}; repeatable
 ///   --jobs=<n|auto>    Concurrent jobs (default: adaptive CPU/memory; 1 disables)
 ///   --timeout=<duration> Test suite timeout, e.g. 30s, 5m, 1h (default: 10m)
@@ -70,7 +77,22 @@ Future<void> runEnsembleYamlTestsCli(List<String> arguments) async {
   }
 
   if (arguments.contains('--doctor')) {
-    final result = await EnsembleTestDoctor(appDir).run();
+    ExecutionMode? modeOverride;
+    try {
+      if (_optionValues(arguments, '--mode').isNotEmpty) {
+        modeOverride = _resolveExecutionMode(
+          arguments,
+          ExecutionMode.widget,
+        );
+      }
+    } catch (error) {
+      stderr.writeln(error);
+      exit(2);
+    }
+    final result = await EnsembleTestDoctor(
+      appDir,
+      modeOverride: modeOverride,
+    ).run();
     stdout.writeln(result.lines.join('\n'));
     exit(result.hasErrors ? 1 : 0);
   }
@@ -124,6 +146,41 @@ Future<void> runEnsembleYamlTestsCli(List<String> arguments) async {
     exit(2);
   }
 
+  late final ExecutionMode executionMode;
+  late EnsembleTestConfig suiteConfig;
+  try {
+    suiteConfig = _readTestsConfigStrict(patcher.testsDirPath!);
+    executionMode = _resolveExecutionMode(arguments, suiteConfig.mode);
+    _validateExecutionModeOptions(
+      arguments,
+      mode: executionMode,
+      config: suiteConfig,
+      jobs: jobs,
+    );
+  } catch (error) {
+    stderr.writeln(error);
+    exit(2);
+  }
+
+  final executionBackend = _executionBackendFor(executionMode);
+
+  _FlutterDevice? integrationDevice;
+  try {
+    integrationDevice = await executionBackend.selectDevice(arguments);
+    if (integrationDevice != null) {
+      _validatePlatformProject(appDir, integrationDevice.platform);
+      suiteConfig = _applyIntegrationDeviceMatrix(
+        suiteConfig,
+        platform: integrationDevice.platform,
+        arguments: arguments,
+        quiet: quiet,
+      );
+    }
+  } catch (error) {
+    stderr.writeln(error);
+    exit(2);
+  }
+
   final artifactLock = _RunArtifactLock(appDir);
   if (!artifactLock.acquire()) {
     stderr.writeln(
@@ -134,13 +191,15 @@ Future<void> runEnsembleYamlTestsCli(List<String> arguments) async {
   }
 
   var exitCode = 0;
+  TestServiceManager? hostServices;
+  final reversedPorts = <int>[];
   try {
     _writeStatus(
       'Preparing Ensemble YAML tests...',
       quiet: quiet,
       machineReport: machineReport,
     );
-    patcher.enable();
+    patcher.enable(mode: executionBackend.mode);
 
     if (patcher.pubspecChanged) {
       _writeStatus(
@@ -180,7 +239,7 @@ Future<void> runEnsembleYamlTestsCli(List<String> arguments) async {
         );
       } catch (_) {}
     }
-    final runSerial = jobs == 1;
+    final runSerial = !executionBackend.supportsParallel || jobs == 1;
     final serialWorkingDirectory = runSerial && patcher.hasTimerRewrites
         ? _prepareWorkerDirectory(appDir, 0, patcher)
         : appDir;
@@ -190,15 +249,40 @@ Future<void> runEnsembleYamlTestsCli(List<String> arguments) async {
             usedPorts: <int>{},
           )
         : null;
+    if (executionBackend.hostOwnsServices) {
+      final resolvedServices = _resolvedHostServices(
+        suiteConfig.services,
+        serialServiceOverrides ?? const {},
+        appDir: appDir,
+      );
+      hostServices = TestServiceManager(
+        resolvedServices,
+        artifactRoot: _artifactRootPath(appDir),
+      );
+      await hostServices.startAll();
+      if (integrationDevice!.platform == 'android') {
+        for (final service in resolvedServices) {
+          final uri = service.url == null ? null : Uri.tryParse(service.url!);
+          if (uri == null || !uri.hasPort) continue;
+          await _addAdbReverse(integrationDevice.id, uri.port);
+          reversedPorts.add(uri.port);
+        }
+      }
+    }
     final testRun = runSerial
         ? await _runFlutterTestProcess(
             'flutter',
             _buildFlutterTestArgs(
               arguments,
               reportMode: reportMode,
-              reportFile: reportFile,
+              reportFile: executionMode == ExecutionMode.integration
+                  ? null
+                  : reportFile,
               timeoutSeconds: timeoutSeconds,
               verbose: verbose,
+              testEntryRelativePath: executionBackend.entryRelativePath,
+              physicalDevice: integrationDevice,
+              hostOwnsServices: executionBackend.hostOwnsServices,
               appLogPath: patcher.hasTimerRewrites
                   ? _appConsoleLogFile(appDir)
                   : _appConsoleLogPath(),
@@ -224,6 +308,14 @@ Future<void> runEnsembleYamlTestsCli(List<String> arguments) async {
             quiet: quiet,
             machineReport: machineReport,
           );
+
+    if (executionMode == ExecutionMode.integration) {
+      _materializeTransportedArtifacts(
+        appDir,
+        '${testRun.stdout ?? ''}\n${testRun.stderr ?? ''}',
+      );
+      await optimizeTransportedScreenshotsForHost(_artifactRootPath(appDir));
+    }
 
     if (testRun.exitCode != 0 && !verbose) {
       final output = '${testRun.stdout ?? ''}\n${testRun.stderr ?? ''}';
@@ -285,14 +377,35 @@ Future<void> runEnsembleYamlTestsCli(List<String> arguments) async {
       } else {
         await _withHtmlReport(appDir, machineResult);
       }
+      if (executionMode == ExecutionMode.integration && reportFile != null) {
+        AtomicFile.writeStringSync(
+          File(reportFile),
+          junitReport
+              ? _junitReportForCli(machineResult)
+              : json.encode(machineResult.toJson()),
+        );
+      }
     }
     exitCode = machineResult == null
-        ? (testRun.exitCode == 0 ? 0 : 1)
+        ? (executionMode == ExecutionMode.integration
+            ? 3
+            : (testRun.exitCode == 0 ? 0 : 1))
         : (machineResult.failedCount == 0 ? 0 : 1);
   } on StateError catch (error) {
     stderr.writeln(error.message);
     exitCode = 3;
+  } catch (error, stackTrace) {
+    stderr.writeln('Ensemble test runner infrastructure failure: $error');
+    if (verbose) stderr.writeln(stackTrace);
+    exitCode = 3;
   } finally {
+    if (executionMode == ExecutionMode.integration &&
+        integrationDevice?.platform == 'android') {
+      for (final port in reversedPorts.reversed) {
+        await _removeAdbReverse(integrationDevice!.id, port);
+      }
+    }
+    await hostServices?.stopAll();
     // Serial timer-rewrite runs also use a worker sandbox; always drop leftovers.
     _cleanWorkerDirectories(appDir);
     patcher.restore();
@@ -332,11 +445,23 @@ List<String> _buildFlutterTestArgs(
   String? artifactRoot,
   Map<String, dynamic>? serviceOverrides,
   String artifactDisplayRoot = 'build/ensemble_test_runner',
+  String testEntryRelativePath = YamlTestAppPatcher.testEntryRelativePath,
+  _FlutterDevice? physicalDevice,
+  bool hostOwnsServices = false,
 }) {
   return [
     'test',
-    YamlTestAppPatcher.testEntryRelativePath,
+    testEntryRelativePath,
     '--no-pub',
+    if (physicalDevice != null) ...['-d', physicalDevice.id],
+    if (hostOwnsServices) '--dart-define=ensembleTestHostOwnsServices=true',
+    if (physicalDevice != null)
+      '--dart-define=ensembleTestExecutionMode=integration',
+    if (physicalDevice != null) ...[
+      '--dart-define=ensembleTestPhysicalDeviceId=${physicalDevice.id}',
+      '--dart-define=ensembleTestPhysicalPlatform=${physicalDevice.platform}',
+      '--dart-define=ensembleTestPhysicalDeviceName=${physicalDevice.name}',
+    ],
     if (reportMode != null) '--dart-define=ensembleTestReport=$reportMode',
     '--dart-define=ensembleTestEmitJsonReport=true',
     if (reportFile != null) '--dart-define=ensembleTestReportFile=$reportFile',
@@ -367,6 +492,29 @@ List<String> _buildFlutterTestArgs(
     ...flutterTestArguments(arguments),
   ];
 }
+
+/// Test hook for integration backend command construction.
+List<String> buildIntegrationFlutterTestArgsForTest({
+  required String deviceId,
+  required String deviceName,
+  required String targetPlatform,
+}) =>
+    _buildFlutterTestArgs(
+      const [],
+      reportMode: null,
+      reportFile: null,
+      timeoutSeconds: null,
+      verbose: false,
+      testEntryRelativePath:
+          YamlTestAppPatcher.integrationTestEntryRelativePath,
+      physicalDevice: _FlutterDevice(
+        id: deviceId,
+        name: deviceName,
+        targetPlatform: targetPlatform,
+        emulator: true,
+      ),
+      hostOwnsServices: true,
+    );
 
 Future<Map<String, dynamic>> _resolveServiceOverrides({
   required YamlTestAppPatcher patcher,
@@ -811,6 +959,7 @@ EnsembleTestRunResult _mergeParallelSuiteArtifacts(
   return EnsembleTestRunResult(
     results: result.results,
     suiteLogs: logs,
+    metadata: result.metadata,
   );
 }
 
@@ -818,6 +967,7 @@ void _cleanParallelRunArtifacts(String appDir) {
   final root = Directory(p.join(appDir, 'build', 'ensemble_test_runner'));
   for (final name in const [
     'logs',
+    'diagnostics',
     'screenshots',
     'worker_progress',
     'worker_reports',
@@ -1060,9 +1210,64 @@ String _prepareWorkerDirectory(
       source.copySync(p.join(workerDartTool.path, fileName));
     }
   }
+  _materializeWorkerPathConfiguration(workerDir.path, appDir);
   _materializeTimerRewriteScreens(workerDir.path, appDir, patcher);
   patcher.rewriteTimersIn(workerDir.path);
   return workerDir.path;
+}
+
+/// Worker sandboxes live below the application's build directory, so relative
+/// path dependencies from the application's pubspec no longer point at their
+/// original packages. Materialize the two pubspec files with absolute paths
+/// and make package_config root URIs absolute before invoking Flutter.
+void _materializeWorkerPathConfiguration(String workerDir, String appDir) {
+  for (final fileName in const ['pubspec.yaml', 'pubspec_overrides.yaml']) {
+    final source = File(p.join(appDir, fileName));
+    if (!source.existsSync()) continue;
+    final target = File(p.join(workerDir, fileName));
+    _deleteEntityIfExists(target.path);
+    target.writeAsStringSync(
+      _absolutizeYamlPathEntries(source.readAsStringSync(), appDir),
+    );
+  }
+
+  final packageConfig = File(
+    p.join(workerDir, '.dart_tool', 'package_config.json'),
+  );
+  if (!packageConfig.existsSync()) return;
+  final dynamic decoded = json.decode(packageConfig.readAsStringSync());
+  if (decoded is! Map<String, dynamic> || decoded['packages'] is! List) return;
+  final sourceConfigDir = p.join(appDir, '.dart_tool');
+  for (final dynamic rawPackage in decoded['packages'] as List) {
+    if (rawPackage is! Map<String, dynamic>) continue;
+    final rootUri = rawPackage['rootUri'];
+    if (rootUri is! String) continue;
+    final uri = Uri.parse(rootUri);
+    if (uri.isAbsolute) continue;
+    final resolvedRoot = p.normalize(
+      p.join(sourceConfigDir, p.fromUri(uri)),
+    );
+    final packageRoot =
+        p.equals(resolvedRoot, p.normalize(appDir)) ? workerDir : resolvedRoot;
+    rawPackage['rootUri'] = Directory(packageRoot).absolute.uri.toString();
+  }
+  packageConfig.writeAsStringSync(json.encode(decoded));
+}
+
+String _absolutizeYamlPathEntries(String contents, String sourceDirectory) {
+  final pathEntry = RegExp(r'^(\s*path:\s*)([^#]+?)(\s*(?:#.*)?)$');
+  return contents.split('\n').map((line) {
+    final match = pathEntry.firstMatch(line);
+    if (match == null) return line;
+    var value = match.group(2)!.trim();
+    if ((value.startsWith('"') && value.endsWith('"')) ||
+        (value.startsWith("'") && value.endsWith("'"))) {
+      value = value.substring(1, value.length - 1);
+    }
+    if (p.isAbsolute(value)) return line;
+    final absolute = p.normalize(p.join(sourceDirectory, value));
+    return '${match.group(1)}${json.encode(absolute)}${match.group(3)}';
+  }).join('\n');
 }
 
 void _materializeTimerRewriteScreens(
@@ -1504,31 +1709,47 @@ EnsembleTestConfig? _readTestsConfig(String testsDir) {
   }
 }
 
+EnsembleTestConfig _readTestsConfigStrict(String testsDir) {
+  final configFile = File(p.join(testsDir, 'config.yaml'));
+  if (!configFile.existsSync()) return const EnsembleTestConfig();
+  return EnsembleTestParser.parseConfigString(
+    configFile.readAsStringSync(),
+    sourcePath: configFile.path,
+  );
+}
+
 EnsembleTestConfig _applyShardDeviceFilter(
   EnsembleTestConfig config,
   Set<String> selectedIds,
 ) {
   if (selectedIds.isEmpty || config.devices.isEmpty) return config;
-  return EnsembleTestConfig(
-    services: config.services,
-    mockFiles: config.mockFiles,
-    inlineMocks: config.inlineMocks,
-    initialState: config.initialState,
-    defaultProfile: config.defaultProfile,
-    profiles: config.profiles,
-    profileGroups: config.profileGroups,
+  return config.copyWith(
     devices: [
       for (final device in config.devices)
         if (selectedIds.contains(device.id)) device,
     ],
-    screenshots: config.screenshots,
-    performance: config.performance,
-    timers: config.timers,
-    dumpTree: config.dumpTree,
-    logApiCalls: config.logApiCalls,
-    logStorage: config.logStorage,
-    wifi: config.wifi,
   );
+}
+
+EnsembleTestConfig _applyIntegrationDeviceMatrix(
+  EnsembleTestConfig config, {
+  required String platform,
+  required List<String> arguments,
+  required bool quiet,
+}) {
+  if (config.devices.isEmpty &&
+      _optionValues(arguments, '--device').isEmpty) {
+    return config;
+  }
+  final matrix = resolveIntegrationDeviceMatrix(
+    config,
+    platform: platform,
+    selectedIds: _optionValueSet(arguments, '--device'),
+  );
+  for (final warning in matrix.warnings) {
+    if (!quiet) stderr.writeln(warning);
+  }
+  return matrix.config;
 }
 
 bool _matchesProfileShardSelection(
@@ -1856,6 +2077,7 @@ EnsembleTestRunResult _mergeWorkerReports(
 }) {
   final mergedResults = <EnsembleSingleTestResult>[];
   final suiteLogs = <String>[];
+  final metadata = <String, dynamic>{};
   final seenPassedDependencies = <String>{};
 
   for (var i = 0; i < results.length; i++) {
@@ -1880,6 +2102,7 @@ EnsembleTestRunResult _mergeWorkerReports(
 
     final decoded = json.decode(rawJson) as Map<String, dynamic>;
     final workerRun = _runResultFromJson(decoded);
+    metadata.addAll(workerRun.metadata);
     suiteLogs.addAll(workerRun.suiteLogs);
     for (final test in workerRun.results) {
       final baseId = _baseTestId(test.testId);
@@ -1895,6 +2118,7 @@ EnsembleTestRunResult _mergeWorkerReports(
   return EnsembleTestRunResult(
     results: mergedResults,
     suiteLogs: suiteLogs,
+    metadata: metadata,
   );
 }
 
@@ -1905,7 +2129,7 @@ String? _writeWorkerOutputLog(String appDir, int workerIndex, String output) {
       appDir,
       'build',
       'ensemble_test_runner',
-      'logs',
+      'diagnostics',
       'test_process_${workerIndex + 1}_output.log',
     ),
   );
@@ -1949,6 +2173,7 @@ Future<EnsembleTestRunResult> _withHtmlReport(
       result = EnsembleTestRunResult(
         results: result.results,
         suiteLogs: [...result.suiteLogs, 'history: $historyPath'],
+        metadata: result.metadata,
       );
     }
     // Shell was written at suite start; only refresh the results DB.
@@ -1973,6 +2198,7 @@ Future<EnsembleTestRunResult> _withHtmlReport(
   return EnsembleTestRunResult(
     results: result.results,
     suiteLogs: suiteLogs,
+    metadata: result.metadata,
   );
 }
 
@@ -2005,8 +2231,14 @@ String _formatCliSummary(
   buffer.writeln('┌─ Ensemble YAML tests ─────────────────────────────');
   if (testFile != null) {
     buffer.writeln('│  $testFile');
-    buffer.writeln('│');
   }
+  final mode = result.metadata['mode']?.toString();
+  final device = result.metadata['deviceName']?.toString() ??
+      result.metadata['deviceId']?.toString();
+  if (mode != null) {
+    buffer.writeln('│  mode: $mode${device == null ? '' : ' · $device'}');
+  }
+  if (testFile != null || mode != null) buffer.writeln('│');
 
   for (var i = 0; i < result.results.length; i++) {
     if (i > 0) buffer.writeln('│');
@@ -2108,7 +2340,14 @@ EnsembleTestRunResult _runResultFromJson(Map<String, dynamic> json) {
   final suiteLogs = (json['suiteLogs'] as List<dynamic>? ?? const [])
       .map((value) => value.toString())
       .toList();
-  return EnsembleTestRunResult(results: results, suiteLogs: suiteLogs);
+  final metadata = json['metadata'] is Map
+      ? Map<String, dynamic>.from(json['metadata'] as Map)
+      : const <String, dynamic>{};
+  return EnsembleTestRunResult(
+    results: results,
+    suiteLogs: suiteLogs,
+    metadata: metadata,
+  );
 }
 
 EnsembleSingleTestResult _singleResultFromJson(Map<String, dynamic> json) {
@@ -2271,9 +2510,14 @@ Future<ProcessResult> _runFlutterTestProcess(
         .transform(const LineSplitter())
         .listen((line) {
       stdoutBuffer.writeln(line);
-      _appendAppConsoleLogLine(appLog, 'stdout', line);
+      if (!_isArtifactProtocolLine(line)) {
+        _appendAppConsoleLogLine(appLog, 'stdout', line);
+      }
       if (verbose) {
-        stdout.writeln(line);
+        if (!_isArtifactProtocolLine(line)) stdout.writeln(line);
+      } else if (streamOutput && _isIntegrationProgressLine(line)) {
+        lastLiveOutput = DateTime.now();
+        stderr.writeln(_formatIntegrationProgressLine(line));
       } else if (streamOutput && liveFilter.shouldEmit(line)) {
         lastLiveOutput = DateTime.now();
         stderr.writeln(line);
@@ -2302,6 +2546,147 @@ Future<ProcessResult> _runFlutterTestProcess(
   } finally {
     heartbeat?.cancel();
   }
+}
+
+bool _isArtifactProtocolLine(String line) =>
+    line.contains(ensembleTestArtifactProtocolPrefix);
+
+bool _isIntegrationProgressLine(String line) =>
+    line.contains(ensembleTestProgressProtocolPrefix);
+
+String _formatIntegrationProgressLine(String line) {
+  final marker = line.indexOf(ensembleTestProgressProtocolPrefix);
+  if (marker < 0) return line;
+  final raw =
+      line.substring(marker + ensembleTestProgressProtocolPrefix.length);
+  try {
+    final dynamic decoded = json.decode(_jsonRecordFromLine(raw));
+    if (decoded is Map) {
+      final status = decoded['status']?.toString() ?? 'finished';
+      final id = decoded['testId']?.toString() ?? '(unknown)';
+      final duration = decoded['durationMs'];
+      return '[$status] $id${duration is int ? ' (${duration}ms)' : ''}';
+    }
+  } catch (_) {}
+  return line;
+}
+
+String _jsonRecordFromLine(String raw) {
+  final end = raw.lastIndexOf('}');
+  return end < 0 ? raw.trim() : raw.substring(0, end + 1);
+}
+
+void _materializeTransportedArtifacts(String appDir, String output) {
+  final pending = <String, _IncomingArtifact>{};
+  var sawRecord = false;
+  for (final line in const LineSplitter().convert(output)) {
+    final marker = line.indexOf(ensembleTestArtifactProtocolPrefix);
+    if (marker < 0) continue;
+    sawRecord = true;
+    final raw = line.substring(
+      marker + ensembleTestArtifactProtocolPrefix.length,
+    );
+    final dynamic decoded;
+    try {
+      decoded = json.decode(_jsonRecordFromLine(raw));
+    } catch (error) {
+      throw StateError('Invalid integration artifact record: $error');
+    }
+    if (decoded is! Map) {
+      throw StateError('Invalid integration artifact record payload.');
+    }
+    final record = Map<String, dynamic>.from(decoded);
+    final event = record['event']?.toString();
+    final id = record['id']?.toString();
+    if (id == null || id.isEmpty) {
+      throw StateError('Integration artifact record is missing an id.');
+    }
+    switch (event) {
+      case 'start':
+        final relativePath = record['path']?.toString() ?? '';
+        final expectedSize = record['size'];
+        final expectedHash = record['sha256']?.toString() ?? '';
+        if (relativePath.isEmpty || expectedSize is! int || expectedSize < 0) {
+          throw StateError('Invalid integration artifact start record.');
+        }
+        pending[id] = _IncomingArtifact(
+          relativePath: relativePath,
+          expectedSize: expectedSize,
+          expectedHash: expectedHash,
+        );
+        break;
+      case 'chunk':
+        final artifact = pending[id];
+        if (artifact == null) {
+          throw StateError('Artifact chunk arrived before start for $id.');
+        }
+        try {
+          artifact.bytes.add(base64Decode(record['data']?.toString() ?? ''));
+        } catch (error) {
+          throw StateError('Invalid base64 artifact chunk for $id: $error');
+        }
+        break;
+      case 'end':
+        final artifact = pending.remove(id);
+        if (artifact == null) {
+          throw StateError('Artifact end arrived before start for $id.');
+        }
+        _writeTransportedArtifact(appDir, artifact);
+        break;
+      default:
+        throw StateError('Unknown integration artifact event "$event".');
+    }
+  }
+  if (sawRecord && pending.isNotEmpty) {
+    throw StateError(
+      'Integration artifact transport ended with ${pending.length} incomplete artifact(s).',
+    );
+  }
+}
+
+/// Test hook for the device-to-host artifact protocol.
+void materializeTransportedArtifactsForTest(String appDir, String output) =>
+    _materializeTransportedArtifacts(appDir, output);
+
+class _IncomingArtifact {
+  final String relativePath;
+  final int expectedSize;
+  final String expectedHash;
+  final BytesBuilder bytes = BytesBuilder(copy: false);
+
+  _IncomingArtifact({
+    required this.relativePath,
+    required this.expectedSize,
+    required this.expectedHash,
+  });
+}
+
+void _writeTransportedArtifact(String appDir, _IncomingArtifact artifact) {
+  final normalized = p.posix.normalize(
+    artifact.relativePath.replaceAll('\\', '/'),
+  );
+  if (p.posix.isAbsolute(normalized) ||
+      normalized == '..' ||
+      normalized.startsWith('../')) {
+    throw StateError('Unsafe integration artifact path: $normalized');
+  }
+  final bytes = artifact.bytes.takeBytes();
+  if (bytes.length != artifact.expectedSize) {
+    throw StateError(
+      'Integration artifact $normalized has ${bytes.length} bytes; expected '
+      '${artifact.expectedSize}.',
+    );
+  }
+  final actualHash = sha256.convert(bytes).toString();
+  if (actualHash != artifact.expectedHash) {
+    throw StateError('Integration artifact checksum failed: $normalized');
+  }
+  final root = p.normalize(_artifactRootPath(appDir));
+  final target = p.normalize(p.join(root, p.fromUri(normalized)));
+  if (!p.isWithin(root, target)) {
+    throw StateError('Unsafe integration artifact path: $normalized');
+  }
+  AtomicFile.writeBytesSync(File(target), bytes);
 }
 
 File? _openAppConsoleLog(String? path) {
@@ -2448,6 +2833,335 @@ int? _resolveJobsOverride(List<String> arguments) {
     exit(2);
   }
   return jobs;
+}
+
+ExecutionMode _resolveExecutionMode(
+  List<String> arguments,
+  ExecutionMode configured,
+) {
+  final values = _optionValues(arguments, '--mode');
+  if (values.length > 1) {
+    throw StateError('--mode may be specified only once.');
+  }
+  if (values.isEmpty) return configured;
+  return switch (values.single) {
+    'widget' => ExecutionMode.widget,
+    'integration' => ExecutionMode.integration,
+    _ => throw StateError(
+        'Invalid --mode="${values.single}". Use widget or integration.',
+      ),
+  };
+}
+
+/// Test hook for CLI precedence without launching a subprocess.
+ExecutionMode resolveExecutionModeForTest(
+  List<String> arguments,
+  ExecutionMode configured,
+) =>
+    _resolveExecutionMode(arguments, configured);
+
+void _validateExecutionModeOptions(
+  List<String> arguments, {
+  required ExecutionMode mode,
+  required EnsembleTestConfig config,
+  required int? jobs,
+}) {
+  final deviceIds = _optionValues(arguments, '--device-id');
+  if (deviceIds.length > 1) {
+    throw StateError('--device-id may be specified only once.');
+  }
+  if (mode == ExecutionMode.widget) {
+    if (deviceIds.isNotEmpty) {
+      throw StateError('--device-id is only valid with --mode=integration.');
+    }
+    return;
+  }
+  // [config.devices] is allowed; it is filtered after target selection.
+  final jobsWasSpecified =
+      arguments.any((argument) => argument.startsWith('--jobs='));
+  if (jobsWasSpecified && jobs != 1) {
+    throw StateError(
+      'Integration mode is serial. Omit --jobs or use --jobs=1.',
+    );
+  }
+  if (config.devices.isEmpty &&
+      _optionValues(arguments, '--device').isNotEmpty) {
+    throw StateError(
+      '`--device` was set but tests/config.yaml has no devices.',
+    );
+  }
+}
+
+/// Test hook for execution-mode option compatibility.
+void validateExecutionModeOptionsForTest(
+  List<String> arguments, {
+  required ExecutionMode mode,
+  required EnsembleTestConfig config,
+  int? jobs,
+}) =>
+    _validateExecutionModeOptions(
+      arguments,
+      mode: mode,
+      config: config,
+      jobs: jobs,
+    );
+
+abstract class _ExecutionBackend {
+  ExecutionMode get mode;
+  bool get supportsParallel;
+  bool get hostOwnsServices;
+  String get entryRelativePath;
+
+  Future<_FlutterDevice?> selectDevice(List<String> arguments);
+}
+
+class _WidgetExecutionBackend implements _ExecutionBackend {
+  @override
+  ExecutionMode get mode => ExecutionMode.widget;
+
+  @override
+  bool get supportsParallel => true;
+
+  @override
+  bool get hostOwnsServices => false;
+
+  @override
+  String get entryRelativePath => YamlTestAppPatcher.testEntryRelativePath;
+
+  @override
+  Future<_FlutterDevice?> selectDevice(List<String> arguments) async => null;
+}
+
+class _IntegrationExecutionBackend implements _ExecutionBackend {
+  @override
+  ExecutionMode get mode => ExecutionMode.integration;
+
+  @override
+  bool get supportsParallel => false;
+
+  @override
+  bool get hostOwnsServices => true;
+
+  @override
+  String get entryRelativePath =>
+      YamlTestAppPatcher.integrationTestEntryRelativePath;
+
+  @override
+  Future<_FlutterDevice?> selectDevice(List<String> arguments) =>
+      _selectIntegrationDevice(arguments);
+}
+
+_ExecutionBackend _executionBackendFor(ExecutionMode mode) =>
+    mode == ExecutionMode.integration
+        ? _IntegrationExecutionBackend()
+        : _WidgetExecutionBackend();
+
+class _FlutterDevice {
+  final String id;
+  final String name;
+  final String targetPlatform;
+  final bool emulator;
+
+  const _FlutterDevice({
+    required this.id,
+    required this.name,
+    required this.targetPlatform,
+    required this.emulator,
+  });
+
+  String get platform =>
+      targetPlatform.startsWith('android') ? 'android' : 'ios';
+
+  bool get isSupportedVirtualTarget =>
+      emulator &&
+      (targetPlatform.startsWith('android') || targetPlatform == 'ios');
+
+  factory _FlutterDevice.fromJson(Map<String, dynamic> json) => _FlutterDevice(
+        id: json['id']?.toString() ?? '',
+        name: json['name']?.toString() ?? json['id']?.toString() ?? 'Unknown',
+        targetPlatform: json['targetPlatform']?.toString() ?? '',
+        emulator: json['emulator'] == true,
+      );
+
+  String get display => '$name ($id, $targetPlatform)';
+}
+
+Future<List<_FlutterDevice>> _discoverFlutterDevices() async {
+  final result = await Process.run('flutter', ['devices', '--machine']);
+  if (result.exitCode != 0) {
+    throw StateError(
+      'Could not discover Flutter devices:\n${result.stderr.toString().trim()}',
+    );
+  }
+  return _parseFlutterDevices(result.stdout.toString());
+}
+
+List<_FlutterDevice> _parseFlutterDevices(String machineJson) {
+  final dynamic decoded = json.decode(machineJson);
+  if (decoded is! List) {
+    throw StateError('flutter devices --machine returned invalid JSON.');
+  }
+  return decoded
+      .whereType<Map>()
+      .map((item) => _FlutterDevice.fromJson(Map<String, dynamic>.from(item)))
+      .where((device) => device.id.isNotEmpty)
+      .toList();
+}
+
+/// Test hook for deterministic device filtering and non-interactive selection.
+String selectIntegrationDeviceIdForTest(
+  String machineJson, {
+  String? requestedId,
+}) {
+  final devices = _parseFlutterDevices(machineJson);
+  final supported =
+      devices.where((device) => device.isSupportedVirtualTarget).toList();
+  if (requestedId != null) {
+    final matches = devices.where((device) => device.id == requestedId);
+    if (matches.isEmpty) throw StateError('Device not found: $requestedId');
+    if (!matches.single.isSupportedVirtualTarget) {
+      throw StateError('Unsupported integration device: $requestedId');
+    }
+    return matches.single.id;
+  }
+  if (supported.isEmpty) throw StateError('No supported integration target');
+  if (supported.length > 1) {
+    throw StateError('Multiple integration targets require --device-id');
+  }
+  return supported.single.id;
+}
+
+Future<_FlutterDevice> _selectIntegrationDevice(
+  List<String> arguments,
+) async {
+  final devices = await _discoverFlutterDevices();
+  final supported =
+      devices.where((device) => device.isSupportedVirtualTarget).toList();
+  final requested = _optionValues(arguments, '--device-id');
+  if (requested.isNotEmpty) {
+    final matches = devices.where((device) => device.id == requested.single);
+    if (matches.isEmpty) {
+      throw StateError(
+        'Flutter device "${requested.single}" was not found.\n'
+        '${_formatDeviceList(devices)}',
+      );
+    }
+    final selected = matches.single;
+    if (!selected.isSupportedVirtualTarget) {
+      throw StateError(
+        'Device "${selected.display}" is not supported in Phase 1. Select an '
+        'Android emulator or iOS simulator.\n${_formatDeviceList(devices)}',
+      );
+    }
+    return selected;
+  }
+  if (supported.isEmpty) {
+    throw StateError(
+      'No supported integration target is connected. Start an Android '
+      'emulator or iOS simulator.\n${_formatDeviceList(devices)}',
+    );
+  }
+  if (supported.length == 1) return supported.single;
+  if (!stdin.hasTerminal) {
+    throw StateError(
+      'Multiple integration targets are connected. Select one with '
+      '--device-id=<id>:\n${_formatDeviceList(supported)}',
+    );
+  }
+  stderr.writeln('Select an integration target:');
+  for (var i = 0; i < supported.length; i++) {
+    stderr.writeln('  ${i + 1}) ${supported[i].display}');
+  }
+  stderr.write('Device: ');
+  final selection = int.tryParse(stdin.readLineSync()?.trim() ?? '');
+  if (selection == null || selection < 1 || selection > supported.length) {
+    throw StateError('No valid integration target was selected.');
+  }
+  return supported[selection - 1];
+}
+
+String _formatDeviceList(List<_FlutterDevice> devices) {
+  if (devices.isEmpty) return 'Connected devices: none';
+  return [
+    'Connected devices:',
+    for (final device in devices)
+      '  - ${device.display}${device.isSupportedVirtualTarget ? '' : ' [unsupported]'}',
+  ].join('\n');
+}
+
+void _validatePlatformProject(String appDir, String platform) {
+  final requiredPath = platform == 'android'
+      ? p.join(appDir, 'android', 'app')
+      : p.join(appDir, 'ios', 'Runner.xcodeproj', 'project.pbxproj');
+  final exists = platform == 'android'
+      ? Directory(requiredPath).existsSync()
+      : File(requiredPath).existsSync();
+  if (exists) return;
+  throw StateError(
+    'The $platform application project is incomplete. From the app root run:\n'
+    '  flutter create --platforms=$platform .',
+  );
+}
+
+List<TestServiceConfig> _resolvedHostServices(
+  List<TestServiceConfig> services,
+  Map<String, dynamic> overrides, {
+  required String appDir,
+}) {
+  return [
+    for (final service in services)
+      (() {
+        final raw = overrides[service.name];
+        final override = raw is Map
+            ? Map<String, dynamic>.from(raw)
+            : const <String, dynamic>{};
+        final rawEnvironment = override['environment'];
+        final overrideEnvironment = rawEnvironment is Map
+            ? rawEnvironment.map(
+                (key, value) => MapEntry(key.toString(), value.toString()),
+              )
+            : const <String, String>{};
+        final workingDirectory = service.workingDirectory;
+        return TestServiceConfig(
+          name: service.name,
+          command: service.command,
+          url: override['url']?.toString() ?? service.url,
+          arguments: service.arguments,
+          workingDirectory: workingDirectory == null
+              ? appDir
+              : (p.isAbsolute(workingDirectory)
+                  ? workingDirectory
+                  : p.join(appDir, workingDirectory)),
+          environment: {...service.environment, ...overrideEnvironment},
+          readyUrl: service.readyUrl,
+          readyTimeoutMs: service.readyTimeoutMs,
+        );
+      })(),
+  ];
+}
+
+Future<void> _addAdbReverse(String deviceId, int port) async {
+  final result = await Process.run(
+    'adb',
+    ['-s', deviceId, 'reverse', 'tcp:$port', 'tcp:$port'],
+  );
+  if (result.exitCode != 0) {
+    throw StateError(
+      'Failed to route host service port $port to Android device $deviceId: '
+      '${result.stderr.toString().trim()}',
+    );
+  }
+}
+
+Future<void> _removeAdbReverse(String deviceId, int port) async {
+  try {
+    await Process.run(
+      'adb',
+      ['-s', deviceId, 'reverse', '--remove', 'tcp:$port'],
+    );
+  } catch (_) {
+    // Best-effort cleanup must not hide the suite result.
+  }
 }
 
 void _writeStatus(

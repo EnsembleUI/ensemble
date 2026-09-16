@@ -31,9 +31,13 @@ class EnsembleYamlTestOptions {
   /// Host-app methods passed to `EnsembleApp`, e.g. `captureCertificateForHost`.
   final Map<String, Function>? externalMethods;
 
+  /// Execution environment. The regular public entry point uses widget mode.
+  final ExecutionMode mode;
+
   const EnsembleYamlTestOptions({
     this.bootstrap,
     this.externalMethods,
+    this.mode = ExecutionMode.widget,
   });
 }
 
@@ -69,7 +73,19 @@ Future<void> runEnsembleYamlTestsWithOptions(
   EnsembleYamlTestOptions options,
 ) async {
   LiveTestWidgetsFlutterBinding.ensureInitialized();
-  EnsembleTestHarness.ensureTestPlugins();
+  return registerEnsembleYamlTests(options);
+}
+
+/// Registers the shared YAML suite after an execution-specific binding exists.
+///
+/// Integration entry points initialize `IntegrationTestWidgetsFlutterBinding`
+/// and call this function with [ExecutionMode.integration].
+Future<void> registerEnsembleYamlTests(EnsembleYamlTestOptions options) async {
+  if (options.mode == ExecutionMode.widget) {
+    EnsembleTestHarness.ensureTestPlugins();
+  } else {
+    EnsembleTestHarness.ensureIntegrationRuntime();
+  }
   tearDown(() {
     EnsembleTestHarness.resetTestRuntime();
     YamlTestSession.dispose();
@@ -95,8 +111,10 @@ Future<void> runEnsembleYamlTestsWithOptions(
         }
         await tester.runAsync(() async {
           await options.bootstrap!();
-          ensureWifiTestDoublesForTest();
-          ensureLiveAuthActionsForTest();
+          if (options.mode == ExecutionMode.widget) {
+            ensureWifiTestDoublesForTest();
+            ensureLiveAuthActionsForTest();
+          }
           // Module constructors may schedule follow-up async init work.
           await Future<void>.delayed(Duration.zero);
         });
@@ -112,6 +130,7 @@ Future<void> runEnsembleYamlTestsWithOptions(
           appHome: target.appHome,
           i18nPath: target.i18nPath,
           externalMethods: options.externalMethods,
+          executionMode: options.mode,
         );
 
         final runner = EnsembleTestRunner(harness: harness);
@@ -158,17 +177,21 @@ Future<void> runEnsembleYamlTestsWithOptions(
         var runResult = EnsembleTestRunResult(
           results: orderedResults,
           suiteLogs: suiteLogs,
+          metadata: _runMetadata(options.mode),
         );
-        if (!isEnsembleTestParallelWorker()) {
+        if (options.mode == ExecutionMode.widget &&
+            !isEnsembleTestParallelWorker()) {
           if (await _recordHistory(runResult)) {
             suiteLogs.add('history: $_historyDisplayPath');
             runResult = EnsembleTestRunResult(
               results: orderedResults,
               suiteLogs: suiteLogs,
+              metadata: _runMetadata(options.mode),
             );
           }
         }
-        if (!isEnsembleTestParallelWorker()) {
+        if (options.mode == ExecutionMode.widget &&
+            !isEnsembleTestParallelWorker()) {
           final htmlPath = HtmlTestReporter().write(
             runResult,
           );
@@ -176,6 +199,7 @@ Future<void> runEnsembleYamlTestsWithOptions(
           runResult = EnsembleTestRunResult(
             results: orderedResults,
             suiteLogs: suiteLogs,
+            metadata: _runMetadata(options.mode),
           );
         }
         // Background app errors are recorded by TestErrorTracker and can be
@@ -216,6 +240,7 @@ Future<void> runEnsembleYamlTestsWithOptions(
               ),
             ],
             suiteLogs: const [],
+            metadata: _runMetadata(options.mode),
           );
           emitMachineReport(runResult);
         }
@@ -226,6 +251,18 @@ Future<void> runEnsembleYamlTestsWithOptions(
         ? Timeout(Duration(seconds: _timeoutSeconds))
         : Timeout.none,
   );
+}
+
+Map<String, dynamic> _runMetadata(ExecutionMode mode) {
+  const deviceId = String.fromEnvironment('ensembleTestPhysicalDeviceId');
+  const platform = String.fromEnvironment('ensembleTestPhysicalPlatform');
+  const deviceName = String.fromEnvironment('ensembleTestPhysicalDeviceName');
+  return {
+    'mode': mode.name,
+    if (deviceId.isNotEmpty) 'deviceId': deviceId,
+    if (platform.isNotEmpty) 'platform': platform,
+    if (deviceName.isNotEmpty) 'deviceName': deviceName,
+  };
 }
 
 Future<bool> _recordHistory(EnsembleTestRunResult result) async {
@@ -315,22 +352,28 @@ void _emitProgressEvent(
   EnsembleSingleTestResult result,
 ) {
   const progressFile = String.fromEnvironment('ensembleTestProgressFile');
-  if (progressFile.isEmpty) return;
+  final event = json.encode({
+    'testId': result.testId,
+    'assetPath': definition.assetPath,
+    'status': result.status.name,
+    'durationMs': result.durationMs,
+    if (result.attempts > 1) 'attempts': result.attempts,
+    if (result.retry > 0) 'retry': result.retry,
+    if (result.message != null) 'message': result.message,
+    if (result.failedStepIndex != null)
+      'failedStepIndex': result.failedStepIndex,
+  });
+  if (progressFile.isEmpty) {
+    if (usesDeviceArtifactTransport) {
+      print('$ensembleTestProgressProtocolPrefix$event');
+    }
+    return;
+  }
 
   final file = File(progressFile);
   file.parent.createSync(recursive: true);
   file.writeAsStringSync(
-    '${json.encode({
-          'testId': result.testId,
-          'assetPath': definition.assetPath,
-          'status': result.status.name,
-          'durationMs': result.durationMs,
-          if (result.attempts > 1) 'attempts': result.attempts,
-          if (result.retry > 0) 'retry': result.retry,
-          if (result.message != null) 'message': result.message,
-          if (result.failedStepIndex != null)
-            'failedStepIndex': result.failedStepIndex,
-        })}\n',
+    '$event\n',
     mode: FileMode.append,
   );
 }

@@ -141,6 +141,7 @@ class TestScenario {
 /// fields only for data that genuinely belongs to one test case, such as its
 /// description, steps, and scenario selection.
 class EnsembleTestConfig {
+  final ExecutionMode mode;
   final List<TestServiceConfig> services;
   final List<String> mockFiles;
   final Map<String, dynamic> inlineMocks;
@@ -149,8 +150,12 @@ class EnsembleTestConfig {
   final Map<String, TestProfile> profiles;
   final Map<String, List<String>> profileGroups;
 
-  /// Suite device matrix (platform/model + optional locale). When non-empty,
-  /// each test runs once per entry.
+  /// Suite device matrix (platform/model + optional locale/theme).
+  ///
+  /// Widget mode expands each test once per entry and applies the viewport.
+  /// Integration mode keeps entries whose [TestDeviceTarget.platform] matches
+  /// the connected emulator/simulator so locale/theme still apply, and ignores
+  /// viewport/model because the real display is used.
   final List<TestDeviceTarget> devices;
   final ScreenshotConfig screenshots;
   final PerformanceConfig performance;
@@ -161,6 +166,7 @@ class EnsembleTestConfig {
   final WifiTestConfig wifi;
 
   const EnsembleTestConfig({
+    this.mode = ExecutionMode.widget,
     this.services = const [],
     this.mockFiles = const [],
     this.inlineMocks = const {},
@@ -179,7 +185,48 @@ class EnsembleTestConfig {
   });
 
   bool get hasDeviceMatrix => devices.isNotEmpty;
+
+  EnsembleTestConfig copyWith({
+    ExecutionMode? mode,
+    List<TestServiceConfig>? services,
+    List<String>? mockFiles,
+    Map<String, dynamic>? inlineMocks,
+    Map<String, dynamic>? initialState,
+    String? defaultProfile,
+    Map<String, TestProfile>? profiles,
+    Map<String, List<String>>? profileGroups,
+    List<TestDeviceTarget>? devices,
+    ScreenshotConfig? screenshots,
+    PerformanceConfig? performance,
+    DumpTreeConfig? dumpTree,
+    LogApiCallsConfig? logApiCalls,
+    LogStorageConfig? logStorage,
+    TimerRewriteConfig? timers,
+    WifiTestConfig? wifi,
+  }) {
+    return EnsembleTestConfig(
+      mode: mode ?? this.mode,
+      services: services ?? this.services,
+      mockFiles: mockFiles ?? this.mockFiles,
+      inlineMocks: inlineMocks ?? this.inlineMocks,
+      initialState: initialState ?? this.initialState,
+      defaultProfile: defaultProfile ?? this.defaultProfile,
+      profiles: profiles ?? this.profiles,
+      profileGroups: profileGroups ?? this.profileGroups,
+      devices: devices ?? this.devices,
+      screenshots: screenshots ?? this.screenshots,
+      performance: performance ?? this.performance,
+      dumpTree: dumpTree ?? this.dumpTree,
+      logApiCalls: logApiCalls ?? this.logApiCalls,
+      logStorage: logStorage ?? this.logStorage,
+      timers: timers ?? this.timers,
+      wifi: wifi ?? this.wifi,
+    );
+  }
 }
+
+/// Host environment used to execute a declarative test suite.
+enum ExecutionMode { widget, integration }
 
 /// A named profile containing reusable mocks and initial state.
 class TestProfile {
@@ -348,6 +395,23 @@ class TestDeviceTarget {
     return parts.join(' · ');
   }
 
+  /// Canonical platform key used to match Flutter integration targets.
+  ///
+  /// `android*` → `android`; `ios` / `iphone` / `ipad` → `ios`.
+  static String normalizePlatform(String raw) {
+    final key = raw.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '');
+    if (key.startsWith('android')) return 'android';
+    if (key.startsWith('ios') ||
+        key.startsWith('iphone') ||
+        key.startsWith('ipad')) {
+      return 'ios';
+    }
+    return key;
+  }
+
+  bool matchesPlatform(String other) =>
+      normalizePlatform(platform) == normalizePlatform(other);
+
   Map<String, dynamic> toScreenshotArgs() => {
         'platform': platform,
         'model': model,
@@ -453,10 +517,12 @@ class TestStep {
 class EnsembleTestRunResult {
   final List<EnsembleSingleTestResult> results;
   final List<String> suiteLogs;
+  final Map<String, dynamic> metadata;
 
   const EnsembleTestRunResult({
     required this.results,
     this.suiteLogs = const [],
+    this.metadata = const {},
   });
 
   int get passedCount =>
@@ -474,6 +540,7 @@ class EnsembleTestRunResult {
         'failed': failedCount,
         'results': results.map((r) => r.toJson()).toList(),
         if (suiteLogs.isNotEmpty) 'suiteLogs': suiteLogs,
+        if (metadata.isNotEmpty) 'metadata': metadata,
       };
 }
 

@@ -6,16 +6,20 @@ import 'package:ensemble_test_runner/runner/test_artifacts.dart';
 import 'package:http/http.dart' as http;
 
 class TestServiceManager {
-  TestServiceManager(this.configs);
+  TestServiceManager(this.configs, {this.artifactRoot});
 
   final List<TestServiceConfig> configs;
+  final String? artifactRoot;
   final List<_RunningTestService> _running = [];
 
   Future<void> startAll() async {
     try {
       for (final config in configs) {
         if (await _isReady(config.resolvedReadyUrl)) continue;
-        final service = await _RunningTestService.start(config);
+        final service = await _RunningTestService.start(
+          config,
+          artifactRoot: artifactRoot,
+        );
         _running.add(service);
         await service.waitUntilReady();
       }
@@ -69,17 +73,24 @@ class _RunningTestService {
   final StreamSubscription<List<int>> stderrSubscription;
   int? exitCode;
 
-  static Future<_RunningTestService> start(TestServiceConfig config) async {
-    final logsDirectory = ensembleTestArtifactDirectory('logs');
+  static Future<_RunningTestService> start(
+    TestServiceConfig config, {
+    String? artifactRoot,
+  }) async {
+    final logsDirectory = artifactRoot == null
+        ? ensembleTestArtifactDirectory('logs')
+        : Directory('$artifactRoot/logs');
     await logsDirectory.create(recursive: true);
     final safeName = config.name.replaceAll(RegExp(r'[^A-Za-z0-9._-]+'), '_');
     final safeSuffix =
         _artifactSuffix.replaceAll(RegExp(r'[^A-Za-z0-9._-]+'), '_');
     final suffixPart = safeSuffix.isEmpty ? '' : '_$safeSuffix';
-    final logFile = ensembleTestArtifactFile(
-      'logs',
-      '${safeName}_service$suffixPart.log',
-    );
+    final logFile = artifactRoot == null
+        ? ensembleTestArtifactFile(
+            'logs',
+            '${safeName}_service$suffixPart.log',
+          )
+        : File('${logsDirectory.path}/${safeName}_service$suffixPart.log');
     final logSink = logFile.openWrite();
 
     try {

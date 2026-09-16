@@ -26,6 +26,8 @@ dependencies:
     sdk: flutter
   flutter_test:
     sdk: flutter
+  integration_test:
+    sdk: flutter
   yaml: ^3.1.2
   path: ^1.9.0
   image: ^4.8.0
