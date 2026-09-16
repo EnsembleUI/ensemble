@@ -9,7 +9,7 @@ on:
 
 jobs:
   android-emulator:
-    runs-on: macos-latest
+    runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
@@ -21,6 +21,11 @@ jobs:
         with:
           flutter-version: 3.47.2
           cache: true
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
       - name: Prepare example Android application
         working-directory: tools/ensemble_test_runner/example
         run: |
@@ -30,6 +35,7 @@ jobs:
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 35
+          target: google_apis
           arch: x86_64
           script: >-
             cd tools/ensemble_test_runner/example &&
@@ -78,9 +84,13 @@ jobs:
           flutter pub get
       - name: Start iOS simulator
         id: simulator
-        uses: futureware-tech/simulator-action@v2
+        uses: futureware-tech/simulator-action@v5
         with:
-          model: iPhone 16
+          model: 'iPhone 17'
+          os_version: '>= 26.0'
+          wait_for_boot: true
+          erase_before_boot: true
+          boot_timeout_seconds: 360
       - name: Run YAML suite on iOS simulator
         working-directory: tools/ensemble_test_runner/example
         run: >-
