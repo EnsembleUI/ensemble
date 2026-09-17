@@ -20,6 +20,16 @@ const maxPendingEnsembleTestArtifacts = 64;
 /// that after JSON/base64 wrapping and the `I/flutter:` prefix.
 const ensembleTestArtifactRawChunkSize = 2048;
 
+/// Soft ceiling for a single protocol JSON line (prefix + payload), leaving
+/// headroom under Android's ~4 KiB logcat limit.
+const ensembleTestArtifactMaxRecordBytes = 3000;
+
+/// Canonical SHA-256 of a completed artifact manifest (JSON array).
+String ensembleTestArtifactManifestSha256(
+  List<Map<String, dynamic>> artifacts,
+) =>
+    sha256.convert(utf8.encode(json.encode(artifacts))).toString();
+
 /// Tracks artifact ids emitted during an integration run for the complete record.
 class EnsembleTestArtifactEmitter {
   EnsembleTestArtifactEmitter._();
@@ -101,15 +111,25 @@ class EnsembleTestArtifactEmitter {
     });
   }
 
-  /// Emits the run-level complete record listing every artifact id.
+  /// Emits bounded `manifest` batches, then a compact `complete` with count +
+  /// checksum so hundreds of screenshots never exceed the logcat line limit.
   void complete() {
     begin();
     if (_completed) return;
     _completed = true;
+    final digest = ensembleTestArtifactManifestSha256(_emitted);
+    for (final batch in ensembleTestArtifactManifestBatches(_emitted)) {
+      _emitRecord({
+        'event': 'manifest',
+        'runId': _runId,
+        'artifacts': batch,
+      });
+    }
     _emitRecord({
       'event': 'complete',
       'runId': _runId,
-      'artifacts': List<Map<String, dynamic>>.from(_emitted),
+      'count': _emitted.length,
+      'sha256': digest,
     });
   }
 
@@ -129,6 +149,39 @@ class EnsembleTestArtifactEmitter {
   void _emitRecord(Map<String, dynamic> record) {
     print('$ensembleTestArtifactProtocolPrefix${json.encode(record)}');
   }
+}
+
+/// Packs manifest entries into batches whose encoded protocol lines stay under
+/// [ensembleTestArtifactMaxRecordBytes].
+List<List<Map<String, dynamic>>> ensembleTestArtifactManifestBatches(
+  List<Map<String, dynamic>> artifacts,
+) {
+  if (artifacts.isEmpty) return const [];
+  final batches = <List<Map<String, dynamic>>>[];
+  var current = <Map<String, dynamic>>[];
+  for (final item in artifacts) {
+    final candidate = [...current, item];
+    final encodedLength = ensembleTestArtifactProtocolPrefix.length +
+        json
+            .encode({
+              'event': 'manifest',
+              // Budget for ISO-8601 run ids; packing must stay under logcat limits.
+              'runId': '2026-01-01T00:00:00.000000Z',
+              'artifacts': candidate,
+            })
+            .length;
+    if (current.isNotEmpty &&
+        encodedLength > ensembleTestArtifactMaxRecordBytes) {
+      batches.add(current);
+      current = [item];
+    } else {
+      current = candidate;
+    }
+  }
+  if (current.isNotEmpty) {
+    batches.add(current);
+  }
+  return batches;
 }
 
 /// Result of materializing a device→host artifact stream.
@@ -218,10 +271,24 @@ Future<ArtifactTransportResult> materializeTransportedArtifacts({
   final receivedPaths = <String>[];
   final receivedIds = <String>{};
   final expectedByComplete = <String, Map<String, dynamic>>{};
+  final manifestOrder = <Map<String, dynamic>>[];
   var sawBegin = false;
   var sawComplete = false;
+  int? completeCount;
+  String? completeHash;
   String? error;
   final tempDir = Directory.systemTemp.createTempSync('ensemble_artifacts_');
+
+  void ingestManifestEntries(List<dynamic> artifacts) {
+    for (final item in artifacts) {
+      if (item is! Map) continue;
+      final entry = Map<String, dynamic>.from(item);
+      final id = entry['id']?.toString();
+      if (id == null || id.isEmpty) continue;
+      expectedByComplete[id] = entry;
+      manifestOrder.add(entry);
+    }
+  }
 
   try {
     for (final line in const LineSplitter().convert(output)) {
@@ -248,18 +315,30 @@ Future<ArtifactTransportResult> materializeTransportedArtifacts({
         case 'begin':
           sawBegin = true;
           break;
+        case 'manifest':
+          final artifacts = record['artifacts'];
+          if (artifacts is List) {
+            ingestManifestEntries(artifacts);
+          } else {
+            error ??= 'Invalid integration artifact manifest record.';
+          }
+          break;
         case 'complete':
           sawComplete = true;
           final artifacts = record['artifacts'];
           if (artifacts is List) {
-            for (final item in artifacts) {
-              if (item is Map) {
-                final id = item['id']?.toString();
-                if (id != null && id.isNotEmpty) {
-                  expectedByComplete[id] = Map<String, dynamic>.from(item);
-                }
-              }
+            // Legacy single-line complete with full manifest.
+            expectedByComplete.clear();
+            manifestOrder.clear();
+            ingestManifestEntries(artifacts);
+            completeCount = manifestOrder.length;
+            completeHash = ensembleTestArtifactManifestSha256(manifestOrder);
+          } else {
+            final count = record['count'];
+            if (count is int) {
+              completeCount = count;
             }
+            completeHash = record['sha256']?.toString();
           }
           break;
         case 'start':
@@ -388,6 +467,17 @@ Future<ArtifactTransportResult> materializeTransportedArtifacts({
         error: error ??
             'Integration artifact transport finished without a complete record.',
       );
+    }
+    if (completeCount != null && completeCount != manifestOrder.length) {
+      error ??=
+          'Artifact complete count $completeCount does not match '
+          'manifest entries (${manifestOrder.length}).';
+    }
+    if (completeHash != null && completeHash!.isNotEmpty) {
+      final actual = ensembleTestArtifactManifestSha256(manifestOrder);
+      if (actual != completeHash) {
+        error ??= 'Artifact complete manifest checksum mismatch.';
+      }
     }
     for (final entry in expectedByComplete.entries) {
       final id = entry.key;

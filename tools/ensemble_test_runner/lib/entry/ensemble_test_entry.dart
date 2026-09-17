@@ -86,7 +86,17 @@ Future<void> registerEnsembleYamlTests(EnsembleYamlTestOptions options) async {
   } else {
     EnsembleTestHarness.ensureIntegrationRuntime();
   }
-  tearDown(() {
+  tearDown(() async {
+    // Dual path with the suite `finally`: covers failures that still run
+    // flutter_test tearDown, and is a no-op when the baseline was never
+    // captured or was already restored.
+    try {
+      await EnsembleTestHarness.restorePreSuiteStorageAtSuiteEnd();
+    } catch (error) {
+      stderr.writeln(
+        'Warning: failed to restore pre-suite storage in tearDown: $error',
+      );
+    }
     EnsembleTestHarness.resetTestRuntime();
     YamlTestSession.dispose();
   });

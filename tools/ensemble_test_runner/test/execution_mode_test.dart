@@ -499,4 +499,171 @@ void main() {
       );
     },
   );
+
+  test('manifest batches stay under the Android logcat line limit', () {
+    const maxLogcatPayload = 4000;
+    final artifacts = List.generate(
+      200,
+      (i) => {
+        'id': 'run-big-$i',
+        'path': 'screenshots/step_${i.toString().padLeft(4, '0')}.png',
+        'size': 1024,
+        'sha256': List.filled(64, 'a').join(),
+      },
+    );
+    final batches = ensembleTestArtifactManifestBatches(artifacts);
+    expect(batches.length, greaterThan(1));
+    expect(
+      batches.fold<int>(0, (sum, batch) => sum + batch.length),
+      artifacts.length,
+    );
+    for (final batch in batches) {
+      final line =
+          '$ensembleTestArtifactProtocolPrefix${json.encode({
+        'event': 'manifest',
+        'runId': 'run-big',
+        'artifacts': batch,
+      })}';
+      expect(line.length, lessThan(maxLogcatPayload));
+    }
+    final completeLine =
+        '$ensembleTestArtifactProtocolPrefix${json.encode({
+      'event': 'complete',
+      'runId': 'run-big',
+      'count': artifacts.length,
+      'sha256': ensembleTestArtifactManifestSha256(artifacts),
+    })}';
+    expect(completeLine.length, lessThan(maxLogcatPayload));
+  });
+
+  test('chunked manifest + compact complete materializes many artifacts',
+      () async {
+    final appDir = Directory.systemTemp.createTempSync('artifact_transport_');
+    addTearDown(() => appDir.deleteSync(recursive: true));
+    final bytes = utf8.encode('frame');
+    final digest = sha256.convert(bytes).toString();
+    String record(Map<String, dynamic> value) =>
+        '$ensembleTestArtifactProtocolPrefix${json.encode(value)}';
+
+    final entries = List.generate(
+      40,
+      (i) => {
+        'id': 'run-many-$i',
+        'path': 'screenshots/f$i.png',
+        'size': bytes.length,
+        'sha256': digest,
+      },
+    );
+    final lines = <String>[
+      record({'event': 'begin', 'runId': 'run-many'}),
+    ];
+    for (final entry in entries) {
+      final id = entry['id'] as String;
+      final path = entry['path'] as String;
+      lines.addAll([
+        record({
+          'event': 'start',
+          'id': id,
+          'path': path,
+          'mime': 'image/png',
+          'size': bytes.length,
+          'sha256': digest,
+        }),
+        record({'event': 'chunk', 'id': id, 'data': base64Encode(bytes)}),
+        record({'event': 'end', 'id': id}),
+      ]);
+    }
+    for (final batch in ensembleTestArtifactManifestBatches(entries)) {
+      lines.add(
+        record({
+          'event': 'manifest',
+          'runId': 'run-many',
+          'artifacts': batch,
+        }),
+      );
+    }
+    lines.add(
+      record({
+        'event': 'complete',
+        'runId': 'run-many',
+        'count': entries.length,
+        'sha256': ensembleTestArtifactManifestSha256(entries),
+      }),
+    );
+
+    await materializeTransportedArtifactsForTest(appDir.path, lines.join('\n'));
+    expect(
+      File('${appDir.path}/build/ensemble_test_runner/screenshots/f0.png')
+          .readAsStringSync(),
+      'frame',
+    );
+    expect(
+      File('${appDir.path}/build/ensemble_test_runner/screenshots/f39.png')
+          .readAsStringSync(),
+      'frame',
+    );
+  });
+
+  test('compact complete rejects a tampered manifest checksum', () async {
+    final appDir = Directory.systemTemp.createTempSync('artifact_transport_');
+    addTearDown(() => appDir.deleteSync(recursive: true));
+    final bytes = utf8.encode('x');
+    final digest = sha256.convert(bytes).toString();
+    String record(Map<String, dynamic> value) =>
+        '$ensembleTestArtifactProtocolPrefix${json.encode(value)}';
+    final entry = {
+      'id': 'run-bad-0',
+      'path': 'logs/a.log',
+      'size': bytes.length,
+      'sha256': digest,
+    };
+    final output = [
+      record({'event': 'begin', 'runId': 'run-bad'}),
+      record({
+        'event': 'start',
+        'id': 'run-bad-0',
+        'path': 'logs/a.log',
+        'size': bytes.length,
+        'sha256': digest,
+      }),
+      record({'event': 'chunk', 'id': 'run-bad-0', 'data': base64Encode(bytes)}),
+      record({'event': 'end', 'id': 'run-bad-0'}),
+      record({
+        'event': 'manifest',
+        'runId': 'run-bad',
+        'artifacts': [entry],
+      }),
+      record({
+        'event': 'complete',
+        'runId': 'run-bad',
+        'count': 1,
+        'sha256': '0' * 64,
+      }),
+    ].join('\n');
+    await expectLater(
+      () => materializeTransportedArtifactsForTest(appDir.path, output),
+      throwsStateError,
+    );
+  });
+
+  test('suite entry restores pre-suite storage on finally and tearDown', () {
+    final source =
+        File('lib/entry/ensemble_test_entry.dart').readAsStringSync();
+    expect(source, contains('restorePreSuiteStorageAtSuiteEnd()'));
+    expect(source, contains('} finally {'));
+    expect(source, contains('tearDown(() async {'));
+    final finallyIndex = source.indexOf('} finally {');
+    final restoreInFinally = source.indexOf(
+      'restorePreSuiteStorageAtSuiteEnd()',
+      finallyIndex,
+    );
+    expect(restoreInFinally, greaterThan(finallyIndex));
+    final tearDownIndex = source.indexOf('tearDown(() async {');
+    final restoreInTearDown = source.indexOf(
+      'restorePreSuiteStorageAtSuiteEnd()',
+      tearDownIndex,
+    );
+    expect(restoreInTearDown, greaterThan(tearDownIndex));
+    expect(restoreInTearDown, lessThan(finallyIndex));
+  });
 }

@@ -912,6 +912,10 @@ class EnsembleTestHarness {
 
   /// Restores the pre-suite baseline at suite teardown (including after
   /// failures) so the device returns to its pre-run storage state.
+  ///
+  /// Invoked from the suite entry `finally` and again from package `tearDown`
+  /// so both Dart exception exits and flutter_test teardown paths restore.
+  /// Safe to call repeatedly; no-ops when no baseline was captured.
   static Future<void> restorePreSuiteStorageAtSuiteEnd() async {
     if (_preSuiteStorageSnapshot == null) return;
     await _preSuiteStorageSnapshot!.restore();
