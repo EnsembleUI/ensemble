@@ -185,14 +185,18 @@ class NativeBuildService {
 ///
 /// Artifact export path is a **hypothesis** until real FTL verification.
 class AndroidFtlPackager {
-  /// Candidate on-device export directory for envelope + screenshots.
-  /// Must be under `/sdcard/...` so FTL directoriesToPull can collect it.
-  static const exportRelativePath =
-      'googletest/test_outputfiles/ensemble_test_remote';
+  /// On-device export directory for envelope (+ any file artifacts).
+  ///
+  /// Must match [FirebaseTestLabProvider.androidDirectoriesToPull]. Google’s
+  /// Testing API allowlists `/sdcard`, `/storage`, and `/data/local/tmp` for
+  /// `directoriesToPull`. Prefer `/data/local/tmp` — it is writable by the app
+  /// and not subject to scoped-storage limits that block shared `/sdcard` paths
+  /// on API 29+ (see gcloud `firebase test android run --directories-to-pull`).
+  static const exportRelativePath = 'ensemble_test_remote';
 
   /// Absolute on-device path baked into remote APKs via dart-define.
   static const onDeviceArtifactRoot =
-      '/sdcard/googletest/test_outputfiles/ensemble_test_remote';
+      '/data/local/tmp/ensemble_test_remote';
 
   final RemoteProgress? onProgress;
 
@@ -560,6 +564,32 @@ class IosFtlPackager {
     }
 
     onProgress?.call('Building iOS release package for FTL...');
+    // Flutter >= 3.32: release-only config can leave integration_test out of
+    // the XCTest host so FTL reports 0 cases. Configure once in debug first
+    // (flutter/flutter#170119), then build release for the device zip.
+    onProgress?.call(
+      'Configuring iOS integration_test host (debug --config-only)...',
+    );
+    final configOnly = await run('flutter', [
+      'build',
+      'ios',
+      integrationTestEntry,
+      '--config-only',
+      '--debug',
+      '--no-codesign',
+      ...defines,
+    ]);
+    if (configOnly.exitCode != 0) {
+      return _stub(
+        identity,
+        appDir: root,
+        detail: _formatProcessFailure(
+          'flutter build ios --config-only --debug',
+          configOnly,
+        ),
+      );
+    }
+
     final build = await run('flutter', [
       'build',
       'ios',
@@ -693,6 +723,7 @@ class IosFtlPackager {
         'platform': 'ios',
         'exportHypothesis': exportHypothesis,
         'derivedData': derived,
+        'xctestrun': p.basename(xctestrunFiles.first.path),
       },
     );
   }

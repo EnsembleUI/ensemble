@@ -382,8 +382,15 @@ class HttpFtlClient implements FtlClient {
       runInShell: true,
     );
     if (result.exitCode != 0) {
+      final err = result.stderr.toString();
+      // FTL often leaves an empty results prefix on early FAILURE (0 tests /
+      // validation). Treat as empty collect so reconciler can fail-closed on
+      // the missing envelope instead of masking the FTL outcome.
+      if (err.contains('No URLs matched')) {
+        return;
+      }
       throw FtlApiException(
-        'gsutil download failed: ${result.stderr}',
+        'gsutil download failed: $err',
       );
     }
   }

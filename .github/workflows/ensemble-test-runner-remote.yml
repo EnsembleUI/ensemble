@@ -33,7 +33,7 @@ jobs:
         # PRs always run both. workflow_dispatch uses the platform input.
         # (Job-level `if` cannot reference `matrix` — build the matrix here.)
         platform: ${{ github.event_name == 'pull_request' && fromJSON('["android","ios"]') || (inputs.platform == 'android' && fromJSON('["android"]') || (inputs.platform == 'ios' && fromJSON('["ios"]') || fromJSON('["android","ios"]'))) }}
-    runs-on: ${{ matrix.platform == 'ios' && 'macos-latest' || 'ubuntu-latest' }}
+    runs-on: ${{ matrix.platform == 'ios' && 'macos-15' || 'ubuntu-latest' }}
     permissions:
       contents: read
       id-token: write
@@ -83,8 +83,17 @@ jobs:
         if: matrix.platform == 'ios'
         run: flutter config --no-enable-swift-package-manager
 
-      # Xcode 26 Metal.xctoolchain lacks Swift compatibility libs; pin default.
-      # Otherwise RunnerTests fails linking __swift_FORCE_LOAD_$_swiftCompatibility56.
+      # FTL’s newest Xcode is 26.2; host defaults (26.5/27) produce
+      # Runner_iphoneos26.5-*.xctestrun and FTL reports 0 XCTest cases.
+      # Pin build Xcode to FTL’s current latest; FTL uses that by default.
+      - name: Select Xcode 26.2 (iOS)
+        if: matrix.platform == 'ios'
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: '26.2'
+
+      # Xcode 26 Metal.xctoolchain lacks Swift compatibility libs; pin default
+      # when a newer toolchain is somehow selected.
       - name: Pin Xcode default toolchain (iOS)
         if: matrix.platform == 'ios'
         run: echo "TOOLCHAINS=com.apple.dt.toolchain.XcodeDefault" >> "$GITHUB_ENV"

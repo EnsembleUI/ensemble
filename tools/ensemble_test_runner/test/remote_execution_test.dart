@@ -40,6 +40,7 @@ remote:
       expect(config.mode, ExecutionMode.integration);
       expect(config.target, ExecutionTarget.remote);
       expect(config.remote?.provider, 'firebaseTestLab');
+      expect(config.remote?.projectId, 'demo-proj');
       expect(config.remote?.devices.single.model, 'Pixel2');
       expect(config.remote?.endpoints.single.url, 'https://example.com/mock');
     });
@@ -418,6 +419,52 @@ remote:
         RemoteExecutionFailureClass.artifactFailure,
       );
     });
+
+    test('loadEnvelope finds file under data/local/tmp and logcat protocol', () {
+      final dir = Directory.systemTemp.createTempSync('envelope_load_');
+      addTearDown(() => dir.deleteSync(recursive: true));
+
+      final nested = File(
+        p.join(
+          dir.path,
+          'data',
+          'local',
+          'tmp',
+          'ensemble_test_remote',
+          'remote',
+          'envelope.json',
+        ),
+      )..parent.createSync(recursive: true);
+      nested.writeAsStringSync(
+        json.encode(
+          const RemoteRunEnvelope(
+            runId: 'from-file',
+            complete: true,
+            results: EnsembleTestRunResult(results: []),
+          ).toJson(),
+        ),
+      );
+      expect(
+        RemoteReportReconciler.loadEnvelope(dir)?.runId,
+        'from-file',
+      );
+
+      final logOnly = Directory.systemTemp.createTempSync('envelope_log_');
+      addTearDown(() => logOnly.deleteSync(recursive: true));
+      final envelope = const RemoteRunEnvelope(
+        runId: 'from-logcat',
+        complete: true,
+        results: EnsembleTestRunResult(results: []),
+      );
+      File(p.join(logOnly.path, 'logcat'))
+        ..writeAsStringSync(
+          'noise\n$ensembleTestRemoteEnvelopePrefix${json.encode(envelope.toJson())}\n',
+        );
+      expect(
+        RemoteReportReconciler.loadEnvelope(logOnly)?.runId,
+        'from-logcat',
+      );
+    });
   });
 
   group('Native build identity', () {
@@ -723,6 +770,11 @@ remote:
           workingDirectory,
           environment,
         }) async {
+          if (exe == 'flutter') {
+            // Expect debug --config-only then release build.
+            expect(args, contains('build'));
+            expect(args, contains('ios'));
+          }
           if (exe == 'xcodebuild') {
             final i = args.indexOf('-derivedDataPath');
             expect(i, greaterThanOrEqualTo(0));

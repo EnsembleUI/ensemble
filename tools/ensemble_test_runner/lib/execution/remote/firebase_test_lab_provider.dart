@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:ensemble_test_runner/execution/remote/ftl_client.dart';
+import 'package:ensemble_test_runner/execution/remote/native_build_service.dart';
 import 'package:ensemble_test_runner/execution/remote/remote_models.dart';
 import 'package:ensemble_test_runner/execution/remote/remote_progress.dart';
 import 'package:ensemble_test_runner/execution/remote/remote_provider.dart';
@@ -16,14 +17,15 @@ class FirebaseTestLabProvider implements RemoteProvider {
 
   /// On-device export directory pulled via FTL directoriesToPull (Android).
   ///
-  /// Must stay under `/sdcard/` (or `/storage/emulated/0/`) — FTL will not pull
-  /// `/data/local/tmp/...`. The googletest output tree is always collected.
+  /// Matches [AndroidFtlPackager.onDeviceArtifactRoot]. Official allowlist:
+  /// `/sdcard`, `/storage`, or `/data/local/tmp`
+  /// (https://cloud.google.com/sdk/gcloud/reference/firebase/test/android/run).
   static const androidExportPullPath =
-      '/sdcard/googletest/test_outputfiles/ensemble_test_remote';
+      AndroidFtlPackager.onDeviceArtifactRoot;
 
-  /// Parent of [androidExportPullPath] passed to Testing API directoriesToPull.
+  /// Paths passed to Testing API `testSetup.directoriesToPull`.
   static const androidDirectoriesToPull = [
-    '/sdcard/googletest/test_outputfiles',
+    AndroidFtlPackager.onDeviceArtifactRoot,
   ];
 
   FirebaseTestLabProvider({
@@ -261,11 +263,17 @@ class FirebaseTestLabProvider implements RemoteProvider {
       );
     }
     _log('Downloading FTL artifacts from $gcs ...');
-    await client.downloadGcsPrefix(
-      gcsUri: gcs,
-      localDirectory: destinationDirectory,
-    );
-    _log('Artifacts downloaded to $destinationDirectory');
+    try {
+      await client.downloadGcsPrefix(
+        gcsUri: gcs,
+        localDirectory: destinationDirectory,
+      );
+      _log('Artifacts downloaded to $destinationDirectory');
+    } on FtlApiException catch (error) {
+      // Keep going so reconciler can classify from FTL outcome + missing
+      // envelope rather than aborting solely on an empty results prefix.
+      _log('WARNING: artifact download incomplete: $error');
+    }
     final entries = <RemoteArtifactEntry>[];
     // Host walks downloaded tree for envelope + known artifact paths.
     return CollectedRemoteArtifacts(

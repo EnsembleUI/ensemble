@@ -33,6 +33,10 @@ passes `--no-tree-shake-icons` (Ensemble builds non-const `IconData`).
 On Xcode 26 CI, set `TOOLCHAINS=com.apple.dt.toolchain.XcodeDefault` (the remote
 workflow does this) so Metal.xctoolchain does not break Swift linking.
 
+Remote iOS CI pins Xcode to FTL’s current latest (`26.2` via
+`maxim-lobanov/setup-xcode`). Building with a newer host SDK (e.g. 26.5/27)
+while FTL only has 26.2 yields **0 XCTest cases**.
+
 iOS must target 15.0+ (Firebase 12). `flutter create` still generates 13.0;
 set `platform :ios, '15.0'` in `ios/Podfile` and `IPHONEOS_DEPLOYMENT_TARGET = 15.0`
 in the Xcode project (CI does this for the example), or run

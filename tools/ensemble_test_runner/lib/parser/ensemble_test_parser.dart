@@ -723,7 +723,12 @@ class EnsembleTestParser {
   }
 
   static RemoteExecutionConfig _parseRemoteConfig(YamlMap node) {
-    const allowedKeys = {'provider', 'projectId', 'devices', 'endpoints'};
+    const allowedKeys = {
+      'provider',
+      'projectId',
+      'devices',
+      'endpoints',
+    };
     for (final key in node.keys) {
       if (!allowedKeys.contains(key.toString())) {
         throw EnsembleTestFailure(

@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:crypto/crypto.dart';
+import 'package:ensemble_test_runner/execution/remote/native_build_service.dart';
 import 'package:ensemble_test_runner/execution/remote/remote_models.dart';
 import 'package:path/path.dart' as p;
 
@@ -95,7 +96,7 @@ abstract final class RemoteReportReconciler {
     }
 
     if (envelope == null || !envelope.complete) {
-      final outcome = nativeOutcome.toUpperCase();
+      final outcome = (nativeOutcome ?? '').toUpperCase();
       final ftlPassed = outcome.contains('SUCCESS') || outcome == 'PASSED';
       return ReconciledDeviceResult(
         deviceKey: deviceKey,
@@ -106,10 +107,10 @@ abstract final class RemoteReportReconciler {
           'RemoteRunEnvelope missing or incomplete=false; never pass.',
           if (ftlPassed)
             'Firebase Test Lab reported $nativeOutcome for instrumentation, '
-                'but the host could not collect remote/envelope.json from the '
-                'device pull tree. On Android the app must write under '
-                '/sdcard/googletest/test_outputfiles/ (FTL directoriesToPull); '
-                '/data/local/tmp is not collected.',
+                'but the host could not collect a complete envelope '
+                '(file under ${AndroidFtlPackager.onDeviceArtifactRoot} via '
+                'directoriesToPull, or ENSEMBLE_TEST_REMOTE_ENVELOPE_V1 in '
+                'logcat). HTML/history reports need envelope.results.',
         ],
         exitCode: 2,
       );
@@ -245,13 +246,21 @@ abstract final class RemoteReportReconciler {
     final preferred = [
       File(p.join(directory.path, 'remote', 'envelope.json')),
       File(p.join(directory.path, 'envelope.json')),
-      // FTL drops pulled sdcard trees under device-specific prefixes.
+      // FTL nests pulled trees under device-specific prefixes.
       File(
         p.join(
           directory.path,
-          'sdcard',
-          'googletest',
-          'test_outputfiles',
+          'data',
+          'local',
+          'tmp',
+          'ensemble_test_remote',
+          'remote',
+          'envelope.json',
+        ),
+      ),
+      File(
+        p.join(
+          directory.path,
           'ensemble_test_remote',
           'remote',
           'envelope.json',
@@ -262,7 +271,7 @@ abstract final class RemoteReportReconciler {
       final parsed = _tryParseEnvelope(file);
       if (parsed != null) return parsed;
     }
-    // Last resort: any envelope.json under the download tree.
+    // Any envelope.json under the download tree.
     try {
       for (final entity in directory.listSync(recursive: true)) {
         if (entity is! File) continue;
@@ -272,6 +281,35 @@ abstract final class RemoteReportReconciler {
       }
     } catch (_) {
       // Ignore walk errors; treat as missing envelope.
+    }
+    // Secondary protocol: device prints ENSEMBLE_TEST_REMOTE_ENVELOPE_V1 to
+    // stdout → captured in FTL logcat artifacts.
+    return loadEnvelopeFromLogcat(directory);
+  }
+
+  /// Scans FTL-downloaded logcat / text logs for the envelope print protocol.
+  static RemoteRunEnvelope? loadEnvelopeFromLogcat(Directory directory) {
+    if (!directory.existsSync()) return null;
+    try {
+      for (final entity in directory.listSync(recursive: true)) {
+        if (entity is! File) continue;
+        final name = p.basename(entity.path).toLowerCase();
+        final looksLikeLog = name.contains('logcat') ||
+            name.endsWith('.txt') ||
+            name.endsWith('.log');
+        if (!looksLikeLog) continue;
+        String text;
+        try {
+          text = entity.readAsStringSync();
+        } catch (_) {
+          continue;
+        }
+        if (!text.contains(ensembleTestRemoteEnvelopePrefix)) continue;
+        final parsed = parseRemoteRunEnvelopeFromOutput(text);
+        if (parsed != null) return parsed;
+      }
+    } catch (_) {
+      // Ignore walk errors.
     }
     return null;
   }
