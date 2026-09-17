@@ -244,6 +244,7 @@ class LocalTestExecutionSession implements TestExecutionSession {
           }
         }
         await actionExecutor.execute(action);
+        await observer.syncRevisionAfterMutation();
         return ActionResult(
           actionId: actionId,
           status: ActionStatus.succeeded,
@@ -252,6 +253,7 @@ class LocalTestExecutionSession implements TestExecutionSession {
           duration: sw.elapsed,
         );
       } on TestExecutionError catch (error) {
+        await observer.syncRevisionAfterMutation();
         return ActionResult(
           actionId: actionId,
           status: ActionStatus.failed,
@@ -261,6 +263,7 @@ class LocalTestExecutionSession implements TestExecutionSession {
           error: error,
         );
       } on EnsembleTestFailure catch (error) {
+        await observer.syncRevisionAfterMutation();
         final mapped = _mapExecutorFailure(error);
         return ActionResult(
           actionId: actionId,

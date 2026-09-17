@@ -55,19 +55,16 @@ class FlutterUiObserver implements UiObserver {
         break;
     }
 
-    final built = _buildElements(includeBounds: options.includeBounds);
+    // Identity/freshness always includes bounds so presentation options
+    // (includeBounds) cannot change stale-target validation.
+    final built = _buildElements(includeBounds: true);
     final screen = _screenObservation();
     final fingerprint = fingerprintForObservation(
       screen: screen,
       elements: built.elements,
     );
 
-    var revision = currentRevision();
-    final previous = lastFingerprint();
-    if (previous == null || previous != fingerprint) {
-      revision += 1;
-      markRevision(revision, fingerprint);
-    }
+    final revision = _applyFingerprint(fingerprint);
 
     final observationId = nextObservationId();
     registry.registerObservation(
@@ -75,13 +72,17 @@ class FlutterUiObserver implements UiObserver {
       handles: rebindHandles(observationId, built.handles),
     );
 
+    final elements = options.includeBounds
+        ? built.elements
+        : built.elements.map(_withoutBounds).toList(growable: false);
+
     final size = tester.view.physicalSize / tester.view.devicePixelRatio;
     return UiObservation(
       observationId: observationId,
       revision: revision,
       timestamp: DateTime.now().toUtc(),
       screen: screen,
-      elements: built.elements,
+      elements: elements,
       viewport: UiViewport(
         width: size.width,
         height: size.height,
@@ -98,7 +99,31 @@ class FlutterUiObserver implements UiObserver {
     );
   }
 
-  /// Live fingerprint for [ObservationRegistry.revalidate] — same fields as observe.
+  /// Recomputes the session revision from the live tree after a mutation.
+  ///
+  /// Does not register a new observation — only refreshes revision tracking
+  /// so [ActionResult.afterRevision] reflects UI changes.
+  Future<void> syncRevisionAfterMutation() async {
+    final built = _buildElements(includeBounds: true);
+    final fingerprint = fingerprintForObservation(
+      screen: _screenObservation(),
+      elements: built.elements,
+    );
+    _applyFingerprint(fingerprint);
+  }
+
+  int _applyFingerprint(String fingerprint) {
+    var revision = currentRevision();
+    final previous = lastFingerprint();
+    if (previous == null || previous != fingerprint) {
+      revision += 1;
+      markRevision(revision, fingerprint);
+    }
+    return revision;
+  }
+
+  /// Live fingerprint for [ObservationRegistry.revalidate] — matches observe
+  /// identity digests (always includes bounds).
   String liveFingerprintFor(Element element, String? testId) {
     final ui = describeElement(
       element: element,
@@ -110,6 +135,18 @@ class FlutterUiObserver implements UiObserver {
     );
     return fingerprintForElement(ui);
   }
+
+  static UiElement _withoutBounds(UiElement element) => UiElement(
+        elementId: element.elementId,
+        testId: element.testId,
+        type: element.type,
+        label: element.label,
+        text: element.text,
+        state: element.state,
+        bounds: null,
+        supportedActions: element.supportedActions,
+        children: element.children.map(_withoutBounds).toList(growable: false),
+      );
 
   ScreenObservation _screenObservation() {
     try {

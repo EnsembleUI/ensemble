@@ -316,4 +316,84 @@ void main() {
     expect(context.runtime.networkOffline, isFalse);
     expect(context.runtime.consoleLogs, isEmpty);
   });
+
+  testWidgets(
+      'includeBounds:false observation remains actionable when UI unchanged',
+      (tester) async {
+    var taps = 0;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: ElevatedButton(
+            key: const ValueKey('go'),
+            onPressed: () => taps++,
+            child: const Text('Go'),
+          ),
+        ),
+      ),
+    );
+
+    final session = _session(tester, 'bounds');
+    final obs = await session.observe(
+      options: const ObservationOptions(
+        synchronization: ObservationSynchronization.immediate,
+        includeBounds: false,
+      ),
+    );
+    final btn = obs.elements.firstWhere((e) => e.testId == 'go');
+    expect(btn.bounds, isNull);
+
+    final result = await session.act(
+      TapAction(
+        ElementTarget(
+          elementId: btn.elementId,
+          observationId: obs.observationId,
+        ),
+      ),
+    );
+    expect(result.succeeded, isTrue, reason: '${result.error?.message}');
+    expect(taps, 1);
+    await session.close();
+  });
+
+  testWidgets('act afterRevision advances when UI changes', (tester) async {
+    var label = 'Before';
+    await tester.pumpWidget(
+      MaterialApp(
+        home: StatefulBuilder(
+          builder: (context, setState) {
+            return Scaffold(
+              body: Column(
+                children: [
+                  Text(label, key: const ValueKey('label')),
+                  ElevatedButton(
+                    key: const ValueKey('flip'),
+                    onPressed: () => setState(() => label = 'After'),
+                    child: const Text('Flip'),
+                  ),
+                ],
+              ),
+            );
+          },
+        ),
+      ),
+    );
+
+    final session = _session(tester, 'rev');
+    final obs = await session.observe(
+      options: const ObservationOptions(
+        synchronization: ObservationSynchronization.immediate,
+      ),
+    );
+    expect(obs.revision, greaterThan(0));
+
+    final result = await session.act(
+      const TapAction(ElementTarget(testId: 'flip')),
+    );
+    expect(result.succeeded, isTrue, reason: '${result.error?.message}');
+    expect(result.beforeRevision, obs.revision);
+    expect(result.afterRevision, greaterThan(result.beforeRevision));
+    expect(find.text('After'), findsOneWidget);
+    await session.close();
+  });
 }
