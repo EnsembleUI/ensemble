@@ -498,16 +498,15 @@ remote:
       );
     });
 
-    test('loadEnvelope finds file under data/local/tmp and logcat protocol', () {
+    test('loadEnvelope finds Download and data/local/tmp trees + logcat', () {
       final dir = Directory.systemTemp.createTempSync('envelope_load_');
       addTearDown(() => dir.deleteSync(recursive: true));
 
       final nested = File(
         p.join(
           dir.path,
-          'data',
-          'local',
-          'tmp',
+          'sdcard',
+          'Download',
           'ensemble_test_remote',
           'remote',
           'envelope.json',
@@ -516,7 +515,7 @@ remote:
       nested.writeAsStringSync(
         json.encode(
           const RemoteRunEnvelope(
-            runId: 'from-file',
+            runId: 'from-download',
             complete: true,
             results: EnsembleTestRunResult(results: []),
           ).toJson(),
@@ -524,7 +523,35 @@ remote:
       );
       expect(
         RemoteReportReconciler.loadEnvelope(dir)?.runId,
-        'from-file',
+        'from-download',
+      );
+
+      final tmpOnly = Directory.systemTemp.createTempSync('envelope_tmp_');
+      addTearDown(() => tmpOnly.deleteSync(recursive: true));
+      File(
+        p.join(
+          tmpOnly.path,
+          'data',
+          'local',
+          'tmp',
+          'ensemble_test_remote',
+          'remote',
+          'envelope.json',
+        ),
+      )
+        ..parent.createSync(recursive: true)
+        ..writeAsStringSync(
+          json.encode(
+            const RemoteRunEnvelope(
+              runId: 'from-tmp',
+              complete: true,
+              results: EnsembleTestRunResult(results: []),
+            ).toJson(),
+          ),
+        );
+      expect(
+        RemoteReportReconciler.loadEnvelope(tmpOnly)?.runId,
+        'from-tmp',
       );
 
       final logOnly = Directory.systemTemp.createTempSync('envelope_log_');

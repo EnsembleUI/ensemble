@@ -246,7 +246,29 @@ abstract final class RemoteReportReconciler {
     final preferred = [
       File(p.join(directory.path, 'remote', 'envelope.json')),
       File(p.join(directory.path, 'envelope.json')),
-      // FTL nests pulled trees under device-specific prefixes.
+      // FTL nests pulled trees under the on-device absolute path prefix.
+      File(
+        p.join(
+          directory.path,
+          'sdcard',
+          'Download',
+          'ensemble_test_remote',
+          'remote',
+          'envelope.json',
+        ),
+      ),
+      File(
+        p.join(
+          directory.path,
+          'storage',
+          'emulated',
+          '0',
+          'Download',
+          'ensemble_test_remote',
+          'remote',
+          'envelope.json',
+        ),
+      ),
       File(
         p.join(
           directory.path,

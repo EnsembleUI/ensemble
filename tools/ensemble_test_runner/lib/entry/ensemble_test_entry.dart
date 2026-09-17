@@ -396,9 +396,8 @@ void writeRemoteRunEnvelopeFile(RemoteRunEnvelope envelope) {
   final encoded = json.encode(envelope.toJson());
   final roots = <String>{
     ensembleTestArtifactRoot,
-    // Mirror under Download so FTL can pull either allowlisted tree.
     if (prefersOnDeviceFileArtifacts)
-      '/sdcard/Download/ensemble_test_remote',
+      ...FileThenTransportArtifactSink.remoteWriteRoots,
   };
   for (final root in roots) {
     try {

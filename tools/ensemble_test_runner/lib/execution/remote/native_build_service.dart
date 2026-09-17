@@ -189,9 +189,9 @@ class AndroidFtlPackager {
   ///
   /// Must match [FirebaseTestLabProvider.androidDirectoriesToPull]. Google’s
   /// Testing API allowlists `/sdcard`, `/storage`, and `/data/local/tmp` for
-  /// `directoriesToPull`. Prefer `/data/local/tmp` — it is writable by the app
-  /// and not subject to scoped-storage limits that block shared `/sdcard` paths
-  /// on API 29+ (see gcloud `firebase test android run --directories-to-pull`).
+  /// `directoriesToPull`. Prefer `/sdcard/Download` — apps can create it on
+  /// FTL (API 36), while `/data/local/tmp/<subdir>` returns Permission denied
+  /// and turns green UI runs into `testFailure` at screenshot flush.
   static const exportRelativePath = 'ensemble_test_remote';
 
   /// Absolute on-device path baked into remote APKs via dart-define.
@@ -199,11 +199,11 @@ class AndroidFtlPackager {
   /// Remote packages write screenshots + envelope here (not logcat). FTL
   /// `directoriesToPull` must request this exact path.
   static const onDeviceArtifactRoot =
-      '/data/local/tmp/ensemble_test_remote';
-
-  /// Secondary pull path (coverage / Download style). Written when possible.
-  static const onDeviceArtifactRootAlt =
       '/sdcard/Download/ensemble_test_remote';
+
+  /// Secondary pull/write path (legacy tmp — often unwritable to the app).
+  static const onDeviceArtifactRootAlt =
+      '/data/local/tmp/ensemble_test_remote';
 
   final RemoteProgress? onProgress;
 

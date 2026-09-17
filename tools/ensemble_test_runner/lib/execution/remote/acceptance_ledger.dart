@@ -57,7 +57,10 @@ abstract final class RemoteAcceptanceLedger {
           platform: 'android',
           status: AcceptanceStatus.unverified,
           notes:
-              'Local ArtifactExportProof covers pass envelope; FTL directoriesToPull path is a hypothesis until real device collect.',
+              'Primary on-device root is /sdcard/Download/ensemble_test_remote '
+              '(app-writable on FTL API 36). /data/local/tmp caused '
+              'PathAccessException and false testFailure after green UI. '
+              'FTL directoriesToPull still unverified for collect.',
         ),
         AcceptanceCell(
           criterion: 'Artifact export E2E (pass)',

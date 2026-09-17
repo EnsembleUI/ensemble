@@ -20,6 +20,7 @@ class FirebaseTestLabProvider implements RemoteProvider {
   /// Matches [AndroidFtlPackager.onDeviceArtifactRoot]. Official allowlist:
   /// `/sdcard`, `/storage`, or `/data/local/tmp`
   /// (https://cloud.google.com/sdk/gcloud/reference/firebase/test/android/run).
+  /// Primary is Download (app-writable on FTL API 36); tmp is legacy fallback.
   static const androidExportPullPath =
       AndroidFtlPackager.onDeviceArtifactRoot;
 
@@ -27,6 +28,7 @@ class FirebaseTestLabProvider implements RemoteProvider {
   static const androidDirectoriesToPull = [
     AndroidFtlPackager.onDeviceArtifactRoot,
     AndroidFtlPackager.onDeviceArtifactRootAlt,
+    '/storage/emulated/0/Download/ensemble_test_remote',
   ];
 
   FirebaseTestLabProvider({

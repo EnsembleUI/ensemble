@@ -80,7 +80,15 @@ class FileThenTransportArtifactSink extends EnsembleTestArtifactSink {
 
   final bool emitLogcat;
 
-  static const _altRemoteRoot = '/sdcard/Download/ensemble_test_remote';
+  /// FTL `directoriesToPull` allowlist is `/sdcard`, `/storage`, `/data/local/tmp`.
+  /// On API 29+ / FTL API 36, apps **cannot** mkdir under `/data/local/tmp`
+  /// (PathAccessException errno=13) — that false primary made green UI tests
+  /// fail at screenshot flush. Prefer Download (writable + pullable).
+  static const remoteWriteRoots = <String>[
+    '/sdcard/Download/ensemble_test_remote',
+    '/storage/emulated/0/Download/ensemble_test_remote',
+    '/data/local/tmp/ensemble_test_remote',
+  ];
 
   @override
   Future<void> write(
@@ -88,19 +96,28 @@ class FileThenTransportArtifactSink extends EnsembleTestArtifactSink {
     List<int> bytes, {
     required String mimeType,
   }) async {
-    await const FileArtifactSink().write(
-      relativePath,
-      bytes,
-      mimeType: mimeType,
-    );
-    if (!emitLogcat) {
-      // Best-effort mirror for FTL directoriesToPull redundancy.
+    final roots = <String>{
+      ensembleTestArtifactRoot,
+      if (prefersOnDeviceFileArtifacts) ...remoteWriteRoots,
+    };
+    Object? lastError;
+    var wrote = false;
+    for (final root in roots) {
       try {
-        final alt = File(p.join(_altRemoteRoot, relativePath));
-        AtomicFile.writeBytesSync(alt, bytes);
-      } catch (_) {
-        // /sdcard may be scoped-storage blocked; primary tmp path still used.
+        AtomicFile.writeBytesSync(
+          File(p.join(root, relativePath)),
+          bytes,
+        );
+        wrote = true;
+      } catch (error) {
+        lastError = error;
       }
+    }
+    if (!wrote) {
+      throw StateError(
+        'Could not write on-device artifact $relativePath '
+        '(tried ${roots.join(', ')}): $lastError',
+      );
     }
     if (emitLogcat) {
       emitEnsembleTestArtifact(relativePath, bytes, mimeType: mimeType);
