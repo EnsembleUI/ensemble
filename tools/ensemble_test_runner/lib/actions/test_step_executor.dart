@@ -330,9 +330,46 @@ class TestStepExecutor {
   Future<void> tapWidget(String id, {int? timeoutMs}) =>
       _tap(id, timeoutMs: timeoutMs);
 
+  /// Taps an already-resolved [Finder] (exact element identity; no id rematch).
+  Future<void> tapFinder(Finder finder, {TestStep? step}) async {
+    if (finder.evaluate().isEmpty) {
+      throw EnsembleTestFailure(
+        'tapFinder: target element is not in the tree (detached or never found).',
+      );
+    }
+    await tester.ensureVisible(finder);
+    await _pump(label: 'tapFinder.ensureVisible');
+    final hitTestable = finder.hitTestable();
+    if (hitTestable.evaluate().isEmpty) {
+      throw EnsembleTestFailure(
+        'tapFinder: target element is not hit-testable. '
+        'It may be off-screen, disabled, or covered by another widget.',
+      );
+    }
+    if (step != null && onBeforeActionStep != null) {
+      await onBeforeActionStep!(step);
+    }
+    await tester.tap(hitTestable.first);
+    await _settleAfterAction();
+  }
+
+  Future<void> doubleTapFinder(Finder finder) async {
+    await tapFinder(finder);
+    await tapFinder(finder);
+  }
+
   Future<void> longPressWidget(String id) async {
     final finder = assertions.finderForId(id);
     _expectSingleWidget(finder, id, 'longPress');
+    await tester.longPress(finder);
+    await _settleAfterAction();
+  }
+
+  Future<void> longPressFinder(Finder finder) async {
+    if (finder.evaluate().isEmpty) {
+      throw EnsembleTestFailure('longPressFinder: target element is detached.');
+    }
+    await tester.ensureVisible(finder);
     await tester.longPress(finder);
     await _settleAfterAction();
   }
@@ -342,6 +379,10 @@ class TestStepExecutor {
     _expectSingleWidget(finder, id, 'focus');
     await tester.tap(finder);
     await _settleAfterAction();
+  }
+
+  Future<void> focusFinder(Finder finder) async {
+    await tapFinder(finder);
   }
 
   Future<void> waitForTextContains({
@@ -383,7 +424,106 @@ class TestStepExecutor {
   Future<void> enterTextOn(String id, String value) =>
       _enterText(id, value, submit: false);
 
+  Future<void> enterTextOnFinder(
+    Finder finder,
+    String value, {
+    bool submit = false,
+    bool replace = false,
+  }) async {
+    if (finder.evaluate().isEmpty) {
+      throw EnsembleTestFailure('enterText: target element is detached.');
+    }
+    if (replace) {
+      await tester.enterText(finder, '');
+      await _pump(label: 'clearText');
+    }
+    await tester.enterText(finder, value);
+    if (submit) {
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+    }
+    await _settleAfterAction();
+  }
+
+  Future<void> submitTextOnFinder(Finder finder) async {
+    await tapFinder(finder);
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await _settleAfterAction();
+  }
+
+  Future<void> toggleFinder(Finder finder) async {
+    if (finder.evaluate().isEmpty) {
+      throw EnsembleTestFailure('toggle: target element is detached.');
+    }
+    await tester.ensureVisible(finder);
+    final control = find.descendant(
+      of: finder,
+      matching: find.byWidgetPredicate(
+        (widget) =>
+            widget is Switch || widget is CupertinoSwitch || widget is Checkbox,
+      ),
+    );
+    await tester.tap(control.evaluate().isNotEmpty ? control.first : finder);
+    await _settleAfterAction();
+  }
+
+  /// Idempotent check — no-op when already checked (matches uncheck symmetry).
+  Future<void> checkFinder(Finder finder) async {
+    if (_finderIsChecked(finder) == true) return;
+    await toggleFinder(finder);
+  }
+
+  /// Idempotent uncheck — no-op when already unchecked.
+  Future<void> uncheckFinder(Finder finder) async {
+    if (_finderIsChecked(finder) != true) return;
+    await toggleFinder(finder);
+  }
+
+  bool? _finderIsChecked(Finder finder) {
+    if (finder.evaluate().isEmpty) return null;
+    final control = find.descendant(
+      of: finder,
+      matching: find.byWidgetPredicate(
+        (widget) =>
+            widget is Switch || widget is CupertinoSwitch || widget is Checkbox,
+      ),
+    );
+    final target = control.evaluate().isNotEmpty ? control.first : finder;
+    final widget = tester.widget(target);
+    if (widget is Switch) return widget.value;
+    if (widget is CupertinoSwitch) return widget.value;
+    if (widget is Checkbox) return widget.value;
+    return null;
+  }
+
+  Future<void> selectOnFinder(Finder finder, String value) async {
+    if (value.isEmpty) {
+      throw EnsembleTestFailure('select requires "value"');
+    }
+    await tapFinder(finder);
+    final option = find.text(value);
+    if (option.evaluate().isEmpty) {
+      throw EnsembleTestFailure('select could not find option "$value"');
+    }
+    await tester.tap(option);
+    await _settleAfterAction();
+  }
+
+  Future<void> scrollUntilVisibleFinder(Finder finder) async {
+    if (finder.evaluate().isEmpty) {
+      throw EnsembleTestFailure(
+        'scrollUntilVisible: target element is detached.',
+      );
+    }
+    await tester.scrollUntilVisible(
+      finder,
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await _settleAfterAction();
+  }
+
   Future<void> settle({Duration? timeout}) => _settle(timeout: timeout);
+
 
   void _applyMocks(TestMocks mocks) {
     for (final entry in mocks.apis.entries) {

@@ -149,13 +149,6 @@ class AssertionEngine {
   bool isTextContainingVisible(String text) =>
       _hasVisiblePaintedElement(find.textContaining(text));
 
-  bool isAnyTextVisible(List<String> texts) {
-    for (final text in _nonEmptyTexts(texts)) {
-      if (isTextVisible(text)) return true;
-    }
-    return false;
-  }
-
   bool isAnyTextContainingVisible(List<String> texts) {
     for (final text in _nonEmptyTexts(texts)) {
       if (isTextContainingVisible(text)) return true;

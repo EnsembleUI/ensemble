@@ -54,10 +54,14 @@ class ExtendedStepHandlers {
         await _selectIndex(executor, step);
         return true;
       case 'check':
-        await executor.tapWidget(executor.requireId(step));
+        await executor.checkFinder(
+          executor.assertions.finderForId(executor.requireId(step)),
+        );
         return true;
       case 'uncheck':
-        await _uncheck(executor, step);
+        await executor.uncheckFinder(
+          executor.assertions.finderForId(executor.requireId(step)),
+        );
         return true;
       case 'setSlider':
         await _setSlider(executor, step);
@@ -337,16 +341,6 @@ class ExtendedStepHandlers {
     await e.settle();
   }
 
-  static Future<void> _uncheck(TestStepExecutor e, TestStep step) async {
-    final id = e.requireId(step);
-    try {
-      e.assertions.expectChecked(id, true);
-      await e.tapWidget(id);
-    } on EnsembleTestFailure {
-      // already unchecked
-    }
-  }
-
   static Future<void> _setSlider(TestStepExecutor e, TestStep step) async {
     final id = e.requireId(step);
     final value = (step.args['value'] as num?)?.toDouble() ?? 0.5;
@@ -514,18 +508,6 @@ class ExtendedStepHandlers {
           'Expected script result "$expected", got "$result".',
         );
       }
-    }
-  }
-
-  static Future<Uint8List> captureScreenshotBytes(
-    WidgetTester tester, {
-    required DeviceInfo device,
-  }) async {
-    final image = captureScreenshotImage(tester);
-    try {
-      return await encodeScreenshotImage(image, device);
-    } finally {
-      image.dispose();
     }
   }
 

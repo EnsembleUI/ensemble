@@ -164,3 +164,10 @@ references, and executes each test once in topological order.
 2. If needed, add a variant to [`TestStepArgKind`](lib/vocabulary/test_step_arg_kind.dart) and its `jsonSchema` switch.
 3. Implement in [`TestStepExecutor`](lib/actions/test_step_executor.dart) and/or [`ExtendedStepHandlers`](lib/actions/extended_step_handlers.dart).
 4. Run `dart run tool/generate_schema.dart` and document here.
+
+Session routing and UI capability lists are derived from registry categories via
+[`SessionStepRouting`](lib/session/yaml/session_step_routing.dart) — do **not**
+hand-edit a parallel migration matrix. New UI actions / waits without a dedicated
+sealed session type route through `GenericAction` / `GenericWait` automatically.
+Add a typed `TestAction` / `WaitCondition` only when the programmatic session API
+needs first-class fields.

@@ -28,6 +28,8 @@ import 'package:ensemble_test_runner/runner/test_artifacts.dart';
 import 'package:ensemble_test_runner/runner/test_runtime_state.dart';
 import 'package:ensemble_test_runner/runner/test_service_manager.dart';
 import 'package:ensemble_test_runner/runner/yaml_test_session.dart';
+import 'package:ensemble_test_runner/session/local/local_execution_session.dart';
+import 'package:ensemble_test_runner/session/yaml/yaml_step_dispatcher.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
@@ -445,8 +447,18 @@ class EnsembleTestRunner {
       harness: harness,
       config: config,
     );
+    final session = LocalTestExecutionSession.attach(
+      tester: tester,
+      harness: harness,
+      context: ctx,
+      sessionId: test.id,
+      assertions: assertions,
+      executor: executor,
+    );
+    final dispatcher = YamlStepDispatcher(session: session);
     final stepDurationsMs = <int>[];
     final stepStartTimes = <String>[];
+    try {
     for (var i = 0; i < test.steps.length; i++) {
       final step = test.steps[i];
       final startFrame = ctx.runtime.appFrameTimings.length + 1;
@@ -527,7 +539,7 @@ class EnsembleTestRunner {
           }
         }
         try {
-          await executor.execute(step);
+          await dispatcher.execute(step);
         } finally {
           executor.onWaitForTextMatched = null;
           executor.onWaitForNavigationMatched = null;
@@ -726,6 +738,9 @@ class EnsembleTestRunner {
         screens: ctx.runtime.screenArtifacts,
       ),
     );
+    } finally {
+      await session.close();
+    }
   }
 
   /// Screenshots for [waitForNavigation]: durable screens need a paint pass;
