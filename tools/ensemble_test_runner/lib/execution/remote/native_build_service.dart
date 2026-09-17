@@ -250,9 +250,11 @@ class AndroidFtlPackager {
     final flutterDefines = [
       for (final pair in definePairs) '--dart-define=$pair',
     ];
-    // Flutter Gradle Plugin reads dart-defines as base64(utf8(k=v,k=v,...)).
-    final gradleDartDefines =
-        base64Encode(utf8.encode(definePairs.join(',')));
+    // Must match flutter_tools encodeDartDefines: each `k=v` is base64'd,
+    // then joined with commas. A single base64 of the joined string is wrong
+    // and causes assembleDebug to drop defines (screenshots then write to
+    // relative build/ → read-only on device / FTL).
+    final gradleDartDefines = encodeDartDefinesForGradle(definePairs);
 
     // Flutter build registers integration_test in the Android project before
     // assembleAndroidTest; without it the instrumentation APK is an empty shell.
@@ -370,18 +372,39 @@ class AndroidFtlPackager {
       appApk,
       const ['AndroidJUnitRunner', 'FlutterTestRunner'],
     );
+    final entryOk = await _apkKernelContainsAny(
+      appApk,
+      const [
+        'runEnsembleIntegrationYamlTests',
+        'integration_test/ensemble_tests.dart',
+      ],
+    );
+    final definesOk = await _apkKernelContainsAny(
+      appApk,
+      const [
+        // Unique value from computeIdentity dart-defines (not a source literal
+        // that would false-positive when defines failed to bake).
+        NativeBuildService.remoteTestEncryptionKey,
+      ],
+    );
     if (appSize < minAppApkBytes ||
         testSize < minTestApkBytes ||
         !hostOk ||
-        !runnerOk) {
+        !runnerOk ||
+        !entryOk ||
+        !definesOk) {
       final detail =
           'Android packages look incomplete for FTL '
           '(app=${_formatBytes(appSize)}, test=${_formatBytes(testSize)}, '
           'mainActivityTestInTestApk=$hostOk, '
-          'runnerInAppApk=$runnerOk). '
-          'Need MainActivityTest in the androidTest APK and '
-          'AndroidJUnitRunner/FlutterTestRunner in the app APK '
-          '(via integration_test + androidTest host).';
+          'runnerInAppApk=$runnerOk, '
+          'integrationEntryInAppApk=$entryOk, '
+          'remoteArtifactRootInAppApk=$definesOk). '
+          'Need MainActivityTest in the androidTest APK, '
+          'AndroidJUnitRunner/FlutterTestRunner in the app APK, '
+          'the integration_test entrypoint, and dart-defines '
+          '(especially ensembleTestArtifactRoot) baked via -Ptarget / '
+          'correctly encoded -Pdart-defines.';
       onProgress?.call('ERROR: $detail');
       return _stubArtifacts(
         identity,
@@ -394,7 +417,8 @@ class AndroidFtlPackager {
     onProgress?.call(
       'Android packages ready '
       '(app=${_formatBytes(appSize)}, test=${_formatBytes(testSize)}; '
-      'MainActivityTest + app-embedded FlutterTestRunner OK)',
+      'MainActivityTest + FlutterTestRunner + integration entry + '
+      'remote artifact root OK)',
     );
     return NativeBuildArtifacts(
       identity: identity,
@@ -473,6 +497,11 @@ class IosFtlPackager {
       Map<String, String>? environment,
     })? runProcess,
   }) async {
+    // Always absolute: xcodebuild -derivedDataPath is resolved from ios/, so a
+    // relative appDir like "." (CI --app-dir=.) would write products under
+    // ios/build/ios_integ while we look in ./build/ios_integ.
+    final root = p.normalize(p.absolute(appDir));
+
     Future<ProcessResult> run(
       String exe,
       List<String> args, {
@@ -483,14 +512,14 @@ class IosFtlPackager {
         return runProcess(
           exe,
           args,
-          workingDirectory: workingDirectory ?? appDir,
+          workingDirectory: workingDirectory ?? root,
           environment: environment,
         );
       }
       return _runCaptured(
         exe,
         args,
-        workingDirectory: workingDirectory ?? appDir,
+        workingDirectory: workingDirectory ?? root,
         environment: environment,
       );
     }
@@ -502,22 +531,22 @@ class IosFtlPackager {
       '--dart-define=ensembleTestRemotePlanHash=${identity.planHash}',
     ];
 
-    final entry = File(p.join(appDir, integrationTestEntry));
+    final entry = File(p.join(root, integrationTestEntry));
     if (!entry.existsSync()) {
       return _stub(
         identity,
-        appDir: appDir,
+        appDir: root,
         detail:
             'Missing $integrationTestEntry. Remote packaging requires the '
             'CLI patcher to wire integration_test before build.',
       );
     }
 
-    final runnerTests = File(p.join(appDir, 'ios/RunnerTests/RunnerTests.m'));
+    final runnerTests = File(p.join(root, 'ios/RunnerTests/RunnerTests.m'));
     if (!runnerTests.existsSync()) {
       return _stub(
         identity,
-        appDir: appDir,
+        appDir: root,
         detail:
             'Missing ios/RunnerTests/RunnerTests.m with '
             'INTEGRATION_TEST_IOS_RUNNER. See Flutter integration_test README.',
@@ -537,14 +566,14 @@ class IosFtlPackager {
     if (build.exitCode != 0) {
       return _stub(
         identity,
-        appDir: appDir,
+        appDir: root,
         detail: _formatProcessFailure('flutter build ios', build),
       );
     }
 
-    final derived = p.join(appDir, 'build/ios_integ');
+    final derived = p.join(root, 'build/ios_integ');
     final products = p.join(derived, 'Build/Products');
-    final iosDir = p.join(appDir, 'ios');
+    final iosDir = p.join(root, 'ios');
     // Xcode 26 / macos-26: Metal.xctoolchain is preferred but lacks Swift
     // compatibility libs → RunnerTests link fails with
     // __swift_FORCE_LOAD_$_swiftCompatibility56. Pin the default toolchain.
@@ -583,17 +612,24 @@ class IosFtlPackager {
     if (xcode.exitCode != 0) {
       return _stub(
         identity,
-        appDir: appDir,
+        appDir: root,
         detail: _formatProcessFailure('xcodebuild build-for-testing', xcode),
       );
     }
 
     final productsDir = Directory(products);
     if (!productsDir.existsSync()) {
+      final misplaced = Directory(
+        p.join(root, 'ios/build/ios_integ/Build/Products'),
+      );
+      final hint = misplaced.existsSync()
+          ? ' Found products under ios/build/ios_integ (relative '
+              'derivedDataPath bug); appDir must be absolute.'
+          : '';
       return _stub(
         identity,
-        appDir: appDir,
-        detail: 'Missing xcodebuild products at $products',
+        appDir: root,
+        detail: 'Missing xcodebuild products at $products.$hint',
       );
     }
 
@@ -606,7 +642,7 @@ class IosFtlPackager {
     if (!releaseDir.existsSync() || xctestrunFiles.isEmpty) {
       return _stub(
         identity,
-        appDir: appDir,
+        appDir: root,
         detail:
             'Expected Release-iphoneos + *.xctestrun under $products '
             '(got release=${releaseDir.existsSync()}, '
@@ -615,7 +651,7 @@ class IosFtlPackager {
     }
 
     final out = Directory(
-      p.join(appDir, 'build/ensemble_test_remote', identity.buildId),
+      p.join(root, 'build/ensemble_test_remote', identity.buildId),
     )..createSync(recursive: true);
     final zipPath = p.join(out.path, 'ios_tests.zip');
     final xctestrunDest =
@@ -636,7 +672,7 @@ class IosFtlPackager {
     if (zip.exitCode != 0) {
       return _stub(
         identity,
-        appDir: appDir,
+        appDir: root,
         detail: _formatProcessFailure('zip', zip),
       );
     }
@@ -728,6 +764,11 @@ String _formatBytes(int bytes) {
   return '${(bytes / (1024 * 1024)).toStringAsFixed(1)}MiB';
 }
 
+/// Matches `flutter_tools` [encodeDartDefines] for `-Pdart-defines=`.
+String encodeDartDefinesForGradle(List<String> definePairs) {
+  return definePairs.map((pair) => base64Encode(utf8.encode(pair))).join(',');
+}
+
 /// Scans dex inside an APK for any of [needles] (class name fragments).
 Future<bool> _apkDexContainsAny(String apkPath, List<String> needles) async {
   final tmp = Directory.systemTemp.createTempSync('ensemble_apk_scan_');
@@ -745,6 +786,51 @@ Future<bool> _apkDexContainsAny(String apkPath, List<String> needles) async {
       for (final needle in needles) {
         if (out.contains(needle)) return true;
       }
+    }
+    return false;
+  } catch (_) {
+    return false;
+  } finally {
+    try {
+      tmp.deleteSync(recursive: true);
+    } catch (_) {}
+  }
+}
+
+/// Scans Flutter kernel / libapp for [needles] (entrypoint / dart-define values).
+Future<bool> _apkKernelContainsAny(String apkPath, List<String> needles) async {
+  final tmp = Directory.systemTemp.createTempSync('ensemble_apk_kernel_');
+  try {
+    final unzip = await Process.run(
+      'unzip',
+      [
+        '-o',
+        '-q',
+        apkPath,
+        'assets/flutter_assets/kernel_blob.bin',
+        'lib/*/libapp.so',
+        '-d',
+        tmp.path,
+      ],
+    );
+    if (unzip.exitCode != 0 && !Directory(tmp.path).listSync(recursive: true).any((e) => e is File)) {
+      return false;
+    }
+    Future<bool> scan(File file) async {
+      final listed = await Process.run('strings', [file.path]);
+      if (listed.exitCode != 0) return false;
+      final out = listed.stdout.toString();
+      for (final needle in needles) {
+        if (out.contains(needle)) return true;
+      }
+      return false;
+    }
+
+    for (final entity in tmp.listSync(recursive: true)) {
+      if (entity is! File) continue;
+      final name = p.basename(entity.path);
+      if (name != 'kernel_blob.bin' && name != 'libapp.so') continue;
+      if (await scan(entity)) return true;
     }
     return false;
   } catch (_) {

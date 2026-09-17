@@ -47,8 +47,14 @@ Future<String?> writeScreenshotFrames({
     p.join('report', 'screenshots'),
   );
   if (!usesDeviceArtifactTransport) {
-    manifestDirectory.createSync(recursive: true);
-    imageDirectory.createSync(recursive: true);
+    try {
+      manifestDirectory.createSync(recursive: true);
+      imageDirectory.createSync(recursive: true);
+    } on FileSystemException {
+      // On-device / FTL cwd is often read-only; never fail the suite solely
+      // because host-style build/ directories cannot be created. Frame bytes are
+      // still written via [writeEnsembleTestArtifactBytes] when possible.
+    }
   }
   final safeTestId = _safeFileName(testId);
   final frameEntries = <Map<String, dynamic>>[];

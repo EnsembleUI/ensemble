@@ -678,4 +678,76 @@ remote:
       expect(logs.first, contains('Build identity'));
     });
   });
+
+  test('IosFtlPackager passes absolute -derivedDataPath when appDir is "."',
+      () async {
+    final appDir = Directory.systemTemp.createTempSync('ios_rel_app_');
+    addTearDown(() {
+      if (appDir.existsSync()) appDir.deleteSync(recursive: true);
+    });
+    File(p.join(appDir.path, 'integration_test/ensemble_tests.dart'))
+      ..parent.createSync(recursive: true)
+      ..writeAsStringSync('void main() {}');
+    File(p.join(appDir.path, 'ios/RunnerTests/RunnerTests.m'))
+      ..parent.createSync(recursive: true)
+      ..writeAsStringSync('INTEGRATION_TEST_IOS_RUNNER(RunnerTests)\n');
+    Directory(p.join(appDir.path, 'ios')).createSync(recursive: true);
+
+    String? derivedDataPath;
+    final previous = Directory.current;
+    Directory.current = appDir;
+    try {
+      final identity = NativeBuildService.computeIdentity(
+        mode: ExecutionMode.integration,
+        target: ExecutionTarget.remote,
+        platform: 'ios',
+        variant: 'release',
+        selectedTestIds: const ['t1'],
+      );
+      await IosFtlPackager().package(
+        identity: identity,
+        appDir: '.',
+        config: const EnsembleTestConfig(
+          mode: ExecutionMode.integration,
+          target: ExecutionTarget.remote,
+        ),
+        runProcess: (
+          exe,
+          args, {
+          workingDirectory,
+          environment,
+        }) async {
+          if (exe == 'xcodebuild') {
+            final i = args.indexOf('-derivedDataPath');
+            expect(i, greaterThanOrEqualTo(0));
+            derivedDataPath = args[i + 1];
+            final products = Directory(
+              p.join(derivedDataPath!, 'Build/Products'),
+            )..createSync(recursive: true);
+            Directory(p.join(products.path, 'Release-iphoneos'))
+                .createSync(recursive: true);
+            File(p.join(products.path, 'Runner_fake.xctestrun'))
+                .writeAsStringSync('xctestrun');
+          }
+          if (exe == 'zip') {
+            final zipPath = args.firstWhere((a) => a.endsWith('ios_tests.zip'));
+            File(zipPath)
+              ..parent.createSync(recursive: true)
+              ..writeAsBytesSync([1, 2, 3, 4]);
+          }
+          return ProcessResult(0, 0, '', '');
+        },
+      );
+    } finally {
+      Directory.current = previous;
+    }
+
+    expect(derivedDataPath, isNotNull);
+    expect(p.isAbsolute(derivedDataPath!), isTrue);
+    expect(
+      derivedDataPath,
+      isNot(contains('${p.separator}ios${p.separator}build${p.separator}')),
+    );
+    expect(derivedDataPath, endsWith(p.join('build', 'ios_integ')));
+  });
 }

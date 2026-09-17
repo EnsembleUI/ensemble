@@ -114,10 +114,57 @@ Future<void> main() async {
       artifacts.appPackagePath,
       const ['AndroidJUnitRunner', 'FlutterTestRunner'],
     );
+    Future<bool> kernelHas(String apk, List<String> needles) async {
+      final tmp = Directory.systemTemp.createTempSync('pack_check_kernel_');
+      try {
+        final unzip = await Process.run(
+          'unzip',
+          [
+            '-o',
+            '-q',
+            apk,
+            'assets/flutter_assets/kernel_blob.bin',
+            'lib/*/libapp.so',
+            '-d',
+            tmp.path,
+          ],
+        );
+        if (unzip.exitCode != 0) return false;
+        for (final entity in tmp.listSync(recursive: true)) {
+          if (entity is! File) continue;
+          final name = p.basename(entity.path);
+          if (name != 'kernel_blob.bin' && name != 'libapp.so') continue;
+          final listed = await Process.run('strings', [entity.path]);
+          final out = listed.stdout.toString();
+          for (final n in needles) {
+            if (out.contains(n)) return true;
+          }
+        }
+        return false;
+      } finally {
+        tmp.deleteSync(recursive: true);
+      }
+    }
+
+    final entryOk = await kernelHas(
+      artifacts.appPackagePath,
+      const [
+        'runEnsembleIntegrationYamlTests',
+        'integration_test/ensemble_tests.dart',
+      ],
+    );
+    final definesOk = await kernelHas(
+      artifacts.appPackagePath,
+      const [NativeBuildService.remoteTestEncryptionKey],
+    );
     stdout.writeln('mainActivityTestInTestApk=$hostOk');
     stdout.writeln('runnerInAppApk=$runnerOk');
-    if (!hostOk || !runnerOk) {
-      stderr.writeln('FAILED: missing host ($hostOk) or runner ($runnerOk)');
+    stdout.writeln('integrationEntryInAppApk=$entryOk');
+    stdout.writeln('remoteArtifactRootInAppApk=$definesOk');
+    if (!hostOk || !runnerOk || !entryOk || !definesOk) {
+      stderr.writeln(
+        'FAILED: host=$hostOk runner=$runnerOk entry=$entryOk defines=$definesOk',
+      );
       exit(2);
     }
 

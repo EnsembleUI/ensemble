@@ -2811,10 +2811,10 @@ Future<ProcessResult> _runProcess(
 String _resolveAppDir(List<String> arguments) {
   for (final arg in arguments) {
     if (arg.startsWith('--app-dir=')) {
-      return arg.substring('--app-dir='.length);
+      return p.normalize(p.absolute(arg.substring('--app-dir='.length)));
     }
   }
-  return Directory.current.path;
+  return Directory.current.absolute.path;
 }
 
 String? _resolveReportMode(List<String> arguments) {

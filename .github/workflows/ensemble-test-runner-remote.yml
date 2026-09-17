@@ -38,7 +38,7 @@ jobs:
       contents: read
       id-token: write
     env:
-      ENSEMBLE_TEST_FTL_PROJECT_ID: ${{ secrets.ENSEMBLE_TEST_FTL_PROJECT_ID }}
+      ENSEMBLE_TEST_FTL_PROJECT_ID: ${{ vars.ENSEMBLE_TEST_FTL_PROJECT_ID }}
       ENSEMBLE_TEST_FTL_RESULTS_BUCKET: ${{ secrets.ENSEMBLE_TEST_FTL_RESULTS_BUCKET }}
       ENSEMBLE_TEST_REMOTE_STORE_GCS_BUCKET: ${{ secrets.ENSEMBLE_TEST_REMOTE_STORE_GCS_BUCKET }}
       ENSEMBLE_TEST_REMOTE_STORE_PREFIX: ensemble-test-remote-runs
@@ -117,7 +117,7 @@ jobs:
           dart run ensemble_test_runner:ensemble_test \
             --target=remote \
             --remote-platform=${{ env.REMOTE_PLATFORM }} \
-            --app-dir=.
+            --app-dir="$PWD"
 
       - name: Upload remote reports (checkpoint only)
         if: always()
