@@ -87,16 +87,10 @@ Future<void> registerEnsembleYamlTests(EnsembleYamlTestOptions options) async {
     EnsembleTestHarness.ensureIntegrationRuntime();
   }
   tearDown(() async {
-    // Dual path with the suite `finally`: covers failures that still run
-    // flutter_test tearDown, and is a no-op when the baseline was never
-    // captured or was already restored.
-    try {
-      await EnsembleTestHarness.restorePreSuiteStorageAtSuiteEnd();
-    } catch (error) {
-      stderr.writeln(
-        'Warning: failed to restore pre-suite storage in tearDown: $error',
-      );
-    }
+    // Dual path with the suite `finally`. After the first attempt the harness
+    // clears the baseline, so this is usually a no-op. If finally never ran,
+    // a restore failure here fails the test (infrastructure error).
+    await EnsembleTestHarness.restorePreSuiteStorageAtSuiteEnd();
     EnsembleTestHarness.resetTestRuntime();
     YamlTestSession.dispose();
   });
@@ -109,6 +103,10 @@ Future<void> registerEnsembleYamlTests(EnsembleYamlTestOptions options) async {
         _emitMachineReport(result);
         emittedMachineReport = true;
       }
+
+      Object? suiteError;
+      StackTrace? suiteStackTrace;
+      Object? storageRestoreError;
 
       try {
         if (options.bootstrap == null) {
@@ -243,6 +241,8 @@ Future<void> registerEnsembleYamlTests(EnsembleYamlTestOptions options) async {
           );
         }
       } catch (error, stackTrace) {
+        suiteError = error;
+        suiteStackTrace = stackTrace;
         if (!emittedMachineReport) {
           final runResult = EnsembleTestRunResult(
             results: [
@@ -258,13 +258,13 @@ Future<void> registerEnsembleYamlTests(EnsembleYamlTestOptions options) async {
           );
           emitMachineReport(runResult);
         }
-        rethrow;
       } finally {
         try {
           await EnsembleTestHarness.restorePreSuiteStorageAtSuiteEnd();
         } catch (error) {
+          storageRestoreError = error;
           stderr.writeln(
-            'Warning: failed to restore pre-suite storage at suite end: $error',
+            'Failed to restore pre-suite storage at suite end: $error',
           );
         }
         if (options.mode == ExecutionMode.integration &&
@@ -272,11 +272,53 @@ Future<void> registerEnsembleYamlTests(EnsembleYamlTestOptions options) async {
           emitEnsembleTestArtifactTransportComplete();
         }
       }
+
+      reportSuiteEndWithStorageRestore(
+        suiteError: suiteError,
+        suiteStackTrace: suiteStackTrace,
+        storageRestoreError: storageRestoreError,
+      );
     },
     timeout: _timeoutSeconds > 0
         ? Timeout(Duration(seconds: _timeoutSeconds))
         : Timeout.none,
   );
+}
+
+/// Surfaces storage-restore failures as suite infrastructure failures.
+///
+/// Preserves [suiteError] when present and appends the restore failure so both
+/// are visible; a restore-only failure fails the suite with a clear message.
+void reportSuiteEndWithStorageRestore({
+  Object? suiteError,
+  StackTrace? suiteStackTrace,
+  Object? storageRestoreError,
+}) {
+  if (storageRestoreError != null && suiteError != null) {
+    fail(
+      '${_formatSuiteError(suiteError)}\n\n'
+      'Also failed to restore pre-suite device storage: $storageRestoreError',
+    );
+  }
+  if (storageRestoreError != null) {
+    fail(
+      'Failed to restore pre-suite device storage after the suite: '
+      '$storageRestoreError',
+    );
+  }
+  if (suiteError != null) {
+    if (suiteStackTrace != null) {
+      Error.throwWithStackTrace(suiteError, suiteStackTrace);
+    }
+    throw suiteError;
+  }
+}
+
+String _formatSuiteError(Object error) {
+  if (error is TestFailure) {
+    return error.message ?? error.toString();
+  }
+  return error.toString();
 }
 
 Map<String, dynamic> _runMetadata(ExecutionMode mode) {

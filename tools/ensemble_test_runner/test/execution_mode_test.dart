@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:crypto/crypto.dart';
 import 'package:ensemble_test_runner/cli/ensemble_test_cli.dart';
+import 'package:ensemble_test_runner/entry/ensemble_test_entry.dart';
 import 'package:ensemble_test_runner/execution/artifact_transport.dart';
 import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
 import 'package:ensemble_test_runner/parser/ensemble_test_parser.dart';
@@ -652,6 +653,7 @@ void main() {
     expect(source, contains('restorePreSuiteStorageAtSuiteEnd()'));
     expect(source, contains('} finally {'));
     expect(source, contains('tearDown(() async {'));
+    expect(source, contains('reportSuiteEndWithStorageRestore('));
     final finallyIndex = source.indexOf('} finally {');
     final restoreInFinally = source.indexOf(
       'restorePreSuiteStorageAtSuiteEnd()',
@@ -665,5 +667,61 @@ void main() {
     );
     expect(restoreInTearDown, greaterThan(tearDownIndex));
     expect(restoreInTearDown, lessThan(finallyIndex));
+  });
+
+  test('reportSuiteEndWithStorageRestore fails on restore-only errors', () {
+    expect(
+      () => reportSuiteEndWithStorageRestore(
+        storageRestoreError: StateError('rewrite failed'),
+      ),
+      throwsA(
+        isA<TestFailure>().having(
+          (e) => e.message,
+          'message',
+          contains('Failed to restore pre-suite device storage'),
+        ),
+      ),
+    );
+  });
+
+  test('reportSuiteEndWithStorageRestore keeps suite error and restore error',
+      () {
+    expect(
+      () => reportSuiteEndWithStorageRestore(
+        suiteError: TestFailure('YAML assertion failed'),
+        storageRestoreError: StateError('clear failed'),
+      ),
+      throwsA(
+        isA<TestFailure>().having(
+          (e) => e.message,
+          'message',
+          allOf(
+            contains('YAML assertion failed'),
+            contains('Also failed to restore pre-suite device storage'),
+          ),
+        ),
+      ),
+    );
+  });
+
+  test('manifest batching rejects an individually oversized entry', () {
+    final oversizedPath = 'screenshots/${'x' * 4000}.png';
+    expect(
+      () => ensembleTestArtifactManifestBatches([
+        {
+          'id': 'run-huge-0',
+          'path': oversizedPath,
+          'size': 1,
+          'sha256': List.filled(64, 'b').join(),
+        },
+      ]),
+      throwsA(
+        isA<StateError>().having(
+          (e) => e.message,
+          'message',
+          contains('encodes to'),
+        ),
+      ),
+    );
   });
 }

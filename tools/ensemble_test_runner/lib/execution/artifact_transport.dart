@@ -153,6 +153,8 @@ class EnsembleTestArtifactEmitter {
 
 /// Packs manifest entries into batches whose encoded protocol lines stay under
 /// [ensembleTestArtifactMaxRecordBytes].
+///
+/// Throws [StateError] when a single entry cannot fit in one protocol record.
 List<List<Map<String, dynamic>>> ensembleTestArtifactManifestBatches(
   List<Map<String, dynamic>> artifacts,
 ) {
@@ -160,16 +162,17 @@ List<List<Map<String, dynamic>>> ensembleTestArtifactManifestBatches(
   final batches = <List<Map<String, dynamic>>>[];
   var current = <Map<String, dynamic>>[];
   for (final item in artifacts) {
+    final singleLength = _manifestRecordEncodedLength([item]);
+    if (singleLength > ensembleTestArtifactMaxRecordBytes) {
+      final path = item['path']?.toString() ?? '<unknown>';
+      throw StateError(
+        'Artifact manifest entry for "$path" encodes to $singleLength bytes; '
+        'limit is $ensembleTestArtifactMaxRecordBytes. Shorten the artifact '
+        'path or reduce metadata so each entry fits in one logcat line.',
+      );
+    }
     final candidate = [...current, item];
-    final encodedLength = ensembleTestArtifactProtocolPrefix.length +
-        json
-            .encode({
-              'event': 'manifest',
-              // Budget for ISO-8601 run ids; packing must stay under logcat limits.
-              'runId': '2026-01-01T00:00:00.000000Z',
-              'artifacts': candidate,
-            })
-            .length;
+    final encodedLength = _manifestRecordEncodedLength(candidate);
     if (current.isNotEmpty &&
         encodedLength > ensembleTestArtifactMaxRecordBytes) {
       batches.add(current);
@@ -182,6 +185,18 @@ List<List<Map<String, dynamic>>> ensembleTestArtifactManifestBatches(
     batches.add(current);
   }
   return batches;
+}
+
+int _manifestRecordEncodedLength(List<Map<String, dynamic>> artifacts) {
+  return ensembleTestArtifactProtocolPrefix.length +
+      json
+          .encode({
+            'event': 'manifest',
+            // Budget for ISO-8601 run ids; packing must stay under logcat limits.
+            'runId': '2026-01-01T00:00:00.000000Z',
+            'artifacts': artifacts,
+          })
+          .length;
 }
 
 /// Result of materializing a device→host artifact stream.

@@ -51,6 +51,22 @@ void main() {
     expect(storage.read('leftover'), isNull);
   });
 
+  test('suite-end restore clears the baseline so a second call is a no-op',
+      () async {
+    final storage = StorageManager();
+    await storage.write('production_pref', 'keep-me');
+    await EnsembleTestHarness.ensurePreSuiteStorageSnapshot();
+    await storage.write('production_pref', 'mutated');
+
+    await EnsembleTestHarness.restorePreSuiteStorageAtSuiteEnd();
+    expect(storage.read('production_pref'), 'keep-me');
+
+    await storage.write('production_pref', 'mutated-again');
+    // Baseline already consumed — second call must not rewrite storage.
+    await EnsembleTestHarness.restorePreSuiteStorageAtSuiteEnd();
+    expect(storage.read('production_pref'), 'mutated-again');
+  });
+
   test('restore phases name clear failures', () async {
     await expectLater(
       () => AppSessionSnapshot.runRestorePhases(

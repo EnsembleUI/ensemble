@@ -915,10 +915,15 @@ class EnsembleTestHarness {
   ///
   /// Invoked from the suite entry `finally` and again from package `tearDown`
   /// so both Dart exception exits and flutter_test teardown paths restore.
-  /// Safe to call repeatedly; no-ops when no baseline was captured.
+  /// Safe to call repeatedly: after the first attempt the baseline is cleared
+  /// so a second call is a no-op (avoids double-restore across finally/tearDown).
   static Future<void> restorePreSuiteStorageAtSuiteEnd() async {
-    if (_preSuiteStorageSnapshot == null) return;
-    await _preSuiteStorageSnapshot!.restore();
+    final snapshot = _preSuiteStorageSnapshot;
+    if (snapshot == null) return;
+    // Clear before restore so a second call (tearDown after finally) is a
+    // no-op even if restore throws — the first failure is the one reported.
+    _preSuiteStorageSnapshot = null;
+    await snapshot.restore();
   }
 
   /// Test hook: drop the cached baseline between unit tests.
