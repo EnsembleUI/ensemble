@@ -506,21 +506,18 @@ Future<int> runRemoteEnsembleYamlTestsCli(
       selectedTestIds: _remoteOptionValues(arguments, '--id'),
     );
     if (verbose || !quiet) {
-      stdout.writeln(report.toPrettyJson());
-      stdout.flush();
+      remoteCliWrite(report.toPrettyJson(), toStderr: false);
     }
     return report.exitCode;
   } on FtlCredentialException catch (error) {
-    stderr.writeln(
+    remoteCliWrite(
       'Remote run unverified (missing FTL credentials): $error\n'
       'Packaging/validation completed locally where possible; '
       'cloud collect remains unverified.',
     );
-    stderr.flush();
     return 2;
   } catch (error) {
-    stderr.writeln(error);
-    stderr.flush();
+    remoteCliWrite(error);
     return 2;
   }
 }

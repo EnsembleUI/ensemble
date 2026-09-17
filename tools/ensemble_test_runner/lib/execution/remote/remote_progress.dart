@@ -3,13 +3,26 @@ import 'dart:io';
 /// Progress callback for remote orchestration (build → submit → poll → collect).
 typedef RemoteProgress = void Function(String message);
 
-/// Writes to stderr and flushes so GitHub Actions shows progress immediately
-/// (stdout is often fully buffered when not attached to a TTY).
+/// Writes progress to stderr. Prefer stderr over stdout so GitHub Actions
+/// surfaces lines even when stdout is fully buffered.
+///
+/// Do **not** call [IOSink.flush] here: `flush()` binds the sink to an
+/// `addStream` internally, and a following `writeln` throws
+/// `Bad state: StreamSink is bound to a stream`.
 RemoteProgress stderrRemoteProgress({String prefix = '[ensemble_test remote] '}) {
   return (message) {
     stderr.writeln('$prefix$message');
-    stderr.flush();
   };
+}
+
+/// Safe error/status print for the remote CLI (never calls [IOSink.flush]).
+void remoteCliWrite(Object? message, {bool toStderr = true}) {
+  final line = '$message';
+  if (toStderr) {
+    stderr.writeln(line);
+  } else {
+    stdout.writeln(line);
+  }
 }
 
 /// Firebase / Cloud console URLs for a Test Lab matrix (best-effort).
