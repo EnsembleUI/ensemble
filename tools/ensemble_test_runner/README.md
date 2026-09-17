@@ -102,6 +102,9 @@ screenshots:
 
 # Device matrix (viewport + optional locale/theme). One entry = single device;
 # multiple entries expand each test once per device with its own screenshot sheet.
+# Widget mode applies platform/model as a viewport. Integration mode keeps
+# locale/theme for entries matching the connected emulator/simulator and
+# ignores viewport/model.
 devices:
   - id: android_nl
     platform: android
@@ -140,7 +143,10 @@ When `devices` is set, each test expands to one run per device (ids look like
 (`light` / `dark`) is applied through `EnsembleThemeManager` after boot (any
 start screen). Each device run writes its own screenshot frames manifest (for
 example `home[android_nl]_frames.json` and `home[iphone_en]_frames.json`); the
-HTML report builds the contact-sheet gallery from those per-step PNGs.
+HTML report builds the contact-sheet gallery from those per-step PNGs. In
+integration mode the same matrix is filtered to the connected target's
+platform: locale/theme still apply, viewport/model do not, and other platforms
+are skipped with a warning.
 
 ## App setup
 
@@ -197,6 +203,71 @@ The CLI temporarily bundles `definitions.local.path/tests/` as an asset (if need
 By default, output is quiet: no `pub get` package list, no Flutter test progress lines — `SCREEN TRACKER` navigation logs plus the boxed suite report. Use `--verbose` for full subprocess output (useful when debugging).
 
 Optional: `--app-dir=<path>` when not running from the app root.
+
+### Execution modes
+
+Suites run as Flutter widget tests by default. Set the suite mode in
+`tests/config.yaml`, or override it from the command line:
+
+```yaml
+mode: widget
+```
+
+```bash
+# Existing host-side widget-test environment.
+dart run ensemble_test_runner:ensemble_test
+
+# Build, install, and launch on an Android emulator or iOS simulator.
+dart run ensemble_test_runner:ensemble_test \
+  --mode=integration \
+  --device-id=emulator-5554
+```
+
+`--mode` takes precedence over `tests/config.yaml`. Integration mode is serial
+and supports one Android or iOS target per invocation (emulator, simulator, or
+physical device). If one eligible target is connected it is selected
+automatically; multiple targets are offered interactively, while non-interactive
+runs must pass `--device-id`.
+
+The existing `devices` matrix and `--device` flag still apply in integration
+mode for **locale/theme**, not as additional connected devices. The runner keeps
+entries whose `platform` matches the connected target, skips the rest with a
+warning, and uses that target's real display (no stock device bezel).
+`--device` filters those matching rows; `--device-id` selects the real Flutter
+target. Widget-mode screenshots still get a device frame for the HTML report.
+Native UI such as permission dialogs is not supported in this release.
+
+Physical Android devices use `adb reverse` for host services (same as emulators).
+Physical iPhones need the Mac and phone on the same LAN; pass `--host-address=`
+to override auto-detection. USB-only iOS networking and wireless debugging setup
+are not supported yet. Signing/provisioning remain Xcode/Android Studio
+prerequisites — the runner does not rewrite signing settings.
+
+Integration iOS builds need deployment target **15.0** (Firebase 12). Flutter's
+default `Podfile` still comments `platform :ios, '13.0'`, which makes CocoaPods
+fail with `cloud_firestore` / "higher minimum iOS deployment version". Set
+`platform :ios, '15.0'` in the host app (and matching `IPHONEOS_DEPLOYMENT_TARGET`),
+or run `dart run ensemble_test_runner:ensemble_test --doctor --fix`. The runner
+does not silently rewrite native project files. Add a `version:` field to
+`pubspec.yaml` so iOS has `CFBundleShortVersionString` / `CFBundleVersion`.
+
+Configured test services remain host processes. Android emulator and USB
+device runs use `adb reverse` to reach them, while iOS simulators use host
+loopback. Physical iPhones need the host LAN address (see `--host-address`).
+Ensemble API mocks and initial storage continue to use the shared YAML engine;
+native plugins are supplied by the installed application rather than
+widget-test method-channel doubles.
+
+Independent integration tests restore storage to a pre-suite baseline so
+device credentials that existed before the run are preserved. Pass
+`--reset-device-storage` on disposable emulators when a full wipe is intended.
+Physical devices also require `--allow-device-storage-mutation` (or
+`--reset-device-storage`) before the suite may capture or rewrite storage.
+
+Integration results, logs, and screenshot PNGs are transported back to the
+host and written under the same `build/ensemble_test_runner/` paths as widget
+mode. JSON, JUnit, HTML, history, filters, retries, and sessions retain their
+existing contracts.
 
 Pass test-runner inputs with repeatable `--input key=value` flags. Tests can
 reference them as `${inputs.key}` in `initialState`, mocks, and steps:
@@ -292,7 +363,8 @@ dart run ensemble_test_runner:ensemble_test --device=android_nl
 (repeatable, or comma-separated).
 
 `--device` selects suite device id(s) from `tests/config.yaml` (repeatable, or
-comma-separated). Default is all configured devices.
+comma-separated). Default is all configured devices. In integration mode it
+filters locale/theme rows after the connected platform is applied.
 
 Session producer tests are included automatically for selected session tests.
 

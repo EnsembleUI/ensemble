@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:ensemble/framework/ensemble_config_service.dart';
+import 'package:ensemble_test_runner/discovery/device_matrix.dart' as matrix;
 import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
 import 'package:ensemble_test_runner/parser/ensemble_test_parser.dart';
 import 'package:ensemble_test_runner/runner/ensemble_test_harness.dart';
@@ -65,10 +66,17 @@ class EnsembleTestDiscovery {
     );
     final overridden = _withServiceOverrides(config);
     final withIsolation = overridden ?? _withWorkerIsolation(config);
-    return applyDeviceFilter(
-      withIsolation,
-      _deviceIdsFromEnvironment(),
-    );
+    final selectedIds = _deviceIdsFromEnvironment();
+    if (_executionModeFromEnvironment() == ExecutionMode.integration) {
+      return matrix
+          .resolveIntegrationDeviceMatrix(
+            withIsolation,
+            platform: _physicalPlatformFromEnvironment(),
+            selectedIds: selectedIds,
+          )
+          .config;
+    }
+    return matrix.applyDeviceFilter(withIsolation, selectedIds);
   }
 
   /// Keeps only suite `devices` whose ids are in [selectedIds].
@@ -78,42 +86,21 @@ class EnsembleTestDiscovery {
   static EnsembleTestConfig applyDeviceFilter(
     EnsembleTestConfig config,
     Set<String> selectedIds,
-  ) {
-    if (selectedIds.isEmpty) return config;
-    if (config.devices.isEmpty) {
-      throw EnsembleTestFailure(
-        '`--device` was set but tests/config.yaml has no devices.',
+  ) =>
+      matrix.applyDeviceFilter(config, selectedIds);
+
+  /// Widget `devices` entries that still apply on a real integration target.
+  @visibleForTesting
+  static matrix.IntegrationDeviceMatrix resolveIntegrationDeviceMatrix(
+    EnsembleTestConfig config, {
+    required String platform,
+    Set<String> selectedIds = const {},
+  }) =>
+      matrix.resolveIntegrationDeviceMatrix(
+        config,
+        platform: platform,
+        selectedIds: selectedIds,
       );
-    }
-    final known = {for (final device in config.devices) device.id};
-    final unknown = selectedIds.difference(known);
-    if (unknown.isNotEmpty) {
-      final knownList = config.devices.map((d) => d.id).join(', ');
-      throw EnsembleTestFailure(
-        'Unknown device id(s): ${unknown.join(', ')}. Known: $knownList',
-      );
-    }
-    return EnsembleTestConfig(
-      services: config.services,
-      mockFiles: config.mockFiles,
-      inlineMocks: config.inlineMocks,
-      initialState: config.initialState,
-      defaultProfile: config.defaultProfile,
-      profiles: config.profiles,
-      profileGroups: config.profileGroups,
-      devices: [
-        for (final device in config.devices)
-          if (selectedIds.contains(device.id)) device,
-      ],
-      screenshots: config.screenshots,
-      performance: config.performance,
-      timers: config.timers,
-      dumpTree: config.dumpTree,
-      logApiCalls: config.logApiCalls,
-      logStorage: config.logStorage,
-      wifi: config.wifi,
-    );
-  }
 
   static Set<String> _deviceIdsFromEnvironment() {
     const raw = String.fromEnvironment('ensembleTestDevice');
@@ -124,6 +111,16 @@ class EnsembleTestDiscovery {
         .where((part) => part.isNotEmpty)
         .toSet();
   }
+
+  static ExecutionMode _executionModeFromEnvironment() {
+    const raw = String.fromEnvironment('ensembleTestExecutionMode');
+    return raw == ExecutionMode.integration.name
+        ? ExecutionMode.integration
+        : ExecutionMode.widget;
+  }
+
+  static String _physicalPlatformFromEnvironment() =>
+      const String.fromEnvironment('ensembleTestPhysicalPlatform');
 
   static Set<String> _shardPathsFromEnvironment() {
     const raw = String.fromEnvironment('ensembleTestShardPath');
@@ -145,6 +142,7 @@ class EnsembleTestDiscovery {
     if (overrides.isEmpty) return null;
 
     return EnsembleTestConfig(
+      mode: config.mode,
       services: [
         for (final service in config.services)
           _serviceWithOverride(
@@ -202,6 +200,7 @@ class EnsembleTestDiscovery {
     if (workerIndex <= 0 || config.services.isEmpty) return config;
 
     return EnsembleTestConfig(
+      mode: config.mode,
       services: [
         for (final service in config.services)
           TestServiceConfig(

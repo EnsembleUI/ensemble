@@ -7,6 +7,7 @@ import 'package:ensemble/framework/apiproviders/api_provider.dart';
 import 'package:ensemble/framework/apiproviders/http_api_provider.dart';
 import 'package:ensemble/framework/definition_providers/local_provider.dart';
 import 'package:ensemble/framework/screen_tracker.dart';
+import 'package:ensemble/framework/secrets.dart';
 import 'package:ensemble/framework/storage_manager.dart';
 import 'package:ensemble/framework/encrypted_storage_manager.dart';
 import 'package:ensemble/page_model.dart';
@@ -19,6 +20,7 @@ import 'package:ensemble_test_runner/mocks/adobe_test_setup.dart';
 import 'package:ensemble_test_runner/mocks/firebase_test_setup.dart';
 import 'package:ensemble_test_runner/mocks/test_api_provider_overlay.dart';
 import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
+import 'package:ensemble_test_runner/runner/app_session_snapshot.dart';
 import 'package:ensemble_test_runner/runner/ensemble_test_context.dart';
 import 'package:ensemble_test_runner/runner/live_async_call.dart';
 import 'package:ensemble_test_runner/runner/yaml_test_session.dart';
@@ -43,6 +45,40 @@ class EnsembleTestSetup {
   });
 }
 
+/// Execution-environment behavior used by the shared Ensemble harness.
+abstract class EnsembleTestRuntimeAdapter {
+  ExecutionMode get mode;
+  bool get usesPhysicalDisplay;
+  bool get clearsPersistentStateBetweenIndependentTests;
+  void initialize();
+}
+
+class WidgetTestRuntimeAdapter implements EnsembleTestRuntimeAdapter {
+  const WidgetTestRuntimeAdapter();
+
+  @override
+  ExecutionMode get mode => ExecutionMode.widget;
+  @override
+  bool get usesPhysicalDisplay => false;
+  @override
+  bool get clearsPersistentStateBetweenIndependentTests => false;
+  @override
+  void initialize() => EnsembleTestHarness.ensureTestPlugins();
+}
+
+class IntegrationTestRuntimeAdapter implements EnsembleTestRuntimeAdapter {
+  const IntegrationTestRuntimeAdapter();
+
+  @override
+  ExecutionMode get mode => ExecutionMode.integration;
+  @override
+  bool get usesPhysicalDisplay => true;
+  @override
+  bool get clearsPersistentStateBetweenIndependentTests => true;
+  @override
+  void initialize() => EnsembleTestHarness.ensureIntegrationRuntime();
+}
+
 /// Applies YAML test environment and storage bootstrap data to [config].
 Future<void> applyYamlTestBootstrap(
     EnsembleConfig config, EnsembleTestSetup setup) async {
@@ -57,8 +93,13 @@ Future<void> applyYamlTestStorageBootstrap(EnsembleTestSetup setup) async {
       const Iterable<MapEntry<String, dynamic>>.empty()) {
     await StorageManager().write(entry.key, entry.value);
   }
-  for (final entry in setup.initialSecureStorage?.entries ??
-      const Iterable<MapEntry<String, dynamic>>.empty()) {
+  final secureEntries = setup.initialSecureStorage?.entries.toList() ??
+      const <MapEntry<String, dynamic>>[];
+  if (secureEntries.isNotEmpty) {
+    await SecretsStore().initialize();
+    installTestEncryptionKey();
+  }
+  for (final entry in secureEntries) {
     EncryptedStorageManager.setSecureStorage({
       'key': entry.key,
       'value': entry.value,
@@ -77,6 +118,30 @@ Future<void> applyYamlTestStorageBootstrap(EnsembleTestSetup setup) async {
   }
 }
 
+/// Installs the per-run test encryption key into [SecretsStore] and clears the
+/// process-cached key in [EncryptedStorageManager].
+///
+/// The key comes from `--dart-define=ensembleTestEncryptionKey=...` (generated
+/// by the CLI each run). Widget-test fixtures may pass a deterministic value.
+void installTestEncryptionKey() {
+  const fromDefine = String.fromEnvironment('ensembleTestEncryptionKey');
+  final key = fromDefine.isNotEmpty ? fromDefine : _fallbackTestEncryptionKey();
+  if (key.length != 32) {
+    throw StateError(
+      'ensembleTestEncryptionKey must be exactly 32 characters '
+      '(got ${key.length}).',
+    );
+  }
+  EncryptedStorageManager.resetCachedKey();
+  SecretsStore().secretCache['encryptionKey'] = key;
+}
+
+String _fallbackTestEncryptionKey() {
+  // Deterministic fallback for unit tests that do not go through the CLI.
+  // Never used as a production secret; process-local only.
+  return 'EnsembleTestKey00000000000000000';
+}
+
 /// Boots the real Ensemble runtime for widget tests.
 class EnsembleTestHarness {
   static final String _testStoragePath =
@@ -84,6 +149,51 @@ class EnsembleTestHarness {
   static bool _appFontsLoaded = false;
   static bool _sqfliteInitialized = false;
   static final Map<String, String> _secureStorage = {};
+
+  /// Storage present when the suite started. Independent integration tests
+  /// restore this instead of wiping the whole device keychain.
+  static AppSessionSnapshot? _preSuiteStorageSnapshot;
+
+  static const bool resetDeviceStorage = bool.fromEnvironment(
+    'ensembleTestResetDeviceStorage',
+  );
+
+  /// Explicit acknowledgment that integration tests may mutate storage on a
+  /// physical device (baseline capture + between-test restores).
+  static const bool allowDeviceStorageMutation = bool.fromEnvironment(
+    'ensembleTestAllowDeviceStorageMutation',
+  );
+
+  /// True when the integration target is a physical device (not emulator/sim).
+  static const bool deviceIsPhysical = bool.fromEnvironment(
+    'ensembleTestDeviceIsPhysical',
+  );
+
+  /// Physical devices require `--allow-device-storage-mutation` or
+  /// `--reset-device-storage` before storage is captured or mutated.
+  static void requirePhysicalDeviceStorageAcknowledgment() {
+    assertPhysicalDeviceStorageAcknowledged(
+      deviceIsPhysical: deviceIsPhysical,
+      allowMutation: allowDeviceStorageMutation,
+      resetStorage: resetDeviceStorage,
+    );
+  }
+
+  /// Pure gate used by [requirePhysicalDeviceStorageAcknowledgment] and tests.
+  static void assertPhysicalDeviceStorageAcknowledged({
+    required bool deviceIsPhysical,
+    required bool allowMutation,
+    required bool resetStorage,
+  }) {
+    if (!deviceIsPhysical) return;
+    if (allowMutation || resetStorage) return;
+    throw StateError(
+      'Integration tests on a physical device mutate app storage '
+      '(capture a pre-suite baseline and restore it between tests). '
+      'Pass --allow-device-storage-mutation to acknowledge this, or '
+      '--reset-device-storage to wipe storage first on a disposable device.',
+    );
+  }
 
   static void ensureTestPlugins() {
     TestWidgetsFlutterBinding.ensureInitialized();
@@ -223,16 +333,29 @@ class EnsembleTestHarness {
     YamlTestSession.navigationFlow.startListening();
   }
 
+  /// Initializes only runner-owned Dart listeners for a real application.
+  /// Native plugin channels remain registered by the Android/iOS host app.
+  static void ensureIntegrationRuntime() {
+    TestWidgetsFlutterBinding.ensureInitialized();
+    YamlTestSession.navigationFlow.startListening();
+  }
+
   final String appPath;
   final String appHome;
   final String? i18nPath;
   final Map<String, Function>? externalMethods;
+  final ExecutionMode executionMode;
+  late final EnsembleTestRuntimeAdapter runtimeAdapter =
+      executionMode == ExecutionMode.integration
+          ? const IntegrationTestRuntimeAdapter()
+          : const WidgetTestRuntimeAdapter();
 
   EnsembleTestHarness({
     required this.appPath,
     required this.appHome,
     this.i18nPath,
     this.externalMethods,
+    this.executionMode = ExecutionMode.widget,
   });
 
   static String normalizeAppPath(String path) {
@@ -311,8 +434,9 @@ class EnsembleTestHarness {
     EnsembleConfig config,
     EnsembleTestSetup setup, {
     TestApiProviderOverlay? apiOverlay,
+    bool clearPersistentState = false,
   }) async {
-    ensureTestPlugins();
+    runtimeAdapter.initialize();
     await ensureAppFontsLoaded();
 
     final env = Map<String, dynamic>.from(config.envOverrides ?? {});
@@ -327,6 +451,9 @@ class EnsembleTestHarness {
     }
 
     await Ensemble().initManagers();
+    if (clearPersistentState) {
+      await _clearPersistentTestState();
+    }
     await initializeRealApiProviders(config);
 
     if (apiOverlay != null) {
@@ -526,20 +653,33 @@ class EnsembleTestHarness {
           testCase,
           config: suiteConfig,
         );
-    final screenshotDevice = screenshotDeviceForTestCase(testCase, ctx.config);
-    if (screenshotDevice != null) {
-      await _setViewportForDevice(tester, ctx, screenshotDevice);
-    }
-    await _ensureDefaultViewport(tester, ctx);
+    await applyViewport(
+      tester,
+      ctx,
+      screenshotDevice: screenshotDeviceForTestCase(testCase, ctx.config),
+    );
     var config = existingConfig ?? await buildConfig();
     final bootstrapped = await tester.runAsync(() async {
       return bootstrapRuntime(
         config,
         ctx.setup,
         apiOverlay: ctx.apiOverlay,
+        clearPersistentState:
+            runtimeAdapter.clearsPersistentStateBetweenIndependentTests &&
+                testCase.session == null,
       );
     });
-    config = bootstrapped!;
+    if (bootstrapped == null) {
+      final bootstrapError = tester.takeException();
+      if (bootstrapError != null) throw bootstrapError;
+      if (ctx.runtime.flutterErrors.isNotEmpty) {
+        throw EnsembleTestFailure(ctx.runtime.flutterErrors.last);
+      }
+      throw EnsembleTestFailure(
+        'Ensemble runtime bootstrap completed without a configuration.',
+      );
+    }
+    config = bootstrapped;
 
     final startScreen = testCase.startScreen;
     if (startScreen == null || startScreen.isEmpty) {
@@ -559,6 +699,7 @@ class EnsembleTestHarness {
         ensembleConfig: config,
         screenPayload: ScreenPayload(
           screenId: startScreen,
+          screenName: startScreen,
           arguments: testCase.startScreenInputs,
         ),
         forcedLocale: forcedLocale,
@@ -596,11 +737,41 @@ class EnsembleTestHarness {
     ScreenController().navigateToScreen(
       context,
       screenId: startScreen,
+      screenName: startScreen,
       pageArgs: testCase.startScreenInputs,
       routeOption: RouteOption.clearAllScreens,
     );
     await tester.pump();
     await waitForInitialWidgets(tester, testCase: testCase);
+  }
+
+  /// Widget tests may emulate a screenshot device. Integration tests keep the
+  /// real simulator/emulator view so hit-testing and layout stay aligned.
+  Future<void> applyViewport(
+    WidgetTester tester,
+    EnsembleTestContext context, {
+    DeviceInfo? screenshotDevice,
+  }) async {
+    if (runtimeAdapter.usesPhysicalDisplay) {
+      _recordPhysicalDisplaySize(tester, context);
+      return;
+    }
+    if (screenshotDevice != null) {
+      await _setViewportForDevice(tester, context, screenshotDevice);
+    }
+    await _ensureDefaultViewport(tester, context);
+  }
+
+  static void _recordPhysicalDisplaySize(
+    WidgetTester tester,
+    EnsembleTestContext context,
+  ) {
+    final pixelRatio = tester.view.devicePixelRatio;
+    final physicalSize = tester.view.physicalSize;
+    context.runtime.deviceSize = Size(
+      physicalSize.width / pixelRatio,
+      physicalSize.height / pixelRatio,
+    );
   }
 
   static Future<void> _ensureDefaultViewport(
@@ -699,6 +870,70 @@ class EnsembleTestHarness {
       installTestApiOverlay(config, ctx.apiOverlay);
     }
   }
+
+  /// Wipes all public / encrypted / keychain storage. Destructive — only used
+  /// when [resetDeviceStorage] is set or when capturing an empty baseline.
+  static Future<void> wipeAllPersistentStorage() async {
+    final storage = StorageManager();
+    await storage.clearPublicStorage();
+    for (final key
+        in storage.getKeys().where((key) => key.startsWith('enc_')).toList()) {
+      await storage.remove(key);
+    }
+    final keychain = await storage.getAllFromKeychain();
+    for (final key in keychain.keys) {
+      await storage.removeSecurely(key);
+    }
+  }
+
+  /// Captures the pre-suite storage baseline once. When
+  /// [resetDeviceStorage] is true, wipes first so the baseline is empty.
+  static Future<void> ensurePreSuiteStorageSnapshot() async {
+    if (_preSuiteStorageSnapshot != null) return;
+    requirePhysicalDeviceStorageAcknowledgment();
+    if (resetDeviceStorage) {
+      await wipeAllPersistentStorage();
+    }
+    _preSuiteStorageSnapshot = await AppSessionSnapshot.capture();
+  }
+
+  /// Restores device storage to the pre-suite baseline so independent tests
+  /// do not inherit keys written by earlier tests, while preserving whatever
+  /// already existed on the device before the suite started.
+  static Future<void> _clearPersistentTestState() async {
+    await restorePreSuiteStorage();
+  }
+
+  /// Restores the cached pre-suite storage baseline (capturing it first if needed).
+  static Future<void> restorePreSuiteStorage() async {
+    await ensurePreSuiteStorageSnapshot();
+    await _preSuiteStorageSnapshot!.restore();
+  }
+
+  /// Restores the pre-suite baseline at suite teardown (including after
+  /// failures) so the device returns to its pre-run storage state.
+  ///
+  /// Invoked from the suite entry `finally` and again from package `tearDown`
+  /// so both Dart exception exits and flutter_test teardown paths restore.
+  /// Safe to call repeatedly: after the first attempt the baseline is cleared
+  /// so a second call is a no-op (avoids double-restore across finally/tearDown).
+  static Future<void> restorePreSuiteStorageAtSuiteEnd() async {
+    final snapshot = _preSuiteStorageSnapshot;
+    if (snapshot == null) return;
+    // Clear before restore so a second call (tearDown after finally) is a
+    // no-op even if restore throws — the first failure is the one reported.
+    _preSuiteStorageSnapshot = null;
+    await snapshot.restore();
+  }
+
+  /// Test hook: drop the cached baseline between unit tests.
+  static void resetPreSuiteStorageSnapshotForTest() {
+    _preSuiteStorageSnapshot = null;
+  }
+
+  /// Test hook exposing [restorePreSuiteStorage].
+  static Future<void> restorePreSuiteStorageForTest() =>
+      restorePreSuiteStorage();
 
   static void resetTestRuntime() {
     YamlTestSession.reset();

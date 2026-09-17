@@ -269,6 +269,8 @@ class ReportJsonOptimizer {
         'generatedAt': document['generatedAt'],
       if (document['summary'] is Map)
         'summary': Map<String, dynamic>.from(document['summary'] as Map),
+      if (document['metadata'] is Map)
+        'metadata': Map<String, dynamic>.from(document['metadata'] as Map),
     };
 
     final artifacts = document['suiteArtifacts'];

@@ -1,6 +1,9 @@
+import 'dart:convert';
 import 'dart:io';
 
+import 'package:ensemble_test_runner/cli/yaml_test_app_patcher.dart';
 import 'package:ensemble_test_runner/parser/ensemble_test_parser.dart';
+import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
 import 'package:path/path.dart' as p;
 import 'package:yaml/yaml.dart';
 
@@ -21,10 +24,11 @@ class EnsembleTestDoctorResult {
 
 class EnsembleTestDoctor {
   final String appDir;
+  final ExecutionMode? modeOverride;
 
-  EnsembleTestDoctor(this.appDir);
+  EnsembleTestDoctor(this.appDir, {this.modeOverride});
 
-  Future<EnsembleTestDoctorResult> run() async {
+  Future<EnsembleTestDoctorResult> run({bool fix = false}) async {
     final lines = <String>['Ensemble test runner doctor'];
     var hasErrors = false;
 
@@ -111,6 +115,7 @@ class EnsembleTestDoctor {
     }
     ok('Found ${testFiles.length} YAML test file(s)');
 
+    var suiteConfig = const EnsembleTestConfig();
     final testConfigFile = File(p.join(testsDir.path, 'config.yaml'));
     if (testConfigFile.existsSync()) {
       final relativePath = p.relative(testConfigFile.path, from: appDir);
@@ -119,13 +124,123 @@ class EnsembleTestDoctor {
         warn('$relativePath does not reference the hosted config schema URL');
       }
       try {
-        EnsembleTestParser.parseConfigString(
+        suiteConfig = EnsembleTestParser.parseConfigString(
           content,
           sourcePath: relativePath,
         );
         ok('Found tests/config.yaml');
       } catch (failure) {
         error('$relativePath: $failure');
+      }
+    }
+
+    final executionMode = modeOverride ?? suiteConfig.mode;
+    ok('Execution mode: ${executionMode.name}');
+    if (executionMode == ExecutionMode.integration) {
+      if (suiteConfig.devices.isNotEmpty) {
+        warn(
+          'Integration mode ignores devices[].model viewport and keeps entries '
+          'whose platform matches the connected emulator/simulator; locale and '
+          'theme still apply. Other platforms are skipped.',
+        );
+      }
+      final androidProject = Directory(p.join(appDir, 'android', 'app'));
+      final iosProject = File(
+        p.join(appDir, 'ios', 'Runner.xcodeproj', 'project.pbxproj'),
+      );
+      if (!androidProject.existsSync() && !iosProject.existsSync()) {
+        error(
+          'No complete Android or iOS project found. Run '
+          '`flutter create --platforms=android,ios .` from the app root.',
+        );
+      }
+      if (androidProject.existsSync()) {
+        if (fix) {
+          final before =
+              YamlTestAppPatcher.androidDesugaringRequirementMessage(appDir);
+          if (before != null) {
+            YamlTestAppPatcher(appDir).applyAndroidDesugaringFix();
+            final after =
+                YamlTestAppPatcher.androidDesugaringRequirementMessage(appDir);
+            if (after == null) {
+              ok('Enabled Android core library desugaring');
+            } else {
+              warn(after);
+            }
+          }
+        }
+        final desugaring =
+            YamlTestAppPatcher.androidDesugaringRequirementMessage(appDir);
+        if (desugaring == null) {
+          ok('Android core library desugaring is enabled');
+        } else {
+          warn(desugaring);
+        }
+      }
+      if (iosProject.existsSync()) {
+        if (fix) {
+          final before = YamlTestAppPatcher.iosDeploymentTargetRequirementMessage(
+            appDir,
+          );
+          if (before != null) {
+            YamlTestAppPatcher(appDir).applyIosDeploymentTargetFix();
+            // Keep the raised files permanently for doctor --fix (no restore).
+            final after =
+                YamlTestAppPatcher.iosDeploymentTargetRequirementMessage(
+              appDir,
+            );
+            if (after == null) {
+              ok(
+                'Raised iOS deployment target to '
+                '${YamlTestAppPatcher.minIntegrationIosDeploymentTarget}',
+              );
+            } else {
+              warn(after);
+            }
+          }
+        }
+        _reportIosDeploymentTarget(
+          appDir: appDir,
+          ok: ok,
+          warn: warn,
+        );
+      }
+      final devicesResult = await Process.run(
+        'flutter',
+        ['devices', '--machine'],
+        workingDirectory: appDir,
+      );
+      if (devicesResult.exitCode != 0) {
+        error('Could not discover Flutter devices');
+      } else {
+        try {
+          final dynamic devices = json.decode(devicesResult.stdout.toString());
+          final supported = devices is List
+              ? devices.where((dynamic item) {
+                  if (item is! Map) return false;
+                  final platform = item['targetPlatform']?.toString() ?? '';
+                  return platform.startsWith('android') || platform == 'ios';
+                }).length
+              : 0;
+          if (supported == 0) {
+            warn(
+              'No Android or iOS emulator/simulator/device is currently connected',
+            );
+          } else {
+            ok('Found $supported supported integration target(s)');
+          }
+        } catch (_) {
+          error('flutter devices --machine returned invalid JSON');
+        }
+      }
+      if (suiteConfig.services.isNotEmpty) {
+        final adb = await Process.run('which', ['adb']);
+        if (adb.exitCode == 0) {
+          ok('Found adb for Android host-service routing');
+        } else {
+          warn(
+              'adb is not on PATH; Android host services will not be routable');
+        }
       }
     }
 
@@ -281,6 +396,29 @@ Set<String> _collectReferencedWidgetIds(dynamic steps) {
     }
   }
   return ids;
+}
+
+void _reportIosDeploymentTarget({
+  required String appDir,
+  required void Function(String message) ok,
+  required void Function(String message) warn,
+}) {
+  final message =
+      YamlTestAppPatcher.iosDeploymentTargetRequirementMessage(appDir);
+  if (message == null) {
+    final podfile = File(p.join(appDir, 'ios', 'Podfile'));
+    if (!podfile.existsSync()) {
+      ok('No iOS Podfile (skipped deployment-target check)');
+      return;
+    }
+    final match = RegExp(
+      r'''^#?\s*platform\s*:ios\s*,\s*['"]([0-9.]+)['"]''',
+      multiLine: true,
+    ).firstMatch(podfile.readAsStringSync());
+    ok('iOS deployment target is ${match?.group(1) ?? 'ok'}');
+    return;
+  }
+  warn(message);
 }
 
 Set<String> _collectKnownWidgetIds(Directory appPath) {

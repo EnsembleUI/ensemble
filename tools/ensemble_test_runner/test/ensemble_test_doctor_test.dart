@@ -84,6 +84,69 @@ steps:
       contains('Unsupported root key "unknownSetting"'),
     );
   });
+
+  test('doctor warns when integration iOS target is below 15.0', () async {
+    final dir = _createApp();
+    addTearDown(() => dir.deleteSync(recursive: true));
+    _writeTest(dir, 'login_flow.test.yaml', '''
+id: login_flow
+startScreen: Login
+steps:
+  - expectVisible:
+      id: login_button
+''');
+    File('${dir.path}/ensemble/apps/inhome/tests/config.yaml')
+        .writeAsStringSync('mode: integration\n');
+    File('${dir.path}/ios/Runner.xcodeproj/project.pbxproj')
+      ..parent.createSync(recursive: true)
+      ..writeAsStringSync('IPHONEOS_DEPLOYMENT_TARGET = 13.0;\n');
+    File('${dir.path}/ios/Podfile')
+      ..parent.createSync(recursive: true)
+      ..writeAsStringSync("# platform :ios, '13.0'\n");
+
+    final result = await EnsembleTestDoctor(dir.path).run();
+    expect(
+      result.lines.join('\n'),
+      contains('iOS deployment target is unset (defaults to 13.0)'),
+    );
+  });
+
+  test('doctor warns when integration config still has a devices matrix',
+      () async {
+    final dir = _createApp();
+    addTearDown(() => dir.deleteSync(recursive: true));
+    _writeTest(dir, 'login_flow.test.yaml', '''
+id: login_flow
+startScreen: Login
+steps:
+  - expectVisible:
+      id: login_button
+''');
+    File('${dir.path}/ensemble/apps/inhome/tests/config.yaml')
+        .writeAsStringSync('''
+mode: integration
+devices:
+  - id: iphone
+    platform: ios
+    model: iPhone 15 Pro
+  - id: android
+    platform: android
+    model: Samsung Galaxy S20
+''');
+
+    final result = await EnsembleTestDoctor(dir.path).run();
+    final output = result.lines.join('\n');
+    expect(
+      output,
+      contains(
+        '[WARN] Integration mode ignores devices[].model viewport and keeps entries',
+      ),
+    );
+    expect(
+      output,
+      isNot(contains('does not support the `devices` viewport matrix')),
+    );
+  });
 }
 
 Directory _createApp() {

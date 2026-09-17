@@ -265,9 +265,14 @@ const ensembleHtmlTestReportAppJs = r'''
     const successRate = total > 0 ? Math.round((passed / total) * 100) : 0;
     const summaryText = passed + ' passed, ' + failed + ' failed (' + total + ' total)';
     const summaryClass = failed === 0 ? 'passed' : 'failed';
+    const metadata = report.metadata || {};
+    const target = metadata.deviceName || metadata.deviceId || '';
+    const executionLabel = metadata.mode
+      ? ' · ' + metadata.mode + (target ? ' on ' + target : '')
+      : '';
 
     document.getElementById('hero-summary').className = 'summary ' + summaryClass;
-    document.getElementById('hero-summary').textContent = summaryText + ' · ' + formatDuration(displayMs);
+    document.getElementById('hero-summary').textContent = summaryText + ' · ' + formatDuration(displayMs) + executionLabel;
 
     let metrics = '';
     metrics += '<div class="metric-card"><div class="metric-val">' + total + '</div><div class="metric-label">Total Tests</div></div>';

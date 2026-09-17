@@ -50,6 +50,7 @@ class TestReportDocument {
         'totalMs': totalMs,
         'wallTimeMs': wallTimeMs ?? totalMs,
       },
+      if (result.metadata.isNotEmpty) 'metadata': result.metadata,
       'suiteArtifacts': _suiteArtifacts(
         result.suiteLogs,
         artifactRoot: artifactRoot,

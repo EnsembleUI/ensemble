@@ -1,12 +1,72 @@
+import 'dart:convert';
 import 'dart:io';
 
+import 'package:ensemble_test_runner/execution/artifact_transport.dart';
+import 'package:ensemble_test_runner/reporters/atomic_file.dart';
 import 'package:path/path.dart' as p;
+
+export 'package:ensemble_test_runner/execution/artifact_transport.dart'
+    show ensembleTestArtifactProtocolPrefix;
 
 const _artifactRoot = String.fromEnvironment('ensembleTestArtifactRoot');
 const _artifactDisplayRoot = String.fromEnvironment(
   'ensembleTestArtifactDisplayRoot',
   defaultValue: 'build/ensemble_test_runner',
 );
+const _executionMode = String.fromEnvironment(
+  'ensembleTestExecutionMode',
+  defaultValue: 'widget',
+);
+const ensembleTestProgressProtocolPrefix = 'ENSEMBLE_TEST_PROGRESS_V1:';
+
+bool get usesDeviceArtifactTransport => _executionMode == 'integration';
+
+/// Widget tests dress screenshots in a matching device bezel. Integration
+/// captures already are the real simulator/emulator display, so a stock
+/// iPhone frame would clip the UI and misplace highlights.
+bool get framesScreenshotsWithDeviceBezel => !usesDeviceArtifactTransport;
+
+abstract class EnsembleTestArtifactSink {
+  const EnsembleTestArtifactSink();
+
+  Future<void> write(
+    String relativePath,
+    List<int> bytes, {
+    required String mimeType,
+  });
+}
+
+class FileArtifactSink extends EnsembleTestArtifactSink {
+  const FileArtifactSink();
+
+  @override
+  Future<void> write(
+    String relativePath,
+    List<int> bytes, {
+    required String mimeType,
+  }) async {
+    final file = File(p.join(ensembleTestArtifactRoot, relativePath));
+    AtomicFile.writeBytesSync(file, bytes);
+  }
+}
+
+class DeviceTransportArtifactSink extends EnsembleTestArtifactSink {
+  const DeviceTransportArtifactSink();
+
+  @override
+  Future<void> write(
+    String relativePath,
+    List<int> bytes, {
+    required String mimeType,
+  }) async {
+    emitEnsembleTestArtifact(relativePath, bytes, mimeType: mimeType);
+  }
+}
+
+EnsembleTestArtifactSink get ensembleTestArtifactSink =>
+    usesDeviceArtifactTransport
+        ? const DeviceTransportArtifactSink()
+        : const FileArtifactSink();
 
 String get ensembleTestArtifactRoot =>
     _artifactRoot.isEmpty ? _artifactDisplayRoot : _artifactRoot;
@@ -17,6 +77,56 @@ Directory ensembleTestArtifactDirectory(String name) {
 
 File ensembleTestArtifactFile(String directoryName, String fileName) {
   return File(p.join(ensembleTestArtifactRoot, directoryName, fileName));
+}
+
+/// Writes an artifact locally in widget mode or transports it to the host in
+/// bounded stdout records when the suite runs on a mobile target.
+Future<void> writeEnsembleTestArtifactBytes(
+  String directoryName,
+  String fileName,
+  List<int> bytes, {
+  String mimeType = 'application/octet-stream',
+}) async {
+  await ensembleTestArtifactSink.write(
+    p.posix.join(directoryName.replaceAll('\\', '/'), fileName),
+    bytes,
+    mimeType: mimeType,
+  );
+}
+
+Future<void> writeEnsembleTestArtifactString(
+  String directoryName,
+  String fileName,
+  String contents, {
+  String mimeType = 'text/plain; charset=utf-8',
+}) =>
+    writeEnsembleTestArtifactBytes(
+      directoryName,
+      fileName,
+      utf8.encode(contents),
+      mimeType: mimeType,
+    );
+
+void emitEnsembleTestArtifact(
+  String relativePath,
+  List<int> bytes, {
+  required String mimeType,
+}) {
+  EnsembleTestArtifactEmitter.instance.emitArtifact(
+    relativePath,
+    bytes,
+    mimeType: mimeType,
+  );
+}
+
+/// Emits the run-level begin record for device→host transport.
+void emitEnsembleTestArtifactTransportBegin() {
+  EnsembleTestArtifactEmitter.instance.begin();
+}
+
+/// Emits the run-level complete record for device→host transport.
+void emitEnsembleTestArtifactTransportComplete() {
+  EnsembleTestArtifactEmitter.instance.complete();
 }
 
 String ensembleTestArtifactDisplayPath(String directoryName, String fileName) {

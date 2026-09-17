@@ -345,6 +345,12 @@ class EnsembleTestSchemaBuilder {
       'type': 'object',
       'additionalProperties': false,
       'properties': {
+        'mode': {
+          'type': 'string',
+          'enum': ['widget', 'integration'],
+          'default': 'widget',
+          'description': 'Suite execution environment.',
+        },
         'services': {
           'type': 'array',
           'items': {
@@ -405,9 +411,12 @@ class EnsembleTestSchemaBuilder {
         'devices': {
           'type': 'array',
           'description':
-              'Suite device matrix. Each test runs once per entry with that '
-                  'platform/model viewport, optional locale (APP_LOCALE), and '
-                  'optional theme (EnsembleThemeManager Light/Dark). '
+              'Suite device matrix. Widget mode expands each test once per '
+                  'entry with that platform/model viewport, optional locale '
+                  '(APP_LOCALE), and optional theme. Integration mode ignores '
+                  'viewport/model (real display) and keeps entries whose '
+                  'platform matches the connected emulator/simulator so locale '
+                  'and theme still apply; other platforms are skipped. '
                   'Each device run writes its own screenshot frames (HTML gallery).',
           'items': {'\$ref': '#/\$defs/testDevice'},
         },

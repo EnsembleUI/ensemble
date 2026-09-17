@@ -60,4 +60,72 @@ void main() {
       throwsA(isA<EnsembleTestFailure>()),
     );
   });
+
+  test('integration keeps locale/theme rows for the connected platform', () {
+    final matrix = EnsembleTestDiscovery.resolveIntegrationDeviceMatrix(
+      config,
+      platform: 'ios',
+    );
+    expect(matrix.config.devices.map((d) => d.id), ['iphone_en']);
+    expect(matrix.skipped.map((d) => d.id), ['android_nl']);
+    expect(
+      matrix.warnings.single,
+      contains('Skipping suite device(s) that do not match the connected ios'),
+    );
+    expect(matrix.warnings.single, contains('android_nl'));
+    expect(matrix.warnings.single, contains('iphone_en'));
+  });
+
+  test('integration treats iphone platform aliases as ios', () {
+    const alias = TestDeviceTarget(
+      id: 'phone',
+      platform: 'iPhone',
+      model: 'iPhone 15 Pro',
+      locale: 'en',
+    );
+    final matrix = EnsembleTestDiscovery.resolveIntegrationDeviceMatrix(
+      const EnsembleTestConfig(devices: [alias, android]),
+      platform: 'ios',
+    );
+    expect(matrix.config.devices.map((d) => d.id), ['phone']);
+  });
+
+  test('integration drops the matrix when no devices match the target', () {
+    final matrix = EnsembleTestDiscovery.resolveIntegrationDeviceMatrix(
+      const EnsembleTestConfig(devices: [android]),
+      platform: 'ios',
+    );
+    expect(matrix.config.devices, isEmpty);
+    expect(
+      matrix.warnings.single,
+      contains('No suite devices match the connected ios target'),
+    );
+  });
+
+  test('integration --device on the wrong platform fails', () {
+    expect(
+      () => EnsembleTestDiscovery.resolveIntegrationDeviceMatrix(
+        config,
+        platform: 'ios',
+        selectedIds: {'android_nl'},
+      ),
+      throwsA(
+        isA<EnsembleTestFailure>().having(
+          (e) => e.message,
+          'message',
+          contains('--device did not match the connected ios target'),
+        ),
+      ),
+    );
+  });
+
+  test('integration --device keeps matching ids and skips the rest', () {
+    final matrix = EnsembleTestDiscovery.resolveIntegrationDeviceMatrix(
+      config,
+      platform: 'ios',
+      selectedIds: {'iphone_en', 'android_nl'},
+    );
+    expect(matrix.config.devices.map((d) => d.id), ['iphone_en']);
+    expect(matrix.skipped.map((d) => d.id), ['android_nl']);
+  });
 }

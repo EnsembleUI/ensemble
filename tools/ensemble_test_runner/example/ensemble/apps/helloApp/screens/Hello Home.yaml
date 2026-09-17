@@ -8,6 +8,9 @@ View:
         - Text:
             testId: greeting_text
             text: Hello from Ensemble
+        - TextInput:
+            testId: name_input
+            label: Name
         - Button:
             testId: navigate_button
             label: Say goodbye

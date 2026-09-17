@@ -116,4 +116,38 @@ void main() {
       );
     },
   );
+
+  testWidgets(
+    'expectVisible uses painted bounds, not hit-testability',
+    (tester) async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(
+            body: IgnorePointer(
+              child: Text('Hello from Ensemble', key: ValueKey('greeting_text')),
+            ),
+          ),
+        ),
+      );
+
+      final context = EnsembleTestContext.fromTestCase(
+        const EnsembleTestCase(
+          id: 'visibility',
+          startScreen: 'Home',
+          steps: [],
+        ),
+      );
+      final assertions = AssertionEngine(tester: tester, context: context);
+
+      expect(
+        find.byKey(const ValueKey('greeting_text')).hitTestable().evaluate(),
+        isEmpty,
+      );
+      assertions.expectVisible('greeting_text');
+      expect(
+        () => assertions.expectNotVisible('greeting_text'),
+        throwsA(isA<EnsembleTestFailure>()),
+      );
+    },
+  );
 }

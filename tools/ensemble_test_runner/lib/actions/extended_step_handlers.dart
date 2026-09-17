@@ -9,6 +9,7 @@ import 'package:ensemble_test_runner/actions/test_step_executor.dart';
 import 'package:ensemble_test_runner/actions/test_theme.dart';
 import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
 import 'package:ensemble_test_runner/runner/ensemble_test_harness.dart';
+import 'package:ensemble_test_runner/runner/screenshot_capture.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
@@ -454,6 +455,12 @@ class ExtendedStepHandlers {
   }
 
   static Future<void> _setDevice(TestStepExecutor e, TestStep step) async {
+    if (e.harness.runtimeAdapter.usesPhysicalDisplay) {
+      throw EnsembleTestFailure(
+        'setDevice cannot override the simulator/emulator display in '
+        'integration mode.',
+      );
+    }
     final width = (step.args['width'] as num?)?.toDouble() ?? 390;
     final height = (step.args['height'] as num?)?.toDouble() ?? 844;
     final size = Size(width, height);
@@ -531,9 +538,13 @@ class ExtendedStepHandlers {
       );
     }
 
+    final view = renderView.flutterView;
     return layer.toImageSync(
-      renderView.paintBounds,
-      pixelRatio: renderView.flutterView.devicePixelRatio,
+      screenshotLayerBounds(
+        physicalSize: view.physicalSize,
+        paintBounds: renderView.paintBounds,
+      ),
+      pixelRatio: screenshotLayerPixelRatio,
     );
   }
 

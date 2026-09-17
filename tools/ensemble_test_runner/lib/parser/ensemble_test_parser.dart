@@ -253,6 +253,7 @@ class EnsembleTestParser {
 
   static EnsembleTestConfig _parseConfig(YamlMap node) {
     const allowedKeys = {
+      'mode',
       'services',
       'mocks',
       'profiles',
@@ -275,6 +276,7 @@ class EnsembleTestParser {
       }
     }
 
+    final modeNode = node['mode'];
     final servicesNode = node['services'];
     final mocksNode = node['mocks'];
     final profilesNode = node['profiles'];
@@ -287,6 +289,11 @@ class EnsembleTestParser {
     final logApiCallsNode = node['logApiCalls'];
     final logStorageNode = node['logStorage'];
     final wifiNode = node['wifi'];
+    if (modeNode != null &&
+        modeNode.toString() != 'widget' &&
+        modeNode.toString() != 'integration') {
+      throw EnsembleTestFailure('"mode" must be "widget" or "integration"');
+    }
     if (servicesNode != null && servicesNode is! YamlList) {
       throw EnsembleTestFailure('"services" must be a list');
     }
@@ -348,6 +355,9 @@ class EnsembleTestParser {
     final parsedProfiles = _parseProfilesConfig(profilesNode);
 
     return EnsembleTestConfig(
+      mode: modeNode?.toString() == 'integration'
+          ? ExecutionMode.integration
+          : ExecutionMode.widget,
       services: _parseServices(servicesNode),
       mockFiles: parsedMocks.files,
       inlineMocks: parsedMocks.inline,
