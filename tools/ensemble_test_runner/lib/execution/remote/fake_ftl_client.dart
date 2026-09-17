@@ -40,10 +40,11 @@ class FakeFtlClient implements FtlClient {
   Future<FtlSubmitResult> submitIosXcTest({
     required String projectId,
     required String testsZipGcs,
-    required String xctestrunGcs,
     required List<Map<String, String>> devices,
     required String clientToken,
     Map<String, String> environmentVariables = const {},
+    String? xctestrunGcs,
+    String? xcodeVersion,
   }) async {
     return _submit(
       projectId: projectId,
@@ -51,7 +52,8 @@ class FakeFtlClient implements FtlClient {
       kind: 'ios',
       payload: {
         'testsZipGcs': testsZipGcs,
-        'xctestrunGcs': xctestrunGcs,
+        if (xctestrunGcs != null) 'xctestrunGcs': xctestrunGcs,
+        if (xcodeVersion != null) 'xcodeVersion': xcodeVersion,
         'devices': devices,
         'environmentVariables': environmentVariables,
       },

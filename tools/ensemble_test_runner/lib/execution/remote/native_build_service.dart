@@ -195,8 +195,15 @@ class AndroidFtlPackager {
   static const exportRelativePath = 'ensemble_test_remote';
 
   /// Absolute on-device path baked into remote APKs via dart-define.
+  ///
+  /// Remote packages write screenshots + envelope here (not logcat). FTL
+  /// `directoriesToPull` must request this exact path.
   static const onDeviceArtifactRoot =
       '/data/local/tmp/ensemble_test_remote';
+
+  /// Secondary pull path (coverage / Download style). Written when possible.
+  static const onDeviceArtifactRootAlt =
+      '/sdcard/Download/ensemble_test_remote';
 
   final RemoteProgress? onProgress;
 
@@ -714,16 +721,37 @@ class IosFtlPackager {
     }
 
     xctestrunFiles.first.copySync(xctestrunDest);
+
+    // Fail closed if the zip cannot host XCTest (FTL then reports 0 cases).
+    final listed = await run('unzip', ['-l', zipPath]);
+    final listing = listed.stdout.toString();
+    final hasXctestBundle = listing.contains('RunnerTests.xctest');
+    final hasXctestrunInZip = listing.contains('.xctestrun');
+    if (listed.exitCode != 0 || !hasXctestBundle || !hasXctestrunInZip) {
+      return _stub(
+        identity,
+        appDir: root,
+        detail:
+            'ios_tests.zip missing RunnerTests.xctest or .xctestrun '
+            '(FTL would report 0 cases). unzip exit=${listed.exitCode}\n'
+            '$listing',
+      );
+    }
+
     onProgress?.call('iOS packages ready');
+    // testPackagePath is the same zip: FTL wants one archive (Release-iphoneos +
+    // .xctestrun), matching `gcloud firebase test ios run --test ios_tests.zip`.
     return NativeBuildArtifacts(
       identity: identity,
       appPackagePath: zipPath,
-      testPackagePath: xctestrunDest,
+      testPackagePath: zipPath,
       metadata: {
         'platform': 'ios',
         'exportHypothesis': exportHypothesis,
         'derivedData': derived,
         'xctestrun': p.basename(xctestrunFiles.first.path),
+        'xctestrunCopy': xctestrunDest,
+        'zipHasRunnerTests': 'true',
       },
     );
   }
@@ -799,6 +827,28 @@ String _formatBytes(int bytes) {
     return '${(bytes / 1024).toStringAsFixed(1)}KiB';
   }
   return '${(bytes / (1024 * 1024)).toStringAsFixed(1)}MiB';
+}
+
+/// Parses `Xcode 26.2\nBuild version ...` → `26.2`.
+String? parseXcodebuildVersionOutput(String stdout) {
+  final match = RegExp(r'^Xcode\s+(\d+(?:\.\d+)*)', multiLine: true)
+      .firstMatch(stdout);
+  return match?.group(1);
+}
+
+/// Local Xcode major.minor for FTL `IosXcTest.xcodeVersion` (must match build).
+String? detectLocalXcodeVersion() {
+  try {
+    final result = Process.runSync(
+      'xcodebuild',
+      ['-version'],
+      runInShell: true,
+    );
+    if (result.exitCode != 0) return null;
+    return parseXcodebuildVersionOutput(result.stdout.toString());
+  } catch (_) {
+    return null;
+  }
 }
 
 /// Matches `flutter_tools` [encodeDartDefines] for `-Pdart-defines=`.

@@ -359,6 +359,40 @@ remote:
       expect(cancelled.state, RemoteJobState.cancelled);
     });
 
+    test('iOS submit is zip-only (no bare xctestrun override)', () async {
+      final client = FakeFtlClient();
+      final provider = FirebaseTestLabProvider(
+        client: client,
+        projectId: 'demo',
+      );
+      final zip = File('${Directory.systemTemp.path}/ios_tests_contract.zip')
+        ..writeAsBytesSync(List<int>.filled(64, 7));
+      addTearDown(() {
+        if (zip.existsSync()) zip.deleteSync();
+      });
+      final intent = RemoteSubmitIntent(
+        runId: 'run-ios',
+        buildId: 'build-ios',
+        planHash: 'plan',
+        intentFingerprint: 'fp-ios',
+        clientToken: 'token-ios',
+        devices: const [
+          RemoteDeviceSpec(platform: 'ios', model: 'iphonese3', version: '26.3'),
+        ],
+        appPackagePath: zip.path,
+        testPackagePath: zip.path,
+        platform: 'ios',
+      );
+
+      final ref = await provider.submit(intent);
+      expect(ref.jobId, isNotEmpty);
+      expect(client.submitLog, hasLength(1));
+      final payload = client.submitLog.single;
+      expect(payload['kind'], 'ios');
+      expect(payload.containsKey('xctestrunGcs'), isFalse);
+      expect(payload['testsZipGcs'], startsWith('gs://fake-bucket/'));
+    });
+
     test('refuses oversized device matrix', () async {
       final provider = FirebaseTestLabProvider(
         client: FakeFtlClient(),
@@ -701,18 +735,18 @@ remote:
       expect(links.toMetadata()['resultsUrl'], resultsUrl);
     });
 
-    test('without resultsUrl falls back to cloud browse URL once', () {
+    test('without resultsUrl does not invent a console link', () {
       final links = FtlConsoleLinks(
         projectId: 'my-proj',
         matrixId: 'matrix-abc',
         historyId: 'hist-123',
       );
       expect(links.hasOfficialResultsUrl, isFalse);
-      expect(links.bestUrl, contains('console.cloud.google.com/test-lab'));
-      expect(links.bestUrl, contains('project=my-proj'));
+      expect(links.bestUrl, isNull);
       expect(links.logLine, contains('matrix-abc'));
-      expect(links.logLine, contains('resultsUrl not ready yet'));
-      expect(links.logLine, isNot(contains('testlab/histories/')));
+      expect(links.logLine, contains('results URL pending'));
+      expect(links.logLine, isNot(contains('https://')));
+      expect(links.toMetadata().containsKey('resultsUrl'), isFalse);
     });
 
     test('orchestrator refuses stub packages before FTL submit', () async {
@@ -801,7 +835,7 @@ remote:
         variant: 'release',
         selectedTestIds: const ['t1'],
       );
-      await IosFtlPackager().package(
+      final artifacts = await IosFtlPackager().package(
         identity: identity,
         appDir: '.',
         config: const EnsembleTestConfig(
@@ -837,9 +871,22 @@ remote:
               ..parent.createSync(recursive: true)
               ..writeAsBytesSync([1, 2, 3, 4]);
           }
+          if (exe == 'unzip') {
+            return ProcessResult(
+              0,
+              0,
+              'Release-iphoneos/\n'
+              'Release-iphoneos/RunnerTests.xctest/\n'
+              'Runner_fake.xctestrun\n',
+              '',
+            );
+          }
           return ProcessResult(0, 0, '', '');
         },
       );
+      expect(artifacts.appPackagePath, artifacts.testPackagePath);
+      expect(artifacts.metadata['stub'], isNot('true'));
+      expect(artifacts.metadata['zipHasRunnerTests'], 'true');
     } finally {
       Directory.current = previous;
     }

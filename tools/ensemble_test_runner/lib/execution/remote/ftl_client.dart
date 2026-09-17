@@ -21,10 +21,14 @@ abstract class FtlClient {
   Future<FtlSubmitResult> submitIosXcTest({
     required String projectId,
     required String testsZipGcs,
-    required String xctestrunGcs,
     required List<Map<String, String>> devices,
     required String clientToken,
     Map<String, String> environmentVariables = const {},
+    /// Optional override. Prefer omitting — Flutter packages the `.xctestrun`
+    /// inside [testsZipGcs] (same as `gcloud firebase test ios run --test zip`).
+    String? xctestrunGcs,
+    /// Must match the Xcode used to build the zip (auto-detected locally).
+    String? xcodeVersion,
   });
 
   Future<FtlJobSnapshot> getTestMatrix(String projectId, String matrixId);
@@ -250,20 +254,26 @@ class HttpFtlClient implements FtlClient {
   Future<FtlSubmitResult> submitIosXcTest({
     required String projectId,
     required String testsZipGcs,
-    required String xctestrunGcs,
     required List<Map<String, String>> devices,
     required String clientToken,
     Map<String, String> environmentVariables = const {},
+    String? xctestrunGcs,
+    String? xcodeVersion,
   }) async {
     final headers = await _authHeaders();
     final body = {
       'projectId': projectId,
       'clientInfo': {'name': 'ensemble_test_runner'},
       'testSpecification': {
-        'iosTestLoop': null,
+        // Oneof: only iosXcTest — do not send null iosTestLoop (confuses API).
         'iosXcTest': {
           'testsZip': {'gcsPath': testsZipGcs},
-          'xctestrun': {'gcsPath': xctestrunGcs},
+          // Only override when explicitly provided. A bare .xctestrun outside
+          // the zip breaks __TESTROOT__ resolution → FTL "0 test cases".
+          if (xctestrunGcs != null && xctestrunGcs.isNotEmpty)
+            'xctestrun': {'gcsPath': xctestrunGcs},
+          if (xcodeVersion != null && xcodeVersion.isNotEmpty)
+            'xcodeVersion': xcodeVersion,
         },
         'testTimeout': '1800s',
       },

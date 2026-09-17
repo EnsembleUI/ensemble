@@ -26,6 +26,7 @@ class FirebaseTestLabProvider implements RemoteProvider {
   /// Paths passed to Testing API `testSetup.directoriesToPull`.
   static const androidDirectoriesToPull = [
     AndroidFtlPackager.onDeviceArtifactRoot,
+    AndroidFtlPackager.onDeviceArtifactRootAlt,
   ];
 
   FirebaseTestLabProvider({
@@ -70,9 +71,6 @@ class FirebaseTestLabProvider implements RemoteProvider {
     final appBytes = File(intent.appPackagePath).existsSync()
         ? File(intent.appPackagePath).lengthSync()
         : 0;
-    final testBytes = File(intent.testPackagePath).existsSync()
-        ? File(intent.testPackagePath).lengthSync()
-        : 0;
 
     _log(
       'Uploading app package (${_formatBytes(appBytes)}): '
@@ -89,35 +87,52 @@ class FirebaseTestLabProvider implements RemoteProvider {
       '(${DateTime.now().toUtc().difference(uploadStarted).inSeconds}s)',
     );
 
-    _log(
-      'Uploading test package (${_formatBytes(testBytes)}): '
-      '${p.basename(intent.testPackagePath)}',
-    );
-    final testUploadStarted = DateTime.now().toUtc();
-    final testGcs = await client.uploadFile(
-      projectId: projectId,
-      localPath: intent.testPackagePath,
-      objectName: '${intent.buildId}/${p.basename(intent.testPackagePath)}',
-    );
-    _log(
-      'Uploaded test → $testGcs '
-      '(${DateTime.now().toUtc().difference(testUploadStarted).inSeconds}s)',
-    );
-
-    _log(
-      'Submitting ${intent.platform} matrix to Firebase Test Lab '
-      '(${intent.devices.length} device(s))...',
-    );
     late final FtlSubmitResult result;
     if (intent.platform == 'ios') {
+      // Flutter/gcloud FTL flow: one zip with Release-iphoneos + .xctestrun.
+      // Do not upload/pass a separate bare xctestrun (breaks __TESTROOT__).
+      final xcodeVersion = detectLocalXcodeVersion();
+      if (xcodeVersion != null) {
+        _log('Submitting iOS matrix with xcodeVersion=$xcodeVersion');
+      } else {
+        _log(
+          'WARNING: could not detect local Xcode version; FTL will use its '
+          'default (build/runtime mismatch → 0 XCTest cases)',
+        );
+      }
+      _log(
+        'Submitting ios matrix to Firebase Test Lab '
+        '(${intent.devices.length} device(s))...',
+      );
       result = await client.submitIosXcTest(
         projectId: projectId,
         testsZipGcs: appGcs,
-        xctestrunGcs: testGcs,
         devices: deviceMaps,
         clientToken: intent.clientToken,
+        xcodeVersion: xcodeVersion,
       );
     } else {
+      final testBytes = File(intent.testPackagePath).existsSync()
+          ? File(intent.testPackagePath).lengthSync()
+          : 0;
+      _log(
+        'Uploading test package (${_formatBytes(testBytes)}): '
+        '${p.basename(intent.testPackagePath)}',
+      );
+      final testUploadStarted = DateTime.now().toUtc();
+      final testGcs = await client.uploadFile(
+        projectId: projectId,
+        localPath: intent.testPackagePath,
+        objectName: '${intent.buildId}/${p.basename(intent.testPackagePath)}',
+      );
+      _log(
+        'Uploaded test → $testGcs '
+        '(${DateTime.now().toUtc().difference(testUploadStarted).inSeconds}s)',
+      );
+      _log(
+        'Submitting android matrix to Firebase Test Lab '
+        '(${intent.devices.length} device(s))...',
+      );
       result = await client.submitAndroidInstrumentation(
         projectId: projectId,
         appApkGcs: appGcs,
@@ -150,7 +165,7 @@ class FirebaseTestLabProvider implements RemoteProvider {
         historyId ??= snap.historyId;
         resultsUrl ??= snap.resultsUrl;
       } catch (_) {
-        // Keep browsing fallback; poll may discover resultsUrl later.
+        // Poll may discover resultsUrl later; do not invent a console link.
       }
     }
 
@@ -160,7 +175,6 @@ class FirebaseTestLabProvider implements RemoteProvider {
       historyId: historyId,
       resultsUrl: resultsUrl,
     );
-    _log('FTL matrix accepted: ${result.matrixId}');
     _log(links.logLine);
 
     return RemoteProviderJobRef(

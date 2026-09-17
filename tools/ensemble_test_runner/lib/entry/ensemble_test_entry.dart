@@ -128,7 +128,8 @@ Future<void> registerEnsembleYamlTests(EnsembleYamlTestOptions options) async {
           await Future<void>.delayed(Duration.zero);
         });
         if (options.mode == ExecutionMode.integration &&
-            usesDeviceArtifactTransport) {
+            usesDeviceArtifactTransport &&
+            !prefersOnDeviceFileArtifacts) {
           emitEnsembleTestArtifactTransportBegin();
         }
 
@@ -279,8 +280,12 @@ Future<void> registerEnsembleYamlTests(EnsembleYamlTestOptions options) async {
             if (storageRestoreError != null) storageRestoreError.toString(),
           ],
         );
+        // Local USB integration mirrors artifacts over logcat/stdout. Remote
+        // FTL persists files on-device for directoriesToPull — skip the logcat
+        // complete handshake there (it only adds noise / buffer pressure).
         if (options.mode == ExecutionMode.integration &&
-            usesDeviceArtifactTransport) {
+            usesDeviceArtifactTransport &&
+            !prefersOnDeviceFileArtifacts) {
           emitEnsembleTestArtifactTransportComplete();
         }
       }
@@ -384,29 +389,25 @@ void _emitRemoteRunEnvelopeIfRequested({
   writeRemoteRunEnvelopeFile(envelope);
 }
 
-/// Writes the envelope under the artifact root for FTL file collection, and
-/// also emits it via the chunked logcat artifact protocol so large envelopes
-/// survive when directoriesToPull is empty.
+/// Writes the envelope under the on-device artifact root for FTL
+/// `directoriesToPull`. Chunked logcat emission is handled separately by
+/// [emitRemoteRunEnvelope].
 void writeRemoteRunEnvelopeFile(RemoteRunEnvelope envelope) {
   final encoded = json.encode(envelope.toJson());
-  final bytes = utf8.encode(encoded);
-  try {
-    final file = File('$ensembleTestArtifactRoot/remote/envelope.json');
-    file.parent.createSync(recursive: true);
-    AtomicFile.writeStringSync(file, encoded);
-  } catch (error) {
-    stderr.writeln('Warning: could not write remote envelope file: $error');
-  }
-  if (usesDeviceArtifactTransport) {
+  final roots = <String>{
+    ensembleTestArtifactRoot,
+    // Mirror under Download so FTL can pull either allowlisted tree.
+    if (prefersOnDeviceFileArtifacts)
+      '/sdcard/Download/ensemble_test_remote',
+  };
+  for (final root in roots) {
     try {
-      emitEnsembleTestArtifact(
-        'remote/envelope.json',
-        bytes,
-        mimeType: 'application/json',
-      );
+      final file = File('$root/remote/envelope.json');
+      file.parent.createSync(recursive: true);
+      AtomicFile.writeStringSync(file, encoded);
     } catch (error) {
       stderr.writeln(
-        'Warning: could not emit remote envelope over artifact transport: $error',
+        'Warning: could not write remote envelope under $root: $error',
       );
     }
   }

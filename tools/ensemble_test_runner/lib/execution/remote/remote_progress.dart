@@ -50,25 +50,24 @@ class FtlConsoleLinks {
   String get cloudBrowseUrl =>
       'https://console.cloud.google.com/test-lab/histories?project=$projectId';
 
-  /// Best single URL to print.
-  String get bestUrl {
+  /// Best single URL to print (official results only — never invent a link).
+  String? get bestUrl {
     if (hasOfficialResultsUrl) return resultsUrl!.trim();
-    return cloudBrowseUrl;
+    return null;
   }
 
-  /// One-line log text for operators.
+  /// One-line log text for operators. Omits URLs until resultsUrl exists.
   String get logLine {
     if (hasOfficialResultsUrl) {
       return 'Open results: ${resultsUrl!.trim()}';
     }
-    return 'Open Test Lab (matrix $matrixId — resultsUrl not ready yet): '
-        '$cloudBrowseUrl';
+    return 'FTL matrix accepted: $matrixId (results URL pending)';
   }
 
   Map<String, String> toMetadata() => {
-        'consoleUrl': bestUrl,
-        'cloudBrowseUrl': cloudBrowseUrl,
+        if (hasOfficialResultsUrl) 'consoleUrl': resultsUrl!.trim(),
         if (hasOfficialResultsUrl) 'resultsUrl': resultsUrl!.trim(),
+        'cloudBrowseUrl': cloudBrowseUrl,
         if (historyId != null && historyId!.isNotEmpty) 'historyId': historyId!,
       };
 }

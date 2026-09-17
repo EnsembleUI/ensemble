@@ -47,9 +47,10 @@ abstract final class RemoteAcceptanceLedger {
           status: AcceptanceStatus.implemented,
           notes:
               'IosFtlPackager follows Flutter FTL flow (debug --config-only + '
-              'release build ios + xcodebuild build-for-testing + zip). CI pins '
-              'Xcode 26.2 (FTL’s current latest). Stub packages are refused '
-              'before submit. Cloud collect still unverified.',
+              'release build ios + xcodebuild build-for-testing + zip-only '
+              'submit). CI pins Xcode 26.2; submit auto-sends matching '
+              'xcodeVersion. Stub packages are refused before submit. Cloud '
+              'collect still unverified.',
         ),
         AcceptanceCell(
           criterion: 'Artifact export E2E (pass)',

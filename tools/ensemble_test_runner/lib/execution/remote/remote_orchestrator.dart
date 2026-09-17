@@ -217,6 +217,15 @@ class RemoteOrchestrator {
       ref,
       destinationDirectory: collectDirectory.path,
     );
+    try {
+      var fileCount = 0;
+      for (final _ in collectDirectory.listSync(recursive: true)) {
+        fileCount++;
+      }
+      _log('Collected $fileCount filesystem entrie(s) under results download');
+    } catch (_) {
+      // Best-effort diagnostics only.
+    }
 
     final hostArtifactRoot =
         p.join(appDir, 'build', 'ensemble_test_runner');
@@ -545,9 +554,6 @@ class RemoteOrchestrator {
     var delay = limits.pollInterval;
     var lastLoggedState = '';
     var loggedResultsUrl = ref.metadata['resultsUrl'] != null;
-    final projectId = ref.metadata['projectId']?.toString() ??
-        Platform.environment['ENSEMBLE_TEST_FTL_PROJECT_ID'] ??
-        '';
     final matrixId = ref.matrixId ?? ref.jobId;
 
     _log(
@@ -562,18 +568,6 @@ class RemoteOrchestrator {
           status.resultsUrl != null &&
           status.resultsUrl!.isNotEmpty) {
         _log('Open results: ${status.resultsUrl}');
-        loggedResultsUrl = true;
-      } else if (!loggedResultsUrl &&
-          status.historyId != null &&
-          status.historyId!.isNotEmpty &&
-          projectId.isNotEmpty) {
-        // resultsUrl still missing; keep browsing fallback once.
-        final links = FtlConsoleLinks(
-          projectId: projectId,
-          matrixId: matrixId,
-          historyId: status.historyId,
-        );
-        _log(links.logLine);
         loggedResultsUrl = true;
       }
       final elapsed = DateTime.now().toUtc().difference(started);

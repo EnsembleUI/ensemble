@@ -71,15 +71,10 @@ Future<void> main() async {
 
     final stub = artifacts.metadata['stub'] == 'true';
     final zipFile = File(artifacts.appPackagePath);
-    final xctestrunFile = File(artifacts.testPackagePath);
     final zipBytes = zipFile.existsSync() ? zipFile.lengthSync() : -1;
-    final xctestrunBytes =
-        xctestrunFile.existsSync() ? xctestrunFile.lengthSync() : -1;
 
     stdout.writeln('appPackage=${artifacts.appPackagePath} ($zipBytes bytes)');
-    stdout.writeln(
-      'testPackage=${artifacts.testPackagePath} ($xctestrunBytes bytes)',
-    );
+    stdout.writeln('testPackage=${artifacts.testPackagePath}');
     stdout.writeln('metadata=${artifacts.metadata}');
 
     if (stub) {
@@ -87,12 +82,16 @@ Future<void> main() async {
       exit(2);
     }
 
-    if (zipBytes < 100 * 1024) {
-      stderr.writeln('FAILED: ios_tests.zip too small ($zipBytes bytes)');
+    if (artifacts.appPackagePath != artifacts.testPackagePath) {
+      stderr.writeln(
+        'FAILED: iOS must submit one zip (app==test package); got '
+        'app=${artifacts.appPackagePath} test=${artifacts.testPackagePath}',
+      );
       exit(2);
     }
-    if (xctestrunBytes < 200) {
-      stderr.writeln('FAILED: .xctestrun empty ($xctestrunBytes bytes)');
+
+    if (zipBytes < 100 * 1024) {
+      stderr.writeln('FAILED: ios_tests.zip too small ($zipBytes bytes)');
       exit(2);
     }
 
@@ -100,16 +99,20 @@ Future<void> main() async {
     final listing = listed.stdout.toString();
     final hasRelease = listing.contains('Release-iphoneos/');
     final hasXctestrun = listing.contains('.xctestrun');
+    final hasRunnerTests = listing.contains('RunnerTests.xctest');
     stdout.writeln('zipHasReleaseIphoneos=$hasRelease');
     stdout.writeln('zipHasXctestrun=$hasXctestrun');
-    if (!hasRelease || !hasXctestrun) {
-      stderr.writeln('FAILED: zip missing Release-iphoneos or .xctestrun');
+    stdout.writeln('zipHasRunnerTests=$hasRunnerTests');
+    if (!hasRelease || !hasXctestrun || !hasRunnerTests) {
+      stderr.writeln(
+        'FAILED: zip missing Release-iphoneos, .xctestrun, or RunnerTests.xctest',
+      );
       exit(2);
     }
 
     stdout.writeln(
-      'OK: iOS FTL packages look submittable '
-      '(${(zipBytes / (1024 * 1024)).toStringAsFixed(1)}MiB zip).',
+      'OK: iOS FTL zip looks submittable '
+      '(${(zipBytes / (1024 * 1024)).toStringAsFixed(1)}MiB).',
     );
   } finally {
     patcher.restore();
