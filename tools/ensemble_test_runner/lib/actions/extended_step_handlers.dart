@@ -54,10 +54,14 @@ class ExtendedStepHandlers {
         await _selectIndex(executor, step);
         return true;
       case 'check':
-        await executor.tapWidget(executor.requireId(step));
+        await executor.checkFinder(
+          executor.assertions.finderForId(executor.requireId(step)),
+        );
         return true;
       case 'uncheck':
-        await _uncheck(executor, step);
+        await executor.uncheckFinder(
+          executor.assertions.finderForId(executor.requireId(step)),
+        );
         return true;
       case 'setSlider':
         await _setSlider(executor, step);
@@ -335,16 +339,6 @@ class ExtendedStepHandlers {
     }
     await e.tester.tap(options.at(index));
     await e.settle();
-  }
-
-  static Future<void> _uncheck(TestStepExecutor e, TestStep step) async {
-    final id = e.requireId(step);
-    try {
-      e.assertions.expectChecked(id, true);
-      await e.tapWidget(id);
-    } on EnsembleTestFailure {
-      // already unchecked
-    }
   }
 
   static Future<void> _setSlider(TestStepExecutor e, TestStep step) async {

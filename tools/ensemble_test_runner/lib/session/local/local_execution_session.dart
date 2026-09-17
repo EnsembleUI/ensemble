@@ -1,3 +1,6 @@
+import 'dart:typed_data';
+import 'dart:ui' as ui;
+
 import 'package:ensemble_test_runner/actions/extended_step_handlers.dart';
 import 'package:ensemble_test_runner/actions/test_execution_config.dart';
 import 'package:ensemble_test_runner/actions/test_step_executor.dart';
@@ -22,8 +25,9 @@ import 'package:flutter_test/flutter_test.dart';
 
 /// Local [TestExecutionSession] over [WidgetTester] + [EnsembleTestHarness].
 ///
-/// Use [LocalTestExecutionSession.attach] for suite-owned harnesses.
-/// [close] never disposes the harness or tester.
+/// - [attach]: suite-owned harness; [close] clears session-local resources only.
+/// - [standalone]: factory-owned bootstrap context; [close] also resets
+///   overlay/runtime state created for that session.
 ///
 /// Leaf UI work delegates to a shared [TestStepExecutor] (same instance the
 /// YAML runner uses for privileged/lifecycle steps and screenshot hooks).
@@ -36,19 +40,13 @@ class LocalTestExecutionSession implements TestExecutionSession {
     required this.permissions,
     required this.assertions,
     required this.executor,
+    required this.ownsBootstrap,
   })  : registry = ObservationRegistry(),
-        queue = LeafCommandQueue() {
-    resolver = FlutterTargetResolver(
-      tester: tester,
-      assertions: assertions,
-      registry: registry,
-    );
-    actionExecutor = LocalActionExecutor(
-      executor: executor,
-      resolver: resolver,
-    );
+        queue = LeafCommandQueue(),
+        _artifactStore = <String, Uint8List>{} {
     observer = FlutterUiObserver(
       tester: tester,
+      assertions: assertions,
       registry: registry,
       nextObservationId: _nextObservationId,
       currentRevision: () => _revision,
@@ -57,6 +55,16 @@ class LocalTestExecutionSession implements TestExecutionSession {
         _revision = revision;
         _lastFingerprint = fingerprint;
       },
+    );
+    resolver = FlutterTargetResolver(
+      tester: tester,
+      assertions: assertions,
+      registry: registry,
+      liveFingerprint: observer.liveFingerprintFor,
+    );
+    actionExecutor = LocalActionExecutor(
+      executor: executor,
+      resolver: resolver,
     );
   }
 
@@ -93,6 +101,30 @@ class LocalTestExecutionSession implements TestExecutionSession {
       permissions: permissions ?? SessionPermissions.yamlController,
       assertions: sharedAssertions,
       executor: sharedExecutor,
+      ownsBootstrap: false,
+    );
+  }
+
+  /// Factory-owned session (standalone create). [close] resets bootstrap state.
+  factory LocalTestExecutionSession.standalone({
+    required WidgetTester tester,
+    required EnsembleTestHarness harness,
+    required EnsembleTestContext context,
+    required AssertionEngine assertions,
+    required TestStepExecutor executor,
+    String? sessionId,
+    SessionPermissions? permissions,
+  }) {
+    return LocalTestExecutionSession._(
+      sessionId: sessionId ??
+          'standalone_${DateTime.now().microsecondsSinceEpoch}',
+      tester: tester,
+      harness: harness,
+      context: context,
+      permissions: permissions ?? SessionPermissions.restrictedUi,
+      assertions: assertions,
+      executor: executor,
+      ownsBootstrap: true,
     );
   }
 
@@ -104,10 +136,14 @@ class LocalTestExecutionSession implements TestExecutionSession {
   final EnsembleTestContext context;
   final SessionPermissions permissions;
 
+  /// True when created via [standalone] — owns overlay/runtime cleanup.
+  final bool ownsBootstrap;
+
   final AssertionEngine assertions;
   final TestStepExecutor executor;
   final ObservationRegistry registry;
   final LeafCommandQueue queue;
+  final Map<String, Uint8List> _artifactStore;
   late final FlutterTargetResolver resolver;
   late final LocalActionExecutor actionExecutor;
   late final FlutterUiObserver observer;
@@ -122,6 +158,9 @@ class LocalTestExecutionSession implements TestExecutionSession {
   static SessionCapabilities get localCapabilities => SessionCapabilities.local;
 
   String _nextObservationId() => 'obs_${_observationSeq++}';
+
+  /// PNG bytes for a previously captured [TestArtifact.artifactId], if retained.
+  Uint8List? artifactBytes(String artifactId) => _artifactStore[artifactId];
 
   void _ensureOpen() {
     if (_closed) {
@@ -192,7 +231,7 @@ class LocalTestExecutionSession implements TestExecutionSession {
       try {
         _ensureActionPermitted(action);
         if (expectedObservationId != null) {
-          final target = _actionTarget(action);
+          final target = action.primaryTarget;
           if (target != null && target.usesSnapshotElement) {
             if (target.observationId != expectedObservationId) {
               throw TestExecutionError(
@@ -262,34 +301,6 @@ class LocalTestExecutionSession implements TestExecutionSession {
       message: message,
       details: const {'source': 'TestStepExecutor'},
     );
-  }
-
-  ElementTarget? _actionTarget(TestAction action) {
-    return switch (action) {
-      TapAction(:final target) => target,
-      DoubleTapAction(:final target) => target,
-      LongPressAction(:final target) => target,
-      EnterTextAction(:final target) => target,
-      ClearTextAction(:final target) => target,
-      ReplaceTextAction(:final target) => target,
-      SubmitTextAction(:final target) => target,
-      FocusAction(:final target) => target,
-      UnfocusAction() => null,
-      SelectAction(:final target) => target,
-      SelectIndexAction(:final target) => target,
-      CheckAction(:final target) => target,
-      UncheckAction(:final target) => target,
-      ToggleAction(:final target) => target,
-      SetSliderAction(:final target) => target,
-      ScrollAction(:final target) => target,
-      ScrollUntilVisibleAction(:final target) => target,
-      SwipeAction(:final target) => target,
-      DragAction(:final target) => target,
-      PullToRefreshAction(:final target) => target,
-      ChooseDateAction(:final target) => target,
-      ChooseTimeAction(:final target) => target,
-      GenericAction() => null,
-    };
   }
 
   @override
@@ -476,16 +487,26 @@ class LocalTestExecutionSession implements TestExecutionSession {
           message: 'Unsupported artifact kind "${request.kind}".',
         );
       }
-      // Capture proves the render tree is paintable; bytes are owned by the
-      // suite screenshot pipeline. Metadata only is returned here.
       final image = ExtendedStepHandlers.captureScreenshotImage(tester);
       try {
+        final byteData = await tester.runAsync(
+          () => image.toByteData(format: ui.ImageByteFormat.png),
+        );
+        if (byteData == null) {
+          throw const TestExecutionError(
+            code: TestExecutionErrorCode.internalError,
+            message: 'Failed to encode screenshot as PNG.',
+          );
+        }
+        final bytes = byteData.buffer.asUint8List();
         final id = 'art_${sessionId}_${_actionSeq++}';
+        _artifactStore[id] = bytes;
         return TestArtifact(
           artifactId: id,
           kind: 'screenshot',
+          path: 'memory:$id',
           mimeType: 'image/png',
-          byteLength: image.width * image.height,
+          byteLength: bytes.length,
         );
       } finally {
         image.dispose();
@@ -499,6 +520,11 @@ class LocalTestExecutionSession implements TestExecutionSession {
     _closed = true;
     queue.close();
     registry.clear();
+    _artifactStore.clear();
+    if (ownsBootstrap) {
+      context.apiOverlay.resetCalls();
+      context.runtime.clear();
+    }
     // Suite-attached: do not dispose harness/tester.
   }
 }

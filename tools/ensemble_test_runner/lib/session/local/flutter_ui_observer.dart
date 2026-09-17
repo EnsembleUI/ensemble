@@ -1,11 +1,14 @@
 import 'package:ensemble/framework/screen_tracker.dart';
+import 'package:ensemble_test_runner/assertions/assertion_engine.dart';
 import 'package:ensemble_test_runner/runner/yaml_test_session.dart';
+import 'package:ensemble_test_runner/session/local/element_semantics.dart';
 import 'package:ensemble_test_runner/session/local/observable_fingerprint.dart';
 import 'package:ensemble_test_runner/session/local/observation_registry.dart';
 import 'package:ensemble_test_runner/session/observation/observation_options.dart';
 import 'package:ensemble_test_runner/session/observation/ui_element.dart';
 import 'package:ensemble_test_runner/session/observation/ui_observation.dart';
 import 'package:ensemble_test_runner/session/observation/ui_observer.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -13,6 +16,7 @@ import 'package:flutter_test/flutter_test.dart';
 class FlutterUiObserver implements UiObserver {
   FlutterUiObserver({
     required this.tester,
+    required this.assertions,
     required this.registry,
     required this.nextObservationId,
     required this.currentRevision,
@@ -22,6 +26,7 @@ class FlutterUiObserver implements UiObserver {
   });
 
   final WidgetTester tester;
+  final AssertionEngine assertions;
   final ObservationRegistry registry;
   final String Function() nextObservationId;
   final int Function() currentRevision;
@@ -50,7 +55,7 @@ class FlutterUiObserver implements UiObserver {
         break;
     }
 
-    final built = _buildElements();
+    final built = _buildElements(includeBounds: options.includeBounds);
     final screen = _screenObservation();
     final fingerprint = fingerprintForObservation(
       screen: screen,
@@ -93,6 +98,19 @@ class FlutterUiObserver implements UiObserver {
     );
   }
 
+  /// Live fingerprint for [ObservationRegistry.revalidate] — same fields as observe.
+  String liveFingerprintFor(Element element, String? testId) {
+    final ui = describeElement(
+      element: element,
+      elementId: 'live',
+      testId: testId,
+      assertions: assertions,
+      tester: tester,
+      includeBounds: true,
+    );
+    return fingerprintForElement(ui);
+  }
+
   ScreenObservation _screenObservation() {
     try {
       final tracker = ScreenTracker();
@@ -115,53 +133,46 @@ class FlutterUiObserver implements UiObserver {
   }
 
   ({List<UiElement> elements, Map<String, SnapshotElementHandle> handles})
-      _buildElements() {
+      _buildElements({required bool includeBounds}) {
     final elements = <UiElement>[];
     final handles = <String, SnapshotElementHandle>{};
     var index = 0;
 
-    for (final element in tester.allElements) {
-      final key = element.widget.key;
-      if (key is! ValueKey) continue;
-      final value = key.value;
-      if (value is! String) continue;
-      final testId = _compactTestId(value);
-      if (testId.isEmpty) continue;
+    final semantics = tester.ensureSemantics();
+    try {
+      for (final element in tester.allElements) {
+        final key = element.widget.key;
+        if (key is! ValueKey) continue;
+        final value = key.value;
+        if (value is! String) continue;
+        final testId = _compactTestId(value);
+        if (testId.isEmpty) continue;
 
-      final secure = testId.toLowerCase().contains('password') ||
-          testId.toLowerCase().contains('secret') ||
-          testId.toLowerCase().contains('pin');
-      final elementId = 'el_${index++}';
-      final uiElement = UiElement(
-        elementId: elementId,
-        testId: testId,
-        type: 'widget',
-        text: null,
-        state: UiElementState(
-          exists: true,
-          visible: true,
-          interactable: true,
-          secure: secure,
-        ),
-        bounds: null,
-        supportedActions: secure
-            ? const ['tap', 'enterText']
-            : const ['tap', 'enterText', 'clearText'],
-      );
-      elements.add(uiElement);
-      handles[elementId] = SnapshotElementHandle(
-        observationId: '',
-        elementId: elementId,
-        testId: testId,
-        element: element,
-        observableFingerprint: fingerprintForElement(uiElement),
-      );
+        final elementId = 'el_${index++}';
+        final uiElement = describeElement(
+          element: element,
+          elementId: elementId,
+          testId: testId,
+          assertions: assertions,
+          tester: tester,
+          includeBounds: includeBounds,
+        );
+        elements.add(uiElement);
+        handles[elementId] = SnapshotElementHandle(
+          observationId: '',
+          elementId: elementId,
+          testId: testId,
+          element: element,
+          observableFingerprint: fingerprintForElement(uiElement),
+        );
+      }
+    } finally {
+      semantics.dispose();
     }
 
     return (elements: elements, handles: handles);
   }
 
-  /// Rebuilds handles with the real observationId after allocation.
   Map<String, SnapshotElementHandle> rebindHandles(
     String observationId,
     Map<String, SnapshotElementHandle> handles,

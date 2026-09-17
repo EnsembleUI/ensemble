@@ -43,6 +43,11 @@ sealed class TestAction {
 
   String get type;
 
+  /// Primary UI target when the action addresses an element; null otherwise.
+  ///
+  /// Keeps session expected-observation checks from enumerating every subtype.
+  ElementTarget? get primaryTarget => null;
+
   Map<String, dynamic> toJson();
 
   static TestAction fromJson(Map<String, dynamic> json) {
@@ -160,6 +165,8 @@ class TapAction extends TestAction {
   @override
   String get type => 'tap';
   @override
+  ElementTarget? get primaryTarget => target;
+  @override
   Map<String, dynamic> toJson() => {'type': type, 'target': target.toJson()};
 }
 
@@ -168,6 +175,8 @@ class DoubleTapAction extends TestAction {
   const DoubleTapAction(this.target);
   @override
   String get type => 'doubleTap';
+  @override
+  ElementTarget? get primaryTarget => target;
   @override
   Map<String, dynamic> toJson() => {'type': type, 'target': target.toJson()};
 }
@@ -178,6 +187,8 @@ class LongPressAction extends TestAction {
   @override
   String get type => 'longPress';
   @override
+  ElementTarget? get primaryTarget => target;
+  @override
   Map<String, dynamic> toJson() => {'type': type, 'target': target.toJson()};
 }
 
@@ -187,6 +198,8 @@ class EnterTextAction extends TestAction {
   const EnterTextAction({required this.target, required this.value});
   @override
   String get type => 'enterText';
+  @override
+  ElementTarget? get primaryTarget => target;
   @override
   Map<String, dynamic> toJson() => {
         'type': type,
@@ -201,6 +214,8 @@ class ClearTextAction extends TestAction {
   @override
   String get type => 'clearText';
   @override
+  ElementTarget? get primaryTarget => target;
+  @override
   Map<String, dynamic> toJson() => {'type': type, 'target': target.toJson()};
 }
 
@@ -210,6 +225,8 @@ class ReplaceTextAction extends TestAction {
   const ReplaceTextAction({required this.target, required this.value});
   @override
   String get type => 'replaceText';
+  @override
+  ElementTarget? get primaryTarget => target;
   @override
   Map<String, dynamic> toJson() => {
         'type': type,
@@ -224,6 +241,8 @@ class SubmitTextAction extends TestAction {
   @override
   String get type => 'submitText';
   @override
+  ElementTarget? get primaryTarget => target;
+  @override
   Map<String, dynamic> toJson() => {'type': type, 'target': target.toJson()};
 }
 
@@ -232,6 +251,8 @@ class FocusAction extends TestAction {
   const FocusAction(this.target);
   @override
   String get type => 'focus';
+  @override
+  ElementTarget? get primaryTarget => target;
   @override
   Map<String, dynamic> toJson() => {'type': type, 'target': target.toJson()};
 }
@@ -252,6 +273,8 @@ class SelectAction extends TestAction {
   @override
   String get type => 'select';
   @override
+  ElementTarget? get primaryTarget => target;
+  @override
   Map<String, dynamic> toJson() => {
         'type': type,
         'target': target.toJson(),
@@ -266,6 +289,8 @@ class SelectIndexAction extends TestAction {
   @override
   String get type => 'selectIndex';
   @override
+  ElementTarget? get primaryTarget => target;
+  @override
   Map<String, dynamic> toJson() => {
         'type': type,
         'target': target.toJson(),
@@ -279,6 +304,8 @@ class CheckAction extends TestAction {
   @override
   String get type => 'check';
   @override
+  ElementTarget? get primaryTarget => target;
+  @override
   Map<String, dynamic> toJson() => {'type': type, 'target': target.toJson()};
 }
 
@@ -287,6 +314,8 @@ class UncheckAction extends TestAction {
   const UncheckAction(this.target);
   @override
   String get type => 'uncheck';
+  @override
+  ElementTarget? get primaryTarget => target;
   @override
   Map<String, dynamic> toJson() => {'type': type, 'target': target.toJson()};
 }
@@ -297,6 +326,8 @@ class ToggleAction extends TestAction {
   @override
   String get type => 'toggle';
   @override
+  ElementTarget? get primaryTarget => target;
+  @override
   Map<String, dynamic> toJson() => {'type': type, 'target': target.toJson()};
 }
 
@@ -306,6 +337,8 @@ class SetSliderAction extends TestAction {
   const SetSliderAction({required this.target, required this.value});
   @override
   String get type => 'setSlider';
+  @override
+  ElementTarget? get primaryTarget => target;
   @override
   Map<String, dynamic> toJson() => {
         'type': type,
@@ -326,6 +359,8 @@ class ScrollAction extends TestAction {
   @override
   String get type => 'scroll';
   @override
+  ElementTarget? get primaryTarget => target;
+  @override
   Map<String, dynamic> toJson() => {
         'type': type,
         if (target != null) 'target': target!.toJson(),
@@ -341,6 +376,8 @@ class ScrollUntilVisibleAction extends TestAction {
   @override
   String get type => 'scrollUntilVisible';
   @override
+  ElementTarget? get primaryTarget => target;
+  @override
   Map<String, dynamic> toJson() => {
         'type': type,
         'target': target.toJson(),
@@ -354,6 +391,8 @@ class SwipeAction extends TestAction {
   const SwipeAction({required this.direction, this.target});
   @override
   String get type => 'swipe';
+  @override
+  ElementTarget? get primaryTarget => target;
   @override
   Map<String, dynamic> toJson() => {
         'type': type,
@@ -370,6 +409,8 @@ class DragAction extends TestAction {
   @override
   String get type => 'drag';
   @override
+  ElementTarget? get primaryTarget => target;
+  @override
   Map<String, dynamic> toJson() => {
         'type': type,
         'target': target.toJson(),
@@ -384,6 +425,8 @@ class PullToRefreshAction extends TestAction {
   @override
   String get type => 'pullToRefresh';
   @override
+  ElementTarget? get primaryTarget => target;
+  @override
   Map<String, dynamic> toJson() => {
         'type': type,
         if (target != null) 'target': target!.toJson(),
@@ -396,6 +439,8 @@ class ChooseDateAction extends TestAction {
   const ChooseDateAction({required this.target, required this.value});
   @override
   String get type => 'chooseDate';
+  @override
+  ElementTarget? get primaryTarget => target;
   @override
   Map<String, dynamic> toJson() => {
         'type': type,
@@ -410,6 +455,8 @@ class ChooseTimeAction extends TestAction {
   const ChooseTimeAction({required this.target, required this.value});
   @override
   String get type => 'chooseTime';
+  @override
+  ElementTarget? get primaryTarget => target;
   @override
   Map<String, dynamic> toJson() => {
         'type': type,

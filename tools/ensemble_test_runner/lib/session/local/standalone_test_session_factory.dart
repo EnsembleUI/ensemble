@@ -70,7 +70,7 @@ class StandaloneTestSessionFactory implements TestSessionFactory {
       executionConfig: executionConfig,
     );
 
-    return LocalTestExecutionSession.attach(
+    return LocalTestExecutionSession.standalone(
       tester: tester,
       harness: harness,
       context: context,

@@ -466,6 +466,35 @@ class TestStepExecutor {
     await _settleAfterAction();
   }
 
+  /// Idempotent check — no-op when already checked (matches uncheck symmetry).
+  Future<void> checkFinder(Finder finder) async {
+    if (_finderIsChecked(finder) == true) return;
+    await toggleFinder(finder);
+  }
+
+  /// Idempotent uncheck — no-op when already unchecked.
+  Future<void> uncheckFinder(Finder finder) async {
+    if (_finderIsChecked(finder) != true) return;
+    await toggleFinder(finder);
+  }
+
+  bool? _finderIsChecked(Finder finder) {
+    if (finder.evaluate().isEmpty) return null;
+    final control = find.descendant(
+      of: finder,
+      matching: find.byWidgetPredicate(
+        (widget) =>
+            widget is Switch || widget is CupertinoSwitch || widget is Checkbox,
+      ),
+    );
+    final target = control.evaluate().isNotEmpty ? control.first : finder;
+    final widget = tester.widget(target);
+    if (widget is Switch) return widget.value;
+    if (widget is CupertinoSwitch) return widget.value;
+    if (widget is Checkbox) return widget.value;
+    return null;
+  }
+
   Future<void> selectOnFinder(Finder finder, String value) async {
     if (value.isEmpty) {
       throw EnsembleTestFailure('select requires "value"');

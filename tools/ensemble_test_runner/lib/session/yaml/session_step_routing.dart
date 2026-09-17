@@ -5,6 +5,17 @@ import 'package:ensemble_test_runner/vocabulary/test_step_vocabulary.dart';
 ///
 /// Name-level overrides handle categories that mix lifecycle and assertions
 /// (e.g. [TestStepCategory.navigation] contains both `goBack` and `expect*`).
+///
+/// ## Adding a new operation (minimal touch set)
+///
+/// 1. Register the step in [TestStepRegistry] / vocabulary (routing + caps).
+/// 2. Prefer [GenericAction] / [GenericWait] / [GenericAssertion] so YAML and
+///    session APIs reuse [TestStepExecutor] without new sealed subtypes.
+/// 3. Add a typed [TestAction] subtype only when the session API needs
+///    first-class fields; then map it in [YamlStepDispatcher] and
+///    [LocalActionExecutor] (and set [TestAction.primaryTarget]).
+///
+/// Do not invent a parallel executor — leaf work stays on [TestStepExecutor].
 abstract final class SessionStepRouting {
   SessionStepRouting._();
 

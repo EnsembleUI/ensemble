@@ -4,22 +4,30 @@ import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
 import 'package:ensemble_test_runner/session/actions/test_action.dart';
 import 'package:ensemble_test_runner/session/errors/test_execution_error.dart';
 import 'package:ensemble_test_runner/session/local/observation_registry.dart';
+import 'package:flutter/widgets.dart' show Element;
 import 'package:flutter_test/flutter_test.dart';
 
 /// Resolves [ElementTarget] for local execution.
 ///
 /// Snapshot [elementId] targets always bind to the exact cached [Element]
 /// (`identical`); they never fall back to testId / first-match.
+///
+/// Targets with [ElementTarget.occurrence] always resolve to a [Finder] so the
+/// selected match is preserved through execution.
 class FlutterTargetResolver {
   FlutterTargetResolver({
     required this.tester,
     required this.assertions,
     required this.registry,
+    this.liveFingerprint,
   });
 
   final WidgetTester tester;
   final AssertionEngine assertions;
   final ObservationRegistry registry;
+
+  /// When set, snapshot targets are revalidated against live observable state.
+  final String Function(Element element, String? testId)? liveFingerprint;
 
   /// Returns a [Finder] for the target. Snapshot targets never fall back to testId.
   Finder resolveFinder(ElementTarget target) {
@@ -34,6 +42,7 @@ class FlutterTargetResolver {
       final handle = registry.revalidate(
         observationId: observationId,
         elementId: target.elementId!,
+        liveFingerprint: liveFingerprint,
       );
       return find.byElementPredicate((e) => identical(e, handle.element));
     }
@@ -80,7 +89,8 @@ class FlutterTargetResolver {
 
   /// TestId for YAML/[TestStepExecutor.execute] dispatch only.
   ///
-  /// Throws if [target] is a snapshot elementId (must use [resolveFinder]).
+  /// Throws if [target] is a snapshot elementId or specifies [occurrence]
+  /// (those must use [resolveFinder] so identity is preserved).
   String requireTestId(ElementTarget target) {
     if (target.usesSnapshotElement) {
       throw const TestExecutionError(
@@ -88,6 +98,14 @@ class FlutterTargetResolver {
         message:
             'Snapshot elementId targets must use exact Element identity; '
             'they cannot be remapped to testId.',
+      );
+    }
+    if (target.occurrence != null) {
+      throw const TestExecutionError(
+        code: TestExecutionErrorCode.unsupportedAction,
+        message:
+            'occurrence targeting must use the resolved Finder path; '
+            'it cannot be remapped to a bare testId.',
       );
     }
     final testId = target.testId;
@@ -104,8 +122,8 @@ class FlutterTargetResolver {
 
 /// Maps [TestAction] onto [TestStepExecutor] — the single Flutter execution path.
 ///
-/// Snapshot targets use finder-based executor APIs (exact Element).
-/// testId targets use [TestStepExecutor.execute] vocabulary dispatch.
+/// Snapshot / occurrence targets use finder-based executor APIs (exact Element).
+/// Plain testId targets use [TestStepExecutor.execute] vocabulary dispatch.
 class LocalActionExecutor {
   LocalActionExecutor({
     required this.executor,
@@ -182,13 +200,13 @@ class LocalActionExecutor {
       case CheckAction(:final target):
         await _withTarget(
           target,
-          onSnapshot: executor.tapFinder,
+          onSnapshot: executor.checkFinder,
           onTestId: (id) => _step('check', {'id': id}),
         );
       case UncheckAction(:final target):
         await _withTarget(
           target,
-          onSnapshot: executor.toggleFinder,
+          onSnapshot: executor.uncheckFinder,
           onTestId: (id) => _step('uncheck', {'id': id}),
         );
       case SelectAction(:final target, :final value):
@@ -219,11 +237,13 @@ class LocalActionExecutor {
               }),
         );
       case ScrollAction(:final target, :final direction, :final distance):
-        if (target != null && target.usesSnapshotElement) {
+        if (target != null &&
+            (target.usesSnapshotElement || target.occurrence != null)) {
           throw const TestExecutionError(
             code: TestExecutionErrorCode.unsupportedAction,
             message:
-                'scroll with snapshot elementId is not supported; use testId.',
+                'scroll with snapshot/occurrence targeting is not supported; '
+                'use plain testId.',
           );
         }
         await _step('scroll', {
@@ -232,11 +252,13 @@ class LocalActionExecutor {
           if (distance != null) 'distance': distance,
         });
       case SwipeAction(:final direction, :final target):
-        if (target != null && target.usesSnapshotElement) {
+        if (target != null &&
+            (target.usesSnapshotElement || target.occurrence != null)) {
           throw const TestExecutionError(
             code: TestExecutionErrorCode.unsupportedAction,
             message:
-                'swipe with snapshot elementId is not supported; use testId.',
+                'swipe with snapshot/occurrence targeting is not supported; '
+                'use plain testId.',
           );
         }
         await _step('swipe', {
@@ -250,18 +272,20 @@ class LocalActionExecutor {
           (id) => _step('drag', {'id': id, 'dx': dx, 'dy': dy}),
         );
       case PullToRefreshAction(:final target):
-        if (target != null && target.usesSnapshotElement) {
+        if (target != null &&
+            (target.usesSnapshotElement || target.occurrence != null)) {
           throw const TestExecutionError(
             code: TestExecutionErrorCode.unsupportedAction,
             message:
-                'pullToRefresh with snapshot elementId is not supported; '
-                'use testId.',
+                'pullToRefresh with snapshot/occurrence targeting is not '
+                'supported; use plain testId.',
           );
         }
         await _step('pullToRefresh', {
           if (target != null) 'id': resolver.requireTestId(target),
         });
       case ChooseDateAction(:final target, :final value):
+        // Matches ExtendedStepHandlers chooseDate (enterTextOn).
         await _withTarget(
           target,
           onSnapshot: (finder) =>
@@ -269,6 +293,7 @@ class LocalActionExecutor {
           onTestId: (id) => _step('chooseDate', {'id': id, 'value': value}),
         );
       case ChooseTimeAction(:final target, :final value):
+        // Matches ExtendedStepHandlers chooseTime (enterTextOn).
         await _withTarget(
           target,
           onSnapshot: (finder) =>
@@ -280,12 +305,13 @@ class LocalActionExecutor {
     }
   }
 
+  /// Snapshot elementId and occurrence targets keep the resolved Finder.
   Future<void> _withTarget(
     ElementTarget target, {
     required Future<void> Function(Finder finder) onSnapshot,
     required Future<void> Function(String id) onTestId,
   }) async {
-    if (target.usesSnapshotElement) {
+    if (target.usesSnapshotElement || target.occurrence != null) {
       await onSnapshot(resolver.resolveFinder(target));
       return;
     }
@@ -297,11 +323,12 @@ class LocalActionExecutor {
     String actionName,
     Future<void> Function(String id) onTestId,
   ) async {
-    if (target.usesSnapshotElement) {
+    if (target.usesSnapshotElement || target.occurrence != null) {
       throw TestExecutionError(
         code: TestExecutionErrorCode.unsupportedAction,
         message:
-            '$actionName with snapshot elementId is not supported; use testId.',
+            '$actionName with snapshot/occurrence targeting is not supported; '
+            'use plain testId.',
       );
     }
     await onTestId(resolver.requireTestId(target));
