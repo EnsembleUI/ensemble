@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:crypto/crypto.dart';
 import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
@@ -272,25 +273,134 @@ String computePlanHash({
 /// Protocol prefix for stdout/logcat envelope records (local proof + fallback).
 const ensembleTestRemoteEnvelopePrefix = 'ENSEMBLE_TEST_REMOTE_ENVELOPE_V1:';
 
+/// Raw UTF-8 bytes per envelope logcat chunk (same budget as artifact chunks).
+const ensembleTestRemoteEnvelopeRawChunkSize = 2048;
+
 void emitRemoteRunEnvelope(RemoteRunEnvelope envelope) {
+  final payload = Uint8List.fromList(utf8.encode(json.encode(envelope.toJson())));
+  // Legacy single-line form fits small envelopes; large ones exceed Android's
+  // ~4 KiB logcat limit and truncate mid-JSON. Always use chunked records.
+  final digest = sha256.convert(payload).toString();
+  _printEnvelopeRecord({
+    'event': 'start',
+    'size': payload.length,
+    'sha256': digest,
+  });
+  for (var offset = 0;
+      offset < payload.length;
+      offset += ensembleTestRemoteEnvelopeRawChunkSize) {
+    final end = offset + ensembleTestRemoteEnvelopeRawChunkSize < payload.length
+        ? offset + ensembleTestRemoteEnvelopeRawChunkSize
+        : payload.length;
+    _printEnvelopeRecord({
+      'event': 'chunk',
+      'data': base64Encode(payload.sublist(offset, end)),
+    });
+  }
+  _printEnvelopeRecord({'event': 'end'});
+}
+
+void _printEnvelopeRecord(Map<String, dynamic> record) {
   // ignore: avoid_print
-  print('$ensembleTestRemoteEnvelopePrefix${json.encode(envelope.toJson())}');
+  print('$ensembleTestRemoteEnvelopePrefix${json.encode(record)}');
 }
 
 RemoteRunEnvelope? parseRemoteRunEnvelopeFromOutput(String output) {
+  // Prefer reassembled chunked protocol (survives logcat line limits).
+  final chunked = _parseChunkedRemoteRunEnvelope(output);
+  if (chunked != null) return chunked;
+
+  // Legacy: single-line full JSON after the prefix.
   for (final line in output.split('\n')) {
     final trimmed = line.trim();
     final idx = trimmed.indexOf(ensembleTestRemoteEnvelopePrefix);
     if (idx < 0) continue;
     final payload =
         trimmed.substring(idx + ensembleTestRemoteEnvelopePrefix.length);
+    if (!payload.trimLeft().startsWith('{')) continue;
+    // Chunked events also start with `{` but have an "event" field.
     try {
       final decoded = json.decode(payload);
-      if (decoded is Map) {
+      if (decoded is Map && decoded['event'] == null && decoded['runId'] != null) {
         return RemoteRunEnvelope.fromJson(Map<String, dynamic>.from(decoded));
       }
     } catch (_) {
-      // Keep scanning.
+      // Truncated or unrelated; keep scanning.
+    }
+  }
+  return null;
+}
+
+RemoteRunEnvelope? _parseChunkedRemoteRunEnvelope(String output) {
+  var expecting = false;
+  int? expectedSize;
+  String? expectedHash;
+  final chunks = BytesBuilder(copy: false);
+
+  for (final line in output.split('\n')) {
+    final trimmed = line.trim();
+    final idx = trimmed.indexOf(ensembleTestRemoteEnvelopePrefix);
+    if (idx < 0) continue;
+    final payload =
+        trimmed.substring(idx + ensembleTestRemoteEnvelopePrefix.length);
+    Map<String, dynamic> record;
+    try {
+      final decoded = json.decode(payload);
+      if (decoded is! Map) continue;
+      record = Map<String, dynamic>.from(decoded);
+    } catch (_) {
+      continue;
+    }
+    final event = record['event']?.toString();
+    switch (event) {
+      case 'start':
+        expecting = true;
+        chunks.clear();
+        expectedSize = record['size'] is int ? record['size'] as int : null;
+        expectedHash = record['sha256']?.toString();
+        break;
+      case 'chunk':
+        if (!expecting) break;
+        final data = record['data']?.toString();
+        if (data == null || data.isEmpty) break;
+        try {
+          chunks.add(base64Decode(data));
+        } catch (_) {
+          expecting = false;
+          chunks.clear();
+        }
+        break;
+      case 'end':
+        if (!expecting) break;
+        expecting = false;
+        final bytes = chunks.takeBytes();
+        chunks.clear();
+        if (expectedSize != null && bytes.length != expectedSize) {
+          expectedSize = null;
+          expectedHash = null;
+          break;
+        }
+        if (expectedHash != null && expectedHash.isNotEmpty) {
+          final actual = sha256.convert(bytes).toString();
+          if (actual != expectedHash) {
+            expectedSize = null;
+            expectedHash = null;
+            break;
+          }
+        }
+        try {
+          final decoded = json.decode(utf8.decode(bytes));
+          if (decoded is Map) {
+            return RemoteRunEnvelope.fromJson(
+              Map<String, dynamic>.from(decoded),
+            );
+          }
+        } catch (_) {
+          // Keep scanning for another transfer.
+        }
+        expectedSize = null;
+        expectedHash = null;
+        break;
     }
   }
   return null;

@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:crypto/crypto.dart';
 import 'package:ensemble_test_runner/cli/ensemble_test_cli.dart';
 import 'package:ensemble_test_runner/execution/remote/acceptance_ledger.dart';
 import 'package:ensemble_test_runner/execution/remote/fake_ftl_client.dart';
@@ -184,10 +185,53 @@ remote:
       expect(decoded.cleanupErrors, ['restore failed']);
       expect(decoded.complete, isTrue);
 
+      // Legacy single-line still parses.
       final output =
           'noise\n$ensembleTestRemoteEnvelopePrefix${json.encode(envelope.toJson())}\n';
       final parsed = parseRemoteRunEnvelopeFromOutput(output);
       expect(parsed?.runId, 'run-1');
+    });
+
+    test('chunked envelope protocol round-trips large payloads', () {
+      final bigNote = 'x' * 6000;
+      final envelope = RemoteRunEnvelope(
+        runId: 'chunked-run',
+        complete: true,
+        results: EnsembleTestRunResult(
+          results: const [],
+          suiteLogs: [bigNote],
+        ),
+      );
+      final payload = utf8.encode(json.encode(envelope.toJson()));
+      final digest = sha256.convert(payload).toString();
+      final lines = <String>[
+        '$ensembleTestRemoteEnvelopePrefix${json.encode({
+          'event': 'start',
+          'size': payload.length,
+          'sha256': digest,
+        })}',
+      ];
+      for (var offset = 0;
+          offset < payload.length;
+          offset += ensembleTestRemoteEnvelopeRawChunkSize) {
+        final end =
+            offset + ensembleTestRemoteEnvelopeRawChunkSize < payload.length
+                ? offset + ensembleTestRemoteEnvelopeRawChunkSize
+                : payload.length;
+        lines.add(
+          '$ensembleTestRemoteEnvelopePrefix${json.encode({
+            'event': 'chunk',
+            'data': base64Encode(payload.sublist(offset, end)),
+          })}',
+        );
+      }
+      lines.add(
+        '$ensembleTestRemoteEnvelopePrefix${json.encode({'event': 'end'})}',
+      );
+
+      final parsed = parseRemoteRunEnvelopeFromOutput(lines.join('\n'));
+      expect(parsed?.runId, 'chunked-run');
+      expect(parsed?.results?.suiteLogs.single, bigNote);
     });
   });
 

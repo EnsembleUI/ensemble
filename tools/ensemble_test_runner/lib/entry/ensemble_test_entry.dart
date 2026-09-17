@@ -384,14 +384,31 @@ void _emitRemoteRunEnvelopeIfRequested({
   writeRemoteRunEnvelopeFile(envelope);
 }
 
-/// Writes the envelope under the artifact root for FTL file collection.
+/// Writes the envelope under the artifact root for FTL file collection, and
+/// also emits it via the chunked logcat artifact protocol so large envelopes
+/// survive when directoriesToPull is empty.
 void writeRemoteRunEnvelopeFile(RemoteRunEnvelope envelope) {
+  final encoded = json.encode(envelope.toJson());
+  final bytes = utf8.encode(encoded);
   try {
     final file = File('$ensembleTestArtifactRoot/remote/envelope.json');
     file.parent.createSync(recursive: true);
-    AtomicFile.writeStringSync(file, json.encode(envelope.toJson()));
+    AtomicFile.writeStringSync(file, encoded);
   } catch (error) {
     stderr.writeln('Warning: could not write remote envelope file: $error');
+  }
+  if (usesDeviceArtifactTransport) {
+    try {
+      emitEnsembleTestArtifact(
+        'remote/envelope.json',
+        bytes,
+        mimeType: 'application/json',
+      );
+    } catch (error) {
+      stderr.writeln(
+        'Warning: could not emit remote envelope over artifact transport: $error',
+      );
+    }
   }
 }
 

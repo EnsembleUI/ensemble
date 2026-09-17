@@ -228,14 +228,18 @@ class RemoteOrchestrator {
     final status = await provider.getStatus(ref);
     final devices = <ReconciledDeviceResult>[];
     if (status.devices.isEmpty) {
-      final envelope = RemoteReportReconciler.loadEnvelope(collectDirectory);
+      final envelope = _loadEnvelopePreferringHost(
+        collectDirectory: collectDirectory,
+        hostArtifactRoot: hostArtifactRoot,
+      );
       _canonicalizeEnvelope(collectDirectory, envelope);
+      _canonicalizeEnvelope(Directory(hostArtifactRoot), envelope);
       devices.add(
         RemoteReportReconciler.reconcile(
           deviceKey: 'primary',
           nativeOutcome: status.detail ?? 'SUCCESS',
           envelope: envelope,
-          artifactDirectory: collectDirectory,
+          artifactDirectory: Directory(hostArtifactRoot),
         ),
       );
     } else {
@@ -243,14 +247,18 @@ class RemoteOrchestrator {
         final deviceDir = collected.deviceDirectories[entry.key] != null
             ? Directory(collected.deviceDirectories[entry.key]!)
             : collectDirectory;
-        final envelope = RemoteReportReconciler.loadEnvelope(deviceDir);
+        final envelope = _loadEnvelopePreferringHost(
+          collectDirectory: deviceDir,
+          hostArtifactRoot: hostArtifactRoot,
+        );
         _canonicalizeEnvelope(deviceDir, envelope);
+        _canonicalizeEnvelope(Directory(hostArtifactRoot), envelope);
         devices.add(
           RemoteReportReconciler.reconcile(
             deviceKey: entry.key,
             nativeOutcome: entry.value.nativeOutcome ?? status.detail,
             envelope: envelope,
-            artifactDirectory: deviceDir,
+            artifactDirectory: Directory(hostArtifactRoot),
           ),
         );
       }
@@ -294,6 +302,15 @@ class RemoteOrchestrator {
       'exit=${report.exitCode}',
     );
     return report;
+  }
+
+  /// Prefer pulled/on-device envelope, then host tree after logcat materialize.
+  static RemoteRunEnvelope? _loadEnvelopePreferringHost({
+    required Directory collectDirectory,
+    required String hostArtifactRoot,
+  }) {
+    return RemoteReportReconciler.loadEnvelope(collectDirectory) ??
+        RemoteReportReconciler.loadEnvelope(Directory(hostArtifactRoot));
   }
 
   /// Copies pulled on-device files and materializes logcat artifact chunks into
