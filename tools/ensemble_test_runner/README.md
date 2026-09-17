@@ -134,10 +134,18 @@ logStorage:
 ### Remote execution (Firebase Test Lab)
 
 Integration suites can target Firebase Test Lab with `target: remote` /
-`--target=remote`. See [`doc/REMOTE_EXECUTION.md`](doc/REMOTE_EXECUTION.md) and
+`--target=remote`. One-time GCP setup:
+
+```bash
+dart run ensemble_test_runner:ensemble_test remote setup \
+  --gcp-project=my-gcp-project --repo=Owner/repo
+```
+
+Paste the printed CI values into your platform (GitHub Actions `vars`, etc.).
+See [`doc/REMOTE_EXECUTION.md`](doc/REMOTE_EXECUTION.md) and
 [`doc/ACCEPTANCE.md`](doc/ACCEPTANCE.md). Cloud collect stays **unverified**
-until real FTL credentials prove packaging + artifacts; fake-provider tests
-alone are never production-ready.
+until real FTL runs prove packaging + artifacts; fake-provider tests alone are
+never production-ready.
 
 `mocks` and `initialState` in `config.yaml` apply to every test. Test-file
 `mocks` / `initialState` values override suite values for the same API name or

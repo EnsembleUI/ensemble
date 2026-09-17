@@ -10,6 +10,7 @@ import 'package:ensemble_test_runner/execution/execution_backend.dart';
 import 'package:ensemble_test_runner/execution/host_address.dart';
 import 'package:ensemble_test_runner/execution/remote/remote_suite_validator.dart';
 import 'package:ensemble_test_runner/execution/remote/remote_orchestrator.dart';
+import 'package:ensemble_test_runner/execution/remote/setup/remote_admin_cli.dart';
 import 'package:ensemble_test_runner/cli/ensemble_test_doctor.dart';
 import 'package:ensemble_test_runner/cli/ensemble_test_cli_output.dart';
 import 'package:ensemble_test_runner/cli/yaml_test_app_patcher.dart';
@@ -77,7 +78,15 @@ String _suiteEncryptionKey(List<String> arguments) {
 ///   --jobs=<n|auto>    Concurrent jobs (default: adaptive CPU/memory; 1 disables)
 ///   --timeout=<duration> Test suite timeout, e.g. 30s, 5m, 1h (default: 10m)
 ///   --verbose          Full `flutter pub get` / `flutter test` output
+///
+/// Subcommands:
+///   remote doctor|setup  Firebase Test Lab GCP setup (see `remote help`)
 Future<void> runEnsembleYamlTestsCli(List<String> arguments) async {
+  if (arguments.isNotEmpty && arguments.first == 'remote') {
+    await runRemoteAdminCli(arguments.skip(1).toList());
+    return;
+  }
+
   final verbose = isVerboseCli(arguments);
   final quiet = arguments.contains('--quiet');
   final reportMode = _resolveReportMode(arguments);

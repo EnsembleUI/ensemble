@@ -12,8 +12,9 @@ on:
         type: boolean
         default: true
 
-# Durable run state must live in GCS (ENSEMBLE_TEST_REMOTE_STORE_GCS_BUCKET).
-# GitHub Actions artifacts are for reports/checkpoints only — never CAS.
+# Configure vars via `ensemble_test remote setup` printed CI block (paste into
+# GitHub Actions variables). Durable run state lives in GCS
+# (ENSEMBLE_TEST_REMOTE_STORE_GCS_BUCKET). GHA artifacts are checkpoints only.
 
 jobs:
   remote-ftl:
@@ -29,35 +30,56 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Require remote CI variables
+        run: |
+          missing=0
+          for name in \
+            ENSEMBLE_TEST_FTL_PROJECT_ID \
+            ENSEMBLE_TEST_FTL_RESULTS_BUCKET \
+            ENSEMBLE_TEST_REMOTE_STORE_GCS_BUCKET \
+            ENSEMBLE_TEST_GCP_WIF_PROVIDER \
+            ENSEMBLE_TEST_GCP_SERVICE_ACCOUNT
+          do
+            if [ -z "${!name}" ]; then
+              echo "Missing required variable: $name"
+              missing=1
+            fi
+          done
+          if [ "$missing" -ne 0 ]; then
+            echo "Run: dart run ensemble_test_runner:ensemble_test remote setup --gcp-project=... --repo=Owner/name"
+            echo "Then paste the printed values into GitHub Actions repository variables."
+            exit 1
+          fi
+        env:
+          ENSEMBLE_TEST_GCP_WIF_PROVIDER: ${{ secrets.ENSEMBLE_TEST_GCP_WIF_PROVIDER }}
+          ENSEMBLE_TEST_GCP_SERVICE_ACCOUNT: ${{ secrets.ENSEMBLE_TEST_GCP_SERVICE_ACCOUNT }}
+
       - uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.47.2'
           channel: 'stable'
           cache: true
 
-      - name: Bootstrap test runner
-        working-directory: tools/ensemble_test_runner
-        run: flutter pub get
-
-      - name: Unit + contract tests (no cloud required)
-        working-directory: tools/ensemble_test_runner
-        run: flutter test test/remote_execution_test.dart
-
       - name: Authenticate to Google Cloud
-        if: ${{ env.ENSEMBLE_TEST_FTL_PROJECT_ID != '' }}
         uses: google-github-actions/auth@v2
         with:
           workload_identity_provider: ${{ secrets.ENSEMBLE_TEST_GCP_WIF_PROVIDER }}
           service_account: ${{ secrets.ENSEMBLE_TEST_GCP_SERVICE_ACCOUNT }}
 
-      - name: Remote suite (unverified without secrets)
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Bootstrap test runner
+        working-directory: tools/ensemble_test_runner
+        run: flutter pub get
+
+      - name: Unit + contract tests
+        working-directory: tools/ensemble_test_runner
+        run: flutter test test/remote_execution_test.dart test/remote_setup_test.dart
+
+      - name: Remote suite
         working-directory: tools/ensemble_test_runner/example
-        continue-on-error: true
         run: |
-          if [ -z "$ENSEMBLE_TEST_FTL_PROJECT_ID" ]; then
-            echo "No FTL project secret — cloud collect remains unverified."
-            exit 0
-          fi
           dart run ensemble_test_runner:ensemble_test \
             --target=remote \
             --remote-platform=${{ inputs.platform }} \
