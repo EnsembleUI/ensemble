@@ -20,13 +20,18 @@ class ChartJsState extends ChartJsStateBase {
       return const Text("");
     }
 
+    final configExpr = ChartUtils.buildSafeChartConfigExpression(
+      widget.controller.config.toString(),
+      configFromMap: widget.controller.configFromMap,
+    );
+
     jsWidget = JsWidget(
       id: widget.controller.id!,
       createHtmlTag: () =>
           '<div id="${widget.controller.chartDiv}"><canvas id="${widget.controller.chartId}"></canvas></div>',
       scriptToInstantiate: (String c) => '''
         if (typeof ${widget.controller.chartVar} !== "undefined") ${widget.controller.chartVar}.destroy();
-        ${widget.controller.chartVar} = new Chart(document.getElementById("${widget.controller.chartId}"), $c);
+        ${widget.controller.chartVar} = new Chart(document.getElementById("${widget.controller.chartId}"), $configExpr);
         ${widget.controller.chartVar}.update();
         
         document.getElementById("${widget.controller.chartId}").onclick = function(event) {
