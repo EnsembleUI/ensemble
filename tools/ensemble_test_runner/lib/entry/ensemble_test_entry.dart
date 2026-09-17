@@ -107,6 +107,7 @@ Future<void> registerEnsembleYamlTests(EnsembleYamlTestOptions options) async {
       Object? suiteError;
       StackTrace? suiteStackTrace;
       Object? storageRestoreError;
+      EnsembleTestRunResult? suiteRunResult;
 
       try {
         if (options.bootstrap == null) {
@@ -191,6 +192,7 @@ Future<void> registerEnsembleYamlTests(EnsembleYamlTestOptions options) async {
           suiteLogs: suiteLogs,
           metadata: _runMetadata(options.mode),
         );
+        suiteRunResult = runResult;
         if (options.mode == ExecutionMode.widget &&
             !isEnsembleTestParallelWorker()) {
           if (await _recordHistory(runResult)) {
@@ -200,6 +202,7 @@ Future<void> registerEnsembleYamlTests(EnsembleYamlTestOptions options) async {
               suiteLogs: suiteLogs,
               metadata: _runMetadata(options.mode),
             );
+            suiteRunResult = runResult;
           }
         }
         if (options.mode == ExecutionMode.widget &&
@@ -256,6 +259,7 @@ Future<void> registerEnsembleYamlTests(EnsembleYamlTestOptions options) async {
             suiteLogs: const [],
             metadata: _runMetadata(options.mode),
           );
+          suiteRunResult = runResult;
           emitMachineReport(runResult);
         }
       } finally {
@@ -267,6 +271,14 @@ Future<void> registerEnsembleYamlTests(EnsembleYamlTestOptions options) async {
             'Failed to restore pre-suite storage at suite end: $error',
           );
         }
+        // Envelope is emitted only after storage restore attempt so cleanup
+        // failures are visible to remote collectors (never before cleanup).
+        _emitRemoteRunEnvelopeIfRequested(
+          results: suiteRunResult,
+          cleanupErrors: [
+            if (storageRestoreError != null) storageRestoreError.toString(),
+          ],
+        );
         if (options.mode == ExecutionMode.integration &&
             usesDeviceArtifactTransport) {
           emitEnsembleTestArtifactTransportComplete();
@@ -331,6 +343,56 @@ Map<String, dynamic> _runMetadata(ExecutionMode mode) {
     if (platform.isNotEmpty) 'platform': platform,
     if (deviceName.isNotEmpty) 'deviceName': deviceName,
   };
+}
+
+/// Emits [RemoteRunEnvelope] after suite cleanup when dart-defines request it.
+///
+/// Always runs after [EnsembleTestHarness.restorePreSuiteStorageAtSuiteEnd]
+/// so [cleanupErrors] reflect restore outcomes. Local integration can enable
+/// this for proof; remote packages always set the defines at build time.
+void _emitRemoteRunEnvelopeIfRequested({
+  required EnsembleTestRunResult? results,
+  required List<String> cleanupErrors,
+}) {
+  const emit = bool.fromEnvironment('ensembleTestEmitRemoteEnvelope');
+  const runId = String.fromEnvironment('ensembleTestRemoteRunId');
+  if (!emit && runId.isEmpty) return;
+
+  final envelope = RemoteRunEnvelope(
+    runId: runId.isEmpty ? 'local-${DateTime.now().toUtc().toIso8601String()}' : runId,
+    deviceExecutionId:
+        const String.fromEnvironment('ensembleTestRemoteDeviceExecutionId')
+                .isEmpty
+            ? null
+            : const String.fromEnvironment(
+                'ensembleTestRemoteDeviceExecutionId',
+              ),
+    planHash: const String.fromEnvironment('ensembleTestRemotePlanHash').isEmpty
+        ? null
+        : const String.fromEnvironment('ensembleTestRemotePlanHash'),
+    buildId: const String.fromEnvironment('ensembleTestRemoteBuildId').isEmpty
+        ? null
+        : const String.fromEnvironment('ensembleTestRemoteBuildId'),
+    results: results,
+    cleanupErrors: cleanupErrors,
+    complete: true,
+    metadata: {
+      'emittedAfterCleanup': true,
+    },
+  );
+  emitRemoteRunEnvelope(envelope);
+  writeRemoteRunEnvelopeFile(envelope);
+}
+
+/// Writes the envelope under the artifact root for FTL file collection.
+void writeRemoteRunEnvelopeFile(RemoteRunEnvelope envelope) {
+  try {
+    final file = File('$ensembleTestArtifactRoot/remote/envelope.json');
+    file.parent.createSync(recursive: true);
+    AtomicFile.writeStringSync(file, json.encode(envelope.toJson()));
+  } catch (error) {
+    stderr.writeln('Warning: could not write remote envelope file: $error');
+  }
 }
 
 Future<bool> _recordHistory(EnsembleTestRunResult result) async {

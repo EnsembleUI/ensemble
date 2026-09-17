@@ -1,0 +1,75 @@
+name: Ensemble Test Runner Remote FTL
+
+on:
+  workflow_dispatch:
+    inputs:
+      platform:
+        description: 'android or ios'
+        required: true
+        default: 'android'
+      wait_for_completion:
+        description: 'Poll FTL until done'
+        type: boolean
+        default: true
+
+# Durable run state must live in GCS (ENSEMBLE_TEST_REMOTE_STORE_GCS_BUCKET).
+# GitHub Actions artifacts are for reports/checkpoints only — never CAS.
+
+jobs:
+  remote-ftl:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      ENSEMBLE_TEST_FTL_PROJECT_ID: ${{ secrets.ENSEMBLE_TEST_FTL_PROJECT_ID }}
+      ENSEMBLE_TEST_FTL_RESULTS_BUCKET: ${{ secrets.ENSEMBLE_TEST_FTL_RESULTS_BUCKET }}
+      ENSEMBLE_TEST_REMOTE_STORE_GCS_BUCKET: ${{ secrets.ENSEMBLE_TEST_REMOTE_STORE_GCS_BUCKET }}
+      ENSEMBLE_TEST_REMOTE_STORE_PREFIX: ensemble-test-remote-runs
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.47.2'
+          channel: 'stable'
+          cache: true
+
+      - name: Bootstrap test runner
+        working-directory: tools/ensemble_test_runner
+        run: flutter pub get
+
+      - name: Unit + contract tests (no cloud required)
+        working-directory: tools/ensemble_test_runner
+        run: flutter test test/remote_execution_test.dart
+
+      - name: Authenticate to Google Cloud
+        if: ${{ env.ENSEMBLE_TEST_FTL_PROJECT_ID != '' }}
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.ENSEMBLE_TEST_GCP_WIF_PROVIDER }}
+          service_account: ${{ secrets.ENSEMBLE_TEST_GCP_SERVICE_ACCOUNT }}
+
+      - name: Remote suite (unverified without secrets)
+        working-directory: tools/ensemble_test_runner/example
+        continue-on-error: true
+        run: |
+          if [ -z "$ENSEMBLE_TEST_FTL_PROJECT_ID" ]; then
+            echo "No FTL project secret — cloud collect remains unverified."
+            exit 0
+          fi
+          dart run ensemble_test_runner:ensemble_test \
+            --target=remote \
+            --remote-platform=${{ inputs.platform }} \
+            --app-dir=.
+
+      - name: Upload remote reports (checkpoint only)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ensemble-remote-reports
+          path: |
+            tools/ensemble_test_runner/example/build/ensemble_test_runner/remote/**
+            tools/ensemble_test_runner/example/build/ensemble_test_runner/remote_runs/**
+          if-no-files-found: ignore
+          retention-days: 14

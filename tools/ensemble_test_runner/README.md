@@ -131,6 +131,14 @@ logStorage:
   enabled: true
 ```
 
+### Remote execution (Firebase Test Lab)
+
+Integration suites can target Firebase Test Lab with `target: remote` /
+`--target=remote`. See [`doc/REMOTE_EXECUTION.md`](doc/REMOTE_EXECUTION.md) and
+[`doc/ACCEPTANCE.md`](doc/ACCEPTANCE.md). Cloud collect stays **unverified**
+until real FTL credentials prove packaging + artifacts; fake-provider tests
+alone are never production-ready.
+
 `mocks` and `initialState` in `config.yaml` apply to every test. Test-file
 `mocks` / `initialState` values override suite values for the same API name or
 storage/secureStorage/keychain/env key. `storage`, `secureStorage`, and

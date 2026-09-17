@@ -1,0 +1,569 @@
+import 'dart:convert';
+import 'dart:io';
+
+import 'package:ensemble_test_runner/cli/ensemble_test_cli.dart';
+import 'package:ensemble_test_runner/execution/remote/acceptance_ledger.dart';
+import 'package:ensemble_test_runner/execution/remote/fake_ftl_client.dart';
+import 'package:ensemble_test_runner/execution/remote/file_remote_run_store.dart';
+import 'package:ensemble_test_runner/execution/remote/firebase_test_lab_provider.dart';
+import 'package:ensemble_test_runner/execution/remote/native_build_service.dart';
+import 'package:ensemble_test_runner/execution/remote/remote_models.dart';
+import 'package:ensemble_test_runner/execution/remote/remote_orchestrator.dart';
+import 'package:ensemble_test_runner/execution/remote/remote_provider.dart';
+import 'package:ensemble_test_runner/execution/remote/remote_report_reconciler.dart';
+import 'package:ensemble_test_runner/execution/remote/remote_run_store.dart';
+import 'package:ensemble_test_runner/execution/remote/remote_suite_validator.dart';
+import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
+import 'package:ensemble_test_runner/parser/ensemble_test_parser.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:path/path.dart' as p;
+
+void main() {
+  group('ExecutionTarget + config', () {
+    test('parses target and remote block', () {
+      final config = EnsembleTestParser.parseConfigString('''
+mode: integration
+target: remote
+remote:
+  provider: firebaseTestLab
+  projectId: demo-proj
+  devices:
+    - model: Pixel2
+      version: "30"
+      locale: en
+      orientation: portrait
+  endpoints:
+    - name: fixture
+      url: https://example.com/mock
+''');
+      expect(config.mode, ExecutionMode.integration);
+      expect(config.target, ExecutionTarget.remote);
+      expect(config.remote?.provider, 'firebaseTestLab');
+      expect(config.remote?.devices.single.model, 'Pixel2');
+      expect(config.remote?.endpoints.single.url, 'https://example.com/mock');
+    });
+
+    test('CLI --target overrides config', () {
+      expect(
+        resolveExecutionTargetForTest(
+          ['--target=remote'],
+          ExecutionTarget.local,
+        ),
+        ExecutionTarget.remote,
+      );
+      expect(
+        resolveExecutionTargetForTest(const [], ExecutionTarget.remote),
+        ExecutionTarget.remote,
+      );
+    });
+
+    test('plan hash is stable and ignores run ids', () {
+      final a = computePlanHash(
+        mode: ExecutionMode.integration,
+        target: ExecutionTarget.remote,
+        selectedTestIds: ['b', 'a'],
+        buildDefines: {'ensembleTestExecutionMode': 'integration'},
+      );
+      final b = computePlanHash(
+        mode: ExecutionMode.integration,
+        target: ExecutionTarget.remote,
+        selectedTestIds: ['a', 'b'],
+        buildDefines: {'ensembleTestExecutionMode': 'integration'},
+      );
+      expect(a, b);
+      expect(a, hasLength(64));
+    });
+  });
+
+  group('RemoteSuiteValidator', () {
+    test('rejects widget + remote', () {
+      expect(
+        () => RemoteSuiteValidator.validate(
+          config: const EnsembleTestConfig(
+            mode: ExecutionMode.widget,
+            target: ExecutionTarget.remote,
+            remote: RemoteExecutionConfig(
+              devices: [RemoteDeviceSpec(model: 'Pixel2')],
+            ),
+          ),
+          target: ExecutionTarget.remote,
+        ),
+        throwsA(isA<EnsembleTestFailure>()),
+      );
+    });
+
+    test('rejects host-local service commands', () {
+      expect(
+        () => RemoteSuiteValidator.validate(
+          config: EnsembleTestConfig(
+            mode: ExecutionMode.integration,
+            target: ExecutionTarget.remote,
+            remote: const RemoteExecutionConfig(
+              devices: [RemoteDeviceSpec(model: 'Pixel2')],
+            ),
+            services: const [
+              TestServiceConfig(name: 'api', command: 'node server.js'),
+            ],
+          ),
+          target: ExecutionTarget.remote,
+        ),
+        throwsA(
+          isA<EnsembleTestFailure>().having(
+            (e) => e.message,
+            'message',
+            contains('host-local'),
+          ),
+        ),
+      );
+    });
+
+    test('rejects private LAN URLs', () {
+      expect(
+        () => RemoteSuiteValidator.validate(
+          config: const EnsembleTestConfig(
+            mode: ExecutionMode.integration,
+            remote: RemoteExecutionConfig(
+              devices: [RemoteDeviceSpec(model: 'Pixel2')],
+              endpoints: [
+                RemoteEndpointConfig(
+                  name: 'api',
+                  url: 'http://192.168.1.10:8080',
+                ),
+              ],
+            ),
+          ),
+          target: ExecutionTarget.remote,
+        ),
+        throwsA(isA<EnsembleTestFailure>()),
+      );
+    });
+
+    test('allows reachable HTTPS endpoints without command', () {
+      expect(
+        () => RemoteSuiteValidator.validate(
+          config: const EnsembleTestConfig(
+            mode: ExecutionMode.integration,
+            remote: RemoteExecutionConfig(
+              devices: [RemoteDeviceSpec(model: 'Pixel2')],
+              endpoints: [
+                RemoteEndpointConfig(
+                  name: 'api',
+                  url: 'https://fixtures.example.com',
+                ),
+              ],
+            ),
+            services: [
+              TestServiceConfig(
+                name: 'api',
+                command: '',
+                url: 'https://fixtures.example.com',
+              ),
+            ],
+          ),
+          target: ExecutionTarget.remote,
+        ),
+        returnsNormally,
+      );
+    });
+  });
+
+  group('RemoteRunEnvelope', () {
+    test('serde round-trip and protocol parse', () {
+      final envelope = RemoteRunEnvelope(
+        runId: 'run-1',
+        planHash: 'abc',
+        buildId: 'build-1',
+        complete: true,
+        cleanupErrors: const ['restore failed'],
+        results: const EnsembleTestRunResult(results: []),
+      );
+      final decoded = RemoteRunEnvelope.fromJson(envelope.toJson());
+      expect(decoded.runId, 'run-1');
+      expect(decoded.cleanupErrors, ['restore failed']);
+      expect(decoded.complete, isTrue);
+
+      final output =
+          'noise\n$ensembleTestRemoteEnvelopePrefix${json.encode(envelope.toJson())}\n';
+      final parsed = parseRemoteRunEnvelopeFromOutput(output);
+      expect(parsed?.runId, 'run-1');
+    });
+  });
+
+  group('FileRemoteRunStore CAS', () {
+    test('putIntent then putProviderRef increments version', () async {
+      final dir = Directory.systemTemp.createTempSync('remote_store_');
+      addTearDown(() => dir.deleteSync(recursive: true));
+      final store = FileRemoteRunStore(dir);
+      final manifest = RemoteRunManifest(
+        runId: 'r1',
+        buildId: 'b1',
+        planHash: 'p1',
+        intentFingerprint: 'f1',
+        clientToken: 'c1',
+        platform: 'android',
+        devices: const [RemoteDeviceSpec(model: 'Pixel2')],
+        status: 'intent',
+        updatedAt: DateTime.now().toUtc(),
+      );
+      await store.putIntent(
+        RemoteRunIntent(
+          manifest: manifest,
+          appPackagePath: '/tmp/app.apk',
+          testPackagePath: '/tmp/test.apk',
+        ),
+      );
+      await store.putProviderRef(
+        runId: 'r1',
+        ref: const RemoteProviderJobRef(jobId: 'm1', matrixId: 'm1'),
+        expectedVersion: 1,
+      );
+      final got = await store.get('r1');
+      expect(got?.version, 2);
+      expect(got?.providerRef?.jobId, 'm1');
+      expect(got?.status, 'submitted');
+    });
+
+    test('compareAndSwap rejects stale version', () async {
+      final dir = Directory.systemTemp.createTempSync('remote_store_cas_');
+      addTearDown(() => dir.deleteSync(recursive: true));
+      final store = FileRemoteRunStore(dir);
+      final manifest = RemoteRunManifest(
+        runId: 'r2',
+        buildId: 'b1',
+        planHash: 'p1',
+        intentFingerprint: 'f1',
+        clientToken: 'c1',
+        platform: 'android',
+        devices: const [RemoteDeviceSpec(model: 'Pixel2')],
+        status: 'intent',
+        updatedAt: DateTime.now().toUtc(),
+      );
+      await store.putIntent(
+        RemoteRunIntent(
+          manifest: manifest,
+          appPackagePath: '/a',
+          testPackagePath: '/t',
+        ),
+      );
+      final ok = await store.compareAndSwap(
+        next: manifest.copyWith(status: 'x', version: 99),
+        expectedVersion: 5,
+      );
+      expect(ok, isFalse);
+    });
+  });
+
+  group('Fake FTL provider contract', () {
+    test('submit, uncertain accept, resume, cancel, collect', () async {
+      final client = FakeFtlClient();
+      final provider = FirebaseTestLabProvider(
+        client: client,
+        projectId: 'demo',
+        limits: const RemoteProviderLimits(
+          pollInterval: Duration(milliseconds: 1),
+          maxPollDuration: Duration(seconds: 2),
+        ),
+      );
+      final intent = RemoteSubmitIntent(
+        runId: 'run',
+        buildId: 'build',
+        planHash: 'plan',
+        intentFingerprint: 'fp',
+        clientToken: 'token-1',
+        devices: const [RemoteDeviceSpec(model: 'Pixel2')],
+        appPackagePath: '/tmp/app.apk',
+        testPackagePath: '/tmp/test.apk',
+        platform: 'android',
+      );
+      File(intent.appPackagePath)
+        ..createSync(recursive: true)
+        ..writeAsStringSync('apk');
+      File(intent.testPackagePath).writeAsStringSync('test');
+
+      final ref = await provider.submit(intent);
+      expect(ref.jobId, isNotEmpty);
+
+      client.uncertainNextSubmit = true;
+      final adopted = await provider.submit(intent);
+      expect(adopted.jobId, ref.jobId);
+
+      client.finish(ref.jobId, outcome: 'SUCCESS');
+      final status = await provider.getStatus(ref);
+      expect(status.state, RemoteJobState.finished);
+
+      final dest = Directory.systemTemp.createTempSync('ftl_collect_');
+      addTearDown(() => dest.deleteSync(recursive: true));
+      final collected = await provider.collectArtifacts(
+        ref,
+        destinationDirectory: dest.path,
+      );
+      expect(collected.localDirectory, dest.path);
+      expect(
+        File(p.join(dest.path, 'remote', 'envelope.json')).existsSync(),
+        isTrue,
+      );
+
+      await provider.requestCancel(ref);
+      final cancelled = await provider.getStatus(ref);
+      expect(cancelled.state, RemoteJobState.cancelled);
+    });
+
+    test('refuses oversized device matrix', () async {
+      final provider = FirebaseTestLabProvider(
+        client: FakeFtlClient(),
+        projectId: 'demo',
+        limits: const RemoteProviderLimits(maxDevicesPerRun: 1),
+      );
+      expect(
+        () => provider.submit(
+          RemoteSubmitIntent(
+            runId: 'r',
+            buildId: 'b',
+            planHash: 'p',
+            intentFingerprint: 'f',
+            clientToken: 'c',
+            devices: const [
+              RemoteDeviceSpec(model: 'a'),
+              RemoteDeviceSpec(model: 'b'),
+            ],
+            appPackagePath: '/a',
+            testPackagePath: '/t',
+            platform: 'android',
+          ),
+        ),
+        throwsStateError,
+      );
+    });
+  });
+
+  group('RemoteReportReconciler', () {
+    test('classifies pass / test failure / incomplete / artifact', () {
+      final dir = Directory.systemTemp.createTempSync('reconcile_');
+      addTearDown(() => dir.deleteSync(recursive: true));
+      Directory(p.join(dir.path, 'remote')).createSync(recursive: true);
+      File(p.join(dir.path, 'remote', 'envelope.json')).writeAsStringSync(
+        json.encode(
+          const RemoteRunEnvelope(
+            runId: 'r',
+            complete: true,
+            results: EnsembleTestRunResult(results: []),
+          ).toJson(),
+        ),
+      );
+
+      final pass = RemoteReportReconciler.reconcile(
+        deviceKey: 'primary',
+        nativeOutcome: 'SUCCESS',
+        envelope: RemoteReportReconciler.loadEnvelope(dir),
+        artifactDirectory: dir,
+      );
+      expect(pass.failureClass, RemoteExecutionFailureClass.pass);
+      expect(pass.exitCode, 0);
+
+      final failEnv = RemoteRunEnvelope(
+        runId: 'r',
+        complete: true,
+        results: EnsembleTestRunResult(
+          results: [
+            EnsembleSingleTestResult.failed(
+              testId: 't',
+              durationMs: 1,
+              error: 'boom',
+            ),
+          ],
+        ),
+      );
+      final testFail = RemoteReportReconciler.reconcile(
+        deviceKey: 'primary',
+        nativeOutcome: 'FAILURE',
+        envelope: failEnv,
+        artifactDirectory: dir,
+      );
+      expect(testFail.failureClass, RemoteExecutionFailureClass.testFailure);
+      expect(testFail.exitCode, 1);
+
+      final incomplete = RemoteReportReconciler.reconcile(
+        deviceKey: 'primary',
+        nativeOutcome: 'SUCCESS',
+        envelope: null,
+        artifactDirectory: dir,
+      );
+      expect(
+        incomplete.failureClass,
+        RemoteExecutionFailureClass.incomplete,
+      );
+
+      final badDir = Directory.systemTemp.createTempSync('reconcile_bad_');
+      addTearDown(() => badDir.deleteSync(recursive: true));
+      final artifactFail = RemoteReportReconciler.reconcile(
+        deviceKey: 'primary',
+        nativeOutcome: 'SUCCESS',
+        envelope: const RemoteRunEnvelope(runId: 'r', complete: true),
+        artifactDirectory: badDir,
+      );
+      expect(
+        artifactFail.failureClass,
+        RemoteExecutionFailureClass.artifactFailure,
+      );
+    });
+  });
+
+  group('Native build identity', () {
+    test('excludes run id and uses deterministic encryption key', () {
+      final a = NativeBuildService.computeIdentity(
+        mode: ExecutionMode.integration,
+        target: ExecutionTarget.remote,
+        platform: 'android',
+        variant: 'debug',
+        selectedTestIds: const ['t1'],
+        dartDefines: const {
+          'ensembleTestRemoteRunId': 'should-not-matter',
+          'ensembleTestEncryptionKey': 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
+        },
+      );
+      final b = NativeBuildService.computeIdentity(
+        mode: ExecutionMode.integration,
+        target: ExecutionTarget.remote,
+        platform: 'android',
+        variant: 'debug',
+        selectedTestIds: const ['t1'],
+        dartDefines: const {
+          'ensembleTestRemoteRunId': 'different',
+          'ensembleTestEncryptionKey': 'BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB',
+        },
+      );
+      expect(a.buildId, b.buildId);
+      expect(
+        a.dartDefines['ensembleTestEncryptionKey'],
+        NativeBuildService.remoteTestEncryptionKey,
+      );
+      expect(a.dartDefines.containsKey('ensembleTestRemoteRunId'), isFalse);
+    });
+  });
+
+  group('Artifact export proof (local)', () {
+    test('pass and fail envelopes write collectable files', () async {
+      final root = Directory.systemTemp.createTempSync('export_proof_');
+      addTearDown(() => root.deleteSync(recursive: true));
+
+      final passEnv = const RemoteRunEnvelope(
+        runId: 'pass',
+        complete: true,
+        results: EnsembleTestRunResult(results: []),
+      );
+      final passDir = await ArtifactExportProof.simulateDeviceExport(
+        root: p.join(root.path, 'pass'),
+        envelope: passEnv,
+        includeCorruptArtifact: false,
+      );
+      expect(File(p.join(passDir.path, 'envelope.json')).existsSync(), isTrue);
+
+      final failEnv = RemoteRunEnvelope(
+        runId: 'fail',
+        complete: true,
+        results: EnsembleTestRunResult(
+          results: [
+            EnsembleSingleTestResult.failed(
+              testId: 'x',
+              durationMs: 1,
+              error: 'assert',
+            ),
+          ],
+        ),
+      );
+      final failDir = await ArtifactExportProof.simulateDeviceExport(
+        root: p.join(root.path, 'fail'),
+        envelope: failEnv,
+        includeCorruptArtifact: true,
+      );
+      final loaded = RemoteReportReconciler.loadEnvelope(
+        Directory(p.dirname(failDir.path)),
+      );
+      expect(loaded?.results?.failedCount, 1);
+    });
+  });
+
+  group('RemoteOrchestrator with fake provider', () {
+    test('intent → submit → collect → reconcile', () async {
+      final client = FakeFtlClient();
+      final storeDir = Directory.systemTemp.createTempSync('orch_store_');
+      final appDir = Directory.systemTemp.createTempSync('orch_app_');
+      addTearDown(() {
+        storeDir.deleteSync(recursive: true);
+        appDir.deleteSync(recursive: true);
+      });
+
+      final provider = FirebaseTestLabProvider(
+        client: client,
+        projectId: 'demo',
+        limits: const RemoteProviderLimits(
+          pollInterval: Duration(milliseconds: 1),
+          maxPollDuration: Duration(seconds: 3),
+        ),
+      );
+      final orch = RemoteOrchestrator(
+        provider: provider,
+        store: FileRemoteRunStore(storeDir),
+        buildService: NativeBuildService(
+          cacheDirectory: Directory(p.join(appDir.path, 'cache')),
+          builder: (identity, {required appDir, required config}) async {
+            final out = Directory(p.join(appDir, 'pkgs'))..createSync();
+            final app = File(p.join(out.path, 'app.apk'))..writeAsStringSync('a');
+            final test = File(p.join(out.path, 'test.apk'))
+              ..writeAsStringSync('t');
+            return NativeBuildArtifacts(
+              identity: identity,
+              appPackagePath: app.path,
+              testPackagePath: test.path,
+            );
+          },
+        ),
+      );
+
+      // Finish job shortly after submit.
+      Future<void>.delayed(const Duration(milliseconds: 20), () {
+        for (final snap in client.matrices.values) {
+          client.finish(snap.matrixId);
+        }
+      });
+
+      final report = await orch.runSuite(
+        appDir: appDir.path,
+        config: const EnsembleTestConfig(
+          mode: ExecutionMode.integration,
+          target: ExecutionTarget.remote,
+          remote: RemoteExecutionConfig(
+            devices: [RemoteDeviceSpec(model: 'Pixel2')],
+          ),
+        ),
+        platform: 'android',
+        selectedTestIds: const ['t1'],
+      );
+      expect(report.runId, isNotEmpty);
+      expect(report.devices, isNotEmpty);
+      // Fake collect writes a complete empty-results envelope → pass.
+      expect(report.overall, RemoteExecutionFailureClass.pass);
+    });
+  });
+
+  group('Acceptance ledger', () {
+    test('is not production-ready without verified cloud rows', () {
+      expect(RemoteAcceptanceLedger.isProductionReady, isFalse);
+      expect(
+        RemoteAcceptanceLedger.renderMarkdown(),
+        contains('Production-ready:** NO'),
+      );
+    });
+  });
+
+  group('Envelope lifecycle source contract', () {
+    test('entry emits envelope only after storage restore', () {
+      final source = File('lib/entry/ensemble_test_entry.dart').readAsStringSync();
+      final restoreIdx = source.indexOf('restorePreSuiteStorageAtSuiteEnd()');
+      final envelopeIdx = source.indexOf('_emitRemoteRunEnvelopeIfRequested');
+      expect(restoreIdx, greaterThan(0));
+      expect(envelopeIdx, greaterThan(restoreIdx));
+      expect(source, contains('cleanupErrors'));
+    });
+  });
+}

@@ -1,6 +1,11 @@
 /// Declarative test document and run results.
 library;
 
+import 'package:ensemble_test_runner/execution/remote/remote_models.dart';
+
+export 'package:ensemble_test_runner/execution/remote/remote_models.dart'
+    show ExecutionTarget, RemoteExecutionConfig;
+
 /// Request object describing an Ensemble YAML test run.
 class EnsembleTestRunRequest {
   final String? appPath;
@@ -142,6 +147,8 @@ class TestScenario {
 /// description, steps, and scenario selection.
 class EnsembleTestConfig {
   final ExecutionMode mode;
+  final ExecutionTarget target;
+  final RemoteExecutionConfig? remote;
   final List<TestServiceConfig> services;
   final List<String> mockFiles;
   final Map<String, dynamic> inlineMocks;
@@ -167,6 +174,8 @@ class EnsembleTestConfig {
 
   const EnsembleTestConfig({
     this.mode = ExecutionMode.widget,
+    this.target = ExecutionTarget.local,
+    this.remote,
     this.services = const [],
     this.mockFiles = const [],
     this.inlineMocks = const {},
@@ -188,6 +197,8 @@ class EnsembleTestConfig {
 
   EnsembleTestConfig copyWith({
     ExecutionMode? mode,
+    ExecutionTarget? target,
+    RemoteExecutionConfig? remote,
     List<TestServiceConfig>? services,
     List<String>? mockFiles,
     Map<String, dynamic>? inlineMocks,
@@ -206,6 +217,8 @@ class EnsembleTestConfig {
   }) {
     return EnsembleTestConfig(
       mode: mode ?? this.mode,
+      target: target ?? this.target,
+      remote: remote ?? this.remote,
       services: services ?? this.services,
       mockFiles: mockFiles ?? this.mockFiles,
       inlineMocks: inlineMocks ?? this.inlineMocks,
@@ -542,6 +555,30 @@ class EnsembleTestRunResult {
         if (suiteLogs.isNotEmpty) 'suiteLogs': suiteLogs,
         if (metadata.isNotEmpty) 'metadata': metadata,
       };
+
+  factory EnsembleTestRunResult.fromJson(Map<String, dynamic> json) {
+    final resultsRaw = json['results'];
+    final suiteLogsRaw = json['suiteLogs'];
+    final metadataRaw = json['metadata'];
+    return EnsembleTestRunResult(
+      results: resultsRaw is List
+          ? resultsRaw
+              .whereType<Map>()
+              .map(
+                (e) => EnsembleSingleTestResult.fromJson(
+                  Map<String, dynamic>.from(e),
+                ),
+              )
+              .toList()
+          : const [],
+      suiteLogs: suiteLogsRaw is List
+          ? suiteLogsRaw.map((e) => e.toString()).toList()
+          : const [],
+      metadata: metadataRaw is Map
+          ? Map<String, dynamic>.from(metadataRaw)
+          : const {},
+    );
+  }
 }
 
 /// Status of a finished test case.
@@ -642,6 +679,34 @@ class EnsembleSingleTestResult {
         'logs': logs,
         if (report != null) 'report': report!.toJson(),
       };
+
+  factory EnsembleSingleTestResult.fromJson(Map<String, dynamic> json) {
+    final reportRaw = json['report'];
+    return EnsembleSingleTestResult(
+      testId: json['testId']?.toString() ?? '(unknown)',
+      metadata: json['metadata'] is Map
+          ? Map<String, dynamic>.from(json['metadata'] as Map)
+          : const {},
+      status:
+          json['status'] == 'passed' ? TestStatus.passed : TestStatus.failed,
+      durationMs: json['durationMs'] is int ? json['durationMs'] as int : 0,
+      attempts: json['attempts'] is int ? json['attempts'] as int : 1,
+      retry: json['retry'] is int ? json['retry'] as int : 0,
+      failedStepIndex: json['failedStepIndex'] is int
+          ? json['failedStepIndex'] as int
+          : null,
+      message: json['message']?.toString(),
+      stackTrace: json['stackTrace']?.toString(),
+      logs: (json['logs'] as List<dynamic>? ?? const [])
+          .map((value) => value.toString())
+          .toList(),
+      report: reportRaw is Map
+          ? EnsembleTestReportDetails.fromJson(
+              Map<String, dynamic>.from(reportRaw),
+            )
+          : null,
+    );
+  }
 
   Map<String, dynamic> _failureJson() {
     final text = message ?? '';
