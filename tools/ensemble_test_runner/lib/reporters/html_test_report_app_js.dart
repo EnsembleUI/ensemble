@@ -647,30 +647,57 @@ const ensembleHtmlTestReportAppJs = r'''
   function renderSuiteArtifacts(artifacts) {
     const host = document.getElementById('suite-artifacts-host');
     if (!artifacts.length) { host.innerHTML = ''; return; }
-    let html = '<section class="suite-artifacts-container"><details class="suite-artifacts-card">';
-    html += '<summary>Show Suite Logs & Artifacts (' + artifacts.length + ')</summary>';
-    html += '<div class="suite-artifacts-content"><ul>';
-    artifacts.forEach(a => {
-      html += '<li><div class="artifact-item-header"><span class="label">' + escapeHtml(a.label) + '</span>';
-      if (a.content != null) {
+    const videos = artifacts.filter(isVideoArtifact);
+    const others = artifacts.filter(a => !isVideoArtifact(a));
+
+    let html = '';
+    if (videos.length) {
+      html += '<section class="ftl-video-container">';
+      videos.forEach(a => {
+        html += '<div class="ftl-video-card">';
+        html += '<div class="ftl-video-title">' + escapeHtml(a.label || 'Device recording') + '</div>';
+        html += '<video class="ftl-video-player" controls playsinline preload="metadata" src="' +
+          escapeHtml(a.href || a.path || '') + '"></video>';
+        html += '<div class="ftl-video-link"><a href="' + escapeHtml(a.href || a.path || '#') + '">' +
+          escapeHtml(a.path || a.href || '') + '</a></div>';
         html += '</div>';
-        if (a.source) {
-          html += '<div class="artifact-source">' + escapeHtml(a.source) + '</div>';
+      });
+      html += '</section>';
+    }
+
+    if (others.length) {
+      html += '<section class="suite-artifacts-container"><details class="suite-artifacts-card">';
+      html += '<summary>Show Suite Logs & Artifacts (' + others.length + ')</summary>';
+      html += '<div class="suite-artifacts-content"><ul>';
+      others.forEach(a => {
+        html += '<li><div class="artifact-item-header"><span class="label">' + escapeHtml(a.label) + '</span>';
+        if (a.content != null) {
+          html += '</div>';
+          if (a.source) {
+            html += '<div class="artifact-source">' + escapeHtml(a.source) + '</div>';
+          }
+          let body = '';
+          try {
+            body = typeof a.content === 'string' ? a.content : JSON.stringify(a.content, null, 2);
+          } catch (e) {
+            body = String(a.content);
+          }
+          html += '<pre class="artifact-embedded">' + escapeHtml(body) + '</pre>';
+        } else {
+          html += ': <a href="' + escapeHtml(a.href || a.path || '#') + '">' + escapeHtml(a.path || a.href || '') + '</a></div>';
         }
-        let body = '';
-        try {
-          body = typeof a.content === 'string' ? a.content : JSON.stringify(a.content, null, 2);
-        } catch (e) {
-          body = String(a.content);
-        }
-        html += '<pre class="artifact-embedded">' + escapeHtml(body) + '</pre>';
-      } else {
-        html += ': <a href="' + escapeHtml(a.href || a.path || '#') + '">' + escapeHtml(a.path || a.href || '') + '</a></div>';
-      }
-      html += '</li>';
-    });
-    html += '</ul></div></details></section>';
+        html += '</li>';
+      });
+      html += '</ul></div></details></section>';
+    }
     host.innerHTML = html;
+  }
+
+  function isVideoArtifact(a) {
+    if (!a) return false;
+    if (a.kind === 'video' || a.label === 'ftlVideo') return true;
+    const path = String(a.href || a.path || '').toLowerCase();
+    return path.endsWith('.mp4') || path.endsWith('.webm');
   }
 
   function buildSidebarCard(base, runs) {

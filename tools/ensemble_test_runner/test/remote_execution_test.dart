@@ -8,6 +8,7 @@ import 'package:ensemble_test_runner/execution/remote/fake_ftl_client.dart';
 import 'package:ensemble_test_runner/execution/remote/file_remote_run_store.dart';
 import 'package:ensemble_test_runner/execution/remote/firebase_test_lab_provider.dart';
 import 'package:ensemble_test_runner/execution/remote/native_build_service.dart';
+import 'package:ensemble_test_runner/execution/remote/remote_host_report.dart';
 import 'package:ensemble_test_runner/execution/remote/remote_models.dart';
 import 'package:ensemble_test_runner/execution/remote/remote_orchestrator.dart';
 import 'package:ensemble_test_runner/execution/remote/remote_progress.dart';
@@ -925,5 +926,118 @@ remote:
       isNot(contains('${p.separator}ios${p.separator}build${p.separator}')),
     );
     expect(derivedDataPath, endsWith(p.join('build', 'ios_integ')));
+  });
+
+  test('RemoteHostReportBuilder writes local-style HTML + embeds FTL video',
+      () async {
+    final collect = Directory.systemTemp.createTempSync('remote_report_');
+    final appDir = Directory.systemTemp.createTempSync('remote_app_');
+    addTearDown(() {
+      collect.deleteSync(recursive: true);
+      appDir.deleteSync(recursive: true);
+    });
+
+    final deviceTree = Directory(
+      p.join(
+        collect.path,
+        'matrix',
+        'MediumPhone.arm-36-en-portrait',
+        'devices',
+        'sdcard',
+        'Download',
+        'ensemble_test_remote',
+      ),
+    )..createSync(recursive: true);
+    File(p.join(deviceTree.path, 'screenshots', 'hello_frames.json'))
+      ..parent.createSync(recursive: true)
+      ..writeAsStringSync('{"frames":[]}');
+    File(
+      p.join(
+        deviceTree.path,
+        'report',
+        'screenshots',
+        'shot_1.png',
+      ),
+    )
+      ..parent.createSync(recursive: true)
+      ..writeAsBytesSync([1, 2, 3, 4]);
+    File(p.join(deviceTree.path, 'logs', 'hello_app_console.log'))
+      ..parent.createSync(recursive: true)
+      ..writeAsStringSync('ok\n');
+
+    final envelope = RemoteRunEnvelope(
+      runId: 'run-report',
+      complete: true,
+      results: EnsembleTestRunResult(
+        results: [
+          EnsembleSingleTestResult.passed(
+            testId: 'hello (tests/hello.test.yaml)',
+            durationMs: 42,
+            logs: const [
+              'screenshots: build/ensemble_test_runner/screenshots/hello_frames.json',
+              'appLogs: build/ensemble_test_runner/logs/hello_app_console.log',
+            ],
+          ),
+        ],
+      ),
+    );
+    File(p.join(deviceTree.path, 'remote', 'envelope.json'))
+      ..parent.createSync(recursive: true)
+      ..writeAsStringSync(json.encode(envelope.toJson()));
+    File(
+      p.join(
+        collect.path,
+        'matrix',
+        'MediumPhone.arm-36-en-portrait',
+        'video.mp4',
+      ),
+    ).writeAsBytesSync(List<int>.filled(32, 9));
+
+    final hostRoot = p.join(appDir.path, 'build', 'ensemble_test_runner');
+    final builder = RemoteHostReportBuilder();
+    await builder.materializeDeviceArtifactsIntoHost(
+      collectDirectory: collect,
+      hostArtifactRoot: hostRoot,
+    );
+    expect(
+      File(p.join(hostRoot, 'screenshots', 'hello_frames.json')).existsSync(),
+      isTrue,
+    );
+
+    final device = RemoteReportReconciler.reconcile(
+      deviceKey: 'primary',
+      nativeOutcome: 'SUCCESS',
+      envelope: envelope,
+      artifactDirectory: Directory(hostRoot),
+    );
+    final htmlPath = await builder.writeReports(
+      appDir: appDir.path,
+      hostArtifactRoot: hostRoot,
+      collectDirectory: collect,
+      devices: [device],
+    );
+    expect(htmlPath, isNotNull);
+    expect(File(p.join(hostRoot, 'report', 'index.html')).existsSync(), isTrue);
+    expect(
+      File(p.join(hostRoot, 'report', 'results.json.gz')).existsSync(),
+      isTrue,
+    );
+    expect(
+      File(p.join(collect.path, 'report', 'index.html')).existsSync(),
+      isTrue,
+    );
+    final videoName = Directory(p.join(hostRoot, 'report'))
+        .listSync()
+        .whereType<File>()
+        .map((f) => p.basename(f.path))
+        .where((n) => n.startsWith('video') && n.endsWith('.mp4'));
+    expect(videoName, isNotEmpty);
+    expect(
+      File(p.join(collect.path, 'report', videoName.first)).existsSync(),
+      isTrue,
+    );
+    final shell = File(p.join(collect.path, 'report', 'index.html'))
+        .readAsStringSync();
+    expect(shell, contains('ftl-video'));
   });
 }

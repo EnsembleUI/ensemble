@@ -20,6 +20,8 @@ class HtmlTestReporter {
     String? displayRoot,
     int? wallTimeMs,
     bool isSuiteRunning = false,
+    /// When true, always rewrite index.html (remote collect must ship a fresh shell).
+    bool forceRewriteShell = false,
   }) {
     final root = artifactRoot ?? ensembleTestArtifactRoot;
     final display = displayRoot ?? _defaultDisplayRoot;
@@ -34,7 +36,7 @@ class HtmlTestReporter {
         TestReportDocument.buildLoading(wallTimeMs: wallTimeMs),
       );
     } else {
-      if (!htmlFile.existsSync()) {
+      if (forceRewriteShell || !htmlFile.existsSync()) {
         AtomicFile.writeStringSync(htmlFile, buildShellHtml());
       }
       TestReportDocument.writeResults(

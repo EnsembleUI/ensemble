@@ -141,10 +141,15 @@ class TestReportDocument {
         displayRoot: displayRoot,
       );
       if (fsPath == null || !File(fsPath).existsSync()) continue;
+      final lowerPath = ref.path.toLowerCase();
+      final isVideo = ref.label == 'ftlVideo' ||
+          lowerPath.endsWith('.mp4') ||
+          lowerPath.endsWith('.webm');
       out.add({
         'label': ref.label,
         'path': ref.path,
         'href': _relativeHref(ref.path, displayRoot),
+        if (isVideo) 'kind': 'video',
       });
     }
     return out;

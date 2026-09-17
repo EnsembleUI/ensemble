@@ -4,12 +4,12 @@ import 'dart:math';
 
 import 'package:crypto/crypto.dart';
 import 'package:ensemble_test_runner/cli/yaml_test_app_patcher.dart';
-import 'package:ensemble_test_runner/execution/artifact_transport.dart';
 import 'package:ensemble_test_runner/execution/remote/file_remote_run_store.dart';
 import 'package:ensemble_test_runner/execution/remote/firebase_test_lab_provider.dart';
 import 'package:ensemble_test_runner/execution/remote/ftl_client.dart';
 import 'package:ensemble_test_runner/execution/remote/gcs_remote_run_store.dart';
 import 'package:ensemble_test_runner/execution/remote/native_build_service.dart';
+import 'package:ensemble_test_runner/execution/remote/remote_host_report.dart';
 import 'package:ensemble_test_runner/execution/remote/remote_models.dart';
 import 'package:ensemble_test_runner/execution/remote/remote_progress.dart';
 import 'package:ensemble_test_runner/execution/remote/remote_provider.dart';
@@ -17,8 +17,6 @@ import 'package:ensemble_test_runner/execution/remote/remote_report_reconciler.d
 import 'package:ensemble_test_runner/execution/remote/remote_run_store.dart';
 import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
 import 'package:ensemble_test_runner/reporters/atomic_file.dart';
-import 'package:ensemble_test_runner/reporters/ensemble_test_history_store.dart';
-import 'package:ensemble_test_runner/reporters/html_test_reporter.dart';
 import 'package:path/path.dart' as p;
 
 /// Host-side remote orchestration: intent → submit → ref → poll → collect.
@@ -229,7 +227,8 @@ class RemoteOrchestrator {
 
     final hostArtifactRoot =
         p.join(appDir, 'build', 'ensemble_test_runner');
-    await _materializeDeviceArtifactsIntoHost(
+    final reportBuilder = RemoteHostReportBuilder(onProgress: onProgress);
+    await reportBuilder.materializeDeviceArtifactsIntoHost(
       collectDirectory: collectDirectory,
       hostArtifactRoot: hostArtifactRoot,
     );
@@ -280,9 +279,10 @@ class RemoteOrchestrator {
 
     if (report.overall == RemoteExecutionFailureClass.pass ||
         report.overall == RemoteExecutionFailureClass.testFailure) {
-      await _writeHostReportsFromEnvelopes(
+      await reportBuilder.writeReports(
         appDir: appDir,
         hostArtifactRoot: hostArtifactRoot,
+        collectDirectory: collectDirectory,
         devices: devices,
       );
     }
@@ -322,50 +322,6 @@ class RemoteOrchestrator {
         RemoteReportReconciler.loadEnvelope(Directory(hostArtifactRoot));
   }
 
-  /// Copies pulled on-device files and materializes logcat artifact chunks into
-  /// the host `build/ensemble_test_runner` tree used by HTML/history.
-  Future<void> _materializeDeviceArtifactsIntoHost({
-    required Directory collectDirectory,
-    required String hostArtifactRoot,
-  }) async {
-    Directory(hostArtifactRoot).createSync(recursive: true);
-
-    // Prefer an explicit pulled ensemble_test_remote tree when present.
-    try {
-      for (final entity in collectDirectory.listSync(recursive: true)) {
-        if (entity is! Directory) continue;
-        if (p.basename(entity.path) != 'ensemble_test_remote') continue;
-        _copyDirectoryContents(entity, Directory(hostArtifactRoot));
-        _log('Merged pulled on-device tree into $hostArtifactRoot');
-        break;
-      }
-    } catch (_) {
-      // Continue with logcat materialization.
-    }
-
-    final logcat = _readCollectedLogcat(collectDirectory);
-    if (logcat.isEmpty) return;
-    if (!logcat.contains(ensembleTestArtifactProtocolPrefix) &&
-        !logcat.contains(ensembleTestRemoteEnvelopePrefix)) {
-      return;
-    }
-    try {
-      final transport = await materializeTransportedArtifacts(
-        artifactRoot: hostArtifactRoot,
-        output: logcat,
-      );
-      _log(
-        transport.complete
-            ? 'Materialized ${transport.receivedPaths.length} artifact(s) from logcat'
-            : 'Partial logcat artifact materialize '
-                '(${transport.receivedPaths.length} file(s)'
-                '${transport.error != null ? '; ${transport.error}' : ''})',
-      );
-    } catch (error) {
-      _log('Warning: logcat artifact materialize failed: $error');
-    }
-  }
-
   void _canonicalizeEnvelope(
     Directory directory,
     RemoteRunEnvelope? envelope,
@@ -380,106 +336,6 @@ class RemoteOrchestrator {
       );
     } catch (_) {
       // Best-effort canonicalize for debugging / loadEnvelope preferred path.
-    }
-  }
-
-  Future<void> _writeHostReportsFromEnvelopes({
-    required String appDir,
-    required String hostArtifactRoot,
-    required List<ReconciledDeviceResult> devices,
-  }) async {
-    final combined = <EnsembleSingleTestResult>[];
-    final suiteLogs = <String>[];
-    for (final device in devices) {
-      final results = device.envelope?.results;
-      if (results == null) continue;
-      combined.addAll(results.results);
-      suiteLogs.addAll(results.suiteLogs);
-      for (final err in device.envelope?.cleanupErrors ?? const <String>[]) {
-        suiteLogs.add('cleanup[${device.deviceKey}]: $err');
-      }
-    }
-    if (combined.isEmpty) {
-      _log('No envelope.results to write HTML/history from');
-      return;
-    }
-
-    final runResult = EnsembleTestRunResult(
-      results: combined,
-      suiteLogs: suiteLogs,
-    );
-    final displayRoot =
-        p.join('build', 'ensemble_test_runner').replaceAll('\\', '/');
-    try {
-      await EnsembleTestHistoryStore.recordCompletedRun(
-        appDir: appDir,
-        artifactRoot: hostArtifactRoot,
-        result: runResult,
-      );
-      suiteLogs.add(
-        'history: ${p.join(displayRoot, 'report', EnsembleTestHistoryStore.fileName)}',
-      );
-    } catch (error) {
-      _log('Warning: could not write history db: $error');
-    }
-
-    final withLogs = EnsembleTestRunResult(
-      results: combined,
-      suiteLogs: [
-        ...suiteLogs,
-        'htmlReport: ${p.join(displayRoot, 'report', 'index.html')}',
-        'results: ${p.join(displayRoot, 'report', 'results.json.gz')}',
-      ],
-    );
-    try {
-      HtmlTestReporter().write(
-        withLogs,
-        artifactRoot: hostArtifactRoot,
-        displayRoot: displayRoot,
-      );
-      _log(
-        'Wrote HTML report under '
-        '${p.join(hostArtifactRoot, 'report', 'index.html')}',
-      );
-    } catch (error) {
-      _log('Warning: could not write HTML report: $error');
-    }
-  }
-
-  static String _readCollectedLogcat(Directory directory) {
-    if (!directory.existsSync()) return '';
-    final buffer = StringBuffer();
-    try {
-      for (final entity in directory.listSync(recursive: true)) {
-        if (entity is! File) continue;
-        final name = p.basename(entity.path).toLowerCase();
-        final looksLikeLog = name.contains('logcat') ||
-            name.endsWith('.txt') ||
-            name.endsWith('.log');
-        if (!looksLikeLog) continue;
-        try {
-          buffer.writeln(entity.readAsStringSync());
-        } catch (_) {
-          // Skip unreadable files.
-        }
-      }
-    } catch (_) {
-      return buffer.toString();
-    }
-    return buffer.toString();
-  }
-
-  static void _copyDirectoryContents(Directory source, Directory dest) {
-    dest.createSync(recursive: true);
-    for (final entity in source.listSync(recursive: true)) {
-      final relative = p.relative(entity.path, from: source.path);
-      final target = p.join(dest.path, relative);
-      if (entity is Directory) {
-        Directory(target).createSync(recursive: true);
-      } else if (entity is File) {
-        File(target).parent.createSync(recursive: true);
-        entity.copySync(target);
-      }
     }
   }
 

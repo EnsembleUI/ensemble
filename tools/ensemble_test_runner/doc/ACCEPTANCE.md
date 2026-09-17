@@ -24,7 +24,7 @@ Statuses: `implemented` | `verified` | `blocked` | `unverified`.
 - **Real FTL execution + collect:** Requires `ENSEMBLE_TEST_FTL_PROJECT_ID` + ADC. Missing creds ⇒ **unverified**, not passed. Blocks multi-device orchestration until Android is verified.
 - **Envelope complete after cleanup:** Entry emits `RemoteRunEnvelope` only after `restorePreSuiteStorageAtSuiteEnd`; `cleanupErrors` included.
 - **Durable resume:** `RemoteOrchestrator` + `FileRemoteRunStore` + `GcsRemoteRunStore` CAS. GHA artifacts are checkpoints only.
-- **Reports:** `RemoteReportReconciler` taxonomy: pass / testFailure / incomplete / infrastructureFailure / artifactFailure.
+- **Reports:** `RemoteReportReconciler` taxonomy: pass / testFailure / incomplete / infrastructureFailure / artifactFailure. After collect, `RemoteHostReportBuilder` merges on-device trees into the same `build/ensemble_test_runner/{report,screenshots,logs}` layout as local runs, writes `report/index.html` + `results.json.gz` + history, copies FTL `video.mp4` into `report/` (embedded in HTML), and mirrors `report/` into the collect directory so CI artifacts are browseable.
 
 Regenerate from code:
 

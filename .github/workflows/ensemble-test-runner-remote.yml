@@ -136,5 +136,6 @@ jobs:
           path: |
             tools/ensemble_test_runner/example/build/ensemble_test_runner/remote/**
             tools/ensemble_test_runner/example/build/ensemble_test_runner/remote_runs/**
+            tools/ensemble_test_runner/example/build/ensemble_test_runner/report/**
           if-no-files-found: ignore
           retention-days: 14

@@ -54,6 +54,44 @@ body {
   padding: 16px 24px;
   width: 100%;
 }
+.ftl-video-container {
+  max-width: 1600px;
+  margin: 0 auto;
+  padding: 0 24px 16px;
+  width: 100%;
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+}
+.ftl-video-card {
+  background: rgba(0, 0, 0, 0.28);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px;
+}
+.ftl-video-title {
+  font-weight: 700;
+  font-size: 0.85rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 10px;
+}
+.ftl-video-player {
+  width: 100%;
+  max-height: 420px;
+  border-radius: 8px;
+  background: #000;
+  display: block;
+}
+.ftl-video-link {
+  margin-top: 8px;
+  font-family: var(--font-code);
+  font-size: 0.72rem;
+}
+.ftl-video-link a {
+  color: var(--text-muted);
+}
 
 .hero {
   padding-top: 24px;
