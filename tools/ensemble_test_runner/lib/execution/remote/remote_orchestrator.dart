@@ -41,9 +41,16 @@ class RemoteOrchestrator {
     if (remote == null) {
       throw StateError('remote config required');
     }
-    if (remote.devices.length > provider.limits.maxDevicesPerRun) {
+    final devices = remoteDevicesForPlatform(remote, platform);
+    if (devices.isEmpty) {
       throw StateError(
-        'Refusing matrix of ${remote.devices.length} devices '
+        'No remote.devices match --remote-platform=$platform. '
+        'Add devices with platform: $platform (or omit platform to share).',
+      );
+    }
+    if (devices.length > provider.limits.maxDevicesPerRun) {
+      throw StateError(
+        'Refusing matrix of ${devices.length} $platform devices '
         '(max ${provider.limits.maxDevicesPerRun}).',
       );
     }
@@ -75,7 +82,7 @@ class RemoteOrchestrator {
             json.encode({
               'buildId': identity.buildId,
               'planHash': identity.planHash,
-              'devices': remote.devices.map((d) => d.toJson()).toList(),
+              'devices': devices.map((d) => d.toJson()).toList(),
               'platform': platform,
             }),
           ),
@@ -89,7 +96,7 @@ class RemoteOrchestrator {
       intentFingerprint: intentFingerprint,
       clientToken: clientToken,
       platform: platform,
-      devices: remote.devices,
+      devices: devices,
       status: 'intent',
       updatedAt: DateTime.now().toUtc(),
       version: 1,
@@ -108,7 +115,7 @@ class RemoteOrchestrator {
       planHash: identity.planHash,
       intentFingerprint: intentFingerprint,
       clientToken: clientToken,
-      devices: remote.devices,
+      devices: devices,
       appPackagePath: artifacts.appPackagePath,
       testPackagePath: artifacts.testPackagePath,
       platform: platform,
@@ -372,16 +379,27 @@ Future<int> runRemoteEnsembleYamlTestsCli(
     return 2;
   }
 
-  // Multi-device orchestration is gated on Android FTL verification.
-  final devices = suiteConfig.remote?.devices ?? const <RemoteDeviceSpec>[];
+  // Multi-device orchestration (same platform) is gated on Android FTL verification.
+  final allDevices = suiteConfig.remote?.devices ?? const <RemoteDeviceSpec>[];
+  final devices = [
+    for (final d in allDevices)
+      if (d.matchesPlatform(platform)) d,
+  ];
+  if (devices.isEmpty) {
+    stderr.writeln(
+      'No remote.devices match --remote-platform=$platform. '
+      'Add an entry with platform: $platform.',
+    );
+    return 2;
+  }
   if (devices.length > 1) {
-    final androidVerified = Platform.environment['ENSEMBLE_TEST_FTL_ANDROID_VERIFIED'] ==
-        '1';
+    final androidVerified =
+        Platform.environment['ENSEMBLE_TEST_FTL_ANDROID_VERIFIED'] == '1';
     if (!androidVerified) {
       stderr.writeln(
         'Multi-device remote matrices require verified Android FTL '
         '(set ENSEMBLE_TEST_FTL_ANDROID_VERIFIED=1 after cloud proof). '
-        'Refusing ${devices.length} devices.',
+        'Refusing ${devices.length} $platform devices.',
       );
       return 2;
     }

@@ -384,6 +384,13 @@ class EnsembleTestSchemaBuilder {
                 'additionalProperties': false,
                 'required': ['model'],
                 'properties': {
+                  'platform': {
+                    'type': 'string',
+                    'enum': ['android', 'ios'],
+                    'description':
+                        'When set, only used for that --remote-platform. '
+                        'Omit to allow either platform.',
+                  },
                   'model': {'type': 'string', 'minLength': 1},
                   'version': {'type': 'string'},
                   'locale': {'type': 'string'},

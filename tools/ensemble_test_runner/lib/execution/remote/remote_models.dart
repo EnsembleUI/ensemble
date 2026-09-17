@@ -189,11 +189,16 @@ class RemoteDeviceSpec {
   final String? locale;
   final String? orientation;
 
+  /// Optional FTL platform (`android` | `ios`). When set, only used for that
+  /// `--remote-platform`. When omitted, the device is eligible for any platform.
+  final String? platform;
+
   const RemoteDeviceSpec({
     required this.model,
     this.version,
     this.locale,
     this.orientation,
+    this.platform,
   });
 
   Map<String, dynamic> toJson() => {
@@ -201,6 +206,7 @@ class RemoteDeviceSpec {
         if (version != null) 'version': version,
         if (locale != null) 'locale': locale,
         if (orientation != null) 'orientation': orientation,
+        if (platform != null) 'platform': platform,
       };
 
   factory RemoteDeviceSpec.fromJson(Map<String, dynamic> json) =>
@@ -209,8 +215,26 @@ class RemoteDeviceSpec {
         version: json['version']?.toString(),
         locale: json['locale']?.toString(),
         orientation: json['orientation']?.toString(),
+        platform: json['platform']?.toString(),
       );
+
+  bool matchesPlatform(String remotePlatform) {
+    final p = platform?.trim().toLowerCase();
+    if (p == null || p.isEmpty) return true;
+    return p == remotePlatform.toLowerCase();
+  }
 }
+
+/// Devices from [remote] that apply to [platform].
+List<RemoteDeviceSpec> remoteDevicesForPlatform(
+  RemoteExecutionConfig remote,
+  String platform,
+) =>
+    [
+      for (final d in remote.devices)
+        if (d.matchesPlatform(platform)) d,
+    ];
+
 
 class RemoteEndpointConfig {
   final String name;

@@ -747,7 +747,13 @@ class EnsembleTestParser {
         if (item is! YamlMap) {
           throw EnsembleTestFailure('Each remote.devices entry must be a map');
         }
-        const deviceKeys = {'model', 'version', 'locale', 'orientation'};
+        const deviceKeys = {
+          'model',
+          'version',
+          'locale',
+          'orientation',
+          'platform',
+        };
         for (final key in item.keys) {
           if (!deviceKeys.contains(key.toString())) {
             throw EnsembleTestFailure(
@@ -762,12 +768,25 @@ class EnsembleTestParser {
             'Each remote.devices entry requires a non-empty "model".',
           );
         }
+        final platformRaw = item['platform']?.toString().trim();
+        if (platformRaw != null &&
+            platformRaw.isNotEmpty &&
+            platformRaw != 'android' &&
+            platformRaw != 'ios') {
+          throw EnsembleTestFailure(
+            'remote.devices.platform must be "android" or "ios" '
+            '(got "$platformRaw").',
+          );
+        }
         devices.add(
           RemoteDeviceSpec(
             model: model,
             version: item['version']?.toString(),
             locale: item['locale']?.toString(),
             orientation: item['orientation']?.toString(),
+            platform: (platformRaw == null || platformRaw.isEmpty)
+                ? null
+                : platformRaw,
           ),
         );
       }

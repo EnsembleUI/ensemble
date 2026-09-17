@@ -4,9 +4,14 @@ on:
   workflow_dispatch:
     inputs:
       platform:
-        description: 'android or ios'
+        description: 'android, ios, or both'
         required: true
-        default: 'android'
+        default: 'both'
+        type: choice
+        options:
+          - both
+          - android
+          - ios
       wait_for_completion:
         description: 'Poll FTL until done'
         type: boolean
@@ -22,7 +27,13 @@ on:
 
 jobs:
   remote-ftl:
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # PRs always run both. workflow_dispatch uses the platform input.
+        # (Job-level `if` cannot reference `matrix` — build the matrix here.)
+        platform: ${{ github.event_name == 'pull_request' && fromJSON('["android","ios"]') || (inputs.platform == 'android' && fromJSON('["android"]') || (inputs.platform == 'ios' && fromJSON('["ios"]') || fromJSON('["android","ios"]'))) }}
+    runs-on: ${{ matrix.platform == 'ios' && 'macos-latest' || 'ubuntu-latest' }}
     permissions:
       contents: read
       id-token: write
@@ -31,7 +42,7 @@ jobs:
       ENSEMBLE_TEST_FTL_RESULTS_BUCKET: ${{ secrets.ENSEMBLE_TEST_FTL_RESULTS_BUCKET }}
       ENSEMBLE_TEST_REMOTE_STORE_GCS_BUCKET: ${{ secrets.ENSEMBLE_TEST_REMOTE_STORE_GCS_BUCKET }}
       ENSEMBLE_TEST_REMOTE_STORE_PREFIX: ensemble-test-remote-runs
-      REMOTE_PLATFORM: ${{ inputs.platform || 'android' }}
+      REMOTE_PLATFORM: ${{ matrix.platform }}
     steps:
       - uses: actions/checkout@v4
 
@@ -79,6 +90,7 @@ jobs:
         run: flutter pub get
 
       - name: Unit + contract tests
+        if: matrix.platform == 'android'
         working-directory: tools/ensemble_test_runner
         run: flutter test test/remote_execution_test.dart test/remote_setup_test.dart
 
@@ -94,7 +106,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: ensemble-remote-reports
+          name: ensemble-remote-reports-${{ matrix.platform }}
           path: |
             tools/ensemble_test_runner/example/build/ensemble_test_runner/remote/**
             tools/ensemble_test_runner/example/build/ensemble_test_runner/remote_runs/**
