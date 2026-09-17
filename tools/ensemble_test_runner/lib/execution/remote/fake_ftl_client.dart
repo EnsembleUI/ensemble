@@ -105,7 +105,11 @@ class FakeFtlClient implements FtlClient {
       labels: {'clientToken': clientToken, 'projectId': projectId},
     );
     matrices[matrixId] = matrices[clientToken]!;
-    return FtlSubmitResult(matrixId: matrixId, accepted: true);
+    return FtlSubmitResult(
+      matrixId: matrixId,
+      accepted: true,
+      historyId: 'hist-$projectId',
+    );
   }
 
   void finish(String matrixId, {String outcome = 'SUCCESS'}) {

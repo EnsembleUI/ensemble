@@ -9,6 +9,7 @@ import 'package:ensemble_test_runner/execution/remote/firebase_test_lab_provider
 import 'package:ensemble_test_runner/execution/remote/native_build_service.dart';
 import 'package:ensemble_test_runner/execution/remote/remote_models.dart';
 import 'package:ensemble_test_runner/execution/remote/remote_orchestrator.dart';
+import 'package:ensemble_test_runner/execution/remote/remote_progress.dart';
 import 'package:ensemble_test_runner/execution/remote/remote_provider.dart';
 import 'package:ensemble_test_runner/execution/remote/remote_report_reconciler.dart';
 import 'package:ensemble_test_runner/execution/remote/remote_run_store.dart';
@@ -282,6 +283,9 @@ remote:
 
       final ref = await provider.submit(intent);
       expect(ref.jobId, isNotEmpty);
+      expect(ref.metadata['consoleUrl'], contains('console.firebase.google.com'));
+      expect(ref.metadata['consoleUrl'], contains(ref.jobId));
+      expect(ref.metadata['historyId'], 'hist-demo');
 
       client.uncertainNextSubmit = true;
       final adopted = await provider.submit(intent);
@@ -564,6 +568,88 @@ remote:
       expect(restoreIdx, greaterThan(0));
       expect(envelopeIdx, greaterThan(restoreIdx));
       expect(source, contains('cleanupErrors'));
+    });
+  });
+
+  group('FTL console links + progress', () {
+    test('parses historyId and builds matrix URL', () {
+      final historyId = historyIdFromTestMatrixJson({
+        'testMatrixId': 'matrix-abc',
+        'resultStorage': {
+          'toolResultsHistory': {'historyId': 'hist-123'},
+        },
+      });
+      expect(historyId, 'hist-123');
+      final links = FtlConsoleLinks(
+        projectId: 'my-proj',
+        matrixId: 'matrix-abc',
+        historyId: historyId,
+      );
+      expect(
+        links.matrixUrl,
+        'https://console.firebase.google.com/project/my-proj/'
+        'testlab/histories/hist-123/matrices/matrix-abc',
+      );
+    });
+
+    test('orchestrator refuses stub packages before FTL submit', () async {
+      final storeDir = Directory.systemTemp.createTempSync('stub_store_');
+      final appDir = Directory.systemTemp.createTempSync('stub_app_');
+      addTearDown(() {
+        storeDir.deleteSync(recursive: true);
+        appDir.deleteSync(recursive: true);
+      });
+      final logs = <String>[];
+      final orch = RemoteOrchestrator(
+        provider: FirebaseTestLabProvider(
+          client: FakeFtlClient(),
+          projectId: 'demo',
+        ),
+        store: FileRemoteRunStore(storeDir),
+        onProgress: logs.add,
+        buildService: NativeBuildService(
+          cacheDirectory: Directory(p.join(appDir.path, 'cache')),
+          builder: (identity, {required appDir, required config}) async {
+            final out = Directory(p.join(appDir, 'pkgs'))..createSync();
+            final app = File(p.join(out.path, 'app-stub.android'))
+              ..writeAsStringSync('stub');
+            final test = File(p.join(out.path, 'test-stub.android'))
+              ..writeAsStringSync('stub');
+            return NativeBuildArtifacts(
+              identity: identity,
+              appPackagePath: app.path,
+              testPackagePath: test.path,
+              metadata: const {
+                'stub': 'true',
+                'detail': 'flutter build apk failed: boom',
+              },
+            );
+          },
+        ),
+      );
+
+      await expectLater(
+        orch.runSuite(
+          appDir: appDir.path,
+          config: const EnsembleTestConfig(
+            mode: ExecutionMode.integration,
+            target: ExecutionTarget.remote,
+            remote: RemoteExecutionConfig(
+              devices: [RemoteDeviceSpec(model: 'Pixel2')],
+            ),
+          ),
+          platform: 'android',
+        ),
+        throwsA(
+          isA<StateError>().having(
+            (e) => e.message,
+            'message',
+            contains('stub'),
+          ),
+        ),
+      );
+      expect(logs, isNotEmpty);
+      expect(logs.first, contains('Build identity'));
     });
   });
 }

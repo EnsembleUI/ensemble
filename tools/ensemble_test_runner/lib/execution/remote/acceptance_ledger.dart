@@ -38,13 +38,16 @@ abstract final class RemoteAcceptanceLedger {
           platform: 'android',
           status: AcceptanceStatus.implemented,
           notes:
-              'AndroidFtlPackager builds APK/androidTest or emits stubs when SDK missing.',
+              'AndroidFtlPackager streams flutter build apk; stub packages are '
+              'refused before FTL submit (fail-closed).',
         ),
         AcceptanceCell(
           criterion: 'Packaging builds',
           platform: 'ios',
           status: AcceptanceStatus.implemented,
-          notes: 'IosFtlPackager emits XCTest zip placeholders; cloud unverified.',
+          notes:
+              'IosFtlPackager still emits placeholders (marked stub) and is '
+              'refused before FTL submit until real XCTest packaging exists.',
         ),
         AcceptanceCell(
           criterion: 'Artifact export E2E (pass)',

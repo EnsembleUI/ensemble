@@ -9,6 +9,7 @@ import 'package:ensemble_test_runner/execution/remote/ftl_client.dart';
 import 'package:ensemble_test_runner/execution/remote/gcs_remote_run_store.dart';
 import 'package:ensemble_test_runner/execution/remote/native_build_service.dart';
 import 'package:ensemble_test_runner/execution/remote/remote_models.dart';
+import 'package:ensemble_test_runner/execution/remote/remote_progress.dart';
 import 'package:ensemble_test_runner/execution/remote/remote_provider.dart';
 import 'package:ensemble_test_runner/execution/remote/remote_report_reconciler.dart';
 import 'package:ensemble_test_runner/execution/remote/remote_run_store.dart';
@@ -21,12 +22,16 @@ class RemoteOrchestrator {
   final RemoteProvider provider;
   final RemoteRunStore store;
   final NativeBuildService buildService;
+  final RemoteProgress? onProgress;
 
   RemoteOrchestrator({
     required this.provider,
     required this.store,
     NativeBuildService? buildService,
-  }) : buildService = buildService ?? NativeBuildService();
+    this.onProgress,
+  }) : buildService = buildService ?? NativeBuildService(onProgress: onProgress);
+
+  void _log(String message) => onProgress?.call(message);
 
   Future<AggregatedRemoteReport> runSuite({
     required String appDir,
@@ -63,11 +68,35 @@ class RemoteOrchestrator {
       selectedTestIds: selectedTestIds,
     );
 
+    _log(
+      'Build identity ${identity.buildId.substring(0, 12)}… '
+      '(platform=$platform, plan=${identity.planHash.substring(0, 12)}…)',
+    );
+    final buildStarted = DateTime.now().toUtc();
     final artifacts = await buildService.buildOrReuse(
       identity: identity,
       appDir: appDir,
       config: config,
     );
+    final buildSecs =
+        DateTime.now().toUtc().difference(buildStarted).inSeconds;
+    final reused = artifacts.metadata['reused'] == 'true';
+    final stub = artifacts.metadata['stub'] == 'true';
+    _log(
+      reused
+          ? 'Reused cached native packages (${buildSecs}s)'
+          : 'Native packages ready (${buildSecs}s)',
+    );
+    _log('  app:  ${artifacts.appPackagePath}');
+    _log('  test: ${artifacts.testPackagePath}');
+    if (stub) {
+      throw StateError(
+        'Native package is a stub (real $platform build failed): '
+        '${artifacts.metadata['detail'] ?? 'unknown'}. '
+        'Fix the local Flutter/$platform build before submitting to '
+        'Firebase Test Lab — otherwise nothing useful appears in the console.',
+      );
+    }
 
     final runId = runIdOverride ??
         'run-${DateTime.now().toUtc().millisecondsSinceEpoch}-'
@@ -107,7 +136,9 @@ class RemoteOrchestrator {
       appPackagePath: artifacts.appPackagePath,
       testPackagePath: artifacts.testPackagePath,
     );
+    _log('Persisting run intent $runId ...');
     await store.putIntent(intent);
+    _log('Run intent persisted');
 
     final submitIntent = RemoteSubmitIntent(
       runId: runId,
@@ -123,11 +154,19 @@ class RemoteOrchestrator {
 
     RemoteProviderJobRef ref;
     try {
+      _log('Submitting to ${provider.id} ...');
       ref = await provider.submit(submitIntent);
     } catch (error) {
+      _log('Submit error ($error); checking for existing matrix by intent ...');
       final existing = await provider.findByIntent(submitIntent);
       if (existing == null) rethrow;
       ref = existing;
+      _log('Adopted existing matrix ${ref.matrixId ?? ref.jobId}');
+    }
+
+    final consoleUrl = ref.metadata['consoleUrl']?.toString();
+    if (consoleUrl != null && consoleUrl.isNotEmpty) {
+      _log('Watch in Firebase Test Lab: $consoleUrl');
     }
 
     await store.putProviderRef(
@@ -135,8 +174,10 @@ class RemoteOrchestrator {
       ref: ref,
       expectedVersion: 1,
     );
+    _log('Provider ref stored (matrix=${ref.matrixId ?? ref.jobId})');
 
     if (!waitForCompletion) {
+      _log('waitForCompletion=false; returning without poll');
       return AggregatedRemoteReport(
         runId: runId,
         devices: const [],
@@ -167,6 +208,7 @@ class RemoteOrchestrator {
 
     await _pollUntilDone(ref);
 
+    _log('Collecting artifacts into ${collectDirectory.path} ...');
     collectDirectory.createSync(recursive: true);
     final collected = await provider.collectArtifacts(
       ref,
@@ -226,6 +268,10 @@ class RemoteOrchestrator {
     final reportFile =
         File(p.join(collectDirectory.path, 'aggregated_report.json'));
     AtomicFile.writeStringSync(reportFile, report.toPrettyJson());
+    _log(
+      'Remote run finished: overall=${report.overall.name} '
+      'exit=${report.exitCode}',
+    );
     return report;
   }
 
@@ -296,9 +342,35 @@ class RemoteOrchestrator {
   Future<void> _pollUntilDone(RemoteProviderJobRef ref) async {
     final limits = provider.limits;
     final deadline = DateTime.now().add(limits.maxPollDuration);
+    final started = DateTime.now().toUtc();
     var delay = limits.pollInterval;
+    var lastLoggedState = '';
+    final consoleUrl = ref.metadata['consoleUrl']?.toString();
+
+    _log(
+      'Polling FTL matrix ${ref.matrixId ?? ref.jobId} '
+      '(interval=${limits.pollInterval.inSeconds}s, '
+      'timeout=${limits.maxPollDuration.inMinutes}m)',
+    );
+    if (consoleUrl != null && consoleUrl.isNotEmpty) {
+      _log('Console: $consoleUrl');
+    }
+
     while (DateTime.now().isBefore(deadline)) {
       final status = await provider.getStatus(ref);
+      final elapsed = DateTime.now().toUtc().difference(started);
+      final elapsedLabel = elapsed.inMinutes >= 1
+          ? '${elapsed.inMinutes}m ${elapsed.inSeconds % 60}s'
+          : '${elapsed.inSeconds}s';
+      final stateLabel = status.detail == null || status.detail!.isEmpty
+          ? status.state.name
+          : '${status.state.name} (${status.detail})';
+      if (stateLabel != lastLoggedState) {
+        _log('FTL status after $elapsedLabel: $stateLabel');
+        lastLoggedState = stateLabel;
+      } else {
+        _log('Still waiting on FTL after $elapsedLabel: $stateLabel');
+      }
       if (status.state == RemoteJobState.finished ||
           status.state == RemoteJobState.error ||
           status.state == RemoteJobState.cancelled) {
@@ -343,7 +415,10 @@ RemoteRunStore createRemoteRunStoreFromEnv({String? appDir}) {
   return FileRemoteRunStore(root);
 }
 
-RemoteProvider createRemoteProviderFromEnv(EnsembleTestConfig config) {
+RemoteProvider createRemoteProviderFromEnv(
+  EnsembleTestConfig config, {
+  RemoteProgress? onProgress,
+}) {
   final projectId = config.remote?.projectId ??
       Platform.environment['ENSEMBLE_TEST_FTL_PROJECT_ID'] ??
       '';
@@ -359,6 +434,7 @@ RemoteProvider createRemoteProviderFromEnv(EnsembleTestConfig config) {
           Platform.environment['ENSEMBLE_TEST_FTL_RESULTS_BUCKET'] ?? '',
     ),
     projectId: projectId,
+    onProgress: onProgress,
   );
 }
 
@@ -405,16 +481,24 @@ Future<int> runRemoteEnsembleYamlTestsCli(
     }
   }
 
+  final progress = quiet ? null : stderrRemoteProgress();
+
   try {
     final store = createRemoteRunStoreFromEnv(appDir: appDir);
-    final provider = createRemoteProviderFromEnv(suiteConfig);
-    final orch = RemoteOrchestrator(provider: provider, store: store);
-    if (!quiet) {
-      stdout.writeln(
-        'Remote execution via ${provider.id} ($platform, '
-        '${devices.length} device(s))...',
-      );
-    }
+    final provider = createRemoteProviderFromEnv(
+      suiteConfig,
+      onProgress: progress,
+    );
+    final orch = RemoteOrchestrator(
+      provider: provider,
+      store: store,
+      onProgress: progress,
+      buildService: NativeBuildService(onProgress: progress),
+    );
+    progress?.call(
+      'Starting remote execution via ${provider.id} '
+      '($platform, ${devices.length} device(s))',
+    );
     final report = await orch.runSuite(
       appDir: appDir,
       config: suiteConfig,
@@ -423,6 +507,7 @@ Future<int> runRemoteEnsembleYamlTestsCli(
     );
     if (verbose || !quiet) {
       stdout.writeln(report.toPrettyJson());
+      stdout.flush();
     }
     return report.exitCode;
   } on FtlCredentialException catch (error) {
@@ -431,9 +516,11 @@ Future<int> runRemoteEnsembleYamlTestsCli(
       'Packaging/validation completed locally where possible; '
       'cloud collect remains unverified.',
     );
+    stderr.flush();
     return 2;
   } catch (error) {
     stderr.writeln(error);
+    stderr.flush();
     return 2;
   }
 }

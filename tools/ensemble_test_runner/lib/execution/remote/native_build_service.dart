@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:crypto/crypto.dart';
 import 'package:ensemble_test_runner/execution/remote/remote_models.dart';
+import 'package:ensemble_test_runner/execution/remote/remote_progress.dart';
 import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
 import 'package:path/path.dart' as p;
 
@@ -47,10 +48,12 @@ class NativeBuildService {
     required String appDir,
     required EnsembleTestConfig config,
   })? builder;
+  final RemoteProgress? onProgress;
 
   NativeBuildService({
     Directory? cacheDirectory,
     this.builder,
+    this.onProgress,
   }) : cacheDirectory = cacheDirectory ??
             Directory(
               p.join(
@@ -58,6 +61,8 @@ class NativeBuildService {
                 'ensemble_test_native_builds',
               ),
             );
+
+  void _log(String message) => onProgress?.call(message);
 
   /// Deterministic test-only encryption key for remote packages (not a secret).
   static const remoteTestEncryptionKey = 'EnsembleTestKey00000000000000000';
@@ -114,6 +119,7 @@ class NativeBuildService {
     final slot = Directory(p.join(cacheDirectory.path, identity.buildId));
     final marker = File(p.join(slot.path, 'artifacts.json'));
     if (marker.existsSync()) {
+      _log('Cache hit for build ${identity.buildId.substring(0, 12)}…');
       final decoded = json.decode(marker.readAsStringSync()) as Map;
       return NativeBuildArtifacts(
         identity: identity,
@@ -131,6 +137,10 @@ class NativeBuildService {
       );
     }
 
+    _log(
+      'Building ${identity.platform} packages '
+      '(this can take several minutes; Flutter output follows)...',
+    );
     final built = builder != null
         ? await builder!(identity, appDir: appDir, config: config)
         : await _defaultBuild(identity, appDir: appDir, config: config);
@@ -157,13 +167,13 @@ class NativeBuildService {
     required EnsembleTestConfig config,
   }) async {
     if (identity.platform == 'ios') {
-      return IosFtlPackager().package(
+      return IosFtlPackager(onProgress: onProgress).package(
         identity: identity,
         appDir: appDir,
         config: config,
       );
     }
-    return AndroidFtlPackager().package(
+    return AndroidFtlPackager(onProgress: onProgress).package(
       identity: identity,
       appDir: appDir,
       config: config,
@@ -178,6 +188,10 @@ class AndroidFtlPackager {
   /// Candidate on-device export directory for envelope + screenshots.
   static const exportRelativePath = 'files/ensemble_test_remote';
 
+  final RemoteProgress? onProgress;
+
+  AndroidFtlPackager({this.onProgress});
+
   Future<NativeBuildArtifacts> package({
     required NativeBuildIdentity identity,
     required String appDir,
@@ -186,7 +200,12 @@ class AndroidFtlPackager {
         runProcess,
   }) async {
     final run = runProcess ??
-        ((exe, args) => Process.run(exe, args, workingDirectory: appDir));
+        ((exe, args) => _runStreaming(
+              exe,
+              args,
+              workingDirectory: appDir,
+              onProgress: onProgress,
+            ));
 
     final workspace = await _prepareIsolatedWorkspace(appDir, identity.buildId);
     final defines = [
@@ -197,6 +216,7 @@ class AndroidFtlPackager {
       '--dart-define=ensembleTestArtifactRoot=/data/local/tmp/ensemble_test_remote',
     ];
 
+    onProgress?.call('flutter build apk --debug (streaming output)...');
     final build = await run('flutter', [
       'build',
       'apk',
@@ -205,6 +225,10 @@ class AndroidFtlPackager {
     ]);
     if (build.exitCode != 0) {
       // Fall back to packaging stubs for environments without a full Android SDK.
+      onProgress?.call(
+        'WARNING: flutter build apk failed; emitting stub packages. '
+        'stderr: ${build.stderr.toString().trim()}',
+      );
       return _stubArtifacts(
         identity,
         workspace: workspace,
@@ -222,6 +246,7 @@ class AndroidFtlPackager {
       'build/app/outputs/apk/androidTest/debug/app-debug-androidTest.apk',
     );
     if (!File(appApk).existsSync()) {
+      onProgress?.call('WARNING: APK missing after build; emitting stubs');
       return _stubArtifacts(
         identity,
         workspace: workspace,
@@ -229,6 +254,7 @@ class AndroidFtlPackager {
         detail: 'APK missing after build',
       );
     }
+    onProgress?.call('Android APK ready: $appApk');
     return NativeBuildArtifacts(
       identity: identity,
       appPackagePath: appApk,
@@ -282,6 +308,10 @@ class IosFtlPackager {
   static const exportHypothesis =
       'XCTest attachments / Documents/ensemble_test_remote (unverified)';
 
+  final RemoteProgress? onProgress;
+
+  IosFtlPackager({this.onProgress});
+
   Future<NativeBuildArtifacts> package({
     required NativeBuildIdentity identity,
     required String appDir,
@@ -290,13 +320,19 @@ class IosFtlPackager {
         runProcess,
   }) async {
     final run = runProcess ??
-        ((exe, args) => Process.run(exe, args, workingDirectory: appDir));
+        ((exe, args) => _runStreaming(
+              exe,
+              args,
+              workingDirectory: appDir,
+              onProgress: onProgress,
+            ));
     final defines = [
       for (final e in identity.dartDefines.entries)
         '--dart-define=${e.key}=${e.value}',
       '--dart-define=ensembleTestRemoteBuildId=${identity.buildId}',
       '--dart-define=ensembleTestRemotePlanHash=${identity.planHash}',
     ];
+    onProgress?.call('flutter build ios --config-only (streaming output)...');
     final build = await run('flutter', [
       'build',
       'ios',
@@ -314,6 +350,16 @@ class IosFtlPackager {
           : 'ios-stub:${build.stderr}',
     );
     xctestrun.writeAsStringSync('xctestrun-placeholder');
+    if (build.exitCode != 0) {
+      onProgress?.call(
+        'WARNING: flutter build ios failed; emitting placeholder packages. '
+        'stderr: ${build.stderr.toString().trim()}',
+      );
+    } else {
+      onProgress?.call(
+        'iOS packaging placeholders written (full XCTest zip still milestone)',
+      );
+    }
     return NativeBuildArtifacts(
       identity: identity,
       appPackagePath: zip.path,
@@ -321,10 +367,62 @@ class IosFtlPackager {
       metadata: {
         'platform': 'ios',
         'exportHypothesis': exportHypothesis,
-        if (build.exitCode != 0) 'stub': 'true',
+        // Placeholders are not uploadable FTL payloads yet.
+        'stub': 'true',
+        if (build.exitCode != 0)
+          'detail': 'flutter build ios failed: ${build.stderr}'
+        else
+          'detail':
+              'iOS FTL packaging still emits placeholders (not a real XCTest zip)',
       },
     );
   }
+}
+
+/// Runs a process and streams stdout/stderr lines through [onProgress].
+Future<ProcessResult> _runStreaming(
+  String executable,
+  List<String> args, {
+  required String workingDirectory,
+  RemoteProgress? onProgress,
+}) async {
+  final process = await Process.start(
+    executable,
+    args,
+    workingDirectory: workingDirectory,
+    runInShell: true,
+  );
+  final stdoutBuf = StringBuffer();
+  final stderrBuf = StringBuffer();
+
+  Future<void> pump(Stream<List<int>> stream, StringBuffer sink) async {
+    var pending = '';
+    await for (final chunk in stream.transform(utf8.decoder)) {
+      sink.write(chunk);
+      pending += chunk;
+      while (true) {
+        final idx = pending.indexOf('\n');
+        if (idx < 0) break;
+        final line = pending.substring(0, idx).trimRight();
+        pending = pending.substring(idx + 1);
+        if (line.isNotEmpty) onProgress?.call(line);
+      }
+    }
+    final tail = pending.trimRight();
+    if (tail.isNotEmpty) onProgress?.call(tail);
+  }
+
+  await Future.wait([
+    pump(process.stdout, stdoutBuf),
+    pump(process.stderr, stderrBuf),
+  ]);
+  final code = await process.exitCode;
+  return ProcessResult(
+    process.pid,
+    code,
+    stdoutBuf.toString(),
+    stderrBuf.toString(),
+  );
 }
 
 /// Local simulation of pass/fail artifact export for packaging proof.

@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:ensemble_test_runner/execution/remote/remote_progress.dart';
 import 'package:http/http.dart' as http;
 
 /// Low-level Firebase Test Lab / Testing API client contract.
@@ -52,13 +53,35 @@ class FtlSubmitResult {
   final bool accepted;
   final bool uncertain;
   final String? detail;
+  final String? historyId;
 
   const FtlSubmitResult({
     required this.matrixId,
     this.accepted = true,
     this.uncertain = false,
     this.detail,
+    this.historyId,
   });
+}
+
+FtlSubmitResult ftlSubmitResultFromResponse({
+  required String projectId,
+  required Map<String, dynamic> decoded,
+  String? fallbackMatrixId,
+  bool accepted = true,
+  bool uncertain = false,
+  String? detail,
+}) {
+  final matrixId =
+      matrixIdFromTestMatrixJson(decoded) ?? fallbackMatrixId ?? '';
+  final historyId = historyIdFromTestMatrixJson(decoded);
+  return FtlSubmitResult(
+    matrixId: matrixId,
+    accepted: accepted,
+    uncertain: uncertain,
+    detail: detail,
+    historyId: historyId,
+  );
 }
 
 class FtlJobSnapshot {
@@ -190,11 +213,10 @@ class HttpFtlClient implements FtlClient {
     );
     if (response.statusCode >= 200 && response.statusCode < 300) {
       final decoded = json.decode(response.body) as Map<String, dynamic>;
-      return FtlSubmitResult(
-        matrixId: decoded['testMatrixId']?.toString() ??
-            decoded['name']?.toString() ??
-            clientToken,
-        accepted: true,
+      return ftlSubmitResultFromResponse(
+        projectId: projectId,
+        decoded: decoded,
+        fallbackMatrixId: clientToken,
       );
     }
     if (response.statusCode == 409) {
@@ -270,9 +292,10 @@ class HttpFtlClient implements FtlClient {
     );
     if (response.statusCode >= 200 && response.statusCode < 300) {
       final decoded = json.decode(response.body) as Map<String, dynamic>;
-      return FtlSubmitResult(
-        matrixId: decoded['testMatrixId']?.toString() ?? clientToken,
-        accepted: true,
+      return ftlSubmitResultFromResponse(
+        projectId: projectId,
+        decoded: decoded,
+        fallbackMatrixId: clientToken,
       );
     }
     if (response.statusCode == 409 || response.statusCode >= 500) {
@@ -363,18 +386,32 @@ class HttpFtlClient implements FtlClient {
     required String localPath,
     required String objectName,
   }) async {
-    final bucket = resultsBucket.isEmpty ? '$projectId-ftl-uploads' : resultsBucket;
+    final bucket =
+        resultsBucket.isEmpty ? '$projectId-ftl-uploads' : resultsBucket;
     final gcs = 'gs://$bucket/$objectName';
+    final file = File(localPath);
+    final bytes = file.existsSync() ? file.lengthSync() : 0;
     final result = await Process.run(
       'gsutil',
       ['cp', localPath, gcs],
       runInShell: true,
     );
     if (result.exitCode != 0) {
-      throw FtlApiException('gsutil upload failed: ${result.stderr}');
+      throw FtlApiException(
+        'gsutil upload failed (${_formatBytes(bytes)} → $gcs): '
+        '${result.stderr}',
+      );
     }
     return gcs;
   }
+}
+
+String _formatBytes(int bytes) {
+  if (bytes < 1024) return '$bytes B';
+  if (bytes < 1024 * 1024) {
+    return '${(bytes / 1024).toStringAsFixed(1)} KiB';
+  }
+  return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MiB';
 }
 
 class FtlCredentialException implements Exception {
