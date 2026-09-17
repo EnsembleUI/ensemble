@@ -46,8 +46,9 @@ abstract final class RemoteAcceptanceLedger {
           platform: 'ios',
           status: AcceptanceStatus.implemented,
           notes:
-              'IosFtlPackager still emits placeholders (marked stub) and is '
-              'refused before FTL submit until real XCTest packaging exists.',
+              'IosFtlPackager follows Flutter FTL flow (build ios + '
+              'xcodebuild build-for-testing + zip). Stub packages are refused '
+              'before submit. Cloud collect still unverified.',
         ),
         AcceptanceCell(
           criterion: 'Artifact export E2E (pass)',

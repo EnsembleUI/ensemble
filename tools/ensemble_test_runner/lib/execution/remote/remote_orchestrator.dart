@@ -3,6 +3,7 @@ import 'dart:io';
 import 'dart:math';
 
 import 'package:crypto/crypto.dart';
+import 'package:ensemble_test_runner/cli/yaml_test_app_patcher.dart';
 import 'package:ensemble_test_runner/execution/remote/file_remote_run_store.dart';
 import 'package:ensemble_test_runner/execution/remote/firebase_test_lab_provider.dart';
 import 'package:ensemble_test_runner/execution/remote/ftl_client.dart';
@@ -483,7 +484,30 @@ Future<int> runRemoteEnsembleYamlTestsCli(
 
   final progress = quiet ? null : stderrRemoteProgress();
 
+  final patcher = YamlTestAppPatcher(appDir);
   try {
+    progress?.call(
+      'Patching app for integration_test ($platform) before remote build...',
+    );
+    patcher.enable(
+      mode: ExecutionMode.integration,
+      targetPlatform: platform,
+      fixIosDeploymentTarget: platform == 'ios',
+    );
+    if (patcher.pubspecChanged) {
+      progress?.call('flutter pub get (pubspec changed by patcher)...');
+      final pubGet = await Process.run(
+        'flutter',
+        ['pub', 'get'],
+        workingDirectory: appDir,
+        runInShell: true,
+      );
+      if (pubGet.exitCode != 0) {
+        stderr.writeln('flutter pub get failed: ${pubGet.stderr}');
+        return 2;
+      }
+    }
+
     final store = createRemoteRunStoreFromEnv(appDir: appDir);
     final provider = createRemoteProviderFromEnv(
       suiteConfig,
@@ -519,6 +543,8 @@ Future<int> runRemoteEnsembleYamlTestsCli(
   } catch (error) {
     remoteCliWrite(error);
     return 2;
+  } finally {
+    patcher.restore();
   }
 }
 

@@ -139,7 +139,7 @@ class NativeBuildService {
 
     _log(
       'Building ${identity.platform} packages '
-      '(this can take several minutes; Flutter output follows)...',
+      '(this can take several minutes)...',
     );
     final built = builder != null
         ? await builder!(identity, appDir: appDir, config: config)
@@ -200,11 +200,10 @@ class AndroidFtlPackager {
         runProcess,
   }) async {
     final run = runProcess ??
-        ((exe, args) => _runStreaming(
+        ((exe, args) => _runCaptured(
               exe,
               args,
               workingDirectory: appDir,
-              onProgress: onProgress,
             ));
 
     final workspace = await _prepareIsolatedWorkspace(appDir, identity.buildId);
@@ -216,7 +215,7 @@ class AndroidFtlPackager {
       '--dart-define=ensembleTestArtifactRoot=/data/local/tmp/ensemble_test_remote',
     ];
 
-    onProgress?.call('flutter build apk --debug (streaming output)...');
+    onProgress?.call('Building Android debug APK...');
     final build = await run('flutter', [
       'build',
       'apk',
@@ -224,29 +223,51 @@ class AndroidFtlPackager {
       ...defines,
     ]);
     if (build.exitCode != 0) {
-      // Fall back to packaging stubs for environments without a full Android SDK.
-      onProgress?.call(
-        'WARNING: flutter build apk failed; emitting stub packages. '
-        'stderr: ${build.stderr.toString().trim()}',
-      );
+      final detail = _formatProcessFailure('flutter build apk', build);
+      onProgress?.call('ERROR: $detail');
       return _stubArtifacts(
         identity,
         workspace: workspace,
         platform: 'android',
-        detail: 'flutter build apk failed: ${build.stderr}',
+        detail: detail,
       );
+    }
+
+    // Flutter FTL docs: assemble instrumentation + debug with test target.
+    final androidDir = p.join(workspace, 'android');
+    final testTarget = p.join(workspace, 'integration_test/ensemble_tests.dart');
+    if (File(testTarget).existsSync() &&
+        File(p.join(androidDir, 'gradlew')).existsSync()) {
+      onProgress?.call('Assembling Android instrumentation test APK...');
+      final gradle = await _runCaptured(
+        './gradlew',
+        [
+          'app:assembleAndroidTest',
+          'app:assembleDebug',
+          '-Ptarget=$testTarget',
+        ],
+        workingDirectory: androidDir,
+      );
+      if (gradle.exitCode != 0) {
+        onProgress?.call(
+          'WARNING: ${_formatProcessFailure('gradlew assembleAndroidTest', gradle)}\n'
+          'Continuing with flutter APK only.',
+        );
+      }
     }
 
     final appApk = p.join(
       workspace,
       'build/app/outputs/flutter-apk/app-debug.apk',
     );
-    final testApk = p.join(
+    final testApkPath = p.join(
       workspace,
       'build/app/outputs/apk/androidTest/debug/app-debug-androidTest.apk',
     );
+    final testApk =
+        File(testApkPath).existsSync() ? testApkPath : appApk;
     if (!File(appApk).existsSync()) {
-      onProgress?.call('WARNING: APK missing after build; emitting stubs');
+      onProgress?.call('ERROR: APK missing after build; emitting stubs');
       return _stubArtifacts(
         identity,
         workspace: workspace,
@@ -254,11 +275,11 @@ class AndroidFtlPackager {
         detail: 'APK missing after build',
       );
     }
-    onProgress?.call('Android APK ready: $appApk');
+    onProgress?.call('Android packages ready');
     return NativeBuildArtifacts(
       identity: identity,
       appPackagePath: appApk,
-      testPackagePath: File(testApk).existsSync() ? testApk : appApk,
+      testPackagePath: testApk,
       metadata: {
         'platform': 'android',
         'exportHypothesis': exportRelativePath,
@@ -303,10 +324,17 @@ class AndroidFtlPackager {
   }
 }
 
-/// iOS XCTest zip packaging for FTL (separate milestone after Android).
+/// iOS XCTest zip packaging for Firebase Test Lab (Flutter integration_test).
+///
+/// Follows Flutter's documented FTL flow:
+/// `flutter build ios <test> --release` → `xcodebuild build-for-testing` →
+/// zip `Release-iphoneos` + `Runner_*.xctestrun`.
 class IosFtlPackager {
   static const exportHypothesis =
       'XCTest attachments / Documents/ensemble_test_remote (unverified)';
+
+  static const integrationTestEntry =
+      'integration_test/ensemble_tests.dart';
 
   final RemoteProgress? onProgress;
 
@@ -316,50 +344,191 @@ class IosFtlPackager {
     required NativeBuildIdentity identity,
     required String appDir,
     required EnsembleTestConfig config,
-    Future<ProcessResult> Function(String executable, List<String> args)?
-        runProcess,
+    Future<ProcessResult> Function(
+      String executable,
+      List<String> args, {
+      String? workingDirectory,
+    })? runProcess,
   }) async {
-    final run = runProcess ??
-        ((exe, args) => _runStreaming(
-              exe,
-              args,
-              workingDirectory: appDir,
-              onProgress: onProgress,
-            ));
+    Future<ProcessResult> run(
+      String exe,
+      List<String> args, {
+      String? workingDirectory,
+    }) {
+      if (runProcess != null) {
+        return runProcess(
+          exe,
+          args,
+          workingDirectory: workingDirectory ?? appDir,
+        );
+      }
+      return _runCaptured(
+        exe,
+        args,
+        workingDirectory: workingDirectory ?? appDir,
+      );
+    }
+
     final defines = [
       for (final e in identity.dartDefines.entries)
         '--dart-define=${e.key}=${e.value}',
       '--dart-define=ensembleTestRemoteBuildId=${identity.buildId}',
       '--dart-define=ensembleTestRemotePlanHash=${identity.planHash}',
     ];
-    onProgress?.call('flutter build ios --config-only (streaming output)...');
+
+    final entry = File(p.join(appDir, integrationTestEntry));
+    if (!entry.existsSync()) {
+      return _stub(
+        identity,
+        appDir: appDir,
+        detail:
+            'Missing $integrationTestEntry. Remote packaging requires the '
+            'CLI patcher to wire integration_test before build.',
+      );
+    }
+
+    final runnerTests = File(p.join(appDir, 'ios/RunnerTests/RunnerTests.m'));
+    if (!runnerTests.existsSync()) {
+      return _stub(
+        identity,
+        appDir: appDir,
+        detail:
+            'Missing ios/RunnerTests/RunnerTests.m with '
+            'INTEGRATION_TEST_IOS_RUNNER. See Flutter integration_test README.',
+      );
+    }
+
+    onProgress?.call('Building iOS release package for FTL...');
     final build = await run('flutter', [
       'build',
       'ios',
-      '--config-only',
+      integrationTestEntry,
+      '--release',
+      '--no-codesign',
       ...defines,
     ]);
+    if (build.exitCode != 0) {
+      return _stub(
+        identity,
+        appDir: appDir,
+        detail: _formatProcessFailure('flutter build ios', build),
+      );
+    }
+
+    final derived = p.join(appDir, 'build/ios_integ');
+    final products = p.join(derived, 'Build/Products');
+    final iosDir = p.join(appDir, 'ios');
+    onProgress?.call('Running xcodebuild build-for-testing...');
+    final xcode = await run(
+      'xcodebuild',
+      [
+        'build-for-testing',
+        '-workspace',
+        'Runner.xcworkspace',
+        '-scheme',
+        'Runner',
+        '-xcconfig',
+        'Flutter/Release.xcconfig',
+        '-configuration',
+        'Release',
+        '-derivedDataPath',
+        derived,
+        '-sdk',
+        'iphoneos',
+        'CODE_SIGNING_ALLOWED=NO',
+        'CODE_SIGNING_REQUIRED=NO',
+        'CODE_SIGN_IDENTITY=',
+      ],
+      workingDirectory: iosDir,
+    );
+    if (xcode.exitCode != 0) {
+      return _stub(
+        identity,
+        appDir: appDir,
+        detail: _formatProcessFailure('xcodebuild build-for-testing', xcode),
+      );
+    }
+
+    final productsDir = Directory(products);
+    if (!productsDir.existsSync()) {
+      return _stub(
+        identity,
+        appDir: appDir,
+        detail: 'Missing xcodebuild products at $products',
+      );
+    }
+
+    final releaseDir = Directory(p.join(products, 'Release-iphoneos'));
+    final xctestrunFiles = productsDir
+        .listSync()
+        .whereType<File>()
+        .where((f) => f.path.endsWith('.xctestrun'))
+        .toList();
+    if (!releaseDir.existsSync() || xctestrunFiles.isEmpty) {
+      return _stub(
+        identity,
+        appDir: appDir,
+        detail:
+            'Expected Release-iphoneos + *.xctestrun under $products '
+            '(got release=${releaseDir.existsSync()}, '
+            'xctestrun=${xctestrunFiles.length})',
+      );
+    }
+
+    final out = Directory(
+      p.join(appDir, 'build/ensemble_test_remote', identity.buildId),
+    )..createSync(recursive: true);
+    final zipPath = p.join(out.path, 'ios_tests.zip');
+    final xctestrunDest =
+        p.join(out.path, p.basename(xctestrunFiles.first.path));
+
+    onProgress?.call('Packaging iOS XCTest zip...');
+    final zip = await run(
+      'zip',
+      [
+        '-r',
+        '--must-match',
+        zipPath,
+        'Release-iphoneos',
+        p.basename(xctestrunFiles.first.path),
+      ],
+      workingDirectory: products,
+    );
+    if (zip.exitCode != 0) {
+      return _stub(
+        identity,
+        appDir: appDir,
+        detail: _formatProcessFailure('zip', zip),
+      );
+    }
+
+    xctestrunFiles.first.copySync(xctestrunDest);
+    onProgress?.call('iOS packages ready');
+    return NativeBuildArtifacts(
+      identity: identity,
+      appPackagePath: zipPath,
+      testPackagePath: xctestrunDest,
+      metadata: {
+        'platform': 'ios',
+        'exportHypothesis': exportHypothesis,
+        'derivedData': derived,
+      },
+    );
+  }
+
+  NativeBuildArtifacts _stub(
+    NativeBuildIdentity identity, {
+    required String appDir,
+    required String detail,
+  }) {
+    onProgress?.call('ERROR: iOS FTL packaging failed:\n$detail');
     final out = Directory(
       p.join(appDir, 'build/ensemble_test_remote', identity.buildId),
     )..createSync(recursive: true);
     final zip = File(p.join(out.path, 'ios_tests.zip'));
     final xctestrun = File(p.join(out.path, 'ensemble.xctestrun'));
-    zip.writeAsStringSync(
-      build.exitCode == 0
-          ? 'ios-package-placeholder'
-          : 'ios-stub:${build.stderr}',
-    );
-    xctestrun.writeAsStringSync('xctestrun-placeholder');
-    if (build.exitCode != 0) {
-      onProgress?.call(
-        'WARNING: flutter build ios failed; emitting placeholder packages. '
-        'stderr: ${build.stderr.toString().trim()}',
-      );
-    } else {
-      onProgress?.call(
-        'iOS packaging placeholders written (full XCTest zip still milestone)',
-      );
-    }
+    zip.writeAsStringSync('ios-stub\n$detail\n');
+    xctestrun.writeAsStringSync('xctestrun-stub\n$detail\n');
     return NativeBuildArtifacts(
       identity: identity,
       appPackagePath: zip.path,
@@ -367,62 +536,47 @@ class IosFtlPackager {
       metadata: {
         'platform': 'ios',
         'exportHypothesis': exportHypothesis,
-        // Placeholders are not uploadable FTL payloads yet.
         'stub': 'true',
-        if (build.exitCode != 0)
-          'detail': 'flutter build ios failed: ${build.stderr}'
-        else
-          'detail':
-              'iOS FTL packaging still emits placeholders (not a real XCTest zip)',
+        'detail': detail,
       },
     );
   }
 }
 
-/// Runs a process and streams stdout/stderr lines through [onProgress].
-Future<ProcessResult> _runStreaming(
+/// Runs a process quietly, capturing stdout/stderr for error reporting.
+Future<ProcessResult> _runCaptured(
   String executable,
   List<String> args, {
   required String workingDirectory,
-  RemoteProgress? onProgress,
-}) async {
-  final process = await Process.start(
+}) {
+  return Process.run(
     executable,
     args,
     workingDirectory: workingDirectory,
     runInShell: true,
   );
-  final stdoutBuf = StringBuffer();
-  final stderrBuf = StringBuffer();
+}
 
-  Future<void> pump(Stream<List<int>> stream, StringBuffer sink) async {
-    var pending = '';
-    await for (final chunk in stream.transform(utf8.decoder)) {
-      sink.write(chunk);
-      pending += chunk;
-      while (true) {
-        final idx = pending.indexOf('\n');
-        if (idx < 0) break;
-        final line = pending.substring(0, idx).trimRight();
-        pending = pending.substring(idx + 1);
-        if (line.isNotEmpty) onProgress?.call(line);
-      }
-    }
-    final tail = pending.trimRight();
-    if (tail.isNotEmpty) onProgress?.call(tail);
+String _formatProcessFailure(String label, ProcessResult result) {
+  final out = result.stdout.toString().trim();
+  final err = result.stderr.toString().trim();
+  final buffer = StringBuffer('$label failed (exit ${result.exitCode})');
+  if (err.isNotEmpty) {
+    buffer
+      ..writeln()
+      ..writeln('--- stderr ---')
+      ..writeln(err);
   }
-
-  await Future.wait([
-    pump(process.stdout, stdoutBuf),
-    pump(process.stderr, stderrBuf),
-  ]);
-  final code = await process.exitCode;
-  return ProcessResult(
-    process.pid,
-    code,
-    stdoutBuf.toString(),
-    stderrBuf.toString(),
-  );
+  if (out.isNotEmpty) {
+    buffer
+      ..writeln()
+      ..writeln('--- stdout ---')
+      ..writeln(out);
+  }
+  if (err.isEmpty && out.isEmpty) {
+    buffer.write(': (no stdout/stderr captured)');
+  }
+  return buffer.toString();
 }
 
 /// Local simulation of pass/fail artifact export for packaging proof.

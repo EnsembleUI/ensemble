@@ -22,6 +22,9 @@ On Flutter 3.44+, disable SwiftPM before an iOS build:
 flutter config --no-enable-swift-package-manager
 ```
 
+`ios/RunnerTests/RunnerTests.m` must use `INTEGRATION_TEST_IOS_RUNNER` (Flutter
+integration_test host) for Firebase Test Lab XCTest packaging.
+
 iOS must target 15.0+ (Firebase 12). `flutter create` still generates 13.0;
 set `platform :ios, '15.0'` in `ios/Podfile` and `IPHONEOS_DEPLOYMENT_TARGET = 15.0`
 in the Xcode project (CI does this for the example), or run
@@ -51,6 +54,7 @@ dart run ensemble_test_runner:ensemble_test --mode=widget
 
 # Firebase Test Lab (requires remote: in config.yaml + GCP setup).
 dart run ensemble_test_runner:ensemble_test --target=remote --remote-platform=android
+dart run ensemble_test_runner:ensemble_test --target=remote --remote-platform=ios
 ```
 
 The tests start on `Hello Home`, verify its greeting, navigate to the

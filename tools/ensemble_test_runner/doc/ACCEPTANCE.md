@@ -18,7 +18,7 @@ Statuses: `implemented` | `verified` | `blocked` | `unverified`.
 ## Notes
 
 - **Packaging builds (android):** `AndroidFtlPackager` builds APK/androidTest or emits stubs when SDK missing.
-- **Packaging builds (ios):** `IosFtlPackager` emits XCTest zip placeholders; cloud unverified.
+- **Packaging builds (ios):** `IosFtlPackager` follows Flutter FTL flow (build ios + xcodebuild build-for-testing + zip); stub packages refused before submit; cloud unverified.
 - **Artifact export E2E:** Local `ArtifactExportProof` covers pass/fail envelopes; FTL collection paths remain hypotheses until real device collect.
 - **Real FTL execution + collect:** Requires `ENSEMBLE_TEST_FTL_PROJECT_ID` + ADC. Missing creds ⇒ **unverified**, not passed. Blocks multi-device orchestration until Android is verified.
 - **Envelope complete after cleanup:** Entry emits `RemoteRunEnvelope` only after `restorePreSuiteStorageAtSuiteEnd`; `cleanupErrors` included.
