@@ -283,9 +283,10 @@ remote:
 
       final ref = await provider.submit(intent);
       expect(ref.jobId, isNotEmpty);
-      expect(ref.metadata['consoleUrl'], contains('console.firebase.google.com'));
-      expect(ref.metadata['consoleUrl'], contains(ref.jobId));
+      expect(ref.metadata['directMatrixUrl'], contains(ref.jobId));
+      expect(ref.metadata['directMatrixUrl'], contains('histories/hist-demo/matrices/'));
       expect(ref.metadata['historyId'], 'hist-demo');
+      expect(ref.metadata['consoleUrl'], ref.metadata['directMatrixUrl']);
 
       client.uncertainNextSubmit = true;
       final adopted = await provider.submit(intent);
@@ -586,10 +587,23 @@ remote:
         historyId: historyId,
       );
       expect(
-        links.matrixUrl,
+        links.directMatrixUrl,
         'https://console.firebase.google.com/project/my-proj/'
         'testlab/histories/hist-123/matrices/matrix-abc',
       );
+      expect(links.logLine, contains(links.directMatrixUrl!));
+    });
+
+    test('without historyId falls back to cloud browse URL once', () {
+      final links = FtlConsoleLinks(
+        projectId: 'my-proj',
+        matrixId: 'matrix-abc',
+      );
+      expect(links.directMatrixUrl, isNull);
+      expect(links.bestUrl, contains('console.cloud.google.com/test-lab'));
+      expect(links.bestUrl, contains('project=my-proj'));
+      expect(links.logLine, contains('matrix-abc'));
+      expect(links.logLine, isNot(contains('testlab/histories/')));
     });
 
     test('orchestrator refuses stub packages before FTL submit', () async {

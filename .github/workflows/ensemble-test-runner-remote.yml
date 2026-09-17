@@ -46,6 +46,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Setup Java
+        if: matrix.platform == 'android'
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
       - name: Require remote CI variables
         run: |
           missing=0
@@ -70,16 +77,20 @@ jobs:
           ENSEMBLE_TEST_GCP_WIF_PROVIDER: ${{ secrets.ENSEMBLE_TEST_GCP_WIF_PROVIDER }}
           ENSEMBLE_TEST_GCP_SERVICE_ACCOUNT: ${{ secrets.ENSEMBLE_TEST_GCP_SERVICE_ACCOUNT }}
 
-      - uses: subosito/flutter-action@v2
-        with:
-          flutter-version: '3.47.2'
-          channel: 'stable'
-          cache: true
+      - uses: ./.github/actions/setup-flutter
 
       # Flutter >= 3.44: several Ensemble plugins lack SwiftPM; CocoaPods-only.
       - name: Disable Swift Package Manager (iOS)
         if: matrix.platform == 'ios'
         run: flutter config --no-enable-swift-package-manager
+
+      - name: Install Melos
+        run: dart pub global activate melos
+
+      # Link workspace packages (local modules/ensemble has resetCachedKey, etc.).
+      # Plain `flutter pub get` resolves hosted ensemble from pub.dev and breaks.
+      - name: Bootstrap monorepo
+        run: melos bootstrap
 
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v2
@@ -89,10 +100,6 @@ jobs:
 
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v2
-
-      - name: Bootstrap test runner
-        working-directory: tools/ensemble_test_runner
-        run: flutter pub get
 
       - name: Unit + contract tests
         if: matrix.platform == 'android'

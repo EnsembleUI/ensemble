@@ -134,17 +134,25 @@ class FirebaseTestLabProvider implements RemoteProvider {
       );
     }
 
+    var historyId = result.historyId;
+    // Create responses often omit historyId until the matrix is readable.
+    if (historyId == null || historyId.isEmpty) {
+      try {
+        final snap =
+            await client.getTestMatrix(projectId, result.matrixId);
+        historyId = snap.historyId;
+      } catch (_) {
+        // Keep browsing fallback; poll may discover historyId later.
+      }
+    }
+
     final links = FtlConsoleLinks(
       projectId: projectId,
       matrixId: result.matrixId,
-      historyId: result.historyId,
+      historyId: historyId,
     );
     _log('FTL matrix accepted: ${result.matrixId}');
-    _log('Console: ${links.matrixUrl}');
-    if (result.historyId == null || result.historyId!.isEmpty) {
-      _log('Histories (if matrix link is incomplete): ${links.historiesUrl}');
-      _log('Cloud Test Lab: ${links.cloudHistoriesUrl}');
-    }
+    _log(links.logLine);
 
     return RemoteProviderJobRef(
       jobId: result.matrixId,
@@ -154,6 +162,7 @@ class FirebaseTestLabProvider implements RemoteProvider {
         if (result.detail != null) 'detail': result.detail,
         'clientToken': intent.clientToken,
         'platform': intent.platform,
+        'projectId': projectId,
         ...links.toMetadata(),
       },
     );
@@ -192,6 +201,7 @@ class FirebaseTestLabProvider implements RemoteProvider {
       jobId: snap.matrixId,
       state: _mapState(snap.state),
       detail: snap.outcome ?? snap.state,
+      historyId: snap.historyId,
       devices: {
         for (final d in const ['primary'])
           d: RemoteDeviceExecutionStatus(

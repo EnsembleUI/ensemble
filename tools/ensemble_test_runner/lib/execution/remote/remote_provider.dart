@@ -68,12 +68,14 @@ class RemoteJobStatus {
   final String jobId;
   final RemoteJobState state;
   final String? detail;
+  final String? historyId;
   final Map<String, RemoteDeviceExecutionStatus> devices;
 
   const RemoteJobStatus({
     required this.jobId,
     required this.state,
     this.detail,
+    this.historyId,
     this.devices = const {},
   });
 }

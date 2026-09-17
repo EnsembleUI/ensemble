@@ -165,10 +165,7 @@ class RemoteOrchestrator {
       _log('Adopted existing matrix ${ref.matrixId ?? ref.jobId}');
     }
 
-    final consoleUrl = ref.metadata['consoleUrl']?.toString();
-    if (consoleUrl != null && consoleUrl.isNotEmpty) {
-      _log('Watch in Firebase Test Lab: $consoleUrl');
-    }
+    // Provider already logged the console link on submit.
 
     await store.putProviderRef(
       runId: runId,
@@ -346,19 +343,32 @@ class RemoteOrchestrator {
     final started = DateTime.now().toUtc();
     var delay = limits.pollInterval;
     var lastLoggedState = '';
-    final consoleUrl = ref.metadata['consoleUrl']?.toString();
+    var loggedDirectUrl = ref.metadata['directMatrixUrl'] != null;
+    final projectId = ref.metadata['projectId']?.toString() ??
+        Platform.environment['ENSEMBLE_TEST_FTL_PROJECT_ID'] ??
+        '';
+    final matrixId = ref.matrixId ?? ref.jobId;
 
     _log(
-      'Polling FTL matrix ${ref.matrixId ?? ref.jobId} '
+      'Polling FTL matrix $matrixId '
       '(interval=${limits.pollInterval.inSeconds}s, '
       'timeout=${limits.maxPollDuration.inMinutes}m)',
     );
-    if (consoleUrl != null && consoleUrl.isNotEmpty) {
-      _log('Console: $consoleUrl');
-    }
 
     while (DateTime.now().isBefore(deadline)) {
       final status = await provider.getStatus(ref);
+      if (!loggedDirectUrl &&
+          status.historyId != null &&
+          status.historyId!.isNotEmpty &&
+          projectId.isNotEmpty) {
+        final links = FtlConsoleLinks(
+          projectId: projectId,
+          matrixId: matrixId,
+          historyId: status.historyId,
+        );
+        _log(links.logLine);
+        loggedDirectUrl = true;
+      }
       final elapsed = DateTime.now().toUtc().difference(started);
       final elapsedLabel = elapsed.inMinutes >= 1
           ? '${elapsed.inMinutes}m ${elapsed.inSeconds % 60}s'

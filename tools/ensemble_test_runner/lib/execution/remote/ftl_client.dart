@@ -89,6 +89,7 @@ class FtlJobSnapshot {
   final String state;
   final String? outcome;
   final String? resultStorageGcs;
+  final String? historyId;
   final Map<String, String> labels;
   final Map<String, dynamic> raw;
 
@@ -97,6 +98,7 @@ class FtlJobSnapshot {
     required this.state,
     this.outcome,
     this.resultStorageGcs,
+    this.historyId,
     this.labels = const {},
     this.raw = const {},
   });
@@ -335,6 +337,7 @@ class HttpFtlClient implements FtlClient {
       state: decoded['state']?.toString() ?? 'UNKNOWN',
       outcome: decoded['outcomeSummary']?.toString(),
       resultStorageGcs: gcs,
+      historyId: historyIdFromTestMatrixJson(decoded),
       raw: decoded,
     );
   }

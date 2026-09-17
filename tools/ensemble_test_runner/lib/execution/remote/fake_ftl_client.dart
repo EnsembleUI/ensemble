@@ -102,6 +102,7 @@ class FakeFtlClient implements FtlClient {
       matrixId: matrixId,
       state: 'RUNNING',
       resultStorageGcs: 'gs://fake-bucket/$clientToken',
+      historyId: 'hist-$projectId',
       labels: {'clientToken': clientToken, 'projectId': projectId},
     );
     matrices[matrixId] = matrices[clientToken]!;
@@ -120,6 +121,7 @@ class FakeFtlClient implements FtlClient {
       state: 'FINISHED',
       outcome: outcome,
       resultStorageGcs: current.resultStorageGcs,
+      historyId: current.historyId,
       labels: current.labels,
     );
     matrices[matrixId] = finished;
@@ -166,6 +168,7 @@ class FakeFtlClient implements FtlClient {
       state: 'CANCELLED',
       outcome: 'CANCELLED',
       resultStorageGcs: current.resultStorageGcs,
+      historyId: current.historyId,
       labels: current.labels,
     );
   }
