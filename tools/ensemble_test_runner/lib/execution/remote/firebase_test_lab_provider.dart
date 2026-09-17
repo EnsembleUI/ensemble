@@ -15,9 +15,16 @@ class FirebaseTestLabProvider implements RemoteProvider {
   final RemoteProviderLimits limits;
 
   /// On-device export directory pulled via FTL directoriesToPull (Android).
-  /// Hypothesis until verified on real devices — see acceptance ledger.
+  ///
+  /// Must stay under `/sdcard/` (or `/storage/emulated/0/`) — FTL will not pull
+  /// `/data/local/tmp/...`. The googletest output tree is always collected.
   static const androidExportPullPath =
-      '/sdcard/Android/data/{applicationId}/files/ensemble_test_remote';
+      '/sdcard/googletest/test_outputfiles/ensemble_test_remote';
+
+  /// Parent of [androidExportPullPath] passed to Testing API directoriesToPull.
+  static const androidDirectoriesToPull = [
+    '/sdcard/googletest/test_outputfiles',
+  ];
 
   FirebaseTestLabProvider({
     required this.client,
@@ -115,10 +122,7 @@ class FirebaseTestLabProvider implements RemoteProvider {
         testApkGcs: testGcs,
         devices: deviceMaps,
         clientToken: intent.clientToken,
-        directoriesToPull: const [
-          // Placeholder applicationId substituted by packager docs.
-          '/sdcard/googletest/test_outputfiles',
-        ],
+        directoriesToPull: androidDirectoriesToPull,
       );
     }
 

@@ -5,22 +5,16 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   test('encodeDartDefinesForGradle matches flutter_tools per-define base64', () {
-    final encoded = encodeDartDefinesForGradle(const [
+    final pairs = [
       'ensembleTestExecutionMode=integration',
-      'ensembleTestArtifactRoot=/data/local/tmp/ensemble_test_remote',
-    ]);
+      'ensembleTestArtifactRoot=${AndroidFtlPackager.onDeviceArtifactRoot}',
+    ];
+    final encoded = encodeDartDefinesForGradle(pairs);
     expect(
       encoded,
-      'ZW5zZW1ibGVUZXN0RXhlY3V0aW9uTW9kZT1pbnRlZ3JhdGlvbg==,'
-      'ZW5zZW1ibGVUZXN0QXJ0aWZhY3RSb290PS9kYXRhL2xvY2FsL3RtcC9lbnNlbWJsZV90ZXN0X3JlbW90ZQ==',
+      pairs.map((p) => base64Encode(utf8.encode(p))).join(','),
     );
-    // Wrong joined-then-base64 form must not be used.
-    final wrong = base64Encode(
-      utf8.encode(
-        'ensembleTestExecutionMode=integration,'
-        'ensembleTestArtifactRoot=/data/local/tmp/ensemble_test_remote',
-      ),
-    );
+    final wrong = base64Encode(utf8.encode(pairs.join(',')));
     expect(encoded, isNot(wrong));
   });
 }

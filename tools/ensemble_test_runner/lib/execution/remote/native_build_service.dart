@@ -186,7 +186,13 @@ class NativeBuildService {
 /// Artifact export path is a **hypothesis** until real FTL verification.
 class AndroidFtlPackager {
   /// Candidate on-device export directory for envelope + screenshots.
-  static const exportRelativePath = 'files/ensemble_test_remote';
+  /// Must be under `/sdcard/...` so FTL directoriesToPull can collect it.
+  static const exportRelativePath =
+      'googletest/test_outputfiles/ensemble_test_remote';
+
+  /// Absolute on-device path baked into remote APKs via dart-define.
+  static const onDeviceArtifactRoot =
+      '/sdcard/googletest/test_outputfiles/ensemble_test_remote';
 
   final RemoteProgress? onProgress;
 
@@ -245,7 +251,7 @@ class AndroidFtlPackager {
       for (final e in identity.dartDefines.entries) '${e.key}=${e.value}',
       'ensembleTestRemoteBuildId=${identity.buildId}',
       'ensembleTestRemotePlanHash=${identity.planHash}',
-      'ensembleTestArtifactRoot=/data/local/tmp/ensemble_test_remote',
+      'ensembleTestArtifactRoot=${AndroidFtlPackager.onDeviceArtifactRoot}',
     ];
     final flutterDefines = [
       for (final pair in definePairs) '--dart-define=$pair',

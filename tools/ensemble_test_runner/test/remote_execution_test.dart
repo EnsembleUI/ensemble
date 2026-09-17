@@ -404,7 +404,13 @@ remote:
       final artifactFail = RemoteReportReconciler.reconcile(
         deviceKey: 'primary',
         nativeOutcome: 'SUCCESS',
-        envelope: const RemoteRunEnvelope(runId: 'r', complete: true),
+        envelope: const RemoteRunEnvelope(
+          runId: 'r',
+          complete: true,
+          artifacts: [
+            RemoteArtifactEntry(path: 'screenshots/missing.png'),
+          ],
+        ),
         artifactDirectory: badDir,
       );
       expect(

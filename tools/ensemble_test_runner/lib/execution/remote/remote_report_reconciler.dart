@@ -95,13 +95,21 @@ abstract final class RemoteReportReconciler {
     }
 
     if (envelope == null || !envelope.complete) {
+      final outcome = nativeOutcome.toUpperCase();
+      final ftlPassed = outcome.contains('SUCCESS') || outcome == 'PASSED';
       return ReconciledDeviceResult(
         deviceKey: deviceKey,
         failureClass: RemoteExecutionFailureClass.incomplete,
         nativeOutcome: nativeOutcome,
         envelope: envelope,
-        messages: const [
+        messages: [
           'RemoteRunEnvelope missing or incomplete=false; never pass.',
+          if (ftlPassed)
+            'Firebase Test Lab reported $nativeOutcome for instrumentation, '
+                'but the host could not collect remote/envelope.json from the '
+                'device pull tree. On Android the app must write under '
+                '/sdcard/googletest/test_outputfiles/ (FTL directoriesToPull); '
+                '/data/local/tmp is not collected.',
         ],
         exitCode: 2,
       );
@@ -114,7 +122,12 @@ abstract final class RemoteReportReconciler {
     }
 
     final artifactProblems = <String>[];
+    // Envelope already loaded (possibly from an FTL-nested path). Skip the
+    // fixed envelope path check; other caller-required paths still apply.
     for (final relative in requiredArtifactRelativePaths) {
+      if (relative == 'remote/envelope.json' || relative == 'envelope.json') {
+        continue;
+      }
       final file = File(p.join(artifactDirectory.path, relative));
       if (!file.existsSync()) {
         artifactProblems.add('Missing required artifact: $relative');
@@ -228,20 +241,50 @@ abstract final class RemoteReportReconciler {
   }
 
   static RemoteRunEnvelope? loadEnvelope(Directory directory) {
-    final candidates = [
+    if (!directory.existsSync()) return null;
+    final preferred = [
       File(p.join(directory.path, 'remote', 'envelope.json')),
       File(p.join(directory.path, 'envelope.json')),
+      // FTL drops pulled sdcard trees under device-specific prefixes.
+      File(
+        p.join(
+          directory.path,
+          'sdcard',
+          'googletest',
+          'test_outputfiles',
+          'ensemble_test_remote',
+          'remote',
+          'envelope.json',
+        ),
+      ),
     ];
-    for (final file in candidates) {
-      if (!file.existsSync()) continue;
-      try {
-        final decoded = json.decode(file.readAsStringSync());
-        if (decoded is Map) {
-          return RemoteRunEnvelope.fromJson(Map<String, dynamic>.from(decoded));
-        }
-      } catch (_) {
-        // Keep scanning.
+    for (final file in preferred) {
+      final parsed = _tryParseEnvelope(file);
+      if (parsed != null) return parsed;
+    }
+    // Last resort: any envelope.json under the download tree.
+    try {
+      for (final entity in directory.listSync(recursive: true)) {
+        if (entity is! File) continue;
+        if (p.basename(entity.path) != 'envelope.json') continue;
+        final parsed = _tryParseEnvelope(entity);
+        if (parsed != null) return parsed;
       }
+    } catch (_) {
+      // Ignore walk errors; treat as missing envelope.
+    }
+    return null;
+  }
+
+  static RemoteRunEnvelope? _tryParseEnvelope(File file) {
+    if (!file.existsSync()) return null;
+    try {
+      final decoded = json.decode(file.readAsStringSync());
+      if (decoded is Map) {
+        return RemoteRunEnvelope.fromJson(Map<String, dynamic>.from(decoded));
+      }
+    } catch (_) {
+      // Keep scanning.
     }
     return null;
   }
