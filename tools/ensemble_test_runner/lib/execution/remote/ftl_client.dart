@@ -54,6 +54,7 @@ class FtlSubmitResult {
   final bool uncertain;
   final String? detail;
   final String? historyId;
+  final String? resultsUrl;
 
   const FtlSubmitResult({
     required this.matrixId,
@@ -61,6 +62,7 @@ class FtlSubmitResult {
     this.uncertain = false,
     this.detail,
     this.historyId,
+    this.resultsUrl,
   });
 }
 
@@ -74,13 +76,13 @@ FtlSubmitResult ftlSubmitResultFromResponse({
 }) {
   final matrixId =
       matrixIdFromTestMatrixJson(decoded) ?? fallbackMatrixId ?? '';
-  final historyId = historyIdFromTestMatrixJson(decoded);
   return FtlSubmitResult(
     matrixId: matrixId,
     accepted: accepted,
     uncertain: uncertain,
     detail: detail,
-    historyId: historyId,
+    historyId: historyIdFromTestMatrixJson(decoded),
+    resultsUrl: resultsUrlFromTestMatrixJson(decoded),
   );
 }
 
@@ -90,6 +92,7 @@ class FtlJobSnapshot {
   final String? outcome;
   final String? resultStorageGcs;
   final String? historyId;
+  final String? resultsUrl;
   final Map<String, String> labels;
   final Map<String, dynamic> raw;
 
@@ -99,6 +102,7 @@ class FtlJobSnapshot {
     this.outcome,
     this.resultStorageGcs,
     this.historyId,
+    this.resultsUrl,
     this.labels = const {},
     this.raw = const {},
   });
@@ -338,6 +342,7 @@ class HttpFtlClient implements FtlClient {
       outcome: decoded['outcomeSummary']?.toString(),
       resultStorageGcs: gcs,
       historyId: historyIdFromTestMatrixJson(decoded),
+      resultsUrl: resultsUrlFromTestMatrixJson(decoded),
       raw: decoded,
     );
   }

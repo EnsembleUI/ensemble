@@ -283,10 +283,11 @@ remote:
 
       final ref = await provider.submit(intent);
       expect(ref.jobId, isNotEmpty);
-      expect(ref.metadata['directMatrixUrl'], contains(ref.jobId));
-      expect(ref.metadata['directMatrixUrl'], contains('histories/hist-demo/matrices/'));
+      expect(ref.metadata['resultsUrl'], contains('histories/hist-demo/matrices/'));
+      expect(ref.metadata['resultsUrl'], contains('5114929840549376702'));
       expect(ref.metadata['historyId'], 'hist-demo');
-      expect(ref.metadata['consoleUrl'], ref.metadata['directMatrixUrl']);
+      expect(ref.metadata['consoleUrl'], ref.metadata['resultsUrl']);
+      expect(ref.metadata['resultsUrl'], isNot(contains('matrix-')));
 
       client.uncertainNextSubmit = true;
       final adopted = await provider.submit(intent);
@@ -573,36 +574,47 @@ remote:
   });
 
   group('FTL console links + progress', () {
-    test('parses historyId and builds matrix URL', () {
+    test('prefers official resultsUrl over invented matrix-* paths', () {
       final historyId = historyIdFromTestMatrixJson({
         'testMatrixId': 'matrix-abc',
         'resultStorage': {
-          'toolResultsHistory': {'historyId': 'hist-123'},
+          'toolResultsHistory': {'historyId': 'bh.c9c1e6677f16de48'},
+          'resultsUrl':
+              'https://console.firebase.google.com/project/build-system-test/'
+              'testlab/histories/bh.c9c1e6677f16de48/matrices/5114929840549376702',
         },
       });
-      expect(historyId, 'hist-123');
+      expect(historyId, 'bh.c9c1e6677f16de48');
+      final resultsUrl = resultsUrlFromTestMatrixJson({
+        'resultStorage': {
+          'resultsUrl':
+              'https://console.firebase.google.com/project/build-system-test/'
+              'testlab/histories/bh.c9c1e6677f16de48/matrices/5114929840549376702',
+        },
+      });
       final links = FtlConsoleLinks(
-        projectId: 'my-proj',
+        projectId: 'build-system-test',
         matrixId: 'matrix-abc',
         historyId: historyId,
+        resultsUrl: resultsUrl,
       );
-      expect(
-        links.directMatrixUrl,
-        'https://console.firebase.google.com/project/my-proj/'
-        'testlab/histories/hist-123/matrices/matrix-abc',
-      );
-      expect(links.logLine, contains(links.directMatrixUrl!));
+      expect(links.bestUrl, resultsUrl);
+      expect(links.logLine, contains('5114929840549376702'));
+      expect(links.logLine, isNot(contains('matrix-abc')));
+      expect(links.toMetadata()['resultsUrl'], resultsUrl);
     });
 
-    test('without historyId falls back to cloud browse URL once', () {
+    test('without resultsUrl falls back to cloud browse URL once', () {
       final links = FtlConsoleLinks(
         projectId: 'my-proj',
         matrixId: 'matrix-abc',
+        historyId: 'hist-123',
       );
-      expect(links.directMatrixUrl, isNull);
+      expect(links.hasOfficialResultsUrl, isFalse);
       expect(links.bestUrl, contains('console.cloud.google.com/test-lab'));
       expect(links.bestUrl, contains('project=my-proj'));
       expect(links.logLine, contains('matrix-abc'));
+      expect(links.logLine, contains('resultsUrl not ready yet'));
       expect(links.logLine, isNot(contains('testlab/histories/')));
     });
 

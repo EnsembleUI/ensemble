@@ -26,51 +26,50 @@ void remoteCliWrite(Object? message, {bool toStderr = true}) {
 }
 
 /// Firebase / Cloud console URLs for a Test Lab matrix (best-effort).
+///
+/// Prefer [resultsUrl] from the Testing API (`resultStorage.resultsUrl`) — that
+/// is the console link Google itself publishes (numeric matrix id). Do not
+/// invent `/matrices/{testMatrixId}` URLs; `matrix-*` ids are not console ids.
 class FtlConsoleLinks {
   final String projectId;
   final String matrixId;
   final String? historyId;
+  final String? resultsUrl;
 
   const FtlConsoleLinks({
     required this.projectId,
     required this.matrixId,
     this.historyId,
+    this.resultsUrl,
   });
 
-  bool get hasDirectMatrixLink =>
-      historyId != null && historyId!.isNotEmpty;
+  bool get hasOfficialResultsUrl =>
+      resultsUrl != null && resultsUrl!.trim().isNotEmpty;
 
-  /// Direct matrix page when [historyId] is known. Null otherwise — do not
-  /// pretend the histories list is a matrix link.
-  String? get directMatrixUrl {
-    if (!hasDirectMatrixLink) return null;
-    return 'https://console.firebase.google.com/project/$projectId/'
-        'testlab/histories/$historyId/matrices/$matrixId';
-  }
-
-  /// Cloud Console Test Lab list for this project (browse / search by matrix id).
+  /// Cloud Console Test Lab list for this project (browse fallback).
   String get cloudBrowseUrl =>
       'https://console.cloud.google.com/test-lab/histories?project=$projectId';
 
-  /// Best single URL to print: direct matrix when available, else browse list.
-  String get bestUrl => directMatrixUrl ?? cloudBrowseUrl;
+  /// Best single URL to print.
+  String get bestUrl {
+    if (hasOfficialResultsUrl) return resultsUrl!.trim();
+    return cloudBrowseUrl;
+  }
 
   /// One-line log text for operators.
   String get logLine {
-    if (hasDirectMatrixLink) {
-      return 'Open matrix $matrixId: $directMatrixUrl';
+    if (hasOfficialResultsUrl) {
+      return 'Open results: ${resultsUrl!.trim()}';
     }
-    return 'Open Test Lab (matrix $matrixId — direct link pending history id): '
+    return 'Open Test Lab (matrix $matrixId — resultsUrl not ready yet): '
         '$cloudBrowseUrl';
   }
 
   Map<String, String> toMetadata() => {
         'consoleUrl': bestUrl,
         'cloudBrowseUrl': cloudBrowseUrl,
-        if (hasDirectMatrixLink) ...{
-          'historyId': historyId!,
-          'directMatrixUrl': directMatrixUrl!,
-        },
+        if (hasOfficialResultsUrl) 'resultsUrl': resultsUrl!.trim(),
+        if (historyId != null && historyId!.isNotEmpty) 'historyId': historyId!,
       };
 }
 
@@ -88,13 +87,21 @@ String? historyIdFromTestMatrixJson(Map<String, dynamic> decoded) {
       if (id != null && id.isNotEmpty) return id;
     }
   }
-  // Some responses nest history only under toolResultsExecution at top level.
   final topExec = decoded['toolResultsExecution'];
   if (topExec is Map) {
     final id = topExec['historyId']?.toString();
     if (id != null && id.isNotEmpty) return id;
   }
   return null;
+}
+
+/// Official Firebase console URL from Testing API `resultStorage.resultsUrl`.
+String? resultsUrlFromTestMatrixJson(Map<String, dynamic> decoded) {
+  final storage = decoded['resultStorage'];
+  if (storage is! Map) return null;
+  final url = storage['resultsUrl']?.toString().trim();
+  if (url == null || url.isEmpty) return null;
+  return url;
 }
 
 String? matrixIdFromTestMatrixJson(Map<String, dynamic> decoded) {

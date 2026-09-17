@@ -207,20 +207,63 @@ class AndroidFtlPackager {
             ));
 
     final workspace = await _prepareIsolatedWorkspace(appDir, identity.buildId);
-    final defines = [
-      for (final e in identity.dartDefines.entries)
-        '--dart-define=${e.key}=${e.value}',
-      '--dart-define=ensembleTestRemoteBuildId=${identity.buildId}',
-      '--dart-define=ensembleTestRemotePlanHash=${identity.planHash}',
-      '--dart-define=ensembleTestArtifactRoot=/data/local/tmp/ensemble_test_remote',
-    ];
+    final testTarget = p.join(workspace, 'integration_test/ensemble_tests.dart');
+    if (!File(testTarget).existsSync()) {
+      return _stubArtifacts(
+        identity,
+        workspace: workspace,
+        platform: 'android',
+        detail:
+            'Missing integration_test/ensemble_tests.dart. Remote packaging '
+            'requires the CLI patcher to wire integration_test before build.',
+      );
+    }
 
-    onProgress?.call('Building Android debug APK...');
+    final hostTest = Directory(
+      p.join(workspace, 'android/app/src/androidTest'),
+    );
+    final hasFlutterTestRunner = hostTest.existsSync() &&
+        hostTest.listSync(recursive: true).whereType<File>().any((f) {
+          final lower = f.path.toLowerCase();
+          if (!lower.endsWith('.java') && !lower.endsWith('.kt')) {
+            return false;
+          }
+          return f.readAsStringSync().contains('FlutterTestRunner');
+        });
+    if (!hasFlutterTestRunner) {
+      return _stubArtifacts(
+        identity,
+        workspace: workspace,
+        platform: 'android',
+        detail:
+            'Missing androidTest host with FlutterTestRunner '
+            '(e.g. MainActivityTest). Without it FTL reports SUCCESS with 0 tests.',
+      );
+    }
+
+    final definePairs = <String>[
+      for (final e in identity.dartDefines.entries) '${e.key}=${e.value}',
+      'ensembleTestRemoteBuildId=${identity.buildId}',
+      'ensembleTestRemotePlanHash=${identity.planHash}',
+      'ensembleTestArtifactRoot=/data/local/tmp/ensemble_test_remote',
+    ];
+    final flutterDefines = [
+      for (final pair in definePairs) '--dart-define=$pair',
+    ];
+    // Flutter Gradle Plugin reads dart-defines as base64(utf8(k=v,k=v,...)).
+    final gradleDartDefines =
+        base64Encode(utf8.encode(definePairs.join(',')));
+
+    // Flutter build registers integration_test in the Android project before
+    // assembleAndroidTest; without it the instrumentation APK is an empty shell.
+    onProgress?.call('Building Android debug APK (integration_test target)...');
     final build = await run('flutter', [
       'build',
       'apk',
       '--debug',
-      ...defines,
+      '--target=$testTarget',
+      '--no-tree-shake-icons',
+      ...flutterDefines,
     ]);
     if (build.exitCode != 0) {
       final detail = _formatProcessFailure('flutter build apk', build);
@@ -233,57 +276,118 @@ class AndroidFtlPackager {
       );
     }
 
-    // Flutter FTL docs: assemble instrumentation + debug with test target.
     final androidDir = p.join(workspace, 'android');
-    final testTarget = p.join(workspace, 'integration_test/ensemble_tests.dart');
-    if (File(testTarget).existsSync() &&
-        File(p.join(androidDir, 'gradlew')).existsSync()) {
-      onProgress?.call('Assembling Android instrumentation test APK...');
-      final gradle = await _runCaptured(
-        './gradlew',
-        [
-          'app:assembleAndroidTest',
-          'app:assembleDebug',
-          '-Ptarget=$testTarget',
-        ],
-        workingDirectory: androidDir,
-      );
-      if (gradle.exitCode != 0) {
-        onProgress?.call(
-          'WARNING: ${_formatProcessFailure('gradlew assembleAndroidTest', gradle)}\n'
-          'Continuing with flutter APK only.',
-        );
-      }
-    }
-
-    final appApk = p.join(
-      workspace,
-      'build/app/outputs/flutter-apk/app-debug.apk',
-    );
-    final testApkPath = p.join(
-      workspace,
-      'build/app/outputs/apk/androidTest/debug/app-debug-androidTest.apk',
-    );
-    final testApk =
-        File(testApkPath).existsSync() ? testApkPath : appApk;
-    if (!File(appApk).existsSync()) {
-      onProgress?.call('ERROR: APK missing after build; emitting stubs');
+    if (!File(p.join(androidDir, 'gradlew')).existsSync()) {
       return _stubArtifacts(
         identity,
         workspace: workspace,
         platform: 'android',
-        detail: 'APK missing after build',
+        detail: 'Missing android/gradlew after flutter build',
       );
     }
-    onProgress?.call('Android packages ready');
+
+    // Official Flutter FTL flow: assembleAndroidTest, then assembleDebug -Ptarget.
+    onProgress?.call('Assembling Android instrumentation test APK...');
+    final assembleTest = await _runCaptured(
+      './gradlew',
+      [
+        'app:assembleAndroidTest',
+        '-Pdart-defines=$gradleDartDefines',
+      ],
+      workingDirectory: androidDir,
+    );
+    if (assembleTest.exitCode != 0) {
+      final detail =
+          _formatProcessFailure('gradlew assembleAndroidTest', assembleTest);
+      onProgress?.call('ERROR: $detail');
+      return _stubArtifacts(
+        identity,
+        workspace: workspace,
+        platform: 'android',
+        detail: detail,
+      );
+    }
+
+    onProgress?.call('Assembling Android debug APK with -Ptarget...');
+    final assembleDebug = await _runCaptured(
+      './gradlew',
+      [
+        'app:assembleDebug',
+        '-Ptarget=$testTarget',
+        '-Pdart-defines=$gradleDartDefines',
+      ],
+      workingDirectory: androidDir,
+    );
+    if (assembleDebug.exitCode != 0) {
+      final detail =
+          _formatProcessFailure('gradlew assembleDebug', assembleDebug);
+      onProgress?.call('ERROR: $detail');
+      return _stubArtifacts(
+        identity,
+        workspace: workspace,
+        platform: 'android',
+        detail: detail,
+      );
+    }
+
+    final appCandidates = [
+      p.join(workspace, 'build/app/outputs/apk/debug/app-debug.apk'),
+      p.join(workspace, 'build/app/outputs/flutter-apk/app-debug.apk'),
+    ];
+    final testApkPath = p.join(
+      workspace,
+      'build/app/outputs/apk/androidTest/debug/app-debug-androidTest.apk',
+    );
+    final appApk = appCandidates.firstWhere(
+      (path) => File(path).existsSync(),
+      orElse: () => '',
+    );
+    if (appApk.isEmpty || !File(testApkPath).existsSync()) {
+      onProgress?.call('ERROR: APKs missing after gradle assemble');
+      return _stubArtifacts(
+        identity,
+        workspace: workspace,
+        platform: 'android',
+        detail:
+            'APKs missing after gradle (app=${appApk.isNotEmpty}, '
+            'test=${File(testApkPath).existsSync()})',
+      );
+    }
+
+    final appSize = File(appApk).lengthSync();
+    final testSize = File(testApkPath).lengthSync();
+    // Empty instrumentation shells are ~5–20 KiB and yield FTL SUCCESS / 0 tests.
+    const minTestApkBytes = 50 * 1024;
+    const minAppApkBytes = 500 * 1024;
+    if (testSize < minTestApkBytes || appSize < minAppApkBytes) {
+      final detail =
+          'Android packages look empty/incomplete '
+          '(app=${_formatBytes(appSize)}, test=${_formatBytes(testSize)}). '
+          'Expected a real instrumentation APK with FlutterTestRunner '
+          '(>= ${_formatBytes(minTestApkBytes)}).';
+      onProgress?.call('ERROR: $detail');
+      return _stubArtifacts(
+        identity,
+        workspace: workspace,
+        platform: 'android',
+        detail: detail,
+      );
+    }
+
+    onProgress?.call(
+      'Android packages ready '
+      '(app=${_formatBytes(appSize)}, test=${_formatBytes(testSize)})',
+    );
     return NativeBuildArtifacts(
       identity: identity,
       appPackagePath: appApk,
-      testPackagePath: testApk,
+      testPackagePath: testApkPath,
       metadata: {
         'platform': 'android',
         'exportHypothesis': exportRelativePath,
         'workspace': workspace,
+        'appApkBytes': '$appSize',
+        'testApkBytes': '$testSize',
       },
     );
   }
@@ -405,6 +509,7 @@ class IosFtlPackager {
       integrationTestEntry,
       '--release',
       '--no-codesign',
+      '--no-tree-shake-icons',
       ...defines,
     ]);
     if (build.exitCode != 0) {
@@ -438,6 +543,7 @@ class IosFtlPackager {
         'CODE_SIGNING_ALLOWED=NO',
         'CODE_SIGNING_REQUIRED=NO',
         'CODE_SIGN_IDENTITY=',
+        'TREE_SHAKE_ICONS=NO',
       ],
       workingDirectory: iosDir,
     );
@@ -577,6 +683,14 @@ String _formatProcessFailure(String label, ProcessResult result) {
     buffer.write(': (no stdout/stderr captured)');
   }
   return buffer.toString();
+}
+
+String _formatBytes(int bytes) {
+  if (bytes < 1024) return '${bytes}B';
+  if (bytes < 1024 * 1024) {
+    return '${(bytes / 1024).toStringAsFixed(1)}KiB';
+  }
+  return '${(bytes / (1024 * 1024)).toStringAsFixed(1)}MiB';
 }
 
 /// Local simulation of pass/fail artifact export for packaging proof.

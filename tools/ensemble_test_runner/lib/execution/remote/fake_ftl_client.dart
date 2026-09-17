@@ -98,11 +98,16 @@ class FakeFtlClient implements FtlClient {
       );
     }
     final matrixId = 'matrix-$clientToken';
+    // Numeric id mirrors real Firebase console URLs (not the matrix-* API id).
+    final resultsUrl =
+        'https://console.firebase.google.com/project/$projectId/'
+        'testlab/histories/hist-$projectId/matrices/5114929840549376702';
     matrices[clientToken] = FtlJobSnapshot(
       matrixId: matrixId,
       state: 'RUNNING',
       resultStorageGcs: 'gs://fake-bucket/$clientToken',
       historyId: 'hist-$projectId',
+      resultsUrl: resultsUrl,
       labels: {'clientToken': clientToken, 'projectId': projectId},
     );
     matrices[matrixId] = matrices[clientToken]!;
@@ -110,6 +115,7 @@ class FakeFtlClient implements FtlClient {
       matrixId: matrixId,
       accepted: true,
       historyId: 'hist-$projectId',
+      resultsUrl: resultsUrl,
     );
   }
 
@@ -122,6 +128,7 @@ class FakeFtlClient implements FtlClient {
       outcome: outcome,
       resultStorageGcs: current.resultStorageGcs,
       historyId: current.historyId,
+      resultsUrl: current.resultsUrl,
       labels: current.labels,
     );
     matrices[matrixId] = finished;
@@ -169,6 +176,7 @@ class FakeFtlClient implements FtlClient {
       outcome: 'CANCELLED',
       resultStorageGcs: current.resultStorageGcs,
       historyId: current.historyId,
+      resultsUrl: current.resultsUrl,
       labels: current.labels,
     );
   }

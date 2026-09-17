@@ -343,7 +343,7 @@ class RemoteOrchestrator {
     final started = DateTime.now().toUtc();
     var delay = limits.pollInterval;
     var lastLoggedState = '';
-    var loggedDirectUrl = ref.metadata['directMatrixUrl'] != null;
+    var loggedResultsUrl = ref.metadata['resultsUrl'] != null;
     final projectId = ref.metadata['projectId']?.toString() ??
         Platform.environment['ENSEMBLE_TEST_FTL_PROJECT_ID'] ??
         '';
@@ -357,17 +357,23 @@ class RemoteOrchestrator {
 
     while (DateTime.now().isBefore(deadline)) {
       final status = await provider.getStatus(ref);
-      if (!loggedDirectUrl &&
+      if (!loggedResultsUrl &&
+          status.resultsUrl != null &&
+          status.resultsUrl!.isNotEmpty) {
+        _log('Open results: ${status.resultsUrl}');
+        loggedResultsUrl = true;
+      } else if (!loggedResultsUrl &&
           status.historyId != null &&
           status.historyId!.isNotEmpty &&
           projectId.isNotEmpty) {
+        // resultsUrl still missing; keep browsing fallback once.
         final links = FtlConsoleLinks(
           projectId: projectId,
           matrixId: matrixId,
           historyId: status.historyId,
         );
         _log(links.logLine);
-        loggedDirectUrl = true;
+        loggedResultsUrl = true;
       }
       final elapsed = DateTime.now().toUtc().difference(started);
       final elapsedLabel = elapsed.inMinutes >= 1

@@ -17,8 +17,9 @@ Statuses: `implemented` | `verified` | `blocked` | `unverified`.
 
 ## Notes
 
-- **Packaging builds (android):** `AndroidFtlPackager` builds APK/androidTest or emits stubs when SDK missing.
-- **Packaging builds (ios):** `IosFtlPackager` follows Flutter FTL flow (build ios + xcodebuild build-for-testing + zip); stub packages refused before submit; cloud unverified.
+- **Packaging builds (android):** `AndroidFtlPackager` follows Flutter FTL flow (`flutter build apk --target` → `assembleAndroidTest` → `assembleDebug -Ptarget`), requires `FlutterTestRunner` host, rejects tiny/empty androidTest APKs, stubs on failure.
+- **Packaging builds (ios):** `IosFtlPackager` uses `--no-tree-shake-icons` (Ensemble dynamic `IconData`) + xcodebuild build-for-testing + zip; stub packages refused before submit; cloud unverified.
+- **Console URLs:** Prefer Testing API `resultStorage.resultsUrl` (numeric matrix id). Never invent `/matrices/{matrix-*}` Firebase URLs.
 - **Artifact export E2E:** Local `ArtifactExportProof` covers pass/fail envelopes; FTL collection paths remain hypotheses until real device collect.
 - **Real FTL execution + collect:** Requires `ENSEMBLE_TEST_FTL_PROJECT_ID` + ADC. Missing creds ⇒ **unverified**, not passed. Blocks multi-device orchestration until Android is verified.
 - **Envelope complete after cleanup:** Entry emits `RemoteRunEnvelope` only after `restorePreSuiteStorageAtSuiteEnd`; `cleanupErrors` included.
