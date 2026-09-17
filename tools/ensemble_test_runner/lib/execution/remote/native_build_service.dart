@@ -356,15 +356,32 @@ class AndroidFtlPackager {
 
     final appSize = File(appApk).lengthSync();
     final testSize = File(testApkPath).lengthSync();
-    // Empty instrumentation shells are ~5–20 KiB and yield FTL SUCCESS / 0 tests.
-    const minTestApkBytes = 50 * 1024;
+    // AGP omits androidx.test / integration_test from the *test* APK when those
+    // classes already ship in the app APK (duplicate-class avoidance). A valid
+    // Flutter FTL androidTest APK is often ~6KiB and only contains
+    // MainActivityTest; AndroidJUnitRunner + FlutterTestRunner live in the app.
     const minAppApkBytes = 500 * 1024;
-    if (testSize < minTestApkBytes || appSize < minAppApkBytes) {
+    const minTestApkBytes = 1500; // MainActivityTest + tiny dex shell
+    final hostOk = await _apkDexContainsAny(
+      testApkPath,
+      const ['MainActivityTest'],
+    );
+    final runnerOk = await _apkDexContainsAny(
+      appApk,
+      const ['AndroidJUnitRunner', 'FlutterTestRunner'],
+    );
+    if (appSize < minAppApkBytes ||
+        testSize < minTestApkBytes ||
+        !hostOk ||
+        !runnerOk) {
       final detail =
-          'Android packages look empty/incomplete '
-          '(app=${_formatBytes(appSize)}, test=${_formatBytes(testSize)}). '
-          'Expected a real instrumentation APK with FlutterTestRunner '
-          '(>= ${_formatBytes(minTestApkBytes)}).';
+          'Android packages look incomplete for FTL '
+          '(app=${_formatBytes(appSize)}, test=${_formatBytes(testSize)}, '
+          'mainActivityTestInTestApk=$hostOk, '
+          'runnerInAppApk=$runnerOk). '
+          'Need MainActivityTest in the androidTest APK and '
+          'AndroidJUnitRunner/FlutterTestRunner in the app APK '
+          '(via integration_test + androidTest host).';
       onProgress?.call('ERROR: $detail');
       return _stubArtifacts(
         identity,
@@ -376,7 +393,8 @@ class AndroidFtlPackager {
 
     onProgress?.call(
       'Android packages ready '
-      '(app=${_formatBytes(appSize)}, test=${_formatBytes(testSize)})',
+      '(app=${_formatBytes(appSize)}, test=${_formatBytes(testSize)}; '
+      'MainActivityTest + app-embedded FlutterTestRunner OK)',
     );
     return NativeBuildArtifacts(
       identity: identity,
@@ -452,24 +470,28 @@ class IosFtlPackager {
       String executable,
       List<String> args, {
       String? workingDirectory,
+      Map<String, String>? environment,
     })? runProcess,
   }) async {
     Future<ProcessResult> run(
       String exe,
       List<String> args, {
       String? workingDirectory,
+      Map<String, String>? environment,
     }) {
       if (runProcess != null) {
         return runProcess(
           exe,
           args,
           workingDirectory: workingDirectory ?? appDir,
+          environment: environment,
         );
       }
       return _runCaptured(
         exe,
         args,
         workingDirectory: workingDirectory ?? appDir,
+        environment: environment,
       );
     }
 
@@ -523,6 +545,11 @@ class IosFtlPackager {
     final derived = p.join(appDir, 'build/ios_integ');
     final products = p.join(derived, 'Build/Products');
     final iosDir = p.join(appDir, 'ios');
+    // Xcode 26 / macos-26: Metal.xctoolchain is preferred but lacks Swift
+    // compatibility libs → RunnerTests link fails with
+    // __swift_FORCE_LOAD_$_swiftCompatibility56. Pin the default toolchain.
+    // See flutter/flutter#175905 and actions/runner-images#13135.
+    const xcodeDefaultToolchain = 'com.apple.dt.toolchain.XcodeDefault';
     onProgress?.call('Running xcodebuild build-for-testing...');
     final xcode = await run(
       'xcodebuild',
@@ -532,6 +559,8 @@ class IosFtlPackager {
         'Runner.xcworkspace',
         '-scheme',
         'Runner',
+        '-toolchain',
+        xcodeDefaultToolchain,
         '-xcconfig',
         'Flutter/Release.xcconfig',
         '-configuration',
@@ -546,6 +575,10 @@ class IosFtlPackager {
         'TREE_SHAKE_ICONS=NO',
       ],
       workingDirectory: iosDir,
+      environment: {
+        ...Platform.environment,
+        'TOOLCHAINS': xcodeDefaultToolchain,
+      },
     );
     if (xcode.exitCode != 0) {
       return _stub(
@@ -654,12 +687,14 @@ Future<ProcessResult> _runCaptured(
   String executable,
   List<String> args, {
   required String workingDirectory,
+  Map<String, String>? environment,
 }) {
   return Process.run(
     executable,
     args,
     workingDirectory: workingDirectory,
     runInShell: true,
+    environment: environment,
   );
 }
 
@@ -691,6 +726,34 @@ String _formatBytes(int bytes) {
     return '${(bytes / 1024).toStringAsFixed(1)}KiB';
   }
   return '${(bytes / (1024 * 1024)).toStringAsFixed(1)}MiB';
+}
+
+/// Scans dex inside an APK for any of [needles] (class name fragments).
+Future<bool> _apkDexContainsAny(String apkPath, List<String> needles) async {
+  final tmp = Directory.systemTemp.createTempSync('ensemble_apk_scan_');
+  try {
+    final unzip = await Process.run(
+      'unzip',
+      ['-o', '-q', apkPath, 'classes*.dex', '-d', tmp.path],
+    );
+    if (unzip.exitCode != 0) return false;
+    for (final entity in tmp.listSync()) {
+      if (entity is! File || !entity.path.endsWith('.dex')) continue;
+      final listed = await Process.run('strings', [entity.path]);
+      if (listed.exitCode != 0) continue;
+      final out = listed.stdout.toString();
+      for (final needle in needles) {
+        if (out.contains(needle)) return true;
+      }
+    }
+    return false;
+  } catch (_) {
+    return false;
+  } finally {
+    try {
+      tmp.deleteSync(recursive: true);
+    } catch (_) {}
+  }
 }
 
 /// Local simulation of pass/fail artifact export for packaging proof.

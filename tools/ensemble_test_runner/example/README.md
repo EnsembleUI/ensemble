@@ -24,10 +24,14 @@ flutter config --no-enable-swift-package-manager
 
 `ios/RunnerTests/RunnerTests.m` must use `INTEGRATION_TEST_IOS_RUNNER` (Flutter
 integration_test host) for Firebase Test Lab XCTest packaging.
+`RunnerTests.swift` (empty) is required on Xcode 26 so the ObjC test target
+links Swift compatibility libraries used by Firebase pods.
 
 Android FTL needs `androidTest/.../MainActivityTest` with `@RunWith(FlutterTestRunner.class)`;
 without it Test Lab reports SUCCESS with 0 test cases. Remote packaging also
 passes `--no-tree-shake-icons` (Ensemble builds non-const `IconData`).
+On Xcode 26 CI, set `TOOLCHAINS=com.apple.dt.toolchain.XcodeDefault` (the remote
+workflow does this) so Metal.xctoolchain does not break Swift linking.
 
 iOS must target 15.0+ (Firebase 12). `flutter create` still generates 13.0;
 set `platform :ios, '15.0'` in `ios/Podfile` and `IPHONEOS_DEPLOYMENT_TARGET = 15.0`

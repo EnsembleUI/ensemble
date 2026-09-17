@@ -79,10 +79,15 @@ jobs:
 
       - uses: ./.github/actions/setup-flutter
 
-      # Flutter >= 3.44: several Ensemble plugins lack SwiftPM; CocoaPods-only.
       - name: Disable Swift Package Manager (iOS)
         if: matrix.platform == 'ios'
         run: flutter config --no-enable-swift-package-manager
+
+      # Xcode 26 Metal.xctoolchain lacks Swift compatibility libs; pin default.
+      # Otherwise RunnerTests fails linking __swift_FORCE_LOAD_$_swiftCompatibility56.
+      - name: Pin Xcode default toolchain (iOS)
+        if: matrix.platform == 'ios'
+        run: echo "TOOLCHAINS=com.apple.dt.toolchain.XcodeDefault" >> "$GITHUB_ENV"
 
       - name: Install Melos
         run: dart pub global activate melos
