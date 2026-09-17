@@ -863,12 +863,21 @@ remote:
         variant: 'release',
         selectedTestIds: const ['t1'],
       );
-      final artifacts = await IosFtlPackager().package(
+      final artifacts =     await IosFtlPackager().package(
         identity: identity,
         appDir: '.',
         config: const EnsembleTestConfig(
           mode: ExecutionMode.integration,
           target: ExecutionTarget.remote,
+          remote: RemoteExecutionConfig(
+            devices: [
+              RemoteDeviceSpec(
+                platform: 'ios',
+                model: 'iphonese3',
+                version: '26.3',
+              ),
+            ],
+          ),
         ),
         runProcess: (
           exe,
@@ -877,7 +886,7 @@ remote:
           environment,
         }) async {
           if (exe == 'flutter') {
-            // Expect debug --config-only then release build.
+            // Expect debug --config-only, release build, then config-only again.
             expect(args, contains('build'));
             expect(args, contains('ios'));
           }
@@ -885,16 +894,21 @@ remote:
             final i = args.indexOf('-derivedDataPath');
             expect(i, greaterThanOrEqualTo(0));
             derivedDataPath = args[i + 1];
+            expect(args, isNot(contains('-toolchain')));
             final products = Directory(
               p.join(derivedDataPath!, 'Build/Products'),
             )..createSync(recursive: true);
-            Directory(p.join(products.path, 'Release-iphoneos'))
+            Directory(p.join(products.path, 'Release-iphoneos', 'Runner.app'))
                 .createSync(recursive: true);
-            File(p.join(products.path, 'Runner_fake.xctestrun'))
+            Directory(
+              p.join(products.path, 'Release-iphoneos', 'RunnerTests.xctest'),
+            ).createSync(recursive: true);
+            File(p.join(products.path, 'Runner_iphoneos26.2-arm64.xctestrun'))
                 .writeAsStringSync('xctestrun');
           }
           if (exe == 'zip') {
             final zipPath = args.firstWhere((a) => a.endsWith('ios_tests.zip'));
+            expect(args, contains('Runner_iphoneos26.3-arm64.xctestrun'));
             File(zipPath)
               ..parent.createSync(recursive: true)
               ..writeAsBytesSync([1, 2, 3, 4]);
@@ -904,8 +918,9 @@ remote:
               0,
               0,
               'Release-iphoneos/\n'
+              'Release-iphoneos/Runner.app/\n'
               'Release-iphoneos/RunnerTests.xctest/\n'
-              'Runner_fake.xctestrun\n',
+              'Runner_iphoneos26.3-arm64.xctestrun\n',
               '',
             );
           }
@@ -926,6 +941,27 @@ remote:
       isNot(contains('${p.separator}ios${p.separator}build${p.separator}')),
     );
     expect(derivedDataPath, endsWith(p.join('build', 'ios_integ')));
+  });
+
+  test('alignXctestrunFilenameForIosVersion rewrites SDK token for FTL', () {
+    expect(
+      alignXctestrunFilenameForIosVersion(
+        'Runner_iphoneos26.2-arm64.xctestrun',
+        '26.3',
+      ),
+      'Runner_iphoneos26.3-arm64.xctestrun',
+    );
+    expect(
+      alignXctestrunFilenameForIosVersion(
+        'Runner_iphoneos26.3-arm64.xctestrun',
+        '26.3',
+      ),
+      'Runner_iphoneos26.3-arm64.xctestrun',
+    );
+    expect(
+      alignXctestrunFilenameForIosVersion('not-an-xctestrun', '26.3'),
+      isNull,
+    );
   });
 
   test('RemoteHostReportBuilder writes local-style HTML + embeds FTL video',
