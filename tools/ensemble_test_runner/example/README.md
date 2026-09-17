@@ -48,6 +48,9 @@ dart run ensemble_test_runner:ensemble_test
 
 # Host-side widget tests, no native project required.
 dart run ensemble_test_runner:ensemble_test --mode=widget
+
+# Firebase Test Lab (requires remote: in config.yaml + GCP setup).
+dart run ensemble_test_runner:ensemble_test --target=remote --remote-platform=android
 ```
 
 The tests start on `Hello Home`, verify its greeting, navigate to the

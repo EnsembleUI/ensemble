@@ -7,10 +7,6 @@ initialState:
     onboardingComplete: true
   keychain:
     authToken: integration-fixture-token
-setup:
-  - httpRequest:
-      method: GET
-      url: ${services.fixture.url}/ready
 steps:
   - expectVisible:
       id: greeting_text
