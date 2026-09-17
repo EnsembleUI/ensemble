@@ -11,6 +11,10 @@ on:
         description: 'Poll FTL until done'
         type: boolean
         default: true
+  pull_request:
+    paths:
+      - 'tools/ensemble_test_runner/**'
+      - '.github/workflows/ensemble-test-runner-remote.yml'
 
 # Configure vars via `ensemble_test remote setup` printed CI block (paste into
 # GitHub Actions variables). Durable run state lives in GCS
@@ -27,6 +31,7 @@ jobs:
       ENSEMBLE_TEST_FTL_RESULTS_BUCKET: ${{ secrets.ENSEMBLE_TEST_FTL_RESULTS_BUCKET }}
       ENSEMBLE_TEST_REMOTE_STORE_GCS_BUCKET: ${{ secrets.ENSEMBLE_TEST_REMOTE_STORE_GCS_BUCKET }}
       ENSEMBLE_TEST_REMOTE_STORE_PREFIX: ensemble-test-remote-runs
+      REMOTE_PLATFORM: ${{ inputs.platform || 'android' }}
     steps:
       - uses: actions/checkout@v4
 
@@ -82,7 +87,7 @@ jobs:
         run: |
           dart run ensemble_test_runner:ensemble_test \
             --target=remote \
-            --remote-platform=${{ inputs.platform }} \
+            --remote-platform=${{ env.REMOTE_PLATFORM }} \
             --app-dir=.
 
       - name: Upload remote reports (checkpoint only)
