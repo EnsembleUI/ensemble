@@ -473,6 +473,7 @@ lib/
   entry/          Flutter test entry (`runEnsembleYamlTests`)
   cli/            `dart run ensemble_test_runner:ensemble_test` subprocess runner
   runner/         Runtime boot, orchestration, session state
+  session/        TestExecutionSession (observe/act/wait/assert)
   actions/        Step execution
   assertions/     expect* handlers
   discovery/      Find and plan `*.test.yaml` files
@@ -484,6 +485,32 @@ lib/
 bin/ensemble_test.dart   CLI executable
 tool/                    Schema/registry generators
 ```
+
+### TestExecutionSession (programmatic API)
+
+YAML remains the primary authoring format. The same local adapter can also be
+driven without constructing `TestStep` objects:
+
+```dart
+final session = LocalTestExecutionSession.attach(
+  tester: tester,
+  harness: harness,
+  context: context,
+);
+try {
+  final obs = await session.observe();
+  await session.act(TapAction(ElementTarget(testId: 'login_button')));
+  await session.waitFor(ScreenWait(screen: 'Home'));
+  await session.assertCondition(ScreenAssertion(screen: 'Home'));
+} finally {
+  await session.close(); // does not dispose suite-owned harness
+}
+```
+
+`SessionCapabilities` describes what the adapter can provide;
+`SessionPermissions` describes what the caller may invoke. Standalone
+(YAML-independent) creation uses `StandaloneTestSessionFactory` inside a
+Flutter test binding and reuses `EnsembleTestHarness`.
 
 ## Runtime hooks (in `ensemble` core)
 

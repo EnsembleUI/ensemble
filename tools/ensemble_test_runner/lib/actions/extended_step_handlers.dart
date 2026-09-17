@@ -517,18 +517,6 @@ class ExtendedStepHandlers {
     }
   }
 
-  static Future<Uint8List> captureScreenshotBytes(
-    WidgetTester tester, {
-    required DeviceInfo device,
-  }) async {
-    final image = captureScreenshotImage(tester);
-    try {
-      return await encodeScreenshotImage(image, device);
-    } finally {
-      image.dispose();
-    }
-  }
-
   static ui.Image captureScreenshotImage(WidgetTester tester) {
     final renderView = tester.binding.renderViews.first;
     final layer = renderView.debugLayer;
