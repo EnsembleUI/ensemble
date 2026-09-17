@@ -342,4 +342,36 @@ definitions:
       isFalse,
     );
   });
+
+  test('Android Gradle helpers enable core library desugaring', () {
+    const kts = '''
+android {
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_11
+        targetCompatibility = JavaVersion.VERSION_11
+    }
+}
+''';
+    final patchedKts =
+        YamlTestAppPatcher.enableGradleKtsCoreLibraryDesugaring(kts);
+    expect(patchedKts, contains('isCoreLibraryDesugaringEnabled = true'));
+    expect(patchedKts, contains('desugar_jdk_libs:2.1.4'));
+    expect(
+      YamlTestAppPatcher.enableGradleKtsCoreLibraryDesugaring(patchedKts),
+      patchedKts,
+    );
+
+    const groovy = '''
+android {
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+''';
+    final patchedGroovy =
+        YamlTestAppPatcher.enableGradleGroovyCoreLibraryDesugaring(groovy);
+    expect(patchedGroovy, contains('coreLibraryDesugaringEnabled true'));
+    expect(patchedGroovy, contains("desugar_jdk_libs:2.1.4"));
+  });
 }

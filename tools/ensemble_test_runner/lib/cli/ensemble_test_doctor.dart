@@ -154,6 +154,29 @@ class EnsembleTestDoctor {
           '`flutter create --platforms=android,ios .` from the app root.',
         );
       }
+      if (androidProject.existsSync()) {
+        if (fix) {
+          final before =
+              YamlTestAppPatcher.androidDesugaringRequirementMessage(appDir);
+          if (before != null) {
+            YamlTestAppPatcher(appDir).applyAndroidDesugaringFix();
+            final after =
+                YamlTestAppPatcher.androidDesugaringRequirementMessage(appDir);
+            if (after == null) {
+              ok('Enabled Android core library desugaring');
+            } else {
+              warn(after);
+            }
+          }
+        }
+        final desugaring =
+            YamlTestAppPatcher.androidDesugaringRequirementMessage(appDir);
+        if (desugaring == null) {
+          ok('Android core library desugaring is enabled');
+        } else {
+          warn(desugaring);
+        }
+      }
       if (iosProject.existsSync()) {
         if (fix) {
           final before = YamlTestAppPatcher.iosDeploymentTargetRequirementMessage(

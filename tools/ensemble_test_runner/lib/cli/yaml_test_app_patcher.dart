@@ -409,6 +409,94 @@ Future<void> main() async {
     _ensureIosDeploymentTarget();
   }
 
+  /// Enables Android core library desugaring required by Ensemble plugins
+  /// such as `flutter_local_notifications`.
+  ///
+  /// Used by `ensemble_test --doctor --fix`. Integration [enable] does not
+  /// rewrite Gradle files.
+  void applyAndroidDesugaringFix() {
+    final kts = File(p.join(appDir, 'android', 'app', 'build.gradle.kts'));
+    if (kts.existsSync()) {
+      _rewriteIfChanged(kts, enableGradleKtsCoreLibraryDesugaring);
+      return;
+    }
+    final groovy = File(p.join(appDir, 'android', 'app', 'build.gradle'));
+    if (groovy.existsSync()) {
+      _rewriteIfChanged(groovy, enableGradleGroovyCoreLibraryDesugaring);
+    }
+  }
+
+  /// Returns an error when Android desugaring is missing, or null when OK /
+  /// there is no Android app Gradle file.
+  static String? androidDesugaringRequirementMessage(String appDir) {
+    final kts = File(p.join(appDir, 'android', 'app', 'build.gradle.kts'));
+    final groovy = File(p.join(appDir, 'android', 'app', 'build.gradle'));
+    if (!kts.existsSync() && !groovy.existsSync()) return null;
+    final content = kts.existsSync()
+        ? kts.readAsStringSync()
+        : groovy.readAsStringSync();
+    final enabled = content.contains('isCoreLibraryDesugaringEnabled') ||
+        RegExp(r'coreLibraryDesugaringEnabled\s+true').hasMatch(content);
+    final hasDep = content.contains('desugar_jdk_libs');
+    if (enabled && hasDep) return null;
+    return 'Android core library desugaring is required by Ensemble plugins '
+        '(flutter_local_notifications). Enable it in android/app/build.gradle(.kts) '
+        'or run `dart run ensemble_test_runner:ensemble_test --doctor --fix`.';
+  }
+
+  static const androidDesugarJdkLibsCoordinate =
+      'com.android.tools:desugar_jdk_libs:2.1.4';
+
+  static String enableGradleKtsCoreLibraryDesugaring(String content) {
+    var updated = content;
+    if (!updated.contains('isCoreLibraryDesugaringEnabled')) {
+      if (updated.contains('compileOptions {')) {
+        updated = updated.replaceFirst(
+          'compileOptions {',
+          'compileOptions {\n        isCoreLibraryDesugaringEnabled = true',
+        );
+      }
+    }
+    if (!updated.contains('desugar_jdk_libs')) {
+      final dep =
+          '    coreLibraryDesugaring("$androidDesugarJdkLibsCoordinate")\n';
+      if (updated.contains('dependencies {')) {
+        updated = updated.replaceFirst(
+          'dependencies {',
+          'dependencies {\n$dep',
+        );
+      } else {
+        updated = '$updated\ndependencies {\n$dep}\n';
+      }
+    }
+    return updated;
+  }
+
+  static String enableGradleGroovyCoreLibraryDesugaring(String content) {
+    var updated = content;
+    if (!RegExp(r'coreLibraryDesugaringEnabled\s+true').hasMatch(updated)) {
+      if (updated.contains('compileOptions {')) {
+        updated = updated.replaceFirst(
+          'compileOptions {',
+          'compileOptions {\n        coreLibraryDesugaringEnabled true',
+        );
+      }
+    }
+    if (!updated.contains('desugar_jdk_libs')) {
+      final dep =
+          "    coreLibraryDesugaring '$androidDesugarJdkLibsCoordinate'\n";
+      if (updated.contains('dependencies {')) {
+        updated = updated.replaceFirst(
+          'dependencies {',
+          'dependencies {\n$dep',
+        );
+      } else {
+        updated = '$updated\ndependencies {\n$dep}\n';
+      }
+    }
+    return updated;
+  }
+
   void _requireIosDeploymentTarget() {
     final message = iosDeploymentTargetRequirementMessage(appDir);
     if (message != null) {

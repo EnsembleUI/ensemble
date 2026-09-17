@@ -30,6 +30,46 @@ jobs:
         working-directory: tools/ensemble_test_runner/example
         run: |
           flutter create --org com.ensembleui --project-name ensemble_test_runner_example --platforms=android .
+          python3 - <<'PY'
+          from pathlib import Path
+
+          def enable_kts(text: str) -> str:
+              if "isCoreLibraryDesugaringEnabled" not in text and "compileOptions {" in text:
+                  text = text.replace(
+                      "compileOptions {",
+                      "compileOptions {\n        isCoreLibraryDesugaringEnabled = true",
+                      1,
+                  )
+              dep = '    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")\n'
+              if "desugar_jdk_libs" not in text:
+                  if "dependencies {" in text:
+                      text = text.replace("dependencies {", "dependencies {\n" + dep, 1)
+                  else:
+                      text += "\ndependencies {\n" + dep + "}\n"
+              return text
+
+          def enable_groovy(text: str) -> str:
+              if "coreLibraryDesugaringEnabled true" not in text and "compileOptions {" in text:
+                  text = text.replace(
+                      "compileOptions {",
+                      "compileOptions {\n        coreLibraryDesugaringEnabled true",
+                      1,
+                  )
+              dep = "    coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.1.4'\n"
+              if "desugar_jdk_libs" not in text:
+                  if "dependencies {" in text:
+                      text = text.replace("dependencies {", "dependencies {\n" + dep, 1)
+                  else:
+                      text += "\ndependencies {\n" + dep + "}\n"
+              return text
+
+          kts = Path("android/app/build.gradle.kts")
+          groovy = Path("android/app/build.gradle")
+          if kts.exists():
+              kts.write_text(enable_kts(kts.read_text()))
+          elif groovy.exists():
+              groovy.write_text(enable_groovy(groovy.read_text()))
+          PY
           flutter pub get
       - name: Run YAML suite on Android emulator
         uses: reactivecircus/android-emulator-runner@v2
