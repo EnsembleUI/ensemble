@@ -47,7 +47,8 @@ flutter {
 
 dependencies {
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
-    androidTestImplementation("androidx.test:runner:1.5.2")
-    androidTestImplementation("androidx.test:rules:1.5.0")
-    androidTestImplementation("androidx.test.espresso:espresso-core:3.5.1")
+    // Do not pin newer androidx.test.* here: Flutter's integration_test plugin
+    // exports runner/rules/espresso via api(), and AGP consistent resolution
+    // locks those to the debugRuntimeClasspath versions (e.g. runner 1.3.0).
+    // Explicit 1.5.x / 3.5.x deps fail :app:checkDebugAndroidTestAarMetadata.
 }
