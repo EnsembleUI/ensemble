@@ -13,12 +13,12 @@ remote:
   devices:
     - platform: android
       model: MediumPhone.arm
-      version: "34"
+      version: "36"
       locale: en
       orientation: portrait
     - platform: ios
-      model: iphone14pro
-      version: "16.6"
+      model: iphonese3
+      version: "26.3"
       locale: en
       orientation: portrait
 
