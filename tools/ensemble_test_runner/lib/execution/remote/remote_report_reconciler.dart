@@ -98,6 +98,7 @@ abstract final class RemoteReportReconciler {
     if (envelope == null || !envelope.complete) {
       final outcome = (nativeOutcome ?? '').toUpperCase();
       final ftlPassed = outcome.contains('SUCCESS') || outcome == 'PASSED';
+      final ftlFailed = outcome.contains('FAILURE') || outcome == 'FAILED';
       return ReconciledDeviceResult(
         deviceKey: deviceKey,
         failureClass: RemoteExecutionFailureClass.incomplete,
@@ -111,6 +112,12 @@ abstract final class RemoteReportReconciler {
                 '(file under ${AndroidFtlPackager.onDeviceArtifactRoot} via '
                 'directoriesToPull, or ENSEMBLE_TEST_REMOTE_ENVELOPE_V1 in '
                 'logcat). HTML/history reports need envelope.results.',
+          if (ftlFailed)
+            'FTL FAILURE with no envelope often means 0 XCTest cases: '
+                'INTEGRATION_TEST_IOS_RUNNER discovery never got Dart '
+                'testResults (host crash / dyld / missing integration_test). '
+                'Check console resultsUrl syslog; empty GCS results is common '
+                'for this mode.',
         ],
         exitCode: 2,
       );

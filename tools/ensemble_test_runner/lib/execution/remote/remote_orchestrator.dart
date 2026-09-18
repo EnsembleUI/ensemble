@@ -221,6 +221,13 @@ class RemoteOrchestrator {
         fileCount++;
       }
       _log('Collected $fileCount filesystem entrie(s) under results download');
+      if (fileCount == 0) {
+        _log(
+          'Empty collect tree usually means FTL early FAILURE (0 XCTest '
+          'cases / empty GCS prefix). See FTL matrix evidence + resultsUrl '
+          'above; envelope-based pass is impossible without on-device output.',
+        );
+      }
     } catch (_) {
       // Best-effort diagnostics only.
     }

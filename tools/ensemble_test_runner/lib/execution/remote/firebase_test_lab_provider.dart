@@ -270,6 +270,14 @@ class FirebaseTestLabProvider implements RemoteProvider {
     required String destinationDirectory,
   }) async {
     final snap = await client.getTestMatrix(projectId, ref.matrixId ?? ref.jobId);
+    final evidence = summarizeFtlMatrixEvidence(snap.raw);
+    _log(
+      'FTL matrix ${snap.matrixId}: state=${snap.state} '
+      'outcome=${snap.outcome ?? '(none)'} evidence=$evidence',
+    );
+    if (snap.resultsUrl != null && snap.resultsUrl!.isNotEmpty) {
+      _log('FTL resultsUrl: ${snap.resultsUrl}');
+    }
     final gcs = snap.resultStorageGcs;
     if (gcs == null || gcs.isEmpty) {
       _log('No GCS result path on matrix ${ref.jobId}; skipping download');

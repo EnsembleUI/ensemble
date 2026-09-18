@@ -18,7 +18,9 @@ remote:
       orientation: portrait
     - platform: ios
       model: iphonese3
-      version: "26.3"
+      # Must match the SDK token in the generated Runner_iphoneos*-arm64.xctestrun
+      # (CI pins Xcode 26.2 → typically 26.2). Do not rename the .xctestrun.
+      version: "26.2"
       locale: en
       orientation: portrait
 

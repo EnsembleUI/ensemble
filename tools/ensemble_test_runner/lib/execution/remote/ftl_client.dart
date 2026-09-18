@@ -112,6 +112,55 @@ class FtlJobSnapshot {
   });
 }
 
+/// Short human-readable evidence from a Testing API testMatrices resource.
+///
+/// Used when FTL finishes FAILURE with empty GCS / 0 XCTest cases so logs are
+/// not limited to "envelope missing".
+String summarizeFtlMatrixEvidence(Map<String, dynamic> raw) {
+  final parts = <String>[];
+  final invalid = raw['invalidMatrixDetails']?.toString();
+  if (invalid != null && invalid.isNotEmpty && invalid != 'null') {
+    parts.add('invalidMatrixDetails=$invalid');
+  }
+  final executions = raw['testExecutions'];
+  if (executions is List && executions.isNotEmpty) {
+    for (var i = 0; i < executions.length && i < 5; i++) {
+      final ex = executions[i];
+      if (ex is! Map) continue;
+      final state = ex['state']?.toString();
+      final outcome = ex['outcomeSummary']?.toString() ??
+          (ex['testDetails'] is Map
+              ? (ex['testDetails'] as Map)['outcomeSummary']?.toString()
+              : null);
+      final details = ex['testDetails'];
+      String? errorMessage;
+      int? progressMessages;
+      if (details is Map) {
+        errorMessage = details['errorMessage']?.toString();
+        final progress = details['progressMessages'];
+        if (progress is List) progressMessages = progress.length;
+      }
+      final bit = StringBuffer('execution[$i]');
+      if (state != null) bit.write(' state=$state');
+      if (outcome != null) bit.write(' outcome=$outcome');
+      if (errorMessage != null && errorMessage.isNotEmpty) {
+        bit.write(' error=$errorMessage');
+      }
+      if (progressMessages != null) {
+        bit.write(' progressMessages=$progressMessages');
+      }
+      parts.add(bit.toString());
+    }
+  }
+  if (parts.isEmpty) {
+    final state = raw['state']?.toString();
+    final outcome = raw['outcomeSummary']?.toString();
+    if (state != null) parts.add('state=$state');
+    if (outcome != null) parts.add('outcome=$outcome');
+  }
+  return parts.isEmpty ? '(no matrix detail fields)' : parts.join('; ');
+}
+
 /// HTTP-backed FTL client using Application Default Credentials via gcloud
 /// when available. Without credentials, operations throw [FtlCredentialException].
 class HttpFtlClient implements FtlClient {
@@ -397,7 +446,11 @@ class HttpFtlClient implements FtlClient {
       // validation). Treat as empty collect so reconciler can fail-closed on
       // the missing envelope instead of masking the FTL outcome.
       if (err.contains('No URLs matched')) {
-        return;
+        throw FtlApiException(
+          'GCS results prefix empty (No URLs matched) at $gcsUri — '
+          'common for FTL early FAILURE with 0 XCTest cases; check console '
+          'resultsUrl / syslog for host launch or discovery failures',
+        );
       }
       throw FtlApiException(
         'gsutil download failed: $err',

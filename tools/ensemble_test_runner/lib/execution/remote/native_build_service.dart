@@ -491,8 +491,8 @@ class AndroidFtlPackager {
 ///
 /// Follows Flutter's documented FTL flow with the #170119 workaround:
 /// debug `--config-only` (once) → `flutter build ios <test> --release` →
-/// `xcodebuild build-for-testing` → embed XCTest inject dylib → sanitize
-/// `.xctestrun` → zip `Release-iphoneos` + `Runner_*.xctestrun`.
+/// `xcodebuild build-for-testing` → zip `Release-iphoneos` + generated
+/// `Runner_*.xctestrun` (no rename / no post-zip plist surgery).
 /// Do not re-run debug `--config-only` after release — that leaves
 /// `Generated.xcconfig` in debug and can omit `RunnerTests.xctest`.
 class IosFtlPackager {
@@ -628,6 +628,8 @@ class IosFtlPackager {
     // See flutter/flutter#175905 and actions/runner-images#13135.
     const xcodeDefaultToolchain = 'com.apple.dt.toolchain.XcodeDefault';
     onProgress?.call('Running xcodebuild build-for-testing...');
+    // Match Flutter integration_test README FTL script: no CODE_SIGNING_* /
+    // ENABLE_TESTABILITY overrides. flutter build already used --no-codesign.
     final xcode = await run(
       'xcodebuild',
       [
@@ -646,13 +648,7 @@ class IosFtlPackager {
         derived,
         '-sdk',
         'iphoneos',
-        'CODE_SIGNING_ALLOWED=NO',
-        'CODE_SIGNING_REQUIRED=NO',
-        'CODE_SIGN_IDENTITY=',
         'TREE_SHAKE_ICONS=NO',
-        // Release defaults to testability off; without this, build-for-testing
-        // can succeed for Runner.app yet skip producing RunnerTests.xctest.
-        'ENABLE_TESTABILITY=YES',
       ],
       workingDirectory: iosDir,
       environment: {
@@ -728,61 +724,53 @@ class IosFtlPackager {
       );
     }
 
-    // Xcode 26+ often omits libXCTestBundleInject.dylib from Runner.app while
-    // still referencing it from the .xctestrun → FTL "0 test case results".
-    final injectPath = await ensureLibXCTestBundleInject(
-      runnerApp,
-      runProcess: run,
-    );
-    if (injectPath == null) {
+    // Use the generated .xctestrun as-is (Flutter/gcloud recipe). Align the
+    // FTL device OS to this SDK token — do not rename the file.
+    final xctestrunFile = xctestrunFiles.first;
+    final xctestrunName = p.basename(xctestrunFile.path);
+    final sdkToken = parseXctestrunIosSdkVersion(xctestrunName);
+    final deviceIosVersion = resolveRemoteIosDeviceVersion(config);
+    if (sdkToken == null) {
       return _stub(
         identity,
         appDir: root,
         detail:
-            'Missing Runner.app/Frameworks/libXCTestBundleInject.dylib and '
-            'could not copy it from the iPhoneOS platform. FTL cannot inject '
-            'the XCTest host (0 test case results).',
+            'Could not parse iOS SDK token from .xctestrun name '
+            '"$xctestrunName" (expected Runner_iphoneosVERSION-arm64.xctestrun).',
       );
     }
-    onProgress?.call('Ensured XCTest inject dylib at $injectPath');
-
-    // FTL matches the .xctestrun SDK token to the device OS version. Xcode
-    // 26.2 often emits Runner_iphoneos26.2-*.xctestrun while the device is
-    // 26.3 → "0 test cases". Rename to the remote device version.
-    final deviceIosVersion = resolveRemoteIosDeviceVersion(config);
-    var xctestrunFile = xctestrunFiles.first;
-    final alignedName = alignXctestrunFilenameForIosVersion(
-      p.basename(xctestrunFile.path),
-      deviceIosVersion,
+    if (deviceIosVersion == null) {
+      return _stub(
+        identity,
+        appDir: root,
+        detail:
+            'remote.devices must include an iOS device with version: "$sdkToken" '
+            'to match generated .xctestrun $xctestrunName.',
+      );
+    }
+    if (deviceIosVersion != sdkToken) {
+      return _stub(
+        identity,
+        appDir: root,
+        detail:
+            'FTL device iOS version "$deviceIosVersion" does not match '
+            'generated .xctestrun SDK token "$sdkToken" ($xctestrunName). '
+            'Set remote.devices[].version to "$sdkToken" (build Xcode SDK). '
+            'Do not rename the .xctestrun — that is a fragile workaround and '
+            'causes FTL "0 test cases".',
+      );
+    }
+    onProgress?.call(
+      'Using generated .xctestrun $xctestrunName '
+      '(device iOS $deviceIosVersion matches SDK token)',
     );
-    if (alignedName != null && alignedName != p.basename(xctestrunFile.path)) {
-      final aligned = File(p.join(products, alignedName));
-      xctestrunFile.copySync(aligned.path);
-      onProgress?.call(
-        'Aligned .xctestrun for FTL device iOS $deviceIosVersion: '
-        '${p.basename(xctestrunFile.path)} → $alignedName',
-      );
-      xctestrunFile = aligned;
-    } else if (deviceIosVersion != null) {
-      onProgress?.call(
-        'Using .xctestrun ${p.basename(xctestrunFile.path)} '
-        '(device iOS $deviceIosVersion)',
-      );
-    }
-
-    // Strip Xcode 26 host-only DYLD inserts (libRPAC) and force serial tests.
-    // Untouched, FTL often finishes FAILURE with "0 test case results".
-    final sanitize = sanitizeXctestrunForFtl(xctestrunFile);
-    if (sanitize != null) {
-      onProgress?.call('Sanitized .xctestrun for FTL: $sanitize');
-    }
     if (!xctestrunDeclaresTestTargets(xctestrunFile)) {
       return _stub(
         identity,
         appDir: root,
         detail:
-            '.xctestrun declares no XCTest targets '
-            '(${p.basename(xctestrunFile.path)}). FTL would report 0 cases.',
+            '.xctestrun declares no XCTest targets ($xctestrunName). '
+            'FTL would report 0 cases.',
       );
     }
 
@@ -790,7 +778,7 @@ class IosFtlPackager {
       p.join(root, 'build/ensemble_test_remote', identity.buildId),
     )..createSync(recursive: true);
     final zipPath = p.join(out.path, 'ios_tests.zip');
-    final xctestrunDest = p.join(out.path, p.basename(xctestrunFile.path));
+    final xctestrunDest = p.join(out.path, xctestrunName);
 
     onProgress?.call('Packaging iOS XCTest zip...');
     final zip = await run(
@@ -800,7 +788,7 @@ class IosFtlPackager {
         '--must-match',
         zipPath,
         'Release-iphoneos',
-        p.basename(xctestrunFile.path),
+        xctestrunName,
       ],
       workingDirectory: products,
     );
@@ -820,18 +808,15 @@ class IosFtlPackager {
     final hasXctestBundle = listing.contains('RunnerTests.xctest');
     final hasXctestrunInZip = listing.contains('.xctestrun');
     final hasRunnerApp = listing.contains('Runner.app/');
-    final hasInjectDylib = listing.contains('libXCTestBundleInject.dylib');
     if (listed.exitCode != 0 ||
         !hasXctestBundle ||
         !hasXctestrunInZip ||
-        !hasRunnerApp ||
-        !hasInjectDylib) {
+        !hasRunnerApp) {
       return _stub(
         identity,
         appDir: root,
         detail:
-            'ios_tests.zip missing Runner.app, RunnerTests.xctest, '
-            '.xctestrun, or libXCTestBundleInject.dylib '
+            'ios_tests.zip missing Runner.app, RunnerTests.xctest, or .xctestrun '
             '(FTL would report 0 cases). unzip exit=${listed.exitCode}\n'
             '$listing',
       );
@@ -848,10 +833,11 @@ class IosFtlPackager {
         'platform': 'ios',
         'exportHypothesis': exportHypothesis,
         'derivedData': derived,
-        'xctestrun': p.basename(xctestrunFile.path),
+        'xctestrun': xctestrunName,
         'xctestrunCopy': xctestrunDest,
+        'xctestrunSdk': sdkToken,
         'zipHasRunnerTests': 'true',
-        if (deviceIosVersion != null) 'deviceIosVersion': deviceIosVersion,
+        'deviceIosVersion': deviceIosVersion,
       },
     );
   }
@@ -995,171 +981,13 @@ String _listShallow(Directory dir) {
   }
 }
 
-/// Copies `libXCTestBundleInject.dylib` into [runnerApp]/Frameworks if missing.
-///
-/// Xcode 26+ `build-for-testing` may omit it while the `.xctestrun` still
-/// references `__TESTHOST__/Frameworks/libXCTestBundleInject.dylib`.
-Future<String?> ensureLibXCTestBundleInject(
-  Directory runnerApp, {
-  Future<ProcessResult> Function(
-    String executable,
-    List<String> args, {
-    String? workingDirectory,
-    Map<String, String>? environment,
-  })? runProcess,
-}) async {
-  final frameworks = Directory(p.join(runnerApp.path, 'Frameworks'))
-    ..createSync(recursive: true);
-  final dest = File(p.join(frameworks.path, 'libXCTestBundleInject.dylib'));
-  if (dest.existsSync()) {
-    return p.relative(dest.path, from: runnerApp.parent.path);
-  }
-
-  final run = runProcess ??
-      ((exe, args, {workingDirectory, environment}) => Process.run(
-            exe,
-            args,
-            workingDirectory: workingDirectory,
-            environment: environment,
-          ));
-  final sdk = await run('xcrun', [
-    '--sdk',
-    'iphoneos',
-    '--show-sdk-platform-path',
-  ]);
-  if (sdk.exitCode != 0) return null;
-  final platformPath = sdk.stdout.toString().trim();
-  if (platformPath.isEmpty) return null;
-  final src = File(
-    p.join(
-      platformPath,
-      'Developer',
-      'usr',
-      'lib',
-      'libXCTestBundleInject.dylib',
-    ),
-  );
-  if (!src.existsSync()) return null;
-  src.copySync(dest.path);
-  return p.relative(dest.path, from: runnerApp.parent.path);
-}
-
-const _ftlXcTestInject =
-    '__TESTHOST__/Frameworks/libXCTestBundleInject.dylib';
-
-/// Host-only dylibs Xcode 26+ injects that break FTL device launch.
-final _ftlHostileDyldInsert = RegExp(
-  r'(?:^|:)(/usr/lib/libRPAC\.dylib|/Developer/|/System/Developer/|libMainThreadChecker\.dylib)',
-);
-
-/// Rewrites an `.xctestrun` so FTL can load XCTest on device.
-///
-/// Returns a short description of changes, or null when unchanged/unreadable.
-String? sanitizeXctestrunForFtl(File xctestrunFile) {
-  if (!xctestrunFile.existsSync()) return null;
-  Map<String, dynamic> root;
-  try {
-    final converted = Process.runSync(
-      'plutil',
-      ['-convert', 'json', '-o', '-', xctestrunFile.path],
-    );
-    if (converted.exitCode != 0) return null;
-    final decoded = jsonDecode(converted.stdout.toString());
-    if (decoded is! Map) return null;
-    root = Map<String, dynamic>.from(decoded);
-  } catch (_) {
-    return null;
-  }
-
-  final changes = <String>[];
-
-  void sanitizeTarget(String name, Map<String, dynamic> target) {
-    if (target['ParallelizationEnabled'] == true) {
-      target['ParallelizationEnabled'] = false;
-      changes.add('$name.ParallelizationEnabled=false');
-    }
-    if (target.containsKey('ToolchainsSettingValue')) {
-      target.remove('ToolchainsSettingValue');
-      changes.add('$name.ToolchainsSettingValue removed');
-    }
-
-    final testing = Map<String, dynamic>.from(
-      (target['TestingEnvironmentVariables'] as Map?) ?? const {},
-    );
-    final beforeTesting = testing['DYLD_INSERT_LIBRARIES']?.toString();
-    testing['DYLD_INSERT_LIBRARIES'] = _ftlXcTestInject;
-    testing.removeWhere((key, _) => key.startsWith('PERFC_'));
-    if (beforeTesting != _ftlXcTestInject) {
-      changes.add('$name.TestingEnvironmentVariables.DYLD_INSERT_LIBRARIES');
-    }
-    target['TestingEnvironmentVariables'] = testing;
-
-    final env = Map<String, dynamic>.from(
-      (target['EnvironmentVariables'] as Map?) ?? const {},
-    );
-    final insert = env['DYLD_INSERT_LIBRARIES']?.toString();
-    if (insert != null && _ftlHostileDyldInsert.hasMatch(insert)) {
-      env.remove('DYLD_INSERT_LIBRARIES');
-      changes.add('$name.EnvironmentVariables.DYLD_INSERT_LIBRARIES removed');
-    }
-    final beforePerfc = env.length;
-    env.removeWhere((key, _) => key.startsWith('PERFC_'));
-    if (env.length != beforePerfc) {
-      changes.add('$name.EnvironmentVariables.PERFC_* removed');
-    }
-    target['EnvironmentVariables'] = env;
-  }
-
-  // Format v1: top-level test-target dictionaries.
-  for (final entry in root.entries.toList()) {
-    if (entry.key.startsWith('__')) continue;
-    if (entry.value is! Map) continue;
-    final target = Map<String, dynamic>.from(entry.value as Map);
-    if (target['TestBundlePath'] == null && target['TestHostPath'] == null) {
-      continue;
-    }
-    sanitizeTarget(entry.key, target);
-    root[entry.key] = target;
-  }
-
-  // Format v2: TestConfigurations → TestTargets.
-  final configs = root['TestConfigurations'];
-  if (configs is List) {
-    for (var i = 0; i < configs.length; i++) {
-      final config = configs[i];
-      if (config is! Map) continue;
-      final configMap = Map<String, dynamic>.from(config);
-      final targets = configMap['TestTargets'];
-      if (targets is! List) continue;
-      for (var j = 0; j < targets.length; j++) {
-        final t = targets[j];
-        if (t is! Map) continue;
-        final target = Map<String, dynamic>.from(t);
-        sanitizeTarget('TestConfigurations[$i].TestTargets[$j]', target);
-        targets[j] = target;
-      }
-      configMap['TestTargets'] = targets;
-      configs[i] = configMap;
-    }
-    root['TestConfigurations'] = configs;
-  }
-
-  if (changes.isEmpty) return null;
-
-  final tmpJson = File('${xctestrunFile.path}.ftl.json');
-  try {
-    tmpJson.writeAsStringSync(jsonEncode(root));
-    final converted = Process.runSync(
-      'plutil',
-      ['-convert', 'binary1', '-o', xctestrunFile.path, tmpJson.path],
-    );
-    if (converted.exitCode != 0) return null;
-  } finally {
-    try {
-      if (tmpJson.existsSync()) tmpJson.deleteSync();
-    } catch (_) {}
-  }
-  return changes.join('; ');
+/// Parses `Runner_iphoneos26.2-arm64.xctestrun` → `26.2`.
+String? parseXctestrunIosSdkVersion(String filename) {
+  final match = RegExp(
+    r'_iphoneos(\d+(?:\.\d+)*)-arm64\.xctestrun$',
+    caseSensitive: false,
+  ).firstMatch(filename);
+  return match?.group(1);
 }
 
 /// True when [xctestrunFile] lists at least one XCTest target.
@@ -1192,22 +1020,6 @@ bool xctestrunDeclaresTestTargets(File xctestrunFile) {
   } catch (_) {
     return false;
   }
-}
-
-/// Rewrites `Runner_iphoneos26.2-arm64.xctestrun` → `…26.3…` for FTL.
-///
-/// Returns null when [filename] is not a `*_iphoneos*-arm64.xctestrun` name.
-String? alignXctestrunFilenameForIosVersion(
-  String filename,
-  String? iosVersion,
-) {
-  if (iosVersion == null || iosVersion.isEmpty) return null;
-  final match = RegExp(
-    r'^(.*_iphoneos)\d+(?:\.\d+)*(-arm64\.xctestrun)$',
-    caseSensitive: false,
-  ).firstMatch(filename);
-  if (match == null) return null;
-  return '${match.group(1)}$iosVersion${match.group(2)}';
 }
 
 /// Local Xcode major.minor for FTL `IosXcTest.xcodeVersion` (must match build).

@@ -7,6 +7,7 @@ import 'package:ensemble_test_runner/execution/remote/acceptance_ledger.dart';
 import 'package:ensemble_test_runner/execution/remote/fake_ftl_client.dart';
 import 'package:ensemble_test_runner/execution/remote/file_remote_run_store.dart';
 import 'package:ensemble_test_runner/execution/remote/firebase_test_lab_provider.dart';
+import 'package:ensemble_test_runner/execution/remote/ftl_client.dart';
 import 'package:ensemble_test_runner/execution/remote/native_build_service.dart';
 import 'package:ensemble_test_runner/execution/remote/remote_host_report.dart';
 import 'package:ensemble_test_runner/execution/remote/remote_models.dart';
@@ -875,7 +876,7 @@ remote:
               RemoteDeviceSpec(
                 platform: 'ios',
                 model: 'iphonese3',
-                version: '26.3',
+                version: '26.2',
               ),
             ],
           ),
@@ -887,35 +888,25 @@ remote:
           environment,
         }) async {
           if (exe == 'flutter') {
-            // Expect debug --config-only once, then release build (no post-release
-            // reconfig — that left Generated.xcconfig in debug).
             flutterCalls.add(List<String>.from(args));
             expect(args, contains('build'));
             expect(args, contains('ios'));
-          }
-          if (exe == 'xcrun') {
-            return ProcessResult(
-              0,
-              0,
-              '/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform\n',
-              '',
-            );
           }
           if (exe == 'xcodebuild') {
             final i = args.indexOf('-derivedDataPath');
             expect(i, greaterThanOrEqualTo(0));
             derivedDataPath = args[i + 1];
             expect(args, isNot(contains('-toolchain')));
-            expect(args, contains('ENABLE_TESTABILITY=YES'));
+            expect(args, isNot(contains('CODE_SIGNING_ALLOWED=NO')));
+            expect(args, isNot(contains('ENABLE_TESTABILITY=YES')));
             expect(args, contains('generic/platform=iOS'));
+            expect(args, contains('TREE_SHAKE_ICONS=NO'));
             final products = Directory(
               p.join(derivedDataPath!, 'Build/Products'),
             )..createSync(recursive: true);
             final release = Directory(
               p.join(products.path, 'Release-iphoneos'),
             )..createSync(recursive: true);
-            Directory(p.join(release.path, 'Runner.app', 'Frameworks'))
-                .createSync(recursive: true);
             Directory(
               p.join(
                 release.path,
@@ -924,15 +915,6 @@ remote:
                 'RunnerTests.xctest',
               ),
             ).createSync(recursive: true);
-            // Simulate Xcode omitting the inject dylib; packager copies it.
-            final platformLib = Directory(
-              '/Applications/Xcode.app/Contents/Developer/Platforms/'
-              'iPhoneOS.platform/Developer/usr/lib',
-            );
-            // Prefer writing into the temp products tree via a fake src the
-            // packager will miss — instead pre-create dest after ensure runs
-            // by placing a stub at the platform path when possible. If the
-            // real Xcode dylib exists, ensureLibXCTestBundleInject copies it.
             File(p.join(products.path, 'Runner_iphoneos26.2-arm64.xctestrun'))
                 .writeAsStringSync('''<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -944,47 +926,20 @@ remote:
     <string>__TESTHOST__/PlugIns/RunnerTests.xctest</string>
     <key>TestHostPath</key>
     <string>__TESTROOT__/Release-iphoneos/Runner.app</string>
-    <key>ParallelizationEnabled</key>
-    <true/>
-    <key>TestingEnvironmentVariables</key>
-    <dict>
-      <key>DYLD_INSERT_LIBRARIES</key>
-      <string>__TESTHOST__/Frameworks/libXCTestBundleInject.dylib:/usr/lib/libRPAC.dylib</string>
-    </dict>
-    <key>EnvironmentVariables</key>
-    <dict>
-      <key>DYLD_INSERT_LIBRARIES</key>
-      <string>/usr/lib/libRPAC.dylib</string>
-    </dict>
   </dict>
 </dict>
 </plist>
 ''');
-            // Convert XML plist to binary so plutil sanitize path works.
             await Process.run('plutil', [
               '-convert',
               'binary1',
               p.join(products.path, 'Runner_iphoneos26.2-arm64.xctestrun'),
             ]);
-            // If real platform dylib is absent (Linux CI), plant a stub at the
-            // destination after packaging would fail — plant at Frameworks now
-            // only when the platform copy source is missing.
-            if (!File(
-              p.join(platformLib.path, 'libXCTestBundleInject.dylib'),
-            ).existsSync()) {
-              File(
-                p.join(
-                  release.path,
-                  'Runner.app',
-                  'Frameworks',
-                  'libXCTestBundleInject.dylib',
-                ),
-              ).writeAsBytesSync(const [1, 2, 3]);
-            }
           }
           if (exe == 'zip') {
             final zipPath = args.firstWhere((a) => a.endsWith('ios_tests.zip'));
-            expect(args, contains('Runner_iphoneos26.3-arm64.xctestrun'));
+            // Generated name as-is — no rename to device version.
+            expect(args, contains('Runner_iphoneos26.2-arm64.xctestrun'));
             File(zipPath)
               ..parent.createSync(recursive: true)
               ..writeAsBytesSync([1, 2, 3, 4]);
@@ -995,9 +950,8 @@ remote:
               0,
               'Release-iphoneos/\n'
               'Release-iphoneos/Runner.app/\n'
-              'Release-iphoneos/Runner.app/Frameworks/libXCTestBundleInject.dylib\n'
               'Release-iphoneos/Runner.app/PlugIns/RunnerTests.xctest/\n'
-              'Runner_iphoneos26.3-arm64.xctestrun\n',
+              'Runner_iphoneos26.2-arm64.xctestrun\n',
               '',
             );
           }
@@ -1007,6 +961,7 @@ remote:
       expect(artifacts.appPackagePath, artifacts.testPackagePath);
       expect(artifacts.metadata['stub'], isNot('true'));
       expect(artifacts.metadata['zipHasRunnerTests'], 'true');
+      expect(artifacts.metadata['xctestrunSdk'], '26.2');
       expect(flutterCalls, hasLength(2));
       expect(flutterCalls[0], contains('--config-only'));
       expect(flutterCalls[0], contains('--debug'));
@@ -1025,24 +980,114 @@ remote:
     expect(derivedDataPath, endsWith(p.join('build', 'ios_integ')));
   });
 
-  test('alignXctestrunFilenameForIosVersion rewrites SDK token for FTL', () {
-    expect(
-      alignXctestrunFilenameForIosVersion(
-        'Runner_iphoneos26.2-arm64.xctestrun',
-        '26.3',
+  test('IosFtlPackager stubs when device iOS version mismatches xctestrun SDK',
+      () async {
+    final appDir = Directory.systemTemp.createTempSync('ios_sdk_mismatch_');
+    addTearDown(() {
+      if (appDir.existsSync()) appDir.deleteSync(recursive: true);
+    });
+    File(p.join(appDir.path, 'integration_test/ensemble_tests.dart'))
+      ..parent.createSync(recursive: true)
+      ..writeAsStringSync('void main() {}');
+    File(p.join(appDir.path, 'ios/RunnerTests/RunnerTests.m'))
+      ..parent.createSync(recursive: true)
+      ..writeAsStringSync('INTEGRATION_TEST_IOS_RUNNER(RunnerTests)\n');
+
+    final artifacts = await IosFtlPackager().package(
+      identity: NativeBuildService.computeIdentity(
+        mode: ExecutionMode.integration,
+        target: ExecutionTarget.remote,
+        platform: 'ios',
+        variant: 'release',
+        selectedTestIds: const ['t1'],
       ),
-      'Runner_iphoneos26.3-arm64.xctestrun',
+      appDir: appDir.path,
+      config: const EnsembleTestConfig(
+        mode: ExecutionMode.integration,
+        target: ExecutionTarget.remote,
+        remote: RemoteExecutionConfig(
+          devices: [
+            RemoteDeviceSpec(
+              platform: 'ios',
+              model: 'iphonese3',
+              version: '26.3',
+            ),
+          ],
+        ),
+      ),
+      runProcess: (exe, args, {workingDirectory, environment}) async {
+        if (exe == 'xcodebuild') {
+          final i = args.indexOf('-derivedDataPath');
+          final products = Directory(
+            p.join(args[i + 1], 'Build/Products'),
+          )..createSync(recursive: true);
+          Directory(
+            p.join(
+              products.path,
+              'Release-iphoneos',
+              'Runner.app',
+              'PlugIns',
+              'RunnerTests.xctest',
+            ),
+          ).createSync(recursive: true);
+          File(p.join(products.path, 'Runner_iphoneos26.2-arm64.xctestrun'))
+              .writeAsStringSync('''<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>RunnerTests</key>
+  <dict>
+    <key>TestBundlePath</key>
+    <string>__TESTHOST__/PlugIns/RunnerTests.xctest</string>
+  </dict>
+</dict>
+</plist>
+''');
+          await Process.run('plutil', [
+            '-convert',
+            'binary1',
+            p.join(products.path, 'Runner_iphoneos26.2-arm64.xctestrun'),
+          ]);
+        }
+        return ProcessResult(0, 0, '', '');
+      },
+    );
+    expect(artifacts.metadata['stub'], 'true');
+    expect(
+      artifacts.metadata['detail'],
+      contains('does not match generated .xctestrun SDK token'),
+    );
+  });
+
+  test('parseXctestrunIosSdkVersion reads SDK token from filename', () {
+    expect(
+      parseXctestrunIosSdkVersion('Runner_iphoneos26.2-arm64.xctestrun'),
+      '26.2',
     );
     expect(
-      alignXctestrunFilenameForIosVersion(
-        'Runner_iphoneos26.3-arm64.xctestrun',
-        '26.3',
-      ),
-      'Runner_iphoneos26.3-arm64.xctestrun',
+      parseXctestrunIosSdkVersion('Runner_iphoneos26.3-arm64.xctestrun'),
+      '26.3',
     );
+    expect(parseXctestrunIosSdkVersion('not-an-xctestrun'), isNull);
+  });
+
+  test('summarizeFtlMatrixEvidence surfaces invalidMatrix and executions', () {
     expect(
-      alignXctestrunFilenameForIosVersion('not-an-xctestrun', '26.3'),
-      isNull,
+      summarizeFtlMatrixEvidence({
+        'state': 'FINISHED',
+        'outcomeSummary': 'FAILURE',
+        'invalidMatrixDetails': 'INVALID_INPUT_APK',
+        'testExecutions': [
+          {
+            'state': 'FINISHED',
+            'testDetails': {
+              'errorMessage': '0 test cases',
+              'progressMessages': ['a', 'b'],
+            },
+          },
+        ],
+      }),
+      contains('invalidMatrixDetails=INVALID_INPUT_APK'),
     );
   });
 
@@ -1064,74 +1109,6 @@ remote:
     )..createSync(recursive: true);
     expect(findRunnerTestsXctest(release)?.path, nested.path);
   });
-
-  test('sanitizeXctestrunForFtl strips libRPAC and disables parallelization',
-      () {
-    final dir = Directory.systemTemp.createTempSync('xctestrun_sanitize_');
-    addTearDown(() => dir.deleteSync(recursive: true));
-    final file = File(p.join(dir.path, 'Runner_iphoneos26.2-arm64.xctestrun'));
-    file.writeAsStringSync('''<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-  <key>RunnerTests</key>
-  <dict>
-    <key>TestBundlePath</key>
-    <string>__TESTHOST__/PlugIns/RunnerTests.xctest</string>
-    <key>TestHostPath</key>
-    <string>__TESTROOT__/Release-iphoneos/Runner.app</string>
-    <key>ParallelizationEnabled</key>
-    <true/>
-    <key>ToolchainsSettingValue</key>
-    <array>
-      <string>com.apple.dt.toolchain.XcodeDefault</string>
-    </array>
-    <key>TestingEnvironmentVariables</key>
-    <dict>
-      <key>DYLD_INSERT_LIBRARIES</key>
-      <string>__TESTHOST__/Frameworks/libXCTestBundleInject.dylib:/usr/lib/libRPAC.dylib</string>
-      <key>PERFC_ENABLE_PROFILE_MODE</key>
-      <string>1</string>
-    </dict>
-    <key>EnvironmentVariables</key>
-    <dict>
-      <key>DYLD_INSERT_LIBRARIES</key>
-      <string>/usr/lib/libRPAC.dylib</string>
-      <key>PERFC_RESET_INSERT_LIBRARIES</key>
-      <string>1</string>
-    </dict>
-  </dict>
-</dict>
-</plist>
-''');
-    final convert = Process.runSync('plutil', ['-convert', 'binary1', file.path]);
-    expect(convert.exitCode, 0);
-
-    final summary = sanitizeXctestrunForFtl(file);
-    expect(summary, isNotNull);
-    expect(xctestrunDeclaresTestTargets(file), isTrue);
-
-    final jsonOut = Process.runSync(
-      'plutil',
-      ['-convert', 'json', '-o', '-', file.path],
-    );
-    expect(jsonOut.exitCode, 0);
-    final root = jsonDecode(jsonOut.stdout.toString()) as Map;
-    final target = Map<String, dynamic>.from(root['RunnerTests'] as Map);
-    expect(target['ParallelizationEnabled'], isFalse);
-    expect(target.containsKey('ToolchainsSettingValue'), isFalse);
-    final testing = Map<String, dynamic>.from(
-      target['TestingEnvironmentVariables'] as Map,
-    );
-    expect(
-      testing['DYLD_INSERT_LIBRARIES'],
-      '__TESTHOST__/Frameworks/libXCTestBundleInject.dylib',
-    );
-    expect(testing.containsKey('PERFC_ENABLE_PROFILE_MODE'), isFalse);
-    final env = Map<String, dynamic>.from(target['EnvironmentVariables'] as Map);
-    expect(env.containsKey('DYLD_INSERT_LIBRARIES'), isFalse);
-    expect(env.containsKey('PERFC_RESET_INSERT_LIBRARIES'), isFalse);
-  }, skip: !Platform.isMacOS ? 'plutil required' : false);
 
   test('RemoteHostReportBuilder writes local-style HTML + embeds FTL video',
       () async {
