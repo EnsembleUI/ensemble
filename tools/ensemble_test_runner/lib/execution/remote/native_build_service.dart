@@ -628,8 +628,9 @@ class IosFtlPackager {
     // See flutter/flutter#175905 and actions/runner-images#13135.
     const xcodeDefaultToolchain = 'com.apple.dt.toolchain.XcodeDefault';
     onProgress?.call('Running xcodebuild build-for-testing...');
-    // Match Flutter integration_test README FTL script: no CODE_SIGNING_* /
-    // ENABLE_TESTABILITY overrides. flutter build already used --no-codesign.
+    // Flutter README + proven CI needs: unsigned device build (no Apple team /
+    // profiles on GHA). FTL re-signs. Do not restore ENABLE_TESTABILITY or
+    // post-build xctestrun/dylib patches — those were discovery band-aids.
     final xcode = await run(
       'xcodebuild',
       [
@@ -649,6 +650,9 @@ class IosFtlPackager {
         '-sdk',
         'iphoneos',
         'TREE_SHAKE_ICONS=NO',
+        'CODE_SIGNING_ALLOWED=NO',
+        'CODE_SIGNING_REQUIRED=NO',
+        'CODE_SIGN_IDENTITY=',
       ],
       workingDirectory: iosDir,
       environment: {

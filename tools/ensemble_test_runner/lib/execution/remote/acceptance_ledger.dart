@@ -48,13 +48,14 @@ abstract final class RemoteAcceptanceLedger {
           notes:
               'IosFtlPackager follows Flutter FTL recipe (debug --config-only + '
               'release build ios + xcodebuild build-for-testing + zip generated '
-              'Release-iphoneos + Runner_*.xctestrun as-is). No CODE_SIGNING / '
-              'ENABLE_TESTABILITY overrides; no dylib inject, xctestrun sanitize, '
-              'or SDK rename. Fail-closed unless remote.devices iOS version '
-              'equals generated xctestrun SDK token (CI/example: 26.2). Submit '
-              'auto-sends matching xcodeVersion. FTL 0-case FAILURE logs Testing '
-              'API / empty-GCS evidence. Stub packages refused before submit. '
-              'Cloud collect still unverified.',
+              'Release-iphoneos + Runner_*.xctestrun as-is). Unsigned CI '
+              'CODE_SIGNING_* flags (FTL re-signs); no ENABLE_TESTABILITY, '
+              'dylib inject, xctestrun sanitize, or SDK rename. Fail-closed '
+              'unless remote.devices iOS version equals generated xctestrun SDK '
+              'token (CI/example: 26.2). Submit auto-sends matching '
+              'xcodeVersion. FTL 0-case FAILURE logs Testing API / empty-GCS '
+              'evidence. Stub packages refused before submit. Cloud collect '
+              'still unverified.',
         ),
         AcceptanceCell(
           criterion: 'Artifact export E2E (pass)',
