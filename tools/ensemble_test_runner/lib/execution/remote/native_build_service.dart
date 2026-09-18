@@ -491,10 +491,9 @@ class AndroidFtlPackager {
 ///
 /// Follows Flutter's documented FTL flow with the #170119 workaround:
 /// debug `--config-only` (once) → `flutter build ios <test> --release` →
-/// `xcodebuild build-for-testing` → zip `Release-iphoneos` + generated
-/// `Runner_*.xctestrun` (no rename / no post-zip plist surgery).
-/// Do not re-run debug `--config-only` after release — that leaves
-/// `Generated.xcconfig` in debug and can omit `RunnerTests.xctest`.
+/// `xcodebuild build-for-testing` → zip `Release-iphoneos` + `.xctestrun`.
+/// Unsigned CI needs `CODE_SIGNING_*=NO`, XCTest inject dylib embed, libRPAC
+/// sanitize, and catalog filename align when device OS ≠ Xcode SDK token.
 class IosFtlPackager {
   static const exportHypothesis =
       'XCTest attachments / Documents/ensemble_test_remote (unverified)';
@@ -728,12 +727,27 @@ class IosFtlPackager {
       );
     }
 
-    // Use the generated .xctestrun contents as-is (no plist sanitize / dylib
-    // inject). FTL pairs the *filename* SDK token with the physical device OS:
-    // Xcode 26.2/26.3 emit Runner_iphoneos26.2 while the catalog OS is 26.3 —
-    // submitting 26.2→26.3 without renaming yields Infrastructure error /
-    // empty GCS. Copy with a catalog-aligned name only (same major required).
-    final xctestrunFile = xctestrunFiles.first;
+    // Unsigned CI builds often omit XCTest inject; FTL needs it to launch.
+    final injectPath = await ensureLibXCTestBundleInject(
+      runnerApp,
+      runProcess: run,
+    );
+    if (injectPath == null) {
+      return _stub(
+        identity,
+        appDir: root,
+        detail:
+            'Missing Runner.app/Frameworks/libXCTestBundleInject.dylib and '
+            'could not copy it from the iPhoneOS platform. FTL cannot inject '
+            'the XCTest host (Infrastructure error / 0 cases).',
+      );
+    }
+    onProgress?.call('Ensured XCTest inject dylib at $injectPath');
+
+    // FTL pairs the *filename* SDK token with the physical device OS:
+    // Xcode 26.2/26.3 emit Runner_iphoneos26.2 while the catalog OS is 26.3.
+    // Also strip host-only DYLD inserts (libRPAC) that break device launch.
+    var xctestrunFile = xctestrunFiles.first;
     final generatedName = p.basename(xctestrunFile.path);
     final sdkToken = parseXctestrunIosSdkVersion(generatedName);
     final deviceIosVersion = resolveRemoteIosDeviceVersion(config);
@@ -790,13 +804,18 @@ class IosFtlPackager {
       onProgress?.call(
         'Catalog-aligned .xctestrun filename for FTL device iOS '
         '$deviceIosVersion: $generatedName → $alignedName '
-        '(contents unchanged; Xcode SDK token was $sdkToken)',
+        '(Xcode SDK token was $sdkToken)',
       );
     } else {
       onProgress?.call(
         'Using generated .xctestrun $generatedName '
         '(device iOS $deviceIosVersion matches SDK token)',
       );
+    }
+
+    final sanitize = sanitizeXctestrunForFtl(zipXctestrunFile);
+    if (sanitize != null) {
+      onProgress?.call('Sanitized .xctestrun for FTL: $sanitize');
     }
     if (!xctestrunDeclaresTestTargets(zipXctestrunFile)) {
       return _stub(
@@ -1046,6 +1065,167 @@ String? alignXctestrunFilenameForIosVersion(
   ).firstMatch(filename);
   if (match == null) return null;
   return '${match.group(1)}$iosVersion${match.group(2)}';
+}
+
+Future<String?> ensureLibXCTestBundleInject(
+  Directory runnerApp, {
+  Future<ProcessResult> Function(
+    String executable,
+    List<String> args, {
+    String? workingDirectory,
+    Map<String, String>? environment,
+  })? runProcess,
+}) async {
+  final frameworks = Directory(p.join(runnerApp.path, 'Frameworks'))
+    ..createSync(recursive: true);
+  final dest = File(p.join(frameworks.path, 'libXCTestBundleInject.dylib'));
+  if (dest.existsSync()) {
+    return p.relative(dest.path, from: runnerApp.parent.path);
+  }
+
+  final run = runProcess ??
+      ((exe, args, {workingDirectory, environment}) => Process.run(
+            exe,
+            args,
+            workingDirectory: workingDirectory,
+            environment: environment,
+          ));
+  final sdk = await run('xcrun', [
+    '--sdk',
+    'iphoneos',
+    '--show-sdk-platform-path',
+  ]);
+  if (sdk.exitCode != 0) return null;
+  final platformPath = sdk.stdout.toString().trim();
+  if (platformPath.isEmpty) return null;
+  final src = File(
+    p.join(
+      platformPath,
+      'Developer',
+      'usr',
+      'lib',
+      'libXCTestBundleInject.dylib',
+    ),
+  );
+  if (!src.existsSync()) return null;
+  src.copySync(dest.path);
+  return p.relative(dest.path, from: runnerApp.parent.path);
+}
+
+const _ftlXcTestInject =
+    '__TESTHOST__/Frameworks/libXCTestBundleInject.dylib';
+
+/// Host-only dylibs Xcode 26+ injects that break FTL device launch.
+final _ftlHostileDyldInsert = RegExp(
+  r'(?:^|:)(/usr/lib/libRPAC\.dylib|/Developer/|/System/Developer/|libMainThreadChecker\.dylib)',
+);
+
+/// Rewrites an `.xctestrun` so FTL can load XCTest on device.
+///
+/// Returns a short description of changes, or null when unchanged/unreadable.
+String? sanitizeXctestrunForFtl(File xctestrunFile) {
+  if (!xctestrunFile.existsSync()) return null;
+  Map<String, dynamic> root;
+  try {
+    final converted = Process.runSync(
+      'plutil',
+      ['-convert', 'json', '-o', '-', xctestrunFile.path],
+    );
+    if (converted.exitCode != 0) return null;
+    final decoded = jsonDecode(converted.stdout.toString());
+    if (decoded is! Map) return null;
+    root = Map<String, dynamic>.from(decoded);
+  } catch (_) {
+    return null;
+  }
+
+  final changes = <String>[];
+
+  void sanitizeTarget(String name, Map<String, dynamic> target) {
+    if (target['ParallelizationEnabled'] == true) {
+      target['ParallelizationEnabled'] = false;
+      changes.add('$name.ParallelizationEnabled=false');
+    }
+    if (target.containsKey('ToolchainsSettingValue')) {
+      target.remove('ToolchainsSettingValue');
+      changes.add('$name.ToolchainsSettingValue removed');
+    }
+
+    final testing = Map<String, dynamic>.from(
+      (target['TestingEnvironmentVariables'] as Map?) ?? const {},
+    );
+    final beforeTesting = testing['DYLD_INSERT_LIBRARIES']?.toString();
+    testing['DYLD_INSERT_LIBRARIES'] = _ftlXcTestInject;
+    testing.removeWhere((key, _) => key.startsWith('PERFC_'));
+    if (beforeTesting != _ftlXcTestInject) {
+      changes.add('$name.TestingEnvironmentVariables.DYLD_INSERT_LIBRARIES');
+    }
+    target['TestingEnvironmentVariables'] = testing;
+
+    final env = Map<String, dynamic>.from(
+      (target['EnvironmentVariables'] as Map?) ?? const {},
+    );
+    final insert = env['DYLD_INSERT_LIBRARIES']?.toString();
+    if (insert != null && _ftlHostileDyldInsert.hasMatch(insert)) {
+      env.remove('DYLD_INSERT_LIBRARIES');
+      changes.add('$name.EnvironmentVariables.DYLD_INSERT_LIBRARIES removed');
+    }
+    final beforePerfc = env.length;
+    env.removeWhere((key, _) => key.startsWith('PERFC_'));
+    if (env.length != beforePerfc) {
+      changes.add('$name.EnvironmentVariables.PERFC_* removed');
+    }
+    target['EnvironmentVariables'] = env;
+  }
+
+  for (final entry in root.entries.toList()) {
+    if (entry.key.startsWith('__')) continue;
+    if (entry.value is! Map) continue;
+    final target = Map<String, dynamic>.from(entry.value as Map);
+    if (target['TestBundlePath'] == null && target['TestHostPath'] == null) {
+      continue;
+    }
+    sanitizeTarget(entry.key, target);
+    root[entry.key] = target;
+  }
+
+  final configs = root['TestConfigurations'];
+  if (configs is List) {
+    for (var i = 0; i < configs.length; i++) {
+      final config = configs[i];
+      if (config is! Map) continue;
+      final configMap = Map<String, dynamic>.from(config);
+      final targets = configMap['TestTargets'];
+      if (targets is! List) continue;
+      for (var j = 0; j < targets.length; j++) {
+        final t = targets[j];
+        if (t is! Map) continue;
+        final target = Map<String, dynamic>.from(t);
+        sanitizeTarget('TestConfigurations[$i].TestTargets[$j]', target);
+        targets[j] = target;
+      }
+      configMap['TestTargets'] = targets;
+      configs[i] = configMap;
+    }
+    root['TestConfigurations'] = configs;
+  }
+
+  if (changes.isEmpty) return null;
+
+  final tmpJson = File('${xctestrunFile.path}.ftl.json');
+  try {
+    tmpJson.writeAsStringSync(jsonEncode(root));
+    final converted = Process.runSync(
+      'plutil',
+      ['-convert', 'binary1', '-o', xctestrunFile.path, tmpJson.path],
+    );
+    if (converted.exitCode != 0) return null;
+  } finally {
+    try {
+      if (tmpJson.existsSync()) tmpJson.deleteSync();
+    } catch (_) {}
+  }
+  return changes.join('; ');
 }
 
 /// True when [xctestrunFile] lists at least one XCTest target.

@@ -908,6 +908,8 @@ remote:
             final release = Directory(
               p.join(products.path, 'Release-iphoneos'),
             )..createSync(recursive: true);
+            Directory(p.join(release.path, 'Runner.app', 'Frameworks'))
+                .createSync(recursive: true);
             Directory(
               p.join(
                 release.path,
@@ -916,6 +918,14 @@ remote:
                 'RunnerTests.xctest',
               ),
             ).createSync(recursive: true);
+            File(
+              p.join(
+                release.path,
+                'Runner.app',
+                'Frameworks',
+                'libXCTestBundleInject.dylib',
+              ),
+            ).writeAsBytesSync(const [1, 2, 3]);
             File(p.join(products.path, 'Runner_iphoneos26.3-arm64.xctestrun'))
                 .writeAsStringSync('''<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -951,6 +961,7 @@ remote:
               0,
               'Release-iphoneos/\n'
               'Release-iphoneos/Runner.app/\n'
+              'Release-iphoneos/Runner.app/Frameworks/libXCTestBundleInject.dylib\n'
               'Release-iphoneos/Runner.app/PlugIns/RunnerTests.xctest/\n'
               'Runner_iphoneos26.3-arm64.xctestrun\n',
               '',
@@ -1030,6 +1041,17 @@ remote:
               'RunnerTests.xctest',
             ),
           ).createSync(recursive: true);
+          File(
+            p.join(
+              products.path,
+              'Release-iphoneos',
+              'Runner.app',
+              'Frameworks',
+              'libXCTestBundleInject.dylib',
+            ),
+          )
+            ..parent.createSync(recursive: true)
+            ..writeAsBytesSync(const [1, 2, 3]);
           File(p.join(products.path, 'Runner_iphoneos26.2-arm64.xctestrun'))
               .writeAsStringSync('''<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -1063,6 +1085,7 @@ remote:
             0,
             'Release-iphoneos/\n'
             'Release-iphoneos/Runner.app/\n'
+            'Release-iphoneos/Runner.app/Frameworks/libXCTestBundleInject.dylib\n'
             'Release-iphoneos/Runner.app/PlugIns/RunnerTests.xctest/\n'
             'Runner_iphoneos26.3-arm64.xctestrun\n',
             '',
@@ -1127,6 +1150,17 @@ remote:
               'RunnerTests.xctest',
             ),
           ).createSync(recursive: true);
+          File(
+            p.join(
+              products.path,
+              'Release-iphoneos',
+              'Runner.app',
+              'Frameworks',
+              'libXCTestBundleInject.dylib',
+            ),
+          )
+            ..parent.createSync(recursive: true)
+            ..writeAsBytesSync(const [1, 2, 3]);
           File(p.join(products.path, 'Runner_iphoneos26.2-arm64.xctestrun'))
               .writeAsStringSync('''<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">

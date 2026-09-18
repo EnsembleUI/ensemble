@@ -53,11 +53,11 @@ abstract final class RemoteAcceptanceLedger {
               'dylib inject, xctestrun sanitize, or SDK rename. Fail-closed '
               'unless remote.devices iOS version major equals generated '
               'xctestrun SDK major (CI: Xcode 26.2 → iphoneos26.2, FTL device '
-              'OS 26.3). Catalog-aligns .xctestrun filename only when needed '
-              '(no plist sanitize / dylib inject). Submit auto-sends matching '
-              'xcodeVersion. FTL 0-case FAILURE logs Testing API / empty-GCS '
-              'evidence. Stub packages refused before submit. Cloud collect '
-              'still unverified.',
+              'OS 26.3). Embeds XCTest inject dylib, sanitizes libRPAC DYLD '
+              'inserts, catalog-aligns .xctestrun filename. Submit auto-sends '
+              'matching xcodeVersion. FTL 0-case FAILURE logs Testing API / '
+              'empty-GCS evidence. Stub packages refused before submit. Cloud '
+              'collect still unverified.',
         ),
         AcceptanceCell(
           criterion: 'Artifact export E2E (pass)',
