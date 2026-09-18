@@ -489,9 +489,11 @@ class AndroidFtlPackager {
 
 /// iOS XCTest zip packaging for Firebase Test Lab (Flutter integration_test).
 ///
-/// Follows Flutter's documented FTL flow:
-/// `flutter build ios <test> --release` → `xcodebuild build-for-testing` →
-/// zip `Release-iphoneos` + `Runner_*.xctestrun`.
+/// Follows Flutter's documented FTL flow with the #170119 workaround:
+/// debug `--config-only` (once) → `flutter build ios <test> --release` →
+/// `xcodebuild build-for-testing` → zip `Release-iphoneos` + `Runner_*.xctestrun`.
+/// Do not re-run debug `--config-only` after release — that leaves
+/// `Generated.xcconfig` in debug and can omit `RunnerTests.xctest`.
 class IosFtlPackager {
   static const exportHypothesis =
       'XCTest attachments / Documents/ensemble_test_remote (unverified)';
@@ -614,32 +616,6 @@ class IosFtlPackager {
       );
     }
 
-    // Re-apply debug config-only after the release build so integration_test
-    // stays wired into the host (Flutter #170119). Safe/no-op on Flutter
-    // versions that already keep dev_dependencies for integration targets.
-    onProgress?.call(
-      'Re-applying iOS integration_test host config (debug --config-only)...',
-    );
-    final reconfig = await run('flutter', [
-      'build',
-      'ios',
-      integrationTestEntry,
-      '--config-only',
-      '--debug',
-      '--no-codesign',
-      ...defines,
-    ]);
-    if (reconfig.exitCode != 0) {
-      return _stub(
-        identity,
-        appDir: root,
-        detail: _formatProcessFailure(
-          'flutter build ios --config-only --debug (post-release)',
-          reconfig,
-        ),
-      );
-    }
-
     final derived = p.join(root, 'build/ios_integ');
     final products = p.join(derived, 'Build/Products');
     final iosDir = p.join(root, 'ios');
@@ -663,6 +639,8 @@ class IosFtlPackager {
         'Flutter/Release.xcconfig',
         '-configuration',
         'Release',
+        '-destination',
+        'generic/platform=iOS',
         '-derivedDataPath',
         derived,
         '-sdk',
@@ -671,6 +649,9 @@ class IosFtlPackager {
         'CODE_SIGNING_REQUIRED=NO',
         'CODE_SIGN_IDENTITY=',
         'TREE_SHAKE_ICONS=NO',
+        // Release defaults to testability off; without this, build-for-testing
+        // can succeed for Runner.app yet skip producing RunnerTests.xctest.
+        'ENABLE_TESTABILITY=YES',
       ],
       workingDirectory: iosDir,
       environment: {
@@ -726,18 +707,23 @@ class IosFtlPackager {
     }
 
     final runnerApp = Directory(p.join(releaseDir.path, 'Runner.app'));
-    final runnerTestsBundle = Directory(
-      p.join(releaseDir.path, 'RunnerTests.xctest'),
-    );
-    if (!runnerApp.existsSync() || !runnerTestsBundle.existsSync()) {
+    final runnerTestsBundle = findRunnerTestsXctest(releaseDir);
+    if (!runnerApp.existsSync() || runnerTestsBundle == null) {
+      final listing = _listShallow(releaseDir);
+      final productsListing = _listShallow(productsDir);
+      final anyXctest = _findAllXctestBundles(productsDir);
       return _stub(
         identity,
         appDir: root,
         detail:
             'Release-iphoneos missing Runner.app or RunnerTests.xctest '
             '(app=${runnerApp.existsSync()}, '
-            'tests=${runnerTestsBundle.existsSync()}). '
-            'FTL would report 0 XCTest cases.',
+            'tests=${runnerTestsBundle != null}). '
+            'FTL would report 0 XCTest cases.\n'
+            'Products:\n$productsListing\n'
+            'Release-iphoneos contents:\n$listing\n'
+            'Any *.xctest under Products: '
+            '${anyXctest.isEmpty ? '(none)' : anyXctest.join(', ')}',
       );
     }
 
@@ -870,7 +856,9 @@ Future<ProcessResult> _runCaptured(
     executable,
     args,
     workingDirectory: workingDirectory,
-    runInShell: true,
+    // Avoid shell joining: build settings like CODE_SIGN_IDENTITY= must stay
+    // intact as argv, and paths with spaces must not be re-split.
+    runInShell: false,
     environment: environment,
   );
 }
@@ -922,6 +910,51 @@ String? resolveRemoteIosDeviceVersion(EnsembleTestConfig config) {
     if (version != null && version.isNotEmpty) return version;
   }
   return null;
+}
+
+/// Finds `RunnerTests.xctest` under [releaseDir] (sibling or PlugIns).
+Directory? findRunnerTestsXctest(Directory releaseDir) {
+  if (!releaseDir.existsSync()) return null;
+  final sibling = Directory(p.join(releaseDir.path, 'RunnerTests.xctest'));
+  if (sibling.existsSync()) return sibling;
+  try {
+    for (final entity in releaseDir.listSync(recursive: true)) {
+      if (entity is! Directory) continue;
+      if (p.basename(entity.path) == 'RunnerTests.xctest') return entity;
+    }
+  } catch (_) {
+    return null;
+  }
+  return null;
+}
+
+List<String> _findAllXctestBundles(Directory productsDir) {
+  if (!productsDir.existsSync()) return const [];
+  try {
+    return productsDir
+        .listSync(recursive: true)
+        .whereType<Directory>()
+        .where((d) => d.path.endsWith('.xctest'))
+        .map((d) => p.relative(d.path, from: productsDir.path))
+        .toList()
+      ..sort();
+  } catch (_) {
+    return const [];
+  }
+}
+
+String _listShallow(Directory dir) {
+  try {
+    final names = dir
+        .listSync()
+        .map((e) => p.basename(e.path))
+        .toList()
+      ..sort();
+    if (names.isEmpty) return '(empty)';
+    return names.join('\n');
+  } catch (error) {
+    return '(could not list: $error)';
+  }
 }
 
 /// Rewrites `Runner_iphoneos26.2-arm64.xctestrun` → `…26.3…` for FTL.

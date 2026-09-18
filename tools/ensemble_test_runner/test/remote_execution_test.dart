@@ -853,6 +853,7 @@ remote:
     Directory(p.join(appDir.path, 'ios')).createSync(recursive: true);
 
     String? derivedDataPath;
+    final flutterCalls = <List<String>>[];
     final previous = Directory.current;
     Directory.current = appDir;
     try {
@@ -863,7 +864,7 @@ remote:
         variant: 'release',
         selectedTestIds: const ['t1'],
       );
-      final artifacts =     await IosFtlPackager().package(
+      final artifacts = await IosFtlPackager().package(
         identity: identity,
         appDir: '.',
         config: const EnsembleTestConfig(
@@ -886,7 +887,9 @@ remote:
           environment,
         }) async {
           if (exe == 'flutter') {
-            // Expect debug --config-only, release build, then config-only again.
+            // Expect debug --config-only once, then release build (no post-release
+            // reconfig — that left Generated.xcconfig in debug).
+            flutterCalls.add(List<String>.from(args));
             expect(args, contains('build'));
             expect(args, contains('ios'));
           }
@@ -895,6 +898,8 @@ remote:
             expect(i, greaterThanOrEqualTo(0));
             derivedDataPath = args[i + 1];
             expect(args, isNot(contains('-toolchain')));
+            expect(args, contains('ENABLE_TESTABILITY=YES'));
+            expect(args, contains('generic/platform=iOS'));
             final products = Directory(
               p.join(derivedDataPath!, 'Build/Products'),
             )..createSync(recursive: true);
@@ -930,6 +935,11 @@ remote:
       expect(artifacts.appPackagePath, artifacts.testPackagePath);
       expect(artifacts.metadata['stub'], isNot('true'));
       expect(artifacts.metadata['zipHasRunnerTests'], 'true');
+      expect(flutterCalls, hasLength(2));
+      expect(flutterCalls[0], contains('--config-only'));
+      expect(flutterCalls[0], contains('--debug'));
+      expect(flutterCalls[1], contains('--release'));
+      expect(flutterCalls[1], isNot(contains('--config-only')));
     } finally {
       Directory.current = previous;
     }
@@ -962,6 +972,25 @@ remote:
       alignXctestrunFilenameForIosVersion('not-an-xctestrun', '26.3'),
       isNull,
     );
+  });
+
+  test('findRunnerTestsXctest finds sibling or PlugIns bundle', () {
+    final root = Directory.systemTemp.createTempSync('xctest_find_');
+    addTearDown(() => root.deleteSync(recursive: true));
+
+    final release = Directory(p.join(root.path, 'Release-iphoneos'))
+      ..createSync();
+    expect(findRunnerTestsXctest(release), isNull);
+
+    final sibling = Directory(p.join(release.path, 'RunnerTests.xctest'))
+      ..createSync();
+    expect(findRunnerTestsXctest(release)?.path, sibling.path);
+
+    sibling.deleteSync(recursive: true);
+    final nested = Directory(
+      p.join(release.path, 'Runner.app', 'PlugIns', 'RunnerTests.xctest'),
+    )..createSync(recursive: true);
+    expect(findRunnerTestsXctest(release)?.path, nested.path);
   });
 
   test('RemoteHostReportBuilder writes local-style HTML + embeds FTL video',
