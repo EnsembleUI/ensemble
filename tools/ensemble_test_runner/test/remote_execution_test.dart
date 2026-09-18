@@ -876,7 +876,7 @@ remote:
               RemoteDeviceSpec(
                 platform: 'ios',
                 model: 'iphonese3',
-                version: '26.2',
+                version: '26.3',
               ),
             ],
           ),
@@ -916,7 +916,7 @@ remote:
                 'RunnerTests.xctest',
               ),
             ).createSync(recursive: true);
-            File(p.join(products.path, 'Runner_iphoneos26.2-arm64.xctestrun'))
+            File(p.join(products.path, 'Runner_iphoneos26.3-arm64.xctestrun'))
                 .writeAsStringSync('''<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
@@ -934,13 +934,13 @@ remote:
             await Process.run('plutil', [
               '-convert',
               'binary1',
-              p.join(products.path, 'Runner_iphoneos26.2-arm64.xctestrun'),
+              p.join(products.path, 'Runner_iphoneos26.3-arm64.xctestrun'),
             ]);
           }
           if (exe == 'zip') {
             final zipPath = args.firstWhere((a) => a.endsWith('ios_tests.zip'));
             // Generated name as-is — no rename to device version.
-            expect(args, contains('Runner_iphoneos26.2-arm64.xctestrun'));
+            expect(args, contains('Runner_iphoneos26.3-arm64.xctestrun'));
             File(zipPath)
               ..parent.createSync(recursive: true)
               ..writeAsBytesSync([1, 2, 3, 4]);
@@ -952,7 +952,7 @@ remote:
               'Release-iphoneos/\n'
               'Release-iphoneos/Runner.app/\n'
               'Release-iphoneos/Runner.app/PlugIns/RunnerTests.xctest/\n'
-              'Runner_iphoneos26.2-arm64.xctestrun\n',
+              'Runner_iphoneos26.3-arm64.xctestrun\n',
               '',
             );
           }
@@ -962,7 +962,7 @@ remote:
       expect(artifacts.appPackagePath, artifacts.testPackagePath);
       expect(artifacts.metadata['stub'], isNot('true'));
       expect(artifacts.metadata['zipHasRunnerTests'], 'true');
-      expect(artifacts.metadata['xctestrunSdk'], '26.2');
+      expect(artifacts.metadata['xctestrunSdk'], '26.3');
       expect(flutterCalls, hasLength(2));
       expect(flutterCalls[0], contains('--config-only'));
       expect(flutterCalls[0], contains('--debug'));
