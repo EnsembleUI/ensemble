@@ -48,12 +48,11 @@ abstract final class RemoteAcceptanceLedger {
           notes:
               'IosFtlPackager follows Flutter FTL flow (debug --config-only + '
               'release build ios + xcodebuild build-for-testing + zip-only '
-              'submit). Does not re-run debug --config-only after release '
-              '(that left Generated.xcconfig in debug and dropped '
-              'RunnerTests.xctest). Aligns .xctestrun SDK token to device iOS '
-              'version. CI pins Xcode 26.2; submit auto-sends matching '
-              'xcodeVersion. Stub packages refused before submit. Cloud '
-              'collect still unverified.',
+              'submit). Embeds libXCTestBundleInject.dylib and sanitizes '
+              '.xctestrun (strip libRPAC DYLD inserts). Aligns .xctestrun SDK '
+              'token to device iOS version. CI pins Xcode 26.2; submit '
+              'auto-sends matching xcodeVersion. Stub packages refused before '
+              'submit. Cloud collect still unverified.',
         ),
         AcceptanceCell(
           criterion: 'Artifact export E2E (pass)',
