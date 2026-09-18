@@ -84,8 +84,8 @@ jobs:
         run: flutter config --no-enable-swift-package-manager
 
       # Build with Xcode 26.2 (FTL xcodeVersion). Generated .xctestrun SDK token
-      # is iphoneos26.2 even on Xcode 26.3; FTL device catalog OS is 26.3 —
-      # config uses 26.3 and packager allows same-major without renaming.
+      # is iphoneos26.2; FTL device catalog OS is 26.3 — packager catalog-aligns
+      # the filename only (same major; contents unchanged).
       - name: Select Xcode 26.2 (iOS)
         if: matrix.platform == 'ios'
         uses: maxim-lobanov/setup-xcode@v1

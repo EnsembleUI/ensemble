@@ -18,8 +18,8 @@ remote:
       orientation: portrait
     - platform: ios
       model: iphonese3
-      # Must be an FTL catalog OS (26.3). Build Xcode emits Runner_iphoneos26.2
-      # — packager allows same-major without renaming the .xctestrun.
+      # Must be an FTL catalog OS (26.3). Build Xcode emits Runner_iphoneos26.2;
+      # packager copies under a catalog-aligned filename (same major only).
       version: "26.3"
       locale: en
       orientation: portrait

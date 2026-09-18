@@ -728,13 +728,14 @@ class IosFtlPackager {
       );
     }
 
-    // Use the generated .xctestrun as-is (Flutter/gcloud recipe). Never rename
-    // the SDK token in the filename. FTL physical device OS may differ slightly
-    // from the Xcode SDK token (e.g. Xcode 26.2/26.3 → iphoneos26.2, catalog
-    // device OS 26.3) — require same major; fail closed on major skew.
+    // Use the generated .xctestrun contents as-is (no plist sanitize / dylib
+    // inject). FTL pairs the *filename* SDK token with the physical device OS:
+    // Xcode 26.2/26.3 emit Runner_iphoneos26.2 while the catalog OS is 26.3 —
+    // submitting 26.2→26.3 without renaming yields Infrastructure error /
+    // empty GCS. Copy with a catalog-aligned name only (same major required).
     final xctestrunFile = xctestrunFiles.first;
-    final xctestrunName = p.basename(xctestrunFile.path);
-    final sdkToken = parseXctestrunIosSdkVersion(xctestrunName);
+    final generatedName = p.basename(xctestrunFile.path);
+    final sdkToken = parseXctestrunIosSdkVersion(generatedName);
     final deviceIosVersion = resolveRemoteIosDeviceVersion(config);
     if (sdkToken == null) {
       return _stub(
@@ -742,7 +743,7 @@ class IosFtlPackager {
         appDir: root,
         detail:
             'Could not parse iOS SDK token from .xctestrun name '
-            '"$xctestrunName" (expected Runner_iphoneosVERSION-arm64.xctestrun).',
+            '"$generatedName" (expected Runner_iphoneosVERSION-arm64.xctestrun).',
       );
     }
     if (deviceIosVersion == null) {
@@ -751,7 +752,7 @@ class IosFtlPackager {
         appDir: root,
         detail:
             'remote.devices must include an iOS device with a catalog version '
-            '(same major as .xctestrun SDK "$sdkToken" from $xctestrunName).',
+            '(same major as .xctestrun SDK "$sdkToken" from $generatedName).',
       );
     }
     if (!iosVersionsShareMajor(deviceIosVersion, sdkToken)) {
@@ -760,29 +761,49 @@ class IosFtlPackager {
         appDir: root,
         detail:
             'FTL device iOS version "$deviceIosVersion" major does not match '
-            'generated .xctestrun SDK token "$sdkToken" ($xctestrunName). '
+            'generated .xctestrun SDK token "$sdkToken" ($generatedName). '
             'Pick a catalog device OS with the same major, or rebuild with a '
-            'matching Xcode. Do not rename the .xctestrun.',
+            'matching Xcode.',
       );
     }
+
+    var zipXctestrunName = generatedName;
+    var zipXctestrunFile = xctestrunFile;
     if (deviceIosVersion != sdkToken) {
+      final alignedName = alignXctestrunFilenameForIosVersion(
+        generatedName,
+        deviceIosVersion,
+      );
+      if (alignedName == null) {
+        return _stub(
+          identity,
+          appDir: root,
+          detail:
+              'Could not align .xctestrun filename "$generatedName" to device '
+              'iOS $deviceIosVersion.',
+        );
+      }
+      final aligned = File(p.join(products, alignedName));
+      xctestrunFile.copySync(aligned.path);
+      zipXctestrunName = alignedName;
+      zipXctestrunFile = aligned;
       onProgress?.call(
-        'Using generated .xctestrun $xctestrunName '
-        '(SDK token $sdkToken; FTL device OS $deviceIosVersion — same major, '
-        'no rename)',
+        'Catalog-aligned .xctestrun filename for FTL device iOS '
+        '$deviceIosVersion: $generatedName → $alignedName '
+        '(contents unchanged; Xcode SDK token was $sdkToken)',
       );
     } else {
       onProgress?.call(
-        'Using generated .xctestrun $xctestrunName '
+        'Using generated .xctestrun $generatedName '
         '(device iOS $deviceIosVersion matches SDK token)',
       );
     }
-    if (!xctestrunDeclaresTestTargets(xctestrunFile)) {
+    if (!xctestrunDeclaresTestTargets(zipXctestrunFile)) {
       return _stub(
         identity,
         appDir: root,
         detail:
-            '.xctestrun declares no XCTest targets ($xctestrunName). '
+            '.xctestrun declares no XCTest targets ($zipXctestrunName). '
             'FTL would report 0 cases.',
       );
     }
@@ -791,7 +812,7 @@ class IosFtlPackager {
       p.join(root, 'build/ensemble_test_remote', identity.buildId),
     )..createSync(recursive: true);
     final zipPath = p.join(out.path, 'ios_tests.zip');
-    final xctestrunDest = p.join(out.path, xctestrunName);
+    final xctestrunDest = p.join(out.path, zipXctestrunName);
 
     onProgress?.call('Packaging iOS XCTest zip...');
     final zip = await run(
@@ -801,7 +822,7 @@ class IosFtlPackager {
         '--must-match',
         zipPath,
         'Release-iphoneos',
-        xctestrunName,
+        zipXctestrunName,
       ],
       workingDirectory: products,
     );
@@ -813,7 +834,7 @@ class IosFtlPackager {
       );
     }
 
-    xctestrunFile.copySync(xctestrunDest);
+    zipXctestrunFile.copySync(xctestrunDest);
 
     // Fail closed if the zip cannot host XCTest (FTL then reports 0 cases).
     final listed = await run('unzip', ['-l', zipPath]);
@@ -846,7 +867,7 @@ class IosFtlPackager {
         'platform': 'ios',
         'exportHypothesis': exportHypothesis,
         'derivedData': derived,
-        'xctestrun': xctestrunName,
+        'xctestrun': zipXctestrunName,
         'xctestrunCopy': xctestrunDest,
         'xctestrunSdk': sdkToken,
         'zipHasRunnerTests': 'true',
@@ -1011,6 +1032,20 @@ bool iosVersionsShareMajor(String a, String b) {
   }
 
   return major(a) == major(b);
+}
+
+/// Rewrites `Runner_iphoneos26.2-arm64.xctestrun` → `…26.3…` for FTL catalog OS.
+String? alignXctestrunFilenameForIosVersion(
+  String filename,
+  String? iosVersion,
+) {
+  if (iosVersion == null || iosVersion.isEmpty) return null;
+  final match = RegExp(
+    r'^(.*_iphoneos)\d+(?:\.\d+)*(-arm64\.xctestrun)$',
+    caseSensitive: false,
+  ).firstMatch(filename);
+  if (match == null) return null;
+  return '${match.group(1)}$iosVersion${match.group(2)}';
 }
 
 /// True when [xctestrunFile] lists at least one XCTest target.

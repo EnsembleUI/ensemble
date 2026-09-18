@@ -1051,7 +1051,8 @@ remote:
         }
         if (exe == 'zip') {
           final zipPath = args.firstWhere((a) => a.endsWith('ios_tests.zip'));
-          expect(args, contains('Runner_iphoneos26.2-arm64.xctestrun'));
+          // Catalog-aligned filename (contents still from generated 26.2 file).
+          expect(args, contains('Runner_iphoneos26.3-arm64.xctestrun'));
           File(zipPath)
             ..parent.createSync(recursive: true)
             ..writeAsBytesSync([1, 2, 3, 4]);
@@ -1063,7 +1064,7 @@ remote:
             'Release-iphoneos/\n'
             'Release-iphoneos/Runner.app/\n'
             'Release-iphoneos/Runner.app/PlugIns/RunnerTests.xctest/\n'
-            'Runner_iphoneos26.2-arm64.xctestrun\n',
+            'Runner_iphoneos26.3-arm64.xctestrun\n',
             '',
           );
         }
@@ -1072,6 +1073,8 @@ remote:
     );
     expect(artifacts.metadata['stub'], isNot('true'));
     expect(artifacts.metadata['xctestrunSdk'], '26.2');
+    expect(artifacts.metadata['xctestrun'], 'Runner_iphoneos26.3-arm64.xctestrun');
+    expect(artifacts.metadata['deviceIosVersion'], '26.3');
   });
 
   test('IosFtlPackager stubs when device iOS major mismatches xctestrun SDK',
@@ -1165,6 +1168,35 @@ remote:
     expect(parseXctestrunIosSdkVersion('not-an-xctestrun'), isNull);
     expect(iosVersionsShareMajor('26.2', '26.3'), isTrue);
     expect(iosVersionsShareMajor('26.2', '27.0'), isFalse);
+    expect(
+      alignXctestrunFilenameForIosVersion(
+        'Runner_iphoneos26.2-arm64.xctestrun',
+        '26.3',
+      ),
+      'Runner_iphoneos26.3-arm64.xctestrun',
+    );
+  });
+
+  test('summarizeFtlMatrixEvidence includes progress message text', () {
+    expect(
+      summarizeFtlMatrixEvidence({
+        'state': 'FINISHED',
+        'outcomeSummary': 'FAILURE',
+        'testExecutions': [
+          {
+            'state': 'FINISHED',
+            'testDetails': {
+              'errorMessage': 'Infrastructure error occurred.',
+              'progressMessages': [
+                'Starting',
+                'Installing',
+              ],
+            },
+          },
+        ],
+      }),
+      contains('progress=[Starting | Installing]'),
+    );
   });
 
   test('summarizeFtlMatrixEvidence surfaces invalidMatrix and executions', () {

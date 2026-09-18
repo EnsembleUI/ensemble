@@ -135,10 +135,19 @@ String summarizeFtlMatrixEvidence(Map<String, dynamic> raw) {
       final details = ex['testDetails'];
       String? errorMessage;
       int? progressMessages;
+      List<String> progressPreview = const [];
       if (details is Map) {
         errorMessage = details['errorMessage']?.toString();
         final progress = details['progressMessages'];
-        if (progress is List) progressMessages = progress.length;
+        if (progress is List) {
+          progressMessages = progress.length;
+          progressPreview = progress
+              .whereType<Object>()
+              .map((e) => e.toString())
+              .where((s) => s.isNotEmpty)
+              .take(6)
+              .toList();
+        }
       }
       final bit = StringBuffer('execution[$i]');
       if (state != null) bit.write(' state=$state');
@@ -148,6 +157,9 @@ String summarizeFtlMatrixEvidence(Map<String, dynamic> raw) {
       }
       if (progressMessages != null) {
         bit.write(' progressMessages=$progressMessages');
+      }
+      if (progressPreview.isNotEmpty) {
+        bit.write(' progress=[${progressPreview.join(' | ')}]');
       }
       parts.add(bit.toString());
     }
