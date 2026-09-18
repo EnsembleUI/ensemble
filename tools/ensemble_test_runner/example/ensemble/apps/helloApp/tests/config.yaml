@@ -18,9 +18,8 @@ remote:
       orientation: portrait
     - platform: ios
       model: iphonese3
-      # Must match the SDK token in the generated Runner_iphoneos*-arm64.xctestrun
-      # (CI pins Xcode 26.3 → typically 26.3; FTL catalog has 26.3, not 26.2).
-      # Do not rename the .xctestrun.
+      # Must be an FTL catalog OS (26.3). Build Xcode emits Runner_iphoneos26.2
+      # — packager allows same-major without renaming the .xctestrun.
       version: "26.3"
       locale: en
       orientation: portrait

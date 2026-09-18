@@ -83,14 +83,14 @@ jobs:
         if: matrix.platform == 'ios'
         run: flutter config --no-enable-swift-package-manager
 
-      # FTL device catalog currently has iOS 26.3 (not 26.2). Build with the
-      # matching Xcode so generated Runner_iphoneos26.3-*.xctestrun matches
-      # remote.devices[].version — do not rename the .xctestrun.
-      - name: Select Xcode 26.3 (iOS)
+      # Build with Xcode 26.2 (FTL xcodeVersion). Generated .xctestrun SDK token
+      # is iphoneos26.2 even on Xcode 26.3; FTL device catalog OS is 26.3 —
+      # config uses 26.3 and packager allows same-major without renaming.
+      - name: Select Xcode 26.2 (iOS)
         if: matrix.platform == 'ios'
         uses: maxim-lobanov/setup-xcode@v1
         with:
-          xcode-version: '26.3'
+          xcode-version: '26.2'
 
       # Xcode 26 Metal.xctoolchain lacks Swift compatibility libs; pin default
       # when a newer toolchain is somehow selected.

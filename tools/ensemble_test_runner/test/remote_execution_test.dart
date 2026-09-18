@@ -981,9 +981,8 @@ remote:
     expect(derivedDataPath, endsWith(p.join('build', 'ios_integ')));
   });
 
-  test('IosFtlPackager stubs when device iOS version mismatches xctestrun SDK',
-      () async {
-    final appDir = Directory.systemTemp.createTempSync('ios_sdk_mismatch_');
+  test('IosFtlPackager allows same-major device OS vs xctestrun SDK', () async {
+    final appDir = Directory.systemTemp.createTempSync('ios_sdk_same_major_');
     addTearDown(() {
       if (appDir.existsSync()) appDir.deleteSync(recursive: true);
     });
@@ -1050,13 +1049,107 @@ remote:
             p.join(products.path, 'Runner_iphoneos26.2-arm64.xctestrun'),
           ]);
         }
+        if (exe == 'zip') {
+          final zipPath = args.firstWhere((a) => a.endsWith('ios_tests.zip'));
+          expect(args, contains('Runner_iphoneos26.2-arm64.xctestrun'));
+          File(zipPath)
+            ..parent.createSync(recursive: true)
+            ..writeAsBytesSync([1, 2, 3, 4]);
+        }
+        if (exe == 'unzip') {
+          return ProcessResult(
+            0,
+            0,
+            'Release-iphoneos/\n'
+            'Release-iphoneos/Runner.app/\n'
+            'Release-iphoneos/Runner.app/PlugIns/RunnerTests.xctest/\n'
+            'Runner_iphoneos26.2-arm64.xctestrun\n',
+            '',
+          );
+        }
+        return ProcessResult(0, 0, '', '');
+      },
+    );
+    expect(artifacts.metadata['stub'], isNot('true'));
+    expect(artifacts.metadata['xctestrunSdk'], '26.2');
+  });
+
+  test('IosFtlPackager stubs when device iOS major mismatches xctestrun SDK',
+      () async {
+    final appDir = Directory.systemTemp.createTempSync('ios_sdk_mismatch_');
+    addTearDown(() {
+      if (appDir.existsSync()) appDir.deleteSync(recursive: true);
+    });
+    File(p.join(appDir.path, 'integration_test/ensemble_tests.dart'))
+      ..parent.createSync(recursive: true)
+      ..writeAsStringSync('void main() {}');
+    File(p.join(appDir.path, 'ios/RunnerTests/RunnerTests.m'))
+      ..parent.createSync(recursive: true)
+      ..writeAsStringSync('INTEGRATION_TEST_IOS_RUNNER(RunnerTests)\n');
+
+    final artifacts = await IosFtlPackager().package(
+      identity: NativeBuildService.computeIdentity(
+        mode: ExecutionMode.integration,
+        target: ExecutionTarget.remote,
+        platform: 'ios',
+        variant: 'release',
+        selectedTestIds: const ['t1'],
+      ),
+      appDir: appDir.path,
+      config: const EnsembleTestConfig(
+        mode: ExecutionMode.integration,
+        target: ExecutionTarget.remote,
+        remote: RemoteExecutionConfig(
+          devices: [
+            RemoteDeviceSpec(
+              platform: 'ios',
+              model: 'iphonese3',
+              version: '27.0',
+            ),
+          ],
+        ),
+      ),
+      runProcess: (exe, args, {workingDirectory, environment}) async {
+        if (exe == 'xcodebuild') {
+          final i = args.indexOf('-derivedDataPath');
+          final products = Directory(
+            p.join(args[i + 1], 'Build/Products'),
+          )..createSync(recursive: true);
+          Directory(
+            p.join(
+              products.path,
+              'Release-iphoneos',
+              'Runner.app',
+              'PlugIns',
+              'RunnerTests.xctest',
+            ),
+          ).createSync(recursive: true);
+          File(p.join(products.path, 'Runner_iphoneos26.2-arm64.xctestrun'))
+              .writeAsStringSync('''<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>RunnerTests</key>
+  <dict>
+    <key>TestBundlePath</key>
+    <string>__TESTHOST__/PlugIns/RunnerTests.xctest</string>
+  </dict>
+</dict>
+</plist>
+''');
+          await Process.run('plutil', [
+            '-convert',
+            'binary1',
+            p.join(products.path, 'Runner_iphoneos26.2-arm64.xctestrun'),
+          ]);
+        }
         return ProcessResult(0, 0, '', '');
       },
     );
     expect(artifacts.metadata['stub'], 'true');
     expect(
       artifacts.metadata['detail'],
-      contains('does not match generated .xctestrun SDK token'),
+      contains('major does not match'),
     );
   });
 
@@ -1070,6 +1163,8 @@ remote:
       '26.3',
     );
     expect(parseXctestrunIosSdkVersion('not-an-xctestrun'), isNull);
+    expect(iosVersionsShareMajor('26.2', '26.3'), isTrue);
+    expect(iosVersionsShareMajor('26.2', '27.0'), isFalse);
   });
 
   test('summarizeFtlMatrixEvidence surfaces invalidMatrix and executions', () {

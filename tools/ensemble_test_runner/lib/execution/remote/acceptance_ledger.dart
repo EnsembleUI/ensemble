@@ -51,11 +51,11 @@ abstract final class RemoteAcceptanceLedger {
               'Release-iphoneos + Runner_*.xctestrun as-is). Unsigned CI '
               'CODE_SIGNING_* flags (FTL re-signs); no ENABLE_TESTABILITY, '
               'dylib inject, xctestrun sanitize, or SDK rename. Fail-closed '
-              'unless remote.devices iOS version equals generated xctestrun SDK '
-              'token (CI/example: 26.3 with Xcode 26.3; FTL has no 26.2 device '
-              'OS). Submit auto-sends matching xcodeVersion. FTL 0-case FAILURE '
-              'logs Testing API / empty-GCS evidence. Stub packages refused '
-              'before submit. Cloud collect still unverified.',
+              'unless remote.devices iOS version major equals generated '
+              'xctestrun SDK major (CI: Xcode 26.2 → iphoneos26.2, FTL device '
+              'OS 26.3; never rename). Submit auto-sends matching xcodeVersion. '
+              'FTL 0-case FAILURE logs Testing API / empty-GCS evidence. Stub '
+              'packages refused before submit. Cloud collect still unverified.',
         ),
         AcceptanceCell(
           criterion: 'Artifact export E2E (pass)',

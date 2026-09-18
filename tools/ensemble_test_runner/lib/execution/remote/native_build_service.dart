@@ -728,8 +728,10 @@ class IosFtlPackager {
       );
     }
 
-    // Use the generated .xctestrun as-is (Flutter/gcloud recipe). Align the
-    // FTL device OS to this SDK token — do not rename the file.
+    // Use the generated .xctestrun as-is (Flutter/gcloud recipe). Never rename
+    // the SDK token in the filename. FTL physical device OS may differ slightly
+    // from the Xcode SDK token (e.g. Xcode 26.2/26.3 → iphoneos26.2, catalog
+    // device OS 26.3) — require same major; fail closed on major skew.
     final xctestrunFile = xctestrunFiles.first;
     final xctestrunName = p.basename(xctestrunFile.path);
     final sdkToken = parseXctestrunIosSdkVersion(xctestrunName);
@@ -748,26 +750,33 @@ class IosFtlPackager {
         identity,
         appDir: root,
         detail:
-            'remote.devices must include an iOS device with version: "$sdkToken" '
-            'to match generated .xctestrun $xctestrunName.',
+            'remote.devices must include an iOS device with a catalog version '
+            '(same major as .xctestrun SDK "$sdkToken" from $xctestrunName).',
       );
     }
-    if (deviceIosVersion != sdkToken) {
+    if (!iosVersionsShareMajor(deviceIosVersion, sdkToken)) {
       return _stub(
         identity,
         appDir: root,
         detail:
-            'FTL device iOS version "$deviceIosVersion" does not match '
+            'FTL device iOS version "$deviceIosVersion" major does not match '
             'generated .xctestrun SDK token "$sdkToken" ($xctestrunName). '
-            'Set remote.devices[].version to "$sdkToken" (build Xcode SDK). '
-            'Do not rename the .xctestrun — that is a fragile workaround and '
-            'causes FTL "0 test cases".',
+            'Pick a catalog device OS with the same major, or rebuild with a '
+            'matching Xcode. Do not rename the .xctestrun.',
       );
     }
-    onProgress?.call(
-      'Using generated .xctestrun $xctestrunName '
-      '(device iOS $deviceIosVersion matches SDK token)',
-    );
+    if (deviceIosVersion != sdkToken) {
+      onProgress?.call(
+        'Using generated .xctestrun $xctestrunName '
+        '(SDK token $sdkToken; FTL device OS $deviceIosVersion — same major, '
+        'no rename)',
+      );
+    } else {
+      onProgress?.call(
+        'Using generated .xctestrun $xctestrunName '
+        '(device iOS $deviceIosVersion matches SDK token)',
+      );
+    }
     if (!xctestrunDeclaresTestTargets(xctestrunFile)) {
       return _stub(
         identity,
@@ -992,6 +1001,16 @@ String? parseXctestrunIosSdkVersion(String filename) {
     caseSensitive: false,
   ).firstMatch(filename);
   return match?.group(1);
+}
+
+/// True when two iOS version strings share the same major (e.g. 26.2 / 26.3).
+bool iosVersionsShareMajor(String a, String b) {
+  String major(String v) {
+    final parts = v.split('.');
+    return parts.isEmpty ? v : parts.first;
+  }
+
+  return major(a) == major(b);
 }
 
 /// True when [xctestrunFile] lists at least one XCTest target.
