@@ -899,7 +899,7 @@ remote:
             expect(args, isNot(contains('-toolchain')));
             expect(args, contains('CODE_SIGNING_ALLOWED=NO'));
             expect(args, contains('CODE_SIGNING_REQUIRED=NO'));
-            expect(args, isNot(contains('ENABLE_TESTABILITY=YES')));
+            expect(args, contains('ENABLE_TESTABILITY=YES'));
             expect(args, contains('generic/platform=iOS'));
             expect(args, contains('TREE_SHAKE_ICONS=NO'));
             final products = Directory(
