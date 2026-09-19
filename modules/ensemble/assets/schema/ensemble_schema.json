@@ -34,7 +34,7 @@
             },
             "collapsedTitleWidget": {
               "$ref": "#/$defs/Widget",
-              "description": "TV only. Content rendered instead of the title while the header is collapsed (focus is outside the header). Used together with styles.tvFocusCollapse. On non-TV devices the expanded title is always used."
+              "description": "TV only. Content rendered instead of the title while the header is collapsed (focus is outside the header). Used together with styles.collapsibleHeader.trigger: tvFocus. On non-TV devices the expanded title is always used."
             },
             "styles": {
               "type": "object",
@@ -77,27 +77,35 @@
                   "type": "integer",
                   "description": "Applicable only if scrollableView is enabled. This attribute effectively sets the header's max height on scrolling (header's height will varies between the flexibleMinHeight and flexibleMaxHeight). This attribute will be ignored if smaller than the flexibleMinHeight"
                 },
-                "collapsedTitleBarHeight": {
+                "collapsedBarHeight": {
                   "type": "integer",
-                  "description": "TV only. Header height used while the header is collapsed (focus is outside the header). Requires styles.tvFocusCollapse.enabled. Falls back to titleBarHeight when omitted.",
+                  "description": "TV only. Header height used while the header is collapsed (focus is outside the header). Requires styles.collapsibleHeader.trigger: tvFocus. Falls back to titleBarHeight when omitted.",
                   "minimum": 0
                 },
-                "tvFocusCollapse": {
+                "collapsibleHeader": {
                   "type": "object",
-                  "description": "TV only. When enabled, the header renders its expanded layout (titleWidget) while focus is inside the header and its collapsed layout (collapsedTitleWidget, at collapsedTitleBarHeight) once focus moves to the body. The collapsed layout must contain a focusable element so focus can re-enter the header. Non-TV devices always render the expanded layout.",
+                  "description": "Controls header collapse. With trigger: visibility (or omitted), the existing visible expression shows or hides the header. With trigger: tvFocus, TV renders titleWidget while focus is in the header and collapsedTitleWidget at collapsedBarHeight when focus moves to the body. The collapsed layout must contain a focusable element so focus can re-enter the header. Non-TV devices always render the expanded layout.",
                   "properties": {
                     "enabled": {
                       "type": "boolean",
-                      "description": "Opt in to focus-aware collapse on TV. Default false."
+                      "description": "Enable the selected collapse trigger. Default false."
+                    },
+                    "trigger": {
+                      "type": "string",
+                      "enum": ["visibility", "tvFocus"],
+                      "description": "Collapse trigger. Omit or use visibility for the existing visible-expression behavior; tvFocus is TV only."
+                    },
+                    "visible": {
+                      "description": "Existing visibility expression. Used only when trigger is visibility or omitted."
                     },
                     "duration": {
                       "type": "integer",
-                      "description": "Animation duration in milliseconds for the expanded/collapsed height transition (default 250).",
+                      "description": "TV focus-collapse animation duration in milliseconds (default 250).",
                       "minimum": 0
                     },
                     "curve": {
                       "type": "string",
-                      "description": "Animation curve name for the height transition (e.g. easeInOut). Default easeInOut."
+                      "description": "TV focus-collapse animation curve (e.g. easeInOut). Default easeInOut."
                     }
                   }
                 }
@@ -188,7 +196,7 @@
               "properties": {
                 "background": {
                   "$ref": "#/$defs/Widget",
-                  "description": "Optional widget rendered as the page's bottom-most background layer, behind the body. When set, the page background color (including the theme's View backgroundColor) is ignored, so add a color layer inside the widget if one is needed. backgroundImage/backgroundGradient still paint above it. The background never takes TV D-pad focus and does not receive taps. Note: a childless Column/Row with only a background is not rendered; add a Spacer child (the app's convention for background-only layers)."
+                  "description": "TV only. Optional widget rendered as the page's bottom-most background layer, behind the body. When set, backgroundColor, backgroundImage, and backgroundGradient are ignored; add any required color or image inside this widget. The background never takes TV D-pad focus and does not receive taps. Note: a childless Column/Row with only a background is not rendered; add a Spacer child (the app's convention for background-only layers)."
                 },
                 "useSafeArea": {
                   "type": "boolean",
