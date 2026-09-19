@@ -8,6 +8,9 @@ import 'package:ensemble_test_runner/execution/device_discovery.dart';
 import 'package:ensemble_test_runner/execution/device_selector.dart';
 import 'package:ensemble_test_runner/execution/execution_backend.dart';
 import 'package:ensemble_test_runner/execution/host_address.dart';
+import 'package:ensemble_test_runner/execution/remote/remote_suite_validator.dart';
+import 'package:ensemble_test_runner/execution/remote/remote_orchestrator.dart';
+import 'package:ensemble_test_runner/execution/remote/setup/remote_admin_cli.dart';
 import 'package:ensemble_test_runner/cli/ensemble_test_doctor.dart';
 import 'package:ensemble_test_runner/cli/ensemble_test_cli_output.dart';
 import 'package:ensemble_test_runner/cli/yaml_test_app_patcher.dart';
@@ -66,6 +69,7 @@ String _suiteEncryptionKey(List<String> arguments) {
 ///   --path=<path>      Run matching test asset path(s); repeatable
 ///   --device=<id>      Run only these suite device id(s); repeatable (default: all)
 ///   --mode=<mode>      Execution mode: widget or integration
+///   --target=<target>  Execution target: local or remote (default: local)
 ///   --device-id=<id>   Flutter target id for integration mode
 ///   --host-address=<ip> LAN address for physical iOS host services
 ///   --reset-device-storage  Wipe device storage before the suite (destructive)
@@ -74,7 +78,15 @@ String _suiteEncryptionKey(List<String> arguments) {
 ///   --jobs=<n|auto>    Concurrent jobs (default: adaptive CPU/memory; 1 disables)
 ///   --timeout=<duration> Test suite timeout, e.g. 30s, 5m, 1h (default: 10m)
 ///   --verbose          Full `flutter pub get` / `flutter test` output
+///
+/// Subcommands:
+///   remote doctor|setup  Firebase Test Lab GCP setup (see `remote help`)
 Future<void> runEnsembleYamlTestsCli(List<String> arguments) async {
+  if (arguments.isNotEmpty && arguments.first == 'remote') {
+    await runRemoteAdminCli(arguments.skip(1).toList());
+    return;
+  }
+
   final verbose = isVerboseCli(arguments);
   final quiet = arguments.contains('--quiet');
   final reportMode = _resolveReportMode(arguments);
@@ -169,19 +181,40 @@ Future<void> runEnsembleYamlTestsCli(List<String> arguments) async {
   }
 
   late final ExecutionMode executionMode;
+  late final ExecutionTarget executionTarget;
   late EnsembleTestConfig suiteConfig;
   try {
     suiteConfig = _readTestsConfigStrict(patcher.testsDirPath!);
     executionMode = _resolveExecutionMode(arguments, suiteConfig.mode);
+    executionTarget = _resolveExecutionTarget(arguments, suiteConfig.target);
+    suiteConfig = suiteConfig.copyWith(
+      mode: executionMode,
+      target: executionTarget,
+    );
     _validateExecutionModeOptions(
       arguments,
       mode: executionMode,
       config: suiteConfig,
       jobs: jobs,
     );
+    RemoteSuiteValidator.validate(
+      config: suiteConfig,
+      target: executionTarget,
+    );
   } catch (error) {
     stderr.writeln(error);
     exit(2);
+  }
+
+  if (executionTarget == ExecutionTarget.remote) {
+    final exitCode = await runRemoteEnsembleYamlTestsCli(
+      arguments,
+      appDir: appDir,
+      suiteConfig: suiteConfig,
+      quiet: quiet,
+      verbose: verbose,
+    );
+    exit(exitCode);
   }
 
   final executionBackend = executionBackendFor(executionMode);
@@ -2778,10 +2811,10 @@ Future<ProcessResult> _runProcess(
 String _resolveAppDir(List<String> arguments) {
   for (final arg in arguments) {
     if (arg.startsWith('--app-dir=')) {
-      return arg.substring('--app-dir='.length);
+      return p.normalize(p.absolute(arg.substring('--app-dir='.length)));
     }
   }
-  return Directory.current.path;
+  return Directory.current.absolute.path;
 }
 
 String? _resolveReportMode(List<String> arguments) {
@@ -2870,12 +2903,37 @@ ExecutionMode _resolveExecutionMode(
   };
 }
 
+ExecutionTarget _resolveExecutionTarget(
+  List<String> arguments,
+  ExecutionTarget configured,
+) {
+  final values = _optionValues(arguments, '--target');
+  if (values.length > 1) {
+    throw StateError('--target may be specified only once.');
+  }
+  if (values.isEmpty) return configured;
+  return switch (values.single) {
+    'local' => ExecutionTarget.local,
+    'remote' => ExecutionTarget.remote,
+    _ => throw StateError(
+        'Invalid --target="${values.single}". Use local or remote.',
+      ),
+  };
+}
+
 /// Test hook for CLI precedence without launching a subprocess.
 ExecutionMode resolveExecutionModeForTest(
   List<String> arguments,
   ExecutionMode configured,
 ) =>
     _resolveExecutionMode(arguments, configured);
+
+/// Test hook for target precedence: CLI > config > default.
+ExecutionTarget resolveExecutionTargetForTest(
+  List<String> arguments,
+  ExecutionTarget configured,
+) =>
+    _resolveExecutionTarget(arguments, configured);
 
 void _validateExecutionModeOptions(
   List<String> arguments, {

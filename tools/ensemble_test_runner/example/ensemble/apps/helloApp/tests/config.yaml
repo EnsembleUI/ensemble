@@ -1,12 +1,28 @@
+# yaml-language-server: $schema=https://cdn.ensembleui.com/schemas/ensemble_test_config_schema.json
 mode: integration
+# Default stays local. CI / `remote setup` users pass --target=remote.
 screenshots:
   enabled: true
 
 performance:
   enabled: false
 
-services:
-  - name: fixture
-    command: dart
-    arguments: [run, tool/test_service.dart]
-    readyUrl: /ready
+# FTL catalog (used when --target=remote). Distinct from root devices: viewport matrix.
+remote:
+  provider: firebaseTestLab
+  devices:
+    - platform: android
+      model: MediumPhone.arm
+      version: "36"
+      locale: en
+      orientation: portrait
+    - platform: ios
+      model: iphonese3
+      # Must be an FTL catalog OS (26.3). Build Xcode emits Runner_iphoneos26.2;
+      # packager copies under a catalog-aligned filename (same major only).
+      version: "26.3"
+      locale: en
+      orientation: portrait
+
+# Host-local process fixtures are incompatible with remote (FTL). Prefer mocks or
+# remote.endpoints with a public HTTPS URL when you need a network stub on device.

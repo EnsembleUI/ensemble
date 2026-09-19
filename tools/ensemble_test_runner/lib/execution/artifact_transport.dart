@@ -315,8 +315,9 @@ Future<ArtifactTransportResult> materializeTransportedArtifacts({
       final dynamic decoded;
       try {
         decoded = json.decode(_jsonRecordFromLine(raw));
-      } catch (e) {
-        error ??= 'Invalid integration artifact record: $e';
+      } catch (_) {
+        // Android logcat truncates lines over ~4 KiB. Skip without failing the
+        // whole transfer; missing ids vs complete still catch real loss.
         continue;
       }
       if (decoded is! Map) {

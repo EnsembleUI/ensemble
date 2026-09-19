@@ -1,12 +1,5 @@
-import Flutter
-import UIKit
-import XCTest
-
-class RunnerTests: XCTestCase {
-
-  func testExample() {
-    // If you add code to the Runner application, consider adding tests here.
-    // See https://developer.apple.com/documentation/xctest for more information about using XCTest.
-  }
-
-}
+// Empty Swift compilation unit for the otherwise Objective-C RunnerTests
+// target. On Xcode 26+, linking Swift pods (e.g. cloud_functions,
+// firebase_app_check) into a pure-ObjC test bundle fails with
+// `__swift_FORCE_LOAD_$_swiftCompatibility56` unless the test target itself
+// participates in Swift linking. See flutter/flutter#175905.

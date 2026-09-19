@@ -17,9 +17,20 @@ const _executionMode = String.fromEnvironment(
   'ensembleTestExecutionMode',
   defaultValue: 'widget',
 );
+const _executionTarget = String.fromEnvironment(
+  'ensembleTestExecutionTarget',
+  defaultValue: 'local',
+);
 const ensembleTestProgressProtocolPrefix = 'ENSEMBLE_TEST_PROGRESS_V1:';
 
 bool get usesDeviceArtifactTransport => _executionMode == 'integration';
+
+/// Remote FTL runs must persist artifacts on-device for `directoriesToPull`.
+/// Dumping screenshot base64 into logcat overflows the circular buffer and
+/// drops the envelope protocol lines (host then sees SUCCESS + incomplete).
+bool get prefersOnDeviceFileArtifacts =>
+    _executionTarget == 'remote' ||
+    ensembleTestArtifactRoot.startsWith('/');
 
 /// Widget tests dress screenshots in a matching device bezel. Integration
 /// captures already are the real simulator/emulator display, so a stock
@@ -63,10 +74,68 @@ class DeviceTransportArtifactSink extends EnsembleTestArtifactSink {
   }
 }
 
-EnsembleTestArtifactSink get ensembleTestArtifactSink =>
-    usesDeviceArtifactTransport
-        ? const DeviceTransportArtifactSink()
-        : const FileArtifactSink();
+/// Writes on-device files and optionally mirrors to logcat (local USB only).
+class FileThenTransportArtifactSink extends EnsembleTestArtifactSink {
+  const FileThenTransportArtifactSink({this.emitLogcat = true});
+
+  final bool emitLogcat;
+
+  /// FTL `directoriesToPull` allowlist is `/sdcard`, `/storage`, `/data/local/tmp`.
+  /// On API 29+ / FTL API 36, apps **cannot** mkdir under `/data/local/tmp`
+  /// (PathAccessException errno=13) — that false primary made green UI tests
+  /// fail at screenshot flush. Prefer Download (writable + pullable).
+  static const remoteWriteRoots = <String>[
+    '/sdcard/Download/ensemble_test_remote',
+    '/storage/emulated/0/Download/ensemble_test_remote',
+    '/data/local/tmp/ensemble_test_remote',
+  ];
+
+  @override
+  Future<void> write(
+    String relativePath,
+    List<int> bytes, {
+    required String mimeType,
+  }) async {
+    final roots = <String>{
+      ensembleTestArtifactRoot,
+      if (prefersOnDeviceFileArtifacts) ...remoteWriteRoots,
+    };
+    Object? lastError;
+    var wrote = false;
+    for (final root in roots) {
+      try {
+        AtomicFile.writeBytesSync(
+          File(p.join(root, relativePath)),
+          bytes,
+        );
+        wrote = true;
+      } catch (error) {
+        lastError = error;
+      }
+    }
+    if (!wrote) {
+      throw StateError(
+        'Could not write on-device artifact $relativePath '
+        '(tried ${roots.join(', ')}): $lastError',
+      );
+    }
+    if (emitLogcat) {
+      emitEnsembleTestArtifact(relativePath, bytes, mimeType: mimeType);
+    }
+  }
+}
+
+EnsembleTestArtifactSink get ensembleTestArtifactSink {
+  if (!usesDeviceArtifactTransport) {
+    return const FileArtifactSink();
+  }
+  if (prefersOnDeviceFileArtifacts) {
+    // Remote / absolute on-device root: disk only (FTL directoriesToPull).
+    return const FileThenTransportArtifactSink(emitLogcat: false);
+  }
+  // Local integration over USB: logcat/stdout transport to the host CLI.
+  return const DeviceTransportArtifactSink();
+}
 
 String get ensembleTestArtifactRoot =>
     _artifactRoot.isEmpty ? _artifactDisplayRoot : _artifactRoot;

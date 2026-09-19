@@ -351,6 +351,72 @@ class EnsembleTestSchemaBuilder {
           'default': 'widget',
           'description': 'Suite execution environment.',
         },
+        'target': {
+          'type': 'string',
+          'enum': ['local', 'remote'],
+          'default': 'local',
+          'description':
+              'Where the suite runs. remote requires mode: integration and a '
+                  'remote: block (Firebase Test Lab). Orthogonal to mode.',
+        },
+        'remote': {
+          'type': 'object',
+          'additionalProperties': false,
+          'description':
+              'Firebase Test Lab catalog and remotely reachable fixtures. '
+                  'Distinct from root devices: (widget/local viewport matrix).',
+          'properties': {
+            'provider': {
+              'type': 'string',
+              'default': 'firebaseTestLab',
+              'description': 'Remote provider id. Only firebaseTestLab today.',
+            },
+            'projectId': {
+              'type': 'string',
+              'description':
+                  'GCP project. Falls back to ENSEMBLE_TEST_FTL_PROJECT_ID.',
+            },
+            'devices': {
+              'type': 'array',
+              'minItems': 1,
+              'items': {
+                'type': 'object',
+                'additionalProperties': false,
+                'required': ['model'],
+                'properties': {
+                  'platform': {
+                    'type': 'string',
+                    'enum': ['android', 'ios'],
+                    'description':
+                        'When set, only used for that --remote-platform. '
+                        'Omit to allow either platform.',
+                  },
+                  'model': {'type': 'string', 'minLength': 1},
+                  'version': {'type': 'string'},
+                  'locale': {'type': 'string'},
+                  'orientation': {
+                    'type': 'string',
+                    'enum': ['portrait', 'landscape'],
+                  },
+                },
+              },
+            },
+            'endpoints': {
+              'type': 'array',
+              'description':
+                  'Explicit publicly reachable HTTPS fixtures for remote runs.',
+              'items': {
+                'type': 'object',
+                'additionalProperties': false,
+                'required': ['name', 'url'],
+                'properties': {
+                  'name': {'type': 'string', 'minLength': 1},
+                  'url': {'type': 'string', 'format': 'uri'},
+                },
+              },
+            },
+          },
+        },
         'services': {
           'type': 'array',
           'items': {

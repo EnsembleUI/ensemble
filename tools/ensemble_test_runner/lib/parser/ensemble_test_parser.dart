@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:ensemble_test_runner/execution/remote/remote_models.dart';
 import 'package:ensemble_test_runner/models/ensemble_test_models.dart';
 import 'package:yaml/yaml.dart';
 
@@ -254,6 +255,8 @@ class EnsembleTestParser {
   static EnsembleTestConfig _parseConfig(YamlMap node) {
     const allowedKeys = {
       'mode',
+      'target',
+      'remote',
       'services',
       'mocks',
       'profiles',
@@ -277,6 +280,8 @@ class EnsembleTestParser {
     }
 
     final modeNode = node['mode'];
+    final targetNode = node['target'];
+    final remoteNode = node['remote'];
     final servicesNode = node['services'];
     final mocksNode = node['mocks'];
     final profilesNode = node['profiles'];
@@ -293,6 +298,14 @@ class EnsembleTestParser {
         modeNode.toString() != 'widget' &&
         modeNode.toString() != 'integration') {
       throw EnsembleTestFailure('"mode" must be "widget" or "integration"');
+    }
+    if (targetNode != null &&
+        targetNode.toString() != 'local' &&
+        targetNode.toString() != 'remote') {
+      throw EnsembleTestFailure('"target" must be "local" or "remote"');
+    }
+    if (remoteNode != null && remoteNode is! YamlMap) {
+      throw EnsembleTestFailure('"remote" must be a map');
     }
     if (servicesNode != null && servicesNode is! YamlList) {
       throw EnsembleTestFailure('"services" must be a list');
@@ -358,6 +371,10 @@ class EnsembleTestParser {
       mode: modeNode?.toString() == 'integration'
           ? ExecutionMode.integration
           : ExecutionMode.widget,
+      target: targetNode?.toString() == 'remote'
+          ? ExecutionTarget.remote
+          : ExecutionTarget.local,
+      remote: remoteNode is YamlMap ? _parseRemoteConfig(remoteNode) : null,
       services: _parseServices(servicesNode),
       mockFiles: parsedMocks.files,
       inlineMocks: parsedMocks.inline,
@@ -703,6 +720,117 @@ class EnsembleTestParser {
     final theme = value.toString().trim();
     if (theme.isEmpty) return null;
     return theme;
+  }
+
+  static RemoteExecutionConfig _parseRemoteConfig(YamlMap node) {
+    const allowedKeys = {
+      'provider',
+      'projectId',
+      'devices',
+      'endpoints',
+    };
+    for (final key in node.keys) {
+      if (!allowedKeys.contains(key.toString())) {
+        throw EnsembleTestFailure(
+          'Unsupported remote config key "$key". Supported keys: '
+          '${allowedKeys.join(', ')}',
+        );
+      }
+    }
+    final devicesNode = node['devices'];
+    final endpointsNode = node['endpoints'];
+    if (devicesNode != null && devicesNode is! YamlList) {
+      throw EnsembleTestFailure('"remote.devices" must be a list');
+    }
+    if (endpointsNode != null && endpointsNode is! YamlList) {
+      throw EnsembleTestFailure('"remote.endpoints" must be a list');
+    }
+
+    final devices = <RemoteDeviceSpec>[];
+    if (devicesNode is YamlList) {
+      for (final item in devicesNode) {
+        if (item is! YamlMap) {
+          throw EnsembleTestFailure('Each remote.devices entry must be a map');
+        }
+        const deviceKeys = {
+          'model',
+          'version',
+          'locale',
+          'orientation',
+          'platform',
+        };
+        for (final key in item.keys) {
+          if (!deviceKeys.contains(key.toString())) {
+            throw EnsembleTestFailure(
+              'Unsupported remote.devices key "$key". Supported: '
+              '${deviceKeys.join(', ')}',
+            );
+          }
+        }
+        final model = item['model']?.toString().trim() ?? '';
+        if (model.isEmpty) {
+          throw EnsembleTestFailure(
+            'Each remote.devices entry requires a non-empty "model".',
+          );
+        }
+        final platformRaw = item['platform']?.toString().trim();
+        if (platformRaw != null &&
+            platformRaw.isNotEmpty &&
+            platformRaw != 'android' &&
+            platformRaw != 'ios') {
+          throw EnsembleTestFailure(
+            'remote.devices.platform must be "android" or "ios" '
+            '(got "$platformRaw").',
+          );
+        }
+        devices.add(
+          RemoteDeviceSpec(
+            model: model,
+            version: item['version']?.toString(),
+            locale: item['locale']?.toString(),
+            orientation: item['orientation']?.toString(),
+            platform: (platformRaw == null || platformRaw.isEmpty)
+                ? null
+                : platformRaw,
+          ),
+        );
+      }
+    }
+
+    final endpoints = <RemoteEndpointConfig>[];
+    if (endpointsNode is YamlList) {
+      for (final item in endpointsNode) {
+        if (item is! YamlMap) {
+          throw EnsembleTestFailure(
+            'Each remote.endpoints entry must be a map',
+          );
+        }
+        const endpointKeys = {'name', 'url'};
+        for (final key in item.keys) {
+          if (!endpointKeys.contains(key.toString())) {
+            throw EnsembleTestFailure(
+              'Unsupported remote.endpoints key "$key". Supported: '
+              '${endpointKeys.join(', ')}',
+            );
+          }
+        }
+        final name = item['name']?.toString().trim() ?? '';
+        final url = item['url']?.toString().trim() ?? '';
+        if (name.isEmpty || url.isEmpty) {
+          throw EnsembleTestFailure(
+            'Each remote.endpoints entry requires "name" and "url".',
+          );
+        }
+        endpoints.add(RemoteEndpointConfig(name: name, url: url));
+      }
+    }
+
+    return RemoteExecutionConfig(
+      provider: node['provider']?.toString() ?? 'firebaseTestLab',
+      projectId: node['projectId']?.toString(),
+      devices: devices,
+      endpoints: endpoints,
+    );
   }
 
   static List<TestServiceConfig> _parseServices(dynamic node) {
