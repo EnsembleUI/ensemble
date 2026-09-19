@@ -28,6 +28,7 @@ import 'package:ensemble/framework/bindings.dart';
 import 'package:ensemble/framework/device.dart';
 import 'package:ensemble/framework/tv/tv_focus_order.dart';
 import 'package:ensemble/framework/tv/tv_focus_provider.dart';
+import 'package:ensemble/framework/tv/tv_focus_registry.dart';
 import 'package:flutter/material.dart';
 
 class SinglePageController extends WidgetController {
@@ -89,7 +90,11 @@ class Page extends StatefulWidget {
 }
 
 class PageState extends State<Page>
-    with AutomaticKeepAliveClientMixin, RouteAware, WidgetsBindingObserver {
+    with
+        AutomaticKeepAliveClientMixin,
+        RouteAware,
+        WidgetsBindingObserver,
+        SingleTickerProviderStateMixin {
   late Widget rootWidget;
   late ScopeManager _scopeManager;
   Widget? footerWidget;
@@ -106,6 +111,22 @@ class PageState extends State<Page>
   StreamSubscription<ModelChangeEvent>? _headerVisibilityStorageSubscription;
   Timer? _titleBarHeightPollTimer;
   Timer? _headerVisibilityPollTimer;
+
+  // TV focus-aware header. When the header opts in via
+  // styles.tvFocusCollapse.enabled (TV only), the header renders an expanded
+  // layout while focus is inside the header region and a collapsed layout
+  // once focus moves to the body. The scope node tracks descendant focus and
+  // is NOT registered in the host focus grid, so it adds no D-pad target.
+  final FocusScopeNode _headerScopeNode =
+      FocusScopeNode(debugLabel: 'ensemble_header_scope');
+  bool _headerExpanded = true;
+  bool _tvFocusCollapseEnabled = false;
+  // Guards against transient focus loss while the two header slots swap.
+  bool _headerCollapseScheduled = false;
+  // Drives the animated height change between the expanded and collapsed header.
+  late final AnimationController _headerAnimController;
+  Duration _headerAnimDuration = const Duration(milliseconds: 250);
+  Curve _headerAnimCurve = Curves.easeInOut;
 
   // Last dispatched device metrics. We only want to notify bindings when the
   // actual screen dimensions/orientation change, not when the keyboard opens.
@@ -369,6 +390,11 @@ class PageState extends State<Page>
   @override
   void initState() {
     WidgetsBinding.instance.addObserver(this);
+    _headerAnimController = AnimationController(
+      vsync: this,
+      duration: _headerAnimDuration,
+      value: 1,
+    )..addListener(_onHeaderAnimTick);
     _scopeManager = ScopeManager(
         widget._initialDataContext
             .clone(newBuildContext: context)
@@ -447,6 +473,36 @@ class PageState extends State<Page>
       _setupPeriodicStorageCheck();
     }
 
+    // TV focus-aware header opt-in. When enabled, the header swaps between
+    // its expanded/collapsed layouts based on whether focus is inside it.
+    if (widget._pageModel.headerModel != null) {
+      final headerStyles = EnsembleThemeManager().getRuntimeStyles(
+          _scopeManager.dataContext, widget._pageModel.headerModel!);
+      final tvCollapse = headerStyles?['tvFocusCollapse'];
+      _tvFocusCollapseEnabled = Device().isTV &&
+          Utils.getBool(tvCollapse?['enabled'], fallback: false);
+      final animDurationMs = Utils.optionalInt(tvCollapse?['duration']);
+      if (animDurationMs != null && animDurationMs > 0) {
+        _headerAnimDuration = Duration(milliseconds: animDurationMs);
+      }
+      _headerAnimCurve = Utils.getCurve(tvCollapse?['curve']) ?? Curves.easeInOut;
+      // Start expanded so the first frame matches the focused layout and we
+      // avoid a collapsed flash before the header autofocus lands.
+      _headerExpanded = true;
+      // Reconcile once initial focus has settled: a header that never receives
+      // focus (no autofocus inside) should end up collapsed.
+      if (_tvFocusCollapseEnabled) {
+        Future.delayed(const Duration(milliseconds: 400), () {
+          if (!mounted) return;
+          if (!_headerScopeNode.hasFocus && _headerExpanded) {
+            setState(() => _headerExpanded = false);
+            _headerAnimController.animateTo(0.0,
+                duration: _headerAnimDuration, curve: _headerAnimCurve);
+          }
+        });
+      }
+    }
+
     // Set up collapsibleHeader listeners if enabled
     if (widget._pageModel.headerModel != null) {
       final _headerStyles = EnsembleThemeManager().getRuntimeStyles(
@@ -521,16 +577,42 @@ class PageState extends State<Page>
   /// fixed AppBar
   dynamic _buildAppBar(HeaderModel headerModel,
       {required bool scrollableView, bool? showNavigationIcon}) {
+    final evaluatedHeader = EnsembleThemeManager()
+        .getRuntimeStyles(_scopeManager.dataContext, headerModel);
+
+    // ---- TV focus-aware collapse -------------------------------------
+    // When enabled, render `collapsedTitleWidget` (at collapsedTitleBarHeight)
+    // while focus is outside the header, and `titleWidget` (at titleBarHeight)
+    // while focus is inside it. Non-TV always keeps the expanded layout.
+    final tvFocusCollapse = evaluatedHeader?['tvFocusCollapse'];
+    final bool tvFocusCollapseEnabled = _tvFocusCollapseEnabled &&
+        Utils.getBool(tvFocusCollapse?['enabled'], fallback: false);
+    final bool headerExpanded = !tvFocusCollapseEnabled ||
+        _headerExpanded ||
+        _headerAnimController.value > 0.0;
+
     Widget? titleWidget;
-
-
-    if (headerModel.titleWidget != null) {
-      titleWidget = _scopeManager.buildWidget(headerModel.titleWidget!);
+    final activeTitleModel = headerExpanded
+        ? headerModel.titleWidget
+        : (headerModel.collapsedTitleWidget ?? headerModel.titleWidget);
+    if (activeTitleModel != null) {
+      titleWidget = _scopeManager.buildWidget(activeTitleModel);
     }
 
     if (titleWidget == null && headerModel.titleText != null) {
       final title = _scopeManager.dataContext.eval(headerModel.titleText);
       titleWidget = Text(Utils.translate(title.toString(), context));
+    }
+
+    // Track focus anywhere inside the header content without joining the D-pad
+    // grid. The scope node is intentionally NOT registered with the host focus
+    // provider, so it adds no row/order target.
+    if (tvFocusCollapseEnabled && titleWidget != null) {
+      titleWidget = FocusScope(
+        node: _headerScopeNode,
+        onFocusChange: _onHeaderFocusChange,
+        child: titleWidget,
+      );
     }
 
     Widget? backgroundWidget;
@@ -543,9 +625,6 @@ class PageState extends State<Page>
     if (headerModel.leadingWidget != null) {
       leadingWidget = _scopeManager.buildWidget(headerModel.leadingWidget!);
     }
-
-    final evaluatedHeader = EnsembleThemeManager()
-        .getRuntimeStyles(_scopeManager.dataContext, headerModel);
 
     bool centerTitle =
         Utils.getBool(evaluatedHeader?['centerTitle'], fallback: true);
@@ -567,9 +646,22 @@ class PageState extends State<Page>
         evaluatedHeader?['scrollMode'], ScrollMode.values);
 
     final titleBarHeightExpression = evaluatedHeader?['titleBarHeight'];
-    final baseTitleBarHeight =
+    final double expandedTitleBarHeight =
         _scopeManager.dataContext.eval(titleBarHeightExpression)?.toDouble() ??
             kToolbarHeight;
+    double baseTitleBarHeight = expandedTitleBarHeight;
+    // TV focus-aware collapse: animate between the expanded and collapsed
+    // heights so the bar does not jump. The controller value is 1 when fully
+    // expanded and 0 when fully collapsed.
+    if (tvFocusCollapseEnabled) {
+      final double collapsedTitleBarHeight =
+          Utils.optionalInt(evaluatedHeader?['collapsedTitleBarHeight'])
+                  ?.toDouble() ??
+              expandedTitleBarHeight;
+      final double t = _headerAnimController.value.clamp(0.0, 1.0);
+      baseTitleBarHeight = collapsedTitleBarHeight +
+          (expandedTitleBarHeight - collapsedTitleBarHeight) * t;
+    }
 
     // animation
     final animation = evaluatedHeader?['animation'] != null
@@ -739,15 +831,31 @@ class PageState extends State<Page>
 
     LinearGradient? backgroundGradient = Utils.getBackgroundGradient(
         widget._pageModel.runtimeStyles?['backgroundGradient']);
-    Color? backgroundColor = Utils.getColor(_scopeManager.dataContext
-        .eval(widget._pageModel.runtimeStyles?['backgroundColor']));
+    // Keep the requested color separate: with an image/gradient the Scaffold is
+    // made transparent so it shows through, but the requested color still needs
+    // to paint behind the image (its transparent areas would otherwise show the
+    // app background).
+    Color? requestedBackgroundColor = Utils.getColor(
+        _scopeManager.dataContext.eval(
+            widget._pageModel.runtimeStyles?['backgroundColor']));
+    Color? backgroundColor = requestedBackgroundColor;
     // if we have a background image, set the background color to transparent
     // since our image is outside the Scaffold
     dynamic evaluatedBackgroundImg = _scopeManager.dataContext
         .eval(widget._pageModel.runtimeStyles?['backgroundImage']);
     BackgroundImage? backgroundImage =
         Utils.getBackgroundImage(evaluatedBackgroundImg);
+
+    // Optional widget-based page background (`View.styles.background`).
+    // Always the bottom-most layer, behind color/image/gradient and the body.
+    final Widget? customBackground = _buildPageBackground();
+
     if (backgroundImage != null || backgroundGradient != null) {
+      backgroundColor = Colors.transparent;
+    } else if (customBackground != null) {
+      // `background` is the bottom-most layer and replaces the page's
+      // background color (including the theme's View default). Screen authors
+      // can add their own color layer inside `background` if needed.
       backgroundColor = Colors.transparent;
     }
 
@@ -832,9 +940,16 @@ class PageState extends State<Page>
 
     // if backgroundImage is set, put it outside of the Scaffold so
     // keyboard sliding up (when entering value) won't resize the background
+    Widget content;
     if (backgroundImage != null) {
-      return Stack(
+      content = Stack(
         children: [
+          // Paint the View's backgroundColor behind the image so transparent
+          // regions of the image (e.g. fit: contain) show the requested color.
+          if (requestedBackgroundColor != null)
+            Positioned.fill(
+              child: ColoredBox(color: requestedBackgroundColor),
+            ),
           Positioned.fill(
             child: backgroundImage.getImageAsWidget(_scopeManager),
           ),
@@ -842,13 +957,51 @@ class PageState extends State<Page>
         ],
       );
     } else if (backgroundGradient != null) {
-      return Scaffold(
+      content = Scaffold(
           resizeToAvoidBottomInset: false,
+          // Let a widget-based background show through the gradient's
+          // transparent regions. Without one, keep the default background.
+          backgroundColor:
+              customBackground != null ? Colors.transparent : null,
           body: Container(
               decoration: BoxDecoration(gradient: backgroundGradient),
               child: rtn));
+    } else {
+      content = rtn;
     }
-    return rtn;
+
+    if (customBackground != null) {
+      content = Stack(
+        children: [
+          Positioned.fill(child: customBackground),
+          content,
+        ],
+      );
+    }
+    return content;
+  }
+
+  /// Build the optional widget-based page background (`View.styles.background`).
+  /// Backgrounds are decorative: they must never take D-pad focus or intercept
+  /// remote/tap input on TV, so they are wrapped in [ExcludeFocus] +
+  /// [IgnorePointer]. They are also excluded from the host's [TVFocusRegistry]
+  /// grid via [TVFocusExclusion], and wrapped in a [DataScopeWidget] since they
+  /// sit outside the body's scope and still need expression bindings.
+  Widget? _buildPageBackground() {
+    final WidgetModel? backgroundModel = widget._pageModel.backgroundWidget;
+    if (backgroundModel == null) {
+      return null;
+    }
+    return TVFocusExclusion(
+      child: ExcludeFocus(
+        child: IgnorePointer(
+          child: DataScopeWidget(
+            scopeManager: _scopeManager,
+            child: _scopeManager.buildWidget(backgroundModel),
+          ),
+        ),
+      ),
+    );
   }
 
   /// determine if we should wraps the body in a SafeArea or not
@@ -1189,12 +1342,57 @@ class PageState extends State<Page>
     });
   }
 
+  /// Swaps the TV header between expanded and collapsed based on whether
+  /// focus is inside the header region. Expansion is immediate; collapse is
+  /// deferred to the end of the frame because focus may be moving between the
+  /// two header slots (which would otherwise report a transient blur).
+  void _onHeaderFocusChange(bool hasFocus) {
+    if (!_tvFocusCollapseEnabled) return;
+
+    if (hasFocus) {
+      _headerCollapseScheduled = false;
+      if (!_headerExpanded) {
+        setState(() => _headerExpanded = true);
+        _headerAnimController.animateTo(1.0,
+            duration: _headerAnimDuration, curve: _headerAnimCurve);
+        // The collapsed entry is replaced by the expanded layout; move focus
+        // to its first focusable so the header keeps focus across the swap.
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted) return;
+          final descendants = _headerScopeNode.traversalDescendants;
+          if (descendants.isNotEmpty) {
+            descendants.first.requestFocus();
+          }
+        });
+      }
+      return;
+    }
+
+    if (_headerCollapseScheduled) return;
+    _headerCollapseScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _headerCollapseScheduled = false;
+      if (!mounted) return;
+      if (!_headerScopeNode.hasFocus && _headerExpanded) {
+        setState(() => _headerExpanded = false);
+        _headerAnimController.animateTo(0.0,
+            duration: _headerAnimDuration, curve: _headerAnimCurve);
+      }
+    });
+  }
+
+  void _onHeaderAnimTick() {
+    if (mounted && _tvFocusCollapseEnabled) setState(() {});
+  }
+
   @override
   void dispose() {
     _titleBarHeightStorageSubscription?.cancel();
     _headerVisibilityStorageSubscription?.cancel();
     _titleBarHeightPollTimer?.cancel();
     _headerVisibilityPollTimer?.cancel();
+    _headerScopeNode.dispose();
+    _headerAnimController.dispose();
 
     viewGroupNotifier.removeListener(executeOnViewGroupUpdate);
     Ensemble().routeObserver.unsubscribe(this);

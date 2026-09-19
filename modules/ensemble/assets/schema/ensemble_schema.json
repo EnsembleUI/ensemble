@@ -32,6 +32,10 @@
               "$ref": "#/$defs/Widget",
               "description": "This widget (typically used as an background image) acts as the header's background, with the title bar and the bottom widget overlaid on top. On non-scrollable screen, its dimensions is dictated by the header's width and height."
             },
+            "collapsedTitleWidget": {
+              "$ref": "#/$defs/Widget",
+              "description": "TV only. Content rendered instead of the title while the header is collapsed (focus is outside the header). Used together with styles.tvFocusCollapse. On non-TV devices the expanded title is always used."
+            },
             "styles": {
               "type": "object",
               "properties": {
@@ -72,6 +76,30 @@
                 "flexibleMaxHeight": {
                   "type": "integer",
                   "description": "Applicable only if scrollableView is enabled. This attribute effectively sets the header's max height on scrolling (header's height will varies between the flexibleMinHeight and flexibleMaxHeight). This attribute will be ignored if smaller than the flexibleMinHeight"
+                },
+                "collapsedTitleBarHeight": {
+                  "type": "integer",
+                  "description": "TV only. Header height used while the header is collapsed (focus is outside the header). Requires styles.tvFocusCollapse.enabled. Falls back to titleBarHeight when omitted.",
+                  "minimum": 0
+                },
+                "tvFocusCollapse": {
+                  "type": "object",
+                  "description": "TV only. When enabled, the header renders its expanded layout (titleWidget) while focus is inside the header and its collapsed layout (collapsedTitleWidget, at collapsedTitleBarHeight) once focus moves to the body. The collapsed layout must contain a focusable element so focus can re-enter the header. Non-TV devices always render the expanded layout.",
+                  "properties": {
+                    "enabled": {
+                      "type": "boolean",
+                      "description": "Opt in to focus-aware collapse on TV. Default false."
+                    },
+                    "duration": {
+                      "type": "integer",
+                      "description": "Animation duration in milliseconds for the expanded/collapsed height transition (default 250).",
+                      "minimum": 0
+                    },
+                    "curve": {
+                      "type": "string",
+                      "description": "Animation curve name for the height transition (e.g. easeInOut). Default easeInOut."
+                    }
+                  }
                 }
               }
             }
@@ -158,6 +186,10 @@
             },
             {
               "properties": {
+                "background": {
+                  "$ref": "#/$defs/Widget",
+                  "description": "Optional widget rendered as the page's bottom-most background layer, behind the body. When set, the page background color (including the theme's View backgroundColor) is ignored, so add a color layer inside the widget if one is needed. backgroundImage/backgroundGradient still paint above it. The background never takes TV D-pad focus and does not receive taps. Note: a childless Column/Row with only a background is not rendered; add a Spacer child (the app's convention for background-only layers)."
+                },
                 "useSafeArea": {
                   "type": "boolean",
                   "description": "Applicable only when we don't have a header. If true, insert paddings around the body content to account for the the devices' Safe Area (e.g. iPhone notch). Default is false."

@@ -316,6 +316,11 @@ class SinglePageModel extends PageModel with HasStyles {
   final String type = 'View';
   ScreenOptions? screenOptions;
   WidgetModel? rootWidgetModel;
+
+  /// Optional widget-based page background (`View.styles.background`).
+  /// Rendered as the bottom-most layer, behind the body, and kept
+  /// non-focusable/non-interactive by the page.
+  WidgetModel? backgroundWidget;
   FooterItems? footer;
 
   @override
@@ -348,6 +353,15 @@ class SinglePageModel extends PageModel with HasStyles {
         if (viewMap['styles'] is YamlMap) {
           inlineStyles = {};
           (viewMap['styles'] as YamlMap).forEach((key, value) {
+            // `background` is a widget-based page background (like the
+            // header's flexibleBackground), not a style token. Build it as a
+            // widget model here and keep it out of theme/style resolution.
+            if (key == 'background' &&
+                ViewUtil.isViewModel(value, customViewDefinitions)) {
+              backgroundWidget =
+                  ViewUtil.buildModel(value, customViewDefinitions);
+              return;
+            }
             inlineStyles![key] = EnsembleThemeManager.yamlToDart(value);
           });
         }
@@ -386,6 +400,7 @@ class SinglePageModel extends PageModel with HasStyles {
 
   void processHeader(YamlMap? headerData, String? legacyTitle) {
     WidgetModel? titleWidget;
+    WidgetModel? collapsedTitleWidget;
     String? titleText = legacyTitle;
     WidgetModel? background;
     WidgetModel? leadingWidget;
@@ -408,6 +423,11 @@ class SinglePageModel extends PageModel with HasStyles {
         }
       }
 
+      if (headerData['collapsedTitleWidget'] != null) {
+        collapsedTitleWidget = ViewUtil.buildModel(
+            headerData['collapsedTitleWidget'], customViewDefinitions);
+      }
+
       if (headerData['leadingWidget'] != null) {
         leadingWidget = ViewUtil.buildModel(
             headerData['leadingWidget'], customViewDefinitions);
@@ -428,6 +448,7 @@ class SinglePageModel extends PageModel with HasStyles {
     }
 
     if (titleWidget != null ||
+        collapsedTitleWidget != null ||
         titleText != null ||
         background != null ||
         styles != null ||
@@ -436,6 +457,7 @@ class SinglePageModel extends PageModel with HasStyles {
       headerModel = HeaderModel(
           titleText: titleText,
           titleWidget: titleWidget,
+          collapsedTitleWidget: collapsedTitleWidget,
           flexibleBackground: background,
           leadingWidget: leadingWidget,
           inlineStyles: styles,
@@ -585,6 +607,7 @@ class HeaderModel extends Object with HasStyles {
   HeaderModel(
       {this.titleText,
       this.titleWidget,
+      this.collapsedTitleWidget,
       this.flexibleBackground,
       this.leadingWidget,
       inlineStyles,
@@ -596,6 +619,8 @@ class HeaderModel extends Object with HasStyles {
   // header title can be text or a widget
   String? titleText;
   WidgetModel? titleWidget;
+  // optional title to render when the TV header is collapsed (focus outside)
+  WidgetModel? collapsedTitleWidget;
   WidgetModel? leadingWidget;
 
   WidgetModel? flexibleBackground;
