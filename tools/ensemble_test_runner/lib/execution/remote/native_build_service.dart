@@ -628,8 +628,9 @@ class IosFtlPackager {
     const xcodeDefaultToolchain = 'com.apple.dt.toolchain.XcodeDefault';
     onProgress?.call('Running xcodebuild build-for-testing...');
     // Flutter README + proven CI needs: unsigned device build (no Apple team /
-    // profiles on GHA). FTL re-signs. Do not restore ENABLE_TESTABILITY or
-    // post-build xctestrun/dylib patches — those were discovery band-aids.
+    // profiles on GHA). FTL re-signs. ENABLE_TESTABILITY keeps XCTest host
+    // loadable from Release. Inject dylib + libRPAC sanitize + catalog
+    // filename align are required for FTL device launch (not discovery).
     final xcode = await run(
       'xcodebuild',
       [
@@ -652,6 +653,7 @@ class IosFtlPackager {
         'CODE_SIGNING_ALLOWED=NO',
         'CODE_SIGNING_REQUIRED=NO',
         'CODE_SIGN_IDENTITY=',
+        'ENABLE_TESTABILITY=YES',
       ],
       workingDirectory: iosDir,
       environment: {
