@@ -90,7 +90,10 @@ class Page extends StatefulWidget {
 }
 
 class PageState extends State<Page>
-    with AutomaticKeepAliveClientMixin, RouteAware, WidgetsBindingObserver {
+    with
+        AutomaticKeepAliveClientMixin,
+        RouteAware,
+        WidgetsBindingObserver {
   late Widget rootWidget;
   late ScopeManager _scopeManager;
   Widget? footerWidget;
@@ -603,8 +606,7 @@ class PageState extends State<Page>
       animationEnabled = Utils.getBool(animation!['enabled'], fallback: false);
       duration = Utils.getInt(animation!['duration'], fallback: 0);
       curve = Utils.getCurve(animation!['curve']);
-      animationType = Utils.getEnum<AnimationType>(
-          animation!['animationType'], AnimationType.values);
+      animationType = Utils.getEnum<AnimationType>(animation!['animationType'], AnimationType.values);
     }
     // applicable only to Sliver scrolling
     double? flexibleMaxHeight =
@@ -638,8 +640,7 @@ class PageState extends State<Page>
     final titleBarHeight = isHeaderVisible ? baseTitleBarHeight : 0.0;
 
     if (scrollableView) {
-      return AnimatedAppBar(
-        key: _headerKey, scrollController: externalScrollController!,
+      return AnimatedAppBar( key: _headerKey, scrollController: externalScrollController!,
         automaticallyImplyLeading:
             leadingWidget == null && showNavigationIcon != false,
         leadingWidget: leadingWidget,
@@ -784,8 +785,9 @@ class PageState extends State<Page>
 
     LinearGradient? backgroundGradient = Utils.getBackgroundGradient(
         widget._pageModel.runtimeStyles?['backgroundGradient']);
-    Color? backgroundColor = Utils.getColor(_scopeManager.dataContext
-        .eval(widget._pageModel.runtimeStyles?['backgroundColor']));
+    Color? backgroundColor = Utils.getColor(
+        _scopeManager.dataContext.eval(
+            widget._pageModel.runtimeStyles?['backgroundColor']));
     // if we have a background image, set the background color to transparent
     // since our image is outside the Scaffold
     dynamic evaluatedBackgroundImg = _scopeManager.dataContext
@@ -897,8 +899,8 @@ class PageState extends State<Page>
 
     // TV: Wrap with FocusTraversalGroup for standalone D-pad navigation.
     // Skip if external provider exists (host app manages its own focus grid).
-    final isStandaloneTV =
-        Device().isTV && TVFocusProviderScope.maybeOf(context) == null;
+    final isStandaloneTV = Device().isTV &&
+        TVFocusProviderScope.maybeOf(context) == null;
     if (isStandaloneTV) {
       rtn = FocusTraversalGroup(
         policy: TVFocusOrderTraversalPolicy(),
@@ -923,7 +925,8 @@ class PageState extends State<Page>
           resizeToAvoidBottomInset: false,
           // Let a widget-based background show through the gradient's
           // transparent regions. Without one, keep the default background.
-          backgroundColor: customBackground != null ? Colors.transparent : null,
+          backgroundColor:
+              customBackground != null ? Colors.transparent : null,
           body: Container(
               decoration: BoxDecoration(gradient: backgroundGradient),
               child: rtn));
@@ -1234,12 +1237,13 @@ class PageState extends State<Page>
     ScreenController().navigateToScreen(context,
         screenName: menuItem.page, isExternal: menuItem.isExternal);
   }
-
   /// this method executes if this screen is part of ViewGroup
   /// and onViewGroupUpdate is defined in View
   void executeOnViewGroupUpdate() {
     if (widget._pageModel.viewBehavior.onViewGroupUpdate != null) {
-      ScreenController().executeActionWithScope(context, _scopeManager,
+      ScreenController().executeActionWithScope(
+          context,
+          _scopeManager,
           widget._pageModel.viewBehavior.onViewGroupUpdate!);
     }
   }
@@ -1248,8 +1252,7 @@ class PageState extends State<Page>
   void _setupPeriodicStorageCheck() {
     // Check for storage changes every 100ms as a fallback
     _titleBarHeightPollTimer?.cancel();
-    _titleBarHeightPollTimer =
-        Timer.periodic(Duration(milliseconds: 100), (timer) {
+    _titleBarHeightPollTimer = Timer.periodic(Duration(milliseconds: 100), (timer) {
       if (!mounted) {
         timer.cancel();
         return;
@@ -1400,34 +1403,33 @@ class AnimatedAppBar extends StatefulWidget {
   final duration;
   AnimatedAppBar(
       {Key? key,
-      this.automaticallyImplyLeading,
-      this.leadingWidget,
-      this.titleWidget,
-      this.centerTitle,
-      this.backgroundColor,
-      this.surfaceTintColor,
-      this.foregroundColor,
-      this.elevation,
-      this.shadowColor,
-      this.titleBarHeight,
-      this.backgroundWidget,
-      this.animated,
-      this.floating,
-      this.pinned,
-      this.collapsedBarHeight,
-      this.expandedBarHeight,
-      required this.scrollController,
-      this.curve,
-      this.animationType,
-      this.duration})
+        this.automaticallyImplyLeading,
+        this.leadingWidget,
+        this.titleWidget,
+        this.centerTitle,
+        this.backgroundColor,
+        this.surfaceTintColor,
+        this.foregroundColor,
+        this.elevation,
+        this.shadowColor,
+        this.titleBarHeight,
+        this.backgroundWidget,
+        this.animated,
+        this.floating,
+        this.pinned,
+        this.collapsedBarHeight,
+        this.expandedBarHeight,
+        required this.scrollController,
+        this.curve,
+        this.animationType,
+        this.duration})
       : super(key: key);
 
   @override
   _AnimatedAppBarState createState() => _AnimatedAppBarState();
 }
 
-class _AnimatedAppBarState extends State<AnimatedAppBar>
-    with WidgetsBindingObserver {
+class _AnimatedAppBarState extends State<AnimatedAppBar> with WidgetsBindingObserver{
   bool isCollapsed = false;
 
   @override
@@ -1441,8 +1443,7 @@ class _AnimatedAppBarState extends State<AnimatedAppBar>
 
     double expandedHeight = (widget.expandedBarHeight ?? 0.0).toDouble();
     double collapsedHeight = (widget.collapsedBarHeight ?? 0.0).toDouble();
-    double threshold =
-        (expandedHeight - collapsedHeight).clamp(10.0, double.infinity);
+    double threshold = (expandedHeight - collapsedHeight).clamp(10.0, double.infinity);
     bool newState = widget.scrollController.offset > threshold;
 
     if (newState != isCollapsed) {
@@ -1493,21 +1494,21 @@ class _AnimatedAppBarState extends State<AnimatedAppBar>
       centerTitle: widget.centerTitle,
       title: widget.animated
           ? switch (widget.animationType) {
-              AnimationType.fade => AnimatedOpacity(
-                  opacity: isCollapsed ? 1.0 : 0.0,
-                  duration: Duration(milliseconds: widget.duration ?? 300),
-                  curve: widget.curve ?? Curves.easeIn,
-                  child: widget.titleWidget,
-                ),
-              AnimationType.drop => AnimatedSlide(
-                  offset: isCollapsed ? Offset(0, 0) : Offset(0, -2),
-                  duration: Duration(milliseconds: widget.duration ?? 300),
-                  curve: widget.curve ?? Curves.easeIn,
-                  child: widget.titleWidget,
-                ),
-              _ => widget.titleWidget,
-            }
-          : widget.titleWidget,
+        AnimationType.fade => AnimatedOpacity(
+          opacity: isCollapsed ? 1.0 : 0.0,
+          duration: Duration(milliseconds: widget.duration ?? 300),
+          curve: widget.curve ?? Curves.easeIn,
+          child: widget.titleWidget,
+        ),
+        AnimationType.drop => AnimatedSlide(
+          offset: isCollapsed ? Offset(0, 0) : Offset(0, -2),
+          duration: Duration(milliseconds: widget.duration ?? 300),
+          curve: widget.curve ?? Curves.easeIn,
+          child: widget.titleWidget,
+        ),
+        _ => widget.titleWidget,
+      }
+      : widget.titleWidget,
       elevation: widget.elevation,
       backgroundColor: widget.backgroundColor,
       flexibleSpace: wrapsInFlexible(widget.backgroundWidget),
@@ -1526,7 +1527,7 @@ enum ScrollMode {
   floating,
 }
 
-enum AnimationType {
+enum AnimationType{
   drop,
   fade,
 }

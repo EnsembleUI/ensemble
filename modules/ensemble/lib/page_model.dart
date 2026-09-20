@@ -150,8 +150,7 @@ abstract class PageModel {
     // Overlay page-level Actions from this document; page overrides global on name clash
     if (map != null) {
       map.forEach((key, value) {
-        final YamlMap? action =
-            ActionScopeUtil.normalizeActionDefinition(value);
+        final YamlMap? action = ActionScopeUtil.normalizeActionDefinition(value);
         if (action != null) {
           merged[key.toString()] = action;
         }
@@ -201,8 +200,7 @@ class PageGroupModel extends PageModel {
       YamlMap viewGroupMap = docMap['ViewGroup'];
 
       // Extract onResumeScreen action from ViewGroup definition
-      onViewGroupResume =
-          EnsembleAction.from(viewGroupMap['onViewGroupResume']);
+      onViewGroupResume = EnsembleAction.from(viewGroupMap['onViewGroupResume']);
       menu = Menu.fromYaml(viewGroupMap, customViewDefinitions);
     }
   }
