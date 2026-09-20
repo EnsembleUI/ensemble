@@ -32,10 +32,6 @@
               "$ref": "#/$defs/Widget",
               "description": "This widget (typically used as an background image) acts as the header's background, with the title bar and the bottom widget overlaid on top. On non-scrollable screen, its dimensions is dictated by the header's width and height."
             },
-            "collapsedTitleWidget": {
-              "$ref": "#/$defs/Widget",
-              "description": "TV only. Content rendered instead of the title while the header is collapsed (focus is outside the header). Used together with styles.collapsibleHeader.trigger: focus. On non-TV devices the expanded title is always used."
-            },
             "styles": {
               "type": "object",
               "properties": {
@@ -71,41 +67,22 @@
                 },
                 "flexibleMinHeight": {
                   "type": "integer",
-                  "description": "Applicable only if scrollableView is enabled. This attribute effectively sets the header's min height on scrolling (header's height will varies between the flexibleMinHeight and flexibleMaxHeight). Note that this attribute will be ignored if smaller than the titleBarHeight"
+                  "description": "Sets the header's compact height for scrollable headers and TV focus-collapsible fixed headers. It is ignored when smaller than titleBarHeight."
                 },
                 "flexibleMaxHeight": {
                   "type": "integer",
-                  "description": "Applicable only if scrollableView is enabled. This attribute effectively sets the header's max height on scrolling (header's height will varies between the flexibleMinHeight and flexibleMaxHeight). This attribute will be ignored if smaller than the flexibleMinHeight"
-                },
-                "collapsedBarHeight": {
-                  "type": "integer",
-                  "description": "TV only. Header height used while the header is collapsed (focus is outside the header). Requires styles.collapsibleHeader.trigger: focus. Falls back to titleBarHeight when omitted.",
-                  "minimum": 0
+                  "description": "Sets the header's expanded height for scrollable headers and TV focus-collapsible fixed headers. It is ignored when smaller than flexibleMinHeight."
                 },
                 "collapsibleHeader": {
                   "type": "object",
-                  "description": "Controls header collapse. With trigger: default, the existing visible expression shows or hides the header. With trigger: focus, TV renders titleWidget while focus is in the header and collapsedTitleWidget at collapsedBarHeight when focus moves to the body. The collapsed layout must contain a focusable element so focus can re-enter the header. Non-TV devices always render the expanded layout.",
+                  "description": "Controls fixed-header collapse. When visible is set, it shows or hides the header. On TV, an enabled fixed header without visible expands while focus is in the header and collapses when focus moves to the body. TV focus collapse requires a focusable titleWidget or leadingWidget as the compact-header re-entry target.",
                   "properties": {
                     "enabled": {
                       "type": "boolean",
-                      "description": "Enable the selected collapse trigger. Default false."
-                    },
-                    "trigger": {
-                      "type": "string",
-                      "enum": ["default", "focus"],
-                      "description": "default uses the existing visible-expression behavior. focus is TV-only and collapses based on header focus."
+                      "description": "Enable collapsible header behavior. Default false."
                     },
                     "visible": {
-                      "description": "Existing visibility expression. Used when trigger is default or omitted for backward compatibility."
-                    },
-                    "duration": {
-                      "type": "integer",
-                      "description": "TV focus-collapse animation duration in milliseconds (default 250).",
-                      "minimum": 0
-                    },
-                    "curve": {
-                      "type": "string",
-                      "description": "TV focus-collapse animation curve (e.g. easeInOut). Default easeInOut."
+                      "description": "Expression that shows or hides a fixed header."
                     }
                   }
                 }

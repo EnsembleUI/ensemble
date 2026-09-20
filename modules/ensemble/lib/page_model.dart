@@ -150,7 +150,8 @@ abstract class PageModel {
     // Overlay page-level Actions from this document; page overrides global on name clash
     if (map != null) {
       map.forEach((key, value) {
-        final YamlMap? action = ActionScopeUtil.normalizeActionDefinition(value);
+        final YamlMap? action =
+            ActionScopeUtil.normalizeActionDefinition(value);
         if (action != null) {
           merged[key.toString()] = action;
         }
@@ -200,7 +201,8 @@ class PageGroupModel extends PageModel {
       YamlMap viewGroupMap = docMap['ViewGroup'];
 
       // Extract onResumeScreen action from ViewGroup definition
-      onViewGroupResume = EnsembleAction.from(viewGroupMap['onViewGroupResume']);
+      onViewGroupResume =
+          EnsembleAction.from(viewGroupMap['onViewGroupResume']);
       menu = Menu.fromYaml(viewGroupMap, customViewDefinitions);
     }
   }
@@ -400,7 +402,6 @@ class SinglePageModel extends PageModel with HasStyles {
 
   void processHeader(YamlMap? headerData, String? legacyTitle) {
     WidgetModel? titleWidget;
-    WidgetModel? collapsedTitleWidget;
     String? titleText = legacyTitle;
     WidgetModel? background;
     WidgetModel? leadingWidget;
@@ -423,11 +424,6 @@ class SinglePageModel extends PageModel with HasStyles {
         }
       }
 
-      if (headerData['collapsedTitleWidget'] != null) {
-        collapsedTitleWidget = ViewUtil.buildModel(
-            headerData['collapsedTitleWidget'], customViewDefinitions);
-      }
-
       if (headerData['leadingWidget'] != null) {
         leadingWidget = ViewUtil.buildModel(
             headerData['leadingWidget'], customViewDefinitions);
@@ -448,7 +444,6 @@ class SinglePageModel extends PageModel with HasStyles {
     }
 
     if (titleWidget != null ||
-        collapsedTitleWidget != null ||
         titleText != null ||
         background != null ||
         styles != null ||
@@ -457,7 +452,6 @@ class SinglePageModel extends PageModel with HasStyles {
       headerModel = HeaderModel(
           titleText: titleText,
           titleWidget: titleWidget,
-          collapsedTitleWidget: collapsedTitleWidget,
           flexibleBackground: background,
           leadingWidget: leadingWidget,
           inlineStyles: styles,
@@ -607,7 +601,6 @@ class HeaderModel extends Object with HasStyles {
   HeaderModel(
       {this.titleText,
       this.titleWidget,
-      this.collapsedTitleWidget,
       this.flexibleBackground,
       this.leadingWidget,
       inlineStyles,
@@ -619,8 +612,6 @@ class HeaderModel extends Object with HasStyles {
   // header title can be text or a widget
   String? titleText;
   WidgetModel? titleWidget;
-  // optional title to render when the TV header is collapsed (focus outside)
-  WidgetModel? collapsedTitleWidget;
   WidgetModel? leadingWidget;
 
   WidgetModel? flexibleBackground;
