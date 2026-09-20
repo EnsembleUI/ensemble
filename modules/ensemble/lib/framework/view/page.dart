@@ -512,7 +512,7 @@ class PageState extends State<Page>
       final _headerStyles = EnsembleThemeManager().getRuntimeStyles(
           _scopeManager.dataContext, widget._pageModel.headerModel!);
       final collapsible = _headerStyles?['collapsibleHeader'];
-      final isVisibilityTrigger = collapsible?['trigger'] != 'tvFocus';
+      final isVisibilityTrigger = collapsible?['trigger'] == null;
       final enabled = Utils.getBool(collapsible?['enabled'], fallback: false);
       if (enabled && isVisibilityTrigger) {
         _initializeLastKnownHeaderVisible();
@@ -700,7 +700,7 @@ class PageState extends State<Page>
 
     // Collapsible header support
     final bool collapsibleEnabled =
-        collapsible?['trigger'] != 'tvFocus' &&
+        collapsible?['trigger'] == null &&
             Utils.getBool(collapsible?['enabled'], fallback: false);
     bool isHeaderVisible = true;
     if (collapsibleEnabled) {

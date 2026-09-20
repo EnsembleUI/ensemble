@@ -84,7 +84,7 @@
                 },
                 "collapsibleHeader": {
                   "type": "object",
-                  "description": "Controls header collapse. With trigger: visibility (or omitted), the existing visible expression shows or hides the header. With trigger: tvFocus, TV renders titleWidget while focus is in the header and collapsedTitleWidget at collapsedBarHeight when focus moves to the body. The collapsed layout must contain a focusable element so focus can re-enter the header. Non-TV devices always render the expanded layout.",
+                  "description": "Controls header collapse. When trigger is omitted, the existing visible expression shows or hides the header. With trigger: tvFocus, TV renders titleWidget while focus is in the header and collapsedTitleWidget at collapsedBarHeight when focus moves to the body. The collapsed layout must contain a focusable element so focus can re-enter the header. Non-TV devices always render the expanded layout.",
                   "properties": {
                     "enabled": {
                       "type": "boolean",
@@ -92,11 +92,11 @@
                     },
                     "trigger": {
                       "type": "string",
-                      "enum": ["visibility", "tvFocus"],
-                      "description": "Collapse trigger. Omit or use visibility for the existing visible-expression behavior; tvFocus is TV only."
+                      "enum": ["tvFocus"],
+                      "description": "TV-only focus-collapse trigger. Omit this property for the existing visible-expression behavior."
                     },
                     "visible": {
-                      "description": "Existing visibility expression. Used only when trigger is visibility or omitted."
+                      "description": "Existing visibility expression. Used only when trigger is omitted."
                     },
                     "duration": {
                       "type": "integer",
