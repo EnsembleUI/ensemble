@@ -18,7 +18,7 @@ View:
     styles:
       collapsibleHeader:
         enabled: true
-        trigger: tvFocus
+        trigger: focus
         duration: 0
       collapsedBarHeight: 48
   styles:
@@ -36,7 +36,7 @@ View:
     expect(model.headerModel?.titleWidget?.type, 'Text');
     expect(model.headerModel?.collapsedTitleWidget?.type, 'Text');
     expect(model.headerModel?.inlineStyles?['collapsibleHeader']['trigger'],
-        'tvFocus');
+        'focus');
     expect(model.headerModel?.inlineStyles?['collapsibleHeader']['duration'], 0);
     expect(model.headerModel?.inlineStyles?['collapsedBarHeight'], 48);
     expect(model.backgroundWidget?.type, 'Container');
@@ -63,5 +63,27 @@ View:
     expect(collapsible['enabled'], isTrue);
     expect(collapsible['visible'], r'${app.showHeader}');
     expect(collapsible.containsKey('trigger'), isFalse);
+  });
+
+  test('parses the default collapsible header trigger', () {
+    final model = ScreenDefinition(loadYaml('''
+View:
+  header:
+    title: Browse
+    styles:
+      collapsibleHeader:
+        enabled: true
+        trigger: default
+        visible: \${app.showHeader}
+  body:
+    Column:
+      children:
+        - Text:
+            text: Body
+''')).getModel(null) as SinglePageModel;
+
+    final collapsible = model.headerModel?.inlineStyles?['collapsibleHeader'];
+    expect(collapsible['trigger'], 'default');
+    expect(collapsible['visible'], r'${app.showHeader}');
   });
 }

@@ -34,7 +34,7 @@
             },
             "collapsedTitleWidget": {
               "$ref": "#/$defs/Widget",
-              "description": "TV only. Content rendered instead of the title while the header is collapsed (focus is outside the header). Used together with styles.collapsibleHeader.trigger: tvFocus. On non-TV devices the expanded title is always used."
+              "description": "TV only. Content rendered instead of the title while the header is collapsed (focus is outside the header). Used together with styles.collapsibleHeader.trigger: focus. On non-TV devices the expanded title is always used."
             },
             "styles": {
               "type": "object",
@@ -79,12 +79,12 @@
                 },
                 "collapsedBarHeight": {
                   "type": "integer",
-                  "description": "TV only. Header height used while the header is collapsed (focus is outside the header). Requires styles.collapsibleHeader.trigger: tvFocus. Falls back to titleBarHeight when omitted.",
+                  "description": "TV only. Header height used while the header is collapsed (focus is outside the header). Requires styles.collapsibleHeader.trigger: focus. Falls back to titleBarHeight when omitted.",
                   "minimum": 0
                 },
                 "collapsibleHeader": {
                   "type": "object",
-                  "description": "Controls header collapse. When trigger is omitted, the existing visible expression shows or hides the header. With trigger: tvFocus, TV renders titleWidget while focus is in the header and collapsedTitleWidget at collapsedBarHeight when focus moves to the body. The collapsed layout must contain a focusable element so focus can re-enter the header. Non-TV devices always render the expanded layout.",
+                  "description": "Controls header collapse. With trigger: default, the existing visible expression shows or hides the header. With trigger: focus, TV renders titleWidget while focus is in the header and collapsedTitleWidget at collapsedBarHeight when focus moves to the body. The collapsed layout must contain a focusable element so focus can re-enter the header. Non-TV devices always render the expanded layout.",
                   "properties": {
                     "enabled": {
                       "type": "boolean",
@@ -92,11 +92,11 @@
                     },
                     "trigger": {
                       "type": "string",
-                      "enum": ["tvFocus"],
-                      "description": "TV-only focus-collapse trigger. Omit this property for the existing visible-expression behavior."
+                      "enum": ["default", "focus"],
+                      "description": "default uses the existing visible-expression behavior. focus is TV-only and collapses based on header focus."
                     },
                     "visible": {
-                      "description": "Existing visibility expression. Used only when trigger is omitted."
+                      "description": "Existing visibility expression. Used when trigger is default or omitted for backward compatibility."
                     },
                     "duration": {
                       "type": "integer",

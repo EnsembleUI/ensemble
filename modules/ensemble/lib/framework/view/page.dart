@@ -113,7 +113,7 @@ class PageState extends State<Page>
   Timer? _headerVisibilityPollTimer;
 
   // TV focus-aware header. When the header opts in via
-  // styles.collapsibleHeader.trigger: tvFocus (TV only), it renders an expanded
+  // styles.collapsibleHeader.trigger: focus (TV only), it renders an expanded
   // layout while focus is inside the header region and a collapsed layout
   // once focus moves to the body. The scope node tracks descendant focus and
   // is NOT registered in the host focus grid, so it adds no D-pad target.
@@ -481,7 +481,7 @@ class PageState extends State<Page>
           _scopeManager.dataContext, widget._pageModel.headerModel!);
       final collapsible = headerStyles?['collapsibleHeader'];
       _tvFocusCollapseEnabled = Device().isTV &&
-          collapsible?['trigger'] == 'tvFocus' &&
+          collapsible?['trigger'] == 'focus' &&
           Utils.getBool(collapsible?['enabled'], fallback: false);
       final animDurationMs = Utils.optionalInt(collapsible?['duration']);
       if (animDurationMs != null && animDurationMs >= 0) {
@@ -512,7 +512,8 @@ class PageState extends State<Page>
       final _headerStyles = EnsembleThemeManager().getRuntimeStyles(
           _scopeManager.dataContext, widget._pageModel.headerModel!);
       final collapsible = _headerStyles?['collapsibleHeader'];
-      final isVisibilityTrigger = collapsible?['trigger'] == null;
+      final isVisibilityTrigger = collapsible?['trigger'] == null ||
+          collapsible?['trigger'] == 'default';
       final enabled = Utils.getBool(collapsible?['enabled'], fallback: false);
       if (enabled && isVisibilityTrigger) {
         _initializeLastKnownHeaderVisible();
@@ -591,7 +592,7 @@ class PageState extends State<Page>
     // while focus is inside it. Non-TV always keeps the expanded layout.
     final collapsible = evaluatedHeader?['collapsibleHeader'];
     final bool tvFocusCollapseEnabled = _tvFocusCollapseEnabled &&
-        collapsible?['trigger'] == 'tvFocus' &&
+        collapsible?['trigger'] == 'focus' &&
         Utils.getBool(collapsible?['enabled'], fallback: false);
     final bool headerExpanded = !tvFocusCollapseEnabled ||
         _headerExpanded ||
@@ -700,7 +701,8 @@ class PageState extends State<Page>
 
     // Collapsible header support
     final bool collapsibleEnabled =
-        collapsible?['trigger'] == null &&
+        (collapsible?['trigger'] == null ||
+            collapsible?['trigger'] == 'default') &&
             Utils.getBool(collapsible?['enabled'], fallback: false);
     bool isHeaderVisible = true;
     if (collapsibleEnabled) {
